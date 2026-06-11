@@ -16,7 +16,7 @@ import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from enum import Enum
 from pathlib import Path
-from typing import Literal
+from typing import Callable, Literal
 
 import requests
 from pydantic import BaseModel, ConfigDict
@@ -127,6 +127,108 @@ MODEL_URLS: dict[str, str] = {
 
 
 # ---------------------------------------------------------------------------
+# Model catalog (built from @catalog_model-decorated ModelSpec factories)
+# ---------------------------------------------------------------------------
+
+CatalogRole = Literal["detector", "pose", "one_stage_body"]
+
+_CATALOG_META_ATTR = "__catalog_meta__"
+
+
+def catalog_model(model_id: str, display_name: str, role: CatalogRole):
+    def decorator(fn: Callable[..., "ModelSpec"]):
+        setattr(fn, _CATALOG_META_ATTR, (model_id, display_name, role))
+        return fn
+
+    return decorator
+
+
+class ModelCatalogEntry(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    display_name: str
+    role: CatalogRole
+    input_size: tuple[int, int]
+    format: Literal["onnx", "pth", "pt", "engine"] = "onnx"
+
+
+class PoseModelInfo(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    display_name: str
+    input_size: tuple[int, int]
+    requires_detector: bool
+    format: Literal["onnx", "pth", "pt", "engine"] = "onnx"
+
+
+class ModelRegistryEntry(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    display_name: str
+    role: CatalogRole
+    spec: "ModelSpec"
+
+
+def _validate_registry_entry(model_id: str, entry: ModelRegistryEntry) -> None:
+    if model_id not in MODEL_URLS:
+        raise ValueError(f"Catalog model {model_id!r} missing from MODEL_URLS")
+    url = entry.spec.source.url
+    if url is None or MODEL_URLS[model_id] != url:
+        raise ValueError(f"Catalog model {model_id!r} URL does not match MODEL_URLS")
+
+
+def _catalog_factory_fn(attr: object):
+    """Return the underlying function for a ModelSpec factory descriptor."""
+    if isinstance(attr, classmethod):
+        return attr.__func__
+    fn = getattr(attr, "__func__", None)
+    if fn is not None and callable(attr):
+        return fn
+    return None
+
+
+def _build_model_registry() -> dict[str, ModelRegistryEntry]:
+    registry: dict[str, ModelRegistryEntry] = {}
+    for attr_name in dir(ModelSpec):
+        if attr_name.startswith("_"):
+            continue
+        attr = getattr(ModelSpec, attr_name)
+        fn = _catalog_factory_fn(attr)
+        if fn is None:
+            continue
+        meta = getattr(fn, _CATALOG_META_ATTR, None)
+        if meta is None:
+            continue
+        model_id, display_name, role = meta
+        spec = attr()
+        entry = ModelRegistryEntry(
+            id=model_id,
+            display_name=display_name,
+            role=role,
+            spec=spec,
+        )
+        _validate_registry_entry(model_id, entry)
+        registry[model_id] = entry
+    return registry
+
+
+def _build_model_catalog(registry: dict[str, ModelRegistryEntry]) -> dict[str, ModelCatalogEntry]:
+    return {
+        model_id: ModelCatalogEntry(
+            id=entry.id,
+            display_name=entry.display_name,
+            role=entry.role,
+            input_size=entry.spec.input_size,
+            format=entry.spec.format,
+        )
+        for model_id, entry in registry.items()
+    }
+
+
+# ---------------------------------------------------------------------------
 # Model source descriptor
 # ---------------------------------------------------------------------------
 
@@ -224,6 +326,7 @@ class ModelSpec(BaseModel):
     # -- Body (RTMO one-stage) ---------------------------------------------
 
     @classmethod
+    @catalog_model("rtmo-s", "RTMO-S", "one_stage_body")
     def rtmo_light(cls) -> "ModelSpec":
         return cls(
             source=ModelSource(url=MODEL_URLS["rtmo-s"]),
@@ -233,6 +336,7 @@ class ModelSpec(BaseModel):
         )
 
     @classmethod
+    @catalog_model("rtmo-m", "RTMO-M", "one_stage_body")
     def rtmo_medium(cls) -> "ModelSpec":
         return cls(
             source=ModelSource(url=MODEL_URLS["rtmo-m"]),
@@ -242,6 +346,7 @@ class ModelSpec(BaseModel):
         )
 
     @classmethod
+    @catalog_model("rtmo-l", "RTMO-L", "one_stage_body")
     def rtmo_heavy(cls) -> "ModelSpec":
         return cls(
             source=ModelSource(url=MODEL_URLS["rtmo-l"]),
@@ -253,6 +358,7 @@ class ModelSpec(BaseModel):
     # -- Hand (RTMPose SIMCC) ----------------------------------------------
 
     @classmethod
+    @catalog_model("rtmpose-hand", "RTMPose Hand", "pose")
     def rtmpose_hand(cls) -> "ModelSpec":
         return cls(
             source=ModelSource(url=MODEL_URLS["rtmpose-hand"]),
@@ -267,11 +373,75 @@ class ModelSpec(BaseModel):
     # -- Face (RTMPose SIMCC, LaPa 106-point) ------------------------------
 
     @classmethod
+    @catalog_model("rtmpose-face", "RTMPose Face", "pose")
     def rtmpose_face(cls) -> "ModelSpec":
         return cls(
             source=ModelSource(url=MODEL_URLS["rtmpose-face"]),
             input_size=(256, 256),
             num_keypoints=106,
+            preprocess_mode="rtmpose_letterbox",
+            mean=(123.675, 116.28, 103.53),
+            std=(58.395, 57.12, 57.375),
+            simcc_split_ratio=2.0,
+        )
+
+    # -- YOLOX detection ---------------------------------------------------
+
+    @classmethod
+    @catalog_model("yolox-tiny", "YOLOX-Tiny", "detector")
+    def yolox_tiny(cls) -> "ModelSpec":
+        return cls(
+            source=ModelSource(url=MODEL_URLS["yolox-tiny"]),
+            input_size=(416, 416),
+            num_keypoints=0,
+            preprocess_mode="simple_letterbox",
+        )
+
+    @classmethod
+    @catalog_model("yolox-m", "YOLOX-M", "detector")
+    def yolox_m(cls) -> "ModelSpec":
+        return cls(
+            source=ModelSource(url=MODEL_URLS["yolox-m"]),
+            input_size=(640, 640),
+            num_keypoints=0,
+            preprocess_mode="simple_letterbox",
+        )
+
+    # -- RTMW wholebody (133 kpt) ------------------------------------------
+
+    @classmethod
+    @catalog_model("rtmw-l-m_256x192", "RTMW-L-M 256x192", "pose")
+    def rtmw_l_m_256x192(cls) -> "ModelSpec":
+        return cls(
+            source=ModelSource(url=MODEL_URLS["rtmw-l-m_256x192"]),
+            input_size=(192, 256),
+            num_keypoints=133,
+            preprocess_mode="rtmpose_letterbox",
+            mean=(123.675, 116.28, 103.53),
+            std=(58.395, 57.12, 57.375),
+            simcc_split_ratio=2.0,
+        )
+
+    @classmethod
+    @catalog_model("rtmw-x-l_256x192", "RTMW-X-L 256x192", "pose")
+    def rtmw_x_l_256x192(cls) -> "ModelSpec":
+        return cls(
+            source=ModelSource(url=MODEL_URLS["rtmw-x-l_256x192"]),
+            input_size=(192, 256),
+            num_keypoints=133,
+            preprocess_mode="rtmpose_letterbox",
+            mean=(123.675, 116.28, 103.53),
+            std=(58.395, 57.12, 57.375),
+            simcc_split_ratio=2.0,
+        )
+
+    @classmethod
+    @catalog_model("rtmw-x-l_384x288", "RTMW-X-L 384x288", "pose")
+    def rtmw_x_l_384x288(cls) -> "ModelSpec":
+        return cls(
+            source=ModelSource(url=MODEL_URLS["rtmw-x-l_384x288"]),
+            input_size=(288, 384),
+            num_keypoints=133,
             preprocess_mode="rtmpose_letterbox",
             mean=(123.675, 116.28, 103.53),
             std=(58.395, 57.12, 57.375),
@@ -362,6 +532,28 @@ class ModelSpec(BaseModel):
             num_keypoints=6,
             preprocess_mode="mediapipe",
         )
+
+
+MODEL_REGISTRY: dict[str, ModelRegistryEntry] = _build_model_registry()
+MODEL_CATALOG: dict[str, ModelCatalogEntry] = _build_model_catalog(MODEL_REGISTRY)
+
+
+def list_detection_models() -> list[ModelCatalogEntry]:
+    return [entry for entry in MODEL_CATALOG.values() if entry.role == "detector"]
+
+
+def list_pose_models() -> list[PoseModelInfo]:
+    return [
+        PoseModelInfo(
+            id=entry.id,
+            display_name=entry.display_name,
+            input_size=entry.input_size,
+            requires_detector=entry.role == "pose",
+            format=entry.format,
+        )
+        for entry in MODEL_CATALOG.values()
+        if entry.role in ("pose", "one_stage_body")
+    ]
 
 
 # ==========================================================================
