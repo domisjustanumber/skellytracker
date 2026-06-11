@@ -377,23 +377,26 @@ def ensure_trt_rtx_ep_available() -> None:
 
 
 def prepare_ort_providers_for_probe() -> set[str]:
-    """Return installed ORT EP names; gated CUDA/TRT-RTX preload for introspection (Feature 4).
+    """Return installed ORT EP names; gated CUDA/TRT-RTX preload for introspection.
 
-    Safe stub for Feature 0: only preloads when CUDA-family EPs are already reported
-    by ORT, or when the TRT-RTX pip package is installed.
+    Only loads CUDA DLLs when a CUDA-family EP is already reported by ORT.
+    Skips CUDA preload on macOS CoreML-only and Windows DirectML-only installs.
     """
-    available = set(ort.get_available_providers())
+    available_ort = set(ort.get_available_providers())
     cuda_family_ort = {
         "CUDAExecutionProvider",
         "TensorrtExecutionProvider",
         "NvTensorRTRTXExecutionProvider",
     }
-    if available & cuda_family_ort or _trt_rtx_ep_package_installed():
+    if available_ort & cuda_family_ort:
         ensure_cuda_dlls_loaded()
-        if _trt_rtx_ep_package_installed():
-            ensure_trt_rtx_ep_available()
-        available = set(ort.get_available_providers())
-    return available
+        available_ort = set(ort.get_available_providers())
+
+    if sys.platform != "darwin" and _trt_rtx_ep_package_installed():
+        ensure_trt_rtx_ep_available()
+        available_ort = set(ort.get_available_providers())
+
+    return available_ort
 
 
 def validate_engine_cache(engine_cache_dir: Path) -> None:
