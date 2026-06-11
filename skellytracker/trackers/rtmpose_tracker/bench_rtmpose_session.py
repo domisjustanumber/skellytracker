@@ -25,10 +25,11 @@ from __future__ import annotations
 import argparse
 import logging
 import time
-from typing import Literal
+from typing import get_args
 
 import numpy as np
 
+from skellytracker.utilities.gpu_utils.ort_session_utils import ExecutionProviderName
 from skellytracker.trackers.rtmpose_tracker.rtmpose_session import (
     RTMPoseSession,
     RTMPoseSessionConfig,
@@ -56,7 +57,7 @@ def _make_synthetic_image(h: int, w: int, seed: int) -> np.ndarray:
 def run(
         *,
         mode: Literal["performance", "lightweight", "balanced"],
-        provider: Literal["trt", "cuda", "cpu"],
+        provider: ExecutionProviderName,
         batch_sizes: list[int],
         iterations: int,
         image_h: int,
@@ -121,7 +122,11 @@ def run(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=["performance", "lightweight", "balanced"], default="lightweight")
-    parser.add_argument("--provider", choices=["trt", "cuda", "cpu"], default="cuda")
+    parser.add_argument(
+        "--provider",
+        choices=list(get_args(ExecutionProviderName)),
+        default="cuda",
+    )
     parser.add_argument("--batch-sizes", type=int, nargs="+", default=[1, 2, 3, 4])
     parser.add_argument("--iterations", type=int, default=50)
     parser.add_argument("--image-h", type=int, default=720)

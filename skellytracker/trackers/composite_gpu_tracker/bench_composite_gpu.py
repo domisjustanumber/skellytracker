@@ -22,11 +22,12 @@ import argparse
 import logging
 import os
 import time
-from typing import Literal
+from typing import get_args
 
 import numpy as np
 
 from skellytracker.utilities.gpu_utils.model_registry import ModelSource, ModelSpec
+from skellytracker.utilities.gpu_utils.ort_session_utils import ExecutionProviderName
 from skellytracker.trackers.composite_gpu_tracker.composite_gpu_session import (
     CompositeGPUSession,
     CompositeGPUSessionConfig,
@@ -53,7 +54,7 @@ def _make_synthetic_image(h: int, w: int, seed: int) -> np.ndarray:
 
 def run(
     *,
-    provider: Literal["trt", "cuda", "cpu"],
+    provider: ExecutionProviderName,
     batch_sizes: list[int],
     iterations: int,
     image_h: int,
@@ -146,7 +147,11 @@ def run(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--provider", choices=["trt", "cuda", "cpu"], default="cuda")
+    parser.add_argument(
+        "--provider",
+        choices=list(get_args(ExecutionProviderName)),
+        default="cuda",
+    )
     parser.add_argument("--batch-sizes", type=int, nargs="+", default=[1, 2, 3, 4])
     parser.add_argument("--iterations", type=int, default=50)
     parser.add_argument("--image-h", type=int, default=720)

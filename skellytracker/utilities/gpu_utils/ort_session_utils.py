@@ -9,8 +9,8 @@ for now. When TRT is needed, callers can enable it via provider="trt".
 """
 
 import ctypes
+import importlib.util
 import logging
-import os
 import sys
 import time
 from pathlib import Path
@@ -189,7 +189,60 @@ def select_best_cuda_device_id() -> int:
     _print_device_survey(rows, best_idx, best_name, best_mib, reason)
     return best_idx
 
-ExecutionProviderName = Literal["trt", "cuda", "cpu"]
+ExecutionProviderName = Literal["trt-trx", "trt", "cuda", "cpu"]
+
+_ORT_PROVIDER_NEEDS: dict[ExecutionProviderName, str] = {
+    "trt-trx": "NvTensorRTRTXExecutionProvider",
+    "trt": "TensorrtExecutionProvider",
+    "cuda": "CUDAExecutionProvider",
+    "cpu": "CPUExecutionProvider",
+}
+
+_FALLBACK_CHAINS: dict[ExecutionProviderName, list[ExecutionProviderName]] = {
+    "trt-trx": ["trt-trx", "cuda", "cpu"],
+    "trt": ["trt", "cuda", "cpu"],
+    "cuda": ["cuda", "cpu"],
+    "cpu": ["cpu"],
+}
+
+CUDA_FAMILY_PROVIDERS: frozenset[ExecutionProviderName] = frozenset(
+    {"trt-trx", "trt", "cuda"}
+)
+TRT_FAMILY_PROVIDERS: frozenset[ExecutionProviderName] = frozenset({"trt-trx", "trt"})
+TRT_POSE_DETECTOR_PROVIDERS: frozenset[ExecutionProviderName] = frozenset(
+    {"trt-trx", "trt"}
+)
+
+
+def provider_needs_cuda_preload(provider: ExecutionProviderName) -> bool:
+    return provider in CUDA_FAMILY_PROVIDERS
+
+
+def provider_needs_cuda_device_select(provider: ExecutionProviderName) -> bool:
+    """Auto-select GPU via select_best_cuda_device_id() when device_id is None."""
+    return provider in CUDA_FAMILY_PROVIDERS
+
+
+def provider_uses_trt_engine_cache(provider: ExecutionProviderName) -> bool:
+    """First-run TRT compile warning + .engine cache probe in warmup."""
+    return provider in TRT_FAMILY_PROVIDERS
+
+
+def resolve_yolox_provider(active_provider: ExecutionProviderName) -> ExecutionProviderName:
+    """Map pose-session EP → YOLOX detector EP.
+
+    YOLOX ONNX has NMS baked in — it cannot use TensorRT / TRT-RTX EPs.
+    """
+    if active_provider in TRT_POSE_DETECTOR_PROVIDERS:
+        return "cuda"
+    return active_provider
+
+
+def _platform_auto_chain() -> list[ExecutionProviderName]:
+    """OS-first default chain when requested=None (Feature 1 extends darwin)."""
+    if sys.platform == "darwin":
+        return ["cpu"]
+    return ["trt-trx", "trt", "cuda", "cpu"]
 
 
 # =============================================================================
@@ -199,38 +252,43 @@ ExecutionProviderName = Literal["trt", "cuda", "cpu"]
 
 def resolve_provider(
     *,
-    requested: ExecutionProviderName,
+    requested: ExecutionProviderName | None = None,
     on_missing: Literal["fallback", "raise"] = "fallback",
+    available_ort: set[str] | None = None,
 ) -> ExecutionProviderName:
-    """Pick the actual EP to use given what's available.
+    """Pick the EP to use.
 
-    Falls back trt -> cuda -> cpu unless on_missing="raise".
+    requested=None → auto: walk _platform_auto_chain(), return first available.
+    requested=<id> → walk _FALLBACK_CHAINS[requested] for that provider only.
     """
-    available = set(ort.get_available_providers())
-    needs = {
-        "trt": "TensorrtExecutionProvider",
-        "cuda": "CUDAExecutionProvider",
-        "cpu": "CPUExecutionProvider",
-    }
-    if needs[requested] in available:
-        return requested
-    if on_missing == "raise":
-        raise RuntimeError(
-            f"Requested execution_provider={requested!r} but ONNX Runtime "
-            f"only sees providers={sorted(available)}. Install onnxruntime-gpu "
-            f"(and a TensorRT-enabled build for trt) to enable GPU execution."
-        )
-    fallback_order: list[ExecutionProviderName] = ["trt", "cuda", "cpu"]
-    start = fallback_order.index(requested)
-    for candidate in fallback_order[start:]:
-        if needs[candidate] in available:
-            if candidate != requested:
+    if available_ort is None:
+        available_ort = set(ort.get_available_providers())
+
+    if requested is None:
+        chain = _platform_auto_chain()
+        explicit = None
+    else:
+        chain = _FALLBACK_CHAINS[requested]
+        explicit = requested
+
+    for candidate in chain:
+        if _ORT_PROVIDER_NEEDS[candidate] in available_ort:
+            if explicit is not None and candidate != explicit and on_missing == "fallback":
                 logger.warning(
-                    f"Requested execution_provider={requested!r} not available "
-                    f"({sorted(available)}); falling back to {candidate!r}."
+                    f"Requested execution_provider={explicit!r} not available "
+                    f"({sorted(available_ort)}); falling back to {candidate!r}."
                 )
             return candidate
-    raise RuntimeError(f"No supported ONNX Runtime providers found: {sorted(available)}")
+
+    if on_missing == "raise" and explicit is not None:
+        raise RuntimeError(
+            f"Requested execution_provider={explicit!r} but ONNX Runtime "
+            f"only sees providers={sorted(available_ort)}. Install onnxruntime-gpu "
+            f"(and a TensorRT-enabled build for trt) to enable GPU execution."
+        )
+    raise RuntimeError(
+        f"No supported ONNX Runtime providers found: {sorted(available_ort)}"
+    )
 
 
 # =============================================================================
@@ -261,6 +319,81 @@ def cuda_provider_options(*, gpu_mem_limit: int = 2 * 1024 * 1024 * 1024, device
 
 def _default_engine_cache_dir() -> Path:
     return Path.home() / ".cache" / "skellytracker" / "trt_engines"
+
+
+def resolve_engine_cache_dir(
+    base_dir: Path,
+    provider: ExecutionProviderName,
+) -> Path:
+    """Return provider-specific cache dir under base. Non-TRT providers return base unchanged."""
+    if provider == "trt-trx":
+        return base_dir / "rtx"
+    if provider == "trt":
+        return base_dir / "classic"
+    return base_dir
+
+
+def migrate_legacy_trt_engine_cache(base_dir: Path) -> None:
+    """Move legacy flat ``*.engine`` files at base_dir root into base_dir/classic/.
+
+    Idempotent — safe to call on every TRT-family session build.
+    """
+    classic_dir = base_dir / "classic"
+    classic_dir.mkdir(parents=True, exist_ok=True)
+    for engine_path in base_dir.glob("*.engine"):
+        target = classic_dir / engine_path.name
+        if not target.exists():
+            engine_path.rename(target)
+
+
+def _trt_rtx_ep_package_installed() -> bool:
+    return importlib.util.find_spec("onnxruntime_ep_nv_tensorrt_rtx_cu12") is not None
+
+
+def ensure_trt_rtx_ep_available() -> None:
+    """Load and register the TRT-RTX EP plugin when the pip package is installed."""
+    if not _trt_rtx_ep_package_installed():
+        return
+    ort.preload_dlls()
+    register = getattr(ort, "register_execution_provider_library", None)
+    if register is None:
+        return
+    try:
+        spec = importlib.util.find_spec("onnxruntime_ep_nv_tensorrt_rtx_cu12")
+        if spec is None or not spec.submodule_search_locations:
+            return
+        pkg_root = Path(spec.submodule_search_locations[0])
+        dll_names = (
+            "onnxruntime_providers_nv_tensorrt_rtx.dll",
+            "libonnxruntime_providers_nv_tensorrt_rtx.so",
+        )
+        for dll_name in dll_names:
+            matches = list(pkg_root.rglob(dll_name))
+            if matches:
+                register("NvTensorRTRTXExecutionProvider", str(matches[0]))
+                break
+    except Exception as exc:
+        logger.debug("TRT-RTX EP registration skipped: %s", exc)
+
+
+def prepare_ort_providers_for_probe() -> set[str]:
+    """Return installed ORT EP names; gated CUDA/TRT-RTX preload for introspection (Feature 4).
+
+    Safe stub for Feature 0: only preloads when CUDA-family EPs are already reported
+    by ORT, or when the TRT-RTX pip package is installed.
+    """
+    available = set(ort.get_available_providers())
+    cuda_family_ort = {
+        "CUDAExecutionProvider",
+        "TensorrtExecutionProvider",
+        "NvTensorRTRTXExecutionProvider",
+    }
+    if available & cuda_family_ort or _trt_rtx_ep_package_installed():
+        ensure_cuda_dlls_loaded()
+        if _trt_rtx_ep_package_installed():
+            ensure_trt_rtx_ep_available()
+        available = set(ort.get_available_providers())
+    return available
 
 
 def validate_engine_cache(engine_cache_dir: Path) -> None:
@@ -388,18 +521,35 @@ def build_tuned_ort_session(
         engine_cache_dir = engine_cache_dir / "dynbatch_v1"
         engine_cache_dir.mkdir(parents=True, exist_ok=True)
 
-    if provider == "trt":
-        validate_engine_cache(engine_cache_dir)
-
     providers: list[tuple[str, dict] | str] = []
-    if provider == "trt":
+    if provider == "trt-trx":
+        migrate_legacy_trt_engine_cache(engine_cache_dir)
+        cache_dir = resolve_engine_cache_dir(engine_cache_dir, provider)
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        trt_rtx_options: dict[str, Any] = {
+            "device_id": device_id,
+            "nv_runtime_cache_path": str(cache_dir),
+        }
+        providers.append(("NvTensorRTRTXExecutionProvider", trt_rtx_options))
+        providers.append(
+            (
+                "CUDAExecutionProvider",
+                cuda_provider_options(gpu_mem_limit=gpu_mem_limit, device_id=device_id),
+            )
+        )
+        providers.append("CPUExecutionProvider")
+    elif provider == "trt":
+        migrate_legacy_trt_engine_cache(engine_cache_dir)
+        cache_dir = resolve_engine_cache_dir(engine_cache_dir, provider)
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        validate_engine_cache(cache_dir)
         trt_options: dict[str, Any] = {
             "trt_device_id": device_id,
             "trt_fp16_enable": fp16,
             "trt_engine_cache_enable": True,
-            "trt_engine_cache_path": str(engine_cache_dir),
+            "trt_engine_cache_path": str(cache_dir),
             "trt_timing_cache_enable": True,
-            "trt_timing_cache_path": str(engine_cache_dir),
+            "trt_timing_cache_path": str(cache_dir),
             "trt_max_workspace_size": 2 * 1024 * 1024 * 1024,
         }
         if trt_set_batch_profile and max_batch_size is not None:
@@ -410,7 +560,12 @@ def build_tuned_ort_session(
                 )
             )
         providers.append(("TensorrtExecutionProvider", trt_options))
-        providers.append(("CUDAExecutionProvider", cuda_provider_options(gpu_mem_limit=gpu_mem_limit, device_id=device_id)))
+        providers.append(
+            (
+                "CUDAExecutionProvider",
+                cuda_provider_options(gpu_mem_limit=gpu_mem_limit, device_id=device_id),
+            )
+        )
         providers.append("CPUExecutionProvider")
     elif provider == "cuda":
         providers.append(("CUDAExecutionProvider", cuda_provider_options(gpu_mem_limit=gpu_mem_limit, device_id=device_id)))
@@ -424,11 +579,15 @@ def build_tuned_ort_session(
         log_label, provider, device_id, provider_names,
     )
 
-    if provider == "trt":
+    if provider in TRT_FAMILY_PROVIDERS:
+        cache_dir = resolve_engine_cache_dir(engine_cache_dir, provider)
         logger.info(
-            "  [%s] TRT session on device_id=%d (engine cache: %s) -- "
+            "  [%s] %s session on device_id=%d (engine cache: %s) -- "
             "first-run compilation can take 1-5 minutes; subsequent runs load from cache instantly.",
-            log_label, device_id, engine_cache_dir,
+            log_label,
+            "TRT-RTX" if provider == "trt-trx" else "TRT",
+            device_id,
+            cache_dir,
         )
 
     t0 = time.perf_counter()
@@ -444,10 +603,12 @@ def build_tuned_ort_session(
         "  [%s] session ready in %.1fs  device_id=%d  active providers: %s",
         log_label, elapsed_s, device_id, actual_string,
     )
-    if provider == "trt" and elapsed_s > 30:
+    if provider in TRT_FAMILY_PROVIDERS and elapsed_s > 30:
+        cache_dir = resolve_engine_cache_dir(engine_cache_dir, provider)
         logger.info(
             "  [%s] TRT engine compiled and cached to %s -- next run will load in seconds.",
-            log_label, engine_cache_dir,
+            log_label,
+            cache_dir,
         )
     return session
 

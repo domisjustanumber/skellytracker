@@ -53,7 +53,12 @@ from skellytracker.utilities.gpu_utils.ort_session_utils import (
     build_tuned_ort_session,
     ensure_cuda_dlls_loaded,
     probe_supports_batch,
+    provider_needs_cuda_device_select,
+    provider_needs_cuda_preload,
+    provider_uses_trt_engine_cache,
+    resolve_engine_cache_dir,
     resolve_provider,
+    resolve_yolox_provider,
     select_best_cuda_device_id,
     session_run_batched,
 )
@@ -182,18 +187,18 @@ class RTMPoseSession:
     def create(cls, config: RTMPoseSessionConfig | None = None) -> "RTMPoseSession":
         config = config or RTMPoseSessionConfig()
 
-        if config.execution_provider in ("trt", "cuda"):
-            ensure_cuda_dlls_loaded()
-
         active_provider = resolve_provider(
             requested=config.execution_provider,
             on_missing=config.on_provider_missing,
         )
 
+        if provider_needs_cuda_preload(active_provider):
+            ensure_cuda_dlls_loaded()
+
         # Resolve which physical GPU to use. Do this once here so every sub-session
         # lands on the same device.
         device_id = config.device_id
-        if device_id is None and active_provider in ("cuda", "trt"):
+        if device_id is None and provider_needs_cuda_device_select(active_provider):
             logger.info("RTMPoseSession: device_id not specified -- auto-selecting best CUDA device")
             device_id = select_best_cuda_device_id()
         device_id = device_id if device_id is not None else 0
@@ -233,7 +238,7 @@ class RTMPoseSession:
         # YOLOX path: rewrite the ONNX to declare a symbolic batch dim.
         # The full YOLOX ONNX has NMS baked in — build the full det_session
         # with CUDA EP even when TRT is requested.
-        det_provider = "cuda" if active_provider == "trt" else active_provider
+        det_provider = resolve_yolox_provider(active_provider)
         det_onnx_path = str(ensure_dynamic_batch(det_onnx_raw))
         det_session = build_tuned_ort_session(
             onnx_path=det_onnx_path,
@@ -268,7 +273,7 @@ class RTMPoseSession:
             )
             yolox_prenms_session = build_tuned_ort_session(
                 onnx_path=str(prenms_path),
-                provider=active_provider,
+                provider=det_provider,
                 engine_cache_dir=config.engine_cache_dir,
                 fp16=config.fp16,
                 log_label="yolox_prenms",
@@ -573,15 +578,20 @@ class RTMPoseSession:
         # TRT compiles engines lazily on the first session.run() call inside
         # predict_batch(). Detect first-run and show a prominent warning + live
         # elapsed-time ticker so users know it's working and not hung.
-        is_trt = self._active_provider == "trt"
-        has_cached_engine = is_trt and any(self.config.engine_cache_dir.glob("**/*.engine"))
-        if is_trt and not has_cached_engine:
+        uses_trt_cache = provider_uses_trt_engine_cache(self._active_provider)
+        cache_dir = resolve_engine_cache_dir(
+            self.config.engine_cache_dir,
+            self._active_provider,
+        )
+        has_cached_engine = uses_trt_cache and any(cache_dir.glob("**/*.engine"))
+        if uses_trt_cache and not has_cached_engine:
+            trt_label = "TRT-RTX" if self._active_provider == "trt-trx" else "TensorRT"
             logger.warning(
                 f"\n"
                 f"  ╔══════════════════════════════════════════════════════════════╗\n"
-                f"  ║         TensorRT FIRST-RUN ENGINE COMPILATION                ║\n"
+                f"  ║         {trt_label} FIRST-RUN ENGINE COMPILATION                ║\n"
                 f"  ╠══════════════════════════════════════════════════════════════╣\n"
-                f"  ║  TRT is compiling your models to native GPU kernels.         ║\n"
+                f"  ║  {trt_label} is compiling your models to native GPU kernels.         ║\n"
                 f"  ║  This happens ONCE and is cached for all future runs.        ║\n"
                 f"  ║  Expected time: 1–5 minutes. Do not close the process.       ║\n"
                 f"  ╚══════════════════════════════════════════════════════════════╝"
@@ -594,7 +604,7 @@ class RTMPoseSession:
             while not stop_event.wait(timeout=20):
                 elapsed = time.perf_counter() - start
                 m, s = divmod(int(elapsed), 60)
-                if is_trt and not has_cached_engine:
+                if uses_trt_cache and not has_cached_engine:
                     logger.info(f"  TRT compiling ... {m}m {s:02d}s elapsed (please wait)")
 
         ticker = threading.Thread(target=_tick, daemon=True)

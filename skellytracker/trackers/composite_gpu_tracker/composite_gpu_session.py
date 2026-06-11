@@ -47,6 +47,8 @@ from skellytracker.utilities.gpu_utils.ort_session_utils import (
     build_tuned_ort_session,
     ensure_cuda_dlls_loaded,
     probe_supports_batch,
+    provider_needs_cuda_device_select,
+    provider_needs_cuda_preload,
     resolve_provider,
     select_best_cuda_device_id,
     session_run_batched,
@@ -272,17 +274,18 @@ class CompositeGPUSession:
     @classmethod
     def create(cls, config: CompositeGPUSessionConfig | None = None) -> "CompositeGPUSession":
         config = config or CompositeGPUSessionConfig()
-        if config.execution_provider in ("trt", "cuda"):
-            ensure_cuda_dlls_loaded()
         active_provider = resolve_provider(
             requested=config.execution_provider,
             on_missing=config.on_provider_missing,  # type: ignore[arg-type]
         )
 
+        if provider_needs_cuda_preload(active_provider):
+            ensure_cuda_dlls_loaded()
+
         # Resolve which physical GPU to use. Do this once so all sub-sessions (body,
         # hand, face) land on the same device.
         device_id = config.device_id
-        if device_id is None and active_provider in ("cuda", "trt"):
+        if device_id is None and provider_needs_cuda_device_select(active_provider):
             logger.info("CompositeGPUSession: device_id not specified -- auto-selecting best CUDA device")
             device_id = select_best_cuda_device_id()
         device_id = device_id if device_id is not None else 0

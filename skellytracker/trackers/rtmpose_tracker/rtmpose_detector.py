@@ -117,6 +117,8 @@ def _verify_ort_install_sane() -> None:
 _DEVICE_TO_PROVIDER: dict[str, ExecutionProviderName] = {
     "cuda": "cuda",
     "trt": "trt",
+    "trt-trx": "trt-trx",
+    "trt_trx": "trt-trx",
     "tensorrt": "trt",
     "cpu": "cpu",
 }
