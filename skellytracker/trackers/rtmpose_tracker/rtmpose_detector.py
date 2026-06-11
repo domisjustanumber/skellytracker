@@ -1,23 +1,25 @@
-import ctypes
 import importlib.util
 import logging
-import os
-import sys
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Self
 
 import numpy as np
 import onnxruntime
 from numpy.typing import NDArray
+from pydantic import model_validator
 
 from skellytracker.trackers.base_tracker.base_tracker_abcs import BaseDetector, BaseDetectorConfig, TrackerType
 from skellytracker.trackers.rtmpose_tracker.rtmpose_observation import RTMPoseObservation
 from skellytracker.trackers.rtmpose_tracker.rtmpose_session import (
     ExecutionProviderName,
+    ModeName,
     RTMPoseSession,
     RTMPoseSessionConfig,
+    resolve_wholebody_models,
 )
+from skellytracker.utilities.gpu_utils.ort_session_utils import resolve_provider
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +49,9 @@ def _make_nvidia_pip_dlls_discoverable_on_windows() -> None:
          and never touches the filesystem search path — making this the
          bulletproof layer.
     """
+    import ctypes
+    import os
+
     spec = importlib.util.find_spec("nvidia")
     if spec is None or not spec.submodule_search_locations:
         raise RuntimeError(
@@ -63,16 +68,12 @@ def _make_nvidia_pip_dlls_discoverable_on_windows() -> None:
             f"are not installed."
         )
 
-    # Layer 1: prepend to PATH (cuDNN's internal LoadLibrary calls read this).
     bin_dir_strs = [str(d) for d in bin_dirs]
     os.environ["PATH"] = os.pathsep.join([*bin_dir_strs, os.environ.get("PATH", "")])
 
-    # Layer 2: register with Python's DLL loader for Python-side loads.
     for bin_dir in bin_dirs:
         os.add_dll_directory(str(bin_dir))
 
-    # Layer 3: proactively load every cuDNN DLL by full path so cuDNN never
-    # needs to search for them.
     cudnn_bin = nvidia_root / "cudnn" / "bin"
     if not cudnn_bin.is_dir():
         raise RuntimeError(
@@ -112,8 +113,6 @@ def _verify_ort_install_sane() -> None:
         )
 
 
-# Backwards-compatible alias maintained for existing callers / configs that
-# still pass `device="cuda"`. New code should use `execution_provider`.
 _DEVICE_TO_PROVIDER: dict[str, ExecutionProviderName] = {
     "cuda": "cuda",
     "trt": "trt",
@@ -127,18 +126,43 @@ _DEVICE_TO_PROVIDER: dict[str, ExecutionProviderName] = {
 class RTMPoseDetectorConfig(BaseDetectorConfig):
     tracker_type: Literal[TrackerType.RTMPOSE] = TrackerType.RTMPOSE
     confidence_threshold: float = 0.5
-    mode: str = "performance"
+    mode: ModeName = "performance"
     backend: str = "onnxruntime"
-    device: str = "cuda"
-    # When set, takes precedence over `device`. Drives the actual ORT provider selection.
+    device: str = "auto"
+    detector_model: str | None = None
+    pose_model: str | None = None
     execution_provider: ExecutionProviderName | None = None
-    # Which GPU to use. None = auto-select the device with the most VRAM at session creation.
     device_id: int | None = None
 
-    def resolved_provider(self) -> ExecutionProviderName:
+    def requested_provider(self) -> ExecutionProviderName | None:
+        """Explicit EP id for session config, or None for auto at session create."""
         if self.execution_provider is not None:
             return self.execution_provider
-        return _DEVICE_TO_PROVIDER.get(self.device, "cuda")
+        if self.device != "auto":
+            return _DEVICE_TO_PROVIDER.get(self.device, "cpu")
+        return None
+
+    def resolved_provider(self) -> ExecutionProviderName:
+        """Deprecated — use ``requested_provider()`` and let session create resolve."""
+        warnings.warn(
+            "RTMPoseDetectorConfig.resolved_provider() is deprecated; "
+            "use requested_provider() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        explicit = self.requested_provider()
+        if explicit is not None:
+            return explicit
+        return resolve_provider(requested=None)
+
+    @model_validator(mode="after")
+    def _validate_model_selection(self) -> Self:
+        resolve_wholebody_models(
+            mode=self.mode,
+            detector_model=self.detector_model,
+            pose_model=self.pose_model,
+        )
+        return self
 
 
 @dataclass
@@ -158,23 +182,18 @@ class RTMPoseDetector(BaseDetector):
         config = config or RTMPoseDetectorConfig()
         _verify_ort_install_sane()
 
-        provider = config.resolved_provider()
-        if provider in ("cuda", "trt") and sys.platform == "win32":
-            _make_nvidia_pip_dlls_discoverable_on_windows()
-        if provider in ("cuda", "trt"):
-            onnxruntime.preload_dlls()
-
         session = RTMPoseSession.create(
             RTMPoseSessionConfig(
-                mode=config.mode if config.mode in ("performance", "lightweight", "balanced") else "balanced",
-                execution_provider=provider,
+                mode=config.mode,
+                detector_model=config.detector_model,
+                pose_model=config.pose_model,
+                execution_provider=config.requested_provider(),
                 device_id=config.device_id,
             ),
         )
         return cls(config=config, session=session)
 
     def detect(self, frame_number: int, image: NDArray[np.uint8]) -> RTMPoseObservation:
-        # rtmlib's type stubs are incorrect — keypoints is float64 at runtime, scores is float32.
         keypoints, scores = self.session.predict_single(image)
         return RTMPoseObservation.from_detection_results(
             frame_number=frame_number,

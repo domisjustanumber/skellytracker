@@ -26,14 +26,15 @@ import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Self
 
 import numpy as np
 import onnxruntime as ort
 from numpy.typing import NDArray
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from skellytracker.utilities.gpu_utils.model_registry import (
+    MODEL_CATALOG,
     MODEL_URLS,
     ModelSource,
     resolve_model_path,
@@ -76,6 +77,10 @@ def _default_engine_cache_dir() -> Path:
     return Path.home() / ".cache" / "skellytracker" / "trt_engines"
 
 
+ModeName = Literal["performance", "lightweight", "balanced"]
+_VALID_MODES: frozenset[ModeName] = frozenset({"performance", "lightweight", "balanced"})
+
+
 class RTMPoseSessionConfig(BaseModel):
     """Configuration for a tuned RTMPose ONNX session.
 
@@ -84,8 +89,10 @@ class RTMPoseSessionConfig(BaseModel):
     """
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    mode: Literal["performance", "lightweight", "balanced"] = "balanced"
-    execution_provider: ExecutionProviderName = "trt"
+    mode: ModeName = "balanced"
+    detector_model: str | None = None
+    pose_model: str | None = None
+    execution_provider: ExecutionProviderName | None = None
     engine_cache_dir: Path = Field(default_factory=_default_engine_cache_dir)
     max_batch_size: int = 4
     fp16: bool = True
@@ -95,6 +102,15 @@ class RTMPoseSessionConfig(BaseModel):
     # Behavior when the requested provider isn't available at runtime.
     # "fallback": warn and drop down (trt -> cuda -> cpu). "raise": hard error.
     on_provider_missing: Literal["fallback", "raise"] = "fallback"
+
+    @model_validator(mode="after")
+    def _validate_model_selection(self) -> Self:
+        resolve_wholebody_models(
+            mode=self.mode,
+            detector_model=self.detector_model,
+            pose_model=self.pose_model,
+        )
+        return self
 
 
 # Mapping from RTMPoseSessionConfig.mode → (det_url_key, det_input_size,
@@ -113,6 +129,80 @@ WHOLEBODY_MODE_CONFIG: dict[str, tuple[str, tuple[int, int], str, tuple[int, int
         "rtmw-x-l_256x192", (192, 256),
     ),
 }
+
+
+def _catalog_input_size(model_id: str) -> tuple[int, int]:
+    if model_id not in MODEL_CATALOG:
+        raise ValueError(
+            f"Unknown model id {model_id!r} — valid ids: {sorted(MODEL_CATALOG)}"
+        )
+    return MODEL_CATALOG[model_id].input_size
+
+
+def _from_catalog(model_id: str) -> tuple[str, tuple[int, int]]:
+    return model_id, _catalog_input_size(model_id)
+
+
+def _validate_detector_model(model_id: str) -> None:
+    if model_id not in MODEL_CATALOG:
+        raise ValueError(
+            f"Unknown detector model id {model_id!r} — "
+            f"valid detector models: {sorted(MODEL_CATALOG)}"
+        )
+    if MODEL_CATALOG[model_id].role != "detector":
+        raise ValueError(
+            f"Model id {model_id!r} is not a detector — role={MODEL_CATALOG[model_id].role!r}"
+        )
+
+
+def _validate_pose_model(model_id: str) -> None:
+    if model_id not in MODEL_CATALOG:
+        raise ValueError(
+            f"Unknown pose model id {model_id!r} — "
+            f"valid pose models: {sorted(MODEL_CATALOG)}"
+        )
+    entry = MODEL_CATALOG[model_id]
+    if entry.role != "pose" or not model_id.startswith("rtmw-"):
+        raise ValueError(
+            f"Model id {model_id!r} is not a valid RTMPose wholebody pose model "
+            f"(expected rtmw-* with role pose)"
+        )
+
+
+def resolve_wholebody_models(
+    *,
+    mode: ModeName,
+    detector_model: str | None,
+    pose_model: str | None,
+) -> tuple[str, tuple[int, int], str, tuple[int, int]]:
+    """Resolve detector + pose model keys for RTMPose wholebody."""
+    if mode not in _VALID_MODES:
+        raise ValueError(
+            f"Invalid mode {mode!r} — must be one of {sorted(_VALID_MODES)}"
+        )
+
+    has_det = detector_model is not None
+    has_pose = pose_model is not None
+
+    if has_det:
+        _validate_detector_model(detector_model)
+    if has_pose:
+        _validate_pose_model(pose_model)
+
+    if has_det and has_pose:
+        det_key, det_size = _from_catalog(detector_model)
+        pose_key, pose_size = _from_catalog(pose_model)
+        return det_key, det_size, pose_key, pose_size
+
+    if not has_det and not has_pose:
+        return WHOLEBODY_MODE_CONFIG[mode]
+
+    mode_det, mode_det_size, mode_pose, mode_pose_size = WHOLEBODY_MODE_CONFIG[mode]
+    if has_det:
+        det_key, det_size = _from_catalog(detector_model)
+        return det_key, det_size, mode_pose, mode_pose_size
+    pose_key, pose_size = _from_catalog(pose_model)
+    return mode_det, mode_det_size, pose_key, pose_size
 
 
 @dataclass
@@ -223,10 +313,11 @@ class RTMPoseSession:
 
         config.engine_cache_dir.mkdir(parents=True, exist_ok=True)
 
-        # Resolve mode -> model URLs + input sizes
-        det_key, det_input_size, pose_key, pose_input_size = WHOLEBODY_MODE_CONFIG[
-            config.mode
-        ]
+        det_key, det_input_size, pose_key, pose_input_size = resolve_wholebody_models(
+            mode=config.mode,
+            detector_model=config.detector_model,
+            pose_model=config.pose_model,
+        )
 
         # Download both ONNX models
         det_url = MODEL_URLS[det_key]
