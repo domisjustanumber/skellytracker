@@ -65,8 +65,8 @@ requires-python = ">=3.11,<3.13"
 
 dynamic = ["version", "description"]
 
-# Extras for package consumers: `pip install skellytracker[rtmpose-gpu]`
-# Also usable in local dev: `uv sync --extra rtmpose-gpu`
+# Extras for package consumers: `pip install skellytracker[rtmpose-nvidia]`
+# Also usable in local dev: `uv sync --extra rtmpose-nvidia`
 [project.optional-dependencies]
 legacy-mediapipe = ["mediapipe==0.10.14"]
 mediapipe = ["mediapipe==0.10.33"]
@@ -223,6 +223,7 @@ markers = [
 [project.scripts]
 skellytracker = "skellytracker.__main__:cli_main"
 skellytracker_blendshapes = "skellytracker.scripts.blendshapes_to_csv:main"
+skellytracker-gpus = "skellytracker.scripts.gpus_cli:main"
 
 [tool.uv.sources]
 skellytracker-rust = { path = "skellytracker-rust" }

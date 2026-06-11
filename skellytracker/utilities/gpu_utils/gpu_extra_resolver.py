@@ -1,4 +1,4 @@
-"""Hardware-based optimal execution provider recommendations."""
+"""Hardware-based execution provider and pyproject extra recommendations."""
 
 from __future__ import annotations
 
@@ -10,7 +10,18 @@ from skellytracker.utilities.gpu_utils.gpu_enumeration import GpuInfo
 
 CatalogProviderId = Literal["trt-trx", "trt", "cuda", "coreml", "directml", "cpu"]
 
+RtmposeExtra = Literal["rtmpose", "rtmpose-nvidia", "rtmpose-trt-rtx", "rtmpose-directml"]
+
 _RTX_PRODUCT_RE = re.compile(r"\bRTX\s*\d", re.IGNORECASE)
+
+_EXTRA_FOR_EP: dict[CatalogProviderId, RtmposeExtra] = {
+  "trt-trx": "rtmpose-trt-rtx",
+  "trt": "rtmpose-nvidia",
+  "cuda": "rtmpose-nvidia",
+  "directml": "rtmpose-directml",
+  "coreml": "rtmpose",
+  "cpu": "rtmpose",
+}
 
 
 def recommend_optimal_execution_provider(gpus: list[GpuInfo]) -> CatalogProviderId:
@@ -33,3 +44,7 @@ def recommend_optimal_execution_provider(gpus: list[GpuInfo]) -> CatalogProvider
       return "directml"
 
   return "cpu"
+
+
+def recommend_rtmpose_extra(gpus: list[GpuInfo]) -> RtmposeExtra:
+  return _EXTRA_FOR_EP[recommend_optimal_execution_provider(gpus)]

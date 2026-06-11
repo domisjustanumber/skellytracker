@@ -10,7 +10,9 @@ from skellytracker.utilities.gpu_utils.execution_provider_catalog import (
 from skellytracker.utilities.gpu_utils.gpu_enumeration import GpuInfo, list_installed_gpus
 from skellytracker.utilities.gpu_utils.gpu_extra_resolver import (
   CatalogProviderId,
+  RtmposeExtra,
   recommend_optimal_execution_provider,
+  recommend_rtmpose_extra,
 )
 from skellytracker.utilities.gpu_utils.model_registry import (
   MODEL_CATALOG,
@@ -36,11 +38,13 @@ __all__ = [
   "MODEL_REGISTRY",
   "ModelCatalogEntry",
   "PoseModelInfo",
+  "RtmposeExtra",
   "list_detection_models",
   "list_execution_providers",
   "list_installed_gpus",
   "list_pose_models",
   "recommend_execution_provider",
   "recommend_optimal_execution_provider",
+  "recommend_rtmpose_extra",
   "resolve_provider",
 ]
