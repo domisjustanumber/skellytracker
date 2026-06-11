@@ -75,7 +75,16 @@ yolo = ["ultralytics~=8.0.202"]
 ## RTMPose — CPU only
 #rtmpose-cpu = ["rtmlib==0.0.14", "onnxruntime"]
 
+# RTMPose — Mac with CoreML
+rtmpose = [
+    "onnxruntime",
+    "onnx",
+]
+
 # RTMPose — NVIDIA GPU via CUDA 12
+# This will change in ONNX Runtime v1.27 onwards to:
+#   onnxruntime (no GPU built-in)
+#   CUDA 12 or 13 EP
 # Bundles the CUDA 12 + cuDNN 9 runtime DLLs as pip packages so users
 # don't need to install the CUDA Toolkit or cuDNN manually.
 # We pin to CUDA 12 libs because onnxruntime-gpu on PyPI is built against CUDA 12.
@@ -84,7 +93,7 @@ yolo = ["ultralytics~=8.0.202"]
 # CUDA >= 12 (check via `nvidia-smi`).
 # Code must call `onnxruntime.preload_dlls(directory="")` before creating a session
 # so ORT finds these pip-installed DLLs — skellytracker already does this.
-rtmpose-gpu = [
+rtmpose-nvidia = [
     "onnxruntime-gpu",
     "onnx",
     "nvidia-cuda-runtime-cu12",
@@ -94,11 +103,29 @@ rtmpose-gpu = [
 ]
 
 # RTMPose — any GPU on Windows via DirectML (AMD, Intel, NVIDIA, Qualcomm)
+# Should be switched to WinML instead of DirectML
 # No CUDA toolkit needed. Just pip install and go.
-rtmpose-directml = ["onnxruntime-directml", "onnx"]
+rtmpose-directml = [
+    "onnxruntime-directml",
+    "onnx",
+]
+
+# RTMPose — NVIDIA GPU via CUDA 12 + TensorRT-RTX (2-5x faster than CUDA EP alone)
+# Requires an RTX 30 series or later NVIDIA GPU. First run triggers engine compilation (10-20 seconds); cached thereafter.
+# Install with: uv pip install -e ".[rtmpose-trt-rtx]"
+rtmpose-trt-rtx = [
+    "onnxruntime-gpu",
+    "onnx",
+    "nvidia-cuda-runtime-cu12",
+    "nvidia-cublas-cu12",
+    "nvidia-cufft-cu12",
+    "nvidia-cudnn-cu12",
+    "onnxruntime-ep-nv-tensorrt-rtx-cu12",
+]
 
 # RTMPose — NVIDIA GPU via CUDA 12 + TensorRT (2-5x faster than CUDA EP alone)
 # Requires an NVIDIA GPU. First run triggers engine compilation (1-5 min); cached thereafter.
+# Not recommended, as the compile time can be very long (20mins+ on older GPUs). If RTX30 or later, use TRT-RTX instead.
 # Install with: uv pip install -e ".[rtmpose-trt]"
 rtmpose-trt = [
     "onnxruntime-gpu",
@@ -110,6 +137,18 @@ rtmpose-trt = [
     "tensorrt",
 ]
 
+# RTMPose — Intel iGPU or dedicated GPU via OpenVINO
+# Install with: uv pip install -e ".[rtmpose-openvino]"
+# Additional steps for Windows:
+#   pip install openvino==2025.4.1
+# Add these 2 lines in the application code
+#   import onnxruntime.tools.add_openvino_win_libs as utils
+#   utils.add_openvino_libs_to_path()
+# 
+# rtmpose-openvino = [
+#     "onnxruntime-openvino",
+# ]
+
 # RECOMMENDED - mediapipe + RTMPose with TensorRT (2-5x faster than CUDA EP alone).
 # Requires an NVIDIA GPU. First run compiles TRT engines (1-5 min); cached thereafter.
 recommended = [
@@ -120,7 +159,7 @@ recommended = [
     "nvidia-cublas-cu12",
     "nvidia-cudnn-cu12",
     "nvidia-cufft-cu12",
-    "tensorrt",
+    "onnxruntime-ep-nv-tensorrt-rtx-cu12",
 ]
 
 # Dev-only tooling: `uv sync` (installed by default via default-groups)
@@ -140,9 +179,10 @@ default-groups = ["dev"]
 
 conflicts = [
     [
-        #        { extra = "rtmpose-cpu" },
-        { extra = "rtmpose-gpu" },
+        { extra = "rtmpose" },
+        { extra = "rtmpose-nvidia" },
         { extra = "rtmpose-trt" },
+        { extra = "rtmpose-trt-rtx" },
         { extra = "rtmpose-directml" },
         { extra = "recommended" },
     ],
@@ -173,6 +213,13 @@ extend-select = ["B", "S", "C4", "ISC", "PERF"]
 [tool.ruff.lint.per-file-ignores]
 "*/tests/*" = ["S101"]
 
+[tool.pytest.ini_options]
+markers = [
+    "gpu: requires ONNX Runtime GPU execution provider and downloads models",
+    "coreml: requires macOS CoreML EP",
+    "directml: requires Windows DirectML EP",
+]
+
 [project.scripts]
 skellytracker = "skellytracker.__main__:cli_main"
 skellytracker_blendshapes = "skellytracker.scripts.blendshapes_to_csv:main"
@@ -196,4 +243,4 @@ skellytracker-rust = { path = "skellytracker-rust" }
 rebuild  = { cmd = "uv sync -v --reinstall-package skellytracker-rust --reinstall-package skellytracker", help = "Rebuild Rust engine with full cargo output" }
 lint     = { cmd = "ruff check skellytracker/", help = "Run all ruff lint rules" }
 lint-fix = { cmd = "ruff check --fix skellytracker/", help = "Auto-fix all ruff lint violations" }
-test     = { cmd = "pytest", help = "Run test suite" }
+test     = { cmd = "pytest skellytracker/tests", help = "Run test suite" }
