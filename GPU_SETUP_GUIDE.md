@@ -8,7 +8,7 @@ The setup path depends entirely on your hardware. Here's the quick version:
 
 | Your GPU | Your OS | What to install | rtmlib device | Setup difficulty |
 |---|---|---|---|---|
-| NVIDIA | Windows or Linux | `skellytracker[rtmpose-gpu]` | `cuda` | Medium (CUDA + cuDNN) |
+| NVIDIA | Windows or Linux | `skellytracker[rtmpose-nvidia]` | `cuda` | Medium (CUDA + cuDNN) |
 | AMD | Windows | `skellytracker[rtmpose-directml]` | `directml` | Easy (just pip) |
 | AMD | Linux | `skellytracker[rtmpose-cpu]` + ROCm | `rocm` | Hard (limited GPU support) |
 | Apple Silicon (M1/M2/M3/M4) | macOS | `skellytracker[rtmpose-cpu]` | `mps` | Easy (automatic) |
@@ -76,13 +76,13 @@ If PyTorch with CUDA support is already installed, `onnxruntime-gpu` can reuse P
 ### Step 3: Install SkellyTracker
 
 ```bash
-pip install skellytracker[rtmpose-gpu]
+pip install skellytracker[rtmpose-nvidia]
 ```
 
 Or combined with mediapipe:
 
 ```bash
-pip install skellytracker[mediapipe,rtmpose-gpu]
+pip install skellytracker[mediapipe,rtmpose-nvidia]
 ```
 
 ### Step 4: Verify
@@ -119,7 +119,7 @@ And update the conflicts list (since `onnxruntime`, `onnxruntime-gpu`, and `onnx
 conflicts = [
     [
         { extra = "rtmpose-cpu" },
-        { extra = "rtmpose-gpu" },
+        { extra = "rtmpose-nvidia" },
         { extra = "rtmpose-directml" },
     ],
 ]
@@ -256,7 +256,7 @@ The three GPU-related packages — `onnxruntime` (CPU), `onnxruntime-gpu` (CUDA)
 
 ```bash
 pip uninstall onnxruntime onnxruntime-gpu onnxruntime-directml
-pip install skellytracker[rtmpose-gpu]  # or whichever extra you want
+pip install skellytracker[rtmpose-nvidia]  # or whichever extra you want
 ```
 
 ### CUDA out-of-memory errors
@@ -276,10 +276,10 @@ sudo ldconfig              # update library cache if installed but not found
 
 | What you want | Install command | rtmlib device |
 |---|---|---|
-| NVIDIA GPU | `pip install skellytracker[rtmpose-gpu]` | `cuda` |
+| NVIDIA GPU | `pip install skellytracker[rtmpose-nvidia]` | `cuda` |
 | AMD/Intel GPU (Windows) | `pip install skellytracker[rtmpose-directml]` * | `directml` * |
 | Apple Silicon Mac | `pip install skellytracker[rtmpose-cpu]` | `mps` |
 | CPU (any platform) | `pip install skellytracker[rtmpose-cpu]` | `cpu` |
-| Mediapipe + NVIDIA GPU | `pip install skellytracker[mediapipe,rtmpose-gpu]` | `cuda` |
+| Mediapipe + NVIDIA GPU | `pip install skellytracker[mediapipe,rtmpose-nvidia]` | `cuda` |
 
 \* Requires adding `rtmpose-directml` extra to skellytracker's pyproject.toml and a one-line PR to rtmlib — see the DirectML section.

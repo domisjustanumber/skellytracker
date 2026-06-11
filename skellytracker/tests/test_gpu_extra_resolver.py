@@ -1,4 +1,4 @@
-"""Tests for hardware-based optimal EP recommendations (Feature 3)."""
+"""Tests for hardware-based EP and pyproject extra recommendations."""
 
 from __future__ import annotations
 
@@ -7,27 +7,33 @@ import sys
 import pytest
 
 from skellytracker.utilities.gpu_utils.gpu_enumeration import GpuInfo
-from skellytracker.utilities.gpu_utils.gpu_extra_resolver import recommend_optimal_execution_provider
+from skellytracker.utilities.gpu_utils.gpu_extra_resolver import (
+  recommend_optimal_execution_provider,
+  recommend_rtmpose_extra,
+)
 
 
 @pytest.mark.parametrize(
-  ("gpus", "platform", "expected_ep"),
+  ("gpus", "platform", "expected_ep", "expected_extra"),
   [
-    ([], "darwin", "coreml"),
+    ([], "darwin", "coreml", "rtmpose"),
     (
       [GpuInfo(id="win32:0", name="NVIDIA GeForce RTX 4090", vendor="nvidia", vram_bytes=None)],
       "win32",
       "trt-trx",
+      "rtmpose-trt-rtx",
     ),
     (
       [GpuInfo(id="win32:0", name="NVIDIA GeForce GTX 1080", vendor="nvidia", vram_bytes=None)],
       "win32",
       "cuda",
+      "rtmpose-nvidia",
     ),
     (
       [GpuInfo(id="win32:0", name="AMD Radeon RX 6800", vendor="amd", vram_bytes=None)],
       "win32",
       "directml",
+      "rtmpose-directml",
     ),
     (
       [
@@ -36,15 +42,18 @@ from skellytracker.utilities.gpu_utils.gpu_extra_resolver import recommend_optim
       ],
       "win32",
       "trt-trx",
+      "rtmpose-trt-rtx",
     ),
-    ([], "linux", "cpu"),
+    ([], "linux", "cpu", "rtmpose"),
   ],
 )
-def test_recommend_optimal_execution_provider(
+def test_recommend_optimal_and_extra(
   monkeypatch: pytest.MonkeyPatch,
   gpus: list[GpuInfo],
   platform: str,
   expected_ep: str,
+  expected_extra: str,
 ) -> None:
   monkeypatch.setattr(sys, "platform", platform)
   assert recommend_optimal_execution_provider(gpus) == expected_ep
+  assert recommend_rtmpose_extra(gpus) == expected_extra

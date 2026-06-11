@@ -80,7 +80,7 @@ Execution providers:
 - **`directml`** — DirectML for non-NVIDIA GPUs on Windows.
 - **`cpu`** — CPU fallback.
 
-The `pyproject.toml` extras (`rtmpose-gpu`, `rtmpose-trt`, `rtmpose-directml`, `recommended`) pull in the correct ONNX Runtime build and NVIDIA runtime packages. Conflicting extras are declared in `[tool.uv].conflicts`. CPU `onnxruntime` is excluded from resolution via `exclude-dependencies`.
+The `pyproject.toml` extras (`rtmpose-nvidia`, `rtmpose-trt`, `rtmpose-trt-rtx`, `rtmpose-directml`, `recommended`) pull in the correct ONNX Runtime build and NVIDIA runtime packages. Conflicting extras are declared in `[tool.uv].conflicts`. CPU `onnxruntime` is excluded from resolution via `exclude-dependencies`.
 
 ### Key structural conventions
 

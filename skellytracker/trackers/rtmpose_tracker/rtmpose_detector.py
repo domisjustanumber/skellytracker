@@ -51,8 +51,8 @@ def _make_nvidia_pip_dlls_discoverable_on_windows() -> None:
     if spec is None or not spec.submodule_search_locations:
         raise RuntimeError(
             "Could not find `nvidia` pip namespace package. "
-            "Install skellytracker with the `rtmpose-gpu` extra: "
-            "`uv sync --extra rtmpose-gpu`."
+            "Install skellytracker with the `rtmpose-nvidia` extra: "
+            "`uv sync --extra rtmpose-nvidia`."
         )
     nvidia_root = Path(spec.submodule_search_locations[0])
     bin_dirs = sorted(nvidia_root.glob("*/bin"))
