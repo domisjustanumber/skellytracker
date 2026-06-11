@@ -49,6 +49,39 @@ def test_rtx_gpu_cuda_only_shows_install_recommended(
 @patch("skellytracker.utilities.gpu_utils.execution_provider_catalog.list_installed_gpus")
 @patch("skellytracker.utilities.gpu_utils.execution_provider_catalog.prepare_ort_providers_for_probe")
 @patch("skellytracker.utilities.gpu_utils.execution_provider_catalog.ort.get_ep_devices", create=True)
+def test_insufficient_driver_cuda_flags_nvidia_eps(
+  get_ep_devices_mock: MagicMock,
+  probe_mock: MagicMock,
+  gpus_mock: MagicMock,
+  monkeypatch: pytest.MonkeyPatch,
+) -> None:
+  monkeypatch.setattr("sys.platform", "win32")
+  gpus_mock.return_value = [
+    GpuInfo(
+      id="nvidia:0",
+      name="NVIDIA GeForce RTX 4090",
+      vendor="nvidia",
+      vram_bytes=24_000_000_000,
+      driver_version="470.00",
+      cuda_driver_max=(11, 4),
+      cuda_required_min=(12, 0),
+      cuda_meets_nvidia_eps=False,
+    ),
+  ]
+  probe_mock.return_value = {"CUDAExecutionProvider", "CPUExecutionProvider"}
+  get_ep_devices_mock.return_value = []
+
+  info = list_execution_providers()
+  by_id = {p.id: p for p in info.providers}
+  assert by_id["cuda"].driver_cuda_compatible is False
+  assert by_id["trt-trx"].driver_cuda_compatible is False
+  assert by_id["cpu"].driver_cuda_compatible is None
+  assert info.install_recommended_provider_id == "trt-trx"
+
+
+@patch("skellytracker.utilities.gpu_utils.execution_provider_catalog.list_installed_gpus")
+@patch("skellytracker.utilities.gpu_utils.execution_provider_catalog.prepare_ort_providers_for_probe")
+@patch("skellytracker.utilities.gpu_utils.execution_provider_catalog.ort.get_ep_devices", create=True)
 def test_gtx_with_trt_and_cuda_optimal_differs_from_recommended(
   get_ep_devices_mock: MagicMock,
   probe_mock: MagicMock,

@@ -45,6 +45,41 @@ from skellytracker.utilities.gpu_utils.gpu_extra_resolver import (
       "rtmpose-trt-rtx",
     ),
     ([], "linux", "cpu", "rtmpose"),
+    (
+      [
+        GpuInfo(
+          id="win32:0",
+          name="Intel(R) UHD Graphics 770",
+          vendor="intel",
+          vram_bytes=None,
+          online=False,
+        ),
+        GpuInfo(
+          id="nvidia:0",
+          name="NVIDIA GeForce RTX 3070",
+          vendor="nvidia",
+          vram_bytes=8_000_000_000,
+          online=True,
+        ),
+      ],
+      "win32",
+      "trt-trx",
+      "rtmpose-trt-rtx",
+    ),
+    (
+      [
+        GpuInfo(
+          id="win32:0",
+          name="Intel(R) UHD Graphics 770",
+          vendor="intel",
+          vram_bytes=None,
+          online=False,
+        ),
+      ],
+      "win32",
+      "cpu",
+      "rtmpose",
+    ),
   ],
 )
 def test_recommend_optimal_and_extra(

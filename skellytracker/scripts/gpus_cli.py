@@ -6,7 +6,6 @@ import argparse
 import shutil
 import subprocess
 import sys
-import tomllib
 from pathlib import Path
 
 from skellytracker.utilities.gpu_utils import (
@@ -14,6 +13,8 @@ from skellytracker.utilities.gpu_utils import (
   list_installed_gpus,
   recommend_rtmpose_extra,
 )
+from skellytracker.utilities.gpu_utils.pyproject_cuda_requirements import CudaVersion
+from skellytracker.utilities.gpu_utils.pyproject_paths import find_skellytracker_project_root
 
 _RTMPose_CONFLICT_EXTRAS = frozenset({
   "rtmpose",
@@ -25,25 +26,17 @@ _RTMPose_CONFLICT_EXTRAS = frozenset({
 })
 
 
-def _find_project_root(start: Path) -> Path | None:
-  for directory in [start, *start.parents]:
-    pyproject = directory / "pyproject.toml"
-    if not pyproject.is_file():
-      continue
-    try:
-      data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
-    except (OSError, tomllib.TOMLDecodeError):
-      continue
-    if data.get("project", {}).get("name") == "skellytracker":
-      return directory
-  return None
-
-
 def _format_vram(vram_bytes: int | None) -> str:
   if vram_bytes is None:
     return "unknown"
   gib = vram_bytes / (1024 ** 3)
   return f"{gib:.1f} GiB"
+
+
+def _format_cuda(version: CudaVersion | None) -> str:
+  if version is None:
+    return "unknown"
+  return f"{version[0]}.{version[1]}"
 
 
 def _print_gpu_report() -> tuple[str, str | None]:
@@ -52,16 +45,40 @@ def _print_gpu_report() -> tuple[str, str | None]:
     print("No physical GPUs detected.")
   else:
     for gpu in gpus:
-      print(
-        f"GPU {gpu.id}: {gpu.name} "
-        f"(vendor={gpu.vendor}, vram={_format_vram(gpu.vram_bytes)})"
-      )
+      details = [
+        f"GPU {gpu.id}: {gpu.name}",
+        f"vendor={gpu.vendor}",
+        f"vram={_format_vram(gpu.vram_bytes)}",
+        f"online={'true' if gpu.online else 'false'}",
+      ]
+      if gpu.driver_version is not None:
+        details.append(f"driver={gpu.driver_version}")
+      if gpu.cuda_driver_max is not None:
+        details.append(f"cuda_max={_format_cuda(gpu.cuda_driver_max)}")
+      if gpu.cuda_required_min is not None:
+        details.append(f"cuda_required>={_format_cuda(gpu.cuda_required_min)}")
+      print(", ".join(details))
+      if gpu.cuda_meets_nvidia_eps is False:
+        print(
+          f"WARNING: NVIDIA driver CUDA max {_format_cuda(gpu.cuda_driver_max)} is below "
+          f"required {_format_cuda(gpu.cuda_required_min)} for RTMPose NVIDIA extras. "
+          "Update drivers: https://www.nvidia.com/drivers",
+          file=sys.stderr,
+        )
 
   ep_info = list_execution_providers()
   optimal = ep_info.optimal_provider_id
   installed_best = ep_info.recommended_provider_id
   print(f"Optimal EP: {optimal}")
   print(f"Installed best EP: {installed_best}")
+
+  by_id = {provider.id: provider for provider in ep_info.providers}
+  optimal_ep = by_id.get(optimal or "")
+  if optimal_ep is not None and optimal_ep.driver_cuda_compatible is False:
+    print(
+      f"WARNING: Installed NVIDIA driver does not meet CUDA requirements for optimal EP {optimal!r}.",
+      file=sys.stderr,
+    )
 
   install_hint: str | None = None
   if ep_info.install_recommended_provider_id is not None:
@@ -105,7 +122,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Unknown extra {extra!r}. Valid extras: {sorted(_RTMPose_CONFLICT_EXTRAS)}", file=sys.stderr)
     return 1
 
-  project_root = _find_project_root(Path.cwd())
+  project_root = find_skellytracker_project_root(Path.cwd())
   if project_root is None:
     print(
       "Could not find skellytracker pyproject.toml in the current directory tree. "

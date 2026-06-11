@@ -1,19 +1,29 @@
-"""OS-native GPU enumeration without CUDA, cuDNN, or ONNX Runtime.
+"""OS-native GPU enumeration without ONNX Runtime.
 
-Best-effort: subprocess / sysfs failures log a warning and return an empty list
-rather than raising. Virtual display adapters are filtered out.
+Uses ``nvidia-smi`` when available for NVIDIA GPUs (accurate VRAM, driver, CUDA max).
+Falls back to OS backends (WMI / DRM / system_profiler) for other vendors and when
+``nvidia-smi`` is absent. Best-effort: failures log a warning rather than raising.
 """
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 import logging
 import re
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, Protocol, runtime_checkable
+
+from skellytracker.utilities.gpu_utils.pyproject_cuda_requirements import (
+  CudaVersion,
+  cuda_version_ge,
+  max_nvidia_driver_cuda_required,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -24,12 +34,15 @@ _VIRTUAL_NAME_PATTERNS = re.compile(
     re.IGNORECASE,
 )
 
+_CUDA_HEADER_RE = re.compile(r"CUDA Version\s*:\s*(\d+)\.(\d+)", re.IGNORECASE)
+
 _PCI_VENDOR_NVIDIA = 0x10DE
 _PCI_VENDOR_INTEL = 0x8086
 _PCI_VENDOR_AMD = 0x1002
 _PCI_VENDOR_APPLE = 0x106B
 
 _FOUR_GIB = 4 * 1024 * 1024 * 1024
+_MIB = 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -38,6 +51,11 @@ class GpuInfo:
   name: str
   vendor: GpuVendor
   vram_bytes: int | None
+  online: bool = True
+  driver_version: str | None = None
+  cuda_driver_max: CudaVersion | None = None
+  cuda_required_min: CudaVersion | None = None
+  cuda_meets_nvidia_eps: bool | None = None
 
 
 @runtime_checkable
@@ -47,7 +65,25 @@ class GpuBackend(Protocol):
 
 def list_installed_gpus() -> list[GpuInfo]:
   backend = _backend_for_platform()
-  return _filter_virtual_adapters(backend.enumerate_gpus())
+  os_gpus = _filter_virtual_adapters(backend.enumerate_gpus())
+  nvidia_gpus = _enumerate_nvidia_smi_gpus()
+  if not nvidia_gpus:
+    return os_gpus
+  non_nvidia = [gpu for gpu in os_gpus if gpu.vendor != "nvidia"]
+  return non_nvidia + nvidia_gpus
+
+
+def gpus_for_ep_recommendation(gpus: list[GpuInfo]) -> list[GpuInfo]:
+  """Online GPUs only — offline adapters are listed but ignored for EP selection."""
+  return [gpu for gpu in gpus if gpu.online]
+
+
+def driver_cuda_max_from_gpus(gpus: list[GpuInfo]) -> CudaVersion | None:
+  """Driver-reported max CUDA from the first NVIDIA GPU enumerated via nvidia-smi."""
+  for gpu in gpus:
+    if gpu.vendor == "nvidia" and gpu.cuda_driver_max is not None:
+      return gpu.cuda_driver_max
+  return None
 
 
 def _backend_for_platform() -> GpuBackend:
@@ -65,6 +101,94 @@ def _filter_virtual_adapters(gpus: list[GpuInfo]) -> list[GpuInfo]:
       continue
     filtered.append(gpu)
   return filtered
+
+
+def _nvidia_smi_path() -> str | None:
+  return shutil.which("nvidia-smi")
+
+
+def _parse_cuda_driver_max(smi_stdout: str) -> CudaVersion | None:
+  for line in smi_stdout.splitlines():
+    match = _CUDA_HEADER_RE.search(line)
+    if match:
+      return (int(match.group(1)), int(match.group(2)))
+  return None
+
+
+def _run_nvidia_smi(args: list[str], *, timeout: float = 30) -> subprocess.CompletedProcess[str] | None:
+  smi = _nvidia_smi_path()
+  if smi is None:
+    return None
+  try:
+    return subprocess.run(  # noqa: S603
+      [smi, *args],
+      capture_output=True,
+      text=True,
+      check=False,
+      timeout=timeout,
+    )
+  except (OSError, subprocess.TimeoutExpired) as exc:
+    logger.warning("nvidia-smi failed: %s", exc)
+    return None
+
+
+def _enumerate_nvidia_smi_gpus() -> list[GpuInfo]:
+  header_result = _run_nvidia_smi([])
+  if header_result is None:
+    return []
+  if header_result.returncode != 0:
+    logger.warning(
+      "nvidia-smi returned rc=%s: %s",
+      header_result.returncode,
+      header_result.stderr.strip(),
+    )
+    return []
+
+  cuda_driver_max = _parse_cuda_driver_max(header_result.stdout)
+  cuda_required_min = max_nvidia_driver_cuda_required()
+  cuda_meets = (
+    cuda_version_ge(cuda_driver_max, cuda_required_min)
+    if cuda_driver_max is not None and cuda_required_min is not None
+    else None
+  )
+
+  query_result = _run_nvidia_smi([
+    "--query-gpu=index,name,memory.total,driver_version",
+    "--format=csv,noheader,nounits",
+  ])
+  if query_result is None or query_result.returncode != 0 or not query_result.stdout.strip():
+    logger.warning(
+      "nvidia-smi GPU query failed (rc=%s): %s",
+      None if query_result is None else query_result.returncode,
+      "" if query_result is None else query_result.stderr.strip(),
+    )
+    return []
+
+  gpus: list[GpuInfo] = []
+  reader = csv.reader(io.StringIO(query_result.stdout.strip()))
+  for row in reader:
+    if len(row) < 4:
+      continue
+    index_str, name, memory_mib_str, driver_version = (field.strip() for field in row[:4])
+    try:
+      index = int(index_str)
+      memory_mib = int(float(memory_mib_str))
+    except ValueError:
+      logger.warning("nvidia-smi row parse failed: %r", row)
+      continue
+    gpus.append(
+      GpuInfo(
+        id=f"nvidia:{index}",
+        name=name,
+        vendor="nvidia",
+        vram_bytes=memory_mib * _MIB,
+        driver_version=driver_version or None,
+        cuda_driver_max=cuda_driver_max,
+        cuda_required_min=cuda_required_min,
+        cuda_meets_nvidia_eps=cuda_meets,
+      )
+    )
+  return gpus
 
 
 def _vendor_from_pci_id(vendor_hex: int) -> GpuVendor:
@@ -101,6 +225,11 @@ def _vendor_from_pnp_device_id(pnp_id: str) -> GpuVendor:
   if "VEN_1002" in upper:
     return "amd"
   return _vendor_from_name(pnp_id)
+
+
+def _wmi_adapter_online(availability: int | None) -> bool:
+  """WMI Win32_VideoController Availability 3 = Running / Full Power."""
+  return availability is None or availability == 3
 
 
 def _parse_wmi_vram(adapter_ram: int | None, name: str) -> int | None:
@@ -151,8 +280,7 @@ class WindowsWmiGpuBackend:
       if not isinstance(row, dict):
         continue
       availability = row.get("Availability")
-      if availability is not None and availability != 3:
-        continue
+      availability_int = int(availability) if availability is not None else None
       name = str(row.get("Name") or f"GPU {index}")
       pnp_id = str(row.get("PNPDeviceID") or "")
       adapter_ram = row.get("AdapterRAM")
@@ -163,6 +291,7 @@ class WindowsWmiGpuBackend:
           name=name,
           vendor=_vendor_from_pnp_device_id(pnp_id) if pnp_id else _vendor_from_name(name),
           vram_bytes=_parse_wmi_vram(ram_int, name),
+          online=_wmi_adapter_online(availability_int),
         )
       )
     return gpus

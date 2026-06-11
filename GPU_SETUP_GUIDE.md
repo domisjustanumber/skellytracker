@@ -1,285 +1,336 @@
 # SkellyTracker GPU Setup Guide (RTMPose)
 
-This guide walks you through getting GPU-accelerated pose estimation working with SkellyTracker's RTMPose tracker. GPU acceleration makes tracking significantly faster — but getting it set up requires some extra steps depending on your hardware.
+This guide covers GPU-accelerated RTMPose inference in skellytracker. RTMPose uses **ONNX Runtime execution providers** (CUDA, TensorRT, DirectML, CoreML, CPU) — not rtmlib device strings.
 
-## Which GPU do you have?
+## Quick start: `skellytracker-gpus`
 
-The setup path depends entirely on your hardware. Here's the quick version:
+After installing skellytracker in a clone of this repo (or any checkout with `pyproject.toml` at the project root), run:
 
-| Your GPU | Your OS | What to install | rtmlib device | Setup difficulty |
-|---|---|---|---|---|
-| NVIDIA | Windows or Linux | `skellytracker[rtmpose-nvidia]` | `cuda` | Medium (CUDA + cuDNN) |
-| AMD | Windows | `skellytracker[rtmpose-directml]` | `directml` | Easy (just pip) |
-| AMD | Linux | `skellytracker[rtmpose-cpu]` + ROCm | `rocm` | Hard (limited GPU support) |
-| Apple Silicon (M1/M2/M3/M4) | macOS | `skellytracker[rtmpose-cpu]` | `mps` | Easy (automatic) |
-| Intel Arc | Windows | `skellytracker[rtmpose-directml]` | `directml` | Easy (just pip) |
-| No dedicated GPU | Any | `skellytracker[rtmpose-cpu]` | `cpu` | None |
+```bash
+uv sync --extra rtmpose-nvidia   # or your chosen extra — see below
+skellytracker-gpus
+```
 
-> **Note:** The `rtmpose-directml` extra doesn't exist yet in skellytracker — see the "AMD / DirectML" section below for what needs to happen to enable it.
+The CLI always prints:
+
+1. Detected physical GPUs (OS-native enumeration — no CUDA required)
+2. **Optimal EP** — best execution provider for your hardware (may not be installed yet)
+3. **Installed best EP** — best provider available in your current ONNX Runtime install
+
+When optimal and installed best differ, it also prints an install hint. To install the pyproject extra for your GPU:
+
+```bash
+skellytracker-gpus --install
+```
+
+`--install` runs `uv sync --extra <name>` in the project root. Use `--dry-run` to print the command without executing it, or `--extra rtmpose-nvidia` to override auto-detection.
+
+**Requirements:** `uv` on `PATH` for `--install`. The CLI does not add new Python dependencies.
 
 ---
 
-## Option 1: NVIDIA GPU (CUDA)
+## Which extra should I install?
 
-This is the best-supported and fastest path.
+| Your hardware | OS | Recommended extra | Execution provider (when wired) |
+|---------------|-----|-------------------|--------------------------------|
+| NVIDIA (GTX, Quadro, etc.) | Windows / Linux | `rtmpose-nvidia` | `cuda` |
+| NVIDIA RTX 30 / 40 / 50 | Windows / Linux | `rtmpose-trt-rtx` | `trt-trx` (fastest; first run compiles engines) |
+| AMD or Intel GPU | Windows | `rtmpose-directml` | `directml` |
+| Apple Silicon | macOS | `rtmpose` | `coreml` (runtime wiring landing in a follow-up release) |
+| No GPU / fallback | Any | `rtmpose` | `cpu` |
 
-### Prerequisites
+Classic TensorRT (`rtmpose-trt`) is available but **never auto-selected** — long compile times on older GPUs. Install manually only if you need it:
 
-You need an NVIDIA GPU with CUDA support and **three** things installed on your system:
-
-1. **NVIDIA Driver** (recent version supporting CUDA 12.x)
-2. **CUDA Toolkit 12.x**
-3. **cuDNN 9.x** (separate download from CUDA — this is the one everyone forgets)
-
-### Step 1: Check your GPU and driver
-
-Open a terminal (Command Prompt on Windows) and run:
-
-```
-nvidia-smi
+```bash
+uv sync --extra rtmpose-trt
 ```
 
-You should see a table with your GPU name and a CUDA version. If this command isn't found, you need to install NVIDIA drivers from [nvidia.com/drivers](https://www.nvidia.com/download/index.aspx).
+### Install commands
 
-**You need CUDA 12.x** shown in the output. If it shows 11.x, update your NVIDIA driver.
+```bash
+# NVIDIA CUDA (bundled CUDA/cuDNN pip packages — no system CUDA Toolkit required on most setups)
+pip install "skellytracker[rtmpose-nvidia]"
+# or: uv sync --extra rtmpose-nvidia
 
-### Step 2: Install CUDA Toolkit and cuDNN
+# NVIDIA RTX with TensorRT RTX EP (recommended on RTX 30+)
+pip install "skellytracker[rtmpose-trt-rtx]"
 
-#### Windows
+# Windows AMD / Intel / any DirectX 12 GPU
+pip install "skellytracker[rtmpose-directml]"
 
-1. Download and install the [CUDA Toolkit 12.x](https://developer.nvidia.com/cuda-downloads)
-2. Download and install [cuDNN 9.x](https://developer.nvidia.com/cudnn-downloads) (free NVIDIA developer account required)
-   - If you download the zip version, copy the files into your CUDA Toolkit directory (e.g. `C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.x\`)
-3. Install the [Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist) (latest x64)
-4. **Restart your computer**
+# macOS / CPU fallback
+pip install "skellytracker[rtmpose]"
 
-#### Linux (Ubuntu/Debian)
+# Mediapipe + NVIDIA
+pip install "skellytracker[mediapipe,rtmpose-nvidia]"
+```
+
+Only **one** RTMPose ONNX Runtime wheel can be installed at a time (`onnxruntime`, `onnxruntime-gpu`, `onnxruntime-directml` conflict). Use `uv sync --extra <target>` to switch — it prunes the previous extra automatically.
+
+---
+
+## Python introspection API
+
+For Freemocap or other callers, use `skellytracker.utilities.gpu_utils`:
+
+```python
+import skellytracker.utilities.gpu_utils as gpu
+
+# Hardware (no ORT import)
+gpus = gpu.list_installed_gpus()
+for g in gpus:
+    print(g.id, g.name, g.vendor, g.vram_bytes)
+
+# Best EP for this hardware (may not be installed)
+optimal = gpu.recommend_optimal_execution_provider(gpus)
+
+# Installed ORT packages + dual recommendation flags
+info = gpu.list_execution_providers()
+print(info.optimal_provider_id)              # hardware-optimal
+print(info.recommended_provider_id)          # installed-best (auto chain)
+print(info.install_recommended_provider_id)  # extra install hint, or None
+
+# pyproject extra for --install
+extra = gpu.recommend_rtmpose_extra(gpus)    # e.g. "rtmpose-trt-rtx"
+
+# Model catalog (for settings UI)
+detectors = gpu.list_detection_models()
+poses = gpu.list_pose_models()               # broad list — filter rtmw-* for RTMPose
+```
+
+`list_execution_providers()` may load CUDA DLLs when a CUDA-family EP is installed — cache results at app startup, don't call every UI frame.
+
+**Two EP signals (important):**
+
+| Signal | Meaning |
+|--------|---------|
+| `recommended` / `recommended_provider_id` | Best EP **currently installed** — used for session auto mode |
+| `optimal` / `optimal_provider_id` | Best EP for your **GPU hardware** — used for install guidance |
+
+They can differ (e.g. GTX 1080 + classic TensorRT installed → recommended `trt`, optimal `cuda`).
+
+---
+
+## RTMPose configuration
+
+`RTMPoseDetectorConfig` defaults to **auto** execution provider selection:
+
+```python
+from skellytracker.trackers.rtmpose_tracker.rtmpose_detector import (
+    RTMPoseDetectorConfig,
+    RTMPoseDetector,
+)
+
+# Auto: picks installed-best EP at session create
+detector = RTMPoseDetector.create(RTMPoseDetectorConfig())
+
+# Legacy explicit device alias still works
+detector = RTMPoseDetector.create(RTMPoseDetectorConfig(device="cuda"))
+
+# Force a specific EP
+detector = RTMPoseDetector.create(
+    RTMPoseDetectorConfig(execution_provider="trt-trx")
+)
+
+# Optional wholebody model overrides (validated against model catalog)
+detector = RTMPoseDetector.create(
+    RTMPoseDetectorConfig(
+        mode="performance",
+        detector_model="yolox-tiny",
+        pose_model="rtmw-x-l_256x192",
+    )
+)
+```
+
+`pose_model` accepts **`rtmw-*` ids only** for RTMPose wholebody. Filter `list_pose_models()` client-side:
+
+```python
+rtmw_choices = [m for m in gpu.list_pose_models() if m.id.startswith("rtmw-")]
+```
+
+Direct `RTMPoseSession.create()` without config also uses auto EP (`execution_provider=None`) — no longer forces TensorRT by default.
+
+---
+
+## Option 1: NVIDIA GPU (CUDA / TensorRT)
+
+### Recommended path (pip-bundled CUDA)
+
+The `rtmpose-nvidia` extra installs `onnxruntime-gpu` plus `nvidia-*` pip packages (CUDA 12 + cuDNN 9). Skellytracker calls `onnxruntime.preload_dlls()` and loads NVIDIA DLLs from those packages — **you usually do not need a separate CUDA Toolkit or cuDNN install**.
+
+```bash
+uv sync --extra rtmpose-nvidia
+skellytracker-gpus
+```
+
+### RTX 30 / 40 / 50: TensorRT RTX (fastest)
+
+```bash
+uv sync --extra rtmpose-trt-rtx
+```
+
+First run compiles TRT engines (10–20 seconds); cached under `~/.cache/skellytracker/trt_engines/rtx/`. The CLI recommends this extra when it detects an RTX GPU.
+
+### Manual CUDA Toolkit path (optional)
+
+If you prefer system CUDA or hit DLL errors, install:
+
+1. **NVIDIA Driver** (CUDA 12.x capable — check with `nvidia-smi`)
+2. **CUDA Toolkit 12.x** (optional if using pip-bundled libs)
+3. **cuDNN 9.x** (optional if using pip-bundled libs)
+
+#### Windows manual install
+
+1. [CUDA Toolkit 12.x](https://developer.nvidia.com/cuda-downloads)
+2. [cuDNN 9.x](https://developer.nvidia.com/cudnn-downloads)
+3. [Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist) (x64)
+4. Restart
+
+#### Linux manual install
 
 ```bash
 sudo apt update
 sudo apt install nvidia-cuda-toolkit
+# cuDNN: see NVIDIA's cuDNN .deb instructions
 ```
-
-For cuDNN, download the `.deb` from [NVIDIA's cuDNN page](https://developer.nvidia.com/cudnn-downloads), then:
-
-```bash
-sudo dpkg -i cudnn-local-repo-<your-version>.deb
-sudo cp /var/cudnn-local-repo-*/*.gpg /usr/share/keyrings/
-sudo apt update
-sudo apt install libcudnn9-cuda-12
-```
-
-#### Shortcut: If you already have PyTorch with CUDA
-
-If PyTorch with CUDA support is already installed, `onnxruntime-gpu` can reuse PyTorch's bundled CUDA and cuDNN libraries. Just make sure to `import torch` before creating any ONNX Runtime sessions, or call `onnxruntime.preload_dlls()`. This can save you from installing CUDA Toolkit and cuDNN separately.
-
-### Step 3: Install SkellyTracker
-
-```bash
-pip install skellytracker[rtmpose-nvidia]
-```
-
-Or combined with mediapipe:
-
-```bash
-pip install skellytracker[mediapipe,rtmpose-nvidia]
-```
-
-### Step 4: Verify
-
-```python
-import onnxruntime as ort
-providers = ort.get_available_providers()
-print(providers)
-assert 'CUDAExecutionProvider' in providers, "CUDA not available!"
-print("NVIDIA GPU is ready!")
-```
-
----
-
-## Option 2: AMD GPU on Windows (DirectML)
-
-DirectML is Microsoft's hardware-agnostic GPU acceleration library. It works with any DirectX 12 GPU — AMD, Intel, NVIDIA, Qualcomm — and requires **zero system-level setup**. No toolkit installs, no PATH wrangling, no cuDNN. Just pip install and go.
-
-### Current status (action needed)
-
-DirectML support requires two small changes — one to skellytracker, one to rtmlib.
-
-**1. Add a new extra to skellytracker's `pyproject.toml`:**
-
-```toml
-[project.optional-dependencies]
-rtmpose-directml = ["rtmlib==0.0.14", "onnxruntime-directml"]
-```
-
-And update the conflicts list (since `onnxruntime`, `onnxruntime-gpu`, and `onnxruntime-directml` all conflict):
-
-```toml
-[tool.uv]
-conflicts = [
-    [
-        { extra = "rtmpose-cpu" },
-        { extra = "rtmpose-nvidia" },
-        { extra = "rtmpose-directml" },
-    ],
-]
-```
-
-**2. Add one line to rtmlib's `base.py`:**
-
-In `rtmlib/tools/base.py`, the `RTMLIB_SETTINGS` dict maps device strings to ONNX Runtime execution providers. It already has `cpu`, `cuda`, `rocm`, and `mps` — but not `directml`. The fix is adding one line:
-
-```python
-'onnxruntime': {
-    'cpu': 'CPUExecutionProvider',
-    'cuda': 'CUDAExecutionProvider',
-    'rocm': 'ROCMExecutionProvider',
-    'directml': 'DmlExecutionProvider',  # <-- add this
-    'mps': 'CoreMLExecutionProvider' if check_mps_support() else 'CPUExecutionProvider'
-},
-```
-
-This is a one-line PR to rtmlib. Until that lands upstream, you can monkey-patch it:
-
-```python
-import rtmlib.tools.base as rtmlib_base
-rtmlib_base.RTMLIB_SETTINGS['onnxruntime']['directml'] = 'DmlExecutionProvider'
-```
-
-### Setup (once the extra exists)
-
-```bash
-pip install skellytracker[rtmpose-directml]
-```
-
-That's it. No CUDA, no cuDNN, no toolkit, no driver installs beyond what Windows already has. Any DirectX 12 GPU works — AMD Radeon, Intel Arc, even NVIDIA (though CUDA is faster on NVIDIA hardware).
 
 ### Verify
 
 ```python
 import onnxruntime as ort
-providers = ort.get_available_providers()
-print(providers)
-assert 'DmlExecutionProvider' in providers, "DirectML not available!"
-print("DirectML GPU is ready!")
+print(ort.get_available_providers())
+assert "CUDAExecutionProvider" in ort.get_available_providers()
+```
+
+Or:
+
+```bash
+skellytracker-gpus
+```
+
+---
+
+## Option 2: AMD / Intel GPU on Windows (DirectML)
+
+DirectML works with any DirectX 12 GPU. No CUDA toolkit, no cuDNN, no driver installs beyond Windows defaults.
+
+```bash
+pip install "skellytracker[rtmpose-directml]"
+skellytracker-gpus --install   # when developing in this repo
+```
+
+### Verify
+
+```python
+import onnxruntime as ort
+assert "DmlExecutionProvider" in ort.get_available_providers()
 ```
 
 ### Limitations
 
-- **Windows only** — DirectML is a DirectX 12 feature
-- DirectML is in maintenance mode at Microsoft (still works, still gets ONNX Runtime updates, but not actively getting new standalone features)
-- May be slightly slower than CUDA on equivalent NVIDIA hardware, since CUDA has deeper NVIDIA-specific optimizations
+- **Windows only**
+- Slightly slower than CUDA on NVIDIA hardware (use `rtmpose-nvidia` on NVIDIA instead)
+- CoreML/DirectML runtime auto-selection completes in a follow-up release; until then, introspection may show `directml` as optimal while the session auto chain uses the best **currently wired** EP
 
 ---
 
-## Option 3: Apple Silicon Mac (MPS/CoreML)
-
-rtmlib already has built-in support for Apple Silicon via CoreML. When you set `device='mps'`, it automatically uses the `CoreMLExecutionProvider` if available, and falls back to CPU if not.
-
-### Setup
+## Option 3: Apple Silicon (macOS)
 
 ```bash
-pip install skellytracker[rtmpose-cpu]
+pip install "skellytracker[rtmpose]"
 ```
 
-You install the CPU extra — the base `onnxruntime` package (not `onnxruntime-gpu`) includes CoreML support on macOS automatically.
-
-### Usage
-
-When using rtmlib in your code, set `device='mps'`:
+The base `onnxruntime` wheel on macOS includes CoreML. Hardware introspection recommends `coreml` on darwin; full CoreML auto-selection in the session chain is landing in a follow-up release. Until then, auto mode falls back to CPU if CoreML is not yet wired in the runtime.
 
 ```python
-device = 'mps'
-backend = 'onnxruntime'
+detector = RTMPoseDetector.create()  # device="auto" by default
 ```
-
-No other setup needed. Apple Silicon handles the acceleration natively.
 
 ---
 
 ## Option 4: AMD GPU on Linux (ROCm)
 
-rtmlib has a `device='rocm'` option that maps to `ROCMExecutionProvider`. However, this path is significantly harder:
+ROCm / `ROCMExecutionProvider` is not a supported skellytracker RTMPose path today. Use CPU:
 
-- ROCm only supports a [limited set of AMD GPUs](https://rocm.docs.amd.com/projects/install-on-linux/en/latest/reference/system-requirements.html) (mostly datacenter and higher-end consumer cards like RX 7900 XTX)
-- ROCm installation is complex and Linux-only
-- You need a specific ONNX Runtime build for ROCm (not available as a simple pip package)
+```bash
+pip install "skellytracker[rtmpose]"
+```
 
-For most students with AMD GPUs on Linux, **the CPU backend is the practical choice**. RTMPose models are lightweight enough that CPU inference is still quite fast.
+RTMPose models are lightweight enough for usable CPU inference on many machines.
 
 ---
 
 ## Troubleshooting
 
-### `nvidia-smi` is not recognized (Windows)
-
-Install NVIDIA drivers from [nvidia.com/drivers](https://www.nvidia.com/download/index.aspx).
-
-### `nvidia-smi` command not found (Linux)
+### Start with the CLI
 
 ```bash
-sudo apt update
-sudo apt install nvidia-driver-560  # or latest available version
-sudo reboot
+skellytracker-gpus
 ```
 
-### `CUDAExecutionProvider` doesn't show up
+Compare **Optimal EP** vs **Installed best EP**. If they differ, run `skellytracker-gpus --install` (from a repo checkout with `pyproject.toml`).
 
-This is the most common problem. Check:
+### `nvidia-smi` not found
 
-1. **Is CUDA 12.x installed?** Run `nvcc --version`. If it says 11.x or "not found," install/update the CUDA Toolkit.
-2. **Is cuDNN 9.x installed?** The CUDA Toolkit does NOT include cuDNN. It's a separate download.
-3. **Are they on your PATH?**
-   - **Windows**: CUDA bin directory (e.g. `C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\bin`) and cuDNN bin directory must be in your system PATH.
-   - **Linux**: Check with `ldconfig -p | grep cudnn`.
-4. **Did you restart?** Especially on Windows.
+Install NVIDIA drivers from [nvidia.com/drivers](https://www.nvidia.com/download/index.aspx) (Windows) or your distro's `nvidia-driver` package (Linux).
 
-### `nvcc --version` and `nvidia-smi` show different CUDA versions
+### `CUDAExecutionProvider` missing
 
-This is normal and not a problem. `nvidia-smi` shows the max CUDA version your *driver* supports. `nvcc --version` shows the CUDA *Toolkit* version installed. As long as toolkit version is less than or equal to the driver version, you're fine (e.g. driver shows 12.6, toolkit shows 12.4 = okay).
+1. Confirm the right extra: `skellytracker-gpus` or `pip show onnxruntime-gpu`
+2. On Windows with `rtmpose-nvidia`, ensure `nvidia-cudnn-cu12` installed (`pip show nvidia-cudnn-cu12`)
+3. Try `pip install --force-reinstall "skellytracker[rtmpose-nvidia]"`
 
 ### `LoadLibrary failed with error 126` (Windows)
 
-A required DLL wasn't found. Common culprits:
+Usually a missing cuDNN/CUDA DLL. With `rtmpose-nvidia`, reinstall the extra. With manual CUDA, add CUDA and cuDNN `bin` directories to `PATH`.
 
-- `cudnn64_9.dll` — cuDNN 9 not installed or not on PATH
-- `cublas64_12.dll` — CUDA Toolkit not on PATH
-- `onnxruntime_providers_cuda.dll` — try `pip install --force-reinstall onnxruntime-gpu`
+### ONNX Runtime packages conflict
 
-### Everything installed but inference is slow (not using GPU)
-
-Your code might be defaulting to CPU. Make sure you're setting `device='cuda'` (or `'directml'` or `'mps'`) when initializing rtmlib — not `'cpu'`.
-
-### `onnxruntime` packages conflict with each other
-
-The three GPU-related packages — `onnxruntime` (CPU), `onnxruntime-gpu` (CUDA), and `onnxruntime-directml` (DirectML) — all conflict. You can only have one installed. When switching, uninstall the old one first:
+Only one of `onnxruntime`, `onnxruntime-gpu`, `onnxruntime-directml` can be installed. Switch with:
 
 ```bash
-pip uninstall onnxruntime onnxruntime-gpu onnxruntime-directml
-pip install skellytracker[rtmpose-nvidia]  # or whichever extra you want
+uv sync --extra rtmpose-nvidia   # or rtmpose-directml, rtmpose, etc.
 ```
 
-### CUDA out-of-memory errors
+### Inference uses CPU unexpectedly
 
-Your GPU doesn't have enough VRAM. Options: close other GPU-consuming apps, reduce input resolution, or fall back to CPU.
+Check installed EP:
 
-### Linux: `libcudnn.so` not found
+```python
+from skellytracker.utilities.gpu_utils import list_execution_providers
+print(list_execution_providers().recommended_provider_id)
+```
+
+Ensure you did not force `execution_provider="cpu"` or `device="cpu"` in config. Auto mode (`device="auto"`, `execution_provider=None`) picks installed-best.
+
+### CUDA out of memory
+
+Close other GPU apps, reduce batch size / resolution, or use CPU extra.
+
+### `uv: command not found` (for `--install`)
+
+Install [uv](https://docs.astral.sh/uv/) or install manually:
 
 ```bash
-ldconfig -p | grep cudnn  # check if installed
-sudo ldconfig              # update library cache if installed but not found
+pip install "skellytracker[rtmpose-nvidia]"
 ```
 
 ---
 
 ## Quick reference
 
-| What you want | Install command | rtmlib device |
-|---|---|---|
-| NVIDIA GPU | `pip install skellytracker[rtmpose-nvidia]` | `cuda` |
-| AMD/Intel GPU (Windows) | `pip install skellytracker[rtmpose-directml]` * | `directml` * |
-| Apple Silicon Mac | `pip install skellytracker[rtmpose-cpu]` | `mps` |
-| CPU (any platform) | `pip install skellytracker[rtmpose-cpu]` | `cpu` |
-| Mediapipe + NVIDIA GPU | `pip install skellytracker[mediapipe,rtmpose-nvidia]` | `cuda` |
+| Goal | Install | CLI check |
+|------|---------|-----------|
+| NVIDIA CUDA | `pip install "skellytracker[rtmpose-nvidia]"` | `skellytracker-gpus` |
+| NVIDIA RTX (TRT-RTX) | `pip install "skellytracker[rtmpose-trt-rtx]"` | `skellytracker-gpus` |
+| Windows AMD/Intel | `pip install "skellytracker[rtmpose-directml]"` | `skellytracker-gpus` |
+| macOS / CPU | `pip install "skellytracker[rtmpose]"` | `skellytracker-gpus` |
+| Classic TensorRT (manual) | `pip install "skellytracker[rtmpose-trt]"` | — |
+| Dev repo sync | `uv sync --extra rtmpose-nvidia` | `skellytracker-gpus --install` |
 
-\* Requires adding `rtmpose-directml` extra to skellytracker's pyproject.toml and a one-line PR to rtmlib — see the DirectML section.
+| Python API | Purpose |
+|------------|---------|
+| `list_installed_gpus()` | OS-native GPU inventory |
+| `list_execution_providers()` | Installed EPs + optimal vs recommended flags |
+| `recommend_rtmpose_extra(gpus)` | pyproject extra for `uv sync --extra` |
+| `list_detection_models()` / `list_pose_models()` | Model picker data |

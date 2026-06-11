@@ -44,6 +44,6 @@ requests:
 
 ---
 
-# GPU setup 
+# GPU setup
 
-For help setting up your GPU for use in gpu-enabled trackers like RTMPose, see the [GPU_SETUP_GUIDE](GPU_SETUP_GUIDE.md)
+For GPU-accelerated RTMPose, see the [GPU_SETUP_GUIDE](GPU_SETUP_GUIDE.md). In a dev checkout, run `skellytracker-gpus` to list detected GPUs, compare optimal vs installed execution providers, and install the matching extra with `--install`.

@@ -16,10 +16,16 @@ from typing import Any
 
 import onnxruntime as ort
 
-from skellytracker.utilities.gpu_utils.gpu_enumeration import list_installed_gpus
+from skellytracker.utilities.gpu_utils.gpu_enumeration import (
+  driver_cuda_max_from_gpus,
+  list_installed_gpus,
+)
 from skellytracker.utilities.gpu_utils.gpu_extra_resolver import (
   CatalogProviderId,
   recommend_optimal_execution_provider,
+)
+from skellytracker.utilities.gpu_utils.pyproject_cuda_requirements import (
+  nvidia_driver_cuda_compatible,
 )
 from skellytracker.utilities.gpu_utils.ort_session_utils import (
   ExecutionProviderName,
@@ -119,6 +125,7 @@ class ExecutionProviderInfo:
   install_recommended: bool
   capabilities: ExecutionProviderCapabilities
   doc_url: str
+  driver_cuda_compatible: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -143,9 +150,13 @@ def list_execution_providers() -> ExecutionProvidersInfo:
   available_ort = prepare_ort_providers_for_probe()
   ep_devices = ort.get_ep_devices() if hasattr(ort, "get_ep_devices") else []
   gpus = list_installed_gpus()
+  driver_cuda_max = driver_cuda_max_from_gpus(gpus)
   optimal_id = recommend_optimal_execution_provider(gpus)
   installed_best_id = resolve_provider(requested=None, available_ort=available_ort)
   optimal_available = _catalog_entry_available(optimal_id, available_ort)
+  optimal_driver_ok = nvidia_driver_cuda_compatible(driver_cuda_max, optimal_id)
+  if optimal_driver_ok is False:
+    optimal_available = False
 
   recommended_id: CatalogProviderId = installed_best_id  # type: ignore[assignment]
   install_recommended_id: CatalogProviderId | None
@@ -175,6 +186,7 @@ def list_execution_providers() -> ExecutionProvidersInfo:
         install_recommended=provider_id == install_recommended_id,
         capabilities=capabilities,
         doc_url=entry["doc_url"],
+        driver_cuda_compatible=nvidia_driver_cuda_compatible(driver_cuda_max, provider_id),
       )
     )
 

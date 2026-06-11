@@ -54,6 +54,6 @@ def test_missing_pyproject_returns_error(capsys) -> None:
         install_recommended_provider_id=None,
       ),
     ):
-      with patch("skellytracker.scripts.gpus_cli._find_project_root", return_value=None):
+      with patch("skellytracker.scripts.gpus_cli.find_skellytracker_project_root", return_value=None):
         assert gpus_cli.main(["--install"]) == 1
   assert "rtmpose-nvidia" in capsys.readouterr().err
