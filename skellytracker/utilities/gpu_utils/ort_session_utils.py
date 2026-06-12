@@ -189,7 +189,7 @@ def select_best_cuda_device_id() -> int:
     _print_device_survey(rows, best_idx, best_name, best_mib, reason)
     return best_idx
 
-ExecutionProviderName = Literal["trt", "cuda", "cpu"]
+ExecutionProviderName = Literal["trt", "cuda", "coreml", "cpu"]
 
 
 # =============================================================================
@@ -414,6 +414,9 @@ def build_tuned_ort_session(
         providers.append("CPUExecutionProvider")
     elif provider == "cuda":
         providers.append(("CUDAExecutionProvider", cuda_provider_options(gpu_mem_limit=gpu_mem_limit, device_id=device_id)))
+        providers.append("CPUExecutionProvider")
+    elif provider == "coreml":
+        providers.append(("CoreMLExecutionProvider", {}))
         providers.append("CPUExecutionProvider")
     else:
         providers.append("CPUExecutionProvider")

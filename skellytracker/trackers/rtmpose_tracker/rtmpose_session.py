@@ -51,10 +51,7 @@ from skellytracker.utilities.gpu_utils.rtm_preprocessing import (
 from skellytracker.utilities.gpu_utils.ort_session_utils import (
     ExecutionProviderName,
     build_tuned_ort_session,
-    ensure_cuda_dlls_loaded,
     probe_supports_batch,
-    resolve_provider,
-    select_best_cuda_device_id,
     session_run_batched,
 )
 from skellytracker.trackers.rtmpose_tracker._yolox_dynamic_batch import (
@@ -151,22 +148,9 @@ class RTMPoseSession:
     def create(cls, config: RTMPoseSessionConfig | None = None) -> "RTMPoseSession":
         config = config or RTMPoseSessionConfig()
 
-        if config.execution_provider in ("trt", "cuda"):
-            ensure_cuda_dlls_loaded()
-
-        active_provider = resolve_provider(
-            requested=config.execution_provider,
-            on_missing=config.on_provider_missing,
-        )
-
-        # Resolve which physical GPU to use. Do this once here so every sub-session
-        # lands on the same device.
-        device_id = config.device_id
-        if device_id is None and active_provider in ("cuda", "trt"):
-            logger.info("RTMPoseSession: device_id not specified -- auto-selecting best CUDA device")
-            device_id = select_best_cuda_device_id()
-        device_id = device_id if device_id is not None else 0
-        selection_source = "user-specified" if config.device_id is not None else "auto-selected"
+        active_provider: ExecutionProviderName = "coreml"
+        device_id = 0
+        selection_source = "coreml (hardcoded)"
         logger.info(
             "\n"
             "  ╔══════════════════════════════════════════════════════════════╗\n"
@@ -200,9 +184,10 @@ class RTMPoseSession:
 
         # Build ORT sessions.
         # YOLOX path: rewrite the ONNX to declare a symbolic batch dim.
-        # The full YOLOX ONNX has NMS baked in — build the full det_session
-        # with CUDA EP even when TRT is requested.
-        det_provider = "cuda" if active_provider == "trt" else active_provider
+        # YOLOX runs on CPU (CoreML EP does not support the baked-in NMS graph).
+        det_provider: ExecutionProviderName = "coreml"
+        # If YOLOx crashes/doesn't work with coreml, swap the above line to this instead:
+        # det_provider: ExecutionProviderName = "cpu"
         det_onnx_path = str(ensure_dynamic_batch(det_onnx_raw))
         det_session = build_tuned_ort_session(
             onnx_path=det_onnx_path,
@@ -237,7 +222,7 @@ class RTMPoseSession:
             )
             yolox_prenms_session = build_tuned_ort_session(
                 onnx_path=str(prenms_path),
-                provider=active_provider,
+                provider=det_provider,
                 engine_cache_dir=config.engine_cache_dir,
                 fp16=config.fp16,
                 log_label="yolox_prenms",

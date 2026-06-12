@@ -110,17 +110,11 @@ rtmpose-trt = [
     "tensorrt",
 ]
 
-# RECOMMENDED - mediapipe + RTMPose with TensorRT (2-5x faster than CUDA EP alone).
-# Requires an NVIDIA GPU. First run compiles TRT engines (1-5 min); cached thereafter.
+# RECOMMENDED - mediapipe + RTMPose via vanilla onnxruntime (CoreML on macOS).
 recommended = [
     "mediapipe==0.10.33",
-    "onnxruntime-gpu",
+    "onnxruntime",
     "onnx",
-    "nvidia-cuda-runtime-cu12",
-    "nvidia-cublas-cu12",
-    "nvidia-cudnn-cu12",
-    "nvidia-cufft-cu12",
-    "tensorrt",
 ]
 
 # Dev-only tooling: `uv sync` (installed by default via default-groups)
