@@ -47,7 +47,7 @@ def test_yolox_det_session_uses_mapped_provider_for_trt_trx(
 ) -> None:
     mock_resolve.return_value = "trt-trx"
     fake_session = create_autospec(_OrtInferenceSession, instance=True)
-    fake_session.get_providers.return_value = ["NvTensorRTRTXExecutionProvider"]
+    fake_session.get_providers.return_value = ["nv_tensorrt_rtx"]
     mock_build.return_value = fake_session
 
     from skellytracker.trackers.rtmpose_tracker.rtmpose_session import (

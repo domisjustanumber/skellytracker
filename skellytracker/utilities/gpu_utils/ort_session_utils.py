@@ -191,8 +191,14 @@ def select_best_cuda_device_id() -> int:
 
 ExecutionProviderName = Literal["trt-trx", "trt", "cuda", "cpu"]
 
+_TRT_RTX_EP_MODULES = (
+    "onnxruntime_ep_nv_tensorrt_rtx",
+    "onnxruntime_ep_nv_tensorrt_rtx_cu12",
+)
+TRT_RTX_ORT_PROVIDER_NAME = "nv_tensorrt_rtx"
+
 _ORT_PROVIDER_NEEDS: dict[ExecutionProviderName, str] = {
-    "trt-trx": "NvTensorRTRTXExecutionProvider",
+    "trt-trx": TRT_RTX_ORT_PROVIDER_NAME,
     "trt": "TensorrtExecutionProvider",
     "cuda": "CUDAExecutionProvider",
     "cpu": "CPUExecutionProvider",
@@ -262,7 +268,7 @@ def resolve_provider(
     requested=<id> → walk _FALLBACK_CHAINS[requested] for that provider only.
     """
     if available_ort is None:
-        available_ort = set(ort.get_available_providers())
+        available_ort = prepare_ort_providers_for_probe()
 
     if requested is None:
         chain = _platform_auto_chain()
@@ -347,7 +353,36 @@ def migrate_legacy_trt_engine_cache(base_dir: Path) -> None:
 
 
 def _trt_rtx_ep_package_installed() -> bool:
-    return importlib.util.find_spec("onnxruntime_ep_nv_tensorrt_rtx_cu12") is not None
+    return any(importlib.util.find_spec(module) is not None for module in _TRT_RTX_EP_MODULES)
+
+
+def _import_trt_rtx_ep_module():
+    for module in _TRT_RTX_EP_MODULES:
+        if importlib.util.find_spec(module) is not None:
+            return importlib.import_module(module)
+    raise ImportError("onnxruntime TRT-RTX EP package is not installed")
+
+
+def _collect_ort_provider_names() -> set[str]:
+    """Merge built-in ORT EPs with plugin EPs exposed via get_ep_devices()."""
+    names = set(ort.get_available_providers())
+    get_ep_devices = getattr(ort, "get_ep_devices", None)
+    if get_ep_devices is None:
+        return names
+    for device in get_ep_devices():
+        ep_name = getattr(device, "ep_name", None)
+        if ep_name:
+            names.add(ep_name)
+    return names
+
+
+def _trt_rtx_ep_devices() -> list[Any]:
+    ensure_trt_rtx_ep_available()
+    return [
+        device
+        for device in ort.get_ep_devices()
+        if getattr(device, "ep_name", None) == TRT_RTX_ORT_PROVIDER_NAME
+    ]
 
 
 def ensure_trt_rtx_ep_available() -> None:
@@ -359,20 +394,11 @@ def ensure_trt_rtx_ep_available() -> None:
     if register is None:
         return
     try:
-        spec = importlib.util.find_spec("onnxruntime_ep_nv_tensorrt_rtx_cu12")
-        if spec is None or not spec.submodule_search_locations:
-            return
-        pkg_root = Path(spec.submodule_search_locations[0])
-        dll_names = (
-            "onnxruntime_providers_nv_tensorrt_rtx.dll",
-            "libonnxruntime_providers_nv_tensorrt_rtx.so",
-        )
-        for dll_name in dll_names:
-            matches = list(pkg_root.rglob(dll_name))
-            if matches:
-                register("NvTensorRTRTXExecutionProvider", str(matches[0]))
-                break
+        trt_ep = _import_trt_rtx_ep_module()
+        register(trt_ep.get_ep_name(), trt_ep.get_library_path())
     except Exception as exc:
+        if "already registered" in str(exc).lower():
+            return
         logger.debug("TRT-RTX EP registration skipped: %s", exc)
 
 
@@ -382,19 +408,19 @@ def prepare_ort_providers_for_probe() -> set[str]:
     Only loads CUDA DLLs when a CUDA-family EP is already reported by ORT.
     Skips CUDA preload on macOS CoreML-only and Windows DirectML-only installs.
     """
-    available_ort = set(ort.get_available_providers())
+    available_ort = _collect_ort_provider_names()
     cuda_family_ort = {
         "CUDAExecutionProvider",
         "TensorrtExecutionProvider",
-        "NvTensorRTRTXExecutionProvider",
+        TRT_RTX_ORT_PROVIDER_NAME,
     }
     if available_ort & cuda_family_ort:
         ensure_cuda_dlls_loaded()
-        available_ort = set(ort.get_available_providers())
+        available_ort = _collect_ort_provider_names()
 
     if sys.platform != "darwin" and _trt_rtx_ep_package_installed():
         ensure_trt_rtx_ep_available()
-        available_ort = set(ort.get_available_providers())
+        available_ort = _collect_ort_provider_names()
 
     return available_ort
 
@@ -525,22 +551,28 @@ def build_tuned_ort_session(
         engine_cache_dir.mkdir(parents=True, exist_ok=True)
 
     providers: list[tuple[str, dict] | str] = []
+    inference_providers: list[tuple[str, dict] | str] | None = None
     if provider == "trt-trx":
         migrate_legacy_trt_engine_cache(engine_cache_dir)
         cache_dir = resolve_engine_cache_dir(engine_cache_dir, provider)
         cache_dir.mkdir(parents=True, exist_ok=True)
-        trt_rtx_options: dict[str, Any] = {
-            "device_id": device_id,
+        trt_rtx_options: dict[str, str] = {
+            "device_id": str(device_id),
             "nv_runtime_cache_path": str(cache_dir),
         }
-        providers.append(("NvTensorRTRTXExecutionProvider", trt_rtx_options))
-        providers.append(
-            (
-                "CUDAExecutionProvider",
-                cuda_provider_options(gpu_mem_limit=gpu_mem_limit, device_id=device_id),
+        trt_devices = _trt_rtx_ep_devices()
+        if not trt_devices:
+            raise RuntimeError(
+                f"TRT-RTX EP {_ORT_PROVIDER_NEEDS['trt-trx']!r} is not available. "
+                "Install skellytracker with the rtmpose-trt-rtx extra."
             )
-        )
-        providers.append("CPUExecutionProvider")
+        add_provider_for_devices = getattr(sess_options, "add_provider_for_devices", None)
+        if add_provider_for_devices is None:
+            raise RuntimeError(
+                "ORT SessionOptions.add_provider_for_devices is required for TRT-RTX."
+            )
+        add_provider_for_devices(trt_devices, trt_rtx_options)
+        providers = [(TRT_RTX_ORT_PROVIDER_NAME, trt_rtx_options)]
     elif provider == "trt":
         migrate_legacy_trt_engine_cache(engine_cache_dir)
         cache_dir = resolve_engine_cache_dir(engine_cache_dir, provider)
@@ -576,6 +608,9 @@ def build_tuned_ort_session(
     else:
         providers.append("CPUExecutionProvider")
 
+    if provider != "trt-trx":
+        inference_providers = providers
+
     provider_names = [p if isinstance(p, str) else p[0] for p in providers]
     logger.info(
         "Building ORT session: label=%r  provider=%r  device_id=%d  providers=%s",
@@ -594,11 +629,17 @@ def build_tuned_ort_session(
         )
 
     t0 = time.perf_counter()
-    session = ort.InferenceSession(
-        path_or_bytes=onnx_path,
-        sess_options=sess_options,
-        providers=providers,
-    )
+    if inference_providers is None:
+        session = ort.InferenceSession(
+            path_or_bytes=onnx_path,
+            sess_options=sess_options,
+        )
+    else:
+        session = ort.InferenceSession(
+            path_or_bytes=onnx_path,
+            sess_options=sess_options,
+            providers=inference_providers,
+        )
     elapsed_s = time.perf_counter() - t0
     actual = session.get_providers()
     actual_string = ", ".join(map(str, actual))

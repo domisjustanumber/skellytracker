@@ -172,3 +172,5 @@ recorded_objects.npy
 
 .claude/*
 .CLAUDE.md
+*.onnx
+/trt_cache

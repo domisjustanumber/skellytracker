@@ -23,7 +23,7 @@ from skellytracker.utilities.gpu_utils.ort_session_utils import (
 
 def test_resolve_provider_trt_trx_when_available() -> None:
     available = {
-        "NvTensorRTRTXExecutionProvider",
+        "nv_tensorrt_rtx",
         "CUDAExecutionProvider",
         "CPUExecutionProvider",
     }
@@ -37,7 +37,7 @@ def test_resolve_provider_trt_trx_fallback_skips_classic_trt() -> None:
 
 def test_resolve_provider_trt_when_classic_available_despite_trt_trx() -> None:
     available = {
-        "NvTensorRTRTXExecutionProvider",
+        "nv_tensorrt_rtx",
         "TensorrtExecutionProvider",
         "CUDAExecutionProvider",
         "CPUExecutionProvider",
@@ -47,7 +47,7 @@ def test_resolve_provider_trt_when_classic_available_despite_trt_trx() -> None:
 
 def test_resolve_provider_trt_does_not_fallback_to_trt_trx() -> None:
     available = {
-        "NvTensorRTRTXExecutionProvider",
+        "nv_tensorrt_rtx",
         "CUDAExecutionProvider",
         "CPUExecutionProvider",
     }
@@ -97,13 +97,20 @@ def test_migrate_legacy_trt_engine_cache(tmp_path: Path) -> None:
 
 
 @patch("skellytracker.utilities.gpu_utils.ort_session_utils.ort.InferenceSession")
+@patch("skellytracker.utilities.gpu_utils.ort_session_utils.ort.SessionOptions")
+@patch("skellytracker.utilities.gpu_utils.ort_session_utils._trt_rtx_ep_devices")
 def test_build_tuned_ort_session_trt_trx_provider(
+    mock_trt_devices: MagicMock,
+    mock_session_options_cls: MagicMock,
     mock_session_cls: MagicMock,
     tmp_path: Path,
 ) -> None:
     fake_session = create_autospec(_OrtInferenceSession, instance=True)
-    fake_session.get_providers.return_value = ["NvTensorRTRTXExecutionProvider"]
+    fake_session.get_providers.return_value = ["nv_tensorrt_rtx"]
     mock_session_cls.return_value = fake_session
+    mock_sess_options = MagicMock()
+    mock_session_options_cls.return_value = mock_sess_options
+    mock_trt_devices.return_value = [MagicMock(ep_name="nv_tensorrt_rtx")]
 
     build_tuned_ort_session(
         onnx_path="model.onnx",
@@ -112,9 +119,13 @@ def test_build_tuned_ort_session_trt_trx_provider(
     )
 
     _args, kwargs = mock_session_cls.call_args
-    providers = kwargs["providers"]
-    assert providers[0][0] == "NvTensorRTRTXExecutionProvider"
-    assert providers[0][1]["nv_runtime_cache_path"].endswith("rtx")
+    assert "providers" not in kwargs
+    assert kwargs["sess_options"] is mock_sess_options
+    mock_sess_options.add_provider_for_devices.assert_called_once()
+    trt_devices, trt_options = mock_sess_options.add_provider_for_devices.call_args[0]
+    assert trt_devices == mock_trt_devices.return_value
+    assert trt_options["device_id"] == "0"
+    assert trt_options["nv_runtime_cache_path"].endswith("rtx")
 
 
 def test_rtmpose_session_create_resolves_before_preload(

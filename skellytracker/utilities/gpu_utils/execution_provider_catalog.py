@@ -4,8 +4,9 @@
 ``prepare_ort_providers_for_probe()`` — not a pure read of installed packages.
 
 Capability flags are best-effort hints derived from ORT ``get_ep_devices()`` when
-available (ORT >= 1.22). EPs listed in ``get_available_providers()`` without a
-matching device entry report all capabilities as False.
+available (ORT >= 1.22). Plugin EPs such as TRT-RTX are registered dynamically and
+may appear only in ``get_ep_devices()``, not ``get_available_providers()``;
+``prepare_ort_providers_for_probe()`` merges both sources.
 """
 
 from __future__ import annotations
@@ -29,6 +30,7 @@ from skellytracker.utilities.gpu_utils.pyproject_cuda_requirements import (
 )
 from skellytracker.utilities.gpu_utils.ort_session_utils import (
   ExecutionProviderName,
+  TRT_RTX_ORT_PROVIDER_NAME,
   prepare_ort_providers_for_probe,
   resolve_provider,
 )
@@ -66,7 +68,7 @@ _CATALOG_ENTRIES: tuple[dict[str, Any], ...] = (
   {
     "id": "trt-trx",
     "display_name": "TensorRT RTX",
-    "ort_name": "NvTensorRTRTXExecutionProvider",
+    "ort_name": TRT_RTX_ORT_PROVIDER_NAME,
     "platforms": frozenset({"win32", "linux"}),
     "doc_url": "https://onnxruntime.ai/docs/execution-providers/TensorRTRTX-ExecutionProvider.html",
   },
