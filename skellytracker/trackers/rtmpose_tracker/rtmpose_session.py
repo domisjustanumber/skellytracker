@@ -185,9 +185,9 @@ class RTMPoseSession:
         # Build ORT sessions.
         # YOLOX path: rewrite the ONNX to declare a symbolic batch dim.
         # YOLOX runs on CPU (CoreML EP does not support the baked-in NMS graph).
-        det_provider: ExecutionProviderName = "coreml"
+        # det_provider: ExecutionProviderName = "coreml"
         # If YOLOx crashes/doesn't work with coreml, swap the above line to this instead:
-        # det_provider: ExecutionProviderName = "cpu"
+        det_provider: ExecutionProviderName = "cpu"
         det_onnx_path = str(ensure_dynamic_batch(det_onnx_raw))
         det_session = build_tuned_ort_session(
             onnx_path=det_onnx_path,
