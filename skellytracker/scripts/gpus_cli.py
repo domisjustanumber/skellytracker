@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -13,8 +12,8 @@ from skellytracker.utilities.gpu_utils import (
   list_installed_gpus,
   recommend_rtmpose_extra,
 )
+from skellytracker.utilities.gpu_utils.extra_install import build_install_plan
 from skellytracker.utilities.gpu_utils.pyproject_cuda_requirements import CudaVersion
-from skellytracker.utilities.gpu_utils.pyproject_paths import find_skellytracker_project_root
 
 _RTMPose_CONFLICT_EXTRAS = frozenset({
   "rtmpose",
@@ -98,12 +97,12 @@ def main(argv: list[str] | None = None) -> int:
   parser.add_argument(
     "--install",
     action="store_true",
-    help="Run uv sync --extra for the GPU-optimal pyproject extra.",
+    help="Install the GPU-optimal pyproject extra (dev repo: uv sync; venv: uv/pip install).",
   )
   parser.add_argument(
     "--dry-run",
     action="store_true",
-    help="Print the planned uv command without executing it.",
+    help="Print the planned install command without executing it.",
   )
   parser.add_argument(
     "--extra",
@@ -111,45 +110,31 @@ def main(argv: list[str] | None = None) -> int:
   )
   args = parser.parse_args(argv)
 
-  extra, _ = _print_gpu_report()
+  extra, install_hint = _print_gpu_report()
   if args.extra is not None:
     extra = args.extra
 
   if not args.install:
     return 0
 
+  if install_hint is None and args.extra is None:
+    print("Optimal execution provider packages are already installed.")
+    return 0
+
   if extra not in _RTMPose_CONFLICT_EXTRAS:
     print(f"Unknown extra {extra!r}. Valid extras: {sorted(_RTMPose_CONFLICT_EXTRAS)}", file=sys.stderr)
     return 1
 
-  project_root = find_skellytracker_project_root(Path.cwd())
-  if project_root is None:
-    print(
-      "Could not find skellytracker pyproject.toml in the current directory tree. "
-      'Install from PyPI with: pip install "skellytracker[rtmpose-nvidia]"',
-      file=sys.stderr,
-    )
-    return 1
-
-  uv_path = shutil.which("uv")
-  if uv_path is None:
-    print(
-      "uv is not on PATH. Install it from https://docs.astral.sh/uv/ "
-      'or use pip install "skellytracker[rtmpose-nvidia]".',
-      file=sys.stderr,
-    )
-    return 1
-
-  command = [uv_path, "sync", "--extra", extra]
-  print(f"Running: {' '.join(command)} (in {project_root})")
+  plan = build_install_plan(extra)
+  print(f"Running: {' '.join(plan.command)} ({plan.description})")
   if args.dry_run:
     return 0
 
-  result = subprocess.run(command, cwd=project_root, check=False)  # noqa: S603
+  result = subprocess.run(plan.command, cwd=plan.cwd, check=False)  # noqa: S603
   if result.returncode != 0:
     return result.returncode
 
-  print(f"uv sync completed with extra={extra!r}.")
+  print(f"Install completed with extra={extra!r}.")
   return 0
 
 
