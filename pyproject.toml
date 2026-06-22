@@ -158,7 +158,7 @@ recommended = [
     "nvidia-cuda-runtime_cu12==12.9.79",
     "nvidia-cublas-cu12==12.9.2.10",
     "nvidia-cudnn-cu12==9.23.2.1",
-    "nvidia-cufft==12.0.0.61",
+    "nvidia-cufft-cu12==11.4.1.4",
     "onnxruntime-ep-nv-tensorrt-rtx==0.3.0",
 ]
 
