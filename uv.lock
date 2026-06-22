@@ -1158,51 +1158,10 @@ wheels = [
 
 [[package]]
 name = "nvidia-cudnn-cu12"
-version = "9.21.0.82"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.12' and platform_machine != 's390x' and sys_platform == 'win32'",
-    "python_full_version >= '3.12' and platform_machine != 's390x' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.12' and platform_machine != 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version < '3.12' and platform_machine != 's390x' and sys_platform == 'win32'",
-    "python_full_version < '3.12' and platform_machine != 's390x' and sys_platform == 'emscripten'",
-    "python_full_version < '3.12' and platform_machine != 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version >= '3.12' and platform_machine == 's390x' and sys_platform == 'win32'",
-    "python_full_version >= '3.12' and platform_machine == 's390x' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.12' and platform_machine == 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version < '3.12' and platform_machine == 's390x' and sys_platform == 'win32'",
-    "python_full_version < '3.12' and platform_machine == 's390x' and sys_platform == 'emscripten'",
-    "python_full_version < '3.12' and platform_machine == 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-]
-dependencies = [
-    { name = "nvidia-cublas-cu12" },
-]
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/f4/e9/aea85c214a5dad046e56131428c22ff40d0359db3a930040698c0c6c8e68/nvidia_cudnn_cu12-9.21.0.82-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:8ba7c5067854d2b8d8dc21a65bbc5a642b31e4dddc8864cf3a093d25a92e874c", size = 759281118, upload-time = "2026-04-14T15:30:44.958Z" },
-    { url = "https://files.pythonhosted.org/packages/5c/cf/47778414dd633ba93395f9d34c87283916c3163f57000c2aeef1f869c649/nvidia_cudnn_cu12-9.21.0.82-py3-none-manylinux_2_27_x86_64.whl", hash = "sha256:286af0a8ee51e3e5eb0e858b0b93a85a5ae6a686f22a0c83c8d7d4dc9151402f", size = 704763924, upload-time = "2026-04-15T16:43:40.04Z" },
-    { url = "https://files.pythonhosted.org/packages/c6/e9/e91296c0d7b4b565f38de9ccbf757a8c3172b62a485222751d39f673a26c/nvidia_cudnn_cu12-9.21.0.82-py3-none-win_amd64.whl", hash = "sha256:29c69af1d2f8a6778ef6dbc7829416e6a4c8585b7ca2cab5fb1876bf2e393589", size = 686896833, upload-time = "2026-04-14T15:35:00.959Z" },
-]
-
-[[package]]
-name = "nvidia-cudnn-cu12"
 version = "9.23.2.1"
 source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.12' and platform_machine != 's390x' and sys_platform == 'win32'",
-    "python_full_version >= '3.12' and platform_machine != 's390x' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.12' and platform_machine != 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version < '3.12' and platform_machine != 's390x' and sys_platform == 'win32'",
-    "python_full_version < '3.12' and platform_machine != 's390x' and sys_platform == 'emscripten'",
-    "python_full_version < '3.12' and platform_machine != 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version >= '3.12' and platform_machine == 's390x' and sys_platform == 'win32'",
-    "python_full_version >= '3.12' and platform_machine == 's390x' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.12' and platform_machine == 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version < '3.12' and platform_machine == 's390x' and sys_platform == 'win32'",
-    "python_full_version < '3.12' and platform_machine == 's390x' and sys_platform == 'emscripten'",
-    "python_full_version < '3.12' and platform_machine == 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-]
 dependencies = [
-    { name = "nvidia-cublas-cu12" },
+    { name = "nvidia-cublas-cu12", marker = "(extra == 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-mediapipe') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-recommended') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-nvidia') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-trt') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-recommended') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-nvidia') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-trt') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-directml') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-directml')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a4/19/e70f60a82986f65111d30ffd1744ed3478a3f8cd67bcdac38bf00d57d9da/nvidia_cudnn_cu12-9.23.2.1-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:3adf706a93367d400b4e7668fc14834c7551c9122eeb22f8aec6435b18da5b6f", size = 778221490, upload-time = "2026-06-16T03:36:51.086Z" },
@@ -1454,14 +1413,59 @@ wheels = [
 
 [[package]]
 name = "onnxruntime-gpu"
+version = "1.26.0"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.12' and platform_machine != 's390x' and sys_platform == 'win32'",
+    "python_full_version >= '3.12' and platform_machine != 's390x' and sys_platform == 'emscripten'",
+    "python_full_version >= '3.12' and platform_machine != 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version < '3.12' and platform_machine != 's390x' and sys_platform == 'win32'",
+    "python_full_version < '3.12' and platform_machine != 's390x' and sys_platform == 'emscripten'",
+    "python_full_version < '3.12' and platform_machine != 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version >= '3.12' and platform_machine == 's390x' and sys_platform == 'win32'",
+    "python_full_version >= '3.12' and platform_machine == 's390x' and sys_platform == 'emscripten'",
+    "python_full_version >= '3.12' and platform_machine == 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version < '3.12' and platform_machine == 's390x' and sys_platform == 'win32'",
+    "python_full_version < '3.12' and platform_machine == 's390x' and sys_platform == 'emscripten'",
+    "python_full_version < '3.12' and platform_machine == 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+]
+dependencies = [
+    { name = "flatbuffers" },
+    { name = "numpy" },
+    { name = "packaging" },
+    { name = "protobuf", version = "7.34.1", source = { registry = "https://pypi.org/simple" } },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/dc/0f/696b4f94a282952239ffed39db78cb17a00ad993acd929cfac010a09759b/onnxruntime_gpu-1.26.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:4fa231294c2643911d2a7d16469c4808b0bdcdc4b5f4063d3a53744ce25b683a", size = 276956564, upload-time = "2026-05-08T19:15:35.133Z" },
+    { url = "https://files.pythonhosted.org/packages/ef/26/a417b7a1cdbbf56a389bfcd399255be23f30e5721e3e519472fe8dde9c99/onnxruntime_gpu-1.26.0-cp311-cp311-win_amd64.whl", hash = "sha256:cc5329aad02d9745cc3ae9cdb185bfa1aad242a7bf89b8c471280002ec40f98a", size = 226539455, upload-time = "2026-05-08T19:09:24.631Z" },
+    { url = "https://files.pythonhosted.org/packages/94/fd/59bee7cffaa435da44fefdeb63e29c61de4dbfa4b279852f59cd02c042ae/onnxruntime_gpu-1.26.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:3c01119ed4d9449d60367fa8ccffcd02bd3fe736754284e4b198d131f54edad6", size = 276971796, upload-time = "2026-05-08T19:15:46.192Z" },
+    { url = "https://files.pythonhosted.org/packages/a4/e4/9b378a5466ea0bed65e5beb8e09254973c580a6522810a38afbcc45e5105/onnxruntime_gpu-1.26.0-cp312-cp312-win_amd64.whl", hash = "sha256:5f49c44689894650990e4c8a857d2edafc276fbd79bba57ceb224bd18d25d491", size = 226548963, upload-time = "2026-05-08T19:09:34.925Z" },
+]
+
+[[package]]
+name = "onnxruntime-gpu"
 version = "1.27.0"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.12' and platform_machine != 's390x' and sys_platform == 'win32'",
+    "python_full_version >= '3.12' and platform_machine != 's390x' and sys_platform == 'emscripten'",
+    "python_full_version >= '3.12' and platform_machine != 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version < '3.12' and platform_machine != 's390x' and sys_platform == 'win32'",
+    "python_full_version < '3.12' and platform_machine != 's390x' and sys_platform == 'emscripten'",
+    "python_full_version < '3.12' and platform_machine != 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version >= '3.12' and platform_machine == 's390x' and sys_platform == 'win32'",
+    "python_full_version >= '3.12' and platform_machine == 's390x' and sys_platform == 'emscripten'",
+    "python_full_version >= '3.12' and platform_machine == 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version < '3.12' and platform_machine == 's390x' and sys_platform == 'win32'",
+    "python_full_version < '3.12' and platform_machine == 's390x' and sys_platform == 'emscripten'",
+    "python_full_version < '3.12' and platform_machine == 's390x' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+]
 dependencies = [
-    { name = "flatbuffers", marker = "(extra == 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-mediapipe') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-recommended') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-nvidia') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-trt') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-recommended') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-nvidia') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-trt') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-directml') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-directml')" },
-    { name = "numpy", marker = "(extra == 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-mediapipe') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-recommended') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-nvidia') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-trt') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-recommended') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-nvidia') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-trt') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-directml') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-directml')" },
-    { name = "packaging", marker = "(extra == 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-mediapipe') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-recommended') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-nvidia') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-trt') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-recommended') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-nvidia') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-trt') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-directml') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-directml')" },
+    { name = "flatbuffers" },
+    { name = "numpy" },
+    { name = "packaging" },
     { name = "protobuf", version = "4.25.9", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-mediapipe') or (extra == 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-recommended') or (extra == 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-recommended') or (extra == 'extra-13-skellytracker-recommended' and extra == 'extra-13-skellytracker-rtmpose') or (extra == 'extra-13-skellytracker-recommended' and extra == 'extra-13-skellytracker-rtmpose-directml') or (extra == 'extra-13-skellytracker-recommended' and extra == 'extra-13-skellytracker-rtmpose-nvidia') or (extra == 'extra-13-skellytracker-recommended' and extra == 'extra-13-skellytracker-rtmpose-trt') or (extra == 'extra-13-skellytracker-recommended' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx') or (extra == 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-directml') or (extra == 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-nvidia') or (extra == 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-trt') or (extra == 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx') or (extra == 'extra-13-skellytracker-rtmpose-directml' and extra == 'extra-13-skellytracker-rtmpose-nvidia') or (extra == 'extra-13-skellytracker-rtmpose-directml' and extra == 'extra-13-skellytracker-rtmpose-trt') or (extra == 'extra-13-skellytracker-rtmpose-directml' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx') or (extra == 'extra-13-skellytracker-rtmpose-nvidia' and extra == 'extra-13-skellytracker-rtmpose-trt') or (extra == 'extra-13-skellytracker-rtmpose-nvidia' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx') or (extra == 'extra-13-skellytracker-rtmpose-trt' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx') or (extra == 'extra-13-skellytracker-legacy-mediapipe' and extra != 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-nvidia') or (extra == 'extra-13-skellytracker-legacy-mediapipe' and extra != 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-trt') or (extra == 'extra-13-skellytracker-legacy-mediapipe' and extra != 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx')" },
-    { name = "protobuf", version = "7.34.1", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-mediapipe') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-recommended') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-recommended') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-nvidia') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-trt') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-directml') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-nvidia') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-trt') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-directml' and extra == 'extra-13-skellytracker-rtmpose-nvidia') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-directml' and extra == 'extra-13-skellytracker-rtmpose-trt') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-directml' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-nvidia' and extra == 'extra-13-skellytracker-rtmpose-trt') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-nvidia' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx') or (extra != 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-trt' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-directml')" },
+    { name = "protobuf", version = "7.34.1", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-mediapipe') or (extra == 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-recommended') or (extra == 'extra-13-skellytracker-mediapipe' and extra == 'extra-13-skellytracker-recommended') or (extra == 'extra-13-skellytracker-recommended' and extra == 'extra-13-skellytracker-rtmpose') or (extra == 'extra-13-skellytracker-recommended' and extra == 'extra-13-skellytracker-rtmpose-directml') or (extra == 'extra-13-skellytracker-recommended' and extra == 'extra-13-skellytracker-rtmpose-nvidia') or (extra == 'extra-13-skellytracker-recommended' and extra == 'extra-13-skellytracker-rtmpose-trt') or (extra == 'extra-13-skellytracker-recommended' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx') or (extra == 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-directml') or (extra == 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-nvidia') or (extra == 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-trt') or (extra == 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-nvidia') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-trt') or (extra != 'extra-13-skellytracker-legacy-mediapipe' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx') or (extra == 'extra-13-skellytracker-mediapipe' and extra != 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-nvidia') or (extra == 'extra-13-skellytracker-mediapipe' and extra != 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-trt') or (extra == 'extra-13-skellytracker-mediapipe' and extra != 'extra-13-skellytracker-rtmpose' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx') or (extra != 'extra-13-skellytracker-mediapipe' and extra != 'extra-13-skellytracker-recommended' and extra == 'extra-13-skellytracker-rtmpose-directml' and extra == 'extra-13-skellytracker-rtmpose-nvidia') or (extra != 'extra-13-skellytracker-mediapipe' and extra != 'extra-13-skellytracker-recommended' and extra == 'extra-13-skellytracker-rtmpose-directml' and extra == 'extra-13-skellytracker-rtmpose-trt') or (extra != 'extra-13-skellytracker-mediapipe' and extra != 'extra-13-skellytracker-recommended' and extra == 'extra-13-skellytracker-rtmpose-directml' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx') or (extra != 'extra-13-skellytracker-mediapipe' and extra != 'extra-13-skellytracker-recommended' and extra == 'extra-13-skellytracker-rtmpose-nvidia' and extra == 'extra-13-skellytracker-rtmpose-trt') or (extra != 'extra-13-skellytracker-mediapipe' and extra != 'extra-13-skellytracker-recommended' and extra == 'extra-13-skellytracker-rtmpose-nvidia' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx') or (extra != 'extra-13-skellytracker-mediapipe' and extra != 'extra-13-skellytracker-recommended' and extra == 'extra-13-skellytracker-rtmpose-trt' and extra == 'extra-13-skellytracker-rtmpose-trt-rtx')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/89/d5/372193dd3fddfd1fbeb0bf39aa41a27d1b12e4877570cb746635047d68a9/onnxruntime_gpu-1.27.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:404fb845dc06a04a28df5a2c6d5967bcf3f534e7df0b98507ff81686a1b49594", size = 220287841, upload-time = "2026-06-18T18:27:13.823Z" },
@@ -2111,11 +2115,11 @@ recommended = [
     { name = "mediapipe", version = "0.10.33", source = { registry = "https://pypi.org/simple" } },
     { name = "nvidia-cublas-cu12" },
     { name = "nvidia-cuda-runtime-cu12" },
-    { name = "nvidia-cudnn-cu12", version = "9.23.2.1", source = { registry = "https://pypi.org/simple" } },
+    { name = "nvidia-cudnn-cu12" },
     { name = "nvidia-cufft" },
     { name = "onnx" },
     { name = "onnxruntime-ep-nv-tensorrt-rtx" },
-    { name = "onnxruntime-gpu" },
+    { name = "onnxruntime-gpu", version = "1.26.0", source = { registry = "https://pypi.org/simple" } },
 ]
 rtmpose = [
     { name = "onnx" },
@@ -2128,28 +2132,28 @@ rtmpose-directml = [
 rtmpose-nvidia = [
     { name = "nvidia-cublas-cu12" },
     { name = "nvidia-cuda-runtime-cu12" },
-    { name = "nvidia-cudnn-cu12", version = "9.21.0.82", source = { registry = "https://pypi.org/simple" } },
+    { name = "nvidia-cudnn-cu12" },
     { name = "nvidia-cufft-cu12" },
     { name = "onnx" },
-    { name = "onnxruntime-gpu" },
+    { name = "onnxruntime-gpu", version = "1.27.0", source = { registry = "https://pypi.org/simple" } },
 ]
 rtmpose-trt = [
     { name = "nvidia-cublas-cu12" },
     { name = "nvidia-cuda-runtime-cu12" },
-    { name = "nvidia-cudnn-cu12", version = "9.21.0.82", source = { registry = "https://pypi.org/simple" } },
+    { name = "nvidia-cudnn-cu12" },
     { name = "nvidia-cufft-cu12" },
     { name = "onnx" },
-    { name = "onnxruntime-gpu" },
+    { name = "onnxruntime-gpu", version = "1.27.0", source = { registry = "https://pypi.org/simple" } },
     { name = "tensorrt" },
 ]
 rtmpose-trt-rtx = [
     { name = "nvidia-cublas-cu12" },
     { name = "nvidia-cuda-runtime-cu12" },
-    { name = "nvidia-cudnn-cu12", version = "9.21.0.82", source = { registry = "https://pypi.org/simple" } },
+    { name = "nvidia-cudnn-cu12" },
     { name = "nvidia-cufft-cu12" },
     { name = "onnx" },
     { name = "onnxruntime-ep-nv-tensorrt-rtx-cu12" },
-    { name = "onnxruntime-gpu" },
+    { name = "onnxruntime-gpu", version = "1.27.0", source = { registry = "https://pypi.org/simple" } },
 ]
 yolo = [
     { name = "ultralytics" },
@@ -2200,7 +2204,7 @@ requires-dist = [
     { name = "onnxruntime-directml", marker = "extra == 'rtmpose-directml'" },
     { name = "onnxruntime-ep-nv-tensorrt-rtx", marker = "extra == 'recommended'", specifier = "==0.3.0" },
     { name = "onnxruntime-ep-nv-tensorrt-rtx-cu12", marker = "extra == 'rtmpose-trt-rtx'" },
-    { name = "onnxruntime-gpu", marker = "extra == 'recommended'", specifier = "==1.27.0" },
+    { name = "onnxruntime-gpu", marker = "extra == 'recommended'", specifier = "==1.26.0" },
     { name = "onnxruntime-gpu", marker = "extra == 'rtmpose-nvidia'" },
     { name = "onnxruntime-gpu", marker = "extra == 'rtmpose-trt'" },
     { name = "onnxruntime-gpu", marker = "extra == 'rtmpose-trt-rtx'" },
