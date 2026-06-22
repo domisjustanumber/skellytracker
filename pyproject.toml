@@ -153,13 +153,13 @@ rtmpose-trt = [
 # Requires an NVIDIA GPU. First run compiles TRT engines (1-5 min); cached thereafter.
 recommended = [
     "mediapipe==0.10.33",
-    "onnxruntime-gpu",
+    "onnxruntime-gpu==1.27.0",
     "onnx",
-    "nvidia-cuda-runtime-cu12",
-    "nvidia-cublas-cu12",
-    "nvidia-cudnn-cu12",
-    "nvidia-cufft-cu12",
-    "onnxruntime-ep-nv-tensorrt-rtx-cu12",
+    "nvidia-cuda-runtime==13.0.96",
+    "nvidia-cublas==13.1.0.3",
+    "nvidia-cudnn-cu13==9.23.2.1",
+    "nvidia-cufft==12.0.0.61",
+    "onnxruntime-ep-nv-tensorrt-rtx==0.3.0",
 ]
 
 # Dev-only tooling: `uv sync` (installed by default via default-groups)
