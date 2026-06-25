@@ -28,6 +28,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal, Self
 
+import cv2
 import numpy as np
 import onnxruntime as ort
 from numpy.typing import NDArray
@@ -52,6 +53,8 @@ from skellytracker.utilities.gpu_utils.rtm_preprocessing import (
 from skellytracker.utilities.gpu_utils.ort_session_utils import (
     ExecutionProviderName,
     build_tuned_ort_session,
+    cuda_device_free_bytes,
+    cuda_device_total_bytes,
     ensure_cuda_dlls_loaded,
     probe_supports_batch,
     provider_needs_cuda_device_select,
@@ -60,7 +63,7 @@ from skellytracker.utilities.gpu_utils.ort_session_utils import (
     resolve_engine_cache_dir,
     resolve_provider,
     resolve_yolox_provider,
-    select_best_cuda_device_id,
+    select_best_cuda_device,
     session_run_batched,
 )
 from skellytracker.trackers.rtmpose_tracker._yolox_dynamic_batch import (
@@ -68,6 +71,27 @@ from skellytracker.trackers.rtmpose_tracker._yolox_dynamic_batch import (
     PRENMS_CONF_OUTPUT,
     ensure_dynamic_batch,
     ensure_prenms_model,
+)
+from skellytracker.trackers.rtmpose_tracker.rtmpose_tracking_state import (
+    PersonTrackingState,
+    predict_bbox_from_tracking,
+    should_run_detector,
+    update_tracking_state,
+)
+from skellytracker.trackers.base_tracker.task_events import (
+    RTMPOSE_BATCH_STAGES,
+    STAGE_HUMAN_DETECTION,
+    STAGE_HUMAN_DETECTION_BATCH_PACK,
+    STAGE_HUMAN_DETECTION_LETTERBOX,
+    STAGE_HUMAN_DETECTION_POSTPROCESS,
+    STAGE_HUMAN_DETECTION_PREPROCESS,
+    STAGE_POSE_ESTIMATION,
+    STAGE_POSE_ESTIMATION_POSTPROCESS,
+    STAGE_POSE_ESTIMATION_PREPROCESS,
+    TrackerTaskEventCollector,
+    TrackerTaskEventContext,
+    TrackerTaskEventSink,
+    make_batch_task_id,
 )
 
 logger = logging.getLogger(__name__)
@@ -102,6 +126,10 @@ class RTMPoseSessionConfig(BaseModel):
     # Behavior when the requested provider isn't available at runtime.
     # "fallback": warn and drop down (trt -> cuda -> cpu). "raise": hard error.
     on_provider_missing: Literal["fallback", "raise"] = "fallback"
+    # Keep only the N highest-confidence person detections from YOLOX.
+    # None = keep all detections. Set to 1 for single-person use to prevent
+    # background clutter from being tracked as additional skeletons.
+    max_persons: int | None = 1
 
     @model_validator(mode="after")
     def _validate_model_selection(self) -> Self:
@@ -111,6 +139,54 @@ class RTMPoseSessionConfig(BaseModel):
             pose_model=self.pose_model,
         )
         return self
+
+    # Ceiling (bytes) on the CUDA arena for each ORT sub-session. None = size it
+    # automatically from the chosen device's free VRAM (see ARENA_VRAM_FRACTION)
+    # so a full batch fits instead of being throttled to the legacy 2 GiB cap.
+    gpu_mem_limit: int | None = None
+    # Downscale factor for YOLOX input images (0 < scale ≤ 1.0). When < 1.0,
+    # images are resized before the YOLOX person-detection pass, but the original
+    # full-resolution images are still used for cropping in the RTMPose pass.
+    # 0.5 = half resolution (good starting point). 1.0 = no downscaling (legacy).
+    yolox_image_scale: float = 1.0
+
+    # ---- Tracking-based YOLOX skip ----
+    # When True, skip YOLOX on frames where the previous pose is still good,
+    # using the previous frame's keypoint-derived bbox (expanded by a margin)
+    # as the crop region for the current frame.  YOLOX re-runs periodically
+    # and whenever pose confidence drops.
+    enable_tracking_skip: bool = True
+    # Fraction of keypoints that must be visible to keep tracking.
+    # For RTMPose SIMCC this is the fraction of 133 keypoints whose softmax
+    # peak exceeds ``kpt_visibility_threshold``.  0.1 = 10% of the skeleton
+    # (~13 keypoints) must be visible.  Drop below this and YOLOX re-runs.
+    min_tracking_confidence: float = 0.1
+    # Minimum wall-clock seconds between full YOLOX re-detections.  While
+    # tracking confidence stays above threshold, YOLOX runs at most this
+    # often.  Set well above frame interval so tracking gets a chance.
+    min_detection_interval_seconds: float = 5.0
+    # How much to expand the keypoint-derived bbox for the next frame's crop.
+    # Keep this small (5%) to prevent ratcheting — the crop just needs to
+    # cover the person's movement between frames, not every possible pose.
+    tracking_expansion_ratio: float = 0.05
+    # ---- Per-keypoint thresholds (SIMCC-specific) ----
+    # Minimum SIMCC softmax peak to include a keypoint in the tight-person-bbox
+    # computation.  Set just above the uniform baseline (~0.01 for 100 bins).
+    # You should not normally need to change this.
+    kpt_bbox_threshold: float = 0.003
+    # Minimum SIMCC softmax peak to count a keypoint as "visible" for the
+    # pose-confidence fraction.  0.004 = top ~50% of keypoints on a typical
+    # frame; drops when the person is occluded.
+    kpt_visibility_threshold: float = 0.004
+
+
+# Fraction of the selected device's free VRAM to use as the per-session CUDA
+# arena ceiling when gpu_mem_limit is auto-sized. < 1.0 leaves headroom for the
+# driver, the other sub-sessions, and transient spikes. The three sub-sessions
+# (yolox, rtmpose, yolox_prenms) share one device, but gpu_mem_limit is a ceiling
+# rather than a reservation — only the heavy rtmpose session approaches it — so a
+# generous per-session cap is safe as long as actual usage stays under free VRAM.
+ARENA_VRAM_FRACTION = 0.85
 
 
 # Mapping from RTMPoseSessionConfig.mode → (det_url_key, det_input_size,
@@ -241,8 +317,42 @@ class RTMPoseSession:
     # pre-NMS outputs from the main session. Instead, this session is physically
     # stripped of those nodes and used for batch>1 YOLOX inference.
     _yolox_prenms_session: ort.InferenceSession | None = None
+    # When True, the pose session always receives single-crop (batch=1) inputs,
+    # even when multiple people are detected. Set for CoreML because it
+    # JIT-compiles a new kernel on the first call with each new batch shape,
+    # causing a multi-second freeze whenever the detected-person count changes.
+    _per_crop_pose: bool = False
+    # Cap on how many YOLOX detections are forwarded to RTMPose.
+    # None = no cap. Mirrors RTMPoseSessionConfig.max_persons.
+    _max_persons: int | None = None
+    # Scale factor for YOLOX input images. When < 1.0, images are downscaled
+    # before the YOLOX person-detection pass, but the original full-resolution
+    # images are still used for cropping person regions in the RTMPose pass.
+    # This gives most of the speed benefit of lower resolution without losing
+    # pose estimation accuracy (since crops are always resized to a fixed input
+    # size regardless of source resolution).
+    _yolox_image_scale: float = 1.0
+    # Tracking-based YOLOX skip (see rtmpose_tracking_state.py).
+    _tracking_enabled: bool = True
+    _tracking_min_confidence: float = 0.1
+    _tracking_min_detection_interval: float = 5.0
+    _tracking_expansion_ratio: float = 0.05
+    _tracking_kpt_bbox_threshold: float = 0.003
+    _tracking_kpt_visibility_threshold: float = 0.004
+    # Debug: stores the per-camera bboxes from the most recent predict call.
+    # list[NDArray | None], one entry per input image. Populated by
+    # predict_batch and predict_batch_with_tracking. Read by annotators.
+    last_bboxes: list[NDArray] | None = None
+    # Debug: for each entry in last_bboxes, True = from YOLOX, False = tracking.
+    last_bboxes_from_detector: list[bool] | None = None
+    # Debug: per-camera tracking stats, same length as last_bboxes.
+    # Populated by predict_batch_with_tracking; None when tracking is disabled.
+    last_bboxes_confidence: list[float] | None = None
+    last_bboxes_consecutive_skips: list[int] | None = None
 
     # Populated at end of each predict_batch (generic pipeline stage timings).
+    last_human_detection_letterbox_ms: float = 0.0
+    last_human_detection_batch_pack_ms: float = 0.0
     last_human_detection_preprocess_ms: float = 0.0
     last_human_detection_ms: float = 0.0
     last_human_detection_postprocess_ms: float = 0.0
@@ -250,14 +360,25 @@ class RTMPoseSession:
     last_pose_estimation_ms: float = 0.0
     last_pose_estimation_postprocess_ms: float = 0.0
 
+    _acc_human_detection_letterbox_ms: float = field(default=0.0, repr=False, init=False)
+    _acc_human_detection_batch_pack_ms: float = field(default=0.0, repr=False, init=False)
     _acc_human_detection_preprocess_ms: float = field(default=0.0, repr=False, init=False)
     _acc_human_detection_ms: float = field(default=0.0, repr=False, init=False)
     _acc_human_detection_postprocess_ms: float = field(default=0.0, repr=False, init=False)
     _acc_pose_estimation_preprocess_ms: float = field(default=0.0, repr=False, init=False)
     _acc_pose_estimation_ms: float = field(default=0.0, repr=False, init=False)
     _acc_pose_estimation_postprocess_ms: float = field(default=0.0, repr=False, init=False)
+    _timing_context: TrackerTaskEventContext | None = field(default=None, repr=False, init=False)
+    _preprocess_task_id: str | None = field(default=None, repr=False, init=False)
+    _preprocess_span_start_ns: int | None = field(default=None, repr=False, init=False)
+    _preprocess_span_end_ns: int | None = field(default=None, repr=False, init=False)
 
     def _reset_batch_timing(self) -> None:
+        self._preprocess_task_id = None
+        self._preprocess_span_start_ns = None
+        self._preprocess_span_end_ns = None
+        self._acc_human_detection_letterbox_ms = 0.0
+        self._acc_human_detection_batch_pack_ms = 0.0
         self._acc_human_detection_preprocess_ms = 0.0
         self._acc_human_detection_ms = 0.0
         self._acc_human_detection_postprocess_ms = 0.0
@@ -266,12 +387,157 @@ class RTMPoseSession:
         self._acc_pose_estimation_postprocess_ms = 0.0
 
     def _publish_batch_timing(self) -> None:
+        self.last_human_detection_letterbox_ms = self._acc_human_detection_letterbox_ms
+        self.last_human_detection_batch_pack_ms = self._acc_human_detection_batch_pack_ms
         self.last_human_detection_preprocess_ms = self._acc_human_detection_preprocess_ms
         self.last_human_detection_ms = self._acc_human_detection_ms
         self.last_human_detection_postprocess_ms = self._acc_human_detection_postprocess_ms
         self.last_pose_estimation_preprocess_ms = self._acc_pose_estimation_preprocess_ms
         self.last_pose_estimation_ms = self._acc_pose_estimation_ms
         self.last_pose_estimation_postprocess_ms = self._acc_pose_estimation_postprocess_ms
+
+    def _camera_id_for_index(self, index: int, source_index: int | None = None) -> str | None:
+        if self._timing_context is None or self._timing_context.camera_ids is None:
+            return None
+        lookup = source_index if source_index is not None else index
+        return self._timing_context.camera_ids[lookup]
+
+    def _source_index(
+        self,
+        index: int,
+        source_indices: list[int] | None,
+    ) -> int | None:
+        if source_indices is None:
+            return None
+        return source_indices[index]
+
+    def _preprocess_child_parent_task_ids(self) -> tuple[str, ...]:
+        if self._preprocess_task_id is not None:
+            return (self._preprocess_task_id,)
+        if self._timing_context is not None:
+            return self._timing_context.parent_task_ids
+        return ()
+
+    def _extend_preprocess_span(self, start_ns: int, end_ns: int) -> None:
+        duration_ms = (end_ns - start_ns) / 1e6
+        self._acc_human_detection_preprocess_ms += duration_ms
+        if self._preprocess_span_start_ns is None or start_ns < self._preprocess_span_start_ns:
+            self._preprocess_span_start_ns = start_ns
+        if self._preprocess_span_end_ns is None or end_ns > self._preprocess_span_end_ns:
+            self._preprocess_span_end_ns = end_ns
+
+    def _accumulate_stage(
+        self,
+        stage: str,
+        acc_attr: str,
+        start_ns: int,
+        end_ns: int,
+        *,
+        camera_id: str | None = None,
+        parent_task_ids: tuple[str, ...] | None = None,
+    ) -> None:
+        duration_ms = (end_ns - start_ns) / 1e6
+        current = getattr(self, acc_attr)
+        setattr(self, acc_attr, current + duration_ms)
+        if self._timing_context is not None:
+            self._timing_context.record_stage(
+                stage,
+                start_ns,
+                end_ns,
+                camera_id=camera_id,
+                parent_task_ids=parent_task_ids,
+            )
+
+    def _accumulate_human_detection_letterbox(
+        self,
+        start_ns: int,
+        end_ns: int,
+        *,
+        camera_id: str | None = None,
+    ) -> None:
+        self._extend_preprocess_span(start_ns, end_ns)
+        self._accumulate_stage(
+            STAGE_HUMAN_DETECTION_LETTERBOX,
+            "_acc_human_detection_letterbox_ms",
+            start_ns,
+            end_ns,
+            camera_id=camera_id,
+            parent_task_ids=self._preprocess_child_parent_task_ids(),
+        )
+
+    def _accumulate_human_detection_batch_pack(
+        self,
+        start_ns: int,
+        end_ns: int,
+    ) -> None:
+        self._extend_preprocess_span(start_ns, end_ns)
+        self._accumulate_stage(
+            STAGE_HUMAN_DETECTION_BATCH_PACK,
+            "_acc_human_detection_batch_pack_ms",
+            start_ns,
+            end_ns,
+            parent_task_ids=self._preprocess_child_parent_task_ids(),
+        )
+
+    def _begin_batch_timing(
+        self,
+        images: list[NDArray[np.uint8]],
+        *,
+        frame_number: int | None = None,
+        camera_ids: list[str] | None = None,
+        parent_task_id: str | None = None,
+        parent_task_ids: list[str] | None = None,
+        event_collector: TrackerTaskEventCollector | TrackerTaskEventSink | None = None,
+    ) -> None:
+        if camera_ids is not None and len(camera_ids) != len(images):
+            raise ValueError(
+                f"camera_ids ({len(camera_ids)}) must match images ({len(images)})"
+            )
+        self._reset_batch_timing()
+        self._timing_context = TrackerTaskEventContext.from_call(
+            frame_number=frame_number,
+            camera_ids=camera_ids,
+            parent_task_id=parent_task_id,
+            parent_task_ids=parent_task_ids,
+            event_collector=event_collector,
+        )
+        if self._timing_context is not None:
+            self._preprocess_task_id = make_batch_task_id(
+                frame_number=frame_number,
+                node_kind=self._timing_context.node_kind,
+                stage=STAGE_HUMAN_DETECTION_PREPROCESS,
+            )
+
+    def _finalize_batch_timing_events(self) -> None:
+        ctx = self._timing_context
+        if ctx is None or ctx.event_collector is None:
+            return
+        if (
+            self._preprocess_span_start_ns is not None
+            and self._preprocess_span_end_ns is not None
+        ):
+            ctx.record_stage(
+                STAGE_HUMAN_DETECTION_PREPROCESS,
+                self._preprocess_span_start_ns,
+                self._preprocess_span_end_ns,
+            )
+        collector = ctx.event_collector
+        if isinstance(collector, TrackerTaskEventCollector):
+            stage_rank = {
+                stage: index for index, stage in enumerate(RTMPOSE_BATCH_STAGES)
+            }
+            collector.events.sort(
+                key=lambda event: (
+                    stage_rank.get(event.stage, len(RTMPOSE_BATCH_STAGES)),
+                    event.start_time_ns,
+                    event.task_id,
+                ),
+            )
+
+    def _end_batch_timing(self) -> None:
+        self._finalize_batch_timing_events()
+        self._publish_batch_timing()
+        self._timing_context = None
 
     @classmethod
     def create(cls, config: RTMPoseSessionConfig | None = None) -> "RTMPoseSession":
@@ -285,14 +551,60 @@ class RTMPoseSession:
         if provider_needs_cuda_preload(active_provider):
             ensure_cuda_dlls_loaded()
 
+        # CoreML does not support dynamic batch dims (crashes with SIGSEGV) or
+        # fp16 inputs. Override those settings when the resolved provider is CoreML.
+        if active_provider == "coreml":
+            if config.fp16:
+                logger.info("CoreML provider selected: disabling fp16 (not supported by CoreML EP)")
+                config = config.model_copy(update={"fp16": False})
+            if config.max_batch_size > 1:
+                logger.info("CoreML provider selected: forcing max_batch_size=1 (dynamic batch dims crash CoreML EP)")
+                config = config.model_copy(update={"max_batch_size": 1})
+
         # Resolve which physical GPU to use. Do this once here so every sub-session
         # lands on the same device.
         device_id = config.device_id
+        selected_free_bytes: int | None = None
+        selected_total_bytes: int | None = None
         if device_id is None and provider_needs_cuda_device_select(active_provider):
             logger.info("RTMPoseSession: device_id not specified -- auto-selecting best CUDA device")
-            device_id = select_best_cuda_device_id()
+            device_id, selected_free_bytes, selected_total_bytes = select_best_cuda_device()
         device_id = device_id if device_id is not None else 0
         selection_source = "user-specified" if config.device_id is not None else "auto-selected"
+
+        # Size the CUDA arena ceiling from the card's TOTAL VRAM — a stable hardware
+        # constant. Free VRAM is a volatile snapshot; baking it into the session cap
+        # would risk setting the ceiling too low when measured during transient GPU
+        # activity (Chrome, Electron, another model, etc.). Total VRAM never changes.
+        #
+        # The cap is a CEILING, not a reservation — ORT only allocates what inference
+        # actually needs, growing toward the cap. So "too high" costs nothing.
+        gpu_mem_limit = config.gpu_mem_limit
+        if gpu_mem_limit is None and active_provider in ("cuda", "trt"):
+            if selected_total_bytes is None or selected_total_bytes <= 0:
+                selected_total_bytes = cuda_device_total_bytes(device_id)
+            if selected_total_bytes and selected_total_bytes > 0:
+                gpu_mem_limit = int(selected_total_bytes * ARENA_VRAM_FRACTION)
+                logger.info(
+                    "RTMPose: sizing CUDA arena ceiling to %.2f GiB "
+                    "(%.0f%% of %.2f GiB total on device %d)",
+                    gpu_mem_limit / 1024 ** 3, ARENA_VRAM_FRACTION * 100,
+                    selected_total_bytes / 1024 ** 3, device_id,
+                )
+                # Warn if another process is using significant GPU memory right now.
+                if selected_free_bytes is None or selected_free_bytes <= 0:
+                    selected_free_bytes = cuda_device_free_bytes(device_id)
+                if selected_free_bytes and selected_free_bytes > 0:
+                    in_use_mib = (selected_total_bytes - selected_free_bytes) // (1024 * 1024)
+                    if in_use_mib > 512:
+                        logger.warning(
+                            "RTMPose: ~%d MiB of GPU memory is in use by other processes. "
+                            "Close GPU-heavy apps (browser, game, etc.) for best performance.",
+                            in_use_mib,
+                        )
+        if gpu_mem_limit is None:
+            # CPU/CoreML path, or VRAM query failed -- fall back to the legacy default.
+            gpu_mem_limit = 2 * 1024 * 1024 * 1024
         logger.info(
             "\n"
             "  ╔══════════════════════════════════════════════════════════════╗\n"
@@ -303,12 +615,14 @@ class RTMPoseSession:
             "  ║  mode       : %-46s║\n"
             "  ║  max_batch  : %-46s║\n"
             "  ║  fp16       : %-46s║\n"
+            "  ║  arena_cap  : %-46s║\n"
             "  ╚══════════════════════════════════════════════════════════════╝",
             active_provider,
             f"{device_id}  ({selection_source})",
             config.mode,
             config.max_batch_size,
             config.fp16,
+            f"{gpu_mem_limit / 1024 ** 3:.2f} GiB",
         )
 
         config.engine_cache_dir.mkdir(parents=True, exist_ok=True)
@@ -340,6 +654,7 @@ class RTMPoseSession:
             max_batch_size=config.max_batch_size,
             trt_set_batch_profile=True,
             device_id=device_id,
+            gpu_mem_limit=gpu_mem_limit,
         )
         pose_session = build_tuned_ort_session(
             onnx_path=pose_onnx_raw,
@@ -349,6 +664,7 @@ class RTMPoseSession:
             log_label="rtmpose",
             max_batch_size=config.max_batch_size,
             device_id=device_id,
+            gpu_mem_limit=gpu_mem_limit,
         )
 
         yolox_supports_batch = probe_supports_batch(det_session, label="yolox")
@@ -371,6 +687,7 @@ class RTMPoseSession:
                 trt_set_batch_profile=True,
                 max_batch_size=config.max_batch_size,
                 device_id=device_id,
+                gpu_mem_limit=gpu_mem_limit,
             )
 
         session = cls(
@@ -382,6 +699,16 @@ class RTMPoseSession:
             _pose_input_size=pose_input_size,
             _yolox_supports_batch=yolox_supports_batch,
             _yolox_prenms_session=yolox_prenms_session,
+            _per_crop_pose=active_provider == "coreml",
+            # CoreML JIT-compiles per batch shape — varying person counts cause multi-second  freezes
+            _max_persons=config.max_persons,
+            _yolox_image_scale=config.yolox_image_scale,
+            _tracking_enabled=config.enable_tracking_skip,
+            _tracking_min_confidence=config.min_tracking_confidence,
+            _tracking_min_detection_interval=config.min_detection_interval_seconds,
+            _tracking_expansion_ratio=config.tracking_expansion_ratio,
+            _tracking_kpt_bbox_threshold=config.kpt_bbox_threshold,
+            _tracking_kpt_visibility_threshold=config.kpt_visibility_threshold,
         )
 
         # Step 3: warmup. With TRT this is what triggers engine compilation; can
@@ -422,41 +749,249 @@ class RTMPoseSession:
             return []
         return self._estimate_pose_batched(images, bboxes_per_image)
 
+    def predict_batch_with_tracking(
+        self,
+        images: list[NDArray[np.uint8]],
+        tracking_states: list[PersonTrackingState],
+        *,
+        frame_number: int | None = None,
+        camera_ids: list[str] | None = None,
+        parent_task_id: str | None = None,
+        parent_task_ids: list[str] | None = None,
+        event_collector: TrackerTaskEventCollector | None = None,
+    ) -> tuple[list[tuple[NDArray, NDArray]], list[PersonTrackingState]]:
+        """Batched inference with tracking-based YOLOX skip.
+
+        For each camera, decides whether to run full YOLOX+RTMPose or skip
+        YOLOX and use a tracking-predicted bbox. Batches YOLOX runs together
+        and RTMPose runs together for efficiency — cameras that need YOLOX
+        share one ONNX call, and all cameras share one RTMPose call.
+
+        Args:
+            images: One image per camera.
+            tracking_states: Per-camera tracking state, same length as images.
+
+        Returns:
+            ``(results, updated_states)`` where *results* is a list of
+            ``(keypoints, scores)`` tuples (one per input image), and
+            *updated_states* are the new tracking states.
+        """
+        if not images:
+            return [], []
+
+        self._begin_batch_timing(
+            images,
+            frame_number=frame_number,
+            camera_ids=camera_ids,
+            parent_task_id=parent_task_id,
+            parent_task_ids=parent_task_ids,
+            event_collector=event_collector,
+        )
+        try:
+            n = len(images)
+            if len(tracking_states) != n:
+                raise ValueError(
+                    f"images ({n}) and tracking_states ({len(tracking_states)}) "
+                    f"must have the same length"
+                )
+
+            # ---- Step 1: Decide per-camera strategy ----
+            # Three groups:
+            #   A: run full YOLOX + RTMPose (cold start, lost track, periodic refresh)
+            #   B: skip YOLOX, use tracking-predicted bbox (good track)
+            #   C: skip entirely (no detection last frame AND predicted bbox is None)
+
+            needs_detector: list[bool] = []
+            tracking_bboxes: list[NDArray | None] = []
+            use_tracking: list[bool] = []
+
+            for i, state in enumerate(tracking_states):
+                h, w = images[i].shape[:2]
+
+                pred_bbox = predict_bbox_from_tracking(
+                    state,
+                    expansion_ratio=self._tracking_expansion_ratio,
+                    image_width=w,
+                    image_height=h,
+                )
+
+                run_detector = should_run_detector(
+                    state,
+                    min_tracking_confidence=self._tracking_min_confidence,
+                    min_detection_interval=self._tracking_min_detection_interval,
+                    predicted_bbox=pred_bbox,
+                )
+
+                needs_detector.append(run_detector)
+                tracking_bboxes.append(pred_bbox)
+                use_tracking.append(not run_detector and pred_bbox is not None)
+
+            # ---- Step 2: Run YOLOX only on cameras that need it ----
+            yolo_indices = [i for i, nd in enumerate(needs_detector) if nd]
+            yolo_images = [images[i] for i in yolo_indices]
+
+            yolo_bboxes_map: dict[int, NDArray] = {}
+            if yolo_images:
+                yolo_results = self._detect_persons_batched(
+                    yolo_images,
+                    source_indices=yolo_indices,
+                )
+                if self._max_persons is not None:
+                    yolo_results = [b[: self._max_persons] for b in yolo_results]
+                for idx, bboxes in zip(yolo_indices, yolo_results):
+                    yolo_bboxes_map[idx] = bboxes
+
+            # ---- Step 3: Assemble combined bboxes for RTMPose ----
+            combined_bboxes: list[NDArray] = []
+            for i in range(n):
+                if i in yolo_bboxes_map:
+                    combined_bboxes.append(yolo_bboxes_map[i])
+                elif use_tracking[i] and tracking_bboxes[i] is not None:
+                    combined_bboxes.append(
+                        np.asarray(tracking_bboxes[i], dtype=np.float64).reshape(1, 4)
+                    )
+                else:
+                    combined_bboxes.append(np.empty((0, 4), dtype=np.float64))
+
+            # ---- Step 4: Run RTMPose on all crops (batched) ----
+            pose_results = self._estimate_pose_batched(images, combined_bboxes)
+
+            # ---- Step 5: Update tracking states from keypoints ----
+            updated_states: list[PersonTrackingState] = []
+            for i, (state, (keypoints, scores)) in enumerate(
+                zip(tracking_states, pose_results)
+            ):
+                h, w = images[i].shape[:2]
+                bbox_from_detector = i in yolo_bboxes_map
+
+                if len(keypoints) == 0 or len(scores) == 0:
+                    updated_states.append(PersonTrackingState())
+                else:
+                    new_state = update_tracking_state(
+                        state,
+                        keypoints=keypoints,
+                        scores=scores,
+                        expansion_ratio=self._tracking_expansion_ratio,
+                        from_detector=bbox_from_detector,
+                        image_width=w,
+                        image_height=h,
+                        kpt_bbox_threshold=self._tracking_kpt_bbox_threshold,
+                        kpt_visibility_threshold=self._tracking_kpt_visibility_threshold,
+                    )
+                    if use_tracking[i]:
+                        new_state.consecutive_skips = state.consecutive_skips + 1
+                    updated_states.append(new_state)
+
+            # Store bboxes for debug annotation.
+            combined_bboxes_for_annot: list[NDArray | None] = [
+                c if len(c) > 0 else None for c in combined_bboxes
+            ]
+            self.last_bboxes = combined_bboxes_for_annot
+            self.last_bboxes_from_detector = [
+                (i in yolo_bboxes_map) for i in range(n)
+            ]
+            self.last_bboxes_confidence = [
+                s.pose_confidence for s in updated_states
+            ]
+            self.last_bboxes_consecutive_skips = [
+                s.consecutive_skips for s in updated_states
+            ]
+
+            return pose_results, updated_states
+        finally:
+            self._end_batch_timing()
+
     def predict_batch(
             self,
             images: list[NDArray[np.uint8]],
+            *,
+            frame_number: int | None = None,
+            camera_ids: list[str] | None = None,
+            parent_task_id: str | None = None,
+            parent_task_ids: list[str] | None = None,
+            event_collector: TrackerTaskEventCollector | None = None,
     ) -> list[tuple[NDArray, NDArray]]:
         """Batched inference over N images. Returns one (keypoints, scores)
         tuple per input image, in the same order. Empty detections are returned
         as zero-length arrays.
 
         Implementation:
-          1. YOLOX preprocess each image (per-image ratio + letterbox).
-          2. Stack into (N, 3, H, W); one session.run for person detection.
-          3. RTMPose preprocess each (image, bbox) crop across all images.
-          4. Stack into (M, 3, H_pose, W_pose); one session.run for pose.
-          5. Distribute pose outputs back per-input-image and postprocess.
+          1. (Optional) Downscale images for YOLOX person detection.
+          2. YOLOX preprocess each image (per-image ratio + letterbox).
+          3. Stack into (N, 3, H, W); one session.run for person detection.
+          4. Scale bboxes back to original-image coordinates if downscaled.
+          5. RTMPose preprocess each (image, bbox) crop — using ORIGINAL images.
+          6. Stack into (M, 3, H_pose, W_pose); one session.run for pose.
+          7. Distribute pose outputs back per-input-image and postprocess.
 
         Falls back to per-image session.run (still single CUDA context) for
         either stage if the ONNX model rejects the batched input."""
-        self._reset_batch_timing()
-        if not images:
-            self._publish_batch_timing()
-            return []
+        self._begin_batch_timing(
+            images,
+            frame_number=frame_number,
+            camera_ids=camera_ids,
+            parent_task_id=parent_task_id,
+            parent_task_ids=parent_task_ids,
+            event_collector=event_collector,
+        )
+        try:
+            if not images:
+                return []
 
-        # ---- Stage 1: YOLOX person detection (batched) ----
-        bboxes_per_image = self._detect_persons_batched(images)
+            # ---- Stage 1: YOLOX person detection (batched) ----
+            scale = self._yolox_image_scale
+            if scale < 1.0:
+                yolo_images = [
+                    cv2.resize(
+                        img,
+                        (int(img.shape[1] * scale), int(img.shape[0] * scale)),
+                        interpolation=cv2.INTER_LINEAR,
+                    )
+                    for img in images
+                ]
+                bboxes_per_image = self._detect_persons_batched(yolo_images)
+                # Scale bboxes from downscaled-image coords back to original-image
+                # coords so the RTMPose crop (which uses the full-res originals) works.
+                inv_scale = 1.0 / scale
+                bboxes_per_image = [
+                    b * inv_scale if len(b) > 0 else b
+                    for b in bboxes_per_image
+                ]
+            else:
+                bboxes_per_image = self._detect_persons_batched(images)
 
-        # ---- Stage 2: RTMPose keypoint estimation (batched over all crops) ----
-        results = self._estimate_pose_batched(images, bboxes_per_image)
-        self._publish_batch_timing()
-        return results
+            # ---- Cap detections if max_persons is set ----
+            # YOLOX returns boxes sorted by descending confidence, so [:N] keeps the
+            # N most confident detections and discards lower-confidence false positives.
+            if self._max_persons is not None:
+                bboxes_per_image = [b[: self._max_persons] for b in bboxes_per_image]
+
+            # ---- Stage 2: RTMPose keypoint estimation (batched over all crops) ----
+            # Always uses the ORIGINAL full-resolution images for cropping — never
+            # the downscaled YOLOX images. This is the key insight: YOLOX only needs
+            # enough resolution to find person blobs, but the pose model benefits
+            # from every pixel of detail in the crop region.
+            pose_results = self._estimate_pose_batched(images, bboxes_per_image)
+
+            # Debug: store bboxes for annotation.
+            self.last_bboxes = [
+                b if len(b) > 0 else None for b in bboxes_per_image
+            ]
+            self.last_bboxes_from_detector = [True] * len(images)
+            self.last_bboxes_confidence = None
+            self.last_bboxes_consecutive_skips = None
+
+            return pose_results
+        finally:
+            self._end_batch_timing()
 
     # ------------------------------------------------------------------ stage 1
 
     def _detect_persons_batched(
             self,
             images: list[NDArray[np.uint8]],
+            *,
+            source_indices: list[int] | None = None,
     ) -> list[NDArray]:
         """Run YOLOX over N images. Returns one bbox array per image.
 
@@ -468,25 +1003,53 @@ class RTMPoseSession:
 
         For YOLOX models without baked-in NMS the standard batched path works."""
 
+        if source_indices is not None and len(source_indices) != len(images):
+            raise ValueError(
+                f"source_indices ({len(source_indices)}) must match images ({len(images)})"
+            )
+
         # Fast path: model has static batch=1 or only one image — per-image
         # YOLOX path (includes baked-in NMS, works on CUDA).
         if not self._yolox_supports_batch or len(images) == 1:
-            return [_single_image_yolox(
-                img, self._det_session, self._det_input_size,
-                self._det_nms_thr, self._det_score_thr,
-                timing=self,
-            ) for img in images]
+            return [
+                _single_image_yolox(
+                    img,
+                    self._det_session,
+                    self._det_input_size,
+                    self._det_nms_thr,
+                    self._det_score_thr,
+                    timing=self,
+                    camera_id=self._camera_id_for_index(
+                        i,
+                        self._source_index(i, source_indices),
+                    ),
+                )
+                for i, img in enumerate(images)
+            ]
 
-        t_preprocess0 = time.perf_counter()
-        preprocessed = [yolox_letterbox_preprocess(img, self._det_input_size)
-                        for img in images]
+        preprocessed: list[tuple[NDArray, float]] = []
+        for i, img in enumerate(images):
+            t_letterbox0 = time.perf_counter_ns()
+            letterboxed = yolox_letterbox_preprocess(img, self._det_input_size)
+            t_letterbox1 = time.perf_counter_ns()
+            preprocessed.append(letterboxed)
+            self._accumulate_human_detection_letterbox(
+                t_letterbox0,
+                t_letterbox1,
+                camera_id=self._camera_id_for_index(
+                    i,
+                    self._source_index(i, source_indices),
+                ),
+            )
         # Stack to (N, 3, H, W). All padded images share the same shape because
         # YOLOX letterboxes to a fixed model_input_size.
+        t_pack0 = time.perf_counter_ns()
         batch = np.stack(
             [p.transpose(2, 0, 1) for p, _ in preprocessed], axis=0,
         ).astype(np.float32, copy=False)
         batch = np.ascontiguousarray(batch)
-        self._acc_human_detection_preprocess_ms += (time.perf_counter() - t_preprocess0) * 1e3
+        t_pack1 = time.perf_counter_ns()
+        self._accumulate_human_detection_batch_pack(t_pack0, t_pack1)
 
         # Preferred batched path: prenms session (backbone+decode, no Squeeze/NMS).
         # Required when the YOLOX ONNX has baked-in NMS whose Squeeze(axis=0)
@@ -494,12 +1057,18 @@ class RTMPoseSession:
         if self._yolox_prenms_session is not None:
             input_name = self._yolox_prenms_session.get_inputs()[0].name
             try:
-                t_run0 = time.perf_counter()
+                t_run0 = time.perf_counter_ns()
                 bboxes_batch, conf_batch = self._yolox_prenms_session.run(
                     [PRENMS_BBOX_OUTPUT, PRENMS_CONF_OUTPUT], {input_name: batch},
                 )
-                self._acc_human_detection_ms += (time.perf_counter() - t_run0) * 1e3
-                t_post0 = time.perf_counter()
+                t_run1 = time.perf_counter_ns()
+                self._accumulate_stage(
+                    STAGE_HUMAN_DETECTION,
+                    "_acc_human_detection_ms",
+                    t_run0,
+                    t_run1,
+                )
+                t_post0 = time.perf_counter_ns()
                 result = [
                     _yolox_postprocess_prenms(
                         bboxes_one=bboxes_batch[i],
@@ -510,38 +1079,70 @@ class RTMPoseSession:
                     )
                     for i in range(len(images))
                 ]
-                self._acc_human_detection_postprocess_ms += (time.perf_counter() - t_post0) * 1e3
+                t_post1 = time.perf_counter_ns()
+                self._accumulate_stage(
+                    STAGE_HUMAN_DETECTION_POSTPROCESS,
+                    "_acc_human_detection_postprocess_ms",
+                    t_post0,
+                    t_post1,
+                )
                 return result
             except Exception as e:
                 logger.warning(
                     f"YOLOX pre-NMS batched run failed ({e!r}); "
                     f"falling back to per-image inference."
                 )
-                return [_single_image_yolox(
-                    img, self._det_session, self._det_input_size,
-                    self._det_nms_thr, self._det_score_thr,
-                    timing=self,
-                ) for img in images]
+                return [
+                    _single_image_yolox(
+                        img,
+                        self._det_session,
+                        self._det_input_size,
+                        self._det_nms_thr,
+                        self._det_score_thr,
+                        timing=self,
+                        camera_id=self._camera_id_for_index(
+                            i,
+                            self._source_index(i, source_indices),
+                        ),
+                    )
+                    for i, img in enumerate(images)
+                ]
 
         # Fallback batched path: YOLOX session without baked-in NMS (uncommon).
         try:
-            t_run0 = time.perf_counter()
+            t_run0 = time.perf_counter_ns()
             outputs = session_run_batched(self._det_session, batch)
-            self._acc_human_detection_ms += (time.perf_counter() - t_run0) * 1e3
+            t_run1 = time.perf_counter_ns()
+            self._accumulate_stage(
+                STAGE_HUMAN_DETECTION,
+                "_acc_human_detection_ms",
+                t_run0,
+                t_run1,
+            )
         except Exception as e:
             logger.warning(
                 f"YOLOX batched session.run failed ({e!r}); "
                 f"falling back to per-image inference."
             )
-            return [_single_image_yolox(
-                img, self._det_session, self._det_input_size,
-                self._det_nms_thr, self._det_score_thr,
-                timing=self,
-            ) for img in images]
+            return [
+                _single_image_yolox(
+                    img,
+                    self._det_session,
+                    self._det_input_size,
+                    self._det_nms_thr,
+                    self._det_score_thr,
+                    timing=self,
+                    camera_id=self._camera_id_for_index(
+                        i,
+                        self._source_index(i, source_indices),
+                    ),
+                )
+                for i, img in enumerate(images)
+            ]
 
         det_output = outputs[0]  # (N, num_anchors, C)
 
-        t_post0 = time.perf_counter()
+        t_post0 = time.perf_counter_ns()
         bboxes_per_image: list[NDArray] = []
         for i, (_, ratio) in enumerate(preprocessed):
             per_image_output = det_output[i:i + 1]  # keep leading 1-batch dim
@@ -554,7 +1155,13 @@ class RTMPoseSession:
                     score_thr=self._det_score_thr,
                 )
             )
-        self._acc_human_detection_postprocess_ms += (time.perf_counter() - t_post0) * 1e3
+        t_post1 = time.perf_counter_ns()
+        self._accumulate_stage(
+            STAGE_HUMAN_DETECTION_POSTPROCESS,
+            "_acc_human_detection_postprocess_ms",
+            t_post0,
+            t_post1,
+        )
         return bboxes_per_image
 
     # ------------------------------------------------------------------ stage 2
@@ -567,10 +1174,28 @@ class RTMPoseSession:
         """Run RTMPose over the union of all (image, bbox) crops. Returns one
         (keypoints, scores) tuple per input image."""
 
+        # CoreML JIT-compiles a new kernel the first time it sees each batch
+        # shape. If the number of detected people changes frame-to-frame, CoreML
+        # would freeze for several seconds on each new shape. Force batch=1 by
+        # processing each crop individually.
+        if self._per_crop_pose:
+            return [
+                _single_image_rtmpose(
+                    images[i], bboxes=list(bboxes_per_image[i]),
+                    session=self._pose_session, pose_input_size=self._pose_input_size,
+                    pose_mean=self._pose_mean, pose_std=self._pose_std,
+                    to_openpose=self._pose_to_openpose,
+                    timing=self,
+                    camera_id=self._camera_id_for_index(i),
+                )
+                if len(bboxes_per_image[i]) > 0 else _empty_pose_result()
+                for i in range(len(images))
+            ]
+
         # Per-image crops + a flat list of all crops with provenance.
         crops: list[_PoseCrop] = []
         crop_ranges: list[tuple[int, int]] = []  # (start, end) into crops, per image
-        t_pose_preprocess0 = time.perf_counter()
+        t_pose_preprocess0 = time.perf_counter_ns()
         for image, bboxes in zip(images, bboxes_per_image):
             start = len(crops)
             if len(bboxes) == 0:
@@ -587,7 +1212,13 @@ class RTMPoseSession:
                     scale=np.asarray(scale, dtype=np.float64),
                 ))
             crop_ranges.append((start, len(crops)))
-        self._acc_pose_estimation_preprocess_ms += (time.perf_counter() - t_pose_preprocess0) * 1e3
+        t_pose_preprocess1 = time.perf_counter_ns()
+        self._accumulate_stage(
+            STAGE_POSE_ESTIMATION_PREPROCESS,
+            "_acc_pose_estimation_preprocess_ms",
+            t_pose_preprocess0,
+            t_pose_preprocess1,
+        )
 
         if not crops:
             return [_empty_pose_result() for _ in images]
@@ -599,9 +1230,15 @@ class RTMPoseSession:
         batch = np.ascontiguousarray(batch)
 
         try:
-            t_pose_run0 = time.perf_counter()
+            t_pose_run0 = time.perf_counter_ns()
             outputs = session_run_batched(self._pose_session, batch)
-            self._acc_pose_estimation_ms += (time.perf_counter() - t_pose_run0) * 1e3
+            t_pose_run1 = time.perf_counter_ns()
+            self._accumulate_stage(
+                STAGE_POSE_ESTIMATION,
+                "_acc_pose_estimation_ms",
+                t_pose_run0,
+                t_pose_run1,
+            )
         except Exception as e:
             e_str = str(e)
             if "BFCArena" in e_str or "Available memory" in e_str:
@@ -619,6 +1256,7 @@ class RTMPoseSession:
                     pose_mean=self._pose_mean, pose_std=self._pose_std,
                     to_openpose=self._pose_to_openpose,
                     timing=self,
+                    camera_id=self._camera_id_for_index(i),
                 )
                 if len(bboxes_per_image[i]) > 0 else _empty_pose_result()
                 for i in range(len(images))
@@ -627,7 +1265,7 @@ class RTMPoseSession:
         # outputs from RTMPose are typically [simcc_x, simcc_y] each of shape (M, K, ...)
         simcc_x, simcc_y = outputs[0], outputs[1]
 
-        t_pose_post0 = time.perf_counter()
+        t_pose_post0 = time.perf_counter_ns()
         results: list[tuple[NDArray, NDArray]] = []
         for i, (start, end) in enumerate(crop_ranges):
             if end == start:
@@ -653,7 +1291,13 @@ class RTMPoseSession:
             if self._pose_to_openpose:
                 keypoints, scores = convert_coco_to_openpose(keypoints, scores)
             results.append((keypoints, scores))
-        self._acc_pose_estimation_postprocess_ms += (time.perf_counter() - t_pose_post0) * 1e3
+        t_pose_post1 = time.perf_counter_ns()
+        self._accumulate_stage(
+            STAGE_POSE_ESTIMATION_POSTPROCESS,
+            "_acc_pose_estimation_postprocess_ms",
+            t_pose_post0,
+            t_pose_post1,
+        )
         return results
 
     # ------------------------------------------------------------------ warmup
@@ -852,6 +1496,7 @@ def _single_image_yolox(
     nms_thr: float,
     score_thr: float,
     timing: RTMPoseSession | None = None,
+    camera_id: str | None = None,
 ) -> NDArray:
     """Per-image YOLOX: preprocess → session.run → postprocess.
 
@@ -860,16 +1505,27 @@ def _single_image_yolox(
     if session is None:
         return np.empty((0, 4), dtype=np.float64)
 
-    t0 = time.perf_counter()
+    t0 = time.perf_counter_ns()
     padded, ratio = yolox_letterbox_preprocess(image, input_size)
+    t1 = time.perf_counter_ns()
     if timing is not None:
-        timing._acc_human_detection_preprocess_ms += (time.perf_counter() - t0) * 1e3
-    t1 = time.perf_counter()
+        timing._accumulate_human_detection_letterbox(t0, t1, camera_id=camera_id)
+    t2 = time.perf_counter_ns()
     inp = np.ascontiguousarray(padded.transpose(2, 0, 1)[None].astype(np.float32))
-    outputs = session.run(None, {session.get_inputs()[0].name: inp})
+    t_pack1 = time.perf_counter_ns()
     if timing is not None:
-        timing._acc_human_detection_ms += (time.perf_counter() - t1) * 1e3
-    t2 = time.perf_counter()
+        timing._accumulate_human_detection_batch_pack(t2, t_pack1)
+    outputs = session.run(None, {session.get_inputs()[0].name: inp})
+    t3 = time.perf_counter_ns()
+    if timing is not None:
+        timing._accumulate_stage(
+            STAGE_HUMAN_DETECTION,
+            "_acc_human_detection_ms",
+            t_pack1,
+            t3,
+            camera_id=camera_id,
+        )
+    t4 = time.perf_counter_ns()
     result = _yolox_postprocess_one(
         outputs_one=outputs[0],
         ratio=ratio,
@@ -877,8 +1533,15 @@ def _single_image_yolox(
         nms_thr=nms_thr,
         score_thr=score_thr,
     )
+    t5 = time.perf_counter_ns()
     if timing is not None:
-        timing._acc_human_detection_postprocess_ms += (time.perf_counter() - t2) * 1e3
+        timing._accumulate_stage(
+            STAGE_HUMAN_DETECTION_POSTPROCESS,
+            "_acc_human_detection_postprocess_ms",
+            t4,
+            t5,
+            camera_id=camera_id,
+        )
     return result
 
 
@@ -891,6 +1554,7 @@ def _single_image_rtmpose(
     pose_std: tuple[float, float, float],
     to_openpose: bool = False,
     timing: RTMPoseSession | None = None,
+    camera_id: str | None = None,
 ) -> tuple[NDArray, NDArray]:
     """Per-image RTMPose: preprocess each bbox → session.run → postprocess.
 
@@ -907,19 +1571,33 @@ def _single_image_rtmpose(
     kpts_list: list[NDArray] = []
     scores_list: list[NDArray] = []
     for bbox in bbox_list:
-        t0 = time.perf_counter()
+        t0 = time.perf_counter_ns()
         resized, center, scale = rtmpose_letterbox_preprocess(
             image, bbox=np.asarray(bbox, dtype=np.float64), model_input_size=pose_input_size,
             mean=pose_mean, std=pose_std,
         )
+        t1 = time.perf_counter_ns()
         if timing is not None:
-            timing._acc_pose_estimation_preprocess_ms += (time.perf_counter() - t0) * 1e3
-        t1 = time.perf_counter()
+            timing._accumulate_stage(
+                STAGE_POSE_ESTIMATION_PREPROCESS,
+                "_acc_pose_estimation_preprocess_ms",
+                t0,
+                t1,
+                camera_id=camera_id,
+            )
+        t2 = time.perf_counter_ns()
         inp = np.ascontiguousarray(resized.transpose(2, 0, 1)[None].astype(np.float32))
         outputs = session.run(None, {session.get_inputs()[0].name: inp})
+        t3 = time.perf_counter_ns()
         if timing is not None:
-            timing._acc_pose_estimation_ms += (time.perf_counter() - t1) * 1e3
-        t2 = time.perf_counter()
+            timing._accumulate_stage(
+                STAGE_POSE_ESTIMATION,
+                "_acc_pose_estimation_ms",
+                t2,
+                t3,
+                camera_id=camera_id,
+            )
+        t4 = time.perf_counter_ns()
         sx, sy = outputs[0], outputs[1]
         kpts, scr = rtmpose_letterbox_postprocess(
             simcc_x=sx, simcc_y=sy,
@@ -927,8 +1605,15 @@ def _single_image_rtmpose(
             model_input_size=pose_input_size,
             simcc_split_ratio=2.0,
         )
+        t5 = time.perf_counter_ns()
         if timing is not None:
-            timing._acc_pose_estimation_postprocess_ms += (time.perf_counter() - t2) * 1e3
+            timing._accumulate_stage(
+                STAGE_POSE_ESTIMATION_POSTPROCESS,
+                "_acc_pose_estimation_postprocess_ms",
+                t4,
+                t5,
+                camera_id=camera_id,
+            )
         kpts_list.append(kpts)
         scores_list.append(scr)
 

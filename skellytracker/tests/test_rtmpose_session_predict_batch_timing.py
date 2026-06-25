@@ -1,12 +1,106 @@
-"""GPU test: predict_batch populates all six generic stage timing attrs."""
+"""GPU test: predict_batch populates stage timings and ordered task events."""
 
 import numpy as np
 import pytest
 
+from skellytracker.trackers.base_tracker.task_events import (
+    NODE_KIND_SKELETON_INFERENCE,
+    RTMPOSE_BATCH_STAGES,
+    TrackerTaskEventCollector,
+    make_batch_task_id,
+    make_camera_task_id,
+)
 from skellytracker.trackers.rtmpose_tracker.rtmpose_session import (
     RTMPoseSession,
     RTMPoseSessionConfig,
 )
+
+
+def _assert_six_stage_timings(session: RTMPoseSession) -> None:
+    assert session.last_human_detection_preprocess_ms > 0.0
+    assert session.last_human_detection_ms > 0.0
+    assert session.last_human_detection_postprocess_ms > 0.0
+    assert session.last_pose_estimation_preprocess_ms > 0.0
+    assert session.last_pose_estimation_ms > 0.0
+    assert session.last_pose_estimation_postprocess_ms > 0.0
+
+
+def _assert_ordered_task_events(
+    collector: TrackerTaskEventCollector,
+    *,
+    frame_number: int,
+    camera_ids: list[str] | None,
+    parent_task_ids: tuple[str, ...],
+) -> None:
+    events = collector.events
+    assert len(events) == len(RTMPOSE_BATCH_STAGES)
+
+    stage_names = [event.stage for event in events]
+    assert stage_names == list(RTMPOSE_BATCH_STAGES)
+
+    preprocess_id = make_batch_task_id(
+        frame_number=frame_number,
+        node_kind=NODE_KIND_SKELETON_INFERENCE,
+        stage="human_detection_preprocess",
+    )
+    predict_batch_id = make_batch_task_id(
+        frame_number=frame_number,
+        node_kind=NODE_KIND_SKELETON_INFERENCE,
+        stage="predict_batch",
+    )
+    preprocess_child_stages = {
+        "human_detection_letterbox",
+        "human_detection_batch_pack",
+    }
+
+    for index, event in enumerate(events):
+        assert event.frame_number == frame_number
+        assert event.node_kind == NODE_KIND_SKELETON_INFERENCE
+        if event.stage in preprocess_child_stages:
+            assert event.parent_task_ids == (preprocess_id,)
+        elif event.stage == "human_detection_preprocess":
+            assert event.parent_task_ids == (predict_batch_id,)
+        else:
+            assert event.parent_task_ids == parent_task_ids
+        assert event.duration_ms > 0.0
+        assert event.end_time_ns > event.start_time_ns
+        assert abs(event.duration_ms - (event.end_time_ns - event.start_time_ns) / 1e6) < 0.01
+
+        if event.camera_id is not None:
+            expected_id = make_camera_task_id(
+                frame_number=frame_number,
+                camera_id=event.camera_id,
+                node_kind=NODE_KIND_SKELETON_INFERENCE,
+                stage=event.stage,
+            )
+        else:
+            expected_id = make_batch_task_id(
+                frame_number=frame_number,
+                node_kind=NODE_KIND_SKELETON_INFERENCE,
+                stage=event.stage,
+            )
+        assert event.task_id == expected_id
+
+    preprocess = next(event for event in events if event.stage == "human_detection_preprocess")
+    letterbox_events = [
+        event for event in events if event.stage == "human_detection_letterbox"
+    ]
+    batch_pack = next(event for event in events if event.stage == "human_detection_batch_pack")
+    assert preprocess.start_time_ns == min(event.start_time_ns for event in letterbox_events)
+    assert preprocess.end_time_ns == batch_pack.end_time_ns
+
+    for earlier, later in zip(events, events[1:]):
+        if earlier.stage == later.stage:
+            continue
+        assert later.start_time_ns >= earlier.start_time_ns
+
+    if camera_ids is not None:
+        human_detection_stages = set(RTMPOSE_BATCH_STAGES[:3])
+        for event in events:
+            if event.stage in human_detection_stages:
+                assert event.camera_id == camera_ids[0]
+            else:
+                assert event.camera_id is None
 
 
 @pytest.mark.gpu
@@ -16,9 +110,33 @@ def test_predict_batch_exposes_six_stage_timings(test_image: np.ndarray) -> None
     )
     session.predict_batch([test_image])
 
-    assert session.last_human_detection_preprocess_ms > 0.0
-    assert session.last_human_detection_ms > 0.0
-    assert session.last_human_detection_postprocess_ms > 0.0
-    assert session.last_pose_estimation_preprocess_ms > 0.0
-    assert session.last_pose_estimation_ms > 0.0
-    assert session.last_pose_estimation_postprocess_ms > 0.0
+    _assert_six_stage_timings(session)
+
+
+@pytest.mark.gpu
+def test_predict_batch_emits_ordered_task_events_with_context(test_image: np.ndarray) -> None:
+    frame_number = 123
+    camera_ids = ["webcam_0"]
+    predict_batch_task_ids = (
+        f"{frame_number}:batch:{NODE_KIND_SKELETON_INFERENCE}:predict_batch",
+    )
+    collector = TrackerTaskEventCollector()
+
+    session = RTMPoseSession.create(
+        RTMPoseSessionConfig(mode="lightweight", execution_provider="cuda", max_batch_size=1),
+    )
+    session.predict_batch(
+        [test_image],
+        frame_number=frame_number,
+        camera_ids=camera_ids,
+        parent_task_ids=predict_batch_task_ids,
+        event_collector=collector,
+    )
+
+    _assert_six_stage_timings(session)
+    _assert_ordered_task_events(
+        collector,
+        frame_number=frame_number,
+        camera_ids=camera_ids,
+        parent_task_ids=predict_batch_task_ids,
+    )

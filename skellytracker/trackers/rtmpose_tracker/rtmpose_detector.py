@@ -1,25 +1,25 @@
 import importlib.util
 import logging
-import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, Self
 
 import numpy as np
 import onnxruntime
 from numpy.typing import NDArray
-from pydantic import model_validator
 
-from skellytracker.trackers.base_tracker.base_tracker_abcs import BaseDetector, BaseDetectorConfig, TrackerType
+from skellytracker.trackers.base_tracker.base_tracker_abcs import BaseDetector
+from skellytracker.trackers.rtmpose_tracker.rtmpose_detector_config import (
+    RTMPoseDetectorConfig,
+    _DEVICE_TO_PROVIDER,
+)
 from skellytracker.trackers.rtmpose_tracker.rtmpose_observation import RTMPoseObservation
 from skellytracker.trackers.rtmpose_tracker.rtmpose_session import (
-    ExecutionProviderName,
-    ModeName,
     RTMPoseSession,
     RTMPoseSessionConfig,
-    resolve_wholebody_models,
 )
-from skellytracker.utilities.gpu_utils.ort_session_utils import resolve_provider
+from skellytracker.trackers.rtmpose_tracker.rtmpose_tracking_state import (
+    PersonTrackingState,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -113,58 +113,6 @@ def _verify_ort_install_sane() -> None:
         )
 
 
-_DEVICE_TO_PROVIDER: dict[str, ExecutionProviderName] = {
-    "cuda": "cuda",
-    "trt": "trt",
-    "trt-trx": "trt-trx",
-    "trt_trx": "trt-trx",
-    "tensorrt": "trt",
-    "cpu": "cpu",
-}
-
-
-class RTMPoseDetectorConfig(BaseDetectorConfig):
-    tracker_type: Literal[TrackerType.RTMPOSE] = TrackerType.RTMPOSE
-    confidence_threshold: float = 0.5
-    mode: ModeName = "performance"
-    backend: str = "onnxruntime"
-    device: str = "auto"
-    detector_model: str | None = None
-    pose_model: str | None = None
-    execution_provider: ExecutionProviderName | None = None
-    device_id: int | None = None
-
-    def requested_provider(self) -> ExecutionProviderName | None:
-        """Explicit EP id for session config, or None for auto at session create."""
-        if self.execution_provider is not None:
-            return self.execution_provider
-        if self.device != "auto":
-            return _DEVICE_TO_PROVIDER.get(self.device, "cpu")
-        return None
-
-    def resolved_provider(self) -> ExecutionProviderName:
-        """Deprecated — use ``requested_provider()`` and let session create resolve."""
-        warnings.warn(
-            "RTMPoseDetectorConfig.resolved_provider() is deprecated; "
-            "use requested_provider() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        explicit = self.requested_provider()
-        if explicit is not None:
-            return explicit
-        return resolve_provider(requested=None)
-
-    @model_validator(mode="after")
-    def _validate_model_selection(self) -> Self:
-        resolve_wholebody_models(
-            mode=self.mode,
-            detector_model=self.detector_model,
-            pose_model=self.pose_model,
-        )
-        return self
-
-
 @dataclass
 class RTMPoseDetector(BaseDetector):
     """Single-image detector wrapper, kept API-compatible with prior versions.
@@ -176,6 +124,8 @@ class RTMPoseDetector(BaseDetector):
     """
     config: RTMPoseDetectorConfig
     session: RTMPoseSession
+    # Per-detector tracking state for YOLOX-skip. One camera → one state.
+    _tracking_state: PersonTrackingState | None = None
 
     @classmethod
     def create(cls, config: RTMPoseDetectorConfig | None = None) -> "RTMPoseDetector":
@@ -189,12 +139,24 @@ class RTMPoseDetector(BaseDetector):
                 pose_model=config.pose_model,
                 execution_provider=config.requested_provider(),
                 device_id=config.device_id,
+                max_persons=config.max_persons,
             ),
         )
-        return cls(config=config, session=session)
+        return cls(
+            config=config,
+            session=session,
+            _tracking_state=PersonTrackingState() if session._tracking_enabled else None,
+        )
 
     def detect(self, frame_number: int, image: NDArray[np.uint8]) -> RTMPoseObservation:
-        keypoints, scores = self.session.predict_single(image)
+        if self._tracking_state is not None:
+            results, updated = self.session.predict_batch_with_tracking(
+                [image], [self._tracking_state],
+            )
+            self._tracking_state = updated[0]
+            keypoints, scores = results[0]
+        else:
+            keypoints, scores = self.session.predict_single(image)
         return RTMPoseObservation.from_detection_results(
             frame_number=frame_number,
             keypoints=keypoints,
