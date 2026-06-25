@@ -11,6 +11,7 @@ from onnxruntime.capi.onnxruntime_inference_collection import InferenceSession a
 
 from skellytracker.utilities.gpu_utils.ort_session_utils import (
     ExecutionProviderName,
+    OnnxExecutionProviderStartupError,
     build_tuned_ort_session,
     migrate_legacy_trt_engine_cache,
     provider_needs_cuda_device_select,
@@ -30,9 +31,11 @@ def test_resolve_provider_trt_trx_when_available() -> None:
     assert resolve_provider(requested="trt-trx", available_ort=available) == "trt-trx"
 
 
-def test_resolve_provider_trt_trx_fallback_skips_classic_trt() -> None:
+def test_resolve_provider_trt_trx_raises_when_unavailable() -> None:
     available = {"TensorrtExecutionProvider", "CUDAExecutionProvider", "CPUExecutionProvider"}
-    assert resolve_provider(requested="trt-trx", available_ort=available) == "cuda"
+    with pytest.raises(OnnxExecutionProviderStartupError) as exc_info:
+        resolve_provider(requested="trt-trx", available_ort=available)
+    assert exc_info.value.requested_provider == "trt-trx"
 
 
 def test_resolve_provider_trt_when_classic_available_despite_trt_trx() -> None:
@@ -45,13 +48,15 @@ def test_resolve_provider_trt_when_classic_available_despite_trt_trx() -> None:
     assert resolve_provider(requested="trt", available_ort=available) == "trt"
 
 
-def test_resolve_provider_trt_does_not_fallback_to_trt_trx() -> None:
+def test_resolve_provider_trt_raises_when_unavailable() -> None:
     available = {
         "nv_tensorrt_rtx",
         "CUDAExecutionProvider",
         "CPUExecutionProvider",
     }
-    assert resolve_provider(requested="trt", available_ort=available) == "cuda"
+    with pytest.raises(OnnxExecutionProviderStartupError) as exc_info:
+        resolve_provider(requested="trt", available_ort=available)
+    assert exc_info.value.requested_provider == "trt"
 
 
 def test_resolve_provider_auto_linux_cuda_only(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -126,6 +131,63 @@ def test_build_tuned_ort_session_trt_trx_provider(
     assert trt_devices == mock_trt_devices.return_value
     assert trt_options["device_id"] == "0"
     assert trt_options["nv_runtime_cache_path"].endswith("rtx")
+
+
+@pytest.mark.parametrize(
+    ("provider", "expected_provider_name"),
+    [
+        ("trt", "TensorrtExecutionProvider"),
+        ("cuda", "CUDAExecutionProvider"),
+        ("coreml", "CoreMLExecutionProvider"),
+        ("cpu", "CPUExecutionProvider"),
+    ],
+)
+@patch("skellytracker.utilities.gpu_utils.ort_session_utils.ort.InferenceSession")
+@patch("skellytracker.utilities.gpu_utils.ort_session_utils.ort.SessionOptions")
+def test_build_tuned_ort_session_strict_single_provider(
+    mock_session_options_cls: MagicMock,
+    mock_session_cls: MagicMock,
+    provider: ExecutionProviderName,
+    expected_provider_name: str,
+    tmp_path: Path,
+) -> None:
+    fake_session = create_autospec(_OrtInferenceSession, instance=True)
+    fake_session.get_providers.return_value = [expected_provider_name]
+    mock_session_cls.return_value = fake_session
+    mock_session_options_cls.return_value = MagicMock()
+
+    build_tuned_ort_session(
+        onnx_path="model.onnx",
+        provider=provider,
+        engine_cache_dir=tmp_path / "trt_cache",
+    )
+
+    _args, kwargs = mock_session_cls.call_args
+    providers = kwargs["providers"]
+    provider_names = [p if isinstance(p, str) else p[0] for p in providers]
+    assert provider_names == [expected_provider_name]
+
+
+@patch("skellytracker.utilities.gpu_utils.ort_session_utils.ort.InferenceSession")
+@patch("skellytracker.utilities.gpu_utils.ort_session_utils.ort.SessionOptions")
+def test_build_tuned_ort_session_provider_mismatch_raises(
+    mock_session_options_cls: MagicMock,
+    mock_session_cls: MagicMock,
+    tmp_path: Path,
+) -> None:
+    fake_session = create_autospec(_OrtInferenceSession, instance=True)
+    fake_session.get_providers.return_value = ["CPUExecutionProvider"]
+    mock_session_cls.return_value = fake_session
+    mock_session_options_cls.return_value = MagicMock()
+
+    with pytest.raises(OnnxExecutionProviderStartupError) as exc_info:
+        build_tuned_ort_session(
+            onnx_path="model.onnx",
+            provider="cuda",
+            engine_cache_dir=tmp_path / "trt_cache",
+        )
+    assert exc_info.value.requested_provider == "cuda"
+    assert exc_info.value.expected_ort_provider == "CUDAExecutionProvider"
 
 
 def test_rtmpose_session_create_resolves_before_preload(

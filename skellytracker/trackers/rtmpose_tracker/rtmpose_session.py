@@ -123,9 +123,6 @@ class RTMPoseSessionConfig(BaseModel):
     device_id: int | None = None
     # Used only to size the warmup batch — actual inputs can be any shape.
     warmup_image_shape: tuple[int, int] = (720, 1280)
-    # Behavior when the requested provider isn't available at runtime.
-    # "fallback": warn and drop down (trt -> cuda -> cpu). "raise": hard error.
-    on_provider_missing: Literal["fallback", "raise"] = "fallback"
     # Keep only the N highest-confidence person detections from YOLOX.
     # None = keep all detections. Set to 1 for single-person use to prevent
     # background clutter from being tracked as additional skeletons.
@@ -545,7 +542,6 @@ class RTMPoseSession:
 
         active_provider = resolve_provider(
             requested=config.execution_provider,
-            on_missing=config.on_provider_missing,
         )
 
         if provider_needs_cuda_preload(active_provider):

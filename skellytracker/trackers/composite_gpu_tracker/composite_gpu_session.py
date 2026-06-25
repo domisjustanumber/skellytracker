@@ -85,7 +85,6 @@ class CompositeGPUSessionConfig(BaseModel):
     engine_cache_dir: Path = Field(default_factory=_default_engine_cache_dir)
     max_batch_size: int = 4
     fp16: bool = True
-    on_provider_missing: str = "fallback"
     device_id: int | None = None
 
     detect_hands: bool = True
@@ -276,7 +275,6 @@ class CompositeGPUSession:
         config = config or CompositeGPUSessionConfig()
         active_provider = resolve_provider(
             requested=config.execution_provider,
-            on_missing=config.on_provider_missing,  # type: ignore[arg-type]
         )
 
         if provider_needs_cuda_preload(active_provider):

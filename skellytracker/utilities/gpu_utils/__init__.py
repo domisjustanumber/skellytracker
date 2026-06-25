@@ -36,6 +36,7 @@ from skellytracker.utilities.gpu_utils.model_registry import (
 )
 from skellytracker.utilities.gpu_utils.ort_session_utils import (
   ExecutionProviderName,
+  OnnxExecutionProviderStartupError,
   resolve_provider,
 )
 
@@ -45,6 +46,7 @@ __all__ = [
   "ExecutionProviderCapabilities",
   "ExecutionProviderInfo",
   "ExecutionProviderName",
+  "OnnxExecutionProviderStartupError",
   "ExecutionProvidersInfo",
   "GpuInfo",
   "cuda_version_ge",

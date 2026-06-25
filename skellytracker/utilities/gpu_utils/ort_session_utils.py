@@ -14,7 +14,7 @@ import logging
 import sys
 import time
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 import numpy as np
 import onnx
@@ -274,14 +274,6 @@ _ORT_PROVIDER_NEEDS: dict[ExecutionProviderName, str] = {
     "cpu": "CPUExecutionProvider",
 }
 
-_FALLBACK_CHAINS: dict[ExecutionProviderName, list[ExecutionProviderName]] = {
-    "trt-trx": ["trt-trx", "cuda", "cpu"],
-    "trt": ["trt", "cuda", "cpu"],
-    "cuda": ["cuda", "cpu"],
-    "coreml": ["coreml", "cpu"],
-    "cpu": ["cpu"],
-}
-
 CUDA_FAMILY_PROVIDERS: frozenset[ExecutionProviderName] = frozenset(
     {"trt-trx", "trt", "cuda"}
 )
@@ -326,48 +318,102 @@ def _platform_auto_chain() -> list[ExecutionProviderName]:
 # Provider resolution
 # =============================================================================
 
+_INSTALL_HINTS: dict[ExecutionProviderName, str] = {
+    "trt-trx": (
+        "Install skellytracker with the rtmpose-trt-rtx extra "
+        "(onnxruntime-gpu + onnxruntime-ep-nv-tensorrt-rtx)."
+    ),
+    "trt": (
+        "Install skellytracker with the rtmpose-trt extra and a TensorRT-enabled "
+        "onnxruntime-gpu build."
+    ),
+    "cuda": (
+        "Install skellytracker with the rtmpose-nvidia extra "
+        "(onnxruntime-gpu and NVIDIA runtime packages)."
+    ),
+    "coreml": "CoreML execution is only available on macOS with onnxruntime.",
+    "cpu": "Install onnxruntime (CPU build).",
+}
+
+
+class OnnxExecutionProviderStartupError(RuntimeError):
+    """Recoverable session-start failure with structured context."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        model_label: str | None = None,
+        requested_provider: ExecutionProviderName | None = None,
+        expected_ort_provider: str | None = None,
+        active_ort_providers: list[str] | None = None,
+        device_id: int | None = None,
+        cause: BaseException | None = None,
+        install_hint: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.model_label = model_label
+        self.requested_provider = requested_provider
+        self.expected_ort_provider = expected_ort_provider
+        self.active_ort_providers = list(active_ort_providers or [])
+        self.device_id = device_id
+        self.cause = cause
+        self.install_hint = install_hint
+
+
+def _provider_install_hint(provider: ExecutionProviderName) -> str:
+    return _INSTALL_HINTS.get(provider, "Check skellytracker GPU setup documentation.")
+
+
+def _raise_missing_provider(
+    *,
+    requested: ExecutionProviderName,
+    available_ort: set[str],
+) -> None:
+    expected = _ORT_PROVIDER_NEEDS[requested]
+    hint = _provider_install_hint(requested)
+    raise OnnxExecutionProviderStartupError(
+        f"Requested execution_provider={requested!r} but ONNX Runtime only sees "
+        f"providers={sorted(available_ort)}. {hint}",
+        requested_provider=requested,
+        expected_ort_provider=expected,
+        active_ort_providers=sorted(available_ort),
+        install_hint=hint,
+    )
+
 
 def resolve_provider(
     *,
     requested: ExecutionProviderName | None = None,
-    on_missing: Literal["fallback", "raise"] = "fallback",
     available_ort: set[str] | None = None,
 ) -> ExecutionProviderName:
     """Pick the EP to use.
 
     requested=None → auto: walk _platform_auto_chain(), return first available.
-    requested=<id> → walk _FALLBACK_CHAINS[requested] for that provider only.
+    requested=<id> → require exactly that provider; raise if unavailable.
     """
     if available_ort is None:
         available_ort = prepare_ort_providers_for_probe()
 
     if requested is None:
-        chain = _platform_auto_chain()
-        explicit = None
-    else:
-        chain = _FALLBACK_CHAINS[requested]
-        explicit = requested
-
-    for candidate in chain:
-        if candidate == "coreml" and sys.platform != "darwin":
-            continue
-        if _ORT_PROVIDER_NEEDS[candidate] in available_ort:
-            if explicit is not None and candidate != explicit and on_missing == "fallback":
-                logger.warning(
-                    f"Requested execution_provider={explicit!r} not available "
-                    f"({sorted(available_ort)}); falling back to {candidate!r}."
-                )
-            return candidate
-
-    if on_missing == "raise" and explicit is not None:
-        raise RuntimeError(
-            f"Requested execution_provider={explicit!r} but ONNX Runtime "
-            f"only sees providers={sorted(available_ort)}. Install onnxruntime-gpu "
-            f"(and a TensorRT-enabled build for trt) to enable GPU execution."
+        for candidate in _platform_auto_chain():
+            if candidate == "coreml" and sys.platform != "darwin":
+                continue
+            if _ORT_PROVIDER_NEEDS[candidate] in available_ort:
+                return candidate
+        raise OnnxExecutionProviderStartupError(
+            f"No supported ONNX Runtime providers found: {sorted(available_ort)}",
+            install_hint="Install onnxruntime-gpu or another supported execution provider.",
         )
-    raise RuntimeError(
-        f"No supported ONNX Runtime providers found: {sorted(available_ort)}"
-    )
+
+    if requested == "coreml" and sys.platform != "darwin":
+        _raise_missing_provider(requested=requested, available_ort=available_ort)
+
+    if _ORT_PROVIDER_NEEDS[requested] in available_ort:
+        return requested
+
+    _raise_missing_provider(requested=requested, available_ort=available_ort)
+    raise AssertionError("unreachable")
 
 
 # =============================================================================
@@ -586,6 +632,29 @@ def _trt_dynamic_batch_profile(
 # =============================================================================
 
 
+def _verify_active_provider(
+    *,
+    session: ort.InferenceSession,
+    provider: ExecutionProviderName,
+    log_label: str,
+    device_id: int,
+) -> None:
+    expected = _ORT_PROVIDER_NEEDS[provider]
+    actual = session.get_providers()
+    if actual and actual[0] == expected:
+        return
+    raise OnnxExecutionProviderStartupError(
+        f"[{log_label}] requested execution_provider={provider!r} but ORT session "
+        f"active providers are {actual!r} (expected {expected!r} first).",
+        model_label=log_label,
+        requested_provider=provider,
+        expected_ort_provider=expected,
+        active_ort_providers=list(actual),
+        device_id=device_id,
+        install_hint=_provider_install_hint(provider),
+    )
+
+
 def build_tuned_ort_session(
     *,
     onnx_path: str,
@@ -638,14 +707,24 @@ def build_tuned_ort_session(
         }
         trt_devices = _trt_rtx_ep_devices()
         if not trt_devices:
-            raise RuntimeError(
+            raise OnnxExecutionProviderStartupError(
                 f"TRT-RTX EP {_ORT_PROVIDER_NEEDS['trt-trx']!r} is not available. "
-                "Install skellytracker with the rtmpose-trt-rtx extra."
+                "Install skellytracker with the rtmpose-trt-rtx extra.",
+                model_label=log_label,
+                requested_provider="trt-trx",
+                expected_ort_provider=_ORT_PROVIDER_NEEDS["trt-trx"],
+                device_id=device_id,
+                install_hint=_provider_install_hint("trt-trx"),
             )
         add_provider_for_devices = getattr(sess_options, "add_provider_for_devices", None)
         if add_provider_for_devices is None:
-            raise RuntimeError(
-                "ORT SessionOptions.add_provider_for_devices is required for TRT-RTX."
+            raise OnnxExecutionProviderStartupError(
+                "ORT SessionOptions.add_provider_for_devices is required for TRT-RTX.",
+                model_label=log_label,
+                requested_provider="trt-trx",
+                expected_ort_provider=_ORT_PROVIDER_NEEDS["trt-trx"],
+                device_id=device_id,
+                install_hint=_provider_install_hint("trt-trx"),
             )
         add_provider_for_devices(trt_devices, trt_rtx_options)
         providers = [(TRT_RTX_ORT_PROVIDER_NAME, trt_rtx_options)]
@@ -671,22 +750,18 @@ def build_tuned_ort_session(
                 )
             )
         providers.append(("TensorrtExecutionProvider", trt_options))
+    elif provider == "cuda":
         providers.append(
             (
                 "CUDAExecutionProvider",
                 cuda_provider_options(gpu_mem_limit=gpu_mem_limit, device_id=device_id),
             )
         )
-        providers.append("CPUExecutionProvider")
-    elif provider == "cuda":
-        providers.append(("CUDAExecutionProvider", cuda_provider_options(gpu_mem_limit=gpu_mem_limit, device_id=device_id)))
-        providers.append("CPUExecutionProvider")
     elif provider == "coreml":
         # CoreML EP uses Metal on Apple Silicon. Dynamic batch dims crash CoreML
         # (SIGSEGV), so callers must use batch_size=1 (RTMPoseSession enforces
         # this via supports_batching=False). fp16 is also unsupported by CoreML.
         providers.append("CoreMLExecutionProvider")
-        providers.append("CPUExecutionProvider")
     else:
         providers.append("CPUExecutionProvider")
 
@@ -711,18 +786,36 @@ def build_tuned_ort_session(
         )
 
     t0 = time.perf_counter()
-    if inference_providers is None:
-        session = ort.InferenceSession(
-            path_or_bytes=onnx_path,
-            sess_options=sess_options,
-        )
-    else:
-        session = ort.InferenceSession(
-            path_or_bytes=onnx_path,
-            sess_options=sess_options,
-            providers=inference_providers,
-        )
+    try:
+        if inference_providers is None:
+            session = ort.InferenceSession(
+                path_or_bytes=onnx_path,
+                sess_options=sess_options,
+            )
+        else:
+            session = ort.InferenceSession(
+                path_or_bytes=onnx_path,
+                sess_options=sess_options,
+                providers=inference_providers,
+            )
+    except Exception as exc:
+        raise OnnxExecutionProviderStartupError(
+            f"[{log_label}] ONNX Runtime session creation failed for "
+            f"execution_provider={provider!r} on device_id={device_id}: {exc}",
+            model_label=log_label,
+            requested_provider=provider,
+            expected_ort_provider=_ORT_PROVIDER_NEEDS[provider],
+            device_id=device_id,
+            cause=exc,
+            install_hint=_provider_install_hint(provider),
+        ) from exc
     elapsed_s = time.perf_counter() - t0
+    _verify_active_provider(
+        session=session,
+        provider=provider,
+        log_label=log_label,
+        device_id=device_id,
+    )
     actual = session.get_providers()
     actual_string = ", ".join(map(str, actual))
     logger.info(
