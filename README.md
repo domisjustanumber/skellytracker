@@ -47,3 +47,25 @@ requests:
 # GPU setup
 
 For GPU-accelerated RTMPose, see the [GPU_SETUP_GUIDE](GPU_SETUP_GUIDE.md). In a dev checkout, run `skellytracker-gpus` to list detected GPUs, compare optimal vs installed execution providers, and install the matching extra with `--install`.
+
+## Hardware Precision Compatibility
+
+Use this table when matching model artifact precision to execution provider and hardware. Model sidecars may list any available precision artifacts, but a session should only start when the selected model precision is compatible with the requested EP and detected hardware.
+
+| Vendor | Hardware Generation | Best Optimised Format | Formats NOT Supported |
+| ------ | ------------------- | --------------------- | --------------------- |
+| NVIDIA | GeForce RTX 20-Series (Turing) | FP16, INT8 | FP8, FP4 (fails/no hardware instructions) |
+| NVIDIA | GeForce RTX 30-Series (Ampere) | FP16, INT8 (supports 2:4 sparsity) | FP8, FP4 (fails/no hardware instructions) |
+| NVIDIA | GeForce RTX 40-Series (Ada Lovelace) | FP8 (E4M3/E5M2), FP16, INT8 | FP4 (fails/no hardware instructions) |
+| NVIDIA | GeForce RTX 50-Series (Blackwell) | FP4 (NVFP4/MXFP4), FP8, FP16 | None (fully downward compatible) |
+| NVIDIA | Jetson Orin Series | INT8, FP16 | FP8, FP4 |
+| Intel | Core CPUs (Gen 6 to 11) | FP32, INT8 (via AVX-512 VNNI) | FP16 (software emulation penalty), FP8, FP4 |
+| Intel | Core CPUs (Gen 12+ / Alder, Raptor, Arrow Lake) | INT8 (via AVX-VNNI), FP32 | FP8, FP4 |
+| Intel | Iris Xe & Arc GPUs (Alchemist / Battlemage) | FP16, INT8 (via XMX) | FP4, FP8 |
+| Intel | Core Ultra NPUs (Meteor Lake / Lunar Lake) | INT8, FP16 | FP32 (NPU bypasses; forces high latency CPU fallback), FP4 |
+| AMD | Ryzen CPUs (Non-AI) | FP32, INT8 (via AVX-512) | FP16 (heavy execution penalty on older Zen), FP4 |
+| AMD | Ryzen AI NPUs (XDNA 1 / XDNA 2) | INT8, Block-FP16 (BFloat16 variant) | FP32 (unsupported natively on the NPU block), FP4 |
+| AMD | Radeon RX GPUs (RDNA 2 / RDNA 3 / RDNA 3.5) | FP16, INT8 (WMMA) | FP8 (no native hardware processing), FP4 |
+| AMD | Radeon RX GPUs (RDNA 4) | FP8, FP16, INT8 | FP4 |
+| Apple | Apple Silicon (M1 / M2 / M3 / M4) | FP16 (ANE native), INT8 | FP8, FP4 (Neural Engine pipeline fails/rejects graph) |
+| Qualcomm | Snapdragon (8 Gen Series, Snapdragon X) | INT8 (Hexagon native), FP16 | FP32 (forces QNN to bypass NPU to slow CPU runtime), FP4 |

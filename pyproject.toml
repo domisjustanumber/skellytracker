@@ -151,7 +151,10 @@ rtmpose-trt = [
 #   utils.add_openvino_libs_to_path()
 # 
 # rtmpose-openvino = [
-#     "onnxruntime-openvino",
+#     "mediapipe==0.10.33",
+#     "onnxruntime==1.26.0",
+#     "onnx",
+#     "onnxruntime-ep-openvino==1.5.2",
 # ]
 
 # RECOMMENDED - mediapipe + RTMPose with TensorRT (2-5x faster than CUDA EP alone).
@@ -165,6 +168,7 @@ recommended = [
     "nvidia-cudnn-cu12==9.23.2.1; sys_platform != 'darwin'",
     "nvidia-cufft-cu12==11.4.1.4; sys_platform != 'darwin'",
     "onnxruntime-ep-nv-tensorrt-rtx==0.3.0; sys_platform != 'darwin'",
+    # "model-batch-converter",
 ]
 
 # Dev-only tooling: `uv sync` (installed by default via default-groups)
@@ -257,6 +261,7 @@ skellytracker-gpus = "skellytracker.scripts.gpus_cli:main"
 
 [tool.uv.sources]
 skellytracker-rust = { path = "skellytracker-rust" }
+# model-batch-converter = { path = "../model_batch_converter", editable = true }
 
 [[tool.uv.index]]
 name = "nvidia"

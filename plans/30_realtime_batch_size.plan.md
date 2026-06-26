@@ -54,7 +54,7 @@ This work was extracted from [50_yolo26_nano_detection.plan.md](50_yolo26_nano_d
 Complete before freemocap batch-size wiring:
 
 - [**10 — Remove EP fallback**](10_remove_ep_fallback.plan.md) — strict single-provider ORT session creation (skellytracker); freemocap worker strict mode.
-- [**20 — Single global realtime pipeline**](20_single_global_realtime_pipeline.plan.md) — at most one `RealtimePipeline` in the manager; `_apply_pipeline_config` / `needs_recreate`; remove `cameraGroupId`; zero-camera apply rejected; last-camera block while connected; skeleton node no config pubsub; pipeline error UX; eager session validation on apply.
+- [**20 — Single global realtime pipeline**](20_single_global_realtime_pipeline.plan.md) — at most one `RealtimePipeline` in the manager; `_apply_pipeline_config` / `needs_recreate`; remove `cameraGroupId`; zero-camera apply rejected; last-camera block while connected; skeleton node no config pubsub; pipeline error UX; worker-start RTMPose session validation remains unchanged.
 
 ```mermaid
 flowchart LR
@@ -85,7 +85,7 @@ flowchart LR
 ### Out of scope
 
 - Sidecar `batching.batch_size` / `model_batch_convert()` integration — [50_yolo26_nano_detection.plan.md](50_yolo26_nano_detection.plan.md)
-- Eager session validation on apply — [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md) (see [What this plan owns vs plans 10 and 20](#what-this-plan-owns-vs-plans-10-and-20))
+- Eager session validation on apply — not planned. Plan 20 keeps current worker-start RTMPose session construction; this plan only changes the batch-size value passed when that worker creates the session.
 - **UI batch size control** — batch size is never user-configurable; `gpu-capabilities` `fixed_batch_sizes` describes EP capabilities, not a realtime batch slider (no UI work for batch size in this plan)
 - **[future_streaming_pipeline_implementation.plan.md](future_streaming_pipeline_implementation.plan.md) — ignore for this plan.** Implement ring-buffer skeleton-node behavior only (`_read_frames`, gate, full-camera `None` publish). Do not add `use_streaming_pipeline`, streaming graph nodes, ring-buffer streaming executor, or wait-for-full-batch streaming policy from that document. If the streaming plan references `batch_size`, treat this plan as the authority for batch semantics; do not block on or implement streaming-plan freemocap changes here.
 
