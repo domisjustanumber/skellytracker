@@ -7,9 +7,12 @@ Run:
         --mode lightweight --provider cuda --batch-sizes 1 2 3 4 8
 
 What this measures (intentionally NOT the full pipeline):
-  - Single-image latency (predict_single in a loop).
-  - Batched latency at various batch sizes (predict_batch).
+  - Single-image latency (predict_single in a loop) via a batch_size=1 session.
+  - Batched latency at various batch sizes — one session per batch size.
   - Per-image-equivalent latency for each batch (`batch_ms / N`).
+
+Each batch size N uses its own session (session create + warmup excluded from
+timed loops). This matches realtime behavior when camera count changes.
 
 Pipeline-level validation (3 camera processes vs 1 inference node) requires
 running the full freemocap app and reading the `Pipeline Timing Report` lines
@@ -25,7 +28,7 @@ from __future__ import annotations
 import argparse
 import logging
 import time
-from typing import get_args
+from typing import Literal, get_args
 
 import numpy as np
 
@@ -68,32 +71,42 @@ def run(
     print(
         f"\nRTMPoseSession bench — mode={mode!r}, provider={provider!r}, "
         f"image_shape=({image_h}, {image_w}), iters_per_size={iterations}\n"
+        f"(one session per batch size; create/warmup excluded from timed loops)\n"
     )
-    session = RTMPoseSession.create(
+
+    pool = [_make_synthetic_image(image_h, image_w, seed=i) for i in range(max(batch_sizes) * 2)]
+
+    # ---- Single-image baseline — dedicated batch_size=1 session ----
+    single_session = RTMPoseSession.create(
         RTMPoseSessionConfig(
             mode=mode,
             execution_provider=provider,
-            max_batch_size=max(batch_sizes),
+            batch_size=1,
             warmup_image_shape=(image_h, image_w),
         ),
     )
-    print(f"active provider: {session.active_provider!r}\n")
+    print(f"active provider (batch_size=1): {single_session.active_provider!r}\n")
 
-    # Pre-generate synthetic images so we don't measure RNG cost.
-    pool = [_make_synthetic_image(image_h, image_w, seed=i) for i in range(max(batch_sizes) * 2)]
-
-    # ---- Single-image baseline (no batching) ----
     single_samples_ms: list[float] = []
     for i in range(iterations):
         t0 = time.perf_counter()
-        session.predict_single(pool[i % len(pool)])
+        single_session.predict_single(pool[i % len(pool)])
         single_samples_ms.append((time.perf_counter() - t0) * 1e3)
-    print(_summary("predict_single (no batch)", single_samples_ms))
+    print(_summary("predict_single (batch_size=1)", single_samples_ms))
+    del single_session
 
-    # ---- Batched ----
+    # ---- Batched — new session per batch size ----
     for n in batch_sizes:
         if n < 1:
             continue
+        session = RTMPoseSession.create(
+            RTMPoseSessionConfig(
+                mode=mode,
+                execution_provider=provider,
+                batch_size=n,
+                warmup_image_shape=(image_h, image_w),
+            ),
+        )
         batch_samples_ms: list[float] = []
         for i in range(iterations):
             batch = [pool[(i + k) % len(pool)] for k in range(n)]
@@ -111,6 +124,7 @@ def run(
             f"p95={np.percentile(arr, 95):7.2f}ms  "
             f"per_image_mean={per_image.mean():6.2f}ms"
         )
+        del session
 
     print(
         f"\nReference: legacy 3-camera pipeline measured ~71 ms/frame per camera "

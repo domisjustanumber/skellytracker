@@ -588,12 +588,12 @@ def validate_engine_cache(engine_cache_dir: Path) -> None:
 def _trt_dynamic_batch_profile(
     *,
     onnx_path: str,
-    max_batch_size: int,
+    batch_size: int,
 ) -> dict[str, str]:
     """Build TensorRT optimization profile shape strings.
 
     TRT requires explicit min/opt/max shapes when any input dim is dynamic.
-    Pins H/W from the ONNX and lets batch range from 1 to max_batch_size.
+    Pins H/W from the ONNX and sets min/opt/max batch to ``batch_size``.
     """
     model = onnx.load(onnx_path)
     inp = model.graph.input[0]
@@ -612,13 +612,14 @@ def _trt_dynamic_batch_profile(
             )
             return {}
     fixed_str = "x".join(str(x) for x in fixed_shape)
-    min_str = f"{name}:1x{fixed_str}"
-    opt_str = f"{name}:{max_batch_size}x{fixed_str}"
-    max_str = f"{name}:{max_batch_size}x{fixed_str}"
+    n = max(1, batch_size)
+    shape = f"{n}x{fixed_str}"
+    min_str = f"{name}:{shape}"
+    opt_str = f"{name}:{shape}"
+    max_str = f"{name}:{shape}"
     logger.info(
         f"TRT optimization profile for {name!r}: "
-        f"min={min_str.split(':')[1]}, opt={opt_str.split(':')[1]}, "
-        f"max={max_str.split(':')[1]}"
+        f"min={shape}, opt={shape}, max={shape}"
     )
     return {
         "trt_profile_min_shapes": min_str,
@@ -662,7 +663,7 @@ def build_tuned_ort_session(
     engine_cache_dir: Path | None = None,
     fp16: bool = True,
     log_label: str = "model",
-    max_batch_size: int | None = None,
+    batch_size: int | None = None,
     trt_set_batch_profile: bool = False,
     gpu_mem_limit: int = 2 * 1024 * 1024 * 1024,
     device_id: int = 0,
@@ -677,10 +678,10 @@ def build_tuned_ort_session(
                           ~/.cache/skellytracker/trt_engines).
         fp16: Enable FP16 mode for TRT.
         log_label: Human-readable label for log messages.
-        max_batch_size: When set with trt_set_batch_profile=True, configures
-                        TRT optimization profile for this batch range.
+        batch_size: When set with trt_set_batch_profile=True, pins TRT
+                    optimization profile min/opt/max to this batch size.
         trt_set_batch_profile: If True, set TRT dynamic-batch optimization
-                               profile. Requires max_batch_size to be set.
+                               profile. Requires batch_size to be set.
         gpu_mem_limit: GPU memory limit in bytes for CUDA EP arena.
     """
     if engine_cache_dir is None:
@@ -742,11 +743,11 @@ def build_tuned_ort_session(
             "trt_timing_cache_path": str(cache_dir),
             "trt_max_workspace_size": 2 * 1024 * 1024 * 1024,
         }
-        if trt_set_batch_profile and max_batch_size is not None:
+        if trt_set_batch_profile and batch_size is not None:
             trt_options.update(
                 _trt_dynamic_batch_profile(
                     onnx_path=onnx_path,
-                    max_batch_size=max(1, max_batch_size),
+                    batch_size=max(1, batch_size),
                 )
             )
         providers.append(("TensorrtExecutionProvider", trt_options))
@@ -758,9 +759,7 @@ def build_tuned_ort_session(
             )
         )
     elif provider == "coreml":
-        # CoreML EP uses Metal on Apple Silicon. Dynamic batch dims crash CoreML
-        # (SIGSEGV), so callers must use batch_size=1 (RTMPoseSession enforces
-        # this via supports_batching=False). fp16 is also unsupported by CoreML.
+        # CoreML EP uses Metal on Apple Silicon. fp16 is unsupported by CoreML.
         providers.append("CoreMLExecutionProvider")
     else:
         providers.append("CPUExecutionProvider")

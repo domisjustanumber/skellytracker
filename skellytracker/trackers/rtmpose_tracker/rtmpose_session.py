@@ -34,6 +34,9 @@ import onnxruntime as ort
 from numpy.typing import NDArray
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from skellytracker.trackers.rtmpose_tracker.rtmpose_session_errors import (
+    BatchSizeMismatchError,
+)
 from skellytracker.utilities.gpu_utils.model_registry import (
     MODEL_CATALOG,
     MODEL_URLS,
@@ -118,10 +121,10 @@ class RTMPoseSessionConfig(BaseModel):
     pose_model: str | None = None
     execution_provider: ExecutionProviderName | None = None
     engine_cache_dir: Path = Field(default_factory=_default_engine_cache_dir)
-    max_batch_size: int = 4
+    batch_size: int = Field(default=1, ge=1)
     fp16: bool = True
     device_id: int | None = None
-    # Used only to size the warmup batch — actual inputs can be any shape.
+    # Synthetic warmup frame spatial size (H, W). Batch dimension is always config.batch_size.
     warmup_image_shape: tuple[int, int] = (720, 1280)
     # Keep only the N highest-confidence person detections from YOLOX.
     # None = keep all detections. Set to 1 for single-person use to prevent
@@ -547,15 +550,11 @@ class RTMPoseSession:
         if provider_needs_cuda_preload(active_provider):
             ensure_cuda_dlls_loaded()
 
-        # CoreML does not support dynamic batch dims (crashes with SIGSEGV) or
-        # fp16 inputs. Override those settings when the resolved provider is CoreML.
+        # CoreML does not support fp16 inputs. Disable when the resolved provider is CoreML.
         if active_provider == "coreml":
             if config.fp16:
                 logger.info("CoreML provider selected: disabling fp16 (not supported by CoreML EP)")
                 config = config.model_copy(update={"fp16": False})
-            if config.max_batch_size > 1:
-                logger.info("CoreML provider selected: forcing max_batch_size=1 (dynamic batch dims crash CoreML EP)")
-                config = config.model_copy(update={"max_batch_size": 1})
 
         # Resolve which physical GPU to use. Do this once here so every sub-session
         # lands on the same device.
@@ -609,14 +608,14 @@ class RTMPoseSession:
             "  ║  provider   : %-46s║\n"
             "  ║  device_id  : %-46s║\n"
             "  ║  mode       : %-46s║\n"
-            "  ║  max_batch  : %-46s║\n"
+            "  ║  batch_size : %-46s║\n"
             "  ║  fp16       : %-46s║\n"
             "  ║  arena_cap  : %-46s║\n"
             "  ╚══════════════════════════════════════════════════════════════╝",
             active_provider,
             f"{device_id}  ({selection_source})",
             config.mode,
-            config.max_batch_size,
+            config.batch_size,
             config.fp16,
             f"{gpu_mem_limit / 1024 ** 3:.2f} GiB",
         )
@@ -647,7 +646,7 @@ class RTMPoseSession:
             engine_cache_dir=config.engine_cache_dir,
             fp16=config.fp16,
             log_label="yolox",
-            max_batch_size=config.max_batch_size,
+            batch_size=config.batch_size,
             trt_set_batch_profile=True,
             device_id=device_id,
             gpu_mem_limit=gpu_mem_limit,
@@ -658,7 +657,7 @@ class RTMPoseSession:
             engine_cache_dir=config.engine_cache_dir,
             fp16=config.fp16,
             log_label="rtmpose",
-            max_batch_size=config.max_batch_size,
+            batch_size=config.batch_size,
             device_id=device_id,
             gpu_mem_limit=gpu_mem_limit,
         )
@@ -681,7 +680,7 @@ class RTMPoseSession:
                 fp16=config.fp16,
                 log_label="yolox_prenms",
                 trt_set_batch_profile=True,
-                max_batch_size=config.max_batch_size,
+                batch_size=config.batch_size,
                 device_id=device_id,
                 gpu_mem_limit=gpu_mem_limit,
             )
@@ -716,6 +715,10 @@ class RTMPoseSession:
     def active_provider(self) -> ExecutionProviderName:
         return self._active_provider
 
+    @property
+    def batch_size(self) -> int:
+        return self.config.batch_size
+
     # ------------------------------------------------------------------ inference
 
     def predict_single(
@@ -743,6 +746,18 @@ class RTMPoseSession:
         """
         if not images:
             return []
+        n = len(images)
+        if n != self.batch_size:
+            raise BatchSizeMismatchError(actual=n, expected=self.batch_size)
+        if len(bboxes_per_image) != n:
+            raise BatchSizeMismatchError(
+                actual=len(bboxes_per_image),
+                expected=self.batch_size,
+                message=(
+                    f"predict_pose_from_bboxes expected {self.batch_size} bbox arrays "
+                    f"(session batch_size), got {len(bboxes_per_image)}"
+                ),
+            )
         return self._estimate_pose_batched(images, bboxes_per_image)
 
     def predict_batch_with_tracking(
@@ -933,6 +948,9 @@ class RTMPoseSession:
         try:
             if not images:
                 return []
+            n = len(images)
+            if n != self.batch_size:
+                raise BatchSizeMismatchError(actual=n, expected=self.batch_size)
 
             # ---- Stage 1: YOLOX person detection (batched) ----
             scale = self._yolox_image_scale
@@ -1301,10 +1319,7 @@ class RTMPoseSession:
     def _warmup(self) -> None:
         h, w = self.config.warmup_image_shape
         synthetic = np.full((h, w, 3), 128, dtype=np.uint8)
-        # Hit both extremes of the TRT optimization profile / cuDNN algo cache
-        # so the first real frame at either size doesn't pay re-search cost.
-        # Dedup if max_batch_size == 1 (degenerate config).
-        sizes = sorted({1, max(1, self.config.max_batch_size)})
+        batch_size = max(1, self.config.batch_size)
 
         # TRT compiles engines lazily on the first session.run() call inside
         # predict_batch(). Detect first-run and show a prominent warning + live
@@ -1343,15 +1358,14 @@ class RTMPoseSession:
         t0 = time.perf_counter()
 
         warmed: list[int] = []
-        for batch_size in sizes:
-            try:
-                self.predict_batch([synthetic] * batch_size)
-            except Exception as e:
-                logger.warning(
-                    f"RTMPoseSession warmup at batch_size={batch_size} failed "
-                    f"(non-fatal): {e!r}"
-                )
-                continue
+        try:
+            self.predict_batch([synthetic] * batch_size)
+        except Exception as e:
+            logger.warning(
+                f"RTMPoseSession warmup at batch_size={batch_size} failed "
+                f"(non-fatal): {e!r}"
+            )
+        else:
             warmed.append(batch_size)
 
         stop_event.set()

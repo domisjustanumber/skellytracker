@@ -1,33 +1,33 @@
 ---
 name: Sidecar Spec Updates
-overview: Evolve the canonical model-batch-converter sidecar spec with skellytracker-aligned schema_version strings and ship the first change set (input.resize.interpolation) required by YOLO26 detector preprocessing.
+overview: Evolve the canonical model-batch-converter sidecar spec with skellytracker-aligned schema_version strings and ship the first change set (input.resize.interpolation) required by YOLO26 detector preprocessing. Delivers spec + validation library + resolve_resize_interpolation(); plan 50 owns catalog registry and detector_letterbox_preprocess.
 todos:
   - id: schema-version-format
-    content: Change sidecar schema_version from integer to skellytracker calendar version string; document versioning policy, compatibility rules, and changelog table in sidecar-spec.md.
+    content: Change sidecar schema_version from integer to skellytracker calendar version string; document versioning policy, compatibility rules, changelog table, and parse_skellytracker_version() in sidecar-spec.md; bump skellytracker via bumpver at merge.
     status: pending
   - id: extend-sidecar-spec-interpolation
-    content: Add required input.resize.interpolation to sidecar-spec.md with closed enum, OpenCV mapping, updated reference examples, and validation-checklist item.
+    content: Add input.resize.interpolation to sidecar-spec.md (required when input.resize present) with closed enum, OpenCV mapping, updated reference examples, and validation-checklist item.
     status: pending
   - id: skellytracker-schema-validation
-    content: Validate schema_version format and require installed skellytracker version >= sidecar schema_version; reject unknown future versions with clear error.
+    content: Add sidecar_validation module with parse_skellytracker_version, sidecar_schema_supported, validate_sidecar_metadata; reject malformed schema_version and sidecar newer than installed skellytracker with clear error.
     status: pending
   - id: sidecar-yaml-format
-    content: Define and document YAML sidecar format (file extension, style conventions) in sidecar-spec.md; update all reference examples from JSON to YAML; add pyyaml dependency and wire yaml.safe_load in catalog loading.
+    content: Define YAML sidecar format in sidecar-spec.md; update all reference examples from JSON to YAML; add parse_sidecar_file() using existing pyyaml dep (wire into validation library; plan 50 wires registry scan).
     status: pending
   - id: update-yolo-exporter
-    content: Emit YAML sidecar with current schema_version and interpolation linear in YOLO-Exporter yolo_sidecar.py; update exporter tests.
+    content: Emit YAML sidecar with current schema_version and interpolation linear in YOLO-Exporter yolo_sidecar.py; update exporter tests; follow release coordination order below.
     status: pending
   - id: update-yolo26-artifact
-    content: Create yolo26-nano_b2.yaml with new schema_version and resize.interpolation.
+    content: Create yolo26-nano_b2.yaml in models/ with new schema_version and resize.interpolation.
     status: pending
   - id: skellytracker-interpolation-consumer
-    content: Add resolve_resize_interpolation() and wire detector_letterbox_preprocess to use sidecar-driven interpolation; YOLOX legacy path keeps linear.
+    content: Add resolve_resize_interpolation() in rtm_preprocessing.py; plan 50 wires it into detector_letterbox_preprocess on YOLO26 path; YOLOX legacy keeps linear.
     status: pending
   - id: pose-sidecar-names-and-connections-ref
-    content: Add pose.keypoint_config field (mapping of body/face/hand to names_and_connections/*.yaml basenames); consumers load tracked_points->keypoint_labels and connections->skeleton from referenced configs; specify label prefix mapping rules.
+    content: Document pose.keypoint_config in sidecar-spec.md (prefix/order rules aligned with rtmpose_wholebody.yaml); spec-only in plan 40 — loader deferred until pose sidecar catalog exists.
     status: pending
   - id: validation-tests
-    content: Unit-test schema_version compatibility, interpolation validation/mapping, YAML parsing, keypoint_config resolution, and detector_letterbox_preprocess honoring sidecar interpolation.
+    content: Unit-test schema_version comparison, interpolation validation/mapping, YAML parsing, validate_sidecar_metadata, and resolve_resize_interpolation; keypoint_config loader tests deferred with loader.
     status: pending
 isProject: false
 ---
@@ -36,7 +36,24 @@ isProject: false
 
 ## Parent plan
 
-Prerequisite for [50_yolo26_nano_detection.plan.md](50_yolo26_nano_detection.plan.md) (**plan 40** in sequence). Complete this plan **before** skellytracker sidecar catalog loading (YOLO26 plan step 2) and before generic detector preprocessing is wired for YOLO26.
+Prerequisite for [50_yolo26_nano_detection.plan.md](50_yolo26_nano_detection.plan.md) (**plan 40** in sequence). Complete this plan **before** skellytracker `SidecarModelRegistry` catalog loading (YOLO26 plan step 1) and before generic detector preprocessing is wired for YOLO26.
+
+## Boundary with plan 50
+
+Plan 40 and plan 50 split responsibilities to avoid duplicate work:
+
+| Deliverable | Plan 40 (this) | Plan 50 |
+|-------------|----------------|---------|
+| `sidecar-spec.md` contract changes | yes | consumes |
+| `parse_sidecar_file()` / `yaml.safe_load` | yes | uses in registry scan |
+| `validate_sidecar_metadata()` library | yes | uses in `SidecarModelRegistry` |
+| `parse_skellytracker_version()` / version compare | yes | uses in catalog validation |
+| `resolve_resize_interpolation()` | yes | uses in preprocess |
+| `detector_letterbox_preprocess()` | **no** | creates + wires YOLO26 |
+| `SidecarModelRegistry` / `list_detection_models()` merge | **no** | creates |
+| YOLO26 session wiring | **no** | creates |
+
+Plan 50 must be updated when plan 40 lands: replace all `*.json` sidecar references with `*.yaml`, `yaml.safe_load`, and YAML examples (plan 50 still references `yolo26-nano_b2.json` and JSON catalog scan today).
 
 ## Prerequisite Plans
 
@@ -62,8 +79,20 @@ This document is the home for **all** canonical sidecar contract changes. Each r
 ## Goals
 
 1. **Traceable compatibility** — a sidecar's `schema_version` tells you the minimum skellytracker release required to consume it.
-2. **Single source of truth** — spec changes live in `model-batch-converter`; skellytracker validates against the packaged spec via `importlib.resources`.
+2. **Single source of truth** — spec changes live in `model-batch-converter`; skellytracker validates via explicit Python validators that mirror the packaged spec (human-readable `sidecar-spec.md` is documentation; it is not parsed at runtime).
 3. **First change set** — add `input.resize.interpolation` so YOLO26 host letterbox matches the export pipeline (replacing hardcoded `cv2.INTER_LINEAR` in [`rtm_preprocessing.py`](../skellytracker/utilities/gpu_utils/rtm_preprocessing.py)).
+
+## Release coordination
+
+Implement and publish in this order:
+
+1. **Bump skellytracker** via bumpver at merge time — set the changelog `schema_version` row and all example sidecars to the **new** release version, not the pre-change `__version__`.
+2. **model-batch-converter** — publish wheel with updated `sidecar-spec.md` (uncomment/add dependency in [`pyproject.toml`](../pyproject.toml); use editable `../model_batch_converter` during dev).
+3. **YOLO-Exporter** — emit YAML sidecars targeting the documented `schema_version` (must not exceed published skellytracker; if exporter pins a future version, skellytracker rejects the sidecar until upgraded).
+4. **Checked-in artifact** — `models/yolo26-nano_b2.yaml` with matching `schema_version`.
+5. **skellytracker** — validation library + `resolve_resize_interpolation()`; plan 50 integrates registry and preprocess.
+
+If `model-batch-converter` is missing at validation time, plan 50 omits sidecar-backed models with a diagnostic (unchanged policy).
 
 ## Sidecar format: YAML
 
@@ -80,16 +109,19 @@ Sidecar files use the `.yaml` extension. For example, `yolo26-nano_b2.yaml` desc
 - **Format:** YAML mappings and sequences — no trailing commas, no quotes on bare strings
 - **Structure:** Flat top-level keys; nested objects use indentation
 - **String values:** Quoted only when necessary (e.g. when value contains a colon or special character)
+- **Lint:** Consider `yamllint` on `models/*.yaml` in CI to catch tabs/indentation issues
 
 ### Consumer updates
 
-- Add `pyyaml` to dependencies (`pyproject.toml`).
-- Use `yaml.safe_load()` for sidecar loading in catalog loading code.
-- Sidecar validation is identical to JSON — only the serialization format changes.
+- `pyyaml>=6.0` is already in [`pyproject.toml`](../pyproject.toml) — no new dependency.
+- Add `parse_sidecar_file(path) -> dict` using `yaml.safe_load()` in a new module (e.g. `skellytracker/utilities/gpu_utils/sidecar_validation.py`).
+- Plan 50 wires `parse_sidecar_file` into `SidecarModelRegistry` scan of `models/*.yaml`.
 
 ## Pose sidecar: referencing names_and_connections
 
-Pose estimator sidecars (role: `pose_estimator`) reference the existing YAML files in [`skellytracker/trackers/rtmpose_tracker/names_and_connections/`](../skellytracker/trackers/rtmpose_tracker/names_and_connections/) instead of duplicating keypoint labels and skeleton connections inline.
+Pose estimator sidecars (role: `pose_estimator`) may reference existing YAML files in [`skellytracker/trackers/rtmpose_tracker/names_and_connections/`](../skellytracker/trackers/rtmpose_tracker/names_and_connections/) instead of duplicating keypoint labels and skeleton connections inline.
+
+**Scope in plan 40:** document the field in `sidecar-spec.md` only. The skellytracker loader is **deferred** until a pose sidecar catalog consumer exists (not required for YOLO26). When implemented, reuse [`TrackedObjectDefinition`](skellytracker/trackers/base_tracker/tracked_object_definition.py) composition logic rather than a parallel prefix implementation.
 
 ### `pose.keypoint_config` field
 
@@ -97,34 +129,52 @@ Pose estimator sidecars (role: `pose_estimator`) reference the existing YAML fil
 |-------|------|----------|-------------|
 | `pose.keypoint_config` | object | no | Mapping of body region to `names_and_connections/*.yaml` basename. Supported keys: `body`, `face`, `hand`. |
 
-Each value is the basename of a file in `names_and_connections/`, for example `"rtmpose_body.yaml"` or `"rtmpose_hand.yaml"`.
+Each value is the basename of a file in `names_and_connections/`, for example `rtmpose_body.yaml` or `rtmpose_hand.yaml`.
+
+For the RTMW-L wholebody case, the equivalent composite already exists as [`rtmpose_wholebody.yaml`](skellytracker/trackers/rtmpose_tracker/names_and_connections/rtmpose_wholebody.yaml) — the loader may delegate to that file when all three keys match the standard layout.
 
 ### Label prefix rules
 
-The `names_and_connections/` files use un-prefixed landmark names (e.g. `thumb1`, `forefinger1`). When `keypoint_config` references `rtmpose_hand.yaml` under the `hand` key, the consumer **prepends the side prefix** to each `tracked_points` entry to produce canonical labels:
+Prefix rules **must match** [`rtmpose_wholebody.yaml`](skellytracker/trackers/rtmpose_tracker/names_and_connections/rtmpose_wholebody.yaml) and `TrackedObjectDefinition._from_composition_data`:
 
 | Config key | Source file | Prefix | Example |
 |------------|-------------|--------|---------|
-| `body` | `rtmpose_body.yaml` | *(none)* | `nose` → `nose`, `left_elbow` → `left_elbow` |
-| `face` | `rtmpose_face.yaml` | `face_` | *(depends on file format)* |
-| `hand` | `rtmpose_hand.yaml` | `left_hand_` / `right_hand_` | `root` → `left_hand_root`, `thumb1` → `left_hand_thumb1` |
+| `body` | `rtmpose_body.yaml` | `""` | `nose` → `nose` |
+| `hand` (right, first) | `rtmpose_hand.yaml` | `right_hand_` | `root` → `right_hand_root` |
+| `hand` (left, second) | `rtmpose_hand.yaml` | `left_hand_` | `root` → `left_hand_root` |
+| `face` | `rtmpose_face.yaml` | `""` | `face_0000` → `face_0000` (names already prefixed in file) |
 
-The consumer derives two handed copies from `rtmpose_hand.yaml` — one with `left_hand_` prefix and one with `right_hand_` prefix — and appends all resulting labels to `keypoint_labels`.
+`rtmpose_hand.yaml` uses un-prefixed landmark names (`thumb1`, `forefinger1`, …). `rtmpose_face.yaml` already uses `face_0000`…`face_0067` — do **not** prepend an additional `face_` prefix.
+
+### Keypoint assembly order
+
+Order **must match** COCO133 model output layout documented in `rtmpose_wholebody.yaml`:
+
+> `[body.23][right_hand.21][left_hand.21][face.68] = 133 total`
+
+Assembly sequence when resolving `keypoint_config`:
+
+1. `body` → append `tracked_points` / `connections` with `""` prefix
+2. `hand` → append right-hand copy (`right_hand_` prefix), then left-hand copy (`left_hand_` prefix)
+3. `face` → append with `""` prefix
+
+Config-key iteration order in the sidecar YAML is irrelevant; the consumer always emits labels in the order above.
 
 ### Resolution rules
 
-- When `keypoint_config` is present, `pose.keypoint_labels`, `pose.keypoint_count`, and `overlay.skeleton` are **derived** from the referenced YAMLs at load time.
-- For each config key (`body`, `face`, `hand`):
-  - `tracked_points` (ordered list) → appended to `pose.keypoint_labels` in config-key order (body first, then face, then hand with both side prefixes).
-  - `connections` (list of `[from, to]` pairs) → appended to `overlay.skeleton` entries (each pair becomes `{type: edge, from: <prefixed>, to: <prefixed>}` with group/color inherited from the sidecar's `overlay` palette).
+- When `keypoint_config` is present, derive at load time:
+  - `pose.keypoint_labels` — ordered list from assembly sequence above
+  - `pose.keypoint_count` — `len(keypoint_labels)`
+  - `overlay.skeleton` — one `{type: edge, from: <label>, to: <label>}` per connection pair, using prefixed label names
+- **Overlay groups/colors:** if the sidecar defines `overlay.palette` / `overlay.groups`, map skeleton edges to groups by region (`body`, `right_hand`, `left_hand`, `face`) using the same defaults as the RTMPose annotator. If `overlay` is absent, emit edges without group/color (consumers apply defaults).
 - Canonical mapping files (`*_to_canonical_mapping.yaml`) bridge RTMPose-specific names to canonical landmark names — documented but not consumed automatically at this stage.
-- If `keypoint_config` is absent, the sidecar must provide `pose.keypoint_labels`, `pose.keypoint_count`, and `overlay.skeleton` inline (backward compatible with sidecars that do not reference `names_and_connections/`).
+- If `keypoint_config` is absent, the sidecar must provide `pose.keypoint_labels`, `pose.keypoint_count`, and `overlay.skeleton` inline.
 
 ### Example: RTMW-L WholeBody
 
 ```yaml
 ---
-schema_version: "v2025.01.1000"
+schema_version: "vYYYY.MM.BBBB"  # set at merge via bumpver
 model_id: rtmw-l-wholebody
 display_name: RTMW L WholeBody
 family: rtmw
@@ -132,9 +182,14 @@ role: pose_estimator
 pose:
   estimator_type: top_down_single_person
   keypoint_config:
-    body: "rtmpose_body.yaml"
-    face: "rtmpose_face.yaml"
-    hand: "rtmpose_hand.yaml"
+    body: rtmpose_body.yaml
+    hand: rtmpose_hand.yaml
+    face: rtmpose_face.yaml
+overlay:
+  palette:
+    body: [0, 255, 0]
+    hand: [255, 128, 0]
+    face: [0, 128, 255]
 ```
 
 ## Schema versioning policy
@@ -159,6 +214,38 @@ Integer `schema_version: 1` never shipped in production sidecars. Do **not** sup
 - **Too-new sidecar** — if `sidecar.schema_version > installed_skellytracker_version`, reject at catalog validation with a recoverable error naming both versions and an upgrade hint.
 - **Exporter obligation** — when emitting a sidecar, set `schema_version` to the skellytracker version documented as current in the canonical spec at export time (or the version pin the exporter targets).
 
+### Version comparison algorithm
+
+Add `parse_skellytracker_version(version: str) -> tuple[int, int, int, str | None]` in skellytracker:
+
+1. Strip optional leading `v` (accept both `v2024.09.1019` and `2024.09.1019`).
+2. Split on `-` into `core` and optional `tag` (pre-release suffix per bumpver `[-TAG]`).
+3. Parse `core` as `YYYY.MM.BUILD` (three dot-separated integers).
+4. Compare tuples `(year, month, build, tag)` lexicographically; `tag=None` sorts **after** any tagged pre-release of the same core (stable release > pre-release), or document that pre-release tags are rejected in sidecars for v1.
+
+`sidecar_schema_supported(installed, sidecar) -> bool` returns `parse(installed) >= parse(sidecar)`.
+
+Unit-test: equal, older sidecar / newer installed, newer sidecar / older installed, malformed string, missing components, tagged builds.
+
+### Version-gated required fields
+
+Validation does **not** parse `sidecar-spec.md` at runtime. Use a hardcoded checklist in `sidecar_validation.py` keyed by minimum `schema_version`, extended when new change sets ship:
+
+```python
+# v1 (this plan) — illustrative; exact version set at merge via bumpver
+SCHEMA_REQUIREMENTS: list[tuple[str, Callable[[dict], list[str]]]] = [
+    ("vYYYY.MM.BBBB", _require_interpolation_when_resize_present),
+]
+```
+
+Rules for this change set:
+
+| Field | Required when |
+|-------|---------------|
+| `input.resize.interpolation` | `input.resize` is present (all current detector/pose sidecars with resize use `letterbox`; interpolation applies to the resize scaling step regardless of `resize.method`) |
+
+Older sidecars with lower `schema_version` that omit fields added in a newer spec are accepted only if `installed >= sidecar.schema_version` **and** the sidecar satisfies the requirements active at its declared version. Exporters authoring against the current spec must include all fields for the current `schema_version`.
+
 ### Spec document updates (`model-batch-converter`)
 
 In [`sidecar-spec.md`](../model_batch_converter/model_batch_converter/specs/sidecar-spec.md):
@@ -168,35 +255,40 @@ In [`sidecar-spec.md`](../model_batch_converter/model_batch_converter/specs/side
 
 | `schema_version` | skellytracker release | Changes |
 |------------------|----------------------|---------|
-| `vYYYY.MM.BBBB` | same as column 1 | *(set at implementation time to the release that lands this plan)* — add `input.resize.interpolation`; migrate `schema_version` from integer to string; adopt YAML format; add `pose.keypoint_config` |
+| `vYYYY.MM.BBBB` | same as column 1 | *(bumpver at merge)* — add `input.resize.interpolation`; migrate `schema_version` from integer to string; adopt YAML format; document `pose.keypoint_config` |
 
-- Update **all** reference examples (now YAML instead of JSON) to use the string `schema_version` and current change-set fields.
-- Add validation-checklist items:
+- Update **all** reference examples (YAML) to use the string `schema_version` and current change-set fields.
+- Add validation-checklist items (human-readable mirror of Python validators):
   - [ ] `schema_version` is a string matching the skellytracker version pattern
   - [ ] `schema_version` is supported by the installed skellytracker release (`installed >= schema_version`)
+  - [ ] `input.resize.interpolation` present when `input.resize` is present
 - Document that future spec edits **must** bump `schema_version` to the skellytracker version merging the spec change (not an independent integer counter).
 
 ### skellytracker consumer validation
 
-- Read installed version from `skellytracker.__version__`.
-- Parse and compare `schema_version` using the same calendar-version ordering as bumpver (strip/normalize `v` prefix consistently).
-- Reject invalid format, unsupported future `schema_version`, and (per change set) missing required fields for the declared version.
-- Error messages should include: sidecar `model_id`, sidecar `schema_version`, installed skellytracker version.
+Module: `skellytracker/utilities/gpu_utils/sidecar_validation.py` (name illustrative).
+
+- `parse_sidecar_file(path) -> dict`
+- `validate_sidecar_metadata(sidecar: dict) -> None` — raises `SidecarValidationError` with `model_id`, `schema_version`, installed version in message
+- Read installed version from `skellytracker.__version__`
+- Reject: malformed `schema_version`, sidecar newer than installed, missing version-gated fields
+- Plan 50 `SidecarModelRegistry` calls these functions; plan 40 does not implement the registry
 
 ```mermaid
 flowchart TD
-  sidecar[Sidecar YAML] --> parseVer[Parse schema_version string]
+  sidecar[Sidecar YAML] --> parseFile[parse_sidecar_file]
+  parseFile --> parseVer[Parse schema_version string]
   parseVer --> formatOk{Valid skellytracker version format?}
   formatOk -->|no| rejectFormat[Reject: invalid schema_version]
   formatOk -->|yes| compat{installed skellytracker >= schema_version?}
-  compat -->|no| rejectOld[Reject: upgrade skellytracker]
+  compat -->|no| rejectNew[Reject: upgrade skellytracker]
   compat -->|yes| fields[Validate required fields for version]
-  fields --> ok[Accept for catalog]
+  fields --> ok[Return validated metadata]
 ```
 
 ## Change sets
 
-Each subsection is one spec evolution batch. When implementing a new batch, append a row to the changelog table in `sidecar-spec.md` and bump example sidecars to the new `schema_version`.
+Each subsection is one spec evolution batch. When implementing a new batch, append a row to the changelog table in `sidecar-spec.md`, add a `SCHEMA_REQUIREMENTS` entry, and bump example sidecars to the new `schema_version`.
 
 ### Change set — `input.resize.interpolation` (this plan)
 
@@ -206,22 +298,22 @@ Each subsection is one spec evolution batch. When implementing a new batch, appe
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `resize.interpolation` | string | yes | Host resize filter for `resize.method` scaling. Closed enum in this change set. |
+| `resize.interpolation` | string | when `input.resize` present | Host resize filter for the resize scaling step. Closed enum in this change set. |
 
 **Allowed values**
 
 | Sidecar value | OpenCV constant | Typical use |
 |---------------|-----------------|-------------|
-| `"linear"` | `cv2.INTER_LINEAR` | YOLO/Ultralytics letterbox export (YOLO26 default) |
-| `"area"` | `cv2.INTER_AREA` | Downscaling with area resampling |
-| `"cubic"` | `cv2.INTER_CUBIC` | Higher-quality upscale |
-| `"nearest"` | `cv2.INTER_NEAREST` | Nearest-neighbor |
+| `linear` | `cv2.INTER_LINEAR` | YOLO/Ultralytics letterbox export (YOLO26 default) |
+| `area` | `cv2.INTER_AREA` | Downscaling with area resampling |
+| `cubic` | `cv2.INTER_CUBIC` | Higher-quality upscale |
+| `nearest` | `cv2.INTER_NEAREST` | Nearest-neighbor |
 
 **Example fragment**
 
 ```yaml
 ---
-schema_version: "v2024.09.1019"
+schema_version: "vYYYY.MM.BBBB"  # bumpver at merge
 input:
   resize:
     method: letterbox
@@ -231,9 +323,7 @@ input:
     interpolation: linear
 ```
 
-Replace `"v2024.09.1019"` with the actual skellytracker version at merge time.
-
-**skellytracker consumer:** `resolve_resize_interpolation()` in [`rtm_preprocessing.py`](../skellytracker/utilities/gpu_utils/rtm_preprocessing.py); YOLO26 reads `input.resize.interpolation`; YOLOX legacy passes `"linear"` explicitly.
+**skellytracker consumer:** `resolve_resize_interpolation(value: str) -> int` in [`rtm_preprocessing.py`](../skellytracker/utilities/gpu_utils/rtm_preprocessing.py). Plan 50 passes sidecar `input.resize.interpolation` into `detector_letterbox_preprocess(..., interpolation=...)`. YOLOX legacy keeps `"linear"` explicitly.
 
 ## Complete YOLO26 Nano detector sidecar example
 
@@ -241,7 +331,7 @@ Full reference sidecar for a YOLO26 Nano detector with precision-grouped ONNX ar
 
 ```yaml
 ---
-schema_version: "v2024.09.1019"
+schema_version: "vYYYY.MM.BBBB"  # bumpver at merge
 model_id: yolo26-nano
 display_name: YOLO26 Nano
 family: yolo26
@@ -349,15 +439,29 @@ postprocessing:
 
 ```mermaid
 flowchart LR
-  versionPolicy[schema_version string policy] --> specUpdate[sidecar-spec.md]
-  specUpdate --> exporter[YOLO-Exporter yolo_sidecar.py]
+  subgraph plan40 [Plan 40]
+    versionPolicy[schema_version policy]
+    specUpdate[sidecar-spec.md]
+    valLib[sidecar_validation.py]
+    interp[resolve_resize_interpolation]
+  end
+
+  subgraph plan50 [Plan 50]
+    registry[SidecarModelRegistry]
+    detPre[detector_letterbox_preprocess]
+    yolo26[YOLO26 session]
+  end
+
+  versionPolicy --> specUpdate
+  specUpdate --> mbcWheel[model-batch-converter wheel]
+  specUpdate --> exporter[YOLO-Exporter]
   exporter --> artifact[yolo26-nano_b2.yaml]
-  specUpdate --> mbcWheel[model-batch-converter package]
-  mbcWheel --> catalogVal[skellytracker catalog validation]
-  catalogVal --> preprocess[detector_letterbox_preprocess]
-  specUpdate --> namesCon[names_and_connections/ *.yaml]
-  namesCon --> poseSidecar[Pose sidecar via keypoint_config]
-  poseSidecar --> catalogVal
+  mbcWheel --> valLib
+  artifact --> valLib
+  valLib --> registry
+  interp --> detPre
+  registry --> yolo26
+  detPre --> yolo26
 ```
 
 Re-run `uv sync` after updating the editable `model-batch-converter` sibling checkout.
@@ -368,79 +472,88 @@ Re-run `uv sync` after updating the editable `model-batch-converter` sibling che
 
 - Define YAML as the sidecar format in [`sidecar-spec.md`](../model_batch_converter/model_batch_converter/specs/sidecar-spec.md): file extension `.yaml`, document marker `---`, style conventions.
 - Update all reference examples from JSON to YAML using the `names_and_connections/` conventions.
-- Add `pyyaml` to skellytracker's `pyproject.toml` dependencies.
-- Wire `yaml.safe_load()` in the catalog-sidecar loading path.
-- Unit-test that a valid YAML sidecar parses correctly via `yaml.safe_load`.
+- Add `parse_sidecar_file()` in `sidecar_validation.py` using existing `pyyaml` dependency.
+- Unit-test that a valid YAML sidecar parses correctly.
 
 ### 1. Schema version format (`model-batch-converter` + skellytracker)
 
 - Rewrite Schema versioning in [`sidecar-spec.md`](../model_batch_converter/model_batch_converter/specs/sidecar-spec.md) per [Schema versioning policy](#schema-versioning-policy).
-- Update all reference examples from `"schema_version": 1` to the target string version.
-- Add skellytracker helper (e.g. `parse_skellytracker_version`, `sidecar_schema_supported(installed, sidecar)`) used by catalog validation.
-- Unit-test version comparison edge cases (equal, newer sidecar, older sidecar, malformed string).
+- **Bump skellytracker** via bumpver at merge; use the new version in changelog row and all examples.
+- Add `parse_skellytracker_version`, `sidecar_schema_supported`, and `SCHEMA_REQUIREMENTS` in `sidecar_validation.py`.
+- Unit-test version comparison edge cases.
 
-### 2. Change set — interpolation (`model-batch-converter`)
+### 2. Change set — interpolation (`model-batch-converter` + skellytracker)
 
 - Add `resize.interpolation` field table, enum, and checklist item in [`sidecar-spec.md`](../model_batch_converter/model_batch_converter/specs/sidecar-spec.md).
-- Update all letterbox `resize` examples with `"interpolation": "linear"`.
+- Update all letterbox `resize` examples with `interpolation: linear`.
+- Add `resolve_resize_interpolation()` in [`rtm_preprocessing.py`](../skellytracker/utilities/gpu_utils/rtm_preprocessing.py).
+- Add `_require_interpolation_when_resize_present` to `SCHEMA_REQUIREMENTS`.
 
 ### 3. YOLO-Exporter
 
 - Emit YAML sidecar (`.yaml` extension) with string `schema_version` (current target skellytracker version) and `resize.interpolation`.
 - Update [exporter tests](https://github.com/domisjustanumber/YOLO-Exporter/blob/main/tests/test_yolo_sidecar.py).
+- Follow [Release coordination](#release-coordination) ordering.
 
 ### 4. Published YOLO26 artifact
 
-- Create `yolo26-nano_b2.yaml` in `models/` with new `schema_version` and `interpolation`.
+- Create `yolo26-nano_b2.yaml` in `models/` with bumped `schema_version` and `interpolation`.
 
-### 5. skellytracker catalog + preprocess
+### 5. skellytracker validation library (plan 50 integrates)
 
-- Catalog validation: `schema_version` compatibility **then** required fields (including `resize.interpolation`).
-- `detector_letterbox_preprocess(..., interpolation=...)` driven from sidecar on YOLO26 path.
+- Implement `validate_sidecar_metadata()` — `schema_version` compatibility then version-gated required fields.
+- Export public API from `skellytracker.utilities.gpu_utils` for plan 50 `SidecarModelRegistry`.
+- **Do not** implement `SidecarModelRegistry`, `detector_letterbox_preprocess`, or YOLO26 session wiring in this plan.
 
-### 6. Pose sidecar: `pose.keypoint_config` (`model-batch-converter` + skellytracker)
+### 6. Pose sidecar: `pose.keypoint_config` — spec only (`model-batch-converter`)
 
-- Add `pose.keypoint_config` field (object with optional `body`, `face`, `hand` keys) to [`sidecar-spec.md`](../model_batch_converter/model_batch_converter/specs/sidecar-spec.md).
-- Document label prefix mapping rules for each config key.
-- Implement a keypoint_config loader in skellytracker that:
-  - Resolves each `names_and_connections/*.yaml` basename from the `skellytracker/trackers/rtmpose_tracker/names_and_connections/` directory.
-  - For `body`: loads `tracked_points` → appended to `pose.keypoint_labels` as-is; loads `connections` → appended to `overlay.skeleton` with no prefix.
-  - For `face`: loads `tracked_points` → prepends `face_` prefix; loads `connections` → prepends `face_` prefix.
-  - For `hand`: loads `tracked_points` → produces two copies with `left_hand_` and `right_hand_` prefixes; loads `connections` → produces two copies with corresponding prefixes.
-  - Validates that referenced files exist and raises a clear, recoverable error if they do not.
-- Unit-test `keypoint_config` resolution for all three config sections.
+- Add `pose.keypoint_config` field and prefix/order rules to [`sidecar-spec.md`](../model_batch_converter/model_batch_converter/specs/sidecar-spec.md) per [Pose sidecar](#pose-sidecar-referencing-names_and_connections).
+- Document `TrackedObjectDefinition` reuse for the future loader.
+- **Defer** skellytracker loader implementation and unit tests until a pose sidecar catalog consumer exists.
 
 ## Validation plan
 
-- Unit-test YAML sidecar parses correctly via `yaml.safe_load`.
-- Unit-test `schema_version` string format validation.
-- Unit-test rejection when sidecar `schema_version` is newer than installed skellytracker.
-- Unit-test acceptance when versions match or installed skellytracker is newer.
-- Unit-test missing / unknown `resize.interpolation`.
+### Plan 40 (this release)
+
+- Unit-test `parse_sidecar_file` on valid YAML sidecar.
+- Unit-test `parse_skellytracker_version` (equal, newer sidecar, older sidecar, malformed, tagged).
+- Unit-test `validate_sidecar_metadata` rejects sidecar newer than installed skellytracker.
+- Unit-test `validate_sidecar_metadata` accepts when installed >= sidecar version.
+- Unit-test missing / unknown `resize.interpolation` when `input.resize` present.
 - Unit-test `resolve_resize_interpolation("linear")` → `cv2.INTER_LINEAR`.
+
+### Deferred with pose loader (future)
+
+- Unit-test `keypoint_config` resolution: body, right/left hand prefixes, face without double-prefix.
+- Unit-test 133-label order matches `rtmpose_wholebody.yaml`.
+- Unit-test missing referenced YAML raises clear error.
+
+### Plan 50
+
 - Unit-test `detector_letterbox_preprocess` honors passed interpolation.
-- Unit-test `keypoint_config` body resolution → correct `keypoint_labels` and `skeleton` entries.
-- Unit-test `keypoint_config` hand resolution → `left_hand_` and `right_hand_` prefixed labels.
-- Unit-test missing `keypoint_config` file raises clear error.
+- Unit-test `SidecarModelRegistry` scans `*.yaml` and calls `validate_sidecar_metadata`.
 
 ## Main risks
 
-- **Version skew** — exporter, checked-in sidecars, and spec changelog must agree on the same `schema_version` string at release time.
+- **Version skew** — exporter, checked-in sidecars, spec changelog, and bumpver release must agree on the same `schema_version` string.
 - **Interpolation mismatch** — same severity as color/dtype/normalization errors; host must match export.
-- **YAML syntax errors** — tabs vs spaces, ambiguous indentation, or unquoted special characters can cause silent parse failures that JSON wouldn't.
-- **`names_and_connections/` drift** — config YAML files are consumed by both the legacy RTMPose tracker and the new sidecar loader; incompatible changes to one could break the other.
-- **Future changes** — every spec edit must bump `schema_version` to the merging skellytracker release; document in changelog table or consumers will mis-guess compatibility.
+- **YAML syntax errors** — tabs vs spaces, ambiguous indentation, or unquoted special characters can cause parse failures.
+- **`names_and_connections/` drift** — config YAML files are consumed by both the legacy RTMPose tracker and the future sidecar loader; incompatible changes could break both.
+- **Plan 50 JSON stale refs** — plan 50 must be updated for YAML discovery when plan 40 merges, or implementers will ship incompatible loaders.
+- **Future changes** — every spec edit must bump `schema_version`, add a `SCHEMA_REQUIREMENTS` entry, and update the changelog table.
 
 ## Related files
 
 - Canonical spec: [`model_batch_converter/specs/sidecar-spec.md`](../model_batch_converter/model_batch_converter/specs/sidecar-spec.md)
 - skellytracker version: [`skellytracker/__init__.py`](../skellytracker/__init__.py)
 - Preprocessing: [`skellytracker/utilities/gpu_utils/rtm_preprocessing.py`](../skellytracker/utilities/gpu_utils/rtm_preprocessing.py)
+- Validation (new): `skellytracker/utilities/gpu_utils/sidecar_validation.py`
 - Pose keypoint configs: [`skellytracker/trackers/rtmpose_tracker/names_and_connections/`](../skellytracker/trackers/rtmpose_tracker/names_and_connections/)
+- Composition helper: [`skellytracker/trackers/base_tracker/tracked_object_definition.py`](../skellytracker/trackers/base_tracker/tracked_object_definition.py)
 - Exporter: [YOLO-Exporter `yolo_sidecar.py`](https://github.com/domisjustanumber/YOLO-Exporter/blob/main/yolo_sidecar.py)
 
 ## Related Plans
 
 - [30_realtime_batch_size.plan.md](30_realtime_batch_size.plan.md) — **prerequisite** in sequence; YOLO26 `model_batch_convert` uses derived `batch_size` from this plan.
-- [50_yolo26_nano_detection.plan.md](50_yolo26_nano_detection.plan.md) — **blocked on this plan** for catalog loading, validation, and `detector_letterbox_preprocess`.
+- [50_yolo26_nano_detection.plan.md](50_yolo26_nano_detection.plan.md) — **blocked on this plan** for sidecar contract, `sidecar_validation.py`, and `resolve_resize_interpolation()`; plan 50 owns `SidecarModelRegistry`, `detector_letterbox_preprocess`, and YOLO26 session wiring. **Amend plan 50** for `*.yaml` sidecars when plan 40 merges.
 - [future_streaming_pipeline_implementation.plan.md](future_streaming_pipeline_implementation.plan.md) — future sidecar-backed graph nodes use the contract defined here.

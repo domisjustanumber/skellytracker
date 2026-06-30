@@ -1,9 +1,9 @@
 ﻿---
 name: Realtime Batch Size Config
-overview: Replace max_batch_size with batch_size on skellytracker session configs. batch_size is exact session batch for TRT profiles, warmup, and predict_batch. Default batch_size=1 for standalone skellytracker; freemocap derives batch_size=len(resolved_ids) at session create (not stored in config). Benches use one session per batch size. No backwards compatibility. Requires plans 10 and 20 first.
+overview: Replace max_batch_size with batch_size on skellytracker session configs. batch_size is exact session batch for TRT profiles, warmup, and predict_batch. Default batch_size=1 for standalone skellytracker; freemocap derives batch_size=len(resolved_ids) at worker session create only (not stored in config). Benches use one session per batch size. No backwards compatibility. Requires plans 10 and 20 first.
 todos:
   - id: rename-rtmpose-session-config
-    content: Rename max_batch_size to batch_size (default 1); expose RTMPoseSession.batch_size property (required for freemocap gating); fix warmup_image_shape comment
+    content: Rename max_batch_size to batch_size (default 1); remove stale CoreML batch_size=1 override; expose RTMPoseSession.batch_size property; fix warmup_image_shape comment
     status: pending
   - id: rename-composite-session-config
     content: Rename CompositeGPUSessionConfig.max_batch_size to batch_size (default 1); v1 rename + bench only — no BatchSizeMismatchError on CompositeGPU
@@ -12,19 +12,16 @@ todos:
     content: Warmup at config.batch_size only; YOLOX TRT profiles min=opt=max=batch_size in _trt_dynamic_batch_profile; remove multi-size warmup at {1, max_batch_size}
     status: pending
   - id: predict-batch-semantics
-    content: BatchSizeMismatchError in predict_batch and predict_pose_from_bboxes; freemocap infer_or_skip_batch catches mismatch internally (kind=catch_mismatch); _run logs + publish_skipped_batch + continue; OOM wraps infer_or_skip_batch only
+    content: BatchSizeMismatchError in predict_batch and predict_pose_from_bboxes; realtime_skeleton_batch_logic (should_run_inference incl. ordered_camera_ids, publish_skipped_batch, infer_or_skip_batch); _run outcome model + Approach A empty-read; production session.batch_size==len(camera_ids) check; OOM wraps infer_or_skip_batch only
     status: pending
   - id: bench-one-session-per-batch
     content: Refactor bench_rtmpose_session.py and bench_composite_gpu.py to create a new session per batch size (Option A); single-image baseline uses batch_size=1 session
     status: pending
   - id: freemocap-derived-batch-size
-    content: Remove max_batch_size from Pydantic/Redux/ExecutionProviderConfigPanel; derive batch_size=len(resolved_ids) at session create; wire _build_session on manager recreate path
-    status: pending
-  - id: skeleton-node-gating
-    content: realtime_skeleton_batch_logic (should_run_inference, publish_skipped_batch, infer_or_skip_batch); wire _run to outcome model; Approach A empty-read early exit in _run; OOM wraps infer_or_skip_batch
+    content: Remove max_batch_size from Pydantic/Redux/ExecutionProviderConfigPanel; derive batch_size=len(resolved_ids) at worker session create; wire _build_session on worker startup, OOM recovery, and pipeline recreate
     status: pending
   - id: tests
-    content: test_rtmpose_batch_size.py; test_realtime_skeleton_inference_node batch_logic; _build_session test update in test_system_gpu_and_rtmpose_config.py
+    content: test_rtmpose_batch_size.py; test_realtime_skeleton_batch_logic + _read_frames order; _build_session test in test_system_gpu_and_rtmpose_config.py
     status: pending
 isProject: false
 ---
@@ -45,7 +42,7 @@ Today freemocap realtime passes `max_batch_size` from [`RealtimeSkeletonInferenc
         max_batch_size=inf_config.max_batch_size,
 ```
 
-The name `max_batch_size` implies an upper bound, but realtime needs an **exact** session batch — the number of active cameras. Rename to `batch_size` on skellytracker session configs (default `1` for standalone use). Freemocap derives `batch_size=len(resolved_ids)` at session create (from explicit `realtimeCameraIds` on apply) and removes the stored config field. Skellytracker and freemocap ship together; no backwards-compatibility shim.
+The name `max_batch_size` implies an upper bound, but realtime needs an **exact** session batch — the number of active cameras. Rename to `batch_size` on skellytracker session configs (default `1` for standalone use). Freemocap derives `batch_size=len(resolved_ids)` at **worker** session create (from explicit `realtimeCameraIds` on apply) and removes the stored config field. Skellytracker and freemocap ship together; no backwards-compatibility shim.
 
 This work was extracted from [50_yolo26_nano_detection.plan.md](50_yolo26_nano_detection.plan.md). YOLO26 and future sidecar-backed detectors depend on it as a prerequisite.
 
@@ -54,16 +51,16 @@ This work was extracted from [50_yolo26_nano_detection.plan.md](50_yolo26_nano_d
 Complete before freemocap batch-size wiring:
 
 - [**10 — Remove EP fallback**](10_remove_ep_fallback.plan.md) — strict single-provider ORT session creation (skellytracker); freemocap worker strict mode.
-- [**20 — Single global realtime pipeline**](20_single_global_realtime_pipeline.plan.md) — at most one `RealtimePipeline` in the manager; `_apply_pipeline_config` / `needs_recreate`; remove `cameraGroupId`; zero-camera apply rejected; last-camera block while connected; skeleton node no config pubsub; pipeline error UX; worker-start RTMPose session validation remains unchanged.
+- [**20 — Single global realtime pipeline**](20_single_global_realtime_pipeline.plan.md) — at most one `RealtimePipeline` in the manager; `_apply_pipeline_config` / `needs_recreate`; remove `cameraGroupId`; zero-camera apply rejected; last-camera block while connected; skeleton node no config pubsub; pipeline error UX; **worker-start** RTMPose session validation (no eager apply create).
 
 ```mermaid
 flowchart LR
   cameras[Realtime camera IDs] --> batchSize[RTMPoseSessionConfig.batch_size]
   batchSize --> trtProfile[YOLOX TRT profile]
   batchSize --> warmup[Warmup tensor shape]
-  batchSize --> convert[model_batch_convert target]
-  batchSize --> cache[Cache key bN]
   batchSize --> infer[predict_batch exact len]
+  batchSize -.->|plan 50| convert[model_batch_convert]
+  batchSize -.->|plan 50| cache[Cache key bN]
 ```
 
 ## Scope
@@ -79,13 +76,14 @@ flowchart LR
 | `RTMPoseSession.predict_batch()` | Requires `len(images) == batch_size`; `BatchSizeMismatchError` on non-empty mismatch; `[]` on empty |
 | `RTMPoseSession.predict_pose_from_bboxes()` | Same exact-batch validation as `predict_batch` (today bypasses it via `_estimate_pose_batched`); `[]` on empty |
 | `RTMPoseSession.batch_size` | **Required** `@property` — freemocap gating reads session, not persisted config (section 1) |
-| Freemocap | **Remove** `max_batch_size` from all persisted config; derive `batch_size=len(resolved_ids)` at session create only; wire `_build_session(..., batch_size=len(camera_ids))` on manager recreate ([20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md) prerequisite) |
+| Freemocap | **Remove** `max_batch_size` from all persisted config; derive `batch_size=len(resolved_ids)` at **worker** session create only; wire `_build_session(..., batch_size=len(camera_ids))` on worker startup, OOM recovery, and pipeline recreate ([20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md) prerequisite) |
 | Bench scripts / tests | One session per batch size (section 4); update all `max_batch_size` references |
 
 ### Out of scope
 
 - Sidecar `batching.batch_size` / `model_batch_convert()` integration — [50_yolo26_nano_detection.plan.md](50_yolo26_nano_detection.plan.md)
-- Eager session validation on apply — not planned. Plan 20 keeps current worker-start RTMPose session construction; this plan only changes the batch-size value passed when that worker creates the session.
+- Eager `RTMPoseSession.create()` on HTTP apply / router — **not in this plan**. [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md) explicitly keeps worker-start session construction only; this plan changes the `batch_size` value passed when the skeleton worker calls `_build_session`. A future plan may add apply-time eager validation.
+- **`predict_batch_with_tracking`** exact-batch guards — unchanged in this plan; freemocap realtime uses `predict_batch` only. [`RTMPoseDetector`](skellytracker/trackers/rtmpose_tracker/rtmpose_detector.py) tracking API may still accept variable-length subsets internally.
 - **UI batch size control** — batch size is never user-configurable; `gpu-capabilities` `fixed_batch_sizes` describes EP capabilities, not a realtime batch slider (no UI work for batch size in this plan)
 - **[future_streaming_pipeline_implementation.plan.md](future_streaming_pipeline_implementation.plan.md) — ignore for this plan.** Implement ring-buffer skeleton-node behavior only (`_read_frames`, gate, full-camera `None` publish). Do not add `use_streaming_pipeline`, streaming graph nodes, ring-buffer streaming executor, or wait-for-full-batch streaming policy from that document. If the streaming plan references `batch_size`, treat this plan as the authority for batch semantics; do not block on or implement streaming-plan freemocap changes here.
 
@@ -97,13 +95,14 @@ flowchart LR
 
 - [`skellytracker/trackers/rtmpose_tracker/rtmpose_session.py`](skellytracker/trackers/rtmpose_tracker/rtmpose_session.py) — `RTMPoseSessionConfig`
 - [`skellytracker/trackers/composite_gpu_tracker/composite_gpu_session.py`](skellytracker/trackers/composite_gpu_tracker/composite_gpu_session.py) — `CompositeGPUSessionConfig`
-- [`skellytracker/utilities/gpu_utils/ort_session_utils.py`](skellytracker/utilities/gpu_utils/ort_session_utils.py) — `build_tuned_ort_session(batch_size=...)` and `_trt_dynamic_batch_profile(batch_size=...)`
+- [`skellytracker/utilities/gpu_utils/ort_session_utils.py`](skellytracker/utilities/gpu_utils/ort_session_utils.py) — `build_tuned_ort_session(batch_size=...)` and `_trt_dynamic_batch_profile(batch_size=...)`; update docstrings/comments that still say `max_batch_size` or "batch range from 1 to …"
 - [`skellytracker/trackers/rtmpose_tracker/bench_rtmpose_session.py`](skellytracker/trackers/rtmpose_tracker/bench_rtmpose_session.py)
 - [`skellytracker/trackers/composite_gpu_tracker/bench_composite_gpu.py`](skellytracker/trackers/composite_gpu_tracker/bench_composite_gpu.py)
 - [`skellytracker/trackers/composite_gpu_tracker/composite_gpu_README.md`](skellytracker/trackers/composite_gpu_tracker/composite_gpu_README.md)
 - All tests referencing `max_batch_size`
 - Session startup log label (`max_batch` → `batch_size`) in [`rtmpose_session.py`](skellytracker/trackers/rtmpose_tracker/rtmpose_session.py) and [`composite_gpu_session.py`](skellytracker/trackers/composite_gpu_tracker/composite_gpu_session.py)
 - Pose-model `build_tuned_ort_session(..., batch_size=...)` call sites (kwarg rename; no TRT profile on pose)
+- **Remove stale CoreML `batch_size=1` clamp** in [`rtmpose_session.py`](skellytracker/trackers/rtmpose_tracker/rtmpose_session.py) `create()` (today L556–558) — CoreML supports multi-batch inference; keep fp16 disable for CoreML if still required. Grep and update stale CoreML+batch comments in [`rtmpose_session.py`](skellytracker/trackers/rtmpose_tracker/rtmpose_session.py) (e.g. L550–551 “dynamic batch dims”) and [`ort_session_utils.py`](skellytracker/utilities/gpu_utils/ort_session_utils.py) L760–763. Per-crop pose JIT notes (L698–699, L1173+) stay — those describe pose crop batch shapes, not session `batch_size`.
 
 ```python
 # Before
@@ -116,15 +115,19 @@ batch_size: int = Field(default=1, ge=1)  # default for standalone; freemocap pa
 Rules:
 
 - **Remove** `max_batch_size` from configs and APIs — do not keep both fields.
-- **`batch_size` default is `1`** (was `4`). Standalone skellytracker callers rely on this default and do not pass `batch_size` explicitly:
+- **`batch_size` default is `1`** (was `4`) — **breaking change** for external callers that relied on the implicit default of `4`. Document in release notes. Standalone skellytracker callers rely on this default and do not pass `batch_size` explicitly:
   - `RTMPoseSession.predict_single()` → `predict_batch([image])` — **only valid when `session.batch_size == 1`**; raises `BatchSizeMismatchError` on multi-camera sessions (use `predict_batch` instead)
   - [`RTMPoseDetector`](skellytracker/trackers/rtmpose_tracker/rtmpose_detector.py) / webcam demo (`python -m skellytracker`)
   - [`CompositeGPUDetector`](skellytracker/trackers/composite_gpu_tracker/composite_gpu_detector.py) via default `CompositeGPUSessionConfig`
   - Single-image GPU tests (e.g. [`test_rtmpose_session_predict_batch_timing.py`](skellytracker/tests/test_rtmpose_session_predict_batch_timing.py))
-- **Freemocap realtime always passes `batch_size=len(resolved_ids)` explicitly** at session create (`resolved_ids` from apply’s `realtimeCameraIds`) — never relies on the skellytracker default. In the skeleton worker, `len(camera_ids) == len(resolved_ids)` at spawn.
+- **Freemocap realtime always passes `batch_size=len(resolved_ids)` explicitly** in `_build_session` at worker session create (`resolved_ids` from apply’s `realtimeCameraIds`) — never relies on the skellytracker default. In the skeleton worker, `len(camera_ids) == len(resolved_ids)` at spawn.
 - `batch_size` drives YOLOX TRT `trt_set_batch_profile`, pre-NMS session profile, warmup, and fixed-batch detector sessions (YOLO26).
 - **`batch_size >= 1`** enforced on `RTMPoseSessionConfig` via Pydantic (`Field(ge=1)`). Freemocap rejects zero-camera apply per [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md).
 - Update stale `warmup_image_shape` comment (see section 2).
+
+#### CoreML — no batch-size special case
+
+CoreML supports arbitrary session `batch_size` like other providers. **Delete** the legacy `create()` branch that forces `max_batch_size=1` when `active_provider == "coreml"`. Do **not** add fail-fast or single-camera-only rules for CoreML in this plan. (CoreML-specific pose **per-crop** behavior and fp16 disable remain unchanged.)
 
 #### `RTMPoseSession.batch_size` property (required)
 
@@ -140,11 +143,11 @@ def batch_size(self) -> int:
 
 | Consumer | Use | Do **not** use |
 |----------|-----|----------------|
-| Freemocap skeleton node partial-read gating (section 6) | `len(images) == len(camera_ids) == session.batch_size` | `pipeline_config.*`; zip-to-subset on partial read |
+| Freemocap skeleton node partial-read gating (section 6) | `should_run_inference(images, ordered_camera_ids, camera_ids, session)` | `pipeline_config.*`; zip-to-subset on partial read |
 | `BatchSizeMismatchError` messages / logs | `session.batch_size` as expected count | — |
 | Tests | Assert property matches value at `RTMPoseSession.create()` | Stale config fixture fields |
 
-**Checklist item:** grep freemocap skeleton node — infer gate must compare all three counts; skip publish must use full `camera_ids`, not `ordered_camera_ids`.
+**Checklist item:** grep freemocap skeleton node — infer gate must use `should_run_inference` with `ordered_camera_ids`; skip publish must use full `camera_ids`, not `ordered_camera_ids`.
 
 ### 2. Warmup, TRT profiles, and config comments
 
@@ -247,7 +250,7 @@ def infer_or_skip_batch(
     camera_ids: list[CameraIdString],
     session: RTMPoseSession,
 ) -> SkeletonBatchOutcome:
-    if not should_run_inference(images, camera_ids, session):
+    if not should_run_inference(images, ordered_camera_ids, camera_ids, session):
         return SkeletonBatchOutcome(kind="skip")
 
     try:
@@ -257,6 +260,16 @@ def infer_or_skip_batch(
             kind="catch_mismatch",
             mismatch_actual=exc.actual,
             mismatch_expected=exc.expected,
+        )
+
+    if len(batch_results) != len(images):
+        raise ValueError(
+            f"predict_batch returned {len(batch_results)} results for {len(images)} images"
+        )
+    if ordered_camera_ids != camera_ids:
+        raise ValueError(
+            "full-read gate passed but ordered_camera_ids != camera_ids — "
+            "_read_frames must iterate camera_ids in pipeline order"
         )
 
     # Success — zip moved from worker L290-300 today; no setdefault loop on full read
@@ -275,6 +288,8 @@ def infer_or_skip_batch(
         assert len(per_camera_skeleton) == len(camera_ids)
     return SkeletonBatchOutcome(kind="infer", per_camera_skeleton=per_camera_skeleton)
 ```
+
+The `ordered_camera_ids != camera_ids` and `len(batch_results) != len(images)` checks run in **all** builds (not `__debug__` only) — mis-ordered reads or short `predict_batch` returns must not silently assign skeletons to wrong cameras.
 
 **Module boundary:** `infer_or_skip_batch` imports `RTMPoseObservation` from skellytracker and builds `BaseObservation` dicts — intentional coupling so `_run` only publishes outcomes. Keep batch logic in freemocap (not skellytracker); do not move observation construction back into the worker.
 
@@ -317,7 +332,7 @@ if n != self.batch_size:
 
 | Rule | Detail |
 |------|--------|
-| **Prefer avoid** | `infer_or_skip_batch` returns `kind="skip"` when `not should_run_inference(...)` — partial reads never call skellytracker |
+| **Prefer avoid** | `infer_or_skip_batch` returns `kind="skip"` when `not should_run_inference(...)` — partial reads and desynced `(images, ordered_camera_ids)` never call skellytracker |
 | **If `BatchSizeMismatchError` raised** | `infer_or_skip_batch` returns `kind="catch_mismatch"` (caught internally); `_run` logs warning, publishes full-camera `None`, **continue** — no re-raise, no retry |
 | **Log** | `logger.warning(...)` on `catch_mismatch` with `outcome.mismatch_actual` / `outcome.mismatch_expected` from `infer_or_skip_batch` |
 | **Publish** | `publish_skipped_batch` — same full-camera `None` shape as partial-read skip |
@@ -381,9 +396,9 @@ if outcome.kind == "skip":
     continue
 if outcome.kind == "catch_mismatch":
     logger.warning(
-        f"RealtimeSkeletonInferenceNode [{camera_group_id}] batch size mismatch "
-        f"frame={requested_frame_number} actual={outcome.mismatch_actual} "
-        f"expected={outcome.mismatch_expected} — dropping batch"
+        f"RealtimeSkeletonInferenceNode batch size mismatch "
+        f"cameras={camera_ids} frame={requested_frame_number} "
+        f"actual={outcome.mismatch_actual} expected={outcome.mismatch_expected} — dropping batch"
     )
     publish_skipped_batch(frame_number=requested_frame_number, camera_ids=camera_ids, pub=skeleton_result_pub)
     if timer is not None:
@@ -491,7 +506,7 @@ Freemocap lives in sibling checkout `../freemocap`. Update in the same change se
 
 ### 5. Derive `batch_size` from camera count — not in persisted config
 
-`batch_size` must **not** live in any freemocap config surface that gets saved, serialized, or round-tripped through the UI/API. It is computed at session create from the active realtime camera set and passed straight into `RTMPoseSessionConfig`.
+`batch_size` must **not** live in any freemocap config surface that gets saved, serialized, or round-tripped through the UI/API. It is computed at **worker** session create from the active realtime camera set and passed straight into `RTMPoseSessionConfig` via `_build_session`.
 
 #### Remove stored defaults (today vs after)
 
@@ -511,7 +526,7 @@ The freemocap `8` vs skellytracker `4` mismatch becomes irrelevant: freemocap st
 - Redux `defaultRealtimePipelineConfig` and `SkeletonInferenceNodeConfig` TypeScript interface
 - `ExecutionProviderConfigPanel` config merges (today re-injects `max_batch_size: 8` on every EP change)
 - `POST /realtime/apply` request body — `realtimeConfig` must not carry batch size; derive from `realtimeCameraIds` on the server
-- Browser / in-memory state — **remove** `max_batch_size` from Redux defaults and panel merges (no persisted batch field). Realtime `pipelineConfig` lives in Redux only — **not** in localStorage (camera `realtimeEnabled` persists via [`camera-settings-storage.ts`](../freemocap/freemocap-ui/src/store/slices/cameras/camera-settings-storage.ts)). **Do not** add `extra="forbid"` on Pydantic models solely to reject stale `max_batch_size` — see [Second review gaps](#second-review-gaps-incorporated) § stale config.
+- Browser / in-memory state — **remove** `max_batch_size` from Redux defaults and panel merges (no persisted batch field). Realtime `pipelineConfig` lives in Redux only — **not** in localStorage (camera `realtimeEnabled` persists via [`camera-settings-storage.ts`](../freemocap/freemocap-ui/src/store/slices/cameras/camera-settings-storage.ts)). **Do not** add `extra="forbid"` on Pydantic models solely to reject stale `max_batch_size` — see [Review gaps](#review-gaps-batch-size-scope) § stale config.
 
 `batch_size` may appear only as a **runtime value**: argument to `_build_session(...)`, field on `RTMPoseSessionConfig` at create time, and `session.batch_size` after the session exists.
 
@@ -523,18 +538,27 @@ The freemocap `8` vs skellytracker `4` mismatch becomes irrelevant: freemocap st
 - [`realtime-types.ts`](../freemocap/freemocap-ui/src/store/slices/realtime/realtime-types.ts) — remove `max_batch_size` from `SkeletonInferenceNodeConfig` interface and `defaultRealtimePipelineConfig.skeleton_inference_node_config`. **No UI control for batch size** — only remove dead field; do not add a batch-size picker.
 - [`ExecutionProviderConfigPanel.tsx`](../freemocap/freemocap-ui/src/components/control-panels/realtime-panel/ExecutionProviderConfigPanel.tsx) — remove `max_batch_size: … ?? 8` from `skeleton_inference_node_config` merge.
 - [`pyproject.toml`](../freemocap/pyproject.toml) — bump **skellytracker** git ref / version for coordinated release (see Validation Checklist).
-- [`realtime_router.py`](../freemocap/freemocap/api/http/realtime/realtime_router.py) / apply path — resolve `batch_size = len(resolved_ids)` at session create on success path (zero-camera 422 is in [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md)).
-- Grep freemocap for `max_batch_size` / `batch_size` in config merge paths (`realtime-slice`, saved-state hydration, any panel that spreads `skeleton_inference_node_config`).
+- Grep freemocap for `max_batch_size` / `batch_size` in config merge paths (`realtime-slice`, saved-state hydration, any panel that spreads `skeleton_inference_node_config`). Update OpenAPI / generated client types if backend Pydantic models feed codegen beyond `realtime-types.ts`.
+
+**Not in this plan:** [`realtime_router.py`](../freemocap/freemocap/api/http/realtime/realtime_router.py) does **not** call `RTMPoseSession.create()` — plan 20 keeps worker-start validation only. The router resolves `realtimeCameraIds` → `resolved_ids` for pipeline create; `batch_size=len(resolved_ids)` is passed inside the skeleton worker via `_build_session`, not on the HTTP apply path.
 
 Zero-camera apply, `guardRealtimeApply`, `cameraGroupId` removal, pipeline manager singleton, skeleton pubsub removal, and pipeline error UI — see [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md).
 
-**Rule:** freemocap **always** passes `batch_size=len(resolved_ids)` explicitly into `RTMPoseSessionConfig` at session create when `len(resolved_ids) >= 1` — never reads batch size from persisted config and never relies on skellytracker's library default of `1`.
+**Rule:** freemocap **always** passes `batch_size=len(resolved_ids)` explicitly into `RTMPoseSessionConfig` via `_build_session` at worker session create when `len(resolved_ids) >= 1` — never reads batch size from persisted config and never relies on skellytracker's library default of `1`.
 
 ### 6. Skeleton-node partial-read gating and full-camera `None` publish
 
 **File:** [`realtime_skeleton_inference_node.py`](../freemocap/freemocap/core/pipeline/realtime/realtime_skeleton_inference_node.py)
 
 `_read_frames()` returns parallel `(images, ordered_camera_ids)` lists containing **only cameras whose ring buffer had a readable frame**. Cameras that missed the frame are omitted — not represented as `None` in the return value. With 3 pipeline cameras, a partial read might return `len(images)==2` while `len(camera_ids)==3`.
+
+#### `_read_frames` order contract (required)
+
+On a **full** read (`len(images) == len(camera_ids)`), `ordered_camera_ids` must equal `camera_ids` in the **same order**. Camera order follows [`camera_ids_for_realtime_pipeline`](plans/20_single_global_realtime_pipeline.plan.md) (camera group config key order).
+
+**Implement:** `_read_frames` iterates `for camera_id in camera_ids` (pipeline order); append `(image, camera_id)` only when the ring buffer has a readable frame. Do **not** discover cameras in ring-buffer iteration order.
+
+**Test:** unit test that a mocked full read returns `ordered_camera_ids == camera_ids` when every camera has a frame.
 
 #### Today (bugs to fix)
 
@@ -543,25 +567,26 @@ Zero-camera apply, `guardRealtimeApply`, `cameraGroupId` removal, pipeline manag
 | `len(images) == 0` | Early exit in `_run` (Approach A) ✓ | Keep — use `publish_skipped_batch`; do **not** call `infer_or_skip_batch` |
 | `0 < len(images) < len(camera_ids)` | Calls `predict_batch(images)`, zips `ordered_camera_ids` only | **Wrong** — cameras that failed read get no entry; cameras that succeeded get skeleton for a **partial batch** misaligned with `session.batch_size` |
 
-#### Inference gate — triple equality
+#### Inference gate — `should_run_inference`
 
-Call `predict_batch` **only** when all three counts agree:
+Call `predict_batch` **only** when `should_run_inference` passes:
 
 ```text
-len(images) == len(camera_ids) == session.batch_size
+len(images) > 0
+len(images) == len(ordered_camera_ids) == len(camera_ids) == session.batch_size
 ```
 
 | Symbol | Meaning |
 |--------|---------|
 | `camera_ids` | Full list of cameras attached to this skeleton node (pipeline scope) |
-| `len(images)` / `ordered_camera_ids` | Cameras that `_read_frames` actually returned for `requested_frame_number` |
+| `images` / `ordered_camera_ids` | Parallel lists from `_read_frames` for `requested_frame_number` — same length always |
 | `session.batch_size` | Fixed at `RTMPoseSession.create()` from `batch_size=len(camera_ids)` |
 
-After correct `_build_session` wiring, `len(camera_ids) == session.batch_size` is an invariant for the worker lifetime. **`batch_size` is not independent of camera set** — it is always `len(pipeline_camera_ids)` from apply’s `realtimeCameraIds`. The manager recreates the sole global pipeline when `needs_recreate` ([20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md) — camera group, camera set, or skeleton session config change). The runtime gate still checks all three counts so partial reads and session bugs fail safe.
+After correct `_build_session` wiring, `len(camera_ids) == session.batch_size` is an invariant for the worker lifetime. **`batch_size` is not independent of camera set** — it is always `len(pipeline_camera_ids)` from apply’s `realtimeCameraIds`. The manager recreates the sole global pipeline when `needs_recreate` ([20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md) — camera group, camera set, or skeleton session config change). The runtime gate still checks all counts so partial reads, desynced parallel lists, and session bugs fail safe.
 
 #### Temporal frame mismatch (out of scope)
 
-The triple gate checks **counts only**, not per-camera frame sync. [`_read_frames`](../freemocap/freemocap/core/pipeline/realtime/realtime_skeleton_inference_node.py) may include a camera whose ring buffer returned a **different** `frame_number` than requested (warning + use available frame). `len(images)` can equal `len(camera_ids)` while images are not the same logical multiframe timestamp. **Not in scope for this plan** — do not add timestamp validation here. Document as known ring-buffer behavior.
+The gate checks **counts only**, not per-camera frame sync. [`_read_frames`](../freemocap/freemocap/core/pipeline/realtime/realtime_skeleton_inference_node.py) may include a camera whose ring buffer returned a **different** `frame_number` than requested (warning + use available frame). `len(images)` can equal `len(camera_ids)` while images are not the same logical multiframe timestamp. **Not in scope for this plan** — do not add timestamp validation here. Document as known ring-buffer behavior.
 
 #### Empty read — Approach A (early exit in `_run`)
 
@@ -582,9 +607,16 @@ Implement in [`realtime_skeleton_batch_logic.py`](../freemocap/freemocap/core/pi
 ```python
 def publish_skipped_batch(*, frame_number, camera_ids, pub) -> None: ...
 
-def should_run_inference(images, camera_ids, session) -> bool:
+def should_run_inference(
+    images, ordered_camera_ids, camera_ids, session
+) -> bool:
     n = len(images)
-    return n > 0 and n == len(camera_ids) == session.batch_size
+    return (
+        n > 0
+        and n == len(ordered_camera_ids)
+        and n == len(camera_ids)
+        and n == session.batch_size
+    )
 
 def infer_or_skip_batch(...) -> SkeletonBatchOutcome: ...
 ```
@@ -596,9 +628,12 @@ def infer_or_skip_batch(...) -> SkeletonBatchOutcome: ...
 | Case | `infer_or_skip_batch` | `_run` |
 |------|----------------------|--------|
 | Empty read (`len(images)==0`) | **Not called** (Approach A) | `publish_skipped_batch`; record timing; `continue` |
-| Partial gate skip (`0 < len < len(camera_ids)`) | `kind="skip"` | `publish_skipped_batch`; optional debug log; `continue` |
+| Partial gate skip (`0 < len < len(camera_ids)`) or `len(images) != len(ordered_camera_ids)` | `kind="skip"` | `publish_skipped_batch`; `logger.debug` (rate-limit if noisy); `continue` |
 | `BatchSizeMismatchError` | `kind="catch_mismatch"` | `logger.warning`; `publish_skipped_batch`; `continue` |
 | Full read + infer OK | `kind="infer"` | publish `outcome.per_camera_skeleton` |
+| Post-infer `ValueError` (short `batch_results`, `ordered_camera_ids != camera_ids`) | **Raises** — programming / `_read_frames` bug | Propagate to existing worker error handler (pipeline error UX); **not** `publish_skipped_batch` |
+
+`catch_mismatch` is defense in depth — with a correct gate, `BatchSizeMismatchError` should be rare in steady state.
 
 Both skip and catch paths use **`publish_skipped_batch`** — full `{camera_id: None for camera_id in camera_ids}`, not `ordered_camera_ids`.
 
@@ -617,7 +652,7 @@ When `len(images) == len(camera_ids) == session.batch_size`, a full read implies
 
 **Do not** duplicate the zip in `_run` after calling `infer_or_skip_batch` — single owner prevents section 3 / section 6 drift.
 
-**Worker startup assert (debug):** after `_build_session(..., batch_size=len(camera_ids))`, assert `session.batch_size == len(camera_ids)` once at loop entry — catches wiring mistakes early.
+**Worker startup invariant (all builds):** after `_build_session(..., batch_size=len(camera_ids))`, **raise** if `session.batch_size != len(camera_ids)` before entering the main loop — catches `_build_session` wiring mistakes. Do not rely on `__debug__` asserts alone for this check.
 
 #### Ring-buffer mode only (ignore streaming plan)
 
@@ -632,7 +667,7 @@ When realtime config changes in ways that affect `RTMPoseSession` shape, the bac
 This plan adds on recreate (when `set(existing.camera_ids) != desired_cameras` or skeleton session config changes):
 
 - Skeleton worker calls `_build_session(pipeline_config, batch_size=len(camera_ids))`.
-- `batch_size=len(resolved_ids)` derived at session create — never from persisted config.
+- `batch_size=len(resolved_ids)` derived at worker session create — never from persisted config.
 
 #### Shared `_build_session` helper (multiple call sites)
 
@@ -653,13 +688,14 @@ def _build_session(
 |-----------|------|
 | Worker startup | `RealtimeSkeletonInferenceNode` main loop entry (L148 today) — uses spawn-time frozen `pipeline_config` |
 | OOM recovery | After `del session` / `gc.collect()` in the MemoryError handler (L266 today) — same frozen config + `batch_size=len(camera_ids)` |
-| Pipeline recreate | Manager `shutdown()` + `RealtimePipeline.create()` on apply when skeleton session config changes — new skeleton worker calls `_build_session` at spawn |
+| Pipeline recreate | Manager `shutdown()` + `RealtimePipeline.create()` on apply when camera set or skeleton session config changes — new skeleton worker calls `_build_session` at spawn |
+| Plan 20 centralized on-branch spawn | [`RealtimePipeline.update_config()`](../freemocap/freemocap/core/pipeline/realtime/realtime_pipeline.py) enables centralized RTMPose without full `needs_recreate` (same `camera_ids`) — new skeleton worker still calls `_build_session` at loop entry with `batch_size=len(camera_ids)` |
 
-**Why extract now:** startup and OOM paths must stay identical; pipeline recreate spawns a fresh worker that uses the same helper at spawn. [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md) adds a **fourth** call site (eager `RTMPoseSession.create` on the HTTP apply path) — same helper, same `batch_size=len(resolved_ids)` argument, no duplicated `RTMPoseSessionConfig` field wiring.
+**Every** `RealtimeSkeletonInferenceNode` worker start (full recreate, OOM recovery, or plan 20 off→on spawn) must use the same `_build_session(..., batch_size=len(camera_ids))` at main-loop entry.
 
-Keep the helper in [`realtime_skeleton_inference_node.py`](../freemocap/freemocap/core/pipeline/realtime/realtime_skeleton_inference_node.py) (or a small `rtmpose_session_factory.py` beside it if imports get crowded). Only the skeleton worker and (later) the eager apply path call it — not `RealtimePipeline.update_config`.
+**Not a call site (plan 20 decision):** HTTP apply / router / manager do **not** call `_build_session` or `RTMPoseSession.create()` before `pipeline.start()`. Session validation remains **worker-start only** per [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md). A future plan may add eager apply-time validation using the same helper signature.
 
-**This plan:** worker-side session create with derived `batch_size`. **Not this plan:** eager `RTMPoseSession.create()` on the HTTP apply path before `pipeline.start()` — that is [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md) (see below).
+Keep the helper in [`realtime_skeleton_inference_node.py`](../freemocap/freemocap/core/pipeline/realtime/realtime_skeleton_inference_node.py) (or a small `rtmpose_session_factory.py` beside it if imports get crowded). Only the skeleton worker calls it — not `RealtimePipeline.update_config` or the router.
 
 ## Tests
 
@@ -689,7 +725,7 @@ Mock `RTMPoseSession` ORT paths (`build_tuned_ort_session`, `session.run`) — n
 | `predict_pose_from_bboxes` bboxes count mismatch (`len(bboxes_per_image) != batch_size`) | `BatchSizeMismatchError`; `_estimate_pose_batched` not called |
 | `RTMPoseSessionConfig(batch_size=0)` | Pydantic `ValidationError` |
 
-Also update existing tests that reference `max_batch_size` after rename.
+Also update existing tests that reference `max_batch_size` after rename (e.g. [`test_rtmpose_session_create.py`](skellytracker/tests/test_rtmpose_session_create.py) default expectations).
 
 ### Freemocap — extract modules (implement before tests)
 
@@ -703,7 +739,7 @@ class SkeletonBatchOutcome:
     mismatch_actual: int | None = None   # set when kind == "catch_mismatch"
     mismatch_expected: int | None = None
 
-def should_run_inference(images, camera_ids, session) -> bool: ...
+def should_run_inference(images, ordered_camera_ids, camera_ids, session) -> bool: ...
 def publish_skipped_batch(*, frame_number, camera_ids, pub) -> None: ...
 def infer_or_skip_batch(*, frame_number, images, ordered_camera_ids, camera_ids, session) -> SkeletonBatchOutcome: ...
 ```
@@ -712,18 +748,20 @@ def infer_or_skip_batch(*, frame_number, images, ordered_camera_ids, camera_ids,
 
 ### Freemocap — [`test_realtime_skeleton_inference_node.py`](../freemocap/freemocap/tests/test_realtime_skeleton_inference_node.py)
 
-Unit-test **`realtime_skeleton_batch_logic`** only — do not spawn `_run` / multiprocessing.
+Unit-test **`realtime_skeleton_batch_logic`** and **`_read_frames` order** only — do not spawn `_run` / multiprocessing. Skeleton `create` kwargs / `pipeline_config_sub` tests belong in [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md).
 
 | Test | Setup | Assert |
 |------|-------|--------|
-| `should_run_inference` full read | 3 images, 3 `camera_ids`, `session.batch_size=3` | `True` |
-| `should_run_inference` partial | 2 images, 3 `camera_ids` | `False` |
+| `should_run_inference` full read | 3 images, 3 `ordered_camera_ids`, 3 `camera_ids`, `session.batch_size=3` | `True` |
+| `should_run_inference` partial | 2 images, 2 `ordered_camera_ids`, 3 `camera_ids` | `False` |
+| `should_run_inference` desynced lists | 3 images, 2 `ordered_camera_ids`, 3 `camera_ids` | `False` |
 | `should_run_inference` empty | 0 images | `False` (defense in depth — production empty path is `_run` Approach A) |
 | `publish_skipped_batch` | mock `pub` | `SkeletonInferenceResultMessage` with `{cam: None for cam in camera_ids}` |
 | `infer_or_skip_batch` skip | **partial** read mock (1–2 images, 3 `camera_ids`) | `kind=="skip"`; `session.predict_batch` not called |
-| `infer_or_skip_batch` infer | full read; mock `predict_batch` return | `kind=="infer"`; all `camera_ids` in `per_camera_skeleton` |
+| `infer_or_skip_batch` infer | full read; mock `predict_batch` return | `kind=="infer"`; all `camera_ids` in `per_camera_skeleton`; `ordered_camera_ids == camera_ids` |
 | `infer_or_skip_batch` catch | gate would pass but `predict_batch` raises `BatchSizeMismatchError` | `kind=="catch_mismatch"`; `mismatch_actual` / `mismatch_expected` populated |
-| `create` kwargs | patch `_create_worker` | worker `kwargs` omit `pipeline_config_sub` |
+| `infer_or_skip_batch` short results | full read; mock `predict_batch` returns too few tuples | `ValueError` |
+| `_read_frames` full read order | mock ring buffers for all `camera_ids` | `ordered_camera_ids == camera_ids` |
 
 ### Freemocap — extend [`test_system_gpu_and_rtmpose_config.py`](../freemocap/freemocap/tests/test_system_gpu_and_rtmpose_config.py)
 
@@ -739,6 +777,7 @@ Also assert:
 
 - `_build_session(..., batch_size=N)` passes `batch_size=N` into `RTMPoseSessionConfig` (not `max_batch_size`).
 - No `max_batch_size` / persisted `batch_size` on `RealtimeSkeletonInferenceNodeConfig`.
+- Worker startup raises when `session.batch_size != len(camera_ids)` (mock `_build_session` / session config mismatch).
 
 
 Manager, router, Vitest, and slice tests — [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md).
@@ -757,26 +796,36 @@ Singleton UX, manager, router, and Vitest review items — [20_single_global_rea
 |---|-------|-----|
 | 1 | Stale `max_batch_size` in apply JSON | Coordinated release + remove field from Redux defaults / panel merges; Pydantic `extra='ignore'` strips unknown keys |
 | 2 | Skellytracker dependency pin | Bump [`pyproject.toml`](../freemocap/pyproject.toml) skellytracker ref in same release PR as `batch_size` rename |
-| 3 | `infer_or_skip_batch` production `assert` | Use `if __debug__: assert ...` only (section 3) |
+| 3 | `session.batch_size != len(camera_ids)` silent failure | Production raise at worker loop entry (§6) |
 | 4 | `_build_session` test signature | Update `test_build_session_passes_model_overrides_and_auto_provider` to pass `batch_size=3` (Tests section) |
+| 5 | Eager apply vs worker-only create | Align with plan 20 — no router `_build_session`; worker-only (§7) |
+| 6 | `_read_frames` order | Iterate `camera_ids` in pipeline order; test `ordered_camera_ids == camera_ids` on full read (§6) |
+| 7 | `predict_batch_with_tracking` | Out of scope — freemocap uses `predict_batch` only (Out of scope) |
+| 8 | Plan 10 `closePipeline` then apply | Superseded by plan 20 apply-only recreate — update plan 10 wording when touching that doc |
+| 9 | `len(images) != len(ordered_camera_ids)` | Include in `should_run_inference` (§6) |
+| 10 | Post-infer `ValueError` vs graceful skip | Fatal — worker pipeline-error path (§6 outcome table) |
+| 11 | Plan 20 centralized on-branch spawn | Same `_build_session` at loop entry (§7) |
+| 12 | Sibling plans eager apply | **Done** — plan 10 and plan 50 updated to worker-start only; optional eager apply deferred to future plan |
 
 ## Validation Checklist
 
+- Both repos checked out side-by-side (`skellytracker` + `../freemocap`) for integrated pytest.
 - `rg max_batch_size skellytracker/` and freemocap return no hits in config models, UI types, Redux defaults, or panel merges.
-- `rg batch_size` on freemocap `realtime-types.ts` / `realtime_skeleton_inference_node_config.py` — no persisted field (only runtime pass-through in `_build_session` / router).
+- `rg batch_size` on freemocap `realtime-types.ts` / `realtime_skeleton_inference_node_config.py` — no persisted field (only runtime pass-through in `_build_session`).
 - `python -m skellytracker` webcam demo runs with default `batch_size=1`.
 - `pytest skellytracker/tests/test_rtmpose_session_create.py skellytracker/tests/test_rtmpose_batch_size.py`
 - `pytest freemocap/tests/test_system_gpu_and_rtmpose_config.py freemocap/tests/test_realtime_skeleton_inference_node.py`
 - Manual: 2-camera realtime apply → `batch_size=2`; deselect one camera via **realtime toggle** or **selection toggle** while connected → auto-apply → `batch_size=1` (requires singleton prerequisite for auto-apply UX)
 - Stale `max_batch_size` in POST body or in-memory Redux `pipelineConfig` is **silently ignored** by Pydantic — coordinated release + UI removal
 - Freemocap [`pyproject.toml`](../freemocap/pyproject.toml) skellytracker dependency bumped to release containing `batch_size` rename + `BatchSizeMismatchError`
+- Release notes document skellytracker default `batch_size` change 4→1 (breaking for callers that relied on implicit default)
 
 ## Risks
 
-- Partial ring-buffer reads are normal under load. Freemocap skips inference and publishes full-camera `None` (non-fatal). Skellytracker still raises `BatchSizeMismatchError` if a wrong-size batch is submitted — freemocap must catch it without killing the worker.
-- Skeleton-affecting apply triggers **full pipeline restart** (not in-process skeleton recreate). Expect a brief inference gap and possible TRT recompile on model/EP change — same cost as today's first skeleton node start.
+- Partial ring-buffer reads are normal under load. Freemocap skips inference and publishes full-camera `None` (non-fatal). Under sustained load, skeleton output may be mostly absent — aggregator/UI must tolerate sparse skeletons. Skellytracker still raises `BatchSizeMismatchError` if a wrong-size batch is submitted — freemocap must catch it without killing the worker.
+- Skeleton-affecting apply triggers **full pipeline restart** (not in-process skeleton recreate). Expect a brief inference gap and possible TRT recompile on model/EP/camera-count change — plan 20 lightning-bolt spinning-wheel UX covers TRT compile during recreate.
 - Very large camera counts may exhaust VRAM during session create — surface as recoverable startup error (see remove_ep_fallback / YOLO26 plans).
-- TRT engine cache keyed by profile shapes: pinning min=opt=max may invalidate existing cached engines compiled under the old 1..N profiles (one-time recompile on first run after upgrade).
+- TRT engine cache keyed by profile shapes: pinning min=opt=max may invalidate existing cached engines compiled under the old 1..N profiles (one-time recompile on first run after upgrade). No automatic cache migration — users recompile on first run after upgrade.
 - Coordinated skellytracker + freemocap release required: remove `max_batch_size` from config models, UI types, and panel merges; bump freemocap's skellytracker dependency. Mismatched versions fail at import (`BatchSizeMismatchError`, `batch_size` field). Stale `max_batch_size` in client JSON is **dropped** by Pydantic — not a hard error; users re-apply realtime config after upgrade.
 
 ## Implementation order (sibling plans)
@@ -818,18 +867,18 @@ Plans **10**, **20**, and **30** all touch session create; they split **strictne
 | Concern | [30_realtime_batch_size.plan.md](30_realtime_batch_size.plan.md) (this plan) | [10_remove_ep_fallback.plan.md](10_remove_ep_fallback.plan.md) | [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md) |
 |---------|------------------------------------------------------------------------|----------------------------------------------------------|----------------------------------------------------------|
 | Field rename `max_batch_size` → `batch_size` | Yes | No | No |
-| Derive `batch_size=len(resolved_ids)`; remove from freemocap config | Yes | No | Uses same derivation for eager create |
+| Derive `batch_size=len(resolved_ids)`; remove from freemocap config | Yes | No | Uses same derivation when worker spawns |
 | `BatchSizeMismatchError`, partial-read gating, bench Option A | Yes | No | No |
-| Skeleton worker `_build_session(..., batch_size=...)` | Yes — session built **inside worker** on node start/restart | Worker strict mode | May also call create on **apply path** before `pipeline.start()` |
+| Skeleton worker `_build_session(..., batch_size=...)` | Yes — session built **inside worker** on node start/restart/OOM | Worker strict mode | No — worker-start only; no eager apply create |
 | Strict single-provider ORT / `OnnxExecutionProviderStartupError` | No | Yes | No |
-| HTTP 422 on session create failure without starting workers | No | No | Yes |
+| HTTP 422 on zero-camera apply | No | No | Yes |
 | Recreate pipeline on model/EP / camera-set change | Yes — **after plan 20**; camera-set recreate passes derived `batch_size` via `_build_session` | No | Singleton `needs_recreate` policy |
 
-**Implementing this plan alone:** worker still builds `RTMPoseSession` in `RealtimeSkeletonInferenceNode` after pipeline start; session create failures can still surface inside the worker until plans **10** and **20** land.
+**Implementing this plan alone:** worker still builds `RTMPoseSession` in `RealtimeSkeletonInferenceNode` after pipeline start; session create failures surface inside the worker via existing pipeline-error path until plans **10** and **20** land.
 
-**Session-invalidating changes while connected:** this plan uses **in-place recreate** via `POST /realtime/apply` (`needs_recreate`) — **not** disconnect-then-reconnect. [10_remove_ep_fallback.plan.md](10_remove_ep_fallback.plan.md) § “Config changes requiring session rebuild” mentions `closePipeline()` then apply — treat that as superseded for desktop realtime; coordinated UX is apply-only recreate. Disconnect remains explicit via `closePipeline` / connection toggle off.
+**Session-invalidating changes while connected:** this plan uses **in-place recreate** via `POST /realtime/apply` (`needs_recreate`) — **not** disconnect-then-reconnect. [10_remove_ep_fallback.plan.md](10_remove_ep_fallback.plan.md) § “Config changes requiring session rebuild” mentions `closePipeline()` then apply — treat that as superseded for desktop realtime; coordinated UX is apply-only recreate (also note in plan 10 when editing). Disconnect remains explicit via `closePipeline` / connection toggle off.
 
-**After plans 10, 20, and this plan:** apply validates session once on the API/manager path **and** worker uses the same `_build_session` helper with identical `batch_size=len(resolved_ids)`.
+**After plans 10, 20, and this plan:** skeleton worker uses `_build_session(..., batch_size=len(camera_ids))` with derived batch size; session validation remains **worker-start** per plan 20 (not eager on HTTP apply).
 
 ## Related Plans
 

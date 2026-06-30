@@ -6,7 +6,8 @@ Run:
         --provider cuda --batch-sizes 1 2 3 4
 
 Measures single-image and batched latency for the composite GPU pipeline.
-Pipeline-level validation requires running the full freemocap app.
+Each batch size N uses its own session (session create + warmup excluded from
+timed loops). Pipeline-level validation requires running the full freemocap app.
 
 Note: this bench does NOT require ONNX models to be downloaded. It measures
 the framework overhead and ROI crop throughput. Set body/hand/face ONNX paths
@@ -65,9 +66,9 @@ def run(
     print(
         f"\nCompositeGPUSession bench — provider={provider!r}, "
         f"image_shape=({image_h}, {image_w}), iters_per_size={iterations}\n"
+        f"(one session per batch size; create/warmup excluded from timed loops)\n"
     )
 
-    # Allow env-var overrides for local model paths.
     body_spec = ModelSpec.rtmo_medium()
     hand_spec = ModelSpec.mediapipe_hand_landmark()
     face_spec = ModelSpec.rtmpose_face()
@@ -86,42 +87,47 @@ def run(
     if face_env:
         face_spec = face_spec.model_copy(update={"source": ModelSource(local_path=face_env)})
 
-    config = CompositeGPUSessionConfig(
-        execution_provider=provider,
-        max_batch_size=max(batch_sizes),
-        body_spec=body_spec,
-        hand_spec=hand_spec,
-        face_spec=face_spec,
-        detect_hands=True,
-        detect_face=True,
-    )
-
-    model_count = sum([
-        1 if body_env else 1,
-        1 if hand_env else 1,
-        1 if face_env else 1,
-    ])
     print(f"Models: body={'local' if body_env else 'download'}, "
           f"hand={'local' if hand_env else 'download'}, "
           f"face={'local' if face_env else 'download'}")
 
-    session = CompositeGPUSession.create(config)
-    print(f"active provider: {session.active_provider!r}\n")
-
     pool = [_make_synthetic_image(image_h, image_w, seed=i) for i in range(max(batch_sizes) * 2)]
 
-    # Single-image baseline
+    single_session = CompositeGPUSession.create(
+        CompositeGPUSessionConfig(
+            execution_provider=provider,
+            batch_size=1,
+            body_spec=body_spec,
+            hand_spec=hand_spec,
+            face_spec=face_spec,
+            detect_hands=True,
+            detect_face=True,
+        ),
+    )
+    print(f"active provider (batch_size=1): {single_session.active_provider!r}\n")
+
     single_samples_ms: list[float] = []
     for i in range(iterations):
         t0 = time.perf_counter()
-        session.predict_single(pool[i % len(pool)])
+        single_session.predict_single(pool[i % len(pool)])
         single_samples_ms.append((time.perf_counter() - t0) * 1e3)
-    print(_summary("predict_single (no batch)", single_samples_ms))
+    print(_summary("predict_single (batch_size=1)", single_samples_ms))
+    del single_session
 
-    # Batched
     for n in batch_sizes:
         if n < 1:
             continue
+        session = CompositeGPUSession.create(
+            CompositeGPUSessionConfig(
+                execution_provider=provider,
+                batch_size=n,
+                body_spec=body_spec,
+                hand_spec=hand_spec,
+                face_spec=face_spec,
+                detect_hands=True,
+                detect_face=True,
+            ),
+        )
         batch_samples_ms: list[float] = []
         for i in range(iterations):
             batch = [pool[(i + k) % len(pool)] for k in range(n)]
@@ -139,6 +145,7 @@ def run(
             f"p95={np.percentile(arr, 95):7.2f}ms  "
             f"per_image_mean={per_image.mean():6.2f}ms"
         )
+        del session
 
     print(
         f"\nReference: target < 33 ms/frame per camera for real-time (30 FPS).\n"

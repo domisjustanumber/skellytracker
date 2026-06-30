@@ -15,7 +15,7 @@ todos:
     content: Ensure realtime skeleton workers pass on_provider_missing="raise" and surface startup failures without silent EP fallback
     status: pending
   - id: freemocap-error-ux
-    content: Structured asynchronous realtime startup errors, remove fallback_on_missing_provider exposure, UI alerts/loading state; defer synchronous eager apply-time validation to plan 20
+    content: Structured asynchronous realtime startup errors, remove fallback_on_missing_provider exposure, UI alerts/loading state; plan 20 pipeline-error UX (worker-start validation — not eager apply)
     status: pending
   - id: freemocap-tests
     content: Extend test_system_gpu_and_rtmpose_config.py for strict EP and worker startup failure handling
@@ -53,20 +53,20 @@ This work was extracted from [50_yolo26_nano_detection.plan.md](50_yolo26_nano_d
 
 None — first in the numbered realtime sequence.
 
-Plan **10** must not depend on plan **20**. It ships strict provider behavior in skellytracker and ensures freemocap realtime workers request strict providers. Eager apply-time validation is deferred to [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md), where the singleton/global pipeline manager path exists, unless plan **10** is later expanded to include the minimal manager refactor required to validate before `pipeline.start()`.
+Plan **10** must not depend on plan **20**. It ships strict provider behavior in skellytracker and ensures freemocap realtime workers request strict providers and surface recoverable startup failures asynchronously. **Eager** `RTMPoseSession.create()` on the HTTP apply path is **not** planned — [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md) keeps **worker-start** session validation; a future plan may add apply-time eager validation.
 
 ## Plan sequence
 
 | Order | This plan | Depends on |
 |-------|-----------|------------|
 | **10** (this) | Strict ORT; skellytracker + freemocap worker strict mode | — |
-| **20** | [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md) + eager apply-time session validation | **10** |
+| **20** | [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md) — singleton manager, apply UX, worker-start pipeline errors | **10** |
 | **30** | `batch_size` rename and derived pass-through | **10**, **20** |
 | **40** | [40_sidecar_spec_updates.plan.md](40_sidecar_spec_updates.plan.md) | **10**–**30** (sequence) |
 | **50** | YOLO26 detector sessions | **10**, **20**, **30**, **40** |
 | future | [future_streaming_pipeline_implementation.plan.md](future_streaming_pipeline_implementation.plan.md) | After **50** |
 
-Freemocap eager `RTMPoseSession.create()` on apply is not a plan **10** deliverable. It should be added during plan **20** and later pass `batch_size=len(resolved_ids)` per [30_realtime_batch_size.plan.md](30_realtime_batch_size.plan.md) once plan **30** lands; skellytracker strict ORT work in plan **10** does not require the rename.
+Freemocap eager `RTMPoseSession.create()` on apply is **not** a plan **10** or **20** deliverable. Session create stays in the skeleton worker; plan **20** improves pipeline-error UX when worker startup fails. Plan **30** passes `batch_size=len(resolved_ids)` via `_build_session` at worker session create.
 
 ```mermaid
 flowchart TD
@@ -164,11 +164,11 @@ Update / add in [`skellytracker/tests/test_trt_trx_provider.py`](skellytracker/t
 
 Freemocap lives in sibling checkout `C:\Users\Dom\GitHub\freemocap\freemocap`. Markdown links below are written relative to this plan file.
 
-### 4. Defer eager session validation to plan 20
+### 4. Worker-start session validation (eager apply out of scope)
 
 **Problem today:** [`_build_session`](../../freemocap/freemocap/core/pipeline/realtime/realtime_skeleton_inference_node.py) runs inside the skeleton worker after start; failure returns `None` → `ipc.kill_everything()`.
 
-**Plan 10 target:** do not silently fall back to another execution provider. The worker still owns session creation, and failures during provider resolution / ORT session construction / TRT compile are reported as **asynchronous realtime errors**. Synchronous apply-time validation is deferred to plan **20**.
+**Plan 10 target:** do not silently fall back to another execution provider. The worker still owns session creation, and failures during provider resolution / ORT session construction / TRT compile are reported as **asynchronous realtime errors** via the pipeline-error path. **Eager** synchronous validation on `POST /realtime/apply` before `pipeline.start()` is **not** in plan **10** or **20** — deferred to a future plan if needed.
 
 **Concrete plan 10 error transport:**
 
@@ -176,23 +176,18 @@ Freemocap lives in sibling checkout `C:\Users\Dom\GitHub\freemocap\freemocap`. M
 2. Add a pubsub topic and/or queue for realtime pipeline errors so child workers can report recoverable startup/config failures to the parent/UI path without setting the global kill flag. Prefer a pubsub topic if it can be consumed by the existing websocket/realtime state flow; otherwise add a dedicated `PipelineIPC` error queue and bridge it to the existing UI error state.
 3. In `RealtimeSkeletonInferenceNode._run`, let `_build_session()` raise typed EP startup/config errors instead of swallowing them as `None`. Catch those typed errors at worker startup, publish the structured realtime error, call `ipc.shutdown_pipeline()` (not `ipc.kill_everything()`), and return cleanly.
 4. Treat centralized GPU inference with a non-`RTMPoseDetectorConfig` as the same class of recoverable config error. It should publish a structured realtime error and shut down the pipeline, not return `None` into the old global-kill path.
-5. `RealtimePipeline.start()` in plan **10** does not promise synchronous validation. `/realtime/apply` may return before session construction/compile finishes; subsequent EP/session failures are asynchronous realtime errors shown in UI/log state. Plan **20** owns making these failures synchronous by validating before `pipeline.start()`.
+5. `RealtimePipeline.start()` in plan **10** does not promise synchronous session validation on the HTTP apply path. `/realtime/apply` may return before worker session construction / TRT compile finishes; subsequent EP/session failures are asynchronous realtime errors (plan **20** lightning-bolt / pipeline pop-out UX). Plan **20** does **not** add eager `RTMPoseSession.create()` on apply — worker-start validation only per [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md).
 6. Keep generic unexpected worker exceptions on the existing fatal path until a broader runtime-error strategy is designed; plan **10** only downgrades known EP startup/config errors from global kill to recoverable pipeline shutdown.
 
-**Deferred plan 20 target flow:**
-
-1. `POST /realtime/apply` → resolve cameras / config.
-2. If `use_centralized_gpu_inference` and RTMPose detector: call `RTMPoseSession.create()` **in the API/manager path** (same config as `_build_session` today).
-3. On success: start the pipeline with validated session configuration. Do not pass a raw `onnxruntime.InferenceSession` / `RTMPoseSession` object across process boundaries; either keep creation in the owning process with a startup handshake or introduce an explicit same-process session owner.
-4. On failure: return HTTP error **without** starting workers; pipeline remains stopped.
+**Deferred (future — not plan 20):** optional eager `RTMPoseSession.create()` on `POST /realtime/apply` before `pipeline.start()` to return HTTP errors without starting workers. If implemented later, reuse the same `_build_session` config as the worker (including `batch_size=len(resolved_ids)` per [30_realtime_batch_size.plan.md](30_realtime_batch_size.plan.md)).
 
 **Files to change in plan 10:**
 
 - [`freemocap/core/pipeline/realtime/realtime_skeleton_inference_node.py`](../../freemocap/freemocap/core/pipeline/realtime/realtime_skeleton_inference_node.py) — keep worker-owned session creation; pass strict `RTMPoseSessionConfig`; on startup failure, report a structured error and exit cleanly instead of invoking unrecoverable global shutdown for EP misconfiguration.
 - [`freemocap/pubsub/pubsub_topics.py`](../../freemocap/freemocap/pubsub/pubsub_topics.py) and/or [`freemocap/core/pipeline/abcs/pipeline_ipc.py`](../../freemocap/freemocap/core/pipeline/abcs/pipeline_ipc.py) — add realtime error message plumbing for recoverable asynchronous worker startup failures.
 - [`freemocap/core/pipeline/realtime/realtime_pipeline.py`](../../freemocap/freemocap/core/pipeline/realtime/realtime_pipeline.py) — expose/bridge realtime error messages to the existing frontend state path where needed; do not claim apply/start synchronously validates session construction in plan **10**.
-- [`freemocap/api/http/realtime/realtime_router.py`](../../freemocap/freemocap/api/http/realtime/realtime_router.py) / manager layer as needed — avoid fallback EP metadata in apply responses; plan **20** owns structured synchronous HTTP errors for eager validation.
-- Plan **20** owns API/manager eager validation and any pipeline reuse/session-invalidating field logic.
+- [`freemocap/api/http/realtime/realtime_router.py`](../../freemocap/freemocap/api/http/realtime/realtime_router.py) / manager layer as needed — avoid fallback EP metadata in apply responses.
+- Plan **20** owns singleton manager, apply-only pipeline recreate, and worker-start failure UX — not eager apply validation.
 
 ### 5. Remove / disable EP fallback in freemocap config
 
@@ -206,13 +201,11 @@ Freemocap lives in sibling checkout `C:\Users\Dom\GitHub\freemocap\freemocap`. M
 **Plan 10 startup failures** (missing EP, ORT session create, TRT compile timeout, future YOLO26 batch conversion):
 
 - Do not leave a partially running pipeline after an asynchronous worker startup/config error.
-- Surface error in Redux `realtime.error` through the realtime error message path; plan **20** should move missing-EP/session-create errors into `applyRealtimePipeline.rejected` by validating before `pipeline.start()`.
+- Surface error in Redux `realtime.error` through the realtime error message path (plan **20** pipeline-error / lightning-bolt UX when worker startup fails).
 - Show Alert in realtime panels ([`ExecutionProviderConfigPanel.tsx`](../../freemocap-ui/src/components/control-panels/realtime-panel/ExecutionProviderConfigPanel.tsx), [`RealtimePipelinePanel.tsx`](../../freemocap-ui/src/components/control-panels/realtime-panel/RealtimePipelinePanel.tsx)) with parsed backend `detail` (provider, model, install hint).
-- Include loading/error state improvements where the current start path can report long-running startup or failure; plan **20** owns "Preparing model…" apply-time UX for eager session creation.
+- Include loading/error state improvements where the current start path can report long-running startup or failure; plan **20** spinning-wheel UX during TRT compile / worker startup.
 
-**Deferred to plan 20: config changes requiring session rebuild** (camera selection, EP, detector, batch size):
-
-- Frontend: `closePipeline()` then `applyRealtimePipeline()` ([`realtime-thunks.ts`](../../freemocap-ui/src/store/slices/realtime/realtime-thunks.ts)) — ensure manager removes old pipeline so reuse path does not skip session rebuild.
+**Session-invalidating config changes (camera set, EP, detector, batch size):** desktop realtime uses **apply-only pipeline recreate** per [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md) — not `closePipeline()` then apply. Disconnect remains explicit via `closePipeline` / connection toggle off.
 
 **Runtime failures** (already running, session dies mid-stream):
 
@@ -230,7 +223,7 @@ Extend [`freemocap/tests/test_system_gpu_and_rtmpose_config.py`](../../freemocap
 - Worker/startup path reports structured asynchronous realtime error when `RTMPoseSession.create` raises `OnnxExecutionProviderStartupError`; no silent EP fallback occurs.
 - Worker/startup path reports structured asynchronous realtime error for centralized GPU + non-RTMPose config; no global kill occurs.
 - `/realtime/apply` response metadata does not resolve an unavailable requested EP to a fallback `active_execution_provider`; it reports requested EP and leaves active EP unset until worker readiness is known.
-- Plan **20** adds apply endpoint tests proving eager validation returns structured error and pipeline is not started.
+- Plan **20** adds router/manager lifecycle tests (422 zero-camera, singleton recreate); worker startup failure tests remain in plan **10** / **20** error UX.
 - Explicit missing-provider request does not silently resolve to CUDA/CPU.
 
 ## Validation Checklist
@@ -244,13 +237,13 @@ Extend [`freemocap/tests/test_system_gpu_and_rtmpose_config.py`](../../freemocap
 ## Risks
 
 - Stricter startup will surface misconfigured GPU stacks earlier — freemocap must never call `kill_everything()` for recoverable EP startup/config errors.
-- First TRT run during worker startup may take minutes — UI needs loading/error state. Plan **20** should revisit async apply behavior when adding eager validation.
+- First TRT run during worker startup may take minutes — UI needs loading/error state (plan **20** spinning-wheel on lightning bolt during worker startup / recreate).
 - Removing provider fallback may affect direct skellytracker CLI/demo/bench users — document in release notes and make strict failure messages actionable.
 
 ## Related Plans
 
-- [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md) — **next** in sequence; singleton apply path; completes freemocap eager session validation (§4).
-- [30_realtime_batch_size.plan.md](30_realtime_batch_size.plan.md) — `batch_size=len(resolved_ids)` at session create; coordinates with eager apply.
+- [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md) — **next** in sequence; singleton apply path; worker-start pipeline error UX (not eager apply validation).
+- [30_realtime_batch_size.plan.md](30_realtime_batch_size.plan.md) — `batch_size=len(resolved_ids)` at **worker** session create via `_build_session`.
 - [40_sidecar_spec_updates.plan.md](40_sidecar_spec_updates.plan.md) — sidecar contract; follows this plan in sequence.
-- [50_yolo26_nano_detection.plan.md](50_yolo26_nano_detection.plan.md) — depends on plan **10** for strict ORT session creation and plan **20** for freemocap eager session validation.
+- [50_yolo26_nano_detection.plan.md](50_yolo26_nano_detection.plan.md) — depends on plan **10** for strict ORT session creation and plan **20** for singleton apply / worker-start error UX.
 - [future_streaming_pipeline_implementation.plan.md](future_streaming_pipeline_implementation.plan.md) — streaming graph nodes inherit strict sessions from `RTMPoseSession.create()`.

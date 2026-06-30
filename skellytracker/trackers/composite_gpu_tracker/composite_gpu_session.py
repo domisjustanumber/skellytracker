@@ -83,7 +83,7 @@ class CompositeGPUSessionConfig(BaseModel):
 
     execution_provider: ExecutionProviderName = "cuda"
     engine_cache_dir: Path = Field(default_factory=_default_engine_cache_dir)
-    max_batch_size: int = 4
+    batch_size: int = Field(default=1, ge=1)
     fp16: bool = True
     device_id: int | None = None
 
@@ -295,14 +295,14 @@ class CompositeGPUSession:
             "  ╠══════════════════════════════════════════════════════════════╣\n"
             "  ║  provider   : %-46s║\n"
             "  ║  device_id  : %-46s║\n"
-            "  ║  max_batch  : %-46s║\n"
+            "  ║  batch_size : %-46s║\n"
             "  ║  fp16       : %-46s║\n"
             "  ║  hands      : %-46s║\n"
             "  ║  face       : %-46s║\n"
             "  ╚══════════════════════════════════════════════════════════════╝",
             active_provider,
             f"{device_id}  ({selection_source})",
-            config.max_batch_size,
+            config.batch_size,
             config.fp16,
             config.detect_hands,
             config.detect_face,
@@ -386,7 +386,7 @@ class CompositeGPUSession:
         self._body_session = build_tuned_ort_session(
             onnx_path=body_onnx, provider=provider, engine_cache_dir=self.config.engine_cache_dir,
             fp16=self.config.fp16, log_label="rtmo_body",
-            max_batch_size=self.config.max_batch_size,
+            batch_size=self.config.batch_size,
             device_id=device_id,
         )
         self._body_supports_batch = probe_supports_batch(self._body_session, label="rtmo_body")
@@ -403,7 +403,7 @@ class CompositeGPUSession:
             onnx_path=hand_onnx, provider=provider,
             engine_cache_dir=self.config.engine_cache_dir,
             fp16=self.config.fp16, log_label="mediapipe_hand",
-            max_batch_size=self.config.max_batch_size,
+            batch_size=self.config.batch_size,
             device_id=device_id,
         )
         self._hand_supports_batch = probe_supports_batch(self._hand_session, label="mediapipe_hand")
@@ -426,7 +426,7 @@ class CompositeGPUSession:
             onnx_path=face_onnx, provider=provider,
             engine_cache_dir=self.config.engine_cache_dir,
             fp16=self.config.fp16, log_label="rtmpose_face",
-            max_batch_size=self.config.max_batch_size,
+            batch_size=self.config.batch_size,
             device_id=device_id,
         )
         self._face_supports_batch = probe_supports_batch(self._face_session, label="rtmpose_face")
@@ -453,20 +453,19 @@ class CompositeGPUSession:
         """
         h, w = 480, 640
         synthetic = np.full((h, w, 3), 128, dtype=np.uint8)
-        sizes = sorted({1, max(1, self.config.max_batch_size)})
-        for batch_size in sizes:
-            t0 = time.perf_counter()
-            logger.info(f"Warmup starting (batch_size={batch_size}) ...")
-            try:
-                self.predict_batch([synthetic] * batch_size)
-                elapsed = time.perf_counter() - t0
-                logger.info(f"Warmup OK (batch_size={batch_size}, elapsed={elapsed:.1f}s)")
-            except Exception as e:
-                elapsed = time.perf_counter() - t0
-                logger.warning(
-                    f"Warmup failed at batch_size={batch_size} "
-                    f"(elapsed={elapsed:.1f}s, non-fatal): {e!r}"
-                )
+        batch_size = max(1, self.config.batch_size)
+        t0 = time.perf_counter()
+        logger.info(f"Warmup starting (batch_size={batch_size}) ...")
+        try:
+            self.predict_batch([synthetic] * batch_size)
+            elapsed = time.perf_counter() - t0
+            logger.info(f"Warmup OK (batch_size={batch_size}, elapsed={elapsed:.1f}s)")
+        except Exception as e:
+            elapsed = time.perf_counter() - t0
+            logger.warning(
+                f"Warmup failed at batch_size={batch_size} "
+                f"(elapsed={elapsed:.1f}s, non-fatal): {e!r}"
+            )
 
         # Warm hand/face sessions directly — the full-pipeline warmup above
         # produces no body detections, so hand/face never get exercised.

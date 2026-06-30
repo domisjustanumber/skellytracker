@@ -106,7 +106,7 @@ def _assert_ordered_task_events(
 @pytest.mark.gpu
 def test_predict_batch_exposes_six_stage_timings(test_image: np.ndarray) -> None:
     session = RTMPoseSession.create(
-        RTMPoseSessionConfig(mode="lightweight", execution_provider="cuda", max_batch_size=1),
+        RTMPoseSessionConfig(mode="lightweight", execution_provider="cuda", batch_size=1),
     )
     session.predict_batch([test_image])
 
@@ -123,7 +123,7 @@ def test_predict_batch_emits_ordered_task_events_with_context(test_image: np.nda
     collector = TrackerTaskEventCollector()
 
     session = RTMPoseSession.create(
-        RTMPoseSessionConfig(mode="lightweight", execution_provider="cuda", max_batch_size=1),
+        RTMPoseSessionConfig(mode="lightweight", execution_provider="cuda", batch_size=1),
     )
     session.predict_batch(
         [test_image],

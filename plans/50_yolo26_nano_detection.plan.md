@@ -3,7 +3,7 @@ name: YOLO26 Nano Detection
 overview: Add YOLO26 nano as a detector model for the realtime RTMPose pipeline using native batch-size-2 ONNX source artifacts for each available precision. At session startup, select the precision from the requested execution provider, reuse or generate the requested fixed-batch ONNX in the model cache, then create a strict ONNX Runtime session.
 todos:
   - id: sidecar-spec-updates
-    content: "Prerequisite: complete 40_sidecar_spec_updates.plan.md (skellytracker-aligned schema_version strings, input.resize.interpolation, exporter, artifact, validation + preprocess) before sidecar catalog work."
+    content: "Prerequisite: complete 40_sidecar_spec_updates.plan.md (YAML sidecar spec, schema_version strings, input.resize.interpolation, sidecar_validation.py, resolve_resize_interpolation, exporter, artifact) before sidecar catalog work."
     status: pending
   - id: validate-yolo26-sidecar-contract
     content: Validate YOLO26 sidecar metadata against model-batch-converter's sidecar-spec.md during catalog loading (schema_version compatibility and fields per prerequisite plan); omit YOLO26 from detector options only when metadata validation fails.
@@ -21,7 +21,7 @@ todos:
     content: Add model-batch-converter to rtmpose-nvidia, rtmpose-trt, and rtmpose-trt-rtx extras in pyproject.toml.
     status: pending
   - id: freemocap-integration
-    content: YOLO26-specific apply error fields (precision, artifact path on batch-conversion failure). Batch size pass-through and skeleton gating are in 30_realtime_batch_size.plan.md; eager session validation in 20_single_global_realtime_pipeline.plan.md.
+    content: YOLO26-specific apply error fields (precision, artifact path on batch-conversion failure). Batch size pass-through and skeleton gating — 30_realtime_batch_size.plan.md. Singleton apply and worker-start error UX — 20_single_global_realtime_pipeline.plan.md.
     status: pending
   - id: validation
     content: Validate CPU/GPU realtime YOLO26 inference, yolo26-nano_b{batch}_{precision} cache naming, precision lookup table, and model_batch_convert integration.
@@ -41,21 +41,21 @@ isProject: false
 - **Catalog vs session-time validation:** If sidecar metadata passes validation, always expose the model in `list_detection_models()`. Do not hide YOLO26 based on the user's selected EP. If the requested EP and available v1-whitelisted precisions are incompatible (e.g. `fp32`-only sidecar + GPU EP), fail gracefully at session create with a recoverable error naming model id, EP, and available precisions.
 - Do not use ONNX Runtime EP options to force YOLO26 batch shape. `model_batch_convert()` owns producing a concrete fixed-batch ONNX file from sidecar `batching.batch_conversion` metadata, and ORT session creation consumes that converted artifact as-is.
 - **V1 artifact integrity:** Do not verify ONNX file SHA-256 hashes in v1. Sidecar `sha256` fields may be present per the canonical spec but are **ignored** for catalog validation, download, cache lookup, and session startup. Cache filenames use `{model_id}_b{batch}_{precision}.onnx` only — no hash suffix.
-- YOLO26 nano ONNX and sidecar sources may be URLs or local relative paths. If no artifact path is provided, skellytracker should look in the top-level `models/` folder for sidecar JSON files. The canonical filename for the first YOLO26 nano artifact group is `yolo26-nano_b2.json`; its `model_id` field remains the stable catalog id `yolo26-nano`.
+- YOLO26 nano ONNX and sidecar sources may be URLs or local relative paths. If no artifact path is provided, skellytracker should look in the top-level `models/` folder for sidecar YAML files. The canonical filename for the first YOLO26 nano artifact group is `yolo26-nano_b2.yaml`; its `model_id` field remains the stable catalog id `yolo26-nano`.
 - Sidecar metadata validation must follow the canonical schema shipped with `model-batch-converter` at `model_batch_converter/specs/sidecar-spec.md`. Load rules from the installed dependency via `importlib.resources` (`model_batch_converter/specs/sidecar-spec.md` is packaged in the `model-batch-converter` wheel). **Do not vend or validate against a copy in skellytracker.** If the spec resource is unavailable, omit YOLO26 from the catalog with a clear diagnostic.
 - `model-batch-converter` must be available anywhere YOLO26 can start. Add it to all RTMPose extras that may run YOLO26 realtime (`recommended`, `rtmpose-nvidia`, `rtmpose-trt`, `rtmpose-trt-rtx`). If the package is missing at session startup, fail with a recoverable install hint rather than an import traceback.
 - This feature is an interim bridge away from the hardcoded `ModelSpec`/`MODEL_URLS` registry toward sidecar-populated model discovery. Do not remove the existing registry yet; add sidecar-backed catalog entries alongside the legacy entries.
 - ONNX Runtime session creation for all realtime sessions (YOLOX, RTMPose pose, YOLO26 detector) must not include fallback providers behind the selected execution provider. See [10_remove_ep_fallback.plan.md](10_remove_ep_fallback.plan.md).
-- The YOLO26 nano ONNX must be accompanied by a JSON sidecar that records the model I/O contract. The implementation should load this sidecar rather than relying on hardcoded assumptions about tensor names, tensor layout, output shape, class ids, or post-NMS semantics.
+- The YOLO26 nano ONNX must be accompanied by a YAML sidecar that records the model I/O contract. The implementation should load this sidecar via `parse_sidecar_file()` from plan 40 rather than relying on hardcoded assumptions about tensor names, tensor layout, output shape, class ids, or post-NMS semantics.
 
 ## Prerequisite Plans
 
 Complete before sidecar catalog loading (implementation step 1 below):
 
 - [**10 — Remove EP fallback**](10_remove_ep_fallback.plan.md) — strict single-provider mode (default), `OnnxExecutionProviderStartupError`, freemocap worker strict mode.
-- [**20 — Single global realtime pipeline**](20_single_global_realtime_pipeline.plan.md) — singleton manager and apply UX; eager session validation on apply with recoverable errors.
-- [**30 — Realtime batch size config**](30_realtime_batch_size.plan.md) — rename `max_batch_size` to `batch_size`; derive `batch_size=len(resolved_ids)` at session create; exact-batch `predict_batch`, `BatchSizeMismatchError`, skeleton-node gating.
-- [**40 — Sidecar spec updates**](40_sidecar_spec_updates.plan.md) — `schema_version` calendar strings, `input.resize.interpolation`, exporter, artifact, validation + preprocess.
+- [**20 — Single global realtime pipeline**](20_single_global_realtime_pipeline.plan.md) — singleton manager, apply-only recreate, worker-start pipeline error UX (not eager apply validation).
+- [**30 — Realtime batch size config**](30_realtime_batch_size.plan.md) — rename `max_batch_size` to `batch_size`; derive `batch_size=len(resolved_ids)` at **worker** session create; exact-batch `predict_batch`, `BatchSizeMismatchError`, skeleton-node gating.
+- [**40 — Sidecar spec updates**](40_sidecar_spec_updates.plan.md) — YAML sidecar format, `schema_version` calendar strings, `input.resize.interpolation`, `sidecar_validation.py`, `resolve_resize_interpolation()`, exporter, artifact. Plan 50 owns `SidecarModelRegistry` and `detector_letterbox_preprocess`.
 
 ## Existing Flow To Reuse
 
@@ -63,12 +63,11 @@ Complete before sidecar catalog loading (implementation step 1 below):
 flowchart LR
   uiPanel[Realtime UI Panels] --> reduxConfig[Redux Realtime Config]
   reduxConfig --> applyApi[POST realtime apply]
-  applyApi --> eagerSession[Eager RTMPoseSession.create]
-  eagerSession -->|fail| applyError[Recoverable apply error]
-  eagerSession -->|ok| pipelineConfig[RealtimePipelineConfig]
-  pipelineConfig --> pipelineStart[pipeline.start]
-  pipelineStart --> skeletonNode[SkeletonInferenceNode]
-  skeletonNode --> skellySession[RTMPoseSession reuse]
+  applyApi --> pipelineStart[pipeline.start]
+  pipelineStart --> skeletonNode[SkeletonInferenceNode worker]
+  skeletonNode --> buildSession["_build_session batch_size=len cameras"]
+  buildSession -->|fail| workerError[Worker startup pipeline error]
+  buildSession -->|ok| skellySession[RTMPoseSession]
   skellySession --> ortSession[ONNX Runtime Session]
 ```
 
@@ -77,12 +76,12 @@ Key local wiring points:
 - `../freemocap/freemocap/core/pipeline/realtime/realtime_skeleton_inference_node.py` should pass the selected EP into `RTMPoseSessionConfig`. `batch_size` pass-through from camera count is defined in [30_realtime_batch_size.plan.md](30_realtime_batch_size.plan.md). EP strictness is in [10_remove_ep_fallback.plan.md](10_remove_ep_fallback.plan.md).
 - `../freemocap/freemocap/system/gpu_capabilities_cache.py` serializes detection models from `skellytracker.utilities.gpu_utils.list_detection_models()`; YOLO26 should surface in freemocap when skellytracker startup/catalog validation confirms its sidecar metadata is valid. Source artifact usability is validated later, before first use.
 - `../freemocap/freemocap-ui/src/components/control-panels/realtime-panel/RtmposeModelConfigPanel.tsx` renders detector models from the backend catalog.
-- The freemocap frontend lets the user select which cameras are in the realtime pipeline (explicit `realtimeCameraIds` on every apply). **Batch size is not a user-facing or persisted setting** — it is `len(resolved_ids)` at session create per [30_realtime_batch_size.plan.md](30_realtime_batch_size.plan.md). YOLO26 `model_batch_convert` uses that derived `batch_size`.
+- The freemocap frontend lets the user select which cameras are in the realtime pipeline (explicit `realtimeCameraIds` on every apply). **Batch size is not a user-facing or persisted setting** — it is `len(resolved_ids)` at **worker** session create per [30_realtime_batch_size.plan.md](30_realtime_batch_size.plan.md). YOLO26 `model_batch_convert` uses that derived `batch_size`.
 - `../freemocap/freemocap-ui/src/components/control-panels/realtime-panel/ExecutionProviderConfigPanel.tsx` selects the EP; that EP selection drives YOLO26 precision policy in skellytracker at session create.
 
 ## YOLO26 ONNX Sidecar Contract
 
-The source sidecar must follow the canonical schema in `model_batch_converter/specs/sidecar-spec.md` (from the `model-batch-converter` dependency). It should live next to the native batch-size-2 ONNX source artifacts and use the precision-stripped basename, for example `yolo26-nano_b2.json` describing `yolo26-nano_b2_fp32.onnx`, `yolo26-nano_b2_fp16.onnx`, and optionally `yolo26-nano_b2_int8.onnx`. The sidecar's `model_id` is the stable catalog id (`yolo26-nano`); the filename stem may include batch suffixes.
+The source sidecar must follow the canonical schema in `model_batch_converter/specs/sidecar-spec.md` (from the `model-batch-converter` dependency). It should live next to the native batch-size-2 ONNX source artifacts and use the precision-stripped basename, for example `yolo26-nano_b2.yaml` describing `yolo26-nano_b2_fp32.onnx`, `yolo26-nano_b2_fp16.onnx`, and optionally `yolo26-nano_b2_int8.onnx`. The sidecar's `model_id` is the stable catalog id (`yolo26-nano`); the filename stem may include batch suffixes.
 
 It should contain only the runtime contract skellytracker needs to validate source models, select precision, run batch conversion, preprocess inputs, and postprocess detections. Do not put export logs, training metadata, skellytracker runtime defaults, or TRT provider policy in the sidecar.
 
@@ -95,128 +94,7 @@ Required information (see the canonical spec for field-level rules):
 - Batch semantics: `batch_axis`, `supports_dynamic_batch`, native source `batching.batch_size`, and complete `batching.batch_conversion` rules for `model_batch_convert()`. For YOLO26 nano detector source artifacts, `supports_dynamic_batch` must be `false`, `batching.batch_size` must be `2`, and `batch_conversion` must be present.
 - Postprocessing actions: `requires_nms`, `filter_class_id`, default confidence threshold, and whether boxes should be mapped back to source-image coordinates.
 
-Canonical reference example (do not fork a divergent copy in this plan):
-
-```json
-{
-  "schema_version": "v2024.09.1019",
-  "model_id": "yolo26-nano",
-  "display_name": "YOLO26 Nano",
-  "family": "yolo26",
-  "role": "detector",
-  "onnx": {
-    "precision_artifacts": {
-      "fp32": {
-        "filename": "yolo26-nano_b2_fp32.onnx",
-        "input_dtype": "float32"
-      },
-      "fp16": {
-        "filename": "yolo26-nano_b2_fp16.onnx",
-        "input_dtype": "float16"
-      },
-      "int8": {
-        "filename": "yolo26-nano_b2_int8.onnx",
-        "input_dtype": "uint8"
-      }
-    }
-  },
-  "input": {
-    "name": "images",
-    "dtype_by_precision": {
-      "fp32": "float32",
-      "fp16": "float16",
-      "int8": "uint8"
-    },
-    "shape": [2, 3, 640, 640],
-    "layout": "NCHW",
-    "dynamic_axes": {},
-    "color_format": "RGB",
-    "normalization": {
-      "scale": 0.00392156862745098,
-      "mean": [0.0, 0.0, 0.0],
-      "std": [1.0, 1.0, 1.0]
-    },
-    "resize": {
-      "method": "letterbox",
-      "target_size": [640, 640],
-      "preserve_aspect_ratio": true,
-      "pad_value": 114,
-      "interpolation": "linear"
-    },
-    "coordinate_origin": "top_left"
-  },
-  "batching": {
-    "batch_axis": 0,
-    "supports_dynamic_batch": false,
-    "batch_size": 2,
-    "batch_conversion": {
-      "profile_id": "yolo26-detector-static-batch",
-      "source_batch_size": 2,
-      "target_batch": {
-        "minimum": 1,
-        "axis": 0
-      },
-      "rewrite_rules": [
-        "metadata_batch",
-        "leading_value_info_batch",
-        "int64_shape_first_dim",
-        "batch_offset_initializer"
-      ],
-      "tensor_matchers": {
-        "int64_shape_first_dim": {
-          "dtype": "int64",
-          "rank": 1,
-          "minimum_size": 2,
-          "first_value": "source_batch",
-          "rewrite_first_value_to": "target_batch"
-        },
-        "batch_offset_initializer": {
-          "dtype": "int64",
-          "shape": ["source_batch", 1],
-          "start": 0,
-          "stride": 300,
-          "rewrite_shape": ["target_batch", 1]
-        }
-      },
-      "target_batch_one": {
-        "remove_batch_offset_add": true,
-        "offset_initializer_name": "/model.23/Mul_3_output_0",
-        "rewire_producer_output": true,
-        "rewire_consumers": true
-      },
-      "validation": {
-        "input_shape": ["target_batch", 3, 640, 640],
-        "output_shapes": [["target_batch", 300, 6]]
-      }
-    }
-  },
-  "outputs": [
-    {
-      "name": "output0",
-      "dtype": "float32",
-      "shape": [2, 300, 6],
-      "rank": 3,
-      "semantic": "detections",
-      "fields": ["x1", "y1", "x2", "y2", "score", "class_id"],
-      "box_format": "xyxy",
-      "coordinate_space": "letterboxed_input",
-      "requires_nms": false,
-      "class_id_base": 0,
-      "person_class_id": 0,
-      "score_field": "score",
-      "class_field": "class_id",
-      "max_detections": 300,
-      "may_include_non_person_classes": true
-    }
-  ],
-  "postprocessing": {
-    "requires_nms": false,
-    "filter_class_id": 0,
-    "confidence_threshold_default": 0.7,
-    "map_boxes_to_source_image": true
-  }
-}
-```
+Canonical reference example: see the complete YAML sidecar in [40_sidecar_spec_updates.plan.md](40_sidecar_spec_updates.plan.md#complete-yolo26-nano-detector-sidecar-example) (`yolo26-nano_b2.yaml`). Do not fork a divergent copy in this plan.
 
 ## Session Wiring
 
@@ -320,7 +198,7 @@ Unit-test the lookup table and `select_sidecar_precision(sidecar, ep, gpu_info) 
 
 - Rename/refactor YOLOX-specific detector preprocess into a generic stage in [`rtm_preprocessing.py`](skellytracker/utilities/gpu_utils/rtm_preprocessing.py), e.g. `detector_letterbox_preprocess(img, input_size, *, dtype, normalization, color_format, pad_value, interpolation)`.
 - YOLOX path keeps calling it with legacy semantics (uint8 letterbox, no external normalization, implicit `"linear"` interpolation).
-- YOLO26 path drives it from sidecar `input` + selected precision dtype (`float32` / `float16`), including `input.resize.interpolation` per [40_sidecar_spec_updates.plan.md](40_sidecar_spec_updates.plan.md).
+- YOLO26 path drives it from sidecar `input` + selected precision dtype (`float32` / `float16`), including `input.resize.interpolation` via `resolve_resize_interpolation()` from plan 40.
 - `yolox_letterbox_preprocess` becomes a thin wrapper or is replaced at call sites in [`rtmpose_session.py`](skellytracker/trackers/rtmpose_tracker/rtmpose_session.py).
 - Postprocessing reads `outputs[].dtype` from sidecar; do not assume output tensor dtype matches input precision.
 
@@ -331,15 +209,15 @@ Unit-test the lookup table and `select_sidecar_precision(sidecar, ep, gpu_info) 
 **Prerequisites:** [10_remove_ep_fallback.plan.md](10_remove_ep_fallback.plan.md), [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md), [30_realtime_batch_size.plan.md](30_realtime_batch_size.plan.md), and [40_sidecar_spec_updates.plan.md](40_sidecar_spec_updates.plan.md) must be complete.
 
 - Keep the existing hardcoded `ModelSpec`, `MODEL_URLS`, `MODEL_REGISTRY`, and `MODEL_CATALOG` flow for existing models.
-- Add a parallel sidecar-backed catalog path: internal `SidecarModelRegistry` plus a loader that scans the configured models directory. Do not ingest every `*.json` file blindly. Accept only JSON objects with supported `schema_version` (skellytracker calendar version string, `installed >= schema_version`), known `role`, and required top-level fields from the canonical sidecar spec in `model-batch-converter`.
+- Add a parallel sidecar-backed catalog path: internal `SidecarModelRegistry` plus a loader that scans the configured models directory for `*.yaml` files. Do not ingest every YAML file blindly. Parse via `parse_sidecar_file()` and validate via `validate_sidecar_metadata()` from plan 40 (`sidecar_validation.py`), then apply detector-specific checks (role, family, batching, artifacts).
 - Keep the scan location behind a variable or resolver function so a future change can point it at a URL or remote manifest without changing catalog callers.
 - Preserve the existing public catalog shape for now: `list_detection_models()` should still return `ModelCatalogEntry` objects with `id`, `display_name`, `role`, `input_size`, and `format`. Keep sidecar-only fields internal so freemocap/frontend catalog consumers do not need to change.
 - Merge sidecar-backed catalog entries into `list_detection_models()` after metadata validation, without requiring them to appear in `MODEL_URLS` or to have a single `ModelSpec.source`.
 - Register the stable logical model id `yolo26-nano` with display name `YOLO26 Nano` from sidecar `model_id` / `display_name`, not from a hardcoded URL entry.
-- For this phase, discover `yolo26-nano_b2.json` from the top-level `models/` folder by default.
+- For this phase, discover `yolo26-nano_b2.yaml` from the top-level `models/` folder by default.
 - Derive the public `ModelCatalogEntry.input_size` for sidecar-backed models from `input.resize.target_size`. If `input.resize.target_size` disagrees with the spatial dimensions in `input.shape`, reject the sidecar metadata as ambiguous.
 - Split validation into two phases:
-  - Startup/catalog metadata validation: parse the sidecar against `model_batch_converter/specs/sidecar-spec.md`, confirm required fields, confirm at least one precision artifact is listed, confirm each artifact has a `filename`, validate naming conventions, validate `batching.batch_size` / `batch_conversion.source_batch_size` / `input.shape[batch_axis]` / output batch dimensions agree, validate dtype metadata consistency, validate complete `batch_conversion` profile fields required by `model_batch_convert()`, and confirm the sidecar describes a detector family that skellytracker knows how to instantiate. Do **not** require or validate `sha256` in v1. This phase must not require downloading or loading large ONNX artifacts.
+  - Startup/catalog metadata validation: call `validate_sidecar_metadata()` from plan 40, then confirm detector-specific fields — at least one precision artifact listed, each artifact has a `filename`, naming conventions, `batching.batch_size` / `batch_conversion.source_batch_size` / `input.shape[batch_axis]` / output batch dimensions agree, dtype metadata consistency, complete `batch_conversion` profile fields required by `model_batch_convert()`, and a detector family skellytracker knows how to instantiate. Do **not** require or validate `sha256` in v1. This phase must not require downloading or loading large ONNX artifacts.
   - First-use artifact integrity validation: resolve or download the selected precision source ONNX, load the ONNX, and check input/output names, dtypes, shapes, and native batch size before conversion or session creation. Do **not** verify file hashes in v1.
 - If startup/catalog metadata validation fails, log a clear diagnostic and omit YOLO26 from the detector catalog/recommendation output instead of offering it as a selectable detector.
 - If first-use artifact integrity validation fails, fail the YOLO26 session startup with a recoverable configuration/startup error that includes the selected precision and validation failure reason.
@@ -371,7 +249,7 @@ Unit-test the lookup table and `select_sidecar_precision(sidecar, ep, gpu_info) 
 
 3. Freemocap integration (YOLO26-specific).
 
-Eager session validation: [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md). EP strictness: [10_remove_ep_fallback.plan.md](10_remove_ep_fallback.plan.md). `batch_size` pass-through and skeleton gating: [30_realtime_batch_size.plan.md](30_realtime_batch_size.plan.md). This step covers YOLO26-only error surfacing on top of those foundations.
+Eager apply validation: **not planned** — session create stays in the skeleton worker ([20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md), [30_realtime_batch_size.plan.md](30_realtime_batch_size.plan.md)). EP strictness: [10_remove_ep_fallback.plan.md](10_remove_ep_fallback.plan.md). This step covers YOLO26-only error surfacing on top of worker-start failures.
 
 **YOLO26 error surfacing (extends remove_ep_fallback error payload):**
 
@@ -383,7 +261,7 @@ Eager session validation: [20_single_global_realtime_pipeline.plan.md](20_single
 
 - Unit-test YOLO26 postprocessing with representative ONNX outputs, including empty detections, multiple people, and non-person classes. Use `input.resize.target_size` and `outputs[].dtype` rather than hardcoded assumptions.
 - Unit-test YOLO26 sidecar parsing and startup/catalog metadata validation against `model_batch_converter/specs/sidecar-spec.md`, including missing required fields, unsupported tensor layouts, mismatched `model_id`, unsupported or too-new `schema_version`, empty `precision_artifacts`, `batching.batch_size` / `batch_conversion.source_batch_size` mismatch, dtype metadata mismatch, incomplete `batch_conversion` profiles, `input.resize.target_size` disagreement with `input.shape`, missing `resize.interpolation`, and `outputs[].requires_nms` not matching `postprocessing.requires_nms`. Confirm v1 does not reject sidecars missing `sha256`.
-- Unit-test filtered sidecar discovery so unrelated JSON files in `models/` are ignored.
+- Unit-test filtered sidecar discovery so unrelated YAML files in `models/` are ignored.
 - Unit-test detector catalog behavior so valid sidecar metadata appears in `list_detection_models()` beside legacy `ModelSpec` detectors as a standard `ModelCatalogEntry`, while invalid sidecar metadata logs a diagnostic and omits YOLO26 from detector options without breaking legacy catalog entries.
 - Unit-test **session-time** EP/precision rejection (e.g. `fp32`-only sidecar + GPU EP fails at session create while catalog still lists the model).
 - Unit-test sidecar discovery with the default top-level `models/` folder and with an overridden discovery location variable/helper.
@@ -415,7 +293,7 @@ Eager session validation: [20_single_global_realtime_pipeline.plan.md](20_single
 - The sidecar `requires_nms` value must match the actual host action required by the exported output; if it is wrong, skellytracker will either skip required NMS or run duplicate NMS.
 - `model_batch_convert()` is on the session-start critical path when cache misses occur; failures, slow conversion, or cache matching mistakes will directly affect realtime startup. Freemocap should surface a clear "preparing model" state during first-time conversion or TRT compile.
 - Strict EP behavior (all realtime sessions) will expose misconfigured CUDA/TensorRT installs earlier; freemocap must surface that as a recoverable configuration/startup failure rather than crashing the app (see [10_remove_ep_fallback.plan.md](10_remove_ep_fallback.plan.md)).
-- Failed apply leaves realtime stopped with no automatic rollback in v1; the UI should show a recoverable error and make retrying or changing EP straightforward.
+- Failed worker startup (EP, YOLO26 batch conversion, TRT compile) surfaces via plan **20** pipeline-error UX; realtime may show disconnected / error state until user retries apply or changes EP.
 - EP-to-precision policy is encoded in the lookup table; keep it conservative. Unknown GPU → EP-only fallback row, not guessing from sidecar alone.
 - Generated ONNX cache filenames must follow `{model_id}_b{batch}_{precision}.onnx` with no hash suffix. Replacing a source ONNX at the same path will not invalidate an existing converted cache file in v1 — delete cache manually or use a follow-up hash-based cache key if needed.
 - Very large requested batches may exhaust VRAM or provider limits during session creation, warmup, or inference; this should be handled as a recoverable pipeline startup or runtime failure.
@@ -426,7 +304,7 @@ Eager session validation: [20_single_global_realtime_pipeline.plan.md](20_single
 ## Related Plans
 
 - [10_remove_ep_fallback.plan.md](10_remove_ep_fallback.plan.md) — **prerequisite**; strict ORT session create.
-- [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md) — **prerequisite**; singleton apply, pipeline recreate, and eager apply validation.
+- [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md) — **prerequisite**; singleton apply, pipeline recreate, worker-start error UX.
 - [30_realtime_batch_size.plan.md](30_realtime_batch_size.plan.md) — **prerequisite**; derived `batch_size`, exact-batch `predict_batch`, skeleton gating.
-- [40_sidecar_spec_updates.plan.md](40_sidecar_spec_updates.plan.md) — **prerequisite**; sidecar contract, `resize.interpolation`, `schema_version`.
+- [40_sidecar_spec_updates.plan.md](40_sidecar_spec_updates.plan.md) — **prerequisite**; YAML sidecar contract, `sidecar_validation.py`, `resolve_resize_interpolation()`, `resize.interpolation`, `schema_version`. This plan owns registry, `detector_letterbox_preprocess`, and YOLO26 session wiring.
 - [future_streaming_pipeline_implementation.plan.md](future_streaming_pipeline_implementation.plan.md) — future sidecar-backed graph nodes build on sessions from this plan.

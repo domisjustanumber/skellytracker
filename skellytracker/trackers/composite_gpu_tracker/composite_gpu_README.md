@@ -147,7 +147,7 @@ All config lives on `CompositeGPUSessionConfig` (Pydantic model):
 |-------|---------|-------------|
 | `execution_provider` | `"cuda"` | ONNX Runtime EP: `"cuda"`, `"trt"`, `"directml"`, `"cpu"` |
 | `engine_cache_dir` | `~/.cache/skellytracker/trt_engines` | TensorRT engine cache |
-| `max_batch_size` | `4` | Max images per batch |
+| `batch_size` | `1` | Images per batched `predict_batch` call |
 | `fp16` | `True` | Use FP16 precision (CUDA / TRT only) |
 | `on_provider_missing` | `"fallback"` | Behaviour when requested EP unavailable |
 
@@ -372,7 +372,7 @@ Measured on RTX 4060 Mobile, CUDA EP, FP16, batch_size=1 (webcam):
 | Face (RTMPose-M, 256×256, 1 crop) | ~102ms | ~7ms | First frame includes JIT |
 | **Total** | **~416ms** | **~28ms** | ~35 FPS steady state |
 
-With `max_batch_size=4`, warmup runs one batched pass (4 synthetic frames).
+With `batch_size=4`, warmup runs one batched pass (4 synthetic frames).
 Steady-state single-frame latency is unchanged; multi-camera throughput
 benefits from batched body inference.
 
