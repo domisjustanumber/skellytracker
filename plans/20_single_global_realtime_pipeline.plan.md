@@ -47,8 +47,10 @@ This work was extracted from [30_realtime_batch_size.plan.md](30_realtime_batch_
 | **10** | [10_remove_ep_fallback.plan.md](10_remove_ep_fallback.plan.md) |
 | **20** (this) | Single global realtime pipeline |
 | **30** | [30_realtime_batch_size.plan.md](30_realtime_batch_size.plan.md) |
-| **40** | [40_sidecar_spec_updates.plan.md](40_sidecar_spec_updates.plan.md) |
+| **40** | [40_detector_sidecar_spec.plan.md](40_detector_sidecar_spec.plan.md) |
+| **60** | [60_sidecar_batch_conversion.plan.md](60_sidecar_batch_conversion.plan.md) |
 | **50** | [50_yolo26_nano_detection.plan.md](50_yolo26_nano_detection.plan.md) |
+| **70** | [70_pose_estimator_sidecar_spec.plan.md](70_pose_estimator_sidecar_spec.plan.md) |
 | future | [future_streaming_pipeline_implementation.plan.md](future_streaming_pipeline_implementation.plan.md) |
 | future | [future_hand_and_face_detection.plan.md](future_hand_and_face_detection.plan.md) |
 

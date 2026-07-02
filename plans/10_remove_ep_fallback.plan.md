@@ -62,8 +62,10 @@ Plan **10** must not depend on plan **20**. It ships strict provider behavior in
 | **10** (this) | Strict ORT; skellytracker + freemocap worker strict mode | — |
 | **20** | [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md) — singleton manager, apply UX, worker-start pipeline errors | **10** |
 | **30** | `batch_size` rename and derived pass-through | **10**, **20** |
-| **40** | [40_sidecar_spec_updates.plan.md](40_sidecar_spec_updates.plan.md) | **10**–**30** (sequence) |
-| **50** | YOLO26 detector sessions | **10**, **20**, **30**, **40** |
+| **40** | [40_detector_sidecar_spec.plan.md](40_detector_sidecar_spec.plan.md) | **10**–**30** (sequence) |
+| **60** | [60_sidecar_batch_conversion.plan.md](60_sidecar_batch_conversion.plan.md) | **40** |
+| **50** | YOLO26 detector sessions | **10**, **20**, **30**, **40**, **60** |
+| **70** | [70_pose_estimator_sidecar_spec.plan.md](70_pose_estimator_sidecar_spec.plan.md) | **40** (recommended **60** for pose batch_conversion examples) |
 | future | [future_streaming_pipeline_implementation.plan.md](future_streaming_pipeline_implementation.plan.md) | After **50** |
 
 Freemocap eager `RTMPoseSession.create()` on apply is **not** a plan **10** or **20** deliverable. Session create stays in the skeleton worker; plan **20** improves pipeline-error UX when worker startup fails. Plan **30** passes `batch_size=len(resolved_ids)` via `_build_session` at worker session create.
@@ -244,6 +246,6 @@ Extend [`freemocap/tests/test_system_gpu_and_rtmpose_config.py`](../../freemocap
 
 - [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md) — **next** in sequence; singleton apply path; worker-start pipeline error UX (not eager apply validation).
 - [30_realtime_batch_size.plan.md](30_realtime_batch_size.plan.md) — `batch_size=len(resolved_ids)` at **worker** session create via `_build_session`.
-- [40_sidecar_spec_updates.plan.md](40_sidecar_spec_updates.plan.md) — sidecar contract; follows this plan in sequence.
+- [40_detector_sidecar_spec.plan.md](40_detector_sidecar_spec.plan.md) — Detector Sidecar Spec; follows this plan in sequence.
 - [50_yolo26_nano_detection.plan.md](50_yolo26_nano_detection.plan.md) — depends on plan **10** for strict ORT session creation and plan **20** for singleton apply / worker-start error UX.
 - [future_streaming_pipeline_implementation.plan.md](future_streaming_pipeline_implementation.plan.md) — streaming graph nodes inherit strict sessions from `RTMPoseSession.create()`.

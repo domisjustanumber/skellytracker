@@ -373,6 +373,6 @@ Use `pytest skellytracker/tests` for full validation, plus targeted RTMPose/pipe
 - [20_single_global_realtime_pipeline.plan.md](20_single_global_realtime_pipeline.plan.md) — singleton pipeline and apply recreate; Phase 2 must not bypass manager lifecycle.
 - [10_remove_ep_fallback.plan.md](10_remove_ep_fallback.plan.md) — graph infer nodes use strict sessions from `RTMPoseSession.create()`.
 - [30_realtime_batch_size.plan.md](30_realtime_batch_size.plan.md) — **authority for `batch_size`** and ring-buffer partial-read gating; do not redefine batch semantics here.
-- [40_sidecar_spec_updates.plan.md](40_sidecar_spec_updates.plan.md) — sidecar contract for future generic detector nodes.
+- [40_detector_sidecar_spec.plan.md](40_detector_sidecar_spec.plan.md) — Detector Sidecar Spec; [60_sidecar_batch_conversion.plan.md](60_sidecar_batch_conversion.plan.md) adds `batch_conversion` before plan 50; [70_pose_estimator_sidecar_spec.plan.md](70_pose_estimator_sidecar_spec.plan.md) adds `pose_estimator` role.
 - [50_yolo26_nano_detection.plan.md](50_yolo26_nano_detection.plan.md) — sidecar-backed detector path must be stable before the future sidecar graph phase.
 - [future_hand_and_face_detection.plan.md](future_hand_and_face_detection.plan.md) — parallel future work; no dependency either way.
