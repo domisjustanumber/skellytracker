@@ -11,7 +11,6 @@ from skellytracker.core.io.processing_timer import ProcessingTimer
 from skellytracker.core.tracker.detection_stage import DetectionStage
 from skellytracker.core.data_primitives.observation import Observation
 from skellytracker.core.sessions.session import Session
-from skellytracker.core.tracker.task_events import TrackerTaskEventCollector
 from skellytracker.core.tracker.tracker_state import StageState, TrackerState
 
 
@@ -73,7 +72,6 @@ class Tracker:
         states: dict[str, TrackerState],
         timestamp_ms: int | None = None,
         timings: ProcessingTimer | None = None,
-        event_collector: TrackerTaskEventCollector | None = None,
     ) -> tuple[dict[str, Observation], dict[str, TrackerState]]:
         """Run all stages on N cameras simultaneously.
 
@@ -95,9 +93,6 @@ class Tracker:
             timestamp_ms:
                 Monotonically increasing wall-clock time in ms. Passed to all
                 detectors unchanged (used by MediaPipe VIDEO mode).
-            event_collector:
-                Optional task-event sink. When set, DetectionStage.run_batch
-                emits per-stage TrackerTaskEvent records for pipeline metrics.
 
         Returns:
             (per-camera Observation dict, per-camera updated TrackerState dict)
@@ -105,12 +100,7 @@ class Tracker:
         if not images:
             return {}, {}
 
-        context = DetectionContext(
-            frame_number=frame_number,
-            timestamp_ms=timestamp_ms,
-            timings=timings,
-            event_collector=event_collector,
-        )
+        context = DetectionContext(frame_number=frame_number, timestamp_ms=timestamp_ms, timings=timings)
         cam_ids = list(images.keys())
 
         # per-camera accumulators
