@@ -1,0 +1,61 @@
+{
+  "rtmpose_body_rtmpose_m_256x192_detect.json": {
+    "environment": "unknown",
+    "author": "philipqueen",
+    "commit": "f2733ba",
+    "note": "Captured from the pre-migration detector on an unrecorded machine/provider; kept unchanged."
+  },
+  "rtmpose_body_rtmpose_s_256x192_detect.json": {
+    "environment": "unknown",
+    "author": "philipqueen",
+    "commit": "f2733ba",
+    "note": "Captured from the pre-migration detector on an unrecorded machine/provider; kept unchanged."
+  },
+  "rtmpose_face_rtmpose_m_256x256_detect.json": {
+    "environment": {
+      "os": "Windows 11 10.0.26300",
+      "provider": "cpu",
+      "onnxruntime": "1.27.0",
+      "python": "3.12.13"
+    },
+    "commit": "e49b1dd (f2733ba^, pre-migration RTMPoseFaceDetector, confidence_threshold=0.0 so all 106 points are stored)",
+    "author": "Dom Scott (regenerated)",
+    "note": "Regenerated to store every keypoint with its score (x, y, score). Original fixture by philipqueen in f2733ba came from an unrecorded environment."
+  },
+  "rtmpose_hand_rtmpose_m_256x256_detect.json": {
+    "environment": "unknown",
+    "author": "philipqueen",
+    "commit": "f2733ba",
+    "note": "Captured from the pre-migration detector on an unrecorded machine/provider; kept unchanged."
+  },
+  "rtmw_wholebody_rtmw_l_m_256x192_detect.json": {
+    "environment": "unknown",
+    "author": "philipqueen",
+    "commit": "f2733ba",
+    "note": "Captured from the pre-migration detector on an unrecorded machine/provider; kept unchanged."
+  },
+  "rtmw_wholebody_rtmw_x_l_256x192_detect.json": {
+    "environment": "unknown",
+    "author": "philipqueen",
+    "commit": "f2733ba",
+    "note": "Captured from the pre-migration detector on an unrecorded machine/provider; kept unchanged."
+  },
+  "rtmw_wholebody_rtmw_x_l_384x288_detect.json": {
+    "environment": "unknown",
+    "author": "philipqueen",
+    "commit": "f2733ba",
+    "note": "Captured from the pre-migration detector on an unrecorded machine/provider; kept unchanged."
+  },
+  "yolox_m_detect.json": {
+    "environment": "unknown",
+    "author": "philipqueen",
+    "commit": "45533bd",
+    "note": "Captured from the pre-migration detector on an unrecorded machine/provider; kept unchanged."
+  },
+  "yolox_tiny_detect.json": {
+    "environment": "unknown",
+    "author": "philipqueen",
+    "commit": "45533bd",
+    "note": "Captured from the pre-migration detector on an unrecorded machine/provider; kept unchanged."
+  }
+}
