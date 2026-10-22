@@ -48,7 +48,7 @@ Each of these can be added later as a non-breaking schema bump when a model need
 ### Compatibility impact
 
 - Sidecars with `schema_version < vNEXT` (e.g. the in-repo YOLOX and RTMPose sidecars) keep loading unchanged under the [legacy rules](#version-aware-compatibility).
-- Sidecars authored at `vNEXT` must declare `decode.selection`, letterbox `pad_position`/`rounding`, and `color_format` where required. They must not use `requires_nms` alone, `may_include_non_person_classes`, `letterbox` + `preserve_aspect_ratio: false`, or size-level overrides other than `input.shape`, `input.resize.target_size` and `onnx`.
+- Sidecars authored at `vNEXT` must declare `decode.selection`, letterbox `pad_position`/`rounding`, `fit` `pad_value`, and `color_format` where required. They must not use `requires_nms` alone, `may_include_non_person_classes`, `letterbox` + `preserve_aspect_ratio: false`, or size-level overrides other than `input.shape`, `input.resize.target_size` and `onnx`.
 
 ---
 
@@ -365,17 +365,17 @@ Decoded box and keypoint coordinates are always in a **top-left origin** — `x`
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `method` | enum | yes | `letterbox` (aspect-preserving resize + pad), `stretch` (independent x/y resize, no pad), `affine_person_crop` (top-down pose), or `none` (pass the source image unchanged — no resize). |
-| `target_size` | array[2] | conditional | `[height, width]` the input is resized to. Declared in `sizes.<size>.input.resize.target_size`. Required when `method` is `letterbox`, `stretch`, or `affine_person_crop`, unless `supports_dynamic_size: true`. Omitted when `method: none`. |
+| `method` | enum | yes | `letterbox` (aspect-preserving resize + pad), `stretch` (independent x/y resize, no pad), `fit` (full-frame affine fit with centred fractional padding), `affine_person_crop` (top-down pose), or `none` (pass the source image unchanged — no resize). |
+| `target_size` | array[2] | conditional | `[height, width]` the input is resized to. Declared in `sizes.<size>.input.resize.target_size`. Required when `method` is `letterbox`, `stretch`, `fit`, or `affine_person_crop`, unless `supports_dynamic_size: true`. Omitted when `method: none`. |
 | `supports_dynamic_size` | bool | no | Model accepts any input spatial size; `target_size` is omitted. Default `false`. |
 | `pad_position` | enum | `letterbox`: yes | `top_left` or `center` — where the resized image sits on the padded canvas. `letterbox` only. |
 | `rounding` | enum | `letterbox`: yes | How the resized width/height are rounded: `half_even` (Python `round`) or `half_up` (`floor(x + 0.5)`). `letterbox` only. |
-| `pad_value` | int, float, or array[3] | no | Letterbox only; default `114`. Raw pixel value (before normalization). An array is per channel, in `input.color_format` order. |
+| `pad_value` | int, float, or array[3] | `fit`: yes | `letterbox` and `fit` only. Raw pixel value (before normalization). An array is per channel, in `input.color_format` order. Optional for `letterbox`, with default `114`; required for `fit`. |
 | `preserve_aspect_ratio` | bool | no | Letterbox only; when present must be `true`. (`false` is a legacy alias for `stretch`; see [Version-aware compatibility](#version-aware-compatibility).) |
-| `interpolation` | enum | no | Host resize filter; default `linear`. Applies to `letterbox`, `stretch`, and `affine_person_crop`. |
+| `interpolation` | enum | no | Host resize filter; default `linear`. Applies to `letterbox`, `stretch`, `fit`, and `affine_person_crop`. |
 | `crop_policy` | object | no | `affine_person_crop` only; see below. |
 
-When `supports_dynamic_size: true`, the model accepts any input spatial size: `target_size` is omitted and the size's `input.shape` spatial dims are `-1`. This applies to `letterbox` and `stretch` (the host resizes to the runtime-accepted size) and to `affine_person_crop` (the host warps the crop to the runtime-accepted size). When it is not set and `method` is `letterbox`, `stretch`, or `affine_person_crop`, `target_size` is required.
+When `supports_dynamic_size: true`, the model accepts any input spatial size: `target_size` is omitted and the size's `input.shape` spatial dims are `-1`. This applies to `letterbox`, `stretch`, and `fit` (the host resizes to the runtime-accepted size) and to `affine_person_crop` (the host warps the crop to the runtime-accepted size). When it is not set and `method` is `letterbox`, `stretch`, `fit`, or `affine_person_crop`, `target_size` is required.
 
 **Resizes are not antialiased.** Every interpolation value below names the plain OpenCV filter (`cv2.resize` / `cv2.warpAffine`, half-pixel centres) without a downscale-adaptive support. A host using another library must reproduce that behaviour (e.g. torchvision `antialias=False`, not PIL `BILINEAR`).
 
@@ -402,6 +402,21 @@ The whole source image is resized directly to `target_size`, with independent x 
 ```text
 dst = resize(src, (T_w, T_h), <interpolation>)
 ```
+
+**`fit`**
+
+The whole source image is scaled by a single factor, centred on the `target_size` canvas `[T_h, T_w]` at fractional offsets, and warped with one affine transform. Unlike `letterbox`, neither the scaled size nor the offsets are rounded:
+
+```text
+s    = min(T_w / src_w, T_h / src_h)
+left = (T_w - src_w * s) / 2          # fractional; not rounded
+top  = (T_h - src_h * s) / 2          # fractional; not rounded
+M    = [[s, 0, left],
+        [0, s, top ]]
+dst  = warpAffine(src, M, (T_w, T_h), <interpolation>, borderMode=constant, borderValue=pad_value)
+```
+
+`pad_value` is required. `pad_position`, `rounding`, `preserve_aspect_ratio`, and `crop_policy` are invalid with `fit`. This matches mmpose `BottomupResize` (RTMO). A `letterbox` is not equivalent at any scale other than `1`: it rounds the resized size, and `resize` + pad gives different pixels from `warpAffine` even when the resized size is integral.
 
 **`none`**
 
@@ -448,6 +463,7 @@ Decoded coordinates are first converted to **model-input pixels** — `box_scale
 |--------|---------------------------------------------------|
 | `letterbox` | `x_src = (x - left) * src_w / n_w`, `y_src = (y - top) * src_h / n_h` — the exact inverse of the resize, using the rounded `n_w`/`n_h` and the pad offsets from the letterbox algorithm. |
 | `stretch` | `x_src = x * src_w / T_w`, `y_src = y * src_h / T_h`. |
+| `fit` | `x_src = (x - left) / s`, `y_src = (y - top) / s` — the exact inverse of `M`, using the unrounded `s`, `left` and `top` from the `fit` algorithm. |
 | `none` | Identity. |
 | `affine_person_crop` | Apply the inverse of the affine warp `M`. |
 
@@ -457,7 +473,7 @@ The top-level `sizes` map enumerates every scale of the model in a single sideca
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `sizes.<name>.input` | object | yes per size | Size-specific input. May contain **only** `shape` (required; batch axis always `-1`) and `resize.target_size` (required when `method` is `letterbox`/`stretch`/`affine_person_crop` and `supports_dynamic_size` is not set). |
+| `sizes.<name>.input` | object | yes per size | Size-specific input. May contain **only** `shape` (required; batch axis always `-1`) and `resize.target_size` (required when `method` is `letterbox`/`stretch`/`fit`/`affine_person_crop` and `supports_dynamic_size` is not set). |
 | `sizes.<name>.onnx` | object | yes per size | Size-specific artifacts: `batch_artifacts` (required). |
 
 A size entry may contain only `input` and `onnx` (with the sub-fields above). It is deep-merged over the top level using the same merge semantics as [`base`](#base--inherit-from-another-sidecar-and-override). Any other key in a size entry — `role`, `outputs`, `batching`, `decode`, `pose`, `overlay`, `input.normalization`, `input.color_format`, `input.resize.method`, and so on — is invalid. Size names are lowercase tokens such as `nano`, `small`, `medium`; hyphens are allowed (e.g. `l-m`, `x-l`).
@@ -1007,7 +1023,7 @@ Validation and decode branch on the sidecar's `schema_version`. `vNEXT` requirem
 | `clamp_boxes` absent | Existing host behaviour. | Default `true`. |
 | `normalization: imagenet_bgr` | The RGB-ordered tuple — mean `(123.675, 116.28, 103.53)`, std `(58.395, 57.12, 57.375)` — applied in order to the B, G, R channels of the BGR frame (B uses `123.675`). This is the rtmlib convention used by the in-repo RTMPose and RTMW sidecars. | BGR-ordered statistics (B uses `103.53`); see [Normalization modes](#normalization-modes). To keep the legacy behaviour in a `vNEXT` sidecar, declare `normalization: {mode: custom, color_format: bgr, mean: [123.675, 116.28, 103.53], std: [58.395, 57.12, 57.375]}`. |
 | Size-level keys other than `input.shape`, `input.resize.target_size`, `onnx` | Deep-merged over the top level. | Invalid (family invariant). |
-| `boxes`/`scores`/`class_logits` semantics, `packed_keypoints`, `stretch`, `class_id_map` | Not available. | Available. |
+| `boxes`/`scores`/`class_logits` semantics, `packed_keypoints`, `stretch`, `fit`, `class_id_map` | Not available. | Available. |
 
 ## Validation rules
 
@@ -1028,7 +1044,7 @@ A sidecar is valid when all of the following hold. Rules marked **(vNEXT)** appl
 - [ ] `sizes` is present with at least one size.
 - [ ] Each size declares `input.shape` with `-1` as its batch axis (first dimension).
 - [ ] **(vNEXT)** A size entry contains only `input.shape`, `input.resize.target_size`, and `onnx`.
-- [ ] Each size's `input.shape` spatial dims equal its `resize.target_size` when `method` is `letterbox`, `stretch`, or `affine_person_crop` and `supports_dynamic_size` is not set. `target_size` is omitted when `method: none` or `supports_dynamic_size: true`; spatial dims are `-1` when `supports_dynamic_size: true`.
+- [ ] Each size's `input.shape` spatial dims equal its `resize.target_size` when `method` is `letterbox`, `stretch`, `fit`, or `affine_person_crop` and `supports_dynamic_size` is not set. `target_size` is omitted when `method: none` or `supports_dynamic_size: true`; spatial dims are `-1` when `supports_dynamic_size: true`.
 - [ ] `input.resize.target_size` (when present) is a length-2 `[height, width]` array.
 - [ ] Each size's `onnx.batch_artifacts` has quoted-string positive integer batch keys (`"1"`, `"2"`, …) or a single `dynamic` key (never mixed), and non-empty per-group `precision_artifacts`.
 - [ ] Precision keys are the closed enum `fp32`/`fp16`/`int8`.
@@ -1040,9 +1056,10 @@ A sidecar is valid when all of the following hold. Rules marked **(vNEXT)** appl
 **Input, resize, normalization**
 
 - [ ] `input.dtype` is present; its keys are a subset of `fp32`/`fp16`/`int8` covering the precisions declared in `batch_artifacts`, and its values are `float32`, `float16`, `uint8`, or `int8`. `input.layout` (when present) is `NCHW` or `NHWC`.
-- [ ] `input.resize.method` is `letterbox`, `stretch`, `affine_person_crop`, or `none` (`stretch` **(vNEXT)**), and `input.resize.interpolation` is `linear`, `area`, `cubic`, or `nearest`.
+- [ ] `input.resize.method` is `letterbox`, `stretch`, `fit`, `affine_person_crop`, or `none` (`stretch` and `fit` **(vNEXT)**), and `input.resize.interpolation` is `linear`, `area`, `cubic`, or `nearest`.
 - [ ] **(vNEXT)** A `letterbox` resize declares `pad_position` (`top_left` | `center`) and `rounding` (`half_even` | `half_up`); `preserve_aspect_ratio`, when present, is `true`.
-- [ ] `pad_value`, `pad_position`, `rounding`, and `preserve_aspect_ratio` are present only when `method: letterbox`; `crop_policy` only when `method: affine_person_crop`.
+- [ ] **(vNEXT)** A `fit` resize declares `pad_value`.
+- [ ] `pad_value` is present only when `method` is `letterbox` or `fit`; `pad_position`, `rounding`, and `preserve_aspect_ratio` only when `method: letterbox`; `crop_policy` only when `method: affine_person_crop`.
 - [ ] `pad_value` and `crop_policy.pad_value` (when present) are a number or a length-3 array of numbers.
 - [ ] `input.resize.crop_policy.expand_ratio` (when present) is a positive float, and `crop_policy.maintain_aspect_ratio` (when present) is a boolean.
 - [ ] `input.normalization` (when present) is a valid mode (`none`, `unit_float`, `imagenet_bgr`, `imagenet_rgb`, or `custom` object). A `custom` object has `mode: custom`, length-3 `mean`/`std` when present, a positive `scale` when present, and `color_format` `rgb`/`bgr` when present.
@@ -1109,7 +1126,7 @@ Every future contract change must bump `schema_version` to the skellytracker rel
 | `schema_version` | Changes |
 |------------------|---------|
 | `v2024.09.1019` | Initial YAML sidecar spec: one `{model_id}.yaml` per family with a `sizes` map (size × batch × precision via `sizes.<size>.onnx.batch_artifacts`, incl. `dynamic` batch); `role` arrays (`object_detector` / `pose_estimator`, both for one-stage models); `input.normalization` modes (`none`, `unit_float`, `imagenet_bgr`, `imagenet_rgb`, `custom`) with per-precision overrides; `input.resize` (`letterbox` + `affine_person_crop` with `crop_policy`, `none`, interpolation); file composition (`$ref` includes + `base` inheritance with `null`-delete); `schema_version` as skellytracker version string; pose output contract (`tracked_points`, named `connections`, `derived_points`, `canonical_mapping` with `prefixes`, `overlay.groups`, `requires_object_detector`, and `decode` incl. `simcc`/`heatmap`/`coordinate` with 3D via `is_3d`/`depth_unit`/`depth_range`); VRM 1.0 canonical skeleton with current→VRM name-migration note; `detectors/` storage layout; per-precision `url` with mandatory `url_sha256`. |
-| `vNEXT` | Added `input.resize.method: stretch`; letterbox `pad_position` and `rounding` (required), normative letterbox/centre-offset algorithm, per-method unprojection, non-antialiased resizes, scalar/array `pad_value`; `affine_person_crop` warp definition with `crop_policy.pad_value`. Added `input.color_format` (required for `none`/`unit_float`); `none` passes pixels in `input.dtype`; explicit `imagenet_*` channel order (`imagenet_bgr` now uses BGR-ordered statistics; legacy meaning retained for older sidecars). Added detection semantics `boxes`, `scores` and `class_logits` (with `class_axis`); output names must be unique. Rebuilt detection `decode` around required `selection` (`none`/`top_k`/`nms`) with output bindings, `box_scale`, `score_activation`, `class_id_map`, `top_k`, `nms` (`iou_threshold`, `score_threshold`, `class_agnostic`, `post_nms_top_k`), `clamp_boxes`, `is_person_only`; normative stage order and strict thresholds. `max_detections` has no default and only declares a graph-final row count; `requires_nms` and `may_include_non_person_classes` are legacy. Added `packed_keypoints` for bottom-up packed rows; bottom-up pose rows follow surviving detection rows. Size entries limited to `input.shape`, `input.resize.target_size`, `onnx` (family invariant). Added version-aware compatibility rules. |
+| `vNEXT` | Added `input.resize.method: stretch`; added `input.resize.method: fit` (full-frame affine fit with unrounded scale and centred fractional offsets; `pad_value` required) and its unprojection; letterbox `pad_position` and `rounding` (required), normative letterbox/centre-offset algorithm, per-method unprojection, non-antialiased resizes, scalar/array `pad_value`; `affine_person_crop` warp definition with `crop_policy.pad_value`. Added `input.color_format` (required for `none`/`unit_float`); `none` passes pixels in `input.dtype`; explicit `imagenet_*` channel order (`imagenet_bgr` now uses BGR-ordered statistics; legacy meaning retained for older sidecars). Added detection semantics `boxes`, `scores` and `class_logits` (with `class_axis`); output names must be unique. Rebuilt detection `decode` around required `selection` (`none`/`top_k`/`nms`) with output bindings, `box_scale`, `score_activation`, `class_id_map`, `top_k`, `nms` (`iou_threshold`, `score_threshold`, `class_agnostic`, `post_nms_top_k`), `clamp_boxes`, `is_person_only`; normative stage order and strict thresholds. `max_detections` has no default and only declares a graph-final row count; `requires_nms` and `may_include_non_person_classes` are legacy. Added `packed_keypoints` for bottom-up packed rows; bottom-up pose rows follow surviving detection rows. Size entries limited to `input.shape`, `input.resize.target_size`, `onnx` (family invariant). Added version-aware compatibility rules. |
 
 ## Reference examples
 
