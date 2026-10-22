@@ -26,7 +26,7 @@
 | 11 | Pose | Bottom-up instance count is no longer overloaded onto `max_detections`. Pose rows are row-aligned with detection rows and gathered by the surviving detection indices. | YOLO26 pose, RTMO | [Bottom-up decode](#bottom-up-decode) |
 | 12 | Sizes | **Family invariant:** a size entry may set only `input.shape`, `input.resize.target_size` and `onnx`. Sizes that differ in channel order, normalization or post-processing must be separate families. This resolves the earlier contradiction between "a size is a partial document deep-merged over the top level" and "sizes share the output contract". | RTMDet person-only vs 80-class families (different NMS contracts and class counts) | [`sizes`](#sizes) |
 | 13 | Versioning | Explicit version-aware rules so that sidecars older than `vNEXT` keep loading with their old meaning. | existing YOLOX/RTMPose sidecars | [Version-aware compatibility](#version-aware-compatibility) |
-| 14 | Examples | Reference examples replaced with real exports: YOLO26 detection, YOLO26 pose, RF-DETR, RTMDet person, RTMW. RTMDet uses its person-only family. All batch keys are quoted, and the YOLO26 int8 input dtype is corrected to `float32`. | all | [Reference examples](#reference-examples) |
+| 14 | Examples | Reference examples rewritten for this revision. RTMDet person, RTMW and RTMO body7 come from real `vNEXT` exports of OpenMMLab-Exporter; RTMDet uses its person-only family. YOLO26 detection and YOLO26 pose are written from Ultralytics-Exporter's code and will be replaced when it emits `vNEXT`. There is no RF-DETR example until Roboflow-Exporter is overhauled. All batch keys are quoted, and the YOLO26 int8 input dtype is corrected to `float32`. | all | [Reference examples](#reference-examples) |
 
 ### Considered and deliberately not added
 
@@ -1129,7 +1129,7 @@ Every future contract change must bump `schema_version` to the skellytracker rel
 
 ## Reference examples
 
-Each example is the sidecar the named exporter writes once it is updated to this revision: tensor names, shapes, dtypes, sizes, batches, precisions and filenames are taken from that exporter's code and published artifacts. Where a family has more sizes than shown, the omitted sizes differ only in `input.shape`, `target_size` and filenames.
+Each example is a sidecar for this revision from the named exporter. The OpenMMLab-Exporter examples (RTMDet person, RTMW, RTMO body7) come from its real `vNEXT` exports. The Ultralytics-Exporter examples (YOLO26 detection and pose) are written from that exporter's code and published artifacts: tensor names, shapes, dtypes, sizes, batches, precisions and filenames. They will be replaced when it emits `vNEXT`. There is no RF-DETR example until Roboflow-Exporter is overhauled; the `stretch`, `top_k` and `class_logits` rules have no example until then. Where a family has more sizes than shown, the omitted sizes differ only in `input.shape`, `target_size` and filenames.
 
 ### YOLO26 detector (Ultralytics-Exporter; NMS-free, graph-final rows)
 
@@ -1322,100 +1322,6 @@ sizes:
           output_shapes:
             - [3, 300, 57]
   # small, medium, large, xlarge: identical to nano except filenames.
-```
-
-### RF-DETR (Roboflow-Exporter; box tensor + class logits, global top-k)
-
-RF-DETR emits normalized `cxcywh` boxes and raw logits over 91 sparse COCO category slots. The host stretches the image, applies ImageNet RGB normalization (the graph contains none), and selects the top 300 (query, class) pairs; there is no NMS. Artifacts are static-batch (1–3), fp32 and fp16, all with float32 I/O.
-
-```yaml
----
-schema_version: "vNEXT"
-model_id: rfdetr
-display_name: RF-DETR
-role: [object_detector]
-
-input:
-  name: input
-  dtype: {fp32: float32, fp16: float32}
-  layout: NCHW
-  color_format: rgb
-  normalization: imagenet_rgb
-  resize: {method: stretch, interpolation: linear}
-
-batching: {batch_axis: 0}
-
-outputs:
-  - name: dets
-    dtype: {fp32: float32, fp16: float32}
-    shape: [-1, 300, 4]
-    rank: 3
-    semantic: boxes
-  - name: labels
-    dtype: {fp32: float32, fp16: float32}
-    shape: [-1, 300, 91]
-    rank: 3
-    semantic: class_logits
-    class_axis: -1
-
-decode:
-  selection: top_k
-  top_k: 300
-  boxes_output: dets
-  class_logits_output: labels
-  box_format: cxcywh
-  box_scale: normalized_01
-  score_activation: sigmoid
-  class_id_map: {$ref: ../../shared/class_ids/coco91.yaml}
-  person_class_id: 1          # COCO category id of person
-  is_person_only: false
-  confidence_threshold_default: 0.5
-  clamp_boxes: true
-
-sizes:
-  nano:
-    input:
-      shape: [-1, 3, 384, 384]
-      resize:
-        target_size: [384, 384]
-    onnx:
-      batch_artifacts:
-        "1":
-          precision_artifacts:
-            fp32: {filename: rfdetr-nano_b1_fp32.onnx}
-            fp16: {filename: rfdetr-nano_b1_fp16.onnx}
-          output_shapes:
-            - [1, 300, 4]
-            - [1, 300, 91]
-        "2":
-          precision_artifacts:
-            fp32: {filename: rfdetr-nano_b2_fp32.onnx}
-            fp16: {filename: rfdetr-nano_b2_fp16.onnx}
-          output_shapes:
-            - [2, 300, 4]
-            - [2, 300, 91]
-        "3":
-          precision_artifacts:
-            fp32: {filename: rfdetr-nano_b3_fp32.onnx}
-            fp16: {filename: rfdetr-nano_b3_fp16.onnx}
-          output_shapes:
-            - [3, 300, 4]
-            - [3, 300, 91]
-  # small (512), medium (576), large (704): same pattern with their own input size and filenames.
-```
-
-`detectors/shared/class_ids/coco91.yaml` is a 91-entry sequence: index = model slot, value = emitted COCO category id, `-1` = ignore. Slot 0 and the ten COCO id gaps (12, 26, 29, 30, 45, 66, 68, 69, 71, 83) are `-1`; every other slot `i` maps to `i`, giving 80 non-negative entries. Excerpt:
-
-```yaml
-- -1     # slot 0: unused
-- 1      # person
-- 2
-# ... slots 3-10
-- 11
-- -1     # slot 12: COCO id gap
-- 13
-# ... through slot 90
-- 90     # toothbrush
 ```
 
 ### RTMDet person (OpenMMLab-Exporter; NMS-free outputs, host NMS)
