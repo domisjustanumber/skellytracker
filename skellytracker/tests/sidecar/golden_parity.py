@@ -119,6 +119,10 @@ class SimccParityRun:
         simcc_x, simcc_y = raw
         self._prob_x = _stable_softmax(np.asarray(simcc_x)[0])
         self._prob_y = _stable_softmax(np.asarray(simcc_y)[0])
+        # Per-keypoint confidence exactly as the decoder defines it (mean of
+        # the x/y peak probabilities). Unlike ``keypoints.visibility`` it is
+        # not zeroed for points below the detector's confidence threshold.
+        self.scores = 0.5 * (self._prob_x.max(axis=-1) + self._prob_y.max(axis=-1))
 
     def _golden_bin(self, golden_xy: NDArray) -> NDArray:
         """Inverse of ``decode_simcc``: source-image xy -> (float) SimCC bin."""
