@@ -14,6 +14,8 @@ import pytest
 
 from skellytracker.core.sidecar.loader import load_sidecar
 
+from .golden_parity import BOX_ATOL_PX, CONFIDENCE_ATOL, PARITY_EXECUTION_PROVIDER
+
 _YOLOX_DIR = (
     Path(__file__).resolve().parents[2]
     / "core"
@@ -70,7 +72,9 @@ class TestYoloxParityAgainstGoldenFixture:
         )
 
         config = OnnxSessionConfig(
-            batch_size=1, models=[YoloxPersonDetector.model_spec(model_name)]
+            batch_size=1,
+            models=[YoloxPersonDetector.model_spec(model_name)],
+            execution_provider=PARITY_EXECUTION_PROVIDER,
         )
         session = OnnxSession.create(config)
         try:
@@ -84,17 +88,17 @@ class TestYoloxParityAgainstGoldenFixture:
 
         assert len(results) == len(golden)
         for bb, expected in zip(results, golden, strict=True):
-            actual = np.array([bb.x1, bb.y1, bb.x2, bb.y2, bb.confidence])
-            expected_arr = np.array(
-                [
-                    expected["x1"],
-                    expected["y1"],
-                    expected["x2"],
-                    expected["y2"],
-                    expected["confidence"],
-                ]
+            actual_box = np.array([bb.x1, bb.y1, bb.x2, bb.y2])
+            expected_box = np.array(
+                [expected["x1"], expected["y1"], expected["x2"], expected["y2"]]
             )
-            assert np.allclose(actual, expected_arr, atol=1e-4)
+            # Box corners are in source-image pixels.
+            assert np.allclose(
+                actual_box, expected_box, atol=BOX_ATOL_PX, rtol=0
+            ), f"box: actual={actual_box}, expected={expected_box}"
+            assert bb.confidence == pytest.approx(
+                expected["confidence"], abs=CONFIDENCE_ATOL
+            )
 
 
 def _fake_response(body: bytes) -> MagicMock:

@@ -1,0 +1,56 @@
+{
+  "rtmpose_body_rtmpose_m_256x192_detect.json": {
+    "environment": "unknown",
+    "author": "philipqueen",
+    "commit": "f2733ba",
+    "note": "Captured from the pre-migration detector on an unrecorded machine/provider; kept unchanged."
+  },
+  "rtmpose_body_rtmpose_s_256x192_detect.json": {
+    "environment": "unknown",
+    "author": "philipqueen",
+    "commit": "f2733ba",
+    "note": "Captured from the pre-migration detector on an unrecorded machine/provider; kept unchanged."
+  },
+  "rtmpose_face_rtmpose_m_256x256_detect.json": {
+    "environment": "unknown",
+    "author": "philipqueen",
+    "commit": "f2733ba",
+    "note": "Captured from the pre-migration detector on an unrecorded machine/provider; kept unchanged."
+  },
+  "rtmpose_hand_rtmpose_m_256x256_detect.json": {
+    "environment": "unknown",
+    "author": "philipqueen",
+    "commit": "f2733ba",
+    "note": "Captured from the pre-migration detector on an unrecorded machine/provider; kept unchanged."
+  },
+  "rtmw_wholebody_rtmw_l_m_256x192_detect.json": {
+    "environment": "unknown",
+    "author": "philipqueen",
+    "commit": "f2733ba",
+    "note": "Captured from the pre-migration detector on an unrecorded machine/provider; kept unchanged."
+  },
+  "rtmw_wholebody_rtmw_x_l_256x192_detect.json": {
+    "environment": "unknown",
+    "author": "philipqueen",
+    "commit": "f2733ba",
+    "note": "Captured from the pre-migration detector on an unrecorded machine/provider; kept unchanged."
+  },
+  "rtmw_wholebody_rtmw_x_l_384x288_detect.json": {
+    "environment": "unknown",
+    "author": "philipqueen",
+    "commit": "f2733ba",
+    "note": "Captured from the pre-migration detector on an unrecorded machine/provider; kept unchanged."
+  },
+  "yolox_m_detect.json": {
+    "environment": "unknown",
+    "author": "philipqueen",
+    "commit": "45533bd",
+    "note": "Captured from the pre-migration detector on an unrecorded machine/provider; kept unchanged."
+  },
+  "yolox_tiny_detect.json": {
+    "environment": "unknown",
+    "author": "philipqueen",
+    "commit": "45533bd",
+    "note": "Captured from the pre-migration detector on an unrecorded machine/provider; kept unchanged."
+  }
+}
