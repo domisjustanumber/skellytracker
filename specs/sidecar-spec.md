@@ -516,33 +516,31 @@ A sidecar with both roles lists every tensor in one `outputs` array. Each tensor
 
 ```yaml
 # One-stage detector + pose model with separate tensors (role: [object_detector, pose_estimator]).
-# Illustrative, RTMO-style excerpt: no in-scope exporter emits this layout today. For the packed
-# single-tensor layout that YOLO26-pose emits, see the YOLO26 pose reference example.
+# Excerpt of the RTMO body7 reference example. NMS is inside the graph, so the row count is
+# dynamic and the host uses `selection: none`. For the packed single-tensor layout that
+# YOLO26-pose emits, see the YOLO26 pose reference example.
 outputs:
   - name: dets
-    dtype:
-      fp32: float32
-    shape: [-1, 100, 5]
+    dtype: {fp32: float32}
+    shape: [-1, -1, 5]
     rank: 3
     semantic: detections
     fields: [x1, y1, x2, y2, score]
   - name: keypoints
-    dtype:
-      fp32: float32
-    shape: [-1, 100, 17, 3]
+    dtype: {fp32: float32}
+    shape: [-1, -1, 17, 3]
     rank: 4
     semantic: poses
     keypoint_axis: 2
+    keypoint_count: 17
 
 decode:                # detection decode — applies to the primary detection tensor
+  selection: none      # graph-final rows; no `max_detections`, because the row count is dynamic
   box_format: xyxy
+  box_scale: pixel
   score_field: score
   is_person_only: true
-  selection: nms
-  nms:                 # illustrative values; take them from the model's reference config
-    iou_threshold: 0.45
-    score_threshold: 0.1
-    class_agnostic: true
+  confidence_threshold_default: 0.1
 
 pose:                  # pose decode — `poses` rows follow the surviving detection rows
   estimator_type: bottom_up
@@ -550,6 +548,7 @@ pose:                  # pose decode — `poses` rows follow the surviving detec
   # ... tracked_points / connections ...
   decode:
     method: coordinate
+    coordinate_scale: pixel
 ```
 
 ## Detection fields (`object_detector` role)
@@ -1601,3 +1600,120 @@ sizes:
 ```
 
 For comparison, skellytracker's in-repo `rtmw/wholebody/rtmw-wholebody.yaml` describes the rtmlib `onnx_sdk` downloads (with `url`/`url_sha256`) at `schema_version: v2024.09.1019`. It uses the legacy `imagenet_bgr` meaning (see [Version-aware compatibility](#version-aware-compatibility)).
+
+### RTMO body7 (OpenMMLab-Exporter; bottom-up pose, NMS in the graph)
+
+Source: OpenMMLab-Exporter `notes/decisions/rtmo-body7.yaml` at commit `38ed76f` (the tracked copy of the sidecar its `rtmo-body7` family writes; header comment removed). Spec path: `detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml`. The exporter writes it to `rtmo/body7/`, which is not one of the spec's part folders.
+
+mmpose `BottomupResize` warps the whole frame with `cv2.warpAffine` to a fractional fit size, centred, with pad 114: that is `fit`, not `letterbox`. RTMO normalizes with mean 0 and std 1 and keeps BGR (`bgr_to_rgb: false`), so the input is `normalization: none` with `color_format: bgr`. The deployed graph keeps NMS, so the `dets` and `keypoints` row count is dynamic and the host uses `selection: none` with no `max_detections`. `confidence_threshold_default` is the upstream `score_thr` (0.1); it drops the near-zero row that the graph can emit on an image with no person.
+
+```yaml
+---
+schema_version: vNEXT
+model_id: rtmo-body7
+display_name: RTMO Body7
+role: [object_detector, pose_estimator]
+
+input:
+  name: input
+  dtype: {fp32: float32}
+  layout: NCHW
+  color_format: bgr
+  normalization: none
+  resize:
+    method: fit
+    pad_value: 114
+    interpolation: linear
+
+batching: {batch_axis: 0}
+
+outputs:
+  - name: dets
+    dtype: {fp32: float32}
+    shape: [-1, -1, 5]
+    rank: 3
+    semantic: detections
+    fields: [x1, y1, x2, y2, score]
+  - name: keypoints
+    dtype: {fp32: float32}
+    shape: [-1, -1, 17, 3]
+    rank: 4
+    semantic: poses
+    keypoint_axis: 2
+    keypoint_count: 17
+
+decode:
+  selection: none
+  box_format: xyxy
+  box_scale: pixel
+  score_field: score
+  is_person_only: true
+  confidence_threshold_default: 0.1
+  clamp_boxes: true
+
+pose:
+  estimator_type: bottom_up
+  requires_object_detector: false
+  landmark_schema: COCO17
+  tracked_points:
+    - nose
+    - left_eye
+    - right_eye
+    - left_ear
+    - right_ear
+    - left_shoulder
+    - right_shoulder
+    - left_elbow
+    - right_elbow
+    - left_wrist
+    - right_wrist
+    - left_hip
+    - right_hip
+    - left_knee
+    - right_knee
+    - left_ankle
+    - right_ankle
+  connections:
+    - name: coco
+      edges:
+        - [left_ankle, left_knee]
+        - [left_knee, left_hip]
+        - [right_ankle, right_knee]
+        - [right_knee, right_hip]
+        - [left_hip, right_hip]
+        - [left_shoulder, left_hip]
+        - [right_shoulder, right_hip]
+        - [left_shoulder, right_shoulder]
+        - [left_shoulder, left_elbow]
+        - [right_shoulder, right_elbow]
+        - [left_elbow, left_wrist]
+        - [right_elbow, right_wrist]
+        - [left_eye, right_eye]
+        - [nose, left_eye]
+        - [nose, right_eye]
+        - [left_eye, left_ear]
+        - [right_eye, right_ear]
+        - [left_ear, left_shoulder]
+        - [right_ear, right_shoulder]
+  decode:
+    method: coordinate
+    coordinate_scale: pixel
+
+overlay:
+  skeleton: coco
+  groups:
+    body:
+      connection_color: [0, 200, 83]
+
+sizes:
+  m:
+    input:
+      shape: [-1, 3, 640, 640]
+      resize:
+        target_size: [640, 640]
+    onnx:
+      batch_artifacts:
+        "1":
+          precision_artifacts:
+            fp32: {filename: rtmo-body7-m_b1_fp32.onnx}
+```
