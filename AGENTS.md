@@ -238,12 +238,16 @@ Read [`notes/decisions/README.md`](notes/decisions/README.md) before you change 
 sidecar, an example, the spec, the agent instructions or the PR workflow.
 It records decisions and the evidence behind them.
 It also has the open work, the rules and the entry template.
+Then read the Active entries of the index that apply to your task.
+Read a Historical entry only to find the reason for a decision.
 Add one entry for each new decision or measurement.
 Give the entry the next number after the highest existing entry.
 Add the entry to the index in the same PR.
 Do not rewrite the body of an old entry. Mark it superseded and add a new entry.
 You may change the status line of an entry: `proposed` to `accepted` or `rejected`, and `accepted` to
-`superseded by NNNN`. Write the date and the PR that changed it.
+`superseded by NNNN` or `absorbed into <path>#<anchor>`. Write the date and the PR that changed it.
+Keep the log inside the limits of decision [0026](notes/decisions/0026-decision-log-size.md).
+`uv run pytest tools/tests` checks the limits.
 Cite tracked files, decision entries, commits on `development` or GitHub PR numbers.
 Do not cite or link to `plans/`.
 Until a commit is on `development`, cite its PR number and the file path. Do not cite its commit SHA.
