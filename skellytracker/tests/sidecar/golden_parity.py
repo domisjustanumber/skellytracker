@@ -1,11 +1,14 @@
 """Shared helpers for golden-fixture parity tests.
 
 The fixtures under ``fixtures/golden/`` capture the pre-migration detector
-output. They were produced on a different machine than CI/dev boxes (possibly
-a different ONNX Runtime execution provider), so parity is asserted at the
-precision the model itself has, not at bit-exact float tolerance:
+output. Most were produced on a different machine than CI/dev boxes (possibly
+a different ONNX Runtime execution provider); the RTMPose face and YOLOX ones
+were regenerated from the pre-migration code on the CPU provider (see
+``environments.json``). CPU results still differ slightly across OSes and
+machines, so parity is asserted at the precision the model itself has, not at
+bit-exact float tolerance:
 
-* boxes (YOLOX): ``BOX_ATOL_PX`` pixels, confidence ``CONFIDENCE_ATOL``;
+* boxes (YOLOX): IoU at least ``BOX_MIN_IOU``, confidence ``CONFIDENCE_ATOL``;
 * SimCC keypoints: one SimCC bin, see :func:`simcc_bin_size_px`.
 
 Each fixture's provenance is recorded in ``fixtures/golden/environments.json``
@@ -34,16 +37,27 @@ ENVIRONMENTS_PATH = GOLDEN_DIR / "environments.json"
 # auto-detection finds on the machine running the tests.
 PARITY_EXECUTION_PROVIDER = "cpu"
 
-# Object-detector boxes are in source-image pixels. Different execution
-# providers / ORT versions move a box edge by a fraction of a pixel (observed
-# up to ~0.4 px); half a pixel is below any meaningful localisation change.
-BOX_ATOL_PX = 0.5
+# Object-detector boxes are compared by IoU, so the tolerance does not depend
+# on the box size. CPU results differ across machines: the YOLOX-m box moves by
+# up to ~1.4 px between Windows and Linux CPU (probably a near-tie between
+# candidate boxes in NMS), which is IoU ~0.994 for that box. IoU >= 0.99 still means
+# "the same detection"; a different object or a visibly shifted box is far below.
+BOX_MIN_IOU = 0.99
 # Detector confidence is a sigmoid score in [0, 1]; 0.01 is one percentage point.
 CONFIDENCE_ATOL = 0.01
 
 # SimCC keypoints are an argmax over discrete bins, so numerical noise can
 # move a keypoint by exactly one bin and by nothing smaller.
 _BIN_FLOAT_EPS_PX = 1e-6
+
+
+def box_iou(a: NDArray, b: NDArray) -> float:
+    """IoU of two ``(x1, y1, x2, y2)`` boxes in pixels."""
+    ix = max(0.0, min(a[2], b[2]) - max(a[0], b[0]))
+    iy = max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
+    inter = ix * iy
+    union = (a[2] - a[0]) * (a[3] - a[1]) + (b[2] - b[0]) * (b[3] - b[1]) - inter
+    return float(inter / union) if union > 0 else 0.0
 
 
 def load_golden(golden_path: Path) -> Any:
