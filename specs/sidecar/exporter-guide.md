@@ -36,7 +36,13 @@ The decisions behind this guide:
 - [0014](../../notes/decisions/0014-spec-lifecycle.md): the spec lifecycle, the `vNEXT` rule and the
   new-model workflow.
 - [0016](../../notes/decisions/0016-sidecar-catalogs.md): sidecar catalogs: `source`, reference
-  hashes, roots, discovery and the capability check.
+  hashes, roots, discovery and the capability check. The spec text for exporters is in
+  [`common.identity`](common/identity.md#fields) (`source`),
+  [`format.composition`](format/composition.md#reference-hashes) (the reference hashes and the bytes
+  of a file) and
+  [`common.sizes_and_artifacts`](common/sizes-and-artifacts.md#sizessizeonnxbatch_artifacts) (the
+  artifact hashes and the placeholder). The rule for exporters is
+  [`source` and hashes](#source-and-hashes).
 
 The spec is split into section files under `specs/sidecar/`. The entry point is
 [`specs/sidecar-spec.md`](../sidecar-spec.md): it is the permanent index, and it keeps each old
@@ -692,25 +698,47 @@ example has the path `detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml` un
 - A development build of skellytracker will load `vNEXT` sidecars. A release will not (skellytracker
   decision 0016).
 
-### Coming: `source` and hashes (skellytracker decision 0016, accepted)
+### `source` and hashes
 
-Until the spec defines `source`, use this list to plan the exporter overhaul. When the spec defines
-`source`, follow the spec text.
+A `vNEXT` sidecar has a top-level `source`. It also has a `sha256` on every `$ref`, every `base` and
+every `filename` artifact (skellytracker decision 0016). The spec text is in these section files:
 
-- Every `vNEXT` sidecar will carry a top-level `source: {name, version}`. `name` is the package name
-  of the exporter (for example `openmmlab-exporter`). `version` is the version of that package (for
-  example `0.1.0`).
-- `source.name: skellytracker` is reserved for the sidecars of the skellytracker package. Do not use
-  it.
-- Every `$ref`, every `base` and every `filename` artifact will carry a `sha256`. The hash covers the
-  exact bytes of the target file.
-- A `$ref` mapping will hold exactly `$ref` and `sha256`. A `base` will have the same `{$ref, sha256}`
-  form. A skellytracker tool will fill in the hashes.
-- Write the real hash of each ONNX file. A reserved placeholder (64 zeros) will be valid only in the
-  spec examples.
-- Sidecars and fragments will be UTF-8 without a BOM, with LF line endings. A CRLF file will fail.
-- Until the spec defines `source`, a `vNEXT` sidecar without these fields is valid. When the spec
-  defines `source`, regenerate your `vNEXT` sidecars with the fields.
+- `source`: section `common.identity`, in
+  `../freemocap/skellytracker-latest/specs/sidecar/common/identity.md` (rules `V-common.identity-4`
+  to `V-common.identity-6`).
+- The hashes of `$ref` and `base`, and the rules for the bytes of a file: section
+  `format.composition`, in `../freemocap/skellytracker-latest/specs/sidecar/format/composition.md`
+  (the heading "Reference hashes").
+- The hash of an artifact and the reserved placeholder: section `common.sizes_and_artifacts`, in
+  `../freemocap/skellytracker-latest/specs/sidecar/common/sizes-and-artifacts.md` (the heading
+  `sizes.<size>.onnx.batch_artifacts`).
+
+Rules:
+
+- Write a top-level `source` with exactly two fields. `name` is the package name of the exporter, for
+  example `openmmlab-exporter`. `version` is the released version of that package, for example
+  `0.1.0`. Write `name` in the form that rule `V-common.identity-6` gives.
+- Do not write `source.name: skellytracker`. That name is reserved for the sidecars of the
+  skellytracker package.
+- Write each sidecar and each fragment as UTF-8 without a BOM, with LF line endings. A file with CRLF
+  line endings fails the check. On Windows, `Path.write_text` writes CRLF when you do not give
+  `newline="\n"`.
+- Fill in the hashes with the skellytracker tool. First put the ONNX files in the folder of the
+  sidecar. Then run this command from the root of the exporter repo:
+  `python ../freemocap/skellytracker-latest/tools/sidecar_refs.py --write <sidecar>`.
+  - The tool needs only the standard library and PyYAML. It does not import `skellytracker`. Thus the
+    Python of the exporter can run it.
+  - The tool adds or updates only the `sha256` entries in the files of the sidecar tree. It also
+    changes a `base` path string to the form `{$ref, sha256}`. It keeps all other bytes. It does not
+    change line endings: on a CRLF file or a file with a BOM, it stops with an error and changes no
+    file.
+- Then check the hashes:
+  `python ../freemocap/skellytracker-latest/tools/sidecar_refs.py --check <sidecar>`. The check must
+  pass. It fails on a hash that does not match, on a missing hash, on a CRLF file and on a BOM.
+- Never write the placeholder hash (64 zeros). It is valid only in the spec's own examples. Thus do
+  not use the option `--placeholder`.
+- Publish a sidecar to a shared folder or a Hugging Face repo only after the release step
+  (skellytracker decision 0014; see "Publishing").
 
 <!-- End of the "Sidecars" section. -->
 
