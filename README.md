@@ -4,6 +4,12 @@ The tracking backend for freemocap. Collects different pose estimation tools beh
 
 ## Installation
 
+skellytracker needs Python 3.13.
+On Windows, Python 3.11 and 3.12 read `time.monotonic()` from `GetTickCount64()`.
+That clock has a resolution of 15.6 ms.
+Two video frames can then get the same timestamp, and MediaPipe rejects the second frame.
+Python 3.13 reads the clock from `QueryPerformanceCounter()`, with a resolution of 100 ns.
+
 The base package includes OpenCV-based trackers (Aruco, Charuco) with no extras needed:
 
 ```bash
@@ -184,7 +190,7 @@ KEYPOINT_DETECTOR_REGISTRY["my_detector"] = MyDetector
 Pull requests are welcome! We use [Github Flow](https://docs.github.com/en/get-started/quickstart/github-flow).
 
 1. Fork the repo and create your branch from `main`.
-2. Install with dev dependencies: `uv sync --extra recommended-cpu`
+2. Install with dev dependencies: `uv sync --extra recommended-cpu`. If Python 3.13 is not installed, uv downloads it.
 3. If you've added a tracker, add tests under `skellytracker/tests/`.
 4. Ensure the test suite passes: `pytest skellytracker/tests/` (or `pytest -m 'not video'` to skip slow video tests).
 5. Lint: `ruff check skellytracker/`
