@@ -1,0 +1,82 @@
+---
+schema_version: "vNEXT"
+model_id: rtmdet-person
+display_name: RTMDet Person
+role: [object_detector]
+
+input:
+  name: input
+  dtype: {fp32: float32, fp16: float32}
+  layout: NCHW
+  color_format: bgr
+  normalization: imagenet_bgr
+  resize: {method: letterbox, pad_position: top_left, rounding: half_up, pad_value: 114, interpolation: linear}
+
+batching: {batch_axis: 0}
+
+outputs:
+  - name: boxes
+    dtype: {fp32: float32, fp16: float32}
+    shape: [-1, -1, 4]
+    rank: 3
+    semantic: boxes
+  - name: scores
+    dtype: {fp32: float32, fp16: float32}
+    shape: [-1, -1]
+    rank: 2
+    semantic: scores
+
+decode:
+  selection: nms
+  boxes_output: boxes
+  scores_output: scores
+  box_format: xyxy
+  box_scale: pixel
+  class_id_base: 0
+  person_class_id: 0
+  is_person_only: true
+  confidence_threshold_default: 0.7
+  clamp_boxes: true
+  nms:
+    iou_threshold: 0.6
+    score_threshold: 0.05
+    class_agnostic: false
+    post_nms_top_k: 100
+
+sizes:
+  nano:
+    input:
+      shape: [-1, 3, 320, 320]
+      resize:
+        target_size: [320, 320]
+    onnx:
+      batch_artifacts:
+        "1":
+          precision_artifacts:
+            fp32: {filename: rtmdet-person-nano_b1_fp32.onnx}
+            fp16: {filename: rtmdet-person-nano_b1_fp16.onnx}
+          output_shapes:
+            - [1, 2100, 4]
+            - [1, 2100]
+        "2":
+          precision_artifacts:
+            fp32: {filename: rtmdet-person-nano_b2_fp32.onnx}
+            fp16: {filename: rtmdet-person-nano_b2_fp16.onnx}
+          output_shapes:
+            - [2, 2100, 4]
+            - [2, 2100]
+  medium:
+    input:
+      shape: [-1, 3, 640, 640]
+      resize:
+        target_size: [640, 640]
+    onnx:
+      batch_artifacts:
+        "1":
+          precision_artifacts:
+            fp32: {filename: rtmdet-person-medium_b1_fp32.onnx}
+            fp16: {filename: rtmdet-person-medium_b1_fp16.onnx}
+          output_shapes:
+            - [1, 8400, 4]
+            - [1, 8400]
+        # "2": same pattern, with row count 8400.

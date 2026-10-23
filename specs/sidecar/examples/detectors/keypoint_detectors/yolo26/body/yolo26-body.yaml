@@ -1,0 +1,111 @@
+---
+schema_version: "vNEXT"
+model_id: yolo26-body
+display_name: YOLO26 Pose
+role: [object_detector, pose_estimator]
+
+input:
+  name: images
+  dtype: {fp32: float32, fp16: float32, int8: float32}
+  layout: NCHW
+  color_format: rgb
+  normalization: unit_float
+  resize: {method: letterbox, pad_position: center, rounding: half_even, pad_value: 114, interpolation: linear}
+
+batching: {batch_axis: 0}
+
+outputs:
+  - name: output0
+    dtype: {fp32: float32, fp16: float32, int8: float32}
+    shape: [-1, 300, 57]
+    rank: 3
+    semantic: detections
+    fields: [x1, y1, x2, y2, score, class_id]
+    packed_keypoints:
+      offset: 6
+      components: [x, y, score]
+
+decode:
+  selection: none
+  max_detections: 300
+  box_format: xyxy
+  box_scale: pixel
+  score_field: score
+  class_field: class_id
+  class_id_base: 0
+  person_class_id: 0
+  is_person_only: true
+  confidence_threshold_default: 0.3
+
+pose:
+  estimator_type: bottom_up
+  requires_object_detector: false
+  landmark_schema: COCO17
+  tracked_points: [nose, left_eye, right_eye, left_ear, right_ear, left_shoulder, right_shoulder, left_elbow, right_elbow,
+    left_wrist, right_wrist, left_hip, right_hip, left_knee, right_knee, left_ankle, right_ankle]
+  connections:
+    - name: coco_17
+      edges:
+        - [nose, left_eye]
+        - [nose, right_eye]
+        - [left_eye, left_ear]
+        - [right_eye, right_ear]
+        - [left_shoulder, right_shoulder]
+        - [left_shoulder, left_elbow]
+        - [left_elbow, left_wrist]
+        - [right_shoulder, right_elbow]
+        - [right_elbow, right_wrist]
+        - [left_shoulder, left_hip]
+        - [right_shoulder, right_hip]
+        - [left_hip, right_hip]
+        - [left_hip, left_knee]
+        - [left_knee, left_ankle]
+        - [right_hip, right_knee]
+        - [right_knee, right_ankle]
+  decode:
+    method: coordinate
+    coordinate_scale: pixel
+
+overlay:
+  skeleton: coco_17
+  keypoint_color: [0, 183, 235]
+  groups:
+    left:
+      prefix: left_
+      connection_color: [0, 200, 83]
+    right:
+      prefix: right_
+      connection_color: [255, 82, 82]
+    body:
+      connection_color: [0, 183, 235]
+
+sizes:
+  nano:
+    input:
+      shape: [-1, 3, 640, 640]
+      resize:
+        target_size: [640, 640]
+    onnx:
+      batch_artifacts:
+        "1":
+          precision_artifacts:
+            fp32: {filename: yolo26-body-nano_b1_fp32.onnx}
+            fp16: {filename: yolo26-body-nano_b1_fp16.onnx}
+            int8: {filename: yolo26-body-nano_b1_int8.onnx}
+          output_shapes:
+            - [1, 300, 57]
+        "2":
+          precision_artifacts:
+            fp32: {filename: yolo26-body-nano_b2_fp32.onnx}
+            fp16: {filename: yolo26-body-nano_b2_fp16.onnx}
+            int8: {filename: yolo26-body-nano_b2_int8.onnx}
+          output_shapes:
+            - [2, 300, 57]
+        "3":
+          precision_artifacts:
+            fp32: {filename: yolo26-body-nano_b3_fp32.onnx}
+            fp16: {filename: yolo26-body-nano_b3_fp16.onnx}
+            int8: {filename: yolo26-body-nano_b3_int8.onnx}
+          output_shapes:
+            - [3, 300, 57]
+  # small, medium, large, xlarge: identical to nano except filenames.

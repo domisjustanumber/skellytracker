@@ -1,0 +1,108 @@
+---
+schema_version: vNEXT
+model_id: rtmo-body7
+display_name: RTMO Body7
+role: [object_detector, pose_estimator]
+
+input:
+  name: input
+  dtype: {fp32: float32}
+  layout: NCHW
+  color_format: bgr
+  normalization: none
+  resize:
+    method: fit
+    pad_value: 114
+    interpolation: linear
+
+batching: {batch_axis: 0}
+
+outputs:
+  - name: dets
+    dtype: {fp32: float32}
+    shape: [-1, -1, 5]
+    rank: 3
+    semantic: detections
+    fields: [x1, y1, x2, y2, score]
+  - name: keypoints
+    dtype: {fp32: float32}
+    shape: [-1, -1, 17, 3]
+    rank: 4
+    semantic: poses
+    keypoint_axis: 2
+    keypoint_count: 17
+
+decode:
+  selection: none
+  box_format: xyxy
+  box_scale: pixel
+  score_field: score
+  is_person_only: true
+  confidence_threshold_default: 0.1
+  clamp_boxes: true
+
+pose:
+  estimator_type: bottom_up
+  requires_object_detector: false
+  landmark_schema: COCO17
+  tracked_points:
+    - nose
+    - left_eye
+    - right_eye
+    - left_ear
+    - right_ear
+    - left_shoulder
+    - right_shoulder
+    - left_elbow
+    - right_elbow
+    - left_wrist
+    - right_wrist
+    - left_hip
+    - right_hip
+    - left_knee
+    - right_knee
+    - left_ankle
+    - right_ankle
+  connections:
+    - name: coco
+      edges:
+        - [left_ankle, left_knee]
+        - [left_knee, left_hip]
+        - [right_ankle, right_knee]
+        - [right_knee, right_hip]
+        - [left_hip, right_hip]
+        - [left_shoulder, left_hip]
+        - [right_shoulder, right_hip]
+        - [left_shoulder, right_shoulder]
+        - [left_shoulder, left_elbow]
+        - [right_shoulder, right_elbow]
+        - [left_elbow, left_wrist]
+        - [right_elbow, right_wrist]
+        - [left_eye, right_eye]
+        - [nose, left_eye]
+        - [nose, right_eye]
+        - [left_eye, left_ear]
+        - [right_eye, right_ear]
+        - [left_ear, left_shoulder]
+        - [right_ear, right_shoulder]
+  decode:
+    method: coordinate
+    coordinate_scale: pixel
+
+overlay:
+  skeleton: coco
+  groups:
+    body:
+      connection_color: [0, 200, 83]
+
+sizes:
+  m:
+    input:
+      shape: [-1, 3, 640, 640]
+      resize:
+        target_size: [640, 640]
+    onnx:
+      batch_artifacts:
+        "1":
+          precision_artifacts:
+            fp32: {filename: rtmo-body7-m_b1_fp32.onnx}
