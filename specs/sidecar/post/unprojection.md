@@ -66,3 +66,5 @@ Then the host maps the coordinates back to the source image. This list gives the
   - The plan lists a round-trip test (crop, then inverse, below 1e-3 px). MediaPipe-Exporter has only the plan and no code, so the test does not exist yet. (MediaPipe-Exporter plan `plans/hand-pipeline-export.md:462`, no git repo)
 
 ## Authoring guidance
+
+No exporter evidence yet.

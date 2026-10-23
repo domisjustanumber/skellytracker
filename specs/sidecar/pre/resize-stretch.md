@@ -52,3 +52,6 @@ Availability before `vNEXT`: [Schema versioning](../format/versioning.md#legacy-
 - Upstream rfdetr 1.11.2 resizes each image to `[resolution, resolution]` by default, with `F.resize(..., antialias=False)`. (rfdetr 1.11.2 `detr.py:3020-3023`, installed in the Roboflow-Exporter `.venv`)
 
 ## Authoring guidance
+
+- The Roboflow-Exporter README describes the RF-DETR input contract as "load -> RGB -> stretch resize (bilinear, antialias=False) -> HWC to NCHW -> ImageNet normalize". This maps to `input.resize: {method: stretch, interpolation: linear}`. (Roboflow-Exporter `README.md:491-501`, b46b98f; Roboflow-Exporter `rf_detr/sidecar.py:251`, b34e351)
+- The `target_size` of each size is `[r, r]`. `r` is the fixed square resolution of the checkpoint: nano 384, small 512, medium 576 and large 704. (Roboflow-Exporter `README.md:508-513`, b46b98f; Roboflow-Exporter `rf_detr/identity.py:76-79`, b34e351)

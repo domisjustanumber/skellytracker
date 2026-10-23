@@ -50,3 +50,8 @@ status: {spec: stable, validate: implemented, load: implemented}
   - Examples: nano detector 0.3344, 0.3329 and 0.3326; xlarge pose OKS AP 0.5002, 0.5006 and 0.5024. (Ultralytics-Exporter local reports, same files as above)
 
 ## Authoring guidance
+
+- Run the graph at more than one batch before you write a `dynamic` key. A graph can fix the batch in constants inside the graph and not only in the I/O dims. The Ultralytics-Exporter batch 2 graphs hold the batch in `int64` `Reshape` constants. (Ultralytics-Exporter `yolo_sidecar.py:114-124, 668-701`, f52ef68)
+- Do not write `batching.batch_conversion`. Ultralytics-Exporter keeps its batch rewrite recipe on the exporter side (`build_batch_conversion_profile`).
+  - Its report field `batch_size_converts_successfully` is `True` when the exporter can build the profile (a static source batch above 1). The field is `False` for a batch 1 artifact. It does not record that a conversion ran. (Ultralytics-Exporter `README.md:95-109` (2e0280e), `export_all.py:266-271` (69499e7) and `yolo_sidecar.py:636-702` (f52ef68))
+  - The `--test-conversion` check converts a batch 2 export to the batches 1 and 4. It compares the runtime outputs on seeded random input in [0, 1). It uses `rtol=atol=1e-3` for fp16 and `1e-5` for the other precisions. (Ultralytics-Exporter `README.md:35` (f52ef68) and `export_all.py:234-237, 326-349` (69499e7))

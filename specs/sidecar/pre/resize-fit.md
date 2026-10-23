@@ -68,3 +68,15 @@ Availability before `vNEXT`: [Schema versioning](../format/versioning.md#legacy-
 - No production code in OpenMMLab-Exporter applies `fit`. The module `rtmo/preprocess.py` declares the values only. (OpenMMLab-Exporter `rtmo/preprocess.py:10`, f4511f2)
 
 ## Authoring guidance
+
+- The mmpose `val_pipeline` has `BottomupResize(input_size=input_size, pad_val=(114, 114, 114))`. This maps to `method: fit`, `pad_value: [114, 114, 114]` and `interpolation: linear`. The block has no `pad_position`, `rounding` or `crop_policy`. (OpenMMLab-Exporter `mmdeploy-convert/model_cfgs/rtmo-m_16xb16-600e_body7-640x640.py:340`, 6c494a0; OpenMMLab-Exporter `rtmo/preprocess.py:15-21`, f4511f2)
+- `input_size` is `(640, 640)` for RTMO-S, RTMO-M and RTMO-L, and `(416, 416)` for RTMO-T. `target_size` follows it. (OpenMMLab-Exporter `mmdeploy-convert/model_cfgs/rtmo-*.py:52`, 6c494a0)
+- The mmpose `pad_val=(114, 114, 114)` has the same value for each channel. The exporter writes the scalar `114`, and so does the [RTMO body7 reference example](../examples/detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml). The spec does not say what a scalar `pad_value` fills for `fit`. This is a recorded spec defect, so the scalar form depends on it. The array form does not. ([Open work](../../../notes/decisions/README.md#open-work), item "The `pad_value` row of `input.resize`") (OpenMMLab-Exporter `mmdeploy-convert/model_cfgs/rtmo-m_16xb16-600e_body7-640x640.py:340`, 6c494a0; OpenMMLab-Exporter `rtmo/preprocess.py:15, 20`, f4511f2)
+- A `letterbox` does not replace `fit`. Against mmpose `BottomupResize`, a `center` letterbox gives these results (OpenMMLab-Exporter `notes/decisions/0020-rtmo-sidecar-contract.md:77-90`, 38ed76f; [decision 0012](../../../notes/decisions/0012-fit-resize-for-rtmo.md)):
+  - 586x640, scale 1: pixel difference 0, top-box IoU 1.000, keypoint difference 0 px.
+  - 320x240, integral scale 2: pixel difference mean 2.07 and max 81, top-box IoU 0.746, keypoint difference mean 1.43 px and max 8.60 px.
+  - 333x500, fractional scale: pixel difference mean 0.46 and max 35, top-box IoU 0.988, keypoint difference mean 2.26 px and max 7.90 px.
+  - 288x307, fractional scale: pixel difference mean 4.74 and max 88, top-box IoU 0.972, keypoint difference mean 5.13 px and max 17.89 px.
+- The pixel differences in the list above cover channels 1 and 2 only. (OpenMMLab-Exporter `notes/decisions/scripts/rtmo_sidecar_probe.py:211-213`, 38ed76f)
+- A `top_left` letterbox changes 83 to 95 percent of the input pixels. It moves the keypoints of the top detection by 29 to 156 px on average. (OpenMMLab-Exporter `notes/decisions/0020-rtmo-sidecar-contract.md:87-89`, 38ed76f)
+- The RTMO `data_preprocessor` sets `pad_size_divisor=32`. The sidecar has no field for it. The sizes 416 and 640 are multiples of 32 (13 and 20), so no extra padding applies at these sizes. (OpenMMLab-Exporter `mmdeploy-convert/model_cfgs/rtmo-m_16xb16-600e_body7-640x640.py:419`, 6c494a0)

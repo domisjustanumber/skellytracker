@@ -95,3 +95,7 @@ These are the conventions that the detectors use for canonical landmark names:
 No exporter evidence yet.
 
 ## Authoring guidance
+
+- No exporter writes `pose.canonical_mapping`. The `pose` blocks of OpenMMLab-Exporter and Ultralytics-Exporter hold only `estimator_type`, `requires_object_detector`, `landmark_schema`, `tracked_points`, `connections` and `decode`. Qualcomm-Exporter wrote none. The sidecar author adds the field. (OpenMMLab-Exporter `rtmw/sidecar.py:154-163`, eed3361; Ultralytics-Exporter `yolo_sidecar.py:515-528`, f52ef68; Qualcomm-Exporter `qai_sidecar.py:287-303`, a095041)
+- The `tracked_points` of the MediaPipe hand model (`wrist`, `thumb_cmc` to `pinky_tip`) equal the canonical hand names, so a passthrough map fits. The hand mapping of skellytracker is an identity map. (Qualcomm-Exporter `qai_sidecar.py:15-37`, a095041; skellytracker `skellytracker/core/detectors/keypoint_detectors/mediapipe/hands/mediapipe_hand_to_canonical_mapping.yaml`)
+- The MediaPipe face names `face_0000` to `face_0467` use the same name pattern as the `LaPa_106` face (`face_0000` and up) with different meanings. A `LaPa_106` mapping does not apply to them. (Qualcomm-Exporter `qai_sidecar.py:15`, c7b9132; [canonical names](#reference-mappings-in-skellytracker))

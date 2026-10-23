@@ -59,3 +59,8 @@ See [Input](../common/input.md#validation-rules).
 - The evaluation host of Qualcomm-Exporter resizes with PIL `Image.BILINEAR`, but its sidecar declares `linear`. The repo does not measure the pixel or AP effect. (Qualcomm-Exporter `qai_datasets.py:160` and `qai_sidecar.py:148`, 4ca4586)
 
 ## Authoring guidance
+
+- Ultralytics `LetterBox` and the dataset loader use plain `cv2.resize` with `cv2.INTER_LINEAR` and no antialias. The exporter writes `linear`. (ultralytics 8.4.184 `data/augment.py:1711, 1839-1840` and `data/base.py:304, 309, 311`, installed in the Ultralytics-Exporter `.venv`; Ultralytics-Exporter `yolo_sidecar.py:388`, f52ef68)
+- All three OpenMMLab-Exporter writers (RTMDet-person, RTMW and RTMO) write `interpolation: linear` explicitly. (OpenMMLab-Exporter `onnx_runtime/preprocess.py:28-35`, eed3361; OpenMMLab-Exporter `rtmw/preprocess.py:29-35`, eed3361; OpenMMLab-Exporter `rtmo/preprocess.py:16, 20`, f4511f2)
+- RF-DETR is `linear` (bilinear, `antialias=False`), not `cubic`. (Roboflow-Exporter `README.md:499-501`, b46b98f; Roboflow-Exporter `rf_detr/sidecar.py:251`, b34e351; rfdetr 1.11.2 `detr.py:3020-3023`, installed in the Roboflow-Exporter `.venv`)
+- The `qai_hub_models` PyTorch path of the MediaPipe person detector resizes with torch `interpolate(mode="bilinear")`. This is `linear`. (qai_hub_models 0.64.0 `utils/image_processing.py:349-351`, installed in the Qualcomm-Exporter `.venv`)

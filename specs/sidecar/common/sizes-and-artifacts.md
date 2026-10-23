@@ -141,6 +141,52 @@ See also [Input](input.md#validation-rules) and [Outputs](outputs.md#validation-
 
 ## Authoring guidance
 
+- Map the upstream input size to `sizes.<size>.input`.
+  - mmpose writes `input_size` as (w, h). The RTMW-M codec `input_size = (192, 256)` and the deploy `input_shape = [192, 256]` give `input.shape: [-1, 3, 256, 192]` and `target_size: [256, 192]`. The 384x288 configs write `(288, 384)`. Reverse the pair. A test guards the order. (OpenMMLab-Exporter `mmdeploy-convert/model_cfgs/rtmw-m_8xb1024-270e_cocktail14-256x192.py:5`, 491c17b; OpenMMLab-Exporter `tests/test_identities.py:46-54`, eed3361)
+  - RTMO body7 `input_size` is `(416, 416)` for size `t` and `(640, 640)` for `s`, `m` and `l`. (OpenMMLab-Exporter `mmdeploy-convert/model_cfgs/rtmo-t_8xb32-600e_body7-416x416.py:52` and `mmdeploy-convert/model_cfgs/rtmo-m_16xb16-600e_body7-640x640.py:52`, 6c494a0)
+  - RF-DETR has the square resolutions nano 384, small 512, medium 576 and large 704. (Roboflow-Exporter `rf_detr/identity.py:81-86` and `tests/test_sidecar.py:184-203`, 4ae67c0)
+  - Ultralytics-Exporter exports at `imgsz=640` and reads the shape from the ONNX input. `input.shape` is `[-1, *graph_input_shape[1:]]` and `target_size` is `graph_input_shape[2:4]`. It raises an error when the spatial dims are not integers. (Ultralytics-Exporter `yolo_sidecar.py:419-430` (f52ef68) and `export_all.py:43, 138-150` (69499e7))
+  - Qualcomm-Exporter maps the upstream `get_input_spec` shape `(batch, 3, 128, 128)` to `[-1, 3, 128, 128]` and `[128, 128]`, in one size named `default`. It checks the shape against the upstream spec. (Qualcomm-Exporter `qai_sidecar.py:156-164` and `qai_catalog.py:138-152`, 4ca4586)
+- Write the sizes in a deliberate order, because the first size is the default.
+  - Roboflow-Exporter writes `nano`, `small`, `medium`, `large`. Ultralytics-Exporter writes `nano`, `small`, `medium`, `large`, `xlarge`. Both use a fixed order and ignore the discovery order, so the default is the smallest size present. (Roboflow-Exporter `rf_detr/identity.py:11` and `tests/test_sidecar.py:184-203`, 4ae67c0; Ultralytics-Exporter `yolo_sidecar.py:36, 280-281`, f52ef68)
+  - OpenMMLab-Exporter writes alphabetical order, so the default of its `rtmdet-person` is `medium`. (OpenMMLab-Exporter `rtmdet_person/sidecar.py:135`, eed3361)
+- Ultralytics-Exporter maps the weight suffixes `yolo26n`, `yolo26s`, `yolo26m`, `yolo26l` and `yolo26x` to the sizes `nano`, `small`, `medium`, `large` and `xlarge`. For `yolo26-body`, the suffixes are `yolo26n-pose` and so on. (Ultralytics-Exporter `yolo_sidecar.py:175-189`, f52ef68)
+- Ultralytics-Exporter maps the precision keys to export arguments.
+  - `fp32` has no `quantize`. `fp16` is `quantize=16`. `int8` is `quantize=8` with the COCO val2017 YAML as calibration data. (Ultralytics-Exporter `export_all.py:138-158`, 69499e7)
+  - Every export passes `imgsz=640`, `batch=N`, `nms=False` and `max_det=300`. No export is dynamic: the ONNX metadata `args` shows `dynamic: False`. (Ultralytics-Exporter `export_all.py:50-57, 138-150`, 69499e7; local file `exports/detectors/object_detectors/yolo26/yolo26-nano_b2_fp32.onnx`, not in git)
+- Rebuild the whole family sidecar after each run, from a scan of the family directory.
+  - OpenMMLab-Exporter lists only an artifact that passes `validate_artifact`. It also leaves out an artifact whose accuracy comparison, or that of its parent artifact, failed. (OpenMMLab-Exporter `pipeline/sidecar.py:1-13, 42-77`, 0c7ec77)
+  - Roboflow-Exporter does the same. A comparison fails when `abs(delta AP)` is above 0.01. (Roboflow-Exporter `pipeline/sidecar.py:71-119` and `README.md:281-287`, 4ae67c0)
+  - Both exporters log a warning for each file that they leave out. (OpenMMLab-Exporter `pipeline/sidecar.py:64-66, 72-73`, 0c7ec77; Roboflow-Exporter `pipeline/sidecar.py:90-91, 102-103`, 4ae67c0)
+  - A partial run keeps the sizes, batches and precisions already on disk. `precision_artifacts` lists only the precisions present. (Roboflow-Exporter `tests/test_sidecar.py:206-212, 327-359`, 4ae67c0)
+  - An interrupted Ultralytics-Exporter run gives a sidecar with only the artifacts present at that moment. (Ultralytics-Exporter `yolo_sidecar.py:255-277, 615-633`, f52ef68)
+- Enforce the family invariant in the writer. See [Decision 0010](../../../notes/decisions/0010-family-invariant.md).
+  - Roboflow-Exporter raises an error when two sizes differ in `num_queries`, `num_class_logits`, `num_select`, the decode background or `confidence_threshold_default`. (Roboflow-Exporter `rf_detr/sidecar.py:95-113` and `tests/test_sidecar.py:251-262`, b34e351)
+  - Roboflow-Exporter raises an error when the artifacts disagree on the input name or on the dtype of a precision. (Roboflow-Exporter `rf_detr/sidecar.py:154-172, 220-223` and `tests/test_sidecar.py:239-248`, b34e351)
+  - Ultralytics-Exporter checks three things. The input and output batch dims of each artifact equal the batch in the file name. The input has rank 4. All artifacts share the tensor names. It does not compare dtypes or non-batch shapes across sizes. (Ultralytics-Exporter `yolo_sidecar.py:288-339` and `tests/test_yolo_sidecar.py:416-434`, f52ef68)
+  - The channel order is a family property. The RGB ConvNeXt-B and Swin-B RTMDet variants needed their own `rtmdet-rgb` family. OpenMMLab-Exporter dropped them with their weights. (OpenMMLab-Exporter 0004 `notes/decisions/0004-channel-order-per-family.md:7-9, 18-19`, c955162)
+- Write each batch key as `str(batch)`. PyYAML then quotes the key (`'1':`).
+  - The Qualcomm-Exporter test asserts that the keys reload as `["1"]`. (Qualcomm-Exporter `tests/test_qai_sidecar.py:20-52`, 4ca4586)
+  - The Roboflow-Exporter test accepts either quote style. (Roboflow-Exporter `tests/test_sidecar.py:215-223`, b34e351)
+- Write `output_shapes` for a size with more than one native batch.
+  - OpenMMLab-Exporter, Ultralytics-Exporter and Qualcomm-Exporter write `output_shapes` only for such a size. Ultralytics-Exporter takes the shapes from the graph outputs of the first precision. (OpenMMLab-Exporter `rtmo/sidecar.py:179-190`, eed3361; Ultralytics-Exporter `yolo_sidecar.py:402-418`, f52ef68; Qualcomm-Exporter `qai_sidecar.py:79-95`, 4ca4586)
+  - Roboflow-Exporter always writes `output_shapes`, also for a single batch key, for example `[[1, 300, 4], [1, 300, 91]]`. (Roboflow-Exporter `rf_detr/sidecar.py:185-196`, b34e351)
+  - Ultralytics-Exporter and Qualcomm-Exporter write the smallest native batch in the top-level `outputs[].shape[0]`, and the batch keys of a size can be larger. The spec examples write `-1`. The proposal [0019](../../../notes/decisions/0019-output-shape-batch-axis.md) covers the batch axis of `outputs[].shape`. (Ultralytics-Exporter `yolo_sidecar.py:342-349, 444-455`, f52ef68; Qualcomm-Exporter `qai_sidecar.py:111-113`, 4ca4586)
+- Measure each precision against its parent before you list it. Roboflow-Exporter built a static QDQ int8 RF-DETR and removed it.
+  - AP went from 0.5953 to 0.4933 (-0.102), and AP50 from 0.7711 to 0.7268. (Roboflow-Exporter `README.md:678-681`, b46b98f)
+  - The int8 graph was about 25% slower than fp32 on CPU, and the file went from 102.8 MB to 27.6 MB. (Roboflow-Exporter `README.md:695-697`, b46b98f)
+  - Its sidecar never has an `int8` entry. (Roboflow-Exporter `README.md:623-626`, b46b98f)
+- No exporter writes `url`, `url_sha256` or `input_dtype`.
+  - OpenMMLab-Exporter computes the SHA-256 of each file, but it does not write the hash into the sidecar. (OpenMMLab-Exporter `rtmdet_person/sidecar.py:139-145` (eed3361) and `pipeline/sidecar.py:75-76` (0c7ec77))
+  - Qualcomm-Exporter keeps the SHA-256 and the size of each ONNX file only in the report (`artifact.sha256`, `artifact.filesize_bytes`). (Qualcomm-Exporter `qai_report.py:99-130`, 4ca4586)
+  - The [exporter guide](../exporter-guide.md#coming-source-and-hashes-skellytracker-decision-0016-accepted) says that every `filename` artifact will carry a `sha256`.
+- An fp16 converter can make an invalid graph.
+  - The Ultralytics FP16 export can put the input `Cast` node after its consumers. Ultralytics-Exporter sorts the graph again and runs `onnx.checker` after each conversion. (Ultralytics-Exporter `export_all.py:161-188, 227-229`, 69499e7)
+  - The ONNX Runtime converter appends the input `Cast` nodes, and `onnxconverter-common` 1.16 made an fp16 graph that ONNX Runtime rejects. Qualcomm-Exporter prefers `onnxruntime.transformers.float16.convert_float_to_float16`, sorts the graph again and runs `onnx.checker`. (Qualcomm-Exporter `qai_export.py:63-103` (8d8e05a) and `tests/test_qai_export.py:32-47` (4ca4586))
+- Prove parity on the published bytes.
+  - The published fp32 artifact of Roboflow-Exporter is byte-identical to the raw `model.export()` output, and the publish step verifies its SHA-256. (Roboflow-Exporter `pipeline/ARTIFACT_CONTRACT.md:9-18` and `rf_detr/export.py:82-98`, 4ae67c0)
+  - The parity numbers of the MediaPipe-Exporter plan are for the raw tf2onnx graphs. A planned edit renames the tensors, reshapes the outputs and makes the batch symbolic after those measurements. This plan fact is the only evidence of this pitfall. (MediaPipe-Exporter plan `plans/hand-pipeline-export.md:189-193, 230-238`, no git repo)
+
 ## Examples
 
 ```yaml

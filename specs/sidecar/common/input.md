@@ -82,3 +82,22 @@ See also [Identity](identity.md#validation-rules), [Sizes and artifacts](sizes-a
   - The decision log records that the spec does not state that the host frame is BGR. ([decision log](../../../notes/decisions/README.md#open-work))
 
 ## Authoring guidance
+
+- Map `color_format` from the upstream data preprocessor.
+  - mmpose `bgr_to_rgb=True` (RTMW) gives `rgb`. (OpenMMLab-Exporter `mmdeploy-convert/model_cfgs/rtmw-m_8xb1024-270e_cocktail14-256x192.py:58-62`, 491c17b)
+  - RTMO sets no `bgr_to_rgb` (the default is `False`), so it gives `bgr`. RTMDet-person has `bgr_to_rgb=False`, so it gives `bgr`. OpenMMLab-Exporter checks each family against its config. (OpenMMLab-Exporter `mmdeploy-convert/model_cfgs/rtmo-m_16xb16-600e_body7-640x640.py:417-421`, 6c494a0; OpenMMLab-Exporter `tests/test_identities.py:63-90`, eed3361)
+  - Roboflow-Exporter writes `color_format: rgb` as a constant. (Roboflow-Exporter `rf_detr/sidecar.py:248-250`, b34e351)
+  - The Ultralytics predictor flips BGR to RGB before it divides by 255. The validation loader also gives RGB (`Format(bgr=0.0)` flips the channels). Thus YOLO26 is `rgb`. (`ultralytics` 8.4.184 `engine/predictor.py:200-202`, `data/dataset.py:355` and `data/augment.py:2521`, installed, not in git)
+  - The `qai_hub_models` input spec of the MediaPipe person detector declares `ColorFormat.RGB`, so it is `rgb`. (`qai_hub_models` 0.64.0 `models/mediapipe_pose/model.py:199-211`, installed, not in git)
+  - Ultralytics-Exporter and Qualcomm-Exporter write no `color_format`. This is valid only under the legacy version. See [Version-aware compatibility](../format/versioning.md#version-aware-compatibility). (Ultralytics-Exporter `yolo_sidecar.py:379-390`, f52ef68; Qualcomm-Exporter `qai_sidecar.py:139-150`, 4ca4586)
+- Read `input.name` from the single runtime input of the graph.
+  - Remove the initializers from `graph.input` first. Some ONNX files list initializers there, so `graph.input[0]` can be a weight. (Roboflow-Exporter `onnx_runtime/contract.py:20-23, 43-47`, d0559b9)
+  - The names in use are `input` (OpenMMLab-Exporter and RF-DETR), `images` (Ultralytics-Exporter) and `image` (Qualcomm-Exporter). (OpenMMLab-Exporter local export `exports/detectors/object_detectors/rtmdet-person/rtmdet-person.yaml`, not in git; Roboflow-Exporter `rf_detr/sidecar.py:240-241`, b34e351; Ultralytics-Exporter `yolo_sidecar.py:242-252`, f52ef68; Qualcomm-Exporter `qai_export.py:43`, 8d8e05a)
+- The exporters write `layout: NCHW` as a constant after a rank-4 check. Roboflow-Exporter also writes `color_format: rgb` without a check of the graph. (Ultralytics-Exporter `yolo_sidecar.py:292-293, 382`, f52ef68; Roboflow-Exporter `rf_detr/sidecar.py:240-251`, b34e351)
+- Write `input.dtype` from the graph for each precision.
+  - An fp16 conversion with `keep_io_types=True` keeps the float32 I/O, so the exporters write `{fp32: float32, fp16: float32}`. OpenMMLab-Exporter and Roboflow-Exporter check that the I/O of every published artifact is float32. (OpenMMLab-Exporter `onnx_convert/FP16_CONTRACT.md:11-16` (6ed34e4) and `rtmo/contract.py:8-11` (eed3361); Roboflow-Exporter `pipeline/artifacts.py:125-130`, 4ae67c0)
+  - The YOLO26 sidecar has `{fp32: float32, fp16: float32, int8: float32}`. (Ultralytics-Exporter `yolo_sidecar.py:352-360, 379-381`, f52ef68)
+  - Qualcomm-Exporter keys the map by the precisions that it finds across all batches. (Qualcomm-Exporter `qai_sidecar.py:74-76, 106-110`, 4ca4586)
+  - With a float32 input for every precision, the sidecar needs no `normalization_by_precision`. (Ultralytics-Exporter `yolo_sidecar.py:391-393`, f52ef68)
+- A TFLite model has an NHWC input. This is a plan fact, with no other evidence.
+  - The command `tf2onnx --opset 17 --inputs-as-nchw input_1` gives an NCHW ONNX input. The shapes are `[B, 3, 256, 256]` (re-crop) and `[B, 3, 224, 224]` (landmark). The command removes every layout `Transpose`. The sidecar then has `layout: NCHW`. (MediaPipe-Exporter plan `plans/hand-pipeline-export.md:172-174, 191-195, 245-254`, no git repo)

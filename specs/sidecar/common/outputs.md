@@ -57,6 +57,20 @@ See also [Identity](identity.md#validation-rules), [Sizes and artifacts](sizes-a
 
 ## Authoring guidance
 
+- Write `-1` for an axis that depends on the input size, and put the concrete shapes in `output_shapes`.
+  - RTMDet-person has 2100 rows at 320 and 8400 at 640. The family shapes are `[-1, -1, 4]` (`boxes`) and `[-1, -1]` (`scores`). (OpenMMLab-Exporter `rtmdet_person/sidecar.py:110-126` (eed3361) and `rtmdet_person/contract.py:10-11` (f946e5d))
+  - RF-DETR writes `[-1, 300, 4]` and `[-1, 300, 91]` with rank 3. (Roboflow-Exporter `rf_detr/sidecar.py:254-270`, b34e351)
+  - The RTMW SimCC outputs have no `shape` and no `rank`, because the bin counts scale with the input size. They have only the `semantic` (`simcc_y` when the name ends in `y`, else `simcc_x`), `keypoint_axis: 1` and `keypoint_count: 133`. (OpenMMLab-Exporter `rtmw/sidecar.py:108-120`, eed3361)
+- Read the output name, the dtype for each precision, the shape and the rank from the graph. Hard-code only the `semantic` and the fields.
+  - Ultralytics-Exporter reads them from the smallest-batch artifact of the first size (name `output0`, dtype `float32` for every precision). (Ultralytics-Exporter `yolo_sidecar.py:342-349, 363-371, 436-464`, f52ef68)
+  - Roboflow-Exporter checks the names and the shapes against its identity constants (`num_queries` 300, `num_class_logits` 91). It allows only `float32` and `float16`. (Roboflow-Exporter `rf_detr/sidecar.py:125-151, 225-233`, b34e351)
+  - Qualcomm-Exporter writes `detections` with the shape `[1, 896, 5]` and the fields `x1, y1, x2, y2, score`. The 896 anchors are a constant of its catalog, and a check runs the wrapped module once and compares the shape. (Qualcomm-Exporter `qai_sidecar.py:113-123` and `qai_catalog.py:44-46, 58, 155-173`, 4ca4586)
+- Ultralytics-Exporter and Qualcomm-Exporter write the smallest native batch present into `outputs[].shape[0]`. The generated files have `1`, for example `[1, 300, 6]`. The spec examples have `-1`. The proposal [0019](../../../notes/decisions/0019-output-shape-batch-axis.md) covers the batch axis of `outputs[].shape`. (Ultralytics-Exporter local export `exports/detectors/object_detectors/yolo26/yolo26.yaml:14-19`, not in git, and `yolo_sidecar.py:342-349, 444-455` (f52ef68); Qualcomm-Exporter `qai_sidecar.py:79-95, 111-113` and `tests/test_qai_sidecar.py:20-52`, 4ca4586)
+- After tf2onnx, map the output names by the TFLite output order and shape. Do not use the `Identity_N` numbering. These are plan facts, with no other evidence.
+  - Assert the TFLite order and the shapes against a catalog before you rename. (MediaPipe-Exporter plan `plans/hand-pipeline-export.md:345-353`, no git repo)
+  - The hand flag and the handedness outputs are both `[1, 1]`, so only the TFLite order (flag, then handedness) tells them apart. (MediaPipe-Exporter plan `plans/hand-pipeline-export.md:146-153, 192`, no git repo)
+- The MediaPipe hand landmark model has outputs beyond the landmarks: a presence score, a handedness score and world landmarks. The closed `semantic` set has no value for them. The proposal [0021](../../../notes/decisions/0021-landmark-extra-outputs.md) covers these outputs. (MediaPipe-Exporter plan `plans/hand-pipeline-export.md:252-258, 356-361`, no git repo)
+
 ## Examples
 
 ```yaml

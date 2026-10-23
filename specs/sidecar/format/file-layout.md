@@ -105,3 +105,29 @@ See [Identity](../common/identity.md#validation-rules) and [File composition](co
   - Qualcomm-Exporter turns aliases off in its dumper (`ignore_aliases` returns `True`). It writes the shared dtype map in full under `input` and under `outputs`. (Qualcomm-Exporter `qai_sidecar.py:19-21, 62-71`, 4ca4586)
 
 ## Authoring guidance
+
+- The export root of each exporter has the role of `{cache_dir}`.
+  - Roboflow-Exporter writes `<exports>/detectors/object_detectors/rfdetr/rfdetr.yaml` and the ONNX files beside it. It writes the class-id fragment to `<exports>/detectors/shared/class_ids/coco91.yaml`. (Roboflow-Exporter `rf_detr/sidecar.py:34-37, 79-86` and `rf_detr/identity.py:98`, b34e351)
+  - OpenMMLab-Exporter writes `detectors/keypoint_detectors/rtmw/wholebody/` and `detectors/object_detectors/rtmdet-person/`. (OpenMMLab-Exporter `tests/test_rtmw.py:73-77`, ba0c087; OpenMMLab-Exporter `rtmdet_person/identity.py:26`, eed3361)
+  - Ultralytics-Exporter writes `object_detectors/yolo26/yolo26.yaml` and `keypoint_detectors/yolo26/body/yolo26-body.yaml`. (Ultralytics-Exporter `yolo_sidecar.py:103-107`, f52ef68)
+  - Qualcomm-Exporter writes `object_detectors/mediapipe-person-detector/`. (Qualcomm-Exporter `qai_catalog.py:35-42`, 4ca4586)
+- Name each ONNX file `{model_id}-{size}_b{batch}_{precision}.onnx`.
+  - Examples: `rtmw-wholebody-m_b3_fp32` and `rtmw-wholebody-x-384_b1_fp16`. (OpenMMLab-Exporter `tests/test_rtmw.py:73-77`, ba0c087)
+  - Qualcomm-Exporter uses the size name `default` for its one-size family. (Qualcomm-Exporter `qai_catalog.py:38-39`, 4ca4586)
+- Each exporter finds its artifacts with a file name pattern, and it skips other files without an error.
+  - Roboflow-Exporter matches `rfdetr-(nano|small|medium|large)_b[1-9][0-9]*_(fp32|fp16).onnx`. (Roboflow-Exporter `pipeline/sidecar.py:38-41, 86-92`, 4ae67c0)
+  - Qualcomm-Exporter matches `^<model_id>-default_b<N>_(fp32|fp16).onnx$`. (Qualcomm-Exporter `qai_sidecar.py:38-59`, 4ca4586)
+  - Ultralytics-Exporter matches `{family}-{size}_b{batch}_{precision}.onnx`. (Ultralytics-Exporter `yolo_sidecar.py:206-211, 255-277`, f52ef68)
+  - Each pattern needs a `_b` segment. Thus none of these exporters can list a `dynamic` batch file. Roboflow-Exporter and Qualcomm-Exporter also cannot list an `int8` file. (the sources above)
+  - Roboflow-Exporter also rejects a graph whose file name differs from the name that it builds from the identity, the batch and the precision. (Roboflow-Exporter `rf_detr/sidecar.py:125-132`, 4ae67c0)
+- The YAML emitters differ.
+  - OpenMMLab-Exporter calls `yaml.safe_dump` with `explicit_start=True` (a leading `---`), `sort_keys=False` and `width=120`. (OpenMMLab-Exporter `pipeline/sidecar.py:80-82`, 0c7ec77)
+  - Qualcomm-Exporter calls `yaml.dump` with a `SafeDumper` subclass and the same three settings. It adds `default_flow_style=None`, so a leaf mapping comes out as `{fp16: float32, fp32: float32}`. (Qualcomm-Exporter `qai_sidecar.py:62-71`, 4ca4586)
+  - Roboflow-Exporter uses its own dumper. It writes block style for nested values and flow style for a list or a mapping of scalars. (Roboflow-Exporter `rf_detr/sidecar.py:289-328`, b34e351)
+  - OpenMMLab-Exporter writes `schema_version` without quotes (`vNEXT`). The reference examples do not agree on the quotes either. The [decision log](../../../notes/decisions/README.md#open-work) records this as a spec defect. (OpenMMLab-Exporter local export `exports/detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml:2`, not in git)
+- The folder of two kinds of sidecar does not follow the [Storage layout](#storage-layout).
+  - OpenMMLab-Exporter writes RTMO to `detectors/keypoint_detectors/rtmo/body7/`. The part folders of the layout are `hand`, `face`, `body` and `wholebody`. Write the RTMO sidecar to the `body` part folder. The [exporter guide](../exporter-guide.md#known-open-items-for-the-exporter-overhaul) lists the move to `rtmo/body/` for the exporter overhaul. (OpenMMLab-Exporter `rtmo/identity.py:26-27`, eed3361)
+  - The layout assigns `object_detectors/` to the role `object_detector` and `keypoint_detectors/` to the role `pose_estimator`. It names no folder for a sidecar with both roles. Ultralytics-Exporter writes `yolo26-body.yaml` (both roles) to `keypoint_detectors/yolo26/body/`. OpenMMLab-Exporter writes RTMO (both roles) under `keypoint_detectors/rtmo/`. The [exporter guide](../exporter-guide.md#path) records the gap, and [0017](../../../notes/decisions/0017-dual-role-sidecar-folder.md) is the proposal for it. (Ultralytics-Exporter `yolo_sidecar.py:24-25, 103-107`, f52ef68; OpenMMLab-Exporter `rtmo/identity.py:26-27`, eed3361)
+- Write LF line endings. [Decision 0016](../../../notes/decisions/0016-sidecar-catalogs.md) requires LF, and the [exporter guide](../exporter-guide.md#coming-source-and-hashes-skellytracker-decision-0016-accepted) says that a CRLF file will fail.
+  - Ultralytics-Exporter and Qualcomm-Exporter write the sidecar with `Path.write_text`, which writes CRLF on Windows. Their generated sidecars have a CRLF at the end of every line. (Ultralytics-Exporter `yolo_sidecar.py:632`, f52ef68; Qualcomm-Exporter `qai_sidecar.py:31-35`, 4ca4586; local exports `yolo26.yaml` and `mediapipe-person-detector.yaml`, not in git)
+  - OpenMMLab-Exporter and Roboflow-Exporter write through `atomic_write_text` with `newline="\n"`. (OpenMMLab-Exporter `report_core/io.py:31`, HEAD cce619d; Roboflow-Exporter `report_core/io.py:29`, HEAD c64fd2a)

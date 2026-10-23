@@ -17,22 +17,34 @@ read-only worktree `../freemocap/skellytracker-latest`.
 
 1. Write one proposal for each new or changed contract unit. Do not put two units in one proposal.
 2. Copy this file to `plans/sidecar-proposal-<slug>.md` in the exporter repo. `<slug>` is a short
-   lowercase name of the change, with hyphens, for example `letterbox-floor-rounding`.
+   lowercase name of the change, with hyphens, for example `letterbox-floor-rounding`. If that file
+   exists, read it and update it in place. Do not overwrite it without a read: git does not track
+   `plans/`.
 3. Change the title to `# Change proposal: <slug>`.
 4. Link the proposal from the intake (`plans/sidecar-intake-<model>.md`, "Proposals and reference
    files").
 5. Fill in all eight parts. Do not delete a part. If a part has no content, write `none` and the
-   reason.
+   reason. If you do not know a value, write `unknown (<reason>)`.
 6. Write the proposed spec text in ASD-STE100 Simplified Technical English. Use short sentences and
    active voice. Use "must" for a requirement. Keep technical names, field names, enum values,
    formulas, code and YAML unchanged.
 7. Before you write, read the table "Considered and deliberately not added"
    (`specs/sidecar/changelog.md`).
    If the feature is in it, cite the row in part 1, and give the evidence that a model needs it now.
-8. If this proposal needs another proposal, or another proposal needs this one, write each dependency
+8. Before you write, find the skellytracker decision entries with the status `proposed` that cover
+   your rows. Read the index in `notes/decisions/README.md` of the skellytracker repo. Also read each
+   `proposed` entry that the guidance of your sections cites. If an entry covers your rows, do not write a competing proposal:
+   - Use the slug of the entry.
+   - Cite the entry in the header and in part 1.
+   - Add your evidence, your vectors and your parity plan.
+   - If your rows need a different change, say where your proposal differs. Give the reason in
+     part 8.
+   - If the entry is a gap record (its Decision section says so), give the parts that it does not
+     have.
+9. If this proposal needs another proposal, or another proposal needs this one, write each dependency
    in the header. One parity script can serve several proposals. Cite it in part 5 of each.
-9. After you write the proposal, stop. Do not change a file in skellytracker. The proposed spec text
-   can contain YAML excerpts. Do not write a sidecar file of the model with the proposed fields.
+10. After you write the proposal, stop. Do not change a file in skellytracker. The proposed spec text
+    can contain YAML excerpts. Do not write a sidecar file of the model with the proposed fields.
 
 **Section IDs.** The spec is split into section files under `specs/sidecar/`. Each section file has a
 section ID: the `id` in its front matter, for example `pre.resize.letterbox` or
@@ -46,7 +58,8 @@ session that lands the change sets the final section ID and the final rule IDs.
 You do not do these steps. A skellytracker session does them, and the user decides.
 
 1. A skellytracker session finds the proposal in the `plans/` folder of the exporter repo. It records
-   the proposal as a decision entry with the status `proposed`.
+   the proposal as a decision entry with the status `proposed`. If the proposal builds on a gap
+   record, the new entry extends the gap record.
 2. The user accepts or rejects the proposal.
 3. After acceptance:
    - A content PR adds the normative text, the changelog row, the vectors and the reference
@@ -73,6 +86,7 @@ You do not do these steps. A skellytracker session does them, and the user decid
 | Section file (the file of the changed section, or the proposed path of the new section file under `specs/sidecar/`) | |
 | Depends on (proposal files that must land first, or `none`) | |
 | Needed by (proposal files that depend on this one, or `none`) | |
+| skellytracker decision entries with the status `proposed` that cover the same property (or `none`) | |
 | skellytracker folder that you read (normally `../freemocap/skellytracker-latest`) | |
 | skellytracker commit of the spec text that you read (`git -C <folder> rev-parse HEAD`; add `+ uncommitted changes` if `git -C <folder> status --porcelain` lists a file that you read) | |
 
@@ -81,6 +95,10 @@ You do not do these steps. A skellytracker session does them, and the user decid
 Give the property, its upstream evidence, and the reason why the nearest section is wrong. Show the
 difference with a number where possible. Example: a `center` letterbox in place of `fit` gives an input
 max abs diff of 35 on a 333×500 image (OpenMMLab-Exporter 0020).
+
+If the only evidence is a secondary source (a plan, a paper, a README or the notes of an exporter),
+mark it `(secondary)`. Name the primary file or config key that a reader must check. Before the user
+accepts the proposal, this part must cite the primary evidence.
 
 | Item | Value |
 |---|---|
@@ -178,6 +196,9 @@ the same file).
 - In each docstring, cite the proposed section ID.
 - Your host decoder needs this behaviour. The reference implementation is the clean, minimal form of
   your host code.
+- If no host code exists yet, write the functions from the text of part 2. Write
+  `source commit: none (no host code)` in the note at the top of the file. Part 4 is then
+  `unverified: no host implementation`.
 - If the proposal changes a section that has no reference implementation, implement the full section
   as changed (forward, inverse and every value), not only the change. Then this file is also the
   reference-implementation step of that section.
@@ -259,9 +280,11 @@ Follow the parity rules of the exporter guide (section "Sidecars", heading "Pari
 - Give the numbers, the script and the commit. If one script serves several proposals, cite it here
   and in each of the other proposals.
 - If you cannot run the check yet (for example, no ONNX file exists, the upstream cannot run, or the
-  exporter has no git repo), write `to run` in the result. Describe the script and its gates. A
-  proposal with `to run` is not complete. Fill in the numbers, the script and the commit before the
-  user accepts the proposal.
+  exporter has no git repo), write `to run` in the result. Describe the script and its gates. Fill in
+  each cell that does not need a number. Write `to run` in each cell that needs a number.
+- If you do not know the path or the commit of the script, write `unknown (<reason>)` in its cell.
+- A skellytracker session can record a proposal with `to run` as a `proposed` decision entry. Before
+  the user accepts the proposal, fill in the numbers, the script and the commit.
 
 | Item | Value |
 |---|---|
@@ -351,15 +374,26 @@ with its current values. Give numbers where you have them.
 
 ## Before you stop
 
+Tick each box when its condition is true. If the condition of a box does not apply, tick the box and
+write `n/a` after it.
+
 - [ ] All eight parts are filled in, or say `none` with a reason.
 - [ ] The intake links to this proposal.
 - [ ] The header gives the dependencies, or `none`.
+- [ ] The header names each `proposed` skellytracker decision entry that covers the same property, or
+      `none`. This proposal builds on such an entry. It does not compete with it.
+- [ ] Part 1 cites primary evidence, or names the primary evidence that is missing.
 - [ ] Part 2.1 lists each place that the change edits.
 - [ ] Part 3 names the reference file, and the file exists in `plans/`.
 - [ ] Part 4 gives `verified_against`, or `unverified: <reason>`.
+- [ ] Each pixel case in part 4 has its tolerance in `compare`.
 - [ ] Part 5 gives the numbers, the script path and the commit, or says `to run` and describes the
-      script.
-- [ ] If part 5 has a result, the parity script is committed in the exporter repo.
+      script. Tick this box also for `to run` with a description of the script.
+- [ ] If the result of part 5 is `pass` or `fail`, the parity script is committed in the exporter
+      repo.
 - [ ] No file in skellytracker changed.
+
+A proposal with `to run` in part 5 is ready for a skellytracker session to record. It is not ready for
+the user to accept. It stays incomplete until part 5 has the numbers, the script and the commit.
 
 Then stop.

@@ -152,3 +152,9 @@ Resolution errors are recoverable catalog errors. Each error names the file and 
 No exporter evidence yet.
 
 ## Authoring guidance
+
+- No exporter writes `base`. The sidecar writers of the four exporters have no `base` key. (OpenMMLab-Exporter cce619d, Roboflow-Exporter c64fd2a, Ultralytics-Exporter 2e0280e, Qualcomm-Exporter 4ca4586; searched the Python sources outside the tests at each HEAD)
+- Roboflow-Exporter is the only exporter that writes `$ref` today. `decode.class_id_map` is `{$ref: ../../shared/class_ids/coco91.yaml}`. The path is relative to the family directory `detectors/object_detectors/rfdetr/`. A test checks that the path resolves to `<root>/detectors/shared/class_ids/coco91.yaml`. (Roboflow-Exporter `rf_detr/sidecar.py:36-37` and `tests/test_sidecar.py:280-284`, b34e351)
+- The fragment `coco91.yaml` is a bare YAML sequence of 91 integers. It starts with `---` and has no `schema_version`. Each `-1` slot has a comment ("unused" or "COCO id gap"). (Roboflow-Exporter `rf_detr/sidecar.py:331-344`, b34e351; local export `exports/detectors/shared/class_ids/coco91.yaml`, not in git)
+- Qualcomm-Exporter wrote `pose.tracked_points` and `pose.connections` as `$ref` to `../../../shared/skeletons/{name}.yaml`. It removed the landmark models in 4ca4586. A test resolved each ref with `(path.parent / reference).resolve()` and checked `is_file()`. (Qualcomm-Exporter `qai_sidecar.py:123-142, 233-250` and `tests/test_qai_sidecar.py:63-91`, c7b9132)
+- OpenMMLab-Exporter and Ultralytics-Exporter write `tracked_points` and `connections` in the sidecar. RTMW has 133 points and 65 edges. YOLO26 uses the COCO-17 constants. Both write every size in full. (OpenMMLab-Exporter `rtmw/sidecar.py:154-163`, eed3361; Ultralytics-Exporter `yolo_sidecar.py:38-76, 515-528`, f52ef68)
