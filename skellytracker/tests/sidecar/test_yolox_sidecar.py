@@ -14,7 +14,12 @@ import pytest
 
 from skellytracker.core.sidecar.loader import load_sidecar
 
-from .golden_parity import BOX_ATOL_PX, CONFIDENCE_ATOL, PARITY_EXECUTION_PROVIDER
+from .golden_parity import (
+    BOX_MIN_IOU,
+    CONFIDENCE_ATOL,
+    PARITY_EXECUTION_PROVIDER,
+    box_iou,
+)
 
 _YOLOX_DIR = (
     Path(__file__).resolve().parents[2]
@@ -92,10 +97,10 @@ class TestYoloxParityAgainstGoldenFixture:
             expected_box = np.array(
                 [expected["x1"], expected["y1"], expected["x2"], expected["y2"]]
             )
-            # Box corners are in source-image pixels.
-            assert np.allclose(
-                actual_box, expected_box, atol=BOX_ATOL_PX, rtol=0
-            ), f"box: actual={actual_box}, expected={expected_box}"
+            iou = box_iou(actual_box, expected_box)
+            assert (
+                iou >= BOX_MIN_IOU
+            ), f"box: actual={actual_box}, expected={expected_box}, IoU={iou:.4f}"
             assert bb.confidence == pytest.approx(
                 expected["confidence"], abs=CONFIDENCE_ATOL
             )

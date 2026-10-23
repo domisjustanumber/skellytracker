@@ -47,15 +47,25 @@
     "note": "Captured from the pre-migration detector on an unrecorded machine/provider; kept unchanged."
   },
   "yolox_m_detect.json": {
-    "environment": "unknown",
-    "author": "philipqueen",
-    "commit": "45533bd",
-    "note": "Captured from the pre-migration detector on an unrecorded machine/provider; kept unchanged."
+    "environment": {
+      "os": "Windows 11 10.0.26300",
+      "provider": "cpu",
+      "onnxruntime": "1.27.0",
+      "python": "3.12.13"
+    },
+    "commit": "470883b (45533bd^, pre-migration YoloxPersonDetector, yolox-m, max_detections=None)",
+    "author": "Dom Scott (regenerated)",
+    "note": "Regenerated on the CPU execution provider from the pre-migration detector. Original fixture by philipqueen in 45533bd came from an unrecorded environment; Linux CI (CPU provider) output differed from it by up to 1.5 px (yolox-m)."
   },
   "yolox_tiny_detect.json": {
-    "environment": "unknown",
-    "author": "philipqueen",
-    "commit": "45533bd",
-    "note": "Captured from the pre-migration detector on an unrecorded machine/provider; kept unchanged."
+    "environment": {
+      "os": "Windows 11 10.0.26300",
+      "provider": "cpu",
+      "onnxruntime": "1.27.0",
+      "python": "3.12.13"
+    },
+    "commit": "470883b (45533bd^, pre-migration YoloxPersonDetector, yolox-tiny, max_detections=None)",
+    "author": "Dom Scott (regenerated)",
+    "note": "Regenerated on the CPU execution provider from the pre-migration detector. Original fixture by philipqueen in 45533bd came from an unrecorded environment."
   }
 }
