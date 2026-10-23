@@ -1,2 +1,8 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Sidecars and fragments are hashed byte for byte, so they must have LF line endings
+# on every machine (see notes/decisions/0016-sidecar-catalogs.md).
+*.yaml text eol=lf
+*.yml text eol=lf
+specs/sidecar/TRACEABILITY.md text eol=lf
