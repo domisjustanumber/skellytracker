@@ -1,6 +1,6 @@
 # 0015 — Review discipline: one kind of change per PR, stacked drafts, merge method
 
-**Status:** accepted, 2026-10-22 (user).
+**Status:** superseded by [0027](0027-single-working-branch.md), 2026-10-23 (user).
 
 ## Decision
 

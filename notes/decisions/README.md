@@ -33,7 +33,6 @@ entry.
 | [0012](0012-fit-resize-for-rtmo.md) | `fit` resize for RTMO; `pad_value` is required | accepted |
 | [0013](0013-spec-structure.md) | Spec structure: section files, rule owners, examples, reference implementations, traceability, STE | accepted |
 | [0014](0014-spec-lifecycle.md) | Spec lifecycle, the `vNEXT` rule and the new-model workflow | accepted |
-| [0015](0015-review-discipline.md) | Review discipline: one kind of change per PR, stacked drafts, merge method | accepted |
 | [0016](0016-sidecar-catalogs.md) | Sidecar catalogs: source, reference hashes, roots, discovery and the capability check | accepted |
 | [0017](0017-dual-role-sidecar-folder.md) | Folder of a sidecar with both roles | proposed |
 | [0018](0018-one-declaration-per-tensor.md) | One declaration for each output tensor, at every version | proposed |
@@ -45,14 +44,15 @@ entry.
 | [0024](0024-simcc-score-rule.md) | SimCC keypoint score rule | proposed |
 | [0025](0025-model-id-suffix.md) | Suffix after the part in `model_id` | proposed |
 | [0026](0026-decision-log-size.md) | Size limits for the decision log: read path, absorbed status, consolidation | accepted |
+| [0027](0027-single-working-branch.md) | One working branch for the PR stack; one kind of change per PR, stacked PRs, merge method | accepted |
 
 ### Historical
 
-These entries are `rejected`, `superseded by NNNN` or `absorbed into <path>#<anchor>`. No entry has
-one of these statuses yet.
+These entries are `rejected`, `superseded by NNNN` or `absorbed into <path>#<anchor>`.
 
 | # | Decision | Status |
 |---|----------|--------|
+| [0015](0015-review-discipline.md) | Review discipline: one kind of change per PR, stacked drafts, merge method | superseded by 0027 |
 
 ## Open work
 
@@ -235,7 +235,7 @@ Spec defects found during the spec-build stage. Each one needs a content change 
 - Cite commits that are on `development`, or tracked files. Do not cite or link `plans/`. Git does not
   track it ([0001](0001-decision-log-and-agents-md.md)).
 - Until a commit is on `development`, cite its PR number and the file path, not its SHA
-  ([0015](0015-review-discipline.md)).
+  ([0027](0027-single-working-branch.md)).
 - Write the number of another repo's entry with the repo name, for example "OpenMMLab-Exporter 0020".
   A bare number, for example 0016, is always an entry of this log.
 - A spec change proposal is an entry with the status `proposed`. The new-model workflow in
