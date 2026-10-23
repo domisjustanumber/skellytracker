@@ -20,9 +20,14 @@ status: {spec: stable, validate: partial, decode: partial}
 
 ## Behaviour
 
-Decoded box and keypoint coordinates are always in a **top-left origin** — `x` grows right, `y` grows down — in the model's input image; the host unprojects them to the source image (see [Unprojection](unprojection.md)). There is no per-sidecar origin override.
+Decoded box and keypoint coordinates are always in the input image of the model, with a **top-left origin**. In this origin, `x` grows to the right and `y` grows down. The host unprojects the coordinates to the source image (see [Unprojection](unprojection.md)). A sidecar cannot override the origin.
 
-Decoded coordinates are first converted to **model-input pixels** — `box_scale` / `coordinate_scale` `normalized_01` multiplies `x` by the model input width and `y` by its height; `normalized_11` maps `[-1, 1]` to `[0, width]` / `[0, height]` — and then mapped back to the source image:
+The host first converts the decoded coordinates to **model-input pixels**. The value of `box_scale` or `coordinate_scale` sets the conversion:
+
+- `normalized_01`: the host multiplies `x` by the model input width and `y` by the model input height.
+- `normalized_11`: the host maps `[-1, 1]` to `[0, width]` for the horizontal axis and to `[0, height]` for the vertical axis.
+
+Then the host maps the coordinates back to the source image. This list gives the mapping for each resize method:
 
 - `letterbox`: [Letterbox resize](../pre/resize-letterbox.md#inverse)
 - `stretch`: [Stretch resize](../pre/resize-stretch.md#inverse)

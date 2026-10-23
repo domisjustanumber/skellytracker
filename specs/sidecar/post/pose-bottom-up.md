@@ -22,18 +22,18 @@ status: {spec: stable, validate: partial, decode: missing}
 
 ## Fields
 
-For `semantic: poses` (bottom-up, separate tensor), the tensor is `(B, I, K, 3)` — batch, instances (`I`), keypoints (`K`), and `(x, y, score)` per keypoint — with `keypoint_axis: 2`. When `pose.decode.is_3d: true`, it is `(B, I, K, 4)` — `x, y, z, score` per keypoint, with `z` root-relative depth in `pose.decode.depth_unit`. The instance axis `I` equals the primary detection output's row axis `Q`.
+For `semantic: poses` (bottom-up, separate tensor), the tensor is `(B, I, K, 3)` with `keypoint_axis: 2`. The tensor axes are the batch, the instances (`I`), the keypoints (`K`) and the values `(x, y, score)` of each keypoint. When `pose.decode.is_3d: true`, the tensor is `(B, I, K, 4)`. In this case, the values of each keypoint are `x, y, z, score`, with `z` as root-relative depth in `pose.decode.depth_unit`. The instance axis `I` equals the row axis `Q` of the primary detection output.
 
 [Shape key](pose-schema.md#shape-key)
 
 ### `packed_keypoints` (bottom-up packed rows)
 
-Some one-stage models append the keypoints to each detection row instead of emitting a separate `poses` tensor (e.g. YOLO26-pose: `[B, 300, 57]` = 6 detection columns + 17 × `(x, y, score)`). Such a tensor is declared **once**, as `semantic: detections`, with a `packed_keypoints` object:
+Some one-stage models append the keypoints to each detection row. They do not emit a separate `poses` tensor (for example YOLO26-pose: `[B, 300, 57]` = 6 detection columns + 17 × `(x, y, score)`). The sidecar declares such a tensor **once**, as `semantic: detections`, with a `packed_keypoints` object:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `packed_keypoints.offset` | int | yes | Index of the first keypoint column; equals `len(fields)`. |
-| `packed_keypoints.components` | array[enum] | yes | Per-keypoint column order, drawn from `x`, `y`, `z`, `score`. Must contain `x` and `y`; contains `z` iff `pose.decode.is_3d: true`. |
+| `packed_keypoints.offset` | int | yes | The index of the first keypoint column. It must equal `len(fields)`. |
+| `packed_keypoints.components` | array[enum] | yes | The column order for each keypoint, drawn from `x`, `y`, `z` and `score`. It must contain `x` and `y`. It must contain `z` if and only if `pose.decode.is_3d: true`. |
 
 ```yaml
 outputs:
@@ -50,15 +50,15 @@ outputs:
 
 Rules:
 
-- Valid only when `role` includes both roles, `pose.estimator_type: bottom_up`, and `pose.decode.method: coordinate`.
-- `offset + K * len(components) == shape[-1]`, where `K = len(pose.tracked_points)`. Keypoint `k`'s component `c` is column `offset + k * len(components) + index(c)`.
-- Keypoint coordinates are in `pose.decode.coordinate_scale`, which must equal `decode.box_scale`. A keypoint `score` is already activated.
+- This object is valid only when `role` includes both roles, when `pose.estimator_type: bottom_up`, and when `pose.decode.method: coordinate`.
+- The condition `offset + K * len(components) == shape[-1]` must hold, where `K = len(pose.tracked_points)`. Component `c` of keypoint `k` is in column `offset + k * len(components) + index(c)`.
+- Keypoint coordinates are in the scale that `pose.decode.coordinate_scale` sets. This scale must equal `decode.box_scale`. The model already activates each keypoint `score`.
 
 ## Behaviour
 
 ### Bottom-up decode
 
-Bottom-up models (`bottom_up`, e.g. RTMO, YOLO26-pose) work on the full image and decode via `coordinate`. Each detection row `q` owns pose row `q` — either `poses[b, q]` or the packed keypoint columns of `detections[b, q]` — so the instance count always equals the detection row count. The host runs the detection `decode` (`selection: none` or `nms`), and emits keypoints for exactly the surviving detection rows, in the same order. Keypoints are unprojected with the same transform as the boxes.
+Bottom-up models (`bottom_up`, for example RTMO or YOLO26-pose) work on the full image. They decode with `coordinate`. Each detection row `q` has pose row `q`. The pose row is either `poses[b, q]` or the packed keypoint columns of `detections[b, q]`. Thus the instance count always equals the detection row count. The host runs the detection `decode` (`selection: none` or `nms`). It emits keypoints for exactly the surviving detection rows, in the same order. The host unprojects the keypoints with the same transform as the boxes.
 
 Selection steps: [Selection: none](selection-none.md#behaviour), [Selection: NMS](selection-nms.md#behaviour).
 
@@ -66,8 +66,8 @@ Selection steps: [Selection: none](selection-none.md#behaviour), [Selection: NMS
 
 ### Pose (`pose_estimator`)
 
-- [ ] `V-post.pose.bottom_up-1` A `poses` output declares `keypoint_axis: 2`, and its instance axis equals the primary detection output's row axis.
-- [ ] `V-post.pose.bottom_up-2` `packed_keypoints` (when present) is on a `detections` output of a sidecar with both roles, `estimator_type: bottom_up`, and `pose.decode.method: coordinate`; `offset` equals `len(fields)`; `components` is a list of unique values from `x`, `y`, `z`, `score` containing `x` and `y`, and containing `z` iff `is_3d: true`; `offset + len(tracked_points) * len(components)` equals `shape[-1]` when concrete; and `pose.decode.coordinate_scale` (default `pixel`) equals `decode.box_scale` (default `pixel`).
+- [ ] `V-post.pose.bottom_up-1` A `poses` output must declare `keypoint_axis: 2`. Its instance axis must equal the row axis of the primary detection output.
+- [ ] `V-post.pose.bottom_up-2` If `packed_keypoints` is present, it must be on a `detections` output. A sidecar with packed keypoints must have both roles, `estimator_type: bottom_up` and `pose.decode.method: coordinate`. `offset` must equal `len(fields)`. `components` must be a list of unique values from `x`, `y`, `z` and `score`. The list must contain `x` and `y`. It must contain `z` if and only if `is_3d: true`. When the last dimension is concrete, `offset + len(tracked_points) * len(components)` must equal `shape[-1]`. For a sidecar with packed keypoints, `pose.decode.coordinate_scale` (default `pixel`) must equal `decode.box_scale` (default `pixel`).
 
 See also [Pose schema](pose-schema.md#validation-rules), [Coordinate decode](pose-decode-coordinate.md#validation-rules) and [Detection outputs](detection-outputs.md#validation-rules).
 

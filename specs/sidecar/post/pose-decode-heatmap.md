@@ -21,7 +21,7 @@ status: {spec: stable, validate: implemented, decode: missing}
 
 ## Behaviour
 
-- `heatmap` — one output with `semantic: heatmap`, shape `(N, K, H, W)` (2D only); per-keypoint peaks are decoded to locations in cropped image space, then unprojected to the source image.
+- `heatmap` — one output with `semantic: heatmap` and shape `(N, K, H, W)`. This method supports only 2D heatmaps. The host decodes the peak of each keypoint to a location in cropped image space. Then the host unprojects the location to the source image.
 
 [Shape key](pose-schema.md#shape-key)
 
@@ -29,7 +29,7 @@ status: {spec: stable, validate: implemented, decode: missing}
 
 ### Pose (`pose_estimator`)
 
-- [ ] `V-post.pose.decode.heatmap-1` `pose.decode.method: heatmap` with `pose.decode.is_3d: true` is invalid (3D heatmap is not supported).
+- [ ] `V-post.pose.decode.heatmap-1` A sidecar with `pose.decode.method: heatmap` and `pose.decode.is_3d: true` is invalid. A 3D heatmap is not supported.
 
 See also [Pose schema](pose-schema.md#validation-rules).
 
