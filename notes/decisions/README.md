@@ -65,16 +65,53 @@ stage, no file under `skellytracker/` changes, except test fixes.
   `time.monotonic()` uses `GetTickCount64()`, which has a resolution of 15.6 ms. Two frames in one
   tick get the same timestamp, and MediaPipe raises "Input timestamp must be monotonically
   increasing". The fallback timestamp must increase on each call.
-- **Trace-tool functions.** Move the normalization table and the selector matching of the sidecar
-  trace tool into `skellytracker/core/sidecar/` without changes. The trace tool then imports them from
-  the package. The capability check of 0016 uses the same functions ([0013](0013-spec-structure.md)).
-- **Sidecar catalog.** Build the catalog of 0016: the catalog key `<model_id>@<source.name>`, the
-  local and Hugging Face roots, discovery in each root, and the capability check
-  ([0016](0016-sidecar-catalogs.md)).
-- **YOLOX.** Re-export YOLOX to a contract that the spec describes: dynamic batch, no NMS in the
-  graph, and host `selection: nms`. Run a parity check on the new export. Then remove the claim of
+- **MediaPipe landmarkers on Windows.** On Windows, the fast suite (`uv run pytest -m "not video"`)
+  can also hang. A MediaPipe `PoseLandmarker` that an earlier test left open is garbage-collected
+  during the teardown of the `onnx_session` fixture in `skellytracker/tests/test_rtmpose_detectors.py`.
+  Then `PoseLandmarker.__del__` calls `close()`, and `close()` deadlocks in the MediaPipe dispatcher.
+  This occurred on 2026-10-23, two times in sequence. The file alone passes, and Linux CI passes. This
+  is a code defect: the tests or the detectors must close their landmarkers. For example, the tests in
+  `skellytracker/tests/test_mediapipe_detectors.py` create MediaPipe detectors and do not call
+  `close()`. The fix waits for the implementation stage.
+- **Trace-tool functions.** Move `tools/sidecar_normalize.py` (the normalization table and the
+  selector matching that the sidecar trace tool uses) into `skellytracker/core/sidecar/` without
+  changes. The trace tool then imports them from the package. The capability check of 0016 uses the
+  same functions ([0013](0013-spec-structure.md);
+  [`format.versioning`](../../specs/sidecar/format/versioning.md#implementer-guidance)).
+- **Sidecar catalog and roots.** Build the catalog of 0016: the catalog key
+  `<model_id>@<source.name>`, the version order and the version pins, the reserved name
+  `skellytracker`, the root log and the run metadata
+  ([`common.identity`](../../specs/sidecar/common/identity.md#implementer-guidance)). Build the roots:
+  the package root, local folders, Hugging Face repo snapshots (pin, refresh, cache paths without
+  symlink resolution), development builds, user models and discovery in each root. Rename
+  `cache_dir` to the sidecar root in the code
+  ([`format.file_layout`](../../specs/sidecar/format/file-layout.md#implementer-guidance)). See
+  [0016](0016-sidecar-catalogs.md#decision).
+- **Reference hash checks in the resolver.** Add the checks of the `$ref` and `base` hashes, and of
+  the bytes of each file, to `skellytracker/core/sidecar/resolution.py`. Then delete the temporary
+  function `resolve` of `tools/sidecar_refs.py`. Move the `--write` and `--check` commands of that
+  tool into the package as a command, and keep a thin wrapper in `tools/`. When the package sidecars
+  move to a release `schema_version`, give them `source` and the hashes
+  ([`format.composition`](../../specs/sidecar/format/composition.md#implementer-guidance); see
+  [0016](0016-sidecar-catalogs.md#tools-and-line-endings)).
+- **Artifact hash checks.** Verify the file that `filename` names against `sha256` when the file is
+  present and after a download. Today `skellytracker/core/sessions/model_registry.py` checks only
+  `url_sha256`, and only during a download
+  ([`common.sizes_and_artifacts`](../../specs/sidecar/common/sizes-and-artifacts.md#implementer-guidance);
+  see [0016](0016-sidecar-catalogs.md#artifact-hashes)).
+- **Capability check and dispatch.** Build the capability check of 0016. Map a catalog entry to
+  detector code by its role and its spec sections. Keep the `detector_type` keys as aliases of
+  `<model_id>@skellytracker`. Let a hand-written detector claim a catalog key. Make an unknown size
+  an error, not a silent fallback
+  ([`format.versioning`](../../specs/sidecar/format/versioning.md#implementer-guidance); see
+  [0016](0016-sidecar-catalogs.md#capability-check)).
+- **YOLOX.** Re-export YOLOX to a contract that the spec describes: dynamic batch
+  (`common.batching`), no NMS in the graph, and host `selection: nms` (`post.det.selection.nms`). Run
+  a parity check on the new export. Then remove the claim of
   the hand-written YOLOX detector on the catalog key `yolox@skellytracker`
-  ([0016](0016-sidecar-catalogs.md); see also [0006](0006-yolox-native-contract.md)).
+  ([`format.versioning`](../../specs/sidecar/format/versioning.md#implementer-guidance);
+  [0016](0016-sidecar-catalogs.md#detector-dispatch); see also
+  [0006](0006-yolox-native-contract.md)).
 - **`vNEXT` release step.** At the first skellytracker release that ships the spec, one content PR
   replaces `vNEXT` with that release version everywhere. Then the exporters regenerate their sidecars
   ([0014](0014-spec-lifecycle.md)). OpenMMLab-Exporter (`rtmdet_person/sidecar.py:30`, commit
