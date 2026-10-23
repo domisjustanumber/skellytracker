@@ -1,6 +1,6 @@
 # Model Sidecar Specification
 
-This specification is split into section files. Start at [the section map](sidecar/README.md).
+This specification is in separate section files. Start at [the section map](sidecar/README.md).
 
 ## Changes in this revision (`vNEXT`)
 

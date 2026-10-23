@@ -18,37 +18,37 @@ status: {spec: stable, validate: partial, load: partial}
 
 ## Behaviour
 
-`schema_version` is a **string** matching the skellytracker release version that introduced or last required a change to the sidecar contract.
+`schema_version` is a **string**. It matches the skellytracker release version that introduced a change to the sidecar contract or last required a change to it.
 
 | Aspect | Rule |
 |--------|------|
 | Field | `schema_version` |
 | Type | string |
-| Value | Exact skellytracker release version (e.g. `"v2024.09.1019"`) |
+| Value | The exact skellytracker release version, for example `"v2024.09.1019"` |
 | Pattern | `vYYYY.0M.BUILD[-TAG]` |
 
 See also [`schema_version` history](../changelog.md#schema_version-history).
 
 ### Semantics
 
-- **`schema_version` on a sidecar** = the skellytracker version that defined the contract the sidecar was authored against.
-- **Minimum consumer** — skellytracker release `S` loads a sidecar with `schema_version` `V` when `S >= V`. Older sidecars (lower `schema_version`) remain supported by newer skellytracker releases unless a release note says otherwise; newer sidecars (higher `schema_version`) are rejected by older skellytracker releases.
-- **Too-new sidecar** — if `sidecar.schema_version > installed_skellytracker_version`, reject with a recoverable error naming both versions and an upgrade hint.
-- **Exporter obligation** — set `schema_version` to the skellytracker version documented as current at export time.
-- **Stable versions only** — sidecars must not use pre-release tags (`-TAG` suffix).
+- **`schema_version` on a sidecar** is the skellytracker version that defined the contract. The author wrote the sidecar to follow that contract.
+- **Minimum consumer** — When `S >= V`, skellytracker release `S` loads a sidecar with `schema_version` `V`. A newer skellytracker release still supports an older sidecar (lower `schema_version`), unless a release note says otherwise. An older skellytracker release rejects a newer sidecar (higher `schema_version`).
+- **Too-new sidecar** — If `sidecar.schema_version > installed_skellytracker_version`, reject the sidecar with a recoverable error. The error names both versions and gives an upgrade hint.
+- **Exporter obligation** — Set `schema_version` to the skellytracker version that the documentation names as current at the time of the export.
+- **Stable versions only** — A sidecar must not use a pre-release tag (`-TAG` suffix).
 
 ### Version comparison
 
 `parse_skellytracker_version(version) -> (year, month, build, tag)`:
 
 1. Strip an optional leading `v`.
-2. Split on `-` into `core` and optional `tag`.
-3. Parse `core` as `YYYY.MM.BUILD` (three dot-separated integers).
-4. Compare `(year, month, build, tag)` lexicographically; `tag=None` sorts **after** a tagged pre-release of the same core (stable > pre-release).
+2. Split on `-` into `core` and an optional `tag`.
+3. Parse `core` as `YYYY.MM.BUILD`. This format has three integers with a dot between them.
+4. Compare `(year, month, build, tag)` lexicographically. `tag=None` sorts **after** a tagged pre-release of the same core (stable > pre-release).
 
 ### Version-aware compatibility
 
-Validation and decode branch on the sidecar's `schema_version`. `vNEXT` requirements are never applied retroactively; a sidecar with `schema_version < vNEXT` is validated and decoded with the legacy meaning below.
+Validation and decode depend on the `schema_version` of the sidecar. `vNEXT` requirements never apply retroactively. For a sidecar with `schema_version < vNEXT`, validation and decode use the legacy meaning below.
 
 - [Schema versioning](versioning.md#legacy-behaviour)
 - [Sizes and artifacts](../common/sizes-and-artifacts.md#legacy-behaviour)
@@ -62,8 +62,8 @@ Validation and decode branch on the sidecar's `schema_version`. `vNEXT` requirem
 
 ## Validation rules
 
-- [ ] `V-format.versioning-1` `schema_version` is a string matching the skellytracker version pattern (no pre-release tag).
-- [ ] `V-format.versioning-2` `schema_version` is supported by the installed skellytracker release (`installed >= schema_version`).
+- [ ] `V-format.versioning-1` `schema_version` must be a string that matches the skellytracker version pattern. The string must not have a pre-release tag.
+- [ ] `V-format.versioning-2` The installed skellytracker release must support `schema_version` (`installed >= schema_version`).
 
 ## Legacy behaviour
 

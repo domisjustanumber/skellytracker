@@ -20,26 +20,26 @@ status: {spec: stable, validate: partial, load: partial}
 
 ### File extension and naming
 
-Sidecars use the `.yaml` extension. The filename is **`{model_id}.yaml`** — the `model_id` field inside the file matches the basename.
+A sidecar uses the `.yaml` extension. The filename is **`{model_id}.yaml`**. The `model_id` field inside the file matches the basename.
 
 | Artifact | Example |
 |----------|---------|
 | Sidecar (one per family) | `yolo26.yaml` |
 | ONNX models (any size × batch × precision) | `yolo26-nano_b2_fp16.onnx`, `yolo26-small_b4_fp32.onnx` |
 
-ONNX filenames encode size, batch, and precision: `{model_id}-{size}_{batch}_{precision}.onnx` (e.g. `yolo26-nano_b2_fp32.onnx`, where `{batch}` is `b2`). For a `dynamic` batch, the batch component is omitted: `{model_id}-{size}_{precision}.onnx` (e.g. `rtmw-wholebody-l-m_fp32.onnx`).
+An ONNX filename gives the size, the batch and the precision: `{model_id}-{size}_{batch}_{precision}.onnx`. For example, in `yolo26-nano_b2_fp32.onnx`, `{batch}` is `b2`. For a `dynamic` batch, the filename omits the batch component: `{model_id}-{size}_{precision}.onnx`. For example, `rtmw-wholebody-l-m_fp32.onnx`.
 
 ### Style conventions
 
-- Document marker `---` at the top of file.
-- `#` prefix for comments.
-- YAML mappings and sequences — no trailing commas, no quotes on bare strings.
-- Flat top-level keys; nested objects use indentation.
-- String values quoted only when necessary.
+- The file has the document marker `---` at the top.
+- Comments use the `#` prefix.
+- The file uses YAML mappings and sequences. It has no trailing commas. Bare strings have no quotes.
+- The top-level keys are flat. Nested objects use indentation.
+- A string value has quotes only when quotes are necessary.
 
 ### Storage layout
 
-Sidecars and their ONNX files live under a model cache directory (`{cache_dir}`), which defaults to `skellytracker/core`. The layout mirrors the detector taxonomy:
+A sidecar and its ONNX files are under a model cache directory (`{cache_dir}`). The default is `skellytracker/core`. The layout follows the detector taxonomy:
 
 ```text
 {cache_dir}/
@@ -70,10 +70,10 @@ Sidecars and their ONNX files live under a model cache directory (`{cache_dir}`)
 
 | Branch | Role | Contents |
 |--------|------|----------|
-| `detectors/calibration_detectors/` | calibration | Calibration detectors (e.g. Charuco boards). Hard-coded in skellytracker — **not** specified via sidecars. |
-| `detectors/object_detectors/{family}/` | `object_detector` | One sidecar per family, e.g. `yolo26/`. |
-| `detectors/keypoint_detectors/{family}/{part}/` | `pose_estimator` | Keypoint models per body region — `hand`, `face`, `body`, `wholebody`. |
-| `detectors/shared/` | — | Shared `$ref` fragments. Optional; carry no `schema_version`. |
+| `detectors/calibration_detectors/` | calibration | Calibration detectors, for example Charuco boards. They are hard-coded in skellytracker. Sidecars do **not** specify them. |
+| `detectors/object_detectors/{family}/` | `object_detector` | One sidecar for each family, for example `yolo26/`. |
+| `detectors/keypoint_detectors/{family}/{part}/` | `pose_estimator` | Keypoint models for each body region: `hand`, `face`, `body` and `wholebody`. |
+| `detectors/shared/` | — | Shared `$ref` fragments. This branch is optional. The fragments carry no `schema_version`. |
 
 ```text
 detectors/object_detectors/yolo26/
@@ -90,9 +90,9 @@ detectors/keypoint_detectors/rtmw/wholebody/
 
 ### File pairing rules
 
-- A sidecar and its ONNX files live together in the leaf model directory (see [Storage layout](#storage-layout)).
-- **Fragment files** (shared sections pulled in via `$ref`) are plain YAML values — a mapping, sequence, or scalar — and carry **no** `schema_version`. Convention: keep them under `detectors/shared/`.
-- **Base files** referenced by `base` are ordinary sidecars (`{model_id}.yaml`). A derived file that declares `base` is itself another `{model_id}.yaml` and must override `model_id` (and `schema_version`) so its basename matches its own `model_id`.
+- A sidecar and its ONNX files are together in the leaf model directory (see [Storage layout](#storage-layout)).
+- **Fragment files** are shared sections that a `$ref` pulls in. A fragment file is a plain YAML value: a mapping, a sequence or a scalar. It carries **no** `schema_version`. By convention, keep fragment files under `detectors/shared/`.
+- **Base files** are the files that `base` references. A base file is an ordinary sidecar (`{model_id}.yaml`). A derived file that declares `base` is itself another `{model_id}.yaml`. The derived file must override `model_id`, so that its basename matches its own `model_id`. It must also override `schema_version`.
 
 ## Validation rules
 

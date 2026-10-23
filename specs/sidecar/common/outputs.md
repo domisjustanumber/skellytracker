@@ -18,31 +18,31 @@ status: {spec: stable, validate: partial, load: missing}
 
 ## Fields
 
-Each entry describes one ONNX output tensor. `outputs` is required for every sidecar. The fields below are common to every role; role-specific fields are described in the [object-detection](../post/detection-outputs.md#outputs-detection) and [pose-estimation](../post/pose-schema.md#outputs-pose) sections.
+Each entry describes one ONNX output tensor. `outputs` is required for every sidecar. The fields below are common to every role. The [object-detection](../post/detection-outputs.md#outputs-detection) and [pose-estimation](../post/pose-schema.md#outputs-pose) sections describe the role-specific fields.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `name` | string | yes | ONNX output tensor name. Unique within `outputs` — one ONNX tensor is declared exactly once. |
-| `dtype` | object | yes | Map of precision → output element type, like `input.dtype` (e.g. `{fp32: float32, fp16: float32}`). May differ from the input precision. Values: `float32`, `float16`, `uint8`, `int8`. |
-| `shape` | array | no | Output tensor shape; `-1` marks a dynamic dim. Omitted for pose outputs whose shape varies with the input size (e.g. SIMCC bins). A size-dependent detection row dimension is `-1` at the family level. |
-| `rank` | int | no | Tensor rank. Omitted when `shape` is omitted. |
-| `semantic` | enum | yes | Closed set: `detections`, `boxes`, `scores`, `class_logits`, `simcc_x`, `simcc_y`, `simcc_z`, `heatmap`, `keypoints`, `poses`. Links the tensor to `decode` / `pose.decode`. |
+| `name` | string | yes | The name of the ONNX output tensor. It is unique within `outputs`. A sidecar declares one ONNX tensor exactly once. |
+| `dtype` | object | yes | A map of precision → output element type, like `input.dtype` (for example `{fp32: float32, fp16: float32}`). The output type can differ from the input precision. Each value is `float32`, `float16`, `uint8` or `int8`. |
+| `shape` | array | no | The output tensor shape. `-1` marks a dynamic dimension. A sidecar omits this field for pose outputs whose shape varies with the input size, for example SIMCC bins. If the row dimension of a detection output depends on the size, it is `-1` at the family level. |
+| `rank` | int | no | The tensor rank. A sidecar omits it when it omits `shape`. |
+| `semantic` | enum | yes | The value is from a closed set: `detections`, `boxes`, `scores`, `class_logits`, `simcc_x`, `simcc_y`, `simcc_z`, `heatmap`, `keypoints`, `poses`. It links the tensor to `decode` / `pose.decode`. |
 
 ## Behaviour
 
-All sizes in a sidecar share one output contract: each output tensor has the same name, semantics, and keypoint/class count across sizes. Fixed-shape outputs differ only in the batch dimension; spatial-dependent pose outputs (SIMCC bins, heatmap H×W) and dense per-anchor detection outputs may also vary with input size. For size-dependent detection outputs, the family-level `shape` uses `-1` for the row dimension; `batch_artifacts.<N>.output_shapes` carries each artifact group's concrete shape. Per-batch shapes are declared via `batch_artifacts.<N>.output_shapes`.
+All sizes in a sidecar share one output contract. Each output tensor has the same name, the same semantics and the same keypoint or class count across sizes. Fixed-shape outputs differ only in the batch dimension. Two kinds of output can also vary with the input size: spatial-dependent pose outputs (SIMCC bins, heatmap H×W) and dense per-anchor detection outputs. For size-dependent detection outputs, the family-level `shape` uses `-1` for the row dimension. `batch_artifacts.<N>.output_shapes` carries the concrete shape of each artifact group. A sidecar declares the shapes for each batch in `batch_artifacts.<N>.output_shapes`.
 
-A sidecar with both roles lists every tensor in one `outputs` array. Each tensor's `semantic` routes it to its decoder: `detections`, `boxes`, `scores`, and `class_logits` → `decode` (detection); `simcc_x`/`simcc_y`/`simcc_z`/`heatmap`/`keypoints`/`poses` → `pose.decode`. The detection semantics require `role` to include `object_detector`; the pose semantics require `role` to include `pose_estimator`.
+A sidecar with both roles lists every tensor in one `outputs` array. The `semantic` of each tensor routes the tensor to its decoder. These semantics go to `decode` (detection): `detections`, `boxes`, `scores` and `class_logits`. These semantics go to `pose.decode`: `simcc_x`/`simcc_y`/`simcc_z`/`heatmap`/`keypoints`/`poses`. The detection semantics require `role` to include `object_detector`. The pose semantics require `role` to include `pose_estimator`.
 
 ## Validation rules
 
-Rules marked **(vNEXT)**: see [Validation rules](../README.md#validation-rules).
+For rules marked **(vNEXT)**, see [Validation rules](../README.md#validation-rules).
 
-- [ ] `V-common.outputs-1` `outputs[].name` values are unique.
-- [ ] `V-common.outputs-2` Each output's `dtype` is present; its keys are a subset of `fp32`/`fp16`/`int8` covering the precisions declared in `batch_artifacts`, and its values are `float32`, `float16`, `uint8`, or `int8`.
-- [ ] `V-common.outputs-3` On each output, `rank` (when present) equals `len(shape)`; `rank` is omitted when `shape` is omitted.
-- [ ] `V-common.outputs-4` Each output's `semantic` is one of `detections`, `boxes`, `scores`, `class_logits`, `simcc_x`, `simcc_y`, `simcc_z`, `heatmap`, `keypoints`, `poses` (`boxes`/`scores`/`class_logits` **(vNEXT)**). The detection semantics require `role` to include `object_detector`; the pose semantics require `role` to include `pose_estimator`.
-- [ ] `V-common.outputs-5` All sizes share the same output names, semantics, and keypoint/class counts (spatial-dependent dims may scale with input size).
+- [ ] `V-common.outputs-1` The values of `outputs[].name` must be unique.
+- [ ] `V-common.outputs-2` Each output must have a `dtype`. Its keys must be a subset of `fp32`/`fp16`/`int8`. The keys must cover the precisions that `batch_artifacts` declares. Its values must be `float32`, `float16`, `uint8` or `int8`.
+- [ ] `V-common.outputs-3` On each output, if `rank` is present, it must equal `len(shape)`. The output must omit `rank` when it omits `shape`.
+- [ ] `V-common.outputs-4` The `semantic` of each output must be one of `detections`, `boxes`, `scores`, `class_logits`, `simcc_x`, `simcc_y`, `simcc_z`, `heatmap`, `keypoints`, `poses`. The values `boxes`/`scores`/`class_logits` are marked **(vNEXT)**. The detection semantics require `role` to include `object_detector`. The pose semantics require `role` to include `pose_estimator`.
+- [ ] `V-common.outputs-5` All sizes must share the same output names, semantics, and keypoint or class counts. Spatial-dependent dimensions can scale with the input size.
 
 See also [Identity](identity.md#validation-rules), [Sizes and artifacts](sizes-and-artifacts.md#validation-rules) and [Detection outputs](../post/detection-outputs.md#validation-rules).
 

@@ -22,17 +22,17 @@ status: {spec: stable, validate: implemented, load: implemented}
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `schema_version` | string | yes | skellytracker release version the sidecar was authored against (see [Schema versioning](../format/versioning.md)). Pattern: `vYYYY.0M.BUILD[-TAG]`. |
-| `model_id` | string | yes | Model identifier; matches the sidecar basename. For object detectors it is the family (e.g. `yolo26`); for keypoint detectors it is `{family}-{part}` (e.g. `rtmw-wholebody`). |
-| `display_name` | string | yes | Human-readable name. |
-| `role` | array[enum] | yes | One or both of `object_detector` / `pose_estimator`, e.g. `[object_detector]`, `[pose_estimator]`, or `[object_detector, pose_estimator]` for a one-stage model such as RTMO or YOLO26-pose. |
-| `sizes` | object | yes | Map of size name → size definition (see [Sizes](sizes-and-artifacts.md#sizes)). At least one size. |
+| `schema_version` | string | yes | The skellytracker release version for which the author wrote the sidecar (see [Schema versioning](../format/versioning.md)). The pattern is `vYYYY.0M.BUILD[-TAG]`. |
+| `model_id` | string | yes | The model identifier. It matches the sidecar basename. For an object detector, it is the family, for example `yolo26`. For a keypoint detector, it is `{family}-{part}`, for example `rtmw-wholebody`. |
+| `display_name` | string | yes | A name that a person can read. |
+| `role` | array[enum] | yes | One or both of `object_detector` and `pose_estimator`. Examples: `[object_detector]`, `[pose_estimator]` and `[object_detector, pose_estimator]`. The last example is for a one-stage model such as RTMO or YOLO26-pose. |
+| `sizes` | object | yes | A map of size name → size definition (see [Sizes](sizes-and-artifacts.md#sizes)). The map must have at least one size. |
 
 ## Validation rules
 
-- [ ] `V-common.identity-1` `model_id` matches the sidecar basename (`{model_id}.yaml`).
-- [ ] `V-common.identity-2` `role` is a non-empty subset of `object_detector`/`pose_estimator`.
-- [ ] `V-common.identity-3` `display_name`, `input` (with `name`), and a non-empty `outputs` array (each with `name`) are present.
+- [ ] `V-common.identity-1` `model_id` must match the sidecar basename (`{model_id}.yaml`).
+- [ ] `V-common.identity-2` `role` must be a non-empty subset of `object_detector`/`pose_estimator`.
+- [ ] `V-common.identity-3` The sidecar must have `display_name`, `input` (with `name`) and a non-empty `outputs` array. Each entry of the array must have `name`.
 
 See also [Outputs](outputs.md#validation-rules).
 

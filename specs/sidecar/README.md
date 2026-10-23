@@ -2,28 +2,36 @@
 
 ## Overview
 
-A **sidecar** is a YAML file that sits beside one or more ONNX model files and describes the runtime I/O contract a host must satisfy to load and run them correctly: input tensor, normalization, resize, batching, output semantics, and decode.
+A **sidecar** is a YAML file. It sits beside one or more ONNX model files. It describes the runtime I/O contract that a host must satisfy to load and run the models correctly. The contract has these parts: input tensor, normalization, resize, batching, output semantics and decode.
 
 Sidecars support two model **roles**:
 
 | Role | Purpose |
 |------|---------|
-| `object_detector` | Object detection (e.g. YOLO26, RF-DETR, RTMDet) — emits boxes, scores, and class information. |
-| `pose_estimator` | Pose estimation (e.g. RTMW, RTMPose) — emits keypoint coordinates. |
+| `object_detector` | Object detection, for example YOLO26, RF-DETR and RTMDet. The model outputs boxes, scores and class information. |
+| `pose_estimator` | Pose estimation, for example RTMW and RTMPose. The model outputs keypoint coordinates. |
 
-A sidecar may declare **both** roles — e.g. a one-stage model such as RTMO or YOLO26-pose that emits boxes and keypoints in the same pass. In that case `role` lists both values, and `outputs` mixes detection and pose tensors (or packs keypoints into the detection rows; see [`packed_keypoints`](post/pose-bottom-up.md#packed_keypoints-bottom-up-packed-rows)).
+A sidecar can declare **both** roles. An example is a one-stage model such as RTMO or YOLO26-pose, which outputs boxes and keypoints in the same pass. In that case, `role` lists both values. `outputs` mixes detection and pose tensors, or packs keypoints into the detection rows (see [`packed_keypoints`](post/pose-bottom-up.md#packed_keypoints-bottom-up-packed-rows)).
 
 ### Core properties
 
-- **One sidecar per model family.** A single `{model_id}.yaml` file lists every size of the model, and within each size every native batch size and precision variant, via `sizes.<size>.onnx.batch_artifacts`.
-- **Multiple sizes per sidecar.** A family ships several sizes (e.g. `nano`, `small`, `medium`) in one file. All sizes share one preprocessing and output contract and differ only in input size and ONNX artifacts (see [`sizes`](common/sizes-and-artifacts.md#sizes)).
-- **Traceable compatibility.** A sidecar's `schema_version` identifies the minimum skellytracker release required to consume it.
-- **Single source of truth.** This document is the canonical, human-readable contract. It is **not parsed at runtime**; skellytracker mirrors it with Pydantic `BaseModel` subclasses (the `SidecarModel` hierarchy), and documentation and validators must stay aligned.
-- **Composable.** A sidecar may `$ref` shared YAML fragments and may `base` another sidecar to inherit and override values.
+- **One sidecar for each model family.** A single `{model_id}.yaml` file lists every size of the model. Within each size, the file lists every native batch size and every precision variant. It does this in `sizes.<size>.onnx.batch_artifacts`.
+- **Multiple sizes in each sidecar.** A family ships several sizes in one file, for example `nano`, `small` and `medium`. All sizes share one preprocessing and output contract. They differ only in input size and ONNX artifacts (see [`sizes`](common/sizes-and-artifacts.md#sizes)).
+- **Traceable compatibility.** The `schema_version` of a sidecar identifies the minimum skellytracker release that is required to consume it.
+- **Single source of truth.** This document is the canonical, human-readable contract. **No software parses it at runtime.** skellytracker has Pydantic `BaseModel` subclasses (the `SidecarModel` hierarchy) that follow this document. The documentation and the validators must stay aligned.
+- **Composable.** A sidecar can include shared YAML fragments with `$ref`. It can inherit values from another sidecar and override them with `base`.
 
-This specification is split into section files; see the [Section map](#section-map).
+This specification is in separate section files. See the [Section map](#section-map).
 
 Also: [Changelog](changelog.md) and [Reference examples](examples/README.md).
+
+## Conventions
+
+- "must" marks a requirement.
+- "must not" marks a prohibition.
+- "can" marks a permitted option.
+- A rule ID `V-<section-id>-<n>` names one checklist rule.
+- The section ID is the `id` in the front matter of a section file.
 
 ## Section map
 
@@ -37,7 +45,7 @@ Also: [Changelog](changelog.md) and [Reference examples](examples/README.md).
 
 ### Common fields
 
-Fields shared by every sidecar regardless of `role`.
+These fields apply to every sidecar, regardless of `role`.
 
 | Section ID | File | Title |
 |------------|------|-------|
@@ -62,7 +70,7 @@ Fields shared by every sidecar regardless of `role`.
 
 ### Detection fields (`object_detector` role)
 
-Fields that apply when `role` includes `object_detector`.
+These fields apply when `role` includes `object_detector`.
 
 | Section ID | File | Title |
 |------------|------|-------|
@@ -74,7 +82,7 @@ Fields that apply when `role` includes `object_detector`.
 
 ### Pose-estimation fields (`pose_estimator` role)
 
-Fields that apply when `role` includes `pose_estimator`.
+These fields apply when `role` includes `pose_estimator`.
 
 | Section ID | File | Title |
 |------------|------|-------|
@@ -88,7 +96,7 @@ Fields that apply when `role` includes `pose_estimator`.
 
 ## Validation rules
 
-A sidecar is valid when all of the following hold. Rules marked **(vNEXT)** apply only when `schema_version >= vNEXT`; legacy sidecars follow [Version-aware compatibility](format/versioning.md#version-aware-compatibility).
+A sidecar is valid when all of the following rules hold. A rule marked **(vNEXT)** applies only when `schema_version >= vNEXT`. Legacy sidecars follow [Version-aware compatibility](format/versioning.md#version-aware-compatibility).
 
 - [File composition](format/composition.md#validation-rules)
 - [Schema versioning](format/versioning.md#validation-rules)

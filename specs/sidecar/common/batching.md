@@ -20,16 +20,16 @@ status: {spec: stable, validate: implemented, load: implemented}
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `batch_axis` | int | no | Batch dimension axis; default `0`. Non-zero batch axes are out of scope. |
-| `supports_dynamic_batch` | bool | derived | `true` when `batch_artifacts` contains a `dynamic` key. Derived at load time — not authored. |
+| `batch_axis` | int | no | The axis of the batch dimension. The default is `0`. Non-zero batch axes are out of scope. |
+| `supports_dynamic_batch` | bool | derived | The value is `true` when `batch_artifacts` contains a `dynamic` key. The host derives it at load time. The author does not write it. |
 
-> `batching.batch_conversion` is **not part of this spec** and is reserved for a future change set.
+> `batching.batch_conversion` is **not part of this spec**. It is reserved for a future change set.
 
 `batch_artifacts`: [Sizes and artifacts](sizes-and-artifacts.md#sizessizeonnxbatch_artifacts).
 
 ## Validation rules
 
-- [ ] `V-common.batching-1` `batching.batch_axis` (when present) is `0`.
+- [ ] `V-common.batching-1` If `batching.batch_axis` is present, it must be `0`.
 
 ## Implementer guidance
 
