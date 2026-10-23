@@ -1,0 +1,729 @@
+# Split manifest for specs/sidecar-spec.md (move only, no rewording).
+#
+# Line numbers refer to specs/sidecar-spec.md at commit 5c7c68d (tip of dom/sidecar-spec-fixes;
+# the spec does not change after it). Get it with `git show 5c7c68d:specs/sidecar-spec.md`.
+#
+# Block types (in `blocks`, in output order):
+#   {h: N, text: "..."}        a new heading of level N (# count). The H1 of a section file is `title`.
+#   {lines: [a, b]}            copy old lines a..b verbatim (inclusive). Leading/trailing blank lines are
+#                              trimmed; inner lines (including blank lines and fenced code) are kept exactly.
+#   {line: a}                  copy one old line verbatim.
+#   {header: [a, b]}           copy the table header and separator lines a..b again (a declared repeat).
+#   {rules: [l1, l2, ...]}     old checklist lines, each prefixed with its rule ID label (see rule_ids).
+#   {legacy: [l1, l2, ...]}    old compatibility-table rows, emitted under a copy of the table header
+#                              (lines 1012-1013).
+#   {nav: "..."}               a declared added navigation line (links only; no normative text).
+#   {generated: <name>}        generated navigation (see `generated` below).
+#
+# Joining: consecutive blocks are separated by exactly one blank line, except when the last emitted line
+# of a block and the first emitted line of the next block both start with `|`: then they are joined with
+# a single newline (one table continued under its header). A {nav} or {generated} block is always
+# separated by a blank line. The lines of one {rules} or {legacy} block form one list or table.
+# Legacy headings are "## Legacy behaviour"; the copied table header (old 1012-1013) carries the version.
+# `link_overrides` take precedence over `anchors` for the named old line and old link target.
+# Each section file starts with front matter (id, title, kind only), then "# <title>", then blocks.
+# Every section file ends with the empty headings "## Implementer guidance" and "## Authoring guidance",
+# in that order, after the normative headings and before "## Examples" when the file has examples.
+#
+# Links: every relative link in copied text is rewritten. A link to an old in-spec anchor goes to the
+# new location of that heading (see `anchors`), as a path relative to the new file. A link to a file is
+# re-based to the new file's folder. Link text never changes. Links inside fenced code and inline code
+# are never changed.
+
+source: specs/sidecar-spec.md
+source_commit: 5c7c68d
+rule_ids:
+  format: "V-{id}-{n}"           # n counts from 1 per section, in the order the rules are listed below
+  label: "`{rule_id}` "          # inserted after "- [ ] " in the rule line
+
+excluded:                        # old lines that do not move into any file, with the reason
+  - {lines: [53, 53], reason: "horizontal rule after the reviewer summary (structure)"}
+  - {lines: [78, 90], reason: "old document map; replaced by the generated section map in README.md"}
+  - {lines: [382, 382], reason: "label **`letterbox`**; replaced by the section title"}
+  - {lines: [398, 398], reason: "label **`stretch`**; replaced by the section title"}
+  - {lines: [406, 406], reason: "label **`fit`**; replaced by the section title"}
+  - {lines: [421, 421], reason: "label **`none`**; replaced by the section title"}
+  - {lines: [425, 425], reason: "label **`affine_person_crop`**; replaced by the section title"}
+  - {lines: [854, 854], reason: "label Shape key:; replaced by the #### Shape key heading in post/pose-schema.md"}
+  - {lines: [972, 972], reason: "label **Validation rules:**; replaced by the ### Mode validation heading in pre/normalization.md"}
+  - {lines: [1031, 1031], reason: "checklist group label (no condition)"}
+  - {lines: [1041, 1041], reason: "checklist group label (no condition)"}
+  - {lines: [1055, 1055], reason: "checklist group label (no condition)"}
+  - {lines: [1068, 1068], reason: "checklist group label (no condition)"}
+  - {lines: [1076, 1076], reason: "checklist group label; replaced by a ### Detection (`object_detector`) heading under ## Validation rules in every post.det.* file"}
+  - {lines: [1094, 1094], reason: "checklist group label; replaced by a ### Pose (`pose_estimator`) heading under ## Validation rules in every post.pose.* file"}
+  - {lines: [1113, 1113], reason: "checklist group label (no condition)"}
+
+generated:
+  section_map: >-
+    In README.md under each group heading of the section map: one table, columns Section ID | File |
+    Title, one row per section file of that group (section_map_<group>). Groups: format = format.*;
+    common = common.* followed by post.unprojection (its old place was under Common fields);
+    pre = pre.*; post_det = post.det.*; post_pose = post.pose.* and post.overlay.
+  validation_index: >-
+    In README.md under "## Validation rules": after old line 1029, a list of links, one per section file
+    that has a {rules} block: "- [<title>](<file>#validation-rules)".
+  legacy_index: >-
+    In format/versioning.md after old line 1010: a list of links, one per section file that has a
+    {legacy} block: "- [<title>](<file>#legacy-behaviour)".
+  vnext_note: >-
+    Directly before the {rules} block of a file whose rules include a **(vNEXT)** rule: one nav line
+    "Rules marked **(vNEXT)**: see [Validation rules](<relative path>/README.md#validation-rules)."
+  resize_methods: >-
+    In common/input.md after old line 378: "Each `method` has its own section: " then links to the five
+    resize sections, comma separated: [`letterbox`](../pre/resize-letterbox.md), [`stretch`](...),
+    [`fit`](...), [`affine_person_crop`](...), [`none`](...).
+  unprojection_index: >-
+    In post/unprojection.md after old line 460: a list of links, one per resize section:
+    "- `<method>`: [<title>](../pre/<file>#inverse)".
+  selection_index: >-
+    In post/detection-decode.md after old line 624: "- [Selection: none](selection-none.md#behaviour)",
+    and the same for top-k and NMS.
+  decode_methods: >-
+    In post/pose-schema.md after old line 841: "- [SimCC decode](pose-decode-simcc.md#behaviour)", and the
+    same for heatmap and coordinate.
+  index: >-
+    specs/sidecar-spec.md (the permanent entry point): "# Model Sidecar Specification", one nav line
+    "This specification is split into section files. Start at [the section map](sidecar/README.md).",
+    then EVERY old heading (lines listed in `anchors`) in old order and at its old level, each followed by
+    one nav line "Moved to [<new file>](sidecar/<new file>#<new anchor>)." (no #anchor when the heading
+    maps to the top of a file). Old anchors therefore keep working, and code docstrings that cite
+    `specs/sidecar-spec.md, "<heading>"` still find the heading.
+
+# Old line + old link target -> new link target (relative to the new file of that line).
+link_overrides:
+  - {line: 16, from: "#inputresize", to: "pre/resize-stretch.md"}               # relative to changelog.md
+  - {line: 17, from: "#inputresize", to: "pre/resize-fit.md"}
+  - {line: 18, from: "#inputresize", to: "pre/resize-letterbox.md"}
+  - {line: 20, from: "#inputresize", to: "pre/resize-affine-person-crop.md"}
+  - {line: 374, from: "#version-aware-compatibility", to: "#legacy-behaviour"}
+  - {line: 928, from: "#version-aware-compatibility", to: "#legacy-behaviour"}
+  - {line: 1508, from: "#version-aware-compatibility", to: "../pre/normalization.md#legacy-behaviour"}
+  - {line: 503, from: "#detection-fields-object_detector-role", to: "../post/detection-outputs.md#outputs-detection"}
+  - {line: 503, from: "#pose-estimation-fields-pose_estimator-role", to: "../post/pose-schema.md#outputs-pose"}
+
+# Old heading line -> new location. heading: null means the top of the file.
+anchors:
+  1:    {file: README.md, heading: null}
+  3:    {file: changelog.md, heading: "Changes in this revision (`vNEXT`)"}
+  12:   {file: changelog.md, heading: "Summary of changes"}
+  31:   {file: changelog.md, heading: "Considered and deliberately not added"}
+  48:   {file: changelog.md, heading: "Compatibility impact"}
+  55:   {file: README.md, heading: "Overview"}
+  68:   {file: README.md, heading: "Core properties"}
+  76:   {file: README.md, heading: "Section map"}
+  92:   {file: format/file-layout.md, heading: null}
+  94:   {file: format/file-layout.md, heading: "File extension and naming"}
+  105:  {file: format/file-layout.md, heading: "Style conventions"}
+  113:  {file: format/file-layout.md, heading: "Storage layout"}
+  164:  {file: format/file-layout.md, heading: "File pairing rules"}
+  170:  {file: format/composition.md, heading: null}
+  179:  {file: format/composition.md, heading: "`$ref` — reference another file for any value"}
+  228:  {file: format/composition.md, heading: "`base` — inherit from another sidecar and override"}
+  284:  {file: format/composition.md, heading: "Resolution pipeline"}
+  296:  {file: README.md, heading: "Common fields"}
+  300:  {file: common/identity.md, heading: null}
+  310:  {file: common/sizes-and-artifacts.md, heading: "`sizes.<size>.onnx.batch_artifacts`"}
+  344:  {file: common/input.md, heading: null}
+  364:  {file: common/input.md, heading: "`input.resize`"}
+  458:  {file: post/unprojection.md, heading: null}
+  470:  {file: common/sizes-and-artifacts.md, heading: "`sizes`"}
+  492:  {file: common/batching.md, heading: null}
+  501:  {file: common/outputs.md, heading: null}
+  554:  {file: README.md, heading: "Detection fields (`object_detector` role)"}
+  558:  {file: post/detection-outputs.md, heading: "Detection output semantics"}
+  575:  {file: post/detection-outputs.md, heading: "`outputs` (detection)"}
+  585:  {file: post/detection-decode.md, heading: "`decode` (detection)"}
+  622:  {file: post/detection-decode.md, heading: "Selection behaviour"}
+  657:  {file: README.md, heading: "Pose-estimation fields (`pose_estimator` role)"}
+  661:  {file: post/pose-schema.md, heading: "`outputs` (pose)"}
+  672:  {file: post/pose-bottom-up.md, heading: "`packed_keypoints` (bottom-up packed rows)"}
+  700:  {file: post/pose-schema.md, heading: null}
+  743:  {file: post/pose-schema.md, heading: "`pose.tracked_points`"}
+  747:  {file: post/pose-schema.md, heading: "`pose.connections`"}
+  758:  {file: post/pose-schema.md, heading: "`pose.derived_points`"}
+  770:  {file: post/canonical-mapping.md, heading: "`pose.canonical_mapping`"}
+  797:  {file: post/canonical-mapping.md, heading: "Canonical skeleton"}
+  809:  {file: post/canonical-mapping.md, heading: "Reference mappings in skellytracker"}
+  829:  {file: post/pose-schema.md, heading: "`pose.decode`"}
+  850:  {file: post/pose-bottom-up.md, heading: "Bottom-up decode"}
+  864:  {file: post/overlay.md, heading: null}
+  884:  {file: common/sizes-and-artifacts.md, heading: "Model sizes within a family"}
+  920:  {file: pre/normalization.md, heading: null}
+  980:  {file: format/versioning.md, heading: null}
+  991:  {file: format/versioning.md, heading: "Semantics"}
+  999:  {file: format/versioning.md, heading: "Version comparison"}
+  1008: {file: format/versioning.md, heading: "Version-aware compatibility"}
+  1027: {file: README.md, heading: "Validation rules"}
+  1123: {file: changelog.md, heading: "`schema_version` history"}
+  1130: {file: examples/README.md, heading: null}
+  1134: {file: examples/README.md, heading: "YOLO26 detector (Ultralytics-Exporter; NMS-free, graph-final rows)"}
+  1209: {file: examples/README.md, heading: "YOLO26 pose (Ultralytics-Exporter; bottom-up, packed keypoints)"}
+  1327: {file: examples/README.md, heading: "RTMDet person (OpenMMLab-Exporter; NMS-free outputs, host NMS)"}
+  1418: {file: examples/README.md, heading: "RTMW WholeBody (OpenMMLab-Exporter; top-down pose)"}
+  1510: {file: examples/README.md, heading: "RTMO body7 (OpenMMLab-Exporter; bottom-up pose, NMS in the graph)"}
+
+# All paths below are relative to specs/sidecar/.
+files:
+
+  # ---------------------------------------------------------------- non-section docs
+  - path: README.md
+    front_matter: null
+    title: "Model Sidecar Specification"
+    blocks:
+      - {h: 2, text: "Overview"}
+      - {lines: [57, 66]}
+      - {h: 3, text: "Core properties"}
+      - {lines: [70, 74]}
+      - {nav: "This specification is split into section files; see the [Section map](#section-map)."}
+      - {nav: "Also: [Changelog](changelog.md) and [Reference examples](examples/README.md)."}
+      - {h: 2, text: "Section map"}
+      - {h: 3, text: "Format"}
+      - {generated: section_map_format}
+      - {h: 3, text: "Common fields"}
+      - {line: 298}
+      - {generated: section_map_common}
+      - {h: 3, text: "Pre-processing"}
+      - {generated: section_map_pre}
+      - {h: 3, text: "Detection fields (`object_detector` role)"}
+      - {line: 556}
+      - {generated: section_map_post_det}
+      - {h: 3, text: "Pose-estimation fields (`pose_estimator` role)"}
+      - {line: 659}
+      - {generated: section_map_post_pose}
+      - {h: 2, text: "Validation rules"}
+      - {line: 1029}
+      - {generated: validation_index}
+
+  - path: changelog.md
+    front_matter: null
+    title: "Changelog"
+    blocks:
+      - {h: 2, text: "Changes in this revision (`vNEXT`)"}
+      - {lines: [5, 10]}
+      - {nav: "Compatibility rows: [Version-aware compatibility](format/versioning.md#version-aware-compatibility)."}
+      - {h: 3, text: "Summary of changes"}
+      - {lines: [14, 29]}
+      - {h: 3, text: "Considered and deliberately not added"}
+      - {lines: [33, 46]}
+      - {h: 3, text: "Compatibility impact"}
+      - {lines: [50, 51]}
+      - {h: 2, text: "`schema_version` history"}
+      - {line: 1121}
+      - {lines: [1125, 1128]}
+
+  - path: examples/README.md
+    front_matter: null
+    title: "Reference examples"
+    blocks:
+      - {nav: "Revision: [Changes in this revision](../changelog.md#changes-in-this-revision-vnext)."}
+      - {line: 1132}
+      - {h: 2, text: "YOLO26 detector (Ultralytics-Exporter; NMS-free, graph-final rows)"}
+      - {line: 1136}
+      - {lines: [1138, 1205]}          # commit 2 replaces this fence with a link to the YAML file
+      - {h: 2, text: "YOLO26 pose (Ultralytics-Exporter; bottom-up, packed keypoints)"}
+      - {line: 1211}
+      - {lines: [1213, 1325]}
+      - {h: 2, text: "RTMDet person (OpenMMLab-Exporter; NMS-free outputs, host NMS)"}
+      - {line: 1329}
+      - {lines: [1331, 1414]}
+      - {line: 1416}
+      - {h: 2, text: "RTMW WholeBody (OpenMMLab-Exporter; top-down pose)"}
+      - {line: 1420}
+      - {lines: [1422, 1506]}
+      - {line: 1508}
+      - {h: 2, text: "RTMO body7 (OpenMMLab-Exporter; bottom-up pose, NMS in the graph)"}
+      - {line: 1512}                   # commit 2 moves this provenance line to inventory.yaml
+      - {line: 1514}
+      - {lines: [1516, 1625]}
+
+  # ---------------------------------------------------------------- format
+  - path: format/file-layout.md
+    front_matter: {id: format.file_layout, title: "File layout", kind: format}
+    blocks:
+      - {h: 2, text: "Behaviour"}
+      - {h: 3, text: "File extension and naming"}
+      - {lines: [96, 103]}
+      - {h: 3, text: "Style conventions"}
+      - {lines: [107, 111]}
+      - {h: 3, text: "Storage layout"}
+      - {lines: [115, 162]}
+      - {h: 3, text: "File pairing rules"}
+      - {lines: [166, 168]}
+      - {h: 2, text: "Validation rules"}
+      - {nav: "See [Identity](../common/identity.md#validation-rules) and [File composition](composition.md#validation-rules)."}
+
+  - path: format/composition.md
+    front_matter: {id: format.composition, title: "File composition", kind: format}
+    blocks:
+      - {h: 2, text: "Behaviour"}
+      - {lines: [172, 177]}
+      - {h: 3, text: "`$ref` — reference another file for any value"}
+      - {lines: [181, 226]}
+      - {h: 3, text: "`base` — inherit from another sidecar and override"}
+      - {lines: [230, 282]}
+      - {h: 3, text: "Resolution pipeline"}
+      - {lines: [286, 294]}
+      - {h: 2, text: "Validation rules"}
+      - {rules: [1038, 1039]}
+
+  - path: format/versioning.md
+    front_matter: {id: format.versioning, title: "Schema versioning", kind: format}
+    blocks:
+      - {h: 2, text: "Behaviour"}
+      - {lines: [982, 989]}
+      - {nav: "See also [`schema_version` history](../changelog.md#schema_version-history)."}
+      - {h: 3, text: "Semantics"}
+      - {lines: [993, 997]}
+      - {h: 3, text: "Version comparison"}
+      - {lines: [1001, 1006]}
+      - {h: 3, text: "Version-aware compatibility"}
+      - {line: 1010}
+      - {generated: legacy_index}
+      - {h: 2, text: "Validation rules"}
+      - {rules: [1033, 1034]}
+      - {h: 2, text: "Legacy behaviour"}
+      - {legacy: [1025]}
+
+  # ---------------------------------------------------------------- common
+  - path: common/identity.md
+    front_matter: {id: common.identity, title: "Identity", kind: common}
+    blocks:
+      - {h: 2, text: "Fields"}
+      - {lines: [302, 308]}
+      - {h: 2, text: "Validation rules"}
+      - {rules: [1035, 1036, 1037]}
+      - {nav: "See also [Outputs](outputs.md#validation-rules)."}
+
+  - path: common/sizes-and-artifacts.md
+    front_matter: {id: common.sizes_and_artifacts, title: "Sizes and artifacts", kind: common}
+    blocks:
+      - {h: 2, text: "Fields"}
+      - {h: 3, text: "`sizes`"}
+      - {lines: [472, 477]}
+      - {lines: [479, 490]}
+      - {h: 3, text: "`sizes.<size>.onnx.batch_artifacts`"}
+      - {lines: [312, 331]}
+      - {lines: [333, 342]}
+      - {line: 1207}
+      - {h: 2, text: "Behaviour"}
+      - {h: 3, text: "Model sizes within a family"}
+      - {line: 886}
+      - {line: 918}
+      - {h: 2, text: "Validation rules"}
+      - {generated: vnext_note}
+      - {rules: [1043, 1044, 1045, 1046, 1048, 1049, 1050, 1051, 1052]}
+      - {nav: "See also [Input](input.md#validation-rules) and [Outputs](outputs.md#validation-rules)."}
+      - {h: 2, text: "Legacy behaviour"}
+      - {legacy: [1024]}
+      - {h: 2, text: "Examples"}           # after the guidance headings (see header)
+      - {lines: [888, 916]}
+
+  - path: common/batching.md
+    front_matter: {id: common.batching, title: "Batching", kind: common}
+    blocks:
+      - {h: 2, text: "Fields"}
+      - {lines: [494, 499]}
+      - {nav: "`batch_artifacts`: [Sizes and artifacts](sizes-and-artifacts.md#sizessizeonnxbatch_artifacts)."}
+      - {h: 2, text: "Validation rules"}
+      - {rules: [1053]}
+
+  - path: common/input.md
+    front_matter: {id: common.input, title: "Input", kind: common}
+    blocks:
+      - {h: 2, text: "Fields"}
+      - {lines: [346, 351]}
+      - {line: 354}
+      - {nav: "`normalization` and `normalization_by_precision` are defined in [Normalization](../pre/normalization.md#fields)."}
+      - {lines: [356, 360]}
+      - {h: 3, text: "`input.resize`"}
+      - {header: [366, 367]}
+      - {line: 368}
+      - {line: 369}
+      - {line: 370}
+      - {line: 373}
+      - {nav: "Method-specific fields: [`pad_position`, `rounding`, `preserve_aspect_ratio`](../pre/resize-letterbox.md#fields), [`interpolation`](../pre/interpolation.md#fields), [`crop_policy`](../pre/resize-affine-person-crop.md#fields)."}
+      - {line: 378}
+      - {generated: resize_methods}
+      - {h: 2, text: "Validation rules"}
+      - {generated: vnext_note}
+      - {rules: [1047, 1057, 1058, 1061, 1062, 1066]}
+      - {nav: "See also [Identity](identity.md#validation-rules), [Sizes and artifacts](sizes-and-artifacts.md#validation-rules), [Normalization](../pre/normalization.md#validation-rules) and [Affine person crop](../pre/resize-affine-person-crop.md#validation-rules)."}
+      - {h: 2, text: "Legacy behaviour"}
+      - {legacy: [1021]}
+
+  - path: common/outputs.md
+    front_matter: {id: common.outputs, title: "Outputs", kind: common}
+    blocks:
+      - {h: 2, text: "Fields"}
+      - {lines: [503, 511]}
+      - {h: 2, text: "Behaviour"}
+      - {lines: [513, 515]}
+      - {h: 2, text: "Validation rules"}
+      - {generated: vnext_note}
+      - {rules: [1070, 1071, 1072, 1073, 1074]}
+      - {nav: "See also [Identity](identity.md#validation-rules), [Sizes and artifacts](sizes-and-artifacts.md#validation-rules) and [Detection outputs](../post/detection-outputs.md#validation-rules)."}
+      - {h: 2, text: "Examples"}
+      - {lines: [517, 552]}
+
+  - path: post/unprojection.md
+    front_matter: {id: post.unprojection, title: "Unprojection", kind: postprocessor}
+    blocks:
+      - {h: 2, text: "Behaviour"}
+      - {line: 362}
+      - {line: 460}
+      - {generated: unprojection_index}
+
+  # ---------------------------------------------------------------- pre
+  - path: pre/resize-letterbox.md
+    front_matter: {id: pre.resize.letterbox, title: "Letterbox resize", kind: preprocessor}
+    blocks:
+      - {h: 2, text: "Fields"}
+      - {header: [366, 367]}
+      - {line: 371}
+      - {line: 372}
+      - {line: 374}
+      - {nav: "`target_size`, `pad_value` and `interpolation` are defined in [`input.resize`](../common/input.md#inputresize) and [Interpolation](interpolation.md)."}
+      - {h: 2, text: "Behaviour"}
+      - {lines: [384, 396]}
+      - {h: 3, text: "Inverse"}
+      - {nav: "Applied as part of [Unprojection](../post/unprojection.md)."}
+      - {header: [462, 463]}
+      - {line: 464}
+      - {h: 2, text: "Validation rules"}
+      - {generated: vnext_note}
+      - {rules: [1059]}
+      - {nav: "See also [Input](../common/input.md#validation-rules) and [Sizes and artifacts](../common/sizes-and-artifacts.md#validation-rules)."}
+      - {h: 2, text: "Legacy behaviour"}
+      - {legacy: [1019, 1020]}
+
+  - path: pre/resize-stretch.md
+    front_matter: {id: pre.resize.stretch, title: "Stretch resize", kind: preprocessor}
+    blocks:
+      - {h: 2, text: "Fields"}
+      - {nav: "`target_size`, `supports_dynamic_size` and `interpolation` are defined in [`input.resize`](../common/input.md#inputresize) and [Interpolation](interpolation.md). `[T_h, T_w]` is named in [Letterbox resize](resize-letterbox.md#behaviour)."}
+      - {h: 2, text: "Behaviour"}
+      - {lines: [400, 404]}
+      - {h: 3, text: "Inverse"}
+      - {nav: "Applied as part of [Unprojection](../post/unprojection.md)."}
+      - {header: [462, 463]}
+      - {line: 465}
+      - {h: 2, text: "Validation rules"}
+      - {nav: "See [Input](../common/input.md#validation-rules) and [Sizes and artifacts](../common/sizes-and-artifacts.md#validation-rules)."}
+      - {h: 2, text: "Legacy behaviour"}
+      - {nav: "Availability before `vNEXT`: [Schema versioning](../format/versioning.md#legacy-behaviour). The legacy alias `letterbox` + `preserve_aspect_ratio: false`: [Letterbox resize](resize-letterbox.md#legacy-behaviour)."}
+
+  - path: pre/resize-fit.md
+    front_matter: {id: pre.resize.fit, title: "Fit resize", kind: preprocessor}
+    blocks:
+      - {h: 2, text: "Fields"}
+      - {nav: "`target_size`, `pad_value`, `supports_dynamic_size` and `interpolation` are defined in [`input.resize`](../common/input.md#inputresize) and [Interpolation](interpolation.md)."}
+      - {h: 2, text: "Behaviour"}
+      - {lines: [408, 419]}
+      - {h: 3, text: "Inverse"}
+      - {nav: "Applied as part of [Unprojection](../post/unprojection.md)."}
+      - {header: [462, 463]}
+      - {line: 466}
+      - {h: 2, text: "Validation rules"}
+      - {generated: vnext_note}
+      - {rules: [1060]}
+      - {nav: "See also [Input](../common/input.md#validation-rules) and [Sizes and artifacts](../common/sizes-and-artifacts.md#validation-rules)."}
+      - {h: 2, text: "Legacy behaviour"}
+      - {nav: "Availability before `vNEXT`: [Schema versioning](../format/versioning.md#legacy-behaviour)."}
+
+  - path: pre/resize-none.md
+    front_matter: {id: pre.resize.none, title: "No resize", kind: preprocessor}
+    blocks:
+      - {h: 2, text: "Fields"}
+      - {nav: "`target_size` and `supports_dynamic_size` are defined in [`input.resize`](../common/input.md#inputresize)."}
+      - {h: 2, text: "Behaviour"}
+      - {line: 423}
+      - {h: 3, text: "Inverse"}
+      - {nav: "Applied as part of [Unprojection](../post/unprojection.md)."}
+      - {header: [462, 463]}
+      - {line: 467}
+      - {h: 2, text: "Validation rules"}
+      - {nav: "See [Input](../common/input.md#validation-rules) and [Sizes and artifacts](../common/sizes-and-artifacts.md#validation-rules)."}
+
+  - path: pre/resize-affine-person-crop.md
+    front_matter: {id: pre.resize.affine_person_crop, title: "Affine person crop", kind: preprocessor}
+    blocks:
+      - {h: 2, text: "Fields"}
+      - {header: [366, 367]}
+      - {line: 376}
+      - {line: 427}
+      - {lines: [429, 433]}
+      - {nav: "`target_size`, `supports_dynamic_size` and `interpolation` are defined in [`input.resize`](../common/input.md#inputresize) and [Interpolation](interpolation.md). `[T_h, T_w]` is named in [Letterbox resize](resize-letterbox.md#behaviour)."}
+      - {h: 2, text: "Behaviour"}
+      - {lines: [435, 447]}
+      - {h: 3, text: "Inverse"}
+      - {nav: "Applied as part of [Unprojection](../post/unprojection.md)."}
+      - {header: [462, 463]}
+      - {line: 468}
+      - {h: 2, text: "Validation rules"}
+      - {rules: [1063, 1099]}
+      - {nav: "See also [Input](../common/input.md#validation-rules), [Sizes and artifacts](../common/sizes-and-artifacts.md#validation-rules) and [Pose schema](../post/pose-schema.md#validation-rules)."}
+
+  - path: pre/interpolation.md
+    front_matter: {id: pre.resize.interpolation, title: "Interpolation", kind: preprocessor}
+    blocks:
+      - {h: 2, text: "Fields"}
+      - {header: [366, 367]}
+      - {line: 375}
+      - {nav: "`interpolation` is a field of [`input.resize`](../common/input.md#inputresize)."}
+      - {h: 2, text: "Behaviour"}
+      - {line: 380}
+      - {lines: [449, 456]}
+      - {h: 2, text: "Validation rules"}
+      - {nav: "See [Input](../common/input.md#validation-rules)."}
+
+  - path: pre/normalization.md
+    front_matter: {id: pre.normalize, title: "Normalization", kind: preprocessor}
+    blocks:
+      - {h: 2, text: "Fields"}
+      - {header: [346, 347]}
+      - {line: 352}
+      - {line: 353}
+      - {nav: "`normalization` and `normalization_by_precision` are fields of [`input`](../common/input.md#fields)."}
+      - {h: 2, text: "Behaviour"}
+      - {lines: [922, 970]}
+      - {h: 3, text: "Mode validation"}
+      - {lines: [974, 978]}
+      - {h: 2, text: "Validation rules"}
+      - {rules: [1064, 1065]}
+      - {nav: "See also [Input](../common/input.md#validation-rules)."}
+      - {h: 2, text: "Legacy behaviour"}
+      - {legacy: [1023]}
+      - {nav: "See also [Input](../common/input.md#legacy-behaviour)."}
+
+  # ---------------------------------------------------------------- post: detection
+  - path: post/detection-outputs.md
+    front_matter: {id: post.det.outputs, title: "Detection outputs", kind: postprocessor}
+    blocks:
+      - {h: 2, text: "Fields"}
+      - {h: 3, text: "Detection output semantics"}
+      - {lines: [560, 573]}
+      - {h: 3, text: "`outputs` (detection)"}
+      - {nav: "The fields common to every output are in [Outputs](../common/outputs.md#fields)."}
+      - {lines: [577, 583]}
+      - {h: 2, text: "Validation rules"}
+      - {h: 3, text: "Detection (`object_detector`)"}
+      - {rules: [1078, 1079, 1080, 1081]}
+      - {nav: "See also [Outputs](../common/outputs.md#validation-rules), [Detection decode](detection-decode.md#validation-rules) and [Bottom-up pose](pose-bottom-up.md#validation-rules)."}
+      - {h: 2, text: "Legacy behaviour"}
+      - {nav: "Availability before `vNEXT`: [Schema versioning](../format/versioning.md#legacy-behaviour)."}
+
+  - path: post/detection-decode.md
+    front_matter: {id: post.det.decode, title: "Detection decode", kind: postprocessor}
+    blocks:
+      - {h: 2, text: "Fields"}
+      - {h: 3, text: "`decode` (detection)"}
+      - {line: 587}
+      - {header: [589, 590]}
+      - {lines: [591, 593]}
+      - {lines: [595, 598]}
+      - {lines: [600, 601]}
+      - {lines: [605, 609]}
+      - {nav: "Selection-specific fields: [`max_detections`](selection-none.md#fields), [`class_logits_output`, `score_activation`, `top_k`](selection-top-k.md#fields), [`nms`](selection-nms.md#fields)."}
+      - {nav: "`B`, `Q` and `C` are defined in [Detection output semantics](detection-outputs.md#detection-output-semantics)."}
+      - {h: 2, text: "Behaviour"}
+      - {line: 620}
+      - {h: 3, text: "Selection behaviour"}
+      - {line: 624}
+      - {generated: selection_index}
+      - {line: 655}
+      - {h: 2, text: "Validation rules"}
+      - {h: 3, text: "Detection (`object_detector`)"}
+      - {generated: vnext_note}
+      - {rules: [1082, 1083, 1084, 1085, 1089, 1090, 1091, 1092]}
+      - {nav: "See also [Detection outputs](detection-outputs.md#validation-rules)."}
+      - {h: 2, text: "Legacy behaviour"}
+      - {legacy: [1014, 1018, 1022]}
+      - {nav: "See also [Selection: none](selection-none.md#legacy-behaviour), [Selection: NMS](selection-nms.md#legacy-behaviour) and [Schema versioning](../format/versioning.md#legacy-behaviour)."}
+
+  - path: post/selection-none.md
+    front_matter: {id: post.det.selection.none, title: "Selection: none", kind: postprocessor}
+    blocks:
+      - {h: 2, text: "Fields"}
+      - {header: [589, 590]}
+      - {line: 604}
+      - {nav: "`max_detections` is a field of [`decode`](detection-decode.md#decode-detection). The other `decode` fields are defined there."}
+      - {h: 2, text: "Behaviour"}
+      - {nav: "Score comparisons and tie-breaking: [Selection behaviour](detection-decode.md#selection-behaviour)."}
+      - {lines: [626, 631]}
+      - {nav: "Pose rows of a model with both roles: [Bottom-up decode](pose-bottom-up.md#bottom-up-decode)."}
+      - {h: 2, text: "Validation rules"}
+      - {h: 3, text: "Detection (`object_detector`)"}
+      - {rules: [1088]}
+      - {nav: "See also [Detection decode](detection-decode.md#validation-rules)."}
+      - {h: 2, text: "Legacy behaviour"}
+      - {legacy: [1016]}
+      - {nav: "See also [Detection decode](detection-decode.md#legacy-behaviour) and [Bottom-up pose](pose-bottom-up.md#legacy-behaviour)."}
+
+  - path: post/selection-top-k.md
+    front_matter: {id: post.det.selection.top_k, title: "Selection: top-k", kind: postprocessor}
+    blocks:
+      - {h: 2, text: "Fields"}
+      - {header: [589, 590]}
+      - {line: 594}
+      - {line: 599}
+      - {line: 602}
+      - {nav: "These are fields of [`decode`](detection-decode.md#decode-detection). The other `decode` fields are defined there. `B`, `Q` and `C` are defined in [Detection output semantics](detection-outputs.md#detection-output-semantics)."}
+      - {h: 2, text: "Behaviour"}
+      - {nav: "Score comparisons and tie-breaking: [Selection behaviour](detection-decode.md#selection-behaviour)."}
+      - {lines: [633, 641]}
+      - {h: 2, text: "Validation rules"}
+      - {h: 3, text: "Detection (`object_detector`)"}
+      - {rules: [1086]}
+      - {nav: "See also [Detection decode](detection-decode.md#validation-rules)."}
+      - {h: 2, text: "Legacy behaviour"}
+      - {nav: "See [Detection decode](detection-decode.md#legacy-behaviour) and [Schema versioning](../format/versioning.md#legacy-behaviour)."}
+
+  - path: post/selection-nms.md
+    front_matter: {id: post.det.selection.nms, title: "Selection: NMS", kind: postprocessor}
+    blocks:
+      - {h: 2, text: "Fields"}
+      - {header: [589, 590]}
+      - {line: 603}
+      - {lines: [611, 618]}
+      - {nav: "`nms` is a field of [`decode`](detection-decode.md#decode-detection). The other `decode` fields are defined there. `B`, `Q` and `C` are defined in [Detection output semantics](detection-outputs.md#detection-output-semantics)."}
+      - {h: 2, text: "Behaviour"}
+      - {nav: "Score comparisons and tie-breaking: [Selection behaviour](detection-decode.md#selection-behaviour)."}
+      - {lines: [643, 653]}
+      - {nav: "Pose rows of a model with both roles: [Bottom-up decode](pose-bottom-up.md#bottom-up-decode)."}
+      - {h: 2, text: "Validation rules"}
+      - {h: 3, text: "Detection (`object_detector`)"}
+      - {rules: [1087]}
+      - {nav: "See also [Detection decode](detection-decode.md#validation-rules)."}
+      - {h: 2, text: "Legacy behaviour"}
+      - {legacy: [1015]}
+      - {nav: "`decode.max_detections` before `vNEXT`: [Selection: none](selection-none.md#legacy-behaviour)."}
+
+  # ---------------------------------------------------------------- post: pose
+  - path: post/pose-schema.md
+    front_matter: {id: post.pose.schema, title: "Pose schema", kind: schema}
+    blocks:
+      - {h: 2, text: "Fields"}
+      - {lines: [702, 713]}
+      - {h: 3, text: "`outputs` (pose)"}
+      - {nav: "The fields common to every output are in [Outputs](../common/outputs.md#fields)."}
+      - {lines: [663, 668]}
+      - {nav: "`poses` tensor layout: [Bottom-up pose](pose-bottom-up.md#fields)."}
+      - {h: 3, text: "`pose.tracked_points`"}
+      - {line: 745}
+      - {h: 3, text: "`pose.connections`"}
+      - {lines: [749, 756]}
+      - {h: 3, text: "`pose.derived_points`"}
+      - {lines: [760, 768]}
+      - {h: 3, text: "`pose.decode`"}
+      - {line: 831}
+      - {lines: [833, 835]}
+      - {lines: [837, 838]}
+      - {nav: "Method-specific fields: [`pose.decode.coordinate_scale`](pose-decode-coordinate.md#fields), [`pose.decode.depth_range`](pose-decode-simcc.md#fields)."}
+      - {line: 841}
+      - {generated: decode_methods}
+      - {h: 4, text: "Shape key"}
+      - {lines: [856, 862]}
+      - {h: 2, text: "Validation rules"}
+      - {h: 3, text: "Pose (`pose_estimator`)"}
+      - {rules: [1096, 1097, 1098, 1100, 1101, 1102, 1104, 1107, 1108]}
+      - {nav: "See also [Affine person crop](../pre/resize-affine-person-crop.md#validation-rules), [Canonical mapping](canonical-mapping.md#validation-rules) and [Bottom-up pose](pose-bottom-up.md#validation-rules)."}
+      - {h: 2, text: "Examples"}
+      - {lines: [715, 741]}
+
+  - path: post/canonical-mapping.md
+    front_matter: {id: post.pose.canonical_mapping, title: "Canonical mapping", kind: schema}
+    blocks:
+      - {h: 2, text: "Fields"}
+      - {h: 3, text: "`pose.canonical_mapping`"}
+      - {lines: [772, 789]}
+      - {h: 2, text: "Behaviour"}
+      - {lines: [791, 795]}
+      - {h: 3, text: "Canonical skeleton"}
+      - {lines: [799, 807]}
+      - {h: 3, text: "Reference mappings in skellytracker"}
+      - {lines: [811, 827]}
+      - {h: 2, text: "Validation rules"}
+      - {h: 3, text: "Pose (`pose_estimator`)"}
+      - {rules: [1103]}
+
+  - path: post/pose-decode-simcc.md
+    front_matter: {id: post.pose.decode.simcc, title: "SimCC decode", kind: postprocessor}
+    blocks:
+      - {h: 2, text: "Fields"}
+      - {header: [833, 834]}
+      - {line: 839}
+      - {nav: "`pose.decode.depth_range` is a field of [`pose.decode`](pose-schema.md#posedecode). The other `pose.decode` fields are defined there."}
+      - {h: 2, text: "Behaviour"}
+      - {line: 843}
+      - {nav: "[Shape key](pose-schema.md#shape-key)"}
+      - {h: 2, text: "Validation rules"}
+      - {h: 3, text: "Pose (`pose_estimator`)"}
+      - {rules: [1109]}
+      - {nav: "See also [Pose schema](pose-schema.md#validation-rules)."}
+
+  - path: post/pose-decode-heatmap.md
+    front_matter: {id: post.pose.decode.heatmap, title: "Heatmap decode", kind: postprocessor}
+    blocks:
+      - {h: 2, text: "Behaviour"}
+      - {line: 844}
+      - {nav: "[Shape key](pose-schema.md#shape-key)"}
+      - {h: 2, text: "Validation rules"}
+      - {h: 3, text: "Pose (`pose_estimator`)"}
+      - {rules: [1110]}
+      - {nav: "See also [Pose schema](pose-schema.md#validation-rules)."}
+
+  - path: post/pose-decode-coordinate.md
+    front_matter: {id: post.pose.decode.coordinate, title: "Coordinate decode", kind: postprocessor}
+    blocks:
+      - {h: 2, text: "Fields"}
+      - {header: [833, 834]}
+      - {line: 836}
+      - {nav: "`pose.decode.coordinate_scale` is a field of [`pose.decode`](pose-schema.md#posedecode). The other `pose.decode` fields are defined there."}
+      - {h: 2, text: "Behaviour"}
+      - {lines: [845, 848]}
+      - {nav: "[Shape key](pose-schema.md#shape-key)"}
+      - {h: 2, text: "Validation rules"}
+      - {h: 3, text: "Pose (`pose_estimator`)"}
+      - {rules: [1111]}
+      - {nav: "See also [Pose schema](pose-schema.md#validation-rules) and [Bottom-up pose](pose-bottom-up.md#validation-rules)."}
+
+  - path: post/pose-bottom-up.md
+    front_matter: {id: post.pose.bottom_up, title: "Bottom-up pose", kind: postprocessor}
+    blocks:
+      - {h: 2, text: "Fields"}
+      - {line: 670}
+      - {nav: "[Shape key](pose-schema.md#shape-key)"}
+      - {h: 3, text: "`packed_keypoints` (bottom-up packed rows)"}
+      - {lines: [674, 698]}
+      - {h: 2, text: "Behaviour"}
+      - {h: 3, text: "Bottom-up decode"}
+      - {line: 852}
+      - {nav: "Selection steps: [Selection: none](selection-none.md#behaviour), [Selection: NMS](selection-nms.md#behaviour)."}
+      - {h: 2, text: "Validation rules"}
+      - {h: 3, text: "Pose (`pose_estimator`)"}
+      - {rules: [1105, 1106]}
+      - {nav: "See also [Pose schema](pose-schema.md#validation-rules), [Coordinate decode](pose-decode-coordinate.md#validation-rules) and [Detection outputs](detection-outputs.md#validation-rules)."}
+      - {h: 2, text: "Legacy behaviour"}
+      - {legacy: [1017]}
+      - {nav: "Availability of `packed_keypoints` before `vNEXT`: [Schema versioning](../format/versioning.md#legacy-behaviour)."}
+
+  - path: post/overlay.md
+    front_matter: {id: post.overlay, title: "Overlay", kind: schema}
+    blocks:
+      - {h: 2, text: "Fields"}
+      - {lines: [866, 882]}
+      - {h: 2, text: "Validation rules"}
+      - {rules: [1115, 1116, 1117, 1118, 1119]}
+
+# Commit 2 of the split PR (examples): each fence below becomes a YAML file (the fence content, without
+# the fence lines, LF line endings), and examples/README.md replaces the fence with one nav line
+# "Sidecar: [`<model_id>.yaml`](<path>)." In the same commit, old line 1512 (the RTMO provenance line)
+# leaves examples/README.md and becomes the provenance entry in inventory.yaml; the verbatim check of
+# commit 2 lists it as moved there.
+examples:
+  - {fence: [1138, 1205], path: examples/detectors/object_detectors/yolo26/yolo26.yaml}
+  - {fence: [1213, 1325], path: examples/detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml}
+  - {fence: [1331, 1414], path: examples/detectors/object_detectors/rtmdet-person/rtmdet-person.yaml}
+  - {fence: [1422, 1506], path: examples/detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml}
+  - {fence: [1516, 1625], path: examples/detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml}
