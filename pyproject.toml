@@ -63,7 +63,7 @@ dependencies = [
     "polars",
     "scipy",
 ]
-requires-python = ">=3.11,<3.13"
+requires-python = ">=3.11,<3.14"
 
 dynamic = ["version", "description"]
 
