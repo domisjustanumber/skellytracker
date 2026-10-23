@@ -21,11 +21,11 @@ status: {spec: stable, validate: partial, forward: implemented, inverse: missing
 
 ## Fields
 
-`target_size`, `pad_value`, `supports_dynamic_size` and `interpolation` are defined in [`input.resize`](../common/input.md#inputresize) and [Interpolation](interpolation.md).
+[`input.resize`](../common/input.md#inputresize) and [Interpolation](interpolation.md) define `target_size`, `pad_value`, `supports_dynamic_size` and `interpolation`.
 
 ## Behaviour
 
-The whole source image is scaled by a single factor, centred on the `target_size` canvas `[T_h, T_w]` at fractional offsets, and warped with one affine transform. Unlike `letterbox`, neither the scaled size nor the offsets are rounded:
+The host warps the whole source image onto the `target_size` canvas `[T_h, T_w]` with one affine transform. The transform scales the image by a single factor. The transform centres the image at fractional offsets. Unlike `letterbox`, the host does not round the scaled size or the offsets:
 
 ```text
 s    = min(T_w / src_w, T_h / src_h)
@@ -36,11 +36,11 @@ M    = [[s, 0, left],
 dst  = warpAffine(src, M, (T_w, T_h), <interpolation>, borderMode=constant, borderValue=pad_value)
 ```
 
-`pad_value` is required. `pad_position`, `rounding`, `preserve_aspect_ratio`, and `crop_policy` are invalid with `fit`. This matches mmpose `BottomupResize` (RTMO). A `letterbox` is not equivalent at any scale other than `1`: it rounds the resized size, and `resize` + pad gives different pixels from `warpAffine` even when the resized size is integral.
+A `fit` resize must declare `pad_value`. It must not declare `pad_position`, `rounding`, `preserve_aspect_ratio` or `crop_policy`. This matches mmpose `BottomupResize` (RTMO). A `letterbox` is not equivalent to this resize at any scale other than `1`. A letterbox resize rounds the resized size. Also, `resize` + pad gives different pixels from `warpAffine`, even when the resized size has integer values.
 
 ### Inverse
 
-Applied as part of [Unprojection](../post/unprojection.md).
+The host applies the inverse as part of [Unprojection](../post/unprojection.md).
 
 | Method | Unprojection (model-input pixels → source pixels) |
 |--------|---------------------------------------------------|
@@ -50,7 +50,7 @@ Applied as part of [Unprojection](../post/unprojection.md).
 
 Rules marked **(vNEXT)**: see [Validation rules](../README.md#validation-rules).
 
-- [ ] `V-pre.resize.fit-1` **(vNEXT)** A `fit` resize declares `pad_value`.
+- [ ] `V-pre.resize.fit-1` **(vNEXT)** A `fit` resize must declare `pad_value`.
 
 See also [Input](../common/input.md#validation-rules) and [Sizes and artifacts](../common/sizes-and-artifacts.md#validation-rules).
 

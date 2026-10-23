@@ -19,11 +19,11 @@ status: {spec: stable, validate: partial, forward: partial, inverse: missing}
 
 ## Fields
 
-`target_size`, `supports_dynamic_size` and `interpolation` are defined in [`input.resize`](../common/input.md#inputresize) and [Interpolation](interpolation.md). `[T_h, T_w]` is named in [Letterbox resize](resize-letterbox.md#behaviour).
+[`input.resize`](../common/input.md#inputresize) and [Interpolation](interpolation.md) define `target_size`, `supports_dynamic_size` and `interpolation`. [Letterbox resize](resize-letterbox.md#behaviour) names `[T_h, T_w]`.
 
 ## Behaviour
 
-The whole source image is resized directly to `target_size`, with independent x and y scale factors; the host does not preserve aspect ratio, does not crop, and does not pad:
+The host resizes the whole source image directly to `target_size`. The x and y scale factors are independent. The host does not preserve the aspect ratio, does not crop and does not pad. The resize is:
 
 ```text
 dst = resize(src, (T_w, T_h), <interpolation>)
@@ -31,7 +31,7 @@ dst = resize(src, (T_w, T_h), <interpolation>)
 
 ### Inverse
 
-Applied as part of [Unprojection](../post/unprojection.md).
+The host applies the inverse as part of [Unprojection](../post/unprojection.md).
 
 | Method | Unprojection (model-input pixels → source pixels) |
 |--------|---------------------------------------------------|

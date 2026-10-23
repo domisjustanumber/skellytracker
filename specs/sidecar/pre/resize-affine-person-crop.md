@@ -24,21 +24,21 @@ status: {spec: stable, validate: partial, forward: partial, inverse: partial}
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `crop_policy` | object | no | `affine_person_crop` only; see below. |
+| `crop_policy` | object | no | This field applies to `affine_person_crop` only. See below. |
 
-The top-down pose convention: a person bounding box is warped to `target_size` by an affine transform (center + scale) rather than padding a full frame. Used by top-down models such as RTMW and RTMW3D. `crop_policy` controls how the source bounding box is expanded before the warp:
+This resize is the top-down pose convention. The host warps a person bounding box to `target_size` with an affine transform (center + scale). The host does not pad a full frame. Top-down models such as RTMW and RTMW3D use this resize. `crop_policy` controls how the host expands the source bounding box before the warp:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `input.resize.crop_policy.expand_ratio` | float | no | BBox expansion factor before the affine warp; default `1.25`. |
-| `input.resize.crop_policy.maintain_aspect_ratio` | bool | no | Default `true`. When `true`, the expanded box is enlarged along its shorter side to the target aspect ratio `T_w / T_h`; when `false`, it is warped directly, distorting aspect. |
-| `input.resize.crop_policy.pad_value` | int, float, or array[3] | no | Constant border value for pixels outside the source image; default `0`. An array is per channel, in `input.color_format` order. |
+| `input.resize.crop_policy.expand_ratio` | float | no | This factor expands the bounding box before the affine warp. The default is `1.25`. |
+| `input.resize.crop_policy.maintain_aspect_ratio` | bool | no | The default is `true`. When the value is `true`, the host enlarges the expanded box along its shorter side to the target aspect ratio `T_w / T_h`. When the value is `false`, the host warps the expanded box directly. This distorts the aspect ratio. |
+| `input.resize.crop_policy.pad_value` | int, float, or array[3] | no | This is the constant border value for pixels outside the source image. The default is `0`. An array gives one value for each channel, in the channel order of `input.color_format`. |
 
-`target_size`, `supports_dynamic_size` and `interpolation` are defined in [`input.resize`](../common/input.md#inputresize) and [Interpolation](interpolation.md). `[T_h, T_w]` is named in [Letterbox resize](resize-letterbox.md#behaviour).
+[`input.resize`](../common/input.md#inputresize) and [Interpolation](interpolation.md) define `target_size`, `supports_dynamic_size` and `interpolation`. [Letterbox resize](resize-letterbox.md#behaviour) names `[T_h, T_w]`.
 
 ## Behaviour
 
-Normative warp (rotation is always `0`; rotated crops are out of scope):
+The rotation of the warp is always `0`. Rotated crops are out of scope. The normative warp is:
 
 ```text
 center   = bbox center
@@ -54,7 +54,7 @@ This matches mmpose `GetBBoxCenterScale(padding=1.25)` + `TopdownAffine`.
 
 ### Inverse
 
-Applied as part of [Unprojection](../post/unprojection.md).
+The host applies the inverse as part of [Unprojection](../post/unprojection.md).
 
 | Method | Unprojection (model-input pixels → source pixels) |
 |--------|---------------------------------------------------|
@@ -62,8 +62,8 @@ Applied as part of [Unprojection](../post/unprojection.md).
 
 ## Validation rules
 
-- [ ] `V-pre.resize.affine_person_crop-1` `input.resize.crop_policy.expand_ratio` (when present) is a positive float, and `crop_policy.maintain_aspect_ratio` (when present) is a boolean.
-- [ ] `V-pre.resize.affine_person_crop-2` A sidecar with `pose.requires_object_detector: true` declares `input.resize.method: affine_person_crop`.
+- [ ] `V-pre.resize.affine_person_crop-1` If `input.resize.crop_policy.expand_ratio` is present, it must be a positive float. If `crop_policy.maintain_aspect_ratio` is present, it must be a boolean.
+- [ ] `V-pre.resize.affine_person_crop-2` If a sidecar has `pose.requires_object_detector: true`, it must declare `input.resize.method: affine_person_crop`.
 
 See also [Input](../common/input.md#validation-rules), [Sizes and artifacts](../common/sizes-and-artifacts.md#validation-rules) and [Pose schema](../post/pose-schema.md#validation-rules).
 

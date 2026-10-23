@@ -24,21 +24,21 @@ status: {spec: stable, validate: implemented, forward: partial}
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `interpolation` | enum | no | Host resize filter; default `linear`. Applies to `letterbox`, `stretch`, `fit`, and `affine_person_crop`. |
+| `interpolation` | enum | no | This is the resize filter that the host uses. The default is `linear`. This field applies to `letterbox`, `stretch`, `fit` and `affine_person_crop`. |
 
 `interpolation` is a field of [`input.resize`](../common/input.md#inputresize).
 
 ## Behaviour
 
-**Resizes are not antialiased.** Every interpolation value below names the plain OpenCV filter (`cv2.resize` / `cv2.warpAffine`, half-pixel centres) without a downscale-adaptive support. A host using another library must reproduce that behaviour (e.g. torchvision `antialias=False`, not PIL `BILINEAR`).
+**The host does not antialias resizes.** Every interpolation value below names the plain OpenCV filter (`cv2.resize` / `cv2.warpAffine`, half-pixel centres). These filters have no support that adapts when the host downscales an image. If a host uses another library, it must reproduce that behaviour. For example, torchvision with `antialias=False` reproduces it. PIL `BILINEAR` does not.
 
 **Interpolation values:**
 
 | Value | OpenCV constant | Typical use |
 |-------|-----------------|-------------|
 | `linear` | `cv2.INTER_LINEAR` | YOLO/Ultralytics, mmdet/mmpose, RF-DETR (default) |
-| `area` | `cv2.INTER_AREA` | Downscaling with area resampling |
-| `cubic` | `cv2.INTER_CUBIC` | Higher-quality upscale |
+| `area` | `cv2.INTER_AREA` | Downscale with area resampling |
+| `cubic` | `cv2.INTER_CUBIC` | Upscale with higher quality |
 | `nearest` | `cv2.INTER_NEAREST` | Nearest-neighbor |
 
 ## Validation rules

@@ -19,15 +19,17 @@ status: {spec: stable, validate: implemented, forward: missing, inverse: missing
 
 ## Fields
 
-`target_size` and `supports_dynamic_size` are defined in [`input.resize`](../common/input.md#inputresize).
+[`input.resize`](../common/input.md#inputresize) defines `target_size` and `supports_dynamic_size`.
 
 ## Behaviour
 
-The model consumes the source image directly — no letterbox, no affine crop. `target_size` is omitted and the host passes the source image unchanged. The size's `input.shape` spatial dims are concrete and declare the exact resolution the model expects (the caller supplies frames at that size), unless `supports_dynamic_size: true`, in which case any spatial size is accepted.
+The model takes the source image directly. The host applies no letterbox and no affine crop. The sidecar omits `target_size`. The host passes the source image unchanged.
+
+If `supports_dynamic_size: true`, the model accepts any spatial size. Otherwise, the spatial dimensions of the size's `input.shape` are concrete. They declare the exact resolution that the model expects. In that case, the caller supplies frames at that size.
 
 ### Inverse
 
-Applied as part of [Unprojection](../post/unprojection.md).
+The host applies the inverse as part of [Unprojection](../post/unprojection.md).
 
 | Method | Unprojection (model-input pixels → source pixels) |
 |--------|---------------------------------------------------|

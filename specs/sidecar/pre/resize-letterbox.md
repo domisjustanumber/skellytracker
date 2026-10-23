@@ -24,15 +24,15 @@ status: {spec: stable, validate: partial, forward: partial, inverse: partial}
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `pad_position` | enum | `letterbox`: yes | `top_left` or `center` — where the resized image sits on the padded canvas. `letterbox` only. |
-| `rounding` | enum | `letterbox`: yes | How the resized width/height are rounded: `half_even` (Python `round`) or `half_up` (`floor(x + 0.5)`). `letterbox` only. |
-| `preserve_aspect_ratio` | bool | no | Letterbox only; when present must be `true`. (`false` is a legacy alias for `stretch`; see [Version-aware compatibility](#legacy-behaviour).) |
+| `pad_position` | enum | `letterbox`: yes | The value is `top_left` or `center`. It sets where the resized image sits on the padded canvas. This field applies to `letterbox` only. |
+| `rounding` | enum | `letterbox`: yes | The value sets how to round the resized width and height. `half_even` is Python `round`. `half_up` is `floor(x + 0.5)`. This field applies to `letterbox` only. |
+| `preserve_aspect_ratio` | bool | no | This field applies to a letterbox resize only. When the field is present, it must be `true`. `false` is a legacy alias for `stretch`. See [Version-aware compatibility](#legacy-behaviour). |
 
-`target_size`, `pad_value` and `interpolation` are defined in [`input.resize`](../common/input.md#inputresize) and [Interpolation](interpolation.md).
+[`input.resize`](../common/input.md#inputresize) and [Interpolation](interpolation.md) define `target_size`, `pad_value` and `interpolation`.
 
 ## Behaviour
 
-The whole source image is resized with a single scale factor and padded to `target_size` `[T_h, T_w]`:
+The host resizes the whole source image with a single scale factor and pads it to `target_size` `[T_h, T_w]`:
 
 ```text
 s    = min(T_w / src_w, T_h / src_h)
@@ -44,11 +44,11 @@ left, top = (floor((T_w - n_w) / 2), floor((T_h - n_h) / 2))  # pad_position: ce
 dst[top:top+n_h, left:left+n_w] = resize(src, (n_w, n_h), <interpolation>)
 ```
 
-With `center`, any odd remainder goes to the right/bottom. `half_even` with `center` matches Ultralytics `LetterBox`; `half_up` with `top_left` matches mmdet `Resize(keep_ratio=True)` + `Pad(size=…)`.
+If the position is `center`, any odd remainder goes to the right and the bottom. The pair `half_even` and `center` matches Ultralytics `LetterBox`. The pair `half_up` and `top_left` matches mmdet `Resize(keep_ratio=True)` + `Pad(size=…)`.
 
 ### Inverse
 
-Applied as part of [Unprojection](../post/unprojection.md).
+The host applies the inverse as part of [Unprojection](../post/unprojection.md).
 
 | Method | Unprojection (model-input pixels → source pixels) |
 |--------|---------------------------------------------------|
@@ -58,7 +58,7 @@ Applied as part of [Unprojection](../post/unprojection.md).
 
 Rules marked **(vNEXT)**: see [Validation rules](../README.md#validation-rules).
 
-- [ ] `V-pre.resize.letterbox-1` **(vNEXT)** A `letterbox` resize declares `pad_position` (`top_left` | `center`) and `rounding` (`half_even` | `half_up`); `preserve_aspect_ratio`, when present, is `true`.
+- [ ] `V-pre.resize.letterbox-1` **(vNEXT)** A `letterbox` resize must declare `pad_position` (`top_left` or `center`) and `rounding` (`half_even` or `half_up`). If `preserve_aspect_ratio` is present, it must be `true`.
 
 See also [Input](../common/input.md#validation-rules) and [Sizes and artifacts](../common/sizes-and-artifacts.md#validation-rules).
 
