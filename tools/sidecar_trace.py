@@ -44,8 +44,11 @@ cache dir). A YAML file is a sidecar when its top level has ``schema_version`` a
 equal to its file name without the extension. The tool skips every other YAML file. It resolves
 each sidecar with ``sidecar_refs.resolve``, which accepts files without hashes. The key of a sidecar
 is ``<model_id>@<source>``: ``source.name`` when the sidecar has it, else ``skellytracker`` for the
-package root, else the ``source`` of the example in ``inventory.yaml``. Then the tool normalizes
-the resolved sidecar with ``sidecar_normalize`` and matches the section selectors against it.
+package root, else the ``source`` of the example in ``inventory.yaml``. Every example holds
+``source.name`` now, and no inventory entry has a ``source``, so the examples of this repo do not
+use the last fallback. The tool keeps it for an example without ``source``. Then the tool
+normalizes the resolved sidecar with ``sidecar_normalize`` and matches the section selectors
+against it.
 The models that ``inventory.yaml`` lists under ``proposed`` are listed, but not matched.
 
 The tool resolves and matches. It does not validate sidecars.
