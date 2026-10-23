@@ -72,7 +72,19 @@ stage, no file under `skellytracker/` changes, except test fixes.
 - **NMS box area.** The spec's `selection: nms` uses the box-area convention of the ONNX
   `NonMaxSuppression` operator, which does not add `1` to pixel widths or heights. The generic `nms()`
   in `skellytracker/core/detectors/processing/object_detection_decode.py` adds `1`. Today only the
-  legacy YOLOX path uses it.
+  legacy YOLOX path uses it. It also breaks a tie between equal scores toward the higher row index,
+  but the spec breaks it toward the lower row index. The vectors in
+  [`post.det.selection.nms`](../../specs/sidecar/vectors/post.det.selection.nms.yaml) show both
+  differences.
+- **Letterbox rounding.** `letterbox_preprocess` in
+  `skellytracker/core/detectors/processing/image_preprocessing.py` cuts the resized size with `int()`.
+  The `vNEXT` spec rounds with `half_even` or `half_up`, places the image at `top_left` or `center`,
+  and keeps each side at least 1 pixel. The function has no `center` position and fails on a source
+  that is 1 pixel wide. It reproduces 8 of the 12 `top_left` cases in
+  [`pre.resize.letterbox`](../../specs/sidecar/vectors/pre.resize.letterbox.yaml). The cut size is
+  correct only for legacy sidecars.
+- **Stretch unprojection.** The `stretch` branch of `preprocess_image` returns `resize_meta = 1.0`. The
+  host then has no scale factors to unproject with `x * src_w / T_w`.
 - **Unused module.** `skellytracker/core/detectors/keypoint_detectors/rtmpose/rtmpose_preprocessing.py`
   is tracked, but no module imports it ([0007](0007-generic-processing-package.md)). Remove it.
 
@@ -117,6 +129,14 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   - the host frame is BGR, and the host converts it to `input.color_format`;
   - the arithmetic precision of the geometry and of the pixel math.
 - A code docstring under `skellytracker/` cites the spec heading "Sizes", but the heading is `sizes`.
+- The test vectors found these points that the spec does not define. Each vector file avoids them:
+  - the box format and the coordinate space of the person box that `affine_person_crop` warps;
+  - the order of the final rows for `selection: none`;
+  - the class of a candidate that has no class source when `is_person_only` is `false` (for
+    `selection: none` and `top_k`);
+  - the pixel-centre convention of the unprojection (see the `cv2.warpAffine` item above).
+- The default `confidence_threshold_default` is `0.7` with a strict `>`, so a score of exactly `0.7`
+  is dropped. The spec does not say that this is intended.
 
 ## Rules
 
