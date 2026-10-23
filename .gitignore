@@ -171,4 +171,7 @@ recorded_objects.npy
 *.zip
 
 .claude/*
-.CLAUDE.md
+!.claude/skills/
+
+# Local working notes (see notes/decisions/0001-decision-log-and-agents-md.md)
+plans/
