@@ -11,7 +11,7 @@ repo). Phase 1 is the model intake template (`specs/sidecar/templates/model-inta
 This template has no relative links to other files, so its references stay correct after you copy it.
 It names each skellytracker file by its path in a code span, each spec section by its section ID, and
 each spec heading by its text and the section file that holds it. Read the skellytracker files in the
-read-only worktree `../freemocap/skellytracker-latest`.
+skellytracker checkout (read-only) `../freemocap/skellytracker`.
 
 ## How to use this template
 
@@ -87,7 +87,7 @@ You do not do these steps. A skellytracker session does them, and the user decid
 | Depends on (proposal files that must land first, or `none`) | |
 | Needed by (proposal files that depend on this one, or `none`) | |
 | skellytracker decision entries with the status `proposed` that cover the same property (or `none`) | |
-| skellytracker folder that you read (normally `../freemocap/skellytracker-latest`) | |
+| skellytracker folder that you read (normally `../freemocap/skellytracker`) | |
 | skellytracker commit of the spec text that you read (`git -C <folder> rev-parse HEAD`; add `+ uncommitted changes` if `git -C <folder> status --porcelain` lists a file that you read) | |
 
 ## 1. Gap
@@ -307,7 +307,7 @@ skellytracker code. On acceptance, this text becomes the implementer guidance of
 open-work item.
 
 This part is advisory: the implementer checks it. Read the package code in
-`../freemocap/skellytracker-latest/skellytracker/`. If you cannot find a call site, write
+`../freemocap/skellytracker/skellytracker/`. If you cannot find a call site, write
 `for the implementer`, and say what is not known.
 
 Write:

@@ -12,8 +12,8 @@ the "Authoring guidance" heading of a section file. The links work in the skelly
 not work in your copy of the template. In your copy, find the section file with the section map in
 `specs/sidecar/README.md`. The template names each other skellytracker file by its path in a code
 span, each spec section by its section ID, and each spec heading by its text and the section file
-that holds it. Read the skellytracker files in the read-only worktree
-`../freemocap/skellytracker-latest`.
+that holds it. Read the skellytracker files in the skellytracker checkout (read-only)
+`../freemocap/skellytracker`.
 
 ## How to use this template
 
@@ -90,7 +90,7 @@ tell the user which inputs are missing.
 | Exporter commit (`git rev-parse HEAD` in the exporter repo, or `none (no git repo)`) | |
 | Upstream library and version | |
 | Upstream config (file path, and upstream commit or release) | |
-| skellytracker folder that you read (normally `../freemocap/skellytracker-latest`) | |
+| skellytracker folder that you read (normally `../freemocap/skellytracker`) | |
 | skellytracker commit of the spec text that you read (`git -C <folder> rev-parse HEAD`; add `+ uncommitted changes` if `git -C <folder> status --porcelain` lists a file that you read) | |
 | Date | |
 

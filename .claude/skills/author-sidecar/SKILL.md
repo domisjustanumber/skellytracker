@@ -19,24 +19,25 @@ the stop points. If this skill and the guide do not agree, follow the guide. The
 ## Where this skill runs
 
 - Run this skill in an exporter repo, for example OpenMMLab-Exporter.
-- This skill file is in the skellytracker repo. Read it in the read-only worktree
-  `../freemocap/skellytracker-latest`. From the root of an exporter repo, the path of this file is
-  `../freemocap/skellytracker-latest/.claude/skills/author-sidecar/SKILL.md`.
-- Read the files of the worktree as normal files. Do not edit them. Do not commit to skellytracker.
-- A relative link in this file starts at the folder of this file. In the worktree, the link
+- This skill file is in the skellytracker repo. Read it, read-only, in the skellytracker checkout
+  `../freemocap/skellytracker`. From the root of an exporter repo, the path of this file is
+  `../freemocap/skellytracker/.claude/skills/author-sidecar/SKILL.md`.
+- Read the files of the checkout as normal files. Do not edit them. Do not commit to skellytracker.
+  Do not change its branch.
+- A relative link in this file starts at the folder of this file. In the checkout, the link
   `../../../specs/sidecar/exporter-guide.md` opens the file
-  `../freemocap/skellytracker-latest/specs/sidecar/exporter-guide.md`.
+  `../freemocap/skellytracker/specs/sidecar/exporter-guide.md`.
 - If your agent does not support skills, read this file. Then do its steps in order.
 
 ## Files
 
 | File | Link | Path from the root of an exporter repo |
 |---|---|---|
-| Exporter guide, section "Sidecars" | [exporter-guide.md](../../../specs/sidecar/exporter-guide.md#sidecars) | `../freemocap/skellytracker-latest/specs/sidecar/exporter-guide.md` |
-| Model intake template | [model-intake.md](../../../specs/sidecar/templates/model-intake.md) | `../freemocap/skellytracker-latest/specs/sidecar/templates/model-intake.md` |
-| Section map | [README.md](../../../specs/sidecar/README.md#section-map) | `../freemocap/skellytracker-latest/specs/sidecar/README.md` |
-| skellytracker decision 0014 (the workflow) | [0014](../../../notes/decisions/0014-spec-lifecycle.md#new-model-workflow) | `../freemocap/skellytracker-latest/notes/decisions/0014-spec-lifecycle.md` |
-| The skill for phase 2 | [propose-sidecar-change](../propose-sidecar-change/SKILL.md) | `../freemocap/skellytracker-latest/.claude/skills/propose-sidecar-change/SKILL.md` |
+| Exporter guide, section "Sidecars" | [exporter-guide.md](../../../specs/sidecar/exporter-guide.md#sidecars) | `../freemocap/skellytracker/specs/sidecar/exporter-guide.md` |
+| Model intake template | [model-intake.md](../../../specs/sidecar/templates/model-intake.md) | `../freemocap/skellytracker/specs/sidecar/templates/model-intake.md` |
+| Section map | [README.md](../../../specs/sidecar/README.md#section-map) | `../freemocap/skellytracker/specs/sidecar/README.md` |
+| skellytracker decision 0014 (the workflow) | [0014](../../../notes/decisions/0014-spec-lifecycle.md#new-model-workflow) | `../freemocap/skellytracker/notes/decisions/0014-spec-lifecycle.md` |
+| The skill for phase 2 | [propose-sidecar-change](../propose-sidecar-change/SKILL.md) | `../freemocap/skellytracker/.claude/skills/propose-sidecar-change/SKILL.md` |
 
 ## Inputs
 
@@ -79,9 +80,9 @@ overwrite.
    ([How to use this guide](../../../specs/sidecar/exporter-guide.md#how-to-use-this-guide)).
 2. Do the steps of
    [Where to read the spec](../../../specs/sidecar/exporter-guide.md#where-to-read-the-spec). Get the
-   commit of the worktree.
-3. If the worktree or the branch `dom/sidecar-latest` does not exist, stop. Ask the user which
-   skellytracker folder to read.
+   commit of the checkout.
+3. If the checkout does not exist, or it is not on the branch `dom/sidecar-implementation`, stop.
+   Ask the user what to do.
 4. Read skellytracker decision 0014 before your first intake.
 5. Read the [Rules](../../../specs/sidecar/exporter-guide.md#rules) of the guide.
 6. If the exporter has no git repo, follow "An exporter with no git repo" in
@@ -200,7 +201,7 @@ Do this step for every final verdict, also after step 6. Follow
 
 1. List each section that the exporter implements on its host side.
 2. Skip a section that has a reference implementation:
-   `../freemocap/skellytracker-latest/specs/sidecar/reference/<section_module>.py`. Use it or match it
+   `../freemocap/skellytracker/specs/sidecar/reference/<section_module>.py`. Use it or match it
    in the host code.
 3. If your host code and that reference implementation do not agree, do not write a second reference.
    Hand over the section to `propose-sidecar-change`.
@@ -238,7 +239,7 @@ Do this step for every final verdict, also after step 6. Follow
 
 | Condition | Action |
 |---|---|
-| The worktree or the branch `dom/sidecar-latest` does not exist. | Stop. Ask the user which skellytracker folder to read. |
+| The checkout does not exist, or it is not on the branch `dom/sidecar-implementation`. | Stop. Ask the user what to do. |
 | A row is `near-miss` or `gap`, also when other rows are `unverified`. | Do not write the sidecar. Run `propose-sidecar-change` (step 6). Then do steps 7 and 8, and stop. |
 | No row is `near-miss` or `gap`, and you cannot get the evidence of an `unverified` row. | Do steps 5, 7 and 8 with provisional results. The final verdict is `pending`. |
 | Parity fails while every row is `exact` or `out of scope`. | Go back to step 3. Do not make the tolerance larger. |

@@ -26,25 +26,26 @@ normative.
 
 **In an exporter repo:**
 
-- This skill file is in the skellytracker repo. Read it in the read-only worktree
-  `../freemocap/skellytracker-latest`. From the root of an exporter repo, the path of this file is
-  `../freemocap/skellytracker-latest/.claude/skills/propose-sidecar-change/SKILL.md`.
-- Read the files of the worktree as normal files. Do not edit them. Do not commit to skellytracker.
-- A relative link in this file starts at the folder of this file. In the worktree, the link
+- This skill file is in the skellytracker repo. Read it, read-only, in the skellytracker checkout
+  `../freemocap/skellytracker`. From the root of an exporter repo, the path of this file is
+  `../freemocap/skellytracker/.claude/skills/propose-sidecar-change/SKILL.md`.
+- Read the files of the checkout as normal files. Do not edit them. Do not commit to skellytracker.
+  Do not change its branch.
+- A relative link in this file starts at the folder of this file. In the checkout, the link
   `../../../specs/sidecar/templates/change-proposal.md` opens the file
-  `../freemocap/skellytracker-latest/specs/sidecar/templates/change-proposal.md`.
+  `../freemocap/skellytracker/specs/sidecar/templates/change-proposal.md`.
 - If your agent does not support skills, read this file. Then do its steps in order.
 
 ## Files
 
 | File | Link | Path from the root of an exporter repo |
 |---|---|---|
-| Exporter guide, "Phase 2" | [exporter-guide.md](../../../specs/sidecar/exporter-guide.md#phase-2-propose-a-spec-change-and-its-implementation) | `../freemocap/skellytracker-latest/specs/sidecar/exporter-guide.md` |
-| Change proposal template | [change-proposal.md](../../../specs/sidecar/templates/change-proposal.md) | `../freemocap/skellytracker-latest/specs/sidecar/templates/change-proposal.md` |
-| Changelog, "Considered and deliberately not added" | [changelog.md](../../../specs/sidecar/changelog.md#considered-and-deliberately-not-added) | `../freemocap/skellytracker-latest/specs/sidecar/changelog.md` |
-| Section map and validation index | [README.md](../../../specs/sidecar/README.md#section-map) | `../freemocap/skellytracker-latest/specs/sidecar/README.md` |
-| skellytracker package code (for part 6) | [skellytracker/](../../../skellytracker/) | `../freemocap/skellytracker-latest/skellytracker/` |
-| Decision log (for a skellytracker session) | [README.md](../../../notes/decisions/README.md) | `../freemocap/skellytracker-latest/notes/decisions/README.md` |
+| Exporter guide, "Phase 2" | [exporter-guide.md](../../../specs/sidecar/exporter-guide.md#phase-2-propose-a-spec-change-and-its-implementation) | `../freemocap/skellytracker/specs/sidecar/exporter-guide.md` |
+| Change proposal template | [change-proposal.md](../../../specs/sidecar/templates/change-proposal.md) | `../freemocap/skellytracker/specs/sidecar/templates/change-proposal.md` |
+| Changelog, "Considered and deliberately not added" | [changelog.md](../../../specs/sidecar/changelog.md#considered-and-deliberately-not-added) | `../freemocap/skellytracker/specs/sidecar/changelog.md` |
+| Section map and validation index | [README.md](../../../specs/sidecar/README.md#section-map) | `../freemocap/skellytracker/specs/sidecar/README.md` |
+| skellytracker package code (for part 6) | [skellytracker/](../../../skellytracker/) | `../freemocap/skellytracker/skellytracker/` |
+| Decision log (for a skellytracker session) | [README.md](../../../notes/decisions/README.md) | `../freemocap/skellytracker/notes/decisions/README.md` |
 
 ## Inputs
 
@@ -85,9 +86,9 @@ In skellytracker:
 
 1. Do the steps of
    [Where to read the spec](../../../specs/sidecar/exporter-guide.md#where-to-read-the-spec). Get the
-   commit of the worktree.
-2. If the worktree or the branch `dom/sidecar-latest` does not exist, stop. Ask the user which
-   skellytracker folder to read.
+   commit of the checkout.
+2. If the checkout does not exist, or it is not on the branch `dom/sidecar-implementation`, stop.
+   Ask the user what to do.
 3. Read the table
    [Considered and deliberately not added](../../../specs/sidecar/changelog.md#considered-and-deliberately-not-added).
    If your gap is in it, cite the row in part 1. Give the evidence that a model needs the feature now.
@@ -130,7 +131,7 @@ In skellytracker:
    | 3 | [3. Reference implementation](../../../specs/sidecar/templates/change-proposal.md#3-reference-implementation) | Use only NumPy, OpenCV and the Python standard library. Write `plans/sidecar-reference-<section_module>.py`. If no host code exists yet, write the functions from the text of part 2, and write `source commit: none (no host code)` in the note at the top of the file. |
    | 4 | [4. Vectors](../../../specs/sidecar/templates/change-proposal.md#4-vectors) | Make the vectors with part 3. Verify them against the host implementation. If you cannot, write `unverified: <reason>`. Give each pixel case a tolerance in `compare`. |
    | 5 | [5. Parity evidence](../../../specs/sidecar/templates/change-proposal.md#5-parity-evidence) | Follow [Parity](../../../specs/sidecar/exporter-guide.md#parity). Commit the script. If you cannot run the script or commit it, write `to run` and describe the script. If you do not know the path or the commit of the script, write `unknown (<reason>)`. |
-   | 6 | [6. skellytracker implementation proposal](../../../specs/sidecar/templates/change-proposal.md#6-skellytracker-implementation-proposal) | Read the package code in the worktree. If a call site is not known, write `for the implementer`. |
+   | 6 | [6. skellytracker implementation proposal](../../../specs/sidecar/templates/change-proposal.md#6-skellytracker-implementation-proposal) | Read the package code in the checkout. If a call site is not known, write `for the implementer`. |
    | 7 | [7. Exporter impact](../../../specs/sidecar/templates/change-proposal.md#7-exporter-impact) | Name each exporter that must write new fields or regenerate sidecars. |
    | 8 | [8. Alternatives considered](../../../specs/sidecar/templates/change-proposal.md#8-alternatives-considered) | Include the near-miss and the reason to reject it. |
 
@@ -224,7 +225,7 @@ In skellytracker:
    accepts the proposal.
 2. Run `uv run pytest tools/tests -q`. All tests must pass.
 3. The entry is a non-spec change. Put it in a non-spec PR
-   ([0015](../../../notes/decisions/0015-review-discipline.md#one-kind-of-change-in-each-pr)).
+   ([0027](../../../notes/decisions/0027-single-working-branch.md#one-kind-of-change-in-each-pr)).
 4. Stop. Tell the user the entry number and the decision to make.
 5. The user accepts or rejects the proposal. After acceptance, use the skill
    [`change-sidecar-spec`](../change-sidecar-spec/SKILL.md).
@@ -233,7 +234,7 @@ In skellytracker:
 
 | Condition | Action |
 |---|---|
-| The worktree or the branch `dom/sidecar-latest` does not exist (exporter repo). | Stop. Ask the user which skellytracker folder to read. |
+| The checkout does not exist, or it is not on the branch `dom/sidecar-implementation` (exporter repo). | Stop. Ask the user what to do. |
 | You wrote the proposal files (exporter repo). | Stop. Report to the user. |
 | An exporter proposal has a missing part (skellytracker). | Tell the user. Do not write the part yourself. |
 | You wrote the `proposed` entry (skellytracker). | Stop. The user accepts or rejects the proposal. |
