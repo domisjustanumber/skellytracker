@@ -1,4 +1,4 @@
-"""Every relative link in `AGENTS.md`, `specs/` and `notes/` resolves."""
+"""Every relative link in `AGENTS.md`, `specs/`, `notes/` and `.claude/skills/` resolves."""
 
 from pathlib import Path
 

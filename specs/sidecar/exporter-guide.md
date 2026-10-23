@@ -17,12 +17,17 @@ the spec to a new model. If this guide and the spec do not agree, the spec is co
   the `plans/sidecar-*` files, unless the user permits more.
 - The Sidecars section names each file by its path in the read-only worktree, in a code span. It has
   no relative Markdown links, because relative links break when the section is copied to another repo.
-  For the same reason, the templates have no relative links to other files.
+  For the same reason, the change proposal template has no relative links to other files. The model
+  intake template has them only in the section column of its property tables.
 - Worktree paths in the Sidecars section start at the root of the exporter repo. The exporter repos
   and the `freemocap` folder must be in the same parent folder.
 - When the Sidecars section changes here, the exporters copy it again.
-- skellytracker will add skills for this workflow. Until then, the Sidecars section is the full
-  workflow. When the skills exist, they wrap this workflow and this guide names them.
+- Two skills wrap the workflow of the Sidecars section for exporter agents:
+  [`author-sidecar`](../../.claude/skills/author-sidecar/SKILL.md) for phase 1 and the
+  reference-implementation step, and
+  [`propose-sidecar-change`](../../.claude/skills/propose-sidecar-change/SKILL.md) for phase 2. The
+  skills give the steps, the inputs, the outputs and the stop points. They link to this guide for the
+  rules. The Sidecars section stays the full workflow.
 
 The decisions behind this guide:
 
@@ -56,7 +61,7 @@ The templates are [model intake](templates/model-intake.md) and
 
 ### Where to read the spec
 
-- Read the sidecar spec, the templates and (when they exist) the skills in the read-only worktree
+- Read the sidecar spec, the templates and the skills in the read-only worktree
   `../freemocap/skellytracker-latest`.
 - That worktree is a detached checkout of the local skellytracker branch `dom/sidecar-latest`. It has
   the newest spec work. skellytracker moves the branch and the worktree after each push of spec work.
@@ -88,6 +93,8 @@ The templates are [model intake](templates/model-intake.md) and
 | `../freemocap/skellytracker-latest/specs/sidecar/inventory.yaml` | The provenance of each reference example. |
 | `../freemocap/skellytracker-latest/specs/sidecar/templates/model-intake.md` | The template for phase 1. |
 | `../freemocap/skellytracker-latest/specs/sidecar/templates/change-proposal.md` | The template for phase 2. |
+| `../freemocap/skellytracker-latest/.claude/skills/author-sidecar/SKILL.md` | The skill `author-sidecar`: the steps of phase 1 and of the reference-implementation step. |
+| `../freemocap/skellytracker-latest/.claude/skills/propose-sidecar-change/SKILL.md` | The skill `propose-sidecar-change`: the steps of phase 2. |
 | `../freemocap/skellytracker-latest/specs/sidecar/exporter-guide.md` | The source of this section. |
 | `../freemocap/skellytracker-latest/specs/sidecar-implementation-plan.md` | The procedure that turns an exporter sidecar into a spec example ("Reference examples"). |
 | `../freemocap/skellytracker-latest/notes/decisions/` | The skellytracker decision log. |
@@ -142,13 +149,32 @@ It also points into a working tree that is often on a feature branch. Name the s
 - The evidence for a row is an upstream file and line, an upstream config key, or a read of the ONNX
   graph (the command, and the node or tensor name). A plan, a paper, a README, the notes of an
   exporter and a spec reference example are secondary sources. Mark a secondary citation with
-  `(secondary)`. A row that has only a secondary source is `unverified`.
+  `(secondary)`. A row that has only a secondary source is `unverified`. The next two bullets give
+  the exceptions.
+- A `near-miss` or a `gap` compares the property with the spec text. If only a secondary source shows
+  the property, still give the row its `near-miss` or `gap` verdict. Mark the source `(secondary)`.
+  Name the missing primary evidence in the row. The proposal of the row names it in part 1. Before
+  the user accepts the proposal, part 1 must cite the primary evidence.
+- A value that the exporter chooses has no upstream evidence. Examples are a name, a rule for the
+  YAML file and a path. Judge its row against the spec only. Cite the exporter code that writes the
+  value. If no such code exists, cite the exporter plan with `(secondary)`, or write
+  `none yet (no code)`. Such a row is not `unverified` only because the code does not exist or you
+  cannot read it. The model intake template lists these rows (heading "Verdicts").
 - Do not publish a `vNEXT` sidecar to a shared or remote folder (see "Publishing").
 
 ### New-model workflow
 
 Use this workflow for each new model. In an exporter repo, do phase 1 and phase 2. Then stop. A
 skellytracker session does phase 3.
+
+Two skills give the steps of phase 1 and phase 2. They use the rules of this section:
+
+- `author-sidecar` (`../freemocap/skellytracker-latest/.claude/skills/author-sidecar/SKILL.md`):
+  phase 1 and the reference-implementation step.
+- `propose-sidecar-change`
+  (`../freemocap/skellytracker-latest/.claude/skills/propose-sidecar-change/SKILL.md`): phase 2.
+
+Read each skill file in the worktree. Do its steps in order.
 
 **Files in `plans/`.** Write these files in the `plans/` folder of the exporter repo:
 
@@ -165,6 +191,11 @@ skellytracker session does phase 3.
 - Use these file names exactly. A skellytracker session finds the files with a scan of
   `plans/sidecar-*` in each exporter repo.
 - `plans/` is a local folder. Do not commit the `plans/sidecar-*` files.
+- Before you write a `plans/sidecar-*` file, look for it. If it exists, read it and update it in
+  place. Do not overwrite a file that you did not read. Git does not track `plans/`, so you cannot
+  undo an overwrite.
+- When you stop, tell the user about each `plans/sidecar-*` file that no current intake or proposal
+  owns. Do not delete it.
 
 **Files that you commit.** Commit these files in the exporter repo: the sidecar writer code, the host
 implementation of each section, and the parity scripts. The intake and the proposals cite their
@@ -178,8 +209,9 @@ commits.
 - one reference output of the upstream library on a known image.
 
 If an input is missing, do not stop. Write `missing` for it in the intake. Use the best secondary
-source for the rows that need the input, and give each of these rows the verdict `unverified`. When
-you stop, tell the user which inputs are missing.
+source for the rows that need the input, and give each of these rows the verdict `unverified`. A
+`near-miss` row or a `gap` row can rest on a secondary source (see "Rules"). When you stop, tell the
+user which inputs are missing.
 
 **An exporter with no git repo.** If the exporter has no git repo yet, no commit exists:
 
@@ -192,7 +224,7 @@ you stop, tell the user which inputs are missing.
 #### Phase 1: can the current spec describe the model?
 
 Fill `../freemocap/skellytracker-latest/specs/sidecar/templates/model-intake.md`. Write the result to
-`plans/sidecar-intake-<model>.md`.
+`plans/sidecar-intake-<model>.md`. The skill `author-sidecar` gives the order of the steps.
 
 1. List every property of the runtime contract of the model. Use three sources:
    - the ONNX graph: each input and each output;
@@ -216,7 +248,8 @@ Fill `../freemocap/skellytracker-latest/specs/sidecar/templates/model-intake.md`
    - `near-miss`: the spec has a section and a field for the property, but no value describes the
      property exactly. A detail differs, for example the rounding, the pixel centres, the arithmetic
      precision, the order of steps or the threshold comparison. A detail that the spec does not define
-     is also a near-miss when it changes the output for some input.
+     is also a near-miss when it changes the output for some input. A name or a path changes no
+     tensor and no decoded output, so its row is never a `near-miss`.
    - `gap`: the spec has no section and no field for the property, for example a rotated crop, a
      border mode or a role for an ROI refiner. A property that the spec calls out of scope, or that the
      spec lists in "Considered and deliberately not added"
@@ -232,21 +265,25 @@ Fill `../freemocap/skellytracker-latest/specs/sidecar/templates/model-intake.md`
    To choose between `near-miss` and `gap`, find the section and the field that hold the property. If
    no section and no field hold it, the verdict is `gap`. If a field holds it but none of its values
    describes the upstream, the verdict is `near-miss`.
-4. Continue as follows:
-   - A `near-miss` or `gap` row: go to phase 2 for that row. A near-miss is a gap.
+4. Continue as follows. A `near-miss` row or a `gap` row comes before an `unverified` row:
+   - A `near-miss` or `gap` row: go to phase 2 for that row (the skill `propose-sidecar-change`). A
+     near-miss is a gap. Do this also when other rows are `unverified`. List those rows in the final
+     verdict.
    - An `unverified` row: get the missing evidence. Then give the row its verdict.
    - An `out of scope` row: write no proposal. Tell the user about the row when you stop. The user
      decides if the spec must describe such steps.
-5. If every row is `exact` or `out of scope`:
+5. If no row is `near-miss` or `gap`:
    - The sidecar writer code of the exporter writes the sidecar (see "Sidecar YAML" and "Path"). Do
      not write the sidecar by hand.
    - If you cannot change the writer code yet, write the exact YAML in the section "The sidecar" of
      the intake. It is a draft. A skellytracker session does not use a draft as a spec example.
+   - If a row is `unverified`, use the value that you expect for that row. Do not change the writer
+     code for that row. Mark each result that depends on the row as provisional.
    - Walk the validation checklist (see "Validation").
    - Prove parity (see "Parity").
 6. Write the final verdict:
    - `describes`: every row is `exact` or `out of scope`, and parity passes.
-   - `does not describe`: a row is `near-miss` or `gap`.
+   - `does not describe`: a row is `near-miss` or `gap`, also when other rows are `unverified`.
    - `pending`: no row is `near-miss` or `gap`, but a row is `unverified` or parity is `to run`.
 
    If parity fails, you missed or misjudged a property. Go back to step 1 and find it. Until you find
@@ -324,8 +361,15 @@ result is `to run`.
   `object_detectors/rtmdet-person/rtmdet-person.yaml`. For a keypoint detector, `model_id` is
   `{family}-{part}`, for example `rtmw-wholebody` in `keypoint_detectors/rtmw/wholebody/`. The spec
   has no rule yet for a suffix after the part (the spec example `rtmo-body7`), or for two models of
-  one family and one part. If your model needs such a name, the verdict of the `model_id` row is
-  `near-miss`.
+  one family and one part. skellytracker decision 0025 (status `proposed`) records this question.
+  Until the user decides it, the current text applies. A name changes no tensor and no decoded
+  output, so the `model_id` row is never a `near-miss`:
+  - Write `{family}-{part}` as the sidecar value. The verdict is `exact`. If the exporter or the spec
+    example uses an id with a suffix, write that id and decision 0025 in the last column.
+  - If another model of the same family and part also needs the id `{family}-{part}`, the current
+    text has no id for your model. The row is a `gap`. Build on decision 0025 in phase 2.
+  - If the spec has no `model_id` rule for the role of the model (a new role), the row is a `gap`.
+    The proposal of the role covers it.
 - **Family.** One family has one preprocessing contract and one post-processing contract. If two sizes
   need a different contract, they are two families (two sidecars). Name the files by the convention of
   the spec (the heading "File extension and naming" in
@@ -345,10 +389,15 @@ result is `to run`.
     different values with the two calls. The spec text says "half-pixel centres" for both calls. That
     is a known spec defect (the skellytracker decision log lists it). Match the call that the spec
     names for the method. Record the convention of the upstream call in the intake;
-  - the border value of each warp. In OpenCV, a scalar `borderValue` fills only the first channel:
-    `cv2.warpAffine(..., borderValue=114.0)` pads a 3-channel image with `[114, 0, 0]`. Give one value
-    for each channel. The spec does not say what a scalar `pad_value` fills. That is a known spec
-    defect (the skellytracker decision log lists it).
+  - the border value of each warp, for each channel. In OpenCV, a scalar `borderValue` fills only the
+    first channel: `cv2.warpAffine(..., borderValue=114.0)` pads a 3-channel image with
+    `[114, 0, 0]`. The spec does not say what a scalar `pad_value` fills for `fit` and
+    `affine_person_crop`. That is a known spec defect (the skellytracker decision log lists it). For
+    these two methods, give one value for each channel, for example `pad_value: [114, 114, 114]`.
+    This form is `exact` under the current text. A scalar `0` gives the same border in both
+    readings. A scalar is correct for `letterbox`, because the `letterbox` pseudocode fills every
+    channel. The RTMO body7 reference example has the scalar `114` with `fit`, so it depends on the
+    spec defect. In your host code, give `cv2.warpAffine` one value for each channel.
 - **Outputs and decode.** Record the semantics of each output. Record the `selection`: graph-final
   rows (`none`), top-k over logits (`top_k`), or host NMS (`nms`). Record if the sigmoid is in the
   graph. Take the thresholds from the upstream test config, not from the defaults. Record the class
@@ -363,19 +412,34 @@ result is `to run`.
 - **Near-misses seen so far.**
   - A letterbox where the upstream code warps to a fractional size. That is `fit`, not `letterbox`
     (OpenMMLab-Exporter 0020).
+  - A letterbox where the upstream code cuts the scaled size with `int()` or `floor`. The `rounding`
+    field has no value for a cut. skellytracker decision 0023 (status `proposed`) proposes one.
   - An ROI refiner described as a pose estimator with two fake keypoints. That is a gap.
 
 #### Phase 2: propose a spec change and its implementation
 
 Write one proposal for each new or changed contract unit (one section). Fill
 `../freemocap/skellytracker-latest/specs/sidecar/templates/change-proposal.md`. Write each proposal to
-`plans/sidecar-proposal-<slug>.md`. The intake links to each proposal. Then stop.
+`plans/sidecar-proposal-<slug>.md`. The skill `propose-sidecar-change` gives the order of the steps.
+The intake links to each proposal. Then stop.
 
 Before you write a proposal:
 
 - Read the table "Considered and deliberately not added" of the spec
   (`../freemocap/skellytracker-latest/specs/sidecar/changelog.md`). If your gap is in it, cite the
   row in part 1. Give the evidence that a model needs the feature now.
+- Find the `proposed` entries of the skellytracker decision log that cover your rows. Read the index
+  in `../freemocap/skellytracker-latest/notes/decisions/README.md`. Also read each `proposed` entry
+  that the guidance of your sections cites. If an entry covers your rows, do not write a competing
+  proposal:
+  - Use the slug of the entry.
+  - Cite the entry in the header and in part 1.
+  - Add your evidence, your vectors and your parity plan.
+  - If your rows need a different change, say where your proposal differs. Give the reason in part 8.
+- An entry can be a gap record: its Decision section says so. A gap record gives the gap, the
+  evidence and the direction of a change, but not all eight parts. Your proposal gives the parts
+  that it does not have. A skellytracker session records your proposal as a new entry that extends
+  the gap record.
 - If a proposal needs another proposal (for example, a decode that uses the unprojection of a new
   crop), write the dependency in the header of each proposal. One parity script can serve several
   proposals. Cite it in part 5 of each.
@@ -414,17 +478,23 @@ A proposal has eight parts:
    step of that section. Name the file in the proposal. On acceptance, skellytracker adds it as
    `specs/sidecar/reference/<section_module>.py`. It is informative spec code, not package code. It is
    the single executable meaning of the new text. Your host decoder needs this behaviour, so the
-   reference implementation is the clean, minimal form of your host code.
+   reference implementation is the clean, minimal form of your host code. If no host code exists
+   yet, write the functions from the text of part 2. Write `source commit: none (no host code)` in
+   the note at the top of the file. Part 4 is then `unverified: no host implementation`.
 4. **Vectors.** A test vector is a small worked case: concrete inputs to the algorithm of one section,
    and the exact expected output. Use geometry and small arrays. Do not use images or ONNX files. Make
    the vectors with the reference implementation. Then verify them against your host implementation.
    Include a case for each branch, each tie and each strict comparison. If a parameter can be a scalar
    or one value for each channel (for example `pad_value`), include a case with a scalar value on a
    3-channel input. Pixel-exact resize output is out of scope. If you need a pixel case, state its
-   tolerance. Write the vectors in part 4 of the proposal, in the YAML form that the template gives.
-   On acceptance, skellytracker adds them as `specs/sidecar/vectors/<section ID>.yaml`.
+   tolerance in `compare`. Write the vectors in part 4 of the proposal, in the YAML form that the
+   template gives. On acceptance, skellytracker adds them as
+   `specs/sidecar/vectors/<section ID>.yaml`.
 5. **Parity evidence.** Run the real model, with the reference implementation in place of the missing
-   spec feature. Follow "Parity". Give the numbers, the script and the commit.
+   spec feature. Follow "Parity". Give the numbers, the script and the commit. If you cannot run the
+   check yet, write `to run` and describe the script. A skellytracker session can record a proposal
+   with `to run` as `proposed`. Before the user accepts the proposal, part 5 must give the numbers,
+   the script and the commit.
 6. **skellytracker implementation proposal.** skellytracker does not build it now. It builds it when
    it implements the spec. Write:
    - where the code goes: a module and a function under `skellytracker/core/detectors/processing/`,
@@ -483,7 +553,8 @@ applies for every verdict of the intake.
 - A part of the spec without an algorithm needs no reference implementation, for example
   `input.layout`, `input.dtype` or `input.resize.method: none`.
 - Do the step from committed host code. If the host code is not committed yet, or if it exists only
-  in a plan, write `to run` in the intake. Do the step after the commit.
+  in a plan, write `to run` in the intake. Do the step after the commit. This bullet is for a section
+  of the current spec. For part 3 of a proposal, see phase 2.
 
 **Module names.** For `<section_module>`, use the section ID from the front matter of the section file
 (`id`), with each dot replaced by an underscore. For example, `pre.resize.letterbox` gives
@@ -505,7 +576,7 @@ proposed section ID.
   "Reference implementations" under `pose.canonical_mapping`) is about the canonical mapping files of
   the package. It is not about these files.
 
-The step:
+The step (the skill `author-sidecar` includes it):
 
 1. Write the clean, minimal form of your host code. Use only NumPy, OpenCV and the Python standard
    library. Do not import from the exporter or from skellytracker. Write one function for each
@@ -570,6 +641,9 @@ sidecar goes to `<export root>/detectors/...` (the export root of OpenMMLab-Expo
 The spec does not say where a sidecar with both roles goes. The RTMO body7 reference example uses
 `keypoint_detectors/`.
 
+If the storage layout has no branch for the role of the model (a new role), row L1 of the intake is
+a `gap`. The proposal that adds the role also adds the branch (`format.file_layout`).
+
 A model-specific folder, such as `body7`, does not conform. For example, the RTMO body7 reference
 example has the path `detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml` under
 `../freemocap/skellytracker-latest/specs/sidecar/examples/`.
@@ -594,8 +668,9 @@ example has the path `detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml` un
   use a legacy-only form: `requires_nms` without `selection`, `may_include_non_person_classes`, or
   `letterbox` with `preserve_aspect_ratio: false`.
 - Record the rule ID (`V-<section-id>-<n>`) of each rule that you checked in the intake.
-- If a row of the intake is `near-miss`, `gap` or `unverified`, do not walk the checklist. Write
-  `skipped`.
+- If a row of the intake is `near-miss` or `gap`, do not walk the checklist. Write `skipped`.
+- If a row is `unverified` and no row is `near-miss` or `gap`, walk the checklist on the draft. Mark
+  each result that depends on an `unverified` row as provisional.
 - Run the exporter's own checks. Use a skellytracker sidecar checker only if the spec or this section
   names it.
 - Do not use the skellytracker `load_sidecar` to check a `vNEXT` sidecar. It rejects `vNEXT` (see

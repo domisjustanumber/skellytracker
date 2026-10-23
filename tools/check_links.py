@@ -107,7 +107,7 @@ def check_file(path: Path, root: Path) -> list[str]:
 def markdown_files(root: Path) -> list[Path]:
     """Return the tracked docs the link check covers."""
     files = [root / "AGENTS.md"] if (root / "AGENTS.md").exists() else []
-    for folder in ("specs", "notes"):
+    for folder in ("specs", "notes", ".claude/skills"):
         if (root / folder).is_dir():
             files.extend(sorted((root / folder).rglob("*.md")))
     return files
