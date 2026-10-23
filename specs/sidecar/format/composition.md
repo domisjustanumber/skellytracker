@@ -199,6 +199,10 @@ The sidecars of the skellytracker package are legacy. They have no hashes. They 
 
 No exporter evidence yet.
 
+skellytracker (decision 0016):
+
+- The resolver verifies the `sha256` of each `$ref` target and of each `base` target before it parses the target. The package resolver does not do this yet. `_resolve_refs` refuses a `$ref` mapping with a key other than `$ref`, and `_load_and_resolve` refuses a `base` that is not a string. Until the implementation stage adds the hash checks to `resolution.py`, the function `resolve` of `tools/sidecar_refs.py` is the temporary stand-in. It verifies the hashes, removes them from a copy of the tree and calls the unchanged `resolve_sidecar_composition` on the copy. Delete that function when `resolution.py` checks the hashes. Take each hash from the bytes of the file, not from a text-mode read. `parse_sidecar_file` opens the file in text mode, so it does not see a CR character. (skellytracker `skellytracker/core/sidecar/resolution.py` (`_resolve_refs`, `_load_and_resolve`, `parse_sidecar_file`); decision [0016](../../../notes/decisions/0016-sidecar-catalogs.md#reference-hashes), [Tools and line endings](../../../notes/decisions/0016-sidecar-catalogs.md#tools-and-line-endings)) (implementation stage)
+
 ## Authoring guidance
 
 - No exporter writes `base`. The sidecar writers of the four exporters have no `base` key. (OpenMMLab-Exporter cce619d, Roboflow-Exporter c64fd2a, Ultralytics-Exporter 2e0280e, Qualcomm-Exporter 4ca4586; searched the Python sources outside the tests at each HEAD)

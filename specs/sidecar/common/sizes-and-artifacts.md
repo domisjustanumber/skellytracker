@@ -147,6 +147,8 @@ See also [Input](input.md#validation-rules) and [Outputs](outputs.md#validation-
 - fp16 can be slower than fp32 on the ONNX Runtime CPU backend. The Qualcomm-Exporter person detector shows this.
   - The fp16 file ran at 57.2 FPS and the fp32 file at 646.3 FPS. The FPS is the median of 50 runs after 5 warm-up runs on the first COCO image, with one run for each file. It is not a device claim. (Qualcomm-Exporter local reports `mediapipe-person-detector-default_b1_fp16.report.json` and `..._fp32.report.json`, field `performance.converted.fps`, not in git; Qualcomm-Exporter `qai_validation.py:26-27, 77-91` and `qai_export.py:106-111`, 4ca4586 and 8d8e05a)
   - The AP differs by 2.5e-06 (0.006849 against 0.006846). The fp16 file is half the size (1,728,070 B against 3,379,390 B). (same local reports, fields `performance.converted.metrics` and `artifact.filesize_bytes`)
+- Verify the file that `filename` names against `sha256` when the file is present, and again after a download. Today no code checks `sha256`. `resolve_model_path` does not verify a `local_path` source, and `_resolve_from_url` returns a cached file with no hash check. It checks `url_sha256` only when it downloads the file. (skellytracker `skellytracker/core/sessions/model_registry.py` (`resolve_model_path`, `_resolve_from_url`); decision [0016](../../../notes/decisions/0016-sidecar-catalogs.md#artifact-hashes)) (implementation stage)
+- The ONNX download cache for `url` artifacts stays at `~/.cache/skellytracker/models`. It is not a sidecar root, so the catalog does not scan it. (skellytracker `skellytracker/core/sessions/model_registry.py` (`DEFAULT_CACHE_DIR`); decision [0016](../../../notes/decisions/0016-sidecar-catalogs.md#roots)) (implementation stage)
 
 ## Authoring guidance
 
@@ -188,7 +190,7 @@ See also [Input](input.md#validation-rules) and [Outputs](outputs.md#validation-
 - No exporter writes `url`, `url_sha256` or `input_dtype`.
   - OpenMMLab-Exporter computes the SHA-256 of each file, but it does not write the hash into the sidecar. (OpenMMLab-Exporter `rtmdet_person/sidecar.py:139-145` (eed3361) and `pipeline/sidecar.py:75-76` (0c7ec77))
   - Qualcomm-Exporter keeps the SHA-256 and the size of each ONNX file only in the report (`artifact.sha256`, `artifact.filesize_bytes`). (Qualcomm-Exporter `qai_report.py:99-130`, 4ca4586)
-  - The [exporter guide](../exporter-guide.md#coming-source-and-hashes-skellytracker-decision-0016-accepted) says that every `filename` artifact will carry a `sha256`.
+  - The [exporter guide](../exporter-guide.md#source-and-hashes) says that every `filename` artifact carries a `sha256`.
 - An fp16 converter can make an invalid graph.
   - The Ultralytics FP16 export can put the input `Cast` node after its consumers. Ultralytics-Exporter sorts the graph again and runs `onnx.checker` after each conversion. (Ultralytics-Exporter `export_all.py:161-188, 227-229`, 69499e7)
   - The ONNX Runtime converter appends the input `Cast` nodes, and `onnxconverter-common` 1.16 made an fp16 graph that ONNX Runtime rejects. Qualcomm-Exporter prefers `onnxruntime.transformers.float16.convert_float_to_float16`, sorts the graph again and runs `onnx.checker`. (Qualcomm-Exporter `qai_export.py:63-103` (8d8e05a) and `tests/test_qai_export.py:32-47` (4ca4586))

@@ -54,6 +54,23 @@ See also [Outputs](outputs.md#validation-rules).
 
 No exporter evidence yet.
 
+skellytracker (decision 0016):
+
+- The catalog key of a sidecar is `<model_id>@<source.name>`, for example `rtmw-wholebody@openmmlab-exporter`. Do not use `model_id` alone as the key. Two sources can write the same `model_id`. (Decision [0016](../../../notes/decisions/0016-sidecar-catalogs.md#source)) (implementation stage)
+- The catalog can find more than one version of one key. Then compare the `source.version` values in PEP 440 order. The newest version wins. The catalog lists the other versions as superseded. (Decision [0016](../../../notes/decisions/0016-sidecar-catalogs.md#source)) (implementation stage)
+- A config can pin a version with `<key>==<version>`. A pin wins over the newest version. (Decision [0016](../../../notes/decisions/0016-sidecar-catalogs.md#source)) (implementation stage)
+- Two sidecars can have the same key and the same `source.version`, but different file bytes. Then that catalog entry is unavailable. The reason names the paths of the two files. (Decision [0016](../../../notes/decisions/0016-sidecar-catalogs.md#source)) (implementation stage)
+- The name `skellytracker` is reserved for the package root. In a different root, a sidecar with `source.name: skellytracker` is unavailable. Thus a user folder cannot silently replace a model that skellytracker ships. (Decision [0016](../../../notes/decisions/0016-sidecar-catalogs.md#source)) (implementation stage)
+- A legacy sidecar gets the name `skellytracker` by default (see [Legacy behaviour](#legacy-behaviour)). Thus a legacy sidecar loads only from the package root. In a local folder or a Hugging Face repo, the catalog lists it as unavailable with this reason:
+
+  ```text
+  schema_version <v> is older than vNEXT and has no `source`; legacy sidecars load only from the skellytracker package. Regenerate it at vNEXT with a `source` field.
+  ```
+
+  (Decision [0016](../../../notes/decisions/0016-sidecar-catalogs.md#source)) (implementation stage)
+- One key can be in more than one root. Then the catalog logs the root of the entry that it uses. (Decision [0016](../../../notes/decisions/0016-sidecar-catalogs.md#source)) (implementation stage)
+- Each run records three values in its output metadata: the chosen key, its `source.version` and the SHA-256 of the sidecar file. Thus a result names exactly the sidecar that made it. (Decision [0016](../../../notes/decisions/0016-sidecar-catalogs.md#source)) (implementation stage)
+
 ## Authoring guidance
 
 - Write the family id as `model_id`. The file basename is the same id. The values in use are `rtmdet-person`, `rtmw-wholebody`, `rtmo-body7`, `rfdetr`, `yolo26`, `yolo26-body` and `mediapipe-person-detector`. (OpenMMLab-Exporter `rtmdet_person/identity.py:23-26`, `rtmw/identity.py:25-28` and `rtmo/identity.py:24-27`, eed3361; Roboflow-Exporter `rf_detr/identity.py:10`, b34e351; Ultralytics-Exporter `yolo_sidecar.py:22-25`, f52ef68; Qualcomm-Exporter `qai_catalog.py:49-62`, 4ca4586)
