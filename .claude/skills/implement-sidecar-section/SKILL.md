@@ -175,7 +175,7 @@ A skellytracker session must land it first, with the skill
    - `uv run python tools/sidecar_trace.py matrix --check`
 2. Do not run `black` or `isort` on the package.
 3. Put the implementation in its own PR. Do not put a spec change in it
-   ([0015](../../../notes/decisions/0015-review-discipline.md#one-kind-of-change-in-each-pr)). Put
+   ([0027](../../../notes/decisions/0027-single-working-branch.md#one-kind-of-change-in-each-pr)). Put
    each prerequisite of step 4 in its own PR before it.
 4. Ask the user before the push ([section 6](../../../AGENTS.md#6-git-rules) of `AGENTS.md`).
 

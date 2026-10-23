@@ -13,7 +13,7 @@ only in skellytracker. The user decides each acceptance.
 This skill wraps "Phase 3" of
 [decision 0014](../../../notes/decisions/0014-spec-lifecycle.md#new-model-workflow), the structure of
 [decision 0013](../../../notes/decisions/0013-spec-structure.md) and the PR kinds of
-[decision 0015](../../../notes/decisions/0015-review-discipline.md#one-kind-of-change-in-each-pr).
+[decision 0027](../../../notes/decisions/0027-single-working-branch.md#one-kind-of-change-in-each-pr).
 They give the reasons and the details. This skill gives the order of the steps, the inputs, the
 outputs and the stop points.
 

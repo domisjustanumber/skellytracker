@@ -117,8 +117,8 @@ Each skill is in `.claude/skills/<skill>/SKILL.md`.
 The skills wrap the [exporter guide](specs/sidecar/exporter-guide.md) and the
 [templates](specs/sidecar/templates/). They give the steps, the inputs, the outputs and the stop
 points. The rules in this file also apply.
-Exporter agents read the skill files in the read-only worktree
-`../freemocap/skellytracker-latest/.claude/skills/`.
+Exporter agents read the skill files, read-only, in the checkout
+`../freemocap/skellytracker/.claude/skills/`.
 
 | Skill | Status | Runs in | Use it to |
 |---|---|---|---|
@@ -143,7 +143,7 @@ This command runs the package tests and the doc tests. It does not run the slow 
 `development`, and on a manual run.
 On 2026-10-22, the workflow runs on `freemocap/skellytracker` end in `startup_failure`.
 Link the passing CI run on the fork in each PR body (decision
-[0015](notes/decisions/0015-review-discipline.md)).
+[0027](notes/decisions/0027-single-working-branch.md)).
 These tests must pass.
 Run `uv run pytest tools/tests` to run only the doc tests.
 The doc tests check that each relative link and `#anchor` in `AGENTS.md`, `specs/` and `notes/`
@@ -213,8 +213,8 @@ The demo needs a camera and a display.
   repository, record the proposal as a decision entry with status `proposed`. Then stop. The user
   accepts or rejects the proposal.
 - Put one kind of change in each PR (decision
-  [0015](notes/decisions/0015-review-discipline.md)). The kinds are: content (a change of normative
-  meaning), move, rewording, and non-spec (decision log, agent files, tools, test vectors, guidance, CI,
+  [0027](notes/decisions/0027-single-working-branch.md#one-kind-of-change-in-each-pr)).
+  The kinds are: content (a change of normative meaning), move, rewording, and non-spec (decision log, agent files, tools, test vectors, guidance, CI,
   test fixes). A non-spec PR can also add an example that changes no normative meaning, with its
   provenance record. It can also add an exporter's reference implementation of the current spec
   text. A content PR also has the examples, vectors and reference implementations that define its
@@ -262,19 +262,65 @@ Write the repository name before an entry number of another repository, for exam
   its draft PR and its description.
 - Ask the user before any other action that is visible outside this machine, for example a PR
   comment, a later change to a PR description or a change of a draft PR to ready. A force-push is a
-  new push. It needs its own approval (decision [0015](notes/decisions/0015-review-discipline.md)).
-- The local branch `dom/sidecar-latest` and the detached worktree `../skellytracker-latest` give
-  exporter agents the top of the PR stack. After each push of a stacked branch, move the branch and
-  the worktree to the new top of the stack. This needs no approval, because nothing leaves this
-  machine. Do not push `dom/sidecar-latest`. Do not edit files in the worktree. Decision
-  [0015](notes/decisions/0015-review-discipline.md) tells when to make the branch and the worktree,
-  and gives the commands.
+  new push. It needs its own approval (decision
+  [0027](notes/decisions/0027-single-working-branch.md)).
 - Open each PR to `freemocap/skellytracker` against `development`. Decision
-  [0015](notes/decisions/0015-review-discipline.md) gives the stacked draft workflow and the merge
+  [0027](notes/decisions/0027-single-working-branch.md) gives the stacked PR workflow and the merge
   method.
 - Do not change the commits of an open PR that other files cite. Do not add commits to it. Do not
   rebase it. #81 is such a PR: `specs/sidecar-implementation-plan.md` cites its commit SHAs
-  (decision [0015](notes/decisions/0015-review-discipline.md)).
+  (decision [0027](notes/decisions/0027-single-working-branch.md)).
+
+### The working branch and the PR branches
+
+- `dom/sidecar-implementation` is the working branch. It is the top of the PR stack. Commit only on
+  this branch.
+- Each PR has a branch `dom/NN-<topic>`. `NN` has two digits: the order in which the PRs are opened.
+  The branch points to the last commit of its PR. Do not commit on a `dom/NN-*` branch. Do not check
+  one out.
+- Keep the checkout `../freemocap/skellytracker` on the working branch. Exporter agents read the spec
+  there. If you change to a different branch for other work, change back when the work is done.
+- Use one worktree only. Do not add a worktree. A rebase does not move a branch that a different
+  worktree has checked out.
+- Do not change #81 (`dom/add-sidecar-spec`), `dom/01-*` or `dom/02-*`. `dom/03-*` holds the merges
+  of `dom/01-*` and `dom/02-*`.
+
+### Add a commit
+
+- **A new PR.** Commit on the working branch. When the PR is complete, add its branch at its last
+  commit: `git branch dom/<NN>-<topic> <sha>`. `<NN>` is the next free number.
+- **A change to a lower PR.** Make the commit on the working branch with
+  `git commit --fixup=<sha>`. `<sha>` is a commit of that PR. Then run:
+
+  ```sh
+  git rebase -i --autosquash --update-refs dom/03-sidecar-spec-fixes
+  ```
+
+  Always write `--update-refs`, also when the config sets `rebase.updateRefs`. A different clone can
+  have a different config. In the todo list, a line `update-ref refs/heads/dom/NN-<topic>` follows
+  the last commit of each PR. To move a commit to a different PR, move its `pick` line to the other
+  side of an `update-ref` line.
+- **A change to `dom/03-*`.** Add `--rebase-merges`, and start the rebase at `dom/add-sidecar-spec`.
+  Do not start a rebase below `dom/03-*` without `--rebase-merges`. A rebase without it removes the
+  merges.
+- Before a rebase, run `git worktree list`. If it shows more than one worktree, stop and ask the user.
+
+### Check and push
+
+- After a rebase, examine each changed PR: `git log --oneline <branch of the PR below>..<branch of the PR>`.
+  Make sure that it shows only the commits of that PR. Then run `uv run pytest tools/tests`.
+- Push the changed branches and the working branch in one command:
+
+  ```sh
+  git push --force-with-lease origin dom/<NN>-<topic> ... dom/sidecar-implementation
+  ```
+
+  A rebase changes commits, so this push is a force-push. It needs the approval of the user.
+- A rebase changes the commit SHAs. Tell the user which PR bodies give an old SHA in "Review the
+  commits after `<sha>`".
+- **A squash merge upstream.** If a PR below is squashed, run `git fetch upstream`. Then run
+  `git rebase --onto upstream/development <old branch of the squashed PR> dom/sidecar-implementation --update-refs`.
+  Push the changed branches after the approval of the user.
 
 ## 7. Tool Calls
 
