@@ -92,4 +92,6 @@ These are the conventions that the detectors use for canonical landmark names:
 
 ## Implementer guidance
 
+No exporter evidence yet.
+
 ## Authoring guidance

@@ -117,4 +117,11 @@ See also [Input](../common/input.md#legacy-behaviour).
 
 ## Implementer guidance
 
+- The OpenMMLab-Exporter host takes BGR frames. It applies the `imagenet_bgr` statistics directly to the BGR canvas. For `imagenet_rgb`, it flips the channels to RGB first. For `none`, it casts to float32 and flips only when `color_format` is `rgb`. (OpenMMLab-Exporter `onnx_runtime/preprocess.py:16, 120-151`, eed3361)
+- A BGR mean image `[103.53, 116.28, 123.675]` normalizes to 0 under both ImageNet modes of that host. (OpenMMLab-Exporter `tests/test_onnx_runtime.py:439-443`, adb332c)
+- That host supports only `imagenet_bgr`, `imagenet_rgb` and `none`. It raises `ValueError` for `unit_float` and `custom`. (OpenMMLab-Exporter `onnx_runtime/preprocess.py:42, 131-132`, eed3361)
+- The Roboflow-Exporter host divides by 255, resizes, and then applies `(x - mean) / std` with mean `(0.485, 0.456, 0.406)` and std `(0.229, 0.224, 0.225)` in RGB order. (Roboflow-Exporter `onnx_runtime/preprocess.py:18-19, 74-86`, d0559b9)
+- This matches `imagenet_rgb` on 0-255 pixels. Mean x 255 is `123.675 / 116.28 / 103.53`, and std x 255 is `58.395 / 57.12 / 57.375`. The bilinear weights sum to 1, so the result differs from `imagenet_rgb` only by the rounding of the resize. A test checks the channel means with `rtol=2e-3`. (Roboflow-Exporter `tests/test_onnx_runtime.py:164-178`, d0559b9)
+- The Roboflow-Exporter resize runs on float data and not on uint8 data. The spec does not state the dtype of the resize. This is a recorded spec defect. ([Open work](../../../notes/decisions/README.md#open-work), item "The spec does not state these facts, but a host needs them") (Roboflow-Exporter `onnx_runtime/preprocess.py:22-55, 74-78`, d0559b9)
+
 ## Authoring guidance

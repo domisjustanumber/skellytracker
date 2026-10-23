@@ -81,4 +81,7 @@ Availability of `packed_keypoints` before `vNEXT`: [Schema versioning](../format
 
 ## Implementer guidance
 
+- Pose rows align with detection rows in both bottom-up exports. RTMO: every kept detection has its keypoints inside its own box, and a shifted-row control mostly does not. YOLO26: the exported head gathers the keypoints with the same anchor index as the box, so each of the 300 rows carries its own box and keypoints. (OpenMMLab-Exporter `notes/decisions/0020-rtmo-sidecar-contract.md:65-67`, 38ed76f; ultralytics 8.4.184 `nn/modules/head.py:249-264`, installed copy in the Ultralytics-Exporter `.venv`)
+- YOLO26-pose pose mAP50-95 (OKS) on COCO val2017 at batch 2, PyTorch against fp32 ONNX: nano 0.5599 / 0.5598, small 0.6188 / 0.6167, medium 0.6772 / 0.6739, large 0.6917 / 0.6886, xlarge 0.7065 / 0.7034. The fp16 pose AP is within 0.0003 of fp32. The report field `ap` of a pose model is the mean of `box.map` and `pose.map`. (Ultralytics-Exporter `exports/detectors/keypoint_detectors/yolo26/body/yolo26-body-nano_b2_fp32.report.json` and the reports of the other sizes and precisions, field `performance.*.metrics_detail.pose_ap`, untracked, HEAD 2e0280e; `yolo_report.py:170-211`, 2e0280e)
+
 ## Authoring guidance

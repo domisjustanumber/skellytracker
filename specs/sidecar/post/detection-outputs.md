@@ -70,4 +70,11 @@ Availability before `vNEXT`: [Schema versioning](../format/versioning.md#legacy-
 
 ## Implementer guidance
 
+- RTMDet-person, after the NMS cut, has two outputs: `boxes` `[B, A, 4]` (xyxy, model-input pixels) and `scores` `[B, A]`. The graph applies the sigmoid and squeezes the single class. (OpenMMLab-Exporter `onnx_convert/nms_cut.py:7-20`, 689d3ed)
+- `A` is the sum of `(S / stride)^2` over the strides 8, 16 and 32. `A` is 2100 at `S` = 320 and 8400 at `S` = 640. (OpenMMLab-Exporter `notes/decisions/0008-cut-nms-tail.md:59`, c955162)
+- The dense output is the complete candidate set. All 16,000 rows (200 x 80) of the capped rtmdet-tiny graph appear in the dense output with the same box and score. (OpenMMLab-Exporter `notes/decisions/0008-cut-nms-tail.md:60`, c955162)
+- The YOLO26 `class_id` column holds whole numbers in a float32 tensor (`(index % nc).float()`). Cast the column to an integer before the class mapping. (Ultralytics-Exporter `yolo_sidecar.py:126-132`, f52ef68; ultralytics 8.4.184 `nn/modules/head.py:266-288`, installed copy in the Ultralytics-Exporter `.venv`)
+- The wrapper of Qualcomm-Exporter for the MediaPipe person detector joins the two anchor-group heads along dim 1. Then it runs `mediapipe_detector_postprocess`: it clamps the scores to +/-100, applies the sigmoid, decodes the anchors to model-input pixels and converts the centre-size boxes to xyxy. It emits one `detections` output `[B, 896, 5]` with the fields `[x1, y1, x2, y2, score]`. The score is already a probability. (Qualcomm-Exporter `qai_catalog.py:206-250` and `qai_sidecar.py:114-123`, 4ca4586; qai_hub_models 0.64.0 `models/templates/mediapipe/utils.py:147-171`, installed copy in the Qualcomm-Exporter `.venv`)
+- Keep every output that a later step needs. The wrapper returns only the four box columns and the score. It drops `coords[..., 4:]`, the keypoint columns that upstream returns with each box. The wiring record of Qualcomm-Exporter lists the keypoints 2 and 3 of upstream for the rotation of the pose ROI. Thus the ONNX output cannot rebuild that ROI. The historical pipeline manifest recorded `roi.mode: axis_aligned_approximation`. (Qualcomm-Exporter `qai_catalog.py:240-248`, 4ca4586; `qai_sidecar.py:27-34, 345-346`, c7b9132)
+
 ## Authoring guidance

@@ -60,4 +60,11 @@ Availability before `vNEXT`: [Schema versioning](../format/versioning.md#legacy-
 
 ## Implementer guidance
 
+- The probe `fit_resize` of OpenMMLab-Exporter is the pseudocode of this section in float64. It builds `M = [[s, 0, left], [0, s, top]]`. It calls `cv2.warpAffine` with `INTER_LINEAR`, `BORDER_CONSTANT` and `borderValue=(pad, pad, pad)`. (OpenMMLab-Exporter `notes/decisions/scripts/rtmo_sidecar_probe.py:59-69`, 38ed76f)
+- OpenMMLab-Exporter decision 0020 reports `input_max_abs_diff` 0 against mmpose `BottomupResize`. It reports identical detections and keypoints on four images. The tests used one model: RTMO-M, 640x640, fp32. (OpenMMLab-Exporter `notes/decisions/0020-rtmo-sidecar-contract.md:92-93, 121-122`, 38ed76f)
+- The probe computes the pixel differences on `image[:, :, 1:]`. Channel 0 is not in the `input_max_abs_diff` figure or in the other pixel-difference figures of decision 0020. The detection and keypoint comparisons use the full input. (OpenMMLab-Exporter `notes/decisions/scripts/rtmo_sidecar_probe.py:180-182, 211-213`, 38ed76f)
+- The probe passes one border value for each channel. A scalar `borderValue` fills only channel 0 in OpenCV. The skellytracker function `fit_preprocess` passes a scalar. This is a recorded spec defect. ([Open work](../../../notes/decisions/README.md#open-work), items "`fit` scalar pad" and "The `pad_value` row of `input.resize`") (OpenMMLab-Exporter `notes/decisions/scripts/rtmo_sidecar_probe.py:66-69`, 38ed76f)
+- The `fit` probe calls `cv2.warpAffine`. The letterbox host of the same exporter calls `cv2.resize`. These two calls place the pixel centres in different ways. This is a recorded spec defect. ([Open work](../../../notes/decisions/README.md#open-work), item "The `input.resize` text") (OpenMMLab-Exporter `notes/decisions/scripts/rtmo_sidecar_probe.py:66-69`, 38ed76f; OpenMMLab-Exporter `onnx_runtime/preprocess.py:112-116`, eed3361)
+- No production code in OpenMMLab-Exporter applies `fit`. The module `rtmo/preprocess.py` declares the values only. (OpenMMLab-Exporter `rtmo/preprocess.py:10`, f4511f2)
+
 ## Authoring guidance

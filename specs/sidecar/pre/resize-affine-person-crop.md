@@ -69,4 +69,8 @@ See also [Input](../common/input.md#validation-rules), [Sizes and artifacts](../
 
 ## Implementer guidance
 
+- Compare a host with mmpose at `flip_test=False`. All five RTMW configs set `test_cfg=dict(flip_test=True)`. The sidecar has no field for the flip test, and the exported graph is one forward pass. The effect of the flip test is not measured. (OpenMMLab-Exporter `mmdeploy-convert/model_cfgs/rtmw-*.py`, line 117 in the 256x192 configs and line 119 in the 384x288 configs, 491c17b)
+- A host script that followed only the spec text matched mmpose `inference_topdown` (`flip_test=False`, same boxes). The spec text was `affine_person_crop`, `imagenet_rgb`, SimCC argmax and the inverse affine. The mean difference was 0.0 to 0.4 px (max 2.4 px) on five confident crops. It was 2.9 px on one crop with mean score 0.10, where a flat SimCC peak changed bin. The model was an RTMPose hand model, not RTMW. The script is not in the repo. (OpenMMLab-Exporter `plans/hand-models-PLAN.md:86-100`, untracked plan file; the only evidence)
+- No exporter implements the crop or its inverse yet. The module `rtmw/preprocess.py` only declares the `affine_person_crop` values. The consumer of the sidecar runs the preprocessing. (OpenMMLab-Exporter `rtmw/preprocess.py:5-16`, eed3361)
+
 ## Authoring guidance

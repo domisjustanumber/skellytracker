@@ -121,6 +121,24 @@ See also [Input](input.md#validation-rules) and [Outputs](outputs.md#validation-
 
 ## Implementer guidance
 
+- The first size is the default, so a loader must keep the YAML mapping order.
+  - OpenMMLab-Exporter writes the sizes in alphabetical key order. `rtmdet-person` lists `medium` before `nano`. RTMW lists `l-256`, `l-384`, `m`, `x-256`, `x-384`. RTMO lists `l`, `m`, `s`, `t`. A host that takes the first size gets the alphabetically first size, not the smallest. (OpenMMLab-Exporter `rtmdet_person/sidecar.py:135`, eed3361; local exports `exports/detectors/object_detectors/rtmdet-person/rtmdet-person.yaml`, `.../rtmw/wholebody/rtmw-wholebody.yaml` and `.../rtmo/body7/rtmo-body7.yaml`, not in git)
+- `output_shapes` can hold `-1` for an axis that the graph leaves symbolic.
+  - OpenMMLab-Exporter reads the dims that one artifact declares for each batch (the `fp16` file when present). It keeps an unknown axis as `-1`. (OpenMMLab-Exporter `rtmo/sidecar.py:170-190`, eed3361)
+  - The `dets` output of the real RTMO-M graph has the shape `[1, -1, -1]` at batch 1 and `[2, -1, -1]` at batch 2. Read the concrete dims from the session output. (OpenMMLab-Exporter 0020 `notes/decisions/0020-rtmo-sidecar-contract.md:62-63`, 38ed76f; local export `rtmo-body7.yaml`, not in git)
+- The fp16 file is close to the fp32 file in AP.
+  - OpenMMLab-Exporter measured the full COCO val2017 person set with RTMDet-person nano and medium at batch 1 to 3. The fp16 AP is 0.000067 to 0.000190 below fp32. The fp32 AP is 0.000023 to 0.000391 above the PyTorch source. Every comparison passed its limit (0.005 or 0.01). (OpenMMLab-Exporter 0035 `notes/decisions/0035-published-artifact-reuse-and-p8-reexport.md:41-52`, c85abf7)
+  - The Ultralytics-Exporter fp16 detector AP is within 0.0004 of fp32. Example: nano at batch 2 gives 0.3969 against 0.3971. (Ultralytics-Exporter local reports `exports/detectors/object_detectors/yolo26/yolo26-<size>_b<N>_fp16.report.json` and the fp32 reports, field `performance.converted.ap`, not in git, HEAD 2e0280e)
+  - The Roboflow-Exporter README says that the measured change is about +0.002 AP. The only local fp16 report with an accuracy result (nano, batch 1) shows AP 0.48023 against 0.480397 for the PyTorch source (-0.000167). The repo does not reconcile the two. (Roboflow-Exporter `README.md:709-712`, b46b98f; local report `exports/detectors/object_detectors/rfdetr/rfdetr-nano_b1_fp16.onnx.model.report.json`, field `scoring.accuracy.comparisons[0].deltas`, not in git)
+  - The Qualcomm-Exporter person detector ran on seeded uniform noise. The fp32 file has a maximum box error of 3.05e-05 px and a maximum score error of 1.54e-07. The fp16 file has 0.1077 px and 6.09e-04. The tolerances are 1.0 px, and 1e-3 (fp32) or 1e-2 (fp16) for the score. (Qualcomm-Exporter local reports `exports/detectors/object_detectors/mediapipe-person-detector/mediapipe-person-detector-default_b1_fp16.report.json` and `..._fp32.report.json`, field `artifact.parity`, not in git; Qualcomm-Exporter `qai_export.py:122-163`, 8d8e05a, and `export_all.py:335`, 4ca4586)
+- The int8 file of Ultralytics-Exporter loses much more AP than the fp16 file.
+  - At batch 2, the int8 detector AP is 0.058 to 0.123 below fp32: nano 0.3329, small 0.3487, medium 0.4272, large 0.4391, xlarge 0.5056. (Ultralytics-Exporter local reports `exports/detectors/object_detectors/yolo26/yolo26-<size>_b2_int8.report.json`, field `performance.converted.ap`, not in git, HEAD 2e0280e)
+  - At batch 2, the int8 pose OKS AP is 0.109 to 0.203 below fp32. (Ultralytics-Exporter local reports `exports/detectors/keypoint_detectors/yolo26/body/yolo26-body-<size>_b2_int8.report.json`, field `performance.converted.metrics_detail.pose_ap`, not in git, HEAD 2e0280e)
+  - The int8 calibration set is COCO val2017, the same set as the evaluation. (Ultralytics-Exporter `yolo_coco_dataset.py:268-299`, 69499e7)
+- fp16 can be slower than fp32 on the ONNX Runtime CPU backend. The Qualcomm-Exporter person detector shows this.
+  - The fp16 file ran at 57.2 FPS and the fp32 file at 646.3 FPS. The FPS is the median of 50 runs after 5 warm-up runs on the first COCO image, with one run for each file. It is not a device claim. (Qualcomm-Exporter local reports `mediapipe-person-detector-default_b1_fp16.report.json` and `..._fp32.report.json`, field `performance.converted.fps`, not in git; Qualcomm-Exporter `qai_validation.py:26-27, 77-91` and `qai_export.py:106-111`, 4ca4586 and 8d8e05a)
+  - The AP differs by 2.5e-06 (0.006849 against 0.006846). The fp16 file is half the size (1,728,070 B against 3,379,390 B). (same local reports, fields `performance.converted.metrics` and `artifact.filesize_bytes`)
+
 ## Authoring guidance
 
 ## Examples

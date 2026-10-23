@@ -47,4 +47,8 @@ Availability before `vNEXT`: [Schema versioning](../format/versioning.md#legacy-
 
 ## Implementer guidance
 
+- The Roboflow-Exporter host implements `stretch`. It resizes a float image to the square target with independent scales `src_h / out_h` and `src_w / out_w`. It does not pad and does not crop. (Roboflow-Exporter `onnx_runtime/preprocess.py:22-55, 65-86`, d0559b9)
+- The OpenMMLab-Exporter host raises an error for each resize method other than `letterbox`. (OpenMMLab-Exporter `onnx_runtime/preprocess.py:94-96`, eed3361)
+- Upstream rfdetr 1.11.2 resizes each image to `[resolution, resolution]` by default, with `F.resize(..., antialias=False)`. (rfdetr 1.11.2 `detr.py:3020-3023`, installed in the Roboflow-Exporter `.venv`)
+
 ## Authoring guidance

@@ -59,4 +59,9 @@ See also [Detection decode](detection-decode.md#legacy-behaviour) and [Bottom-up
 
 ## Implementer guidance
 
+- Ultralytics consumes the end-to-end rows with `mask = pred[:, 4] > conf_thres` and `idx = mask.nonzero()[:max_det]`. It does not sort and it does not run NMS. These are the steps of `selection: none`: a strict comparison and no NMS. The `max_det` cap does nothing for 300 rows. (ultralytics 8.4.184 `utils/nms.py:71-78`, installed copy in the Ultralytics-Exporter `.venv`)
+- A YOLO26 graph gives `max_det` (300) rows for each image, in descending score order. The in-graph top-k runs over (anchor, class) pairs, so one box can repeat with different class ids. (ultralytics 8.4.184 `nn/modules/head.py:92-102, 266-288`, installed copy in the Ultralytics-Exporter `.venv`)
+- The spec does not define the order of the final rows for `selection: none`. The decision log records this point ([spec defects](../../../notes/decisions/README.md#open-work), item on the test vectors).
+- YOLO26 box mAP50-95 on COCO val2017 at batch 2, PyTorch against fp32 ONNX: nano 0.4023 / 0.3971, small 0.4801 / 0.4717, medium 0.5238 / 0.5193, large 0.5444 / 0.5357, xlarge 0.5683 / 0.5635. The numbers come from the Ultralytics validator at its defaults (`conf` 0.001, `max_det` 300, `rect` off for a static ONNX). They do not come from a skellytracker host. (Ultralytics-Exporter `exports/detectors/object_detectors/yolo26/yolo26-nano_b2_fp32.report.json` and the reports of the other sizes, field `performance.pytorch.ap` and `performance.converted.ap`, untracked, HEAD 2e0280e; `yolo_validation.py:170-176, 271-278`, f52ef68; ultralytics 8.4.184 `engine/validator.py:144-145, 232-233`, installed copy in the Ultralytics-Exporter `.venv`)
+
 ## Authoring guidance

@@ -50,4 +50,6 @@ Each group selects its edges with `connections` or `prefix` (not both). A `prefi
 
 ## Implementer guidance
 
+No exporter evidence yet.
+
 ## Authoring guidance

@@ -73,4 +73,6 @@ Validation and decode depend on the `schema_version` of the sidecar. `vNEXT` req
 
 ## Implementer guidance
 
+No exporter evidence yet.
+
 ## Authoring guidance

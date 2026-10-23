@@ -38,4 +38,6 @@ See also [Outputs](outputs.md#validation-rules).
 
 ## Implementer guidance
 
+No exporter evidence yet.
+
 ## Authoring guidance

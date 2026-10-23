@@ -100,4 +100,8 @@ See [Identity](../common/identity.md#validation-rules) and [File composition](co
 
 ## Implementer guidance
 
+- A reader must resolve YAML anchors and aliases.
+  - `yaml.safe_dump` writes a repeated value as an anchor and an alias. The generated `yolo26-body.yaml` has `shape: &id001 [1, 300, 57]` at line 16 and `shape: *id001` at line 22. `yaml.safe_load` resolves both. (Ultralytics-Exporter local export `exports/detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml:16, 22`, not in git, HEAD 2e0280e; Ultralytics-Exporter `yolo_sidecar.py:605`, f52ef68)
+  - Qualcomm-Exporter turns aliases off in its dumper (`ignore_aliases` returns `True`). It writes the shared dtype map in full under `input` and under `outputs`. (Qualcomm-Exporter `qai_sidecar.py:19-21, 62-71`, 4ca4586)
+
 ## Authoring guidance

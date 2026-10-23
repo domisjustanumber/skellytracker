@@ -149,4 +149,6 @@ Resolution errors are recoverable catalog errors. Each error names the file and 
 
 ## Implementer guidance
 
+No exporter evidence yet.
+
 ## Authoring guidance

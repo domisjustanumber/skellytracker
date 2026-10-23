@@ -48,6 +48,13 @@ See also [Identity](identity.md#validation-rules), [Sizes and artifacts](sizes-a
 
 ## Implementer guidance
 
+- Bind each tensor by its sidecar `name`, and route it by its `semantic`. Do not guess from the tensor name.
+  - The RTMO tensor named `keypoints` has the semantic `poses`. (OpenMMLab-Exporter `rtmo/sidecar.py:110-139`, eed3361)
+  - The RF-DETR tensor named `labels` holds class logits, not class ids. (Roboflow-Exporter `README.md:519-534`, b46b98f)
+  - The ONNX decoder of Roboflow-Exporter binds the outputs by a name substring (`dets` or `box`, `labels` or `logit`). If that fails, it binds by shape, and then by position. (Roboflow-Exporter `onnx_runtime/convert_rf_detr_coco.py:74-113`, d0559b9)
+  - Its PyTorch adapter renames `pred_boxes` and `pred_logits` to `dets` and `labels`. (Roboflow-Exporter `rf_detr/python_inference.py:86-96`, b46b98f)
+- The legacy `yolo26-body.yaml` of Ultralytics-Exporter declares the single tensor `output0` twice, once as `detections` and once as `poses` (both `[1, 300, 57]`). The spec requires unique output names (`V-common.outputs-1`). The proposal [0018](../../../notes/decisions/0018-one-declaration-per-tensor.md) covers this layout. (Ultralytics-Exporter `yolo_sidecar.py:574-582, 596`, f52ef68; local export `exports/detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml:13-26`, not in git)
+
 ## Authoring guidance
 
 ## Examples

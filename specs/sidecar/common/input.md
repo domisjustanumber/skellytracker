@@ -72,4 +72,13 @@ See also [Identity](identity.md#validation-rules), [Sizes and artifacts](sizes-a
 
 ## Implementer guidance
 
+- Do not infer the input dtype from the precision name. Read `input.dtype` for the precision.
+  - The fp16 artifacts keep a `float32` input in OpenMMLab-Exporter, Roboflow-Exporter, Qualcomm-Exporter and the Ultralytics-Exporter CPU exports (`keep_io_types=True`). (OpenMMLab-Exporter `onnx_convert/FP16_CONTRACT.md:11-16` (6ed34e4) and `rtmo/contract.py:8-11` (eed3361); Roboflow-Exporter `onnx_convert/fp16.py:186-195, 204-219` (4ae67c0); Qualcomm-Exporter `qai_sidecar.py:74-76` (4ca4586) and `qai_export.py:86-103` (8d8e05a); Ultralytics-Exporter `yolo_sidecar.py:352-360, 379-381` and `README.md:37` (f52ef68))
+  - The YOLO26 int8 graph is Q/DQ over a `float32` input. It has 206 `QuantizeLinear` nodes and 410 `DequantizeLinear` nodes. (Ultralytics-Exporter local file `exports/detectors/object_detectors/yolo26/yolo26-nano_b2_int8.onnx`, not in git)
+  - Ultralytics applies `keep_io_types` only when it exports on the CPU. A GPU export is already float16 from `model.half()`, so its fp16 input is float16. The sidecar writer reads the dtype from the graph for this reason. (`ultralytics` 8.4.184 `engine/exporter.py:1235-1240`, installed in the exporter `.venv`, not in git; Ultralytics-Exporter `tests/test_yolo_sidecar.py:50-79`, f52ef68)
+- No exporter sets `supports_dynamic_size`. Every artifact has static spatial dims equal to the `target_size` of its size, so the host must resize to `target_size`. (OpenMMLab-Exporter `rtmdet_person/contract.py:8-9` (f946e5d), `rtmw/contract.py:8-10` and `rtmo/contract.py:8-11` (eed3361); Roboflow-Exporter `pipeline/artifacts.py:119-124`, 4ae67c0)
+- The reference hosts of the exporters decode an image with PIL `convert("RGB")`. They have no BGR path.
+  - A host that holds OpenCV BGR frames must convert them to `input.color_format`. (Roboflow-Exporter `onnx_runtime/preprocess.py:58-62, 74-75`, d0559b9; Qualcomm-Exporter `qai_datasets.py:154`, 4ca4586)
+  - The decision log records that the spec does not state that the host frame is BGR. ([decision log](../../../notes/decisions/README.md#open-work))
+
 ## Authoring guidance
