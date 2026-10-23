@@ -50,7 +50,9 @@ See also [`schema_version` history](../changelog.md#schema_version-history).
 
 Validation and decode depend on the `schema_version` of the sidecar. `vNEXT` requirements never apply retroactively. For a sidecar with `schema_version < vNEXT`, validation and decode use the legacy meaning below.
 
+- [File composition](composition.md#legacy-behaviour)
 - [Schema versioning](versioning.md#legacy-behaviour)
+- [Identity](../common/identity.md#legacy-behaviour)
 - [Sizes and artifacts](../common/sizes-and-artifacts.md#legacy-behaviour)
 - [Input](../common/input.md#legacy-behaviour)
 - [Letterbox resize](../pre/resize-letterbox.md#legacy-behaviour)

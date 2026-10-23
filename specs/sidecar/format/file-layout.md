@@ -3,11 +3,11 @@ id: format.file_layout
 title: File layout
 kind: format
 since: v2024.09.1019
-changed_in: []
+changed_in: [vNEXT]
 selectors: []
 implemented_by:
   validate: skellytracker/core/sidecar/loader.py::load_sidecar  # partial. Checks that model_id matches the file name. No check for sidecar discovery, folder layout or shared fragments.
-  load: skellytracker/core/sidecar/loader.py::_default_cache_dir  # partial. Finds the ancestor folder named core. Does not read the folder layout.
+  load: skellytracker/core/sidecar/loader.py::_default_cache_dir  # partial. Finds the ancestor folder named core (the package root). No other sidecar root and no discovery. Does not read the folder layout.
 external_impl: []
 tests: [skellytracker/tests/sidecar/test_yolox_sidecar.py]
 vectors: null
@@ -39,10 +39,10 @@ An ONNX filename gives the size, the batch and the precision: `{model_id}-{size}
 
 ### Storage layout
 
-A sidecar and its ONNX files are under a model cache directory (`{cache_dir}`). The default is `skellytracker/core`. The layout follows the detector taxonomy:
+A sidecar and its ONNX files are under a sidecar root (`{sidecar_root}`, see [Sidecar roots](#sidecar-roots)). The package root is `skellytracker/core`. The layout follows the detector taxonomy:
 
 ```text
-{cache_dir}/
+{sidecar_root}/
   detectors/
     calibration_detectors/          # calibration targets (e.g. Charuco boards) — hard-coded, not sidecar-defined
     object_detectors/
@@ -94,19 +94,41 @@ detectors/keypoint_detectors/rtmw/wholebody/
 - **Fragment files** are shared sections that a `$ref` pulls in. A fragment file is a plain YAML value: a mapping, a sequence or a scalar. It carries **no** `schema_version`. By convention, keep fragment files under `detectors/shared/`.
 - **Base files** are the files that `base` references. A base file is an ordinary sidecar (`{model_id}.yaml`). A derived file that declares `base` is itself another `{model_id}.yaml`. The derived file must override `model_id`, so that its basename matches its own `model_id`. It must also override `schema_version`.
 
+### Sidecar roots
+
+A sidecar root (`{sidecar_root}`) is a folder that holds sidecars, their ONNX files and their fragments. Each sidecar root must follow the [Storage layout](#storage-layout). These folders are sidecar roots:
+
+- the package root, `skellytracker/core`;
+- each local folder that a user adds;
+- each Hugging Face repo snapshot. The top folder of the snapshot is `{sidecar_root}`.
+
+A sidecar root has no index file. The [discovery rule](#discovery) finds the sidecars in a root. A folder in which a host keeps the downloaded `url` artifacts is not a sidecar root.
+
+A `$ref` target or a `base` target stays inside the root of the file that refers to it (`V-format.composition-6`). The resolver reads each target from that same root (see [File composition](composition.md#ref--reference-another-file-for-any-value)).
+
+### Discovery
+
+In each sidecar root, a `.yaml` file is a sidecar when its top level has both of these keys:
+
+- `schema_version`;
+- `model_id`, with a value that is equal to the file name without `.yaml`.
+
+Every other YAML file is not a sidecar. Such a file is a fragment, or it is not part of the format. Examples are skeleton fragments, canonical mappings and MediaPipe point lists. A fragment has no `schema_version` (see [File pairing rules](#file-pairing-rules)), so the discovery rule never finds a fragment.
+
 ## Validation rules
 
 See [Identity](../common/identity.md#validation-rules) and [File composition](composition.md#validation-rules).
 
 ## Implementer guidance
 
+- The code still names the sidecar root `cache_dir` until the implementation stage renames it. Examples are the `cache_dir` argument of `load_sidecar`, `_default_cache_dir` and `_require_within_cache_dir`. (skellytracker `skellytracker/core/sidecar/loader.py` (`load_sidecar`, `_default_cache_dir`) and `skellytracker/core/sidecar/resolution.py` (`resolve_sidecar_composition`, `_require_within_cache_dir`))
 - A reader must resolve YAML anchors and aliases.
   - `yaml.safe_dump` writes a repeated value as an anchor and an alias. The generated `yolo26-body.yaml` has `shape: &id001 [1, 300, 57]` at line 16 and `shape: *id001` at line 22. `yaml.safe_load` resolves both. (Ultralytics-Exporter local export `exports/detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml:16, 22`, not in git, HEAD 2e0280e; Ultralytics-Exporter `yolo_sidecar.py:605`, f52ef68)
   - Qualcomm-Exporter turns aliases off in its dumper (`ignore_aliases` returns `True`). It writes the shared dtype map in full under `input` and under `outputs`. (Qualcomm-Exporter `qai_sidecar.py:19-21, 62-71`, 4ca4586)
 
 ## Authoring guidance
 
-- The export root of each exporter has the role of `{cache_dir}`.
+- The export root of each exporter has the role of `{sidecar_root}`.
   - Roboflow-Exporter writes `<exports>/detectors/object_detectors/rfdetr/rfdetr.yaml` and the ONNX files beside it. It writes the class-id fragment to `<exports>/detectors/shared/class_ids/coco91.yaml`. (Roboflow-Exporter `rf_detr/sidecar.py:34-37, 79-86` and `rf_detr/identity.py:98`, b34e351)
   - OpenMMLab-Exporter writes `detectors/keypoint_detectors/rtmw/wholebody/` and `detectors/object_detectors/rtmdet-person/`. (OpenMMLab-Exporter `tests/test_rtmw.py:73-77`, ba0c087; OpenMMLab-Exporter `rtmdet_person/identity.py:26`, eed3361)
   - Ultralytics-Exporter writes `object_detectors/yolo26/yolo26.yaml` and `keypoint_detectors/yolo26/body/yolo26-body.yaml`. (Ultralytics-Exporter `yolo_sidecar.py:103-107`, f52ef68)

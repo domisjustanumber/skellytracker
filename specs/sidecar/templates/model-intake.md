@@ -95,8 +95,8 @@ tell the user which inputs are missing.
 | Date | |
 
 **ONNX files.** Write one row for each file. Fill in the SHA-256 now, for example with
-`sha256sum <file>`. It identifies the file that you read. It is not the sidecar field `sha256` that
-skellytracker decision 0016 adds later.
+`sha256sum <file>`. It identifies the file that you read. It is not the artifact field `sha256` of
+the sidecar ([`common.sizes_and_artifacts`](../common/sizes-and-artifacts.md#authoring-guidance)).
 
 | File | Size | Batch key | Precision | SHA-256 |
 |---|---|---|---|---|
@@ -334,21 +334,20 @@ writes the value yet, or you cannot read it, follow "Values that the exporter ch
 | Y2 | `schema_version` is the string `vNEXT` until skellytracker releases the spec. YAML reads `vNEXT` and `"vNEXT"` as the same string. | | [`format.versioning`](../format/versioning.md#authoring-guidance) | | | |
 | Y3 | Each size contains only `input.shape`, `input.resize.target_size` and `onnx` | | [`common.sizes_and_artifacts`](../common/sizes-and-artifacts.md#authoring-guidance) | | | |
 | Y4 | No `null` values. In the spec, `null` only deletes an inherited key in a merge. | | [`format.composition`](../format/composition.md#authoring-guidance) (`base`) | | | |
-| Y5 | Each `$ref` and `base` path resolves and stays inside `{cache_dir}` | | [`format.composition`](../format/composition.md#authoring-guidance) | | | |
+| Y5 | Each `$ref` and `base` path resolves and stays inside `{sidecar_root}` | | [`format.composition`](../format/composition.md#authoring-guidance) | | | |
 | Y6 | No legacy-only form: `requires_nms` without `selection`, `may_include_non_person_classes`, or `letterbox` with `preserve_aspect_ratio: false` | | The "Legacy behaviour" heading of [`post.det.decode`](../post/detection-decode.md#authoring-guidance) and [`pre.resize.letterbox`](../pre/resize-letterbox.md#authoring-guidance); the index is "Version-aware compatibility" in [`format.versioning`](../format/versioning.md#authoring-guidance) | | | |
-| Y7 | A top-level `source`; a `sha256` on every `$ref`, `base` and `filename` artifact; UTF-8 without BOM; LF line endings | | Not in the spec yet (skellytracker decision 0016) | | | |
+| Y7 | A top-level `source`; a `sha256` on every `$ref`, `base` and `filename` artifact; UTF-8 without BOM; LF line endings | | [`common.identity`](../common/identity.md#authoring-guidance) (`source`), [`format.composition`](../format/composition.md#authoring-guidance) (Reference hashes), [`common.sizes_and_artifacts`](../common/sizes-and-artifacts.md#authoring-guidance) (`sha256`) | | | |
 
-Row Y7: skellytracker decision 0016 adds these fields to the spec. Until the spec defines `source`, a
-`vNEXT` sidecar without these fields is valid. Until then, write `not used` as the sidecar value and
-`exact` as the verdict for row Y7. Write `not in the spec yet` in the last column. This row does not
-stop the intake. After the spec text lands, the exporter must write the fields and regenerate its
+Row Y7: a `vNEXT` sidecar must have these fields, UTF-8 without a BOM and LF line endings. If the
+exporter does not write them yet, the verdict stays `exact`. Write the exporter defect in the last
+column. This row does not stop the intake. The exporter must write the fields and regenerate its
 `vNEXT` sidecars.
 
 Do not publish a `vNEXT` sidecar to a shared or remote folder. No skellytracker release can load it.
 
 ### Path in the storage layout
 
-The storage layout of the spec starts at `{cache_dir}`. In an exporter, the export root has that
+The storage layout of the spec starts at `{sidecar_root}`. In an exporter, the export root has that
 role. Write the path under the export root.
 
 | # | Property | Evidence (exporter code that writes the file) | Section ID (the `id` in the section file's front matter) | Sidecar value | Verdict | What differs or what is missing |

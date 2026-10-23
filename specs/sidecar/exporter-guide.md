@@ -631,7 +631,7 @@ them, this rule applies to the other exporter.
 
 Put the sidecar at its path in the storage layout of the spec (the heading "Storage layout" in
 `../freemocap/skellytracker-latest/specs/sidecar/format/file-layout.md`). In the spec, the layout
-starts at `{cache_dir}`. In an exporter, the export root has that role. Thus the
+starts at `{sidecar_root}`. In an exporter, the export root has that role. Thus the
 sidecar goes to `<export root>/detectors/...` (the export root of OpenMMLab-Exporter is `exports/`).
 
 - `object_detectors/{family}/{model_id}.yaml` for an object detector. `{family}` is the `model_id`.
