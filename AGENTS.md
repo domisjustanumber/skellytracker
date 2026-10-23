@@ -113,17 +113,19 @@ Code conventions:
 
 Load the skill that matches the task.
 If your agent does not support skills, read the skill file.
-Each skill will be in `.claude/skills/<skill>/SKILL.md`.
-No skill exists yet.
-Until a skill exists, use the [exporter guide](specs/sidecar/exporter-guide.md), the
-[templates](specs/sidecar/templates/) and the rules in this file.
+Each skill is in `.claude/skills/<skill>/SKILL.md`.
+The skills wrap the [exporter guide](specs/sidecar/exporter-guide.md) and the
+[templates](specs/sidecar/templates/). They give the steps, the inputs, the outputs and the stop
+points. The rules in this file also apply.
+Exporter agents read the skill files in the read-only worktree
+`../freemocap/skellytracker-latest/.claude/skills/`.
 
-| Skill | Status | Use it to |
-|---|---|---|
-| `author-sidecar` | coming | Add a model: fill the model intake, write the sidecar and prove parity with the upstream library. |
-| `propose-sidecar-change` | coming | Write a spec change proposal for a model property that the spec does not describe exactly. |
-| `change-sidecar-spec` | coming | Change the normative spec text, its changelog and its examples. |
-| `implement-sidecar-section` | coming | Implement a spec section in the package code, after the spec-build stage. |
+| Skill | Status | Runs in | Use it to |
+|---|---|---|---|
+| [`author-sidecar`](.claude/skills/author-sidecar/SKILL.md) | available | an exporter repo | Add a model: fill the model intake, write the sidecar and prove parity with the upstream library. Prepare the reference implementations of the sections that the exporter implements on its host side. |
+| [`propose-sidecar-change`](.claude/skills/propose-sidecar-change/SKILL.md) | available | an exporter repo, or this repository | Write a spec change proposal for a model property that the spec does not describe exactly. In this repository, record it as a decision entry with status `proposed`. |
+| [`change-sidecar-spec`](.claude/skills/change-sidecar-spec/SKILL.md) | available | this repository | Land a model, an accepted proposal or an exporter reference implementation. Change the normative spec text, its changelog, its vectors and its examples. |
+| [`implement-sidecar-section`](.claude/skills/implement-sidecar-section/SKILL.md) | available | this repository | Implement a spec section in the package code, after the spec-build stage. In the spec-build stage, plan the work only. |
 
 ## 3. Install and Test
 
