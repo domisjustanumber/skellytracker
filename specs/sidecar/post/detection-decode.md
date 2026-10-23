@@ -2,6 +2,20 @@
 id: post.det.decode
 title: Detection decode
 kind: postprocessor
+since: v2024.09.1019
+changed_in: [vNEXT]
+selectors:
+  - role=object_detector
+implemented_by:
+  validate: skellytracker/core/sidecar/model.py::DetectionDecodeSpec  # partial: no selection, output bindings, box_scale, class_id_map, is_person_only or clamp_boxes; max_detections defaults to 300
+  decode: skellytracker/core/detectors/object_detectors/yolox/yolox_decode.py::yolox_detection_decode  # partial: the tensor count picks the path, not selection; no box_scale, class_id_map, is_person_only or clamp; the caller gives the thresholds
+external_impl: []
+tests:
+  - skellytracker/tests/sidecar/test_model_validation.py
+  - skellytracker/tests/test_object_detection_decode.py
+  - skellytracker/tests/test_yolox_detector.py
+vectors: null
+status: {spec: stable, validate: partial, decode: partial}
 ---
 
 # Detection decode

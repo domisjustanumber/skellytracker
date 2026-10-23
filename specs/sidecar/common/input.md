@@ -2,6 +2,18 @@
 id: common.input
 title: Input
 kind: common
+since: v2024.09.1019
+changed_in: [vNEXT]
+selectors: []
+implemented_by:
+  validate: skellytracker/core/sidecar/model.py::InputSpec  # partial. No color_format field (V-common.input-6) and no crop_policy.pad_value. Nothing checks that dtype covers the declared precisions. pad_value is not required for fit.
+  load: skellytracker/core/detectors/processing/image_preprocessing.py::preprocess_image  # partial. Ignores input.dtype. Raises for method none and for letterbox with preserve_aspect_ratio false.
+external_impl: []
+tests:
+  - skellytracker/tests/sidecar/test_model_validation.py
+  - skellytracker/tests/test_image_preprocessing.py
+vectors: null
+status: {spec: stable, validate: partial, load: partial}
 ---
 
 # Input

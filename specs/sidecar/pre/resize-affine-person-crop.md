@@ -2,6 +2,20 @@
 id: pre.resize.affine_person_crop
 title: Affine person crop
 kind: preprocessor
+since: v2024.09.1019
+changed_in: [vNEXT]
+selectors: [input.resize.method=affine_person_crop]
+implemented_by:
+  validate: skellytracker/core/sidecar/model.py::CropPolicySpec  # partial. No crop_policy.pad_value field. SidecarModel._check_pose_requires_affine_crop checks V-pre.resize.affine_person_crop-2.
+  forward: skellytracker/core/detectors/processing/affine_crop.py::top_down_affine  # partial. Always uses cv2.INTER_LINEAR and no pad_value. preprocess_image raises when maintain_aspect_ratio is false.
+  inverse: skellytracker/core/detectors/processing/simcc_decode.py::decode_simcc  # partial. Applies the inverse to SimCC keypoints only. get_warp_matrix(inv=True) has no caller.
+external_impl: []
+tests:
+  - skellytracker/tests/test_image_preprocessing.py
+  - skellytracker/tests/sidecar/test_model_validation.py
+  - skellytracker/tests/sidecar/test_rtmpose_body_sidecar.py
+vectors: vectors/pre.resize.affine_person_crop.yaml
+status: {spec: stable, validate: partial, forward: partial, inverse: partial}
 ---
 
 # Affine person crop

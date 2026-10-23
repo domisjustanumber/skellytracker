@@ -2,6 +2,20 @@
 id: pre.resize.interpolation
 title: Interpolation
 kind: preprocessor
+since: v2024.09.1019
+changed_in: [vNEXT]
+selectors:
+  - input.resize.method=letterbox
+  - input.resize.method=stretch
+  - input.resize.method=fit
+  - input.resize.method=affine_person_crop
+implemented_by:
+  validate: skellytracker/core/sidecar/model.py::ResizeSpec
+  forward: skellytracker/core/detectors/processing/image_preprocessing.py::preprocess_image  # partial. The affine_person_crop branch ignores interpolation. top_down_affine always uses cv2.INTER_LINEAR.
+external_impl: []
+tests: []
+vectors: null
+status: {spec: stable, validate: implemented, forward: partial}
 ---
 
 # Interpolation

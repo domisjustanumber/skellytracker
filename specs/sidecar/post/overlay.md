@@ -2,6 +2,20 @@
 id: post.overlay
 title: Overlay
 kind: schema
+since: v2024.09.1019
+changed_in: []
+selectors:
+  - overlay
+implemented_by:
+  validate: skellytracker/core/sidecar/model.py::SidecarModel._check_overlay  # with OverlaySpec and OverlayGroupSpec
+  load: skellytracker/core/detectors/overlay_groups.py::resolve_overlay_groups  # partial: it groups the edges only; colours, thickness, keypoint_color and overlay.skeleton are not read
+external_impl: []
+tests:
+  - skellytracker/tests/test_overlay_groups.py
+  - skellytracker/tests/sidecar/test_model_validation.py
+  - skellytracker/tests/sidecar/test_rtmw_sidecar.py
+vectors: null
+status: {spec: stable, validate: implemented, load: partial}
 ---
 
 # Overlay

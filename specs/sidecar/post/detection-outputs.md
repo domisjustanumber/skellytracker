@@ -2,6 +2,22 @@
 id: post.det.outputs
 title: Detection outputs
 kind: postprocessor
+since: v2024.09.1019
+changed_in: [vNEXT]
+selectors:
+  - outputs[].semantic=detections
+  - outputs[].semantic=boxes
+  - outputs[].semantic=scores
+  - outputs[].semantic=class_logits
+implemented_by:
+  validate: skellytracker/core/sidecar/model.py::SidecarModel._check_outputs_semantics  # partial: no boxes, scores, class_logits, class_axis or packed_keypoints; no float dtype check; the fields length is not compared with the shape
+  decode: skellytracker/core/detectors/object_detectors/yolox/yolox_decode.py::yolox_detection_decode  # partial: it reads the outputs by position and last dimension, not by semantic or fields
+external_impl: []
+tests:
+  - skellytracker/tests/sidecar/test_model_validation.py
+  - skellytracker/tests/test_yolox_detector.py
+vectors: null
+status: {spec: stable, validate: partial, decode: partial}
 ---
 
 # Detection outputs

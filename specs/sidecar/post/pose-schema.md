@@ -2,6 +2,22 @@
 id: post.pose.schema
 title: Pose schema
 kind: schema
+since: v2024.09.1019
+changed_in: [vNEXT]
+selectors:
+  - role=pose_estimator
+implemented_by:
+  validate: skellytracker/core/sidecar/model.py::PoseSpec  # partial: the output check in SidecarModel._check_pose_output_shapes has no packed_keypoints case; keypoint_count is not checked on poses outputs
+  load: skellytracker/core/sidecar/loader.py::load_sidecar  # partial: the detectors read tracked_points and the first connections entry only; derived_points are never computed
+external_impl: []
+tests:
+  - skellytracker/tests/sidecar/test_model_validation.py
+  - skellytracker/tests/sidecar/test_rtmpose_body_sidecar.py
+  - skellytracker/tests/sidecar/test_rtmpose_hand_sidecar.py
+  - skellytracker/tests/sidecar/test_rtmpose_face_sidecar.py
+  - skellytracker/tests/sidecar/test_rtmw_sidecar.py
+vectors: null
+status: {spec: stable, validate: partial, load: partial}
 ---
 
 # Pose schema

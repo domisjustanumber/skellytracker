@@ -2,6 +2,25 @@
 id: post.pose.decode.simcc
 title: SimCC decode
 kind: postprocessor
+since: v2024.09.1019
+changed_in: []
+selectors:
+  - pose.decode.method=simcc
+  - outputs[].semantic=simcc_x
+  - outputs[].semantic=simcc_y
+  - outputs[].semantic=simcc_z
+implemented_by:
+  validate: skellytracker/core/sidecar/model.py::PoseDecodeSpec._check_decode
+  decode: skellytracker/core/detectors/processing/simcc_decode.py::simcc_pose_decode  # partial: no 3D (it raises); the split ratio is fixed at 2.0, not read from the bin counts; the score is the mean of the two softmax peaks
+external_impl: []
+tests:
+  - skellytracker/tests/sidecar/test_model_validation.py
+  - skellytracker/tests/sidecar/test_rtmpose_body_sidecar.py
+  - skellytracker/tests/sidecar/test_rtmpose_hand_sidecar.py
+  - skellytracker/tests/sidecar/test_rtmpose_face_sidecar.py
+  - skellytracker/tests/sidecar/test_rtmw_sidecar.py
+vectors: null
+status: {spec: stable, validate: implemented, decode: partial}
 ---
 
 # SimCC decode

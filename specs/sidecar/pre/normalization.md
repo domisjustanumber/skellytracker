@@ -2,6 +2,23 @@
 id: pre.normalize
 title: Normalization
 kind: preprocessor
+since: v2024.09.1019
+changed_in: [vNEXT]
+selectors:
+  - input.normalization=none
+  - input.normalization=unit_float
+  - input.normalization=imagenet_bgr
+  - input.normalization=imagenet_rgb
+  - input.normalization.mode=custom
+implemented_by:
+  validate: skellytracker/core/sidecar/model.py::CustomNormalization  # partial. Nothing checks input.color_format against the normalization mode.
+  forward: skellytracker/core/detectors/processing/image_preprocessing.py::build_normalization_fn  # partial. imagenet_bgr has only the legacy meaning (notes/decisions/0009-imagenet-bgr-meaning.md). No code reads color_format. none and unit_float return float32, not input.dtype.
+external_impl: []
+tests:
+  - skellytracker/tests/test_image_preprocessing.py
+  - skellytracker/tests/sidecar/test_model_validation.py
+vectors: vectors/pre.normalize.yaml
+status: {spec: stable, validate: partial, forward: partial}
 ---
 
 # Normalization

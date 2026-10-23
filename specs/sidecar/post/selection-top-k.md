@@ -2,6 +2,17 @@
 id: post.det.selection.top_k
 title: "Selection: top-k"
 kind: postprocessor
+since: vNEXT
+changed_in: []
+selectors:
+  - decode.selection=top_k
+implemented_by:
+  validate: missing
+  decode: missing
+external_impl: []
+tests: []
+vectors: vectors/post.det.selection.top_k.yaml
+status: {spec: stable, validate: missing, decode: missing}
 ---
 
 # Selection: top-k

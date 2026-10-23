@@ -2,6 +2,16 @@
 id: format.versioning
 title: Schema versioning
 kind: format
+since: v2024.09.1019
+changed_in: [vNEXT]
+selectors: []
+implemented_by:
+  validate: skellytracker/core/sidecar/model.py::SidecarModel._check_schema_version_pattern  # partial. Checks the pattern and the stable-only rule. load_sidecar rejects a too-new version. No code applies the legacy rules.
+  load: skellytracker/core/sidecar/versioning.py::parse_skellytracker_version  # partial. The parser needs the leading v. The section says the v is optional.
+external_impl: []
+tests: [skellytracker/tests/sidecar/test_model_validation.py]
+vectors: null
+status: {spec: stable, validate: partial, load: partial}
 ---
 
 # Schema versioning

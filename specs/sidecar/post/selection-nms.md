@@ -2,6 +2,19 @@
 id: post.det.selection.nms
 title: "Selection: NMS"
 kind: postprocessor
+since: v2024.09.1019
+changed_in: [vNEXT]
+selectors:
+  - decode.selection=nms
+implemented_by:
+  validate: missing
+  decode: skellytracker/core/detectors/processing/object_detection_decode.py::decode_prenms  # partial: the box area adds 1 to each side; ties are not ordered by row index; one class only; no nms block, post_nms_top_k or clamp; the caller gives the thresholds
+external_impl: []
+tests:
+  - skellytracker/tests/test_object_detection_decode.py
+  - skellytracker/tests/test_yolox_detector.py
+vectors: vectors/post.det.selection.nms.yaml
+status: {spec: stable, validate: missing, decode: partial}
 ---
 
 # Selection: NMS

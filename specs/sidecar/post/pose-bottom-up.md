@@ -2,6 +2,20 @@
 id: post.pose.bottom_up
 title: Bottom-up pose
 kind: postprocessor
+since: v2024.09.1019
+changed_in: [vNEXT]
+selectors:
+  - pose.estimator_type=bottom_up
+  - outputs[].semantic=poses
+  - outputs[].packed_keypoints
+implemented_by:
+  validate: skellytracker/core/sidecar/model.py::OutputSpec._check_output  # partial: it requires keypoint_axis 2 on poses; no packed_keypoints; the instance axis is not compared with the row axis
+  decode: missing
+external_impl: []
+tests:
+  - skellytracker/tests/sidecar/test_model_validation.py
+vectors: null
+status: {spec: stable, validate: partial, decode: missing}
 ---
 
 # Bottom-up pose

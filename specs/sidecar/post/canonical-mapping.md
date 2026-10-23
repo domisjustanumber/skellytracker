@@ -2,6 +2,21 @@
 id: post.pose.canonical_mapping
 title: Canonical mapping
 kind: schema
+since: v2024.09.1019
+changed_in: []
+selectors:
+  - pose.canonical_mapping
+implemented_by:
+  validate: skellytracker/core/sidecar/model.py::PoseSpec._check_pose  # partial: a source may be a derived point; duplicate keys are not detected
+  load: skellytracker/core/io/tracker_mapping.py::TrackerMapping  # no skellytracker test covers this class
+external_impl: []
+tests:
+  - skellytracker/tests/sidecar/test_model_validation.py
+  - skellytracker/tests/sidecar/test_rtmpose_body_sidecar.py
+  - skellytracker/tests/sidecar/test_rtmpose_hand_sidecar.py
+  - skellytracker/tests/sidecar/test_rtmw_sidecar.py
+vectors: null
+status: {spec: stable, validate: partial, load: implemented}
 ---
 
 # Canonical mapping

@@ -2,6 +2,19 @@
 id: post.pose.decode.coordinate
 title: Coordinate decode
 kind: postprocessor
+since: v2024.09.1019
+changed_in: [vNEXT]
+selectors:
+  - pose.decode.method=coordinate
+  - outputs[].semantic=keypoints
+implemented_by:
+  validate: skellytracker/core/sidecar/model.py::PoseDecodeSpec._check_decode
+  decode: missing
+external_impl: []
+tests:
+  - skellytracker/tests/sidecar/test_model_validation.py
+vectors: null
+status: {spec: stable, validate: implemented, decode: missing}
 ---
 
 # Coordinate decode

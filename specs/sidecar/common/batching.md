@@ -2,6 +2,16 @@
 id: common.batching
 title: Batching
 kind: common
+since: v2024.09.1019
+changed_in: []
+selectors: []
+implemented_by:
+  validate: skellytracker/core/sidecar/model.py::BatchingSpec._check_batch_axis
+  load: skellytracker/core/sidecar/model.py::OnnxSpec.supports_dynamic_batch
+external_impl: []
+tests: [skellytracker/tests/sidecar/test_model_validation.py]
+vectors: null
+status: {spec: stable, validate: implemented, load: implemented}
 ---
 
 # Batching

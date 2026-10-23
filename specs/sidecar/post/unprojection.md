@@ -2,6 +2,18 @@
 id: post.unprojection
 title: Unprojection
 kind: postprocessor
+since: v2024.09.1019
+changed_in: [vNEXT]
+selectors: [role=object_detector, role=pose_estimator]
+implemented_by:
+  validate: skellytracker/core/sidecar/model.py::PoseDecodeSpec._check_decode  # partial. Checks only where coordinate_scale is valid. DetectionDecodeSpec has no box_scale field.
+  decode: skellytracker/core/detectors/processing/object_detection_decode.py::decode_prenms  # partial. No shared unprojection function. Each decoder divides by the letterbox ratio or applies the affine inverse itself (decode_simcc). No normalized_01 or normalized_11 conversion.
+external_impl: []
+tests:
+  - skellytracker/tests/test_object_detection_decode.py
+  - skellytracker/tests/sidecar/test_rtmpose_body_sidecar.py
+vectors: vectors/post.unprojection.yaml
+status: {spec: stable, validate: partial, decode: partial}
 ---
 
 # Unprojection

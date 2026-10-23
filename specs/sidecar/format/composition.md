@@ -2,6 +2,16 @@
 id: format.composition
 title: File composition
 kind: format
+since: v2024.09.1019
+changed_in: []
+selectors: []
+implemented_by:
+  validate: skellytracker/core/sidecar/resolution.py::_resolve_refs  # partial. The module checks the $ref form, missing targets, cycles and paths outside cache_dir. Nothing checks that a derived file overrides schema_version.
+  load: skellytracker/core/sidecar/resolution.py::resolve_sidecar_composition
+external_impl: []
+tests: [skellytracker/tests/sidecar/test_resolution.py]
+vectors: null
+status: {spec: stable, validate: partial, load: implemented}
 ---
 
 # File composition

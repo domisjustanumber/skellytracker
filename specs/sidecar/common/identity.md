@@ -2,6 +2,18 @@
 id: common.identity
 title: Identity
 kind: common
+since: v2024.09.1019
+changed_in: []
+selectors: []
+implemented_by:
+  validate: skellytracker/core/sidecar/loader.py::load_sidecar  # load_sidecar checks V-common.identity-1. SidecarModel checks V-common.identity-2 and V-common.identity-3.
+  load: skellytracker/core/sidecar/model.py::SidecarModel
+external_impl: []
+tests:
+  - skellytracker/tests/sidecar/test_model_validation.py
+  - skellytracker/tests/sidecar/test_yolox_sidecar.py
+vectors: null
+status: {spec: stable, validate: implemented, load: implemented}
 ---
 
 # Identity

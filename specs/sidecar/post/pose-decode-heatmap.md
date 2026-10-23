@@ -2,6 +2,19 @@
 id: post.pose.decode.heatmap
 title: Heatmap decode
 kind: postprocessor
+since: v2024.09.1019
+changed_in: []
+selectors:
+  - pose.decode.method=heatmap
+  - outputs[].semantic=heatmap
+implemented_by:
+  validate: skellytracker/core/sidecar/model.py::PoseDecodeSpec._check_decode
+  decode: missing
+external_impl: []
+tests:
+  - skellytracker/tests/sidecar/test_model_validation.py
+vectors: null
+status: {spec: stable, validate: implemented, decode: missing}
 ---
 
 # Heatmap decode

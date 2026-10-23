@@ -2,6 +2,19 @@
 id: pre.resize.fit
 title: Fit resize
 kind: preprocessor
+since: vNEXT
+changed_in: []
+selectors: [input.resize.method=fit]
+implemented_by:
+  validate: skellytracker/core/sidecar/model.py::ResizeSpec._check_method_specific_fields  # partial. pad_value is not required (V-pre.resize.fit-1). The model accepts fit in a sidecar older than vNEXT.
+  forward: skellytracker/core/detectors/processing/image_preprocessing.py::fit_preprocess
+  inverse: missing  # fit_preprocess returns scale, left and top. No code applies (x - left) / s.
+external_impl: []
+tests:
+  - skellytracker/tests/test_image_preprocessing.py
+  - skellytracker/tests/sidecar/test_model_validation.py
+vectors: vectors/pre.resize.fit.yaml
+status: {spec: stable, validate: partial, forward: implemented, inverse: missing}
 ---
 
 # Fit resize

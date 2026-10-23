@@ -2,6 +2,19 @@
 id: common.sizes_and_artifacts
 title: Sizes and artifacts
 kind: common
+since: v2024.09.1019
+changed_in: [vNEXT]
+selectors: []
+implemented_by:
+  validate: skellytracker/core/sidecar/model.py::SizeSpec  # partial. The checks run only inside resolved_size. No check for V-common.sizes_and_artifacts-3 (notes/decisions/0010-family-invariant.md) or -8. -9 checks only that output_shapes exists.
+  load: skellytracker/core/sidecar/model.py::SidecarModel.resolved_size  # partial. Drops every key of a size entry except input and onnx. resolve_model_path in model_registry.py downloads artifacts and checks url_sha256.
+external_impl: []
+tests:
+  - skellytracker/tests/sidecar/test_model_validation.py
+  - skellytracker/tests/sidecar/test_runtime.py
+  - skellytracker/tests/sidecar/test_model_registry_sidecar_support.py
+vectors: null
+status: {spec: stable, validate: partial, load: partial}
 ---
 
 # Sizes and artifacts
