@@ -4,6 +4,8 @@ Revision: [Changes in this revision](../changelog.md#changes-in-this-revision-vn
 
 Each example is a sidecar for this revision from the named exporter. The OpenMMLab-Exporter examples (RTMDet person, RTMW, RTMO body7) come from its real `vNEXT` exports. The Ultralytics-Exporter examples (YOLO26 detection and pose) are written from that exporter's code and published artifacts: tensor names, shapes, dtypes, sizes, batches, precisions and filenames. They will be replaced when it emits `vNEXT`. There is no RF-DETR example until Roboflow-Exporter is overhauled; the `stretch`, `top_k` and `class_logits` rules have no example until then. Where a family has more sizes than shown, the omitted sizes differ only in `input.shape`, `target_size` and filenames.
 
+Each example also has a top-level [`source`](../common/identity.md#fields) and every hash: the `sha256` of each `$ref` ([Reference hashes](../format/composition.md#reference-hashes)) and of each artifact ([Sizes and artifacts](../common/sizes-and-artifacts.md#sizessizeonnxbatch_artifacts)). No exporter writes these fields yet. `tools/sidecar_refs.py --write --placeholder --source` added them. `source.version` is the current version of the exporter package, also for the YOLO26 examples. The ONNX artifacts have the reserved placeholder hash, because nobody can download the ONNX files of an example. Thus each example differs from its exporter copy until the exporter writes these fields.
+
 ## YOLO26 detector (Ultralytics-Exporter; NMS-free, graph-final rows)
 
 Centre letterbox with half-even rounding, RGB `unit_float` input, and one packed `[B, 300, 6]` tensor of final detections (`nms=False`, `max_det=300` at export). Every precision, including int8, keeps float32 I/O.

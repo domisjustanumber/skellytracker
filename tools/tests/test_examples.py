@@ -1,16 +1,18 @@
-"""The spec's reference examples parse, resolve and have provenance.
+"""The spec's reference examples parse, resolve, hold correct hashes and have provenance.
 
 The examples under `specs/sidecar/examples/` follow the package's `detectors/`
-layout, so their `$ref` paths resolve with that folder as the cache dir. They
+layout, so their `$ref` paths resolve with that folder as the sidecar root. They
 are not validated against `SidecarModel`: it does not load `vNEXT` sidecars yet.
+They resolve with `sidecar_refs.resolve`, because the package resolver refuses
+`sha256` next to `$ref`.
 """
 
+import re
 from pathlib import Path
 
 import pytest
+import sidecar_refs
 import yaml
-
-from skellytracker.core.sidecar.resolution import resolve_sidecar_composition
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES_ROOT = REPO_ROOT / "specs" / "sidecar" / "examples"
@@ -54,9 +56,60 @@ def test_there_are_examples() -> None:
 
 @pytest.mark.parametrize("path", example_paths(), ids=example_key)
 def test_example_resolves(path: Path) -> None:
-    resolved = resolve_sidecar_composition(path, EXAMPLES_ROOT)
+    resolved = sidecar_refs.resolve(path, EXAMPLES_ROOT)
     assert resolved["model_id"] == path.stem
     assert resolved["schema_version"] == "vNEXT"
+
+
+@pytest.mark.parametrize("path", example_paths(), ids=example_key)
+def test_example_passes_the_reference_hash_check(path: Path) -> None:
+    """`tools/sidecar_refs.py --check <example>` passes (the same root and the same checks)."""
+    errors = sidecar_refs.check(path)
+    assert not errors, "\n".join(errors)
+
+
+SOURCE_NAME = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
+
+
+@pytest.mark.parametrize("path", example_paths(), ids=example_key)
+def test_example_has_a_source(path: Path) -> None:
+    """V-common.identity-4 to V-common.identity-6."""
+    source = yaml.safe_load(path.read_text(encoding="utf-8"))["source"]
+    assert isinstance(source, dict) and set(source) == {"name", "version"}
+    assert isinstance(source["name"], str) and SOURCE_NAME.fullmatch(source["name"])
+    assert isinstance(source["version"], str) and source["version"]
+
+
+def placeholder_scan_paths() -> list[Path]:
+    """Every YAML file of the package, the spec and the tools, and every Markdown file of the spec."""
+    paths = [
+        p
+        for folder in ("skellytracker", "specs", "tools")
+        for pattern in ("*.yaml", "*.yml")
+        for p in (REPO_ROOT / folder).rglob(pattern)
+    ]
+    paths += (REPO_ROOT / "specs").rglob("*.md")
+    return sorted(p for p in paths if EXAMPLES_ROOT not in p.parents)
+
+
+def test_the_placeholder_scan_reads_the_sidecars_and_the_spec() -> None:
+    shown = {p.relative_to(REPO_ROOT).as_posix() for p in placeholder_scan_paths()}
+    assert "specs/sidecar/common/sizes-and-artifacts.md" in shown
+    assert (
+        "skellytracker/core/detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml"
+        in shown
+    )
+    assert not any(name.startswith("specs/sidecar/examples/") for name in shown)
+
+
+def test_no_file_outside_the_examples_holds_the_placeholder() -> None:
+    """The placeholder hash is valid only under `specs/sidecar/examples/` (V-common.sizes_and_artifacts-12)."""
+    holders = [
+        p.relative_to(REPO_ROOT).as_posix()
+        for p in placeholder_scan_paths()
+        if sidecar_refs.PLACEHOLDER in p.read_text(encoding="utf-8")
+    ]
+    assert not holders, holders
 
 
 @pytest.mark.parametrize("path", example_paths(), ids=example_key)

@@ -1,5 +1,8 @@
 ---
 schema_version: "vNEXT"
+source:
+  name: openmmlab-exporter
+  version: 0.1.0
 model_id: rtmw-wholebody
 display_name: RTMW WholeBody
 role: [pose_estimator]
@@ -37,8 +40,8 @@ pose:
   requires_object_detector: true
   landmark_schema: COCO_WholeBody
   # The exporter currently inlines these 133 names and edges; the shared fragments are equivalent.
-  tracked_points: {$ref: ../../../shared/skeletons/coco133_tracked_points.yaml}
-  connections: {$ref: ../../../shared/skeletons/coco133_skeletons.yaml}
+  tracked_points: {$ref: ../../../shared/skeletons/coco133_tracked_points.yaml, sha256: "b59afc21868c1b4b0cac9bf0ae8a6398666d0b8a5da64a13d88079732d60441c"}
+  connections: {$ref: ../../../shared/skeletons/coco133_skeletons.yaml, sha256: "bdc310c077f571a1a7d73d74f4fe6d1124b360c006512ea0d7ffb2a671f1709a"}
   decode:
     method: simcc
 
@@ -67,8 +70,8 @@ sizes:
       batch_artifacts:
         "1":
           precision_artifacts:
-            fp32: {filename: rtmw-wholebody-m_b1_fp32.onnx}
-            fp16: {filename: rtmw-wholebody-m_b1_fp16.onnx}
+            fp32: {filename: rtmw-wholebody-m_b1_fp32.onnx, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+            fp16: {filename: rtmw-wholebody-m_b1_fp16.onnx, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
   l-384:
     input:
       shape: [-1, 3, 384, 288]
@@ -78,6 +81,6 @@ sizes:
       batch_artifacts:
         "1":
           precision_artifacts:
-            fp32: {filename: rtmw-wholebody-l-384_b1_fp32.onnx}
-            fp16: {filename: rtmw-wholebody-l-384_b1_fp16.onnx}
+            fp32: {filename: rtmw-wholebody-l-384_b1_fp32.onnx, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+            fp16: {filename: rtmw-wholebody-l-384_b1_fp16.onnx, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
   # l-256, x-256 (256x192) and x-384 (384x288): same pattern.

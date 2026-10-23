@@ -1,5 +1,8 @@
 ---
 schema_version: vNEXT
+source:
+  name: openmmlab-exporter
+  version: 0.1.0
 model_id: rtmo-body7
 display_name: RTMO Body7
 role: [object_detector, pose_estimator]
@@ -105,4 +108,4 @@ sizes:
       batch_artifacts:
         "1":
           precision_artifacts:
-            fp32: {filename: rtmo-body7-m_b1_fp32.onnx}
+            fp32: {filename: rtmo-body7-m_b1_fp32.onnx, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
