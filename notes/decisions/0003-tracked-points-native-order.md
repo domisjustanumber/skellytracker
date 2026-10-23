@@ -5,7 +5,7 @@
 ## Decision
 
 - A sidecar lists `pose.tracked_points` in the order of the model output. The i-th name is the i-th output
-  index. This is the rule in [`pose.tracked_points`](../../specs/sidecar-spec.md#posetracked_points) in the
+  index. This is the rule in [`pose.tracked_points`](../../specs/sidecar/post/pose-schema.md#posetracked_points) in the
   spec.
 - The RTMW whole-body sidecar follows the rule. Its list is
   `skellytracker/core/detectors/shared/skeletons/coco133_tracked_points.yaml`. The order is:

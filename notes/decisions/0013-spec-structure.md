@@ -106,7 +106,7 @@ The body has these headings, in this order:
 - A rule that joins two sections is in the section of the field that it constrains. The other
   section links to it. Examples: role against output semantic; `requires_object_detector` against
   `affine_person_crop`; `packed_keypoints` against the pose decode.
-- Each row of the [Version-aware compatibility](../../specs/sidecar-spec.md#version-aware-compatibility)
+- Each row of the [Version-aware compatibility](../../specs/sidecar/format/versioning.md#version-aware-compatibility)
   table moves into the section that it governs, under the "Legacy behaviour" heading.
   `format/versioning.md` keeps the version comparison rules and an index of these headings.
 
@@ -281,21 +281,21 @@ The body has these headings, in this order:
 ## Evidence
 
 - `specs/sidecar-spec.md` has 1,625 lines and 106,300 bytes (2026-10-22). The detection `decode` and
-  [Selection behaviour](../../specs/sidecar-spec.md#selection-behaviour) headings, which hold the NMS
+  [Selection behaviour](../../specs/sidecar/post/detection-decode.md#selection-behaviour) headings, which hold the NMS
   rules, have 72 lines together.
 - The `fit` spec text ([0012](0012-fit-resize-for-rtmo.md)) changed text under seven headings:
-  [Compatibility impact](../../specs/sidecar-spec.md#compatibility-impact),
-  [`input.resize`](../../specs/sidecar-spec.md#inputresize),
-  [Unprojection](../../specs/sidecar-spec.md#unprojection),
-  [`sizes`](../../specs/sidecar-spec.md#sizes),
-  [Version-aware compatibility](../../specs/sidecar-spec.md#version-aware-compatibility),
-  [Validation rules](../../specs/sidecar-spec.md#validation-rules) and
-  [Changelog](../../specs/sidecar-spec.md#changelog).
+  [Compatibility impact](../../specs/sidecar/changelog.md#compatibility-impact),
+  [`input.resize`](../../specs/sidecar/common/input.md#inputresize),
+  [Unprojection](../../specs/sidecar/post/unprojection.md),
+  [`sizes`](../../specs/sidecar/common/sizes-and-artifacts.md#sizes),
+  [Version-aware compatibility](../../specs/sidecar/format/versioning.md#version-aware-compatibility),
+  [Validation rules](../../specs/sidecar/README.md#validation-rules) and
+  [Changelog](../../specs/sidecar/changelog.md#schema_version-history).
 - `_StrictModel` in `skellytracker/core/sidecar/model.py` sets `extra="forbid"`, and `SidecarModel`
   has no `source` field.
 - OpenMMLab-Exporter, Roboflow-Exporter and Ultralytics-Exporter list `exports/` in `.gitignore`.
   The RTMO body7 example comes from OpenMMLab-Exporter's tracked copy,
-  `notes/decisions/rtmo-body7.yaml` ([Reference examples](../../specs/sidecar-spec.md#reference-examples)).
+  `notes/decisions/rtmo-body7.yaml` ([Reference examples](../../specs/sidecar/examples/README.md)).
 - A comparison on 2026-10-22 found that the RTMW example had drifted from its export, and that the
   YOLO26 examples are forecasts
   ([`specs/sidecar-implementation-plan.md`, "Reference examples"](../../specs/sidecar-implementation-plan.md#reference-examples)).

@@ -91,7 +91,7 @@ selects the RTMW whole-body detector.
 ### Roots
 
 - The spec's `{cache_dir}` gets the new name `{sidecar_root}`. A sidecar root is a folder that follows
-  the [storage layout](../../specs/sidecar-spec.md#storage-layout).
+  the [storage layout](../../specs/sidecar/format/file-layout.md#storage-layout).
 - The roots are:
   - the package root, `skellytracker/core`;
   - each local folder that a user adds;
@@ -302,13 +302,13 @@ Checked in the code on 2026-10-22.
   - `skellytracker/core/detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml` has
     `model_id: rtmw-wholebody` (line 3). Its `url` values (line 74 and after) point to the rtmlib
     `onnx_sdk` archives on `download.openmmlab.com`. The spec says this under
-    [RTMW WholeBody](../../specs/sidecar-spec.md#rtmw-wholebody-openmmlab-exporter-top-down-pose).
+    [RTMW WholeBody](../../specs/sidecar/examples/README.md#rtmw-wholebody-openmmlab-exporter-top-down-pose).
   - OpenMMLab-Exporter writes the same `model_id`: `rtmw/identity.py:26` has
     `FAMILY = "rtmw-wholebody"`, and `rtmw/sidecar.py:211` sets `"model_id": FAMILY`. The spec's RTMW
     reference example also has `model_id: rtmw-wholebody`.
 - **The storage layout gives each `model_id` one path.** The file name is `{model_id}.yaml`
-  ([File extension and naming](../../specs/sidecar-spec.md#file-extension-and-naming)). The family and
-  the part set the leaf folder ([Storage layout](../../specs/sidecar-spec.md#storage-layout)).
+  ([File extension and naming](../../specs/sidecar/format/file-layout.md#file-extension-and-naming)). The family and
+  the part set the leaf folder ([Storage layout](../../specs/sidecar/format/file-layout.md#storage-layout)).
   `loader.py::load_sidecar` rejects a file whose name is not `{model_id}.yaml` (lines 40-46). Thus two
   sidecars with one `model_id` cannot be in one root that follows the storage layout.
 - **A sidecar cannot carry its source today.** `SidecarModel` extends `_StrictModel`, which sets
@@ -328,13 +328,13 @@ Checked in the code on 2026-10-22.
     folder named `core`. It raises `ValueError` when there is none. For a package sidecar, the root is
     `skellytracker/core`.
   - The spec says that a `$ref` or `base` path must never escape above `{cache_dir}`
-    ([File composition](../../specs/sidecar-spec.md#file-composition-ref-includes-and-base-inheritance)).
+    ([File composition](../../specs/sidecar/format/composition.md)).
 - **The resolver refuses the hashed form.** `resolution.py::_resolve_refs` (lines 71-77) raises when a
   `$ref` mapping has any key other than `$ref`. `_load_and_resolve` (lines 59-60) raises when `base` is
   not a string. Thus `{$ref, sha256}` needs a resolver change, and the tool needs a temporary
   work-around until then.
 - **"Cache dir" names two folders.** The spec's `{cache_dir}` defaults to `skellytracker/core`
-  ([Storage layout](../../specs/sidecar-spec.md#storage-layout)).
+  ([Storage layout](../../specs/sidecar/format/file-layout.md#storage-layout)).
   `skellytracker/core/sessions/model_registry.py:26` sets
   `DEFAULT_CACHE_DIR = Path.home() / ".cache" / "skellytracker" / "models"`. `_resolve_from_url`
   (lines 151-155) keeps a downloaded ONNX file flat, as `cache / (expected_filename or filename)`. This
@@ -347,7 +347,7 @@ Checked in the code on 2026-10-22.
   equal to the file name: `yolox`, `rtmw-wholebody`, `rtmpose-body`, `rtmpose-hand` and `rtmpose-face`.
   The other 17 have no `schema_version`: 8 skeleton fragments under `detectors/shared/skeletons/`, 6
   canonical mappings and 3 MediaPipe point lists. The spec says that fragments under `detectors/shared/`
-  have no `schema_version` ([Storage layout](../../specs/sidecar-spec.md#storage-layout)). It does not
+  have no `schema_version` ([Storage layout](../../specs/sidecar/format/file-layout.md#storage-layout)). It does not
   give a rule that tells a sidecar from a different YAML file. Its storage layout does not show the
   canonical mappings and the MediaPipe point lists, which are in the leaf folders next to the sidecars
   (for example `rtmpose/body/rtmpose_body_to_canonical_mapping.yaml`).

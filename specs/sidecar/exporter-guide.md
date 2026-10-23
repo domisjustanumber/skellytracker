@@ -33,14 +33,20 @@ The decisions behind this guide:
 - [0016](../../notes/decisions/0016-sidecar-catalogs.md): sidecar catalogs: `source`, reference
   hashes, roots, discovery and the capability check.
 
-The spec is one file now. The headings that this guide uses most:
-[`input.resize`](../sidecar-spec.md#inputresize), [`sizes`](../sidecar-spec.md#sizes),
-[Storage layout](../sidecar-spec.md#storage-layout),
-[Schema versioning](../sidecar-spec.md#schema-versioning),
-[Version-aware compatibility](../sidecar-spec.md#version-aware-compatibility),
-[Validation rules](../sidecar-spec.md#validation-rules),
-[Considered and deliberately not added](../sidecar-spec.md#considered-and-deliberately-not-added) and
-[Reference examples](../sidecar-spec.md#reference-examples).
+The spec is split into section files under `specs/sidecar/`. The entry point is
+[`specs/sidecar-spec.md`](../sidecar-spec.md): it is the permanent index, and it keeps each old
+heading as an anchor with a link to the section file that holds the text now. The section map is
+[`specs/sidecar/README.md`](README.md#section-map). It lists each section ID and its file. The
+sections and headings that this guide uses most:
+[`input.resize`](common/input.md#inputresize), [`sizes`](common/sizes-and-artifacts.md#sizes),
+[Storage layout](format/file-layout.md#storage-layout),
+[Schema versioning](format/versioning.md),
+[Version-aware compatibility](format/versioning.md#version-aware-compatibility) (the index of the
+"Legacy behaviour" heading of each section),
+[Validation rules](README.md#validation-rules) (the validation index),
+[Considered and deliberately not added](changelog.md#considered-and-deliberately-not-added) and
+[Reference examples](examples/README.md), with the provenance of each example in
+[`inventory.yaml`](inventory.yaml).
 The templates are [model intake](templates/model-intake.md) and
 [change proposal](templates/change-proposal.md).
 
@@ -74,7 +80,12 @@ The templates are [model intake](templates/model-intake.md) and
 
 | File | Use |
 |---|---|
-| `../freemocap/skellytracker-latest/specs/sidecar-spec.md` | The spec. It is normative. |
+| `../freemocap/skellytracker-latest/specs/sidecar-spec.md` | The entry point of the spec. It is the permanent index: it keeps each old heading as an anchor with a link to the section file that holds the text now. |
+| `../freemocap/skellytracker-latest/specs/sidecar/README.md` | The section map: each section ID and its file. It also has the validation index and the meaning of **(vNEXT)**. |
+| `../freemocap/skellytracker-latest/specs/sidecar/format/`, `common/`, `pre/`, `post/` | The section files. They are the normative text of the spec. |
+| `../freemocap/skellytracker-latest/specs/sidecar/changelog.md` | The `vNEXT` summary of changes, the table "Considered and deliberately not added" and the `schema_version` history. |
+| `../freemocap/skellytracker-latest/specs/sidecar/examples/README.md` | The reference examples. They are not upstream evidence. |
+| `../freemocap/skellytracker-latest/specs/sidecar/inventory.yaml` | The provenance of each reference example. |
 | `../freemocap/skellytracker-latest/specs/sidecar/templates/model-intake.md` | The template for phase 1. |
 | `../freemocap/skellytracker-latest/specs/sidecar/templates/change-proposal.md` | The template for phase 2. |
 | `../freemocap/skellytracker-latest/specs/sidecar/exporter-guide.md` | The source of this section. |
@@ -93,27 +104,31 @@ the evidence for the rules. The spec is normative. Read skellytracker decision 0
 before your first intake. When this section or a template cites another entry, read that entry if its
 topic applies to your model.
 
-**Section IDs.** The spec will be split into section files. After the split, `specs/sidecar-spec.md`
-stays as the index. Each section then has a section ID (for example `pre.resize.letterbox`), and each
-validation rule has a rule ID. Until the split, a section has no ID. Use the spec heading in place of
-the section ID (for example `input.resize`).
+**Section IDs.** The spec is split into section files under `specs/sidecar/`. `specs/sidecar-spec.md`
+is the index. The section map `../freemocap/skellytracker-latest/specs/sidecar/README.md` lists each
+section ID and its file. The section ID is the `id` in the front matter of the section file, for
+example `pre.resize.letterbox`. Each validation rule has a rule ID in the form `V-<section-id>-<n>`,
+for example `V-pre.resize.letterbox-1`. When this section names a spec heading, it also names the
+section ID or the file that holds the heading.
 
-**Vectors.** A test vector is a small worked case for the algorithm of one section. After the split,
-the vectors of a section are in
-`../freemocap/skellytracker-latest/specs/sidecar/vectors/<section ID>.yaml`. If that file does not
-exist, the section has no vectors.
+**Vectors.** A test vector is a small worked case for the algorithm of one section. The vectors of a
+section are in `../freemocap/skellytracker-latest/specs/sidecar/vectors/<section ID>.yaml`. If that
+file does not exist, the section has no vectors.
 
-**Reference examples are not evidence.** The "Reference examples" heading of the spec shows complete
-sidecars. They are not upstream evidence. Do not copy a value from an example into the intake. After
+**Reference examples are not evidence.** The reference examples of the spec
+(`../freemocap/skellytracker-latest/specs/sidecar/examples/README.md`) show complete sidecars.
+`../freemocap/skellytracker-latest/specs/sidecar/inventory.yaml` records the provenance of each
+example. They are not upstream evidence. Do not copy a value from an example into the intake. After
 you fill in every row, compare your values with the example of the same family, if one exists. Record
 each difference in the intake.
 
 **Links to the spec.** In a tracked file of the exporter, name the spec as `specs/sidecar-spec.md` of
-the skellytracker repo. That file is the permanent entry point. After the split, you can also name a
-section file under `specs/sidecar/`. Do not link to a URL of a branch. A branch URL breaks when the
-branch moves or when someone deletes it. Do not link to the spec with a relative path into a local
-skellytracker checkout. That path does not resolve on GitHub or in a different folder layout. It also
-points into a working tree that is often on a feature branch. Name the spec in a code span:
+the skellytracker repo. That file is the permanent entry point. The section map is
+`specs/sidecar/README.md`. You can also name a section file under `specs/sidecar/`, for example
+`specs/sidecar/pre/resize-letterbox.md`. Do not link to a URL of a branch. A branch URL breaks when
+the branch moves or when someone deletes it. Do not link to the spec with a relative path into a
+local skellytracker checkout. That path does not resolve on GitHub or in a different folder layout.
+It also points into a working tree that is often on a feature branch. Name the spec in a code span:
 `specs/sidecar-spec.md` of the skellytracker repo.
 
 ### Rules
@@ -193,7 +208,7 @@ Fill `../freemocap/skellytracker-latest/specs/sidecar/templates/model-intake.md`
 2. For each row, write:
    - the property;
    - the upstream evidence (see "Rules");
-   - the section ID (until the split, the spec heading);
+   - the section ID (the `id` in the front matter of the section file);
    - the sidecar value;
    - a verdict.
 3. Give each row one of these verdicts:
@@ -204,7 +219,8 @@ Fill `../freemocap/skellytracker-latest/specs/sidecar/templates/model-intake.md`
      is also a near-miss when it changes the output for some input.
    - `gap`: the spec has no section and no field for the property, for example a rotated crop, a
      border mode or a role for an ROI refiner. A property that the spec calls out of scope, or that the
-     spec lists in "Considered and deliberately not added", is also a gap.
+     spec lists in "Considered and deliberately not added"
+     (`../freemocap/skellytracker-latest/specs/sidecar/changelog.md`), is also a gap.
    - `unverified`: you do not have the evidence for a verdict. Name the missing evidence in the row. If
      you expect a verdict, write it there too.
    - `out of scope`: the step is before or after the runtime contract of this model. Examples: a step
@@ -312,11 +328,12 @@ result is `to run`.
   `near-miss`.
 - **Family.** One family has one preprocessing contract and one post-processing contract. If two sizes
   need a different contract, they are two families (two sidecars). Name the files by the convention of
-  the spec (the "File extension and naming" heading). The spec allows any lowercase token as a size
-  name. Use the size name of the upstream, also for a family with one size. If the upstream has no
-  size name, choose a token and write the reason in the intake.
-- **Preprocessing.** For each value, record the upstream line behind it. If a spec section has
-  authoring guidance, use it. Also record:
+  the spec (the heading "File extension and naming" in
+  `../freemocap/skellytracker-latest/specs/sidecar/format/file-layout.md`). The spec allows any
+  lowercase token as a size name. Use the size name of the upstream, also for a family with one size.
+  If the upstream has no size name, choose a token and write the reason in the intake.
+- **Preprocessing.** For each value, record the upstream line behind it. If the "Authoring guidance"
+  heading of a spec section has text, use it. Also record:
   - the dtype of the image when the upstream resizes it (for example uint8, before the cast);
   - the arithmetic of the scale, the scaled size and the offsets: float32 or float64, and the order of
     the operations. In float64, `77 * (640 / 77)` is `639.9999999999999`. Thus a rounding at an
@@ -356,7 +373,8 @@ Write one proposal for each new or changed contract unit (one section). Fill
 
 Before you write a proposal:
 
-- Read the table "Considered and deliberately not added" of the spec. If your gap is in it, cite the
+- Read the table "Considered and deliberately not added" of the spec
+  (`../freemocap/skellytracker-latest/specs/sidecar/changelog.md`). If your gap is in it, cite the
   row in part 1. Give the evidence that a model needs the feature now.
 - If a proposal needs another proposal (for example, a decode that uses the unprojection of a new
   crop), write the dependency in the header of each proposal. One parity script can serve several
@@ -378,12 +396,15 @@ A proposal has eight parts:
 
    Also find each place that the change must edit. Search the spec for each closed set or list that
    the change extends, for example the `role` values, the `semantic` values, the resize methods, the
-   storage layout, the Overview, the Document map and the compatibility table. Also find each rule
-   that names one of these values, for example the rule that a sidecar with
-   `pose.requires_object_detector: true` declares `input.resize.method: affine_person_crop`. List each
-   place in the proposal. These edits are part of the same contract unit: a new role, with its enum
-   and path edits, is one proposal. The proposed text can contain YAML excerpts. Do not write a sidecar
-   file of the model with the proposed fields.
+   storage layout (`format.file_layout`), the Overview, the section map and the validation index
+   (`../freemocap/skellytracker-latest/specs/sidecar/README.md`), and the "Legacy behaviour" heading
+   of each changed section with its index "Version-aware compatibility" (`format.versioning`). Also
+   find each rule that names one of these values, for example the rule
+   `V-pre.resize.affine_person_crop-2`: a sidecar with `pose.requires_object_detector: true` declares
+   `input.resize.method: affine_person_crop`. List each place in the proposal. These edits are part
+   of the same contract unit: a new role, with its enum and path edits, is one proposal. The
+   proposed text can contain YAML excerpts. Do not write a sidecar file of the model with the
+   proposed fields.
 3. **Reference implementation.** Write the smallest functions that implement exactly the proposed
    text. Use only NumPy, OpenCV and the Python standard library. Write one function for each
    algorithm. Each docstring cites the proposed section ID. Write the code to
@@ -427,8 +448,8 @@ A proposal has eight parts:
 You do not do phase 3. A skellytracker session does it. The user decides.
 
 1. **A model with the verdict `describes`.** One non-spec PR (documentation only) in skellytracker
-   adds the sidecar as a spec example, with its provenance record and any new guidance from the
-   intake. The procedure is
+   adds the sidecar as a spec example (under `specs/sidecar/examples/`), with its provenance record
+   (in `specs/sidecar/inventory.yaml`) and any new guidance from the intake. The procedure is
    "Reference examples" in `../freemocap/skellytracker-latest/specs/sidecar-implementation-plan.md`.
    Its preconditions: the exporter writes the sidecar itself (not by hand), at `vNEXT`, with no
    legacy-only fields; the checks of the exporter pass; parity passes for at least one size. The
@@ -464,49 +485,39 @@ applies for every verdict of the intake.
 - Do the step from committed host code. If the host code is not committed yet, or if it exists only
   in a plan, write `to run` in the intake. Do the step after the commit.
 
-**Module names.** `<section_module>` is the section ID with each dot replaced by an underscore. For
-example, `pre.resize.letterbox` gives `pre_resize_letterbox`. Until the split:
+**Module names.** For `<section_module>`, use the section ID from the front matter of the section file
+(`id`), with each dot replaced by an underscore. For example, `pre.resize.letterbox` gives
+`pre_resize_letterbox`. The section map `../freemocap/skellytracker-latest/specs/sidecar/README.md`
+lists each section ID. For a new section, propose an ID in the same scheme
+(`<format|common|pre|post>.<area>[.<name>]`). In a proposal, make `<section_module>` from the
+proposed section ID.
 
-- In a proposal, make `<section_module>` from the proposed section ID.
-- For a section that no proposal changes, use this table.
-
-| Spec heading | Part | `<section_module>` |
-|---|---|---|
-| `input.resize`, with its row of the "Unprojection" table | `letterbox`, `stretch`, `fit` or `affine_person_crop` | `input_resize_<method>`, for example `input_resize_fit` |
-| Unprojection | The conversion of `box_scale` and `coordinate_scale` values to model-input pixels | `unprojection_scale` |
-| Normalization modes | One mode | `normalization_modes_<mode>`, for example `normalization_modes_unit_float` |
-| Selection behaviour | `none`, `top_k` or `nms` | `selection_behaviour_<selection>`, for example `selection_behaviour_nms` |
-| `packed_keypoints` (bottom-up packed rows) | All | `packed_keypoints` |
-| `pose.decode` | `simcc`, `heatmap` or `coordinate` | `pose_decode_<method>`, for example `pose_decode_coordinate` |
-| Bottom-up decode | All | `bottom_up_decode` |
-
-- A resize method and its unprojection are one module, because the spec gives the inverse with the
-  forward algorithm. Do not put other headings together in one module.
-- For a heading that is not in the table, use the heading text in lowercase. Remove the code marks
-  and the text in parentheses. Replace each space, dot and hyphen with an underscore. If the heading
-  has more than one method or mode, add `_<value>`.
-- Write the spec heading in the note at the top of the file. The skellytracker session that lands the
-  file gives it its section ID.
+- A resize method and its unprojection are one module, because the section file of the method gives
+  the inverse with the forward algorithm (the heading "Inverse"). Do not put two sections together in
+  one module.
+- Write the section ID in the note at the top of the file.
 - Python can import the skellytracker file `specs/sidecar/reference/<section_module>.py` by its name.
   The exporter file `plans/sidecar-reference-<section_module>.py` has hyphens in its name, so Python
   cannot import it by its name. Load it with `importlib.util.spec_from_file_location`, or run it as a
   script.
-- The spec heading "Reference implementations" under `pose.canonical_mapping` is about the canonical
-  mapping files of the package. It is not about these files.
+- The heading "Reference mappings in skellytracker" in
+  `../freemocap/skellytracker-latest/specs/sidecar/post/canonical-mapping.md` (the old spec heading
+  "Reference implementations" under `pose.canonical_mapping`) is about the canonical mapping files of
+  the package. It is not about these files.
 
 The step:
 
 1. Write the clean, minimal form of your host code. Use only NumPy, OpenCV and the Python standard
    library. Do not import from the exporter or from skellytracker. Write one function for each
-   algorithm. In each docstring, cite the section ID (until the split, the spec heading) and the
-   exporter commit that the code comes from.
+   algorithm. In each docstring, cite the section ID and the exporter commit that the code comes
+   from.
 2. Run the functions against the vectors of the section (see "Vectors" in "Where to read the spec").
    They must pass. If the vector file says `unverified`, also run the vectors through your host
    code, and record both results. If the section has no vector file yet, record that.
 3. Run the functions in place of your host code in the parity check of the exporter. Record that the
    result does not change. If you cannot run the parity check yet, write `to run`.
 4. Write the functions to `plans/sidecar-reference-<section_module>.py` in the exporter repo. Put a
-   short note at the top of the file: the spec heading, the source commit, the vector results and the
+   short note at the top of the file: the section ID, the source commit, the vector results and the
    parity result.
 5. Stop. A skellytracker session lands the file. It adds `specs/sidecar/reference/<section_module>.py`,
    adds the implementation to `verified_against` in the vector file of the section, and adds the
@@ -539,14 +550,17 @@ them, this rule applies to the other exporter.
   `vNEXT` and `"vNEXT"` as the same string, so both forms are correct. The spec examples use both
   forms.
 - A size entry contains only `input.shape`, `input.resize.target_size` and `onnx`. All other fields
-  are shared at the top level (the family invariant in the `sizes` heading of the spec).
+  are shared at the top level (the family invariant under the `sizes` heading in
+  `../freemocap/skellytracker-latest/specs/sidecar/common/sizes-and-artifacts.md`, rule
+  `V-common.sizes_and_artifacts-3`).
 - Do not write `null` values. Omit an optional field. In the spec, `null` only deletes an inherited key
   in a `base` merge or a `sizes` merge.
 
 ### Path
 
-Put the sidecar at its path in the storage layout of the spec (the "Storage layout" heading). In the
-spec, the layout starts at `{cache_dir}`. In an exporter, the export root has that role. Thus the
+Put the sidecar at its path in the storage layout of the spec (the heading "Storage layout" in
+`../freemocap/skellytracker-latest/specs/sidecar/format/file-layout.md`). In the spec, the layout
+starts at `{cache_dir}`. In an exporter, the export root has that role. Thus the
 sidecar goes to `<export root>/detectors/...` (the export root of OpenMMLab-Exporter is `exports/`).
 
 - `object_detectors/{family}/{model_id}.yaml` for an object detector. `{family}` is the `model_id`.
@@ -557,22 +571,29 @@ The spec does not say where a sidecar with both roles goes. The RTMO body7 refer
 `keypoint_detectors/`.
 
 A model-specific folder, such as `body7`, does not conform. For example, the RTMO body7 reference
-example has the path `detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml`.
+example has the path `detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml` under
+`../freemocap/skellytracker-latest/specs/sidecar/examples/`.
 
 ### Validation
 
-- Walk the validation checklist of the spec (the "Validation rules" heading) for every section that
-  the sidecar uses.
-- A `vNEXT` sidecar must pass every rule, also each rule marked **(vNEXT)**, except the two items
-  in the next bullet.
-- The first two items of "Identity and composition" (the version pattern, and the support by the
-  installed release) cannot pass for `vNEXT`. Record them as `n/a at vNEXT`. They apply after the
-  release step (see "Publishing").
-- Check the "Version-aware compatibility" heading of the spec. A `vNEXT` sidecar must not use a
-  legacy-only form: `requires_nms` without `selection`, `may_include_non_person_classes`, or
+- The validation rules are in the section files. Each section file has a "Validation rules" heading,
+  and each rule there has a rule ID (`V-<section-id>-<n>`). The validation index is the heading
+  "Validation rules" in `../freemocap/skellytracker-latest/specs/sidecar/README.md`. It links to the
+  rules of each section, and it gives the meaning of **(vNEXT)**: a rule marked **(vNEXT)** applies
+  only when `schema_version >= vNEXT`.
+- Walk the "Validation rules" of every section that the sidecar uses.
+- A `vNEXT` sidecar must pass every rule, also each rule marked **(vNEXT)**, except the two rules in
+  the next bullet.
+- `V-format.versioning-1` (the version pattern) and `V-format.versioning-2` (the support by the
+  installed release), in `../freemocap/skellytracker-latest/specs/sidecar/format/versioning.md`,
+  cannot pass for `vNEXT`. Record them as `n/a at vNEXT`. They apply after the release step (see
+  "Publishing").
+- Check the "Legacy behaviour" heading of each section that the sidecar uses, if the section has one.
+  The index of these headings is "Version-aware compatibility" in
+  `../freemocap/skellytracker-latest/specs/sidecar/format/versioning.md`. A `vNEXT` sidecar must not
+  use a legacy-only form: `requires_nms` without `selection`, `may_include_non_person_classes`, or
   `letterbox` with `preserve_aspect_ratio: false`.
-- Record each item that you checked in the intake. After the split, each rule has a rule ID: record
-  the rule IDs.
+- Record the rule ID (`V-<section-id>-<n>`) of each rule that you checked in the intake.
 - If a row of the intake is `near-miss`, `gap` or `unverified`, do not walk the checklist. Write
   `skipped`.
 - Run the exporter's own checks. Use a skellytracker sidecar checker only if the spec or this section
@@ -591,8 +612,8 @@ example has the path `detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml`.
 - The release step: skellytracker cuts the first release that ships the spec. One change then replaces
   `vNEXT` with that release version in the spec, the changelog, every example and every vector.
 - After the release step, regenerate your sidecars. Set `schema_version` to the skellytracker release
-  that is current at export time (the exporter obligation in the "Schema versioning" heading of the
-  spec). Then you can publish them.
+  that is current at export time (the exporter obligation under the heading "Semantics" in
+  `../freemocap/skellytracker-latest/specs/sidecar/format/versioning.md`). Then you can publish them.
 - A development build of skellytracker will load `vNEXT` sidecars. A release will not (skellytracker
   decision 0016).
 
@@ -625,9 +646,9 @@ These items are true on 2026-10-22. The overhaul plan of each exporter must hand
 | Exporter | Item |
 |---|---|
 | OpenMMLab-Exporter | It implements these sections on its host side: the `letterbox` resize and the normalization (`onnx_runtime/preprocess.py`: `letterbox`, `make_normalizer`), `selection: nms` with the letterbox unprojection and the box clamp (`onnx_runtime/decode_nms.py`: `NmsDecoder`), and the `fit` resize (`notes/decisions/scripts/rtmo_sidecar_probe.py`: `fit_resize`, the parity probe of OpenMMLab-Exporter 0020). No reference implementation exists for these sections. The overhaul plan must include the [reference-implementation step](#reference-implementations) for each. |
-| OpenMMLab-Exporter | It writes RTMO body7 to `detectors/keypoint_detectors/rtmo/body7/` (`rtmo/identity.py`: `FAMILY_BRANCH`). The part folders of the [storage layout](../sidecar-spec.md#storage-layout) are `hand`, `face`, `body` and `wholebody`. The overhaul moves the sidecar to `rtmo/body/`. |
+| OpenMMLab-Exporter | It writes RTMO body7 to `detectors/keypoint_detectors/rtmo/body7/` (`rtmo/identity.py`: `FAMILY_BRANCH`). The part folders of the [storage layout](format/file-layout.md#storage-layout) are `hand`, `face`, `body` and `wholebody`. The overhaul moves the sidecar to `rtmo/body/`. |
 | OpenMMLab-Exporter | `Readme.md` links to the spec with a branch URL (`blob/philip/sidecar_implementation/specs/sidecar-spec.md`). `notes/decisions/0009-detector-output-layout-and-decode.md` links to it with a relative path into a sibling checkout. The overhaul names `specs/sidecar-spec.md` of skellytracker in their place. |
 | Roboflow-Exporter | It implements `selection: top_k` on its host side (`onnx_runtime/convert_rf_detr_coco.py`: `_select_topk_multiclass`), and the `stretch` resize (`onnx_runtime/preprocess.py`: `preprocess_to_nchw`). No reference implementation exists for these sections. The overhaul plan must include the reference-implementation step for each. |
 | Roboflow-Exporter | The spec has no RF-DETR example. The `stretch`, `top_k` and `class_logits` rules have no example. The overhauled Roboflow-Exporter provides that example through the procedure "How to provide or replace an example" in [Reference examples](../sidecar-implementation-plan.md#reference-examples). |
-| Ultralytics-Exporter | It writes `schema_version` `v2024.09.1019` (`yolo_sidecar.py`: `SCHEMA_VERSION`). So the YOLO26 [reference examples](../sidecar-spec.md#reference-examples) are written from its code, not copied from its exports. They are replaced when it writes `vNEXT` sidecars. |
+| Ultralytics-Exporter | It writes `schema_version` `v2024.09.1019` (`yolo_sidecar.py`: `SCHEMA_VERSION`). So the YOLO26 [reference examples](examples/README.md) are written from its code, not copied from its exports (`kind: forecast` in [`inventory.yaml`](inventory.yaml)). They are replaced when it writes `vNEXT` sidecars. |
 | Qualcomm-Exporter, MediaPipe-Exporter | The local hand plans (`Qualcomm-Exporter/plans/hand-pose-export.md` and `MediaPipe-Exporter/plans/hand-pipeline-export.md`) describe the hand re-crop model as `role: [pose_estimator]` with two points, `crop_center` and `crop_scale`. That is the two-keypoint workaround. An ROI refiner is a gap: the overhaul writes an intake and a change proposal in its place. MediaPipe-Exporter holds only that plan today, and it has no git repo (see "An exporter with no git repo" in [New-model workflow](#new-model-workflow)). |

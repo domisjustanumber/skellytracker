@@ -2,15 +2,16 @@
 
 This template is phase 2 of the new-model workflow. A proposal asks for one new or changed contract
 unit of the sidecar spec, and for its implementation. A contract unit is one part of the spec with its
-own algorithm or its own implementing function. After the spec is split into section files, one
-contract unit is one section. The full workflow is in the exporter guide
+own algorithm or its own implementing function. One contract unit is one section (one section file
+under `specs/sidecar/`). The full workflow is in the exporter guide
 (`specs/sidecar/exporter-guide.md` of the skellytracker repo, section "Sidecars"). The decision behind
 it is skellytracker decision 0014 (`notes/decisions/0014-spec-lifecycle.md` of the skellytracker
 repo). Phase 1 is the model intake template (`specs/sidecar/templates/model-intake.md`).
 
 This template has no relative links to other files, so its references stay correct after you copy it.
-It names each skellytracker file by its path in a code span, and each spec heading by its text. Read
-the skellytracker files in the read-only worktree `../freemocap/skellytracker-latest`.
+It names each skellytracker file by its path in a code span, each spec section by its section ID, and
+each spec heading by its text and the section file that holds it. Read the skellytracker files in the
+read-only worktree `../freemocap/skellytracker-latest`.
 
 ## How to use this template
 
@@ -25,18 +26,20 @@ the skellytracker files in the read-only worktree `../freemocap/skellytracker-la
 6. Write the proposed spec text in ASD-STE100 Simplified Technical English. Use short sentences and
    active voice. Use "must" for a requirement. Keep technical names, field names, enum values,
    formulas, code and YAML unchanged.
-7. Before you write, read the table "Considered and deliberately not added" (`specs/sidecar-spec.md`).
+7. Before you write, read the table "Considered and deliberately not added"
+   (`specs/sidecar/changelog.md`).
    If the feature is in it, cite the row in part 1, and give the evidence that a model needs it now.
 8. If this proposal needs another proposal, or another proposal needs this one, write each dependency
    in the header. One parity script can serve several proposals. Cite it in part 5 of each.
 9. After you write the proposal, stop. Do not change a file in skellytracker. The proposed spec text
    can contain YAML excerpts. Do not write a sidecar file of the model with the proposed fields.
 
-**Section IDs.** Today the spec is one file. It will be split into section files. Each section will
-have a section ID, for example `pre.resize.letterbox` or `post.det.selection.nms` (skellytracker
-decision 0013). Until that split, a section has no ID. Give the `specs/sidecar-spec.md` heading that
-the change goes under. Propose a section ID in the same dotted form, for a new or a changed section.
-The skellytracker session that lands the change sets the final section ID and the final rule IDs.
+**Section IDs.** The spec is split into section files under `specs/sidecar/`. Each section file has a
+section ID: the `id` in its front matter, for example `pre.resize.letterbox` or
+`post.det.selection.nms` (skellytracker decision 0013). The section map (`specs/sidecar/README.md`)
+lists each section ID and its file. For a changed section, use its section ID. For a new section,
+propose an ID in the same scheme (`<format|common|pre|post>.<area>[.<name>]`). The skellytracker
+session that lands the change sets the final section ID and the final rule IDs.
 
 ## What happens next
 
@@ -66,8 +69,8 @@ You do not do these steps. A skellytracker session does them, and the user decid
 | Model, and its intake file (`plans/sidecar-intake-<model>.md`) | |
 | Intake rows with the verdict `near-miss` or `gap` | |
 | Kind (`new section` or `changed section`) | |
-| Proposed section ID | |
-| `specs/sidecar-spec.md` heading that the change goes under (until the split) | |
+| Proposed section ID (the `id` in the section file's front matter) | |
+| Section file (the file of the changed section, or the proposed path of the new section file under `specs/sidecar/`) | |
 | Depends on (proposal files that must land first, or `none`) | |
 | Needed by (proposal files that depend on this one, or `none`) | |
 | skellytracker folder that you read (normally `../freemocap/skellytracker-latest`) | |
@@ -83,10 +86,10 @@ max abs diff of 35 on a 333×500 image (OpenMMLab-Exporter 0020).
 |---|---|
 | Property | |
 | Upstream evidence (file and line, or config key; upstream commit or release) | |
-| Nearest section (ID or heading) | |
+| Nearest section ID (the `id` in the section file's front matter) | |
 | Why the nearest section is wrong | |
 | Measured difference (number, image and script) | |
-| Row in "Considered and deliberately not added", and the evidence that a model needs it now (or `none`) | |
+| Row in "Considered and deliberately not added" (`specs/sidecar/changelog.md`), and the evidence that a model needs it now (or `none`) | |
 
 ## 2. Spec change
 
@@ -95,18 +98,24 @@ sections link to it. Fill in each item. Write `none` for an item that the change
 
 ### 2.1 Sections
 
-The new or changed sections, each with its proposed section ID and title. Until the split, also give
-the `specs/sidecar-spec.md` heading and the place under it.
+The new or changed sections, each with its proposed section ID, its title and its section file. For a
+new section, also give its front matter (`id`, `title` and `kind`) and its row in the section map
+(`specs/sidecar/README.md`).
 
 **Places that the change edits.** A change often extends a closed set or a list in more than one
 place. Search the spec for each value set or list that the change extends. List each place here, with
-its heading and the edit. Examples:
+its section ID or file, its heading and the edit. Examples:
 
-- the `role` values (the Overview, the "Identity" heading and the validation rules);
-- the `semantic` values (`outputs` (common) and the validation rules);
-- the resize methods (`input.resize`, "Unprojection", `sizes` and the validation rules);
-- the storage layout (the "Storage layout" heading);
-- the Overview, the Document map, the "Version-aware compatibility" table and the summary of changes.
+- the `role` values (the Overview in `specs/sidecar/README.md`, `common.identity` and its validation
+  rules);
+- the `semantic` values (`common.outputs` and its validation rules);
+- the resize methods (`common.input`, `post.unprojection`, `common.sizes_and_artifacts` and their
+  validation rules);
+- the storage layout (`format.file_layout`, heading "Storage layout");
+- the Overview, the section map and the validation index (`specs/sidecar/README.md`);
+- the "Legacy behaviour" heading of each changed section, and its index "Version-aware
+  compatibility" (`format.versioning`);
+- the summary of changes (`specs/sidecar/changelog.md`).
 
 These edits are part of the same contract unit. A new role with its enum and path edits is one
 proposal.
@@ -120,7 +129,8 @@ proposal.
 ### 2.3 Behaviour
 
 The forward algorithm, step by step. If the section changes coordinates, also give its exact inverse
-(see the `specs/sidecar-spec.md` heading "Unprojection").
+(see `post.unprojection`, and the heading "Inverse" of each resize section, for example
+`specs/sidecar/pre/resize-letterbox.md`).
 
 ```text
 ```
@@ -129,13 +139,15 @@ The forward algorithm, step by step. If the section changes coordinates, also gi
 
 Write one rule on each line. Give each new rule a new rule ID in the form `V-<section-id>-<n>`, for
 example `V-pre.resize.letterbox-1` (skellytracker decision 0013). Use the proposed section ID. Mark
-each rule that applies only at `vNEXT`. Use the form of the `specs/sidecar-spec.md` heading
-"Validation rules".
+each rule that applies only at `vNEXT` with **(vNEXT)** (the validation index in
+`specs/sidecar/README.md` gives its meaning). Use the form of the heading "Validation rules" in a
+section file, for example `specs/sidecar/pre/resize-letterbox.md`.
 
-Also find each existing rule that names a value that the change adds or changes. Example: a sidecar
-with `pose.requires_object_detector: true` must declare `input.resize.method: affine_person_crop`. A
-top-down model with a new resize method fails this rule. List each such rule here: changed, or
-unchanged with the reason. If you do not change a rule that blocks a model, list it as a follow-up.
+Also find each existing rule that names a value that the change adds or changes. Example: rule
+`V-pre.resize.affine_person_crop-2`: a sidecar with `pose.requires_object_detector: true` must
+declare `input.resize.method: affine_person_crop`. A top-down model with a new resize method fails
+this rule. List each such rule here: changed, or unchanged with the reason. If you do not change a
+rule that blocks a model, list it as a follow-up.
 
 ### 2.5 Selectors
 
@@ -147,13 +159,15 @@ The `key=value` pairs of a resolved sidecar that make the sidecar use this secti
 - Tell what a sidecar with `schema_version < vNEXT` does. The legacy meaning must not change.
 - Until skellytracker releases the spec, every change goes into the `vNEXT` revision. After that
   release, a change sets `schema_version` to the release that ships it.
-- Give the new row of the version-aware compatibility table (`specs/sidecar-spec.md` heading
-  "Version-aware compatibility"), if the change needs one.
+- Give the new row of the "Legacy behaviour" table of the section, if the change needs one. The index
+  of these tables is the heading "Version-aware compatibility" in
+  `specs/sidecar/format/versioning.md`.
 
 ### 2.7 Changelog row
 
-The row for the `vNEXT` entry of the changelog (`specs/sidecar-spec.md` heading "Changelog"), and the
-row for the summary of changes (heading "Summary of changes").
+The row for the `vNEXT` entry of the changelog (`specs/sidecar/changelog.md` heading
+"`schema_version` history"), and the row for the summary of changes (heading "Summary of changes" in
+the same file).
 
 ## 3. Reference implementation
 
@@ -171,7 +185,7 @@ row for the summary of changes (heading "Summary of changes").
   here.
 - `<section_module>` is the proposed section ID with each dot replaced by an underscore
   (`pre.resize.letterbox` gives `pre_resize_letterbox`). A proposal always uses the proposed section
-  ID, also for a changed section.
+  ID. For a changed section, that is the `id` in the front matter of its section file.
 - Python can import the target file `specs/sidecar/reference/<section_module>.py` by its name. The
   exporter file name has hyphens, so Python cannot import it by its name. Load it with
   `importlib.util.spec_from_file_location`, or run it as a script.

@@ -5,7 +5,7 @@
 ## Decision
 
 - Git tracks each sidecar YAML file inside the package tree. The paths follow
-  [Storage layout](../../specs/sidecar-spec.md#storage-layout) in the spec:
+  [Storage layout](../../specs/sidecar/format/file-layout.md#storage-layout) in the spec:
   - `skellytracker/core/detectors/object_detectors/{family}/{model_id}.yaml`
   - `skellytracker/core/detectors/keypoint_detectors/{family}/{part}/{model_id}.yaml`
 - Git does not track ONNX files. `OnnxSession.create()` fetches each ONNX file at run time. It calls

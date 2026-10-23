@@ -21,7 +21,8 @@ A session holds the resources that detectors share, for example the ONNX Runtime
 A detector that runs an ONNX model reads a sidecar.
 A sidecar is one YAML file. It describes the runtime contract of one model family: input,
 preprocessing, outputs and decode.
-[`specs/sidecar-spec.md`](specs/sidecar-spec.md) specifies the sidecar format.
+The section files under [`specs/sidecar/`](specs/sidecar/README.md) specify the sidecar format.
+[`specs/sidecar-spec.md`](specs/sidecar-spec.md) is the permanent entry point and links to them.
 The exporter repositories make ONNX files and write their sidecars: OpenMMLab-Exporter,
 Roboflow-Exporter, Ultralytics-Exporter and Qualcomm-Exporter.
 On 2026-10-22, MediaPipe-Exporter has no exporter code.
@@ -55,12 +56,17 @@ Open PRs against `development`, not `main` ([section 6](#6-git-rules)).
 | `skellytracker/core/io/` | `process_video.py`, `demo_manager.py` (webcam runner), tracker mapping, canonical mapping expansion |
 | `skellytracker/examples/` | Example scripts |
 | `skellytracker/tests/` | pytest suite. `sidecar/` holds the sidecar tests and their golden fixtures. |
-| `specs/sidecar-spec.md` | The sidecar spec |
+| `specs/sidecar-spec.md` | The permanent index of the sidecar spec. It keeps each old heading as an anchor with a "Moved to" link to the new file. Start at [`specs/sidecar/README.md`](specs/sidecar/README.md). |
+| `specs/sidecar/README.md` | The spec overview, the [section map](specs/sidecar/README.md#section-map) and the index of the validation rules. The section map gives the section ID, the file and the title of each section. |
+| `specs/sidecar/format/`, `common/`, `pre/`, `post/` | The section files. Each file holds one section. Its front matter gives `id` (the section ID), `title` and `kind`. Each validation rule has a rule ID `V-<id>-<n>`, for example `V-pre.resize.letterbox-1`. |
+| `specs/sidecar/changelog.md` | The `vNEXT` summary of changes and the `schema_version` history |
+| `specs/sidecar/examples/`, `specs/sidecar/inventory.yaml` | The reference examples, in the `detectors/` layout of the package ([`examples/README.md`](specs/sidecar/examples/README.md)), and the provenance of each example |
+| `specs/sidecar/templates/` | [`model-intake.md`](specs/sidecar/templates/model-intake.md) and [`change-proposal.md`](specs/sidecar/templates/change-proposal.md) |
+| `specs/sidecar/exporter-guide.md` | The rules that exporters follow ([exporter guide](specs/sidecar/exporter-guide.md)) |
 | `specs/sidecar-implementation-plan.md` | Status of the sidecar work in the package, and the procedure for reference examples |
 | `notes/sidecar-exporter-coverage.md` | The plan that extended the spec to the exporter models: the evidence for the `vNEXT` revision |
-| `specs/sidecar/` | [`exporter-guide.md`](specs/sidecar/exporter-guide.md) and [`templates/`](specs/sidecar/templates/) |
 | `notes/decisions/` | Decision log ([`README.md`](notes/decisions/README.md)) |
-| `tools/` | `check_links.py`. The doc tests are in `tools/tests/`. |
+| `tools/` | `check_links.py` checks the relative links and their `#anchor` targets. `check_split_verbatim.py` checks that the split of the spec only moves text. Its input is `split_manifest.yaml`. The doc tests are in `tools/tests/`: the link check (`test_links.py`), the checks of the reference examples (`test_examples.py`) and the unit tests of the split checker (`test_check_split_verbatim.py`). |
 | `rearchitecture-docs/` | Architecture notes for skellytracker and skellycam, and a rearchitecture playbook |
 | `.github/workflows/` | CI: lint, fast tests, full tests, PyPI publish |
 
@@ -181,19 +187,24 @@ The demo needs a camera and a display.
 
 ## 4. Sidecar Rules
 
-- [`specs/sidecar-spec.md`](specs/sidecar-spec.md) is normative. Read the sections that apply before you
-  change a sidecar, an example or the spec.
+- The section files under [`specs/sidecar/`](specs/sidecar/README.md) are normative. Read the sections
+  that apply before you change a sidecar, an example or the spec.
 - Link to the spec by its relative path. Do not link to a branch URL.
 - Every spec change goes into the `vNEXT` revision until the first skellytracker release that ships the
   spec (decision [0014](notes/decisions/0014-spec-lifecycle.md)).
 - `load_sidecar` rejects `schema_version: "vNEXT"` (`SidecarModel._check_schema_version_pattern` in
   `skellytracker/core/sidecar/model.py`). Do not publish a `vNEXT` sidecar to a shared or remote folder.
 - The meaning of an older `schema_version` never changes. A sidecar with an older `schema_version`
-  keeps its legacy meaning. The legacy rules are in
-  [Version-aware compatibility](specs/sidecar-spec.md#version-aware-compatibility).
+  keeps its legacy meaning. The legacy rules are in the "Legacy behaviour" heading of each section.
+  [Version-aware compatibility](specs/sidecar/format/versioning.md#version-aware-compatibility) gives
+  the index of these headings.
+- Make a spec change in the section file that owns the rule. The `id` in the front matter of the file
+  is the section ID. The rule IDs of the section are `V-<id>-<n>`. When you move or reword a section,
+  keep its section ID and its rule IDs (decision
+  [0013](notes/decisions/0013-spec-structure.md#one-owner-for-each-rule)).
 - A spec change needs a decision entry and a changelog row. Add a row to the
-  [summary of changes](specs/sidecar-spec.md#summary-of-changes). Add the change to the `vNEXT` row of
-  the [changelog](specs/sidecar-spec.md#changelog).
+  [summary of changes](specs/sidecar/changelog.md#summary-of-changes). Add the change to the `vNEXT`
+  row of the [changelog](specs/sidecar/changelog.md#schema_version-history).
 - Stop on a gap. If a model property does not map exactly to a spec section, do not approximate it.
   A near-miss is a gap. Write a change proposal with the parts of
   [`specs/sidecar/templates/change-proposal.md`](specs/sidecar/templates/change-proposal.md). In this
@@ -211,11 +222,12 @@ The demo needs a camera and a display.
   [0014](notes/decisions/0014-spec-lifecycle.md)). You can change `skellytracker/tests/` to fix a
   test. Each root cause of a test failure gets its own PR. If a failure shows a code defect, report
   it. Do not fix the code in this stage.
-- The [reference examples](specs/sidecar-spec.md#reference-examples) are part of the spec. To add or
+- The [reference examples](specs/sidecar/examples/README.md) are part of the spec. To add or
   replace one, follow
   [Reference examples](specs/sidecar-implementation-plan.md#reference-examples) in
   `specs/sidecar-implementation-plan.md`.
-- A sidecar goes in the path that the [storage layout](specs/sidecar-spec.md#storage-layout) gives.
+- A sidecar goes in the path that the [storage layout](specs/sidecar/format/file-layout.md#storage-layout)
+  gives.
 - Do not change an exporter repository. You may read one.
 
 ## 5. Decision Log

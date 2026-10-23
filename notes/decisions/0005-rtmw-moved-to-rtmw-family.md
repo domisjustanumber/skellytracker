@@ -25,7 +25,7 @@
 ## Reason
 
 - The spec names this family `rtmw`. The `model_id` is `rtmw-wholebody`. The
-  [storage layout](../../specs/sidecar-spec.md#storage-layout) puts a keypoint sidecar at
+  [storage layout](../../specs/sidecar/format/file-layout.md#storage-layout) puts a keypoint sidecar at
   `detectors/keypoint_detectors/{family}/{part}/`. The folder `rtmpose/wholebody/` did not match the
   family name.
 - Other code imports the old paths. A search of the importers found the files in the Evidence section.

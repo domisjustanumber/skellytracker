@@ -21,10 +21,10 @@ The meaning of `input.normalization: imagenet_bgr` depends on the `schema_versio
 
 The spec states the rule in these places:
 
-- change 6 of the [Summary of changes](../../specs/sidecar-spec.md#summary-of-changes);
-- the `imagenet_bgr` row of [Normalization modes](../../specs/sidecar-spec.md#normalization-modes);
+- change 6 of the [Summary of changes](../../specs/sidecar/changelog.md#summary-of-changes);
+- the `imagenet_bgr` row of [Normalization modes](../../specs/sidecar/pre/normalization.md#behaviour);
 - the `normalization: imagenet_bgr` row of
-  [Version-aware compatibility](../../specs/sidecar-spec.md#version-aware-compatibility).
+  [Version-aware compatibility](../../specs/sidecar/pre/normalization.md#legacy-behaviour).
 
 ## Reason
 
@@ -33,11 +33,11 @@ The spec states the rule in these places:
   applies `123.675` to the B channel. A sidecar for RTMDet cannot use `imagenet_bgr` with the legacy
   meaning.
 - At `vNEXT`, each colour gets its own ImageNet statistic in both `imagenet_*` modes
-  ([Normalization modes](../../specs/sidecar-spec.md#normalization-modes)). The legacy `imagenet_bgr`
+  ([Normalization modes](../../specs/sidecar/pre/normalization.md#behaviour)). The legacy `imagenet_bgr`
   gives the B channel the R statistic. Change 6 spells out the channel order of both modes.
 - Legacy sidecars must keep their meaning. The spec never applies `vNEXT` requirements to a sidecar
   with `schema_version < vNEXT`
-  ([Version-aware compatibility](../../specs/sidecar-spec.md#version-aware-compatibility)). The in-repo
+  ([Version-aware compatibility](../../specs/sidecar/format/versioning.md#version-aware-compatibility)). The in-repo
   RTMPose and RTMW sidecars declare `v2024.09.1019` and `imagenet_bgr`. Their numbers are the
   `_RTMPOSE_MEAN` and `_RTMPOSE_STD` constants that the detectors hard-coded before the migration. A
   change of meaning for these sidecars would change the model input.
@@ -69,7 +69,7 @@ Code, checked on 2026-10-22:
 
 - Change the meaning of `imagenet_bgr` for legacy sidecars as well. The spec does not allow this:
   `vNEXT` requirements never apply retroactively
-  ([Version-aware compatibility](../../specs/sidecar-spec.md#version-aware-compatibility)). The change
+  ([Version-aware compatibility](../../specs/sidecar/format/versioning.md#version-aware-compatibility)). The change
   would also alter the input of the in-repo RTMPose and RTMW models.
 
 ## Not repeated

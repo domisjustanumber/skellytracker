@@ -8,8 +8,9 @@ repo). Phase 2 is the change proposal template (`specs/sidecar/templates/change-
 need phase 2 only when phase 1 finds a `near-miss` or a `gap`.
 
 This template has no relative links to other files, so its references stay correct after you copy it.
-It names each skellytracker file by its path in a code span, and each spec heading by its text. Read
-the skellytracker files in the read-only worktree `../freemocap/skellytracker-latest`.
+It names each skellytracker file by its path in a code span, each spec section by its section ID, and
+each spec heading by its text and the section file that holds it. Read the skellytracker files in the
+read-only worktree `../freemocap/skellytracker-latest`.
 
 ## How to use this template
 
@@ -18,17 +19,20 @@ the skellytracker files in the read-only worktree `../freemocap/skellytracker-la
 2. Change the title to `# Model intake: <model>`.
 3. Fill in every slot. Do not delete a pre-filled row. Do not leave a cell empty. If a value does not
    apply, write `not used`, `missing`, `to run`, `skipped` or `none`, with the reason.
-4. Read the spec: `specs/sidecar-spec.md`. The spec is normative.
+4. Read the spec. Its entry point is `specs/sidecar-spec.md`. The section map
+   `specs/sidecar/README.md` lists each section ID and its section file. The spec is normative.
 5. Do not approximate a property. If the spec does not describe a property exactly, the verdict is
    `near-miss` or `gap`.
 6. Group the `near-miss` and `gap` rows by the part of the spec that they change. Write one change
    proposal for each new or changed part. Then stop.
 7. Do not change a file in skellytracker.
 
-**Section IDs.** Today the spec is one file. It will be split into section files. Each section file
-will have a section ID, for example `pre.resize.letterbox`. Until that split, write the heading of
-`specs/sidecar-spec.md` in the section column. Each pre-filled row names the heading that usually
-applies. If a different heading describes the property, change it.
+**Section IDs.** The spec is split into section files under `specs/sidecar/`. Each section file has a
+section ID: the `id` in its front matter, for example `pre.resize.letterbox`. Write the section ID in
+the section column. Each pre-filled row names the section ID that usually applies.
+`pre.resize.<method>` is the section of the resize method, for example `pre.resize.letterbox`.
+`post.det.selection.<selection>` and `post.pose.decode.<method>` have the same form. If a different
+section describes the property, change it.
 
 **The steps of phase 1.**
 
@@ -36,7 +40,7 @@ applies. If a different heading describes the property, change it.
    - the ONNX graph: each input and each output;
    - the upstream preprocessing pipeline: each transform step, in order;
    - the upstream postprocessing: each decode step, in order.
-2. For each row, write the property, the upstream evidence, the section, the sidecar value and the
+2. For each row, write the property, the upstream evidence, the section ID, the sidecar value and the
    verdict.
 3. If every row is `exact` or `out of scope`, the sidecar writer of the exporter writes the sidecar.
    Then walk the validation checklist and prove parity.
@@ -89,7 +93,7 @@ skellytracker decision 0016 adds later.
 |---|---|
 | `exact` | A section of the spec describes the property with these values. |
 | `near-miss` | The spec has a section and a field for the property, but no value describes the property exactly. A detail differs: the rounding, the pixel centres, the arithmetic precision, the order of steps, the threshold comparison, or a similar detail. A detail that the spec does not define is also a near-miss when it changes the output for some input. A near-miss is a gap. |
-| `gap` | The spec has no section and no field for the property. A property that the spec calls out of scope, or that the spec lists in "Considered and deliberately not added", is also a gap. |
+| `gap` | The spec has no section and no field for the property. A property that the spec calls out of scope, or that the spec lists in "Considered and deliberately not added" (`specs/sidecar/changelog.md`), is also a gap. |
 | `unverified` | You do not have the evidence for a verdict, for example because an input is missing or the evidence is secondary. Name the missing evidence in the last column. If you expect a verdict, write it there too. |
 | `out of scope` | The step is before or after the runtime contract of this model. The contract starts at the inputs of the model: the source image, and the box for `affine_person_crop`. It ends at the decoded outputs in source-image coordinates. |
 
@@ -100,14 +104,16 @@ skellytracker decision 0016 adds later.
    a model that gives a crop region.
 3. If a field holds it, but none of its values describes the upstream, the verdict is `near-miss`.
    Example: the upstream code rounds the letterbox size with `floor`, and the letterbox `rounding` has
-   only `half_even` and `half_up` (`specs/sidecar-spec.md` heading `input.resize`).
+   only `half_even` and `half_up` (section `pre.resize.letterbox`,
+   `specs/sidecar/pre/resize-letterbox.md`).
 
 **Evidence.** In the evidence column, give the upstream file and line, the config key, or the command
 that read the graph with the node or tensor name. A plan, a paper, a README, the notes of an exporter
 and a spec reference example are secondary sources. Write a secondary citation with `(secondary)`, for
 example `plans/<file>.md:101-104 (secondary)`. A row with only a secondary source is `unverified`.
-Do not copy a value from a spec reference example. After you fill in every row, compare your values
-with the example of the same family (see [The sidecar](#the-sidecar)).
+Do not copy a value from a spec reference example (`specs/sidecar/examples/README.md`). After you fill
+in every row, compare your values with the example of the same family (see
+[The sidecar](#the-sidecar)).
 
 For each row that is not `exact`, write what differs or what is missing in the last column. For each
 `near-miss` row and each `gap` row, link its proposal in
@@ -118,8 +124,8 @@ For each row that is not `exact`, write what differs or what is missing in the l
 - **A letterbox where the upstream code warps to a fractional size.** The upstream code warps the
   full frame with `cv2.warpAffine` to a scaled size that is not rounded. If you map it to `letterbox`,
   the verdict is `near-miss`: `letterbox` rounds the scaled size and uses a resize plus padding. Read
-  the `fit` method of the spec and compare it with the upstream code (skellytracker decision 0012;
-  OpenMMLab-Exporter 0020).
+  the section `pre.resize.fit` (`specs/sidecar/pre/resize-fit.md`) and compare it with the upstream
+  code (skellytracker decision 0012; OpenMMLab-Exporter 0020).
 - **An ROI refiner described as a pose estimator with two fake keypoints.** An ROI refiner is a model
   that gives a region of interest to the next model, for example a hand re-crop model. Its verdict is
   `gap`. Do not describe it as `role: [pose_estimator]` with two points such as `crop_center` and
@@ -153,33 +159,33 @@ Source: the ONNX graph of each file.
 - Read the static or dynamic dims from the graph. A config name or a file name (for example
   "dynamic") is not evidence of the dims.
 
-| # | Property | Upstream evidence (file and line, or config key) | Section (until the split: the heading in `specs/sidecar-spec.md`) | Sidecar value | Verdict | What differs or what is missing |
+| # | Property | Upstream evidence (file and line, or config key) | Section ID (the `id` in the section file's front matter) | Sidecar value | Verdict | What differs or what is missing |
 |---|---|---|---|---|---|---|
-| G1 | Input name | | `input` | | | |
-| G2 | Input dtype | | `input` | | | |
-| G3 | Input layout (`NCHW` or `NHWC`) | | `input` | | | |
-| G4 | Input dims (batch, channels, height, width): static or dynamic, for each size | | `sizes`, `input.resize` (`supports_dynamic_size`) | | | |
-| G5 | Output: name, dtype and shape. Add one row for each output. | | `outputs` (common) | | | |
-| G6 | Batch of each file: a static `N`, or dynamic | | `sizes.<size>.onnx.batch_artifacts` | | | |
-| G6a | Batch axis (`batching.batch_axis`; the spec allows only `0`) | | `batching` | | | |
-| G7 | I/O dtype for each precision: the input and every output | | `input`, `outputs` (common) | | | |
-| G8 | Normalization inside the graph (Sub, Div or Mul near the input) | | Normalization modes | | | |
-| G9 | NMS or TopK inside the graph (near the outputs) | | Selection behaviour | | | |
-| G9a | Parameters of the NMS inside the graph: IoU threshold, score threshold and row caps, compared with the upstream test config. The sidecar does not declare them. A value that differs from the upstream is an export defect: write it in the last column. | | Selection behaviour (`selection: none`) | `not used` | | |
+| G1 | Input name | | `common.input` | | | |
+| G2 | Input dtype | | `common.input` | | | |
+| G3 | Input layout (`NCHW` or `NHWC`) | | `common.input` | | | |
+| G4 | Input dims (batch, channels, height, width): static or dynamic, for each size | | `common.sizes_and_artifacts`, `common.input` (`supports_dynamic_size`) | | | |
+| G5 | Output: name, dtype and shape. Add one row for each output. | | `common.outputs` | | | |
+| G6 | Batch of each file: a static `N`, or dynamic | | `common.sizes_and_artifacts` (`sizes.<size>.onnx.batch_artifacts`) | | | |
+| G6a | Batch axis (`batching.batch_axis`; the spec allows only `0`) | | `common.batching` | | | |
+| G7 | I/O dtype for each precision: the input and every output | | `common.input`, `common.outputs` | | | |
+| G8 | Normalization inside the graph (Sub, Div or Mul near the input) | | `pre.normalize` | | | |
+| G9 | NMS or TopK inside the graph (near the outputs) | | `post.det.decode` (Selection behaviour) | | | |
+| G9a | Parameters of the NMS inside the graph: IoU threshold, score threshold and row caps, compared with the upstream test config. The sidecar does not declare them. A value that differs from the upstream is an export defect: write it in the last column. | | `post.det.selection.none` | `not used` | | |
 
 ### Family
 
 One family has one preprocessing contract and one post-processing contract. If two sizes differ in a
 field that is not a per-size field, they are two families. Write one intake for each family.
 
-| # | Property | Upstream evidence (file and line, or config key) | Section (until the split: the heading in `specs/sidecar-spec.md`) | Sidecar value | Verdict | What differs or what is missing |
+| # | Property | Upstream evidence (file and line, or config key) | Section ID (the `id` in the section file's front matter) | Sidecar value | Verdict | What differs or what is missing |
 |---|---|---|---|---|---|---|
-| F1 | `model_id`. An object detector uses the family (`yolo26`). A keypoint detector uses `{family}-{part}` (`rtmw-wholebody`). The spec has no rule yet for a suffix after the part (the spec example `rtmo-body7`), or for two models of one family and one part. If your model needs such a name, the verdict is `near-miss`. | | Identity | | | |
-| F2 | `role`: `object_detector`, `pose_estimator`, or both | | Identity | | | |
-| F3 | Sizes, and what differs between them. A size sets only `input.shape`, `input.resize.target_size` and `onnx`. Use the upstream size name, also for a family with one size. If the upstream has no size name, choose a lowercase token and give the reason. | | `sizes` | | | |
-| F4 | One contract for all sizes: channel order, normalization, resize method, output semantics, selection mode, NMS parameters, class mapping | | `sizes` (family invariant) | | | |
-| F5 | ONNX file names: `{model_id}-{size}_{batch}_{precision}.onnx`, or `{model_id}-{size}_{precision}.onnx` for a dynamic batch | | File extension and naming | | | |
-| F6 | `display_name` (required) | | Identity | | | |
+| F1 | `model_id`. An object detector uses the family (`yolo26`). A keypoint detector uses `{family}-{part}` (`rtmw-wholebody`). The spec has no rule yet for a suffix after the part (the spec example `rtmo-body7`), or for two models of one family and one part. If your model needs such a name, the verdict is `near-miss`. | | `common.identity` | | | |
+| F2 | `role`: `object_detector`, `pose_estimator`, or both | | `common.identity` | | | |
+| F3 | Sizes, and what differs between them. A size sets only `input.shape`, `input.resize.target_size` and `onnx`. Use the upstream size name, also for a family with one size. If the upstream has no size name, choose a lowercase token and give the reason. | | `common.sizes_and_artifacts` | | | |
+| F4 | One contract for all sizes: channel order, normalization, resize method, output semantics, selection mode, NMS parameters, class mapping | | `common.sizes_and_artifacts` (family invariant) | | | |
+| F5 | ONNX file names: `{model_id}-{size}_{batch}_{precision}.onnx`, or `{model_id}-{size}_{precision}.onnx` for a dynamic batch | | `format.file_layout` | | | |
+| F6 | `display_name` (required) | | `common.identity` | | | |
 
 ### Preprocessing
 
@@ -197,25 +203,25 @@ Source: the upstream inference pipeline and the code of each transform.
 - In OpenCV, a scalar `borderValue` fills only the first channel of a 3-channel image. Record the
   border value of each upstream warp for each channel.
 
-| # | Property | Upstream evidence (file and line, or config key) | Section (until the split: the heading in `specs/sidecar-spec.md`) | Sidecar value | Verdict | What differs or what is missing |
+| # | Property | Upstream evidence (file and line, or config key) | Section ID (the `id` in the section file's front matter) | Sidecar value | Verdict | What differs or what is missing |
 |---|---|---|---|---|---|---|
-| T1 | Channel order of the source image that the upstream pipeline reads (BGR or RGB). The spec has no field for it: it is the evidence for T9. Write `not used` as the sidecar value. | | `input` | `not used` | | |
-| T2 | Resize method (`letterbox`, `stretch`, `fit`, `affine_person_crop` or `none`) | | `input.resize` | | | |
-| T3 | Target size `[height, width]` for each size | | `input.resize`, `sizes` | | | |
-| T4 | Scale factor: its formula, for example `min(T_w / src_w, T_h / src_h)` | | `input.resize` | | | |
-| T4a | Rounding of the scaled size (`rounding`, `letterbox` only) | | `input.resize` | | | |
-| T4b | Arithmetic of the scale, the scaled size and the offsets: float32 or float64, and the order of the operations. In float64, `77 * (640 / 77)` is `639.9999999999999`. | | `input.resize` | | | |
-| T5 | Position of the image on the canvas (`pad_position`, `letterbox` only) | | `input.resize` | | | |
-| T5a | `fit` geometry: a scale that is not rounded, offsets `left` and `top` that are centred and fractional, and one warp matrix `M` (`fit` only) | | `input.resize` | | | |
-| T6 | Pad value or border value (`pad_value`, or `crop_policy.pad_value` for `affine_person_crop`), for each channel | | `input.resize` | | | |
-| T7 | Interpolation filter, and no antialias | | `input.resize` | | | |
-| T7a | Resize call and its pixel-centre convention (`cv2.resize` or `cv2.warpAffine`, or another library) | | `input.resize` | | | |
-| T7b | Dtype of the image when the upstream resizes it (for example uint8, before the cast) | | `input.resize`, Normalization modes | | | |
-| T8 | Crop policy: expand ratio and aspect ratio (`crop_policy`, `affine_person_crop` only) | | `input.resize` | | | |
-| T9 | Channel order of the tensor that the model consumes (`input.color_format`) | | `input`, Normalization modes | | | |
-| T10 | Normalization for each precision: mean, std and scale, and its arithmetic (for example a float32 division by 255, or a multiplication by `1/255`) | | Normalization modes | | | |
-| T11 | Layout change (HWC to CHW) and cast to `input.dtype` | | `input` | | | |
-| T12 | Order of the steps: the upstream order compared with the order of the spec | | Normalization modes | | | |
+| T1 | Channel order of the source image that the upstream pipeline reads (BGR or RGB). The spec has no field for it: it is the evidence for T9. Write `not used` as the sidecar value. | | `common.input` | `not used` | | |
+| T2 | Resize method (`letterbox`, `stretch`, `fit`, `affine_person_crop` or `none`) | | `common.input` (`input.resize`), `pre.resize.<method>` | | | |
+| T3 | Target size `[height, width]` for each size | | `common.input` (`input.resize`), `common.sizes_and_artifacts` | | | |
+| T4 | Scale factor: its formula, for example `min(T_w / src_w, T_h / src_h)` | | `pre.resize.<method>` | | | |
+| T4a | Rounding of the scaled size (`rounding`, `letterbox` only) | | `pre.resize.letterbox` | | | |
+| T4b | Arithmetic of the scale, the scaled size and the offsets: float32 or float64, and the order of the operations. In float64, `77 * (640 / 77)` is `639.9999999999999`. | | `pre.resize.<method>` | | | |
+| T5 | Position of the image on the canvas (`pad_position`, `letterbox` only) | | `pre.resize.letterbox` | | | |
+| T5a | `fit` geometry: a scale that is not rounded, offsets `left` and `top` that are centred and fractional, and one warp matrix `M` (`fit` only) | | `pre.resize.fit` | | | |
+| T6 | Pad value or border value (`pad_value`, or `crop_policy.pad_value` for `affine_person_crop`), for each channel | | `common.input` (`pad_value`), `pre.resize.affine_person_crop` (`crop_policy.pad_value`) | | | |
+| T7 | Interpolation filter, and no antialias | | `pre.resize.interpolation` | | | |
+| T7a | Resize call and its pixel-centre convention (`cv2.resize` or `cv2.warpAffine`, or another library) | | `pre.resize.<method>`, `pre.resize.interpolation` | | | |
+| T7b | Dtype of the image when the upstream resizes it (for example uint8, before the cast) | | `pre.resize.<method>`, `pre.normalize` | | | |
+| T8 | Crop policy: expand ratio and aspect ratio (`crop_policy`, `affine_person_crop` only) | | `pre.resize.affine_person_crop` | | | |
+| T9 | Channel order of the tensor that the model consumes (`input.color_format`) | | `common.input`, `pre.normalize` | | | |
+| T10 | Normalization for each precision: mean, std and scale, and its arithmetic (for example a float32 division by 255, or a multiplication by `1/255`) | | `pre.normalize` | | | |
+| T11 | Layout change (HWC to CHW) and cast to `input.dtype` | | `common.input` | | | |
+| T12 | Order of the steps: the upstream order compared with the order of the spec | | `pre.normalize` | | | |
 
 ### Outputs and decode
 
@@ -228,20 +234,20 @@ Source: the upstream postprocessing code and the upstream test config.
 - `clamp_boxes` has the default `true`. A sidecar without the field clamps the boxes. Check the
   upstream before you omit the field.
 
-| # | Property | Upstream evidence (file and line, or config key) | Section (until the split: the heading in `specs/sidecar-spec.md`) | Sidecar value | Verdict | What differs or what is missing |
+| # | Property | Upstream evidence (file and line, or config key) | Section ID (the `id` in the section file's front matter) | Sidecar value | Verdict | What differs or what is missing |
 |---|---|---|---|---|---|---|
-| D1 | Semantic of each output (`detections`, `boxes`, `scores`, `class_logits`, `simcc_x`, `simcc_y`, `simcc_z`, `heatmap`, `keypoints` or `poses`). Add one row for each output. | | `outputs` (common), Detection output semantics | | | |
-| D2 | Fields of a detection row (`fields`) and box format (`box_format`) | | `outputs` (detection), `decode` (detection) | | | |
-| D3 | Box scale: model-input pixels or normalized (`box_scale`) | | `decode` (detection), Unprojection | | | |
-| D4 | Selection: graph-final rows (`none`), top-k over logits (`top_k`), or host NMS (`nms`) | | Selection behaviour | | | |
-| D5 | Score activation: sigmoid inside the graph or on the host (`score_activation`) | | `decode` (detection) | | | |
-| D6 | Score source and class source (`score_field`, `scores_output`, `class_field`, `class_logits_output`) | | `decode` (detection) | | | |
-| D7 | Thresholds from the upstream test config: NMS IoU, NMS score, final confidence | | `decode` (detection) | | | |
-| D8 | Threshold comparison (`>` or `>=`), the dtype of the comparison, and the tie order | | Selection behaviour | | | |
-| D9 | Row limits: graph-final row count (`max_detections`), `top_k`, `nms.post_nms_top_k` | | `decode` (detection) | | | |
-| D10 | Class IDs: `class_id_base`, `class_id_map`, `is_person_only`, `person_class_id` | | `decode` (detection) | | | |
-| D11 | Unprojection of boxes and keypoints to the source image (the inverse of the resize method) | | Unprojection, `pose.decode` | | | |
-| D12 | Box clamp to the source image (`clamp_boxes`, default `true`): the clamp bounds, and what the upstream does with a box that has no area after the clamp | | `decode` (detection) | | | |
+| D1 | Semantic of each output (`detections`, `boxes`, `scores`, `class_logits`, `simcc_x`, `simcc_y`, `simcc_z`, `heatmap`, `keypoints` or `poses`). Add one row for each output. | | `common.outputs`, `post.det.outputs` | | | |
+| D2 | Fields of a detection row (`fields`) and box format (`box_format`) | | `post.det.outputs`, `post.det.decode` | | | |
+| D3 | Box scale: model-input pixels or normalized (`box_scale`) | | `post.det.decode`, `post.unprojection` | | | |
+| D4 | Selection: graph-final rows (`none`), top-k over logits (`top_k`), or host NMS (`nms`) | | `post.det.decode` (`selection`), `post.det.selection.<selection>` | | | |
+| D5 | Score activation: sigmoid inside the graph or on the host (`score_activation`) | | `post.det.decode`, `post.det.selection.top_k` (`score_activation`) | | | |
+| D6 | Score source and class source (`score_field`, `scores_output`, `class_field`, `class_logits_output`) | | `post.det.decode`, `post.det.selection.top_k` (`class_logits_output`) | | | |
+| D7 | Thresholds from the upstream test config: NMS IoU, NMS score, final confidence | | `post.det.selection.nms` (`nms`), `post.det.decode` (`confidence_threshold_default`) | | | |
+| D8 | Threshold comparison (`>` or `>=`), the dtype of the comparison, and the tie order | | `post.det.decode` (Selection behaviour) | | | |
+| D9 | Row limits: graph-final row count (`max_detections`), `top_k`, `nms.post_nms_top_k` | | `post.det.selection.none`, `post.det.selection.top_k`, `post.det.selection.nms` | | | |
+| D10 | Class IDs: `class_id_base`, `class_id_map`, `is_person_only`, `person_class_id` | | `post.det.decode` | | | |
+| D11 | Unprojection of boxes and keypoints to the source image (the inverse of the resize method) | | `post.unprojection`, `pre.resize.<method>` (Inverse), `post.pose.decode.<method>` | | | |
+| D12 | Box clamp to the source image (`clamp_boxes`, default `true`): the clamp bounds, and what the upstream does with a box that has no area after the clamp | | `post.det.decode` | | | |
 
 ### Pose
 
@@ -249,19 +255,19 @@ Source: the upstream postprocessing code and the upstream test config.
   that the model gives. Do not reorder the names.
 - If the model has no `pose_estimator` role, write `not used` in every row.
 
-| # | Property | Upstream evidence (file and line, or config key) | Section (until the split: the heading in `specs/sidecar-spec.md`) | Sidecar value | Verdict | What differs or what is missing |
+| # | Property | Upstream evidence (file and line, or config key) | Section ID (the `id` in the section file's front matter) | Sidecar value | Verdict | What differs or what is missing |
 |---|---|---|---|---|---|---|
-| K1 | Estimator type and `requires_object_detector` | | `pose` (pose estimator) | | | |
-| K2 | `tracked_points` in native output order | | `pose.tracked_points` | | | |
-| K3 | Connections: named skeletons and their edges | | `pose.connections` | | | |
-| K4 | Decode method (`simcc`, `heatmap` or `coordinate`) and its parameters (`coordinate_scale`, `is_3d`, `depth_unit`, `depth_range`) | | `pose.decode` | | | |
-| K5 | Keypoint axis and keypoint count of each pose output | | `outputs` (pose) | | | |
-| K6 | Bottom-up row alignment: pose row `q` belongs to detection row `q` | | Bottom-up decode | | | |
-| K7 | Keypoints packed into the detection row (`packed_keypoints`) | | `packed_keypoints` (bottom-up packed rows) | | | |
-| K8 | Keypoint score: its source, and its activation. The spec says that a packed keypoint `score` is already activated. The spec has no field for a keypoint-score activation: if the host must activate the scores, the verdict is `gap`. | | `pose.decode`, `packed_keypoints` (bottom-up packed rows) | | | |
-| K9 | Canonical mapping (optional) | | `pose.canonical_mapping` | | | |
-| K10 | Overlay (optional) | | `overlay` (visualization, pose estimator) | | | |
-| K11 | Landmark schema (`pose.landmark_schema`, optional) | | `pose` (pose estimator) | | | |
+| K1 | Estimator type and `requires_object_detector` | | `post.pose.schema` | | | |
+| K2 | `tracked_points` in native output order | | `post.pose.schema` (`pose.tracked_points`) | | | |
+| K3 | Connections: named skeletons and their edges | | `post.pose.schema` (`pose.connections`) | | | |
+| K4 | Decode method (`simcc`, `heatmap` or `coordinate`) and its parameters (`coordinate_scale`, `is_3d`, `depth_unit`, `depth_range`) | | `post.pose.schema` (`pose.decode`), `post.pose.decode.<method>` | | | |
+| K5 | Keypoint axis and keypoint count of each pose output | | `post.pose.schema` (`keypoint_axis`, `keypoint_count`) | | | |
+| K6 | Bottom-up row alignment: pose row `q` belongs to detection row `q` | | `post.pose.bottom_up` | | | |
+| K7 | Keypoints packed into the detection row (`packed_keypoints`) | | `post.pose.bottom_up` | | | |
+| K8 | Keypoint score: its source, and its activation. The spec says that a packed keypoint `score` is already activated. The spec has no field for a keypoint-score activation: if the host must activate the scores, the verdict is `gap`. | | `post.pose.decode.<method>`, `post.pose.bottom_up` | | | |
+| K9 | Canonical mapping (optional) | | `post.pose.canonical_mapping` | | | |
+| K10 | Overlay (optional) | | `post.overlay` | | | |
+| K11 | Landmark schema (`pose.landmark_schema`, optional) | | `post.pose.schema` | | | |
 
 ### YAML
 
@@ -269,14 +275,14 @@ These rows are rules for the sidecar file. In the evidence column, cite the expo
 the value. The sidecar value is what the sidecar must contain. If the exporter writes something else
 today, the verdict stays `exact`. Write the exporter defect in the last column.
 
-| # | Property | Evidence (exporter code that writes the value) | Section (until the split: the heading in `specs/sidecar-spec.md`) | Sidecar value | Verdict | What differs or what is missing |
+| # | Property | Evidence (exporter code that writes the value) | Section ID (the `id` in the section file's front matter) | Sidecar value | Verdict | What differs or what is missing |
 |---|---|---|---|---|---|---|
-| Y1 | Batch keys are quoted strings (`"1"`, not `1`) | | `sizes.<size>.onnx.batch_artifacts` | | | |
-| Y2 | `schema_version` is the string `vNEXT` until skellytracker releases the spec. YAML reads `vNEXT` and `"vNEXT"` as the same string. | | Schema versioning | | | |
-| Y3 | Each size contains only `input.shape`, `input.resize.target_size` and `onnx` | | `sizes` | | | |
-| Y4 | No `null` values. In the spec, `null` only deletes an inherited key in a merge. | | `base` — inherit from another sidecar and override | | | |
-| Y5 | Each `$ref` and `base` path resolves and stays inside `{cache_dir}` | | File composition: `$ref` includes and `base` inheritance | | | |
-| Y6 | No legacy-only form: `requires_nms` without `selection`, `may_include_non_person_classes`, or `letterbox` with `preserve_aspect_ratio: false` | | Version-aware compatibility | | | |
+| Y1 | Batch keys are quoted strings (`"1"`, not `1`) | | `common.sizes_and_artifacts` (`sizes.<size>.onnx.batch_artifacts`) | | | |
+| Y2 | `schema_version` is the string `vNEXT` until skellytracker releases the spec. YAML reads `vNEXT` and `"vNEXT"` as the same string. | | `format.versioning` | | | |
+| Y3 | Each size contains only `input.shape`, `input.resize.target_size` and `onnx` | | `common.sizes_and_artifacts` | | | |
+| Y4 | No `null` values. In the spec, `null` only deletes an inherited key in a merge. | | `format.composition` (`base`) | | | |
+| Y5 | Each `$ref` and `base` path resolves and stays inside `{cache_dir}` | | `format.composition` | | | |
+| Y6 | No legacy-only form: `requires_nms` without `selection`, `may_include_non_person_classes`, or `letterbox` with `preserve_aspect_ratio: false` | | The "Legacy behaviour" heading of `post.det.decode` and `pre.resize.letterbox`; the index is "Version-aware compatibility" in `format.versioning` | | | |
 | Y7 | A top-level `source`; a `sha256` on every `$ref`, `base` and `filename` artifact; UTF-8 without BOM; LF line endings | | Not in the spec yet (skellytracker decision 0016) | | | |
 
 Row Y7: skellytracker decision 0016 adds these fields to the spec. Until the spec defines `source`, a
@@ -292,10 +298,10 @@ Do not publish a `vNEXT` sidecar to a shared or remote folder. No skellytracker 
 The storage layout of the spec starts at `{cache_dir}`. In an exporter, the export root has that
 role. Write the path under the export root.
 
-| # | Property | Evidence (exporter code that writes the file) | Section (until the split: the heading in `specs/sidecar-spec.md`) | Sidecar value | Verdict | What differs or what is missing |
+| # | Property | Evidence (exporter code that writes the file) | Section ID (the `id` in the section file's front matter) | Sidecar value | Verdict | What differs or what is missing |
 |---|---|---|---|---|---|---|
-| L1 | Sidecar path: `<export root>/detectors/object_detectors/{family}/{model_id}.yaml`, where `{family}` is the `model_id`; or `<export root>/detectors/keypoint_detectors/{family}/{part}/{model_id}.yaml`, where `{part}` is `hand`, `face`, `body` or `wholebody` | | Storage layout | | | |
-| L2 | The ONNX files are in the same folder as the sidecar | | File pairing rules | | | |
+| L1 | Sidecar path: `<export root>/detectors/object_detectors/{family}/{model_id}.yaml`, where `{family}` is the `model_id`; or `<export root>/detectors/keypoint_detectors/{family}/{part}/{model_id}.yaml`, where `{part}` is `hand`, `face`, `body` or `wholebody` | | `format.file_layout` (Storage layout) | | | |
+| L2 | The ONNX files are in the same folder as the sidecar | | `format.file_layout` (File pairing rules) | | | |
 
 A model-specific folder, for example `body7`, does not conform. If the exporter writes to such a
 folder, the sidecar value is still the spec path. Write the path of the exporter in the last column
@@ -340,14 +346,18 @@ code writes the sidecar, write `none` in the block.
 If a row of the property table is `near-miss`, `gap` or `unverified`, write `skipped` in the Result
 column of each group row. Then go to [Parity proof](#parity-proof).
 
-Walk the validation rules (`specs/sidecar-spec.md` heading "Validation rules") of every part of the
-spec that the sidecar uses. Also check the version-aware compatibility table
-(`specs/sidecar-spec.md` heading "Version-aware compatibility"). A `vNEXT` sidecar must not use a
-legacy-only form. Then run the checks of the exporter.
+Walk the validation rules of every section that the sidecar uses. Each section file has a
+"Validation rules" heading, and each rule there has a rule ID (`V-<section-id>-<n>`, for example
+`V-pre.resize.letterbox-1`). The validation index (`specs/sidecar/README.md` heading "Validation
+rules") links to the rules of each section. It also gives the meaning of **(vNEXT)**: a rule marked
+**(vNEXT)** applies only when `schema_version >= vNEXT`. Also check the "Legacy behaviour" heading of
+each section that the sidecar uses, if the section has one. The index of these headings is
+"Version-aware compatibility" (`specs/sidecar/format/versioning.md`). A `vNEXT` sidecar must not use
+a legacy-only form. Then run the checks of the exporter.
 
-- A `vNEXT` sidecar must pass every rule, also each rule marked **(vNEXT)**, except the two items
-  in the next bullet.
-- The first two items of "Identity and composition" (the version pattern, and the support by the
+- A `vNEXT` sidecar must pass every rule, also each rule marked **(vNEXT)**, except the two rules in
+  the next bullet.
+- `V-format.versioning-1` (the version pattern) and `V-format.versioning-2` (the support by the
   installed release) cannot pass for `vNEXT`. Write `n/a at vNEXT` as their result. They apply after
   the release step.
 
@@ -359,21 +369,20 @@ skellytracker cannot check a `vNEXT` sidecar yet:
 - `SidecarModel` forbids unknown keys, and it does not have all the `vNEXT` fields yet. For example,
   `DetectionDecodeSpec` has no `selection`.
 
-So walk the checklist by hand where the checks of the exporter do not cover an item.
+So walk the checklist by hand where the checks of the exporter do not cover a rule.
 
-The pre-filled rows are group headers. Under each group, add one row for each checklist item. Until
-the spec gives rule IDs, identify each item by its text. When the spec has rule IDs, write the rule ID.
-Write `not used` for a group that the sidecar does not use.
+The pre-filled rows are group headers. Under each group, add one row for each rule that you checked.
+Write its rule ID (`V-<section-id>-<n>`). Write `not used` for a group that the sidecar does not use.
 
-| Group | Checklist item (text, or rule ID) | Result (`pass`, `fail`, `not used`, `n/a at vNEXT` or `skipped`) | How checked (script and commit, or by hand) |
+| Group | Rule ID (`V-<section-id>-<n>`) | Result (`pass`, `fail`, `not used`, `n/a at vNEXT` or `skipped`) | How checked (script and commit, or by hand) |
 |---|---|---|---|
-| Identity and composition | | | |
-| Sizes and artifacts | | | |
-| Input, resize, normalization | | | |
-| Outputs (common) | | | |
-| Detection (`object_detector`) | | | |
-| Pose (`pose_estimator`) | | | |
-| Overlay | | | |
+| Identity and composition (`format.versioning`, `format.composition`, `common.identity`) | | | |
+| Sizes and artifacts (`common.sizes_and_artifacts`, `common.batching`) | | | |
+| Input, resize, normalization (`common.input`, `pre.*`) | | | |
+| Outputs (common) (`common.outputs`) | | | |
+| Detection (`object_detector`: `post.det.*`) | | | |
+| Pose (`pose_estimator`: `post.pose.*`) | | | |
+| Overlay (`post.overlay`) | | | |
 
 **Checks of the exporter.**
 
@@ -409,7 +418,7 @@ result with the upstream library.
 
 **Host implementation of each section.**
 
-| Section (ID or heading) | Host code (file and function) | Vectors (`pass`, `fail` or `no vectors`) | Reference implementation (`used`, `matched` or `none exists`) |
+| Section ID (the `id` in the section file's front matter) | Host code (file and function) | Vectors (`pass`, `fail` or `no vectors`) | Reference implementation (`used`, `matched` or `none exists`) |
 |---|---|---|---|
 | | | | |
 
@@ -452,15 +461,16 @@ The rule:
 
 Then do the reference-implementation step in
 [Proposals and reference files](#proposals-and-reference-files). Do it for every verdict. Then stop.
-If the verdict is `describes`, a skellytracker session can add the sidecar as a spec example. The
-procedure is "Reference examples" in `specs/sidecar-implementation-plan.md`.
+If the verdict is `describes`, a skellytracker session can add the sidecar as a spec example (under
+`specs/sidecar/examples/`, with its provenance in `specs/sidecar/inventory.yaml`). The procedure is
+"Reference examples" in `specs/sidecar-implementation-plan.md`.
 
 ## Proposals and reference files
 
 **Proposals.** Write one row for each proposal. Write each proposal with the change proposal template
 (`specs/sidecar/templates/change-proposal.md`).
 
-| Intake rows | Proposal file (`plans/sidecar-proposal-<slug>.md`) | Proposed section ID, and the heading | New or changed section | Depends on (proposal files, or `none`) |
+| Intake rows | Proposal file (`plans/sidecar-proposal-<slug>.md`) | Proposed section ID (the `id` in the section file's front matter) | New or changed section | Depends on (proposal files, or `none`) |
 |---|---|---|---|---|
 | | | | | |
 
@@ -474,28 +484,26 @@ reference implementation of that section. Do it for every verdict.
   `input.layout`, `input.dtype` or `input.resize.method: none`.
 - Do it from committed host code. If the host code is not committed yet, or if it exists only in a
   plan, write `to run` in the table. Do the step after the commit.
-- `<section_module>` is the section ID with each dot replaced by an underscore (`pre.resize.letterbox`
-  gives `pre_resize_letterbox`). Until the split, take it from the table "Module names" in the
-  exporter guide (section "Sidecars", heading "Reference implementations"), for example
-  `input_resize_letterbox`. Write the heading in the note at the top of the file.
+- `<section_module>` is the section ID from the front matter of the section file (`id`), with each
+  dot replaced by an underscore (`pre.resize.letterbox` gives `pre_resize_letterbox`). Write the
+  section ID in the note at the top of the file.
 - Python cannot import `plans/sidecar-reference-<section_module>.py` by its name, because the name has
   hyphens. Load it with `importlib.util.spec_from_file_location`, or run it as a script.
 - Write the clean, minimal form of the host code. Use only NumPy, OpenCV and the Python standard
   library. Do not import from the exporter or from skellytracker. Write one function for each
   algorithm.
-- In each docstring, cite the section ID (until the split, the heading) and the exporter commit that
-  the code comes from.
+- In each docstring, cite the section ID and the exporter commit that the code comes from.
 - Run the functions against the vectors of the section. They must pass. If the vector file says
   `unverified`, also run the vectors through the host code, and record both results. If the section
   has no vector file yet, record that.
 - Run the functions in place of the host code in the parity check of the exporter. Record that the
   result does not change.
 - Write the functions to `plans/sidecar-reference-<section_module>.py` in the exporter repo. Put a short
-  note at the top of the file: the heading, the source commit, the vector results and the parity
+  note at the top of the file: the section ID, the source commit, the vector results and the parity
   result. Then stop.
 - If the host code and an existing reference implementation do not agree, you found a spec defect or a
   bug. Write a proposal. Do not write a second reference implementation.
 
-| Section (ID or heading) | Host code (file, function and commit) | Reference file (`plans/sidecar-reference-<section_module>.py`) | Vector result | Parity result unchanged (`yes`, `no` or `to run`) |
+| Section ID (the `id` in the section file's front matter) | Host code (file, function and commit) | Reference file (`plans/sidecar-reference-<section_module>.py`) | Vector result | Parity result unchanged (`yes`, `no` or `to run`) |
 |---|---|---|---|---|
 | | | | | |

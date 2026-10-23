@@ -22,14 +22,14 @@ A size entry holds only the three keys above.
 
 A sidecar with `schema_version < vNEXT` keeps the old rule. The host deep-merges every key of its size
 entries over the top level. The spec states this in the size-level keys row of
-[Version-aware compatibility](../../specs/sidecar-spec.md#version-aware-compatibility).
+[Version-aware compatibility](../../specs/sidecar/common/sizes-and-artifacts.md#legacy-behaviour).
 
 The spec states the rule in these places:
 
-- change 12 of the [Summary of changes](../../specs/sidecar-spec.md#summary-of-changes);
-- [`sizes`](../../specs/sidecar-spec.md#sizes);
-- [Model sizes within a family](../../specs/sidecar-spec.md#model-sizes-within-a-family);
-- the `vNEXT` size-entry rule in [Validation rules](../../specs/sidecar-spec.md#validation-rules).
+- change 12 of the [Summary of changes](../../specs/sidecar/changelog.md#summary-of-changes);
+- [`sizes`](../../specs/sidecar/common/sizes-and-artifacts.md#sizes);
+- [Model sizes within a family](../../specs/sidecar/common/sizes-and-artifacts.md#model-sizes-within-a-family);
+- the `vNEXT` size-entry rule in [Validation rules](../../specs/sidecar/common/sizes-and-artifacts.md#validation-rules).
 
 ## Reason
 

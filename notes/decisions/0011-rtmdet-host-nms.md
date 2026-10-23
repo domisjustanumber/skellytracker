@@ -26,10 +26,10 @@ OpenMMLab-Exporter 0017; the measurements are dated 2026-10-20).
 - The spec has no `nms.pre_nms_top_k` field. The sidecar does not express the mmdet `nms_pre` cap.
   The person configs set `nms_pre` to 1000.
 - The spec does not allow `class_logits` with `selection: nms`. The rule is in
-  [Validation rules](../../specs/sidecar-spec.md#validation-rules): `selection: nms` forbids
+  [Validation rules](../../specs/sidecar/post/selection-nms.md#validation-rules): `selection: nms` forbids
   `class_logits_output`.
 - The detection outputs are the complete candidate set. The decode steps are in
-  [Selection behaviour](../../specs/sidecar-spec.md#selection-behaviour).
+  [Selection behaviour](../../specs/sidecar/post/detection-decode.md#selection-behaviour).
 
 ## Reason
 
@@ -99,9 +99,9 @@ OpenMMLab-Exporter sets `test_cfg` to `nms_pre=1000`, `min_bbox_size=0`, `score_
 OpenMMLab-Exporter `rtmdet_person/identity.py` holds the three sidecar values.
 
 **Spec.** The reference example
-[RTMDet person](../../specs/sidecar-spec.md#rtmdet-person-openmmlab-exporter-nms-free-outputs-host-nms)
+[RTMDet person](../../specs/sidecar/examples/README.md#rtmdet-person-openmmlab-exporter-nms-free-outputs-host-nms)
 shows the sidecar. The rows "`class_logits` with `selection: nms`" and "`nms.pre_nms_top_k`" in
-[Considered and deliberately not added](../../specs/sidecar-spec.md#considered-and-deliberately-not-added)
+[Considered and deliberately not added](../../specs/sidecar/changelog.md#considered-and-deliberately-not-added)
 record the two options that the spec does not add.
 
 **Code.** `DetectionDecodeSpec` in `skellytracker/core/sidecar/model.py` has no `selection` field and

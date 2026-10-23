@@ -15,7 +15,7 @@ every model that these exporters produce:
 Qualcomm-Exporter is out of scope until that library is complete.
 
 `vNEXT` adds only the features that these models need. The spec lists the other features in
-[Considered and deliberately not added](../../specs/sidecar-spec.md#considered-and-deliberately-not-added).
+[Considered and deliberately not added](../../specs/sidecar/changelog.md#considered-and-deliberately-not-added).
 This entry groups them:
 
 - Resize: `resize.antialias`, `resize.size_divisor`, `crop_policy.border_mode` and rotated crops.
@@ -41,7 +41,7 @@ when a release version replaces it.
 ## Reason
 
 - No model in scope needs most of the listed features. Each row of the
-  [spec table](../../specs/sidecar-spec.md#considered-and-deliberately-not-added) gives its own reason.
+  [spec table](../../specs/sidecar/changelog.md#considered-and-deliberately-not-added) gives its own reason.
 - Some rows give another reason:
   - For `score_activation: softmax`, the behaviour over gap and background slots is unresolved.
   - For `nms.pre_nms_top_k`, a flat candidate list cannot express the per-level `nms_pre` cap of mmdet.

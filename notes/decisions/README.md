@@ -37,7 +37,7 @@ These items are for the implementation stage ([0014](0014-spec-lifecycle.md)). D
 stage, no file under `skellytracker/` changes, except test fixes.
 
 - **`fit` `pad_value`.** At `vNEXT`, the spec requires `pad_value` on a `fit` resize
-  ([Validation rules](../../specs/sidecar-spec.md#validation-rules)). The code does not require it.
+  ([Validation rules](../../specs/sidecar/pre/resize-fit.md#validation-rules)). The code does not require it.
   `ResizeSpec._check_method_specific_fields` in `skellytracker/core/sidecar/model.py` accepts a `fit`
   resize without `pad_value`. Then `preprocess_image` in
   `skellytracker/core/detectors/processing/image_preprocessing.py` uses `0`, and `fit_preprocess` has
@@ -83,30 +83,30 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   legacy meaning ([0009](0009-imagenet-bgr-meaning.md)).
 - The reviewer note of the `vNEXT` change summary says to replace `vNEXT` "before merging". Decision
   [0014](0014-spec-lifecycle.md) moves that step to the first release that ships the spec.
-- The [Identity](../../specs/sidecar-spec.md#identity) fields say that a keypoint detector's
+- The [Identity](../../specs/sidecar/common/identity.md) fields say that a keypoint detector's
   `model_id` is `{family}-{part}`. This rule cannot express a variant suffix or a stage suffix. The
   RTMO body7 reference example, copied from OpenMMLab-Exporter, has `model_id: rtmo-body7` in the
   `body` part folder. A hand landmark model and a hand re-crop model of one family would both get
   `{family}-hand`. The spec must allow a suffix after the part, or the exporters must rename these
   models.
-- The [`input.resize`](../../specs/sidecar-spec.md#inputresize) text says that every interpolation
+- The [`input.resize`](../../specs/sidecar/pre/interpolation.md#behaviour) text says that every interpolation
   uses "`cv2.resize` / `cv2.warpAffine`, half-pixel centres". `cv2.warpAffine` maps the pixel centres
   in a different way. A 2x upscale of the ramp `[0, 10, 20, 30]` gives `2.5` with `cv2.resize` and
   `5.0` with `cv2.warpAffine` at destination `x = 1` (OpenCV 4.13.0).
-- The `pad_value` row of [`input.resize`](../../specs/sidecar-spec.md#inputresize) and the
+- The `pad_value` row of [`input.resize`](../../specs/sidecar/common/input.md#inputresize) and the
   `crop_policy.pad_value` row say only that an array is per channel. They do not say what a scalar
   fills. The `fit` and `affine_person_crop` pseudocode passes `pad_value` unchanged to
   `cv2.warpAffine`. With a scalar, `cv2.warpAffine` fills only channel 0: a scalar `114` gives the
   border `[114, 0, 0]` (OpenCV 4.13.0). The `letterbox` pseudocode fills every channel
   (`full((T_h, T_w, 3), pad_value)`). The spec must state that a scalar fills every channel
   ([0012](0012-fit-resize-for-rtmo.md)).
-- `clamp_boxes` in [`decode` (detection)](../../specs/sidecar-spec.md#decode-detection) clamps the
+- `clamp_boxes` in [`decode` (detection)](../../specs/sidecar/post/detection-decode.md#decode-detection) clamps the
   boxes to the source-image bounds. The spec does not define the bounds (`[0, W]` or `[0, W-1]`). It
   does not define the result for a box with zero area after the clamp.
 - `schema_version` is quoted (`"vNEXT"`) in some
-  [reference examples](../../specs/sidecar-spec.md#reference-examples) and not quoted in the RTMO
+  [reference examples](../../specs/sidecar/examples/README.md) and not quoted in the RTMO
   body7 example. YAML reads both forms as the same string, but the examples do not agree.
-- Two identity rules of [Validation rules](../../specs/sidecar-spec.md#validation-rules) cannot pass
+- Two identity rules of [Validation rules](../../specs/sidecar/format/versioning.md#validation-rules) cannot pass
   at `vNEXT`: the version pattern, and the support by the installed release. Also, the sentence "Rules
   marked **(vNEXT)** apply only when `schema_version >= vNEXT`" is circular for `vNEXT`. `vNEXT` does
   not match the version pattern, so the comparison has no defined result for a `vNEXT` sidecar.
