@@ -21,7 +21,6 @@ SHARED_DIR = EXAMPLES_ROOT / "detectors" / "shared"
 PACKAGE_SHARED_DIR = REPO_ROOT / "skellytracker" / "core" / "detectors" / "shared"
 
 PROVENANCE_KEYS = {
-    "source",
     "exporter",
     "exporter_path",
     "kind",

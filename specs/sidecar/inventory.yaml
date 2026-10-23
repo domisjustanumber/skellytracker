@@ -3,8 +3,8 @@
 #
 # examples: the provenance of each reference example under specs/sidecar/examples/, keyed by its path
 # there. The procedure to provide or replace an example is in specs/sidecar-implementation-plan.md
-# ("Reference examples").
-#   source                the name of the library that wrote the sidecar
+# ("Reference examples"). Each example holds its own source (source.name and source.version), so an
+# entry has no source key. An entry has these keys:
 #   exporter              the exporter repo
 #   exporter_path         the path of the exporter's copy, relative to the exporter repo
 #   kind                  export: copied from exporter output; forecast: written from exporter code
@@ -13,7 +13,9 @@
 #   tracked               whether exporter_path is tracked in git (most exports are untracked build
 #                         output under exports/)
 #   commit                the exporter commit of the code that writes the sidecar
-#   edits                 the allowed edits made to the exporter's copy
+#   edits                 the allowed edits made to the exporter's copy: "header comment removed",
+#                         "source and hashes added" (tools/sidecar_refs.py --write --placeholder
+#                         --source, while the exporter does not write these fields)
 #   notes                 known differences from the exporter's copy
 # proposed: models that an exporter plans to add; listed, but not matched to sections. One entry per
 # model and exporter.
@@ -27,55 +29,51 @@
 
 examples:
   detectors/object_detectors/yolo26/yolo26.yaml:
-    source: ultralytics-exporter
     exporter: Ultralytics-Exporter
     exporter_path: exports/detectors/object_detectors/yolo26/yolo26.yaml
     kind: forecast
     exporter_layout_path: null
     tracked: false
     commit: f52ef68
-    edits: []
+    edits: ["source and hashes added"]
     notes: >-
       The exporter still writes schema_version v2024.09.1019 (yolo_sidecar.py). Its copy uses the legacy
       fields preserve_aspect_ratio, requires_nms and may_include_non_person_classes, no color_format,
       and the static output shape [1, 300, 6].
 
   detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml:
-    source: ultralytics-exporter
     exporter: Ultralytics-Exporter
     exporter_path: exports/detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml
     kind: forecast
     exporter_layout_path: null
     tracked: false
     commit: f52ef68
-    edits: []
+    edits: ["source and hashes added"]
     notes: >-
       The exporter still writes schema_version v2024.09.1019. Its copy has the same legacy fields as
       yolo26.yaml and declares output0 twice (detections, then poses with keypoint_axis 2) instead of
       one detections output with packed_keypoints.
 
   detectors/object_detectors/rtmdet-person/rtmdet-person.yaml:
-    source: openmmlab-exporter
     exporter: OpenMMLab-Exporter
     exporter_path: exports/detectors/object_detectors/rtmdet-person/rtmdet-person.yaml
     kind: export
     exporter_layout_path: null
     tracked: false
     commit: eed3361
-    edits: []
+    edits: ["source and hashes added"]
     notes: >-
       Same contract as the exporter's copy. The example omits some batch groups (nano b3, medium b2 and
       b3).
 
   detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml:
-    source: openmmlab-exporter
     exporter: OpenMMLab-Exporter
     exporter_path: exports/detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml
     kind: export
     exporter_layout_path: null
     tracked: false
     commit: eed3361
-    edits: []
+    edits: ["source and hashes added"]
     notes: >-
       Drifted from the exporter's copy; replace it with the procedure. The example adds
       crop_policy.pad_value 0, refers to the shared coco133 skeleton fragments where the exporter inlines
@@ -85,14 +83,13 @@ examples:
   # The provenance line of this example in the single-file spec, moved here by the split:
   # Source: OpenMMLab-Exporter `notes/decisions/rtmo-body7.yaml` at commit `38ed76f` (the tracked copy of the sidecar its `rtmo-body7` family writes; header comment removed). Spec path: `detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml`. The exporter writes it to `rtmo/body7/`, which is not one of the spec's part folders.
   detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml:
-    source: openmmlab-exporter
     exporter: OpenMMLab-Exporter
     exporter_path: notes/decisions/rtmo-body7.yaml
     kind: export
     exporter_layout_path: exports/detectors/keypoint_detectors/rtmo/body7/rtmo-body7.yaml
     tracked: true
     commit: eed3361
-    edits: ["header comment removed"]
+    edits: ["header comment removed", "source and hashes added"]
     notes: >-
       The tracked copy was last committed at 38ed76f; the current writer (rtmo/sidecar.py at eed3361)
       writes the same contract. The exporter's exports/ copy adds fp16, batch groups 2 and 3 and sizes
