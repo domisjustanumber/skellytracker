@@ -57,7 +57,7 @@ Open PRs against `development`, not `main` ([section 6](#6-git-rules)).
 | `skellytracker/tests/` | pytest suite. `sidecar/` holds the sidecar tests and their golden fixtures. |
 | `specs/sidecar-spec.md` | The sidecar spec |
 | `specs/sidecar-implementation-plan.md` | Status of the sidecar work in the package, and the procedure for reference examples |
-| `specs/sidecar-spec-exporter-coverage-plan.md` | The plan that extended the spec to the exporter models: the evidence for the `vNEXT` revision |
+| `notes/sidecar-exporter-coverage.md` | The plan that extended the spec to the exporter models: the evidence for the `vNEXT` revision |
 | `specs/sidecar/` | [`exporter-guide.md`](specs/sidecar/exporter-guide.md) and [`templates/`](specs/sidecar/templates/) |
 | `notes/decisions/` | Decision log ([`README.md`](notes/decisions/README.md)) |
 | `tools/` | `check_links.py`. The doc tests are in `tools/tests/`. |

@@ -64,7 +64,7 @@ revision can add the feature if a multi-class NMS-free family appears.
 ## Alternatives rejected
 
 - Adopt the whole Roboflow-Exporter draft that
-  [the exporter coverage plan](../../specs/sidecar-spec-exporter-coverage-plan.md) starts from.
+  [the exporter coverage plan](../sidecar-exporter-coverage.md) starts from.
   The draft has fields that no exported model uses. The coverage plan trims them.
 
 ## Not repeated

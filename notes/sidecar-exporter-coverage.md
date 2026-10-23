@@ -1,6 +1,6 @@
 # Plan: extend the sidecar spec to cover every exporter model
 
-> **Status:** plan, revised 2026-10-20. Target: [`sidecar-spec.md`](sidecar-spec.md) on `philip/sidecar_implementation`.
+> **Status:** plan, revised 2026-10-20. Target: [`sidecar-spec.md`](../specs/sidecar-spec.md) on `philip/sidecar_implementation`.
 > **Base document:** `../Roboflow-Exporter/plans/sidecar-spec-stretch-multi-output.md` (the "draft",
 > 2026-10-19). The draft already has replacement text for most of the RF-DETR and RTMDet changes. This
 > plan adopts the draft, corrects it where the repos have moved on, trims fields that no exported model
@@ -248,7 +248,7 @@ Adopt it: a size entry may set only `input.shape`, `input.resize.target_size` an
 
 ## skellytracker implementation impact
 
-All in `skellytracker/core/sidecar/model.py`, plus the generic decode path from M6 in [`sidecar-implementation-plan.md`](sidecar-implementation-plan.md):
+All in `skellytracker/core/sidecar/model.py`, plus the generic decode path from M6 in [`sidecar-implementation-plan.md`](../specs/sidecar-implementation-plan.md):
 
 - `ResizeSpec`: add `stretch`, `pad_position`, `rounding` and array `pad_value`.
 - `InputSpec`: add `color_format`.

@@ -44,7 +44,7 @@ The spec states the rule in these places:
 
 ## Evidence
 
-- The exporter coverage plan (`specs/sidecar-spec-exporter-coverage-plan.md`) applies the invariant to
+- The exporter coverage plan (`notes/sidecar-exporter-coverage.md`) applies the invariant to
   the RTMDet sizes whose backbones take RGB input (ConvNeXt-B and Swin-B). The CSPNeXt sizes take BGR
   input. The coverage plan puts the RGB sizes in a family of their own. OpenMMLab-Exporter 0004 records the
   channel order of each family. The RGB sizes later left that exporter with their weights
