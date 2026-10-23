@@ -15,7 +15,15 @@
 #   commit                the exporter commit of the code that writes the sidecar
 #   edits                 the allowed edits made to the exporter's copy
 #   notes                 known differences from the exporter's copy
-# proposed: models that an exporter plans to add; listed, but not matched to sections.
+# proposed: models that an exporter plans to add; listed, but not matched to sections. One entry per
+# model and exporter.
+#   key       <model_id>@<source>: the model_id that the exporter's plan gives, and the name of the
+#             exporter package
+#   exporter  the exporter repo
+#   plan      the exporter's plan for the model, as <repo>/plans/<file>; the plan is an untracked local
+#             file of that repo
+#   status    proposed
+#   notes     what the model is and, when the spec has no section for it, the gap
 
 examples:
   detectors/object_detectors/yolo26/yolo26.yaml:
@@ -90,4 +98,35 @@ examples:
       writes the same contract. The exporter's exports/ copy adds fp16, batch groups 2 and 3 and sizes
       s, l and t.
 
-proposed: []
+proposed:
+  - key: mediapipe-hand@qualcomm-exporter
+    exporter: Qualcomm-Exporter
+    plan: Qualcomm-Exporter/plans/hand-pose-export.md
+    status: proposed
+    notes: >-
+      The hand landmark model has a 256 by 256 input and outputs 21 landmarks, a hand score and a
+      handedness score.
+
+  - key: mediapipe-hand-recrop@qualcomm-exporter
+    exporter: Qualcomm-Exporter
+    plan: Qualcomm-Exporter/plans/hand-pose-export.md
+    status: proposed
+    notes: >-
+      The hand re-crop model is a region of interest (ROI) refiner that gives two points for a new
+      crop. The spec has no section for an ROI refiner yet (a gap, see specs/sidecar/exporter-guide.md).
+
+  - key: mediapipe-hand-landmark@mediapipe-exporter
+    exporter: MediaPipe-Exporter
+    plan: MediaPipe-Exporter/plans/hand-pipeline-export.md
+    status: proposed
+    notes: >-
+      The hand landmark model (sizes full and lite) has a 224 by 224 input and gives landmarks, a hand
+      score, a handedness score and world landmarks.
+
+  - key: mediapipe-hand-recrop@mediapipe-exporter
+    exporter: MediaPipe-Exporter
+    plan: MediaPipe-Exporter/plans/hand-pipeline-export.md
+    status: proposed
+    notes: >-
+      The hand re-crop model is a region of interest (ROI) refiner that gives two points for a new
+      crop. The spec has no section for an ROI refiner yet (a gap, see specs/sidecar/exporter-guide.md).
