@@ -6,8 +6,8 @@ since: v2024.09.1019
 changed_in: [vNEXT]
 selectors: []
 implemented_by:
-  validate: skellytracker/core/sidecar/model.py::SizeSpec  # partial. The checks run only inside resolved_size. No check for V-common.sizes_and_artifacts-3 (notes/decisions/0010-family-invariant.md) or -8. -9 checks only that output_shapes exists.
-  load: skellytracker/core/sidecar/model.py::SidecarModel.resolved_size  # partial. Drops every key of a size entry except input and onnx. resolve_model_path in model_registry.py downloads artifacts and checks url_sha256.
+  validate: skellytracker/core/sidecar/model.py::SizeSpec  # partial. The checks run only inside resolved_size. No check for V-common.sizes_and_artifacts-3 (notes/decisions/0010-family-invariant.md) or -8. -9 checks only that output_shapes exists. No check for -10 to -12: PrecisionArtifact forbids the key sha256.
+  load: skellytracker/core/sidecar/model.py::SidecarModel.resolved_size  # partial. Drops every key of a size entry except input and onnx. resolve_model_path in model_registry.py downloads artifacts and checks url_sha256. Nothing checks sha256 against the file that filename names.
 external_impl: []
 tests:
   - skellytracker/tests/sidecar/test_model_validation.py
@@ -72,11 +72,16 @@ The full input tensor shape for a group is `[N] + sizes.<size>.input.shape[1:]`.
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `filename` | string | yes | The ONNX filename, relative to the leaf model directory of the sidecar. |
+| `sha256` | string | `vNEXT`: yes | The SHA-256 of the file that `filename` names, in lowercase hex (64 characters). When `url` points to an archive, `sha256` is the hash of the ONNX file in the archive. |
 | `url` | string | no | The download location. It can point to an archive, for example `.zip`. |
 | `url_sha256` | string | yes when `url` present | The SHA-256 of the bytes at `url`, in lowercase hex. The bytes are the archive or file itself. |
 | `input_dtype` | string | no | This optional field is the ONNX graph input element type for this artifact. The default is `input.dtype[precision]`. If the field is authored, its value must agree with that default. |
 
 When the ONNX file is not present locally, the host can download it from `url`. In that case, the host must verify it against `url_sha256`. `url_sha256` is **mandatory** whenever `url` is present. `url` can point directly to an ONNX file, or to an archive. An archive can contain any number of files. It must contain exactly one ONNX file. The host extracts this file and renames it to `filename`. `url` is optional. A model that ships its ONNX files alongside the sidecar needs no download location.
+
+At `vNEXT`, every artifact has `sha256`, because every artifact has `filename`. `sha256` goes with `filename`, and `url_sha256` goes with `url`. When `url` points to an archive, `url_sha256` is the hash of the archive, and `sha256` is the hash of the ONNX file in it. When `url` points directly to an ONNX file, the two hashes have the same value. The host must verify the file that `filename` names against `sha256` when the file is present. The host must also verify it when the host downloads the file. For a download, the host first verifies the bytes at `url` against `url_sha256`. Then it verifies the ONNX file against `sha256`.
+
+**Reserved placeholder.** The value of 64 zeros (the character `0`, 64 times) is the reserved placeholder for `sha256`. The placeholder is valid only in the reference examples of this spec, under `specs/sidecar/examples/`. These examples name ONNX files that nobody can download. An example from an exporter that writes real hashes keeps those hashes. The other examples use the placeholder. A sidecar in any other location that holds the placeholder is invalid.
 
 Rules:
 
@@ -110,6 +115,9 @@ For rules marked **(vNEXT)**, see [Validation rules](../README.md#validation-rul
 - [ ] `V-common.sizes_and_artifacts-7` Each precision artifact must declare `filename`. If it declares `url`, it must also declare `url_sha256`.
 - [ ] `V-common.sizes_and_artifacts-8` If a precision artifact has an `input_dtype`, it must agree with `input.dtype[precision]`.
 - [ ] `V-common.sizes_and_artifacts-9` When a size has `len(batch_artifacts) > 1`, each group must declare `output_shapes`. The length of that array must equal `len(outputs)`. Its entries must be arrays in the same order as `outputs`.
+- [ ] `V-common.sizes_and_artifacts-10` **(vNEXT)** Each precision artifact must declare `sha256`. Its value must be a string of 64 lowercase hexadecimal characters.
+- [ ] `V-common.sizes_and_artifacts-11` **(vNEXT)** When the file that `filename` names is present or downloaded, its SHA-256 must equal `sha256`.
+- [ ] `V-common.sizes_and_artifacts-12` **(vNEXT)** A sidecar outside `specs/sidecar/examples/` must not hold the reserved placeholder (64 zeros) as `sha256`.
 
 See also [Input](input.md#validation-rules) and [Outputs](outputs.md#validation-rules).
 
@@ -118,6 +126,7 @@ See also [Input](input.md#validation-rules) and [Outputs](outputs.md#validation-
 | Behaviour | `schema_version < vNEXT` (legacy) | `schema_version >= vNEXT` |
 |-----------|-----------------------------------|---------------------------|
 | Size-level keys other than `input.shape`, `input.resize.target_size`, `onnx` | Deep-merged over the top level. | Invalid (family invariant). |
+| `sha256` of a precision artifact | Not available. Only `url_sha256` (with `url`) gives a hash. | Required on every artifact. |
 
 ## Implementer guidance
 
@@ -192,6 +201,7 @@ See also [Input](input.md#validation-rules) and [Outputs](outputs.md#validation-
 ```yaml
 # Excerpt of yolo26.yaml (Ultralytics-Exporter): every YOLO26 size is exported at 640x640;
 # sizes differ only in their artifacts. medium/large/xlarge follow the same pattern.
+# The excerpt leaves out the `sha256` of each artifact.
 sizes:
   nano:
     input:
