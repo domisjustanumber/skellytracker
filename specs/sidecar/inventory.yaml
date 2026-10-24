@@ -110,7 +110,7 @@ proposed:
     status: proposed
     notes: >-
       The hand re-crop model is a region of interest (ROI) refiner that gives two points for a new
-      crop. The spec has no section for an ROI refiner yet (a gap, see specs/sidecar/exporter-guide.md).
+      crop. The spec has no section for an ROI refiner yet (a gap, see specs/exporter-guide/sidecars/README.md).
 
   - key: mediapipe-hand-landmark@mediapipe-exporter
     exporter: MediaPipe-Exporter
@@ -126,4 +126,4 @@ proposed:
     status: proposed
     notes: >-
       The hand re-crop model is a region of interest (ROI) refiner that gives two points for a new
-      crop. The spec has no section for an ROI refiner yet (a gap, see specs/sidecar/exporter-guide.md).
+      crop. The spec has no section for an ROI refiner yet (a gap, see specs/exporter-guide/sidecars/README.md).

@@ -4,7 +4,7 @@ This template is phase 2 of the new-model workflow. A proposal asks for one new 
 unit of the sidecar spec, and for its implementation. A contract unit is one part of the spec with its
 own algorithm or its own implementing function. One contract unit is one section (one section file
 under `specs/sidecar/`). The full workflow is in the exporter guide
-(`specs/sidecar/exporter-guide.md` of the skellytracker repo, section "Sidecars"). The decision behind
+(`specs/exporter-guide/sidecars/README.md` of the skellytracker repo, section "Sidecars"). The decision behind
 it is skellytracker decision 0014 (`notes/decisions/0014-spec-lifecycle.md` of the skellytracker
 repo). Phase 1 is the model intake template (`specs/sidecar/templates/model-intake.md`).
 

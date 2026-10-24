@@ -4,11 +4,11 @@
 
 ## Decision
 
-1. **The block.** The [exporter guide](../../specs/sidecar/exporter-guide.md#the-block-for-the-exporter-agentsmd)
+1. **The block.** The [exporter guide](../../specs/exporter-guide/sidecars/README.md#the-block-for-the-exporter-agentsmd)
    has a short block in a fenced code block. An exporter copies the text inside the fence into its
    `AGENTS.md`, after section 4. It fills in only the skellytracker commit of the source line.
 2. **No copy of the Sidecars section.** The exporter does not copy the
-   [Sidecars](../../specs/sidecar/exporter-guide.md#sidecars) section. The block tells the exporter
+   [Sidecars](../../specs/exporter-guide/sidecars/README.md#sidecars) section. The block tells the exporter
    agents to read that section in the skellytracker checkout before each sidecar task, and to follow
    its new-model workflow.
 3. **The content of the block.** Where to read the spec, the two skills, and the sidecar rules that
@@ -40,3 +40,5 @@
   of the section needs a copy in each exporter.
 - **Link only, with no rules in the block.** The four rules of the block apply in each session, also
   before the agent opens the guide.
+
+_Edited 2026-10-24 (this PR): link repair._

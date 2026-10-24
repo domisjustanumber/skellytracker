@@ -11,7 +11,7 @@ This skill is phase 1 of the new-model workflow. Phase 1 answers one question: c
 spec describe the model exactly?
 
 This skill wraps the "Sidecars" section of the
-[exporter guide](../../../specs/sidecar/exporter-guide.md#sidecars) and the
+[exporter guide](../../../specs/exporter-guide/sidecars/README.md#sidecars) and the
 [model intake template](../../../specs/sidecar/templates/model-intake.md). The guide and the template
 give the rules and the details. This skill gives the order of the steps, the inputs, the outputs and
 the stop points. If this skill and the guide do not agree, follow the guide. The spec is normative.
@@ -25,15 +25,15 @@ the stop points. If this skill and the guide do not agree, follow the guide. The
 - Read the files of the checkout as normal files. Do not edit them. Do not commit to skellytracker.
   Do not change its branch.
 - A relative link in this file starts at the folder of this file. In the checkout, the link
-  `../../../specs/sidecar/exporter-guide.md` opens the file
-  `../freemocap/skellytracker/specs/sidecar/exporter-guide.md`.
+  `../../../specs/exporter-guide/sidecars/README.md` opens the file
+  `../freemocap/skellytracker/specs/exporter-guide/sidecars/README.md`.
 - If your agent does not support skills, read this file. Then do its steps in order.
 
 ## Files
 
 | File | Link | Path from the root of an exporter repo |
 |---|---|---|
-| Exporter guide, section "Sidecars" | [exporter-guide.md](../../../specs/sidecar/exporter-guide.md#sidecars) | `../freemocap/skellytracker/specs/sidecar/exporter-guide.md` |
+| Exporter guide, section "Sidecars" | [exporter-guide.md](../../../specs/exporter-guide/sidecars/README.md#sidecars) | `../freemocap/skellytracker/specs/exporter-guide/sidecars/README.md` |
 | Model intake template | [model-intake.md](../../../specs/sidecar/templates/model-intake.md) | `../freemocap/skellytracker/specs/sidecar/templates/model-intake.md` |
 | Section map | [README.md](../../../specs/sidecar/README.md#section-map) | `../freemocap/skellytracker/specs/sidecar/README.md` |
 | skellytracker decision 0014 (the workflow) | [0014](../../../notes/decisions/0014-spec-lifecycle.md#new-model-workflow) | `../freemocap/skellytracker/notes/decisions/0014-spec-lifecycle.md` |
@@ -42,7 +42,7 @@ the stop points. If this skill and the guide do not agree, follow the guide. The
 ## Inputs
 
 Get these inputs before you start ("Inputs" in
-[New-model workflow](../../../specs/sidecar/exporter-guide.md#new-model-workflow)):
+[New-model workflow](../../../specs/exporter-guide/sidecars/workflow/README.md#new-model-workflow)):
 
 - the ONNX files of every size, batch and precision;
 - the upstream inference config (the test pipeline);
@@ -54,7 +54,7 @@ If an input is missing, do not stop. Write `missing` for it in the intake.
 ## Outputs
 
 Write these files in the exporter repo ("Files in `plans/`" in
-[New-model workflow](../../../specs/sidecar/exporter-guide.md#new-model-workflow)):
+[New-model workflow](../../../specs/exporter-guide/sidecars/workflow/README.md#new-model-workflow)):
 
 | Output | When |
 |---|---|
@@ -77,16 +77,16 @@ overwrite.
 
 1. Before the overhaul of the exporter, run this workflow only when the user asks. Then write only the
    `plans/sidecar-*` files, unless the user permits more
-   ([How to use this guide](../../../specs/sidecar/exporter-guide.md#how-to-use-this-guide)).
+   ([How to use this guide](../../../specs/exporter-guide/sidecars/README.md#how-to-use-this-guide)).
 2. Do the steps of
-   [Where to read the spec](../../../specs/sidecar/exporter-guide.md#where-to-read-the-spec). Get the
+   [Where to read the spec](../../../specs/exporter-guide/sidecars/where-to-read.md#where-to-read-the-spec). Get the
    commit of the checkout.
 3. If the checkout does not exist, or it is not on the branch `dom/sidecar-implementation`, stop.
    Ask the user what to do.
 4. Read skellytracker decision 0014 before your first intake.
-5. Read the [Rules](../../../specs/sidecar/exporter-guide.md#rules) of the guide.
+5. Read the [Rules](../../../specs/exporter-guide/sidecars/rules.md#rules) of the guide.
 6. If the exporter has no git repo, follow "An exporter with no git repo" in
-   [New-model workflow](../../../specs/sidecar/exporter-guide.md#new-model-workflow).
+   [New-model workflow](../../../specs/exporter-guide/sidecars/workflow/README.md#new-model-workflow).
 
 ### Step 2: Start the intake
 
@@ -102,11 +102,11 @@ overwrite.
 ### Step 3: Fill in the property table
 
 1. Do steps 1 and 2 of
-   [Phase 1](../../../specs/sidecar/exporter-guide.md#phase-1-can-the-current-spec-describe-the-model).
+   [Phase 1](../../../specs/exporter-guide/sidecars/workflow/phase-1-intake.md#phase-1-can-the-current-spec-describe-the-model).
    Write one row for each property of the runtime contract.
 2. Use the hint for each part of the
    [property table](../../../specs/sidecar/templates/model-intake.md#property-table). The hints are
-   in [Mapping hints for phase 1](../../../specs/sidecar/exporter-guide.md#mapping-hints-for-phase-1):
+   in [Mapping hints for phase 1](../../../specs/exporter-guide/sidecars/workflow/mapping-hints.md#mapping-hints-for-phase-1):
 
    | Part of the property table | Hints to use |
    |---|---|
@@ -115,14 +115,14 @@ overwrite.
    | [Preprocessing](../../../specs/sidecar/templates/model-intake.md#preprocessing) | "Preprocessing" |
    | [Outputs and decode](../../../specs/sidecar/templates/model-intake.md#outputs-and-decode) | "Outputs and decode" |
    | [Pose](../../../specs/sidecar/templates/model-intake.md#pose) | "Pose" |
-   | [YAML](../../../specs/sidecar/templates/model-intake.md#yaml) | [Sidecar YAML](../../../specs/sidecar/exporter-guide.md#sidecar-yaml) |
-   | [Path in the storage layout](../../../specs/sidecar/templates/model-intake.md#path-in-the-storage-layout) | [Path](../../../specs/sidecar/exporter-guide.md#path) |
+   | [YAML](../../../specs/sidecar/templates/model-intake.md#yaml) | [Sidecar YAML](../../../specs/exporter-guide/sidecars/sidecar-files.md#sidecar-yaml) |
+   | [Path in the storage layout](../../../specs/sidecar/templates/model-intake.md#path-in-the-storage-layout) | [Path](../../../specs/exporter-guide/sidecars/sidecar-files.md#path) |
    | [Steps outside the model contract](../../../specs/sidecar/templates/model-intake.md#steps-outside-the-model-contract) | Step 1 of phase 1 (the runtime contract) |
 
 3. Read the "Authoring guidance" heading of each section that a row names. If the heading has text,
    use it.
 4. Record the upstream evidence of each row. Follow the evidence rule in
-   [Rules](../../../specs/sidecar/exporter-guide.md#rules). Do not paste private data: no user
+   [Rules](../../../specs/exporter-guide/sidecars/rules.md#rules). Do not paste private data: no user
    paths, hostnames, email addresses or raw environment dumps
    ([Private data](../../../AGENTS.md#8-private-data)).
 5. For a value that the exporter chooses (a name, a YAML rule or a path), follow "Values that the
@@ -156,15 +156,15 @@ A row that is `out of scope` needs no proposal. Tell the user about the row in s
 ### Step 5: Write and check the sidecar
 
 Do this step when no row is `near-miss` or `gap` (step 5 of
-[Phase 1](../../../specs/sidecar/exporter-guide.md#phase-1-can-the-current-spec-describe-the-model)).
+[Phase 1](../../../specs/exporter-guide/sidecars/workflow/phase-1-intake.md#phase-1-can-the-current-spec-describe-the-model)).
 
 1. Let the sidecar writer code of the exporter write the sidecar. Do not write the sidecar by hand.
-   Follow [Sidecar YAML](../../../specs/sidecar/exporter-guide.md#sidecar-yaml).
+   Follow [Sidecar YAML](../../../specs/exporter-guide/sidecars/sidecar-files.md#sidecar-yaml).
 2. If you cannot change the writer code yet, write the exact YAML as a draft in
    [The sidecar](../../../specs/sidecar/templates/model-intake.md#the-sidecar).
 3. If a row is `unverified`, do not change the writer code for that row. Write the draft with the
    value that you expect. Name each `unverified` row in "The sidecar" of the intake.
-4. Check the path of the sidecar against [Path](../../../specs/sidecar/exporter-guide.md#path). The
+4. Check the path of the sidecar against [Path](../../../specs/exporter-guide/sidecars/sidecar-files.md#path). The
    spec path is the sidecar value of row L1.
 5. If the exporter writes the sidecar to a different folder, write the exporter path in row L1 as an
    exporter defect. An example is a model-specific folder such as `rtmo/body7/`. Report the defect to
@@ -172,9 +172,9 @@ Do this step when no row is `near-miss` or `gap` (step 5 of
 6. Compare your values with the reference example of the same family, if one exists. Write each
    difference in "The sidecar" of the intake.
 7. Do each item of the [Validation checklist](../../../specs/sidecar/templates/model-intake.md#validation-checklist).
-   Follow [Validation](../../../specs/sidecar/exporter-guide.md#validation). Write the rule ID of each
+   Follow [Validation](../../../specs/exporter-guide/sidecars/validation-and-publishing.md#validation). Write the rule ID of each
    rule that you checked.
-8. Prove parity. Follow [Parity](../../../specs/sidecar/exporter-guide.md#parity). Fill in
+8. Prove parity. Follow [Parity](../../../specs/exporter-guide/sidecars/workflow/parity.md#parity). Fill in
    [Parity proof](../../../specs/sidecar/templates/model-intake.md#parity-proof). Fill in each cell
    that you can, also when the result is `to run`: the gates, the test images, the upstream reference
    and the script.
@@ -199,7 +199,7 @@ a gap.
 ### Step 7: Prepare the reference implementations
 
 Do this step for every final verdict, also after step 6. Follow
-[Reference implementations](../../../specs/sidecar/exporter-guide.md#reference-implementations).
+[Reference implementations](../../../specs/exporter-guide/sidecars/reference-implementations.md#reference-implementations).
 
 1. List each section that the exporter implements on its host side.
 2. Skip a section that has a reference implementation:
@@ -223,7 +223,7 @@ Do this step for every final verdict, also after step 6. Follow
    `does not describe`, also when other rows are `unverified`.
 2. Stop. Do not change a file in skellytracker.
 3. Do not publish a `vNEXT` sidecar to a shared or remote folder
-   ([Publishing](../../../specs/sidecar/exporter-guide.md#publishing)).
+   ([Publishing](../../../specs/exporter-guide/sidecars/validation-and-publishing.md#publishing)).
 4. Tell the user these items:
    - the final verdict;
    - the files that you wrote;
@@ -235,7 +235,7 @@ Do this step for every final verdict, also after step 6. Follow
    - each result that is `to run`;
    - each `plans/sidecar-*` file that no current intake or proposal owns.
 5. A skellytracker session does phase 3
-   ([Phase 3](../../../specs/sidecar/exporter-guide.md#phase-3-what-skellytracker-does-next)).
+   ([Phase 3](../../../specs/exporter-guide/sidecars/workflow/phase-3-skellytracker.md#phase-3-what-skellytracker-does-next)).
 
 ## Stop points
 

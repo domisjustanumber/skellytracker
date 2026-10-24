@@ -2,7 +2,7 @@
 
 This template is phase 1 of the new-model workflow. Phase 1 answers one question: can the current
 sidecar spec describe this model exactly? The full workflow is in the exporter guide
-(`specs/sidecar/exporter-guide.md` of the skellytracker repo, section "Sidecars"). The decision behind
+(`specs/exporter-guide/sidecars/README.md` of the skellytracker repo, section "Sidecars"). The decision behind
 it is skellytracker decision 0014 (`notes/decisions/0014-spec-lifecycle.md` of the skellytracker
 repo). Phase 2 is the change proposal template (`specs/sidecar/templates/change-proposal.md`). You
 need phase 2 only when phase 1 finds a `near-miss` or a `gap`.

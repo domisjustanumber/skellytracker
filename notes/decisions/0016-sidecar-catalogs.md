@@ -247,7 +247,7 @@ selects the RTMW whole-body detector.
 - When the spec gets that text, the spec's examples get `source` and all hashes. Then each example
   differs from its exporter copy until that exporter regenerates. This difference is expected.
 - This decision changes no file in an exporter repo. The rules for the exporters are in the exporter
-  guide of this repo ([specs/sidecar/exporter-guide.md](../../specs/sidecar/exporter-guide.md)).
+  guide of this repo ([specs/exporter-guide/sidecars/README.md](../../specs/exporter-guide/sidecars/README.md)).
 
 ## Reason
 
@@ -419,3 +419,5 @@ Checked in the code on 2026-10-22.
   index and check them out again (`git rm --cached -q -- '*.yaml'`, then `git checkout HEAD -- '*.yaml'`)
   before you take a hash. A test on 2026-10-22 (git 2.43.0, in a test repository) confirmed these
   commands.
+
+_Edited 2026-10-24 (this PR): link repair._

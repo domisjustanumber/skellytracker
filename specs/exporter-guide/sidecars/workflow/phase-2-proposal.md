@@ -1,0 +1,95 @@
+# Phase 2: propose a spec change and its implementation
+
+Write one proposal for each new or changed contract unit (one section). Fill
+`../freemocap/skellytracker/specs/sidecar/templates/change-proposal.md`. Write each proposal to
+`plans/sidecar-proposal-<slug>.md`. The skill `propose-sidecar-change` gives the order of the steps.
+The intake links to each proposal. Then stop.
+
+Before you write a proposal:
+
+- Read the table "Considered and deliberately not added" of the spec
+  (`../freemocap/skellytracker/specs/sidecar/changelog.md`). If your gap is in it, cite the
+  row in part 1. Give the evidence that a model needs the feature now.
+- Find the `proposed` entries of the skellytracker decision log that cover your rows. Read the index
+  in `../freemocap/skellytracker/notes/decisions/README.md`. Also read each `proposed` entry
+  that the guidance of your sections cites. If an entry covers your rows, do not write a competing
+  proposal:
+  - Use the slug of the entry.
+  - Cite the entry in the header and in part 1.
+  - Add your evidence, your vectors and your parity plan.
+  - If your rows need a different change, say where your proposal differs. Give the reason in part 8.
+- An entry can be a gap record: its Decision section says so. A gap record gives the gap, the
+  evidence and the direction of a change, but not all eight parts. Your proposal gives the parts
+  that it does not have. A skellytracker session adds your proposal to the gap record.
+- If a proposal needs another proposal (for example, a decode that uses the unprojection of a new
+  crop), write the dependency in the header of each proposal. One parity script can serve several
+  proposals. Cite it in part 5 of each.
+
+A proposal has eight parts:
+
+1. **Gap.** Give the property, its upstream evidence, and the reason why the nearest section is wrong.
+   Show it with a number where possible. Example: a `center` letterbox in place of `fit` gives an
+   input max abs diff of 35 on a 333×500 image (OpenMMLab-Exporter 0020).
+2. **Spec change.** Write the exact normative text as it will appear in the spec:
+   - the new or changed sections;
+   - the fields table;
+   - the behaviour, forward and inverse;
+   - the validation rules, with new rule IDs;
+   - the selectors;
+   - the legacy behaviour and the effect on `schema_version`;
+   - the changelog row.
+
+   Also find each place that the change must edit. Search the spec for each closed set or list that
+   the change extends, for example the `role` values, the `semantic` values, the resize methods, the
+   storage layout (`format.file_layout`), the Overview, the section map and the validation index
+   (`../freemocap/skellytracker/specs/sidecar/README.md`), and the "Legacy behaviour" heading
+   of each changed section with its index "Version-aware compatibility" (`format.versioning`). Also
+   find each rule that names one of these values, for example the rule
+   `V-pre.resize.affine_person_crop-2`: a sidecar with `pose.requires_object_detector: true` declares
+   `input.resize.method: affine_person_crop`. List each place in the proposal. These edits are part
+   of the same contract unit: a new role, with its enum and path edits, is one proposal. The
+   proposed text can contain YAML excerpts. Do not write a sidecar file of the model with the
+   proposed fields.
+3. **Reference implementation.** Write the smallest functions that implement exactly the proposed
+   text. Use only NumPy, OpenCV and the Python standard library. Write one function for each
+   algorithm. Each docstring cites the proposed section ID. Write the code to
+   `plans/sidecar-reference-<section_module>.py`. Make `<section_module>` from the proposed section
+   ID. If the proposal changes a section that has no reference implementation, the file implements the
+   full section as changed, not only the change. Then this file is also the reference-implementation
+   step of that section. Name the file in the proposal. On acceptance, skellytracker adds it as
+   `specs/sidecar/reference/<section_module>.py`. It is informative spec code, not package code. It is
+   the single executable meaning of the new text. Your host decoder needs this behaviour, so the
+   reference implementation is the clean, minimal form of your host code. If no host code exists
+   yet, write the functions from the text of part 2. Write `source commit: none (no host code)` in
+   the note at the top of the file. Part 4 is then `unverified: no host implementation`.
+4. **Vectors.** A test vector is a small worked case: concrete inputs to the algorithm of one section,
+   and the exact expected output. Use geometry and small arrays. Do not use images or ONNX files. Make
+   the vectors with the reference implementation. Then verify them against your host implementation.
+   Include a case for each branch, each tie and each strict comparison. If a parameter can be a scalar
+   or one value for each channel (for example `pad_value`), include a case with a scalar value on a
+   3-channel input. Pixel-exact resize output is out of scope. If you need a pixel case, state its
+   tolerance in `compare`. Write the vectors in part 4 of the proposal, in the YAML form that the
+   template gives. On acceptance, skellytracker adds them as
+   `specs/sidecar/vectors/<section ID>.yaml`.
+5. **Parity evidence.** Run the real model, with the reference implementation in place of the missing
+   spec feature. Follow "Parity". Give the numbers, the script and the commit. If you cannot run the
+   check yet, write `to run` and describe the script. A skellytracker session can record a proposal
+   with `to run` as `proposed`. Before the user accepts the proposal, part 5 must give the numbers,
+   the script and the commit.
+6. **skellytracker implementation proposal.** skellytracker does not build it now. It builds it when
+   it implements the spec. Write:
+   - where the code goes: a module and a function under `skellytracker/core/detectors/processing/`,
+     or a new module;
+   - the dispatch point, for example a branch in `preprocess_image`
+     (`skellytracker/core/detectors/processing/image_preprocessing.py`);
+   - the validator changes in `skellytracker/core/sidecar/model.py`, with rule IDs;
+   - the tests: the vectors, and a golden parity test;
+   - the existing skellytracker code that the change touches.
+
+   Read the package code in `../freemocap/skellytracker/skellytracker/`. The template lists the
+   code for each contract part. This part is advisory: the implementer checks it. If you cannot find
+   a call site, write `for the implementer` and say what is not known. On acceptance, this text
+   becomes the implementer guidance of the section and an open-work item.
+7. **Exporter impact.** Name the exporters that must write new fields or regenerate sidecars. Describe
+   the change to your own host decoder.
+8. **Alternatives considered.** Include the near-miss, and the reason why you rejected it.

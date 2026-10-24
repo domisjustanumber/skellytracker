@@ -1,0 +1,64 @@
+# Reference implementations
+
+If `../freemocap/skellytracker/specs/sidecar/reference/` does not exist, no reference
+implementation exists yet. Two things add a reference implementation:
+
+1. an accepted proposal (phase 2, part 3);
+2. an exporter that implements a section on its host side.
+
+**Rule.** Your exporter plan can implement a sidecar section on the host side. Then the plan must
+include a step that gives the reference implementation of that section to skellytracker. The rule
+applies for every verdict of the intake.
+
+- Skip the step if `../freemocap/skellytracker/specs/sidecar/reference/<section_module>.py`
+  exists.
+- Skip the step if one of your proposals changes the section. The part 3 file of the proposal is the
+  reference implementation. If the user rejects the proposal, do the step for the current text.
+- A part of the spec without an algorithm needs no reference implementation, for example
+  `input.layout`, `input.dtype` or `input.resize.method: none`.
+- Do the step from committed host code. If the host code is not committed yet, or if it exists only
+  in a plan, write `to run` in the intake. Do the step after the commit. This bullet is for a section
+  of the current spec. For part 3 of a proposal, see phase 2.
+
+**Module names.** For `<section_module>`, use the section ID from the front matter of the section file
+(`id`), with each dot replaced by an underscore. For example, `pre.resize.letterbox` gives
+`pre_resize_letterbox`. The section map `../freemocap/skellytracker/specs/sidecar/README.md`
+lists each section ID. For a new section, propose an ID in the same scheme
+(`<format|common|pre|post>.<area>[.<name>]`). In a proposal, make `<section_module>` from the
+proposed section ID.
+
+- A resize method and its unprojection are one module, because the section file of the method gives
+  the inverse with the forward algorithm (the heading "Inverse"). Do not put two sections together in
+  one module.
+- Write the section ID in the note at the top of the file.
+- Python can import the skellytracker file `specs/sidecar/reference/<section_module>.py` by its name.
+  The exporter file `plans/sidecar-reference-<section_module>.py` has hyphens in its name, so Python
+  cannot import it by its name. Load it with `importlib.util.spec_from_file_location`, or run it as a
+  script.
+- The heading "Reference mappings in skellytracker" in
+  `../freemocap/skellytracker/specs/sidecar/post/canonical-mapping.md` (the old spec heading
+  "Reference implementations" under `pose.canonical_mapping`) is about the canonical mapping files of
+  the package. It is not about these files.
+
+The step (the skill `author-sidecar` includes it):
+
+1. Write the clean, minimal form of your host code. Use only NumPy, OpenCV and the Python standard
+   library. Do not import from the exporter or from skellytracker. Write one function for each
+   algorithm. In each docstring, cite the section ID and the exporter commit that the code comes
+   from.
+2. Run the functions against the vectors of the section (see "Vectors" in "Where to read the spec").
+   They must pass. If the vector file says `unverified`, also run the vectors through your host
+   code, and record both results. If the section has no vector file yet, record that.
+3. Run the functions in place of your host code in the parity check of the exporter. Record that the
+   result does not change. If you cannot run the parity check yet, write `to run`.
+4. Write the functions to `plans/sidecar-reference-<section_module>.py` in the exporter repo. Put a
+   short note at the top of the file: the section ID, the source commit, the vector results and the
+   parity result.
+5. Stop. A skellytracker session lands the file. It adds `specs/sidecar/reference/<section_module>.py`,
+   adds the implementation to `verified_against` in the vector file of the section, and adds the
+   exporter function to `external_impl` of the section.
+
+If your host code and an existing reference implementation do not agree, you found a spec defect or a
+bug. Write a proposal (phase 2). Do not write a second reference implementation. Two exporters can
+write a file for the same section before skellytracker lands one. When skellytracker lands one of
+them, this rule applies to the other exporter.
