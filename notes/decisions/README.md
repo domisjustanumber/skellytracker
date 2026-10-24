@@ -3,9 +3,10 @@
 This log records technical decisions for skellytracker, with their reasons and evidence. Most entries
 are about the model sidecar spec ([`specs/sidecar-spec.md`](../../specs/sidecar-spec.md)), the sidecar
 code and the workflow that changes them. Read this file before you change the spec, a sidecar, the
-sidecar code, the agent instructions or the PR workflow. Then read the Active entries that apply to
-your task. Then you do not repeat a settled question or a completed measurement. Read a Historical
-entry only to find the reason for a decision ([0026](0026-decision-log-size.md)).
+sidecar code, the agent instructions or the PR workflow. Also read [open-work.md](open-work.md). Then
+read the Active entries that apply to your task. Then you do not repeat a settled question or a
+completed measurement. Read a Deferred entry only for spec work in its area. Read a Historical entry
+only to find the reason for a decision ([0029](0029-decision-log-read-path.md)).
 
 Each entry gives the decision, its reason, the evidence (when there is evidence), the alternatives
 rejected and a "Not repeated" section for pitfalls already found. Entries 0002 to 0012 are
@@ -43,17 +44,26 @@ decided entry changes only by the edits that the [Rules](#rules) allow.
 | [0023](0023-letterbox-floor-and-scale-inverse.md) | `floor` rounding and a scale inverse for `letterbox` | proposed |
 | [0024](0024-simcc-score-rule.md) | SimCC keypoint score rule | proposed |
 | [0025](0025-model-id-suffix.md) | Suffix after the part in `model_id` | proposed |
-| [0026](0026-decision-log-size.md) | Size limits for the decision log: read path, absorbed status, consolidation | accepted |
 | [0027](0027-single-working-branch.md) | One working branch for the PR stack; one kind of change per PR, stacked PRs, merge method | accepted |
 | [0028](0028-entry-edits-and-citations.md) | Allowed edits to entries, complete supersession, permalinks, `Depends on`, the same rules in each repo | accepted |
+| [0029](0029-decision-log-read-path.md) | Read path, Deferred proposals, status forms, the open-work file and the size limits | accepted |
+
+### Deferred
+
+These entries are `proposed`. The latest date in their status line is more than 183 days old.
+
+| # | Decision | Status |
+|---|----------|--------|
 
 ### Historical
 
-These entries are `rejected`, `superseded by NNNN` or `absorbed into <path>#<anchor>`.
+These entries are `rejected`, `superseded by NNNN`, `absorbed into <path>#<anchor>` or
+`evidence; used by NNNN`.
 
 | # | Decision | Status |
 |---|----------|--------|
 | [0015](0015-review-discipline.md) | Review discipline: one kind of change per PR, stacked drafts, merge method | superseded by 0027 |
+| [0026](0026-decision-log-size.md) | Size limits for the decision log: read path, absorbed status, consolidation | superseded by 0029 |
 
 ## Open work
 
@@ -70,19 +80,23 @@ The open work, the repository state and the spec defects are in [open-work.md](o
 - To change a decision, add a new entry. It restates each rule of the old entry that stays, and it
   supersedes the old entry in full. Do not supersede a part of an entry.
 - The status line of an entry can change. These changes are allowed: `proposed` to `accepted` or
-  `rejected`, `accepted` to `superseded by NNNN`, and `accepted` to `absorbed into <path>#<anchor>`.
-  Each change adds its date and the PR that made it. In the same PR, change the status in the index
-  and move the row to the table for the new status.
+  `rejected`, `accepted` to `superseded by NNNN`, `accepted` to `absorbed into <path>#<anchor>`, and
+  `evidence` to `evidence; used by NNNN`. Each change adds its date and the PR that made it. In the
+  same PR, change the status in the index and move the row to the table for the new status.
+- The Status cell of an index row has only a status form of its table. The Decision cell has 160
+  characters or fewer ([0029](0029-decision-log-read-path.md)).
+- Move a `proposed` row to Deferred when the latest date in its status line is more than 183 days
+  old.
 - An accepted entry is absorbed when the spec, `AGENTS.md` or a skill states all of its rules. Then
-  that document is the source of the rules ([0026](0026-decision-log-size.md)).
+  that document is the source of the rules.
 - A consolidation entry states the rules that stay from a group of entries, and it supersedes each
   entry of the group. Write one at the end of the spec-build stage, and when the read-path limit fails.
 - Delete an open-work item when the work is done. Delete a spec defect when its content PR lands.
-- Keep the log inside its limits: 24,000 characters for this file, 6,000 characters for each entry
-  after 0025, and 220,000 characters for this file and all Active entries together. Put long evidence
-  in a tracked file next to the entry, and link to it. Run
-  `uv run python tools/check_decision_log.py` to see the read-path size. The doc tests run the same
-  check.
+- Keep the log inside its limits: 14,000 characters for this file, 20,000 for `open-work.md`, 6,000
+  for each entry after 0025, and 220,000 for this file, `open-work.md` and all Active entries
+  together. Put long evidence in a tracked file next to the entry, and link to it. Run
+  `uv run python tools/check_decision_log.py` to see the read-path size and the warnings at 80% of a
+  limit. The doc tests run the same check.
 - A decision can be accepted before its spec text lands. Its spec text then comes in a later content
   PR.
 - Give a new entry the number after the highest number in the index. Add the entry to the index in
@@ -139,8 +153,9 @@ The file name is `NNNN-<short-slug>.md`.
 
 - **Status.** `accepted` is a decision. `evidence` is a measurement. `proposed` is a spec change
   proposal or a gap record that waits for a decision. A later status change sets `rejected`,
-  `superseded by NNNN` or `absorbed into <path>#<anchor>` (see "Rules"). The source says who decided or where the entry comes from, for
-  example "user" or "backfilled from #81".
+  `superseded by NNNN`, `absorbed into <path>#<anchor>` or `evidence; used by NNNN` (see "Rules").
+  The source says who decided or where the entry comes from, for example "user" or "backfilled from
+  #81".
 - **Depends on.** Optional. Write it only when the entry waits for a decision of another repo. Use a
   permalink ([0028](0028-entry-edits-and-citations.md)).
 - **Decision.** What is decided, written so that a reader can apply it.

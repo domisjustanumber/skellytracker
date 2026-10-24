@@ -235,8 +235,11 @@ The demo needs a camera and a display.
 Read [`notes/decisions/README.md`](notes/decisions/README.md) before you change sidecar code, a
 sidecar, an example, the spec, the agent instructions or the PR workflow.
 It records decisions and the evidence behind them.
-It also has the open work, the rules and the entry template.
+It also has the rules and the entry template.
+Also read [`notes/decisions/open-work.md`](notes/decisions/open-work.md): the open work and the spec
+defects.
 Then read the Active entries of the index that apply to your task.
+Read a Deferred entry only for spec work in its area.
 Read a Historical entry only to find the reason for a decision.
 Add one entry for each new decision or measurement.
 Give the entry the next number after the highest existing entry.
@@ -251,7 +254,7 @@ in full.
 Do not supersede a part of an entry.
 You may change the status line of an entry: `proposed` to `accepted` or `rejected`, and `accepted` to
 `superseded by NNNN` or `absorbed into <path>#<anchor>`. Write the date and the PR that changed it.
-Keep the log inside the limits of decision [0026](notes/decisions/0026-decision-log-size.md).
+Keep the log inside the limits of decision [0029](notes/decisions/0029-decision-log-read-path.md).
 `uv run pytest tools/tests` checks the limits.
 Cite tracked files and decision entries with relative links.
 Cite a commit, or the code of another repository, with a GitHub permalink.

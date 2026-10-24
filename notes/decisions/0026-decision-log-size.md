@@ -1,6 +1,6 @@
 # 0026 — Size limits for the decision log
 
-**Status:** accepted, 2026-10-23 (user).
+**Status:** superseded by [0029](0029-decision-log-read-path.md), 2026-10-24 (user).
 
 ## Decision
 
