@@ -210,7 +210,8 @@ In skellytracker:
 
 5. Keep the title of each part as a `###` heading.
 6. Copy the code of part 3 and the YAML of part 4 into the entry as code blocks.
-7. Cite the exporter commits of the host code and of the parity script.
+7. Cite the exporter commits of the host code and of the parity script. Do not copy private data
+   from the proposal into the entry ([Private data](../../../AGENTS.md#8-private-data)).
 8. Do not cite or link a `plans/` file. Git does not track `plans/`. If a fact comes only from an
    exporter plan, write "the untracked <topic> plan of <repo> (plan facts)", with no path.
 9. Write the repo name with the number of an exporter decision, for example "OpenMMLab-Exporter 0020".

@@ -122,7 +122,9 @@ overwrite.
 3. Read the "Authoring guidance" heading of each section that a row names. If the heading has text,
    use it.
 4. Record the upstream evidence of each row. Follow the evidence rule in
-   [Rules](../../../specs/sidecar/exporter-guide.md#rules).
+   [Rules](../../../specs/sidecar/exporter-guide.md#rules). Do not paste private data: no user
+   paths, hostnames, email addresses or raw environment dumps
+   ([Private data](../../../AGENTS.md#8-private-data)).
 5. For a value that the exporter chooses (a name, a YAML rule or a path), follow "Values that the
    exporter chooses" in [Verdicts](../../../specs/sidecar/templates/model-intake.md#verdicts). Such a
    row is not `unverified` only because the exporter code does not exist or you cannot read it.

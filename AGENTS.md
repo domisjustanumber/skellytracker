@@ -65,9 +65,9 @@ Open PRs against `development`, not `main` ([section 6](#6-git-rules)).
 | `specs/sidecar-implementation-plan.md` | Status of the sidecar work in the package, and the procedure for reference examples |
 | `notes/sidecar-exporter-coverage.md` | The plan that extended the spec to the exporter models: the evidence for the `vNEXT` revision |
 | `notes/decisions/` | Decision log ([`README.md`](notes/decisions/README.md)) |
-| `tools/` | `check_links.py` checks the relative links and their `#anchor` targets. `check_split_verbatim.py` checks that the split of the spec only moves text. Its input is `split_manifest.yaml`. The doc tests are in `tools/tests/`: the link check (`test_links.py`), the checks of the reference examples (`test_examples.py`) and the unit tests of the split checker (`test_check_split_verbatim.py`). |
+| `tools/` | `check_links.py` checks the relative links and their `#anchor` targets. `check_private_data.py` checks the files for private data ([section 8](#8-private-data)). `check_split_verbatim.py` checks that the split of the spec only moves text. Its input is `split_manifest.yaml`. The doc tests are in `tools/tests/`: the link check (`test_links.py`), the checks of the reference examples (`test_examples.py`) and the unit tests of the split checker (`test_check_split_verbatim.py`). |
 | `rearchitecture-docs/` | Architecture notes for skellytracker and skellycam, and a rearchitecture playbook |
-| `.github/workflows/` | CI: lint, fast tests, full tests, PyPI publish |
+| `.github/workflows/` | CI: lint, fast tests, full tests, secret scan, PyPI publish |
 
 A detector module adds its class to a registry when Python imports the module.
 The registry key is the `detector_type` of the detector config.
@@ -129,6 +129,7 @@ Exporter agents read the skill files, read-only, in the checkout
 ## 3. Install and Test
 
 Run `uv sync --extra all-cpu`.
+Then run `uv run pre-commit install` once in the clone ([section 8](#8-private-data)).
 This command installs the dev tools, MediaPipe, `onnx` and the CPU build of ONNX Runtime.
 For a GPU, [`GPU_SETUP_GUIDE.md`](GPU_SETUP_GUIDE.md) gives the extra for each GPU.
 Use only one ONNX Runtime extra. The `onnx-*` extras conflict (`[tool.uv]` in `pyproject.toml`).
@@ -341,3 +342,29 @@ Do not import a file, a test or a tool from the other repository.
 Before a tool call that needs user permission, write a one-line summary of the call.
 The summary must tell what the call does and what it changes.
 Write the summary in the message text, not only in the tool description.
+
+## 8. Private Data
+
+This repository is public, and git history is permanent (decision
+[0030](notes/decisions/0030-no-private-data.md)).
+Do not write these in a tracked file, a commit message or a PR body:
+
+- a credential, a token, a password or a private key;
+- an absolute path in a user folder;
+- a hostname or a user name in prose;
+- an email address that is not on the allowlist of `tools/check_private_data.py`;
+- a private URL or a private IP address;
+- a raw dump of `env`, `pip list`, `nvidia-smi` or `docker inspect`.
+
+Use paths relative to the repository, for example `../OpenMMLab-Exporter/notes/`.
+Give a measurement as a summary with its tool and its version.
+Text from `plans/` must obey these rules before it goes into a tracked file.
+If you find private data in a tracked file, remove it with a redaction edit (decision
+[0028](notes/decisions/0028-entry-edits-and-citations.md)).
+Then tell the user, because git history keeps the data.
+
+`uv run pytest tools/tests` runs `tools/check_private_data.py`.
+To also block a hostname or a user name, put it in the file `.private-terms` in the repository root.
+Git ignores that file. Do not commit it.
+The pre-commit hook runs `gitleaks` and the private-data check.
+`.github/workflows/secrets.yml` runs `gitleaks` on each push and PR.

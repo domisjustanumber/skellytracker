@@ -255,7 +255,8 @@ Run these commands before each PR. Each command must pass.
 
 1. `uv run python tools/make_vectors.py --check`
 2. `uv run python tools/sidecar_trace.py matrix --check`
-3. `uv run pytest tools/tests -q`
+3. `uv run pytest tools/tests -q`. It also runs the private-data check
+   ([Private data](../../../AGENTS.md#8-private-data)).
 4. `uv run pytest -m "not video"`
 5. `uv run ruff check skellytracker/ tools/`. When `specs/sidecar/reference/` exists, add it to the
    command.
