@@ -77,8 +77,7 @@ stage, no file under `skellytracker/` changes, except test fixes.
   [0006](0006-yolox-native-contract.md)).
 - **`vNEXT` release step.** At the first skellytracker release that ships the spec, one content PR
   replaces `vNEXT` with that release version everywhere. Then the exporters regenerate their sidecars
-  ([0014](0014-spec-lifecycle.md)). OpenMMLab-Exporter (`rtmdet_person/sidecar.py:30`, commit
-  `eed3361`) and Roboflow-Exporter (`rf_detr/sidecar.py:32`, commit `b34e351`) write `vNEXT` today.
+  ([0014](0014-spec-lifecycle.md)). OpenMMLab-Exporter ([`rtmdet_person/sidecar.py:30`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmdet_person/sidecar.py#L30)) and Roboflow-Exporter ([`rf_detr/sidecar.py:32`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L32)) write `vNEXT` today.
 - **NMS box area.** The spec's `selection: nms` uses the box-area convention of the ONNX
   `NonMaxSuppression` operator, which does not add `1` to pixel widths or heights. The generic `nms()`
   in `skellytracker/core/detectors/processing/object_detection_decode.py` adds `1`. Today only the
@@ -121,7 +120,7 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   RTMO body7 reference example, copied from OpenMMLab-Exporter, has `model_id: rtmo-body7` in the
   `body` part folder. A hand landmark model and a hand re-crop model of one family would both get
   `{family}-hand`. The spec must allow a suffix after the part, or the exporters must rename these
-  models. OpenMMLab-Exporter sets `FAMILY = "rtmo-body7"` (`rtmo/identity.py:24`, commit `eed3361`).
+  models. OpenMMLab-Exporter sets `FAMILY = "rtmo-body7"` ([`rtmo/identity.py:24`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmo/identity.py#L24)).
   The gap record [0025](0025-model-id-suffix.md) (proposed) records this question.
 - The [`input.resize`](../../specs/sidecar/pre/interpolation.md#behaviour) text says that every interpolation
   uses "`cv2.resize` / `cv2.warpAffine`, half-pixel centres". `cv2.warpAffine` maps the pixel centres
@@ -137,8 +136,8 @@ Spec defects found during the spec-build stage. Each one needs a content change 
 - `clamp_boxes` in [`decode` (detection)](../../specs/sidecar/post/detection-decode.md#decode-detection) clamps the
   boxes to the source-image bounds. The spec does not define the bounds (`[0, W]` or `[0, W-1]`). It
   does not define the result for a box with zero area after the clamp. OpenMMLab-Exporter
-  (`onnx_runtime/decode_nms.py:170-171`, commit `d2e68d2`), Roboflow-Exporter
-  (`rf_detr/coco_format.py:133`, commit `16852ca`) and ultralytics 8.4.184 (`utils/ops.py`,
+  ([`onnx_runtime/decode_nms.py:170-171`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/d2e68d27d2da0a4f22ddd19449df5601dcac87cc/onnx_runtime/decode_nms.py#L170-L171)), Roboflow-Exporter
+  ([`rf_detr/coco_format.py:133`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/16852ca3f7e63e61fda1086ecf07491dc788581a/rf_detr/coco_format.py#L133)) and ultralytics 8.4.184 (`utils/ops.py`,
   `clip_boxes`) clamp to `[0, W]` and `[0, H]`.
 - `schema_version` is quoted (`"vNEXT"`) in some
   [reference examples](../../specs/sidecar/examples/README.md) and not quoted in the RTMO
@@ -149,12 +148,10 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   not match the version pattern, so the comparison has no defined result for a `vNEXT` sidecar.
 - The spec does not state these facts, but a host needs them:
   - the resizes run on the source dtype (for example `uint8`, before the cast). Roboflow-Exporter
-    divides by 255 and then resizes the float image (`onnx_runtime/preprocess.py:75-78`, commit
-    `d0559b9`);
+    divides by 255 and then resizes the float image ([`onnx_runtime/preprocess.py:75-78`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/d0559b9c95a9ba9922045e2bc5aeae9fb596a6b1/onnx_runtime/preprocess.py#L75-L78));
   - the keypoint scores in a `poses` tensor are already activated (the spec states this only for
     `packed_keypoints`). No exporter checks this channel: the RTMO probe of OpenMMLab-Exporter
-    compares only `x` and `y` (`notes/decisions/scripts/rtmo_sidecar_probe.py:97-102`, commit
-    `38ed76f`);
+    compares only `x` and `y` ([`notes/decisions/scripts/rtmo_sidecar_probe.py:97-102`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/scripts/rtmo_sidecar_probe.py#L97-L102));
   - the host frame is BGR, and the host converts it to `input.color_format`;
   - the arithmetic precision of the geometry and of the pixel math.
 - A code docstring under `skellytracker/` cites the spec heading "Sizes", but the heading is `sizes`.
