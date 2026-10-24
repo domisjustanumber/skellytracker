@@ -6,10 +6,10 @@ to copy. The kit is in [`bootstrap/`](bootstrap/). Its folders have the layout o
 each file goes to the same relative path.
 
 The rules come from the skellytracker decision log: [0001](../../notes/decisions/0001-decision-log-and-agents-md.md),
-[0028](../../notes/decisions/0028-entry-edits-and-citations.md),
-[0029](../../notes/decisions/0029-decision-log-read-path.md) and
-[0030](../../notes/decisions/0030-no-private-data.md). The kit has their final form. It does not
-have their history.
+[0029](../../notes/decisions/0029-decision-log-read-path.md),
+[0030](../../notes/decisions/0030-no-private-data.md) and
+[0032](../../notes/decisions/0032-entry-numbers-and-edits.md). The kit has their final form. It does
+not have their history.
 
 ## What the kit gives
 
@@ -23,11 +23,11 @@ have their history.
 | `tools/check_decision_log.py`, `tools/check_links.py`, `tools/check_private_data.py` | the same paths | Copy. Add the public contact address of the project to `ALLOWED_EMAILS`. |
 | `tools/tests/conftest.py` and the three `test_*.py` files | the same paths | Copy |
 | `.pre-commit-config.yaml`, `.gitleaks.toml` | the same paths | Copy |
-| `.github/workflows/secrets.yml`, `.github/workflows/doc-checks.yml` | the same paths | Copy. Change `branches: [main]` if the default branch has a different name. |
+| `.github/workflows/secrets.yml`, `.github/workflows/doc-checks.yml` | the same paths | Copy. In `secrets.yml`, change `branches: [main]` if PRs target a different branch. |
 | [`gitignore-additions.txt`](bootstrap/gitignore-additions.txt) | `.gitignore` | Append the lines. Do not copy the file as `.gitignore`. |
 
-The three tools use only the Python standard library. They count the decision log, check the links
-and scan the tracked files. Their tests run with `pytest`.
+The three tools use only the Python standard library and the git CLI. They count the decision log,
+check the links and scan the tracked files. Their tests run with `pytest`.
 
 ## Procedure
 
@@ -38,7 +38,7 @@ the user tells you to.
 
 1. Is the repo public now, or can it become public? Default: yes. The private-data rule applies in
    both cases.
-2. What is the default branch? Default: `main`.
+2. Which branch do PRs target? Default: `main`. The kit calls it `{{DEFAULT_BRANCH}}`.
 3. Which kinds of change go in separate PRs? Default: code, docs and CI.
 4. Which documents are normative, in addition to `AGENTS.md` and the skills? Examples: a spec, a
    contract file, an API reference. An entry is absorbed only when a normative document states all
@@ -74,6 +74,9 @@ grep -rn "{{" AGENTS.md CLAUDE.md notes/ tools/
 
 The command must find nothing.
 
+Then set `TARGET_BRANCH` in `tools/check_decision_log.py` to the branch that PRs target
+(question 2). `--next` uses it to rank entry numbers.
+
 ### Step 4: Add the tools to the project
 
 For a Python project with `uv`, add this to `pyproject.toml`, and run `uv sync`:
@@ -97,6 +100,7 @@ Run each command. Each one must pass.
 ```sh
 uv run pytest tools/tests
 uv run python tools/check_decision_log.py
+uv run python tools/check_decision_log.py --next
 uv run python tools/check_private_data.py
 uv run pre-commit install
 uv run pre-commit run --all-files
@@ -117,6 +121,13 @@ These settings are outside the repo. Tell the user. Change them only with the ap
 - **"Block command line pushes that expose my email".** Turn it on only after each open branch is
   merged. A rebase makes new commits that keep the old author email, and GitHub then rejects the
   force-push.
+- **Optional: required checks on up-to-date branches.** A branch rule on `{{DEFAULT_BRANCH}}` can
+  require the doc checks, and require each branch to be up to date before the merge. This needs a
+  public repo or a paid plan. Without it, three things find a duplicate entry number: the conflict
+  in the index, the PR check after the conflict is resolved, and the push check on
+  `{{DEFAULT_BRANCH}}`.
+  Use a merge queue only in a repo that an organization owns. `doc-checks.yml` has a `merge_group:`
+  trigger for it.
 
 ### Step 7: Commit and stop
 
@@ -164,9 +175,36 @@ cell named five other entries.
 ### Edits
 
 - A `proposed` entry can change until the user decides it.
-- The body of a decided entry changes only for a link repair, a typo fix or a redaction. Each edit
-  adds a dated `_Edited_` line.
+- The body of a decided entry changes only for a link repair, a typo fix, a redaction, or a renumber
+  with the repair of its citations. Each edit adds a dated `_Edited_` line.
 - A status line can change. Write the date and the PR.
+
+### Numbers and parallel work
+
+Two branches or worktrees can read the same index and take the same next number. The file names
+differ, so git shows no conflict. In OpenMMLab-Exporter, two different entries had the number 0040,
+and three entries had the number 0041.
+
+- Before you add an entry, run `git fetch`. Then run `uv run python tools/check_decision_log.py --next`.
+  It reads this tree, each other worktree and each local and remote-tracking branch. It prints
+  `next: NNNN`. Give the entry that number. Create its file immediately.
+- Put the index row at the end of the table for its status. Then two parallel entries make a git
+  conflict in the index.
+- Run `--next` again before each push. It prints `keep:` or `renumber:` for each entry of this tree
+  whose number a different file has. Both sides get the same verdict: an entry on `TARGET_BRANCH`
+  wins, then an entry on a remote-tracking branch, then the file name that sorts first. The command
+  exits 1 when it prints a `renumber:` line, so a pre-push hook can use it.
+- A number is provisional until its entry is on the target branch. It changes only for a `renumber:`
+  line, or when the target branch already has the number. Another repo cites a provisional entry by
+  the repo name, the PR number and the slug.
+- A renumber is the fourth allowed edit. The entry gets `_Edited YYYY-MM-DD (#PR): renumber from NNNN._`
+  when it is already on the target branch. Each repaired entry on the target branch gets a
+  `citation repair` line. Gaps in the numbers are allowed. A number that an entry had on the target branch never goes to a different
+  entry.
+- `--next` runs 5 git processes, for any number of refs. The normal check reads only the files.
+  It fails on two files or two index rows with one number, on a link text that does not match its
+  file, on a heading that does not match its file name, and on a `superseded by NNNN` cell that does
+  not match the link in the status line.
 
 ### Supersession and consolidation
 
@@ -196,8 +234,10 @@ absorbed, because many rules were only in a guide that was not normative.
 | Read path | 220,000 |
 
 About 4 characters make one token. Put long evidence in a tracked file next to the entry, and link
-to it. A PR that raises a limit must add an entry. To start the log in a repo that already has long
-entries, set `LAST_UNLIMITED_ENTRY` to the highest old entry number.
+to it. Put the script that produced a measurement in `notes/decisions/scripts/`. Name the script in
+the Evidence section. Then a reader can run the measurement again. A PR that raises a limit must add
+an entry. To start the log in a repo that already has long entries, set `LAST_UNLIMITED_ENTRY` to the
+highest old entry number.
 
 ### Citations
 

@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+import os
+import shutil
+import subprocess
 from datetime import date
 from pathlib import Path
+
+import pytest
 
 import check_decision_log as cdl
 
@@ -59,8 +64,8 @@ def row(number: int, status: str, name: str = "x", decision: str = "Title") -> s
     return f"| [{number:04d}]({number:04d}-{name}.md) | {decision} | {status} |"
 
 
-def proposed_entry(day: str) -> str:
-    return f"# 0001\n\n**Status:** proposed, {day} (user).\n"
+def proposed_entry(day: str, number: int = 1) -> str:
+    return f"# {number:04d}\n\n**Status:** proposed, {day} (user).\n"
 
 
 def test_repository_log_passes() -> None:
@@ -124,7 +129,11 @@ def test_superseded_by_must_name_a_decided_entry(tmp_path: Path) -> None:
         tmp_path,
         active=row(2, "proposed", "y"),
         historical="\n".join([row(1, "superseded by 0002"), row(3, "superseded by 0009", "z")]),
-        entries={"0001-x.md": "", "0002-y.md": proposed_entry("2026-10-01"), "0003-z.md": ""},
+        entries={
+            "0001-x.md": "",
+            "0002-y.md": proposed_entry("2026-10-01", 2),
+            "0003-z.md": "",
+        },
     )
     errors = cdl.check(root, TODAY)
     assert any("'superseded by 0002' names an entry that is 'proposed'" in e for e in errors)
@@ -136,7 +145,11 @@ def test_used_evidence_is_historical(tmp_path: Path) -> None:
         tmp_path,
         active="\n".join([row(1, "accepted"), row(3, "evidence; used by 0001", "z")]),
         historical=row(2, "evidence; used by 0001", "y"),
-        entries={"0001-x.md": "", "0002-y.md": "", "0003-z.md": ""},
+        entries={
+            "0001-x.md": "",
+            "0002-y.md": "**Status:** evidence; used by [0001](0001-x.md), 2026-10-24 (#1).\n",
+            "0003-z.md": "",
+        },
     )
     assert cdl.check(root, TODAY) == [
         "README.md:10: status 'evidence; used by 0001' must not be in the Active table"
@@ -241,3 +254,291 @@ def test_crlf_counts_as_one_character(tmp_path: Path) -> None:
     path = tmp_path / "a.md"
     path.write_bytes(b"a\r\nb\r\n")
     assert cdl.size(path) == 4
+
+
+def test_two_files_with_one_number_are_reported(tmp_path: Path) -> None:
+    root = make_log(
+        tmp_path,
+        active="\n".join([row(32, "accepted", "a"), row(32, "accepted", "b")]),
+        entries={"0032-a.md": "# 0032\n", "0032-b.md": "# 0032\n"},
+    )
+    errors = cdl.check(root, TODAY)
+    assert "entry number 0032 has 2 files: 0032-a.md, 0032-b.md" in errors
+    assert "README.md:10: number 0032 is also in README.md:9" in errors
+
+
+def test_link_text_must_match_file_number(tmp_path: Path) -> None:
+    root = make_log(
+        tmp_path,
+        active="| [0032](0033-x.md) | T | accepted |",
+        entries={"0033-x.md": "# 0033\n"},
+    )
+    assert "README.md:9: link text 0032 does not match 0033-x.md" in cdl.check(root, TODAY)
+
+
+def test_link_text_in_entry_must_match_file(tmp_path: Path) -> None:
+    root = make_log(
+        tmp_path,
+        active="\n".join([row(1, "accepted"), row(3, "accepted", "z")]),
+        entries={
+            "0001-x.md": "# 0001\n\nSee [0002](0003-z.md) and [0003](0003-z.md#decision).\n",
+            "0003-z.md": "",
+        },
+    )
+    assert cdl.check(root, TODAY) == ["0001-x.md:3: link text 0002 does not match 0003-z.md"]
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("# 0032 — T\n", ["0033-x.md: heading number 0032 does not match the file name"]),
+        ("# 0033 — T\n", []),
+        ("", []),
+    ],
+)
+def test_heading_number_must_match_file_number(
+    tmp_path: Path, text: str, expected: list[str]
+) -> None:
+    root = make_log(tmp_path, active=row(33, "accepted"), entries={"0033-x.md": text})
+    assert cdl.check(root, TODAY) == expected
+
+
+def test_gaps_in_numbers_pass(tmp_path: Path) -> None:
+    root = make_log(
+        tmp_path,
+        active="\n".join([row(1, "accepted"), row(3, "accepted", "z")]),
+        entries={"0001-x.md": "# 0001\n", "0003-z.md": "# 0003\n"},
+    )
+    assert cdl.check(root, TODAY) == []
+
+
+@pytest.mark.parametrize(
+    ("link", "expected"),
+    [
+        ("[0002](0002-y.md)", []),
+        (
+            "[0003](0003-z.md)",
+            ["0001-x.md: the status line does not link superseded by 0002 to 0002-y.md"],
+        ),
+    ],
+)
+def test_superseded_by_must_match_status_link(
+    tmp_path: Path, link: str, expected: list[str]
+) -> None:
+    root = make_log(
+        tmp_path,
+        active="\n".join([row(2, "accepted", "y"), row(3, "accepted", "z")]),
+        historical=row(1, "superseded by 0002"),
+        entries={
+            "0001-x.md": f"# 0001\n\n**Status:** superseded by {link}, 2026-10-24 (#1).\n",
+            "0002-y.md": "",
+            "0003-z.md": "",
+        },
+    )
+    assert cdl.check(root, TODAY) == expected
+
+
+def test_renumbered_old_entry_keeps_size_exemption(tmp_path: Path) -> None:
+    old = cdl.LAST_UNLIMITED_ENTRY
+    new = old + 1
+    edit = f"\n\n_Edited 2026-10-24 (#1): renumber from {old:04d}._\n"
+    root = make_log(
+        tmp_path,
+        active=row(new, "accepted"),
+        entries={f"{new:04d}-x.md": "x" * (cdl.ENTRY_LIMIT + 1) + edit},
+    )
+    assert cdl.check(root, TODAY) == []
+
+
+# The tests of `--next`. Each git test runs in its own repo, with no user or system config.
+
+GIT = shutil.which("git")
+needs_git = pytest.mark.skipif(GIT is None, reason="git is not installed")
+EMAIL = "tester" + "@" + "example.invalid"
+
+
+@pytest.fixture
+def git_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Isolate git from the user: no global or system config, no `GIT_*` variable, no parent repo."""
+    for name in list(os.environ):
+        if name.upper().startswith("GIT_"):
+            monkeypatch.delenv(name)
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", os.devnull)
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path))
+    return tmp_path
+
+
+def git(cwd: Path, *args: str, stdin: bytes | None = None) -> None:
+    subprocess.run(  # noqa: S603
+        [GIT or "git", "-c", "user.name=Tester", "-c", f"user.email={EMAIL}", *args],
+        cwd=cwd,
+        input=stdin,
+        check=True,
+        capture_output=True,
+    )
+
+
+def entry(root: Path, name: str) -> None:
+    (root / cdl.LOG_DIR / name).write_text(f"# {name[:4]}\n", encoding="utf-8")
+
+
+def commit(root: Path, message: str) -> None:
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", message)
+
+
+def repo(root: Path) -> Path:
+    """A new repo on `main` with entry 0001 committed."""
+    (root / cdl.LOG_DIR).mkdir(parents=True)
+    git(root, "init", "-q", "-b", "main")
+    entry(root, "0001-a.md")
+    commit(root, "0001")
+    return root
+
+
+def verdicts(lines: list[str]) -> list[str]:
+    return [line for line in lines if line.startswith(("keep:", "renumber:"))]
+
+
+def test_next_number_without_git(git_env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = make_log(
+        git_env / "plain",
+        active="\n".join([row(1, "accepted"), row(3, "accepted", "z")]),
+        entries={"0001-x.md": "# 0001\n", "0003-z.md": "# 0003\n"},
+    )
+    lines = cdl.next_lines(root)
+    assert lines[0] == "next: 0004"
+    assert any(line.startswith("note: ") for line in lines)
+
+    def no_git(*args: object, **kwargs: object) -> None:
+        raise FileNotFoundError("git")
+
+    monkeypatch.setattr(cdl.subprocess, "run", no_git)
+    assert cdl.next_lines(root)[0] == "next: 0004"
+
+
+@needs_git
+def test_next_with_unborn_head(git_env: Path) -> None:
+    root = git_env / "repo"
+    (root / cdl.LOG_DIR).mkdir(parents=True)
+    git(root, "init", "-q", "-b", "main")
+    lines = cdl.next_lines(root)
+    assert lines[0] == "next: 0001"
+    assert verdicts(lines) == []
+
+
+@needs_git
+def test_next_number_sees_branch_and_worktree(git_env: Path) -> None:
+    root = repo(git_env / "repo")
+    git(root, "checkout", "-q", "-b", "other")
+    entry(root, "0002-b.md")
+    commit(root, "0002-b")
+    git(root, "checkout", "-q", "main")
+    git(root, "worktree", "add", "-q", "-b", "wt", str(git_env / "wt"))
+    entry(git_env / "wt", "0003-c.md")
+    entry(root, "0002-a.md")
+    lines = cdl.next_lines(root)
+    assert lines[0] == "next: 0004"
+    assert verdicts(lines) == ["keep: 0002-a.md; 0002-b.md also uses 0002 (on other)"]
+
+
+@needs_git
+def test_same_file_on_other_ref_is_not_a_collision(git_env: Path) -> None:
+    root = repo(git_env / "repo")
+    git(root, "checkout", "-q", "-b", "other")
+    entry(root, "0002-b.md")
+    commit(root, "0002-b on other")
+    git(root, "checkout", "-q", "main")
+    entry(root, "0002-b.md")
+    commit(root, "0002-b on main")
+    lines = cdl.next_lines(root)
+    assert lines[0] == "next: 0003"
+    assert verdicts(lines) == []
+
+
+@needs_git
+def test_next_ignores_own_uncommitted_rename(git_env: Path) -> None:
+    root = repo(git_env / "repo")
+    git(root, "remote", "add", "origin", str(git_env / "remote.git"))
+    git(root, "checkout", "-q", "-b", "feat")
+    entry(root, "0002-old.md")
+    commit(root, "0002-old")
+    git(root, "update-ref", "refs/remotes/origin/feat", "HEAD")
+    git(root, "branch", "-q", "--set-upstream-to=origin/feat")
+    # A rebase makes a new commit, so origin/feat is no longer merged into HEAD.
+    git(root, "commit", "-q", "--amend", "-m", "0002-old, rebased")
+    git(root, "mv", "notes/decisions/0002-old.md", "notes/decisions/0002-new.md")
+    lines = cdl.next_lines(root)
+    assert lines[0] == "next: 0003"
+    assert verdicts(lines) == []
+
+
+@needs_git
+def test_next_verdicts_agree_between_worktrees(git_env: Path) -> None:
+    root = repo(git_env / "repo")
+    other = git_env / "wt"
+    git(root, "worktree", "add", "-q", "-b", "wt", str(other))
+    entry(root, "0003-x.md")
+    entry(other, "0003-y.md")
+    here = verdicts(cdl.next_lines(root))
+    there = verdicts(cdl.next_lines(other))
+    assert len(here) == 1 and here[0].startswith("keep: 0003-x.md; 0003-y.md also uses 0003")
+    assert len(there) == 1
+    assert there[0].startswith("renumber: 0003-y.md; 0003-x.md also uses 0003")
+
+
+@needs_git
+def test_next_target_wins(git_env: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = repo(git_env / "repo")
+    git(root, "checkout", "-q", "-b", "t")
+    entry(root, "0002-t.md")
+    commit(root, "0002-t")
+    git(root, "update-ref", f"refs/remotes/origin/{cdl.TARGET_BRANCH}", "HEAD")
+    git(root, "checkout", "-q", "main")
+    git(root, "branch", "-q", "-D", "t")
+    entry(root, "0002-a.md")
+    assert verdicts(cdl.next_lines(root)) == [
+        f"renumber: 0002-a.md; 0002-t.md also uses 0002 (on origin/{cdl.TARGET_BRANCH})"
+    ]
+    assert cdl.main(["check_decision_log.py", "--next", str(root)]) == 1
+    assert "renumber: 0002-a.md" in capsys.readouterr().out
+
+
+def branches(root: Path, count: int) -> None:
+    """Add `count` branches, each with one new entry, in one `git fast-import` process."""
+    stream = []
+    for i in range(count):
+        body = f"# {i + 2:04d}\n".encode()
+        head = (
+            f"commit refs/heads/b{i}\n"
+            f"committer Tester <{EMAIL}> 1700000000 +0000\n"
+            "data 1\nb\n"
+            "from refs/heads/main^0\n"
+            f"M 100644 inline notes/decisions/{i + 2:04d}-b{i}.md\n"
+            f"data {len(body)}\n"
+        )
+        stream.append(head.encode() + body + b"\n")
+    git(root, "fast-import", "--quiet", stdin=b"".join(stream))
+
+
+@needs_git
+def test_next_process_count_is_fixed(git_env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    real_run = subprocess.run
+    calls: list[object] = []
+
+    def counting_run(*args: object, **kwargs: object) -> object:
+        calls.append(args[0] if args else kwargs.get("args"))
+        return real_run(*args, **kwargs)  # type: ignore[call-overload]
+
+    counts = []
+    for count in (2, 20):
+        root = repo(git_env / f"repo{count}")
+        branches(root, count)
+        calls.clear()
+        monkeypatch.setattr(cdl.subprocess, "run", counting_run)
+        lines = cdl.next_lines(root)
+        monkeypatch.setattr(cdl.subprocess, "run", real_run)
+        assert lines[0] == f"next: {count + 2:04d}"
+        counts.append(len(calls))
+    assert counts[0] == counts[1] <= 5

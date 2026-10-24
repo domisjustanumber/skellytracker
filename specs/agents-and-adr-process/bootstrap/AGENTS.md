@@ -60,11 +60,20 @@ Then read the Active entries of the index that apply to your task.
 Read a Deferred entry only for work in its area.
 Read a Historical entry only to find the reason for a decision.
 Add one entry for each new decision or measurement.
-Give the entry the next number after the highest existing entry.
-Add the entry to the index in the same PR.
+Before you add an entry, run `git fetch`.
+Then run `uv run python tools/check_decision_log.py --next`.
+Give the entry the number of the `next:` line.
+Create the entry file immediately.
+Add its index row at the end of the table for its status, in the same PR.
+The number is provisional until the entry is on `{{DEFAULT_BRANCH}}`.
+Run `--next` again before each push.
+Act on each `renumber:` line. The index [Rules](notes/decisions/README.md#rules) give the steps.
+Do not change a provisional number for a different reason, except when `{{DEFAULT_BRANCH}}` already
+has the number.
+Do not keep two index rows with one number when you resolve a merge conflict.
 Do not rewrite the body of an entry that is not `proposed`.
-Three edits are allowed: a link or anchor repair, a typo fix that keeps the meaning, and the
-redaction of private data.
+Four edits are allowed: a link or anchor repair, a typo fix that keeps the meaning, the redaction of
+private data, and a renumber with the repair of its citations.
 Each of these edits adds an `_Edited_` line with the date and the PR.
 To change a decision, add a new entry. It restates the rules that stay and supersedes the old entry
 in full.
@@ -77,6 +86,8 @@ Do not put dated status lines in this file. Put them in the open work or in an e
 Do not cite or link to `plans/`.
 Write the repository name before an entry number of another repository, for example
 "{{OTHER_REPO}} 0020". A number without a repository name is an entry of this repository.
+Cite a provisional entry of another repository by the repository name, the PR number and the slug.
+Do not import a file, a test or a tool from another repository.
 
 ## 6. Git Rules
 

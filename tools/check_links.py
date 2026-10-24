@@ -6,7 +6,7 @@ except `-` and `_`; each space becomes `-`; a repeated heading gets `-1`,
 skipped.
 
 In `AGENTS.md`, `notes/` and `.claude/skills/`, a GitHub `blob`, `tree` or
-`commit` link must pin a full 40-character SHA (decision 0028).
+`commit` link must pin a full 40-character SHA (decision 0032).
 """
 
 from __future__ import annotations

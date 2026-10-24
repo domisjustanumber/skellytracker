@@ -221,7 +221,7 @@ In skellytracker:
     and 11 do not apply. Add the parts under the headings of item 4. Remove the sentence "This entry
     is a gap record" from its Decision section. Keep the status `proposed`. Add
     `completed <YYYY-MM-DD> (<source>)` to its status line
-    ([0028](../../../notes/decisions/0028-entry-edits-and-citations.md)).
+    ([0032](../../../notes/decisions/0032-entry-numbers-and-edits.md)).
 
 ### Step 4: Check and stop
 

@@ -43,10 +43,10 @@ decided entry changes only by the edits that the [Rules](#rules) allow.
 | [0024](0024-simcc-score-rule.md) | SimCC keypoint score rule | proposed |
 | [0025](0025-model-id-suffix.md) | Suffix after the part in `model_id` | proposed |
 | [0027](0027-single-working-branch.md) | One working branch for the PR stack; one kind of change per PR, stacked PRs, merge method | accepted |
-| [0028](0028-entry-edits-and-citations.md) | Allowed edits to entries, complete supersession, permalinks, `Depends on`, the same rules in each repo | accepted |
 | [0029](0029-decision-log-read-path.md) | Read path, Deferred proposals, status forms, the open-work file and the size limits | accepted |
 | [0030](0030-no-private-data.md) | No private data in tracked files, commits or PR text; the private-data check and gitleaks | accepted |
 | [0031](0031-bootstrap-kit.md) | A bootstrap kit for `AGENTS.md` and the decision log in a new repo; its copies stay in sync with the live files | accepted |
+| [0032](0032-entry-numbers-and-edits.md) | Entry numbers with `--next` on parallel branches; four allowed edits, complete supersession, permalinks, `Depends on`, evidence scripts | accepted |
 
 ### Deferred
 
@@ -66,6 +66,7 @@ These entries are `rejected`, `superseded by NNNN`, `absorbed into <path>#<ancho
 | [0012](0012-fit-resize-for-rtmo.md) | `fit` resize for RTMO; `pad_value` is required | absorbed into [`pre/resize-fit.md#behaviour`](../../specs/sidecar/pre/resize-fit.md#behaviour) |
 | [0015](0015-review-discipline.md) | Review discipline: one kind of change per PR, stacked drafts, merge method | superseded by 0027 |
 | [0026](0026-decision-log-size.md) | Size limits for the decision log: read path, absorbed status, consolidation | superseded by 0029 |
+| [0028](0028-entry-edits-and-citations.md) | Allowed edits to entries, complete supersession, permalinks, `Depends on`, a mirror rule that 0032 retires | superseded by 0032 |
 
 ## Open work
 
@@ -74,10 +75,11 @@ The open work, the repository state and the spec defects are in [open-work.md](o
 ## Rules
 
 - Write one entry for each decision or measurement.
-- The body of an entry that is not `proposed` does not change, except for three edits: a link or
-  anchor repair, a typo that does not change the meaning, and the redaction of private data. Each
-  edit adds `_Edited YYYY-MM-DD (#PR): <kind>._` at the end of the entry
-  ([0028](0028-entry-edits-and-citations.md)).
+- The body of an entry that is not `proposed` does not change, except for four edits: a link or
+  anchor repair, a typo that does not change the meaning, the redaction of private data, and a
+  renumber with the repair of its citations. Each edit adds `_Edited YYYY-MM-DD (#PR): <kind>._` at
+  the end of the entry. `<kind>` is `link repair`, `typo`, `redaction`, `renumber from NNNN` or
+  `citation repair` ([0032](0032-entry-numbers-and-edits.md)).
 - A `proposed` entry can change until the user decides it.
 - To change a decision, add a new entry. It restates each rule of the old entry that stays, and it
   supersedes the old entry in full. Do not supersede a part of an entry.
@@ -96,21 +98,40 @@ The open work, the repository state and the spec defects are in [open-work.md](o
 - Delete an open-work item when the work is done. Delete a spec defect when its content PR lands.
 - Keep the log inside its limits: 14,000 characters for this file, 20,000 for `open-work.md`, 6,000
   for each entry after 0025, and 220,000 for this file, `open-work.md` and all Active entries
-  together. Put long evidence in a tracked file next to the entry, and link to it. Run
+  together. Put long evidence in a tracked file next to the entry, and link to it. Put the script
+  that produced a measurement in `notes/decisions/scripts/`. The Evidence section names it. Run
   `uv run python tools/check_decision_log.py` to see the read-path size and the warnings at 80% of a
   limit. The doc tests run the same check.
 - A decision can be accepted before its spec text lands. Its spec text then comes in a later content
   PR.
-- Give a new entry the number after the highest number in the index. Add the entry to the index in
-  the same PR.
+- Before you add an entry, run `git fetch --all`. Then run
+  `uv run python tools/check_decision_log.py --next`. Give the entry the number of the `next:` line.
+  Create its file immediately. Add its index row at the end of the table for its status, in the same
+  PR. Gaps in the numbers are allowed.
+- Run `--next` again before each push. Act on each `renumber:` line. Both sides of a collision get the
+  same verdict ([0032](0032-entry-numbers-and-edits.md)).
+- A number is provisional until its entry is on `development`. Change a provisional number only for a
+  `renumber:` line, or when `development` already has the number. This change is not an edit of the
+  body, so it adds no `_Edited` line.
+- To renumber, run `--next`. Rename the file to the new number. Change the number in its heading and
+  in its index row. Find the citations with `git grep -n -E "\bNNNN\b|NNNN-"`, and repair each one.
+  Ask the user before you change a PR title or a PR body.
+- If two entries on `development` have one number, renumber the entry that merged later, in a new
+  PR. This command shows the later merge first:
+  `git log --first-parent --diff-filter=A --name-only --format=%h upstream/development -- "notes/decisions/NNNN-*.md"`.
+  Add `_Edited YYYY-MM-DD (#PR): renumber from NNNN._` to the entry. Add a `citation repair` line to
+  each entry on `development` that you repair.
+- Do not give a number that an entry had on `development` to a different entry. Do not keep two index
+  rows with one number.
 - Cite a tracked file with a relative link. Cite a commit, or the code of another repo, with a GitHub
   permalink that pins a full SHA on the default branch of that repo
-  ([0028](0028-entry-edits-and-citations.md)). Do not cite or link `plans/`. Git does not track it
+  ([0032](0032-entry-numbers-and-edits.md)). Do not cite or link `plans/`. Git does not track it
   ([0001](0001-decision-log-and-agents-md.md)).
 - Until a commit is on `development`, cite its PR number and the file path, not its SHA
   ([0027](0027-single-working-branch.md)).
 - Write the number of another repo's entry with the repo name, for example "OpenMMLab-Exporter 0020".
-  A bare number, for example 0016, is always an entry of this log.
+  A bare number, for example 0016, is always an entry of this log. Cite a provisional entry of another
+  repo by the repo name, the PR number and the slug.
 - A spec change proposal is an entry with the status `proposed`. The new-model workflow in
   [0014](0014-spec-lifecycle.md) gives its parts.
 - A gap record is also an entry with the status `proposed`. It gives a gap or a conflict with the
@@ -122,8 +143,7 @@ The open work, the repository state and the spec defects are in [open-work.md](o
   same gap.
 - An entry that waits for a decision of another repo has a `**Depends on:**` line under its status
   line.
-- OpenMMLab-Exporter uses the same rules. Each repo keeps its own copy. A change of these rules needs
-  a matching PR in the other repo. No file of one repo imports from the other repo.
+- Do not import a file, a test or a tool from another repo.
 - Write entries in ASD-STE100 Simplified Technical English. Use short sentences, the active voice and
   one instruction in each sentence. "must" is the requirement word. Technical names, field names, enum
   values, formulas, code and YAML stay unchanged.
@@ -159,13 +179,13 @@ The file name is `NNNN-<short-slug>.md`.
   The source says who decided or where the entry comes from, for example "user" or "backfilled from
   #81".
 - **Depends on.** Optional. Write it only when the entry waits for a decision of another repo. Use a
-  permalink ([0028](0028-entry-edits-and-citations.md)).
+  permalink ([0032](0032-entry-numbers-and-edits.md)).
 - **Decision.** What is decided, written so that a reader can apply it.
 - **Reason.** Why. Each entry gives its own reasons.
 - **Consequences.** Optional. What becomes harder, what must change later and what the decision
   costs.
-- **Evidence.** Write this section only when there is evidence: measurements, or code facts with
-  their file and function.
+- **Evidence.** Write this section only when there is evidence: measurements with their tool, its
+  version and the script in `notes/decisions/scripts/`, or code facts with their file and function.
 - **Alternatives rejected.** The options that were examined and not used, with the reason for each.
   Omit the section when there are none.
 - **Not repeated.** Pitfalls already found. Omit the section when there are none.

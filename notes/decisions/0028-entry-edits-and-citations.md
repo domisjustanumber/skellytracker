@@ -1,6 +1,6 @@
 # 0028 — Edits to entries, complete supersession, permalinks and the same rules in each repo
 
-**Status:** accepted, 2026-10-24 (user).
+**Status:** superseded by [0032](0032-entry-numbers-and-edits.md), 2026-10-24 (user).
 
 ## Decision
 

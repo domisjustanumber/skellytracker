@@ -36,10 +36,10 @@ COPIES = (
         "tools/check_decision_log.py",
         (
             ("(decision 0029).", f"{DECISION_0001}."),
+            ("another repo (decision 0032).\n", f"another repo {DECISION_0001}.\n"),
             (
-                "change. Standard library only, with no import from another repo (decision 0028), so that\n"
-                "OpenMMLab-Exporter can keep its own copy.\n",
-                f"change. Standard library only, with no import from another repo {DECISION_0001}.\n",
+                'TARGET_BRANCH = "development"\n',
+                'TARGET_BRANCH = "main"  # Step 3 of the kit guide sets the branch that PRs target.\n',
             ),
             ("LAST_UNLIMITED_ENTRY = 25\n", "LAST_UNLIMITED_ENTRY = 0\n"),
         ),
@@ -72,7 +72,7 @@ COPIES = (
     Copy(
         "tools/check_links.py",
         "tools/check_links.py",
-        (("(decision 0028).", f"{DECISION_0001}."),),
+        (("(decision 0032).", f"{DECISION_0001}."),),
     ),
     Copy("tools/tests/test_links.py", "tools/tests/test_links.py"),
     Copy("tools/tests/conftest.py", "tools/tests/conftest.py"),

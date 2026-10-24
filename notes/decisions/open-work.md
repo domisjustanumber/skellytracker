@@ -99,7 +99,7 @@ stage, no file under `skellytracker/` changes, except test fixes.
 
 ## Repository state
 
-Repository state, not code work ([0028](0028-entry-edits-and-citations.md)):
+Repository state, not code work ([0032](0032-entry-numbers-and-edits.md)):
 
 - On 2026-10-22, MediaPipe-Exporter has no exporter code.
 - On 2026-10-22, the workflow runs on `freemocap/skellytracker` end in `startup_failure`.
@@ -112,6 +112,11 @@ Repository state, not code work ([0028](0028-entry-edits-and-citations.md)):
   Hugging Face test repo of the implementation stage and the behaviour of
   `tools/sidecar_refs.py --write`. In 0013 and 0014, about 40 rules are only in the exporter guide or
   the templates. When a PR states such a rule in a normative document, examine the entry again.
+- **Old mirror numbers.** [0028](0028-entry-edits-and-citations.md) and
+  [0029](0029-decision-log-read-path.md) name "OpenMMLab-Exporter 0040 (planned)".
+  [0030](0030-no-private-data.md) names "OpenMMLab-Exporter 0041 (planned)". On 2026-10-24, these
+  numbers belong to other entries in OpenMMLab-Exporter, and [0032](0032-entry-numbers-and-edits.md)
+  retires the mirror rule. The bodies do not change. These lines name no current entry.
 
 ## Spec defects
 
