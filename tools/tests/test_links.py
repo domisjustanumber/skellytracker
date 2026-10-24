@@ -65,3 +65,29 @@ def test_broken_file_and_anchor_are_reported(tmp_path: Path) -> None:
         "doc.md:1: missing anchor target.md#absent",
         "doc.md:1: missing file none.md",
     ]
+
+
+SHA = "6b6a5c57580bdbce34088ebc54a7ba0f130d318c"
+
+
+def test_github_links_in_notes_must_pin_a_full_sha(tmp_path: Path) -> None:
+    (tmp_path / "notes").mkdir()
+    doc = tmp_path / "notes" / "doc.md"
+    doc.write_text(
+        f"[a](https://github.com/o/r/blob/{SHA}/x.py#L3) "
+        "[b](https://github.com/o/r/blob/main/x.py) "
+        "[c](https://github.com/o/r/commit/6b6a5c5) "
+        "[d](https://github.com/o/r/pull/12)\n",
+        encoding="utf-8",
+    )
+    assert check_file(doc, tmp_path) == [
+        "notes/doc.md:1: GitHub link must pin a full SHA: https://github.com/o/r/blob/main/x.py",
+        "notes/doc.md:1: GitHub link must pin a full SHA: https://github.com/o/r/commit/6b6a5c5",
+    ]
+
+
+def test_github_branch_links_outside_the_pinned_scope_pass(tmp_path: Path) -> None:
+    (tmp_path / "specs").mkdir()
+    doc = tmp_path / "specs" / "doc.md"
+    doc.write_text("[b](https://github.com/o/r/tree/master/spec)\n", encoding="utf-8")
+    assert check_file(doc, tmp_path) == []

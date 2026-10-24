@@ -4,6 +4,9 @@ Anchors are generated the way GitHub does: lowercase; punctuation dropped
 except `-` and `_`; each space becomes `-`; a repeated heading gets `-1`,
 `-2`, ... appended. Links inside fenced code blocks and inline code are
 skipped.
+
+In `AGENTS.md`, `notes/` and `.claude/skills/`, a GitHub `blob`, `tree` or
+`commit` link must pin a full 40-character SHA (decision 0028).
 """
 
 from __future__ import annotations
@@ -19,6 +22,11 @@ _LINK = re.compile(r"(?<!!)\[(?:[^\]\[]|\[[^\]]*\])*\]\(([^)\s]+)(?:\s+\"[^\"]*\
 _IMAGE = re.compile(r"!\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 _INLINE_CODE = re.compile(r"`[^`]*`")
 _HTML_ANCHOR = re.compile(r"<a\s+(?:id|name)=\"([^\"]+)\"")
+_GITHUB_REF = re.compile(
+    r"^https?://github\.com/[^/]+/[^/]+/(?:blob|tree|commit)/([^/#?]+)", re.IGNORECASE
+)
+_FULL_SHA = re.compile(r"^[0-9a-f]{40}$")
+_PINNED_SCOPES = ("AGENTS.md", "notes/", ".claude/skills/")
 
 
 def _strip_inline_code(text: str) -> str:
@@ -82,17 +90,27 @@ def links(path: Path) -> list[tuple[int, str]]:
     return result
 
 
+def needs_pinned_links(path: Path, root: Path) -> bool:
+    """True when GitHub links in `path` must pin a full SHA."""
+    rel = path.relative_to(root).as_posix()
+    return any(rel == scope or rel.startswith(scope) for scope in _PINNED_SCOPES)
+
+
 def check_file(path: Path, root: Path) -> list[str]:
     """Return one error string per broken link in `path`."""
     errors: list[str] = []
     anchor_cache: dict[Path, set[str]] = {}
+    pinned = needs_pinned_links(path, root)
     for number, target in links(path):
+        where = f"{path.relative_to(root).as_posix()}:{number}"
         if re.match(r"^[a-z][a-z0-9+.-]*:", target, re.IGNORECASE):
+            ref = _GITHUB_REF.match(target)
+            if pinned and ref and not _FULL_SHA.match(ref.group(1)):
+                errors.append(f"{where}: GitHub link must pin a full SHA: {target}")
             continue  # http:, https:, mailto:, ...
         file_part, _, anchor = target.partition("#")
         file_part = unquote(file_part)
         dest = path if not file_part else (path.parent / file_part).resolve()
-        where = f"{path.relative_to(root).as_posix()}:{number}"
         if not dest.exists():
             errors.append(f"{where}: missing file {target}")
             continue
