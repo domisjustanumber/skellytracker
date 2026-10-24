@@ -1,6 +1,7 @@
 # 0012 — `fit` resize for RTMO; `pad_value` is required
 
-**Status:** accepted, 2026-10-22 (backfilled from #81, which adds `fit` as change 2 of the summary in
+**Status:** absorbed into [`pre/resize-fit.md#behaviour`](../../specs/sidecar/pre/resize-fit.md#behaviour), 2026-10-24 (user; the first review of
+[0029](0029-decision-log-read-path.md)). It was accepted on 2026-10-22 (backfilled from #81, which adds `fit` as change 2 of the summary in
 `specs/sidecar-spec.md` and implements it in `fit_preprocess` and `ResizeSpec`, and from
 OpenMMLab-Exporter 0020, dated 2026-10-21. The user decided on 2026-10-22 that `pad_value` is
 required.)

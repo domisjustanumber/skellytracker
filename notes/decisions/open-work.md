@@ -105,6 +105,13 @@ Repository state, not code work ([0028](0028-entry-edits-and-citations.md)):
 - On 2026-10-22, the workflow runs on `freemocap/skellytracker` end in `startup_failure`.
 - `specs/sidecar/post/canonical-mapping.md` links to the VRM specification by the branch `master`. A
   rewording PR must pin the two links to a commit.
+- **Absorption gaps.** The first review of [0029](0029-decision-log-read-path.md) (2026-10-24)
+  absorbed 0009 and 0012. Entries 0001 to 0008, 0010, 0011, 0013, 0014 and 0016 stay Active,
+  because each one has rules that only the entry states. 0010 has one gap: no body sentence tells a
+  host that `resolved_size` does not check a size entry. 0016 has ten gaps, for example the private
+  Hugging Face test repo of the implementation stage and the behaviour of
+  `tools/sidecar_refs.py --write`. In 0013 and 0014, about 40 rules are only in the exporter guide or
+  the templates. When a PR states such a rule in a normative document, examine the entry again.
 
 ## Spec defects
 

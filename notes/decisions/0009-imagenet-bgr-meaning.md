@@ -1,6 +1,7 @@
 # 0009 — `imagenet_bgr` changes meaning at `vNEXT`; the legacy meaning stays
 
-**Status:** accepted, 2026-10-22 (backfilled from #81).
+**Status:** absorbed into [`pre/normalization.md#legacy-behaviour`](../../specs/sidecar/pre/normalization.md#legacy-behaviour), 2026-10-24 (user; the first review of
+[0029](0029-decision-log-read-path.md)). It was accepted on 2026-10-22 (backfilled from #81).
 
 ## Decision
 

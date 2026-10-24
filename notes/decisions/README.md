@@ -28,10 +28,8 @@ decided entry changes only by the edits that the [Rules](#rules) allow.
 | [0006](0006-yolox-native-contract.md) | The YOLOX sidecar describes the native ONNX contract | accepted |
 | [0007](0007-generic-processing-package.md) | Generic pre- and post-processing live in `core/detectors/processing/` | accepted |
 | [0008](0008-vnext-scope.md) | `vNEXT` scope, and the features considered and not added | accepted |
-| [0009](0009-imagenet-bgr-meaning.md) | `imagenet_bgr` changes meaning at `vNEXT`; the legacy meaning stays | accepted |
 | [0010](0010-family-invariant.md) | Family invariant: a size sets only its shape, target size and artifacts | accepted |
 | [0011](0011-rtmdet-host-nms.md) | RTMDet: NMS-free graph with host `selection: nms`; no `pre_nms_top_k` | accepted |
-| [0012](0012-fit-resize-for-rtmo.md) | `fit` resize for RTMO; `pad_value` is required | accepted |
 | [0013](0013-spec-structure.md) | Spec structure: section files, rule owners, examples, reference implementations, traceability, STE | accepted |
 | [0014](0014-spec-lifecycle.md) | Spec lifecycle, the `vNEXT` rule and the new-model workflow | accepted |
 | [0016](0016-sidecar-catalogs.md) | Sidecar catalogs: source, reference hashes, roots, discovery and the capability check | accepted |
@@ -62,6 +60,8 @@ These entries are `rejected`, `superseded by NNNN`, `absorbed into <path>#<ancho
 
 | # | Decision | Status |
 |---|----------|--------|
+| [0009](0009-imagenet-bgr-meaning.md) | `imagenet_bgr` changes meaning at `vNEXT`; the legacy meaning stays | absorbed into [`pre/normalization.md#legacy-behaviour`](../../specs/sidecar/pre/normalization.md#legacy-behaviour) |
+| [0012](0012-fit-resize-for-rtmo.md) | `fit` resize for RTMO; `pad_value` is required | absorbed into [`pre/resize-fit.md#behaviour`](../../specs/sidecar/pre/resize-fit.md#behaviour) |
 | [0015](0015-review-discipline.md) | Review discipline: one kind of change per PR, stacked drafts, merge method | superseded by 0027 |
 | [0026](0026-decision-log-size.md) | Size limits for the decision log: read path, absorbed status, consolidation | superseded by 0029 |
 
