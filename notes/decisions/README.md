@@ -10,8 +10,8 @@ entry only to find the reason for a decision ([0026](0026-decision-log-size.md))
 Each entry gives the decision, its reason, the evidence (when there is evidence), the alternatives
 rejected and a "Not repeated" section for pitfalls already found. Entries 0002 to 0012 are
 backfilled. They record decisions made before this log existed, and they cite the original sources.
-When a decision changes, add a new entry and mark the old entry superseded. Do not rewrite the old
-entry.
+When a decision changes, add a new entry that supersedes the old entry in full. The body of a
+decided entry changes only by the edits that the [Rules](#rules) allow.
 
 ## Index
 
@@ -45,6 +45,7 @@ entry.
 | [0025](0025-model-id-suffix.md) | Suffix after the part in `model_id` | proposed |
 | [0026](0026-decision-log-size.md) | Size limits for the decision log: read path, absorbed status, consolidation | accepted |
 | [0027](0027-single-working-branch.md) | One working branch for the PR stack; one kind of change per PR, stacked PRs, merge method | accepted |
+| [0028](0028-entry-edits-and-citations.md) | Allowed edits to entries, complete supersession, permalinks, `Depends on`, the same rules in each repo | accepted |
 
 ### Historical
 
@@ -149,6 +150,13 @@ stage, no file under `skellytracker/` changes, except test fixes.
 - **Unused module.** `skellytracker/core/detectors/keypoint_detectors/rtmpose/rtmpose_preprocessing.py`
   is tracked, but no module imports it ([0007](0007-generic-processing-package.md)). Remove it.
 
+Repository state, not code work ([0028](0028-entry-edits-and-citations.md)):
+
+- On 2026-10-22, MediaPipe-Exporter has no exporter code.
+- On 2026-10-22, the workflow runs on `freemocap/skellytracker` end in `startup_failure`.
+- `specs/sidecar/post/canonical-mapping.md` links to the VRM specification by the branch `master`. A
+  rewording PR must pin the two links to a commit.
+
 Spec defects found during the spec-build stage. Each one needs a content change to the spec:
 
 - The note "The `imagenet_bgr` default is the RTMPose convention" in the spec's normalization modes is
@@ -213,7 +221,13 @@ Spec defects found during the spec-build stage. Each one needs a content change 
 ## Rules
 
 - Write one entry for each decision or measurement.
-- Do not rewrite the body of an entry. To change a decision, add a new entry that supersedes it.
+- The body of an entry that is not `proposed` does not change, except for three edits: a link or
+  anchor repair, a typo that does not change the meaning, and the redaction of private data. Each
+  edit adds `_Edited YYYY-MM-DD (#PR): <kind>._` at the end of the entry
+  ([0028](0028-entry-edits-and-citations.md)).
+- A `proposed` entry can change until the user decides it.
+- To change a decision, add a new entry. It restates each rule of the old entry that stays, and it
+  supersedes the old entry in full. Do not supersede a part of an entry.
 - The status line of an entry can change. These changes are allowed: `proposed` to `accepted` or
   `rejected`, `accepted` to `superseded by NNNN`, and `accepted` to `absorbed into <path>#<anchor>`.
   Each change adds its date and the PR that made it. In the same PR, change the status in the index
@@ -232,8 +246,10 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   PR.
 - Give a new entry the number after the highest number in the index. Add the entry to the index in
   the same PR.
-- Cite commits that are on `development`, or tracked files. Do not cite or link `plans/`. Git does not
-  track it ([0001](0001-decision-log-and-agents-md.md)).
+- Cite a tracked file with a relative link. Cite a commit, or the code of another repo, with a GitHub
+  permalink that pins a full SHA on the default branch of that repo
+  ([0028](0028-entry-edits-and-citations.md)). Do not cite or link `plans/`. Git does not track it
+  ([0001](0001-decision-log-and-agents-md.md)).
 - Until a commit is on `development`, cite its PR number and the file path, not its SHA
   ([0027](0027-single-working-branch.md)).
 - Write the number of another repo's entry with the repo name, for example "OpenMMLab-Exporter 0020".
@@ -243,11 +259,14 @@ Spec defects found during the spec-build stage. Each one needs a content change 
 - A gap record is also an entry with the status `proposed`. It gives a gap or a conflict with the
   spec text, its evidence and the direction of a change, but not all eight parts of a proposal. Its
   Decision section says that it is a gap record. The user can accept or reject a gap record.
-- A later proposal for the change of a gap record is a new entry with the status `proposed`. It
-  extends the gap record: its status line names the gap record, and it gives the parts that the gap
-  record does not have. Do not rewrite the body of the gap record. When the user decides the new
-  entry, also change the status line of the gap record in the same PR: `accepted` or `rejected`, as
-  the user decides.
+- A later proposal for a gap record edits the gap record. It adds the parts that the gap record does
+  not have, and the status stays `proposed`. The status line adds the date and the source, for
+  example `completed 2026-11-02 (OpenMMLab-Exporter proposal)`. Do not add a second entry for the
+  same gap.
+- An entry that waits for a decision of another repo has a `**Depends on:**` line under its status
+  line.
+- OpenMMLab-Exporter uses the same rules. Each repo keeps its own copy. A change of these rules needs
+  a matching PR in the other repo. No file of one repo imports from the other repo.
 - Write entries in ASD-STE100 Simplified Technical English. Use short sentences, the active voice and
   one instruction in each sentence. "must" is the requirement word. Technical names, field names, enum
   values, formulas, code and YAML stay unchanged.
@@ -260,10 +279,13 @@ The file name is `NNNN-<short-slug>.md`.
 # NNNN — <title>
 
 **Status:** <proposed | accepted | evidence>, <YYYY-MM-DD> (<source>).
+**Depends on:** <repo> NNNN (<status> on YYYY-MM-DD), <permalink>
 
 ## Decision
 
 ## Reason
+
+## Consequences
 
 ## Evidence
 
@@ -278,8 +300,12 @@ The file name is `NNNN-<short-slug>.md`.
   proposal or a gap record that waits for a decision. A later status change sets `rejected`,
   `superseded by NNNN` or `absorbed into <path>#<anchor>` (see "Rules"). The source says who decided or where the entry comes from, for
   example "user" or "backfilled from #81".
+- **Depends on.** Optional. Write it only when the entry waits for a decision of another repo. Use a
+  permalink ([0028](0028-entry-edits-and-citations.md)).
 - **Decision.** What is decided, written so that a reader can apply it.
 - **Reason.** Why. Each entry gives its own reasons.
+- **Consequences.** Optional. What becomes harder, what must change later and what the decision
+  costs.
 - **Evidence.** Write this section only when there is evidence: measurements, or code facts with
   their file and function.
 - **Alternatives rejected.** The options that were examined and not used, with the reason for each.

@@ -441,8 +441,7 @@ Before you write a proposal:
   - If your rows need a different change, say where your proposal differs. Give the reason in part 8.
 - An entry can be a gap record: its Decision section says so. A gap record gives the gap, the
   evidence and the direction of a change, but not all eight parts. Your proposal gives the parts
-  that it does not have. A skellytracker session records your proposal as a new entry that extends
-  the gap record.
+  that it does not have. A skellytracker session adds your proposal to the gap record.
 - If a proposal needs another proposal (for example, a decode that uses the unprojection of a new
   crop), write the dependency in the header of each proposal. One parity script can serve several
   proposals. Cite it in part 5 of each.

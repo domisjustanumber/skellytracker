@@ -102,7 +102,7 @@ In skellytracker:
    - If your rows need a different change, say where your proposal differs. Give the reason in
      part 8.
    - If the entry is a gap record (its Decision section says so), give the parts that it does not
-     have. A skellytracker session records your proposal as a new entry that extends the gap record.
+     have. A skellytracker session adds your proposal to the gap record.
 6. If the exporter has no git repo, follow "An exporter with no git repo" in
    [New-model workflow](../../../specs/sidecar/exporter-guide.md#new-model-workflow).
 
@@ -169,8 +169,8 @@ In skellytracker:
    entry.
 4. If a `proposed` entry covers the same property as the exporter proposal, read the entry:
    - If it is a gap record (see [Rules](../../../notes/decisions/README.md#rules)) and the exporter
-     proposal builds on it (the same slug, and the entry is cited in the header), record the proposal
-     as a new entry that extends the gap record (Step 3).
+     proposal builds on it (the same slug, and the entry is cited in the header), add the proposal
+     to the gap record (Step 3, item 12).
    - Otherwise, do not add a competing entry. Tell the user the two items. The user decides.
 
 ### Step 2: Get the proposal
@@ -216,8 +216,11 @@ In skellytracker:
 9. Write the repo name with the number of an exporter decision, for example "OpenMMLab-Exporter 0020".
 10. Write the entry in ASD-STE100.
 11. Add the entry to the index of the decision log, with the status `proposed`.
-12. If the entry extends a gap record, write "extends NNNN" in the source of its status line. Cite the
-    gap record in the Decision section. Do not change the body or the status line of the gap record.
+12. If the proposal completes a gap record, edit the gap record. Do not add a new entry. Items 1, 2
+    and 11 do not apply. Add the parts under the headings of item 4. Remove the sentence "This entry
+    is a gap record" from its Decision section. Keep the status `proposed`. Add
+    `completed <YYYY-MM-DD> (<source>)` to its status line
+    ([0028](../../../notes/decisions/0028-entry-edits-and-citations.md)).
 
 ### Step 4: Check and stop
 

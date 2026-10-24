@@ -87,8 +87,7 @@ Do this procedure for step 2 of phase 3.
    Remove the formula version of that section from the generator.
 9. Write the vectors with `uv run python tools/make_vectors.py`. Do not edit a vector file by hand.
 10. Change the status line of the decision entry from `proposed` to `accepted`. Write the date and the
-    PR. If the entry extends a gap record, also change the status line of the gap record, as the user
-    decides (`accepted` or `rejected`) ([Rules](../../../notes/decisions/README.md#rules)).
+    PR ([Rules](../../../notes/decisions/README.md#rules)).
 11. If the change corrects an item of the spec-defect list in
     [`notes/decisions/README.md`](../../../notes/decisions/README.md#open-work), remove the item.
 12. Run the [impact](#impact) and the [checks](#checks).

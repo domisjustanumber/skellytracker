@@ -59,7 +59,7 @@ You do not do these steps. A skellytracker session does them, and the user decid
 
 1. A skellytracker session finds the proposal in the `plans/` folder of the exporter repo. It records
    the proposal as a decision entry with the status `proposed`. If the proposal builds on a gap
-   record, the new entry extends the gap record.
+   record, the session adds the proposal to the gap record.
 2. The user accepts or rejects the proposal.
 3. After acceptance:
    - A content PR adds the normative text, the changelog row, the vectors and the reference

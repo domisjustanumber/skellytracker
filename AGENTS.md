@@ -25,7 +25,6 @@ The section files under [`specs/sidecar/`](specs/sidecar/README.md) specify the 
 [`specs/sidecar-spec.md`](specs/sidecar-spec.md) is the permanent entry point and links to them.
 The exporter repositories make ONNX files and write their sidecars: OpenMMLab-Exporter,
 Roboflow-Exporter, Ultralytics-Exporter and Qualcomm-Exporter.
-On 2026-10-22, MediaPipe-Exporter has no exporter code.
 
 The spec is in its spec-build stage (decision [0014](notes/decisions/0014-spec-lifecycle.md)).
 In this stage, the exporters add models and the spec changes.
@@ -141,7 +140,6 @@ This command runs the package tests and the doc tests. It does not run the slow 
 `testpaths` in `pyproject.toml` has `skellytracker/tests` and `tools/tests`.
 `.github/workflows/tests-fast.yml` runs these tests on each push, on each PR into `main` or
 `development`, and on a manual run.
-On 2026-10-22, the workflow runs on `freemocap/skellytracker` end in `startup_failure`.
 Link the passing CI run on the fork in each PR body (decision
 [0027](notes/decisions/0027-single-working-branch.md)).
 These tests must pass.
@@ -243,16 +241,29 @@ Read a Historical entry only to find the reason for a decision.
 Add one entry for each new decision or measurement.
 Give the entry the next number after the highest existing entry.
 Add the entry to the index in the same PR.
-Do not rewrite the body of an old entry. Mark it superseded and add a new entry.
+Do not rewrite the body of an entry that is not `proposed`.
+Three edits are allowed: a link or anchor repair, a typo fix that keeps the meaning, and the
+redaction of private data.
+Each of these edits adds an `_Edited_` line with the date and the PR (decision
+[0028](notes/decisions/0028-entry-edits-and-citations.md)).
+To change a decision, add a new entry. It restates the rules that stay and supersedes the old entry
+in full.
+Do not supersede a part of an entry.
 You may change the status line of an entry: `proposed` to `accepted` or `rejected`, and `accepted` to
 `superseded by NNNN` or `absorbed into <path>#<anchor>`. Write the date and the PR that changed it.
 Keep the log inside the limits of decision [0026](notes/decisions/0026-decision-log-size.md).
 `uv run pytest tools/tests` checks the limits.
-Cite tracked files, decision entries, commits on `development` or GitHub PR numbers.
+Cite tracked files and decision entries with relative links.
+Cite a commit, or the code of another repository, with a GitHub permalink.
+The permalink must pin a full SHA on the default branch of that repository.
+Do not put dated status lines in this file. Put them in the open work or in an entry.
 Do not cite or link to `plans/`.
 Until a commit is on `development`, cite its PR number and the file path. Do not cite its commit SHA.
 Write the repository name before an entry number of another repository, for example
 "OpenMMLab-Exporter 0020". A number without a repository name is an entry of this repository.
+OpenMMLab-Exporter uses the same decision-log rules. Each repository keeps its own copy.
+A change of these rules needs a matching PR in the other repository.
+Do not import a file, a test or a tool from the other repository.
 
 ## 6. Git Rules
 
