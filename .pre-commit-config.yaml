@@ -1,0 +1,13 @@
+# Run `uv run pre-commit install` once in each clone (decision 0030).
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+  - repo: local
+    hooks:
+      - id: private-data
+        name: private data
+        entry: uv run python tools/check_private_data.py
+        language: system
+        pass_filenames: false

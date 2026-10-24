@@ -1,0 +1,9 @@
+# gitleaks configuration (decision 0030). The default rules apply. The allowlists below hold only
+# reviewed false positives. Give the reason for each one.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Model registry keys (pose_key: \"rtmw-...\") in the Rust port, not credentials"
+commits = ["e0af6f3bbe4f602c7ed1cf6ac07f36f6ea5415ea"]
