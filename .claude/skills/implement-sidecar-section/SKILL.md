@@ -54,7 +54,7 @@ gives the order of the steps, the inputs, the outputs and the stop points.
    the guidance.
 4. Read the sections that the text links to. Read the sections that link to its rules.
 5. Read the decision entries that cite the section.
-6. Read the [Open work](../../../notes/decisions/README.md#open-work) list and its list of spec
+6. Read the [Open work](../../../notes/decisions/open-work.md) list and its list of spec
    defects. Find the items about the section.
 7. Read the code that `implemented_by` names. Read the tests that `tests` names.
 

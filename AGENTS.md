@@ -156,7 +156,7 @@ On Windows, these video test groups are known to fail:
   "Input timestamp must be monotonically increasing". These tests give no `timestamp_ms`, so the
   MediaPipe detectors use `int(time.monotonic() * 1000)` as the timestamp. On Windows,
   `time.monotonic()` has a resolution of 15.6 ms, so two frames can get the same timestamp. The
-  item "MediaPipe timestamps on Windows" in the [open work](notes/decisions/README.md#open-work)
+  item "MediaPipe timestamps on Windows" in the [open work](notes/decisions/open-work.md)
   records this code defect.
 - In a run of all video tests, `test_process_video.py` does not finish. The stack trace shows that
   `PoseLandmarker.__del__` runs during `detect_for_video`, and that call does not return. The later

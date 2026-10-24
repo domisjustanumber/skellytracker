@@ -25,7 +25,7 @@ outputs and the stop points.
    the change touches.
 3. Read each of these section files in full.
 4. Read the decision entries that cite these sections, and the
-   [Open work](../../../notes/decisions/README.md#open-work) list.
+   [Open work](../../../notes/decisions/open-work.md) list.
 
 ## Inputs
 
@@ -34,7 +34,7 @@ outputs and the stop points.
 | An intake with the final verdict `describes` | `plans/sidecar-intake-<model>.md` in an exporter repo |
 | A proposal that the user accepted | A decision entry with the status `proposed`, and the exporter proposal file |
 | A reference implementation of an exporter | `plans/sidecar-reference-<section_module>.py` in an exporter repo |
-| Another spec edit | A request of the user, an item of the spec-defect list in [`notes/decisions/README.md`](../../../notes/decisions/README.md#open-work), or the release step |
+| Another spec edit | A request of the user, an item of the spec-defect list in [`notes/decisions/open-work.md`](../../../notes/decisions/open-work.md), or the release step |
 
 Find the exporter files with a scan of `../../*-Exporter/plans/sidecar-*` from the root of the
 skellytracker repo. Read the exporter repos. Do not change them.
@@ -89,11 +89,11 @@ Do this procedure for step 2 of phase 3.
 10. Change the status line of the decision entry from `proposed` to `accepted`. Write the date and the
     PR ([Rules](../../../notes/decisions/README.md#rules)).
 11. If the change corrects an item of the spec-defect list in
-    [`notes/decisions/README.md`](../../../notes/decisions/README.md#open-work), remove the item.
+    [`notes/decisions/open-work.md`](../../../notes/decisions/open-work.md), remove the item.
 12. Run the [impact](#impact) and the [checks](#checks).
 13. Make the non-spec PR on top of the content PR. Do steps 14 to 17.
 14. Write part 6 of the proposal as the "Implementer guidance" of the section.
-15. Add an item for part 6 to the [Open work](../../../notes/decisions/README.md#open-work) list.
+15. Add an item for part 6 to the [Open work](../../../notes/decisions/open-work.md) list.
 16. Add the "Authoring guidance" from the intake. Do the steps of [Guidance](#guidance).
 17. When the exporter writes the sidecar with the new fields, add the example with procedure A. Remove
     the `proposed` entry of the model from `specs/sidecar/inventory.yaml`, if it has one.
