@@ -1,0 +1,48 @@
+# 0001 — Decision log, `AGENTS.md`, `plans/` and private data
+
+**Status:** accepted, {{YYYY-MM-DD}} (user).
+
+## Decision
+
+1. **Decision log.** This repo keeps its decisions in `notes/decisions/`. The [index](README.md) has
+   the Active, Deferred and Historical tables, the rules and the entry template.
+   [`open-work.md`](open-work.md) has the open work. A decision that code or a document refers to
+   must be in an entry.
+2. **One instructions file.** [`AGENTS.md`](../../AGENTS.md) is the single instructions file for
+   coding agents. `CLAUDE.md` only imports it: its full content is `@AGENTS.md`. Do not put
+   instructions in `CLAUDE.md` or in a second instructions file. Agent procedures are skills in
+   `.claude/skills/`. Git tracks that folder and ignores the rest of `.claude/`.
+3. **`plans/`.** `plans/` is a local working folder. Git ignores it. Do not commit it. A tracked file
+   does not link to `plans/` and does not cite its sections, item numbers or local PR labels.
+4. **Log rules.** The [Rules](README.md#rules) of the index apply: allowed edits only, complete
+   supersession, status forms, Deferred proposals after 183 days, absorption, consolidation,
+   permalinks and the size limits. `tools/check_decision_log.py` checks the index and the limits.
+5. **Private data.** [`AGENTS.md`](../../AGENTS.md#8-private-data) gives the rule.
+   `tools/check_private_data.py` checks the tracked files. The pre-commit hook and the workflow
+   `.github/workflows/secrets.yml` run `gitleaks`. `.private-terms` is a local, untracked list of
+   terms to block.
+6. **Links.** `tools/check_links.py` checks the relative links and their anchors. A GitHub link in
+   `AGENTS.md`, `notes/` or `.claude/skills/` must pin a full SHA.
+
+## Reason
+
+- Plans are working notes for a session. They go out of date, and a clone does not have them. A
+  decision that code refers to must be in a tracked file.
+- Two instruction files can disagree. The import gives all agents the same text.
+- Agents read the log before each task. Without limits and status tables, the part that they read
+  grows with each entry, also when the number of rules does not grow.
+- A partial supersession makes a reader join two or three entries to find the current rule.
+- The repo is public, or it can become public. Git history is permanent. A pasted command output can
+  hold paths, user names and tokens.
+- A test makes each rule a check that CI runs. A written rule alone does not stop a mistake.
+
+## Consequences
+
+- Each decision costs one entry and one index row.
+- The first `pre-commit` run on a clone downloads Go to build `gitleaks`.
+
+## Not repeated
+
+- Do not link to `plans/` from a tracked file. Link to a decision entry.
+- Do not add rules to `CLAUDE.md`. Add them to `AGENTS.md`.
+- Do not commit `.private-terms`. A tracked list publishes the terms.

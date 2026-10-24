@@ -1,0 +1,23 @@
+name: Doc checks
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  doc-checks:
+    name: Decision log, links and private data
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v10.0.0
+        with:
+          python-version: "3.12"
+      - run: uv sync
+      - run: uv run pytest tools/tests

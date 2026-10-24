@@ -46,6 +46,7 @@ decided entry changes only by the edits that the [Rules](#rules) allow.
 | [0028](0028-entry-edits-and-citations.md) | Allowed edits to entries, complete supersession, permalinks, `Depends on`, the same rules in each repo | accepted |
 | [0029](0029-decision-log-read-path.md) | Read path, Deferred proposals, status forms, the open-work file and the size limits | accepted |
 | [0030](0030-no-private-data.md) | No private data in tracked files, commits or PR text; the private-data check and gitleaks | accepted |
+| [0031](0031-bootstrap-kit.md) | A bootstrap kit for `AGENTS.md` and the decision log in a new repo; its copies stay in sync with the live files | accepted |
 
 ### Deferred
 
