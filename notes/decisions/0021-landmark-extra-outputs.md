@@ -1,7 +1,8 @@
 # 0021 — Pose outputs beside the landmarks: presence, handedness and world landmarks
 
 **Status:** proposed, 2026-10-23 (from the exporter evidence of MediaPipe-Exporter and
-Qualcomm-Exporter; plan facts and historical code only); completed 2026-10-25 (MediaPipe-Exporter proposal).
+Qualcomm-Exporter; plan facts and historical code only); completed 2026-10-25 (MediaPipe-Exporter proposal);
+recorded again 2026-10-25 (MediaPipe-Exporter proposal).
 
 ## Decision
 
@@ -52,7 +53,10 @@ are not evidence.
 The proposal corrects two facts of the gap record below. MediaPipe uses the strict test `> 0.5`
 (`ThresholdingCalculator`), not `>= 0.5`. The handedness value is the probability of label item 0,
 `Right`, not the probability of `Left` for a mirrored image. The proposal is not ready for
-acceptance. Its parity (part 5) is `to run`, and the side that `Right` names has no upstream source.
+acceptance. Its parity (part 5) is `to run`. The side that `Right` names has only secondary
+evidence: OpenMMLab-Exporter 0041 and 0052 and the legacy MediaPipe docstring. The exporter records
+an untracked plan decision of OpenMMLab-Exporter (T45) that accepts them in place of a primary
+source. The user has not decided this exception.
 
 ### Gap record (2026-10-23)
 
@@ -85,8 +89,17 @@ MediaPipe-Exporter.
 
 ## Evidence
 
-No commit and no parity result exist for the plan facts. MediaPipe-Exporter has no git repo, and the
-Qualcomm-Exporter hand plan is not tracked.
+No commit and no parity result exist for the plan facts. MediaPipe-Exporter has a git repo since
+2026-10-25 (commit `8f708a1ddecd8e035de15a5a9a7b652af035a58a`), but its plan facts, the proposal and
+the reference file are in its git-ignored `plans/` folder. MediaPipe-Exporter 0003 and 0006 (tracked)
+are parity of the conversion and of the reference hand branch, not of this section. The parity of
+the proposal (part 5) is `to run`. The Qualcomm-Exporter hand plan is not tracked.
+
+- OpenMMLab-Exporter 0052 (status `evidence`; on 2026-10-25 its commit is on the local
+  OpenMMLab-Exporter `main`, not on `origin/main`): the upstream `HandLandmarker` of `mediapipe`
+  1.1.1 gives +0.861 on images that are not mirrored and -0.862 on mirrored images. Thus `Right`
+  names the right hand of the person in an image that is not mirrored. The legacy API reads the
+  label file of the model metadata (`Left` at item 0). The Tasks graph puts `Right` at item 0.
 
 - The untracked hand plan of MediaPipe-Exporter (plan facts): `hand_score [B]` is the
   presence probability (sigmoid in the graph), and `>= 0.5` means a hand. `handedness [B]` is the

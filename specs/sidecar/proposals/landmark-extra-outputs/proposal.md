@@ -7,9 +7,9 @@ state: recorded
 ---
 # Change proposal: landmark-extra-outputs
 
-This file is informative. It is not part of the normative spec until a content PR lands its text in the section files (decision [0036](../../../../notes/decisions/0036-spec-proposals-folder.md)).
+This file is informative. It is not part of the normative spec until a content PR lands its text in the section files (decision [faac](../../../../notes/decisions/faac-proposal-records.md)).
 
-**Source.** The MediaPipe-Exporter file of the proposal `landmark-extra-outputs`, and its reference file, which is the `python` code block of part 3. Commit `none (no git repo)`. Copied on 2026-10-25. MediaPipe-Exporter has no git repo. Its paths in this file are not pinned. The copy changes only the items of decision 0036, item 3. The session wrote no part.
+**Source.** The MediaPipe-Exporter file of the proposal `landmark-extra-outputs`, in its version of 2026-10-25 16:49, and its reference file, which is the `python` code block of part 3. Both files are in the git-ignored `plans/` folder of MediaPipe-Exporter, so they have no commit. The MediaPipe-Exporter repo is at commit `8f708a1ddecd8e035de15a5a9a7b652af035a58a` on `main`; its tracked files (for example `docs/mediapipe-whole-body.md`) are at that commit. The exporter file still gives `none (no git repo)`. First copied on 2026-10-25. Copied again on 2026-10-25 (decision [vac0](../../../../notes/decisions/vac0-record-a-changed-proposal.md)). The reference file did not change after the first copy. The copy changes only the items of decision faac, item 3. The session wrote no part.
 
 This file uses ASD-STE100 Simplified Technical English. It is a local working note of
 MediaPipe-Exporter (decision 0001). Git does not track it. It is the full phase 2 proposal of the
@@ -41,7 +41,7 @@ numbers of `docs/mediapipe-whole-body.md` are in MediaPipe-Exporter on 2026-10-2
 |---|---|
 | Title | Extra outputs of a single-person `coordinate` pose model: an instance presence score with a runtime gate, a binary class probability, and world keypoints |
 | Slug | `landmark-extra-outputs`. This is the slug of the skellytracker gap record 0021 (`notes/decisions/0021-landmark-extra-outputs.md`; index row at `notes/decisions/README.md:40`). The exporter guide says: use the slug of a `proposed` entry that covers your rows (`specs/exporter-guide/sidecars/workflow/phase-2-proposal.md:13-20`). One entry covers the three rows D1b, D1c and D1d, so one proposal covers them. |
-| Date | 2026-10-24; updated 2026-10-24 (user decisions plan T28: H2, H3, H4, H5, H6); updated 2026-10-24 (the committed evidence of H3: OpenMMLab-Exporter 0041); updated 2026-10-25 (0041 is on `main` and on the remote; pin `dom/21-move-sidecar-guide`; the legacy MediaPipe documentation sentence on a mirrored input; repo names on decision numbers) |
+| Date | 2026-10-24; updated 2026-10-24 (user decisions plan T28: H2, H3, H4, H5, H6); updated 2026-10-24 (the committed evidence of H3: OpenMMLab-Exporter 0041); updated 2026-10-25 (0041 is on `main` and on the remote; pin `dom/21-move-sidecar-guide`; the legacy MediaPipe documentation sentence on a mirrored input; repo names on decision numbers); updated 2026-10-25 (OpenMMLab-Exporter 0052: the upstream `HandLandmarker` run and the two label maps; the labels come from the inference graph, not the model metadata; user decision OpenMMLab-Exporter plan T45) |
 | Exporter repo | MediaPipe-Exporter |
 | Exporter commit | none (no git repo) |
 | Model, and its intake file | The hand landmark model of the MediaPipe Holistic hand branch, `hand_landmark_full` (size `full`; the size `lite` has the same four outputs, intake row F4). `model_id` `mediapipe-hand21` (plan T14). ONNX probe file `model_cache/onnx/hand_landmark_full.onnx` (sha256 `5c7c9fcbba12039ef6a28f676272b5fbfc19693c12f099722a44554fb2623c17`). Intake: the untracked intake of `mediapipe-hand21` of MediaPipe-Exporter (plan facts) (2026-10-24). |
@@ -92,10 +92,18 @@ change two facts of skellytracker 0021:
    that the value is the probability of label item 0, and label item 0 is `Right`
    (`hand_landmarks_detector_graph.cc:134-141`; `tensors_to_classification_calculator.proto:58-63`;
    `docs/mediapipe-whole-body.md:362-363`). MediaPipe-Exporter 0021 (item 2) records that "Left" and
-   "mirrored image" came from the legacy label file. The cached sources at the pin state no mirror convention. The legacy documentation at the pin
-   (`docs/solutions/hands.md`, heading "multi_handedness"; secondary) says that the model assumes a
-   mirrored input and that the application must swap the output otherwise. The measurements of user
-   decision H3 do not agree with it (part 2.3, notes). The committed measurement of user decision H3 (OpenMMLab-Exporter
+   "mirrored image" came from the legacy label file. The legacy API and the Tasks API run the same
+   model file with opposite label maps (OpenMMLab-Exporter 0052). The label file in the model
+   metadata has `Left` at item 0 (`handedness.txt`, a read of `hand_landmark_full.tflite`; also
+   `mediapipe/modules/hand_landmark/handedness.txt:1-2` of the legacy `mediapipe` 0.10.14 package).
+   The legacy API assumes a mirrored input (`mediapipe/python/solutions/hands.py:79-83`, 0.10.14;
+   the same sentence is in `docs/solutions/hands.md`, heading "multi_handedness"; secondary). The
+   Tasks graph does not read the metadata (`hand_landmarks_detector_graph.cc:133`) and puts `Right` at
+   item 0 (`:140-141`). Thus legacy item 0 (`Left` in a mirrored image) and Tasks item 0 (`Right` in an
+   image that is not mirrored) name the same hand of the person. The legacy sentence agrees with the
+   measurements. History (2026-10-25): an earlier text of this file said that the measurements do
+   not agree with the legacy sentence. That reading compared the legacy sentence with the Tasks
+   labels. The committed measurement of user decision H3 (OpenMMLab-Exporter
    0041 (secondary; committed script), commit `9deff61`, script `notes/decisions/scripts/rtmw_wrist_gate_handedness.py`; above,
    "Measured difference") shows on the COCO-WholeBody hand labels that `Right` is the right hand of
    the person in an image that is not mirrored. It is an exporter measurement, not upstream evidence.
@@ -115,17 +123,23 @@ change two facts of skellytracker 0021:
   not mirrored and −0.766 mirrored, against the rule `>= 0.6` and `<= -0.6` (above, "Measured
   difference"). The scratch measurement on the COCO body keypoints is an earlier, secondary check.
   0041 is not upstream evidence. It is an exporter measurement of the model on a dataset, and the
-  guide does not list a measurement as primary evidence ("Rules", `exporter-guide/sidecars/rules.md:9-13`). The
-  only upstream statement on the side is the legacy documentation sentence (secondary), and it does
-  not agree with the measurements (part 2.3, notes). Thus this item stays in this list.
-  The guide requires part 1 to cite the primary evidence before the user accepts the proposal
-  (guide "Rules", `exporter-guide/sidecars/rules.md:16-17`). No upstream source for the side was found. Thus
-  acceptance needs an upstream source, or an explicit user exception that accepts 0041 in its place.
-  Open question for the user (2026-10-25): plan T31 (user, 2026-10-24) accepted H3 from the COCO
-  body-wrist check and recorded the 0041 re-check as confirmed. The only upstream statement found is
-  the legacy documentation sentence in `docs/solutions/hands.md` at the pin (secondary; part 2.3,
-  notes), and it states the opposite convention. Is plan T31 the exception that accepts 0041 in
-  place of an upstream source? This file does not decide it.
+  guide does not list a measurement as primary evidence ("Rules", `exporter-guide/sidecars/rules.md:9-13`).
+  Added 2026-10-25: OpenMMLab-Exporter 0052 (secondary; an upstream library output; commit
+  `118699f` on `main`, script `notes/decisions/scripts/hand_handedness_upstream.py`) runs the
+  upstream `HandLandmarker` of `mediapipe` 1.1.1 end to end with the hand landmark model of
+  `holistic_landmarker.task` (SHA-256 `11c272b891e1a99a…`, the source of the ONNX probe) on the
+  images of 0041. No exporter code is in that path. Result: +0.861 not mirrored and −0.862 mirrored,
+  against the same gate. The primary sources give the names of the labels (the Tasks graph,
+  `hand_landmarks_detector_graph.cc:133-141`; the score is the probability of the first label,
+  `tensors_to_classification_calculator.proto:61-63`; no flip before the model,
+  `image_to_tensor_calculator.cc:180`). The physical side comes from the legacy docstring
+  (`hands.py:79-83`, secondary) and from the measurements 0041 and 0052 (secondary). Thus this item
+  stays in this list. The guide requires part 1 to cite the primary evidence before the user accepts
+  the proposal (guide "Rules", `exporter-guide/sidecars/rules.md:16-17`). Decided (user, 2026-10-25,
+  OpenMMLab-Exporter plan T45): the user accepts OpenMMLab-Exporter 0041 and 0052 in place of a
+  primary source for the physical side. This is the explicit exception of plan T31. History
+  (2026-10-25): this item was an open question for the user, and it said that the legacy sentence
+  states the opposite convention. OpenMMLab-Exporter 0052 shows that it does not.
 - The origin of the world keypoints. The document removed the claim "world landmarks centred at the
   hips" (MediaPipe-Exporter 0021). No source that this proposal read gives the origin of the hand
   world landmarks. The section does not define the origin.
@@ -279,8 +293,9 @@ item (one crop). The sidecar can declare at most one output of each extra semant
 - world_keypoints: the 3D keypoints of the instance in a metric unit. Shape [N, K, 3].
 
 A binary_class output gives the probability of labels[0] (Behaviour, step 3). The labels are the
-upstream label items, in their order. A label names a class of the input image as the model sees
-it. The host does not mirror the image and does not swap the labels. For the MediaPipe hand
+label items of the upstream inference graph, in their order. A label file in the model metadata can
+differ from them. The host takes the labels from the sidecar only. A label names a class of the
+input image as the model sees it. The host does not mirror the image and does not swap the labels. For the MediaPipe hand
 landmark model (labels [Right, Left]), Right names the right hand of the person in an image that is
 not mirrored, and the left hand of the person in a mirrored image.
 
@@ -329,7 +344,7 @@ Which upstream rule each part describes:
 | Step 1 | The hand flag has its sigmoid in the graph (part 1, other source (c)), and `TensorsToFloatsCalculator` has no activation (`hand_landmarks_detector_graph.cc:306-310`): `activation: none`. The face flag gets `SIGMOID` in the calculator (`face_landmarks_detector_graph.cc:306-320`; `:429-430`): `activation: sigmoid`. |
 | Step 2 | `ThresholdingCalculator`: `static_cast<double>(score) > threshold_` (`thresholding_calculator.cc:115-124`; `:155-157`); the default `0.5` (`holistic_landmarker.h:66-67`; `:404-408`); a user option (part 1, other source (b)); `AllowIf(..., hand_presence)` on the landmarks and the world landmarks (`hand_landmarks_detector_graph.cc:350-352, 362-364`) |
 | Step 3 | `binary_classification` and the label items (`hand_landmarks_detector_graph.cc:129-141`; `tensors_to_classification_calculator.proto:58-63`; `:362-363`); `AllowIf` on the handedness (`:329-331`) |
-| The physical side of `Right` (Fields) | No upstream source in the cache; the legacy documentation sentence (secondary) states the opposite convention (notes below). The committed measurement of user decision plan T28 (H3): OpenMMLab-Exporter 0041 (secondary; committed script), commit `9deff61`, script `notes/decisions/scripts/rtmw_wrist_gate_handedness.py`, on the COCO-WholeBody hand labels (part 1, measured difference; an exporter measurement, not upstream evidence). Earlier: the scratch measurement of part 1 (secondary) |
+| The physical side of `Right` (Fields) | The names: the Tasks label items (`hand_landmarks_detector_graph.cc:133-141`; the model metadata label file has the opposite order, notes below). The side: the legacy docstring (`mediapipe/python/solutions/hands.py:79-83`, 0.10.14; secondary), which agrees when it is read with the legacy label map (notes below); the upstream `HandLandmarker` run OpenMMLab-Exporter 0052 (secondary; an upstream library output). The user accepts these in place of a primary source (OpenMMLab-Exporter plan T45, 2026-10-25). The committed measurement of user decision plan T28 (H3): OpenMMLab-Exporter 0041 (secondary; committed script), commit `9deff61`, script `notes/decisions/scripts/rtmw_wrist_gate_handedness.py`, on the COCO-WholeBody hand labels (part 1, measured difference; an exporter measurement, not upstream evidence). Earlier: the scratch measurement of part 1 (secondary) |
 | Step 4 | `WorldLandmarkProjectionCalculator` with the hand rect (`world_landmark_projection_calculator.cc:41-64`; `hand_landmarks_detector_graph.cc:357-364`; `:148-151, 409`); metres (`landmark.h:28-30`; `:150-151`) |
 | Inverse | none: MediaPipe has no inverse step for the world landmarks (`world_landmark_projection_calculator.cc:41-64` rotates forward only) |
 
@@ -371,11 +386,18 @@ Notes, not normative:
   says: "Note that handedness is determined assuming the input image is mirrored, i.e., taken with a
   front-facing/selfie camera with images flipped horizontally. If it is not the case, please swap
   the handedness output in the application." The Tasks documentation page and
-  `mediapipe/tasks/python/vision/hand_landmarker.py` at the pin do not mention a mirrored input. For
-  `hand_landmark_full`, the two measurements (OpenMMLab-Exporter 0041 and the earlier scratch check)
-  do not agree with that sentence: in an image that is not mirrored, `Right` names the right hand of
-  the person. The section follows the measurements (user decision plan T28 (H3), confirmed in plan
-  T31).
+  `mediapipe/tasks/python/vision/hand_landmarker.py` at the pin do not mention a mirrored input. The
+  legacy sentence applies to the legacy label map. The model metadata has one associated file,
+  `handedness.txt`, with `Left` at item 0 and `Right` at item 1, and the legacy package uses that file.
+  The Tasks graph ignores it ("TODO: use model Metadata to set label_items",
+  `hand_landmarks_detector_graph.cc:133`) and puts `Right` at item 0 (`:140-141`). Legacy item 0 is
+  the left hand of the person in a mirrored image. That is the right hand of the person in an image
+  that is not mirrored, which Tasks calls `Right`. So the legacy sentence and the measurements agree
+  (OpenMMLab-Exporter 0052). The upstream `HandLandmarker` with the model of this proposal gives
+  +0.861 not mirrored and −0.862 mirrored (0052). The section follows the measurements (user
+  decision plan T28 (H3), confirmed in plan T31; the evidence exception is plan T45). A host must not
+  take the labels from the model metadata: they have the legacy order. History (2026-10-25): this note
+  first said that the measurements do not agree with the legacy sentence.
 - **The alignment of Holistic.** Holistic translates the hand world landmarks so that the hand wrist
   is at the pose world wrist (`AlignHandToPoseInWorldCalculator`, `:409-410`;
   `holistic_hand_tracking.cc:250-258`). That step uses the output of another model. It is outside
@@ -1386,7 +1408,7 @@ its gates. This part gives the gates of the extra outputs.
 | **The range `[0, 1]` for the threshold** (as `V-post.det.decode-8` and the MediaPipe option check) | With the strict test, `t = 1` drops every item. The refiner proposal uses `[0, 1)` for the same pattern. One range for the two gates of the same pipeline is simpler. Rejected by user decision plan T28 (H4), Q3. | `post/detection-decode.md:77`; `hand_landmarks_detector_graph.cc:94-104`; refiner proposal `:308` |
 | **No `activation` field** (the hand flag has its sigmoid in the graph) | The face landmark model of the same pipeline gets its sigmoid outside the graph (`face_landmarks_detector_graph.cc:306-320`). Without the field, its sidecar has no value. A required field removes a wrong default (the lesson of `fit` `pad_value`, skellytracker 0012). | Part 1 |
 | **`positive_class: right` only** (skellytracker 0021 `:17-18, 53-54`, the Qualcomm-Exporter plan) | One label does not give the name of the other class. `labels` keeps both upstream label items in their order, as the upstream `label_items` do. | `hand_landmarks_detector_graph.cc:134-141` |
-| **`assumes_mirrored_input`** (skellytracker 0021 `:17-18, 48-49`, from the MediaPipe-Exporter plan) | The legacy documentation at the pin (`docs/solutions/hands.md`, secondary) says that the model assumes a mirrored input; the two measurements of part 1 show the opposite for `hand_landmark_full` in an image that is not mirrored (part 1, corrections; part 2.3, notes). The plan fact "probability of `Left` for a mirrored image" came from a legacy label file (MediaPipe-Exporter 0021 item 2). User decision plan T28 (H3): the section states the physical side of the label as a fact of the model (part 2.3, "Fields"). The committed measurement OpenMMLab-Exporter 0041 (secondary; committed script; part 1) shows that `Right` is the right hand of the person in an image that is not mirrored. A field would let a sidecar state the other side. | Part 1; part 2.3 notes |
+| **`assumes_mirrored_input`** (skellytracker 0021 `:17-18, 48-49`, from the MediaPipe-Exporter plan) | The legacy documentation at the pin (`docs/solutions/hands.md`, secondary) says that the model assumes a mirrored input. That sentence applies to the legacy label map, which has `Left` at item 0; with the Tasks labels it gives the same hand as the measurements (OpenMMLab-Exporter 0052; part 1, corrections; part 2.3, notes). The plan fact "probability of `Left` for a mirrored image" came from a legacy label file (MediaPipe-Exporter 0021 item 2). User decision plan T28 (H3): the section states the physical side of the label as a fact of the model (part 2.3, "Fields"). The committed measurement OpenMMLab-Exporter 0041 (secondary; committed script; part 1) shows that `Right` is the right hand of the person in an image that is not mirrored. A field would let a sidecar state the other side. | Part 1; part 2.3 notes |
 | **A label choice** (`labels[0]` if `q > 0.5`) | The upstream tie rule is not in the cache, and Holistic does not use the handedness. The host can choose a label from the two probabilities. Rejected by user decision plan T28 (H5), Q4. | Part 2.3 notes |
 | **Unproject the world keypoints like image points**, or leave them unrotated | World points are metric points, not image points: the crop scale and centre do not apply. Unrotated world keypoints differ from Holistic by a median of 107.5 mm (image) and 161.9 mm (video); the rotation of step 4 gives 0.85 mm and 0.91 mm. | Part 1, measured difference; `world_landmark_projection_calculator.cc:41-64` |
 | **Put the alignment to the pose world wrist into this section** | It uses the output of another model (the pose world landmarks). It is a step of the Holistic pipeline, not of this model (intake row X5, `out of scope`). | `docs/mediapipe-whole-body.md:409-410` |
@@ -1396,8 +1418,9 @@ its gates. This part gives the gates of the extra outputs.
 
 ## Open questions for the user
 
-Decided by the user on 2026-10-24 (plan T28). No question of plan T28 stays open. One question on
-the kind of the H3 evidence is open (2026-10-25; Q2 below; part 1, "Missing primary evidence").
+Decided by the user on 2026-10-24 (plan T28). No question of plan T28 stays open. The question on
+the kind of the H3 evidence was decided on 2026-10-25 (plan T45; Q2 below; part 1, "Missing primary
+evidence"). No question stays open.
 
 - **Q1 (the revision) = H2.** The change goes into `vNEXT`, on the scope extension of the 0020
   proposal (user decision 2026-10-23 (4)). skellytracker 0021 asks for this decision (`:23-25`). Parts 1 and 2.6.
@@ -1409,10 +1432,12 @@ the kind of the H3 evidence is open (2026-10-25; Q2 below; part 1, "Missing prim
   hand ROI and hand landmark ONNX models ran on CUDA. Result: +0.807 not mirrored and −0.766
   mirrored, against `>= 0.6` and `<= -0.6` (part 1). It is a committed exporter measurement of the
   model on a dataset, not upstream evidence. An earlier scratch measurement on the COCO val2017 body
-  keypoints (secondary, no committed script) agrees. The legacy MediaPipe documentation sentence on a mirrored input was read on
-  2026-10-25 (part 2.3, notes); it states the opposite convention. Open for the user (2026-10-25):
-  is plan T31 the exception that accepts 0041 in place of an upstream source (part 1, "Missing
-  primary evidence")?
+  keypoints (secondary, no committed script) agrees. OpenMMLab-Exporter 0052 (2026-10-25) runs the
+  upstream `HandLandmarker` with the model of this proposal: +0.861 and −0.862. It also shows that the
+  legacy sentence on a mirrored input agrees, because it applies to the legacy label map (part 2.3,
+  notes). Decided (user, 2026-10-25, plan T45): plan T31 is the exception that accepts
+  OpenMMLab-Exporter 0041 and 0052 in place of a primary source for the physical side (part 1,
+  "Missing primary evidence"). History: this was open until 2026-10-25.
 - **Q3 (the threshold) = H4.** The presence threshold is a runtime input with the default
   `score_threshold_default`, in `[0, 1)`, the range of the refiner gate (parts 2.2, 2.3 and 2.4,
   rule `-3`).
@@ -1438,9 +1463,10 @@ the kind of the H3 evidence is open (2026-10-25; Q2 below; part 1, "Missing prim
       OpenMMLab-Exporter 0041 (secondary; committed script; commit `9deff61`). It is not upstream
       evidence, so the item stays in the list. Acceptance needs an upstream source or an explicit
       user exception for 0041 (guide "Rules", `exporter-guide/sidecars/rules.md:16-17`). Updated
-      2026-10-25: part 2.3 (notes) now cites the legacy MediaPipe documentation sentence
-      (`docs/solutions/hands.md` at the pin; secondary); it states the opposite convention. Open for
-      the user: whether plan T31 is that exception.
+      2026-10-25: part 2.3 (notes) cites the legacy MediaPipe sentence and the two label maps; the
+      sentence agrees with the measurements (OpenMMLab-Exporter 0052). The user accepts
+      OpenMMLab-Exporter 0041 and 0052 in place of a primary source (plan T45). 0052 is committed
+      (OpenMMLab-Exporter commit `118699f` on `main`, 2026-10-25).
 - [x] Part 2.1 lists each place that the change edits.
 - [x] Part 3 names the reference file, and the file exists in the untracked plans of MediaPipe-Exporter (plan facts).
 - [x] Part 4 gives `unverified: no host implementation`.
@@ -1466,11 +1492,18 @@ for the user to accept. It stays incomplete until part 5 has the numbers, the sc
 
 ## Before acceptance
 
+The first copy was on 2026-10-25. The record again of 2026-10-25 (decision
+[vac0](../../../../notes/decisions/vac0-record-a-changed-proposal.md)) keeps each item of the first
+list. It marks each item that the exporter version of 16:49 changes `(changed 2026-10-25)`, and each
+new item `(new 2026-10-25)`. The new version closes no item.
+
 **Parts**
 
-- [ ] Part 5 is `to run`. MediaPipe-Exporter must write and run its parity script
-  `notes/decisions/scripts/hand_chain_parity.py`. Part 5 must then give the numbers against the
-  gates, the script and a commit. MediaPipe-Exporter has no git repo, so it cannot give a commit now.
+- [ ] (changed 2026-10-25) Part 5 is `to run`. MediaPipe-Exporter must write and run its parity
+  script `notes/decisions/scripts/hand_chain_parity.py`. Part 5 must then give the numbers against
+  the gates, the script and a commit. MediaPipe-Exporter has a git repo since 2026-10-25 (commit
+  `8f708a1ddecd8e035de15a5a9a7b652af035a58a` on `main`), but the script is not written, and part 5
+  still says that no script can be committed.
 - [ ] Part 5 also gives `to run` for the export error, the preprocessed input, the row count and the
   final outputs. Each needs a result.
 - [ ] Part 2.1 does not list all the places that the change edits. Add the new row of "Considered and
@@ -1489,18 +1522,32 @@ for the user to accept. It stays incomplete until part 5 has the numbers, the sc
   Give the legacy rejection to one rule ID.
 - [ ] Part 2.3 gives normative prose under the heading "## Fields". Part 2.2 gives the fields
   table. Say where the prose goes relative to the table.
+- [ ] (new 2026-10-25) The file still says that MediaPipe-Exporter has no git repo: the header row
+  "Exporter commit" (`none (no git repo)`), the note of part 3, the YAML header of part 4, and the
+  part 5 rows "Result" and "Exporter commit of the script". Part 1 says "MediaPipe-Exporter has no
+  git history". MediaPipe-Exporter has commit `8f708a1` on `main`. Give the commit, or say that the
+  file is in the git-ignored `plans/` folder.
+- [ ] (new 2026-10-25) The new sentences of part 2.3 "Fields" on the label source ("A label file in
+  the model metadata can differ from them. The host takes the labels from the sidecar only.") and
+  the note "A host must not take the labels from the model metadata" have no "must" in "Fields", no
+  rule of part 2.4, no vector and no place in part 2.1. Write them as a rule, or move them to
+  "Authoring guidance".
 
 **Evidence**
 
-- [ ] The normative sentence of "Fields" on the physical side of `Right` has no upstream source.
-  Its evidence is OpenMMLab-Exporter 0041 (status `evidence`; commit `9deff61` is on the
-  OpenMMLab-Exporter `main` branch). This is an exporter measurement on a dataset. It is secondary
-  evidence. The legacy MediaPipe documentation sentence states the opposite convention. Acceptance
-  needs an upstream source or an explicit user exception.
-- [ ] Part 1 uses `docs/mediapipe-whole-body.md` of MediaPipe-Exporter as primary evidence by a user
-  designation. The guide classes the notes of an exporter as secondary evidence ("Rules",
-  `specs/exporter-guide/sidecars/rules.md:9-13`). The file has no git history, so no citation can
-  pin it.
+- [ ] (changed 2026-10-25) The normative sentence of "Fields" on the physical side of `Right` has no
+  primary source. The primary sources give only the names of the labels (the Tasks graph,
+  `hand_landmarks_detector_graph.cc:133-141`). The side comes from secondary evidence: the legacy
+  docstring (`hands.py:79-83` of `mediapipe` 0.10.14), OpenMMLab-Exporter 0041 (commit `9deff61`, on
+  `main`) and OpenMMLab-Exporter 0052 (an upstream `HandLandmarker` run). The version of 16:49 no
+  longer says that the legacy sentence states the opposite convention: 0052 shows that it applies
+  to the legacy label map. Acceptance needs a primary source or an explicit user exception. The
+  exporter records the exception as plan decision T45 (see **Decisions for the user**).
+- [ ] (changed 2026-10-25) Part 1 uses `docs/mediapipe-whole-body.md` of MediaPipe-Exporter as
+  primary evidence by a user designation. The guide classes the notes of an exporter as secondary
+  evidence ("Rules", `specs/exporter-guide/sidecars/rules.md:9-13`). The file is tracked at
+  MediaPipe-Exporter `8f708a1`, so a citation can pin it now. The designation is in no tracked
+  MediaPipe-Exporter entry.
 - [ ] No upstream output of the handedness exists for a known crop. Part 5 has no gate for the class
   probabilities.
 - [ ] No source gives the origin of the world keypoints. The section does not define it.
@@ -1508,15 +1555,29 @@ for the user to accept. It stays incomplete until part 5 has the numbers, the sc
   landmarks. Rule `-5` requires `[N, K, 3]`.
 - [ ] The measured numbers of part 1 (presence, world keypoints and the earlier handedness check) and
   the vector run of part 4 come from scratch scripts with no commit. They are not evidence.
-- [ ] The proposal cites the MediaPipe source at commit `e9794ef55e2509c09aa8b6ba1764b797db8eb200`
-  in a local cache folder. It gives no permalink. A citation of the code of another repository must
-  be a GitHub permalink that pins a full SHA on the default branch of that repository. Make sure
-  that the commit is on that branch, and add the permalinks.
+- [ ] (changed 2026-10-25) The proposal cites the MediaPipe source at commit
+  `e9794ef55e2509c09aa8b6ba1764b797db8eb200` in a local cache folder. It gives no permalink. A
+  citation of the code of another repository must be a GitHub permalink that pins a full SHA on the
+  default branch of that repository. A skellytracker session checked on 2026-10-25 that the commit
+  is on `master`, the default branch of MediaPipe. Add the permalinks. The version of 16:49 adds
+  more citations at that commit (`hand_landmarks_detector_graph.cc:133` and `:140-141`,
+  `tensors_to_classification_calculator.proto:61-63`, `image_to_tensor_calculator.cc:180`).
+- [ ] (new 2026-10-25) OpenMMLab-Exporter 0052 is cited as commit `118699f` "on `main`", by the short
+  SHA only. On 2026-10-25, that commit is on the local OpenMMLab-Exporter branch `main`, but not on
+  `origin/main`. A tracked file can cite it by permalink only when it is on the default branch of
+  the remote. Give the full SHA.
+- [ ] (new 2026-10-25) The citations of the legacy `mediapipe` 0.10.14 package
+  (`mediapipe/python/solutions/hands.py:79-83`, `mediapipe/modules/hand_landmark/handedness.txt:1-2`)
+  have no pin, and they are not in the cache of `e9794ef`. The SHA-256 of the hand landmark model is
+  shortened (`11c272b891e1a99a…`). Give a citation form for a file of a released package, and the
+  full SHA-256.
 
 **Template checklist**
 
-- [ ] "Part 1 cites primary evidence": the box is ticked only under a user exception (see
-  **Evidence**).
+- [ ] (changed 2026-10-25) "Part 1 cites primary evidence": the box is ticked only under a user
+  exception. The version of 16:49 names the exception: plan decision T45 accepts OpenMMLab-Exporter
+  0041 and 0052 in place of a primary source. T45 is in an untracked plan, and 0052 is not on
+  `origin/main` (see **Evidence**).
 - [ ] "Part 2.1 lists each place that the change edits": the box is ticked, but places are missing
   (see **Parts**).
 - [ ] "Part 4 gives `unverified: <reason>`": the box is correct, but the vector form does not agree
@@ -1524,9 +1585,11 @@ for the user to accept. It stays incomplete until part 5 has the numbers, the sc
 - [ ] The header row "skellytracker commit of the spec text that you read" gives two commits:
   `dom/18-agents-adr-bootstrap-kit` first and `dom/21-move-sidecar-guide` at the end. The template
   asks for one commit.
-- [ ] "The intake links to this proposal": the links exist. The intake row D1c of `mediapipe-hand21`
-  still names a scratch measurement as the evidence for the side of `Right`. Change it to
-  OpenMMLab-Exporter 0041.
+- [ ] (changed 2026-10-25) "The intake links to this proposal": the links exist. The intake row D1c
+  of `mediapipe-hand21` still names a scratch measurement as the evidence for the side of `Right`.
+  Change it to OpenMMLab-Exporter 0041 and 0052.
+- [ ] (new 2026-10-25) "No file in OpenMMLab-Exporter changed": the update of 2026-10-25 uses the new
+  OpenMMLab-Exporter commit of 0052 (`118699f`). The item does not name it.
 
 **Vectors and tooling**
 
@@ -1553,13 +1616,17 @@ for the user to accept. It stays incomplete until part 5 has the numbers, the sc
 
 **Decisions for the user**
 
-- [ ] Part 5 cannot get a commit while MediaPipe-Exporter has no git repo. Give MediaPipe-Exporter a
-  git repo, make an explicit exception, or record the proposal now and block the content PR?
-- [ ] Do you accept OpenMMLab-Exporter 0041 in place of an upstream source for the side of `Right`?
-  Is the untracked user decision T31 of OpenMMLab-Exporter that exception? Does the sentence on the
-  MediaPipe hand model go in "Fields" or in "Authoring guidance"?
-- [ ] Do you accept `docs/mediapipe-whole-body.md` as primary evidence in skellytracker? How do
-  entries cite MediaPipe-Exporter files and decisions with no permalink?
+- [ ] (changed 2026-10-25) Part 5 needs a committed parity script and its numbers. MediaPipe-Exporter
+  has a git repo since 2026-10-25, but `hand_chain_parity.py` is not written. Must the exporter
+  commit and run it before acceptance, or do you make an explicit exception?
+- [ ] (changed 2026-10-25) Do you accept OpenMMLab-Exporter 0041 and 0052 in place of a primary
+  source for the side of `Right`? The exporter records this as the untracked plan decision T45 of
+  OpenMMLab-Exporter, the exception of plan T31. Do the sentence on the MediaPipe hand model and the
+  new sentences on the label source go in "Fields" or in "Authoring guidance"?
+- [ ] (changed 2026-10-25) Do you accept `docs/mediapipe-whole-body.md` as primary evidence in
+  skellytracker? The file is tracked at MediaPipe-Exporter `8f708a1`, and a permalink to the private
+  repo is allowed (user, 2026-10-25). The files in the git-ignored `plans/` folder still have no
+  commit.
 - [ ] The `vNEXT` scope of [0008](../../../../notes/decisions/0008-vnext-scope.md) does not include
   MediaPipe-Exporter. This proposal needs the scope entry `vnext-scope-mediapipe-rotated-crops`
   (0048). Must that entry be accepted before this proposal?
@@ -1585,16 +1652,22 @@ for the user to accept. It stays incomplete until part 5 has the numbers, the sc
   vector form for all proposals: change the tools to the template form in a non-spec PR, or change
   the vectors to the form of the tools. Decide also the 16 KiB limit: raise it, split the file or
   remove cases. Decide how a case with a NaN value is written.
-- [ ] Must 0021 get a `**Depends on:**` line? It waits for the parity result of MediaPipe-Exporter.
-  MediaPipe-Exporter has no git repo, so the line cannot give a permalink.
-- [ ] The guidance edits of part 2.1 (`common/outputs.md:72`, `post/pose-schema.md:143`,
-  `mapping-hints.md`, the intake row K8) have no commit of MediaPipe-Exporter. The skill
-  `change-sidecar-spec` asks for a repo, a file and a commit for each guidance statement. Do you
-  accept the form "no git repo"?
+- [ ] (changed 2026-10-25) Must 0021 get a `**Depends on:**` line? It waits for the parity result of
+  MediaPipe-Exporter. MediaPipe-Exporter has a git repo now, so the line can give a permalink when
+  the parity entry exists. No such entry exists yet.
+- [ ] (changed 2026-10-25) The guidance edits of part 2.1 (`common/outputs.md:72`,
+  `post/pose-schema.md:143`, `mapping-hints.md`, the intake row K8) have no commit of
+  MediaPipe-Exporter. The skill `change-sidecar-spec` asks for a repo, a file and a commit for each
+  guidance statement. The tracked MediaPipe-Exporter files have commit `8f708a1`. The files in
+  `plans/` have none. Which form do you accept? (`post/pose-schema.md:143` is line 144 at
+  `dom/32-absorb-remaining-entries`.)
 - [ ] The kept bullets of `common/outputs.md:69-71` and other spec files cite a MediaPipe-Exporter
   plan file that moved to the archive folder of its plans. Must the non-spec PR repair them?
 - [ ] When MediaPipe-Exporter writes the sidecar, remove the `proposed` entry
   `mediapipe-hand-landmark@mediapipe-exporter` from `specs/sidecar/inventory.yaml`.
+- [ ] (new 2026-10-25) The evidence exception for the side of `Right` rests on plan decision T45 of
+  OpenMMLab-Exporter (2026-10-25). It is in an untracked plan. Do you confirm it, or must the
+  exporter record it in a tracked entry first?
 
 **Merge points**
 
