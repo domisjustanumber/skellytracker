@@ -1,6 +1,6 @@
 # 0033 — A short "Sidecars" block for the exporter `AGENTS.md`
 
-**Status:** accepted, 2026-10-24 (user).
+**Status:** absorbed into [`exporter-guide/sidecars/README.md#the-block-for-the-exporter-agentsmd`](../../specs/exporter-guide/sidecars/README.md#the-block-for-the-exporter-agentsmd), 2026-10-25 (user; the absorption review).
 
 ## Decision
 

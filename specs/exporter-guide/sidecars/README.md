@@ -71,7 +71,8 @@ The templates are [model intake](../../sidecar/templates/model-intake.md) and
 ## The block for the exporter `AGENTS.md`
 
 Copy the text inside the fence into the exporter's `AGENTS.md`, after section 4. Replace `<commit>`
-with the commit of the skellytracker checkout. Make no other change.
+with the commit of the skellytracker checkout. Make no other change. The block must have fewer
+than 2,000 characters.
 
 ```markdown
 ## Sidecars

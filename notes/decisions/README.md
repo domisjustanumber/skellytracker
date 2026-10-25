@@ -24,7 +24,6 @@ These entries are `accepted` or `evidence`.
 
 | # | Decision | Status |
 |---|----------|--------|
-| [0001](0001-decision-log-and-agents-md.md) | Decision log; `AGENTS.md` is the single instructions file; `plans/` is local and ignored | accepted |
 | [0002](0002-sidecars-tracked-in-package.md) | Sidecars are tracked in the package tree; ONNX files are not | accepted |
 | [0003](0003-tracked-points-native-order.md) | `tracked_points` are in native model output order | accepted |
 | [0004](0004-detectors-migrated-in-place.md) | Detectors migrated to sidecars in place; registry keys unchanged | accepted |
@@ -37,14 +36,6 @@ These entries are `accepted` or `evidence`.
 | [0013](0013-spec-structure.md) | Spec structure: section files, rule owners, examples, reference implementations, traceability, STE | accepted |
 | [0014](0014-spec-lifecycle.md) | Spec lifecycle, the `vNEXT` rule and the new-model workflow | accepted |
 | [0016](0016-sidecar-catalogs.md) | Sidecar catalogs: source, reference hashes, roots, discovery and the capability check | accepted |
-| [0027](0027-single-working-branch.md) | One working branch for the PR stack; one kind of change per PR, stacked PRs, merge method | accepted |
-| [0030](0030-no-private-data.md) | No private data in tracked files, commits or PR text; the private-data check and gitleaks | accepted |
-| [0031](0031-bootstrap-kit.md) | A bootstrap kit for `AGENTS.md` and the decision log in a new repo; its copies stay in sync with the live files | accepted |
-| [0033](0033-short-sidecars-block.md) | The exporter `AGENTS.md` copies a short fenced "Sidecars" block, not the full Sidecars section | accepted |
-| [0034](0034-sidecar-guide-folder.md) | The sidecar guide moves to `specs/exporter-guide/sidecars/`, split at its headings with no change of text | accepted |
-| [gtwq](gtwq-random-entry-ids.md) | Random 4-character entry IDs with `--new`; four allowed edits, complete supersession, permalinks, `Depends on`, evidence scripts | accepted |
-| [z934](z934-decision-log-index-and-read-path.md) | Index and read path: Proposed table off the read path, `historical.md`, `template.md`, `done`, absorbing documents | accepted |
-| [faac](faac-proposal-records.md) | Spec change proposals in `specs/sidecar/proposals/`; a short `proposed` entry for each; no open-work line for each proposal | accepted |
 
 ### Proposed
 
@@ -86,6 +77,9 @@ The open work, the repository state and the spec defects are in [open-work.md](o
 ## Rules
 
 - Write one entry for each decision or measurement. Use [template.md](template.md).
+- The read path is this file, `open-work.md` and the Active entries that apply to your task. Read a
+  Proposed entry only for spec work in its section, or when a skill tells you to. Read an entry of
+  `historical.md` only to find the reason for a decision.
 - The body of an entry that is not `proposed` does not change, except for four edits: a link or
   anchor repair, a typo that does not change the meaning, the redaction of private data, and a
   change of ID with the repair of its citations. Each edit adds `_Edited YYYY-MM-DD (#PR): <kind>._`
@@ -98,20 +92,24 @@ The open work, the repository state and the spec defects are in [open-work.md](o
   `rejected`, `accepted` to `superseded by XXXX`, `accepted` to `absorbed into <path>#<anchor>`,
   `accepted` to `done`, and `evidence` to `evidence; used by XXXX`. Each change adds its date and the
   PR that made it. In the same PR, change the status in the index and move the row to the table for
-  the new status.
+  the new status. An `evidence` entry becomes `evidence; used by XXXX` when an accepted entry cites
+  it for its decision. Its Decision cell keeps the one-line result.
 - The tables and their status forms: Active (`accepted`, `evidence`) and Proposed (`proposed`) in this
   file, and Historical (`rejected`, `superseded by XXXX`, `absorbed into <path>#<anchor>`,
   `evidence; used by XXXX`, `done`) in [historical.md](historical.md). The Status cell has only a
-  status form of its table. The Decision cell has 160 characters or fewer
+  status form of its table. `XXXX` must be an entry that is not `proposed` or `rejected`. The
+  Decision cell has 160 characters or fewer
   ([z934](z934-decision-log-index-and-read-path.md)).
-- A Proposed row has a Section cell: the section ID of the change in backticks, or `none`.
+- A Proposed row has a Section cell: the section ID of the change in backticks, or `none`. A new
+  section ID is allowed.
 - An accepted entry is absorbed when one of these documents states all of its rules: the spec,
   `AGENTS.md`, the skills, the exporter guide, the templates of `specs/sidecar/templates/`, and the
   Rules of this file with [template.md](template.md). Then that document is the source of the rules.
 - An accepted entry that records a one-off action, with no rule that stays, is `done` when the action
   is complete.
 - A consolidation entry states the rules that stay from a group of entries, and it supersedes each
-  entry of the group. Write one at the end of the spec-build stage, and when the read-path limit fails.
+  entry of the group. It changes no decision. Write one at the end of the spec-build stage, and when
+  the read-path limit fails.
 - Delete an open-work item when the work is done. Delete a spec defect when its content PR lands.
 - Keep the log inside its limits: 18,000 characters for this file, 20,000 for `open-work.md`, 6,000
   for each entry after 0025, and 330,000 for the read path: this file, `open-work.md` and the Active
@@ -120,6 +118,14 @@ The open work, the repository state and the spec defects are in [open-work.md](o
   `notes/decisions/scripts/`. The Evidence section names it. Run
   `uv run python tools/check_decision_log.py` to see the read-path size and the warnings at 80% of a
   limit. The doc tests run the same check.
+- The tool counts characters after it changes CRLF to LF. It checks the rows, the tables, the cells,
+  the status forms, the `XXXX` of each status and the limits. A warning does not fail the doc tests.
+  An entry does not warn. A PR can lower a limit. A PR that raises a limit must add an entry. After
+  the first consolidation, lower the read-path limit to 160,000 characters.
+- The exporter guide is normative for the workflow. The sidecar spec is normative for the meaning of
+  a sidecar.
+- The bootstrap kit takes these rules. Its tool keeps the limits 14,000 for the index and 220,000 for
+  the read path. The kit keeps an optional mirror rule.
 - A decision can be accepted before its spec text lands. Its spec text then comes in a later content
   PR.
 - An entry ID has 4 characters from `0123456789abcdefghjkmnpqrstvwxyz`. The first character of a new
@@ -132,7 +138,9 @@ The open work, the repository state and the spec defects are in [open-work.md](o
 - The pre-push hook runs `--collisions`, the same check without the `new:` line. Act on each `re-ID:`
   line. Both sides of a collision get the same verdict: an entry on `development` wins, then an entry
   on a remote-tracking branch, then the entry whose first commit has the earlier author date, then
-  the file name that sorts first. An ID does not change for a different reason.
+  the file name that sorts first. An uncommitted file loses to a committed file. Refs merged into
+  `HEAD`, the upstream and push refs of the branch, `backup/` branches and an old file name of an
+  entry are not collisions. An ID does not change for a different reason.
 - To change an ID, run `--new`. Rename the file to the new ID. Change the ID in its heading and in its
   index row. Find the citations with `git grep -n -E "\bXXXX\b|XXXX-"`, and repair each one. Ask the
   user before you change a PR title or a PR body. If the entry is on `development`, add
@@ -149,6 +157,7 @@ The open work, the repository state and the spec defects are in [open-work.md](o
 - Write the ID of another repo's entry with the repo name, for example "OpenMMLab-Exporter 0020". A
   bare ID, for example 0016 or gtwq, is always an entry of this log. Write an ID in YAML front matter
   in quotes. Cite a provisional entry of another repo by the repo name, the PR number and the slug.
+  End each commit subject that adds or changes an entry with `(<id>)`.
 - A spec change proposal is an entry with the status `proposed`. The new-model workflow in
   [0014](0014-spec-lifecycle.md) gives its parts.
 - A gap record is also an entry with the status `proposed`. It gives a gap or a conflict with the
@@ -161,7 +170,8 @@ The open work, the repository state and the spec defects are in [open-work.md](o
 - An entry that waits for a decision of another repo has a `**Depends on:**` line under its status
   line.
 - Do not put a dated status line in `AGENTS.md`. Put a dated fact in `open-work.md` or in an entry.
-- Do not import a file, a test or a tool from another repo.
+- Do not import a file, a test or a tool from another repo. The rules of this log do not follow the
+  log of another repo.
 - Write entries in ASD-STE100 Simplified Technical English. Use short sentences, the active voice and
   one instruction in each sentence. "must" is the requirement word. Technical names, field names, enum
   values, formulas, code and YAML stay unchanged.

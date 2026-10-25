@@ -1,6 +1,6 @@
 # 0001 — Decision log; `AGENTS.md` is the single instructions file; `plans/` is local and ignored
 
-**Status:** accepted, 2026-10-22 (user; the same rules as OpenMMLab-Exporter 0038).
+**Status:** absorbed into [`AGENTS.md#repository-instructions`](../../AGENTS.md#repository-instructions), 2026-10-25 (user; the absorption review).
 
 ## Decision
 

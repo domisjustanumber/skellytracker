@@ -199,9 +199,11 @@ In skellytracker:
 
 Decision [faac](../../../notes/decisions/faac-proposal-records.md) gives the rules of this step.
 
-1. Create `specs/sidecar/proposals/<slug>/proposal.md`. Use the slug of the proposal.
+1. Create `specs/sidecar/proposals/<slug>/proposal.md`. Use the slug of the proposal. The file is
+   informative. It is not normative until a content PR lands its text in the section files.
 2. Write the front matter: `slug`, `section` (the proposed section ID), `exporter`, `decision` (the
-   entry number of Step 4) and `state: recorded`.
+   entry ID of Step 4, in quotes) and `state: recorded`. `state` is `recorded`, `accepted`,
+   `landed` or `rejected`.
 3. Write the source note at the top of the file: the exporter repo, its commit and the date of the
    copy. For an exporter with no git repo, write `none (no git repo)` as the commit.
 4. Copy the header and all eight parts in full. The code of part 3 is a `python` code block. The YAML
@@ -220,7 +222,13 @@ Decision [faac](../../../notes/decisions/faac-proposal-records.md) gives the rul
 8. Put other long text of the proposal in the same folder: the draft of an entry that the proposal
    supersedes (`supersedes-<id>.md`), and long evidence (`evidence.md`).
 9. Add a row to the proposal index
-   [`specs/sidecar/proposals/README.md`](../../../specs/sidecar/proposals/README.md).
+   [`specs/sidecar/proposals/README.md`](../../../specs/sidecar/proposals/README.md). The row gives
+   the proposal, the section, the exporter, the decision entry and the state. The proposal index is
+   the list of the proposals. `open-work.md` has no line for each proposal.
+10. On acceptance, the content PR takes the text, the code and the vectors from `proposal.md`. It
+    sets the decision entry and `state` to `accepted`. The last PR of the proposal sets `state` to
+    `landed`. When the content PR lands part 6, it adds an open-work item for the implementer
+    guidance. A rejected proposal gets `state: rejected`. Its folder stays.
 
 ### Step 4: Write the decision entry
 

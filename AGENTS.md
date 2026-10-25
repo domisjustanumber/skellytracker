@@ -3,6 +3,9 @@
 Exporter agents: start from [`specs/exporter-guide/sidecars/README.md`](specs/exporter-guide/sidecars/README.md).
 Exporter agents must not change files in this repository.
 
+This file is the single instructions file for coding agents. `CLAUDE.md` only imports it: its full
+content is `@AGENTS.md`. Do not put instructions in `CLAUDE.md` or in a second instructions file.
+
 All new and changed documentation must use ASD-STE100 Simplified Technical English.
 This rule applies to `AGENTS.md`, skills, decision entries, templates, the exporter guide and the
 sidecar spec.
@@ -62,8 +65,8 @@ Open PRs against `development`, not `main` ([section 6](#6-git-rules)).
 | `specs/sidecar/proposals/` | The recorded spec change proposals: one folder for each proposal, with all eight parts, and the [proposal index](specs/sidecar/proposals/README.md) (decision [faac](notes/decisions/faac-proposal-records.md)). The files are informative. |
 | `specs/sidecar/examples/`, `specs/sidecar/inventory.yaml` | The reference examples, in the `detectors/` layout of the package ([`examples/README.md`](specs/sidecar/examples/README.md)), and the provenance of each example |
 | `specs/sidecar/templates/` | [`model-intake.md`](specs/sidecar/templates/model-intake.md) and [`change-proposal.md`](specs/sidecar/templates/change-proposal.md) |
-| `specs/exporter-guide/sidecars/README.md` | The rules that exporters follow ([exporter guide](specs/exporter-guide/sidecars/README.md)) |
-| `specs/sidecar-implementation-plan.md` | Status of the sidecar work in the package, and the procedure for reference examples |
+| `specs/exporter-guide/sidecars/README.md` | The rules that exporters follow ([exporter guide](specs/exporter-guide/sidecars/README.md)). All guidance for exporters is in `specs/exporter-guide/`. |
+| `specs/sidecar-implementation-plan.md` | Status of the sidecar work in the package, and the procedure for reference examples. It is a tracked file, not a local plan. It stays until its milestones M5 and M6 are done. |
 | `notes/sidecar-exporter-coverage.md` | The plan that extended the spec to the exporter models: the evidence for the `vNEXT` revision |
 | `notes/decisions/` | Decision log ([`README.md`](notes/decisions/README.md)) |
 | `tools/` | `check_links.py` checks the relative links and their `#anchor` targets. `check_private_data.py` checks the files for private data ([section 8](#8-private-data)). `check_split_verbatim.py` checks that the split of the spec only moves text. Its input is `split_manifest.yaml`. The doc tests are in `tools/tests/`: the link check (`test_links.py`), the checks of the reference examples (`test_examples.py`) and the unit tests of the split checker (`test_check_split_verbatim.py`). |
@@ -115,6 +118,7 @@ Code conventions:
 Load the skill that matches the task.
 If your agent does not support skills, read the skill file.
 Each skill is in `.claude/skills/<skill>/SKILL.md`.
+Git tracks `.claude/skills/` and ignores the rest of `.claude/`.
 The skills wrap the [exporter guide](specs/exporter-guide/sidecars/README.md) and the
 [templates](specs/sidecar/templates/). They give the steps, the inputs, the outputs and the stop
 points. The rules in this file also apply.
@@ -224,7 +228,8 @@ The demo needs a camera and a display.
   provenance record. It can also add an exporter's reference implementation of the current spec
   text. A content PR also has the examples, vectors and reference implementations that define its
   new meaning. Put new content in a new PR on top of the PR stack. Never put it in a move PR or a
-  rewording PR.
+  rewording PR. A move PR can add labels: section IDs, rule IDs and the front matter fields `id`,
+  `title` and `kind`.
 - Do not change implementation code under `skellytracker/` in the spec-build stage (decision
   [0014](notes/decisions/0014-spec-lifecycle.md)). You can change `skellytracker/tests/` to fix a
   test. Each root cause of a test failure gets its own PR. If a failure shows a code defect, report
@@ -282,12 +287,22 @@ Cite tracked files and decision entries with relative links.
 Cite a commit, or the code of another repository, with a GitHub permalink.
 The permalink must pin a full SHA on the default branch of that repository.
 Do not put dated status lines in this file. Put them in the open work or in an entry.
-Do not cite or link to `plans/`.
+Do not cite or link to `plans/`. Do not cite the content of a plan: its sections, its item numbers
+or its local PR labels.
 Until a commit is on `development`, cite its PR number and the file path. Do not cite its commit SHA.
 Write the repository name before an entry ID of another repository, for example
 "OpenMMLab-Exporter 0020". An ID without a repository name is an entry of this repository.
 Cite a provisional entry of another repository by the repository name, the PR number and the slug.
 Do not import a file, a test or a tool from another repository.
+
+The bootstrap kit in `specs/agents-and-adr-process/` is guidance. It is not a part of the sidecar
+spec. It holds the final form of the rules of this decision log for a new repository.
+Each kit copy is its live file with the exact text edits that `tools/sync_bootstrap_kit.py` lists.
+When you change a live file that `tools/sync_bootstrap_kit.py` lists, run
+`uv run python tools/sync_bootstrap_kit.py --write`. Commit the copy in the same PR.
+The doc tests run `--check` and the decision-log check on the kit. The kit decision log must stay
+valid.
+Change the kit templates by hand when a rule of this log changes.
 
 ## 6. Git Rules
 
@@ -299,9 +314,15 @@ Do not import a file, a test or a tool from another repository.
   comment, a later change to a PR description or a change of a draft PR to ready. A force-push is a
   new push. It needs its own approval (decision
   [0027](notes/decisions/0027-single-working-branch.md)).
-- Open each PR to `freemocap/skellytracker` against `development`. Decision
-  [0027](notes/decisions/0027-single-working-branch.md) gives the stacked PR workflow and the merge
-  method.
+- Open each PR to `freemocap/skellytracker` against `development`. Keep each PR small. Decision
+  [0027](notes/decisions/0027-single-working-branch.md) gives the reasons for these rules.
+- Start each PR body with: "Part NN/M of the sidecar spec series. Depends on #X. Until #X merges,
+  this diff includes it. Review the commits after `<sha>`." `NN` is the order number of the PR.
+  `M` is the number of PRs in the series.
+- Merge a PR outside the stack, for example a CI fix, into the bottom branch of the stack.
+- Make a draft ready only when each PR that it depends on has merged.
+- A freemocap maintainer merges each PR and selects the merge method. When a PR body cites commit
+  SHAs, it asks for a merge commit. If #81 is squashed, a follow-up PR replaces its cited SHAs.
 - Do not change the commits of an open PR that other files cite. Do not add commits to it. Do not
   rebase it. #81 is such a PR: `specs/sidecar-implementation-plan.md` cites its commit SHAs
   (decision [0027](notes/decisions/0027-single-working-branch.md)).
@@ -315,6 +336,7 @@ Do not import a file, a test or a tool from another repository.
   one out.
 - Keep the checkout `../freemocap/skellytracker` on the working branch. Exporter agents read the spec
   there. If you change to a different branch for other work, change back when the work is done.
+  If the checkout is on a different branch, an exporter agent stops and asks the user.
 - Use one worktree only. Do not add a worktree. A rebase does not move a branch that a different
   worktree has checked out.
 - Do not change #81 (`dom/add-sidecar-spec`), `dom/01-*` or `dom/02-*`. `dom/03-*` holds the merges
@@ -378,14 +400,21 @@ Do not write these in a tracked file, a commit message or a PR body:
 
 Use paths relative to the repository, for example `../OpenMMLab-Exporter/notes/`.
 Give a measurement as a summary with its tool and its version.
+A report field or a test fake can contain a hostname.
 Text from `plans/` must obey these rules before it goes into a tracked file.
 If you find private data in a tracked file, remove it with a redaction edit (decision
 [gtwq](notes/decisions/gtwq-random-entry-ids.md)).
 Then tell the user, because git history keeps the data.
+Also revoke a leaked credential.
 
 `uv run pytest tools/tests` runs `tools/check_private_data.py`.
+It checks each tracked or new text file for user paths, email addresses, private IP addresses,
+tokens and the terms of `.private-terms`.
 To also block a hostname or a user name, put it in the file `.private-terms` in the repository root.
 Git ignores that file. Do not commit it.
 The pre-commit hook runs `gitleaks` and the private-data check.
 The pre-push hook runs the collision check of the decision-log IDs.
 `.github/workflows/secrets.yml` runs `gitleaks` on each push and PR.
+`.gitleaks.toml` holds the reviewed false positives.
+Secret scanning and push protection are on for the fork.
+Turn them on for a private repository on the day that it becomes public.

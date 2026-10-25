@@ -1,6 +1,6 @@
 # gtwq — Random entry IDs, allowed edits and evidence scripts
 
-**Status:** accepted, 2026-10-25 (user).
+**Status:** absorbed into [`decisions/README.md#rules`](README.md#rules), 2026-10-25 (user).
 
 ## Decision
 

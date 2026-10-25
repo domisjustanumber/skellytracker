@@ -1,6 +1,6 @@
 # faac — Spec change proposals: the proposal folder, with no open-work line for each proposal
 
-**Status:** accepted, 2026-10-25 (user).
+**Status:** absorbed into [`propose-sidecar-change/SKILL.md#step-3-copy-the-proposal-into-the-spec-folder`](../../.claude/skills/propose-sidecar-change/SKILL.md#step-3-copy-the-proposal-into-the-spec-folder), 2026-10-25 (user; the absorption review).
 
 ## Decision
 

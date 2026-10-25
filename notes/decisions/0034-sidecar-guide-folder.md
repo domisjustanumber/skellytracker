@@ -1,6 +1,6 @@
 # 0034 — One folder for the exporter guide
 
-**Status:** accepted, 2026-10-24 (user).
+**Status:** absorbed into [`AGENTS.md#1-purpose`](../../AGENTS.md#1-purpose), 2026-10-25 (user; the absorption review).
 
 ## Decision
 

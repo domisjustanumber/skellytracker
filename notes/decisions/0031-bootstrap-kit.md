@@ -1,6 +1,6 @@
 # 0031 — A bootstrap kit for `AGENTS.md` and the decision log
 
-**Status:** accepted, 2026-10-24 (user).
+**Status:** absorbed into [`AGENTS.md#5-decision-log`](../../AGENTS.md#5-decision-log), 2026-10-25 (user; the absorption review).
 
 ## Decision
 

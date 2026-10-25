@@ -99,6 +99,10 @@ stage, no file under `skellytracker/` changes, except test fixes.
 
 ## Repository state
 
+- **Exporter guide rewording.** A rewording PR removes the exporter repository names from
+  `specs/exporter-guide/sidecars/` and the open items that do not apply to a new exporter
+  ([0034](0034-sidecar-guide-folder.md), item 4).
+
 Repository state, not code work ([gtwq](gtwq-random-entry-ids.md)):
 
 - On 2026-10-22, MediaPipe-Exporter has no exporter code.

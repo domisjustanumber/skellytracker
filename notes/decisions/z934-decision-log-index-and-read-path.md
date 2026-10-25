@@ -1,6 +1,6 @@
 # z934 — Index and read path: a Proposed table, `historical.md`, `template.md` and `done`
 
-**Status:** accepted, 2026-10-25 (user).
+**Status:** absorbed into [`decisions/README.md#rules`](README.md#rules), 2026-10-25 (user; the absorption review).
 
 ## Decision
 

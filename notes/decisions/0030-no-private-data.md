@@ -1,6 +1,6 @@
 # 0030 — No private data in tracked files, commits or PR text
 
-**Status:** accepted, 2026-10-24 (user).
+**Status:** absorbed into [`AGENTS.md#8-private-data`](../../AGENTS.md#8-private-data), 2026-10-25 (user; the absorption review).
 
 ## Decision
 

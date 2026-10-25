@@ -1,6 +1,6 @@
 # 0027 — One working branch for the PR stack
 
-**Status:** accepted, 2026-10-23 (user).
+**Status:** absorbed into [`AGENTS.md#6-git-rules`](../../AGENTS.md#6-git-rules), 2026-10-25 (user; the absorption review).
 
 ## Decision
 
