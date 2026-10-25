@@ -5,18 +5,22 @@ are about the model sidecar spec ([`specs/sidecar-spec.md`](../../specs/sidecar-
 code and the workflow that changes them. Read this file before you change the spec, a sidecar, the
 sidecar code, the agent instructions or the PR workflow. Also read [open-work.md](open-work.md). Then
 read the Active entries that apply to your task. Then you do not repeat a settled question or a
-completed measurement. Read a Deferred entry only for spec work in its area. Read a Historical entry
-only to find the reason for a decision ([0035](0035-decision-log-limits.md)).
+completed measurement. Read a Proposed entry only for spec work in its section, or when a skill tells
+you to. Read an entry of [historical.md](historical.md) only to find the reason for a decision
+([z934](z934-decision-log-index-and-read-path.md)).
 
 Each entry gives the decision, its reason, the evidence (when there is evidence), the alternatives
 rejected and a "Not repeated" section for pitfalls already found. Entries 0002 to 0012 are
 backfilled. They record decisions made before this log existed, and they cite the original sources.
 When a decision changes, add a new entry that supersedes the old entry in full. The body of a
-decided entry changes only by the edits that the [Rules](#rules) allow.
+decided entry changes only by the edits that the [Rules](#rules) allow. To write an entry, use
+[template.md](template.md).
 
 ## Index
 
 ### Active
+
+These entries are `accepted` or `evidence`.
 
 | # | Decision | Status |
 |---|----------|--------|
@@ -33,57 +37,47 @@ decided entry changes only by the edits that the [Rules](#rules) allow.
 | [0013](0013-spec-structure.md) | Spec structure: section files, rule owners, examples, reference implementations, traceability, STE | accepted |
 | [0014](0014-spec-lifecycle.md) | Spec lifecycle, the `vNEXT` rule and the new-model workflow | accepted |
 | [0016](0016-sidecar-catalogs.md) | Sidecar catalogs: source, reference hashes, roots, discovery and the capability check | accepted |
-| [0017](0017-dual-role-sidecar-folder.md) | Folder of a sidecar with both roles | proposed |
-| [0018](0018-one-declaration-per-tensor.md) | One declaration for each output tensor, at every version | proposed |
-| [0019](0019-output-shape-batch-axis.md) | Batch axis of `outputs[].shape` | proposed |
-| [0020](0020-roi-transform-and-source.md) | ROI transform, and a crop that does not come from a detector box; spec change `roi-transform-and-source` | proposed |
-| [0021](0021-landmark-extra-outputs.md) | Pose outputs beside the landmarks: presence, handedness and world landmarks; spec change `landmark-extra-outputs` | proposed |
-| [0022](0022-landmark-depth-divisor.md) | Depth divisor of MediaPipe landmarks; spec change `landmark-depth-divisor` | proposed |
-| [0023](0023-letterbox-floor-and-scale-inverse.md) | `floor` rounding and a scale inverse for `letterbox` | proposed |
-| [0024](0024-simcc-score-rule.md) | SimCC keypoint score rule; spec change `simcc-score-rule` | proposed |
-| [0025](0025-model-id-suffix.md) | Suffix after the part in `model_id`; spec change `model-id-suffix` | proposed |
 | [0027](0027-single-working-branch.md) | One working branch for the PR stack; one kind of change per PR, stacked PRs, merge method | accepted |
 | [0030](0030-no-private-data.md) | No private data in tracked files, commits or PR text; the private-data check and gitleaks | accepted |
 | [0031](0031-bootstrap-kit.md) | A bootstrap kit for `AGENTS.md` and the decision log in a new repo; its copies stay in sync with the live files | accepted |
-| [0035](0035-decision-log-limits.md) | Higher limits for the decision log: index 18,000 and read path 330,000; the bootstrap kit keeps the 0029 limits | accepted |
 | [0036](0036-spec-proposals-folder.md) | The spec keeps its change proposals in `specs/sidecar/proposals/`; each one has a short decision entry "Spec change: <slug>" | accepted |
-| [0037](0037-affine-crop-arithmetic.md) | Spec change: affine-crop-arithmetic (`pre.resize.affine_person_crop`) | proposed |
-| [0038](0038-heatmap-decode-refinement.md) | Spec change: heatmap-decode-refinement (`post.pose.decode.heatmap`) | proposed |
-| [0039](0039-keypoint-visibility.md) | Spec change: keypoint-visibility (`post.pose.visibility`) | proposed |
-| [0040](0040-nms-clamp-order.md) | Spec change: nms-clamp-order (`post.det.selection.nms`) | proposed |
-| [0041](0041-rtmdet-host-nms-filters.md) | RTMDet: host `selection: nms` with the mmdet candidate filters, clamp and visit order | proposed |
-| [0042](0042-vnext-scope-nms-filters.md) | `vNEXT` scope and the features not added; `nms.pre_nms_top_k` and `nms.min_bbox_size` leave the list | proposed |
-| [0043](0043-normalize-arithmetic.md) | Spec change: normalize-arithmetic (`pre.normalize`) | proposed |
-| [0044](0044-omitted-upstream-output.md) | Spec change: omitted-upstream-output (no section; workflow verdict `omitted`; supersedes 0014 on acceptance) | proposed |
-| [0045](0045-pose-decode-flip-test.md) | Spec change: pose-decode-flip-test (`post.pose.flip_test`) | proposed |
-| [0046](0046-size-codes.md) | Spec change: size-codes (`common.sizes`) | proposed |
-| [0047](0047-roi-refiner-role.md) | Spec change: roi-refiner-role (`post.roi_refiner`) | proposed |
-| [0048](0048-vnext-scope-mediapipe-rotated-crops.md) | `vNEXT` scope and the features not added; MediaPipe-Exporter joins, and rotated crops leave the list | proposed |
 | [0033](0033-short-sidecars-block.md) | The exporter `AGENTS.md` copies a short fenced "Sidecars" block, not the full Sidecars section | accepted |
 | [0034](0034-sidecar-guide-folder.md) | The sidecar guide moves to `specs/exporter-guide/sidecars/`, split at its headings with no change of text | accepted |
 | [gtwq](gtwq-random-entry-ids.md) | Random 4-character entry IDs with `--new`; four allowed edits, complete supersession, permalinks, `Depends on`, evidence scripts | accepted |
+| [z934](z934-decision-log-index-and-read-path.md) | Index and read path: Proposed table off the read path, `historical.md`, `template.md`, `done`, absorbing documents | accepted |
 
-### Deferred
+### Proposed
 
-These entries are `proposed`. The latest date in their status line is more than 183 days old.
+These entries are spec change proposals and gap records that wait for a decision of the user. Section
+is the spec section of the change, or `none` when the change has no one section. Find the pending
+proposals of a section here and in the [proposal index](../../specs/sidecar/proposals/README.md).
 
-| # | Decision | Status |
-|---|----------|--------|
+| # | Decision | Section | Status |
+|---|----------|---------|--------|
+| [0017](0017-dual-role-sidecar-folder.md) | Folder of a sidecar with both roles | `format.file_layout` | proposed |
+| [0018](0018-one-declaration-per-tensor.md) | One declaration for each output tensor, at every version | `common.outputs` | proposed |
+| [0019](0019-output-shape-batch-axis.md) | Batch axis of `outputs[].shape` | `common.outputs` | proposed |
+| [0020](0020-roi-transform-and-source.md) | ROI transform, and a crop that does not come from a detector box; spec change `roi-transform-and-source` | `pre.resize.rotated_roi_crop` | proposed |
+| [0021](0021-landmark-extra-outputs.md) | Pose outputs beside the landmarks: presence, handedness and world landmarks; spec change `landmark-extra-outputs` | `post.pose.extra_outputs` | proposed |
+| [0022](0022-landmark-depth-divisor.md) | Depth divisor of MediaPipe landmarks; spec change `landmark-depth-divisor` | `post.pose.decode.coordinate` | proposed |
+| [0023](0023-letterbox-floor-and-scale-inverse.md) | `floor` rounding and a scale inverse for `letterbox` | `pre.resize.letterbox` | proposed |
+| [0024](0024-simcc-score-rule.md) | SimCC keypoint score rule; spec change `simcc-score-rule` | `post.pose.decode.simcc` | proposed |
+| [0025](0025-model-id-suffix.md) | Suffix after the part in `model_id`; spec change `model-id-suffix` | `common.identity` | proposed |
+| [0037](0037-affine-crop-arithmetic.md) | Spec change: affine-crop-arithmetic (`pre.resize.affine_person_crop`) | `pre.resize.affine_person_crop` | proposed |
+| [0038](0038-heatmap-decode-refinement.md) | Spec change: heatmap-decode-refinement (`post.pose.decode.heatmap`) | `post.pose.decode.heatmap` | proposed |
+| [0039](0039-keypoint-visibility.md) | Spec change: keypoint-visibility (`post.pose.visibility`) | `post.pose.visibility` | proposed |
+| [0040](0040-nms-clamp-order.md) | Spec change: nms-clamp-order (`post.det.selection.nms`) | `post.det.selection.nms` | proposed |
+| [0041](0041-rtmdet-host-nms-filters.md) | RTMDet: host `selection: nms` with the mmdet candidate filters, clamp and visit order | `post.det.selection.nms` | proposed |
+| [0042](0042-vnext-scope-nms-filters.md) | `vNEXT` scope and the features not added; `nms.pre_nms_top_k` and `nms.min_bbox_size` leave the list | none | proposed |
+| [0043](0043-normalize-arithmetic.md) | Spec change: normalize-arithmetic (`pre.normalize`) | `pre.normalize` | proposed |
+| [0044](0044-omitted-upstream-output.md) | Spec change: omitted-upstream-output (no section; workflow verdict `omitted`; supersedes 0014 on acceptance) | none | proposed |
+| [0045](0045-pose-decode-flip-test.md) | Spec change: pose-decode-flip-test (`post.pose.flip_test`) | `post.pose.flip_test` | proposed |
+| [0046](0046-size-codes.md) | Spec change: size-codes (`common.sizes`) | `common.sizes` | proposed |
+| [0047](0047-roi-refiner-role.md) | Spec change: roi-refiner-role (`post.roi_refiner`) | `post.roi_refiner` | proposed |
+| [0048](0048-vnext-scope-mediapipe-rotated-crops.md) | `vNEXT` scope and the features not added; MediaPipe-Exporter joins, and rotated crops leave the list | none | proposed |
 
-### Historical
-
-These entries are `rejected`, `superseded by XXXX`, `absorbed into <path>#<anchor>` or
-`evidence; used by XXXX`.
-
-| # | Decision | Status |
-|---|----------|--------|
-| [0009](0009-imagenet-bgr-meaning.md) | `imagenet_bgr` changes meaning at `vNEXT`; the legacy meaning stays | absorbed into [`pre/normalization.md#legacy-behaviour`](../../specs/sidecar/pre/normalization.md#legacy-behaviour) |
-| [0012](0012-fit-resize-for-rtmo.md) | `fit` resize for RTMO; `pad_value` is required | absorbed into [`pre/resize-fit.md#behaviour`](../../specs/sidecar/pre/resize-fit.md#behaviour) |
-| [0015](0015-review-discipline.md) | Review discipline: one kind of change per PR, stacked drafts, merge method | superseded by 0027 |
-| [0026](0026-decision-log-size.md) | Size limits for the decision log: read path, absorbed status, consolidation | superseded by 0029 |
-| [0028](0028-entry-edits-and-citations.md) | Allowed edits to entries, complete supersession, permalinks, `Depends on`, a mirror rule that 0032 retires | superseded by 0032 |
-| [0029](0029-decision-log-read-path.md) | Read path, Deferred proposals, status forms, the open-work file and the size limits | superseded by 0035 |
-| [0032](0032-entry-numbers-and-edits.md) | Entry numbers with `--next` on parallel branches; four allowed edits, complete supersession, permalinks, `Depends on`, evidence scripts | superseded by gtwq |
+The entries that are `rejected`, `superseded by XXXX`, `absorbed into <path>#<anchor>`,
+`evidence; used by XXXX` or `done` are in [historical.md](historical.md).
 
 ## Open work
 
@@ -91,7 +85,7 @@ The open work, the repository state and the spec defects are in [open-work.md](o
 
 ## Rules
 
-- Write one entry for each decision or measurement.
+- Write one entry for each decision or measurement. Use [template.md](template.md).
 - The body of an entry that is not `proposed` does not change, except for four edits: a link or
   anchor repair, a typo that does not change the meaning, the redaction of private data, and a
   change of ID with the repair of its citations. Each edit adds `_Edited YYYY-MM-DD (#PR): <kind>._`
@@ -101,22 +95,29 @@ The open work, the repository state and the spec defects are in [open-work.md](o
 - To change a decision, add a new entry. It restates each rule of the old entry that stays, and it
   supersedes the old entry in full. Do not supersede a part of an entry.
 - The status line of an entry can change. These changes are allowed: `proposed` to `accepted` or
-  `rejected`, `accepted` to `superseded by XXXX`, `accepted` to `absorbed into <path>#<anchor>`, and
-  `evidence` to `evidence; used by XXXX`. Each change adds its date and the PR that made it. In the
-  same PR, change the status in the index and move the row to the table for the new status.
-- The Status cell of an index row has only a status form of its table. The Decision cell has 160
-  characters or fewer ([0035](0035-decision-log-limits.md)).
-- Move a `proposed` row to Deferred when the latest date in its status line is more than 183 days
-  old.
-- An accepted entry is absorbed when the spec, `AGENTS.md` or a skill states all of its rules. Then
-  that document is the source of the rules.
+  `rejected`, `accepted` to `superseded by XXXX`, `accepted` to `absorbed into <path>#<anchor>`,
+  `accepted` to `done`, and `evidence` to `evidence; used by XXXX`. Each change adds its date and the
+  PR that made it. In the same PR, change the status in the index and move the row to the table for
+  the new status.
+- The tables and their status forms: Active (`accepted`, `evidence`) and Proposed (`proposed`) in this
+  file, and Historical (`rejected`, `superseded by XXXX`, `absorbed into <path>#<anchor>`,
+  `evidence; used by XXXX`, `done`) in [historical.md](historical.md). The Status cell has only a
+  status form of its table. The Decision cell has 160 characters or fewer
+  ([z934](z934-decision-log-index-and-read-path.md)).
+- A Proposed row has a Section cell: the section ID of the change in backticks, or `none`.
+- An accepted entry is absorbed when one of these documents states all of its rules: the spec,
+  `AGENTS.md`, the skills, the exporter guide, the templates of `specs/sidecar/templates/`, and the
+  Rules of this file with [template.md](template.md). Then that document is the source of the rules.
+- An accepted entry that records a one-off action, with no rule that stays, is `done` when the action
+  is complete.
 - A consolidation entry states the rules that stay from a group of entries, and it supersedes each
   entry of the group. Write one at the end of the spec-build stage, and when the read-path limit fails.
 - Delete an open-work item when the work is done. Delete a spec defect when its content PR lands.
 - Keep the log inside its limits: 18,000 characters for this file, 20,000 for `open-work.md`, 6,000
-  for each entry after 0025, and 330,000 for this file, `open-work.md` and all Active entries
-  together. Put long evidence in a tracked file next to the entry, and link to it. Put the script
-  that produced a measurement in `notes/decisions/scripts/`. The Evidence section names it. Run
+  for each entry after 0025, and 330,000 for the read path: this file, `open-work.md` and the Active
+  entries. Proposed and Historical entries are not in the read path. Put long evidence in a tracked
+  file next to the entry, and link to it. Put the script that produced a measurement in
+  `notes/decisions/scripts/`. The Evidence section names it. Run
   `uv run python tools/check_decision_log.py` to see the read-path size and the warnings at 80% of a
   limit. The doc tests run the same check.
 - A decision can be accepted before its spec text lands. Its spec text then comes in a later content
@@ -128,9 +129,10 @@ The open work, the repository state and the spec defects are in [open-work.md](o
   `uv run python tools/check_decision_log.py --new`. Give the entry the ID of the `new:` line. Create
   its file immediately. Add its index row at the end of the table for its status, in the same PR. The
   index order is the order of addition.
-- The pre-push hook runs `--collisions`, the same check without the `new:` line. Act on each
-  `re-ID:` line. Both sides of a collision get the
-  same verdict. An ID does not change for a different reason.
+- The pre-push hook runs `--collisions`, the same check without the `new:` line. Act on each `re-ID:`
+  line. Both sides of a collision get the same verdict: an entry on `development` wins, then an entry
+  on a remote-tracking branch, then the entry whose first commit has the earlier author date, then
+  the file name that sorts first. An ID does not change for a different reason.
 - To change an ID, run `--new`. Rename the file to the new ID. Change the ID in its heading and in its
   index row. Find the citations with `git grep -n -E "\bXXXX\b|XXXX-"`, and repair each one. Ask the
   user before you change a PR title or a PR body. If the entry is on `development`, add
@@ -144,10 +146,9 @@ The open work, the repository state and the spec defects are in [open-work.md](o
   ([0001](0001-decision-log-and-agents-md.md)).
 - Until a commit is on `development`, cite its PR number and the file path, not its SHA
   ([0027](0027-single-working-branch.md)).
-- Write the ID of another repo's entry with the repo name, for example "OpenMMLab-Exporter 0020".
-  A bare ID, for example 0016 or gtwq, is always an entry of this log. Write an ID in YAML front
-  matter in quotes. Cite a provisional entry of another
-  repo by the repo name, the PR number and the slug.
+- Write the ID of another repo's entry with the repo name, for example "OpenMMLab-Exporter 0020". A
+  bare ID, for example 0016 or gtwq, is always an entry of this log. Write an ID in YAML front matter
+  in quotes. Cite a provisional entry of another repo by the repo name, the PR number and the slug.
 - A spec change proposal is an entry with the status `proposed`. The new-model workflow in
   [0014](0014-spec-lifecycle.md) gives its parts.
 - A gap record is also an entry with the status `proposed`. It gives a gap or a conflict with the
@@ -159,51 +160,8 @@ The open work, the repository state and the spec defects are in [open-work.md](o
   same gap.
 - An entry that waits for a decision of another repo has a `**Depends on:**` line under its status
   line.
+- Do not put a dated status line in `AGENTS.md`. Put a dated fact in `open-work.md` or in an entry.
 - Do not import a file, a test or a tool from another repo.
 - Write entries in ASD-STE100 Simplified Technical English. Use short sentences, the active voice and
   one instruction in each sentence. "must" is the requirement word. Technical names, field names, enum
   values, formulas, code and YAML stay unchanged.
-
-## Entry template
-
-The file name is `<id>-<short-slug>.md`. Get `<id>` from `--new`.
-
-```markdown
-# <id> — <title>
-
-**Status:** <proposed | accepted | evidence>, <YYYY-MM-DD> (<source>).
-**Depends on:** <repo> XXXX (<status> on YYYY-MM-DD), <permalink>
-
-## Decision
-
-## Reason
-
-## Consequences
-
-## Evidence
-
-## Alternatives rejected
-
-## Not repeated
-
-## Open work
-```
-
-- **Status.** `accepted` is a decision. `evidence` is a measurement. `proposed` is a spec change
-  proposal or a gap record that waits for a decision. A later status change sets `rejected`,
-  `superseded by XXXX`, `absorbed into <path>#<anchor>` or `evidence; used by XXXX` (see "Rules").
-  The source says who decided or where the entry comes from, for example "user" or "backfilled from
-  #81".
-- **Depends on.** Optional. Write it only when the entry waits for a decision of another repo. Use a
-  permalink ([gtwq](gtwq-random-entry-ids.md)).
-- **Decision.** What is decided, written so that a reader can apply it.
-- **Reason.** Why. Each entry gives its own reasons.
-- **Consequences.** Optional. What becomes harder, what must change later and what the decision
-  costs.
-- **Evidence.** Write this section only when there is evidence: measurements with their tool, its
-  version and the script in `notes/decisions/scripts/`, or code facts with their file and function.
-- **Alternatives rejected.** The options that were examined and not used, with the reason for each.
-  Omit the section when there are none.
-- **Not repeated.** Pitfalls already found. Omit the section when there are none.
-- **Open work.** Optional. Write only a link to the [Open work](#open-work) list of this README. Put
-  the open-work items in that list, not in the entry.

@@ -6,7 +6,6 @@ import os
 import shutil
 import subprocess
 from collections.abc import Callable
-from datetime import date
 from pathlib import Path
 
 import pytest
@@ -25,22 +24,23 @@ INDEX = """# Decision log
 |---|----------|--------|
 {active}
 
-### Deferred
+### Proposed
 
-| # | Decision | Status |
-|---|----------|--------|
-{deferred}
+| # | Decision | Section | Status |
+|---|----------|---------|--------|
+{proposed}
+
+## Open work
+"""
+
+HISTORY = """# Historical entries
 
 ### Historical
 
 | # | Decision | Status |
 |---|----------|--------|
 {historical}
-
-## Open work
 """
-
-TODAY = date(2026, 10, 24)
 
 
 def make_log(
@@ -48,14 +48,14 @@ def make_log(
     active: str = "",
     historical: str = "",
     entries: dict[str, str] | None = None,
-    deferred: str = "",
+    proposed: str = "",
 ) -> Path:
     log_dir = tmp_path / cdl.LOG_DIR
     log_dir.mkdir(parents=True)
     (log_dir / "README.md").write_text(
-        INDEX.format(active=active, deferred=deferred, historical=historical),
-        encoding="utf-8",
+        INDEX.format(active=active, proposed=proposed), encoding="utf-8"
     )
+    (log_dir / cdl.HISTORICAL).write_text(HISTORY.format(historical=historical), encoding="utf-8")
     for name, text in (entries or {}).items():
         (log_dir / name).write_text(text, encoding="utf-8")
     return tmp_path
@@ -64,6 +64,11 @@ def make_log(
 def row(number: int | str, status: str, name: str = "x", decision: str = "Title") -> str:
     i = f"{number:04d}" if isinstance(number, int) else number
     return f"| [{i}]({i}-{name}.md) | {decision} | {status} |"
+
+
+def prow(number: int | str, section: str = "`a.b`", name: str = "x") -> str:
+    i = f"{number:04d}" if isinstance(number, int) else number
+    return f"| [{i}]({i}-{name}.md) | Title | {section} | proposed |"
 
 
 def proposed_entry(day: str, number: int = 1) -> str:
@@ -86,14 +91,14 @@ def test_matching_index_passes(tmp_path: Path) -> None:
         ),
         entries={"0001-x.md": "# 0001\n", "0002-y.md": "# 0002\n", "0003-z.md": ""},
     )
-    assert cdl.check(root, TODAY) == []
+    assert cdl.check(root) == []
 
 
 def test_entry_without_row_and_row_without_entry_are_reported(tmp_path: Path) -> None:
     root = make_log(
         tmp_path, active=row(1, "accepted"), entries={"0002-y.md": "# 0002\n"}
     )
-    errors = cdl.check(root, TODAY)
+    errors = cdl.check(root)
     assert "0002-y.md: 0 index rows, expected 1" in errors
     assert any("row links to missing file 0001-x.md" in e for e in errors)
 
@@ -105,7 +110,7 @@ def test_status_must_match_its_table(tmp_path: Path) -> None:
         historical=row(2, "proposed", "y"),
         entries={"0001-x.md": "", "0002-y.md": ""},
     )
-    errors = cdl.check(root, TODAY)
+    errors = cdl.check(root)
     assert any(
         "'superseded by 0002' must not be in the Active table" in e for e in errors
     )
@@ -114,7 +119,7 @@ def test_status_must_match_its_table(tmp_path: Path) -> None:
 
 def test_unknown_status_is_reported(tmp_path: Path) -> None:
     root = make_log(tmp_path, active=row(1, "maybe"), entries={"0001-x.md": ""})
-    assert any("unknown status 'maybe'" in e for e in cdl.check(root, TODAY))
+    assert any("unknown status 'maybe'" in e for e in cdl.check(root))
 
 
 def test_free_text_after_a_status_is_reported(tmp_path: Path) -> None:
@@ -122,14 +127,14 @@ def test_free_text_after_a_status_is_reported(tmp_path: Path) -> None:
         tmp_path, active=row(1, "accepted; extends 0002"), entries={"0001-x.md": ""}
     )
     assert any(
-        "unknown status 'accepted; extends 0002'" in e for e in cdl.check(root, TODAY)
+        "unknown status 'accepted; extends 0002'" in e for e in cdl.check(root)
     )
 
 
 def test_superseded_by_must_name_a_decided_entry(tmp_path: Path) -> None:
     root = make_log(
         tmp_path,
-        active=row(2, "proposed", "y"),
+        proposed=prow(2, name="y"),
         historical="\n".join([row(1, "superseded by 0002"), row(3, "superseded by 0009", "z")]),
         entries={
             "0001-x.md": "",
@@ -137,7 +142,7 @@ def test_superseded_by_must_name_a_decided_entry(tmp_path: Path) -> None:
             "0003-z.md": "",
         },
     )
-    errors = cdl.check(root, TODAY)
+    errors = cdl.check(root)
     assert any("'superseded by 0002' names an entry that is 'proposed'" in e for e in errors)
     assert any("'superseded by 0009' names no other indexed entry" in e for e in errors)
 
@@ -153,7 +158,7 @@ def test_used_evidence_is_historical(tmp_path: Path) -> None:
             "0003-z.md": "",
         },
     )
-    assert cdl.check(root, TODAY) == [
+    assert cdl.check(root) == [
         "README.md:10: status 'evidence; used by 0001' must not be in the Active table"
     ]
 
@@ -163,32 +168,72 @@ def test_long_decision_cell_is_reported(tmp_path: Path) -> None:
     root = make_log(
         tmp_path, active=row(1, "accepted", decision=long), entries={"0001-x.md": ""}
     )
-    assert any("Decision cell has 161 characters" in e for e in cdl.check(root, TODAY))
+    assert any("Decision cell has 161 characters" in e for e in cdl.check(root))
 
 
-def test_old_proposal_must_move_to_deferred(tmp_path: Path) -> None:
+def test_proposed_row_must_be_in_the_proposed_table(tmp_path: Path) -> None:
+    root = make_log(tmp_path, active=row(1, "proposed"), entries={"0001-x.md": ""})
+    assert cdl.check(root) == ["README.md:9: status 'proposed' must not be in the Active table"]
+
+
+def test_proposed_entries_are_not_in_the_read_path(tmp_path: Path) -> None:
     root = make_log(
         tmp_path,
-        active="\n".join([row(1, "proposed"), row(2, "proposed", "y")]),
-        entries={
-            "0001-x.md": proposed_entry("2026-04-20"),
-            "0002-y.md": "**Status:** proposed, 2026-01-01 (gap record); completed 2026-10-01 (proposal).\n",
-        },
-    )
-    errors = cdl.check(root, TODAY)
-    assert errors == [
-        "README.md:9: proposed since 2026-04-20, more than 183 days: move the row to the Deferred table"
-    ]
-
-
-def test_deferred_entries_are_not_in_the_read_path(tmp_path: Path) -> None:
-    root = make_log(
-        tmp_path,
-        deferred=row(1, "proposed"),
+        proposed=prow(1),
         entries={"0001-x.md": proposed_entry("2025-01-01") + "a" * 500},
     )
-    assert cdl.check(root, TODAY) == []
+    assert cdl.check(root) == []
     assert cdl.read_path_size(root) == cdl.size(root / cdl.LOG_DIR / "README.md")
+
+
+@pytest.mark.parametrize(
+    ("section", "valid"),
+    [
+        ("`post.det.selection.nms`", True),
+        ("`pre.resize.rotated_roi_crop`", True),
+        ("none", True),
+        ("post.det.selection.nms", False),
+        ("`Post.Det`", False),
+        ("", False),
+    ],
+)
+def test_section_cell_of_a_proposed_row(tmp_path: Path, section: str, valid: bool) -> None:
+    root = make_log(tmp_path, proposed=prow(1, section), entries={"0001-x.md": ""})
+    errors = cdl.check(root)
+    assert errors == ([] if valid else [
+        f"README.md:15: Section cell {section!r} is not a section ID in backticks or `none`"
+    ])
+
+
+def test_proposed_row_must_have_four_cells(tmp_path: Path) -> None:
+    root = make_log(tmp_path, proposed=row(1, "proposed"), entries={"0001-x.md": ""})
+    errors = cdl.check(root)
+    assert "README.md:15: a Proposed row has the cells | # | Decision | Section | Status |" in errors
+
+
+def test_done_is_historical(tmp_path: Path) -> None:
+    root = make_log(
+        tmp_path,
+        active=row(1, "done"),
+        historical=row(2, "done", "y"),
+        entries={"0001-x.md": "", "0002-y.md": ""},
+    )
+    assert cdl.check(root) == ["README.md:9: status 'done' must not be in the Active table"]
+
+
+def test_historical_table_must_be_in_its_file(tmp_path: Path) -> None:
+    root = make_log(tmp_path)
+    readme = root / cdl.LOG_DIR / "README.md"
+    readme.write_text(
+        readme.read_text(encoding="utf-8") + "\n### Historical\n\n| # | Decision | Status |\n",
+        encoding="utf-8",
+    )
+    assert any("the Historical table must be in historical.md" in e for e in cdl.check(root))
+
+
+def test_index_files_are_not_entries(tmp_path: Path) -> None:
+    root = make_log(tmp_path, entries={cdl.TEMPLATE: "# T\n", cdl.OPEN_WORK: "# O\n"})
+    assert cdl.check(root) == []
 
 
 def test_new_entry_over_limit_is_reported_and_old_entry_is_not(tmp_path: Path) -> None:
@@ -200,7 +245,7 @@ def test_new_entry_over_limit_is_reported_and_old_entry_is_not(tmp_path: Path) -
         active="\n".join([row(old, "accepted"), row(new, "accepted", "y")]),
         entries={f"{old:04d}-x.md": big, f"{new:04d}-y.md": big},
     )
-    errors = cdl.check(root, TODAY)
+    errors = cdl.check(root)
     assert (
         f"{new:04d}-y.md: {cdl.ENTRY_LIMIT + 1} characters, limit {cdl.ENTRY_LIMIT}"
         in errors
@@ -211,7 +256,7 @@ def test_new_entry_over_limit_is_reported_and_old_entry_is_not(tmp_path: Path) -
 def test_open_work_at_80_percent_warns_and_passes(tmp_path: Path) -> None:
     near = "w" * int(cdl.OPEN_WORK_LIMIT * 0.9)
     root = make_log(tmp_path, entries={cdl.OPEN_WORK: near})
-    assert cdl.check(root, TODAY) == []
+    assert cdl.check(root) == []
     assert (
         f"{cdl.OPEN_WORK}: {len(near)} characters, 90% of the limit {cdl.OPEN_WORK_LIMIT}"
         in cdl.warnings(root)
@@ -224,7 +269,7 @@ def test_entry_near_its_limit_does_not_warn(tmp_path: Path) -> None:
     root = make_log(
         tmp_path, active=row(new, "accepted"), entries={f"{new:04d}-x.md": near}
     )
-    assert cdl.check(root, TODAY) == []
+    assert cdl.check(root) == []
     assert not any(w.startswith(f"{new:04d}-x.md") for w in cdl.warnings(root))
 
 
@@ -248,7 +293,7 @@ def test_open_work_is_in_the_read_path_and_has_a_limit(tmp_path: Path) -> None:
     assert cdl.read_path_size(root) == index_size + cdl.OPEN_WORK_LIMIT + 1
     assert (
         f"{cdl.OPEN_WORK}: {cdl.OPEN_WORK_LIMIT + 1} characters, limit {cdl.OPEN_WORK_LIMIT}"
-        in cdl.check(root, TODAY)
+        in cdl.check(root)
     )
 
 
@@ -264,7 +309,7 @@ def test_two_files_with_one_number_are_reported(tmp_path: Path) -> None:
         active="\n".join([row(32, "accepted", "a"), row(32, "accepted", "b")]),
         entries={"0032-a.md": "# 0032\n", "0032-b.md": "# 0032\n"},
     )
-    errors = cdl.check(root, TODAY)
+    errors = cdl.check(root)
     assert "entry ID 0032 has 2 files: 0032-a.md, 0032-b.md" in errors
     assert "README.md:10: ID 0032 is also in README.md:9" in errors
 
@@ -275,7 +320,7 @@ def test_link_text_must_match_file_number(tmp_path: Path) -> None:
         active="| [0032](0033-x.md) | T | accepted |",
         entries={"0033-x.md": "# 0033\n"},
     )
-    assert "README.md:9: link text 0032 does not match 0033-x.md" in cdl.check(root, TODAY)
+    assert "README.md:9: link text 0032 does not match 0033-x.md" in cdl.check(root)
 
 
 def test_link_text_in_entry_must_match_file(tmp_path: Path) -> None:
@@ -287,7 +332,7 @@ def test_link_text_in_entry_must_match_file(tmp_path: Path) -> None:
             "0003-z.md": "",
         },
     )
-    assert cdl.check(root, TODAY) == ["0001-x.md:3: link text 0002 does not match 0003-z.md"]
+    assert cdl.check(root) == ["0001-x.md:3: link text 0002 does not match 0003-z.md"]
 
 
 @pytest.mark.parametrize(
@@ -302,7 +347,7 @@ def test_heading_number_must_match_file_number(
     tmp_path: Path, text: str, expected: list[str]
 ) -> None:
     root = make_log(tmp_path, active=row(33, "accepted"), entries={"0033-x.md": text})
-    assert cdl.check(root, TODAY) == expected
+    assert cdl.check(root) == expected
 
 
 def test_gaps_in_numbers_pass(tmp_path: Path) -> None:
@@ -311,7 +356,7 @@ def test_gaps_in_numbers_pass(tmp_path: Path) -> None:
         active="\n".join([row(1, "accepted"), row(3, "accepted", "z")]),
         entries={"0001-x.md": "# 0001\n", "0003-z.md": "# 0003\n"},
     )
-    assert cdl.check(root, TODAY) == []
+    assert cdl.check(root) == []
 
 
 @pytest.mark.parametrize(
@@ -337,7 +382,7 @@ def test_superseded_by_must_match_status_link(
             "0003-z.md": "",
         },
     )
-    assert cdl.check(root, TODAY) == expected
+    assert cdl.check(root) == expected
 
 
 def test_renumbered_old_entry_keeps_size_exemption(tmp_path: Path) -> None:
@@ -349,7 +394,7 @@ def test_renumbered_old_entry_keeps_size_exemption(tmp_path: Path) -> None:
         active=row(new, "accepted"),
         entries={f"{new:04d}-x.md": "x" * (cdl.ENTRY_LIMIT + 1) + edit},
     )
-    assert cdl.check(root, TODAY) == []
+    assert cdl.check(root) == []
 
 
 # The tests of `--new`. Each git test runs in its own repo, with no user or system config.
@@ -439,7 +484,7 @@ def test_new_id_skips_used_ids() -> None:
 )
 def test_entry_id_format(tmp_path: Path, name: str, valid: bool) -> None:
     root = make_log(tmp_path, entries={name: ""})
-    errors = cdl.check(root, TODAY)
+    errors = cdl.check(root)
     if valid:
         assert errors == [f"{name}: 0 index rows, expected 1"]
     else:
@@ -458,7 +503,7 @@ def test_letter_ids_in_rows_links_and_status(tmp_path: Path) -> None:
             "k7m2-y.md": "# k7m2 — T\n\nSee [0001](0001-x.md).\n",
         },
     )
-    assert cdl.check(root, TODAY) == []
+    assert cdl.check(root) == []
 
 
 def test_re_id_keeps_size_exemption(tmp_path: Path) -> None:
@@ -469,7 +514,7 @@ def test_re_id_keeps_size_exemption(tmp_path: Path) -> None:
         active=row("k7m2", "accepted"),
         entries={"k7m2-x.md": "x" * (cdl.ENTRY_LIMIT + 1) + edit},
     )
-    assert cdl.check(root, TODAY) == []
+    assert cdl.check(root) == []
 
 
 def test_letter_id_has_no_size_exemption(tmp_path: Path) -> None:
@@ -478,7 +523,7 @@ def test_letter_id_has_no_size_exemption(tmp_path: Path) -> None:
         active=row("a001", "accepted"),
         entries={"a001-x.md": "x" * (cdl.ENTRY_LIMIT + 1)},
     )
-    errors = cdl.check(root, TODAY)
+    errors = cdl.check(root)
     assert f"a001-x.md: {cdl.ENTRY_LIMIT + 1} characters, limit {cdl.ENTRY_LIMIT}" in errors
 
 

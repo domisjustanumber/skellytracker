@@ -18,6 +18,7 @@ not have their history.
 | [`AGENTS.md`](bootstrap/AGENTS.md) | `AGENTS.md` | Fill in each `{{...}}` |
 | [`CLAUDE.md`](bootstrap/CLAUDE.md) | `CLAUDE.md` | Copy. Its only content is `@AGENTS.md`. |
 | [`notes/decisions/README.md`](bootstrap/notes/decisions/README.md) | the same path | Fill in each `{{...}}` |
+| [`notes/decisions/historical.md`](bootstrap/notes/decisions/historical.md), [`notes/decisions/template.md`](bootstrap/notes/decisions/template.md) | the same paths | Copy |
 | [`notes/decisions/open-work.md`](bootstrap/notes/decisions/open-work.md) | the same path | Replace the example item, or delete it |
 | [`notes/decisions/0001-…`](bootstrap/notes/decisions/0001-decision-log-agents-md-and-private-data.md) | the same path | Fill in the date |
 | `tools/check_decision_log.py`, `tools/check_links.py`, `tools/check_private_data.py` | the same paths | Copy. Add the public contact address of the project to `ALLOWED_EMAILS`. |
@@ -161,14 +162,22 @@ Put the kit in one commit, in one docs PR. Do not push without the approval of t
 
 ### Status and tables
 
-The index has three tables. An agent reads the index, `open-work.md` and the Active entries that
-apply to its task. These files are the read path.
+The index (`README.md`) has the Active and Proposed tables. `historical.md` has the Historical
+table, and `template.md` has the entry template. An agent reads the index, `open-work.md` and the
+Active entries that apply to its task. These files are the read path. It reads a Proposed entry only
+for work in its section, and a Historical entry only to find the reason for a decision.
 
-| Table | Status forms |
-|---|---|
-| Active | `proposed`, `accepted`, `evidence` |
-| Deferred | `proposed`, when the latest date in its status line is more than 183 days old |
-| Historical | `evidence; used by XXXX`, `rejected`, `superseded by XXXX`, `absorbed into <path>#<anchor>` |
+| Table | File | Status forms |
+|---|---|---|
+| Active | `README.md` | `accepted`, `evidence` |
+| Proposed | `README.md` | `proposed`. The row also has a Section cell: an ID in backticks, or `none`. |
+| Historical | `historical.md` | `evidence; used by XXXX`, `rejected`, `superseded by XXXX`, `absorbed into <path>#<anchor>`, `done` |
+
+`done` is for an accepted entry that records a one-off action, with no rule that stays.
+
+In skellytracker, the `proposed` entries held more than a third of the read path. One batch of
+proposals added about 76,000 characters. A `proposed` entry is not a rule yet, so it is off the read
+path. A table of old proposals ("Deferred") is not necessary when no proposal is on the read path.
 
 The Status cell has only the status form. Free text in that cell grows. In OpenMMLab-Exporter, one
 cell named five other entries.
@@ -229,7 +238,9 @@ random ID, not the next number.
 An accepted entry is absorbed when a normative document states all of its rules. The entry then goes
 to Historical, and the document is the source of the rules. Decide at the start which documents are
 normative (Step 1, question 4). In the first review in skellytracker, only 2 of 15 entries were
-absorbed, because many rules were only in a guide that was not normative.
+absorbed, because many rules were only in a guide that was not normative. The Rules of the log
+`README.md` and `template.md` are also normative, so an entry about the log rules can be absorbed
+into them.
 
 ### Limits
 
@@ -309,7 +320,8 @@ These pitfalls are already found. Do not repeat them.
 - A per-entry warning at 80% is noise. A decided entry cannot become shorter. The tool warns only for
   the index, the open work and the read path.
 - An index limit of 10,000 characters was too small: an index with about 30 rows, its rules and its
-  template already has 10,000. The limit is 14,000.
+  template already has 10,000. The limit is 14,000. The Historical rows and the template are now in
+  their own files, off the read path.
 - A dated status line in `AGENTS.md` said that a PR was open after it was merged.
 - A rule for a "gap record" that a later proposal extends with a second entry made chains of
   entries. The kit lets a `proposed` entry change instead.

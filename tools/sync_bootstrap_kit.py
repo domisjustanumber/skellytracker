@@ -35,7 +35,7 @@ COPIES = (
         "tools/check_decision_log.py",
         "tools/check_decision_log.py",
         (
-            ("(decisions 0035 and gtwq).", f"{DECISION_0001}."),
+            ("(decisions z934 and gtwq).", f"{DECISION_0001}."),
             ("random IDs (decision\ngtwq).", "random IDs (decision\n0001)."),
             ("another repo (decision gtwq).\n", f"another repo {DECISION_0001}.\n"),
             ("INDEX_LIMIT = 18_000\n", "INDEX_LIMIT = 14_000\n"),
@@ -50,7 +50,7 @@ COPIES = (
     Copy(
         "tools/tests/test_decision_log.py",
         "tools/tests/test_decision_log.py",
-        (("(decision 0035).", f"{DECISION_0001}."),),
+        (("(decision z934).", f"{DECISION_0001}."),),
     ),
     Copy(
         "tools/check_private_data.py",

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import importlib.util
 import sys
-from datetime import date
 from pathlib import Path
 from types import ModuleType
 
@@ -30,7 +29,7 @@ def test_copies_match_their_live_files() -> None:
 
 def test_kit_decision_log_passes_the_kit_check() -> None:
     cdl = load(KIT_ROOT / "tools" / "check_decision_log.py", "kit_check_decision_log")
-    assert cdl.check(KIT_ROOT, date(2026, 10, 24)) == []
+    assert cdl.check(KIT_ROOT) == []
 
 
 def test_kit_tools_have_no_placeholders() -> None:

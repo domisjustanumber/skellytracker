@@ -4,8 +4,9 @@ This guide gives the rules that exporters follow when they write sidecars. An ex
 that makes ONNX files and writes their sidecars: OpenMMLab-Exporter, Roboflow-Exporter,
 Ultralytics-Exporter, Qualcomm-Exporter and MediaPipe-Exporter.
 
-The [sidecar spec](../../sidecar-spec.md) is normative. This guide is informative: it tells how to apply
-the spec to a new model. If this guide and the spec do not agree, the spec is correct.
+The [sidecar spec](../../sidecar-spec.md) is normative for the meaning of a sidecar. This guide is
+normative for the workflow: it tells how to apply the spec to a new model. It does not change the
+meaning of the spec. If this guide and the spec do not agree, the spec is correct.
 
 ## How to use this guide
 

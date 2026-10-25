@@ -7,9 +7,13 @@ Usage::
     python tools/check_decision_log.py --new [ROOT]
     python tools/check_decision_log.py --collisions [ROOT]
 
-The tool reads ``notes/decisions/README.md`` under ROOT (default: the current directory). It reports:
+The tool reads the index under ROOT (default: the current directory): the Active and Proposed tables
+of ``notes/decisions/README.md`` and the Historical table of ``notes/decisions/historical.md``. It
+reports:
 
 - an entry file with no index row, and an index row with no entry file;
+- a table in the wrong file, and a row with the wrong number of cells;
+- a Section cell of the Proposed table that is not a section ID in backticks or ``none``;
 - a file name that starts like an entry but has no valid ID;
 - two entry files with one ID, and two index rows with one ID;
 - a link ``[XXXX](YYYY-<slug>.md)`` under ``notes/decisions`` where XXXX is not YYYY;
@@ -18,11 +22,11 @@ The tool reads ``notes/decisions/README.md`` under ROOT (default: the current di
 - a ``superseded by XXXX`` or ``used by XXXX`` that names no decided entry, or that the status line of
   the entry does not link to the file of entry XXXX;
 - a Decision cell over its length limit;
-- a ``proposed`` row in the Active table with a status date more than 183 days old;
 - a file over its size limit.
 
 It prints a warning, but does not fail, when the index, the open work or the read path is at 80% of
-its limit or more. The check reads only the files. It does not run git.
+its limit or more. The read path is ``README.md``, ``open-work.md`` and the Active entries. The
+Proposed and Historical entries are not in it. The check reads only the files. It does not run git.
 
 An ID has 4 characters from ``ALPHABET``, Crockford base32 in lower case. A new ID starts with a
 letter. An all-digit ID belongs only to an entry that had that number before random IDs (decision
@@ -62,12 +66,13 @@ import time
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import date
 from pathlib import Path
 
 LOG_DIR = Path("notes") / "decisions"
 OPEN_WORK = "open-work.md"
-NOT_ENTRIES = {"README.md", OPEN_WORK}
+HISTORICAL = "historical.md"
+TEMPLATE = "template.md"
+NOT_ENTRIES = {"README.md", OPEN_WORK, HISTORICAL, TEMPLATE}
 TARGET_BRANCH = "main"  # Step 3 of the kit guide sets the branch that PRs target.
 SKIPPED_BRANCHES = "refs/heads/backup/"
 
@@ -78,7 +83,6 @@ READ_PATH_LIMIT = 220_000
 LAST_UNLIMITED_ENTRY = 0
 WARN_FRACTION = 0.8
 DECISION_CELL_LIMIT = 160
-DEFER_AFTER_DAYS = 183
 
 LETTERS = "abcdefghjkmnpqrstvwxyz"
 ALPHABET = "0123456789" + LETTERS
@@ -86,25 +90,25 @@ ID = r"(?:\d{4}|[" + LETTERS + "][" + ALPHABET + r"]{3})"
 
 ABSORBED = r"absorbed into (?:\[[^\]]+\]\([^)\s]+\)|`[^`]+`)"
 STATUS_FORMS = {
-    "Active": ("proposed", "accepted", "evidence"),
-    "Deferred": ("proposed",),
+    "Active": ("accepted", "evidence"),
+    "Proposed": ("proposed",),
     "Historical": (
         rf"evidence; used by ({ID})",
         "rejected",
         rf"superseded by ({ID})",
         ABSORBED,
+        "done",
     ),
 }
+TABLE_FILES = {"Active": "README.md", "Proposed": "README.md", "Historical": HISTORICAL}
+SECTION = re.compile(r"`[a-z][a-z0-9_]*(?:\.[a-z0-9_]+)*`|none")
 NOT_DECIDED = ("proposed", "rejected")
 
 ENTRY_NAME = re.compile(rf"^({ID})-([a-z0-9-]+)\.md$")
 ENTRY_LIKE = re.compile(r"^[0-9a-z]{4}-.*\.md$")
-TABLE_HEADING = re.compile(r"^### (Active|Deferred|Historical)\s*$")
-INDEX_ROW = re.compile(
-    rf"^\| \[({ID})\]\((({ID})-[a-z0-9-]+\.md)\) \| (.+) \| (.+?) \|\s*$"
-)
+TABLE_HEADING = re.compile(r"^### (\w+)\s*$")
+ROW_LINK = re.compile(rf"^\[({ID})\]\((({ID})-[a-z0-9-]+\.md)\)$")
 STATUS_LINE = re.compile(r"^\*\*Status:\*\*(.*)$", re.MULTILINE)
-DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 ENTRY_LINK = re.compile(
     rf"\[({ID})\]\((?:[^)\s]*/)?(({ID})-[a-z0-9-]+\.md)(?:#[^)\s]*)?\)"
 )
@@ -120,6 +124,12 @@ class IndexRow:
     status: str
     table: str
     line: int
+    source: str = "README.md"
+    section: str = ""
+
+    @property
+    def where(self) -> str:
+        return f"{self.source}:{self.line}"
 
 
 def size(path: Path) -> int:
@@ -127,32 +137,49 @@ def size(path: Path) -> int:
     return len(path.read_text(encoding="utf-8").replace("\r\n", "\n"))
 
 
-def index_rows(index: Path) -> list[IndexRow]:
-    """The entry rows of the Active, Deferred and Historical tables, in file order."""
-    rows = []
+def table_rows(path: Path) -> tuple[list[IndexRow], list[str]]:
+    """The entry rows of each `### <table>` heading in `path`, in file order, and the format errors."""
+    rows: list[IndexRow] = []
+    errors: list[str] = []
+    if not path.exists():
+        return rows, errors
     table = ""
-    for number, text in enumerate(
-        index.read_text(encoding="utf-8").splitlines(), start=1
-    ):
+    for number, text in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         if text.startswith("## "):
             table = ""
         heading = TABLE_HEADING.match(text)
         if heading:
             table = heading.group(1)
+            if TABLE_FILES.get(table, path.name) != path.name:
+                errors.append(f"{path.name}:{number}: the {table} table must be in {TABLE_FILES[table]}")
             continue
-        row = INDEX_ROW.match(text)
-        if row and table:
-            rows.append(
-                IndexRow(
-                    row.group(1),
-                    row.group(2),
-                    row.group(4).strip(),
-                    row.group(5).strip(),
-                    table,
-                    number,
-                )
+        if not (table and text.startswith("| [")):
+            continue
+        cells = [c.strip() for c in text.strip().strip("|").split("|")]
+        link = ROW_LINK.match(cells[0])
+        width = 4 if table == "Proposed" else 3
+        if link is None or len(cells) != width:
+            errors.append(f"{path.name}:{number}: a {table} row has the cells | # | Decision | "
+                          + ("Section | " if width == 4 else "") + "Status |")
+            continue
+        rows.append(
+            IndexRow(
+                link.group(1),
+                link.group(2),
+                cells[1],
+                cells[-1],
+                table,
+                number,
+                path.name,
+                cells[2] if width == 4 else "",
             )
-    return rows
+        )
+    return rows, errors
+
+
+def index_rows(log_dir: Path) -> list[IndexRow]:
+    """The rows of README.md (Active, Proposed) and historical.md (Historical), in file order."""
+    return table_rows(log_dir / "README.md")[0] + table_rows(log_dir / HISTORICAL)[0]
 
 
 def entry_files(log_dir: Path) -> dict[str, Path]:
@@ -177,7 +204,7 @@ def status_match(status: str, table: str) -> re.Match[str] | None:
 
 
 def status_errors(r: IndexRow, by_id: dict[str, IndexRow]) -> list[str]:
-    where = f"README.md:{r.line}"
+    where = r.where
     match = status_match(r.status, r.table)
     if match is None:
         tables = [t for t in STATUS_FORMS if status_match(r.status, t)]
@@ -192,6 +219,10 @@ def status_errors(r: IndexRow, by_id: dict[str, IndexRow]) -> list[str]:
             errors.append(f"{where}: status {r.status!r} names no other indexed entry")
         elif named.status.startswith(NOT_DECIDED):
             errors.append(f"{where}: status {r.status!r} names an entry that is {named.status!r}")
+    if r.table == "Proposed" and not SECTION.fullmatch(r.section):
+        errors.append(
+            f"{where}: Section cell {r.section!r} is not a section ID in backticks or `none`"
+        )
     if len(r.decision) > DECISION_CELL_LIMIT:
         errors.append(
             f"{where}: Decision cell has {len(r.decision)} characters, limit {DECISION_CELL_LIMIT}"
@@ -234,9 +265,7 @@ def id_errors(log_dir: Path, rows: list[IndexRow], files: dict[str, Path]) -> li
     first_row: dict[str, IndexRow] = {}
     for r in rows:
         if r.id in first_row:
-            errors.append(
-                f"README.md:{r.line}: ID {r.id} is also in README.md:{first_row[r.id].line}"
-            )
+            errors.append(f"{r.where}: ID {r.id} is also in {first_row[r.id].where}")
         else:
             first_row[r.id] = r
     for path in sorted(log_dir.rglob("*.md")):
@@ -257,23 +286,6 @@ def id_errors(log_dir: Path, rows: list[IndexRow], files: dict[str, Path]) -> li
                 f"{name}: heading ID {heading.group(1)} does not match the file name"
             )
     return errors
-
-
-def deferral_errors(r: IndexRow, path: Path, today: date) -> list[str]:
-    """A proposed row in Active must have a status date at most DEFER_AFTER_DAYS old."""
-    if r.table != "Active" or r.status != "proposed":
-        return []
-    line = STATUS_LINE.search(path.read_text(encoding="utf-8"))
-    dates = DATE.findall(line.group(1)) if line else []
-    if not dates:
-        return [f"{r.filename}: the status line has no date"]
-    latest = max(date.fromisoformat(d) for d in dates)
-    if (today - latest).days > DEFER_AFTER_DAYS:
-        return [
-            f"README.md:{r.line}: proposed since {latest}, more than {DEFER_AFTER_DAYS} days: "
-            "move the row to the Deferred table"
-        ]
-    return []
 
 
 def unlimited(name: str, path: Path) -> bool:
@@ -297,15 +309,16 @@ def sizes(root: Path) -> list[tuple[str, int, int]]:
     return found
 
 
-def check(root: Path, today: date | None = None) -> list[str]:
-    today = today or date.today()
+def check(root: Path) -> list[str]:
     log_dir = root / LOG_DIR
-    index = log_dir / "README.md"
-    rows = index_rows(index)
+    rows, errors = table_rows(log_dir / "README.md")
+    historical, more = table_rows(log_dir / HISTORICAL)
+    rows += historical
+    errors += more
     files = entry_files(log_dir)
     by_id = {r.id: r for r in rows}
     listed = [r.filename for r in rows]
-    errors = [
+    errors += [
         f"{name}: {listed.count(name)} index rows, expected 1"
         for name in files
         if listed.count(name) != 1
@@ -313,11 +326,10 @@ def check(root: Path, today: date | None = None) -> list[str]:
     errors.extend(id_errors(log_dir, rows, files))
     for r in rows:
         if r.filename not in files:
-            errors.append(f"README.md:{r.line}: row links to missing file {r.filename}")
+            errors.append(f"{r.where}: row links to missing file {r.filename}")
             continue
         errors.extend(status_errors(r, by_id))
         errors.extend(status_link_errors(r, by_id, files[r.filename]))
-        errors.extend(deferral_errors(r, files[r.filename], today))
     errors.extend(
         f"{label}: {used} characters, limit {limit}"
         for label, used, limit in sizes(root)
@@ -342,7 +354,7 @@ def read_path_size(root: Path) -> int:
     """Characters in the index, the open work and every Active entry: the part that agents read."""
     log_dir = root / LOG_DIR
     files = entry_files(log_dir)
-    rows = index_rows(log_dir / "README.md")
+    rows = index_rows(log_dir)
     open_work = log_dir / OPEN_WORK
     return (
         size(log_dir / "README.md")

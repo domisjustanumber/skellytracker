@@ -1,0 +1,47 @@
+# Decision log: entry template
+
+Use this template for a new entry. The [Rules](README.md#rules) of the index apply. This file is not
+in the read path: read it when you write an entry.
+
+The file name is `<id>-<short-slug>.md`. Get `<id>` from
+`uv run python tools/check_decision_log.py --new`.
+
+```markdown
+# <id> — <title>
+
+**Status:** <proposed | accepted | evidence>, <YYYY-MM-DD> (<source>).
+**Depends on:** <repo> XXXX (<status> on YYYY-MM-DD), <permalink>
+
+## Decision
+
+## Reason
+
+## Consequences
+
+## Evidence
+
+## Alternatives rejected
+
+## Not repeated
+
+## Open work
+```
+
+- **Status.** `accepted` is a decision. `evidence` is a measurement. `proposed` is a spec change
+  proposal or a gap record that waits for a decision. A later status change sets `rejected`,
+  `superseded by XXXX`, `absorbed into <path>#<anchor>`, `evidence; used by XXXX` or `done` (see the
+  [Rules](README.md#rules)). The source says who decided or where the entry comes from, for example
+  "user" or "backfilled from #81".
+- **Depends on.** Optional. Write it only when the entry waits for a decision of another repo. Use a
+  permalink that pins a full SHA on the default branch of that repo.
+- **Decision.** What is decided, written so that a reader can apply it.
+- **Reason.** Why. Each entry gives its own reasons.
+- **Consequences.** Optional. What becomes harder, what must change later and what the decision
+  costs.
+- **Evidence.** Write this section only when there is evidence: measurements with their tool, its
+  version and the script in `notes/decisions/scripts/`, or code facts with their file and function.
+- **Alternatives rejected.** The options that were examined and not used, with the reason for each.
+  Omit the section when there are none.
+- **Not repeated.** Pitfalls already found. Omit the section when there are none.
+- **Open work.** Optional. Write only a link to [open-work.md](open-work.md). Put the open-work items
+  in that file, not in the entry.

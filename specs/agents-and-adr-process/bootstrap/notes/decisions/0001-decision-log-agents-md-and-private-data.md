@@ -5,7 +5,8 @@
 ## Decision
 
 1. **Decision log.** This repo keeps its decisions in `notes/decisions/`. The [index](README.md) has
-   the Active, Deferred and Historical tables, the rules and the entry template.
+   the Active and Proposed tables and the rules. [`historical.md`](historical.md) has the
+   Historical table. [`template.md`](template.md) has the entry template.
    [`open-work.md`](open-work.md) has the open work. A decision that code or a document refers to
    must be in an entry.
 2. **One instructions file.** [`AGENTS.md`](../../AGENTS.md) is the single instructions file for
@@ -15,7 +16,7 @@
 3. **`plans/`.** `plans/` is a local working folder. Git ignores it. Do not commit it. A tracked file
    does not link to `plans/` and does not cite its sections, item numbers or local PR labels.
 4. **Log rules.** The [Rules](README.md#rules) of the index apply: allowed edits only, complete
-   supersession, status forms, Deferred proposals after 183 days, absorption, consolidation,
+   supersession, status forms, Proposed entries off the read path, absorption, `done`, consolidation,
    permalinks and the size limits. `tools/check_decision_log.py` checks the index and the limits.
 5. **Private data.** [`AGENTS.md`](../../AGENTS.md#8-private-data) gives the rule.
    `tools/check_private_data.py` checks the tracked files. The pre-commit hook and the workflow

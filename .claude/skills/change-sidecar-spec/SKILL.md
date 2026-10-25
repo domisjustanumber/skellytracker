@@ -90,7 +90,8 @@ Do this procedure for step 2 of phase 3.
    Remove the formula version of that section from the generator.
 9. Write the vectors with `uv run python tools/make_vectors.py`. Do not edit a vector file by hand.
 10. Change the status line of the decision entry from `proposed` to `accepted`. Write the date and the
-    PR ([Rules](../../../notes/decisions/README.md#rules)). Set `state: accepted` in the front matter
+    PR ([Rules](../../../notes/decisions/README.md#rules)). Move its row from the Proposed table to
+    the end of the Active table, without the Section cell. Set `state: accepted` in the front matter
     of `proposal.md` and in the proposal index. Write each `proposed` superseding entry of the
     proposal as `accepted`, and supersede its old entry.
 11. If the change corrects an item of the spec-defect list in

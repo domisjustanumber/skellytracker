@@ -1,6 +1,6 @@
 # 0035 — Higher index and read-path limits for the decision log
 
-**Status:** accepted, 2026-10-25 (user).
+**Status:** superseded by [z934](z934-decision-log-index-and-read-path.md), 2026-10-25 (user).
 
 ## Decision
 

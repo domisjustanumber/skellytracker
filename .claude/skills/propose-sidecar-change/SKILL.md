@@ -80,7 +80,7 @@ In skellytracker:
 | skellytracker | `specs/sidecar/proposals/<slug>/proposal.md`: the eight parts in full ([0036](../../../notes/decisions/0036-spec-proposals-folder.md)). |
 | skellytracker | A row in the proposal index [`specs/sidecar/proposals/README.md`](../../../specs/sidecar/proposals/README.md). |
 | skellytracker | `notes/decisions/<id>-<slug>.md`: a short decision entry "Spec change: <slug>", with the status `proposed`. |
-| skellytracker | A row for the entry in the index of [`notes/decisions/README.md`](../../../notes/decisions/README.md), and one line in [`open-work.md`](../../../notes/decisions/open-work.md). |
+| skellytracker | A row for the entry in the Proposed table of [`notes/decisions/README.md`](../../../notes/decisions/README.md), and one line in [`open-work.md`](../../../notes/decisions/open-work.md). |
 
 ## Procedure in an exporter repo
 
@@ -94,9 +94,10 @@ In skellytracker:
 3. Read the table
    [Considered and deliberately not added](../../../specs/sidecar/changelog.md#considered-and-deliberately-not-added).
    If your gap is in it, cite the row in part 1. Give the evidence that a model needs the feature now.
-4. Find the `proposed` entries that cover your rows. Read the index of the
-   [decision log](../../../notes/decisions/README.md). Also read each `proposed` entry that the
-   "Authoring guidance" or the "Implementer guidance" of your sections cites.
+4. Find the `proposed` entries that cover your rows. Read the Proposed table of the
+   [decision log](../../../notes/decisions/README.md#proposed). Read each entry whose Section cell
+   is one of your sections or `none`. Also read each `proposed` entry that the "Authoring
+   guidance" or the "Implementer guidance" of your sections cites.
 5. If a `proposed` entry covers your rows, do not write a competing proposal. Do these steps:
    - Use the slug of the entry as the slug of your proposal.
    - Cite the entry in the header and in part 1.
@@ -166,7 +167,7 @@ In skellytracker:
 1. Read [section 4](../../../AGENTS.md#4-sidecar-rules) and
    [section 5](../../../AGENTS.md#5-decision-log) of `AGENTS.md`.
 2. Read the [Rules](../../../notes/decisions/README.md#rules) and the
-   [Entry template](../../../notes/decisions/README.md#entry-template) of the decision log.
+   [entry template](../../../notes/decisions/template.md) of the decision log.
 3. Read the index of the decision log. If an entry already records the proposal, do not add a second
    entry.
 4. If a `proposed` entry covers the same property as the exporter proposal, read the entry:
@@ -237,10 +238,12 @@ Decision [0036](../../../notes/decisions/0036-spec-proposals-folder.md) gives th
 5. In Reason, give the gap (part 1) in a few sentences. In Evidence, give the parity state (part 5).
    In Open work, write only the link to the open-work list.
 6. Keep the entry inside the entry limit
-   ([0035](../../../notes/decisions/0035-decision-log-limits.md)). The details stay in `proposal.md`.
+   ([z934](../../../notes/decisions/z934-decision-log-index-and-read-path.md)). The details stay in
+   `proposal.md`.
 7. Write the repo name with the ID of an exporter decision, for example "OpenMMLab-Exporter
    0020". Write the entry in ASD-STE100.
-8. Add the entry to the index of the decision log, with the status `proposed`. Add one line to
+8. Add the entry to the Proposed table of the decision log, with the status `proposed`. Its
+   Section cell is the section ID of the proposal in backticks, or `none`. Add one line to
    [`open-work.md`](../../../notes/decisions/open-work.md) with a link to the "Before acceptance"
    heading of `proposal.md`.
 9. If the proposal completes a gap record, edit the gap record. Do not add a new entry. Items 1, 2

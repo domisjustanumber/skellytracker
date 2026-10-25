@@ -59,8 +59,9 @@ Read [`notes/decisions/README.md`](notes/decisions/README.md) and
 instructions.
 The log records decisions and the evidence behind them.
 Then read the Active entries of the index that apply to your task.
-Read a Deferred entry only for work in its area.
-Read a Historical entry only to find the reason for a decision.
+Read a Proposed entry only for work in its section, or when a skill tells you to.
+Read an entry of [`historical.md`](notes/decisions/historical.md) only to find the reason for a
+decision.
 Add one entry for each new decision or measurement.
 An entry has a random ID of 4 characters, for example `k7m2`.
 Before you add an entry, run `git fetch` when you can.
