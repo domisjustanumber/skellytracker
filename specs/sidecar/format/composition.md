@@ -202,6 +202,16 @@ No exporter evidence yet.
 skellytracker (decision 0016):
 
 - The resolver verifies the `sha256` of each `$ref` target and of each `base` target before it parses the target. The package resolver does not do this yet. `_resolve_refs` refuses a `$ref` mapping with a key other than `$ref`, and `_load_and_resolve` refuses a `base` that is not a string. Until the implementation stage adds the hash checks to `resolution.py`, the function `resolve` of `tools/sidecar_refs.py` is the temporary stand-in. It verifies the hashes, removes them from a copy of the tree and calls the unchanged `resolve_sidecar_composition` on the copy. Delete that function when `resolution.py` checks the hashes. Take each hash from the bytes of the file, not from a text-mode read. `parse_sidecar_file` opens the file in text mode, so it does not see a CR character. (skellytracker `skellytracker/core/sidecar/resolution.py` (`_resolve_refs`, `_load_and_resolve`, `parse_sidecar_file`); decision [0016](../../../notes/decisions/0016-sidecar-catalogs.md#reference-hashes), [Tools and line endings](../../../notes/decisions/0016-sidecar-catalogs.md#tools-and-line-endings)) (implementation stage)
+- `tools/sidecar_refs.py` writes and checks the hashes. (skellytracker `tools/sidecar_refs.py`; decision [0016](../../../notes/decisions/0016-sidecar-catalogs.md#tools-and-line-endings))
+  - `--write` works depth first. It writes the hashes inside a fragment before it takes the hash of that fragment.
+  - `--write` writes the `sha256` of an artifact only when the ONNX file is present.
+  - `--write --placeholder` writes the placeholder on an artifact that has no `sha256`. It never replaces a real hash.
+  - `--write --source <name>==<version>` adds `source` when the file has none. It never changes an existing `source`.
+  - `--write` edits only the `sha256` entries and the `source` block as text. It keeps all other bytes. It never loads the YAML and writes it out again.
+  - `--check` verifies each `$ref` hash and each `base` hash. It verifies an ONNX hash only when the ONNX file is present. It reports a CRLF file and a BOM as separate errors. It accepts the placeholder only under `specs/sidecar/examples/`.
+  - The tool uses only the standard library and PyYAML. It does not import `skellytracker`.
+  - The implementation stage moves `--write` and `--check` into the package as a command, with a thin wrapper in `tools/`. (implementation stage)
+- In skellytracker, `.gitattributes` sets `*.yaml`, `*.yml` and `specs/sidecar/TRACEABILITY.md` to `text eol=lf`. A Windows working copy from before that change keeps CRLF. In such a copy, check out the YAML files again before you take a hash. (skellytracker `.gitattributes`)
 
 ## Authoring guidance
 

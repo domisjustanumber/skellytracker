@@ -1,6 +1,6 @@
 # 0006 — The YOLOX sidecar describes the native ONNX contract
 
-**Status:** accepted, 2026-10-22 (backfilled from #81;
+**Status:** absorbed into [`format/versioning.md#implementer-guidance`](../../specs/sidecar/format/versioning.md#implementer-guidance), 2026-10-25 (user; the absorption review).
 [specs/sidecar-implementation-plan.md](../../specs/sidecar-implementation-plan.md#key-decisions), "Key decisions" item 5).
 
 ## Decision

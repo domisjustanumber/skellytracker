@@ -1,6 +1,6 @@
 # 0005 — RTMW moved to `keypoint_detectors/rtmw/` with import shims
 
-**Status:** accepted, 2026-10-22 (backfilled from #81;
+**Status:** absorbed into [`AGENTS.md#1-purpose`](../../AGENTS.md#1-purpose), 2026-10-25 (user; the absorption review).
 [specs/sidecar-implementation-plan.md](../../specs/sidecar-implementation-plan.md#key-decisions), "Key decisions" item 4).
 
 ## Decision

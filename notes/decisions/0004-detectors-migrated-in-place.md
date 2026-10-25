@@ -1,6 +1,6 @@
 # 0004 — Detectors migrated to sidecars in place; registry keys unchanged
 
-**Status:** accepted, 2026-10-22 (backfilled from #81).
+**Status:** absorbed into [`AGENTS.md#1-purpose`](../../AGENTS.md#1-purpose), 2026-10-25 (user; the absorption review).
 
 ## Decision
 

@@ -1,6 +1,6 @@
 # 0007 — Generic pre- and post-processing live in `core/detectors/processing/`
 
-**Status:** accepted, 2026-10-22 (backfilled from #81; `specs/sidecar-implementation-plan.md`, the
+**Status:** absorbed into [`AGENTS.md#1-purpose`](../../AGENTS.md#1-purpose), 2026-10-25 (user; the absorption review).
 cleanup in [M3](../../specs/sidecar-implementation-plan.md#m3--yolox-migration), then
 [M4c](../../specs/sidecar-implementation-plan.md#m4c--consolidate-generic-preprocessingdecode-helpers) and
 [M4d](../../specs/sidecar-implementation-plan.md#m4d--group-generic-prepost-processing-under-coredetectorsprocessing)).

@@ -91,6 +91,12 @@ The sidecar paths in this table are under `skellytracker/core/detectors/`.
 `PrecomputedObjectDetector` (`object_detectors/precomputed/`) is not in a registry.
 The key `rtmpose` runs RTMW (decisions [0004](notes/decisions/0004-detectors-migrated-in-place.md)
 and [0005](notes/decisions/0005-rtmw-moved-to-rtmw-family.md)).
+Do not change a `detector_type` string. Configs and callers select a detector with it.
+A `detector_type` key is not a catalog key. The catalog keeps each key as an alias of
+`<model_id>@skellytracker` ([Versioning](specs/sidecar/format/versioning.md#implementer-guidance)).
+Shim modules under `keypoint_detectors/rtmpose/` give the RTMW detector its old names
+`RTMPoseDetectorConfig`, `RTMPoseKeypointDetector` and `RTMPOSE_MODEL_SPECS`. Do not remove a shim
+while a file imports its path.
 All five package sidecars have `schema_version: "v2024.09.1019"`.
 
 ONNX Runtime:
@@ -112,6 +118,18 @@ Code conventions:
 - Configs are Pydantic `BaseModel` subclasses. Trackers, stages and detectors are `@dataclass` classes.
 - `black` and `isort` would change most package files. Do not run `black` or `isort` on the
   package. Do not reformat lines that your change does not need.
+- Do not import the `keypoint_detectors.rtmpose` package at module level in
+  `rtmw_wholebody_detector.py`. The shims import that module, so the import makes a cycle.
+- Put generic processing code in `skellytracker/core/detectors/processing/`. Generic code prepares an
+  image or decodes a model output for more than one model family. Import the specific module.
+  `processing/__init__.py` re-exports nothing.
+- Keep the code of one model family in the folder of that family. For example, the YOLOX anchor-grid
+  decode and `yolox_detection_decode` stay in `object_detectors/yolox/yolox_decode.py`.
+- Keep `core/detectors/overlay_groups.py` outside `processing/`. It groups skeleton connections for
+  annotation.
+- Keep only the code that parses and resolves sidecars in `core/sidecar/`. `runtime.py` holds only
+  `sidecar_model_spec`.
+- Do not write migration history in a docstring. Write it in a decision entry or a commit message.
 
 ## 2. Skills
 

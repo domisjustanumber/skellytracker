@@ -1,6 +1,6 @@
 # 0003 — `tracked_points` are in native model output order
 
-**Status:** accepted, 2026-10-22 (backfilled from #81).
+**Status:** absorbed into [`post/pose-schema.md#posetracked_points`](../../specs/sidecar/post/pose-schema.md#posetracked_points), 2026-10-25 (user; the absorption review).
 
 ## Decision
 

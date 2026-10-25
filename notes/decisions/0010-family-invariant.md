@@ -1,6 +1,6 @@
 # 0010 — Family invariant: a size sets only its shape, target size and artifacts
 
-**Status:** accepted, 2026-10-22 (backfilled from #81).
+**Status:** absorbed into [`common/sizes-and-artifacts.md#sizes`](../../specs/sidecar/common/sizes-and-artifacts.md#sizes), 2026-10-25 (user; the absorption review).
 
 ## Decision
 

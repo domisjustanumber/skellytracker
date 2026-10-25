@@ -1,6 +1,6 @@
 # 0002 — Sidecars are tracked in the package tree; ONNX files are not
 
-**Status:** accepted, 2026-10-22 (backfilled from #81).
+**Status:** absorbed into [`common/sizes-and-artifacts.md#implementer-guidance`](../../specs/sidecar/common/sizes-and-artifacts.md#implementer-guidance), 2026-10-25 (user; the absorption review).
 
 ## Decision
 

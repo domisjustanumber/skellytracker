@@ -1,6 +1,6 @@
 # 0016 — Sidecar catalogs: source, reference hashes, roots, discovery and the capability check
 
-**Status:** accepted, 2026-10-22 (user).
+**Status:** absorbed into [`sidecar/README.md#section-map`](../../specs/sidecar/README.md#section-map), 2026-10-25 (user; the absorption review).
 
 This decision is accepted before its spec text and its code exist. A later content change adds
 the normative text to the spec. Implementer guidance follows that change. The code waits for the

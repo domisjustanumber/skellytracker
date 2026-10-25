@@ -109,12 +109,14 @@ Repository state, not code work ([gtwq](gtwq-random-entry-ids.md)):
 - On 2026-10-22, the workflow runs on `freemocap/skellytracker` end in `startup_failure`.
 - `specs/sidecar/post/canonical-mapping.md` links to the VRM specification by the branch `master`. A
   rewording PR must pin the two links to a commit.
-- **Absorption gaps.** The first review of [0029](0029-decision-log-read-path.md) (2026-10-24)
-  absorbed 0009 and 0012. The review of 2026-10-25 absorbed 0014 into the exporter guide and 0013
-  into the skill `change-sidecar-spec`. Entries 0002 to 0008, 0010, 0011 and 0016 stay Active, because each one has rules that only the entry
-  states. 0010 has one gap: no body sentence tells a host that `resolved_size` does not check a size
-  entry. 0016 has ten gaps, for example the behaviour of `tools/sidecar_refs.py --write`. When a PR
-  states such a rule in a normative document, examine the entry again.
+- **Absorption gaps.** The reviews of 2026-10-24 and 2026-10-25 absorbed every accepted entry except
+  [0008](0008-vnext-scope.md) and [0011](0011-rtmdet-host-nms.md). The proposals 0042 and 0048
+  supersede 0008, and 0041 supersedes 0011, on acceptance. An absorbed entry cannot be superseded, so
+  these two stay Active until the user decides the proposals. If the user rejects them, absorb 0008
+  into `specs/sidecar/changelog.md#considered-and-deliberately-not-added` and 0011 into
+  `specs/sidecar/post/selection-nms.md#authoring-guidance`. Close their gaps first: Qualcomm-Exporter
+  is out of the `vNEXT` scope until its library is complete (0008), and the `-1` row axis of the RTMDet
+  `boxes` and `scores` shapes takes its value from `output_shapes` (0011).
 - **Old mirror numbers.** [0028](0028-entry-edits-and-citations.md) and
   [0029](0029-decision-log-read-path.md) name "OpenMMLab-Exporter 0040 (planned)".
   [0030](0030-no-private-data.md) names "OpenMMLab-Exporter 0041 (planned)". On 2026-10-24, these
