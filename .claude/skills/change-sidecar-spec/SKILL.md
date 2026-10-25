@@ -151,6 +151,20 @@ user accepts the proposal.
 
 ## Rules for each spec edit
 
+### Spec structure
+
+- Each section file under `specs/sidecar/` holds one contract unit: a part of the spec that has its
+  own algorithm or its own implementing function.
+- `specs/sidecar-spec.md` is the permanent entry point. It is a short index. It keeps each old heading
+  as an anchor with a link to the new file, so an old link such as `specs/sidecar-spec.md#inputresize`
+  still goes to the correct text.
+- `specs/sidecar/` holds `README.md` (the section map, the reading order, the section-ID index and the
+  terms), `TRACEABILITY.md` (generated), `inventory.yaml`, `changelog.md`, `format/`, `common/`,
+  `pre/`, `post/`, `examples/detectors/`, `vectors/<section-id>.yaml`,
+  `reference/<section_module>.py` and `templates/`. The exporter guide is in
+  `specs/exporter-guide/sidecars/`. `notes/sidecar-exporter-coverage.md` is the evidence for `vNEXT`.
+  It is not spec text.
+
 ### One algorithm in one place
 
 - Write each algorithm in one section only.
@@ -171,8 +185,26 @@ user accepts the proposal.
 
 ### Front matter
 
-- Use the fields of [Section anatomy](../../../notes/decisions/0013-spec-structure.md#section-anatomy).
-  The doc tests in `tools/tests/test_traceability.py` check them.
+- Each section file starts with YAML front matter with these fields. The doc tests in
+  `tools/tests/test_traceability.py` check them.
+
+  | Field | Meaning |
+  |-------|---------|
+  | `id` | The stable section ID. |
+  | `title` | The section title. |
+  | `kind` | `format`, `common`, `preprocessor`, `postprocessor` or `schema`. |
+  | `since` | The `schema_version` that added the section. |
+  | `changed_in` | Each `schema_version` that changed the meaning of the section. |
+  | `selectors` | The `key=value` pairs of a resolved sidecar that select the section, for example `input.resize.method=letterbox`. `format` and `common` sections apply to every sidecar. |
+  | `implemented_by` | The skellytracker functions, as `path::symbol`, under `validate`, `forward` and `inverse`. A part with no function is `missing`. |
+  | `external_impl` | Exporter host functions that implement the section. It stays empty until an exporter contributes. |
+  | `tests` | The skellytracker test files for the section. |
+  | `vectors` | The test vector file of the section. |
+  | `status` | One value for each of `spec`, `validate`, `forward` and `inverse`, for example `stable`, `partial` or `missing`. A part is `implemented` only when its vectors pass. |
+
+- The body has these headings, in this order: Fields, Behaviour (the forward algorithm and its exact
+  inverse), Validation rules, Legacy behaviour (`schema_version < vNEXT`), Implementer guidance,
+  Authoring guidance, Examples. The first four are normative. The last three are informative.
 - For a new section, set `since` to the version of the change (`vNEXT` in the spec-build stage). Set
   `external_impl: []`. Set each step of `implemented_by` to `missing`. Set each step of `status` to
   `missing`.
@@ -204,6 +236,29 @@ user accepts the proposal.
 
 ### Examples and vectors
 
+- The reference examples belong to the spec. The doc tests check them against the rules of the spec.
+- Each example is a file under `specs/sidecar/examples/`, in the `detectors/` layout of the package,
+  so that `$ref` paths resolve. The examples use copies of the shared skeleton fragments, under
+  `specs/sidecar/examples/detectors/shared/skeletons/`.
+- Each example has a provenance entry in `specs/sidecar/inventory.yaml`: its source, the exporter, the
+  path of the exporter copy, its `kind`, whether git tracks that copy, the exporter commit of the code
+  that writes it, and the edits made to the copy. `kind: export` is a copy of exporter output.
+  `kind: forecast` is written from exporter code before the exporter writes that sidecar.
+- `inventory.yaml` is docs only. skellytracker does not read it at run time. It is not the index of a
+  remote sidecar folder. It holds only the data that a scan cannot find: the provenance of each
+  example and the `proposed` models.
+- A test vector is a small worked case: concrete inputs to the algorithm of one section, and the exact
+  expected output. There is one file for each section ID in `specs/sidecar/vectors/`. A file holds
+  numbers only: no images and no ONNX files.
+- Vectors are informative. Vector cases are geometry and small arrays. Pixel-exact resize output is
+  out of scope, because it depends on OpenCV internals. A pixel case, if one is necessary, states a
+  tolerance.
+- Each vector file has `verified_against`, the list of the independent implementations that gave the
+  same results, or `unverified: <reason>`. A reference implementation and its source exporter count as
+  one implementation. A vector is fully verified when two independent implementations agree: two
+  exporters, or an exporter and skellytracker.
+- `tools/make_vectors.py` computes the vectors from the normative formulas. When a section has a
+  reference implementation, the generator calls it instead.
 - A content change updates the vectors of its section in the same PR.
 - A vector that does not agree with the normative text is a spec defect. Correct the text or the
   generator in a content PR.
@@ -211,6 +266,20 @@ user accepts the proposal.
 - Do not correct an example by hand. If the change makes an example invalid, list the example and its
   exporter in the PR body. The exporter regenerates the sidecar. Then procedure A replaces the
   example.
+
+### Reference implementations
+
+- A reference implementation is informative spec code. It is the smallest function that implements
+  exactly the text of one section. It uses only NumPy, OpenCV and the Python standard library. It has
+  no import from an exporter or from `skellytracker`. There is one function for each algorithm. Its
+  docstring cites the section ID.
+- The file is `specs/sidecar/reference/<section_module>.py`. `<section_module>` is the section ID with
+  each dot replaced by an underscore, for example `pre_resize_letterbox`.
+- Only two things add a reference implementation: an accepted proposal (procedure B), and an exporter
+  that implements a section on its host side and contributes it (procedure C).
+- When the host code of an exporter and an existing reference disagree, the exporter writes a
+  proposal. It does not write a second reference.
+- `tools/tests` runs each reference function against the vectors of its section.
 
 ### Impact
 
@@ -222,6 +291,20 @@ user accepts the proposal.
 3. Name each exporter that must regenerate its sidecars.
 4. Regenerate the traceability matrix with `uv run python tools/sidecar_trace.py matrix`. Do not edit
    `specs/sidecar/TRACEABILITY.md` by hand.
+
+The trace tool scans two roots for sidecars: `skellytracker/core/detectors/` and
+`specs/sidecar/examples/`. It uses the discovery rule of
+[`format.file_layout`](../../../specs/sidecar/format/file-layout.md#discovery). It keys each sidecar as
+`<model_id>@<source>`, because one `model_id` can have two sources, and it resolves composition with
+`resolve_sidecar_composition`. It normalizes each resolved sidecar with the spec defaults and the
+derivations from legacy fields, and it matches the sidecar against the `selectors` of each section.
+The normalization and the selector matching are pure functions on the resolved dict. In the
+implementation stage, they move into `skellytracker/core/sidecar/` without changes.
+`TRACEABILITY.md` gives: model against section; section to skellytracker functions to tests; section
+to exporter functions; and the `status` of each section. Each `implemented_by` entry that is
+`missing` is backlog of the implementation stage. `sidecar_trace.py examples` compares each example
+with its exporter copy through a sibling checkout. It writes to standard output only. CI does not run
+it.
 
 ### Guidance
 
@@ -236,12 +319,27 @@ user accepts the proposal.
 Do these checks for each reworded section file
 ([Rewrite in Simplified Technical English](../../../notes/decisions/0013-spec-structure.md#rewrite-in-simplified-technical-english)):
 
-1. Run `uv run python tools/check_ste_tokens.py --rev <REV> <FILE>`. The user must approve each
-   difference. Put the approved differences in an `--allow` file.
-2. Get a claims list from two agents in new contexts. Neither agent is the rewriter.
-3. Get a claims check from a third agent in a new context.
-4. Get a clarity probe from a fourth agent in a new context, with questions from the vectors.
-5. Put the claims tables and the probe results in the PR body.
+1. Run `uv run python tools/check_ste_tokens.py --rev <REV> <FILE>`. It lists each change of the
+   multiset of inline-code tokens, numbers, code blocks and the field, type and default cells of the
+   tables. The reviewing session must approve each difference. Put the approved differences in an
+   `--allow` file.
+2. Get a claims list from two agents in new contexts. Neither agent is the rewriter. Each agent lists
+   the normative claims of the old text: requirements, defaults, conditions, enums, algorithm steps
+   and exceptions. The claims list is the union of the two lists. Each validation rule with an ID is
+   also a claim.
+3. Get a claims check from a third agent in a new context. For each claim, it quotes the sentence of
+   the new text that states it, with a verdict: `same`, `changed` or `missing`. Then it lists the
+   claims of the new text that the old text does not make. The reviewing session decides each item
+   that is not `same`.
+4. Get a clarity probe from a fourth agent in a new context. It reads only the new text, and it
+   answers questions with exact answers from the vectors. Each answer must be correct. Rewrite the
+   unclear text that causes a wrong answer. Ask the old text the same questions. Its wrong answers are
+   clarity defects that the rewrite must correct.
+5. Put the claims tables, the approved token differences and the probe results in the PR body.
+
+Reword after the split and the tools, with one commit for each batch of sections. A lint for sentence
+length and passive voice gives advice only. Do not reword the existing changelog rows, the YAML of
+`examples/` and `vectors/`, or quoted upstream code.
 
 ### Simplified Technical English
 
@@ -258,6 +356,24 @@ Do these checks for each reworded section file
 - Do not change an exporter repo.
 
 ## Checks
+
+The doc tests in `tools/tests/` run in CI: `pyproject.toml` lists `tools/tests` in `testpaths`, and
+the lint workflow checks `tools/` and `specs/sidecar/reference/`. They check these items:
+
+- The front matter is valid. Section IDs and rule IDs are unique. Each rule has one owner.
+- Each `implemented_by` path and symbol exists, or is `missing`. A PR that moves or renames a function
+  named by `implemented_by` updates the front matter and `TRACEABILITY.md` in the same PR.
+- The selectors of the sections cover each `Literal` value in `skellytracker/core/sidecar/model.py`
+  for `resize.method`, `normalization`, `semantic` and `pose.decode.method`.
+- Each relative link in `AGENTS.md`, `specs/` and `notes/` resolves, with its `#anchor`.
+- Each skeleton copy in the examples equals its package copy, and at least one example refers to it.
+- `TRACEABILITY.md` equals a new generation, with line endings normalized.
+- Each example parses and resolves. Each example has a provenance entry, and each entry names an
+  existing example.
+- Each vector file has `verified_against` or `unverified`.
+- After the spec defines the hashes, `tools/sidecar_refs.py --check` passes on every example.
+- Each spec citation in a code docstring (`specs/sidecar-spec.md, "<heading>"`) names a heading that
+  the permanent index still has.
 
 Run these commands before each PR. Each command must pass.
 

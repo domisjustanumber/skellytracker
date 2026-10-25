@@ -33,7 +33,6 @@ These entries are `accepted` or `evidence`.
 | [0008](0008-vnext-scope.md) | `vNEXT` scope, and the features considered and not added | accepted |
 | [0010](0010-family-invariant.md) | Family invariant: a size sets only its shape, target size and artifacts | accepted |
 | [0011](0011-rtmdet-host-nms.md) | RTMDet: NMS-free graph with host `selection: nms`; no `pre_nms_top_k` | accepted |
-| [0013](0013-spec-structure.md) | Spec structure: section files, rule owners, examples, reference implementations, traceability, STE | accepted |
 | [0016](0016-sidecar-catalogs.md) | Sidecar catalogs: source, reference hashes, roots, discovery and the capability check | accepted |
 
 ### Proposed

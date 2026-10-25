@@ -1,6 +1,6 @@
 # 0013 — Spec structure: section files, rule owners, examples, reference implementations, traceability, STE
 
-**Status:** accepted, 2026-10-22 (user).
+**Status:** absorbed into [`change-sidecar-spec/SKILL.md#rules-for-each-spec-edit`](../../.claude/skills/change-sidecar-spec/SKILL.md#rules-for-each-spec-edit), 2026-10-25 (user; the absorption review).
 
 The spec is still one file, [`specs/sidecar-spec.md`](../../specs/sidecar-spec.md). This entry records
 the structure that the split into section files makes. The split is a move change, and the rewrite in

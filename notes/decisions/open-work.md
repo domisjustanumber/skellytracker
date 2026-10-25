@@ -110,8 +110,8 @@ Repository state, not code work ([gtwq](gtwq-random-entry-ids.md)):
 - `specs/sidecar/post/canonical-mapping.md` links to the VRM specification by the branch `master`. A
   rewording PR must pin the two links to a commit.
 - **Absorption gaps.** The first review of [0029](0029-decision-log-read-path.md) (2026-10-24)
-  absorbed 0009 and 0012. The review of 2026-10-25 absorbed 0014 into the exporter guide. Entries
-  0002 to 0008, 0010, 0011, 0013 and 0016 stay Active, because each one has rules that only the entry
+  absorbed 0009 and 0012. The review of 2026-10-25 absorbed 0014 into the exporter guide and 0013
+  into the skill `change-sidecar-spec`. Entries 0002 to 0008, 0010, 0011 and 0016 stay Active, because each one has rules that only the entry
   states. 0010 has one gap: no body sentence tells a host that `resolved_size` does not check a size
   entry. 0016 has ten gaps, for example the behaviour of `tools/sidecar_refs.py --write`. When a PR
   states such a rule in a normative document, examine the entry again.
