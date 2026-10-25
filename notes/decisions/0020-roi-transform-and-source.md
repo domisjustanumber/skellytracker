@@ -1,12 +1,58 @@
 # 0020 — ROI transform, and a crop that does not come from a detector box
 
 **Status:** proposed, 2026-10-23 (from the exporter evidence of MediaPipe-Exporter and
-Qualcomm-Exporter; plan facts and historical code only).
+Qualcomm-Exporter; plan facts and historical code only); completed 2026-10-25 (MediaPipe-Exporter
+proposal).
 
 ## Decision
 
-**Proposed, not decided.** This entry is a gap record (see [Rules](README.md#rules)). It does not
-have the eight parts of a proposal.
+**Proposed, not decided.** This entry records the spec change proposal `roi-transform-and-source`.
+The eight parts are in
+[`specs/sidecar/proposals/roi-transform-and-source/proposal.md`](../../specs/sidecar/proposals/roi-transform-and-source/proposal.md).
+
+- **Section:** a new section `pre.resize.rotated_roi_crop` ("Rotated ROI crop", file
+  `specs/sidecar/pre/resize-rotated-roi-crop.md`, kind `preprocessor`). The change also edits
+  `common.input`, `common.sizes_and_artifacts`, `pre.resize.interpolation`, `pre.normalize`,
+  `pre.resize.affine_person_crop`, `post.pose.schema`, `post.unprojection`, `format.versioning`, the
+  templates, the exporter guide and the changelog.
+- **Change:** The new value `input.resize.method: rotated_roi_crop` crops a rotated ROI
+  `(cx, cy, w, h, rotation)` that the host gives, with no box from an object detector.
+  `crop_policy` has an optional `transform` (`shift_x`, `shift_y`, `square_long`, `scale`), a
+  required `maintain_aspect_ratio` and a required `border_mode` (`constant` with `pad_value`, or
+  `replicate`). The corners of the ROI map onto the model input with `linear` interpolation only,
+  and the inverse is exact (rules `V-pre.resize.rotated_roi_crop-1` to `-5`). The change also
+  removes `pose.requires_object_detector` at `vNEXT` (changed `V-post.pose.schema-1`,
+  `V-post.pose.schema-2` and `V-pre.resize.affine_person_crop-2`). It makes the keys of an
+  `affine_person_crop` `crop_policy` a closed set (changed `V-common.input-4`).
+- **Version:** `vNEXT`. A sidecar with `schema_version < vNEXT` keeps its legacy meaning. The section
+  states no arithmetic precision. The vectors give the tolerances.
+- **Models:** the MediaPipe Holistic hand branch of MediaPipe-Exporter: the hand landmark model
+  (`mediapipe-hand21`) and the input crop of the hand ROI refinement model (`mediapipe-hand-roi`).
+- **On acceptance:** this entry supersedes no entry. The scope entry
+  [0048](0048-vnext-scope-mediapipe-rotated-crops.md) supersedes [0008](0008-vnext-scope.md). If
+  entry B of `nms-clamp-order` ([0042](0042-vnext-scope-nms-filters.md)) lands first, 0048
+  supersedes 0042 with the variant text in `proposal.md`.
+- **Related:** `roi-refiner-role` ([0047](0047-roi-refiner-role.md)), `landmark-extra-outputs`
+  ([0021](0021-landmark-extra-outputs.md)) and `landmark-depth-divisor`
+  ([0022](0022-landmark-depth-divisor.md)) depend on this proposal. This proposal and 0048 must
+  land first. `model-id-suffix` ([0025](0025-model-id-suffix.md)) gives the `model_id` of the hand
+  landmark model. `affine-crop-arithmetic` ([0037](0037-affine-crop-arithmetic.md)) edits the same
+  text of `pre.resize.affine_person_crop` and `V-common.input-4`. Either one can land first.
+  `nms-clamp-order` ([0041](0041-rtmdet-host-nms-filters.md), [0042](0042-vnext-scope-nms-filters.md))
+  meets this proposal only in the scope entries.
+
+## Reason
+
+No resize method of the spec describes the crop of the MediaPipe hand landmark model. The crop comes
+from a rotated ROI that the host gives, not from a detector box. The pipeline moves, squares and
+scales the ROI, and it fills the border with the edge pixels. The nearest method,
+`affine_person_crop` with `expand_ratio: 2.7`, moves the input corners up to 41.3 px away from the
+rotated crop (38.2 % of the ROI size). The historical `expand_ratio: 1.0` gives up to 56.8 px. These
+numbers come from an uncommitted scratch script of the exporter session, so they are not evidence.
+Parity is `to run`. The parity script of MediaPipe-Exporter does not exist yet, and it cannot get a
+commit while MediaPipe-Exporter has no git repo.
+
+### Gap record (2026-10-23)
 
 Let a top-down pose model take its crop from an ROI that does not come
 from an object detector, and let its sidecar declare the transform of that ROI. The proposal has
@@ -22,8 +68,6 @@ and a committed parity script. This proposal depends on rotated crops (the chang
 `crop_policy.border_mode, rotated crops`) and on the ROI refiner gap. The decision must also say
 whether the change goes into `vNEXT` or into a later revision, because the `vNEXT` scope of
 [0008](0008-vnext-scope.md) does not include MediaPipe-Exporter.
-
-## Reason
 
 - The MediaPipe hand landmark model is top-down: it sees one hand in a crop. But the crop does not
   come from a detector box. The pipeline makes a rotated rect from the wrist, index and pinky
@@ -67,3 +111,7 @@ Qualcomm-Exporter hand plan is not tracked.
   host then needs a second contract to make the model input, and the spec cannot check it.
 - **`affine_person_crop` with `expand_ratio`** (the historical Qualcomm-Exporter approximation). It
   has no shift, no `square_long` and no rotation. It is a near-miss.
+
+## Open work
+
+See [Open work](README.md#open-work).

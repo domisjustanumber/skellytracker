@@ -1,12 +1,60 @@
 # 0021 — Pose outputs beside the landmarks: presence, handedness and world landmarks
 
 **Status:** proposed, 2026-10-23 (from the exporter evidence of MediaPipe-Exporter and
-Qualcomm-Exporter; plan facts and historical code only).
+Qualcomm-Exporter; plan facts and historical code only); completed 2026-10-25 (MediaPipe-Exporter proposal).
 
 ## Decision
 
-**Proposed, not decided.** This entry is a gap record (see [Rules](README.md#rules)). It does not
-have the eight parts of a proposal.
+**Proposed, not decided.** This entry records the spec change proposal `landmark-extra-outputs`. The
+eight parts are in
+[`specs/sidecar/proposals/landmark-extra-outputs/proposal.md`](../../specs/sidecar/proposals/landmark-extra-outputs/proposal.md).
+
+- **Section:** a new section `post.pose.extra_outputs` ("Extra pose outputs", file
+  `specs/sidecar/post/pose-extra-outputs.md`, kind `postprocessor`). The change also edits
+  `common.outputs`, `post.pose.schema`, `post.pose.decode.coordinate`, `format.versioning`, the
+  section map, the changelog and the model intake template.
+- **Change:** A model with `pose.estimator_type: top_down_single_person` and
+  `pose.decode.method: coordinate` can declare at most one output of each new `semantic`:
+  `presence`, `binary_class` and `world_keypoints`. A `presence` output declares `activation`
+  (`none` or `sigmoid`) and `score_threshold_default` in `[0, 1)`. The host gives no pose for an
+  item that fails the strict test `p > t`, where `t` is a runtime threshold. A `binary_class` output
+  declares `labels` (the value is the probability of `labels[0]`), and a `world_keypoints` output
+  `[N, K, 3]` declares `unit` (`m` or `mm`) and gets the rotation of the crop ROI. The new rules are
+  `V-post.pose.extra_outputs-1` to `-7`, and the rules `V-common.outputs-4` and
+  `V-post.pose.schema-7` change.
+- **Version:** `vNEXT` (user decision H2 of the proposal). A sidecar with `schema_version < vNEXT`
+  cannot declare the new semantics or their fields. The `vNEXT` scope of
+  [0008](0008-vnext-scope.md) does not include MediaPipe-Exporter. The scope entry
+  `vnext-scope-mediapipe-rotated-crops` ([0048](0048-vnext-scope-mediapipe-rotated-crops.md)) adds
+  it.
+- **Models:** the MediaPipe hand landmark model of MediaPipe-Exporter, `hand_landmark_full` (the
+  size `lite` has the same four outputs), `model_id` `mediapipe-hand21`. The five package sidecars
+  do not change.
+- **On acceptance:** this entry supersedes no entry. Its status changes to `accepted`.
+- **Related:** `roi-transform-and-source` ([0020](0020-roi-transform-and-source.md)) must land
+  first, because step 4 uses the crop ROI `Rc` of `rotated_roi_crop`. The scope entry 0048 must
+  also come first. `landmark-depth-divisor` ([0022](0022-landmark-depth-divisor.md)) changes the
+  same model. `roi-refiner-role` ([0047](0047-roi-refiner-role.md)) uses the same field
+  `score_threshold_default` and the same range. `keypoint-visibility`
+  ([0039](0039-keypoint-visibility.md)) adds per-point values and edits the same single-person form.
+  Other proposals edit the same spec text. The second content PR rebases on the first. The "Before
+  acceptance" heading of the proposal lists them.
+
+## Reason
+
+The spec can describe only the landmarks of the MediaPipe hand landmark model. The closed `semantic`
+set has no value for a presence score, a class probability or world keypoints.
+`V-post.pose.schema-7` allows one `keypoints` output for a `coordinate` decoder. Without the presence
+gate, a host gives landmarks for each crop: 31 of 116 image crops and 101 of 438 video hand-frames
+have no hand in `HolisticLandmarker`. These numbers come from a scratch script with no commit. They
+are not evidence.
+
+The proposal corrects two facts of the gap record below. MediaPipe uses the strict test `> 0.5`
+(`ThresholdingCalculator`), not `>= 0.5`. The handedness value is the probability of label item 0,
+`Right`, not the probability of `Left` for a mirrored image. The proposal is not ready for
+acceptance. Its parity (part 5) is `to run`, and the side that `Right` names has no upstream source.
+
+### Gap record (2026-10-23)
 
 Let a single-person `coordinate` pose model declare three kinds of output
 beside its one `keypoints` output: an instance presence score, an instance class probability and 3D
@@ -23,8 +71,6 @@ these outputs. The field names and the threshold rule come with the full proposa
 committed parity script. The decision must also say whether the change goes into `vNEXT` or into a
 later revision, because the `vNEXT` scope of [0008](0008-vnext-scope.md) does not include
 MediaPipe-Exporter.
-
-## Reason
 
 - A MediaPipe hand landmark model has four outputs: `landmarks [B, 21, 3]`, `hand_score [B]`,
   `handedness [B]` and `world_landmarks [B, 21, 3]` in metres. The spec can describe only the first.
@@ -59,3 +105,7 @@ Qualcomm-Exporter hand plan is not tracked.
 
 - **Drop the extra outputs in an exporter wrapper** (the historical Qualcomm-Exporter approach). The
   host then cannot reject a crop with no hand.
+
+## Open work
+
+See [Open work](README.md#open-work).

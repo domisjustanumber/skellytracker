@@ -97,6 +97,28 @@ stage, no file under `skellytracker/` changes, except test fixes.
 - **Unused module.** `skellytracker/core/detectors/keypoint_detectors/rtmpose/rtmpose_preprocessing.py`
   is tracked, but no module imports it ([0007](0007-generic-processing-package.md)). Remove it.
 
+## Proposals before acceptance
+
+Each recorded spec change proposal ([0036](0036-spec-proposals-folder.md)) lists the work that must be
+done before the user can accept it, under its heading "Before acceptance". The non-spec PR of an
+accepted proposal removes its line (skill `change-sidecar-spec`, procedure B, step 15). The PR that
+rejects a proposal removes its line.
+
+- **`roi-transform-and-source`** ([0020](0020-roi-transform-and-source.md)): see [Before acceptance](../../specs/sidecar/proposals/roi-transform-and-source/proposal.md#before-acceptance).
+- **`landmark-extra-outputs`** ([0021](0021-landmark-extra-outputs.md)): see [Before acceptance](../../specs/sidecar/proposals/landmark-extra-outputs/proposal.md#before-acceptance).
+- **`landmark-depth-divisor`** ([0022](0022-landmark-depth-divisor.md)): see [Before acceptance](../../specs/sidecar/proposals/landmark-depth-divisor/proposal.md#before-acceptance).
+- **`simcc-score-rule`** ([0024](0024-simcc-score-rule.md)): see [Before acceptance](../../specs/sidecar/proposals/simcc-score-rule/proposal.md#before-acceptance).
+- **`model-id-suffix`** ([0025](0025-model-id-suffix.md)): see [Before acceptance](../../specs/sidecar/proposals/model-id-suffix/proposal.md#before-acceptance).
+- **`affine-crop-arithmetic`** ([0037](0037-affine-crop-arithmetic.md)): see [Before acceptance](../../specs/sidecar/proposals/affine-crop-arithmetic/proposal.md#before-acceptance).
+- **`heatmap-decode-refinement`** ([0038](0038-heatmap-decode-refinement.md)): see [Before acceptance](../../specs/sidecar/proposals/heatmap-decode-refinement/proposal.md#before-acceptance).
+- **`keypoint-visibility`** ([0039](0039-keypoint-visibility.md)): see [Before acceptance](../../specs/sidecar/proposals/keypoint-visibility/proposal.md#before-acceptance).
+- **`nms-clamp-order`** ([0040](0040-nms-clamp-order.md)): see [Before acceptance](../../specs/sidecar/proposals/nms-clamp-order/proposal.md#before-acceptance).
+- **`normalize-arithmetic`** ([0043](0043-normalize-arithmetic.md)): see [Before acceptance](../../specs/sidecar/proposals/normalize-arithmetic/proposal.md#before-acceptance).
+- **`omitted-upstream-output`** ([0044](0044-omitted-upstream-output.md)): see [Before acceptance](../../specs/sidecar/proposals/omitted-upstream-output/proposal.md#before-acceptance).
+- **`pose-decode-flip-test`** ([0045](0045-pose-decode-flip-test.md)): see [Before acceptance](../../specs/sidecar/proposals/pose-decode-flip-test/proposal.md#before-acceptance).
+- **`size-codes`** ([0046](0046-size-codes.md)): see [Before acceptance](../../specs/sidecar/proposals/size-codes/proposal.md#before-acceptance).
+- **`roi-refiner-role`** ([0047](0047-roi-refiner-role.md)): see [Before acceptance](../../specs/sidecar/proposals/roi-refiner-role/proposal.md#before-acceptance).
+
 ## Repository state
 
 Repository state, not code work ([0032](0032-entry-numbers-and-edits.md)):

@@ -36,18 +36,30 @@ decided entry changes only by the edits that the [Rules](#rules) allow.
 | [0017](0017-dual-role-sidecar-folder.md) | Folder of a sidecar with both roles | proposed |
 | [0018](0018-one-declaration-per-tensor.md) | One declaration for each output tensor, at every version | proposed |
 | [0019](0019-output-shape-batch-axis.md) | Batch axis of `outputs[].shape` | proposed |
-| [0020](0020-roi-transform-and-source.md) | ROI transform, and a crop that does not come from a detector box | proposed |
-| [0021](0021-landmark-extra-outputs.md) | Pose outputs beside the landmarks: presence, handedness and world landmarks | proposed |
-| [0022](0022-landmark-depth-divisor.md) | Depth divisor of MediaPipe landmarks | proposed |
+| [0020](0020-roi-transform-and-source.md) | ROI transform, and a crop that does not come from a detector box; spec change `roi-transform-and-source` | proposed |
+| [0021](0021-landmark-extra-outputs.md) | Pose outputs beside the landmarks: presence, handedness and world landmarks; spec change `landmark-extra-outputs` | proposed |
+| [0022](0022-landmark-depth-divisor.md) | Depth divisor of MediaPipe landmarks; spec change `landmark-depth-divisor` | proposed |
 | [0023](0023-letterbox-floor-and-scale-inverse.md) | `floor` rounding and a scale inverse for `letterbox` | proposed |
-| [0024](0024-simcc-score-rule.md) | SimCC keypoint score rule | proposed |
-| [0025](0025-model-id-suffix.md) | Suffix after the part in `model_id` | proposed |
+| [0024](0024-simcc-score-rule.md) | SimCC keypoint score rule; spec change `simcc-score-rule` | proposed |
+| [0025](0025-model-id-suffix.md) | Suffix after the part in `model_id`; spec change `model-id-suffix` | proposed |
 | [0027](0027-single-working-branch.md) | One working branch for the PR stack; one kind of change per PR, stacked PRs, merge method | accepted |
 | [0030](0030-no-private-data.md) | No private data in tracked files, commits or PR text; the private-data check and gitleaks | accepted |
 | [0031](0031-bootstrap-kit.md) | A bootstrap kit for `AGENTS.md` and the decision log in a new repo; its copies stay in sync with the live files | accepted |
 | [0032](0032-entry-numbers-and-edits.md) | Entry numbers with `--next` on parallel branches; four allowed edits, complete supersession, permalinks, `Depends on`, evidence scripts | accepted |
 | [0035](0035-decision-log-limits.md) | Higher limits for the decision log: index 18,000 and read path 330,000; the bootstrap kit keeps the 0029 limits | accepted |
 | [0036](0036-spec-proposals-folder.md) | The spec keeps its change proposals in `specs/sidecar/proposals/`; each one has a short decision entry "Spec change: <slug>" | accepted |
+| [0037](0037-affine-crop-arithmetic.md) | Spec change: affine-crop-arithmetic (`pre.resize.affine_person_crop`) | proposed |
+| [0038](0038-heatmap-decode-refinement.md) | Spec change: heatmap-decode-refinement (`post.pose.decode.heatmap`) | proposed |
+| [0039](0039-keypoint-visibility.md) | Spec change: keypoint-visibility (`post.pose.visibility`) | proposed |
+| [0040](0040-nms-clamp-order.md) | Spec change: nms-clamp-order (`post.det.selection.nms`) | proposed |
+| [0041](0041-rtmdet-host-nms-filters.md) | RTMDet: host `selection: nms` with the mmdet candidate filters, clamp and visit order | proposed |
+| [0042](0042-vnext-scope-nms-filters.md) | `vNEXT` scope and the features not added; `nms.pre_nms_top_k` and `nms.min_bbox_size` leave the list | proposed |
+| [0043](0043-normalize-arithmetic.md) | Spec change: normalize-arithmetic (`pre.normalize`) | proposed |
+| [0044](0044-omitted-upstream-output.md) | Spec change: omitted-upstream-output (no section; workflow verdict `omitted`; supersedes 0014 on acceptance) | proposed |
+| [0045](0045-pose-decode-flip-test.md) | Spec change: pose-decode-flip-test (`post.pose.flip_test`) | proposed |
+| [0046](0046-size-codes.md) | Spec change: size-codes (`common.sizes`) | proposed |
+| [0047](0047-roi-refiner-role.md) | Spec change: roi-refiner-role (`post.roi_refiner`) | proposed |
+| [0048](0048-vnext-scope-mediapipe-rotated-crops.md) | `vNEXT` scope and the features not added; MediaPipe-Exporter joins, and rotated crops leave the list | proposed |
 | [0033](0033-short-sidecars-block.md) | The exporter `AGENTS.md` copies a short fenced "Sidecars" block, not the full Sidecars section | accepted |
 | [0034](0034-sidecar-guide-folder.md) | The sidecar guide moves to `specs/exporter-guide/sidecars/`, split at its headings with no change of text | accepted |
 
