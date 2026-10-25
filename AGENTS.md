@@ -267,7 +267,7 @@ in full.
 Do not supersede a part of an entry.
 You may change the status line of an entry: `proposed` to `accepted` or `rejected`, and `accepted` to
 `superseded by NNNN` or `absorbed into <path>#<anchor>`. Write the date and the PR that changed it.
-Keep the log inside the limits of decision [0029](notes/decisions/0029-decision-log-read-path.md).
+Keep the log inside the limits of decision [0035](notes/decisions/0035-decision-log-limits.md).
 `uv run pytest tools/tests` checks the limits.
 Cite tracked files and decision entries with relative links.
 Cite a commit, or the code of another repository, with a GitHub permalink.

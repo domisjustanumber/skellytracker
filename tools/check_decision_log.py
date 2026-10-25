@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check the index, the entry numbers and the size limits of the decision log (decision 0029).
+"""Check the index, the entry numbers and the size limits of the decision log (decision 0035).
 
 Usage::
 
@@ -55,10 +55,10 @@ LOG_DIR = Path("notes") / "decisions"
 OPEN_WORK = "open-work.md"
 TARGET_BRANCH = "development"
 
-INDEX_LIMIT = 14_000
+INDEX_LIMIT = 18_000
 OPEN_WORK_LIMIT = 20_000
 ENTRY_LIMIT = 6_000
-READ_PATH_LIMIT = 220_000
+READ_PATH_LIMIT = 330_000
 LAST_UNLIMITED_ENTRY = 25
 WARN_FRACTION = 0.8
 DECISION_CELL_LIMIT = 160

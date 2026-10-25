@@ -1,4 +1,4 @@
-"""The decision log keeps its index and its size limits (decision 0029)."""
+"""The decision log keeps its index and its size limits (decision 0035)."""
 
 from __future__ import annotations
 

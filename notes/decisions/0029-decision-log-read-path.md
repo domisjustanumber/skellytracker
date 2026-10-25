@@ -1,6 +1,6 @@
 # 0029 — Read path, Deferred proposals, status forms and the open-work file
 
-**Status:** accepted, 2026-10-24 (user).
+**Status:** superseded by [0035](0035-decision-log-limits.md), 2026-10-25 (user).
 
 ## Decision
 
