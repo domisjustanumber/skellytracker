@@ -128,7 +128,8 @@ The open work, the repository state and the spec defects are in [open-work.md](o
   `uv run python tools/check_decision_log.py --new`. Give the entry the ID of the `new:` line. Create
   its file immediately. Add its index row at the end of the table for its status, in the same PR. The
   index order is the order of addition.
-- Run `--new` again before each push. Act on each `re-ID:` line. Both sides of a collision get the
+- The pre-push hook runs `--collisions`, the same check without the `new:` line. Act on each
+  `re-ID:` line. Both sides of a collision get the
   same verdict. An ID does not change for a different reason.
 - To change an ID, run `--new`. Rename the file to the new ID. Change the ID in its heading and in its
   index row. Find the citations with `git grep -n -E "\bXXXX\b|XXXX-"`, and repair each one. Ask the

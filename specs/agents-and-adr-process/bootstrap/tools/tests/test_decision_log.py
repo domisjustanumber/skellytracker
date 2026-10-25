@@ -638,6 +638,24 @@ def test_new_target_wins(git_env: Path, capsys: pytest.CaptureFixture[str]) -> N
     ]
     assert cdl.main(["check_decision_log.py", "--new", str(root)]) == 1
     assert "re-ID: 0002-a.md" in capsys.readouterr().out
+    assert cdl.main(["check_decision_log.py", "--collisions", str(root)]) == 1
+    out = capsys.readouterr().out
+    assert "re-ID: 0002-a.md" in out
+    assert "new:" not in out
+
+
+@needs_git
+def test_collisions_passes_without_a_collision(
+    git_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = repo(git_env / "repo")
+    git(root, "checkout", "-q", "-b", "other")
+    entry(root, "0002-b.md")
+    commit(root, "0002-b")
+    git(root, "checkout", "-q", "main")
+    entry(root, "k7m2-a.md")
+    assert cdl.main(["check_decision_log.py", "--collisions", str(root)]) == 0
+    assert "new:" not in capsys.readouterr().out
 
 
 def branches(root: Path, count: int) -> None:

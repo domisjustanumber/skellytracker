@@ -132,6 +132,8 @@ Exporter agents read the skill files, read-only, in the checkout
 
 Run `uv sync --extra all-cpu`.
 Then run `uv run pre-commit install` once in the clone ([section 8](#8-private-data)).
+It installs the pre-commit hooks and the pre-push hook.
+Run it again in each clone after `.pre-commit-config.yaml` changes.
 This command installs the dev tools, MediaPipe, `onnx` and the CPU build of ONNX Runtime.
 For a GPU, [`GPU_SETUP_GUIDE.md`](GPU_SETUP_GUIDE.md) gives the extra for each GPU.
 Use only one ONNX Runtime extra. The `onnx-*` extras conflict (`[tool.uv]` in `pyproject.toml`).
@@ -254,7 +256,8 @@ Then run `uv run python tools/check_decision_log.py --new`.
 Give the entry the ID of the `new:` line.
 Create the entry file immediately.
 Add its index row at the end of the table for its status, in the same PR.
-Run `--new` again before each push.
+The pre-push hook runs `uv run python tools/check_decision_log.py --collisions`.
+It stops the push when an entry of this tree must change its ID.
 Act on each `re-ID:` line. The index [Rules](notes/decisions/README.md#rules) give the steps.
 Do not change an ID for a different reason.
 In the PR stack, put a change of ID in the PR that adds the entry. Put each citation repair in the
@@ -381,4 +384,5 @@ Then tell the user, because git history keeps the data.
 To also block a hostname or a user name, put it in the file `.private-terms` in the repository root.
 Git ignores that file. Do not commit it.
 The pre-commit hook runs `gitleaks` and the private-data check.
+The pre-push hook runs the collision check of the decision-log IDs.
 `.github/workflows/secrets.yml` runs `gitleaks` on each push and PR.

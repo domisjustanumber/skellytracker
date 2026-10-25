@@ -76,7 +76,7 @@ The open work is in [open-work.md](open-work.md).
   `uv run python tools/check_decision_log.py --new`. Give the entry the ID of the `new:` line. Create
   its file immediately. Add its index row at the end of the table for its status, in the same PR. The
   index order is the order of addition.
-- Run `--new` again before each push. A `re-ID:` line names an entry of this tree whose ID a different
+- The pre-push hook runs `--collisions`, the same check without the `new:` line. A `re-ID:` line names an entry of this tree whose ID a different
   file has on another branch or worktree. Both sides get the same verdict: an entry on
   `{{DEFAULT_BRANCH}}` wins, then an entry on a remote-tracking branch, then the entry whose first
   commit has the earlier author date, then the file name that sorts first. An ID does not change for a

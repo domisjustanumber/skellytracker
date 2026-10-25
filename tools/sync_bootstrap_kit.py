@@ -82,7 +82,10 @@ COPIES = (
     Copy(
         ".pre-commit-config.yaml",
         ".pre-commit-config.yaml",
-        (("(decision 0030).", f"{DECISION_0001}."),),
+        (
+            ("(decision 0030).", f"{DECISION_0001}."),
+            ("# Decision gtwq: an entry ID", "# An entry ID"),
+        ),
     ),
     Copy(
         ".gitleaks.toml",

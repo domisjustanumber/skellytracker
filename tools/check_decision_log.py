@@ -5,6 +5,7 @@ Usage::
 
     python tools/check_decision_log.py [ROOT]
     python tools/check_decision_log.py --new [ROOT]
+    python tools/check_decision_log.py --collisions [ROOT]
 
 The tool reads ``notes/decisions/README.md`` under ROOT (default: the current directory). It reports:
 
@@ -39,6 +40,9 @@ A file whose slug is also the slug of an entry of this tree under a different ID
 that entry, not a collision. ``--new`` runs 5 git processes for any number of refs, and one more when
 it finds a collision. It prints the age of the last ``git fetch``. It exits 1 when it prints a
 ``re-ID:`` line, and 0 otherwise. Without git, it reads only this tree.
+
+``--collisions`` prints the same lines without the ``new:`` line, and has the same exit code. The
+pre-push hook in ``.pre-commit-config.yaml`` runs it. It does not fetch.
 
 Sizes are counted in characters after CRLF is changed to LF. About 4 characters make one token.
 All-digit entries up to ``LAST_UNLIMITED_ENTRY`` keep their length, because the body of an old entry
@@ -427,11 +431,11 @@ def fetch_note(root: Path, git_dirs: list[str], has_remote_refs: bool) -> list[s
         if (root / d / "FETCH_HEAD").is_file()
     ]
     if not times:
-        return ["no git fetch is recorded: run `git fetch`, then run --new again"] if has_remote_refs else []
+        return ["no git fetch is recorded: run `git fetch`, then run this command again"] if has_remote_refs else []
     hours = (time.time() - max(times)) / 3600
     age = f"{hours * 60:.0f} minutes" if hours < 2 else f"{hours:.0f} hours"
     note = f"the last git fetch was {age} ago"
-    return [note + ("" if hours < 1 else ": run `git fetch`, then run --new again")]
+    return [note + ("" if hours < 1 else ": run `git fetch`, then run this command again")]
 
 
 def git_sources(root: Path) -> Sources:
@@ -535,14 +539,16 @@ def first_commits(root: Path, names: set[str]) -> dict[str, int]:
     return times
 
 
-def new_lines(root: Path, draw: Callable[[], str] | None = None) -> list[str]:
-    """The `new:` line, a `keep:` or `re-ID:` line for each collision, and the notes."""
+def new_lines(
+    root: Path, draw: Callable[[], str] | None = None, with_new: bool = True
+) -> list[str]:
+    """The `new:` line (when `with_new`), a `keep:` or `re-ID:` line for each collision, and the notes."""
     mine = entry_names(root / LOG_DIR)
     sources = git_sources(root)
     used = {entry_id(n) for n in mine}.union(
         *({entry_id(n) for n in names} for names in sources.found.values())
     )
-    lines = [f"new: {new_id(used, draw)}"]
+    lines = [f"new: {new_id(used, draw)}"] if with_new else []
     on_target = set().union(*(sources.found[s] for s in sources.target))
     on_remote = set().union(
         *(names for s, names in sources.found.items() if s.startswith("refs/remotes/"))
@@ -579,9 +585,11 @@ def new_lines(root: Path, draw: Callable[[], str] | None = None) -> list[str]:
 
 def main(argv: list[str]) -> int:
     args = argv[1:]
-    if args[:1] == ["--new"] and len(args) <= 2:
-        lines = new_lines(Path(args[1]).resolve() if len(args) == 2 else Path.cwd())
-        print("\n".join(lines))
+    if args[:1] in (["--new"], ["--collisions"]) and len(args) <= 2:
+        root = Path(args[1]).resolve() if len(args) == 2 else Path.cwd()
+        lines = new_lines(root, with_new=args[0] == "--new")
+        if lines:
+            print("\n".join(lines))
         return 1 if any(line.startswith("re-ID:") for line in lines) else 0
     if len(args) > 1 or (args and args[0].startswith("-")):
         print(__doc__)

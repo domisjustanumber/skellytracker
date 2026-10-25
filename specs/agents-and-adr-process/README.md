@@ -104,6 +104,7 @@ uv run python tools/check_decision_log.py --new
 uv run python tools/check_private_data.py
 uv run pre-commit install
 uv run pre-commit run --all-files
+uv run pre-commit run --hook-stage pre-push --all-files
 git check-ignore -v plans/x .private-terms .claude/settings.local.json
 ```
 
@@ -194,11 +195,14 @@ random ID, not the next number.
   Create its file immediately.
 - Put the index row at the end of the table for its status. Then two parallel entries make a git
   conflict in the index. The index order is the order of addition.
-- Run `--new` again before each push. It prints `keep:` or `re-ID:` for each entry of this tree
-  whose ID a different file has. Both sides get the same verdict: an entry on `TARGET_BRANCH` wins,
+- The pre-push hook runs `--collisions` before each push. `--collisions` is `--new` without the
+  `new:` line. It prints `keep:` or `re-ID:` for each entry of this tree whose ID a different file
+  has. Both sides get the same verdict: an entry on `TARGET_BRANCH` wins,
   then an entry on a remote-tracking branch, then the entry whose first commit has the earlier author
   date, then the file name that sorts first. An uncommitted file loses. The command exits 1 when it
-  prints a `re-ID:` line, so a pre-push hook can use it.
+  prints a `re-ID:` line, and the hook then stops the push.
+  `.pre-commit-config.yaml` sets `default_install_hook_types: [pre-commit, pre-push]` and
+  `default_stages: [pre-commit]`. Without `default_stages`, the commit hooks also run on each push.
 - Local branches under `backup/` are not collisions. A file whose slug an entry of this tree has under
   a different ID is an old name of that entry, not a collision.
 - A change of ID is the fourth allowed edit. The entry gets `_Edited YYYY-MM-DD (#PR): re-ID from XXXX._`
