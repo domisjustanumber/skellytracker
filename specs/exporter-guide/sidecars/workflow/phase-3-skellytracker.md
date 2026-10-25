@@ -10,8 +10,9 @@ You do not do phase 3. A skellytracker session does it. The user decides.
    legacy-only fields; the checks of the exporter pass; parity passes for at least one size. The
    procedure copies your sidecar byte for byte. If your sidecar breaks a spec rule, fix the exporter
    or write a change proposal. Nobody corrects the example by hand.
-2. **A proposal.** skellytracker records it as a decision entry with status `proposed`. The user
-   accepts or rejects it. After acceptance:
+2. **A proposal.** skellytracker copies it to `specs/sidecar/proposals/<slug>/proposal.md`, with all
+   eight parts. It records it as a short decision entry with status `proposed` (skellytracker
+   decision 0036). The user accepts or rejects it. After acceptance:
    - A content PR adds the normative text, the changelog row, the vectors and the reference
      implementation. It sets the decision entry to `accepted` (if it is not accepted yet).
    - A non-spec PR (documentation only) adds the guidance, the implementation proposal (as

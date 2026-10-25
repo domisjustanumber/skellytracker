@@ -57,9 +57,10 @@ session that lands the change sets the final section ID and the final rule IDs.
 
 You do not do these steps. A skellytracker session does them, and the user decides.
 
-1. A skellytracker session finds the proposal in the `plans/` folder of the exporter repo. It records
-   the proposal as a decision entry with the status `proposed`. If the proposal builds on a gap
-   record, the session adds the proposal to the gap record.
+1. A skellytracker session finds the proposal in the `plans/` folder of the exporter repo. It copies
+   the proposal to `specs/sidecar/proposals/<slug>/proposal.md` of the skellytracker repo. It records
+   the proposal as a short decision entry with the status `proposed` (skellytracker decision 0036).
+   If the proposal builds on a gap record, the session adds the proposal to the gap record.
 2. The user accepts or rejects the proposal.
 3. After acceptance:
    - A content PR adds the normative text, the changelog row, the vectors and the reference

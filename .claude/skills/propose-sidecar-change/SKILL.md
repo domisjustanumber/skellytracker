@@ -22,7 +22,7 @@ normative.
 | Place | What you do | Where you stop |
 |---|---|---|
 | An exporter repo | Write the proposal files in the `plans/` folder of the exporter repo. | After the proposal files. You do not change skellytracker. |
-| skellytracker | Record a proposal as a decision entry with the status `proposed`. | After the entry. The user accepts or rejects the proposal. |
+| skellytracker | Copy a proposal to `specs/sidecar/proposals/<slug>/proposal.md`. Record it as a short decision entry with the status `proposed`. | After the entry. The user accepts or rejects the proposal. |
 
 **In an exporter repo:**
 
@@ -77,8 +77,10 @@ In skellytracker:
 | An exporter repo | `plans/sidecar-reference-<section_module>.py`, the reference implementation of part 3. It exists also when no host code exists yet. |
 | An exporter repo | The parity script of part 5, committed in the exporter repo. |
 | An exporter repo | A link to each proposal in the intake. |
-| skellytracker | `notes/decisions/NNNN-<slug>.md`, with the status `proposed`. |
-| skellytracker | A row for the entry in the index of [`notes/decisions/README.md`](../../../notes/decisions/README.md). |
+| skellytracker | `specs/sidecar/proposals/<slug>/proposal.md`: the eight parts in full ([0036](../../../notes/decisions/0036-spec-proposals-folder.md)). |
+| skellytracker | A row in the proposal index [`specs/sidecar/proposals/README.md`](../../../specs/sidecar/proposals/README.md). |
+| skellytracker | `notes/decisions/NNNN-<slug>.md`: a short decision entry "Spec change: <slug>", with the status `proposed`. |
+| skellytracker | A row for the entry in the index of [`notes/decisions/README.md`](../../../notes/decisions/README.md), and one line in [`open-work.md`](../../../notes/decisions/open-work.md). |
 
 ## Procedure in an exporter repo
 
@@ -170,7 +172,7 @@ In skellytracker:
 4. If a `proposed` entry covers the same property as the exporter proposal, read the entry:
    - If it is a gap record (see [Rules](../../../notes/decisions/README.md#rules)) and the exporter
      proposal builds on it (the same slug, and the entry is cited in the header), add the proposal
-     to the gap record (Step 3, item 12).
+     to the gap record (Step 4, item 9).
    - Otherwise, do not add a competing entry. Tell the user the two items. The user decides.
 
 ### Step 2: Get the proposal
@@ -192,43 +194,68 @@ In skellytracker:
 8. In part 4, a vector that comes only from a reading of the text is `unverified`. Write
    `unverified: <reason>`.
 
-### Step 3: Write the decision entry
+### Step 3: Copy the proposal into the spec folder
 
-1. Give the entry the number after the highest number in the index.
-2. Name the file `notes/decisions/NNNN-<slug>.md`. Use the slug of the proposal.
+Decision [0036](../../../notes/decisions/0036-spec-proposals-folder.md) gives the rules of this step.
+
+1. Create `specs/sidecar/proposals/<slug>/proposal.md`. Use the slug of the proposal.
+2. Write the front matter: `slug`, `section` (the proposed section ID), `exporter`, `decision` (the
+   entry number of Step 4) and `state: recorded`.
+3. Write the source note at the top of the file: the exporter repo, its commit and the date of the
+   copy. For an exporter with no git repo, write `none (no git repo)` as the commit.
+4. Copy the header and all eight parts in full. The code of part 3 is a `python` code block. The YAML
+   of part 4 is a `yaml` code block.
+5. Change only these items:
+   - a `plans/` path becomes "the untracked <topic> plan of <repo> (plan facts)", with no path;
+   - private data is redacted ([Private data](../../../AGENTS.md#8-private-data));
+   - a skellytracker commit that is not on `development` becomes its PR or branch and the file path;
+   - a path of an exporter with no git repo stays as it is. The source note says one time that the
+     exporter has no git repo and that its paths are not pinned;
+   - a relative link that does not resolve in skellytracker becomes a code span.
+6. Do not write a missing part. Do not correct the text of a part.
+7. Add the heading "Before acceptance" at the end. List each failed item of
+   [Before you stop](../../../specs/sidecar/templates/change-proposal.md#before-you-stop), the
+   missing primary evidence, each `to run` result and each open question.
+8. Put other long text of the proposal in the same folder: the draft of an entry that the proposal
+   supersedes (`supersedes-NNNN.md`), and long evidence (`evidence.md`).
+9. Add a row to the proposal index
+   [`specs/sidecar/proposals/README.md`](../../../specs/sidecar/proposals/README.md).
+
+### Step 4: Write the decision entry
+
+1. Run `git fetch --all`. Then run `uv run python tools/check_decision_log.py --next`. Give the entry
+   the number of the `next:` line ([section 5](../../../AGENTS.md#5-decision-log) of `AGENTS.md`).
+2. Name the file `notes/decisions/NNNN-<slug>.md`. Use the slug of the proposal. The title is
+   "NNNN — Spec change: <slug>".
 3. Write the status line: `**Status:** proposed, <YYYY-MM-DD> (<source>).` The source names the
    proposing repo, for example "OpenMMLab-Exporter proposal".
-4. Put each part of the proposal under the heading of the entry template that fits it. A gap record
-   has no parts: for a gap record, skip items 4 to 6.
+4. Start the Decision section with "**Proposed, not decided.**" and a link to `proposal.md`. Then
+   give these items in a list: the section, the change, the version, the models, the entries that the
+   proposal supersedes on acceptance, and the related proposals.
+5. In Reason, give the gap (part 1) in a few sentences. In Evidence, give the parity state (part 5).
+   In Open work, write only the link to the open-work list.
+6. Keep the entry inside the entry limit
+   ([0035](../../../notes/decisions/0035-decision-log-limits.md)). The details stay in `proposal.md`.
+7. Write the repo name with the number of an exporter decision, for example "OpenMMLab-Exporter
+   0020". Write the entry in ASD-STE100.
+8. Add the entry to the index of the decision log, with the status `proposed`. Add one line to
+   [`open-work.md`](../../../notes/decisions/open-work.md) with a link to the "Before acceptance"
+   heading of `proposal.md`.
+9. If the proposal completes a gap record, edit the gap record. Do not add a new entry. Items 1, 2
+   and 8 do not apply, but add the open-work line. Write the Decision of item 4. Move the original
+   text under Reason. Remove the sentence "This entry is a gap record". Keep the status `proposed`.
+   Add `completed <YYYY-MM-DD> (<source>)` to its status line
+   ([0032](../../../notes/decisions/0032-entry-numbers-and-edits.md)).
+10. If the proposal supersedes an accepted entry on acceptance, write the superseding entry now, with
+    the status `proposed`. When its restated rules do not fit the entry limit, link to
+    `supersedes-NNNN.md` in the proposal folder.
 
-   | Entry heading | Proposal parts |
-   |---|---|
-   | Decision | 2 Spec change, 3 Reference implementation, 4 Vectors, 6 skellytracker implementation proposal, 7 Exporter impact |
-   | Reason | 1 Gap |
-   | Evidence | 5 Parity evidence |
-   | Alternatives rejected | 8 Alternatives considered |
-
-5. Keep the title of each part as a `###` heading.
-6. Copy the code of part 3 and the YAML of part 4 into the entry as code blocks.
-7. Cite the exporter commits of the host code and of the parity script. Do not copy private data
-   from the proposal into the entry ([Private data](../../../AGENTS.md#8-private-data)).
-8. Do not cite or link a `plans/` file. Git does not track `plans/`. If a fact comes only from an
-   exporter plan, write "the untracked <topic> plan of <repo> (plan facts)", with no path.
-9. Write the repo name with the number of an exporter decision, for example "OpenMMLab-Exporter 0020".
-10. Write the entry in ASD-STE100.
-11. Add the entry to the index of the decision log, with the status `proposed`.
-12. If the proposal completes a gap record, edit the gap record. Do not add a new entry. Items 1, 2
-    and 11 do not apply. Add the parts under the headings of item 4. Remove the sentence "This entry
-    is a gap record" from its Decision section. Keep the status `proposed`. Add
-    `completed <YYYY-MM-DD> (<source>)` to its status line
-    ([0032](../../../notes/decisions/0032-entry-numbers-and-edits.md)).
-
-### Step 4: Check and stop
+### Step 5: Check and stop
 
 1. Do not change the spec text, the changelog, the vectors or the examples. They come after the user
    accepts the proposal.
 2. Run `uv run pytest tools/tests -q`. All tests must pass.
-3. The entry is a non-spec change. Put it in a non-spec PR
+3. The proposal file and the entry are a non-spec change. Put them in a non-spec PR
    ([0027](../../../notes/decisions/0027-single-working-branch.md#one-kind-of-change-in-each-pr)).
 4. Stop. Tell the user the entry number and the decision to make.
 5. The user accepts or rejects the proposal. After acceptance, use the skill

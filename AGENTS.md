@@ -59,6 +59,7 @@ Open PRs against `development`, not `main` ([section 6](#6-git-rules)).
 | `specs/sidecar/README.md` | The spec overview, the [section map](specs/sidecar/README.md#section-map) and the index of the validation rules. The section map gives the section ID, the file and the title of each section. |
 | `specs/sidecar/format/`, `common/`, `pre/`, `post/` | The section files. Each file holds one section. Its front matter gives `id` (the section ID), `title` and `kind`. Each validation rule has a rule ID `V-<id>-<n>`, for example `V-pre.resize.letterbox-1`. |
 | `specs/sidecar/changelog.md` | The `vNEXT` summary of changes and the `schema_version` history |
+| `specs/sidecar/proposals/` | The recorded spec change proposals: one folder for each proposal, with all eight parts, and the [proposal index](specs/sidecar/proposals/README.md) (decision [0036](notes/decisions/0036-spec-proposals-folder.md)). The files are informative. |
 | `specs/sidecar/examples/`, `specs/sidecar/inventory.yaml` | The reference examples, in the `detectors/` layout of the package ([`examples/README.md`](specs/sidecar/examples/README.md)), and the provenance of each example |
 | `specs/sidecar/templates/` | [`model-intake.md`](specs/sidecar/templates/model-intake.md) and [`change-proposal.md`](specs/sidecar/templates/change-proposal.md) |
 | `specs/exporter-guide/sidecars/README.md` | The rules that exporters follow ([exporter guide](specs/exporter-guide/sidecars/README.md)) |
@@ -123,7 +124,7 @@ Exporter agents read the skill files, read-only, in the checkout
 | Skill | Status | Runs in | Use it to |
 |---|---|---|---|
 | [`author-sidecar`](.claude/skills/author-sidecar/SKILL.md) | available | an exporter repo | Add a model: fill the model intake, write the sidecar and prove parity with the upstream library. Prepare the reference implementations of the sections that the exporter implements on its host side. |
-| [`propose-sidecar-change`](.claude/skills/propose-sidecar-change/SKILL.md) | available | an exporter repo, or this repository | Write a spec change proposal for a model property that the spec does not describe exactly. In this repository, record it as a decision entry with status `proposed`. |
+| [`propose-sidecar-change`](.claude/skills/propose-sidecar-change/SKILL.md) | available | an exporter repo, or this repository | Write a spec change proposal for a model property that the spec does not describe exactly. In this repository, copy it to `specs/sidecar/proposals/` and record it as a decision entry with status `proposed`. |
 | [`change-sidecar-spec`](.claude/skills/change-sidecar-spec/SKILL.md) | available | this repository | Land a model, an accepted proposal or an exporter reference implementation. Change the normative spec text, its changelog, its vectors and its examples. |
 | [`implement-sidecar-section`](.claude/skills/implement-sidecar-section/SKILL.md) | available | this repository | Implement a spec section in the package code, after the spec-build stage. In the spec-build stage, plan the work only. |
 
@@ -210,8 +211,10 @@ The demo needs a camera and a display.
 - Stop on a gap. If a model property does not map exactly to a spec section, do not approximate it.
   A near-miss is a gap. Write a change proposal with the parts of
   [`specs/sidecar/templates/change-proposal.md`](specs/sidecar/templates/change-proposal.md). In this
-  repository, record the proposal as a decision entry with status `proposed`. Then stop. The user
-  accepts or rejects the proposal.
+  repository, copy the proposal to `specs/sidecar/proposals/<slug>/proposal.md`. Record it as a short
+  decision entry with status `proposed` (decision
+  [0036](notes/decisions/0036-spec-proposals-folder.md)). Then stop. The user accepts or rejects the
+  proposal.
 - Put one kind of change in each PR (decision
   [0027](notes/decisions/0027-single-working-branch.md#one-kind-of-change-in-each-pr)).
   The kinds are: content (a change of normative meaning), move, rewording, and non-spec (decision log, agent files, tools, test vectors, guidance, CI,

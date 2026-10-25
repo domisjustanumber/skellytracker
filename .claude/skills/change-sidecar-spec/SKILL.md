@@ -32,7 +32,7 @@ outputs and the stop points.
 | Input | Where it comes from |
 |---|---|
 | An intake with the final verdict `describes` | `plans/sidecar-intake-<model>.md` in an exporter repo |
-| A proposal that the user accepted | A decision entry with the status `proposed`, and the exporter proposal file |
+| A proposal that the user accepted | A decision entry with the status `proposed`, and its proposal file `specs/sidecar/proposals/<slug>/proposal.md` ([0036](../../../notes/decisions/0036-spec-proposals-folder.md)) |
 | A reference implementation of an exporter | `plans/sidecar-reference-<section_module>.py` in an exporter repo |
 | Another spec edit | A request of the user, an item of the spec-defect list in [`notes/decisions/open-work.md`](../../../notes/decisions/open-work.md), or the release step |
 
@@ -78,7 +78,10 @@ Do this procedure for step 2 of phase 3.
 1. Make sure that the user accepted the proposal. If the user has not decided, stop.
 2. Make the content PR. Do steps 3 to 12.
 3. Find the section that owns each rule. Do the steps of [Rules for each spec edit](#rules-for-each-spec-edit).
-4. Write the normative text of part 2 of the proposal into the section files.
+4. Write the normative text of part 2 of the proposal into the section files. Take the text from
+   `specs/sidecar/proposals/<slug>/proposal.md`. If the exporter proposal changed after the copy,
+   stop. Tell the user, and record the new version first (skill
+   [`propose-sidecar-change`](../propose-sidecar-change/SKILL.md)).
 5. Write the `changelog.md` rows.
 6. Copy the reference implementation of part 3 to `specs/sidecar/reference/<section_module>.py`.
 7. If `tools/tests` has no test that runs the reference functions against the vectors of their
@@ -87,16 +90,21 @@ Do this procedure for step 2 of phase 3.
    Remove the formula version of that section from the generator.
 9. Write the vectors with `uv run python tools/make_vectors.py`. Do not edit a vector file by hand.
 10. Change the status line of the decision entry from `proposed` to `accepted`. Write the date and the
-    PR ([Rules](../../../notes/decisions/README.md#rules)).
+    PR ([Rules](../../../notes/decisions/README.md#rules)). Set `state: accepted` in the front matter
+    of `proposal.md` and in the proposal index. Write each `proposed` superseding entry of the
+    proposal as `accepted`, and supersede its old entry.
 11. If the change corrects an item of the spec-defect list in
     [`notes/decisions/open-work.md`](../../../notes/decisions/open-work.md), remove the item.
 12. Run the [impact](#impact) and the [checks](#checks).
 13. Make the non-spec PR on top of the content PR. Do steps 14 to 17.
 14. Write part 6 of the proposal as the "Implementer guidance" of the section.
-15. Add an item for part 6 to the [Open work](../../../notes/decisions/open-work.md) list.
+15. Add an item for part 6 to the [Open work](../../../notes/decisions/open-work.md) list. Remove the
+    "before acceptance" line of the proposal from that list.
 16. Add the "Authoring guidance" from the intake. Do the steps of [Guidance](#guidance).
 17. When the exporter writes the sidecar with the new fields, add the example with procedure A. Remove
     the `proposed` entry of the model from `specs/sidecar/inventory.yaml`, if it has one.
+    Set `state: landed` in `proposal.md` and in the proposal index when the last PR of the proposal
+    lands.
 18. In the implementation stage, implement the section with the skill
     [`implement-sidecar-section`](../implement-sidecar-section/SKILL.md).
 

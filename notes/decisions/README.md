@@ -47,6 +47,7 @@ decided entry changes only by the edits that the [Rules](#rules) allow.
 | [0031](0031-bootstrap-kit.md) | A bootstrap kit for `AGENTS.md` and the decision log in a new repo; its copies stay in sync with the live files | accepted |
 | [0032](0032-entry-numbers-and-edits.md) | Entry numbers with `--next` on parallel branches; four allowed edits, complete supersession, permalinks, `Depends on`, evidence scripts | accepted |
 | [0035](0035-decision-log-limits.md) | Higher limits for the decision log: index 18,000 and read path 330,000; the bootstrap kit keeps the 0029 limits | accepted |
+| [0036](0036-spec-proposals-folder.md) | The spec keeps its change proposals in `specs/sidecar/proposals/`; each one has a short decision entry "Spec change: <slug>" | accepted |
 | [0033](0033-short-sidecars-block.md) | The exporter `AGENTS.md` copies a short fenced "Sidecars" block, not the full Sidecars section | accepted |
 | [0034](0034-sidecar-guide-folder.md) | The sidecar guide moves to `specs/exporter-guide/sidecars/`, split at its headings with no change of text | accepted |
 
