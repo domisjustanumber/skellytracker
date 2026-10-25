@@ -468,32 +468,11 @@ skellytracker files are on the branch `dom/sidecar-implementation`.
 
 **Parts**
 
-- [ ] Part 2, D3, leaves the form of the supersession of
-  [0014](../../../../notes/decisions/0014-spec-lifecycle.md) open. Decision
-  [0036](../../../../notes/decisions/0036-spec-proposals-folder.md), item 5, now lets a proposal
-  folder hold the draft of an entry that the proposal supersedes. The session generated
-  [`supersedes-0014.md`](supersedes-0014.md): the text of 0014 with only the edits of D1. The exporter
-  and the user must confirm that file.
-- [ ] D3 gives the form of user decision T34 N1 (a) of OpenMMLab-Exporter as a model. User decision
-  T35 of OpenMMLab-Exporter revises T34 N1 (a) in part: the NMS proposal gives two small entries, and
-  each one supersedes one old entry in full. In T34 N1 (a) and in T35, the tracked file beside the
-  entry holds only evidence, not restated rules. Thus the model does not support restated rules in
-  a file beside the entry. The exporter must correct D3.
-- [ ] D1 restates the text of 0014 with no other change. Thus the restated text keeps sentences of
-  0014 that other work makes old: "There is no reference implementation yet", the rule "Do not
-  describe an ROI refiner as a pose estimator with two fake keypoints. It is a `gap`." (the proposal
-  `roi-refiner-role` changes this), the path `specs/sidecar/exporter-guide.md` (decision 0034 moved
-  the guide to `specs/exporter-guide/sidecars/`) and the phrases "until the split". The user must
-  decide if the superseding entry changes them.
-- [ ] Part 2.1 does not list the places that name 0014 as the source of a workflow rule:
-  `AGENTS.md` (lines 29, 172, 197 and 227), the skills `author-sidecar` (lines 39 and 86),
-  `change-sidecar-spec` and `implement-sidecar-section`, the templates `model-intake.md` (line 6) and
-  `change-proposal.md` (line 8), the guide `README.md` (line 42, and line 94 in the block for the
-  exporter `AGENTS.md`), `where-to-read.md` (line 46), `validation-and-publishing.md` (line 87), the
-  "Rules" of the decision-log `README.md` (line 140) and `open-work.md` (lines 8, 80, 109-114 and
-  129). The file of 0014 stays, so each link still resolves. The accepted entries 0008, 0013, 0016,
-  0026 and 0029 also cite 0014, and their bodies cannot change. The exporter must list the places
-  that change, or the user must decide that they keep 0014.
+- [x] Part 2, D1 to D3: the supersession of [0014](../../../../notes/decisions/0014-spec-lifecycle.md).
+  The user decided on 2026-10-25 to absorb 0014 into the exporter guide. An absorbed entry is not
+  superseded. Thus D1, D2 and D3 do not apply, and `supersedes-0014.md` is deleted. On acceptance,
+  the change edits the guide, the model intake template and the skill `author-sidecar` (G1 to G10).
+  The places that name 0014 keep it: its file stays, and each link resolves.
 
 **Evidence**
 
@@ -555,9 +534,6 @@ skellytracker files are on the branch `dom/sidecar-implementation`.
   (a user decision for each such row, as T36).
 - [ ] Confirm user decision T36 of OpenMMLab-Exporter. It is a fact of the untracked pose-models plan
   of OpenMMLab-Exporter (plan facts).
-- [ ] Decide if the places that name 0014 as the source of a rule (see **Parts**) move to 0044. The
-  block for the exporter `AGENTS.md` (guide `README.md`, line 94) names 0014. A change of the block
-  makes each exporter copy the block again (decision 0033).
 - [ ] The example `omitted (0041)` in G2 and T1 has a bare number of an OpenMMLab-Exporter entry.
   `AGENTS.md` section 5 reads a bare number as a skellytracker entry. Decide if the tag must be
   `omitted (OpenMMLab-Exporter 0041)`, or if the guide must say that the tag is the number of the
@@ -602,5 +578,3 @@ skellytracker files are on the branch `dom/sidecar-implementation`.
   in `mapping-hints.md` and `model-intake.md`.
 - [ ] `simcc-score-rule` (0024) and `keypoint-visibility` (0039): the `decode_visibility` text of
   `pose-decode-simcc.md:58`.
-- [ ] Each other proposal that changes a rule of 0014 must also change
-  [`supersedes-0014.md`](supersedes-0014.md).

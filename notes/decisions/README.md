@@ -34,7 +34,6 @@ These entries are `accepted` or `evidence`.
 | [0010](0010-family-invariant.md) | Family invariant: a size sets only its shape, target size and artifacts | accepted |
 | [0011](0011-rtmdet-host-nms.md) | RTMDet: NMS-free graph with host `selection: nms`; no `pre_nms_top_k` | accepted |
 | [0013](0013-spec-structure.md) | Spec structure: section files, rule owners, examples, reference implementations, traceability, STE | accepted |
-| [0014](0014-spec-lifecycle.md) | Spec lifecycle, the `vNEXT` rule and the new-model workflow | accepted |
 | [0016](0016-sidecar-catalogs.md) | Sidecar catalogs: source, reference hashes, roots, discovery and the capability check | accepted |
 
 ### Proposed
@@ -61,7 +60,7 @@ proposals of a section here and in the [proposal index](../../specs/sidecar/prop
 | [0041](0041-rtmdet-host-nms-filters.md) | RTMDet: host `selection: nms` with the mmdet candidate filters, clamp and visit order | `post.det.selection.nms` | proposed |
 | [0042](0042-vnext-scope-nms-filters.md) | `vNEXT` scope and the features not added; `nms.pre_nms_top_k` and `nms.min_bbox_size` leave the list | none | proposed |
 | [0043](0043-normalize-arithmetic.md) | Spec change: normalize-arithmetic (`pre.normalize`) | `pre.normalize` | proposed |
-| [0044](0044-omitted-upstream-output.md) | Spec change: omitted-upstream-output (no section; workflow verdict `omitted`; supersedes 0014 on acceptance) | none | proposed |
+| [0044](0044-omitted-upstream-output.md) | Spec change: omitted-upstream-output (no section; workflow verdict `omitted`) | none | proposed |
 | [0045](0045-pose-decode-flip-test.md) | Spec change: pose-decode-flip-test (`post.pose.flip_test`) | `post.pose.flip_test` | proposed |
 | [0046](0046-size-codes.md) | Spec change: size-codes (`common.sizes`) | `common.sizes` | proposed |
 | [0047](0047-roi-refiner-role.md) | Spec change: roi-refiner-role (`post.roi_refiner`) | `post.roi_refiner` | proposed |

@@ -36,7 +36,7 @@ the stop points. If this skill and the guide do not agree, follow the guide. The
 | Exporter guide, section "Sidecars" | [exporter-guide.md](../../../specs/exporter-guide/sidecars/README.md#sidecars) | `../freemocap/skellytracker/specs/exporter-guide/sidecars/README.md` |
 | Model intake template | [model-intake.md](../../../specs/sidecar/templates/model-intake.md) | `../freemocap/skellytracker/specs/sidecar/templates/model-intake.md` |
 | Section map | [README.md](../../../specs/sidecar/README.md#section-map) | `../freemocap/skellytracker/specs/sidecar/README.md` |
-| skellytracker decision 0014 (the workflow) | [0014](../../../notes/decisions/0014-spec-lifecycle.md#new-model-workflow) | `../freemocap/skellytracker/notes/decisions/0014-spec-lifecycle.md` |
+| The new-model workflow | [workflow/README.md](../../../specs/exporter-guide/sidecars/workflow/README.md#new-model-workflow) | `../freemocap/skellytracker/specs/exporter-guide/sidecars/workflow/README.md` |
 | The skill for phase 2 | [propose-sidecar-change](../propose-sidecar-change/SKILL.md) | `../freemocap/skellytracker/.claude/skills/propose-sidecar-change/SKILL.md` |
 
 ## Inputs
@@ -83,7 +83,7 @@ overwrite.
    commit of the checkout.
 3. If the checkout does not exist, or it is not on the branch `dom/sidecar-implementation`, stop.
    Ask the user what to do.
-4. Read skellytracker decision 0014 before your first intake.
+4. Read the new-model workflow of the guide before your first intake.
 5. Read the [Rules](../../../specs/exporter-guide/sidecars/rules.md#rules) of the guide.
 6. If the exporter has no git repo, follow "An exporter with no git repo" in
    [New-model workflow](../../../specs/exporter-guide/sidecars/workflow/README.md#new-model-workflow).

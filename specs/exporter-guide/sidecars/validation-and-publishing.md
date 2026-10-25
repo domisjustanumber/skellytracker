@@ -31,18 +31,26 @@
 ## Publishing
 
 - Do not publish a `vNEXT` sidecar to a shared or remote folder, for example a Hugging Face repo. Keep
-  it in the exporter repo.
+  it in the exporter repo and in the spec examples. One exception: in the implementation stage,
+  skellytracker can use a private Hugging Face test repo.
 - The reason: `vNEXT` is not a version. It does not match the `schema_version` pattern
   `vYYYY.0M.BUILD[-TAG]`, so no skellytracker release can load it. (`load_sidecar` validates the
   sidecar with `SidecarModel`, which checks `schema_version` with `parse_skellytracker_version` in
   `skellytracker/core/sidecar/versioning.py`.)
-- The release step: skellytracker cuts the first release that ships the spec. One change then replaces
-  `vNEXT` with that release version in the spec, the changelog, every example and every vector.
+- In the spec-build stage, each spec change goes into `vNEXT` and adds one row to the `vNEXT` summary
+  of changes. From the first release that ships the spec, each change sets `schema_version` to the
+  release that ships it and adds a changelog row.
+- The release step: skellytracker cuts the first release that ships the spec. One content PR then
+  replaces `vNEXT` with that release version in the spec, the changelog, every example and the
+  `spec_revision` of every vector file. This step replaces the instruction "before merging" in the
+  reviewer note of the spec changelog.
 - After the release step, regenerate your sidecars. Set `schema_version` to the skellytracker release
   that is current at export time (the exporter obligation under the heading "Semantics" in
   `../freemocap/skellytracker/specs/sidecar/format/versioning.md`). Then you can publish them.
 - A development build of skellytracker will load `vNEXT` sidecars. A release will not (skellytracker
-  decision 0016).
+  decision 0016). A development build has a `__version__` with a pre-release tag, or an explicit
+  opt-in setting. The code does not do this yet. The trace tool only resolves sidecars. It does not
+  validate them, so it works with `vNEXT`.
 
 ## `source` and hashes
 

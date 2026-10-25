@@ -10,8 +10,9 @@ meaning of the spec. If this guide and the spec do not agree, the spec is correc
 
 ## How to use this guide
 
-- skellytracker sessions do not change exporter repos. The exporters will be overhauled soon, and each
-  overhaul adopts this guide. (Decided by the user on 2026-10-22.)
+- skellytracker sessions do not change exporter repos. They can read them. The exporters will be
+  overhauled soon, and each overhaul adopts this guide. (Decided by the user on 2026-10-22.)
+- Only skellytracker sessions write the skellytracker repo. There is no spec freeze.
 - An exporter overhaul copies the fenced block of
   [The block for the exporter `AGENTS.md`](#the-block-for-the-exporter-agentsmd) into the exporter's
   `AGENTS.md`. It copies the block without change, and fills in only the commit of the source line.

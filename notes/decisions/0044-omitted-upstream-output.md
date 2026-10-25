@@ -24,12 +24,9 @@ eight parts are in
 - **Models:** the two RTMW 384x288 configs (l and x). Their codec sets `decode_visibility=True`, and
   the head stores the softmax visibility as `keypoints_visible`. The RTMW intake row K8a changes from
   `out of scope (0041)` to `omitted (0041)`. Both tags name OpenMMLab-Exporter 0041.
-- **On acceptance:** this entry supersedes [0014](0014-spec-lifecycle.md) in full. It restates each
-  rule of 0014 and adds `omitted` to steps 3, 4 and 5 of phase 1. The restated text does not fit the
-  entry limit. It is in
-  [`supersedes-0014.md`](../../specs/sidecar/proposals/omitted-upstream-output/supersedes-0014.md).
-  The recording session generated that file from 0014 and the edits of part 2.1, D1. The exporter and
-  the user must confirm it.
+- **On acceptance:** the change edits the exporter guide, the model intake template and the skill
+  `author-sidecar` (G1 to G10). It supersedes no entry: [0014](0014-spec-lifecycle.md) is absorbed
+  into the exporter guide, so part 2, D1 to D3, does not apply (user decision, 2026-10-25).
 - **Related:** `keypoint-visibility` ([0039](0039-keypoint-visibility.md)) is a merge point. G8
   merges its sentence in the hint "Pose". The proposal sets no order: the PR that lands second keeps
   the edits of both. The recommended order lands `keypoint-visibility` first. These proposals edit

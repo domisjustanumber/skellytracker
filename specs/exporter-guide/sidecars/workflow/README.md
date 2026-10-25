@@ -3,6 +3,12 @@
 Use this workflow for each new model. In an exporter repo, do phase 1 and phase 2. Then stop. A
 skellytracker session does phase 3.
 
+**Stages.** In the spec-build stage, the exporters add models, find gaps, propose spec changes and
+implement each section on their host side. The skellytracker package code does not change. In the
+implementation stage, skellytracker implements each section in the order that the models need it.
+In the steady state, each spec change is specified and then implemented in skellytracker and in
+the exporters in the same cycle.
+
 Two skills give the steps of phase 1 and phase 2. They use the rules of this section:
 
 - `author-sidecar` (`../freemocap/skellytracker/.claude/skills/author-sidecar/SKILL.md`):
