@@ -110,7 +110,7 @@ The open work, the repository state and the spec defects are in [open-work.md](o
   the read-path limit fails.
 - Delete an open-work item when the work is done. Delete a spec defect when its content PR lands.
 - Keep the log inside its limits: 18,000 characters for this file, 20,000 for `open-work.md`, 6,000
-  for each entry after 0025, and 330,000 for the read path: this file, `open-work.md` and the Active
+  for each entry after 0025, and 160,000 for the read path: this file, `open-work.md` and the Active
   entries. Proposed and Historical entries are not in the read path. Put long evidence in a tracked
   file next to the entry, and link to it. Put the script that produced a measurement in
   `notes/decisions/scripts/`. The Evidence section names it. Run
@@ -118,8 +118,7 @@ The open work, the repository state and the spec defects are in [open-work.md](o
   limit. The doc tests run the same check.
 - The tool counts characters after it changes CRLF to LF. It checks the rows, the tables, the cells,
   the status forms, the `XXXX` of each status and the limits. A warning does not fail the doc tests.
-  An entry does not warn. A PR can lower a limit. A PR that raises a limit must add an entry. After
-  the first consolidation, lower the read-path limit to 160,000 characters.
+  An entry does not warn. A PR can lower a limit. A PR that raises a limit must add an entry.
 - The exporter guide is normative for the workflow. The sidecar spec is normative for the meaning of
   a sidecar.
 - The bootstrap kit takes these rules. Its tool keeps the limits 14,000 for the index and 220,000 for

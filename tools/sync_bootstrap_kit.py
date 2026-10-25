@@ -39,7 +39,7 @@ COPIES = (
             ("random IDs (decision\ngtwq).", "random IDs (decision\n0001)."),
             ("another repo (decision gtwq).\n", f"another repo {DECISION_0001}.\n"),
             ("INDEX_LIMIT = 18_000\n", "INDEX_LIMIT = 14_000\n"),
-            ("READ_PATH_LIMIT = 330_000\n", "READ_PATH_LIMIT = 220_000\n"),
+            ("READ_PATH_LIMIT = 160_000\n", "READ_PATH_LIMIT = 220_000\n"),
             (
                 'TARGET_BRANCH = "development"\n',
                 'TARGET_BRANCH = "main"  # Step 3 of the kit guide sets the branch that PRs target.\n',
