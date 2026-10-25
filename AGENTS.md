@@ -59,7 +59,7 @@ Open PRs against `development`, not `main` ([section 6](#6-git-rules)).
 | `specs/sidecar/README.md` | The spec overview, the [section map](specs/sidecar/README.md#section-map) and the index of the validation rules. The section map gives the section ID, the file and the title of each section. |
 | `specs/sidecar/format/`, `common/`, `pre/`, `post/` | The section files. Each file holds one section. Its front matter gives `id` (the section ID), `title` and `kind`. Each validation rule has a rule ID `V-<id>-<n>`, for example `V-pre.resize.letterbox-1`. |
 | `specs/sidecar/changelog.md` | The `vNEXT` summary of changes and the `schema_version` history |
-| `specs/sidecar/proposals/` | The recorded spec change proposals: one folder for each proposal, with all eight parts, and the [proposal index](specs/sidecar/proposals/README.md) (decision [0036](notes/decisions/0036-spec-proposals-folder.md)). The files are informative. |
+| `specs/sidecar/proposals/` | The recorded spec change proposals: one folder for each proposal, with all eight parts, and the [proposal index](specs/sidecar/proposals/README.md) (decision [faac](notes/decisions/faac-proposal-records.md)). The files are informative. |
 | `specs/sidecar/examples/`, `specs/sidecar/inventory.yaml` | The reference examples, in the `detectors/` layout of the package ([`examples/README.md`](specs/sidecar/examples/README.md)), and the provenance of each example |
 | `specs/sidecar/templates/` | [`model-intake.md`](specs/sidecar/templates/model-intake.md) and [`change-proposal.md`](specs/sidecar/templates/change-proposal.md) |
 | `specs/exporter-guide/sidecars/README.md` | The rules that exporters follow ([exporter guide](specs/exporter-guide/sidecars/README.md)) |
@@ -215,7 +215,7 @@ The demo needs a camera and a display.
   [`specs/sidecar/templates/change-proposal.md`](specs/sidecar/templates/change-proposal.md). In this
   repository, copy the proposal to `specs/sidecar/proposals/<slug>/proposal.md`. Record it as a short
   decision entry with status `proposed` (decision
-  [0036](notes/decisions/0036-spec-proposals-folder.md)). Then stop. The user accepts or rejects the
+  [faac](notes/decisions/faac-proposal-records.md)). Then stop. The user accepts or rejects the
   proposal.
 - Put one kind of change in each PR (decision
   [0027](notes/decisions/0027-single-working-branch.md#one-kind-of-change-in-each-pr)).

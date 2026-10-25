@@ -40,11 +40,11 @@ These entries are `accepted` or `evidence`.
 | [0027](0027-single-working-branch.md) | One working branch for the PR stack; one kind of change per PR, stacked PRs, merge method | accepted |
 | [0030](0030-no-private-data.md) | No private data in tracked files, commits or PR text; the private-data check and gitleaks | accepted |
 | [0031](0031-bootstrap-kit.md) | A bootstrap kit for `AGENTS.md` and the decision log in a new repo; its copies stay in sync with the live files | accepted |
-| [0036](0036-spec-proposals-folder.md) | The spec keeps its change proposals in `specs/sidecar/proposals/`; each one has a short decision entry "Spec change: <slug>" | accepted |
 | [0033](0033-short-sidecars-block.md) | The exporter `AGENTS.md` copies a short fenced "Sidecars" block, not the full Sidecars section | accepted |
 | [0034](0034-sidecar-guide-folder.md) | The sidecar guide moves to `specs/exporter-guide/sidecars/`, split at its headings with no change of text | accepted |
 | [gtwq](gtwq-random-entry-ids.md) | Random 4-character entry IDs with `--new`; four allowed edits, complete supersession, permalinks, `Depends on`, evidence scripts | accepted |
 | [z934](z934-decision-log-index-and-read-path.md) | Index and read path: Proposed table off the read path, `historical.md`, `template.md`, `done`, absorbing documents | accepted |
+| [faac](faac-proposal-records.md) | Spec change proposals in `specs/sidecar/proposals/`; a short `proposed` entry for each; no open-work line for each proposal | accepted |
 
 ### Proposed
 

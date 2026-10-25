@@ -17,3 +17,4 @@ the reason for a decision. The [index](README.md) has the Active and Proposed en
 | [0029](0029-decision-log-read-path.md) | Read path, Deferred proposals, status forms, the open-work file and the size limits | superseded by 0035 |
 | [0032](0032-entry-numbers-and-edits.md) | Entry numbers with `--next` on parallel branches; four allowed edits, complete supersession, permalinks, `Depends on`, evidence scripts | superseded by gtwq |
 | [0035](0035-decision-log-limits.md) | Higher limits for the decision log: index 18,000 and read path 330,000; the bootstrap kit keeps the 0029 limits | superseded by z934 |
+| [0036](0036-spec-proposals-folder.md) | The spec keeps its change proposals in `specs/sidecar/proposals/`; each one has a short decision entry "Spec change: <slug>" | superseded by faac |

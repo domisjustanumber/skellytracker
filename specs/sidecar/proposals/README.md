@@ -1,7 +1,7 @@
 # Spec change proposals
 
 This folder holds the spec change proposals that skellytracker has recorded (decision
-[0036](../../../notes/decisions/0036-spec-proposals-folder.md)). Each proposal has one folder,
+[faac](../../../notes/decisions/faac-proposal-records.md)). Each proposal has one folder,
 `<slug>/`, with the file `proposal.md`. That file holds the header and all eight parts of the
 proposal, a source note and the heading "Before acceptance".
 
@@ -11,7 +11,9 @@ section files. The decision entry of each proposal records its status. The skill
 proposal. The skill [`change-sidecar-spec`](../../../.claude/skills/change-sidecar-spec/SKILL.md)
 lands it.
 
-`state` is `recorded`, `accepted`, `landed` or `rejected`.
+`state` is `recorded`, `accepted`, `landed` or `rejected`. This table is the list of the
+proposals. A proposal with `state: recorded` waits for the user. The heading "Before acceptance"
+of its `proposal.md` lists the work that must be done before the user can accept it.
 
 | Proposal | Section | Exporter | Decision | State |
 |---|---|---|---|---|

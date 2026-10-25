@@ -77,10 +77,10 @@ In skellytracker:
 | An exporter repo | `plans/sidecar-reference-<section_module>.py`, the reference implementation of part 3. It exists also when no host code exists yet. |
 | An exporter repo | The parity script of part 5, committed in the exporter repo. |
 | An exporter repo | A link to each proposal in the intake. |
-| skellytracker | `specs/sidecar/proposals/<slug>/proposal.md`: the eight parts in full ([0036](../../../notes/decisions/0036-spec-proposals-folder.md)). |
+| skellytracker | `specs/sidecar/proposals/<slug>/proposal.md`: the eight parts in full ([faac](../../../notes/decisions/faac-proposal-records.md)). |
 | skellytracker | A row in the proposal index [`specs/sidecar/proposals/README.md`](../../../specs/sidecar/proposals/README.md). |
 | skellytracker | `notes/decisions/<id>-<slug>.md`: a short decision entry "Spec change: <slug>", with the status `proposed`. |
-| skellytracker | A row for the entry in the Proposed table of [`notes/decisions/README.md`](../../../notes/decisions/README.md), and one line in [`open-work.md`](../../../notes/decisions/open-work.md). |
+| skellytracker | A row for the entry in the Proposed table of [`notes/decisions/README.md`](../../../notes/decisions/README.md). |
 
 ## Procedure in an exporter repo
 
@@ -197,7 +197,7 @@ In skellytracker:
 
 ### Step 3: Copy the proposal into the spec folder
 
-Decision [0036](../../../notes/decisions/0036-spec-proposals-folder.md) gives the rules of this step.
+Decision [faac](../../../notes/decisions/faac-proposal-records.md) gives the rules of this step.
 
 1. Create `specs/sidecar/proposals/<slug>/proposal.md`. Use the slug of the proposal.
 2. Write the front matter: `slug`, `section` (the proposed section ID), `exporter`, `decision` (the
@@ -243,11 +243,10 @@ Decision [0036](../../../notes/decisions/0036-spec-proposals-folder.md) gives th
 7. Write the repo name with the ID of an exporter decision, for example "OpenMMLab-Exporter
    0020". Write the entry in ASD-STE100.
 8. Add the entry to the Proposed table of the decision log, with the status `proposed`. Its
-   Section cell is the section ID of the proposal in backticks, or `none`. Add one line to
-   [`open-work.md`](../../../notes/decisions/open-work.md) with a link to the "Before acceptance"
-   heading of `proposal.md`.
+   Section cell is the section ID of the proposal in backticks, or `none`. Do not add a line to
+   `open-work.md`: the proposal index lists the proposals.
 9. If the proposal completes a gap record, edit the gap record. Do not add a new entry. Items 1, 2
-   and 8 do not apply, but add the open-work line. Write the Decision of item 4. Move the original
+   and 8 do not apply. Write the Decision of item 4. Move the original
    text under Reason. Remove the sentence "This entry is a gap record". Keep the status `proposed`.
    Add `completed <YYYY-MM-DD> (<source>)` to its status line
    ([gtwq](../../../notes/decisions/gtwq-random-entry-ids.md)).

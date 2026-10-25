@@ -1,6 +1,6 @@
 # 0036 — The spec keeps its change proposals in `specs/sidecar/proposals/`
 
-**Status:** accepted, 2026-10-25 (user).
+**Status:** superseded by [faac](faac-proposal-records.md), 2026-10-25 (user).
 
 ## Decision
 

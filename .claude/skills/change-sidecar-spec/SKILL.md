@@ -32,7 +32,7 @@ outputs and the stop points.
 | Input | Where it comes from |
 |---|---|
 | An intake with the final verdict `describes` | `plans/sidecar-intake-<model>.md` in an exporter repo |
-| A proposal that the user accepted | A decision entry with the status `proposed`, and its proposal file `specs/sidecar/proposals/<slug>/proposal.md` ([0036](../../../notes/decisions/0036-spec-proposals-folder.md)) |
+| A proposal that the user accepted | A decision entry with the status `proposed`, and its proposal file `specs/sidecar/proposals/<slug>/proposal.md` ([faac](../../../notes/decisions/faac-proposal-records.md)) |
 | A reference implementation of an exporter | `plans/sidecar-reference-<section_module>.py` in an exporter repo |
 | Another spec edit | A request of the user, an item of the spec-defect list in [`notes/decisions/open-work.md`](../../../notes/decisions/open-work.md), or the release step |
 
@@ -99,8 +99,7 @@ Do this procedure for step 2 of phase 3.
 12. Run the [impact](#impact) and the [checks](#checks).
 13. Make the non-spec PR on top of the content PR. Do steps 14 to 17.
 14. Write part 6 of the proposal as the "Implementer guidance" of the section.
-15. Add an item for part 6 to the [Open work](../../../notes/decisions/open-work.md) list. Remove the
-    "before acceptance" line of the proposal from that list.
+15. Add an item for part 6 to the [Open work](../../../notes/decisions/open-work.md) list.
 16. Add the "Authoring guidance" from the intake. Do the steps of [Guidance](#guidance).
 17. When the exporter writes the sidecar with the new fields, add the example with procedure A. Remove
     the `proposed` entry of the model from `specs/sidecar/inventory.yaml`, if it has one.
