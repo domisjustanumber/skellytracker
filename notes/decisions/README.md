@@ -45,7 +45,6 @@ decided entry changes only by the edits that the [Rules](#rules) allow.
 | [0027](0027-single-working-branch.md) | One working branch for the PR stack; one kind of change per PR, stacked PRs, merge method | accepted |
 | [0030](0030-no-private-data.md) | No private data in tracked files, commits or PR text; the private-data check and gitleaks | accepted |
 | [0031](0031-bootstrap-kit.md) | A bootstrap kit for `AGENTS.md` and the decision log in a new repo; its copies stay in sync with the live files | accepted |
-| [0032](0032-entry-numbers-and-edits.md) | Entry numbers with `--next` on parallel branches; four allowed edits, complete supersession, permalinks, `Depends on`, evidence scripts | accepted |
 | [0035](0035-decision-log-limits.md) | Higher limits for the decision log: index 18,000 and read path 330,000; the bootstrap kit keeps the 0029 limits | accepted |
 | [0036](0036-spec-proposals-folder.md) | The spec keeps its change proposals in `specs/sidecar/proposals/`; each one has a short decision entry "Spec change: <slug>" | accepted |
 | [0037](0037-affine-crop-arithmetic.md) | Spec change: affine-crop-arithmetic (`pre.resize.affine_person_crop`) | proposed |
@@ -62,6 +61,7 @@ decided entry changes only by the edits that the [Rules](#rules) allow.
 | [0048](0048-vnext-scope-mediapipe-rotated-crops.md) | `vNEXT` scope and the features not added; MediaPipe-Exporter joins, and rotated crops leave the list | proposed |
 | [0033](0033-short-sidecars-block.md) | The exporter `AGENTS.md` copies a short fenced "Sidecars" block, not the full Sidecars section | accepted |
 | [0034](0034-sidecar-guide-folder.md) | The sidecar guide moves to `specs/exporter-guide/sidecars/`, split at its headings with no change of text | accepted |
+| [gtwq](gtwq-random-entry-ids.md) | Random 4-character entry IDs with `--new`; four allowed edits, complete supersession, permalinks, `Depends on`, evidence scripts | accepted |
 
 ### Deferred
 
@@ -72,8 +72,8 @@ These entries are `proposed`. The latest date in their status line is more than 
 
 ### Historical
 
-These entries are `rejected`, `superseded by NNNN`, `absorbed into <path>#<anchor>` or
-`evidence; used by NNNN`.
+These entries are `rejected`, `superseded by XXXX`, `absorbed into <path>#<anchor>` or
+`evidence; used by XXXX`.
 
 | # | Decision | Status |
 |---|----------|--------|
@@ -83,6 +83,7 @@ These entries are `rejected`, `superseded by NNNN`, `absorbed into <path>#<ancho
 | [0026](0026-decision-log-size.md) | Size limits for the decision log: read path, absorbed status, consolidation | superseded by 0029 |
 | [0028](0028-entry-edits-and-citations.md) | Allowed edits to entries, complete supersession, permalinks, `Depends on`, a mirror rule that 0032 retires | superseded by 0032 |
 | [0029](0029-decision-log-read-path.md) | Read path, Deferred proposals, status forms, the open-work file and the size limits | superseded by 0035 |
+| [0032](0032-entry-numbers-and-edits.md) | Entry numbers with `--next` on parallel branches; four allowed edits, complete supersession, permalinks, `Depends on`, evidence scripts | superseded by gtwq |
 
 ## Open work
 
@@ -93,15 +94,15 @@ The open work, the repository state and the spec defects are in [open-work.md](o
 - Write one entry for each decision or measurement.
 - The body of an entry that is not `proposed` does not change, except for four edits: a link or
   anchor repair, a typo that does not change the meaning, the redaction of private data, and a
-  renumber with the repair of its citations. Each edit adds `_Edited YYYY-MM-DD (#PR): <kind>._` at
-  the end of the entry. `<kind>` is `link repair`, `typo`, `redaction`, `renumber from NNNN` or
-  `citation repair` ([0032](0032-entry-numbers-and-edits.md)).
+  change of ID with the repair of its citations. Each edit adds `_Edited YYYY-MM-DD (#PR): <kind>._`
+  at the end of the entry. `<kind>` is `link repair`, `typo`, `redaction`, `re-ID from XXXX` or
+  `citation repair` ([gtwq](gtwq-random-entry-ids.md)). An old `renumber from NNNN` line stays.
 - A `proposed` entry can change until the user decides it.
 - To change a decision, add a new entry. It restates each rule of the old entry that stays, and it
   supersedes the old entry in full. Do not supersede a part of an entry.
 - The status line of an entry can change. These changes are allowed: `proposed` to `accepted` or
-  `rejected`, `accepted` to `superseded by NNNN`, `accepted` to `absorbed into <path>#<anchor>`, and
-  `evidence` to `evidence; used by NNNN`. Each change adds its date and the PR that made it. In the
+  `rejected`, `accepted` to `superseded by XXXX`, `accepted` to `absorbed into <path>#<anchor>`, and
+  `evidence` to `evidence; used by XXXX`. Each change adds its date and the PR that made it. In the
   same PR, change the status in the index and move the row to the table for the new status.
 - The Status cell of an index row has only a status form of its table. The Decision cell has 160
   characters or fewer ([0035](0035-decision-log-limits.md)).
@@ -120,33 +121,31 @@ The open work, the repository state and the spec defects are in [open-work.md](o
   limit. The doc tests run the same check.
 - A decision can be accepted before its spec text lands. Its spec text then comes in a later content
   PR.
-- Before you add an entry, run `git fetch --all`. Then run
-  `uv run python tools/check_decision_log.py --next`. Give the entry the number of the `next:` line.
-  Create its file immediately. Add its index row at the end of the table for its status, in the same
-  PR. Gaps in the numbers are allowed.
-- Run `--next` again before each push. Act on each `renumber:` line. Both sides of a collision get the
-  same verdict ([0032](0032-entry-numbers-and-edits.md)).
-- A number is provisional until its entry is on `development`. Change a provisional number only for a
-  `renumber:` line, or when `development` already has the number. This change is not an edit of the
-  body, so it adds no `_Edited` line.
-- To renumber, run `--next`. Rename the file to the new number. Change the number in its heading and
-  in its index row. Find the citations with `git grep -n -E "\bNNNN\b|NNNN-"`, and repair each one.
-  Ask the user before you change a PR title or a PR body.
-- If two entries on `development` have one number, renumber the entry that merged later, in a new
-  PR. This command shows the later merge first:
-  `git log --first-parent --diff-filter=A --name-only --format=%h upstream/development -- "notes/decisions/NNNN-*.md"`.
-  Add `_Edited YYYY-MM-DD (#PR): renumber from NNNN._` to the entry. Add a `citation repair` line to
-  each entry on `development` that you repair.
-- Do not give a number that an entry had on `development` to a different entry. Do not keep two index
-  rows with one number.
+- An entry ID has 4 characters from `0123456789abcdefghjkmnpqrstvwxyz`. The first character of a new
+  ID is a letter. The entries 0001 to 0048 keep their numbers. Do not make a new all-digit ID
+  ([gtwq](gtwq-random-entry-ids.md)).
+- Before you add an entry, run `git fetch --all` when you can. Then run
+  `uv run python tools/check_decision_log.py --new`. Give the entry the ID of the `new:` line. Create
+  its file immediately. Add its index row at the end of the table for its status, in the same PR. The
+  index order is the order of addition.
+- Run `--new` again before each push. Act on each `re-ID:` line. Both sides of a collision get the
+  same verdict. An ID does not change for a different reason.
+- To change an ID, run `--new`. Rename the file to the new ID. Change the ID in its heading and in its
+  index row. Find the citations with `git grep -n -E "\bXXXX\b|XXXX-"`, and repair each one. Ask the
+  user before you change a PR title or a PR body. If the entry is on `development`, add
+  `_Edited YYYY-MM-DD (#PR): re-ID from XXXX._` to it, and a `citation repair` line to each entry on
+  `development` that you repair.
+- Do not give an ID that an entry had on `development` to a different entry. Do not keep two index
+  rows with one ID.
 - Cite a tracked file with a relative link. Cite a commit, or the code of another repo, with a GitHub
   permalink that pins a full SHA on the default branch of that repo
-  ([0032](0032-entry-numbers-and-edits.md)). Do not cite or link `plans/`. Git does not track it
+  ([gtwq](gtwq-random-entry-ids.md)). Do not cite or link `plans/`. Git does not track it
   ([0001](0001-decision-log-and-agents-md.md)).
 - Until a commit is on `development`, cite its PR number and the file path, not its SHA
   ([0027](0027-single-working-branch.md)).
-- Write the number of another repo's entry with the repo name, for example "OpenMMLab-Exporter 0020".
-  A bare number, for example 0016, is always an entry of this log. Cite a provisional entry of another
+- Write the ID of another repo's entry with the repo name, for example "OpenMMLab-Exporter 0020".
+  A bare ID, for example 0016 or gtwq, is always an entry of this log. Write an ID in YAML front
+  matter in quotes. Cite a provisional entry of another
   repo by the repo name, the PR number and the slug.
 - A spec change proposal is an entry with the status `proposed`. The new-model workflow in
   [0014](0014-spec-lifecycle.md) gives its parts.
@@ -166,13 +165,13 @@ The open work, the repository state and the spec defects are in [open-work.md](o
 
 ## Entry template
 
-The file name is `NNNN-<short-slug>.md`.
+The file name is `<id>-<short-slug>.md`. Get `<id>` from `--new`.
 
 ```markdown
-# NNNN — <title>
+# <id> — <title>
 
 **Status:** <proposed | accepted | evidence>, <YYYY-MM-DD> (<source>).
-**Depends on:** <repo> NNNN (<status> on YYYY-MM-DD), <permalink>
+**Depends on:** <repo> XXXX (<status> on YYYY-MM-DD), <permalink>
 
 ## Decision
 
@@ -191,11 +190,11 @@ The file name is `NNNN-<short-slug>.md`.
 
 - **Status.** `accepted` is a decision. `evidence` is a measurement. `proposed` is a spec change
   proposal or a gap record that waits for a decision. A later status change sets `rejected`,
-  `superseded by NNNN`, `absorbed into <path>#<anchor>` or `evidence; used by NNNN` (see "Rules").
+  `superseded by XXXX`, `absorbed into <path>#<anchor>` or `evidence; used by XXXX` (see "Rules").
   The source says who decided or where the entry comes from, for example "user" or "backfilled from
   #81".
 - **Depends on.** Optional. Write it only when the entry waits for a decision of another repo. Use a
-  permalink ([0032](0032-entry-numbers-and-edits.md)).
+  permalink ([gtwq](gtwq-random-entry-ids.md)).
 - **Decision.** What is decided, written so that a reader can apply it.
 - **Reason.** Why. Each entry gives its own reasons.
 - **Consequences.** Optional. What becomes harder, what must change later and what the decision

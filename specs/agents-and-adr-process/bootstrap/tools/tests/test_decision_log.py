@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+from collections.abc import Callable
 from datetime import date
 from pathlib import Path
 
@@ -60,8 +61,9 @@ def make_log(
     return tmp_path
 
 
-def row(number: int, status: str, name: str = "x", decision: str = "Title") -> str:
-    return f"| [{number:04d}]({number:04d}-{name}.md) | {decision} | {status} |"
+def row(number: int | str, status: str, name: str = "x", decision: str = "Title") -> str:
+    i = f"{number:04d}" if isinstance(number, int) else number
+    return f"| [{i}]({i}-{name}.md) | {decision} | {status} |"
 
 
 def proposed_entry(day: str, number: int = 1) -> str:
@@ -263,8 +265,8 @@ def test_two_files_with_one_number_are_reported(tmp_path: Path) -> None:
         entries={"0032-a.md": "# 0032\n", "0032-b.md": "# 0032\n"},
     )
     errors = cdl.check(root, TODAY)
-    assert "entry number 0032 has 2 files: 0032-a.md, 0032-b.md" in errors
-    assert "README.md:10: number 0032 is also in README.md:9" in errors
+    assert "entry ID 0032 has 2 files: 0032-a.md, 0032-b.md" in errors
+    assert "README.md:10: ID 0032 is also in README.md:9" in errors
 
 
 def test_link_text_must_match_file_number(tmp_path: Path) -> None:
@@ -291,7 +293,7 @@ def test_link_text_in_entry_must_match_file(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     ("text", "expected"),
     [
-        ("# 0032 — T\n", ["0033-x.md: heading number 0032 does not match the file name"]),
+        ("# 0032 — T\n", ["0033-x.md: heading ID 0032 does not match the file name"]),
         ("# 0033 — T\n", []),
         ("", []),
     ],
@@ -350,7 +352,7 @@ def test_renumbered_old_entry_keeps_size_exemption(tmp_path: Path) -> None:
     assert cdl.check(root, TODAY) == []
 
 
-# The tests of `--next`. Each git test runs in its own repo, with no user or system config.
+# The tests of `--new`. Each git test runs in its own repo, with no user or system config.
 
 GIT = shutil.which("git")
 needs_git = pytest.mark.skipif(GIT is None, reason="git is not installed")
@@ -398,49 +400,128 @@ def repo(root: Path) -> Path:
 
 
 def verdicts(lines: list[str]) -> list[str]:
-    return [line for line in lines if line.startswith(("keep:", "renumber:"))]
+    return [line for line in lines if line.startswith(("keep:", "re-ID:"))]
 
 
-def test_next_number_without_git(git_env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def scripted(*ids: str) -> Callable[[], str]:
+    """A draw function that gives `ids` in order."""
+    queue = list(ids)
+
+    def draw() -> str:
+        return queue.pop(0)
+
+    return draw
+
+
+def test_new_id_starts_with_a_letter_and_uses_the_alphabet() -> None:
+    for _ in range(500):
+        found = cdl.new_id(set())
+        assert len(found) == 4
+        assert found[0] in cdl.LETTERS
+        assert set(found) <= set(cdl.ALPHABET)
+        assert cdl.ENTRY_NAME.match(f"{found}-x.md")
+
+
+def test_new_id_skips_used_ids() -> None:
+    assert cdl.new_id({"k7m2", "a000"}, scripted("k7m2", "a000", "b111")) == "b111"
+
+
+@pytest.mark.parametrize(
+    ("name", "valid"),
+    [
+        ("0001-x.md", True),
+        ("k7m2-x.md", True),
+        ("z000-x.md", True),
+        ("0k7m-x.md", False),
+        ("i7m2-x.md", False),
+        ("k7u2-x.md", False),
+    ],
+)
+def test_entry_id_format(tmp_path: Path, name: str, valid: bool) -> None:
+    root = make_log(tmp_path, entries={name: ""})
+    errors = cdl.check(root, TODAY)
+    if valid:
+        assert errors == [f"{name}: 0 index rows, expected 1"]
+    else:
+        assert errors == [
+            f"{name}: the file name starts like an entry, but {name[:4]!r} is not a valid ID"
+        ]
+
+
+def test_letter_ids_in_rows_links_and_status(tmp_path: Path) -> None:
+    root = make_log(
+        tmp_path,
+        active=row("k7m2", "accepted", "y"),
+        historical=row(1, "superseded by k7m2"),
+        entries={
+            "0001-x.md": "# 0001\n\n**Status:** superseded by [k7m2](k7m2-y.md), 2026-10-25 (#1).\n",
+            "k7m2-y.md": "# k7m2 — T\n\nSee [0001](0001-x.md).\n",
+        },
+    )
+    assert cdl.check(root, TODAY) == []
+
+
+def test_re_id_keeps_size_exemption(tmp_path: Path) -> None:
+    old = cdl.LAST_UNLIMITED_ENTRY
+    edit = f"\n\n_Edited 2026-10-25 (#1): re-ID from {old:04d}._\n"
+    root = make_log(
+        tmp_path,
+        active=row("k7m2", "accepted"),
+        entries={"k7m2-x.md": "x" * (cdl.ENTRY_LIMIT + 1) + edit},
+    )
+    assert cdl.check(root, TODAY) == []
+
+
+def test_letter_id_has_no_size_exemption(tmp_path: Path) -> None:
+    root = make_log(
+        tmp_path,
+        active=row("a001", "accepted"),
+        entries={"a001-x.md": "x" * (cdl.ENTRY_LIMIT + 1)},
+    )
+    errors = cdl.check(root, TODAY)
+    assert f"a001-x.md: {cdl.ENTRY_LIMIT + 1} characters, limit {cdl.ENTRY_LIMIT}" in errors
+
+
+def test_new_without_git(git_env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     root = make_log(
         git_env / "plain",
         active="\n".join([row(1, "accepted"), row(3, "accepted", "z")]),
         entries={"0001-x.md": "# 0001\n", "0003-z.md": "# 0003\n"},
     )
-    lines = cdl.next_lines(root)
-    assert lines[0] == "next: 0004"
+    lines = cdl.new_lines(root, scripted("0001", "0003", "k7m2"))
+    assert lines[0] == "new: k7m2"
     assert any(line.startswith("note: ") for line in lines)
 
     def no_git(*args: object, **kwargs: object) -> None:
         raise FileNotFoundError("git")
 
     monkeypatch.setattr(cdl.subprocess, "run", no_git)
-    assert cdl.next_lines(root)[0] == "next: 0004"
+    assert cdl.new_lines(root, scripted("k7m2"))[0] == "new: k7m2"
 
 
 @needs_git
-def test_next_with_unborn_head(git_env: Path) -> None:
+def test_new_with_unborn_head(git_env: Path) -> None:
     root = git_env / "repo"
     (root / cdl.LOG_DIR).mkdir(parents=True)
     git(root, "init", "-q", "-b", "main")
-    lines = cdl.next_lines(root)
-    assert lines[0] == "next: 0001"
+    lines = cdl.new_lines(root)
+    assert cdl.ENTRY_NAME.match(lines[0].removeprefix("new: ") + "-x.md")
     assert verdicts(lines) == []
 
 
 @needs_git
-def test_next_number_sees_branch_and_worktree(git_env: Path) -> None:
+def test_new_sees_branch_and_worktree(git_env: Path) -> None:
     root = repo(git_env / "repo")
     git(root, "checkout", "-q", "-b", "other")
-    entry(root, "0002-b.md")
-    commit(root, "0002-b")
+    entry(root, "b222-b.md")
+    commit(root, "b222-b")
     git(root, "checkout", "-q", "main")
     git(root, "worktree", "add", "-q", "-b", "wt", str(git_env / "wt"))
-    entry(git_env / "wt", "0003-c.md")
-    entry(root, "0002-a.md")
-    lines = cdl.next_lines(root)
-    assert lines[0] == "next: 0004"
-    assert verdicts(lines) == ["keep: 0002-a.md; 0002-b.md also uses 0002 (on other)"]
+    entry(git_env / "wt", "c333-c.md")
+    entry(root, "b222-a.md")
+    lines = cdl.new_lines(root, scripted("0001", "b222", "c333", "d444"))
+    assert lines[0] == "new: d444"
+    assert verdicts(lines) == ["re-ID: b222-a.md; b222-b.md also uses b222 (on other)"]
 
 
 @needs_git
@@ -452,13 +533,11 @@ def test_same_file_on_other_ref_is_not_a_collision(git_env: Path) -> None:
     git(root, "checkout", "-q", "main")
     entry(root, "0002-b.md")
     commit(root, "0002-b on main")
-    lines = cdl.next_lines(root)
-    assert lines[0] == "next: 0003"
-    assert verdicts(lines) == []
+    assert verdicts(cdl.new_lines(root)) == []
 
 
 @needs_git
-def test_next_ignores_own_uncommitted_rename(git_env: Path) -> None:
+def test_new_ignores_own_uncommitted_rename(git_env: Path) -> None:
     root = repo(git_env / "repo")
     git(root, "remote", "add", "origin", str(git_env / "remote.git"))
     git(root, "checkout", "-q", "-b", "feat")
@@ -469,27 +548,82 @@ def test_next_ignores_own_uncommitted_rename(git_env: Path) -> None:
     # A rebase makes a new commit, so origin/feat is no longer merged into HEAD.
     git(root, "commit", "-q", "--amend", "-m", "0002-old, rebased")
     git(root, "mv", "notes/decisions/0002-old.md", "notes/decisions/0002-new.md")
-    lines = cdl.next_lines(root)
-    assert lines[0] == "next: 0003"
-    assert verdicts(lines) == []
+    assert verdicts(cdl.new_lines(root)) == []
 
 
 @needs_git
-def test_next_verdicts_agree_between_worktrees(git_env: Path) -> None:
+def test_old_name_of_an_entry_is_not_a_collision(git_env: Path) -> None:
+    """A stale branch has the old names of two entries that this tree gave new IDs."""
+    root = repo(git_env / "repo")
+    git(root, "checkout", "-q", "-b", "stale")
+    entry(root, "0040-rules.md")
+    entry(root, "0043-gate.md")
+    commit(root, "old names")
+    git(root, "checkout", "-q", "main")
+    entry(root, "0043-rules.md")
+    entry(root, "0046-gate.md")
+    commit(root, "new names")
+    assert verdicts(cdl.new_lines(root)) == []
+
+
+@needs_git
+def test_backup_branches_are_skipped(git_env: Path) -> None:
+    root = repo(git_env / "repo")
+    git(root, "checkout", "-q", "-b", "backup/before-re-id")
+    entry(root, "0002-z.md")
+    commit(root, "0002-z")
+    git(root, "checkout", "-q", "main")
+    entry(root, "0002-a.md")
+    commit(root, "0002-a")
+    assert verdicts(cdl.new_lines(root)) == []
+
+
+@needs_git
+def test_new_verdicts_agree_between_worktrees(git_env: Path) -> None:
     root = repo(git_env / "repo")
     other = git_env / "wt"
     git(root, "worktree", "add", "-q", "-b", "wt", str(other))
     entry(root, "0003-x.md")
     entry(other, "0003-y.md")
-    here = verdicts(cdl.next_lines(root))
-    there = verdicts(cdl.next_lines(other))
+    here = verdicts(cdl.new_lines(root))
+    there = verdicts(cdl.new_lines(other))
     assert len(here) == 1 and here[0].startswith("keep: 0003-x.md; 0003-y.md also uses 0003")
     assert len(there) == 1
-    assert there[0].startswith("renumber: 0003-y.md; 0003-x.md also uses 0003")
+    assert there[0].startswith("re-ID: 0003-y.md; 0003-x.md also uses 0003")
 
 
 @needs_git
-def test_next_target_wins(git_env: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_first_commit_wins(git_env: Path) -> None:
+    """The entry with the earlier first commit keeps its ID, also when its file name sorts later."""
+    root = repo(git_env / "repo")
+    git(root, "checkout", "-q", "-b", "early")
+    entry(root, "k7m2-z.md")
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "early", "--date=2026-01-01T00:00:00")
+    git(root, "checkout", "-q", "main")
+    entry(root, "k7m2-a.md")
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "late", "--date=2026-02-01T00:00:00")
+    assert verdicts(cdl.new_lines(root)) == [
+        "re-ID: k7m2-a.md; k7m2-z.md also uses k7m2 (on early)"
+    ]
+
+
+@needs_git
+def test_uncommitted_entry_loses_to_committed(git_env: Path) -> None:
+    root = repo(git_env / "repo")
+    git(root, "checkout", "-q", "-b", "other")
+    entry(root, "k7m2-z.md")
+    commit(root, "k7m2-z")
+    git(root, "checkout", "-q", "main")
+    entry(root, "k7m2-a.md")
+    assert verdicts(cdl.new_lines(root)) == [
+        "re-ID: k7m2-a.md; k7m2-z.md also uses k7m2 (on other)"
+    ]
+
+
+@needs_git
+def test_new_target_wins(git_env: Path, capsys: pytest.CaptureFixture[str]) -> None:
     root = repo(git_env / "repo")
     git(root, "checkout", "-q", "-b", "t")
     entry(root, "0002-t.md")
@@ -498,11 +632,12 @@ def test_next_target_wins(git_env: Path, capsys: pytest.CaptureFixture[str]) -> 
     git(root, "checkout", "-q", "main")
     git(root, "branch", "-q", "-D", "t")
     entry(root, "0002-a.md")
-    assert verdicts(cdl.next_lines(root)) == [
-        f"renumber: 0002-a.md; 0002-t.md also uses 0002 (on origin/{cdl.TARGET_BRANCH})"
+    commit(root, "0002-a")
+    assert verdicts(cdl.new_lines(root)) == [
+        f"re-ID: 0002-a.md; 0002-t.md also uses 0002 (on origin/{cdl.TARGET_BRANCH})"
     ]
-    assert cdl.main(["check_decision_log.py", "--next", str(root)]) == 1
-    assert "renumber: 0002-a.md" in capsys.readouterr().out
+    assert cdl.main(["check_decision_log.py", "--new", str(root)]) == 1
+    assert "re-ID: 0002-a.md" in capsys.readouterr().out
 
 
 def branches(root: Path, count: int) -> None:
@@ -523,7 +658,7 @@ def branches(root: Path, count: int) -> None:
 
 
 @needs_git
-def test_next_process_count_is_fixed(git_env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_new_process_count_is_fixed(git_env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     real_run = subprocess.run
     calls: list[object] = []
 
@@ -537,8 +672,8 @@ def test_next_process_count_is_fixed(git_env: Path, monkeypatch: pytest.MonkeyPa
         branches(root, count)
         calls.clear()
         monkeypatch.setattr(cdl.subprocess, "run", counting_run)
-        lines = cdl.next_lines(root)
+        lines = cdl.new_lines(root)
         monkeypatch.setattr(cdl.subprocess, "run", real_run)
-        assert lines[0] == f"next: {count + 2:04d}"
+        assert verdicts(lines) == []
         counts.append(len(calls))
     assert counts[0] == counts[1] <= 5

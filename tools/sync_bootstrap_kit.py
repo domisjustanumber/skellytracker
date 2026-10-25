@@ -35,8 +35,9 @@ COPIES = (
         "tools/check_decision_log.py",
         "tools/check_decision_log.py",
         (
-            ("(decision 0035).", f"{DECISION_0001}."),
-            ("another repo (decision 0032).\n", f"another repo {DECISION_0001}.\n"),
+            ("(decisions 0035 and gtwq).", f"{DECISION_0001}."),
+            ("random IDs (decision\ngtwq).", "random IDs (decision\n0001)."),
+            ("another repo (decision gtwq).\n", f"another repo {DECISION_0001}.\n"),
             ("INDEX_LIMIT = 18_000\n", "INDEX_LIMIT = 14_000\n"),
             ("READ_PATH_LIMIT = 330_000\n", "READ_PATH_LIMIT = 220_000\n"),
             (

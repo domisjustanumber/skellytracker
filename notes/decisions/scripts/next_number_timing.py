@@ -17,7 +17,7 @@ and the number of git processes:
 - ``ls-tree per ref``: the first design. One ``git ls-tree`` for each ref.
 - ``tool``: ``next_lines`` of ``tools/check_decision_log.py``. It runs 5 git processes for any number
   of refs.
-- ``tool, full run``: ``python tools/check_decision_log.py --next ROOT`` in a new process, with the
+- ``tool, full run``: ``python tools/check_decision_log.py --new ROOT`` in a new process, with the
   start-up of Python.
 
 Standard library and the git CLI only. The script reads ROOT. It does not change it.
@@ -120,7 +120,7 @@ def ls_tree_per_ref(root: Path, tool) -> str:
     for ref in refs.split():
         listed = tool.decoded(tool.git(root, "ls-tree", "--name-only", ref, "--", f"{LOG}/"))
         names |= {Path(n).name for n in listed.splitlines() if tool.ENTRY_NAME.match(Path(n).name)}
-    return f"next: {max((int(n[:4]) for n in names), default=0) + 1:04d}"
+    return f"next: {max((int(n[:4]) for n in names if n[:4].isdigit()), default=0) + 1:04d}"
 
 
 def timed(run, repeats: int) -> tuple[float, str]:
@@ -160,7 +160,7 @@ def main(argv: list[str]) -> int:
             print(f"{label:16} {ms:8.1f} ms  {count[0] // repeats:4d} git processes  {result}")
     finally:
         tool.subprocess.run = real_run
-    command = [sys.executable, str(TOOL), "--next", str(root)]
+    command = [sys.executable, str(TOOL), "--new", str(root)]
     ms, result = timed(lambda: real_run(command, capture_output=True, check=False).stdout.decode().split("\n")[0], repeats)  # noqa: S603
     print(f"{'tool, full run':16} {ms:8.1f} ms  {'':4}                {result}")
     print(f"git: {real_run([GIT, '--version'], capture_output=True, check=False).stdout.decode().strip()}")  # noqa: S603

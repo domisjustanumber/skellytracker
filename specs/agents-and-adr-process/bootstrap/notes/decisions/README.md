@@ -28,8 +28,8 @@ These entries are `proposed`. The latest date in their status line is more than 
 
 ### Historical
 
-These entries are `rejected`, `superseded by NNNN`, `absorbed into <path>#<anchor>` or
-`evidence; used by NNNN`.
+These entries are `rejected`, `superseded by XXXX`, `absorbed into <path>#<anchor>` or
+`evidence; used by XXXX`.
 
 | # | Decision | Status |
 |---|----------|--------|
@@ -43,21 +43,21 @@ The open work is in [open-work.md](open-work.md).
 - Write one entry for each decision or measurement.
 - The body of an entry that is not `proposed` does not change, except for four edits: a link or
   anchor repair, a typo that does not change the meaning, the redaction of private data, and a
-  renumber with the repair of its citations. Each edit adds `_Edited YYYY-MM-DD (#PR): <kind>._` at
-  the end of the entry. `<kind>` is `link repair`, `typo`, `redaction`, `renumber from NNNN` or
+  change of ID with the repair of its citations. Each edit adds `_Edited YYYY-MM-DD (#PR): <kind>._`
+  at the end of the entry. `<kind>` is `link repair`, `typo`, `redaction`, `re-ID from XXXX` or
   `citation repair`.
 - A `proposed` entry can change until the user decides it.
 - To change a decision, add a new entry. It restates each rule of the old entry that stays, and it
   supersedes the old entry in full. Do not supersede, amend or correct a part of an entry.
 - The status line of an entry can change. These changes are allowed: `proposed` to `accepted` or
-  `rejected`, `accepted` to `superseded by NNNN`, `accepted` to `absorbed into <path>#<anchor>`, and
-  `evidence` to `evidence; used by NNNN`. Each change adds its date and the PR that made it. In the
+  `rejected`, `accepted` to `superseded by XXXX`, `accepted` to `absorbed into <path>#<anchor>`, and
+  `evidence` to `evidence; used by XXXX`. Each change adds its date and the PR that made it. In the
   same PR, change the status in the index and move the row to the table for the new status.
 - The Status cell of an index row has only a status form of its table. The Decision cell has 160
   characters or fewer.
 - Move a `proposed` row to Deferred when the latest date in its status line is more than 183 days
   old.
-- An `evidence` entry gets `evidence; used by NNNN` when an accepted entry cites it for its decision.
+- An `evidence` entry gets `evidence; used by XXXX` when an accepted entry cites it for its decision.
 - An accepted entry is absorbed when a normative document states all of its rules. The normative
   documents are `AGENTS.md`, the skills and {{NORMATIVE_DOCS, for example the spec or the contract
   files}}. Then that document is the source of the rules.
@@ -70,31 +70,28 @@ The open work is in [open-work.md](open-work.md).
   measurement in `notes/decisions/scripts/`. The Evidence section names it. Run
   `uv run python tools/check_decision_log.py` to see the read-path size and the warnings at 80% of a
   limit. `uv run pytest tools/tests` runs the same check.
-- Before you add an entry, run `git fetch`. Then run
-  `uv run python tools/check_decision_log.py --next`. Give the entry the number of the `next:` line.
-  Create its file immediately. Add its index row at the end of the table for its status, in the same
-  PR. Gaps in the numbers are allowed.
-- Run `--next` again before each push. A `renumber:` line names an entry of this tree whose number a
-  different file has on another branch or worktree. Both sides get the same verdict: an entry on
-  `{{DEFAULT_BRANCH}}` wins, then an entry on a remote-tracking branch, then the file name that sorts
-  first.
-- A number is provisional until its entry is on `{{DEFAULT_BRANCH}}`. Change a provisional number
-  only for a `renumber:` line, or when `{{DEFAULT_BRANCH}}` already has the number. This change is not
-  an edit of the body, so it adds no `_Edited` line.
-- To renumber, run `--next`. Rename the file to the new number. Change the number in its heading and
-  in its index row. Find the citations with `git grep -n -E "\bNNNN\b|NNNN-"`, and repair each one.
-  Ask the user before you change a PR title or a PR body.
-- If two entries on `{{DEFAULT_BRANCH}}` have one number, renumber the entry that merged later, in a
-  new PR. This command shows the later merge first:
-  `git log --first-parent --diff-filter=A --name-only --format=%h origin/{{DEFAULT_BRANCH}} -- "notes/decisions/NNNN-*.md"`.
-  Add `_Edited YYYY-MM-DD (#PR): renumber from NNNN._` to the entry. Add a `citation repair` line to
-  each entry on `{{DEFAULT_BRANCH}}` that you repair.
-- Do not give a number that an entry had on `{{DEFAULT_BRANCH}}` to a different entry. Do not keep two
-  index rows with one number.
+- An entry ID has 4 characters from `0123456789abcdefghjkmnpqrstvwxyz`. The first character is a
+  letter. Entry 0001 keeps its number. Do not make a new all-digit ID.
+- Before you add an entry, run `git fetch` when you can. Then run
+  `uv run python tools/check_decision_log.py --new`. Give the entry the ID of the `new:` line. Create
+  its file immediately. Add its index row at the end of the table for its status, in the same PR. The
+  index order is the order of addition.
+- Run `--new` again before each push. A `re-ID:` line names an entry of this tree whose ID a different
+  file has on another branch or worktree. Both sides get the same verdict: an entry on
+  `{{DEFAULT_BRANCH}}` wins, then an entry on a remote-tracking branch, then the entry whose first
+  commit has the earlier author date, then the file name that sorts first. An ID does not change for a
+  different reason.
+- To change an ID, run `--new`. Rename the file to the new ID. Change the ID in its heading and in its
+  index row. Find the citations with `git grep -n -E "\bXXXX\b|XXXX-"`, and repair each one. Ask the
+  user before you change a PR title or a PR body. If the entry is on `{{DEFAULT_BRANCH}}`, add
+  `_Edited YYYY-MM-DD (#PR): re-ID from XXXX._` to it, and a `citation repair` line to each entry on
+  `{{DEFAULT_BRANCH}}` that you repair.
+- Do not give an ID that an entry had on `{{DEFAULT_BRANCH}}` to a different entry. Do not keep two
+  index rows with one ID.
 - Cite a tracked file with a relative link. Cite a commit, or the code of another repo, with a GitHub
   permalink that pins a full SHA on the default branch of that repo. Do not cite or link `plans/`.
-- Write the number of another repo's entry with the repo name, for example "{{OTHER_REPO}} 0020". A
-  bare number is always an entry of this log. Cite a provisional entry of another repo by the repo
+- Write the ID of another repo's entry with the repo name, for example "{{OTHER_REPO}} 0020". A
+  bare ID is always an entry of this log. Write an ID in YAML front matter in quotes. Cite a provisional entry of another repo by the repo
   name, the PR number and the slug.
 - An entry that waits for a decision of another repo has a `**Depends on:**` line under its status
   line.
@@ -107,13 +104,13 @@ The open work is in [open-work.md](open-work.md).
 
 ## Entry template
 
-The file name is `NNNN-<short-slug>.md`.
+The file name is `<id>-<short-slug>.md`. Get `<id>` from `--new`.
 
 ```markdown
-# NNNN — <title>
+# <id> — <title>
 
 **Status:** <proposed | accepted | evidence>, <YYYY-MM-DD> (<source>).
-**Depends on:** <repo> NNNN (<status> on YYYY-MM-DD), <permalink>
+**Depends on:** <repo> XXXX (<status> on YYYY-MM-DD), <permalink>
 
 ## Decision
 

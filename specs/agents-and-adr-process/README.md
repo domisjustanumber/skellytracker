@@ -8,7 +8,7 @@ each file goes to the same relative path.
 The rules come from the skellytracker decision log: [0001](../../notes/decisions/0001-decision-log-and-agents-md.md),
 [0029](../../notes/decisions/0029-decision-log-read-path.md),
 [0030](../../notes/decisions/0030-no-private-data.md) and
-[0032](../../notes/decisions/0032-entry-numbers-and-edits.md). The kit has their final form. It does
+[gtwq](../../notes/decisions/gtwq-random-entry-ids.md). The kit has their final form. It does
 not have their history.
 
 ## What the kit gives
@@ -75,7 +75,7 @@ grep -rn "{{" AGENTS.md CLAUDE.md notes/ tools/
 The command must find nothing.
 
 Then set `TARGET_BRANCH` in `tools/check_decision_log.py` to the branch that PRs target
-(question 2). `--next` uses it to rank entry numbers.
+(question 2). `--new` uses it to rank entry IDs.
 
 ### Step 4: Add the tools to the project
 
@@ -100,7 +100,7 @@ Run each command. Each one must pass.
 ```sh
 uv run pytest tools/tests
 uv run python tools/check_decision_log.py
-uv run python tools/check_decision_log.py --next
+uv run python tools/check_decision_log.py --new
 uv run python tools/check_private_data.py
 uv run pre-commit install
 uv run pre-commit run --all-files
@@ -167,7 +167,7 @@ apply to its task. These files are the read path.
 |---|---|
 | Active | `proposed`, `accepted`, `evidence` |
 | Deferred | `proposed`, when the latest date in its status line is more than 183 days old |
-| Historical | `evidence; used by NNNN`, `rejected`, `superseded by NNNN`, `absorbed into <path>#<anchor>` |
+| Historical | `evidence; used by XXXX`, `rejected`, `superseded by XXXX`, `absorbed into <path>#<anchor>` |
 
 The Status cell has only the status form. Free text in that cell grows. In OpenMMLab-Exporter, one
 cell named five other entries.
@@ -175,36 +175,41 @@ cell named five other entries.
 ### Edits
 
 - A `proposed` entry can change until the user decides it.
-- The body of a decided entry changes only for a link repair, a typo fix, a redaction, or a renumber
-  with the repair of its citations. Each edit adds a dated `_Edited_` line.
+- The body of a decided entry changes only for a link repair, a typo fix, a redaction, or a change of
+  ID with the repair of its citations. Each edit adds a dated `_Edited_` line.
 - A status line can change. Write the date and the PR.
 
-### Numbers and parallel work
+### IDs and parallel work
 
 Two branches or worktrees can read the same index and take the same next number. The file names
 differ, so git shows no conflict. In OpenMMLab-Exporter, two different entries had the number 0040,
-and three entries had the number 0041.
+and three entries had the number 0041. A renumber then moved seven entries. So an entry gets a
+random ID, not the next number.
 
-- Before you add an entry, run `git fetch`. Then run `uv run python tools/check_decision_log.py --next`.
-  It reads this tree, each other worktree and each local and remote-tracking branch. It prints
-  `next: NNNN`. Give the entry that number. Create its file immediately.
+- An ID has 4 characters from `0123456789abcdefghjkmnpqrstvwxyz` (Crockford base32, lower case). The
+  first character is a letter. The kit entry 0001 keeps its number. Do not make a new all-digit ID.
+- Before you add an entry, run `git fetch` when you can. Then run
+  `uv run python tools/check_decision_log.py --new`. It prints `new: XXXX`, a random ID that is not
+  in this tree, in another worktree or on a local or remote-tracking branch. Give the entry that ID.
+  Create its file immediately.
 - Put the index row at the end of the table for its status. Then two parallel entries make a git
-  conflict in the index.
-- Run `--next` again before each push. It prints `keep:` or `renumber:` for each entry of this tree
-  whose number a different file has. Both sides get the same verdict: an entry on `TARGET_BRANCH`
-  wins, then an entry on a remote-tracking branch, then the file name that sorts first. The command
-  exits 1 when it prints a `renumber:` line, so a pre-push hook can use it.
-- A number is provisional until its entry is on the target branch. It changes only for a `renumber:`
-  line, or when the target branch already has the number. Another repo cites a provisional entry by
-  the repo name, the PR number and the slug.
-- A renumber is the fourth allowed edit. The entry gets `_Edited YYYY-MM-DD (#PR): renumber from NNNN._`
+  conflict in the index. The index order is the order of addition.
+- Run `--new` again before each push. It prints `keep:` or `re-ID:` for each entry of this tree
+  whose ID a different file has. Both sides get the same verdict: an entry on `TARGET_BRANCH` wins,
+  then an entry on a remote-tracking branch, then the entry whose first commit has the earlier author
+  date, then the file name that sorts first. An uncommitted file loses. The command exits 1 when it
+  prints a `re-ID:` line, so a pre-push hook can use it.
+- Local branches under `backup/` are not collisions. A file whose slug an entry of this tree has under
+  a different ID is an old name of that entry, not a collision.
+- A change of ID is the fourth allowed edit. The entry gets `_Edited YYYY-MM-DD (#PR): re-ID from XXXX._`
   when it is already on the target branch. Each repaired entry on the target branch gets a
-  `citation repair` line. Gaps in the numbers are allowed. A number that an entry had on the target branch never goes to a different
+  `citation repair` line. An ID that an entry had on the target branch never goes to a different
   entry.
-- `--next` runs 5 git processes, for any number of refs. The normal check reads only the files.
-  It fails on two files or two index rows with one number, on a link text that does not match its
-  file, on a heading that does not match its file name, and on a `superseded by NNNN` cell that does
-  not match the link in the status line.
+- `--new` runs 5 git processes for any number of refs, and one more when it finds a collision. The
+  normal check reads only the files. It fails on a file name with an ID that is not valid, on two
+  files or two index rows with one ID, on a link text that does not match its file, on a heading that
+  does not match its file name, and on a `superseded by XXXX` cell that does not match the link in the
+  status line.
 
 ### Supersession and consolidation
 

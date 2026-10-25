@@ -1,6 +1,6 @@
 # 0032 — Entry numbers on parallel branches, allowed edits and evidence scripts
 
-**Status:** accepted, 2026-10-24 (user).
+**Status:** superseded by [gtwq](gtwq-random-entry-ids.md), 2026-10-25 (user).
 
 ## Decision
 

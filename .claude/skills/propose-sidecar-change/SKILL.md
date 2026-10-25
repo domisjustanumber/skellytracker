@@ -79,7 +79,7 @@ In skellytracker:
 | An exporter repo | A link to each proposal in the intake. |
 | skellytracker | `specs/sidecar/proposals/<slug>/proposal.md`: the eight parts in full ([0036](../../../notes/decisions/0036-spec-proposals-folder.md)). |
 | skellytracker | A row in the proposal index [`specs/sidecar/proposals/README.md`](../../../specs/sidecar/proposals/README.md). |
-| skellytracker | `notes/decisions/NNNN-<slug>.md`: a short decision entry "Spec change: <slug>", with the status `proposed`. |
+| skellytracker | `notes/decisions/<id>-<slug>.md`: a short decision entry "Spec change: <slug>", with the status `proposed`. |
 | skellytracker | A row for the entry in the index of [`notes/decisions/README.md`](../../../notes/decisions/README.md), and one line in [`open-work.md`](../../../notes/decisions/open-work.md). |
 
 ## Procedure in an exporter repo
@@ -217,16 +217,18 @@ Decision [0036](../../../notes/decisions/0036-spec-proposals-folder.md) gives th
    [Before you stop](../../../specs/sidecar/templates/change-proposal.md#before-you-stop), the
    missing primary evidence, each `to run` result and each open question.
 8. Put other long text of the proposal in the same folder: the draft of an entry that the proposal
-   supersedes (`supersedes-NNNN.md`), and long evidence (`evidence.md`).
+   supersedes (`supersedes-<id>.md`), and long evidence (`evidence.md`).
 9. Add a row to the proposal index
    [`specs/sidecar/proposals/README.md`](../../../specs/sidecar/proposals/README.md).
 
 ### Step 4: Write the decision entry
 
-1. Run `git fetch --all`. Then run `uv run python tools/check_decision_log.py --next`. Give the entry
-   the number of the `next:` line ([section 5](../../../AGENTS.md#5-decision-log) of `AGENTS.md`).
-2. Name the file `notes/decisions/NNNN-<slug>.md`. Use the slug of the proposal. The title is
-   "NNNN — Spec change: <slug>".
+1. Run `git fetch --all` when you can. Then run `uv run python tools/check_decision_log.py --new`.
+   Give the entry the ID of the `new:` line ([section 5](../../../AGENTS.md#5-decision-log) of
+   `AGENTS.md`).
+2. Name the file `notes/decisions/<id>-<slug>.md`. Use the slug of the proposal. The title is
+   "<id> — Spec change: <slug>". In the front matter of `proposal.md`, write the ID in quotes, for
+   example `decision: "gtwq"`.
 3. Write the status line: `**Status:** proposed, <YYYY-MM-DD> (<source>).` The source names the
    proposing repo, for example "OpenMMLab-Exporter proposal".
 4. Start the Decision section with "**Proposed, not decided.**" and a link to `proposal.md`. Then
@@ -236,7 +238,7 @@ Decision [0036](../../../notes/decisions/0036-spec-proposals-folder.md) gives th
    In Open work, write only the link to the open-work list.
 6. Keep the entry inside the entry limit
    ([0035](../../../notes/decisions/0035-decision-log-limits.md)). The details stay in `proposal.md`.
-7. Write the repo name with the number of an exporter decision, for example "OpenMMLab-Exporter
+7. Write the repo name with the ID of an exporter decision, for example "OpenMMLab-Exporter
    0020". Write the entry in ASD-STE100.
 8. Add the entry to the index of the decision log, with the status `proposed`. Add one line to
    [`open-work.md`](../../../notes/decisions/open-work.md) with a link to the "Before acceptance"
@@ -245,10 +247,10 @@ Decision [0036](../../../notes/decisions/0036-spec-proposals-folder.md) gives th
    and 8 do not apply, but add the open-work line. Write the Decision of item 4. Move the original
    text under Reason. Remove the sentence "This entry is a gap record". Keep the status `proposed`.
    Add `completed <YYYY-MM-DD> (<source>)` to its status line
-   ([0032](../../../notes/decisions/0032-entry-numbers-and-edits.md)).
+   ([gtwq](../../../notes/decisions/gtwq-random-entry-ids.md)).
 10. If the proposal supersedes an accepted entry on acceptance, write the superseding entry now, with
     the status `proposed`. When its restated rules do not fit the entry limit, link to
-    `supersedes-NNNN.md` in the proposal folder.
+    `supersedes-<id>.md` in the proposal folder.
 
 ### Step 5: Check and stop
 

@@ -247,29 +247,29 @@ Then read the Active entries of the index that apply to your task.
 Read a Deferred entry only for spec work in its area.
 Read a Historical entry only to find the reason for a decision.
 Add one entry for each new decision or measurement.
-Before you add an entry, run `git fetch --all`.
-Then run `uv run python tools/check_decision_log.py --next`.
-Give the entry the number of the `next:` line.
+An entry has a random ID of 4 characters, for example `gtwq`. The entries 0001 to 0048 keep their
+numbers (decision [gtwq](notes/decisions/gtwq-random-entry-ids.md)).
+Before you add an entry, run `git fetch --all` when you can.
+Then run `uv run python tools/check_decision_log.py --new`.
+Give the entry the ID of the `new:` line.
 Create the entry file immediately.
 Add its index row at the end of the table for its status, in the same PR.
-The number is provisional until the entry is on `development`.
-Run `--next` again before each push.
-Act on each `renumber:` line. The index [Rules](notes/decisions/README.md#rules) give the steps.
-Do not change a provisional number for a different reason, except when `development` already has
-the number.
-In the PR stack, put a renumber in the PR that adds the entry. Put each citation repair in the PR
-that adds the citation ([section 6](#6-git-rules)).
-Do not keep two index rows with one number when you resolve a merge conflict.
+Run `--new` again before each push.
+Act on each `re-ID:` line. The index [Rules](notes/decisions/README.md#rules) give the steps.
+Do not change an ID for a different reason.
+In the PR stack, put a change of ID in the PR that adds the entry. Put each citation repair in the
+PR that adds the citation ([section 6](#6-git-rules)).
+Do not keep two index rows with one ID when you resolve a merge conflict.
 Do not rewrite the body of an entry that is not `proposed`.
 Four edits are allowed: a link or anchor repair, a typo fix that keeps the meaning, the redaction of
-private data, and a renumber with the repair of its citations.
+private data, and a change of ID with the repair of its citations.
 Each of these edits adds an `_Edited_` line with the date and the PR (decision
-[0032](notes/decisions/0032-entry-numbers-and-edits.md)).
+[gtwq](notes/decisions/gtwq-random-entry-ids.md)).
 To change a decision, add a new entry. It restates the rules that stay and supersedes the old entry
 in full.
 Do not supersede a part of an entry.
 You may change the status line of an entry: `proposed` to `accepted` or `rejected`, and `accepted` to
-`superseded by NNNN` or `absorbed into <path>#<anchor>`. Write the date and the PR that changed it.
+`superseded by XXXX` or `absorbed into <path>#<anchor>`. Write the date and the PR that changed it.
 Keep the log inside the limits of decision [0035](notes/decisions/0035-decision-log-limits.md).
 `uv run pytest tools/tests` checks the limits.
 Cite tracked files and decision entries with relative links.
@@ -278,8 +278,8 @@ The permalink must pin a full SHA on the default branch of that repository.
 Do not put dated status lines in this file. Put them in the open work or in an entry.
 Do not cite or link to `plans/`.
 Until a commit is on `development`, cite its PR number and the file path. Do not cite its commit SHA.
-Write the repository name before an entry number of another repository, for example
-"OpenMMLab-Exporter 0020". A number without a repository name is an entry of this repository.
+Write the repository name before an entry ID of another repository, for example
+"OpenMMLab-Exporter 0020". An ID without a repository name is an entry of this repository.
 Cite a provisional entry of another repository by the repository name, the PR number and the slug.
 Do not import a file, a test or a tool from another repository.
 
@@ -374,7 +374,7 @@ Use paths relative to the repository, for example `../OpenMMLab-Exporter/notes/`
 Give a measurement as a summary with its tool and its version.
 Text from `plans/` must obey these rules before it goes into a tracked file.
 If you find private data in a tracked file, remove it with a redaction edit (decision
-[0032](notes/decisions/0032-entry-numbers-and-edits.md)).
+[gtwq](notes/decisions/gtwq-random-entry-ids.md)).
 Then tell the user, because git history keeps the data.
 
 `uv run pytest tools/tests` runs `tools/check_private_data.py`.

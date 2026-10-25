@@ -121,7 +121,7 @@ rejects a proposal removes its line.
 
 ## Repository state
 
-Repository state, not code work ([0032](0032-entry-numbers-and-edits.md)):
+Repository state, not code work ([gtwq](gtwq-random-entry-ids.md)):
 
 - On 2026-10-22, MediaPipe-Exporter has no exporter code.
 - On 2026-10-22, the workflow runs on `freemocap/skellytracker` end in `startup_failure`.

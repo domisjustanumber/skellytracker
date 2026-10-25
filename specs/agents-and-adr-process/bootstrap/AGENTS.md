@@ -60,20 +60,19 @@ Then read the Active entries of the index that apply to your task.
 Read a Deferred entry only for work in its area.
 Read a Historical entry only to find the reason for a decision.
 Add one entry for each new decision or measurement.
-Before you add an entry, run `git fetch`.
-Then run `uv run python tools/check_decision_log.py --next`.
-Give the entry the number of the `next:` line.
+An entry has a random ID of 4 characters, for example `k7m2`.
+Before you add an entry, run `git fetch` when you can.
+Then run `uv run python tools/check_decision_log.py --new`.
+Give the entry the ID of the `new:` line.
 Create the entry file immediately.
 Add its index row at the end of the table for its status, in the same PR.
-The number is provisional until the entry is on `{{DEFAULT_BRANCH}}`.
-Run `--next` again before each push.
-Act on each `renumber:` line. The index [Rules](notes/decisions/README.md#rules) give the steps.
-Do not change a provisional number for a different reason, except when `{{DEFAULT_BRANCH}}` already
-has the number.
-Do not keep two index rows with one number when you resolve a merge conflict.
+Run `--new` again before each push.
+Act on each `re-ID:` line. The index [Rules](notes/decisions/README.md#rules) give the steps.
+Do not change an ID for a different reason.
+Do not keep two index rows with one ID when you resolve a merge conflict.
 Do not rewrite the body of an entry that is not `proposed`.
 Four edits are allowed: a link or anchor repair, a typo fix that keeps the meaning, the redaction of
-private data, and a renumber with the repair of its citations.
+private data, and a change of ID with the repair of its citations.
 Each of these edits adds an `_Edited_` line with the date and the PR.
 To change a decision, add a new entry. It restates the rules that stay and supersedes the old entry
 in full.
