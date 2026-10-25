@@ -12,7 +12,10 @@ You do not do phase 3. A skellytracker session does it. The user decides.
    or write a change proposal. Nobody corrects the example by hand.
 2. **A proposal.** skellytracker copies it to `specs/sidecar/proposals/<slug>/proposal.md`, with all
    eight parts. It records it as a short decision entry with status `proposed` (skellytracker
-   decision faac). The user accepts or rejects it. After acceptance:
+   decision faac). If you change the proposal after that copy, tell the user. skellytracker then
+   records it again: it replaces the copy in full, ticks the closed items of "Before acceptance"
+   and keeps the same entry (skellytracker decision vac0). The user accepts or rejects it. After
+   acceptance:
    - A content PR adds the normative text, the changelog row, the vectors and the reference
      implementation. It sets the decision entry to `accepted` (if it is not accepted yet).
    - A non-spec PR (documentation only) adds the guidance, the implementation proposal (as

@@ -80,8 +80,9 @@ Do this procedure for step 2 of phase 3.
 3. Find the section that owns each rule. Do the steps of [Rules for each spec edit](#rules-for-each-spec-edit).
 4. Write the normative text of part 2 of the proposal into the section files. Take the text from
    `specs/sidecar/proposals/<slug>/proposal.md`. If the exporter proposal changed after the copy,
-   stop. Tell the user, and record the new version first (skill
-   [`propose-sidecar-change`](../propose-sidecar-change/SKILL.md)).
+   stop. Tell the user, and record the new version first (skill `propose-sidecar-change`,
+   [Record a changed proposal](../propose-sidecar-change/SKILL.md#record-a-changed-proposal);
+   decision [vac0](../../../notes/decisions/vac0-record-a-changed-proposal.md)).
 5. Write the `changelog.md` rows.
 6. Copy the reference implementation of part 3 to `specs/sidecar/reference/<section_module>.py`.
 7. If `tools/tests` has no test that runs the reference functions against the vectors of their

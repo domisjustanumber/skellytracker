@@ -1,6 +1,6 @@
 ---
 name: propose-sidecar-change
-description: Use this skill when the sidecar spec does not describe a model property exactly (a `near-miss` or a `gap`). Use it to write the eight-part spec change proposal. Use it also to record such a proposal in skellytracker as a `proposed` decision entry.
+description: Use this skill when the sidecar spec does not describe a model property exactly (a `near-miss` or a `gap`). Use it to write the eight-part spec change proposal. Use it also to record such a proposal in skellytracker as a `proposed` decision entry, and to record it again when the exporter changes it.
 ---
 
 # Propose a sidecar spec change
@@ -22,7 +22,7 @@ normative.
 | Place | What you do | Where you stop |
 |---|---|---|
 | An exporter repo | Write the proposal files in the `plans/` folder of the exporter repo. | After the proposal files. You do not change skellytracker. |
-| skellytracker | Copy a proposal to `specs/sidecar/proposals/<slug>/proposal.md`. Record it as a short decision entry with the status `proposed`. | After the entry. The user accepts or rejects the proposal. |
+| skellytracker | Copy a proposal to `specs/sidecar/proposals/<slug>/proposal.md`. Record it as a short decision entry with the status `proposed`. Record it again when the exporter changes it. | After the entry. The user accepts or rejects the proposal. |
 
 **In an exporter repo:**
 
@@ -159,6 +159,9 @@ In skellytracker:
    - each result that is `to run`;
    - each `plans/sidecar-*` file that no current intake or proposal owns.
 5. A skellytracker session records each proposal (phase 3). The user accepts or rejects it.
+6. If you changed a proposal that skellytracker already recorded (the folder
+   `specs/sidecar/proposals/<slug>/` exists in the checkout), tell the user. A skellytracker session
+   records it again ([Record a changed proposal](#record-a-changed-proposal)).
 
 ## Procedure in skellytracker
 
@@ -169,7 +172,8 @@ In skellytracker:
 2. Read the [Rules](../../../notes/decisions/README.md#rules) and the
    [entry template](../../../notes/decisions/template.md) of the decision log.
 3. Read the index of the decision log. If an entry already records the proposal, do not add a second
-   entry.
+   entry. If the exporter changed the proposal after the copy, do the steps of
+   [Record a changed proposal](#record-a-changed-proposal).
 4. If a `proposed` entry covers the same property as the exporter proposal, read the entry:
    - If it is a gap record (see [Rules](../../../notes/decisions/README.md#rules)) and the exporter
      proposal builds on it (the same slug, and the entry is cited in the header), add the proposal
@@ -273,6 +277,35 @@ Decision [faac](../../../notes/decisions/faac-proposal-records.md) gives the rul
 5. The user accepts or rejects the proposal. After acceptance, use the skill
    [`change-sidecar-spec`](../change-sidecar-spec/SKILL.md).
 
+### Record a changed proposal
+
+Decision [vac0](../../../notes/decisions/vac0-record-a-changed-proposal.md) gives the rules of this
+procedure. Do it when the exporter file of a proposal with `state: recorded` changed after the copy
+that the source note of `proposal.md` gives. Procedure B step 4 of
+[`change-sidecar-spec`](../change-sidecar-spec/SKILL.md) stops a landing until the new record exists.
+
+1. Do Step 1 and Step 2. Read the new exporter file and its reference file in full.
+2. If `state` is `accepted` or `landed`, stop. Do not change the copy. Tell the user: the exporter
+   writes a new proposal for a new change.
+3. Do not add a second entry. The entry ID, the slug, the file names and the status `proposed` stay.
+4. Replace `proposal.md` in full with a copy of the new exporter file. Replace the other exporter
+   files of the folder (for example `evidence.md`) in the same way. Apply only the copy rules of
+   Step 3, items 3 to 6. Keep the front matter.
+5. Write a new source note: the exporter repo, its commit, the date of the new copy and the date of
+   the first copy.
+6. Write the heading "Before acceptance" again from the old list:
+   - Keep each item of the old list, in its order.
+   - Tick each item that the new version closes. Give the reason after it.
+   - Rewrite each item that the new version changes. Mark it `(changed <YYYY-MM-DD>)`.
+   - Add each new item (Step 3, item 7) at the end of its group. Mark it `(new <YYYY-MM-DD>)`.
+7. Change the Decision, the Reason and the Evidence of the entry only where the new version changes
+   them. Keep the entry inside the entry limit.
+8. Add `recorded again <YYYY-MM-DD> (<source>)` to the status line of the entry. The source names
+   the exporter, for example "MediaPipe-Exporter proposal".
+9. If the Decision cell or the Section cell of the index row changes, change the row in the same PR.
+10. Do Step 5. Put the new record in a non-spec PR. End the commit subject with `(<id>)` of the
+    entry.
+
 ## Stop points
 
 | Condition | Action |
@@ -281,3 +314,4 @@ Decision [faac](../../../notes/decisions/faac-proposal-records.md) gives the rul
 | You wrote the proposal files (exporter repo). | Stop. Report to the user. |
 | An exporter proposal has a missing part (skellytracker). | Tell the user. Do not write the part yourself. |
 | You wrote the `proposed` entry (skellytracker). | Stop. The user accepts or rejects the proposal. |
+| The exporter changed a proposal with `state: accepted` or `landed` (skellytracker). | Stop. Do not change the copy. The exporter writes a new proposal. |

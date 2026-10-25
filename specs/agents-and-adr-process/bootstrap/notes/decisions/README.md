@@ -46,6 +46,9 @@ The open work is in [open-work.md](open-work.md).
   at the end of the entry. `<kind>` is `link repair`, `typo`, `redaction`, `re-ID from XXXX` or
   `citation repair`.
 - A `proposed` entry can change until the user decides it.
+- When the source of a `proposed` entry changes (for example, another repo changes the proposal that
+  the entry records), edit the same entry. Do not add a second entry. Its status line adds
+  `recorded again <YYYY-MM-DD> (<source>)`.
 - To change a decision, add a new entry. It restates each rule of the old entry that stays, and it
   supersedes the old entry in full. Do not supersede, amend or correct a part of an entry.
 - The status line of an entry can change. These changes are allowed: `proposed` to `accepted` or

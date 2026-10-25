@@ -26,6 +26,7 @@ These entries are `accepted` or `evidence`.
 |---|----------|--------|
 | [0008](0008-vnext-scope.md) | `vNEXT` scope, and the features considered and not added | accepted |
 | [0011](0011-rtmdet-host-nms.md) | RTMDet: NMS-free graph with host `selection: nms`; no `pre_nms_top_k` | accepted |
+| [vac0](vac0-record-a-changed-proposal.md) | A changed exporter proposal: a full new copy, the same entry, a ticked "Before acceptance" list | accepted |
 
 ### Proposed
 
@@ -156,6 +157,9 @@ The open work, the repository state and the spec defects are in [open-work.md](o
   not have, and the status stays `proposed`. The status line adds the date and the source, for
   example `completed 2026-11-02 (OpenMMLab-Exporter proposal)`. Do not add a second entry for the
   same gap.
+- When the exporter changes a recorded proposal, record it again in the same entry. Replace the copy
+  in full, and tick the closed items of "Before acceptance". The status line adds
+  `recorded again <YYYY-MM-DD> (<source>)` ([vac0](vac0-record-a-changed-proposal.md)).
 - An entry that waits for a decision of another repo has a `**Depends on:**` line under its status
   line.
 - Do not put a dated status line in `AGENTS.md`. Put a dated fact in `open-work.md` or in an entry.
