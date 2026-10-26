@@ -246,8 +246,10 @@ user accepts the proposal.
 
 - The reference examples belong to the spec. The doc tests check them against the rules of the spec.
 - Each example is a file under `specs/model-sidecar/examples/`, in the `detectors/` layout of the package,
-  so that `$ref` paths resolve. The examples use copies of the shared skeleton fragments, under
-  `specs/model-sidecar/examples/detectors/shared/skeletons/`.
+  so that `$ref` paths resolve. The examples use unchanged copies of their fragments, under
+  `specs/model-sidecar/examples/detectors/shared/` or next to the sidecar. A fragment has one source:
+  a package copy with the same bytes, or a `fragments` entry in `specs/model-sidecar/inventory.yaml`
+  (ADR-[yve0](../../../notes/decisions/yve0-example-fragments.md)).
 - Each example has a provenance entry in `specs/model-sidecar/inventory.yaml`: its source, the exporter, the
   path of the exporter copy, its `kind`, whether git tracks that copy, the exporter commit of the code
   that writes it, and the edits made to the copy. `kind: export` is a copy of exporter output.

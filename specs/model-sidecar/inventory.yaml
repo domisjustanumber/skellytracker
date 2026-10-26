@@ -17,6 +17,12 @@
 #                         "source and hashes added" (tools/sidecar_refs.py --write --placeholder
 #                         --source, while the exporter does not write these fields)
 #   notes                 known differences from the exporter's copy
+# fragments: the provenance of each fragment under specs/model-sidecar/examples/ that has no package
+# copy, keyed by its path there. A fragment is a YAML file that is not a sidecar, in shared/ or next to
+# a sidecar. A fragment with a package copy has the same bytes as that copy and no entry. The copy is
+# unchanged, so an entry has no kind and no edits. An entry has these keys:
+#   exporter, exporter_path, tracked, commit  as for examples
+#   notes                                     why the fragment is not in the package
 # proposed: models that an exporter plans to add; listed, but not matched to sections. One entry per
 # model and exporter.
 #   key       <model_id>@<source>: the model_id that the exporter's plan gives, and the name of the
@@ -94,6 +100,8 @@ examples:
       The tracked copy was last committed at 38ed76f; the current writer (rtmo/sidecar.py at eed3361)
       writes the same contract. The exporter's exports/ copy adds fp16, batch groups 2 and 3 and sizes
       s, l and t.
+
+fragments: {}
 
 proposed:
   - key: mediapipe-hand@qualcomm-exporter

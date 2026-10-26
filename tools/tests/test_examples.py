@@ -5,6 +5,10 @@ layout, so their `$ref` paths resolve with that folder as the sidecar root. They
 are not validated against `SidecarModel`: it does not load `vNEXT` sidecars yet.
 They resolve with `sidecar_refs.resolve`, because the package resolver refuses
 `sha256` next to `$ref`.
+
+Every other YAML file under the examples is a fragment, in `shared/` or next to
+a sidecar. A fragment has one source: a package copy with the same bytes, or a
+`fragments` entry in `inventory.yaml` (ADR-yve0).
 """
 
 import re
@@ -17,8 +21,8 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES_ROOT = REPO_ROOT / "specs" / "model-sidecar" / "examples"
 INVENTORY_PATH = REPO_ROOT / "specs" / "model-sidecar" / "inventory.yaml"
-SHARED_DIR = EXAMPLES_ROOT / "detectors" / "shared"
-PACKAGE_SHARED_DIR = REPO_ROOT / "skellytracker" / "core" / "detectors" / "shared"
+EXAMPLES_DETECTORS = EXAMPLES_ROOT / "detectors"
+PACKAGE_DETECTORS = REPO_ROOT / "skellytracker" / "core" / "detectors"
 
 PROVENANCE_KEYS = {
     "exporter",
@@ -30,19 +34,30 @@ PROVENANCE_KEYS = {
     "edits",
     "notes",
 }
+FRAGMENT_KEYS = {"exporter", "exporter_path", "tracked", "commit", "notes"}
+
+
+def is_sidecar(path: Path) -> bool:
+    """The rule of `tools/sidecar_trace.py`: `schema_version`, and `model_id` equal to the file name."""
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    return (
+        isinstance(data, dict)
+        and "schema_version" in data
+        and data.get("model_id") == path.stem
+    )
 
 
 def example_paths() -> list[Path]:
-    """Every example sidecar: a YAML file outside `shared/`."""
-    return sorted(
-        p
-        for p in (EXAMPLES_ROOT / "detectors").rglob("*.yaml")
-        if SHARED_DIR not in p.parents
-    )
+    """Every example sidecar."""
+    return sorted(p for p in EXAMPLES_DETECTORS.rglob("*.yaml") if is_sidecar(p))
 
 
 def inventory() -> dict:
     return yaml.safe_load(INVENTORY_PATH.read_text(encoding="utf-8"))
+
+
+def fragment_entries() -> dict:
+    return inventory().get("fragments") or {}
 
 
 def example_key(path: Path) -> str:
@@ -137,25 +152,38 @@ def test_provenance_entry_is_complete(key: str) -> None:
 
 
 def fragment_paths() -> list[Path]:
-    return sorted(SHARED_DIR.rglob("*.yaml"))
+    """Every YAML file of the examples that is not a sidecar."""
+    return sorted(p for p in EXAMPLES_DETECTORS.rglob("*.yaml") if not is_sidecar(p))
 
 
-@pytest.mark.parametrize(
-    "fragment", fragment_paths(), ids=lambda p: p.relative_to(SHARED_DIR).as_posix()
-)
-def test_shared_fragment_equals_its_package_copy(fragment: Path) -> None:
-    package_copy = PACKAGE_SHARED_DIR / fragment.relative_to(SHARED_DIR)
-    assert fragment.read_bytes().replace(b"\r\n", b"\n") == (
-        package_copy.read_bytes().replace(b"\r\n", b"\n")
-    )
+def package_copy(fragment: Path) -> Path:
+    return PACKAGE_DETECTORS / fragment.relative_to(EXAMPLES_DETECTORS)
 
 
-@pytest.mark.parametrize(
-    "fragment", fragment_paths(), ids=lambda p: p.relative_to(SHARED_DIR).as_posix()
-)
-def test_shared_fragment_is_used_by_an_example(fragment: Path) -> None:
+@pytest.mark.parametrize("fragment", fragment_paths(), ids=example_key)
+def test_fragment_has_one_source(fragment: Path) -> None:
+    """A package copy with the same bytes, or a `fragments` entry. Not both."""
+    copy, entry = package_copy(fragment), fragment_entries().get(example_key(fragment))
+    assert copy.is_file() != (entry is not None), example_key(fragment)
+    if copy.is_file():
+        assert fragment.read_bytes().replace(b"\r\n", b"\n") == (
+            copy.read_bytes().replace(b"\r\n", b"\n")
+        )
+
+
+def test_every_fragment_entry_names_a_fragment() -> None:
+    assert set(fragment_entries()) <= {example_key(p) for p in fragment_paths()}
+
+
+@pytest.mark.parametrize("key", sorted(fragment_entries()))
+def test_fragment_entry_is_complete(key: str) -> None:
+    entry = fragment_entries()[key]
+    assert set(entry) == FRAGMENT_KEYS
+    assert isinstance(entry["tracked"], bool)
+
+
+def test_every_fragment_is_used_by_an_example() -> None:
     """A copy that no example refers to is stale: delete it."""
-    name = fragment.relative_to(SHARED_DIR).as_posix()
-    assert any(
-        f"shared/{name}" in p.read_text(encoding="utf-8") for p in example_paths()
-    ), f"no example refers to shared/{name}"
+    used = {f for p in example_paths() for f in sidecar_refs.files(p, EXAMPLES_ROOT)}
+    unused = [example_key(p) for p in fragment_paths() if p.resolve() not in used]
+    assert not unused, unused

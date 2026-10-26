@@ -622,6 +622,16 @@ def check(path: Path, root: Path | None = None) -> list[str]:
     return run.errors
 
 
+def files(path: Path, root: Path | None = None) -> list[Path]:
+    """Return the YAML files of a sidecar tree: each `$ref` and `base` target, then the sidecar."""
+    path = Path(path).resolve()
+    run = _Run(root=_root(path, root), top=path, strict=False)
+    run.start()
+    if run.errors:
+        raise SidecarRefsError(run.errors)
+    return run.order
+
+
 def write(
     path: Path,
     root: Path | None = None,

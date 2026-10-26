@@ -77,12 +77,19 @@ exports and which examples are forecasts.
    `rtmo/body/`. Record the path of the exporter in the provenance as a defect for the exporter to
    fix.
 
-   **Shared fragments.** If the sidecar uses `$ref` to a fragment under `detectors/shared/` (a
-   skeleton or a class-id map), the example uses the same relative path. If the fragment is only in
-   the exporter, copy it unchanged to `specs/model-sidecar/examples/detectors/shared/`, with its own
-   provenance. If the fragment of the exporter has the same path as a package fragment but different
-   bytes, stop. The exporter and the package do not agree. Fix one of them first, because each
-   example copy must be equal to its package copy.
+   **Fragments.** A fragment is a file that a `$ref` of the sidecar names: a file under
+   `detectors/shared/` (a skeleton or a class-id map), or a file next to the sidecar (for example a
+   `canonical_mapping` file). The example uses the same relative path. Copy each fragment unchanged
+   (ADR-[yve0](../../../notes/decisions/yve0-example-fragments.md)):
+   - If the package has a fragment at the same path with the same bytes, copy it. It has no
+     provenance entry.
+   - If the package has a fragment at the same path with different bytes, stop. The exporter and the
+     package do not agree. Fix one of them first.
+   - If the package has no fragment at that path, copy the fragment of the exporter. Write its
+     provenance in `fragments` of `specs/model-sidecar/inventory.yaml` (step 4).
+   - If an example fragment exists at that path with different bytes, stop. Two exporters do not
+     agree. The second exporter uses the bytes of the first copy, or a different file name.
+   - Use a package fragment when it has the same content. Do not add a copy of it under a new name.
 4. **Provenance.** Write the entry of the example in `specs/model-sidecar/inventory.yaml`. Record
    these items:
    - the exporter repo;
@@ -94,8 +101,12 @@ exports and which examples are forecasts.
    - the date;
    - each allowed edit from step 2.
 
-   If a replaced example was the last example that uses `$ref` to a shared fragment copy, delete
-   that copy in the same PR.
+   For each fragment with no package copy, write an entry in `fragments`, keyed by its path under
+   `specs/model-sidecar/examples/`. Its keys are `exporter`, `exporter_path`, `tracked`, `commit`
+   and `notes`. When the package gets a copy of the fragment, delete the entry.
+
+   If a replaced example was the last example that uses `$ref` to a fragment copy, delete that copy
+   and its entry in the same PR.
 5. **Hashes.** The `$ref` and `base` hashes of an example are real. They must agree with the fragment
    files of the example, so copy each fragment unchanged from the exporter (step 3). Keep an ONNX
    `sha256` that the exporter wrote, also when the ONNX file is not in this repo.
