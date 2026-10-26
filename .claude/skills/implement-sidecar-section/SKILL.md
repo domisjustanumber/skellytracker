@@ -87,7 +87,7 @@ A skellytracker session must land it first, with the skill
      section, or an exporter implementation that verifies the vectors. One of them is sufficient;
    - each exporter file from step 2 that waits to land.
 3. Name the exporter that owes each missing item, if
-   [Known open items for the exporter overhaul](../../../specs/exporter-guide/sidecars/known-open-items.md#known-open-items-for-the-exporter-overhaul)
+   [Known open items for the exporter overhaul](../../../specs/draft/exporter-guide/sidecars/known-open-items.md#known-open-items-for-the-exporter-overhaul)
    names one. That table can name an exporter for the reference implementation and for the example.
 4. Do not write a reference implementation, an example or vectors to remove the block. Do not mark a
    vector verified. A reading of the text alone does not verify a vector

@@ -11,7 +11,7 @@ This skill is phase 2 of the new-model workflow. A proposal asks for one new or 
 of the spec (one section) and for its implementation.
 
 This skill wraps "Phase 2" of the
-[exporter guide](../../../specs/exporter-guide/sidecars/workflow/phase-2-proposal.md#phase-2-propose-a-spec-change-and-its-implementation)
+[exporter guide](../../../specs/model-sidecar/model-addition-workflow/phase-2-proposal.md#phase-2-propose-a-spec-change-and-its-implementation)
 and the [change proposal template](../../../specs/model-sidecar/templates/change-proposal.md). The guide and
 the template give the rules and the details. This skill gives the order of the steps, the inputs, the
 outputs and the stop points. If this skill and the guide do not agree, follow the guide. The spec is
@@ -40,7 +40,7 @@ normative.
 
 | File | Link | Path from the root of an exporter repo |
 |---|---|---|
-| Exporter guide, "Phase 2" | [exporter-guide.md](../../../specs/exporter-guide/sidecars/workflow/phase-2-proposal.md#phase-2-propose-a-spec-change-and-its-implementation) | `../freemocap/skellytracker/specs/exporter-guide/sidecars/README.md` |
+| Exporter guide, "Phase 2" | [exporter-guide.md](../../../specs/model-sidecar/model-addition-workflow/phase-2-proposal.md#phase-2-propose-a-spec-change-and-its-implementation) | `../freemocap/skellytracker/specs/exporter-guide/sidecars/README.md` |
 | Change proposal template | [change-proposal.md](../../../specs/model-sidecar/templates/change-proposal.md) | `../freemocap/skellytracker/specs/model-sidecar/templates/change-proposal.md` |
 | Changelog, "Considered and deliberately not added" | [changelog.md](../../../specs/model-sidecar/changelog.md#considered-and-deliberately-not-added) | `../freemocap/skellytracker/specs/model-sidecar/changelog.md` |
 | Section map and validation index | [README.md](../../../specs/model-sidecar/README.md#section-map) | `../freemocap/skellytracker/specs/model-sidecar/README.md` |
@@ -60,7 +60,7 @@ In an exporter repo:
   exist.
 
 If the evidence of a row is only a secondary source, you can still write its proposal. Follow the
-evidence rule in [Rules](../../../specs/exporter-guide/sidecars/rules.md#rules). Name the primary evidence
+evidence rule in [Rules](../../../specs/model-sidecar/model-addition-workflow/rules.md#rules). Name the primary evidence
 that is missing in part 1.
 
 In skellytracker:
@@ -87,7 +87,7 @@ In skellytracker:
 ### Step 1: Prepare
 
 1. Do the steps of
-   [Where to read the spec](../../../specs/exporter-guide/sidecars/where-to-read.md#where-to-read-the-spec). Get the
+   [Where to read the spec](../../../specs/draft/exporter-guide/sidecars/where-to-read.md#where-to-read-the-spec). Get the
    commit of the checkout.
 2. If the checkout does not exist, or it is not on the branch `dom/sidecar-implementation`, stop.
    Ask the user what to do.
@@ -107,14 +107,14 @@ In skellytracker:
    - If the entry is a gap record (its Decision section says so), give the parts that it does not
      have. A skellytracker session adds your proposal to the gap record.
 6. If the exporter has no git repo, follow "An exporter with no git repo" in
-   [New-model workflow](../../../specs/exporter-guide/sidecars/workflow/README.md#new-model-workflow).
+   [New-model workflow](../../../specs/model-sidecar/model-addition-workflow/README.md#new-model-workflow).
 
 ### Step 2: Find the contract units
 
 1. Group the `near-miss` rows and the `gap` rows of the intake by the section that they change.
 2. Write one proposal for each group. Do not put two contract units in one proposal.
 3. Put a new role with its enum edits and path edits in one proposal (part 2 of
-   [Phase 2](../../../specs/exporter-guide/sidecars/workflow/phase-2-proposal.md#phase-2-propose-a-spec-change-and-its-implementation)).
+   [Phase 2](../../../specs/model-sidecar/model-addition-workflow/phase-2-proposal.md#phase-2-propose-a-spec-change-and-its-implementation)).
 4. If a proposal needs another proposal, write the dependency in the header of each proposal.
 
 ### Step 3: Write each proposal
@@ -133,7 +133,7 @@ In skellytracker:
    | 2 | [2. Spec change](../../../specs/model-sidecar/templates/change-proposal.md#2-spec-change) | Write the exact normative text in ASD-STE100. List each place that the change edits. |
    | 3 | [3. Reference implementation](../../../specs/model-sidecar/templates/change-proposal.md#3-reference-implementation) | Use only NumPy, OpenCV and the Python standard library. Write `plans/sidecar-reference-<section_module>.py`. If no host code exists yet, write the functions from the text of part 2, and write `source commit: none (no host code)` in the note at the top of the file. |
    | 4 | [4. Vectors](../../../specs/model-sidecar/templates/change-proposal.md#4-vectors) | Make the vectors with part 3. Verify them against the host implementation. If you cannot, write `unverified: <reason>`. Give each pixel case a tolerance in `compare`. |
-   | 5 | [5. Parity evidence](../../../specs/model-sidecar/templates/change-proposal.md#5-parity-evidence) | Follow [Parity](../../../specs/exporter-guide/sidecars/workflow/parity.md#parity). Commit the script. If you cannot run the script or commit it, write `to run` and describe the script. If you do not know the path or the commit of the script, write `unknown (<reason>)`. |
+   | 5 | [5. Parity evidence](../../../specs/model-sidecar/templates/change-proposal.md#5-parity-evidence) | Follow [Parity](../../../specs/model-sidecar/model-addition-workflow/parity.md#parity). Commit the script. If you cannot run the script or commit it, write `to run` and describe the script. If you do not know the path or the commit of the script, write `unknown (<reason>)`. |
    | 6 | [6. skellytracker implementation proposal](../../../specs/model-sidecar/templates/change-proposal.md#6-skellytracker-implementation-proposal) | Read the package code in the checkout. If a call site is not known, write `for the implementer`. |
    | 7 | [7. Exporter impact](../../../specs/model-sidecar/templates/change-proposal.md#7-exporter-impact) | Name each exporter that must write new fields or regenerate sidecars. |
    | 8 | [8. Alternatives considered](../../../specs/model-sidecar/templates/change-proposal.md#8-alternatives-considered) | Include the near-miss and the reason to reject it. |
@@ -142,7 +142,7 @@ In skellytracker:
 6. Do not write a sidecar file of the model with the proposed fields. Part 2 can have YAML excerpts.
 7. If your host code does not agree with an existing reference implementation, write a proposal. Do
    not write a second reference implementation
-   ([Reference implementations](../../../specs/exporter-guide/sidecars/reference-implementations.md#reference-implementations)).
+   ([Reference implementations](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#reference-implementations)).
 
 ### Step 4: Link and stop
 

@@ -1,6 +1,6 @@
 # Repository Instructions
 
-Exporter agents: start from [`specs/exporter-guide/sidecars/README.md`](specs/exporter-guide/sidecars/README.md).
+Exporter agents: start from [`specs/draft/exporter-guide/sidecars/README.md`](specs/draft/exporter-guide/sidecars/README.md).
 Exporter agents must not change files in this repository.
 
 This file is the single instructions file for coding agents. `CLAUDE.md` only imports it: its full
@@ -65,7 +65,7 @@ Open PRs against `development`, not `main` ([section 6](#6-git-rules)).
 | `specs/model-sidecar/proposals/` | The recorded spec change proposals: one folder for each proposal, with all eight parts, and the [proposal index](specs/model-sidecar/proposals/README.md) (decision [faac](notes/decisions/faac-proposal-records.md)). The files are informative. |
 | `specs/model-sidecar/examples/`, `specs/model-sidecar/inventory.yaml` | The reference examples, in the `detectors/` layout of the package ([`examples/README.md`](specs/model-sidecar/examples/README.md)), and the provenance of each example |
 | `specs/model-sidecar/templates/` | [`model-intake.md`](specs/model-sidecar/templates/model-intake.md) and [`change-proposal.md`](specs/model-sidecar/templates/change-proposal.md) |
-| `specs/exporter-guide/sidecars/README.md` | The rules that exporters follow ([exporter guide](specs/exporter-guide/sidecars/README.md)). All guidance for exporters is in `specs/exporter-guide/`. |
+| `specs/draft/exporter-guide/sidecars/README.md` | The rules that exporters follow ([exporter guide](specs/draft/exporter-guide/sidecars/README.md)). All guidance for exporters is in `specs/draft/exporter-guide/`. |
 | `specs/sidecar-implementation-plan.md` | Status of the sidecar work in the package, and the procedure for reference examples. It is a tracked file, not a local plan. It stays until its milestones M5 and M6 are done. |
 | `notes/sidecar-exporter-coverage.md` | The plan that extended the spec to the exporter models: the evidence for the `vNEXT` revision |
 | `notes/decisions/` | Decision log ([`README.md`](notes/decisions/README.md)) |
@@ -136,7 +136,7 @@ Load the skill that matches the task.
 If your agent does not support skills, read the skill file.
 Each skill is in `.claude/skills/<skill>/SKILL.md`.
 Git tracks `.claude/skills/` and ignores the rest of `.claude/`.
-The skills wrap the [exporter guide](specs/exporter-guide/sidecars/README.md) and the
+The skills wrap the [exporter guide](specs/draft/exporter-guide/sidecars/README.md) and the
 [templates](specs/model-sidecar/templates/). They give the steps, the inputs, the outputs and the stop
 points. The rules in this file also apply.
 Exporter agents read the skill files, read-only, in the checkout

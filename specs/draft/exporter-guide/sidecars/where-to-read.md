@@ -44,7 +44,7 @@ the number of a decision entry, for example "skellytracker decision 0012" or "Op
 
 **Decision entries.** The skellytracker decision entries are informative. They give the reasons and
 the evidence for the rules. The spec is normative. Read the
-[New-model workflow](workflow/README.md#new-model-workflow) before your first intake. When this section or a template cites another entry, read that entry if its
+[New-model workflow](../../../model-sidecar/model-addition-workflow/README.md#new-model-workflow) before your first intake. When this section or a template cites another entry, read that entry if its
 topic applies to your model.
 
 **Section IDs.** The spec is split into section files under `specs/model-sidecar/`. `specs/model-sidecar/sidecar-spec.md`

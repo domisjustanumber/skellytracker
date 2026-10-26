@@ -4,7 +4,7 @@ This guide gives the rules that exporters follow when they write sidecars. An ex
 that makes ONNX files and writes their sidecars: OpenMMLab-Exporter, Roboflow-Exporter,
 Ultralytics-Exporter, Qualcomm-Exporter and MediaPipe-Exporter.
 
-The [sidecar spec](../../model-sidecar/sidecar-spec.md) is normative for the meaning of a sidecar. This guide is
+The [sidecar spec](../../../model-sidecar/sidecar-spec.md) is normative for the meaning of a sidecar. This guide is
 normative for the workflow: it tells how to apply the spec to a new model. It does not change the
 meaning of the spec. If this guide and the spec do not agree, the spec is correct.
 
@@ -31,43 +31,43 @@ meaning of the spec. If this guide and the spec do not agree, the spec is correc
 - When the block changes here, the exporters copy it again. A change of the Sidecars section needs no
   copy, because the agents read the section here.
 - Two skills wrap the workflow of the Sidecars section for exporter agents:
-  [`author-sidecar`](../../../.claude/skills/author-sidecar/SKILL.md) for phase 1 and the
+  [`author-sidecar`](../../../../.claude/skills/author-sidecar/SKILL.md) for phase 1 and the
   reference-implementation step, and
-  [`propose-sidecar-change`](../../../.claude/skills/propose-sidecar-change/SKILL.md) for phase 2. The
+  [`propose-sidecar-change`](../../../../.claude/skills/propose-sidecar-change/SKILL.md) for phase 2. The
   skills give the steps, the inputs, the outputs and the stop points. They link to this guide for the
   rules. The Sidecars section stays the full workflow.
 
 The decisions behind this guide:
 
-- [0013](../../../notes/decisions/0013-spec-structure.md): section IDs, rule IDs, reference
+- [0013](../../../../notes/decisions/0013-spec-structure.md): section IDs, rule IDs, reference
   implementations and test vectors.
-- [0014](../../../notes/decisions/0014-spec-lifecycle.md): the spec lifecycle, the `vNEXT` rule and the
+- [0014](../../../../notes/decisions/0014-spec-lifecycle.md): the spec lifecycle, the `vNEXT` rule and the
   new-model workflow.
-- [0016](../../../notes/decisions/0016-sidecar-catalogs.md): sidecar catalogs: `source`, reference
+- [0016](../../../../notes/decisions/0016-sidecar-catalogs.md): sidecar catalogs: `source`, reference
   hashes, roots, discovery and the capability check. The spec text for exporters is in
-  [`common.identity`](../../model-sidecar/common/identity.md#fields) (`source`),
-  [`format.composition`](../../model-sidecar/format/composition.md#reference-hashes) (the reference hashes and the bytes
+  [`common.identity`](../../../model-sidecar/common/identity.md#fields) (`source`),
+  [`format.composition`](../../../model-sidecar/format/composition.md#reference-hashes) (the reference hashes and the bytes
   of a file) and
-  [`common.sizes_and_artifacts`](../../model-sidecar/common/sizes-and-artifacts.md#sizessizeonnxbatch_artifacts) (the
+  [`common.sizes_and_artifacts`](../../../model-sidecar/common/sizes-and-artifacts.md#sizessizeonnxbatch_artifacts) (the
   artifact hashes and the placeholder). The rule for exporters is
-  [`source` and hashes](validation-and-publishing.md#source-and-hashes).
+  [`source` and hashes](../../../model-sidecar/model-addition-workflow/validation-and-publishing.md#source-and-hashes).
 
 The spec is split into section files under `specs/model-sidecar/`. The entry point is
-[`specs/model-sidecar/sidecar-spec.md`](../../model-sidecar/sidecar-spec.md): it is the permanent index, and it keeps each old
+[`specs/model-sidecar/sidecar-spec.md`](../../../model-sidecar/sidecar-spec.md): it is the permanent index, and it keeps each old
 heading as an anchor with a link to the section file that holds the text now. The section map is
-[`specs/model-sidecar/README.md`](../../model-sidecar/README.md#section-map). It lists each section ID and its file. The
+[`specs/model-sidecar/README.md`](../../../model-sidecar/README.md#section-map). It lists each section ID and its file. The
 sections and headings that this guide uses most:
-[`input.resize`](../../model-sidecar/common/input.md#inputresize), [`sizes`](../../model-sidecar/common/sizes-and-artifacts.md#sizes),
-[Storage layout](../../model-sidecar/format/file-layout.md#storage-layout),
-[Schema versioning](../../model-sidecar/format/versioning.md),
-[Version-aware compatibility](../../model-sidecar/format/versioning.md#version-aware-compatibility) (the index of the
+[`input.resize`](../../../model-sidecar/common/input.md#inputresize), [`sizes`](../../../model-sidecar/common/sizes-and-artifacts.md#sizes),
+[Storage layout](../../../model-sidecar/format/file-layout.md#storage-layout),
+[Schema versioning](../../../model-sidecar/format/versioning.md),
+[Version-aware compatibility](../../../model-sidecar/format/versioning.md#version-aware-compatibility) (the index of the
 "Legacy behaviour" heading of each section),
-[Validation rules](../../model-sidecar/README.md#validation-rules) (the validation index),
-[Considered and deliberately not added](../../model-sidecar/changelog.md#considered-and-deliberately-not-added) and
-[Reference examples](../../model-sidecar/examples/README.md), with the provenance of each example in
-[`inventory.yaml`](../../model-sidecar/inventory.yaml).
-The templates are [model intake](../../model-sidecar/templates/model-intake.md) and
-[change proposal](../../model-sidecar/templates/change-proposal.md).
+[Validation rules](../../../model-sidecar/README.md#validation-rules) (the validation index),
+[Considered and deliberately not added](../../../model-sidecar/changelog.md#considered-and-deliberately-not-added) and
+[Reference examples](../../../model-sidecar/examples/README.md), with the provenance of each example in
+[`inventory.yaml`](../../../model-sidecar/inventory.yaml).
+The templates are [model intake](../../../model-sidecar/templates/model-intake.md) and
+[change proposal](../../../model-sidecar/templates/change-proposal.md).
 
 ## The block for the exporter `AGENTS.md`
 
@@ -102,10 +102,10 @@ Do not change this section here. Copy it again when the source changes.
 The Sidecars section is split into these files:
 
 - [Where to read the spec](where-to-read.md)
-- [Rules](rules.md)
-- [New-model workflow](workflow/README.md)
-- [Reference implementations](reference-implementations.md)
-- [Sidecar files](sidecar-files.md): Independence, Sidecar YAML, Path
-- [Validation and publishing](validation-and-publishing.md): Validation, Publishing, `source` and hashes
+- [Rules](../../../model-sidecar/model-addition-workflow/rules.md)
+- [New-model workflow](../../../model-sidecar/model-addition-workflow/README.md)
+- [Reference implementations](../../../model-sidecar/model-addition-workflow/reference-implementations.md)
+- [Sidecar files](../../../model-sidecar/model-addition-workflow/sidecar-files.md): Independence, Sidecar YAML, Path
+- [Validation and publishing](../../../model-sidecar/model-addition-workflow/validation-and-publishing.md): Validation, Publishing, `source` and hashes
 
 The [known open items for the exporter overhaul](known-open-items.md) are not a part of the Sidecars section.

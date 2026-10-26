@@ -1,6 +1,6 @@
 # 0014 — Spec lifecycle, the `vNEXT` rule and the new-model workflow
 
-**Status:** absorbed into [`exporter-guide/sidecars/README.md#sidecar-exporter-guide`](../../specs/exporter-guide/sidecars/README.md#sidecar-exporter-guide), 2026-10-25 (user; the absorption review).
+**Status:** absorbed into [`draft/exporter-guide/sidecars/README.md#sidecar-exporter-guide`](../../specs/draft/exporter-guide/sidecars/README.md#sidecar-exporter-guide), 2026-10-25 (user; the absorption review).
 
 ## Decision
 
@@ -288,3 +288,5 @@ contract unit (one section). The intake links to each proposal. The proposal tem
 - Do not cite a parity script that exists only in a local `plans/` folder.
 
 _Edited 2026-10-26 (this PR): link repair._
+
+_Edited 2026-10-26 (PR: pending (uncommitted on dom/sidecar-implementation)): link repair._

@@ -247,7 +247,7 @@ selects the RTMW whole-body detector.
 - When the spec gets that text, the spec's examples get `source` and all hashes. Then each example
   differs from its exporter copy until that exporter regenerates. This difference is expected.
 - This decision changes no file in an exporter repo. The rules for the exporters are in the exporter
-  guide of this repo ([specs/exporter-guide/sidecars/README.md](../../specs/exporter-guide/sidecars/README.md)).
+  guide of this repo ([specs/draft/exporter-guide/sidecars/README.md](../../specs/draft/exporter-guide/sidecars/README.md)).
 
 ## Reason
 
@@ -423,3 +423,5 @@ Checked in the code on 2026-10-22.
 _Edited 2026-10-24 (this PR): link repair._
 
 _Edited 2026-10-26 (this PR): link repair._
+
+_Edited 2026-10-26 (PR: pending (uncommitted on dom/sidecar-implementation)): link repair._

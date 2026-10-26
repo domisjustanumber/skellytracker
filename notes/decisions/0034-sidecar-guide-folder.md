@@ -6,7 +6,7 @@
 
 1. **One folder.** The guidance for exporters is in one folder, `specs/exporter-guide/`. The sidecar
    guide moves from `specs/sidecar/exporter-guide.md` to
-   [`specs/exporter-guide/sidecars/`](../../specs/exporter-guide/sidecars/README.md). No stub stays at
+   [`specs/exporter-guide/sidecars/`](../../specs/draft/exporter-guide/sidecars/README.md). No stub stays at
    the old path.
 2. **Small files.** The sidecar guide is split at its headings into 13 files. The largest file is
    about 7,000 characters. The headings move up, so that each file starts with one `#` title. The
@@ -39,3 +39,5 @@
   two `_Edited_` lines.
 - **Keep a stub at the old path.** No exporter needs the old path: each exporter is implemented again
   from the new guide.
+
+_Edited 2026-10-26 (PR: pending (uncommitted on dom/sidecar-implementation)): link repair._
