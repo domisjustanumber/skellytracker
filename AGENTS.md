@@ -1,14 +1,17 @@
 # Repository Instructions
 
-Exporter agents: start from [`specs/draft/exporter-guide/sidecars/README.md`](specs/draft/exporter-guide/sidecars/README.md).
+Exporter agents: start from [`specs/draft/exporter-guide/README.md`](specs/draft/exporter-guide/README.md).
+To add a model or to request a change to the sidecar spec, follow the
+[model addition workflow](specs/model-sidecar/model-addition-workflow/README.md).
+It is the same for an exporter agent and for a human contributor.
 Exporter agents must not change files in this repository.
 
 This file is the single instructions file for coding agents. `CLAUDE.md` only imports it: its full
 content is `@AGENTS.md`. Do not put instructions in `CLAUDE.md` or in a second instructions file.
 
 All new and changed documentation must use ASD-STE100 Simplified Technical English.
-This rule applies to `AGENTS.md`, skills, decision entries, templates, the exporter guide and the
-sidecar spec.
+This rule applies to `AGENTS.md`, skills, decision entries, templates, the model addition workflow,
+the exporter guide and the sidecar spec.
 Use short sentences. Use active voice. Use one instruction per sentence.
 Use "must" for a requirement.
 Keep technical names, field names, enum values, formulas, code and YAML unchanged.
@@ -65,7 +68,8 @@ Open PRs against `development`, not `main` ([section 6](#6-git-rules)).
 | `specs/model-sidecar/proposals/` | The recorded spec change proposals: one folder for each proposal, with all eight parts, and the [proposal index](specs/model-sidecar/proposals/README.md) (decision [faac](notes/decisions/faac-proposal-records.md)). The files are informative. |
 | `specs/model-sidecar/examples/`, `specs/model-sidecar/inventory.yaml` | The reference examples, in the `detectors/` layout of the package ([`examples/README.md`](specs/model-sidecar/examples/README.md)), and the provenance of each example |
 | `specs/model-sidecar/templates/` | [`model-intake.md`](specs/model-sidecar/templates/model-intake.md) and [`change-proposal.md`](specs/model-sidecar/templates/change-proposal.md) |
-| `specs/draft/exporter-guide/sidecars/README.md` | The rules that exporters follow ([exporter guide](specs/draft/exporter-guide/sidecars/README.md)). All guidance for exporters is in `specs/draft/exporter-guide/`. |
+| `specs/model-sidecar/model-addition-workflow/` | The process to add a model and to request a spec change: phases 1 to 3, the evidence rules, the sidecar files, validation and publishing, parity and reference implementations ([`README.md`](specs/model-sidecar/model-addition-workflow/README.md)). It is the same for each contributor. It is not a spec section: it has no section ID and no rule IDs (decision [x64y](notes/decisions/x64y-draft-exporter-guide-folder.md)). |
+| `specs/draft/exporter-guide/` | The draft exporter guide ([`README.md`](specs/draft/exporter-guide/README.md)): what you need to build an exporter. It is not complete. A local plan of the user owns its creation (decision [x64y](notes/decisions/x64y-draft-exporter-guide-folder.md)). The guidance that only exporters need is in this folder. The process to add a model is in the model addition workflow, which the guide links to. Today it has only [`sidecars/`](specs/draft/exporter-guide/sidecars/README.md): the block for the exporter `AGENTS.md`, the skellytracker checkout and the known open items. When the guide is complete, or when an end-to-end test proves that its first version works, it moves to `specs/exporter-guide/`. |
 | `specs/sidecar-implementation-plan.md` | Status of the sidecar work in the package, and the procedure for reference examples. It is a tracked file, not a local plan. It stays until its milestones M5 and M6 are done. |
 | `notes/sidecar-exporter-coverage.md` | The plan that extended the spec to the exporter models: the evidence for the `vNEXT` revision |
 | `notes/decisions/` | Decision log ([`README.md`](notes/decisions/README.md)) |
@@ -136,7 +140,8 @@ Load the skill that matches the task.
 If your agent does not support skills, read the skill file.
 Each skill is in `.claude/skills/<skill>/SKILL.md`.
 Git tracks `.claude/skills/` and ignores the rest of `.claude/`.
-The skills wrap the [exporter guide](specs/draft/exporter-guide/sidecars/README.md) and the
+The skills wrap the [model addition workflow](specs/model-sidecar/model-addition-workflow/README.md),
+the [exporter guide](specs/draft/exporter-guide/sidecars/README.md) and the
 [templates](specs/model-sidecar/templates/). They give the steps, the inputs, the outputs and the stop
 points. The rules in this file also apply.
 Exporter agents read the skill files, read-only, in the checkout

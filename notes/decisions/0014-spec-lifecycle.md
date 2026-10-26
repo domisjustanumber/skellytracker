@@ -1,6 +1,6 @@
 # 0014 — Spec lifecycle, the `vNEXT` rule and the new-model workflow
 
-**Status:** absorbed into [`draft/exporter-guide/sidecars/README.md#sidecar-exporter-guide`](../../specs/draft/exporter-guide/sidecars/README.md#sidecar-exporter-guide), 2026-10-25 (user; the absorption review).
+**Status:** absorbed into [`model-sidecar/model-addition-workflow/README.md#model-addition-workflow`](../../specs/model-sidecar/model-addition-workflow/README.md#model-addition-workflow), 2026-10-25 (user; the absorption review).
 
 ## Decision
 

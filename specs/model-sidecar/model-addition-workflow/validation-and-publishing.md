@@ -1,5 +1,7 @@
 # Validation and publishing
 
+These rules apply to each contributor that writes a sidecar.
+
 ## Validation
 
 - The validation rules are in the section files. Each section file has a "Validation rules" heading,
@@ -23,7 +25,7 @@
 - If a row of the intake is `near-miss` or `gap`, do not walk the checklist. Write `skipped`.
 - If a row is `unverified` and no row is `near-miss` or `gap`, walk the checklist on the draft. Mark
   each result that depends on an `unverified` row as provisional.
-- Run the exporter's own checks. Use a skellytracker sidecar checker only if the spec or this section
+- Run the checks of your repo. Use a skellytracker sidecar checker only if the spec or this section
   names it.
 - Do not use the skellytracker `load_sidecar` to check a `vNEXT` sidecar. It rejects `vNEXT` (see
   "Publishing").
@@ -31,7 +33,7 @@
 ## Publishing
 
 - Do not publish a `vNEXT` sidecar to a shared or remote folder, for example a Hugging Face repo. Keep
-  it in the exporter repo and in the spec examples. One exception: in the implementation stage,
+  it in your repo and in the spec examples. One exception: in the implementation stage,
   skellytracker can use a private Hugging Face test repo.
 - The reason: `vNEXT` is not a version. It does not match the `schema_version` pattern
   `vYYYY.0M.BUILD[-TAG]`, so no skellytracker release can load it. (`load_sidecar` validates the
@@ -69,19 +71,19 @@ every `filename` artifact (skellytracker decision 0016). The spec text is in the
 
 Rules:
 
-- Write a top-level `source` with exactly two fields. `name` is the package name of the exporter, for
-  example `openmmlab-exporter`. `version` is the released version of that package, for example
-  `0.1.0`. Write `name` in the form that rule `V-common.identity-6` gives.
+- Write a top-level `source` with exactly two fields. `name` is the package name of your repo, for
+  example the exporter package `openmmlab-exporter`. `version` is the released version of that
+  package, for example `0.1.0`. Write `name` in the form that rule `V-common.identity-6` gives.
 - Do not write `source.name: skellytracker`. That name is reserved for the sidecars of the
   skellytracker package.
 - Write each sidecar and each fragment as UTF-8 without a BOM, with LF line endings. A file with CRLF
   line endings fails the check. On Windows, `Path.write_text` writes CRLF when you do not give
   `newline="\n"`.
 - Fill in the hashes with the skellytracker tool. First put the ONNX files in the folder of the
-  sidecar. Then run this command from the root of the exporter repo:
+  sidecar. Then run this command from the root of your repo:
   `python ../freemocap/skellytracker/tools/sidecar_refs.py --write <sidecar>`.
   - The tool needs only the standard library and PyYAML. It does not import `skellytracker`. Thus the
-    Python of the exporter can run it.
+    Python of your repo can run it.
   - The tool adds or updates only the `sha256` entries in the files of the sidecar tree. It also
     changes a `base` path string to the form `{$ref, sha256}`. It keeps all other bytes. It does not
     change line endings: on a CRLF file or a file with a BOM, it stops with an error and changes no

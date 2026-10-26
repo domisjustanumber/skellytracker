@@ -112,8 +112,10 @@ Do this procedure for step 2 of phase 3.
 ## Procedure C: land a reference implementation of an exporter
 
 Do this procedure when the scan finds a `plans/sidecar-reference-<section_module>.py` file. Follow
-"Reference implementations" and "Independence" of
-[decision 0014](../../../notes/decisions/0014-spec-lifecycle.md#reference-implementations-from-exporters).
+[Reference implementations](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#reference-implementations)
+and [Independence](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence)
+in the model addition workflow
+([decision 0014](../../../notes/decisions/0014-spec-lifecycle.md#reference-implementations-from-exporters)).
 
 If part 3 of a proposal in the same exporter repo names the file, the file is not a reference
 implementation of the current text. Do not use this procedure for it. Procedure B lands it after the
@@ -162,8 +164,9 @@ user accepts the proposal.
 - `specs/model-sidecar/` holds `README.md` (the section map, the reading order, the section-ID index and the
   terms), `TRACEABILITY.md` (generated), `inventory.yaml`, `changelog.md`, `format/`, `common/`,
   `pre/`, `post/`, `examples/detectors/`, `vectors/<section-id>.yaml`,
-  `reference/<section_module>.py` and `templates/`. The exporter guide is in
-  `specs/exporter-guide/sidecars/`. `notes/sidecar-exporter-coverage.md` is the evidence for `vNEXT`.
+  `reference/<section_module>.py`, `templates/` and `model-addition-workflow/` (the process to add a
+  model and to request a spec change; it is not a section). The draft exporter guide is in
+  `specs/draft/exporter-guide/`. `notes/sidecar-exporter-coverage.md` is the evidence for `vNEXT`.
   It is not spec text.
 
 ### One algorithm in one place

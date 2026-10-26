@@ -6,7 +6,10 @@ implementation exists yet. Two things add a reference implementation:
 1. an accepted proposal (phase 2, part 3);
 2. an exporter that implements a section on its host side.
 
-**Rule.** Your exporter plan can implement a sidecar section on the host side. Then the plan must
+[Independence](sidecar-files.md#independence) gives the implementations that count in
+`verified_against`.
+
+**Rule.** Your plan can implement a sidecar section on the host side. Then the plan must
 include a step that gives the reference implementation of that section to skellytracker. The rule
 applies for every verdict of the intake.
 
@@ -32,7 +35,7 @@ proposed section ID.
   one module.
 - Write the section ID in the note at the top of the file.
 - Python can import the skellytracker file `specs/model-sidecar/reference/<section_module>.py` by its name.
-  The exporter file `plans/sidecar-reference-<section_module>.py` has hyphens in its name, so Python
+  The file `plans/sidecar-reference-<section_module>.py` of your repo has hyphens in its name, so Python
   cannot import it by its name. Load it with `importlib.util.spec_from_file_location`, or run it as a
   script.
 - The heading "Reference mappings in skellytracker" in
@@ -43,15 +46,15 @@ proposed section ID.
 The step (the skill `author-sidecar` includes it):
 
 1. Write the clean, minimal form of your host code. Use only NumPy, OpenCV and the Python standard
-   library. Do not import from the exporter or from skellytracker. Write one function for each
-   algorithm. In each docstring, cite the section ID and the exporter commit that the code comes
+   library. Do not import from your repo or from skellytracker. Write one function for each
+   algorithm. In each docstring, cite the section ID and the commit of your repo that the code comes
    from.
-2. Run the functions against the vectors of the section (see "Vectors" in "Where to read the spec").
+2. Run the functions against the vectors of the section (see [Vectors](reading-the-spec.md#vectors)).
    They must pass. If the vector file says `unverified`, also run the vectors through your host
    code, and record both results. If the section has no vector file yet, record that.
-3. Run the functions in place of your host code in the parity check of the exporter. Record that the
+3. Run the functions in place of your host code in your parity check. Record that the
    result does not change. If you cannot run the parity check yet, write `to run`.
-4. Write the functions to `plans/sidecar-reference-<section_module>.py` in the exporter repo. Put a
+4. Write the functions to `plans/sidecar-reference-<section_module>.py` in your repo. Put a
    short note at the top of the file: the section ID, the source commit, the vector results and the
    parity result.
 5. Stop. A skellytracker session lands the file. It adds `specs/model-sidecar/reference/<section_module>.py`,

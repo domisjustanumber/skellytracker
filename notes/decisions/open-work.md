@@ -99,9 +99,29 @@ stage, no file under `skellytracker/` changes, except test fixes.
 
 ## Repository state
 
-- **Exporter guide rewording.** A rewording PR removes the exporter repository names from
-  `specs/exporter-guide/sidecars/` and the open items that do not apply to a new exporter
-  ([0034](0034-sidecar-guide-folder.md), item 4).
+- **Exporter guide rewording.** A rewording PR removes each exporter repository name that is only an
+  example from `specs/draft/exporter-guide/` and from all files of
+  `specs/model-sidecar/model-addition-workflow/`. A citation of an exporter entry or commit as
+  evidence stays. It also removes the open items that do not apply to a new exporter
+  ([x64y](x64y-draft-exporter-guide-folder.md), item 6).
+- **Exporter block copy.** The block for the exporter `AGENTS.md` names the model addition workflow,
+  and its source line names `specs/draft/exporter-guide/sidecars/README.md`. Each exporter copies the
+  block again in its own PR. Until then, an old copy names a path that does not exist, for example
+  MediaPipe-Exporter `AGENTS.md` line 29 at commit `8f708a1ddecd8e035de15a5a9a7b652af035a58a` names
+  `specs/exporter-guide/sidecars/README.md`
+  ([x64y](x64y-draft-exporter-guide-folder.md)).
+- **Old exporter guide paths.** The exporter repos and the recorded proposals cite old paths under
+  `specs/exporter-guide/sidecars/`. No stub stays there. A session that lands a proposal edits the
+  file at its new path. `README.md`, `known-open-items.md` and the checkout steps of
+  `where-to-read.md` are under `specs/draft/exporter-guide/sidecars/`. The other parts of
+  `where-to-read.md` are in `specs/model-sidecar/model-addition-workflow/reading-the-spec.md`. The
+  files of `workflow/` (`workflow/README.md` is now `README.md`), `rules.md`,
+  `reference-implementations.md`, `sidecar-files.md` and `validation-and-publishing.md` are under
+  `specs/model-sidecar/model-addition-workflow/` ([x64y](x64y-draft-exporter-guide-folder.md)).
+- **Draft exporter guide.** `specs/draft/exporter-guide/` is not complete. A local plan of the user
+  owns its creation. When the guide is complete, or when an end-to-end test proves that its first
+  version works, a new entry moves it to `specs/exporter-guide/`
+  ([x64y](x64y-draft-exporter-guide-folder.md)).
 - **Exporter paths to the spec folder.** The exporter repos cite the old spec folder
   `specs/sidecar/` and the old entry point `specs/sidecar-spec.md` in their agent files and notes.
   Each exporter changes these paths to `specs/model-sidecar/` in its own PR

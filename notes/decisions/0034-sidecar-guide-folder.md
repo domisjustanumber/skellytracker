@@ -1,6 +1,6 @@
 # 0034 — One folder for the exporter guide
 
-**Status:** absorbed into [`AGENTS.md#1-purpose`](../../AGENTS.md#1-purpose), 2026-10-25 (user; the absorption review).
+**Status:** superseded by [x64y](x64y-draft-exporter-guide-folder.md), 2026-10-26 (user; PR: pending).
 
 ## Decision
 

@@ -6,9 +6,9 @@ You do not do phase 3. A skellytracker session does it. The user decides.
    adds the sidecar as a spec example (under `specs/model-sidecar/examples/`), with its provenance record
    (in `specs/model-sidecar/inventory.yaml`) and any new guidance from the intake. The procedure is
    "Reference examples" in `../freemocap/skellytracker/specs/sidecar-implementation-plan.md`.
-   Its preconditions: the exporter writes the sidecar itself (not by hand), at `vNEXT`, with no
-   legacy-only fields; the checks of the exporter pass; parity passes for at least one size. The
-   procedure copies your sidecar byte for byte. If your sidecar breaks a spec rule, fix the exporter
+   Its preconditions: your writer code writes the sidecar itself (not by hand), at `vNEXT`, with no
+   legacy-only fields; your checks pass; parity passes for at least one size. The
+   procedure copies your sidecar byte for byte. If your sidecar breaks a spec rule, fix your writer code
    or write a change proposal. Nobody corrects the example by hand.
 2. **A proposal.** skellytracker copies it to `specs/model-sidecar/proposals/<slug>/proposal.md`, with all
    eight parts. It records it as a short decision entry with status `proposed` (skellytracker

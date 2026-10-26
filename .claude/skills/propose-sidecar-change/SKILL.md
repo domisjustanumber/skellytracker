@@ -11,11 +11,12 @@ This skill is phase 2 of the new-model workflow. A proposal asks for one new or 
 of the spec (one section) and for its implementation.
 
 This skill wraps "Phase 2" of the
-[exporter guide](../../../specs/model-sidecar/model-addition-workflow/phase-2-proposal.md#phase-2-propose-a-spec-change-and-its-implementation)
-and the [change proposal template](../../../specs/model-sidecar/templates/change-proposal.md). The guide and
-the template give the rules and the details. This skill gives the order of the steps, the inputs, the
-outputs and the stop points. If this skill and the guide do not agree, follow the guide. The spec is
-normative.
+[model addition workflow](../../../specs/model-sidecar/model-addition-workflow/phase-2-proposal.md#phase-2-propose-a-spec-change-and-its-implementation)
+and the [change proposal template](../../../specs/model-sidecar/templates/change-proposal.md). The
+workflow and the template give the rules and the details. This skill gives the order of the steps,
+the inputs, the outputs and the stop points. If this skill and the workflow do not agree, follow the
+workflow. The spec is normative. The workflow is the same for an exporter and for a human
+contributor.
 
 ## Where this skill runs
 
@@ -40,7 +41,7 @@ normative.
 
 | File | Link | Path from the root of an exporter repo |
 |---|---|---|
-| Exporter guide, "Phase 2" | [exporter-guide.md](../../../specs/model-sidecar/model-addition-workflow/phase-2-proposal.md#phase-2-propose-a-spec-change-and-its-implementation) | `../freemocap/skellytracker/specs/exporter-guide/sidecars/README.md` |
+| Model addition workflow, "Phase 2" | [phase-2-proposal.md](../../../specs/model-sidecar/model-addition-workflow/phase-2-proposal.md#phase-2-propose-a-spec-change-and-its-implementation) | `../freemocap/skellytracker/specs/model-sidecar/model-addition-workflow/phase-2-proposal.md` |
 | Change proposal template | [change-proposal.md](../../../specs/model-sidecar/templates/change-proposal.md) | `../freemocap/skellytracker/specs/model-sidecar/templates/change-proposal.md` |
 | Changelog, "Considered and deliberately not added" | [changelog.md](../../../specs/model-sidecar/changelog.md#considered-and-deliberately-not-added) | `../freemocap/skellytracker/specs/model-sidecar/changelog.md` |
 | Section map and validation index | [README.md](../../../specs/model-sidecar/README.md#section-map) | `../freemocap/skellytracker/specs/model-sidecar/README.md` |
@@ -88,7 +89,8 @@ In skellytracker:
 
 1. Do the steps of
    [Where to read the spec](../../../specs/draft/exporter-guide/sidecars/where-to-read.md#where-to-read-the-spec). Get the
-   commit of the checkout.
+   commit of the checkout
+   ([The commit of the spec text](../../../specs/model-sidecar/model-addition-workflow/reading-the-spec.md#the-commit-of-the-spec-text)).
 2. If the checkout does not exist, or it is not on the branch `dom/sidecar-implementation`, stop.
    Ask the user what to do.
 3. Read the table
@@ -106,8 +108,8 @@ In skellytracker:
      part 8.
    - If the entry is a gap record (its Decision section says so), give the parts that it does not
      have. A skellytracker session adds your proposal to the gap record.
-6. If the exporter has no git repo, follow "An exporter with no git repo" in
-   [New-model workflow](../../../specs/model-sidecar/model-addition-workflow/README.md#new-model-workflow).
+6. If the exporter has no git repo, follow
+   [A contributor with no git repo](../../../specs/model-sidecar/model-addition-workflow/README.md#a-contributor-with-no-git-repo).
 
 ### Step 2: Find the contract units
 
@@ -125,7 +127,7 @@ In skellytracker:
    cannot undo an overwrite.
 2. Follow [How to use this template](../../../specs/model-sidecar/templates/change-proposal.md#how-to-use-this-template).
 3. Fill in the [Header](../../../specs/model-sidecar/templates/change-proposal.md#header).
-4. Fill in the eight parts. Each part has its rules in the template and in the guide:
+4. Fill in the eight parts. Each part has its rules in the template and in the workflow:
 
    | Part | Template heading | What to check |
    |---|---|---|

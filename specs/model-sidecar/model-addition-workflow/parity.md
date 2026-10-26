@@ -3,18 +3,20 @@
 Parity compares the sidecar path with the upstream library on real images. Phase 1 (step 5) and
 phase 2 (part 5) use these rules.
 
-The sidecar path is the host implementation of each section in the exporter. It does the
+The sidecar path is your host implementation of each section (in an exporter, the host
+implementation of the exporter). It does the
 preprocessing and the decode exactly as the sidecar declares. Write it from the spec text. In phase 2,
 the reference implementation of the proposal replaces the missing spec feature.
 
 - If a section has test vectors, your host implementation must pass them first.
 - If a reference implementation of the section exists, use it or match it.
 - If no reference implementation of the section exists, your plan must include the
-  reference-implementation step (see "Reference implementations").
+  reference-implementation step (see
+  [Reference implementations](reference-implementations.md#reference-implementations)).
 
 Do these steps:
 
-1. Set the gate of each compared quantity before the run. Use the gate of the exporter (AP or OKS),
+1. Set the gate of each compared quantity before the run. Use your own gate (AP or OKS),
    or the numeric floor of the upstream, for example the float32 noise of the upstream computation.
    Record each gate and its source.
 2. Choose the test images. Each branch of each section that the sidecar uses must run on at least
@@ -40,9 +42,9 @@ Do these steps:
    A model with both roles needs both comparisons. A keypoint metric does not check the boxes.
    Compare the result with the export error of step 3. The error above the export error comes from
    the sidecar path.
-6. Commit the parity script in the exporter repo, so that a commit can be cited. A script that is
-   only in the local `plans/` folder is not evidence. Use the folder of the exporter for evidence
-   scripts. If the exporter has no such folder, use `notes/decisions/scripts/` (OpenMMLab-Exporter
+6. Commit the parity script in your repo, so that a commit can be cited. A script that is
+   only in the local `plans/` folder is not evidence. Use the folder of your repo for evidence
+   scripts. If your repo has no such folder, use `notes/decisions/scripts/` (OpenMMLab-Exporter
    uses it).
 7. If you cannot run the check, or if you cannot commit the script, write `to run` as the result.
    Give the reason. Describe the script and its gates. You can write the numbers of a run without a

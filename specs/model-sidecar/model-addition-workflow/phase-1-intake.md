@@ -16,7 +16,7 @@ Fill `../freemocap/skellytracker/specs/model-sidecar/templates/model-intake.md`.
    before or after the contract is also a row, with the verdict `out of scope`.
 2. For each row, write:
    - the property;
-   - the upstream evidence (see "Rules");
+   - the upstream evidence (see [Rules](rules.md#rules));
    - the section ID (the `id` in the front matter of the section file);
    - the sidecar value;
    - a verdict.
@@ -50,14 +50,15 @@ Fill `../freemocap/skellytracker/specs/model-sidecar/templates/model-intake.md`.
    - An `out of scope` row: write no proposal. Tell the user about the row when you stop. The user
      decides if the spec must describe such steps.
 5. If no row is `near-miss` or `gap`:
-   - The sidecar writer code of the exporter writes the sidecar (see "Sidecar YAML" and "Path"). Do
-     not write the sidecar by hand.
+   - Your sidecar writer code writes the sidecar (see [Sidecar YAML](sidecar-files.md#sidecar-yaml) and
+     [Path](sidecar-files.md#path)). Do not write the sidecar by hand.
    - If you cannot change the writer code yet, write the exact YAML in the section "The sidecar" of
      the intake. It is a draft. A skellytracker session does not use a draft as a spec example.
    - If a row is `unverified`, use the value that you expect for that row. Do not change the writer
      code for that row. Mark each result that depends on the row as provisional.
-   - Walk the validation checklist (see "Validation").
-   - Prove parity (see "Parity").
+   - Walk the validation checklist (see
+     [Validation](validation-and-publishing.md#validation)).
+   - Prove parity (see [Parity](parity.md#parity)).
 6. Write the final verdict:
    - `describes`: every row is `exact` or `out of scope`, and parity passes.
    - `does not describe`: a row is `near-miss` or `gap`, also when other rows are `unverified`.

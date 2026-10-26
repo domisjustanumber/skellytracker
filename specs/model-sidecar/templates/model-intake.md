@@ -1,8 +1,10 @@
 # Model intake template
 
 This template is phase 1 of the new-model workflow. Phase 1 answers one question: can the current
-sidecar spec describe this model exactly? The full workflow is in the exporter guide
-(`specs/exporter-guide/sidecars/README.md` of the skellytracker repo, section "Sidecars"). The decision behind
+sidecar spec describe this model exactly? The full workflow is the model addition workflow
+(`specs/model-sidecar/model-addition-workflow/README.md` of the skellytracker repo). It is the same
+for an exporter and for a human contributor. Where this template says "the exporter", a contributor
+that is not an exporter reads "you". The decision behind
 it is skellytracker decision 0014 (`notes/decisions/0014-spec-lifecycle.md` of the skellytracker
 repo). Phase 2 is the change proposal template (`specs/model-sidecar/templates/change-proposal.md`). You
 need phase 2 only when phase 1 finds a `near-miss` or a `gap`.
@@ -456,8 +458,8 @@ Write its rule ID (`V-<section-id>-<n>`). Write `not used` for a group that the 
 
 ## Parity proof
 
-This proof is for the sidecar of this intake. The full rules are in the exporter guide, section
-"Sidecars", heading "Parity".
+This proof is for the sidecar of this intake. The full rules are in the model addition workflow
+(`specs/model-sidecar/model-addition-workflow/parity.md`, heading "Parity").
 
 - If a row of the property table is `near-miss` or `gap`, write `skipped` in each cell of the tables
   below. Each proposal has its own parity evidence in its part 5.

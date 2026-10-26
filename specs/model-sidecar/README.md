@@ -25,6 +25,8 @@ This specification is in separate section files. See the [Section map](#section-
 
 Also: [Changelog](changelog.md) and [Reference examples](examples/README.md).
 
+To add a model or to request a change to this specification, follow the [model addition workflow](model-addition-workflow/README.md). The workflow is the same for each contributor. It is not a section of the specification.
+
 ## Conventions
 
 - "must" marks a requirement.

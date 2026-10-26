@@ -4,9 +4,16 @@ This guide gives the rules that exporters follow when they write sidecars. An ex
 that makes ONNX files and writes their sidecars: OpenMMLab-Exporter, Roboflow-Exporter,
 Ultralytics-Exporter, Qualcomm-Exporter and MediaPipe-Exporter.
 
-The [sidecar spec](../../../model-sidecar/sidecar-spec.md) is normative for the meaning of a sidecar. This guide is
-normative for the workflow: it tells how to apply the spec to a new model. It does not change the
-meaning of the spec. If this guide and the spec do not agree, the spec is correct.
+This folder is the sidecar part of the [draft exporter guide](../README.md). The draft guide is not
+complete. The rules in this folder are complete, and they apply now.
+
+The [sidecar spec](../../../model-sidecar/sidecar-spec.md) is normative for the meaning of a sidecar. The
+[model addition workflow](../../../model-sidecar/model-addition-workflow/README.md) is normative for the
+process: it tells how to apply the spec to a new model, and how to request a spec change. That
+workflow is the same for each contributor. It also holds the rules for the sidecar files, the
+validation and the publishing. This guide is normative for the rules that it adds for exporters: the
+block for the exporter `AGENTS.md` and the checkout steps. It does not change the meaning of the
+spec. If this guide and the spec do not agree, the spec is correct.
 
 ## How to use this guide
 
@@ -17,7 +24,7 @@ meaning of the spec. If this guide and the spec do not agree, the spec is correc
   [The block for the exporter `AGENTS.md`](#the-block-for-the-exporter-agentsmd) into the exporter's
   `AGENTS.md`. It copies the block without change, and fills in only the commit of the source line.
   Do not copy the [Sidecars](#sidecars) section. The block tells the agents of that exporter to read
-  the Sidecars section here before each sidecar task, and to follow its workflow.
+  the Sidecars section here before each sidecar task, and to follow the model addition workflow.
 - Before its overhaul, an exporter agent runs the workflow only when the user asks. Then it writes only
   the `plans/sidecar-*` files, unless the user permits more.
 - The Sidecars section names each file by its path in the skellytracker checkout, in a code span. It has
@@ -30,12 +37,12 @@ meaning of the spec. If this guide and the spec do not agree, the spec is correc
   and the `freemocap` folder must be in the same parent folder.
 - When the block changes here, the exporters copy it again. A change of the Sidecars section needs no
   copy, because the agents read the section here.
-- Two skills wrap the workflow of the Sidecars section for exporter agents:
+- Two skills wrap the model addition workflow for exporter agents:
   [`author-sidecar`](../../../../.claude/skills/author-sidecar/SKILL.md) for phase 1 and the
   reference-implementation step, and
   [`propose-sidecar-change`](../../../../.claude/skills/propose-sidecar-change/SKILL.md) for phase 2. The
-  skills give the steps, the inputs, the outputs and the stop points. They link to this guide for the
-  rules. The Sidecars section stays the full workflow.
+  skills give the steps, the inputs, the outputs and the stop points. They link to the workflow and
+  to this guide for the rules. The model addition workflow stays the full workflow.
 
 The decisions behind this guide:
 
@@ -49,8 +56,12 @@ The decisions behind this guide:
   [`format.composition`](../../../model-sidecar/format/composition.md#reference-hashes) (the reference hashes and the bytes
   of a file) and
   [`common.sizes_and_artifacts`](../../../model-sidecar/common/sizes-and-artifacts.md#sizessizeonnxbatch_artifacts) (the
-  artifact hashes and the placeholder). The rule for exporters is
-  [`source` and hashes](../../../model-sidecar/model-addition-workflow/validation-and-publishing.md#source-and-hashes).
+  artifact hashes and the placeholder). The rule for each contributor is
+  [`source` and hashes](../../../model-sidecar/model-addition-workflow/validation-and-publishing.md#source-and-hashes)
+  in the model addition workflow.
+- [x64y](../../../../notes/decisions/x64y-draft-exporter-guide-folder.md): the model addition workflow
+  is in `specs/model-sidecar/model-addition-workflow/`, with the rules for the sidecar files, the
+  validation and the publishing. This guide is in the draft folder `specs/draft/exporter-guide/`.
 
 The spec is split into section files under `specs/model-sidecar/`. The entry point is
 [`specs/model-sidecar/sidecar-spec.md`](../../../model-sidecar/sidecar-spec.md): it is the permanent index, and it keeps each old
@@ -78,13 +89,14 @@ than 2,000 characters.
 ```markdown
 ## Sidecars
 
-Source: `../freemocap/skellytracker/specs/exporter-guide/sidecars/README.md`, skellytracker commit `<commit>`.
+Source: `../freemocap/skellytracker/specs/draft/exporter-guide/sidecars/README.md`, skellytracker commit `<commit>`.
 Do not change this section here. Copy it again when the source changes.
 
 - The sidecar spec is in the skellytracker checkout `../freemocap/skellytracker`. Read it there,
   read-only. Do not change a file in that checkout.
 - Before each sidecar task, read the section "Sidecars" of
-  `../freemocap/skellytracker/specs/exporter-guide/sidecars/README.md`. Follow its new-model workflow.
+  `../freemocap/skellytracker/specs/draft/exporter-guide/sidecars/README.md`. Follow the workflow in
+  `../freemocap/skellytracker/specs/model-sidecar/model-addition-workflow/README.md`.
 - For workflow phase 1, use the skill
   `../freemocap/skellytracker/.claude/skills/author-sidecar/SKILL.md`. For workflow phase 2, use
   the skill `../freemocap/skellytracker/.claude/skills/propose-sidecar-change/SKILL.md`.
@@ -101,11 +113,13 @@ Do not change this section here. Copy it again when the source changes.
 
 The Sidecars section is split into these files:
 
-- [Where to read the spec](where-to-read.md)
-- [Rules](../../../model-sidecar/model-addition-workflow/rules.md)
-- [New-model workflow](../../../model-sidecar/model-addition-workflow/README.md)
-- [Reference implementations](../../../model-sidecar/model-addition-workflow/reference-implementations.md)
-- [Sidecar files](../../../model-sidecar/model-addition-workflow/sidecar-files.md): Independence, Sidecar YAML, Path
-- [Validation and publishing](../../../model-sidecar/model-addition-workflow/validation-and-publishing.md): Validation, Publishing, `source` and hashes
+- [Where to read the spec](where-to-read.md): the skellytracker checkout and its branch
+- [Model addition workflow](../../../model-sidecar/model-addition-workflow/README.md): reading the spec,
+  the rules, phases 1 to 3, parity, the mapping hints and the reference implementations. It is in
+  `../freemocap/skellytracker/specs/model-sidecar/model-addition-workflow/`.
+- [Sidecar files](../../../model-sidecar/model-addition-workflow/sidecar-files.md): Independence,
+  Sidecar YAML, Path. It is in the model addition workflow.
+- [Validation and publishing](../../../model-sidecar/model-addition-workflow/validation-and-publishing.md):
+  Validation, Publishing, `source` and hashes. It is in the model addition workflow.
 
 The [known open items for the exporter overhaul](known-open-items.md) are not a part of the Sidecars section.

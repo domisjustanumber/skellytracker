@@ -72,7 +72,7 @@ A proposal has eight parts:
    template gives. On acceptance, skellytracker adds them as
    `specs/model-sidecar/vectors/<section ID>.yaml`.
 5. **Parity evidence.** Run the real model, with the reference implementation in place of the missing
-   spec feature. Follow "Parity". Give the numbers, the script and the commit. If you cannot run the
+   spec feature. Follow [Parity](parity.md#parity). Give the numbers, the script and the commit. If you cannot run the
    check yet, write `to run` and describe the script. A skellytracker session can record a proposal
    with `to run` as `proposed`. Before the user accepts the proposal, part 5 must give the numbers,
    the script and the commit.

@@ -10,39 +10,43 @@ This skill uses ASD-STE100 Simplified Technical English.
 This skill is phase 1 of the new-model workflow. Phase 1 answers one question: can the current sidecar
 spec describe the model exactly?
 
-This skill wraps the "Sidecars" section of the
-[exporter guide](../../../specs/draft/exporter-guide/sidecars/README.md#sidecars) and the
-[model intake template](../../../specs/model-sidecar/templates/model-intake.md). The guide and the template
-give the rules and the details. This skill gives the order of the steps, the inputs, the outputs and
-the stop points. If this skill and the guide do not agree, follow the guide. The spec is normative.
+This skill wraps the
+[model addition workflow](../../../specs/model-sidecar/model-addition-workflow/README.md#model-addition-workflow), the "Sidecars" section
+of the [exporter guide](../../../specs/draft/exporter-guide/sidecars/README.md#sidecars) and the
+[model intake template](../../../specs/model-sidecar/templates/model-intake.md). The workflow, the
+guide and the template give the rules and the details. This skill gives the order of the steps, the
+inputs, the outputs and the stop points. If this skill and the workflow or the guide do not agree,
+follow the workflow or the guide. The spec is normative.
 
 ## Where this skill runs
 
-- Run this skill in an exporter repo, for example OpenMMLab-Exporter.
+- Run this skill in an exporter repo, for example OpenMMLab-Exporter. A contributor that is not an
+  exporter can follow the same steps in its own repo
+  ([Paths and words](../../../specs/model-sidecar/model-addition-workflow/README.md#paths-and-words)).
 - This skill file is in the skellytracker repo. Read it, read-only, in the skellytracker checkout
   `../freemocap/skellytracker`. From the root of an exporter repo, the path of this file is
   `../freemocap/skellytracker/.claude/skills/author-sidecar/SKILL.md`.
 - Read the files of the checkout as normal files. Do not edit them. Do not commit to skellytracker.
   Do not change its branch.
 - A relative link in this file starts at the folder of this file. In the checkout, the link
-  `../../../specs/exporter-guide/sidecars/README.md` opens the file
-  `../freemocap/skellytracker/specs/exporter-guide/sidecars/README.md`.
+  `../../../specs/draft/exporter-guide/sidecars/README.md` opens the file
+  `../freemocap/skellytracker/specs/draft/exporter-guide/sidecars/README.md`.
 - If your agent does not support skills, read this file. Then do its steps in order.
 
 ## Files
 
 | File | Link | Path from the root of an exporter repo |
 |---|---|---|
-| Exporter guide, section "Sidecars" | [exporter-guide.md](../../../specs/draft/exporter-guide/sidecars/README.md#sidecars) | `../freemocap/skellytracker/specs/exporter-guide/sidecars/README.md` |
+| Exporter guide, section "Sidecars" | [README.md](../../../specs/draft/exporter-guide/sidecars/README.md#sidecars) | `../freemocap/skellytracker/specs/draft/exporter-guide/sidecars/README.md` |
 | Model intake template | [model-intake.md](../../../specs/model-sidecar/templates/model-intake.md) | `../freemocap/skellytracker/specs/model-sidecar/templates/model-intake.md` |
 | Section map | [README.md](../../../specs/model-sidecar/README.md#section-map) | `../freemocap/skellytracker/specs/model-sidecar/README.md` |
-| The new-model workflow | [workflow/README.md](../../../specs/model-sidecar/model-addition-workflow/README.md#new-model-workflow) | `../freemocap/skellytracker/specs/exporter-guide/sidecars/workflow/README.md` |
+| The model addition workflow | [README.md](../../../specs/model-sidecar/model-addition-workflow/README.md#model-addition-workflow) | `../freemocap/skellytracker/specs/model-sidecar/model-addition-workflow/README.md` |
 | The skill for phase 2 | [propose-sidecar-change](../propose-sidecar-change/SKILL.md) | `../freemocap/skellytracker/.claude/skills/propose-sidecar-change/SKILL.md` |
 
 ## Inputs
 
-Get these inputs before you start ("Inputs" in
-[New-model workflow](../../../specs/model-sidecar/model-addition-workflow/README.md#new-model-workflow)):
+Get these inputs before you start
+([Inputs](../../../specs/model-sidecar/model-addition-workflow/README.md#inputs)):
 
 - the ONNX files of every size, batch and precision;
 - the upstream inference config (the test pipeline);
@@ -53,8 +57,8 @@ If an input is missing, do not stop. Write `missing` for it in the intake.
 
 ## Outputs
 
-Write these files in the exporter repo ("Files in `plans/`" in
-[New-model workflow](../../../specs/model-sidecar/model-addition-workflow/README.md#new-model-workflow)):
+Write these files in the exporter repo
+([Files in `plans/`](../../../specs/model-sidecar/model-addition-workflow/README.md#files-in-plans)):
 
 | Output | When |
 |---|---|
@@ -80,13 +84,15 @@ overwrite.
    ([How to use this guide](../../../specs/draft/exporter-guide/sidecars/README.md#how-to-use-this-guide)).
 2. Do the steps of
    [Where to read the spec](../../../specs/draft/exporter-guide/sidecars/where-to-read.md#where-to-read-the-spec). Get the
-   commit of the checkout.
+   commit of the checkout
+   ([The commit of the spec text](../../../specs/model-sidecar/model-addition-workflow/reading-the-spec.md#the-commit-of-the-spec-text)).
 3. If the checkout does not exist, or it is not on the branch `dom/sidecar-implementation`, stop.
    Ask the user what to do.
-4. Read the new-model workflow of the guide before your first intake.
-5. Read the [Rules](../../../specs/model-sidecar/model-addition-workflow/rules.md#rules) of the guide.
-6. If the exporter has no git repo, follow "An exporter with no git repo" in
-   [New-model workflow](../../../specs/model-sidecar/model-addition-workflow/README.md#new-model-workflow).
+4. Read the [model addition workflow](../../../specs/model-sidecar/model-addition-workflow/README.md#model-addition-workflow) and
+   [Read the spec](../../../specs/model-sidecar/model-addition-workflow/reading-the-spec.md#read-the-spec) before your first intake.
+5. Read the [Rules](../../../specs/model-sidecar/model-addition-workflow/rules.md#rules) of the workflow.
+6. If the exporter has no git repo, follow
+   [A contributor with no git repo](../../../specs/model-sidecar/model-addition-workflow/README.md#a-contributor-with-no-git-repo).
 
 ### Step 2: Start the intake
 
@@ -210,7 +216,7 @@ Do this step for every final verdict, also after step 6. Follow
 4. Skip a section that one of your proposals changes. The part 3 file of the proposal is the reference
    implementation.
 5. Skip a part of the spec that has no algorithm, for example `input.layout`.
-6. For each other section, do "The step" of the guide. Write
+6. For each other section, do "The step" of Reference implementations. Write
    `plans/sidecar-reference-<section_module>.py`.
 7. If the host code is not committed, write `to run`. Do the step after the commit.
 8. Fill in the reference table in

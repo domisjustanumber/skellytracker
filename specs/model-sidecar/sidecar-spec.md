@@ -2,6 +2,8 @@
 
 This specification is in separate section files. Start at [the section map](README.md).
 
+To add a model or to request a change to the specification, follow the [model addition workflow](model-addition-workflow/README.md).
+
 ## Changes in this revision (`vNEXT`)
 
 Moved to [changelog.md](changelog.md#changes-in-this-revision-vnext).

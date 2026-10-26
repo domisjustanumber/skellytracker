@@ -23,7 +23,7 @@
   `absorbed into` a document that no longer stated its rule, and a reader of the old entry did not
   find the entry that changed it.
 - [0034](0034-sidecar-guide-folder.md) was absorbed into `AGENTS.md`. Its folder rule changes:
-  x64y moves the process to the model addition workflow and
+  [x64y](x64y-draft-exporter-guide-folder.md) moves the process to the model addition workflow and
   the exporter-only guide to a draft folder. The user chose `superseded by x64y` for 0034
   (2026-10-26).
 - The open work said "An absorbed entry cannot be superseded". So

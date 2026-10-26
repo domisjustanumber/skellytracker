@@ -35,14 +35,14 @@ text. The change adds no field and no validation rule.
 - OpenMMLab-Exporter at commit `eed3361`: `rtmo/sidecar.py:33` sets
   `ROLES = ["object_detector", "pose_estimator"]`. `rtmo/identity.py:27` sets
   `FAMILY_BRANCH = Path("detectors/keypoint_detectors/rtmo/body7")`. The `body7` folder is an exporter
-  defect (see the [exporter guide](../../specs/draft/exporter-guide/sidecars/README.md)), but the branch is
+  defect (see the [known open items](../../specs/draft/exporter-guide/sidecars/known-open-items.md#known-open-items-for-the-exporter-overhaul)), but the branch is
   `keypoint_detectors/`.
 - The reference examples
   [`rtmo/body/rtmo-body7.yaml`](../../specs/model-sidecar/examples/detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml)
   and
   [`yolo26/body/yolo26-body.yaml`](../../specs/model-sidecar/examples/detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml)
   are under `keypoint_detectors/`.
-- The [exporter guide](../../specs/draft/exporter-guide/sidecars/README.md) says: "The spec does not say where a
+- The [model addition workflow](../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#path) says: "The spec does not say where a
   sidecar with both roles goes."
 
 ## Alternatives rejected

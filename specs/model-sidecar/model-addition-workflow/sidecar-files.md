@@ -1,5 +1,7 @@
 # Sidecar files
 
+These rules apply to each contributor that writes a sidecar or a vector file.
+
 ## Independence
 
 - A reference implementation made from the code of an exporter is not independent of that exporter.
@@ -18,7 +20,7 @@
 
 - Quote the integer batch keys: write `"1":`, not `1:`. An unquoted key is a YAML integer, and schema
   validation rejects it.
-- Set `schema_version` to the string `vNEXT` until the release step (see "Publishing"). YAML reads
+- Set `schema_version` to the string `vNEXT` until the release step (see [Publishing](validation-and-publishing.md#publishing)). YAML reads
   `vNEXT` and `"vNEXT"` as the same string, so both forms are correct. The spec examples use both
   forms.
 - A size entry contains only `input.shape`, `input.resize.target_size` and `onnx`. All other fields
@@ -32,8 +34,9 @@
 
 Put the sidecar at its path in the storage layout of the spec (the heading "Storage layout" in
 `../freemocap/skellytracker/specs/model-sidecar/format/file-layout.md`). In the spec, the layout
-starts at `{sidecar_root}`. In an exporter, the export root has that role. Thus the
-sidecar goes to `<export root>/detectors/...` (the export root of OpenMMLab-Exporter is `exports/`).
+starts at `{sidecar_root}`. In your repo, the export root (the folder that holds your exported
+files) has that role. Thus the sidecar goes to `<export root>/detectors/...`. For example, the
+export root of OpenMMLab-Exporter is `exports/`.
 
 - `object_detectors/{family}/{model_id}.yaml` for an object detector. `{family}` is the `model_id`.
 - `keypoint_detectors/{family}/{part}/{model_id}.yaml` for a pose estimator. `{part}` is `hand`,

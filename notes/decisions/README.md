@@ -29,6 +29,7 @@ These entries are `accepted` or `evidence`.
 | [vac0](vac0-record-a-changed-proposal.md) | A changed exporter proposal: a full new copy, the same entry, a ticked "Before acceptance" list | accepted |
 | [k6dz](k6dz-model-sidecar-folder.md) | The sidecar spec folder and its entry point `sidecar-spec.md` move to `specs/model-sidecar/`; a move with no change of rule | accepted |
 | [p3n3](p3n3-ai-attribution-warning.md) | No AI attribution in check-ins; a commit-msg hook warns and does not stop the commit | accepted |
+| [x64y](x64y-draft-exporter-guide-folder.md) | The workflow, with the sidecar-file, validation and publishing rules, is in `model-addition-workflow/`; the exporter-only guide is a draft; no stub | accepted |
 | [ngnb](ngnb-supersede-an-absorbed-entry.md) | An absorbed entry can be superseded: its status changes from `absorbed into <path>#<anchor>` to `superseded by XXXX` | accepted |
 
 ### Proposed
@@ -99,8 +100,8 @@ The open work, the repository state and the spec defects are in [open-work.md](o
 - A Proposed row has a Section cell: the section ID of the change in backticks, or `none`. A new
   section ID is allowed.
 - An accepted entry is absorbed when one of these documents states all of its rules: the spec,
-  `AGENTS.md`, the skills, the exporter guide, the templates of `specs/model-sidecar/templates/`, and the
-  Rules of this file with [template.md](template.md). Then that document is the source of the rules.
+  `AGENTS.md`, the skills, the model addition workflow, the exporter guide, the templates of
+  `specs/model-sidecar/templates/`, and the Rules of this file with [template.md](template.md). Then that document is the source of the rules.
 - An accepted entry that records a one-off action, with no rule that stays, is `done` when the action
   is complete.
 - A consolidation entry states the rules that stay from a group of entries, and it supersedes each
@@ -117,8 +118,11 @@ The open work, the repository state and the spec defects are in [open-work.md](o
 - The tool counts characters after it changes CRLF to LF. It checks the rows, the tables, the cells,
   the status forms, the `XXXX` of each status and the limits. A warning does not fail the doc tests.
   An entry does not warn. A PR can lower a limit. A PR that raises a limit must add an entry.
-- The exporter guide is normative for the workflow. The sidecar spec is normative for the meaning of
-  a sidecar.
+- The [model addition workflow](../../specs/model-sidecar/model-addition-workflow/README.md) is
+  normative for the process that adds a model or changes the spec, and for the rules of the sidecar
+  files, the validation and the publishing ([x64y](x64y-draft-exporter-guide-folder.md)). The
+  exporter guide is normative for the rules that it adds for exporters. The sidecar spec is
+  normative for the meaning of a sidecar.
 - The bootstrap kit takes these rules. Its tool keeps the limits 14,000 for the index and 220,000 for
   the read path. The kit keeps an optional mirror rule.
 - A decision can be accepted before its spec text lands. Its spec text then comes in a later content
@@ -153,8 +157,9 @@ The open work, the repository state and the spec defects are in [open-work.md](o
   bare ID, for example 0016 or gtwq, is always an entry of this log. Write an ID in YAML front matter
   in quotes. Cite a provisional entry of another repo by the repo name, the PR number and the slug.
   End each commit subject that adds or changes an entry with `(<id>)`.
-- A spec change proposal is an entry with the status `proposed`. The new-model workflow in
-  [0014](0014-spec-lifecycle.md) gives its parts.
+- A spec change proposal is an entry with the status `proposed`. Phase 2 of the
+  [model addition workflow](../../specs/model-sidecar/model-addition-workflow/phase-2-proposal.md)
+  gives its parts ([0014](0014-spec-lifecycle.md)).
 - A gap record is also an entry with the status `proposed`. It gives a gap or a conflict with the
   spec text, its evidence and the direction of a change, but not all eight parts of a proposal. Its
   Decision section says that it is a gap record. The user can accept or reject a gap record.

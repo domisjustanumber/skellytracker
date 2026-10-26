@@ -3,8 +3,10 @@
 This template is phase 2 of the new-model workflow. A proposal asks for one new or changed contract
 unit of the sidecar spec, and for its implementation. A contract unit is one part of the spec with its
 own algorithm or its own implementing function. One contract unit is one section (one section file
-under `specs/model-sidecar/`). The full workflow is in the exporter guide
-(`specs/exporter-guide/sidecars/README.md` of the skellytracker repo, section "Sidecars"). The decision behind
+under `specs/model-sidecar/`). The full workflow is the model addition workflow
+(`specs/model-sidecar/model-addition-workflow/README.md` of the skellytracker repo). It is the same
+for an exporter and for a human contributor. Where this template says "the exporter", a contributor
+that is not an exporter reads "you". The decision behind
 it is skellytracker decision 0014 (`notes/decisions/0014-spec-lifecycle.md` of the skellytracker
 repo). Phase 1 is the model intake template (`specs/model-sidecar/templates/model-intake.md`).
 
@@ -263,7 +265,8 @@ cases:
 
 ## 5. Parity evidence
 
-Follow the parity rules of the exporter guide (section "Sidecars", heading "Parity").
+Follow the parity rules of the model addition workflow
+(`specs/model-sidecar/model-addition-workflow/parity.md`, heading "Parity").
 
 - Run the real model. Use the reference implementation of part 3 in place of the missing spec feature.
   Do every other step exactly as the sidecar declares.

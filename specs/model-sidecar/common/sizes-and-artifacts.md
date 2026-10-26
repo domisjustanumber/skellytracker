@@ -193,7 +193,7 @@ See also [Input](input.md#validation-rules) and [Outputs](outputs.md#validation-
 - No exporter writes `url`, `url_sha256` or `input_dtype`.
   - OpenMMLab-Exporter computes the SHA-256 of each file, but it does not write the hash into the sidecar. (OpenMMLab-Exporter `rtmdet_person/sidecar.py:139-145` (eed3361) and `pipeline/sidecar.py:75-76` (0c7ec77))
   - Qualcomm-Exporter keeps the SHA-256 and the size of each ONNX file only in the report (`artifact.sha256`, `artifact.filesize_bytes`). (Qualcomm-Exporter `qai_report.py:99-130`, 4ca4586)
-  - The [exporter guide](../model-addition-workflow/validation-and-publishing.md#source-and-hashes) says that every `filename` artifact carries a `sha256`.
+  - The [model addition workflow](../model-addition-workflow/validation-and-publishing.md#source-and-hashes) says that every `filename` artifact carries a `sha256`.
 - An fp16 converter can make an invalid graph.
   - The Ultralytics FP16 export can put the input `Cast` node after its consumers. Ultralytics-Exporter sorts the graph again and runs `onnx.checker` after each conversion. (Ultralytics-Exporter `export_all.py:161-188, 227-229`, 69499e7)
   - The ONNX Runtime converter appends the input `Cast` nodes, and `onnxconverter-common` 1.16 made an fp16 graph that ONNX Runtime rejects. Qualcomm-Exporter prefers `onnxruntime.transformers.float16.convert_float_to_float16`, sorts the graph again and runs `onnx.checker`. (Qualcomm-Exporter `qai_export.py:63-103` (8d8e05a) and `tests/test_qai_export.py:32-47` (4ca4586))

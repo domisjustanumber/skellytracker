@@ -151,7 +151,8 @@ A skellytracker session must land it first, with the skill
     `uv run python tools/make_vectors.py`.
 11. skellytracker counts as one implementation in `verified_against`. A vector is fully verified only
     when two independent implementations agree
-    ([Independence](../../../notes/decisions/0014-spec-lifecycle.md#independence)).
+    ([Independence](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence);
+    decision [0014](../../../notes/decisions/0014-spec-lifecycle.md#independence)).
 
 ### Step 7: Update the traceability
 
