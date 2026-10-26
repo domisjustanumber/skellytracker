@@ -6,10 +6,10 @@
 
 **Proposed, not decided.** This entry records the spec change proposal `normalize-arithmetic`. The
 eight parts are in
-[`specs/sidecar/proposals/normalize-arithmetic/proposal.md`](../../specs/sidecar/proposals/normalize-arithmetic/proposal.md).
+[`specs/model-sidecar/proposals/normalize-arithmetic/proposal.md`](../../specs/model-sidecar/proposals/normalize-arithmetic/proposal.md).
 
-- **Section:** `pre.normalize` (`specs/sidecar/pre/normalization.md`), a changed section. The change
-  also edits `format.versioning` (`format/versioning.md`) and `specs/sidecar/changelog.md`.
+- **Section:** `pre.normalize` (`specs/model-sidecar/pre/normalization.md`), a changed section. The change
+  also edits `format.versioning` (`format/versioning.md`) and `specs/model-sidecar/changelog.md`.
 - **Change:** A new sub-heading "Arithmetic" under "Behaviour" gives the value of each mode. The
   reference value `r` is the formula in float64, rounded one time to float32. A host value `t` must
   meet `abs(t - r) <= 1e-6 * max(1, abs(r))`. The host must calculate in float32 or wider, not in

@@ -19,11 +19,11 @@ headings, vectors, `TRACEABILITY.md` and the `impact` command.
 
 - During the spec-build stage, each spec change goes into the `vNEXT` revision. Each change has one
   row in the `vNEXT` summary of changes. Until the split, that is the
-  [Summary of changes](../../specs/sidecar/changelog.md#summary-of-changes) table of the spec. After the
+  [Summary of changes](../../specs/model-sidecar/changelog.md#summary-of-changes) table of the spec. After the
   split, it is in `specs/sidecar/changelog.md`.
 - From the first skellytracker release that ships the spec, each change sets `schema_version` to the
   release that ships that change. Each change also adds a changelog row. This is the rule at the start
-  of [`schema_version` history](../../specs/sidecar/changelog.md#schema_version-history).
+  of [`schema_version` history](../../specs/model-sidecar/changelog.md#schema_version-history).
 
 ### `vNEXT` is not a version
 
@@ -257,7 +257,7 @@ contract unit (one section). The intake links to each proposal. The proposal tem
   Thus a tagged version such as `v2026.10.1-dev` cannot replace `vNEXT` either. The installed version
   is `__version__ = "v2024.09.1019"` in `skellytracker/__init__.py`.
 - The spec's reviewer note in
-  [Changes in this revision (`vNEXT`)](../../specs/sidecar/changelog.md#changes-in-this-revision-vnext)
+  [Changes in this revision (`vNEXT`)](../../specs/model-sidecar/changelog.md#changes-in-this-revision-vnext)
   says "replace it with the skellytracker release that ships this revision before merging".
 - **A near-miss that looked correct.** On four test images, a `center` letterbox matches RTMO's
   upstream `BottomupResize` only at scale 1. At other scales the keypoints move by up to 17.89 px,
@@ -286,3 +286,5 @@ contract unit (one section). The intake links to each proposal. The proposal tem
 - Do not count a reference implementation and its source exporter as two implementations.
 - Do not change an exporter repo from a skellytracker session.
 - Do not cite a parity script that exists only in a local `plans/` folder.
+
+_Edited 2026-10-26 (this PR): link repair._

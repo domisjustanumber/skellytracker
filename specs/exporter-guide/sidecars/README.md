@@ -4,7 +4,7 @@ This guide gives the rules that exporters follow when they write sidecars. An ex
 that makes ONNX files and writes their sidecars: OpenMMLab-Exporter, Roboflow-Exporter,
 Ultralytics-Exporter, Qualcomm-Exporter and MediaPipe-Exporter.
 
-The [sidecar spec](../../sidecar-spec.md) is normative for the meaning of a sidecar. This guide is
+The [sidecar spec](../../model-sidecar/sidecar-spec.md) is normative for the meaning of a sidecar. This guide is
 normative for the workflow: it tells how to apply the spec to a new model. It does not change the
 meaning of the spec. If this guide and the spec do not agree, the spec is correct.
 
@@ -45,29 +45,29 @@ The decisions behind this guide:
   new-model workflow.
 - [0016](../../../notes/decisions/0016-sidecar-catalogs.md): sidecar catalogs: `source`, reference
   hashes, roots, discovery and the capability check. The spec text for exporters is in
-  [`common.identity`](../../sidecar/common/identity.md#fields) (`source`),
-  [`format.composition`](../../sidecar/format/composition.md#reference-hashes) (the reference hashes and the bytes
+  [`common.identity`](../../model-sidecar/common/identity.md#fields) (`source`),
+  [`format.composition`](../../model-sidecar/format/composition.md#reference-hashes) (the reference hashes and the bytes
   of a file) and
-  [`common.sizes_and_artifacts`](../../sidecar/common/sizes-and-artifacts.md#sizessizeonnxbatch_artifacts) (the
+  [`common.sizes_and_artifacts`](../../model-sidecar/common/sizes-and-artifacts.md#sizessizeonnxbatch_artifacts) (the
   artifact hashes and the placeholder). The rule for exporters is
   [`source` and hashes](validation-and-publishing.md#source-and-hashes).
 
-The spec is split into section files under `specs/sidecar/`. The entry point is
-[`specs/sidecar-spec.md`](../../sidecar-spec.md): it is the permanent index, and it keeps each old
+The spec is split into section files under `specs/model-sidecar/`. The entry point is
+[`specs/model-sidecar/sidecar-spec.md`](../../model-sidecar/sidecar-spec.md): it is the permanent index, and it keeps each old
 heading as an anchor with a link to the section file that holds the text now. The section map is
-[`specs/sidecar/README.md`](../../sidecar/README.md#section-map). It lists each section ID and its file. The
+[`specs/model-sidecar/README.md`](../../model-sidecar/README.md#section-map). It lists each section ID and its file. The
 sections and headings that this guide uses most:
-[`input.resize`](../../sidecar/common/input.md#inputresize), [`sizes`](../../sidecar/common/sizes-and-artifacts.md#sizes),
-[Storage layout](../../sidecar/format/file-layout.md#storage-layout),
-[Schema versioning](../../sidecar/format/versioning.md),
-[Version-aware compatibility](../../sidecar/format/versioning.md#version-aware-compatibility) (the index of the
+[`input.resize`](../../model-sidecar/common/input.md#inputresize), [`sizes`](../../model-sidecar/common/sizes-and-artifacts.md#sizes),
+[Storage layout](../../model-sidecar/format/file-layout.md#storage-layout),
+[Schema versioning](../../model-sidecar/format/versioning.md),
+[Version-aware compatibility](../../model-sidecar/format/versioning.md#version-aware-compatibility) (the index of the
 "Legacy behaviour" heading of each section),
-[Validation rules](../../sidecar/README.md#validation-rules) (the validation index),
-[Considered and deliberately not added](../../sidecar/changelog.md#considered-and-deliberately-not-added) and
-[Reference examples](../../sidecar/examples/README.md), with the provenance of each example in
-[`inventory.yaml`](../../sidecar/inventory.yaml).
-The templates are [model intake](../../sidecar/templates/model-intake.md) and
-[change proposal](../../sidecar/templates/change-proposal.md).
+[Validation rules](../../model-sidecar/README.md#validation-rules) (the validation index),
+[Considered and deliberately not added](../../model-sidecar/changelog.md#considered-and-deliberately-not-added) and
+[Reference examples](../../model-sidecar/examples/README.md), with the provenance of each example in
+[`inventory.yaml`](../../model-sidecar/inventory.yaml).
+The templates are [model intake](../../model-sidecar/templates/model-intake.md) and
+[change proposal](../../model-sidecar/templates/change-proposal.md).
 
 ## The block for the exporter `AGENTS.md`
 

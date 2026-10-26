@@ -13,7 +13,7 @@ stays. It holds no scope rule. [0042](0042-vnext-scope-nms-filters.md) adds the 
 - The graph ends before NMS. It outputs the decoded box and the sigmoid person score of each anchor
   point: `boxes` `[B, A, 4]` (`xyxy`, model-input pixels) and `scores` `[B, A]`. These outputs are the
   complete candidate set
-  ([Selection behaviour](../../specs/sidecar/post/detection-decode.md#selection-behaviour)).
+  ([Selection behaviour](../../specs/model-sidecar/post/detection-decode.md#selection-behaviour)).
 - The sidecar declares `decode.selection: nms`. The host runs the NMS.
 - The `nms` block holds the upstream mmdet `test_cfg` values of the person configs:
   `iou_threshold: 0.6`, `score_threshold: 0.05` (`score_thr`) and `post_nms_top_k: 100`
@@ -24,7 +24,7 @@ stays. It holds no scope rule. [0042](0042-vnext-scope-nms-filters.md) adds the 
   Each batch artifact gives the value in `output_shapes`. The rows are in three levels.
   `level_strides` gives the row count of each level from the input size.
 - `selection: nms` forbids `class_logits_output`
-  ([Validation rules](../../specs/sidecar/post/selection-nms.md#validation-rules)).
+  ([Validation rules](../../specs/model-sidecar/post/selection-nms.md#validation-rules)).
 
 **Changed: the steps of `selection: nms`.** Each new field is optional. When it is absent, the old
 meaning stays.
@@ -61,7 +61,7 @@ meaning stays.
 
 ## Evidence
 
-[evidence.md](../../specs/sidecar/proposals/nms-clamp-order/evidence.md) holds the
+[evidence.md](../../specs/model-sidecar/proposals/nms-clamp-order/evidence.md) holds the
 measurements: the 0011 parity and cost tables, and the COCO val2017 measurements of the proposal.
 The cap and the size filter change no AP. The clamp order changes the kept rows on 668 of 5000 nano
 images and 405 of 5000 medium images. With all fields, the sidecar path keeps the same rows as a

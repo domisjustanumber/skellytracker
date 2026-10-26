@@ -6,10 +6,10 @@
 
 **Proposed, not decided.** This entry records the spec change proposal `pose-decode-flip-test`. The
 eight parts are in
-[`specs/sidecar/proposals/pose-decode-flip-test/proposal.md`](../../specs/sidecar/proposals/pose-decode-flip-test/proposal.md).
+[`specs/model-sidecar/proposals/pose-decode-flip-test/proposal.md`](../../specs/model-sidecar/proposals/pose-decode-flip-test/proposal.md).
 
 - **Section:** a new section `post.pose.flip_test` ("Flip test", file
-  `specs/sidecar/post/pose-flip-test.md`, kind `postprocessor`). The change also edits
+  `specs/model-sidecar/post/pose-flip-test.md`, kind `postprocessor`). The change also edits
   `post.pose.schema`, `post.pose.decode.simcc`, `post.pose.decode.heatmap`, the "Implementer guidance"
   of `pre.resize.affine_person_crop`, `format.versioning`, the section map and the changelog.
 - **Change:** The optional field `pose.decode.flip_test` tells the host to run the model on the crop

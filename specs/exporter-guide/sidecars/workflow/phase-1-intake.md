@@ -1,6 +1,6 @@
 # Phase 1: can the current spec describe the model?
 
-Fill `../freemocap/skellytracker/specs/sidecar/templates/model-intake.md`. Write the result to
+Fill `../freemocap/skellytracker/specs/model-sidecar/templates/model-intake.md`. Write the result to
 `plans/sidecar-intake-<model>.md`. The skill `author-sidecar` gives the order of the steps.
 
 1. List every property of the runtime contract of the model. Use three sources:
@@ -30,7 +30,7 @@ Fill `../freemocap/skellytracker/specs/sidecar/templates/model-intake.md`. Write
    - `gap`: the spec has no section and no field for the property, for example a rotated crop, a
      border mode or a role for an ROI refiner. A property that the spec calls out of scope, or that the
      spec lists in "Considered and deliberately not added"
-     (`../freemocap/skellytracker/specs/sidecar/changelog.md`), is also a gap.
+     (`../freemocap/skellytracker/specs/model-sidecar/changelog.md`), is also a gap.
    - `unverified`: you do not have the evidence for a verdict. Name the missing evidence in the row. If
      you expect a verdict, write it there too.
    - `out of scope`: the step is before or after the runtime contract of this model. Examples: a step

@@ -2,7 +2,7 @@
 
 **Status:** absorbed into [`change-sidecar-spec/SKILL.md#rules-for-each-spec-edit`](../../.claude/skills/change-sidecar-spec/SKILL.md#rules-for-each-spec-edit), 2026-10-25 (user; the absorption review).
 
-The spec is still one file, [`specs/sidecar-spec.md`](../../specs/sidecar-spec.md). This entry records
+The spec is still one file, [`specs/model-sidecar/sidecar-spec.md`](../../specs/model-sidecar/sidecar-spec.md). This entry records
 the structure that the split into section files makes. The split is a move change, and the rewrite in
 Simplified Technical English (STE) is a rewording change. Each one is a separate PR
 ([0015](0015-review-discipline.md)).
@@ -106,7 +106,7 @@ The body has these headings, in this order:
 - A rule that joins two sections is in the section of the field that it constrains. The other
   section links to it. Examples: role against output semantic; `requires_object_detector` against
   `affine_person_crop`; `packed_keypoints` against the pose decode.
-- Each row of the [Version-aware compatibility](../../specs/sidecar/format/versioning.md#version-aware-compatibility)
+- Each row of the [Version-aware compatibility](../../specs/model-sidecar/format/versioning.md#version-aware-compatibility)
   table moves into the section that it governs, under the "Legacy behaviour" heading.
   `format/versioning.md` keeps the version comparison rules and an index of these headings.
 
@@ -281,21 +281,21 @@ The body has these headings, in this order:
 ## Evidence
 
 - `specs/sidecar-spec.md` has 1,625 lines and 106,300 bytes (2026-10-22). The detection `decode` and
-  [Selection behaviour](../../specs/sidecar/post/detection-decode.md#selection-behaviour) headings, which hold the NMS
+  [Selection behaviour](../../specs/model-sidecar/post/detection-decode.md#selection-behaviour) headings, which hold the NMS
   rules, have 72 lines together.
 - The `fit` spec text ([0012](0012-fit-resize-for-rtmo.md)) changed text under seven headings:
-  [Compatibility impact](../../specs/sidecar/changelog.md#compatibility-impact),
-  [`input.resize`](../../specs/sidecar/common/input.md#inputresize),
-  [Unprojection](../../specs/sidecar/post/unprojection.md),
-  [`sizes`](../../specs/sidecar/common/sizes-and-artifacts.md#sizes),
-  [Version-aware compatibility](../../specs/sidecar/format/versioning.md#version-aware-compatibility),
-  [Validation rules](../../specs/sidecar/README.md#validation-rules) and
-  [Changelog](../../specs/sidecar/changelog.md#schema_version-history).
+  [Compatibility impact](../../specs/model-sidecar/changelog.md#compatibility-impact),
+  [`input.resize`](../../specs/model-sidecar/common/input.md#inputresize),
+  [Unprojection](../../specs/model-sidecar/post/unprojection.md),
+  [`sizes`](../../specs/model-sidecar/common/sizes-and-artifacts.md#sizes),
+  [Version-aware compatibility](../../specs/model-sidecar/format/versioning.md#version-aware-compatibility),
+  [Validation rules](../../specs/model-sidecar/README.md#validation-rules) and
+  [Changelog](../../specs/model-sidecar/changelog.md#schema_version-history).
 - `_StrictModel` in `skellytracker/core/sidecar/model.py` sets `extra="forbid"`, and `SidecarModel`
   has no `source` field.
 - OpenMMLab-Exporter, Roboflow-Exporter and Ultralytics-Exporter list `exports/` in `.gitignore`.
   The RTMO body7 example comes from OpenMMLab-Exporter's tracked copy,
-  `notes/decisions/rtmo-body7.yaml` ([Reference examples](../../specs/sidecar/examples/README.md)).
+  `notes/decisions/rtmo-body7.yaml` ([Reference examples](../../specs/model-sidecar/examples/README.md)).
 - A comparison on 2026-10-22 found that the RTMW example had drifted from its export, and that the
   YOLO26 examples are forecasts
   ([`specs/sidecar-implementation-plan.md`, "Reference examples"](../../specs/sidecar-implementation-plan.md#reference-examples)).
@@ -332,3 +332,5 @@ The body has these headings, in this order:
 - Do not change inline code, numbers or table cells in a rewording PR without an approved
   difference from the token check.
 - Do not reword existing changelog rows.
+
+_Edited 2026-10-26 (this PR): link repair._

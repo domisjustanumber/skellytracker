@@ -5,7 +5,7 @@ A sidecar can refer to other files. A ``$ref`` directive includes a fragment. A 
 directive inherits from another sidecar. At ``vNEXT`` each of them holds the SHA-256 of the exact
 bytes of its target file, and each ``filename`` artifact holds the SHA-256 of its ONNX file. The
 rules are in ``notes/decisions/0016-sidecar-catalogs.md`` and in
-``specs/sidecar/format/composition.md``.
+``specs/model-sidecar/format/composition.md``.
 
 Commands::
 
@@ -17,7 +17,7 @@ the hashes inside a fragment are in place before the tool takes the hash of that
 fills in ``sha256`` on every ``filename`` artifact whose ONNX file is in the folder of SIDECAR (the
 leaf model folder). This is true also when a fragment or a base file declares the artifact:
 ``filename`` is relative to the leaf model folder
-(``specs/sidecar/common/sizes-and-artifacts.md``, "Per-precision artifact fields"). ``--placeholder``
+(``specs/model-sidecar/common/sizes-and-artifacts.md``, "Per-precision artifact fields"). ``--placeholder``
 writes the reserved 64-zero value on an artifact that has no ``sha256`` and no ONNX file. It never
 replaces a real hash. ``--source NAME==VERSION`` adds a top-level ``source`` mapping to SIDECAR when
 SIDECAR has none. It never changes an existing one.
@@ -30,7 +30,7 @@ when it reports an error.
 ``--check`` verifies every ``$ref`` and ``base`` hash against the exact bytes of the target file,
 before any parsing. It verifies an ONNX hash only when the ONNX file is present in the folder of
 SIDECAR. A CRLF file or a file with a byte order mark is an error of its own. The placeholder is
-valid only in a file under ``specs/sidecar/examples/``. The exit status is 1 when a check fails.
+valid only in a file under ``specs/model-sidecar/examples/``. The exit status is 1 when a check fails.
 
 ``--write`` and ``--check`` use only the standard library and PyYAML. They do not import
 ``skellytracker``. An exporter can run them from a read-only worktree with its own Python.
@@ -58,7 +58,7 @@ from typing import Any
 import yaml
 
 PLACEHOLDER = "0" * 64
-EXAMPLES_FOLDER = ("specs", "sidecar", "examples")
+EXAMPLES_FOLDER = ("specs", "model-sidecar", "examples")
 
 _STR_TAG = "tag:yaml.org,2002:str"
 _HEX64 = re.compile(r"[0-9a-f]{64}")
@@ -96,7 +96,7 @@ def sha256_file(path: Path) -> str:
 
 
 def is_in_examples(path: Path) -> bool:
-    """Return True when `path` is under a `specs/sidecar/examples/` folder."""
+    """Return True when `path` is under a `specs/model-sidecar/examples/` folder."""
     parts = path.resolve().parts
     size = len(EXAMPLES_FOLDER)
     return any(
@@ -560,7 +560,7 @@ class _Run:
                 path,
                 art.line,
                 f"artifact {art.filename} has the placeholder `sha256`; "
-                "it is valid only in files under specs/sidecar/examples/",
+                "it is valid only in files under specs/model-sidecar/examples/",
             )
 
     def _write_artifact(

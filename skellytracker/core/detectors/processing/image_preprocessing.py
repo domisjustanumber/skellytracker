@@ -50,7 +50,7 @@ def resolve_normalization_mode(
 ) -> str | CustomNormalization:
     """Resolve the effective normalization mode for `precision`.
 
-    Resolution order (see specs/sidecar-spec.md, "Normalization modes"):
+    Resolution order (see specs/model-sidecar/sidecar-spec.md, "Normalization modes"):
     `normalization_by_precision[precision]` -> top-level `normalization` -> default `imagenet_bgr`.
     """
     by_precision = input_spec.normalization_by_precision or {}

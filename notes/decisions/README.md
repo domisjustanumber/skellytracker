@@ -1,7 +1,7 @@
 # Decision log
 
 This log records technical decisions for skellytracker, with their reasons and evidence. Most entries
-are about the model sidecar spec ([`specs/sidecar-spec.md`](../../specs/sidecar-spec.md)), the sidecar
+are about the model sidecar spec ([`specs/model-sidecar/sidecar-spec.md`](../../specs/model-sidecar/sidecar-spec.md)), the sidecar
 code and the workflow that changes them. Read this file before you change the spec, a sidecar, the
 sidecar code, the agent instructions or the PR workflow. Also read [open-work.md](open-work.md). Then
 read the Active entries that apply to your task. Then you do not repeat a settled question or a
@@ -27,12 +27,14 @@ These entries are `accepted` or `evidence`.
 | [0008](0008-vnext-scope.md) | `vNEXT` scope, and the features considered and not added | accepted |
 | [0011](0011-rtmdet-host-nms.md) | RTMDet: NMS-free graph with host `selection: nms`; no `pre_nms_top_k` | accepted |
 | [vac0](vac0-record-a-changed-proposal.md) | A changed exporter proposal: a full new copy, the same entry, a ticked "Before acceptance" list | accepted |
+| [k6dz](k6dz-model-sidecar-folder.md) | The sidecar spec folder and its entry point `sidecar-spec.md` move to `specs/model-sidecar/`; a move with no change of rule | accepted |
+| [p3n3](p3n3-ai-attribution-warning.md) | No AI attribution in check-ins; a commit-msg hook warns and does not stop the commit | accepted |
 
 ### Proposed
 
 These entries are spec change proposals and gap records that wait for a decision of the user. Section
 is the spec section of the change, or `none` when the change has no one section. Find the pending
-proposals of a section here and in the [proposal index](../../specs/sidecar/proposals/README.md).
+proposals of a section here and in the [proposal index](../../specs/model-sidecar/proposals/README.md).
 
 | # | Decision | Section | Status |
 |---|----------|---------|--------|
@@ -94,7 +96,7 @@ The open work, the repository state and the spec defects are in [open-work.md](o
 - A Proposed row has a Section cell: the section ID of the change in backticks, or `none`. A new
   section ID is allowed.
 - An accepted entry is absorbed when one of these documents states all of its rules: the spec,
-  `AGENTS.md`, the skills, the exporter guide, the templates of `specs/sidecar/templates/`, and the
+  `AGENTS.md`, the skills, the exporter guide, the templates of `specs/model-sidecar/templates/`, and the
   Rules of this file with [template.md](template.md). Then that document is the source of the rules.
 - An accepted entry that records a one-off action, with no rule that stays, is `done` when the action
   is complete.

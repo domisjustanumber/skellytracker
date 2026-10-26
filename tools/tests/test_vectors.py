@@ -1,6 +1,6 @@
 """The sidecar test vectors match their generator, their sections and the package.
 
-The vector files are in `specs/sidecar/vectors/`. `tools/make_vectors.py` writes
+The vector files are in `specs/model-sidecar/vectors/`. `tools/make_vectors.py` writes
 them. These tests check four things:
 
 - the files have the documented shape and name existing sections;
@@ -26,7 +26,7 @@ import yaml
 import make_vectors as mv
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SPEC_ROOT = REPO_ROOT / "specs" / "sidecar"
+SPEC_ROOT = REPO_ROOT / "specs" / "model-sidecar"
 VECTORS_DIR = SPEC_ROOT / "vectors"
 
 CASE_KEYS = {

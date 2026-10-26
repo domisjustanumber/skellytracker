@@ -24,8 +24,8 @@ A session holds the resources that detectors share, for example the ONNX Runtime
 A detector that runs an ONNX model reads a sidecar.
 A sidecar is one YAML file. It describes the runtime contract of one model family: input,
 preprocessing, outputs and decode.
-The section files under [`specs/sidecar/`](specs/sidecar/README.md) specify the sidecar format.
-[`specs/sidecar-spec.md`](specs/sidecar-spec.md) is the permanent entry point and links to them.
+The section files under [`specs/model-sidecar/`](specs/model-sidecar/README.md) specify the sidecar format.
+[`specs/model-sidecar/sidecar-spec.md`](specs/model-sidecar/sidecar-spec.md) is the permanent entry point and links to them.
 The exporter repositories make ONNX files and write their sidecars: OpenMMLab-Exporter,
 Roboflow-Exporter, Ultralytics-Exporter and Qualcomm-Exporter.
 
@@ -58,13 +58,13 @@ Open PRs against `development`, not `main` ([section 6](#6-git-rules)).
 | `skellytracker/core/io/` | `process_video.py`, `demo_manager.py` (webcam runner), tracker mapping, canonical mapping expansion |
 | `skellytracker/examples/` | Example scripts |
 | `skellytracker/tests/` | pytest suite. `sidecar/` holds the sidecar tests and their golden fixtures. |
-| `specs/sidecar-spec.md` | The permanent index of the sidecar spec. It keeps each old heading as an anchor with a "Moved to" link to the new file. Start at [`specs/sidecar/README.md`](specs/sidecar/README.md). |
-| `specs/sidecar/README.md` | The spec overview, the [section map](specs/sidecar/README.md#section-map) and the index of the validation rules. The section map gives the section ID, the file and the title of each section. |
-| `specs/sidecar/format/`, `common/`, `pre/`, `post/` | The section files. Each file holds one section. Its front matter gives `id` (the section ID), `title` and `kind`. Each validation rule has a rule ID `V-<id>-<n>`, for example `V-pre.resize.letterbox-1`. |
-| `specs/sidecar/changelog.md` | The `vNEXT` summary of changes and the `schema_version` history |
-| `specs/sidecar/proposals/` | The recorded spec change proposals: one folder for each proposal, with all eight parts, and the [proposal index](specs/sidecar/proposals/README.md) (decision [faac](notes/decisions/faac-proposal-records.md)). The files are informative. |
-| `specs/sidecar/examples/`, `specs/sidecar/inventory.yaml` | The reference examples, in the `detectors/` layout of the package ([`examples/README.md`](specs/sidecar/examples/README.md)), and the provenance of each example |
-| `specs/sidecar/templates/` | [`model-intake.md`](specs/sidecar/templates/model-intake.md) and [`change-proposal.md`](specs/sidecar/templates/change-proposal.md) |
+| `specs/model-sidecar/sidecar-spec.md` | The permanent index of the sidecar spec. It keeps each old heading as an anchor with a "Moved to" link to the new file. Start at [`specs/model-sidecar/README.md`](specs/model-sidecar/README.md). |
+| `specs/model-sidecar/README.md` | The spec overview, the [section map](specs/model-sidecar/README.md#section-map) and the index of the validation rules. The section map gives the section ID, the file and the title of each section. |
+| `specs/model-sidecar/format/`, `common/`, `pre/`, `post/` | The section files. Each file holds one section. Its front matter gives `id` (the section ID), `title` and `kind`. Each validation rule has a rule ID `V-<id>-<n>`, for example `V-pre.resize.letterbox-1`. |
+| `specs/model-sidecar/changelog.md` | The `vNEXT` summary of changes and the `schema_version` history |
+| `specs/model-sidecar/proposals/` | The recorded spec change proposals: one folder for each proposal, with all eight parts, and the [proposal index](specs/model-sidecar/proposals/README.md) (decision [faac](notes/decisions/faac-proposal-records.md)). The files are informative. |
+| `specs/model-sidecar/examples/`, `specs/model-sidecar/inventory.yaml` | The reference examples, in the `detectors/` layout of the package ([`examples/README.md`](specs/model-sidecar/examples/README.md)), and the provenance of each example |
+| `specs/model-sidecar/templates/` | [`model-intake.md`](specs/model-sidecar/templates/model-intake.md) and [`change-proposal.md`](specs/model-sidecar/templates/change-proposal.md) |
 | `specs/exporter-guide/sidecars/README.md` | The rules that exporters follow ([exporter guide](specs/exporter-guide/sidecars/README.md)). All guidance for exporters is in `specs/exporter-guide/`. |
 | `specs/sidecar-implementation-plan.md` | Status of the sidecar work in the package, and the procedure for reference examples. It is a tracked file, not a local plan. It stays until its milestones M5 and M6 are done. |
 | `notes/sidecar-exporter-coverage.md` | The plan that extended the spec to the exporter models: the evidence for the `vNEXT` revision |
@@ -93,7 +93,7 @@ The key `rtmpose` runs RTMW (decisions [0004](notes/decisions/0004-detectors-mig
 and [0005](notes/decisions/0005-rtmw-moved-to-rtmw-family.md)).
 Do not change a `detector_type` string. Configs and callers select a detector with it.
 A `detector_type` key is not a catalog key. The catalog keeps each key as an alias of
-`<model_id>@skellytracker` ([Versioning](specs/sidecar/format/versioning.md#implementer-guidance)).
+`<model_id>@skellytracker` ([Versioning](specs/model-sidecar/format/versioning.md#implementer-guidance)).
 Shim modules under `keypoint_detectors/rtmpose/` give the RTMW detector its old names
 `RTMPoseDetectorConfig`, `RTMPoseKeypointDetector` and `RTMPOSE_MODEL_SPECS`. Do not remove a shim
 while a file imports its path.
@@ -138,7 +138,7 @@ If your agent does not support skills, read the skill file.
 Each skill is in `.claude/skills/<skill>/SKILL.md`.
 Git tracks `.claude/skills/` and ignores the rest of `.claude/`.
 The skills wrap the [exporter guide](specs/exporter-guide/sidecars/README.md) and the
-[templates](specs/sidecar/templates/). They give the steps, the inputs, the outputs and the stop
+[templates](specs/model-sidecar/templates/). They give the steps, the inputs, the outputs and the stop
 points. The rules in this file also apply.
 Exporter agents read the skill files, read-only, in the checkout
 `../freemocap/skellytracker/.claude/skills/`.
@@ -146,7 +146,7 @@ Exporter agents read the skill files, read-only, in the checkout
 | Skill | Status | Runs in | Use it to |
 |---|---|---|---|
 | [`author-sidecar`](.claude/skills/author-sidecar/SKILL.md) | available | an exporter repo | Add a model: fill the model intake, write the sidecar and prove parity with the upstream library. Prepare the reference implementations of the sections that the exporter implements on its host side. |
-| [`propose-sidecar-change`](.claude/skills/propose-sidecar-change/SKILL.md) | available | an exporter repo, or this repository | Write a spec change proposal for a model property that the spec does not describe exactly. In this repository, copy it to `specs/sidecar/proposals/` and record it as a decision entry with status `proposed`. Record it again when the exporter changes it. |
+| [`propose-sidecar-change`](.claude/skills/propose-sidecar-change/SKILL.md) | available | an exporter repo, or this repository | Write a spec change proposal for a model property that the spec does not describe exactly. In this repository, copy it to `specs/model-sidecar/proposals/` and record it as a decision entry with status `proposed`. Record it again when the exporter changes it. |
 | [`change-sidecar-spec`](.claude/skills/change-sidecar-spec/SKILL.md) | available | this repository | Land a model, an accepted proposal or an exporter reference implementation. Change the normative spec text, its changelog, its vectors and its examples. |
 | [`implement-sidecar-section`](.claude/skills/implement-sidecar-section/SKILL.md) | available | this repository | Implement a spec section in the package code, after the spec-build stage. In the spec-build stage, plan the work only. |
 
@@ -154,7 +154,7 @@ Exporter agents read the skill files, read-only, in the checkout
 
 Run `uv sync --extra all-cpu`.
 Then run `uv run pre-commit install` once in the clone ([section 8](#8-private-data)).
-It installs the pre-commit hooks and the pre-push hook.
+It installs the pre-commit hooks, the commit-msg hook and the pre-push hook.
 Run it again in each clone after `.pre-commit-config.yaml` changes.
 This command installs the dev tools, MediaPipe, `onnx` and the CPU build of ONNX Runtime.
 For a GPU, [`GPU_SETUP_GUIDE.md`](GPU_SETUP_GUIDE.md) gives the extra for each GPU.
@@ -203,7 +203,7 @@ The MediaPipe detectors download their model files to `~/.freemocap/skellytracke
 in `skellytracker/core/detectors/keypoint_detectors/mediapipe/mediapipe_model_manager.py`).
 
 Run `uv run ruff check skellytracker/ tools/`.
-CI runs the same check (`.github/workflows/lint.yml`). CI also checks `specs/sidecar/reference/` when
+CI runs the same check (`.github/workflows/lint.yml`). CI also checks `specs/model-sidecar/reference/` when
 that folder exists.
 
 Run `uv run python -m skellytracker --list` to list the webcam demos.
@@ -214,7 +214,7 @@ The demo needs a camera and a display.
 
 ## 4. Sidecar Rules
 
-- The section files under [`specs/sidecar/`](specs/sidecar/README.md) are normative. Read the sections
+- The section files under [`specs/model-sidecar/`](specs/model-sidecar/README.md) are normative. Read the sections
   that apply before you change a sidecar, an example or the spec.
 - Link to the spec by its relative path. Do not link to a branch URL.
 - Every spec change goes into the `vNEXT` revision until the first skellytracker release that ships the
@@ -223,19 +223,19 @@ The demo needs a camera and a display.
   `skellytracker/core/sidecar/model.py`). Do not publish a `vNEXT` sidecar to a shared or remote folder.
 - The meaning of an older `schema_version` never changes. A sidecar with an older `schema_version`
   keeps its legacy meaning. The legacy rules are in the "Legacy behaviour" heading of each section.
-  [Version-aware compatibility](specs/sidecar/format/versioning.md#version-aware-compatibility) gives
+  [Version-aware compatibility](specs/model-sidecar/format/versioning.md#version-aware-compatibility) gives
   the index of these headings.
 - Make a spec change in the section file that owns the rule. The `id` in the front matter of the file
   is the section ID. The rule IDs of the section are `V-<id>-<n>`. When you move or reword a section,
   keep its section ID and its rule IDs (decision
   [0013](notes/decisions/0013-spec-structure.md#one-owner-for-each-rule)).
 - A spec change needs a decision entry and a changelog row. Add a row to the
-  [summary of changes](specs/sidecar/changelog.md#summary-of-changes). Add the change to the `vNEXT`
-  row of the [changelog](specs/sidecar/changelog.md#schema_version-history).
+  [summary of changes](specs/model-sidecar/changelog.md#summary-of-changes). Add the change to the `vNEXT`
+  row of the [changelog](specs/model-sidecar/changelog.md#schema_version-history).
 - Stop on a gap. If a model property does not map exactly to a spec section, do not approximate it.
   A near-miss is a gap. Write a change proposal with the parts of
-  [`specs/sidecar/templates/change-proposal.md`](specs/sidecar/templates/change-proposal.md). In this
-  repository, copy the proposal to `specs/sidecar/proposals/<slug>/proposal.md`. Record it as a short
+  [`specs/model-sidecar/templates/change-proposal.md`](specs/model-sidecar/templates/change-proposal.md). In this
+  repository, copy the proposal to `specs/model-sidecar/proposals/<slug>/proposal.md`. Record it as a short
   decision entry with status `proposed` (decision
   [faac](notes/decisions/faac-proposal-records.md)). Then stop. The user accepts or rejects the
   proposal.
@@ -252,11 +252,11 @@ The demo needs a camera and a display.
   [0014](notes/decisions/0014-spec-lifecycle.md)). You can change `skellytracker/tests/` to fix a
   test. Each root cause of a test failure gets its own PR. If a failure shows a code defect, report
   it. Do not fix the code in this stage.
-- The [reference examples](specs/sidecar/examples/README.md) are part of the spec. To add or
+- The [reference examples](specs/model-sidecar/examples/README.md) are part of the spec. To add or
   replace one, follow
   [Reference examples](specs/sidecar-implementation-plan.md#reference-examples) in
   `specs/sidecar-implementation-plan.md`.
-- A sidecar goes in the path that the [storage layout](specs/sidecar/format/file-layout.md#storage-layout)
+- A sidecar goes in the path that the [storage layout](specs/model-sidecar/format/file-layout.md#storage-layout)
   gives.
 - Do not change an exporter repository. You may read one.
 
@@ -332,6 +332,7 @@ Change the kit templates by hand when a rule of this log changes.
   comment, a later change to a PR description or a change of a draft PR to ready. A force-push is a
   new push. It needs its own approval (decision
   [0027](notes/decisions/0027-single-working-branch.md)).
+- Do not add AI attribution, for example a `Co-Authored-By:` trailer, to a commit or a PR.
 - Open each PR to `freemocap/skellytracker` against `development`. Keep each PR small. Decision
   [0027](notes/decisions/0027-single-working-branch.md) gives the reasons for these rules.
 - Start each PR body with: "Part NN/M of the sidecar spec series. Depends on #X. Until #X merges,
@@ -432,6 +433,10 @@ To also block a hostname or a user name, put it in the file `.private-terms` in 
 Git ignores that file. Do not commit it.
 The pre-commit hook runs `gitleaks` and the private-data check.
 The pre-push hook runs the collision check of the decision-log IDs.
+The commit-msg hook runs `tools/check_ai_attribution.py` (decision
+[p3n3](notes/decisions/p3n3-ai-attribution-warning.md)). It warns about AI attribution
+([section 6](#6-git-rules)). It does not stop the commit.
+If you are an AI agent and you see this warning, tell the user.
 `.github/workflows/secrets.yml` runs `gitleaks` on each push and PR.
 `.gitleaks.toml` holds the reviewed false positives.
 Secret scanning and push protection are on for the fork.

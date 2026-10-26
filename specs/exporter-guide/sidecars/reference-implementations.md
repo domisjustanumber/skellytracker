@@ -1,6 +1,6 @@
 # Reference implementations
 
-If `../freemocap/skellytracker/specs/sidecar/reference/` does not exist, no reference
+If `../freemocap/skellytracker/specs/model-sidecar/reference/` does not exist, no reference
 implementation exists yet. Two things add a reference implementation:
 
 1. an accepted proposal (phase 2, part 3);
@@ -10,7 +10,7 @@ implementation exists yet. Two things add a reference implementation:
 include a step that gives the reference implementation of that section to skellytracker. The rule
 applies for every verdict of the intake.
 
-- Skip the step if `../freemocap/skellytracker/specs/sidecar/reference/<section_module>.py`
+- Skip the step if `../freemocap/skellytracker/specs/model-sidecar/reference/<section_module>.py`
   exists.
 - Skip the step if one of your proposals changes the section. The part 3 file of the proposal is the
   reference implementation. If the user rejects the proposal, do the step for the current text.
@@ -22,7 +22,7 @@ applies for every verdict of the intake.
 
 **Module names.** For `<section_module>`, use the section ID from the front matter of the section file
 (`id`), with each dot replaced by an underscore. For example, `pre.resize.letterbox` gives
-`pre_resize_letterbox`. The section map `../freemocap/skellytracker/specs/sidecar/README.md`
+`pre_resize_letterbox`. The section map `../freemocap/skellytracker/specs/model-sidecar/README.md`
 lists each section ID. For a new section, propose an ID in the same scheme
 (`<format|common|pre|post>.<area>[.<name>]`). In a proposal, make `<section_module>` from the
 proposed section ID.
@@ -31,12 +31,12 @@ proposed section ID.
   the inverse with the forward algorithm (the heading "Inverse"). Do not put two sections together in
   one module.
 - Write the section ID in the note at the top of the file.
-- Python can import the skellytracker file `specs/sidecar/reference/<section_module>.py` by its name.
+- Python can import the skellytracker file `specs/model-sidecar/reference/<section_module>.py` by its name.
   The exporter file `plans/sidecar-reference-<section_module>.py` has hyphens in its name, so Python
   cannot import it by its name. Load it with `importlib.util.spec_from_file_location`, or run it as a
   script.
 - The heading "Reference mappings in skellytracker" in
-  `../freemocap/skellytracker/specs/sidecar/post/canonical-mapping.md` (the old spec heading
+  `../freemocap/skellytracker/specs/model-sidecar/post/canonical-mapping.md` (the old spec heading
   "Reference implementations" under `pose.canonical_mapping`) is about the canonical mapping files of
   the package. It is not about these files.
 
@@ -54,7 +54,7 @@ The step (the skill `author-sidecar` includes it):
 4. Write the functions to `plans/sidecar-reference-<section_module>.py` in the exporter repo. Put a
    short note at the top of the file: the section ID, the source commit, the vector results and the
    parity result.
-5. Stop. A skellytracker session lands the file. It adds `specs/sidecar/reference/<section_module>.py`,
+5. Stop. A skellytracker session lands the file. It adds `specs/model-sidecar/reference/<section_module>.py`,
    adds the implementation to `verified_against` in the vector file of the section, and adds the
    exporter function to `external_impl` of the section.
 

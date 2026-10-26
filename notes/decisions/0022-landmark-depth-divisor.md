@@ -8,7 +8,7 @@ proposal).
 
 **Proposed, not decided.** This entry records the spec change proposal `landmark-depth-divisor`.
 The eight parts are in
-[`specs/sidecar/proposals/landmark-depth-divisor/proposal.md`](../../specs/sidecar/proposals/landmark-depth-divisor/proposal.md).
+[`specs/model-sidecar/proposals/landmark-depth-divisor/proposal.md`](../../specs/model-sidecar/proposals/landmark-depth-divisor/proposal.md).
 
 - **Section:** `post.pose.decode.coordinate` (changed). The proposal also edits `post.pose.schema`
   (the text of `depth_unit` and `V-post.pose.schema-9`), `post.unprojection` (one sentence),
@@ -51,7 +51,7 @@ it cannot get a commit while MediaPipe-Exporter has no git repo.
 ### Gap record (2026-10-23)
 
 Add an optional divisor of the raw depth to
-[`pose.decode`](../../specs/sidecar/post/pose-schema.md#posedecode), for a `coordinate` decoder with
+[`pose.decode`](../../specs/model-sidecar/post/pose-schema.md#posedecode), for a `coordinate` decoder with
 `depth_unit: pixel`. The MediaPipe-Exporter plan names it `depth_normalize`. The decoded depth is
 `z = z_raw / depth_normalize`, in pixels of the model input. The default is `1.0`, so a sidecar
 without the field keeps its current meaning. The proposal must also state how the host unprojects a

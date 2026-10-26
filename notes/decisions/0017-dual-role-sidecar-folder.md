@@ -9,7 +9,7 @@ OpenMMLab-Exporter).
 have the eight parts of a proposal.
 
 Add one rule to the
-[Storage layout](../../specs/sidecar/format/file-layout.md#storage-layout): a sidecar whose `role`
+[Storage layout](../../specs/model-sidecar/format/file-layout.md#storage-layout): a sidecar whose `role`
 includes `pose_estimator` goes under `detectors/keypoint_detectors/{family}/{part}/`. This rule also
 applies when `role` includes `object_detector` too. Only a sidecar with `role: [object_detector]` goes
 under `detectors/object_detectors/{family}/`. The `Role` column of the branch table gets the same
@@ -38,9 +38,9 @@ text. The change adds no field and no validation rule.
   defect (see the [exporter guide](../../specs/exporter-guide/sidecars/README.md)), but the branch is
   `keypoint_detectors/`.
 - The reference examples
-  [`rtmo/body/rtmo-body7.yaml`](../../specs/sidecar/examples/detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml)
+  [`rtmo/body/rtmo-body7.yaml`](../../specs/model-sidecar/examples/detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml)
   and
-  [`yolo26/body/yolo26-body.yaml`](../../specs/sidecar/examples/detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml)
+  [`yolo26/body/yolo26-body.yaml`](../../specs/model-sidecar/examples/detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml)
   are under `keypoint_detectors/`.
 - The [exporter guide](../../specs/exporter-guide/sidecars/README.md) says: "The spec does not say where a
   sidecar with both roles goes."

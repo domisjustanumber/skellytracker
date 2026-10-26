@@ -51,7 +51,7 @@ history only to find the reason for a decision.
   of the 20,089 characters of `README.md`.
 - An accepted rule stays in its entry after the rule moves into the spec. Thus the entries that
   agents read grow, but the number of rules does not. For example, the implementer guidance of
-  [`format.versioning`](../../specs/sidecar/format/versioning.md#implementer-guidance) states rules
+  [`format.versioning`](../../specs/model-sidecar/format/versioning.md#implementer-guidance) states rules
   of [0016](0016-sidecar-catalogs.md).
 - The rule that the body of an entry does not change stays. Absorption and consolidation change only
   status lines, and they add entries.
@@ -70,3 +70,5 @@ history only to find the reason for a decision.
   index row already gives the status.
 - **A token limit.** The token count is different for each model, and a tokenizer library is not in
   the doc tests. A character count does not change.
+
+_Edited 2026-10-26 (this PR): link repair._

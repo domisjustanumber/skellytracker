@@ -23,7 +23,7 @@
   forms.
 - A size entry contains only `input.shape`, `input.resize.target_size` and `onnx`. All other fields
   are shared at the top level (the family invariant under the `sizes` heading in
-  `../freemocap/skellytracker/specs/sidecar/common/sizes-and-artifacts.md`, rule
+  `../freemocap/skellytracker/specs/model-sidecar/common/sizes-and-artifacts.md`, rule
   `V-common.sizes_and_artifacts-3`).
 - Do not write `null` values. Omit an optional field. In the spec, `null` only deletes an inherited key
   in a `base` merge or a `sizes` merge.
@@ -31,7 +31,7 @@
 ## Path
 
 Put the sidecar at its path in the storage layout of the spec (the heading "Storage layout" in
-`../freemocap/skellytracker/specs/sidecar/format/file-layout.md`). In the spec, the layout
+`../freemocap/skellytracker/specs/model-sidecar/format/file-layout.md`). In the spec, the layout
 starts at `{sidecar_root}`. In an exporter, the export root has that role. Thus the
 sidecar goes to `<export root>/detectors/...` (the export root of OpenMMLab-Exporter is `exports/`).
 
@@ -47,4 +47,4 @@ a `gap`. The proposal that adds the role also adds the branch (`format.file_layo
 
 A model-specific folder, such as `body7`, does not conform. For example, the RTMO body7 reference
 example has the path `detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml` under
-`../freemocap/skellytracker/specs/sidecar/examples/`.
+`../freemocap/skellytracker/specs/model-sidecar/examples/`.

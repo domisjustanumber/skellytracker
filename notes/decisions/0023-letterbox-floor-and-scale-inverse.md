@@ -9,11 +9,11 @@
 have the eight parts of a proposal.
 
 Add `floor` as a third value of `rounding` for
-[`letterbox`](../../specs/sidecar/pre/resize-letterbox.md#fields):
+[`letterbox`](../../specs/model-sidecar/pre/resize-letterbox.md#fields):
 `n_w = max(1, floor(src_w * s))` and `n_h = max(1, floor(src_h * s))`, with `s` computed in IEEE 754
 double precision. Add an inverse that divides by the unrounded scale:
 `x_src = (x - left) / s` and `y_src = (y - top) / s`. This inverse goes beside the current
-[inverse](../../specs/sidecar/pre/resize-letterbox.md#inverse), which uses the rounded `n_w` and
+[inverse](../../specs/model-sidecar/pre/resize-letterbox.md#inverse), which uses the rounded `n_w` and
 `n_h`. The full proposal must choose between two forms: `rounding: floor` sets the inverse, or a
 separate field selects it. The full proposal must also say whether the spec describes the integer
 cut of the upstream inverse. The proposal comes with the Qualcomm-Exporter overhaul, with the parts

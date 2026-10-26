@@ -39,7 +39,7 @@ Allow file (``--allow``)
     forward slashes), ``kind``, ``token`` and ``reason``. ``token`` is the token as the report
     prints it, which is a JSON string and so also a YAML double-quoted string::
 
-        - file: specs/sidecar/pre/normalization.md
+        - file: specs/model-sidecar/pre/normalization.md
           kind: code-span
           token: "`none`"
           reason: The mode is now named in the opening sentence.

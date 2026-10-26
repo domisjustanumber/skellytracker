@@ -1,6 +1,6 @@
 # 0006 — The YOLOX sidecar describes the native ONNX contract
 
-**Status:** absorbed into [`format/versioning.md#implementer-guidance`](../../specs/sidecar/format/versioning.md#implementer-guidance), 2026-10-25 (user; the absorption review).
+**Status:** absorbed into [`format/versioning.md#implementer-guidance`](../../specs/model-sidecar/format/versioning.md#implementer-guidance), 2026-10-25 (user; the absorption review).
 [specs/sidecar-implementation-plan.md](../../specs/sidecar-implementation-plan.md#key-decisions), "Key decisions" item 5).
 
 ## Decision
@@ -26,7 +26,7 @@
 - The graph that the detector runs after the surgery has two outputs: pre-NMS boxes and scores.
   At `schema_version` `v2024.09.1019`, one `detections` output with `fields` cannot describe two
   tensors. The `boxes` and `scores` semantics are available only at `vNEXT`
-  ([Version-aware compatibility](../../specs/sidecar/format/versioning.md#legacy-behaviour)).
+  ([Version-aware compatibility](../../specs/model-sidecar/format/versioning.md#legacy-behaviour)).
 - The sidecar therefore describes the `dets` output of the published graph: one row of five fields per
   detection. It omits the `labels` output and uses its own tensor names (see Evidence). The surgery is
   an implementation detail of the detector. Nothing declarative described it before the migration, and
@@ -69,7 +69,7 @@ Checked in the code and in the cached model files on 2026-10-22.
   the outputs by position. It never uses the names in the sidecar.
 - The sidecar has the legacy `schema_version` `v2024.09.1019`. For a legacy sidecar, `requires_nms:
   false` derives `decode.selection: none`. See
-  [Version-aware compatibility](../../specs/sidecar/post/detection-decode.md#legacy-behaviour).
+  [Version-aware compatibility](../../specs/model-sidecar/post/detection-decode.md#legacy-behaviour).
 
 ## Not repeated
 
@@ -80,3 +80,5 @@ Checked in the code and in the cached model files on 2026-10-22.
 - Do not read `requires_nms: false` as "the detector runs no NMS". The published graph has NMS inside
   it. The surgery removes it. The detector then runs NMS on the host.
 - Do not treat the tensor names in `yolox.yaml` as the names in the graph.
+
+_Edited 2026-10-26 (this PR): link repair._

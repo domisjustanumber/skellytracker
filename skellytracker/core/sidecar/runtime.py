@@ -47,7 +47,7 @@ def sidecar_model_spec(
     — it's the key detectors later look up via `session.get_session(name)`,
     and a fixed naming convention here could collide across sidecars sharing
     one session. For a `local_path` artifact, `sidecar_dir` is used to build
-    the absolute path (per specs/sidecar-spec.md "Storage layout" — the
+    the absolute path (per specs/model-sidecar/sidecar-spec.md "Storage layout" — the
     sidecar and its ONNX files live together in one leaf directory); its
     existence is not checked here, only when actually resolved.
     """

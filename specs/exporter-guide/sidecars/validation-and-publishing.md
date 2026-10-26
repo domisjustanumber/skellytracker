@@ -4,19 +4,19 @@
 
 - The validation rules are in the section files. Each section file has a "Validation rules" heading,
   and each rule there has a rule ID (`V-<section-id>-<n>`). The validation index is the heading
-  "Validation rules" in `../freemocap/skellytracker/specs/sidecar/README.md`. It links to the
+  "Validation rules" in `../freemocap/skellytracker/specs/model-sidecar/README.md`. It links to the
   rules of each section, and it gives the meaning of **(vNEXT)**: a rule marked **(vNEXT)** applies
   only when `schema_version >= vNEXT`.
 - Walk the "Validation rules" of every section that the sidecar uses.
 - A `vNEXT` sidecar must pass every rule, also each rule marked **(vNEXT)**, except the two rules in
   the next bullet.
 - `V-format.versioning-1` (the version pattern) and `V-format.versioning-2` (the support by the
-  installed release), in `../freemocap/skellytracker/specs/sidecar/format/versioning.md`,
+  installed release), in `../freemocap/skellytracker/specs/model-sidecar/format/versioning.md`,
   cannot pass for `vNEXT`. Record them as `n/a at vNEXT`. They apply after the release step (see
   "Publishing").
 - Check the "Legacy behaviour" heading of each section that the sidecar uses, if the section has one.
   The index of these headings is "Version-aware compatibility" in
-  `../freemocap/skellytracker/specs/sidecar/format/versioning.md`. A `vNEXT` sidecar must not
+  `../freemocap/skellytracker/specs/model-sidecar/format/versioning.md`. A `vNEXT` sidecar must not
   use a legacy-only form: `requires_nms` without `selection`, `may_include_non_person_classes`, or
   `letterbox` with `preserve_aspect_ratio: false`.
 - Record the rule ID (`V-<section-id>-<n>`) of each rule that you checked in the intake.
@@ -46,7 +46,7 @@
   reviewer note of the spec changelog.
 - After the release step, regenerate your sidecars. Set `schema_version` to the skellytracker release
   that is current at export time (the exporter obligation under the heading "Semantics" in
-  `../freemocap/skellytracker/specs/sidecar/format/versioning.md`). Then you can publish them.
+  `../freemocap/skellytracker/specs/model-sidecar/format/versioning.md`). Then you can publish them.
 - A development build of skellytracker will load `vNEXT` sidecars. A release will not (skellytracker
   decision 0016). A development build has a `__version__` with a pre-release tag, or an explicit
   opt-in setting. The code does not do this yet. The trace tool only resolves sidecars. It does not
@@ -58,13 +58,13 @@ A `vNEXT` sidecar has a top-level `source`. It also has a `sha256` on every `$re
 every `filename` artifact (skellytracker decision 0016). The spec text is in these section files:
 
 - `source`: section `common.identity`, in
-  `../freemocap/skellytracker/specs/sidecar/common/identity.md` (rules `V-common.identity-4`
+  `../freemocap/skellytracker/specs/model-sidecar/common/identity.md` (rules `V-common.identity-4`
   to `V-common.identity-6`).
 - The hashes of `$ref` and `base`, and the rules for the bytes of a file: section
-  `format.composition`, in `../freemocap/skellytracker/specs/sidecar/format/composition.md`
+  `format.composition`, in `../freemocap/skellytracker/specs/model-sidecar/format/composition.md`
   (the heading "Reference hashes").
 - The hash of an artifact and the reserved placeholder: section `common.sizes_and_artifacts`, in
-  `../freemocap/skellytracker/specs/sidecar/common/sizes-and-artifacts.md` (the heading
+  `../freemocap/skellytracker/specs/model-sidecar/common/sizes-and-artifacts.md` (the heading
   `sizes.<size>.onnx.batch_artifacts`).
 
 Rules:

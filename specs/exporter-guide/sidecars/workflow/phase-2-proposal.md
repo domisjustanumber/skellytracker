@@ -1,14 +1,14 @@
 # Phase 2: propose a spec change and its implementation
 
 Write one proposal for each new or changed contract unit (one section). Fill
-`../freemocap/skellytracker/specs/sidecar/templates/change-proposal.md`. Write each proposal to
+`../freemocap/skellytracker/specs/model-sidecar/templates/change-proposal.md`. Write each proposal to
 `plans/sidecar-proposal-<slug>.md`. The skill `propose-sidecar-change` gives the order of the steps.
 The intake links to each proposal. Then stop.
 
 Before you write a proposal:
 
 - Read the table "Considered and deliberately not added" of the spec
-  (`../freemocap/skellytracker/specs/sidecar/changelog.md`). If your gap is in it, cite the
+  (`../freemocap/skellytracker/specs/model-sidecar/changelog.md`). If your gap is in it, cite the
   row in part 1. Give the evidence that a model needs the feature now.
 - Find the `proposed` entries of the skellytracker decision log that cover your rows. Read the index
   in `../freemocap/skellytracker/notes/decisions/README.md`. Also read each `proposed` entry
@@ -42,7 +42,7 @@ A proposal has eight parts:
    Also find each place that the change must edit. Search the spec for each closed set or list that
    the change extends, for example the `role` values, the `semantic` values, the resize methods, the
    storage layout (`format.file_layout`), the Overview, the section map and the validation index
-   (`../freemocap/skellytracker/specs/sidecar/README.md`), and the "Legacy behaviour" heading
+   (`../freemocap/skellytracker/specs/model-sidecar/README.md`), and the "Legacy behaviour" heading
    of each changed section with its index "Version-aware compatibility" (`format.versioning`). Also
    find each rule that names one of these values, for example the rule
    `V-pre.resize.affine_person_crop-2`: a sidecar with `pose.requires_object_detector: true` declares
@@ -57,7 +57,7 @@ A proposal has eight parts:
    ID. If the proposal changes a section that has no reference implementation, the file implements the
    full section as changed, not only the change. Then this file is also the reference-implementation
    step of that section. Name the file in the proposal. On acceptance, skellytracker adds it as
-   `specs/sidecar/reference/<section_module>.py`. It is informative spec code, not package code. It is
+   `specs/model-sidecar/reference/<section_module>.py`. It is informative spec code, not package code. It is
    the single executable meaning of the new text. Your host decoder needs this behaviour, so the
    reference implementation is the clean, minimal form of your host code. If no host code exists
    yet, write the functions from the text of part 2. Write `source commit: none (no host code)` in
@@ -70,7 +70,7 @@ A proposal has eight parts:
    3-channel input. Pixel-exact resize output is out of scope. If you need a pixel case, state its
    tolerance in `compare`. Write the vectors in part 4 of the proposal, in the YAML form that the
    template gives. On acceptance, skellytracker adds them as
-   `specs/sidecar/vectors/<section ID>.yaml`.
+   `specs/model-sidecar/vectors/<section ID>.yaml`.
 5. **Parity evidence.** Run the real model, with the reference implementation in place of the missing
    spec feature. Follow "Parity". Give the numbers, the script and the commit. If you cannot run the
    check yet, write `to run` and describe the script. A skellytracker session can record a proposal

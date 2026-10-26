@@ -34,7 +34,7 @@ The rules in this file also apply.
 
 Run `{{INSTALL_COMMAND, for example uv sync}}`.
 Then run `uv run pre-commit install` once in the clone ([section 8](#8-private-data)).
-It installs the pre-commit hooks and the pre-push hook.
+It installs the pre-commit hooks, the commit-msg hook and the pre-push hook.
 Run it again in each clone after `.pre-commit-config.yaml` changes.
 Use `uv run` for project commands.
 Do not depend on an activated virtual environment.
@@ -99,6 +99,7 @@ Do not import a file, a test or a tool from another repository.
 - Do not push to a git remote without the approval of the user.
 - Ask the user before any other action that is visible outside this machine, for example a PR, a
   PR comment, a release or a published image.
+- Do not add AI attribution, for example a `Co-Authored-By:` trailer, to a commit or a PR.
 - Open each PR against `{{DEFAULT_BRANCH}}`.
 - Put one kind of change in each PR: {{CHANGE_KINDS, for example "code", "docs" and "CI"}}.
 
@@ -132,4 +133,7 @@ To also block a hostname or a user name, put it in the file `.private-terms` in 
 Git ignores that file. Do not commit it.
 The pre-commit hook runs `gitleaks` and the private-data check.
 The pre-push hook runs the collision check of the decision-log IDs.
+The commit-msg hook runs `tools/check_ai_attribution.py`. It warns about AI attribution
+([section 6](#6-git-rules)). It does not stop the commit.
+If you are an AI agent and you see this warning, tell the user.
 `.github/workflows/secrets.yml` runs `gitleaks` on each push and PR.

@@ -27,7 +27,7 @@
 - **Family.** One family has one preprocessing contract and one post-processing contract. If two sizes
   need a different contract, they are two families (two sidecars). Name the files by the convention of
   the spec (the heading "File extension and naming" in
-  `../freemocap/skellytracker/specs/sidecar/format/file-layout.md`). The spec allows any
+  `../freemocap/skellytracker/specs/model-sidecar/format/file-layout.md`). The spec allows any
   lowercase token as a size name. Use the size name of the upstream, also for a family with one size.
   If the upstream has no size name, choose a token and write the reason in the intake.
 - **Preprocessing.** For each value, record the upstream line behind it. If the "Authoring guidance"

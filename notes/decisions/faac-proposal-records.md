@@ -31,7 +31,7 @@ of 0036. It replaces item 10. 0036 keeps the reasons for the rules that stay.
 5. **Other files.** The folder can also hold long text that belongs to the proposal: draft text of
    an entry that the proposal supersedes on acceptance, when the entry limit cannot hold it
    (`supersedes-<id>.md`), and long evidence (`evidence.md`).
-6. **Proposal index.** [`specs/sidecar/proposals/README.md`](../../specs/sidecar/proposals/README.md)
+6. **Proposal index.** [`specs/model-sidecar/proposals/README.md`](../../specs/model-sidecar/proposals/README.md)
    has one row for each proposal: the proposal, the section, the exporter, the decision entry and the
    state.
 7. **The decision record.** Each proposed spec change has a short decision entry with the status
@@ -71,3 +71,5 @@ a proposal becomes a decision entry with the status `proposed`.
 - **A higher limit for `open-work.md`.** It moves the failure to a later batch.
 - **One line for all proposals.** It is a pointer to the proposal index, which the skills already
   name.
+
+_Edited 2026-10-26 (this PR): link repair._

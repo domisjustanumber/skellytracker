@@ -21,7 +21,7 @@ def load_sidecar(path: Path, cache_dir: Path | None = None) -> SidecarModel:
     """Load, resolve, and validate a sidecar file at `path`.
 
     `cache_dir` defaults to the ancestor directory named `core` (the package's
-    default `{cache_dir}`, per specs/sidecar-spec.md "Storage layout"). Pass
+    default `{cache_dir}`, per specs/model-sidecar/sidecar-spec.md "Storage layout"). Pass
     an explicit `cache_dir` for test fixtures that live outside the package.
     """
     path = Path(path).resolve()

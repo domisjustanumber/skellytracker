@@ -52,7 +52,7 @@ def resolve_model_path(
     `expected_filename`/`expected_sha256` let a sidecar-driven caller pin the
     cached file's name (rather than deriving it from the URL tail) and verify
     its integrity against the sidecar's declared `url_sha256` — see
-    specs/sidecar-spec.md, "sizes.<size>.onnx.batch_artifacts". Both are
+    specs/model-sidecar/sidecar-spec.md, "sizes.<size>.onnx.batch_artifacts". Both are
     ignored for `local_path` sources (already-resolved local files are not
     re-verified).
     """

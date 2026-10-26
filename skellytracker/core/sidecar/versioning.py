@@ -1,6 +1,6 @@
 """skellytracker version parsing/comparison for sidecar `schema_version` gating.
 
-See specs/sidecar-spec.md, "Schema versioning".
+See specs/model-sidecar/sidecar-spec.md, "Schema versioning".
 """
 from __future__ import annotations
 

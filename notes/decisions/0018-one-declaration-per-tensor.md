@@ -7,12 +7,12 @@
 **Proposed, not decided.** This entry is a gap record (see [Rules](README.md#rules)). It does not
 have the eight parts of a proposal.
 
-State in [Outputs](../../specs/sidecar/common/outputs.md#validation-rules)
+State in [Outputs](../../specs/model-sidecar/common/outputs.md#validation-rules)
 that `V-common.outputs-1` (unique `outputs[].name`) applies to every `schema_version`, legacy sidecars
 included. Thus a legacy sidecar that declares one ONNX tensor twice, once as `detections` and once as
 `poses`, is not valid. The spec adds no legacy row that accepts this layout. A one-stage model that
 packs its keypoints into the detection rows uses
-[`packed_keypoints`](../../specs/sidecar/post/pose-bottom-up.md#packed_keypoints-bottom-up-packed-rows)
+[`packed_keypoints`](../../specs/model-sidecar/post/pose-bottom-up.md#packed_keypoints-bottom-up-packed-rows)
 at `vNEXT`. Ultralytics-Exporter must then export YOLO26 pose at `vNEXT` with
 `packed_keypoints: {offset: 6, components: [x, y, score]}`.
 
@@ -22,15 +22,15 @@ at `vNEXT`. Ultralytics-Exporter must then export YOLO26 pose at `vNEXT` with
   sidecars. The `name` row also says: "A sidecar declares one ONNX tensor exactly once." But the
   validator of the legacy release does not check the rule, and one exporter writes the double
   declaration. The spec must say which reading is correct.
-- The `poses` view does not follow the [`poses` layout](../../specs/sidecar/post/pose-bottom-up.md#fields)
+- The `poses` view does not follow the [`poses` layout](../../specs/model-sidecar/post/pose-bottom-up.md#fields)
   `(B, I, K, 3)`. Its shape is `[1, 300, 57]`, with rank 3. Axis 2 holds 57 values, not 17
   keypoints. The file does not give the keypoint offset `6`. A host must get the offset from outside
   the sidecar.
 - A legacy row for this layout must define a decode that no release implements. The front matter of
-  [Bottom-up pose](../../specs/sidecar/post/pose-bottom-up.md) records `decode: missing`. Such a row
+  [Bottom-up pose](../../specs/model-sidecar/post/pose-bottom-up.md) records `decode: missing`. Such a row
   makes a legacy meaning after the fact.
 - The effect is small. Only Ultralytics-Exporter writes this layout. The YOLO26 pose reference
-  example ([`yolo26-body.yaml`](../../specs/sidecar/examples/detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml))
+  example ([`yolo26-body.yaml`](../../specs/model-sidecar/examples/detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml))
   already uses `packed_keypoints`.
 
 ## Evidence
@@ -46,7 +46,7 @@ at `vNEXT`. Ultralytics-Exporter must then export YOLO26 pose at `vNEXT` with
 - `SidecarModel._check_pose_output_shapes` in `skellytracker/core/sidecar/model.py` (lines 568-572)
   accepts one `detections` output and one `poses` output for a `coordinate` decoder. It does not
   compare the names, and it does not check the `poses` shape. The front matter of
-  [Outputs](../../specs/sidecar/common/outputs.md) records: "No check for unique names
+  [Outputs](../../specs/model-sidecar/common/outputs.md) records: "No check for unique names
   (V-common.outputs-1)".
 
 ## Alternatives rejected

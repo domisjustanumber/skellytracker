@@ -1,6 +1,7 @@
 # Run `uv run pre-commit install` once in each clone (decision 0030).
-# It installs the pre-commit hooks and the pre-push hook. Run it again after this file changes.
-default_install_hook_types: [pre-commit, pre-push]
+# It installs the pre-commit hooks, the commit-msg hook and the pre-push hook. Run it again after
+# this file changes.
+default_install_hook_types: [pre-commit, commit-msg, pre-push]
 default_stages: [pre-commit]
 repos:
   - repo: https://github.com/gitleaks/gitleaks
@@ -22,3 +23,10 @@ repos:
         pass_filenames: false
         always_run: true
         stages: [pre-push]
+      # Decision p3n3: AI attribution in a commit message. The hook warns. It does not stop the commit.
+      - id: ai-attribution
+        name: AI attribution
+        entry: uv run python tools/check_ai_attribution.py
+        language: system
+        stages: [commit-msg]
+        verbose: true

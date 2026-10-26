@@ -6,7 +6,7 @@
 
 **Proposed, not decided.** This entry records the spec change proposal `nms-clamp-order`. The eight
 parts are in
-[`specs/sidecar/proposals/nms-clamp-order/proposal.md`](../../specs/sidecar/proposals/nms-clamp-order/proposal.md).
+[`specs/model-sidecar/proposals/nms-clamp-order/proposal.md`](../../specs/model-sidecar/proposals/nms-clamp-order/proposal.md).
 
 - **Section.** `post.det.selection.nms` (changed section). The proposal also changes the
   `clamp_boxes` row of `post.det.decode`, step 6 of `post.det.selection.top_k`, step 3 of
@@ -27,7 +27,7 @@ parts are in
   [0011](0011-rtmdet-host-nms.md) in full. [0042](0042-vnext-scope-nms-filters.md) supersedes
   [0008](0008-vnext-scope.md) in full. Both entries have the status `proposed` now. 0041 holds the NMS
   rules, and its evidence is in
-  [`evidence.md`](../../specs/sidecar/proposals/nms-clamp-order/evidence.md). 0042 holds only scope
+  [`evidence.md`](../../specs/model-sidecar/proposals/nms-clamp-order/evidence.md). 0042 holds only scope
   rules. The proposal also closes the open-work spec defect on `clamp_boxes`.
 - **Related.** `roi-transform-and-source` ([0020](0020-roi-transform-and-source.md)) has the scope
   entry [0048](0048-vnext-scope-mediapipe-rotated-crops.md). 0042 and 0048 both supersede 0008. The

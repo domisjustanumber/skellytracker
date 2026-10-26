@@ -12,7 +12,7 @@ spec describe the model exactly?
 
 This skill wraps the "Sidecars" section of the
 [exporter guide](../../../specs/exporter-guide/sidecars/README.md#sidecars) and the
-[model intake template](../../../specs/sidecar/templates/model-intake.md). The guide and the template
+[model intake template](../../../specs/model-sidecar/templates/model-intake.md). The guide and the template
 give the rules and the details. This skill gives the order of the steps, the inputs, the outputs and
 the stop points. If this skill and the guide do not agree, follow the guide. The spec is normative.
 
@@ -34,8 +34,8 @@ the stop points. If this skill and the guide do not agree, follow the guide. The
 | File | Link | Path from the root of an exporter repo |
 |---|---|---|
 | Exporter guide, section "Sidecars" | [exporter-guide.md](../../../specs/exporter-guide/sidecars/README.md#sidecars) | `../freemocap/skellytracker/specs/exporter-guide/sidecars/README.md` |
-| Model intake template | [model-intake.md](../../../specs/sidecar/templates/model-intake.md) | `../freemocap/skellytracker/specs/sidecar/templates/model-intake.md` |
-| Section map | [README.md](../../../specs/sidecar/README.md#section-map) | `../freemocap/skellytracker/specs/sidecar/README.md` |
+| Model intake template | [model-intake.md](../../../specs/model-sidecar/templates/model-intake.md) | `../freemocap/skellytracker/specs/model-sidecar/templates/model-intake.md` |
+| Section map | [README.md](../../../specs/model-sidecar/README.md#section-map) | `../freemocap/skellytracker/specs/model-sidecar/README.md` |
 | The new-model workflow | [workflow/README.md](../../../specs/exporter-guide/sidecars/workflow/README.md#new-model-workflow) | `../freemocap/skellytracker/specs/exporter-guide/sidecars/workflow/README.md` |
 | The skill for phase 2 | [propose-sidecar-change](../propose-sidecar-change/SKILL.md) | `../freemocap/skellytracker/.claude/skills/propose-sidecar-change/SKILL.md` |
 
@@ -94,9 +94,9 @@ overwrite.
    and update it in place.
 2. List the other `plans/sidecar-*` files. Do not delete or overwrite them. In step 8, tell the user
    about each file that no current intake or proposal owns.
-3. Follow [How to use this template](../../../specs/sidecar/templates/model-intake.md#how-to-use-this-template).
-4. Fill in [Inputs before you start](../../../specs/sidecar/templates/model-intake.md#inputs-before-you-start).
-5. Fill in the [Header](../../../specs/sidecar/templates/model-intake.md#header). Write the
+3. Follow [How to use this template](../../../specs/model-sidecar/templates/model-intake.md#how-to-use-this-template).
+4. Fill in [Inputs before you start](../../../specs/model-sidecar/templates/model-intake.md#inputs-before-you-start).
+5. Fill in the [Header](../../../specs/model-sidecar/templates/model-intake.md#header). Write the
    skellytracker commit from step 1.
 
 ### Step 3: Fill in the property table
@@ -105,19 +105,19 @@ overwrite.
    [Phase 1](../../../specs/exporter-guide/sidecars/workflow/phase-1-intake.md#phase-1-can-the-current-spec-describe-the-model).
    Write one row for each property of the runtime contract.
 2. Use the hint for each part of the
-   [property table](../../../specs/sidecar/templates/model-intake.md#property-table). The hints are
+   [property table](../../../specs/model-sidecar/templates/model-intake.md#property-table). The hints are
    in [Mapping hints for phase 1](../../../specs/exporter-guide/sidecars/workflow/mapping-hints.md#mapping-hints-for-phase-1):
 
    | Part of the property table | Hints to use |
    |---|---|
-   | [Graph](../../../specs/sidecar/templates/model-intake.md#graph) | "Graph" and "NMS inside the graph" |
-   | [Family](../../../specs/sidecar/templates/model-intake.md#family) | "Identity" and "Family" |
-   | [Preprocessing](../../../specs/sidecar/templates/model-intake.md#preprocessing) | "Preprocessing" |
-   | [Outputs and decode](../../../specs/sidecar/templates/model-intake.md#outputs-and-decode) | "Outputs and decode" |
-   | [Pose](../../../specs/sidecar/templates/model-intake.md#pose) | "Pose" |
-   | [YAML](../../../specs/sidecar/templates/model-intake.md#yaml) | [Sidecar YAML](../../../specs/exporter-guide/sidecars/sidecar-files.md#sidecar-yaml) |
-   | [Path in the storage layout](../../../specs/sidecar/templates/model-intake.md#path-in-the-storage-layout) | [Path](../../../specs/exporter-guide/sidecars/sidecar-files.md#path) |
-   | [Steps outside the model contract](../../../specs/sidecar/templates/model-intake.md#steps-outside-the-model-contract) | Step 1 of phase 1 (the runtime contract) |
+   | [Graph](../../../specs/model-sidecar/templates/model-intake.md#graph) | "Graph" and "NMS inside the graph" |
+   | [Family](../../../specs/model-sidecar/templates/model-intake.md#family) | "Identity" and "Family" |
+   | [Preprocessing](../../../specs/model-sidecar/templates/model-intake.md#preprocessing) | "Preprocessing" |
+   | [Outputs and decode](../../../specs/model-sidecar/templates/model-intake.md#outputs-and-decode) | "Outputs and decode" |
+   | [Pose](../../../specs/model-sidecar/templates/model-intake.md#pose) | "Pose" |
+   | [YAML](../../../specs/model-sidecar/templates/model-intake.md#yaml) | [Sidecar YAML](../../../specs/exporter-guide/sidecars/sidecar-files.md#sidecar-yaml) |
+   | [Path in the storage layout](../../../specs/model-sidecar/templates/model-intake.md#path-in-the-storage-layout) | [Path](../../../specs/exporter-guide/sidecars/sidecar-files.md#path) |
+   | [Steps outside the model contract](../../../specs/model-sidecar/templates/model-intake.md#steps-outside-the-model-contract) | Step 1 of phase 1 (the runtime contract) |
 
 3. Read the "Authoring guidance" heading of each section that a row names. If the heading has text,
    use it.
@@ -126,16 +126,16 @@ overwrite.
    paths, hostnames, email addresses or raw environment dumps
    ([Private data](../../../AGENTS.md#8-private-data)).
 5. For a value that the exporter chooses (a name, a YAML rule or a path), follow "Values that the
-   exporter chooses" in [Verdicts](../../../specs/sidecar/templates/model-intake.md#verdicts). Such a
+   exporter chooses" in [Verdicts](../../../specs/model-sidecar/templates/model-intake.md#verdicts). Such a
    row is not `unverified` only because the exporter code does not exist or you cannot read it.
 6. Do not copy a value from a reference example. Reference examples are not evidence.
 7. Give each row a verdict. Use the test in
-   [Verdicts](../../../specs/sidecar/templates/model-intake.md#verdicts).
+   [Verdicts](../../../specs/model-sidecar/templates/model-intake.md#verdicts).
 8. Compare each row with "Near-misses seen so far" in the hints. A known near-miss must not get the
    verdict `exact`.
 9. In each row that is not `exact`, write what differs or what is missing.
 10. If you find a spec defect that no row of this model needs, do not propose it. Write it in the
-    [Final verdict](../../../specs/sidecar/templates/model-intake.md#final-verdict) table. Tell the
+    [Final verdict](../../../specs/model-sidecar/templates/model-intake.md#final-verdict) table. Tell the
     user in step 8.
 
 ### Step 4: Choose the next step
@@ -161,7 +161,7 @@ Do this step when no row is `near-miss` or `gap` (step 5 of
 1. Let the sidecar writer code of the exporter write the sidecar. Do not write the sidecar by hand.
    Follow [Sidecar YAML](../../../specs/exporter-guide/sidecars/sidecar-files.md#sidecar-yaml).
 2. If you cannot change the writer code yet, write the exact YAML as a draft in
-   [The sidecar](../../../specs/sidecar/templates/model-intake.md#the-sidecar).
+   [The sidecar](../../../specs/model-sidecar/templates/model-intake.md#the-sidecar).
 3. If a row is `unverified`, do not change the writer code for that row. Write the draft with the
    value that you expect. Name each `unverified` row in "The sidecar" of the intake.
 4. Check the path of the sidecar against [Path](../../../specs/exporter-guide/sidecars/sidecar-files.md#path). The
@@ -171,11 +171,11 @@ Do this step when no row is `near-miss` or `gap` (step 5 of
    the user in step 8.
 6. Compare your values with the reference example of the same family, if one exists. Write each
    difference in "The sidecar" of the intake.
-7. Do each item of the [Validation checklist](../../../specs/sidecar/templates/model-intake.md#validation-checklist).
+7. Do each item of the [Validation checklist](../../../specs/model-sidecar/templates/model-intake.md#validation-checklist).
    Follow [Validation](../../../specs/exporter-guide/sidecars/validation-and-publishing.md#validation). Write the rule ID of each
    rule that you checked.
 8. Prove parity. Follow [Parity](../../../specs/exporter-guide/sidecars/workflow/parity.md#parity). Fill in
-   [Parity proof](../../../specs/sidecar/templates/model-intake.md#parity-proof). Fill in each cell
+   [Parity proof](../../../specs/model-sidecar/templates/model-intake.md#parity-proof). Fill in each cell
    that you can, also when the result is `to run`: the gates, the test images, the upstream reference
    and the script.
 9. Commit the parity script in the exporter repo. If you cannot run the script or commit it, write
@@ -194,7 +194,7 @@ a gap.
 2. For each group, run the skill [`propose-sidecar-change`](../propose-sidecar-change/SKILL.md). Give
    it the intake file and the rows of the group.
 3. Write each proposal file in
-   [Proposals and reference files](../../../specs/sidecar/templates/model-intake.md#proposals-and-reference-files).
+   [Proposals and reference files](../../../specs/model-sidecar/templates/model-intake.md#proposals-and-reference-files).
 
 ### Step 7: Prepare the reference implementations
 
@@ -203,7 +203,7 @@ Do this step for every final verdict, also after step 6. Follow
 
 1. List each section that the exporter implements on its host side.
 2. Skip a section that has a reference implementation:
-   `../freemocap/skellytracker/specs/sidecar/reference/<section_module>.py`. Use it or match it
+   `../freemocap/skellytracker/specs/model-sidecar/reference/<section_module>.py`. Use it or match it
    in the host code.
 3. If your host code and that reference implementation do not agree, do not write a second reference.
    Hand over the section to `propose-sidecar-change`.
@@ -214,11 +214,11 @@ Do this step for every final verdict, also after step 6. Follow
    `plans/sidecar-reference-<section_module>.py`.
 7. If the host code is not committed, write `to run`. Do the step after the commit.
 8. Fill in the reference table in
-   [Proposals and reference files](../../../specs/sidecar/templates/model-intake.md#proposals-and-reference-files).
+   [Proposals and reference files](../../../specs/model-sidecar/templates/model-intake.md#proposals-and-reference-files).
 
 ### Step 8: Write the final verdict and stop
 
-1. Write the [Final verdict](../../../specs/sidecar/templates/model-intake.md#final-verdict):
+1. Write the [Final verdict](../../../specs/model-sidecar/templates/model-intake.md#final-verdict):
    `describes`, `does not describe` or `pending`. A `near-miss` row or a `gap` row gives
    `does not describe`, also when other rows are `unverified`.
 2. Stop. Do not change a file in skellytracker.

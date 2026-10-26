@@ -17,5 +17,5 @@ jobs:
           python-version: "3.12"
           enable-cache: true
       - run: uv sync
-      # specs/sidecar/reference/ holds informative reference implementations once the first one lands.
-      - run: uv run ruff check skellytracker/ tools/ $(test -d specs/sidecar/reference && echo specs/sidecar/reference/)
+      # specs/model-sidecar/reference/ holds informative reference implementations once the first one lands.
+      - run: uv run ruff check skellytracker/ tools/ $(test -d specs/model-sidecar/reference && echo specs/model-sidecar/reference/)

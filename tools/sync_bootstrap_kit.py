@@ -78,6 +78,16 @@ COPIES = (
         (("(decision 0032).", f"{DECISION_0001}."),),
     ),
     Copy("tools/tests/test_links.py", "tools/tests/test_links.py"),
+    Copy(
+        "tools/check_ai_attribution.py",
+        "tools/check_ai_attribution.py",
+        (("(decision p3n3).", f"{DECISION_0001}."),),
+    ),
+    Copy(
+        "tools/tests/test_check_ai_attribution.py",
+        "tools/tests/test_check_ai_attribution.py",
+        (("(decision p3n3).", f"{DECISION_0001}."),),
+    ),
     Copy("tools/tests/conftest.py", "tools/tests/conftest.py"),
     Copy(
         ".pre-commit-config.yaml",
@@ -85,6 +95,7 @@ COPIES = (
         (
             ("(decision 0030).", f"{DECISION_0001}."),
             ("# Decision gtwq: an entry ID", "# An entry ID"),
+            ("# Decision p3n3: AI attribution", "# AI attribution"),
         ),
     ),
     Copy(

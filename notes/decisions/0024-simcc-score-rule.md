@@ -7,11 +7,11 @@ and rtmlib sources); completed 2026-10-25 (OpenMMLab-Exporter proposal).
 
 **Proposed, not decided.** This entry records the spec change proposal `simcc-score-rule`. The
 eight parts are in
-[`specs/sidecar/proposals/simcc-score-rule/proposal.md`](../../specs/sidecar/proposals/simcc-score-rule/proposal.md).
+[`specs/model-sidecar/proposals/simcc-score-rule/proposal.md`](../../specs/model-sidecar/proposals/simcc-score-rule/proposal.md).
 The proposal completes this gap record.
 
 - **Section:** the changed section `post.pose.decode.simcc` ("SimCC decode", file
-  `specs/sidecar/post/pose-decode-simcc.md`). The change also edits the description of
+  `specs/model-sidecar/post/pose-decode-simcc.md`). The change also edits the description of
   `pose.decode.depth_range`, the "Shape key" of `post.pose.schema`, the "Version-aware compatibility"
   list of `format.versioning` and the changelog. It adds no field and no validation rule.
 - **Change:** In "Behaviour", the host decodes the raw `simcc_x` and `simcc_y` outputs with no
@@ -49,7 +49,7 @@ written yet.
 ### Gap record (2026-10-23)
 
 Replace "Its score is the max value" in
-[SimCC decode](../../specs/sidecar/post/pose-decode-simcc.md#behaviour) with the mmpose rule. The
+[SimCC decode](../../specs/model-sidecar/post/pose-decode-simcc.md#behaviour) with the mmpose rule. The
 score of keypoint `k` is `min(max(simcc_x[k]), max(simcc_y[k]))`, on the raw output values, with no
 softmax. The rule is **(vNEXT)**. A legacy sidecar keeps the existing host behaviour, with a row in
 the legacy table. The full proposal must also give the rule for `simcc_z` when `is_3d: true`. It must
@@ -73,7 +73,7 @@ bring the vectors and the reference implementation of
   is commented out (line 39).
 - skellytracker `skellytracker/core/detectors/processing/simcc_decode.py`, `get_simcc_maximum`
   (lines 28-63): a softmax on each axis (lines 53-54), then `0.5 * (max_px + max_py)` (line 63). The
-  front matter of [SimCC decode](../../specs/sidecar/post/pose-decode-simcc.md) records this.
+  front matter of [SimCC decode](../../specs/model-sidecar/post/pose-decode-simcc.md) records this.
 - The untracked hand-model plan of OpenMMLab-Exporter (plan facts): mmpose
   `get_simcc_maximum` uses `min(max(simcc_x), max(simcc_y))` on the raw outputs. A host with this rule
   matched mmpose with a maximum score difference of 0.0033. The plan says that the rule also applies

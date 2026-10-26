@@ -21,8 +21,8 @@ import sidecar_trace as st
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TOOLS_DIR = REPO_ROOT / "tools"
-SPEC_DIR = REPO_ROOT / "specs" / "sidecar"
-INDEX_PATH = REPO_ROOT / "specs" / "sidecar-spec.md"
+SPEC_DIR = REPO_ROOT / "specs" / "model-sidecar"
+INDEX_PATH = REPO_ROOT / "specs" / "model-sidecar" / "sidecar-spec.md"
 MODEL_PATH = REPO_ROOT / "skellytracker" / "core" / "sidecar" / "model.py"
 PACKAGE_DIR = REPO_ROOT / "skellytracker"
 
@@ -538,7 +538,7 @@ def test_the_scan_skips_every_other_yaml_file() -> None:
         "skellytracker/core/detectors/shared/skeletons/coco17_tracked_points.yaml",
         "skellytracker/core/detectors/keypoint_detectors/mediapipe/body/mediapipe_body.yaml",
         "skellytracker/core/detectors/keypoint_detectors/rtmw/wholebody/rtmw_wholebody_to_canonical_mapping.yaml",
-        "specs/sidecar/examples/detectors/shared/skeletons/coco133_skeletons.yaml",
+        "specs/model-sidecar/examples/detectors/shared/skeletons/coco133_skeletons.yaml",
     ):
         assert name in skipped
 
@@ -738,7 +738,7 @@ def test_each_normalization_rule_cites_an_existing_section_and_heading(
 # Spec citations in the code
 # --------------------------------------------------------------------------------------------
 
-CITATION = re.compile(r'specs/sidecar-spec\.md,?\s+"(?P<heading>[^"\n]+)"')
+CITATION = re.compile(r'specs/model-sidecar/sidecar-spec\.md,?\s+"(?P<heading>[^"\n]+)"')
 
 
 def normalized_heading(text: str) -> str:

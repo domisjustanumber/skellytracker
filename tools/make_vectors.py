@@ -1,6 +1,6 @@
 """Write the sidecar test vectors from the normative formulas of the section files.
 
-Each vector file is `specs/sidecar/vectors/<section-id>.yaml`. A case is a small
+Each vector file is `specs/model-sidecar/vectors/<section-id>.yaml`. A case is a small
 worked example: the inputs of one section's algorithm and the exact expected
 output. The formulas in this file are copies of the formulas in the section
 files. A vector that disagrees with the normative text is a defect of the spec
@@ -33,7 +33,7 @@ from typing import Any
 import numpy as np
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-VECTORS_DIR = REPO_ROOT / "specs" / "sidecar" / "vectors"
+VECTORS_DIR = REPO_ROOT / "specs" / "model-sidecar" / "vectors"
 SPEC_REVISION = "vNEXT"
 GENERATED_BY = "tools/make_vectors.py"
 
@@ -653,7 +653,7 @@ def build_letterbox() -> Vectors:
     return Vectors(
         section="pre.resize.letterbox",
         reading_notes=[
-            "Normative text: specs/sidecar/pre/resize-letterbox.md.",
+            "Normative text: specs/model-sidecar/pre/resize-letterbox.md.",
             "`target_size` is [height, width]. `src_w` and `src_h` are the source size in pixels.",
             "`expect` gives the size of the resized image (`n_w`, `n_h`) and its position on the "
             "padded canvas (`left`, `top`).",
@@ -743,7 +743,7 @@ def build_stretch() -> Vectors:
     return Vectors(
         section="pre.resize.stretch",
         reading_notes=[
-            "Normative text: specs/sidecar/pre/resize-stretch.md.",
+            "Normative text: specs/model-sidecar/pre/resize-stretch.md.",
             "`target_size` is [height, width]. `expect` gives the size of the output image "
             "(`dst_w`, `dst_h`) and the scale factor of each axis.",
             "`unproject` applies the section's Inverse to one model-input position.",
@@ -890,7 +890,7 @@ def build_fit() -> Vectors:
     return Vectors(
         section="pre.resize.fit",
         reading_notes=[
-            "Normative text: specs/sidecar/pre/resize-fit.md. Decision: "
+            "Normative text: specs/model-sidecar/pre/resize-fit.md. Decision: "
             "notes/decisions/0012-fit-resize-for-rtmo.md.",
             "`target_size` is [height, width]. `expect` gives the scale and the fractional "
             "offsets of the warp matrix M = [[scale, 0, left], [0, scale, top]]. The geometry "
@@ -1030,7 +1030,7 @@ def build_affine_person_crop() -> Vectors:
     return Vectors(
         section="pre.resize.affine_person_crop",
         reading_notes=[
-            "Normative text: specs/sidecar/pre/resize-affine-person-crop.md.",
+            "Normative text: specs/model-sidecar/pre/resize-affine-person-crop.md.",
             "`target_size` is [height, width]. `bbox_xyxy` is the person box [x1, y1, x2, y2] "
             "in source pixels. The rotation is 0.",
             "`expect` gives the centre of the crop, its size (`crop_w`, `crop_h`) after the "
@@ -1254,7 +1254,7 @@ def build_normalize() -> Vectors:
     return Vectors(
         section="pre.normalize",
         reading_notes=[
-            "Normative text: specs/sidecar/pre/normalization.md. Decision: "
+            "Normative text: specs/model-sidecar/pre/normalization.md. Decision: "
             "notes/decisions/0009-imagenet-bgr-meaning.md.",
             "`pixels_bgr` are pixels of the resized frame in BGR source order, as OpenCV "
             "delivers them. `values` are the same pixels in the channel order of the tensor "
@@ -1480,8 +1480,8 @@ SELECTION_UNVERIFIED = (
 
 def _selection_notes(section_file: str) -> list[str]:
     return [
-        f"Normative text: specs/sidecar/post/{section_file} and "
-        "specs/sidecar/post/detection-decode.md.",
+        f"Normative text: specs/model-sidecar/post/{section_file} and "
+        "specs/model-sidecar/post/detection-decode.md.",
         "`params` use the names of the `decode` fields. `kept_rows` are 0-based row indexes "
         "of the input, `scores` and `class_ids` are the scores and the emitted class ids of "
         "the kept detections, in output order.",
@@ -2376,9 +2376,9 @@ def build_unprojection() -> Vectors:
     return Vectors(
         section="post.unprojection",
         reading_notes=[
-            "Normative text: specs/sidecar/post/unprojection.md. It uses the Inverse of each "
-            "resize section (specs/sidecar/pre/resize-*.md) and, for a box, `clamp_boxes` "
-            "(specs/sidecar/post/detection-decode.md).",
+            "Normative text: specs/model-sidecar/post/unprojection.md. It uses the Inverse of each "
+            "resize section (specs/model-sidecar/pre/resize-*.md) and, for a box, `clamp_boxes` "
+            "(specs/model-sidecar/post/detection-decode.md).",
             "`scale` is `decode.box_scale` for a box and `pose.decode.coordinate_scale` for a "
             "keypoint. `input_size` is [height, width] of the model input. `resize` holds the "
             "`input.resize` fields that the Inverse uses.",

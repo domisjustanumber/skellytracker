@@ -1,6 +1,6 @@
 """The spec's reference examples parse, resolve, hold correct hashes and have provenance.
 
-The examples under `specs/sidecar/examples/` follow the package's `detectors/`
+The examples under `specs/model-sidecar/examples/` follow the package's `detectors/`
 layout, so their `$ref` paths resolve with that folder as the sidecar root. They
 are not validated against `SidecarModel`: it does not load `vNEXT` sidecars yet.
 They resolve with `sidecar_refs.resolve`, because the package resolver refuses
@@ -15,8 +15,8 @@ import sidecar_refs
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-EXAMPLES_ROOT = REPO_ROOT / "specs" / "sidecar" / "examples"
-INVENTORY_PATH = REPO_ROOT / "specs" / "sidecar" / "inventory.yaml"
+EXAMPLES_ROOT = REPO_ROOT / "specs" / "model-sidecar" / "examples"
+INVENTORY_PATH = REPO_ROOT / "specs" / "model-sidecar" / "inventory.yaml"
 SHARED_DIR = EXAMPLES_ROOT / "detectors" / "shared"
 PACKAGE_SHARED_DIR = REPO_ROOT / "skellytracker" / "core" / "detectors" / "shared"
 
@@ -93,16 +93,16 @@ def placeholder_scan_paths() -> list[Path]:
 
 def test_the_placeholder_scan_reads_the_sidecars_and_the_spec() -> None:
     shown = {p.relative_to(REPO_ROOT).as_posix() for p in placeholder_scan_paths()}
-    assert "specs/sidecar/common/sizes-and-artifacts.md" in shown
+    assert "specs/model-sidecar/common/sizes-and-artifacts.md" in shown
     assert (
         "skellytracker/core/detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml"
         in shown
     )
-    assert not any(name.startswith("specs/sidecar/examples/") for name in shown)
+    assert not any(name.startswith("specs/model-sidecar/examples/") for name in shown)
 
 
 def test_no_file_outside_the_examples_holds_the_placeholder() -> None:
-    """The placeholder hash is valid only under `specs/sidecar/examples/` (V-common.sizes_and_artifacts-12)."""
+    """The placeholder hash is valid only under `specs/model-sidecar/examples/` (V-common.sizes_and_artifacts-12)."""
     holders = [
         p.relative_to(REPO_ROOT).as_posix()
         for p in placeholder_scan_paths()

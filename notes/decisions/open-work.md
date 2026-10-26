@@ -9,7 +9,7 @@ These items are for the implementation stage ([0014](0014-spec-lifecycle.md)). D
 stage, no file under `skellytracker/` changes, except test fixes.
 
 - **`fit` `pad_value`.** At `vNEXT`, the spec requires `pad_value` on a `fit` resize
-  ([Validation rules](../../specs/sidecar/pre/resize-fit.md#validation-rules)). The code does not require it.
+  ([Validation rules](../../specs/model-sidecar/pre/resize-fit.md#validation-rules)). The code does not require it.
   `ResizeSpec._check_method_specific_fields` in `skellytracker/core/sidecar/model.py` accepts a `fit`
   resize without `pad_value`. Then `preprocess_image` in
   `skellytracker/core/detectors/processing/image_preprocessing.py` uses `0`, and `fit_preprocess` has
@@ -40,39 +40,39 @@ stage, no file under `skellytracker/` changes, except test fixes.
   selector matching that the sidecar trace tool uses) into `skellytracker/core/sidecar/` without
   changes. The trace tool then imports them from the package. The capability check of 0016 uses the
   same functions ([0013](0013-spec-structure.md);
-  [`format.versioning`](../../specs/sidecar/format/versioning.md#implementer-guidance)).
+  [`format.versioning`](../../specs/model-sidecar/format/versioning.md#implementer-guidance)).
 - **Sidecar catalog and roots.** Build the catalog of 0016: the catalog key
   `<model_id>@<source.name>`, the version order and the version pins, the reserved name
   `skellytracker`, the root log and the run metadata
-  ([`common.identity`](../../specs/sidecar/common/identity.md#implementer-guidance)). Build the roots:
+  ([`common.identity`](../../specs/model-sidecar/common/identity.md#implementer-guidance)). Build the roots:
   the package root, local folders, Hugging Face repo snapshots (pin, refresh, cache paths without
   symlink resolution), development builds, user models and discovery in each root. Rename
   `cache_dir` to the sidecar root in the code
-  ([`format.file_layout`](../../specs/sidecar/format/file-layout.md#implementer-guidance)). See
+  ([`format.file_layout`](../../specs/model-sidecar/format/file-layout.md#implementer-guidance)). See
   [0016](0016-sidecar-catalogs.md#decision).
 - **Reference hash checks in the resolver.** Add the checks of the `$ref` and `base` hashes, and of
   the bytes of each file, to `skellytracker/core/sidecar/resolution.py`. Then delete the temporary
   function `resolve` of `tools/sidecar_refs.py`. Move the `--write` and `--check` commands of that
   tool into the package as a command, and keep a thin wrapper in `tools/`. When the package sidecars
   move to a release `schema_version`, give them `source` and the hashes
-  ([`format.composition`](../../specs/sidecar/format/composition.md#implementer-guidance); see
+  ([`format.composition`](../../specs/model-sidecar/format/composition.md#implementer-guidance); see
   [0016](0016-sidecar-catalogs.md#tools-and-line-endings)).
 - **Artifact hash checks.** Verify the file that `filename` names against `sha256` when the file is
   present and after a download. Today `skellytracker/core/sessions/model_registry.py` checks only
   `url_sha256`, and only during a download
-  ([`common.sizes_and_artifacts`](../../specs/sidecar/common/sizes-and-artifacts.md#implementer-guidance);
+  ([`common.sizes_and_artifacts`](../../specs/model-sidecar/common/sizes-and-artifacts.md#implementer-guidance);
   see [0016](0016-sidecar-catalogs.md#artifact-hashes)).
 - **Capability check and dispatch.** Build the capability check of 0016. Map a catalog entry to
   detector code by its role and its spec sections. Keep the `detector_type` keys as aliases of
   `<model_id>@skellytracker`. Let a hand-written detector claim a catalog key. Make an unknown size
   an error, not a silent fallback
-  ([`format.versioning`](../../specs/sidecar/format/versioning.md#implementer-guidance); see
+  ([`format.versioning`](../../specs/model-sidecar/format/versioning.md#implementer-guidance); see
   [0016](0016-sidecar-catalogs.md#capability-check)).
 - **YOLOX.** Re-export YOLOX to a contract that the spec describes: dynamic batch
   (`common.batching`), no NMS in the graph, and host `selection: nms` (`post.det.selection.nms`). Run
   a parity check on the new export. Then remove the claim of
   the hand-written YOLOX detector on the catalog key `yolox@skellytracker`
-  ([`format.versioning`](../../specs/sidecar/format/versioning.md#implementer-guidance);
+  ([`format.versioning`](../../specs/model-sidecar/format/versioning.md#implementer-guidance);
   [0016](0016-sidecar-catalogs.md#detector-dispatch); see also
   [0006](0006-yolox-native-contract.md)).
 - **`vNEXT` release step.** At the first skellytracker release that ships the spec, one content PR
@@ -83,14 +83,14 @@ stage, no file under `skellytracker/` changes, except test fixes.
   in `skellytracker/core/detectors/processing/object_detection_decode.py` adds `1`. Today only the
   legacy YOLOX path uses it. It also breaks a tie between equal scores toward the higher row index,
   but the spec breaks it toward the lower row index. The vectors in
-  [`post.det.selection.nms`](../../specs/sidecar/vectors/post.det.selection.nms.yaml) show both
+  [`post.det.selection.nms`](../../specs/model-sidecar/vectors/post.det.selection.nms.yaml) show both
   differences.
 - **Letterbox rounding.** `letterbox_preprocess` in
   `skellytracker/core/detectors/processing/image_preprocessing.py` cuts the resized size with `int()`.
   The `vNEXT` spec rounds with `half_even` or `half_up`, places the image at `top_left` or `center`,
   and keeps each side at least 1 pixel. The function has no `center` position and fails on a source
   that is 1 pixel wide. It reproduces 8 of the 12 `top_left` cases in
-  [`pre.resize.letterbox`](../../specs/sidecar/vectors/pre.resize.letterbox.yaml). The cut size is
+  [`pre.resize.letterbox`](../../specs/model-sidecar/vectors/pre.resize.letterbox.yaml). The cut size is
   correct only for legacy sidecars.
 - **Stretch unprojection.** The `stretch` branch of `preprocess_image` returns `resize_meta = 1.0`. The
   host then has no scale factors to unproject with `x * src_w / T_w`.
@@ -102,19 +102,23 @@ stage, no file under `skellytracker/` changes, except test fixes.
 - **Exporter guide rewording.** A rewording PR removes the exporter repository names from
   `specs/exporter-guide/sidecars/` and the open items that do not apply to a new exporter
   ([0034](0034-sidecar-guide-folder.md), item 4).
+- **Exporter paths to the spec folder.** The exporter repos cite the old spec folder
+  `specs/sidecar/` and the old entry point `specs/sidecar-spec.md` in their agent files and notes.
+  Each exporter changes these paths to `specs/model-sidecar/` in its own PR
+  ([k6dz](k6dz-model-sidecar-folder.md)).
 
 Repository state, not code work ([gtwq](gtwq-random-entry-ids.md)):
 
 - On 2026-10-22, MediaPipe-Exporter has no exporter code.
 - On 2026-10-22, the workflow runs on `freemocap/skellytracker` end in `startup_failure`.
-- `specs/sidecar/post/canonical-mapping.md` links to the VRM specification by the branch `master`. A
+- `specs/model-sidecar/post/canonical-mapping.md` links to the VRM specification by the branch `master`. A
   rewording PR must pin the two links to a commit.
 - **Absorption gaps.** The reviews of 2026-10-24 and 2026-10-25 absorbed every accepted entry except
   [0008](0008-vnext-scope.md) and [0011](0011-rtmdet-host-nms.md). The proposals 0042 and 0048
   supersede 0008, and 0041 supersedes 0011, on acceptance. An absorbed entry cannot be superseded, so
   these two stay Active until the user decides the proposals. If the user rejects them, absorb 0008
-  into `specs/sidecar/changelog.md#considered-and-deliberately-not-added` and 0011 into
-  `specs/sidecar/post/selection-nms.md#authoring-guidance`. Close their gaps first: Qualcomm-Exporter
+  into `specs/model-sidecar/changelog.md#considered-and-deliberately-not-added` and 0011 into
+  `specs/model-sidecar/post/selection-nms.md#authoring-guidance`. Close their gaps first: Qualcomm-Exporter
   is out of the `vNEXT` scope until its library is complete (0008), and the `-1` row axis of the RTMDet
   `boxes` and `scores` shapes takes its value from `output_shapes` (0011).
 - **Old mirror numbers.** [0028](0028-entry-edits-and-citations.md) and
@@ -132,34 +136,34 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   legacy meaning ([0009](0009-imagenet-bgr-meaning.md)).
 - The reviewer note of the `vNEXT` change summary says to replace `vNEXT` "before merging". Decision
   [0014](0014-spec-lifecycle.md) moves that step to the first release that ships the spec.
-- The [Identity](../../specs/sidecar/common/identity.md) fields say that a keypoint detector's
+- The [Identity](../../specs/model-sidecar/common/identity.md) fields say that a keypoint detector's
   `model_id` is `{family}-{part}`. This rule cannot express a variant suffix or a stage suffix. The
   RTMO body7 reference example, copied from OpenMMLab-Exporter, has `model_id: rtmo-body7` in the
   `body` part folder. A hand landmark model and a hand re-crop model of one family would both get
   `{family}-hand`. The spec must allow a suffix after the part, or the exporters must rename these
   models. OpenMMLab-Exporter sets `FAMILY = "rtmo-body7"` ([`rtmo/identity.py:24`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmo/identity.py#L24)).
   The gap record [0025](0025-model-id-suffix.md) (proposed) records this question.
-- The [`input.resize`](../../specs/sidecar/pre/interpolation.md#behaviour) text says that every interpolation
+- The [`input.resize`](../../specs/model-sidecar/pre/interpolation.md#behaviour) text says that every interpolation
   uses "`cv2.resize` / `cv2.warpAffine`, half-pixel centres". `cv2.warpAffine` maps the pixel centres
   in a different way. A 2x upscale of the ramp `[0, 10, 20, 30]` gives `2.5` with `cv2.resize` and
   `5.0` with `cv2.warpAffine` at destination `x = 1` (OpenCV 4.13.0).
-- The `pad_value` row of [`input.resize`](../../specs/sidecar/common/input.md#inputresize) and the
+- The `pad_value` row of [`input.resize`](../../specs/model-sidecar/common/input.md#inputresize) and the
   `crop_policy.pad_value` row say only that an array is per channel. They do not say what a scalar
   fills. The `fit` and `affine_person_crop` pseudocode passes `pad_value` unchanged to
   `cv2.warpAffine`. With a scalar, `cv2.warpAffine` fills only channel 0: a scalar `114` gives the
   border `[114, 0, 0]` (OpenCV 4.13.0). The `letterbox` pseudocode fills every channel
   (`full((T_h, T_w, 3), pad_value)`). The spec must state that a scalar fills every channel
   ([0012](0012-fit-resize-for-rtmo.md)).
-- `clamp_boxes` in [`decode` (detection)](../../specs/sidecar/post/detection-decode.md#decode-detection) clamps the
+- `clamp_boxes` in [`decode` (detection)](../../specs/model-sidecar/post/detection-decode.md#decode-detection) clamps the
   boxes to the source-image bounds. The spec does not define the bounds (`[0, W]` or `[0, W-1]`). It
   does not define the result for a box with zero area after the clamp. OpenMMLab-Exporter
   ([`onnx_runtime/decode_nms.py:170-171`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/d2e68d27d2da0a4f22ddd19449df5601dcac87cc/onnx_runtime/decode_nms.py#L170-L171)), Roboflow-Exporter
   ([`rf_detr/coco_format.py:133`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/16852ca3f7e63e61fda1086ecf07491dc788581a/rf_detr/coco_format.py#L133)) and ultralytics 8.4.184 (`utils/ops.py`,
   `clip_boxes`) clamp to `[0, W]` and `[0, H]`.
 - `schema_version` is quoted (`"vNEXT"`) in some
-  [reference examples](../../specs/sidecar/examples/README.md) and not quoted in the RTMO
+  [reference examples](../../specs/model-sidecar/examples/README.md) and not quoted in the RTMO
   body7 example. YAML reads both forms as the same string, but the examples do not agree.
-- Two identity rules of [Validation rules](../../specs/sidecar/format/versioning.md#validation-rules) cannot pass
+- Two identity rules of [Validation rules](../../specs/model-sidecar/format/versioning.md#validation-rules) cannot pass
   at `vNEXT`: the version pattern, and the support by the installed release. Also, the sentence "Rules
   marked **(vNEXT)** apply only when `schema_version >= vNEXT`" is circular for `vNEXT`. `vNEXT` does
   not match the version pattern, so the comparison has no defined result for a `vNEXT` sidecar.

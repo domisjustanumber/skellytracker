@@ -25,7 +25,7 @@
 ## Reason
 
 - The spec names this family `rtmw`. The `model_id` is `rtmw-wholebody`. The
-  [storage layout](../../specs/sidecar/format/file-layout.md#storage-layout) puts a keypoint sidecar at
+  [storage layout](../../specs/model-sidecar/format/file-layout.md#storage-layout) puts a keypoint sidecar at
   `detectors/keypoint_detectors/{family}/{part}/`. The folder `rtmpose/wholebody/` did not match the
   family name.
 - Other code imports the old paths. A search of the importers found the files in the Evidence section.
@@ -66,3 +66,5 @@ Checked in the code on 2026-10-22.
   the RTMW module. A module-level import in the other direction makes an import cycle. The generic
   code that the detector needs lives in `core/detectors/processing/`, outside that package. See
   [0007](0007-generic-processing-package.md).
+
+_Edited 2026-10-26 (this PR): link repair._

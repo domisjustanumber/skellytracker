@@ -8,10 +8,10 @@ recorded again 2026-10-25 (MediaPipe-Exporter proposal).
 
 **Proposed, not decided.** This entry records the spec change proposal `landmark-extra-outputs`. The
 eight parts are in
-[`specs/sidecar/proposals/landmark-extra-outputs/proposal.md`](../../specs/sidecar/proposals/landmark-extra-outputs/proposal.md).
+[`specs/model-sidecar/proposals/landmark-extra-outputs/proposal.md`](../../specs/model-sidecar/proposals/landmark-extra-outputs/proposal.md).
 
 - **Section:** a new section `post.pose.extra_outputs` ("Extra pose outputs", file
-  `specs/sidecar/post/pose-extra-outputs.md`, kind `postprocessor`). The change also edits
+  `specs/model-sidecar/post/pose-extra-outputs.md`, kind `postprocessor`). The change also edits
   `common.outputs`, `post.pose.schema`, `post.pose.decode.coordinate`, `format.versioning`, the
   section map, the changelog and the model intake template.
 - **Change:** A model with `pose.estimator_type: top_down_single_person` and
@@ -62,14 +62,14 @@ source. The user has not decided this exception.
 
 Let a single-person `coordinate` pose model declare three kinds of output
 beside its one `keypoints` output: an instance presence score, an instance class probability and 3D
-world keypoints. The closed `semantic` set of [Outputs](../../specs/sidecar/common/outputs.md#fields)
+world keypoints. The closed `semantic` set of [Outputs](../../specs/model-sidecar/common/outputs.md#fields)
 gets a value for each kind (the exporter plans use `score` and `keypoints_3d`). A presence output
 declares its activation and a default threshold, and the host drops the landmarks of a crop whose
 presence score fails that threshold. The proposal must state the comparison, because MediaPipe uses
 `>= 0.5`. A class-probability output declares the class that its value gives, and whether the model
 expects a mirrored image. A world-keypoint output declares its unit.
-[`V-common.outputs-4`](../../specs/sidecar/common/outputs.md#validation-rules) and
-[`V-post.pose.schema-7`](../../specs/sidecar/post/pose-schema.md#validation-rules) change to allow
+[`V-common.outputs-4`](../../specs/model-sidecar/common/outputs.md#validation-rules) and
+[`V-post.pose.schema-7`](../../specs/model-sidecar/post/pose-schema.md#validation-rules) change to allow
 these outputs. The field names and the threshold rule come with the full proposal of
 [0014](0014-spec-lifecycle.md#new-model-workflow) from the exporter overhaul, with an ONNX file and a
 committed parity script. The decision must also say whether the change goes into `vNEXT` or into a

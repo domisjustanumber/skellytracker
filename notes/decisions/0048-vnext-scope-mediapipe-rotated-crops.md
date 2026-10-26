@@ -8,7 +8,7 @@ This entry supersedes [0008](0008-vnext-scope.md) in full. It restates each rule
 It holds only scope rules. [0020](0020-roi-transform-and-source.md) holds the rules of
 `rotated_roi_crop`.
 
-The `vNEXT` revision of [the sidecar spec](../../specs/sidecar-spec.md) must let a sidecar describe
+The `vNEXT` revision of [the sidecar spec](../../specs/model-sidecar/sidecar-spec.md) must let a sidecar describe
 every model that these exporters produce:
 
 - OpenMMLab-Exporter: RTMDet (person-only family), RTMW and RTMO body7.
@@ -20,7 +20,7 @@ every model that these exporters produce:
 Qualcomm-Exporter is out of scope until that library is complete.
 
 `vNEXT` adds only the features that these models need. The spec lists the other features in
-[Considered and deliberately not added](../../specs/sidecar/changelog.md#considered-and-deliberately-not-added).
+[Considered and deliberately not added](../../specs/model-sidecar/changelog.md#considered-and-deliberately-not-added).
 This entry groups them:
 
 - Resize: `resize.antialias` and `resize.size_divisor`.
@@ -49,7 +49,7 @@ when a release version replaces it.
 ## Reason
 
 - No model in scope needs most of the listed features. Each row of the
-  [spec table](../../specs/sidecar/changelog.md#considered-and-deliberately-not-added) gives its own reason.
+  [spec table](../../specs/model-sidecar/changelog.md#considered-and-deliberately-not-added) gives its own reason.
 - Some rows give another reason:
   - For `score_activation: softmax`, the behaviour over gap and background slots is unresolved.
   - For `nms.pre_nms_top_k`, a flat candidate list cannot express the per-level `nms_pre` cap of mmdet.

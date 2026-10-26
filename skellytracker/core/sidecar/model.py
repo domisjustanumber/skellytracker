@@ -1,4 +1,4 @@
-"""Pydantic `SidecarModel` hierarchy mirroring specs/sidecar-spec.md.
+"""Pydantic `SidecarModel` hierarchy mirroring specs/model-sidecar/sidecar-spec.md.
 
 This is the single source of runtime truth for what a sidecar YAML file must
 contain; the spec document is the canonical human-readable description and
@@ -617,7 +617,7 @@ class SidecarModel(_StrictModel):
         """Deep-merge `sizes[size_name]` over the shared top level and validate.
 
         Uses the same current-wins deep-merge semantics as `base` inheritance
-        (see specs/sidecar-spec.md, "Sizes").
+        (see specs/model-sidecar/sidecar-spec.md, "Sizes").
         """
         if size_name not in self.sizes:
             raise KeyError(f"No size {size_name!r} in sidecar {self.model_id!r}. Available: {list(self.sizes)}")

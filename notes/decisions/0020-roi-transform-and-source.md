@@ -8,10 +8,10 @@ proposal).
 
 **Proposed, not decided.** This entry records the spec change proposal `roi-transform-and-source`.
 The eight parts are in
-[`specs/sidecar/proposals/roi-transform-and-source/proposal.md`](../../specs/sidecar/proposals/roi-transform-and-source/proposal.md).
+[`specs/model-sidecar/proposals/roi-transform-and-source/proposal.md`](../../specs/model-sidecar/proposals/roi-transform-and-source/proposal.md).
 
 - **Section:** a new section `pre.resize.rotated_roi_crop` ("Rotated ROI crop", file
-  `specs/sidecar/pre/resize-rotated-roi-crop.md`, kind `preprocessor`). The change also edits
+  `specs/model-sidecar/pre/resize-rotated-roi-crop.md`, kind `preprocessor`). The change also edits
   `common.input`, `common.sizes_and_artifacts`, `pre.resize.interpolation`, `pre.normalize`,
   `pre.resize.affine_person_crop`, `post.pose.schema`, `post.unprojection`, `format.versioning`, the
   templates, the exporter guide and the changelog.
@@ -56,8 +56,8 @@ commit while MediaPipe-Exporter has no git repo.
 
 Let a top-down pose model take its crop from an ROI that does not come
 from an object detector, and let its sidecar declare the transform of that ROI. The proposal has
-three parts. First, [`V-post.pose.schema-2`](../../specs/sidecar/post/pose-schema.md#validation-rules)
-and [`V-pre.resize.affine_person_crop-2`](../../specs/sidecar/pre/resize-affine-person-crop.md#validation-rules)
+three parts. First, [`V-post.pose.schema-2`](../../specs/model-sidecar/post/pose-schema.md#validation-rules)
+and [`V-pre.resize.affine_person_crop-2`](../../specs/model-sidecar/pre/resize-affine-person-crop.md#validation-rules)
 allow a top-down model whose ROI comes from the output of another model, for example from body-pose
 keypoints. Second, `crop_policy` gets the fields of the MediaPipe `RectTransformation`: `shift_x` and
 `shift_y` along the axes of the ROI, `square_long` and `scale`. Third, the spec defines the ROI
@@ -79,7 +79,7 @@ whether the change goes into `vNEXT` or into a later revision, because the `vNEX
 - `expand_ratio` cannot express a `shift_y` of `-0.1` along the ROI axis, `square_long`, or a scale
   that changes with the stage (2.7 for the loose ROI, 1.0 for the re-crop, 2.0 for tracking).
 - The table
-  [Considered and deliberately not added](../../specs/sidecar/changelog.md#considered-and-deliberately-not-added)
+  [Considered and deliberately not added](../../specs/model-sidecar/changelog.md#considered-and-deliberately-not-added)
   covers rotation and the border mode. It does not cover the shift, `square_long` or an ROI source
   that is not a detector.
 - Without these fields, an exporter puts the ROI rule into a pipeline manifest outside the sidecar.

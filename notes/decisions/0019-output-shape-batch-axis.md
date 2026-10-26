@@ -12,9 +12,9 @@ Give `outputs[].shape` the batch rule of `input.shape`. At `vNEXT`, the
 batch axis (axis 0) of each top-level `outputs[].shape` must be `-1`. A concrete batch size goes only
 into `sizes.<size>.onnx.batch_artifacts.<N>.output_shapes`. When a size lists only one batch key `N`,
 the output shapes of that group are the top-level `outputs[].shape`, with axis 0 set to `N`. The rule
-gets a new **(vNEXT)** rule ID in [Outputs](../../specs/sidecar/common/outputs.md#validation-rules).
+gets a new **(vNEXT)** rule ID in [Outputs](../../specs/model-sidecar/common/outputs.md#validation-rules).
 The derivation goes into
-[`batch_artifacts`](../../specs/sidecar/common/sizes-and-artifacts.md#sizessizeonnxbatch_artifacts).
+[`batch_artifacts`](../../specs/model-sidecar/common/sizes-and-artifacts.md#sizessizeonnxbatch_artifacts).
 A legacy sidecar keeps its concrete batch axis, and its meaning does not change.
 
 ## Reason
@@ -39,7 +39,7 @@ A legacy sidecar keeps its concrete batch axis, and its meaning does not change.
   `representative_batch = min(artifacts)` (line 111). It writes
   `output_shape = [representative_batch, ...]` (line 113) as `outputs[].shape` (line 118).
   `_batch_artifacts` (lines 79-95) writes `output_shapes` only when a size has more than one batch.
-- The [Outputs](../../specs/sidecar/common/outputs.md#examples) example writes
+- The [Outputs](../../specs/model-sidecar/common/outputs.md#examples) example writes
   `shape: [-1, -1, 5]` and `shape: [-1, -1, 17, 3]`.
 
 ## Alternatives rejected

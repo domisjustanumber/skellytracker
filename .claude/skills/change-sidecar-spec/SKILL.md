@@ -21,7 +21,7 @@ outputs and the stop points.
 
 1. Read sections [4](../../../AGENTS.md#4-sidecar-rules), [5](../../../AGENTS.md#5-decision-log) and
    [6](../../../AGENTS.md#6-git-rules) of `AGENTS.md`.
-2. Read the [section map](../../../specs/sidecar/README.md#section-map). Find the section files that
+2. Read the [section map](../../../specs/model-sidecar/README.md#section-map). Find the section files that
    the change touches.
 3. Read each of these section files in full.
 4. Read the decision entries that cite these sections, and the
@@ -32,7 +32,7 @@ outputs and the stop points.
 | Input | Where it comes from |
 |---|---|
 | An intake with the final verdict `describes` | `plans/sidecar-intake-<model>.md` in an exporter repo |
-| A proposal that the user accepted | A decision entry with the status `proposed`, and its proposal file `specs/sidecar/proposals/<slug>/proposal.md` ([faac](../../../notes/decisions/faac-proposal-records.md)) |
+| A proposal that the user accepted | A decision entry with the status `proposed`, and its proposal file `specs/model-sidecar/proposals/<slug>/proposal.md` ([faac](../../../notes/decisions/faac-proposal-records.md)) |
 | A reference implementation of an exporter | `plans/sidecar-reference-<section_module>.py` in an exporter repo |
 | Another spec edit | A request of the user, an item of the spec-defect list in [`notes/decisions/open-work.md`](../../../notes/decisions/open-work.md), or the release step |
 
@@ -79,12 +79,12 @@ Do this procedure for step 2 of phase 3.
 2. Make the content PR. Do steps 3 to 12.
 3. Find the section that owns each rule. Do the steps of [Rules for each spec edit](#rules-for-each-spec-edit).
 4. Write the normative text of part 2 of the proposal into the section files. Take the text from
-   `specs/sidecar/proposals/<slug>/proposal.md`. If the exporter proposal changed after the copy,
+   `specs/model-sidecar/proposals/<slug>/proposal.md`. If the exporter proposal changed after the copy,
    stop. Tell the user, and record the new version first (skill `propose-sidecar-change`,
    [Record a changed proposal](../propose-sidecar-change/SKILL.md#record-a-changed-proposal);
    decision [vac0](../../../notes/decisions/vac0-record-a-changed-proposal.md)).
 5. Write the `changelog.md` rows.
-6. Copy the reference implementation of part 3 to `specs/sidecar/reference/<section_module>.py`.
+6. Copy the reference implementation of part 3 to `specs/model-sidecar/reference/<section_module>.py`.
 7. If `tools/tests` has no test that runs the reference functions against the vectors of their
    section, add that test in the same PR.
 8. Make the generator `tools/make_vectors.py` call the reference implementation for the section.
@@ -103,7 +103,7 @@ Do this procedure for step 2 of phase 3.
 15. Add an item for part 6 to the [Open work](../../../notes/decisions/open-work.md) list.
 16. Add the "Authoring guidance" from the intake. Do the steps of [Guidance](#guidance).
 17. When the exporter writes the sidecar with the new fields, add the example with procedure A. Remove
-    the `proposed` entry of the model from `specs/sidecar/inventory.yaml`, if it has one.
+    the `proposed` entry of the model from `specs/model-sidecar/inventory.yaml`, if it has one.
     Set `state: landed` in `proposal.md` and in the proposal index when the last PR of the proposal
     lands.
 18. In the implementation stage, implement the section with the skill
@@ -124,10 +124,10 @@ user accepts the proposal.
 2. Make sure that the code uses only NumPy, OpenCV and the Python standard library. It must not
    import from the exporter or from skellytracker.
 3. Make sure that each docstring cites the section ID and the exporter commit.
-4. If `specs/sidecar/reference/<section_module>.py` exists, do not add a second reference. The
+4. If `specs/model-sidecar/reference/<section_module>.py` exists, do not add a second reference. The
    disagreement is a spec defect or a bug. Use the skill
    [`propose-sidecar-change`](../propose-sidecar-change/SKILL.md).
-5. Copy the file to `specs/sidecar/reference/<section_module>.py`.
+5. Copy the file to `specs/model-sidecar/reference/<section_module>.py`.
 6. If `tools/tests` has no test that runs the reference functions against the vectors of their
    section, add that test in the same PR.
 7. Make the generator `tools/make_vectors.py` call the reference implementation for the section.
@@ -154,12 +154,12 @@ user accepts the proposal.
 
 ### Spec structure
 
-- Each section file under `specs/sidecar/` holds one contract unit: a part of the spec that has its
+- Each section file under `specs/model-sidecar/` holds one contract unit: a part of the spec that has its
   own algorithm or its own implementing function.
-- `specs/sidecar-spec.md` is the permanent entry point. It is a short index. It keeps each old heading
-  as an anchor with a link to the new file, so an old link such as `specs/sidecar-spec.md#inputresize`
+- `specs/model-sidecar/sidecar-spec.md` is the permanent entry point. It is a short index. It keeps each old heading
+  as an anchor with a link to the new file, so an old link such as `specs/model-sidecar/sidecar-spec.md#inputresize`
   still goes to the correct text.
-- `specs/sidecar/` holds `README.md` (the section map, the reading order, the section-ID index and the
+- `specs/model-sidecar/` holds `README.md` (the section map, the reading order, the section-ID index and the
   terms), `TRACEABILITY.md` (generated), `inventory.yaml`, `changelog.md`, `format/`, `common/`,
   `pre/`, `post/`, `examples/detectors/`, `vectors/<section-id>.yaml`,
   `reference/<section_module>.py` and `templates/`. The exporter guide is in
@@ -181,8 +181,8 @@ user accepts the proposal.
 - A rule ID has the form `V-<section-id>-<n>`. Give a new rule the next free `<n>` of its section.
 - Mark a rule that applies only from `vNEXT` with **(vNEXT)**.
 - For a new section, propose the ID in the scheme `<format|common|pre|post>.<area>[.<name>]`. Add the
-  section to the [section map](../../../specs/sidecar/README.md#section-map) and to the
-  [validation index](../../../specs/sidecar/README.md#validation-rules).
+  section to the [section map](../../../specs/model-sidecar/README.md#section-map) and to the
+  [validation index](../../../specs/model-sidecar/README.md#validation-rules).
 
 ### Front matter
 
@@ -218,13 +218,13 @@ user accepts the proposal.
 - The meaning of an older `schema_version` never changes.
 - Write each legacy difference in the "Legacy behaviour" heading of the section.
 - If a section gets a new "Legacy behaviour" heading, add it to the index in
-  [Version-aware compatibility](../../../specs/sidecar/format/versioning.md#version-aware-compatibility).
+  [Version-aware compatibility](../../../specs/model-sidecar/format/versioning.md#version-aware-compatibility).
 
 ### `changelog.md`
 
-- Add one row to the [summary of changes](../../../specs/sidecar/changelog.md#summary-of-changes).
+- Add one row to the [summary of changes](../../../specs/model-sidecar/changelog.md#summary-of-changes).
 - Add the change to the `vNEXT` row of the
-  [`schema_version` history](../../../specs/sidecar/changelog.md#schema_version-history).
+  [`schema_version` history](../../../specs/model-sidecar/changelog.md#schema_version-history).
 - Write new rows in ASD-STE100. Do not reword the existing rows.
 
 ### `vNEXT` or a release version
@@ -238,10 +238,10 @@ user accepts the proposal.
 ### Examples and vectors
 
 - The reference examples belong to the spec. The doc tests check them against the rules of the spec.
-- Each example is a file under `specs/sidecar/examples/`, in the `detectors/` layout of the package,
+- Each example is a file under `specs/model-sidecar/examples/`, in the `detectors/` layout of the package,
   so that `$ref` paths resolve. The examples use copies of the shared skeleton fragments, under
-  `specs/sidecar/examples/detectors/shared/skeletons/`.
-- Each example has a provenance entry in `specs/sidecar/inventory.yaml`: its source, the exporter, the
+  `specs/model-sidecar/examples/detectors/shared/skeletons/`.
+- Each example has a provenance entry in `specs/model-sidecar/inventory.yaml`: its source, the exporter, the
   path of the exporter copy, its `kind`, whether git tracks that copy, the exporter commit of the code
   that writes it, and the edits made to the copy. `kind: export` is a copy of exporter output.
   `kind: forecast` is written from exporter code before the exporter writes that sidecar.
@@ -249,7 +249,7 @@ user accepts the proposal.
   remote sidecar folder. It holds only the data that a scan cannot find: the provenance of each
   example and the `proposed` models.
 - A test vector is a small worked case: concrete inputs to the algorithm of one section, and the exact
-  expected output. There is one file for each section ID in `specs/sidecar/vectors/`. A file holds
+  expected output. There is one file for each section ID in `specs/model-sidecar/vectors/`. A file holds
   numbers only: no images and no ONNX files.
 - Vectors are informative. Vector cases are geometry and small arrays. Pixel-exact resize output is
   out of scope, because it depends on OpenCV internals. A pixel case, if one is necessary, states a
@@ -274,7 +274,7 @@ user accepts the proposal.
   exactly the text of one section. It uses only NumPy, OpenCV and the Python standard library. It has
   no import from an exporter or from `skellytracker`. There is one function for each algorithm. Its
   docstring cites the section ID.
-- The file is `specs/sidecar/reference/<section_module>.py`. `<section_module>` is the section ID with
+- The file is `specs/model-sidecar/reference/<section_module>.py`. `<section_module>` is the section ID with
   each dot replaced by an underscore, for example `pre_resize_letterbox`.
 - Only two things add a reference implementation: an accepted proposal (procedure B), and an exporter
   that implements a section on its host side and contributes it (procedure C).
@@ -291,11 +291,11 @@ user accepts the proposal.
    report in the PR body.
 3. Name each exporter that must regenerate its sidecars.
 4. Regenerate the traceability matrix with `uv run python tools/sidecar_trace.py matrix`. Do not edit
-   `specs/sidecar/TRACEABILITY.md` by hand.
+   `specs/model-sidecar/TRACEABILITY.md` by hand.
 
 The trace tool scans two roots for sidecars: `skellytracker/core/detectors/` and
-`specs/sidecar/examples/`. It uses the discovery rule of
-[`format.file_layout`](../../../specs/sidecar/format/file-layout.md#discovery). It keys each sidecar as
+`specs/model-sidecar/examples/`. It uses the discovery rule of
+[`format.file_layout`](../../../specs/model-sidecar/format/file-layout.md#discovery). It keys each sidecar as
 `<model_id>@<source>`, because one `model_id` can have two sources, and it resolves composition with
 `resolve_sidecar_composition`. It normalizes each resolved sidecar with the spec defaults and the
 derivations from legacy fields, and it matches the sidecar against the `selectors` of each section.
@@ -359,7 +359,7 @@ length and passive voice gives advice only. Do not reword the existing changelog
 ## Checks
 
 The doc tests in `tools/tests/` run in CI: `pyproject.toml` lists `tools/tests` in `testpaths`, and
-the lint workflow checks `tools/` and `specs/sidecar/reference/`. They check these items:
+the lint workflow checks `tools/` and `specs/model-sidecar/reference/`. They check these items:
 
 - The front matter is valid. Section IDs and rule IDs are unique. Each rule has one owner.
 - Each `implemented_by` path and symbol exists, or is `missing`. A PR that moves or renames a function
@@ -373,7 +373,7 @@ the lint workflow checks `tools/` and `specs/sidecar/reference/`. They check the
   existing example.
 - Each vector file has `verified_against` or `unverified`.
 - After the spec defines the hashes, `tools/sidecar_refs.py --check` passes on every example.
-- Each spec citation in a code docstring (`specs/sidecar-spec.md, "<heading>"`) names a heading that
+- Each spec citation in a code docstring (`specs/model-sidecar/sidecar-spec.md, "<heading>"`) names a heading that
   the permanent index still has.
 
 Run these commands before each PR. Each command must pass.
@@ -383,7 +383,7 @@ Run these commands before each PR. Each command must pass.
 3. `uv run pytest tools/tests -q`. It also runs the private-data check
    ([Private data](../../../AGENTS.md#8-private-data)).
 4. `uv run pytest -m "not video"`
-5. `uv run ruff check skellytracker/ tools/`. When `specs/sidecar/reference/` exists, add it to the
+5. `uv run ruff check skellytracker/ tools/`. When `specs/model-sidecar/reference/` exists, add it to the
    command.
 
 ## Stop points

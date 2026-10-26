@@ -27,7 +27,7 @@ gives the order of the steps, the inputs, the outputs and the stop points.
 ## Inputs
 
 - The section ID, for example `post.det.selection.top_k`. The
-  [section map](../../../specs/sidecar/README.md#section-map) gives the section file.
+  [section map](../../../specs/model-sidecar/README.md#section-map) gives the section file.
 - `<section_module>` is the section ID with each dot replaced by an underscore, for example
   `post_det_selection_top_k`.
 
@@ -37,10 +37,10 @@ gives the order of the steps, the inputs, the outputs and the stop points.
 |---|---|
 | The code of each step | `skellytracker/`, for example a function under `skellytracker/core/detectors/processing/` and a validator in `skellytracker/core/sidecar/model.py` |
 | The line `Implements: <section-id>` | The docstring of each implementing function |
-| The vector test | A test in `tools/tests/test_vectors.py` that runs the implementing function on each case of `specs/sidecar/vectors/<section-id>.yaml` |
+| The vector test | A test in `tools/tests/test_vectors.py` that runs the implementing function on each case of `specs/model-sidecar/vectors/<section-id>.yaml` |
 | The new front matter | `implemented_by`, `status` and `tests` of the section file |
 | The new `verified_against` | `tools/make_vectors.py`, then the vector file |
-| The new traceability matrix | `specs/sidecar/TRACEABILITY.md` |
+| The new traceability matrix | `specs/model-sidecar/TRACEABILITY.md` |
 
 ## Procedure
 
@@ -62,9 +62,9 @@ gives the order of the steps, the inputs, the outputs and the stop points.
 
 | Evidence | Where to look |
 |---|---|
-| A reference example that uses the section | [`TRACEABILITY.md`](../../../specs/sidecar/TRACEABILITY.md#models-and-sections), "Models and sections": the row of the section, in the columns of the models with the root `example` (see "Models") |
-| Verified vectors | `specs/sidecar/vectors/<section-id>.yaml`: `verified_against` at the top of the file, or for each case. `unverified: <reason>` means that no implementation verified the file. |
-| A reference implementation | `specs/sidecar/reference/<section_module>.py` |
+| A reference example that uses the section | [`TRACEABILITY.md`](../../../specs/model-sidecar/TRACEABILITY.md#models-and-sections), "Models and sections": the row of the section, in the columns of the models with the root `example` (see "Models") |
+| Verified vectors | `specs/model-sidecar/vectors/<section-id>.yaml`: `verified_against` at the top of the file, or for each case. `unverified: <reason>` means that no implementation verified the file. |
+| A reference implementation | `specs/model-sidecar/reference/<section_module>.py` |
 | An exporter implementation | `external_impl` in the front matter, and "External implementations" in `TRACEABILITY.md` |
 | An exporter file that waits to land | A scan of `../../*-Exporter/plans/sidecar-*` from the root of this repo: `sidecar-reference-<section_module>.py`, and each `sidecar-proposal-*.md` that changes the section. Read the files. Do not change them. |
 
@@ -142,7 +142,7 @@ A skellytracker session must land it first, with the skill
 6. Add a constant with the `path::symbol` of the implementing function to `tools/make_vectors.py`,
    for example `FIT_FUNCTION`.
 7. Add a parametrized test to `tools/tests/test_vectors.py` that runs the function on each case of
-   `specs/sidecar/vectors/<section-id>.yaml`. Use the constant. An example is
+   `specs/model-sidecar/vectors/<section-id>.yaml`. Use the constant. An example is
    `test_fit_preprocess_agrees_with_the_case`. The generic test of that file checks only that a name
    in `verified_against` resolves. It does not run the function.
 8. Every case must pass. Do not edit a vector file by hand.
@@ -163,7 +163,7 @@ A skellytracker session must land it first, with the skill
    - `missing`: no function does the step.
 3. Add the new test files to `tests`.
 4. Regenerate the matrix with `uv run python tools/sidecar_trace.py matrix`. Do not edit
-   `specs/sidecar/TRACEABILITY.md` by hand.
+   `specs/model-sidecar/TRACEABILITY.md` by hand.
 5. If the change completes an item of the Open work list, remove the item in the same PR.
 
 ### Step 8: Check and stop

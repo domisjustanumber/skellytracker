@@ -92,7 +92,7 @@ def write(root: Path, relative: str, text: str) -> None:
 
 @pytest.fixture
 def repo(tmp_path: Path) -> Path:
-    spec = "specs/sidecar/"
+    spec = "specs/model-sidecar/"
     write(tmp_path, spec + "README.md", README)
     write(tmp_path, spec + "common/a.md", front_matter("common.a", "common", []))
     write(
@@ -336,14 +336,14 @@ def test_sections_come_in_the_order_of_the_map(repo: Path) -> None:
 def test_a_section_that_the_map_omits_comes_last(repo: Path) -> None:
     write(
         repo,
-        "specs/sidecar/pre/another.md",
+        "specs/model-sidecar/pre/another.md",
         front_matter("pre.another", "preprocessor", ["x"]),
     )
     assert [s.id for s in st.load_sections(repo)][-1] == "pre.another"
 
 
 def test_a_repeated_section_id_raises(repo: Path) -> None:
-    write(repo, "specs/sidecar/pre/copy.md", front_matter("common.a", "common", []))
+    write(repo, "specs/model-sidecar/pre/copy.md", front_matter("common.a", "common", []))
     with pytest.raises(st.TraceError, match="common.a"):
         st.load_sections(repo)
 
@@ -397,7 +397,7 @@ def test_a_declared_source_wins_over_the_inventory(repo: Path) -> None:
 
 
 def test_an_example_without_any_source_raises(repo: Path) -> None:
-    write(repo, "specs/sidecar/inventory.yaml", "examples: {}\nproposed: []\n")
+    write(repo, "specs/model-sidecar/inventory.yaml", "examples: {}\nproposed: []\n")
     with pytest.raises(st.TraceError, match="source"):
         st.scan_sidecars(repo)
 
@@ -582,7 +582,7 @@ def test_external_implementations_are_listed_when_a_section_has_them(
     repo: Path,
 ) -> None:
     assert "No section lists an external implementation" in st.render_traceability(repo)
-    path = repo / "specs/sidecar/pre/letterbox.md"
+    path = repo / "specs/model-sidecar/pre/letterbox.md"
     text = path.read_text(encoding="utf-8").replace(
         "external_impl: []", "external_impl:\n- Some-Exporter: host/pre.py::letterbox"
     )
@@ -598,7 +598,7 @@ def test_external_implementations_are_listed_when_a_section_has_them(
 def test_write_traceability_writes_lf_and_the_check_sees_it(repo: Path) -> None:
     assert not st.traceability_is_current(repo)
     path = st.write_traceability(repo)
-    assert path == repo / "specs/sidecar/TRACEABILITY.md"
+    assert path == repo / "specs/model-sidecar/TRACEABILITY.md"
     assert b"\r" not in path.read_bytes()
     assert st.traceability_is_current(repo)
 
@@ -617,15 +617,15 @@ def test_the_check_ignores_line_endings_and_sees_a_change(repo: Path) -> None:
 
 
 def test_a_changed_section_file_reaches_the_models_and_exporters(repo: Path) -> None:
-    affected = st.affected_sections({"specs/sidecar/pre/letterbox.md"}, repo)
+    affected = st.affected_sections({"specs/model-sidecar/pre/letterbox.md"}, repo)
     assert [a.section.id for a in affected] == ["pre.resize.letterbox"]
     item = affected[0]
-    assert item.reasons == ("section file changed: specs/sidecar/pre/letterbox.md",)
+    assert item.reasons == ("section file changed: specs/model-sidecar/pre/letterbox.md",)
     assert item.models == ("bar@other-exporter",)
     assert item.exporters == ("Other-Exporter: exports/bar.yaml",)
     assert item.functions == ("pkg/model.py::Resize", "pkg/pre.py::letterbox")
     assert item.tests == ("pkg/test_pre.py",)
-    assert item.vectors == ("specs/sidecar/vectors/pre.resize.letterbox.yaml",)
+    assert item.vectors == ("specs/model-sidecar/vectors/pre.resize.letterbox.yaml",)
 
 
 def test_a_changed_implementing_file_reaches_the_sections_that_name_it(
@@ -639,18 +639,18 @@ def test_a_changed_implementing_file_reaches_the_sections_that_name_it(
 
 
 def test_a_changed_vector_file_reaches_its_section(repo: Path) -> None:
-    changed = {"specs/sidecar/vectors/pre.resize.letterbox.yaml"}
+    changed = {"specs/model-sidecar/vectors/pre.resize.letterbox.yaml"}
     affected = st.affected_sections(changed, repo)
     assert [a.reasons for a in affected] == [
-        ("vector file changed: specs/sidecar/vectors/pre.resize.letterbox.yaml",)
+        ("vector file changed: specs/model-sidecar/vectors/pre.resize.letterbox.yaml",)
     ]
 
 
 def test_reasons_add_up_for_one_section(repo: Path) -> None:
-    changed = {"specs/sidecar/pre/letterbox.md", "pkg/pre.py", "pkg/model.py"}
+    changed = {"specs/model-sidecar/pre/letterbox.md", "pkg/pre.py", "pkg/model.py"}
     (item,) = st.affected_sections(changed, repo)
     assert item.reasons == (
-        "section file changed: specs/sidecar/pre/letterbox.md",
+        "section file changed: specs/model-sidecar/pre/letterbox.md",
         "implementing file changed: pkg/model.py",
         "implementing file changed: pkg/pre.py",
     )
@@ -661,7 +661,7 @@ def test_an_unrelated_change_reaches_no_section(repo: Path) -> None:
 
 
 def test_the_impact_text_lists_each_section_and_a_summary(repo: Path) -> None:
-    changed = ["pkg/post.py", "specs/sidecar/pre/letterbox.md"]
+    changed = ["pkg/post.py", "specs/model-sidecar/pre/letterbox.md"]
     text = st.format_impact("main..HEAD", changed, st.affected_sections(changed, repo))
     assert text.startswith(
         "Range: main..HEAD\nChanged files: 2\nAffected sections: 2\n"
@@ -895,8 +895,8 @@ def test_a_deleted_or_unreadable_file_changes_in_whole(
 def test_a_section_file_change_lists_every_function_of_the_section(
     git_repo: Path,
 ) -> None:
-    text = (git_repo / "specs/sidecar/pre/letterbox.md").read_text(encoding="utf-8")
-    write(git_repo, "specs/sidecar/pre/letterbox.md", text + "\nMore.\n")
+    text = (git_repo / "specs/model-sidecar/pre/letterbox.md").read_text(encoding="utf-8")
+    write(git_repo, "specs/model-sidecar/pre/letterbox.md", text + "\nMore.\n")
     write(
         git_repo,
         "pkg/pre.py",
@@ -907,7 +907,7 @@ def test_a_section_file_change_lists_every_function_of_the_section(
     )
     item = reached(git_repo)["pre.resize.letterbox"]
     assert item.reasons == (
-        "section file changed: specs/sidecar/pre/letterbox.md",
+        "section file changed: specs/model-sidecar/pre/letterbox.md",
         "implementing function changed: pkg/pre.py::letterbox",
     )
     assert item.functions == ("pkg/model.py::Resize", "pkg/pre.py::letterbox")
@@ -1071,8 +1071,8 @@ def test_compare_examples_reports_an_exporter_copy_that_is_not_yaml(
     assert bar.status == "unavailable"
 
 
-EXAMPLE_BAR = "specs/sidecar/examples/detectors/object_detectors/bar/bar.yaml"
-EXAMPLE_POINTS = "specs/sidecar/examples/detectors/shared/points.yaml"
+EXAMPLE_BAR = "specs/model-sidecar/examples/detectors/object_detectors/bar/bar.yaml"
+EXAMPLE_POINTS = "specs/model-sidecar/examples/detectors/shared/points.yaml"
 POINTS_REF = "pose:\n  tracked_points: {$ref: ../../shared/points.yaml}\n"
 POINTS_INLINE = "pose:\n  tracked_points: [a, b]\n"
 

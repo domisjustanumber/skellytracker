@@ -5,4 +5,4 @@
 # on every machine (see notes/decisions/0016-sidecar-catalogs.md).
 *.yaml text eol=lf
 *.yml text eol=lf
-specs/sidecar/TRACEABILITY.md text eol=lf
+specs/model-sidecar/TRACEABILITY.md text eol=lf

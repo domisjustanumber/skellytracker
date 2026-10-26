@@ -6,7 +6,7 @@
 
 **Proposed, not decided.** This entry records the spec change proposal `omitted-upstream-output`. The
 eight parts are in
-[`specs/sidecar/proposals/omitted-upstream-output/proposal.md`](../../specs/sidecar/proposals/omitted-upstream-output/proposal.md).
+[`specs/model-sidecar/proposals/omitted-upstream-output/proposal.md`](../../specs/model-sidecar/proposals/omitted-upstream-output/proposal.md).
 
 - **Section:** none. The change is a verdict rule of the new-model workflow. It changes no section
   file, no sidecar field, no vector and no changelog row.
@@ -17,7 +17,7 @@ eight parts are in
   measurement shows that a declared output serves it at least as well; the sidecar declares nothing
   for it; an exporter decision entry records the omission. An `omitted` row needs no proposal, and the
   final verdict `describes` accepts it. The edits are in the exporter guide (`phase-1-intake.md`,
-  `parity.md`, `mapping-hints.md` and `rules.md`), in `specs/sidecar/templates/model-intake.md` and in
+  `parity.md`, `mapping-hints.md` and `rules.md`), in `specs/model-sidecar/templates/model-intake.md` and in
   the skill `author-sidecar`.
 - **Version:** none. No sidecar changes meaning at any `schema_version`. A non-spec PR lands the
   change.

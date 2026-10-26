@@ -1,11 +1,11 @@
 # 0002 — Sidecars are tracked in the package tree; ONNX files are not
 
-**Status:** absorbed into [`common/sizes-and-artifacts.md#implementer-guidance`](../../specs/sidecar/common/sizes-and-artifacts.md#implementer-guidance), 2026-10-25 (user; the absorption review).
+**Status:** absorbed into [`common/sizes-and-artifacts.md#implementer-guidance`](../../specs/model-sidecar/common/sizes-and-artifacts.md#implementer-guidance), 2026-10-25 (user; the absorption review).
 
 ## Decision
 
 - Git tracks each sidecar YAML file inside the package tree. The paths follow
-  [Storage layout](../../specs/sidecar/format/file-layout.md#storage-layout) in the spec:
+  [Storage layout](../../specs/model-sidecar/format/file-layout.md#storage-layout) in the spec:
   - `skellytracker/core/detectors/object_detectors/{family}/{model_id}.yaml`
   - `skellytracker/core/detectors/keypoint_detectors/{family}/{part}/{model_id}.yaml`
 - Git does not track ONNX files. `OnnxSession.create()` fetches each ONNX file at run time. It calls
@@ -72,3 +72,5 @@ Checked in the repository on 2026-10-22.
   the archive. It is not the hash of the extracted `.onnx` file.
 - `resolve_model_path()` returns an existing cache file without a hash check. The check runs only on a
   fresh download.
+
+_Edited 2026-10-26 (this PR): link repair._

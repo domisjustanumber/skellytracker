@@ -1,6 +1,6 @@
 """Tests for `tools/sidecar_refs.py`, the reference hash tool.
 
-The trees in these tests are small copies of the layout in `specs/sidecar/format/file-layout.md`.
+The trees in these tests are small copies of the layout in `specs/model-sidecar/format/file-layout.md`.
 `--write` and `--check` must work without `skellytracker`. Only `resolve` imports it.
 """
 
@@ -638,22 +638,22 @@ def test_artifacts_in_a_base_use_the_folder_of_the_derived_sidecar(root: Path) -
 
 
 # --------------------------------------------------------------------------------------------
-# The placeholder is valid only under specs/sidecar/examples/
+# The placeholder is valid only under specs/model-sidecar/examples/
 # --------------------------------------------------------------------------------------------
 
 
 def test_the_placeholder_is_accepted_only_under_the_examples_folder(
     tmp_path: Path,
 ) -> None:
-    examples = tmp_path / "specs" / "sidecar" / "examples"
-    elsewhere = tmp_path / "specs" / "sidecar" / "other"
+    examples = tmp_path / "specs" / "model-sidecar" / "examples"
+    elsewhere = tmp_path / "specs" / "model-sidecar" / "other"
     for base in (examples, elsewhere):
         put(base, standard_files())
         write(base / SIDECAR_REL, base, placeholder=True)
     assert check(examples / SIDECAR_REL, examples) == []
     errors = check(elsewhere / SIDECAR_REL, elsewhere)
     assert len(errors) == 3
-    assert all("placeholder" in e and "specs/sidecar/examples/" in e for e in errors)
+    assert all("placeholder" in e and "specs/model-sidecar/examples/" in e for e in errors)
 
 
 def test_the_placeholder_is_rejected_in_a_plain_folder(root: Path) -> None:
@@ -664,19 +664,19 @@ def test_the_placeholder_is_rejected_in_a_plain_folder(root: Path) -> None:
 def test_the_placeholder_in_a_fragment_outside_the_examples_is_rejected(
     tmp_path: Path,
 ) -> None:
-    sidecar = tmp_path / "specs/sidecar/examples/detectors/m/m.yaml"
-    fragment = tmp_path / "specs/sidecar/other/f.yaml"
+    sidecar = tmp_path / "specs/model-sidecar/examples/detectors/m/m.yaml"
+    fragment = tmp_path / "specs/model-sidecar/other/f.yaml"
     put(
         tmp_path,
         {
-            "specs/sidecar/examples/detectors/m/m.yaml": "model_id: m\nx: {$ref: ../../../other/f.yaml}\n",
-            "specs/sidecar/other/f.yaml": "precision_artifacts:\n  fp32: {filename: f.onnx}\n",
+            "specs/model-sidecar/examples/detectors/m/m.yaml": "model_id: m\nx: {$ref: ../../../other/f.yaml}\n",
+            "specs/model-sidecar/other/f.yaml": "precision_artifacts:\n  fp32: {filename: f.onnx}\n",
         },
     )
     write(sidecar, tmp_path, placeholder=True)
     errors = check(sidecar, tmp_path)
     assert len(errors) == 1
-    assert errors[0].startswith("specs/sidecar/other/f.yaml:")
+    assert errors[0].startswith("specs/model-sidecar/other/f.yaml:")
     assert fragment.exists()
 
 

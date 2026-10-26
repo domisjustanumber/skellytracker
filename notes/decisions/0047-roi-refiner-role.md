@@ -6,10 +6,10 @@
 
 **Proposed, not decided.** This entry records the spec change proposal `roi-refiner-role`. The eight
 parts are in
-[`specs/sidecar/proposals/roi-refiner-role/proposal.md`](../../specs/sidecar/proposals/roi-refiner-role/proposal.md).
+[`specs/model-sidecar/proposals/roi-refiner-role/proposal.md`](../../specs/model-sidecar/proposals/roi-refiner-role/proposal.md).
 
 - **Section:** a new section `post.roi_refiner` ("ROI refiner", file
-  `specs/sidecar/post/roi-refiner.md`, kind `postprocessor`, selector `role=roi_refiner`). The change
+  `specs/model-sidecar/post/roi-refiner.md`, kind `postprocessor`, selector `role=roi_refiner`). The change
   also edits `common.identity`, `common.outputs`, `common.input`, `common.sizes_and_artifacts`,
   `format.file_layout`, `format.versioning`, `post.pose.schema`, `post.unprojection`,
   `pre.resize.rotated_roi_crop`, the exporter guide and the intake template.

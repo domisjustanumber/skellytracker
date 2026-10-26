@@ -1,5 +1,5 @@
 """Tests for skellytracker.core.sidecar.model.SidecarModel against the spec's
-"Validation rules" checklist (specs/sidecar-spec.md). Each test is commented
+"Validation rules" checklist (specs/model-sidecar/sidecar-spec.md). Each test is commented
 with the rule it exercises.
 """
 from __future__ import annotations
