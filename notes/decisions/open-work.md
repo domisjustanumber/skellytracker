@@ -115,9 +115,11 @@ Repository state, not code work ([gtwq](gtwq-random-entry-ids.md)):
   rewording PR must pin the two links to a commit.
 - **Absorption gaps.** The reviews of 2026-10-24 and 2026-10-25 absorbed every accepted entry except
   [0008](0008-vnext-scope.md) and [0011](0011-rtmdet-host-nms.md). The proposals 0042 and 0048
-  supersede 0008, and 0041 supersedes 0011, on acceptance. An absorbed entry cannot be superseded, so
-  these two stay Active until the user decides the proposals. If the user rejects them, absorb 0008
-  into `specs/model-sidecar/changelog.md#considered-and-deliberately-not-added` and 0011 into
+  supersede 0008, and 0041 supersedes 0011, on acceptance. An absorbed entry can be superseded
+  ([ngnb](ngnb-supersede-an-absorbed-entry.md)), but the user chose on 2026-10-26 to keep 0008 and
+  0011 Active until the proposals are decided. Then absorb each entry that no accepted proposal
+  supersedes: absorb 0008 into
+  `specs/model-sidecar/changelog.md#considered-and-deliberately-not-added` and 0011 into
   `specs/model-sidecar/post/selection-nms.md#authoring-guidance`. Close their gaps first: Qualcomm-Exporter
   is out of the `vNEXT` scope until its library is complete (0008), and the `-1` row axis of the RTMDet
   `boxes` and `scores` shapes takes its value from `output_shapes` (0011).

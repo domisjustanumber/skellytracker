@@ -53,9 +53,10 @@ The open work is in [open-work.md](open-work.md).
   supersedes the old entry in full. Do not supersede, amend or correct a part of an entry.
 - The status line of an entry can change. These changes are allowed: `proposed` to `accepted` or
   `rejected`, `accepted` to `superseded by XXXX`, `accepted` to `absorbed into <path>#<anchor>`,
-  `accepted` to `done`, and `evidence` to `evidence; used by XXXX`. Each change adds its date and the
-  PR that made it. In the same PR, change the status in the index and move the row to the table for
-  the new status.
+  `absorbed into <path>#<anchor>` to `superseded by XXXX`, `accepted` to `done`, and `evidence` to
+  `evidence; used by XXXX`. Each change adds its date and the PR that made it. An absorbed entry is
+  superseded when a new entry changes one of its rules. In the same PR, change the status in the
+  index and move the row to the table for the new status.
 - The tables and their status forms: Active (`accepted`, `evidence`) and Proposed (`proposed`) in this
   file, and Historical (`rejected`, `superseded by XXXX`, `absorbed into <path>#<anchor>`,
   `evidence; used by XXXX`, `done`) in [historical.md](historical.md). The Status cell has only a

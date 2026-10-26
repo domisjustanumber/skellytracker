@@ -29,6 +29,7 @@ These entries are `accepted` or `evidence`.
 | [vac0](vac0-record-a-changed-proposal.md) | A changed exporter proposal: a full new copy, the same entry, a ticked "Before acceptance" list | accepted |
 | [k6dz](k6dz-model-sidecar-folder.md) | The sidecar spec folder and its entry point `sidecar-spec.md` move to `specs/model-sidecar/`; a move with no change of rule | accepted |
 | [p3n3](p3n3-ai-attribution-warning.md) | No AI attribution in check-ins; a commit-msg hook warns and does not stop the commit | accepted |
+| [ngnb](ngnb-supersede-an-absorbed-entry.md) | An absorbed entry can be superseded: its status changes from `absorbed into <path>#<anchor>` to `superseded by XXXX` | accepted |
 
 ### Proposed
 
@@ -83,9 +84,11 @@ The open work, the repository state and the spec defects are in [open-work.md](o
   supersedes the old entry in full. Do not supersede a part of an entry.
 - The status line of an entry can change. These changes are allowed: `proposed` to `accepted` or
   `rejected`, `accepted` to `superseded by XXXX`, `accepted` to `absorbed into <path>#<anchor>`,
-  `accepted` to `done`, and `evidence` to `evidence; used by XXXX`. Each change adds its date and the
-  PR that made it. In the same PR, change the status in the index and move the row to the table for
-  the new status. An `evidence` entry becomes `evidence; used by XXXX` when an accepted entry cites
+  `absorbed into <path>#<anchor>` to `superseded by XXXX`, `accepted` to `done`, and `evidence` to
+  `evidence; used by XXXX`. Each change adds its date and the PR that made it. An absorbed entry is
+  superseded when a new entry changes one of its rules ([ngnb](ngnb-supersede-an-absorbed-entry.md)).
+  In the same PR, change the status in the index and move the row to the table for the new status.
+  An `evidence` entry becomes `evidence; used by XXXX` when an accepted entry cites
   it for its decision. Its Decision cell keeps the one-line result.
 - The tables and their status forms: Active (`accepted`, `evidence`) and Proposed (`proposed`) in this
   file, and Historical (`rejected`, `superseded by XXXX`, `absorbed into <path>#<anchor>`,

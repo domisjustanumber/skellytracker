@@ -191,7 +191,9 @@ cell named five other entries.
   ([vac0](../../notes/decisions/vac0-record-a-changed-proposal.md)).
 - The body of a decided entry changes only for a link repair, a typo fix, a redaction, or a change of
   ID with the repair of its citations. Each edit adds a dated `_Edited_` line.
-- A status line can change. Write the date and the PR.
+- A status line can change. Write the date and the PR. An absorbed entry can also change to
+  `superseded by XXXX` when a new entry changes one of its rules
+  ([ngnb](../../notes/decisions/ngnb-supersede-an-absorbed-entry.md)).
 
 ### IDs and parallel work
 

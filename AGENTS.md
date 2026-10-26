@@ -294,9 +294,10 @@ Each of these edits adds an `_Edited_` line with the date and the PR (decision
 To change a decision, add a new entry. It restates the rules that stay and supersedes the old entry
 in full.
 Do not supersede a part of an entry.
-You may change the status line of an entry: `proposed` to `accepted` or `rejected`, and `accepted` to
-`superseded by XXXX`, `absorbed into <path>#<anchor>` or `done`. Write the date and the PR that
-changed it.
+You may change the status line of an entry: `proposed` to `accepted` or `rejected`, `accepted` to
+`superseded by XXXX`, `absorbed into <path>#<anchor>` or `done`, and `absorbed into <path>#<anchor>`
+to `superseded by XXXX` (decision [ngnb](notes/decisions/ngnb-supersede-an-absorbed-entry.md)).
+Write the date and the PR that changed it.
 Keep the log inside the limits of decision
 [z934](notes/decisions/z934-decision-log-index-and-read-path.md).
 `uv run pytest tools/tests` checks the limits.
