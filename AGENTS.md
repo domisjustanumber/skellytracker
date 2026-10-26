@@ -70,7 +70,6 @@ Open PRs against `development`, not `main` ([section 6](#6-git-rules)).
 | `notes/sidecar-exporter-coverage.md` | The plan that extended the spec to the exporter models: the evidence for the `vNEXT` revision |
 | `notes/decisions/` | Decision log ([`README.md`](notes/decisions/README.md)) |
 | `tools/` | `check_links.py` checks the relative links and their `#anchor` targets. `check_private_data.py` checks the files for private data ([section 8](#8-private-data)). `check_split_verbatim.py` checks that the split of the spec only moves text. Its input is `split_manifest.yaml`. The doc tests are in `tools/tests/`: the link check (`test_links.py`), the checks of the reference examples (`test_examples.py`) and the unit tests of the split checker (`test_check_split_verbatim.py`). |
-| `rearchitecture-docs/` | Architecture notes for skellytracker and skellycam, and a rearchitecture playbook |
 | `specs/agents-and-adr-process/` | A guide and a kit for a new repo: `AGENTS.md`, the decision log and the private-data checks. `tools/sync_bootstrap_kit.py` keeps its copies equal to the live files (decision [0031](notes/decisions/0031-bootstrap-kit.md)). |
 | `.github/workflows/` | CI: lint, fast tests, full tests, secret scan, PyPI publish |
 
