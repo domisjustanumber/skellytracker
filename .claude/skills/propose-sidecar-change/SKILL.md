@@ -52,7 +52,7 @@ contributor.
 
 In an exporter repo:
 
-- the intake `plans/sidecar-intake-<model>.md`, with its `near-miss` rows and `gap` rows (from the
+- the intake `plans/sidecar/models/<model>/intake.md`, with its `near-miss` rows and `gap` rows (from the
   skill [`author-sidecar`](../author-sidecar/SKILL.md));
 - the upstream evidence of each row;
 - the committed host implementation of the exporter, if it exists;
@@ -66,19 +66,19 @@ that is missing in part 1.
 
 In skellytracker:
 
-- the proposal files in the exporter repos. Find them with a scan of
-  `../../*-Exporter/plans/sidecar-proposal-*` from the root of the skellytracker repo;
+- the proposal folders in the exporter repos. Find them with a scan of
+  `../../*-Exporter/plans/sidecar/proposals/*/` from the root of the skellytracker repo;
 - or a gap that a skellytracker session finds, with no exporter proposal.
 
 ## Outputs
 
 | Place | Output |
 |---|---|
-| An exporter repo | `plans/sidecar-proposal-<slug>.md`, one for each contract unit. |
-| An exporter repo | `plans/sidecar-reference-<section_module>.py`, the reference implementation of part 3. It exists also when no host code exists yet. |
+| An exporter repo | `plans/sidecar/proposals/<slug>/`, one folder for each contract unit, with `proposal.md`, `vectors/<section ID>.yaml` and the optional `evidence.md` and `example/`. |
+| An exporter repo | `plans/sidecar/proposals/<slug>/reference/<section_module>.py`, the reference implementation of part 3. It exists also when no host code exists yet. |
 | An exporter repo | The parity script of part 5, committed in the exporter repo. |
 | An exporter repo | A link to each proposal in the intake. |
-| skellytracker | `specs/model-sidecar/proposals/<slug>/proposal.md`: the eight parts in full ([faac](../../../notes/decisions/faac-proposal-records.md)). |
+| skellytracker | `specs/model-sidecar/proposals/<slug>/`: `proposal.md` with the eight parts in full ([faac](../../../notes/decisions/faac-proposal-records.md)), and the other files of the exporter folder. |
 | skellytracker | A row in the proposal index [`specs/model-sidecar/proposals/README.md`](../../../specs/model-sidecar/proposals/README.md). |
 | skellytracker | `notes/decisions/<id>-<slug>.md`: a short decision entry "Spec change: <slug>", with the status `proposed`. |
 | skellytracker | A row for the entry in the Proposed table of [`notes/decisions/README.md`](../../../notes/decisions/README.md). |
@@ -121,9 +121,9 @@ In skellytracker:
 
 ### Step 3: Write each proposal
 
-1. Copy the change proposal template to `plans/sidecar-proposal-<slug>.md`. `<slug>` is a short
-   lowercase name of the change, with hyphens. If the file exists, read it and update it in place.
-   Do not overwrite a `plans/sidecar-*` file that you did not read. `plans/` is not in git, so you
+1. Copy the change proposal template to `plans/sidecar/proposals/<slug>/proposal.md`. `<slug>` is a
+   short lowercase name of the change, with hyphens. If the file exists, read it and update it in
+   place. Do not overwrite a file of `plans/sidecar/` that you did not read. `plans/` is not in git, so you
    cannot undo an overwrite.
 2. Follow [How to use this template](../../../specs/model-sidecar/templates/change-proposal.md#how-to-use-this-template).
 3. Fill in the [Header](../../../specs/model-sidecar/templates/change-proposal.md#header).
@@ -133,8 +133,8 @@ In skellytracker:
    |---|---|---|
    | 1 | [1. Gap](../../../specs/model-sidecar/templates/change-proposal.md#1-gap) | Give a number where possible. |
    | 2 | [2. Spec change](../../../specs/model-sidecar/templates/change-proposal.md#2-spec-change) | Write the exact normative text in ASD-STE100. List each place that the change edits. |
-   | 3 | [3. Reference implementation](../../../specs/model-sidecar/templates/change-proposal.md#3-reference-implementation) | Use only NumPy, OpenCV and the Python standard library. Write `plans/sidecar-reference-<section_module>.py`. If no host code exists yet, write the functions from the text of part 2, and write `source commit: none (no host code)` in the note at the top of the file. |
-   | 4 | [4. Vectors](../../../specs/model-sidecar/templates/change-proposal.md#4-vectors) | Make the vectors with part 3. Verify them against the host implementation. If you cannot, write `unverified: <reason>`. Give each pixel case a tolerance in `compare`. |
+   | 3 | [3. Reference implementation](../../../specs/model-sidecar/templates/change-proposal.md#3-reference-implementation) | Use only NumPy, OpenCV and the Python standard library. Write `reference/<section_module>.py` in the proposal folder. If no host code exists yet, write the functions from the text of part 2, and write `source commit: none (no host code)` in the note at the top of the file. |
+   | 4 | [4. Vectors](../../../specs/model-sidecar/templates/change-proposal.md#4-vectors) | Make the vectors with part 3. Verify them against the host implementation. If you cannot, write `unverified: <reason>`. Give each pixel case a tolerance in `compare`. Write the cases to `vectors/<section ID>.yaml` in the proposal folder, in the case form of the template (ADR-[a33q](../../../notes/decisions/a33q-vector-case-form.md)). |
    | 5 | [5. Parity evidence](../../../specs/model-sidecar/templates/change-proposal.md#5-parity-evidence) | Follow [Parity](../../../specs/model-sidecar/model-addition-workflow/parity.md#parity). Commit the script. If you cannot run the script or commit it, write `to run` and describe the script. If you do not know the path or the commit of the script, write `unknown (<reason>)`. |
    | 6 | [6. skellytracker implementation proposal](../../../specs/model-sidecar/templates/change-proposal.md#6-skellytracker-implementation-proposal) | Read the package code in the checkout. If a call site is not known, write `for the implementer`. |
    | 7 | [7. Exporter impact](../../../specs/model-sidecar/templates/change-proposal.md#7-exporter-impact) | Name each exporter that must write new fields or regenerate sidecars. |
@@ -159,7 +159,7 @@ In skellytracker:
    - the primary evidence that each proposal still needs;
    - the spec defects that you found and did not propose;
    - each result that is `to run`;
-   - each `plans/sidecar-*` file that no current intake or proposal owns.
+   - each file of `plans/sidecar/` that no current intake or proposal owns.
 5. A skellytracker session records each proposal (phase 3). The user accepts or rejects it.
 6. If you changed a proposal that skellytracker already recorded (the folder
    `specs/model-sidecar/proposals/<slug>/` exists in the checkout), tell the user. A skellytracker session
@@ -184,7 +184,9 @@ In skellytracker:
 
 ### Step 2: Get the proposal
 
-1. Find the exporter proposals with a scan of `../../*-Exporter/plans/sidecar-proposal-*`.
+1. Find the exporter proposals with a scan of `../../*-Exporter/plans/sidecar/proposals/*/`. Also
+   scan the old names `../../*-Exporter/plans/sidecar-proposal-*`. If you find an old name, tell the
+   user that the exporter must move it to its folder.
 2. Read the exporter repos. Do not change them.
 3. Check each exporter proposal with
    [Before you stop](../../../specs/model-sidecar/templates/change-proposal.md#before-you-stop).
@@ -212,8 +214,11 @@ Decision [faac](../../../notes/decisions/faac-proposal-records.md) gives the rul
    `landed` or `rejected`.
 3. Write the source note at the top of the file: the exporter repo, its commit and the date of the
    copy. For an exporter with no git repo, write `none (no git repo)` as the commit.
-4. Copy the header and all eight parts in full. The code of part 3 is a `python` code block. The YAML
-   of part 4 is a `yaml` code block.
+4. Copy the header and all eight parts in full. Copy the other files of the exporter folder
+   (`reference/`, `vectors/`, `evidence.md` and `example/`) to the same paths in
+   `specs/model-sidecar/proposals/<slug>/`. Apply the changes of item 5 to each file. An exporter
+   proposal with an old name has part 3 and part 4 in the file: copy them as a `python` code block
+   and a `yaml` code block (ADR-[pykx](../../../notes/decisions/pykx-submission-folders.md)).
 5. Change only these items:
    - a `plans/` path becomes "the untracked <topic> plan of <repo> (plan facts)", with no path;
    - private data is redacted ([Private data](../../../AGENTS.md#8-private-data));

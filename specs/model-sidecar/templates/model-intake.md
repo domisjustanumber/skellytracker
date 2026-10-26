@@ -19,9 +19,10 @@ that holds it. Read the skellytracker files in the skellytracker checkout (read-
 
 ## How to use this template
 
-1. Copy this file to `plans/sidecar-intake-<model>.md` in the exporter repo. `<model>` is the
+1. Copy this file to `plans/sidecar/models/<model>/intake.md` in the exporter repo. `<model>` is the
    `model_id` of the family. If that file exists, read it and update it in place. Do not overwrite it
-   without a read: git does not track `plans/`.
+   without a read: git does not track `plans/`. The model addition workflow gives the folder layout
+   (`specs/model-sidecar/model-addition-workflow/README.md`, "Files in `plans/`").
 2. Change the title to `# Model intake: <model>`.
 3. Fill in every slot. Do not delete a pre-filled row. Do not leave a cell empty. If a value does not
    apply or is not known, write `not used`, `missing`, `unknown`, `to run`, `skipped` or `none`, with
@@ -546,7 +547,7 @@ If the verdict is `describes`, a skellytracker session can add the sidecar as a 
 **Proposals.** Write one row for each proposal. Write each proposal with the change proposal template
 (`specs/model-sidecar/templates/change-proposal.md`).
 
-| Intake rows | Proposal file (`plans/sidecar-proposal-<slug>.md`) | Proposed section ID (the `id` in the section file's front matter) | New or changed section | Depends on (proposal files, or `none`) |
+| Intake rows | Proposal folder (`plans/sidecar/proposals/<slug>/`) | Proposed section ID (the `id` in the section file's front matter) | New or changed section | Depends on (proposal folders, or `none`) |
 |---|---|---|---|---|
 | | | | | |
 
@@ -563,8 +564,6 @@ reference implementation of that section. Do it for every verdict.
 - `<section_module>` is the section ID from the front matter of the section file (`id`), with each
   dot replaced by an underscore (`pre.resize.letterbox` gives `pre_resize_letterbox`). Write the
   section ID in the note at the top of the file.
-- Python cannot import `plans/sidecar-reference-<section_module>.py` by its name, because the name has
-  hyphens. Load it with `importlib.util.spec_from_file_location`, or run it as a script.
 - Write the clean, minimal form of the host code. Use only NumPy, OpenCV and the Python standard
   library. Do not import from the exporter or from skellytracker. Write one function for each
   algorithm.
@@ -574,12 +573,12 @@ reference implementation of that section. Do it for every verdict.
   has no vector file yet, record that.
 - Run the functions in place of the host code in the parity check of the exporter. Record that the
   result does not change.
-- Write the functions to `plans/sidecar-reference-<section_module>.py` in the exporter repo. Put a short
+- Write the functions to `plans/sidecar/reference/<section_module>.py` in the exporter repo. Put a short
   note at the top of the file: the section ID, the source commit, the vector results and the parity
   result. Then stop.
 - If the host code and an existing reference implementation do not agree, you found a spec defect or a
   bug. Write a proposal. Do not write a second reference implementation.
 
-| Section ID (the `id` in the section file's front matter) | Host code (file, function and commit) | Reference file (`plans/sidecar-reference-<section_module>.py`) | Vector result | Parity result unchanged (`yes`, `no` or `to run`) |
+| Section ID (the `id` in the section file's front matter) | Host code (file, function and commit) | Reference file (`plans/sidecar/reference/<section_module>.py`) | Vector result | Parity result unchanged (`yes`, `no` or `to run`) |
 |---|---|---|---|---|
 | | | | | |

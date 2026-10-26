@@ -18,13 +18,14 @@ skellytracker checkout (read-only) `../freemocap/skellytracker`.
 ## How to use this template
 
 1. Write one proposal for each new or changed contract unit. Do not put two units in one proposal.
-2. Copy this file to `plans/sidecar-proposal-<slug>.md` in the exporter repo. `<slug>` is a short
-   lowercase name of the change, with hyphens, for example `letterbox-floor-rounding`. If that file
-   exists, read it and update it in place. Do not overwrite it without a read: git does not track
-   `plans/`.
+2. Copy this file to `plans/sidecar/proposals/<slug>/proposal.md` in the exporter repo. `<slug>` is
+   a short lowercase name of the change, with hyphens, for example `letterbox-floor-rounding`. If
+   that file exists, read it and update it in place. Do not overwrite it without a read: git does not
+   track `plans/`. The model addition workflow gives the other files of the folder
+   (`specs/model-sidecar/model-addition-workflow/README.md`, "Files in `plans/`").
 3. Change the title to `# Change proposal: <slug>`.
-4. Link the proposal from the intake (`plans/sidecar-intake-<model>.md`, "Proposals and reference
-   files").
+4. Link the proposal folder from the intake (`plans/sidecar/models/<model>/intake.md`, "Proposals
+   and reference files").
 5. Fill in all eight parts. Do not delete a part. If a part has no content, write `none` and the
    reason. If you do not know a value, write `unknown (<reason>)`.
 6. Write the proposed spec text in ASD-STE100 Simplified Technical English. Use short sentences and
@@ -82,7 +83,7 @@ You do not do these steps. A skellytracker session does them, and the user decid
 | Date | |
 | Exporter repo | |
 | Exporter commit (`git rev-parse HEAD` in the exporter repo, or `none (no git repo)`) | |
-| Model, and its intake file (`plans/sidecar-intake-<model>.md`) | |
+| Model, and its intake file (`plans/sidecar/models/<model>/intake.md`) | |
 | Intake rows with the verdict `near-miss` or `gap` | |
 | Kind (`new section` or `changed section`) | |
 | Proposed section ID (the `id` in the section file's front matter) | |
@@ -205,20 +206,19 @@ the same file).
 - If the proposal changes a section that has no reference implementation, implement the full section
   as changed (forward, inverse and every value), not only the change. Then this file is also the
   reference-implementation step of that section.
-- Write the code to `plans/sidecar-reference-<section_module>.py` in the exporter repo. Name that file
-  here.
+- Write the code to `reference/<section_module>.py` in the proposal folder. Name that file here.
 - `<section_module>` is the proposed section ID with each dot replaced by an underscore
   (`pre.resize.letterbox` gives `pre_resize_letterbox`). A proposal always uses the proposed section
   ID. For a changed section, that is the `id` in the front matter of its section file.
-- Python can import the target file `specs/model-sidecar/reference/<section_module>.py` by its name. The
-  exporter file name has hyphens, so Python cannot import it by its name. Load it with
-  `importlib.util.spec_from_file_location`, or run it as a script.
+- The folder `specs/model-sidecar/reference/` is not a Python package, and its path has a hyphen.
+  Load a reference file by its path with `importlib.util.spec_from_file_location`, or run it as a
+  script.
 - On acceptance, skellytracker adds the code as `specs/model-sidecar/reference/<section_module>.py`. It is
   informative spec code, not package code. It is the single executable meaning of the new text.
 
 | Item | Value |
 |---|---|
-| Reference file in the exporter repo (`plans/sidecar-reference-<section_module>.py`) | |
+| Reference file in the proposal folder (`reference/<section_module>.py`) | |
 | Target file in skellytracker (`specs/model-sidecar/reference/<section_module>.py`) | |
 | Functions (one for each algorithm) | |
 
@@ -271,6 +271,8 @@ expected output.
   `generated_by` is `tools/make_vectors.py`. The new `cases` must be equal to your cases. If they are
   not equal, the landing stops.
 - A vector file must be smaller than 64 KiB.
+- Write the vectors to `vectors/<section ID>.yaml` in the proposal folder. Name that file here. Do
+  not copy the cases into this part.
 - The target file in skellytracker is `specs/model-sidecar/vectors/<section ID>.yaml`.
 
 ```yaml
@@ -393,6 +395,19 @@ decoder of the proposing exporter.
 The skellytracker package sidecars have `schema_version: "v2024.09.1019"`. Their legacy meaning must
 not change.
 
+**Candidate example.** Optional. Write it only after the host code implements the proposed text. The
+sidecar writer code writes it, with the proposed fields. Put it in `example/detectors/...` of the
+proposal folder, in the storage layout, with each fragment that it names. Write
+`example/provenance.yaml` with the `examples` entry and the `fragments` entries, in the form of
+`specs/model-sidecar/inventory.yaml`. The candidate is not a spec example. After acceptance,
+skellytracker copies the real export.
+
+| Item | Value |
+|---|---|
+| Candidate example in the proposal folder (`example/detectors/...`, or `none`) | |
+| Writer code (file, function and commit) | |
+| `sidecar_refs.py --check` result | |
+
 ## 8. Alternatives considered
 
 List each alternative and the reason why you rejected it. Include the near-miss: the nearest section
@@ -414,7 +429,8 @@ write `n/a` after it.
       `none`. This proposal builds on such an entry. It does not compete with it.
 - [ ] Part 1 cites primary evidence, or names the primary evidence that is missing.
 - [ ] Part 2.1 lists each place that the change edits.
-- [ ] Part 3 names the reference file, and the file exists in `plans/`.
+- [ ] Part 3 names the reference file, and the file exists in the proposal folder.
+- [ ] Part 4 names the vector file, and the file exists in the proposal folder.
 - [ ] Part 4 gives `verified_against`, or `unverified: <reason>`.
 - [ ] Each pixel case in part 4 has its tolerance in `compare`.
 - [ ] Part 5 gives the numbers, the script path and the commit, or says `to run` and describes the

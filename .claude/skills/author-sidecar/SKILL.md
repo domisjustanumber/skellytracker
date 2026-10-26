@@ -62,16 +62,16 @@ Write these files in the exporter repo
 
 | Output | When |
 |---|---|
-| `plans/sidecar-intake-<model>.md` | Always. One file for each family. `<model>` is the `model_id` of the family. |
+| `plans/sidecar/models/<model>/intake.md` | Always. One file for each family. `<model>` is the `model_id` of the family. |
 | The sidecar, from the sidecar writer code of the exporter | Only when every row is `exact` or `out of scope`. |
 | A draft of the sidecar, the rule walk and the parity plan, in the intake | When no row is `near-miss` or `gap`, and a row is `unverified`. The results are provisional. |
 | The parity script, committed in the exporter repo | When you can run the parity check. |
-| `plans/sidecar-reference-<section_module>.py` | For each section that the exporter implements on its host side and that has no reference implementation. |
-| `plans/sidecar-proposal-<slug>.md` | The skill `propose-sidecar-change` writes one for each `near-miss` or `gap`. |
+| `plans/sidecar/reference/<section_module>.py` | For each section that the exporter implements on its host side and that has no reference implementation. |
+| `plans/sidecar/proposals/<slug>/` | The skill `propose-sidecar-change` writes one folder for each `near-miss` or `gap`. |
 
-Do not commit the `plans/sidecar-*` files.
+Do not commit the files of `plans/sidecar/`.
 
-Before you write a `plans/sidecar-*` file, look for it. If it exists, read it and update it in place.
+Before you write a file of `plans/sidecar/`, look for it. If it exists, read it and update it in place.
 Do not overwrite a file that you did not read. `plans/` is not in git, so you cannot undo an
 overwrite.
 
@@ -80,7 +80,7 @@ overwrite.
 ### Step 1: Prepare
 
 1. Before the overhaul of the exporter, run this workflow only when the user asks. Then write only the
-   `plans/sidecar-*` files, unless the user permits more
+   files of `plans/sidecar/`, unless the user permits more
    ([How to use this guide](../../../specs/draft/exporter-guide/sidecars/README.md#how-to-use-this-guide)).
 2. Do the steps of
    [Where to read the spec](../../../specs/draft/exporter-guide/sidecars/where-to-read.md#where-to-read-the-spec). Get the
@@ -96,10 +96,13 @@ overwrite.
 
 ### Step 2: Start the intake
 
-1. Copy the model intake template to `plans/sidecar-intake-<model>.md`. If the file exists, read it
-   and update it in place.
-2. List the other `plans/sidecar-*` files. Do not delete or overwrite them. In step 8, tell the user
-   about each file that no current intake or proposal owns.
+1. Copy the model intake template to `plans/sidecar/models/<model>/intake.md`. If the file exists,
+   read it and update it in place.
+2. List the other files of `plans/sidecar/`. Do not delete or overwrite them. In step 8, tell the user
+   about each file that no current intake or proposal owns. If you find a file with an old name
+   (`plans/sidecar-intake-<model>.md`, `plans/sidecar-proposal-<slug>.md` or
+   `plans/sidecar-reference-<section_module>.py`), move it to its new path
+   ([Files in `plans/`](../../../specs/model-sidecar/model-addition-workflow/README.md#files-in-plans)).
 3. Follow [How to use this template](../../../specs/model-sidecar/templates/model-intake.md#how-to-use-this-template).
 4. Fill in [Inputs before you start](../../../specs/model-sidecar/templates/model-intake.md#inputs-before-you-start).
 5. Fill in the [Header](../../../specs/model-sidecar/templates/model-intake.md#header). Write the
@@ -217,7 +220,7 @@ Do this step for every final verdict, also after step 6. Follow
    implementation.
 5. Skip a part of the spec that has no algorithm, for example `input.layout`.
 6. For each other section, do "The step" of Reference implementations. Write
-   `plans/sidecar-reference-<section_module>.py`.
+   `plans/sidecar/reference/<section_module>.py`.
 7. If the host code is not committed, write `to run`. Do the step after the commit.
 8. Fill in the reference table in
    [Proposals and reference files](../../../specs/model-sidecar/templates/model-intake.md#proposals-and-reference-files).
@@ -239,7 +242,9 @@ Do this step for every final verdict, also after step 6. Follow
    - the exporter defects;
    - the spec defects that you found and did not propose;
    - each result that is `to run`;
-   - each `plans/sidecar-*` file that no current intake or proposal owns.
+   - each file of `plans/sidecar/` that no current intake or proposal owns;
+   - each folder of `plans/sidecar/` that is complete
+     ([When a folder is complete](../../../specs/model-sidecar/model-addition-workflow/README.md#when-a-folder-is-complete)).
 5. A skellytracker session does phase 3
    ([Phase 3](../../../specs/model-sidecar/model-addition-workflow/phase-3-skellytracker.md#phase-3-what-skellytracker-does-next)).
 

@@ -3,7 +3,10 @@
 This folder holds the spec change proposals that skellytracker has recorded (decision
 [faac](../../../notes/decisions/faac-proposal-records.md)). Each proposal has one folder,
 `<slug>/`, with the file `proposal.md`. That file holds the header and all eight parts of the
-proposal, a source note and the heading "Before acceptance".
+proposal, a source note and the heading "Before acceptance". The folder also holds the other files of
+the exporter folder: `reference/<section_module>.py` (part 3), `vectors/<section ID>.yaml` (part 4),
+and the optional `evidence.md` and `example/` (a candidate example). An older record has part 3 and
+part 4 in `proposal.md` (ADR-[pykx](../../../notes/decisions/pykx-submission-folders.md)).
 
 The files are informative. A proposal is not normative until a content PR lands its text in the
 section files. The decision entry of each proposal records its status. The skill

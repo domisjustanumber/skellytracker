@@ -10,8 +10,9 @@ You do not do phase 3. A skellytracker session does it. The user decides.
    legacy-only fields; your checks pass; parity passes for at least one size. The
    procedure copies your sidecar byte for byte. If your sidecar breaks a spec rule, fix your writer code
    or write a change proposal. Nobody corrects the example by hand.
-2. **A proposal.** skellytracker copies it to `specs/model-sidecar/proposals/<slug>/proposal.md`, with all
-   eight parts. It records it as a short decision entry with status `proposed` (skellytracker
+2. **A proposal.** skellytracker copies your proposal folder to
+   `specs/model-sidecar/proposals/<slug>/`: `proposal.md` with all eight parts, and the other files of
+   the folder. It records it as a short decision entry with status `proposed` (skellytracker
    decision faac). If you change the proposal after that copy, tell the user. skellytracker then
    records it again: it replaces the copy in full, ticks the closed items of "Before acceptance"
    and keeps the same entry (skellytracker decision vac0). The user accepts or rejects it. After

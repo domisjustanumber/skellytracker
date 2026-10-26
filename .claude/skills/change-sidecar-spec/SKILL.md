@@ -31,13 +31,15 @@ outputs and the stop points.
 
 | Input | Where it comes from |
 |---|---|
-| An intake with the final verdict `describes` | `plans/sidecar-intake-<model>.md` in an exporter repo |
+| An intake with the final verdict `describes` | `plans/sidecar/models/<model>/intake.md` in an exporter repo |
 | A proposal that the user accepted | A decision entry with the status `proposed`, and its proposal file `specs/model-sidecar/proposals/<slug>/proposal.md` ([faac](../../../notes/decisions/faac-proposal-records.md)) |
-| A reference implementation of an exporter | `plans/sidecar-reference-<section_module>.py` in an exporter repo |
+| A reference implementation of an exporter | `plans/sidecar/reference/<section_module>.py` in an exporter repo |
 | Another spec edit | A request of the user, an item of the spec-defect list in [`notes/decisions/open-work.md`](../../../notes/decisions/open-work.md), or the release step |
 
-Find the exporter files with a scan of `../../*-Exporter/plans/sidecar-*` from the root of the
-skellytracker repo. Read the exporter repos. Do not change them.
+Find the exporter files with a scan of `../../*-Exporter/plans/sidecar/` from the root of the
+skellytracker repo ([Files in `plans/`](../../../specs/model-sidecar/model-addition-workflow/README.md#files-in-plans)).
+Also scan the old names `../../*-Exporter/plans/sidecar-*`. If you find an old name, tell the user
+that the exporter must move it. Read the exporter repos. Do not change them.
 
 ## Outputs
 
@@ -85,13 +87,15 @@ Do this procedure for step 2 of phase 3.
    decision [vac0](../../../notes/decisions/vac0-record-a-changed-proposal.md)).
 5. Write the `changelog.md` rows.
 6. Copy the reference implementation of part 3 to `specs/model-sidecar/reference/<section_module>.py`.
+   Its source is `specs/model-sidecar/proposals/<slug>/reference/<section_module>.py`, or the `python`
+   code block of part 3 in an older record.
 7. If `tools/tests` has no test that runs the reference functions against the vectors of their
    section, add that test in the same PR.
 8. Make the generator `tools/make_vectors.py` call the reference implementation for the section.
    Load it with `load_reference`. Remove the formula version of that section from the generator.
 9. Write the vectors with `uv run python tools/make_vectors.py`. Do not edit a vector file by hand.
-   The `cases` of the new file must be equal to the cases of part 4 of the proposal. If they are not
-   equal, stop and tell the user. This check proves the copy and the generator wiring. It does not
+   The `cases` of the new file must be equal to the cases of part 4 of the proposal
+   (`specs/model-sidecar/proposals/<slug>/vectors/<section ID>.yaml`). If they are not equal, stop and tell the user. This check proves the copy and the generator wiring. It does not
    verify an independent implementation (ADR-[a33q](../../../notes/decisions/a33q-vector-case-form.md)).
 10. Change the status line of the decision entry from `proposed` to `accepted`. Write the date and the
     PR ([Rules](../../../notes/decisions/README.md#rules)). Move its row from the Proposed table to
@@ -114,7 +118,7 @@ Do this procedure for step 2 of phase 3.
 
 ## Procedure C: land a reference implementation of an exporter
 
-Do this procedure when the scan finds a `plans/sidecar-reference-<section_module>.py` file. Follow
+Do this procedure when the scan finds a `plans/sidecar/reference/<section_module>.py` file. Follow
 [Reference implementations](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#reference-implementations)
 and [Independence](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence)
 in the model addition workflow

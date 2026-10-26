@@ -34,10 +34,9 @@ proposed section ID.
   the inverse with the forward algorithm (the heading "Inverse"). Do not put two sections together in
   one module.
 - Write the section ID in the note at the top of the file.
-- Python can import the skellytracker file `specs/model-sidecar/reference/<section_module>.py` by its name.
-  The file `plans/sidecar-reference-<section_module>.py` of your repo has hyphens in its name, so Python
-  cannot import it by its name. Load it with `importlib.util.spec_from_file_location`, or run it as a
-  script.
+- The folder `specs/model-sidecar/reference/` is not a Python package, and its path has a hyphen.
+  Load a reference file by its path with `importlib.util.spec_from_file_location`, or run it as a
+  script. In skellytracker, `load_reference` of `tools/make_vectors.py` does this.
 - The heading "Reference mappings in skellytracker" in
   `../freemocap/skellytracker/specs/model-sidecar/post/canonical-mapping.md` (the old spec heading
   "Reference implementations" under `pose.canonical_mapping`) is about the canonical mapping files of
@@ -54,9 +53,10 @@ The step (the skill `author-sidecar` includes it):
    code, and record both results. If the section has no vector file yet, record that.
 3. Run the functions in place of your host code in your parity check. Record that the
    result does not change. If you cannot run the parity check yet, write `to run`.
-4. Write the functions to `plans/sidecar-reference-<section_module>.py` in your repo. Put a
+4. Write the functions to `plans/sidecar/reference/<section_module>.py` in your repo. Put a
    short note at the top of the file: the section ID, the source commit, the vector results and the
-   parity result.
+   parity result. The reference implementation of a proposal is in its proposal folder instead
+   (phase 2, part 3).
 5. Stop. A skellytracker session lands the file. It adds `specs/model-sidecar/reference/<section_module>.py`,
    adds the implementation to `verified_against` in the vector file of the section, and adds the
    exporter function to `external_impl` of the section.

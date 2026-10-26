@@ -2,8 +2,9 @@
 
 Write one proposal for each new or changed contract unit (one section). Fill
 `../freemocap/skellytracker/specs/model-sidecar/templates/change-proposal.md`. Write each proposal to
-`plans/sidecar-proposal-<slug>.md`. The skill `propose-sidecar-change` gives the order of the steps.
-The intake links to each proposal. Then stop.
+the folder `plans/sidecar/proposals/<slug>/`, with the files that
+[Files in `plans/`](README.md#files-in-plans) gives. The skill `propose-sidecar-change` gives the
+order of the steps. The intake links to each proposal folder. Then stop.
 
 Before you write a proposal:
 
@@ -48,13 +49,13 @@ A proposal has eight parts:
    `V-pre.resize.affine_person_crop-2`: a sidecar with `pose.requires_object_detector: true` declares
    `input.resize.method: affine_person_crop`. List each place in the proposal. These edits are part
    of the same contract unit: a new role, with its enum and path edits, is one proposal. The
-   proposed text can contain YAML excerpts. Do not write a sidecar file of the model with the
-   proposed fields.
+   proposed text can contain YAML excerpts. Do not put a full sidecar in the proposed text. A
+   candidate example of the model is a separate file (part 7).
 3. **Reference implementation.** Write the smallest functions that implement exactly the proposed
    text. Use only NumPy, OpenCV and the Python standard library. Write one function for each
    algorithm. Each docstring cites the proposed section ID. Write the code to
-   `plans/sidecar-reference-<section_module>.py`. Make `<section_module>` from the proposed section
-   ID. If the proposal changes a section that has no reference implementation, the file implements the
+   `reference/<section_module>.py` in the proposal folder. Make `<section_module>` from the proposed
+   section ID. If the proposal changes a section that has no reference implementation, the file implements the
    full section as changed, not only the change. Then this file is also the reference-implementation
    step of that section. Name the file in the proposal. On acceptance, skellytracker adds it as
    `specs/model-sidecar/reference/<section_module>.py`. It is informative spec code, not package code. It is
@@ -68,9 +69,11 @@ A proposal has eight parts:
    Include a case for each branch, each tie and each strict comparison. If a parameter can be a scalar
    or one value for each channel (for example `pad_value`), include a case with a scalar value on a
    3-channel input. Pixel-exact resize output is out of scope. If you need a pixel case, state its
-   tolerance in `compare`. Write the vectors in part 4 of the proposal, in the YAML form that the
-   template gives. On acceptance, skellytracker adds them as
-   `specs/model-sidecar/vectors/<section ID>.yaml`.
+   tolerance in `compare`. Write the vectors to `vectors/<section ID>.yaml` in the proposal folder,
+   in the case form that part 4 of the template gives (skellytracker ADR-a33q). Name the file in
+   part 4. On acceptance, the skellytracker generator writes
+   `specs/model-sidecar/vectors/<section ID>.yaml` from the reference implementation. Its cases must
+   be equal to your cases.
 5. **Parity evidence.** Run the real model, with the reference implementation in place of the missing
    spec feature. Follow [Parity](parity.md#parity). Give the numbers, the script and the commit. If you cannot run the
    check yet, write `to run` and describe the script. A skellytracker session can record a proposal
@@ -92,4 +95,13 @@ A proposal has eight parts:
    becomes the implementer guidance of the section and an open-work item.
 7. **Exporter impact.** Name the exporters that must write new fields or regenerate sidecars. Describe
    the change to your own host decoder.
+
+   A candidate example is optional. Write it only after your host code implements the proposed text.
+   Your sidecar writer code writes it, with the proposed fields. Do not write it by hand. Put it in
+   `example/detectors/...` of the proposal folder, in the storage layout, with each fragment that it
+   names. Write `example/provenance.yaml` with an `examples` entry and a `fragments` entry for each
+   fragment that has no package copy, with the keys of `specs/model-sidecar/inventory.yaml`. Run
+   `python ../freemocap/skellytracker/tools/sidecar_refs.py --check <sidecar>` on it. The candidate
+   shows the reviewer the full sidecar. It is not a spec example. After acceptance, the procedure
+   [Reference examples](reference-examples.md) copies your real export.
 8. **Alternatives considered.** Include the near-miss, and the reason why you rejected it.

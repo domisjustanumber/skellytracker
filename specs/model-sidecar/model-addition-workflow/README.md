@@ -66,27 +66,65 @@ the exporters in the same cycle.
 
 ## Files in `plans/`
 
-Write these files in the `plans/` folder of your repo:
+Write the files of the submission in the folder `plans/sidecar/` of your repo. Each folder holds the
+files of one model or of one proposal. It stays in your repo until skellytracker has landed its
+files (ADR-[pykx](../../../notes/decisions/pykx-submission-folders.md)).
 
-| File | Content |
-|---|---|
-| `plans/sidecar-intake-<model>.md` | The filled model intake template (phase 1). One file for each family. |
-| `plans/sidecar-proposal-<slug>.md` | One change proposal for each gap (phase 2). |
-| `plans/sidecar-reference-<section_module>.py` | One reference implementation for each section that you implemented on the host side (see "Reference implementations"). |
+```text
+plans/sidecar/
+  models/<model_id>/
+    intake.md                       # the filled model intake template (phase 1)
+  proposals/<slug>/                 # one folder for each contract unit (phase 2)
+    proposal.md                     # the filled change proposal template
+    reference/<section_module>.py   # part 3: the reference implementation
+    vectors/<section ID>.yaml       # part 4: the vectors
+    evidence.md                     # optional: long parity tables and long evidence
+    example/                        # optional: a candidate example (phase 2, part 7)
+      detectors/...                 # the sidecar and its fragments, in the storage layout
+      provenance.yaml               # its entries for inventory.yaml
+  reference/<section_module>.py     # a reference implementation of the current spec text
+```
 
-- `<model>` is the `model_id` of the family.
+- `<model_id>` is the `model_id` of the family. Write one intake for each family.
 - `<slug>` is a short lowercase name of the proposed change, with hyphens, for example
   `letterbox-floor-rounding`.
 - `<section_module>` names one section. "Reference implementations" gives the rule.
-- Use these file names exactly. A skellytracker session finds the files with a scan of
-  `plans/sidecar-*` in each exporter repo. If your repo is not an exporter repo, tell the user or the
-  skellytracker maintainers the path of your `plans/` folder.
-- `plans/` is a local folder. Do not commit the `plans/sidecar-*` files.
-- Before you write a `plans/sidecar-*` file, look for it. If it exists, read it and update it in
+- Each file name in a proposal folder is the name of its target file in skellytracker. When
+  skellytracker records the proposal, it copies the folder to `specs/model-sidecar/proposals/<slug>/`.
+  When it lands the proposal, it copies `reference/<section_module>.py` to
+  `specs/model-sidecar/reference/`, and the generator writes `vectors/<section ID>.yaml` to
+  `specs/model-sidecar/vectors/`. The candidate example does not land. After acceptance, the
+  procedure [Reference examples](reference-examples.md) copies your real export.
+- A proposal folder serves each model that needs it. Do not copy it into a model folder. The intake
+  links to each proposal folder.
+- `plans/sidecar/reference/` holds only the reference implementations of the current spec text
+  ("Reference implementations"). The reference implementation of a proposal is in its folder.
+- Use these names exactly. A skellytracker session finds the files with a scan of `plans/sidecar/`
+  in each exporter repo. If your repo is not an exporter repo, tell the user or the skellytracker
+  maintainers the path of your `plans/` folder.
+- `plans/` is a local folder. Do not commit the files of `plans/sidecar/`.
+- Before you write a file of `plans/sidecar/`, look for it. If it exists, read it and update it in
   place. Do not overwrite a file that you did not read. Git does not track `plans/`, so you cannot
   undo an overwrite.
-- When you stop, tell the user about each `plans/sidecar-*` file that no current intake or proposal
+- If you find a file with an old name (`plans/sidecar-intake-<model>.md`,
+  `plans/sidecar-proposal-<slug>.md` or `plans/sidecar-reference-<section_module>.py`), move it to its
+  new path. Move it, do not copy it. Tell the user.
+- When you stop, tell the user about each file of `plans/sidecar/` that no current intake or proposal
   owns. Do not delete it.
+
+### When a folder is complete
+
+skellytracker shows when it has landed each file. A folder is complete when each of these items is
+true:
+
+- A model folder: the example of the model is in `specs/model-sidecar/inventory.yaml`, and each
+  proposal folder that its intake links to is complete.
+- A proposal folder: the proposal has `state: landed` or `state: rejected` in
+  `specs/model-sidecar/proposals/README.md`.
+- A file in `plans/sidecar/reference/`: `specs/model-sidecar/reference/<section_module>.py` exists,
+  and your function is in `external_impl` of the section.
+
+When a folder is complete, tell the user. The user deletes the folder. Do not delete it yourself.
 
 ## Files that you commit
 

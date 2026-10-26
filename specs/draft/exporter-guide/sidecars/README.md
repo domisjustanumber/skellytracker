@@ -26,7 +26,7 @@ spec. If this guide and the spec do not agree, the spec is correct.
   Do not copy the [Sidecars](#sidecars) section. The block tells the agents of that exporter to read
   the Sidecars section here before each sidecar task, and to follow the model addition workflow.
 - Before its overhaul, an exporter agent runs the workflow only when the user asks. Then it writes only
-  the `plans/sidecar-*` files, unless the user permits more.
+  the files of `plans/sidecar/`, unless the user permits more.
 - The Sidecars section names each file by its path in the skellytracker checkout, in a code span. It has
   no relative Markdown links, because exporter agents open its paths from the root of the exporter
   repo. The block for the exporter `AGENTS.md` has no relative links, because relative links break
