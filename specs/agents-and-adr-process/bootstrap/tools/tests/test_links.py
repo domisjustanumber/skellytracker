@@ -94,10 +94,13 @@ def test_github_branch_links_outside_the_pinned_scope_pass(tmp_path: Path) -> No
 
 
 def test_nested_agents_files_are_checked_and_pinned(tmp_path: Path) -> None:
-    (tmp_path / "pkg").mkdir()
-    doc = tmp_path / "pkg" / "AGENTS.md"
-    doc.write_text("[b](https://github.com/o/r/blob/main/x.py)\n", encoding="utf-8")
-    assert doc in markdown_files(tmp_path)
+    for folder in ("pkg/a/b", ".venv/lib", "plans"):
+        (tmp_path / folder).mkdir(parents=True)
+        (tmp_path / folder / "AGENTS.md").write_text(
+            "[b](https://github.com/o/r/blob/main/x.py)\n", encoding="utf-8"
+        )
+    doc = tmp_path / "pkg" / "a" / "b" / "AGENTS.md"
+    assert markdown_files(tmp_path) == [doc]
     assert check_file(doc, tmp_path) == [
-        "pkg/AGENTS.md:1: GitHub link must pin a full SHA: https://github.com/o/r/blob/main/x.py"
+        "pkg/a/b/AGENTS.md:1: GitHub link must pin a full SHA: https://github.com/o/r/blob/main/x.py"
     ]

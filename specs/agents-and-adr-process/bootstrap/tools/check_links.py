@@ -11,6 +11,7 @@ In each `AGENTS.md`, `notes/` and `.claude/skills/`, a GitHub `blob`, `tree` or
 
 from __future__ import annotations
 
+import os
 import re
 import sys
 from pathlib import Path
@@ -124,8 +125,12 @@ def check_file(path: Path, root: Path) -> list[str]:
 
 def markdown_files(root: Path) -> list[Path]:
     """Return the tracked docs the link check covers."""
-    # shortcut: AGENTS.md files deeper than one folder are checked only under the folders below
-    files = sorted(root.glob("AGENTS.md")) + sorted(root.glob("*/AGENTS.md"))
+    files = []
+    for folder, dirs, names in os.walk(root):
+        # Hidden folders (.venv, .git) and the local plans/ folder hold no tracked AGENTS.md.
+        dirs[:] = sorted(d for d in dirs if not d.startswith(".") and d != "plans")
+        if "AGENTS.md" in names:
+            files.append(Path(folder) / "AGENTS.md")
     for folder in ("specs", "notes", ".claude/skills"):
         if (root / folder).is_dir():
             files.extend(sorted((root / folder).rglob("*.md")))
