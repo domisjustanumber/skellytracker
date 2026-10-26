@@ -1,6 +1,6 @@
 # vac0 — Record a changed exporter proposal again: a new copy and the same entry
 
-**Status:** accepted, 2026-10-25 (user).
+**Status:** superseded by [b1c0](b1c0-adr-citation-prefix.md), 2026-10-26 (user; PR: pending).
 
 ## Decision
 

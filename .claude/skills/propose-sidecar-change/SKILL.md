@@ -308,7 +308,7 @@ that the source note of `proposal.md` gives. Procedure B step 4 of
 8. Add `recorded again <YYYY-MM-DD> (<source>)` to the status line of the entry. The source names
    the exporter, for example "MediaPipe-Exporter proposal".
 9. If the Decision cell or the Section cell of the index row changes, change the row in the same PR.
-10. Do Step 5. Put the new record in a non-spec PR. End the commit subject with `(<id>)` of the
+10. Do Step 5. Put the new record in a non-spec PR. End the commit subject with `(ADR-<id>)` of the
     entry.
 
 ## Stop points

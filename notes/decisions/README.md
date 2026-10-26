@@ -26,12 +26,12 @@ These entries are `accepted` or `evidence`.
 |---|----------|--------|
 | [0008](0008-vnext-scope.md) | `vNEXT` scope, and the features considered and not added | accepted |
 | [0011](0011-rtmdet-host-nms.md) | RTMDet: NMS-free graph with host `selection: nms`; no `pre_nms_top_k` | accepted |
-| [vac0](vac0-record-a-changed-proposal.md) | A changed exporter proposal: a full new copy, the same entry, a ticked "Before acceptance" list | accepted |
 | [k6dz](k6dz-model-sidecar-folder.md) | The sidecar spec folder and its entry point `sidecar-spec.md` move to `specs/model-sidecar/`; a move with no change of rule | accepted |
 | [p3n3](p3n3-ai-attribution-warning.md) | No AI attribution in check-ins; a commit-msg hook warns and does not stop the commit | accepted |
 | [x64y](x64y-draft-exporter-guide-folder.md) | The workflow, with the sidecar-file, validation and publishing rules, is in `model-addition-workflow/`; the exporter-only guide is a draft; no stub | accepted |
 | [b9fm](b9fm-finished-sidecar-plans.md) | The reference-examples procedure moves to the workflow; the implementation plan links to the spec backlog; the coverage note is frozen evidence | accepted |
 | [ngnb](ngnb-supersede-an-absorbed-entry.md) | An absorbed entry can be superseded: its status changes from `absorbed into <path>#<anchor>` to `superseded by XXXX` | accepted |
+| [b1c0](b1c0-adr-citation-prefix.md) | Cite an entry as `ADR-<id>`; commit subjects end with `(ADR-<id>)`; restates the ID and edit rules of gtwq and the record-again rules of vac0 | accepted |
 
 ### Proposed
 
@@ -154,10 +154,14 @@ The open work, the repository state and the spec defects are in [open-work.md](o
   ([0001](0001-decision-log-and-agents-md.md)).
 - Until a commit is on `development`, cite its PR number and the file path, not its SHA
   ([0027](0027-single-working-branch.md)).
-- Write the ID of another repo's entry with the repo name, for example "OpenMMLab-Exporter 0020". A
-  bare ID, for example 0016 or gtwq, is always an entry of this log. Write an ID in YAML front matter
-  in quotes. Cite a provisional entry of another repo by the repo name, the PR number and the slug.
-  End each commit subject that adds or changes an entry with `(<id>)`.
+- In new text, cite an entry of this log as `ADR-<id>`. Put the prefix before the link, for example
+  `ADR-[x64y](x64y-draft-exporter-guide-folder.md)`. Write the ID of another repo's entry with the
+  repo name and the prefix, for example "OpenMMLab-Exporter ADR-0020". A bare ID in older text, for
+  example 0016 or gtwq, is an entry of this log. Do not edit a decided entry only to add the prefix.
+  Do not use the prefix in a file name, a heading, an index row, a status line or a YAML value. Write
+  an ID in YAML front matter in quotes. Cite a provisional entry of another repo by the repo name,
+  the PR number and the slug. End each commit subject that adds or changes an entry with
+  `(ADR-<id>)` (ADR-[b1c0](b1c0-adr-citation-prefix.md)).
 - A spec change proposal is an entry with the status `proposed`. Phase 2 of the
   [model addition workflow](../../specs/model-sidecar/model-addition-workflow/phase-2-proposal.md)
   gives its parts ([0014](0014-spec-lifecycle.md)).
@@ -170,7 +174,7 @@ The open work, the repository state and the spec defects are in [open-work.md](o
   same gap.
 - When the exporter changes a recorded proposal, record it again in the same entry. Replace the copy
   in full, and tick the closed items of "Before acceptance". The status line adds
-  `recorded again <YYYY-MM-DD> (<source>)` ([vac0](vac0-record-a-changed-proposal.md)).
+  `recorded again <YYYY-MM-DD> (<source>)` (ADR-[b1c0](b1c0-adr-citation-prefix.md)).
 - An entry that waits for a decision of another repo has a `**Depends on:**` line under its status
   line.
 - Do not put a dated status line in `AGENTS.md`. Put a dated fact in `open-work.md` or in an entry.

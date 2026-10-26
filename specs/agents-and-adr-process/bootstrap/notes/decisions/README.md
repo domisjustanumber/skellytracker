@@ -100,8 +100,11 @@ The open work is in [open-work.md](open-work.md).
   index rows with one ID.
 - Cite a tracked file with a relative link. Cite a commit, or the code of another repo, with a GitHub
   permalink that pins a full SHA on the default branch of that repo. Do not cite or link `plans/`.
-- Write the ID of another repo's entry with the repo name, for example "{{OTHER_REPO}} 0020". A bare
-  ID is always an entry of this log. Write an ID in YAML front matter in quotes. Cite a provisional
+- Cite an entry of this log as `ADR-<id>`. Put the prefix before the link. Write the ID of another
+  repo's entry with the repo name and the prefix, for example "{{OTHER_REPO}} ADR-0020". A bare ID is
+  always an entry of this log. Do not use the prefix in a file name, a heading, an index row, a
+  status line or a YAML value. End each commit subject that adds or changes an entry with
+  `(ADR-<id>)`. Write an ID in YAML front matter in quotes. Cite a provisional
   entry of another repo by the repo name, the PR number and the slug.
 - An entry that waits for a decision of another repo has a `**Depends on:**` line under its status
   line.

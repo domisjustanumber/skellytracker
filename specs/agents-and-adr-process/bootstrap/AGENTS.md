@@ -87,8 +87,11 @@ Cite a commit, or the code of another repository, with a GitHub permalink.
 The permalink must pin a full SHA on the default branch of that repository.
 Do not put dated status lines in this file. Put them in the open work or in an entry.
 Do not cite or link to `plans/`.
-Write the repository name before an entry number of another repository, for example
-"{{OTHER_REPO}} 0020". A number without a repository name is an entry of this repository.
+Cite an entry of this repository as `ADR-<id>`. Put the prefix before the link.
+Write the repository name before an entry ID of another repository, for example
+"{{OTHER_REPO}} ADR-0020". An ID without a repository name is an entry of this repository.
+Do not use the prefix in a file name, an entry heading, an index row, a status line or a YAML value.
+End each commit subject that adds or changes an entry with `(ADR-<id>)`.
 Cite a provisional entry of another repository by the repository name, the PR number and the slug.
 Do not import a file, a test or a tool from another repository.
 

@@ -272,7 +272,9 @@ highest old entry number.
   default branch of that repo. A short SHA can become ambiguous. A force-push can remove a commit
   that is not on a default branch.
 - Do not cite or link `plans/`.
-- Write the repo name before the entry number of another repo, for example "skellytracker 0028".
+- Cite an entry as `ADR-<id>`, with the prefix before the link. Write the repo name before the
+  entry ID of another repo, for example "skellytracker ADR-0028". A bare 4-character ID is not clear
+  in plain text, and `git log` shows no links. Commit subjects end with `(ADR-<id>)`.
 
 ### Repos that share the rules
 

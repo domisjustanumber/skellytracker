@@ -313,8 +313,14 @@ Do not put dated status lines in this file. Put them in the open work or in an e
 Do not cite or link to `plans/`. Do not cite the content of a plan: its sections, its item numbers
 or its local PR labels.
 Until a commit is on `development`, cite its PR number and the file path. Do not cite its commit SHA.
+Cite an entry of this repository as `ADR-<id>`, for example
+`ADR-[x64y](notes/decisions/x64y-draft-exporter-guide-folder.md)`. Put the prefix before the link.
 Write the repository name before an entry ID of another repository, for example
-"OpenMMLab-Exporter 0020". An ID without a repository name is an entry of this repository.
+"OpenMMLab-Exporter ADR-0020". An ID without a repository name is an entry of this repository.
+Older text can give an ID without the prefix.
+Do not use the prefix in a file name, an entry heading, an index row, a status line or a YAML value.
+End each commit subject that adds or changes an entry with `(ADR-<id>)`
+(ADR-[b1c0](notes/decisions/b1c0-adr-citation-prefix.md)).
 Cite a provisional entry of another repository by the repository name, the PR number and the slug.
 Do not import a file, a test or a tool from another repository.
 
