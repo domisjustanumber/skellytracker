@@ -181,14 +181,16 @@ KEYPOINT_DETECTOR_REGISTRY["my_detector"] = MyDetector
 
 ## Contributing
 
-Pull requests are welcome! We use [Github Flow](https://docs.github.com/en/get-started/quickstart/github-flow).
+Pull requests are welcome. [`AGENTS.md`](AGENTS.md) gives the full rules for human and AI contributors.
 
-1. Fork the repo and create your branch from `main`.
-2. Install with dev dependencies: `uv sync --extra recommended-cpu`
-3. If you've added a tracker, add tests under `skellytracker/tests/`.
-4. Ensure the test suite passes: `pytest skellytracker/tests/` (or `pytest -m 'not video'` to skip slow video tests).
-5. Lint: `ruff check skellytracker/`
-6. Open a pull request.
+1. Fork the repo. Create your branch from `development`.
+2. Install the dev tools: `uv sync --extra all-cpu`. Then run `uv run pre-commit install` once.
+3. If you add a tracker, add tests under `skellytracker/tests/`.
+4. Run the fast tests: `uv run pytest -m "not video"`. To include the slow video tests, run `uv run pytest`.
+5. Lint: `uv run ruff check skellytracker/ tools/`
+6. Open a pull request against `development`.
+
+CI runs the lint and the fast tests on each push, and on each PR into `main` or `development`. It runs all tests on each PR into `main`.
 
 ---
 

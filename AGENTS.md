@@ -20,7 +20,7 @@ This file holds the rules for each task. The other instructions load only when y
 |---|---|
 | [`skellytracker/AGENTS.md`](skellytracker/AGENTS.md) | Package code and tests: layout, detector registries, ONNX Runtime, code conventions, test notes |
 | [`specs/model-sidecar/AGENTS.md`](specs/model-sidecar/AGENTS.md) | The sidecar spec, a sidecar or a reference example |
-| [Skills](#2-skills) in `.claude/skills/` | One step of a task, for example a commit on the PR stack |
+| [Skills](#2-skills) | One step of a task, for example a commit on the PR stack |
 
 A rule that applies to one folder goes in the `AGENTS.md` of that folder.
 A procedure for one step of a task goes in a skill.
@@ -29,44 +29,26 @@ Do not put instructions in a `CLAUDE.md`.
 
 ## 1. Purpose
 
-skellytracker is the tracking backend for freemocap.
-A `Tracker` runs its detection stages on each image. It returns an `Observation` and the new
-`TrackerState`.
-A `DetectionStage` has one optional object detector and one or more keypoint detectors.
-A session holds the resources that detectors share, for example `OnnxSession` or `MediaPipeSession`.
-A detector that runs an ONNX model reads a sidecar.
-A sidecar is one YAML file. It describes the runtime contract of one model family: input,
-preprocessing, outputs and decode.
+skellytracker is the tracking backend for freemocap. [`README.md`](README.md) gives the install
+extras, the quick start and the API overview.
+A detector that runs an ONNX model reads a sidecar: one YAML file that describes the runtime contract
+of one model family. The spec starts at [`specs/model-sidecar/README.md`](specs/model-sidecar/README.md).
 The exporter repositories make ONNX files and write their sidecars: OpenMMLab-Exporter,
 Roboflow-Exporter, Ultralytics-Exporter and Qualcomm-Exporter.
 
 The spec is in its spec-build stage (ADR-[0014](notes/decisions/0014-spec-lifecycle.md)).
 In this stage, the exporters add models and the spec changes.
 Do not change the implementation code under `skellytracker/`.
-The package layout, the detector registries and the code conventions are in
-[`skellytracker/AGENTS.md`](skellytracker/AGENTS.md).
 
-Read [`README.md`](README.md) for the install extras, the quick start and the API overview.
-This file replaces the "Contributing" steps of `README.md`.
-
-| Path | Role |
-|---|---|
-| `GPU_SETUP_GUIDE.md` | The install extra and the execution provider for each GPU |
-| `pyproject.toml` | Dependencies, extras, the dev group, and the pytest, ruff and poe settings |
-| [`specs/model-sidecar/README.md`](specs/model-sidecar/README.md) | Start of the sidecar spec: overview, [section map](specs/model-sidecar/README.md#section-map), index of validation rules. [`sidecar-spec.md`](specs/model-sidecar/sidecar-spec.md) is the permanent index with "Moved to" anchors. |
-| `specs/model-sidecar/format/`, `common/`, `pre/`, `post/` | One section in each file. Front matter gives `id`, `title` and `kind`. Rule IDs are `V-<id>-<n>`. |
-| `specs/model-sidecar/changelog.md` | The `vNEXT` summary of changes and the `schema_version` history |
-| `specs/model-sidecar/proposals/` | Recorded spec change proposals and their [index](specs/model-sidecar/proposals/README.md) (ADR-[faac](notes/decisions/faac-proposal-records.md)). Informative. |
-| `specs/model-sidecar/examples/`, `inventory.yaml` | Reference examples ([`README.md`](specs/model-sidecar/examples/README.md)) and their provenance |
-| `specs/model-sidecar/templates/` | [`model-intake.md`](specs/model-sidecar/templates/model-intake.md) and [`change-proposal.md`](specs/model-sidecar/templates/change-proposal.md) |
-| `specs/model-sidecar/model-addition-workflow/` | The process to add a model and to request a spec change. It is not a spec section and has no rule IDs (ADR-[x64y](notes/decisions/x64y-draft-exporter-guide-folder.md)). |
-| `specs/draft/exporter-guide/` | The draft exporter guide. It is not complete. A local plan of the user owns it (ADR-[x64y](notes/decisions/x64y-draft-exporter-guide-folder.md)). |
-| `specs/sidecar-implementation-plan.md` | Status of the sidecar work in the package. Tracked, not a local plan. It stays until its milestone M6 is done (ADR-[b9fm](notes/decisions/b9fm-finished-sidecar-plans.md)). |
-| `notes/sidecar-exporter-coverage.md` | Frozen evidence for `vNEXT`. Proposals cite it by line number, so do not add or remove a line (ADR-[b9fm](notes/decisions/b9fm-finished-sidecar-plans.md)). |
-| `notes/decisions/` | Decision log ([`README.md`](notes/decisions/README.md)) |
-| `tools/` | Doc checks: links (`check_links.py`), private data (`check_private_data.py`), spec split (`check_split_verbatim.py`, input `split_manifest.yaml`), decision log, bootstrap kit. Tests in `tools/tests/`. |
-| `specs/agents-and-adr-process/` | A bootstrap kit for a new repo: `AGENTS.md`, the decision log and the private-data checks (ADR-[0031](notes/decisions/0031-bootstrap-kit.md)) |
-| `.github/workflows/` | CI: lint, fast tests, full tests, secret scan, PyPI publish |
+- The [decision log](notes/decisions/README.md) is in `notes/decisions/` ([section 5](#5-decision-log)).
+- The files under `specs/model-sidecar/proposals/` are informative records
+  (ADR-[faac](notes/decisions/faac-proposal-records.md)).
+- `specs/draft/exporter-guide/` is not complete. A local plan of the user owns it
+  (ADR-[x64y](notes/decisions/x64y-draft-exporter-guide-folder.md)).
+- `specs/sidecar-implementation-plan.md` is a tracked file, not a local plan. It stays until its
+  milestone M6 is done (ADR-[b9fm](notes/decisions/b9fm-finished-sidecar-plans.md)).
+- `notes/sidecar-exporter-coverage.md` is frozen evidence. Proposals cite it by line number, so do
+  not add or remove a line (ADR-[b9fm](notes/decisions/b9fm-finished-sidecar-plans.md)).
 
 ## 2. Skills
 
@@ -91,25 +73,17 @@ Use `uv run` for project commands. Do not depend on an activated virtual environ
 
 ```sh
 uv sync --extra all-cpu                     # dev tools, MediaPipe, onnx, CPU ONNX Runtime
-uv run pre-commit install                   # once per clone, and again after .pre-commit-config.yaml changes
+uv run pre-commit install                   # hooks; once per clone, and again after .pre-commit-config.yaml changes
 uv run pytest -m "not video"                # package tests and doc tests; must pass
 uv run pytest tools/tests                   # doc tests only: links, examples, decision log, private data
 uv run pytest -o faulthandler_timeout=300   # all tests, with the video tests
 uv run ruff check skellytracker/ tools/     # lint
-uv run python -m skellytracker --list       # list the webcam demos (--help for the options)
 ```
 
-- For a GPU, [`GPU_SETUP_GUIDE.md`](GPU_SETUP_GUIDE.md) gives the extra. Use only one ONNX Runtime
-  extra. The `onnx-*` extras conflict (`[tool.uv]` in `pyproject.toml`).
-- `pre-commit install` installs the pre-commit, commit-msg and pre-push hooks
-  ([section 8](#8-private-data)).
-- `tests-fast.yml` runs the fast tests on each push, on each PR into `main` or `development`, and on
-  a manual run. `tests-full.yml` runs all tests on PRs into `main`. `lint.yml` runs ruff, also on
-  `specs/model-sidecar/reference/` when it exists.
+- `uv run python -m skellytracker` starts a live webcam demo. Do not run it without a camera and a
+  display.
 - The first test run needs network access. On Windows, some video tests fail
   ([`skellytracker/AGENTS.md`](skellytracker/AGENTS.md#tests)).
-- Without `--list` or `--help`, `python -m skellytracker` starts a live webcam demo. It needs a
-  camera and a display.
 - Report each new test failure to the user. Fix the failures of one root cause in one PR. Do not put
   other changes in that PR (ADR-[0014](notes/decisions/0014-spec-lifecycle.md)).
 
