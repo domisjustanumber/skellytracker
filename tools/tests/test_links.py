@@ -1,4 +1,4 @@
-"""Every relative link in `AGENTS.md`, `specs/`, `notes/` and `.claude/skills/` resolves."""
+"""Every relative link in each `AGENTS.md`, `specs/`, `notes/` and `.claude/skills/` resolves."""
 
 from pathlib import Path
 
@@ -91,3 +91,13 @@ def test_github_branch_links_outside_the_pinned_scope_pass(tmp_path: Path) -> No
     doc = tmp_path / "specs" / "doc.md"
     doc.write_text("[b](https://github.com/o/r/tree/master/spec)\n", encoding="utf-8")
     assert check_file(doc, tmp_path) == []
+
+
+def test_nested_agents_files_are_checked_and_pinned(tmp_path: Path) -> None:
+    (tmp_path / "pkg").mkdir()
+    doc = tmp_path / "pkg" / "AGENTS.md"
+    doc.write_text("[b](https://github.com/o/r/blob/main/x.py)\n", encoding="utf-8")
+    assert doc in markdown_files(tmp_path)
+    assert check_file(doc, tmp_path) == [
+        "pkg/AGENTS.md:1: GitHub link must pin a full SHA: https://github.com/o/r/blob/main/x.py"
+    ]

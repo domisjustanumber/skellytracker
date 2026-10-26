@@ -32,6 +32,7 @@ These entries are `accepted` or `evidence`.
 | [b9fm](b9fm-finished-sidecar-plans.md) | The reference-examples procedure moves to the workflow; the implementation plan links to the spec backlog; the coverage note is frozen evidence | accepted |
 | [ngnb](ngnb-supersede-an-absorbed-entry.md) | An absorbed entry can be superseded: its status changes from `absorbed into <path>#<anchor>` to `superseded by XXXX` | accepted |
 | [b1c0](b1c0-adr-citation-prefix.md) | Cite an entry as `ADR-<id>`; commit subjects end with `(ADR-<id>)`; restates the ID and edit rules of gtwq and the record-again rules of vac0 | accepted |
+| [hxy8](hxy8-scoped-agent-instructions.md) | Core root `AGENTS.md`; folder rules in a nested `AGENTS.md` with an importing `CLAUDE.md`; procedures as skills; supersedes 0001 | accepted |
 
 ### Proposed
 
@@ -101,7 +102,7 @@ The open work, the repository state and the spec defects are in [open-work.md](o
 - A Proposed row has a Section cell: the section ID of the change in backticks, or `none`. A new
   section ID is allowed.
 - An accepted entry is absorbed when one of these documents states all of its rules: the spec,
-  `AGENTS.md`, the skills, the model addition workflow, the exporter guide, the templates of
+  the root or a nested `AGENTS.md` ([hxy8](hxy8-scoped-agent-instructions.md)), the skills, the model addition workflow, the exporter guide, the templates of
   `specs/model-sidecar/templates/`, and the Rules of this file with [template.md](template.md). Then that document is the source of the rules.
 - An accepted entry that records a one-off action, with no rule that stays, is `done` when the action
   is complete.
@@ -151,7 +152,7 @@ The open work, the repository state and the spec defects are in [open-work.md](o
 - Cite a tracked file with a relative link. Cite a commit, or the code of another repo, with a GitHub
   permalink that pins a full SHA on the default branch of that repo
   ([gtwq](gtwq-random-entry-ids.md)). Do not cite or link `plans/`. Git does not track it
-  ([0001](0001-decision-log-and-agents-md.md)).
+  ([hxy8](hxy8-scoped-agent-instructions.md)).
 - Until a commit is on `development`, cite its PR number and the file path, not its SHA
   ([0027](0027-single-working-branch.md)).
 - In new text, cite an entry of this log as `ADR-<id>`. Put the prefix before the link, for example

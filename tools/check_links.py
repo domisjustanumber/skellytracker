@@ -5,7 +5,7 @@ except `-` and `_`; each space becomes `-`; a repeated heading gets `-1`,
 `-2`, ... appended. Links inside fenced code blocks and inline code are
 skipped.
 
-In `AGENTS.md`, `notes/` and `.claude/skills/`, a GitHub `blob`, `tree` or
+In each `AGENTS.md`, `notes/` and `.claude/skills/`, a GitHub `blob`, `tree` or
 `commit` link must pin a full 40-character SHA (decision 0032).
 """
 
@@ -26,7 +26,7 @@ _GITHUB_REF = re.compile(
     r"^https?://github\.com/[^/]+/[^/]+/(?:blob|tree|commit)/([^/#?]+)", re.IGNORECASE
 )
 _FULL_SHA = re.compile(r"^[0-9a-f]{40}$")
-_PINNED_SCOPES = ("AGENTS.md", "notes/", ".claude/skills/")
+_PINNED_SCOPES = ("notes/", ".claude/skills/")
 
 
 def _strip_inline_code(text: str) -> str:
@@ -93,7 +93,7 @@ def links(path: Path) -> list[tuple[int, str]]:
 def needs_pinned_links(path: Path, root: Path) -> bool:
     """True when GitHub links in `path` must pin a full SHA."""
     rel = path.relative_to(root).as_posix()
-    return any(rel == scope or rel.startswith(scope) for scope in _PINNED_SCOPES)
+    return rel.rsplit("/", 1)[-1] == "AGENTS.md" or any(rel.startswith(scope) for scope in _PINNED_SCOPES)
 
 
 def check_file(path: Path, root: Path) -> list[str]:
@@ -124,11 +124,12 @@ def check_file(path: Path, root: Path) -> list[str]:
 
 def markdown_files(root: Path) -> list[Path]:
     """Return the tracked docs the link check covers."""
-    files = [root / "AGENTS.md"] if (root / "AGENTS.md").exists() else []
+    # shortcut: AGENTS.md files deeper than one folder are checked only under the folders below
+    files = sorted(root.glob("AGENTS.md")) + sorted(root.glob("*/AGENTS.md"))
     for folder in ("specs", "notes", ".claude/skills"):
         if (root / folder).is_dir():
             files.extend(sorted((root / folder).rglob("*.md")))
-    return files
+    return list(dict.fromkeys(files))
 
 
 def main(argv: list[str]) -> int:

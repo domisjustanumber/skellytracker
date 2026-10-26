@@ -1,6 +1,6 @@
 # 0001 — Decision log; `AGENTS.md` is the single instructions file; `plans/` is local and ignored
 
-**Status:** absorbed into [`AGENTS.md#repository-instructions`](../../AGENTS.md#repository-instructions), 2026-10-25 (user; the absorption review).
+**Status:** superseded by [hxy8](hxy8-scoped-agent-instructions.md), 2026-10-26 (user; PR: pending).
 
 ## Decision
 
