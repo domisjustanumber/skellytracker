@@ -3,7 +3,9 @@
 The vector files are in `specs/model-sidecar/vectors/`. `tools/make_vectors.py` writes
 them. These tests check four things:
 
-- the files have the documented shape and name existing sections;
+- the files have the documented shape and name existing sections. The same
+  shape checks apply to the vectors of a proposal (part 4 of the change
+  proposal template);
 - the files equal the generator's output, so they never drift from it;
 - hand-computed anchors from the section text agree with the files;
 - the skellytracker functions named in `verified_against` still give the same
@@ -15,6 +17,7 @@ from __future__ import annotations
 import functools
 import importlib
 import math
+import re
 from pathlib import Path
 from typing import Any
 
@@ -36,9 +39,16 @@ CASE_KEYS = {
     "expect",
     "unproject",
     "tolerance",
+    "compare",
+    "function",
     "verified_against",
 }
 REQUIRED_CASE_KEYS = {"id", "params", "input", "expect"}
+MAX_FILE_BYTES = 64 * 1024
+# The rule lines of the "Validation rules" headings (the same form as test_traceability.py).
+RULE_LINE = re.compile(r"^- \[[ xX]\] `(V-[a-z][a-z0-9_.]*[a-z0-9]-\d+)`", re.MULTILINE)
+EXPORTER_ENTRY = re.compile(r"[A-Za-z0-9][A-Za-z0-9-]*")
+FUNCTION_REFERENCE = re.compile(r"[A-Za-z0-9_./-]+\.py::[A-Za-z_][A-Za-z0-9_]*")
 
 
 # ---------------------------------------------------------------------------
@@ -71,16 +81,81 @@ def approx(value: Any, case: dict[str, Any]) -> Any:
     return pytest.approx(value, abs=case.get("tolerance", 0))
 
 
-def section_ids() -> set[str]:
-    """Every section ID in the front matter of the section files."""
-    found: set[str] = set()
+@functools.cache
+def section_texts() -> dict[str, str]:
+    """The text of each section file, keyed by the section ID of its front matter."""
+    found: dict[str, str] = {}
     for path in SPEC_ROOT.rglob("*.md"):
         text = path.read_text(encoding="utf-8")
         if text.startswith("---\n"):
             front_matter = yaml.safe_load(text.split("---\n", 2)[1])
             if isinstance(front_matter, dict) and "id" in front_matter:
-                found.add(front_matter["id"])
+                found[front_matter["id"]] = text
     return found
+
+
+def section_ids() -> set[str]:
+    """Every section ID in the front matter of the section files."""
+    return set(section_texts())
+
+
+@functools.cache
+def defined_rule_ids() -> frozenset[str]:
+    """Every rule ID that a section file defines."""
+    return frozenset(
+        match for text in section_texts().values() for match in RULE_LINE.findall(text)
+    )
+
+
+def same(a: Any, b: Any) -> bool:
+    """Compare parsed vector data; NaN equals NaN."""
+    if isinstance(a, float) and isinstance(b, float):
+        return a == b or (math.isnan(a) and math.isnan(b))
+    if isinstance(a, dict) and isinstance(b, dict):
+        return a.keys() == b.keys() and all(same(a[k], b[k]) for k in a)
+    if isinstance(a, list) and isinstance(b, list):
+        return len(a) == len(b) and all(same(x, y) for x, y in zip(a, b, strict=True))
+    return a == b
+
+
+def check_verified_entry(entry: Any) -> None:
+    """A skellytracker function that exists, or one `{<Exporter repo>: <file>::<function>}`."""
+    if isinstance(entry, str):
+        assert callable(resolve_function(entry)), entry
+        return
+    assert isinstance(entry, dict) and len(entry) == 1, entry
+    ((repo, reference),) = entry.items()
+    assert EXPORTER_ENTRY.fullmatch(repo), entry
+    assert isinstance(reference, str) and FUNCTION_REFERENCE.fullmatch(reference), entry
+
+
+def check_case(
+    case: dict[str, Any], section: str, reference_dir: Path = mv.REFERENCE_DIR
+) -> None:
+    """The shape of one case, for the files of this repo and for the vectors of a proposal."""
+    assert REQUIRED_CASE_KEYS <= set(case) <= CASE_KEYS, case["id"]
+    assert all(isinstance(case[key], dict) for key in ("params", "input", "expect"))
+    expect, unproject = case["expect"], case.get("unproject")
+    has_fraction = mv.has_fraction(expect) or mv.has_fraction(unproject)
+    if has_fraction:
+        assert "tolerance" in case or "compare" in case, case["id"]
+    else:
+        assert "tolerance" not in case, case["id"]
+    if "error" in expect:
+        assert set(expect) == {"error"}, case["id"]
+        assert expect["error"] in defined_rule_ids(), (case["id"], expect["error"])
+    if "compare" in case:
+        fields = set(expect) | set(unproject or {})
+        for field, rule in case["compare"].items():
+            assert field in fields, (case["id"], field)
+            assert rule and set(rule) <= mv.COMPARE_KEYS, (case["id"], field)
+            assert all(isinstance(v, (int, float)) and v >= 0 for v in rule.values())
+            assert rule.get("period", 1) > 0, (case["id"], field)
+    if "function" in case:
+        module = mv.load_reference(section, reference_dir)
+        assert callable(getattr(module, case["function"], None)), case["id"]
+    for entry in case.get("verified_against", []):
+        check_verified_entry(entry)
 
 
 def resolve_function(reference: str) -> Any:
@@ -119,9 +194,9 @@ def test_file_equals_the_generator_output(path: Path) -> None:
 @pytest.mark.parametrize("path", vector_paths(), ids=lambda p: p.name)
 def test_file_parses_to_the_generator_data(path: Path) -> None:
     section = path.name.removesuffix(".yaml")
-    assert (
-        yaml.safe_load(path.read_text(encoding="utf-8"))
-        == mv.build_all()[section].data()
+    assert same(
+        yaml.safe_load(path.read_text(encoding="utf-8")),
+        mv.build_all()[section].data(),
     )
 
 
@@ -158,31 +233,85 @@ def test_unverified_gives_a_reason(path: Path) -> None:
 
 @pytest.mark.parametrize("path", vector_paths(), ids=lambda p: p.name)
 def test_verified_against_names_a_function_that_exists(path: Path) -> None:
-    data = load(path.name)
-    references = list(data.get("verified_against", []))
-    for case in data["cases"]:
-        references.extend(case.get("verified_against", []))
-    assert all(callable(resolve_function(reference)) for reference in references)
+    for entry in load(path.name).get("verified_against", []):
+        check_verified_entry(entry)
 
 
 @pytest.mark.parametrize("path", vector_paths(), ids=lambda p: p.name)
 def test_cases_have_the_documented_shape(path: Path) -> None:
-    cases = load(path.name)["cases"]
+    data = load(path.name)
+    cases = data["cases"]
     assert cases
     ids = [case["id"] for case in cases]
     assert len(ids) == len(set(ids))
     for case in cases:
-        assert REQUIRED_CASE_KEYS <= set(case) <= CASE_KEYS, case["id"]
-        assert all(isinstance(case[key], dict) for key in ("params", "input", "expect"))
-        has_fraction = mv.has_fraction(case["expect"]) or mv.has_fraction(
-            case.get("unproject")
-        )
-        assert has_fraction == ("tolerance" in case), case["id"]
+        check_case(case, data["section"])
 
 
 @pytest.mark.parametrize("path", vector_paths(), ids=lambda p: p.name)
 def test_file_is_small(path: Path) -> None:
-    assert path.stat().st_size < 16 * 1024
+    assert path.stat().st_size < MAX_FILE_BYTES
+
+
+def test_the_generator_writes_the_case_form_of_a_proposal(tmp_path: Path) -> None:
+    """`function`, `compare`, an error by rule ID, NaN, exact digits and an exporter entry."""
+    (tmp_path / "pre_resize_letterbox.py").write_text(
+        "def geometry(**kwargs):\n    return {}\n", encoding="utf-8"
+    )
+    exporter = {"OpenMMLab-Exporter": "onnx_runtime/preprocess.py::letterbox"}
+    vectors = mv.Vectors(
+        section="pre.resize.letterbox",
+        reading_notes=[],
+        tolerance=1e-4,
+        verified_against=[exporter],
+        digits=None,
+        cases=[
+            mv.Case(
+                id="two-tolerances",
+                function="geometry",
+                params={},
+                input={},
+                expect={"z": 0.1, "k": 1 / 3},
+                compare={"z": {"atol": 1e-4}, "k": {"atol": 1e-6}},
+            ),
+            mv.Case(
+                id="angle",
+                function="geometry",
+                params={},
+                input={},
+                expect={"rotation": -3.14159},
+                compare={"rotation": {"atol": 1e-6, "period": 2 * math.pi}},
+            ),
+            mv.Case(
+                id="refused",
+                function="geometry",
+                params={},
+                input={},
+                expect={"error": "V-pre.resize.letterbox-1"},
+            ),
+            mv.Case(
+                id="not-a-number",
+                function="geometry",
+                params={},
+                input={"x": math.nan},
+                expect={"y": math.nan, "w": math.inf},
+            ),
+        ],
+    )
+    data = yaml.safe_load(mv.render(vectors))
+    assert same(data, vectors.data())
+    assert data["verified_against"] == [exporter]
+    assert data["cases"][0]["expect"]["k"] == 1 / 3  # digits=None keeps every digit
+    for case in data["cases"]:
+        check_case(case, data["section"], tmp_path)
+    with pytest.raises(AssertionError):
+        check_case(
+            {**data["cases"][2], "expect": {"error": "V-pre.resize.letterbox-99"}},
+            data["section"],
+            tmp_path,
+        )
+    with pytest.raises(FileNotFoundError):
+        mv.load_reference("pre.resize.stretch", tmp_path)
 
 
 # ---------------------------------------------------------------------------

@@ -33,6 +33,7 @@ These entries are `accepted` or `evidence`.
 | [ngnb](ngnb-supersede-an-absorbed-entry.md) | An absorbed entry can be superseded: its status changes from `absorbed into <path>#<anchor>` to `superseded by XXXX` | accepted |
 | [b1c0](b1c0-adr-citation-prefix.md) | Cite an entry as `ADR-<id>`; commit subjects end with `(ADR-<id>)`; restates the ID and edit rules of gtwq and the record-again rules of vac0 | accepted |
 | [hxy8](hxy8-scoped-agent-instructions.md) | Core root `AGENTS.md`; folder rules in a nested `AGENTS.md` with an importing `CLAUDE.md`; procedures as skills; supersedes 0001 | accepted |
+| [a33q](a33q-vector-case-form.md) | One vector case form: optional `function` and `compare`, errors by rule ID, NaN, exporter entries; 64 KiB; one writer | accepted |
 
 ### Proposed
 

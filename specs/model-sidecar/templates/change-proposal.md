@@ -242,10 +242,35 @@ expected output.
   case with a scalar value on a 3-channel input.
 - Use geometry and small arrays. Do not use images or ONNX files. Pixel-exact resize output is out of
   scope. If you need a pixel case, state its tolerance in `compare`.
-- Name the function of the reference file that each case runs (`function`).
-- Without `compare`, each expected value must match exactly. In `compare`, `atol` is the largest
-  allowed absolute difference of a field. `period` compares the values of a field modulo that period,
-  for example 2π for an angle.
+- Use the case form of `tools/make_vectors.py` exactly. `tools/tests/test_vectors.py` checks this
+  form (skellytracker ADR-a33q, `notes/decisions/a33q-vector-case-form.md`). The keys of a case
+  are `id`, `function`, `params`, `input`, `expect`, `unproject`, `tolerance`, `compare` and
+  `verified_against`. Do not add other keys.
+- Name the function of the reference file that each case runs (`function`). Each reference function
+  returns a mapping. Its keys are the keys of `expect`.
+- Cast each input in the reference function to the dtype that the spec gives, for example `float32`.
+  The vector file writes a whole float as an integer.
+- An integer must match exactly. A case with a fractional value in `expect` or `unproject` needs a
+  `tolerance` or a `compare`. `tolerance` is the largest allowed absolute difference of each
+  fractional value of the case. A case without a fractional value has no `tolerance`.
+- `compare` gives the tolerance of one field: `atol` is the largest allowed absolute difference of the
+  field. `period` compares the values of the field modulo that period, for example 2π for an angle.
+  `compare` replaces `tolerance` for that field.
+- A case that expects a validation error gives the rule ID of that error:
+  `expect: {error: V-<section-id>-<n>}`. Do not give the error message. The rule must be in a
+  section file, or in part 2.4 of this proposal. If no rule refuses the input, the spec needs a new
+  rule. Add it to part 2.4.
+- Write NaN as `.nan` and infinity as `.inf`. A NaN expected value is equal to NaN.
+- The generator rounds each expected value to 6 decimals. If the section needs exact values (for
+  example `float32` results), write each value with all of its digits, and say so in part 2.1. Then
+  the builder of the section writes the values exactly.
+- A `verified_against` entry of the exporter has the form `<Exporter repo>: <file>::<function>`.
+  Write the exporter commit in the note at the top of the reference file.
+- `generated_by` names your reference file. When skellytracker lands the proposal,
+  `tools/make_vectors.py` calls the reference implementation and writes the vector file again. Then
+  `generated_by` is `tools/make_vectors.py`. The new `cases` must be equal to your cases. If they are
+  not equal, the landing stops.
+- A vector file must be smaller than 64 KiB.
 - The target file in skellytracker is `specs/model-sidecar/vectors/<section ID>.yaml`.
 
 ```yaml
@@ -253,13 +278,14 @@ section: <proposed section ID>
 spec_revision: vNEXT
 generated_by: <reference file>
 verified_against:                         # or, when nothing verified the cases: unverified: <reason>
-  - <Exporter repo>: <file>::<function>   # exporter commit <sha>
+  - <Exporter repo>: <file>::<function>
 cases:
   - id: <case id>
     function: <function of the reference file>
     params: {}
     input: {}
-    expect: {}
+    expect: {}                            # or, for a refused input: {error: V-<section-id>-<n>}
+    tolerance: <number>                   # only when expect or unproject has a fractional value
     compare: {}                           # optional: {<field>: {atol: <number>, period: <number>}}
 ```
 

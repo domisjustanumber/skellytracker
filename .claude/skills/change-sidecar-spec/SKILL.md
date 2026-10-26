@@ -88,8 +88,11 @@ Do this procedure for step 2 of phase 3.
 7. If `tools/tests` has no test that runs the reference functions against the vectors of their
    section, add that test in the same PR.
 8. Make the generator `tools/make_vectors.py` call the reference implementation for the section.
-   Remove the formula version of that section from the generator.
+   Load it with `load_reference`. Remove the formula version of that section from the generator.
 9. Write the vectors with `uv run python tools/make_vectors.py`. Do not edit a vector file by hand.
+   The `cases` of the new file must be equal to the cases of part 4 of the proposal. If they are not
+   equal, stop and tell the user. This check proves the copy and the generator wiring. It does not
+   verify an independent implementation (ADR-[a33q](../../../notes/decisions/a33q-vector-case-form.md)).
 10. Change the status line of the decision entry from `proposed` to `accepted`. Write the date and the
     PR ([Rules](../../../notes/decisions/README.md#rules)). Move its row from the Proposed table to
     the end of the Active table, without the Section cell. Set `state: accepted` in the front matter
@@ -133,9 +136,10 @@ user accepts the proposal.
 6. If `tools/tests` has no test that runs the reference functions against the vectors of their
    section, add that test in the same PR.
 7. Make the generator `tools/make_vectors.py` call the reference implementation for the section.
-   Remove the formula version of that section from the generator.
-8. Add the implementation to `verified_against` in the generator. The reference implementation and
-   its source exporter count as one implementation.
+   Load it with `load_reference`. Remove the formula version of that section from the generator.
+8. Add the implementation to `verified_against` in the generator, in the form
+   `{<Exporter repo>: <file>::<function>}`. The reference implementation and its source exporter
+   count as one implementation.
 9. Write the vectors with `uv run python tools/make_vectors.py`. If an expected value changes, stop.
    The reference implementation does not agree with the current vectors. Tell the user.
 10. Add the exporter function to `external_impl` in the front matter of the section, in the form
@@ -263,6 +267,10 @@ user accepts the proposal.
   exporters, or an exporter and skellytracker.
 - `tools/make_vectors.py` computes the vectors from the normative formulas. When a section has a
   reference implementation, the generator calls it instead.
+- The vectors of a proposal use the case form of the generator
+  (ADR-[a33q](../../../notes/decisions/a33q-vector-case-form.md)). `tools/tests/test_vectors.py`
+  checks it: the keys `function` and `compare`, an error as a rule ID, NaN, and the exporter entries
+  of `verified_against`. A vector file must be smaller than 64 KiB.
 - A content change updates the vectors of its section in the same PR.
 - A vector that does not agree with the normative text is a spec defect. Correct the text or the
   generator in a content PR.

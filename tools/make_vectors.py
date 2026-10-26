@@ -7,9 +7,18 @@ files. A vector that disagrees with the normative text is a defect of the spec
 or of this file: fix one of them, never the vector alone.
 
 A file has either `verified_against` (the list of independent implementations
-that produced the same results) or `unverified` (the reason that none did). A
-case may list its own `verified_against`. Only a test may add such a list: see
+that produced the same results) or `unverified` (the reason that none did). An
+entry is a skellytracker function (`path::function`) or an exporter function
+(`{<Exporter repo>: <file>::<function>}`). A case may list its own
+`verified_against`. Only a test may add such a list: see
 `tools/tests/test_vectors.py`, which runs the skellytracker functions.
+
+When a section has a reference implementation
+(`specs/model-sidecar/reference/<section_module>.py`), its builder calls it
+through `load_reference` instead of a copy of the formulas. A case then names
+the function that it runs (`function`). A case can expect a validation error by
+its rule ID (`expect: {error: V-<section-id>-<n>}`), and it can give a
+tolerance for each field (`compare: {<field>: {atol: ..., period: ...}}`).
 
 Usage:
     python tools/make_vectors.py            # write the files
@@ -27,13 +36,16 @@ import textwrap
 from collections.abc import Callable
 from dataclasses import dataclass
 from decimal import Decimal
+from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 import numpy as np
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 VECTORS_DIR = REPO_ROOT / "specs" / "model-sidecar" / "vectors"
+REFERENCE_DIR = REPO_ROOT / "specs" / "model-sidecar" / "reference"
 SPEC_REVISION = "vNEXT"
 GENERATED_BY = "tools/make_vectors.py"
 
@@ -60,6 +72,23 @@ LETTERBOX_PACKAGE_MATCHES: frozenset[str] = frozenset(
 
 LINE_WIDTH = 100
 ROUND_DIGITS = 6
+COMPARE_KEYS = {"atol", "period"}
+
+
+def load_reference(section: str, folder: Path = REFERENCE_DIR) -> ModuleType:
+    """Return the reference implementation of `section`.
+
+    The folder is not a Python package and its path has a hyphen, so the file
+    is loaded by its path.
+    """
+    path = folder / f"{section.replace('.', '_')}.py"
+    spec = spec_from_file_location(path.stem, path)
+    if spec is None or spec.loader is None or not path.is_file():
+        raise FileNotFoundError(f"{section}: no reference implementation at {path}")
+    module = module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
 
 # Absolute tolerance of the cases that hold fractional numbers.
 TOLERANCE = {"resize": 1e-4, "unprojection": 1e-4, "normalize": 1e-5, "selection": 1e-5}
@@ -75,6 +104,7 @@ def clean(value: Any, *, digits: int | None = None) -> Any:
 
     With `digits`, a fraction is rounded to that many decimals. Without it,
     a float keeps its exact value (inputs and parameters are never rounded).
+    NaN and infinity stay as they are.
     """
     if value is None or isinstance(value, (bool, str)):
         return value
@@ -83,7 +113,7 @@ def clean(value: Any, *, digits: int | None = None) -> Any:
     if isinstance(value, (float, np.floating)):
         number = float(value)
         if not math.isfinite(number):
-            raise ValueError(f"not a finite number: {value!r}")
+            return number
         if digits is not None:
             number = round(number, digits)
         return int(number) if number == int(number) else number
@@ -118,20 +148,26 @@ class Case:
     input: dict[str, Any]
     expect: dict[str, Any]
     unproject: dict[str, Any] | None = None
-    verified_against: list[str] | None = None
+    verified_against: list[str | dict[str, str]] | None = None
     note: str | None = None  # written as a YAML comment, not as data
+    function: str | None = None  # the function of the reference implementation
+    compare: dict[str, dict[str, float]] | None = None  # per-field atol and period
 
-    def data(self, tolerance: float) -> dict[str, Any]:
-        out: dict[str, Any] = {
-            "id": self.id,
-            "params": clean(self.params),
-            "input": clean(self.input),
-            "expect": clean(self.expect, digits=ROUND_DIGITS),
-        }
+    def data(
+        self, tolerance: float, digits: int | None = ROUND_DIGITS
+    ) -> dict[str, Any]:
+        out: dict[str, Any] = {"id": self.id}
+        if self.function is not None:
+            out["function"] = self.function
+        out["params"] = clean(self.params)
+        out["input"] = clean(self.input)
+        out["expect"] = clean(self.expect, digits=digits)
         if self.unproject is not None:
-            out["unproject"] = clean(self.unproject, digits=ROUND_DIGITS)
+            out["unproject"] = clean(self.unproject, digits=digits)
         if has_fraction(out["expect"]) or has_fraction(out.get("unproject")):
             out["tolerance"] = tolerance
+        if self.compare is not None:
+            out["compare"] = clean(self.compare)
         if self.verified_against:
             out["verified_against"] = list(self.verified_against)
         return out
@@ -143,8 +179,9 @@ class Vectors:
     reading_notes: list[str]
     cases: list[Case]
     tolerance: float
-    verified_against: list[str] | None = None
+    verified_against: list[str | dict[str, str]] | None = None
     unverified: str | None = None
+    digits: int | None = ROUND_DIGITS  # None writes each expected value exactly
 
     def data(self) -> dict[str, Any]:
         out: dict[str, Any] = {
@@ -161,7 +198,7 @@ class Vectors:
         ids = [case.id for case in self.cases]
         if len(ids) != len(set(ids)):
             raise ValueError(f"{self.section}: duplicate case id")
-        out["cases"] = [case.data(self.tolerance) for case in self.cases]
+        out["cases"] = [case.data(self.tolerance, self.digits) for case in self.cases]
         return out
 
 
@@ -175,6 +212,10 @@ _RESERVED = {"y", "n", "yes", "no", "on", "off", "true", "false", "null"}
 
 def _float_text(number: float) -> str:
     """Write a float with its shortest exact digits and never with an exponent."""
+    if math.isnan(number):
+        return ".nan"
+    if math.isinf(number):
+        return ".inf" if number > 0 else "-.inf"
     text = repr(number)
     if "e" in text or "E" in text:
         text = format(Decimal(text), "f")
