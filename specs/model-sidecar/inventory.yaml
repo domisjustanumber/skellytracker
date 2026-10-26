@@ -2,8 +2,8 @@
 # It is not the index of a remote sidecar folder (see notes/decisions/0016-sidecar-catalogs.md).
 #
 # examples: the provenance of each reference example under specs/model-sidecar/examples/, keyed by its path
-# there. The procedure to provide or replace an example is in specs/sidecar-implementation-plan.md
-# ("Reference examples"). Each example holds its own source (source.name and source.version), so an
+# there. The procedure to provide or replace an example is in
+# specs/model-sidecar/model-addition-workflow/reference-examples.md. Each example holds its own source (source.name and source.version), so an
 # entry has no source key. An entry has these keys:
 #   exporter              the exporter repo
 #   exporter_path         the path of the exporter's copy, relative to the exporter repo

@@ -62,7 +62,7 @@ Do this procedure for step 1 of phase 3.
 3. Do not use a draft sidecar of an intake as an example. The sidecar writer code of the exporter must
    write the sidecar.
 4. Follow "How to provide or replace an example" in
-   [Reference examples](../../../specs/sidecar-implementation-plan.md#reference-examples). Do its
+   [Reference examples](../../../specs/model-sidecar/model-addition-workflow/reference-examples.md#how-to-provide-or-replace-an-example). Do its
    steps in order.
 5. If the procedure finds that the sidecar breaks a spec rule, stop. Do not correct the example by
    hand. Tell the user that the exporter must change, or that the spec needs a proposal.
@@ -166,8 +166,8 @@ user accepts the proposal.
   `pre/`, `post/`, `examples/detectors/`, `vectors/<section-id>.yaml`,
   `reference/<section_module>.py`, `templates/` and `model-addition-workflow/` (the process to add a
   model and to request a spec change; it is not a section). The draft exporter guide is in
-  `specs/draft/exporter-guide/`. `notes/sidecar-exporter-coverage.md` is the evidence for `vNEXT`.
-  It is not spec text.
+  `specs/draft/exporter-guide/`. `notes/sidecar-exporter-coverage.md` is the frozen evidence for `vNEXT`.
+  It is not spec text. Do not add or remove a line in it.
 
 ### One algorithm in one place
 

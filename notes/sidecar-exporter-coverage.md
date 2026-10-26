@@ -1,7 +1,7 @@
 # Plan: extend the sidecar spec to cover every exporter model
 
-> **Status:** plan, revised 2026-10-20. Target: [`sidecar-spec.md`](../specs/model-sidecar/sidecar-spec.md) on `philip/sidecar_implementation`.
-> **Base document:** `../Roboflow-Exporter/plans/sidecar-spec-stretch-multi-output.md` (the "draft",
+> **Status:** frozen evidence, last revised 2026-10-20 and not kept current (decision [b9fm](decisions/b9fm-finished-sidecar-plans.md)). The plan is complete. The current state is in the [changelog](../specs/model-sidecar/changelog.md), the [proposals](../specs/model-sidecar/proposals/README.md) and decisions [0008](decisions/0008-vnext-scope.md) and [0011](decisions/0011-rtmdet-host-nms.md). Later decisions replaced O1, recommended change 2 and the `class_ids` part of S4. Proposals cite this file by line number: do not add or remove a line.
+> **Base document:** `../Roboflow-Exporter/plans/sidecar-spec-stretch-multi-output.md` (the "draft", a local plan that no longer exists;
 > 2026-10-19). The draft already has replacement text for most of the RF-DETR and RTMDet changes. This
 > plan adopts the draft, corrects it where the repos have moved on, trims fields that no exported model
 > uses, and adds the gaps it misses.

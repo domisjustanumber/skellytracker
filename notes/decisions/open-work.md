@@ -126,6 +126,15 @@ stage, no file under `skellytracker/` changes, except test fixes.
   `specs/sidecar/` and the old entry point `specs/sidecar-spec.md` in their agent files and notes.
   Each exporter changes these paths to `specs/model-sidecar/` in its own PR
   ([k6dz](k6dz-model-sidecar-folder.md)).
+- **Moved reference-examples procedure.** The proposals `model-id-suffix`,
+  `heatmap-decode-refinement` and `simcc-score-rule` cite `specs/sidecar-implementation-plan.md` by
+  line number. A session that lands one of them edits the procedure in
+  `specs/model-sidecar/model-addition-workflow/reference-examples.md`, and the package gaps in the
+  front matter of the section ([b9fm](b9fm-finished-sidecar-plans.md)).
+- **Exporter coverage note.** Retire `notes/sidecar-exporter-coverage.md` at the end of the
+  spec-build stage, after the user decides [0041](0041-rtmdet-host-nms-filters.md) and
+  [0042](0042-vnext-scope-nms-filters.md). First, copy its unique measurements to an evidence entry
+  ([b9fm](b9fm-finished-sidecar-plans.md)).
 
 Repository state, not code work ([gtwq](gtwq-random-entry-ids.md)):
 

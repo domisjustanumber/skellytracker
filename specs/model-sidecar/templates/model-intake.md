@@ -539,7 +539,7 @@ Then do the reference-implementation step in
 [Proposals and reference files](#proposals-and-reference-files). Do it for every verdict. Then stop.
 If the verdict is `describes`, a skellytracker session can add the sidecar as a spec example (under
 `specs/model-sidecar/examples/`, with its provenance in `specs/model-sidecar/inventory.yaml`). The procedure is
-"Reference examples" in `specs/sidecar-implementation-plan.md`.
+"Reference examples" in `specs/model-sidecar/model-addition-workflow/reference-examples.md`.
 
 ## Proposals and reference files
 

@@ -28,7 +28,7 @@ Tell the user or the skellytracker maintainers the name of the branch.
 | `../freemocap/skellytracker/.claude/skills/propose-sidecar-change/SKILL.md` | The skill `propose-sidecar-change`: the steps of phase 2. |
 | `../freemocap/skellytracker/specs/model-sidecar/model-addition-workflow/README.md` | The entry point of this workflow. |
 | `../freemocap/skellytracker/specs/draft/exporter-guide/sidecars/README.md` | The sidecar part of the draft exporter guide: the rules that only an exporter needs, the block for the exporter `AGENTS.md` and the checkout steps. |
-| `../freemocap/skellytracker/specs/sidecar-implementation-plan.md` | The procedure that turns an exporter sidecar into a spec example ("Reference examples"). |
+| `../freemocap/skellytracker/specs/model-sidecar/model-addition-workflow/reference-examples.md` | The procedure that turns an exporter sidecar into a spec example. |
 | `../freemocap/skellytracker/notes/decisions/` | The skellytracker decision log. |
 | `../freemocap/skellytracker/skellytracker/` | The skellytracker package code. Read it for part 6 of a proposal. Do not import it. |
 

@@ -5,7 +5,7 @@ You do not do phase 3. A skellytracker session does it. The user decides.
 1. **A model with the verdict `describes`.** One non-spec PR (documentation only) in skellytracker
    adds the sidecar as a spec example (under `specs/model-sidecar/examples/`), with its provenance record
    (in `specs/model-sidecar/inventory.yaml`) and any new guidance from the intake. The procedure is
-   "Reference examples" in `../freemocap/skellytracker/specs/sidecar-implementation-plan.md`.
+   [Reference examples](reference-examples.md) in this workflow.
    Its preconditions: your writer code writes the sidecar itself (not by hand), at `vNEXT`, with no
    legacy-only fields; your checks pass; parity passes for at least one size. The
    procedure copies your sidecar byte for byte. If your sidecar breaks a spec rule, fix your writer code

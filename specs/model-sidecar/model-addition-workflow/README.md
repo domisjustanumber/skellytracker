@@ -26,6 +26,7 @@ spec is correct. This workflow is not a section of the spec. It has no section I
 - [Phase 2: propose a spec change and its implementation](phase-2-proposal.md)
 - [Phase 3: what skellytracker does next](phase-3-skellytracker.md)
 - [Reference implementations](reference-implementations.md)
+- [Reference examples](reference-examples.md): the procedure that adds a spec example or replaces one
 
 ## Phases
 
@@ -136,4 +137,5 @@ lifecycle, the `vNEXT` rule and the new-model workflow),
 [faac](../../../notes/decisions/faac-proposal-records.md) (the proposal records),
 [vac0](../../../notes/decisions/vac0-record-a-changed-proposal.md) (a changed proposal) and
 [x64y](../../../notes/decisions/x64y-draft-exporter-guide-folder.md) (this folder and the draft
-exporter guide).
+exporter guide) and [b9fm](../../../notes/decisions/b9fm-finished-sidecar-plans.md) (the reference
+examples procedure).
