@@ -73,8 +73,12 @@ Do this procedure for step 1 of phase 3.
    hand. Tell the user that the exporter must change, or that the spec needs a proposal.
 6. Add the new guidance of the intake to the "Authoring guidance" heading of each section that it is
    about. Do the steps of [Guidance](#guidance).
-7. Run the [checks](#checks).
-8. Put the example, its provenance record and the guidance in one non-spec PR.
+7. If the model is not in
+   [Scope of this revision](../../../specs/model-sidecar/changelog.md#scope-of-this-revision), add
+   the model to the list in the same PR
+   ([ADR-YNX0](../../../specs/model-sidecar/decisions/YNX0-vnext-scope-list.md)).
+8. Run the [checks](#checks).
+9. Put the example, its provenance record, the guidance and the list change in one non-spec PR.
 
 ## Procedure B: land an accepted proposal
 
@@ -292,6 +296,10 @@ Each change has a class
 ### `vNEXT` or a release version
 
 - In the spec-build stage, every spec change goes into the `vNEXT` revision.
+- If a model that needs the change is not in
+  [Scope of this revision](../../../specs/model-sidecar/changelog.md#scope-of-this-revision), add the
+  model to the list in the non-spec PR of the change
+  ([ADR-YNX0](../../../specs/model-sidecar/decisions/YNX0-vnext-scope-list.md)).
 - From the first skellytracker release that ships the spec, a change sets `schema_version` to the
   release that ships it. The change also adds a row to the `schema_version` history
   ([Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing)).
