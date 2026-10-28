@@ -54,6 +54,7 @@ These fields apply to every sidecar, regardless of `role`.
 | `common.identity` | [common/identity.md](common/identity.md) | Identity |
 | `common.sizes_and_artifacts` | [common/sizes-and-artifacts.md](common/sizes-and-artifacts.md) | Sizes and artifacts |
 | `common.batching` | [common/batching.md](common/batching.md) | Batching |
+| `common.batch_conversion` | [common/batch-conversion.md](common/batch-conversion.md) | Batch conversion |
 | `common.input` | [common/input.md](common/input.md) | Input |
 | `common.outputs` | [common/outputs.md](common/outputs.md) | Outputs |
 | `post.unprojection` | [post/unprojection.md](post/unprojection.md) | Unprojection |
@@ -105,6 +106,7 @@ A sidecar is valid when all of the following rules hold. A rule marked **(vNEXT)
 - [Identity](common/identity.md#validation-rules)
 - [Sizes and artifacts](common/sizes-and-artifacts.md#validation-rules)
 - [Batching](common/batching.md#validation-rules)
+- [Batch conversion](common/batch-conversion.md#validation-rules)
 - [Input](common/input.md#validation-rules)
 - [Outputs](common/outputs.md#validation-rules)
 - [Letterbox resize](pre/resize-letterbox.md#validation-rules)

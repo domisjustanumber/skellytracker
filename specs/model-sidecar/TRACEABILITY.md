@@ -20,6 +20,7 @@ The `post.pose.bottom_up` row shows `packed` when an output packs the keypoints 
 | [`common.identity`](common/identity.md) | x | x | x | x | x | x | x | x | x | x |
 | [`common.sizes_and_artifacts`](common/sizes-and-artifacts.md) | x | x | x | x | x | x | x | x | x | x |
 | [`common.batching`](common/batching.md) | x | x | x | x | x | x | x | x | x | x |
+| [`common.batch_conversion`](common/batch-conversion.md) | x | x | x | x | x | x | x | x | x | x |
 | [`common.input`](common/input.md) | x | x | x | x | x | x | x | x | x | x |
 | [`common.outputs`](common/outputs.md) | x | x | x | x | x | x | x | x | x | x |
 | [`post.unprojection`](post/unprojection.md) | x | x | x | x | x | x | x | x | x | x |
@@ -70,6 +71,7 @@ The Steps column gives the status of each step and the function that implements 
 | [`common.identity`](common/identity.md) | stable | `validate` partial: `skellytracker/core/sidecar/loader.py::load_sidecar`<br>`load` partial: `skellytracker/core/sidecar/model.py::SidecarModel` | `skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/sidecar/test_yolox_sidecar.py` | none |
 | [`common.sizes_and_artifacts`](common/sizes-and-artifacts.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::SizeSpec`<br>`load` partial: `skellytracker/core/sidecar/model.py::SidecarModel.resolved_size` | `skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/sidecar/test_runtime.py`<br>`skellytracker/tests/sidecar/test_model_registry_sidecar_support.py` | none |
 | [`common.batching`](common/batching.md) | stable | `validate` implemented: `skellytracker/core/sidecar/model.py::BatchingSpec._check_batch_axis`<br>`load` implemented: `skellytracker/core/sidecar/model.py::OnnxSpec.supports_dynamic_batch` | `skellytracker/tests/sidecar/test_model_validation.py` | none |
+| [`common.batch_conversion`](common/batch-conversion.md) | draft | `validate` missing<br>`load` partial: `skellytracker/core/sessions/batch_conversion.py::model_batch_convert` | `skellytracker/tests/test_batch_conversion.py` | none |
 | [`common.input`](common/input.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::InputSpec`<br>`load` partial: `skellytracker/core/detectors/processing/image_preprocessing.py::preprocess_image` | `skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/test_image_preprocessing.py` | none |
 | [`common.outputs`](common/outputs.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::OutputSpec`<br>`load` missing | `skellytracker/tests/sidecar/test_model_validation.py` | none |
 | [`post.unprojection`](post/unprojection.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::PoseDecodeSpec._check_decode`<br>`decode` partial: `skellytracker/core/detectors/processing/object_detection_decode.py::decode_prenms` | `skellytracker/tests/test_object_detection_decode.py`<br>`skellytracker/tests/sidecar/test_rtmpose_body_sidecar.py` | [`vectors/post.unprojection.yaml`](vectors/post.unprojection.yaml) |
@@ -112,10 +114,11 @@ The inventory lists these models. The tool does not match them to sections.
 
 These steps have no implementation in skellytracker. The last column counts the sidecars that the section applies to.
 
-11 entries are `missing`.
+12 entries are `missing`.
 
 | Section | Step | Models |
 |---|---|---|
+| [`common.batch_conversion`](common/batch-conversion.md) | `validate` | 10 of 10 |
 | [`common.outputs`](common/outputs.md) | `load` | 10 of 10 |
 | [`pre.resize.stretch`](pre/resize-stretch.md) | `inverse` | 0 of 10 |
 | [`pre.resize.fit`](pre/resize-fit.md) | `inverse` | 1 of 10 |

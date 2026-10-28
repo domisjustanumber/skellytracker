@@ -54,6 +54,7 @@ Validation and decode depend on the `schema_version` of the sidecar. `vNEXT` req
 - [Schema versioning](versioning.md#legacy-behaviour)
 - [Identity](../common/identity.md#legacy-behaviour)
 - [Sizes and artifacts](../common/sizes-and-artifacts.md#legacy-behaviour)
+- [Batch conversion](../common/batch-conversion.md#legacy-behaviour)
 - [Input](../common/input.md#legacy-behaviour)
 - [Letterbox resize](../pre/resize-letterbox.md#legacy-behaviour)
 - [Normalization](../pre/normalization.md#legacy-behaviour)
