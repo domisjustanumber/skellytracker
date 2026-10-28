@@ -72,7 +72,8 @@ Get these inputs before you fill in the property table.
 
 | Input | Path, URL or command | Status (`found` or `missing`) |
 |---|---|---|
-| The ONNX files: every size, batch and precision | | |
+| The ONNX files: every size and precision. A static-batch family: the verification batches 1, 2, 3 and 4. The `dynamic` export, if you plan to publish it | | |
+| Input B of the batch-conversion check: `batch/inputs/<size>.npy` for each size, with 4 different preprocessed images (static-batch family only) | | |
 | The upstream inference config (the test pipeline, not the training pipeline) | | |
 | The upstream preprocessing code | | |
 | The upstream postprocessing code | | |
@@ -101,9 +102,9 @@ tell the user which inputs are missing.
 `sha256sum <file>`. It identifies the file that you read. It is not the artifact field `sha256` of
 the sidecar ([`common.sizes_and_artifacts`](../common/sizes-and-artifacts.md#authoring-guidance)).
 
-| File | Size | Batch key | Precision | SHA-256 |
-|---|---|---|---|---|
-| | | | | |
+| File | Size | Batch key | Precision | `published` or `verification-only` | SHA-256 |
+|---|---|---|---|---|---|
+| | | | | | |
 
 ## Verdicts
 
@@ -217,6 +218,7 @@ Source: the ONNX graph of each file.
 | G5 | Output: name, dtype and shape. Add one row for each output. | | [`common.outputs`](../common/outputs.md#authoring-guidance) | | | |
 | G6 | Batch of each file: a static `N`, or dynamic | | [`common.sizes_and_artifacts`](../common/sizes-and-artifacts.md#authoring-guidance) (`sizes.<size>.onnx.batch_artifacts`) | | | |
 | G6a | Batch axis (`batching.batch_axis`; the spec allows only `0`) | | [`common.batching`](../common/batching.md#authoring-guidance) | | | |
+| G6b | Batch conversion: the verdict of the batch-conversion check (`converts`: `exact`; `does not convert`: `gap`; `not applicable`: `out of scope`; `to run`: `unverified`). See "Batch conversion check" below. | | [`common.batch_conversion`](../common/batch-conversion.md#authoring-guidance) | `batching.batch_conversion`, or `not used` | | |
 | G7 | I/O dtype for each precision: the input and every output | | [`common.input`](../common/input.md#authoring-guidance), [`common.outputs`](../common/outputs.md#authoring-guidance) | | | |
 | G8 | Normalization inside the graph (Sub, Div or Mul near the input) | | [`pre.normalize`](../pre/normalization.md#authoring-guidance) | | | |
 | G9 | NMS or TopK inside the graph (near the outputs) | | [`post.det.decode`](../post/detection-decode.md#authoring-guidance) (Selection behaviour) | | | |
@@ -501,7 +503,7 @@ parity script for this model, name it and its commit, and record what it does no
 
 | Item | Value |
 |---|---|
-| Gates, set before the run, and their source | |
+| Gates, set before the run, their source, and pass gate or control | |
 | Test images (paths or dataset IDs), and the branch that each image runs | |
 | Upstream reference: library, version, config and command | |
 | Export error: the ONNX file on the upstream tensor, compared with the upstream model (metric and value) | |
@@ -509,16 +511,34 @@ parity script for this model, name it and its commit, and record what it does no
 | Row count for each image: sidecar path and upstream | |
 | Boxes, scores and classes in source-image coordinates (`object_detector` role): metric and value | |
 | Keypoints and keypoint scores in source-image coordinates (`pose_estimator` role): metric and value | |
+| Final outputs of another role (Parity, step 5): output, metric and value | |
 | Result (`pass`, `fail`, `to run` or `skipped`) | |
 | Script path in the exporter repo | |
 | Exporter commit of the script | |
 | Command | |
 
+## Batch conversion check
+
+Do the batch-conversion check in step 1b of phase 1. The rules are in
+`specs/model-sidecar/model-addition-workflow/hand-over.md`, heading "Batch-conversion check". The
+publish rule is in `specs/model-sidecar/model-addition-workflow/validation-and-publishing.md`,
+heading "Publishing". Put the output folder in the bundle as `batch/`.
+
+| Item | Value |
+|---|---|
+| Verdict (`converts`, `does not convert`, `not applicable` or `to run`) | |
+| Reason, for `to run` (`missing-verification-batch`, `host-runtime-cannot-load` or `no-signal`) | |
+| Failed (size, precision, `N`) tuples, for `does not convert` | |
+| Published batch artifacts, for `converts`: b3 or `dynamic` (one choice for the whole family) | |
+| Dynamic check (V6) of each `dynamic` file: `pass`, `fail`, `to run` or `not used` | |
+| Command, skellytracker commit, and the onnx and onnxruntime versions of `report.json` | |
+
 ## Final verdict
 
 The rule:
 
-- `describes`: every row is `exact` or `out of scope`, **and** parity passes.
+- `describes`: every row is `exact` or `out of scope`, **and** parity passes. Row G6b can also be
+  `gap`: then leave `batching.batch_conversion` out and write a proposal for a new profile.
 - `does not describe`: a row is `near-miss` or `gap`, also when other rows are `unverified`. Write
   one proposal for each new or changed part of the spec. Do not write a sidecar that approximates the
   model.
@@ -531,6 +551,7 @@ The rule:
 | Item | Value |
 |---|---|
 | Verdict (`describes`, `does not describe` or `pending`) | |
+| Batch conversion (`batch_conversion` of the manifest, and its reason for `to run`) | |
 | Reason (one sentence) | |
 | Missing evidence and runs: each `unverified` row and the evidence that it needs, and each result that is `to run` (or `none`) | |
 | `out of scope` rows to tell the user | |

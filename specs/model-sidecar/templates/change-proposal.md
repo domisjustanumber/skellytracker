@@ -329,14 +329,14 @@ Follow the parity rules of the model addition workflow
 
 - Run the real model. Use the reference implementation of part 3 in place of the missing spec feature.
   Do every other step exactly as the sidecar declares.
-- Set each gate before the run, and record its source.
+- Set each gate before the run, as step 1 of Parity says. Give the source of each gate. Write if it
+  is a pass gate or a control.
 - Use more than one test image. Each branch of the changed algorithm must run on at least one image.
 - Measure the export error first: the ONNX file on the tensor of the upstream preprocessing, compared
   with the upstream model.
 - Compare the preprocessed input: give the maximum absolute difference. Expect 0.
-- Compare the final outputs in source-image coordinates: the row counts, the boxes for the
-  `object_detector` role and the keypoints for the `pose_estimator` role. A model with both roles needs
-  both.
+- Compare each final output of each role, as step 5 of Parity says. Write which output you
+  compared.
 - Commit the script in the exporter repo, so that the commit can be cited. Use the folder of the
   exporter for evidence scripts. If the exporter has no such folder, use `notes/decisions/scripts/`
   (OpenMMLab-Exporter uses it). A script that is only in a local `plans/` folder is not evidence.
@@ -351,13 +351,13 @@ Follow the parity rules of the model addition workflow
 
 | Item | Value |
 |---|---|
-| Gates, set before the run, and their source | |
+| Gates, set before the run, their source, and pass gate or control | |
 | Test images (paths or dataset IDs), and the branch that each image runs | |
 | Upstream reference: library, version, config and command | |
 | Export error: the ONNX file on the upstream tensor, compared with the upstream model (metric and value) | |
 | Preprocessed input: maximum absolute difference for each image | |
 | Row count for each image: sidecar path and upstream | |
-| Final outputs in source-image coordinates: metric and value for each role | |
+| Final outputs of each role (Parity, step 5): the compared output, metric and value | |
 | Result (`pass`, `fail` or `to run`) | |
 | Script path in the exporter repo | |
 | Exporter commit of the script | |
