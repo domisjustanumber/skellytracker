@@ -228,10 +228,13 @@ Decision [faac](../../../decisions/faac-proposal-records.md) gives the rules of 
    - a relative link that does not resolve in skellytracker becomes a code span;
    - a path under `specs/sidecar/` becomes the same path under `specs/model-sidecar/`, and
      `specs/sidecar-spec.md` becomes `specs/model-sidecar/sidecar-spec.md`;
-   - a skellytracker path `notes/decisions/<file>` of an entry, of a split checker file or of
-     `next_number_timing.py` becomes its new path in `decisions/` or `specs/model-sidecar/decisions/`.
-     A citation of `notes/decisions/README.md` or `open-work.md` with line numbers stays. A path in
-     an exporter repo stays ([ADR-D9VT](../../../decisions/D9VT-decision-log-move.md)).
+   - a skellytracker path of a file that moved with no split becomes its new path. An entry
+     `notes/decisions/<file>` goes to `decisions/<file>` or `specs/model-sidecar/decisions/<file>`.
+     `notes/decisions/scripts/next_number_timing.py`, `tools/check_split_verbatim.py` and
+     `tools/split_manifest.yaml` go to `decisions/scripts/`.
+     `tools/tests/test_check_split_verbatim.py` goes to `decisions/scripts/tests/`. A citation of
+     `notes/decisions/README.md` or `open-work.md` with line numbers stays. A path in an exporter
+     repo stays ([ADR-D9VT](../../../decisions/D9VT-decision-log-move.md)).
 6. Do not write a missing part. Do not correct the text of a part.
 7. Add the heading "Before acceptance" at the end. List each failed item of
    [Before you stop](../../../specs/model-sidecar/templates/change-proposal.md#before-you-stop), the

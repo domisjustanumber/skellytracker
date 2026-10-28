@@ -11,8 +11,8 @@
    the log that holds its entry ([ADR-GN3D](GN3D-module-decision-logs.md)).
 2. **Tool.** A tool is code that the repo runs in its normal work: a test, a hook, a CI job, a skill
    or a workflow step calls it, or it writes a tracked file. It changes with the rules that it
-   enforces, and it has tests. Each tool is in the root [`tools/`](../tools/), also a tool for one
-   module.
+   enforces, and it has tests. Each tool is in the root [`tools/`](../tools/). This also applies to
+   a tool that only one module uses.
 3. **A script becomes a tool.** When a later step starts to run a script, the script becomes a tool.
    Move it to `tools/` and add a test.
 4. **Classification on 2026-10-28.** The split checker

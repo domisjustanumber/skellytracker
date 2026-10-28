@@ -5,7 +5,7 @@
 ## Decision
 
 This entry supersedes [ADR-K6DZ](k6dz-model-sidecar-folder.md) in full. It restates only the rules
-of k6dz that stay: items 2 to 4 below. Item 6 below replaces k6dz item 6.
+of K6DZ that stay: items 2 to 4 below. Item 6 below replaces K6DZ item 6.
 
 1. **The move.** The log moves from `notes/decisions/` to `decisions/`. The entries 0008 to 0012,
    0017 to 0025 and 0037 to 0048 apply only to the sidecar spec. These 26 entries move to
@@ -15,15 +15,17 @@ of k6dz that stay: items 2 to 4 below. Item 6 below replaces k6dz item 6.
    `specs/agents-and-adr-process/bootstrap/decisions/`. IDs, file names and statuses do not change.
    So an old path `notes/decisions/<file>` is now `decisions/<file>` or
    `specs/model-sidecar/decisions/<file>`. The old `README.md`, `historical.md` and `open-work.md`
-   are split into the files of the two logs.
-2. **No stub.** No stub stays at an old path (k6dz item 1).
+   are split into the files of the two logs. This item is complete when the PR of this entry
+   merges.
+2. **No stub.** No stub stays at an old path (K6DZ item 1).
 3. **References.** Each link and each path in this repo to an old path goes to the new path. A
    decided entry gets only its link repairs and one link-repair `_Edited_` line. A plain-text old
    path in a decided entry stays, because it is history. It means the same file in its new log. The
    same applies to an old path in a tool string and in a comment that a tool writes in a vector file:
    the `notes/decisions/` paths in `tools/make_vectors.py` and in the vector files that it writes
-   stay ([ADR-EY8R](EY8R-tools-and-scripts.md)). A text that quotes a path in an exporter repo keeps
-   that path. An exporter repo has its own `notes/decisions/`.
+   stay. A text that quotes a path in an exporter repo keeps that path. An exporter repo has its own
+   `notes/decisions/`. The same rules apply to the old paths `specs/sidecar/` and
+   `specs/sidecar-spec.md` of the spec folder move (K6DZ item 3).
 4. **Proposal copies.** A recorded proposal changes each path under `specs/sidecar/` to the same path
    under `specs/model-sidecar/`, and `specs/sidecar-spec.md` to
    `specs/model-sidecar/sidecar-spec.md`. It also changes the path of each file that this move moved
@@ -31,13 +33,13 @@ of k6dz that stay: items 2 to 4 below. Item 6 below replaces k6dz item 6.
    the old `notes/decisions/README.md` or `open-work.md` with line numbers stays as written, because
    these files are split. A link gets a link repair only. A new copy of a changed exporter proposal
    makes the same changes. Step 3 of the skill `propose-sidecar-change` gives this copy rule.
-5. **Complete items.** k6dz items 1 and 2 (the move of the spec folder) are complete. k6dz item 5 (the
+5. **Complete items.** K6DZ items 1 and 2 (the move of the spec folder) are complete. K6DZ item 5 (the
    code-citation exception) is complete, and it does not apply again.
    [`tools/tests/test_traceability.py`](../tools/tests/test_traceability.py) checks the spec path in
    the package code. This move needs no code exception, because no package code file cites the log.
    This entry does not restate these items.
 6. **The split checker.** The split checker, its manifest and its test are in
-   [`decisions/scripts/`](scripts/check_split_verbatim.py) ([ADR-EY8R](EY8R-tools-and-scripts.md)).
+   [`decisions/scripts/`](scripts/) ([ADR-EY8R](EY8R-tools-and-scripts.md)).
    A moved script runs only at the commit that its entry names:
    [`next_number_timing.py`](scripts/next_number_timing.py) at the commit of
    [ADR-0032](0032-entry-numbers-and-edits.md), and the split checker at the spec split of
@@ -67,4 +69,5 @@ of k6dz that stay: items 2 to 4 below. Item 6 below replaces k6dz item 6.
 
 - **Keep a stub at the old path.** An agent can read the stub as the log. Two folders also make each
   search for an entry give two results.
-- **Keep the split checker in `tools/`.** It is a script, not a tool ([ADR-EY8R](EY8R-tools-and-scripts.md)).
+- **Keep the split checker in `tools/`.** It is a script, not a tool
+  ([ADR-EY8R](EY8R-tools-and-scripts.md)).

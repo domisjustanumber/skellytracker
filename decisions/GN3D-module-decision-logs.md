@@ -5,7 +5,8 @@
 ## Decision
 
 This entry supersedes [ADR-HXY8](hxy8-scoped-agent-instructions.md) in full. It restates the rules
-of hxy8 that stay. Items 1 to 6, 8 and 9 do not change. Item 7 changes. Items 11 to 19 are new.
+of HXY8 that stay. Items 1 to 6, 8 and 9 do not change. Items 7 and 10 change. Items 11 to 19 are
+new.
 
 1. **Core file.** The root `AGENTS.md` holds the rules that apply to each task: the purpose, the
    commands, the git rules that stop a wrong push, private data and the tool-call rule. It also tells
@@ -31,18 +32,19 @@ of hxy8 that stay. Items 1 to 6, 8 and 9 do not change. Item 7 changes. Items 11
    or its local PR labels.
 9. **Implementation plan.** `specs/sidecar-implementation-plan.md` is a tracked file, not a local
    plan. [ADR-B9FM](b9fm-finished-sidecar-plans.md) gives the time that it stays.
-10. **Bootstrap kit.** The kit does not take rules 1 to 6. A new repo starts with one `AGENTS.md` and
-    one log.
+10. **Bootstrap kit.** The kit does not take rules 1, 4, 5 and 6. A new repo starts with one
+    `AGENTS.md` and one log. For a repo with modules, the kit takes rules 2 and 3 and items 11 to 19:
+    each module gets its own `AGENTS.md`, `CLAUDE.md` and log.
 11. **Module.** A module is a folder with a nested `AGENTS.md` (item 2).
 12. **Placement.** An entry goes in the log of module M only when M has a log in `LOG_DIRS` and each
     file that its Decision section names or changes is inside M. All other entries go in the root
-    log. This includes an entry for two or more modules, `tools/`, the skills, the root `AGENTS.md`,
-    CI, `plans/` or the repo process, an entry for a module that has no log in `LOG_DIRS`, and each
-    case that you cannot decide.
+    log. The root log holds an entry for two or more modules. It also holds an entry for `tools/`,
+    the skills, the root `AGENTS.md`, CI, `plans/` or the repo process. It also holds an entry for a
+    module that has no log in `LOG_DIRS`, and each case that you cannot decide.
 13. **A new module log.** A new module log needs the approval of the user. The PR that adds the log
     also adds its folder to `LOG_DIRS`.
 14. **One ID space.** All logs of this repo have one ID space. IDs that differ only in case are one
-    ID. "This log" in an older entry means all logs of this repo.
+    ID. "This log" in an older entry or in the [Rules](README.md#rules) means all logs of this repo.
 15. **Citations across logs.** Cite an entry of another log with a relative link and the usual
     `ADR-<ID>` text. Do not add a module name to the ID.
 16. **Module `AGENTS.md`.** The `AGENTS.md` of a module with a log links to that log.
@@ -66,7 +68,7 @@ of hxy8 that stay. Items 1 to 6, 8 and 9 do not change. Item 7 changes. Items 11
 - A fixed list in `LOG_DIRS` makes each log a checked log. The user approves each log.
 - One ID space keeps each ID unique in the repo. So a citation needs no module name, and an entry
   can move to a different log with no re-ID.
-- hxy8 keeps the reasons for items 1 to 10.
+- HXY8 keeps the reasons for items 1 to 10.
 
 ## Consequences
 
