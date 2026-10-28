@@ -1,5 +1,7 @@
 """Every relative link in each `AGENTS.md`, `decisions/`, `specs/`, `notes/` and `.claude/skills/` resolves."""
 
+import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -119,3 +121,16 @@ def test_decision_logs_in_any_folder_are_checked_and_pinned(tmp_path: Path) -> N
         assert check_file(doc, tmp_path) == [
             f"{rel}:1: GitHub link must pin a full SHA: https://github.com/o/r/blob/main/x.py"
         ]
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git is not on the PATH")
+def test_files_that_git_ignores_are_skipped(tmp_path: Path) -> None:
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)  # noqa: S603, S607
+    (tmp_path / ".gitignore").write_text("node_modules/\n", encoding="utf-8")
+    folders = ("ui/decisions", "ui/node_modules/pkg", "ui/node_modules/pkg/decisions", "specs/node_modules/pkg")
+    for folder in folders:
+        (tmp_path / folder).mkdir(parents=True)
+        for name in ("AGENTS.md", "x.md"):
+            (tmp_path / folder / name).write_text("[gone](gone.md)\n", encoding="utf-8")
+    log = tmp_path / "ui" / "decisions"
+    assert markdown_files(tmp_path) == [log / "AGENTS.md", log / "x.md"]

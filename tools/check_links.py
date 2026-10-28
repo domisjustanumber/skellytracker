@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 from urllib.parse import unquote
@@ -128,21 +130,44 @@ def check_file(path: Path, root: Path) -> list[str]:
     return errors
 
 
+def repo_files(root: Path) -> list[str]:
+    """The POSIX paths under `root` of the tracked files, and of the new files that git keeps.
+
+    Git ignores node_modules/, build output and the other folders in each `.gitignore`. Without git,
+    or when `root` is not in a git repo, the tool walks the tree and skips only hidden folders.
+    """
+    git = shutil.which("git")
+    if git is not None:
+        done = subprocess.run(  # noqa: S603
+            [git, "-C", str(root), "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+            capture_output=True,
+            check=False,
+        )
+        if done.returncode == 0:
+            return sorted({n for n in done.stdout.decode("utf-8").split("\0") if n})
+    names = []
+    for folder, dirs, found in os.walk(root):
+        # .git and .venv hold no doc. .claude/ holds the skills.
+        dirs[:] = sorted(d for d in dirs if d == ".claude" or not d.startswith("."))
+        names.extend((Path(folder) / n).relative_to(root).as_posix() for n in sorted(found))
+    return names
+
+
 def markdown_files(root: Path) -> list[Path]:
     """Return the tracked docs the link check covers."""
     files = []
-    for folder, dirs, names in os.walk(root):
-        # Hidden folders (.venv, .git) and the local plans/ folder hold no tracked AGENTS.md.
-        dirs[:] = sorted(d for d in dirs if not d.startswith(".") and d != "plans")
-        if "AGENTS.md" in names:
-            files.append(Path(folder) / "AGENTS.md")
-        # A decision log can be in any module, not only under the fixed folders below.
-        if "decisions" in Path(folder).relative_to(root).parts:
-            files.extend(Path(folder) / n for n in sorted(names) if n.endswith(".md"))
-    for folder in ("specs", "notes", ".claude/skills"):
-        if (root / folder).is_dir():
-            files.extend(sorted((root / folder).rglob("*.md")))
-    return list(dict.fromkeys(files))
+    for rel in repo_files(root):
+        parts = rel.split("/")
+        if not rel.endswith(".md") or not (root / rel).is_file():
+            continue
+        if rel.startswith(("specs/", "notes/", ".claude/skills/")):
+            files.append(root / rel)
+        # Hidden folders and the local plans/ folder hold no tracked AGENTS.md or decision log.
+        elif not any(p.startswith(".") or p == "plans" for p in parts[:-1]) and (
+            parts[-1] == "AGENTS.md" or "decisions" in parts[:-1]
+        ):
+            files.append(root / rel)
+    return files
 
 
 def main(argv: list[str]) -> int:
