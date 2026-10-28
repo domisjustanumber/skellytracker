@@ -50,12 +50,11 @@ A proposal has eight parts:
    proposed text can contain YAML excerpts. Do not put a full sidecar in the proposed text. A
    candidate example of the model is a separate file (part 7).
 3. **Reference implementation.** Write the smallest functions that implement exactly the proposed
-   text. Use only NumPy, OpenCV and the Python standard library. Write one function for each
-   algorithm. Each docstring cites the proposed section ID. Write the code to
-   `reference/<section_module>.py` in the proposal folder. Make `<section_module>` from the proposed
-   section ID. If the proposal changes a section that has no reference implementation, the file implements the
-   full section as changed, not only the change. Then this file is also the reference-implementation
-   step of that section. Name the file in the proposal. On acceptance, skellytracker adds it as
+   text. Follow [Imports of other sections](reference-implementations.md#imports-of-other-sections).
+   Write one function for each algorithm. Each docstring cites the proposed section ID. Write the
+   code to `reference/<section_module>.py` in the proposal folder. Make `<section_module>` from the
+   proposed section ID. If the proposal changes a section, follow
+   [Full section](reference-implementations.md#full-section). Name the file in the proposal. On acceptance, skellytracker adds it as
    `specs/model-sidecar/reference/<section_module>.py`. It is informative spec code, not package code. It is
    the single executable meaning of the new text. Your host decoder needs this behaviour, so the
    reference implementation is the clean, minimal form of your host code. If no host code exists
@@ -70,8 +69,8 @@ A proposal has eight parts:
    tolerance in `compare`. Write the vectors to `vectors/<section ID>.yaml` in the proposal folder,
    in the case form that part 4 of the template gives (skellytracker ADR-a33q). Name the file in
    part 4. On acceptance, the skellytracker generator writes
-   `specs/model-sidecar/vectors/<section ID>.yaml` from the reference implementation. Its cases must
-   be equal to your cases.
+   `specs/model-sidecar/vectors/<section ID>.yaml` from the reference implementation. It must hold
+   each of your cases.
 5. **Parity evidence.** Run the real model, with the reference implementation in place of the missing
    spec feature. Follow [Parity](parity.md#parity). Give the numbers, the script and the commit. If you cannot run the
    check yet, write `to run` and describe the script. A skellytracker session can record a proposal
