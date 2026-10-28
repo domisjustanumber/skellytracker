@@ -1,6 +1,6 @@
 # 0030 — No private data in tracked files, commits or PR text
 
-**Status:** absorbed into [`AGENTS.md#8-private-data`](../AGENTS.md#8-private-data), 2026-10-25 (user; the absorption review).
+**Status:** absorbed into [`AGENTS.md#8-private-data`](../AGENTS.md#8-private-data), 2026-10-25 (user; the absorption review); superseded by [FDTD](FDTD-evidence-sources-and-exporter-permalinks.md), 2026-10-28 (user; PR: pending).
 
 ## Decision
 

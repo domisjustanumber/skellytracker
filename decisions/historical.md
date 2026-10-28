@@ -18,7 +18,7 @@ the reason for a decision. The [index](README.md) has the Active and Proposed en
 | [0036](0036-spec-proposals-folder.md) | The spec keeps its change proposals in `specs/model-sidecar/proposals/`; each one has a short decision entry "Spec change: <slug>" | superseded by faac |
 | [0001](0001-decision-log-and-agents-md.md) | Decision log; `AGENTS.md` is the single instructions file; `plans/` is local and ignored | superseded by hxy8 |
 | [0027](0027-single-working-branch.md) | One working branch for the PR stack; one kind of change per PR, stacked PRs, merge method | absorbed into [`AGENTS.md#6-git-rules`](../AGENTS.md#6-git-rules) |
-| [0030](0030-no-private-data.md) | No private data in tracked files, commits or PR text; the private-data check and gitleaks | absorbed into [`AGENTS.md#8-private-data`](../AGENTS.md#8-private-data) |
+| [0030](0030-no-private-data.md) | No private data in tracked files, commits or PR text; the private-data check and gitleaks | superseded by FDTD |
 | [0031](0031-bootstrap-kit.md) | A bootstrap kit for `AGENTS.md` and the decision log in a new repo; its copies stay in sync with the live files | absorbed into [`AGENTS.md#5-decision-log`](../AGENTS.md#5-decision-log) |
 | [0033](0033-short-sidecars-block.md) | The exporter `AGENTS.md` copies a short fenced "Sidecars" block, not the full Sidecars section | absorbed into [`draft/exporter-guide/sidecars/README.md#the-block-for-the-exporter-agentsmd`](../specs/draft/exporter-guide/sidecars/README.md#the-block-for-the-exporter-agentsmd) |
 | [0034](0034-sidecar-guide-folder.md) | The sidecar guide moves to `specs/exporter-guide/sidecars/`, split at its headings with no change of text | superseded by x64y |

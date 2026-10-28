@@ -178,7 +178,8 @@ Do not write these in a tracked file, a commit message or a PR body:
 
 - A GitHub permalink to a repo of a freemocap exporter is not a private URL. This is also true when
   the repo is private. The permalink can contain the user name of the account that owns the repo. Do
-  not write that user name in prose.
+  not write that user name in prose
+  ([ADR-FDTD](decisions/FDTD-evidence-sources-and-exporter-permalinks.md)).
 - Use paths relative to the repository, for example `../OpenMMLab-Exporter/notes/`.
 - Give a measurement as a summary with its tool and its version.
 - A report field or a test fake can contain a hostname.

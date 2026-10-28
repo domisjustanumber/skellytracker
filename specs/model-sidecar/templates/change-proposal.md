@@ -102,7 +102,7 @@ If the only evidence is a secondary source (a plan, a paper, a README or the not
 mark it `(secondary)`. A check-backed claim gives an upstream line as primary evidence
 ([Rules](../model-addition-workflow/rules.md)). Name the primary file or config key that a reader
 must check. Before the user accepts the proposal, this part must cite the primary evidence. Cite each
-source in a form of [Sources](../model-addition-workflow/rules.md#sources).
+source in a form of [Sources](../model-addition-workflow/rules.md#sources) ([ADR-FDTD](../../../decisions/FDTD-evidence-sources-and-exporter-permalinks.md)).
 
 | Item | Value |
 |---|---|

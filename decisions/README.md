@@ -37,6 +37,7 @@ These entries are `accepted` or `evidence`.
 | [TA0G](TA0G-vector-cases-and-reference-modules.md) | Refusals as a rule ID or `no-rule`, `failed` lists, `outcome()`, 256 KiB, union landing check, module imports and fixtures; supersedes a33q and 0013 | accepted |
 | [KDBD](KDBD-change-classes-and-spec-forced-edits.md) | Change classes `vnext`, `clarification` and `breaking`; the legacy index rule; spec-forced example edits and the part 7 table; supersedes 0009 | accepted |
 | [JC4T](JC4T-parity-gates-and-batch-conversion-check.md) | Measured gates as controls; step 5 by role; the batch-conversion check (`S = 3`, b1 to b4, V0 to V6); the publish rule; the exporter run in the checkout | accepted |
+| [FDTD](FDTD-evidence-sources-and-exporter-permalinks.md) | Exporter documents stay secondary; a checked upstream line is primary; user decisions in words; source forms; exporter permalinks; supersedes 0030 | accepted |
 
 ### Proposed
 

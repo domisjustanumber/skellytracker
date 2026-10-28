@@ -19,7 +19,7 @@
 - A committed check can map a claim of a document to an upstream file and line. The check table must
   pin a full 40-character SHA on the default branch of the upstream repo. If the check passes, cite
   that upstream file and line as the primary evidence. Also cite the check ID and the document line,
-  with the commit of the check table.
+  with the commit of the check table ([ADR-FDTD](../../../decisions/FDTD-evidence-sources-and-exporter-permalinks.md)).
 - A claim that no passing check maps to an upstream line stays `(secondary)`.
 - A value that you choose (in an exporter, the exporter chooses it) has no upstream evidence.
   Examples are a name, a rule for the YAML file and a path. Judge its row against the spec only. Cite
@@ -29,6 +29,8 @@
   [Publishing](validation-and-publishing.md#publishing)).
 
 ## User decisions
+
+These rules come from [ADR-FDTD](../../../decisions/FDTD-evidence-sources-and-exporter-permalinks.md).
 
 - A user decision is not evidence. It can choose a policy or a value. It cannot show an upstream
   property.
@@ -43,6 +45,8 @@
   workflow ([Workflow changes](hand-over.md#workflow-changes)).
 
 ## Sources
+
+These forms come from [ADR-FDTD](../../../decisions/FDTD-evidence-sources-and-exporter-permalinks.md).
 
 - Use the citation forms of the decision-log [Rules](../../../decisions/README.md#rules) also in an
   intake, a proposal, a reference file and spec guidance. Cite upstream code, and the code of another
