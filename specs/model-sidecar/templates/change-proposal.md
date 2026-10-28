@@ -99,13 +99,16 @@ difference with a number where possible. Example: a `center` letterbox in place 
 max abs diff of 35 on a 333×500 image (OpenMMLab-Exporter 0020).
 
 If the only evidence is a secondary source (a plan, a paper, a README or the notes of an exporter),
-mark it `(secondary)`. Name the primary file or config key that a reader must check. Before the user
-accepts the proposal, this part must cite the primary evidence.
+mark it `(secondary)`. A check-backed claim gives an upstream line as primary evidence
+([Rules](../model-addition-workflow/rules.md)). Name the primary file or config key that a reader
+must check. Before the user accepts the proposal, this part must cite the primary evidence. Cite each
+source in a form of [Sources](../model-addition-workflow/rules.md#sources).
 
 | Item | Value |
 |---|---|
 | Property | |
-| Upstream evidence (file and line, or config key; upstream commit or release) | |
+| Upstream evidence (file and line, or config key; full upstream SHA, then the tag) | |
+| Plan decisions about the spec that this proposal uses, in words (or `none`) ([User decisions](../model-addition-workflow/rules.md#user-decisions)) | |
 | Nearest section ID (the `id` in the section file's front matter) | |
 | Why the nearest section is wrong | |
 | Measured difference (number, image and script) | |
@@ -472,6 +475,7 @@ write `n/a` after it.
 - [ ] The header names each `proposed` skellytracker decision entry that covers the same property, or
       `none`. This proposal builds on such an entry. It does not compete with it.
 - [ ] Part 1 cites primary evidence, or names the primary evidence that is missing.
+- [ ] Part 1 gives each plan decision about the spec in words, with no item number, or `none`.
 - [ ] Part 2.1 lists each place that the change edits.
 - [ ] Part 2.6 gives the change class, and the header and `change_class` give the same class.
 - [ ] Part 3 names the reference file, and the file exists in the proposal bundle.
