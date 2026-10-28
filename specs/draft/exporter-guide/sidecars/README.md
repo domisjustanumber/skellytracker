@@ -19,14 +19,17 @@ spec. If this guide and the spec do not agree, the spec is correct.
 
 - skellytracker sessions do not change exporter repos. They can read them. The exporters will be
   overhauled soon, and each overhaul adopts this guide. (Decided by the user on 2026-10-22.)
-- Only skellytracker sessions write the skellytracker repo. There is no spec freeze.
+- Only skellytracker sessions write the skellytracker repo. The only exception: an exporter agent
+  writes the new version folders of its own bundles in `intakes/` of the checkout
+  ([Hand-over bundles](../../../model-sidecar/model-addition-workflow/hand-over.md)). There is no spec
+  freeze.
 - An exporter overhaul copies the fenced block of
   [The block for the exporter `AGENTS.md`](#the-block-for-the-exporter-agentsmd) into the exporter's
   `AGENTS.md`. It copies the block without change, and fills in only the commit of the source line.
   Do not copy the [Sidecars](#sidecars) section. The block tells the agents of that exporter to read
   the Sidecars section here before each sidecar task, and to follow the model addition workflow.
 - Before its overhaul, an exporter agent runs the workflow only when the user asks. Then it writes only
-  the files of `plans/sidecar/`, unless the user permits more.
+  the files of its bundles, unless the user permits more.
 - The Sidecars section names each file by its path in the skellytracker checkout, in a code span. It has
   no relative Markdown links, because exporter agents open its paths from the root of the exporter
   repo. The block for the exporter `AGENTS.md` has no relative links, because relative links break
@@ -49,7 +52,10 @@ The decisions behind this guide:
 - [0013](../../../../decisions/0013-spec-structure.md): section IDs, rule IDs, reference
   implementations and test vectors.
 - [0014](../../../../decisions/0014-spec-lifecycle.md): the spec lifecycle, the `vNEXT` rule and the
-  new-model workflow.
+  new-model workflow. The workflow headings
+  [Stages](../../../model-sidecar/model-addition-workflow/README.md#stages) and
+  [Publishing](../../../model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing)
+  state its rules now.
 - [0016](../../../../decisions/0016-sidecar-catalogs.md): sidecar catalogs: `source`, reference
   hashes, roots, discovery and the capability check. The spec text for exporters is in
   [`common.identity`](../../../model-sidecar/common/identity.md#fields) (`source`),
@@ -93,7 +99,9 @@ Source: `../freemocap/skellytracker/specs/draft/exporter-guide/sidecars/README.m
 Do not change this section here. Copy it again when the source changes.
 
 - The sidecar spec is in the skellytracker checkout `../freemocap/skellytracker`. Read it there,
-  read-only. Do not change a file in that checkout.
+  read-only. Do not change a file in that checkout. The only exception: the new version folders of
+  your own bundles in `intakes/`. Read
+  `../freemocap/skellytracker/specs/model-sidecar/model-addition-workflow/hand-over.md`.
 - Before each sidecar task, read the section "Sidecars" of
   `../freemocap/skellytracker/specs/draft/exporter-guide/sidecars/README.md`. Follow the workflow in
   `../freemocap/skellytracker/specs/model-sidecar/model-addition-workflow/README.md`.
@@ -106,7 +114,8 @@ Do not change this section here. Copy it again when the source changes.
 - Cite primary evidence: an upstream file and line, an upstream config key, or a read of the ONNX
   graph. Mark each secondary source `(secondary)`.
 - Do not publish a `vNEXT` sidecar to a shared or remote folder. Publish a sidecar only after the
-  release step of skellytracker decision 0014.
+  release step ("Publishing" in
+  `../freemocap/skellytracker/specs/model-sidecar/model-addition-workflow/validation-and-publishing.md`).
 ```
 
 ## Sidecars
