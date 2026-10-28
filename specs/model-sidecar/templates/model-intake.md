@@ -569,8 +569,9 @@ reference implementation of that section. Do it for every verdict.
   Write one function for each algorithm.
 - In each docstring, cite the section ID and the exporter commit that the code comes from.
 - Run the functions against the vectors of the section. They must pass. If the vector file says
-  `unverified`, also run the vectors through the host code, and record both results. If the section
-  has no vector file yet, record that.
+  `unverified`, also run the numeric cases through the host code, and record both results. If the
+  section has no vector file yet, record that. An `error` case and a `failed` case run only against
+  the reference implementation.
 - Run the functions in place of the host code in the parity check of the exporter. Record that the
   result does not change.
 - Write the functions to `reference/<section_module>.py` of the `model` bundle. Put a short note at
