@@ -401,9 +401,10 @@ The session starts only when the user asks for it.
    row. A contribution: copy it to `proposals/<slug>/contributions/<contributor>/`. It gets no new
    entry. Before acceptance, the owner entry gets one Evidence line. After acceptance, only the
    tracked copy is added.
-5. A `model` bundle with the verdict `describes`: run `batch` again
-   ([The session run](#the-session-run)). Then [Reference examples](reference-examples.md) copies
-   `example/`. The `inventory.yaml` entry gets `bundle: <bundle id>@v<k>`.
+5. A `model` bundle: run `batch` again when [The session run](#the-session-run) tells you to
+   ([ADR-JC4T](../../../decisions/JC4T-parity-gates-and-batch-conversion-check.md)). With the
+   verdict `describes`, [Reference examples](reference-examples.md) then copies `example/`. The
+   `inventory.yaml` entry gets `bundle: <bundle id>@v<k>`.
 6. After each commit, write the next response with the new state and the commit subject.
 
 ## Deferral
