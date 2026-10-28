@@ -564,9 +564,9 @@ reference implementation of that section. Do it for every verdict.
 - `<section_module>` is the section ID from the front matter of the section file (`id`), with each
   dot replaced by an underscore (`pre.resize.letterbox` gives `pre_resize_letterbox`). Write the
   section ID in the note at the top of the file.
-- Write the clean, minimal form of the host code. Use only NumPy, OpenCV and the Python standard
-  library. Do not import from the exporter or from skellytracker. Write one function for each
-  algorithm.
+- Write the clean, minimal form of the host code. Follow
+  [Imports of other sections](../model-addition-workflow/reference-implementations.md#imports-of-other-sections).
+  Write one function for each algorithm.
 - In each docstring, cite the section ID and the exporter commit that the code comes from.
 - Run the functions against the vectors of the section. They must pass. If the vector file says
   `unverified`, also run the vectors through the host code, and record both results. If the section

@@ -192,8 +192,8 @@ the same file).
 ## 3. Reference implementation
 
 - Write the smallest functions that implement exactly the text of part 2.
-- Use only NumPy, OpenCV and the Python standard library. Do not import from the exporter or from
-  skellytracker.
+- Follow "Imports of other sections" in
+  `specs/model-sidecar/model-addition-workflow/reference-implementations.md`.
 - Write one function for each algorithm.
 - In each docstring, cite the proposed section ID.
 - Your host decoder needs this behaviour. The reference implementation is the clean, minimal form of
@@ -201,16 +201,17 @@ the same file).
 - If no host code exists yet, write the functions from the text of part 2. Write
   `source commit: none (no host code)` in the note at the top of the file. Part 4 is then
   `unverified: no host implementation`.
-- If the proposal changes a section that has no reference implementation, implement the full section
-  as changed (forward, inverse and every value), not only the change. Then this file is also the
-  reference-implementation step of that section.
+- If the proposal changes a section, follow "Full section" in
+  `specs/model-sidecar/model-addition-workflow/reference-implementations.md`.
+- If the proposal changes more than one section, or needs a section that has no module, follow "A
+  proposal that changes more than one section" and "When the other section has no module" in the
+  same file.
 - Write the code to `reference/<section_module>.py` in the proposal bundle. Name that file here.
 - `<section_module>` is the proposed section ID with each dot replaced by an underscore
   (`pre.resize.letterbox` gives `pre_resize_letterbox`). A proposal always uses the proposed section
   ID. For a changed section, that is the `id` in the front matter of its section file.
-- The folder `specs/model-sidecar/reference/` is not a Python package, and its path has a hyphen.
-  Load a reference file by its path with `importlib.util.spec_from_file_location`, or run it as a
-  script.
+- To load or run a reference file, follow "Run a module that imports another module" in
+  `specs/model-sidecar/model-addition-workflow/reference-implementations.md`. Keep your case code outside `reference/` ("Code for the cases").
 - On acceptance, skellytracker adds the code as `specs/model-sidecar/reference/<section_module>.py`. It is
   informative spec code, not package code. It is the single executable meaning of the new text.
 
@@ -246,6 +247,8 @@ expected output.
   `verified_against`. Do not add other keys.
 - Name the function of the reference file that each case runs (`function`). Each reference function
   returns a mapping. Its keys are the keys of `expect`.
+- For a refused input, the reference function raises `ValueError`. Do not raise a different
+  exception for a refused input.
 - Cast each input in the reference function to the dtype that the spec gives, for example `float32`.
   The vector file writes a whole float as an integer.
 - An integer must match exactly. A case with a fractional value in `expect` or `unproject` needs a
@@ -254,10 +257,25 @@ expected output.
 - `compare` gives the tolerance of one field: `atol` is the largest allowed absolute difference of the
   field. `period` compares the values of the field modulo that period, for example 2π for an angle.
   `compare` replaces `tolerance` for that field.
-- A case that expects a validation error gives the rule ID of that error:
-  `expect: {error: V-<section-id>-<n>}`. Do not give the error message. The rule must be in a
-  section file, or in part 2.4 of this proposal. If no rule refuses the input, the spec needs a new
-  rule. Add it to part 2.4.
+- A case for a refused input writes `expect: {error: <value>}`. Do not add another `expect` key.
+  Do not give the error message.
+- If a validation rule refuses the input, start the message with the rule ID and a colon, for
+  example `V-post.det.decode-5: ...`. Then the value is that rule ID. The input must fail exactly
+  one rule. The rule must be in a section file, or in part 2.4 of this proposal.
+- If the input is not a sidecar value, the value is `no-rule`. Examples are a tensor of the model,
+  an argument of the caller and a second sidecar. Tell in the note of the case why no rule applies.
+- A sidecar with `schema_version < vNEXT` that uses a feature that is "Not available." also gives
+  `no-rule`.
+- If no rule refuses a sidecar value, the spec needs a new rule. Add it to part 2.4. Do not use
+  `no-rule` for that value.
+- Do not give a run-time function a sidecar value that a validation rule refuses. Write a
+  validator case for that rule.
+- A validator that reports each failed rule returns `{failed: [<rule IDs>]}`. Sort the list. Do not
+  repeat an ID. Write `failed: []` for a valid sidecar. Do not add another `expect` key. Each ID must
+  be in a section file, or in part 2.4 of this proposal. A validator case can have no `function`
+  until an implementation exists.
+- The host code of the exporter runs only the numeric cases. An `error` case and a `failed` case
+  run only against the reference implementation.
 - Write NaN as `.nan` and infinity as `.inf`. A NaN expected value is equal to NaN.
 - The generator rounds each expected value to 6 decimals. If the section needs exact values (for
   example `float32` results), write each value with all of its digits, and say so in part 2.1. Then
@@ -265,10 +283,14 @@ expected output.
 - A `verified_against` entry of the exporter has the form `<Exporter repo>: <file>::<function>`.
   Write the exporter commit in the note at the top of the reference file.
 - `generated_by` names your reference file. When skellytracker lands the proposal,
-  `tools/make_vectors.py` calls the reference implementation and writes the vector file again. Then
-  `generated_by` is `tools/make_vectors.py`. The new `cases` must be equal to your cases. If they are
-  not equal, the landing stops.
-- A vector file must be smaller than 64 KiB.
+  `tools/make_vectors.py` calls the reference implementation through `make_vectors.outcome` and
+  writes the vector file again. Then `generated_by` is `tools/make_vectors.py`. The new `cases` must
+  be the cases of the current vector file, your cases and the cases of each contribution. A case of
+  yours with the `id` of a current case replaces that case. List each such `id` here, with the
+  reason. If this is not true, the landing stops.
+- A vector file must be 256 KiB or smaller. The limit applies to the file that
+  `tools/make_vectors.py` writes, with the cases of the other proposals for the section.
+- Do not repeat a large value in each case when a smaller value tests the same branch.
 - Write the vectors to `vectors/<section ID>.yaml` in the proposal bundle. Name that file here. Do
   not copy the cases into this part.
 - The target file in skellytracker is `specs/model-sidecar/vectors/<section ID>.yaml`.
@@ -284,7 +306,7 @@ cases:
     function: <function of the reference file>
     params: {}
     input: {}
-    expect: {}                            # or, for a refused input: {error: V-<section-id>-<n>}
+    expect: {}                            # or {error: V-<section-id>-<n>}, {error: no-rule} or {failed: [V-<section-id>-<n>]}
     tolerance: <number>                   # only when expect or unproject has a fractional value
     compare: {}                           # optional: {<field>: {atol: <number>, period: <number>}}
 ```
