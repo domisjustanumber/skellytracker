@@ -839,6 +839,24 @@ def test_new_target_wins(git_env: Path, capsys: pytest.CaptureFixture[str]) -> N
 
 
 @needs_git
+def test_target_rank_comes_first(git_env: Path) -> None:
+    """The entry on TARGET_BRANCH wins, also against an entry on a remote with an earlier commit."""
+    root = repo(git_env / "repo")
+    git(root, "checkout", "-q", "-b", cdl.TARGET_BRANCH)
+    entry(root, "k7m2-t.md")
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "late", "--date=2026-02-01T00:00:00")
+    git(root, "checkout", "-q", "main")
+    entry(root, "k7m2-a.md")
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "early", "--date=2026-01-01T00:00:00")
+    git(root, "update-ref", "refs/remotes/origin/main", "HEAD")
+    assert verdicts(cdl.new_lines(root)) == [
+        f"re-ID: k7m2-a.md; k7m2-t.md also uses k7m2 (on {cdl.TARGET_BRANCH})"
+    ]
+
+
+@needs_git
 def test_collisions_passes_without_a_collision(
     git_env: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
