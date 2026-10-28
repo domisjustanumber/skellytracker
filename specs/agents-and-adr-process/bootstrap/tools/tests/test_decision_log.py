@@ -526,7 +526,12 @@ EMAIL = "tester" + "@" + "example.invalid"
 
 @pytest.fixture
 def git_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Isolate git from the user: no global or system config, no `GIT_*` variable, no parent repo."""
+    """Isolate git from the user: no global or system config, no `GIT_*` variable, no parent repo.
+
+    An entry on TARGET_BRANCH wins before the other ranks. A repo can set TARGET_BRANCH to a branch
+    that a test makes, for example `main` in the kit. So the tests use a name that no test makes.
+    """
+    monkeypatch.setattr(cdl, "TARGET_BRANCH", "target")
     for name in list(os.environ):
         if name.upper().startswith("GIT_"):
             monkeypatch.delenv(name)
