@@ -15,7 +15,10 @@
 #   commit                the exporter commit of the code that writes the sidecar
 #   edits                 the allowed edits made to the exporter's copy: "header comment removed",
 #                         "source and hashes added" (tools/sidecar_refs.py --write --placeholder
-#                         --source, while the exporter does not write these fields)
+#                         --source, while the exporter does not write these fields), and
+#                         "spec change <ID>: <edit>" (a spec-forced edit; <ID> is the bare ID of the
+#                         decision entry; see reference-examples.md, "When a spec change makes an
+#                         example invalid")
 #   notes                 known differences from the exporter's copy
 #   bundle                the hand-over bundle of the copy, as <bundle id>@v<k>; provenance text, not a
 #                         path (specs/model-sidecar/model-addition-workflow/hand-over.md). Optional:
@@ -44,7 +47,7 @@ examples:
     exporter_layout_path: null
     tracked: false
     commit: f52ef68
-    edits: ["source and hashes added", "int8 precision removed"]
+    edits: ["source and hashes added", "spec change CNSN: int8 precision removed"]
     notes: >-
       The exporter still writes schema_version v2024.09.1019 (yolo_sidecar.py). Its copy uses the legacy
       fields preserve_aspect_ratio, requires_nms and may_include_non_person_classes, no color_format,
@@ -57,7 +60,7 @@ examples:
     exporter_layout_path: null
     tracked: false
     commit: f52ef68
-    edits: ["source and hashes added", "int8 precision removed"]
+    edits: ["source and hashes added", "spec change CNSN: int8 precision removed"]
     notes: >-
       The exporter still writes schema_version v2024.09.1019. Its copy has the same legacy fields as
       yolo26.yaml and declares output0 twice (detections, then poses with keypoint_axis 2) instead of
