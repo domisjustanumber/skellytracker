@@ -67,7 +67,8 @@ the exporters in the same cycle.
 
 ## Hand-over
 
-Give your files to skellytracker in a bundle in `../freemocap/skellytracker/intakes/`.
+Give your files to skellytracker in a bundle in `../freemocap/skellytracker/intakes/`
+([ADR-FADS](../../../decisions/FADS-hand-over-bundles-in-intakes.md)).
 [Hand-over bundles](hand-over.md) gives the layout, the manifest, the versions, the states and the
 responses. Write one `model` bundle for each family, and one `proposal` bundle for each contract unit.
 skellytracker does not read the `plans/` folder of your repo.
@@ -121,6 +122,7 @@ The decisions behind this workflow are in the skellytracker decision log:
 [0013](../../../decisions/0013-spec-structure.md) (section IDs, rule IDs, reference
 implementations and test vectors), [0014](../../../decisions/0014-spec-lifecycle.md) (the spec
 lifecycle, the `vNEXT` rule and the new-model workflow),
+[ADR-FADS](../../../decisions/FADS-hand-over-bundles-in-intakes.md) (the hand-over bundles and the proposal records),
 [x64y](../../../decisions/x64y-draft-exporter-guide-folder.md) (this folder and the draft
 exporter guide) and [b9fm](../../../decisions/b9fm-finished-sidecar-plans.md) (the reference
 examples procedure).

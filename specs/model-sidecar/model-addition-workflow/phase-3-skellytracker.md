@@ -13,7 +13,8 @@ You do not do phase 3. A skellytracker session does it. The user decides.
 2. **A proposal.** skellytracker copies the current version of your proposal bundle byte for byte
    to `specs/model-sidecar/proposals/<slug>/`. It records it as a short decision entry with status
    `proposed`. To change the proposal, pack a new version. skellytracker then replaces the copy in
-   full and keeps the same entry ([Versions](hand-over.md#versions)). Each response gives the state
+   full and keeps the same entry ([Versions](hand-over.md#versions);
+   [ADR-FADS](../../../decisions/FADS-hand-over-bundles-in-intakes.md)). Each response gives the state
    of your bundle ([Responses](hand-over.md#responses)). The user accepts or rejects the proposal.
    After acceptance:
    - A content PR adds the normative text, the changelog row, the vectors and the reference

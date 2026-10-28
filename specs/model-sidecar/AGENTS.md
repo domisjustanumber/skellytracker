@@ -28,7 +28,8 @@ root log ([ADR-GN3D](../../decisions/GN3D-module-decision-logs.md)).
 - Stop on a gap. If a model property does not map exactly to a spec section, do not approximate it.
   A near-miss is a gap. Write a change proposal with the parts of
   [`templates/change-proposal.md`](templates/change-proposal.md), and pack it as a `proposal` bundle
-  ([Hand-over bundles](model-addition-workflow/hand-over.md)). A skellytracker session copies the
+  ([Hand-over bundles](model-addition-workflow/hand-over.md);
+  [ADR-FADS](../../decisions/FADS-hand-over-bundles-in-intakes.md)). A skellytracker session copies the
   bundle version to `proposals/<slug>/` and records it as a short decision entry with status
   `proposed`. Then stop. The user accepts or
   rejects the proposal.

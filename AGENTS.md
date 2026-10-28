@@ -6,7 +6,8 @@ To add a model or to request a change to the sidecar spec, follow the
 It is the same for an exporter agent and for a human contributor.
 Exporter agents must not change files in this repository, except the new version folders of their
 own bundles in `intakes/`. They run `pack` and `list` of `tools/intake_bundle.py` with any Python 3
-interpreter and `python -B`. These commands write no other file here.
+interpreter and `python -B`. These commands write no other file here
+([ADR-FADS](decisions/FADS-hand-over-bundles-in-intakes.md)).
 
 All new and changed documentation must use ASD-STE100 Simplified Technical English.
 This rule applies to each `AGENTS.md`, skills, decision entries, templates, the model addition
@@ -46,7 +47,8 @@ Do not change the implementation code under `skellytracker/`.
   [log](specs/model-sidecar/decisions/README.md) in `specs/model-sidecar/decisions/`
   ([section 5](#5-decision-log)).
 - The files under `specs/model-sidecar/proposals/` are informative records. Each record is a byte copy
-  of a hand-over bundle version ([Tracked records](specs/model-sidecar/model-addition-workflow/hand-over.md#tracked-records)).
+  of a hand-over bundle version ([Tracked records](specs/model-sidecar/model-addition-workflow/hand-over.md#tracked-records);
+  [ADR-FADS](decisions/FADS-hand-over-bundles-in-intakes.md)).
 - `specs/draft/exporter-guide/` is not complete. A local plan of the user owns it
   (ADR-[x64y](decisions/x64y-draft-exporter-guide-folder.md)).
 - `specs/sidecar-implementation-plan.md` is a tracked file, not a local plan. It stays until its
@@ -132,7 +134,8 @@ Change the kit templates by hand when a rule of this log changes.
   `plans/`, or cite the content of a plan.
 - `intakes/` is the local hand-over folder. Git ignores it. Do not commit it. Do not link it from a
   tracked file. Do not run `git clean -x` or `git clean -X`. Use the main checkout, not a worktree,
-  to process bundles ([Hand-over bundles](specs/model-sidecar/model-addition-workflow/hand-over.md)).
+  to process bundles ([Hand-over bundles](specs/model-sidecar/model-addition-workflow/hand-over.md);
+  [ADR-FADS](decisions/FADS-hand-over-bundles-in-intakes.md)).
 - Do not push to a git remote without the approval of the user. One approval for a PR covers its
   push, its draft PR and its description.
 - Ask the user before any other action that is visible outside this machine, for example a PR

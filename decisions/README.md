@@ -29,12 +29,12 @@ These entries are `accepted` or `evidence`.
 | [b9fm](b9fm-finished-sidecar-plans.md) | The reference-examples procedure moves to the workflow; the implementation plan links to the spec backlog; the coverage note is frozen evidence | accepted |
 | [a33q](a33q-vector-case-form.md) | One vector case form: optional `function` and `compare`, errors by rule ID, NaN, exporter entries; 64 KiB; one writer | accepted |
 | [yve0](yve0-example-fragments.md) | An example fragment has one source: a package copy with the same bytes, or a `fragments` entry in `inventory.yaml` | accepted |
-| [pykx](pykx-submission-folders.md) | Submission files in `plans/sidecar/`: a folder for each model and each proposal, with target file names; candidate examples allowed | accepted |
 | [GN3D](GN3D-module-decision-logs.md) | Core and nested `AGENTS.md` and skills; a root log and a log for each module in `LOG_DIRS`; placement; one ID space; supersedes hxy8 | accepted |
 | [EY8R](EY8R-tools-and-scripts.md) | Tools are in the root `tools/`; a script is in `scripts/` of the log that holds its entry; a script that a later step runs becomes a tool | accepted |
 | [D9VT](D9VT-decision-log-move.md) | The log moves to `decisions/` and `specs/model-sidecar/decisions/`; no stub; old plain-text paths stay; proposal-copy paths; supersedes k6dz | accepted |
 | [AB79](AB79-one-pr-for-the-spec-build-work.md) | Exception to 0027: the spec-build work goes to `development` in one PR; one kind of change in each commit; no new `dom/NN-*` branch | accepted |
 | [JW9N](JW9N-restate-a-kept-rule-by-a-link.md) | A link to a heading that states a kept rule restates it; later edits there cite their entry; the chain rule; supersedes ngnb and HJNP | accepted |
+| [FADS](FADS-hand-over-bundles-in-intakes.md) | Hand-over bundles in `intakes/`: versions, manifest, states, responses, byte-copy proposal records; no gap records; supersedes pykx, faac and 0014 | accepted |
 
 ### Proposed
 
@@ -166,7 +166,8 @@ in the [open work of the spec log](../specs/model-sidecar/decisions/open-work.md
   ([Hand-over bundles](../specs/model-sidecar/model-addition-workflow/hand-over.md)). Phase 2 of the
   [model addition workflow](../specs/model-sidecar/model-addition-workflow/phase-2-proposal.md) gives its parts. A part that the
   contributor cannot fill says `none` and the reason. A gap that a session finds goes on the
-  spec-defect list of the spec log `open-work.md`. It is not an entry.
+  spec-defect list of the spec log `open-work.md`. It is not an entry
+  ([ADR-FADS](FADS-hand-over-bundles-in-intakes.md)).
 - When the contributor packs a new version of a recorded proposal, record it again in the same entry.
   Replace the record in full with a byte copy of the new version. The status line adds
   `recorded again <YYYY-MM-DD> (<bundle id>@v<k>)`. Until then, Procedure B step 1 of
@@ -175,7 +176,8 @@ in the [open work of the spec log](../specs/model-sidecar/decisions/open-work.md
   their order. Tick a closed item, and give its reason. Mark a changed item `(changed <YYYY-MM-DD>)`.
   Put a new item last in its group, and mark it `(new <YYYY-MM-DD>)`. Change the Decision, the
   Reason and the Evidence only where the new version changes them. Change the index row when a cell
-  changes. Use a non-spec commit. A contributor that packs a new version tells the user.
+  changes. Use a non-spec commit. A contributor that packs a new version tells the user
+  ([ADR-FADS](FADS-hand-over-bundles-in-intakes.md)).
 - An entry that waits for a decision of another repo has a `**Depends on:**` line under its status
   line.
 - Do not put a dated status line in `AGENTS.md`. Put a dated fact in `open-work.md` or in an entry.

@@ -232,7 +232,8 @@ cell named five other entries.
 - A `proposed` entry can change until the user decides it.
 - When the source of a `proposed` entry changes, edit the same entry, and add
   `recorded again <YYYY-MM-DD> (<source>)` to its status line. The source can be a new version of
-  the proposal. A second entry for one proposal makes a chain of entries for one decision.
+  the proposal. A second entry for one proposal makes a chain of entries for one decision
+  ([ADR-FADS](../../decisions/FADS-hand-over-bundles-in-intakes.md)).
 - The body of a decided entry changes only for a link repair, a typo fix, a redaction, or a change of
   ID with the repair of its citations. Each edit adds a dated `_Edited_` line.
 - A status line can change. Write the date and the PR. An absorbed entry can also change to

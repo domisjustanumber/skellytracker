@@ -1,6 +1,6 @@
 # pykx — A submission folder for each model and each proposal in `plans/sidecar/`
 
-**Status:** accepted, 2026-10-26 (user).
+**Status:** accepted, 2026-10-26 (user); superseded by [FADS](FADS-hand-over-bundles-in-intakes.md), 2026-10-28 (user; PR: pending).
 
 ## Decision
 

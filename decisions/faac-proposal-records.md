@@ -1,6 +1,6 @@
 # faac — Spec change proposals: the proposal folder, with no open-work line for each proposal
 
-**Status:** absorbed into [`propose-sidecar-change/SKILL.md#step-3-copy-the-proposal-into-the-spec-folder`](../.claude/skills/propose-sidecar-change/SKILL.md#step-3-copy-the-proposal-into-the-spec-folder), 2026-10-25 (user; the absorption review).
+**Status:** absorbed into [`propose-sidecar-change/SKILL.md#step-3-copy-the-proposal-into-the-spec-folder`](../.claude/skills/propose-sidecar-change/SKILL.md#step-3-copy-the-proposal-into-the-spec-folder), 2026-10-25 (user; the absorption review); superseded by [FADS](FADS-hand-over-bundles-in-intakes.md), 2026-10-28 (user; PR: pending).
 
 ## Decision
 

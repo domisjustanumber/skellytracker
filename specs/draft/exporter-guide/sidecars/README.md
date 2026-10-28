@@ -21,8 +21,8 @@ spec. If this guide and the spec do not agree, the spec is correct.
   overhauled soon, and each overhaul adopts this guide. (Decided by the user on 2026-10-22.)
 - Only skellytracker sessions write the skellytracker repo. The only exception: an exporter agent
   writes the new version folders of its own bundles in `intakes/` of the checkout
-  ([Hand-over bundles](../../../model-sidecar/model-addition-workflow/hand-over.md)). There is no spec
-  freeze.
+  ([Hand-over bundles](../../../model-sidecar/model-addition-workflow/hand-over.md);
+  [ADR-FADS](../../../../decisions/FADS-hand-over-bundles-in-intakes.md)). There is no spec freeze.
 - An exporter overhaul copies the fenced block of
   [The block for the exporter `AGENTS.md`](#the-block-for-the-exporter-agentsmd) into the exporter's
   `AGENTS.md`. It copies the block without change, and fills in only the commit of the source line.
@@ -55,7 +55,7 @@ The decisions behind this guide:
   new-model workflow. The workflow headings
   [Stages](../../../model-sidecar/model-addition-workflow/README.md#stages) and
   [Publishing](../../../model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing)
-  state its rules now.
+  state its rules now. [ADR-FADS](../../../../decisions/FADS-hand-over-bundles-in-intakes.md) supersedes it.
 - [0016](../../../../decisions/0016-sidecar-catalogs.md): sidecar catalogs: `source`, reference
   hashes, roots, discovery and the capability check. The spec text for exporters is in
   [`common.identity`](../../../model-sidecar/common/identity.md#fields) (`source`),

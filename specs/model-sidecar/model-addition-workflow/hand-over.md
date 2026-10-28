@@ -1,7 +1,8 @@
 # Hand-over bundles
 
 A contributor gives its files to skellytracker in a bundle. A bundle is a folder in `intakes/` at the
-root of the skellytracker checkout. This file gives the rules of the bundles. It is the only source of
+root of the skellytracker checkout. This file gives the rules of the bundles
+([ADR-FADS](../../../decisions/FADS-hand-over-bundles-in-intakes.md)). It is the only source of
 these rules. The skills and the templates link to it.
 
 ## Location
