@@ -35,6 +35,7 @@ These entries are `accepted` or `evidence`.
 | [GN3D](GN3D-module-decision-logs.md) | Core and nested `AGENTS.md` and skills; a root log and a log for each module in `LOG_DIRS`; placement; one ID space; supersedes hxy8 | accepted |
 | [EY8R](EY8R-tools-and-scripts.md) | Tools are in the root `tools/`; a script is in `scripts/` of the log that holds its entry; a script that a later step runs becomes a tool | accepted |
 | [D9VT](D9VT-decision-log-move.md) | The log moves to `decisions/` and `specs/model-sidecar/decisions/`; no stub; old plain-text paths stay; proposal-copy paths; supersedes k6dz | accepted |
+| [CNSN](CNSN-spec-build-actions-after-the-fact.md) | Records three past spec-build actions: the `int8` removal with its package code, the in-package batch converter, the draft batch-conversion section | accepted |
 
 ### Proposed
 
