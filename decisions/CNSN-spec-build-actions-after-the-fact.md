@@ -1,6 +1,6 @@
 # CNSN — Spec-build actions recorded after the fact
 
-**Status:** accepted, 2026-10-28 (user; PR: pending).
+**Status:** done, 2026-10-28 (user; PR: pending).
 
 ## Decision
 
