@@ -6,9 +6,8 @@ own algorithm or its own implementing function. One contract unit is one section
 under `specs/model-sidecar/`). The full workflow is the model addition workflow
 (`specs/model-sidecar/model-addition-workflow/README.md` of the skellytracker repo). It is the same
 for an exporter and for a human contributor. Where this template says "the exporter", a contributor
-that is not an exporter reads "you". The decision behind
-it is skellytracker decision 0014 (`decisions/0014-spec-lifecycle.md` of the skellytracker
-repo). Phase 1 is the model intake template (`specs/model-sidecar/templates/model-intake.md`).
+that is not an exporter reads "you". The workflow
+README gives the stages and the phases. Phase 1 is the model intake template (`specs/model-sidecar/templates/model-intake.md`).
 
 This template has no relative links to other files, so its references stay correct after you copy it.
 It names each skellytracker file by its path in a code span, each spec section by its section ID, and
@@ -18,14 +17,12 @@ skellytracker checkout (read-only) `../freemocap/skellytracker`.
 ## How to use this template
 
 1. Write one proposal for each new or changed contract unit. Do not put two units in one proposal.
-2. Copy this file to `plans/sidecar/proposals/<slug>/proposal.md` in the exporter repo. `<slug>` is
-   a short lowercase name of the change, with hyphens, for example `letterbox-floor-rounding`. If
-   that file exists, read it and update it in place. Do not overwrite it without a read: git does not
-   track `plans/`. The model addition workflow gives the other files of the folder
-   (`specs/model-sidecar/model-addition-workflow/README.md`, "Files in `plans/`").
+2. Copy this file to `proposal.md` of a `proposal` bundle. Its bundle ID is
+   `proposal-<slug>@<contributor>`. `<slug>` is a short lowercase name of the change, with hyphens,
+   for example `letterbox-floor-rounding`. The hand-over rules give the other files, the manifest and
+   the `pack` command (`specs/model-sidecar/model-addition-workflow/hand-over.md`).
 3. Change the title to `# Change proposal: <slug>`.
-4. Link the proposal folder from the intake (`plans/sidecar/models/<model>/intake.md`, "Proposals
-   and reference files").
+4. Name the proposal bundle in the intake of the model ("Proposals and reference files").
 5. Fill in all eight parts. Do not delete a part. If a part has no content, write `none` and the
    reason. If you do not know a value, write `unknown (<reason>)`.
 6. Write the proposed spec text in ASD-STE100 Simplified Technical English. Use short sentences and
@@ -36,17 +33,17 @@ skellytracker checkout (read-only) `../freemocap/skellytracker`.
    If the feature is in it, cite the row in part 1, and give the evidence that a model needs it now.
 8. Before you write, find the skellytracker decision entries with the status `proposed` that cover
    your rows. Read the index in `specs/model-sidecar/decisions/README.md` of the skellytracker repo. Also read each
-   `proposed` entry that the guidance of your sections cites. If an entry covers your rows, do not write a competing proposal:
-   - Use the slug of the entry.
+   `proposed` entry that the guidance of your sections cites. Run `intake_bundle.py list` and choose
+   the form of the proposal: a new proposal, a contribution or a follow-up (`specs/model-sidecar/model-addition-workflow/hand-over.md`,
+   "Proposal forms"). If an entry covers your rows, do not write a competing proposal:
    - Cite the entry in the header and in part 1.
-   - Add your evidence, your vectors and your parity plan.
-   - If your rows need a different change, say where your proposal differs. Give the reason in
-     part 8.
-   - If the entry is a gap record (its Decision section says so), give the parts that it does not
-     have.
-9. If this proposal needs another proposal, or another proposal needs this one, write each dependency
-   in the header. One parity script can serve several proposals. Cite it in part 5 of each.
-10. After you write the proposal, stop. Do not change a file in skellytracker. The proposed spec text
+   - Add your evidence, your vectors and your parity plan in a contribution.
+   - If your rows need a different change, write a follow-up. Say where your proposal differs. Give
+     the reason in part 8.
+9. If this proposal needs another proposal, write its bundle ID in the header and in `depends_on` of
+   the manifest. Do not edit another bundle. `intake_bundle.py list` shows the reverse links. One parity script can serve several proposals. Cite it in part 5 of each.
+10. After you write the proposal, pack the bundle and stop. Do not change a file in skellytracker. The
+    only exception: `pack` writes the new version folder of your bundle in `intakes/`. The proposed spec text
     can contain YAML excerpts. Do not write a sidecar file of the model with the proposed fields.
 
 **Section IDs.** The spec is split into section files under `specs/model-sidecar/`. Each section file has a
@@ -60,10 +57,10 @@ session that lands the change sets the final section ID and the final rule IDs.
 
 You do not do these steps. A skellytracker session does them, and the user decides.
 
-1. A skellytracker session finds the proposal in the `plans/` folder of the exporter repo. It copies
-   the proposal to `specs/model-sidecar/proposals/<slug>/proposal.md` of the skellytracker repo. It records
-   the proposal as a short decision entry with the status `proposed` (skellytracker decision 0036).
-   If the proposal builds on a gap record, the session adds the proposal to the gap record.
+1. A skellytracker session verifies the current version of the bundle. It copies the version byte for
+   byte to `specs/model-sidecar/proposals/<slug>/` of the skellytracker repo. It records the proposal
+   as a short decision entry with the status `proposed` (`specs/model-sidecar/model-addition-workflow/hand-over.md`, "Session steps"). A
+   response file in the bundle gives the state.
 2. The user accepts or rejects the proposal.
 3. After acceptance:
    - A content PR adds the normative text, the changelog row, the vectors and the reference
@@ -83,13 +80,14 @@ You do not do these steps. A skellytracker session does them, and the user decid
 | Date | |
 | Exporter repo | |
 | Exporter commit (`git rev-parse HEAD` in the exporter repo, or `none (no git repo)`) | |
-| Model, and its intake file (`plans/sidecar/models/<model>/intake.md`) | |
+| Model, and its `model` bundle ID | |
 | Intake rows with the verdict `near-miss` or `gap` | |
-| Kind (`new section` or `changed section`) | |
+| Kind (`new section`, `changed section`, `contribution` or `follow-up`) | |
+| Change class (`vnext`, `clarification` or `breaking`; the manifest key `change_class`) | |
+| Base bundle of a follow-up (`base`, or `none`) | |
 | Proposed section ID (the `id` in the section file's front matter) | |
 | Section file (the file of the changed section, or the proposed path of the new section file under `specs/model-sidecar/`) | |
-| Depends on (proposal files that must land first, or `none`) | |
-| Needed by (proposal files that depend on this one, or `none`) | |
+| Depends on (`depends_on`: bundle IDs that must land first, or `none`) | |
 | skellytracker decision entries with the status `proposed` that cover the same property (or `none`) | |
 | skellytracker folder that you read (normally `../freemocap/skellytracker`) | |
 | skellytracker commit of the spec text that you read (`git -C <folder> rev-parse HEAD`; add `+ uncommitted changes` if `git -C <folder> status --porcelain` lists a file that you read) | |
@@ -206,7 +204,7 @@ the same file).
 - If the proposal changes a section that has no reference implementation, implement the full section
   as changed (forward, inverse and every value), not only the change. Then this file is also the
   reference-implementation step of that section.
-- Write the code to `reference/<section_module>.py` in the proposal folder. Name that file here.
+- Write the code to `reference/<section_module>.py` in the proposal bundle. Name that file here.
 - `<section_module>` is the proposed section ID with each dot replaced by an underscore
   (`pre.resize.letterbox` gives `pre_resize_letterbox`). A proposal always uses the proposed section
   ID. For a changed section, that is the `id` in the front matter of its section file.
@@ -218,7 +216,7 @@ the same file).
 
 | Item | Value |
 |---|---|
-| Reference file in the proposal folder (`reference/<section_module>.py`) | |
+| Reference file in the proposal bundle (`reference/<section_module>.py`) | |
 | Target file in skellytracker (`specs/model-sidecar/reference/<section_module>.py`) | |
 | Functions (one for each algorithm) | |
 
@@ -271,7 +269,7 @@ expected output.
   `generated_by` is `tools/make_vectors.py`. The new `cases` must be equal to your cases. If they are
   not equal, the landing stops.
 - A vector file must be smaller than 64 KiB.
-- Write the vectors to `vectors/<section ID>.yaml` in the proposal folder. Name that file here. Do
+- Write the vectors to `vectors/<section ID>.yaml` in the proposal bundle. Name that file here. Do
   not copy the cases into this part.
 - The target file in skellytracker is `specs/model-sidecar/vectors/<section ID>.yaml`.
 
@@ -397,14 +395,14 @@ not change.
 
 **Candidate example.** Optional. Write it only after the host code implements the proposed text. The
 sidecar writer code writes it, with the proposed fields. Put it in `example/detectors/...` of the
-proposal folder, in the storage layout, with each fragment that it names. Write
+proposal bundle, in the storage layout, with each fragment that it names. Write
 `example/provenance.yaml` with the `examples` entry and the `fragments` entries, in the form of
 `specs/model-sidecar/inventory.yaml`. The candidate is not a spec example. After acceptance,
 skellytracker copies the real export.
 
 | Item | Value |
 |---|---|
-| Candidate example in the proposal folder (`example/detectors/...`, or `none`) | |
+| Candidate example in the proposal bundle (`example/detectors/...`, or `none`) | |
 | Writer code (file, function and commit) | |
 | `sidecar_refs.py --check` result | |
 
@@ -429,8 +427,8 @@ write `n/a` after it.
       `none`. This proposal builds on such an entry. It does not compete with it.
 - [ ] Part 1 cites primary evidence, or names the primary evidence that is missing.
 - [ ] Part 2.1 lists each place that the change edits.
-- [ ] Part 3 names the reference file, and the file exists in the proposal folder.
-- [ ] Part 4 names the vector file, and the file exists in the proposal folder.
+- [ ] Part 3 names the reference file, and the file exists in the proposal bundle.
+- [ ] Part 4 names the vector file, and the file exists in the proposal bundle.
 - [ ] Part 4 gives `verified_against`, or `unverified: <reason>`.
 - [ ] Each pixel case in part 4 has its tolerance in `compare`.
 - [ ] Part 5 gives the numbers, the script path and the commit, or says `to run` and describes the

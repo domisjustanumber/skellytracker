@@ -4,9 +4,8 @@ This template is phase 1 of the new-model workflow. Phase 1 answers one question
 sidecar spec describe this model exactly? The full workflow is the model addition workflow
 (`specs/model-sidecar/model-addition-workflow/README.md` of the skellytracker repo). It is the same
 for an exporter and for a human contributor. Where this template says "the exporter", a contributor
-that is not an exporter reads "you". The decision behind
-it is skellytracker decision 0014 (`decisions/0014-spec-lifecycle.md` of the skellytracker
-repo). Phase 2 is the change proposal template (`specs/model-sidecar/templates/change-proposal.md`). You
+that is not an exporter reads "you". The workflow
+README gives the stages and the phases. Phase 2 is the change proposal template (`specs/model-sidecar/templates/change-proposal.md`). You
 need phase 2 only when phase 1 finds a `near-miss` or a `gap`.
 
 This template has relative links only in the section column of the property tables. Each link goes to
@@ -19,10 +18,10 @@ that holds it. Read the skellytracker files in the skellytracker checkout (read-
 
 ## How to use this template
 
-1. Copy this file to `plans/sidecar/models/<model>/intake.md` in the exporter repo. `<model>` is the
-   `model_id` of the family. If that file exists, read it and update it in place. Do not overwrite it
-   without a read: git does not track `plans/`. The model addition workflow gives the folder layout
-   (`specs/model-sidecar/model-addition-workflow/README.md`, "Files in `plans/`").
+1. Copy this file to `intake.md` of a `model` bundle. Write one intake for each family. Its bundle ID
+   is `model-<model>@<contributor>`, and `<model>` is the `model_id` of the family. The hand-over
+   rules give the layout, the manifest and the `pack` command
+   (`specs/model-sidecar/model-addition-workflow/hand-over.md`).
 2. Change the title to `# Model intake: <model>`.
 3. Fill in every slot. Do not delete a pre-filled row. Do not leave a cell empty. If a value does not
    apply or is not known, write `not used`, `missing`, `unknown`, `to run`, `skipped` or `none`, with
@@ -34,7 +33,8 @@ that holds it. Read the skellytracker files in the skellytracker checkout (read-
 6. Group the `near-miss` and `gap` rows by the part of the spec that they change. Write one change
    proposal for each new or changed part. Then write the final verdict. Do the
    reference-implementation step. Then stop.
-7. Do not change a file in skellytracker.
+7. Do not change a file in skellytracker. The only exception: `pack` writes the new version folder of
+   your bundle in `intakes/`.
 
 **Section IDs.** The spec is split into section files under `specs/model-sidecar/`. Each section file has a
 section ID: the `id` in its front matter, for example `pre.resize.letterbox`. Write the section ID in
@@ -547,7 +547,7 @@ If the verdict is `describes`, a skellytracker session can add the sidecar as a 
 **Proposals.** Write one row for each proposal. Write each proposal with the change proposal template
 (`specs/model-sidecar/templates/change-proposal.md`).
 
-| Intake rows | Proposal folder (`plans/sidecar/proposals/<slug>/`) | Proposed section ID (the `id` in the section file's front matter) | New or changed section | Depends on (proposal folders, or `none`) |
+| Intake rows | Proposal bundle ID (`proposal-<slug>@<contributor>`) | Proposed section ID (the `id` in the section file's front matter) | New or changed section | Depends on (bundle IDs, or `none`) |
 |---|---|---|---|---|
 | | | | | |
 
@@ -573,12 +573,12 @@ reference implementation of that section. Do it for every verdict.
   has no vector file yet, record that.
 - Run the functions in place of the host code in the parity check of the exporter. Record that the
   result does not change.
-- Write the functions to `plans/sidecar/reference/<section_module>.py` in the exporter repo. Put a short
-  note at the top of the file: the section ID, the source commit, the vector results and the parity
-  result. Then stop.
+- Write the functions to `reference/<section_module>.py` of the `model` bundle. Put a short note at
+  the top of the file: the section ID, the source commit, the vector results and the parity result.
+  Then pack the bundle and stop.
 - If the host code and an existing reference implementation do not agree, you found a spec defect or a
   bug. Write a proposal. Do not write a second reference implementation.
 
-| Section ID (the `id` in the section file's front matter) | Host code (file, function and commit) | Reference file (`plans/sidecar/reference/<section_module>.py`) | Vector result | Parity result unchanged (`yes`, `no` or `to run`) |
+| Section ID (the `id` in the section file's front matter) | Host code (file, function and commit) | Reference file in the bundle (`reference/<section_module>.py`) | Vector result | Parity result unchanged (`yes`, `no` or `to run`) |
 |---|---|---|---|---|
 | | | | | |
