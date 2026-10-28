@@ -6,3 +6,8 @@
 *.yaml text eol=lf
 *.yml text eol=lf
 specs/model-sidecar/TRACEABILITY.md text eol=lf
+
+# Proposal records and reference modules are byte copies of hashed bundle files.
+# Git must not change their line endings.
+specs/model-sidecar/proposals/** -text
+specs/model-sidecar/reference/** -text
