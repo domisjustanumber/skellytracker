@@ -22,7 +22,8 @@ You do not do phase 3. A skellytracker session does it. The user decides.
    After acceptance:
    - A content PR adds the normative text, the changelog row, the vectors and the reference
      implementation. It sets the decision entry to `accepted` (if it is not accepted yet). It also
-     makes the spec-forced edit of each example that the change makes invalid.
+     makes the spec-forced edit of each example that the change makes invalid
+     ([ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)).
    - A non-spec PR (documentation only) adds the guidance, the implementation proposal (as
      implementer guidance and an open-work item), the example and its provenance record. It
      removes the `proposed` entry of the model from `specs/model-sidecar/inventory.yaml`, if one exists.

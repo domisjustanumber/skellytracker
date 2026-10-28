@@ -123,7 +123,8 @@ external:
 ```
 
 - In a proposal, the first item of `sections` is the section of the proposal index row.
-- `change_class` gives the class of the change ([Change classes](#change-classes)). A contribution
+- `change_class` gives the class of the change ([Change classes](#change-classes);
+  [ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)). A contribution
   gives the class of its proposal.
 - `batch` is an integer or `dynamic`.
 - `batch_conversion_reason` is required when `batch_conversion` is `to run`. Otherwise it is `null`.

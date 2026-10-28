@@ -41,7 +41,8 @@ The `kind` and the `notes` of each entry in `inventory.yaml` give the state of t
   writes `vNEXT`.
 - A note "Drifted" is an example that is not equal to the copy of its exporter. Replace it now.
 - An item `spec change <ID>: <edit>` in `edits` is a spec-forced edit
-  ([When a spec change makes an example invalid](#when-a-spec-change-makes-an-example-invalid)).
+  ([When a spec change makes an example invalid](#when-a-spec-change-makes-an-example-invalid);
+  [ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)).
   Replace the example when the copy of its exporter obeys each rule.
 
 The [introduction to the examples](../examples/README.md) tells which examples come from real
@@ -74,7 +75,8 @@ exports and which examples are forecasts.
    necessary. Never correct the example by hand. If the real export shows a contract that the spec
    cannot describe, that is a gap. Propose the spec change first. Replace the example in the same
    cycle. A spec-forced edit is not a correction
-   ([When a spec change makes an example invalid](#when-a-spec-change-makes-an-example-invalid)).
+   ([When a spec change makes an example invalid](#when-a-spec-change-makes-an-example-invalid);
+   [ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)).
 3. **Path.** The path of the example follows the
    [storage layout](../format/file-layout.md#storage-layout), also when the path of the exporter does
    not. For example, OpenMMLab-Exporter writes RTMO body7 under `keypoint_detectors/rtmo/body7/`.
@@ -127,8 +129,9 @@ exports and which examples are forecasts.
    `uv run pytest tools/tests`. `tools/tests/test_examples.py` checks that the example resolves.
 7. **Land it.** A new or replaced example changes no normative text. Thus it goes in a non-spec PR
    with its provenance ([`specs/model-sidecar/AGENTS.md`](../AGENTS.md)). A spec-forced edit goes in
-   the content commit of its change. Do not put a change of spec text in
-   that PR. Put one example in each commit, so that a reviewer can examine and revert each
+   the content commit of its change
+   ([ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)).
+   Do not put a change of spec text in that PR. Put one example in each commit, so that a reviewer can examine and revert each
    replacement alone. The commit message names the exporter commit. Follow the git rules of the
    skellytracker `AGENTS.md`, section 6.
 8. **Keep it current.** When an exporter changes what it writes, replace the example again with the
