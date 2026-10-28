@@ -10,13 +10,12 @@ You do not do phase 3. A skellytracker session does it. The user decides.
    legacy-only fields; your checks pass; parity passes for at least one size. The
    procedure copies your sidecar byte for byte. If your sidecar breaks a spec rule, fix your writer code
    or write a change proposal. Nobody corrects the example by hand.
-2. **A proposal.** skellytracker copies your proposal folder to
-   `specs/model-sidecar/proposals/<slug>/`: `proposal.md` with all eight parts, and the other files of
-   the folder. It records it as a short decision entry with status `proposed` (skellytracker
-   decision faac). If you change the proposal after that copy, tell the user. skellytracker then
-   records it again: it replaces the copy in full, ticks the closed items of "Before acceptance"
-   and keeps the same entry (skellytracker decision vac0). The user accepts or rejects it. After
-   acceptance:
+2. **A proposal.** skellytracker copies the current version of your proposal bundle byte for byte
+   to `specs/model-sidecar/proposals/<slug>/`. It records it as a short decision entry with status
+   `proposed`. To change the proposal, pack a new version. skellytracker then replaces the copy in
+   full and keeps the same entry ([Versions](hand-over.md#versions)). Each response gives the state
+   of your bundle ([Responses](hand-over.md#responses)). The user accepts or rejects the proposal.
+   After acceptance:
    - A content PR adds the normative text, the changelog row, the vectors and the reference
      implementation. It sets the decision entry to `accepted` (if it is not accepted yet).
    - A non-spec PR (documentation only) adds the guidance, the implementation proposal (as

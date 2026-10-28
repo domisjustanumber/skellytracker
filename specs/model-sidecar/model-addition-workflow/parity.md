@@ -43,7 +43,9 @@ Do these steps:
    Compare the result with the export error of step 3. The error above the export error comes from
    the sidecar path.
 6. Commit the parity script in your repo, so that a commit can be cited. A script that is
-   only in the local `plans/` folder is not evidence. Use the folder of your repo for evidence
+   only in the local `plans/` folder or only in a bundle is not evidence. A tracked copy of a bundle
+   file is evidence ([Tracked records](hand-over.md#tracked-records)), but the script must still
+   have a commit in your repo. Use the folder of your repo for evidence
    scripts. If your repo has no such folder, use `notes/decisions/scripts/` (OpenMMLab-Exporter
    uses it).
 7. If you cannot run the check, or if you cannot commit the script, write `to run` as the result.

@@ -1,8 +1,8 @@
 # Phase 1: can the current spec describe the model?
 
-Fill `../freemocap/skellytracker/specs/model-sidecar/templates/model-intake.md`. Write the result to
-`plans/sidecar/models/<model_id>/intake.md` ([Files in `plans/`](README.md#files-in-plans)). The
-skill `author-sidecar` gives the order of the steps.
+Fill `../freemocap/skellytracker/specs/model-sidecar/templates/model-intake.md`. The result is the
+file `intake.md` of a `model` bundle ([Hand-over bundles](hand-over.md#payload)). The skill
+`author-sidecar` gives the order of the steps.
 
 1. List every property of the runtime contract of the model. Use three sources:
    - the ONNX graph: each input and each output;

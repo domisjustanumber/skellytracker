@@ -37,7 +37,7 @@ outputs and the stop points.
 | Another spec edit | A request of the user, an item of the spec-defect list in [`specs/model-sidecar/decisions/open-work.md`](../../../specs/model-sidecar/decisions/open-work.md), or the release step |
 
 Find the exporter files with a scan of `../../*-Exporter/plans/sidecar/` from the root of the
-skellytracker repo ([Files in `plans/`](../../../specs/model-sidecar/model-addition-workflow/README.md#files-in-plans)).
+skellytracker repo ([Hand-over bundles](../../../specs/model-sidecar/model-addition-workflow/hand-over.md)).
 Also scan the old names `../../*-Exporter/plans/sidecar-*`. If you find an old name, tell the user
 that the exporter must move it. Read the exporter repos. Do not change them.
 

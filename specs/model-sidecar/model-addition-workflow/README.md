@@ -27,6 +27,7 @@ spec is correct. This workflow is not a section of the spec. It has no section I
 - [Phase 3: what skellytracker does next](phase-3-skellytracker.md)
 - [Reference implementations](reference-implementations.md)
 - [Reference examples](reference-examples.md): the procedure that adds a spec example or replaces one
+- [Hand-over bundles](hand-over.md): how a contributor gives its files to skellytracker
 
 ## Phases
 
@@ -64,72 +65,18 @@ implementation stage, skellytracker implements each section in the order that th
 In the steady state, each spec change is specified and then implemented in skellytracker and in
 the exporters in the same cycle.
 
-## Files in `plans/`
+## Hand-over
 
-Write the files of the submission in the folder `plans/sidecar/` of your repo. Each folder holds the
-files of one model or of one proposal. It stays in your repo until skellytracker has landed its
-files (ADR-[pykx](../../../decisions/pykx-submission-folders.md)).
-
-```text
-plans/sidecar/
-  models/<model_id>/
-    intake.md                       # the filled model intake template (phase 1)
-  proposals/<slug>/                 # one folder for each contract unit (phase 2)
-    proposal.md                     # the filled change proposal template
-    reference/<section_module>.py   # part 3: the reference implementation
-    vectors/<section ID>.yaml       # part 4: the vectors
-    evidence.md                     # optional: long parity tables and long evidence
-    example/                        # optional: a candidate example (phase 2, part 7)
-      detectors/...                 # the sidecar and its fragments, in the storage layout
-      provenance.yaml               # its entries for inventory.yaml
-  reference/<section_module>.py     # a reference implementation of the current spec text
-```
-
-- `<model_id>` is the `model_id` of the family. Write one intake for each family.
-- `<slug>` is a short lowercase name of the proposed change, with hyphens, for example
-  `letterbox-floor-rounding`.
-- `<section_module>` names one section. "Reference implementations" gives the rule.
-- Each file name in a proposal folder is the name of its target file in skellytracker. When
-  skellytracker records the proposal, it copies the folder to `specs/model-sidecar/proposals/<slug>/`.
-  When it lands the proposal, it copies `reference/<section_module>.py` to
-  `specs/model-sidecar/reference/`, and the generator writes `vectors/<section ID>.yaml` to
-  `specs/model-sidecar/vectors/`. The candidate example does not land. After acceptance, the
-  procedure [Reference examples](reference-examples.md) copies your real export.
-- A proposal folder serves each model that needs it. Do not copy it into a model folder. The intake
-  links to each proposal folder.
-- `plans/sidecar/reference/` holds only the reference implementations of the current spec text
-  ("Reference implementations"). The reference implementation of a proposal is in its folder.
-- Use these names exactly. A skellytracker session finds the files with a scan of `plans/sidecar/`
-  in each exporter repo. If your repo is not an exporter repo, tell the user or the skellytracker
-  maintainers the path of your `plans/` folder.
-- `plans/` is a local folder. Do not commit the files of `plans/sidecar/`.
-- Before you write a file of `plans/sidecar/`, look for it. If it exists, read it and update it in
-  place. Do not overwrite a file that you did not read. Git does not track `plans/`, so you cannot
-  undo an overwrite.
-- If you find a file with an old name (`plans/sidecar-intake-<model>.md`,
-  `plans/sidecar-proposal-<slug>.md` or `plans/sidecar-reference-<section_module>.py`), move it to its
-  new path. Move it, do not copy it. Tell the user.
-- When you stop, tell the user about each file of `plans/sidecar/` that no current intake or proposal
-  owns. Do not delete it.
-
-### When a folder is complete
-
-skellytracker shows when it has landed each file. A folder is complete when each of these items is
-true:
-
-- A model folder: the example of the model is in `specs/model-sidecar/inventory.yaml`, and each
-  proposal folder that its intake links to is complete.
-- A proposal folder: the proposal has `state: landed` or `state: rejected` in
-  `specs/model-sidecar/proposals/README.md`.
-- A file in `plans/sidecar/reference/`: `specs/model-sidecar/reference/<section_module>.py` exists,
-  and your function is in `external_impl` of the section.
-
-When a folder is complete, tell the user. The user deletes the folder. Do not delete it yourself.
+Give your files to skellytracker in a bundle in `../freemocap/skellytracker/intakes/`.
+[Hand-over bundles](hand-over.md) gives the layout, the manifest, the versions, the states and the
+responses. Write one `model` bundle for each family, and one `proposal` bundle for each contract unit.
+skellytracker does not read the `plans/` folder of your repo.
 
 ## Files that you commit
 
 Commit these files in your repo: the sidecar writer code, the host implementation of each section,
-and the parity scripts. The intake and the proposals cite their commits.
+and the parity scripts. The intake and the proposals cite their commits. The manifest of each bundle
+gives the commit of your repo in `source_commit`.
 
 ## Inputs
 
@@ -149,7 +96,7 @@ user which inputs are missing.
 
 If your code has no git repo yet, no commit exists. This rule was "An exporter with no git repo":
 
-- Write `none (no git repo)` in each commit cell.
+- Write `none (no git repo)` in each commit cell, and in `source_commit` of the bundle manifest.
 - Write `to run` as each parity result. A script without a commit is not evidence.
 - In a vector file, write `unverified: <reason>` in place of `verified_against`.
 - The intake and the proposals are allowed, but they are not complete. Complete them when the
@@ -165,6 +112,8 @@ These rules apply only to an agent or a person in an exporter repo:
 - Before each sidecar task, do the checkout steps of the draft exporter guide:
   `../freemocap/skellytracker/specs/draft/exporter-guide/sidecars/where-to-read.md`. They check the
   skellytracker checkout and its branch.
+- Do not change a file in the skellytracker checkout. The only exception: write the new version
+  folders of your own bundles in `intakes/` ([Hand-over bundles](hand-over.md)).
 
 ## Decisions
 
@@ -172,8 +121,6 @@ The decisions behind this workflow are in the skellytracker decision log:
 [0013](../../../decisions/0013-spec-structure.md) (section IDs, rule IDs, reference
 implementations and test vectors), [0014](../../../decisions/0014-spec-lifecycle.md) (the spec
 lifecycle, the `vNEXT` rule and the new-model workflow),
-[faac](../../../decisions/faac-proposal-records.md) (the proposal records),
-[vac0](../../../decisions/vac0-record-a-changed-proposal.md) (a changed proposal) and
 [x64y](../../../decisions/x64y-draft-exporter-guide-folder.md) (this folder and the draft
 exporter guide) and [b9fm](../../../decisions/b9fm-finished-sidecar-plans.md) (the reference
 examples procedure).

@@ -20,6 +20,16 @@ implementation-stage items and the other repository state are in the root
   is out of the `vNEXT` scope until its library is complete (0008), and the `-1` row axis of the RTMDet
   `boxes` and `scores` shapes takes its value from `output_shapes` (0011).
 
+## Re-export requests
+
+Each item asks an exporter to regenerate a sidecar or to export it again. It names the exporter
+repo, the example or the model, and the reason. The exporter answers with a new version of its
+`model` bundle
+([Re-export requests](../model-addition-workflow/hand-over.md#re-export-requests)). The session
+deletes the item when it lands that bundle.
+
+None.
+
 ## Spec defects
 
 Spec defects found during the spec-build stage. Each one needs a content change to the spec:

@@ -58,7 +58,7 @@ If an input is missing, do not stop. Write `missing` for it in the intake.
 ## Outputs
 
 Write these files in the exporter repo
-([Files in `plans/`](../../../specs/model-sidecar/model-addition-workflow/README.md#files-in-plans)):
+([Hand-over bundles](../../../specs/model-sidecar/model-addition-workflow/hand-over.md)):
 
 | Output | When |
 |---|---|
@@ -102,7 +102,7 @@ overwrite.
    about each file that no current intake or proposal owns. If you find a file with an old name
    (`plans/sidecar-intake-<model>.md`, `plans/sidecar-proposal-<slug>.md` or
    `plans/sidecar-reference-<section_module>.py`), move it to its new path
-   ([Files in `plans/`](../../../specs/model-sidecar/model-addition-workflow/README.md#files-in-plans)).
+   ([Hand-over bundles](../../../specs/model-sidecar/model-addition-workflow/hand-over.md)).
 3. Follow [How to use this template](../../../specs/model-sidecar/templates/model-intake.md#how-to-use-this-template).
 4. Fill in [Inputs before you start](../../../specs/model-sidecar/templates/model-intake.md#inputs-before-you-start).
 5. Fill in the [Header](../../../specs/model-sidecar/templates/model-intake.md#header). Write the
@@ -244,7 +244,7 @@ Do this step for every final verdict, also after step 6. Follow
    - each result that is `to run`;
    - each file of `plans/sidecar/` that no current intake or proposal owns;
    - each folder of `plans/sidecar/` that is complete
-     ([When a folder is complete](../../../specs/model-sidecar/model-addition-workflow/README.md#when-a-folder-is-complete)).
+     ([Retention](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#retention)).
 5. A skellytracker session does phase 3
    ([Phase 3](../../../specs/model-sidecar/model-addition-workflow/phase-3-skellytracker.md#phase-3-what-skellytracker-does-next)).
 

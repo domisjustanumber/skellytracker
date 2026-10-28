@@ -1,10 +1,10 @@
 # Phase 2: propose a spec change and its implementation
 
 Write one proposal for each new or changed contract unit (one section). Fill
-`../freemocap/skellytracker/specs/model-sidecar/templates/change-proposal.md`. Write each proposal to
-the folder `plans/sidecar/proposals/<slug>/`, with the files that
-[Files in `plans/`](README.md#files-in-plans) gives. The skill `propose-sidecar-change` gives the
-order of the steps. The intake links to each proposal folder. Then stop.
+`../freemocap/skellytracker/specs/model-sidecar/templates/change-proposal.md`. Each proposal is
+a `proposal` bundle, with the files that [Hand-over bundles](hand-over.md#payload) gives. Choose its
+form first ([Proposal forms](hand-over.md#proposal-forms)). The skill `propose-sidecar-change` gives
+the order of the steps. The intake names each proposal bundle. Then stop.
 
 Before you write a proposal:
 

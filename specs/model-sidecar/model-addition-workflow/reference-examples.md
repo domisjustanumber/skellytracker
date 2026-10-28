@@ -54,8 +54,9 @@ exports and which examples are forecasts.
    - The checks of the exporter pass.
    - The parity check against the upstream library passes for at least one size: first the
      preprocessed input, then the final outputs.
-2. **Copy. Do not edit.** Copy the sidecar of the exporter byte for byte. Only these changes are
-   allowed:
+2. **Copy. Do not edit.** Copy the sidecar of the exporter byte for byte. The source is `example/`
+   of the current version of the `model` bundle ([Payload](hand-over.md#payload)). Only these
+   changes are allowed:
    1. Remove the sizes after the first size. Replace them with the comment
       `# <sizes>: identical to <first> except input.shape, input.resize.target_size and filenames`.
       Before you write the comment, make sure that it is true for the export.
@@ -99,7 +100,11 @@ exports and which examples are forecasts.
    - the exporter commit of the code that wrote the copy;
    - the export command;
    - the date;
-   - each allowed edit from step 2.
+   - each allowed edit from step 2;
+   - the bundle ID and its version, as `bundle: <bundle id>@v<k>`.
+
+   `example/provenance.yaml` of the bundle gives the entries. Check each entry against the bundle
+   manifest.
 
    For each fragment with no package copy, write an entry in `fragments`, keyed by its path under
    `specs/model-sidecar/examples/`. Its keys are `exporter`, `exporter_path`, `tracked`, `commit`
