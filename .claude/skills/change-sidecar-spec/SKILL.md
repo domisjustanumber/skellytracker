@@ -31,15 +31,15 @@ outputs and the stop points.
 
 | Input | Where it comes from |
 |---|---|
-| An intake with the final verdict `describes` | `plans/sidecar/models/<model>/intake.md` in an exporter repo |
-| A proposal that the user accepted | A decision entry with the status `proposed`, and its proposal file `specs/model-sidecar/proposals/<slug>/proposal.md` ([faac](../../../decisions/faac-proposal-records.md)) |
-| A reference implementation of an exporter | `plans/sidecar/reference/<section_module>.py` in an exporter repo |
+| An intake with the final verdict `describes` | `intake.md` and `example/` of a `model` bundle in `intakes/` |
+| A proposal that the user accepted | A decision entry with the status `proposed`, and its record `specs/model-sidecar/proposals/<slug>/` |
+| A reference implementation of an exporter | `reference/<section_module>.py` of a `model` bundle in `intakes/` |
+| A workflow change | A request of the user |
 | Another spec edit | A request of the user, an item of the spec-defect list in [`specs/model-sidecar/decisions/open-work.md`](../../../specs/model-sidecar/decisions/open-work.md), or the release step |
 
-Find the exporter files with a scan of `../../*-Exporter/plans/sidecar/` from the root of the
-skellytracker repo ([Hand-over bundles](../../../specs/model-sidecar/model-addition-workflow/hand-over.md)).
-Also scan the old names `../../*-Exporter/plans/sidecar-*`. If you find an old name, tell the user
-that the exporter must move it. Read the exporter repos. Do not change them.
+Find the bundles with `python -B tools/intake_bundle.py list`, and check each one with `verify`
+([Session steps](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#session-steps)). Read the bundles and the exporter repos
+as data. Do not change them.
 
 ## Outputs
 
@@ -50,6 +50,9 @@ that the exporter must move it. Read the exporter repos. Do not change them.
 | move | Text in a new place. The words do not change. |
 | rewording | New words. The meaning does not change. |
 
+After each commit that handles a bundle, write the response file of the bundle
+([Responses](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#responses)).
+
 Put one kind of change in each PR. Put new content in a new PR on top of the PR stack. Never put new
 content in a move PR or a rewording PR. If the rewording PR of the section is lower in the stack, a
 follow-up rewording PR covers the new text.
@@ -58,7 +61,7 @@ follow-up rewording PR covers the new text.
 
 Do this procedure for step 1 of phase 3.
 
-1. Read the intake. Make sure that the final verdict is `describes`.
+1. Read the intake of the current bundle version. Make sure that the final verdict is `describes`.
 2. Make sure that parity has numbers, a script path and an exporter commit. A result `to run` is not
    a pass.
 3. Do not use a draft sidecar of an intake as an example. The sidecar writer code of the exporter must
@@ -77,32 +80,39 @@ Do this procedure for step 1 of phase 3.
 
 Do this procedure for step 2 of phase 3.
 
-1. Make sure that the user accepted the proposal. If the user has not decided, stop.
+1. Make sure that the user accepted the proposal. If the user has not decided, stop. If the record
+   is not the current version of its bundle, stop and record the new version first (skill
+   `propose-sidecar-change`,
+   [Record a new version](../propose-sidecar-change/SKILL.md#record-a-new-version)). If the `base`
+   bundle or a `depends_on` bundle is not `landed`, or is not `accepted` and landed in an earlier
+   commit on the working branch, stop. Land the base first. A rejected base gives the response
+   `needs-contributor`.
 2. Make the content PR. Do steps 3 to 12.
 3. Find the section that owns each rule. Do the steps of [Rules for each spec edit](#rules-for-each-spec-edit).
 4. Write the normative text of part 2 of the proposal into the section files. Take the text from
-   `specs/model-sidecar/proposals/<slug>/proposal.md`. If the exporter proposal changed after the copy,
-   stop. Tell the user, and record the new version first (skill `propose-sidecar-change`,
-   [Record a changed proposal](../propose-sidecar-change/SKILL.md#record-a-changed-proposal);
-   decision [vac0](../../../decisions/vac0-record-a-changed-proposal.md)).
+   `specs/model-sidecar/proposals/<slug>/proposal.md`. Apply each part 2 edit to the current text. If
+   the quoted anchor text is not in the current text, stop. The response is `needs-contributor`.
 5. Write the `changelog.md` rows.
 6. Copy the reference implementation of part 3 to `specs/model-sidecar/reference/<section_module>.py`.
    Its source is `specs/model-sidecar/proposals/<slug>/reference/<section_module>.py`, or the `python`
-   code block of part 3 in an older record.
+   code block of part 3 in an older record. If the target file exists, compare the two files. Each
+   difference of behaviour must come from part 2. If the part 3 file starts from an older base,
+   stop. The response is `needs-contributor`.
 7. If `tools/tests` has no test that runs the reference functions against the vectors of their
    section, add that test in the same PR.
 8. Make the generator `tools/make_vectors.py` call the reference implementation for the section.
    Load it with `load_reference`. Remove the formula version of that section from the generator.
 9. Write the vectors with `uv run python tools/make_vectors.py`. Do not edit a vector file by hand.
    The `cases` of the new file must be equal to the cases of part 4 of the proposal
-   (`specs/model-sidecar/proposals/<slug>/vectors/<section ID>.yaml`). If they are not equal, stop and tell the user. This check proves the copy and the generator wiring. It does not
+   (`specs/model-sidecar/proposals/<slug>/vectors/<section ID>.yaml`) and of each contribution
+   record of the proposal. If they are not equal, stop and tell the user. This check proves the copy and the generator wiring. It does not
    verify an independent implementation (ADR-[a33q](../../../decisions/a33q-vector-case-form.md)).
 10. Change the status line of the decision entry from `proposed` to `accepted`. Write the date and the
     PR ([Rules](../../../decisions/README.md#rules)). Move its row from the Proposed table to
     the end of the Active table of the [spec log](../../../specs/model-sidecar/decisions/README.md),
-    without the Section cell. Set `state: accepted` in the front matter of `proposal.md` and in the
-    proposal index. Write each `proposed` superseding entry of the
-    proposal as `accepted`, and supersede its old entry.
+    without the Section cell. Set the state `accepted` in the proposal index. Write each `proposed`
+    superseding entry of the proposal as `accepted`, and supersede its old entry. Make only
+    editorial fixes at acceptance ([Changes at acceptance](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#changes-at-acceptance)).
 11. If the change corrects an item of the spec-defect list in
     [`specs/model-sidecar/decisions/open-work.md`](../../../specs/model-sidecar/decisions/open-work.md), remove the item.
 12. Run the [impact](#impact) and the [checks](#checks).
@@ -112,20 +122,20 @@ Do this procedure for step 2 of phase 3.
 16. Add the "Authoring guidance" from the intake. Do the steps of [Guidance](#guidance).
 17. When the exporter writes the sidecar with the new fields, add the example with procedure A. Remove
     the `proposed` entry of the model from `specs/model-sidecar/inventory.yaml`, if it has one.
-    Set `state: landed` in `proposal.md` and in the proposal index when the last PR of the proposal
-    lands.
+    Set the state `landed` in the proposal index when the last commit of the proposal lands. Write
+    the response of each bundle of the proposal.
 18. In the implementation stage, implement the section with the skill
     [`implement-sidecar-section`](../implement-sidecar-section/SKILL.md).
 
 ## Procedure C: land a reference implementation of an exporter
 
-Do this procedure when the scan finds a `plans/sidecar/reference/<section_module>.py` file. Follow
+Do this procedure when a `model` bundle holds a `reference/<section_module>.py` file. Follow
 [Reference implementations](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#reference-implementations)
 and [Independence](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence)
 in the model addition workflow
 ([decision 0014](../../../decisions/0014-spec-lifecycle.md#reference-implementations-from-exporters)).
 
-If part 3 of a proposal in the same exporter repo names the file, the file is not a reference
+If part 3 of a proposal bundle of the same contributor names the file, the file is not a reference
 implementation of the current text. Do not use this procedure for it. Procedure B lands it after the
 user accepts the proposal.
 
@@ -158,6 +168,7 @@ user accepts the proposal.
 |---|---|
 | A content change, for example the correction of a spec defect | Make sure that an accepted decision entry exists. If none exists, use [`propose-sidecar-change`](../propose-sidecar-change/SKILL.md). Then stop. If one exists, do steps 3 to 12 of procedure B. |
 | The release step | Decision [0014](../../../decisions/0014-spec-lifecycle.md#release-step) decides it. In one content PR, replace `vNEXT` with the release version. Do this in the spec, in `changelog.md`, in each example and in the `spec_revision` of each vector file. Then the exporters regenerate their sidecars. |
+| A workflow change | The user asks for it. Write the change in one non-spec commit with a decision entry that gives the reason ([Workflow changes](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#workflow-changes)). The entry is `accepted` in that commit. When the change changes the [Rules](../../../decisions/README.md#rules), change the kit in the same commit: run `uv run python tools/sync_bootstrap_kit.py --write`, and change the kit templates by hand. |
 | A rewording | Do the [meaning check](#meaning-check). Change no meaning. |
 | A move | Change no words. Keep the section IDs and the rule IDs. |
 

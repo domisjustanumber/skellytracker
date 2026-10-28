@@ -67,7 +67,7 @@ gives the order of the steps, the inputs, the outputs and the stop points.
 | Verified vectors | `specs/model-sidecar/vectors/<section-id>.yaml`: `verified_against` at the top of the file, or for each case. `unverified: <reason>` means that no implementation verified the file. |
 | A reference implementation | `specs/model-sidecar/reference/<section_module>.py` |
 | An exporter implementation | `external_impl` in the front matter, and "External implementations" in `TRACEABILITY.md` |
-| An exporter file that waits to land | A scan of `../../*-Exporter/plans/sidecar/` from the root of this repo: `reference/<section_module>.py`, and each `proposals/<slug>/` that changes the section. Read the files. Do not change them. |
+| A bundle that waits to land | `python -B tools/intake_bundle.py list` ([Hand-over bundles](../../../specs/model-sidecar/model-addition-workflow/hand-over.md)): a `model` bundle with `reference/<section_module>.py`, and each `proposal` bundle that changes the section. Read the files. Do not change them. |
 
 If the section has no vector file, the section has no verified vectors.
 

@@ -57,30 +57,28 @@ If an input is missing, do not stop. Write `missing` for it in the intake.
 
 ## Outputs
 
-Write these files in the exporter repo
+Write these files in a `model` bundle, or in the exporter repo where the table says so
 ([Hand-over bundles](../../../specs/model-sidecar/model-addition-workflow/hand-over.md)):
 
 | Output | When |
 |---|---|
-| `plans/sidecar/models/<model>/intake.md` | Always. One file for each family. `<model>` is the `model_id` of the family. |
+| `intake.md` of the bundle `model-<model>@<contributor>` | Always. One bundle for each family. `<model>` is the `model_id` of the family. |
 | The sidecar, from the sidecar writer code of the exporter | Only when every row is `exact` or `out of scope`. |
 | A draft of the sidecar, the rule walk and the parity plan, in the intake | When no row is `near-miss` or `gap`, and a row is `unverified`. The results are provisional. |
 | The parity script, committed in the exporter repo | When you can run the parity check. |
-| `plans/sidecar/reference/<section_module>.py` | For each section that the exporter implements on its host side and that has no reference implementation. |
-| `plans/sidecar/proposals/<slug>/` | The skill `propose-sidecar-change` writes one folder for each `near-miss` or `gap`. |
+| `reference/<section_module>.py` of the bundle | For each section that the exporter implements on its host side and that has no reference implementation. |
+| `example/` of the bundle | When the verdict is `describes`. |
+| A `proposal` bundle | The skill `propose-sidecar-change` writes one bundle for each contract unit with a `near-miss` or a `gap`. |
 
-Do not commit the files of `plans/sidecar/`.
-
-Before you write a file of `plans/sidecar/`, look for it. If it exists, read it and update it in place.
-Do not overwrite a file that you did not read. `plans/` is not in git, so you cannot undo an
-overwrite.
+Keep your working draft where you like. The bundle is the hand-over
+([Pack a version](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#pack-a-version)).
 
 ## Procedure
 
 ### Step 1: Prepare
 
 1. Before the overhaul of the exporter, run this workflow only when the user asks. Then write only the
-   files of `plans/sidecar/`, unless the user permits more
+   files of your bundles, unless the user permits more
    ([How to use this guide](../../../specs/draft/exporter-guide/sidecars/README.md#how-to-use-this-guide)).
 2. Do the steps of
    [Where to read the spec](../../../specs/draft/exporter-guide/sidecars/where-to-read.md#where-to-read-the-spec). Get the
@@ -96,13 +94,9 @@ overwrite.
 
 ### Step 2: Start the intake
 
-1. Copy the model intake template to `plans/sidecar/models/<model>/intake.md`. If the file exists,
-   read it and update it in place.
-2. List the other files of `plans/sidecar/`. Do not delete or overwrite them. In step 8, tell the user
-   about each file that no current intake or proposal owns. If you find a file with an old name
-   (`plans/sidecar-intake-<model>.md`, `plans/sidecar-proposal-<slug>.md` or
-   `plans/sidecar-reference-<section_module>.py`), move it to its new path
-   ([Hand-over bundles](../../../specs/model-sidecar/model-addition-workflow/hand-over.md)).
+1. Copy the model intake template to `intake.md` of your working draft of the `model` bundle.
+2. Read the responses of your bundles and the
+   [Re-export requests](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#re-export-requests). Do the open items first.
 3. Follow [How to use this template](../../../specs/model-sidecar/templates/model-intake.md#how-to-use-this-template).
 4. Fill in [Inputs before you start](../../../specs/model-sidecar/templates/model-intake.md#inputs-before-you-start).
 5. Fill in the [Header](../../../specs/model-sidecar/templates/model-intake.md#header). Write the
@@ -220,7 +214,7 @@ Do this step for every final verdict, also after step 6. Follow
    implementation.
 5. Skip a part of the spec that has no algorithm, for example `input.layout`.
 6. For each other section, do "The step" of Reference implementations. Write
-   `plans/sidecar/reference/<section_module>.py`.
+   `reference/<section_module>.py` of the `model` bundle.
 7. If the host code is not committed, write `to run`. Do the step after the commit.
 8. Fill in the reference table in
    [Proposals and reference files](../../../specs/model-sidecar/templates/model-intake.md#proposals-and-reference-files).
@@ -230,7 +224,9 @@ Do this step for every final verdict, also after step 6. Follow
 1. Write the [Final verdict](../../../specs/model-sidecar/templates/model-intake.md#final-verdict):
    `describes`, `does not describe` or `pending`. A `near-miss` row or a `gap` row gives
    `does not describe`, also when other rows are `unverified`.
-2. Stop. Do not change a file in skellytracker.
+2. Pack the `model` bundle
+   ([Pack a version](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#pack-a-version)). Then stop. Do not change
+   another file in skellytracker.
 3. Do not publish a `vNEXT` sidecar to a shared or remote folder
    ([Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing)).
 4. Tell the user these items:
@@ -242,8 +238,8 @@ Do this step for every final verdict, also after step 6. Follow
    - the exporter defects;
    - the spec defects that you found and did not propose;
    - each result that is `to run`;
-   - each file of `plans/sidecar/` that no current intake or proposal owns;
-   - each folder of `plans/sidecar/` that is complete
+   - the bundle ID and the version that you packed;
+   - each bundle that the user can delete
      ([Retention](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#retention)).
 5. A skellytracker session does phase 3
    ([Phase 3](../../../specs/model-sidecar/model-addition-workflow/phase-3-skellytracker.md#phase-3-what-skellytracker-does-next)).
