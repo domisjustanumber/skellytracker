@@ -15,7 +15,7 @@ The paths are under `skellytracker/`.
 | `__main__.py` | Webcam demo CLI (`cli_main`) |
 | `core/tracker/` | `Tracker`, `MultiPersonTracker`, `DetectionStage`, `TrackerState` |
 | `core/config/` | Pydantic configs: `TrackerConfig`, `DetectionStageConfig`, `ObjectDetectorConfig`, `KeypointDetectorConfig`, `SessionConfig` |
-| `core/sessions/` | ONNX Runtime, CPU and MediaPipe sessions. `model_registry.py` downloads `url` ONNX files to `~/.cache/skellytracker/models`. `hf_repo` files go to the Hugging Face cache. |
+| `core/sessions/` | ONNX Runtime, CPU and MediaPipe sessions. `model_registry.py` downloads `url` ONNX files to `~/.cache/skellytracker/models`. `hf_repo` files go to the Hugging Face cache. `batch_conversion.py` makes a fixed-batch ONNX file from a static-batch source (`static-batch-v1`). |
 | `core/detectors/detector_base_classes.py` | Detector base classes, `OBJECT_DETECTOR_REGISTRY` and `KEYPOINT_DETECTOR_REGISTRY` |
 | `core/detectors/keypoint_detectors/` | `aruco/`, `charuco/`, `mediapipe/`, `rtmpose/` (body, hand, face), `rtmw/wholebody/` |
 | `core/detectors/object_detectors/` | `yolox/`, `keypoint_bbox/`, `precomputed/` |
