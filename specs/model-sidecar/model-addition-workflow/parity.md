@@ -16,7 +16,8 @@ the reference implementation of the proposal replaces the missing spec feature.
 
 Do these steps:
 
-1. Set the gate of each compared quantity before the run. Record each gate and its source.
+1. Set the gate of each compared quantity before the run. Record each gate and its source
+   ([ADR-JC4T](../../../decisions/JC4T-parity-gates-and-batch-conversion-check.md)).
    - Use your own gate or a numeric floor of the upstream. Your own gate is an accuracy gate, for
      example AP, OKS, or a count of outliers above a fraction of the ROI size. A numeric floor is,
      for example, the float32 noise of the upstream computation. Another example is the change that
@@ -50,7 +51,7 @@ Do these steps:
    code, the row of that property is not `exact`. If the cause is outside both (for example two
    different OpenCV versions), remove it, or give its maximum and its cause.
 5. Compare each final output of each role of the sidecar. The section of the role defines its final
-   outputs.
+   outputs ([ADR-JC4T](../../../decisions/JC4T-parity-gates-and-batch-conversion-check.md)).
    - the row count of each image;
    - for the `object_detector` role: the boxes, the scores and the classes, with box AP or per-row
      box differences;

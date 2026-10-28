@@ -89,6 +89,8 @@ The templates are [model intake](../../../model-sidecar/templates/model-intake.m
 
 ## Run the skellytracker tools
 
+These rules are in [ADR-JC4T](../../../../decisions/JC4T-parity-gates-and-batch-conversion-check.md).
+
 - The rule now: run the `batch` sub-command of the hand-over tool from the skellytracker checkout,
   in the skellytracker environment of the checkout
   ([Batch-conversion check](../../../model-sidecar/model-addition-workflow/hand-over.md#batch-conversion-check)).

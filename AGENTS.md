@@ -9,7 +9,8 @@ own bundles in `intakes/`. They run `pack` and `list` of `tools/intake_bundle.py
 interpreter and `python -B`. They run `batch` of the same tool in the environment of this
 checkout, with `uv run --project ../freemocap/skellytracker --no-sync python -B`.
 These commands write no other file here
-([ADR-FADS](decisions/FADS-hand-over-bundles-in-intakes.md)).
+([ADR-FADS](decisions/FADS-hand-over-bundles-in-intakes.md);
+[ADR-JC4T](decisions/JC4T-parity-gates-and-batch-conversion-check.md)).
 
 All new and changed documentation must use ASD-STE100 Simplified Technical English.
 This rule applies to each `AGENTS.md`, skills, decision entries, templates, the model addition

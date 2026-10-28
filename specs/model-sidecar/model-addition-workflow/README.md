@@ -84,7 +84,8 @@ gives the commit of your repo in `source_commit`.
 Get these inputs before you start:
 
 - the ONNX files of every size and precision. A static-batch family needs the verification batches
-  1, 2, 3 and 4 ([Batch-conversion check](hand-over.md#batch-conversion-check)). Add the `dynamic`
+  1, 2, 3 and 4 ([Batch-conversion check](hand-over.md#batch-conversion-check);
+  [ADR-JC4T](../../../decisions/JC4T-parity-gates-and-batch-conversion-check.md)). Add the `dynamic`
   export if you plan to publish it;
 - the upstream inference config;
 - the upstream preprocessing code and postprocessing code;
@@ -126,6 +127,7 @@ implementations and test vectors; superseded by
 [ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md), the vector cases and the reference modules), [0014](../../../decisions/0014-spec-lifecycle.md) (the spec
 lifecycle, the `vNEXT` rule and the new-model workflow),
 [ADR-FADS](../../../decisions/FADS-hand-over-bundles-in-intakes.md) (the hand-over bundles and the proposal records),
+[ADR-JC4T](../../../decisions/JC4T-parity-gates-and-batch-conversion-check.md) (the parity gates and the batch-conversion check),
 [x64y](../../../decisions/x64y-draft-exporter-guide-folder.md) (this folder and the draft
 exporter guide) and [b9fm](../../../decisions/b9fm-finished-sidecar-plans.md) (the reference
 examples procedure).

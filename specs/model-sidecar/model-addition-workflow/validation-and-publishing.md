@@ -61,7 +61,8 @@ These rules apply to each contributor that writes a sidecar.
   phase 1 gives a verdict. With the verdict `converts`, you must publish one batch artifact for each
   size and precision. The choice is the same for the whole family: every artifact is the batch 3
   static export, with `source_batch_size: 3`, or every artifact is the `dynamic` export, with no
-  `batch_conversion`. b1, b2 and b4 are verification-only.
+  `batch_conversion`. b1, b2 and b4 are verification-only
+  ([ADR-JC4T](../../../decisions/JC4T-parity-gates-and-batch-conversion-check.md)).
   - The choice is for the whole family, because one `batch_conversion` profile covers every size
     ([`common.batch_conversion`](../common/batch-conversion.md#batch-conversion)). With
     `batch_conversion`, no size can have the key `dynamic` (`V-common.batch_conversion-4`).

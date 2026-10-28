@@ -109,6 +109,23 @@ stage, no file under `skellytracker/` changes, except test fixes.
 
 ## Repository state
 
+- **Dependency pins for the exporters.** The target rule is that each exporter takes skellytracker
+  as a dependency from a uv path source to the local checkout
+  ([ADR-JC4T](JC4T-parity-gates-and-batch-conversion-check.md), item 6). The pins of
+  `pyproject.toml` stop it now: `requires-python = ">=3.11,<3.13"`, `numpy==2.4.6`,
+  `opencv-contrib-python`, and onnx 1.22.0 and onnxruntime 1.27.0 in `uv.lock`. The exporters have
+  (read 2026-10-28 from the `pyproject.toml` and the lock of each exporter):
+  OpenMMLab-Exporter Python `>=3.14`, `numpy>=2.5.4`, `opencv-python-headless`, onnx 1.23.2,
+  `onnxruntime-gpu` 1.31.0; Roboflow-Exporter Python `>=3.14`, `numpy==2.5.4`, onnx 1.23.2,
+  onnxruntime 1.31.0; Ultralytics-Exporter Python `>=3.13`, `numpy==2.5.3`, onnx 1.22.0,
+  onnxruntime 1.30.0; Qualcomm-Exporter Python `>=3.12,<3.14`, `numpy>=2.0`, `opencv-python` in its
+  lock. uv cannot resolve the dependency in three of the four. In Qualcomm-Exporter,
+  `opencv-contrib-python` next to `opencv-python` puts two `cv2` builds in one folder. A consumer
+  does not get the `exclude-dependencies` of this repository. The user decides the change. The
+  options: a wider `requires-python`, a NumPy range, the headless OpenCV package, a lock refresh to
+  onnx 1.23.2 or later and onnxruntime 1.31.0 or later (keep the `onnxruntime-gpu<1.27` cap in
+  mind), and a split non-video test run on Python 3.12, 3.13 and 3.14. Until then, an exporter runs
+  the batch tool in the checkout environment.
 - **Exporter guide rewording.** A rewording PR removes each exporter repository name that is only an
   example from `specs/draft/exporter-guide/` and from all files of
   `specs/model-sidecar/model-addition-workflow/`. A citation of an exporter entry or commit as

@@ -130,7 +130,8 @@ external:
 - `batch_conversion` is the verdict of the [batch-conversion check](#batch-conversion-check).
 - `batch_conversion_reason` is required when `batch_conversion` is `to run`. Otherwise it is `null`.
 - With `batch_conversion: converts`, `verify` checks the rule of
-  [Publishing](validation-and-publishing.md#publishing) in three parts:
+  [Publishing](validation-and-publishing.md#publishing) in three parts
+  ([ADR-JC4T](../../../decisions/JC4T-parity-gates-and-batch-conversion-check.md)):
   1. each (size, precision) pair has exactly one entry with `published: true`;
   2. all `published: true` entries have the same `batch`, and it is `3` or `dynamic`;
   3. the sidecar of `example/` has `batching.batch_conversion.source_batch_size: 3` if and only if
@@ -163,7 +164,8 @@ Each proposal names one class in `change_class` and in part 2. Its decision entr
 ## Batch-conversion check
 
 The `batch` sub-command checks if the profile `static-batch-v1` converts the batch 3 export of a
-family to the batches 1, 2 and 4 ([`common.batch_conversion`](../common/batch-conversion.md)). Do it
+family to the batches 1, 2 and 4 ([`common.batch_conversion`](../common/batch-conversion.md);
+[ADR-JC4T](../../../decisions/JC4T-parity-gates-and-batch-conversion-check.md)). Do it
 in step 1b of [phase 1](phase-1-intake.md). It gives the evidence of row G6b of the intake and the
 value of `batch_conversion` in the manifest. The converter is
 `skellytracker/core/sessions/batch_conversion.py::model_batch_convert`.
