@@ -150,8 +150,7 @@ rows L1 and L2. For these rows:
 
 - Judge the verdict against the spec only. The sidecar value is what the spec requires.
 - In the evidence column, cite the exporter code that writes the value. If no such code exists,
-  write `none yet (no code)`. If you cannot read the code,
-  write `not read (<reason>)`.
+  write `none yet (no code)`. If you cannot read the code, write `not read (<reason>)`.
 - Such a row is not `unverified` only because the exporter code does not exist or you cannot read it.
   In that case, write `not checked` in the last column.
 - If the exporter writes a different value today, the verdict stays `exact`. Write the exporter

@@ -23,8 +23,9 @@
 - A claim that no passing check maps to an upstream line stays `(secondary)`.
 - A value that you choose (in an exporter, the exporter chooses it) has no upstream evidence.
   Examples are a name, a rule for the YAML file and a path. Judge its row against the spec only. Cite
-  your code that writes the value. If no such code exists, write `none yet (no code)`. Such a row is not `unverified` only because the code does not exist or you
-  cannot read it. The model intake template lists these rows (heading "Verdicts").
+  your code that writes the value. If no such code exists, write `none yet (no code)`. Such a row is
+  not `unverified` only because the code does not exist or you cannot read it. The model intake
+  template lists these rows (heading "Verdicts").
 - Do not publish a `vNEXT` sidecar to a shared or remote folder (see
   [Publishing](validation-and-publishing.md#publishing)).
 
