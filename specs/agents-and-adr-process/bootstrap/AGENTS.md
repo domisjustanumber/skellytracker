@@ -12,12 +12,12 @@ Keep technical names, field names, values, formulas, code and YAML unchanged.
 
 | Path | Role |
 |---|---|
-| `AGENTS.md` | The single instructions file for coding agents |
+| `AGENTS.md` | The root instructions file for coding agents |
 | `CLAUDE.md` | Imports this file. It has no other content. |
 | `decisions/` | Decision log ([`README.md`](decisions/README.md)) and its open work ([`open-work.md`](decisions/open-work.md)) |
 | `tools/` | The doc checks: `check_decision_log.py`, `check_links.py` and `check_private_data.py`. Their tests are in `tools/tests/`. |
 | `plans/` | A local working folder. Git ignores it. |
-| `{{MODULE}}/` | {{MODULE_ROLE}}. Its `AGENTS.md` holds the rules for the work in it. Its log is in `{{MODULE}}/decisions/`. Delete this row when the repo has no modules. |
+| `{{MODULE}}/` | {{MODULE_ROLE}}. Its `AGENTS.md` holds the rules for the work in it. Its log is in `{{MODULE}}/decisions/`. |
 | {{PATH}} | {{ROLE}} |
 
 ## 2. Skills

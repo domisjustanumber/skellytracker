@@ -7,8 +7,10 @@ each file goes to the same relative path.
 
 The rules come from the skellytracker decision log: [0001](../../decisions/0001-decision-log-and-agents-md.md),
 [0029](../../decisions/0029-decision-log-read-path.md),
-[0030](../../decisions/0030-no-private-data.md) and
-[gtwq](../../decisions/gtwq-random-entry-ids.md). The kit has their final form. It does
+[0030](../../decisions/0030-no-private-data.md),
+[gtwq](../../decisions/gtwq-random-entry-ids.md),
+[ADR-GN3D](../../decisions/GN3D-module-decision-logs.md) and
+[ADR-EY8R](../../decisions/EY8R-tools-and-scripts.md). The kit has their final form. It does
 not have their history.
 
 ## What the kit gives
@@ -26,7 +28,7 @@ not have their history.
 | `.pre-commit-config.yaml`, `.gitleaks.toml` | the same paths | Copy |
 | `.github/workflows/secrets.yml`, `.github/workflows/doc-checks.yml` | the same paths | Copy. In `secrets.yml`, change `branches: [main]` if PRs target a different branch. |
 | [`gitignore-additions.txt`](bootstrap/gitignore-additions.txt) | `.gitignore` | Append the lines. Do not copy the file as `.gitignore`. |
-| [`module/`](module/AGENTS.md): `AGENTS.md`, `CLAUDE.md`, `decisions/README.md`, `decisions/historical.md`, `decisions/open-work.md` | each module folder, for example `freemocap/` | Only for a repo with modules ([Modules and logs](#modules-and-logs)). Fill in each `{{...}}`. |
+| [`module/`](module/AGENTS.md): `AGENTS.md`, `CLAUDE.md`, `decisions/README.md`, `decisions/historical.md`, `decisions/open-work.md` | each module folder, for example `freemocap/` | Only for a repo with modules ([Modules and logs](#modules-and-logs)). Fill in each `{{...}}`. In `decisions/open-work.md`, replace the example item, or delete it. |
 
 The module template is in [`module/`](module/), not in `bootstrap/`, because it goes into a module
 folder, not into the repo root.
@@ -54,8 +56,8 @@ the user tells you to.
    rule from `AGENTS.md` and from the index rules.
 7. May the agent push to a remote without asking each time? Default: no.
 8. Does the repo have modules, for example `freemocap/` and `freemocap-ui/`? Default: no. A module is
-   a folder with its own `AGENTS.md` and its own decision log
-   ([Modules and logs](#modules-and-logs)).
+   a folder with its own `AGENTS.md`. The kit also gives each module a decision log. A yes is the
+   approval of the user for each of these module logs ([Modules and logs](#modules-and-logs)).
 
 ### Step 2: Copy the files
 
@@ -76,12 +78,15 @@ If the repo has modules (question 8), do these steps for each module, for exampl
 1. Copy the module template into the module folder. `cp -n` keeps a file that is already there.
 
    ```sh
-   cp -rn ../skellytracker/specs/agents-and-adr-process/module/. freemocap/
+   cp -rn "$KIT/../module/." freemocap/
    ```
 
-2. Replace `{{MODULE}}` with the folder name. Replace `{{ROOT}}` with the relative path from the
-   module folder to the repo root, for example `../`. Then change each code span that holds a
-   `{{ROOT}}` path to a relative link, so that `tools/check_links.py` checks it.
+2. Change each code span that holds `{{ROOT}}` to a relative link, so that `tools/check_links.py`
+   checks it. Then replace `{{ROOT}}` with the relative path from the module folder to the repo
+   root, for example `../`. Use the same value in all module files: the files in `decisions/`
+   already have one more `../`. Then replace `{{MODULE}}` with the folder name. For example, in
+   `freemocap/AGENTS.md`, `` `{{ROOT}}decisions/README.md#rules` `` becomes
+   `[root Rules](../decisions/README.md#rules)`.
 3. Replace `{{MODULE_RULES}}` with the rules that apply only to the module. Move these rules out of
    the root `AGENTS.md`.
 4. If the module already had an `AGENTS.md`, merge the kit text into it by hand. The `CLAUDE.md` of
@@ -106,7 +111,9 @@ For a repo with modules, add the `AGENTS.md`, the `CLAUDE.md` and the `decisions
 module to the command, for example:
 
 ```sh
-grep -rn "{{" AGENTS.md CLAUDE.md decisions/ tools/   freemocap/AGENTS.md freemocap/CLAUDE.md freemocap/decisions/   freemocap-ui/AGENTS.md freemocap-ui/CLAUDE.md freemocap-ui/decisions/
+grep -rn "{{" AGENTS.md CLAUDE.md decisions/ tools/ \
+  freemocap/AGENTS.md freemocap/CLAUDE.md freemocap/decisions/ \
+  freemocap-ui/AGENTS.md freemocap-ui/CLAUDE.md freemocap-ui/decisions/
 ```
 
 The command must find nothing.
@@ -173,14 +180,16 @@ Put the kit in one commit, in one docs PR. Do not push without the approval of t
 
 ## How to write `AGENTS.md`
 
-- **One file.** `AGENTS.md` is the single instructions file for all agents. `CLAUDE.md` only imports
-  it. Two instruction files go out of date in different ways and then disagree.
+- **One file.** The root `AGENTS.md` is the instructions file for all agents. A module adds its own
+  `AGENTS.md` ([Modules and logs](#modules-and-logs)). Each `CLAUDE.md` only imports the `AGENTS.md`
+  in its folder. Two instruction files for one folder go out of date in different ways and then
+  disagree.
 - **Instructions only.** Write what an agent must do. Do not write a dated status ("On 2026-10-22,
   the workflow fails"). Put a dated fact in `open-work.md` or in an entry.
 - **Short reasons.** Give the reason of a rule in its decision entry. Link to the entry from
   `AGENTS.md`.
 - **One instruction in each sentence.** Use "must" for a requirement.
-- **Sections.** Keep the eight sections of the template. Add project sections after section 4.
+- **Sections.** Keep the eight sections of the root template. Add project sections after section 4.
   Do not renumber a section: other files link to its anchor.
 - **Skills.** Put a long procedure in a skill (`.claude/skills/<skill>/SKILL.md`). An agent loads it
   only for its task. `AGENTS.md` lists each skill and when to use it.
@@ -326,16 +335,16 @@ module has its own `AGENTS.md` and its own decision log in `<module>/decisions/`
   names or changes is in that module. All other entries go in the root log. When you cannot decide,
   use the root log.
 - **A fixed list.** `LOG_DIRS` in `tools/check_decision_log.py` lists each log. The tool does not
-  search for logs, so a test copy of a log does not become a log. The PR that adds a module log adds
-  its folder to `LOG_DIRS`.
+  search for logs, so a test copy of a log does not become a log. A new module log needs the
+  approval of the user. The PR that adds a module log adds its folder to `LOG_DIRS`.
 - **One ID space.** An ID is unique in all logs of the repo. A citation needs no module name, and an
   entry can move to a different log with no change of ID.
 - **Limits.** The limits of the index, the open work and an entry apply to each file. The read-path
   limit applies to the total of all logs.
 - **Tools and scripts.** A tool is code that the repo runs in its normal work. Each tool is in the
-  root `tools/`, also when only one module uses it. A script made the evidence for an entry, or did a
-  one-off job that the entry records. It is in `scripts/` of the log that holds its entry
-  ([ADR-EY8R](../../decisions/EY8R-tools-and-scripts.md)).
+  root `tools/`. This also applies when only one module uses it. A script made the evidence for an
+  entry, or did a one-off job that the entry records. It is in `scripts/` of the log that holds its
+  entry ([ADR-EY8R](../../decisions/EY8R-tools-and-scripts.md)).
 - **Packages.** A module that is also a package can ship its `decisions/` folder in the wheel or the
   package. Check the build config. Exclude the folder when the package must not contain it.
 - **Older kit copies.** A repo that copied an older kit keeps its log where it is. This guide does
@@ -412,7 +421,7 @@ list of copies and edits. When you change a live tool or config:
 2. Commit the live file and the copy in the same PR.
 
 `uv run pytest tools/tests` runs `--check`. It also runs the copied decision-log check on the kit,
-so the kit log must stay valid. A second test copies `module/` into the kit as two modules and runs
-the kit checks on the result. The other kit files (`AGENTS.md`, `CLAUDE.md`, the decision log,
-`gitignore-additions.txt`, `doc-checks.yml` and the files in `module/`) are templates. Change them by hand when a rule of the
-skellytracker log changes.
+so the kit log must stay valid. A second test copies `module/` into the kit as two modules, fills in
+`{{ROOT}}` and `{{MODULE}}`, and runs the kit checks on the result. The other kit files
+(`AGENTS.md`, `CLAUDE.md`, the decision log, `gitignore-additions.txt`, `doc-checks.yml` and the
+files in `module/`) are templates. Change them by hand when a rule of the skellytracker log changes.

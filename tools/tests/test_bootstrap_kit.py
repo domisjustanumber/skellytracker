@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -36,11 +37,16 @@ def test_kit_decision_log_passes_the_kit_check() -> None:
 
 
 def test_kit_with_two_module_logs_passes_the_kit_checks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """A repo made from the kit with the module template in server/ and ui/ passes (ADR-GN3D)."""
+    """A repo made from the kit with the filled-in module template in server/ and ui/ passes (ADR-GN3D)."""
     shutil.copytree(KIT_ROOT, tmp_path, dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__"))
     for module in ("server", "ui"):
         shutil.copytree(MODULE_ROOT, tmp_path / module)
-    cdl = load(tmp_path / "tools" / "check_decision_log.py", "kit_check_decision_log_modules")
+        # Fill in as guide step 2 says: each `...{{ROOT}}...` code span becomes a link, with {{ROOT}} = ../.
+        for md in (tmp_path / module).rglob("*.md"):
+            text = re.sub(r"`([^`]*)\{\{ROOT\}\}([^`]*)`", r"[`\1../\2`](\1../\2)", md.read_text(encoding="utf-8"))
+            assert "{{ROOT}}" not in text
+            md.write_text(text.replace("{{MODULE}}", module), encoding="utf-8")
+    cdl =load(tmp_path / "tools" / "check_decision_log.py", "kit_check_decision_log_modules")
     links = load(tmp_path / "tools" / "check_links.py", "kit_check_links_modules")
     logs = (cdl.LOG_DIR, Path("server/decisions"), Path("ui/decisions"))
     monkeypatch.setattr(cdl, "LOG_DIRS", logs)

@@ -20,7 +20,7 @@ These entries are `accepted` or `evidence`.
 
 | # | Decision | Status |
 |---|----------|--------|
-| [0001](0001-decision-log-agents-md-and-private-data.md) | Decision log and its rules; `AGENTS.md` is the single instructions file; `plans/` is local; no private data | accepted |
+| [0001](0001-decision-log-agents-md-and-private-data.md) | Decision log and its rules; `AGENTS.md` files hold the instructions; `plans/` is local; no private data | accepted |
 
 ### Proposed
 
@@ -45,10 +45,12 @@ The open work is in [open-work.md](open-work.md).
   `tools/check_decision_log.py`. A new module log needs the approval of the user. The PR that adds
   the log also adds its folder to `LOG_DIRS`. These Rules and `template.md` are only in the root log.
   They apply to each log ([ADR-0001](0001-decision-log-agents-md-and-private-data.md)).
-- Each module log has a `README.md` with an Active table, a Proposed table and `## Open work`, a
-  `historical.md` and an `open-work.md`. The `AGENTS.md` of the module links to its log.
+- Each module log has three files: `README.md` (an Active table, a Proposed table and
+  `## Open work`), `historical.md` and `open-work.md`. The `AGENTS.md` of the module links to its
+  log.
 - Put an entry in the log of a module only when the module has a log in `LOG_DIRS` and each file that
-  its Decision section names or changes is in that module. Put all other entries in this log: an
+  its Decision section names or changes is in that module. Put all other entries in the root log
+  `decisions/`: an
   entry for two or more modules, for `tools/`, the skills, the root `AGENTS.md`, CI or the repo
   process, and each case that you cannot decide.
 - All logs have one ID space. IDs that differ only in case are one ID. "This log" in these Rules
@@ -86,9 +88,9 @@ The open work is in [open-work.md](open-work.md).
   `none`.
 - An `evidence` entry gets `evidence; used by XXXX` when an accepted entry cites it for its decision.
 - An accepted entry is absorbed when a normative document states all of its rules. The normative
-  documents are `AGENTS.md`, the skills, the Rules of this file with [template.md](template.md), and
-  {{NORMATIVE_DOCS, for example the spec or the contract files}}. Then that document is the source of
-  the rules.
+  documents are the root `AGENTS.md`, the `AGENTS.md` of each module, the skills, the Rules of this
+  file with [template.md](template.md), and {{NORMATIVE_DOCS, for example the spec or the contract
+  files}}. Then that document is the source of the rules.
 - An accepted entry that records a one-off action, with no rule that stays, is `done` when the action
   is complete.
 - A consolidation entry states the rules that stay from a group of entries, and it supersedes each
@@ -97,9 +99,8 @@ The open work is in [open-work.md](open-work.md).
 - Keep the log inside its limits: 14,000 characters for this file, 20,000 for `open-work.md`, 6,000
   for each entry, and 220,000 for the read path: this file, `open-work.md` and the Active entries.
   The limits of the index, the open work and an entry apply to each file of each log. The read-path
-  limit applies to the total of all logs. Proposed and Historical entries are not in the read path. Put long evidence in a tracked file next
-  to the entry, and link to it. Put the script that produced a measurement in
-  `scripts/` of the log that holds its entry. The Evidence section names it. Run
+  limit applies to the total of all logs. Proposed and Historical entries are not in the read path.
+  Put long evidence in a tracked file next to the entry, and link to it. Run
   `uv run python tools/check_decision_log.py` to see the read-path size and the warnings at 80% of a
   limit. `uv run pytest tools/tests` runs the same check.
 - An entry ID has 4 characters from `0123456789ABCDEFGHJKMNPQRSTVWXYZ`. The first character is a
@@ -121,11 +122,13 @@ The open work is in [open-work.md](open-work.md).
 - Do not give an ID that an entry had on `{{DEFAULT_BRANCH}}` to a different entry. Do not keep two
   index rows with one ID.
 - A tool is code that the repo runs in its normal work: a test, a hook, a CI job, a skill or a
-  workflow step calls it, or it writes a tracked file. Each tool is in the root `tools/`, also when
-  only one module uses it. A tool has tests.
+  workflow step calls it, or it writes a tracked file. Each tool is in the root `tools/`. This also
+  applies when only one module uses it. A tool has tests.
 - A script made the evidence for an entry, or did a one-off job that an entry records, and that entry
-  names it. It is in `scripts/` of the log that holds its entry. Its own tests are in
-  `scripts/tests/`. When a later step starts to run a script, move it to `tools/` and add a test.
+  names it. No test, hook, CI job, skill or workflow step runs it on the files of the repo. A script
+  does not change after its entry is decided. It is in `scripts/` of the log that holds its entry.
+  Its own tests are in `scripts/tests/`. When a later step starts to run a script, move it to
+  `tools/` and add a test.
 - Cite a tracked file with a relative link. Cite a commit, or the code of another repo, with a GitHub
   permalink that pins a full SHA on the default branch of that repo. Do not cite or link `plans/`.
 - Cite an entry of this log as `ADR-<ID>`. Put the prefix in the link text. Write the ID of another
