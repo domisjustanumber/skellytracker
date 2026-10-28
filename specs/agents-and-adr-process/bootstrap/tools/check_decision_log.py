@@ -7,44 +7,53 @@ Usage::
     python tools/check_decision_log.py --new [ROOT]
     python tools/check_decision_log.py --collisions [ROOT]
 
-The tool reads the index under ROOT (default: the current directory): the Active and Proposed tables
-of ``notes/decisions/README.md`` and the Historical table of ``notes/decisions/historical.md``. It
-reports:
+The tool reads each decision log in ``LOG_DIRS`` under ROOT (default: the current directory). The
+first log, ``LOG_DIR``, is the root log. A module log is a folder of a module, for example
+``server/decisions``. Each log has the Active and Proposed tables in its ``README.md`` and the
+Historical table in its ``historical.md``. The labels of the root log have no prefix. The labels of
+a module log start with its folder. It reports:
 
+- a log folder with no ``README.md``;
 - an entry file with no index row, and an index row with no entry file;
 - a table in the wrong file, and a row with the wrong number of cells;
 - a Section cell of the Proposed table that is not a section ID in backticks or ``none``;
 - a file name that starts like an entry but has no valid ID;
-- two entry files with one ID, and two index rows with one ID;
-- a link ``[XXXX](YYYY-<slug>.md)`` under ``notes/decisions`` where XXXX is not YYYY;
+- two entry files with one ID, and two index rows with one ID, in one log or in two logs;
+- a link ``[XXXX](YYYY-<slug>.md)`` in a log where XXXX is not YYYY;
 - a ``# XXXX`` heading that is not the ID of its file name;
 - a Status cell that is not one of the status forms, or that is in the wrong table;
 - a ``superseded by XXXX`` or ``used by XXXX`` that names no decided entry, or that the status line of
-  the entry does not link to the file of entry XXXX;
+  the entry does not link to the file of entry XXXX. The entry XXXX can be in a different log. Then
+  the link has a relative path before the file name, and the path must resolve to that file;
 - a Decision cell over its length limit;
 - a file over its size limit.
 
 It prints a warning, but does not fail, when the index, the open work or the read path is at 80% of
-its limit or more. The read path is ``README.md``, ``open-work.md`` and the Active entries. The
-Proposed and Historical entries are not in it. The check reads only the files. It does not run git.
+its limit or more. The read path is ``README.md``, ``open-work.md`` and the Active entries of each
+log, with one limit for the total. The Proposed and Historical entries are not in it. The check
+reads only the files. It does not run git.
 
-An ID has 4 characters from ``ALPHABET``, Crockford base32 in upper case. A new ID starts with a
-letter. An older ID in lower case stays valid, and IDs that differ only in case are one ID. An
-all-digit ID belongs only to an entry that had that number before random IDs (decision
+All logs share one ID space. An ID has 4 characters from ``ALPHABET``, Crockford base32 in upper
+case. A new ID starts with a letter. An older ID in lower case stays valid, and IDs that differ
+only in case are one ID. An all-digit ID belongs only to an entry that had that number before
+random IDs (decision
 0001).
 
-``--new`` prints ``new: XXXX``, a random ID that is not in this tree, in each other worktree or on
-each local and remote-tracking branch. Then it prints one line for each entry of this tree whose ID a
-different file uses in one of those places. ``keep:`` tells you to keep the ID. ``re-ID:`` tells you
-to rename the entry to the ID of a new ``--new`` run. Both sides of a collision get the same verdict:
-an entry on ``TARGET_BRANCH`` wins, then an entry on a remote-tracking branch, then the entry whose
-first commit has the earlier author date, then the file name that sorts first. An uncommitted file
-loses to a committed file. Refs that are merged into ``HEAD``, the upstream and push refs of the
-current branch, and local branches under ``backup/`` are not collisions, except on ``TARGET_BRANCH``.
-A file whose slug is also the slug of an entry of this tree under a different ID is an old name of
-that entry, not a collision. ``--new`` runs 5 git processes for any number of refs, and one more when
-it finds a collision. It prints the age of the last ``git fetch``. It exits 1 when it prints a
-``re-ID:`` line, and 0 otherwise. Without git, it reads only this tree.
+``--new`` prints ``new: XXXX``, a random ID that is not in a log of this tree, of each other
+worktree or of each local and remote-tracking branch. In the other worktrees and on the branches, it
+also reads each folder of ``OLD_LOG_DIRS``, where a log was before a move. Then it prints one line
+for each entry of this tree whose ID a different file uses in one of those places. ``keep:`` tells
+you to keep the ID. ``re-ID:`` tells you to rename the entry to the ID of a new ``--new`` run. Both
+sides of a collision get the same verdict: an entry on ``TARGET_BRANCH`` wins, then an entry on a
+remote-tracking branch, then the entry whose first commit has the earlier author date, then the file
+name that sorts first. An uncommitted file loses to a committed file. Refs that are merged into
+``HEAD``, the upstream and push refs of the current branch, and local branches under ``backup/`` are
+not collisions, except on ``TARGET_BRANCH``. A file whose slug is also the slug of an entry of this
+tree under a different ID is an old name of that entry, not a collision. An entry with the same file
+name in a different log was moved. It is not a collision, and it keeps the date of its first commit.
+``--new`` runs 5 git processes for any number of refs and logs, and one more when it finds a
+collision. It prints the age of the last ``git fetch``. It exits 1 when it prints a ``re-ID:`` line,
+and 0 otherwise. Without git, it reads only this tree.
 
 ``--collisions`` prints the same lines without the ``new:`` line, and has the same exit code. The
 pre-push hook in ``.pre-commit-config.yaml`` runs it. It does not fetch.
@@ -70,6 +79,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 LOG_DIR = Path("notes") / "decisions"
+# The root log first. Add the folder of each module log, relative to ROOT.
+LOG_DIRS = (LOG_DIR,)
+# A folder where a log was before a move. Only --new reads it, in other worktrees and on branches.
+OLD_LOG_DIRS: tuple[Path, ...] = ()
 OPEN_WORK = "open-work.md"
 HISTORICAL = "historical.md"
 TEMPLATE = "template.md"
@@ -131,10 +144,21 @@ class IndexRow:
     line: int
     source: str = "README.md"
     section: str = ""
+    log: Path = LOG_DIR
 
     @property
     def where(self) -> str:
-        return f"{self.source}:{self.line}"
+        return f"{prefix(self.log)}{self.source}:{self.line}"
+
+
+def prefix(log: Path) -> str:
+    """The label prefix of the files of `log`: none for the root log, else the folder."""
+    return "" if log == LOG_DIR else f"{log.as_posix()}/"
+
+
+def present_logs(root: Path) -> list[Path]:
+    """The folders of LOG_DIRS that have a README.md. check() reports the other folders."""
+    return [log for log in LOG_DIRS if (root / log / "README.md").is_file()]
 
 
 def size(path: Path) -> int:
@@ -142,12 +166,13 @@ def size(path: Path) -> int:
     return len(path.read_text(encoding="utf-8").replace("\r\n", "\n"))
 
 
-def table_rows(path: Path) -> tuple[list[IndexRow], list[str]]:
+def table_rows(path: Path, log: Path) -> tuple[list[IndexRow], list[str]]:
     """The entry rows of each `### <table>` heading in `path`, in file order, and the format errors."""
     rows: list[IndexRow] = []
     errors: list[str] = []
     if not path.exists():
         return rows, errors
+    label = prefix(log) + path.name
     table = ""
     for number, text in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         if text.startswith("## "):
@@ -156,7 +181,7 @@ def table_rows(path: Path) -> tuple[list[IndexRow], list[str]]:
         if heading:
             table = heading.group(1)
             if TABLE_FILES.get(table, path.name) != path.name:
-                errors.append(f"{path.name}:{number}: the {table} table must be in {TABLE_FILES[table]}")
+                errors.append(f"{label}:{number}: the {table} table must be in {TABLE_FILES[table]}")
             continue
         if not (table and text.startswith("| [")):
             continue
@@ -164,7 +189,7 @@ def table_rows(path: Path) -> tuple[list[IndexRow], list[str]]:
         link = ROW_LINK.match(cells[0])
         width = 4 if table == "Proposed" else 3
         if link is None or len(cells) != width:
-            errors.append(f"{path.name}:{number}: a {table} row has the cells | # | Decision | "
+            errors.append(f"{label}:{number}: a {table} row has the cells | # | Decision | "
                           + ("Section | " if width == 4 else "") + "Status |")
             continue
         rows.append(
@@ -177,14 +202,17 @@ def table_rows(path: Path) -> tuple[list[IndexRow], list[str]]:
                 number,
                 path.name,
                 cells[2] if width == 4 else "",
+                log,
             )
         )
     return rows, errors
 
 
-def index_rows(log_dir: Path) -> list[IndexRow]:
-    """The rows of README.md (Active, Proposed) and historical.md (Historical), in file order."""
-    return table_rows(log_dir / "README.md")[0] + table_rows(log_dir / HISTORICAL)[0]
+def log_index(root: Path, log: Path) -> tuple[list[IndexRow], list[str]]:
+    """The rows and the format errors of the README.md and the historical.md of one log."""
+    rows, errors = table_rows(root / log / "README.md", log)
+    historical, more = table_rows(root / log / HISTORICAL, log)
+    return rows + historical, errors + more
 
 
 def entry_files(log_dir: Path) -> dict[str, Path]:
@@ -236,8 +264,12 @@ def status_errors(r: IndexRow, by_id: dict[str, IndexRow]) -> list[str]:
     return errors
 
 
-def status_link_errors(r: IndexRow, by_id: dict[str, IndexRow], path: Path) -> list[str]:
-    """`superseded by XXXX` and `used by XXXX` must also be links to entry XXXX in the status line."""
+def status_link_errors(r: IndexRow, by_id: dict[str, IndexRow], path: Path, root: Path) -> list[str]:
+    """`superseded by XXXX` and `used by XXXX` must also be links to entry XXXX in the status line.
+
+    A link to an entry in a different log has a relative path before the file name. The path must
+    resolve to the file of entry XXXX.
+    """
     match = status_match(r.status, r.table)
     if match is None or not match.groups():
         return []
@@ -245,28 +277,28 @@ def status_link_errors(r: IndexRow, by_id: dict[str, IndexRow], path: Path) -> l
     if named is None or named is r:
         return []
     kind = "superseded by" if r.status.startswith("superseded by") else "used by"
-    link = re.compile(
-        rf"{kind} \[(?i:{named.id})\]\({re.escape(named.filename)}(?:#[^)\s]*)?\)"
-    )
+    target = root / named.log / named.filename
+    link = re.compile(rf"{kind} \[(?i:{named.id})\]\(([^)\s#]+)(?:#[^)\s]*)?\)")
     line = STATUS_LINE.search(path.read_text(encoding="utf-8"))
-    if line and link.search(line.group(1)):
+    # normpath keeps the case, so a link with a wrong case fails also on Windows.
+    if any(
+        os.path.normpath(path.parent / found.group(1)) == os.path.normpath(target)
+        for found in link.finditer(line.group(1) if line else "")
+    ):
         return []
+    want = Path(os.path.relpath(target, path.parent)).as_posix()
     return [
-        f"{r.filename}: the status line does not link {kind} {named.id} to {named.filename}"
+        f"{prefix(r.log)}{r.filename}: the status line does not link {kind} {named.id} to {want}"
     ]
 
 
-def id_errors(log_dir: Path, rows: list[IndexRow], files: dict[str, Path]) -> list[str]:
-    """Each ID has one file and one index row. Link texts and headings match the file names."""
-    errors = [
-        f"{p.name}: the file name starts like an entry, but {p.name[:4]!r} is not a valid ID"
-        for p in sorted(log_dir.glob("*.md"))
-        if ENTRY_LIKE.match(p.name) and not ENTRY_NAME.match(p.name) and p.name not in NOT_ENTRIES
-    ]
-    per_id = Counter(entry_id(name) for name in files)
+def id_space_errors(rows: list[IndexRow], labels: list[str]) -> list[str]:
+    """Each ID has one file and one index row over all logs. `labels` are the entry file labels."""
+    errors = []
+    per_id = Counter(entry_id(Path(label).name) for label in labels)
     for found, count in sorted(per_id.items()):
         if count > 1:
-            names = ", ".join(name for name in files if entry_id(name) == found)
+            names = ", ".join(label for label in labels if entry_id(Path(label).name) == found)
             errors.append(f"entry ID {found} has {count} files: {names}")
     first_row: dict[str, IndexRow] = {}
     for r in rows:
@@ -275,8 +307,19 @@ def id_errors(log_dir: Path, rows: list[IndexRow], files: dict[str, Path]) -> li
             errors.append(f"{r.where}: ID {r.id} is also in {first_row[key].where}")
         else:
             first_row[key] = r
+    return errors
+
+
+def name_errors(root: Path, log: Path, files: dict[str, Path]) -> list[str]:
+    """In one log, file names have valid IDs, and link texts and headings match the file names."""
+    log_dir = root / log
+    errors = [
+        f"{prefix(log)}{p.name}: the file name starts like an entry, but {p.name[:4]!r} is not a valid ID"
+        for p in sorted(log_dir.glob("*.md"))
+        if ENTRY_LIKE.match(p.name) and not ENTRY_NAME.match(p.name) and p.name not in NOT_ENTRIES
+    ]
     for path in sorted(log_dir.rglob("*.md")):
-        label = path.relative_to(log_dir).as_posix()
+        label = prefix(log) + path.relative_to(log_dir).as_posix()
         for line_number, text in enumerate(
             path.read_text(encoding="utf-8").splitlines(), start=1
         ):
@@ -290,7 +333,7 @@ def id_errors(log_dir: Path, rows: list[IndexRow], files: dict[str, Path]) -> li
         heading = HEADING_ID.match(lines[0]) if lines else None
         if heading and heading.group(1) != name[:4]:
             errors.append(
-                f"{name}: heading ID {heading.group(1)} does not match the file name"
+                f"{prefix(log)}{name}: heading ID {heading.group(1)} does not match the file name"
             )
     return errors
 
@@ -302,14 +345,16 @@ def unlimited(name: str, path: Path) -> bool:
 
 
 def sizes(root: Path) -> list[tuple[str, int, int]]:
-    """(label, characters, limit) for each file and total that has a limit."""
-    log_dir = root / LOG_DIR
-    found = [("README.md", size(log_dir / "README.md"), INDEX_LIMIT)]
-    if (log_dir / OPEN_WORK).exists():
-        found.append((OPEN_WORK, size(log_dir / OPEN_WORK), OPEN_WORK_LIMIT))
-    for name, path in entry_files(log_dir).items():
-        if not unlimited(name, path):
-            found.append((name, size(path), ENTRY_LIMIT))
+    """(label, characters, limit) for each file and total that has a limit. The read path has one total."""
+    found = []
+    for log in present_logs(root):
+        log_dir = root / log
+        found.append((prefix(log) + "README.md", size(log_dir / "README.md"), INDEX_LIMIT))
+        if (log_dir / OPEN_WORK).exists():
+            found.append((prefix(log) + OPEN_WORK, size(log_dir / OPEN_WORK), OPEN_WORK_LIMIT))
+        for name, path in entry_files(log_dir).items():
+            if not unlimited(name, path):
+                found.append((prefix(log) + name, size(path), ENTRY_LIMIT))
     found.append(
         ("read path (README.md, open-work.md and Active entries)", read_path_size(root), READ_PATH_LIMIT)
     )
@@ -317,26 +362,33 @@ def sizes(root: Path) -> list[tuple[str, int, int]]:
 
 
 def check(root: Path) -> list[str]:
-    log_dir = root / LOG_DIR
-    rows, errors = table_rows(log_dir / "README.md")
-    historical, more = table_rows(log_dir / HISTORICAL)
-    rows += historical
-    errors += more
-    files = entry_files(log_dir)
-    by_id = {r.id.upper(): r for r in rows}
-    listed = [r.filename for r in rows]
-    errors += [
-        f"{name}: {listed.count(name)} index rows, expected 1"
-        for name in files
-        if listed.count(name) != 1
+    present = present_logs(root)
+    errors = [
+        f"{log.as_posix()}: the log has no README.md" for log in LOG_DIRS if log not in present
     ]
-    errors.extend(id_errors(log_dir, rows, files))
-    for r in rows:
-        if r.filename not in files:
-            errors.append(f"{r.where}: row links to missing file {r.filename}")
-            continue
-        errors.extend(status_errors(r, by_id))
-        errors.extend(status_link_errors(r, by_id, files[r.filename]))
+    indexes = {log: log_index(root, log) for log in present}
+    files_of = {log: entry_files(root / log) for log in present}
+    rows = [r for log_rows, _ in indexes.values() for r in log_rows]
+    by_id = {r.id.upper(): r for r in rows}
+    for log, (log_rows, more) in indexes.items():
+        files = files_of[log]
+        listed = [r.filename for r in log_rows]
+        errors += more
+        errors += [
+            f"{prefix(log)}{name}: {listed.count(name)} index rows, expected 1"
+            for name in files
+            if listed.count(name) != 1
+        ]
+        errors.extend(name_errors(root, log, files))
+        for r in log_rows:
+            if r.filename not in files:
+                errors.append(f"{r.where}: row links to missing file {r.filename}")
+                continue
+            errors.extend(status_errors(r, by_id))
+            errors.extend(status_link_errors(r, by_id, files[r.filename], root))
+    errors.extend(
+        id_space_errors(rows, [prefix(log) + name for log, files in files_of.items() for name in files])
+    )
     errors.extend(
         f"{label}: {used} characters, limit {limit}"
         for label, used, limit in sizes(root)
@@ -353,25 +405,27 @@ def warnings(root: Path) -> list[str]:
     return [
         f"{label}: {used} characters, {used / limit:.0%} of the limit {limit}"
         for label, used, limit in sizes(root)
-        if WARN_FRACTION * limit <= used <= limit and not ENTRY_NAME.match(label)
+        if WARN_FRACTION * limit <= used <= limit and not ENTRY_NAME.match(Path(label).name)
     ]
 
 
 def read_path_size(root: Path) -> int:
-    """Characters in the index, the open work and every Active entry: the part that agents read."""
-    log_dir = root / LOG_DIR
-    files = entry_files(log_dir)
-    rows = index_rows(log_dir)
-    open_work = log_dir / OPEN_WORK
-    return (
-        size(log_dir / "README.md")
-        + (size(open_work) if open_work.exists() else 0)
-        + sum(
-            size(files[r.filename])
-            for r in rows
-            if r.table == "Active" and r.filename in files
+    """Characters in the index, the open work and every Active entry of each log: the part that agents read."""
+    total = 0
+    for log in present_logs(root):
+        log_dir = root / log
+        files = entry_files(log_dir)
+        open_work = log_dir / OPEN_WORK
+        total += (
+            size(log_dir / "README.md")
+            + (size(open_work) if open_work.exists() else 0)
+            + sum(
+                size(files[r.filename])
+                for r in log_index(root, log)[0]
+                if r.table == "Active" and r.filename in files
+            )
         )
-    )
+    return total
 
 
 # --new: entry IDs on other branches and worktrees. Only main() calls it, never check().
@@ -413,6 +467,11 @@ def entry_names(folder: Path) -> set[str]:
     return {p.name for p in folder.glob("*.md") if ENTRY_NAME.match(p.name)} if folder.is_dir() else set()
 
 
+def log_entry_names(root: Path, logs: tuple[Path, ...]) -> set[str]:
+    """The entry file names of `logs` under `root`. A moved entry has one name in two logs."""
+    return set().union(*(entry_names(root / log) for log in logs))
+
+
 def tree_entries(data: bytes, count: int) -> list[set[str] | None]:
     """The entry file names in each of `count` objects of `git cat-file --batch` output.
 
@@ -423,7 +482,8 @@ def tree_entries(data: bytes, count: int) -> list[set[str] | None]:
     for _ in range(count):
         end = data.index(b"\n", i)
         head, i = data[i:end].split(), end + 1
-        if len(head) != 3:
+        # A path with a space gives 3 fields also on a "missing" line.
+        if len(head) != 3 or head[-1] in (b"missing", b"ambiguous"):
             found.append(None)
             continue
         length = int(head[2])
@@ -476,7 +536,7 @@ def git_sources(root: Path) -> Sources:
             label = os.path.relpath(path, me)
         except ValueError:
             label = str(path)
-        sources.found[f"worktree {Path(label).as_posix()}"] = entry_names(path / LOG_DIR)
+        sources.found[f"worktree {Path(label).as_posix()}"] = log_entry_names(path, LOG_DIRS + OLD_LOG_DIRS)
     form = "--format=%(objectname)%09%(refname)%09%(HEAD)%09%(upstream)%09%(push)"
     refs = [
         line.split("\t")
@@ -495,16 +555,21 @@ def git_sources(root: Path) -> Sources:
     )
     commits = sorted({r[0] for r in refs})
     if commits:
+        # One line for each (commit, log) pair, in one process for any number of refs and logs.
+        pairs = [(c, log) for c in commits for log in LOG_DIRS + OLD_LOG_DIRS]
         batch = git(
             root,
             "cat-file",
             "--batch",
-            stdin="".join(f"{c}:./{LOG_DIR.as_posix()}\n" for c in commits).encode(),
+            stdin="".join(f"{c}:./{log.as_posix()}\n" for c, log in pairs).encode(),
         )
-        entries = tree_entries(batch, len(commits)) if batch else [None] * len(commits)
-        trees = dict(zip(commits, entries, strict=True))
+        entries = tree_entries(batch, len(pairs)) if batch else [None] * len(pairs)
+        trees: dict[str, set[str]] = {}
+        for (oid, _), names in zip(pairs, entries, strict=True):
+            if names is not None:
+                trees.setdefault(oid, set()).update(names)
         for oid, ref, *_ in refs:
-            if trees.get(oid) is not None:
+            if oid in trees:
                 sources.found[ref] = trees[oid]
     sources.target = {
         ref
@@ -537,10 +602,13 @@ def new_id(used: set[str], draw: Callable[[], str] | None = None) -> str:
 
 
 def first_commits(root: Path, names: set[str]) -> dict[str, int]:
-    """The author time of the first commit that adds each file of `names`, on any branch: 1 git process."""
+    """The author time of the first commit that adds each file of `names`, on any branch: 1 git process.
+
+    The pathspec finds the name in each folder, so a moved entry keeps the time of its first add.
+    """
     if not names:
         return {}
-    paths = [f"{LOG_DIR.as_posix()}/{name}" for name in sorted(names)]
+    paths = [f":(glob)**/{name}" for name in sorted(names)]
     out = decoded(
         git(
             root, "log", "--branches", "--remotes", "HEAD", "--no-renames", "--diff-filter=A",
@@ -562,7 +630,7 @@ def new_lines(
     root: Path, draw: Callable[[], str] | None = None, with_new: bool = True
 ) -> list[str]:
     """The `new:` line (when `with_new`), a `keep:` or `re-ID:` line for each collision, and the notes."""
-    mine = entry_names(root / LOG_DIR)
+    mine = log_entry_names(root, LOG_DIRS)
     sources = git_sources(root)
     used = {entry_id(n) for n in mine}.union(
         *({entry_id(n) for n in names} for names in sources.found.values())

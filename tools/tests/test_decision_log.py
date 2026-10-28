@@ -13,6 +13,9 @@ import pytest
 import check_decision_log as cdl
 
 REPO_ROOT = Path(cdl.__file__).resolve().parents[1]
+# A module log for the tests that patch LOG_DIRS. It is two folders deep.
+MODULE = Path("m") / "decisions"
+TO_ROOT_LOG = f"../../{cdl.LOG_DIR.as_posix()}"
 
 INDEX = """# Decision log
 
@@ -49,8 +52,9 @@ def make_log(
     historical: str = "",
     entries: dict[str, str] | None = None,
     proposed: str = "",
+    log: Path = cdl.LOG_DIR,
 ) -> Path:
-    log_dir = tmp_path / cdl.LOG_DIR
+    log_dir = tmp_path / log
     log_dir.mkdir(parents=True)
     (log_dir / "README.md").write_text(
         INDEX.format(active=active, proposed=proposed), encoding="utf-8"
@@ -397,6 +401,113 @@ def test_renumbered_old_entry_keeps_size_exemption(tmp_path: Path) -> None:
     assert cdl.check(root) == []
 
 
+# Several logs: the root log and a module log, with one ID space.
+
+
+@pytest.fixture
+def two_logs(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(cdl, "LOG_DIRS", (cdl.LOG_DIR, MODULE))
+
+
+@pytest.mark.usefixtures("two_logs")
+def test_root_and_module_log_pass(tmp_path: Path) -> None:
+    make_log(tmp_path, active=row("A001", "accepted"), entries={"A001-x.md": "# A001\n"})
+    status = f"**Status:** superseded by [A001]({TO_ROOT_LOG}/A001-x.md), 2026-10-28 (#1).\n"
+    make_log(
+        tmp_path,
+        active=row("B002", "accepted", "y"),
+        historical=row("C003", "superseded by A001", "z"),
+        entries={
+            "B002-y.md": f"# B002\n\nSee [ADR-A001]({TO_ROOT_LOG}/A001-x.md).\n",
+            "C003-z.md": f"# C003\n\n{status}",
+        },
+        log=MODULE,
+    )
+    assert cdl.check(tmp_path) == []
+
+
+@pytest.mark.usefixtures("two_logs")
+@pytest.mark.parametrize("target", ["A001-x.md", f"{TO_ROOT_LOG.upper()}/A001-x.md"])
+def test_status_link_to_another_log_needs_its_path(tmp_path: Path, target: str) -> None:
+    make_log(tmp_path, active=row("A001", "accepted"), entries={"A001-x.md": ""})
+    make_log(
+        tmp_path,
+        historical=row("C003", "superseded by A001", "z"),
+        entries={"C003-z.md": f"**Status:** superseded by [A001]({target}), 2026-10-28 (#1).\n"},
+        log=MODULE,
+    )
+    assert cdl.check(tmp_path) == [
+        "m/decisions/C003-z.md: the status line does not link superseded by A001 to "
+        f"{TO_ROOT_LOG}/A001-x.md"
+    ]
+
+
+@pytest.mark.usefixtures("two_logs")
+@pytest.mark.parametrize(
+    ("root_name", "module_name"),
+    [("K7M2-a.md", "K7M2-b.md"), ("k7m2-a.md", "K7M2-b.md"), ("K7M2-a.md", "K7M2-a.md")],
+)
+def test_one_id_in_two_logs_fails(tmp_path: Path, root_name: str, module_name: str) -> None:
+    make_log(tmp_path, active=row(root_name[:4], "accepted", root_name[5:-3]), entries={root_name: ""})
+    make_log(
+        tmp_path,
+        active=row(module_name[:4], "accepted", module_name[5:-3]),
+        entries={module_name: ""},
+        log=MODULE,
+    )
+    errors = cdl.check(tmp_path)
+    assert f"entry ID K7M2 has 2 files: {root_name}, m/decisions/{module_name}" in errors
+    assert f"m/decisions/README.md:9: ID {module_name[:4]} is also in README.md:9" in errors
+
+
+@pytest.mark.usefixtures("two_logs")
+def test_module_log_labels_start_with_its_folder(tmp_path: Path) -> None:
+    make_log(tmp_path)
+    make_log(
+        tmp_path,
+        active=row("A001", "accepted") + "\n| [B002](B002-y.md) | Title |",
+        entries={"A001-x.md": "# C003\n\nSee [D004](A001-x.md).\n", "E005-u.md": "", "E5LU-v.md": ""},
+        log=MODULE,
+    )
+    errors = cdl.check(tmp_path)
+    assert len(errors) == 5
+    assert all(e.startswith(f"{MODULE.as_posix()}/") for e in errors), errors
+
+
+@pytest.mark.usefixtures("two_logs")
+def test_log_folder_without_readme_is_reported(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = make_log(tmp_path)
+    assert cdl.check(root) == ["m/decisions: the log has no README.md"]
+    assert cdl.main(["check_decision_log.py", str(root)]) == 1
+    assert "m/decisions: the log has no README.md" in capsys.readouterr().out
+
+
+@pytest.mark.usefixtures("two_logs")
+def test_read_path_has_one_total_over_all_logs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    make_log(tmp_path, active=row("A001", "accepted"), entries={"A001-x.md": "a" * 400})
+    make_log(tmp_path, active=row("B002", "accepted", "y"), entries={"B002-y.md": "b" * 400}, log=MODULE)
+    total = sum(cdl.size(tmp_path / log / "README.md") for log in cdl.LOG_DIRS) + 800
+    assert cdl.read_path_size(tmp_path) == total
+    monkeypatch.setattr(cdl, "READ_PATH_LIMIT", total - 1)
+    assert cdl.check(tmp_path) == [
+        f"read path (README.md, open-work.md and Active entries): {total} characters, limit {total - 1}"
+    ]
+
+
+@pytest.mark.usefixtures("two_logs")
+def test_module_entry_near_its_limit_does_not_warn(tmp_path: Path) -> None:
+    near = "x" * int(cdl.ENTRY_LIMIT * 0.9)
+    make_log(tmp_path)
+    make_log(tmp_path, active=row("A001", "accepted"), entries={"A001-x.md": near}, log=MODULE)
+    assert cdl.check(tmp_path) == []
+    assert ("m/decisions/A001-x.md", len(near), cdl.ENTRY_LIMIT) in cdl.sizes(tmp_path)
+    assert cdl.warnings(tmp_path) == []
+
+
 # The tests of `--new`. Each git test runs in its own repo, with no user or system config.
 
 GIT = shutil.which("git")
@@ -426,8 +537,9 @@ def git(cwd: Path, *args: str, stdin: bytes | None = None) -> None:
     )
 
 
-def entry(root: Path, name: str) -> None:
-    (root / cdl.LOG_DIR / name).write_text(f"# {name[:4]}\n", encoding="utf-8")
+def entry(root: Path, name: str, log: Path = cdl.LOG_DIR) -> None:
+    (root / log).mkdir(parents=True, exist_ok=True)
+    (root / log / name).write_text(f"# {name[:4]}\n", encoding="utf-8")
 
 
 def commit(root: Path, message: str) -> None:
@@ -614,7 +726,8 @@ def test_new_ignores_own_uncommitted_rename(git_env: Path) -> None:
     git(root, "branch", "-q", "--set-upstream-to=origin/feat")
     # A rebase makes a new commit, so origin/feat is no longer merged into HEAD.
     git(root, "commit", "-q", "--amend", "-m", "0002-old, rebased")
-    git(root, "mv", "notes/decisions/0002-old.md", "notes/decisions/0002-new.md")
+    log = cdl.LOG_DIR.as_posix()
+    git(root, "mv", f"{log}/0002-old.md", f"{log}/0002-new.md")
     assert verdicts(cdl.new_lines(root)) == []
 
 
@@ -725,17 +838,79 @@ def test_collisions_passes_without_a_collision(
     assert "new:" not in capsys.readouterr().out
 
 
+@needs_git
+@pytest.mark.usefixtures("two_logs")
+def test_new_sees_module_log_ids(git_env: Path) -> None:
+    root = repo(git_env / "repo")
+    git(root, "checkout", "-q", "-b", "other")
+    entry(root, "b222-b.md", MODULE)
+    commit(root, "b222-b")
+    git(root, "checkout", "-q", "main")
+    git(root, "worktree", "add", "-q", "-b", "wt", str(git_env / "wt"))
+    entry(git_env / "wt", "c333-c.md", MODULE)
+    entry(root, "d444-d.md", MODULE)
+    lines = cdl.new_lines(root, scripted("b222", "c333", "d444", "e555"))
+    assert lines[0] == "new: e555"
+    assert verdicts(lines) == []
+
+
+@needs_git
+@pytest.mark.usefixtures("two_logs")
+def test_entry_moved_to_another_log_is_not_a_collision(git_env: Path) -> None:
+    root = repo(git_env / "repo")
+    entry(root, "k7m2-a.md", MODULE)
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "k7m2-a", "--date=2026-01-01T00:00:00")
+    added = cdl.first_commits(root, {"k7m2-a.md"})
+    assert set(added) == {"k7m2-a.md"}
+    # The stale branch is not merged into HEAD, and it has the entry in the old log.
+    git(root, "checkout", "-q", "-b", "stale")
+    entry(root, "0002-s.md")
+    commit(root, "0002-s")
+    git(root, "checkout", "-q", "main")
+    git(root, "mv", f"{MODULE.as_posix()}/k7m2-a.md", f"{cdl.LOG_DIR.as_posix()}/k7m2-a.md")
+    assert verdicts(cdl.new_lines(root)) == []
+    git(root, "commit", "-q", "-m", "move", "--date=2026-02-01T00:00:00")
+    lines = cdl.new_lines(root, scripted("K7M2", "B111"))
+    assert lines[0] == "new: B111"
+    assert verdicts(lines) == []
+    assert cdl.first_commits(root, {"k7m2-a.md"}) == added
+
+
+@needs_git
+def test_new_reads_old_log_folders_on_branches(git_env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = repo(git_env / "repo")
+    git(root, "checkout", "-q", "-b", "stale")
+    entry(root, "b111-s.md")
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "b111-s", "--date=2026-02-01T00:00:00")
+    git(root, "checkout", "-q", "main")
+    git(root, "mv", cdl.LOG_DIR.as_posix(), "moved")
+    entry(root, "b111-o.md", Path("moved"))
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "move", "--date=2026-01-01T00:00:00")
+    monkeypatch.setattr(cdl, "LOG_DIRS", (Path("moved"),))
+    assert verdicts(cdl.new_lines(root)) == []
+    monkeypatch.setattr(cdl, "OLD_LOG_DIRS", (cdl.LOG_DIR,))
+    assert verdicts(cdl.new_lines(root)) == ["keep: b111-o.md; b111-s.md also uses b111 (on stale)"]
+
+
+def test_missing_tree_with_a_space_in_its_path_is_none() -> None:
+    assert cdl.tree_entries(b"0123abcd:./my dir/decisions missing\n", 1) == [None]
+
+
 def branches(root: Path, count: int) -> None:
-    """Add `count` branches, each with one new entry, in one `git fast-import` process."""
+    """Add `count` branches, each with one new entry in the next log of LOG_DIRS, in one `git fast-import` process."""
     stream = []
     for i in range(count):
         body = f"# {i + 2:04d}\n".encode()
+        log = cdl.LOG_DIRS[i % len(cdl.LOG_DIRS)].as_posix()
         head = (
             f"commit refs/heads/b{i}\n"
             f"committer Tester <{EMAIL}> 1700000000 +0000\n"
             "data 1\nb\n"
             "from refs/heads/main^0\n"
-            f"M 100644 inline notes/decisions/{i + 2:04d}-b{i}.md\n"
+            f"M 100644 inline {log}/{i + 2:04d}-b{i}.md\n"
             f"data {len(body)}\n"
         )
         stream.append(head.encode() + body + b"\n")
@@ -743,7 +918,11 @@ def branches(root: Path, count: int) -> None:
 
 
 @needs_git
-def test_new_process_count_is_fixed(git_env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize("log_count", [1, 2])
+def test_new_process_count_is_fixed(
+    git_env: Path, monkeypatch: pytest.MonkeyPatch, log_count: int
+) -> None:
+    monkeypatch.setattr(cdl, "LOG_DIRS", (cdl.LOG_DIR, MODULE)[:log_count])
     real_run = subprocess.run
     calls: list[object] = []
 

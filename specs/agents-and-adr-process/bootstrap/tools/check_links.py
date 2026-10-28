@@ -5,8 +5,9 @@ except `-` and `_`; each space becomes `-`; a repeated heading gets `-1`,
 `-2`, ... appended. Links inside fenced code blocks and inline code are
 skipped.
 
-In each `AGENTS.md`, `notes/` and `.claude/skills/`, a GitHub `blob`, `tree` or
-`commit` link must pin a full 40-character SHA (decision 0001).
+In each `AGENTS.md`, `notes/`, `.claude/skills/` and folder named `decisions`, a
+GitHub `blob`, `tree` or `commit` link must pin a full 40-character SHA
+(decision 0001).
 """
 
 from __future__ import annotations
@@ -94,7 +95,11 @@ def links(path: Path) -> list[tuple[int, str]]:
 def needs_pinned_links(path: Path, root: Path) -> bool:
     """True when GitHub links in `path` must pin a full SHA."""
     rel = path.relative_to(root).as_posix()
-    return rel.rsplit("/", 1)[-1] == "AGENTS.md" or any(rel.startswith(scope) for scope in _PINNED_SCOPES)
+    return (
+        rel.rsplit("/", 1)[-1] == "AGENTS.md"
+        or any(rel.startswith(scope) for scope in _PINNED_SCOPES)
+        or "decisions" in rel.split("/")[:-1]
+    )
 
 
 def check_file(path: Path, root: Path) -> list[str]:
@@ -131,6 +136,9 @@ def markdown_files(root: Path) -> list[Path]:
         dirs[:] = sorted(d for d in dirs if not d.startswith(".") and d != "plans")
         if "AGENTS.md" in names:
             files.append(Path(folder) / "AGENTS.md")
+        # A decision log can be in any module, not only under the fixed folders below.
+        if "decisions" in Path(folder).relative_to(root).parts:
+            files.extend(Path(folder) / n for n in sorted(names) if n.endswith(".md"))
     for folder in ("specs", "notes", ".claude/skills"):
         if (root / folder).is_dir():
             files.extend(sorted((root / folder).rglob("*.md")))

@@ -1,4 +1,4 @@
-"""Every relative link in each `AGENTS.md`, `specs/`, `notes/` and `.claude/skills/` resolves."""
+"""Every relative link in each `AGENTS.md`, `decisions/`, `specs/`, `notes/` and `.claude/skills/` resolves."""
 
 from pathlib import Path
 
@@ -104,3 +104,18 @@ def test_nested_agents_files_are_checked_and_pinned(tmp_path: Path) -> None:
     assert check_file(doc, tmp_path) == [
         "pkg/a/b/AGENTS.md:1: GitHub link must pin a full SHA: https://github.com/o/r/blob/main/x.py"
     ]
+
+
+def test_decision_logs_in_any_folder_are_checked_and_pinned(tmp_path: Path) -> None:
+    for folder in ("decisions", "m/decisions", ".hidden/decisions", "plans/decisions", "decisions/plans"):
+        (tmp_path / folder).mkdir(parents=True)
+        (tmp_path / folder / "x.md").write_text(
+            "[b](https://github.com/o/r/blob/main/x.py)\n", encoding="utf-8"
+        )
+    docs = [tmp_path / "decisions" / "x.md", tmp_path / "m" / "decisions" / "x.md"]
+    assert markdown_files(tmp_path) == docs
+    for doc in docs:
+        rel = doc.relative_to(tmp_path).as_posix()
+        assert check_file(doc, tmp_path) == [
+            f"{rel}:1: GitHub link must pin a full SHA: https://github.com/o/r/blob/main/x.py"
+        ]
