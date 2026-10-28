@@ -34,6 +34,8 @@ PROVENANCE_KEYS = {
     "edits",
     "notes",
 }
+# An example from a hand-over bundle also has `bundle`. An older example has no bundle.
+OPTIONAL_PROVENANCE_KEYS = {"bundle"}
 FRAGMENT_KEYS = {"exporter", "exporter_path", "tracked", "commit", "notes"}
 
 
@@ -145,7 +147,8 @@ def test_every_example_has_one_provenance_entry() -> None:
 @pytest.mark.parametrize("key", sorted(inventory()["examples"]))
 def test_provenance_entry_is_complete(key: str) -> None:
     entry = inventory()["examples"][key]
-    assert set(entry) == PROVENANCE_KEYS
+    assert set(entry) - OPTIONAL_PROVENANCE_KEYS == PROVENANCE_KEYS
+    assert re.fullmatch(r"(model|proposal)-\S+@\S+@v\d+", entry.get("bundle", "model-x@y@v1"))
     assert entry["kind"] in {"export", "forecast"}
     assert isinstance(entry["tracked"], bool)
     assert isinstance(entry["edits"], list)
