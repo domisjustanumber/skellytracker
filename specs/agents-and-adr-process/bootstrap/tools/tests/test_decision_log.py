@@ -13,6 +13,7 @@ import pytest
 import check_decision_log as cdl
 
 REPO_ROOT = Path(cdl.__file__).resolve().parents[1]
+REPO_LOG_DIRS = cdl.LOG_DIRS
 # A module log for the tests that patch LOG_DIRS. It is two folders deep.
 MODULE = Path("m") / "decisions"
 TO_ROOT_LOG = f"../../{cdl.LOG_DIR.as_posix()}"
@@ -79,7 +80,15 @@ def proposed_entry(day: str, number: int = 1) -> str:
     return f"# {number:04d}\n\n**Status:** proposed, {day} (user).\n"
 
 
-def test_repository_log_passes() -> None:
+@pytest.fixture(autouse=True)
+def one_log(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The tests make only the root log, unless they patch LOG_DIRS again."""
+    monkeypatch.setattr(cdl, "LOG_DIRS", (cdl.LOG_DIR,))
+    monkeypatch.setattr(cdl, "OLD_LOG_DIRS", ())
+
+
+def test_repository_log_passes(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(cdl, "LOG_DIRS", REPO_LOG_DIRS)
     assert cdl.check(REPO_ROOT) == []
 
 

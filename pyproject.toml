@@ -219,7 +219,7 @@ url = "https://pypi.nvidia.com"
 # =============================================================================
 
 [tool.pytest.ini_options]
-testpaths = ["skellytracker/tests", "tools/tests"]
+testpaths = ["skellytracker/tests", "tools/tests", "decisions/scripts/tests"]
 markers = [
     "video: tests that run inference over real video frames (slow, requires test recording)",
 ]

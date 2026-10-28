@@ -9,8 +9,6 @@ the reason for a decision. The [index](README.md) has the Active and Proposed en
 
 | # | Decision | Status |
 |---|----------|--------|
-| [0009](0009-imagenet-bgr-meaning.md) | `imagenet_bgr` changes meaning at `vNEXT`; the legacy meaning stays | absorbed into [`pre/normalization.md#legacy-behaviour`](../../specs/model-sidecar/pre/normalization.md#legacy-behaviour) |
-| [0012](0012-fit-resize-for-rtmo.md) | `fit` resize for RTMO; `pad_value` is required | absorbed into [`pre/resize-fit.md#behaviour`](../../specs/model-sidecar/pre/resize-fit.md#behaviour) |
 | [0015](0015-review-discipline.md) | Review discipline: one kind of change per PR, stacked drafts, merge method | superseded by 0027 |
 | [0026](0026-decision-log-size.md) | Size limits for the decision log: read path, absorbed status, consolidation | superseded by 0029 |
 | [0028](0028-entry-edits-and-citations.md) | Allowed edits to entries, complete supersession, permalinks, `Depends on`, a mirror rule that 0032 retires | superseded by 0032 |
@@ -35,7 +33,6 @@ the reason for a decision. The [index](README.md) has the Active and Proposed en
 | [0005](0005-rtmw-moved-to-rtmw-family.md) | RTMW moved to `keypoint_detectors/rtmw/` with import shims | absorbed into [`AGENTS.md#1-purpose`](../../AGENTS.md#1-purpose) |
 | [0006](0006-yolox-native-contract.md) | The YOLOX sidecar describes the native ONNX contract | absorbed into [`format/versioning.md#implementer-guidance`](../../specs/model-sidecar/format/versioning.md#implementer-guidance) |
 | [0007](0007-generic-processing-package.md) | Generic pre- and post-processing live in `core/detectors/processing/` | absorbed into [`AGENTS.md#1-purpose`](../../AGENTS.md#1-purpose) |
-| [0010](0010-family-invariant.md) | Family invariant: a size sets only its shape, target size and artifacts | absorbed into [`common/sizes-and-artifacts.md#sizes`](../../specs/model-sidecar/common/sizes-and-artifacts.md#sizes) |
 | [0016](0016-sidecar-catalogs.md) | Sidecar catalogs: source, reference hashes, roots, discovery and the capability check | absorbed into [`model-sidecar/README.md#section-map`](../../specs/model-sidecar/README.md#section-map) |
 | [vac0](vac0-record-a-changed-proposal.md) | A changed exporter proposal: a full new copy, the same entry, a ticked "Before acceptance" list | superseded by b1c0 |
 | [b1c0](b1c0-adr-citation-prefix.md) | Cite an entry as `ADR-<id>`; commit subjects end with `(ADR-<id>)`; restates the ID and edit rules of gtwq and the record-again rules of vac0 | superseded by HJNP |

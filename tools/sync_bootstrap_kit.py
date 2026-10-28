@@ -45,6 +45,14 @@ COPIES = (
                 'TARGET_BRANCH = "main"  # Step 3 of the kit guide sets the branch that PRs target.\n',
             ),
             ("LAST_UNLIMITED_ENTRY = 25\n", "LAST_UNLIMITED_ENTRY = 0\n"),
+            (
+                'LOG_DIRS = (LOG_DIR, Path("specs") / "model-sidecar" / "decisions")\n',
+                "LOG_DIRS = (LOG_DIR,)  # A step of the kit guide adds the module logs.\n",
+            ),
+            (
+                'OLD_LOG_DIRS: tuple[Path, ...] = (Path("notes") / "decisions",)\n',
+                "OLD_LOG_DIRS: tuple[Path, ...] = ()\n",
+            ),
         ),
     ),
     Copy(

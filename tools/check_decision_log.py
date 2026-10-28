@@ -78,11 +78,11 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-LOG_DIR = Path("notes") / "decisions"
+LOG_DIR = Path("decisions")
 # The root log first. Add the folder of each module log, relative to ROOT.
-LOG_DIRS = (LOG_DIR,)
+LOG_DIRS = (LOG_DIR, Path("specs") / "model-sidecar" / "decisions")
 # A folder where a log was before a move. Only --new reads it, in other worktrees and on branches.
-OLD_LOG_DIRS: tuple[Path, ...] = ()
+OLD_LOG_DIRS: tuple[Path, ...] = (Path("notes") / "decisions",)
 OPEN_WORK = "open-work.md"
 HISTORICAL = "historical.md"
 TEMPLATE = "template.md"
