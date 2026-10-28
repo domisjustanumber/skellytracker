@@ -1,6 +1,6 @@
 # k6dz — The sidecar spec folder is `specs/model-sidecar/`
 
-**Status:** accepted, 2026-10-26 (user).
+**Status:** superseded by [D9VT](D9VT-decision-log-move.md), 2026-10-28 (user; PR: pending).
 
 ## Decision
 

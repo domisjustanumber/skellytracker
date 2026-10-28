@@ -24,16 +24,17 @@ These entries are `accepted` or `evidence`.
 
 | # | Decision | Status |
 |---|----------|--------|
-| [k6dz](k6dz-model-sidecar-folder.md) | The sidecar spec folder and its entry point `sidecar-spec.md` move to `specs/model-sidecar/`; a move with no change of rule | accepted |
 | [p3n3](p3n3-ai-attribution-warning.md) | No AI attribution in check-ins; a commit-msg hook warns and does not stop the commit | accepted |
 | [x64y](x64y-draft-exporter-guide-folder.md) | The workflow, with the sidecar-file, validation and publishing rules, is in `model-addition-workflow/`; the exporter-only guide is a draft; no stub | accepted |
 | [b9fm](b9fm-finished-sidecar-plans.md) | The reference-examples procedure moves to the workflow; the implementation plan links to the spec backlog; the coverage note is frozen evidence | accepted |
 | [ngnb](ngnb-supersede-an-absorbed-entry.md) | An absorbed entry can be superseded: its status changes from `absorbed into <path>#<anchor>` to `superseded by XXXX` | accepted |
-| [hxy8](hxy8-scoped-agent-instructions.md) | Core root `AGENTS.md`; folder rules in a nested `AGENTS.md` with an importing `CLAUDE.md`; procedures as skills; supersedes 0001 | accepted |
 | [a33q](a33q-vector-case-form.md) | One vector case form: optional `function` and `compare`, errors by rule ID, NaN, exporter entries; 64 KiB; one writer | accepted |
 | [yve0](yve0-example-fragments.md) | An example fragment has one source: a package copy with the same bytes, or a `fragments` entry in `inventory.yaml` | accepted |
 | [pykx](pykx-submission-folders.md) | Submission files in `plans/sidecar/`: a folder for each model and each proposal, with target file names; candidate examples allowed | accepted |
 | [HJNP](HJNP-upper-case-entry-ids.md) | Upper-case entry IDs in new entries and new citations; older IDs stay; restates the prefix, ID, edit and record-again rules of b1c0 | accepted |
+| [GN3D](GN3D-module-decision-logs.md) | Core and nested `AGENTS.md` and skills; a root log and a log for each module in `LOG_DIRS`; placement; one ID space; supersedes hxy8 | accepted |
+| [EY8R](EY8R-tools-and-scripts.md) | Tools are in the root `tools/`; a script is in `scripts/` of the log that holds its entry; a script that a later step runs becomes a tool | accepted |
+| [D9VT](D9VT-decision-log-move.md) | The log moves to `decisions/` and `specs/model-sidecar/decisions/`; no stub; old plain-text paths stay; proposal-copy paths; supersedes k6dz | accepted |
 
 ### Proposed
 

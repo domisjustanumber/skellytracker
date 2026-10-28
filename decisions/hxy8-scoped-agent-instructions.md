@@ -1,6 +1,6 @@
 # hxy8 — Core `AGENTS.md`, nested `AGENTS.md` files for one folder, and procedures as skills
 
-**Status:** accepted, 2026-10-26 (user).
+**Status:** superseded by [GN3D](GN3D-module-decision-logs.md), 2026-10-28 (user; PR: pending).
 
 ## Decision
 
