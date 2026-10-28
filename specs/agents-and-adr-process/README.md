@@ -202,8 +202,9 @@ differ, so git shows no conflict. In OpenMMLab-Exporter, two different entries h
 and three entries had the number 0041. A renumber then moved seven entries. So an entry gets a
 random ID, not the next number.
 
-- An ID has 4 characters from `0123456789abcdefghjkmnpqrstvwxyz` (Crockford base32, lower case). The
-  first character is a letter. The kit entry 0001 keeps its number. Do not make a new all-digit ID.
+- An ID has 4 characters from `0123456789ABCDEFGHJKMNPQRSTVWXYZ` (Crockford base32, upper case). The
+  first character is a letter. An upper-case ID does not look like a word in prose, in `git log` or in
+  a PR title. The tool compares IDs without case. The kit entry 0001 keeps its number. Do not make a new all-digit ID.
 - Before you add an entry, run `git fetch` when you can. Then run
   `uv run python tools/check_decision_log.py --new`. It prints `new: XXXX`, a random ID that is not
   in this tree, in another worktree or on a local or remote-tracking branch. Give the entry that ID.
@@ -272,9 +273,9 @@ highest old entry number.
   default branch of that repo. A short SHA can become ambiguous. A force-push can remove a commit
   that is not on a default branch.
 - Do not cite or link `plans/`.
-- Cite an entry as `ADR-<id>`, with the prefix before the link. Write the repo name before the
+- Cite an entry as `ADR-<ID>`, with the prefix in the link text. Write the repo name before the
   entry ID of another repo, for example "skellytracker ADR-0028". A bare 4-character ID is not clear
-  in plain text, and `git log` shows no links. Commit subjects end with `(ADR-<id>)`.
+  in plain text, and `git log` shows no links. Commit subjects end with `(ADR-<ID>)`.
 
 ### Repos that share the rules
 

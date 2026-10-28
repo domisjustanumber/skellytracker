@@ -63,7 +63,7 @@ Read a Proposed entry only for work in its section, or when a skill tells you to
 Read an entry of [`historical.md`](notes/decisions/historical.md) only to find the reason for a
 decision.
 Add one entry for each new decision or measurement.
-An entry has a random ID of 4 characters, for example `k7m2`.
+An entry has a random upper-case ID of 4 characters, for example `K7M2`.
 Before you add an entry, run `git fetch` when you can.
 Then run `uv run python tools/check_decision_log.py --new`.
 Give the entry the ID of the `new:` line.
@@ -87,11 +87,12 @@ Cite a commit, or the code of another repository, with a GitHub permalink.
 The permalink must pin a full SHA on the default branch of that repository.
 Do not put dated status lines in this file. Put them in the open work or in an entry.
 Do not cite or link to `plans/`.
-Cite an entry of this repository as `ADR-<id>`. Put the prefix before the link.
+Cite an entry of this repository as `ADR-<ID>`. Put the prefix in the link text.
+Write the ID in upper case.
 Write the repository name before an entry ID of another repository, for example
 "{{OTHER_REPO}} ADR-0020". An ID without a repository name is an entry of this repository.
 Do not use the prefix in a file name, an entry heading, an index row, a status line or a YAML value.
-End each commit subject that adds or changes an entry with `(ADR-<id>)`.
+End each commit subject that adds or changes an entry with `(ADR-<ID>)`.
 Cite a provisional entry of another repository by the repository name, the PR number and the slug.
 Do not import a file, a test or a tool from another repository.
 

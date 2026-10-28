@@ -1,6 +1,6 @@
 # b1c0 — The `ADR-` prefix in citations and commit subjects
 
-**Status:** accepted, 2026-10-26 (user).
+**Status:** accepted, 2026-10-26 (user); superseded by [HJNP](HJNP-upper-case-entry-ids.md), 2026-10-28 (user; PR: pending).
 
 ## Decision
 

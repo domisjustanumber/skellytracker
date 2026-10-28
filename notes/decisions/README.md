@@ -31,11 +31,11 @@ These entries are `accepted` or `evidence`.
 | [x64y](x64y-draft-exporter-guide-folder.md) | The workflow, with the sidecar-file, validation and publishing rules, is in `model-addition-workflow/`; the exporter-only guide is a draft; no stub | accepted |
 | [b9fm](b9fm-finished-sidecar-plans.md) | The reference-examples procedure moves to the workflow; the implementation plan links to the spec backlog; the coverage note is frozen evidence | accepted |
 | [ngnb](ngnb-supersede-an-absorbed-entry.md) | An absorbed entry can be superseded: its status changes from `absorbed into <path>#<anchor>` to `superseded by XXXX` | accepted |
-| [b1c0](b1c0-adr-citation-prefix.md) | Cite an entry as `ADR-<id>`; commit subjects end with `(ADR-<id>)`; restates the ID and edit rules of gtwq and the record-again rules of vac0 | accepted |
 | [hxy8](hxy8-scoped-agent-instructions.md) | Core root `AGENTS.md`; folder rules in a nested `AGENTS.md` with an importing `CLAUDE.md`; procedures as skills; supersedes 0001 | accepted |
 | [a33q](a33q-vector-case-form.md) | One vector case form: optional `function` and `compare`, errors by rule ID, NaN, exporter entries; 64 KiB; one writer | accepted |
 | [yve0](yve0-example-fragments.md) | An example fragment has one source: a package copy with the same bytes, or a `fragments` entry in `inventory.yaml` | accepted |
 | [pykx](pykx-submission-folders.md) | Submission files in `plans/sidecar/`: a folder for each model and each proposal, with target file names; candidate examples allowed | accepted |
+| [HJNP](HJNP-upper-case-entry-ids.md) | Upper-case entry IDs in new entries and new citations; older IDs stay; restates the prefix, ID, edit and record-again rules of b1c0 | accepted |
 
 ### Proposed
 
@@ -132,9 +132,11 @@ The open work, the repository state and the spec defects are in [open-work.md](o
   the read path. The kit keeps an optional mirror rule.
 - A decision can be accepted before its spec text lands. Its spec text then comes in a later content
   PR.
-- An entry ID has 4 characters from `0123456789abcdefghjkmnpqrstvwxyz`. The first character of a new
-  ID is a letter. The entries 0001 to 0048 keep their numbers. Do not make a new all-digit ID
-  ([gtwq](gtwq-random-entry-ids.md)).
+- An entry ID has 4 characters from `0123456789ABCDEFGHJKMNPQRSTVWXYZ`. The first character of a new
+  ID is a letter. The entries 0001 to 0048 keep their numbers. Do not make a new all-digit ID. An
+  older entry keeps its lower-case ID in its file name, heading and index row. Do not edit older text
+  only to change the case. IDs that differ only in case are one ID
+  ([ADR-HJNP](HJNP-upper-case-entry-ids.md)).
 - Before you add an entry, run `git fetch --all` when you can. Then run
   `uv run python tools/check_decision_log.py --new`. Give the entry the ID of the `new:` line. Create
   its file immediately. Add its index row at the end of the table for its status, in the same PR. The
@@ -146,7 +148,7 @@ The open work, the repository state and the spec defects are in [open-work.md](o
   `HEAD`, the upstream and push refs of the branch, `backup/` branches and an old file name of an
   entry are not collisions. An ID does not change for a different reason.
 - To change an ID, run `--new`. Rename the file to the new ID. Change the ID in its heading and in its
-  index row. Find the citations with `git grep -n -E "\bXXXX\b|XXXX-"`, and repair each one. Ask the
+  index row. Find the citations with `git grep -n -i -E "\bXXXX\b|XXXX-"`, and repair each one. Ask the
   user before you change a PR title or a PR body. If the entry is on `development`, add
   `_Edited YYYY-MM-DD (#PR): re-ID from XXXX._` to it, and a `citation repair` line to each entry on
   `development` that you repair.
@@ -158,14 +160,16 @@ The open work, the repository state and the spec defects are in [open-work.md](o
   ([hxy8](hxy8-scoped-agent-instructions.md)).
 - Until a commit is on `development`, cite its PR number and the file path, not its SHA
   ([0027](0027-single-working-branch.md)).
-- In new text, cite an entry of this log as `ADR-<id>`. Put the prefix before the link, for example
-  `ADR-[x64y](x64y-draft-exporter-guide-folder.md)`. Write the ID of another repo's entry with the
-  repo name and the prefix, for example "OpenMMLab-Exporter ADR-0020". A bare ID in older text, for
+- In new text, cite an entry of this log as `ADR-<ID>`, with the ID in upper case. Do this also for
+  an older entry. Put the prefix in the link text, for example
+  `[ADR-X64Y](x64y-draft-exporter-guide-folder.md)`. The older form `ADR-[x64y](…)` stays valid.
+  Write the ID of another repo's entry with the repo name and the prefix, for example
+  "OpenMMLab-Exporter ADR-0020". A bare ID in older text, for
   example 0016 or gtwq, is an entry of this log. Do not edit a decided entry only to add the prefix.
   Do not use the prefix in a file name, a heading, an index row, a status line or a YAML value. Write
   an ID in YAML front matter in quotes. Cite a provisional entry of another repo by the repo name,
   the PR number and the slug. End each commit subject that adds or changes an entry with
-  `(ADR-<id>)` (ADR-[b1c0](b1c0-adr-citation-prefix.md)).
+  `(ADR-<ID>)` ([ADR-HJNP](HJNP-upper-case-entry-ids.md)).
 - A spec change proposal is an entry with the status `proposed`. Phase 2 of the
   [model addition workflow](../../specs/model-sidecar/model-addition-workflow/phase-2-proposal.md)
   gives its parts ([0014](0014-spec-lifecycle.md)).

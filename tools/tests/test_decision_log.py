@@ -468,7 +468,7 @@ def test_new_id_starts_with_a_letter_and_uses_the_alphabet() -> None:
 
 
 def test_new_id_skips_used_ids() -> None:
-    assert cdl.new_id({"k7m2", "a000"}, scripted("k7m2", "a000", "b111")) == "b111"
+    assert cdl.new_id({"K7M2", "A000"}, scripted("k7m2", "A000", "B111")) == "B111"
 
 
 @pytest.mark.parametrize(
@@ -476,7 +476,10 @@ def test_new_id_skips_used_ids() -> None:
     [
         ("0001-x.md", True),
         ("k7m2-x.md", True),
+        ("K7M2-x.md", True),
         ("z000-x.md", True),
+        ("K7m2-x.md", False),
+        ("I7M2-x.md", False),
         ("0k7m-x.md", False),
         ("i7m2-x.md", False),
         ("k7u2-x.md", False),
@@ -504,6 +507,25 @@ def test_letter_ids_in_rows_links_and_status(tmp_path: Path) -> None:
         },
     )
     assert cdl.check(root) == []
+
+
+def test_ids_that_differ_only_in_case_are_one_id(tmp_path: Path) -> None:
+    root = make_log(
+        tmp_path,
+        active="\n".join([row("k7m2", "accepted", "y"), row("A001", "accepted", "z")]),
+        historical=row(1, "superseded by K7M2"),
+        entries={
+            "0001-x.md": "# 0001\n\n**Status:** superseded by [K7M2](k7m2-y.md), 2026-10-28 (#1).\n",
+            "k7m2-y.md": "# k7m2 — T\n",
+            "A001-z.md": "# A001 — T\n\nSee [a001](A001-z.md) and [ADR-K7M2](k7m2-y.md).\n",
+        },
+    )
+    assert cdl.check(root) == []
+    (root / cdl.LOG_DIR / "k7m2-y.md").write_text("# k7m2 — T\n\n[ADR-A001](k7m2-y.md)\n", encoding="utf-8")
+    assert "k7m2-y.md:3: link text A001 does not match k7m2-y.md" in cdl.check(root)
+    (root / cdl.LOG_DIR / "K7M2-w.md").write_text("# K7M2 — T\n", encoding="utf-8")
+    assert "entry ID K7M2 has 2 files: K7M2-w.md, k7m2-y.md" in cdl.check(root)
+    assert cdl.new_lines(root, scripted("K7M2", "B111"))[0] == "new: B111"
 
 
 def test_re_id_keeps_size_exemption(tmp_path: Path) -> None:

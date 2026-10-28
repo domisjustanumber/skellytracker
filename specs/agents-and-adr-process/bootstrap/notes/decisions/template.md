@@ -3,11 +3,11 @@
 Use this template for a new entry. The [Rules](README.md#rules) of the index apply. This file is not
 in the read path: read it when you write an entry.
 
-The file name is `<id>-<short-slug>.md`. Get `<id>` from
-`uv run python tools/check_decision_log.py --new`.
+The file name is `<ID>-<short-slug>.md`. Get `<ID>` from
+`uv run python tools/check_decision_log.py --new`. The ID is in upper case.
 
 ```markdown
-# <id> — <title>
+# <ID> — <title>
 
 **Status:** <proposed | accepted | evidence>, <YYYY-MM-DD> (<source>).
 **Depends on:** <repo> XXXX (<status> on YYYY-MM-DD), <permalink>

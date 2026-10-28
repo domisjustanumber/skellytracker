@@ -28,8 +28,9 @@ It prints a warning, but does not fail, when the index, the open work or the rea
 its limit or more. The read path is ``README.md``, ``open-work.md`` and the Active entries. The
 Proposed and Historical entries are not in it. The check reads only the files. It does not run git.
 
-An ID has 4 characters from ``ALPHABET``, Crockford base32 in lower case. A new ID starts with a
-letter. An all-digit ID belongs only to an entry that had that number before random IDs (decision
+An ID has 4 characters from ``ALPHABET``, Crockford base32 in upper case. A new ID starts with a
+letter. An older ID in lower case stays valid, and IDs that differ only in case are one ID. An
+all-digit ID belongs only to an entry that had that number before random IDs (decision
 0001).
 
 ``--new`` prints ``new: XXXX``, a random ID that is not in this tree, in each other worktree or on
@@ -84,9 +85,13 @@ LAST_UNLIMITED_ENTRY = 0
 WARN_FRACTION = 0.8
 DECISION_CELL_LIMIT = 160
 
-LETTERS = "abcdefghjkmnpqrstvwxyz"
+LETTERS = "ABCDEFGHJKMNPQRSTVWXYZ"
 ALPHABET = "0123456789" + LETTERS
-ID = r"(?:\d{4}|[" + LETTERS + "][" + ALPHABET + r"]{3})"
+# The lower-case form is for the IDs made before the upper-case rule.
+ID = (
+    r"(?:\d{4}|[" + LETTERS + "][" + ALPHABET + r"]{3}"
+    + "|[" + LETTERS.lower() + "][" + ALPHABET.lower() + r"]{3})"
+)
 
 ABSORBED = r"absorbed into (?:\[[^\]]+\]\([^)\s]+\)|`[^`]+`)"
 STATUS_FORMS = {
@@ -105,12 +110,12 @@ SECTION = re.compile(r"`[a-z][a-z0-9_]*(?:\.[a-z0-9_]+)*`|none")
 NOT_DECIDED = ("proposed", "rejected")
 
 ENTRY_NAME = re.compile(rf"^({ID})-([a-z0-9-]+)\.md$")
-ENTRY_LIKE = re.compile(r"^[0-9a-z]{4}-.*\.md$")
+ENTRY_LIKE = re.compile(r"^[0-9a-zA-Z]{4}-.*\.md$")
 TABLE_HEADING = re.compile(r"^### (\w+)\s*$")
 ROW_LINK = re.compile(rf"^\[({ID})\]\((({ID})-[a-z0-9-]+\.md)\)$")
 STATUS_LINE = re.compile(r"^\*\*Status:\*\*(.*)$", re.MULTILINE)
 ENTRY_LINK = re.compile(
-    rf"\[({ID})\]\((?:[^)\s]*/)?(({ID})-[a-z0-9-]+\.md)(?:#[^)\s]*)?\)"
+    rf"\[(?:ADR-)?({ID})\]\((?:[^)\s]*/)?(({ID})-[a-z0-9-]+\.md)(?:#[^)\s]*)?\)"
 )
 HEADING_ID = re.compile(rf"# ({ID})\b")
 OLD_ID = re.compile(rf"(?:renumber|re-ID) from ({ID})")
@@ -187,7 +192,8 @@ def entry_files(log_dir: Path) -> dict[str, Path]:
 
 
 def entry_id(name: str) -> str:
-    return name[:4]
+    """The ID of an entry file name, in upper case, so that IDs that differ only in case compare equal."""
+    return name[:4].upper()
 
 
 def slug(name: str) -> str:
@@ -213,9 +219,9 @@ def status_errors(r: IndexRow, by_id: dict[str, IndexRow]) -> list[str]:
         return [f"{where}: status {r.status!r} must not be in the {r.table} table"]
     errors = []
     if match.groups():
-        target = match.group(1)
+        target = match.group(1).upper()
         named = by_id.get(target)
-        if named is None or target == r.id:
+        if named is None or target == r.id.upper():
             errors.append(f"{where}: status {r.status!r} names no other indexed entry")
         elif named.status.startswith(NOT_DECIDED):
             errors.append(f"{where}: status {r.status!r} names an entry that is {named.status!r}")
@@ -235,12 +241,12 @@ def status_link_errors(r: IndexRow, by_id: dict[str, IndexRow], path: Path) -> l
     match = status_match(r.status, r.table)
     if match is None or not match.groups():
         return []
-    named = by_id.get(match.group(1))
-    if named is None or named.id == r.id:
+    named = by_id.get(match.group(1).upper())
+    if named is None or named is r:
         return []
     kind = "superseded by" if r.status.startswith("superseded by") else "used by"
     link = re.compile(
-        rf"{kind} \[{named.id}\]\({re.escape(named.filename)}(?:#[^)\s]*)?\)"
+        rf"{kind} \[(?i:{named.id})\]\({re.escape(named.filename)}(?:#[^)\s]*)?\)"
     )
     line = STATUS_LINE.search(path.read_text(encoding="utf-8"))
     if line and link.search(line.group(1)):
@@ -264,10 +270,11 @@ def id_errors(log_dir: Path, rows: list[IndexRow], files: dict[str, Path]) -> li
             errors.append(f"entry ID {found} has {count} files: {names}")
     first_row: dict[str, IndexRow] = {}
     for r in rows:
-        if r.id in first_row:
-            errors.append(f"{r.where}: ID {r.id} is also in {first_row[r.id].where}")
+        key = r.id.upper()
+        if key in first_row:
+            errors.append(f"{r.where}: ID {r.id} is also in {first_row[key].where}")
         else:
-            first_row[r.id] = r
+            first_row[key] = r
     for path in sorted(log_dir.rglob("*.md")):
         label = path.relative_to(log_dir).as_posix()
         for line_number, text in enumerate(
@@ -276,12 +283,12 @@ def id_errors(log_dir: Path, rows: list[IndexRow], files: dict[str, Path]) -> li
             errors.extend(
                 f"{label}:{line_number}: link text {link.group(1)} does not match {link.group(2)}"
                 for link in ENTRY_LINK.finditer(text)
-                if link.group(1) != link.group(3)
+                if link.group(1).upper() != link.group(3).upper()
             )
     for name, path in files.items():
         lines = path.read_text(encoding="utf-8").splitlines()
         heading = HEADING_ID.match(lines[0]) if lines else None
-        if heading and heading.group(1) != entry_id(name):
+        if heading and heading.group(1) != name[:4]:
             errors.append(
                 f"{name}: heading ID {heading.group(1)} does not match the file name"
             )
@@ -316,7 +323,7 @@ def check(root: Path) -> list[str]:
     rows += historical
     errors += more
     files = entry_files(log_dir)
-    by_id = {r.id: r for r in rows}
+    by_id = {r.id.upper(): r for r in rows}
     listed = [r.filename for r in rows]
     errors += [
         f"{name}: {listed.count(name)} index rows, expected 1"
@@ -518,14 +525,14 @@ def short(label: str) -> str:
 
 
 def new_id(used: set[str], draw: Callable[[], str] | None = None) -> str:
-    """A random ID that is not in `used`. The first character is a letter."""
+    """A random ID whose upper-case form is not in `used`. The first character is a letter."""
 
     def random_id() -> str:
         return secrets.choice(LETTERS) + "".join(secrets.choice(ALPHABET) for _ in range(3))
 
     while True:
         candidate = (draw or random_id)()
-        if candidate not in used:
+        if candidate.upper() not in used:
             return candidate
 
 
@@ -590,7 +597,7 @@ def new_lines(
             uses = []
             for other, where in sorted(others.items()):
                 places = ", ".join(sorted(where)[:3]) + (f" and {len(where) - 3} more" if len(where) > 3 else "")
-                uses.append(f"{other} also uses {entry_id(name)} (on {places})")
+                uses.append(f"{other} also uses {name[:4]} (on {places})")
             lines.append(f"{'re-ID' if change else 'keep'}: {name}; " + "; ".join(uses))
     return lines + [f"note: {note}" for note in sources.notes]
 

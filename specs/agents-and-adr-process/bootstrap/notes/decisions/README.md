@@ -80,8 +80,8 @@ The open work is in [open-work.md](open-work.md).
   `notes/decisions/scripts/`. The Evidence section names it. Run
   `uv run python tools/check_decision_log.py` to see the read-path size and the warnings at 80% of a
   limit. `uv run pytest tools/tests` runs the same check.
-- An entry ID has 4 characters from `0123456789abcdefghjkmnpqrstvwxyz`. The first character is a
-  letter. Entry 0001 keeps its number. Do not make a new all-digit ID.
+- An entry ID has 4 characters from `0123456789ABCDEFGHJKMNPQRSTVWXYZ`. The first character is a
+  letter. Write an ID in upper case in each file name, heading, index row and citation. Entry 0001 keeps its number. Do not make a new all-digit ID.
 - Before you add an entry, run `git fetch` when you can. Then run
   `uv run python tools/check_decision_log.py --new`. Give the entry the ID of the `new:` line. Create
   its file immediately. Add its index row at the end of the table for its status, in the same PR. The
@@ -100,11 +100,11 @@ The open work is in [open-work.md](open-work.md).
   index rows with one ID.
 - Cite a tracked file with a relative link. Cite a commit, or the code of another repo, with a GitHub
   permalink that pins a full SHA on the default branch of that repo. Do not cite or link `plans/`.
-- Cite an entry of this log as `ADR-<id>`. Put the prefix before the link. Write the ID of another
+- Cite an entry of this log as `ADR-<ID>`. Put the prefix in the link text. Write the ID of another
   repo's entry with the repo name and the prefix, for example "{{OTHER_REPO}} ADR-0020". A bare ID is
   always an entry of this log. Do not use the prefix in a file name, a heading, an index row, a
   status line or a YAML value. End each commit subject that adds or changes an entry with
-  `(ADR-<id>)`. Write an ID in YAML front matter in quotes. Cite a provisional
+  `(ADR-<ID>)`. Write an ID in YAML front matter in quotes. Cite a provisional
   entry of another repo by the repo name, the PR number and the slug.
 - An entry that waits for a decision of another repo has a `**Depends on:**` line under its status
   line.
