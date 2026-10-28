@@ -28,9 +28,11 @@ skellytracker checkout (read-only) `../freemocap/skellytracker`.
 6. Write the proposed spec text in ASD-STE100 Simplified Technical English. Use short sentences and
    active voice. Use "must" for a requirement. Keep technical names, field names, enum values,
    formulas, code and YAML unchanged.
-7. Before you write, read the table "Considered and deliberately not added"
-   (`specs/model-sidecar/changelog.md`).
-   If the feature is in it, cite the row in part 1, and give the evidence that a model needs it now.
+7. Before you write, find your model in the heading "Scope of this revision"
+   (`specs/model-sidecar/changelog.md`). If your model is not in the list, write this in part 1. Do
+   not write a scope entry. If the user accepts the proposal, the model joins the list. Then read the
+   table "Considered and deliberately not added" in the same file. If the feature is in it, cite the
+   row in part 1, and give the evidence that your model needs it now.
 8. Before you write, find the skellytracker decision entries with the status `proposed` that cover
    your rows. Read the index in `specs/model-sidecar/decisions/README.md` of the skellytracker repo. Also read each
    `proposed` entry that the guidance of your sections cites. Run `intake_bundle.py list` and choose
@@ -185,8 +187,10 @@ The `key=value` pairs of a resolved sidecar that make the sidecar use this secti
   `specs/model-sidecar/model-addition-workflow/hand-over.md`; skellytracker ADR-KDBD).
 - Tell what a sidecar with `schema_version < vNEXT` does. A `vnext` change does not change the
   legacy meaning.
-- Until skellytracker releases the spec, every change goes into the `vNEXT` revision. After that
-  release, a change sets `schema_version` to the release that ships it.
+- Until skellytracker releases the spec, every change goes into the `vNEXT` revision. Write only the
+  `vNEXT` text. Do not write a second text for a later revision (heading "Scope of this revision" in
+  `specs/model-sidecar/changelog.md`). After that release, a change sets `schema_version` to the
+  release that ships it.
 - Give the new row of the "Legacy behaviour" table of the section, if the change gives a legacy
   difference. The index of these tables is the heading "Version-aware compatibility" in
   `specs/model-sidecar/format/versioning.md`. A new field, value or section that is not available

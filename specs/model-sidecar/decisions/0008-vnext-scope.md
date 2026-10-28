@@ -1,7 +1,6 @@
 # 0008 — `vNEXT` scope, and the features considered and not added
 
-**Status:** accepted, 2026-10-22 (backfilled from #81; the removal of the RF-DETR example was decided
-by the user on 2026-10-22).
+**Status:** accepted, 2026-10-22 (backfilled from #81; the removal of the RF-DETR example was decided by the user on 2026-10-22); superseded by [YNX0](YNX0-vnext-scope-list.md), 2026-10-28 (user; PR: pending).
 
 ## Decision
 

@@ -11,6 +11,45 @@
 
 Compatibility rows: [Version-aware compatibility](format/versioning.md#version-aware-compatibility).
 
+### Scope of this revision
+
+This list names the models that `vNEXT` must describe
+([ADR-YNX0](decisions/YNX0-vnext-scope-list.md)):
+
+- OpenMMLab-Exporter: RTMDet (person-only family), RTMW and RTMO body7.
+- Ultralytics-Exporter: YOLO26 detection and YOLO26 pose.
+- Roboflow-Exporter: RF-DETR.
+
+The rules of this list:
+
+- Qualcomm-Exporter is out of scope until that library is complete.
+- This list is a process list. It does not change the meaning of a sidecar. A change of this list is
+  a non-spec change.
+- Two events add a model to this list:
+  - The user accepts a change proposal that the model needs. The non-spec PR of that proposal adds
+    the model.
+  - skellytracker lands the model with the verdict `describes`. The PR of its example adds the model.
+- These two edits apply the rule. They need no decision entry. To remove a model from this list,
+  write a new decision entry.
+- A new batch-conversion profile joins `vNEXT` in the same way: the user accepts a change proposal
+  for the profile, and each model that needs it joins this list.
+- `vNEXT` adds only the features that a model in this list needs.
+  [Considered and deliberately not added](#considered-and-deliberately-not-added) lists the other
+  features. That table is not a ban. The content PR that adds a feature of the table removes its row.
+- In the spec-build stage, each accepted spec change goes into `vNEXT`. A proposal must give only
+  the `vNEXT` text. A proposal must not give a second text for a later revision. A proposal that the
+  user does not accept keeps the status `proposed`.
+- The spec has no RF-DETR reference example. The example returns when Roboflow-Exporter writes
+  `vNEXT` sidecars. The rules that RF-DETR motivated stay in the spec:
+  - the `stretch` resize;
+  - the `boxes`, `scores` and `class_logits` output semantics, with `class_axis`;
+  - `selection: top_k`, with `class_id_map`.
+- Do not remove an RF-DETR rule because the spec has no RF-DETR example.
+- This list is not the verdict `out of scope` of an intake row.
+- `vNEXT` is a placeholder name for this revision.
+  [Publishing](model-addition-workflow/validation-and-publishing.md#publishing) gives the release
+  step that replaces it.
+
 ### Summary of changes
 
 | # | Area | Change | Driven by | Section |

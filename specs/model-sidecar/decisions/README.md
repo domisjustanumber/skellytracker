@@ -15,8 +15,8 @@ These entries are `accepted` or `evidence`.
 
 | # | Decision | Status |
 |---|----------|--------|
-| [0008](0008-vnext-scope.md) | `vNEXT` scope, and the features considered and not added | accepted |
 | [0011](0011-rtmdet-host-nms.md) | RTMDet: NMS-free graph with host `selection: nms`; no `pre_nms_top_k` | accepted |
+| [YNX0](YNX0-vnext-scope-list.md) | `vNEXT` scope: one list in the changelog; acceptance or a `describes` landing adds a model; a proposal gives `vNEXT` text only | accepted |
 
 ### Proposed
 
