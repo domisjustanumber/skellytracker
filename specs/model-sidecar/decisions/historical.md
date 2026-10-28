@@ -9,6 +9,6 @@ the reason for a decision. The [index](README.md) has the Active and Proposed en
 
 | # | Decision | Status |
 |---|----------|--------|
-| [0009](0009-imagenet-bgr-meaning.md) | `imagenet_bgr` changes meaning at `vNEXT`; the legacy meaning stays | absorbed into [`pre/normalization.md#legacy-behaviour`](../pre/normalization.md#legacy-behaviour) |
+| [0009](0009-imagenet-bgr-meaning.md) | `imagenet_bgr` changes meaning at `vNEXT`; the legacy meaning stays | superseded by KDBD |
 | [0012](0012-fit-resize-for-rtmo.md) | `fit` resize for RTMO; `pad_value` is required | absorbed into [`pre/resize-fit.md#behaviour`](../pre/resize-fit.md#behaviour) |
 | [0010](0010-family-invariant.md) | Family invariant: a size sets only its shape, target size and artifacts | absorbed into [`common/sizes-and-artifacts.md#sizes`](../common/sizes-and-artifacts.md#sizes) |

@@ -1,7 +1,6 @@
 # 0009 — `imagenet_bgr` changes meaning at `vNEXT`; the legacy meaning stays
 
-**Status:** absorbed into [`pre/normalization.md#legacy-behaviour`](../pre/normalization.md#legacy-behaviour), 2026-10-24 (user; the first review of
-[0029](../../../decisions/0029-decision-log-read-path.md)). It was accepted on 2026-10-22 (backfilled from #81).
+**Status:** absorbed into [`pre/normalization.md#legacy-behaviour`](../pre/normalization.md#legacy-behaviour), 2026-10-24 (user; the first review of [0029](../../../decisions/0029-decision-log-read-path.md)); superseded by [KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md), 2026-10-28 (user; PR: pending). It was accepted on 2026-10-22 (backfilled from #81).
 
 ## Decision
 
