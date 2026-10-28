@@ -15,6 +15,15 @@ file `intake.md` of a `model` bundle ([Hand-over bundles](hand-over.md#payload))
    The runtime contract starts at the inputs of the model: the source image, and the box for
    `affine_person_crop`. It ends at the decoded outputs in source-image coordinates. An upstream step
    before or after the contract is also a row, with the verdict `out of scope`.
+
+   **Step 1b: batch-conversion check.** Do this step right after step 1, before step 2.
+   - Export each size and each precision of a static-batch family at the verification batches 1, 2, 3
+     and 4. Use the same commit and the same settings. Only the batch changes. b4 is
+     verification-only: you never publish it.
+   - Write input B with your writer code, and run the `batch` sub-command of the hand-over tool
+     ([Batch-conversion check](hand-over.md#batch-conversion-check)).
+   - The result is the evidence of row G6b. It fills the section "Batch conversion check" of the
+     intake. Step 3 gives the verdict of row G6b.
 2. For each row, write:
    - the property;
    - the upstream evidence (see [Rules](rules.md#rules));
@@ -47,6 +56,9 @@ file `intake.md` of a `model` bundle ([Hand-over bundles](hand-over.md#payload))
    - A `near-miss` or `gap` row: go to phase 2 for that row (the skill `propose-sidecar-change`). A
      near-miss is a gap. Do this also when other rows are `unverified`. List those rows in the final
      verdict.
+   - Row G6b is `gap` (the verdict `does not convert`): leave `batching.batch_conversion` out of the
+     sidecar. Go to phase 2 for a new conversion profile. The model can still get the verdict
+     `describes`.
    - An `unverified` row: get the missing evidence. Then give the row its verdict.
    - An `out of scope` row: write no proposal. Tell the user about the row when you stop. The user
      decides if the spec must describe such steps.
@@ -57,11 +69,14 @@ file `intake.md` of a `model` bundle ([Hand-over bundles](hand-over.md#payload))
      the intake. It is a draft. A skellytracker session does not use a draft as a spec example.
    - If a row is `unverified`, use the value that you expect for that row. Do not change the writer
      code for that row. Mark each result that depends on the row as provisional.
+   - Choose the published batch artifacts as
+     [Publishing](validation-and-publishing.md#publishing) says.
    - Walk the validation checklist (see
      [Validation](validation-and-publishing.md#validation)).
    - Prove parity (see [Parity](parity.md#parity)).
 6. Write the final verdict:
-   - `describes`: every row is `exact` or `out of scope`, and parity passes.
+   - `describes`: every row is `exact` or `out of scope`, and parity passes. Row G6b can also be
+     `gap` (step 4).
    - `does not describe`: a row is `near-miss` or `gap`, also when other rows are `unverified`.
    - `pending`: no row is `near-miss` or `gap`, but a row is `unverified` or parity is `to run`.
 

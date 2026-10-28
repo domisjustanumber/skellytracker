@@ -83,7 +83,9 @@ gives the commit of your repo in `source_commit`.
 
 Get these inputs before you start:
 
-- the ONNX files;
+- the ONNX files of every size and precision. A static-batch family needs the verification batches
+  1, 2, 3 and 4 ([Batch-conversion check](hand-over.md#batch-conversion-check)). Add the `dynamic`
+  export if you plan to publish it;
 - the upstream inference config;
 - the upstream preprocessing code and postprocessing code;
 - one reference output of the upstream library on a known image.
