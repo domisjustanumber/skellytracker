@@ -38,7 +38,7 @@ Some one-stage models append the keypoints to each detection row. They do not em
 ```yaml
 outputs:
   - name: output0
-    dtype: {fp32: float32, fp16: float32, int8: float32}
+    dtype: {fp32: float32, fp16: float32}
     shape: [-1, 300, 57]
     rank: 3
     semantic: detections

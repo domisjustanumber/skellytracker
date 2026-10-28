@@ -28,7 +28,7 @@ status: {spec: stable, validate: partial, forward: partial}
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `normalization` | string or object | no | See [Normalization modes](normalization.md). The default is `imagenet_bgr` (the RTMPose convention). |
-| `normalization_by_precision` | object | no | This optional override maps a precision (`fp32`, `fp16` or `int8`) to a named mode. The values must be mode strings only. They must not be a `custom` object. Declare a `custom` normalization at the top-level `normalization`. |
+| `normalization_by_precision` | object | no | This optional override maps a precision key ([V-common.sizes_and_artifacts-6](../common/sizes-and-artifacts.md#validation-rules)) to a named mode. The values must be mode strings only. They must not be a `custom` object. Declare a `custom` normalization at the top-level `normalization`. |
 
 `normalization` and `normalization_by_precision` are fields of [`input`](../common/input.md#fields).
 
@@ -75,15 +75,15 @@ input:
 **Per-precision overrides:**
 
 ```yaml
-# For an int8 artifact whose graph takes raw uint8 pixels. The Ultralytics exporter emits this
-# override only when an int8 artifact's input dtype is uint8/int8; the current YOLO26 int8
-# exports take float32 input, so they need no override.
+# For an artifact whose graph takes raw uint8 pixels. The Ultralytics exporter writes this
+# override only for a precision whose input dtype is uint8 or int8. The current YOLO26 exports
+# take float32 input, so they need no override.
 input:
-  dtype: {fp32: float32, fp16: float32, int8: uint8}
+  dtype: {fp32: float32, fp16: uint8}
   color_format: rgb
   normalization: unit_float
   normalization_by_precision:
-    int8: none
+    fp16: none
 ```
 
 The resolution order for a selected precision is: `normalization_by_precision[precision]` → top-level `normalization` → default `imagenet_bgr`.
@@ -97,13 +97,13 @@ The values of `normalization_by_precision` must be named mode strings only. A `c
 - If `normalization` is omitted, its value is `imagenet_bgr`.
 - A string value must be one of `none`, `unit_float`, `imagenet_bgr`, `imagenet_rgb`.
 - The object form must have `mode: custom`. If `mean` or `std` is present, it must be a sequence of length 3. If `scale` is present, it must be a positive number. If `color_format` is present, it must be `rgb` or `bgr`.
-- The keys of `normalization_by_precision` must be a subset of `fp32`, `fp16`, `int8`. The values must be valid mode strings.
+- The keys of `normalization_by_precision` must be precision keys ([V-common.sizes_and_artifacts-6](../common/sizes-and-artifacts.md#validation-rules)). The values must be valid mode strings.
 - If any declared precision resolves to `none` or `unit_float`, `input.color_format` must be present. When the field is present, it must agree with `imagenet_rgb` (`rgb`), `imagenet_bgr` (`bgr`) and `custom.color_format`.
 
 ## Validation rules
 
 - [ ] `V-pre.normalize-1` If `input.normalization` is present, it must be a valid mode: `none`, `unit_float`, `imagenet_bgr`, `imagenet_rgb` or a `custom` object. A `custom` object must have `mode: custom`. If `mean` or `std` is present, it must have length 3. If `scale` is present, it must be positive. If `color_format` is present, it must be `rgb` or `bgr`.
-- [ ] `V-pre.normalize-2` The keys of `normalization_by_precision` must be a subset of `fp32`, `fp16` and `int8`. Its values must be valid mode strings. A value must not be a `custom` object.
+- [ ] `V-pre.normalize-2` The keys of `normalization_by_precision` must be precision keys ([V-common.sizes_and_artifacts-6](../common/sizes-and-artifacts.md#validation-rules)). Its values must be valid mode strings. A value must not be a `custom` object.
 
 See also [Input](../common/input.md#validation-rules).
 
@@ -138,5 +138,5 @@ See also [Input](../common/input.md#legacy-behaviour).
 - The published RF-DETR fp32 artifact is byte-identical to the raw `model.export()` output. It has no normalization nodes. (Roboflow-Exporter `pipeline/ARTIFACT_CONTRACT.md:9-18`, 4ae67c0; Roboflow-Exporter `rf_detr/export.py:82-98`, 4ae67c0)
 - Older RF-DETR graphs have preprocessing inside the graph. They have the initializers `rfdetr_prep_scale` and `rfdetr_prep_bias` and the metadata `rfdetr_input_contract=float_rgb_nchw_0_255`. They expect raw 0-255 RGB, so host ImageNet normalization would normalize twice. The writer rejects them. (Roboflow-Exporter `pipeline/artifacts.py:108-114`, 4ae67c0; Roboflow-Exporter `exports/detectors/object_detectors/rfdetr/rfdetr-small_b1_fp32.onnx`, untracked output)
 - In one checkout (Roboflow-Exporter HEAD c64fd2a), 22 of the 24 local `.onnx` files were older graphs of this kind. The constants are `scale = 1 / (255 x std)` and `bias = -mean / std` for each channel. For example, the R channel has `0.0171248 = 1 / 58.395` and `-2.1179 = -123.675 / 58.395`. (Roboflow-Exporter `exports/detectors/object_detectors/rfdetr/*.onnx`, untracked output; initializer values checked in the graph)
-- The Ultralytics-Exporter writes `normalization_by_precision: {p: none}` only for a precision whose graph input dtype is `uint8` or `int8`. A test uses a `uint8` fixture. No real YOLO26 export triggers it, because the int8 artifacts take float32 input. (Ultralytics-Exporter `yolo_sidecar.py:391-393`, f52ef68; Ultralytics-Exporter `tests/test_yolo_sidecar.py:274-284`, f52ef68; Ultralytics-Exporter `exports/detectors/object_detectors/yolo26/yolo26.yaml:7`, untracked output)
+- The Ultralytics-Exporter writes `normalization_by_precision: {p: none}` only for a precision whose graph input dtype is `uint8` or `int8`. A test uses a `uint8` fixture. No real YOLO26 export triggers it, because every YOLO26 artifact takes float32 input. (Ultralytics-Exporter `yolo_sidecar.py:391-393`, f52ef68; Ultralytics-Exporter `tests/test_yolo_sidecar.py:274-284`, f52ef68; Ultralytics-Exporter `exports/detectors/object_detectors/yolo26/yolo26.yaml:7`, untracked output)
 - The legacy `imagenet_bgr` is wrong for a model trained on RGB input. For an RTMPose hand model, it moved the keypoints by a median of 1.86, 6.98, 17.15, 3.10 and 12.34 px on five crops. `imagenet_rgb` gave 0.00 px. The RTMW sidecar in skellytracker may have the same defect. It is not measured. See [decision 0009](../decisions/0009-imagenet-bgr-meaning.md) and the Open work item about the `imagenet_bgr` default note ([Open work](../decisions/README.md#open-work)). (OpenMMLab-Exporter `plans/hand-models-PLAN.md:112-130`, untracked plan file; the only evidence)

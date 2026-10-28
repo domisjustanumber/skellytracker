@@ -173,8 +173,8 @@ cases:
   - id: precision-override  # normalization_by_precision wins over the top-level normalization
     params:
       normalization: unit_float
-      normalization_by_precision: {int8: none}
-      precision: int8
+      normalization_by_precision: {fp16: none}
+      precision: fp16
       color_format: rgb
       dtype: uint8
     input: {pixels_bgr: [[0, 0, 0], [255, 255, 255], [10, 128, 250], [200, 100, 50]]}
@@ -182,11 +182,11 @@ cases:
       resolved_mode: none
       channel_order: rgb
       values: [[0, 0, 0], [255, 255, 255], [250, 128, 10], [50, 100, 200]]
-  - id: precision-without-override  # no entry for fp16: the top-level normalization applies
+  - id: precision-without-override  # no entry for fp32: the top-level normalization applies
     params:
       normalization: unit_float
-      normalization_by_precision: {int8: none}
-      precision: fp16
+      normalization_by_precision: {fp16: none}
+      precision: fp32
       color_format: rgb
     input: {pixels_bgr: [[0, 0, 0], [255, 255, 255], [10, 128, 250], [200, 100, 50]]}
     expect:

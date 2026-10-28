@@ -90,21 +90,21 @@ Rules:
 To start from an existing sidecar and override only what it changes, a sidecar can declare `base` at the top level:
 
 ```yaml
-# detectors/object_detectors/yolo26-int8/yolo26-int8.yaml — a separately published int8 build of the family
+# detectors/object_detectors/yolo26-fp16/yolo26-fp16.yaml — a separately published fp16 build of the family
 # (illustrative: no current exporter writes derived files; this shows the mechanism)
 ---
 schema_version: "vNEXT"
 base: {$ref: ../yolo26/yolo26.yaml, sha256: "<sha256>"}
-model_id: yolo26-int8
-display_name: YOLO26 (int8)
+model_id: yolo26-fp16
+display_name: YOLO26 (fp16)
 sizes:
   nano:
     onnx:
       batch_artifacts:
         "1":
           precision_artifacts:
-            int8:
-              filename: yolo26-int8-nano_b1_int8.onnx
+            fp16:
+              filename: yolo26-fp16-nano_b1_fp16.onnx
               sha256: "<sha256>"
 ```
 
@@ -128,14 +128,14 @@ At `vNEXT`, `base` is a mapping with exactly two keys: `$ref` and `sha256` (see 
 A child key that maps to `null` deletes that key from the merged result. This follows JSON Merge Patch (RFC 7386). It is the only way to remove an inherited key. `null` is reserved for deletion. No field uses `null` as a value. When an optional field has no value, the sidecar omits the field. It never sets the field to `null`. The `null`-delete applies to the `base` and `sizes` deep-merges. It does not apply to `$ref`, which is a node replacement.
 
 ```yaml
-# Drop the int8 precision inherited from the base:
+# Drop the fp16 precision inherited from the base:
 sizes:
   nano:
     onnx:
       batch_artifacts:
         "1":
           precision_artifacts:
-            int8: null
+            fp16: null
 ```
 
 Rules:

@@ -1277,8 +1277,8 @@ def build_normalize() -> Vectors:
     add(
         "precision-override",
         normalization="unit_float",
-        by_precision={"int8": "none"},
-        precision="int8",
+        by_precision={"fp16": "none"},
+        precision="fp16",
         color_format="rgb",
         dtype="uint8",
         note="normalization_by_precision wins over the top-level normalization",
@@ -1286,10 +1286,10 @@ def build_normalize() -> Vectors:
     add(
         "precision-without-override",
         normalization="unit_float",
-        by_precision={"int8": "none"},
-        precision="fp16",
+        by_precision={"fp16": "none"},
+        precision="fp32",
         color_format="rgb",
-        note="no entry for fp16: the top-level normalization applies",
+        note="no entry for fp32: the top-level normalization applies",
     )
 
     return Vectors(

@@ -8,7 +8,7 @@ Each example also has a top-level [`source`](../common/identity.md#fields) and e
 
 ## YOLO26 detector (Ultralytics-Exporter; NMS-free, graph-final rows)
 
-Centre letterbox with half-even rounding, RGB `unit_float` input, and one packed `[B, 300, 6]` tensor of final detections (`nms=False`, `max_det=300` at export). Every precision, including int8, keeps float32 I/O.
+Centre letterbox with half-even rounding, RGB `unit_float` input, and one packed `[B, 300, 6]` tensor of final detections (`nms=False`, `max_det=300` at export). Each precision keeps float32 I/O.
 
 Sidecar: [`yolo26.yaml`](detectors/object_detectors/yolo26/yolo26.yaml).
 

@@ -64,7 +64,7 @@ The full input tensor shape for a group is `[N] + sizes.<size>.input.shape[1:]`.
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `sizes.<size>.onnx.batch_artifacts` | object | yes per size | The keys are quoted positive-integer native batch sizes (`"1"`, `"2"`, …) or a single `dynamic`. A size can list any number of batch keys. |
-| `sizes.<size>.onnx.batch_artifacts.<N>.precision_artifacts` | object | yes per group | Each key is `fp32`, `fp16` or `int8`. Each value is the artifact descriptor for native batch `N`. |
+| `sizes.<size>.onnx.batch_artifacts.<N>.precision_artifacts` | object | yes per group | Each key is `fp32` or `fp16`. Each value is the artifact descriptor for native batch `N`. |
 | `sizes.<size>.onnx.batch_artifacts.<N>.output_shapes` | array[array] | when `len(batch_artifacts) > 1` | The output tensor shapes for native batch `N`. They follow the order of the top-level `outputs`. |
 
 **Per-precision artifact fields:**
@@ -88,7 +88,7 @@ Rules:
 - Each size's `batch_artifacts` must have at least one key. Each key is a **string**: a quoted positive integer (`"1"`, `"2"`, …) or `dynamic`. YAML parses an unquoted `1:` as an integer, and validation rejects it.
 - A size's `batch_artifacts` can contain integer-like keys **or** a single `dynamic` key, but never both. A mix of `dynamic` with integer keys is a validation error.
 - Each group must list at least one precision.
-- The precision keys are the closed enum `fp32`, `fp16`, `int8`.
+- The precision keys are the closed enum `fp32`, `fp16`.
 - `batching.native_batch_sizes` is **derived** for each size. Its values are the integer-like keys of `batch_artifacts`, parsed as integers. A `dynamic` key means that any runtime batch size is accepted. It is not a separate field.
 - If a precision artifact has an `input_dtype`, it must agree with `input.dtype` for that precision.
 
@@ -111,7 +111,7 @@ For rules marked **(vNEXT)**, see [Validation rules](../README.md#validation-rul
 - [ ] `V-common.sizes_and_artifacts-3` **(vNEXT)** A size entry must contain only `input.shape`, `input.resize.target_size` and `onnx`.
 - [ ] `V-common.sizes_and_artifacts-4` If `method` is `letterbox`, `stretch`, `fit` or `affine_person_crop` and `supports_dynamic_size` is not set, the spatial dimensions of each size's `input.shape` must equal its `resize.target_size`. When `method: none` or `supports_dynamic_size: true`, the size must omit `target_size`. When `supports_dynamic_size: true`, the spatial dimensions must be `-1`.
 - [ ] `V-common.sizes_and_artifacts-5` The `onnx.batch_artifacts` of each size must use one of two key forms. The first form is quoted-string positive integer batch keys (`"1"`, `"2"`, …). The second form is a single `dynamic` key. It must not mix the two forms. Each group must have a non-empty `precision_artifacts`.
-- [ ] `V-common.sizes_and_artifacts-6` The precision keys must be the closed enum `fp32`/`fp16`/`int8`.
+- [ ] `V-common.sizes_and_artifacts-6` The precision keys must be the closed enum `fp32`/`fp16`.
 - [ ] `V-common.sizes_and_artifacts-7` Each precision artifact must declare `filename`. If it declares `url`, it must also declare `url_sha256`.
 - [ ] `V-common.sizes_and_artifacts-8` If a precision artifact has an `input_dtype`, it must agree with `input.dtype[precision]`.
 - [ ] `V-common.sizes_and_artifacts-9` When a size has `len(batch_artifacts) > 1`, each group must declare `output_shapes`. The length of that array must equal `len(outputs)`. Its entries must be arrays in the same order as `outputs`.
@@ -140,10 +140,6 @@ See also [Input](input.md#validation-rules) and [Outputs](outputs.md#validation-
   - The Ultralytics-Exporter fp16 detector AP is within 0.0004 of fp32. Example: nano at batch 2 gives 0.3969 against 0.3971. (Ultralytics-Exporter local reports `exports/detectors/object_detectors/yolo26/yolo26-<size>_b<N>_fp16.report.json` and the fp32 reports, field `performance.converted.ap`, not in git, HEAD 2e0280e)
   - The Roboflow-Exporter README says that the measured change is about +0.002 AP. The only local fp16 report with an accuracy result (nano, batch 1) shows AP 0.48023 against 0.480397 for the PyTorch source (-0.000167). The repo does not reconcile the two. (Roboflow-Exporter `README.md:709-712`, b46b98f; local report `exports/detectors/object_detectors/rfdetr/rfdetr-nano_b1_fp16.onnx.model.report.json`, field `scoring.accuracy.comparisons[0].deltas`, not in git)
   - The Qualcomm-Exporter person detector ran on seeded uniform noise. The fp32 file has a maximum box error of 3.05e-05 px and a maximum score error of 1.54e-07. The fp16 file has 0.1077 px and 6.09e-04. The tolerances are 1.0 px, and 1e-3 (fp32) or 1e-2 (fp16) for the score. (Qualcomm-Exporter local reports `exports/detectors/object_detectors/mediapipe-person-detector/mediapipe-person-detector-default_b1_fp16.report.json` and `..._fp32.report.json`, field `artifact.parity`, not in git; Qualcomm-Exporter `qai_export.py:122-163`, 8d8e05a, and `export_all.py:335`, 4ca4586)
-- The int8 file of Ultralytics-Exporter loses much more AP than the fp16 file.
-  - At batch 2, the int8 detector AP is 0.058 to 0.123 below fp32: nano 0.3329, small 0.3487, medium 0.4272, large 0.4391, xlarge 0.5056. (Ultralytics-Exporter local reports `exports/detectors/object_detectors/yolo26/yolo26-<size>_b2_int8.report.json`, field `performance.converted.ap`, not in git, HEAD 2e0280e)
-  - At batch 2, the int8 pose OKS AP is 0.109 to 0.203 below fp32. (Ultralytics-Exporter local reports `exports/detectors/keypoint_detectors/yolo26/body/yolo26-body-<size>_b2_int8.report.json`, field `performance.converted.metrics_detail.pose_ap`, not in git, HEAD 2e0280e)
-  - The int8 calibration set is COCO val2017, the same set as the evaluation. (Ultralytics-Exporter `yolo_coco_dataset.py:268-299`, 69499e7)
 - fp16 can be slower than fp32 on the ONNX Runtime CPU backend. The Qualcomm-Exporter person detector shows this.
   - The fp16 file ran at 57.2 FPS and the fp32 file at 646.3 FPS. The FPS is the median of 50 runs after 5 warm-up runs on the first COCO image, with one run for each file. It is not a device claim. (Qualcomm-Exporter local reports `mediapipe-person-detector-default_b1_fp16.report.json` and `..._fp32.report.json`, field `performance.converted.fps`, not in git; Qualcomm-Exporter `qai_validation.py:26-27, 77-91` and `qai_export.py:106-111`, 4ca4586 and 8d8e05a)
   - The AP differs by 2.5e-06 (0.006849 against 0.006846). The fp16 file is half the size (1,728,070 B against 3,379,390 B). (same local reports, fields `performance.converted.metrics` and `artifact.filesize_bytes`)
@@ -166,7 +162,7 @@ See also [Input](input.md#validation-rules) and [Outputs](outputs.md#validation-
   - OpenMMLab-Exporter writes alphabetical order, so the default of its `rtmdet-person` is `medium`. (OpenMMLab-Exporter `rtmdet_person/sidecar.py:135`, eed3361)
 - Ultralytics-Exporter maps the weight suffixes `yolo26n`, `yolo26s`, `yolo26m`, `yolo26l` and `yolo26x` to the sizes `nano`, `small`, `medium`, `large` and `xlarge`. For `yolo26-body`, the suffixes are `yolo26n-pose` and so on. (Ultralytics-Exporter `yolo_sidecar.py:175-189`, f52ef68)
 - Ultralytics-Exporter maps the precision keys to export arguments.
-  - `fp32` has no `quantize`. `fp16` is `quantize=16`. `int8` is `quantize=8` with the COCO val2017 YAML as calibration data. (Ultralytics-Exporter `export_all.py:138-158`, 69499e7)
+  - `fp32` has no `quantize`. `fp16` is `quantize=16`. (Ultralytics-Exporter `export_all.py:138-158`, 69499e7)
   - Every export passes `imgsz=640`, `batch=N`, `nms=False` and `max_det=300`. No export is dynamic: the ONNX metadata `args` shows `dynamic: False`. (Ultralytics-Exporter `export_all.py:50-57, 138-150`, 69499e7; local file `exports/detectors/object_detectors/yolo26/yolo26-nano_b2_fp32.onnx`, not in git)
 - Rebuild the whole family sidecar after each run, from a scan of the family directory.
   - OpenMMLab-Exporter lists only an artifact that passes `validate_artifact`. It also leaves out an artifact whose accuracy comparison, or that of its parent artifact, failed. (OpenMMLab-Exporter `pipeline/sidecar.py:1-13, 42-77`, 0c7ec77)
@@ -186,10 +182,11 @@ See also [Input](input.md#validation-rules) and [Outputs](outputs.md#validation-
   - OpenMMLab-Exporter, Ultralytics-Exporter and Qualcomm-Exporter write `output_shapes` only for such a size. Ultralytics-Exporter takes the shapes from the graph outputs of the first precision. (OpenMMLab-Exporter `rtmo/sidecar.py:179-190`, eed3361; Ultralytics-Exporter `yolo_sidecar.py:402-418`, f52ef68; Qualcomm-Exporter `qai_sidecar.py:79-95`, 4ca4586)
   - Roboflow-Exporter always writes `output_shapes`, also for a single batch key, for example `[[1, 300, 4], [1, 300, 91]]`. (Roboflow-Exporter `rf_detr/sidecar.py:185-196`, b34e351)
   - Ultralytics-Exporter and Qualcomm-Exporter write the smallest native batch in the top-level `outputs[].shape[0]`, and the batch keys of a size can be larger. The spec examples write `-1`. The proposal [0019](../decisions/0019-output-shape-batch-axis.md) covers the batch axis of `outputs[].shape`. (Ultralytics-Exporter `yolo_sidecar.py:342-349, 444-455`, f52ef68; Qualcomm-Exporter `qai_sidecar.py:111-113`, 4ca4586)
-- Measure each precision against its parent before you list it. Roboflow-Exporter built a static QDQ int8 RF-DETR and removed it.
-  - AP went from 0.5953 to 0.4933 (-0.102), and AP50 from 0.7711 to 0.7268. (Roboflow-Exporter `README.md:678-681`, b46b98f)
-  - The int8 graph was about 25% slower than fp32 on CPU, and the file went from 102.8 MB to 27.6 MB. (Roboflow-Exporter `README.md:695-697`, b46b98f)
-  - Its sidecar never has an `int8` entry. (Roboflow-Exporter `README.md:623-626`, b46b98f)
+- Do not list an `int8` file. The spec has only the precisions `fp32` and `fp16`. The measured int8 files lose much AP.
+  - At batch 2, the int8 detector AP is 0.058 to 0.123 below fp32: nano 0.3329, small 0.3487, medium 0.4272, large 0.4391, xlarge 0.5056. (Ultralytics-Exporter local reports `exports/detectors/object_detectors/yolo26/yolo26-<size>_b2_int8.report.json`, field `performance.converted.ap`, not in git, HEAD 2e0280e)
+  - At batch 2, the int8 pose OKS AP is 0.109 to 0.203 below fp32. (Ultralytics-Exporter local reports `exports/detectors/keypoint_detectors/yolo26/body/yolo26-body-<size>_b2_int8.report.json`, field `performance.converted.metrics_detail.pose_ap`, not in git, HEAD 2e0280e)
+  - Roboflow-Exporter built a static QDQ int8 RF-DETR and removed it. AP went from 0.5953 to 0.4933 (-0.102), and AP50 from 0.7711 to 0.7268. (Roboflow-Exporter `README.md:678-681`, b46b98f)
+- Measure each precision against its parent before you list it.
 - No exporter writes `url`, `url_sha256` or `input_dtype`.
   - OpenMMLab-Exporter computes the SHA-256 of each file, but it does not write the hash into the sidecar. (OpenMMLab-Exporter `rtmdet_person/sidecar.py:139-145` (eed3361) and `pipeline/sidecar.py:75-76` (0c7ec77))
   - Qualcomm-Exporter keeps the SHA-256 and the size of each ONNX file only in the report (`artifact.sha256`, `artifact.filesize_bytes`). (Qualcomm-Exporter `qai_report.py:99-130`, 4ca4586)
@@ -219,7 +216,6 @@ sizes:
           precision_artifacts:
             fp32: {filename: yolo26-nano_b1_fp32.onnx}
             fp16: {filename: yolo26-nano_b1_fp16.onnx}
-            int8: {filename: yolo26-nano_b1_int8.onnx}
   small:
     input:
       shape: [-1, 3, 640, 640]
@@ -231,5 +227,4 @@ sizes:
           precision_artifacts:
             fp32: {filename: yolo26-small_b1_fp32.onnx}
             fp16: {filename: yolo26-small_b1_fp16.onnx}
-            int8: {filename: yolo26-small_b1_int8.onnx}
 ```

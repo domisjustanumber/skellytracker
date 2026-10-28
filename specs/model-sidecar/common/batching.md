@@ -45,9 +45,6 @@ status: {spec: stable, validate: implemented, load: implemented}
 - The native batch does not change the accuracy of fp32.
   - On CPU, the output at batch N is bit-identical to batch 1. On CUDA with TF32 on, batch 2 differs from batch 1 by up to 4.7e-3 in score and 1.6 px in box (score above 0.3). With TF32 off, the differences are 7.6e-6 and 0.0007 px. The AP does not change (0.4114 against 0.4113). The test used RTMDet-tiny and 40 COCO images. (OpenMMLab-Exporter 0012 `notes/decisions/0012-tf32-left-on.md:19-33`, c955162)
   - The Ultralytics-Exporter fp32 detector AP is 0.3971 (nano) and 0.5635 (xlarge) at batch 1, 2 and 3. The fp32 pose AP is 0.5598 (nano) and 0.6886 (large) at all three. The fp16 nano AP is 0.3969, 0.3969 and 0.3968. (Ultralytics-Exporter local reports `exports/detectors/object_detectors/yolo26/yolo26-<size>_b<N>_<precision>.report.json` and `exports/detectors/keypoint_detectors/yolo26/body/yolo26-body-<size>_b<N>_<precision>.report.json`, fields `performance.converted.metrics_detail`, not in git, HEAD 2e0280e)
-- The int8 AP varies more across batches than the fp32 AP.
-  - Each batch artifact is a separate export, so each has its own calibration run. (Ultralytics-Exporter `export_all.py:138-158, 191-220`, 69499e7)
-  - Examples: nano detector 0.3344, 0.3329 and 0.3326; xlarge pose OKS AP 0.5002, 0.5006 and 0.5024. (Ultralytics-Exporter local reports, same files as above)
 
 ## Authoring guidance
 

@@ -41,7 +41,7 @@ examples:
     exporter_layout_path: null
     tracked: false
     commit: f52ef68
-    edits: ["source and hashes added"]
+    edits: ["source and hashes added", "int8 precision removed"]
     notes: >-
       The exporter still writes schema_version v2024.09.1019 (yolo_sidecar.py). Its copy uses the legacy
       fields preserve_aspect_ratio, requires_nms and may_include_non_person_classes, no color_format,
@@ -54,7 +54,7 @@ examples:
     exporter_layout_path: null
     tracked: false
     commit: f52ef68
-    edits: ["source and hashes added"]
+    edits: ["source and hashes added", "int8 precision removed"]
     notes: >-
       The exporter still writes schema_version v2024.09.1019. Its copy has the same legacy fields as
       yolo26.yaml and declares output0 twice (detections, then poses with keypoint_axis 2) instead of

@@ -145,7 +145,7 @@ See [Identity](../common/identity.md#validation-rules) and [File composition](co
   - Roboflow-Exporter matches `rfdetr-(nano|small|medium|large)_b[1-9][0-9]*_(fp32|fp16).onnx`. (Roboflow-Exporter `pipeline/sidecar.py:38-41, 86-92`, 4ae67c0)
   - Qualcomm-Exporter matches `^<model_id>-default_b<N>_(fp32|fp16).onnx$`. (Qualcomm-Exporter `qai_sidecar.py:38-59`, 4ca4586)
   - Ultralytics-Exporter matches `{family}-{size}_b{batch}_{precision}.onnx`. (Ultralytics-Exporter `yolo_sidecar.py:206-211, 255-277`, f52ef68)
-  - Each pattern needs a `_b` segment. Thus none of these exporters can list a `dynamic` batch file. Roboflow-Exporter and Qualcomm-Exporter also cannot list an `int8` file. (the sources above)
+  - Each pattern needs a `_b` segment. Thus none of these exporters can list a `dynamic` batch file. (the sources above)
   - Roboflow-Exporter also rejects a graph whose file name differs from the name that it builds from the identity, the batch and the precision. (Roboflow-Exporter `rf_detr/sidecar.py:125-132`, 4ae67c0)
 - The YAML emitters differ.
   - OpenMMLab-Exporter calls `yaml.safe_dump` with `explicit_start=True` (a leading `---`), `sort_keys=False` and `width=120`. (OpenMMLab-Exporter `pipeline/sidecar.py:80-82`, 0c7ec77)

@@ -39,7 +39,7 @@ A sidecar with both roles lists every tensor in one `outputs` array. The `semant
 For rules marked **(vNEXT)**, see [Validation rules](../README.md#validation-rules).
 
 - [ ] `V-common.outputs-1` The values of `outputs[].name` must be unique.
-- [ ] `V-common.outputs-2` Each output must have a `dtype`. Its keys must be a subset of `fp32`/`fp16`/`int8`. The keys must cover the precisions that `batch_artifacts` declares. Its values must be `float32`, `float16`, `uint8` or `int8`.
+- [ ] `V-common.outputs-2` Each output must have a `dtype`. Its keys must be precision keys ([V-common.sizes_and_artifacts-6](sizes-and-artifacts.md#validation-rules)). The keys must cover the precisions that `batch_artifacts` declares. Its values must be `float32`, `float16`, `uint8` or `int8`.
 - [ ] `V-common.outputs-3` On each output, if `rank` is present, it must equal `len(shape)`. The output must omit `rank` when it omits `shape`.
 - [ ] `V-common.outputs-4` The `semantic` of each output must be one of `detections`, `boxes`, `scores`, `class_logits`, `simcc_x`, `simcc_y`, `simcc_z`, `heatmap`, `keypoints`, `poses`. The values `boxes`/`scores`/`class_logits` are marked **(vNEXT)**. The detection semantics require `role` to include `object_detector`. The pose semantics require `role` to include `pose_estimator`.
 - [ ] `V-common.outputs-5` All sizes must share the same output names, semantics, and keypoint or class counts. Spatial-dependent dimensions can scale with the input size.

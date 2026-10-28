@@ -23,7 +23,7 @@ status: {spec: stable, validate: partial, load: partial}
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `name` | string | yes | The name of the ONNX input tensor. |
-| `dtype` | object | yes | A map of precision → ONNX graph input element type, for example `{fp32: float32, fp16: float16, int8: uint8}`. When all variants share one type, every entry is that type, for example `{fp32: float32, fp16: float32, int8: float32}`. The keys are a subset of `fp32`/`fp16`/`int8`. They cover the precisions that `batch_artifacts` declares. |
+| `dtype` | object | yes | A map of precision → ONNX graph input element type, for example `{fp32: float32, fp16: float16}`. When all variants share one type, every entry is that type, for example `{fp32: float32, fp16: float32}`. The keys are precision keys ([V-common.sizes_and_artifacts-6](sizes-and-artifacts.md#validation-rules)). They cover the precisions that `batch_artifacts` declares. |
 | `layout` | enum | no | `NCHW` or `NHWC`. The first value is the default. |
 | `color_format` | enum | conditional | `rgb` or `bgr`. This is the channel order of the tensor that the model consumes. It is **required** when the normalization of any declared precision resolves to `none` or `unit_float`. Those modes treat every channel in the same way. Otherwise, the field is optional. When the field is present, it must agree with `imagenet_rgb`/`imagenet_bgr` or with `custom.color_format`. |
 | `resize` | object | no | The resize configuration (see below). A sidecar can omit this field only when the model consumes the source image unchanged. This has the same effect as `method: none`. `target_size` is set for each size (`sizes.<size>.input.resize.target_size`). The other fields are shared. |
@@ -56,7 +56,7 @@ Each `method` has its own section: [`letterbox`](../pre/resize-letterbox.md), [`
 For rules marked **(vNEXT)**, see [Validation rules](../README.md#validation-rules).
 
 - [ ] `V-common.input-1` If `input.resize.target_size` is present, it must be an array `[height, width]` of length 2.
-- [ ] `V-common.input-2` `input.dtype` must be present. Its keys must be a subset of `fp32`/`fp16`/`int8`. The keys must cover the precisions that `batch_artifacts` declares. Its values must be `float32`, `float16`, `uint8` or `int8`. If `input.layout` is present, it must be `NCHW` or `NHWC`.
+- [ ] `V-common.input-2` `input.dtype` must be present. Its keys must be precision keys ([V-common.sizes_and_artifacts-6](sizes-and-artifacts.md#validation-rules)). The keys must cover the precisions that `batch_artifacts` declares. Its values must be `float32`, `float16`, `uint8` or `int8`. If `input.layout` is present, it must be `NCHW` or `NHWC`.
 - [ ] `V-common.input-3` `input.resize.method` must be `letterbox`, `stretch`, `fit`, `affine_person_crop` or `none`. The values `stretch` and `fit` are marked **(vNEXT)**. `input.resize.interpolation` must be `linear`, `area`, `cubic` or `nearest`.
 - [ ] `V-common.input-4` `pad_value` must not be present unless `method` is `letterbox` or `fit`. `pad_position`, `rounding` and `preserve_aspect_ratio` must not be present unless `method: letterbox`. `crop_policy` must not be present unless `method: affine_person_crop`.
 - [ ] `V-common.input-5` If `pad_value` or `crop_policy.pad_value` is present, it must be a number or an array of numbers with length 3.
@@ -74,7 +74,6 @@ See also [Identity](identity.md#validation-rules), [Sizes and artifacts](sizes-a
 
 - Do not infer the input dtype from the precision name. Read `input.dtype` for the precision.
   - The fp16 artifacts keep a `float32` input in OpenMMLab-Exporter, Roboflow-Exporter, Qualcomm-Exporter and the Ultralytics-Exporter CPU exports (`keep_io_types=True`). (OpenMMLab-Exporter `onnx_convert/FP16_CONTRACT.md:11-16` (6ed34e4) and `rtmo/contract.py:8-11` (eed3361); Roboflow-Exporter `onnx_convert/fp16.py:186-195, 204-219` (4ae67c0); Qualcomm-Exporter `qai_sidecar.py:74-76` (4ca4586) and `qai_export.py:86-103` (8d8e05a); Ultralytics-Exporter `yolo_sidecar.py:352-360, 379-381` and `README.md:37` (f52ef68))
-  - The YOLO26 int8 graph is Q/DQ over a `float32` input. It has 206 `QuantizeLinear` nodes and 410 `DequantizeLinear` nodes. (Ultralytics-Exporter local file `exports/detectors/object_detectors/yolo26/yolo26-nano_b2_int8.onnx`, not in git)
   - Ultralytics applies `keep_io_types` only when it exports on the CPU. A GPU export is already float16 from `model.half()`, so its fp16 input is float16. The sidecar writer reads the dtype from the graph for this reason. (`ultralytics` 8.4.184 `engine/exporter.py:1235-1240`, installed in the exporter `.venv`, not in git; Ultralytics-Exporter `tests/test_yolo_sidecar.py:50-79`, f52ef68)
 - No exporter sets `supports_dynamic_size`. Every artifact has static spatial dims equal to the `target_size` of its size, so the host must resize to `target_size`. (OpenMMLab-Exporter `rtmdet_person/contract.py:8-9` (f946e5d), `rtmw/contract.py:8-10` and `rtmo/contract.py:8-11` (eed3361); Roboflow-Exporter `pipeline/artifacts.py:119-124`, 4ae67c0)
 - The reference hosts of the exporters decode an image with PIL `convert("RGB")`. They have no BGR path.
@@ -96,7 +95,6 @@ See also [Identity](identity.md#validation-rules), [Sizes and artifacts](sizes-a
 - The exporters write `layout: NCHW` as a constant after a rank-4 check. Roboflow-Exporter also writes `color_format: rgb` without a check of the graph. (Ultralytics-Exporter `yolo_sidecar.py:292-293, 382`, f52ef68; Roboflow-Exporter `rf_detr/sidecar.py:240-251`, b34e351)
 - Write `input.dtype` from the graph for each precision.
   - An fp16 conversion with `keep_io_types=True` keeps the float32 I/O, so the exporters write `{fp32: float32, fp16: float32}`. OpenMMLab-Exporter and Roboflow-Exporter check that the I/O of every published artifact is float32. (OpenMMLab-Exporter `onnx_convert/FP16_CONTRACT.md:11-16` (6ed34e4) and `rtmo/contract.py:8-11` (eed3361); Roboflow-Exporter `pipeline/artifacts.py:125-130`, 4ae67c0)
-  - The YOLO26 sidecar has `{fp32: float32, fp16: float32, int8: float32}`. (Ultralytics-Exporter `yolo_sidecar.py:352-360, 379-381`, f52ef68)
   - Qualcomm-Exporter keys the map by the precisions that it finds across all batches. (Qualcomm-Exporter `qai_sidecar.py:74-76, 106-110`, 4ca4586)
   - With a float32 input for every precision, the sidecar needs no `normalization_by_precision`. (Ultralytics-Exporter `yolo_sidecar.py:391-393`, f52ef68)
 - A TFLite model has an NHWC input. This is a plan fact, with no other evidence.

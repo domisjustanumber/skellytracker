@@ -48,7 +48,7 @@ See also [`schema_version` history](../changelog.md#schema_version-history).
 
 ### Version-aware compatibility
 
-Validation and decode depend on the `schema_version` of the sidecar. `vNEXT` requirements never apply retroactively. For a sidecar with `schema_version < vNEXT`, validation and decode use the legacy meaning below.
+Validation and decode depend on the `schema_version` of the sidecar. `vNEXT` requirements never apply retroactively, with one exception: the precision key `int8` is invalid at every `schema_version` ([V-common.sizes_and_artifacts-6](../common/sizes-and-artifacts.md#validation-rules)). For a sidecar with `schema_version < vNEXT`, validation and decode use the legacy meaning below.
 
 - [File composition](composition.md#legacy-behaviour)
 - [Schema versioning](versioning.md#legacy-behaviour)
