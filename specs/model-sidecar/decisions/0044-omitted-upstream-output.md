@@ -6,7 +6,7 @@
 
 **Proposed, not decided.** This entry records the spec change proposal `omitted-upstream-output`. The
 eight parts are in
-[`specs/model-sidecar/proposals/omitted-upstream-output/proposal.md`](../../specs/model-sidecar/proposals/omitted-upstream-output/proposal.md).
+[`specs/model-sidecar/proposals/omitted-upstream-output/proposal.md`](../proposals/omitted-upstream-output/proposal.md).
 
 - **Section:** none. The change is a verdict rule of the new-model workflow. It changes no section
   file, no sidecar field, no vector and no changelog row.
@@ -25,7 +25,7 @@ eight parts are in
   the head stores the softmax visibility as `keypoints_visible`. The RTMW intake row K8a changes from
   `out of scope (0041)` to `omitted (0041)`. Both tags name OpenMMLab-Exporter 0041.
 - **On acceptance:** the change edits the exporter guide, the model intake template and the skill
-  `author-sidecar` (G1 to G10). It supersedes no entry: [0014](0014-spec-lifecycle.md) is absorbed
+  `author-sidecar` (G1 to G10). It supersedes no entry: [0014](../../../decisions/0014-spec-lifecycle.md) is absorbed
   into the exporter guide, so part 2, D1 to D3, does not apply (user decision, 2026-10-25).
 - **Related:** `keypoint-visibility` ([0039](0039-keypoint-visibility.md)) is a merge point. G8
   merges its sentence in the hint "Pose". The proposal sets no order: the PR that lands second keeps

@@ -37,7 +37,7 @@ and changes two limits. 0029 keeps the reasons for the rules that stay.
 7. **Open work.** The open work, the repository state and the spec defects are in
    [`open-work.md`](open-work.md). Delete an item when its work is done, or when the content PR of a
    spec defect lands. The PR that closes an item records the result.
-8. **Limits.** [`tools/check_decision_log.py`](../../tools/check_decision_log.py) counts characters
+8. **Limits.** [`tools/check_decision_log.py`](../tools/check_decision_log.py) counts characters
    after it changes CRLF to LF.
 
    | Limit | Characters | Applies to |
@@ -55,7 +55,7 @@ and changes two limits. 0029 keeps the reasons for the rules that stay.
 10. **Checks.** The tool checks that each entry file has one index row, that each row links to an
     entry file, and that each Status cell has a form of its table. It checks the `NNNN` of each
     status, the Decision cells, the Deferred rule and the limits.
-    [`tools/tests/test_decision_log.py`](../../tools/tests/test_decision_log.py) runs the tool in
+    [`tools/tests/test_decision_log.py`](../tools/tests/test_decision_log.py) runs the tool in
     the doc tests.
 11. **Bootstrap kit.** The kit copy of the tool
     (`specs/agents-and-adr-process/bootstrap/tools/check_decision_log.py`) keeps the limits of 0029:
@@ -91,3 +91,5 @@ and changes two limits. 0029 keeps the reasons for the rules that stay.
   read-path characters.
 - **A consolidation entry first.** The 6,000 limit of a new entry cannot hold the rules of 0013,
   0014 and 0016.
+
+_Edited 2026-10-28 (this PR): link repair._

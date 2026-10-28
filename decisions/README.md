@@ -1,7 +1,7 @@
 # Decision log
 
 This log records technical decisions for skellytracker, with their reasons and evidence. Most entries
-are about the model sidecar spec ([`specs/model-sidecar/sidecar-spec.md`](../../specs/model-sidecar/sidecar-spec.md)), the sidecar
+are about the model sidecar spec ([`specs/model-sidecar/sidecar-spec.md`](../specs/model-sidecar/sidecar-spec.md)), the sidecar
 code and the workflow that changes them. Read this file before you change the spec, a sidecar, the
 sidecar code, the agent instructions or the PR workflow. Also read [open-work.md](open-work.md). Then
 read the Active entries that apply to your task. Then you do not repeat a settled question or a
@@ -96,13 +96,13 @@ in the [open work of the spec log](../specs/model-sidecar/decisions/open-work.md
   for each entry after 0025, and 160,000 for the read path: this file, `open-work.md` and the Active
   entries. Proposed and Historical entries are not in the read path. Put long evidence in a tracked
   file next to the entry, and link to it. Put the script that produced a measurement in
-  `notes/decisions/scripts/`. The Evidence section names it. Run
+  `scripts/` of the log that holds its entry. The Evidence section names it. Run
   `uv run python tools/check_decision_log.py` to see the read-path size and the warnings at 80% of a
   limit. The doc tests run the same check.
 - The tool counts characters after it changes CRLF to LF. It checks the rows, the tables, the cells,
   the status forms, the `XXXX` of each status and the limits. A warning does not fail the doc tests.
   An entry does not warn. A PR can lower a limit. A PR that raises a limit must add an entry.
-- The [model addition workflow](../../specs/model-sidecar/model-addition-workflow/README.md) is
+- The [model addition workflow](../specs/model-sidecar/model-addition-workflow/README.md) is
   normative for the process that adds a model or changes the spec, and for the rules of the sidecar
   files, the validation and the publishing ([x64y](x64y-draft-exporter-guide-folder.md)). The
   exporter guide is normative for the rules that it adds for exporters. The sidecar spec is
@@ -150,7 +150,7 @@ in the [open work of the spec log](../specs/model-sidecar/decisions/open-work.md
   the PR number and the slug. End each commit subject that adds or changes an entry with
   `(ADR-<ID>)` ([ADR-HJNP](HJNP-upper-case-entry-ids.md)).
 - A spec change proposal is an entry with the status `proposed`. Phase 2 of the
-  [model addition workflow](../../specs/model-sidecar/model-addition-workflow/phase-2-proposal.md)
+  [model addition workflow](../specs/model-sidecar/model-addition-workflow/phase-2-proposal.md)
   gives its parts ([0014](0014-spec-lifecycle.md)).
 - A gap record is also an entry with the status `proposed`. It gives a gap or a conflict with the
   spec text, its evidence and the direction of a change, but not all eight parts of a proposal. Its

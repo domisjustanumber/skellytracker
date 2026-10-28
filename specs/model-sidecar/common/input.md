@@ -79,7 +79,7 @@ See also [Identity](identity.md#validation-rules), [Sizes and artifacts](sizes-a
 - No exporter sets `supports_dynamic_size`. Every artifact has static spatial dims equal to the `target_size` of its size, so the host must resize to `target_size`. (OpenMMLab-Exporter `rtmdet_person/contract.py:8-9` (f946e5d), `rtmw/contract.py:8-10` and `rtmo/contract.py:8-11` (eed3361); Roboflow-Exporter `pipeline/artifacts.py:119-124`, 4ae67c0)
 - The reference hosts of the exporters decode an image with PIL `convert("RGB")`. They have no BGR path.
   - A host that holds OpenCV BGR frames must convert them to `input.color_format`. (Roboflow-Exporter `onnx_runtime/preprocess.py:58-62, 74-75`, d0559b9; Qualcomm-Exporter `qai_datasets.py:154`, 4ca4586)
-  - The decision log records that the spec does not state that the host frame is BGR. ([decision log](../../../notes/decisions/README.md#open-work))
+  - The decision log records that the spec does not state that the host frame is BGR. ([decision log](../decisions/README.md#open-work))
 
 ## Authoring guidance
 

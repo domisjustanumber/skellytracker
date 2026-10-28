@@ -1,9 +1,9 @@
 # 0007 — Generic pre- and post-processing live in `core/detectors/processing/`
 
-**Status:** absorbed into [`AGENTS.md#1-purpose`](../../AGENTS.md#1-purpose), 2026-10-25 (user; the absorption review).
-cleanup in [M3](../../specs/sidecar-implementation-plan.md#m3--yolox-migration), then
-[M4c](../../specs/sidecar-implementation-plan.md#m4c--consolidate-generic-preprocessingdecode-helpers) and
-[M4d](../../specs/sidecar-implementation-plan.md#m4d--group-generic-prepost-processing-under-coredetectorsprocessing)).
+**Status:** absorbed into [`AGENTS.md#1-purpose`](../AGENTS.md#1-purpose), 2026-10-25 (user; the absorption review).
+cleanup in [M3](../specs/sidecar-implementation-plan.md#m3--yolox-migration), then
+[M4c](../specs/sidecar-implementation-plan.md#m4c--consolidate-generic-preprocessingdecode-helpers) and
+[M4d](../specs/sidecar-implementation-plan.md#m4d--group-generic-prepost-processing-under-coredetectorsprocessing)).
 The user asked for the move to `processing/` (M4d).
 
 ## Decision
@@ -84,3 +84,5 @@ Checked in the code on 2026-10-22.
   [0005](0005-rtmw-moved-to-rtmw-family.md) describes.
 - Do not write migration history in the docstrings of the detectors. The user decided this when the code
   moved to `processing/`. Write the history in a decision entry or in a commit message.
+
+_Edited 2026-10-28 (this PR): link repair._

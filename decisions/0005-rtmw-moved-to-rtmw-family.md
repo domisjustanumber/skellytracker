@@ -1,7 +1,7 @@
 # 0005 — RTMW moved to `keypoint_detectors/rtmw/` with import shims
 
-**Status:** absorbed into [`AGENTS.md#1-purpose`](../../AGENTS.md#1-purpose), 2026-10-25 (user; the absorption review).
-[specs/sidecar-implementation-plan.md](../../specs/sidecar-implementation-plan.md#key-decisions), "Key decisions" item 4).
+**Status:** absorbed into [`AGENTS.md#1-purpose`](../AGENTS.md#1-purpose), 2026-10-25 (user; the absorption review).
+[specs/sidecar-implementation-plan.md](../specs/sidecar-implementation-plan.md#key-decisions), "Key decisions" item 4).
 
 ## Decision
 
@@ -25,7 +25,7 @@
 ## Reason
 
 - The spec names this family `rtmw`. The `model_id` is `rtmw-wholebody`. The
-  [storage layout](../../specs/model-sidecar/format/file-layout.md#storage-layout) puts a keypoint sidecar at
+  [storage layout](../specs/model-sidecar/format/file-layout.md#storage-layout) puts a keypoint sidecar at
   `detectors/keypoint_detectors/{family}/{part}/`. The folder `rtmpose/wholebody/` did not match the
   family name.
 - Other code imports the old paths. A search of the importers found the files in the Evidence section.
@@ -68,3 +68,5 @@ Checked in the code on 2026-10-22.
   [0007](0007-generic-processing-package.md).
 
 _Edited 2026-10-26 (this PR): link repair._
+
+_Edited 2026-10-28 (this PR): link repair._

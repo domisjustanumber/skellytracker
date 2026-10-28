@@ -12,7 +12,7 @@ Before you write a proposal:
   (`../freemocap/skellytracker/specs/model-sidecar/changelog.md`). If your gap is in it, cite the
   row in part 1. Give the evidence that a model needs the feature now.
 - Find the `proposed` entries of the skellytracker decision log that cover your rows. Read the index
-  in `../freemocap/skellytracker/notes/decisions/README.md`. Also read each `proposed` entry
+  in `../freemocap/skellytracker/specs/model-sidecar/decisions/README.md`. Also read each `proposed` entry
   that the guidance of your sections cites. If an entry covers your rows, do not write a competing
   proposal:
   - Use the slug of the entry.

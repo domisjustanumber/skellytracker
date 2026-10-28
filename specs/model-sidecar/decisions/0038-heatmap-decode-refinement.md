@@ -6,10 +6,10 @@
 
 **Proposed, not decided.** This entry records the spec change proposal `heatmap-decode-refinement`.
 The eight parts are in
-[`specs/model-sidecar/proposals/heatmap-decode-refinement/proposal.md`](../../specs/model-sidecar/proposals/heatmap-decode-refinement/proposal.md).
+[`specs/model-sidecar/proposals/heatmap-decode-refinement/proposal.md`](../proposals/heatmap-decode-refinement/proposal.md).
 
 - **Section.** `post.pose.decode.heatmap` (changed section,
-  [`post/pose-decode-heatmap.md`](../../specs/model-sidecar/post/pose-decode-heatmap.md)). The section
+  [`post/pose-decode-heatmap.md`](../post/pose-decode-heatmap.md)). The section
   ID, the title and the selectors do not change.
 - **Change.** The heatmap decode becomes exact. The peak is the first maximum in row-major order. The
   score is the raw maximum value, with no activation. A score `<= 0` puts the keypoint at cell -1 on

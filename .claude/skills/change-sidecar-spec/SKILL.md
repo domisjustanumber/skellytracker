@@ -11,9 +11,9 @@ This skill is phase 3 of the new-model workflow, and the procedure for every oth
 only in skellytracker. The user decides each acceptance.
 
 This skill wraps "Phase 3" of
-[decision 0014](../../../notes/decisions/0014-spec-lifecycle.md#new-model-workflow), the structure of
-[decision 0013](../../../notes/decisions/0013-spec-structure.md) and the PR kinds of
-[decision 0027](../../../notes/decisions/0027-single-working-branch.md#one-kind-of-change-in-each-pr).
+[decision 0014](../../../decisions/0014-spec-lifecycle.md#new-model-workflow), the structure of
+[decision 0013](../../../decisions/0013-spec-structure.md) and the PR kinds of
+[decision 0027](../../../decisions/0027-single-working-branch.md#one-kind-of-change-in-each-pr).
 They give the reasons and the details. This skill gives the order of the steps, the inputs, the
 outputs and the stop points.
 
@@ -25,16 +25,16 @@ outputs and the stop points.
    the change touches.
 3. Read each of these section files in full.
 4. Read the decision entries that cite these sections, and the
-   [Open work](../../../notes/decisions/open-work.md) list.
+   [Open work](../../../specs/model-sidecar/decisions/open-work.md) list.
 
 ## Inputs
 
 | Input | Where it comes from |
 |---|---|
 | An intake with the final verdict `describes` | `plans/sidecar/models/<model>/intake.md` in an exporter repo |
-| A proposal that the user accepted | A decision entry with the status `proposed`, and its proposal file `specs/model-sidecar/proposals/<slug>/proposal.md` ([faac](../../../notes/decisions/faac-proposal-records.md)) |
+| A proposal that the user accepted | A decision entry with the status `proposed`, and its proposal file `specs/model-sidecar/proposals/<slug>/proposal.md` ([faac](../../../decisions/faac-proposal-records.md)) |
 | A reference implementation of an exporter | `plans/sidecar/reference/<section_module>.py` in an exporter repo |
-| Another spec edit | A request of the user, an item of the spec-defect list in [`notes/decisions/open-work.md`](../../../notes/decisions/open-work.md), or the release step |
+| Another spec edit | A request of the user, an item of the spec-defect list in [`specs/model-sidecar/decisions/open-work.md`](../../../specs/model-sidecar/decisions/open-work.md), or the release step |
 
 Find the exporter files with a scan of `../../*-Exporter/plans/sidecar/` from the root of the
 skellytracker repo ([Files in `plans/`](../../../specs/model-sidecar/model-addition-workflow/README.md#files-in-plans)).
@@ -84,7 +84,7 @@ Do this procedure for step 2 of phase 3.
    `specs/model-sidecar/proposals/<slug>/proposal.md`. If the exporter proposal changed after the copy,
    stop. Tell the user, and record the new version first (skill `propose-sidecar-change`,
    [Record a changed proposal](../propose-sidecar-change/SKILL.md#record-a-changed-proposal);
-   decision [vac0](../../../notes/decisions/vac0-record-a-changed-proposal.md)).
+   decision [vac0](../../../decisions/vac0-record-a-changed-proposal.md)).
 5. Write the `changelog.md` rows.
 6. Copy the reference implementation of part 3 to `specs/model-sidecar/reference/<section_module>.py`.
    Its source is `specs/model-sidecar/proposals/<slug>/reference/<section_module>.py`, or the `python`
@@ -96,18 +96,18 @@ Do this procedure for step 2 of phase 3.
 9. Write the vectors with `uv run python tools/make_vectors.py`. Do not edit a vector file by hand.
    The `cases` of the new file must be equal to the cases of part 4 of the proposal
    (`specs/model-sidecar/proposals/<slug>/vectors/<section ID>.yaml`). If they are not equal, stop and tell the user. This check proves the copy and the generator wiring. It does not
-   verify an independent implementation (ADR-[a33q](../../../notes/decisions/a33q-vector-case-form.md)).
+   verify an independent implementation (ADR-[a33q](../../../decisions/a33q-vector-case-form.md)).
 10. Change the status line of the decision entry from `proposed` to `accepted`. Write the date and the
-    PR ([Rules](../../../notes/decisions/README.md#rules)). Move its row from the Proposed table to
+    PR ([Rules](../../../decisions/README.md#rules)). Move its row from the Proposed table to
     the end of the Active table, without the Section cell. Set `state: accepted` in the front matter
     of `proposal.md` and in the proposal index. Write each `proposed` superseding entry of the
     proposal as `accepted`, and supersede its old entry.
 11. If the change corrects an item of the spec-defect list in
-    [`notes/decisions/open-work.md`](../../../notes/decisions/open-work.md), remove the item.
+    [`specs/model-sidecar/decisions/open-work.md`](../../../specs/model-sidecar/decisions/open-work.md), remove the item.
 12. Run the [impact](#impact) and the [checks](#checks).
 13. Make the non-spec PR on top of the content PR. Do steps 14 to 17.
 14. Write part 6 of the proposal as the "Implementer guidance" of the section.
-15. Add an item for part 6 to the [Open work](../../../notes/decisions/open-work.md) list.
+15. Add an item for part 6 to the [Open work](../../../decisions/open-work.md) list.
 16. Add the "Authoring guidance" from the intake. Do the steps of [Guidance](#guidance).
 17. When the exporter writes the sidecar with the new fields, add the example with procedure A. Remove
     the `proposed` entry of the model from `specs/model-sidecar/inventory.yaml`, if it has one.
@@ -122,7 +122,7 @@ Do this procedure when the scan finds a `plans/sidecar/reference/<section_module
 [Reference implementations](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#reference-implementations)
 and [Independence](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence)
 in the model addition workflow
-([decision 0014](../../../notes/decisions/0014-spec-lifecycle.md#reference-implementations-from-exporters)).
+([decision 0014](../../../decisions/0014-spec-lifecycle.md#reference-implementations-from-exporters)).
 
 If part 3 of a proposal in the same exporter repo names the file, the file is not a reference
 implementation of the current text. Do not use this procedure for it. Procedure B lands it after the
@@ -156,7 +156,7 @@ user accepts the proposal.
 | Edit | Steps |
 |---|---|
 | A content change, for example the correction of a spec defect | Make sure that an accepted decision entry exists. If none exists, use [`propose-sidecar-change`](../propose-sidecar-change/SKILL.md). Then stop. If one exists, do steps 3 to 12 of procedure B. |
-| The release step | Decision [0014](../../../notes/decisions/0014-spec-lifecycle.md#release-step) decides it. In one content PR, replace `vNEXT` with the release version. Do this in the spec, in `changelog.md`, in each example and in the `spec_revision` of each vector file. Then the exporters regenerate their sidecars. |
+| The release step | Decision [0014](../../../decisions/0014-spec-lifecycle.md#release-step) decides it. In one content PR, replace `vNEXT` with the release version. Do this in the spec, in `changelog.md`, in each example and in the `spec_revision` of each vector file. Then the exporters regenerate their sidecars. |
 | A rewording | Do the [meaning check](#meaning-check). Change no meaning. |
 | A move | Change no words. Keep the section IDs and the rule IDs. |
 
@@ -181,7 +181,7 @@ user accepts the proposal.
 
 - Write each algorithm in one section only.
 - Put each rule in the section of the field that it constrains. The other sections link to it
-  ([One owner for each rule](../../../notes/decisions/0013-spec-structure.md#one-owner-for-each-rule)).
+  ([One owner for each rule](../../../decisions/0013-spec-structure.md#one-owner-for-each-rule)).
 - Find each place that the change edits. Part 2 of the proposal lists these places. Examples are the
   closed sets that the change extends, the section map, the validation index and the rules that name
   a changed value.
@@ -243,7 +243,7 @@ user accepts the proposal.
 - In the spec-build stage, every spec change goes into the `vNEXT` revision.
 - From the first skellytracker release that ships the spec, a change sets `schema_version` to the
   release that ships it. The change also adds a row to the `schema_version` history
-  ([Versions](../../../notes/decisions/0014-spec-lifecycle.md#versions)).
+  ([Versions](../../../decisions/0014-spec-lifecycle.md#versions)).
 - Do not publish a `vNEXT` sidecar to a shared or remote folder. `load_sidecar` rejects `vNEXT`.
 
 ### Examples and vectors
@@ -253,7 +253,7 @@ user accepts the proposal.
   so that `$ref` paths resolve. The examples use unchanged copies of their fragments, under
   `specs/model-sidecar/examples/detectors/shared/` or next to the sidecar. A fragment has one source:
   a package copy with the same bytes, or a `fragments` entry in `specs/model-sidecar/inventory.yaml`
-  (ADR-[yve0](../../../notes/decisions/yve0-example-fragments.md)).
+  (ADR-[yve0](../../../decisions/yve0-example-fragments.md)).
 - Each example has a provenance entry in `specs/model-sidecar/inventory.yaml`: its source, the exporter, the
   path of the exporter copy, its `kind`, whether git tracks that copy, the exporter commit of the code
   that writes it, and the edits made to the copy. `kind: export` is a copy of exporter output.
@@ -274,7 +274,7 @@ user accepts the proposal.
 - `tools/make_vectors.py` computes the vectors from the normative formulas. When a section has a
   reference implementation, the generator calls it instead.
 - The vectors of a proposal use the case form of the generator
-  (ADR-[a33q](../../../notes/decisions/a33q-vector-case-form.md)). `tools/tests/test_vectors.py`
+  (ADR-[a33q](../../../decisions/a33q-vector-case-form.md)). `tools/tests/test_vectors.py`
   checks it: the keys `function` and `compare`, an error as a rule ID, NaN, and the exporter entries
   of `verified_against`. A vector file must be smaller than 64 KiB.
 - A content change updates the vectors of its section in the same PR.
@@ -335,7 +335,7 @@ it.
 ### Meaning check
 
 Do these checks for each reworded section file
-([Rewrite in Simplified Technical English](../../../notes/decisions/0013-spec-structure.md#rewrite-in-simplified-technical-english)):
+([Rewrite in Simplified Technical English](../../../decisions/0013-spec-structure.md#rewrite-in-simplified-technical-english)):
 
 1. Run `uv run python tools/check_ste_tokens.py --rev <REV> <FILE>`. It lists each change of the
    multiset of inline-code tokens, numbers, code blocks and the field, type and default cells of the
@@ -370,7 +370,7 @@ length and passive voice gives advice only. Do not reword the existing changelog
 
 - In the spec-build stage, do not change a file under `skellytracker/`. A test fix in
   `skellytracker/tests/` is the only exception
-  ([0014](../../../notes/decisions/0014-spec-lifecycle.md#no-implementation-change-during-the-spec-build-stage)).
+  ([0014](../../../decisions/0014-spec-lifecycle.md#no-implementation-change-during-the-spec-build-stage)).
 - Do not change an exporter repo.
 
 ## Checks

@@ -1,11 +1,11 @@
 # 0003 — `tracked_points` are in native model output order
 
-**Status:** absorbed into [`post/pose-schema.md#posetracked_points`](../../specs/model-sidecar/post/pose-schema.md#posetracked_points), 2026-10-25 (user; the absorption review).
+**Status:** absorbed into [`post/pose-schema.md#posetracked_points`](../specs/model-sidecar/post/pose-schema.md#posetracked_points), 2026-10-25 (user; the absorption review).
 
 ## Decision
 
 - A sidecar lists `pose.tracked_points` in the order of the model output. The i-th name is the i-th output
-  index. This is the rule in [`pose.tracked_points`](../../specs/model-sidecar/post/pose-schema.md#posetracked_points) in the
+  index. This is the rule in [`pose.tracked_points`](../specs/model-sidecar/post/pose-schema.md#posetracked_points) in the
   spec.
 - The RTMW whole-body sidecar follows the rule. Its list is
   `skellytracker/core/detectors/shared/skeletons/coco133_tracked_points.yaml`. The order is:
@@ -60,7 +60,7 @@
   model sizes. The test compared by name with `np.allclose(atol=1e-3)`. The recorded result is an exact
   match with zero numeric difference for all three sizes. The result is in
   section "M4 — RTMW migration" of
-  [`specs/sidecar-implementation-plan.md`](../../specs/sidecar-implementation-plan.md#m4--rtmw-migration).
+  [`specs/sidecar-implementation-plan.md`](../specs/sidecar-implementation-plan.md#m4--rtmw-migration).
 - The implementation plan records that result. It does not record the machine or the execution
   provider. The results differ across machines and execution providers. Thus the parity tests now run on the CPU provider
   and compare at the precision of the model itself
@@ -83,3 +83,5 @@
 - Do not add a permutation to a detector. The sidecar must describe the model output as it is.
 
 _Edited 2026-10-26 (this PR): link repair._
+
+_Edited 2026-10-28 (this PR): link repair._

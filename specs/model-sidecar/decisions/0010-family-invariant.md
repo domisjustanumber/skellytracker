@@ -1,6 +1,6 @@
 # 0010 — Family invariant: a size sets only its shape, target size and artifacts
 
-**Status:** absorbed into [`common/sizes-and-artifacts.md#sizes`](../../specs/model-sidecar/common/sizes-and-artifacts.md#sizes), 2026-10-25 (user; the absorption review).
+**Status:** absorbed into [`common/sizes-and-artifacts.md#sizes`](../common/sizes-and-artifacts.md#sizes), 2026-10-25 (user; the absorption review).
 
 ## Decision
 
@@ -22,14 +22,14 @@ A size entry holds only the three keys above.
 
 A sidecar with `schema_version < vNEXT` keeps the old rule. The host deep-merges every key of its size
 entries over the top level. The spec states this in the size-level keys row of
-[Version-aware compatibility](../../specs/model-sidecar/common/sizes-and-artifacts.md#legacy-behaviour).
+[Version-aware compatibility](../common/sizes-and-artifacts.md#legacy-behaviour).
 
 The spec states the rule in these places:
 
-- change 12 of the [Summary of changes](../../specs/model-sidecar/changelog.md#summary-of-changes);
-- [`sizes`](../../specs/model-sidecar/common/sizes-and-artifacts.md#sizes);
-- [Model sizes within a family](../../specs/model-sidecar/common/sizes-and-artifacts.md#model-sizes-within-a-family);
-- the `vNEXT` size-entry rule in [Validation rules](../../specs/model-sidecar/common/sizes-and-artifacts.md#validation-rules).
+- change 12 of the [Summary of changes](../changelog.md#summary-of-changes);
+- [`sizes`](../common/sizes-and-artifacts.md#sizes);
+- [Model sizes within a family](../common/sizes-and-artifacts.md#model-sizes-within-a-family);
+- the `vNEXT` size-entry rule in [Validation rules](../common/sizes-and-artifacts.md#validation-rules).
 
 ## Reason
 
@@ -77,3 +77,5 @@ The spec states the rule in these places:
 - Do not rely on the code to reject a bad size entry. `resolved_size` does not check it.
 
 _Edited 2026-10-26 (this PR): link repair._
+
+_Edited 2026-10-28 (this PR): link repair._

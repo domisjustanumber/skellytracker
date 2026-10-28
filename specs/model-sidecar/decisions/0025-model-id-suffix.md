@@ -6,7 +6,7 @@ models of MediaPipe-Exporter and Qualcomm-Exporter in the sidecar inventory); co
 ## Decision
 
 **Proposed, not decided.** This entry records the spec change proposal `model-id-suffix`. The eight
-parts are in [`specs/model-sidecar/proposals/model-id-suffix/proposal.md`](../../specs/model-sidecar/proposals/model-id-suffix/proposal.md).
+parts are in [`specs/model-sidecar/proposals/model-id-suffix/proposal.md`](../proposals/model-id-suffix/proposal.md).
 
 - **Section:** `common.identity` (changed). The storage layout of `format.file_layout` changes in the
   same contract unit.
@@ -43,8 +43,8 @@ not evidence.
 ### Gap record (2026-10-23)
 
 Let the `model_id` of a keypoint detector have a suffix after the part. The id starts with
-`{family}-{part}`. The `model_id` row of [Identity](../../specs/model-sidecar/common/identity.md#fields)
-changes. [`V-common.identity-1`](../../specs/model-sidecar/common/identity.md#validation-rules) does not
+`{family}-{part}`. The `model_id` row of [Identity](../common/identity.md#fields)
+changes. [`V-common.identity-1`](../common/identity.md#validation-rules) does not
 change. The full proposal must give the grammar of the suffix, because the ids in use do not agree:
 `rtmo-body7` has no hyphen before the suffix, and `mediapipe-hand-landmark` has one. The full
 proposal must also say when a model needs a suffix, and when a variant is a new family instead.
@@ -53,7 +53,7 @@ proposal must also say when a model needs a suffix, and when a variant is a new 
   gives one id for each family and part. It cannot express a suffix, and it cannot give two models of
   one family and one part different ids.
 - `V-common.identity-1` makes the file basename equal to `model_id`. Two models with one id thus get
-  one file name in one part folder. The catalog key of [0016](0016-sidecar-catalogs.md) is
+  one file name in one part folder. The catalog key of [0016](../../../decisions/0016-sidecar-catalogs.md) is
   `<model_id>@<source.name>`, so they also get one catalog key.
 - The RTMO body7 reference example has a suffix. Thus an example of the spec does not agree with the
   text of the spec.
@@ -67,9 +67,9 @@ proposal must also say when a model needs a suffix, and when a variant is a new 
   `SIDECAR_FILENAME = "rtmo-body7.yaml"` (line 26). `FAMILY_BRANCH` (line 27) is
   `detectors/keypoint_detectors/rtmo/body7`.
 - The reference example
-  [`rtmo/body/rtmo-body7.yaml`](../../specs/model-sidecar/examples/detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml)
+  [`rtmo/body/rtmo-body7.yaml`](../examples/detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml)
   has `model_id: rtmo-body7` (line 3) in the `body` part folder.
-- The `proposed` models of [`specs/model-sidecar/inventory.yaml`](../../specs/model-sidecar/inventory.yaml) have
+- The `proposed` models of [`specs/model-sidecar/inventory.yaml`](../inventory.yaml) have
   the keys `mediapipe-hand@qualcomm-exporter`, `mediapipe-hand-recrop@qualcomm-exporter`,
   `mediapipe-hand-landmark@mediapipe-exporter` and `mediapipe-hand-recrop@mediapipe-exporter`.
   Qualcomm-Exporter names the hand landmark model `mediapipe-hand`. MediaPipe-Exporter names the

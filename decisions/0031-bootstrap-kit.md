@@ -1,10 +1,10 @@
 # 0031 — A bootstrap kit for `AGENTS.md` and the decision log
 
-**Status:** absorbed into [`AGENTS.md#5-decision-log`](../../AGENTS.md#5-decision-log), 2026-10-25 (user; the absorption review).
+**Status:** absorbed into [`AGENTS.md#5-decision-log`](../AGENTS.md#5-decision-log), 2026-10-25 (user; the absorption review).
 
 ## Decision
 
-1. **The kit.** [`specs/agents-and-adr-process/`](../../specs/agents-and-adr-process/README.md) holds
+1. **The kit.** [`specs/agents-and-adr-process/`](../specs/agents-and-adr-process/README.md) holds
    a guide and a kit of files for a coding agent that creates a new repo. The guide gives the
    procedure, the rules and their reasons. The kit folder `bootstrap/` has the layout of the new
    repo. The kit is guidance. It is not a part of the sidecar spec, so it has no section ID and no
@@ -16,11 +16,11 @@
    This repo has no decision on them yet.
 3. **Copies.** The tools and the configs of the kit are copies of the live files of this repo, with
    exact text edits that remove the parts that belong only to this repo.
-   [`tools/sync_bootstrap_kit.py`](../../tools/sync_bootstrap_kit.py) lists each copy and its edits.
+   [`tools/sync_bootstrap_kit.py`](../tools/sync_bootstrap_kit.py) lists each copy and its edits.
    `--write` writes the copies again. `--check` fails when a copy differs from its live file.
 4. **The same PR.** A PR that changes a live file of the list also runs `--write` and commits the
    copy.
-5. **Tests.** [`tools/tests/test_bootstrap_kit.py`](../../tools/tests/test_bootstrap_kit.py) runs
+5. **Tests.** [`tools/tests/test_bootstrap_kit.py`](../tools/tests/test_bootstrap_kit.py) runs
    `--check`. It also runs the copied decision-log check on the kit, so the decision log of the kit
    must stay valid. The link test and the private-data test of this repo already cover the kit
    files.
@@ -52,3 +52,5 @@
 - **A generator that writes a complete new repo.** It is more code, and an agent must still adapt
   the result to the project.
 - **Copies with no check.** They go out of date with no signal.
+
+_Edited 2026-10-28 (this PR): link repair._

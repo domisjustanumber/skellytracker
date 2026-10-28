@@ -5,11 +5,11 @@ OpenMMLab-Exporter).
 
 ## Decision
 
-**Proposed, not decided.** This entry is a gap record (see [Rules](README.md#rules)). It does not
+**Proposed, not decided.** This entry is a gap record (see [Rules](../../../decisions/README.md#rules)). It does not
 have the eight parts of a proposal.
 
 Add one rule to the
-[Storage layout](../../specs/model-sidecar/format/file-layout.md#storage-layout): a sidecar whose `role`
+[Storage layout](../format/file-layout.md#storage-layout): a sidecar whose `role`
 includes `pose_estimator` goes under `detectors/keypoint_detectors/{family}/{part}/`. This rule also
 applies when `role` includes `object_detector` too. Only a sidecar with `role: [object_detector]` goes
 under `detectors/object_detectors/{family}/`. The `Role` column of the branch table gets the same
@@ -35,14 +35,14 @@ text. The change adds no field and no validation rule.
 - OpenMMLab-Exporter at commit `eed3361`: `rtmo/sidecar.py:33` sets
   `ROLES = ["object_detector", "pose_estimator"]`. `rtmo/identity.py:27` sets
   `FAMILY_BRANCH = Path("detectors/keypoint_detectors/rtmo/body7")`. The `body7` folder is an exporter
-  defect (see the [known open items](../../specs/draft/exporter-guide/sidecars/known-open-items.md#known-open-items-for-the-exporter-overhaul)), but the branch is
+  defect (see the [known open items](../../draft/exporter-guide/sidecars/known-open-items.md#known-open-items-for-the-exporter-overhaul)), but the branch is
   `keypoint_detectors/`.
 - The reference examples
-  [`rtmo/body/rtmo-body7.yaml`](../../specs/model-sidecar/examples/detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml)
+  [`rtmo/body/rtmo-body7.yaml`](../examples/detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml)
   and
-  [`yolo26/body/yolo26-body.yaml`](../../specs/model-sidecar/examples/detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml)
+  [`yolo26/body/yolo26-body.yaml`](../examples/detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml)
   are under `keypoint_detectors/`.
-- The [model addition workflow](../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#path) says: "The spec does not say where a
+- The [model addition workflow](../model-addition-workflow/sidecar-files.md#path) says: "The spec does not say where a
   sidecar with both roles goes."
 
 ## Alternatives rejected

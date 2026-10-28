@@ -77,7 +77,7 @@ The open work is in [open-work.md](open-work.md).
   for each entry, and 220,000 for the read path: this file, `open-work.md` and the Active entries.
   Proposed and Historical entries are not in the read path. Put long evidence in a tracked file next
   to the entry, and link to it. Put the script that produced a measurement in
-  `notes/decisions/scripts/`. The Evidence section names it. Run
+  `scripts/` of the log that holds its entry. The Evidence section names it. Run
   `uv run python tools/check_decision_log.py` to see the read-path size and the warnings at 80% of a
   limit. `uv run pytest tools/tests` runs the same check.
 - An entry ID has 4 characters from `0123456789ABCDEFGHJKMNPQRSTVWXYZ`. The first character is a

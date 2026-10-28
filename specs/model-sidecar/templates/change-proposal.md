@@ -7,7 +7,7 @@ under `specs/model-sidecar/`). The full workflow is the model addition workflow
 (`specs/model-sidecar/model-addition-workflow/README.md` of the skellytracker repo). It is the same
 for an exporter and for a human contributor. Where this template says "the exporter", a contributor
 that is not an exporter reads "you". The decision behind
-it is skellytracker decision 0014 (`notes/decisions/0014-spec-lifecycle.md` of the skellytracker
+it is skellytracker decision 0014 (`decisions/0014-spec-lifecycle.md` of the skellytracker
 repo). Phase 1 is the model intake template (`specs/model-sidecar/templates/model-intake.md`).
 
 This template has no relative links to other files, so its references stay correct after you copy it.
@@ -35,7 +35,7 @@ skellytracker checkout (read-only) `../freemocap/skellytracker`.
    (`specs/model-sidecar/changelog.md`).
    If the feature is in it, cite the row in part 1, and give the evidence that a model needs it now.
 8. Before you write, find the skellytracker decision entries with the status `proposed` that cover
-   your rows. Read the index in `notes/decisions/README.md` of the skellytracker repo. Also read each
+   your rows. Read the index in `specs/model-sidecar/decisions/README.md` of the skellytracker repo. Also read each
    `proposed` entry that the guidance of your sections cites. If an entry covers your rows, do not write a competing proposal:
    - Use the slug of the entry.
    - Cite the entry in the header and in part 1.
@@ -243,7 +243,7 @@ expected output.
 - Use geometry and small arrays. Do not use images or ONNX files. Pixel-exact resize output is out of
   scope. If you need a pixel case, state its tolerance in `compare`.
 - Use the case form of `tools/make_vectors.py` exactly. `tools/tests/test_vectors.py` checks this
-  form (skellytracker ADR-a33q, `notes/decisions/a33q-vector-case-form.md`). The keys of a case
+  form (skellytracker ADR-a33q, `decisions/a33q-vector-case-form.md`). The keys of a case
   are `id`, `function`, `params`, `input`, `expect`, `unproject`, `tolerance`, `compare` and
   `verified_against`. Do not add other keys.
 - Name the function of the reference file that each case runs (`function`). Each reference function

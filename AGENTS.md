@@ -14,7 +14,7 @@ Use "must" for a requirement.
 Keep technical names, field names, enum values, formulas, code and YAML unchanged.
 
 This file holds the rules for each task. The other instructions load only when you need them
-(ADR-[hxy8](notes/decisions/hxy8-scoped-agent-instructions.md)):
+(ADR-[hxy8](decisions/hxy8-scoped-agent-instructions.md)):
 
 | Where | When it applies |
 |---|---|
@@ -36,19 +36,19 @@ of one model family. The spec starts at [`specs/model-sidecar/README.md`](specs/
 The exporter repositories make ONNX files and write their sidecars: OpenMMLab-Exporter,
 Roboflow-Exporter, Ultralytics-Exporter and Qualcomm-Exporter.
 
-The spec is in its spec-build stage (ADR-[0014](notes/decisions/0014-spec-lifecycle.md)).
+The spec is in its spec-build stage (ADR-[0014](decisions/0014-spec-lifecycle.md)).
 In this stage, the exporters add models and the spec changes.
 Do not change the implementation code under `skellytracker/`.
 
-- The [decision log](notes/decisions/README.md) is in `notes/decisions/` ([section 5](#5-decision-log)).
+- The [decision log](decisions/README.md) is in `decisions/` ([section 5](#5-decision-log)).
 - The files under `specs/model-sidecar/proposals/` are informative records
-  (ADR-[faac](notes/decisions/faac-proposal-records.md)).
+  (ADR-[faac](decisions/faac-proposal-records.md)).
 - `specs/draft/exporter-guide/` is not complete. A local plan of the user owns it
-  (ADR-[x64y](notes/decisions/x64y-draft-exporter-guide-folder.md)).
+  (ADR-[x64y](decisions/x64y-draft-exporter-guide-folder.md)).
 - `specs/sidecar-implementation-plan.md` is a tracked file, not a local plan. It stays until its
-  milestone M6 is done (ADR-[b9fm](notes/decisions/b9fm-finished-sidecar-plans.md)).
+  milestone M6 is done (ADR-[b9fm](decisions/b9fm-finished-sidecar-plans.md)).
 - `notes/sidecar-exporter-coverage.md` is frozen evidence. Proposals cite it by line number, so do
-  not add or remove a line (ADR-[b9fm](notes/decisions/b9fm-finished-sidecar-plans.md)).
+  not add or remove a line (ADR-[b9fm](decisions/b9fm-finished-sidecar-plans.md)).
 
 ## 2. Skills
 
@@ -85,7 +85,7 @@ uv run ruff check skellytracker/ tools/     # lint
 - The first test run needs network access. On Windows, some video tests fail
   ([`skellytracker/AGENTS.md`](skellytracker/AGENTS.md#tests)).
 - Report each new test failure to the user. Fix the failures of one root cause in one PR. Do not put
-  other changes in that PR (ADR-[0014](notes/decisions/0014-spec-lifecycle.md)).
+  other changes in that PR (ADR-[0014](decisions/0014-spec-lifecycle.md)).
 
 ## 4. Sidecar Rules
 
@@ -94,17 +94,17 @@ Read them before you change a sidecar, an example or the spec.
 
 ## 5. Decision Log
 
-Read [`notes/decisions/README.md`](notes/decisions/README.md) and
-[`open-work.md`](notes/decisions/open-work.md) before you change sidecar code, a sidecar, an example,
+Read [`decisions/README.md`](decisions/README.md) and
+[`open-work.md`](decisions/open-work.md) before you change sidecar code, a sidecar, an example,
 the spec, the agent instructions or the PR workflow.
-The [Rules](notes/decisions/README.md#rules) of the index give the read path, the entry IDs, the
+The [Rules](decisions/README.md#rules) of the index give the read path, the entry IDs, the
 allowed edits, the status changes, the limits and the citation rules.
 Add one entry for each new decision or measurement.
 Get its ID from `uv run python tools/check_decision_log.py --new`.
 End each commit subject that adds or changes an entry with `(ADR-<ID>)`.
 Write each ADR ID in upper case, with the prefix in the link text, for example
-[ADR-HXY8](notes/decisions/hxy8-scoped-agent-instructions.md). This rule also applies to an older entry
-with a lower-case file name ([ADR-HJNP](notes/decisions/HJNP-upper-case-entry-ids.md)).
+[ADR-HXY8](decisions/hxy8-scoped-agent-instructions.md). This rule also applies to an older entry
+with a lower-case file name ([ADR-HJNP](decisions/HJNP-upper-case-entry-ids.md)).
 
 The bootstrap kit in `specs/agents-and-adr-process/` is guidance, not a part of the sidecar spec.
 It holds the final form of the rules of this decision log for a new repository.
@@ -122,7 +122,7 @@ Change the kit templates by hand when a rule of this log changes.
   push, its draft PR and its description.
 - Ask the user before any other action that is visible outside this machine, for example a PR
   comment, a later change to a PR description or a change of a draft PR to ready. A force-push is a
-  new push. It needs its own approval (ADR-[0027](notes/decisions/0027-single-working-branch.md)).
+  new push. It needs its own approval (ADR-[0027](decisions/0027-single-working-branch.md)).
 - Do not add AI attribution, for example a `Co-Authored-By:` trailer, to a commit or a PR.
 - Commit only on the working branch `dom/sidecar-implementation`. Open PRs against `development`,
   not `main`.
@@ -140,7 +140,7 @@ Write the summary in the message text, not only in the tool description.
 ## 8. Private Data
 
 This repository is public, and git history is permanent
-(ADR-[0030](notes/decisions/0030-no-private-data.md)).
+(ADR-[0030](decisions/0030-no-private-data.md)).
 Do not write these in a tracked file, a commit message or a PR body:
 
 - a credential, a token, a password or a private key;
@@ -161,7 +161,7 @@ Do not write these in a tracked file, a commit message or a PR body:
 - The pre-commit hook runs `gitleaks` and `tools/check_private_data.py`. CI runs `gitleaks` on each
   push and PR. `.gitleaks.toml` holds the reviewed false positives.
 - The commit-msg hook warns about AI attribution
-  (ADR-[p3n3](notes/decisions/p3n3-ai-attribution-warning.md)). If you are an AI agent and you see
+  (ADR-[p3n3](decisions/p3n3-ai-attribution-warning.md)). If you are an AI agent and you see
   this warning, tell the user.
 - Turn on secret scanning and push protection for a private repository on the day that it becomes
   public.

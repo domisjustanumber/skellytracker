@@ -8,7 +8,7 @@ The root [`AGENTS.md`](../../AGENTS.md) also applies.
   a sidecar, an example or the spec. The [section map](README.md#section-map) lists them.
 - Link to the spec by its relative path. Do not link to a branch URL.
 - Every spec change goes into the `vNEXT` revision until the first skellytracker release that ships
-  the spec (ADR-[0014](../../notes/decisions/0014-spec-lifecycle.md)).
+  the spec (ADR-[0014](../../decisions/0014-spec-lifecycle.md)).
 - `load_sidecar` rejects `schema_version: "vNEXT"` (`SidecarModel._check_schema_version_pattern` in
   `skellytracker/core/sidecar/model.py`). Do not publish a `vNEXT` sidecar to a shared or remote
   folder.
@@ -19,7 +19,7 @@ The root [`AGENTS.md`](../../AGENTS.md) also applies.
 - Make a spec change in the section file that owns the rule. The `id` in the front matter is the
   section ID. The rule IDs of the section are `V-<id>-<n>`. When you move or reword a section, keep
   its section ID and its rule IDs
-  (ADR-[0013](../../notes/decisions/0013-spec-structure.md#one-owner-for-each-rule)).
+  (ADR-[0013](../../decisions/0013-spec-structure.md#one-owner-for-each-rule)).
 - A spec change needs a decision entry and a changelog row. Add a row to the
   [summary of changes](changelog.md#summary-of-changes). Add the change to the `vNEXT` row of the
   [changelog](changelog.md#schema_version-history).
@@ -27,10 +27,10 @@ The root [`AGENTS.md`](../../AGENTS.md) also applies.
   A near-miss is a gap. Write a change proposal with the parts of
   [`templates/change-proposal.md`](templates/change-proposal.md). Copy it to
   `proposals/<slug>/proposal.md`. Record it as a short decision entry with status `proposed`
-  (ADR-[faac](../../notes/decisions/faac-proposal-records.md)). Then stop. The user accepts or
+  (ADR-[faac](../../decisions/faac-proposal-records.md)). Then stop. The user accepts or
   rejects the proposal.
 - Put one kind of change in each PR
-  (ADR-[0027](../../notes/decisions/0027-single-working-branch.md#one-kind-of-change-in-each-pr)).
+  (ADR-[0027](../../decisions/0027-single-working-branch.md#one-kind-of-change-in-each-pr)).
   The kinds are: content (a change of normative meaning), move, rewording, and non-spec (decision
   log, agent files, tools, test vectors, guidance, CI, test fixes).
   - A non-spec PR can also add an example that changes no normative meaning, with its provenance

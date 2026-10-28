@@ -5,10 +5,10 @@ log to a repo that has none. It gives a procedure, the rules and their reasons, 
 to copy. The kit is in [`bootstrap/`](bootstrap/). Its folders have the layout of the new repo, so
 each file goes to the same relative path.
 
-The rules come from the skellytracker decision log: [0001](../../notes/decisions/0001-decision-log-and-agents-md.md),
-[0029](../../notes/decisions/0029-decision-log-read-path.md),
-[0030](../../notes/decisions/0030-no-private-data.md) and
-[gtwq](../../notes/decisions/gtwq-random-entry-ids.md). The kit has their final form. It does
+The rules come from the skellytracker decision log: [0001](../../decisions/0001-decision-log-and-agents-md.md),
+[0029](../../decisions/0029-decision-log-read-path.md),
+[0030](../../decisions/0030-no-private-data.md) and
+[gtwq](../../decisions/gtwq-random-entry-ids.md). The kit has their final form. It does
 not have their history.
 
 ## What the kit gives
@@ -17,10 +17,10 @@ not have their history.
 |---|---|---|
 | [`AGENTS.md`](bootstrap/AGENTS.md) | `AGENTS.md` | Fill in each `{{...}}` |
 | [`CLAUDE.md`](bootstrap/CLAUDE.md) | `CLAUDE.md` | Copy. Its only content is `@AGENTS.md`. |
-| [`notes/decisions/README.md`](bootstrap/notes/decisions/README.md) | the same path | Fill in each `{{...}}` |
-| [`notes/decisions/historical.md`](bootstrap/notes/decisions/historical.md), [`notes/decisions/template.md`](bootstrap/notes/decisions/template.md) | the same paths | Copy |
-| [`notes/decisions/open-work.md`](bootstrap/notes/decisions/open-work.md) | the same path | Replace the example item, or delete it |
-| [`notes/decisions/0001-…`](bootstrap/notes/decisions/0001-decision-log-agents-md-and-private-data.md) | the same path | Fill in the date |
+| [`decisions/README.md`](bootstrap/decisions/README.md) | the same path | Fill in each `{{...}}` |
+| [`decisions/historical.md`](bootstrap/decisions/historical.md), [`decisions/template.md`](bootstrap/decisions/template.md) | the same paths | Copy |
+| [`decisions/open-work.md`](bootstrap/decisions/open-work.md) | the same path | Replace the example item, or delete it |
+| [`decisions/0001-…`](bootstrap/decisions/0001-decision-log-agents-md-and-private-data.md) | the same path | Fill in the date |
 | `tools/check_decision_log.py`, `tools/check_links.py`, `tools/check_private_data.py` | the same paths | Copy. Add the public contact address of the project to `ALLOWED_EMAILS`. |
 | `tools/tests/conftest.py` and the three `test_*.py` files | the same paths | Copy |
 | `.pre-commit-config.yaml`, `.gitleaks.toml` | the same paths | Copy |
@@ -70,7 +70,7 @@ Each `{{NAME}}` is a placeholder. Replace it with the answer of the user or with
 a placeholder is a rule that does not apply, delete the full line. Then run:
 
 ```sh
-grep -rn "{{" AGENTS.md CLAUDE.md notes/ tools/
+grep -rn "{{" AGENTS.md CLAUDE.md decisions/ tools/
 ```
 
 The command must find nothing.
@@ -188,12 +188,12 @@ cell named five other entries.
 - When the source of a `proposed` entry changes, edit the same entry, and add
   `recorded again <YYYY-MM-DD> (<source>)` to its status line. A second entry for one proposal makes
   a chain of entries for one decision
-  ([vac0](../../notes/decisions/vac0-record-a-changed-proposal.md)).
+  ([vac0](../../decisions/vac0-record-a-changed-proposal.md)).
 - The body of a decided entry changes only for a link repair, a typo fix, a redaction, or a change of
   ID with the repair of its citations. Each edit adds a dated `_Edited_` line.
 - A status line can change. Write the date and the PR. An absorbed entry can also change to
   `superseded by XXXX` when a new entry changes one of its rules
-  ([ngnb](../../notes/decisions/ngnb-supersede-an-absorbed-entry.md)).
+  ([ngnb](../../decisions/ngnb-supersede-an-absorbed-entry.md)).
 
 ### IDs and parallel work
 
@@ -261,7 +261,7 @@ into them.
 | Read path | 220,000 |
 
 About 4 characters make one token. Put long evidence in a tracked file next to the entry, and link
-to it. Put the script that produced a measurement in `notes/decisions/scripts/`. Name the script in
+to it. Put the script that produced a measurement in `scripts/` of the log that holds its entry. Name the script in
 the Evidence section. Then a reader can run the measurement again. A PR that raises a limit must add
 an entry. To start the log in a repo that already has long entries, set `LAST_UNLIMITED_ENTRY` to the
 highest old entry number.
@@ -339,7 +339,7 @@ These pitfalls are already found. Do not repeat them.
 ## Keep the kit current
 
 This section is for the maintainers of skellytracker
-([0031](../../notes/decisions/0031-bootstrap-kit.md)). The tool and config files in `bootstrap/` are
+([0031](../../decisions/0031-bootstrap-kit.md)). The tool and config files in `bootstrap/` are
 copies of the live files of skellytracker, with exact text edits that remove the parts that belong
 only to skellytracker. [`tools/sync_bootstrap_kit.py`](../../tools/sync_bootstrap_kit.py) holds the
 list of copies and edits. When you change a live tool or config:

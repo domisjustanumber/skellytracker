@@ -12,7 +12,7 @@ does not track that plan. The plan is deleted at the end of its implementation w
 content is in this guide. When the guide is complete, or when an end-to-end test proves that its
 first version works, the guide moves from `specs/draft/exporter-guide/` to `specs/exporter-guide/`.
 That move needs a new decision entry. Decision
-[x64y](../../../notes/decisions/x64y-draft-exporter-guide-folder.md) records this folder, its owner
+[x64y](../../../decisions/x64y-draft-exporter-guide-folder.md) records this folder, its owner
 and its final location.
 
 ## What applies now

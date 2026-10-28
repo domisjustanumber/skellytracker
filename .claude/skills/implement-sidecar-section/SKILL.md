@@ -9,9 +9,9 @@ This skill uses ASD-STE100 Simplified Technical English.
 
 This skill implements one section of the sidecar spec in the skellytracker package. It runs only in
 skellytracker. It is for the implementation stage and the steady state
-([decision 0014](../../../notes/decisions/0014-spec-lifecycle.md#stages)).
+([decision 0014](../../../decisions/0014-spec-lifecycle.md#stages)).
 
-The section file gives the normative text. [Decision 0013](../../../notes/decisions/0013-spec-structure.md)
+The section file gives the normative text. [Decision 0013](../../../decisions/0013-spec-structure.md)
 gives the front matter, the vectors, the reference implementations and the traceability. This skill
 gives the order of the steps, the inputs, the outputs and the stop points.
 
@@ -19,7 +19,7 @@ gives the order of the steps, the inputs, the outputs and the stop points.
 
 - [Section 1](../../../AGENTS.md#1-purpose) of `AGENTS.md` names the current stage.
 - In the spec-build stage, no file under `skellytracker/` changes
-  ([0014](../../../notes/decisions/0014-spec-lifecycle.md#no-implementation-change-during-the-spec-build-stage)).
+  ([0014](../../../decisions/0014-spec-lifecycle.md#no-implementation-change-during-the-spec-build-stage)).
 - In the spec-build stage, do only steps 1 to 4. Report the plan. Then stop.
 - If step 3 finds that the work is blocked, do only steps 1 to 3. A blocked section gets no plan.
   Report the result of step 3. Then stop.
@@ -54,7 +54,7 @@ gives the order of the steps, the inputs, the outputs and the stop points.
    the guidance.
 4. Read the sections that the text links to. Read the sections that link to its rules.
 5. Read the decision entries that cite the section.
-6. Read the [Open work](../../../notes/decisions/open-work.md) list and its list of spec
+6. Read the [Open work](../../../decisions/open-work.md) list and its list of spec
    defects. Find the items about the section.
 7. Read the code that `implemented_by` names. Read the tests that `tests` names.
 
@@ -91,7 +91,7 @@ A skellytracker session must land it first, with the skill
    names one. That table can name an exporter for the reference implementation and for the example.
 4. Do not write a reference implementation, an example or vectors to remove the block. Do not mark a
    vector verified. A reading of the text alone does not verify a vector
-   ([Test vectors](../../../notes/decisions/0013-spec-structure.md#test-vectors)).
+   ([Test vectors](../../../decisions/0013-spec-structure.md#test-vectors)).
 
 ### Step 4: Plan the work
 
@@ -114,7 +114,7 @@ A skellytracker session must land it first, with the skill
    needs first. An example is a field of another section that `model.py` does not have yet. Each
    prerequisite is a separate PR before the PR of this section.
 9. `load_sidecar` rejects `vNEXT`. A development build must load `vNEXT` sidecars
-   ([0014](../../../notes/decisions/0014-spec-lifecycle.md#vnext-is-not-a-version)). If a test needs a
+   ([0014](../../../decisions/0014-spec-lifecycle.md#vnext-is-not-a-version)). If a test needs a
    `vNEXT` sidecar and a development build cannot load one yet, write that work as the first
    prerequisite. If the Open work list has no item for it, tell the user. Do not design that work in
    this plan.
@@ -152,7 +152,7 @@ A skellytracker session must land it first, with the skill
 11. skellytracker counts as one implementation in `verified_against`. A vector is fully verified only
     when two independent implementations agree
     ([Independence](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence);
-    decision [0014](../../../notes/decisions/0014-spec-lifecycle.md#independence)).
+    decision [0014](../../../decisions/0014-spec-lifecycle.md#independence)).
 
 ### Step 7: Update the traceability
 
@@ -176,7 +176,7 @@ A skellytracker session must land it first, with the skill
    - `uv run python tools/sidecar_trace.py matrix --check`
 2. Do not run `black` or `isort` on the package.
 3. Put the implementation in its own PR. Do not put a spec change in it
-   ([0027](../../../notes/decisions/0027-single-working-branch.md#one-kind-of-change-in-each-pr)). Put
+   ([0027](../../../decisions/0027-single-working-branch.md#one-kind-of-change-in-each-pr)). Put
    each prerequisite of step 4 in its own PR before it.
 4. Ask the user before the push ([section 6](../../../AGENTS.md#6-git-rules) of `AGENTS.md`).
 

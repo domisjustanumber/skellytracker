@@ -1,7 +1,7 @@
 # 0009 — `imagenet_bgr` changes meaning at `vNEXT`; the legacy meaning stays
 
-**Status:** absorbed into [`pre/normalization.md#legacy-behaviour`](../../specs/model-sidecar/pre/normalization.md#legacy-behaviour), 2026-10-24 (user; the first review of
-[0029](0029-decision-log-read-path.md)). It was accepted on 2026-10-22 (backfilled from #81).
+**Status:** absorbed into [`pre/normalization.md#legacy-behaviour`](../pre/normalization.md#legacy-behaviour), 2026-10-24 (user; the first review of
+[0029](../../../decisions/0029-decision-log-read-path.md)). It was accepted on 2026-10-22 (backfilled from #81).
 
 ## Decision
 
@@ -22,10 +22,10 @@ The meaning of `input.normalization: imagenet_bgr` depends on the `schema_versio
 
 The spec states the rule in these places:
 
-- change 6 of the [Summary of changes](../../specs/model-sidecar/changelog.md#summary-of-changes);
-- the `imagenet_bgr` row of [Normalization modes](../../specs/model-sidecar/pre/normalization.md#behaviour);
+- change 6 of the [Summary of changes](../changelog.md#summary-of-changes);
+- the `imagenet_bgr` row of [Normalization modes](../pre/normalization.md#behaviour);
 - the `normalization: imagenet_bgr` row of
-  [Version-aware compatibility](../../specs/model-sidecar/pre/normalization.md#legacy-behaviour).
+  [Version-aware compatibility](../pre/normalization.md#legacy-behaviour).
 
 ## Reason
 
@@ -34,11 +34,11 @@ The spec states the rule in these places:
   applies `123.675` to the B channel. A sidecar for RTMDet cannot use `imagenet_bgr` with the legacy
   meaning.
 - At `vNEXT`, each colour gets its own ImageNet statistic in both `imagenet_*` modes
-  ([Normalization modes](../../specs/model-sidecar/pre/normalization.md#behaviour)). The legacy `imagenet_bgr`
+  ([Normalization modes](../pre/normalization.md#behaviour)). The legacy `imagenet_bgr`
   gives the B channel the R statistic. Change 6 spells out the channel order of both modes.
 - Legacy sidecars must keep their meaning. The spec never applies `vNEXT` requirements to a sidecar
   with `schema_version < vNEXT`
-  ([Version-aware compatibility](../../specs/model-sidecar/format/versioning.md#version-aware-compatibility)). The in-repo
+  ([Version-aware compatibility](../format/versioning.md#version-aware-compatibility)). The in-repo
   RTMPose and RTMW sidecars declare `v2024.09.1019` and `imagenet_bgr`. Their numbers are the
   `_RTMPOSE_MEAN` and `_RTMPOSE_STD` constants that the detectors hard-coded before the migration. A
   change of meaning for these sidecars would change the model input.
@@ -70,7 +70,7 @@ Code, checked on 2026-10-22:
 
 - Change the meaning of `imagenet_bgr` for legacy sidecars as well. The spec does not allow this:
   `vNEXT` requirements never apply retroactively
-  ([Version-aware compatibility](../../specs/model-sidecar/format/versioning.md#version-aware-compatibility)). The change
+  ([Version-aware compatibility](../format/versioning.md#version-aware-compatibility)). The change
   would also alter the input of the in-repo RTMPose and RTMW models.
 
 ## Not repeated
@@ -82,3 +82,5 @@ Code, checked on 2026-10-22:
   branch. The in-repo legacy sidecars would get a different input.
 
 _Edited 2026-10-26 (this PR): link repair._
+
+_Edited 2026-10-28 (this PR): link repair._

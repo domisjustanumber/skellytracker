@@ -8,7 +8,7 @@ state: recorded
 
 # Change proposal: heatmap-decode-refinement
 
-This file is informative. It is not part of the normative spec until a content PR lands its text in the section files (decision [0036](../../../../notes/decisions/0036-spec-proposals-folder.md)).
+This file is informative. It is not part of the normative spec until a content PR lands its text in the section files (decision [0036](../../../../decisions/0036-spec-proposals-folder.md)).
 
 **Source.** The OpenMMLab-Exporter file of the proposal `heatmap-decode-refinement`, at OpenMMLab-Exporter commit [`f3aeb47`](https://github.com/domisjustanumber/OpenMMLab-Exporter/tree/f3aeb473d3396ee79c4394646a34ed9ef419ecf1), copied on 2026-10-25. Part 3 also holds the code of the OpenMMLab-Exporter reference file of part 3, copied on the same date (decision 0036, item 2). The copy changes only the items of decision 0036, item 3. The session wrote no part.
 
@@ -873,7 +873,7 @@ This list gives the work that must be done before the user can accept the propos
 
 - [ ] The item "Part 2.1 lists each place that the change edits" is not fully true. 2.1 does not list
       the `tools/tests` test that runs each reference function against the vectors of its section
-      (decision [0013](../../../../notes/decisions/0013-spec-structure.md)). 2.1 does not list the
+      (decision [0013](../../../../decisions/0013-spec-structure.md)). 2.1 does not list the
       change that makes `tools/make_vectors.py` call the reference file in place of a copy of the
       formulas.
 - [ ] 2.1 does not say if `specs/model-sidecar/inventory.yaml` gets `proposed` rows for
@@ -926,7 +926,7 @@ This list gives the work that must be done before the user can accept the propos
       proposals with a new "Legacy behaviour" heading do not add the link. Decide one rule for all.
 - [ ] The Shape key sentence of 2.1 gives the cell-to-pixel scale. The Behaviour text of 2.3 also
       gives it. Decide if the sentence duplicates a rule that one section must own (decision
-      [0013](../../../../notes/decisions/0013-spec-structure.md)).
+      [0013](../../../../decisions/0013-spec-structure.md)).
 - [ ] 2.1 puts new Implementer guidance and Authoring guidance text in the content change. The skill
       `change-sidecar-spec` puts guidance in a later non-spec PR. Decide the PR for this text.
 - [ ] Decision 0013 says "There is no reference implementation yet." This text becomes stale when the

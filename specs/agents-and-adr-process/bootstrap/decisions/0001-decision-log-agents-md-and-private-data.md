@@ -4,12 +4,12 @@
 
 ## Decision
 
-1. **Decision log.** This repo keeps its decisions in `notes/decisions/`. The [index](README.md) has
+1. **Decision log.** This repo keeps its decisions in `decisions/`. The [index](README.md) has
    the Active and Proposed tables and the rules. [`historical.md`](historical.md) has the
    Historical table. [`template.md`](template.md) has the entry template.
    [`open-work.md`](open-work.md) has the open work. A decision that code or a document refers to
    must be in an entry.
-2. **One instructions file.** [`AGENTS.md`](../../AGENTS.md) is the single instructions file for
+2. **One instructions file.** [`AGENTS.md`](../AGENTS.md) is the single instructions file for
    coding agents. `CLAUDE.md` only imports it: its full content is `@AGENTS.md`. Do not put
    instructions in `CLAUDE.md` or in a second instructions file. Agent procedures are skills in
    `.claude/skills/`. Git tracks that folder and ignores the rest of `.claude/`.
@@ -18,12 +18,12 @@
 4. **Log rules.** The [Rules](README.md#rules) of the index apply: allowed edits only, complete
    supersession, status forms, Proposed entries off the read path, absorption, `done`, consolidation,
    permalinks and the size limits. `tools/check_decision_log.py` checks the index and the limits.
-5. **Private data.** [`AGENTS.md`](../../AGENTS.md#8-private-data) gives the rule.
+5. **Private data.** [`AGENTS.md`](../AGENTS.md#8-private-data) gives the rule.
    `tools/check_private_data.py` checks the tracked files. The pre-commit hook and the workflow
    `.github/workflows/secrets.yml` run `gitleaks`. `.private-terms` is a local, untracked list of
    terms to block.
 6. **Links.** `tools/check_links.py` checks the relative links and their anchors. A GitHub link in
-   `AGENTS.md`, `notes/` or `.claude/skills/` must pin a full SHA.
+   `AGENTS.md`, `notes/`, `decisions/` or `.claude/skills/` must pin a full SHA.
 
 ## Reason
 

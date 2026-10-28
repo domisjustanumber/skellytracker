@@ -5,7 +5,7 @@
 ## Decision
 
 **Proposed, not decided.** This entry records the spec change proposal `size-codes`. The eight parts
-are in [`specs/model-sidecar/proposals/size-codes/proposal.md`](../../specs/model-sidecar/proposals/size-codes/proposal.md).
+are in [`specs/model-sidecar/proposals/size-codes/proposal.md`](../proposals/size-codes/proposal.md).
 
 - **Section:** a new section `common.sizes` ("Size keys", file `specs/model-sidecar/common/size-keys.md`,
   kind `common`). The change also edits `common.sizes_and_artifacts`, `common.identity`,

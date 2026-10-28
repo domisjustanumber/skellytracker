@@ -23,7 +23,7 @@ history only to find the reason for a decision.
    ([0014](0014-spec-lifecycle.md)). Write one also when the read-path limit (item 5) fails.
 4. **Open work.** When an open-work item is done, delete it from the list. When the content PR of a
    spec defect lands, delete the defect from the list. The PR that closes an item records the result.
-5. **Limits.** [`tools/check_decision_log.py`](../../tools/check_decision_log.py) counts characters
+5. **Limits.** [`tools/check_decision_log.py`](../tools/check_decision_log.py) counts characters
    after it changes CRLF to LF. About 4 characters make one token.
 
    | Limit | Characters | Applies to |
@@ -38,7 +38,7 @@ history only to find the reason for a decision.
    to 160,000 characters.
 6. **Index checks.** The tool also checks that each entry file has one index row, that each row links
    to an entry file, and that each row is in the table for its status.
-   [`tools/tests/test_decision_log.py`](../../tools/tests/test_decision_log.py) runs the tool in the
+   [`tools/tests/test_decision_log.py`](../tools/tests/test_decision_log.py) runs the tool in the
    doc tests.
 7. **First review.** Examine the accepted entries 0001 to 0016. Mark each entry that
    a normative document states in full as absorbed.
@@ -51,7 +51,7 @@ history only to find the reason for a decision.
   of the 20,089 characters of `README.md`.
 - An accepted rule stays in its entry after the rule moves into the spec. Thus the entries that
   agents read grow, but the number of rules does not. For example, the implementer guidance of
-  [`format.versioning`](../../specs/model-sidecar/format/versioning.md#implementer-guidance) states rules
+  [`format.versioning`](../specs/model-sidecar/format/versioning.md#implementer-guidance) states rules
   of [0016](0016-sidecar-catalogs.md).
 - The rule that the body of an entry does not change stays. Absorption and consolidation change only
   status lines, and they add entries.
@@ -72,3 +72,5 @@ history only to find the reason for a decision.
   the doc tests. A character count does not change.
 
 _Edited 2026-10-26 (this PR): link repair._
+
+_Edited 2026-10-28 (this PR): link repair._

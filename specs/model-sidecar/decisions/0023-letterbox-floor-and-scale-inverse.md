@@ -5,19 +5,19 @@
 
 ## Decision
 
-**Proposed, not decided.** This entry is a gap record (see [Rules](README.md#rules)). It does not
+**Proposed, not decided.** This entry is a gap record (see [Rules](../../../decisions/README.md#rules)). It does not
 have the eight parts of a proposal.
 
 Add `floor` as a third value of `rounding` for
-[`letterbox`](../../specs/model-sidecar/pre/resize-letterbox.md#fields):
+[`letterbox`](../pre/resize-letterbox.md#fields):
 `n_w = max(1, floor(src_w * s))` and `n_h = max(1, floor(src_h * s))`, with `s` computed in IEEE 754
 double precision. Add an inverse that divides by the unrounded scale:
 `x_src = (x - left) / s` and `y_src = (y - top) / s`. This inverse goes beside the current
-[inverse](../../specs/model-sidecar/pre/resize-letterbox.md#inverse), which uses the rounded `n_w` and
+[inverse](../pre/resize-letterbox.md#inverse), which uses the rounded `n_w` and
 `n_h`. The full proposal must choose between two forms: `rounding: floor` sets the inverse, or a
 separate field selects it. The full proposal must also say whether the spec describes the integer
 cut of the upstream inverse. The proposal comes with the Qualcomm-Exporter overhaul, with the parts
-of [0014](0014-spec-lifecycle.md#new-model-workflow). [0008](0008-vnext-scope.md) puts
+of [0014](../../../decisions/0014-spec-lifecycle.md#new-model-workflow). [0008](0008-vnext-scope.md) puts
 Qualcomm-Exporter out of the `vNEXT` scope. Thus the change goes into a later revision, unless the
 decision extends that scope.
 

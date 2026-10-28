@@ -46,11 +46,11 @@ spec. If this guide and the spec do not agree, the spec is correct.
 
 The decisions behind this guide:
 
-- [0013](../../../../notes/decisions/0013-spec-structure.md): section IDs, rule IDs, reference
+- [0013](../../../../decisions/0013-spec-structure.md): section IDs, rule IDs, reference
   implementations and test vectors.
-- [0014](../../../../notes/decisions/0014-spec-lifecycle.md): the spec lifecycle, the `vNEXT` rule and the
+- [0014](../../../../decisions/0014-spec-lifecycle.md): the spec lifecycle, the `vNEXT` rule and the
   new-model workflow.
-- [0016](../../../../notes/decisions/0016-sidecar-catalogs.md): sidecar catalogs: `source`, reference
+- [0016](../../../../decisions/0016-sidecar-catalogs.md): sidecar catalogs: `source`, reference
   hashes, roots, discovery and the capability check. The spec text for exporters is in
   [`common.identity`](../../../model-sidecar/common/identity.md#fields) (`source`),
   [`format.composition`](../../../model-sidecar/format/composition.md#reference-hashes) (the reference hashes and the bytes
@@ -59,7 +59,7 @@ The decisions behind this guide:
   artifact hashes and the placeholder). The rule for each contributor is
   [`source` and hashes](../../../model-sidecar/model-addition-workflow/validation-and-publishing.md#source-and-hashes)
   in the model addition workflow.
-- [x64y](../../../../notes/decisions/x64y-draft-exporter-guide-folder.md): the model addition workflow
+- [x64y](../../../../decisions/x64y-draft-exporter-guide-folder.md): the model addition workflow
   is in `specs/model-sidecar/model-addition-workflow/`, with the rules for the sidecar files, the
   validation and the publishing. This guide is in the draft folder `specs/draft/exporter-guide/`.
 

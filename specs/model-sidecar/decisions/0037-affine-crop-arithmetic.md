@@ -6,10 +6,10 @@
 
 **Proposed, not decided.** This entry records the spec change proposal `affine-crop-arithmetic`. The
 eight parts are in
-[`specs/model-sidecar/proposals/affine-crop-arithmetic/proposal.md`](../../specs/model-sidecar/proposals/affine-crop-arithmetic/proposal.md).
+[`specs/model-sidecar/proposals/affine-crop-arithmetic/proposal.md`](../proposals/affine-crop-arithmetic/proposal.md).
 
 - **Section:** `pre.resize.affine_person_crop`, a changed section
-  ([`pre/resize-affine-person-crop.md`](../../specs/model-sidecar/pre/resize-affine-person-crop.md)).
+  ([`pre/resize-affine-person-crop.md`](../pre/resize-affine-person-crop.md)).
 - **Change:** A new normative heading "Arithmetic" gives the order of the operations and the float32
   value of each step: the centre, the crop size (the aspect fix divides: `h = w / a`, with
   `a = f32(T_w / T_h)`), three float32 warp points that use only `w`, and `M` from

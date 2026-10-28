@@ -1,6 +1,6 @@
 # 0014 — Spec lifecycle, the `vNEXT` rule and the new-model workflow
 
-**Status:** absorbed into [`model-sidecar/model-addition-workflow/README.md#model-addition-workflow`](../../specs/model-sidecar/model-addition-workflow/README.md#model-addition-workflow), 2026-10-25 (user; the absorption review).
+**Status:** absorbed into [`model-sidecar/model-addition-workflow/README.md#model-addition-workflow`](../specs/model-sidecar/model-addition-workflow/README.md#model-addition-workflow), 2026-10-25 (user; the absorption review).
 
 ## Decision
 
@@ -19,11 +19,11 @@ headings, vectors, `TRACEABILITY.md` and the `impact` command.
 
 - During the spec-build stage, each spec change goes into the `vNEXT` revision. Each change has one
   row in the `vNEXT` summary of changes. Until the split, that is the
-  [Summary of changes](../../specs/model-sidecar/changelog.md#summary-of-changes) table of the spec. After the
+  [Summary of changes](../specs/model-sidecar/changelog.md#summary-of-changes) table of the spec. After the
   split, it is in `specs/sidecar/changelog.md`.
 - From the first skellytracker release that ships the spec, each change sets `schema_version` to the
   release that ships that change. Each change also adds a changelog row. This is the rule at the start
-  of [`schema_version` history](../../specs/model-sidecar/changelog.md#schema_version-history).
+  of [`schema_version` history](../specs/model-sidecar/changelog.md#schema_version-history).
 
 ### `vNEXT` is not a version
 
@@ -151,7 +151,7 @@ contract unit (one section). The intake links to each proposal. The proposal tem
 1. **A model with the final verdict `describes`:** one non-spec PR (documentation only) with the
    example, its provenance record in `specs/sidecar/inventory.yaml` and any new guidance from the
    intake. The procedure is in
-   [`specs/sidecar-implementation-plan.md`, "Reference examples"](../../specs/sidecar-implementation-plan.md#reference-examples).
+   [`specs/sidecar-implementation-plan.md`, "Reference examples"](../specs/sidecar-implementation-plan.md#reference-examples).
 2. **A proposal:** it becomes a decision entry with the status `proposed`. The user accepts or
    rejects it. After acceptance:
    - A content PR has the normative text, the changelog row, the entry status `accepted` (unless the
@@ -257,12 +257,12 @@ contract unit (one section). The intake links to each proposal. The proposal tem
   Thus a tagged version such as `v2026.10.1-dev` cannot replace `vNEXT` either. The installed version
   is `__version__ = "v2024.09.1019"` in `skellytracker/__init__.py`.
 - The spec's reviewer note in
-  [Changes in this revision (`vNEXT`)](../../specs/model-sidecar/changelog.md#changes-in-this-revision-vnext)
+  [Changes in this revision (`vNEXT`)](../specs/model-sidecar/changelog.md#changes-in-this-revision-vnext)
   says "replace it with the skellytracker release that ships this revision before merging".
 - **A near-miss that looked correct.** On four test images, a `center` letterbox matches RTMO's
   upstream `BottomupResize` only at scale 1. At other scales the keypoints move by up to 17.89 px,
   and `fit` is bit-exact (`input_max_abs_diff: 0`). The measurements are in
-  [0012](0012-fit-resize-for-rtmo.md) and OpenMMLab-Exporter 0020.
+  [0012](../specs/model-sidecar/decisions/0012-fit-resize-for-rtmo.md) and OpenMMLab-Exporter 0020.
 
 ## Alternatives rejected
 
@@ -290,3 +290,5 @@ contract unit (one section). The intake links to each proposal. The proposal tem
 _Edited 2026-10-26 (this PR): link repair._
 
 _Edited 2026-10-26 (PR: pending (uncommitted on dom/sidecar-implementation)): link repair._
+
+_Edited 2026-10-28 (this PR): link repair._

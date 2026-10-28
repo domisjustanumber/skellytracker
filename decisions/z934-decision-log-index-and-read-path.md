@@ -40,7 +40,7 @@ that stay. 0035 and [0029](0029-decision-log-read-path.md) keep the reasons for 
 8. **Open work.** The open work and the spec defects are in `open-work.md`. Delete an item when its
    work is done, or when the content PR of a spec defect lands.
 9. **Template.** The entry template and its notes are in `template.md`. It is not in the read path.
-10. **Limits.** [`tools/check_decision_log.py`](../../tools/check_decision_log.py) counts characters
+10. **Limits.** [`tools/check_decision_log.py`](../tools/check_decision_log.py) counts characters
     after it changes CRLF to LF.
 
     | Limit | Characters | Applies to |
@@ -91,3 +91,5 @@ that stay. 0035 and [0029](0029-decision-log-read-path.md) keep the reasons for 
   benefit.
 - **Higher limits again.** 0026, 0029 and 0035 changed the limits in three days. The cause was the
   content of the read path, not the limits.
+
+_Edited 2026-10-28 (this PR): link repair._

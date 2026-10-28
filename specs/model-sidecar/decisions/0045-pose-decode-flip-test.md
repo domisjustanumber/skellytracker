@@ -6,7 +6,7 @@
 
 **Proposed, not decided.** This entry records the spec change proposal `pose-decode-flip-test`. The
 eight parts are in
-[`specs/model-sidecar/proposals/pose-decode-flip-test/proposal.md`](../../specs/model-sidecar/proposals/pose-decode-flip-test/proposal.md).
+[`specs/model-sidecar/proposals/pose-decode-flip-test/proposal.md`](../proposals/pose-decode-flip-test/proposal.md).
 
 - **Section:** a new section `post.pose.flip_test` ("Flip test", file
   `specs/model-sidecar/post/pose-flip-test.md`, kind `postprocessor`). The change also edits

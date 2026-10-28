@@ -6,7 +6,7 @@
 
 **Proposed, not decided.** This entry records the spec change proposal `roi-refiner-role`. The eight
 parts are in
-[`specs/model-sidecar/proposals/roi-refiner-role/proposal.md`](../../specs/model-sidecar/proposals/roi-refiner-role/proposal.md).
+[`specs/model-sidecar/proposals/roi-refiner-role/proposal.md`](../proposals/roi-refiner-role/proposal.md).
 
 - **Section:** a new section `post.roi_refiner` ("ROI refiner", file
   `specs/model-sidecar/post/roi-refiner.md`, kind `postprocessor`, selector `role=roi_refiner`). The change
@@ -31,7 +31,7 @@ parts are in
   (`hand_roi_refinement.tflite` of Holistic), a MediaPipe-Exporter model. The parent is BlazePose or
   a COCO-WholeBody 133 model such as RTMW.
 - **On acceptance:** this entry supersedes no entry. The accepted entry
-  [0014](0014-spec-lifecycle.md) says that an ROI refiner "is a `gap`". That text becomes stale. The
+  [0014](../../../decisions/0014-spec-lifecycle.md) says that an ROI refiner "is a `gap`". That text becomes stale. The
   user decides how to handle it. The proposal `omitted-upstream-output`
   ([0044](0044-omitted-upstream-output.md)) supersedes 0014 in full and restates that text.
 - **Related:** `roi-transform-and-source` ([0020](0020-roi-transform-and-source.md)) gives

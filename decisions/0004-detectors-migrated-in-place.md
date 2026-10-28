@@ -1,6 +1,6 @@
 # 0004 — Detectors migrated to sidecars in place; registry keys unchanged
 
-**Status:** absorbed into [`AGENTS.md#1-purpose`](../../AGENTS.md#1-purpose), 2026-10-25 (user; the absorption review).
+**Status:** absorbed into [`AGENTS.md#1-purpose`](../AGENTS.md#1-purpose), 2026-10-25 (user; the absorption review).
 
 ## Decision
 
@@ -40,7 +40,7 @@
   site that uses the old one. With the same key, config and signatures, these callers keep working.
 - The migration had to change no behavior. The goal was the same models and the same math, loaded from
   sidecar YAML in place of Python constants (see "Context" in
-  [`specs/sidecar-implementation-plan.md`](../../specs/sidecar-implementation-plan.md#context)).
+  [`specs/sidecar-implementation-plan.md`](../specs/sidecar-implementation-plan.md#context)).
 - Reuse of the same decode math keeps the outputs equal. The parity tests check this.
 
 ## Evidence
@@ -68,7 +68,7 @@
 - `skellytracker/tests/test_rtmpose_detectors.py` asserts the two original keys in `TestRegistry`.
   `skellytracker/tests/test_run_batched.py` imports from the old module path of the RTMW detector. The
   implementation plan records that these tests pass without change. See section "M4 — RTMW migration" of
-  [`specs/sidecar-implementation-plan.md`](../../specs/sidecar-implementation-plan.md#m4--rtmw-migration).
+  [`specs/sidecar-implementation-plan.md`](../specs/sidecar-implementation-plan.md#m4--rtmw-migration).
 - Parity tests compare the migrated detectors with output captured before the migration. The golden
   fixtures are in `skellytracker/tests/sidecar/fixtures/golden/`: `yolox_*_detect.json` (2 sizes),
   `rtmw_wholebody_*_detect.json` (3 sizes) and `rtmpose_{body,hand,face}_*_detect.json`.
@@ -87,3 +87,5 @@
   body, hand and face detectors use `rtmpose_body`, `rtmpose_hand` and `rtmpose_face`.
 - A registry key is not a catalog key. Decision [0016](0016-sidecar-catalogs.md) keeps these
   `detector_type` strings as aliases of `<model_id>@skellytracker`.
+
+_Edited 2026-10-28 (this PR): link repair._

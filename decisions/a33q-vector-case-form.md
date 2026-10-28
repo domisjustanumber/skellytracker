@@ -63,8 +63,8 @@
 - `tools/tests/test_vectors.py`: `check_case` and
   `test_the_generator_writes_the_case_form_of_a_proposal` render and check each new form.
 - The "Vectors and tooling" items of `specs/model-sidecar/proposals/*/proposal.md`, for example
-  [`keypoint-visibility`](../../specs/model-sidecar/proposals/keypoint-visibility/proposal.md) and
-  [`landmark-depth-divisor`](../../specs/model-sidecar/proposals/landmark-depth-divisor/proposal.md).
+  [`keypoint-visibility`](../specs/model-sidecar/proposals/keypoint-visibility/proposal.md) and
+  [`landmark-depth-divisor`](../specs/model-sidecar/proposals/landmark-depth-divisor/proposal.md).
 
 ## Alternatives rejected
 
@@ -74,3 +74,5 @@
   cannot check it.
 - **Copy the vector file of the exporter.** Then two writers exist, and the generator test fails.
 - **Expect the error message.** See Reason.
+
+_Edited 2026-10-28 (this PR): link repair._

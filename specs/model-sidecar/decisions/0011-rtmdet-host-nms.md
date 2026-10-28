@@ -1,7 +1,7 @@
 # 0011 — RTMDet: NMS-free graph with host `selection: nms`; no `pre_nms_top_k`
 
 **Status:** accepted, 2026-10-22 (backfilled from
-[#81, `specs/model-sidecar/sidecar-spec.md`, "RTMDet person"](../../specs/model-sidecar/sidecar-spec.md#rtmdet-person-openmmlab-exporter-nms-free-outputs-host-nms)
+[#81, `specs/model-sidecar/sidecar-spec.md`, "RTMDet person"](../sidecar-spec.md#rtmdet-person-openmmlab-exporter-nms-free-outputs-host-nms)
 and OpenMMLab-Exporter 0008, OpenMMLab-Exporter 0009, OpenMMLab-Exporter 0016 and
 OpenMMLab-Exporter 0017; the measurements are dated 2026-10-20).
 
@@ -26,10 +26,10 @@ OpenMMLab-Exporter 0017; the measurements are dated 2026-10-20).
 - The spec has no `nms.pre_nms_top_k` field. The sidecar does not express the mmdet `nms_pre` cap.
   The person configs set `nms_pre` to 1000.
 - The spec does not allow `class_logits` with `selection: nms`. The rule is in
-  [Validation rules](../../specs/model-sidecar/post/selection-nms.md#validation-rules): `selection: nms` forbids
+  [Validation rules](../post/selection-nms.md#validation-rules): `selection: nms` forbids
   `class_logits_output`.
 - The detection outputs are the complete candidate set. The decode steps are in
-  [Selection behaviour](../../specs/model-sidecar/post/detection-decode.md#selection-behaviour).
+  [Selection behaviour](../post/detection-decode.md#selection-behaviour).
 
 ## Reason
 
@@ -99,9 +99,9 @@ OpenMMLab-Exporter sets `test_cfg` to `nms_pre=1000`, `min_bbox_size=0`, `score_
 OpenMMLab-Exporter `rtmdet_person/identity.py` holds the three sidecar values.
 
 **Spec.** The reference example
-[RTMDet person](../../specs/model-sidecar/examples/README.md#rtmdet-person-openmmlab-exporter-nms-free-outputs-host-nms)
+[RTMDet person](../examples/README.md#rtmdet-person-openmmlab-exporter-nms-free-outputs-host-nms)
 shows the sidecar. The rows "`class_logits` with `selection: nms`" and "`nms.pre_nms_top_k`" in
-[Considered and deliberately not added](../../specs/model-sidecar/changelog.md#considered-and-deliberately-not-added)
+[Considered and deliberately not added](../changelog.md#considered-and-deliberately-not-added)
 record the two options that the spec does not add.
 
 **Code.** `DetectionDecodeSpec` in `skellytracker/core/sidecar/model.py` has no `selection` field and
@@ -138,3 +138,5 @@ skellytracker yet.
   class counts differ. See [0010](0010-family-invariant.md).
 
 _Edited 2026-10-26 (this PR): link repair._
+
+_Edited 2026-10-28 (this PR): link repair._

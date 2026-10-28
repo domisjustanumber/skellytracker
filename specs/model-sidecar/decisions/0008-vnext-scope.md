@@ -5,7 +5,7 @@ by the user on 2026-10-22).
 
 ## Decision
 
-The `vNEXT` revision of [the sidecar spec](../../specs/model-sidecar/sidecar-spec.md) must let a sidecar describe
+The `vNEXT` revision of [the sidecar spec](../sidecar-spec.md) must let a sidecar describe
 every model that these exporters produce:
 
 - OpenMMLab-Exporter: RTMDet (person-only family), RTMW and RTMO body7.
@@ -15,7 +15,7 @@ every model that these exporters produce:
 Qualcomm-Exporter is out of scope until that library is complete.
 
 `vNEXT` adds only the features that these models need. The spec lists the other features in
-[Considered and deliberately not added](../../specs/model-sidecar/changelog.md#considered-and-deliberately-not-added).
+[Considered and deliberately not added](../changelog.md#considered-and-deliberately-not-added).
 This entry groups them:
 
 - Resize: `resize.antialias`, `resize.size_divisor`, `crop_policy.border_mode` and rotated crops.
@@ -35,13 +35,13 @@ rules include:
 - the `boxes`, `scores` and `class_logits` output semantics, with `class_axis`;
 - `selection: top_k`, with `class_id_map`.
 
-`vNEXT` is a placeholder name for this revision. [0014](0014-spec-lifecycle.md) holds the rule for
+`vNEXT` is a placeholder name for this revision. [0014](../../../decisions/0014-spec-lifecycle.md) holds the rule for
 when a release version replaces it.
 
 ## Reason
 
 - No model in scope needs most of the listed features. Each row of the
-  [spec table](../../specs/model-sidecar/changelog.md#considered-and-deliberately-not-added) gives its own reason.
+  [spec table](../changelog.md#considered-and-deliberately-not-added) gives its own reason.
 - Some rows give another reason:
   - For `score_activation: softmax`, the behaviour over gap and background slots is unresolved.
   - For `nms.pre_nms_top_k`, a flat candidate list cannot express the per-level `nms_pre` cap of mmdet.
@@ -64,7 +64,7 @@ revision can add the feature if a multi-class NMS-free family appears.
 ## Alternatives rejected
 
 - Adopt the whole Roboflow-Exporter draft that
-  [the exporter coverage plan](../sidecar-exporter-coverage.md) starts from.
+  [the exporter coverage plan](../../../notes/sidecar-exporter-coverage.md) starts from.
   The draft has fields that no exported model uses. The coverage plan trims them.
 
 ## Not repeated
@@ -73,3 +73,5 @@ revision can add the feature if a multi-class NMS-free family appears.
 - Do not remove an RF-DETR rule because the spec has no RF-DETR example.
 
 _Edited 2026-10-26 (this PR): link repair._
+
+_Edited 2026-10-28 (this PR): link repair._

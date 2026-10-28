@@ -48,7 +48,7 @@ This entry supersedes [0001](0001-decision-log-and-agents-md.md) in full. It res
 
 - A rule can be in one of three places: the root file, a nested file or a skill. The root file lists
   the nested files and the skills.
-- [`tools/check_links.py`](../../tools/check_links.py) checks the links of each `AGENTS.md` at any
+- [`tools/check_links.py`](../tools/check_links.py) checks the links of each `AGENTS.md` at any
   depth. It skips hidden folders and `plans/`.
 - An agent whose working folder is in another repo does not load a nested file of this repo. The
   rules for exporter agents stay in the exporter guide.
@@ -65,3 +65,5 @@ This entry supersedes [0001](0001-decision-log-and-agents-md.md) in full. It res
 
 - Do not add rules to a `CLAUDE.md`. Add them to the `AGENTS.md` of that folder.
 - Do not remove an old heading of the root `AGENTS.md`. Absorbed entries link to it.
+
+_Edited 2026-10-28 (this PR): link repair._

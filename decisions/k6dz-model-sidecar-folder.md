@@ -5,9 +5,9 @@
 ## Decision
 
 1. **New name.** The sidecar spec folder moves from `specs/sidecar/` to
-   [`specs/model-sidecar/`](../../specs/model-sidecar/README.md). The permanent entry point moves
+   [`specs/model-sidecar/`](../specs/model-sidecar/README.md). The permanent entry point moves
    from `specs/sidecar-spec.md` into the folder:
-   [`specs/model-sidecar/sidecar-spec.md`](../../specs/model-sidecar/sidecar-spec.md). It keeps each
+   [`specs/model-sidecar/sidecar-spec.md`](../specs/model-sidecar/sidecar-spec.md). It keeps each
    old heading as an anchor. No stub stays at an old path.
 2. **A move only.** The move changes no rule. The section files change only their paths to the
    folder. The section IDs, the rule IDs, the anchors and the `schema_version` values do not change.
@@ -52,3 +52,5 @@
   search for the spec path give two results.
 - **Rename only the title of the spec.** The folder name stays the same as the code folders
   `core/sidecar/` and `tests/sidecar/`.
+
+_Edited 2026-10-28 (this PR): link repair._

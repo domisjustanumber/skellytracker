@@ -14,7 +14,7 @@ Keep technical names, field names, values, formulas, code and YAML unchanged.
 |---|---|
 | `AGENTS.md` | The single instructions file for coding agents |
 | `CLAUDE.md` | Imports this file. It has no other content. |
-| `notes/decisions/` | Decision log ([`README.md`](notes/decisions/README.md)) and its open work ([`open-work.md`](notes/decisions/open-work.md)) |
+| `decisions/` | Decision log ([`README.md`](decisions/README.md)) and its open work ([`open-work.md`](decisions/open-work.md)) |
 | `tools/` | The doc checks: `check_decision_log.py`, `check_links.py` and `check_private_data.py`. Their tests are in `tools/tests/`. |
 | `plans/` | A local working folder. Git ignores it. |
 | {{PATH}} | {{ROLE}} |
@@ -54,13 +54,13 @@ Do not change code that your task does not need.
 
 ## 5. Decision Log
 
-Read [`notes/decisions/README.md`](notes/decisions/README.md) and
-[`notes/decisions/open-work.md`](notes/decisions/open-work.md) before you change {{AREAS}} or these
+Read [`decisions/README.md`](decisions/README.md) and
+[`decisions/open-work.md`](decisions/open-work.md) before you change {{AREAS}} or these
 instructions.
 The log records decisions and the evidence behind them.
 Then read the Active entries of the index that apply to your task.
 Read a Proposed entry only for work in its section, or when a skill tells you to.
-Read an entry of [`historical.md`](notes/decisions/historical.md) only to find the reason for a
+Read an entry of [`historical.md`](decisions/historical.md) only to find the reason for a
 decision.
 Add one entry for each new decision or measurement.
 An entry has a random upper-case ID of 4 characters, for example `K7M2`.
@@ -71,7 +71,7 @@ Create the entry file immediately.
 Add its index row at the end of the table for its status, in the same PR.
 The pre-push hook runs `uv run python tools/check_decision_log.py --collisions`.
 It stops the push when an entry of this tree must change its ID.
-Act on each `re-ID:` line. The index [Rules](notes/decisions/README.md#rules) give the steps.
+Act on each `re-ID:` line. The index [Rules](decisions/README.md#rules) give the steps.
 Do not change an ID for a different reason.
 Do not keep two index rows with one ID when you resolve a merge conflict.
 Do not rewrite the body of an entry that is not `proposed`.
@@ -99,7 +99,7 @@ Do not import a file, a test or a tool from another repository.
 ## 6. Git Rules
 
 - `plans/` is a local working folder. Git ignores it. Do not commit it (decision
-  [0001](notes/decisions/0001-decision-log-agents-md-and-private-data.md)).
+  [0001](decisions/0001-decision-log-agents-md-and-private-data.md)).
 - Do not push to a git remote without the approval of the user.
 - Ask the user before any other action that is visible outside this machine, for example a PR, a
   PR comment, a release or a published image.
@@ -116,7 +116,7 @@ Write the summary in the message text, not only in the tool description.
 ## 8. Private Data
 
 This repository is public, or it can become public. Git history is permanent (decision
-[0001](notes/decisions/0001-decision-log-agents-md-and-private-data.md)).
+[0001](decisions/0001-decision-log-agents-md-and-private-data.md)).
 Do not write these in a tracked file, a commit message or a PR body:
 
 - a credential, a token, a password or a private key;

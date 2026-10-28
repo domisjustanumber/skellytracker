@@ -46,7 +46,7 @@ contributor.
 | Changelog, "Considered and deliberately not added" | [changelog.md](../../../specs/model-sidecar/changelog.md#considered-and-deliberately-not-added) | `../freemocap/skellytracker/specs/model-sidecar/changelog.md` |
 | Section map and validation index | [README.md](../../../specs/model-sidecar/README.md#section-map) | `../freemocap/skellytracker/specs/model-sidecar/README.md` |
 | skellytracker package code (for part 6) | [skellytracker/](../../../skellytracker/) | `../freemocap/skellytracker/skellytracker/` |
-| Decision log (for a skellytracker session) | [README.md](../../../notes/decisions/README.md) | `../freemocap/skellytracker/notes/decisions/README.md` |
+| Decision log (for a skellytracker session) | [README.md](../../../specs/model-sidecar/decisions/README.md) | `../freemocap/skellytracker/specs/model-sidecar/decisions/README.md` |
 
 ## Inputs
 
@@ -78,10 +78,10 @@ In skellytracker:
 | An exporter repo | `plans/sidecar/proposals/<slug>/reference/<section_module>.py`, the reference implementation of part 3. It exists also when no host code exists yet. |
 | An exporter repo | The parity script of part 5, committed in the exporter repo. |
 | An exporter repo | A link to each proposal in the intake. |
-| skellytracker | `specs/model-sidecar/proposals/<slug>/`: `proposal.md` with the eight parts in full ([faac](../../../notes/decisions/faac-proposal-records.md)), and the other files of the exporter folder. |
+| skellytracker | `specs/model-sidecar/proposals/<slug>/`: `proposal.md` with the eight parts in full ([faac](../../../decisions/faac-proposal-records.md)), and the other files of the exporter folder. |
 | skellytracker | A row in the proposal index [`specs/model-sidecar/proposals/README.md`](../../../specs/model-sidecar/proposals/README.md). |
-| skellytracker | `notes/decisions/<id>-<slug>.md`: a short decision entry "Spec change: <slug>", with the status `proposed`. |
-| skellytracker | A row for the entry in the Proposed table of [`notes/decisions/README.md`](../../../notes/decisions/README.md). |
+| skellytracker | `specs/model-sidecar/decisions/<id>-<slug>.md`: a short decision entry "Spec change: <slug>", with the status `proposed`. |
+| skellytracker | A row for the entry in the Proposed table of [`specs/model-sidecar/decisions/README.md`](../../../specs/model-sidecar/decisions/README.md). |
 
 ## Procedure in an exporter repo
 
@@ -97,7 +97,7 @@ In skellytracker:
    [Considered and deliberately not added](../../../specs/model-sidecar/changelog.md#considered-and-deliberately-not-added).
    If your gap is in it, cite the row in part 1. Give the evidence that a model needs the feature now.
 4. Find the `proposed` entries that cover your rows. Read the Proposed table of the
-   [decision log](../../../notes/decisions/README.md#proposed). Read each entry whose Section cell
+   [decision log](../../../specs/model-sidecar/decisions/README.md#proposed). Read each entry whose Section cell
    is one of your sections or `none`. Also read each `proposed` entry that the "Authoring
    guidance" or the "Implementer guidance" of your sections cites.
 5. If a `proposed` entry covers your rows, do not write a competing proposal. Do these steps:
@@ -134,7 +134,7 @@ In skellytracker:
    | 1 | [1. Gap](../../../specs/model-sidecar/templates/change-proposal.md#1-gap) | Give a number where possible. |
    | 2 | [2. Spec change](../../../specs/model-sidecar/templates/change-proposal.md#2-spec-change) | Write the exact normative text in ASD-STE100. List each place that the change edits. |
    | 3 | [3. Reference implementation](../../../specs/model-sidecar/templates/change-proposal.md#3-reference-implementation) | Use only NumPy, OpenCV and the Python standard library. Write `reference/<section_module>.py` in the proposal folder. If no host code exists yet, write the functions from the text of part 2, and write `source commit: none (no host code)` in the note at the top of the file. |
-   | 4 | [4. Vectors](../../../specs/model-sidecar/templates/change-proposal.md#4-vectors) | Make the vectors with part 3. Verify them against the host implementation. If you cannot, write `unverified: <reason>`. Give each pixel case a tolerance in `compare`. Write the cases to `vectors/<section ID>.yaml` in the proposal folder, in the case form of the template (ADR-[a33q](../../../notes/decisions/a33q-vector-case-form.md)). |
+   | 4 | [4. Vectors](../../../specs/model-sidecar/templates/change-proposal.md#4-vectors) | Make the vectors with part 3. Verify them against the host implementation. If you cannot, write `unverified: <reason>`. Give each pixel case a tolerance in `compare`. Write the cases to `vectors/<section ID>.yaml` in the proposal folder, in the case form of the template (ADR-[a33q](../../../decisions/a33q-vector-case-form.md)). |
    | 5 | [5. Parity evidence](../../../specs/model-sidecar/templates/change-proposal.md#5-parity-evidence) | Follow [Parity](../../../specs/model-sidecar/model-addition-workflow/parity.md#parity). Commit the script. If you cannot run the script or commit it, write `to run` and describe the script. If you do not know the path or the commit of the script, write `unknown (<reason>)`. |
    | 6 | [6. skellytracker implementation proposal](../../../specs/model-sidecar/templates/change-proposal.md#6-skellytracker-implementation-proposal) | Read the package code in the checkout. If a call site is not known, write `for the implementer`. |
    | 7 | [7. Exporter impact](../../../specs/model-sidecar/templates/change-proposal.md#7-exporter-impact) | Name each exporter that must write new fields or regenerate sidecars. |
@@ -171,13 +171,13 @@ In skellytracker:
 
 1. Read [section 4](../../../AGENTS.md#4-sidecar-rules) and
    [section 5](../../../AGENTS.md#5-decision-log) of `AGENTS.md`.
-2. Read the [Rules](../../../notes/decisions/README.md#rules) and the
-   [entry template](../../../notes/decisions/template.md) of the decision log.
+2. Read the [Rules](../../../decisions/README.md#rules) and the
+   [entry template](../../../decisions/template.md) of the decision log.
 3. Read the index of the decision log. If an entry already records the proposal, do not add a second
    entry. If the exporter changed the proposal after the copy, do the steps of
    [Record a changed proposal](#record-a-changed-proposal).
 4. If a `proposed` entry covers the same property as the exporter proposal, read the entry:
-   - If it is a gap record (see [Rules](../../../notes/decisions/README.md#rules)) and the exporter
+   - If it is a gap record (see [Rules](../../../decisions/README.md#rules)) and the exporter
      proposal builds on it (the same slug, and the entry is cited in the header), add the proposal
      to the gap record (Step 4, item 9).
    - Otherwise, do not add a competing entry. Tell the user the two items. The user decides.
@@ -195,7 +195,7 @@ In skellytracker:
 5. For a gap that a skellytracker session finds, write the eight parts yourself with the template.
    If the evidence gives only the gap and the direction of a change (for example, no exporter has
    host code or a parity script yet), write a gap record instead
-   ([Rules](../../../notes/decisions/README.md#rules)). Start its Decision section with
+   ([Rules](../../../decisions/README.md#rules)). Start its Decision section with
    "**Proposed, not decided.** This entry is a gap record". Say which work the full proposal must do.
 6. Parts 3, 4 and 5 need an exporter implementation. If none exists, write `none` and the reason in
    part 3 and in part 5.
@@ -205,7 +205,7 @@ In skellytracker:
 
 ### Step 3: Copy the proposal into the spec folder
 
-Decision [faac](../../../notes/decisions/faac-proposal-records.md) gives the rules of this step.
+Decision [faac](../../../decisions/faac-proposal-records.md) gives the rules of this step.
 
 1. Create `specs/model-sidecar/proposals/<slug>/proposal.md`. Use the slug of the proposal. The file is
    informative. It is not normative until a content PR lands its text in the section files.
@@ -218,7 +218,7 @@ Decision [faac](../../../notes/decisions/faac-proposal-records.md) gives the rul
    (`reference/`, `vectors/`, `evidence.md` and `example/`) to the same paths in
    `specs/model-sidecar/proposals/<slug>/`. Apply the changes of item 5 to each file. An exporter
    proposal with an old name has part 3 and part 4 in the file: copy them as a `python` code block
-   and a `yaml` code block (ADR-[pykx](../../../notes/decisions/pykx-submission-folders.md)).
+   and a `yaml` code block (ADR-[pykx](../../../decisions/pykx-submission-folders.md)).
 5. Change only these items:
    - a `plans/` path becomes "the untracked <topic> plan of <repo> (plan facts)", with no path;
    - private data is redacted ([Private data](../../../AGENTS.md#8-private-data));
@@ -228,7 +228,7 @@ Decision [faac](../../../notes/decisions/faac-proposal-records.md) gives the rul
    - a relative link that does not resolve in skellytracker becomes a code span;
    - a path under `specs/sidecar/` becomes the same path under `specs/model-sidecar/`, and
      `specs/sidecar-spec.md` becomes `specs/model-sidecar/sidecar-spec.md`
-     ([k6dz](../../../notes/decisions/k6dz-model-sidecar-folder.md)).
+     ([k6dz](../../../decisions/k6dz-model-sidecar-folder.md)).
 6. Do not write a missing part. Do not correct the text of a part.
 7. Add the heading "Before acceptance" at the end. List each failed item of
    [Before you stop](../../../specs/model-sidecar/templates/change-proposal.md#before-you-stop), the
@@ -249,7 +249,7 @@ Decision [faac](../../../notes/decisions/faac-proposal-records.md) gives the rul
 1. Run `git fetch --all` when you can. Then run `uv run python tools/check_decision_log.py --new`.
    Give the entry the ID of the `new:` line ([section 5](../../../AGENTS.md#5-decision-log) of
    `AGENTS.md`).
-2. Name the file `notes/decisions/<id>-<slug>.md`. Use the slug of the proposal. The title is
+2. Name the file `specs/model-sidecar/decisions/<id>-<slug>.md`. Use the slug of the proposal. The title is
    "<id> — Spec change: <slug>". In the front matter of `proposal.md`, write the ID in quotes, for
    example `decision: "gtwq"`.
 3. Write the status line: `**Status:** proposed, <YYYY-MM-DD> (<source>).` The source names the
@@ -260,7 +260,7 @@ Decision [faac](../../../notes/decisions/faac-proposal-records.md) gives the rul
 5. In Reason, give the gap (part 1) in a few sentences. In Evidence, give the parity state (part 5).
    In Open work, write only the link to the open-work list.
 6. Keep the entry inside the entry limit
-   ([z934](../../../notes/decisions/z934-decision-log-index-and-read-path.md)). The details stay in
+   ([z934](../../../decisions/z934-decision-log-index-and-read-path.md)). The details stay in
    `proposal.md`.
 7. Write the repo name with the ID of an exporter decision, for example "OpenMMLab-Exporter
    0020". Write the entry in ASD-STE100.
@@ -271,7 +271,7 @@ Decision [faac](../../../notes/decisions/faac-proposal-records.md) gives the rul
    and 8 do not apply. Write the Decision of item 4. Move the original
    text under Reason. Remove the sentence "This entry is a gap record". Keep the status `proposed`.
    Add `completed <YYYY-MM-DD> (<source>)` to its status line
-   ([gtwq](../../../notes/decisions/gtwq-random-entry-ids.md)).
+   ([gtwq](../../../decisions/gtwq-random-entry-ids.md)).
 10. If the proposal supersedes an accepted entry on acceptance, write the superseding entry now, with
     the status `proposed`. When its restated rules do not fit the entry limit, link to
     `supersedes-<id>.md` in the proposal folder.
@@ -282,14 +282,14 @@ Decision [faac](../../../notes/decisions/faac-proposal-records.md) gives the rul
    accepts the proposal.
 2. Run `uv run pytest tools/tests -q`. All tests must pass.
 3. The proposal file and the entry are a non-spec change. Put them in a non-spec PR
-   ([0027](../../../notes/decisions/0027-single-working-branch.md#one-kind-of-change-in-each-pr)).
+   ([0027](../../../decisions/0027-single-working-branch.md#one-kind-of-change-in-each-pr)).
 4. Stop. Tell the user the entry number and the decision to make.
 5. The user accepts or rejects the proposal. After acceptance, use the skill
    [`change-sidecar-spec`](../change-sidecar-spec/SKILL.md).
 
 ### Record a changed proposal
 
-Decision [vac0](../../../notes/decisions/vac0-record-a-changed-proposal.md) gives the rules of this
+Decision [vac0](../../../decisions/vac0-record-a-changed-proposal.md) gives the rules of this
 procedure. Do it when the exporter file of a proposal with `state: recorded` changed after the copy
 that the source note of `proposal.md` gives. Procedure B step 4 of
 [`change-sidecar-spec`](../change-sidecar-spec/SKILL.md) stops a landing until the new record exists.

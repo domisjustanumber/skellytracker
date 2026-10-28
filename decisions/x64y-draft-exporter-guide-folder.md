@@ -9,7 +9,7 @@ This entry supersedes [0034](0034-sidecar-guide-folder.md) in full
 Items 1 and 4 replace its rule "all guidance for exporters is in one folder".
 
 1. **The workflow.** The process that adds a model and that requests a spec change is in
-   [`specs/model-sidecar/model-addition-workflow/`](../../specs/model-sidecar/model-addition-workflow/README.md),
+   [`specs/model-sidecar/model-addition-workflow/`](../specs/model-sidecar/model-addition-workflow/README.md),
    with the title "Model addition workflow" ("new-model workflow" is a second name). It is the same
    for an exporter agent, a human contributor and a skellytracker session. It also holds the rules
    that apply to each contributor that writes a sidecar: `sidecar-files.md` (Independence, Sidecar
@@ -27,7 +27,7 @@ Items 1 and 4 replace its rule "all guidance for exporters is in one folder".
    files are relative. In the workflow and in the draft guide, each file starts with one `#` title,
    and a file stays small. A `README.md` lists the files of its folder.
 4. **The draft guide.** The guide to build an exporter is in
-   [`specs/draft/exporter-guide/`](../../specs/draft/exporter-guide/README.md). It is not complete.
+   [`specs/draft/exporter-guide/`](../specs/draft/exporter-guide/README.md). It is not complete.
    It holds only the guidance that exporters need. Its `README.md` gives the status, the owner and
    the file list, and links to the workflow. `sidecars/` holds `README.md` (how to use the guide, the
    block for the exporter `AGENTS.md` and the "Sidecars" section), `where-to-read.md` (the checkout
@@ -78,3 +78,5 @@ Items 1 and 4 replace its rule "all guidance for exporters is in one folder".
   to each contributor.
 - **A stub at the old entry point.** It keeps a second place to read, and each search of a path
   gives more results.
+
+_Edited 2026-10-28 (this PR): link repair._

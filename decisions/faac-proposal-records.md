@@ -1,6 +1,6 @@
 # faac — Spec change proposals: the proposal folder, with no open-work line for each proposal
 
-**Status:** absorbed into [`propose-sidecar-change/SKILL.md#step-3-copy-the-proposal-into-the-spec-folder`](../../.claude/skills/propose-sidecar-change/SKILL.md#step-3-copy-the-proposal-into-the-spec-folder), 2026-10-25 (user; the absorption review).
+**Status:** absorbed into [`propose-sidecar-change/SKILL.md#step-3-copy-the-proposal-into-the-spec-folder`](../.claude/skills/propose-sidecar-change/SKILL.md#step-3-copy-the-proposal-into-the-spec-folder), 2026-10-25 (user; the absorption review).
 
 ## Decision
 
@@ -31,7 +31,7 @@ of 0036. It replaces item 10. 0036 keeps the reasons for the rules that stay.
 5. **Other files.** The folder can also hold long text that belongs to the proposal: draft text of
    an entry that the proposal supersedes on acceptance, when the entry limit cannot hold it
    (`supersedes-<id>.md`), and long evidence (`evidence.md`).
-6. **Proposal index.** [`specs/model-sidecar/proposals/README.md`](../../specs/model-sidecar/proposals/README.md)
+6. **Proposal index.** [`specs/model-sidecar/proposals/README.md`](../specs/model-sidecar/proposals/README.md)
    has one row for each proposal: the proposal, the section, the exporter, the decision entry and the
    state.
 7. **The decision record.** Each proposed spec change has a short decision entry with the status
@@ -73,3 +73,5 @@ a proposal becomes a decision entry with the status `proposed`.
   name.
 
 _Edited 2026-10-26 (this PR): link repair._
+
+_Edited 2026-10-28 (this PR): link repair._

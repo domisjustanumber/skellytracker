@@ -36,7 +36,7 @@ entry changes, edit the same entry and add `recorded again <YYYY-MM-DD> (<source
 ## Reason
 
 - On 2026-10-25, MediaPipe-Exporter changed `landmark-extra-outputs` at 13:48, after the record at
-  12:24 ([0021](0021-landmark-extra-outputs.md)). Procedure B step 4 said "record the new version
+  12:24 ([0021](../specs/model-sidecar/decisions/0021-landmark-extra-outputs.md)). Procedure B step 4 said "record the new version
   first", but no skill step said how. The skill `propose-sidecar-change` (Step 1 item 3) forbids a
   second entry.
 - Each of the 14 recorded proposals has "Before acceptance" items that only the exporter can close.
@@ -54,3 +54,5 @@ entry changes, edit the same entry and add `recorded again <YYYY-MM-DD> (<source
 - **A new entry for each version.** It makes chains of entries for one decision. The Rules forbid a
   second entry for the same gap.
 - **A rebuilt "Before acceptance" list.** It is shorter, but it loses the record of the closed items.
+
+_Edited 2026-10-28 (this PR): link repair._

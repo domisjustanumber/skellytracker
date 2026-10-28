@@ -6,7 +6,7 @@
 
 **Proposed, not decided.** This entry records the spec change proposal `keypoint-visibility`. The
 eight parts are in
-[`specs/model-sidecar/proposals/keypoint-visibility/proposal.md`](../../specs/model-sidecar/proposals/keypoint-visibility/proposal.md).
+[`specs/model-sidecar/proposals/keypoint-visibility/proposal.md`](../proposals/keypoint-visibility/proposal.md).
 
 - **Section:** a new section `post.pose.visibility` ("Keypoint visibility", file
   `specs/model-sidecar/post/pose-visibility.md`, kind `postprocessor`). The change also edits

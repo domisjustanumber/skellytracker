@@ -1,5 +1,5 @@
 # specs/model-sidecar/inventory.yaml - docs-only. skellytracker does not read it at runtime.
-# It is not the index of a remote sidecar folder (see notes/decisions/0016-sidecar-catalogs.md).
+# It is not the index of a remote sidecar folder (see decisions/0016-sidecar-catalogs.md).
 #
 # examples: the provenance of each reference example under specs/model-sidecar/examples/, keyed by its path
 # there. The procedure to provide or replace an example is in

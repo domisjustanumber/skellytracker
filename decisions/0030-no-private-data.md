@@ -1,6 +1,6 @@
 # 0030 — No private data in tracked files, commits or PR text
 
-**Status:** absorbed into [`AGENTS.md#8-private-data`](../../AGENTS.md#8-private-data), 2026-10-25 (user; the absorption review).
+**Status:** absorbed into [`AGENTS.md#8-private-data`](../AGENTS.md#8-private-data), 2026-10-25 (user; the absorption review).
 
 ## Decision
 
@@ -21,12 +21,12 @@
    [0028](0028-entry-edits-and-citations.md). Then tell the user, because git history keeps the
    data. A credential must also be revoked.
 4. **Tools.**
-   - [`tools/check_private_data.py`](../../tools/check_private_data.py) checks each tracked or new
+   - [`tools/check_private_data.py`](../tools/check_private_data.py) checks each tracked or new
      text file for user paths, email addresses, private IP addresses, tokens and the terms of the
      untracked file `.private-terms`. The doc tests run it.
    - `gitleaks` scans for secrets. The pre-commit hook scans the staged changes. The workflow
-     [`secrets.yml`](../../.github/workflows/secrets.yml) scans the history on each push and PR.
-     [`.gitleaks.toml`](../../.gitleaks.toml) holds the reviewed false positives.
+     [`secrets.yml`](../.github/workflows/secrets.yml) scans the history on each push and PR.
+     [`.gitleaks.toml`](../.gitleaks.toml) holds the reviewed false positives.
    - Run `uv run pre-commit install` once in each clone. The hook runs `gitleaks` and the private-data
      check before each commit.
 5. **GitHub.** Secret scanning and push protection are on for the fork. Turn them on for a private
@@ -68,3 +68,5 @@ Mirror: OpenMMLab-Exporter 0041 (planned).
 - **A tracked list of private terms.** The list would publish the terms.
 - **Rewrite the history to remove the `plans/` paths.** The paths hold only a user name that the
   commit metadata already shows. A rewrite changes the cited SHAs of the PR stack.
+
+_Edited 2026-10-28 (this PR): link repair._

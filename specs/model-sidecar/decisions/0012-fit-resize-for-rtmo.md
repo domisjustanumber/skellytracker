@@ -1,7 +1,7 @@
 # 0012 — `fit` resize for RTMO; `pad_value` is required
 
-**Status:** absorbed into [`pre/resize-fit.md#behaviour`](../../specs/model-sidecar/pre/resize-fit.md#behaviour), 2026-10-24 (user; the first review of
-[0029](0029-decision-log-read-path.md)). It was accepted on 2026-10-22 (backfilled from #81, which adds `fit` as change 2 of the summary in
+**Status:** absorbed into [`pre/resize-fit.md#behaviour`](../pre/resize-fit.md#behaviour), 2026-10-24 (user; the first review of
+[0029](../../../decisions/0029-decision-log-read-path.md)). It was accepted on 2026-10-22 (backfilled from #81, which adds `fit` as change 2 of the summary in
 `specs/sidecar-spec.md` and implements it in `fit_preprocess` and `ResizeSpec`, and from
 OpenMMLab-Exporter 0020, dated 2026-10-21. The user decided on 2026-10-22 that `pad_value` is
 required.)
@@ -21,7 +21,7 @@ required.)
   ```
 
 - The unprojection is the exact inverse of `M`: `x_src = (x - left) / s` and
-  `y_src = (y - top) / s`. See [Unprojection](../../specs/model-sidecar/pre/resize-fit.md#inverse).
+  `y_src = (y - top) / s`. See [Unprojection](../pre/resize-fit.md#inverse).
 - RTMO body7 uses `fit` with `pad_value: 114` and `interpolation: linear`. This matches mmpose
   `BottomupResize`.
 - At `vNEXT`, a `fit` resize must declare `pad_value`. The value is a scalar or an array of three
@@ -29,7 +29,7 @@ required.)
   the raw pixel value before normalization.
 - `pad_position`, `rounding`, `preserve_aspect_ratio` and `crop_policy` are invalid with `fit`.
 - Sidecars older than `vNEXT` do not have `fit`. See
-  [Version-aware compatibility](../../specs/model-sidecar/format/versioning.md#legacy-behaviour).
+  [Version-aware compatibility](../format/versioning.md#legacy-behaviour).
 
 ## Reason
 
@@ -71,15 +71,15 @@ reference). The `letterbox` columns are for `pad_position: center`:
 `input.resize: {method: fit, pad_value: 114, interpolation: linear}` with no `pad_position`,
 `rounding`, `preserve_aspect_ratio` or `crop_policy` (OpenMMLab-Exporter 0020, "Implementation").
 The reference example
-[RTMO body7](../../specs/model-sidecar/examples/README.md#rtmo-body7-openmmlab-exporter-bottom-up-pose-nms-in-the-graph)
+[RTMO body7](../examples/README.md#rtmo-body7-openmmlab-exporter-bottom-up-pose-nms-in-the-graph)
 shows the result.
 
 **Spec.** The `method` and `pad_value` rows of the `fit` rules are in
-[`input.resize`](../../specs/model-sidecar/common/input.md#inputresize). The `fit` algorithm, its closing
-paragraph and its inverse are in [Fit resize](../../specs/model-sidecar/pre/resize-fit.md). The check "A `fit` resize declares `pad_value`" is in
-[Validation rules](../../specs/model-sidecar/pre/resize-fit.md#validation-rules). OpenMMLab-Exporter 0020 listed the
+[`input.resize`](../common/input.md#inputresize). The `fit` algorithm, its closing
+paragraph and its inverse are in [Fit resize](../pre/resize-fit.md). The check "A `fit` resize declares `pad_value`" is in
+[Validation rules](../pre/resize-fit.md#validation-rules). OpenMMLab-Exporter 0020 listed the
 missing `fit` text as open. The normative `fit` text was added to
-[`input.resize`](../../specs/model-sidecar/pre/resize-fit.md) after #81.
+[`input.resize`](../pre/resize-fit.md) after #81.
 
 **Code, checked on 2026-10-22.**
 
@@ -124,3 +124,5 @@ missing `fit` text as open. The normative `fit` text was added to
 See the [Open work](README.md#open-work) list of the decision log.
 
 _Edited 2026-10-26 (this PR): link repair._
+
+_Edited 2026-10-28 (this PR): link repair._

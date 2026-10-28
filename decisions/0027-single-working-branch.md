@@ -1,12 +1,12 @@
 # 0027 — One working branch for the PR stack
 
-**Status:** absorbed into [`AGENTS.md#6-git-rules`](../../AGENTS.md#6-git-rules), 2026-10-25 (user; the absorption review).
+**Status:** absorbed into [`AGENTS.md#6-git-rules`](../AGENTS.md#6-git-rules), 2026-10-25 (user; the absorption review).
 
 ## Decision
 
 This entry supersedes [0015](0015-review-discipline.md). It keeps the rules of 0015, except the
 rules for the branch `dom/sidecar-latest` and the worktree `skellytracker-latest`. 0015 keeps the
-reasons and the evidence for the rules that stay. [`AGENTS.md`](../../AGENTS.md#6-git-rules) gives
+reasons and the evidence for the rules that stay. [`AGENTS.md`](../AGENTS.md#6-git-rules) gives
 the git commands.
 
 ### One kind of change in each PR
@@ -84,3 +84,5 @@ the git commands.
 - Do not commit on a `dom/NN-*` branch. The branches above it do not move.
 - Do not start a rebase below `dom/03-*` without `--rebase-merges`.
 - Do not rename the head branch of an open PR. GitHub closes the PR.
+
+_Edited 2026-10-28 (this PR): link repair._

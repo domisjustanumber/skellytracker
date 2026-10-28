@@ -39,7 +39,7 @@ keeps the reasons and the evidence for the rules that stay.
 7. **Open work.** The open work, the repository state and the spec defects are in
    [`open-work.md`](open-work.md). Delete an item when its work is done, or when the content PR of a
    spec defect lands. The PR that closes an item records the result.
-8. **Limits.** [`tools/check_decision_log.py`](../../tools/check_decision_log.py) counts characters
+8. **Limits.** [`tools/check_decision_log.py`](../tools/check_decision_log.py) counts characters
    after it changes CRLF to LF.
 
    | Limit | Characters | Applies to |
@@ -58,7 +58,7 @@ keeps the reasons and the evidence for the rules that stay.
 10. **Checks.** The tool checks that each entry file has one index row, that each row links to an
     entry file, and that each Status cell has a form of its table. It checks the `NNNN` of each
     status, the Decision cells, the Deferred rule and the limits.
-    [`tools/tests/test_decision_log.py`](../../tools/tests/test_decision_log.py) runs the tool in
+    [`tools/tests/test_decision_log.py`](../tools/tests/test_decision_log.py) runs the tool in
     the doc tests.
 11. **First review.** Examine the accepted entries 0001 to 0016. Mark each entry that a normative
     document states in full as absorbed.
@@ -92,3 +92,5 @@ Mirror: OpenMMLab-Exporter 0040 (planned).
 - **Open work as GitHub issues.** Agents can read a tracked file offline, and the link check covers
   it.
 - **A warning for an old proposal, not a failure.** A warning that does not fail is easy to ignore.
+
+_Edited 2026-10-28 (this PR): link repair._

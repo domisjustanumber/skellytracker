@@ -68,7 +68,7 @@ the exporters in the same cycle.
 
 Write the files of the submission in the folder `plans/sidecar/` of your repo. Each folder holds the
 files of one model or of one proposal. It stays in your repo until skellytracker has landed its
-files (ADR-[pykx](../../../notes/decisions/pykx-submission-folders.md)).
+files (ADR-[pykx](../../../decisions/pykx-submission-folders.md)).
 
 ```text
 plans/sidecar/
@@ -169,11 +169,11 @@ These rules apply only to an agent or a person in an exporter repo:
 ## Decisions
 
 The decisions behind this workflow are in the skellytracker decision log:
-[0013](../../../notes/decisions/0013-spec-structure.md) (section IDs, rule IDs, reference
-implementations and test vectors), [0014](../../../notes/decisions/0014-spec-lifecycle.md) (the spec
+[0013](../../../decisions/0013-spec-structure.md) (section IDs, rule IDs, reference
+implementations and test vectors), [0014](../../../decisions/0014-spec-lifecycle.md) (the spec
 lifecycle, the `vNEXT` rule and the new-model workflow),
-[faac](../../../notes/decisions/faac-proposal-records.md) (the proposal records),
-[vac0](../../../notes/decisions/vac0-record-a-changed-proposal.md) (a changed proposal) and
-[x64y](../../../notes/decisions/x64y-draft-exporter-guide-folder.md) (this folder and the draft
-exporter guide) and [b9fm](../../../notes/decisions/b9fm-finished-sidecar-plans.md) (the reference
+[faac](../../../decisions/faac-proposal-records.md) (the proposal records),
+[vac0](../../../decisions/vac0-record-a-changed-proposal.md) (a changed proposal) and
+[x64y](../../../decisions/x64y-draft-exporter-guide-folder.md) (this folder and the draft
+exporter guide) and [b9fm](../../../decisions/b9fm-finished-sidecar-plans.md) (the reference
 examples procedure).

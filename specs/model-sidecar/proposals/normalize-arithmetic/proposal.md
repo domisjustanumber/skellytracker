@@ -8,7 +8,7 @@ state: recorded
 # Change proposal: normalize-arithmetic
 
 This file is informative. It is not part of the normative spec until a content PR lands its text
-in the section files (decision [0036](../../../../notes/decisions/0036-spec-proposals-folder.md)).
+in the section files (decision [0036](../../../../decisions/0036-spec-proposals-folder.md)).
 
 **Source.** The OpenMMLab-Exporter file of the proposal `normalize-arithmetic`, at
 OpenMMLab-Exporter commit
@@ -59,7 +59,7 @@ user decision T23, 2026-10-24).** The heading "Arithmetic" and the rule `V-pre.n
 to every `schema_version`. The reason: no sidecar is deployed yet, and all sidecars will be made
 again (the untracked pose-models plan of OpenMMLab-Exporter (plan facts), secondary). The spec says that `vNEXT` requirements never
 apply retroactively (skellytracker `specs/model-sidecar/format/versioning.md:51`; skellytracker decision 0009,
-`notes/decisions/0009-imagenet-bgr-meaning.md:15, 39`). The heading adds host requirements, for
+`specs/model-sidecar/decisions/0009-imagenet-bgr-meaning.md:15, 39`). The heading adds host requirements, for
 example the accuracy rule and "do not calculate in float16". The rule adds a validation
 requirement. Thus this proposal adds an exception sentence to `versioning.md:51` (2.1, row
 `format.versioning`). The sentence names the heading and the rule. The proposal
@@ -122,7 +122,7 @@ Changed front matter (the other keys do not change):
 changed_in: [vNEXT]
 implemented_by:
   validate: skellytracker/core/sidecar/model.py::CustomNormalization  # partial. Nothing checks input.color_format against the normalization mode. Nothing checks V-pre.normalize-3.
-  forward: skellytracker/core/detectors/processing/image_preprocessing.py::build_normalization_fn  # partial. imagenet_bgr has only the legacy meaning (notes/decisions/0009-imagenet-bgr-meaning.md). No code reads color_format. The result is float32 for every input.dtype (preprocess_image). The float32 arithmetic meets the accuracy rule.
+  forward: skellytracker/core/detectors/processing/image_preprocessing.py::build_normalization_fn  # partial. imagenet_bgr has only the legacy meaning (specs/model-sidecar/decisions/0009-imagenet-bgr-meaning.md). No code reads color_format. The result is float32 for every input.dtype (preprocess_image). The float32 arithmetic meets the accuracy rule.
 vectors: vectors/pre.normalize.yaml
 status: {spec: stable, validate: partial, forward: partial}
 ```
@@ -287,7 +287,7 @@ Unchanged: `input.normalization=none`, `=unit_float`, `=imagenet_bgr`, `=imagene
 
 - The spec rule: "`vNEXT` requirements never apply retroactively"
   (`format/versioning.md:51`). The skellytracker decision 0009 repeats it: "The spec never applies `vNEXT`
-  requirements to a legacy sidecar" (`notes/decisions/0009-imagenet-bgr-meaning.md:15`, also
+  requirements to a legacy sidecar" (`specs/model-sidecar/decisions/0009-imagenet-bgr-meaning.md:15`, also
   `:39`). The heading "Arithmetic" adds host requirements: the accuracy rule, "The host must not
   calculate the formula in float16", and the cast to `input.dtype`. The rule `V-pre.normalize-3`
   adds a validation requirement.
@@ -1167,7 +1167,7 @@ MediaPipe-Exporter has no sidecar file (no YAML file with `schema_version`).
 | A tolerance only in the parity rules of the exporter guide | The spec is normative, and the guide is not. The value of a host would still be undefined, and the vectors would have no tolerance to test. This proposal changes the guide too, but as a result of the spec text. | `exporter-guide/sidecars/rules.md:3`; 2.1 |
 | A bound in float32 units in the last place (ULP) | It fails near zero. For `p` near the mean, the value is near 0, and a float32 form that meets the rule is up to 310 ULP from `r`. | `norm_forms.py` (the "ulp" column) |
 | A larger bound (for example 1e-4) or a smaller one (for example 2.5e-7) | 1e-6 gives a margin of 3.3 over the worst float32 form in use (0.31 of the bound), and it rejects float16 arithmetic (over all bytes, up to 1011 times the bound in the host order and up to 1697 times in the ViTAE order). A bound of 1e-4 would still reject float16 arithmetic, but it would accept a defect of the statistics in the fourth decimal. A bound near one float32 step rejects valid float32 hosts. The user accepts the bound 1e-6 (N2, plan T23, 2026-10-24). | `norm_forms2.py`; part 4 `conforms-float16-arithmetic` |
-| Option A: the heading "Arithmetic" only at `vNEXT` (a **(vNEXT)** mark on the heading, a legacy row "the formulas only", no edit of `format/versioning.md:51`) | The user selected option B (T21 (3), 2026-10-23): no sidecar is deployed yet, and all sidecars will be made again. Option A keeps the rule that `vNEXT` requirements never apply retroactively, but then a legacy sidecar has no defined value for a pixel, and a host needs two texts for one formula. Option B changes no legacy value: the formulas stay, and the skellytracker float32 values meet the rule. The cost of option B is the exception sentence in `versioning.md:51`, which `affine-crop-arithmetic` shares. | the untracked pose-models plan of OpenMMLab-Exporter (plan facts) (secondary); `format/versioning.md:51`; skellytracker decision 0009 (`notes/decisions/0009-imagenet-bgr-meaning.md:15, 39`); 2.6 |
+| Option A: the heading "Arithmetic" only at `vNEXT` (a **(vNEXT)** mark on the heading, a legacy row "the formulas only", no edit of `format/versioning.md:51`) | The user selected option B (T21 (3), 2026-10-23): no sidecar is deployed yet, and all sidecars will be made again. Option A keeps the rule that `vNEXT` requirements never apply retroactively, but then a legacy sidecar has no defined value for a pixel, and a host needs two texts for one formula. Option B changes no legacy value: the formulas stay, and the skellytracker float32 values meet the rule. The cost of option B is the exception sentence in `versioning.md:51`, which `affine-crop-arithmetic` shares. | the untracked pose-models plan of OpenMMLab-Exporter (plan facts) (secondary); `format/versioning.md:51`; skellytracker decision 0009 (`specs/model-sidecar/decisions/0009-imagenet-bgr-meaning.md:15, 39`); 2.6 |
 | No rule `V-pre.normalize-3` | Then the cast of a negative value to `uint8` has no defined result. The rule is small, and no current sidecar fails it. The user keeps it in this proposal (N3, plan T23, 2026-10-24). | 2.4; part 7 |
 | `V-pre.normalize-3` only at `vNEXT` (the rule with the **(vNEXT)** mark) | The user chose every `schema_version` (N1, plan T23, 2026-10-24), as for the heading "Arithmetic". With the mark, the heading defines no cast for a legacy sidecar with an integer `input.dtype` and a mode other than `none`. No current sidecar fails the rule at its own `schema_version`. The cost: the exception sentence of 2.1 also names the rule. | 2.3, 2.4, 2.6; part 7, "Check of N1"; skellytracker `specs/model-sidecar/README.md:99` |
 | The default-note correction as a separate proposal | It is in the same section and changes no value. It is a known defect (`notes/decisions/open-work.md:125-127`). The user keeps it in this proposal (N3, plan T23, 2026-10-24). | 2.1 |
@@ -1305,7 +1305,7 @@ session checked each item against the proposal text and against the working bran
       an exception to `format/versioning.md:51` ("`vNEXT` requirements never apply retroactively").
       It also conflicts with `AGENTS.md` section 4 ("The meaning of an older `schema_version` never
       changes"), with the same rule in `change-sidecar-spec`, with `changelog.md:30, 57` and with
-      decision [0009](../../../../notes/decisions/0009-imagenet-bgr-meaning.md) (lines 15 and 39).
+      decision [0009](../../decisions/0009-imagenet-bgr-meaning.md) (lines 15 and 39).
       Decide if a new entry must supersede 0009 in full.
 - [ ] The place of the exception sentence. `format/versioning.md:51` has three sentences. 2.1 says
       "Add this sentence after it" about the second sentence ("`vNEXT` requirements never apply

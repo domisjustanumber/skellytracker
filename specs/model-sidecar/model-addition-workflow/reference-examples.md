@@ -4,7 +4,7 @@ This file gives the procedure that adds a reference example to the spec or repla
 skellytracker session does it in [phase 3](phase-3-skellytracker.md), for a model with the verdict
 `describes`. This procedure was the section "Reference examples" of
 [`specs/sidecar-implementation-plan.md`](../../sidecar-implementation-plan.md#reference-examples)
-(decision [b9fm](../../../notes/decisions/b9fm-finished-sidecar-plans.md)).
+(decision [b9fm](../../../decisions/b9fm-finished-sidecar-plans.md)).
 
 ## What the examples are
 
@@ -80,7 +80,7 @@ exports and which examples are forecasts.
    **Fragments.** A fragment is a file that a `$ref` of the sidecar names: a file under
    `detectors/shared/` (a skeleton or a class-id map), or a file next to the sidecar (for example a
    `canonical_mapping` file). The example uses the same relative path. Copy each fragment unchanged
-   (ADR-[yve0](../../../notes/decisions/yve0-example-fragments.md)):
+   (ADR-[yve0](../../../decisions/yve0-example-fragments.md)):
    - If the package has a fragment at the same path with the same bytes, copy it. It has no
      provenance entry.
    - If the package has a fragment at the same path with different bytes, stop. The exporter and the

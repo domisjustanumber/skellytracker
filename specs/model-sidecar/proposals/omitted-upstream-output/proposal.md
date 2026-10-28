@@ -7,7 +7,7 @@ state: recorded
 ---
 # Change proposal: omitted-upstream-output
 
-This file is informative. It is not part of the normative spec until a content PR lands its text in the section files (decision [0036](../../../../notes/decisions/0036-spec-proposals-folder.md)).
+This file is informative. It is not part of the normative spec until a content PR lands its text in the section files (decision [0036](../../../../decisions/0036-spec-proposals-folder.md)).
 
 **Source.** The OpenMMLab-Exporter file of the proposal `omitted-upstream-output`, at OpenMMLab-Exporter commit [`f3aeb47`](https://github.com/domisjustanumber/OpenMMLab-Exporter/tree/f3aeb473d3396ee79c4394646a34ed9ef419ecf1), copied on 2026-10-25. The copy changes only the items of decision 0036, item 3. The session wrote no part.
 
@@ -468,7 +468,7 @@ skellytracker files are on the branch `dom/sidecar-implementation`.
 
 **Parts**
 
-- [x] Part 2, D1 to D3: the supersession of [0014](../../../../notes/decisions/0014-spec-lifecycle.md).
+- [x] Part 2, D1 to D3: the supersession of [0014](../../../../decisions/0014-spec-lifecycle.md).
   The user decided on 2026-10-25 to absorb 0014 into the exporter guide. An absorbed entry is not
   superseded. Thus D1, D2 and D3 do not apply, and `supersedes-0014.md` is deleted. On acceptance,
   the change edits the guide, the model intake template and the skill `author-sidecar` (G1 to G10).
@@ -549,7 +549,7 @@ skellytracker files are on the branch `dom/sidecar-implementation`.
   keeps the mask a `gap`, because "Considered and deliberately not added" lists masks. Condition 1
   fails for the heatmap, because it refines the declared `x` and `y`. Decide if those plans must
   change. Decide also if `omitted` can apply to the per-point presence of BlazePose and to the
-  outputs of gap record [0021](../../../../notes/decisions/0021-landmark-extra-outputs.md).
+  outputs of gap record [0021](../../decisions/0021-landmark-extra-outputs.md).
 - [ ] Decide if the Authoring guidance of `post.pose.decode.simcc` (`pose-decode-simcc.md:58`) names
   the verdict `omitted`. The proposals `keypoint-visibility` and `simcc-score-rule` also change that
   text.

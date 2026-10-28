@@ -1,8 +1,8 @@
 # 0013 — Spec structure: section files, rule owners, examples, reference implementations, traceability, STE
 
-**Status:** absorbed into [`change-sidecar-spec/SKILL.md#rules-for-each-spec-edit`](../../.claude/skills/change-sidecar-spec/SKILL.md#rules-for-each-spec-edit), 2026-10-25 (user; the absorption review).
+**Status:** absorbed into [`change-sidecar-spec/SKILL.md#rules-for-each-spec-edit`](../.claude/skills/change-sidecar-spec/SKILL.md#rules-for-each-spec-edit), 2026-10-25 (user; the absorption review).
 
-The spec is still one file, [`specs/model-sidecar/sidecar-spec.md`](../../specs/model-sidecar/sidecar-spec.md). This entry records
+The spec is still one file, [`specs/model-sidecar/sidecar-spec.md`](../specs/model-sidecar/sidecar-spec.md). This entry records
 the structure that the split into section files makes. The split is a move change, and the rewrite in
 Simplified Technical English (STE) is a rewording change. Each one is a separate PR
 ([0015](0015-review-discipline.md)).
@@ -106,7 +106,7 @@ The body has these headings, in this order:
 - A rule that joins two sections is in the section of the field that it constrains. The other
   section links to it. Examples: role against output semantic; `requires_object_detector` against
   `affine_person_crop`; `packed_keypoints` against the pose decode.
-- Each row of the [Version-aware compatibility](../../specs/model-sidecar/format/versioning.md#version-aware-compatibility)
+- Each row of the [Version-aware compatibility](../specs/model-sidecar/format/versioning.md#version-aware-compatibility)
   table moves into the section that it governs, under the "Legacy behaviour" heading.
   `format/versioning.md` keeps the version comparison rules and an index of these headings.
 
@@ -132,7 +132,7 @@ The body has these headings, in this order:
   remote sidecar folder ([0016](0016-sidecar-catalogs.md)). It holds only the data that a scan cannot
   find: the provenance of each example and the `proposed` models.
 - The procedure to provide or replace an example is in
-  [`specs/sidecar-implementation-plan.md`, "Reference examples"](../../specs/sidecar-implementation-plan.md#reference-examples).
+  [`specs/sidecar-implementation-plan.md`, "Reference examples"](../specs/sidecar-implementation-plan.md#reference-examples).
 
 ### Reference implementations
 
@@ -246,7 +246,7 @@ The body has these headings, in this order:
   gives each section a place for this data, and the trace tool makes a backlog from it.
 - **One feature touches many places.** The spec had `fit` in its summary of changes, and the code
   had `fit`, but the normative text did not. To write it, seven headings of the single file had to
-  change ([0012](0012-fit-resize-for-rtmo.md)). With one owner for each rule and the legacy rows in
+  change ([0012](../specs/model-sidecar/decisions/0012-fit-resize-for-rtmo.md)). With one owner for each rule and the legacy rows in
   their sections, a change to one section needs no edit in other sections. The `Literal` doc test
   finds a value that the code has and no section selects.
 - **Examples are code blocks.** Nothing parses or checks them, so they can drift from the exporters
@@ -281,24 +281,24 @@ The body has these headings, in this order:
 ## Evidence
 
 - `specs/sidecar-spec.md` has 1,625 lines and 106,300 bytes (2026-10-22). The detection `decode` and
-  [Selection behaviour](../../specs/model-sidecar/post/detection-decode.md#selection-behaviour) headings, which hold the NMS
+  [Selection behaviour](../specs/model-sidecar/post/detection-decode.md#selection-behaviour) headings, which hold the NMS
   rules, have 72 lines together.
-- The `fit` spec text ([0012](0012-fit-resize-for-rtmo.md)) changed text under seven headings:
-  [Compatibility impact](../../specs/model-sidecar/changelog.md#compatibility-impact),
-  [`input.resize`](../../specs/model-sidecar/common/input.md#inputresize),
-  [Unprojection](../../specs/model-sidecar/post/unprojection.md),
-  [`sizes`](../../specs/model-sidecar/common/sizes-and-artifacts.md#sizes),
-  [Version-aware compatibility](../../specs/model-sidecar/format/versioning.md#version-aware-compatibility),
-  [Validation rules](../../specs/model-sidecar/README.md#validation-rules) and
-  [Changelog](../../specs/model-sidecar/changelog.md#schema_version-history).
+- The `fit` spec text ([0012](../specs/model-sidecar/decisions/0012-fit-resize-for-rtmo.md)) changed text under seven headings:
+  [Compatibility impact](../specs/model-sidecar/changelog.md#compatibility-impact),
+  [`input.resize`](../specs/model-sidecar/common/input.md#inputresize),
+  [Unprojection](../specs/model-sidecar/post/unprojection.md),
+  [`sizes`](../specs/model-sidecar/common/sizes-and-artifacts.md#sizes),
+  [Version-aware compatibility](../specs/model-sidecar/format/versioning.md#version-aware-compatibility),
+  [Validation rules](../specs/model-sidecar/README.md#validation-rules) and
+  [Changelog](../specs/model-sidecar/changelog.md#schema_version-history).
 - `_StrictModel` in `skellytracker/core/sidecar/model.py` sets `extra="forbid"`, and `SidecarModel`
   has no `source` field.
 - OpenMMLab-Exporter, Roboflow-Exporter and Ultralytics-Exporter list `exports/` in `.gitignore`.
   The RTMO body7 example comes from OpenMMLab-Exporter's tracked copy,
-  `notes/decisions/rtmo-body7.yaml` ([Reference examples](../../specs/model-sidecar/examples/README.md)).
+  `notes/decisions/rtmo-body7.yaml` ([Reference examples](../specs/model-sidecar/examples/README.md)).
 - A comparison on 2026-10-22 found that the RTMW example had drifted from its export, and that the
   YOLO26 examples are forecasts
-  ([`specs/sidecar-implementation-plan.md`, "Reference examples"](../../specs/sidecar-implementation-plan.md#reference-examples)).
+  ([`specs/sidecar-implementation-plan.md`, "Reference examples"](../specs/sidecar-implementation-plan.md#reference-examples)).
 - OpenMMLab-Exporter has its own checker. `notes/decisions/scripts/rtmo_sidecar_probe.py` implements
   19 `vNEXT` rules again (OpenMMLab-Exporter 0020). Each such checker is one more reading of the
   rules.
@@ -334,3 +334,5 @@ The body has these headings, in this order:
 - Do not reword existing changelog rows.
 
 _Edited 2026-10-26 (this PR): link repair._
+
+_Edited 2026-10-28 (this PR): link repair._

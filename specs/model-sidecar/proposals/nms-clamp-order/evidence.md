@@ -1,11 +1,11 @@
 # 0041 evidence — RTMDet: host `selection: nms` with the mmdet candidate filters, clamp and visit order
 
-Evidence for [0041](../../../../notes/decisions/0041-rtmdet-host-nms-filters.md). This file is not an
+Evidence for [0041](../../decisions/0041-rtmdet-host-nms-filters.md). This file is not an
 entry. It has no status line and no index row.
 
 ## Evidence of 0011
 
-This section is the section "Evidence" of [0011](../../../../notes/decisions/0011-rtmdet-host-nms.md),
+This section is the section "Evidence" of [0011](../../decisions/0011-rtmdet-host-nms.md),
 moved unchanged. Only its two relative links changed, for the new folder.
 
 The measurements come from OpenMMLab-Exporter 0009 and OpenMMLab-Exporter 0016 (both dated

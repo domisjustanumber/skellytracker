@@ -8,7 +8,7 @@ state: recorded
 # Change proposal: affine-crop-arithmetic
 
 This file is informative. It is not part of the normative spec until a content PR lands its text
-in the section files (decision [0036](../../../../notes/decisions/0036-spec-proposals-folder.md)).
+in the section files (decision [0036](../../../../decisions/0036-spec-proposals-folder.md)).
 
 **Source.** The OpenMMLab-Exporter file of the proposal `affine-crop-arithmetic`, at
 OpenMMLab-Exporter commit
@@ -1803,7 +1803,7 @@ This list gives the work that must be done before the user can accept the propos
     `test_the_unprojection_inverts_the_resize_of_the_case` (lines 587-609 and 653-657). The last
     four functions use the inverse of `M`.
   - A doc test in `tools/tests` that runs each reference function against the vectors of its
-    section ([0013](../../../../notes/decisions/0013-spec-structure.md), line 152). No such test
+    section ([0013](../../../../decisions/0013-spec-structure.md), line 152). No such test
     exists.
   - `specs/model-sidecar/templates/model-intake.md`, lines 249-255 and row T6 (line 267). After A2, the
     text "The spec does not say yet what a scalar fills" is false.
@@ -1882,7 +1882,7 @@ This list gives the work that must be done before the user can accept the propos
   meaning of an older `schema_version` never changes"), `format/versioning.md` line 51, the
   change proposal template (lines 178 and 364), the heading "Legacy behaviour" of the skill
   `change-sidecar-spec`, `changelog.md` lines 30 and 57, and decision
-  [0009](../../../../notes/decisions/0009-imagenet-bgr-meaning.md). The output of the four package
+  [0009](../../decisions/0009-imagenet-bgr-meaning.md). The output of the four package
   sidecars changes by float32 rounding, and some crop pixels change by 1. The exporter plan decision
   T21 (3) is for `normalize-arithmetic` only. This proposal applies it by analogy. Accept or reject
   this exception. Decide if decision 0009 needs a new entry that supersedes it.
@@ -1901,8 +1901,8 @@ This list gives the work that must be done before the user can accept the propos
   `cv2.warpAffine`. `cv2.warpAffine` puts the pixel centres at integer coordinates.
   `pre/interpolation.md` says "half-pixel centres" for `cv2.warpAffine`. The open-work items at
   lines 137-140 and line 176 stay open. Decide if the text can stand.
-- [ ] Decisions [0013](../../../../notes/decisions/0013-spec-structure.md) (line 149) and
-  [0014](../../../../notes/decisions/0014-spec-lifecycle.md) (line 171) say "There is no reference
+- [ ] Decisions [0013](../../../../decisions/0013-spec-structure.md) (line 149) and
+  [0014](../../../../decisions/0014-spec-lifecycle.md) (line 171) say "There is no reference
   implementation yet". This becomes false when the first reference file lands. Decide how to record
   it.
 - [ ] Decide if the landing session can remove the plan paths and the commits from the reference
@@ -1911,13 +1911,13 @@ This list gives the work that must be done before the user can accept the propos
 **Merge points**
 
 - [ ] `normalize-arithmetic`
-  ([0043](../../../../notes/decisions/0043-normalize-arithmetic.md)). The two proposals share one
+  ([0043](../../decisions/0043-normalize-arithmetic.md)). The two proposals share one
   exception sentence after `format/versioning.md` line 51. Add it one time. If
   `normalize-arithmetic` lands alone, remove the part of this proposal. Its link to
   `../pre/resize-affine-person-crop.md#arithmetic` fails the link test until this proposal lands.
   Both proposals also edit `open-work.md` line 168 and the "Compatibility impact" list.
 - [ ] `roi-transform-and-source` (MediaPipe-Exporter,
-  [0020](../../../../notes/decisions/0020-roi-transform-and-source.md)). Both proposals edit the
+  [0020](../../decisions/0020-roi-transform-and-source.md)). Both proposals edit the
   front matter, "Behaviour" line 41, the "Validation rules" (rule -2 there, rule -3 here),
   "Authoring guidance" lines 76-81 of the section file, `V-common.input-4` (add `arithmetic` to its
   closed key set) and row T4b of `model-intake.md`. Either can land first. The content PR that lands
@@ -1926,16 +1926,16 @@ This list gives the work that must be done before the user can accept the propos
   legacy difference in the "Legacy behaviour" heading of its section. Decide where the legacy text
   of rule -2 goes.
 - [ ] `pose-decode-flip-test`
-  ([0045](../../../../notes/decisions/0045-pose-decode-flip-test.md)) edits "Implementer guidance"
+  ([0045](../../decisions/0045-pose-decode-flip-test.md)) edits "Implementer guidance"
   line 72 of the section file.
 - [ ] `heatmap-decode-refinement`
-  ([0038](../../../../notes/decisions/0038-heatmap-decode-refinement.md)) maps the heatmap cells to
+  ([0038](../../decisions/0038-heatmap-decode-refinement.md)) maps the heatmap cells to
   model-input pixels before this Inverse. One parity script and one ViTAE worker can serve both.
-- [ ] `simcc-score-rule` ([0024](../../../../notes/decisions/0024-simcc-score-rule.md)),
+- [ ] `simcc-score-rule` ([0024](../../decisions/0024-simcc-score-rule.md)),
   `heatmap-decode-refinement`, `model-id-suffix`
-  ([0025](../../../../notes/decisions/0025-model-id-suffix.md)), `size-codes`
-  ([0046](../../../../notes/decisions/0046-size-codes.md)) and `keypoint-visibility`
-  ([0039](../../../../notes/decisions/0039-keypoint-visibility.md)) also edit the list of
+  ([0025](../../decisions/0025-model-id-suffix.md)), `size-codes`
+  ([0046](../../decisions/0046-size-codes.md)) and `keypoint-visibility`
+  ([0039](../../decisions/0039-keypoint-visibility.md)) also edit the list of
   `format/versioning.md` lines 53-63, the `changelog.md` rows, `BUILDERS` of
   `tools/make_vectors.py` and `CASE_KEYS` of `tools/tests/test_vectors.py`.
 - [ ] All 13 spec proposals add a row to "Summary of changes" and a sentence to the `vNEXT` row of

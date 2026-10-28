@@ -1,11 +1,11 @@
 # 0002 — Sidecars are tracked in the package tree; ONNX files are not
 
-**Status:** absorbed into [`common/sizes-and-artifacts.md#implementer-guidance`](../../specs/model-sidecar/common/sizes-and-artifacts.md#implementer-guidance), 2026-10-25 (user; the absorption review).
+**Status:** absorbed into [`common/sizes-and-artifacts.md#implementer-guidance`](../specs/model-sidecar/common/sizes-and-artifacts.md#implementer-guidance), 2026-10-25 (user; the absorption review).
 
 ## Decision
 
 - Git tracks each sidecar YAML file inside the package tree. The paths follow
-  [Storage layout](../../specs/model-sidecar/format/file-layout.md#storage-layout) in the spec:
+  [Storage layout](../specs/model-sidecar/format/file-layout.md#storage-layout) in the spec:
   - `skellytracker/core/detectors/object_detectors/{family}/{model_id}.yaml`
   - `skellytracker/core/detectors/keypoint_detectors/{family}/{part}/{model_id}.yaml`
 - Git does not track ONNX files. `OnnxSession.create()` fetches each ONNX file at run time. It calls
@@ -34,7 +34,7 @@
   arguments are enough. A second download path is not needed.
 - The sidecar `filename` sets the cache file name. It replaces the name that came from the URL tail. The
   user decided this during the YOLOX migration (see
-  [M3 — YOLOX migration](../../specs/sidecar-implementation-plan.md#m3--yolox-migration)).
+  [M3 — YOLOX migration](../specs/sidecar-implementation-plan.md#m3--yolox-migration)).
 - No reason was recorded for leaving out the cache in the sidecar directory.
 
 ## Evidence
@@ -74,3 +74,5 @@ Checked in the repository on 2026-10-22.
   fresh download.
 
 _Edited 2026-10-26 (this PR): link repair._
+
+_Edited 2026-10-28 (this PR): link repair._

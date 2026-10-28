@@ -173,7 +173,7 @@ recorded_objects.npy
 .claude/*
 !.claude/skills/
 
-# Local working notes (see notes/decisions/0001-decision-log-and-agents-md.md)
+# Local working notes (see decisions/0001-decision-log-and-agents-md.md)
 plans/
 
 # Local list of private terms for tools/check_private_data.py (decision 0030). Never commit it.

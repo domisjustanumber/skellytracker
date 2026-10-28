@@ -8,7 +8,7 @@ state: recorded
 
 # Change proposal: size-codes
 
-This file is informative. It is not part of the normative spec until a content PR lands its text in the section files (decision [0036](../../../../notes/decisions/0036-spec-proposals-folder.md)).
+This file is informative. It is not part of the normative spec until a content PR lands its text in the section files (decision [0036](../../../../decisions/0036-spec-proposals-folder.md)).
 
 **Source.** The OpenMMLab-Exporter file of the proposal `size-codes`, at OpenMMLab-Exporter commit [`f3aeb47`](https://github.com/domisjustanumber/OpenMMLab-Exporter/tree/f3aeb473d3396ee79c4394646a34ed9ef419ecf1), copied on 2026-10-25. The `python` code block at the end of part 3 is the OpenMMLab-Exporter reference file of the proposal, copied on the same date (decision 0036, item 2). The copy changes only the items of decision 0036, item 3. The session wrote no part.
 

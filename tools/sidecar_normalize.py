@@ -10,7 +10,7 @@ sidecars the section applies to. This module holds the two pure functions that a
 
 The module is written to move into ``skellytracker/core/sidecar/`` without a change. It uses only the
 standard library and imports nothing from ``tools/``. The trace tool imports it today. The runtime
-capability check (``notes/decisions/0016-sidecar-catalogs.md``) will use the same functions, so the
+capability check (``decisions/0016-sidecar-catalogs.md``) will use the same functions, so the
 rules are read in one place only.
 
 Selector syntax

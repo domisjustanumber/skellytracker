@@ -27,7 +27,7 @@
   the exporter-only guide to a draft folder. The user chose `superseded by x64y` for 0034
   (2026-10-26).
 - The open work said "An absorbed entry cannot be superseded". So
-  [0008](0008-vnext-scope.md) and [0011](0011-rtmdet-host-nms.md) stayed Active, only to keep a later
+  [0008](../specs/model-sidecar/decisions/0008-vnext-scope.md) and [0011](../specs/model-sidecar/decisions/0011-rtmdet-host-nms.md) stayed Active, only to keep a later
   supersession possible.
 
 ## Consequences
@@ -43,3 +43,5 @@
   `tools/check_decision_log.py`. `superseded by XXXX` already gives the reader the entry to read.
 - **Change the absorbed entry back to `accepted` first.** That is not an allowed status change. It
   also puts the entry on the read path again for no reason.
+
+_Edited 2026-10-28 (this PR): link repair._

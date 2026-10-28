@@ -1,6 +1,6 @@
 # Implement the Model Sidecar Spec + Dogfood YOLOX/RTMW
 
-> **Decisions.** The decisions behind this plan are recorded in the decision log, [`notes/decisions/`](../notes/decisions/README.md). Entries 0002 to 0007 record its key decisions and milestones, and entry 0016 replaces the key, discovery and root rules of M6 Part A. This plan stays until M6 is done. Record a new decision as a decision entry, not in this plan.
+> **Decisions.** The decisions behind this plan are recorded in the decision log, [`decisions/`](../decisions/README.md). Entries 0002 to 0007 record its key decisions and milestones, and entry 0016 replaces the key, discovery and root rules of M6 Part A. This plan stays until M6 is done. Record a new decision as a decision entry, not in this plan.
 
 > Status: **M1 to M5 are done. M6 has not started.** M6 changes package code, so it waits for the implementation stage (decision 0014). The list of package gaps is not in this plan: see M6, Part B. The "Status" line of each milestone below gives its state.
 
@@ -173,7 +173,7 @@ This milestone has two independent parts — a generic detector class/factory, a
 
 **Part A — Generic detector class + auto-registration:**
 
-> **Read decision 0016 (sidecar catalogs, in `notes/decisions/`) before starting Part A. It replaces several rules below.** Catalog keys are `<model_id>@<source.name>` (from a new `source` field in each sidecar), not `sidecar:{model_id}`. Sidecars are discovered in every configured root — the package, local folders a user adds, and pinned Hugging Face repos — not only the package's `detectors/` folders; a YAML file is a sidecar when its top level has `schema_version` and a `model_id` equal to its basename. Detector code is chosen from the sidecar's role and sections, and a capability check marks sidecars that use unimplemented sections as unavailable. The existing `detector_type` keys stay as aliases. A hand-written detector may claim a catalog key, and the generic path never handles a claimed key: YOLOX claims `yolox@skellytracker` (gap 2 above), which answers the coexistence bullet below.
+> **Read decision 0016 (sidecar catalogs, in `decisions/`) before starting Part A. It replaces several rules below.** Catalog keys are `<model_id>@<source.name>` (from a new `source` field in each sidecar), not `sidecar:{model_id}`. Sidecars are discovered in every configured root — the package, local folders a user adds, and pinned Hugging Face repos — not only the package's `detectors/` folders; a YAML file is a sidecar when its top level has `schema_version` and a `model_id` equal to its basename. Detector code is chosen from the sidecar's role and sections, and a capability check marks sidecars that use unimplemented sections as unavailable. The existing `detector_type` keys stay as aliases. A hand-written detector may claim a catalog key, and the generic path never handles a claimed key: YOLOX claims `yolox@skellytracker` (gap 2 above), which answers the coexistence bullet below.
 
 - Add `GenericObjectDetector` and `GenericKeypointDetector` — generic `ObjectDetector`/`KeypointDetector` implementations, parameterized entirely by a loaded `SidecarModel` (plus a resolved size/precision), whose `preprocess`/`postprocess`/`detect`/`model_spec` bodies are exactly what the current per-family classes already delegate to (`preprocess_image`, `yolox_detection_decode`-style generic decode dispatch, `simcc_pose_decode`, `sidecar_model_spec`). No family-specific subclassing should be required for models whose sidecar only uses implemented decode/resize options (see Part B).
 - *(Replaced by 0016: the key is `<model_id>@<source.name>`, and the existing `detector_type` strings stay as aliases. The config/`TrackerConfig` work below still applies.)* Decide and implement a `detector_type` convention for generic sidecars — e.g. derive it from `model_id` (`sidecar:{model_id}` or similar) — since today's registries key off a fixed `Literal[...]` string per hand-written config class (`YoloxPersonDetectorConfig.detector_type`, etc.). A generic config (`GenericObjectDetectorConfig`/`GenericKeypointDetectorConfig`) needs a `model_id`/sidecar-path field instead of a fixed literal, and `TrackerConfig`'s discriminated-union validation needs to accept it. This is the concrete fix for gap 1 above — today nothing in `skellytracker/core/config/` or `TrackerConfig` can express "run this arbitrary sidecar" without a matching hand-written config class already existing.
@@ -183,10 +183,10 @@ This milestone has two independent parts — a generic detector class/factory, a
 
 **Part B — Fill decode/preprocess coverage gaps:**
 
-This plan does not keep the list of package gaps. The spec changed after the list was written (the `vNEXT` revision), and a second list does not stay equal to the spec (decision [b9fm](../notes/decisions/b9fm-finished-sidecar-plans.md)). The current gaps are in these places:
+This plan does not keep the list of package gaps. The spec changed after the list was written (the `vNEXT` revision), and a second list does not stay equal to the spec (decision [b9fm](../decisions/b9fm-finished-sidecar-plans.md)). The current gaps are in these places:
 
 - the `validate:` and `load:` notes in the front matter of each section file, and [`TRACEABILITY.md`](model-sidecar/TRACEABILITY.md);
-- the heading [Implementation stage](../notes/decisions/open-work.md#implementation-stage) of the open work;
+- the heading [Implementation stage](../decisions/open-work.md#implementation-stage) of the open work;
 - the skill [`implement-sidecar-section`](../.claude/skills/implement-sidecar-section/SKILL.md), which gives the steps and the order of the work.
 
 Two rules of this part stay:
@@ -196,7 +196,7 @@ Two rules of this part stay:
 
 ## Reference examples
 
-Moved to [Reference examples](model-sidecar/model-addition-workflow/reference-examples.md) in the model addition workflow (decision [b9fm](../notes/decisions/b9fm-finished-sidecar-plans.md)). That file gives what the examples are and how to provide or replace an example.
+Moved to [Reference examples](model-sidecar/model-addition-workflow/reference-examples.md) in the model addition workflow (decision [b9fm](../decisions/b9fm-finished-sidecar-plans.md)). That file gives what the examples are and how to provide or replace an example.
 
 ## Verification
 

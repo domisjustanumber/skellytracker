@@ -5,7 +5,7 @@ sidecar spec describe this model exactly? The full workflow is the model additio
 (`specs/model-sidecar/model-addition-workflow/README.md` of the skellytracker repo). It is the same
 for an exporter and for a human contributor. Where this template says "the exporter", a contributor
 that is not an exporter reads "you". The decision behind
-it is skellytracker decision 0014 (`notes/decisions/0014-spec-lifecycle.md` of the skellytracker
+it is skellytracker decision 0014 (`decisions/0014-spec-lifecycle.md` of the skellytracker
 repo). Phase 2 is the change proposal template (`specs/model-sidecar/templates/change-proposal.md`). You
 need phase 2 only when phase 1 finds a `near-miss` or a `gap`.
 
@@ -173,7 +173,7 @@ For each row that is not `exact`, write what differs or what is missing in the l
   code (skellytracker decision 0012; OpenMMLab-Exporter 0020).
 - **A letterbox where the upstream code cuts the scaled size with `int()` or `floor`.** The
   `rounding` field has no value for a cut. The verdict is `near-miss`. skellytracker decision 0023
-  (`notes/decisions/0023-letterbox-floor-and-scale-inverse.md`, status `proposed`) proposes a change.
+  (`specs/model-sidecar/decisions/0023-letterbox-floor-and-scale-inverse.md`, status `proposed`) proposes a change.
   Build on it. Do not write a competing proposal.
 - **An ROI refiner described as a pose estimator with two fake keypoints.** An ROI refiner is a model
   that gives a region of interest to the next model, for example a hand re-crop model. Its verdict is
@@ -229,7 +229,7 @@ field that is not a per-size field, they are two families. Write one intake for 
 
 | # | Property | Upstream evidence (file and line, or config key) | Section ID (the `id` in the section file's front matter) | Sidecar value | Verdict | What differs or what is missing |
 |---|---|---|---|---|---|---|
-| F1 | `model_id`. An object detector uses the family (`yolo26`). A keypoint detector uses `{family}-{part}` (`rtmw-wholebody`). The spec has no rule yet for a suffix after the part (the spec example `rtmo-body7`), or for two models of one family and one part. skellytracker decision 0025 (`notes/decisions/0025-model-id-suffix.md`, status `proposed`) records this question. Until the user decides it, write `{family}-{part}`: the verdict is `exact`. If the exporter or the spec example uses an id with a suffix, write that id and decision 0025 in the last column. A name is never a `near-miss`. If another model of the same family and part also needs `{family}-{part}`, the row is a `gap`: build on decision 0025. A new role with no `model_id` rule is a `gap`. | | [`common.identity`](../common/identity.md#authoring-guidance) | | | |
+| F1 | `model_id`. An object detector uses the family (`yolo26`). A keypoint detector uses `{family}-{part}` (`rtmw-wholebody`). The spec has no rule yet for a suffix after the part (the spec example `rtmo-body7`), or for two models of one family and one part. skellytracker decision 0025 (`specs/model-sidecar/decisions/0025-model-id-suffix.md`, status `proposed`) records this question. Until the user decides it, write `{family}-{part}`: the verdict is `exact`. If the exporter or the spec example uses an id with a suffix, write that id and decision 0025 in the last column. A name is never a `near-miss`. If another model of the same family and part also needs `{family}-{part}`, the row is a `gap`: build on decision 0025. A new role with no `model_id` rule is a `gap`. | | [`common.identity`](../common/identity.md#authoring-guidance) | | | |
 | F2 | `role`: `object_detector`, `pose_estimator`, or both | | [`common.identity`](../common/identity.md#authoring-guidance) | | | |
 | F3 | Sizes, and what differs between them. A size sets only `input.shape`, `input.resize.target_size` and `onnx`. Use the upstream size name, also for a family with one size. If the upstream has no size name, choose a lowercase token and give the reason. | | [`common.sizes_and_artifacts`](../common/sizes-and-artifacts.md#authoring-guidance) | | | |
 | F4 | One contract for all sizes: channel order, normalization, resize method, output semantics, selection mode, NMS parameters, class mapping | | [`common.sizes_and_artifacts`](../common/sizes-and-artifacts.md#authoring-guidance) (family invariant) | | | |

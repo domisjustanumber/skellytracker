@@ -39,7 +39,7 @@ The file name is `<ID>-<short-slug>.md`. Get `<ID>` from
 - **Consequences.** Optional. What becomes harder, what must change later and what the decision
   costs.
 - **Evidence.** Write this section only when there is evidence: measurements with their tool, its
-  version and the script in `notes/decisions/scripts/`, or code facts with their file and function.
+  version and the script in `scripts/` of the log that holds its entry, or code facts with their file and function.
 - **Alternatives rejected.** The options that were examined and not used, with the reason for each.
   Omit the section when there are none.
 - **Not repeated.** Pitfalls already found. Omit the section when there are none.
