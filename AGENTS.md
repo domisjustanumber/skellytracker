@@ -20,7 +20,7 @@ This file holds the rules for each task. The other instructions load only when y
 |---|---|
 | [`skellytracker/AGENTS.md`](skellytracker/AGENTS.md) | Package code and tests: layout, detector registries, ONNX Runtime, code conventions, test notes |
 | [`specs/model-sidecar/AGENTS.md`](specs/model-sidecar/AGENTS.md) | The sidecar spec, a sidecar or a reference example |
-| [Skills](#2-skills) | One step of a task, for example a commit on the PR stack |
+| [Skills](#2-skills) | One step of a task, for example a commit on the working branch |
 
 A rule that applies to one folder goes in the `AGENTS.md` of that folder.
 A procedure for one step of a task goes in a skill.
@@ -67,7 +67,7 @@ Exporter agents read the skill files, read-only, in the checkout
 | [`propose-sidecar-change`](.claude/skills/propose-sidecar-change/SKILL.md) | an exporter repo, or this repository | Write a spec change proposal for a near-miss or a gap, and record it as a `proposed` entry |
 | [`change-sidecar-spec`](.claude/skills/change-sidecar-spec/SKILL.md) | this repository | Land a model, an accepted proposal or a reference implementation in the spec |
 | [`implement-sidecar-section`](.claude/skills/implement-sidecar-section/SKILL.md) | this repository | Implement a spec section in the package code. In the spec-build stage, plan only. |
-| [`stack-commit`](.claude/skills/stack-commit/SKILL.md) | this repository | Commit, rebase and push on the PR stack, and write a PR body |
+| [`stack-commit`](.claude/skills/stack-commit/SKILL.md) | this repository | Commit, rebase and push on the working branch, and write a PR body |
 
 ## 3. Install and Test
 
@@ -136,6 +136,11 @@ Change the kit templates by hand when a rule of this log changes.
 - Do not add AI attribution, for example a `Co-Authored-By:` trailer, to a commit or a PR.
 - Commit only on the working branch `dom/sidecar-implementation`. Open PRs against `development`,
   not `main`.
+- In the spec-build stage, the work goes to `development` in one PR from the working branch
+  ([ADR-AB79](decisions/AB79-one-pr-for-the-spec-build-work.md)). Each commit has one kind of change.
+  In the rules of the sidecar process, "the same PR" means the same commit group. A content,
+  non-spec, move or rewording PR means a commit of that kind. The test-fix rule of
+  [section 3](#3-install-and-test) does not change.
 - Keep the checkout `../freemocap/skellytracker` on the working branch. Exporter agents read the spec
   there. If the checkout is on a different branch, an exporter agent stops and asks the user.
 - Before you commit, rebase, push or write a PR body, load the

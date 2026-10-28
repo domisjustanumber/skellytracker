@@ -33,6 +33,9 @@ root log ([ADR-GN3D](../../decisions/GN3D-module-decision-logs.md)).
   rejects the proposal.
 - Put one kind of change in each PR
   (ADR-[0027](../../decisions/0027-single-working-branch.md#one-kind-of-change-in-each-pr)).
+  In the spec-build stage, the exception of
+  [ADR-AB79](../../decisions/AB79-one-pr-for-the-spec-build-work.md) applies: one PR, one kind of
+  change in each commit.
   The kinds are: content (a change of normative meaning), move, rewording, and non-spec (decision
   log, agent files, tools, test vectors, guidance, CI, test fixes).
   - A non-spec PR can also add an example that changes no normative meaning, with its provenance

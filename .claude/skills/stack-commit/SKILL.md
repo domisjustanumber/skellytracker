@@ -1,15 +1,32 @@
 ---
 name: stack-commit
-description: Use this skill in skellytracker before you commit, rebase or push on the PR stack, add a PR branch, change a lower PR, or write a PR body.
+description: Use this skill in skellytracker before you commit, rebase or push on the working branch, add a PR branch, change a lower PR, or write a PR body.
 ---
 
-# Commit, rebase and push on the PR stack
+# Commit, rebase and push on the working branch
 
 This skill uses ASD-STE100 Simplified Technical English.
 
 The git rules of the root [`AGENTS.md`](../../../AGENTS.md#6-git-rules) also apply: no push and no
 other outside action without the approval of the user, and no AI attribution.
 ADR-[0027](../../../decisions/0027-single-working-branch.md) gives the reasons for these steps.
+
+## Spec-build stage
+
+In the spec-build stage, the exception of
+[ADR-AB79](../../../decisions/AB79-one-pr-for-the-spec-build-work.md) applies. It ends when the user
+opens the one PR.
+
+- Commit only on `dom/sidecar-implementation`, on top of its current commits.
+- Do not add a `dom/NN-*` branch.
+- Do not make a fixup commit for a lower PR. Do not run a rebase with `--update-refs`.
+- Put one kind of change in each commit: content, move, rewording or non-spec.
+- A commit group is a run of commits in a row on the working branch that do one task. The tree must
+  be valid after the last commit of the group.
+- Push only the working branch, after the approval of the user:
+  `git push origin dom/sidecar-implementation`.
+- The user opens the one PR and writes its body.
+- "Add a commit", the `dom/NN` push form of "Check and push" and "PRs" do not apply in this stage.
 
 ## The working branch and the PR branches
 
