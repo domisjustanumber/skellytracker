@@ -223,7 +223,9 @@ A contributor writes its proposal bundle.
    In Open work, write only the link to the `open-work.md` of the spec log. Add the heading "Before
    acceptance" at the end. List each failed item of
    [Before you stop](../../../specs/model-sidecar/templates/change-proposal.md#before-you-stop), the
-   missing primary evidence, each `to run` result and each open question.
+   missing primary evidence, each `to run` result and each open question. List each plan decision
+   of part 1. The user must confirm or refuse each one
+   ([User decisions](../../../specs/model-sidecar/model-addition-workflow/rules.md#user-decisions)).
 6. Keep the entry inside the entry limit
    ([z934](../../../decisions/z934-decision-log-index-and-read-path.md)). The details stay in
    `proposal.md`.

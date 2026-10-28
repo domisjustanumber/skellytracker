@@ -118,6 +118,9 @@ Do this procedure for step 2 of phase 3.
     without the Section cell. Set the state `accepted` in the proposal index. Write each `proposed`
     superseding entry of the proposal as `accepted`, and supersede its old entry. Make only
     editorial fixes at acceptance ([Changes at acceptance](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#changes-at-acceptance)).
+    Write each plan decision that the user confirmed in the Decision section of the entry. Write it
+    in words. Do not cite its item number
+    ([User decisions](../../../specs/model-sidecar/model-addition-workflow/rules.md#user-decisions)).
 11. If the change corrects an item of the spec-defect list in
     [`specs/model-sidecar/decisions/open-work.md`](../../../specs/model-sidecar/decisions/open-work.md), remove the item.
 12. Run the [impact](#impact) and the [checks](#checks).
@@ -398,7 +401,10 @@ it.
 
 - Write guidance only under the "Implementer guidance" and "Authoring guidance" headings. Guidance is
   informative.
-- Each statement must have a source: a repo, a file and a commit.
+- Each statement must have a source: a repo, a file and a commit. Cite the primary evidence that the
+  proposal names. If the proposal has only a secondary source, cite the recorded proposal and mark the
+  statement `(secondary)`. Use the forms of
+  [Sources](../../../specs/model-sidecar/model-addition-workflow/rules.md#sources).
 - If an exporter and the normative text do not agree, do not resolve it in the guidance. Record a
   `proposed` decision entry with [`propose-sidecar-change`](../propose-sidecar-change/SKILL.md).
 
