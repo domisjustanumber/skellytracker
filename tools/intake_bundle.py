@@ -723,13 +723,15 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("--root", type=Path, default=DEFAULT_ROOT, help="the intakes folder")
+    # Each sub-command takes --root after its name, as the usage of the module docstring shows.
+    root = argparse.ArgumentParser(add_help=False)
+    root.add_argument("--root", type=Path, default=DEFAULT_ROOT, help="the intakes folder")
     commands = parser.add_subparsers(dest="command", required=True)
-    pack_parser = commands.add_parser("pack", help="write a new version of a bundle")
+    pack_parser = commands.add_parser("pack", parents=[root], help="write a new version of a bundle")
     pack_parser.add_argument("--from", dest="source", type=Path, required=True)
     pack_parser.add_argument("--fields", type=Path, required=True)
-    commands.add_parser("list", help="list the bundles, their states and the section owners")
-    verify_parser = commands.add_parser("verify", help="check the current version of a bundle")
+    commands.add_parser("list", parents=[root], help="list the bundles, their states and the section owners")
+    verify_parser = commands.add_parser("verify", parents=[root], help="check the current version of a bundle")
     verify_parser.add_argument("bundle")
     args = parser.parse_args(argv)
     try:

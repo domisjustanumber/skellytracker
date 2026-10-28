@@ -245,3 +245,8 @@ def test_responses_are_json_that_yaml_also_reads(tmp_path: Path, root: Path) -> 
     problems = ib.response_problems(bad)
     assert "decision must be the bare ID, with no ADR- prefix" in problems
     assert "resolution needs the key goals" in problems
+
+
+def test_each_sub_command_takes_root_after_its_name(root: Path, capsys: pytest.CaptureFixture) -> None:
+    assert ib.main(["list", "--root", str(root)]) == 0
+    assert capsys.readouterr().out == "no bundles\n"

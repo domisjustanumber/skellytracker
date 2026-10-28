@@ -29,7 +29,7 @@ that the placement rule of the [Rules](README.md#rules) gives: the root log or t
 ```
 
 - **Status.** `accepted` is a decision. `evidence` is a measurement. `proposed` is a spec change
-  proposal or a gap record that waits for a decision. A later status change sets `rejected`,
+  proposal that waits for a decision. A later status change sets `rejected`,
   `superseded by XXXX`, `absorbed into <path>#<anchor>`, `evidence; used by XXXX` or `done` (see the
   [Rules](README.md#rules)). The source says who decided or where the entry comes from, for example
   "user" or "backfilled from #81".
