@@ -14,10 +14,14 @@ root log ([ADR-GN3D](../../decisions/GN3D-module-decision-logs.md)).
 - `load_sidecar` rejects `schema_version: "vNEXT"` (`SidecarModel._check_schema_version_pattern` in
   `skellytracker/core/sidecar/model.py`). Do not publish a `vNEXT` sidecar to a shared or remote
   folder.
-- The meaning of an older `schema_version` never changes. Its legacy rules are in the "Legacy
-  behaviour" heading of each section.
-  [Version-aware compatibility](format/versioning.md#version-aware-compatibility) indexes these
-  headings.
+- The meaning of an older `schema_version` never changes. A clarification is not a change of
+  meaning. A change in [Every-version changes](format/versioning.md#every-version-changes) is the
+  only exception. [Version-aware compatibility](format/versioning.md#version-aware-compatibility)
+  defines a clarification. It indexes each "Legacy behaviour" heading that gives a legacy
+  difference. The availability of a new feature is in the "Legacy behaviour" table of Schema
+  versioning. Each change has a class
+  ([Change classes](model-addition-workflow/hand-over.md#change-classes);
+  [ADR-KDBD](../../decisions/KDBD-change-classes-and-spec-forced-edits.md)).
 - Make a spec change in the section file that owns the rule. The `id` in the front matter is the
   section ID. The rule IDs of the section are `V-<id>-<n>`. When you move or reword a section, keep
   its section ID and its rule IDs

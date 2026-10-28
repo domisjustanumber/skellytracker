@@ -250,10 +250,31 @@ user accepts the proposal.
 
 ### Legacy behaviour
 
-- The meaning of an older `schema_version` never changes.
+Each change has a class
+([Change classes](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#change-classes);
+[ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)).
+
+- The meaning of an older `schema_version` never changes. The only exceptions are the changes in
+  [Every-version changes](../../../specs/model-sidecar/format/versioning.md#every-version-changes).
 - Write each legacy difference in the "Legacy behaviour" heading of the section.
-- If a section gets a new "Legacy behaviour" heading, add it to the index in
+- A legacy difference is a rule, a value or a behaviour that is different for an older
+  `schema_version`.
+- If a "Legacy behaviour" heading gives a legacy difference, add the heading to the index in
   [Version-aware compatibility](../../../specs/model-sidecar/format/versioning.md#version-aware-compatibility).
+- A new field, value or section can be not available before a version. That is not a legacy
+  difference. Add it to the availability row of that version. The row is in the "Legacy behaviour"
+  table of Schema versioning. Then the "Legacy behaviour" heading of the section only links to
+  Schema versioning. Do not add the heading to the index.
+- A clarification is not a change of meaning. Use the conditions in
+  [Clarifications](../../../specs/model-sidecar/format/versioning.md#clarifications) to decide if a
+  change is a clarification.
+- Do not give a clarification the **(vNEXT)** mark. Do not write a "Legacy behaviour" row for it.
+- If a clarification makes the package host non-conforming, write the gap in the comment of the
+  `implemented_by` line. Also write it in "Implementer guidance" with the tag "(implementation
+  stage)". Do not change the package code in the spec-build stage.
+- A `breaking` change needs its own entry with the explicit acceptance of the user. Add its item to
+  [Every-version changes](../../../specs/model-sidecar/format/versioning.md#every-version-changes).
+  Audit `skellytracker/core/detectors/**/*.yaml`.
 
 ### `changelog.md`
 
@@ -261,6 +282,9 @@ user accepts the proposal.
 - Add the change to the `vNEXT` row of the
   [`schema_version` history](../../../specs/model-sidecar/changelog.md#schema_version-history).
 - Write new rows in ASD-STE100. Do not reword the existing rows.
+- The summary row of a clarification says "(every `schema_version`)". The summary row of a
+  `breaking` change says "(breaking, every `schema_version`)"
+  ([ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)).
 
 ### `vNEXT` or a release version
 
@@ -316,9 +340,11 @@ user accepts the proposal.
 - A vector that does not agree with the normative text is a spec defect. Correct the text or the
   generator in a content PR.
 - Do not mark a vector verified when it comes only from a reading of the text.
-- Do not correct an example by hand. If the change makes an example invalid, list the example and its
-  exporter in the PR body. The exporter regenerates the sidecar. Then procedure A replaces the
-  example.
+- Do not correct an example by hand. A spec-forced edit is not a correction. If a content change
+  makes an example invalid, do the spec-forced edit in the same content commit
+  ([When a spec change makes an example invalid](../../../specs/model-sidecar/model-addition-workflow/reference-examples.md#when-a-spec-change-makes-an-example-invalid);
+  [ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)). Do not land a
+  content commit that leaves an example invalid.
 
 ### Reference implementations
 
@@ -343,7 +369,14 @@ user accepts the proposal.
    `HEAD`.
 2. Write the models, the exporters, the skellytracker functions, the tests and the vectors of the
    report in the PR body.
-3. Name each exporter that must regenerate its sidecars.
+3. Compare the report with the part 7 table of the proposal. An example that the change makes
+   invalid and that part 7 does not list is a finding with the state `needs-contributor`
+   ([When a spec change makes an example invalid](../../../specs/model-sidecar/model-addition-workflow/reference-examples.md#when-a-spec-change-makes-an-example-invalid);
+   [ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)).
+   Name each exporter that must regenerate its sidecars. Add a bullet under
+   [Re-export requests](../../../specs/model-sidecar/decisions/open-work.md#re-export-requests) for
+   each `needs-export` example, and for each `model` bundle that `intake_bundle.py list` shows with
+   an affected section in `sections`.
 4. Regenerate the traceability matrix with `uv run python tools/sidecar_trace.py matrix`. Do not edit
    `specs/model-sidecar/TRACEABILITY.md` by hand.
 
@@ -446,6 +479,6 @@ Run these commands before each PR. Each command must pass.
 |---|---|
 | The user has not accepted the proposal. | Stop. Do not change the normative text. |
 | A content change has no accepted decision entry. | Use `propose-sidecar-change`. Then stop. |
-| An example breaks a spec rule. | Stop. Do not correct the example. Tell the user. |
+| An example breaks a spec rule, and no accepted change in this commit gives a spec-forced edit for it. | Stop. Do not correct the example. Tell the user. |
 | A new reference implementation changes an expected vector value. | Stop. Tell the user. |
 | The PR is ready. | Ask the user before the push ([section 6](../../../AGENTS.md#6-git-rules) of `AGENTS.md`). |
