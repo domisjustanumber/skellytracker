@@ -123,12 +123,34 @@ external:
 ```
 
 - In a proposal, the first item of `sections` is the section of the proposal index row.
-- `change_class` gives the class of the change. A contribution gives the class of its proposal.
+- `change_class` gives the class of the change ([Change classes](#change-classes)). A contribution
+  gives the class of its proposal.
 - `batch` is an integer or `dynamic`.
 - `batch_conversion_reason` is required when `batch_conversion` is `to run`. Otherwise it is `null`.
 - `files` paths are relative to the version folder, with `/` and no `..`. Only `external` paths start
   with `../../`. They are relative to the skellytracker root.
 - Each SHA-256 is of the raw bytes of the bundle copy.
+
+## Change classes
+
+Each proposal names one class in `change_class` and in part 2. Its decision entry repeats the class
+([ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)).
+
+| Class | Applies to | Needs |
+|---|---|---|
+| `vnext` (the default) | `vNEXT` only | The accepted decision entry. |
+| `clarification` | every `schema_version` | Each condition of [Clarifications](../format/versioning.md#clarifications). No **(vNEXT)** mark and no "Legacy behaviour" row. A summary row that says "(every `schema_version`)". Part 2.6 gives the result in exact math before and after the change, and names each host that stops conforming. Part 7 tells for each sidecar if it stays valid. |
+| `breaking` | every `schema_version` | Its own decision entry, with the explicit acceptance of the user. An item in [Every-version changes](../format/versioning.md#every-version-changes). A summary row that says "(breaking, every `schema_version`)". An audit of `skellytracker/core/detectors/**/*.yaml`. |
+
+- A `vnext` change breaks no published sidecar, because `load_sidecar` rejects `vNEXT`.
+- A package host that stops conforming after a `clarification` is a recorded gap. Write it in the
+  comment of the `implemented_by` line and in "Implementer guidance". Do not change the package code
+  in the spec-build stage.
+- A `breaking` change of a package sidecar waits for the implementation stage. The only exception is
+  a waiver of the user in the decision entry.
+- A change of any class can make an example invalid. Then the content commit edits the example
+  ([When a spec change makes an example invalid](reference-examples.md#when-a-spec-change-makes-an-example-invalid)),
+  or the example waits for a re-export ([Re-export requests](#re-export-requests)).
 
 ## Pack a version
 

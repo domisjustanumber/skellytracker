@@ -36,13 +36,19 @@ A proposal has eight parts:
    - the validation rules, with new rule IDs;
    - the selectors;
    - the legacy behaviour and the effect on `schema_version`;
+   - the change class: `vnext`, `clarification` or `breaking`
+     ([Change classes](hand-over.md#change-classes);
+     [ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md));
    - the changelog row.
 
    Also find each place that the change must edit. Search the spec for each closed set or list that
    the change extends, for example the `role` values, the `semantic` values, the resize methods, the
    storage layout (`format.file_layout`), the Overview, the section map and the validation index
    (`../freemocap/skellytracker/specs/model-sidecar/README.md`), and the "Legacy behaviour" heading
-   of each changed section with its index "Version-aware compatibility" (`format.versioning`). Also
+   of each changed section. Add the heading to its index "Version-aware compatibility"
+   (`format.versioning`) only if it gives a legacy difference. A new field, value or section that is
+   not available before `vNEXT` goes in the availability row of the "Legacy behaviour" table of
+   `format.versioning`. Also
    find each rule that names one of these values, for example the rule
    `V-pre.resize.affine_person_crop-2`: a sidecar with `pose.requires_object_detector: true` declares
    `input.resize.method: affine_person_crop`. List each place in the proposal. These edits are part
@@ -91,7 +97,10 @@ A proposal has eight parts:
    a call site, write `for the implementer` and say what is not known. On acceptance, this text
    becomes the implementer guidance of the section and an open-work item.
 7. **Exporter impact.** Name the exporters that must write new fields or regenerate sidecars. Describe
-   the change to your own host decoder.
+   the change to your own host decoder. Fill the table of the examples that the change makes invalid.
+   Use the section rows of `../freemocap/skellytracker/specs/model-sidecar/TRACEABILITY.md` and your
+   own reading of each example
+   ([When a spec change makes an example invalid](reference-examples.md#when-a-spec-change-makes-an-example-invalid)).
 
    A candidate example is optional. Write it only after your host code implements the proposed text.
    Your sidecar writer code writes it, with the proposed fields. Do not write it by hand. Put it in

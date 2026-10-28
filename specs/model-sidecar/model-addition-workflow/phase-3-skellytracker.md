@@ -9,7 +9,10 @@ You do not do phase 3. A skellytracker session does it. The user decides.
    Its preconditions: your writer code writes the sidecar itself (not by hand), at `vNEXT`, with no
    legacy-only fields; your checks pass; parity passes for at least one size. The
    procedure copies your sidecar byte for byte. If your sidecar breaks a spec rule, fix your writer code
-   or write a change proposal. Nobody corrects the example by hand.
+   or write a change proposal. Nobody corrects the example by hand. An accepted spec change can make
+   an example invalid. Then its content commit makes a spec-forced edit of the example
+   ([When a spec change makes an example invalid](reference-examples.md#when-a-spec-change-makes-an-example-invalid);
+   [ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)).
 2. **A proposal.** skellytracker copies the current version of your proposal bundle byte for byte
    to `specs/model-sidecar/proposals/<slug>/`. It records it as a short decision entry with status
    `proposed`. To change the proposal, pack a new version. skellytracker then replaces the copy in
@@ -18,7 +21,8 @@ You do not do phase 3. A skellytracker session does it. The user decides.
    of your bundle ([Responses](hand-over.md#responses)). The user accepts or rejects the proposal.
    After acceptance:
    - A content PR adds the normative text, the changelog row, the vectors and the reference
-     implementation. It sets the decision entry to `accepted` (if it is not accepted yet).
+     implementation. It sets the decision entry to `accepted` (if it is not accepted yet). It also
+     makes the spec-forced edit of each example that the change makes invalid.
    - A non-spec PR (documentation only) adds the guidance, the implementation proposal (as
      implementer guidance and an open-work item), the example and its provenance record. It
      removes the `proposed` entry of the model from `specs/model-sidecar/inventory.yaml`, if one exists.

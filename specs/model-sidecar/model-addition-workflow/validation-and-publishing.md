@@ -17,8 +17,12 @@ These rules apply to each contributor that writes a sidecar.
   cannot pass for `vNEXT`. Record them as `n/a at vNEXT`. They apply after the release step (see
   "Publishing").
 - Check the "Legacy behaviour" heading of each section that the sidecar uses, if the section has one.
-  The index of these headings is "Version-aware compatibility" in
-  `../freemocap/skellytracker/specs/model-sidecar/format/versioning.md`. A `vNEXT` sidecar must not
+  "Version-aware compatibility" in
+  `../freemocap/skellytracker/specs/model-sidecar/format/versioning.md` indexes each "Legacy
+  behaviour" heading that gives a legacy difference. The availability of a new feature is in the
+  "Legacy behaviour" table of Schema versioning. A change in "Every-version changes" of the same file
+  applies also to a sidecar with an older `schema_version`
+  ([ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)). A `vNEXT` sidecar must not
   use a legacy-only form: `requires_nms` without `selection`, `may_include_non_person_classes`, or
   `letterbox` with `preserve_aspect_ratio: false`.
 - Record the rule ID (`V-<section-id>-<n>`) of each rule that you checked in the intake.

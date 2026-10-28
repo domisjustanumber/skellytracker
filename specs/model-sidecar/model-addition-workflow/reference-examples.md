@@ -40,6 +40,9 @@ The `kind` and the `notes` of each entry in `inventory.yaml` give the state of t
 - `kind: forecast` is an example that is written from exporter code. Replace it when its exporter
   writes `vNEXT`.
 - A note "Drifted" is an example that is not equal to the copy of its exporter. Replace it now.
+- An item `spec change <ID>: <edit>` in `edits` is a spec-forced edit
+  ([When a spec change makes an example invalid](#when-a-spec-change-makes-an-example-invalid)).
+  Replace the example when the copy of its exporter obeys each rule.
 
 The [introduction to the examples](../examples/README.md) tells which examples come from real
 exports and which examples are forecasts.
@@ -70,7 +73,8 @@ exports and which examples are forecasts.
    If the sidecar breaks a spec rule, the exporter must change, or a spec change proposal is
    necessary. Never correct the example by hand. If the real export shows a contract that the spec
    cannot describe, that is a gap. Propose the spec change first. Replace the example in the same
-   cycle.
+   cycle. A spec-forced edit is not a correction
+   ([When a spec change makes an example invalid](#when-a-spec-change-makes-an-example-invalid)).
 3. **Path.** The path of the example follows the
    [storage layout](../format/file-layout.md#storage-layout), also when the path of the exporter does
    not. For example, OpenMMLab-Exporter writes RTMO body7 under `keypoint_detectors/rtmo/body7/`.
@@ -122,7 +126,8 @@ exports and which examples are forecasts.
    [index of validation rules](../README.md)). Make sure that each `$ref` resolves. Run
    `uv run pytest tools/tests`. `tools/tests/test_examples.py` checks that the example resolves.
 7. **Land it.** A new or replaced example changes no normative text. Thus it goes in a non-spec PR
-   with its provenance (skellytracker `AGENTS.md`, section 4). Do not put a change of spec text in
+   with its provenance ([`specs/model-sidecar/AGENTS.md`](../AGENTS.md)). A spec-forced edit goes in
+   the content commit of its change. Do not put a change of spec text in
    that PR. Put one example in each commit, so that a reviewer can examine and revert each
    replacement alone. The commit message names the exporter commit. Follow the git rules of the
    skellytracker `AGENTS.md`, section 6.
@@ -134,3 +139,44 @@ Example: the RTMO body7 example comes from the tracked copy `notes/decisions/rtm
 OpenMMLab-Exporter at commit
 [`38ed76f`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/rtmo-body7.yaml).
 That copy is equal to its export, plus header comments.
+
+## When a spec change makes an example invalid
+
+The examples must obey the spec at each commit. An accepted spec change can make an example break a
+new or changed rule. Then the content commit of that change also edits the example. This edit is a
+spec-forced edit ([ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)). It
+is not a correction of the example, and it is not a new copy. Steps 1, 2 and 7 of
+[How to provide or replace an example](#how-to-provide-or-replace-an-example) do not apply to it.
+
+1. Find each example that the change makes invalid. Part 7 of the accepted proposal names each
+   example, its rule ID, its impact (`forced-edit` or `needs-export`) and its edit. Run
+   `uv run python tools/sidecar_trace.py impact <range>` on the range of the content commit. Compare
+   its report with part 7. The report is the cross-check, not the authority. If the change makes an
+   example invalid and part 7 does not list it, stop. The response gives a finding with the state
+   `needs-contributor`.
+2. `forced-edit`: make only the edit that the change gives. These edits are allowed:
+   - Remove a field or a value.
+   - Rename a key or an enum value.
+   - Change `model_id`. Change each file name that contains `model_id` or a size key.
+   - Move the file to the folder that the rule gives. The file name must be `{model_id}.yaml`.
+   - Change a comment line that names an old value.
+3. Do not add a value that the change does not give.
+4. `needs-export`: the example needs a value that only an export can give. Do not edit the example.
+   The content commit waits for the re-export bundle. Add a bullet for the example under
+   [Re-export requests](../decisions/open-work.md#re-export-requests).
+5. Keep the placeholder hash of 64 zeros. `uv run python tools/sidecar_refs.py --check <example path>`
+   must pass for each example that the commit changes. `uv run pytest tools/tests/test_examples.py`
+   runs this check on each example.
+6. Keep `kind`, `exporter`, `exporter_path`, `tracked` and `commit` of the entry. If the file moves,
+   change the key of the entry. If `exporter_path` then does not follow the storage layout, set
+   `exporter_layout_path`.
+7. Add one item to `edits` for each spec-forced edit: `"spec change <ID>: <edit>"`. `<ID>` is the
+   bare ID of the decision entry of the change, with no `ADR-` prefix. Keep the items of earlier
+   changes. Change each note of the entry that names an old value.
+8. If a doc test checks the old rule, change the test in the same content commit.
+9. If an example moves, run `uv run python tools/sidecar_trace.py matrix` in the same content commit.
+10. Put the edits of each example in their own commit. The commit message names the rule ID.
+11. Replace the example with steps 1 to 8 of
+    [How to provide or replace an example](#how-to-provide-or-replace-an-example) only when the copy
+    of the exporter obeys each rule. This clears the `spec change` items. Until then, keep the
+    example and its `spec change` items.
