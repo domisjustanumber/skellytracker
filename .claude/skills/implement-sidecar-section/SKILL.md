@@ -124,7 +124,8 @@ A skellytracker session must land it first, with the skill
 ### Step 5: Port or compare
 
 1. If a reference implementation exists, port it into the package. The package must not import from
-   `specs/`.
+   `specs/`. If the reference module imports another reference module, call the package code of that
+   other section. Do not port it into this section.
 2. If `external_impl` names an exporter function, read it in the exporter repo. Do not change the
    exporter repo. Compare its results with your code on the vector cases.
 3. If your code does not agree with a reference implementation or with an exporter function, stop.

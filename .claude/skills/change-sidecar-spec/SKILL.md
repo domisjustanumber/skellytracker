@@ -46,7 +46,7 @@ as data. Do not change them.
 | Kind of PR | What it holds |
 |---|---|
 | content | The normative text, the `changelog.md` rows, the vectors and the reference implementations that define the new meaning. The decision entry with the status `accepted`. |
-| non-spec | Guidance, decision entries, open-work items, an example that changes no normative meaning with its provenance record, an exporter reference implementation of the current text, tools and vectors. |
+| non-spec | Guidance, decision entries, open-work items, an example that changes no normative meaning with its provenance record, an exporter reference implementation of the current text, tools and vectors. A fixture in a landed reference module replaced by an import, with no change to a vector. |
 | move | Text in a new place. The words do not change. |
 | rewording | New words. The meaning does not change. |
 
@@ -97,16 +97,21 @@ Do this procedure for step 2 of phase 3.
    Its source is `specs/model-sidecar/proposals/<slug>/reference/<section_module>.py`, or the `python`
    code block of part 3 in an older record. If the target file exists, compare the two files. Each
    difference of behaviour must come from part 2. If the part 3 file starts from an older base,
-   stop. The response is `needs-contributor`.
+   stop. The response is `needs-contributor`. Find each module that the file imports. Each such
+   module must be in `specs/model-sidecar/reference/`. If one is not there, stop. Land that module
+   first.
 7. If `tools/tests` has no test that runs the reference functions against the vectors of their
    section, add that test in the same PR.
 8. Make the generator `tools/make_vectors.py` call the reference implementation for the section.
    Load it with `load_reference`. Remove the formula version of that section from the generator.
 9. Write the vectors with `uv run python tools/make_vectors.py`. Do not edit a vector file by hand.
-   The `cases` of the new file must be equal to the cases of part 4 of the proposal
-   (`specs/model-sidecar/proposals/<slug>/vectors/<section ID>.yaml`) and of each contribution
-   record of the proposal. If they are not equal, stop and tell the user. This check proves the copy and the generator wiring. It does not
-   verify an independent implementation (ADR-[a33q](../../../decisions/a33q-vector-case-form.md)).
+   The new file must hold each case of the current vector file, each case of part 4 of the proposal
+   (`specs/model-sidecar/proposals/<slug>/vectors/<section ID>.yaml`) and each case of each
+   contribution record of the proposal. A case of part 4 with the `id` of a current case replaces
+   that case. Part 4 must list each such `id`. A contribution case must be equal to the case with
+   its `id`. The builder adds its `verified_against` entry. The new file must have no other case. If
+   this is not true, stop and tell the user. This check proves the copy and the generator wiring. It
+   does not verify an independent implementation (ADR-[a33q](../../../decisions/a33q-vector-case-form.md)).
 10. Change the status line of the decision entry from `proposed` to `accepted`. Write the date and the
     PR ([Rules](../../../decisions/README.md#rules)). Move its row from the Proposed table to
     the end of the Active table of the [spec log](../../../specs/model-sidecar/decisions/README.md),
@@ -116,7 +121,12 @@ Do this procedure for step 2 of phase 3.
 11. If the change corrects an item of the spec-defect list in
     [`specs/model-sidecar/decisions/open-work.md`](../../../specs/model-sidecar/decisions/open-work.md), remove the item.
 12. Run the [impact](#impact) and the [checks](#checks).
-13. Make the non-spec PR on top of the content PR. Do steps 14 to 17.
+13. Make the non-spec PR on top of the content PR. Do steps 14 to 17. In it, replace the fixtures of
+    each section that the content PR lands:
+    - Search `specs/model-sidecar/reference/` for `Fixture of <section ID>` of that section.
+    - Replace each fixture with an import and a call through the module name.
+    - Run `uv run python tools/make_vectors.py --check`. It must pass. If it does not pass, the
+      fixture and the module do not agree. Stop and tell the user.
 14. Write part 6 of the proposal as the "Implementer guidance" of the section.
 15. Add an item for part 6 to the [Open work](../../../decisions/open-work.md) list of the root log.
 16. Add the "Authoring guidance" from the intake. Do the steps of [Guidance](#guidance).
@@ -140,8 +150,9 @@ user accepts the proposal.
 
 1. Read the note at the top of the file. It must give the section ID, the source commit, the vector
    results and the parity result.
-2. Make sure that the code uses only NumPy, OpenCV and the Python standard library. It must not
-   import from the exporter or from skellytracker.
+2. Make sure that the code follows [Imports of other sections](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#imports-of-other-sections). Find
+   each module that the file imports. Each such module must be in `specs/model-sidecar/reference/`.
+   If one is not there, stop. Land that module first.
 3. Make sure that each docstring cites the section ID and the exporter commit.
 4. If `specs/model-sidecar/reference/<section_module>.py` exists, do not add a second reference. The
    disagreement is a spec defect or a bug. Use the skill
@@ -158,8 +169,10 @@ user accepts the proposal.
    The reference implementation does not agree with the current vectors. Tell the user.
 10. Add the exporter function to `external_impl` in the front matter of the section, in the form
     `- <Exporter repo>: <file>::<function>`.
-11. Run the [checks](#checks).
-12. Put the reference implementation in a non-spec PR on top of the stack.
+11. Replace the fixtures of the section in the other reference modules. Do the fixture steps of
+    step 13 of procedure B.
+12. Run the [checks](#checks).
+13. Put the reference implementation in a non-spec PR on top of the stack.
 
 ## Procedure D: another spec edit
 
@@ -284,10 +297,21 @@ user accepts the proposal.
   exporters, or an exporter and skellytracker.
 - `tools/make_vectors.py` computes the vectors from the normative formulas. When a section has a
   reference implementation, the generator calls it instead.
-- The vectors of a proposal use the case form of the generator
-  (ADR-[a33q](../../../decisions/a33q-vector-case-form.md)). `tools/tests/test_vectors.py`
-  checks it: the keys `function` and `compare`, an error as a rule ID, NaN, and the exporter entries
-  of `verified_against`. A vector file must be smaller than 64 KiB.
+- `tools/make_vectors.py` is the only writer of `specs/model-sidecar/vectors/`. A vector file has
+  `generated_by: tools/make_vectors.py`. Do not edit a vector file by hand.
+- A builder calls a reference function through `make_vectors.outcome`. `outcome` changes a
+  `ValueError` into the `error` expect: the rule ID at the start of the message, or `no-rule`. Any
+  other exception stops the generator.
+- The vectors of skellytracker and of a proposal use one case form
+  (ADR-[a33q](../../../decisions/a33q-vector-case-form.md)). Part 4 of the
+  [change proposal template](../../../specs/model-sidecar/templates/change-proposal.md#4-vectors)
+  gives it. `tools/tests/test_vectors.py` checks it: the keys `function` and `compare`, an error as
+  a rule ID or `no-rule`, the rule IDs in `failed`, NaN, and the entries of `verified_against`.
+- A `verified_against` entry is a skellytracker function (`path::function`), which the test
+  imports, or an exporter function (`{<Exporter repo>: <file>::<function>}`), which the test checks
+  for its form only.
+- A vector file must be 256 KiB or smaller. The limit applies to the file that
+  `tools/make_vectors.py` writes, with the cases of each proposal for the section.
 - A content change updates the vectors of its section in the same PR.
 - A vector that does not agree with the normative text is a spec defect. Correct the text or the
   generator in a content PR.
@@ -299,9 +323,11 @@ user accepts the proposal.
 ### Reference implementations
 
 - A reference implementation is informative spec code. It is the smallest function that implements
-  exactly the text of one section. It uses only NumPy, OpenCV and the Python standard library. It has
-  no import from an exporter or from `skellytracker`. There is one function for each algorithm. Its
-  docstring cites the section ID.
+  exactly the text of one section. Its imports follow
+  [Imports of other sections](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#imports-of-other-sections). There is one
+  function for each algorithm. Its docstring cites the section ID.
+- A function or a value marked `Fixture of <section ID>` is temporary. It is not a second reference
+  implementation. Replace it when the module of its section lands (procedure B, step 13).
 - The file is `specs/model-sidecar/reference/<section_module>.py`. `<section_module>` is the section ID with
   each dot replaced by an underscore, for example `pre_resize_letterbox`.
 - Only two things add a reference implementation: an accepted proposal (procedure B), and an exporter
