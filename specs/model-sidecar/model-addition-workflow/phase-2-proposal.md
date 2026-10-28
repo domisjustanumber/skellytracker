@@ -67,7 +67,7 @@ A proposal has eight parts:
    or one value for each channel (for example `pad_value`), include a case with a scalar value on a
    3-channel input. Pixel-exact resize output is out of scope. If you need a pixel case, state its
    tolerance in `compare`. Write the vectors to `vectors/<section ID>.yaml` in the proposal folder,
-   in the case form that part 4 of the template gives (skellytracker ADR-a33q). Name the file in
+   in the case form that part 4 of the template gives ([ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md)). Name the file in
    part 4. On acceptance, the skellytracker generator writes
    `specs/model-sidecar/vectors/<section ID>.yaml` from the reference implementation. It must hold
    each of your cases.

@@ -1,6 +1,6 @@
 # a33q — One case form for the test vectors of skellytracker and of a proposal
 
-**Status:** accepted, 2026-10-26 (user).
+**Status:** accepted, 2026-10-26 (user); superseded by [TA0G](TA0G-vector-cases-and-reference-modules.md), 2026-10-28 (user; PR: pending).
 
 ## Decision
 

@@ -1,6 +1,6 @@
 # 0013 — Spec structure: section files, rule owners, examples, reference implementations, traceability, STE
 
-**Status:** absorbed into [`change-sidecar-spec/SKILL.md#rules-for-each-spec-edit`](../.claude/skills/change-sidecar-spec/SKILL.md#rules-for-each-spec-edit), 2026-10-25 (user; the absorption review).
+**Status:** absorbed into [`change-sidecar-spec/SKILL.md#rules-for-each-spec-edit`](../.claude/skills/change-sidecar-spec/SKILL.md#rules-for-each-spec-edit), 2026-10-25 (user; the absorption review); superseded by [TA0G](TA0G-vector-cases-and-reference-modules.md), 2026-10-28 (user; PR: pending).
 
 The spec is still one file, [`specs/model-sidecar/sidecar-spec.md`](../specs/model-sidecar/sidecar-spec.md). This entry records
 the structure that the split into section files makes. The split is a move change, and the rewrite in

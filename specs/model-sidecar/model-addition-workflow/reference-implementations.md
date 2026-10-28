@@ -7,7 +7,8 @@ implementation exists yet. Two things add a reference implementation:
 2. an exporter that implements a section on its host side.
 
 [Independence](sidecar-files.md#independence) gives the implementations that count in
-`verified_against`.
+`verified_against`. The rules for reference modules and their vector cases are in
+[ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md).
 
 **Rule.** Your plan can implement a sidecar section on the host side. Then the plan must
 include a step that gives the reference implementation of that section to skellytracker. The rule

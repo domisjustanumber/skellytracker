@@ -26,7 +26,7 @@ the reason for a decision. The [index](README.md) has the Active and Proposed en
 | [z934](z934-decision-log-index-and-read-path.md) | Index and read path: Proposed table off the read path, `historical.md`, `template.md`, `done`, absorbing documents | absorbed into [`decisions/README.md#rules`](README.md#rules) |
 | [faac](faac-proposal-records.md) | Spec change proposals in `specs/model-sidecar/proposals/`; a short `proposed` entry for each; no open-work line for each proposal | superseded by FADS |
 | [0014](0014-spec-lifecycle.md) | Spec lifecycle, the `vNEXT` rule and the new-model workflow | superseded by FADS |
-| [0013](0013-spec-structure.md) | Spec structure: section files, rule owners, examples, reference implementations, traceability, STE | absorbed into [`change-sidecar-spec/SKILL.md#rules-for-each-spec-edit`](../.claude/skills/change-sidecar-spec/SKILL.md#rules-for-each-spec-edit) |
+| [0013](0013-spec-structure.md) | Spec structure: section files, rule owners, examples, reference implementations, traceability, STE | superseded by TA0G |
 | [0002](0002-sidecars-tracked-in-package.md) | Sidecars are tracked in the package tree; ONNX files are not | absorbed into [`common/sizes-and-artifacts.md#implementer-guidance`](../specs/model-sidecar/common/sizes-and-artifacts.md#implementer-guidance) |
 | [0003](0003-tracked-points-native-order.md) | `tracked_points` are in native model output order | absorbed into [`post/pose-schema.md#posetracked_points`](../specs/model-sidecar/post/pose-schema.md#posetracked_points) |
 | [0004](0004-detectors-migrated-in-place.md) | Detectors migrated to sidecars in place; registry keys unchanged | absorbed into [`AGENTS.md#1-purpose`](../AGENTS.md#1-purpose) |
@@ -42,3 +42,4 @@ the reason for a decision. The [index](README.md) has the Active and Proposed en
 | [ngnb](ngnb-supersede-an-absorbed-entry.md) | An absorbed entry can be superseded: its status changes from `absorbed into <path>#<anchor>` to `superseded by XXXX` | superseded by JW9N |
 | [HJNP](HJNP-upper-case-entry-ids.md) | Upper-case entry IDs in new entries and new citations; older IDs stay; restates the prefix, ID, edit and record-again rules of b1c0 | superseded by JW9N |
 | [pykx](pykx-submission-folders.md) | Submission files in `plans/sidecar/`: a folder for each model and each proposal, with target file names; candidate examples allowed | superseded by FADS |
+| [a33q](a33q-vector-case-form.md) | One vector case form: optional `function` and `compare`, errors by rule ID, NaN, exporter entries; 64 KiB; one writer | superseded by TA0G |

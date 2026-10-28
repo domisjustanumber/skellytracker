@@ -100,6 +100,12 @@ stage, no file under `skellytracker/` changes, except test fixes.
   host then has no scale factors to unproject with `x * src_w / T_w`.
 - **Unused module.** `skellytracker/core/detectors/keypoint_detectors/rtmpose/rtmpose_preprocessing.py`
   is tracked, but no module imports it ([0007](0007-generic-processing-package.md)). Remove it.
+- **Run-time check IDs.** A vector case for a refused tensor or caller argument writes
+  `{error: no-rule}`, because no validation rule can check that input
+  ([ADR-TA0G](TA0G-vector-cases-and-reference-modules.md)). The implementation stage can give these
+  run-time checks their own IDs, for example `C-<section-id>-<n>`. A sidecar before `vNEXT` that uses
+  a feature that is "Not available." also gives `no-rule`. A rule `V-format.versioning-<n>` can
+  replace that use. The user decides both.
 
 ## Repository state
 

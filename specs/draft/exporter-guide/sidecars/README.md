@@ -50,7 +50,8 @@ spec. If this guide and the spec do not agree, the spec is correct.
 The decisions behind this guide:
 
 - [0013](../../../../decisions/0013-spec-structure.md): section IDs, rule IDs, reference
-  implementations and test vectors.
+  implementations and test vectors. [ADR-TA0G](../../../../decisions/TA0G-vector-cases-and-reference-modules.md) supersedes it. It gives
+  the vector cases and the reference modules.
 - [0014](../../../../decisions/0014-spec-lifecycle.md): the spec lifecycle, the `vNEXT` rule and the
   new-model workflow. The workflow headings
   [Stages](../../../model-sidecar/model-addition-workflow/README.md#stages) and

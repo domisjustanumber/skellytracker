@@ -120,7 +120,8 @@ These rules apply only to an agent or a person in an exporter repo:
 
 The decisions behind this workflow are in the skellytracker decision log:
 [0013](../../../decisions/0013-spec-structure.md) (section IDs, rule IDs, reference
-implementations and test vectors), [0014](../../../decisions/0014-spec-lifecycle.md) (the spec
+implementations and test vectors; superseded by
+[ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md), the vector cases and the reference modules), [0014](../../../decisions/0014-spec-lifecycle.md) (the spec
 lifecycle, the `vNEXT` rule and the new-model workflow),
 [ADR-FADS](../../../decisions/FADS-hand-over-bundles-in-intakes.md) (the hand-over bundles and the proposal records),
 [x64y](../../../decisions/x64y-draft-exporter-guide-folder.md) (this folder and the draft

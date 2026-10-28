@@ -242,7 +242,7 @@ expected output.
 - Use geometry and small arrays. Do not use images or ONNX files. Pixel-exact resize output is out of
   scope. If you need a pixel case, state its tolerance in `compare`.
 - Use the case form of `tools/make_vectors.py` exactly. `tools/tests/test_vectors.py` checks this
-  form (skellytracker ADR-a33q, `decisions/a33q-vector-case-form.md`). The keys of a case
+  form (skellytracker ADR-TA0G, `decisions/TA0G-vector-cases-and-reference-modules.md`). The keys of a case
   are `id`, `function`, `params`, `input`, `expect`, `unproject`, `tolerance`, `compare` and
   `verified_against`. Do not add other keys.
 - Name the function of the reference file that each case runs (`function`). Each reference function

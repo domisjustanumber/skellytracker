@@ -111,7 +111,7 @@ Do this procedure for step 2 of phase 3.
    that case. Part 4 must list each such `id`. A contribution case must be equal to the case with
    its `id`. The builder adds its `verified_against` entry. The new file must have no other case. If
    this is not true, stop and tell the user. This check proves the copy and the generator wiring. It
-   does not verify an independent implementation (ADR-[a33q](../../../decisions/a33q-vector-case-form.md)).
+   does not verify an independent implementation ([ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md)).
 10. Change the status line of the decision entry from `proposed` to `accepted`. Write the date and the
     PR ([Rules](../../../decisions/README.md#rules)). Move its row from the Proposed table to
     the end of the Active table of the [spec log](../../../specs/model-sidecar/decisions/README.md),
@@ -152,7 +152,7 @@ user accepts the proposal.
    results and the parity result.
 2. Make sure that the code follows [Imports of other sections](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#imports-of-other-sections). Find
    each module that the file imports. Each such module must be in `specs/model-sidecar/reference/`.
-   If one is not there, stop. Land that module first.
+   If one is not there, stop. Land that module first ([ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md)).
 3. Make sure that each docstring cites the section ID and the exporter commit.
 4. If `specs/model-sidecar/reference/<section_module>.py` exists, do not add a second reference. The
    disagreement is a spec defect or a bug. Use the skill
@@ -303,7 +303,7 @@ user accepts the proposal.
   `ValueError` into the `error` expect: the rule ID at the start of the message, or `no-rule`. Any
   other exception stops the generator.
 - The vectors of skellytracker and of a proposal use one case form
-  (ADR-[a33q](../../../decisions/a33q-vector-case-form.md)). Part 4 of the
+  ([ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md)). Part 4 of the
   [change proposal template](../../../specs/model-sidecar/templates/change-proposal.md#4-vectors)
   gives it. `tools/tests/test_vectors.py` checks it: the keys `function` and `compare`, an error as
   a rule ID or `no-rule`, the rule IDs in `failed`, NaN, and the entries of `verified_against`.
