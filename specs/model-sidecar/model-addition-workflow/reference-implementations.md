@@ -63,7 +63,11 @@ proposed section ID.
 
 ## Imports of other sections
 
-- Use only NumPy, OpenCV, the Python standard library and the reference modules of other sections.
+- Use only NumPy, OpenCV, the Python standard library and the reference modules of other sections
+  ([ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md)).
+- One exception: part 3 of a proposal for a new profile of `common.batch_conversion` is a standalone
+  module that uses onnx and NumPy. It has the signature of `model_batch_convert` in
+  `skellytracker/core/sessions/batch_conversion.py`. The implementation stage ports it.
 - Do not import from your repo. Do not import from the package code of skellytracker.
 - To use a function or a value of another section, import the module of that section by its module
   name. For example, write `import pre_resize_rotated_roi_crop`.
