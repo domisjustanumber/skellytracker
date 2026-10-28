@@ -7,7 +7,8 @@ your task.
 
 ## Implementation stage
 
-These items are for the implementation stage ([0014](0014-spec-lifecycle.md)). During the spec-build
+These items are for the implementation stage
+([Stages](../specs/model-sidecar/model-addition-workflow/README.md#stages)). During the spec-build
 stage, no file under `skellytracker/` changes, except test fixes.
 
 - **`fit` `pad_value`.** At `vNEXT`, the spec requires `pad_value` on a `fit` resize
@@ -80,7 +81,7 @@ stage, no file under `skellytracker/` changes, except test fixes.
   [0006](0006-yolox-native-contract.md)).
 - **`vNEXT` release step.** At the first skellytracker release that ships the spec, one content PR
   replaces `vNEXT` with that release version everywhere. Then the exporters regenerate their sidecars
-  ([0014](0014-spec-lifecycle.md)). OpenMMLab-Exporter ([`rtmdet_person/sidecar.py:30`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmdet_person/sidecar.py#L30)) and Roboflow-Exporter ([`rf_detr/sidecar.py:32`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L32)) write `vNEXT` today.
+  ([Publishing](../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing)). OpenMMLab-Exporter ([`rtmdet_person/sidecar.py:30`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmdet_person/sidecar.py#L30)) and Roboflow-Exporter ([`rf_detr/sidecar.py:32`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L32)) write `vNEXT` today.
 - **NMS box area.** The spec's `selection: nms` uses the box-area convention of the ONNX
   `NonMaxSuppression` operator, which does not add `1` to pixel widths or heights. The generic `nms()`
   in `skellytracker/core/detectors/processing/object_detection_decode.py` adds `1`. Today only the

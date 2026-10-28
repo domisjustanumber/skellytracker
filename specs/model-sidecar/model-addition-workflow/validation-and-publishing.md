@@ -94,4 +94,4 @@ Rules:
 - Never write the placeholder hash (64 zeros). It is valid only in the spec's own examples. Thus do
   not use the option `--placeholder`.
 - Publish a sidecar to a shared folder or a Hugging Face repo only after the release step
-  (skellytracker decision 0014; see "Publishing").
+  (see "Publishing").

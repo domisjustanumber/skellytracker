@@ -11,7 +11,7 @@ This skill is phase 3 of the new-model workflow, and the procedure for every oth
 only in skellytracker. The user decides each acceptance.
 
 This skill wraps "Phase 3" of
-[decision 0014](../../../decisions/0014-spec-lifecycle.md#new-model-workflow), the structure of
+the [model addition workflow](../../../specs/model-sidecar/model-addition-workflow/README.md#phases), the structure of
 [decision 0013](../../../decisions/0013-spec-structure.md) and the PR kinds of
 [decision 0027](../../../decisions/0027-single-working-branch.md#one-kind-of-change-in-each-pr).
 They give the reasons and the details. This skill gives the order of the steps, the inputs, the
@@ -132,8 +132,7 @@ Do this procedure for step 2 of phase 3.
 Do this procedure when a `model` bundle holds a `reference/<section_module>.py` file. Follow
 [Reference implementations](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#reference-implementations)
 and [Independence](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence)
-in the model addition workflow
-([decision 0014](../../../decisions/0014-spec-lifecycle.md#reference-implementations-from-exporters)).
+in the model addition workflow.
 
 If part 3 of a proposal bundle of the same contributor names the file, the file is not a reference
 implementation of the current text. Do not use this procedure for it. Procedure B lands it after the
@@ -167,7 +166,7 @@ user accepts the proposal.
 | Edit | Steps |
 |---|---|
 | A content change, for example the correction of a spec defect | Make sure that an accepted decision entry exists. If none exists, use [`propose-sidecar-change`](../propose-sidecar-change/SKILL.md). Then stop. If one exists, do steps 3 to 12 of procedure B. |
-| The release step | Decision [0014](../../../decisions/0014-spec-lifecycle.md#release-step) decides it. In one content PR, replace `vNEXT` with the release version. Do this in the spec, in `changelog.md`, in each example and in the `spec_revision` of each vector file. Then the exporters regenerate their sidecars. |
+| The release step | [Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing) gives it. In one content PR, replace `vNEXT` with the release version. Do this in the spec, in `changelog.md`, in each example and in the `spec_revision` of each vector file. Then the exporters regenerate their sidecars. |
 | A workflow change | The user asks for it. Write the change in one non-spec commit with a decision entry that gives the reason ([Workflow changes](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#workflow-changes)). The entry is `accepted` in that commit. When the change changes the [Rules](../../../decisions/README.md#rules), change the kit in the same commit: run `uv run python tools/sync_bootstrap_kit.py --write`, and change the kit templates by hand. |
 | A rewording | Do the [meaning check](#meaning-check). Change no meaning. |
 | A move | Change no words. Keep the section IDs and the rule IDs. |
@@ -255,7 +254,7 @@ user accepts the proposal.
 - In the spec-build stage, every spec change goes into the `vNEXT` revision.
 - From the first skellytracker release that ships the spec, a change sets `schema_version` to the
   release that ships it. The change also adds a row to the `schema_version` history
-  ([Versions](../../../decisions/0014-spec-lifecycle.md#versions)).
+  ([Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing)).
 - Do not publish a `vNEXT` sidecar to a shared or remote folder. `load_sidecar` rejects `vNEXT`.
 
 ### Examples and vectors
@@ -382,7 +381,7 @@ length and passive voice gives advice only. Do not reword the existing changelog
 
 - In the spec-build stage, do not change a file under `skellytracker/`. A test fix in
   `skellytracker/tests/` is the only exception
-  ([0014](../../../decisions/0014-spec-lifecycle.md#no-implementation-change-during-the-spec-build-stage)).
+  ([Stages](../../../specs/model-sidecar/model-addition-workflow/README.md#stages)).
 - Do not change an exporter repo.
 
 ## Checks

@@ -9,7 +9,7 @@ This skill uses ASD-STE100 Simplified Technical English.
 
 This skill implements one section of the sidecar spec in the skellytracker package. It runs only in
 skellytracker. It is for the implementation stage and the steady state
-([decision 0014](../../../decisions/0014-spec-lifecycle.md#stages)).
+([Stages](../../../specs/model-sidecar/model-addition-workflow/README.md#stages)).
 
 The section file gives the normative text. [Decision 0013](../../../decisions/0013-spec-structure.md)
 gives the front matter, the vectors, the reference implementations and the traceability. This skill
@@ -19,7 +19,7 @@ gives the order of the steps, the inputs, the outputs and the stop points.
 
 - [Section 1](../../../AGENTS.md#1-purpose) of `AGENTS.md` names the current stage.
 - In the spec-build stage, no file under `skellytracker/` changes
-  ([0014](../../../decisions/0014-spec-lifecycle.md#no-implementation-change-during-the-spec-build-stage)).
+  ([Stages](../../../specs/model-sidecar/model-addition-workflow/README.md#stages)).
 - In the spec-build stage, do only steps 1 to 4. Report the plan. Then stop.
 - If step 3 finds that the work is blocked, do only steps 1 to 3. A blocked section gets no plan.
   Report the result of step 3. Then stop.
@@ -115,7 +115,7 @@ A skellytracker session must land it first, with the skill
    needs first. An example is a field of another section that `model.py` does not have yet. Each
    prerequisite is a separate PR before the PR of this section.
 9. `load_sidecar` rejects `vNEXT`. A development build must load `vNEXT` sidecars
-   ([0014](../../../decisions/0014-spec-lifecycle.md#vnext-is-not-a-version)). If a test needs a
+   ([Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing)). If a test needs a
    `vNEXT` sidecar and a development build cannot load one yet, write that work as the first
    prerequisite. If the Open work list has no item for it, tell the user. Do not design that work in
    this plan.
@@ -153,7 +153,7 @@ A skellytracker session must land it first, with the skill
 11. skellytracker counts as one implementation in `verified_against`. A vector is fully verified only
     when two independent implementations agree
     ([Independence](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence);
-    decision [0014](../../../decisions/0014-spec-lifecycle.md#independence)).
+    [Independence](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence)).
 
 ### Step 7: Update the traceability
 

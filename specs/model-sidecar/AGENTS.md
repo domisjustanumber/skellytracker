@@ -10,7 +10,7 @@ root log ([ADR-GN3D](../../decisions/GN3D-module-decision-logs.md)).
   a sidecar, an example or the spec. The [section map](README.md#section-map) lists them.
 - Link to the spec by its relative path. Do not link to a branch URL.
 - Every spec change goes into the `vNEXT` revision until the first skellytracker release that ships
-  the spec (ADR-[0014](../../decisions/0014-spec-lifecycle.md)).
+  the spec ([Publishing](model-addition-workflow/validation-and-publishing.md#publishing)).
 - `load_sidecar` rejects `schema_version: "vNEXT"` (`SidecarModel._check_schema_version_pattern` in
   `skellytracker/core/sidecar/model.py`). Do not publish a `vNEXT` sidecar to a shared or remote
   folder.
@@ -27,9 +27,10 @@ root log ([ADR-GN3D](../../decisions/GN3D-module-decision-logs.md)).
   [changelog](changelog.md#schema_version-history).
 - Stop on a gap. If a model property does not map exactly to a spec section, do not approximate it.
   A near-miss is a gap. Write a change proposal with the parts of
-  [`templates/change-proposal.md`](templates/change-proposal.md). Copy it to
-  `proposals/<slug>/proposal.md`. Record it as a short decision entry with status `proposed`
-  (ADR-[faac](../../decisions/faac-proposal-records.md)). Then stop. The user accepts or
+  [`templates/change-proposal.md`](templates/change-proposal.md), and pack it as a `proposal` bundle
+  ([Hand-over bundles](model-addition-workflow/hand-over.md)). A skellytracker session copies the
+  bundle version to `proposals/<slug>/` and records it as a short decision entry with status
+  `proposed`. Then stop. The user accepts or
   rejects the proposal.
 - Put one kind of change in each PR
   (ADR-[0027](../../decisions/0027-single-working-branch.md#one-kind-of-change-in-each-pr)).

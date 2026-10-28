@@ -38,7 +38,8 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   ambiguous at `vNEXT`. At `vNEXT`, `imagenet_bgr` means BGR-ordered statistics, but RTMPose uses the
   legacy meaning ([0009](0009-imagenet-bgr-meaning.md)).
 - The reviewer note of the `vNEXT` change summary says to replace `vNEXT` "before merging". Decision
-  [0014](../../../decisions/0014-spec-lifecycle.md) moves that step to the first release that ships the spec.
+  [Publishing](../model-addition-workflow/validation-and-publishing.md#publishing) moves that step to
+  the first release that ships the spec.
 - The [Identity](../common/identity.md) fields say that a keypoint detector's
   `model_id` is `{family}-{part}`. This rule cannot express a variant suffix or a stage suffix. The
   RTMO body7 reference example, copied from OpenMMLab-Exporter, has `model_id: rtmo-body7` in the

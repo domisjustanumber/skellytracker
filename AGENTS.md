@@ -4,7 +4,9 @@ Exporter agents: start from [`specs/draft/exporter-guide/README.md`](specs/draft
 To add a model or to request a change to the sidecar spec, follow the
 [model addition workflow](specs/model-sidecar/model-addition-workflow/README.md).
 It is the same for an exporter agent and for a human contributor.
-Exporter agents must not change files in this repository.
+Exporter agents must not change files in this repository, except the new version folders of their
+own bundles in `intakes/`. They run `pack` and `list` of `tools/intake_bundle.py` with any Python 3
+interpreter and `python -B`. These commands write no other file here.
 
 All new and changed documentation must use ASD-STE100 Simplified Technical English.
 This rule applies to each `AGENTS.md`, skills, decision entries, templates, the model addition
@@ -36,15 +38,15 @@ of one model family. The spec starts at [`specs/model-sidecar/README.md`](specs/
 The exporter repositories make ONNX files and write their sidecars: OpenMMLab-Exporter,
 Roboflow-Exporter, Ultralytics-Exporter and Qualcomm-Exporter.
 
-The spec is in its spec-build stage (ADR-[0014](decisions/0014-spec-lifecycle.md)).
+The spec is in its spec-build stage ([Stages](specs/model-sidecar/model-addition-workflow/README.md#stages)).
 In this stage, the exporters add models and the spec changes.
 Do not change the implementation code under `skellytracker/`.
 
 - The root [decision log](decisions/README.md) is in `decisions/`. The sidecar spec has its own
   [log](specs/model-sidecar/decisions/README.md) in `specs/model-sidecar/decisions/`
   ([section 5](#5-decision-log)).
-- The files under `specs/model-sidecar/proposals/` are informative records
-  (ADR-[faac](decisions/faac-proposal-records.md)).
+- The files under `specs/model-sidecar/proposals/` are informative records. Each record is a byte copy
+  of a hand-over bundle version ([Tracked records](specs/model-sidecar/model-addition-workflow/hand-over.md#tracked-records)).
 - `specs/draft/exporter-guide/` is not complete. A local plan of the user owns it
   (ADR-[x64y](decisions/x64y-draft-exporter-guide-folder.md)).
 - `specs/sidecar-implementation-plan.md` is a tracked file, not a local plan. It stays until its
@@ -87,7 +89,7 @@ uv run ruff check skellytracker/ tools/ decisions/scripts/  # lint
 - The first test run needs network access. On Windows, some video tests fail
   ([`skellytracker/AGENTS.md`](skellytracker/AGENTS.md#tests)).
 - Report each new test failure to the user. Fix the failures of one root cause in one PR. Do not put
-  other changes in that PR (ADR-[0014](decisions/0014-spec-lifecycle.md)).
+  other changes in that PR ([Phase 3](specs/model-sidecar/model-addition-workflow/phase-3-skellytracker.md)).
 
 ## 4. Sidecar Rules
 
@@ -128,6 +130,9 @@ Change the kit templates by hand when a rule of this log changes.
 
 - `plans/` is a local working folder. Git ignores it. Do not commit it. Do not cite or link to
   `plans/`, or cite the content of a plan.
+- `intakes/` is the local hand-over folder. Git ignores it. Do not commit it. Do not link it from a
+  tracked file. Do not run `git clean -x` or `git clean -X`. Use the main checkout, not a worktree,
+  to process bundles ([Hand-over bundles](specs/model-sidecar/model-addition-workflow/hand-over.md)).
 - Do not push to a git remote without the approval of the user. One approval for a PR covers its
   push, its draft PR and its description.
 - Ask the user before any other action that is visible outside this machine, for example a PR
