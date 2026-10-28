@@ -48,7 +48,8 @@ follow the workflow or the guide. The spec is normative.
 Get these inputs before you start
 ([Inputs](../../../specs/model-sidecar/model-addition-workflow/README.md#inputs)):
 
-- the ONNX files of every size, batch and precision;
+- the ONNX files of every size and precision; a static-batch family also needs the verification
+  batches 1, 2, 3 and 4;
 - the upstream inference config (the test pipeline);
 - the upstream preprocessing code and postprocessing code;
 - one reference output of the upstream library on a known image.
@@ -68,6 +69,7 @@ Write these files in a `model` bundle, or in the exporter repo where the table s
 | The parity script, committed in the exporter repo | When you can run the parity check. |
 | `reference/<section_module>.py` of the bundle | For each section that the exporter implements on its host side and that has no reference implementation. |
 | `example/` of the bundle | When the verdict is `describes`. |
+| `batch/` of the bundle | When the family has a static batch or a `dynamic` export: the output of the batch-conversion check. |
 | A `proposal` bundle | The skill `propose-sidecar-change` writes one bundle for each contract unit with a `near-miss` or a `gap`. |
 
 Keep your working draft where you like. The bundle is the hand-over
@@ -107,6 +109,11 @@ Keep your working draft where you like. The bundle is the hand-over
 1. Do steps 1 and 2 of
    [Phase 1](../../../specs/model-sidecar/model-addition-workflow/phase-1-intake.md#phase-1-can-the-current-spec-describe-the-model).
    Write one row for each property of the runtime contract.
+   Then do step 1b of phase 1, the batch-conversion check
+   ([Batch-conversion check](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#batch-conversion-check)).
+   Fill in
+   [Batch conversion check](../../../specs/model-sidecar/templates/model-intake.md#batch-conversion-check)
+   and row G6b.
 2. Use the hint for each part of the
    [property table](../../../specs/model-sidecar/templates/model-intake.md#property-table). The hints are
    in [Mapping hints for phase 1](../../../specs/model-sidecar/model-addition-workflow/mapping-hints.md#mapping-hints-for-phase-1):
@@ -174,17 +181,19 @@ Do this step when no row is `near-miss` or `gap` (step 5 of
    the user in step 8.
 6. Compare your values with the reference example of the same family, if one exists. Write each
    difference in "The sidecar" of the intake.
-7. Do each item of the [Validation checklist](../../../specs/model-sidecar/templates/model-intake.md#validation-checklist).
+7. Choose the published batch artifacts. Follow
+   [Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing).
+8. Do each item of the [Validation checklist](../../../specs/model-sidecar/templates/model-intake.md#validation-checklist).
    Follow [Validation](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#validation). Write the rule ID of each
    rule that you checked.
-8. Prove parity. Follow [Parity](../../../specs/model-sidecar/model-addition-workflow/parity.md#parity). Fill in
+9. Prove parity. Follow [Parity](../../../specs/model-sidecar/model-addition-workflow/parity.md#parity). Fill in
    [Parity proof](../../../specs/model-sidecar/templates/model-intake.md#parity-proof). Fill in each cell
    that you can, also when the result is `to run`: the gates, the test images, the upstream reference
    and the script.
-9. Commit the parity script in the exporter repo. If you cannot run the script or commit it, write
-   `to run` as the result. If you do not know the path or the commit of the script, write
-   `unknown (<reason>)`.
-10. If parity fails, you missed or misjudged a property. Go back to step 3. Do not make the tolerance
+10. Commit the parity script in the exporter repo. If you cannot run the script or commit it, write
+    `to run` as the result. If you do not know the path or the commit of the script, write
+    `unknown (<reason>)`.
+11. If parity fails, you missed or misjudged a property. Go back to step 3. Do not make the tolerance
     larger.
 
 ### Step 6: Hand over each `near-miss` and `gap`
