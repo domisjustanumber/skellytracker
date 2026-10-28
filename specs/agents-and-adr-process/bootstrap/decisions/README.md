@@ -73,7 +73,14 @@ The open work is in [open-work.md](open-work.md).
   the entry records), edit the same entry. Do not add a second entry. Its status line adds
   `recorded again <YYYY-MM-DD> (<source>)`.
 - To change a decision, add a new entry. It restates each rule of the old entry that stays, and it
-  supersedes the old entry in full. Do not supersede, amend or correct a part of an entry.
+  supersedes the old entry in full. Do not supersede, amend or correct a part of an entry. A link can
+  restate a rule. The link must go to a heading of a normative document of the absorb rule below, and
+  that heading must state the rule. Then that document is the only source of the rule. The commit
+  that changes the text under such a heading cites its own entry next to the changed rule.
+- An entry can restate a rule by a link to a heading of a normative document. A later entry can
+  change the text under that heading. The later entry cites itself at the heading. It does not
+  supersede the linking entry. A later entry that changes a rule that the linking entry states in its
+  own text supersedes the linking entry in full.
 - The status line of an entry can change. These changes are allowed: `proposed` to `accepted` or
   `rejected`, `accepted` to `superseded by XXXX`, `accepted` to `absorbed into <path>#<anchor>`,
   `absorbed into <path>#<anchor>` to `superseded by XXXX`, `accepted` to `done`, and `evidence` to

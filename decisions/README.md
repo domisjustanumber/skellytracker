@@ -34,6 +34,7 @@ These entries are `accepted` or `evidence`.
 | [EY8R](EY8R-tools-and-scripts.md) | Tools are in the root `tools/`; a script is in `scripts/` of the log that holds its entry; a script that a later step runs becomes a tool | accepted |
 | [D9VT](D9VT-decision-log-move.md) | The log moves to `decisions/` and `specs/model-sidecar/decisions/`; no stub; old plain-text paths stay; proposal-copy paths; supersedes k6dz | accepted |
 | [AB79](AB79-one-pr-for-the-spec-build-work.md) | Exception to 0027: the spec-build work goes to `development` in one PR; one kind of change in each commit; no new `dom/NN-*` branch | accepted |
+| [JW9N](JW9N-restate-a-kept-rule-by-a-link.md) | A link to a heading that states a kept rule restates it; later edits there cite their entry; the chain rule; supersedes ngnb and HJNP | accepted |
 
 ### Proposed
 
@@ -68,10 +69,17 @@ in the [open work of the spec log](../specs/model-sidecar/decisions/open-work.md
   anchor repair, a typo that does not change the meaning, the redaction of private data, and a
   change of ID with the repair of its citations. Each edit adds `_Edited YYYY-MM-DD (#PR): <kind>._`
   at the end of the entry. `<kind>` is `link repair`, `typo`, `redaction`, `re-ID from XXXX` or
-  `citation repair` ([gtwq](gtwq-random-entry-ids.md)). An old `renumber from NNNN` line stays.
+  `citation repair` ([ADR-JW9N](JW9N-restate-a-kept-rule-by-a-link.md)). An old `renumber from NNNN` line stays.
 - A `proposed` entry can change until the user decides it.
 - To change a decision, add a new entry. It restates each rule of the old entry that stays, and it
-  supersedes the old entry in full. Do not supersede a part of an entry.
+  supersedes the old entry in full. Do not supersede a part of an entry. A link can restate a rule.
+  The link must go to a heading of a document of the absorb rule below, and that heading must state
+  the rule. Then that document is the only source of the rule. The commit that changes the text
+  under such a heading cites its own entry next to the changed rule ([ADR-JW9N](JW9N-restate-a-kept-rule-by-a-link.md)).
+- An entry can restate a rule by a link to a heading of a document of the absorb rule. A later entry
+  can change the text under that heading. The later entry cites itself at the heading. It does not
+  supersede the linking entry. A later entry that changes a rule that the linking entry states in its
+  own text supersedes the linking entry in full ([ADR-JW9N](JW9N-restate-a-kept-rule-by-a-link.md)).
 - The status line of an entry can change. These changes are allowed: `proposed` to `accepted` or
   `rejected`, `accepted` to `superseded by XXXX`, `accepted` to `absorbed into <path>#<anchor>`,
   `absorbed into <path>#<anchor>` to `superseded by XXXX`, `accepted` to `done`, and `evidence` to
@@ -140,7 +148,7 @@ in the [open work of the spec log](../specs/model-sidecar/decisions/open-work.md
   rows with one ID.
 - Cite a tracked file with a relative link. Cite a commit, or the code of another repo, with a GitHub
   permalink that pins a full 40-character SHA on the default branch of that repo
-  ([gtwq](gtwq-random-entry-ids.md)). Do not cite or link `plans/`. Git does not track it
+  ([ADR-JW9N](JW9N-restate-a-kept-rule-by-a-link.md)). Do not cite or link `plans/`. Git does not track it
   ([ADR-GN3D](GN3D-module-decision-logs.md)).
 - Until a commit is on `development`, cite its PR number and the file path, not its SHA
   ([0027](0027-single-working-branch.md)).

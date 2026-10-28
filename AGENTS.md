@@ -114,7 +114,7 @@ Get its ID from `uv run python tools/check_decision_log.py --new`.
 End each commit subject that adds or changes an entry with `(ADR-<ID>)`.
 Write each ADR ID in upper case, with the prefix in the link text, for example
 [ADR-GN3D](decisions/GN3D-module-decision-logs.md). This rule also applies to an older entry
-with a lower-case file name ([ADR-HJNP](decisions/HJNP-upper-case-entry-ids.md)).
+with a lower-case file name (see the [Rules](decisions/README.md#rules)).
 
 The bootstrap kit in `specs/agents-and-adr-process/` is guidance, not a part of the sidecar spec.
 It holds the final form of the rules of this decision log for a new repository.

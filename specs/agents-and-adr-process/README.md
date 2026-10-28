@@ -280,6 +280,12 @@ random ID, not the next number.
 
 - A new entry that changes an old decision restates each rule that stays. Then it supersedes the old
   entry in full.
+- A link to a heading of a normative document can restate a rule, when that heading states the rule.
+  Some absorbed entries are larger than the entry limit, so a full restatement cannot pass the check.
+  A later entry can change the text under that heading. It cites itself at the heading, and it does
+  not supersede the linking entry. A later entry that changes a rule that the linking entry states in
+  its own text supersedes the linking entry in full
+  ([ADR-JW9N](../../decisions/JW9N-restate-a-kept-rule-by-a-link.md)).
 - Do not supersede a part of an entry. OpenMMLab-Exporter had nine partly superseded entries. It
   needed six consolidation entries to repair them.
 - A consolidation entry states the rules that stay from a group of entries and supersedes them. It
