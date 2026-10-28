@@ -20,7 +20,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from skellytracker.core.io.canonical_mapping_expansion import expand_prefixed_mapping
 from skellytracker.core.sidecar.resolution import _deep_merge
 
-Precision = Literal["fp32", "fp16", "int8"]
+Precision = Literal["fp32", "fp16"]
 OnnxDtype = Literal["float32", "float16", "uint8", "int8"]
 Role = Literal["object_detector", "pose_estimator"]
 NamedNormalizationMode = Literal["none", "unit_float", "imagenet_bgr", "imagenet_rgb"]

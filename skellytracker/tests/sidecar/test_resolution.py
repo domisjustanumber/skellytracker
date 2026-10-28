@@ -132,8 +132,8 @@ class TestBaseResolution:
         assert result == {"model_id": "derived", "sizes": {"nano": {"a": 1, "b": 20}}}
 
     def test_base_null_delete_removes_inherited_key(self, tmp_path: Path):
-        _write_yaml(tmp_path / "base.yaml", {"sizes": {"nano": {"int8": {"filename": "x.onnx"}, "fp32": {"filename": "y.onnx"}}}})
-        _write_yaml(tmp_path / "derived.yaml", {"base": "base.yaml", "sizes": {"nano": {"int8": None}}})
+        _write_yaml(tmp_path / "base.yaml", {"sizes": {"nano": {"fp16": {"filename": "x.onnx"}, "fp32": {"filename": "y.onnx"}}}})
+        _write_yaml(tmp_path / "derived.yaml", {"base": "base.yaml", "sizes": {"nano": {"fp16": None}}})
 
         result = resolve_sidecar_composition(tmp_path / "derived.yaml", tmp_path)
         assert result == {"sizes": {"nano": {"fp32": {"filename": "y.onnx"}}}}

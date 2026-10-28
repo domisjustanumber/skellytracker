@@ -136,9 +136,9 @@ class TestNormalizationDispatch:
 
     def test_normalization_by_precision_overrides_top_level(self):
         spec = _input_spec(
-            normalization="imagenet_bgr", normalization_by_precision={"int8": "none"}
+            normalization="imagenet_bgr", normalization_by_precision={"fp16": "none"}
         )
-        assert resolve_normalization_mode(spec, "int8") == "none"
+        assert resolve_normalization_mode(spec, "fp16") == "none"
         assert resolve_normalization_mode(spec, "fp32") == "imagenet_bgr"
 
 

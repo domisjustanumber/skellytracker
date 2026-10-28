@@ -304,6 +304,20 @@ class TestInputAndNormalization:
         with pytest.raises(ValidationError):
             SidecarModel.model_validate(data)
 
+    def test_int8_precision_rejected(self):
+        data = _minimal_detector()
+        data["input"]["dtype"] = {"int8": "float32"}
+        with pytest.raises(ValidationError):
+            SidecarModel.model_validate(data)
+
+    def test_int8_precision_artifact_rejected(self):
+        data = _minimal_detector()
+        precision_artifacts = data["sizes"]["nano"]["onnx"]["batch_artifacts"]["2"]["precision_artifacts"]
+        precision_artifacts["int8"] = {"filename": "toy-nano_b2_int8.onnx"}
+        sidecar = SidecarModel.model_validate(data)
+        with pytest.raises(ValidationError):
+            sidecar.resolved_size("nano")
+
     def test_normalization_named_mode_accepted(self):
         data = _minimal_detector()
         data["input"]["normalization"] = "imagenet_rgb"
