@@ -54,8 +54,9 @@ gives the order of the steps, the inputs, the outputs and the stop points.
    the guidance.
 4. Read the sections that the text links to. Read the sections that link to its rules.
 5. Read the decision entries that cite the section.
-6. Read the [Open work](../../../decisions/open-work.md) list and its list of spec
-   defects. Find the items about the section.
+6. Read the [Open work](../../../decisions/open-work.md) list of the root log and the
+   [spec defects](../../../specs/model-sidecar/decisions/open-work.md#spec-defects) of the spec log.
+   Find the items about the section.
 7. Read the code that `implemented_by` names. Read the tests that `tests` names.
 
 ### Step 2: Find the evidence
@@ -171,7 +172,7 @@ A skellytracker session must land it first, with the skill
 
 1. Run these commands. Each command must pass:
    - `uv run pytest -m "not video"`
-   - `uv run ruff check skellytracker/ tools/`
+   - `uv run ruff check skellytracker/ tools/ decisions/scripts/`
    - `uv run python tools/make_vectors.py --check`
    - `uv run python tools/sidecar_trace.py matrix --check`
 2. Do not run `black` or `isort` on the package.

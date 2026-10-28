@@ -261,10 +261,10 @@ into them.
 | Read path | 220,000 |
 
 About 4 characters make one token. Put long evidence in a tracked file next to the entry, and link
-to it. Put the script that produced a measurement in `scripts/` of the log that holds its entry. Name the script in
-the Evidence section. Then a reader can run the measurement again. A PR that raises a limit must add
-an entry. To start the log in a repo that already has long entries, set `LAST_UNLIMITED_ENTRY` to the
-highest old entry number.
+to it. Put the script that produced a measurement in `scripts/` of the log that holds its entry.
+Name the script in the Evidence section. Then a reader can run the measurement again. A PR that
+raises a limit must add an entry. To start the log in a repo that already has long entries, set
+`LAST_UNLIMITED_ENTRY` to the highest old entry number.
 
 ### Citations
 

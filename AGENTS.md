@@ -14,7 +14,7 @@ Use "must" for a requirement.
 Keep technical names, field names, enum values, formulas, code and YAML unchanged.
 
 This file holds the rules for each task. The other instructions load only when you need them
-(ADR-[hxy8](decisions/hxy8-scoped-agent-instructions.md)):
+([ADR-GN3D](decisions/GN3D-module-decision-logs.md)):
 
 | Where | When it applies |
 |---|---|
@@ -40,7 +40,9 @@ The spec is in its spec-build stage (ADR-[0014](decisions/0014-spec-lifecycle.md
 In this stage, the exporters add models and the spec changes.
 Do not change the implementation code under `skellytracker/`.
 
-- The [decision log](decisions/README.md) is in `decisions/` ([section 5](#5-decision-log)).
+- The root [decision log](decisions/README.md) is in `decisions/`. The sidecar spec has its own
+  [log](specs/model-sidecar/decisions/README.md) in `specs/model-sidecar/decisions/`
+  ([section 5](#5-decision-log)).
 - The files under `specs/model-sidecar/proposals/` are informative records
   (ADR-[faac](decisions/faac-proposal-records.md)).
 - `specs/draft/exporter-guide/` is not complete. A local plan of the user owns it
@@ -77,7 +79,7 @@ uv run pre-commit install                   # hooks; once per clone, and again a
 uv run pytest -m "not video"                # package tests and doc tests; must pass
 uv run pytest tools/tests                   # doc tests only: links, examples, decision log, private data
 uv run pytest -o faulthandler_timeout=300   # all tests, with the video tests
-uv run ruff check skellytracker/ tools/     # lint
+uv run ruff check skellytracker/ tools/ decisions/scripts/  # lint
 ```
 
 - `uv run python -m skellytracker` starts a live webcam demo. Do not run it without a camera and a
@@ -97,13 +99,21 @@ Read them before you change a sidecar, an example or the spec.
 Read [`decisions/README.md`](decisions/README.md) and
 [`open-work.md`](decisions/open-work.md) before you change sidecar code, a sidecar, an example,
 the spec, the agent instructions or the PR workflow.
+For spec work, also read the [`README.md`](specs/model-sidecar/decisions/README.md) and the
+[`open-work.md`](specs/model-sidecar/decisions/open-work.md) of the spec log in
+`specs/model-sidecar/decisions/`.
+An entry goes in the spec log only when each file that its Decision section names or changes is in
+`specs/model-sidecar/`. All other entries go in the root log
+([ADR-GN3D](decisions/GN3D-module-decision-logs.md)).
+Tools are in `tools/`. Scripts are in `scripts/` of the log that holds their entry
+([ADR-EY8R](decisions/EY8R-tools-and-scripts.md)).
 The [Rules](decisions/README.md#rules) of the index give the read path, the entry IDs, the
 allowed edits, the status changes, the limits and the citation rules.
 Add one entry for each new decision or measurement.
 Get its ID from `uv run python tools/check_decision_log.py --new`.
 End each commit subject that adds or changes an entry with `(ADR-<ID>)`.
 Write each ADR ID in upper case, with the prefix in the link text, for example
-[ADR-HXY8](decisions/hxy8-scoped-agent-instructions.md). This rule also applies to an older entry
+[ADR-GN3D](decisions/GN3D-module-decision-logs.md). This rule also applies to an older entry
 with a lower-case file name ([ADR-HJNP](decisions/HJNP-upper-case-entry-ids.md)).
 
 The bootstrap kit in `specs/agents-and-adr-process/` is guidance, not a part of the sidecar spec.

@@ -173,9 +173,9 @@ In skellytracker:
    [section 5](../../../AGENTS.md#5-decision-log) of `AGENTS.md`.
 2. Read the [Rules](../../../decisions/README.md#rules) and the
    [entry template](../../../decisions/template.md) of the decision log.
-3. Read the index of the decision log. If an entry already records the proposal, do not add a second
-   entry. If the exporter changed the proposal after the copy, do the steps of
-   [Record a changed proposal](#record-a-changed-proposal).
+3. Read the index of the [spec log](../../../specs/model-sidecar/decisions/README.md). If an entry
+   already records the proposal, do not add a second entry. If the exporter changed the proposal
+   after the copy, do the steps of [Record a changed proposal](#record-a-changed-proposal).
 4. If a `proposed` entry covers the same property as the exporter proposal, read the entry:
    - If it is a gap record (see [Rules](../../../decisions/README.md#rules)) and the exporter
      proposal builds on it (the same slug, and the entry is cited in the header), add the proposal
@@ -227,8 +227,11 @@ Decision [faac](../../../decisions/faac-proposal-records.md) gives the rules of 
      exporter has no git repo and that its paths are not pinned;
    - a relative link that does not resolve in skellytracker becomes a code span;
    - a path under `specs/sidecar/` becomes the same path under `specs/model-sidecar/`, and
-     `specs/sidecar-spec.md` becomes `specs/model-sidecar/sidecar-spec.md`
-     ([k6dz](../../../decisions/k6dz-model-sidecar-folder.md)).
+     `specs/sidecar-spec.md` becomes `specs/model-sidecar/sidecar-spec.md`;
+   - a skellytracker path `notes/decisions/<file>` of an entry, of a split checker file or of
+     `next_number_timing.py` becomes its new path in `decisions/` or `specs/model-sidecar/decisions/`.
+     A citation of `notes/decisions/README.md` or `open-work.md` with line numbers stays. A path in
+     an exporter repo stays ([ADR-D9VT](../../../decisions/D9VT-decision-log-move.md)).
 6. Do not write a missing part. Do not correct the text of a part.
 7. Add the heading "Before acceptance" at the end. List each failed item of
    [Before you stop](../../../specs/model-sidecar/templates/change-proposal.md#before-you-stop), the
@@ -258,13 +261,13 @@ Decision [faac](../../../decisions/faac-proposal-records.md) gives the rules of 
    give these items in a list: the section, the change, the version, the models, the entries that the
    proposal supersedes on acceptance, and the related proposals.
 5. In Reason, give the gap (part 1) in a few sentences. In Evidence, give the parity state (part 5).
-   In Open work, write only the link to the open-work list.
+   In Open work, write only the link to the `open-work.md` of the spec log.
 6. Keep the entry inside the entry limit
    ([z934](../../../decisions/z934-decision-log-index-and-read-path.md)). The details stay in
    `proposal.md`.
 7. Write the repo name with the ID of an exporter decision, for example "OpenMMLab-Exporter
    0020". Write the entry in ASD-STE100.
-8. Add the entry to the Proposed table of the decision log, with the status `proposed`. Its
+8. Add the entry to the Proposed table of the spec log, with the status `proposed`. Its
    Section cell is the section ID of the proposal in backticks, or `none`. Do not add a line to
    `open-work.md`: the proposal index lists the proposals.
 9. If the proposal completes a gap record, edit the gap record. Do not add a new entry. Items 1, 2

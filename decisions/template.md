@@ -4,7 +4,8 @@ Use this template for a new entry. The [Rules](README.md#rules) of the index app
 in the read path: read it when you write an entry.
 
 The file name is `<ID>-<short-slug>.md`. Get `<ID>` from
-`uv run python tools/check_decision_log.py --new`. The ID is in upper case.
+`uv run python tools/check_decision_log.py --new`. The ID is in upper case. Put the file in the log
+that the placement rule of the [Rules](README.md#rules) gives: the root log or the log of a module.
 
 ```markdown
 # <ID> — <title>
@@ -39,9 +40,10 @@ The file name is `<ID>-<short-slug>.md`. Get `<ID>` from
 - **Consequences.** Optional. What becomes harder, what must change later and what the decision
   costs.
 - **Evidence.** Write this section only when there is evidence: measurements with their tool, its
-  version and the script in `scripts/` of the log that holds its entry, or code facts with their file and function.
+  version and the script in `scripts/` of the log that holds the entry, or code facts with their
+  file and function.
 - **Alternatives rejected.** The options that were examined and not used, with the reason for each.
   Omit the section when there are none.
 - **Not repeated.** Pitfalls already found. Omit the section when there are none.
-- **Open work.** Optional. Write only a link to [open-work.md](open-work.md). Put the open-work items
-  in that file, not in the entry.
+- **Open work.** Optional. Write only a link to the [open-work.md](open-work.md) of the log that
+  holds the entry. Put the open-work items in that file, not in the entry.

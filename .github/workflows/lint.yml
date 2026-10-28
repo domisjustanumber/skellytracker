@@ -18,4 +18,4 @@ jobs:
           enable-cache: true
       - run: uv sync
       # specs/model-sidecar/reference/ holds informative reference implementations once the first one lands.
-      - run: uv run ruff check skellytracker/ tools/ $(test -d specs/model-sidecar/reference && echo specs/model-sidecar/reference/)
+      - run: uv run ruff check skellytracker/ tools/ decisions/scripts/ $(test -d specs/model-sidecar/reference && echo specs/model-sidecar/reference/)

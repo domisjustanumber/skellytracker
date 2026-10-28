@@ -29,7 +29,8 @@ Tell the user or the skellytracker maintainers the name of the branch.
 | `../freemocap/skellytracker/specs/model-sidecar/model-addition-workflow/README.md` | The entry point of this workflow. |
 | `../freemocap/skellytracker/specs/draft/exporter-guide/sidecars/README.md` | The sidecar part of the draft exporter guide: the rules that only an exporter needs, the block for the exporter `AGENTS.md` and the checkout steps. |
 | `../freemocap/skellytracker/specs/model-sidecar/model-addition-workflow/reference-examples.md` | The procedure that turns an exporter sidecar into a spec example. |
-| `../freemocap/skellytracker/notes/decisions/` | The skellytracker decision log. |
+| `../freemocap/skellytracker/decisions/` | The root decision log of skellytracker. |
+| `../freemocap/skellytracker/specs/model-sidecar/decisions/` | The decision log of the sidecar spec. |
 | `../freemocap/skellytracker/skellytracker/` | The skellytracker package code. Read it for part 6 of a proposal. Do not import it. |
 
 ## The commit of the spec text
@@ -44,9 +45,10 @@ skellytracker checkout, for example `../freemocap/skellytracker`. Then run
 
 A path that starts with `skellytracker/` or `specs/` names a file in the skellytracker repo. Read it
 in your skellytracker checkout, for example `../freemocap/skellytracker/`. A path that starts with
-`plans/` names a file in your repo. Both an exporter repo and skellytracker have a
-`notes/decisions/` folder. Thus always write the repo name with the number of a decision entry, for
-example "skellytracker decision 0012" or "OpenMMLab-Exporter 0020". In a file of the exporter, a
+`plans/` names a file in your repo. skellytracker keeps its logs in `decisions/` and
+`specs/model-sidecar/decisions/`. An exporter repo has `notes/decisions/`. Thus always write the
+repo name with the number of a decision entry, for example "skellytracker decision 0012" or
+"OpenMMLab-Exporter 0020". In a file of the exporter, a
 number without a repo name is a decision of that exporter.
 
 ## Decision entries

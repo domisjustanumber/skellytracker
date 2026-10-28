@@ -3,6 +3,8 @@
 These rules apply to work in skellytracker on the sidecar spec, a sidecar or a reference example.
 Exporter agents use the [exporter guide](../draft/exporter-guide/README.md) instead.
 The root [`AGENTS.md`](../../AGENTS.md) also applies.
+The decision log of the sidecar spec is in [`decisions/`](decisions/README.md). Read it with the
+root log ([ADR-GN3D](../../decisions/GN3D-module-decision-logs.md)).
 
 - The section files under this folder are normative. Read the sections that apply before you change
   a sidecar, an example or the spec. The [section map](README.md#section-map) lists them.

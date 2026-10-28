@@ -56,7 +56,13 @@ in the [open work of the spec log](../specs/model-sidecar/decisions/open-work.md
 ## Rules
 
 - Write one entry for each decision or measurement. Use [template.md](template.md).
-- The read path is this file, `open-work.md` and the Active entries that apply to your task. Read a
+- This repo has a root log in `decisions/` and a log for each module in `LOG_DIRS` of
+  `tools/check_decision_log.py`. These Rules and `template.md` apply to each log. Put an entry in the
+  log of a module only when each file that its Decision section names or changes is in that module.
+  Put all other entries in this log. All logs have one ID space
+  ([ADR-GN3D](GN3D-module-decision-logs.md)).
+- The read path is this file, `open-work.md` and the Active entries that apply to your task. For a
+  task in a module, the same files of the module log are also in the read path. Read a
   Proposed entry only for spec work in its section, or when a skill tells you to. Read an entry of
   `historical.md` only to find the reason for a decision.
 - The body of an entry that is not `proposed` does not change, except for four edits: a link or
@@ -75,30 +81,30 @@ in the [open work of the spec log](../specs/model-sidecar/decisions/open-work.md
   In the same PR, change the status in the index and move the row to the table for the new status.
   An `evidence` entry becomes `evidence; used by XXXX` when an accepted entry cites
   it for its decision. Its Decision cell keeps the one-line result.
-- The tables and their status forms: Active (`accepted`, `evidence`) and Proposed (`proposed`) in this
-  file, and Historical (`rejected`, `superseded by XXXX`, `absorbed into <path>#<anchor>`,
-  `evidence; used by XXXX`, `done`) in [historical.md](historical.md). The Status cell has only a
-  status form of its table. `XXXX` must be an entry that is not `proposed` or `rejected`. The
-  Decision cell has 160 characters or fewer
-  ([z934](z934-decision-log-index-and-read-path.md)).
+- The tables and their status forms: Active (`accepted`, `evidence`) and Proposed (`proposed`) in
+  the `README.md` of each log, and Historical (`rejected`, `superseded by XXXX`, `absorbed into
+  <path>#<anchor>`, `evidence; used by XXXX`, `done`) in its `historical.md`. The Status cell has
+  only a status form of its table. `XXXX` must be an entry that is not `proposed` or `rejected`. The
+  Decision cell has 160 characters or fewer ([z934](z934-decision-log-index-and-read-path.md)).
 - A Proposed row has a Section cell: the section ID of the change in backticks, or `none`. A new
   section ID is allowed.
 - An accepted entry is absorbed when one of these documents states all of its rules: the spec,
-  the root or a nested `AGENTS.md` ([hxy8](hxy8-scoped-agent-instructions.md)), the skills, the model addition workflow, the exporter guide, the templates of
-  `specs/model-sidecar/templates/`, and the Rules of this file with [template.md](template.md). Then that document is the source of the rules.
+  the root or a nested `AGENTS.md` ([ADR-GN3D](GN3D-module-decision-logs.md)), the skills, the model
+  addition workflow, the exporter guide, the templates of `specs/model-sidecar/templates/`, and the
+  Rules of this file with [template.md](template.md). Then that document is the source of the rules.
 - An accepted entry that records a one-off action, with no rule that stays, is `done` when the action
   is complete.
 - A consolidation entry states the rules that stay from a group of entries, and it supersedes each
   entry of the group. It changes no decision. Write one at the end of the spec-build stage, and when
   the read-path limit fails.
 - Delete an open-work item when the work is done. Delete a spec defect when its content PR lands.
-- Keep the log inside its limits: 18,000 characters for this file, 20,000 for `open-work.md`, 6,000
-  for each entry after 0025, and 160,000 for the read path: this file, `open-work.md` and the Active
-  entries. Proposed and Historical entries are not in the read path. Put long evidence in a tracked
-  file next to the entry, and link to it. Put the script that produced a measurement in
-  `scripts/` of the log that holds its entry. The Evidence section names it. Run
-  `uv run python tools/check_decision_log.py` to see the read-path size and the warnings at 80% of a
-  limit. The doc tests run the same check.
+- Keep the logs inside their limits: 18,000 characters for each `README.md`, 20,000 for each
+  `open-work.md`, 6,000 for each entry after 0025, and 160,000 for the read path: the `README.md`,
+  the `open-work.md` and the Active entries of all logs. Proposed and Historical entries are not in
+  the read path. Put long evidence in a tracked file next to the entry, and link to it. Put the
+  script that produced a measurement in `scripts/` of the log that holds its entry. The Evidence
+  section names it. Run `uv run python tools/check_decision_log.py` to see the read-path size and
+  the warnings at 80% of a limit. The doc tests run the same check.
 - The tool counts characters after it changes CRLF to LF. It checks the rows, the tables, the cells,
   the status forms, the `XXXX` of each status and the limits. A warning does not fail the doc tests.
   An entry does not warn. A PR can lower a limit. A PR that raises a limit must add an entry.
@@ -136,7 +142,7 @@ in the [open work of the spec log](../specs/model-sidecar/decisions/open-work.md
 - Cite a tracked file with a relative link. Cite a commit, or the code of another repo, with a GitHub
   permalink that pins a full SHA on the default branch of that repo
   ([gtwq](gtwq-random-entry-ids.md)). Do not cite or link `plans/`. Git does not track it
-  ([hxy8](hxy8-scoped-agent-instructions.md)).
+  ([ADR-GN3D](GN3D-module-decision-logs.md)).
 - Until a commit is on `development`, cite its PR number and the file path, not its SHA
   ([0027](0027-single-working-branch.md)).
 - In new text, cite an entry of this log as `ADR-<ID>`, with the ID in upper case. Do this also for

@@ -99,15 +99,16 @@ Do this procedure for step 2 of phase 3.
    verify an independent implementation (ADR-[a33q](../../../decisions/a33q-vector-case-form.md)).
 10. Change the status line of the decision entry from `proposed` to `accepted`. Write the date and the
     PR ([Rules](../../../decisions/README.md#rules)). Move its row from the Proposed table to
-    the end of the Active table, without the Section cell. Set `state: accepted` in the front matter
-    of `proposal.md` and in the proposal index. Write each `proposed` superseding entry of the
+    the end of the Active table of the [spec log](../../../specs/model-sidecar/decisions/README.md),
+    without the Section cell. Set `state: accepted` in the front matter of `proposal.md` and in the
+    proposal index. Write each `proposed` superseding entry of the
     proposal as `accepted`, and supersede its old entry.
 11. If the change corrects an item of the spec-defect list in
     [`specs/model-sidecar/decisions/open-work.md`](../../../specs/model-sidecar/decisions/open-work.md), remove the item.
 12. Run the [impact](#impact) and the [checks](#checks).
 13. Make the non-spec PR on top of the content PR. Do steps 14 to 17.
 14. Write part 6 of the proposal as the "Implementer guidance" of the section.
-15. Add an item for part 6 to the [Open work](../../../decisions/open-work.md) list.
+15. Add an item for part 6 to the [Open work](../../../decisions/open-work.md) list of the root log.
 16. Add the "Authoring guidance" from the intake. Do the steps of [Guidance](#guidance).
 17. When the exporter writes the sidecar with the new fields, add the example with procedure A. Remove
     the `proposed` entry of the model from `specs/model-sidecar/inventory.yaml`, if it has one.
@@ -383,7 +384,7 @@ the lint workflow checks `tools/` and `specs/model-sidecar/reference/`. They che
   named by `implemented_by` updates the front matter and `TRACEABILITY.md` in the same PR.
 - The selectors of the sections cover each `Literal` value in `skellytracker/core/sidecar/model.py`
   for `resize.method`, `normalization`, `semantic` and `pose.decode.method`.
-- Each relative link in `AGENTS.md`, `specs/` and `notes/` resolves, with its `#anchor`.
+- Each relative link in `AGENTS.md`, `decisions/`, `specs/` and `notes/` resolves, with its `#anchor`.
 - Each skeleton copy in the examples equals its package copy, and at least one example refers to it.
 - `TRACEABILITY.md` equals a new generation, with line endings normalized.
 - Each example parses and resolves. Each example has a provenance entry, and each entry names an
@@ -400,8 +401,8 @@ Run these commands before each PR. Each command must pass.
 3. `uv run pytest tools/tests -q`. It also runs the private-data check
    ([Private data](../../../AGENTS.md#8-private-data)).
 4. `uv run pytest -m "not video"`
-5. `uv run ruff check skellytracker/ tools/`. When `specs/model-sidecar/reference/` exists, add it to the
-   command.
+5. `uv run ruff check skellytracker/ tools/ decisions/scripts/`. When `specs/model-sidecar/reference/`
+   exists, add it to the command.
 
 ## Stop points
 
