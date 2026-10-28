@@ -15,15 +15,13 @@ Before you write a proposal:
   in `../freemocap/skellytracker/specs/model-sidecar/decisions/README.md`. Also read each `proposed` entry
   that the guidance of your sections cites. If an entry covers your rows, do not write a competing
   proposal:
-  - Use the slug of the entry.
   - Cite the entry in the header and in part 1.
-  - Add your evidence, your vectors and your parity plan.
-  - If your rows need a different change, say where your proposal differs. Give the reason in part 8.
-- An entry can be a gap record: its Decision section says so. A gap record gives the gap, the
-  evidence and the direction of a change, but not all eight parts. Your proposal gives the parts
-  that it does not have. A skellytracker session adds your proposal to the gap record.
+  - Add your evidence, your vectors and your parity plan in a contribution
+    ([Proposal forms](hand-over.md#proposal-forms)).
+  - If your rows need a different change, write a follow-up. Say where your proposal differs. Give
+    the reason in part 8.
 - If a proposal needs another proposal (for example, a decode that uses the unprojection of a new
-  crop), write the dependency in the header of each proposal. One parity script can serve several
+  crop), write its bundle ID in the header and in `depends_on` of the manifest. One parity script can serve several
   proposals. Cite it in part 5 of each.
 
 A proposal has eight parts:

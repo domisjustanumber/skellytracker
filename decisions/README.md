@@ -162,28 +162,20 @@ in the [open work of the spec log](../specs/model-sidecar/decisions/open-work.md
   an ID in YAML front matter in quotes. Cite a provisional entry of another repo by the repo name,
   the PR number and the slug. End each commit subject that adds or changes an entry with
   `(ADR-<ID>)` ([ADR-HJNP](HJNP-upper-case-entry-ids.md)).
-- A spec change proposal is an entry with the status `proposed`. Phase 2 of the
-  [model addition workflow](../specs/model-sidecar/model-addition-workflow/phase-2-proposal.md)
-  gives its parts ([0014](0014-spec-lifecycle.md)).
-- A gap record is also an entry with the status `proposed`. It gives a gap or a conflict with the
-  spec text, its evidence and the direction of a change, but not all eight parts of a proposal. Its
-  Decision section says that it is a gap record. The user can accept or reject a gap record.
-- A later proposal for a gap record edits the gap record. It adds the parts that the gap record does
-  not have, and the status stays `proposed`. The status line adds the date and the source, for
-  example `completed 2026-11-02 (OpenMMLab-Exporter proposal)`. Do not add a second entry for the
-  same gap.
-- When the exporter changes a recorded proposal, record it again in the same entry. Replace the copy
-  in full, and tick the closed items of "Before acceptance". The status line adds
-  `recorded again <YYYY-MM-DD> (<source>)` (ADR-[b1c0](b1c0-adr-citation-prefix.md)). Do this when
-  the exporter file of a `state: recorded` proposal changes. Until then, Procedure B step 4 of
-  `change-sidecar-spec` stops a landing. After `state: accepted`, the copy does not change. The ID,
-  the slug, the file names, the front matter and the status stay. Replace each exporter file in full.
-  The source note gives the exporter commit and the dates of both copies. In "Before acceptance",
-  keep the old items in their order. Tick a closed item, and give its reason. Mark a changed item
-  `(changed <YYYY-MM-DD>)`. Put a new item last in its group, and mark it `(new <YYYY-MM-DD>)`.
-  Change the Decision, the Reason and the Evidence only where the new version changes them. Change
-  the index row when a cell changes. Use a non-spec commit. An exporter session that changes a
-  recorded proposal tells the user.
+- A spec change proposal is an entry with the status `proposed`. Its source is a `proposal` bundle
+  ([Hand-over bundles](../specs/model-sidecar/model-addition-workflow/hand-over.md)). Phase 2 of the
+  [model addition workflow](../specs/model-sidecar/model-addition-workflow/phase-2-proposal.md) gives its parts. A part that the
+  contributor cannot fill says `none` and the reason. A gap that a session finds goes on the
+  spec-defect list of the spec log `open-work.md`. It is not an entry.
+- When the contributor packs a new version of a recorded proposal, record it again in the same entry.
+  Replace the record in full with a byte copy of the new version. The status line adds
+  `recorded again <YYYY-MM-DD> (<bundle id>@v<k>)`. Until then, Procedure B step 1 of
+  `change-sidecar-spec` stops a landing. After the row state `accepted`, the record does not change.
+  The ID, the slug and the status stay. In "Before acceptance" of the entry, keep the old items in
+  their order. Tick a closed item, and give its reason. Mark a changed item `(changed <YYYY-MM-DD>)`.
+  Put a new item last in its group, and mark it `(new <YYYY-MM-DD>)`. Change the Decision, the
+  Reason and the Evidence only where the new version changes them. Change the index row when a cell
+  changes. Use a non-spec commit. A contributor that packs a new version tells the user.
 - An entry that waits for a decision of another repo has a `**Depends on:**` line under its status
   line.
 - Do not put a dated status line in `AGENTS.md`. Put a dated fact in `open-work.md` or in an entry.
