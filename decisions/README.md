@@ -1,8 +1,8 @@
 # Decision log
 
-This log records technical decisions for skellytracker, with their reasons and evidence. Most entries
-are about the model sidecar spec ([`specs/model-sidecar/sidecar-spec.md`](../specs/model-sidecar/sidecar-spec.md)), the sidecar
-code and the workflow that changes them. Read this file before you change the spec, a sidecar, the
+This log records the technical decisions for skellytracker that affect more than one module, with
+their reasons and evidence. The [spec log](../specs/model-sidecar/decisions/README.md) holds the
+decisions of the sidecar spec only ([ADR-GN3D](GN3D-module-decision-logs.md)). Read this file before you change the spec, a sidecar, the
 sidecar code, the agent instructions or the PR workflow. Also read [open-work.md](open-work.md). Then
 read the Active entries that apply to your task. Then you do not repeat a settled question or a
 completed measurement. Read a Proposed entry only for spec work in its section, or when a skill tells
@@ -10,8 +10,8 @@ you to. Read an entry of [historical.md](historical.md) only to find the reason 
 ([z934](z934-decision-log-index-and-read-path.md)).
 
 Each entry gives the decision, its reason, the evidence (when there is evidence), the alternatives
-rejected and a "Not repeated" section for pitfalls already found. Entries 0002 to 0012 are
-backfilled. They record decisions made before this log existed, and they cite the original sources.
+rejected and a "Not repeated" section for pitfalls already found. Entries 0002 to 0012, here and in
+the spec log, are backfilled. They record decisions made before this log existed, and they cite the original sources.
 When a decision changes, add a new entry that supersedes the old entry in full. The body of a
 decided entry changes only by the edits that the [Rules](#rules) allow. To write an entry, use
 [template.md](template.md).

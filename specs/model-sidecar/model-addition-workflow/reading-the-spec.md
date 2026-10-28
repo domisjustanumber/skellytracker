@@ -43,9 +43,9 @@ skellytracker checkout, for example `../freemocap/skellytracker`. Then run
 
 ## Path bases
 
-A path that starts with `skellytracker/` or `specs/` names a file in the skellytracker repo. Read it
-in your skellytracker checkout, for example `../freemocap/skellytracker/`. A path that starts with
-`plans/` names a file in your repo. skellytracker keeps its logs in `decisions/` and
+A path that starts with `skellytracker/`, `specs/` or `decisions/` names a file in the skellytracker
+repo. Read it in your skellytracker checkout, for example `../freemocap/skellytracker/`. A path
+that starts with `plans/` names a file in your repo. skellytracker keeps its logs in `decisions/` and
 `specs/model-sidecar/decisions/`. An exporter repo has `notes/decisions/`. Thus always write the
 repo name with the number of a decision entry, for example "skellytracker decision 0012" or
 "OpenMMLab-Exporter 0020". In a file of the exporter, a
