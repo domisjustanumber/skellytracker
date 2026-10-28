@@ -16,9 +16,12 @@ entry is a skellytracker function (`path::function`) or an exporter function
 When a section has a reference implementation
 (`specs/model-sidecar/reference/<section_module>.py`), its builder calls it
 through `load_reference` instead of a copy of the formulas. A case then names
-the function that it runs (`function`). A case can expect a validation error by
-its rule ID (`expect: {error: V-<section-id>-<n>}`), and it can give a
-tolerance for each field (`compare: {<field>: {atol: ..., period: ...}}`).
+the function that it runs (`function`). A builder calls a reference function
+through `outcome`. A reference function refuses an input with `ValueError`, and
+`outcome` writes the refusal as `{error: <rule ID>}` when the message starts
+with a rule ID, or as `{error: no-rule}`. A validator case expects
+`{failed: [<rule IDs>]}`. A case can give a tolerance for each field
+(`compare: {<field>: {atol: ..., period: ...}}`).
 
 Usage:
     python tools/make_vectors.py            # write the files
@@ -73,21 +76,54 @@ LETTERBOX_PACKAGE_MATCHES: frozenset[str] = frozenset(
 LINE_WIDTH = 100
 ROUND_DIGITS = 6
 COMPARE_KEYS = {"atol", "period"}
+NO_RULE = "no-rule"
+# A refusal message that starts with a rule ID names the rule that refuses the input.
+LEADING_RULE = re.compile(r"(V-[a-z][a-z0-9_.]*[a-z0-9]-\d+):")
+# From this size, a float is always whole; an int of it would write all of its digits.
+EXACT_INT_LIMIT = 2.0**53
 
 
 def load_reference(section: str, folder: Path = REFERENCE_DIR) -> ModuleType:
     """Return the reference implementation of `section`.
 
     The folder is not a Python package and its path has a hyphen, so the file
-    is loaded by its path.
+    is loaded by its path. While the file runs, its folder is on `sys.path`, so
+    it can import the module of another section by its name. The module is
+    registered under its file name, so an import of it gives the same object.
     """
     path = folder / f"{section.replace('.', '_')}.py"
     spec = spec_from_file_location(path.stem, path)
     if spec is None or spec.loader is None or not path.is_file():
         raise FileNotFoundError(f"{section}: no reference implementation at {path}")
     module = module_from_spec(spec)
-    spec.loader.exec_module(module)
+    sys.modules[path.stem] = module
+    sys.path.insert(0, str(folder))
+    try:
+        spec.loader.exec_module(module)
+    except BaseException:
+        del sys.modules[path.stem]
+        raise
+    finally:
+        sys.path.remove(str(folder))
+    # shortcut: an imported module stays cached by its name; purge by folder if one process loads two folders
     return module
+
+
+def outcome(
+    function: Callable[..., dict[str, Any]], *args: Any, **kwargs: Any
+) -> dict[str, Any]:
+    """Return the `expect` mapping of one case of a reference function.
+
+    A `ValueError` is a refusal: the result is `{"error": <rule ID>}` when the
+    message starts with a rule ID and a colon, else `{"error": "no-rule"}`. Any
+    other exception is a defect of the builder or of the function, so it stops
+    the generator.
+    """
+    try:
+        return function(*args, **kwargs)
+    except ValueError as error:
+        match = LEADING_RULE.match(str(error))
+        return {"error": match.group(1) if match else NO_RULE}
 
 
 # Absolute tolerance of the cases that hold fractional numbers.
@@ -116,6 +152,8 @@ def clean(value: Any, *, digits: int | None = None) -> Any:
             return number
         if digits is not None:
             number = round(number, digits)
+        if abs(number) >= EXACT_INT_LIMIT:
+            return number
         return int(number) if number == int(number) else number
     if isinstance(value, dict):
         return {str(k): clean(item, digits=digits) for k, item in value.items()}
@@ -211,12 +249,19 @@ _RESERVED = {"y", "n", "yes", "no", "on", "off", "true", "false", "null"}
 
 
 def _float_text(number: float) -> str:
-    """Write a float with its shortest exact digits and never with an exponent."""
+    """Write a float with its shortest exact digits.
+
+    A float of 2**53 or more is written with an exponent, for example
+    `1.0e+308`; YAML 1.1 needs the dot. Other floats have no exponent.
+    """
     if math.isnan(number):
         return ".nan"
     if math.isinf(number):
         return ".inf" if number > 0 else "-.inf"
     text = repr(number)
+    if abs(number) >= EXACT_INT_LIMIT and "e" in text:
+        mantissa, _, exponent = text.partition("e")
+        return f"{mantissa if '.' in mantissa else mantissa + '.0'}e{exponent}"
     if "e" in text or "E" in text:
         text = format(Decimal(text), "f")
     return text if "." in text else text + ".0"
@@ -262,10 +307,24 @@ def _entry(key: str, value: Any, indent: int) -> list[str]:
             lines.extend(_entry(_scalar(sub_key), sub_value, indent + 2))
         return lines
     for item in value:
-        item_line = f"{pad}  - {_flow(item)}"
-        if len(item_line) > LINE_WIDTH:
-            raise ValueError(f"line too long: {item_line}")
-        lines.append(item_line)
+        lines.extend(_item(item, indent + 2))
+    return lines
+
+
+def _item(value: Any, indent: int) -> list[str]:
+    """Return the lines of one list item; use a block when the flow form is too long."""
+    pad = " " * indent
+    line = f"{pad}- {_flow(value)}"
+    if len(line) <= LINE_WIDTH or not isinstance(value, (dict, list)) or not value:
+        return [line]
+    lines: list[str] = []
+    if isinstance(value, dict):
+        for sub_key, sub_value in value.items():
+            lines.extend(_entry(_scalar(sub_key), sub_value, indent + 2))
+    else:
+        for sub_item in value:
+            lines.extend(_item(sub_item, indent + 2))
+    lines[0] = f"{pad}- {lines[0][indent + 2 :]}"
     return lines
 
 

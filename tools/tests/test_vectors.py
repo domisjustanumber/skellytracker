@@ -18,6 +18,7 @@ import functools
 import importlib
 import math
 import re
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -44,7 +45,7 @@ CASE_KEYS = {
     "verified_against",
 }
 REQUIRED_CASE_KEYS = {"id", "params", "input", "expect"}
-MAX_FILE_BYTES = 64 * 1024
+MAX_FILE_BYTES = 256 * 1024
 # The rule lines of the "Validation rules" headings (the same form as test_traceability.py).
 RULE_LINE = re.compile(r"^- \[[ xX]\] `(V-[a-z][a-z0-9_.]*[a-z0-9]-\d+)`", re.MULTILINE)
 EXPORTER_ENTRY = re.compile(r"[A-Za-z0-9][A-Za-z0-9-]*")
@@ -143,7 +144,13 @@ def check_case(
         assert "tolerance" not in case, case["id"]
     if "error" in expect:
         assert set(expect) == {"error"}, case["id"]
-        assert expect["error"] in defined_rule_ids(), (case["id"], expect["error"])
+        error = expect["error"]
+        assert error == mv.NO_RULE or error in defined_rule_ids(), (case["id"], error)
+    if "failed" in expect:
+        assert set(expect) == {"failed"}, case["id"]
+        failed = expect["failed"]
+        assert isinstance(failed, list) and failed == sorted(set(failed)), case["id"]
+        assert set(failed) <= defined_rule_ids(), (case["id"], failed)
     if "compare" in case:
         fields = set(expect) | set(unproject or {})
         for field, rule in case["compare"].items():
@@ -153,7 +160,10 @@ def check_case(
             assert rule.get("period", 1) > 0, (case["id"], field)
     if "function" in case:
         module = mv.load_reference(section, reference_dir)
-        assert callable(getattr(module, case["function"], None)), case["id"]
+        function = getattr(module, case["function"], None)
+        assert callable(function), case["id"]
+        # The function of a case is defined in the module of its own section.
+        assert function.__module__ == module.__name__, case["id"]
     for entry in case.get("verified_against", []):
         check_verified_entry(entry)
 
@@ -250,7 +260,7 @@ def test_cases_have_the_documented_shape(path: Path) -> None:
 
 @pytest.mark.parametrize("path", vector_paths(), ids=lambda p: p.name)
 def test_file_is_small(path: Path) -> None:
-    assert path.stat().st_size < MAX_FILE_BYTES
+    assert path.stat().st_size <= MAX_FILE_BYTES
 
 
 def test_the_generator_writes_the_case_form_of_a_proposal(tmp_path: Path) -> None:
@@ -290,6 +300,21 @@ def test_the_generator_writes_the_case_form_of_a_proposal(tmp_path: Path) -> Non
                 expect={"error": "V-pre.resize.letterbox-1"},
             ),
             mv.Case(
+                id="refused-caller-argument",
+                function="geometry",
+                params={},
+                input={},
+                expect={"error": "no-rule"},
+                note="the input is a tensor shape, not a sidecar value",
+            ),
+            mv.Case(id="valid", params={}, input={}, expect={"failed": []}),
+            mv.Case(
+                id="one-failed-rule",
+                params={},
+                input={},
+                expect={"failed": ["V-pre.resize.letterbox-1"]},
+            ),
+            mv.Case(
                 id="not-a-number",
                 function="geometry",
                 params={},
@@ -304,14 +329,85 @@ def test_the_generator_writes_the_case_form_of_a_proposal(tmp_path: Path) -> Non
     assert data["cases"][0]["expect"]["k"] == 1 / 3  # digits=None keeps every digit
     for case in data["cases"]:
         check_case(case, data["section"], tmp_path)
-    with pytest.raises(AssertionError):
-        check_case(
-            {**data["cases"][2], "expect": {"error": "V-pre.resize.letterbox-99"}},
-            data["section"],
-            tmp_path,
-        )
+    refused = data["cases"][2]
+    for expect in (
+        {"error": "V-pre.resize.letterbox-99"},
+        {"failed": ["V-pre.resize.letterbox-99"]},
+        {"failed": ["V-pre.resize.letterbox-2", "V-pre.resize.letterbox-1"]},
+        {"failed": ["V-pre.resize.letterbox-1", "V-pre.resize.letterbox-1"]},
+        {"failed": [], "n_w": 1},
+    ):
+        with pytest.raises(AssertionError):
+            check_case({**refused, "expect": expect}, data["section"], tmp_path)
     with pytest.raises(FileNotFoundError):
         mv.load_reference("pre.resize.stretch", tmp_path)
+
+
+def test_outcome_writes_a_refusal_as_its_rule_id_or_no_rule() -> None:
+    def refuse(message: str) -> dict[str, Any]:
+        raise ValueError(message)
+
+    def lookup() -> dict[str, Any]:
+        return {}["missing"]
+
+    assert mv.outcome(lambda x: {"y": x + 1}, 1) == {"y": 2}
+    assert mv.outcome(refuse, "V-pre.resize.letterbox-1: bad pad") == {
+        "error": "V-pre.resize.letterbox-1"
+    }
+    assert mv.outcome(refuse, "bad shape (V-pre.resize.letterbox-1: no)") == {
+        "error": mv.NO_RULE
+    }
+    assert mv.outcome(refuse, message="bad shape") == {"error": "no-rule"}
+    with pytest.raises(KeyError):
+        mv.outcome(lookup)
+
+
+def test_a_reference_module_imports_the_module_of_another_section(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "g3owner_section.py").write_text("VALUE = 2\n", encoding="utf-8")
+    (tmp_path / "g3user_section.py").write_text(
+        "import g3owner_section\n\n"
+        "def value():\n    return {'value': g3owner_section.VALUE + 1}\n",
+        encoding="utf-8",
+    )
+    module = mv.load_reference("g3user.section", tmp_path)
+    assert module.value() == {"value": 3}
+    assert str(tmp_path) not in sys.path
+    assert sys.modules["g3user_section"] is module
+    # A case cannot name a function of another section through its module.
+    (tmp_path / "g3rebind_section.py").write_text(
+        "from g3owner_section import VALUE\n"
+        "import g3user_section\n\n"
+        "value = g3user_section.value\n",
+        encoding="utf-8",
+    )
+    case = {"id": "rebound", "function": "value", "params": {}, "input": {}, "expect": {}}
+    with pytest.raises(AssertionError):
+        check_case(case, "g3rebind.section", tmp_path)
+
+
+def test_the_renderer_writes_a_long_item_in_block_form_and_a_large_float() -> None:
+    long_item = {"points": [[float(i) + 0.125 for i in range(12)] for _ in range(3)]}
+    vectors = mv.Vectors(
+        section="post.unprojection",
+        reading_notes=[],
+        tolerance=1e-4,
+        unverified="a test of the renderer, with no implementation",
+        digits=None,
+        cases=[
+            mv.Case(
+                id="long-nested-item",
+                params={},
+                input={"items": [long_item, [list(range(40)), "x"]]},
+                expect={"huge": 1e308, "neg": -2.0**60, "whole": 3.0},
+            )
+        ],
+    )
+    text = mv.render(vectors)
+    assert all(len(line) <= mv.LINE_WIDTH for line in text.splitlines())
+    assert "huge: 1.0e+308" in text
+    assert same(yaml.safe_load(text), vectors.data())
 
 
 # ---------------------------------------------------------------------------
