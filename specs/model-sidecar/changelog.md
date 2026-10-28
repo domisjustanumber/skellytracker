@@ -2,10 +2,10 @@
 
 ## Changes in this revision (`vNEXT`)
 
-> **For reviewers.** This revision extends the contract so that every model produced by
-> `Roboflow-Exporter` (RF-DETR), `OpenMMLab-Exporter` (RTMDet, RTMW) and `Ultralytics-Exporter`
-> (YOLO26 detection and pose) can be described. The evidence behind each change, and the per-repo
-> findings, are in [`sidecar-exporter-coverage.md`](../../notes/sidecar-exporter-coverage.md).
+> **For reviewers.** This revision extends the contract so that every model in
+> [Scope of this revision](#scope-of-this-revision) can be described. The evidence behind each
+> change, and the per-repo findings, are in
+> [`sidecar-exporter-coverage.md`](../../notes/sidecar-exporter-coverage.md).
 > `vNEXT` is a placeholder: replace it with the skellytracker release that ships this revision before
 > merging. It appears in the examples, the changelog and the compatibility table.
 

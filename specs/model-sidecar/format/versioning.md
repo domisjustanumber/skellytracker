@@ -123,7 +123,7 @@ skellytracker (decision 0016):
     - `decode.selection` and `decode.nms` replace the legacy keys (`V-post.det.decode-4`, `V-post.det.selection.nms-1`). (Ultralytics-Exporter `yolo_sidecar.py:467-478`, f52ef68; Qualcomm-Exporter `qai_sidecar.py:124-133`, 4ca4586)
     - A letterbox needs `pad_position` and `rounding` (`V-pre.resize.letterbox-1`). (Ultralytics-Exporter `yolo_sidecar.py:384-389`, f52ef68; Qualcomm-Exporter `qai_sidecar.py:144-149`, 4ca4586)
     - A `unit_float` input needs `input.color_format` (`V-common.input-6`). (Ultralytics-Exporter `yolo_sidecar.py:379-390`, f52ef68; Qualcomm-Exporter `qai_sidecar.py:139-150`, 4ca4586)
-  - The [changelog](../changelog.md#compatibility-impact) lists what a `vNEXT` sidecar must declare. [Decision 0008](../decisions/0008-vnext-scope.md) puts Qualcomm-Exporter out of scope until that library is complete.
+  - The [changelog](../changelog.md#compatibility-impact) lists what a `vNEXT` sidecar must declare. [Scope of this revision](../changelog.md#scope-of-this-revision) puts Qualcomm-Exporter out of scope until that library is complete.
 - A validation claim needs a committed check.
   - The message of Ultralytics-Exporter commit f52ef68 says that the sidecars passed `load_sidecar` on a skellytracker branch. The test that repeats the check skips itself through `pytest.importorskip`, because skellytracker is not a dependency of the exporter. (Ultralytics-Exporter commit message and `tests/test_yolo_sidecar.py:568-579`, f52ef68; Ultralytics-Exporter `pyproject.toml`, f52ef68)
   - The Qualcomm-Exporter README says that the sidecar passed `load_sidecar()`, but no test or script in that repo calls it. (Qualcomm-Exporter `README.md:108-113`, 4ca4586)
