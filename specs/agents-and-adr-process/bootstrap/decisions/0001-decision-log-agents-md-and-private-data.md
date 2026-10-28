@@ -4,15 +4,18 @@
 
 ## Decision
 
-1. **Decision log.** This repo keeps its decisions in `decisions/`. The [index](README.md) has
-   the Active and Proposed tables and the rules. [`historical.md`](historical.md) has the
-   Historical table. [`template.md`](template.md) has the entry template.
-   [`open-work.md`](open-work.md) has the open work. A decision that code or a document refers to
-   must be in an entry.
+1. **Decision log.** This repo keeps its decisions in a root log in `decisions/`. The
+   [index](README.md) has the Active and Proposed tables and the rules.
+   [`historical.md`](historical.md) has the Historical table. [`template.md`](template.md) has the
+   entry template. [`open-work.md`](open-work.md) has the open work. A module can also have a log in
+   `<module>/decisions/`. Each log is in `LOG_DIRS` of `tools/check_decision_log.py`. All logs have
+   one ID space. A decision that code or a document refers to must be in an entry.
 2. **One instructions file.** [`AGENTS.md`](../AGENTS.md) is the single instructions file for
    coding agents. `CLAUDE.md` only imports it: its full content is `@AGENTS.md`. Do not put
    instructions in `CLAUDE.md` or in a second instructions file. Agent procedures are skills in
-   `.claude/skills/`. Git tracks that folder and ignores the rest of `.claude/`.
+   `.claude/skills/`. Git tracks that folder and ignores the rest of `.claude/`. A module has its
+   own `AGENTS.md` and `CLAUDE.md` with the same import. The `AGENTS.md` of a module with a log
+   links to that log.
 3. **`plans/`.** `plans/` is a local working folder. Git ignores it. Do not commit it. A tracked file
    does not link to `plans/` and does not cite its sections, item numbers or local PR labels.
 4. **Log rules.** The [Rules](README.md#rules) of the index apply: allowed edits only, complete

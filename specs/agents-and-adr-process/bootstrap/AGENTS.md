@@ -17,6 +17,7 @@ Keep technical names, field names, values, formulas, code and YAML unchanged.
 | `decisions/` | Decision log ([`README.md`](decisions/README.md)) and its open work ([`open-work.md`](decisions/open-work.md)) |
 | `tools/` | The doc checks: `check_decision_log.py`, `check_links.py` and `check_private_data.py`. Their tests are in `tools/tests/`. |
 | `plans/` | A local working folder. Git ignores it. |
+| `{{MODULE}}/` | {{MODULE_ROLE}}. Its `AGENTS.md` holds the rules for the work in it. Its log is in `{{MODULE}}/decisions/`. Delete this row when the repo has no modules. |
 | {{PATH}} | {{ROLE}} |
 
 ## 2. Skills
@@ -62,6 +63,9 @@ Then read the Active entries of the index that apply to your task.
 Read a Proposed entry only for work in its section, or when a skill tells you to.
 Read an entry of [`historical.md`](decisions/historical.md) only to find the reason for a
 decision.
+For a task in a module with a log, also read the `decisions/README.md` and the
+`decisions/open-work.md` of that module, and its Active entries that apply to your task.
+The `AGENTS.md` of the module links to its log.
 Add one entry for each new decision or measurement.
 An entry has a random upper-case ID of 4 characters, for example `K7M2`.
 Before you add an entry, run `git fetch` when you can.

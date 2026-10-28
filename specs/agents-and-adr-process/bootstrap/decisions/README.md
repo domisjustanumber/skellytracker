@@ -40,6 +40,27 @@ The open work is in [open-work.md](open-work.md).
 ## Rules
 
 - Write one entry for each decision or measurement. Use [template.md](template.md).
+- This repo has a root log in `decisions/`. A module can also have a log in `<module>/decisions/`. A
+  module is a folder with its own `AGENTS.md`. Each log is in `LOG_DIRS` of
+  `tools/check_decision_log.py`. A new module log needs the approval of the user. The PR that adds
+  the log also adds its folder to `LOG_DIRS`. These Rules and `template.md` are only in the root log.
+  They apply to each log ([ADR-0001](0001-decision-log-agents-md-and-private-data.md)).
+- Each module log has a `README.md` with an Active table, a Proposed table and `## Open work`, a
+  `historical.md` and an `open-work.md`. The `AGENTS.md` of the module links to its log.
+- Put an entry in the log of a module only when the module has a log in `LOG_DIRS` and each file that
+  its Decision section names or changes is in that module. Put all other entries in this log: an
+  entry for two or more modules, for `tools/`, the skills, the root `AGENTS.md`, CI or the repo
+  process, and each case that you cannot decide.
+- All logs have one ID space. IDs that differ only in case are one ID. "This log" in these Rules
+  means all logs of this repo.
+- The read path is this file, `open-work.md` and the Active entries that apply to your task. For a
+  task in a module, the `README.md`, the `open-work.md` and the Active entries of the module log are
+  also in the read path.
+- When the scope of a module entry later includes more than one module, a new entry in the root log
+  supersedes it.
+- Cite an entry of a different log with a relative link and the usual `ADR-<ID>` text. Do not add a
+  module name to the ID. A `superseded by XXXX` status can name an entry of a different log. Its
+  status line then links to that entry with a relative path.
 - The body of an entry that is not `proposed` does not change, except for four edits: a link or
   anchor repair, a typo that does not change the meaning, the redaction of private data, and a
   change of ID with the repair of its citations. Each edit adds `_Edited YYYY-MM-DD (#PR): <kind>._`
@@ -75,7 +96,8 @@ The open work is in [open-work.md](open-work.md).
 - Delete an open-work item when the work is done.
 - Keep the log inside its limits: 14,000 characters for this file, 20,000 for `open-work.md`, 6,000
   for each entry, and 220,000 for the read path: this file, `open-work.md` and the Active entries.
-  Proposed and Historical entries are not in the read path. Put long evidence in a tracked file next
+  The limits of the index, the open work and an entry apply to each file of each log. The read-path
+  limit applies to the total of all logs. Proposed and Historical entries are not in the read path. Put long evidence in a tracked file next
   to the entry, and link to it. Put the script that produced a measurement in
   `scripts/` of the log that holds its entry. The Evidence section names it. Run
   `uv run python tools/check_decision_log.py` to see the read-path size and the warnings at 80% of a
@@ -98,6 +120,12 @@ The open work is in [open-work.md](open-work.md).
   `{{DEFAULT_BRANCH}}` that you repair.
 - Do not give an ID that an entry had on `{{DEFAULT_BRANCH}}` to a different entry. Do not keep two
   index rows with one ID.
+- A tool is code that the repo runs in its normal work: a test, a hook, a CI job, a skill or a
+  workflow step calls it, or it writes a tracked file. Each tool is in the root `tools/`, also when
+  only one module uses it. A tool has tests.
+- A script made the evidence for an entry, or did a one-off job that an entry records, and that entry
+  names it. It is in `scripts/` of the log that holds its entry. Its own tests are in
+  `scripts/tests/`. When a later step starts to run a script, move it to `tools/` and add a test.
 - Cite a tracked file with a relative link. Cite a commit, or the code of another repo, with a GitHub
   permalink that pins a full SHA on the default branch of that repo. Do not cite or link `plans/`.
 - Cite an entry of this log as `ADR-<ID>`. Put the prefix in the link text. Write the ID of another
