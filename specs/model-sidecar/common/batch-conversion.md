@@ -85,14 +85,18 @@ For rules marked **(vNEXT)**, see [Validation rules](../README.md#validation-rul
 
 ## Authoring guidance
 
-- Write `batching.batch_conversion` only when the profile passes the parity check for each native batch other than `S`, at each precision of the source group.
-- The parity check: convert the source artifact to the native batch `N`. Run the converted artifact and the native artifact on the same seeded random input in [0, 1). The outputs must agree within `rtol=atol=1e-3` for fp16 and `1e-5` for fp32.
-- If the group of batch `N` has no precision `Q`, that pair has no parity check.
-- A family with only the native batch `S` cannot pass the parity check. Do not write the field for it.
+The check method is in [Batch-conversion check](../model-addition-workflow/hand-over.md#batch-conversion-check) of the model addition workflow. The rule that tells which batch artifacts to publish is in [Publishing](../model-addition-workflow/validation-and-publishing.md#publishing). This guidance does not state that rule ([ADR-JC4T](../../../decisions/JC4T-parity-gates-and-batch-conversion-check.md)).
+
+- `S` is `3`. Export each size at the verification batches 1, 2, 3 and 4. Batch 4 checks the conversion to a larger batch. It is never published.
+- Write `batching.batch_conversion` only when the profile passes the parity check for each verification batch other than `S` (batches 1, 2 and 4), at each size and each precision of the source group.
+- The parity check: convert the source artifact to the batch `N` = 1, 2 and 4. Run the converted artifact and the native artifact of batch `N` on the same input A and on the first `N` items of input B. Input A is seeded random data: uniform in [0, 1) for a float input, integers in [0, 256) for a uint8 input. Input B holds 4 different preprocessed images of each size. The outputs must agree within `rtol=atol=1e-3` for fp16 and `1e-5` for fp32.
+- Export every precision of the source group at each verification batch. A missing pair blocks the verdict `converts`.
+- A family that has no verification export other than batch `S` cannot pass the parity check. Do not write the field for it.
+- Check a `dynamic` export at the batches 1, 2 and 3 against the static exports of the same size and precision, and against its own batch 1 runs (the dynamic check).
+- Run the check with the `batch` sub-command of `tools/intake_bundle.py`:
+  `uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/skellytracker/tools/intake_bundle.py batch --fields <fields file> --out <payload folder>/batch`.
+- A host that does not support `static-batch-v1` can run only batch 3 of a family that publishes b3. Publish `dynamic` when the dynamic check passes and a host needs batch 1 or 2 now. The current exporters export static graphs with the batch in constants ([Batching](batching.md#implementer-guidance)), so b3 is the expected case.
 - If no profile passes the parity check, do not write the field. To request a new profile, follow the [model addition workflow](../model-addition-workflow/README.md).
-- Ultralytics-Exporter does not write `batching.batch_conversion`. It has its own exporter-side profile (`build_batch_conversion_profile`), not `static-batch-v1`.
-  - Its report field `batch_size_converts_successfully` is `True` when the exporter can build its profile (a static source batch above 1). The field is `False` for a batch 1 artifact. It does not record that a conversion ran. (Ultralytics-Exporter `README.md:95-109` (2e0280e), `export_all.py:266-271` (69499e7) and `yolo_sidecar.py:636-702` (f52ef68))
-  - The `--test-conversion` check converts a batch 2 export to the batches 1 and 4. It compares the runtime outputs on seeded random input in [0, 1). It uses `rtol=atol=1e-3` for fp16 and `1e-5` for the other precisions. (Ultralytics-Exporter `README.md:35` (f52ef68) and `export_all.py:234-237, 326-349` (69499e7))
 
 ## Examples
 
@@ -101,5 +105,5 @@ batching:
   batch_axis: 0
   batch_conversion:
     profile_id: static-batch-v1
-    source_batch_size: 2
+    source_batch_size: 3
 ```

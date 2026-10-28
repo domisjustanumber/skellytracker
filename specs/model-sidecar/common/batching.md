@@ -49,3 +49,4 @@ status: {spec: stable, validate: implemented, load: implemented}
 ## Authoring guidance
 
 - Run the graph at more than one batch before you write a `dynamic` key. A graph can fix the batch in constants inside the graph and not only in the I/O dims. The Ultralytics-Exporter batch 2 graphs hold the batch in `int64` `Reshape` constants. (Ultralytics-Exporter `yolo_sidecar.py:114-124, 668-701`, f52ef68)
+- Verify a `dynamic` export at the batches 1, 2 and 3 against the static exports when they exist, and always against its own batch 1 runs. Use the dynamic check of [Batch-conversion check](../model-addition-workflow/hand-over.md#batch-conversion-check). If it fails, do not publish the `dynamic` export ([Publishing](../model-addition-workflow/validation-and-publishing.md#publishing)).
