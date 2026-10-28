@@ -99,7 +99,7 @@ These fields apply when `role` includes `pose_estimator`.
 
 ## Validation rules
 
-A sidecar is valid when all of the following rules hold. A rule marked **(vNEXT)** applies only when `schema_version >= vNEXT`. Legacy sidecars follow [Version-aware compatibility](format/versioning.md#version-aware-compatibility).
+A sidecar is valid when all of the following rules hold. A rule marked **(vNEXT)** applies only when `schema_version >= vNEXT`. A rule without the mark applies to every `schema_version`. A new rule without the mark must be a clarification ([Clarifications](format/versioning.md#clarifications)) or a change in [Every-version changes](format/versioning.md#every-version-changes). Legacy sidecars follow [Version-aware compatibility](format/versioning.md#version-aware-compatibility).
 
 - [File composition](format/composition.md#validation-rules)
 - [Schema versioning](format/versioning.md#validation-rules)

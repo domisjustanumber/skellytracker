@@ -48,13 +48,14 @@ See also [`schema_version` history](../changelog.md#schema_version-history).
 
 ### Version-aware compatibility
 
-Validation and decode depend on the `schema_version` of the sidecar. `vNEXT` requirements never apply retroactively, with one exception: the precision key `int8` is invalid at every `schema_version` ([V-common.sizes_and_artifacts-6](../common/sizes-and-artifacts.md#validation-rules)). For a sidecar with `schema_version < vNEXT`, validation and decode use the legacy meaning below.
+Validation and decode depend on the `schema_version` of the sidecar. `vNEXT` requirements never apply retroactively. The only exceptions are the changes in [Every-version changes](#every-version-changes). For a sidecar with `schema_version < vNEXT`, validation and decode use the legacy meaning below.
+
+This list indexes each "Legacy behaviour" heading that gives a legacy difference. A legacy difference is a rule, a value or a behaviour that is different for an older `schema_version`. A new field, value or section that is not available before `vNEXT` is not a legacy difference. Its availability is in the table of [Legacy behaviour](#legacy-behaviour) of this section.
 
 - [File composition](composition.md#legacy-behaviour)
 - [Schema versioning](versioning.md#legacy-behaviour)
 - [Identity](../common/identity.md#legacy-behaviour)
 - [Sizes and artifacts](../common/sizes-and-artifacts.md#legacy-behaviour)
-- [Batch conversion](../common/batch-conversion.md#legacy-behaviour)
 - [Input](../common/input.md#legacy-behaviour)
 - [Letterbox resize](../pre/resize-letterbox.md#legacy-behaviour)
 - [Normalization](../pre/normalization.md#legacy-behaviour)
@@ -62,6 +63,27 @@ Validation and decode depend on the `schema_version` of the sidecar. `vNEXT` req
 - [Selection: none](../post/selection-none.md#legacy-behaviour)
 - [Selection: NMS](../post/selection-nms.md#legacy-behaviour)
 - [Bottom-up pose](../post/pose-bottom-up.md#legacy-behaviour)
+
+#### Clarifications
+
+A clarification is not a `vNEXT` requirement. A clarification applies to every `schema_version`. A spec change is a clarification only if all of these conditions are true:
+
+- The change defines a result that the text of the older `schema_version` did not define. Examples are the arithmetic precision, the rounding, the tie order and the scale.
+- The change keeps each result that the text of the older `schema_version` defined in exact math.
+- The change adds no field to an older `schema_version`.
+- A new validation rule rejects only a sidecar for which the text of its `schema_version` defined no result.
+
+If one of these conditions is false, the change is a `vNEXT` requirement. Then the rule must have the **(vNEXT)** mark, or the section must give the old meaning in its "Legacy behaviour" heading.
+
+A clarification has no **(vNEXT)** mark. A clarification has no row in a "Legacy behaviour" table. The row of a clarification in the [summary of changes](../changelog.md#summary-of-changes) must say "(every `schema_version`)".
+
+A clarification never changes the meaning of a sidecar. A clarification can make a host non-conforming. A host conforms only if it follows the current text of each section for each `schema_version` that it loads.
+
+#### Every-version changes
+
+Each change in this list applies at every `schema_version`. It can make a sidecar with an older `schema_version` invalid. It is not a clarification. When a change is added to this list, its row in the [summary of changes](../changelog.md#summary-of-changes) must say "(breaking, every `schema_version`)".
+
+- The precision key `int8` is invalid at every `schema_version` ([V-common.sizes_and_artifacts-6](../common/sizes-and-artifacts.md#validation-rules)). A legacy sidecar that lists `int8` is invalid. The current Ultralytics-Exporter sidecars list `int8`.
 
 ## Validation rules
 
@@ -72,7 +94,7 @@ Validation and decode depend on the `schema_version` of the sidecar. `vNEXT` req
 
 | Behaviour | `schema_version < vNEXT` (legacy) | `schema_version >= vNEXT` |
 |-----------|-----------------------------------|---------------------------|
-| `boxes`/`scores`/`class_logits` semantics, `packed_keypoints`, `stretch`, `fit`, `class_id_map` | Not available. | Available. |
+| `boxes`/`scores`/`class_logits` semantics, `packed_keypoints`, `stretch`, `fit`, `class_id_map`, `top_k`, `batching.batch_conversion` | Not available. | Available. |
 
 ## Implementer guidance
 
