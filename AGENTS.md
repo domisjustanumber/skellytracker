@@ -6,7 +6,9 @@ To add a model or to request a change to the sidecar spec, follow the
 It is the same for an exporter agent and for a human contributor.
 Exporter agents must not change files in this repository, except the new version folders of their
 own bundles in `intakes/`. They run `pack` and `list` of `tools/intake_bundle.py` with any Python 3
-interpreter and `python -B`. These commands write no other file here
+interpreter and `python -B`. They run `batch` of the same tool in the environment of this
+checkout, with `uv run --project ../freemocap/skellytracker --no-sync python -B`.
+These commands write no other file here
 ([ADR-FADS](decisions/FADS-hand-over-bundles-in-intakes.md)).
 
 All new and changed documentation must use ASD-STE100 Simplified Technical English.

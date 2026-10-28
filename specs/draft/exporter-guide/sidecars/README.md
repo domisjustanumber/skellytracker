@@ -87,6 +87,35 @@ sections and headings that this guide uses most:
 The templates are [model intake](../../../model-sidecar/templates/model-intake.md) and
 [change proposal](../../../model-sidecar/templates/change-proposal.md).
 
+## Run the skellytracker tools
+
+- The rule now: run the `batch` sub-command of the hand-over tool from the skellytracker checkout,
+  in the skellytracker environment of the checkout
+  ([Batch-conversion check](../../../model-sidecar/model-addition-workflow/hand-over.md#batch-conversion-check)).
+  The user syncs the checkout one time with `uv sync --extra all-cpu`. The command writes no file in
+  the checkout:
+
+  ```sh
+  uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/skellytracker/tools/intake_bundle.py batch <args>
+  ```
+
+- The exporter cannot import skellytracker into its own code yet. Do not add skellytracker as a
+  dependency of the exporter repo yet. The dependency pins of skellytracker stop it now.
+- The target rule after the pin change: each exporter adds skellytracker as a dependency, with a uv
+  path source to the local checkout.
+
+  ```toml
+  dependencies = ["skellytracker[onnx]"]
+
+  [tool.uv.sources]
+  skellytracker = { path = "../freemocap/skellytracker", editable = true }
+  ```
+
+  `editable = true` gives the current checkout with no reinstall. The extra `onnx` gives onnx. The
+  check needs onnxruntime with `CPUExecutionProvider`. An exporter with no onnxruntime adds the extra
+  `onnx-cpu`. Do not add `onnx-cpu` next to `onnxruntime-gpu`, because both install the module
+  `onnxruntime`.
+
 ## The block for the exporter `AGENTS.md`
 
 Copy the text inside the fence into the exporter's `AGENTS.md`, after section 4. Replace `<commit>`
@@ -103,6 +132,9 @@ Do not change this section here. Copy it again when the source changes.
   read-only. Do not change a file in that checkout. The only exception: the new version folders of
   your own bundles in `intakes/`. Read
   `../freemocap/skellytracker/specs/model-sidecar/model-addition-workflow/hand-over.md`.
+- Run the batch check in the checkout environment:
+  `uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/skellytracker/tools/intake_bundle.py batch ...`.
+  Do not add skellytracker as a dependency yet.
 - Before each sidecar task, read the section "Sidecars" of
   `../freemocap/skellytracker/specs/draft/exporter-guide/sidecars/README.md`. Follow the workflow in
   `../freemocap/skellytracker/specs/model-sidecar/model-addition-workflow/README.md`.
