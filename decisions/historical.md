@@ -39,3 +39,5 @@ the reason for a decision. The [index](README.md) has the Active and Proposed en
 | [hxy8](hxy8-scoped-agent-instructions.md) | Core root `AGENTS.md`; folder rules in a nested `AGENTS.md` with an importing `CLAUDE.md`; procedures as skills; supersedes 0001 | superseded by GN3D |
 | [k6dz](k6dz-model-sidecar-folder.md) | The sidecar spec folder and its entry point `sidecar-spec.md` move to `specs/model-sidecar/`; a move with no change of rule | superseded by D9VT |
 | [CNSN](CNSN-spec-build-actions-after-the-fact.md) | Records three past spec-build actions: the `int8` removal with its package code, the in-package batch converter, the draft batch-conversion section | done |
+| [ngnb](ngnb-supersede-an-absorbed-entry.md) | An absorbed entry can be superseded: its status changes from `absorbed into <path>#<anchor>` to `superseded by XXXX` | absorbed into [`decisions/README.md#rules`](README.md#rules) |
+| [HJNP](HJNP-upper-case-entry-ids.md) | Upper-case entry IDs in new entries and new citations; older IDs stay; restates the prefix, ID, edit and record-again rules of b1c0 | absorbed into [`decisions/README.md#rules`](README.md#rules) |

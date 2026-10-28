@@ -1,6 +1,6 @@
 # HJNP — Upper-case entry IDs
 
-**Status:** accepted, 2026-10-28 (user).
+**Status:** accepted, 2026-10-28 (user); absorbed into [`decisions/README.md#rules`](README.md#rules), 2026-10-28 (user; PR: pending).
 
 ## Decision
 

@@ -1,6 +1,6 @@
 # ngnb — An absorbed entry can be superseded
 
-**Status:** accepted, 2026-10-26 (user).
+**Status:** accepted, 2026-10-26 (user); absorbed into [`decisions/README.md#rules`](README.md#rules), 2026-10-28 (user; PR: pending).
 
 ## Decision
 

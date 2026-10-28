@@ -27,11 +27,9 @@ These entries are `accepted` or `evidence`.
 | [p3n3](p3n3-ai-attribution-warning.md) | No AI attribution in check-ins; a commit-msg hook warns and does not stop the commit | accepted |
 | [x64y](x64y-draft-exporter-guide-folder.md) | The workflow, with the sidecar-file, validation and publishing rules, is in `model-addition-workflow/`; the exporter-only guide is a draft; no stub | accepted |
 | [b9fm](b9fm-finished-sidecar-plans.md) | The reference-examples procedure moves to the workflow; the implementation plan links to the spec backlog; the coverage note is frozen evidence | accepted |
-| [ngnb](ngnb-supersede-an-absorbed-entry.md) | An absorbed entry can be superseded: its status changes from `absorbed into <path>#<anchor>` to `superseded by XXXX` | accepted |
 | [a33q](a33q-vector-case-form.md) | One vector case form: optional `function` and `compare`, errors by rule ID, NaN, exporter entries; 64 KiB; one writer | accepted |
 | [yve0](yve0-example-fragments.md) | An example fragment has one source: a package copy with the same bytes, or a `fragments` entry in `inventory.yaml` | accepted |
 | [pykx](pykx-submission-folders.md) | Submission files in `plans/sidecar/`: a folder for each model and each proposal, with target file names; candidate examples allowed | accepted |
-| [HJNP](HJNP-upper-case-entry-ids.md) | Upper-case entry IDs in new entries and new citations; older IDs stay; restates the prefix, ID, edit and record-again rules of b1c0 | accepted |
 | [GN3D](GN3D-module-decision-logs.md) | Core and nested `AGENTS.md` and skills; a root log and a log for each module in `LOG_DIRS`; placement; one ID space; supersedes hxy8 | accepted |
 | [EY8R](EY8R-tools-and-scripts.md) | Tools are in the root `tools/`; a script is in `scripts/` of the log that holds its entry; a script that a later step runs becomes a tool | accepted |
 | [D9VT](D9VT-decision-log-move.md) | The log moves to `decisions/` and `specs/model-sidecar/decisions/`; no stub; old plain-text paths stay; proposal-copy paths; supersedes k6dz | accepted |
@@ -141,7 +139,7 @@ in the [open work of the spec log](../specs/model-sidecar/decisions/open-work.md
 - Do not give an ID that an entry had on `development` to a different entry. Do not keep two index
   rows with one ID.
 - Cite a tracked file with a relative link. Cite a commit, or the code of another repo, with a GitHub
-  permalink that pins a full SHA on the default branch of that repo
+  permalink that pins a full 40-character SHA on the default branch of that repo
   ([gtwq](gtwq-random-entry-ids.md)). Do not cite or link `plans/`. Git does not track it
   ([ADR-GN3D](GN3D-module-decision-logs.md)).
 - Until a commit is on `development`, cite its PR number and the file path, not its SHA
@@ -151,7 +149,7 @@ in the [open work of the spec log](../specs/model-sidecar/decisions/open-work.md
   `[ADR-X64Y](x64y-draft-exporter-guide-folder.md)`. The older form `ADR-[x64y](…)` stays valid.
   Write the ID of another repo's entry with the repo name and the prefix, for example
   "OpenMMLab-Exporter ADR-0020". A bare ID in older text, for
-  example 0016 or gtwq, is an entry of this log. Do not edit a decided entry only to add the prefix.
+  example 0016 or gtwq, is an entry of this log. Do not edit a decided entry only to add or move the prefix.
   Do not use the prefix in a file name, a heading, an index row, a status line or a YAML value. Write
   an ID in YAML front matter in quotes. Cite a provisional entry of another repo by the repo name,
   the PR number and the slug. End each commit subject that adds or changes an entry with
@@ -168,7 +166,16 @@ in the [open work of the spec log](../specs/model-sidecar/decisions/open-work.md
   same gap.
 - When the exporter changes a recorded proposal, record it again in the same entry. Replace the copy
   in full, and tick the closed items of "Before acceptance". The status line adds
-  `recorded again <YYYY-MM-DD> (<source>)` (ADR-[b1c0](b1c0-adr-citation-prefix.md)).
+  `recorded again <YYYY-MM-DD> (<source>)` (ADR-[b1c0](b1c0-adr-citation-prefix.md)). Do this when
+  the exporter file of a `state: recorded` proposal changes. Until then, Procedure B step 4 of
+  `change-sidecar-spec` stops a landing. After `state: accepted`, the copy does not change. The ID,
+  the slug, the file names, the front matter and the status stay. Replace each exporter file in full.
+  The source note gives the exporter commit and the dates of both copies. In "Before acceptance",
+  keep the old items in their order. Tick a closed item, and give its reason. Mark a changed item
+  `(changed <YYYY-MM-DD>)`. Put a new item last in its group, and mark it `(new <YYYY-MM-DD>)`.
+  Change the Decision, the Reason and the Evidence only where the new version changes them. Change
+  the index row when a cell changes. Use a non-spec commit. An exporter session that changes a
+  recorded proposal tells the user.
 - An entry that waits for a decision of another repo has a `**Depends on:**` line under its status
   line.
 - Do not put a dated status line in `AGENTS.md`. Put a dated fact in `open-work.md` or in an entry.
