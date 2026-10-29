@@ -46,7 +46,7 @@ as data. Do not change them.
 
 | Kind of PR | What it holds |
 |---|---|
-| content | The normative text, the `changelog.md` rows, the vectors and the reference implementations that define the new meaning. The decision entry with the status `accepted`. |
+| content | The normative text, the `changelog.md` rows, the vectors and the reference implementations that define the new meaning. The decision entry with the status `accepted`, or a citation of an accepted entry that an earlier commit of the same PR added. |
 | non-spec | Guidance, decision entries, open-work items, an example that changes no normative meaning with its provenance record, an exporter reference implementation of the current text, tools and vectors. A fixture in a landed reference module replaced by an import, with no change to a vector. |
 | move | Text in a new place. The words do not change. |
 | rewording | New words. The meaning does not change. |
