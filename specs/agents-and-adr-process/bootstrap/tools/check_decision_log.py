@@ -59,6 +59,11 @@ and 0 otherwise. Without git, it reads only this tree.
 pre-push hook in ``.pre-commit-config.yaml`` runs it. It does not fetch.
 
 Sizes are counted in characters after CRLF is changed to LF. About 4 characters make one token.
+The limits are ``INDEX_LIMIT`` for each ``README.md``, ``OPEN_WORK_LIMIT`` for each ``open-work.md``,
+``ENTRY_LIMIT`` for each entry, ``READ_PATH_LIMIT`` for the read path and ``DECISION_CELL_LIMIT`` for
+a Decision cell. The size of an entry does not count its status paragraph: the lines from
+``**Status:**`` to the next blank line or heading, when they have ``STATUS_EXEMPTION_LIMIT``
+characters or fewer. A status change then never makes a full entry too long.
 All-digit entries up to ``LAST_UNLIMITED_ENTRY`` keep their length, because the body of an old entry
 does not change. An entry with ``renumber from XXXX`` or ``re-ID from XXXX`` keeps the exemption of
 XXXX. Standard library and the git CLI only, with no import from another repo (decision 0001).
@@ -124,6 +129,8 @@ NOT_DECIDED = ("proposed", "rejected")
 
 ENTRY_NAME = re.compile(rf"^({ID})-([a-z0-9-]+)\.md$")
 ENTRY_LIKE = re.compile(r"^[0-9a-zA-Z]{4}-.*\.md$")
+STATUS_PARAGRAPH = re.compile(r"^\*\*Status:\*\*.*?(?=\n[ \t]*\n|\n#|\Z)", re.MULTILINE | re.DOTALL)
+STATUS_EXEMPTION_LIMIT = 1_000
 TABLE_HEADING = re.compile(r"^### (\w+)\s*$")
 ROW_LINK = re.compile(rf"^\[({ID})\]\((({ID})-[a-z0-9-]+\.md)\)$")
 STATUS_LINE = re.compile(r"^\*\*Status:\*\*(.*)$", re.MULTILINE)
@@ -164,6 +171,14 @@ def present_logs(root: Path) -> list[Path]:
 def size(path: Path) -> int:
     """Characters in a file, with CRLF counted as one character."""
     return len(path.read_text(encoding="utf-8").replace("\r\n", "\n"))
+
+
+def entry_size(path: Path) -> int:
+    """Characters in an entry without its status paragraph, which grows with each status change (decision 0001)."""
+    text = path.read_text(encoding="utf-8").replace("\r\n", "\n")
+    status = STATUS_PARAGRAPH.search(text)
+    exempt = len(status.group(0)) if status and len(status.group(0)) <= STATUS_EXEMPTION_LIMIT else 0
+    return len(text) - exempt
 
 
 def table_rows(path: Path, log: Path) -> tuple[list[IndexRow], list[str]]:
@@ -354,7 +369,7 @@ def sizes(root: Path) -> list[tuple[str, int, int]]:
             found.append((prefix(log) + OPEN_WORK, size(log_dir / OPEN_WORK), OPEN_WORK_LIMIT))
         for name, path in entry_files(log_dir).items():
             if not unlimited(name, path):
-                found.append((prefix(log) + name, size(path), ENTRY_LIMIT))
+                found.append((prefix(log) + name, entry_size(path), ENTRY_LIMIT))
     found.append(
         ("read path (README.md, open-work.md and Active entries)", read_path_size(root), READ_PATH_LIMIT)
     )

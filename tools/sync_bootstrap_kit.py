@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write or check the copied files and blocks of the bootstrap kit (decision 0031).
+"""Write or check the copied files and blocks of the bootstrap kit (decisions 0031 and Z05A).
 
 Usage::
 
@@ -57,6 +57,7 @@ COPIES = (
         "tools/check_decision_log.py",
         (
             ("(decisions z934 and gtwq).", f"{DECISION_0001}."),
+            ("(decision Z05A).", f"{DECISION_0001}."),
             ("random IDs (decision\ngtwq).", "random IDs (decision\n0001)."),
             ("another repo (decision gtwq).\n", f"another repo {DECISION_0001}.\n"),
             ("INDEX_LIMIT = 18_000\n", "INDEX_LIMIT = 14_000\n"),
@@ -79,7 +80,7 @@ COPIES = (
     Copy(
         "tools/tests/test_decision_log.py",
         "tools/tests/test_decision_log.py",
-        (("(decision z934).", f"{DECISION_0001}."),),
+        (("(decision z934).", f"{DECISION_0001}."), ("(decision Z05A).", f"{DECISION_0001}.")),
     ),
     Copy(
         "tools/check_private_data.py",
@@ -145,13 +146,132 @@ COPIES = (
         ),
     ),
     Copy(
+        "decisions/template.md",
+        "decisions/template.md",
+        (("`proposed` is a spec change\n  proposal that waits for a decision.", "`proposed` waits for a\n  decision."),),
+    ),
+    Copy(
         ".github/workflows/secrets.yml",
         ".github/workflows/secrets.yml",
         (("    branches: [main, development]\n", "    branches: [main]\n"),),
     ),
 )
 
-BLOCKS: tuple[Block, ...] = ()
+AGENTS = ("AGENTS.md", f"{KIT.as_posix()}/AGENTS.md")
+INDEX = ("decisions/README.md", f"{KIT.as_posix()}/decisions/README.md")
+BRANCH = "`{{DEFAULT_BRANCH}}`"
+KIT_0001 = "decisions/0001-decision-log-agents-md-and-private-data.md"
+
+BLOCKS = (
+    Block(
+        *AGENTS,
+        "writing-rules",
+        (
+            (
+                "This rule applies to each `AGENTS.md`, skills, decision entries, templates, the model addition\n"
+                "workflow, the exporter guide and the sidecar spec.",
+                "This rule applies to `AGENTS.md`, skills, decision entries and templates.",
+            ),
+            ("field names, enum values", "field names, values"),
+        ),
+    ),
+    Block(*AGENTS, "skills", (("Git tracks `.claude/skills/` and ignores the rest of `.claude/`.\n", ""),)),
+    Block(
+        *AGENTS,
+        "plans-folder",
+        (("cite the content of a plan.", f"cite the content of a plan\n  ([ADR-0001]({KIT_0001}))."),),
+    ),
+    Block(
+        *AGENTS,
+        "push-and-attribution",
+        (
+            (
+                "description or a change of a draft PR to ready. A force-push is a\n  new push.",
+                "description, a change of a draft PR to ready, a release or a\n  published image."
+                " A force-push is a new push.",
+            ),
+        ),
+    ),
+    Block(
+        *AGENTS,
+        "## 5. Decision Log",
+        (
+            (
+                "before you change sidecar code, a sidecar, an example,\nthe spec, the agent instructions or the PR"
+                " workflow.\nFor spec work, also read the [`README.md`](specs/model-sidecar/decisions/README.md) and"
+                " the\n[`open-work.md`](specs/model-sidecar/decisions/open-work.md) of the spec log in\n"
+                "`specs/model-sidecar/decisions/`.\nAn entry goes in the spec log only when each file that its"
+                " Decision section names or changes is in\n`specs/model-sidecar/`.",
+                "before you change {{AREAS}} or these instructions.\nFor a task in a module with a log, also read"
+                " the `decisions/README.md` and the\n`decisions/open-work.md` of that module. The `AGENTS.md` of"
+                " the module links to its log.\nAn entry goes in the log of a module only when each file that its"
+                " Decision section names or\nchanges is in that module.",
+            ),
+            ("[ADR-JB5J](decisions/JB5J-one-batch-form-for-each-sidecar.md).", f"[ADR-0001]({KIT_0001})."),
+            ("This rule also applies to an older entry with a lower-case file name.\n", ""),
+            (
+                "\n([ADR-Z05A](decisions/Z05A-essential-decision-log-rules.md); see the\n"
+                "[Rules](decisions/README.md#rules)).",
+                "\n(see the [Rules](decisions/README.md#rules)).",
+            ),
+            (
+                "\nThe bootstrap kit in `specs/agents-and-adr-process/` is guidance, not a part of the sidecar spec.\n"
+                "It holds the final form of the rules of this decision log for a new repository.\n"
+                "Each kit copy is its live file with the text edits that `tools/sync_bootstrap_kit.py` lists.\n"
+                "The kit templates also hold blocks of the live files: whole sections, and the text between the\n"
+                "lines `<!-- kit:<name> -->` and `<!-- /kit -->`. The tool lists them with their edits.\n"
+                "When you change a copied live file or a block, run `uv run python tools/sync_bootstrap_kit.py"
+                " --write`.\nCommit the kit files in the same PR.\nThe kit decision log must stay valid.\n"
+                "Change the rest of a kit template by hand when a rule of this log changes.\n",
+                "",
+            ),
+        ),
+    ),
+    Block(*AGENTS, "## 7. Tool Calls"),
+    Block(
+        *AGENTS,
+        "## 8. Private Data",
+        (
+            (
+                "This repository is public, and git history is permanent.",
+                f"This repository is public, or it can become public. Git history is permanent\n([ADR-0001]({KIT_0001})).",
+            ),
+            (
+                "- A GitHub permalink to a repo of a freemocap exporter is not a private URL. This is also true when\n"
+                "  the repo is private. The permalink can contain the user name of the account that owns the repo. Do\n"
+                "  not write that user name in prose. Do not put that user\n"
+                "  name in `.private-terms`. The check would then fail on each permalink.\n",
+                "",
+            ),
+            ("`../OpenMMLab-Exporter/notes/`", "`../{{SIBLING_REPO}}/notes/`"),
+        ),
+    ),
+    Block(
+        *INDEX,
+        "## Rules",
+        (
+            ("only to an entry that is on `development`.", f"only to an entry that is on {BRANCH}."),
+            (
+                "the spec, the root or a nested `AGENTS.md`, the skills, the model addition workflow, the exporter\n"
+                "  guide, the templates of `specs/model-sidecar/templates/`, the Rules of this file with\n"
+                "  [template.md](template.md), and the docstring of a tool in `tools/` for the rules that it checks.",
+                "the root or a nested `AGENTS.md`, the skills, {{NORMATIVE_DOCS, for example the spec or the\n"
+                "  contract files}}, the Rules of this file with [template.md](template.md), and the docstring of a\n"
+                "  tool in `tools/` for the rules that it checks.",
+            ),
+            ("Until a commit is on `development`,", f"Until a commit is on {BRANCH},"),
+            (
+                " Write one at the end of the spec-build stage, and when the read-path limit\n  fails.",
+                " Write one when the read-path limit fails.",
+            ),
+            (
+                " An older entry keeps its lower-case ID in its file name, heading and index row. Do not edit\n"
+                "  older text only to change the case.",
+                "",
+            ),
+        ),
+    ),
+)
 
 
 def read(path: Path) -> str:

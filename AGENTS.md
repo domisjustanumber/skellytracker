@@ -12,12 +12,14 @@ These commands write no other file here
 ([ADR-FADS](decisions/FADS-hand-over-bundles-in-intakes.md);
 [ADR-JB5J](decisions/JB5J-one-batch-form-for-each-sidecar.md)).
 
+<!-- kit:writing-rules -->
 All new and changed documentation must use ASD-STE100 Simplified Technical English.
 This rule applies to each `AGENTS.md`, skills, decision entries, templates, the model addition
 workflow, the exporter guide and the sidecar spec.
 Use short sentences. Use active voice. Use one instruction per sentence.
 Use "must" for a requirement.
 Keep technical names, field names, enum values, formulas, code and YAML unchanged.
+<!-- /kit -->
 
 This file holds the rules for each task. The other instructions load only when you need them
 ([ADR-GN3D](decisions/GN3D-module-decision-logs.md)):
@@ -61,10 +63,12 @@ Do not change the implementation code under `skellytracker/`.
 
 ## 2. Skills
 
+<!-- kit:skills -->
 Load the skill that matches the task.
 If your agent does not support skills, read the file `.claude/skills/<skill>/SKILL.md`.
 Git tracks `.claude/skills/` and ignores the rest of `.claude/`.
 The rules in this file also apply.
+<!-- /kit -->
 Exporter agents read the skill files, read-only, in the checkout
 `../freemocap/skellytracker/.claude/skills/`.
 
@@ -110,12 +114,23 @@ For spec work, also read the [`README.md`](specs/model-sidecar/decisions/README.
 [`open-work.md`](specs/model-sidecar/decisions/open-work.md) of the spec log in
 `specs/model-sidecar/decisions/`.
 An entry goes in the spec log only when each file that its Decision section names or changes is in
-`specs/model-sidecar/`. All other entries go in the root log
+`specs/model-sidecar/`. All other entries go in the root log, also each case that you cannot decide.
+A new module log needs the approval of the user. The PR that adds it also adds its folder to
+`LOG_DIRS` of `tools/check_decision_log.py`.
+Each log has a `README.md` with an Active table, a Proposed table and `## Open work`, a
+`historical.md` and an `open-work.md`. The Rules and `template.md` are only in the root log.
+All logs have one ID space. Do not add a module name to an ID.
+When the scope of a module entry grows to more than one module, a new root entry supersedes it
 ([ADR-GN3D](decisions/GN3D-module-decision-logs.md)).
-Tools are in `tools/`. Scripts are in `scripts/` of the log that holds their entry
-([ADR-EY8R](decisions/EY8R-tools-and-scripts.md)).
-The [Rules](decisions/README.md#rules) of the index give the read path, the entry IDs, the
-allowed edits, the status changes, the limits and the citation rules.
+A tool is code that a test, a hook, a CI job, a skill or a workflow step runs, or code that writes a
+tracked file. It is in the root `tools/`, also when only one module uses it. It has tests.
+A script made the evidence for an entry or did its one-off job, and the entry names it. It is in
+`scripts/` of the log that holds the entry. Its own tests, if any, are in `scripts/tests/`.
+A script does not change after its entry is decided. When a step starts to run it, move it to
+`tools/` and add a test ([ADR-EY8R](decisions/EY8R-tools-and-scripts.md)).
+The [Rules](decisions/README.md#rules) of the index give the allowed edits, the status changes and
+the rules that no tool checks. `tools/check_decision_log.py` checks the tables, the IDs and the
+limits ([ADR-Z05A](decisions/Z05A-essential-decision-log-rules.md)).
 Add one entry for each new decision or measurement.
 Get its ID from `uv run python tools/check_decision_log.py --new`.
 End each commit subject that adds or changes an entry with `(ADR-<ID>)`.
@@ -127,31 +142,38 @@ This rule also applies to an older entry with a lower-case file name.
 A commit message cannot hold a working link. In the commit body, write `ADR-<ID>` with no link.
 Cite an entry of another repository with the repository name and `ADR-<ID>`. Also link it with a
 full-SHA permalink when the entry is on the default branch of that repository
-([ADR-NSR2](decisions/NSR2-adr-citations-as-links-in-each-text.md); see the
+([ADR-Z05A](decisions/Z05A-essential-decision-log-rules.md); see the
 [Rules](decisions/README.md#rules)).
 
 The bootstrap kit in `specs/agents-and-adr-process/` is guidance, not a part of the sidecar spec.
 It holds the final form of the rules of this decision log for a new repository.
 Each kit copy is its live file with the text edits that `tools/sync_bootstrap_kit.py` lists.
-When you change such a live file, run `uv run python tools/sync_bootstrap_kit.py --write`.
-Commit the copy in the same PR.
+The kit templates also hold blocks of the live files: whole sections, and the text between the
+lines `<!-- kit:<name> -->` and `<!-- /kit -->`. The tool lists them with their edits.
+When you change a copied live file or a block, run `uv run python tools/sync_bootstrap_kit.py --write`.
+Commit the kit files in the same PR.
 The kit decision log must stay valid.
-Change the kit templates by hand when a rule of this log changes.
+Change the rest of a kit template by hand when a rule of this log changes
+([ADR-Z05A](decisions/Z05A-essential-decision-log-rules.md)).
 
 ## 6. Git Rules
 
+<!-- kit:plans-folder -->
 - `plans/` is a local working folder. Git ignores it. Do not commit it. Do not cite or link to
   `plans/`, or cite the content of a plan.
+  <!-- /kit -->
 - `intakes/` is the local hand-over folder. Git ignores it. Do not commit it. Do not link it from a
   tracked file. Do not run `git clean -x` or `git clean -X`. Use the main checkout, not a worktree,
   to process bundles ([Hand-over bundles](specs/model-sidecar/model-addition-workflow/hand-over.md);
   [ADR-FADS](decisions/FADS-hand-over-bundles-in-intakes.md)).
+  <!-- kit:push-and-attribution -->
 - Do not push to a git remote without the approval of the user. One approval for a PR covers its
   push, its draft PR and its description.
 - Ask the user before any other action that is visible outside this machine, for example a PR
   comment, a later change to a PR description or a change of a draft PR to ready. A force-push is a
   new push. It needs its own approval (ADR-[0027](decisions/0027-single-working-branch.md)).
 - Do not add AI attribution, for example a `Co-Authored-By:` trailer, to a commit or a PR.
+  <!-- /kit -->
 - Commit only on the working branch `dom/sidecar-implementation`. Open PRs against `development`,
   not `main`.
 - In the spec-build stage, the work goes to `development` in one PR from the working branch

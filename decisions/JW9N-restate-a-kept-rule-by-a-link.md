@@ -1,6 +1,6 @@
 # JW9N — Restate a kept rule by a link
 
-**Status:** accepted, 2026-10-28 (user; PR: pending).
+**Status:** accepted, 2026-10-28 (user; PR: pending); superseded by [Z05A](Z05A-essential-decision-log-rules.md), 2026-10-29 (user; PR: pending).
 
 ## Decision
 

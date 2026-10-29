@@ -1,6 +1,6 @@
 # 0031 — A bootstrap kit for `AGENTS.md` and the decision log
 
-**Status:** absorbed into [`AGENTS.md#5-decision-log`](../AGENTS.md#5-decision-log), 2026-10-25 (user; the absorption review).
+**Status:** absorbed into [`AGENTS.md#5-decision-log`](../AGENTS.md#5-decision-log), 2026-10-25 (user; the absorption review); superseded by [Z05A](Z05A-essential-decision-log-rules.md), 2026-10-29 (user; PR: pending).
 
 ## Decision
 

@@ -50,8 +50,10 @@ These rules come from [ADR-FDTD](../../../decisions/FDTD-evidence-sources-and-ex
 
 These forms come from [ADR-FDTD](../../../decisions/FDTD-evidence-sources-and-exporter-permalinks.md).
 
-- Use the citation forms of the decision-log [Rules](../../../decisions/README.md#rules) also in an
-  intake, a proposal, a reference file and spec guidance. The rule "Do not cite or link `plans/`"
+- Use the citation forms of [`AGENTS.md`](../../../AGENTS.md#5-decision-log) and of the decision-log
+  [Rules](../../../decisions/README.md#rules)
+  ([ADR-Z05A](../../../decisions/Z05A-essential-decision-log-rules.md)) also in an intake, a
+  proposal, a reference file and spec guidance. The rule "Do not cite or link `plans/`"
   also applies to a bundle file of any repo. Cite upstream code, and the code of another repo, with
   a GitHub permalink. The permalink must pin a full 40-character SHA on the default branch of that
   repo. The next bullets give the other forms.

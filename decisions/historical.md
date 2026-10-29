@@ -19,11 +19,11 @@ the reason for a decision. The [index](README.md) has the Active and Proposed en
 | [0001](0001-decision-log-and-agents-md.md) | Decision log; `AGENTS.md` is the single instructions file; `plans/` is local and ignored | superseded by hxy8 |
 | [0027](0027-single-working-branch.md) | One working branch for the PR stack; one kind of change per PR, stacked PRs, merge method | absorbed into [`AGENTS.md#6-git-rules`](../AGENTS.md#6-git-rules) |
 | [0030](0030-no-private-data.md) | No private data in tracked files, commits or PR text; the private-data check and gitleaks | superseded by FDTD |
-| [0031](0031-bootstrap-kit.md) | A bootstrap kit for `AGENTS.md` and the decision log in a new repo; its copies stay in sync with the live files | absorbed into [`AGENTS.md#5-decision-log`](../AGENTS.md#5-decision-log) |
+| [0031](0031-bootstrap-kit.md) | A bootstrap kit for `AGENTS.md` and the decision log in a new repo; its copies stay in sync with the live files | superseded by Z05A |
 | [0033](0033-short-sidecars-block.md) | The exporter `AGENTS.md` copies a short fenced "Sidecars" block, not the full Sidecars section | absorbed into [`draft/exporter-guide/sidecars/README.md#the-block-for-the-exporter-agentsmd`](../specs/draft/exporter-guide/sidecars/README.md#the-block-for-the-exporter-agentsmd) |
 | [0034](0034-sidecar-guide-folder.md) | The sidecar guide moves to `specs/exporter-guide/sidecars/`, split at its headings with no change of text | superseded by x64y |
 | [gtwq](gtwq-random-entry-ids.md) | Random 4-character entry IDs with `--new`; four allowed edits, complete supersession, permalinks, `Depends on`, evidence scripts | superseded by b1c0 |
-| [z934](z934-decision-log-index-and-read-path.md) | Index and read path: Proposed table off the read path, `historical.md`, `template.md`, `done`, absorbing documents | absorbed into [`decisions/README.md#rules`](README.md#rules) |
+| [z934](z934-decision-log-index-and-read-path.md) | Index and read path: Proposed table off the read path, `historical.md`, `template.md`, `done`, absorbing documents | superseded by Z05A |
 | [faac](faac-proposal-records.md) | Spec change proposals in `specs/model-sidecar/proposals/`; a short `proposed` entry for each; no open-work line for each proposal | superseded by FADS |
 | [0014](0014-spec-lifecycle.md) | Spec lifecycle, the `vNEXT` rule and the new-model workflow | superseded by FADS |
 | [0013](0013-spec-structure.md) | Spec structure: section files, rule owners, examples, reference implementations, traceability, STE | superseded by TA0G |
@@ -45,3 +45,5 @@ the reason for a decision. The [index](README.md) has the Active and Proposed en
 | [a33q](a33q-vector-case-form.md) | One vector case form: optional `function` and `compare`, errors by rule ID, NaN, exporter entries; 64 KiB; one writer | superseded by TA0G |
 | [SR1E](SR1E-reset-of-the-spec-build-proposals.md) | Deletes the 21 proposed spec-log entries 0017-0025 and 0037-0048, the 14 old proposal records and the `proposed:` inventory list | done |
 | [JC4T](JC4T-parity-gates-and-batch-conversion-check.md) | Measured gates as controls; step 5 by role; the batch-conversion check (`S = 3`, b1 to b4, V0 to V6); the publish rule; the exporter run in the checkout | superseded by JB5J |
+| [JW9N](JW9N-restate-a-kept-rule-by-a-link.md) | A link to a heading that states a kept rule restates it; later edits there cite their entry; the chain rule; supersedes ngnb and HJNP | superseded by Z05A |
+| [NSR2](NSR2-adr-citations-as-links-in-each-text.md) | Cite an entry as a link with `ADR-<ID>` as link text in each text: files, plans, PR bodies, replies; commit bodies with no link | superseded by Z05A |

@@ -266,6 +266,26 @@ def test_new_entry_over_limit_is_reported_and_old_entry_is_not(tmp_path: Path) -
     assert not any(e.startswith(f"{old:04d}-x.md") for e in errors)
 
 
+def test_entry_limit_does_not_count_the_status_paragraph(tmp_path: Path) -> None:
+    """A status change can make a full entry longer, but not too long (decision Z05A)."""
+    new = cdl.LAST_UNLIMITED_ENTRY + 1
+    status = "**Status:** accepted, 2026-10-25 (user);\n" + "superseded by B1C2, 2026-10-29 (user). " * 20 + "\n\n"
+    body = "x" * (cdl.ENTRY_LIMIT - 2)  # the blank line after the status paragraph still counts
+    root = make_log(tmp_path, active=row(new, "accepted"), entries={f"{new:04d}-x.md": status + body})
+    assert cdl.check(root) == []
+    (root / cdl.LOG_DIR / f"{new:04d}-x.md").write_text(status + body + "x", encoding="utf-8")
+    assert f"{new:04d}-x.md: {cdl.ENTRY_LIMIT + 1} characters, limit {cdl.ENTRY_LIMIT}" in cdl.check(root)
+
+
+@pytest.mark.parametrize("gap", ["\n", "\n   \n## Decision\n"])
+def test_status_exemption_does_not_take_the_body(tmp_path: Path, gap: str) -> None:
+    """With no blank line after the status, or with a space-only line, the body still counts."""
+    new = cdl.LAST_UNLIMITED_ENTRY + 1
+    text = "# X\n\n**Status:** accepted." + gap + "x" * cdl.ENTRY_LIMIT
+    root = make_log(tmp_path, active=row(new, "accepted"), entries={f"{new:04d}-x.md": text})
+    assert any(e.startswith(f"{new:04d}-x.md: ") for e in cdl.check(root))
+
+
 def test_open_work_at_80_percent_warns_and_passes(tmp_path: Path) -> None:
     near = "w" * int(cdl.OPEN_WORK_LIMIT * 0.9)
     root = make_log(tmp_path, entries={cdl.OPEN_WORK: near})

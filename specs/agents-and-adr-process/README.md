@@ -7,8 +7,7 @@ each file goes to the same relative path.
 
 The rules come from the skellytracker decision log:
 [ADR-GN3D](../../decisions/GN3D-module-decision-logs.md),
-[ADR-Z934](../../decisions/z934-decision-log-index-and-read-path.md),
-[ADR-JW9N](../../decisions/JW9N-restate-a-kept-rule-by-a-link.md),
+[ADR-Z05A](../../decisions/Z05A-essential-decision-log-rules.md),
 [ADR-FDTD](../../decisions/FDTD-evidence-sources-and-exporter-permalinks.md),
 [ADR-P3N3](../../decisions/p3n3-ai-attribution-warning.md) and
 [ADR-EY8R](../../decisions/EY8R-tools-and-scripts.md). The kit has their final form. It does
@@ -52,10 +51,10 @@ the user tells you to.
 4. Which documents are normative, in addition to `AGENTS.md` and the skills? Examples: a spec, a
    contract file, an API reference. An entry is absorbed only when a normative document states all
    of its rules.
-5. Does a sibling repo use the same decision-log rules? If yes, keep the mirror rule. If no, delete
-   it.
+5. Does a sibling repo use the same decision-log rules? If yes, follow
+   [Repos that share the rules](#repos-that-share-the-rules).
 6. Must the docs use ASD-STE100 Simplified Technical English? Default: yes. If no, delete the STE
-   rule from `AGENTS.md` and from the index rules.
+   rule (the writing-rules block) from `AGENTS.md`.
 7. May the agent push to a remote without asking each time? Default: no.
 8. Does the repo have modules, for example `freemocap/` and `freemocap-ui/`? Default: no. A module is
    a folder with its own `AGENTS.md`. The kit also gives each module a decision log. A yes is the
@@ -103,10 +102,13 @@ If the repo has no modules, delete the `{{MODULE}}/` row of that table.
 ### Step 3: Fill in the placeholders
 
 Each `{{NAME}}` is a placeholder. Replace it with the answer of the user or with project facts. When
-a placeholder is a rule that does not apply, delete the full line. Then run:
+a placeholder is a rule that does not apply, delete the full line. Delete each line that holds only
+`<!-- kit:<name> -->` or `<!-- /kit -->`. These lines are for the maintainers of skellytracker.
+Then run:
 
 ```sh
 grep -rn "{{" AGENTS.md CLAUDE.md decisions/ tools/
+grep -n -e "<!-- kit:" -e "<!-- /kit" AGENTS.md
 ```
 
 For a repo with modules, add the `AGENTS.md`, the `CLAUDE.md` and the `decisions/` folder of each
@@ -118,7 +120,7 @@ grep -rn "{{" AGENTS.md CLAUDE.md decisions/ tools/ \
   freemocap-ui/AGENTS.md freemocap-ui/CLAUDE.md freemocap-ui/decisions/
 ```
 
-The command must find nothing.
+The commands must find nothing.
 
 Then set `TARGET_BRANCH` in `tools/check_decision_log.py` to the branch that PRs target
 (question 2). `--new` uses it to rank entry IDs.
@@ -232,15 +234,10 @@ cell named five other entries.
 ### Edits
 
 - A `proposed` entry can change until the user decides it.
-- When the source of a `proposed` entry changes, edit the same entry, and add
-  `recorded again <YYYY-MM-DD> (<source>)` to its status line. The source can be a new version of
-  the proposal. A second entry for one proposal makes a chain of entries for one decision
-  ([ADR-FADS](../../decisions/FADS-hand-over-bundles-in-intakes.md)).
 - The body of a decided entry changes only for a link repair, a typo fix, a redaction, or a change of
   ID with the repair of its citations. Each edit adds a dated `_Edited_` line.
 - A status line can change. Write the date and the PR. An absorbed entry can also change to
-  `superseded by XXXX` when a new entry changes one of its rules
-  ([ADR-JW9N](../../decisions/JW9N-restate-a-kept-rule-by-a-link.md)).
+  `superseded by XXXX` when a new entry changes one of its rules.
 
 ### IDs and parallel work
 
@@ -288,8 +285,7 @@ random ID, not the next number.
   Some absorbed entries are larger than the entry limit, so a full restatement cannot pass the check.
   A later entry can change the text under that heading. It cites itself at the heading, and it does
   not supersede the linking entry. A later entry that changes a rule that the linking entry states in
-  its own text supersedes the linking entry in full
-  ([ADR-JW9N](../../decisions/JW9N-restate-a-kept-rule-by-a-link.md)).
+  its own text supersedes the linking entry in full.
 - Do not supersede a part of an entry. OpenMMLab-Exporter had nine partly superseded entries. It
   needed six consolidation entries to repair them.
 - A consolidation entry states the rules that stay from a group of entries and supersedes them. It
@@ -312,7 +308,7 @@ into them.
 |---|---|
 | Index (`README.md`) | 14,000 |
 | `open-work.md` | 20,000 |
-| Each entry | 6,000 |
+| Each entry, without its status paragraph | 6,000 |
 | Read path | 220,000 |
 
 About 4 characters make one token. Put long evidence in a tracked file next to the entry, and link
@@ -369,7 +365,8 @@ module has its own `AGENTS.md` and its own decision log in `<module>/decisions/`
 
 Each repo keeps its own copy of the rules and of the tools. Do not import a file, a test or a tool
 from another repo: a change in one repo then makes a test of the other repo fail. A change of the
-rules needs one PR in each repo. Each entry names its mirror entry in plain text.
+rules needs one PR in each repo. Cite the mirror entry of the other repo with the repo name and
+`ADR-<ID>`, as section 5 of `AGENTS.md` gives.
 
 ## Private data
 
@@ -427,16 +424,24 @@ These pitfalls are already found. Do not repeat them.
 ## Keep the kit current
 
 This section is for the maintainers of skellytracker
-([0031](../../decisions/0031-bootstrap-kit.md)). The tool and config files in `bootstrap/` are
+([ADR-Z05A](../../decisions/Z05A-essential-decision-log-rules.md)). The tool and config files in `bootstrap/` are
 copies of the live files of skellytracker, with exact text edits that remove the parts that belong
 only to skellytracker. [`tools/sync_bootstrap_kit.py`](../../tools/sync_bootstrap_kit.py) holds the
-list of copies and edits. When you change a live tool or config:
+list of copies and edits. `decisions/template.md` is also a copy. When you change a live tool, a
+config or `decisions/template.md`:
 
 1. Run `uv run python tools/sync_bootstrap_kit.py --write`.
 2. Commit the live file and the copy in the same PR.
 
+The kit templates also hold blocks of live text. A block is a whole section under a `## `
+heading, or the text between the lines `<!-- kit:<name> -->` and `<!-- /kit -->` of the live file
+and the template. The tool lists each block with its edits, and `--write` writes it too. To share
+a new rule, put the same markers around it in the live file and in the template, add a `BLOCKS`
+row, and run `--write`.
+
 `uv run pytest tools/tests` runs `--check`. It also runs the copied decision-log check on the kit,
 so the kit log must stay valid. A second test copies `module/` into the kit as two modules, fills in
 `{{ROOT}}` and `{{MODULE}}`, and runs the kit checks on the result. The other kit files
-(`AGENTS.md`, `CLAUDE.md`, the decision log, `gitignore-additions.txt`, `doc-checks.yml` and the
-files in `module/`) are templates. Change them by hand when a rule of the skellytracker log changes.
+(`AGENTS.md`, `CLAUDE.md`, the other decision-log files, `gitignore-additions.txt`, `doc-checks.yml`
+and the files in `module/`) are templates. Change the text outside the blocks by hand when a rule of the
+skellytracker log changes.

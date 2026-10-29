@@ -238,7 +238,7 @@ A contributor writes its proposal bundle.
    ([User decisions](../../../specs/model-sidecar/model-addition-workflow/rules.md#user-decisions);
    [ADR-FDTD](../../../decisions/FDTD-evidence-sources-and-exporter-permalinks.md)).
 6. Keep the entry inside the entry limit
-   ([z934](../../../decisions/z934-decision-log-index-and-read-path.md)). The details stay in
+   ([ADR-Z05A](../../../decisions/Z05A-essential-decision-log-rules.md)). The details stay in
    `proposal.md`.
 7. Write the repo name with the ID of an exporter decision, for example "OpenMMLab-Exporter
    0020". Write the entry in ASD-STE100.
@@ -262,9 +262,9 @@ A contributor writes its proposal bundle.
 
 ### Record a new version
 
-Do these steps when a recorded proposal bundle has a new complete version. The
-[Rules](../../../decisions/README.md#rules) and [Versions](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#versions) give the
-rules. Procedure B step 1 of [`change-sidecar-spec`](../change-sidecar-spec/SKILL.md) stops a landing
+Do these steps when a recorded proposal bundle has a new complete version. These steps and
+[Versions](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#versions) give the rules
+([ADR-Z05A](../../../decisions/Z05A-essential-decision-log-rules.md)). Procedure B step 1 of [`change-sidecar-spec`](../change-sidecar-spec/SKILL.md) stops a landing
 until the record is current.
 
 1. Do Step 1 and Step 2 for the new version.

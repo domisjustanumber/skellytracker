@@ -26,7 +26,7 @@ stay by links, as [ADR-JW9N](JW9N-restate-a-kept-rule-by-a-link.md) allows.
    the session go under "Before acceptance" of the entry
    ([Tracked records](../specs/model-sidecar/model-addition-workflow/hand-over.md#tracked-records)).
    A new version of a recorded proposal replaces the record in full and keeps the entry
-   ([Rules](README.md#rules)).
+   ([Record a new version](../.claude/skills/propose-sidecar-change/SKILL.md#record-a-new-version)).
 4. **`resolved-otherwise`.** When the user accepts the goal of a proposal but a different change
    lands, the response state is `resolved-otherwise` with a `goals` table. In the log, the entry is
    `rejected` with the reason "Resolved by ADR-<X>". The Rules do not change.

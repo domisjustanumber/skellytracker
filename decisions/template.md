@@ -5,7 +5,8 @@ in the read path: read it when you write an entry.
 
 The file name is `<ID>-<short-slug>.md`. Get `<ID>` from
 `uv run python tools/check_decision_log.py --new`. The ID is in upper case. Put the file in the log
-that the placement rule of the [Rules](README.md#rules) gives: the root log or the log of a module.
+that the placement rule of [`AGENTS.md`](../AGENTS.md#5-decision-log) gives: the root log or the log
+of a module.
 
 ```markdown
 # <ID> — <title>
