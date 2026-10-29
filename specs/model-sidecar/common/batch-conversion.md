@@ -37,7 +37,7 @@ The profile changes the batch of a graph that has the batch as a fixed value. `S
 
 Conditions on the source graph:
 - Every graph input that is not an initializer has a static dim 0 that equals `S`.
-- No tensor uses external data. This applies to the initializers, the sparse initializers, the tensor attributes of nodes and the tensors of subgraphs.
+- No tensor uses external data. This applies to the initializers, the sparse initializers, the tensors of the `TENSOR` and `TENSORS` attributes of nodes and the tensors of subgraphs.
 
 Conditions on the request:
 - `T` is `1` or larger.
@@ -53,7 +53,7 @@ Check, after the steps:
 Limits:
 - The steps do not change a subgraph (`If`, `Loop`, `Scan`) or its tensors. They also do not change the sparse initializers or the tensors of a `TENSORS` attribute.
 - The steps do not change a dim or a value that holds the batch in another form.
-- The steps also change a dim 0 or a first value that equals `S` but is not the batch. For example, step 3 changes a 1-D shape constant `[S, ...]` in which the first value is a count of channels or of (x, y, score) triples.
+- The steps also change a dim 0 or a first value that equals `S` but is not the batch. For example, step 3 changes a 1-D shape constant `[S, ...]` in which the first value is a count of channels. When `S` is 3, it also changes a constant in which the first value is the length of an (x, y, score) triple.
 - The check finds some of these changes, but not all. The parity check in [Authoring guidance](#authoring-guidance) finds the others.
 
 ## Behaviour
