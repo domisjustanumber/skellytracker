@@ -159,7 +159,10 @@ Do this procedure for step 2 of phase 3.
     - Run `uv run python tools/make_vectors.py --check`. It must pass. If it does not pass, the
       fixture and the module do not agree. Stop and tell the user.
 14. Write part 6 of the proposal as the "Implementer guidance" of the section.
-15. Add an item for part 6 to the [Open work](../../../decisions/open-work.md) list of the root log.
+15. Add an item for part 6 to the [implementation plan](../../../specs/sidecar-implementation-plan.md),
+    in the not-started stage that it belongs to. If no stage fits, add a new stage before the
+    release stage
+    ([ADR-5WKW](../../../decisions/entries/5WKW-implementation-work-in-the-plan.md)).
 16. Add the "Authoring guidance" from the intake. Do the steps of [Guidance](#guidance).
 17. If a model that needs the change is not in
     [Scope of this revision](../../../specs/model-sidecar/changelog.md#scope-of-this-revision), add
@@ -362,7 +365,7 @@ Each change has a class
 
 ### Examples and vectors
 
-- The reference examples belong to the spec. The doc tests check that each example parses, resolves and has provenance. No test runs the `V-` rules on them yet (see the root `open-work.md`).
+- The reference examples belong to the spec. The doc tests check that each example parses, resolves and has provenance. No test runs the `V-` rules on them yet (see M7 of the [implementation plan](../../../specs/sidecar-implementation-plan.md)).
 - Each example is a file under `specs/model-sidecar/examples/`, in the `detectors/` layout of the package,
   so that `$ref` paths resolve. The examples use unchanged copies of their fragments, under
   `specs/model-sidecar/examples/detectors/shared/` or next to the sidecar. A fragment has one source:

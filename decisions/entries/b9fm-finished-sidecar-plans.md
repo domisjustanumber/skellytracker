@@ -1,6 +1,6 @@
 # b9fm — The reference-examples procedure moves to the workflow; the coverage note is frozen evidence
 
-**Status:** accepted, 2026-10-26 (user).
+**Status:** accepted, 2026-10-26 (user); superseded by [5WKW](5WKW-implementation-work-in-the-plan.md), 2026-10-29 (user; PR: pending).
 
 ## Decision
 

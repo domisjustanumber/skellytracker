@@ -28,7 +28,6 @@ These entries are `accepted` or `evidence`.
 |---|----------|--------|
 | [p3n3](entries/p3n3-ai-attribution-warning.md) | No AI attribution in check-ins; a commit-msg hook warns and does not stop the commit | accepted |
 | [x64y](entries/x64y-draft-exporter-guide-folder.md) | The workflow, with the sidecar-file, validation and publishing rules, is in `model-addition-workflow/`; the exporter-only guide is a draft; no stub | accepted |
-| [b9fm](entries/b9fm-finished-sidecar-plans.md) | The reference-examples procedure moves to the workflow; the implementation plan links to the spec backlog; the coverage note is frozen evidence | accepted |
 | [yve0](entries/yve0-example-fragments.md) | An example fragment has one source: a package copy with the same bytes, or a `fragments` entry in `inventory.yaml` | accepted |
 | [GN3D](entries/GN3D-module-decision-logs.md) | Core and nested `AGENTS.md` and skills; a root log and a log for each module in `LOG_DIRS`; placement; one ID space; supersedes hxy8 | accepted |
 | [EY8R](entries/EY8R-tools-and-scripts.md) | Tools are in the root `tools/`; a script is in `scripts/` of the log that holds its entry; a script that a later step runs becomes a tool | accepted |
@@ -43,6 +42,7 @@ These entries are `accepted` or `evidence`.
 | [Z05A](entries/Z05A-essential-decision-log-rules.md) | The Rules keep only the rules that no tool or loaded document states; the kit sync writes the kit Rules; supersedes z934, JW9N, NSR2, 0031 | accepted |
 | [QPS7](entries/QPS7-decision-entries-in-an-entries-folder.md) | The entry files of each log are in `entries/`; the checker also reads the old layout on other branches; `_Edited` lines do not count to the limit | accepted |
 | [NB91](entries/NB91-new-ids-have-a-digit.md) | New IDs have a digit and a letter in any position; `--new` draws them uniformly; old all-digit and lower-case letter-first IDs stay valid | accepted |
+| [5WKW](entries/5WKW-implementation-work-in-the-plan.md) | Stages M7 to M12 of the implementation plan hold the implementation-stage work; append only; the user decides when the plan goes; supersedes b9fm | accepted |
 
 ### Proposed
 
@@ -59,7 +59,8 @@ The entries that are `rejected`, `superseded by XXXX`, `absorbed into <path>#<an
 ## Open work
 
 The open work and the repository state are in [open-work.md](open-work.md). The spec defects are
-in the [open work of the spec log](../specs/model-sidecar/decisions/open-work.md).
+in the [open work of the spec log](../specs/model-sidecar/decisions/open-work.md). The
+implementation-stage work is in the [implementation plan](../specs/sidecar-implementation-plan.md).
 
 ## Rules
 

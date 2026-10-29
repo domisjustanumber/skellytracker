@@ -97,7 +97,7 @@ The sidecar paths are under `core/detectors/`.
 - On Windows, run each video test file alone. These failures are known:
   - `test_data_store.py` and `test_mediapipe_video.py` fail in setup with "Input timestamp must be
     monotonically increasing". The cause is in the
-    [open work](../decisions/open-work.md): "MediaPipe timestamps on Windows".
+    [implementation plan](../specs/sidecar-implementation-plan.md): "MediaPipe timestamps on Windows".
   - In a run of all video tests, `test_process_video.py` does not finish:
     `PoseLandmarker.__del__` runs during `detect_for_video`, and that call does not return. Alone, it
     passes.

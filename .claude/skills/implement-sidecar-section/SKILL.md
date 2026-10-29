@@ -56,9 +56,9 @@ gives the order of the steps, the inputs, the outputs and the stop points.
    the guidance.
 4. Read the sections that the text links to. Read the sections that link to its rules.
 5. Read the decision entries that cite the section.
-6. Read the [Open work](../../../decisions/open-work.md) list of the root log and the
-   [spec defects](../../../specs/model-sidecar/decisions/open-work.md#spec-defects) of the spec log.
-   Find the items about the section.
+6. Read the stages of the [implementation plan](../../../specs/sidecar-implementation-plan.md) and
+   the [spec defects](../../../specs/model-sidecar/decisions/open-work.md#spec-defects) of the spec log.
+   Find the items about the section ([ADR-5WKW](../../../decisions/entries/5WKW-implementation-work-in-the-plan.md)).
 7. Read the code that `implemented_by` names. Read the tests that `tests` names.
 
 ### Step 2: Find the evidence
@@ -113,13 +113,13 @@ A skellytracker session must land it first, with the skill
 6. Write the existing code that the change touches. If no code does a step yet (`missing`), write the
    code that the new code calls or replaces, or `none`.
 7. Write the legacy behaviour that the code must keep for an older `schema_version`.
-8. List the prerequisites: the work in other sections or in the Open work list that this section
+8. List the prerequisites: the work in other sections or in the implementation plan that this section
    needs first. An example is a field of another section that `model.py` does not have yet. Each
    prerequisite is a separate PR before the PR of this section.
 9. `load_sidecar` rejects `vNEXT`. A development build must load `vNEXT` sidecars
    ([Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing)). If a test needs a
    `vNEXT` sidecar and a development build cannot load one yet, write that work as the first
-   prerequisite. If the Open work list has no item for it, tell the user. Do not design that work in
+   prerequisite. If the implementation plan has no item for it, tell the user. Do not design that work in
    this plan.
 10. In the spec-build stage, report the plan. Then stop.
 
@@ -168,7 +168,9 @@ A skellytracker session must land it first, with the skill
 3. Add the new test files to `tests`.
 4. Regenerate the matrix with `uv run python tools/sidecar_trace.py matrix`. Do not edit
    `specs/model-sidecar/TRACEABILITY.md` by hand.
-5. If the change completes an item of the Open work list, remove the item in the same PR.
+5. If the change completes an item of the [implementation plan](../../../specs/sidecar-implementation-plan.md), delete its bullet
+   and add one line to the status of its stage, in the same PR
+   ([ADR-5WKW](../../../decisions/entries/5WKW-implementation-work-in-the-plan.md)).
 
 ### Step 8: Check and stop
 

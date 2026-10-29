@@ -47,3 +47,4 @@ the reason for a decision. The [index](README.md) has the Active and Proposed en
 | [JC4T](entries/JC4T-parity-gates-and-batch-conversion-check.md) | Measured gates as controls; step 5 by role; the batch-conversion check (`S = 3`, b1 to b4, V0 to V6); the publish rule; the exporter run in the checkout | superseded by JB5J |
 | [JW9N](entries/JW9N-restate-a-kept-rule-by-a-link.md) | A link to a heading that states a kept rule restates it; later edits there cite their entry; the chain rule; supersedes ngnb and HJNP | superseded by Z05A |
 | [NSR2](entries/NSR2-adr-citations-as-links-in-each-text.md) | Cite an entry as a link with `ADR-<ID>` as link text in each text: files, plans, PR bodies, replies; commit bodies with no link | superseded by Z05A |
+| [b9fm](entries/b9fm-finished-sidecar-plans.md) | The reference-examples procedure moves to the workflow; the implementation plan links to the spec backlog; the coverage note is frozen evidence | superseded by 5WKW |

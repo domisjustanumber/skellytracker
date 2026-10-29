@@ -1,129 +1,15 @@
 # Open work
 
-This file holds the open work of the [decision log](README.md): the implementation-stage items and
-the repository state. The spec defects are in the open work of the
+This file holds the open work of the [decision log](README.md): the repository state. The
+implementation-stage work is in the
+[implementation plan](../specs/sidecar-implementation-plan.md). The spec defects are in the open work of the
 [spec log](../specs/model-sidecar/decisions/open-work.md#spec-defects). Read the items that apply to
 your task.
 
 ## Implementation stage
 
-These items are for the implementation stage
-([Stages](../specs/model-sidecar/model-addition-workflow/README.md#stages)). During the spec-build
-stage, no file under `skellytracker/` changes, except test fixes.
-
-- **`fit` `pad_value`.** At `vNEXT`, the spec requires `pad_value` on a `fit` resize
-  ([Validation rules](../specs/model-sidecar/pre/resize-fit.md#validation-rules)). The code does not require it.
-  `ResizeSpec._check_method_specific_fields` in `skellytracker/core/sidecar/model.py` accepts a `fit`
-  resize without `pad_value`. Then `preprocess_image` in
-  `skellytracker/core/detectors/processing/image_preprocessing.py` uses `0`, and `fit_preprocess` has
-  the default `pad_value=0`. Add the missing validator rule, so that no valid `vNEXT` sidecar uses the
-  default. Add a test of the rejection to `skellytracker/tests/sidecar/test_model_validation.py`.
-  `test_fit_method_is_valid` already sets `pad_value: 114` ([0012](../specs/model-sidecar/decisions/entries/0012-fit-resize-for-rtmo.md)).
-- **`fit` scalar pad.** `fit_preprocess` in
-  `skellytracker/core/detectors/processing/image_preprocessing.py` passes a scalar `pad_value` to
-  `cv2.warpAffine` as `float(pad_value)`. OpenCV then fills only channel 0 of a 3-channel image: a
-  scalar `114` gives the border `[114, 0, 0]`. A scalar must fill every channel, because
-  `letterbox_preprocess` in the same file already does this (`np.full`). The spec does not state this
-  rule. The spec must state it (see the [spec defects](../specs/model-sidecar/decisions/open-work.md#spec-defects), and
-  [0012](../specs/model-sidecar/decisions/entries/0012-fit-resize-for-rtmo.md)).
-- **MediaPipe timestamps on Windows.** In video mode, the MediaPipe detectors under
-  `skellytracker/core/detectors/keypoint_detectors/mediapipe/` use `int(time.monotonic() * 1000)` as
-  the timestamp when the caller gives no `timestamp_ms`. On Windows, with Python 3.12,
-  `time.monotonic()` uses `GetTickCount64()`, which has a resolution of 15.6 ms. Two frames in one
-  tick get the same timestamp, and MediaPipe raises "Input timestamp must be monotonically
-  increasing". The fallback timestamp must increase on each call.
-- **MediaPipe landmarkers on Windows.** On Windows, the fast suite (`uv run pytest -m "not video"`)
-  can also hang. A MediaPipe `PoseLandmarker` that an earlier test left open is garbage-collected
-  during the teardown of the `onnx_session` fixture in `skellytracker/tests/test_rtmpose_detectors.py`.
-  Then `PoseLandmarker.__del__` calls `close()`, and `close()` deadlocks in the MediaPipe dispatcher.
-  This occurred on 2026-10-23, two times in sequence. The file alone passes, and Linux CI passes. This
-  is a code defect: the tests or the detectors must close their landmarkers. For example, the tests in
-  `skellytracker/tests/test_mediapipe_detectors.py` create MediaPipe detectors and do not call
-  `close()`. The fix waits for the implementation stage.
-- **Trace-tool functions.** Move `tools/sidecar_normalize.py` (the normalization table and the
-  selector matching that the sidecar trace tool uses) into `skellytracker/core/sidecar/` without
-  changes. The trace tool then imports them from the package. The capability check of 0016 uses the
-  same functions ([0013](entries/0013-spec-structure.md);
-  [`format.versioning`](../specs/model-sidecar/format/versioning.md#implementer-guidance)).
-- **Sidecar catalog and roots.** Build the catalog of 0016: the catalog key
-  `<model_id>@<source.name>`, the version order and the version pins, the reserved name
-  `skellytracker`, the root log and the run metadata
-  ([`common.identity`](../specs/model-sidecar/common/identity.md#implementer-guidance)). Build the roots:
-  the package root, local folders, Hugging Face repo snapshots (pin, refresh, cache paths without
-  symlink resolution), development builds, user models and discovery in each root. Rename
-  `cache_dir` to the sidecar root in the code
-  ([`format.file_layout`](../specs/model-sidecar/format/file-layout.md#implementer-guidance)). See
-  [0016](entries/0016-sidecar-catalogs.md#decision).
-- **Reference hash checks in the resolver.** Add the checks of the `$ref` and `base` hashes, and of
-  the bytes of each file, to `skellytracker/core/sidecar/resolution.py`. Then delete the temporary
-  function `resolve` of `tools/sidecar_refs.py`. Move the `--write` and `--check` commands of that
-  tool into the package as a command, and keep a thin wrapper in `tools/`. When the package sidecars
-  move to a release `schema_version`, give them `source` and the hashes
-  ([`format.composition`](../specs/model-sidecar/format/composition.md#implementer-guidance); see
-  [0016](entries/0016-sidecar-catalogs.md#tools-and-line-endings)).
-- **Artifact hash checks.** Verify the file that `filename` names against `sha256` when the file is
-  present and after a download. Today `skellytracker/core/sessions/model_registry.py` checks only
-  `url_sha256`, and only during a download
-  ([`common.sizes_and_artifacts`](../specs/model-sidecar/common/sizes-and-artifacts.md#implementer-guidance);
-  see [0016](entries/0016-sidecar-catalogs.md#artifact-hashes)).
-- **Capability check and dispatch.** Build the capability check of 0016. Map a catalog entry to
-  detector code by its role and its spec sections. Keep the `detector_type` keys as aliases of
-  `<model_id>@skellytracker`. Let a hand-written detector claim a catalog key. Make an unknown size
-  an error, not a silent fallback
-  ([`format.versioning`](../specs/model-sidecar/format/versioning.md#implementer-guidance); see
-  [0016](entries/0016-sidecar-catalogs.md#capability-check)).
-- **YOLOX.** Re-export YOLOX to a contract that the spec describes: dynamic batch
-  (`common.batching`), no NMS in the graph, and host `selection: nms` (`post.det.selection.nms`). Run
-  a parity check on the new export. Then remove the claim of
-  the hand-written YOLOX detector on the catalog key `yolox@skellytracker`
-  ([`format.versioning`](../specs/model-sidecar/format/versioning.md#implementer-guidance);
-  [0016](entries/0016-sidecar-catalogs.md#detector-dispatch); see also
-  [0006](entries/0006-yolox-native-contract.md)).
-- **`vNEXT` release step.** At the first skellytracker release that ships the spec, one content PR
-  replaces `vNEXT` with that release version everywhere. Then the exporters regenerate their sidecars
-  ([Publishing](../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing)). OpenMMLab-Exporter ([`rtmdet_person/sidecar.py:30`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmdet_person/sidecar.py#L30)) and Roboflow-Exporter ([`rf_detr/sidecar.py:32`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L32)) write `vNEXT` today.
-- **NMS box area.** The spec's `selection: nms` uses the box-area convention of the ONNX
-  `NonMaxSuppression` operator, which does not add `1` to pixel widths or heights. The generic `nms()`
-  in `skellytracker/core/detectors/processing/object_detection_decode.py` adds `1`. Today only the
-  legacy YOLOX path uses it. It also breaks a tie between equal scores toward the higher row index,
-  but the spec breaks it toward the lower row index. The vectors in
-  [`post.det.selection.nms`](../specs/model-sidecar/vectors/post.det.selection.nms.yaml) show both
-  differences.
-- **Letterbox rounding.** `letterbox_preprocess` in
-  `skellytracker/core/detectors/processing/image_preprocessing.py` cuts the resized size with `int()`.
-  The `vNEXT` spec rounds with `half_even` or `half_up`, places the image at `top_left` or `center`,
-  and keeps each side at least 1 pixel. The function has no `center` position and fails on a source
-  that is 1 pixel wide. It reproduces 8 of the 12 `top_left` cases in
-  [`pre.resize.letterbox`](../specs/model-sidecar/vectors/pre.resize.letterbox.yaml). The cut size is
-  correct only for legacy sidecars.
-- **Stretch unprojection.** The `stretch` branch of `preprocess_image` returns `resize_meta = 1.0`. The
-  host then has no scale factors to unproject with `x * src_w / T_w`.
-- **Unused module.** `skellytracker/core/detectors/keypoint_detectors/rtmpose/rtmpose_preprocessing.py`
-  is tracked, but no module imports it ([0007](entries/0007-generic-processing-package.md)). Remove it.
-- **Run-time check IDs.** A vector case for a refused tensor or caller argument writes
-  `{error: no-rule}`, because no validation rule can check that input
-  ([ADR-TA0G](entries/TA0G-vector-cases-and-reference-modules.md)). The implementation stage can give these
-  run-time checks their own IDs, for example `C-<section-id>-<n>`. A sidecar before `vNEXT` that uses
-  a feature that is "Not available." also gives `no-rule`. A rule `V-format.versioning-<n>` can
-  replace that use. The user decides both.
-- **Batch forms.** At `vNEXT`, a sidecar uses one batch form: only `"3"` with
-  `batching.batch_conversion`, only `"1"`, or only `dynamic`
-  ([Batch forms](../specs/model-sidecar/common/sizes-and-artifacts.md#batch-forms);
-  [ADR-JB5J](entries/JB5J-one-batch-form-for-each-sidecar.md)). `OnnxSpec._check_batch_keys` in
-  `skellytracker/core/sidecar/model.py` accepts any set of integer keys, and `BatchingSpec` forbids
-  the key `batch_conversion`. Add `V-common.sizes_and_artifacts-13` and `V-common.batch_conversion-1`
-  to `V-common.batch_conversion-4` for `vNEXT`. The detectors ask for the batch key `"1"`, for
-  example `rtmw_wholebody_detector.py` and `yolox_person_detector.py`. A b3 sidecar has no key
-  `"1"`. To run it at batch 1 or 2, the host must make the artifact with `model_batch_convert`
-  (Behaviour 3 of [`common.batch_conversion`](../specs/model-sidecar/common/batch-conversion.md#behaviour)).
-- **V- rule checks of the examples.** The doc tests only parse and resolve each reference example,
-  and check its provenance (`tools/tests/test_examples.py`).
-  They do not run the `V-` rules on it, because `load_sidecar` rejects `vNEXT` and the package code
-  does not change in the spec-build stage. Thus no test checks that a spec-forced edit keeps an
-  example valid ([ADR-KDBD](entries/KDBD-change-classes-and-spec-forced-edits.md), item 5). When a
-  development build loads `vNEXT` sidecars (see the item Sidecar catalog and roots), validate each
-  example with `SidecarModel` in `tools/tests/test_examples.py`. Until then, part 7 of the proposal
-  and `uv run python tools/sidecar_trace.py impact <range>` at landing are the check.
+The implementation-stage work is in the stages M7 to M12 of the
+[implementation plan](../specs/sidecar-implementation-plan.md) ([ADR-5WKW](entries/5WKW-implementation-work-in-the-plan.md)).
 
 ## Repository state
 
@@ -157,7 +43,7 @@ stage, no file under `skellytracker/` changes, except test fixes.
   ([x64y](entries/x64y-draft-exporter-guide-folder.md)).
 - **Exporter coverage note.** Retire `notes/sidecar-exporter-coverage.md` at the end of the
   spec-build stage. First, copy its unique measurements to an evidence entry
-  ([b9fm](entries/b9fm-finished-sidecar-plans.md)).
+  ([ADR-5WKW](entries/5WKW-implementation-work-in-the-plan.md)).
 
 Repository state, not code work ([gtwq](entries/gtwq-random-entry-ids.md)):
 

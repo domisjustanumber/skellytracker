@@ -25,7 +25,8 @@ You do not do phase 3. A skellytracker session does it. The user decides.
      makes the spec-forced edit of each example that the change makes invalid
      ([ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md)).
    - A non-spec PR (documentation only) adds the guidance, the implementation proposal (as
-     implementer guidance and an open-work item), the example and its provenance record. It
+     implementer guidance and an item of the implementation plan), the example and its provenance
+     record ([ADR-5WKW](../../../decisions/entries/5WKW-implementation-work-in-the-plan.md)). It
      adds the scope-list row of the model, if it is new
      ([ADR-YNX0](../decisions/entries/YNX0-vnext-scope-list.md)).
    - When skellytracker implements the spec, an implementation PR adds the code.

@@ -70,8 +70,8 @@ You do not do these steps. A skellytracker session does them, and the user decid
    - A content PR adds the normative text, the changelog row, the vectors and the reference
      implementation. Together they define the meaning of the change.
    - A non-spec PR (documentation only) adds the guidance, the skellytracker implementation
-     proposal (as implementer guidance and an open-work item), the example and its provenance
-     record.
+     proposal (as implementer guidance and an item of the implementation plan), the example and its
+     provenance record.
    - When skellytracker implements the spec, an implementation PR adds the code.
 4. Then the exporter writes the sidecar with the new fields, and finishes phase 1 for the model.
 
@@ -384,7 +384,7 @@ Follow the parity rules of the model addition workflow
 
 skellytracker does not build this now. It builds it when it implements the spec. Do not change
 skellytracker code. On acceptance, this text becomes the implementer guidance of the section and an
-open-work item.
+item of the implementation plan.
 
 This part is advisory: the implementer checks it. Read the package code in
 `../freemocap/skellytracker/skellytracker/`. If you cannot find a call site, write

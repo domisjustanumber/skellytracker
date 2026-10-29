@@ -211,8 +211,10 @@ A contributor writes its proposal bundle.
    place of the state. `open-work.md` has no line for each proposal.
 4. On acceptance, the content commit takes the text, the code and the vectors from the record. It
    sets the decision entry and the row state to `accepted`. The last commit of the proposal sets the
-   row state to `landed`. When the content commit lands part 6, it adds an open-work item for the
-   implementer guidance. A rejected proposal gets the row state `rejected`. Its record stays. A
+   row state to `landed`. When the content commit lands part 6, it adds an item of the implementation
+   plan for the implementer guidance (step 15 of `change-sidecar-spec`;
+   [ADR-5WKW](../../../decisions/entries/5WKW-implementation-work-in-the-plan.md)). A rejected proposal gets the row state `rejected`.
+   Its record stays. A
    proposal whose goal a different change meets gets the row state `resolved-otherwise` (procedure E
    of [`change-sidecar-spec`](../change-sidecar-spec/SKILL.md#procedure-e-resolve-a-proposal-by-a-different-change)).
 5. Write the response with the new state ([Responses](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#responses)).

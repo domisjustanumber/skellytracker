@@ -102,7 +102,8 @@ A proposal has eight parts:
    Read the package code in `../freemocap/skellytracker/skellytracker/`. The template lists the
    code for each contract part. This part is advisory: the implementer checks it. If you cannot find
    a call site, write `for the implementer` and say what is not known. On acceptance, this text
-   becomes the implementer guidance of the section and an open-work item.
+   becomes the implementer guidance of the section and an item of the implementation plan
+   ([ADR-5WKW](../../../decisions/entries/5WKW-implementation-work-in-the-plan.md)).
 7. **Exporter impact.** List each affected sidecar group: its owner repo, its inventory key or
    model, and its change. Describe
    the change to your own host decoder. Fill the table of the examples that the change makes invalid.

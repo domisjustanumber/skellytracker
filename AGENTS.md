@@ -56,10 +56,11 @@ Do not change the implementation code under `skellytracker/`.
   [ADR-FADS](decisions/entries/FADS-hand-over-bundles-in-intakes.md)).
 - `specs/draft/exporter-guide/` is not complete. A local plan of the user owns it
   (ADR-[x64y](decisions/entries/x64y-draft-exporter-guide-folder.md)).
-- `specs/sidecar-implementation-plan.md` is a tracked file, not a local plan. It stays until its
-  milestone M6 is done (ADR-[b9fm](decisions/entries/b9fm-finished-sidecar-plans.md)).
+- `specs/sidecar-implementation-plan.md` is a tracked file, not a local plan. It holds the
+  implementation-stage work. It stays until the user decides to delete it
+  ([ADR-5WKW](decisions/entries/5WKW-implementation-work-in-the-plan.md)).
 - `notes/sidecar-exporter-coverage.md` is frozen evidence
-  (ADR-[b9fm](decisions/entries/b9fm-finished-sidecar-plans.md)).
+  ([ADR-5WKW](decisions/entries/5WKW-implementation-work-in-the-plan.md)).
 
 ## 2. Skills
 

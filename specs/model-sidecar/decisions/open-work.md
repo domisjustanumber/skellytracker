@@ -1,9 +1,8 @@
 # Open work
 
 This file holds the open work of the [decision log](README.md) of the sidecar spec: the repository
-state of the spec and the spec defects. Read the items that apply to your task. The
-implementation-stage items and the other repository state are in the root
-[open-work.md](../../../decisions/open-work.md).
+state of the spec and the spec defects. Read the items that apply to your task. The other
+repository state is in the root [open-work.md](../../../decisions/open-work.md).
 
 ## Repository state
 
