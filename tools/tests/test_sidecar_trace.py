@@ -586,8 +586,9 @@ def test_the_coverage_columns_and_the_gate(repo: Path) -> None:
         for line in st.render_traceability(repo).splitlines()
         if line.startswith("| [`pre.resize.letterbox`]") and "cases" in line
     )
+    # The unverified `failed` case does not open `vectors`: only the numeric cases count.
     assert row.endswith(
-        "2 cases, 1 verified | 1 unknown | 1 of 2 | none |  | open: example, vectors, rules |"
+        "2 cases, 1 verified | 1 unknown | 1 of 2 | none |  | open: example, rules |"
     )
 
     cases[1]["verified_against"] = ["x"]
@@ -615,6 +616,18 @@ def test_a_kind_export_example_meets_the_example_item_of_the_gate() -> None:
     assert st.gate_items(section, counts, Counter(forecast=2), None) == ["example"]
     assert st.gate_items(section, counts, Counter(export=1), None) == []
     assert st.gate_items(section, counts, Counter(), "reason") == []
+
+
+def test_the_vectors_item_counts_only_numeric_cases_of_an_algorithm() -> None:
+    plain = st.Section("s", "", "common", "s.md", {}, "")
+    algorithm = st.Section("p", "", "preprocessor", "p.md", {"implemented_by": {"forward": "x"}}, "")
+    none = st.VectorCounts(cases=0, verified=0, rules=frozenset())
+    refusal_only = st.VectorCounts(cases=1, verified=0, rules=frozenset(), numeric=0, numeric_verified=0)
+    open_case = st.VectorCounts(cases=2, verified=1, rules=frozenset(), numeric=2, numeric_verified=1)
+    assert st.gate_items(plain, none, Counter(export=1), None) == []
+    assert st.gate_items(algorithm, none, Counter(export=1), None) == ["vectors"]
+    assert st.gate_items(algorithm, refusal_only, Counter(export=1), None) == ["vectors"]
+    assert st.gate_items(plain, open_case, Counter(export=1), None) == ["vectors"]
 
 
 def test_the_proposed_models_are_listed_and_not_matched(repo: Path) -> None:

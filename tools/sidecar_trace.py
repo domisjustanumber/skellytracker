@@ -614,6 +614,8 @@ class VectorCounts:
     cases: int
     verified: int  # the file or the case lists `verified_against`
     rules: frozenset[str]  # the rule IDs that a `failed` or an `error` case names
+    numeric: int = 0  # the cases whose `expect` has no `error` and no `failed` key
+    numeric_verified: int = 0
 
 
 def vector_counts(section: Section, repo_root: Path = REPO_ROOT) -> VectorCounts:
@@ -625,15 +627,20 @@ def vector_counts(section: Section, repo_root: Path = REPO_ROOT) -> VectorCounts
     cases = [case for case in data.get("cases") or [] if isinstance(case, Mapping)]
     every = bool(data.get("verified_against"))
     rules: set[str] = set()
+    numeric = []
     for case in cases:
         expect = case.get("expect")
         if isinstance(expect, Mapping):
             rules.update(str(rule) for rule in expect.get("failed") or [])
             rules.add(str(expect.get("error", "")))
+        if not (isinstance(expect, Mapping) and ("error" in expect or "failed" in expect)):
+            numeric.append(case)
     return VectorCounts(
         cases=len(cases),
         verified=sum(1 for case in cases if every or case.get("verified_against")),
         rules=frozenset(rule for rule in rules if rule.startswith("V-")),
+        numeric=len(numeric),
+        numeric_verified=sum(1 for case in numeric if every or case.get("verified_against")),
     )
 
 
@@ -641,6 +648,10 @@ def reference_module(section: Section, repo_root: Path = REPO_ROOT) -> str | Non
     """Return the path of the reference module of a section, relative to the spec folder."""
     relative = f"reference/{section.id.replace('.', '_')}.py"
     return relative if (spec_dir(repo_root) / relative).is_file() else None
+
+
+ALGORITHM_STEPS = {"forward", "inverse", "decode"}
+ALGORITHM_SECTIONS = {"common.batch_conversion"}  # an algorithm with no step key of its own
 
 
 def gate_items(
@@ -652,13 +663,16 @@ def gate_items(
     """Return the open items of the graduation gate of a section. No item means `pass`.
 
     `example`: no `kind: export` example uses the section, and `no_model` gives no reason.
-    `vectors`: the section has no vector case, or a case is not verified. `rules`: a `V-` rule of
-    the section has no case.
+    `vectors`: a numeric case is not verified, or the section has an algorithm and no numeric case.
+    An `error` case and a `failed` case do not count. `rules`: a `V-` rule of the section has no case.
     """
     items = []
     if not kinds["export"] and not no_model:
         items.append("example")
-    if counts.cases == 0 or counts.verified < counts.cases:
+    # shortcut: a `forward`, `inverse` or `decode` step marks an algorithm, so `pre.resize.none` counts as one;
+    # give a section its own flag if that matters.
+    algorithm = bool(ALGORITHM_STEPS & set(section.implemented_by)) or section.id in ALGORITHM_SECTIONS
+    if counts.numeric_verified < counts.numeric or (algorithm and counts.numeric == 0):
         items.append("vectors")
     if set(section_rules(section)) - counts.rules:
         items.append("rules")
@@ -835,7 +849,8 @@ def render_traceability(repo_root: Path = REPO_ROOT) -> str:
         "verified when the file or the case lists `verified_against`. The Examples column counts "
         "the reference examples that the section applies to, by their `kind` in `inventory.yaml`. "
         "The Rules with a case column counts the `V-` rules of the section that a `failed` case or "
-        "an `error` case names. The Reference column links the reference module of the section. "
+        "an `error` case in the vector file of the section names. The Reference column links the "
+        "reference module of the section. "
         "The No model column gives the reason of the user when no model uses the section "
         "(`no_model` in `inventory.yaml`).",
         "",
@@ -843,8 +858,9 @@ def render_traceability(repo_root: Path = REPO_ROOT) -> str:
         "section that the section status rules of the [spec README](README.md) give. The column "
         "does not show the accepted decision entry or a named test in place of vectors. `pass` "
         "means that each other condition is true. Else the column lists the open items: `example` "
-        "(no `kind: export` example and no reason in No model), `vectors` (no vector case, or a "
-        "case that is not verified) and `rules` (a `V-` rule with no case).",
+        "(no `kind: export` example and no reason in No model), `vectors` (a numeric case that is "
+        "not verified, or an algorithm step with no numeric case; an `error` case and a `failed` "
+        "case do not count) and `rules` (a `V-` rule with no case).",
         "",
         *_status_lines(sections, applicable, repo_root),
         "",
