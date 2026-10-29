@@ -31,6 +31,23 @@ deletes the item when it lands that bundle.
   `yolo26-body`). Remove the precision key `int8`
   ([Every-version changes](../format/versioning.md#every-version-changes),
   [V-common.sizes_and_artifacts-6](../common/sizes-and-artifacts.md#validation-rules)).
+- [ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md), owner
+  Ultralytics-Exporter, action `regenerate`: `detectors/object_detectors/yolo26/yolo26.yaml`
+  (`model_id` `yolo26`) and `detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml` (`model_id`
+  `yolo26-body`). The spec-forced edit of JB5J kept only the batch 1 groups. Run the
+  [batch-conversion check](../model-addition-workflow/hand-over.md#batch-conversion-check). With
+  the verdict `converts`, the example uses the goal form: only the key `"3"`, with
+  `batching.batch_conversion` ([Batch forms](../common/sizes-and-artifacts.md#batch-forms)). With
+  another verdict, follow [Publishing](../model-addition-workflow/validation-and-publishing.md#publishing).
+- [ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md), owner
+  OpenMMLab-Exporter, action `regenerate`:
+  `detectors/object_detectors/rtmdet-person/rtmdet-person.yaml` (`model_id` `rtmdet-person`). The
+  spec-forced edit of JB5J kept only the batch 1 groups. No measurement of `static-batch-v1` exists
+  for this family. Run the
+  [batch-conversion check](../model-addition-workflow/hand-over.md#batch-conversion-check). With
+  the verdict `converts`, the example uses the goal form: only the key `"3"`, with
+  `batching.batch_conversion` ([Batch forms](../common/sizes-and-artifacts.md#batch-forms)). With
+  another verdict, follow [Publishing](../model-addition-workflow/validation-and-publishing.md#publishing).
 
 ## Spec defects
 
