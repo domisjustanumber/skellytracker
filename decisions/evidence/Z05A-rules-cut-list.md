@@ -1,6 +1,6 @@
 # Z05A: cut units of the Rules
 
-Evidence for [ADR-Z05A](../Z05A-essential-decision-log-rules.md). R1 to R150 are the units of the
+Evidence for [ADR-Z05A](../entries/Z05A-essential-decision-log-rules.md). R1 to R150 are the units of the
 [Rules](../README.md#rules) at commit `2ff24e4`. Line numbers are at that commit.
 
 Kept (28): R13, R14, R19, R22, R23, R26, R30, R33, R34, R43, R45, R46, R47, R48, R49, R56, R66, R79,

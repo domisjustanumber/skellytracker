@@ -17,7 +17,7 @@ the reference implementation of the proposal replaces the missing spec feature.
 Do these steps:
 
 1. Set the gate of each compared quantity before the run. Record each gate and its source
-   ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)).
+   ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)).
    - Use your own gate or a numeric floor of the upstream. Your own gate is an accuracy gate, for
      example AP, OKS, or a count of outliers above a fraction of the ROI size. A numeric floor is,
      for example, the float32 noise of the upstream computation. Another example is the change that
@@ -51,7 +51,7 @@ Do these steps:
    code, the row of that property is not `exact`. If the cause is outside both (for example two
    different OpenCV versions), remove it, or give its maximum and its cause.
 5. Compare each final output of each role of the sidecar. The section of the role defines its final
-   outputs ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)).
+   outputs ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)).
    - the row count of each image;
    - for the `object_detector` role: the boxes, the scores and the classes, with box AP or per-row
      box differences;
@@ -80,7 +80,7 @@ Do these steps:
 8. Unless the fields give `batch_forced` or `no_static_reason`, the
    [batch-conversion check](hand-over.md#batch-conversion-check) of phase 1 (step 1b) is the
    parity check of the generated batch artifacts
-   ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)). Its tolerance is in the authoring guidance of
+   ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)). Its tolerance is in the authoring guidance of
    [`common.batch_conversion`](../common/batch-conversion.md#authoring-guidance). Do not make the
    tolerance larger.
 

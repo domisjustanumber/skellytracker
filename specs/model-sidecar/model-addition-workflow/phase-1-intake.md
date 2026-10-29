@@ -17,7 +17,7 @@ file `intake.md` of a `model` bundle ([Hand-over bundles](hand-over.md#payload))
    before or after the contract is also a row, with the verdict `out of scope`.
 
    **Step 1b: batch-conversion check.** Do this step right after step 1, before step 2
-   ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)).
+   ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)).
    - The check runs by default. Export each size and each precision at the verification batches 1,
      2, 3 and 4. Use the same commit and the same settings. Only the batch changes. b4 is
      verification-only: you never publish it.
@@ -29,7 +29,7 @@ file `intake.md` of a `model` bundle ([Hand-over bundles](hand-over.md#payload))
      intake. With `batch_forced: 1`, you can then skip this step. With `batch_forced: dynamic`, you
      can skip the verification exports. But the dynamic check (V6) still needs input B for each size
      and a run of `batch`
-     ([Publishing](validation-and-publishing.md#publishing); [ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)).
+     ([Publishing](validation-and-publishing.md#publishing); [ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)).
    - Write input B with your writer code, and run the `batch` sub-command of the hand-over tool
      ([Batch-conversion check](hand-over.md#batch-conversion-check)).
    - The result is the evidence of row G6b. It fills the section "Batch conversion check" of the

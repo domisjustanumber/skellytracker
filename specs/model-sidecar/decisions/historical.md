@@ -9,7 +9,7 @@ the reason for a decision. The [index](README.md) has the Active and Proposed en
 
 | # | Decision | Status |
 |---|----------|--------|
-| [0009](0009-imagenet-bgr-meaning.md) | `imagenet_bgr` changes meaning at `vNEXT`; the legacy meaning stays | superseded by KDBD |
-| [0012](0012-fit-resize-for-rtmo.md) | `fit` resize for RTMO; `pad_value` is required | absorbed into [`pre/resize-fit.md#behaviour`](../pre/resize-fit.md#behaviour) |
-| [0010](0010-family-invariant.md) | Family invariant: a size sets only its shape, target size and artifacts | absorbed into [`common/sizes-and-artifacts.md#sizes`](../common/sizes-and-artifacts.md#sizes) |
-| [0008](0008-vnext-scope.md) | `vNEXT` scope, and the features considered and not added | superseded by YNX0 |
+| [0009](entries/0009-imagenet-bgr-meaning.md) | `imagenet_bgr` changes meaning at `vNEXT`; the legacy meaning stays | superseded by KDBD |
+| [0012](entries/0012-fit-resize-for-rtmo.md) | `fit` resize for RTMO; `pad_value` is required | absorbed into [`pre/resize-fit.md#behaviour`](../pre/resize-fit.md#behaviour) |
+| [0010](entries/0010-family-invariant.md) | Family invariant: a size sets only its shape, target size and artifacts | absorbed into [`common/sizes-and-artifacts.md#sizes`](../common/sizes-and-artifacts.md#sizes) |
+| [0008](entries/0008-vnext-scope.md) | `vNEXT` scope, and the features considered and not added | superseded by YNX0 |

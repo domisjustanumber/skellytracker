@@ -20,7 +20,7 @@ The paths are under `skellytracker/`.
 | `core/detectors/detector_base_classes.py` | Detector base classes, `OBJECT_DETECTOR_REGISTRY` and `KEYPOINT_DETECTOR_REGISTRY` |
 | `core/detectors/keypoint_detectors/` | `aruco/`, `charuco/`, `mediapipe/`, `rtmpose/` (body, hand, face), `rtmw/wholebody/` |
 | `core/detectors/object_detectors/` | `yolox/`, `keypoint_bbox/`, `precomputed/` |
-| `core/detectors/processing/` | Generic preprocessing, affine crop, detection decode with NMS, SimCC decode (ADR-[0007](../decisions/0007-generic-processing-package.md)) |
+| `core/detectors/processing/` | Generic preprocessing, affine crop, detection decode with NMS, SimCC decode (ADR-[0007](../decisions/entries/0007-generic-processing-package.md)) |
 | `core/detectors/shared/skeletons/` | Tracked-point and skeleton fragments that sidecars include with `$ref` |
 | `core/sidecar/` | `load_sidecar` (`loader.py`), `$ref` and `base` resolution (`resolution.py`), `SidecarModel` (`model.py`), version checks (`versioning.py`) |
 | `core/data_primitives/` | `BoundingBox`, `Keypoints`, observations, data stores |
@@ -47,8 +47,8 @@ The sidecar paths are under `core/detectors/`.
 | object | `keypoint_bbox` | `KeypointBoundingBoxDetector` | none |
 
 - `PrecomputedObjectDetector` (`object_detectors/precomputed/`) is not in a registry.
-- The key `rtmpose` runs RTMW (ADR-[0004](../decisions/0004-detectors-migrated-in-place.md),
-  ADR-[0005](../decisions/0005-rtmw-moved-to-rtmw-family.md)).
+- The key `rtmpose` runs RTMW (ADR-[0004](../decisions/entries/0004-detectors-migrated-in-place.md),
+  ADR-[0005](../decisions/entries/0005-rtmw-moved-to-rtmw-family.md)).
 - Do not change a `detector_type` string. Configs and callers select a detector with it.
 - A `detector_type` key is not a catalog key. The catalog keeps each key as an alias of
   `<model_id>@skellytracker` ([Versioning](../specs/model-sidecar/format/versioning.md#implementer-guidance)).

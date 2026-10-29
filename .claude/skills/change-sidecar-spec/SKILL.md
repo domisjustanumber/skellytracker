@@ -13,8 +13,8 @@ only in skellytracker. The user decides each acceptance.
 This skill wraps "Phase 3" of
 the [model addition workflow](../../../specs/model-sidecar/model-addition-workflow/README.md#phases), the
 [Rules for each spec edit](#rules-for-each-spec-edit)
-([ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md)) and the PR kinds of
-[decision 0027](../../../decisions/0027-single-working-branch.md#one-kind-of-change-in-each-pr).
+([ADR-TA0G](../../../decisions/entries/TA0G-vector-cases-and-reference-modules.md)) and the PR kinds of
+[decision 0027](../../../decisions/entries/0027-single-working-branch.md#one-kind-of-change-in-each-pr).
 They give the reasons and the details. This skill gives the order of the steps, the inputs, the
 outputs and the stop points.
 
@@ -94,7 +94,7 @@ Do this procedure for step 1 of phase 3.
 8. If the model is not in
    [Scope of this revision](../../../specs/model-sidecar/changelog.md#scope-of-this-revision), add
    the model to the list in the same PR
-   ([ADR-YNX0](../../../specs/model-sidecar/decisions/YNX0-vnext-scope-list.md)).
+   ([ADR-YNX0](../../../specs/model-sidecar/decisions/entries/YNX0-vnext-scope-list.md)).
 9. Run the [checks](#checks).
 10. Put the example, its provenance record, the guidance, the vector entries and the list change in
     one non-spec PR.
@@ -138,7 +138,7 @@ Do this procedure for step 2 of phase 3.
    that case. Part 4 must list each such `id`. A contribution case must be equal to the case with
    its `id`. The builder adds its `verified_against` entry. The new file must have no other case. If
    this is not true, stop and tell the user. This check proves the copy and the generator wiring. It
-   does not verify an independent implementation ([ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md)).
+   does not verify an independent implementation ([ADR-TA0G](../../../decisions/entries/TA0G-vector-cases-and-reference-modules.md)).
 10. Change the status line of the decision entry from `proposed` to `accepted`. Write the date and the
     PR ([Rules](../../../decisions/README.md#rules)). Move its row from the Proposed table to
     the end of the Active table of the [spec log](../../../specs/model-sidecar/decisions/README.md),
@@ -148,7 +148,7 @@ Do this procedure for step 2 of phase 3.
     Write each plan decision that the user confirmed in the Decision section of the entry. Write it
     in words. Do not cite its item number
     ([User decisions](../../../specs/model-sidecar/model-addition-workflow/rules.md#user-decisions);
-    [ADR-FDTD](../../../decisions/FDTD-evidence-sources-and-exporter-permalinks.md)).
+    [ADR-FDTD](../../../decisions/entries/FDTD-evidence-sources-and-exporter-permalinks.md)).
 11. If the change corrects an item of the spec-defect list in
     [`specs/model-sidecar/decisions/open-work.md`](../../../specs/model-sidecar/decisions/open-work.md), remove the item.
 12. Run the [impact](#impact) and the [checks](#checks).
@@ -163,7 +163,7 @@ Do this procedure for step 2 of phase 3.
 16. Add the "Authoring guidance" from the intake. Do the steps of [Guidance](#guidance).
 17. If a model that needs the change is not in
     [Scope of this revision](../../../specs/model-sidecar/changelog.md#scope-of-this-revision), add
-    the model to the list ([ADR-YNX0](../../../specs/model-sidecar/decisions/YNX0-vnext-scope-list.md)).
+    the model to the list ([ADR-YNX0](../../../specs/model-sidecar/decisions/entries/YNX0-vnext-scope-list.md)).
 18. When the exporter writes the sidecar with the new fields, add the example with procedure A.
     Set the state `landed` in the proposal index when the last commit of the proposal lands. Write
     the response of each bundle of the proposal. Then do [procedure E](#procedure-e-resolve-a-proposal-by-a-different-change)
@@ -186,7 +186,7 @@ user accepts the proposal.
    results and the parity result.
 2. Make sure that the code follows [Imports of other sections](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#imports-of-other-sections). Find
    each module that the file imports. Each such module must be in `specs/model-sidecar/reference/`.
-   If one is not there, stop. Land that module first ([ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md)).
+   If one is not there, stop. Land that module first ([ADR-TA0G](../../../decisions/entries/TA0G-vector-cases-and-reference-modules.md)).
 3. Make sure that each docstring cites the section ID and the exporter commit.
 4. If `specs/model-sidecar/reference/<section_module>.py` exists, do not add a second reference. The
    disagreement is a spec defect or a bug. Use the skill
@@ -213,9 +213,9 @@ user accepts the proposal.
 | Edit | Steps |
 |---|---|
 | A content change, for example the correction of a spec defect | Make sure that an accepted decision entry exists. If none exists, use [`propose-sidecar-change`](../propose-sidecar-change/SKILL.md). Then stop. If one exists, do steps 3 to 12 and step 17 of procedure B. |
-| A graduation to `stable` | (1) Run `uv run python tools/sidecar_trace.py matrix`. The Gate cell of the section must be `pass`. A `no_model` reason in `inventory.yaml` counts for the example item. Do not add another waiver. (2) The Gate column does not show two conditions. Check them by hand: an accepted decision entry exists for the section, and a named test checks each algorithm with no vectors ([Section status](../../../specs/model-sidecar/README.md#section-status), rule 5). (3) Get the explicit approval of the user. (4) In one content commit, set `status.spec: stable`, remove the banner, add the summary row and the `vNEXT` row ([`changelog.md`](#changelogmd)), run the matrix again and run the [checks](#checks). (5) Do not do steps 3 to 12 of procedure B. Do not write a new decision entry. Cite the accepted entry of the section in the commit message ([ADR-QMKS](../../../decisions/QMKS-draft-sections-and-coverage-columns.md)). |
-| The release step | [Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing) gives it. First, find each section with `status.spec: draft`. If one exists, stop and tell the user. The user makes the section `stable` or removes its fields from the release ([Section status](../../../specs/model-sidecar/README.md#section-status), rule 7). Also stop and tell the user when an example or a package sidecar has `batching.batch_conversion` and the `validate` or `load` status of `common.batch_conversion` is not `implemented` ([ADR-QMKS](../../../decisions/QMKS-draft-sections-and-coverage-columns.md)). Then, in one content PR, replace `vNEXT` with the release version. Do this in the spec, in `changelog.md`, in each example and in the `spec_revision` of each vector file. Then the exporters regenerate their sidecars. |
-| A workflow change | The user asks for it ([ADR-FADS](../../../decisions/FADS-hand-over-bundles-in-intakes.md)). Write the change in one non-spec commit with a decision entry that gives the reason ([Workflow changes](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#workflow-changes)). The entry is `accepted` in that commit. When the change changes the [Rules](../../../decisions/README.md#rules), change the kit in the same commit: run `uv run python tools/sync_bootstrap_kit.py --write` (it writes the copies and the blocks), and change the rest of the kit templates by hand ([ADR-Z05A](../../../decisions/Z05A-essential-decision-log-rules.md)). |
+| A graduation to `stable` | (1) Run `uv run python tools/sidecar_trace.py matrix`. The Gate cell of the section must be `pass`. A `no_model` reason in `inventory.yaml` counts for the example item. Do not add another waiver. (2) The Gate column does not show two conditions. Check them by hand: an accepted decision entry exists for the section, and a named test checks each algorithm with no vectors ([Section status](../../../specs/model-sidecar/README.md#section-status), rule 5). (3) Get the explicit approval of the user. (4) In one content commit, set `status.spec: stable`, remove the banner, add the summary row and the `vNEXT` row ([`changelog.md`](#changelogmd)), run the matrix again and run the [checks](#checks). (5) Do not do steps 3 to 12 of procedure B. Do not write a new decision entry. Cite the accepted entry of the section in the commit message ([ADR-QMKS](../../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)). |
+| The release step | [Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing) gives it. First, find each section with `status.spec: draft`. If one exists, stop and tell the user. The user makes the section `stable` or removes its fields from the release ([Section status](../../../specs/model-sidecar/README.md#section-status), rule 7). Also stop and tell the user when an example or a package sidecar has `batching.batch_conversion` and the `validate` or `load` status of `common.batch_conversion` is not `implemented` ([ADR-QMKS](../../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)). Then, in one content PR, replace `vNEXT` with the release version. Do this in the spec, in `changelog.md`, in each example and in the `spec_revision` of each vector file. Then the exporters regenerate their sidecars. |
+| A workflow change | The user asks for it ([ADR-FADS](../../../decisions/entries/FADS-hand-over-bundles-in-intakes.md)). Write the change in one non-spec commit with a decision entry that gives the reason ([Workflow changes](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#workflow-changes)). The entry is `accepted` in that commit. When the change changes the [Rules](../../../decisions/README.md#rules), change the kit in the same commit: run `uv run python tools/sync_bootstrap_kit.py --write` (it writes the copies and the blocks), and change the rest of the kit templates by hand ([ADR-Z05A](../../../decisions/entries/Z05A-essential-decision-log-rules.md)). |
 | A rewording | Do the [meaning check](#meaning-check). Change no meaning. |
 | A move | Change no words. Keep the section IDs and the rule IDs. |
 
@@ -223,7 +223,7 @@ user accepts the proposal.
 
 Do this procedure when a content commit lands on a section that another open proposal also changes
 ([Responses](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#responses);
-[ADR-FADS](../../../decisions/FADS-hand-over-bundles-in-intakes.md)).
+[ADR-FADS](../../../decisions/entries/FADS-hand-over-bundles-in-intakes.md)).
 
 1. List the rows of the [proposal index](../../../specs/model-sidecar/proposals/README.md) with the
    state `recorded` or `accepted` whose Section is a section of the commit. Also run
@@ -234,7 +234,7 @@ Do this procedure when a content commit lands on a section that another open pro
    accepted entry `<X>`. A session never writes that entry itself.
 4. Change the status line of the `proposed` entry to `rejected`, with the date and `PR: pending`
    until a PR exists. Write the Reason "Resolved by [ADR-<X>](<path of X>)", with a relative path
-   ([ADR-Z05A](../../../decisions/Z05A-essential-decision-log-rules.md)). Move its row to the
+   ([ADR-Z05A](../../../decisions/entries/Z05A-essential-decision-log-rules.md)). Move its row to the
    historical table of the [spec log](../../../specs/model-sidecar/decisions/README.md) in the same commit
    ([Rules](../../../decisions/README.md#rules)).
 5. Set the index row state to `resolved-otherwise`, with a link to the entry `<X>` in the State
@@ -266,7 +266,7 @@ Do this procedure when a content commit lands on a section that another open pro
 
 - Write each algorithm in one section only.
 - Put each rule in the section of the field that it constrains. The other sections link to it
-  ([ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md)).
+  ([ADR-TA0G](../../../decisions/entries/TA0G-vector-cases-and-reference-modules.md)).
 - Find each place that the change edits. Part 2 of the proposal lists these places. Examples are the
   closed sets that the change extends, the section map, the validation index and the rules that name
   a changed value.
@@ -292,12 +292,12 @@ Do this procedure when a content commit lands on a section that another open pro
   | `kind` | `format`, `common`, `preprocessor`, `postprocessor` or `schema`. |
   | `since` | The `schema_version` that added the section. |
   | `changed_in` | Each `schema_version` that changed the meaning of the section. |
-  | `selectors` | The `key=value` pairs of a resolved sidecar that select the section, for example `input.resize.method=letterbox`. A `format` or `common` section with `selectors: []` applies to every sidecar. A `common` section that is one optional key has one selector for that key, for example `batching.batch_conversion` ([ADR-QMKS](../../../decisions/QMKS-draft-sections-and-coverage-columns.md)). |
+  | `selectors` | The `key=value` pairs of a resolved sidecar that select the section, for example `input.resize.method=letterbox`. A `format` or `common` section with `selectors: []` applies to every sidecar. A `common` section that is one optional key has one selector for that key, for example `batching.batch_conversion` ([ADR-QMKS](../../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)). |
   | `implemented_by` | The skellytracker functions, as `path::symbol`, under each step of the kind. A `format`, `common` or `schema` section has `validate` and `load`. A `preprocessor` has `validate`, `forward` and an optional `inverse`. A `postprocessor` has `validate` and `decode`. `REQUIRED_STEPS_BY_KIND` in `tools/tests/test_traceability.py` gives the steps. A step with no function is `missing`. |
   | `external_impl` | Exporter host functions that implement the section. It stays empty until an exporter contributes. |
   | `tests` | The skellytracker test files for the section. |
   | `vectors` | The test vector file of the section. |
-  | `status` | One value for `spec` and one value for each step of `implemented_by`. `spec` is `stable` or `draft`. [Section status](../../../specs/model-sidecar/README.md#section-status) gives the rules of `draft` and the graduation to `stable` ([ADR-QMKS](../../../decisions/QMKS-draft-sections-and-coverage-columns.md)). A step is `implemented`, `partial` or `missing`. A step is `implemented` only when its vectors pass. |
+  | `status` | One value for `spec` and one value for each step of `implemented_by`. `spec` is `stable` or `draft`. [Section status](../../../specs/model-sidecar/README.md#section-status) gives the rules of `draft` and the graduation to `stable` ([ADR-QMKS](../../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)). A step is `implemented`, `partial` or `missing`. A step is `implemented` only when its vectors pass. |
 
 - The body has these headings, in this order: Fields, Behaviour (the forward algorithm and its exact
   inverse), Validation rules, Legacy behaviour (`schema_version < vNEXT`), Implementer guidance,
@@ -305,7 +305,7 @@ Do this procedure when a content commit lands on a section that another open pro
 - For a new section, set `since` to the version of the change (`vNEXT` in the spec-build stage). Set
   `external_impl: []`. Set each step of `implemented_by` to `missing`. Set each step of `status` to
   `missing`. Set `status.spec` to `draft`. Add the draft banner as the first body line after the
-  title ([ADR-QMKS](../../../decisions/QMKS-draft-sections-and-coverage-columns.md)).
+  title ([ADR-QMKS](../../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)).
 - For a changed meaning, add the version of the change to `changed_in`.
 - Change `selectors` when the change adds or removes a value that selects the section.
 - A preprocessor has an `inverse` step only when the section has an "Inverse" heading.
@@ -314,7 +314,7 @@ Do this procedure when a content commit lands on a section that another open pro
 
 Each change has a class
 ([Change classes](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#change-classes);
-[ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)).
+[ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md)).
 
 - The meaning of an older `schema_version` never changes. The only exceptions are the changes in
   [Every-version changes](../../../specs/model-sidecar/format/versioning.md#every-version-changes).
@@ -346,7 +346,7 @@ Each change has a class
 - Write new rows in ASD-STE100. Do not reword the existing rows.
 - The summary row of a clarification says "(every `schema_version`)". The summary row of a
   `breaking` change says "(breaking, every `schema_version`)"
-  ([ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)).
+  ([ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md)).
 
 ### `vNEXT` or a release version
 
@@ -354,7 +354,7 @@ Each change has a class
 - If a model that needs the change is not in
   [Scope of this revision](../../../specs/model-sidecar/changelog.md#scope-of-this-revision), add the
   model to the list in the non-spec PR of the change
-  ([ADR-YNX0](../../../specs/model-sidecar/decisions/YNX0-vnext-scope-list.md)).
+  ([ADR-YNX0](../../../specs/model-sidecar/decisions/entries/YNX0-vnext-scope-list.md)).
 - From the first skellytracker release that ships the spec, a change sets `schema_version` to the
   release that ships it. The change also adds a row to the `schema_version` history
   ([Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing)).
@@ -367,7 +367,7 @@ Each change has a class
   so that `$ref` paths resolve. The examples use unchanged copies of their fragments, under
   `specs/model-sidecar/examples/detectors/shared/` or next to the sidecar. A fragment has one source:
   a package copy with the same bytes, or a `fragments` entry in `specs/model-sidecar/inventory.yaml`
-  (ADR-[yve0](../../../decisions/yve0-example-fragments.md)).
+  (ADR-[yve0](../../../decisions/entries/yve0-example-fragments.md)).
 - Each example has a provenance entry in `specs/model-sidecar/inventory.yaml`: its source, the exporter, the
   path of the exporter copy, its `kind`, whether git tracks that copy, the exporter commit of the code
   that writes it, and the edits made to the copy. `kind: export` is a copy of exporter output.
@@ -379,7 +379,7 @@ Each change has a class
   expected output. There is one file for each section ID in `specs/model-sidecar/vectors/`. A file holds
   numbers only: no images and no ONNX files.
 - Write a validator case in the vector file of the section that owns the rule
-  ([ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md);
+  ([ADR-TA0G](../../../decisions/entries/TA0G-vector-cases-and-reference-modules.md);
   [Section status](../../../specs/model-sidecar/README.md#section-status)).
 - Vectors are informative. Vector cases are geometry and small arrays. Pixel-exact resize output is
   out of scope, because it depends on OpenCV internals. A pixel case, if one is necessary, states a
@@ -396,7 +396,7 @@ Each change has a class
   `ValueError` into the `error` expect: the rule ID at the start of the message, or `no-rule`. Any
   other exception stops the generator.
 - The vectors of skellytracker and of a proposal use one case form
-  ([ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md)). Part 4 of the
+  ([ADR-TA0G](../../../decisions/entries/TA0G-vector-cases-and-reference-modules.md)). Part 4 of the
   [change proposal template](../../../specs/model-sidecar/templates/change-proposal.md#4-vectors)
   gives it. `tools/tests/test_vectors.py` checks it: the keys `function` and `compare`, an error as
   a rule ID or `no-rule`, the rule IDs in `failed`, NaN, and the entries of `verified_against`.
@@ -412,7 +412,7 @@ Each change has a class
 - Do not correct an example by hand. A spec-forced edit is not a correction. If a content change
   makes an example invalid, do the spec-forced edit in the same content commit
   ([When a spec change makes an example invalid](../../../specs/model-sidecar/model-addition-workflow/reference-examples.md#when-a-spec-change-makes-an-example-invalid);
-  [ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)). Do not land a
+  [ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md)). Do not land a
   content commit that leaves an example invalid.
 
 ### Reference implementations
@@ -443,7 +443,7 @@ Each change has a class
    invalid and that part 7 does not list is a landing stop: the response is `needs-contributor`, and
    the contributor sends a follow-up bundle with the missing row
    ([When a spec change makes an example invalid](../../../specs/model-sidecar/model-addition-workflow/reference-examples.md#when-a-spec-change-makes-an-example-invalid);
-   [ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)).
+   [ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md)).
    Name each exporter that must regenerate its sidecars. Add a bullet under
    [Re-export requests](../../../specs/model-sidecar/decisions/open-work.md#re-export-requests) for
    each `needs-export` example, for each `model` bundle that `intake_bundle.py list` shows with an
@@ -475,14 +475,14 @@ it.
   proposal names. If the proposal has only a secondary source, cite the recorded proposal and mark the
   statement `(secondary)`. Use the forms of
   [Sources](../../../specs/model-sidecar/model-addition-workflow/rules.md#sources)
-  ([ADR-FDTD](../../../decisions/FDTD-evidence-sources-and-exporter-permalinks.md)).
+  ([ADR-FDTD](../../../decisions/entries/FDTD-evidence-sources-and-exporter-permalinks.md)).
 - If an exporter and the normative text do not agree, do not resolve it in the guidance. Record a
   `proposed` decision entry with [`propose-sidecar-change`](../propose-sidecar-change/SKILL.md).
 
 ### Meaning check
 
 Do these checks for each reworded section file
-([ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md)):
+([ADR-TA0G](../../../decisions/entries/TA0G-vector-cases-and-reference-modules.md)):
 
 1. Run `uv run python tools/check_ste_tokens.py --rev <REV> <FILE>`. It lists each change of the
    multiset of inline-code tokens, numbers, code blocks and the field, type and default cells of the

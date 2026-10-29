@@ -70,8 +70,8 @@ Limits:
 
 - [ ] `V-common.batch_conversion-1` **(vNEXT)** If `batching.batch_conversion` is present, it must have `profile_id` and `source_batch_size`, and no other key.
 - [ ] `V-common.batch_conversion-2` **(vNEXT)** `profile_id` must be a profile that this section defines.
-- [ ] `V-common.batch_conversion-3` **(vNEXT)** `source_batch_size` must be the int `3` ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)).
-- [ ] `V-common.batch_conversion-4` **(vNEXT)** For each size, the only key of `sizes.<size>.onnx.batch_artifacts` must be `"3"` ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)). Thus no size can have the key `dynamic`.
+- [ ] `V-common.batch_conversion-3` **(vNEXT)** `source_batch_size` must be the int `3` ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)).
+- [ ] `V-common.batch_conversion-4` **(vNEXT)** For each size, the only key of `sizes.<size>.onnx.batch_artifacts` must be `"3"` ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)). Thus no size can have the key `dynamic`.
 
 For rules marked **(vNEXT)**, see [Validation rules](../README.md#validation-rules).
 
@@ -87,7 +87,7 @@ Availability before `vNEXT`: [Schema versioning](../format/versioning.md#legacy-
 
 ## Authoring guidance
 
-This guidance gives the method, the inputs and the tolerance of the check ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)). The run rules of the tool, the steps V0 to V6, the verdicts and the file layout of input B are in [Batch-conversion check](../model-addition-workflow/hand-over.md#batch-conversion-check) of the model addition workflow. The rule that tells which batch artifacts to publish is in [Publishing](../model-addition-workflow/validation-and-publishing.md#publishing). This guidance does not state that rule ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)).
+This guidance gives the method, the inputs and the tolerance of the check ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)). The run rules of the tool, the steps V0 to V6, the verdicts and the file layout of input B are in [Batch-conversion check](../model-addition-workflow/hand-over.md#batch-conversion-check) of the model addition workflow. The rule that tells which batch artifacts to publish is in [Publishing](../model-addition-workflow/validation-and-publishing.md#publishing). This guidance does not state that rule ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)).
 
 - `S` is `3` (`V-common.batch_conversion-3`). Export each size at the verification batches 1, 2, 3 and 4. Batch 4 checks the conversion to a larger batch. It is never published.
 - Write `batching.batch_conversion` only when the profile passes the parity check for each verification batch other than `S` (batches 1, 2 and 4), at each size and each precision of the source group.
@@ -97,7 +97,7 @@ This guidance gives the method, the inputs and the tolerance of the check ([ADR-
 - Check a `dynamic` export at the batches 1, 2 and 3 against the static exports of the same size and precision, and against its own batch 1 runs (the dynamic check).
 - Run the check with the `batch` sub-command of `tools/intake_bundle.py`:
   `uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/skellytracker/tools/intake_bundle.py batch --fields <fields file> --out <payload folder>/batch`.
-- A host that does not support `static-batch-v1` can run only batch 3 of a b3 sidecar. The b1 form and the `dynamic` form are the fallbacks ([Batch forms](sizes-and-artifacts.md#batch-forms)). A model that cannot export a static graph uses the `dynamic` form. Its intake must state why. [Publishing](../model-addition-workflow/validation-and-publishing.md#publishing) tells when a family can use a fallback ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)). The current exporters export static graphs with the batch in constants ([Batching](batching.md#implementer-guidance)), so b3 is the expected case.
+- A host that does not support `static-batch-v1` can run only batch 3 of a b3 sidecar. The b1 form and the `dynamic` form are the fallbacks ([Batch forms](sizes-and-artifacts.md#batch-forms)). A model that cannot export a static graph uses the `dynamic` form. Its intake must state why. [Publishing](../model-addition-workflow/validation-and-publishing.md#publishing) tells when a family can use a fallback ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)). The current exporters export static graphs with the batch in constants ([Batching](batching.md#implementer-guidance)), so b3 is the expected case.
 - If no profile passes the parity check, do not write the field. To request a new profile, follow the [model addition workflow](../model-addition-workflow/README.md).
 
 ## Examples

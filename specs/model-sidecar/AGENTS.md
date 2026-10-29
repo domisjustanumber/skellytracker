@@ -4,7 +4,7 @@ These rules apply to work in skellytracker on the sidecar spec, a sidecar or a r
 Exporter agents use the [exporter guide](../draft/exporter-guide/README.md) instead.
 The root [`AGENTS.md`](../../AGENTS.md) also applies.
 The decision log of the sidecar spec is in [`decisions/`](decisions/README.md). Read it with the
-root log ([ADR-GN3D](../../decisions/GN3D-module-decision-logs.md)).
+root log ([ADR-GN3D](../../decisions/entries/GN3D-module-decision-logs.md)).
 
 - The section files under this folder are normative. Read the sections that apply before you change
   a sidecar, an example or the spec. The [section map](README.md#section-map) lists them.
@@ -21,12 +21,12 @@ root log ([ADR-GN3D](../../decisions/GN3D-module-decision-logs.md)).
   difference. The availability of a new feature is in the "Legacy behaviour" table of Schema
   versioning. Each change has a class
   ([Change classes](model-addition-workflow/hand-over.md#change-classes);
-  [ADR-KDBD](../../decisions/KDBD-change-classes-and-spec-forced-edits.md)).
+  [ADR-KDBD](../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md)).
 - Make a spec change in the section file that owns the rule. The `id` in the front matter is the
   section ID. The rule IDs of the section are `V-<id>-<n>`. When you move or reword a section, keep
   its section ID and its rule IDs
   ([Rule IDs and section IDs](../../.claude/skills/change-sidecar-spec/SKILL.md#rule-ids-and-section-ids);
-  [ADR-TA0G](../../decisions/TA0G-vector-cases-and-reference-modules.md)).
+  [ADR-TA0G](../../decisions/entries/TA0G-vector-cases-and-reference-modules.md)).
 - A spec change needs a decision entry and a changelog row. Add a row to the
   [summary of changes](changelog.md#summary-of-changes). Add the change to the `vNEXT` row of the
   [changelog](changelog.md#schema_version-history).
@@ -35,13 +35,13 @@ root log ([ADR-GN3D](../../decisions/GN3D-module-decision-logs.md)).
   [spec-defect list](decisions/open-work.md#spec-defects). Then stop. A contributor writes the
   change proposal with the parts of [`templates/change-proposal.md`](templates/change-proposal.md)
   and packs it as a `proposal` bundle ([Hand-over bundles](model-addition-workflow/hand-over.md);
-  [ADR-FADS](../../decisions/FADS-hand-over-bundles-in-intakes.md)). A skellytracker session copies
+  [ADR-FADS](../../decisions/entries/FADS-hand-over-bundles-in-intakes.md)). A skellytracker session copies
   the bundle version to `proposals/<slug>/` and records it as a short decision entry with status
   `proposed`. Then stop. The user accepts or rejects the proposal.
 - Put one kind of change in each PR
-  (ADR-[0027](../../decisions/0027-single-working-branch.md#one-kind-of-change-in-each-pr)).
+  (ADR-[0027](../../decisions/entries/0027-single-working-branch.md#one-kind-of-change-in-each-pr)).
   In the spec-build stage, the exception of
-  [ADR-AB79](../../decisions/AB79-one-pr-for-the-spec-build-work.md) applies: one PR, one kind of
+  [ADR-AB79](../../decisions/entries/AB79-one-pr-for-the-spec-build-work.md) applies: one PR, one kind of
   change in each commit. It ends when the user opens the one PR.
   The kinds are: content (a change of normative meaning), move, rewording, and non-spec (decision
   log, agent files, tools, test vectors, guidance, CI, test fixes).

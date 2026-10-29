@@ -9,11 +9,11 @@ implementation-stage items and the other repository state are in the root
 
 - `specs/model-sidecar/post/canonical-mapping.md` links to the VRM specification by the branch `master`. A
   rewording PR must pin the two links to a commit.
-- **Absorption gap.** [ADR-0011](0011-rtmdet-host-nms.md) stays Active. Its gap: the `-1` row axis
+- **Absorption gap.** [ADR-0011](entries/0011-rtmdet-host-nms.md) stays Active. Its gap: the `-1` row axis
   of the RTMDet `boxes` and `scores` shapes takes its value from `output_shapes`.
-  [ADR-CRV0](CRV0-output-shapes-in-each-batch-group.md) closes the gap. Absorb
-  [ADR-0011](0011-rtmdet-host-nms.md) into `specs/model-sidecar/post/selection-nms.md#authoring-guidance`
-  when the content of [ADR-CRV0](CRV0-output-shapes-in-each-batch-group.md) lands.
+  [ADR-CRV0](entries/CRV0-output-shapes-in-each-batch-group.md) closes the gap. Absorb
+  [ADR-0011](entries/0011-rtmdet-host-nms.md) into `specs/model-sidecar/post/selection-nms.md#authoring-guidance`
+  when the content of [ADR-CRV0](entries/CRV0-output-shapes-in-each-batch-group.md) lands.
 
 ## Re-export requests
 
@@ -23,13 +23,13 @@ repo, the example or the model, and the reason. The exporter answers with a new 
 ([Re-export requests](../model-addition-workflow/hand-over.md#re-export-requests)). The session
 deletes the item when it lands that bundle.
 
-- [ADR-CNSN](../../../decisions/CNSN-spec-build-actions-after-the-fact.md), owner
+- [ADR-CNSN](../../../decisions/entries/CNSN-spec-build-actions-after-the-fact.md), owner
   Ultralytics-Exporter, action `regenerate`: `detectors/object_detectors/yolo26/yolo26.yaml`
   (`model_id` `yolo26`) and `detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml` (`model_id`
   `yolo26-body`). Remove the precision key `int8`
   ([Every-version changes](../format/versioning.md#every-version-changes),
   [V-common.sizes_and_artifacts-6](../common/sizes-and-artifacts.md#validation-rules)).
-- [ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md), owner
+- [ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md), owner
   Ultralytics-Exporter, action `export again`: `detectors/object_detectors/yolo26/yolo26.yaml`
   (`model_id` `yolo26`) and `detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml` (`model_id`
   `yolo26-body`). The spec-forced edit of JB5J kept only the batch 1 groups. Run the
@@ -37,8 +37,8 @@ deletes the item when it lands that bundle.
   the verdict `converts`, the example uses the goal form: only the key `"3"`, with
   `batching.batch_conversion` ([Batch forms](../common/sizes-and-artifacts.md#batch-forms)). With
   another verdict, follow [Publishing](../model-addition-workflow/validation-and-publishing.md#publishing).
-  Give `output_shapes` in each batch group ([ADR-CRV0](CRV0-output-shapes-in-each-batch-group.md)).
-- [ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md), owner
+  Give `output_shapes` in each batch group ([ADR-CRV0](entries/CRV0-output-shapes-in-each-batch-group.md)).
+- [ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md), owner
   OpenMMLab-Exporter, action `export again`:
   `detectors/object_detectors/rtmdet-person/rtmdet-person.yaml` (`model_id` `rtmdet-person`). The
   spec-forced edit of JB5J kept only the batch 1 groups. No measurement of `static-batch-v1` exists
@@ -47,13 +47,13 @@ deletes the item when it lands that bundle.
   the verdict `converts`, the example uses the goal form: only the key `"3"`, with
   `batching.batch_conversion` ([Batch forms](../common/sizes-and-artifacts.md#batch-forms)). With
   another verdict, follow [Publishing](../model-addition-workflow/validation-and-publishing.md#publishing).
-  Give `output_shapes` in each batch group ([ADR-CRV0](CRV0-output-shapes-in-each-batch-group.md)).
-- [ADR-CRV0](CRV0-output-shapes-in-each-batch-group.md), owner OpenMMLab-Exporter, action
+  Give `output_shapes` in each batch group ([ADR-CRV0](entries/CRV0-output-shapes-in-each-batch-group.md)).
+- [ADR-CRV0](entries/CRV0-output-shapes-in-each-batch-group.md), owner OpenMMLab-Exporter, action
   `export again`: `detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml` (`model_id`
   `rtmo-body7`). The bundle must give `output_shapes` in each batch group, with one entry for each
   output, from the graph, and `-1` for a symbolic axis. When `outputs[].shape` gives a shape, the
   entry has its rank, and each fixed dim of it is equal in the entry, or `-1`.
-- [ADR-CRV0](CRV0-output-shapes-in-each-batch-group.md), owner OpenMMLab-Exporter, action
+- [ADR-CRV0](entries/CRV0-output-shapes-in-each-batch-group.md), owner OpenMMLab-Exporter, action
   `export again`: `detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml` (`model_id`
   `rtmw-wholebody`). The bundle must give the same as the item above.
 
@@ -63,7 +63,7 @@ Spec defects found during the spec-build stage. Each one needs a content change 
 
 - The note "The `imagenet_bgr` default is the RTMPose convention" in the spec's normalization modes is
   ambiguous at `vNEXT`. At `vNEXT`, `imagenet_bgr` means BGR-ordered statistics, but RTMPose uses the
-  legacy meaning ([0009](0009-imagenet-bgr-meaning.md)).
+  legacy meaning ([0009](entries/0009-imagenet-bgr-meaning.md)).
 - The reviewer note of the `vNEXT` change summary says to replace `vNEXT` "before merging". The
   workflow section [Publishing](../model-addition-workflow/validation-and-publishing.md#publishing) moves that step to
   the first release that ships the spec.
@@ -83,7 +83,7 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   `cv2.warpAffine`. With a scalar, `cv2.warpAffine` fills only channel 0: a scalar `114` gives the
   border `[114, 0, 0]` (OpenCV 4.13.0). The `letterbox` pseudocode fills every channel
   (`full((T_h, T_w, 3), pad_value)`). The spec must state that a scalar fills every channel
-  ([0012](0012-fit-resize-for-rtmo.md)).
+  ([0012](entries/0012-fit-resize-for-rtmo.md)).
 - `clamp_boxes` in [`decode` (detection)](../post/detection-decode.md#decode-detection) clamps the
   boxes to the source-image bounds. The spec does not define the bounds (`[0, W]` or `[0, W-1]`). It
   does not define the result for a box with zero area after the clamp. OpenMMLab-Exporter

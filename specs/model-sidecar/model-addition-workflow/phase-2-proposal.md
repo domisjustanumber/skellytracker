@@ -42,7 +42,7 @@ A proposal has eight parts:
    - the legacy behaviour and the effect on `schema_version`;
    - the change class: `vnext`, `clarification` or `breaking`
      ([Change classes](hand-over.md#change-classes);
-     [ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md));
+     [ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md));
    - the changelog row.
 
    Also find each place that the change must edit. Search the spec for each closed set or list that
@@ -65,7 +65,7 @@ A proposal has eight parts:
    code to `reference/<section_module>.py` in the proposal bundle. Make `<section_module>` from the
    proposed section ID. If the proposal changes a section, follow
    [Full section](reference-implementations.md#full-section)
-   ([ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md)). Name the file in the proposal. On acceptance, skellytracker adds it as
+   ([ADR-TA0G](../../../decisions/entries/TA0G-vector-cases-and-reference-modules.md)). Name the file in the proposal. On acceptance, skellytracker adds it as
    `specs/model-sidecar/reference/<section_module>.py`. It is informative spec code, not package code. It is
    the single executable meaning of the new text. Your host decoder needs this behaviour, so the
    reference implementation is the clean, minimal form of your host code. If no host code exists
@@ -80,7 +80,7 @@ A proposal has eight parts:
    or one value for each channel (for example `pad_value`), include a case with a scalar value on a
    3-channel input. Pixel-exact resize output is out of scope. If you need a pixel case, state its
    tolerance in `compare`. Write the vectors to `vectors/<section ID>.yaml` in the proposal bundle,
-   in the case form that part 4 of the template gives ([ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md)). Name the file in
+   in the case form that part 4 of the template gives ([ADR-TA0G](../../../decisions/entries/TA0G-vector-cases-and-reference-modules.md)). Name the file in
    part 4. On acceptance, the skellytracker generator writes
    `specs/model-sidecar/vectors/<section ID>.yaml` from the reference implementation. It must hold
    each of your cases.

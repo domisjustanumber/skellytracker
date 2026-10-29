@@ -1,6 +1,6 @@
 # Plan: extend the sidecar spec to cover every exporter model
 
-> **Status:** frozen evidence, last revised 2026-10-20 and not kept current (decision [b9fm](../decisions/b9fm-finished-sidecar-plans.md)). The plan is complete. The current state is in the [changelog](../specs/model-sidecar/changelog.md) and decisions [ADR-YNX0](../specs/model-sidecar/decisions/YNX0-vnext-scope-list.md) and [ADR-0011](../specs/model-sidecar/decisions/0011-rtmdet-host-nms.md). Later decisions replaced O1, recommended change 2 and the `class_ids` part of S4.
+> **Status:** frozen evidence, last revised 2026-10-20 and not kept current (decision [b9fm](../decisions/entries/b9fm-finished-sidecar-plans.md)). The plan is complete. The current state is in the [changelog](../specs/model-sidecar/changelog.md) and decisions [ADR-YNX0](../specs/model-sidecar/decisions/entries/YNX0-vnext-scope-list.md) and [ADR-0011](../specs/model-sidecar/decisions/entries/0011-rtmdet-host-nms.md). Later decisions replaced O1, recommended change 2 and the `class_ids` part of S4.
 > **Base document:** `../Roboflow-Exporter/plans/sidecar-spec-stretch-multi-output.md` (the "draft", a local plan that no longer exists;
 > 2026-10-19). The draft already has replacement text for most of the RF-DETR and RTMDet changes. This
 > plan adopts the draft, corrects it where the repos have moved on, trims fields that no exported model

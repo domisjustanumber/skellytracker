@@ -4,7 +4,7 @@ This folder holds the spec change proposals that skellytracker has recorded. Eac
 folder, `<slug>/`. The folder is a byte copy of one version of a `proposal` bundle, with its
 `manifest.yaml`
 ([Tracked records](../model-addition-workflow/hand-over.md#tracked-records);
-[ADR-FADS](../../../decisions/FADS-hand-over-bundles-in-intakes.md)).
+[ADR-FADS](../../../decisions/entries/FADS-hand-over-bundles-in-intakes.md)).
 
 The files are informative. A proposal is not normative until a content commit lands its text in the
 section files. The row of this index is the only place of the state of a proposal. The skill

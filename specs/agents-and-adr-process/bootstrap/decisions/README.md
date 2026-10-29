@@ -5,7 +5,7 @@ file and [open-work.md](open-work.md) before you change {{AREAS}} or the agent i
 the Active entries that apply to your task. Then you do not repeat a settled question or a completed
 measurement. Read a Proposed entry only for work in its section, or when a skill tells you to. Read
 an entry of [historical.md](historical.md) only to find the reason for a decision
-([ADR-0001](0001-decision-log-agents-md-and-private-data.md)).
+([ADR-0001](entries/0001-decision-log-agents-md-and-private-data.md)).
 
 Each entry gives the decision, its reason, the evidence (when there is evidence), the alternatives
 rejected and a "Not repeated" section for pitfalls already found. When a decision changes, add a new
@@ -21,7 +21,7 @@ These entries are `accepted` or `evidence`.
 
 | # | Decision | Status |
 |---|----------|--------|
-| [0001](0001-decision-log-agents-md-and-private-data.md) | Decision log and its rules; `AGENTS.md` files hold the instructions; `plans/` is local; no private data | accepted |
+| [0001](entries/0001-decision-log-agents-md-and-private-data.md) | Decision log and its rules; `AGENTS.md` files hold the instructions; `plans/` is local; no private data | accepted |
 
 ### Proposed
 

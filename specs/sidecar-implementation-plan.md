@@ -183,7 +183,7 @@ This milestone has two independent parts — a generic detector class/factory, a
 
 **Part B — Fill decode/preprocess coverage gaps:**
 
-This plan does not keep the list of package gaps. The spec changed after the list was written (the `vNEXT` revision), and a second list does not stay equal to the spec (decision [b9fm](../decisions/b9fm-finished-sidecar-plans.md)). The current gaps are in these places:
+This plan does not keep the list of package gaps. The spec changed after the list was written (the `vNEXT` revision), and a second list does not stay equal to the spec (decision [b9fm](../decisions/entries/b9fm-finished-sidecar-plans.md)). The current gaps are in these places:
 
 - the `validate:` and `load:` notes in the front matter of each section file, and [`TRACEABILITY.md`](model-sidecar/TRACEABILITY.md);
 - the heading [Implementation stage](../decisions/open-work.md#implementation-stage) of the open work;
@@ -196,7 +196,7 @@ Two rules of this part stay:
 
 ## Reference examples
 
-Moved to [Reference examples](model-sidecar/model-addition-workflow/reference-examples.md) in the model addition workflow (decision [b9fm](../decisions/b9fm-finished-sidecar-plans.md)). That file gives what the examples are and how to provide or replace an example.
+Moved to [Reference examples](model-sidecar/model-addition-workflow/reference-examples.md) in the model addition workflow (decision [b9fm](../decisions/entries/b9fm-finished-sidecar-plans.md)). That file gives what the examples are and how to provide or replace an example.
 
 ## Verification
 

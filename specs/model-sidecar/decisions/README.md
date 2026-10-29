@@ -15,9 +15,9 @@ These entries are `accepted` or `evidence`.
 
 | # | Decision | Status |
 |---|----------|--------|
-| [0011](0011-rtmdet-host-nms.md) | RTMDet: NMS-free graph with host `selection: nms`; no `pre_nms_top_k` | accepted |
-| [YNX0](YNX0-vnext-scope-list.md) | `vNEXT` scope: one list in the changelog; acceptance or a `describes` landing adds a model; a proposal gives `vNEXT` text only | accepted |
-| [CRV0](CRV0-output-shapes-in-each-batch-group.md) | `vNEXT`: `output_shapes` in each batch group, one entry for each output; a symbolic axis stays `-1`; legacy keeps the old rule | accepted |
+| [0011](entries/0011-rtmdet-host-nms.md) | RTMDet: NMS-free graph with host `selection: nms`; no `pre_nms_top_k` | accepted |
+| [YNX0](entries/YNX0-vnext-scope-list.md) | `vNEXT` scope: one list in the changelog; acceptance or a `describes` landing adds a model; a proposal gives `vNEXT` text only | accepted |
+| [CRV0](entries/CRV0-output-shapes-in-each-batch-group.md) | `vNEXT`: `output_shapes` in each batch group, one entry for each output; a symbolic axis stays `-1`; legacy keeps the old rule | accepted |
 
 ### Proposed
 

@@ -9,7 +9,7 @@ implementation exists yet. Two things add a reference implementation:
 [Independence](sidecar-files.md#independence) gives the implementations that count in
 `verified_against`. The headings from [Full section](#full-section) to
 [Run a module that imports another module](#run-a-module-that-imports-another-module) state the rules
-for reference modules ([ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md)).
+for reference modules ([ADR-TA0G](../../../decisions/entries/TA0G-vector-cases-and-reference-modules.md)).
 Part 4 of the change proposal template gives the form of a vector case.
 
 **Rule.** Your plan can implement a sidecar section on the host side. Then the plan must
@@ -35,7 +35,7 @@ reference-implementation step of the section.
 
 - The rule applies only when the proposal changes an algorithm, the meaning of a value or a
   validation rule of the section
-  ([ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md)).
+  ([ADR-TA0G](../../../decisions/entries/TA0G-vector-cases-and-reference-modules.md)).
 - These edits do not change a section for this rule: a link, a field row that points to another
   section, a sentence that tells where the algorithm of another section applies, and guidance.
 - Write one file for each changed section. Do not put two sections in one file.
@@ -67,11 +67,11 @@ proposed section ID.
 ## Imports of other sections
 
 - Use only NumPy, OpenCV, the Python standard library and the reference modules of other sections
-  ([ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md)).
+  ([ADR-TA0G](../../../decisions/entries/TA0G-vector-cases-and-reference-modules.md)).
 - One exception: part 3 of a proposal for a new profile of `common.batch_conversion` is a standalone
   module that uses onnx and NumPy. It has the signature of `model_batch_convert` in
   `skellytracker/core/sessions/batch_conversion.py`. The implementation stage ports it
-  ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)).
+  ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)).
 - Do not import from your repo. Do not import from the package code of skellytracker.
 - To use a function or a value of another section, import the module of that section by its module
   name. For example, write `import pre_resize_rotated_roi_crop`.

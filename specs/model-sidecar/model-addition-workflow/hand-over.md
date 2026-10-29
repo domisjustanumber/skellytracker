@@ -2,7 +2,7 @@
 
 A contributor gives its files to skellytracker in a bundle. A bundle is a folder in `intakes/` at the
 root of the skellytracker checkout. This file gives the rules of the bundles
-([ADR-FADS](../../../decisions/FADS-hand-over-bundles-in-intakes.md)). It is the only source of
+([ADR-FADS](../../../decisions/entries/FADS-hand-over-bundles-in-intakes.md)). It is the only source of
 these rules. The skills and the templates link to it.
 
 ## Location
@@ -86,7 +86,7 @@ The Gate column of [Implementation status](../TRACEABILITY.md#implementation-sta
 coverage items of each section. A `model` bundle can close the items `example` and `vectors` of the
 sections that the model uses: give `example/` (verdict `describes`) and `vector-runs.yaml`.
 skellytracker adds the validator cases of the item `rules`. Read the column. Do not claim an item
-([ADR-QMKS](../../../decisions/QMKS-draft-sections-and-coverage-columns.md)).
+([ADR-QMKS](../../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)).
 
 `example/provenance.yaml` gives the entries for `specs/model-sidecar/inventory.yaml`:
 
@@ -139,7 +139,7 @@ external:
 
 - In a proposal, the first item of `sections` is the section of the proposal index row.
 - `change_class` gives the class of the change ([Change classes](#change-classes);
-  [ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)). A contribution
+  [ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md)). A contribution
   gives the class of its proposal.
 - `batch` is an integer or `dynamic`.
 - `batch_conversion` is the verdict of the [batch-conversion check](#batch-conversion-check).
@@ -150,12 +150,12 @@ external:
 - `no_static_reason` tells why the model cannot export a static graph. It is required when each
   `external` entry has `batch: dynamic` and `batch_forced` is `null`. Otherwise it is `null`. If the
   model can export a static graph, export the verification batches, or set `batch_forced: dynamic`
-  with its reason ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)).
+  with its reason ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)).
 - `batch_conversion: not applicable` needs `batch_forced` or `no_static_reason`. With either one,
   `batch_conversion_reason` is not `missing-verification-batch`, because V0 then gives
   `not applicable`.
 - For each verdict, `verify` checks the rule of
-  [Publishing](validation-and-publishing.md#publishing) in these parts ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)):
+  [Publishing](validation-and-publishing.md#publishing) in these parts ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)):
   1. when the verdict is `describes`, or when an entry has `published: true`, each (size, precision)
      pair has exactly one such entry;
   2. all `published: true` entries have the same `batch`, and it is `3`, `1` or `dynamic`;
@@ -175,7 +175,7 @@ external:
 ## Change classes
 
 Each proposal names one class in `change_class` and in part 2. Its decision entry repeats the class
-([ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)).
+([ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md)).
 
 | Class | Applies to | Needs |
 |---|---|---|
@@ -198,7 +198,7 @@ Each proposal names one class in `change_class` and in part 2. Its decision entr
 
 The `batch` sub-command checks if the profile `static-batch-v1` converts the batch 3 export of a
 family to the batches 1, 2 and 4 ([`common.batch_conversion`](../common/batch-conversion.md);
-[ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)). Do it
+[ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)). Do it
 in step 1b of [phase 1](phase-1-intake.md). It gives the evidence of row G6b of the intake and the
 value of `batch_conversion` in the manifest. The converter is
 `skellytracker/core/sessions/batch_conversion.py::model_batch_convert`.
@@ -229,12 +229,12 @@ uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/ske
   with its `size`, `batch`, `precision` and `published`. The tolerance comes from `precision`.
 - A family needs each size and each precision at the verification batches 1, 2, 3 and 4. This is
   also true for a family that plans b3 only. A family with only `dynamic` files and
-  `no_static_reason` does not need them. Otherwise, only `batch_forced` in the fields skips this need ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)).
+  `no_static_reason` does not need them. Otherwise, only `batch_forced` in the fields skips this need ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)).
   `published` follows [Publishing](validation-and-publishing.md#publishing). Add the `dynamic`
   export if you plan to publish it.
 - The verification batches, input A, input B and the tolerance are in
   [Authoring guidance](../common/batch-conversion.md#authoring-guidance) of `common.batch_conversion`
-  ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)).
+  ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)).
 - `batch` reads input B from `<out>/inputs/<size>.npy`, one file for each size (`--inputs` gives
   another folder). Your writer code writes it. Its shape is `[4] + input.shape[1:]`. Its dtype is the
   dtype of the graph input (float32 or uint8). For an fp16 graph with a float16 input, `batch` casts
@@ -245,7 +245,7 @@ uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/ske
 
 | Step | What `batch` does |
 |---|---|
-| V0 | Applicability, for the whole family. A family with only dynamic files: `not applicable` when the fields give `no_static_reason`, else the pair rule below. A family with no file: `to run` with the reason `missing-verification-batch`. A (size, precision) pair without batch 1, 2, 3 or 4: `not applicable` when the fields give `batch_forced`, else `to run` with the reason `missing-verification-batch`. A family with only b3 files also gets `to run` ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)). |
+| V0 | Applicability, for the whole family. A family with only dynamic files: `not applicable` when the fields give `no_static_reason`, else the pair rule below. A family with no file: `to run` with the reason `missing-verification-batch`. A (size, precision) pair without batch 1, 2, 3 or 4: `not applicable` when the fields give `batch_forced`, else `to run` with the reason `missing-verification-batch`. A family with only b3 files also gets `to run` ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)). |
 | V0b | It checks that the onnx and onnxruntime of the environment can load each file: `ir_version`, each `opset_import` version and an onnxruntime CPU session. If not: `to run` with the reason `host-runtime-cannot-load`. |
 | V1 | It compares the native batch 3 graph with each native batch `N` graph (`differences.json`). This is evidence only. |
 | V2 | It makes the fragment `batching.batch_conversion: {profile_id: static-batch-v1, source_batch_size: 3}`. |
@@ -428,7 +428,7 @@ resolution: {...}                         # required for rejected and resolved-o
 
   The decision entry of the proposal becomes `rejected`. Its reason is
   "Resolved by [ADR-<X>](<path of X>)", with a relative path
-  ([ADR-Z05A](../../../decisions/Z05A-essential-decision-log-rules.md)). Its row in `specs/model-sidecar/proposals/README.md` gets the state `resolved-otherwise`, with a link to
+  ([ADR-Z05A](../../../decisions/entries/Z05A-essential-decision-log-rules.md)). Its row in `specs/model-sidecar/proposals/README.md` gets the state `resolved-otherwise`, with a link to
   ADR-<X>. Procedure E of the skill `change-sidecar-spec` gives the session steps.
 
 ### Read a response
@@ -466,7 +466,7 @@ The session starts only when the user asks for it.
    entry. Before acceptance, the owner entry gets one Evidence line. After acceptance, only the
    tracked copy is added.
 5. A `model` bundle: run `batch` again when [The session run](#the-session-run) tells you to
-   ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)). With the
+   ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)). With the
    verdict `describes`, [Reference examples](reference-examples.md) then copies `example/`. The
    `inventory.yaml` entry gets `bundle: <bundle id>@v<k>`. The same commit deletes each
    [Re-export requests](#re-export-requests) bullet that the bundle answers. With the verdict

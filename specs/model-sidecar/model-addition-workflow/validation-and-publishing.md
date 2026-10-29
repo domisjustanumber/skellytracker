@@ -22,7 +22,7 @@ These rules apply to each contributor that writes a sidecar.
   behaviour" heading that gives a legacy difference. The availability of a new feature is in the
   "Legacy behaviour" table of Schema versioning. A change in "Every-version changes" of the same file
   applies also to a sidecar with an older `schema_version`
-  ([ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)). A `vNEXT` sidecar must not
+  ([ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md)). A `vNEXT` sidecar must not
   use a legacy-only form: `requires_nms` without `selection`, `may_include_non_person_classes`, or
   `letterbox` with `preserve_aspect_ratio: false`.
 - Record the rule ID (`V-<section-id>-<n>`) of each rule that you checked in the intake.
@@ -60,7 +60,7 @@ These rules apply to each contributor that writes a sidecar.
   validate them, so it works with `vNEXT`.
 - The batch artifacts. A sidecar uses one batch form for every size and every precision: b3, b1 or
   `dynamic` ([Batch forms](../common/sizes-and-artifacts.md#batch-forms);
-  [ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)). You publish one batch
+  [ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)). You publish one batch
   artifact for each size and precision, in that form.
   - b3 is the goal. `sizes.<size>.onnx.batch_artifacts` has only the key `"3"`. The sidecar has
     `batching.batch_conversion: {profile_id: static-batch-v1, source_batch_size: 3}`. b3 needs the

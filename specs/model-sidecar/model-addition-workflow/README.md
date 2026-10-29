@@ -68,7 +68,7 @@ the exporters in the same cycle.
 ## Hand-over
 
 Give your files to skellytracker in a bundle in `../freemocap/skellytracker/intakes/`
-([ADR-FADS](../../../decisions/FADS-hand-over-bundles-in-intakes.md)).
+([ADR-FADS](../../../decisions/entries/FADS-hand-over-bundles-in-intakes.md)).
 [Hand-over bundles](hand-over.md) gives the layout, the manifest, the versions, the states and the
 responses. Write one `model` bundle for each family, and one `proposal` bundle for each contract unit.
 skellytracker does not read the `plans/` folder of your repo.
@@ -85,7 +85,7 @@ Get these inputs before you start:
 
 - the ONNX files of every size and precision. A family needs the verification batches 1, 2, 3 and 4,
   unless it forces a fallback form or the model cannot export a static graph ([Batch-conversion check](hand-over.md#batch-conversion-check);
-  [ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)). Add the `dynamic` export
+  [ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)). Add the `dynamic` export
   if you plan to publish it;
 - the upstream inference config;
 - the upstream preprocessing code and postprocessing code;
@@ -122,14 +122,14 @@ These rules apply only to an agent or a person in an exporter repo:
 ## Decisions
 
 The decisions behind this workflow are in the skellytracker decision log:
-[0013](../../../decisions/0013-spec-structure.md) (section IDs, rule IDs, reference
+[0013](../../../decisions/entries/0013-spec-structure.md) (section IDs, rule IDs, reference
 implementations and test vectors; superseded by
-[ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md), the vector cases and the reference modules), [0014](../../../decisions/0014-spec-lifecycle.md) (the spec
+[ADR-TA0G](../../../decisions/entries/TA0G-vector-cases-and-reference-modules.md), the vector cases and the reference modules), [0014](../../../decisions/entries/0014-spec-lifecycle.md) (the spec
 lifecycle, the `vNEXT` rule and the new-model workflow; superseded by
-[ADR-FADS](../../../decisions/FADS-hand-over-bundles-in-intakes.md)),
-[ADR-FADS](../../../decisions/FADS-hand-over-bundles-in-intakes.md) (the hand-over bundles and the proposal records),
-[ADR-JC4T](../../../decisions/JC4T-parity-gates-and-batch-conversion-check.md) (the parity gates and the batch-conversion check; superseded by
-[ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md), one batch form for each sidecar),
-[x64y](../../../decisions/x64y-draft-exporter-guide-folder.md) (this folder and the draft
-exporter guide) and [b9fm](../../../decisions/b9fm-finished-sidecar-plans.md) (the reference
+[ADR-FADS](../../../decisions/entries/FADS-hand-over-bundles-in-intakes.md)),
+[ADR-FADS](../../../decisions/entries/FADS-hand-over-bundles-in-intakes.md) (the hand-over bundles and the proposal records),
+[ADR-JC4T](../../../decisions/entries/JC4T-parity-gates-and-batch-conversion-check.md) (the parity gates and the batch-conversion check; superseded by
+[ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md), one batch form for each sidecar),
+[x64y](../../../decisions/entries/x64y-draft-exporter-guide-folder.md) (this folder and the draft
+exporter guide) and [b9fm](../../../decisions/entries/b9fm-finished-sidecar-plans.md) (the reference
 examples procedure).

@@ -173,7 +173,7 @@ recorded_objects.npy
 .claude/*
 !.claude/skills/
 
-# Local working notes (see decisions/0001-decision-log-and-agents-md.md)
+# Local working notes (see decisions/entries/0001-decision-log-and-agents-md.md)
 plans/
 
 # Local hand-over folder for exporter bundles. Never commit it.

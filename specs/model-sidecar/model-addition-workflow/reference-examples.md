@@ -4,7 +4,7 @@ This file gives the procedure that adds a reference example to the spec or repla
 skellytracker session does it in [phase 3](phase-3-skellytracker.md), for a model with the verdict
 `describes`. This procedure was the section "Reference examples" of
 [`specs/sidecar-implementation-plan.md`](../../sidecar-implementation-plan.md#reference-examples)
-(decision [b9fm](../../../decisions/b9fm-finished-sidecar-plans.md)).
+(decision [b9fm](../../../decisions/entries/b9fm-finished-sidecar-plans.md)).
 
 ## What the examples are
 
@@ -42,7 +42,7 @@ The `kind` and the `notes` of each entry in `inventory.yaml` give the state of t
 - A note "Drifted" is an example that is not equal to the copy of its exporter. Replace it now.
 - An item `spec change <ID>: <edit>` in `edits` is a spec-forced edit
   ([When a spec change makes an example invalid](#when-a-spec-change-makes-an-example-invalid);
-  [ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)).
+  [ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md)).
   Replace the example when the copy of its exporter obeys each rule.
 
 The [introduction to the examples](../examples/README.md) tells which examples come from real
@@ -76,7 +76,7 @@ exports and which examples are forecasts.
    cannot describe, that is a gap. Propose the spec change first. Replace the example in the same
    cycle. A spec-forced edit is not a correction
    ([When a spec change makes an example invalid](#when-a-spec-change-makes-an-example-invalid);
-   [ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)).
+   [ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md)).
 3. **Path.** The path of the example follows the
    [storage layout](../format/file-layout.md#storage-layout), also when the path of the exporter does
    not. For example, OpenMMLab-Exporter writes RTMO body7 under `keypoint_detectors/rtmo/body7/`.
@@ -87,7 +87,7 @@ exports and which examples are forecasts.
    **Fragments.** A fragment is a file that a `$ref` of the sidecar names: a file under
    `detectors/shared/` (a skeleton or a class-id map), or a file next to the sidecar (for example a
    `canonical_mapping` file). The example uses the same relative path. Copy each fragment unchanged
-   (ADR-[yve0](../../../decisions/yve0-example-fragments.md)):
+   (ADR-[yve0](../../../decisions/entries/yve0-example-fragments.md)):
    - If the package has a fragment at the same path with the same bytes, copy it. It has no
      provenance entry.
    - If the package has a fragment at the same path with different bytes, stop. The exporter and the
@@ -137,7 +137,7 @@ exports and which examples are forecasts.
 7. **Land it.** A new or replaced example changes no normative text. Thus it goes in a non-spec PR
    with its provenance ([`specs/model-sidecar/AGENTS.md`](../AGENTS.md)). A spec-forced edit goes in
    the content commit of its change
-   ([ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)).
+   ([ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md)).
    Do not put a change of spec text in that PR. Put one example in each commit, so that a reviewer can examine and revert each
    replacement alone. This rule does not apply to a spec-forced edit. The commit message names the exporter commit. Follow the git rules of the
    skellytracker `AGENTS.md`, section 6.
@@ -154,7 +154,7 @@ That copy is equal to its export, plus header comments.
 
 The examples must obey the spec at each commit. An accepted spec change can make an example break a
 new or changed rule. Then the content commit of that change also edits the example. This edit is a
-spec-forced edit ([ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)). It
+spec-forced edit ([ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md)). It
 is not a correction of the example, and it is not a new copy. Steps 1, 2 and 7 of
 [How to provide or replace an example](#how-to-provide-or-replace-an-example) do not apply to it.
 
@@ -186,7 +186,7 @@ is not a correction of the example, and it is not a new copy. Steps 1, 2 and 7 o
       `inventory.yaml` entry gets `bundle: <bundle id>@v<k>`. The same commit deletes the bullet.
 
    A forced edit of a fragment that equals a package copy
-   (ADR-[yve0](../../../decisions/yve0-example-fragments.md)) is also `needs-export`. The package
+   (ADR-[yve0](../../../decisions/entries/yve0-example-fragments.md)) is also `needs-export`. The package
    code does not change in the spec-build stage, and a copy under a new name is not allowed.
 5. Keep the placeholder hash of 64 zeros for an ONNX file. `uv run python tools/sidecar_refs.py --check <example path>`
    must pass for each example that the commit changes. `uv run pytest tools/tests/test_examples.py`

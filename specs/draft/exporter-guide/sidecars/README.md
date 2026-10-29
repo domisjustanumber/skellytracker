@@ -22,7 +22,7 @@ spec. If this guide and the spec do not agree, the spec is correct.
 - Only skellytracker sessions write the skellytracker repo. The only exception: an exporter agent
   writes the new version folders of its own bundles in `intakes/` of the checkout
   ([Hand-over bundles](../../../model-sidecar/model-addition-workflow/hand-over.md);
-  [ADR-FADS](../../../../decisions/FADS-hand-over-bundles-in-intakes.md)). There is no spec freeze.
+  [ADR-FADS](../../../../decisions/entries/FADS-hand-over-bundles-in-intakes.md)). There is no spec freeze.
 - An exporter overhaul copies the fenced block of
   [The block for the exporter `AGENTS.md`](#the-block-for-the-exporter-agentsmd) into the exporter's
   `AGENTS.md`. It copies the block without change, and fills in only the commit of the source line.
@@ -49,15 +49,15 @@ spec. If this guide and the spec do not agree, the spec is correct.
 
 The decisions behind this guide:
 
-- [0013](../../../../decisions/0013-spec-structure.md): section IDs, rule IDs, reference
-  implementations and test vectors. [ADR-TA0G](../../../../decisions/TA0G-vector-cases-and-reference-modules.md) supersedes it. It gives
+- [0013](../../../../decisions/entries/0013-spec-structure.md): section IDs, rule IDs, reference
+  implementations and test vectors. [ADR-TA0G](../../../../decisions/entries/TA0G-vector-cases-and-reference-modules.md) supersedes it. It gives
   the vector cases and the reference modules.
-- [0014](../../../../decisions/0014-spec-lifecycle.md): the spec lifecycle, the `vNEXT` rule and the
+- [0014](../../../../decisions/entries/0014-spec-lifecycle.md): the spec lifecycle, the `vNEXT` rule and the
   new-model workflow. The workflow headings
   [Stages](../../../model-sidecar/model-addition-workflow/README.md#stages) and
   [Publishing](../../../model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing)
-  state its rules now. [ADR-FADS](../../../../decisions/FADS-hand-over-bundles-in-intakes.md) supersedes it.
-- [0016](../../../../decisions/0016-sidecar-catalogs.md): sidecar catalogs: `source`, reference
+  state its rules now. [ADR-FADS](../../../../decisions/entries/FADS-hand-over-bundles-in-intakes.md) supersedes it.
+- [0016](../../../../decisions/entries/0016-sidecar-catalogs.md): sidecar catalogs: `source`, reference
   hashes, roots, discovery and the capability check. The spec text for exporters is in
   [`common.identity`](../../../model-sidecar/common/identity.md#fields) (`source`),
   [`format.composition`](../../../model-sidecar/format/composition.md#reference-hashes) (the reference hashes and the bytes
@@ -66,7 +66,7 @@ The decisions behind this guide:
   artifact hashes and the placeholder). The rule for each contributor is
   [`source` and hashes](../../../model-sidecar/model-addition-workflow/validation-and-publishing.md#source-and-hashes)
   in the model addition workflow.
-- [x64y](../../../../decisions/x64y-draft-exporter-guide-folder.md): the model addition workflow
+- [x64y](../../../../decisions/entries/x64y-draft-exporter-guide-folder.md): the model addition workflow
   is in `specs/model-sidecar/model-addition-workflow/`, with the rules for the sidecar files, the
   validation and the publishing. This guide is in the draft folder `specs/draft/exporter-guide/`.
 
@@ -89,7 +89,7 @@ The templates are [model intake](../../../model-sidecar/templates/model-intake.m
 
 ## Run the skellytracker tools
 
-These rules are in [ADR-JC4T](../../../../decisions/JC4T-parity-gates-and-batch-conversion-check.md).
+These rules are in [ADR-JC4T](../../../../decisions/entries/JC4T-parity-gates-and-batch-conversion-check.md).
 
 - The rule now: run the `batch` sub-command of the hand-over tool from the skellytracker checkout,
   in the skellytracker environment of the checkout
