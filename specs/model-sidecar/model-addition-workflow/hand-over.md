@@ -129,6 +129,7 @@ batch_conversion: converts | does not convert | not applicable | to run   # mode
 batch_conversion_reason: host-runtime-cannot-load | missing-verification-batch | no-signal | null
 batch_forced: 1 | dynamic | null                        # model
 batch_forced_reason: <text> | null                      # model
+no_static_reason: <text> | null                         # model
 files:
   - {path: proposal.md, sha256: <64 hex>, bytes: 115261}
 external:
@@ -145,10 +146,14 @@ external:
 - `batch_conversion_reason` is required when `batch_conversion` is `to run`. Otherwise it is `null`.
 - `batch_forced` records a fallback form that the person who runs the exporter forces: `1` or
   `dynamic`. `batch_forced_reason` gives the reason. It is required when `batch_forced` is set.
-  Otherwise both are `null`. `batch_conversion: not applicable` needs `batch_forced`, or a family
-  with no static file: each `external` entry has `batch: dynamic` ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)).
-  With `batch_forced`, or with only dynamic files, `batch_conversion_reason` is not
-  `missing-verification-batch`, because V0 then gives `not applicable`.
+  Otherwise both are `null`.
+- `no_static_reason` tells why the model cannot export a static graph. It is required when each
+  `external` entry has `batch: dynamic` and `batch_forced` is `null`. Otherwise it is `null`. If the
+  model can export a static graph, export the verification batches, or set `batch_forced: dynamic`
+  with its reason ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)).
+- `batch_conversion: not applicable` needs `batch_forced` or `no_static_reason`. With either one,
+  `batch_conversion_reason` is not `missing-verification-batch`, because V0 then gives
+  `not applicable`.
 - For each verdict, `verify` checks the rule of
   [Publishing](validation-and-publishing.md#publishing) in these parts ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)):
   1. when the verdict is `describes`, or when an entry has `published: true`, each (size, precision)
@@ -223,8 +228,8 @@ uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/ske
 - `--fields` is your fields file. `batch` reads its `external` list: each ONNX file of the family,
   with its `size`, `batch`, `precision` and `published`. The tolerance comes from `precision`.
 - A family needs each size and each precision at the verification batches 1, 2, 3 and 4. This is
-  also true for a family that plans b3 only. A family with no static file (only `dynamic` files)
-  does not need them. Otherwise, only `batch_forced` in the fields skips this need ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)).
+  also true for a family that plans b3 only. A family with only `dynamic` files and
+  `no_static_reason` does not need them. Otherwise, only `batch_forced` in the fields skips this need ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)).
   `published` follows [Publishing](validation-and-publishing.md#publishing). Add the `dynamic`
   export if you plan to publish it.
 - The verification batches, input A, input B and the tolerance are in
@@ -240,7 +245,7 @@ uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/ske
 
 | Step | What `batch` does |
 |---|---|
-| V0 | Applicability, for the whole family. A family with only dynamic files: `not applicable`. A family with no file: `to run` with the reason `missing-verification-batch`. A (size, precision) pair without batch 1, 2, 3 or 4: `not applicable` when the fields give `batch_forced`, else `to run` with the reason `missing-verification-batch`. A family with only b3 files also gets `to run` ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)). |
+| V0 | Applicability, for the whole family. A family with only dynamic files: `not applicable` when the fields give `no_static_reason`, else the pair rule below. A family with no file: `to run` with the reason `missing-verification-batch`. A (size, precision) pair without batch 1, 2, 3 or 4: `not applicable` when the fields give `batch_forced`, else `to run` with the reason `missing-verification-batch`. A family with only b3 files also gets `to run` ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)). |
 | V0b | It checks that the onnx and onnxruntime of the environment can load each file: `ir_version`, each `opset_import` version and an onnxruntime CPU session. If not: `to run` with the reason `host-runtime-cannot-load`. |
 | V1 | It compares the native batch 3 graph with each native batch `N` graph (`differences.json`). This is evidence only. |
 | V2 | It makes the fragment `batching.batch_conversion: {profile_id: static-batch-v1, source_batch_size: 3}`. |
@@ -259,7 +264,7 @@ fix the export.
 |---|---|---|---|
 | `converts` | V3 and V5 pass for each size, precision and `N` | `exact` | Apply [Publishing](validation-and-publishing.md#publishing). With b3, the writer code writes the fragment of `conversion.yaml`. |
 | `does not convert` | V3 or V5 fails on a complete set of inputs | `gap` | Leave `batching.batch_conversion` out. Publish a fallback form: b1 or `dynamic`. Write a `proposal` bundle for a new profile. `differences.json` and `residual-diff.json` are its part 5 evidence. |
-| `not applicable` | V0 gives `not applicable`, or you skip the check. Both need `batch_forced`, or a family with no static file. | `out of scope` | Publish the form of `batch_forced`, or `dynamic` for a family with no static file. V6 still gates a `dynamic` file. |
+| `not applicable` | V0 gives `not applicable`, or you skip the check. Both need `batch_forced` or `no_static_reason`. | `out of scope` | Publish the form of `batch_forced`, or `dynamic` with `no_static_reason`. V6 still gates a `dynamic` file. |
 | `to run` | A reason: `missing-verification-batch`, `host-runtime-cannot-load` or `no-signal` (each run of a pair is empty) | `unverified` | Write the reason in `batch_conversion_reason`. The skellytracker session runs the check again. Without `batch_forced`, the reason `missing-verification-batch` allows no published form: export the verification batches, or set `batch_forced`. |
 
 ### Output
@@ -294,7 +299,7 @@ field `batch_conversion` gives the session verdict. The session verdict is the g
 | `to run` | The reason is `host-runtime-cannot-load`, or V6 of a published `dynamic` file has this reason. | Stop and ask the user. The fix is a newer onnx and onnxruntime in `uv.lock` of skellytracker. |
 | `to run` | The reason is `missing-verification-batch`. | `needs-contributor`: "export the verification batches 1, 2, 3 and 4 of each size and precision, or set `batch_forced`, pack the next version". |
 | `to run` | The reason is `no-signal`, or V6 of a published `dynamic` file has this reason. | `needs-contributor`: "write input B with images that give outputs that are not empty, pack the next version". A b3 publish needs the session verdict `converts`. |
-| `not applicable` | any | The manifest must give `batch_forced`, and the published form must equal it. A family with no static file needs no `batch_forced`, and it publishes `dynamic`. If not: `needs-contributor`. |
+| `not applicable` | any | The manifest must give `batch_forced`, and the published form must equal it. Or the manifest gives `no_static_reason`, and the published form is `dynamic`. If not: `needs-contributor`. |
 
 An example lands with `batching.batch_conversion` only for `converts` with a b3 publish.
 

@@ -78,7 +78,8 @@ COMMON_KEYS = (
     "external",
 )
 KIND_KEYS = {
-    "model": ("verdict", "batch_conversion", "batch_conversion_reason", "batch_forced", "batch_forced_reason"),
+    "model": ("verdict", "batch_conversion", "batch_conversion_reason", "batch_forced", "batch_forced_reason",
+              "no_static_reason"),
     "proposal": ("change_class", "base", "depends_on", "contributes_to"),
 }
 COMPUTED = ("files", "version", "created")
@@ -219,18 +220,29 @@ def manifest_problems(manifest: dict, computed: bool = True) -> list[str]:
         dynamic_only = isinstance(items, list) and bool(items) and all(
             isinstance(i, dict) and i.get("batch") == "dynamic" for i in items
         )
+        # A dynamic-only family states why it has no static graph, or forces dynamic (ADR-JB5J, item 2).
+        no_static = get("no_static_reason")
+        if no_static is not None and not (isinstance(no_static, str) and no_static.strip()):
+            problems.append("no_static_reason must be null or give the reason")
+        if no_static is not None and not (dynamic_only and forced is None):
+            problems.append("no_static_reason must be null unless each external file is dynamic and batch_forced is null")
+        if "no_static_reason" in manifest and dynamic_only and forced is None and no_static is None:
+            problems.append(
+                "only dynamic external files need no_static_reason (why the model cannot export a static graph), "
+                "or batch_forced: dynamic with batch_forced_reason"
+            )
         if (
             "batch_forced" in manifest and forced is None and get("batch_conversion") == "not applicable"
             and not dynamic_only
         ):
             problems.append(
-                "batch_conversion 'not applicable' needs batch_forced, or only dynamic external files: "
-                "the batch check runs by default"
+                "batch_conversion 'not applicable' needs batch_forced, or only dynamic external files "
+                "with no_static_reason: the batch check runs by default"
             )
-        if (forced is not None or dynamic_only) and reason == "missing-verification-batch":
+        if (forced is not None or (dynamic_only and no_static)) and reason == "missing-verification-batch":
             problems.append(
                 "batch_conversion_reason 'missing-verification-batch' is not possible with batch_forced, "
-                "or with only dynamic external files: V0 then gives 'not applicable'"
+                "or with only dynamic external files and no_static_reason: V0 then gives 'not applicable'"
             )
     external = get("external", [])
     if not isinstance(external, list):
@@ -1224,8 +1236,9 @@ def batch_check(
     missing = [
         [s, p, b] for s, p in pairs for b in VERIFICATION_BATCHES if (s, p, b) not in files
     ]
-    # ADR-JB5J: a dynamic-only family, or a recorded batch_forced, skips the check; a b3-only or empty family is `to run`.
-    if files and not static:
+    # ADR-JB5J: a recorded batch_forced, or a dynamic-only family with no_static_reason, skips the check.
+    # A b3-only or empty family is `to run`.
+    if files and not static and fields.get("no_static_reason"):
         v0 = "not applicable"
     elif missing or not files:
         v0 = "not applicable" if fields.get("batch_forced") is not None else "missing-verification-batch"

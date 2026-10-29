@@ -69,8 +69,10 @@ These rules apply to each contributor that writes a sidecar.
   - b1 and `dynamic` are the fallbacks. `batch_artifacts` has only the key `"1"`, or only the key
     `dynamic`. The sidecar has no `batch_conversion`. A fallback is allowed with the verdict
     `does not convert`. It is also allowed when the person who runs the exporter forces it.
-  - A family that exports only a dynamic model (no static file) publishes `dynamic`. It does not
-    need `batch_forced`. V0 gives `not applicable` for it.
+  - A model that cannot export a static graph publishes `dynamic`. Write why in
+    `no_static_reason` of the manifest, and in the intake. Then the family does not need
+    `batch_forced`, and V0 gives `not applicable` for it. If the model can export a static graph,
+    run the check, or force `dynamic`.
   - The batch-conversion check runs by default. To force a fallback, write `batch_forced` (`1` or
     `dynamic`) and `batch_forced_reason` in the manifest ([Manifest](hand-over.md#manifest)). Write
     the same choice and reason in the intake. Then you can skip the check. A skipped check has the

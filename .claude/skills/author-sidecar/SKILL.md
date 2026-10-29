@@ -49,7 +49,7 @@ Get these inputs before you start
 ([Inputs](../../../specs/model-sidecar/model-addition-workflow/README.md#inputs)):
 
 - the ONNX files of every size and precision, also at the verification batches 1, 2, 3 and 4 (not
-  needed for a forced fallback form or a family with only a dynamic export);
+  needed for a forced fallback form or a model that cannot export a static graph);
 - the upstream inference config (the test pipeline);
 - the upstream preprocessing code and postprocessing code;
 - one reference output of the upstream library on a known image.
@@ -189,8 +189,8 @@ Do this step when no row is blocking (step 5 of
    [Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing).
    The sidecar uses one batch form: b3 with `batching.batch_conversion` (needs `converts`), b1 or
    `dynamic`. A fallback form needs the verdict `does not convert`, or the choice of the user with
-   its reason in `batch_forced` and `batch_forced_reason`. A family that exports only a dynamic
-   model publishes `dynamic` without `batch_forced`.
+   its reason in `batch_forced` and `batch_forced_reason`. A model that cannot export a static
+   graph publishes `dynamic` without `batch_forced`. Write why in `no_static_reason`.
 8. Do each item of the [Validation checklist](../../../specs/model-sidecar/templates/model-intake.md#validation-checklist).
    Follow [Validation](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#validation). Write the rule ID of each
    rule that you checked.

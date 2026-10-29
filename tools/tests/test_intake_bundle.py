@@ -56,6 +56,7 @@ def model_fields(**extra) -> dict:
         "batch_conversion_reason": None,
         "batch_forced": "dynamic",
         "batch_forced_reason": "the exporter makes only a dynamic export",
+        "no_static_reason": None,
         "external": [],
         **extra,
     }
@@ -611,8 +612,9 @@ def test_batch_takes_a_dynamic_non_batch_dim_from_input_b(family, tmp_path: Path
 
 
 def test_batch_checks_a_dynamic_export_against_itself(family) -> None:  # noqa: ANN001
-    """A dynamic-only family needs no batch_forced: V0 gives `not applicable` (ADR-JB5J, item 3)."""
+    """A dynamic-only family with no_static_reason needs no batch_forced: V0 gives `not applicable` (ADR-JB5J)."""
     root, fields, out = family({"dynamic": {}})
+    fields |= {"no_static_reason": "the upstream export fixes a dynamic batch"}
     report = ib.batch_check(fields, out, root=root)
     assert (report["batch_conversion"], report["v0"]) == ("not applicable", {"result": "not applicable", "missing": []})
     check = report["dynamic_check"][0]
@@ -628,8 +630,16 @@ def test_batch_checks_a_forced_dynamic_export_against_the_static_files_that_exis
     assert (check["result"], sorted(check["static"])) == ("pass", ["b1/A", "b1/B"])
 
 
+def test_batch_runs_a_dynamic_only_family_without_a_reason(family) -> None:  # noqa: ANN001
+    """Without no_static_reason or batch_forced, V0 of a dynamic-only family is `to run` (ADR-JB5J, item 3)."""
+    root, fields, out = family({"dynamic": {}})
+    report = ib.batch_check(fields, out, root=root)
+    assert (report["batch_conversion"], report["batch_conversion_reason"]) == ("to run", "missing-verification-batch")
+
+
 def test_batch_gives_v6_to_run_without_input_b(family) -> None:  # noqa: ANN001
     root, fields, out = family({"dynamic": {}}, items=None)
+    fields |= {"no_static_reason": "the upstream export fixes a dynamic batch"}
     report = ib.batch_check(fields, out, root=root)
     check = report["dynamic_check"][0]
     assert (report["batch_conversion"], check["result"]) == ("not applicable", "to run")
@@ -731,7 +741,7 @@ UNVERIFIABLE = (
          None),
         ((1,), {"batch_conversion": "not applicable", "batch_forced": 1, "batch_forced_reason": "user choice"}, (1,),
          None),
-        (("dynamic",), {"batch_conversion": "not applicable"}, ("dynamic",),
+        (("dynamic",), {"batch_conversion": "not applicable", "no_static_reason": "the upstream export fixes a dynamic batch"}, ("dynamic",),
          "n fp32: the dynamic check has no batch/report.json; do not publish the dynamic export; "
          "publish another batch form or fix the export"),
         ((3,), {"batch_conversion": "to run", "batch_conversion_reason": "missing-verification-batch"}, (3,),
@@ -766,9 +776,14 @@ def test_verify_checks_the_publish_rule_for_every_verdict(
         ({"batch_forced": None}, "batch_forced_reason must be null unless batch_forced is set"),
         ({"batch_conversion": "to run", "batch_conversion_reason": "missing-verification-batch"},
          "batch_conversion_reason 'missing-verification-batch' is not possible with batch_forced"),
-        ({"batch_forced": None, "batch_forced_reason": None, "external": [{"batch": "dynamic"}],
+        ({"batch_forced": None, "batch_forced_reason": None, "external": [{"batch": "dynamic"}], "no_static_reason": "the upstream export fixes a dynamic batch",
           "batch_conversion": "to run", "batch_conversion_reason": "missing-verification-batch"},
-         "or with only dynamic external files"),
+         "or with only dynamic external files and no_static_reason"),
+        ({"batch_forced": None, "batch_forced_reason": None, "external": [{"batch": "dynamic"}]},
+         "only dynamic external files need no_static_reason"),
+        ({"no_static_reason": "the upstream export fixes a dynamic batch"}, "no_static_reason must be null unless each external file is dynamic"),
+        ({"batch_forced": None, "batch_forced_reason": None, "external": [{"batch": "dynamic"}],
+          "no_static_reason": " "}, "no_static_reason must be null or give the reason"),
     ],
 )
 def test_pack_checks_the_forced_batch_form(tmp_path: Path, root: Path, change: dict, message: str) -> None:

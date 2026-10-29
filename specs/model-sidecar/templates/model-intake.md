@@ -75,7 +75,7 @@ Get these inputs before you fill in the property table.
 
 | Input | Path, URL or command | Status (`found` or `missing`) |
 |---|---|---|
-| The ONNX files: every size and precision, at the verification batches 1, 2, 3 and 4 (not needed for a forced fallback form or a family with only a dynamic export). The `dynamic` export, if you plan to publish it | | |
+| The ONNX files: every size and precision, at the verification batches 1, 2, 3 and 4 (not needed for a forced fallback form or a model that cannot export a static graph). The `dynamic` export, if you plan to publish it | | |
 | Input B of the batch-conversion check: `batch/inputs/<size>.npy` for each size, with 4 different preprocessed images (not needed for `batch_forced: 1`; a `dynamic` form needs it for the dynamic check) | | |
 | The upstream inference config (the test pipeline, not the training pipeline) | | |
 | The upstream preprocessing code | | |
@@ -532,8 +532,9 @@ heading "Publishing". Put the output folder in the bundle as `batch/`.
 
 | Item | Value |
 |---|---|
-| Verdict (`converts`, `does not convert`, `not applicable` or `to run`; `not applicable` only with a forced fallback form or a family with only a dynamic export) | |
+| Verdict (`converts`, `does not convert`, `not applicable` or `to run`; `not applicable` only with a forced fallback form or `no_static_reason`) | |
 | Forced fallback form (`batch_forced`: `1`, `dynamic` or `null`) and the reason of the person who runs the exporter | |
+| No static graph (`no_static_reason`): why the model cannot export a static graph, or `null`. Required when each file is `dynamic` and `batch_forced` is `null` | |
 | Reason, for `to run` (`missing-verification-batch`, `host-runtime-cannot-load` or `no-signal`) | |
 | Failed (size, precision, `N`) tuples, for `does not convert` | |
 | Published batch form: b3 (needs `converts`), b1 or `dynamic` (one form for the whole family) | |
