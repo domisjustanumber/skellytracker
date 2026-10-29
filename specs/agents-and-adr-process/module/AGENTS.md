@@ -10,7 +10,7 @@ The Rules of the root log apply to it: `{{ROOT}}decisions/README.md#rules`.
 To write an entry, use the root template `{{ROOT}}decisions/template.md`.
 
 - Put an entry in this log only when each file that its Decision section names or changes is in
-  this module.
+  this module. Its file goes in `decisions/entries/`.
 - Put all other entries in the root log `{{ROOT}}decisions/`. An entry for two or more modules goes
   there.
 - Before you change a file in this module, read the root `{{ROOT}}decisions/README.md` and the root

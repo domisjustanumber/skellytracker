@@ -67,7 +67,7 @@ changes is in that module. All other entries go in the root log, also each case 
 A new module log needs the approval of the user. The PR that adds it also adds its folder to
 `LOG_DIRS` of `tools/check_decision_log.py`.
 Each log has a `README.md` with an Active table, a Proposed table and `## Open work`, a
-`historical.md` and an `open-work.md`. The Rules and `template.md` are only in the root log.
+`historical.md`, an `open-work.md` and its entry files in `entries/`. The Rules and `template.md` are only in the root log.
 All logs have one ID space. Do not add a module name to an ID.
 When the scope of a module entry grows to more than one module, a new root entry supersedes it.
 A tool is code that a test, a hook, a CI job, a skill or a workflow step runs, or code that writes a
@@ -83,7 +83,7 @@ Add one entry for each new decision or measurement.
 Get its ID from `uv run python tools/check_decision_log.py --new`.
 End each commit subject that adds or changes an entry with `(ADR-<ID>)`.
 Cite each entry as a Markdown link with `ADR-<ID>` as the link text, in upper case, for example
-[ADR-0001](decisions/0001-decision-log-agents-md-and-private-data.md).
+[ADR-0001](decisions/entries/0001-decision-log-agents-md-and-private-data.md).
 This rule applies to each text that you write: a tracked file, a plan, a PR body and a reply to the
 user. In a reply or a plan, the path is relative to the repository root or to the file.
 A commit message cannot hold a working link. In the commit body, write `ADR-<ID>` with no link.
@@ -96,7 +96,7 @@ full-SHA permalink when the entry is on the default branch of that repository
 <!-- kit:plans-folder -->
 - `plans/` is a local working folder. Git ignores it. Do not commit it. Do not cite or link to
   `plans/`, or cite the content of a plan
-  ([ADR-0001](decisions/0001-decision-log-agents-md-and-private-data.md)).
+  ([ADR-0001](decisions/entries/0001-decision-log-agents-md-and-private-data.md)).
   <!-- /kit -->
   <!-- kit:push-and-attribution -->
 - Do not push to a git remote without the approval of the user. One approval for a PR covers its
@@ -118,7 +118,7 @@ Write the summary in the message text, not only in the tool description.
 ## 8. Private Data
 
 This repository is public, or it can become public. Git history is permanent
-([ADR-0001](decisions/0001-decision-log-agents-md-and-private-data.md)).
+([ADR-0001](decisions/entries/0001-decision-log-agents-md-and-private-data.md)).
 Do not write these in a tracked file, a commit message or a PR body:
 
 - a credential, a token, a password or a private key;

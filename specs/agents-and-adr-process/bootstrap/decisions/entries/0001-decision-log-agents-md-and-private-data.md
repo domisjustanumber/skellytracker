@@ -5,23 +5,24 @@
 ## Decision
 
 1. **Decision log.** This repo keeps its decisions in a root log in `decisions/`. The
-   [index](README.md) has the Active and Proposed tables and the rules.
-   [`historical.md`](historical.md) has the Historical table. [`template.md`](template.md) has the
-   entry template. [`open-work.md`](open-work.md) has the open work. A module can also have a log in
+   [index](../README.md) has the Active and Proposed tables and the rules.
+   [`historical.md`](../historical.md) has the Historical table. The entry files are in `entries/`.
+   [`template.md`](../template.md) has the
+   entry template. [`open-work.md`](../open-work.md) has the open work. A module can also have a log in
    `<module>/decisions/`. Each log is in `LOG_DIRS` of `tools/check_decision_log.py`. All logs have
    one ID space. A decision that code or a document refers to must be in an entry.
-2. **Instruction files.** The root [`AGENTS.md`](../AGENTS.md) and the `AGENTS.md` of each module
+2. **Instruction files.** The root [`AGENTS.md`](../../AGENTS.md) and the `AGENTS.md` of each module
    are the only instruction files for coding agents. Each `CLAUDE.md` only imports the `AGENTS.md`
    in its folder: its full content is `@AGENTS.md`. Do not put instructions in a `CLAUDE.md`. Agent
    procedures are skills in `.claude/skills/`. Git tracks that folder and ignores the rest of
    `.claude/`. The `AGENTS.md` of a module with a log links to that log.
 3. **`plans/`.** `plans/` is a local working folder. Git ignores it. Do not commit it. A tracked file
    does not link to `plans/` and does not cite its sections, item numbers or local PR labels.
-4. **Log rules.** The [Rules](README.md#rules) of the index give the allowed edits, absorption,
+4. **Log rules.** The [Rules](../README.md#rules) of the index give the allowed edits, absorption,
    complete supersession, the status changes, `done` and consolidation. The intro of the index gives
    the read path. `tools/check_decision_log.py` checks the tables, the status forms and the size
    limits. `tools/check_links.py` checks the links and the full-SHA permalinks.
-5. **Private data.** [`AGENTS.md`](../AGENTS.md#8-private-data) gives the rule.
+5. **Private data.** [`AGENTS.md`](../../AGENTS.md#8-private-data) gives the rule.
    `tools/check_private_data.py` checks the tracked files. The pre-commit hook and the workflow
    `.github/workflows/secrets.yml` run `gitleaks`. `.private-terms` is a local, untracked list of
    terms to block.

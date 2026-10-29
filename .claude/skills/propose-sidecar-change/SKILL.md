@@ -85,7 +85,7 @@ A contributor writes its proposal bundle.
 | An exporter repo | The bundle ID of each proposal in the intake. |
 | skellytracker | `specs/model-sidecar/proposals/<slug>/`: a byte copy of the current bundle version ([Tracked records](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#tracked-records)). |
 | skellytracker | A row in the proposal index [`specs/model-sidecar/proposals/README.md`](../../../specs/model-sidecar/proposals/README.md). |
-| skellytracker | `specs/model-sidecar/decisions/<id>-<slug>.md`: a short decision entry "Spec change: <slug>", with the status `proposed`. |
+| skellytracker | `specs/model-sidecar/decisions/entries/<id>-<slug>.md`: a short decision entry "Spec change: <slug>", with the status `proposed`. |
 | skellytracker | A row for the entry in the Proposed table of [`specs/model-sidecar/decisions/README.md`](../../../specs/model-sidecar/decisions/README.md). |
 | skellytracker | A response file in the bundle ([Responses](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#responses)). |
 
@@ -141,7 +141,7 @@ A contributor writes its proposal bundle.
    | 1 | [1. Gap](../../../specs/model-sidecar/templates/change-proposal.md#1-gap) | Give a number where possible. |
    | 2 | [2. Spec change](../../../specs/model-sidecar/templates/change-proposal.md#2-spec-change) | Write the exact normative text in ASD-STE100. List each place that the change edits. |
    | 3 | [3. Reference implementation](../../../specs/model-sidecar/templates/change-proposal.md#3-reference-implementation) | Follow [Imports of other sections](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#imports-of-other-sections). Write `reference/<section_module>.py` in the proposal bundle. If no host code exists yet, write the functions from the text of part 2, and write `source commit: none (no host code)` in the note at the top of the file. |
-   | 4 | [4. Vectors](../../../specs/model-sidecar/templates/change-proposal.md#4-vectors) | Make the vectors with part 3. Verify the numeric cases against the host implementation. An `error` case and a `failed` case run only against the reference implementation ([The step](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#the-step)). If you cannot, write `unverified: <reason>`. Give each pixel case a tolerance in `compare`. Write the cases to `vectors/<section ID>.yaml` in the proposal bundle, in the case form of the template ([ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md)). |
+   | 4 | [4. Vectors](../../../specs/model-sidecar/templates/change-proposal.md#4-vectors) | Make the vectors with part 3. Verify the numeric cases against the host implementation. An `error` case and a `failed` case run only against the reference implementation ([The step](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#the-step)). If you cannot, write `unverified: <reason>`. Give each pixel case a tolerance in `compare`. Write the cases to `vectors/<section ID>.yaml` in the proposal bundle, in the case form of the template ([ADR-TA0G](../../../decisions/entries/TA0G-vector-cases-and-reference-modules.md)). |
    | 5 | [5. Parity evidence](../../../specs/model-sidecar/templates/change-proposal.md#5-parity-evidence) | Follow [Parity](../../../specs/model-sidecar/model-addition-workflow/parity.md#parity). Commit the script. If you cannot run the script or commit it, write `to run` and describe the script. If you do not know the path or the commit of the script, write `unknown (<reason>)`. |
    | 6 | [6. skellytracker implementation proposal](../../../specs/model-sidecar/templates/change-proposal.md#6-skellytracker-implementation-proposal) | Read the package code in the checkout. If a call site is not known, write `for the implementer`. |
    | 7 | [7. Exporter impact](../../../specs/model-sidecar/templates/change-proposal.md#7-exporter-impact) | List each affected sidecar group: owner repo, inventory key or model, and change. |
@@ -222,7 +222,7 @@ A contributor writes its proposal bundle.
 1. Run `git fetch --all` when you can. Then run `uv run python tools/check_decision_log.py --new`.
    Give the entry the ID of the `new:` line ([section 5](../../../AGENTS.md#5-decision-log) of
    `AGENTS.md`).
-2. Name the file `specs/model-sidecar/decisions/<id>-<slug>.md`. Use the slug of the proposal. The title is
+2. Name the file `specs/model-sidecar/decisions/entries/<id>-<slug>.md`. Use the slug of the proposal. The title is
    "<id> — Spec change: <slug>".
 3. Write the status line: `**Status:** proposed, <YYYY-MM-DD> (<source>).` The source is the bundle
    ID and its version, for example `proposal-letterbox-floor-rounding@openmmlab-exporter@v1`.
@@ -236,9 +236,9 @@ A contributor writes its proposal bundle.
    missing primary evidence, each `to run` result and each open question. List each plan decision
    of part 1. The user must confirm or refuse each one
    ([User decisions](../../../specs/model-sidecar/model-addition-workflow/rules.md#user-decisions);
-   [ADR-FDTD](../../../decisions/FDTD-evidence-sources-and-exporter-permalinks.md)).
+   [ADR-FDTD](../../../decisions/entries/FDTD-evidence-sources-and-exporter-permalinks.md)).
 6. Keep the entry inside the entry limit
-   ([ADR-Z05A](../../../decisions/Z05A-essential-decision-log-rules.md)). The details stay in
+   ([ADR-Z05A](../../../decisions/entries/Z05A-essential-decision-log-rules.md)). The details stay in
    `proposal.md`.
 7. Write the repo name with the ID of an exporter decision, for example "OpenMMLab-Exporter
    0020". Write the entry in ASD-STE100.
@@ -255,7 +255,7 @@ A contributor writes its proposal bundle.
    accepts the proposal.
 2. Run `uv run pytest tools/tests -q`. All tests must pass.
 3. The proposal file and the entry are a non-spec change. Put them in a non-spec PR
-   ([0027](../../../decisions/0027-single-working-branch.md#one-kind-of-change-in-each-pr)).
+   ([0027](../../../decisions/entries/0027-single-working-branch.md#one-kind-of-change-in-each-pr)).
 4. Stop. Tell the user the entry number and the decision to make.
 5. The user accepts or rejects the proposal. After acceptance, use the skill
    [`change-sidecar-spec`](../change-sidecar-spec/SKILL.md).
@@ -264,7 +264,7 @@ A contributor writes its proposal bundle.
 
 Do these steps when a recorded proposal bundle has a new complete version. These steps and
 [Versions](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#versions) give the rules
-([ADR-Z05A](../../../decisions/Z05A-essential-decision-log-rules.md)). Procedure B step 1 of [`change-sidecar-spec`](../change-sidecar-spec/SKILL.md) stops a landing
+([ADR-Z05A](../../../decisions/entries/Z05A-essential-decision-log-rules.md)). Procedure B step 1 of [`change-sidecar-spec`](../change-sidecar-spec/SKILL.md) stops a landing
 until the record is current.
 
 1. Do Step 1 and Step 2 for the new version.

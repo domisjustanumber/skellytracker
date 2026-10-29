@@ -16,7 +16,7 @@ REPO_ROOT = Path(cdl.__file__).resolve().parents[1]
 REPO_LOG_DIRS = cdl.LOG_DIRS
 # A module log for the tests that patch LOG_DIRS. It is two folders deep.
 MODULE = Path("m") / "decisions"
-TO_ROOT_LOG = f"../../{cdl.LOG_DIR.as_posix()}"
+TO_ROOT_LOG = f"../../../{cdl.LOG_DIR.as_posix()}/{cdl.ENTRIES}"
 
 INDEX = """# Decision log
 
@@ -61,19 +61,21 @@ def make_log(
         INDEX.format(active=active, proposed=proposed), encoding="utf-8"
     )
     (log_dir / cdl.HISTORICAL).write_text(HISTORY.format(historical=historical), encoding="utf-8")
+    (log_dir / cdl.ENTRIES).mkdir()
     for name, text in (entries or {}).items():
-        (log_dir / name).write_text(text, encoding="utf-8")
+        folder = log_dir / cdl.ENTRIES if cdl.ENTRY_LIKE.match(name) and name not in cdl.NOT_ENTRIES else log_dir
+        (folder / name).write_text(text, encoding="utf-8")
     return tmp_path
 
 
 def row(number: int | str, status: str, name: str = "x", decision: str = "Title") -> str:
     i = f"{number:04d}" if isinstance(number, int) else number
-    return f"| [{i}]({i}-{name}.md) | {decision} | {status} |"
+    return f"| [{i}](entries/{i}-{name}.md) | {decision} | {status} |"
 
 
 def prow(number: int | str, section: str = "`a.b`", name: str = "x") -> str:
     i = f"{number:04d}" if isinstance(number, int) else number
-    return f"| [{i}]({i}-{name}.md) | Title | {section} | proposed |"
+    return f"| [{i}](entries/{i}-{name}.md) | Title | {section} | proposed |"
 
 
 def proposed_entry(day: str, number: int = 1) -> str:
@@ -112,7 +114,7 @@ def test_entry_without_row_and_row_without_entry_are_reported(tmp_path: Path) ->
         tmp_path, active=row(1, "accepted"), entries={"0002-y.md": "# 0002\n"}
     )
     errors = cdl.check(root)
-    assert "0002-y.md: 0 index rows, expected 1" in errors
+    assert "entries/0002-y.md: 0 index rows, expected 1" in errors
     assert any("row links to missing file 0001-x.md" in e for e in errors)
 
 
@@ -260,7 +262,7 @@ def test_new_entry_over_limit_is_reported_and_old_entry_is_not(tmp_path: Path) -
     )
     errors = cdl.check(root)
     assert (
-        f"{new:04d}-y.md: {cdl.ENTRY_LIMIT + 1} characters, limit {cdl.ENTRY_LIMIT}"
+        f"entries/{new:04d}-y.md: {cdl.ENTRY_LIMIT + 1} characters, limit {cdl.ENTRY_LIMIT}"
         in errors
     )
     assert not any(e.startswith(f"{old:04d}-x.md") for e in errors)
@@ -273,8 +275,8 @@ def test_entry_limit_does_not_count_the_status_paragraph(tmp_path: Path) -> None
     body = "x" * (cdl.ENTRY_LIMIT - 2)  # the blank line after the status paragraph still counts
     root = make_log(tmp_path, active=row(new, "accepted"), entries={f"{new:04d}-x.md": status + body})
     assert cdl.check(root) == []
-    (root / cdl.LOG_DIR / f"{new:04d}-x.md").write_text(status + body + "x", encoding="utf-8")
-    assert f"{new:04d}-x.md: {cdl.ENTRY_LIMIT + 1} characters, limit {cdl.ENTRY_LIMIT}" in cdl.check(root)
+    (root / cdl.LOG_DIR / cdl.ENTRIES / f"{new:04d}-x.md").write_text(status + body + "x", encoding="utf-8")
+    assert f"entries/{new:04d}-x.md: {cdl.ENTRY_LIMIT + 1} characters, limit {cdl.ENTRY_LIMIT}" in cdl.check(root)
 
 
 @pytest.mark.parametrize("gap", ["\n", "\n   \n## Decision\n"])
@@ -283,7 +285,7 @@ def test_status_exemption_does_not_take_the_body(tmp_path: Path, gap: str) -> No
     new = cdl.LAST_UNLIMITED_ENTRY + 1
     text = "# X\n\n**Status:** accepted." + gap + "x" * cdl.ENTRY_LIMIT
     root = make_log(tmp_path, active=row(new, "accepted"), entries={f"{new:04d}-x.md": text})
-    assert any(e.startswith(f"{new:04d}-x.md: ") for e in cdl.check(root))
+    assert any(e.startswith(f"entries/{new:04d}-x.md: ") for e in cdl.check(root))
 
 
 def test_open_work_at_80_percent_warns_and_passes(tmp_path: Path) -> None:
@@ -343,7 +345,7 @@ def test_two_files_with_one_number_are_reported(tmp_path: Path) -> None:
         entries={"0032-a.md": "# 0032\n", "0032-b.md": "# 0032\n"},
     )
     errors = cdl.check(root)
-    assert "entry ID 0032 has 2 files: 0032-a.md, 0032-b.md" in errors
+    assert "entry ID 0032 has 2 files: entries/0032-a.md, entries/0032-b.md" in errors
     assert "README.md:10: ID 0032 is also in README.md:9" in errors
 
 
@@ -365,13 +367,13 @@ def test_link_text_in_entry_must_match_file(tmp_path: Path) -> None:
             "0003-z.md": "",
         },
     )
-    assert cdl.check(root) == ["0001-x.md:3: link text 0002 does not match 0003-z.md"]
+    assert cdl.check(root) == ["entries/0001-x.md:3: link text 0002 does not match 0003-z.md"]
 
 
 @pytest.mark.parametrize(
     ("text", "expected"),
     [
-        ("# 0032 — T\n", ["0033-x.md: heading ID 0032 does not match the file name"]),
+        ("# 0032 — T\n", ["entries/0033-x.md: heading ID 0032 does not match the file name"]),
         ("# 0033 — T\n", []),
         ("", []),
     ],
@@ -398,7 +400,7 @@ def test_gaps_in_numbers_pass(tmp_path: Path) -> None:
         ("[0002](0002-y.md)", []),
         (
             "[0003](0003-z.md)",
-            ["0001-x.md: the status line does not link superseded by 0002 to 0002-y.md"],
+            ["entries/0001-x.md: the status line does not link superseded by 0002 to 0002-y.md"],
         ),
     ],
 )
@@ -466,7 +468,7 @@ def test_status_link_to_another_log_needs_its_path(tmp_path: Path, target: str) 
         log=MODULE,
     )
     assert cdl.check(tmp_path) == [
-        "m/decisions/C003-z.md: the status line does not link superseded by A001 to "
+        "m/decisions/entries/C003-z.md: the status line does not link superseded by A001 to "
         f"{TO_ROOT_LOG}/A001-x.md"
     ]
 
@@ -485,7 +487,7 @@ def test_one_id_in_two_logs_fails(tmp_path: Path, root_name: str, module_name: s
         log=MODULE,
     )
     errors = cdl.check(tmp_path)
-    assert f"entry ID K7M2 has 2 files: {root_name}, m/decisions/{module_name}" in errors
+    assert f"entry ID K7M2 has 2 files: entries/{root_name}, m/decisions/entries/{module_name}" in errors
     assert f"m/decisions/README.md:9: ID {module_name[:4]} is also in README.md:9" in errors
 
 
@@ -533,7 +535,7 @@ def test_module_entry_near_its_limit_does_not_warn(tmp_path: Path) -> None:
     make_log(tmp_path)
     make_log(tmp_path, active=row("A001", "accepted"), entries={"A001-x.md": near}, log=MODULE)
     assert cdl.check(tmp_path) == []
-    assert ("m/decisions/A001-x.md", len(near), cdl.ENTRY_LIMIT) in cdl.sizes(tmp_path)
+    assert ("m/decisions/entries/A001-x.md", len(near), cdl.ENTRY_LIMIT) in cdl.sizes(tmp_path)
     assert cdl.warnings(tmp_path) == []
 
 
@@ -572,8 +574,8 @@ def git(cwd: Path, *args: str, stdin: bytes | None = None) -> None:
 
 
 def entry(root: Path, name: str, log: Path = cdl.LOG_DIR) -> None:
-    (root / log).mkdir(parents=True, exist_ok=True)
-    (root / log / name).write_text(f"# {name[:4]}\n", encoding="utf-8")
+    (root / log / cdl.ENTRIES).mkdir(parents=True, exist_ok=True)
+    (root / log / cdl.ENTRIES / name).write_text(f"# {name[:4]}\n", encoding="utf-8")
 
 
 def commit(root: Path, message: str) -> None:
@@ -635,10 +637,10 @@ def test_entry_id_format(tmp_path: Path, name: str, valid: bool) -> None:
     root = make_log(tmp_path, entries={name: ""})
     errors = cdl.check(root)
     if valid:
-        assert errors == [f"{name}: 0 index rows, expected 1"]
+        assert errors == [f"entries/{name}: 0 index rows, expected 1"]
     else:
         assert errors == [
-            f"{name}: the file name starts like an entry, but {name[:4]!r} is not a valid ID"
+            f"entries/{name}: the file name starts like an entry, but {name[:4]!r} is not a valid ID"
         ]
 
 
@@ -667,10 +669,10 @@ def test_ids_that_differ_only_in_case_are_one_id(tmp_path: Path) -> None:
         },
     )
     assert cdl.check(root) == []
-    (root / cdl.LOG_DIR / "k7m2-y.md").write_text("# k7m2 — T\n\n[ADR-A001](k7m2-y.md)\n", encoding="utf-8")
-    assert "k7m2-y.md:3: link text A001 does not match k7m2-y.md" in cdl.check(root)
-    (root / cdl.LOG_DIR / "K7M2-w.md").write_text("# K7M2 — T\n", encoding="utf-8")
-    assert "entry ID K7M2 has 2 files: K7M2-w.md, k7m2-y.md" in cdl.check(root)
+    (root / cdl.LOG_DIR / cdl.ENTRIES / "k7m2-y.md").write_text("# k7m2 — T\n\n[ADR-A001](k7m2-y.md)\n", encoding="utf-8")
+    assert "entries/k7m2-y.md:3: link text A001 does not match k7m2-y.md" in cdl.check(root)
+    (root / cdl.LOG_DIR / cdl.ENTRIES / "K7M2-w.md").write_text("# K7M2 — T\n", encoding="utf-8")
+    assert "entry ID K7M2 has 2 files: entries/K7M2-w.md, entries/k7m2-y.md" in cdl.check(root)
     assert cdl.new_lines(root, scripted("K7M2", "B111"))[0] == "new: B111"
 
 
@@ -692,7 +694,7 @@ def test_letter_id_has_no_size_exemption(tmp_path: Path) -> None:
         entries={"a001-x.md": "x" * (cdl.ENTRY_LIMIT + 1)},
     )
     errors = cdl.check(root)
-    assert f"a001-x.md: {cdl.ENTRY_LIMIT + 1} characters, limit {cdl.ENTRY_LIMIT}" in errors
+    assert f"entries/a001-x.md: {cdl.ENTRY_LIMIT + 1} characters, limit {cdl.ENTRY_LIMIT}" in errors
 
 
 def test_new_without_git(git_env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -761,7 +763,7 @@ def test_new_ignores_own_uncommitted_rename(git_env: Path) -> None:
     # A rebase makes a new commit, so origin/feat is no longer merged into HEAD.
     git(root, "commit", "-q", "--amend", "-m", "0002-old, rebased")
     log = cdl.LOG_DIR.as_posix()
-    git(root, "mv", f"{log}/0002-old.md", f"{log}/0002-new.md")
+    git(root, "mv", f"{log}/entries/0002-old.md", f"{log}/entries/0002-new.md")
     assert verdicts(cdl.new_lines(root)) == []
 
 
@@ -920,7 +922,7 @@ def test_entry_moved_to_another_log_is_not_a_collision(git_env: Path) -> None:
     entry(root, "0002-s.md")
     commit(root, "0002-s")
     git(root, "checkout", "-q", "main")
-    git(root, "mv", f"{MODULE.as_posix()}/k7m2-a.md", f"{cdl.LOG_DIR.as_posix()}/k7m2-a.md")
+    git(root, "mv", f"{MODULE.as_posix()}/entries/k7m2-a.md", f"{cdl.LOG_DIR.as_posix()}/entries/k7m2-a.md")
     assert verdicts(cdl.new_lines(root)) == []
     git(root, "commit", "-q", "-m", "move", "--date=2026-02-01T00:00:00")
     lines = cdl.new_lines(root, scripted("K7M2", "B111"))
@@ -993,3 +995,45 @@ def test_new_process_count_is_fixed(
         assert verdicts(lines) == []
         counts.append(len(calls))
     assert counts[0] == counts[1] <= 5
+
+
+def test_entry_file_outside_entries_is_reported(tmp_path: Path) -> None:
+    root = make_log(tmp_path, active=row(1, "accepted"), entries={"0001-x.md": "# 0001\n"})
+    (root / cdl.LOG_DIR / "0002-y.md").write_text("# 0002\n", encoding="utf-8")
+    assert cdl.check(root) == [f"0002-y.md: an entry file must be in {cdl.ENTRIES}/"]
+
+
+def test_entry_limit_does_not_count_edited_lines(tmp_path: Path) -> None:
+    new = cdl.LAST_UNLIMITED_ENTRY + 1
+    body = "x" * (cdl.ENTRY_LIMIT - 4) + "\n\n_Edited 2026-10-29 (#1): link repair._\n_Edited 2026-10-30 (#2): typo._\n"
+    root = make_log(tmp_path, active=row(new, "accepted"), entries={f"{new:04d}-x.md": body})
+    assert cdl.size(root / cdl.LOG_DIR / cdl.ENTRIES / f"{new:04d}-x.md") > cdl.ENTRY_LIMIT + 4
+    assert not any(e.startswith(f"entries/{new:04d}-x.md: ") for e in cdl.check(root))
+
+
+def test_old_form_row_link_names_the_entries_folder(tmp_path: Path) -> None:
+    root = make_log(tmp_path, active="| [0001](0001-x.md) | Title | accepted |", entries={"0001-x.md": "# 0001\n"})
+    assert "README.md:9: the link must be [0001](entries/0001-x.md)" in cdl.check(root)
+
+
+def test_only_the_edit_line_form_is_exempt(tmp_path: Path) -> None:
+    """A line that starts with _Edited but is not an edit line counts, so no body text hides in it."""
+    new = cdl.LAST_UNLIMITED_ENTRY + 1
+    body = "_Edited the whole body " + "x" * cdl.ENTRY_LIMIT + " is here._\n"
+    root = make_log(tmp_path, active=row(new, "accepted"), entries={f"{new:04d}-x.md": body})
+    assert any(e.startswith(f"entries/{new:04d}-x.md: ") for e in cdl.check(root))
+
+
+@needs_git
+def test_new_reads_the_flat_layout_on_branches(git_env: Path) -> None:
+    """A branch from before the move to entries/ has its entry files in the log folder."""
+    root = repo(git_env / "repo")
+    git(root, "checkout", "-q", "-b", "stale")
+    (root / cdl.LOG_DIR / "b111-s.md").write_text("# b111\n", encoding="utf-8")
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "b111-s", "--date=2026-02-01T00:00:00")
+    git(root, "checkout", "-q", "main")
+    entry(root, "b111-o.md")
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "b111-o", "--date=2026-01-01T00:00:00")
+    assert verdicts(cdl.new_lines(root)) == ["keep: b111-o.md; b111-s.md also uses b111 (on stale)"]

@@ -9,11 +9,12 @@ Usage::
 
 The tool reads each decision log in ``LOG_DIRS`` under ROOT (default: the current directory). The
 first log, ``LOG_DIR``, is the root log. A module log is a folder of a module, for example
-``server/decisions``. Each log has the Active and Proposed tables in its ``README.md`` and the
-Historical table in its ``historical.md``. The labels of the root log have no prefix. The labels of
-a module log start with its folder. It reports:
+``server/decisions``. Each log has the Active and Proposed tables in its ``README.md``, the
+Historical table in its ``historical.md`` and its entry files in ``ENTRIES`` (decision QPS7).
+The labels of the root log have no prefix. The labels of a module log start with its folder. It reports:
 
 - a log folder with no ``README.md``;
+- an entry file outside ``ENTRIES``;
 - an entry file with no index row, and an index row with no entry file;
 - a table in the wrong file, and a row with the wrong number of cells;
 - a Section cell of the Proposed table that is not a section ID in backticks or ``none``;
@@ -41,7 +42,8 @@ gtwq).
 
 ``--new`` prints ``new: XXXX``, a random ID that is not in a log of this tree, of each other
 worktree or of each local and remote-tracking branch. In the other worktrees and on the branches, it
-also reads each folder of ``OLD_LOG_DIRS``, where a log was before a move. Then it prints one line
+also reads each folder of ``OLD_LOG_DIRS``, where a log was before a move. In each log folder it
+reads ``ENTRIES`` and, for a tree from before the move to ``ENTRIES``, the log folder. Then it prints one line
 for each entry of this tree whose ID a different file uses in one of those places. ``keep:`` tells
 you to keep the ID. ``re-ID:`` tells you to rename the entry to the ID of a new ``--new`` run. Both
 sides of a collision get the same verdict: an entry on ``TARGET_BRANCH`` wins, then an entry on a
@@ -63,7 +65,8 @@ The limits are ``INDEX_LIMIT`` for each ``README.md``, ``OPEN_WORK_LIMIT`` for e
 ``ENTRY_LIMIT`` for each entry, ``READ_PATH_LIMIT`` for the read path and ``DECISION_CELL_LIMIT`` for
 a Decision cell. The size of an entry does not count its status paragraph: the lines from
 ``**Status:**`` to the next blank line or heading, when they have ``STATUS_EXEMPTION_LIMIT``
-characters or fewer. A status change then never makes a full entry too long.
+characters or fewer. It also does not count its ``_Edited YYYY-MM-DD (<PR>): <kind>._`` lines. A status change or an
+allowed edit line then never makes a full entry too long.
 All-digit entries up to ``LAST_UNLIMITED_ENTRY`` keep their length, because the body of an old entry
 does not change. An entry with ``renumber from XXXX`` or ``re-ID from XXXX`` keeps the exemption of
 XXXX. Standard library and the git CLI only, with no import from another repo (decision gtwq).
@@ -88,6 +91,8 @@ LOG_DIR = Path("decisions")
 LOG_DIRS = (LOG_DIR, Path("specs") / "model-sidecar" / "decisions")
 # A folder where a log was before a move. Only --new reads it, in other worktrees and on branches.
 OLD_LOG_DIRS: tuple[Path, ...] = (Path("notes") / "decisions",)
+# The folder of the entry files in each log. A log before the move to it had them in the log folder.
+ENTRIES = "entries"
 OPEN_WORK = "open-work.md"
 HISTORICAL = "historical.md"
 TEMPLATE = "template.md"
@@ -131,8 +136,12 @@ ENTRY_NAME = re.compile(rf"^({ID})-([a-z0-9-]+)\.md$")
 ENTRY_LIKE = re.compile(r"^[0-9a-zA-Z]{4}-.*\.md$")
 STATUS_PARAGRAPH = re.compile(r"^\*\*Status:\*\*.*?(?=\n[ \t]*\n|\n#|\Z)", re.MULTILINE | re.DOTALL)
 STATUS_EXEMPTION_LIMIT = 1_000
+# Only the form `_Edited YYYY-MM-DD (<PR>): <kind>._` is exempt, so that no body text can hide in it.
+EDITED_LINE = re.compile(r"^_Edited \d{4}-\d{2}-\d{2} \([^\n]{1,80}\): [A-Za-z0-9 -]{1,40}\._[ \t]*$", re.MULTILINE)
 TABLE_HEADING = re.compile(r"^### (\w+)\s*$")
-ROW_LINK = re.compile(rf"^\[({ID})\]\((({ID})-[a-z0-9-]+\.md)\)$")
+ROW_LINK = re.compile(rf"^\[({ID})\]\({ENTRIES}/(({ID})-[a-z0-9-]+\.md)\)$")
+# A row of a log from before the move to ENTRIES.
+OLD_ROW_LINK = re.compile(rf"^\[({ID})\]\((({ID})-[a-z0-9-]+\.md)\)$")
 STATUS_LINE = re.compile(r"^\*\*Status:\*\*(.*)$", re.MULTILINE)
 ENTRY_LINK = re.compile(
     rf"\[(?:ADR-)?({ID})\]\((?:[^)\s]*/)?(({ID})-[a-z0-9-]+\.md)(?:#[^)\s]*)?\)"
@@ -174,11 +183,14 @@ def size(path: Path) -> int:
 
 
 def entry_size(path: Path) -> int:
-    """Characters in an entry without its status paragraph, which grows with each status change (decision Z05A)."""
+    """Characters in an entry without its status paragraph and its `_Edited` lines (decisions Z05A and QPS7).
+
+    Both grow after the decision, and an allowed edit cannot make them shorter.
+    """
     text = path.read_text(encoding="utf-8").replace("\r\n", "\n")
     status = STATUS_PARAGRAPH.search(text)
     exempt = len(status.group(0)) if status and len(status.group(0)) <= STATUS_EXEMPTION_LIMIT else 0
-    return len(text) - exempt
+    return len(text) - exempt - sum(len(m.group(0)) for m in EDITED_LINE.finditer(text))
 
 
 def table_rows(path: Path, log: Path) -> tuple[list[IndexRow], list[str]]:
@@ -202,6 +214,10 @@ def table_rows(path: Path, log: Path) -> tuple[list[IndexRow], list[str]]:
             continue
         cells = [c.strip() for c in text.strip().strip("|").split("|")]
         link = ROW_LINK.match(cells[0])
+        old = OLD_ROW_LINK.match(cells[0])
+        if link is None and old:
+            errors.append(f"{label}:{number}: the link must be [{old.group(1)}]({ENTRIES}/{old.group(2)})")
+            continue
         width = 4 if table == "Proposed" else 3
         if link is None or len(cells) != width:
             errors.append(f"{label}:{number}: a {table} row has the cells | # | Decision | "
@@ -231,7 +247,7 @@ def log_index(root: Path, log: Path) -> tuple[list[IndexRow], list[str]]:
 
 
 def entry_files(log_dir: Path) -> dict[str, Path]:
-    return {p.name: p for p in sorted(log_dir.glob("*.md")) if ENTRY_NAME.match(p.name)}
+    return {p.name: p for p in sorted((log_dir / ENTRIES).glob("*.md")) if ENTRY_NAME.match(p.name)}
 
 
 def entry_id(name: str) -> str:
@@ -292,7 +308,7 @@ def status_link_errors(r: IndexRow, by_id: dict[str, IndexRow], path: Path, root
     if named is None or named is r:
         return []
     kind = "superseded by" if r.status.startswith("superseded by") else "used by"
-    target = root / named.log / named.filename
+    target = root / named.log / ENTRIES / named.filename
     link = re.compile(rf"{kind} \[(?i:{named.id})\]\(([^)\s#]+)(?:#[^)\s]*)?\)")
     line = STATUS_LINE.search(path.read_text(encoding="utf-8"))
     # normpath keeps the case, so a link with a wrong case fails also on Windows.
@@ -303,7 +319,7 @@ def status_link_errors(r: IndexRow, by_id: dict[str, IndexRow], path: Path, root
         return []
     want = Path(os.path.relpath(target, path.parent)).as_posix()
     return [
-        f"{prefix(r.log)}{r.filename}: the status line does not link {kind} {named.id} to {want}"
+        f"{prefix(r.log)}{ENTRIES}/{r.filename}: the status line does not link {kind} {named.id} to {want}"
     ]
 
 
@@ -329,9 +345,14 @@ def name_errors(root: Path, log: Path, files: dict[str, Path]) -> list[str]:
     """In one log, file names have valid IDs, and link texts and headings match the file names."""
     log_dir = root / log
     errors = [
-        f"{prefix(log)}{p.name}: the file name starts like an entry, but {p.name[:4]!r} is not a valid ID"
+        f"{prefix(log)}{p.name}: an entry file must be in {ENTRIES}/"
         for p in sorted(log_dir.glob("*.md"))
-        if ENTRY_LIKE.match(p.name) and not ENTRY_NAME.match(p.name) and p.name not in NOT_ENTRIES
+        if ENTRY_LIKE.match(p.name) and p.name not in NOT_ENTRIES
+    ]
+    errors += [
+        f"{prefix(log)}{ENTRIES}/{p.name}: the file name starts like an entry, but {p.name[:4]!r} is not a valid ID"
+        for p in sorted((log_dir / ENTRIES).glob("*.md"))
+        if ENTRY_LIKE.match(p.name) and not ENTRY_NAME.match(p.name)
     ]
     for path in sorted(log_dir.rglob("*.md")):
         label = prefix(log) + path.relative_to(log_dir).as_posix()
@@ -348,7 +369,7 @@ def name_errors(root: Path, log: Path, files: dict[str, Path]) -> list[str]:
         heading = HEADING_ID.match(lines[0]) if lines else None
         if heading and heading.group(1) != name[:4]:
             errors.append(
-                f"{prefix(log)}{name}: heading ID {heading.group(1)} does not match the file name"
+                f"{prefix(log)}{ENTRIES}/{name}: heading ID {heading.group(1)} does not match the file name"
             )
     return errors
 
@@ -369,7 +390,7 @@ def sizes(root: Path) -> list[tuple[str, int, int]]:
             found.append((prefix(log) + OPEN_WORK, size(log_dir / OPEN_WORK), OPEN_WORK_LIMIT))
         for name, path in entry_files(log_dir).items():
             if not unlimited(name, path):
-                found.append((prefix(log) + name, entry_size(path), ENTRY_LIMIT))
+                found.append((f"{prefix(log)}{ENTRIES}/{name}", entry_size(path), ENTRY_LIMIT))
     found.append(
         ("read path (README.md, open-work.md and Active entries)", read_path_size(root), READ_PATH_LIMIT)
     )
@@ -390,7 +411,7 @@ def check(root: Path) -> list[str]:
         listed = [r.filename for r in log_rows]
         errors += more
         errors += [
-            f"{prefix(log)}{name}: {listed.count(name)} index rows, expected 1"
+            f"{prefix(log)}{ENTRIES}/{name}: {listed.count(name)} index rows, expected 1"
             for name in files
             if listed.count(name) != 1
         ]
@@ -402,7 +423,7 @@ def check(root: Path) -> list[str]:
             errors.extend(status_errors(r, by_id))
             errors.extend(status_link_errors(r, by_id, files[r.filename], root))
     errors.extend(
-        id_space_errors(rows, [prefix(log) + name for log, files in files_of.items() for name in files])
+        id_space_errors(rows, [f"{prefix(log)}{ENTRIES}/{name}" for log, files in files_of.items() for name in files])
     )
     errors.extend(
         f"{label}: {used} characters, limit {limit}"
@@ -479,7 +500,10 @@ def decoded(data: bytes | None) -> str:
 
 
 def entry_names(folder: Path) -> set[str]:
-    return {p.name for p in folder.glob("*.md") if ENTRY_NAME.match(p.name)} if folder.is_dir() else set()
+    """The entry file names of a log folder, in ENTRIES and, for a tree before the move, in the folder."""
+    return {
+        p.name for d in (folder / ENTRIES, folder) if d.is_dir() for p in d.glob("*.md") if ENTRY_NAME.match(p.name)
+    }
 
 
 def log_entry_names(root: Path, logs: tuple[Path, ...]) -> set[str]:
@@ -571,7 +595,8 @@ def git_sources(root: Path) -> Sources:
     commits = sorted({r[0] for r in refs})
     if commits:
         # One line for each (commit, log) pair, in one process for any number of refs and logs.
-        pairs = [(c, log) for c in commits for log in LOG_DIRS + OLD_LOG_DIRS]
+        logs = tuple(folder for log in LOG_DIRS + OLD_LOG_DIRS for folder in (log / ENTRIES, log))
+        pairs = [(c, log) for c in commits for log in logs]
         batch = git(
             root,
             "cat-file",

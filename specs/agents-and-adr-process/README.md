@@ -6,11 +6,11 @@ to copy. The kit is in [`bootstrap/`](bootstrap/). Its folders have the layout o
 each file goes to the same relative path.
 
 The rules come from the skellytracker decision log:
-[ADR-GN3D](../../decisions/GN3D-module-decision-logs.md),
-[ADR-Z05A](../../decisions/Z05A-essential-decision-log-rules.md),
-[ADR-FDTD](../../decisions/FDTD-evidence-sources-and-exporter-permalinks.md),
-[ADR-P3N3](../../decisions/p3n3-ai-attribution-warning.md) and
-[ADR-EY8R](../../decisions/EY8R-tools-and-scripts.md). The kit has their final form. It does
+[ADR-GN3D](../../decisions/entries/GN3D-module-decision-logs.md),
+[ADR-Z05A](../../decisions/entries/Z05A-essential-decision-log-rules.md),
+[ADR-FDTD](../../decisions/entries/FDTD-evidence-sources-and-exporter-permalinks.md),
+[ADR-P3N3](../../decisions/entries/p3n3-ai-attribution-warning.md) and
+[ADR-EY8R](../../decisions/entries/EY8R-tools-and-scripts.md). The kit has their final form. It does
 not have their history.
 
 ## What the kit gives
@@ -22,7 +22,7 @@ not have their history.
 | [`decisions/README.md`](bootstrap/decisions/README.md) | the same path | Fill in each `{{...}}` |
 | [`decisions/historical.md`](bootstrap/decisions/historical.md), [`decisions/template.md`](bootstrap/decisions/template.md) | the same paths | Copy |
 | [`decisions/open-work.md`](bootstrap/decisions/open-work.md) | the same path | Replace the example item, or delete it |
-| [`decisions/0001-…`](bootstrap/decisions/0001-decision-log-agents-md-and-private-data.md) | the same path | Fill in the date |
+| [`decisions/entries/0001-…`](bootstrap/decisions/entries/0001-decision-log-agents-md-and-private-data.md) | the same path | Fill in the date |
 | `tools/check_decision_log.py`, `tools/check_links.py`, `tools/check_private_data.py`, `tools/check_ai_attribution.py` | the same paths | Copy. Add the public contact address of the project to `ALLOWED_EMAILS`. |
 | `tools/tests/conftest.py` and the four `test_*.py` files | the same paths | Copy |
 | `.pre-commit-config.yaml`, `.gitleaks.toml` | the same paths | Copy |
@@ -338,7 +338,7 @@ raises a limit must add an entry. To start the log in a repo that already has lo
 A repo can have modules, for example a server in `freemocap/` and a UI in `freemocap-ui/`. Each
 module has its own `AGENTS.md` and its own decision log in `<module>/decisions/`. The root log in
 `decisions/` holds the Rules, the template and each decision that is not for one module only
-([ADR-GN3D](../../decisions/GN3D-module-decision-logs.md)).
+([ADR-GN3D](../../decisions/entries/GN3D-module-decision-logs.md)).
 
 - **Reason.** A task in one module does not load the decisions of the other modules. A UI task does
   not load the server decisions. The agent reads the root log and the log of its module.
@@ -355,11 +355,13 @@ module has its own `AGENTS.md` and its own decision log in `<module>/decisions/`
 - **Tools and scripts.** A tool is code that the repo runs in its normal work. Each tool is in the
   root `tools/`. This also applies when only one module uses it. A script made the evidence for an
   entry, or did a one-off job that the entry records. It is in `scripts/` of the log that holds its
-  entry ([ADR-EY8R](../../decisions/EY8R-tools-and-scripts.md)).
+  entry ([ADR-EY8R](../../decisions/entries/EY8R-tools-and-scripts.md)).
 - **Packages.** A module that is also a package can ship its `decisions/` folder in the wheel or the
   package. Check the build config. Exclude the folder when the package must not contain it.
 - **Older kit copies.** A repo that copied an older kit keeps its log where it is. This guide does
-  not migrate it. A move of that log needs an entry and a PR in that repo.
+  not migrate it. A move of that log needs an entry and a PR in that repo. The current
+  `check_decision_log.py` needs the entry files in `<log>/entries/`. A repo that copies it moves
+  its entries in the same PR, or keeps its older tool.
 
 ### Repos that share the rules
 
@@ -424,7 +426,7 @@ These pitfalls are already found. Do not repeat them.
 ## Keep the kit current
 
 This section is for the maintainers of skellytracker
-([ADR-Z05A](../../decisions/Z05A-essential-decision-log-rules.md)). The tool and config files in `bootstrap/` are
+([ADR-Z05A](../../decisions/entries/Z05A-essential-decision-log-rules.md)). The tool and config files in `bootstrap/` are
 copies of the live files of skellytracker, with exact text edits that remove the parts that belong
 only to skellytracker. [`tools/sync_bootstrap_kit.py`](../../tools/sync_bootstrap_kit.py) holds the
 list of copies and edits. `decisions/template.md` is also a copy. When you change a live tool, a

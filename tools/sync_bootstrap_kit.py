@@ -57,7 +57,8 @@ COPIES = (
         "tools/check_decision_log.py",
         (
             ("(decisions z934 and gtwq).", f"{DECISION_0001}."),
-            ("(decision Z05A).", f"{DECISION_0001}."),
+            ("(decision QPS7).", f"{DECISION_0001}."),
+            ("(decisions Z05A and QPS7).", f"{DECISION_0001}."),
             ("random IDs (decision\ngtwq).", "random IDs (decision\n0001)."),
             ("another repo (decision gtwq).\n", f"another repo {DECISION_0001}.\n"),
             ("INDEX_LIMIT = 18_000\n", "INDEX_LIMIT = 14_000\n"),
@@ -160,7 +161,7 @@ COPIES = (
 AGENTS = ("AGENTS.md", f"{KIT.as_posix()}/AGENTS.md")
 INDEX = ("decisions/README.md", f"{KIT.as_posix()}/decisions/README.md")
 BRANCH = "`{{DEFAULT_BRANCH}}`"
-KIT_0001 = "decisions/0001-decision-log-agents-md-and-private-data.md"
+KIT_0001 = "decisions/entries/0001-decision-log-agents-md-and-private-data.md"
 
 BLOCKS = (
     Block(
@@ -207,10 +208,10 @@ BLOCKS = (
                 " the module links to its log.\nAn entry goes in the log of a module only when each file that its"
                 " Decision section names or\nchanges is in that module.",
             ),
-            ("[ADR-JB5J](decisions/JB5J-one-batch-form-for-each-sidecar.md).", f"[ADR-0001]({KIT_0001})."),
+            ("[ADR-JB5J](decisions/entries/JB5J-one-batch-form-for-each-sidecar.md).", f"[ADR-0001]({KIT_0001})."),
             ("This rule also applies to an older entry with a lower-case file name.\n", ""),
             (
-                "\n([ADR-Z05A](decisions/Z05A-essential-decision-log-rules.md); see the\n"
+                "\n([ADR-Z05A](decisions/entries/Z05A-essential-decision-log-rules.md); see the\n"
                 "[Rules](decisions/README.md#rules)).",
                 "\n(see the [Rules](decisions/README.md#rules)).",
             ),
