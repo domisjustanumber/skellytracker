@@ -193,7 +193,7 @@ Each proposal names one class in `change_class` and in part 2. Its decision entr
 
 The `batch` sub-command checks if the profile `static-batch-v1` converts the batch 3 export of a
 family to the batches 1, 2 and 4 ([`common.batch_conversion`](../common/batch-conversion.md);
-[ADR-JC4T](../../../decisions/JC4T-parity-gates-and-batch-conversion-check.md)). Do it
+[ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)). Do it
 in step 1b of [phase 1](phase-1-intake.md). It gives the evidence of row G6b of the intake and the
 value of `batch_conversion` in the manifest. The converter is
 `skellytracker/core/sessions/batch_conversion.py::model_batch_convert`.
@@ -229,7 +229,7 @@ uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/ske
   export if you plan to publish it.
 - The verification batches, input A, input B and the tolerance are in
   [Authoring guidance](../common/batch-conversion.md#authoring-guidance) of `common.batch_conversion`
-  ([ADR-JC4T](../../../decisions/JC4T-parity-gates-and-batch-conversion-check.md)).
+  ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)).
 - `batch` reads input B from `<out>/inputs/<size>.npy`, one file for each size (`--inputs` gives
   another folder). Your writer code writes it. Its shape is `[4] + input.shape[1:]`. Its dtype is the
   dtype of the graph input (float32 or uint8). For an fp16 graph with a float16 input, `batch` casts
@@ -460,7 +460,7 @@ The session starts only when the user asks for it.
    entry. Before acceptance, the owner entry gets one Evidence line. After acceptance, only the
    tracked copy is added.
 5. A `model` bundle: run `batch` again when [The session run](#the-session-run) tells you to
-   ([ADR-JC4T](../../../decisions/JC4T-parity-gates-and-batch-conversion-check.md)). With the
+   ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)). With the
    verdict `describes`, [Reference examples](reference-examples.md) then copies `example/`. The
    `inventory.yaml` entry gets `bundle: <bundle id>@v<k>`. The same commit deletes each
    [Re-export requests](#re-export-requests) bullet that the bundle answers. With the verdict

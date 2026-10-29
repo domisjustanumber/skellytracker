@@ -71,7 +71,7 @@ proposed section ID.
 - One exception: part 3 of a proposal for a new profile of `common.batch_conversion` is a standalone
   module that uses onnx and NumPy. It has the signature of `model_batch_convert` in
   `skellytracker/core/sessions/batch_conversion.py`. The implementation stage ports it
-  ([ADR-JC4T](../../../decisions/JC4T-parity-gates-and-batch-conversion-check.md)).
+  ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)).
 - Do not import from your repo. Do not import from the package code of skellytracker.
 - To use a function or a value of another section, import the module of that section by its module
   name. For example, write `import pre_resize_rotated_roi_crop`.

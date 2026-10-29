@@ -10,7 +10,7 @@ later and `python -B`. They run `batch` of the same tool in the environment of t
 checkout, with `uv run --project ../freemocap/skellytracker --no-sync python -B`.
 These commands write no other file here
 ([ADR-FADS](decisions/FADS-hand-over-bundles-in-intakes.md);
-[ADR-JC4T](decisions/JC4T-parity-gates-and-batch-conversion-check.md)).
+[ADR-JB5J](decisions/JB5J-one-batch-form-for-each-sidecar.md)).
 
 All new and changed documentation must use ASD-STE100 Simplified Technical English.
 This rule applies to each `AGENTS.md`, skills, decision entries, templates, the model addition

@@ -129,7 +129,7 @@ stage, no file under `skellytracker/` changes, except test fixes.
 
 - **Dependency pins for the exporters.** The target rule is that each exporter takes skellytracker
   as a dependency from a uv path source to the local checkout
-  ([ADR-JC4T](JC4T-parity-gates-and-batch-conversion-check.md), item 6). The pins of
+  ([ADR-JB5J](JB5J-one-batch-form-for-each-sidecar.md), item 5). The pins of
   `pyproject.toml` stop it now: `requires-python = ">=3.11,<3.13"`, `numpy==2.4.6`,
   `opencv-contrib-python`, and onnx 1.22.0 and onnxruntime 1.27.0 in `uv.lock`. The exporters have
   (read 2026-10-28 from the `pyproject.toml` and the lock of each exporter):

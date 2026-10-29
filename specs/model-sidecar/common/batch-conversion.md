@@ -87,7 +87,7 @@ Availability before `vNEXT`: [Schema versioning](../format/versioning.md#legacy-
 
 ## Authoring guidance
 
-This guidance gives the method, the inputs and the tolerance of the check ([ADR-JC4T](../../../decisions/JC4T-parity-gates-and-batch-conversion-check.md)). The run rules of the tool, the steps V0 to V6, the verdicts and the file layout of input B are in [Batch-conversion check](../model-addition-workflow/hand-over.md#batch-conversion-check) of the model addition workflow. The rule that tells which batch artifacts to publish is in [Publishing](../model-addition-workflow/validation-and-publishing.md#publishing). This guidance does not state that rule ([ADR-JC4T](../../../decisions/JC4T-parity-gates-and-batch-conversion-check.md)).
+This guidance gives the method, the inputs and the tolerance of the check ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)). The run rules of the tool, the steps V0 to V6, the verdicts and the file layout of input B are in [Batch-conversion check](../model-addition-workflow/hand-over.md#batch-conversion-check) of the model addition workflow. The rule that tells which batch artifacts to publish is in [Publishing](../model-addition-workflow/validation-and-publishing.md#publishing). This guidance does not state that rule ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)).
 
 - `S` is `3` (`V-common.batch_conversion-3`). Export each size at the verification batches 1, 2, 3 and 4. Batch 4 checks the conversion to a larger batch. It is never published.
 - Write `batching.batch_conversion` only when the profile passes the parity check for each verification batch other than `S` (batches 1, 2 and 4), at each size and each precision of the source group.

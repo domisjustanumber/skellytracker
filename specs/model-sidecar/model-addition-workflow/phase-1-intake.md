@@ -17,7 +17,7 @@ file `intake.md` of a `model` bundle ([Hand-over bundles](hand-over.md#payload))
    before or after the contract is also a row, with the verdict `out of scope`.
 
    **Step 1b: batch-conversion check.** Do this step right after step 1, before step 2
-   ([ADR-JC4T](../../../decisions/JC4T-parity-gates-and-batch-conversion-check.md)).
+   ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)).
    - The check runs by default. Export each size and each precision at the verification batches 1,
      2, 3 and 4. Use the same commit and the same settings. Only the batch changes. b4 is
      verification-only: you never publish it.
