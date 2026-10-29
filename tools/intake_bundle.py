@@ -217,6 +217,11 @@ def manifest_problems(manifest: dict, computed: bool = True) -> list[str]:
             problems.append("batch_forced_reason must give the reason for batch_forced")
         if "batch_forced" in manifest and forced is None and get("batch_conversion") == "not applicable":
             problems.append("batch_conversion 'not applicable' needs batch_forced: the batch check runs by default")
+        if forced is not None and reason == "missing-verification-batch":
+            problems.append(
+                "batch_conversion_reason 'missing-verification-batch' is not possible with batch_forced: "
+                "V0 then gives 'not applicable'"
+            )
     external = get("external", [])
     if not isinstance(external, list):
         problems.append("external must be a list")
@@ -686,7 +691,8 @@ def _publish_problems(version_dir: Path, listed: dict, manifest: dict, yaml) -> 
 
     published = {i["batch"] for i in external if i["published"]}
     pairs = sorted({(i["size"], i["precision"]) for i in external}, key=str)
-    if published:
+    # A `describes` bundle lands an example, so each pair publishes one file (ADR-JB5J, item 4).
+    if published or manifest.get("verdict") == "describes":
         for size, precision in pairs:
             count = sum(i["published"] for i in external if (i["size"], i["precision"]) == (size, precision))
             if count != 1:
@@ -699,13 +705,17 @@ def _publish_problems(version_dir: Path, listed: dict, manifest: dict, yaml) -> 
     elif published:
         (form,) = published
         # A `to run` bundle plans its form; the session verdict decides it (hand-over.md, "The session run").
+        # The session cannot add a missing verification batch, so that reason allows no form (ADR-JB5J, item 2).
+        unverifiable = manifest.get("batch_conversion_reason") == "missing-verification-batch"
         allowed = {forced} if forced is not None else {
-            "converts": {SOURCE_BATCH}, "does not convert": {1, "dynamic"}, "to run": set(FORMS)
+            "converts": {SOURCE_BATCH}, "does not convert": {1, "dynamic"},
+            "to run": set() if unverifiable else set(FORMS),
         }.get(verdict, set())
         if form not in allowed:
             findings.append(
                 f"publish rule: the batch form {form} is not allowed with batch_conversion {verdict!r} "
                 f"and batch_forced {forced!r}"
+                + ("; export the verification batches 1, 2, 3 and 4, or set batch_forced" if unverifiable else "")
             )
         if form == SOURCE_BATCH:
             missing = [
@@ -1288,19 +1298,16 @@ def batch_check(
         check: dict = {"size": size, "precision": precision, "file": names[path], "static": {}, "self": {}}
         dynamic_check.append(check)
         tolerance = TOLERANCE[precision]
-        has_static = any((size, precision, n) in files for n in VERIFICATION_BATCHES)
-        need = [files.get((size, precision, n)) for n in DYNAMIC_BATCHES] if has_static else []
-        if path not in loadable or any(n is not None and n not in loadable for n in need):
+        # (a) compares with each static file of the pair that exists at the batches 1, 2 and 3.
+        need = {n: files[(size, precision, n)] for n in DYNAMIC_BATCHES if (size, precision, n) in files}
+        if path not in loadable or any(n not in loadable for n in need.values()):
             check["result"], check["reason"] = "to run", "host-runtime-cannot-load"
             continue
-        if None in need:
-            check["result"], check["reason"] = "to run", "missing-verification-batch"
-            continue
-        batch_items = _input_items(inputs, size, items)
-        rest = batch_items.shape[1:]
         passed, compared = True, 0
         try:
-            for n, native in zip(DYNAMIC_BATCHES, need, strict=False):  # (a) against the static natives
+            batch_items = _input_items(inputs, size, items)
+            rest = batch_items.shape[1:]
+            for n, native in need.items():  # (a) against the static natives
                 for k, feeds in (
                     ("A", runner.input_a(native, n, rest)),
                     ("B", runner.input_b(native, batch_items, n)),

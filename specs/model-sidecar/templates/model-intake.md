@@ -76,7 +76,7 @@ Get these inputs before you fill in the property table.
 | Input | Path, URL or command | Status (`found` or `missing`) |
 |---|---|---|
 | The ONNX files: every size and precision, at the verification batches 1, 2, 3 and 4 (not needed for a forced fallback form). The `dynamic` export, if you plan to publish it | | |
-| Input B of the batch-conversion check: `batch/inputs/<size>.npy` for each size, with 4 different preprocessed images (not needed when you skip the check for a forced fallback form) | | |
+| Input B of the batch-conversion check: `batch/inputs/<size>.npy` for each size, with 4 different preprocessed images (not needed for `batch_forced: 1`; a forced `dynamic` form needs it for the dynamic check) | | |
 | The upstream inference config (the test pipeline, not the training pipeline) | | |
 | The upstream preprocessing code | | |
 | The upstream postprocessing code | | |
@@ -533,7 +533,7 @@ heading "Publishing". Put the output folder in the bundle as `batch/`.
 | Item | Value |
 |---|---|
 | Verdict (`converts`, `does not convert`, `not applicable` or `to run`; `not applicable` only with a forced fallback form) | |
-| Forced fallback form (`batch_forced`: `1`, `dynamic` or `none`) and the reason of the person who runs the exporter | |
+| Forced fallback form (`batch_forced`: `1`, `dynamic` or `null`) and the reason of the person who runs the exporter | |
 | Reason, for `to run` (`missing-verification-batch`, `host-runtime-cannot-load` or `no-signal`) | |
 | Failed (size, precision, `N`) tuples, for `does not convert` | |
 | Published batch form: b3 (needs `converts`), b1 or `dynamic` (one form for the whole family) | |

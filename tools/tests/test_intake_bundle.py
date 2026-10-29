@@ -615,6 +615,22 @@ def test_batch_checks_a_dynamic_export_against_itself(family) -> None:  # noqa: 
     assert check["self"] == {"b2/A/y": "pass", "b3/A/y": "pass", "b2/B/y": "pass", "b3/B/y": "pass"}
 
 
+def test_batch_checks_a_forced_dynamic_export_against_the_static_files_that_exist(family) -> None:  # noqa: ANN001
+    root, fields, out = family({1: {}, "dynamic": {}})
+    fields |= {"batch_forced": "dynamic", "batch_forced_reason": "the user forces dynamic"}
+    check = ib.batch_check(fields, out, root=root)["dynamic_check"][0]
+    assert (check["result"], sorted(check["static"])) == ("pass", ["b1/A", "b1/B"])
+
+
+def test_batch_gives_v6_to_run_without_input_b(family) -> None:  # noqa: ANN001
+    root, fields, out = family({"dynamic": {}}, items=None)
+    fields |= {"batch_forced": "dynamic", "batch_forced_reason": "the user forces dynamic"}
+    report = ib.batch_check(fields, out, root=root)
+    check = report["dynamic_check"][0]
+    assert (report["batch_conversion"], check["result"]) == ("not applicable", "to run")
+    assert "input B not found" in check["reason"]
+
+
 @pytest.mark.parametrize(
     ("items", "message"),
     [(ITEMS[:3], "must hold 4 items"), (np.stack([ITEMS[0]] * 4), "more than once"), (None, "input B not found")],
@@ -692,6 +708,12 @@ def test_verify_checks_the_publish_rule(tmp_path: Path) -> None:
     ]
 
 
+UNVERIFIABLE = (
+    "publish rule: the batch form {} is not allowed with batch_conversion 'to run' and batch_forced None; "
+    "export the verification batches 1, 2, 3 and 4, or set batch_forced"
+)
+
+
 @pytest.mark.parametrize(
     ("published", "fields", "batches", "finding"),
     [
@@ -705,16 +727,23 @@ def test_verify_checks_the_publish_rule(tmp_path: Path) -> None:
         ((1,), {"batch_conversion": "not applicable", "batch_forced": 1, "batch_forced_reason": "user choice"}, (1,),
          None),
         ((3,), {"batch_conversion": "to run", "batch_conversion_reason": "missing-verification-batch"}, (3,),
-         "publish rule: a b3 publish needs the verification batches: ['n/fp32/b1', 'n/fp32/b2', 'n/fp32/b4']"),
+         (UNVERIFIABLE.format(3),
+          "publish rule: a b3 publish needs the verification batches: ['n/fp32/b1', 'n/fp32/b2', 'n/fp32/b4']")),
+        ((1,), {"batch_conversion": "to run", "batch_conversion_reason": "missing-verification-batch"}, (1,),
+         UNVERIFIABLE.format(1)),
+        ((1,), {"batch_conversion": "to run", "batch_conversion_reason": "no-signal"}, (1, 2, 3, 4), None),
+        ((), {"batch_conversion": "converts"}, (1, 2, 3, 4),
+         "publish rule: n fp32 must have exactly one published file, not 0"),
+        ((), {"batch_conversion": "converts", "verdict": "pending"}, (1, 2, 3, 4), None),
     ],
 )
 def test_verify_checks_the_publish_rule_for_every_verdict(
-    tmp_path: Path, published: tuple, fields: dict, batches: tuple, finding: str | None
+    tmp_path: Path, published: tuple, fields: dict, batches: tuple, finding: str | tuple | None
 ) -> None:
     source = 3 if published == (3,) else None
     root = converts_bundle(tmp_path, published, source, conversion=False, batches=batches, **fields)
     findings = ib.verify("model-yolo26@ultralytics-exporter", root)
-    assert findings == ([finding] if finding else []), findings
+    assert findings == (list(finding) if isinstance(finding, tuple) else [finding] if finding else []), findings
 
 
 @pytest.mark.parametrize(
@@ -725,6 +754,8 @@ def test_verify_checks_the_publish_rule_for_every_verdict(
         ({"batch_forced": True}, "batch_forced must be null, 1 or 'dynamic'"),
         ({"batch_forced_reason": ""}, "batch_forced_reason must give the reason"),
         ({"batch_forced": None}, "batch_forced_reason must be null unless batch_forced is set"),
+        ({"batch_conversion": "to run", "batch_conversion_reason": "missing-verification-batch"},
+         "batch_conversion_reason 'missing-verification-batch' is not possible with batch_forced"),
     ],
 )
 def test_pack_checks_the_forced_batch_form(tmp_path: Path, root: Path, change: dict, message: str) -> None:

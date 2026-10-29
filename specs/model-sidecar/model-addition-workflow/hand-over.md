@@ -146,13 +146,17 @@ external:
 - `batch_forced` records a fallback form that the person who runs the exporter forces: `1` or
   `dynamic`. `batch_forced_reason` gives the reason. It is required when `batch_forced` is set.
   Otherwise both are `null`. `batch_conversion: not applicable` needs `batch_forced` ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)).
+  With `batch_forced`, `batch_conversion_reason` is not `missing-verification-batch`, because V0
+  then gives `not applicable`.
 - For each verdict, `verify` checks the rule of
   [Publishing](validation-and-publishing.md#publishing) in these parts ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)):
-  1. when an entry has `published: true`, each (size, precision) pair has exactly one such entry;
+  1. when the verdict is `describes`, or when an entry has `published: true`, each (size, precision)
+     pair has exactly one such entry;
   2. all `published: true` entries have the same `batch`, and it is `3`, `1` or `dynamic`;
   3. with `batch_forced`, that `batch` equals it. Without it, `converts` needs `3`, and
      `does not convert` needs `1` or `dynamic`. `to run` allows each form: the session verdict
-     decides ([The session run](#the-session-run));
+     decides ([The session run](#the-session-run)). With the reason `missing-verification-batch`,
+     `to run` allows no form, because the session cannot add a missing file;
   4. with `3`, `external` has the batches 1, 2, 3 and 4 of each pair;
   5. the sidecar of `example/` lists exactly the published files. It has
      `batching.batch_conversion.source_batch_size: 3` if and only if the `batch` is `3`. With
@@ -242,7 +246,7 @@ uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/ske
 | V3 | It converts batch 3 to `N` = 1, 2 and 4 with `model_batch_convert`. It records the summary or the `ValueError` text. |
 | V4 | It compares each converted graph with the native graph of the same batch. This is evidence only. |
 | V5 | Numeric parity on onnxruntime CPU, with input A and the first `N` items of input B: the same output names, dtypes and shapes, with the tolerance of the [Authoring guidance](../common/batch-conversion.md#authoring-guidance). A run in which each output is empty does not count. A converted file that does not run fails V5. A native file that does not run gives `to run` with the reason `host-runtime-cannot-load`. |
-| V6 | The dynamic check, for each `dynamic` file. (a) When static files of the same size and precision exist, it compares the `dynamic` file with each of them at the batches 1, 2 and 3. (b) It runs the `dynamic` file at batch 1 on three items, then at the batches 2 and 3 on the same items. Row `i` must equal the batch 1 output of item `i`. An output with no leading batch dim gets `no check`. If V6 compares no output that is not empty, the result is `to run` with the reason `no-signal`. If `batch` cannot feed the file, the result is `to run` and the reason gives the error. |
+| V6 | The dynamic check, for each `dynamic` file. (a) It compares the `dynamic` file with each static file of the same size and precision at the batches 1, 2 and 3 that exists. A missing static file of these batches does not block V6. (b) It runs the `dynamic` file at batch 1 on three items, then at the batches 2 and 3 on the same items. Row `i` must equal the batch 1 output of item `i`. An output with no leading batch dim gets `no check`. If V6 compares no output that is not empty, the result is `to run` with the reason `no-signal`. If `batch` cannot feed the file, the result is `to run` and the reason gives the error. |
 
 The result of V6 does not change the verdict. If V6 does not pass, do not publish the `dynamic`
 export. Publish another form that [Publishing](validation-and-publishing.md#publishing) allows, or
@@ -255,7 +259,7 @@ fix the export.
 | `converts` | V3 and V5 pass for each size, precision and `N` | `exact` | Apply [Publishing](validation-and-publishing.md#publishing). With b3, the writer code writes the fragment of `conversion.yaml`. |
 | `does not convert` | V3 or V5 fails on a complete set of inputs | `gap` | Leave `batching.batch_conversion` out. Publish a fallback form: b1 or `dynamic`. Write a `proposal` bundle for a new profile. `differences.json` and `residual-diff.json` are its part 5 evidence. |
 | `not applicable` | V0 gives `not applicable`, or you skip the check. Both need `batch_forced`. | `out of scope` | Publish the form of `batch_forced`. V6 still gates a `dynamic` file. |
-| `to run` | A reason: `missing-verification-batch`, `host-runtime-cannot-load` or `no-signal` (each run of a pair is empty) | `unverified` | Write the reason in `batch_conversion_reason`. The skellytracker session runs the check again. |
+| `to run` | A reason: `missing-verification-batch`, `host-runtime-cannot-load` or `no-signal` (each run of a pair is empty) | `unverified` | Write the reason in `batch_conversion_reason`. The skellytracker session runs the check again. Without `batch_forced`, the reason `missing-verification-batch` allows no published form: export the verification batches, or set `batch_forced`. |
 
 ### Output
 
@@ -287,6 +291,8 @@ field `batch_conversion` gives the session verdict. The session verdict is the g
 | `converts` | The manifest gives `converts`, and `verify` gives a publish-rule finding. | `needs-contributor`: "apply the publish rule, pack the next version". |
 | `does not convert` | The manifest gives `converts` or `to run`. | `needs-contributor`, with the session `residual-diff.json` and the parity values. The contributor publishes a fallback form (b1 or `dynamic`) and writes the new-profile proposal. |
 | `to run` | The reason is `host-runtime-cannot-load`, or V6 of a published `dynamic` file has this reason. | Stop and ask the user. The fix is a newer onnx and onnxruntime in `uv.lock` of skellytracker. |
+| `to run` | The reason is `missing-verification-batch`. | `needs-contributor`: "export the verification batches 1, 2, 3 and 4 of each size and precision, or set `batch_forced`, pack the next version". |
+| `to run` | The reason is `no-signal`, or V6 of a published `dynamic` file has this reason. | `needs-contributor`: "write input B with images that give outputs that are not empty, pack the next version". A b3 publish needs the session verdict `converts`. |
 | `not applicable` | any | The manifest must give `batch_forced`, and the published form must equal it. If not: `needs-contributor`. |
 
 An example lands with `batching.batch_conversion` only for `converts` with a b3 publish.

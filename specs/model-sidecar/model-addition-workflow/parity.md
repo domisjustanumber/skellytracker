@@ -77,9 +77,10 @@ Do these steps:
 7. If you cannot run the check, or if you cannot commit the script, write `to run` as the result.
    Give the reason. Describe the script and its gates. You can write the numbers of a run without a
    commit, but they are not evidence.
-8. For a static-batch family, the
+8. Unless the fields give `batch_forced`, the
    [batch-conversion check](hand-over.md#batch-conversion-check) of phase 1 (step 1b) is the
-   parity check of the generated batch artifacts. Its tolerance is in the authoring guidance of
+   parity check of the generated batch artifacts
+   ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)). Its tolerance is in the authoring guidance of
    [`common.batch_conversion`](../common/batch-conversion.md#authoring-guidance). Do not make the
    tolerance larger.
 

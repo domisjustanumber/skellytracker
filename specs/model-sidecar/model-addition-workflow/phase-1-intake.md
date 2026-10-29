@@ -23,7 +23,9 @@ file `intake.md` of a `model` bundle ([Hand-over bundles](hand-over.md#payload))
      verification-only: you never publish it.
    - The person who runs the exporter can force a fallback form: b1 or `dynamic`. Then write
      `batch_forced` and `batch_forced_reason` in the manifest, and the same choice and reason in the
-     intake. You can then skip this step. A forced `dynamic` export still needs the dynamic check
+     intake. With `batch_forced: 1`, you can then skip this step. With `batch_forced: dynamic`, you
+     can skip the verification exports. But the dynamic check (V6) still needs input B for each size
+     and a run of `batch`
      ([Publishing](validation-and-publishing.md#publishing); [ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)).
    - Write input B with your writer code, and run the `batch` sub-command of the hand-over tool
      ([Batch-conversion check](hand-over.md#batch-conversion-check)).

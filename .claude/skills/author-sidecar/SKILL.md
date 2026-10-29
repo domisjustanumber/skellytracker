@@ -70,7 +70,7 @@ Write these files in a `model` bundle, or in the exporter repo where the table s
 | The parity script, committed in the exporter repo | When you can run the parity check. |
 | `reference/<section_module>.py` of the bundle | For each section that the exporter implements on its host side and that has no reference implementation. |
 | `example/` of the bundle | When the verdict is `describes`. |
-| `batch/` of the bundle | When you run the batch-conversion check. It runs by default. You can skip it only for a forced b1 or `dynamic` form with no published `dynamic` export. |
+| `batch/` of the bundle | When you run the batch-conversion check. It runs by default. You can skip it only for `batch_forced: 1`. A forced `dynamic` form still runs it for the dynamic check. |
 | A `proposal` bundle | The skill `propose-sidecar-change` writes one bundle for each contract unit with a `near-miss` or a `gap`. |
 
 Keep your working draft where you like. The bundle is the hand-over

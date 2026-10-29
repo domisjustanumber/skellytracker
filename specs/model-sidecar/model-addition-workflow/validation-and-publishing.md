@@ -77,7 +77,8 @@ These rules apply to each contributor that writes a sidecar.
     not publish the `dynamic` export.
   - With the verdict `to run`, mark as `published` the files of the form that you plan. The session
     verdict then decides ([The session run](hand-over.md#the-session-run)). b3 needs the session
-    verdict `converts`.
+    verdict `converts`. The reason `missing-verification-batch` allows no form: export the
+    verification batches, or force a fallback form.
   - The other files of the check (for example b2 and b4, and b1 of a b3 family) have
     `published: false` in `external` of the bundle manifest. Do not publish them.
   - No validation rule checks the publication. `intake_bundle.py verify` checks this rule for each
