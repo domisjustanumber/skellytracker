@@ -15,7 +15,7 @@ A sidecar can declare **both** roles. An example is a one-stage model such as RT
 
 ### Core properties
 
-- **One sidecar for each model family.** A single `{model_id}.yaml` file lists every size of the model. Within each size, the file lists every native batch size and every precision variant. It does this in `sizes.<size>.onnx.batch_artifacts`.
+- **One sidecar for each model family.** A single `{model_id}.yaml` file lists every size of the model. Within each size, the file lists the batch artifacts and every precision variant in `sizes.<size>.onnx.batch_artifacts`. At `vNEXT`, each size has only the batch key of the [batch form](common/sizes-and-artifacts.md#batch-forms) of the sidecar.
 - **Multiple sizes in each sidecar.** A family ships several sizes in one file, for example `nano`, `small` and `medium`. All sizes share one preprocessing and output contract. They differ only in input size and ONNX artifacts (see [`sizes`](common/sizes-and-artifacts.md#sizes)).
 - **Traceable compatibility.** The `schema_version` of a sidecar identifies the minimum skellytracker release that is required to consume it.
 - **Single source of truth.** This document is the canonical, human-readable contract. **No software parses it at runtime.** skellytracker has Pydantic `BaseModel` subclasses (the `SidecarModel` hierarchy) that follow this document. The documentation and the validators must stay aligned.
