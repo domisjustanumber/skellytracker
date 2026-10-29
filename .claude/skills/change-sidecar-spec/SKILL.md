@@ -114,13 +114,16 @@ Do this procedure for step 2 of phase 3.
 3. Find the section that owns each rule. Do the steps of [Rules for each spec edit](#rules-for-each-spec-edit).
 4. Write the normative text of part 2 of the proposal into the section files. Take the text from
    `specs/model-sidecar/proposals/<slug>/proposal.md`. Apply each part 2 edit to the current text. If
-   the quoted anchor text is not in the current text, stop. The response is `needs-contributor`.
+   the quoted anchor text is not in the current text, stop. The response is `needs-contributor`:
+   the contributor sends a follow-up bundle, not a new version
+   ([Read a response](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#read-a-response)).
 5. Write the `changelog.md` rows.
 6. Copy each file in `specs/model-sidecar/proposals/<slug>/reference/` to
    `specs/model-sidecar/reference/<section_module>.py`. There is one file for each changed section
    that has an algorithm. An older record has only the `python` code block of part 3. For each file:
    if the target file exists, compare the two files. Each difference of behaviour must come from part
-   2. If the file starts from an older base, stop. The response is `needs-contributor`. Find each
+   2. If the file starts from an older base, stop. The response is `needs-contributor`, with a
+   follow-up bundle as in step 4. Find each
    module that a file imports. Each such module must be in `specs/model-sidecar/reference/` or be a
    file that this step copies. If one is not there, stop. Land that module first.
 7. If `tools/tests` has no test that runs the reference functions against the vectors of each changed

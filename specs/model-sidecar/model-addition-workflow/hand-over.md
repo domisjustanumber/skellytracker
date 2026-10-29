@@ -492,7 +492,9 @@ The response asks the contributor for a new version without the private data.
 The heading [Re-export requests](../decisions/open-work.md#re-export-requests) of the spec
 `open-work.md` holds each request to regenerate or export a sidecar again. Before you pack, read it.
 A request that names your repo: answer with a new version of the `model` bundle. The session deletes
-the request when it lands that bundle.
+the request when it lands that bundle. For a `needs-export` example of an accepted proposal, set
+`related` to the proposal bundle. The content commit of the proposal lands your bundle
+([When a spec change makes an example invalid](reference-examples.md#when-a-spec-change-makes-an-example-invalid)).
 
 ## Retention
 
