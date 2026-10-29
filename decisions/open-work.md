@@ -139,41 +139,18 @@ stage, no file under `skellytracker/` changes, except test fixes.
   `specs/model-sidecar/model-addition-workflow/`. A citation of an exporter entry or commit as
   evidence stays. It also removes the open items that do not apply to a new exporter
   ([x64y](x64y-draft-exporter-guide-folder.md), item 6).
-- **Exporter block copy.** The block for the exporter `AGENTS.md` names the model addition workflow,
-  and its source line names `specs/draft/exporter-guide/sidecars/README.md`. Each exporter copies the
-  block again in its own PR. Until then, an old copy names a path that does not exist, for example
-  MediaPipe-Exporter `AGENTS.md` line 29 at commit `8f708a1ddecd8e035de15a5a9a7b652af035a58a` names
-  `specs/exporter-guide/sidecars/README.md`
-  ([x64y](x64y-draft-exporter-guide-folder.md)).
-- **Old exporter guide paths.** The exporter repos and the recorded proposals cite old paths under
-  `specs/exporter-guide/sidecars/`. No stub stays there. A session that lands a proposal edits the
-  file at its new path. `README.md`, `known-open-items.md` and the checkout steps of
-  `where-to-read.md` are under `specs/draft/exporter-guide/sidecars/`. The other parts of
-  `where-to-read.md` are in `specs/model-sidecar/model-addition-workflow/reading-the-spec.md`. The
-  files of `workflow/` (`workflow/README.md` is now `README.md`), `rules.md`,
-  `reference-implementations.md`, `sidecar-files.md` and `validation-and-publishing.md` are under
-  `specs/model-sidecar/model-addition-workflow/` ([x64y](x64y-draft-exporter-guide-folder.md)).
+- The exporters are re-implemented against the current exporter guide. This file does not track the
+  old exporter copies or paths.
 - **Draft exporter guide.** `specs/draft/exporter-guide/` is not complete. A local plan of the user
   owns its creation. When the guide is complete, or when an end-to-end test proves that its first
   version works, a new entry moves it to `specs/exporter-guide/`
   ([x64y](x64y-draft-exporter-guide-folder.md)).
-- **Exporter paths to the spec folder.** The exporter repos cite the old spec folder
-  `specs/sidecar/` and the old entry point `specs/sidecar-spec.md` in their agent files and notes.
-  Each exporter changes these paths to `specs/model-sidecar/` in its own PR
-  ([k6dz](k6dz-model-sidecar-folder.md)).
-- **Moved reference-examples procedure.** The proposals `model-id-suffix`,
-  `heatmap-decode-refinement` and `simcc-score-rule` cite `specs/sidecar-implementation-plan.md` by
-  line number. A session that lands one of them edits the procedure in
-  `specs/model-sidecar/model-addition-workflow/reference-examples.md`, and the package gaps in the
-  front matter of the section ([b9fm](b9fm-finished-sidecar-plans.md)).
 - **Exporter coverage note.** Retire `notes/sidecar-exporter-coverage.md` at the end of the
-  spec-build stage, after the user decides [0041](../specs/model-sidecar/decisions/0041-rtmdet-host-nms-filters.md) and
-  [0042](../specs/model-sidecar/decisions/0042-vnext-scope-nms-filters.md). First, copy its unique measurements to an evidence entry
+  spec-build stage. First, copy its unique measurements to an evidence entry
   ([b9fm](b9fm-finished-sidecar-plans.md)).
 
 Repository state, not code work ([gtwq](gtwq-random-entry-ids.md)):
 
-- On 2026-10-22, MediaPipe-Exporter has no exporter code.
 - On 2026-10-22, the workflow runs on `freemocap/skellytracker` end in `startup_failure`.
 - **Old mirror numbers.** [0028](0028-entry-edits-and-citations.md) and
   [0029](0029-decision-log-read-path.md) name "OpenMMLab-Exporter 0040 (planned)".

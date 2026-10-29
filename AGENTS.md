@@ -56,8 +56,8 @@ Do not change the implementation code under `skellytracker/`.
   (ADR-[x64y](decisions/x64y-draft-exporter-guide-folder.md)).
 - `specs/sidecar-implementation-plan.md` is a tracked file, not a local plan. It stays until its
   milestone M6 is done (ADR-[b9fm](decisions/b9fm-finished-sidecar-plans.md)).
-- `notes/sidecar-exporter-coverage.md` is frozen evidence. Proposals cite it by line number, so do
-  not add or remove a line (ADR-[b9fm](decisions/b9fm-finished-sidecar-plans.md)).
+- `notes/sidecar-exporter-coverage.md` is frozen evidence
+  (ADR-[b9fm](decisions/b9fm-finished-sidecar-plans.md)).
 
 ## 2. Skills
 
