@@ -84,7 +84,7 @@ gives the commit of your repo in `source_commit`.
 Get these inputs before you start:
 
 - the ONNX files of every size and precision. A family needs the verification batches 1, 2, 3 and 4,
-  unless it forces a fallback form ([Batch-conversion check](hand-over.md#batch-conversion-check);
+  unless it forces a fallback form or it exports only a dynamic model ([Batch-conversion check](hand-over.md#batch-conversion-check);
   [ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)). Add the `dynamic` export
   if you plan to publish it;
 - the upstream inference config;

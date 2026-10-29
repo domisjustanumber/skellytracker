@@ -215,8 +215,18 @@ def manifest_problems(manifest: dict, computed: bool = True) -> list[str]:
             problems.append("batch_forced_reason must be null unless batch_forced is set")
         if forced is not None and not (isinstance(why, str) and why.strip()):
             problems.append("batch_forced_reason must give the reason for batch_forced")
-        if "batch_forced" in manifest and forced is None and get("batch_conversion") == "not applicable":
-            problems.append("batch_conversion 'not applicable' needs batch_forced: the batch check runs by default")
+        items = get("external")
+        dynamic_only = isinstance(items, list) and bool(items) and all(
+            isinstance(i, dict) and i.get("batch") == "dynamic" for i in items
+        )
+        if (
+            "batch_forced" in manifest and forced is None and get("batch_conversion") == "not applicable"
+            and not dynamic_only
+        ):
+            problems.append(
+                "batch_conversion 'not applicable' needs batch_forced, or only dynamic external files: "
+                "the batch check runs by default"
+            )
         if forced is not None and reason == "missing-verification-batch":
             problems.append(
                 "batch_conversion_reason 'missing-verification-batch' is not possible with batch_forced: "
@@ -708,7 +718,7 @@ def _publish_problems(version_dir: Path, listed: dict, manifest: dict, yaml) -> 
         # The session cannot add a missing verification batch, so that reason allows no form (ADR-JB5J, item 2).
         unverifiable = manifest.get("batch_conversion_reason") == "missing-verification-batch"
         allowed = {forced} if forced is not None else {
-            "converts": {SOURCE_BATCH}, "does not convert": {1, "dynamic"},
+            "converts": {SOURCE_BATCH}, "does not convert": {1, "dynamic"}, "not applicable": {"dynamic"},
             "to run": set() if unverifiable else set(FORMS),
         }.get(verdict, set())
         if form not in allowed:
@@ -1214,8 +1224,10 @@ def batch_check(
     missing = [
         [s, p, b] for s, p in pairs for b in VERIFICATION_BATCHES if (s, p, b) not in files
     ]
-    # ADR-JB5J: only a recorded batch_forced skips the check; a b3-only or dynamic-only family is `to run`.
-    if missing or not static:
+    # ADR-JB5J: a dynamic-only family, or a recorded batch_forced, skips the check; a b3-only family is `to run`.
+    if not static:
+        v0 = "not applicable"
+    elif missing:
         v0 = "not applicable" if fields.get("batch_forced") is not None else "missing-verification-batch"
     else:
         v0 = "pass"

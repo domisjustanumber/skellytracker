@@ -49,7 +49,7 @@ Get these inputs before you start
 ([Inputs](../../../specs/model-sidecar/model-addition-workflow/README.md#inputs)):
 
 - the ONNX files of every size and precision, also at the verification batches 1, 2, 3 and 4 (not
-  needed for a forced fallback form);
+  needed for a forced fallback form or a family with only a dynamic export);
 - the upstream inference config (the test pipeline);
 - the upstream preprocessing code and postprocessing code;
 - one reference output of the upstream library on a known image.
@@ -70,7 +70,7 @@ Write these files in a `model` bundle, or in the exporter repo where the table s
 | The parity script, committed in the exporter repo | When you can run the parity check. |
 | `reference/<section_module>.py` of the bundle | For each section that the exporter implements on its host side and that has no reference implementation. |
 | `example/` of the bundle | When the verdict is `describes`. |
-| `batch/` of the bundle | When you run the batch-conversion check. It runs by default. You can skip it only for `batch_forced: 1`. A forced `dynamic` form still runs it for the dynamic check. |
+| `batch/` of the bundle | When you run the batch-conversion check. It runs by default. You can skip it only for `batch_forced: 1`. A `dynamic` form still runs it for the dynamic check. |
 | A `proposal` bundle | The skill `propose-sidecar-change` writes one bundle for each contract unit with a `near-miss` or a `gap`. |
 
 Keep your working draft where you like. The bundle is the hand-over
@@ -189,7 +189,8 @@ Do this step when no row is blocking (step 5 of
    [Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing).
    The sidecar uses one batch form: b3 with `batching.batch_conversion` (needs `converts`), b1 or
    `dynamic`. A fallback form needs the verdict `does not convert`, or the choice of the user with
-   its reason in `batch_forced` and `batch_forced_reason`.
+   its reason in `batch_forced` and `batch_forced_reason`. A family that exports only a dynamic
+   model publishes `dynamic` without `batch_forced`.
 8. Do each item of the [Validation checklist](../../../specs/model-sidecar/templates/model-intake.md#validation-checklist).
    Follow [Validation](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#validation). Write the rule ID of each
    rule that you checked.

@@ -604,11 +604,10 @@ def test_batch_takes_a_dynamic_non_batch_dim_from_input_b(family, tmp_path: Path
 
 
 def test_batch_checks_a_dynamic_export_against_itself(family) -> None:  # noqa: ANN001
+    """A dynamic-only family needs no batch_forced: V0 gives `not applicable` (ADR-JB5J, item 3)."""
     root, fields, out = family({"dynamic": {}})
-    assert ib.batch_check(fields, out, root=root)["batch_conversion"] == "to run"
-    fields |= {"batch_forced": "dynamic", "batch_forced_reason": "the user forces dynamic"}
     report = ib.batch_check(fields, out, root=root)
-    assert report["batch_conversion"] == "not applicable"
+    assert (report["batch_conversion"], report["v0"]) == ("not applicable", {"result": "not applicable", "missing": []})
     check = report["dynamic_check"][0]
     assert check["result"] == "pass"
     assert check["static"] == {}
@@ -624,7 +623,6 @@ def test_batch_checks_a_forced_dynamic_export_against_the_static_files_that_exis
 
 def test_batch_gives_v6_to_run_without_input_b(family) -> None:  # noqa: ANN001
     root, fields, out = family({"dynamic": {}}, items=None)
-    fields |= {"batch_forced": "dynamic", "batch_forced_reason": "the user forces dynamic"}
     report = ib.batch_check(fields, out, root=root)
     check = report["dynamic_check"][0]
     assert (report["batch_conversion"], check["result"]) == ("not applicable", "to run")
@@ -726,6 +724,9 @@ UNVERIFIABLE = (
          None),
         ((1,), {"batch_conversion": "not applicable", "batch_forced": 1, "batch_forced_reason": "user choice"}, (1,),
          None),
+        (("dynamic",), {"batch_conversion": "not applicable"}, ("dynamic",),
+         "n fp32: the dynamic check has no batch/report.json; do not publish the dynamic export; "
+         "publish another batch form or fix the export"),
         ((3,), {"batch_conversion": "to run", "batch_conversion_reason": "missing-verification-batch"}, (3,),
          (UNVERIFIABLE.format(3),
           "publish rule: a b3 publish needs the verification batches: ['n/fp32/b1', 'n/fp32/b2', 'n/fp32/b4']")),
@@ -750,6 +751,8 @@ def test_verify_checks_the_publish_rule_for_every_verdict(
     ("change", "message"),
     [
         ({"batch_forced": None, "batch_forced_reason": None}, "batch_conversion 'not applicable' needs batch_forced"),
+        ({"batch_forced": None, "batch_forced_reason": None, "external": [{"batch": 1}]},
+         "batch_conversion 'not applicable' needs batch_forced"),
         ({"batch_forced": 2}, "batch_forced must be null, 1 or 'dynamic'"),
         ({"batch_forced": True}, "batch_forced must be null, 1 or 'dynamic'"),
         ({"batch_forced_reason": ""}, "batch_forced_reason must give the reason"),

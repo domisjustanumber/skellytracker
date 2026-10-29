@@ -21,6 +21,9 @@ file `intake.md` of a `model` bundle ([Hand-over bundles](hand-over.md#payload))
    - The check runs by default. Export each size and each precision at the verification batches 1,
      2, 3 and 4. Use the same commit and the same settings. Only the batch changes. b4 is
      verification-only: you never publish it.
+   - A family that exports only a dynamic model (no static file) does not need the verification
+     exports or `batch_forced`. It publishes `dynamic`. The dynamic check (V6) still needs input B
+     for each size and a run of `batch`.
    - The person who runs the exporter can force a fallback form: b1 or `dynamic`. Then write
      `batch_forced` and `batch_forced_reason` in the manifest, and the same choice and reason in the
      intake. With `batch_forced: 1`, you can then skip this step. With `batch_forced: dynamic`, you
