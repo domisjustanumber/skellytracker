@@ -4,7 +4,7 @@ title: Batch conversion
 kind: common
 since: vNEXT
 changed_in: []
-selectors: []
+selectors: [batching.batch_conversion]
 implemented_by:
   validate: missing  # BatchingSpec forbids the key batch_conversion (skellytracker/core/sidecar/model.py::BatchingSpec). No code checks V-common.batch_conversion-1 to V-common.batch_conversion-4.
   load: skellytracker/core/sessions/batch_conversion.py::model_batch_convert  # partial. model_batch_convert implements the profile conditions (part of Behaviour item 3), the steps and the check (item 4). No host code calls it. Items 1, 2, 5, 6, 7 and the rest of item 3 have no code.

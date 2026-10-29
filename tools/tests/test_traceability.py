@@ -160,9 +160,26 @@ def test_selectors(path: Path) -> None:
     for selector in selectors:
         sn.parse_selector(selector)
     if front["kind"] in sn.UNIVERSAL_KINDS:
-        assert selectors == [], "format and common sections apply to every sidecar"
+        # a common section of one optional key has one key-presence selector
+        assert all("=" not in selector for selector in selectors), selectors
+        assert len(selectors) <= 1, selectors
     else:
         assert selectors, "a section of this kind needs at least one selector"
+
+
+@pytest.mark.parametrize("path", section_paths(), ids=path_ids)
+def test_a_section_has_the_draft_banner_exactly_when_it_is_draft(path: Path) -> None:
+    body = st.parse_front_matter(path.read_text(encoding="utf-8"), relative(path))[1]
+    lines = [line for line in body.splitlines() if line.strip()]
+    assert lines[0].startswith("# "), relative(path)
+    banner = lines[1].startswith(st.DRAFT_BANNER)
+    assert banner == (front_of(path)["status"]["spec"] == "draft"), relative(path)
+
+
+def test_each_no_model_reason_names_a_section() -> None:
+    no_model = st.load_inventory(REPO_ROOT)["no_model"]
+    assert set(no_model) <= set(section_ids())
+    assert all(isinstance(reason, str) and reason.strip() for reason in no_model.values())
 
 
 @pytest.mark.parametrize("path", section_paths(), ids=path_ids)
@@ -577,6 +594,7 @@ BODY_HAND_FACE = [
 RTMW_BOTH = ["rtmw-wholebody@skellytracker", "rtmw-wholebody@openmmlab-exporter"]
 
 EXPECTED_APPLICABILITY = {
+    "common.batch_conversion": set(),
     "pre.resize.letterbox": {
         "yolox@skellytracker",
         "yolo26@ultralytics-exporter",
@@ -701,9 +719,9 @@ def test_the_legacy_yolox_selection_is_derived() -> None:
             assert "selection" not in sidecar.derived, key
 
 
-def test_format_and_common_sections_apply_to_every_sidecar() -> None:
+def test_format_and_common_sections_without_selectors_apply_to_every_sidecar() -> None:
     for section in all_sections():
-        if section.kind in sn.UNIVERSAL_KINDS:
+        if section.kind in sn.UNIVERSAL_KINDS and not section.front["selectors"]:
             assert applicability()[section.id] == EXPECTED_KEYS
 
 

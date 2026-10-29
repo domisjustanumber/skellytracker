@@ -12,7 +12,9 @@ Commands::
     python tools/sidecar_trace.py examples --exporters-root DIR
 
 ``matrix`` writes ``specs/model-sidecar/TRACEABILITY.md``. With ``--check`` it writes nothing and exits
-with status 1 when the file is not up to date.
+with status 1 when the file is not up to date. Its Implementation status table also gives the
+coverage of each section (vector cases, examples by ``kind``, ``V-`` rules with a case, the reference
+module, the ``no_model`` reason of ``inventory.yaml``) and the graduation gate (``gate_items``).
 
 ``impact`` reads the files that ``git diff --raw GIT_RANGE`` lists. GIT_RANGE is anything that
 ``git diff`` accepts. For example, ``main..HEAD`` gives the commits of a branch, and ``HEAD`` gives
@@ -307,12 +309,16 @@ def symbol_text(source: str, symbol: str) -> str | None:
 
 
 def load_inventory(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
-    """Load `specs/model-sidecar/inventory.yaml`. It always has an `examples` and a `proposed` entry."""
+    """Load `specs/model-sidecar/inventory.yaml`.
+
+    It always has an `examples`, a `no_model` and a `proposed` entry.
+    """
     data = yaml.safe_load(
         (spec_dir(repo_root) / "inventory.yaml").read_text(encoding="utf-8")
     )
     data = data or {}
     data.setdefault("examples", {})
+    data["no_model"] = data.get("no_model") or {}
     data.setdefault("proposed", [])
     return data
 
@@ -592,22 +598,133 @@ def _step_lines(section: Section) -> str:
     return "<br>".join(lines)
 
 
-def _status_lines(sections: list[Section]) -> list[str]:
-    rows = [
-        [
-            _section_link(section),
-            _escape(section.status.get("spec", "?")),
-            _step_lines(section),
-            "<br>".join(_code(t) for t in section.tests) or "none",
-            (
-                f"[{_code(section.vectors)}]({section.vectors})"
-                if section.vectors
-                else "none"
-            ),
-        ]
-        for section in sections
+RULE_LINE = re.compile(r"^- \[[ xX]\] `(V-[a-z][a-z0-9_.]*[a-z0-9]-\d+)`", re.MULTILINE)
+DRAFT_BANNER = "> This section is a draft."
+
+
+def section_rules(section: Section) -> list[str]:
+    """Return the `V-` rule IDs that the section defines, in text order."""
+    return RULE_LINE.findall(section.body)
+
+
+@dataclass(frozen=True)
+class VectorCounts:
+    """The cases of the vector file of a section."""
+
+    cases: int
+    verified: int  # the file or the case lists `verified_against`
+    rules: frozenset[str]  # the rule IDs that a `failed` or an `error` case names
+
+
+def vector_counts(section: Section, repo_root: Path = REPO_ROOT) -> VectorCounts:
+    """Count the cases of the vector file of a section. A section with no file has no cases."""
+    path = spec_dir(repo_root) / section.vectors if section.vectors else None
+    if path is None or not path.is_file():
+        return VectorCounts(0, 0, frozenset())
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    cases = [case for case in data.get("cases") or [] if isinstance(case, Mapping)]
+    every = bool(data.get("verified_against"))
+    rules: set[str] = set()
+    for case in cases:
+        expect = case.get("expect")
+        if isinstance(expect, Mapping):
+            rules.update(str(rule) for rule in expect.get("failed") or [])
+            rules.add(str(expect.get("error", "")))
+    return VectorCounts(
+        cases=len(cases),
+        verified=sum(1 for case in cases if every or case.get("verified_against")),
+        rules=frozenset(rule for rule in rules if rule.startswith("V-")),
+    )
+
+
+def reference_module(section: Section, repo_root: Path = REPO_ROOT) -> str | None:
+    """Return the path of the reference module of a section, relative to the spec folder."""
+    relative = f"reference/{section.id.replace('.', '_')}.py"
+    return relative if (spec_dir(repo_root) / relative).is_file() else None
+
+
+def gate_items(
+    section: Section,
+    counts: VectorCounts,
+    kinds: Counter[str],
+    no_model: str | None,
+) -> list[str]:
+    """Return the open items of the graduation gate of a section. No item means `pass`.
+
+    `example`: no `kind: export` example uses the section, and `no_model` gives no reason.
+    `vectors`: the section has no vector case, or a case is not verified. `rules`: a `V-` rule of
+    the section has no case.
+    """
+    items = []
+    if not kinds["export"] and not no_model:
+        items.append("example")
+    if counts.cases == 0 or counts.verified < counts.cases:
+        items.append("vectors")
+    if set(section_rules(section)) - counts.rules:
+        items.append("rules")
+    return items
+
+
+def _example_kinds(
+    models: Iterable[Sidecar], inventory: Mapping[str, Any]
+) -> Counter[str]:
+    prefix = "specs/model-sidecar/examples/"
+    entries = [
+        inventory["examples"].get(s.path.removeprefix(prefix)) or {}
+        for s in models
+        if s.origin == "example"
     ]
-    return _table(["Section", "Spec", "Steps", "Tests", "Vectors"], rows)
+    return Counter(str(entry.get("kind", "unknown")) for entry in entries)
+
+
+def _status_lines(
+    sections: list[Section],
+    applicable: dict[str, list[Sidecar]],
+    repo_root: Path,
+) -> list[str]:
+    inventory = load_inventory(repo_root)
+    rows = []
+    for section in sections:
+        counts = vector_counts(section, repo_root)
+        kinds = _example_kinds(applicable[section.id], inventory)
+        no_model = inventory["no_model"].get(section.id)
+        rules = section_rules(section)
+        reference = reference_module(section, repo_root)
+        gate = gate_items(section, counts, kinds, no_model)
+        rows.append(
+            [
+                _section_link(section),
+                _escape(section.status.get("spec", "?")),
+                _step_lines(section),
+                "<br>".join(_code(t) for t in section.tests) or "none",
+                (
+                    f"[{_code(section.vectors)}]({section.vectors})<br>"
+                    f"{counts.cases} cases, {counts.verified} verified"
+                    if section.vectors
+                    else "none"
+                ),
+                ", ".join(f"{n} {kind}" for kind, n in sorted(kinds.items())) or "none",
+                f"{len(set(rules) & counts.rules)} of {len(rules)}",
+                f"[{_code(reference)}]({reference})" if reference else "none",
+                _escape(no_model) if no_model else "",
+                f"open: {', '.join(gate)}" if gate else "pass",
+            ]
+        )
+    return _table(
+        [
+            "Section",
+            "Spec",
+            "Steps",
+            "Tests",
+            "Vectors",
+            "Examples",
+            "Rules with a case",
+            "Reference",
+            "No model",
+            "Gate",
+        ],
+        rows,
+    )
 
 
 def _external_lines(sections: list[Section]) -> list[str]:
@@ -691,8 +808,8 @@ def render_traceability(repo_root: Path = REPO_ROOT) -> str:
         "## Models and sections",
         "",
         "Each column is a sidecar. `x` means that the section applies to the sidecar. A section "
-        "applies when one of its `selectors` matches the normalized sidecar. Sections of kind "
-        "`format` and `common` apply to every sidecar.",
+        "applies when one of its `selectors` matches the normalized sidecar. A section of kind "
+        "`format` or `common` with no `selectors` applies to every sidecar.",
         "",
         "The `pre.normalize` row shows the normalization mode. The selection rows show the "
         "selection. `legacy` means that the mode `imagenet_bgr` has its "
@@ -714,7 +831,22 @@ def render_traceability(repo_root: Path = REPO_ROOT) -> str:
         "The Steps column gives the status of each step and the function that implements it. "
         "A step is `implemented`, `partial` or `missing`.",
         "",
-        *_status_lines(sections),
+        "The Vectors column counts the cases of the vector file and the verified cases. A case is "
+        "verified when the file or the case lists `verified_against`. The Examples column counts "
+        "the reference examples that the section applies to, by their `kind` in `inventory.yaml`. "
+        "The Rules with a case column counts the `V-` rules of the section that a `failed` case or "
+        "an `error` case names. The Reference column links the reference module of the section. "
+        "The No model column gives the reason of the user when no model uses the section "
+        "(`no_model` in `inventory.yaml`).",
+        "",
+        "The Gate column is the coverage backlog. It shows the graduation conditions of a `draft` "
+        "section that the section status rules of the [spec README](README.md) give. The column "
+        "does not show the accepted decision entry or a named test in place of vectors. `pass` "
+        "means that each other condition is true. Else the column lists the open items: `example` "
+        "(no `kind: export` example and no reason in No model), `vectors` (no vector case, or a "
+        "case that is not verified) and `rules` (a `V-` rule with no case).",
+        "",
+        *_status_lines(sections, applicable, repo_root),
         "",
         "## External implementations",
         "",

@@ -6,6 +6,7 @@ import ast
 import shutil
 import subprocess
 import sys
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -561,8 +562,59 @@ def test_the_statuses_functions_tests_and_vectors_are_listed(repo: Path) -> None
         "`validate` missing: `pkg/model.py::Resize`<br>"
         "`forward` missing: `pkg/pre.py::letterbox`<br>"
         "`inverse` missing | `pkg/test_pre.py` | "
-        "[`vectors/pre.resize.letterbox.yaml`](vectors/pre.resize.letterbox.yaml) |"
+        "[`vectors/pre.resize.letterbox.yaml`](vectors/pre.resize.letterbox.yaml)<br>"
+        "0 cases, 0 verified | 1 unknown | 0 of 0 | none |  | open: example, vectors |"
     ) in text
+
+
+def test_the_coverage_columns_and_the_gate(repo: Path) -> None:
+    spec = repo / "specs/model-sidecar"
+    path = spec / "pre/letterbox.md"
+    path.write_text(
+        path.read_text(encoding="utf-8")
+        + "\n- [ ] `V-pre.resize.letterbox-1`: one.\n- [ ] `V-pre.resize.letterbox-2`: two.\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    cases = [
+        {"id": "a", "verified_against": ["x"], "expect": {"n_w": 1}},
+        {"id": "b", "expect": {"failed": ["V-pre.resize.letterbox-1"]}},
+    ]
+    write(repo, "specs/model-sidecar/vectors/pre.resize.letterbox.yaml", yaml.safe_dump({"cases": cases}))
+    row = next(
+        line
+        for line in st.render_traceability(repo).splitlines()
+        if line.startswith("| [`pre.resize.letterbox`]") and "cases" in line
+    )
+    assert row.endswith(
+        "2 cases, 1 verified | 1 unknown | 1 of 2 | none |  | open: example, vectors, rules |"
+    )
+
+    cases[1]["verified_against"] = ["x"]
+    cases.append({"id": "c", "verified_against": ["x"], "expect": {"error": "V-pre.resize.letterbox-2"}})
+    write(repo, "specs/model-sidecar/vectors/pre.resize.letterbox.yaml", yaml.safe_dump({"cases": cases}))
+    write(repo, "specs/model-sidecar/reference/pre_resize_letterbox.py", "")
+    inventory = yaml.safe_load((spec / "inventory.yaml").read_text(encoding="utf-8"))
+    inventory["no_model"] = {"pre.resize.letterbox": "No | model yet."}
+    write(repo, "specs/model-sidecar/inventory.yaml", yaml.safe_dump(inventory))
+    row = next(
+        line
+        for line in st.render_traceability(repo).splitlines()
+        if line.startswith("| [`pre.resize.letterbox`]") and "cases" in line
+    )
+    assert row.endswith(
+        "3 cases, 3 verified | 1 unknown | 2 of 2 | "
+        "[`reference/pre_resize_letterbox.py`](reference/pre_resize_letterbox.py) | "
+        "No \\| model yet. | pass |"
+    )
+
+
+def test_a_kind_export_example_meets_the_example_item_of_the_gate() -> None:
+    section = st.Section("s", "", "common", "s.md", {}, "")
+    counts = st.VectorCounts(cases=1, verified=1, rules=frozenset())
+    assert st.gate_items(section, counts, Counter(forecast=2), None) == ["example"]
+    assert st.gate_items(section, counts, Counter(export=1), None) == []
+    assert st.gate_items(section, counts, Counter(), "reason") == []
 
 
 def test_the_proposed_models_are_listed_and_not_matched(repo: Path) -> None:

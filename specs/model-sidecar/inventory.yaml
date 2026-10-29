@@ -29,6 +29,9 @@
 # unchanged, so an entry has no kind and no edits. An entry has these keys:
 #   exporter, exporter_path, tracked, commit  as for examples
 #   notes                                     why the fragment is not in the package
+# no_model: the sections that no model uses, keyed by section ID. The value is the reason of the
+# user. The user adds an entry. TRACEABILITY.md shows the reason in the "No model" column, and the
+# graduation gate accepts it in place of a kind: export example.
 # proposed: models that an exporter plans to add; listed, but not matched to sections. One entry per
 # model and exporter.
 #   key       <model_id>@<source>: the model_id that the exporter's plan gives, and the name of the
@@ -108,6 +111,8 @@ examples:
       s, l and t.
 
 fragments: {}
+
+no_model: {}
 
 proposed:
   - key: mediapipe-hand@qualcomm-exporter

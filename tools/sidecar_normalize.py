@@ -25,7 +25,9 @@ A selector is ``<path>=<value>`` or ``<path>``.
   written ``true`` and ``false``. When the node is a list of scalars, the selector matches when any
   element is equal to the value, for example ``role=object_detector``.
 - A section applies to a sidecar when any selector of the section matches (OR). A section of kind
-  ``format`` or ``common`` applies to every sidecar and has ``selectors: []``.
+  ``format`` or ``common`` with ``selectors: []`` applies to every sidecar. A ``common`` section that
+  is one optional key only, for example ``batching.batch_conversion``, has one selector without
+  ``=value`` for that key.
 
 The table is small on purpose. It holds only what the matching needs. It is not a validator.
 """
@@ -39,7 +41,7 @@ from dataclasses import dataclass
 from typing import Any
 
 UNIVERSAL_KINDS = frozenset({"format", "common"})
-"""Section kinds that apply to every sidecar."""
+"""Section kinds that apply to every sidecar when they have no selectors."""
 
 _SEGMENT = re.compile(r"[A-Za-z0-9_\-]+(\[\])?")
 
@@ -269,11 +271,12 @@ def applies(front_matter: Mapping[str, Any], normalized: Mapping[str, Any]) -> b
     """Return True when a section applies to a normalized sidecar.
 
     `front_matter` is the parsed front matter of the section file. A section of kind `format` or
-    `common` applies to every sidecar. Any other section applies when any selector matches.
+    `common` with no selectors applies to every sidecar. Any other section applies when any
+    selector matches.
     """
-    if front_matter.get("kind") in UNIVERSAL_KINDS:
-        return True
     selectors = front_matter.get("selectors") or []
     if not isinstance(selectors, list):
         raise ValueError("`selectors` is a list of strings")
+    if front_matter.get("kind") in UNIVERSAL_KINDS and not selectors:
+        return True
     return any(matches(selector, normalized) for selector in selectors)

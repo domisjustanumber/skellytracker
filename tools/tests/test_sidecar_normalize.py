@@ -385,6 +385,12 @@ def test_format_and_common_sections_apply_to_every_sidecar(kind: str) -> None:
     assert sn.applies({"kind": kind, "selectors": []}, NORMALIZED)
 
 
+def test_a_common_section_of_one_key_applies_only_when_the_key_is_present() -> None:
+    front = {"kind": "common", "selectors": ["batching.batch_conversion"]}
+    assert not sn.applies(front, {"batching": {"mode": "static"}})
+    assert sn.applies(front, {"batching": {"batch_conversion": {"profile_id": "p"}}})
+
+
 def test_any_matching_selector_is_enough() -> None:
     front = {
         "kind": "postprocessor",
