@@ -98,4 +98,4 @@ See also [Identity](identity.md#validation-rules), [Sizes and artifacts](sizes-a
   - Qualcomm-Exporter keys the map by the precisions that it finds across all batches. (Qualcomm-Exporter `qai_sidecar.py:74-76, 106-110`, 4ca4586)
   - With a float32 input for every precision, the sidecar needs no `normalization_by_precision`. (Ultralytics-Exporter `yolo_sidecar.py:391-393`, f52ef68)
 - A TFLite model has an NHWC input. This is a plan fact, with no other evidence.
-  - The command `tf2onnx --opset 17 --inputs-as-nchw input_1` gives an NCHW ONNX input. The shapes are `[B, 3, 256, 256]` (re-crop) and `[B, 3, 224, 224]` (landmark). The command removes every layout `Transpose`. The sidecar then has `layout: NCHW`. (MediaPipe-Exporter plan `plans/hand-pipeline-export.md:172-174, 191-195, 245-254`, no git repo)
+  - The command `tf2onnx --opset 17 --inputs-as-nchw input_1` gives an NCHW ONNX input. The shapes are `[B, 3, 256, 256]` (re-crop) and `[B, 3, 224, 224]` (landmark). The command removes every layout `Transpose`. The sidecar then has `layout: NCHW`. (the untracked hand pipeline plan of MediaPipe-Exporter (secondary))

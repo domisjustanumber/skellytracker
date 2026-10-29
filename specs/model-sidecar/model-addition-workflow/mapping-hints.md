@@ -15,13 +15,12 @@
   `object_detectors/rtmdet-person/rtmdet-person.yaml`. For a keypoint detector, `model_id` is
   `{family}-{part}`, for example `rtmw-wholebody` in `keypoint_detectors/rtmw/wholebody/`. The spec
   has no rule yet for a suffix after the part (the spec example `rtmo-body7`), or for two models of
-  one family and one part. skellytracker decision 0025 (status `proposed`) records this question.
-  Until the user decides it, the current text applies. A name changes no tensor and no decoded
+  one family and one part. Until a spec change adds such a rule, the current text applies. A name changes no tensor and no decoded
   output, so the `model_id` row is never a `near-miss`:
   - Write `{family}-{part}` as the sidecar value. The verdict is `exact`. If the exporter or the spec
-    example uses an id with a suffix, write that id and decision 0025 in the last column.
+    example uses an id with a suffix, write that id in the last column.
   - If another model of the same family and part also needs the id `{family}-{part}`, the current
-    text has no id for your model. The row is a `gap`. Build on decision 0025 in phase 2.
+    text has no id for your model. The row is a `gap`.
   - If the spec has no `model_id` rule for the role of the model (a new role), the row is a `gap`.
     The proposal of the role covers it.
 - **Family.** One family has one preprocessing contract and one post-processing contract. If two sizes
@@ -67,5 +66,5 @@
   - A letterbox where the upstream code warps to a fractional size. That is `fit`, not `letterbox`
     (OpenMMLab-Exporter 0020).
   - A letterbox where the upstream code cuts the scaled size with `int()` or `floor`. The `rounding`
-    field has no value for a cut. skellytracker decision 0023 (status `proposed`) proposes one.
+    field has no value for a cut.
   - An ROI refiner described as a pose estimator with two fake keypoints. That is a gap.

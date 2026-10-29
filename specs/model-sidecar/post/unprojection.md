@@ -56,14 +56,14 @@ Then the host maps the coordinates back to the source image. This list gives the
   - YOLO26 boxes and keypoints are in pixels of the 640 canvas. The head multiplies the box coordinates by the strides. The keypoints are `(xy + anchor) * stride`. (`ultralytics` 8.4.184 `nn/modules/head.py:226, 772-777`, installed, not in git)
 - Qualcomm-Exporter unprojects with `x_src = (x - pad_x) / scale`.
   - The scale is `min(T_w / src_w, T_h / src_h)` without rounding. The pad is `(T - n) // 2`. This mirrors `denormalize_coordinates` of `qai_hub_models`, which also cuts the result to an integer. The letterbox inverse of the spec uses the rounded size. (Qualcomm-Exporter `qai_datasets.py:152-181`, 4ca4586; `qai_hub_models` 0.64.0 `utils/image_processing.py:499-538`, installed, not in git)
-  - Example: a 427x640 source in a 128x128 canvas gives `n_w = 85`, `left = 21` and a content right edge at canvas x 106. The Qualcomm-Exporter formula gives 425. The spec formula gives 427. The proposal [0023](../decisions/0023-letterbox-floor-and-scale-inverse.md) covers this difference. (hand calculation, also in [0023](../decisions/0023-letterbox-floor-and-scale-inverse.md))
+  - Example: a 427x640 source in a 128x128 canvas gives `n_w = 85`, `left = 21` and a content right edge at canvas x 106. The Qualcomm-Exporter formula gives 425. The spec formula gives 427. (hand calculation)
   - The Qualcomm-Exporter test (100x50 into 64x64, exact sizes 64x32, pad `(0, 16)`) cannot tell the two formulas apart. (Qualcomm-Exporter `tests/test_qai_datasets.py:55-64`, 4ca4586)
 - No exporter has an inverse for `fit`, `none` or `affine_person_crop`, or a keypoint unprojection.
   - OpenMMLab-Exporter leaves the RTMW and RTMO decode to the consumer of the sidecar. (OpenMMLab-Exporter `rtmw/README.md:35-37`, ba0c087)
   - Its `NmsDecoder` raises an error for a `box_format` other than `xyxy` and for a `box_scale` other than `pixel`. (OpenMMLab-Exporter `onnx_runtime/decode_nms.py:108-116`, d2e68d2)
 - The plans for the MediaPipe hand crops use a rotated crop with `cv2.getAffineTransform`, and they invert it with `cv2.invertAffineTransform(M)`.
-  - The spec fixes the rotation at 0 and has no inverse for a rotated crop. The [changelog](../changelog.md#considered-and-deliberately-not-added) lists rotated crops as not added. The proposal [0020](../decisions/0020-roi-transform-and-source.md) covers the ROI transform. (MediaPipe-Exporter plan `plans/hand-pipeline-export.md:105-107, 155-159, 554-556`, no git repo)
-  - The plan lists a round-trip test (crop, then inverse, below 1e-3 px). MediaPipe-Exporter has only the plan and no code, so the test does not exist yet. (MediaPipe-Exporter plan `plans/hand-pipeline-export.md:462`, no git repo)
+  - The spec fixes the rotation at 0 and has no inverse for a rotated crop. The [changelog](../changelog.md#considered-and-deliberately-not-added) lists rotated crops as not added. (the untracked hand pipeline plan of MediaPipe-Exporter (secondary))
+  - The plan lists a round-trip test (crop, then inverse, below 1e-3 px). MediaPipe-Exporter has only the plan and no code, so the test does not exist yet. (the untracked hand pipeline plan of MediaPipe-Exporter (secondary))
 
 ## Authoring guidance
 

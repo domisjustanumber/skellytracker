@@ -49,8 +49,8 @@ See also [Pose schema](pose-schema.md#validation-rules).
 
 ## Implementer guidance
 
-- The spec says that the SimCC score is the max value. Hosts use different rules. The mmpose function `get_simcc_maximum` takes `min(max(simcc_x), max(simcc_y))` on the raw outputs. The skellytracker function `get_simcc_maximum` takes the mean of the two softmax peaks. The rtmlib function takes the mean of the two raw peaks. A host with the min rule differed from mmpose by at most 0.0033 in score. The scores have different scales, so a keypoint threshold does not transfer between hosts. Decision [0024](../decisions/0024-simcc-score-rule.md) (proposed) records this question and the sources of the three rules. (skellytracker `skellytracker/core/detectors/processing/simcc_decode.py` (`get_simcc_maximum`); secondary: OpenMMLab-Exporter `plans/hand-models-PLAN.md:101, 157-163`, a local plan file that git ignores)
-- fp16 can move a SimCC keypoint to another bin. On one crop of a hand model, 4 of 21 fp16 keypoints fell in a different bin than fp32. The fp16 accuracy of the SimCC decode is not measured. (secondary: OpenMMLab-Exporter `plans/hand-models-PLAN.md:109-110`, a local plan file that git ignores)
+- The spec says that the SimCC score is the max value. Hosts use different rules. The mmpose function `get_simcc_maximum` takes `min(max(simcc_x), max(simcc_y))` on the raw outputs. The skellytracker function `get_simcc_maximum` takes the mean of the two softmax peaks. The rtmlib function takes the mean of the two raw peaks. A host with the min rule differed from mmpose by at most 0.0033 in score. The scores have different scales, so a keypoint threshold does not transfer between hosts. (skellytracker `skellytracker/core/detectors/processing/simcc_decode.py` (`get_simcc_maximum`); the untracked hand models plan of OpenMMLab-Exporter (secondary))
+- fp16 can move a SimCC keypoint to another bin. On one crop of a hand model, 4 of 21 fp16 keypoints fell in a different bin than fp32. The fp16 accuracy of the SimCC decode is not measured. (the untracked hand models plan of OpenMMLab-Exporter (secondary))
 
 ## Authoring guidance
 
