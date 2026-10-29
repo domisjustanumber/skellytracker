@@ -38,7 +38,9 @@ The rules of this list:
   features. That table is not a ban. The content PR that adds a feature of the table removes its row.
 - In the spec-build stage, each accepted spec change goes into `vNEXT`. A proposal must give only
   the `vNEXT` text. A proposal must not give a second text for a later revision. A proposal that the
-  user does not accept keeps the status `proposed`.
+  user has not decided keeps the status `proposed`. The user never accepts a proposal for a later
+  revision. A proposal that the user rejects becomes `rejected`
+  ([Responses](model-addition-workflow/hand-over.md#responses)).
 - The spec has no RF-DETR reference example. The example returns when Roboflow-Exporter writes
   `vNEXT` sidecars. The rules that RF-DETR motivated stay in the spec:
   - the `stretch` resize;
