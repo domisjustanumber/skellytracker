@@ -122,3 +122,48 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   is dropped. The spec does not say that this is intended. The upstream of Qualcomm-Exporter,
   `qai_hub_models` 0.64.0, keeps a score equal to the threshold in `batched_nms` (`>=`,
   `utils/bounding_box_processing.py:86`).
+- No resize method crops a rotated ROI (centre, size and rotation) that the host gives with no
+  detector box. `V-post.pose.schema-2` and `V-pre.resize.affine_person_crop-2` tie a top-down model
+  to `requires_object_detector: true` and to `affine_person_crop`. The `crop_policy` of that method
+  has only `expand_ratio` and `maintain_aspect_ratio`. The MediaPipe Holistic hand chain makes its
+  ROI from the wrist, pinky and index keypoints of a body pose. It moves the ROI along its own axis
+  (`shift_y` -0.1), makes it square (`square_long`), scales it (2.7, 1.0 or 2.0) and fills the
+  border with the edge pixels (MediaPipe-Exporter [`docs/mediapipe-whole-body.md:79-88`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L79-L88), [`docs/mediapipe-whole-body.md:381-399`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L381-L399)).
+  Qualcomm-Exporter writes `affine_person_crop` with `expand_ratio: 1.0` as an approximation
+  ([`qai_sidecar.py:270-276`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_sidecar.py#L270-L276), [`README.md:129-133`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/README.md#L129-L133)).
+  ([Pose schema](../post/pose-schema.md#validation-rules),
+  [`affine_person_crop`](../pre/resize-affine-person-crop.md#validation-rules))
+- The MediaPipe hand landmark model has four outputs: 21 landmarks, a hand flag, a handedness score
+  and 21 world landmarks in metres (MediaPipe-Exporter [`docs/mediapipe-whole-body.md:199`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L199), [`docs/mediapipe-whole-body.md:147-151`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L147-L151)). The closed
+  `semantic` set of [Outputs](../common/outputs.md#fields) and `V-post.pose.schema-7` (one
+  `keypoints` output for a `coordinate` decoder) let a sidecar declare only the landmarks. MediaPipe
+  keeps a hand only when the flag is `> 0.5`. The handedness is the probability of `Right` (label
+  item 0) ([`docs/mediapipe-whole-body.md:362-363`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L362-L363), [`docs/mediapipe-whole-body.md:404-408`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L404-L408)). Without the flag, a host gives
+  landmarks for a crop with no hand. The landmark wrapper of Qualcomm-Exporter keeps only the
+  landmarks ([`qai_catalog.py:358-360`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_catalog.py#L358-L360)).
+- [`pose.decode`](../post/pose-schema.md#posedecode) has no field for a divisor of the raw depth. The
+  spec has no rule that maps a `pixel` depth to the source image
+  ([Unprojection](../post/unprojection.md#behaviour)). MediaPipe computes the depth as
+  `z / input_width / normalize_z`. `normalize_z` is 0.4 for the hand graph and 1.0 for the pose and
+  face graphs. The projection then multiplies `z` by the ROI width (MediaPipe-Exporter
+  [`docs/mediapipe-whole-body.md:141-143`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L141-L143), [`docs/mediapipe-whole-body.md:147-149`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L147-L149)). Qualcomm-Exporter multiplies `z` by the
+  input width and writes `depth_unit: pixel` ([`qai_catalog.py:346`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_catalog.py#L346),
+  [`qai_sidecar.py:255`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_sidecar.py#L255)). Thus two hosts can give depths that differ by a factor of 2.5.
+- [SimCC decode](../post/pose-decode-simcc.md#behaviour) says "Its score is the max value". SimCC has
+  two peaks for each keypoint. The text does not say how the two peaks combine, if a softmax comes
+  first, which bin a tie selects, or what a score `<= 0` gives. mmpose v1.3.2 takes the
+  smaller of the two raw peaks with no softmax, and sets the location to `-1` for a score `<= 0`
+  ([`mmpose/codecs/utils/post_processing.py:93-99`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/codecs/utils/post_processing.py#L93-L99)). The skellytracker host takes the mean of
+  the two softmax peaks
+  ([`simcc_decode.py`](../../../skellytracker/core/detectors/processing/simcc_decode.py), lines
+  53-63). Thus a keypoint threshold does not transfer from one host to the other.
+- The spec has no role for an ROI refiner model. `V-common.identity-2` allows only `object_detector`
+  and `pose_estimator` ([Identity](../common/identity.md#validation-rules)). The closed `semantic` set
+  has no value for ROI points ([Outputs](../common/outputs.md#fields)). The
+  [Storage layout](../format/file-layout.md#storage-layout) has no folder for such a model. The
+  MediaPipe Holistic hand ROI refinement model gives two points in crop pixels. The host maps them to
+  the image and makes a rotated ROI from them: centre `p0`, size `2 * |p1 - p0|`, rotation target
+  -90 degrees, then `shift_y` -0.1, `square_long` and scale 1.0. The input ROI of the model comes from
+  keypoints of the parent pose model (MediaPipe-Exporter [`docs/mediapipe-whole-body.md:200`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L200), [`docs/mediapipe-whole-body.md:381-394`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L381-L394)).
+  A pose estimator with two points describes the tensor, but then a host reads the points as
+  keypoints. This gap depends on the rotated ROI gap above.
