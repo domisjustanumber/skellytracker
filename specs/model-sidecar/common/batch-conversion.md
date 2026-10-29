@@ -77,9 +77,7 @@ For rules marked **(vNEXT)**, see [Validation rules](../README.md#validation-rul
 
 ## Legacy behaviour
 
-| Behaviour | `schema_version < vNEXT` (legacy) | `schema_version >= vNEXT` |
-|-----------|-----------------------------------|---------------------------|
-| `batching.batch_conversion` | Not available. The key is invalid. | Available. |
+Availability before `vNEXT`: [Schema versioning](../format/versioning.md#legacy-behaviour).
 
 ## Implementer guidance
 
