@@ -1,6 +1,7 @@
 # Phase 2: propose a spec change and its implementation
 
-Write one proposal for each new or changed contract unit (one section). Fill
+Write one proposal for each new or changed contract unit
+([Proposal forms](hand-over.md#proposal-forms)). Fill
 `../freemocap/skellytracker/specs/model-sidecar/templates/change-proposal.md`. Each proposal is
 a `proposal` bundle, with the files that [Hand-over bundles](hand-over.md#payload) gives. Choose its
 form first ([Proposal forms](hand-over.md#proposal-forms)). The skill `propose-sidecar-change` gives
@@ -8,6 +9,9 @@ the order of the steps. The intake names each proposal bundle. Then stop.
 
 Before you write a proposal:
 
+- Find your model in the heading "Scope of this revision" of
+  `../freemocap/skellytracker/specs/model-sidecar/changelog.md`. If it is not in the list, say so in
+  part 1. Do not write a scope entry. The model joins the list when the user accepts the proposal.
 - Read the table "Considered and deliberately not added" of the spec
   (`../freemocap/skellytracker/specs/model-sidecar/changelog.md`). If your gap is in it, cite the
   row in part 1. Give the evidence that a model needs the feature now.
@@ -58,9 +62,10 @@ A proposal has eight parts:
 3. **Reference implementation.** Write the smallest functions that implement exactly the proposed
    text. Follow [Imports of other sections](reference-implementations.md#imports-of-other-sections).
    Write one function for each algorithm. Each docstring cites the proposed section ID. Write the
-   code to `reference/<section_module>.py` in the proposal folder. Make `<section_module>` from the
+   code to `reference/<section_module>.py` in the proposal bundle. Make `<section_module>` from the
    proposed section ID. If the proposal changes a section, follow
-   [Full section](reference-implementations.md#full-section). Name the file in the proposal. On acceptance, skellytracker adds it as
+   [Full section](reference-implementations.md#full-section)
+   ([ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md)). Name the file in the proposal. On acceptance, skellytracker adds it as
    `specs/model-sidecar/reference/<section_module>.py`. It is informative spec code, not package code. It is
    the single executable meaning of the new text. Your host decoder needs this behaviour, so the
    reference implementation is the clean, minimal form of your host code. If no host code exists
@@ -68,11 +73,13 @@ A proposal has eight parts:
    the note at the top of the file. Part 4 is then `unverified: no host implementation`.
 4. **Vectors.** A test vector is a small worked case: concrete inputs to the algorithm of one section,
    and the exact expected output. Use geometry and small arrays. Do not use images or ONNX files. Make
-   the vectors with the reference implementation. Then verify them against your host implementation.
+   the vectors with the reference implementation. Then verify the numeric cases against your host
+   implementation. An `error` case and a `failed` case run only against the reference implementation
+   ([The step](reference-implementations.md#the-step)).
    Include a case for each branch, each tie and each strict comparison. If a parameter can be a scalar
    or one value for each channel (for example `pad_value`), include a case with a scalar value on a
    3-channel input. Pixel-exact resize output is out of scope. If you need a pixel case, state its
-   tolerance in `compare`. Write the vectors to `vectors/<section ID>.yaml` in the proposal folder,
+   tolerance in `compare`. Write the vectors to `vectors/<section ID>.yaml` in the proposal bundle,
    in the case form that part 4 of the template gives ([ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md)). Name the file in
    part 4. On acceptance, the skellytracker generator writes
    `specs/model-sidecar/vectors/<section ID>.yaml` from the reference implementation. It must hold
@@ -96,7 +103,8 @@ A proposal has eight parts:
    code for each contract part. This part is advisory: the implementer checks it. If you cannot find
    a call site, write `for the implementer` and say what is not known. On acceptance, this text
    becomes the implementer guidance of the section and an open-work item.
-7. **Exporter impact.** Name the exporters that must write new fields or regenerate sidecars. Describe
+7. **Exporter impact.** List each affected sidecar group: its owner repo, its inventory key or
+   model, and its change. Describe
    the change to your own host decoder. Fill the table of the examples that the change makes invalid.
    Use the section rows of `../freemocap/skellytracker/specs/model-sidecar/TRACEABILITY.md` and your
    own reading of each example
@@ -104,7 +112,7 @@ A proposal has eight parts:
 
    A candidate example is optional. Write it only after your host code implements the proposed text.
    Your sidecar writer code writes it, with the proposed fields. Do not write it by hand. Put it in
-   `example/detectors/...` of the proposal folder, in the storage layout, with each fragment that it
+   `example/detectors/...` of the proposal bundle, in the storage layout, with each fragment that it
    names. Write `example/provenance.yaml` with an `examples` entry and a `fragments` entry for each
    fragment that has no package copy, with the keys of `specs/model-sidecar/inventory.yaml`. Run
    `python ../freemocap/skellytracker/tools/sidecar_refs.py --check <sidecar>` on it. The candidate

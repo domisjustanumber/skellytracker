@@ -27,6 +27,8 @@ You do not do phase 3. A skellytracker session does it. The user decides.
    - A non-spec PR (documentation only) adds the guidance, the implementation proposal (as
      implementer guidance and an open-work item), the example and its provenance record. It
      removes the `proposed` entry of the model from `specs/model-sidecar/inventory.yaml`, if one exists.
+     It adds the scope-list row of the model, if it is new
+     ([ADR-YNX0](../decisions/YNX0-vnext-scope-list.md)).
    - When skellytracker implements the spec, an implementation PR adds the code.
 3. Then you write the sidecar with the new fields, and you finish phase 1 for the model.
 4. Each new content PR goes on top of the skellytracker PR stack. It never goes in a move PR or a

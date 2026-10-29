@@ -7,8 +7,10 @@ implementation exists yet. Two things add a reference implementation:
 2. an exporter that implements a section on its host side.
 
 [Independence](sidecar-files.md#independence) gives the implementations that count in
-`verified_against`. The rules for reference modules and their vector cases are in
-[ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md).
+`verified_against`. The headings from [Full section](#full-section) to
+[Run a module that imports another module](#run-a-module-that-imports-another-module) state the rules
+for reference modules ([ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md)).
+Part 4 of the change proposal template gives the form of a vector case.
 
 **Rule.** Your plan can implement a sidecar section on the host side. Then the plan must
 include a step that gives the reference implementation of that section to skellytracker. The rule
@@ -32,7 +34,8 @@ and every value. It must not implement only the change. This file is also the
 reference-implementation step of the section.
 
 - The rule applies only when the proposal changes an algorithm, the meaning of a value or a
-  validation rule of the section.
+  validation rule of the section
+  ([ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md)).
 - These edits do not change a section for this rule: a link, a field row that points to another
   section, a sentence that tells where the algorithm of another section applies, and guidance.
 - Write one file for each changed section. Do not put two sections in one file.
@@ -130,7 +133,8 @@ The skill `author-sidecar` includes this step.
    from.
 2. Run the functions against the vectors of the section (see [Vectors](reading-the-spec.md#vectors)).
    They must pass. If the vector file says `unverified`, also run the numeric cases through your
-   host code, and record both results. If the section has no vector file yet, record that. Your
+   host code, and record both results in `vector-runs.yaml` ([Payload](hand-over.md#payload)). If
+   the section has no vector file yet, record that. Your
    host code runs only the numeric cases. An `error` case and a `failed` case run only against a
    reference module.
 3. Run the functions in place of your host code in your parity check. Record that the

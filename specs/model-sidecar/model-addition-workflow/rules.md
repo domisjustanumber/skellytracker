@@ -43,16 +43,21 @@ These rules come from [ADR-FDTD](../../../decisions/FDTD-evidence-sources-and-ex
   user confirms or refuses it before acceptance. The decision entry of the proposal records it in
   words.
 - If the decision is about the workflow or these rules, tell the user. A bundle does not change the
-  workflow ([Workflow changes](hand-over.md#workflow-changes)).
+  workflow ([Workflow changes](hand-over.md#workflow-changes),
+  [ADR-FADS](../../../decisions/FADS-hand-over-bundles-in-intakes.md)).
 
 ## Sources
 
 These forms come from [ADR-FDTD](../../../decisions/FDTD-evidence-sources-and-exporter-permalinks.md).
 
 - Use the citation forms of the decision-log [Rules](../../../decisions/README.md#rules) also in an
-  intake, a proposal, a reference file and spec guidance. Cite upstream code, and the code of another
-  repo, with a GitHub permalink. The permalink must pin a full 40-character SHA on the default branch
-  of that repo.
+  intake, a proposal, a reference file and spec guidance. The rule "Do not cite or link `plans/`"
+  also applies to a bundle file of any repo. Cite upstream code, and the code of another repo, with
+  a GitHub permalink. The permalink must pin a full 40-character SHA on the default branch of that
+  repo. The next bullets give the other forms.
+- Cite an untracked plan or note of your repo as `the untracked <topic> plan of <repo> (secondary)`.
+  Do not write its path or an item number. `verify` gives a finding for each line of a bundle file
+  that contains `plans/` ([Session steps](hand-over.md#session-steps)).
 - If the upstream source gives only a tag, find its SHA with `git rev-list -n 1 <tag>`. Make sure
   that the SHA is on the default branch with
   `git merge-base --is-ancestor <sha> origin/<default-branch>`. Write the SHA, then the tag.

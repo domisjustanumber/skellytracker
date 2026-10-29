@@ -26,8 +26,9 @@ These rules apply to each contributor that writes a sidecar.
   use a legacy-only form: `requires_nms` without `selection`, `may_include_non_person_classes`, or
   `letterbox` with `preserve_aspect_ratio: false`.
 - Record the rule ID (`V-<section-id>-<n>`) of each rule that you checked in the intake.
-- If a row of the intake is `near-miss` or `gap`, do not walk the checklist. Write `skipped`.
-- If a row is `unverified` and no row is `near-miss` or `gap`, walk the checklist on the draft. Mark
+- If a row of the intake is blocking ([Phase 1](phase-1-intake.md), step 3), do not walk the
+  checklist. Write `skipped`.
+- If a row is `unverified` and no row is blocking, walk the checklist on the draft. Mark
   each result that depends on an `unverified` row as provisional.
 - Run the checks of your repo. Use a skellytracker sidecar checker only if the spec or this section
   names it.

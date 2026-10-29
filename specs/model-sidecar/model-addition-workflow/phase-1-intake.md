@@ -53,17 +53,20 @@ file `intake.md` of a `model` bundle ([Hand-over bundles](hand-over.md#payload))
    To choose between `near-miss` and `gap`, find the section and the field that hold the property. If
    no section and no field hold it, the verdict is `gap`. If a field holds it but none of its values
    describes the upstream, the verdict is `near-miss`.
-4. Continue as follows. A `near-miss` row or a `gap` row comes before an `unverified` row:
-   - A `near-miss` or `gap` row: go to phase 2 for that row (the skill `propose-sidecar-change`). A
-     near-miss is a gap. Do this also when other rows are `unverified`. List those rows in the final
-     verdict.
+
+   A blocking row is a `near-miss` or `gap` row other than row G6b. Row G6b with the verdict `gap`
+   (`does not convert`) only leaves `batching.batch_conversion` out of the sidecar. It also sends a
+   new-profile proposal to phase 2. The rules below use this term.
+4. Continue as follows. A blocking row comes before an `unverified` row:
+   - A blocking row: go to phase 2 for that row (the skill `propose-sidecar-change`). A near-miss is a
+     gap. Do this also when other rows are `unverified`. List those rows in the final verdict.
    - Row G6b is `gap` (the verdict `does not convert`): leave `batching.batch_conversion` out of the
-     sidecar. Go to phase 2 for a new conversion profile. The model can still get the verdict
-     `describes`.
+     sidecar. Do step 5 when no row is blocking. Also go to phase 2 for a new conversion profile. The
+     model can still get the verdict `describes`.
    - An `unverified` row: get the missing evidence. Then give the row its verdict.
    - An `out of scope` row: write no proposal. Tell the user about the row when you stop. The user
      decides if the spec must describe such steps.
-5. If no row is `near-miss` or `gap`:
+5. If no row is blocking:
    - Your sidecar writer code writes the sidecar (see [Sidecar YAML](sidecar-files.md#sidecar-yaml) and
      [Path](sidecar-files.md#path)). Do not write the sidecar by hand.
    - If you cannot change the writer code yet, write the exact YAML in the section "The sidecar" of
@@ -72,14 +75,18 @@ file `intake.md` of a `model` bundle ([Hand-over bundles](hand-over.md#payload))
      code for that row. Mark each result that depends on the row as provisional.
    - Choose the published batch artifacts as
      [Publishing](validation-and-publishing.md#publishing) says.
+   - Run the numeric vector cases of each section that the model uses through your host code.
+     Record `pass`, `fail` or `no vectors` for each section in `vector-runs.yaml` of the `model`
+     bundle ([Payload](hand-over.md#payload)). An `error` case and a `failed` case are not host runs.
+     Do this also when a reference module of the section already exists.
    - Walk the validation checklist (see
      [Validation](validation-and-publishing.md#validation)).
    - Prove parity (see [Parity](parity.md#parity)).
 6. Write the final verdict:
    - `describes`: every row is `exact` or `out of scope`, and parity passes. Row G6b can also be
      `gap` (step 4).
-   - `does not describe`: a row is `near-miss` or `gap`, also when other rows are `unverified`.
-   - `pending`: no row is `near-miss` or `gap`, but a row is `unverified` or parity is `to run`.
+   - `does not describe`: a row is blocking, also when other rows are `unverified`.
+   - `pending`: no row is blocking, but a row is `unverified` or parity is `to run`.
 
    If parity fails, you missed or misjudged a property. Go back to step 1 and find it. Until you find
    it, the verdict is `pending`. Do not make the tolerance larger to pass.

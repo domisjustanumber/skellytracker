@@ -109,8 +109,15 @@ exports and which examples are forecasts.
    - each allowed edit from step 2;
    - the bundle ID and its version, as `bundle: <bundle id>@v<k>`.
 
-   `example/provenance.yaml` of the bundle gives the entries. Check each entry against the bundle
-   manifest.
+   The entries come from `example/provenance.yaml` of the bundle. Check each entry against the bundle
+   manifest. Drop `source`: it is not an inventory key. It is the `<exporter package>==<version>`
+   value of the `sidecar_refs.py --source` call of step 2. Add `edits` (a list, which can be empty),
+   `notes` (required) and `bundle`.
+
+   In the same commit, delete each bullet under
+   [Re-export requests](../decisions/open-work.md#re-export-requests) that this `model` bundle
+   answers. Match it by the owner repo and the `model_id`. If the bullet has other targets, delete
+   only the answered target.
 
    For each fragment with no package copy, write an entry in `fragments`, keyed by its path under
    `specs/model-sidecar/examples/`. Its keys are `exporter`, `exporter_path`, `tracked`, `commit`
@@ -132,7 +139,7 @@ exports and which examples are forecasts.
    the content commit of its change
    ([ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)).
    Do not put a change of spec text in that PR. Put one example in each commit, so that a reviewer can examine and revert each
-   replacement alone. The commit message names the exporter commit. Follow the git rules of the
+   replacement alone. This rule does not apply to a spec-forced edit. The commit message names the exporter commit. Follow the git rules of the
    skellytracker `AGENTS.md`, section 6.
 8. **Keep it current.** When an exporter changes what it writes, replace the example again with the
    same steps. `tools/sidecar_trace.py examples` shows when an example and the copy of its exporter
@@ -155,19 +162,33 @@ is not a correction of the example, and it is not a new copy. Steps 1, 2 and 7 o
    example, its rule ID, its impact (`forced-edit` or `needs-export`) and its edit. Run
    `uv run python tools/sidecar_trace.py impact <range>` on the range of the content commit. Compare
    its report with part 7. The report is the cross-check, not the authority. If the change makes an
-   example invalid and part 7 does not list it, stop. The response gives a finding with the state
-   `needs-contributor`.
+   example invalid and part 7 does not list it, stop. The proposal is already `accepted`, so the
+   response gives the state `needs-contributor` with a finding: send a follow-up bundle
+   (`base: <bundle id>`) with the missing part 7 row. The session lands the base and the follow-up in
+   one content commit ([States](hand-over.md#states)).
 2. `forced-edit`: make only the edit that the change gives. These edits are allowed:
    - Remove a field or a value.
    - Rename a key or an enum value.
    - Change `model_id`. Change each file name that contains `model_id` or a size key.
    - Move the file to the folder that the rule gives. The file name must be `{model_id}.yaml`.
    - Change a comment line that names an old value.
+   - After an edit of a fragment, update each `sha256` of a `$ref` or `base` with
+     `uv run python tools/sidecar_refs.py --write <example path>`. Do not use `--placeholder`.
 3. Do not add a value that the change does not give.
 4. `needs-export`: the example needs a value that only an export can give. Do not edit the example.
-   The content commit waits for the re-export bundle. Add a bullet for the example under
-   [Re-export requests](../decisions/open-work.md#re-export-requests).
-5. Keep the placeholder hash of 64 zeros. `uv run python tools/sidecar_refs.py --check <example path>`
+   The content commit waits for the re-export bundle, in this order:
+   1. When the user accepts the proposal, a non-spec commit adds a bullet for the example under
+      [Re-export requests](../decisions/open-work.md#re-export-requests).
+   2. The exporter packs a new version of its `model` bundle, with `related` set to the proposal
+      bundle. Its verdict `describes` uses the current spec text plus the accepted part 2 of that
+      proposal. `verify` and the session check it against that text.
+   3. The content commit of the proposal lands that bundle as the replacement of the example. The
+      `inventory.yaml` entry gets `bundle: <bundle id>@v<k>`. The same commit deletes the bullet.
+
+   A forced edit of a fragment that equals a package copy
+   (ADR-[yve0](../../../decisions/yve0-example-fragments.md)) is also `needs-export`. The package
+   code does not change in the spec-build stage, and a copy under a new name is not allowed.
+5. Keep the placeholder hash of 64 zeros for an ONNX file. `uv run python tools/sidecar_refs.py --check <example path>`
    must pass for each example that the commit changes. `uv run pytest tools/tests/test_examples.py`
    runs this check on each example.
 6. Keep `kind`, `exporter`, `exporter_path`, `tracked` and `commit` of the entry. If the file moves,
@@ -178,7 +199,8 @@ is not a correction of the example, and it is not a new copy. Steps 1, 2 and 7 o
    changes. Change each note of the entry that names an old value.
 8. If a doc test checks the old rule, change the test in the same content commit.
 9. If an example moves, run `uv run python tools/sidecar_trace.py matrix` in the same content commit.
-10. Put the edits of each example in their own commit. The commit message names the rule ID.
+10. Put each spec-forced edit of one change in its content commit. The message of the content commit
+    names each edited example and the rule ID of each edit.
 11. Replace the example with steps 1 to 8 of
     [How to provide or replace an example](#how-to-provide-or-replace-an-example) only when the copy
     of the exporter obeys each rule. This clears the `spec change` items. Until then, keep the
