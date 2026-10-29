@@ -69,8 +69,8 @@ examples:
     commit: eed3361
     edits: ["source and hashes added", "spec change JB5J: nano batch group 2 and the medium batch 2 comment removed"]
     notes: >-
-      Same contract as the exporter's copy. The example omits some batch groups (nano b3, medium b2 and
-      b3).
+      Same contract as the exporter's copy, except the batch form: the example keeps only the batch 1
+      groups (spec change JB5J). The exporter's copy also has nano b2 and b3, and medium b2 and b3.
 
   detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml:
     exporter: OpenMMLab-Exporter
