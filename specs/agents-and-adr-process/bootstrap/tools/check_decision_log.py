@@ -35,9 +35,10 @@ log, with one limit for the total. The Proposed and Historical entries are not i
 reads only the files. It does not run git.
 
 All logs share one ID space. An ID has 4 characters from ``ALPHABET``, Crockford base32 in upper
-case. A new ID starts with a letter. An older ID in lower case stays valid, and IDs that differ
-only in case are one ID. An all-digit ID belongs only to an entry that had that number before
-random IDs (decision
+case. A new ID has at least one digit and at least one letter, in any position, so that it does not
+read as a word, and it does not read as a number such as ``1E23`` (decision 0001). An older ID in lower case starts with a letter and stays valid, and
+IDs that differ only in case are one ID. An all-digit ID belongs only to an entry that had that
+number before random IDs (decision
 0001).
 
 ``--new`` prints ``new: XXXX``, a random ID that is not in a log of this tree, of each other
@@ -110,11 +111,9 @@ DECISION_CELL_LIMIT = 160
 
 LETTERS = "ABCDEFGHJKMNPQRSTVWXYZ"
 ALPHABET = "0123456789" + LETTERS
-# The lower-case form is for the IDs made before the upper-case rule.
-ID = (
-    r"(?:\d{4}|[" + LETTERS + "][" + ALPHABET + r"]{3}"
-    + "|[" + LETTERS.lower() + "][" + ALPHABET.lower() + r"]{3})"
-)
+# The upper-case form includes the old all-digit IDs. The lower-case form is for the IDs made before
+# the upper-case rule, and it starts with a letter.
+ID = "(?:[" + ALPHABET + "]{4}|[" + LETTERS.lower() + "][" + ALPHABET.lower() + "]{3})"
 
 ABSORBED = r"absorbed into (?:\[[^\]]+\]\([^)\s]+\)|`[^`]+`)"
 STATUS_FORMS = {
@@ -134,6 +133,8 @@ NOT_DECIDED = ("proposed", "rejected")
 
 ENTRY_NAME = re.compile(rf"^({ID})-([a-z0-9-]+)\.md$")
 ENTRY_LIKE = re.compile(r"^[0-9a-zA-Z]{4}-.*\.md$")
+# YAML 1.2 and spreadsheets read an ID such as 1E23 or 12E3 as a number, so no new ID has this form.
+NUMBER_LIKE = re.compile(r"\d+E\d+")
 STATUS_PARAGRAPH = re.compile(r"^\*\*Status:\*\*.*?(?=\n[ \t]*\n|\n#|\Z)", re.MULTILINE | re.DOTALL)
 STATUS_EXEMPTION_LIMIT = 1_000
 # Only the form `_Edited YYYY-MM-DD (<PR>): <kind>._` is exempt, so that no body text can hide in it.
@@ -630,10 +631,17 @@ def short(label: str) -> str:
 
 
 def new_id(used: set[str], draw: Callable[[], str] | None = None) -> str:
-    """A random ID whose upper-case form is not in `used`. The first character is a letter."""
+    """A random ID whose upper-case form is not in `used`: 4 characters with a digit and a letter.
+
+    The draw is uniform over all such IDs: it draws 4 characters from ALPHABET and draws again when they
+    are all digits or all letters, or read as a number such as 1E23 (about 23% of draws).
+    """
 
     def random_id() -> str:
-        return secrets.choice(LETTERS) + "".join(secrets.choice(ALPHABET) for _ in range(3))
+        while True:
+            found = "".join(secrets.choice(ALPHABET) for _ in range(4))
+            if not (found.isdigit() or found.isalpha() or NUMBER_LIKE.fullmatch(found)):
+                return found
 
     while True:
         candidate = (draw or random_id)()

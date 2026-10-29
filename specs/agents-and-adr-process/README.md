@@ -246,9 +246,10 @@ differ, so git shows no conflict. In OpenMMLab-Exporter, two different entries h
 and three entries had the number 0041. A renumber then moved seven entries. So an entry gets a
 random ID, not the next number.
 
-- An ID has 4 characters from `0123456789ABCDEFGHJKMNPQRSTVWXYZ` (Crockford base32, upper case). The
-  first character is a letter. An upper-case ID does not look like a word in prose, in `git log` or in
-  a PR title. The tool compares IDs without case. The kit entry 0001 keeps its number. Do not make a new all-digit ID.
+- An ID has 4 characters from `0123456789ABCDEFGHJKMNPQRSTVWXYZ` (Crockford base32, upper case). A
+  new ID has at least one digit and at least one letter, in any position. An upper-case ID with a
+  digit does not look like a word in prose, in `git log` or in a PR title. The tool compares IDs
+  without case. The kit entry 0001 keeps its number. Do not make a new all-digit ID.
 - Before you add an entry, run `git fetch` when you can. Then run
   `uv run python tools/check_decision_log.py --new`. It prints `new: XXXX`, a random ID that is not
   in this tree, in another worktree or on a local or remote-tracking branch. Give the entry that ID.

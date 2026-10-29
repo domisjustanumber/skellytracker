@@ -606,13 +606,17 @@ def scripted(*ids: str) -> Callable[[], str]:
     return draw
 
 
-def test_new_id_starts_with_a_letter_and_uses_the_alphabet() -> None:
-    for _ in range(500):
-        found = cdl.new_id(set())
+def test_new_id_has_a_digit_and_a_letter_in_any_position() -> None:
+    draws = [cdl.new_id(set()) for _ in range(2000)]
+    for found in draws:
         assert len(found) == 4
-        assert found[0] in cdl.LETTERS
         assert set(found) <= set(cdl.ALPHABET)
+        # A digit, so that no new ID reads as a word, and a letter, so that it is not an old number.
+        assert not found.isdigit() and not found.isalpha(), found
         assert cdl.ENTRY_NAME.match(f"{found}-x.md")
+    # Uniform over the valid IDs: 10 * (32**3 - 10**3) - 2_000 of 802_320, about 39.3%, start with a digit.
+    digit_first = sum(found[0].isdigit() for found in draws) / len(draws)
+    assert 0.3 < digit_first < 0.5, digit_first
 
 
 def test_new_id_skips_used_ids() -> None:
@@ -628,7 +632,10 @@ def test_new_id_skips_used_ids() -> None:
         ("z000-x.md", True),
         ("K7m2-x.md", False),
         ("I7M2-x.md", False),
+        ("3K7Q-x.md", True),
+        ("9A9A-x.md", True),
         ("0k7m-x.md", False),
+        ("3k7q-x.md", False),
         ("i7m2-x.md", False),
         ("k7u2-x.md", False),
     ],
@@ -655,6 +662,21 @@ def test_letter_ids_in_rows_links_and_status(tmp_path: Path) -> None:
         },
     )
     assert cdl.check(root) == []
+
+
+def test_digit_first_ids_in_rows_links_and_status(tmp_path: Path) -> None:
+    root = make_log(
+        tmp_path,
+        active=row("3K7Q", "accepted", "y"),
+        historical=row(1, "superseded by 3K7Q"),
+        entries={
+            "0001-x.md": "# 0001\n\n**Status:** superseded by [3K7Q](3K7Q-y.md), 2026-10-29 (#1).\n",
+            "3K7Q-y.md": "# 3K7Q — T\n\nSee [ADR-0001](0001-x.md).\n",
+        },
+    )
+    assert cdl.check(root) == []
+    (root / cdl.LOG_DIR / cdl.ENTRIES / "3K7Q-y.md").write_text("# 3K7Q — T\n\n[ADR-9A9A](3K7Q-y.md)\n", encoding="utf-8")
+    assert "entries/3K7Q-y.md:3: link text 9A9A does not match 3K7Q-y.md" in cdl.check(root)
 
 
 def test_ids_that_differ_only_in_case_are_one_id(tmp_path: Path) -> None:
@@ -1037,3 +1059,11 @@ def test_new_reads_the_flat_layout_on_branches(git_env: Path) -> None:
     git(root, "add", "-A")
     git(root, "commit", "-q", "-m", "b111-o", "--date=2026-01-01T00:00:00")
     assert verdicts(cdl.new_lines(root)) == ["keep: b111-o.md; b111-s.md also uses b111 (on stale)"]
+
+
+def test_new_id_never_reads_as_a_number() -> None:
+    assert cdl.NUMBER_LIKE.fullmatch("1E23") and cdl.NUMBER_LIKE.fullmatch("12E3")
+    assert not cdl.NUMBER_LIKE.fullmatch("1E2A") and not cdl.NUMBER_LIKE.fullmatch("E123")
+    assert cdl.new_id(set(), scripted("1E23", "12E3", "3K7Q")) == "1E23"  # a scripted draw is not filtered
+    for _ in range(5000):
+        assert not cdl.NUMBER_LIKE.fullmatch(cdl.new_id(set()))

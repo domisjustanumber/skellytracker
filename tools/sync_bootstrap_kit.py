@@ -58,6 +58,7 @@ COPIES = (
         (
             ("(decisions z934 and gtwq).", f"{DECISION_0001}."),
             ("(decision QPS7).", f"{DECISION_0001}."),
+            ("(decision NB91).", f"{DECISION_0001}."),
             ("(decisions Z05A and QPS7).", f"{DECISION_0001}."),
             ("random IDs (decision\ngtwq).", "random IDs (decision\n0001)."),
             ("another repo (decision gtwq).\n", f"another repo {DECISION_0001}.\n"),
