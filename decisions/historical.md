@@ -43,3 +43,4 @@ the reason for a decision. The [index](README.md) has the Active and Proposed en
 | [HJNP](HJNP-upper-case-entry-ids.md) | Upper-case entry IDs in new entries and new citations; older IDs stay; restates the prefix, ID, edit and record-again rules of b1c0 | superseded by JW9N |
 | [pykx](pykx-submission-folders.md) | Submission files in `plans/sidecar/`: a folder for each model and each proposal, with target file names; candidate examples allowed | superseded by FADS |
 | [a33q](a33q-vector-case-form.md) | One vector case form: optional `function` and `compare`, errors by rule ID, NaN, exporter entries; 64 KiB; one writer | superseded by TA0G |
+| [SR1E](SR1E-reset-of-the-spec-build-proposals.md) | Deletes the 21 proposed spec-log entries 0017-0025 and 0037-0048, the 14 old proposal records and the `proposed:` inventory list | done |

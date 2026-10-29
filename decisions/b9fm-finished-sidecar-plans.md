@@ -24,7 +24,8 @@
 - `notes/sidecar-exporter-coverage.md` is frozen evidence. It is not kept current. Only its status
   lines change, each in place, so that its line numbers do not change.
 - Retire `notes/sidecar-exporter-coverage.md` at the end of the spec-build stage, after the user
-  decides [0041](../specs/model-sidecar/decisions/0041-rtmdet-host-nms-filters.md) and [0042](../specs/model-sidecar/decisions/0042-vnext-scope-nms-filters.md). Before
+  decides 0041 (`specs/model-sidecar/decisions/0041-rtmdet-host-nms-filters.md`) and 0042
+  (`specs/model-sidecar/decisions/0042-vnext-scope-nms-filters.md`) (PR: pending). Before
   that, copy its unique measurements to an evidence entry.
 
 ## Reason
@@ -62,3 +63,5 @@
 See [open-work.md](open-work.md).
 
 _Edited 2026-10-28 (this PR): link repair._
+
+_Edited 2026-10-29 (this PR): link repair._

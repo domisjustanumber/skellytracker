@@ -207,7 +207,7 @@ A contributor writes its proposal bundle.
    ([Redactions](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#redactions)).
 3. Add a row to the proposal index
    [`specs/model-sidecar/proposals/README.md`](../../../specs/model-sidecar/proposals/README.md). The row gives
-   the proposal, the section, the contributor, the decision entry and the state. The row is the only
+   the proposal, the section, the contributor, the bundle version, the decision entry and the state. The row is the only
    place of the state. `open-work.md` has no line for each proposal.
 4. On acceptance, the content commit takes the text, the code and the vectors from the record. It
    sets the decision entry and the row state to `accepted`. The last commit of the proposal sets the

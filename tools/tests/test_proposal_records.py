@@ -18,31 +18,13 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 PROPOSALS = REPO_ROOT / "specs" / "model-sidecar" / "proposals"
 VECTOR_LIMIT = 256 * 1024
 
-# Records from before the bundle format. They have no manifest.yaml.
-LEGACY_PROPOSAL_FOLDERS = {
-    "affine-crop-arithmetic",
-    "heatmap-decode-refinement",
-    "keypoint-visibility",
-    "landmark-depth-divisor",
-    "landmark-extra-outputs",
-    "model-id-suffix",
-    "nms-clamp-order",
-    "normalize-arithmetic",
-    "omitted-upstream-output",
-    "pose-decode-flip-test",
-    "roi-refiner-role",
-    "roi-transform-and-source",
-    "simcc-score-rule",
-    "size-codes",
-}
-
 MANIFESTS = sorted(PROPOSALS.rglob("manifest.yaml"))
 
 
-def test_each_record_folder_has_a_manifest_or_is_legacy() -> None:
+def test_each_record_folder_has_a_manifest() -> None:
     folders = {p.name for p in PROPOSALS.iterdir() if p.is_dir()}
     without = {f for f in folders if not (PROPOSALS / f / "manifest.yaml").is_file()}
-    assert without <= LEGACY_PROPOSAL_FOLDERS
+    assert without == set()
 
 
 @pytest.mark.parametrize("manifest_path", MANIFESTS, ids=lambda p: p.parent.relative_to(PROPOSALS).as_posix())

@@ -406,7 +406,6 @@ def owners(found: dict[str, dict], repo: Path | None = None) -> dict[str, str]:
     """
     result: dict[str, str] = {}
     if repo is not None:
-        # shortcut: reads only the records with a manifest.yaml; the older records go in the wipe of the old proposals.
         states = _record_states(repo)
         for path in sorted((repo / SPEC / "proposals").glob("*/manifest.yaml")):
             try:

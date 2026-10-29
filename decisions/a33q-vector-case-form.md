@@ -63,8 +63,8 @@
 - `tools/tests/test_vectors.py`: `check_case` and
   `test_the_generator_writes_the_case_form_of_a_proposal` render and check each new form.
 - The "Vectors and tooling" items of `specs/model-sidecar/proposals/*/proposal.md`, for example
-  [`keypoint-visibility`](../specs/model-sidecar/proposals/keypoint-visibility/proposal.md) and
-  [`landmark-depth-divisor`](../specs/model-sidecar/proposals/landmark-depth-divisor/proposal.md).
+  `specs/model-sidecar/proposals/keypoint-visibility/proposal.md` and
+  `specs/model-sidecar/proposals/landmark-depth-divisor/proposal.md` (PR: pending).
 
 ## Alternatives rejected
 
@@ -76,3 +76,5 @@
 - **Expect the error message.** See Reason.
 
 _Edited 2026-10-28 (this PR): link repair._
+
+_Edited 2026-10-29 (this PR): link repair._

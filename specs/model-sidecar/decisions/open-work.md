@@ -11,11 +11,10 @@ implementation-stage items and the other repository state are in the root
   rewording PR must pin the two links to a commit.
 - **Absorption gap.** The reviews of 2026-10-24 and 2026-10-25 absorbed every accepted entry except
   [ADR-0011](0011-rtmdet-host-nms.md). [ADR-YNX0](YNX0-vnext-scope-list.md) supersedes 0008. The
-  proposal 0041 supersedes 0011 on acceptance. An absorbed entry can be superseded
-  ([Rules](../../../decisions/README.md#rules); [ADR-JW9N](../../../decisions/JW9N-restate-a-kept-rule-by-a-link.md)),
-  but the user chose on 2026-10-26 to keep 0011 Active until 0041 is decided. If the user rejects
-  0041, absorb 0011 into `specs/model-sidecar/post/selection-nms.md#authoring-guidance`. Close its gap
-  first: the `-1` row axis of the RTMDet `boxes` and `scores` shapes takes its value from
+  user chose on 2026-10-26 to keep 0011 Active until the proposal 0041 was decided.
+  [ADR-SR1E](../../../decisions/SR1E-reset-of-the-spec-build-proposals.md) deleted 0041. Absorb 0011
+  into `specs/model-sidecar/post/selection-nms.md#authoring-guidance` when the user agrees. Close its
+  gap first: the `-1` row axis of the RTMDet `boxes` and `scores` shapes takes its value from
   `output_shapes`.
 
 ## Re-export requests
@@ -49,7 +48,6 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   `body` part folder. A hand landmark model and a hand re-crop model of one family would both get
   `{family}-hand`. The spec must allow a suffix after the part, or the exporters must rename these
   models. OpenMMLab-Exporter sets `FAMILY = "rtmo-body7"` ([`rtmo/identity.py:24`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmo/identity.py#L24)).
-  The gap record [0025](0025-model-id-suffix.md) (proposed) records this question.
 - The [`input.resize`](../pre/interpolation.md#behaviour) text says that every interpolation
   uses "`cv2.resize` / `cv2.warpAffine`, half-pixel centres". `cv2.warpAffine` maps the pixel centres
   in a different way. A 2x upscale of the ramp `[0, 10, 20, 30]` gives `2.5` with `cv2.resize` and
@@ -82,6 +80,30 @@ Spec defects found during the spec-build stage. Each one needs a content change 
     compares only `x` and `y` ([`notes/decisions/scripts/rtmo_sidecar_probe.py:97-102`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/scripts/rtmo_sidecar_probe.py#L97-L102));
   - the host frame is BGR, and the host converts it to `input.color_format`;
   - the arithmetic precision of the geometry and of the pixel math.
+- The [Storage layout](../format/file-layout.md#storage-layout) gives no folder to a sidecar whose
+  `role` has both `object_detector` and `pose_estimator`. Both one-stage pose exporters and the two
+  reference examples with both roles (RTMO body7 and YOLO26 pose) use
+  `detectors/keypoint_detectors/{family}/{part}/`. (Ultralytics-Exporter `yolo_sidecar.py:104-107`,
+  f52ef68; OpenMMLab-Exporter `rtmo/identity.py:27`, eed3361)
+- `V-common.outputs-1` (unique `outputs[].name`) has no **(vNEXT)** mark, so the text applies it to a
+  legacy sidecar too. The validator of the legacy release does not check it. The legacy YOLO26 pose
+  file of Ultralytics-Exporter declares the one tensor `output0` as `detections` and again as
+  `poses`. The spec must say which reading is correct. (Ultralytics-Exporter
+  `yolo_sidecar.py:574-582, 596`, f52ef68)
+- The spec requires `-1` as the batch axis of `input.shape` (`V-common.sizes_and_artifacts-2`). It
+  gives no batch rule for `outputs[].shape`. Ultralytics-Exporter and Qualcomm-Exporter write the
+  smallest native batch (`1`) there, and their sizes list the batches 1, 2 and 3. Thus the sentence
+  of [`batch_artifacts`](../common/sizes-and-artifacts.md#sizessizeonnxbatch_artifacts) that lets the
+  top-level `outputs[].shape` replace the `output_shapes` of a size with one batch key is ambiguous.
+  (Ultralytics-Exporter `yolo_sidecar.py:342-349, 436-455`, f52ef68; Qualcomm-Exporter
+  `qai_sidecar.py:79-95, 111-118`, 4ca4586)
+- [`letterbox`](../pre/resize-letterbox.md#fields) has no `rounding` value for `floor`, and its
+  [inverse](../pre/resize-letterbox.md#inverse) uses the rounded size. The `resize_pad` function of
+  `qai_hub_models` 0.64.0 (the MediaPipe person detector) cuts the scaled size with `math.floor`, and
+  its inverse divides by the unrounded scale. At the content right edge of a 427x640 source in a
+  128x128 canvas, that inverse gives 425 and the spec inverse gives 427. (qai_hub_models 0.64.0
+  `utils/image_processing.py:327-328, 499-538`, installed in the Qualcomm-Exporter `.venv`; hand
+  calculation)
 - A code docstring under `skellytracker/` cites the spec heading "Sizes", but the heading is `sizes`.
 - The test vectors found these points that the spec does not define. Each vector file avoids them:
   - the box format and the coordinate space of the person box that `affine_person_crop` warps;
