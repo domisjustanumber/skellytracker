@@ -186,7 +186,7 @@ user accepts the proposal.
 | Edit | Steps |
 |---|---|
 | A content change, for example the correction of a spec defect | Make sure that an accepted decision entry exists. If none exists, use [`propose-sidecar-change`](../propose-sidecar-change/SKILL.md). Then stop. If one exists, do steps 3 to 12 of procedure B. |
-| The release step | [Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing) gives it. In one content PR, replace `vNEXT` with the release version. Do this in the spec, in `changelog.md`, in each example and in the `spec_revision` of each vector file. Then the exporters regenerate their sidecars. |
+| The release step | [Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing) gives it. First, find each section with `status.spec: draft`. If one exists, stop and tell the user. The user makes the section `stable` or removes its fields from the release ([Section status](../../../specs/model-sidecar/README.md#section-status), rule 7). Also stop and tell the user when an example or a package sidecar has `batching.batch_conversion` and the `validate` or `load` status of `common.batch_conversion` is not `implemented` ([ADR-QMKS](../../../decisions/QMKS-draft-sections-and-coverage-columns.md)). Then, in one content PR, replace `vNEXT` with the release version. Do this in the spec, in `changelog.md`, in each example and in the `spec_revision` of each vector file. Then the exporters regenerate their sidecars. |
 | A workflow change | The user asks for it ([ADR-FADS](../../../decisions/FADS-hand-over-bundles-in-intakes.md)). Write the change in one non-spec commit with a decision entry that gives the reason ([Workflow changes](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#workflow-changes)). The entry is `accepted` in that commit. When the change changes the [Rules](../../../decisions/README.md#rules), change the kit in the same commit: run `uv run python tools/sync_bootstrap_kit.py --write`, and change the kit templates by hand. |
 | A rewording | Do the [meaning check](#meaning-check). Change no meaning. |
 | A move | Change no words. Keep the section IDs and the rule IDs. |
@@ -238,19 +238,20 @@ user accepts the proposal.
   | `kind` | `format`, `common`, `preprocessor`, `postprocessor` or `schema`. |
   | `since` | The `schema_version` that added the section. |
   | `changed_in` | Each `schema_version` that changed the meaning of the section. |
-  | `selectors` | The `key=value` pairs of a resolved sidecar that select the section, for example `input.resize.method=letterbox`. `format` and `common` sections apply to every sidecar. |
+  | `selectors` | The `key=value` pairs of a resolved sidecar that select the section, for example `input.resize.method=letterbox`. A `format` or `common` section with `selectors: []` applies to every sidecar. A `common` section that is one optional key has one selector for that key, for example `batching.batch_conversion`. |
   | `implemented_by` | The skellytracker functions, as `path::symbol`, under `validate`, `forward` and `inverse`. A part with no function is `missing`. |
   | `external_impl` | Exporter host functions that implement the section. It stays empty until an exporter contributes. |
   | `tests` | The skellytracker test files for the section. |
   | `vectors` | The test vector file of the section. |
-  | `status` | One value for each of `spec`, `validate`, `forward` and `inverse`, for example `stable`, `partial` or `missing`. A part is `implemented` only when its vectors pass. |
+  | `status` | One value for each of `spec`, `validate`, `forward` and `inverse`. `spec` is `stable` or `draft`. [Section status](../../../specs/model-sidecar/README.md#section-status) gives the rules of `draft` and the graduation to `stable` ([ADR-QMKS](../../../decisions/QMKS-draft-sections-and-coverage-columns.md)). A step is `implemented`, `partial` or `missing`. A step is `implemented` only when its vectors pass. |
 
 - The body has these headings, in this order: Fields, Behaviour (the forward algorithm and its exact
   inverse), Validation rules, Legacy behaviour (`schema_version < vNEXT`), Implementer guidance,
   Authoring guidance, Examples. The first four are normative. The last three are informative.
 - For a new section, set `since` to the version of the change (`vNEXT` in the spec-build stage). Set
   `external_impl: []`. Set each step of `implemented_by` to `missing`. Set each step of `status` to
-  `missing`.
+  `missing`. Set `status.spec` to `draft`. Add the draft banner as the first body line after the
+  title.
 - For a changed meaning, add the version of the change to `changed_in`.
 - Change `selectors` when the change adds or removes a value that selects the section.
 - A preprocessor has an `inverse` step only when the section has an "Inverse" heading.
