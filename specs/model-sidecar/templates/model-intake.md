@@ -75,8 +75,8 @@ Get these inputs before you fill in the property table.
 
 | Input | Path, URL or command | Status (`found` or `missing`) |
 |---|---|---|
-| The ONNX files: every size and precision. A static-batch family: the verification batches 1, 2, 3 and 4. The `dynamic` export, if you plan to publish it | | |
-| Input B of the batch-conversion check: `batch/inputs/<size>.npy` for each size, with 4 different preprocessed images (static-batch family only) | | |
+| The ONNX files: every size and precision, at the verification batches 1, 2, 3 and 4 (not needed for a forced fallback form). The `dynamic` export, if you plan to publish it | | |
+| Input B of the batch-conversion check: `batch/inputs/<size>.npy` for each size, with 4 different preprocessed images (not needed when you skip the check for a forced fallback form) | | |
 | The upstream inference config (the test pipeline, not the training pipeline) | | |
 | The upstream preprocessing code | | |
 | The upstream postprocessing code | | |
@@ -525,17 +525,18 @@ parity script for this model, name it and its commit, and record what it does no
 
 ## Batch conversion check
 
-Do the batch-conversion check in step 1b of phase 1. The rules are in
+Do the batch-conversion check in step 1b of phase 1. It runs by default. The rules are in
 `specs/model-sidecar/model-addition-workflow/hand-over.md`, heading "Batch-conversion check". The
 publish rule is in `specs/model-sidecar/model-addition-workflow/validation-and-publishing.md`,
 heading "Publishing". Put the output folder in the bundle as `batch/`.
 
 | Item | Value |
 |---|---|
-| Verdict (`converts`, `does not convert`, `not applicable` or `to run`) | |
+| Verdict (`converts`, `does not convert`, `not applicable` or `to run`; `not applicable` only with a forced fallback form) | |
+| Forced fallback form (`batch_forced`: `1`, `dynamic` or `none`) and the reason of the person who runs the exporter | |
 | Reason, for `to run` (`missing-verification-batch`, `host-runtime-cannot-load` or `no-signal`) | |
 | Failed (size, precision, `N`) tuples, for `does not convert` | |
-| Published batch artifacts, for `converts`: b3 or `dynamic` (one choice for the whole family) | |
+| Published batch form: b3 (needs `converts`), b1 or `dynamic` (one form for the whole family) | |
 | Dynamic check (V6) of each `dynamic` file: `pass`, `fail`, `to run` or `not used` | |
 | Command, skellytracker commit, and the onnx and onnxruntime versions of `report.json` | |
 
@@ -544,7 +545,8 @@ heading "Publishing". Put the output folder in the bundle as `batch/`.
 The rule:
 
 - `describes`: every row is `exact` or `out of scope`, **and** parity passes. Row G6b can also be
-  `gap`: then leave `batching.batch_conversion` out and write a proposal for a new profile.
+  `gap`: then leave `batching.batch_conversion` out, publish a fallback form (b1 or `dynamic`) and
+  write a proposal for a new profile.
 - `does not describe`: a row is blocking (step 3 of phase 1), also when other rows are
   `unverified`. Write one proposal for each new or changed part of the spec. Do not write a sidecar
   that approximates the model.

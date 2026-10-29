@@ -83,10 +83,10 @@ gives the commit of your repo in `source_commit`.
 
 Get these inputs before you start:
 
-- the ONNX files of every size and precision. A static-batch family needs the verification batches
-  1, 2, 3 and 4 ([Batch-conversion check](hand-over.md#batch-conversion-check);
-  [ADR-JC4T](../../../decisions/JC4T-parity-gates-and-batch-conversion-check.md)). Add the `dynamic`
-  export if you plan to publish it;
+- the ONNX files of every size and precision. A family needs the verification batches 1, 2, 3 and 4,
+  unless it forces a fallback form ([Batch-conversion check](hand-over.md#batch-conversion-check);
+  [ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)). Add the `dynamic` export
+  if you plan to publish it;
 - the upstream inference config;
 - the upstream preprocessing code and postprocessing code;
 - one reference output of the upstream library on a known image.
@@ -128,7 +128,8 @@ implementations and test vectors; superseded by
 lifecycle, the `vNEXT` rule and the new-model workflow; superseded by
 [ADR-FADS](../../../decisions/FADS-hand-over-bundles-in-intakes.md)),
 [ADR-FADS](../../../decisions/FADS-hand-over-bundles-in-intakes.md) (the hand-over bundles and the proposal records),
-[ADR-JC4T](../../../decisions/JC4T-parity-gates-and-batch-conversion-check.md) (the parity gates and the batch-conversion check),
+[ADR-JC4T](../../../decisions/JC4T-parity-gates-and-batch-conversion-check.md) (the parity gates and the batch-conversion check; superseded by
+[ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md), one batch form for each sidecar),
 [x64y](../../../decisions/x64y-draft-exporter-guide-folder.md) (this folder and the draft
 exporter guide) and [b9fm](../../../decisions/b9fm-finished-sidecar-plans.md) (the reference
 examples procedure).

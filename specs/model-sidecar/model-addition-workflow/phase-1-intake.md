@@ -18,9 +18,13 @@ file `intake.md` of a `model` bundle ([Hand-over bundles](hand-over.md#payload))
 
    **Step 1b: batch-conversion check.** Do this step right after step 1, before step 2
    ([ADR-JC4T](../../../decisions/JC4T-parity-gates-and-batch-conversion-check.md)).
-   - Export each size and each precision of a static-batch family at the verification batches 1, 2, 3
-     and 4. Use the same commit and the same settings. Only the batch changes. b4 is
+   - The check runs by default. Export each size and each precision at the verification batches 1,
+     2, 3 and 4. Use the same commit and the same settings. Only the batch changes. b4 is
      verification-only: you never publish it.
+   - The person who runs the exporter can force a fallback form: b1 or `dynamic`. Then write
+     `batch_forced` and `batch_forced_reason` in the manifest, and the same choice and reason in the
+     intake. You can then skip this step. A forced `dynamic` export still needs the dynamic check
+     ([Publishing](validation-and-publishing.md#publishing); [ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)).
    - Write input B with your writer code, and run the `batch` sub-command of the hand-over tool
      ([Batch-conversion check](hand-over.md#batch-conversion-check)).
    - The result is the evidence of row G6b. It fills the section "Batch conversion check" of the
@@ -61,7 +65,7 @@ file `intake.md` of a `model` bundle ([Hand-over bundles](hand-over.md#payload))
    - A blocking row: go to phase 2 for that row (the skill `propose-sidecar-change`). A near-miss is a
      gap. Do this also when other rows are `unverified`. List those rows in the final verdict.
    - Row G6b is `gap` (the verdict `does not convert`): leave `batching.batch_conversion` out of the
-     sidecar. Do step 5 when no row is blocking. Also go to phase 2 for a new conversion profile. The
+     sidecar, and publish a fallback form (b1 or `dynamic`). Do step 5 when no row is blocking. Also go to phase 2 for a new conversion profile. The
      model can still get the verdict `describes`.
    - An `unverified` row: get the missing evidence. Then give the row its verdict.
    - An `out of scope` row: write no proposal. Tell the user about the row when you stop. The user

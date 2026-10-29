@@ -48,8 +48,8 @@ follow the workflow or the guide. The spec is normative.
 Get these inputs before you start
 ([Inputs](../../../specs/model-sidecar/model-addition-workflow/README.md#inputs)):
 
-- the ONNX files of every size and precision; a static-batch family also needs the verification
-  batches 1, 2, 3 and 4;
+- the ONNX files of every size and precision, also at the verification batches 1, 2, 3 and 4 (not
+  needed for a forced fallback form);
 - the upstream inference config (the test pipeline);
 - the upstream preprocessing code and postprocessing code;
 - one reference output of the upstream library on a known image.
@@ -70,7 +70,7 @@ Write these files in a `model` bundle, or in the exporter repo where the table s
 | The parity script, committed in the exporter repo | When you can run the parity check. |
 | `reference/<section_module>.py` of the bundle | For each section that the exporter implements on its host side and that has no reference implementation. |
 | `example/` of the bundle | When the verdict is `describes`. |
-| `batch/` of the bundle | When the family has a static batch or a `dynamic` export: the output of the batch-conversion check. |
+| `batch/` of the bundle | When you run the batch-conversion check. It runs by default. You can skip it only for a forced b1 or `dynamic` form with no published `dynamic` export. |
 | A `proposal` bundle | The skill `propose-sidecar-change` writes one bundle for each contract unit with a `near-miss` or a `gap`. |
 
 Keep your working draft where you like. The bundle is the hand-over
@@ -162,7 +162,7 @@ A blocking row comes before an `unverified` row.
 |---|---|
 | A row is blocking. Other rows can be `unverified`. | The final verdict is `does not describe`. Do not write a sidecar that approximates the model. Write `skipped` in "The sidecar", "Validation checklist" and "Parity proof" of the intake. List the `unverified` rows in "Missing evidence and runs" of the final verdict. Go to step 6. |
 | No row is blocking. A row is `unverified`. | The final verdict is `pending`. Go to step 5. Use the value that you expect for each `unverified` row. Mark each result that depends on an `unverified` row as provisional. |
-| No row is blocking, and row G6b is `gap`. | Go to step 5. Write the sidecar without `batching.batch_conversion`. Then do step 6 for row G6b only: the proposal for a new profile. |
+| No row is blocking, and row G6b is `gap`. | Go to step 5. Write the sidecar without `batching.batch_conversion`, in a fallback form (b1 or `dynamic`). Then do step 6 for row G6b only: the proposal for a new profile. |
 | Every row is `exact` or `out of scope`. | Go to step 5. |
 
 A row that is `out of scope` needs no proposal. Tell the user about the row in step 8.
@@ -187,6 +187,9 @@ Do this step when no row is blocking (step 5 of
    difference in "The sidecar" of the intake.
 7. Choose the published batch artifacts. Follow
    [Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing).
+   The sidecar uses one batch form: b3 with `batching.batch_conversion` (needs `converts`), b1 or
+   `dynamic`. A fallback form needs the verdict `does not convert`, or the choice of the user with
+   its reason in `batch_forced` and `batch_forced_reason`.
 8. Do each item of the [Validation checklist](../../../specs/model-sidecar/templates/model-intake.md#validation-checklist).
    Follow [Validation](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#validation). Write the rule ID of each
    rule that you checked.

@@ -106,6 +106,16 @@ stage, no file under `skellytracker/` changes, except test fixes.
   run-time checks their own IDs, for example `C-<section-id>-<n>`. A sidecar before `vNEXT` that uses
   a feature that is "Not available." also gives `no-rule`. A rule `V-format.versioning-<n>` can
   replace that use. The user decides both.
+- **Batch forms.** At `vNEXT`, a sidecar uses one batch form: only `"3"` with
+  `batching.batch_conversion`, only `"1"`, or only `dynamic`
+  ([Batch forms](../specs/model-sidecar/common/sizes-and-artifacts.md#batch-forms);
+  [ADR-JB5J](JB5J-one-batch-form-for-each-sidecar.md)). `OnnxSpec._check_batch_keys` in
+  `skellytracker/core/sidecar/model.py` accepts any set of integer keys, and `BatchingSpec` forbids
+  the key `batch_conversion`. Add `V-common.sizes_and_artifacts-13` and `V-common.batch_conversion-1`
+  to `V-common.batch_conversion-4` for `vNEXT`. The detectors ask for the batch key `"1"`, for
+  example `rtmw_wholebody_detector.py` and `yolox_person_detector.py`. A b3 sidecar has no key
+  `"1"`. To run it at batch 1 or 2, the host must make the artifact with `model_batch_convert`
+  (Behaviour 3 of [`common.batch_conversion`](../specs/model-sidecar/common/batch-conversion.md#behaviour)).
 - **V- rule checks of the examples.** The doc tests only parse and resolve each reference example,
   and check its provenance (`tools/tests/test_examples.py`).
   They do not run the `V-` rules on it, because `load_sidecar` rejects `vNEXT` and the package code

@@ -58,24 +58,30 @@ These rules apply to each contributor that writes a sidecar.
   decision 0016). A development build has a `__version__` with a pre-release tag, or an explicit
   opt-in setting. The code does not do this yet. The trace tool only resolves sidecars. It does not
   validate them, so it works with `vNEXT`.
-- The batch artifacts. The [batch-conversion check](hand-over.md#batch-conversion-check) of
-  phase 1 gives a verdict. With the verdict `converts`, you must publish one batch artifact for each
-  size and precision. The choice is the same for the whole family: every artifact is the batch 3
-  static export, with `source_batch_size: 3`, or every artifact is the `dynamic` export, with no
-  `batch_conversion`. b1, b2 and b4 are verification-only
-  ([ADR-JC4T](../../../decisions/JC4T-parity-gates-and-batch-conversion-check.md)).
-  - The choice is for the whole family, because one `batch_conversion` profile covers every size
-    ([`common.batch_conversion`](../common/batch-conversion.md#batch-conversion)). With
-    `batch_conversion`, no size can have the key `dynamic` (`V-common.batch_conversion-4`).
-  - b3: `sizes.<size>.onnx.batch_artifacts` has only the key `"3"`. The sidecar has
-    `batching.batch_conversion: {profile_id: static-batch-v1, source_batch_size: 3}`.
-  - `dynamic`: `batch_artifacts` has only the key `dynamic`. The sidecar has no `batch_conversion`.
-    The dynamic check of the batch-conversion check must pass. If it fails, do not publish the
-    `dynamic` export.
-  - b1, b2 and b4 have `published: false` in `external` of the bundle manifest. Do not publish them.
-  - With the verdict `does not convert` or `not applicable`, this rule does not apply. Publish your
-    native batches. With the verdict `to run`, the result of the skellytracker session decides.
-  - No validation rule checks this rule. `intake_bundle.py verify` checks it.
+- The batch artifacts. A sidecar uses one batch form for every size and every precision: b3, b1 or
+  `dynamic` ([Batch forms](../common/sizes-and-artifacts.md#batch-forms);
+  [ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)). You publish one batch
+  artifact for each size and precision, in that form.
+  - b3 is the goal. `sizes.<size>.onnx.batch_artifacts` has only the key `"3"`. The sidecar has
+    `batching.batch_conversion: {profile_id: static-batch-v1, source_batch_size: 3}`. b3 needs the
+    verdict `converts` of the [batch-conversion check](hand-over.md#batch-conversion-check). Thus
+    `external` lists the verification batches 1, 2, 3 and 4 of each size and precision.
+  - b1 and `dynamic` are the fallbacks. `batch_artifacts` has only the key `"1"`, or only the key
+    `dynamic`. The sidecar has no `batch_conversion`. A fallback is allowed with the verdict
+    `does not convert`. It is also allowed when the person who runs the exporter forces it.
+  - The batch-conversion check runs by default. To force a fallback, write `batch_forced` (`1` or
+    `dynamic`) and `batch_forced_reason` in the manifest ([Manifest](hand-over.md#manifest)). Write
+    the same choice and reason in the intake. Then you can skip the check. A skipped check has the
+    verdict `not applicable`. With `batch_forced`, publish only that form.
+  - `dynamic` also needs a passed dynamic check of the batch-conversion check (V6). If it fails, do
+    not publish the `dynamic` export.
+  - With the verdict `to run`, mark as `published` the files of the form that you plan. The session
+    verdict then decides ([The session run](hand-over.md#the-session-run)). b3 needs the session
+    verdict `converts`.
+  - The other files of the check (for example b2 and b4, and b1 of a b3 family) have
+    `published: false` in `external` of the bundle manifest. Do not publish them.
+  - No validation rule checks the publication. `intake_bundle.py verify` checks this rule for each
+    verdict. `V-common.sizes_and_artifacts-13` checks the batch form of the sidecar.
 
 ## `source` and hashes
 

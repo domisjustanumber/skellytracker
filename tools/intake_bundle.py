@@ -78,7 +78,7 @@ COMMON_KEYS = (
     "external",
 )
 KIND_KEYS = {
-    "model": ("verdict", "batch_conversion", "batch_conversion_reason"),
+    "model": ("verdict", "batch_conversion", "batch_conversion_reason", "batch_forced", "batch_forced_reason"),
     "proposal": ("change_class", "base", "depends_on", "contributes_to"),
 }
 COMPUTED = ("files", "version", "created")
@@ -109,6 +109,7 @@ FRAGMENT_KEYS = {"exporter", "exporter_path", "tracked", "commit", "notes"}
 SOURCE_BATCH = 3
 PROFILE = {"profile_id": "static-batch-v1", "source_batch_size": SOURCE_BATCH}
 VERIFICATION_BATCHES = (1, 2, 3, 4)
+FORMS = (SOURCE_BATCH, 1, "dynamic")  # the batch forms of V-common.sizes_and_artifacts-13
 TARGETS = (1, 2, 4)
 DYNAMIC_BATCHES = (1, 2, 3)
 TOLERANCE = {"fp32": 1e-5, "fp16": 1e-3}
@@ -207,6 +208,15 @@ def manifest_problems(manifest: dict, computed: bool = True) -> list[str]:
                 problems.append(f"batch_conversion_reason must be one of {list(BATCH_REASONS)}")
         elif reason is not None:
             problems.append("batch_conversion_reason must be null unless batch_conversion is 'to run'")
+        forced, why = get("batch_forced"), get("batch_forced_reason")
+        if "batch_forced" in manifest and (forced not in (None, 1, "dynamic") or isinstance(forced, bool)):
+            problems.append("batch_forced must be null, 1 or 'dynamic'")
+        if forced is None and why is not None:
+            problems.append("batch_forced_reason must be null unless batch_forced is set")
+        if forced is not None and not (isinstance(why, str) and why.strip()):
+            problems.append("batch_forced_reason must give the reason for batch_forced")
+        if "batch_forced" in manifest and forced is None and get("batch_conversion") == "not applicable":
+            problems.append("batch_conversion 'not applicable' needs batch_forced: the batch check runs by default")
     external = get("external", [])
     if not isinstance(external, list):
         problems.append("external must be a list")
@@ -661,9 +671,10 @@ def _payload_problems(version_dir: Path, rel: str, yaml, repo: Path = REPO_ROOT)
 
 
 def _publish_problems(version_dir: Path, listed: dict, manifest: dict, yaml) -> list[str]:  # noqa: ANN001
-    """Return the findings of the publish rule (manifest verdict `converts`) and of the dynamic check."""
+    """Return the findings of the publish rule (every verdict) and of the dynamic check (ADR-JB5J)."""
     findings: list[str] = []
     external = manifest["external"]
+    verdict, forced = manifest["batch_conversion"], manifest["batch_forced"]
 
     def load(rel: str, report: bool = True) -> dict:
         if rel not in listed:
@@ -673,62 +684,81 @@ def _publish_problems(version_dir: Path, listed: dict, manifest: dict, yaml) -> 
             findings.append(problem)
         return data if isinstance(data, dict) else {}
 
-    if manifest["batch_conversion"] == "converts":
-        for size, precision in sorted({(i["size"], i["precision"]) for i in external}, key=str):
+    published = {i["batch"] for i in external if i["published"]}
+    pairs = sorted({(i["size"], i["precision"]) for i in external}, key=str)
+    if published:
+        for size, precision in pairs:
             count = sum(i["published"] for i in external if (i["size"], i["precision"]) == (size, precision))
             if count != 1:
                 findings.append(f"publish rule: {size} {precision} must have exactly one published file, not {count}")
-        published = {i["batch"] for i in external if i["published"]}
-        if len(published) > 1 or not published <= {SOURCE_BATCH, "dynamic"}:
+    if len(published) > 1 or not published <= set(FORMS):
+        findings.append(
+            f"publish rule: each published file must have one batch form ({SOURCE_BATCH}, 1 or dynamic), "
+            f"not {sorted(map(str, published))}"
+        )
+    elif published:
+        (form,) = published
+        # A `to run` bundle plans its form; the session verdict decides it (hand-over.md, "The session run").
+        allowed = {forced} if forced is not None else {
+            "converts": {SOURCE_BATCH}, "does not convert": {1, "dynamic"}, "to run": set(FORMS)
+        }.get(verdict, set())
+        if form not in allowed:
             findings.append(
-                f"publish rule: each published file must have the batch {SOURCE_BATCH}, or each one dynamic, "
-                f"not {sorted(map(str, published))}"
+                f"publish rule: the batch form {form} is not allowed with batch_conversion {verdict!r} "
+                f"and batch_forced {forced!r}"
             )
-        source = published == {SOURCE_BATCH}
-        examples = load("example/provenance.yaml", report=False).get("examples")
-        examples = examples if isinstance(examples, dict) else {}
-        published_files = {
-            Path(i["path"]).name: (str(i["batch"]), i["precision"]) for i in external if i["published"]
-        }
-        # shortcut: reads the top-level `batching` and `sizes` of the sidecar only, not a `base` or a `$ref`;
-        # enough for the spec examples.
-        for rel in (f"example/{path}" for path in examples):
-            if rel not in listed:
-                continue
-            sidecar = load(rel)
-            listed_files: dict[str, tuple[str, str]] = {}
-            sizes = sidecar.get("sizes")
-            for size in sizes.values() if isinstance(sizes, dict) else []:
-                groups = ((size or {}).get("onnx") or {}).get("batch_artifacts") or {}
-                for batch, group in groups.items() if isinstance(groups, dict) else []:
-                    for precision, entry in ((group or {}).get("precision_artifacts") or {}).items():
-                        if isinstance(entry, dict) and entry.get("filename"):
-                            listed_files[entry["filename"]] = (str(batch), precision)
-            if isinstance(sizes, dict):
-                for name, (batch, precision) in sorted(published_files.items()):
-                    if listed_files.get(name) != (batch, precision):
-                        findings.append(
-                            f"precision mismatch: {name} is batch {batch} {precision} in the manifest "
-                            f"but not in {rel}"
-                        )
-                findings += [
-                    f"{rel}: {name} has no published external entry"
-                    for name in sorted(set(listed_files) - set(published_files))
-                ]
-            fragment = (sidecar.get("batching") or {}).get("batch_conversion") or {}
-            if (fragment.get("source_batch_size") == SOURCE_BATCH) != source:
-                findings.append(
-                    f"publish rule: {rel} must have batching.batch_conversion.source_batch_size: {SOURCE_BATCH} "
-                    f"if and only if the published batch is {SOURCE_BATCH}"
-                )
-        if source:
-            fragment = (
-                (load("batch/conversion.yaml").get("batching") or {}).get("batch_conversion") or {}
-                if "batch/conversion.yaml" in listed
-                else {}
+        if form == SOURCE_BATCH:
+            missing = [
+                f"{s}/{p}/b{n}" for s, p in pairs for n in VERIFICATION_BATCHES
+                if not any((i["size"], i["precision"], i["batch"]) == (s, p, n) for i in external)
+            ]
+            if missing:
+                findings.append(f"publish rule: a b{SOURCE_BATCH} publish needs the verification batches: {missing}")
+    source = published == {SOURCE_BATCH}
+    examples = load("example/provenance.yaml", report=False).get("examples")
+    examples = examples if isinstance(examples, dict) else {}
+    published_files = {
+        Path(i["path"]).name: (str(i["batch"]), i["precision"]) for i in external if i["published"]
+    }
+    # shortcut: reads the top-level `batching` and `sizes` of the sidecar only, not a `base` or a `$ref`;
+    # enough for the spec examples.
+    for rel in (f"example/{path}" for path in examples):
+        if rel not in listed:
+            continue
+        sidecar = load(rel)
+        listed_files: dict[str, tuple[str, str]] = {}
+        sizes = sidecar.get("sizes")
+        for size in sizes.values() if isinstance(sizes, dict) else []:
+            groups = ((size or {}).get("onnx") or {}).get("batch_artifacts") or {}
+            for batch, group in groups.items() if isinstance(groups, dict) else []:
+                for precision, entry in ((group or {}).get("precision_artifacts") or {}).items():
+                    if isinstance(entry, dict) and entry.get("filename"):
+                        listed_files[entry["filename"]] = (str(batch), precision)
+        if isinstance(sizes, dict):
+            for name, (batch, precision) in sorted(published_files.items()):
+                if listed_files.get(name) != (batch, precision):
+                    findings.append(
+                        f"precision mismatch: {name} is batch {batch} {precision} in the manifest "
+                        f"but not in {rel}"
+                    )
+            findings += [
+                f"{rel}: {name} has no published external entry"
+                for name in sorted(set(listed_files) - set(published_files))
+            ]
+        fragment = (sidecar.get("batching") or {}).get("batch_conversion") or {}
+        if (fragment.get("source_batch_size") == SOURCE_BATCH) != source:
+            findings.append(
+                f"publish rule: {rel} must have batching.batch_conversion.source_batch_size: {SOURCE_BATCH} "
+                f"if and only if the published batch is {SOURCE_BATCH}"
             )
-            if fragment.get("source_batch_size") != SOURCE_BATCH:
-                findings.append(f"publish rule: batch/conversion.yaml must have source_batch_size: {SOURCE_BATCH}")
+    if source and verdict == "converts":
+        fragment = (
+            (load("batch/conversion.yaml").get("batching") or {}).get("batch_conversion") or {}
+            if "batch/conversion.yaml" in listed
+            else {}
+        )
+        if fragment.get("source_batch_size") != SOURCE_BATCH:
+            findings.append(f"publish rule: batch/conversion.yaml must have source_batch_size: {SOURCE_BATCH}")
     dynamic = sorted(
         {(i["size"], i["precision"]) for i in external if i["published"] and i["batch"] == "dynamic"}, key=str
     )
@@ -751,7 +781,7 @@ def _publish_problems(version_dir: Path, listed: dict, manifest: dict, yaml) -> 
                 state = f"is {check.get('result')}" + (f" ({check['reason']})" if check.get("reason") else "")
             findings.append(
                 f"{size} {precision}: the dynamic check {state}; do not publish the dynamic export; "
-                "publish b3 or fix the export"
+                "publish another batch form or fix the export"
             )
     return findings
 
@@ -1169,17 +1199,16 @@ def batch_check(
 
     pairs = sorted({(s, p) for s, p, _ in files}, key=str)
     static = [k for k in files if k[2] != "dynamic"]
-    sizes = {s for s, _, _ in files}
-    per_size = {s: {b for s2, _, b in static if s2 == s} for s in sizes}
 
     # V0: applicability, for the whole family.
     missing = [
         [s, p, b] for s, p in pairs for b in VERIFICATION_BATCHES if (s, p, b) not in files
     ]
-    if not static or all(len(b) <= 1 for b in per_size.values()):
-        v0 = "not applicable"
+    # ADR-JB5J: only a recorded batch_forced skips the check; a b3-only or dynamic-only family is `to run`.
+    if missing or not static:
+        v0 = "not applicable" if fields.get("batch_forced") is not None else "missing-verification-batch"
     else:
-        v0 = "missing-verification-batch" if missing else "pass"
+        v0 = "pass"
 
     # V0b: can this environment load each file?
     v0b = {names[path]: problem for path in files.values() if (problem := _load_problem(path))}

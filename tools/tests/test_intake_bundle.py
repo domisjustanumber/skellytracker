@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -53,6 +54,8 @@ def model_fields(**extra) -> dict:
         "verdict": "describes",
         "batch_conversion": "not applicable",
         "batch_conversion_reason": None,
+        "batch_forced": "dynamic",
+        "batch_forced_reason": "the exporter makes only a dynamic export",
         "external": [],
         **extra,
     }
@@ -466,7 +469,7 @@ def family(tmp_path: Path):  # noqa: ANN201
         if items is not None:
             (out / "inputs").mkdir(parents=True, exist_ok=True)
             np.save(out / "inputs" / "n.npy", items)
-        return root, model_fields(external=external), out
+        return root, model_fields(external=external, batch_forced=None, batch_forced_reason=None), out
 
     return make
 
@@ -500,13 +503,21 @@ def test_batch_does_not_convert_a_batch_dependent_export(family) -> None:  # noq
     assert dynamic["static"]["b3/A"]["pass"] is False
 
 
-@pytest.mark.parametrize("gone", [3, 4])
-def test_batch_needs_each_verification_batch(family, gone: int) -> None:  # noqa: ANN001
-    root, fields, out = family({b: {} for b in (1, 2, 3, 4) if b != gone})
+@pytest.mark.parametrize("gone", [(3,), (4,), (1, 2, 4)])
+def test_batch_needs_each_verification_batch(family, gone: tuple) -> None:  # noqa: ANN001
+    """Also a b3-only family: V0 does not skip it (ADR-JB5J, audit finding C15)."""
+    root, fields, out = family({b: {} for b in (1, 2, 3, 4) if b not in gone})
     report = ib.batch_check(fields, out, root=root)
     assert (report["batch_conversion"], report["batch_conversion_reason"]) == ("to run", "missing-verification-batch")
-    assert report["v0"]["missing"] == [["n", "fp32", gone]]
+    assert report["v0"]["missing"] == [["n", "fp32", b] for b in gone]
     assert report["tuples"] == []
+
+
+def test_batch_skips_the_check_of_a_forced_fallback(family) -> None:  # noqa: ANN001
+    root, fields, out = family({1: {}})
+    fields |= {"batch_forced": 1, "batch_forced_reason": "the user forces b1"}
+    report = ib.batch_check(fields, out, root=root)
+    assert (report["batch_conversion"], report["v0"]) == ("not applicable", {"result": "not applicable", "missing": []})
 
 
 def test_batch_gives_to_run_when_the_runtime_cannot_load_a_file(family) -> None:  # noqa: ANN001
@@ -594,6 +605,8 @@ def test_batch_takes_a_dynamic_non_batch_dim_from_input_b(family, tmp_path: Path
 
 def test_batch_checks_a_dynamic_export_against_itself(family) -> None:  # noqa: ANN001
     root, fields, out = family({"dynamic": {}})
+    assert ib.batch_check(fields, out, root=root)["batch_conversion"] == "to run"
+    fields |= {"batch_forced": "dynamic", "batch_forced_reason": "the user forces dynamic"}
     report = ib.batch_check(fields, out, root=root)
     assert report["batch_conversion"] == "not applicable"
     check = report["dynamic_check"][0]
@@ -621,12 +634,13 @@ def test_batch_runs_only_in_the_venv_of_the_checkout(
 
 
 def converts_bundle(
-    tmp_path: Path, published: tuple, sidecar_source: int | None, conversion: bool, sizes: dict | None = None
+    tmp_path: Path, published: tuple, sidecar_source: int | None, conversion: bool, sizes: dict | None = None,
+    batches: tuple = (1, 2, 3, 4), **fields,
 ) -> Path:
-    """Pack a `converts` model bundle with b1 to b4 and return its intakes folder."""
+    """Pack a model bundle (by default `converts`) with the given batches and return its intakes folder."""
     root = tmp_path / "freemocap" / "skellytracker" / "intakes"
     external = []
-    for batch in (1, 2, 3, 4):
+    for batch in batches:
         model = tmp_path / "Exporter" / f"m_b{batch}_fp32.onnx"
         model.parent.mkdir(parents=True, exist_ok=True)
         model.write_bytes(b"onnx")
@@ -648,8 +662,8 @@ def converts_bundle(
     }
     if conversion:
         files["batch/conversion.yaml"] = json.dumps({"batching": {"batch_conversion": ib.PROFILE}})
-    fields = model_fields(batch_conversion="converts", external=external)
-    ib.pack(payload(tmp_path, files), fields, root, cwd=tmp_path)
+    fields = {"batch_conversion": "converts", "batch_forced": None, "batch_forced_reason": None} | fields
+    ib.pack(payload(tmp_path, files), model_fields(external=external, **fields), root, cwd=tmp_path)
     return root
 
 
@@ -668,7 +682,7 @@ def test_verify_checks_the_publish_rule(tmp_path: Path) -> None:
     root = converts_bundle(tmp_path, (1, 3), 3, conversion=False)
     assert ib.verify("model-yolo26@ultralytics-exporter", root) == [
         "publish rule: n fp32 must have exactly one published file, not 2",
-        "publish rule: each published file must have the batch 3, or each one dynamic, not ['1', '3']",
+        "publish rule: each published file must have one batch form (3, 1 or dynamic), not ['1', '3']",
         SIDECAR_FINDING,
     ]
     root = converts_bundle(tmp_path / "b", (3,), None, conversion=False)
@@ -676,6 +690,46 @@ def test_verify_checks_the_publish_rule(tmp_path: Path) -> None:
         SIDECAR_FINDING,
         "publish rule: batch/conversion.yaml must have source_batch_size: 3",
     ]
+
+
+@pytest.mark.parametrize(
+    ("published", "fields", "batches", "finding"),
+    [
+        ((1,), {"batch_conversion": "does not convert"}, (1, 2, 3, 4), None),
+        ((3,), {"batch_conversion": "does not convert"}, (1, 2, 3, 4),
+         "publish rule: the batch form 3 is not allowed with batch_conversion 'does not convert' and batch_forced None"),
+        ((1,), {"batch_conversion": "converts"}, (1, 2, 3, 4),
+         "publish rule: the batch form 1 is not allowed with batch_conversion 'converts' and batch_forced None"),
+        ((1,), {"batch_conversion": "converts", "batch_forced": 1, "batch_forced_reason": "user choice"}, (1, 2, 3, 4),
+         None),
+        ((1,), {"batch_conversion": "not applicable", "batch_forced": 1, "batch_forced_reason": "user choice"}, (1,),
+         None),
+        ((3,), {"batch_conversion": "to run", "batch_conversion_reason": "missing-verification-batch"}, (3,),
+         "publish rule: a b3 publish needs the verification batches: ['n/fp32/b1', 'n/fp32/b2', 'n/fp32/b4']"),
+    ],
+)
+def test_verify_checks_the_publish_rule_for_every_verdict(
+    tmp_path: Path, published: tuple, fields: dict, batches: tuple, finding: str | None
+) -> None:
+    source = 3 if published == (3,) else None
+    root = converts_bundle(tmp_path, published, source, conversion=False, batches=batches, **fields)
+    findings = ib.verify("model-yolo26@ultralytics-exporter", root)
+    assert findings == ([finding] if finding else []), findings
+
+
+@pytest.mark.parametrize(
+    ("change", "message"),
+    [
+        ({"batch_forced": None, "batch_forced_reason": None}, "batch_conversion 'not applicable' needs batch_forced"),
+        ({"batch_forced": 2}, "batch_forced must be null, 1 or 'dynamic'"),
+        ({"batch_forced": True}, "batch_forced must be null, 1 or 'dynamic'"),
+        ({"batch_forced_reason": ""}, "batch_forced_reason must give the reason"),
+        ({"batch_forced": None}, "batch_forced_reason must be null unless batch_forced is set"),
+    ],
+)
+def test_pack_checks_the_forced_batch_form(tmp_path: Path, root: Path, change: dict, message: str) -> None:
+    with pytest.raises(ib.BundleError, match=re.escape(message)):
+        ib.pack(payload(tmp_path, {"intake.md": "text\n"}), model_fields(**change), root, cwd=tmp_path)
 
 
 def test_verify_finds_a_precision_that_the_sidecar_does_not_give(tmp_path: Path) -> None:
@@ -706,7 +760,7 @@ def test_verify_needs_a_passed_dynamic_check_for_a_published_dynamic_file(
     files = {"intake.md": "text\n"} | ({"batch/report.json": json.dumps(report)} if report else {})
     ib.pack(payload(tmp_path, files), model_fields(external=[item]), root, cwd=tmp_path)
     assert ib.verify("model-yolo26@ultralytics-exporter", root) == [
-        f"n fp32: the dynamic check {state}; do not publish the dynamic export; publish b3 or fix the export"
+        f"n fp32: the dynamic check {state}; do not publish the dynamic export; publish another batch form or fix the export"
     ]
 
 
@@ -723,7 +777,7 @@ def test_verify_finds_a_published_dynamic_export_that_failed_the_dynamic_check(t
     source = payload(tmp_path, {"intake.md": "text\n", "batch/report.json": json.dumps(report)})
     ib.pack(source, model_fields(external=[item]), root, cwd=tmp_path)
     assert ib.verify("model-yolo26@ultralytics-exporter", root) == [
-        "n fp32: the dynamic check is fail; do not publish the dynamic export; publish b3 or fix the export"
+        "n fp32: the dynamic check is fail; do not publish the dynamic export; publish another batch form or fix the export"
     ]
 
 
