@@ -3,7 +3,8 @@
 These rules apply to the code and the tests under `skellytracker/`.
 The root [`AGENTS.md`](../AGENTS.md) also applies.
 In the spec-build stage, do not change the implementation code. You can change `tests/` to fix a test
-(ADR-[0014](../decisions/0014-spec-lifecycle.md)).
+([Stages](../specs/model-sidecar/model-addition-workflow/README.md#stages);
+[Phase 3](../specs/model-sidecar/model-addition-workflow/phase-3-skellytracker.md)).
 To change a package sidecar, also read [`specs/model-sidecar/AGENTS.md`](../specs/model-sidecar/AGENTS.md).
 
 ## Layout
