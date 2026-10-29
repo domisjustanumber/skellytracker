@@ -513,6 +513,13 @@ def test_batch_needs_each_verification_batch(family, gone: tuple) -> None:  # no
     assert report["tuples"] == []
 
 
+def test_batch_gives_to_run_for_a_family_with_no_file(family) -> None:  # noqa: ANN001
+    """An empty `external` list is not a dynamic-only family (ADR-JB5J, item 3)."""
+    root, fields, out = family({})
+    report = ib.batch_check(fields, out, root=root)
+    assert (report["batch_conversion"], report["batch_conversion_reason"]) == ("to run", "missing-verification-batch")
+
+
 def test_batch_skips_the_check_of_a_forced_fallback(family) -> None:  # noqa: ANN001
     root, fields, out = family({1: {}})
     fields |= {"batch_forced": 1, "batch_forced_reason": "the user forces b1"}
@@ -759,6 +766,9 @@ def test_verify_checks_the_publish_rule_for_every_verdict(
         ({"batch_forced": None}, "batch_forced_reason must be null unless batch_forced is set"),
         ({"batch_conversion": "to run", "batch_conversion_reason": "missing-verification-batch"},
          "batch_conversion_reason 'missing-verification-batch' is not possible with batch_forced"),
+        ({"batch_forced": None, "batch_forced_reason": None, "external": [{"batch": "dynamic"}],
+          "batch_conversion": "to run", "batch_conversion_reason": "missing-verification-batch"},
+         "or with only dynamic external files"),
     ],
 )
 def test_pack_checks_the_forced_batch_form(tmp_path: Path, root: Path, change: dict, message: str) -> None:

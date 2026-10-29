@@ -227,10 +227,10 @@ def manifest_problems(manifest: dict, computed: bool = True) -> list[str]:
                 "batch_conversion 'not applicable' needs batch_forced, or only dynamic external files: "
                 "the batch check runs by default"
             )
-        if forced is not None and reason == "missing-verification-batch":
+        if (forced is not None or dynamic_only) and reason == "missing-verification-batch":
             problems.append(
-                "batch_conversion_reason 'missing-verification-batch' is not possible with batch_forced: "
-                "V0 then gives 'not applicable'"
+                "batch_conversion_reason 'missing-verification-batch' is not possible with batch_forced, "
+                "or with only dynamic external files: V0 then gives 'not applicable'"
             )
     external = get("external", [])
     if not isinstance(external, list):
@@ -1224,10 +1224,10 @@ def batch_check(
     missing = [
         [s, p, b] for s, p in pairs for b in VERIFICATION_BATCHES if (s, p, b) not in files
     ]
-    # ADR-JB5J: a dynamic-only family, or a recorded batch_forced, skips the check; a b3-only family is `to run`.
-    if not static:
+    # ADR-JB5J: a dynamic-only family, or a recorded batch_forced, skips the check; a b3-only or empty family is `to run`.
+    if files and not static:
         v0 = "not applicable"
-    elif missing:
+    elif missing or not files:
         v0 = "not applicable" if fields.get("batch_forced") is not None else "missing-verification-batch"
     else:
         v0 = "pass"

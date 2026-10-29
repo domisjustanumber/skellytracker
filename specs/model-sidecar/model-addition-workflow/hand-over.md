@@ -147,8 +147,8 @@ external:
   `dynamic`. `batch_forced_reason` gives the reason. It is required when `batch_forced` is set.
   Otherwise both are `null`. `batch_conversion: not applicable` needs `batch_forced`, or a family
   with no static file: each `external` entry has `batch: dynamic` ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)).
-  With `batch_forced`, `batch_conversion_reason` is not `missing-verification-batch`, because V0
-  then gives `not applicable`.
+  With `batch_forced`, or with only dynamic files, `batch_conversion_reason` is not
+  `missing-verification-batch`, because V0 then gives `not applicable`.
 - For each verdict, `verify` checks the rule of
   [Publishing](validation-and-publishing.md#publishing) in these parts ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)):
   1. when the verdict is `describes`, or when an entry has `published: true`, each (size, precision)
@@ -240,7 +240,7 @@ uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/ske
 
 | Step | What `batch` does |
 |---|---|
-| V0 | Applicability, for the whole family. A family with no static file: `not applicable`. A (size, precision) pair without batch 1, 2, 3 or 4: `not applicable` when the fields give `batch_forced`, else `to run` with the reason `missing-verification-batch`. A family with only b3 files also gets `to run` ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)). |
+| V0 | Applicability, for the whole family. A family with only dynamic files: `not applicable`. A family with no file: `to run` with the reason `missing-verification-batch`. A (size, precision) pair without batch 1, 2, 3 or 4: `not applicable` when the fields give `batch_forced`, else `to run` with the reason `missing-verification-batch`. A family with only b3 files also gets `to run` ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)). |
 | V0b | It checks that the onnx and onnxruntime of the environment can load each file: `ir_version`, each `opset_import` version and an onnxruntime CPU session. If not: `to run` with the reason `host-runtime-cannot-load`. |
 | V1 | It compares the native batch 3 graph with each native batch `N` graph (`differences.json`). This is evidence only. |
 | V2 | It makes the fragment `batching.batch_conversion: {profile_id: static-batch-v1, source_batch_size: 3}`. |
