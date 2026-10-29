@@ -96,6 +96,17 @@ def test_example_has_a_source(path: Path) -> None:
     assert isinstance(source["version"], str) and source["version"]
 
 
+@pytest.mark.parametrize("path", example_paths(), ids=example_key)
+def test_example_uses_one_batch_form(path: Path) -> None:
+    """V-common.sizes_and_artifacts-13, V-common.batch_conversion-3 and V-common.batch_conversion-4."""
+    resolved = sidecar_refs.resolve(path, EXAMPLES_ROOT)
+    keys = {tuple(size["onnx"]["batch_artifacts"]) for size in resolved["sizes"].values()}
+    assert len(keys) == 1 and next(iter(keys)) in {("3",), ("1",), ("dynamic",)}, keys
+    conversion = (resolved.get("batching") or {}).get("batch_conversion")
+    assert (keys == {("3",)}) == (conversion is not None)
+    assert conversion in (None, {"profile_id": "static-batch-v1", "source_batch_size": 3})
+
+
 def placeholder_scan_paths() -> list[Path]:
     """Every YAML file of the package, the spec and the tools, and every Markdown file of the spec."""
     paths = [
