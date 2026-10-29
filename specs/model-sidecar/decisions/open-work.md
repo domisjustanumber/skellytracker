@@ -151,8 +151,10 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   [`qai_sidecar.py:255`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_sidecar.py#L255)). Thus two hosts can give depths that differ by a factor of 2.5.
 - [SimCC decode](../post/pose-decode-simcc.md#behaviour) says "Its score is the max value". SimCC has
   two peaks for each keypoint. The text does not say how the two peaks combine, if a softmax comes
-  first, which bin a tie selects, or what a score `<= 0` gives. mmpose v1.3.2 takes the
-  smaller of the two raw peaks with no softmax, and sets the location to `-1` for a score `<= 0`
+  first, which bin a tie selects, or what a score `<= 0` gives. mmpose v1.3.2 applies no softmax
+  by default (`apply_softmax=False`,
+  [`mmpose/codecs/utils/post_processing.py:41-44`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/codecs/utils/post_processing.py#L41-L44)).
+  It takes the smaller of the two raw peaks, and sets the location to `-1` for a score `<= 0`
   ([`mmpose/codecs/utils/post_processing.py:93-99`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/codecs/utils/post_processing.py#L93-L99)). The skellytracker host takes the mean of
   the two softmax peaks
   ([`simcc_decode.py`](../../../skellytracker/core/detectors/processing/simcc_decode.py), lines
