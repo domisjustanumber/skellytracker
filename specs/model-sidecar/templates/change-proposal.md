@@ -2,8 +2,10 @@
 
 This template is phase 2 of the new-model workflow. A proposal asks for one new or changed contract
 unit of the sidecar spec, and for its implementation. A contract unit is one part of the spec with its
-own algorithm or its own implementing function. One contract unit is one section (one section file
-under `specs/model-sidecar/`). The full workflow is the model addition workflow
+own algorithm or its own implementing function. A contract unit has one primary section. It can also
+change other sections that the same change needs. The manifest `sections` lists each changed section.
+The first one is the primary section (heading "Proposal forms" in
+`specs/model-sidecar/model-addition-workflow/hand-over.md`). The full workflow is the model addition workflow
 (`specs/model-sidecar/model-addition-workflow/README.md` of the skellytracker repo). It is the same
 for an exporter and for a human contributor. Where this template says "the exporter", a contributor
 that is not an exporter reads "you". The workflow
@@ -102,18 +104,21 @@ max abs diff of 35 on a 333×500 image (OpenMMLab-Exporter 0020).
 
 If the only evidence is a secondary source (a plan, a paper, a README or the notes of an exporter),
 mark it `(secondary)`. A check-backed claim gives an upstream line as primary evidence
-([Rules](../model-addition-workflow/rules.md)). Name the primary file or config key that a reader
-must check. Before the user accepts the proposal, this part must cite the primary evidence. Cite each
-source in a form of [Sources](../model-addition-workflow/rules.md#sources) ([ADR-FDTD](../../../decisions/FDTD-evidence-sources-and-exporter-permalinks.md)).
+(`specs/model-sidecar/model-addition-workflow/rules.md`). Name the primary file or config key that a
+reader must check. Before the user accepts the proposal, this part must cite the primary evidence.
+Cite each source in a form of the heading "Sources" in
+`specs/model-sidecar/model-addition-workflow/rules.md` (skellytracker ADR-FDTD,
+`decisions/FDTD-evidence-sources-and-exporter-permalinks.md`).
 
 | Item | Value |
 |---|---|
 | Property | |
 | Upstream evidence (file and line, or config key; full upstream SHA, then the tag) | |
-| Plan decisions about the spec that this proposal uses, in words (or `none`) ([User decisions](../model-addition-workflow/rules.md#user-decisions)) | |
+| Plan decisions about the spec that this proposal uses, in words (or `none`) (heading "User decisions" in `specs/model-sidecar/model-addition-workflow/rules.md`) | |
 | Nearest section ID (the `id` in the section file's front matter) | |
 | Why the nearest section is wrong | |
 | Measured difference (number, image and script) | |
+| Model in "Scope of this revision" (`specs/model-sidecar/changelog.md`): yes, or no (it joins the list on acceptance; do not write a scope entry) | |
 | Row in "Considered and deliberately not added" (`specs/model-sidecar/changelog.md`), and the evidence that a model needs it now (or `none`) | |
 
 ## 2. Spec change
@@ -195,8 +200,9 @@ The `key=value` pairs of a resolved sidecar that make the sidecar use this secti
   difference. The index of these tables is the heading "Version-aware compatibility" in
   `specs/model-sidecar/format/versioning.md`. A new field, value or section that is not available
   before `vNEXT` goes in the availability row of the "Legacy behaviour" table of that file.
-- If a part of the change applies to every `schema_version`, show that it is a clarification. Use
-  each condition of the heading "Clarifications" in `specs/model-sidecar/format/versioning.md`.
+- If a part of the change applies to every `schema_version` and the class is not `breaking`, show
+  that this part is a clarification. Use each condition of the heading "Clarifications" in
+  `specs/model-sidecar/format/versioning.md`.
   Give the result in exact math before the change and after the change. Name each host that stops
   conforming. Write its gap in part 6.
 - If the change is `breaking`, give its item for the list "Every-version changes" in the same file.
@@ -245,8 +251,9 @@ A test vector is a small worked case: concrete inputs to the algorithm of one se
 expected output.
 
 - Make the vectors with the reference implementation of part 3.
-- Run the same cases through the host implementation of the exporter. List it in `verified_against`
-  only if it gives the same results.
+- Run the numeric cases through the host implementation of the exporter. List it in
+  `verified_against` only if it gives the same results. A `verified_against` that the exporter gives
+  covers only the numeric cases. An `error` case and a `failed` case do not need `verified_against`.
 - The reference implementation and its source exporter count as one implementation in
   `verified_against`. Only exporters and skellytracker count as implementations. Do not list the
   upstream library. If you ran a case through upstream code, write that in a comment.
@@ -281,13 +288,16 @@ expected output.
   example `V-post.det.decode-5: ...`. Then the value is that rule ID. The input must fail exactly
   one rule. The rule must be in a section file, or in part 2.4 of this proposal.
 - If the input is not a sidecar value, the value is `no-rule`. Examples are a tensor of the model,
-  an argument of the caller and a second sidecar. Tell in the note of the case why no rule applies.
+  an argument of the caller and a second sidecar. Give the reason as a YAML comment on the `id` line
+  of the case, for example `- id: refused-shape  # the input is a tensor, not a sidecar value`. Do not
+  add a `note` key.
 - A sidecar with `schema_version < vNEXT` that uses a feature that is "Not available." also gives
   `no-rule`.
 - If no rule refuses a sidecar value, the spec needs a new rule. Add it to part 2.4. Do not use
   `no-rule` for that value.
 - Do not give a run-time function a sidecar value that a validation rule refuses. Write a
-  validator case for that rule.
+  validator case for that rule. Write the validator case in the vector file of the section that owns
+  the rule.
 - A validator that reports each failed rule returns `{failed: [<rule IDs>]}`. Sort the list. Do not
   repeat an ID. Write `failed: []` for a valid sidecar. Do not add another `expect` key. Each ID must
   be in a section file, or in part 2.4 of this proposal. A validator case can have no `function`
@@ -320,7 +330,7 @@ generated_by: <reference file>
 verified_against:                         # or, when nothing verified the cases: unverified: <reason>
   - <Exporter repo>: <file>::<function>
 cases:
-  - id: <case id>
+  - id: <case id>                         # optional: a note on the case (a YAML comment, not a key)
     function: <function of the reference file>
     params: {}
     input: {}
@@ -346,7 +356,7 @@ Follow the parity rules of the model addition workflow
   compared.
 - Commit the script in the exporter repo, so that the commit can be cited. Use the folder of the
   exporter for evidence scripts. If the exporter has no such folder, use `notes/decisions/scripts/`
-  (OpenMMLab-Exporter uses it). A script that is only in a local `plans/` folder is not evidence.
+  (OpenMMLab-Exporter uses it). A script that is only in a local plan folder is not evidence.
 - Give the numbers, the script and the commit. If one script serves several proposals, cite it here
   and in each of the other proposals.
 - If you cannot run the check yet (for example, no ONNX file exists, the upstream cannot run, or the
@@ -417,18 +427,18 @@ The code for each contract part today:
 
 ## 7. Exporter impact
 
-Name each exporter that must write new fields or regenerate sidecars. Describe the change to the host
-decoder of the proposing exporter.
+List each affected sidecar group: its owner repo, the inventory key or the model, the change and the
+host decoder change. Find the groups from the section rows of `specs/model-sidecar/TRACEABILITY.md`,
+and from the `model` bundles that `intake_bundle.py list` shows with an affected section in
+`sections`. Describe the change to the host decoder of the proposing exporter. At landing,
+skellytracker compares this list with the result of `sidecar_trace.py impact`. It turns the list into
+the re-export requests (heading "Re-export requests" in
+`specs/model-sidecar/model-addition-workflow/hand-over.md`).
 
-| Exporter | Affected sidecars | Change (`none`, new fields, or regenerate) | Host decoder change |
+| Owner repo | Inventory key or model | Change (`none`, new fields, or regenerate) | Host decoder change |
 |---|---|---|---|
-| OpenMMLab-Exporter | | | |
-| Roboflow-Exporter | | | |
-| Ultralytics-Exporter | | | |
-| Qualcomm-Exporter | | | |
-| MediaPipe-Exporter | | | |
-| The proposing exporter, if it is not in this table | | | |
-| skellytracker package sidecars | | | |
+| | | | |
+| skellytracker | package sidecars | | |
 
 The skellytracker package sidecars have `schema_version: "v2024.09.1019"`. A `vnext` change does not
 change their meaning. For a `clarification` or a `breaking` change, write for each sidecar in the
@@ -474,7 +484,7 @@ Tick each box when its condition is true. If the condition of a box does not app
 write `n/a` after it.
 
 - [ ] All eight parts are filled in, or say `none` with a reason.
-- [ ] The intake links to this proposal.
+- [ ] The intake names the bundle ID of this proposal.
 - [ ] The header gives the dependencies, or `none`.
 - [ ] The header names each `proposed` skellytracker decision entry that covers the same property, or
       `none`. This proposal builds on such an entry. It does not compete with it.
@@ -491,7 +501,9 @@ write `n/a` after it.
 - [ ] If the result of part 5 is `pass` or `fail`, the parity script is committed in the exporter
       repo.
 - [ ] Part 7 lists each example that the change makes invalid, or says `none` with the reason.
-- [ ] No file in skellytracker changed.
+- [ ] Each citation of a spec text, a base file or a record names a heading or a case `id`, not a
+      line number of a copy.
+- [ ] No file in skellytracker changed, except the version folder that `pack` wrote in `intakes/`.
 
 A proposal with `to run` in part 5 is ready for a skellytracker session to record. It is not ready for
 the user to accept. It stays incomplete until part 5 has the numbers, the script and the commit.

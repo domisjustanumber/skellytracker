@@ -56,11 +56,14 @@ sections that the placeholder can name. If you change the section ID of a row, c
    - the upstream postprocessing: each decode step, in order.
 2. For each row, write the property, the upstream evidence, the section ID, the sidecar value and the
    verdict.
-3. If no row is `near-miss` or `gap`, the sidecar writer of the exporter writes the sidecar. Then
-   walk the validation checklist and prove parity. If a row is `unverified`, these results are
-   provisional.
-4. If a row is `near-miss` or `gap`, write a change proposal for it. Do this also when other rows are
-   `unverified`. A `near-miss` row or a `gap` row comes before an `unverified` row.
+3. A blocking row is a `near-miss` or `gap` row other than row G6b. Row G6b with the verdict `gap`
+   (`does not convert`) only leaves `batching.batch_conversion` out of the sidecar. It also sends a
+   new-profile proposal to phase 2. If no row is blocking, the sidecar writer of the exporter writes
+   the sidecar. Then walk the validation checklist and prove parity. If a row is `unverified`, these
+   results are provisional.
+4. If a row is blocking, write a change proposal for it. Do this also when other rows are
+   `unverified`. A blocking row comes before an `unverified` row. If row G6b is `gap`, also write
+   the new-profile proposal.
 5. Write the final verdict.
 
 An upstream step that does nothing for this model is also a row. The row gives the evidence that the
@@ -100,7 +103,7 @@ tell the user which inputs are missing.
 
 **ONNX files.** Write one row for each file. Fill in the SHA-256 now, for example with
 `sha256sum <file>`. It identifies the file that you read. It is not the artifact field `sha256` of
-the sidecar ([`common.sizes_and_artifacts`](../common/sizes-and-artifacts.md#authoring-guidance)).
+the sidecar (`common.sizes_and_artifacts`, heading "Authoring guidance").
 
 | File | Size | Batch key | Precision | `published` or `verification-only` | SHA-256 |
 |---|---|---|---|---|---|
@@ -131,7 +134,9 @@ the sidecar ([`common.sizes_and_artifacts`](../common/sizes-and-artifacts.md#aut
 **Evidence.** In the evidence column, give the upstream file and line, the config key, or the command
 that read the graph with the node or tensor name. A plan, a paper, a README, the notes of an exporter
 and a spec reference example are secondary sources. Write a secondary citation with `(secondary)`, for
-example `plans/<file>.md:101-104 (secondary)`. A row with only a secondary source is `unverified`.
+example `the untracked letterbox plan of OpenMMLab-Exporter (secondary)`. Do not give the path of an
+untracked file (heading "Sources" in `specs/model-sidecar/model-addition-workflow/rules.md`). A row
+with only a secondary source is `unverified`.
 There are two exceptions:
 
 - A `near-miss` or a `gap` compares the property with the spec text. If only a secondary source shows
@@ -380,10 +385,11 @@ user about each row when you stop. If the upstream has no such step, write `none
 
 ## The sidecar
 
-Fill in this section when no row is `near-miss` or `gap`. If a row is `unverified`, use the value
-that you expect for that row, and name the row in the table below. The draft is then provisional.
+Fill in this section when no row is blocking (step 3 of phase 1). If a row is `unverified`, use the
+value that you expect for that row, and name the row in the table below. The draft is then
+provisional.
 
-If a row is `near-miss` or `gap`, write `skipped` in each cell, with the row, for example
+If a row is blocking, write `skipped` in each cell, with the row, for example
 `skipped (row T4a is near-miss)`. Write `none` in the draft block. The proposal of the row holds the
 YAML excerpts (part 2) and the parity plan (part 5).
 
@@ -408,10 +414,10 @@ code writes the sidecar, write `none` in the block.
 
 ## Validation checklist
 
-If a row of the property table is `near-miss` or `gap`, write `skipped` in the Result column of each
-group row. Then go to [Parity proof](#parity-proof).
+If a row of the property table is blocking, write `skipped` in the Result column of each group row.
+Then go to [Parity proof](#parity-proof).
 
-If a row is `unverified` and no row is `near-miss` or `gap`, walk the checklist on the draft. Add
+If a row is `unverified` and no row is blocking, walk the checklist on the draft. Add
 `(provisional: row <#>)` to each result that depends on an `unverified` row.
 
 Walk the validation rules of every section that the sidecar uses. Each section file has a
@@ -463,9 +469,9 @@ Write its rule ID (`V-<section-id>-<n>`). Write `not used` for a group that the 
 This proof is for the sidecar of this intake. The full rules are in the model addition workflow
 (`specs/model-sidecar/model-addition-workflow/parity.md`, heading "Parity").
 
-- If a row of the property table is `near-miss` or `gap`, write `skipped` in each cell of the tables
-  below. Each proposal has its own parity evidence in its part 5.
-- If a row is `unverified` and no row is `near-miss` or `gap`, fill in the tables for the draft. Mark
+- If a row of the property table is blocking, write `skipped` in each cell of the tables below. Each
+  proposal has its own parity evidence in its part 5.
+- If a row is `unverified` and no row is blocking, fill in the tables for the draft. Mark
   each result that depends on an `unverified` row as provisional.
 - If you cannot run the check, write `to run` as the result, and give the reason. Fill in each cell
   that does not need a number: the gates, the test images, the upstream reference, the script and the
@@ -478,15 +484,18 @@ result with the upstream library.
 - The code that applies the sidecar is the host implementation of each section in the exporter.
   Write it from the spec text.
 - If a section has test vectors (`specs/model-sidecar/vectors/`), the host implementation must pass them
-  first.
+  first. Run the numeric cases of each section that the model uses through the host code. Record the
+  result of each section in `vector-runs.yaml` of the `model` bundle (heading "Payload" in
+  `specs/model-sidecar/model-addition-workflow/hand-over.md`). An `error` case and a `failed` case
+  are not host runs.
 - If a reference implementation of a section exists (`specs/model-sidecar/reference/`), use it or match it.
 - If no reference implementation of a section exists, add the reference-implementation step to your
   plan (see [Proposals and reference files](#proposals-and-reference-files)).
 - Set each gate before the run.
 - Use more than one test image. Each branch of each section that the sidecar uses must run on at
   least one image.
-- Commit the parity script in the exporter repo. A script that is only in a local `plans/` folder is
-  not evidence.
+- Commit the parity script in the exporter repo. A script that is only in a local plan folder is not
+  evidence.
 
 **Host implementation of each section.**
 
@@ -497,7 +506,7 @@ result with the upstream library.
 **Parity result.**
 
 Commit the parity script in the exporter repo before you run it. A result counts only with the path and
-the commit of a committed script. A script in `plans/` is not evidence. If the exporter already has a
+the commit of a committed script. A script that is only in an untracked file is not evidence. If the exporter already has a
 parity script for this model, name it and its commit, and record what it does not compare.
 
 | Item | Value |
@@ -538,11 +547,10 @@ The rule:
 
 - `describes`: every row is `exact` or `out of scope`, **and** parity passes. Row G6b can also be
   `gap`: then leave `batching.batch_conversion` out and write a proposal for a new profile.
-- `does not describe`: a row is `near-miss` or `gap`, also when other rows are `unverified`. Write
-  one proposal for each new or changed part of the spec. Do not write a sidecar that approximates the
-  model.
-- `pending`: no row is `near-miss` or `gap`, but a row is `unverified`, or the parity result is
-  `to run`.
+- `does not describe`: a row is blocking (step 3 of phase 1), also when other rows are
+  `unverified`. Write one proposal for each new or changed part of the spec. Do not write a sidecar
+  that approximates the model.
+- `pending`: no row is blocking, but a row is `unverified`, or the parity result is `to run`.
 - If parity fails, you missed or misjudged a property. Go back to step 1 of phase 1 and find it. Until
   you find it, the verdict is `pending`.
 - Never loosen the tolerance to make parity pass.
@@ -585,11 +593,12 @@ reference implementation of that section. Do it for every verdict.
   dot replaced by an underscore (`pre.resize.letterbox` gives `pre_resize_letterbox`). Write the
   section ID in the note at the top of the file.
 - Write the clean, minimal form of the host code. Follow
-  [Imports of other sections](../model-addition-workflow/reference-implementations.md#imports-of-other-sections).
+  "Imports of other sections" in `specs/model-sidecar/model-addition-workflow/reference-implementations.md`.
   Write one function for each algorithm.
 - In each docstring, cite the section ID and the exporter commit that the code comes from.
 - Run the functions against the vectors of the section. They must pass. If the vector file says
-  `unverified`, also run the numeric cases through the host code, and record both results. If the
+  `unverified`, also run the numeric cases through the host code, and record both results in
+  `vector-runs.yaml`. If the
   section has no vector file yet, record that. An `error` case and a `failed` case run only against
   the reference implementation.
 - Run the functions in place of the host code in the parity check of the exporter. Record that the
