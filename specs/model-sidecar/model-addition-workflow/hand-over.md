@@ -265,7 +265,7 @@ fix the export.
 | `converts` | V3 and V5 pass for each size, precision and `N` | `exact` | Apply [Publishing](validation-and-publishing.md#publishing). With b3, the writer code writes the fragment of `conversion.yaml`. |
 | `does not convert` | V3 or V5 fails on a complete set of inputs | `gap` | Leave `batching.batch_conversion` out. Publish a fallback form: b1 or `dynamic`. Write a `proposal` bundle for a new profile. `differences.json` and `residual-diff.json` are its part 5 evidence. |
 | `not applicable` | V0 gives `not applicable`, or you skip the check. Both need `batch_forced` or `no_static_reason`. | `out of scope` | Publish the form of `batch_forced`, or `dynamic` with `no_static_reason`. V6 still gates a `dynamic` file. |
-| `to run` | A reason: `missing-verification-batch`, `host-runtime-cannot-load` or `no-signal` (each run of a pair is empty) | `unverified` | Write the reason in `batch_conversion_reason`. The skellytracker session runs the check again. Without `batch_forced`, the reason `missing-verification-batch` allows no published form: export the verification batches, or set `batch_forced`. |
+| `to run` | A reason: `missing-verification-batch`, `host-runtime-cannot-load` or `no-signal` (each run of a pair is empty) | `unverified` | Write the reason in `batch_conversion_reason`. The skellytracker session runs the check again. Without `batch_forced`, the reason `missing-verification-batch` allows no published form: export the verification batches, set `batch_forced`, or, if the model cannot export a static graph, give `no_static_reason`. |
 
 ### Output
 

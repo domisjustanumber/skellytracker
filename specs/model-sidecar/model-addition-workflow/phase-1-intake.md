@@ -23,8 +23,7 @@ file `intake.md` of a `model` bundle ([Hand-over bundles](hand-over.md#payload))
      verification-only: you never publish it.
    - A model that cannot export a static graph does not need the verification exports or
      `batch_forced`. Write why in `no_static_reason` of the manifest, and in the intake. It publishes
-     `dynamic`. The dynamic check (V6) still needs input B
-     for each size and a run of `batch`.
+     `dynamic`. The dynamic check (V6) still needs input B for each size and a run of `batch`.
    - The person who runs the exporter can force a fallback form: b1 or `dynamic`. Then write
      `batch_forced` and `batch_forced_reason` in the manifest, and the same choice and reason in the
      intake. With `batch_forced: 1`, you can then skip this step. With `batch_forced: dynamic`, you
