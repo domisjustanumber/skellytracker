@@ -47,7 +47,7 @@ The field `status.spec` in the front matter of a section file gives the status o
    - An accepted decision entry exists for the section.
    - A reference example with `kind: export` uses the section, or the user records "no model" with a reason in `no_model` of [`inventory.yaml`](inventory.yaml).
    - Each algorithm of the section has vectors with verified cases. When vectors cannot hold the input of the algorithm, for example an ONNX file, a named test checks the algorithm.
-   - Each `V-` rule of the section has a validator case.
+   - Each `V-` rule of the section has a vector case in the vector file of the section that names it: a validator case (`failed`) or a reference refusal case (`error`). An `error` case and a `failed` case need no `verified_against`.
 6. The change to `stable` is a content change. It changes `status.spec`, removes the banner and adds a row to the [summary of changes](changelog.md#summary-of-changes).
 7. The release step stops when a section is `draft`. The user makes the section `stable`, or removes its fields from the release.
 
