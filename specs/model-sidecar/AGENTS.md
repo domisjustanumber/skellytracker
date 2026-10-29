@@ -25,23 +25,24 @@ root log ([ADR-GN3D](../../decisions/GN3D-module-decision-logs.md)).
 - Make a spec change in the section file that owns the rule. The `id` in the front matter is the
   section ID. The rule IDs of the section are `V-<id>-<n>`. When you move or reword a section, keep
   its section ID and its rule IDs
-  (ADR-[0013](../../decisions/0013-spec-structure.md#one-owner-for-each-rule)).
+  ([Rule IDs and section IDs](../../.claude/skills/change-sidecar-spec/SKILL.md#rule-ids-and-section-ids);
+  [ADR-TA0G](../../decisions/TA0G-vector-cases-and-reference-modules.md)).
 - A spec change needs a decision entry and a changelog row. Add a row to the
   [summary of changes](changelog.md#summary-of-changes). Add the change to the `vNEXT` row of the
   [changelog](changelog.md#schema_version-history).
 - Stop on a gap. If a model property does not map exactly to a spec section, do not approximate it.
-  A near-miss is a gap. Write a change proposal with the parts of
-  [`templates/change-proposal.md`](templates/change-proposal.md), and pack it as a `proposal` bundle
-  ([Hand-over bundles](model-addition-workflow/hand-over.md);
-  [ADR-FADS](../../decisions/FADS-hand-over-bundles-in-intakes.md)). A skellytracker session copies the
-  bundle version to `proposals/<slug>/` and records it as a short decision entry with status
-  `proposed`. Then stop. The user accepts or
-  rejects the proposal.
+  A near-miss is a gap. A gap that a skellytracker session finds goes on the
+  [spec-defect list](decisions/open-work.md#spec-defects). Then stop. A contributor writes the
+  change proposal with the parts of [`templates/change-proposal.md`](templates/change-proposal.md)
+  and packs it as a `proposal` bundle ([Hand-over bundles](model-addition-workflow/hand-over.md);
+  [ADR-FADS](../../decisions/FADS-hand-over-bundles-in-intakes.md)). A skellytracker session copies
+  the bundle version to `proposals/<slug>/` and records it as a short decision entry with status
+  `proposed`. Then stop. The user accepts or rejects the proposal.
 - Put one kind of change in each PR
   (ADR-[0027](../../decisions/0027-single-working-branch.md#one-kind-of-change-in-each-pr)).
   In the spec-build stage, the exception of
   [ADR-AB79](../../decisions/AB79-one-pr-for-the-spec-build-work.md) applies: one PR, one kind of
-  change in each commit.
+  change in each commit. It ends when the user opens the one PR.
   The kinds are: content (a change of normative meaning), move, rewording, and non-spec (decision
   log, agent files, tools, test vectors, guidance, CI, test fixes).
   - A non-spec PR can also add an example that changes no normative meaning, with its provenance

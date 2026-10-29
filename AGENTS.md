@@ -5,8 +5,8 @@ To add a model or to request a change to the sidecar spec, follow the
 [model addition workflow](specs/model-sidecar/model-addition-workflow/README.md).
 It is the same for an exporter agent and for a human contributor.
 Exporter agents must not change files in this repository, except the new version folders of their
-own bundles in `intakes/`. They run `pack` and `list` of `tools/intake_bundle.py` with any Python 3
-interpreter and `python -B`. They run `batch` of the same tool in the environment of this
+own bundles in `intakes/`. They run `pack` and `list` of `tools/intake_bundle.py` with Python 3.9 or
+later and `python -B`. They run `batch` of the same tool in the environment of this
 checkout, with `uv run --project ../freemocap/skellytracker --no-sync python -B`.
 These commands write no other file here
 ([ADR-FADS](decisions/FADS-hand-over-bundles-in-intakes.md);
@@ -148,7 +148,8 @@ Change the kit templates by hand when a rule of this log changes.
 - Commit only on the working branch `dom/sidecar-implementation`. Open PRs against `development`,
   not `main`.
 - In the spec-build stage, the work goes to `development` in one PR from the working branch
-  ([ADR-AB79](decisions/AB79-one-pr-for-the-spec-build-work.md)). Each commit has one kind of change.
+  ([ADR-AB79](decisions/AB79-one-pr-for-the-spec-build-work.md)). It ends when the user opens the one
+  PR. Each commit has one kind of change.
   In the rules of the sidecar process, "the same PR" means the same commit group. A content,
   non-spec, move or rewording PR means a commit of that kind. The test-fix rule of
   [section 3](#3-install-and-test) does not change.
@@ -166,7 +167,7 @@ Write the summary in the message text, not only in the tool description.
 ## 8. Private Data
 
 This repository is public, and git history is permanent
-(ADR-[0030](decisions/0030-no-private-data.md)).
+([ADR-FDTD](decisions/FDTD-evidence-sources-and-exporter-permalinks.md)).
 Do not write these in a tracked file, a commit message or a PR body:
 
 - a credential, a token, a password or a private key;
@@ -179,7 +180,8 @@ Do not write these in a tracked file, a commit message or a PR body:
 - A GitHub permalink to a repo of a freemocap exporter is not a private URL. This is also true when
   the repo is private. The permalink can contain the user name of the account that owns the repo. Do
   not write that user name in prose
-  ([ADR-FDTD](decisions/FDTD-evidence-sources-and-exporter-permalinks.md)).
+  ([ADR-FDTD](decisions/FDTD-evidence-sources-and-exporter-permalinks.md)). Do not put that user
+  name in `.private-terms`. The check would then fail on each permalink.
 - Use paths relative to the repository, for example `../OpenMMLab-Exporter/notes/`.
 - Give a measurement as a summary with its tool and its version.
 - A report field or a test fake can contain a hostname.
