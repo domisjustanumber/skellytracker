@@ -35,6 +35,22 @@ To add a model or to request a change to this specification, follow the [model a
 - A rule ID `V-<section-id>-<n>` names one checklist rule.
 - The section ID is the `id` in the front matter of a section file.
 
+## Section status
+
+The field `status.spec` in the front matter of a section file gives the status of the section: `stable` or `draft`. The front matter is the authority.
+
+1. A `draft` section is normative for `vNEXT`. A writer can write its fields.
+2. A content change can change a `draft` section. The [change class](model-addition-workflow/hand-over.md#change-classes) of this change is always `vnext`. It is never `clarification` or `breaking`.
+3. The first body line of a `draft` section, after its title, is the banner "This section is a draft. ...". A `stable` section has no banner.
+4. A new section starts as `draft`. A changed `stable` section stays `stable`.
+5. A `draft` section becomes `stable` when all of these conditions are true. The Gate column of the [Implementation status](TRACEABILITY.md#implementation-status) table shows the conditions that the files show.
+   - An accepted decision entry exists for the section.
+   - A reference example with `kind: export` uses the section, or the user records "no model" with a reason in `no_model` of [`inventory.yaml`](inventory.yaml).
+   - Each algorithm of the section has vectors with verified cases. When vectors cannot hold the input of the algorithm, for example an ONNX file, a named test checks the algorithm.
+   - Each `V-` rule of the section has a validator case.
+6. The change to `stable` is a content change. It changes `status.spec`, removes the banner and adds a row to the [summary of changes](changelog.md#summary-of-changes).
+7. The release step stops when a section is `draft`. The user makes the section `stable`, or removes its fields from the release.
+
 ## Section map
 
 ### Format
