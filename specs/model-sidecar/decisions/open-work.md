@@ -9,13 +9,11 @@ implementation-stage items and the other repository state are in the root
 
 - `specs/model-sidecar/post/canonical-mapping.md` links to the VRM specification by the branch `master`. A
   rewording PR must pin the two links to a commit.
-- **Absorption gap.** The reviews of 2026-10-24 and 2026-10-25 absorbed every accepted entry except
-  [ADR-0011](0011-rtmdet-host-nms.md). [ADR-YNX0](YNX0-vnext-scope-list.md) supersedes 0008. The
-  user chose on 2026-10-26 to keep 0011 Active until the proposal 0041 was decided.
-  [ADR-SR1E](../../../decisions/SR1E-reset-of-the-spec-build-proposals.md) deleted 0041. Absorb 0011
-  into `specs/model-sidecar/post/selection-nms.md#authoring-guidance` when the user agrees. Close its
-  gap first: the `-1` row axis of the RTMDet `boxes` and `scores` shapes takes its value from
-  `output_shapes`.
+- **Absorption gap.** [ADR-0011](0011-rtmdet-host-nms.md) stays Active. Its gap: the `-1` row axis
+  of the RTMDet `boxes` and `scores` shapes takes its value from `output_shapes`.
+  [ADR-CRV0](CRV0-output-shapes-in-each-batch-group.md) closes the gap. Absorb
+  [ADR-0011](0011-rtmdet-host-nms.md) into `specs/model-sidecar/post/selection-nms.md#authoring-guidance`
+  when the content of [ADR-CRV0](CRV0-output-shapes-in-each-batch-group.md) lands.
 
 ## Re-export requests
 
@@ -39,6 +37,7 @@ deletes the item when it lands that bundle.
   the verdict `converts`, the example uses the goal form: only the key `"3"`, with
   `batching.batch_conversion` ([Batch forms](../common/sizes-and-artifacts.md#batch-forms)). With
   another verdict, follow [Publishing](../model-addition-workflow/validation-and-publishing.md#publishing).
+  Give `output_shapes` in each batch group ([ADR-CRV0](CRV0-output-shapes-in-each-batch-group.md)).
 - [ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md), owner
   OpenMMLab-Exporter, action `export again`:
   `detectors/object_detectors/rtmdet-person/rtmdet-person.yaml` (`model_id` `rtmdet-person`). The
@@ -48,6 +47,15 @@ deletes the item when it lands that bundle.
   the verdict `converts`, the example uses the goal form: only the key `"3"`, with
   `batching.batch_conversion` ([Batch forms](../common/sizes-and-artifacts.md#batch-forms)). With
   another verdict, follow [Publishing](../model-addition-workflow/validation-and-publishing.md#publishing).
+  Give `output_shapes` in each batch group ([ADR-CRV0](CRV0-output-shapes-in-each-batch-group.md)).
+- [ADR-CRV0](CRV0-output-shapes-in-each-batch-group.md), owner OpenMMLab-Exporter, action
+  `export again`: `detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml` (`model_id`
+  `rtmo-body7`). The bundle must give `output_shapes` in each batch group, with one entry for each
+  output, from the graph, and `-1` for a symbolic axis. When `outputs[].shape` gives a shape, the
+  entry has its rank, and each fixed dim of it is equal in the entry, or `-1`.
+- [ADR-CRV0](CRV0-output-shapes-in-each-batch-group.md), owner OpenMMLab-Exporter, action
+  `export again`: `detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml` (`model_id`
+  `rtmw-wholebody`). The bundle must give the same as the item above.
 
 ## Spec defects
 
