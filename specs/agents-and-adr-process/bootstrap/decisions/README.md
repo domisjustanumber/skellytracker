@@ -90,7 +90,8 @@ The open work is in [open-work.md](open-work.md).
 - The tables and their status forms: Active (`accepted`, `evidence`) and Proposed (`proposed`) in this
   file, and Historical (`rejected`, `superseded by XXXX`, `absorbed into <path>#<anchor>`,
   `evidence; used by XXXX`, `done`) in [historical.md](historical.md). The Status cell has only a
-  status form of its table. The Decision cell has 160 characters or fewer.
+  status form of its table. `XXXX` must be an entry that is not `proposed` or `rejected`. The
+  Decision cell has 160 characters or fewer.
 - A Proposed row has a Section cell: the section or area of the change as an ID in backticks, or
   `none`.
 - An `evidence` entry gets `evidence; used by XXXX` when an accepted entry cites it for its decision.
@@ -110,9 +111,12 @@ The open work is in [open-work.md](open-work.md).
   Put long evidence in a tracked file next to the entry, and link to it. Run
   `uv run python tools/check_decision_log.py` to see the read-path size and the warnings at 80% of a
   limit. `uv run pytest tools/tests` runs the same check.
+- The tool counts characters after it changes CRLF to LF. It checks the rows, the tables, the cells,
+  the status forms, the `XXXX` of each status and the limits. A warning does not fail the doc tests.
+  An entry does not warn. A PR can lower a limit. A PR that raises a limit must add an entry.
 - An entry ID has 4 characters from `0123456789ABCDEFGHJKMNPQRSTVWXYZ`. The first character is a
   letter. Write an ID in upper case in each file name, heading, index row and citation. Entry 0001 keeps its number. Do not make a new all-digit ID.
-- Before you add an entry, run `git fetch` when you can. Then run
+- Before you add an entry, run `git fetch --all` when you can. Then run
   `uv run python tools/check_decision_log.py --new`. Give the entry the ID of the `new:` line. Create
   its file immediately. Add its index row at the end of the table for its status, in the same PR. The
   index order is the order of addition.
@@ -120,9 +124,11 @@ The open work is in [open-work.md](open-work.md).
   names an entry of this tree whose ID a different file has on another branch or worktree. Both sides
   get the same verdict: an entry on `{{DEFAULT_BRANCH}}` wins, then an entry on a remote-tracking
   branch, then the entry whose first commit has the earlier author date, then the file name that sorts
-  first. An ID does not change for a different reason.
+  first. An uncommitted file loses to a committed file. Refs merged into `HEAD`, the upstream and push
+  refs of the branch, `backup/` branches and an old file name of an entry are not collisions. An ID
+  does not change for a different reason.
 - To change an ID, run `--new`. Rename the file to the new ID. Change the ID in its heading and in its
-  index row. Find the citations with `git grep -n -E "\bXXXX\b|XXXX-"`, and repair each one. Ask the
+  index row. Find the citations with `git grep -n -i -E "\bXXXX\b|XXXX-"`, and repair each one. Ask the
   user before you change a PR title or a PR body. If the entry is on `{{DEFAULT_BRANCH}}`, add
   `_Edited YYYY-MM-DD (#PR): re-ID from XXXX._` to it, and a `citation repair` line to each entry on
   `{{DEFAULT_BRANCH}}` that you repair.
@@ -137,7 +143,9 @@ The open work is in [open-work.md](open-work.md).
   Its own tests are in `scripts/tests/`. When a later step starts to run a script, move it to
   `tools/` and add a test.
 - Cite a tracked file with a relative link. Cite a commit, or the code of another repo, with a GitHub
-  permalink that pins a full SHA on the default branch of that repo. Do not cite or link `plans/`.
+  permalink that pins a full 40-character SHA on the default branch of that repo. Do not cite or
+  link `plans/`.
+- Until a commit is on `{{DEFAULT_BRANCH}}`, cite its PR number and the file path, not its SHA.
 - Cite an entry of this log as `ADR-<ID>`. Put the prefix in the link text. Write the ID of another
   repo's entry with the repo name and the prefix, for example "{{OTHER_REPO}} ADR-0020". A bare ID is
   always an entry of this log. Do not use the prefix in a file name, a heading, an index row, a

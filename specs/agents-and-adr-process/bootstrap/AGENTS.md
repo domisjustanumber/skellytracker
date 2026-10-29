@@ -105,9 +105,11 @@ Do not import a file, a test or a tool from another repository.
 
 - `plans/` is a local working folder. Git ignores it. Do not commit it (decision
   [0001](decisions/0001-decision-log-agents-md-and-private-data.md)).
-- Do not push to a git remote without the approval of the user.
-- Ask the user before any other action that is visible outside this machine, for example a PR, a
-  PR comment, a release or a published image.
+- Do not push to a git remote without the approval of the user. One approval for a PR covers its
+  push, its draft PR and its description.
+- Ask the user before any other action that is visible outside this machine, for example a PR
+  comment, a later change to a PR description, a change of a draft PR to ready, a release or a
+  published image. A force-push is a new push. It needs its own approval.
 - Do not add AI attribution, for example a `Co-Authored-By:` trailer, to a commit or a PR.
 - Open each PR against `{{DEFAULT_BRANCH}}`.
 - Put one kind of change in each PR: {{CHANGE_KINDS, for example "code", "docs" and "CI"}}.
@@ -133,9 +135,11 @@ Do not write these in a tracked file, a commit message or a PR body:
 
 Use paths relative to the repository, for example `../{{SIBLING_REPO}}/notes/`.
 Give a measurement as a summary with its tool and its version.
+A report field or a test fake can contain a hostname.
 Text from `plans/` must obey these rules before it goes into a tracked file.
 If you find private data in a tracked file, remove it with a redaction edit.
 Then tell the user, because git history keeps the data.
+Also revoke a leaked credential.
 
 `uv run pytest tools/tests` runs `tools/check_private_data.py`.
 To also block a hostname or a user name, put it in the file `.private-terms` in the repository root.
@@ -146,3 +150,6 @@ The commit-msg hook runs `tools/check_ai_attribution.py`. It warns about AI attr
 ([section 6](#6-git-rules)). It does not stop the commit.
 If you are an AI agent and you see this warning, tell the user.
 `.github/workflows/secrets.yml` runs `gitleaks` on each push and PR.
+`.gitleaks.toml` holds the reviewed false positives.
+Turn on secret scanning and push protection for a private repository on the day that it becomes
+public.

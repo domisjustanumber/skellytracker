@@ -5,11 +5,12 @@ log to a repo that has none. It gives a procedure, the rules and their reasons, 
 to copy. The kit is in [`bootstrap/`](bootstrap/). Its folders have the layout of the new repo, so
 each file goes to the same relative path.
 
-The rules come from the skellytracker decision log: [0001](../../decisions/0001-decision-log-and-agents-md.md),
-[0029](../../decisions/0029-decision-log-read-path.md),
-[0030](../../decisions/0030-no-private-data.md),
-[gtwq](../../decisions/gtwq-random-entry-ids.md),
-[ADR-GN3D](../../decisions/GN3D-module-decision-logs.md) and
+The rules come from the skellytracker decision log:
+[ADR-GN3D](../../decisions/GN3D-module-decision-logs.md),
+[ADR-Z934](../../decisions/z934-decision-log-index-and-read-path.md),
+[ADR-JW9N](../../decisions/JW9N-restate-a-kept-rule-by-a-link.md),
+[ADR-FDTD](../../decisions/FDTD-evidence-sources-and-exporter-permalinks.md),
+[ADR-P3N3](../../decisions/p3n3-ai-attribution-warning.md) and
 [ADR-EY8R](../../decisions/EY8R-tools-and-scripts.md). The kit has their final form. It does
 not have their history.
 
@@ -23,8 +24,8 @@ not have their history.
 | [`decisions/historical.md`](bootstrap/decisions/historical.md), [`decisions/template.md`](bootstrap/decisions/template.md) | the same paths | Copy |
 | [`decisions/open-work.md`](bootstrap/decisions/open-work.md) | the same path | Replace the example item, or delete it |
 | [`decisions/0001-…`](bootstrap/decisions/0001-decision-log-agents-md-and-private-data.md) | the same path | Fill in the date |
-| `tools/check_decision_log.py`, `tools/check_links.py`, `tools/check_private_data.py` | the same paths | Copy. Add the public contact address of the project to `ALLOWED_EMAILS`. |
-| `tools/tests/conftest.py` and the three `test_*.py` files | the same paths | Copy |
+| `tools/check_decision_log.py`, `tools/check_links.py`, `tools/check_private_data.py`, `tools/check_ai_attribution.py` | the same paths | Copy. Add the public contact address of the project to `ALLOWED_EMAILS`. |
+| `tools/tests/conftest.py` and the four `test_*.py` files | the same paths | Copy |
 | `.pre-commit-config.yaml`, `.gitleaks.toml` | the same paths | Copy |
 | `.github/workflows/secrets.yml`, `.github/workflows/doc-checks.yml` | the same paths | Copy. In `secrets.yml`, change `branches: [main]` if PRs target a different branch. |
 | [`gitignore-additions.txt`](bootstrap/gitignore-additions.txt) | `.gitignore` | Append the lines. Do not copy the file as `.gitignore`. |
@@ -33,8 +34,9 @@ not have their history.
 The module template is in [`module/`](module/), not in `bootstrap/`, because it goes into a module
 folder, not into the repo root.
 
-The three tools use only the Python standard library and the git CLI. They count the decision log,
-check the links and scan the tracked files. Their tests run with `pytest`.
+The four tools use only the Python standard library and the git CLI. They count the decision log,
+check the links, scan the tracked files and check the commit message for AI attribution. Their tests
+run with `pytest`.
 
 ## Procedure
 
@@ -262,10 +264,12 @@ random ID, not the next number.
   then an entry on a remote-tracking branch, then the entry whose first commit has the earlier author
   date, then the file name that sorts first. An uncommitted file loses. The command exits 1 when it
   prints a `re-ID:` line, and the hook then stops the push.
-  `.pre-commit-config.yaml` sets `default_install_hook_types: [pre-commit, pre-push]` and
-  `default_stages: [pre-commit]`. Without `default_stages`, the commit hooks also run on each push.
-- Local branches under `backup/` are not collisions. A file whose slug an entry of this tree has under
-  a different ID is an old name of that entry, not a collision.
+  `.pre-commit-config.yaml` sets `default_install_hook_types: [pre-commit, commit-msg, pre-push]`
+  and `default_stages: [pre-commit]`. Without `default_stages`, the commit hooks also run on each
+  push.
+- Refs that are merged into `HEAD`, the upstream and push refs of the current branch, and local
+  branches under `backup/` are not collisions. A file whose slug an entry of this tree has under a
+  different ID is an old name of that entry, not a collision.
 - A change of ID is the fourth allowed edit. The entry gets `_Edited YYYY-MM-DD (#PR): re-ID from XXXX._`
   when it is already on the target branch. Each repaired entry on the target branch gets a
   `citation repair` line. An ID that an entry had on the target branch never goes to a different
