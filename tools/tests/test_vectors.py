@@ -387,6 +387,17 @@ def test_a_reference_module_imports_the_module_of_another_section(
         check_case(case, "g3rebind.section", tmp_path)
 
 
+def test_a_module_of_another_folder_does_not_shadow_an_import(tmp_path: Path) -> None:
+    for name, value in (("one", 1), ("two", 2)):
+        folder = tmp_path / name
+        folder.mkdir()
+        (folder / "g3shadow_owner.py").write_text(f"VALUE = {value}\n", encoding="utf-8")
+        (folder / "g3shadow_user.py").write_text(
+            "import g3shadow_owner\n\ndef value():\n    return g3shadow_owner.VALUE\n", encoding="utf-8"
+        )
+        assert mv.load_reference("g3shadow.user", folder).value() == value
+
+
 def test_the_renderer_writes_a_long_item_in_block_form_and_a_large_float() -> None:
     long_item = {"points": [[float(i) + 0.125 for i in range(12)] for _ in range(3)]}
     vectors = mv.Vectors(

@@ -10,7 +10,7 @@ Usage::
     uv run python -B tools/intake_bundle.py verify BUNDLE [--root INTAKES]
     uv run python -B tools/intake_bundle.py batch --fields FILE --out DIR [--inputs DIR] [--root INTAKES]
 
-`pack` and `list` use only the standard library, so any Python 3 interpreter runs them. `verify`
+`pack` and `list` use only the standard library, so Python 3.9 or later runs them. `verify`
 reads YAML, so it runs in the environment of this repository. `batch` is the batch-conversion
 check. It imports onnx, onnxruntime and the skellytracker converter, so it runs only in the `.venv`
 of this checkout. `--fields` is a fields file or a manifest. No sub-command writes a response
@@ -39,6 +39,8 @@ SECTION_FOLDERS = ("format", "common", "pre", "post")
 
 BUNDLE_FORMAT = 1
 TEXT_SUFFIXES = {".md", ".yaml", ".yml", ".py", ".json", ".txt", ".csv", ".toml"}
+# shortcut: a suffix test only; an ONNX external-data file with another name passes; add a magic check if one appears.
+FORBIDDEN_SUFFIXES = (".onnx", ".onnx.data", ".ort")
 VECTOR_LIMIT = 256 * 1024
 
 KINDS = ("model", "proposal")
@@ -58,6 +60,8 @@ STATES = (
 )
 FINISHED = {"landed", "rejected", "resolved-otherwise", "closed"}
 OWNING = {"recorded", "accepted", "landed"}
+NOT_OWNING = {"rejected", "resolved-otherwise", "closed"}
+UNREADABLE = {"_unreadable": True}
 
 COMMON_KEYS = (
     "bundle_format",
@@ -151,6 +155,8 @@ def manifest_problems(manifest: dict, computed: bool = True) -> list[str]:
 
     With `computed=False`, the keys that `pack` computes must be absent (a fields file).
     """
+    if not isinstance(manifest, dict):
+        return ["the manifest is not a mapping"]
     problems: list[str] = []
     kind = manifest.get("kind")
     if kind not in KINDS:
@@ -210,8 +216,8 @@ def manifest_problems(manifest: dict, computed: bool = True) -> list[str]:
         if not isinstance(item, dict) or set(item) != keys:
             problems.append(f"external[{number}] must have exactly the keys {sorted(keys)}")
             continue
-        if not str(item["path"]).startswith("../../"):
-            problems.append(f"external[{number}].path must start with ../../")
+        if not str(item["path"]).startswith("../") or "\\" in str(item["path"]):
+            problems.append(f"external[{number}].path must start with ../ and use '/'")
         if not (isinstance(item["batch"], int) or item["batch"] == "dynamic"):
             problems.append(f"external[{number}].batch must be an integer or 'dynamic'")
         if not isinstance(item["published"], bool):
@@ -228,7 +234,7 @@ def manifest_problems(manifest: dict, computed: bool = True) -> list[str]:
                 problems.append(f"files[{number}] must have exactly the keys path, sha256, bytes")
                 continue
             path = str(item["path"])
-            if path.startswith("/") or ".." in Path(path).parts or "\\" in path:
+            if path.startswith("/") or ".." in Path(path).parts or "\\" in path or re.match(r"^[A-Za-z]:", path):
                 problems.append(f"files[{number}].path must be relative, with '/' and no '..'")
             if not SHA64.match(str(item["sha256"])) or not isinstance(item["bytes"], int):
                 problems.append(f"files[{number}] needs a 64 hex sha256 and an integer bytes")
@@ -270,8 +276,13 @@ def response_problems(response: object) -> list[str]:
     if state == "resolved-otherwise" and isinstance(resolution, dict):
         keys = ("by", "sections", "goals", "contributor_action")
         problems += [f"resolution needs the key {key}" for key in keys if key not in resolution]
-        goals = resolution.get("goals") or []
-        if any(not isinstance(g, dict) or g.get("status") not in ("met", "not-met") for g in goals):
+        goals = resolution.get("goals")
+        if not isinstance(goals, list) or not goals or any(
+            not isinstance(g, dict)
+            or not {"goal", "met_by", "status"} <= set(g)
+            or g["status"] not in ("met", "not-met")
+            for g in goals
+        ):
             problems.append("each resolution goal needs goal, met_by and status met or not-met")
     if state == "rejected" and isinstance(resolution, dict) and not resolution.get("reason"):
         problems.append("a rejected response needs resolution.reason")
@@ -295,10 +306,15 @@ def _numbered(folder: Path, prefix: str, suffix: str = "") -> list[tuple[int, Pa
 
 
 def read_manifest(version_dir: Path) -> dict | None:
+    """Return the manifest, None when there is none, or UNREADABLE when it is not a JSON mapping."""
     path = version_dir / "manifest.yaml"
     if not path.is_file():
         return None
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+    except (ValueError, OSError):
+        return dict(UNREADABLE)
+    return manifest if isinstance(manifest, dict) else dict(UNREADABLE)
 
 
 def current_version(bundle_dir: Path) -> tuple[int, Path] | None:
@@ -330,6 +346,8 @@ def bundles(root: Path) -> dict[str, dict]:
         answers = responses(bundle_dir)
         state = answers[-1].get("state", "unreadable") if answers else "submitted"
         manifest = read_manifest(current[1]) if current else None
+        if manifest is not None and manifest.get("_unreadable"):
+            manifest, state = {}, "unreadable manifest"
         recorded = next(
             (a.get("date", "") for a in answers if a.get("state") in OWNING), None
         )
@@ -345,10 +363,17 @@ def bundles(root: Path) -> dict[str, dict]:
 
 
 def _named_by(info: dict) -> set[str]:
-    """Return the bundle IDs and the `proposal-<slug>@` prefixes that a bundle names."""
+    """Return the bundle IDs and the `proposal-<slug>@` prefixes that a bundle names.
+
+    The `waiting_on` of the latest response also counts: a waiting model bundle names its proposals there.
+    """
     manifest = info["manifest"]
-    names = {manifest.get("base")} | set(manifest.get("depends_on") or []) | set(
-        manifest.get("related") or []
+    last = info["responses"][-1] if info["responses"] else {}
+    names = (
+        {manifest.get("base")}
+        | set(manifest.get("depends_on") or [])
+        | set(manifest.get("related") or [])
+        | set(last.get("waiting_on") or [])
     )
     if manifest.get("contributes_to"):
         names.add(f"proposal-{manifest['contributes_to']}@")
@@ -359,21 +384,49 @@ def _names(name: str, bundle: str) -> bool:
     return bundle == name or (name.endswith("@") and bundle.startswith(name))
 
 
-def owners(found: dict[str, dict]) -> dict[str, str]:
+def _record_states(repo: Path) -> dict[str, str]:
+    """Return the state of each row of the proposal index, by slug."""
+    index = repo / SPEC / "proposals" / "README.md"
+    states: dict[str, str] = {}
+    if index.is_file():
+        for line in index.read_text(encoding="utf-8").splitlines():
+            match = re.match(r"^\| \[([^\]]+)\]\([^)]*\) \|.*\| ([^|]+?) \|$", line)
+            if match:
+                states[match.group(1)] = match.group(2).split()[0]
+    return states
+
+
+def owners(found: dict[str, dict], repo: Path | None = None) -> dict[str, str]:
     """Return the owner contributor of each section.
 
     The owner is the contributor of the first proposal bundle on that section that reached
-    `recorded`. A contribution never owns a section.
+    `recorded`, until it is rejected, resolved otherwise or closed. A contribution never owns a
+    section. A tracked record in `specs/model-sidecar/proposals/` wins, so a deleted bundle keeps
+    its ownership.
     """
+    result: dict[str, str] = {}
+    if repo is not None:
+        # shortcut: reads only the records with a manifest.yaml; the older records go in the wipe of the old proposals.
+        states = _record_states(repo)
+        for path in sorted((repo / SPEC / "proposals").glob("*/manifest.yaml")):
+            try:
+                manifest = json.loads(path.read_text(encoding="utf-8"))
+            except (ValueError, OSError):
+                continue
+            if not isinstance(manifest, dict) or manifest.get("contributes_to"):
+                continue
+            if states.get(path.parent.name) in NOT_OWNING:
+                continue
+            for section in manifest.get("sections") or []:
+                result.setdefault(section, str(manifest.get("contributor", "")))
     candidates = sorted(
         (info["recorded"], bid)
         for bid, info in found.items()
         if info["manifest"].get("kind") == "proposal"
         and not info["manifest"].get("contributes_to")
         and info["recorded"] is not None
-        and info["state"] in OWNING
+        and info["state"] not in NOT_OWNING
     )
-    result: dict[str, str] = {}
     for _, bid in candidates:
         for section in found[bid]["manifest"].get("sections") or []:
             result.setdefault(section, found[bid]["manifest"]["contributor"])
@@ -391,7 +444,10 @@ def _text_form(data: bytes, rel: str) -> bytes:
         text = data.decode("utf-8")
     except UnicodeDecodeError as exc:
         raise BundleError(f"{rel}: a text file must be UTF-8") from exc
-    return text.removeprefix("﻿").replace("\r\n", "\n").encode("utf-8")
+    text = text.removeprefix("﻿").replace("\r\n", "\n")
+    if "\r" in text:
+        raise BundleError(f"{rel}: a text file must have LF line ends (lone CR found)")
+    return text.encode("utf-8")
 
 
 def pack(
@@ -408,6 +464,8 @@ def pack(
         rel = path.relative_to(source).as_posix()
         if rel == "manifest.yaml":
             raise BundleError("the payload must not hold manifest.yaml: pack writes it")
+        if rel.lower().endswith(FORBIDDEN_SUFFIXES):
+            raise BundleError(f"{rel}: do not copy ONNX files into a bundle; name them in external")
         data = path.read_bytes()
         payload[rel] = _text_form(data, rel) if is_text(rel) else data
     terms = check_private_data.private_terms(REPO_ROOT) + check_private_data.private_terms(
@@ -426,12 +484,18 @@ def pack(
         target = (root.parent / item["path"]).resolve()
         if not target.is_file():
             raise BundleError(f"external file not found: {item['path']}")
+        if target.is_relative_to(root.parent.resolve()):
+            raise BundleError(f"external file must be outside the skellytracker repo: {item['path']}")
         digest = hashlib.sha256()
         with target.open("rb") as handle:
             for block in iter(lambda: handle.read(1 << 20), b""):
                 digest.update(block)
         external.append({**item, "sha256": digest.hexdigest()})
     bundle_dir = root / bundle_id(fields)
+    answers = responses(bundle_dir)
+    last_state = answers[-1].get("state") if answers else None
+    if fields["kind"] == "proposal" and (last_state == "accepted" or last_state in FINISHED):
+        raise BundleError(f"the bundle is {last_state}: write a new bundle with a new slug")
     existing = _numbered(bundle_dir, "v")
     version = existing[-1][0] + 1 if existing else 1
     version_dir = bundle_dir / f"v{version}"
@@ -460,29 +524,40 @@ def pack(
 # --------------------------------------------------------------------------------------------
 
 
-def list_lines(root: Path = DEFAULT_ROOT) -> list[str]:
+def list_lines(root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list[str]:
     """Return the text that `list` prints."""
     found = bundles(root)
     lines = []
     for bid, info in found.items():
+        # A contribution is not named by the slug prefix that its siblings give; only its owner bundle is.
+        sibling = bool(info["manifest"].get("contributes_to"))
         needed_by = sorted(
             other
             for other, o in found.items()
-            if other != bid and any(_names(n, bid) for n in _named_by(o))
+            if other != bid
+            and any(_names(n, bid) and not (sibling and n.endswith("@")) for n in _named_by(o))
         )
         open_needers = [n for n in needed_by if found[n]["state"] not in FINISHED]
+        last = info["responses"][-1] if info["responses"] else {}
         version = f"v{info['version']}" if info["version"] else "-"
         line = f"{bid} {version} {info['state']}"
-        if info["state"] in FINISHED and not open_needers:
+        if info["responses"] and info["version"] and last.get("answers_version") != info["version"]:
+            line += " (new version)"
+        goals = (last.get("resolution") or {}).get("goals") or []
+        not_met = any(isinstance(g, dict) and g.get("status") == "not-met" for g in goals)
+        followed = any(bid in (o["manifest"].get("related") or []) for o in found.values())
+        kept = info["state"] == "resolved-otherwise" and not_met and not followed
+        if info["state"] in FINISHED and not open_needers and not kept:
             line += " (can delete)"
         lines.append(line)
         if needed_by:
             lines.append(f"  needed by: {', '.join(needed_by)}")
-        last = info["responses"][-1] if info["responses"] else {}
+        if info["manifest"].get("sections"):
+            lines.append(f"  sections: {', '.join(info['manifest']['sections'])}")
         lines.extend(
             f"  {f}" for f in last.get("findings") or [] if str(f).startswith("deferred:")
         )
-    owned = owners(found)
+    owned = owners(found, repo)
     if owned:
         lines.append("section owners:")
         lines.extend(f"  {section}: {owner}" for section, owner in sorted(owned.items()))
@@ -527,14 +602,26 @@ def _cases(data: object) -> dict[str, object]:
     return {c["id"]: c for c in cases or [] if isinstance(c, dict) and "id" in c}
 
 
-def _payload_problems(version_dir: Path, rel: str, yaml) -> list[str]:  # noqa: ANN001
-    data = yaml.safe_load((version_dir / rel).read_text(encoding="utf-8"))
+def _load_yaml(version_dir: Path, rel: str, yaml) -> tuple[object, str | None]:  # noqa: ANN001
+    """Return (data, None), or (None, finding) for a file that YAML (or JSON) cannot read."""
+    try:
+        return yaml.safe_load((version_dir / rel).read_text(encoding="utf-8")), None
+    except (yaml.YAMLError, ValueError):
+        return None, f"{rel}: not valid YAML/JSON"
+
+
+def _payload_problems(version_dir: Path, rel: str, yaml, repo: Path = REPO_ROOT) -> list[str]:  # noqa: ANN001
+    data, problem = _load_yaml(version_dir, rel, yaml)
+    if problem:
+        return [problem]
     problems = []
     if rel == "vector-runs.yaml":
         if not isinstance(data, dict) or set(data) != {"exporter", "commit", "runs"}:
             return ["vector-runs.yaml must have exactly the keys exporter, commit, runs"]
         if not SHA40.match(str(data["commit"])):
             problems.append("vector-runs.yaml commit must be 40 hex digits")
+        if not isinstance(data["runs"], (list, type(None))):
+            return [*problems, "vector-runs.yaml runs must be a list"]
         for number, run in enumerate(data["runs"] or [], 1):
             keys = {"section", "function", "vectors_sha256", "cases", "result"}
             if not isinstance(run, dict) or set(run) != keys:
@@ -544,11 +631,25 @@ def _payload_problems(version_dir: Path, rel: str, yaml) -> list[str]:  # noqa: 
                 problems.append(f"vector-runs.yaml runs[{number}].result must be pass, fail or no vectors")
             if run["result"] != "no vectors" and not SHA64.match(str(run["vectors_sha256"])):
                 problems.append(f"vector-runs.yaml runs[{number}].vectors_sha256 must be 64 hex digits")
-            if any(v not in ("pass", "fail") for v in (run["cases"] or {}).values()):
+            if not isinstance(run["cases"], (dict, type(None))):
+                problems.append(f"vector-runs.yaml runs[{number}].cases must be a mapping")
+            elif any(v not in ("pass", "fail") for v in (run["cases"] or {}).values()):
                 problems.append(f"vector-runs.yaml runs[{number}].cases values must be pass or fail")
+            if run["result"] != "no vectors" and SHA64.match(str(run["vectors_sha256"])):
+                landed = repo / SPEC / "vectors" / f"{run['section']}.yaml"
+                if not landed.is_file():
+                    problems.append(f"vector-runs.yaml runs[{number}]: no landed vector file for {run['section']}")
+                elif sha256(landed.read_bytes()) != run["vectors_sha256"]:
+                    problems.append(
+                        f"vector-runs.yaml runs[{number}]: vectors_sha256 is not the hash of the landed vector "
+                        "file; run the cases again"
+                    )
     elif rel == "example/provenance.yaml":
         if not isinstance(data, dict) or not set(data) <= {"examples", "fragments"}:
             return ["example/provenance.yaml must have only the keys examples and fragments"]
+        for key in ("examples", "fragments"):
+            if not isinstance(data.get(key), (dict, type(None))):
+                return [f"example/provenance.yaml {key} must be a mapping"]
         for path, entry in (data.get("examples") or {}).items():
             if not isinstance(entry, dict) or not PROVENANCE_KEYS <= set(entry) <= PROVENANCE_KEYS | {"notes"}:
                 problems.append(f"example/provenance.yaml examples[{path}] must have the keys {sorted(PROVENANCE_KEYS)} and may have notes")
@@ -561,12 +662,16 @@ def _payload_problems(version_dir: Path, rel: str, yaml) -> list[str]:  # noqa: 
 
 
 def _publish_problems(version_dir: Path, listed: dict, manifest: dict, yaml) -> list[str]:  # noqa: ANN001
-    """Return the findings of the publish rule (verdict `converts`) and of a failed dynamic check."""
+    """Return the findings of the publish rule (manifest verdict `converts`) and of the dynamic check."""
     findings: list[str] = []
     external = manifest["external"]
 
-    def load(rel: str) -> dict:
-        data = yaml.safe_load((version_dir / rel).read_text(encoding="utf-8"))
+    def load(rel: str, report: bool = True) -> dict:
+        if rel not in listed:
+            return {}
+        data, problem = _load_yaml(version_dir, rel, yaml)
+        if problem and report:
+            findings.append(problem)
         return data if isinstance(data, dict) else {}
 
     if manifest["batch_conversion"] == "converts":
@@ -581,12 +686,37 @@ def _publish_problems(version_dir: Path, listed: dict, manifest: dict, yaml) -> 
                 f"not {sorted(map(str, published))}"
             )
         source = published == {SOURCE_BATCH}
-        examples = load("example/provenance.yaml").get("examples") if "example/provenance.yaml" in listed else None
-        # shortcut: reads the top-level `batching` of the sidecar only, not a `base`; enough for the spec examples.
-        for rel in (f"example/{path}" for path in examples or {}):
+        examples = load("example/provenance.yaml", report=False).get("examples")
+        examples = examples if isinstance(examples, dict) else {}
+        published_files = {
+            Path(i["path"]).name: (str(i["batch"]), i["precision"]) for i in external if i["published"]
+        }
+        # shortcut: reads the top-level `batching` and `sizes` of the sidecar only, not a `base` or a `$ref`;
+        # enough for the spec examples.
+        for rel in (f"example/{path}" for path in examples):
             if rel not in listed:
                 continue
-            fragment = (load(rel).get("batching") or {}).get("batch_conversion") or {}
+            sidecar = load(rel)
+            listed_files: dict[str, tuple[str, str]] = {}
+            sizes = sidecar.get("sizes")
+            for size in sizes.values() if isinstance(sizes, dict) else []:
+                groups = ((size or {}).get("onnx") or {}).get("batch_artifacts") or {}
+                for batch, group in groups.items() if isinstance(groups, dict) else []:
+                    for precision, entry in ((group or {}).get("precision_artifacts") or {}).items():
+                        if isinstance(entry, dict) and entry.get("filename"):
+                            listed_files[entry["filename"]] = (str(batch), precision)
+            if isinstance(sizes, dict):
+                for name, (batch, precision) in sorted(published_files.items()):
+                    if listed_files.get(name) != (batch, precision):
+                        findings.append(
+                            f"precision mismatch: {name} is batch {batch} {precision} in the manifest "
+                            f"but not in {rel}"
+                        )
+                findings += [
+                    f"{rel}: {name} has no published external entry"
+                    for name in sorted(set(listed_files) - set(published_files))
+                ]
+            fragment = (sidecar.get("batching") or {}).get("batch_conversion") or {}
             if (fragment.get("source_batch_size") == SOURCE_BATCH) != source:
                 findings.append(
                     f"publish rule: {rel} must have batching.batch_conversion.source_batch_size: {SOURCE_BATCH} "
@@ -600,14 +730,30 @@ def _publish_problems(version_dir: Path, listed: dict, manifest: dict, yaml) -> 
             )
             if fragment.get("source_batch_size") != SOURCE_BATCH:
                 findings.append(f"publish rule: batch/conversion.yaml must have source_batch_size: {SOURCE_BATCH}")
-    if "batch/report.json" in listed:
-        report = json.loads((version_dir / "batch/report.json").read_text(encoding="utf-8"))
-        dynamic = {(i["size"], i["precision"]) for i in external if i["published"] and i["batch"] == "dynamic"}
-        findings += [
-            f"{check['size']} {check['precision']}: do not publish the dynamic export; publish b3 or fix the export"
-            for check in report.get("dynamic_check") or []
-            if check.get("result") == "fail" and (check.get("size"), check.get("precision")) in dynamic
-        ]
+    dynamic = sorted(
+        {(i["size"], i["precision"]) for i in external if i["published"] and i["batch"] == "dynamic"}, key=str
+    )
+    if dynamic:
+        report = load("batch/report.json")
+        checks = {
+            (c.get("size"), c.get("precision")): c
+            for c in report.get("dynamic_check") or []
+            if isinstance(c, dict)
+        }
+        for size, precision in dynamic:
+            check = checks.get((size, precision))
+            if check is not None and check.get("result") == "pass":
+                continue
+            if "batch/report.json" not in listed:
+                state = "has no batch/report.json"
+            elif check is None:
+                state = "has no entry in batch/report.json"
+            else:
+                state = f"is {check.get('result')}" + (f" ({check['reason']})" if check.get("reason") else "")
+            findings.append(
+                f"{size} {precision}: the dynamic check {state}; do not publish the dynamic export; "
+                "publish b3 or fix the export"
+            )
     return findings
 
 
@@ -623,6 +769,8 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list
         return [f"no bundle {name} in {root}"]
     if info["version"] is None:
         return [f"{name} has no complete version (no manifest.yaml)"]
+    if info["state"] == "unreadable manifest":
+        return [f"manifest: v{info['version']}/manifest.yaml is not a JSON mapping"]
     version_dir = info["dir"] / f"v{info['version']}"
     manifest = info["manifest"]
     findings = [f"manifest: {p}" for p in manifest_problems(manifest)]
@@ -646,6 +794,8 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list
         if not path.is_file():
             findings.append(f"{rel}: the file is missing")
             continue
+        if rel.lower().endswith(FORBIDDEN_SUFFIXES):
+            findings.append(f"{rel}: do not copy ONNX files into a bundle; name them in external")
         data = path.read_bytes()
         if sha256(data) != item["sha256"] or len(data) != item["bytes"]:
             findings.append(f"{rel}: the hash or the size does not match the manifest")
@@ -708,7 +858,7 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list
     # Payload schemas.
     for rel in ("vector-runs.yaml", "example/provenance.yaml"):
         if rel in listed and manifest["kind"] == "model":
-            findings.extend(_payload_problems(version_dir, rel, yaml))
+            findings.extend(_payload_problems(version_dir, rel, yaml, repo))
 
     # Links between bundles, ownership and contribution cases.
     others = list(manifest["related"])
@@ -716,8 +866,8 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list
         others += [manifest["base"], *manifest["depends_on"]]
     findings += [f"the bundle {o} does not exist" for o in others if o and o not in found]
     if manifest["kind"] == "proposal":
-        owned = owners(found)
-        if not contribution and not manifest["base"] and info["state"] not in OWNING:
+        owned = owners(found, repo)
+        if not contribution and not manifest["base"] and info["recorded"] is None:
             for section in manifest["sections"]:
                 owner = owned.get(section)
                 if owner and owner != manifest["contributor"]:
@@ -734,15 +884,18 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list
             if not owner_ids:
                 findings.append(f"no proposal bundle with the slug {manifest['contributes_to']}")
             for rel in vectors:
-                mine = _cases(yaml.safe_load((version_dir / rel).read_text(encoding="utf-8")))
+                data, problem = _load_yaml(version_dir, rel, yaml)
+                if problem:
+                    findings.append(problem)
+                    continue
+                mine = _cases(data)
                 theirs: dict[str, object] = {}
-                landed = repo / SPEC / rel
-                if landed.is_file():
-                    theirs.update(_cases(yaml.safe_load(landed.read_text(encoding="utf-8"))))
-                for owner_id in owner_ids:
-                    owner_file = found[owner_id]["dir"] / f"v{found[owner_id]['version']}" / rel
-                    if owner_file.is_file():
-                        theirs.update(_cases(yaml.safe_load(owner_file.read_text(encoding="utf-8"))))
+                sources = [repo / SPEC / rel] + [
+                    found[o]["dir"] / f"v{found[o]['version']}" / rel for o in owner_ids
+                ]
+                for source in (s for s in sources if s.is_file()):
+                    other, _ = _load_yaml(source.parent, source.name, yaml)
+                    theirs.update(_cases(other))
                 findings += [
                     f"{rel}: the case {case_id} differs from the owner case with the same id"
                     for case_id in sorted(set(mine) & set(theirs))
@@ -754,6 +907,8 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list
         target = (root.parent / item["path"]).resolve()
         if not target.is_file():
             findings.append(f"external file not found: {item['path']}")
+        elif target.is_relative_to(root.parent.resolve()):
+            findings.append(f"external file must be outside the skellytracker repo: {item['path']}")
         elif sha256(target.read_bytes()) != item["sha256"]:
             findings.append(f"external file does not match its sha256: {item['path']}")
 
@@ -871,8 +1026,22 @@ class _Runner:
             self.sessions[path] = self.ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
         return self.sessions[path]
 
-    def _shape(self, item, batch: int) -> list[int]:  # noqa: ANN001
-        shape = [batch, *item.shape[1:]]
+    @staticmethod
+    def batched(item, batch: int) -> bool:  # noqa: ANN001
+        """An input has a batch axis when dim 0 is symbolic or equals the batch of the graph."""
+        dims = list(item.shape)
+        return bool(dims) and (not isinstance(dims[0], int) or dims[0] == batch)
+
+    def _shape(self, item, batch: int, rest: tuple | None = None) -> list[int]:  # noqa: ANN001
+        """Return the feed shape. `rest` (the dims of input B after dim 0) fills a symbolic dim of the first input."""
+        dims = list(item.shape)
+        if not self.batched(item, batch):
+            shape = dims
+        else:
+            tail = dims[1:]
+            if rest is not None and len(rest) == len(tail):
+                tail = [d if isinstance(d, int) else int(r) for d, r in zip(tail, rest, strict=True)]
+            shape = [batch, *tail]
         if not all(isinstance(d, int) for d in shape):
             raise BundleError(f"input {item.name} has a dynamic dim other than dim 0: {item.shape}")
         return shape
@@ -882,12 +1051,12 @@ class _Runner:
             raise BundleError(f"input {item.name} has the type {item.type}: batch takes float, float16 or uint8")
         return self.DTYPES[item.type]
 
-    def input_a(self, path: Path, batch: int) -> dict:
+    def input_a(self, path: Path, batch: int, rest: tuple | None = None) -> dict:
         """Input A: seed 42; float inputs uniform in [0, 1), uint8 inputs integers in [0, 256)."""
         rng = self.np.random.default_rng(42)
         feeds = {}
-        for item in self.session(path).get_inputs():
-            shape, dtype = self._shape(item, batch), self._dtype(item)
+        for index, item in enumerate(self.session(path).get_inputs()):
+            shape, dtype = self._shape(item, batch, rest if index == 0 else None), self._dtype(item)
             if dtype == "uint8":
                 feeds[item.name] = rng.integers(0, 256, shape, dtype=self.np.uint8)
             else:
@@ -896,13 +1065,13 @@ class _Runner:
 
     def input_b(self, path: Path, items, batch: int) -> dict:  # noqa: ANN001
         """Input B: the first `batch` items feed the first input. Other inputs take input A."""
-        feeds = self.input_a(path, batch)
+        feeds = self.input_a(path, batch, items.shape[1:])
         first = self.session(path).get_inputs()[0]
         dtype = self._dtype(first)
         data = items[:batch]
         if dtype == "float16" and data.dtype == self.np.float32:
             data = data.astype(self.np.float16)
-        if data.dtype != self.np.dtype(dtype) or list(data.shape) != self._shape(first, batch):
+        if data.dtype != self.np.dtype(dtype) or list(data.shape) != self._shape(first, batch, items.shape[1:]):
             raise BundleError(f"input B {data.dtype} {list(data.shape)} does not fit the input {first.name}")
         feeds[first.name] = data
         return feeds
@@ -915,7 +1084,7 @@ class _Runner:
     def compare(self, got: dict, want: dict, tolerance: float) -> dict:
         """Compare two runs with the V5 rules. A run with only empty outputs is `empty`."""
         np = self.np
-        result: dict = {"pass": list(got) == list(want), "outputs": {}}
+        result: dict = {"pass": list(got) == list(want), "outputs": {}, "empty": False}
         if not result["pass"]:
             result["error"] = f"output names {list(got)} and {list(want)} differ"
             return result
@@ -967,6 +1136,10 @@ def batch_check(
     from skellytracker.core.sessions.batch_conversion import model_batch_convert
 
     inputs = inputs or out / "inputs"
+    # Remove the outputs of an earlier run first, so that a stop never leaves old evidence.
+    out.mkdir(parents=True, exist_ok=True)
+    for name in ("report.json", "differences.json", "conversion.yaml", "residual-diff.json"):
+        (out / name).unlink(missing_ok=True)
     files: dict[tuple, Path] = {}
     names: dict[Path, str] = {}
     digests: dict[Path, str] = {}
@@ -1037,7 +1210,7 @@ def batch_check(
                 try:  # V3
                     summary = model_batch_convert(source, converted, target_batch=target, batch_conversion=PROFILE)
                     record["v3"] = {"result": "pass", "summary": dataclasses.asdict(summary)}
-                except ValueError as exc:
+                except Exception as exc:  # noqa: BLE001  # any refusal of the converter is a V3 failure
                     record["v3"] = {"result": "fail", "error": clean(str(exc))}
                     residuals[label] = {}
                     tuples.append(record)
@@ -1045,14 +1218,28 @@ def batch_check(
                 residual = graph_diff(converted, native)  # V4
                 record["v4_counts"] = _diff_counts(residual)
                 tolerance = TOLERANCE[precision]
-                runs = {  # V5: input A and input B
-                    "A": runner.input_a(native, target),
-                    "B": runner.input_b(native, _input_items(inputs, size, items), target),
-                }
-                record["v5"] = {
-                    k: runner.compare(runner.run(converted, f), runner.run(native, f), tolerance)
-                    for k, f in runs.items()
-                }
+                batch_items = _input_items(inputs, size, items)
+                try:  # V5: input A and input B on the native file
+                    runs = {
+                        "A": runner.input_a(native, target, batch_items.shape[1:]),
+                        "B": runner.input_b(native, batch_items, target),
+                    }
+                    want = {k: runner.run(native, f) for k, f in runs.items()}
+                except BundleError:
+                    raise
+                except Exception as exc:  # noqa: BLE001  # the native file does not run: not proof of a failure
+                    record["v5"] = {"result": "to run", "error": clean(str(exc))}
+                    reasons.append("host-runtime-cannot-load")
+                    tuples.append(record)
+                    continue
+                record["v5"] = {}
+                for k, f in runs.items():
+                    try:
+                        got = runner.run(converted, f)
+                    except Exception as exc:  # noqa: BLE001  # a converted file that does not run fails V5
+                        record["v5"][k] = {"pass": False, "outputs": {}, "empty": False, "error": clean(str(exc))}
+                        continue
+                    record["v5"][k] = runner.compare(got, want[k], tolerance)
                 empty[(size, precision)] += [r["empty"] for r in record["v5"].values()]
                 record["v5"]["result"] = "pass" if all(r["pass"] for r in record["v5"].values()) else "fail"
                 if record["v5"]["result"] == "fail":
@@ -1076,36 +1263,56 @@ def batch_check(
         if None in need:
             check["result"], check["reason"] = "to run", "missing-verification-batch"
             continue
-        passed = True
-        for n, native in zip(DYNAMIC_BATCHES, need, strict=False):  # (a) against the static natives
-            for k, feeds in (
-                ("A", runner.input_a(native, n)),
-                ("B", runner.input_b(native, _input_items(inputs, size, items), n)),
+        batch_items = _input_items(inputs, size, items)
+        rest = batch_items.shape[1:]
+        passed, compared = True, 0
+        try:
+            for n, native in zip(DYNAMIC_BATCHES, need, strict=False):  # (a) against the static natives
+                for k, feeds in (
+                    ("A", runner.input_a(native, n, rest)),
+                    ("B", runner.input_b(native, batch_items, n)),
+                ):
+                    result = runner.compare(runner.run(path, feeds), runner.run(native, feeds), tolerance)
+                    check["static"][f"b{n}/{k}"] = result
+                    empty[(size, precision)].append(result["empty"])
+                    compared += not result["empty"]
+                    passed &= result["pass"]
+            three = max(DYNAMIC_BATCHES)
+            sliced = {i.name for i in runner.session(path).get_inputs() if runner.batched(i, three)}
+            for k, feeds in (  # (b) self-consistency on three different items
+                ("A", runner.input_a(path, three, rest)),
+                ("B", runner.input_b(path, batch_items, three)),
             ):
-                result = runner.compare(runner.run(path, feeds), runner.run(native, feeds), tolerance)
-                check["static"][f"b{n}/{k}"] = result
-                empty[(size, precision)].append(result["empty"])
-                passed &= result["pass"]
-        three = max(DYNAMIC_BATCHES)
-        for k, feeds in (  # (b) self-consistency on three different items
-            ("A", runner.input_a(path, three)),
-            ("B", runner.input_b(path, _input_items(inputs, size, items), three)),
-        ):
-            single = [runner.run(path, {i: v[r : r + 1] for i, v in feeds.items()}) for r in range(three)]
-            for n in DYNAMIC_BATCHES[1:]:
-                outputs = runner.run(path, {i: v[:n] for i, v in feeds.items()})
-                for name, value in outputs.items():
-                    if value.ndim == 0 or value.shape[0] != n or any(s[name].shape[:1] != (1,) for s in single):
-                        check["self"][f"b{n}/{k}/{name}"] = "no check"
-                        continue
-                    rows = [
-                        runner.compare({name: value[r : r + 1]}, {name: single[r][name]}, tolerance)
-                        for r in range(n)
-                    ]
-                    check["self"][f"b{n}/{k}/{name}"] = "pass" if all(r["pass"] for r in rows) else "fail"
-                    empty[(size, precision)] += [r["empty"] for r in rows]
-                    passed &= all(r["pass"] for r in rows)
-        check["result"] = "pass" if passed else "fail"
+                def part(start: int, stop: int, feeds: dict = feeds, sliced: set = sliced) -> dict:
+                    return {i: v[start:stop] if i in sliced else v for i, v in feeds.items()}
+
+                single = [runner.run(path, part(r, r + 1)) for r in range(three)]
+                for n in DYNAMIC_BATCHES[1:]:
+                    outputs = runner.run(path, part(0, n))
+                    for name, value in outputs.items():
+                        if value.ndim == 0 or value.shape[0] != n or any(s[name].shape[:1] != (1,) for s in single):
+                            check["self"][f"b{n}/{k}/{name}"] = "no check"
+                            continue
+                        rows = [
+                            runner.compare({name: value[r : r + 1]}, {name: single[r][name]}, tolerance)
+                            for r in range(n)
+                        ]
+                        check["self"][f"b{n}/{k}/{name}"] = "pass" if all(r["pass"] for r in rows) else "fail"
+                        empty[(size, precision)] += [r["empty"] for r in rows]
+                        compared += not all(r["empty"] for r in rows)
+                        passed &= all(r["pass"] for r in rows)
+        except BundleError as exc:  # the tool cannot feed this file; it gates only the dynamic publication
+            check["result"], check["reason"] = "to run", clean(str(exc))
+            continue
+        except Exception as exc:  # noqa: BLE001  # a dynamic file that does not run fails the check
+            check["result"], check["error"] = "fail", clean(str(exc))
+            continue
+        if not passed:
+            check["result"] = "fail"
+        elif not compared:
+            check["result"], check["reason"] = "to run", "no-signal"
+        else:
+            check["result"] = "pass"
 
     if v0 != "not applicable" and not reasons:
         reasons += ["no-signal" for pair, flags in empty.items() if flags and all(flags)][:1]
@@ -1113,7 +1320,7 @@ def batch_check(
         verdict, reason = "not applicable", None
     elif reasons:
         verdict, reason = "to run", reasons[0]
-    elif any(t["v3"]["result"] == "fail" or t["v5"]["result"] == "fail" for t in tuples):
+    elif any(t["v3"]["result"] == "fail" or t.get("v5", {}).get("result") == "fail" for t in tuples):
         verdict, reason = "does not convert", None
     else:
         verdict, reason = "converts", None
@@ -1137,10 +1344,6 @@ def batch_check(
         "batch_conversion": verdict,
         "batch_conversion_reason": reason,
     }
-    out.mkdir(parents=True, exist_ok=True)
-    for name in ("conversion.yaml", "residual-diff.json"):
-        (out / name).unlink(missing_ok=True)
-
     def write(name: str, data: object) -> None:
         text = json.dumps(data, indent=2, ensure_ascii=False, default=str) + "\n"
         (out / name).write_bytes(text.encode("utf-8"))

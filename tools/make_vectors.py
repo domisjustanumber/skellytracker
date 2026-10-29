@@ -96,6 +96,13 @@ def load_reference(section: str, folder: Path = REFERENCE_DIR) -> ModuleType:
     if spec is None or spec.loader is None or not path.is_file():
         raise FileNotFoundError(f"{section}: no reference implementation at {path}")
     module = module_from_spec(spec)
+    # A module of the same name from another folder (for example a proposal folder) is stale here.
+    resolved = folder.resolve()
+    for stem in {p.stem for p in folder.glob("*.py")}:
+        cached = sys.modules.get(stem)
+        cached_file = getattr(cached, "__file__", None) if cached is not None else None
+        if cached is not None and (not cached_file or Path(cached_file).resolve().parent != resolved):
+            del sys.modules[stem]
     sys.modules[path.stem] = module
     sys.path.insert(0, str(folder))
     try:
@@ -105,7 +112,6 @@ def load_reference(section: str, folder: Path = REFERENCE_DIR) -> ModuleType:
         raise
     finally:
         sys.path.remove(str(folder))
-    # shortcut: an imported module stays cached by its name; purge by folder if one process loads two folders
     return module
 
 

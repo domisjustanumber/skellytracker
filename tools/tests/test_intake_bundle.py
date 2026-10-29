@@ -221,8 +221,9 @@ def test_verify_checks_the_owner_and_the_contribution_cases(tmp_path: Path, root
 
 
 def test_verify_checks_the_model_payload_schemas(tmp_path: Path, root: Path) -> None:
+    landed = (REPO_ROOT / "specs" / "model-sidecar" / "vectors" / "post.det.selection.nms.yaml").read_bytes()
     runs = {"exporter": "Ultralytics-Exporter", "commit": SOURCE, "runs": [
-        {"section": "post.det.selection.nms", "function": "a.py::f", "vectors_sha256": "b" * 64,
+        {"section": "post.det.selection.nms", "function": "a.py::f", "vectors_sha256": ib.sha256(landed),
          "cases": {"one": "pass"}, "result": "maybe"}]}
     provenance = {"examples": {"detectors/x.yaml": {"exporter": "E", "kind": "export"}}}
     source = payload(tmp_path, {
@@ -237,6 +238,141 @@ def test_verify_checks_the_model_payload_schemas(tmp_path: Path, root: Path) -> 
     assert len(findings) == 2
 
 
+def test_verify_finds_a_stale_vector_run_and_unreadable_payload_files(tmp_path: Path, root: Path) -> None:
+    runs = {"exporter": "E", "commit": SOURCE, "runs": [
+        {"section": "post.det.selection.nms", "function": "a.py::f", "vectors_sha256": "b" * 64,
+         "cases": [], "result": "pass"}]}
+    source = payload(tmp_path, {
+        "intake.md": "text\n",
+        "vector-runs.yaml": json.dumps(runs),
+        "example/provenance.yaml": "examples: [unclosed\n",
+        "batch/report.json": "{not json",
+    })
+    item = {"path": "../../Exporter/m.onnx", "role": "artifact", "size": "n", "batch": "dynamic",
+            "precision": "fp32", "published": True}
+    model = tmp_path / "Exporter" / "m.onnx"
+    model.parent.mkdir(parents=True)
+    model.write_bytes(b"x")
+    intakes = tmp_path / "freemocap" / "skellytracker" / "intakes"
+    ib.pack(source, model_fields(external=[item]), intakes, cwd=tmp_path)
+    findings = ib.verify("model-yolo26@ultralytics-exporter", intakes)
+    assert "vector-runs.yaml runs[1].cases must be a mapping" in findings
+    assert any("vectors_sha256 is not the hash of the landed vector file" in f for f in findings)
+    assert "example/provenance.yaml: not valid YAML/JSON" in findings
+    assert "batch/report.json: not valid YAML/JSON" in findings
+
+
+def test_a_bad_manifest_does_not_stop_list_or_verify(tmp_path: Path, root: Path) -> None:
+    source = payload(tmp_path, {"proposal.md": "text\n"})
+    ib.pack(source, proposal_fields(), root, cwd=tmp_path)
+    for name, text in (("bad", '{"kind": "model",'), ("list", "[1]")):
+        version_dir = ib.pack(source, proposal_fields(name=name), root, cwd=tmp_path)
+        (version_dir / "manifest.yaml").write_text(text, encoding="utf-8")
+    lines = ib.list_lines(root)
+    assert "proposal-bad@ultralytics-exporter v1 unreadable manifest" in lines
+    assert "proposal-list@ultralytics-exporter v1 unreadable manifest" in lines
+    assert "proposal-box-clamp@ultralytics-exporter v1 submitted" in lines
+    assert ib.verify("proposal-bad@ultralytics-exporter", root) == [
+        "manifest: v1/manifest.yaml is not a JSON mapping"
+    ]
+    assert ib.manifest_problems([1]) == ["the manifest is not a mapping"]
+
+
+@pytest.mark.parametrize(
+    ("files", "message"),
+    [({"proposal.md": b"a\rb\n"}, "lone CR"), ({"proposal.md": b"x\n", "m.onnx": b"x"}, "do not copy ONNX")],
+)
+def test_pack_refuses_a_lone_cr_and_an_onnx_file(tmp_path: Path, root: Path, files: dict, message: str) -> None:
+    with pytest.raises(ib.BundleError, match=message):
+        ib.pack(payload(tmp_path, files), proposal_fields(), root, cwd=tmp_path)
+    assert not root.exists()
+
+
+@pytest.mark.parametrize("path", ["C:/Windows/win.ini", "C:x"])
+def test_a_manifest_file_path_must_not_be_a_drive_path(path: str) -> None:
+    manifest = {**proposal_fields(), "version": 1, "created": "2026-10-29",
+                "files": [{"path": path, "sha256": "a" * 64, "bytes": 1}]}
+    assert "files[1].path must be relative, with '/' and no '..'" in ib.manifest_problems(manifest)
+
+
+def test_external_paths_take_a_sibling_layout_and_stay_outside_the_repo(tmp_path: Path) -> None:
+    root = tmp_path / "skellytracker" / "intakes"
+    model = tmp_path / "Exporter" / "m.onnx"
+    model.parent.mkdir(parents=True)
+    model.write_bytes(b"onnx")
+    item = {"path": "../Exporter/m.onnx", "role": "artifact", "size": "n", "batch": 3,
+            "precision": "fp32", "published": True}
+    source = payload(tmp_path, {"intake.md": "intake\n"})
+    ib.pack(source, model_fields(external=[item]), root, cwd=tmp_path)
+    inside = tmp_path / "skellytracker" / "m.onnx"
+    inside.write_bytes(b"onnx")
+    with pytest.raises(ib.BundleError, match="outside the skellytracker repo"):
+        ib.pack(source, model_fields(external=[{**item, "path": "../skellytracker/m.onnx"}]), root, cwd=tmp_path)
+
+
+def test_pack_refuses_a_new_version_of_a_finished_proposal_but_not_of_a_model(tmp_path: Path, root: Path) -> None:
+    source = payload(tmp_path, {"proposal.md": "text\n", "intake.md": "text\n"})
+    ib.pack(source, proposal_fields(), root, cwd=tmp_path)
+    respond(root, "proposal-box-clamp@ultralytics-exporter", 1, state="accepted")
+    with pytest.raises(ib.BundleError, match="new slug"):
+        ib.pack(source, proposal_fields(), root, cwd=tmp_path)
+    ib.pack(source, model_fields(), root, cwd=tmp_path)
+    respond(root, "model-yolo26@ultralytics-exporter", 1, state="landed")
+    assert ib.pack(source, model_fields(), root, cwd=tmp_path).name == "v2"
+
+
+def test_list_marks_new_versions_sections_and_keeps_sibling_contributions_apart(tmp_path: Path, root: Path) -> None:
+    source = payload(tmp_path, {"proposal.md": "text\n", "evidence.md": "text\n"})
+    ib.pack(source, proposal_fields(), root, cwd=tmp_path)
+    respond(root, "proposal-box-clamp@ultralytics-exporter", 1)
+    ib.pack(source, proposal_fields(), root, cwd=tmp_path)
+    for contributor in ("aa-exporter", "bb-exporter"):
+        ib.pack(source, proposal_fields(contributor=contributor, contributes_to="box-clamp"), root, cwd=tmp_path)
+    respond(root, "proposal-box-clamp@aa-exporter", 1, state="closed")
+    lines = ib.list_lines(root)
+    assert "proposal-box-clamp@ultralytics-exporter v2 recorded (new version)" in lines
+    assert "  sections: post.det.selection.nms" in lines
+    assert "proposal-box-clamp@aa-exporter v1 closed (can delete)" in lines
+    assert not any("needed by: proposal-box-clamp@bb-exporter" in line for line in lines)
+
+
+def test_list_keeps_a_resolved_otherwise_bundle_with_a_not_met_goal(tmp_path: Path, root: Path) -> None:
+    source = payload(tmp_path, {"proposal.md": "text\n", "intake.md": "text\n"})
+    ib.pack(source, proposal_fields(), root, cwd=tmp_path)
+    resolution = {"by": ["AB12"], "sections": ["x"], "contributor_action": "x",
+                  "goals": [{"goal": "g", "met_by": "x h", "status": "not-met"}]}
+    respond(root, "proposal-box-clamp@ultralytics-exporter", 1, state="resolved-otherwise", resolution=resolution)
+    assert "proposal-box-clamp@ultralytics-exporter v1 resolved-otherwise" in ib.list_lines(root)
+    ib.pack(source, model_fields(), root, cwd=tmp_path)
+    respond(root, "model-yolo26@ultralytics-exporter", 1, state="waiting",
+            waiting_on=["proposal-box-clamp@ultralytics-exporter"])
+    lines = ib.list_lines(root)
+    assert "  needed by: model-yolo26@ultralytics-exporter" in lines
+
+
+def test_a_section_owner_keeps_its_role_after_a_later_finding(tmp_path: Path, root: Path) -> None:
+    source = payload(tmp_path, {"proposal.md": "text\n"})
+    ib.pack(source, proposal_fields(), root, cwd=tmp_path)
+    respond(root, "proposal-box-clamp@ultralytics-exporter", 1)
+    respond(root, "proposal-box-clamp@ultralytics-exporter", 2, state="needs-contributor")
+    ib.pack(source, proposal_fields(name="other-clamp", contributor="roboflow-exporter"), root, cwd=tmp_path)
+    findings = ib.verify("proposal-other-clamp@roboflow-exporter", root)
+    assert any("has the owner ultralytics-exporter" in f for f in findings)
+
+
+def test_a_tracked_record_keeps_the_section_owner_after_the_bundle_is_deleted(tmp_path: Path, root: Path) -> None:
+    repo = tmp_path / "repo"
+    record = repo / "specs" / "model-sidecar" / "proposals" / "box-clamp"
+    record.mkdir(parents=True)
+    (record / "manifest.yaml").write_text(json.dumps(proposal_fields()), encoding="utf-8")
+    found = ib.bundles(root)
+    assert ib.owners(found, repo) == {"post.det.selection.nms": "ultralytics-exporter"}
+    (repo / "specs" / "model-sidecar" / "proposals" / "README.md").write_text(
+        "| [box-clamp](box-clamp/proposal.md) | `x` | E | [0001](x.md) | rejected |\n", encoding="utf-8"
+    )
+    assert ib.owners(found, repo) == {}
+
+
 def test_responses_are_json_that_yaml_also_reads(tmp_path: Path, root: Path) -> None:
     respond(root, "proposal-box-clamp@ultralytics-exporter", 1, state="rejected", resolution={"reason": "no"})
     text = (root / "proposal-box-clamp@ultralytics-exporter" / "responses" / "r1.yaml").read_text(encoding="utf-8")
@@ -246,6 +382,10 @@ def test_responses_are_json_that_yaml_also_reads(tmp_path: Path, root: Path) -> 
     problems = ib.response_problems(bad)
     assert "decision must be the bare ID, with no ADR- prefix" in problems
     assert "resolution needs the key goals" in problems
+    resolution = {"by": ["AB12"], "sections": ["x"], "goals": [{"status": "met"}], "contributor_action": "x"}
+    assert "each resolution goal needs goal, met_by and status met or not-met" in ib.response_problems(
+        {**bad, "decision": None, "resolution": resolution}
+    )
 
 
 def test_each_sub_command_takes_root_after_its_name(root: Path, capsys: pytest.CaptureFixture) -> None:
@@ -372,6 +512,75 @@ def test_batch_gives_no_signal_when_every_output_is_empty(family) -> None:  # no
     assert (report["batch_conversion"], report["batch_conversion_reason"]) == ("to run", "no-signal")
 
 
+def test_batch_fails_v6_on_a_dynamic_file_with_other_output_names(family, tmp_path: Path) -> None:  # noqa: ANN001
+    onnx = pytest.importorskip("onnx")
+    root, fields, out = family({1: {}, 2: {}, 3: {}, 4: {}, "dynamic": {}})
+    path = tmp_path / "Exporter" / "m_bdynamic_fp32.onnx"
+    model = onnx.load(str(path))
+    model.graph.node[-1].output[0] = "z"
+    model.graph.output[0].name = "z"
+    onnx.save(model, str(path))
+    report = ib.batch_check(fields, out, root=root)
+    assert report["dynamic_check"][0]["result"] == "fail"
+
+
+def test_batch_gives_no_signal_when_v6_compares_nothing(family) -> None:  # noqa: ANN001
+    root, fields, out = family({"dynamic": {"empty": True}})
+    check = ib.batch_check(fields, out, root=root)["dynamic_check"][0]
+    assert (check["result"], check["reason"]) == ("to run", "no-signal")
+
+
+def reshape_by_constant(path: Path, batch: int | str) -> Path:
+    """x[B, 3] -> Reshape([3B]) -> Sin -> Reshape([B, 3]): the [3B] constant hides the batch."""
+    onnx = pytest.importorskip("onnx")
+    from onnx import TensorProto, helper, numpy_helper
+
+    dim0 = "N" if batch == "dynamic" else batch
+    flat = -1 if batch == "dynamic" else 3 * batch
+    lead = -1 if batch == "dynamic" else batch
+    graph = helper.make_graph(
+        [
+            helper.make_node("Reshape", ["x", "flat"], ["f"]),
+            helper.make_node("Sin", ["f"], ["s"]),
+            helper.make_node("Reshape", ["s", "back"], ["y"]),
+        ],
+        "fixture",
+        [helper.make_tensor_value_info("x", TensorProto.FLOAT, [dim0, 3])],
+        [helper.make_tensor_value_info("y", TensorProto.FLOAT, [dim0, 3])],
+        [
+            numpy_helper.from_array(np.array([flat], dtype=np.int64), name="flat"),
+            numpy_helper.from_array(np.array([lead, 3], dtype=np.int64), name="back"),
+        ],
+    )
+    model = helper.make_model(graph, opset_imports=[helper.make_opsetid("", 17)])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    onnx.save(model, path)
+    return path
+
+
+def test_batch_gives_does_not_convert_when_the_converted_graph_does_not_run(family, tmp_path: Path) -> None:  # noqa: ANN001
+    root, fields, out = family({1: {}, 2: {}, 3: {}, 4: {}})
+    for batch in (1, 2, 3, 4):
+        reshape_by_constant(tmp_path / "Exporter" / f"m_b{batch}_fp32.onnx", batch)
+    (out / "conversion.yaml").write_text("old\n", encoding="utf-8")
+    report = ib.batch_check(fields, out, root=root)
+    assert report["batch_conversion"] == "does not convert"
+    assert not (out / "conversion.yaml").exists()
+
+
+def test_batch_takes_a_dynamic_non_batch_dim_from_input_b(family, tmp_path: Path) -> None:  # noqa: ANN001
+    onnx = pytest.importorskip("onnx")
+    root, fields, out = family({1: {}, 2: {}, 3: {}, 4: {}, "dynamic": {}})
+    path = tmp_path / "Exporter" / "m_bdynamic_fp32.onnx"
+    model = onnx.load(str(path))
+    model.graph.input[0].type.tensor_type.shape.dim[1].dim_param = "C"
+    onnx.save(model, str(path))
+    report = ib.batch_check(fields, out, root=root)
+    assert report["batch_conversion"] == "converts"
+    assert report["dynamic_check"][0]["result"] == "pass"
+    assert (out / "report.json").is_file()
+
+
 def test_batch_checks_a_dynamic_export_against_itself(family) -> None:  # noqa: ANN001
     root, fields, out = family({"dynamic": {}})
     report = ib.batch_check(fields, out, root=root)
@@ -400,7 +609,9 @@ def test_batch_runs_only_in_the_venv_of_the_checkout(
     assert "batch runs only in the .venv of the checkout" in capsys.readouterr().err
 
 
-def converts_bundle(tmp_path: Path, published: tuple, sidecar_source: int | None, conversion: bool) -> Path:
+def converts_bundle(
+    tmp_path: Path, published: tuple, sidecar_source: int | None, conversion: bool, sizes: dict | None = None
+) -> Path:
     """Pack a `converts` model bundle with b1 to b4 and return its intakes folder."""
     root = tmp_path / "freemocap" / "skellytracker" / "intakes"
     external = []
@@ -422,7 +633,7 @@ def converts_bundle(tmp_path: Path, published: tuple, sidecar_source: int | None
     files = {
         "intake.md": "text\n",
         "example/provenance.yaml": json.dumps({"examples": {"detectors/x.yaml": entry}}),
-        "example/detectors/x.yaml": json.dumps({"batching": batching}),
+        "example/detectors/x.yaml": json.dumps({"batching": batching} | ({"sizes": sizes} if sizes else {})),
     }
     if conversion:
         files["batch/conversion.yaml"] = json.dumps({"batching": {"batch_conversion": ib.PROFILE}})
@@ -456,6 +667,38 @@ def test_verify_checks_the_publish_rule(tmp_path: Path) -> None:
     ]
 
 
+def test_verify_finds_a_precision_that_the_sidecar_does_not_give(tmp_path: Path) -> None:
+    root = converts_bundle(tmp_path, (3,), 3, conversion=True, sizes={"nano": {"onnx": {"batch_artifacts": {
+        "3": {"precision_artifacts": {"fp16": {"filename": "m_b3_fp32.onnx"}}}}}}})
+    assert ib.verify("model-yolo26@ultralytics-exporter", root) == [
+        "precision mismatch: m_b3_fp32.onnx is batch 3 fp32 in the manifest but not in example/detectors/x.yaml"
+    ]
+
+
+@pytest.mark.parametrize(
+    ("report", "state"),
+    [
+        (None, "has no batch/report.json"),
+        ({"dynamic_check": [{"size": "n", "precision": "fp32", "result": "to run", "reason": "no-signal"}]},
+         "is to run (no-signal)"),
+    ],
+)
+def test_verify_needs_a_passed_dynamic_check_for_a_published_dynamic_file(
+    tmp_path: Path, report: dict | None, state: str
+) -> None:
+    root = tmp_path / "freemocap" / "skellytracker" / "intakes"
+    model = tmp_path / "Exporter" / "m_fp32.onnx"
+    model.parent.mkdir(parents=True)
+    model.write_bytes(b"onnx")
+    item = {"path": "../../Exporter/m_fp32.onnx", "role": "artifact", "size": "n", "batch": "dynamic",
+            "precision": "fp32", "published": True}
+    files = {"intake.md": "text\n"} | ({"batch/report.json": json.dumps(report)} if report else {})
+    ib.pack(payload(tmp_path, files), model_fields(external=[item]), root, cwd=tmp_path)
+    assert ib.verify("model-yolo26@ultralytics-exporter", root) == [
+        f"n fp32: the dynamic check {state}; do not publish the dynamic export; publish b3 or fix the export"
+    ]
+
+
 def test_verify_finds_a_published_dynamic_export_that_failed_the_dynamic_check(tmp_path: Path) -> None:
     root = tmp_path / "freemocap" / "skellytracker" / "intakes"
     model = tmp_path / "Exporter" / "m_fp32.onnx"
@@ -469,5 +712,19 @@ def test_verify_finds_a_published_dynamic_export_that_failed_the_dynamic_check(t
     source = payload(tmp_path, {"intake.md": "text\n", "batch/report.json": json.dumps(report)})
     ib.pack(source, model_fields(external=[item]), root, cwd=tmp_path)
     assert ib.verify("model-yolo26@ultralytics-exporter", root) == [
-        "n fp32: do not publish the dynamic export; publish b3 or fix the export"
+        "n fp32: the dynamic check is fail; do not publish the dynamic export; publish b3 or fix the export"
     ]
+
+
+@pytest.mark.parametrize(
+    ("template", "name", "fields"),
+    [("model-intake.md", "intake.md", model_fields), ("change-proposal.md", "proposal.md", proposal_fields)],
+)
+def test_an_unchanged_template_has_no_plans_path_and_no_broken_link(
+    tmp_path: Path, root: Path, template: str, name: str, fields
+) -> None:  # noqa: ANN001
+    text = (REPO_ROOT / "specs" / "model-sidecar" / "templates" / template).read_bytes()
+    ib.pack(payload(tmp_path, {name: text}), fields(), root, cwd=tmp_path)
+    manifest = fields()
+    findings = ib.verify(f"{manifest['kind']}-{manifest['name']}@{manifest['contributor']}", root)
+    assert [f for f in findings if "plans/" in f or "does not resolve" in f] == []

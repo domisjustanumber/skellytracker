@@ -53,6 +53,10 @@ def test_record_files_match_their_manifest(manifest_path: Path) -> None:
     redacted = set()
     if redactions_path.is_file():
         redacted = {r["path"] for r in yaml.safe_load(redactions_path.read_text(encoding="utf-8"))}
+    on_disk = {p.relative_to(folder).as_posix() for p in folder.rglob("*") if p.is_file()}
+    on_disk -= {"manifest.yaml", "redactions.yaml"}
+    on_disk = {p for p in on_disk if not p.startswith("contributions/")}
+    assert on_disk == {f["path"] for f in manifest["files"]}, "a record holds only its bundle files"
     for item in manifest["files"]:
         if item["path"] in redacted:
             continue
