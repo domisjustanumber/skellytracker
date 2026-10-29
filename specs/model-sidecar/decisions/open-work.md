@@ -9,16 +9,14 @@ implementation-stage items and the other repository state are in the root
 
 - `specs/model-sidecar/post/canonical-mapping.md` links to the VRM specification by the branch `master`. A
   rewording PR must pin the two links to a commit.
-- **Absorption gaps.** The reviews of 2026-10-24 and 2026-10-25 absorbed every accepted entry except
-  [0008](0008-vnext-scope.md) and [0011](0011-rtmdet-host-nms.md). The proposals 0042 and 0048
-  supersede 0008, and 0041 supersedes 0011, on acceptance. An absorbed entry can be superseded
-  ([ngnb](../../../decisions/ngnb-supersede-an-absorbed-entry.md)), but the user chose on 2026-10-26 to keep 0008 and
-  0011 Active until the proposals are decided. Then absorb each entry that no accepted proposal
-  supersedes: absorb 0008 into
-  `specs/model-sidecar/changelog.md#considered-and-deliberately-not-added` and 0011 into
-  `specs/model-sidecar/post/selection-nms.md#authoring-guidance`. Close their gaps first: Qualcomm-Exporter
-  is out of the `vNEXT` scope until its library is complete (0008), and the `-1` row axis of the RTMDet
-  `boxes` and `scores` shapes takes its value from `output_shapes` (0011).
+- **Absorption gap.** The reviews of 2026-10-24 and 2026-10-25 absorbed every accepted entry except
+  [ADR-0011](0011-rtmdet-host-nms.md). [ADR-YNX0](YNX0-vnext-scope-list.md) supersedes 0008. The
+  proposal 0041 supersedes 0011 on acceptance. An absorbed entry can be superseded
+  ([Rules](../../../decisions/README.md#rules); [ADR-JW9N](../../../decisions/JW9N-restate-a-kept-rule-by-a-link.md)),
+  but the user chose on 2026-10-26 to keep 0011 Active until 0041 is decided. If the user rejects
+  0041, absorb 0011 into `specs/model-sidecar/post/selection-nms.md#authoring-guidance`. Close its gap
+  first: the `-1` row axis of the RTMDet `boxes` and `scores` shapes takes its value from
+  `output_shapes`.
 
 ## Re-export requests
 
@@ -28,7 +26,12 @@ repo, the example or the model, and the reason. The exporter answers with a new 
 ([Re-export requests](../model-addition-workflow/hand-over.md#re-export-requests)). The session
 deletes the item when it lands that bundle.
 
-None.
+- [ADR-CNSN](../../../decisions/CNSN-spec-build-actions-after-the-fact.md), owner
+  Ultralytics-Exporter, action `regenerate`: `detectors/object_detectors/yolo26/yolo26.yaml`
+  (`model_id` `yolo26`) and `detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml` (`model_id`
+  `yolo26-body`). Remove the precision key `int8`
+  ([Every-version changes](../format/versioning.md#every-version-changes),
+  [V-common.sizes_and_artifacts-6](../common/sizes-and-artifacts.md#validation-rules)).
 
 ## Spec defects
 
@@ -37,8 +40,8 @@ Spec defects found during the spec-build stage. Each one needs a content change 
 - The note "The `imagenet_bgr` default is the RTMPose convention" in the spec's normalization modes is
   ambiguous at `vNEXT`. At `vNEXT`, `imagenet_bgr` means BGR-ordered statistics, but RTMPose uses the
   legacy meaning ([0009](0009-imagenet-bgr-meaning.md)).
-- The reviewer note of the `vNEXT` change summary says to replace `vNEXT` "before merging". Decision
-  [Publishing](../model-addition-workflow/validation-and-publishing.md#publishing) moves that step to
+- The reviewer note of the `vNEXT` change summary says to replace `vNEXT` "before merging". The
+  workflow section [Publishing](../model-addition-workflow/validation-and-publishing.md#publishing) moves that step to
   the first release that ships the spec.
 - The [Identity](../common/identity.md) fields say that a keypoint detector's
   `model_id` is `{family}-{part}`. This rule cannot express a variant suffix or a stage suffix. The

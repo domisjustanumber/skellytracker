@@ -106,6 +106,14 @@ stage, no file under `skellytracker/` changes, except test fixes.
   run-time checks their own IDs, for example `C-<section-id>-<n>`. A sidecar before `vNEXT` that uses
   a feature that is "Not available." also gives `no-rule`. A rule `V-format.versioning-<n>` can
   replace that use. The user decides both.
+- **V- rule checks of the examples.** The doc tests only parse and resolve each reference example,
+  and check its provenance (`tools/tests/test_examples.py`).
+  They do not run the `V-` rules on it, because `load_sidecar` rejects `vNEXT` and the package code
+  does not change in the spec-build stage. Thus no test checks that a spec-forced edit keeps an
+  example valid ([ADR-KDBD](KDBD-change-classes-and-spec-forced-edits.md), item 5). When a
+  development build loads `vNEXT` sidecars (see the item Sidecar catalog and roots), validate each
+  example with `SidecarModel` in `tools/tests/test_examples.py`. Until then, part 7 of the proposal
+  and `uv run python tools/sidecar_trace.py impact <range>` at landing are the check.
 
 ## Repository state
 
