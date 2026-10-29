@@ -81,29 +81,35 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   - the host frame is BGR, and the host converts it to `input.color_format`;
   - the arithmetic precision of the geometry and of the pixel math.
 - The [Storage layout](../format/file-layout.md#storage-layout) gives no folder to a sidecar whose
-  `role` has both `object_detector` and `pose_estimator`. Both one-stage pose exporters and the two
-  reference examples with both roles (RTMO body7 and YOLO26 pose) use
-  `detectors/keypoint_detectors/{family}/{part}/`. (Ultralytics-Exporter `yolo_sidecar.py:104-107`,
-  f52ef68; OpenMMLab-Exporter `rtmo/identity.py:27`, eed3361)
+  `role` has both `object_detector` and `pose_estimator`. Both one-stage pose exporters write such a
+  sidecar under `detectors/keypoint_detectors/`. Ultralytics-Exporter uses `yolo26/body/`
+  ([`yolo_sidecar.py:104-107`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L104-L107)). OpenMMLab-Exporter uses
+  `rtmo/body7/` ([`rtmo/identity.py:27`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmo/identity.py#L27)).
+  `body7` is not a part folder ([Authoring guidance](../format/file-layout.md#authoring-guidance)).
+  The two reference examples with both roles (RTMO body7 and YOLO26 pose) use
+  `detectors/keypoint_detectors/{family}/body/`.
 - `V-common.outputs-1` (unique `outputs[].name`) has no **(vNEXT)** mark, so the text applies it to a
   legacy sidecar too. The validator of the legacy release does not check it. The legacy YOLO26 pose
   file of Ultralytics-Exporter declares the one tensor `output0` as `detections` and again as
   `poses`. The spec must say which reading is correct. (Ultralytics-Exporter
-  `yolo_sidecar.py:574-582, 596`, f52ef68)
+  [`yolo_sidecar.py:574-582`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L574-L582),
+  [`yolo_sidecar.py:596`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L596))
 - The spec requires `-1` as the batch axis of `input.shape` (`V-common.sizes_and_artifacts-2`). It
   gives no batch rule for `outputs[].shape`. Ultralytics-Exporter and Qualcomm-Exporter write the
   smallest native batch (`1`) there, and their sizes list the batches 1, 2 and 3. Thus the sentence
   of [`batch_artifacts`](../common/sizes-and-artifacts.md#sizessizeonnxbatch_artifacts) that lets the
   top-level `outputs[].shape` replace the `output_shapes` of a size with one batch key is ambiguous.
-  (Ultralytics-Exporter `yolo_sidecar.py:342-349, 436-455`, f52ef68; Qualcomm-Exporter
-  `qai_sidecar.py:79-95, 111-118`, 4ca4586)
+  (Ultralytics-Exporter [`yolo_sidecar.py:342-349`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L342-L349),
+  [`yolo_sidecar.py:436-455`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L436-L455); Qualcomm-Exporter
+  [`qai_sidecar.py:79-95`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_sidecar.py#L79-L95),
+  [`qai_sidecar.py:111-118`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_sidecar.py#L111-L118))
 - [`letterbox`](../pre/resize-letterbox.md#fields) has no `rounding` value for `floor`, and its
   [inverse](../pre/resize-letterbox.md#inverse) uses the rounded size. The `resize_pad` function of
   `qai_hub_models` 0.64.0 (the MediaPipe person detector) cuts the scaled size with `math.floor`, and
   its inverse divides by the unrounded scale. At the content right edge of a 427x640 source in a
-  128x128 canvas, that inverse gives 425 and the spec inverse gives 427. (qai_hub_models 0.64.0
-  `utils/image_processing.py:327-328, 499-538`, installed in the Qualcomm-Exporter `.venv`; hand
-  calculation)
+  128x128 canvas, that inverse gives 425 and the spec inverse gives 427. (`qai_hub_models==0.64.0`,
+  `qai_hub_models-0.64.0-py3-none-any.whl`, `qai_hub_models/utils/image_processing.py:327-328,
+  499-538`; hand calculation)
 - A code docstring under `skellytracker/` cites the spec heading "Sizes", but the heading is `sizes`.
 - The test vectors found these points that the spec does not define. Each vector file avoids them:
   - the box format and the coordinate space of the person box that `affine_person_crop` warps;
