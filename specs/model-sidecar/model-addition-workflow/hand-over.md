@@ -426,8 +426,9 @@ resolution: {...}                         # required for rejected and resolved-o
     contributor_action: "<regenerate ...; send a new proposal for each not-met goal>"
   ```
 
-  The decision entry of the proposal becomes `rejected`. Its reason is "Resolved by ADR-<X>". Its row
-  in `specs/model-sidecar/proposals/README.md` gets the state `resolved-otherwise`, with a link to
+  The decision entry of the proposal becomes `rejected`. Its reason is
+  "Resolved by [ADR-<X>](<path of X>)", with a relative path
+  ([ADR-NSR2](../../../decisions/NSR2-adr-citations-as-links-in-each-text.md)). Its row in `specs/model-sidecar/proposals/README.md` gets the state `resolved-otherwise`, with a link to
   ADR-<X>. Procedure E of the skill `change-sidecar-spec` gives the session steps.
 
 ### Read a response

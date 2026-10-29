@@ -41,6 +41,7 @@ These entries are `accepted` or `evidence`.
 | [FDTD](FDTD-evidence-sources-and-exporter-permalinks.md) | Exporter documents stay secondary; a checked upstream line is primary; user decisions in words; source forms; exporter permalinks; supersedes 0030 | accepted |
 | [QMKS](QMKS-draft-sections-and-coverage-columns.md) | `spec: draft` rules, the graduation gate and the release stops; coverage and gate columns in `TRACEABILITY.md`; `no_model` reasons | accepted |
 | [JB5J](JB5J-one-batch-form-for-each-sidecar.md) | One batch form for each `vNEXT` sidecar: b3 with `batch_conversion`, b1 or `dynamic`; the check by default; V0; publish rule for each verdict; supersedes JC4T | accepted |
+| [NSR2](NSR2-adr-citations-as-links-in-each-text.md) | Cite an entry as a link with `ADR-<ID>` as link text in each text: files, plans, PR bodies, replies; commit bodies with no link | accepted |
 
 ### Proposed
 
@@ -157,12 +158,17 @@ in the [open work of the spec log](../specs/model-sidecar/decisions/open-work.md
   ([ADR-GN3D](GN3D-module-decision-logs.md)).
 - Until a commit is on `development`, cite its PR number and the file path, not its SHA
   ([0027](0027-single-working-branch.md)).
-- In new text, cite an entry of this log as `ADR-<ID>`, with the ID in upper case. Do this also for
-  an older entry. Put the prefix in the link text, for example
-  `[ADR-X64Y](x64y-draft-exporter-guide-folder.md)`. The older form `ADR-[x64y](…)` stays valid.
+- In new text, cite an entry of this log as a Markdown link with `ADR-<ID>` as the link text, with
+  the ID in upper case, for example `[ADR-X64Y](x64y-draft-exporter-guide-folder.md)`. Do this also
+  for an older entry. New text is each text that you write: a tracked file, a plan, a PR body and a
+  reply to the user. In a reply or a plan, the path is relative to the repo root or to the file. A
+  commit message cannot hold a working link: its body writes `ADR-<ID>` with no link
+  ([ADR-NSR2](NSR2-adr-citations-as-links-in-each-text.md)). The older form `ADR-[x64y](…)` stays valid.
   Write the ID of another repo's entry with the repo name and the prefix, for example
-  "OpenMMLab-Exporter ADR-0020". A bare ID in older text, for
-  example 0016 or gtwq, is an entry of this log. Do not edit a decided entry only to add or move the prefix.
+  "OpenMMLab-Exporter ADR-0020". When the entry file is on the default branch of that repo, also link
+  it with a permalink that pins a full 40-character SHA ([ADR-NSR2](NSR2-adr-citations-as-links-in-each-text.md)).
+  A bare ID in older text, for example 0016 or gtwq, is an entry of this log. Do not edit a decided
+  entry only to add or move the prefix or the link.
   Do not use the prefix in a file name, a heading, an index row, a status line or a YAML value. Write
   an ID in YAML front matter in quotes. Cite a provisional entry of another repo by the repo name,
   the PR number and the slug. End each commit subject that adds or changes an entry with

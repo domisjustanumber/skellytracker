@@ -328,9 +328,14 @@ raises a limit must add an entry. To start the log in a repo that already has lo
   default branch of that repo. A short SHA can become ambiguous. A force-push can remove a commit
   that is not on a default branch.
 - Do not cite or link `plans/`.
-- Cite an entry as `ADR-<ID>`, with the prefix in the link text. Write the repo name before the
-  entry ID of another repo, for example "skellytracker ADR-0028". A bare 4-character ID is not clear
-  in plain text, and `git log` shows no links. Commit subjects end with `(ADR-<ID>)`.
+- Cite an entry as a Markdown link with `ADR-<ID>` as the link text. This applies to each text that
+  an agent writes: tracked files, plans, PR bodies and replies to the user. In a reply or a plan,
+  the path is relative to the repo root or to the file. A bare 4-character ID is not clear in plain
+  text, and a reader cannot open it.
+- Write the repo name before the entry ID of another repo, for example "skellytracker ADR-0028".
+  When that entry is on the default branch of its repo, also link it with a full-SHA permalink.
+- `git log` shows no links. Commit subjects end with `(ADR-<ID>)`. A commit body writes `ADR-<ID>`
+  with no link.
 
 ### Modules and logs
 

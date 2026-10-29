@@ -119,9 +119,16 @@ allowed edits, the status changes, the limits and the citation rules.
 Add one entry for each new decision or measurement.
 Get its ID from `uv run python tools/check_decision_log.py --new`.
 End each commit subject that adds or changes an entry with `(ADR-<ID>)`.
-Write each ADR ID in upper case, with the prefix in the link text, for example
-[ADR-GN3D](decisions/GN3D-module-decision-logs.md). This rule also applies to an older entry
-with a lower-case file name (see the [Rules](decisions/README.md#rules)).
+Cite each entry as a Markdown link with `ADR-<ID>` as the link text, in upper case, for example
+[ADR-JB5J](decisions/JB5J-one-batch-form-for-each-sidecar.md).
+This rule applies to each text that you write: a tracked file, a plan, a PR body and a reply to the
+user. In a reply or a plan, the path is relative to the repository root or to the file.
+This rule also applies to an older entry with a lower-case file name.
+A commit message cannot hold a working link. In the commit body, write `ADR-<ID>` with no link.
+Cite an entry of another repository with the repository name and `ADR-<ID>`. Also link it with a
+full-SHA permalink when the entry is on the default branch of that repository
+([ADR-NSR2](decisions/NSR2-adr-citations-as-links-in-each-text.md); see the
+[Rules](decisions/README.md#rules)).
 
 The bootstrap kit in `specs/agents-and-adr-process/` is guidance, not a part of the sidecar spec.
 It holds the final form of the rules of this decision log for a new repository.

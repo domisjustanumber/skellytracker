@@ -61,7 +61,7 @@ The open work is in [open-work.md](open-work.md).
   also in the read path.
 - When the scope of a module entry later includes more than one module, a new entry in the root log
   supersedes it.
-- Cite an entry of a different log with a relative link and the usual `ADR-<ID>` text. Do not add a
+- Cite an entry of a different log with a relative link that has `ADR-<ID>` as its link text. Do not add a
   module name to the ID. A `superseded by XXXX` status can name an entry of a different log. Its
   status line then links to that entry with a relative path.
 - The body of an entry that is not `proposed` does not change, except for four edits: a link or
@@ -146,11 +146,15 @@ The open work is in [open-work.md](open-work.md).
   permalink that pins a full 40-character SHA on the default branch of that repo. Do not cite or
   link `plans/`.
 - Until a commit is on `{{DEFAULT_BRANCH}}`, cite its PR number and the file path, not its SHA.
-- Cite an entry of this log as `ADR-<ID>`. Put the prefix in the link text. Write the ID of another
-  repo's entry with the repo name and the prefix, for example "{{OTHER_REPO}} ADR-0020". A bare ID is
-  always an entry of this log. Do not use the prefix in a file name, a heading, an index row, a
-  status line or a YAML value. End each commit subject that adds or changes an entry with
-  `(ADR-<ID>)`. Write an ID in YAML front matter in quotes. Cite a provisional
+- Cite an entry of this log as a Markdown link with `ADR-<ID>` as the link text, with the ID in upper
+  case. This rule applies to each text that you write: a tracked file, a plan, a PR body and a reply
+  to the user. In a reply or a plan, the path is relative to the repo root or to the file. Write the
+  ID of another repo's entry with the repo name and the prefix, for example "{{OTHER_REPO}} ADR-0020".
+  When that entry is on the default branch of its repo, also link it with a permalink that pins a
+  full 40-character SHA. A bare ID is always an entry of this log. Do not use the prefix in a file
+  name, a heading, an index row, a status line or a YAML value. End each commit subject that adds or
+  changes an entry with `(ADR-<ID>)`. A commit message cannot hold a working link: its body writes
+  `ADR-<ID>` with no link. Write an ID in YAML front matter in quotes. Cite a provisional
   entry of another repo by the repo name, the PR number and the slug.
 - An entry that waits for a decision of another repo has a `**Depends on:**` line under its status
   line.

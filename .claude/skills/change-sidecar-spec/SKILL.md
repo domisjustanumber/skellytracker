@@ -233,8 +233,9 @@ Do this procedure when a content commit lands on a section that another open pro
 3. For `resolved-otherwise`, the landed change must be a different proposal bundle with its own
    accepted entry `<X>`. A session never writes that entry itself.
 4. Change the status line of the `proposed` entry to `rejected`, with the date and `PR: pending`
-   until a PR exists. Write the Reason "Resolved by ADR-<X>". Move its row to the historical table of
-   the [spec log](../../../specs/model-sidecar/decisions/README.md) in the same commit
+   until a PR exists. Write the Reason "Resolved by [ADR-<X>](<path of X>)", with a relative path
+   ([ADR-NSR2](../../../decisions/NSR2-adr-citations-as-links-in-each-text.md)). Move its row to the
+   historical table of the [spec log](../../../specs/model-sidecar/decisions/README.md) in the same commit
    ([Rules](../../../decisions/README.md#rules)).
 5. Set the index row state to `resolved-otherwise`, with a link to the entry `<X>` in the State
    cell.
