@@ -45,8 +45,8 @@ These entries are `accepted` or `evidence`.
 ### Proposed
 
 These entries wait for a decision of the user. Section is the spec section of the change, or `none`
-when the change has no one section. The spec change proposals and the gap records of the sidecar spec
-are in the [spec log](../specs/model-sidecar/decisions/README.md#proposed).
+when the change has no one section. The spec change proposals of the sidecar spec are in the
+[spec log](../specs/model-sidecar/decisions/README.md#proposed).
 
 | # | Decision | Section | Status |
 |---|----------|---------|--------|

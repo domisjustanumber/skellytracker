@@ -20,8 +20,8 @@ These entries are `accepted` or `evidence`.
 
 ### Proposed
 
-These entries are spec change proposals and gap records that wait for a decision of the user. Section
-is the spec section of the change, or `none` when the change has no one section. Find the pending
+These entries are spec change proposals that wait for a decision of the user. Section is the spec
+section of the change, or `none` when the change has no one section. Find the pending
 proposals of a section here and in the [proposal index](../proposals/README.md).
 
 | # | Decision | Section | Status |
