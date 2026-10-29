@@ -51,7 +51,6 @@ package root, else the ``source`` of the example in ``inventory.yaml``. Every ex
 use the last fallback. The tool keeps it for an example without ``source``. Then the tool
 normalizes the resolved sidecar with ``sidecar_normalize`` and matches the section selectors
 against it.
-The models that ``inventory.yaml`` lists under ``proposed`` are listed, but not matched.
 
 The tool resolves and matches. It does not validate sidecars.
 """
@@ -311,7 +310,7 @@ def symbol_text(source: str, symbol: str) -> str | None:
 def load_inventory(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     """Load `specs/model-sidecar/inventory.yaml`.
 
-    It always has an `examples`, a `no_model` and a `proposed` entry.
+    It always has an `examples` and a `no_model` entry.
     """
     data = yaml.safe_load(
         (spec_dir(repo_root) / "inventory.yaml").read_text(encoding="utf-8")
@@ -319,7 +318,6 @@ def load_inventory(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     data = data or {}
     data.setdefault("examples", {})
     data["no_model"] = data.get("no_model") or {}
-    data.setdefault("proposed", [])
     return data
 
 
@@ -459,12 +457,6 @@ def _source_of(
             f"{shown}: the sidecar has no `source.name` and inventory.yaml has no source for it"
         )
     return str(entry["source"])
-
-
-def proposed_models(repo_root: Path = REPO_ROOT) -> list[dict[str, Any]]:
-    """Return the `proposed` entries of the inventory, sorted by key."""
-    entries = load_inventory(repo_root)["proposed"]
-    return sorted((dict(e) for e in entries), key=lambda e: str(e.get("key", "")))
 
 
 def applicable_models(
@@ -760,22 +752,6 @@ def _external_lines(sections: list[Section]) -> list[str]:
     return _table(["Section", "Repository", "Implementation"], rows)
 
 
-def _proposed_lines(proposed: list[dict[str, Any]]) -> list[str]:
-    if not proposed:
-        return ["No model is proposed."]
-    rows = [
-        [
-            _code(entry.get("key", "")),
-            _escape(entry.get("exporter", "")),
-            _code(entry.get("plan", "")),
-            _escape(entry.get("status", "")),
-            _escape(entry.get("notes", "")),
-        ]
-        for entry in proposed
-    ]
-    return _table(["Key", "Exporter", "Plan", "Status", "Notes"], rows)
-
-
 def missing_entries(sections: Iterable[Section]) -> list[tuple[Section, str]]:
     """Return each `(section, step)` whose `implemented_by` value is `missing`."""
     return [
@@ -867,12 +843,6 @@ def render_traceability(repo_root: Path = REPO_ROOT) -> str:
         "## External implementations",
         "",
         *_external_lines(sections),
-        "",
-        "## Proposed models",
-        "",
-        "The inventory lists these models. The tool does not match them to sections.",
-        "",
-        *_proposed_lines(proposed_models(repo_root)),
         "",
         "## Backlog",
         "",

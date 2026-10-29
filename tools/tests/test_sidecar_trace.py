@@ -139,22 +139,6 @@ def repo(tmp_path: Path) -> Path:
                         "exporter_path": "exports/baz.yaml",
                     },
                 },
-                "proposed": [
-                    {
-                        "key": "zed@x-exporter",
-                        "exporter": "X",
-                        "plan": "X/p.md",
-                        "status": "proposed",
-                        "notes": "n",
-                    },
-                    {
-                        "key": "alpha@x-exporter",
-                        "exporter": "X",
-                        "plan": "X/p.md",
-                        "status": "proposed",
-                        "notes": "m",
-                    },
-                ],
             },
             sort_keys=False,
         ),
@@ -398,7 +382,7 @@ def test_a_declared_source_wins_over_the_inventory(repo: Path) -> None:
 
 
 def test_an_example_without_any_source_raises(repo: Path) -> None:
-    write(repo, "specs/model-sidecar/inventory.yaml", "examples: {}\nproposed: []\n")
+    write(repo, "specs/model-sidecar/inventory.yaml", "examples: {}\n")
     with pytest.raises(st.TraceError, match="source"):
         st.scan_sidecars(repo)
 
@@ -440,13 +424,6 @@ def test_the_scan_normalizes_each_sidecar(repo: Path) -> None:
     assert foo.derived == ("selection", "letterbox_alias")
 
 
-def test_proposed_models_are_sorted_by_key(repo: Path) -> None:
-    assert [e["key"] for e in st.proposed_models(repo)] == [
-        "alpha@x-exporter",
-        "zed@x-exporter",
-    ]
-
-
 def test_the_sections_apply_to_the_right_sidecars(repo: Path) -> None:
     sections = st.load_sections(repo)
     sidecars = st.scan_sidecars(repo).sidecars
@@ -464,7 +441,7 @@ def test_the_sections_apply_to_the_right_sidecars(repo: Path) -> None:
 # --------------------------------------------------------------------------------------------
 
 
-def test_the_text_has_the_note_and_the_five_parts(repo: Path) -> None:
+def test_the_text_has_the_note_and_the_four_parts(repo: Path) -> None:
     text = st.render_traceability(repo)
     assert st.NOTE in text
     assert "tools/sidecar_trace.py matrix" in text
@@ -472,7 +449,6 @@ def test_the_text_has_the_note_and_the_five_parts(repo: Path) -> None:
         "## Models and sections",
         "## Implementation status",
         "## External implementations",
-        "## Proposed models",
         "## Backlog",
     ):
         assert heading in text
@@ -628,12 +604,6 @@ def test_the_vectors_item_counts_only_numeric_cases_of_an_algorithm() -> None:
     assert st.gate_items(algorithm, none, Counter(export=1), None) == ["vectors"]
     assert st.gate_items(algorithm, refusal_only, Counter(export=1), None) == ["vectors"]
     assert st.gate_items(plain, open_case, Counter(export=1), None) == ["vectors"]
-
-
-def test_the_proposed_models_are_listed_and_not_matched(repo: Path) -> None:
-    text = st.render_traceability(repo)
-    assert text.index("`alpha@x-exporter`") < text.index("`zed@x-exporter`")
-    assert "alpha@x-exporter<br>" not in text
 
 
 def test_the_backlog_counts_the_models_of_each_missing_step(repo: Path) -> None:

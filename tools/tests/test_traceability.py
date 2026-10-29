@@ -571,17 +571,6 @@ def test_a_skipped_file_is_not_a_sidecar() -> None:
         assert not is_sidecar, name
 
 
-def test_every_proposed_model_has_the_documented_shape_and_is_not_scanned() -> None:
-    proposed = st.proposed_models(REPO_ROOT)
-    keys = [entry["key"] for entry in proposed]
-    assert len(set(keys)) == len(keys)
-    assert not set(keys) & EXPECTED_KEYS
-    for entry in proposed:
-        assert set(entry) == {"key", "exporter", "plan", "status", "notes"}
-        assert re.fullmatch(r"[a-z0-9][a-z0-9-]*@[a-z0-9][a-z0-9-]*", entry["key"])
-        assert entry["status"] == "proposed"
-
-
 # --------------------------------------------------------------------------------------------
 # The applicability of the sections, as the sidecars imply it
 # --------------------------------------------------------------------------------------------

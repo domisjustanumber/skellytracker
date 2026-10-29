@@ -103,17 +103,6 @@ The Gate column is the coverage backlog. It shows the graduation conditions of a
 
 No section lists an external implementation. A section lists one in the `external_impl` key of its front matter.
 
-## Proposed models
-
-The inventory lists these models. The tool does not match them to sections.
-
-| Key | Exporter | Plan | Status | Notes |
-|---|---|---|---|---|
-| `mediapipe-hand-landmark@mediapipe-exporter` | MediaPipe-Exporter | `MediaPipe-Exporter/plans/hand-pipeline-export.md` | proposed | The hand landmark model (sizes full and lite) has a 224 by 224 input and gives landmarks, a hand score, a handedness score and world landmarks. |
-| `mediapipe-hand-recrop@mediapipe-exporter` | MediaPipe-Exporter | `MediaPipe-Exporter/plans/hand-pipeline-export.md` | proposed | The hand re-crop model is a region of interest (ROI) refiner that gives two points for a new crop. The spec has no section for an ROI refiner yet (a gap, see specs/model-sidecar/model-addition-workflow/rules.md). |
-| `mediapipe-hand-recrop@qualcomm-exporter` | Qualcomm-Exporter | `Qualcomm-Exporter/plans/hand-pose-export.md` | proposed | The hand re-crop model is a region of interest (ROI) refiner that gives two points for a new crop. The spec has no section for an ROI refiner yet (a gap, see specs/model-sidecar/model-addition-workflow/rules.md). |
-| `mediapipe-hand@qualcomm-exporter` | Qualcomm-Exporter | `Qualcomm-Exporter/plans/hand-pose-export.md` | proposed | The hand landmark model has a 256 by 256 input and outputs 21 landmarks, a hand score and a handedness score. |
-
 ## Backlog
 
 These steps have no implementation in skellytracker. The last column counts the sidecars that the section applies to.
