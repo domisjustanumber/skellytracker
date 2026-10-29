@@ -238,7 +238,7 @@ cell named five other entries.
   ID with the repair of its citations. Each edit adds a dated `_Edited_` line.
 - A status line can change. Write the date and the PR. An absorbed entry can also change to
   `superseded by XXXX` when a new entry changes one of its rules
-  ([ngnb](../../decisions/ngnb-supersede-an-absorbed-entry.md)).
+  ([ADR-JW9N](../../decisions/JW9N-restate-a-kept-rule-by-a-link.md)).
 
 ### IDs and parallel work
 

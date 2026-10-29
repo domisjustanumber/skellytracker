@@ -82,8 +82,9 @@ Do not rewrite the body of an entry that is not `proposed`.
 Four edits are allowed: a link or anchor repair, a typo fix that keeps the meaning, the redaction of
 private data, and a change of ID with the repair of its citations.
 Each of these edits adds an `_Edited_` line with the date and the PR.
-To change a decision, add a new entry. It restates the rules that stay and supersedes the old entry
-in full.
+To change a decision, add a new entry. It restates the rules that stay, in full or by a link to a
+heading that states the rule, and supersedes the old entry in full.
+A later change under that heading does not supersede the linking entry.
 Do not supersede a part of an entry.
 Keep the log inside its limits. `uv run pytest tools/tests` checks them.
 Cite tracked files and decision entries with relative links.

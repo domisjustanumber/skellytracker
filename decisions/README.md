@@ -12,7 +12,9 @@ you to. Read an entry of [historical.md](historical.md) only to find the reason 
 Each entry gives the decision, its reason, the evidence (when there is evidence), the alternatives
 rejected and a "Not repeated" section for pitfalls already found. Entries 0002 to 0012, here and in
 the spec log, are backfilled. They record decisions made before this log existed, and they cite the original sources.
-When a decision changes, add a new entry that supersedes the old entry in full. The body of a
+When a decision changes, add a new entry that supersedes the old entry in full. A change of the
+text under a heading that an entry links does not supersede that entry
+([ADR-JW9N](JW9N-restate-a-kept-rule-by-a-link.md)). The body of a
 decided entry changes only by the edits that the [Rules](#rules) allow. To write an entry, use
 [template.md](template.md).
 
@@ -79,16 +81,15 @@ in the [open work of the spec log](../specs/model-sidecar/decisions/open-work.md
   supersedes the old entry in full. Do not supersede a part of an entry. A link can restate a rule.
   The link must go to a heading of a document of the absorb rule below, and that heading must state
   the rule. Then that document is the only source of the rule. The commit that changes the text
-  under such a heading cites its own entry next to the changed rule ([ADR-JW9N](JW9N-restate-a-kept-rule-by-a-link.md)).
-- An entry can restate a rule by a link to a heading of a document of the absorb rule. A later entry
-  can change the text under that heading. The later entry cites itself at the heading. It does not
-  supersede the linking entry. A later entry that changes a rule that the linking entry states in its
-  own text supersedes the linking entry in full ([ADR-JW9N](JW9N-restate-a-kept-rule-by-a-link.md)).
+  under such a heading cites its own entry next to the changed rule. A later entry that changes the
+  text under such a heading does not supersede the linking entry. A later entry that changes a rule
+  that the linking entry states in its own text supersedes the linking entry in full
+  ([ADR-JW9N](JW9N-restate-a-kept-rule-by-a-link.md)).
 - The status line of an entry can change. These changes are allowed: `proposed` to `accepted` or
   `rejected`, `accepted` to `superseded by XXXX`, `accepted` to `absorbed into <path>#<anchor>`,
   `absorbed into <path>#<anchor>` to `superseded by XXXX`, `accepted` to `done`, and `evidence` to
   `evidence; used by XXXX`. Each change adds its date and the PR that made it. An absorbed entry is
-  superseded when a new entry changes one of its rules ([ngnb](ngnb-supersede-an-absorbed-entry.md)).
+  superseded when a new entry changes one of its rules ([ADR-JW9N](JW9N-restate-a-kept-rule-by-a-link.md)).
   In the same PR, change the status in the index and move the row to the table for the new status.
   An `evidence` entry becomes `evidence; used by XXXX` when an accepted entry cites
   it for its decision. Its Decision cell keeps the one-line result.
@@ -132,7 +133,7 @@ in the [open work of the spec log](../specs/model-sidecar/decisions/open-work.md
   ID is a letter. The entries 0001 to 0048 keep their numbers. Do not make a new all-digit ID. An
   older entry keeps its lower-case ID in its file name, heading and index row. Do not edit older text
   only to change the case. IDs that differ only in case are one ID
-  ([ADR-HJNP](HJNP-upper-case-entry-ids.md)).
+  ([ADR-JW9N](JW9N-restate-a-kept-rule-by-a-link.md)).
 - Before you add an entry, run `git fetch --all` when you can. Then run
   `uv run python tools/check_decision_log.py --new`. Give the entry the ID of the `new:` line. Create
   its file immediately. Add its index row at the end of the table for its status, in the same PR. The
@@ -165,7 +166,7 @@ in the [open work of the spec log](../specs/model-sidecar/decisions/open-work.md
   Do not use the prefix in a file name, a heading, an index row, a status line or a YAML value. Write
   an ID in YAML front matter in quotes. Cite a provisional entry of another repo by the repo name,
   the PR number and the slug. End each commit subject that adds or changes an entry with
-  `(ADR-<ID>)` ([ADR-HJNP](HJNP-upper-case-entry-ids.md)).
+  `(ADR-<ID>)` ([ADR-JW9N](JW9N-restate-a-kept-rule-by-a-link.md)).
 - A spec change proposal is an entry with the status `proposed`. Its source is a `proposal` bundle
   ([Hand-over bundles](../specs/model-sidecar/model-addition-workflow/hand-over.md)). Phase 2 of the
   [model addition workflow](../specs/model-sidecar/model-addition-workflow/phase-2-proposal.md) gives its parts. A part that the

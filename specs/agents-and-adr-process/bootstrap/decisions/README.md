@@ -9,7 +9,8 @@ an entry of [historical.md](historical.md) only to find the reason for a decisio
 
 Each entry gives the decision, its reason, the evidence (when there is evidence), the alternatives
 rejected and a "Not repeated" section for pitfalls already found. When a decision changes, add a new
-entry that supersedes the old entry in full. The body of a decided entry changes only by the edits
+entry that supersedes the old entry in full. A change of the text under a heading that an entry
+links does not supersede that entry. The body of a decided entry changes only by the edits
 that the [Rules](#rules) allow. To write an entry, use [template.md](template.md).
 
 ## Index
@@ -76,11 +77,10 @@ The open work is in [open-work.md](open-work.md).
   supersedes the old entry in full. Do not supersede, amend or correct a part of an entry. A link can
   restate a rule. The link must go to a heading of a normative document of the absorb rule below, and
   that heading must state the rule. Then that document is the only source of the rule. The commit
-  that changes the text under such a heading cites its own entry next to the changed rule.
-- An entry can restate a rule by a link to a heading of a normative document. A later entry can
-  change the text under that heading. The later entry cites itself at the heading. It does not
-  supersede the linking entry. A later entry that changes a rule that the linking entry states in its
-  own text supersedes the linking entry in full.
+  that changes the text under such a heading cites its own entry next to the changed rule. A later
+  entry that changes the text under such a heading does not supersede the linking entry. A later
+  entry that changes a rule that the linking entry states in its own text supersedes the linking
+  entry in full.
 - The status line of an entry can change. These changes are allowed: `proposed` to `accepted` or
   `rejected`, `accepted` to `superseded by XXXX`, `accepted` to `absorbed into <path>#<anchor>`,
   `absorbed into <path>#<anchor>` to `superseded by XXXX`, `accepted` to `done`, and `evidence` to

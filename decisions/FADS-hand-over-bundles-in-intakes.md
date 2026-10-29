@@ -19,7 +19,7 @@ stay by links, as [ADR-JW9N](JW9N-restate-a-kept-rule-by-a-link.md) allows.
    the retention and the writers.
 2. **No scan.** skellytracker does not scan or read the `plans/` folder of an exporter. An exporter
    writes no file in skellytracker except the new version folders of its own bundles
-   ([`AGENTS.md`](../AGENTS.md#1-purpose), [Git rules](../AGENTS.md#6-git-rules)).
+   ([`AGENTS.md`](../AGENTS.md#repository-instructions), [Git rules](../AGENTS.md#6-git-rules)).
 3. **Byte-copy records.** A proposal record in `specs/model-sidecar/proposals/<slug>/` is a byte copy
    of one bundle version, with its manifest. The session changes no file of it, except
    `redactions.yaml`. A doc test checks the hashes and the vector file size (256 KiB). The facts of
@@ -84,3 +84,5 @@ stay by links, as [ADR-JW9N](JW9N-restate-a-kept-rule-by-a-link.md) allows.
 - **Track `intakes/` in git.** One bad bundle would block each commit on the private-data and link
   checks, and exporters cannot commit here.
 - **A notices file for re-export requests.** The spec `open-work.md` already holds the work lists.
+
+_Edited 2026-10-29 (this PR): link repair._
