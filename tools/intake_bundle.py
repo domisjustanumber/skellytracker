@@ -813,6 +813,11 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list
     }[manifest["kind"]]
     what = "contribution" if contribution else manifest["kind"]
     findings += [f"{rel}: a {what} bundle needs this file" for rel in required if rel not in listed]
+    if manifest["kind"] == "proposal" and not contribution and "proposal.md" in listed:
+        # Parts 3 and 4 name the reference and vector files by their bundle path.
+        text = (version_dir / "proposal.md").read_text(encoding="utf-8", errors="replace")
+        named = set(re.findall(r"`((?:reference|vectors)/[^`<>\s]+)`", text))
+        findings += [f"{rel}: proposal.md names this file, but the bundle does not have it" for rel in sorted(named - set(listed))]
     vectors = sorted(r for r in listed if r.startswith("vectors/") and r.endswith(".yaml"))
     if contribution and not vectors:
         findings.append("a contribution needs at least one vectors/<section ID>.yaml")

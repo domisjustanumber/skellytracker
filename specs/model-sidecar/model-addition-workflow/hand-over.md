@@ -428,7 +428,7 @@ The session starts only when the user asks for it.
 1. Run `python -B tools/intake_bundle.py list`.
 2. For each bundle that is `submitted` or marked `(new version)`, run `uv run python -B
    tools/intake_bundle.py verify <bundle id>`. `verify` checks the manifest, the hashes, the layout,
-   the text form, ONNX files, private data, `plans/` paths, the links from the record path, the
+   each `reference/` and `vectors/` file that `proposal.md` names, the text form, ONNX files, private data, `plans/` paths, the links from the record path, the
    bundle links, the section owner, the payload schemas, the `vectors_sha256` of each vector run, the
    vector file size (256 KiB), the contribution cases, the external files, the publish rule and the
    precision of each published file in the example sidecar, a published `dynamic` file without a

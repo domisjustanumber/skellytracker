@@ -199,6 +199,17 @@ def test_verify_finds_an_unknown_spec_commit(tmp_path: Path, root: Path) -> None
     assert findings == ["spec_commit not found in this checkout; pack again on the current checkout"]
 
 
+def test_verify_finds_a_file_that_proposal_md_names_and_the_bundle_lacks(tmp_path: Path, root: Path) -> None:
+    text = (
+        "Code: `reference/post_det_selection_nms.py`.\n"
+        "Target: `specs/model-sidecar/reference/x.py`, `vectors/<section ID>.yaml`.\n"
+    )
+    source = payload(tmp_path, {"proposal.md": text})
+    ib.pack(source, proposal_fields(), root, cwd=tmp_path)
+    findings = ib.verify("proposal-box-clamp@ultralytics-exporter", root)
+    assert findings == ["reference/post_det_selection_nms.py: proposal.md names this file, but the bundle does not have it"]
+
+
 def test_verify_checks_the_owner_and_the_contribution_cases(tmp_path: Path, root: Path) -> None:
     owner_case = "cases:\n  - {id: one, input: 1, expect: 2}\n"
     owner = payload(tmp_path / "o", {"proposal.md": "text\n", "vectors/post.det.selection.nms.yaml": owner_case})
