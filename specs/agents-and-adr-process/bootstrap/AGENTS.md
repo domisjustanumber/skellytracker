@@ -108,8 +108,8 @@ Do not import a file, a test or a tool from another repository.
 
 ## 6. Git Rules
 
-- `plans/` is a local working folder. Git ignores it. Do not commit it (decision
-  [0001](decisions/0001-decision-log-agents-md-and-private-data.md)).
+- `plans/` is a local working folder. Git ignores it. Do not commit it
+  ([ADR-0001](decisions/0001-decision-log-agents-md-and-private-data.md)).
 - Do not push to a git remote without the approval of the user. One approval for a PR covers its
   push, its draft PR and its description.
 - Ask the user before any other action that is visible outside this machine, for example a PR
@@ -127,8 +127,8 @@ Write the summary in the message text, not only in the tool description.
 
 ## 8. Private Data
 
-This repository is public, or it can become public. Git history is permanent (decision
-[0001](decisions/0001-decision-log-agents-md-and-private-data.md)).
+This repository is public, or it can become public. Git history is permanent
+([ADR-0001](decisions/0001-decision-log-agents-md-and-private-data.md)).
 Do not write these in a tracked file, a commit message or a PR body:
 
 - a credential, a token, a password or a private key;
