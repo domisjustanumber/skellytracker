@@ -44,3 +44,4 @@ the reason for a decision. The [index](README.md) has the Active and Proposed en
 | [pykx](pykx-submission-folders.md) | Submission files in `plans/sidecar/`: a folder for each model and each proposal, with target file names; candidate examples allowed | superseded by FADS |
 | [a33q](a33q-vector-case-form.md) | One vector case form: optional `function` and `compare`, errors by rule ID, NaN, exporter entries; 64 KiB; one writer | superseded by TA0G |
 | [SR1E](SR1E-reset-of-the-spec-build-proposals.md) | Deletes the 21 proposed spec-log entries 0017-0025 and 0037-0048, the 14 old proposal records and the `proposed:` inventory list | done |
+| [JC4T](JC4T-parity-gates-and-batch-conversion-check.md) | Measured gates as controls; step 5 by role; the batch-conversion check (`S = 3`, b1 to b4, V0 to V6); the publish rule; the exporter run in the checkout | superseded by JB5J |

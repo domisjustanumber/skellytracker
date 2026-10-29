@@ -1,6 +1,6 @@
 # JC4T — Parity gates and the batch-conversion check
 
-**Status:** accepted, 2026-10-28 (user; PR: pending).
+**Status:** superseded by [JB5J](JB5J-one-batch-form-for-each-sidecar.md), 2026-10-29 (user; PR: pending).
 
 ## Decision
 

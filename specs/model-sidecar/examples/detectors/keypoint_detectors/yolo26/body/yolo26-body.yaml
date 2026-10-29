@@ -96,16 +96,4 @@ sizes:
             fp16: {filename: yolo26-body-nano_b1_fp16.onnx, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
           output_shapes:
             - [1, 300, 57]
-        "2":
-          precision_artifacts:
-            fp32: {filename: yolo26-body-nano_b2_fp32.onnx, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
-            fp16: {filename: yolo26-body-nano_b2_fp16.onnx, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
-          output_shapes:
-            - [2, 300, 57]
-        "3":
-          precision_artifacts:
-            fp32: {filename: yolo26-body-nano_b3_fp32.onnx, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
-            fp16: {filename: yolo26-body-nano_b3_fp16.onnx, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
-          output_shapes:
-            - [3, 300, 57]
   # small, medium, large, xlarge: identical to nano except filenames.

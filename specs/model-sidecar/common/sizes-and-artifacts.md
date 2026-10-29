@@ -6,7 +6,7 @@ since: v2024.09.1019
 changed_in: [vNEXT]
 selectors: []
 implemented_by:
-  validate: skellytracker/core/sidecar/model.py::SizeSpec  # partial. The checks run only inside resolved_size. No check for V-common.sizes_and_artifacts-3 (specs/model-sidecar/decisions/0010-family-invariant.md) or -8. -9 checks only that output_shapes exists. No check for -10 to -12: PrecisionArtifact forbids the key sha256.
+  validate: skellytracker/core/sidecar/model.py::SizeSpec  # partial. The checks run only inside resolved_size. No check for V-common.sizes_and_artifacts-3 (specs/model-sidecar/decisions/0010-family-invariant.md) or -8. -9 checks only that output_shapes exists. No check for -10 to -12: PrecisionArtifact forbids the key sha256. No check for -13: OnnxSpec accepts any number of integer keys in each size.
   load: skellytracker/core/sidecar/model.py::SidecarModel.resolved_size  # partial. Drops every key of a size entry except input and onnx. resolve_model_path in model_registry.py downloads artifacts and checks url_sha256. Nothing checks sha256 against the file that filename names.
 external_impl: []
 tests:
@@ -63,7 +63,7 @@ The full input tensor shape for a group is `[N] + sizes.<size>.input.shape[1:]`.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `sizes.<size>.onnx.batch_artifacts` | object | yes per size | The keys are quoted positive-integer native batch sizes (`"1"`, `"2"`, …) or a single `dynamic`. A size can list any number of batch keys. |
+| `sizes.<size>.onnx.batch_artifacts` | object | yes per size | The keys are quoted positive-integer native batch sizes (`"1"`, `"2"`, …) or a single `dynamic`. Before `vNEXT`, a size can list any number of batch keys. At `vNEXT`, [Batch forms](#batch-forms) gives the only valid key sets. |
 | `sizes.<size>.onnx.batch_artifacts.<N>.precision_artifacts` | object | yes per group | Each key is `fp32` or `fp16`. Each value is the artifact descriptor for native batch `N`. |
 | `sizes.<size>.onnx.batch_artifacts.<N>.output_shapes` | array[array] | when `len(batch_artifacts) > 1` | The output tensor shapes for native batch `N`. They follow the order of the top-level `outputs`. |
 
@@ -94,6 +94,18 @@ Rules:
 
 The input shape for a group is derived: `[N] + input.shape[1:]`. This is the batch key `N` plus the image shape of the size. When a size lists only one batch key, the top-level `outputs[].shape` can replace the `output_shapes` of each group.
 
+#### Batch forms
+
+At `vNEXT`, a sidecar uses exactly one batch form. The form applies to every size and to every precision ([ADR-JB5J](../../../decisions/JB5J-one-batch-form-for-each-sidecar.md)). These are the three forms:
+
+| Form | Key of `batch_artifacts` in each size | `batching.batch_conversion` |
+|------|---------------------------------------|-----------------------------|
+| b3 (the goal) | only `"3"` | required: `{profile_id: static-batch-v1, source_batch_size: 3}` ([Batch conversion](batch-conversion.md)) |
+| b1 (a fallback) | only `"1"` | not present |
+| `dynamic` (a fallback, or the form of a model that cannot export a static graph) | only `dynamic` | not present |
+
+Any other key set is invalid. Examples are the key `"2"` or `"4"`, two keys in one size, and a different key in two sizes. Other batch sizes are not practical to run in production. A host can make another batch from a b3 artifact with the conversion profile ([Behaviour](batch-conversion.md#behaviour)). The [model addition workflow](../model-addition-workflow/validation-and-publishing.md#publishing) tells which form a family publishes. A sidecar before `vNEXT` keeps the old key rules ([Legacy behaviour](#legacy-behaviour)).
+
 ## Behaviour
 
 ### Model sizes within a family
@@ -118,6 +130,7 @@ For rules marked **(vNEXT)**, see [Validation rules](../README.md#validation-rul
 - [ ] `V-common.sizes_and_artifacts-10` **(vNEXT)** Each precision artifact must declare `sha256`. Its value must be a string of 64 lowercase hexadecimal characters.
 - [ ] `V-common.sizes_and_artifacts-11` **(vNEXT)** When the file that `filename` names is present or downloaded, its SHA-256 must equal `sha256`.
 - [ ] `V-common.sizes_and_artifacts-12` **(vNEXT)** A sidecar outside `specs/model-sidecar/examples/` must not hold the reserved placeholder (64 zeros) as `sha256`.
+- [ ] `V-common.sizes_and_artifacts-13` **(vNEXT)** The sidecar must use one batch form ([Batch forms](#batch-forms)). The `onnx.batch_artifacts` of each size must have exactly one key. The key must be the same in every size. It must be `"3"`, `"1"` or `dynamic`. The key `"3"` is valid only when `batching.batch_conversion` is present.
 
 See also [Input](input.md#validation-rules) and [Outputs](outputs.md#validation-rules).
 
@@ -127,6 +140,7 @@ See also [Input](input.md#validation-rules) and [Outputs](outputs.md#validation-
 |-----------|-----------------------------------|---------------------------|
 | Size-level keys other than `input.shape`, `input.resize.target_size`, `onnx` | Deep-merged over the top level. | Invalid (family invariant). |
 | `sha256` of a precision artifact | Not available. Only `url_sha256` (with `url`) gives a hash. | Required on every artifact. |
+| Keys of `batch_artifacts` | Any number of quoted positive-integer keys, or a single `dynamic`, in each size. Two sizes can have different keys. | One batch form for the whole sidecar: `"3"` with `batching.batch_conversion`, `"1"`, or `dynamic` (`V-common.sizes_and_artifacts-13`). |
 
 ## Implementer guidance
 
