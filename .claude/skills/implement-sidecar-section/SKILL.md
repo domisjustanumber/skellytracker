@@ -11,8 +11,10 @@ This skill implements one section of the sidecar spec in the skellytracker packa
 skellytracker. It is for the implementation stage and the steady state
 ([Stages](../../../specs/model-sidecar/model-addition-workflow/README.md#stages)).
 
-The section file gives the normative text. [Decision 0013](../../../decisions/0013-spec-structure.md)
-gives the front matter, the vectors, the reference implementations and the traceability. This skill
+The section file gives the normative text. The
+[Rules for each spec edit](../change-sidecar-spec/SKILL.md#rules-for-each-spec-edit) of the skill
+`change-sidecar-spec` ([ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md))
+give the front matter, the vectors, the reference implementations and the traceability. This skill
 gives the order of the steps, the inputs, the outputs and the stop points.
 
 ## Stage
@@ -92,7 +94,7 @@ A skellytracker session must land it first, with the skill
    names one. That table can name an exporter for the reference implementation and for the example.
 4. Do not write a reference implementation, an example or vectors to remove the block. Do not mark a
    vector verified. A reading of the text alone does not verify a vector
-   ([Test vectors](../../../decisions/0013-spec-structure.md#test-vectors)).
+   ([Examples and vectors](../change-sidecar-spec/SKILL.md#examples-and-vectors)).
 
 ### Step 4: Plan the work
 
@@ -153,8 +155,7 @@ A skellytracker session must land it first, with the skill
     `uv run python tools/make_vectors.py`.
 11. skellytracker counts as one implementation in `verified_against`. A vector is fully verified only
     when two independent implementations agree
-    ([Independence](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence);
-    [Independence](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence)).
+    ([Independence](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence)).
 
 ### Step 7: Update the traceability
 

@@ -20,13 +20,23 @@ opens the one PR.
 - Commit only on `dom/sidecar-implementation`, on top of its current commits.
 - Do not add a `dom/NN-*` branch.
 - Do not make a fixup commit for a lower PR. Do not run a rebase with `--update-refs`.
+- Do not start a rebase below the commit "Remove the precision int8 from the sidecar model".
 - Put one kind of change in each commit: content, move, rewording or non-spec.
-- A commit group is a run of commits in a row on the working branch that do one task. The tree must
-  be valid after the last commit of the group.
+- The tree must be valid after the last commit of each commit group.
+- The parent of a range is the commit before the commit group (`git log` shows it). Give each report
+  that a step puts in the PR body to the user in the session. Also write a summary of it in the
+  message of the last commit of the group.
+- A test fix ([`AGENTS.md`](../../../AGENTS.md#3-install-and-test) section 3) is outside this
+  exception. Before you commit a test fix, stop and ask the user for the branch.
 - Push only the working branch, after the approval of the user:
   `git push origin dom/sidecar-implementation`.
 - The user opens the one PR and writes its body.
-- "Add a commit", the `dom/NN` push form of "Check and push" and "PRs" do not apply in this stage.
+- "Add a commit", "Check and push" and "PRs" do not apply in this stage.
+
+## Commit groups
+
+A commit group is a run of commits in a row on the working branch that do one task. Outside the
+spec-build stage, the commits of one PR are its commit group.
 
 ## The working branch and the PR branches
 

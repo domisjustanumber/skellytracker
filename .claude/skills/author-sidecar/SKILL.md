@@ -64,8 +64,9 @@ Write these files in a `model` bundle, or in the exporter repo where the table s
 | Output | When |
 |---|---|
 | `intake.md` of the bundle `model-<model>@<contributor>` | Always. One bundle for each family. `<model>` is the `model_id` of the family. |
-| The sidecar, from the sidecar writer code of the exporter | Only when every row is `exact` or `out of scope`. |
-| A draft of the sidecar, the rule walk and the parity plan, in the intake | When no row is `near-miss` or `gap`, and a row is `unverified`. The results are provisional. |
+| The sidecar, from the sidecar writer code of the exporter | Only when no row is blocking and no row is `unverified`. |
+| A draft of the sidecar, the rule walk and the parity plan, in the intake | When no row is blocking, and a row is `unverified`. The results are provisional. |
+| `vector-runs.yaml` of the bundle | When a section that the model uses has numeric vector cases. |
 | The parity script, committed in the exporter repo | When you can run the parity check. |
 | `reference/<section_module>.py` of the bundle | For each section that the exporter implements on its host side and that has no reference implementation. |
 | `example/` of the bundle | When the verdict is `describes`. |
@@ -106,14 +107,14 @@ Keep your working draft where you like. The bundle is the hand-over
 
 ### Step 3: Fill in the property table
 
-1. Do steps 1 and 2 of
+1. Do step 1 of
    [Phase 1](../../../specs/model-sidecar/model-addition-workflow/phase-1-intake.md#phase-1-can-the-current-spec-describe-the-model).
-   Write one row for each property of the runtime contract.
    Then do step 1b of phase 1, the batch-conversion check
    ([Batch-conversion check](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#batch-conversion-check)).
    Fill in
    [Batch conversion check](../../../specs/model-sidecar/templates/model-intake.md#batch-conversion-check)
-   and row G6b.
+   with its evidence. Then do step 2 of phase 1. Write one row for each property of the runtime
+   contract, and also row G6b.
 2. Use the hint for each part of the
    [property table](../../../specs/model-sidecar/templates/model-intake.md#property-table). The hints are
    in [Mapping hints for phase 1](../../../specs/model-sidecar/model-addition-workflow/mapping-hints.md#mapping-hints-for-phase-1):
@@ -152,20 +153,23 @@ Keep your working draft where you like. The bundle is the hand-over
 
 First, try to get the missing evidence of each `unverified` row. Then give the row its verdict.
 
-Then use the first row of this table that applies. A `near-miss` row or a `gap` row comes before an
-`unverified` row.
+Then use the first row of this table that applies. A blocking row is a `near-miss` or `gap` row other
+than row G6b (step 3 of
+[Phase 1](../../../specs/model-sidecar/model-addition-workflow/phase-1-intake.md#phase-1-can-the-current-spec-describe-the-model)).
+A blocking row comes before an `unverified` row.
 
 | The rows | The next step |
 |---|---|
-| A row is `near-miss` or `gap`. Other rows can be `unverified`. | The final verdict is `does not describe`. Do not write a sidecar that approximates the model. Write `skipped` in "The sidecar", "Validation checklist" and "Parity proof" of the intake. List the `unverified` rows in "Missing evidence and runs" of the final verdict. Go to step 6. |
-| No row is `near-miss` or `gap`. A row is `unverified`. | The final verdict is `pending`. Go to step 5. Use the value that you expect for each `unverified` row. Mark each result that depends on an `unverified` row as provisional. |
+| A row is blocking. Other rows can be `unverified`. | The final verdict is `does not describe`. Do not write a sidecar that approximates the model. Write `skipped` in "The sidecar", "Validation checklist" and "Parity proof" of the intake. List the `unverified` rows in "Missing evidence and runs" of the final verdict. Go to step 6. |
+| No row is blocking. A row is `unverified`. | The final verdict is `pending`. Go to step 5. Use the value that you expect for each `unverified` row. Mark each result that depends on an `unverified` row as provisional. |
+| No row is blocking, and row G6b is `gap`. | Go to step 5. Write the sidecar without `batching.batch_conversion`. Then do step 6 for row G6b only: the proposal for a new profile. |
 | Every row is `exact` or `out of scope`. | Go to step 5. |
 
 A row that is `out of scope` needs no proposal. Tell the user about the row in step 8.
 
 ### Step 5: Write and check the sidecar
 
-Do this step when no row is `near-miss` or `gap` (step 5 of
+Do this step when no row is blocking (step 5 of
 [Phase 1](../../../specs/model-sidecar/model-addition-workflow/phase-1-intake.md#phase-1-can-the-current-spec-describe-the-model)).
 
 1. Let the sidecar writer code of the exporter write the sidecar. Do not write the sidecar by hand.
@@ -186,23 +190,27 @@ Do this step when no row is `near-miss` or `gap` (step 5 of
 8. Do each item of the [Validation checklist](../../../specs/model-sidecar/templates/model-intake.md#validation-checklist).
    Follow [Validation](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#validation). Write the rule ID of each
    rule that you checked.
-9. Prove parity. Follow [Parity](../../../specs/model-sidecar/model-addition-workflow/parity.md#parity). Fill in
+9. Run the numeric vector cases of each section that the model uses through the host code. Record
+   each section in `vector-runs.yaml` of the bundle
+   ([Payload](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#payload)). An `error`
+   case and a `failed` case are not host runs.
+10. Prove parity. Follow [Parity](../../../specs/model-sidecar/model-addition-workflow/parity.md#parity). Fill in
    [Parity proof](../../../specs/model-sidecar/templates/model-intake.md#parity-proof). Fill in each cell
    that you can, also when the result is `to run`: the gates, the test images, the upstream reference
    and the script.
-10. Commit the parity script in the exporter repo. If you cannot run the script or commit it, write
+11. Commit the parity script in the exporter repo. If you cannot run the script or commit it, write
     `to run` as the result. If you do not know the path or the commit of the script, write
     `unknown (<reason>)`.
-11. If parity fails, you missed or misjudged a property. Go back to step 3. Do not make the tolerance
+12. If parity fails, you missed or misjudged a property. Go back to step 3. Do not make the tolerance
     larger.
 
 ### Step 6: Hand over each `near-miss` and `gap`
 
-Do this step when a row is `near-miss` or `gap`, also when other rows are `unverified`. A near-miss is
-a gap.
+Do this step when a row is blocking, also when other rows are `unverified`. Do it also for row G6b
+when it is `gap`. A near-miss is a gap.
 
-1. Group the `near-miss` rows and the `gap` rows by the section that they change. One group is one
-   contract unit.
+1. Group the `near-miss` rows and the `gap` rows by contract unit. A unit can change more than one
+   section.
 2. For each group, run the skill [`propose-sidecar-change`](../propose-sidecar-change/SKILL.md). Give
    it the intake file and the rows of the group.
 3. Write each proposal file in
@@ -231,8 +239,8 @@ Do this step for every final verdict, also after step 6. Follow
 ### Step 8: Write the final verdict and stop
 
 1. Write the [Final verdict](../../../specs/model-sidecar/templates/model-intake.md#final-verdict):
-   `describes`, `does not describe` or `pending`. A `near-miss` row or a `gap` row gives
-   `does not describe`, also when other rows are `unverified`.
+   `describes`, `does not describe` or `pending`. A blocking row gives `does not describe`, also
+   when other rows are `unverified`.
 2. Pack the `model` bundle
    ([Pack a version](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#pack-a-version)). Then stop. Do not change
    another file in skellytracker.
@@ -258,7 +266,7 @@ Do this step for every final verdict, also after step 6. Follow
 | Condition | Action |
 |---|---|
 | The checkout does not exist, or it is not on the branch `dom/sidecar-implementation`. | Stop. Ask the user what to do. |
-| A row is `near-miss` or `gap`, also when other rows are `unverified`. | Do not write the sidecar. Run `propose-sidecar-change` (step 6). Then do steps 7 and 8, and stop. |
-| No row is `near-miss` or `gap`, and you cannot get the evidence of an `unverified` row. | Do steps 5, 7 and 8 with provisional results. The final verdict is `pending`. |
+| A row is blocking, also when other rows are `unverified`. | Do not write the sidecar. Run `propose-sidecar-change` (step 6). Then do steps 7 and 8, and stop. |
+| No row is blocking, and you cannot get the evidence of an `unverified` row. | Do steps 5, 7 and 8 with provisional results. The final verdict is `pending`. |
 | Parity fails while every row is `exact` or `out of scope`. | Go back to step 3. Do not make the tolerance larger. |
 | You wrote the intake, the proposals and the reference files. | Stop. Report to the user. |

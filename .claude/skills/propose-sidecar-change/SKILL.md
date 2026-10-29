@@ -8,7 +8,8 @@ description: Use this skill when the sidecar spec does not describe a model prop
 This skill uses ASD-STE100 Simplified Technical English.
 
 This skill is phase 2 of the new-model workflow. A proposal asks for one new or changed contract unit
-of the spec (one section) and for its implementation.
+of the spec ([Proposal forms](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#proposal-forms))
+and for its implementation.
 
 This skill wraps "Phase 2" of the
 [model addition workflow](../../../specs/model-sidecar/model-addition-workflow/phase-2-proposal.md#phase-2-propose-a-spec-change-and-its-implementation)
@@ -98,24 +99,31 @@ A contributor writes its proposal bundle.
    ([The commit of the spec text](../../../specs/model-sidecar/model-addition-workflow/reading-the-spec.md#the-commit-of-the-spec-text)).
 2. If the checkout does not exist, or it is not on the branch `dom/sidecar-implementation`, stop.
    Ask the user what to do.
-3. Read the table
+3. Find your model in
+   [Scope of this revision](../../../specs/model-sidecar/changelog.md#scope-of-this-revision). If it
+   is not in the list, say so in part 1. Do not write a scope entry. The model joins the list on
+   acceptance.
+4. Read the table
    [Considered and deliberately not added](../../../specs/model-sidecar/changelog.md#considered-and-deliberately-not-added).
    If your gap is in it, cite the row in part 1. Give the evidence that a model needs the feature now.
-4. Find the `proposed` entries that cover your rows. Read the Proposed table of the
+5. Find the `proposed` entries that cover your rows. Read the Proposed table of the
    [decision log](../../../specs/model-sidecar/decisions/README.md#proposed). Read each entry whose Section cell
    is one of your sections or `none`. Also read each `proposed` entry that the "Authoring
    guidance" or the "Implementer guidance" of your sections cites.
-5. Run `python -B ../freemocap/skellytracker/tools/intake_bundle.py list`. Choose the form of each
+6. Run `python -B ../freemocap/skellytracker/tools/intake_bundle.py list`. Choose the form of each
    proposal: a new proposal, a contribution or a follow-up
    ([Proposal forms](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#proposal-forms)). If a `proposed` entry covers your
    rows, do not write a competing proposal. Cite the entry in the header and in part 1.
-6. If the exporter has no git repo, follow
+7. If the exporter has no git repo, follow
    [A contributor with no git repo](../../../specs/model-sidecar/model-addition-workflow/README.md#a-contributor-with-no-git-repo).
 
 ### Step 2: Find the contract units
 
-1. Group the `near-miss` rows and the `gap` rows of the intake by the section that they change.
-2. Write one proposal for each group. Do not put two contract units in one proposal.
+1. Group the `near-miss` rows and the `gap` rows of the intake by contract unit. A unit can change
+   more than one section.
+2. Write one proposal for each group. Do not put two contract units in one proposal. List each
+   changed section in the manifest `sections`. Put first the section that is the Section cell of the
+   entry.
 3. Put a new role with its enum edits and path edits in one proposal (part 2 of
    [Phase 2](../../../specs/model-sidecar/model-addition-workflow/phase-2-proposal.md#phase-2-propose-a-spec-change-and-its-implementation)).
 4. If a proposal needs another proposal, write its bundle ID in the header and in `depends_on`.
@@ -132,11 +140,11 @@ A contributor writes its proposal bundle.
    |---|---|---|
    | 1 | [1. Gap](../../../specs/model-sidecar/templates/change-proposal.md#1-gap) | Give a number where possible. |
    | 2 | [2. Spec change](../../../specs/model-sidecar/templates/change-proposal.md#2-spec-change) | Write the exact normative text in ASD-STE100. List each place that the change edits. |
-   | 3 | [3. Reference implementation](../../../specs/model-sidecar/templates/change-proposal.md#3-reference-implementation) | Follow [Imports of other sections](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#imports-of-other-sections). Write `reference/<section_module>.py` in the proposal folder. If no host code exists yet, write the functions from the text of part 2, and write `source commit: none (no host code)` in the note at the top of the file. |
-   | 4 | [4. Vectors](../../../specs/model-sidecar/templates/change-proposal.md#4-vectors) | Make the vectors with part 3. Verify them against the host implementation. If you cannot, write `unverified: <reason>`. Give each pixel case a tolerance in `compare`. Write the cases to `vectors/<section ID>.yaml` in the proposal folder, in the case form of the template ([ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md)). |
+   | 3 | [3. Reference implementation](../../../specs/model-sidecar/templates/change-proposal.md#3-reference-implementation) | Follow [Imports of other sections](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#imports-of-other-sections). Write `reference/<section_module>.py` in the proposal bundle. If no host code exists yet, write the functions from the text of part 2, and write `source commit: none (no host code)` in the note at the top of the file. |
+   | 4 | [4. Vectors](../../../specs/model-sidecar/templates/change-proposal.md#4-vectors) | Make the vectors with part 3. Verify the numeric cases against the host implementation. An `error` case and a `failed` case run only against the reference implementation ([The step](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#the-step)). If you cannot, write `unverified: <reason>`. Give each pixel case a tolerance in `compare`. Write the cases to `vectors/<section ID>.yaml` in the proposal bundle, in the case form of the template ([ADR-TA0G](../../../decisions/TA0G-vector-cases-and-reference-modules.md)). |
    | 5 | [5. Parity evidence](../../../specs/model-sidecar/templates/change-proposal.md#5-parity-evidence) | Follow [Parity](../../../specs/model-sidecar/model-addition-workflow/parity.md#parity). Commit the script. If you cannot run the script or commit it, write `to run` and describe the script. If you do not know the path or the commit of the script, write `unknown (<reason>)`. |
    | 6 | [6. skellytracker implementation proposal](../../../specs/model-sidecar/templates/change-proposal.md#6-skellytracker-implementation-proposal) | Read the package code in the checkout. If a call site is not known, write `for the implementer`. |
-   | 7 | [7. Exporter impact](../../../specs/model-sidecar/templates/change-proposal.md#7-exporter-impact) | Name each exporter that must write new fields or regenerate sidecars. |
+   | 7 | [7. Exporter impact](../../../specs/model-sidecar/templates/change-proposal.md#7-exporter-impact) | List each affected sidecar group: owner repo, inventory key or model, and change. |
    | 8 | [8. Alternatives considered](../../../specs/model-sidecar/templates/change-proposal.md#8-alternatives-considered) | Include the near-miss and the reason to reject it. |
 
 5. If a part has no content, write `none` and the reason. Do not delete a part.
@@ -204,7 +212,9 @@ A contributor writes its proposal bundle.
 4. On acceptance, the content commit takes the text, the code and the vectors from the record. It
    sets the decision entry and the row state to `accepted`. The last commit of the proposal sets the
    row state to `landed`. When the content commit lands part 6, it adds an open-work item for the
-   implementer guidance. A rejected proposal gets the row state `rejected`. Its record stays.
+   implementer guidance. A rejected proposal gets the row state `rejected`. Its record stays. A
+   proposal whose goal a different change meets gets the row state `resolved-otherwise` (procedure E
+   of [`change-sidecar-spec`](../change-sidecar-spec/SKILL.md#procedure-e-resolve-a-proposal-by-a-different-change)).
 5. Write the response with the new state ([Responses](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#responses)).
 
 ### Step 4: Write the decision entry
@@ -225,7 +235,8 @@ A contributor writes its proposal bundle.
    [Before you stop](../../../specs/model-sidecar/templates/change-proposal.md#before-you-stop), the
    missing primary evidence, each `to run` result and each open question. List each plan decision
    of part 1. The user must confirm or refuse each one
-   ([User decisions](../../../specs/model-sidecar/model-addition-workflow/rules.md#user-decisions)).
+   ([User decisions](../../../specs/model-sidecar/model-addition-workflow/rules.md#user-decisions);
+   [ADR-FDTD](../../../decisions/FDTD-evidence-sources-and-exporter-permalinks.md)).
 6. Keep the entry inside the entry limit
    ([z934](../../../decisions/z934-decision-log-index-and-read-path.md)). The details stay in
    `proposal.md`.

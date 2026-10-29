@@ -9,12 +9,14 @@ and the optional `evidence.md` and `example/` (a candidate example). An older re
 part 4 in `proposal.md` (ADR-[pykx](../../../decisions/pykx-submission-folders.md)).
 
 The files are informative. A proposal is not normative until a content PR lands its text in the
-section files. The decision entry of each proposal records its status. The skill
+section files. The row of this index is the only place of the state of a proposal
+([Tracked records](../model-addition-workflow/hand-over.md#tracked-records)). The skill
 [`propose-sidecar-change`](../../../.claude/skills/propose-sidecar-change/SKILL.md) records a
 proposal. The skill [`change-sidecar-spec`](../../../.claude/skills/change-sidecar-spec/SKILL.md)
 lands it.
 
-`state` is `recorded`, `accepted`, `landed` or `rejected`. This table is the list of the
+`state` is `recorded`, `accepted`, `landed`, `rejected` or `resolved-otherwise`. A
+`resolved-otherwise` row links the entry of the change that landed. This table is the list of the
 proposals. A proposal with `state: recorded` waits for the user. The heading "Before acceptance"
 of its `proposal.md` lists the work that must be done before the user can accept it.
 
