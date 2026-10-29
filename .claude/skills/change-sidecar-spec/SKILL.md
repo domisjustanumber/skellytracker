@@ -120,10 +120,9 @@ Do this procedure for step 2 of phase 3.
 5. Write the `changelog.md` rows.
 6. Copy each file in `specs/model-sidecar/proposals/<slug>/reference/` to
    `specs/model-sidecar/reference/<section_module>.py`. There is one file for each changed section
-   that has an algorithm. An older record has only the `python` code block of part 3. For each file:
-   if the target file exists, compare the two files. Each difference of behaviour must come from part
-   2. If the file starts from an older base, stop. The response is `needs-contributor`, with a
-   follow-up bundle as in step 4. Find each
+   that has an algorithm. For each file: if the target file exists, compare the two files. Each
+   difference of behaviour must come from part 2. If the file starts from an older base, stop. The
+   response is `needs-contributor`, with a follow-up bundle as in step 4. Find each
    module that a file imports. Each such module must be in `specs/model-sidecar/reference/` or be a
    file that this step copies. If one is not there, stop. Land that module first.
 7. If `tools/tests` has no test that runs the reference functions against the vectors of each changed
@@ -165,8 +164,7 @@ Do this procedure for step 2 of phase 3.
 17. If a model that needs the change is not in
     [Scope of this revision](../../../specs/model-sidecar/changelog.md#scope-of-this-revision), add
     the model to the list ([ADR-YNX0](../../../specs/model-sidecar/decisions/YNX0-vnext-scope-list.md)).
-18. When the exporter writes the sidecar with the new fields, add the example with procedure A. Remove
-    the `proposed` entry of the model from `specs/model-sidecar/inventory.yaml`, if it has one.
+18. When the exporter writes the sidecar with the new fields, add the example with procedure A.
     Set the state `landed` in the proposal index when the last commit of the proposal lands. Write
     the response of each bundle of the proposal. Then do [procedure E](#procedure-e-resolve-a-proposal-by-a-different-change)
     for each other open proposal on the same sections.
@@ -375,7 +373,7 @@ Each change has a class
   `kind: forecast` is written from exporter code before the exporter writes that sidecar.
 - `inventory.yaml` is docs only. skellytracker does not read it at run time. It is not the index of a
   remote sidecar folder. It holds only the data that a scan cannot find: the provenance of each
-  example and the `proposed` models.
+  example and each fragment, and the `no_model` reasons.
 - A test vector is a small worked case: concrete inputs to the algorithm of one section, and the exact
   expected output. There is one file for each section ID in `specs/model-sidecar/vectors/`. A file holds
   numbers only: no images and no ONNX files.

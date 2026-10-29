@@ -26,8 +26,7 @@ You do not do phase 3. A skellytracker session does it. The user decides.
      ([ADR-KDBD](../../../decisions/KDBD-change-classes-and-spec-forced-edits.md)).
    - A non-spec PR (documentation only) adds the guidance, the implementation proposal (as
      implementer guidance and an open-work item), the example and its provenance record. It
-     removes the `proposed` entry of the model from `specs/model-sidecar/inventory.yaml`, if one exists.
-     It adds the scope-list row of the model, if it is new
+     adds the scope-list row of the model, if it is new
      ([ADR-YNX0](../decisions/YNX0-vnext-scope-list.md)).
    - When skellytracker implements the spec, an implementation PR adds the code.
 3. Then you write the sidecar with the new fields, and you finish phase 1 for the model.
