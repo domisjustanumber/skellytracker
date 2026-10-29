@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write or check the copied files of the bootstrap kit (decision 0031).
+"""Write or check the copied files and blocks of the bootstrap kit (decision 0031).
 
 Usage::
 
@@ -10,10 +10,17 @@ The kit in ``specs/agents-and-adr-process/bootstrap/`` holds copies of the tools
 repo, for a new repo to copy. Each copy is its live file with a short list of exact text edits that
 remove the parts that belong only to this repo. A change to a live file must be copied to the kit:
 run ``--write`` and commit both files. The doc tests run ``--check``. Standard library only.
+
+The kit templates also hold blocks of live text. A block named ``## <heading>`` is the whole
+section under that heading, up to the next ``## `` heading. Any other block name is the text between
+the lines ``<!-- kit:<name> -->`` and ``<!-- /kit -->``, which are in the live file and in the kit
+file. The kit text of a block is the live text without its citations of single live entries, with
+the edits applied. ``--write`` writes only the text of each block and keeps the rest of the kit file.
 """
 
 from __future__ import annotations
 
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -27,6 +34,20 @@ class Copy:
     source: str
     edits: tuple[tuple[str, str], ...] = ()
 
+
+@dataclass(frozen=True)
+class Block:
+    live: str  # repo-relative path of the live file
+    kit: str  # repo-relative path of the kit template
+    name: str  # "## <heading>" for a whole section, else the name of a marker block
+    edits: tuple[tuple[str, str], ...] = ()
+
+
+# A link in parentheses to one live entry, for example "([ADR-JW9N](JW9N-....md))".
+CITATION = re.compile(
+    r"\s*\((?:ADR-)?\[(?:ADR-)?([0-9A-Z]{4})\]\((?:[^():\s]*/)?\1-[^():\s]*\.md\)\)", re.IGNORECASE
+)
+MARKER = re.compile(r"^[ \t]*<!-- (?:kit:([a-z0-9-]+)|/kit) -->[ \t]*$")
 
 DECISION_0001 = "(decision 0001)"
 
@@ -130,25 +151,106 @@ COPIES = (
     ),
 )
 
+BLOCKS: tuple[Block, ...] = ()
+
 
 def read(path: Path) -> str:
     return path.read_text(encoding="utf-8").replace("\r\n", "\n")
 
 
-def expected(root: Path, copy: Copy) -> str:
-    """The text of the copy: the live file with the edits applied."""
-    text = read(root / copy.source)
-    for old, new in copy.edits:
+def apply(text: str, edits: tuple[tuple[str, str], ...], where: str) -> str:
+    for old, new in edits:
         if text.count(old) != 1:
             raise SystemExit(
-                f"{copy.source}: an edit for the bootstrap kit matches {text.count(old)} times, expected 1:\n{old}"
+                f"{where}: an edit for the bootstrap kit matches {text.count(old)} times, expected 1:\n{old}"
             )
         text = text.replace(old, new)
     return text
 
 
+def expected(root: Path, copy: Copy) -> str:
+    """The text of the copy: the live file with the edits applied."""
+    return apply(read(root / copy.source), copy.edits, copy.source)
+
+
+def spans(root: Path, path: str) -> tuple[list[str], dict[str, tuple[int, int]], list[str]]:
+    """The lines of `path`, the line range of each section and marker block, and the marker errors."""
+    lines = read(root / path).split("\n")
+    heads = [i for i, line in enumerate(lines) if line.startswith("## ")] + [len(lines)]
+    found = {lines[i]: (i + 1, j) for i, j in zip(heads, heads[1:], strict=False)}
+    errors: list[str] = []
+    name, start = "", 0
+    for number, line in enumerate(lines, 1):
+        marker = MARKER.match(line)
+        if not marker:
+            continue
+        new = marker.group(1)
+        if new and name:
+            errors.append(f"{path}:{number}: kit:{new} starts inside kit:{name}; blocks do not nest")
+        elif new and new in found:
+            errors.append(f"{path}:{number}: a second block kit:{new}")
+        elif new:
+            name, start = new, number
+        elif not name:
+            errors.append(f"{path}:{number}: <!-- /kit --> closes no block")
+        else:
+            found[name], name = (start, number - 1), ""
+    if name:
+        errors.append(f"{path}:{start}: kit:{name} has no <!-- /kit -->")
+    return lines, found, errors
+
+
+def block_expected(root: Path, block: Block) -> str:
+    """The kit text: the live block without citations of single live entries, with the edits applied."""
+    lines, found, errors = spans(root, block.live)
+    if errors or block.name not in found:
+        raise SystemExit("\n".join(errors) or f"{block.live}: no block {block.name}")
+    start, end = found[block.name]
+    return apply(CITATION.sub("", "\n".join(lines[start:end])), block.edits, f"{block.live} {block.name}")
+
+
+def block_errors(root: Path) -> list[str]:
+    errors: list[str] = []
+    files: dict[str, dict[str, tuple[int, int]]] = {}
+    for path in dict.fromkeys(p for b in BLOCKS for p in (b.live, b.kit)):
+        _, files[path], more = spans(root, path)
+        errors += more
+    names = {(p, b.name) for b in BLOCKS for p in (b.live, b.kit)}
+    errors += [
+        f"{p}: kit:{n} is not in BLOCKS of tools/sync_bootstrap_kit.py"
+        for p in files
+        for n in files[p]
+        if not n.startswith("## ") and (p, n) not in names
+    ]
+    errors += [f"{p}: no block {n}" for p, n in sorted(names) if n not in files[p]]
+    for p in files:
+        # A heading block also owns its heading line, so it starts one line before its text.
+        owned = sorted((s - n.startswith("## "), e, n) for n, (s, e) in files[p].items() if (p, n) in names)
+        errors += [f"{p}: {b} overlaps {a}; blocks do not overlap" for (_, end, a), (start, _, b) in zip(owned, owned[1:], strict=False) if start < end]
+    if errors:
+        return errors
+    for b in BLOCKS:
+        lines, found, _ = spans(root, b.kit)
+        start, end = found[b.name]
+        if "\n".join(lines[start:end]) != block_expected(root, b):
+            errors.append(f"{b.kit}: {b.name} differs from {b.live}; run --write")
+    return errors
+
+
+def write_blocks(root: Path) -> None:
+    errors = [e for e in block_errors(root) if not e.endswith("run --write")]
+    if errors:
+        raise SystemExit("\n".join(errors))
+    for path in dict.fromkeys(b.kit for b in BLOCKS):
+        lines, found, _ = spans(root, path)
+        for b in sorted((b for b in BLOCKS if b.kit == path), key=lambda b: -found[b.name][0]):
+            start, end = found[b.name]
+            lines[start:end] = block_expected(root, b).split("\n")
+        (root / path).write_text("\n".join(lines), encoding="utf-8", newline="\n")
+
+
 def check(root: Path) -> list[str]:
-    errors = []
+    errors = block_errors(root)
     for copy in COPIES:
         path = root / KIT / copy.target
         if not path.exists():
@@ -165,17 +267,18 @@ def write(root: Path) -> None:
         path = root / KIT / copy.target
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(expected(root, copy), encoding="utf-8", newline="\n")
+    write_blocks(root)
 
 
 def main(argv: list[str]) -> int:
     root = Path.cwd()
     if argv[1:] == ["--write"]:
         write(root)
-        print(f"bootstrap kit: wrote {len(COPIES)} copies")
+        print(f"bootstrap kit: wrote {len(COPIES)} copies and {len(BLOCKS)} blocks")
         return 0
     if argv[1:] == ["--check"]:
         errors = check(root)
-        print("\n".join(errors) if errors else f"bootstrap kit: {len(COPIES)} copies match")
+        print("\n".join(errors) if errors else f"bootstrap kit: {len(COPIES)} copies and {len(BLOCKS)} blocks match")
         return 1 if errors else 0
     print(__doc__)
     return 2
