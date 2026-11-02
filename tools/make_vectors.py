@@ -109,7 +109,9 @@ def load_reference(section: str, folder: Path = REFERENCE_DIR) -> ModuleType:
     """
     path = folder / f"{section.replace('.', '_')}.py"
     spec = spec_from_file_location(path.stem, path)
-    if spec is None or spec.loader is None or not path.is_file():
+    # A section name from a vector file can be an absolute path: load only a file of `folder` (ADR-AD33).
+    inside = path.parent.resolve() == folder.resolve()
+    if spec is None or spec.loader is None or not inside or not path.is_file():
         raise FileNotFoundError(f"{section}: no reference implementation at {path}")
     module = module_from_spec(spec)
     # A module of the same name from another folder (for example a proposal folder) is stale here.
@@ -411,9 +413,13 @@ def rule_ids() -> frozenset[str]:
 
 
 def package_function(reference: str) -> Any:
-    """Return the skellytracker function named by `path/to/module.py::function`, else None."""
+    """Return the skellytracker function named by `skellytracker/<path>.py::function`, else None.
+
+    The entry can come from a bundle or a record, and this checkout is on `sys.path`. So the
+    function imports only package code, never a file of `intakes/` or of a record (ADR-AD33).
+    """
     path, _, name = reference.partition("::")
-    if not (REPO_ROOT / path).is_file():
+    if not path.startswith("skellytracker/") or ".." in path or not (REPO_ROOT / path).is_file():
         return None
     module = importlib.import_module(Path(path).with_suffix("").as_posix().replace("/", "."))
     return getattr(module, name, None)
@@ -494,11 +500,18 @@ def fill(path: Path, reference: Path) -> list[str]:
     checkout. The rule IDs are those of the section files and of part 2.4 of the
     `proposal.md` next to the reference folder. A proposed reference can differ
     from the current text, so no formula module cross-checks it. The tool writes
-    only `path`, never a file of this checkout. Return the problems.
+    only `path`, never a file of this checkout. It runs the code of `reference`,
+    so it refuses a folder of this checkout, for example a bundle in `intakes/`
+    or a record, and a folder that is not the `reference/` folder of the payload
+    of `path` (ADR-AD33, item 5). Return the problems.
     """
     path, reference = path.resolve(), reference.resolve()
     if path.is_relative_to(REPO_ROOT):
         return [f"{path}: fill writes only a vector file of a payload folder outside this checkout"]
+    if reference.is_relative_to(REPO_ROOT):
+        return [f"{reference}: fill runs only the reference folder of a payload outside this checkout"]
+    if reference != path.parent.parent / "reference":
+        return [f"{reference}: fill runs only <payload>/reference of the payload of {path.name}"]
     data = _load(path)
     if not (isinstance(data, dict) and isinstance(data.get("section"), str)):
         return [f"{path.name}: a vector file names its section"]

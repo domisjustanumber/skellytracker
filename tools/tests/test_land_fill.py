@@ -88,6 +88,24 @@ def test_fill_refuses_a_file_of_this_checkout(tmp_path: Path) -> None:
     assert SECTION_FILE.read_bytes() == before
 
 
+def test_fill_refuses_a_reference_folder_of_this_checkout(tmp_path: Path) -> None:
+    """A bundle in intakes/ or a record is in this checkout: fill never runs its code (ADR-AD33, item 5)."""
+    target = dump(tmp_path / "payload" / "vectors" / NAME, strip_expect(load(SECTION_FILE)))
+    before = target.read_bytes()
+    for folder in (mv.REPO_ROOT / "intakes" / "model-x@y" / "v1" / "reference", mv.REFERENCE_DIR):
+        (found,) = mv.fill(target, folder)
+        assert "fill runs only the reference folder of a payload outside this checkout" in found
+    assert target.read_bytes() == before
+
+
+def test_fill_refuses_the_reference_folder_of_another_payload(tmp_path: Path) -> None:
+    target = dump(tmp_path / "payload" / "vectors" / NAME, strip_expect(load(SECTION_FILE)))
+    before = target.read_bytes()
+    (found,) = mv.fill(target, tmp_path / "other" / "reference")
+    assert "fill runs only <payload>/reference of the payload" in found
+    assert target.read_bytes() == before
+
+
 def test_fill_reports_a_form_problem_and_writes_nothing(tmp_path: Path) -> None:
     target = dump(tmp_path / "vectors" / NAME, {**strip_expect(load(SECTION_FILE)), "tolerance": -1})
     before = target.read_bytes()

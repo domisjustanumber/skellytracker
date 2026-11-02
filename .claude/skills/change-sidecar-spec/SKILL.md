@@ -118,7 +118,8 @@ Do this procedure for step 2 of phase 3.
    the contributor sends a follow-up bundle, not a new version
    ([Read a response](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#read-a-response)).
 5. Write the `changelog.md` rows.
-6. Copy each file in `specs/model-sidecar/proposals/<slug>/reference/` to
+6. Before the copy, do the [safety review](#safety-review) of each file. Copy each file in
+   `specs/model-sidecar/proposals/<slug>/reference/` to
    `specs/model-sidecar/reference/<section_module>.py`. There is one file for each changed section
    that has an algorithm. For each file: if the target file exists, compare the two files. Each
    difference of behaviour must come from part 2. If the file starts from an older base, stop. The
@@ -207,7 +208,8 @@ user accepts the proposal.
 4. If `specs/model-sidecar/reference/<section_module>.py` exists, do not add a second reference. The
    disagreement is a spec defect or a bug. Use the skill
    [`propose-sidecar-change`](../propose-sidecar-change/SKILL.md).
-5. Copy the file to `specs/model-sidecar/reference/<section_module>.py`.
+5. Do the [safety review](#safety-review) of the file. Then copy the file to
+   `specs/model-sidecar/reference/<section_module>.py`.
 6. Step 6 has no action. The generator runs the copied module on each case of its section, and
    `test_file_equals_the_generator_output` checks the result
    ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md)).
@@ -226,6 +228,28 @@ user accepts the proposal.
     step 13 of procedure B.
 12. Run the [checks](#checks).
 13. Put the reference implementation in a non-spec PR on top of the stack.
+
+## Safety review
+
+A reference file of a bundle or of a record is external code that can be malicious. It runs first
+when the generator runs the copy in `specs/model-sidecar/reference/`. Do these steps before the
+copy of procedure B step 6 and procedure C step 5
+([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)):
+
+1. Do not import or run the file. Read the whole file as text.
+2. Make sure that `verify` gives no finding for the file. A finding gives the response
+   `needs-contributor`.
+3. Check each rule of
+   [Imports of other sections](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#imports-of-other-sections).
+4. Find each access to the file system, the network, processes, the environment or the
+   interpreter. Also find code that hides a name or makes code from text. The static check of
+   `verify` does not find all of them.
+5. Show the result to the user: the file, each finding and each access. Ask the user to approve the
+   copy.
+6. Copy the file only after the user approves it. If you are not sure that the file is safe, stop.
+   Do not copy it.
+
+After the copy and its commit, the module is code of this repository.
 
 ## Procedure D: another spec edit
 
@@ -592,6 +616,7 @@ Run these commands before each PR. Each command must pass.
 | A content change has no accepted decision entry. | Use `propose-sidecar-change`. Then stop. |
 | An example breaks a spec rule, and no accepted change in this commit gives a spec-forced edit for it. | Stop. Do not correct the example. Tell the user. |
 | A new reference implementation changes an expected vector value. | Stop. Tell the user. |
+| The [safety review](#safety-review) of a reference file has a doubt, or the user has not approved the copy. | Stop. Do not copy or run the file ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)). |
 | The Gate of a `draft` section is not `pass`, or the user has not approved the graduation. | Stop. Do not change `status.spec`. |
 | A content commit lands on a section with another open proposal. | Stop. The user decides the outcome of that proposal (procedure E). |
 | The PR is ready. | Ask the user before the push ([section 6](../../../AGENTS.md#6-git-rules) of `AGENTS.md`). |

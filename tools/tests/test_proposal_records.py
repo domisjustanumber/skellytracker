@@ -48,12 +48,18 @@ def test_record_files_match_their_manifest(manifest_path: Path) -> None:
 
 
 def record_vector_problems(proposals: Path) -> list[str]:
-    """Run the vector form check of `verify` on each record vector file.
+    """Run the static check and the vector form check of `verify` on each record file.
 
-    A contribution record in `<slug>/contributions/<contributor>/` also uses the reference and
-    part 2.4 of its owner record `<slug>/`.
+    A record is untrusted input: the check reads each reference module as text and never runs it
+    (ADR-AD33). A contribution record in `<slug>/contributions/<contributor>/` also uses the
+    reference and part 2.4 of its owner record `<slug>/`.
     """
-    found = []
+    sections = ib.module_names([ib.read_manifest(m.parent) for m in proposals.rglob("manifest.yaml")])
+    found = [
+        f"{path.relative_to(proposals).as_posix()}: {p}"
+        for path in sorted(proposals.rglob("reference/*.py"))
+        for p in ib.reference_problems(path, sections)[0]
+    ]
     for path in sorted(proposals.rglob("vectors/*.yaml")):
         folders = list(dict.fromkeys([path.parent.parent, proposals / path.relative_to(proposals).parts[0]]))
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -77,6 +83,27 @@ def test_the_record_vector_check_finds_a_form_problem(tmp_path: Path) -> None:
         "slug/contributions/c/vectors/post.det.selection.nms.yaml: "
         "post.det.selection.nms: tolerance must be a number of 0 or more"
     ]
+
+
+def test_the_record_check_reads_record_code_and_never_runs_it(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    marker = tmp_path / "marker"
+    monkeypatch.setenv("AD33_MARKER", str(marker))
+    reference = tmp_path / "slug" / "reference"
+    reference.mkdir(parents=True)
+    (reference / "post_det_clamp.py").write_text(
+        "import os\n\nwith open(os.environ['AD33_MARKER'], 'w') as handle:\n    handle.write('ran')\n\n\n"
+        "def run(params, input):\n    return {'y': input['x']}\n",
+        encoding="utf-8",
+    )
+    vectors = {"section": "post.det.clamp", "tolerance": 0, "unverified": "a test",
+               "cases": [{"id": "a", "params": {}, "input": {"x": 1}, "expect": {"y": 1}}]}
+    (tmp_path / "slug" / "vectors").mkdir()
+    (tmp_path / "slug" / "vectors" / "post.det.clamp.yaml").write_text(
+        yaml.safe_dump(vectors, sort_keys=False), encoding="utf-8"
+    )
+    found = record_vector_problems(tmp_path)
+    assert [f.split(": line")[0] for f in found] == ["slug/reference/post_det_clamp.py"] * 5
+    assert not marker.exists()
 
 
 def test_record_vector_files_are_256_kib_or_smaller() -> None:

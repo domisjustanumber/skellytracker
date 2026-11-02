@@ -11,24 +11,27 @@ Usage::
     uv run python -B tools/intake_bundle.py batch --fields FILE --out DIR [--inputs DIR] [--root INTAKES]
 
 `pack` and `list` use only the standard library, so Python 3.9 or later runs them. `verify`
-reads YAML and runs the producers of the vector files, so it runs in the environment of this
-repository. `batch` is the batch-conversion
-check. It imports onnx, onnxruntime and the skellytracker converter, so it runs only in the `.venv`
-of this checkout. `--fields` is a fields file or a manifest. No sub-command writes a response
-file: the skellytracker session writes them.
+reads YAML and the producers of this checkout, so it runs in the environment of this repository.
+It reads each Python file of a bundle as text and never runs it (ADR-AD33). `batch` is the
+batch-conversion check. It imports onnx, onnxruntime and the skellytracker converter, so it runs
+only in the `.venv` of this checkout. `--fields` is a fields file or a manifest. No sub-command
+writes a response file: the skellytracker session writes them.
 """
 
 from __future__ import annotations
 
 import argparse
+import ast
 import dataclasses
 import datetime
 import hashlib
+import importlib.util
 import json
 import re
 import shutil
 import subprocess
 import sys
+import types
 from pathlib import Path
 
 import check_private_data
@@ -599,6 +602,231 @@ def list_lines(root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list[str]:
 
 
 # --------------------------------------------------------------------------------------------
+# The static check of a reference module (standard library only; ADR-AD33, item 2)
+# --------------------------------------------------------------------------------------------
+
+# The standard-library modules that a reference module can import. Each one only computes: it has
+# no access to files, the network, processes, the environment or the interpreter.
+REFERENCE_STDLIB = frozenset({
+    "__future__",  # `annotations`
+    "math", "cmath", "statistics",  # real and complex functions, means and medians
+    "numbers", "fractions", "decimal",  # the number types and exact arithmetic
+    "itertools", "functools", "operator",  # loops, `reduce` and the operators as functions
+    "bisect", "heapq",  # sorted search and priority queues (top-k, NMS)
+    "collections", "dataclasses", "enum", "typing", "copy",  # containers, records and type hints
+})
+REFERENCE_PACKAGES = frozenset({"numpy", "cv2"})
+# Part 3 of a new profile of common.batch_conversion also imports onnx (ADR-JB5J).
+PROFILE_MODULE = "common_batch_conversion"
+# A use of one of these names gives a finding: code, the interpreter or the file system.
+FORBIDDEN_NAMES = frozenset({
+    "open", "eval", "exec", "compile", "__import__", "breakpoint", "help",
+    "globals", "locals", "vars", "__builtins__", "__loader__", "__spec__", "__file__",
+    "get_type_hints", "ForwardRef", "singledispatch", "singledispatchmethod",  # these evaluate annotation text
+})
+# The allowed modules expose these modules or entries as attributes, for example `cv2.os`,
+# `typing.sys`, `enum.bltns` and `np.testing.measure` (which runs text as code). The check matches
+# them on each attribute, on any receiver.
+SYSTEM_NAMES = frozenset({
+    "os", "sys", "importlib", "inspect", "builtins", "bltns", "subprocess", "types", "ctypes", "io",
+    "pathlib", "shutil", "socket", "threading", "multiprocessing", "signal", "platform", "runpy",
+    "pickle", "marshal", "gc", "tempfile", "glob", "urllib", "http", "codecs", "linecache",
+    "tokenize", "pkgutil", "zipimport", "posix", "nt", "contextlib", "warnings", "copyreg",
+    "modules", "environ", "getenv", "putenv", "system", "popen", "testing", "measure", "as_strided",
+})
+# A call that takes an attribute name: the name must be a string literal.
+NAME_CALLS = {"getattr": slice(1, 2), "setattr": slice(1, 2), "delattr": slice(1, 2),
+              "attrgetter": slice(None), "methodcaller": slice(0, 1)}
+# The NumPy and OpenCV names that read or write a file, or load other code. The check matches
+# them on each attribute, on any receiver.
+FILE_NAMES = frozenset({
+    "fromfile", "fromregex", "fromtextfile", "tofile", "memmap", "open_memmap", "genfromtxt",
+    "DataSource", "ctypeslib", "f2py", "distutils", "imcount",
+})
+FILE_PREFIX = re.compile(r"^(load|save|read|write(?!able$)|dump|imread|imwrite)|_(load|save)", re.IGNORECASE)
+# The OpenCV modules, classes and factories that load a model or a data file, also as the flat
+# `dnn_*` and `<module>_*` aliases of opencv-contrib.
+CV2_FILE_PREFIX = re.compile(
+    r"^(dnn|Face(Detector|Recognizer)|face_|(Base)?CascadeClassifier|haarcascade|HOGDescriptor|Tracker|legacy_"
+    r"|rapid_|text(_|$)|wechat_qrcode|barcode|datasets|gapi|ml(_|$)|dpm_|linemod_|mcc_|ppf_match"
+    r"|IStreamReader|utils(_|$)|File(Node|Storage)|Video(Capture|Writer)|samples|haveImage)"
+)
+SECTION_MODULE = re.compile(r"^(format|common|pre|post)_[a-z0-9_]*[a-z0-9]$")
+SAFE_DUNDERS = frozenset({"__name__", "__doc__", "__init__", "__post_init__", "__all__", "__main__"})
+NOT_CONSTANT = (ast.Call, ast.Lambda, ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp,
+                ast.NamedExpr, ast.Await, ast.Yield, ast.YieldFrom)
+# The one call that a class body can hold: a dataclass field with arguments that call nothing.
+FIELD_CALLS = frozenset({"field", "dataclasses.field"})
+
+
+def _section_id(path: Path) -> str | None:
+    match = re.search(r"^id:\s*(\S+)", path.read_text(encoding="utf-8"), re.MULTILINE)
+    return match.group(1) if match else None
+
+
+def section_modules(repo: Path = REPO_ROOT) -> set[str]:
+    """Return the module name of each section of the spec, for example `pre_resize_letterbox`."""
+    ids = (_section_id(p) for folder in SECTION_FOLDERS for p in sorted((repo / SPEC / folder).glob("*.md")))
+    return {i.replace(".", "_") for i in ids if i}
+
+
+def module_names(manifests: list) -> set[str]:
+    """Return the module name of each string of the `sections` of the manifests, for example `post_det_clamp`."""
+    sections = (s for m in manifests if isinstance(m, dict) for s in m.get("sections") or [])
+    return {s.replace(".", "_") for s in sections if isinstance(s, str)}
+
+
+def _bad_name(name: str) -> bool:
+    """True for a name that reaches code, the interpreter, a process or a file."""
+    private = name.startswith("_") and name not in SAFE_DUNDERS
+    return (
+        private or name in FORBIDDEN_NAMES or name in SYSTEM_NAMES or name in FILE_NAMES
+        or bool(FILE_PREFIX.search(name)) or bool(CV2_FILE_PREFIX.match(name))
+    )
+
+
+def _runs(node: ast.AST | None) -> bool:
+    """True when the expression calls code when Python evaluates it."""
+    return node is not None and any(isinstance(n, NOT_CONSTANT) for n in ast.walk(node))
+
+
+def _call_ok(node: ast.AST | None, callees: frozenset | None) -> bool:
+    """True when the expression calls nothing, or is one call of `callees` (None: any) with arguments that call nothing."""
+    if isinstance(node, ast.Call) and (callees is None or ast.unparse(node.func) in callees):
+        return not any(_runs(p) for p in [node.func, *node.args, *(k.value for k in node.keywords)])
+    return not _runs(node)
+
+
+def _body_problems(body: list, where: str, in_class: bool = False) -> list[str]:
+    """Return a finding for each statement of a module or class body that runs code at import.
+
+    The header of a `def` or a `class` also runs at import: the decorators, the default values, the
+    annotations, the bases and the keywords.
+    """
+    found = []
+    for number, node in enumerate(body):
+        docstring = number == 0 and isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant)
+        if docstring or isinstance(node, (ast.Import, ast.ImportFrom, ast.Pass)):
+            continue
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            if isinstance(node, ast.ClassDef):
+                header = [*node.bases, *(k.value for k in node.keywords)]
+                found += _body_problems(node.body, f"the class {node.name}", in_class=True)
+            else:
+                a = node.args
+                arguments = [*a.posonlyargs, *a.args, *a.kwonlyargs, a.vararg, a.kwarg]
+                header = [*a.defaults, *a.kw_defaults, node.returns, *(x.annotation for x in arguments if x)]
+            if any(_runs(h) for h in header) or not all(_call_ok(d, None) for d in node.decorator_list):
+                found.append(
+                    f"line {node.lineno}: {where} runs code at import (the header of {node.name}); "
+                    "a decorator can be one call with arguments that call nothing"
+                )
+            continue
+        targets = node.targets if isinstance(node, ast.Assign) else [getattr(node, "target", None)]
+        names = [n for t in targets for n in (t.elts if isinstance(t, (ast.Tuple, ast.List)) else [t])]
+        if (
+            isinstance(node, (ast.Assign, ast.AnnAssign))
+            and all(isinstance(n, ast.Name) for n in names)
+            and _call_ok(node.value, FIELD_CALLS if in_class else frozenset())
+            and not _runs(getattr(node, "annotation", None))
+        ):
+            continue
+        test = ast.unparse(node.test) if isinstance(node, ast.If) else None
+        type_checking = (
+            test in ("TYPE_CHECKING", "typing.TYPE_CHECKING") and not node.orelse
+            and all(isinstance(n, (ast.Import, ast.ImportFrom)) for n in node.body)
+        )
+        if not type_checking:
+            found.append(
+                f"line {node.lineno}: {where} runs code at import ({type(node).__name__}); "
+                "use only a docstring, imports, constants and definitions"
+            )
+    return found
+
+
+def reference_problems(path: Path, sections: object = ()) -> tuple[list[str], list[str]]:
+    """Read one reference module as text and return (findings, the names of its top-level functions).
+
+    The check parses the file with `ast` only. It never imports, compiles or runs it (ADR-AD33,
+    item 2). A module can import NumPy, OpenCV, `REFERENCE_STDLIB` and a section module by its name:
+    a section of the spec or a name in `sections` (the manifest `sections` of the bundle, its owner,
+    its `base` and its `depends_on`, with `_` for `.`). A file next to the module does not count.
+    `PROFILE_MODULE` can also import onnx. The check cannot prove that code is safe: the review of
+    item 3 stays the gate.
+    """
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=path.name)
+    except (OSError, UnicodeDecodeError, SyntaxError, ValueError) as exc:
+        return [f"not a readable Python file: {type(exc).__name__}: {exc}"], []
+    profile = path.stem == PROFILE_MODULE
+    packages = REFERENCE_PACKAGES | ({"onnx"} if profile else set())
+    spec_modules = section_modules()
+    # A new section name has a section folder prefix, so it cannot stand for `os`. It must also not
+    # be an installed module, for example `pre_commit`: after the copy, the import would load that.
+    # `find_spec` of a top-level name only searches the paths; it runs no code of the bundle.
+    new = {n for n in sections if SECTION_MODULE.match(n)} - spec_modules
+    installed = {n for n in new if importlib.util.find_spec(n) is not None}
+    known = spec_modules | (new - installed)
+    # The local names of onnx in a profile module: its own model files are its job.
+    onnx_names = {
+        (a.asname or a.name).split(".")[0]
+        for n in ast.walk(tree) if profile and isinstance(n, ast.Import) for a in n.names if a.name.split(".")[0] == "onnx"
+    }
+    found = _body_problems(tree.body, "the module")
+    named = set()  # the Name and Attribute nodes that a checked NAME_CALLS call uses
+    for node in ast.walk(tree):
+        line = f"line {getattr(node, 'lineno', '?')}"
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            if isinstance(node, ast.ImportFrom) and node.level:
+                found.append(f"{line}: a relative import")
+                continue
+            modules = [a.name for a in node.names] if isinstance(node, ast.Import) else [node.module or ""]
+            for module in modules:
+                top, *rest = module.split(".")
+                if isinstance(node, ast.ImportFrom) and top in known:
+                    found.append(f"{line}: from {module} import: import the section module by its name")
+                elif top in installed:
+                    found.append(f"{line}: imports {module}: the section name is also the name of an installed module")
+                elif top not in REFERENCE_STDLIB | packages | known:
+                    found.append(f"{line}: imports {module}: not NumPy, OpenCV, a listed standard-library module or a section module")
+                parts = rest + ([a.name for a in node.names] if isinstance(node, ast.ImportFrom) and top in packages else [])
+                found += [f"{line}: imports {part} from {top}: it reaches a file or code" for part in parts
+                          if part == "*" or (_bad_name(part) and not (top == "onnx" and profile))]
+        elif isinstance(node, ast.Call):
+            func = node.func
+            name = func.id if isinstance(func, ast.Name) else func.attr if isinstance(func, ast.Attribute) else None
+            if name == "input" and isinstance(func, ast.Name):
+                found.append(f"{line}: calls input")
+            if name in NAME_CALLS:
+                named.add(func)
+                if not all(isinstance(a, ast.Constant) and isinstance(a.value, str) for a in node.args[NAME_CALLS[name]]):
+                    found.append(f"{line}: {name} with a name that is not a string literal")
+        elif isinstance(node, ast.Name) and node not in named and (node.id in FORBIDDEN_NAMES or node.id in NAME_CALLS):
+            found.append(f"{line}: uses {node.id}")
+        elif isinstance(node, ast.Attribute) and node not in named and (_bad_name(node.attr) or node.attr in NAME_CALLS):
+            root = node
+            while isinstance(root, ast.Attribute):
+                root = root.value
+            if not (isinstance(root, ast.Name) and root.id in onnx_names and not node.attr.startswith("_")):
+                found.append(f"{line}: uses the attribute {node.attr}")
+        elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+            parts = [p for p in node.value.split(".") if p.isidentifier() and p.strip("_") and _bad_name(p)]
+            found += [f"{line}: the string {node.value!r} names {p}" for p in parts]
+    functions = [n.name for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
+    return found, functions
+
+
+def static_module(name: str, functions: list[str]) -> types.ModuleType:
+    """Return a module object that has only the given function names. No line of the file runs."""
+    module = types.ModuleType(name)
+    for function in functions:
+        def stub() -> None: ...
+        stub.__module__ = name
+        setattr(module, function, stub)
+    return module
+
+
+# --------------------------------------------------------------------------------------------
 # verify (reads YAML: run it in the environment of this repository)
 # --------------------------------------------------------------------------------------------
 
@@ -626,8 +854,7 @@ def changed_sections(spec_commit: str, repo: Path = REPO_ROOT) -> list[str] | No
         if not path.is_file():
             ids.add(rel)
             continue
-        match = re.search(r"^id:\s*(\S+)", path.read_text(encoding="utf-8"), re.MULTILINE)
-        ids.add(match.group(1) if match else rel)
+        ids.add(_section_id(path) or rel)
     return sorted(ids)
 
 
@@ -643,17 +870,18 @@ RULE_ID = re.compile(r"`(V-[a-z][a-z0-9_.]*[a-z0-9]-\d+)`")
 def vector_problems(data: object, section: str, folders: list[Path]) -> list[str]:
     """Return the form problems of one bundle or record vector file (ADR-8DSW, item 2).
 
-    `folders` are bundle or record folders, the own folder first. The producer is
-    `reference/<section_module>.py` of the first folder that has it, else the skellytracker
-    producer. The rule IDs are those of the section files and of part 2.4 of each `proposal.md` in
-    `folders`. This loads the bundle reference code, numpy and the package, so `pack` and `list`
+    `folders` are bundle or record folders, the own folder first. The functions of a case are the
+    top-level `def` names of `reference/<section_module>.py` of the first folder that has it. The
+    check reads that file as text and never runs it (ADR-AD33, item 2). Without such a file, the
+    producer of this checkout gives them. The rule IDs are those of the section files and of part
+    2.4 of each `proposal.md` in `folders`. This loads numpy and the package, so `pack` and `list`
     never call it.
     """
     import make_vectors
     from vector_form import file_problems
 
     module = f"{section.replace('.', '_')}.py"
-    own = next((f / "reference" for f in folders if (f / "reference" / module).is_file()), None)
+    own = next((f / "reference" / module for f in folders if (f / "reference" / module).is_file()), None)
     rules = set(make_vectors.rule_ids())
     for folder in folders:
         if (folder / "proposal.md").is_file():
@@ -663,7 +891,9 @@ def vector_problems(data: object, section: str, folders: list[Path]) -> list[str
 
     def reference():  # noqa: ANN202
         if not loaded:
-            loaded.append(make_vectors.load_reference(section, own) if own else make_vectors.producer(section))
+            loaded.append(
+                static_module(own.stem, reference_problems(own)[1]) if own else make_vectors.producer(section)
+            )
         return loaded[0]
 
     try:
@@ -935,6 +1165,24 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list
         and o["manifest"].get("name") == manifest["contributes_to"]
         and not o["manifest"].get("contributes_to")
     ]
+    # Reference modules, also those of the owner: read as text, never run (ADR-AD33, item 2). A
+    # module can import the sections of this bundle, its owner, its `base` and its `depends_on`
+    # (also from their records), never a file only because it is in the folder.
+    linked = [manifest["base"], *manifest["depends_on"]] if manifest["kind"] == "proposal" else []
+    manifests = [manifest, *(read_manifest(d) or {} for d in owner_dirs)]
+    manifests += [found[b]["manifest"] for b in linked if b in found]
+    manifests += [
+        read_manifest(repo / SPEC / "proposals" / m["name"]) or {} for m in map(BUNDLE_ID.match, filter(None, linked)) if m
+    ]
+    sections = module_names(manifests)
+    for folder in [version_dir, *owner_dirs]:
+        prefix = "" if folder == version_dir else f"{folder.parent.name}/{folder.name}/"
+        own = module_names([read_manifest(folder) or {}])
+        for path in sorted((folder / "reference").rglob("*.py")):
+            rel = path.relative_to(folder).as_posix()
+            if path.parent != folder / "reference" or path.stem not in own | {PROFILE_MODULE}:
+                findings.append(f"{prefix}{rel}: not reference/<section_module>.py of a section of the manifest")
+            findings += [f"{prefix}{rel}: {p}" for p in reference_problems(path, sections)[0]]
     vector_data: dict[str, object] = {}
     for rel in vectors:
         section = rel.removeprefix("vectors/").removesuffix(".yaml")
@@ -1101,6 +1349,69 @@ def graph_diff(path_a: Path, path_b: Path) -> dict:
 
 def _diff_counts(diff: dict) -> dict:
     return {key: len(value) if isinstance(value, dict) else 1 for key, value in diff.items()}
+
+
+# The operator domains that onnxruntime builds in: the domains of
+# `onnxruntime.capi.onnxruntime_pybind11_state.get_all_operator_schema()` of onnxruntime 1.27.0
+# (CPU), and "ai.onnx", the other name of "".
+ORT_DOMAINS = frozenset({"", "ai.onnx", "ai.onnx.ml", "com.microsoft", "com.microsoft.nchwc", "com.ms.internal.nhwc"})
+
+
+def _sparse(items) -> list:  # noqa: ANN001
+    return [t for s in items for t in (s.values, s.indices)]
+
+
+def _attribute_tensors(attributes) -> list:  # noqa: ANN001
+    return [t for a in attributes for t in (a.t, *a.tensors, *_sparse([a.sparse_tensor, *a.sparse_tensors]))]
+
+
+def _graph_problems(graph, folder: Path, nodes=None, tensors=None) -> list[str]:  # noqa: ANN001
+    """Return the node domains and the external data locations of `graph` and its subgraphs that `batch` refuses.
+
+    For a model-local function, `nodes` and `tensors` give its nodes and the tensors of its attributes.
+    """
+    from onnx import TensorProto
+
+    found = []
+    if nodes is None:
+        nodes, tensors = graph.node, [*graph.initializer, *_sparse(graph.sparse_initializer)]
+    tensors = list(tensors)
+    for node in nodes:
+        if node.domain not in ORT_DOMAINS:
+            found.append(f"the node {node.name or node.op_type} has the domain {node.domain!r}, which onnxruntime does not build in")
+        tensors += _attribute_tensors(node.attribute)
+        for attribute in node.attribute:
+            found += [p for g in (attribute.g, *attribute.graphs) for p in _graph_problems(g, folder)]
+    for tensor in tensors:
+        if tensor.data_location != TensorProto.EXTERNAL:
+            continue
+        location = next((e.value for e in tensor.external_data if e.key == "location"), "")
+        target = (folder / location).resolve()
+        if not location or location.startswith(("/", "\\")) or Path(location).is_absolute() or ".." in location or not target.is_relative_to(folder):
+            found.append(f"the tensor {tensor.name} has external data outside the folder of the model: {location!r}")
+    return found
+
+
+def onnx_problems(path: Path) -> list[str]:
+    """Return why `batch` refuses an ONNX file (ADR-AD33, item 4). It reads the file with onnx only and runs nothing.
+
+    `batch` refuses an operator domain that onnxruntime does not build in (`ORT_DOMAINS`), and
+    external data with an absolute location, a `..` or a location outside the folder of the model.
+    It checks the graph, its subgraphs, the model-local functions, the initializers and the dense
+    and sparse tensors of each attribute.
+    """
+    import onnx
+
+    try:
+        model = onnx.load(str(path), load_external_data=False)
+    except Exception as exc:  # noqa: BLE001  # any file that onnx cannot read is refused
+        return [f"onnx cannot read the file: {type(exc).__name__}"]
+    opsets = [*model.opset_import, *(o for f in model.functions for o in f.opset_import)]
+    found = [f"the opset domain {o.domain!r} is not built into onnxruntime" for o in opsets if o.domain not in ORT_DOMAINS]
+    folder = path.parent.resolve()
+    for function in model.functions:  # model-local functions: their nodes and their attribute defaults
+        found += _graph_problems(None, folder, function.node, _attribute_tensors(function.attribute_proto))
+    return list(dict.fromkeys(found + _graph_problems(model.graph, folder)))
 
 
 def _load_problem(path: Path) -> str | None:
@@ -1271,6 +1582,9 @@ def batch_check(
         digests[path] = sha256(path.read_bytes())
         if item.get("sha256") not in (None, digests[path]):
             raise BundleError(f"external file does not match its sha256: {item['path']}")
+        problems = onnx_problems(path)  # before any run (ADR-AD33, item 4)
+        if problems:
+            raise BundleError(f"batch does not run {item['path']}: " + "; ".join(problems))
         files[key], names[path] = path, item["path"]
 
     def clean(text: str) -> str:

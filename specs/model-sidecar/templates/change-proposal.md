@@ -334,6 +334,10 @@ expected output.
   uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/skellytracker/tools/make_vectors.py fill <payload folder>/vectors/<section ID>.yaml --reference <payload folder>/reference
   ```
 
+- `fill` runs the code of `--reference`. Give only the `reference/` folder of your own payload.
+  Never give the code of another bundle or of a record, also as a copy. `fill` refuses a folder of
+  the skellytracker checkout and a folder that is not `<payload folder>/reference` (skellytracker
+  ADR-AD33).
 - If `fill` prints a problem, correct the author keys or the reference implementation. Then run
   `fill` again. Do not edit `expect` by hand. The only exception is a `function: none` case.
 - A `verified_against` entry of the exporter has the form `<Exporter repo>: <file>::<function>`.

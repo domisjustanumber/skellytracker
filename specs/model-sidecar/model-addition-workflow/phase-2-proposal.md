@@ -82,7 +82,9 @@ A proposal has eight parts:
    tolerance in `compare`. Write the author keys of the vectors to `vectors/<section ID>.yaml` in the
    proposal bundle, in the case form that part 4 of the template gives. Then run `fill` of
    `tools/make_vectors.py` before `pack`. It writes `expect` from the reference implementation
-   ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md), item 6). Name
+   ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md), item 6).
+   Give `fill` only the `reference/` folder of your own payload
+   ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)). Name
    the file in part 4. On acceptance, `make_vectors.py land` merges your cases into
    `specs/model-sidecar/vectors/<section ID>.yaml`. It runs the landed reference implementation
    and compares each `expect` within the tolerance

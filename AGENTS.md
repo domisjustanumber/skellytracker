@@ -14,6 +14,10 @@ These commands write no other file here
 ([ADR-FADS](decisions/entries/FADS-hand-over-bundles-in-intakes.md);
 [ADR-JB5J](decisions/entries/JB5J-one-batch-form-for-each-sidecar.md);
 [ADR-8DSW](decisions/entries/8DSW-vector-files-are-the-case-source.md)).
+`fill` runs the code of its reference folder. Exporter agents run `fill` only with the reference
+folder of their own bundle. `fill` refuses a folder of this checkout and a folder that is not the
+`reference/` folder of the payload of the vector file
+([ADR-AD33](decisions/entries/AD33-bundles-are-untrusted-input.md)).
 
 <!-- kit:writing-rules -->
 All new and changed documentation must use ASD-STE100 Simplified Technical English.

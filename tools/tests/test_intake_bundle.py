@@ -952,3 +952,365 @@ def test_an_unchanged_template_has_no_plans_path_and_no_broken_link(
     manifest = fields()
     findings = ib.verify(f"{manifest['kind']}-{manifest['name']}@{manifest['contributor']}", root)
     assert [f for f in findings if "plans/" in f or "does not resolve" in f] == []
+
+
+# --------------------------------------------------------------------------------------------
+# Bundles are untrusted input (ADR-AD33): the static check of a reference module and the ONNX check
+# --------------------------------------------------------------------------------------------
+
+CLEAN_MODULE = '''"""A clean reference module."""
+from __future__ import annotations
+
+import math
+from typing import Any
+
+import cv2
+import numpy as np
+import pre_resize_letterbox
+
+LIMIT = 2 ** 8
+NAMES: tuple = ("a", "b")
+
+
+class Box:
+    """A box."""
+
+    size: int = 0
+
+    def area(self) -> int:
+        return self.size * self.size
+
+
+def run(params: dict, input: dict) -> dict[str, Any]:
+    scale = pre_resize_letterbox.run(params, input)["scale"]
+    data = np.asarray(input["x"], dtype=np.float32).flags.writeable
+    return {"y": math.floor(scale), "w": getattr(np, "float32"), "d": data, "c": cv2.INTER_LINEAR}
+
+
+def inverse(params, input):
+    return {"x": input["y"]}
+'''
+
+
+def reference_findings(tmp_path: Path, text: str, name: str = "post_det_clamp.py") -> list[str]:
+    path = tmp_path / "check" / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    return ib.reference_problems(path)[0]
+
+
+def test_the_static_check_passes_a_clean_module_and_finds_its_functions(tmp_path: Path) -> None:
+    path = tmp_path / "post_det_clamp.py"
+    path.write_text(CLEAN_MODULE, encoding="utf-8")
+    assert ib.reference_problems(path) == ([], ["run", "inverse"])
+
+
+@pytest.mark.parametrize(
+    ("text", "finding"),
+    [
+        ("import os\n", "line 1: imports os: not NumPy"),
+        ("import os as numpy\n", "line 1: imports os: not NumPy"),
+        ("import importlib.util\n", "imports importlib.util"),
+        ("from importlib import import_module\n", "imports importlib"),
+        ("from . import post_det_decode\n", "line 1: a relative import"),
+        ("from pre_resize_fit import run\n", "line 1: from pre_resize_fit import: import the section module"),
+        ("import onnx\n", "imports onnx: not NumPy"),
+        ("from numpy import load\n", "imports load from numpy"),
+        ("from numpy import *\n", "imports * from numpy"),
+        ("import numpy.ctypeslib\n", "imports ctypeslib from numpy"),
+        ("from cv2 import dnn\n", "imports dnn from cv2"),
+        ("import numpy as n\n\ndef run(p, i):\n    return n.load(i['f'])\n", "line 4: uses the attribute load"),
+        ("import numpy as np\n\ndef run(p, i):\n    np.save('x', 1)\n", "uses the attribute save"),
+        ("import numpy as np\n\ndef run(p, i):\n    i['a'].tofile('x')\n", "uses the attribute tofile"),
+        ("import cv2\n\ndef run(p, i):\n    return cv2.imread('x')\n", "uses the attribute imread"),
+        ("import cv2\n\ndef run(p, i):\n    return cv2.dnn.readNet('x')\n", "uses the attribute dnn"),
+        ("import cv2\n\ndef run(p, i):\n    return cv2.VideoCapture(0)\n", "uses the attribute VideoCapture"),
+        ("def run(p, i):\n    return open('x').read()\n", "line 2: uses open"),
+        ("def run(p, i):\n    return eval(i['x'])\n", "uses eval"),
+        ("def run(p, i):\n    exec('x = 1')\n", "uses exec"),
+        ("def run(p, i):\n    return compile('1', 'f', 'eval')\n", "uses compile"),
+        ("def run(p, i):\n    return __import__('os')\n", "uses __import__"),
+        ("def run(p, i):\n    breakpoint()\n", "uses breakpoint"),
+        ("def run(p, i):\n    return input()\n", "line 2: calls input"),
+        ("def run(p, i):\n    return globals()\n", "uses globals"),
+        ("def run(p, i):\n    return __builtins__\n", "uses __builtins__"),
+        ("def run(p, i):\n    return __loader__\n", "uses __loader__"),
+        ("def run(p, i):\n    return vars(i)\n", "uses vars"),
+        ("def run(p, i):\n    return ().__class__.__bases__\n", "uses the attribute __class__"),
+        ("import numpy as np\n\ndef run(p, i):\n    return getattr(np, 'lo' + 'ad')\n", "getattr with a name that is not"),
+        ("import numpy as np\n\ndef run(p, i):\n    return getattr(np, 'load')\n", "the string 'load' names load"),
+        ("import numpy as np\n\ndef run(p, i):\n    return getattr(np, i['name'])\n", "getattr with a name that is not"),
+        ("import operator\n\ndef run(p, i):\n    return operator.attrgetter('__globals__')(run)\n",
+         "the string '__globals__' names __globals__"),
+        ("def run(p, i):\n    g = getattr\n    return g(p, 'x')\n", "line 2: uses getattr"),
+        ("print('hi')\n", "line 1: the module runs code at import (Expr)"),
+        ("X = make()\n", "line 1: the module runs code at import (Assign)"),
+        ("f = lambda: open('x')\n", "line 1: the module runs code at import (Assign)"),
+        ("for i in range(2):\n    pass\n", "line 1: the module runs code at import (For)"),
+        ("try:\n    import numpy\nexcept ImportError:\n    pass\n", "line 1: the module runs code at import (Try)"),
+        ("class A:\n    x = make()\n", "line 2: the class A runs code at import (Assign)"),
+        ("def run(p, i:\n", "not a readable Python file: SyntaxError"),
+        # Code in the header of a definition or in an annotation also runs at import.
+        ("import cv2\nX: cv2.add(1, 2)\n", "line 2: the module runs code at import (AnnAssign)"),
+        ("import cv2\nif cv2.add(1, 2) or cv2.TYPE_CHECKING:\n    import math\n", "line 2: the module runs code at import (If)"),
+        ("def run(p, i, _=make()):\n    pass\n", "line 1: the module runs code at import (the header of run)"),
+        ("def run(p: make(), i):\n    pass\n", "(the header of run)"),
+        ("def run(p, i) -> make():\n    pass\n", "(the header of run)"),
+        ("@(lambda f: f)\ndef run(p, i):\n    pass\n", "(the header of run)"),
+        ("@wrap(make())\ndef run(p, i):\n    pass\n", "(the header of run)"),
+        ("class A(make()):\n    pass\n", "(the header of A)"),
+        ("class A(metaclass=make()):\n    pass\n", "(the header of A)"),
+        ("class A:\n    x: list = make(default=list)\n", "line 2: the class A runs code at import (AnnAssign)"),
+        # The allowed modules reach os, sys and importlib, and NumPy runs text as code.
+        ("import cv2\n\ndef run(p, i):\n    cv2.os.system('calc')\n", "uses the attribute os"),
+        ("import cv2\n\ndef run(p, i):\n    cv2.importlib.import_module('x')\n", "uses the attribute importlib"),
+        ("import typing\n\ndef run(p, i):\n    typing.sys.modules\n", "uses the attribute sys"),
+        ("import dataclasses\n\ndef run(p, i):\n    dataclasses.inspect\n", "uses the attribute inspect"),
+        ("import enum\n\ndef run(p, i):\n    enum.bltns\n", "uses the attribute bltns"),
+        ("import statistics\n\ndef run(p, i):\n    statistics.random._os\n", "uses the attribute _os"),
+        ("import numpy as np\n\ndef run(p, i):\n    np.testing.measure('1', 1)\n", "uses the attribute measure"),
+        ("import collections\n\ndef run(p, i):\n    collections._sys\n", "uses the attribute _sys"),
+        # The OpenCV factories that load a model or a data file.
+        ("import cv2\n\ndef run(p, i):\n    cv2.FaceDetectorYN_create('m', '', (1, 1))\n", "uses the attribute FaceDetectorYN_create"),
+        ("import cv2\n\ndef run(p, i):\n    cv2.dnn_Net()\n", "uses the attribute dnn_Net"),
+        ("import cv2\n\ndef run(p, i):\n    cv2.TrackerNano_create()\n", "uses the attribute TrackerNano_create"),
+        ("import cv2\n\ndef run(p, i):\n    cv2.wechat_qrcode_WeChatQRCode('m')\n", "uses the attribute wechat_qrcode_WeChatQRCode"),
+        ("import cv2\n\ndef run(p, i):\n    cv2.CascadeClassifier_convert('a', 'b')\n", "uses the attribute CascadeClassifier_convert"),
+        ("import cv2\n\ndef run(p, i):\n    cv2.data.haarcascades\n", "uses the attribute haarcascades"),
+        ("import cv2\n\ndef run(p, i):\n    cv2.FileStorage('x', 0)\n", "uses the attribute FileStorage"),
+    ],
+)
+def test_the_static_check_finds_each_kind_of_finding(tmp_path: Path, text: str, finding: str) -> None:
+    findings = reference_findings(tmp_path, text)
+    assert any(finding in f for f in findings), findings
+
+
+def test_the_static_check_allows_onnx_only_in_the_profile_module(tmp_path: Path) -> None:
+    profile = "import onnx\n\ndef model_batch_convert(source, target, **kw):\n    onnx.save(onnx.load(source), target)\n"
+    assert reference_findings(tmp_path, profile, "common_batch_conversion.py") == []
+    assert reference_findings(tmp_path, profile, "post_det_clamp.py") != []
+
+
+def test_the_static_check_allows_the_safe_headers_of_a_definition(tmp_path: Path) -> None:
+    text = (
+        "import dataclasses\nimport functools\nimport typing\nfrom dataclasses import dataclass, field\n"
+        "if typing.TYPE_CHECKING:\n    import math\n\n\n"
+        "@dataclass(frozen=True)\nclass P:\n    xs: list = field(default_factory=list)\n"
+        "    ys: tuple = dataclasses.field(default=(1, 2))\n\n\n"
+        "@functools.lru_cache(maxsize=None)\ndef run(params: dict, input: dict, scale: float = 1.0) -> dict:\n"
+        "    return {}\n"
+    )
+    assert reference_findings(tmp_path, text) == []
+
+
+def test_only_a_manifest_section_is_a_new_section_module(tmp_path: Path) -> None:
+    """A file next to the module does not count, and a new section name must not be an installed module."""
+    (tmp_path / "check").mkdir()
+    (tmp_path / "check" / "post_new_section.py").write_text("", encoding="utf-8")
+    path = tmp_path / "check" / "post_det_clamp.py"
+    path.write_text("import os\nimport post_new_section\nimport pre_commit.util\n", encoding="utf-8")
+    not_allowed = "not NumPy, OpenCV, a listed standard-library module or a section module"
+    assert ib.reference_problems(path)[0] == [
+        f"line 1: imports os: {not_allowed}",
+        f"line 2: imports post_new_section: {not_allowed}",
+        f"line 3: imports pre_commit.util: {not_allowed}",
+    ]
+    assert ib.reference_problems(path, {"post_new_section", "pre_commit", "os"})[0] == [
+        f"line 1: imports os: {not_allowed}",
+        "line 3: imports pre_commit.util: the section name is also the name of an installed module",
+    ]
+
+
+# A reference module that writes the file AD33_MARKER when it runs.
+MALICIOUS = (
+    "import os\n"
+    "os.makedirs(os.path.dirname(os.environ['AD33_MARKER']), exist_ok=True)\n"
+    "with open(os.environ['AD33_MARKER'], 'w') as handle:\n    handle.write('ran')\n\n\n"
+    "def run(params, input):\n    return {'y': input['x']}\n"
+)
+
+
+@pytest.fixture
+def marker(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    path = tmp_path / "marker"
+    monkeypatch.setenv("AD33_MARKER", str(path))
+    return path
+
+
+def test_the_malicious_module_writes_its_marker_when_it_runs(tmp_path: Path, marker: Path) -> None:
+    """The proof that the tests below use a module that would leave a trace."""
+    exec(compile(MALICIOUS, "malicious", "exec"), {})  # noqa: S102  # test code of this repo
+    assert marker.read_text(encoding="utf-8") == "ran"
+
+
+def test_verify_reads_a_malicious_reference_module_and_never_runs_it(tmp_path: Path, root: Path, marker: Path) -> None:
+    rel = "vectors/post.det.clamp.yaml"
+    vectors = {"section": "post.det.clamp", "tolerance": 0, "unverified": "a test",
+               "cases": [{"id": "a", "params": {}, "input": {"x": 1}, "expect": {"y": 1}}]}
+    source = payload(tmp_path, {
+        "proposal.md": "text\n", "reference/post_det_clamp.py": MALICIOUS, rel: json.dumps(vectors),
+    })
+    ib.pack(source, proposal_fields(sections=["post.det.clamp"]), root, cwd=tmp_path)
+    findings = ib.verify("proposal-box-clamp@ultralytics-exporter", root)
+    module = "reference/post_det_clamp.py"
+    at_import = "use only a docstring, imports, constants and definitions"
+    assert findings == [
+        f"{module}: line 2: the module runs code at import (Expr); {at_import}",
+        f"{module}: line 3: the module runs code at import (With); {at_import}",
+        f"{module}: line 1: imports os: not NumPy, OpenCV, a listed standard-library module or a section module",
+        f"{module}: line 3: uses open",
+        f"{module}: line 4: uses the attribute write",
+        f"{module}: line 2: uses the attribute environ",
+        f"{module}: line 3: uses the attribute environ",
+    ]
+    assert not marker.exists()
+
+
+def test_a_contribution_gets_the_findings_of_its_owner_module(tmp_path: Path, root: Path, marker: Path) -> None:
+    rel = "vectors/post.det.clamp.yaml"
+    vectors = {"section": "post.det.clamp", "tolerance": 0, "unverified": "a test",
+               "cases": [{"id": "a", "params": {}, "input": {"x": 1}, "expect": {"y": 1}}]}
+    owner = payload(tmp_path / "o", {"proposal.md": "text\n", "reference/post_det_clamp.py": MALICIOUS})
+    ib.pack(owner, proposal_fields(sections=["post.det.clamp"]), root, cwd=tmp_path)
+    contribution = payload(tmp_path / "c", {"evidence.md": "text\n", rel: json.dumps(vectors)})
+    ib.pack(contribution, proposal_fields(sections=["post.det.clamp"], contributor="openmmlab-exporter",
+                                          contributes_to="box-clamp"), root, cwd=tmp_path)
+    findings = ib.verify("proposal-box-clamp@openmmlab-exporter", root)
+    prefix = "proposal-box-clamp@ultralytics-exporter/v1/reference/post_det_clamp.py: "
+    assert [f[: len(prefix)] for f in findings] == [prefix] * 7
+    assert not marker.exists()
+
+
+def test_verify_allows_the_sections_of_a_depends_on_bundle_and_refuses_a_shim_file(tmp_path: Path, root: Path) -> None:
+    other = payload(tmp_path / "o", {"proposal.md": "text\n", "reference/post_new_thing.py": "def run(params, input):\n    return {}\n"})
+    ib.pack(other, proposal_fields(name="new-thing", sections=["post.new_thing"]), root, cwd=tmp_path)
+    module = "import post_new_thing\nimport pre_commit\n\n\ndef run(params, input):\n    return post_new_thing.run(params, input)\n"
+    source = payload(tmp_path / "s", {
+        "proposal.md": "text\n", "reference/post_det_clamp.py": module, "reference/pre_commit.py": '"""A shim."""\n',
+    })
+    ib.pack(source, proposal_fields(sections=["post.det.clamp"], depends_on=["proposal-new-thing@ultralytics-exporter"]),
+            root, cwd=tmp_path)
+    findings = [f for f in ib.verify("proposal-box-clamp@ultralytics-exporter", root) if f.startswith("reference/")]
+    assert findings == [
+        "reference/post_det_clamp.py: line 2: imports pre_commit: not NumPy, OpenCV, a listed standard-library module "
+        "or a section module",
+        "reference/pre_commit.py: not reference/<section_module>.py of a section of the manifest",
+    ]
+
+
+def test_a_section_name_that_is_a_path_never_loads_a_file(tmp_path: Path, marker: Path) -> None:
+    import make_vectors as mv
+
+    (tmp_path / "evil.py").write_text(MALICIOUS, encoding="utf-8")
+    with pytest.raises(FileNotFoundError):
+        mv.load_reference(tmp_path.as_posix() + "/evil", mv.REFERENCE_DIR)
+    assert not marker.exists()
+    assert mv.package_function("tools/make_vectors.py::main") is None
+    assert mv.package_function("skellytracker/../tools/make_vectors.py::main") is None
+
+
+def tiny_model(path: Path, domain: str = "", location: str | None = None) -> Path:
+    """y = Relu(x), or y = x + w with the external data of w at `location`."""
+    onnx = pytest.importorskip("onnx")
+    from onnx import TensorProto, helper
+
+    nodes = [helper.make_node("Relu", ["x"], ["y"], domain=domain)]
+    initializers = []
+    if location is not None:
+        weight = helper.make_tensor("w", TensorProto.FLOAT, [1], [1.0])
+        weight.ClearField("float_data")
+        weight.data_location = TensorProto.EXTERNAL
+        weight.external_data.add(key="location", value=location)
+        initializers.append(weight)
+        nodes = [helper.make_node("Add", ["x", "w"], ["y"])]
+    graph = helper.make_graph(
+        nodes, "tiny", [helper.make_tensor_value_info("x", TensorProto.FLOAT, [1])],
+        [helper.make_tensor_value_info("y", TensorProto.FLOAT, [1])], initializers,
+    )
+    opsets = [helper.make_opsetid("", 17)] + ([helper.make_opsetid(domain, 1)] if domain else [])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    onnx.save(helper.make_model(graph, opset_imports=opsets), str(path))
+    return path
+
+
+def test_the_onnx_check_passes_a_plain_model_and_a_local_external_file(tmp_path: Path) -> None:
+    assert ib.onnx_problems(tiny_model(tmp_path / "m.onnx")) == []
+    assert ib.onnx_problems(tiny_model(tmp_path / "e.onnx", location="e.onnx.data")) == []
+    assert ib.onnx_problems(tiny_model(tmp_path / "s.onnx", domain="com.microsoft")) == []
+
+
+@pytest.mark.parametrize(
+    ("options", "finding"),
+    [
+        ({"domain": "my.custom"}, "the opset domain 'my.custom' is not built into onnxruntime"),
+        ({"domain": "my.custom"}, "has the domain 'my.custom', which onnxruntime does not build in"),
+        ({"location": "../secret.bin"}, "external data outside the folder of the model: '../secret.bin'"),
+        ({"location": "/etc/passwd"}, "external data outside the folder of the model: '/etc/passwd'"),
+        ({"location": "C:\\Windows\\win.ini"}, "external data outside the folder of the model"),
+        ({"location": "a/..\\..\\b"}, "external data outside the folder of the model"),
+    ],
+)
+def test_the_onnx_check_refuses_a_custom_domain_and_external_data_outside_the_folder(
+    tmp_path: Path, options: dict, finding: str
+) -> None:
+    findings = ib.onnx_problems(tiny_model(tmp_path / "m.onnx", **options))
+    assert any(finding in f for f in findings), findings
+
+
+def external(tensor, location: str):  # noqa: ANN001, ANN201
+    from onnx import TensorProto
+
+    tensor.ClearField("float_data")
+    tensor.ClearField("int64_data")
+    tensor.data_location = TensorProto.EXTERNAL
+    tensor.external_data.add(key="location", value=location)
+    return tensor
+
+
+@pytest.mark.parametrize("kind", ["function domain", "function external", "sparse attribute"])
+def test_the_onnx_check_refuses_a_local_function_and_a_sparse_attribute(tmp_path: Path, kind: str) -> None:
+    onnx = pytest.importorskip("onnx")
+    from onnx import TensorProto, helper
+
+    value = external(helper.make_tensor("c", TensorProto.FLOAT, [1], [1.0]), "../secret.bin")
+    functions, nodes = [], [helper.make_node("Relu", ["x"], ["y"])]
+    if kind == "sparse attribute":
+        values = external(helper.make_tensor("v", TensorProto.FLOAT, [1], [1.0]), "../secret.bin")
+        sparse = helper.make_sparse_tensor(values, helper.make_tensor("i", TensorProto.INT64, [1], [0]), [1])
+        nodes = [helper.make_node("Constant", [], ["y"], sparse_value=sparse)]
+    else:
+        body = (
+            [helper.make_node("Relu", ["a"], ["b"], domain="my.custom")]
+            if kind == "function domain"
+            else [helper.make_node("Constant", [], ["b"], value=value)]
+        )
+        functions = [helper.make_function("com.microsoft", "F", ["a"], ["b"], body, [helper.make_opsetid("", 17)])]
+        nodes = [helper.make_node("F", ["x"], ["y"], domain="com.microsoft")]
+    graph = helper.make_graph(
+        nodes, "tiny", [helper.make_tensor_value_info("x", TensorProto.FLOAT, [1])],
+        [helper.make_tensor_value_info("y", TensorProto.FLOAT, [1])],
+    )
+    opsets = [helper.make_opsetid("", 17), helper.make_opsetid("com.microsoft", 1)]
+    onnx.save(helper.make_model(graph, opset_imports=opsets, functions=functions), str(tmp_path / "m.onnx"))
+    finding = "'my.custom'" if kind == "function domain" else "external data outside the folder of the model: '../secret.bin'"
+    assert any(finding in f for f in ib.onnx_problems(tmp_path / "m.onnx")), kind
+
+
+def test_the_onnx_check_refuses_a_file_that_onnx_cannot_read(tmp_path: Path) -> None:
+    pytest.importorskip("onnx")
+    (tmp_path / "m.onnx").write_bytes(b"\xff not a model")
+    assert ib.onnx_problems(tmp_path / "m.onnx")[0].startswith("onnx cannot read the file")
+
+
+def test_batch_refuses_a_model_before_any_run(family, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: ANN001
+    root, fields, out = family({1: {}, 2: {}, 3: {}, 4: {}})
+    tiny_model(tmp_path / "Exporter" / "m_b2_fp32.onnx", domain="my.custom")
+
+    def no_run(*_args: object) -> None:
+        raise AssertionError("batch ran a model")
+
+    monkeypatch.setattr(ib, "_load_problem", no_run)
+    monkeypatch.setattr(ib._Runner, "session", no_run)
+    with pytest.raises(ib.BundleError, match=r"batch does not run \.\./\.\./Exporter/m_b2_fp32\.onnx: .*my\.custom"):
+        ib.batch_check(fields, out, root=root)
+    assert not (out / "report.json").exists()

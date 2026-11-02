@@ -162,6 +162,9 @@ A contributor writes its proposal bundle.
    [4. Vectors](../../../specs/model-sidecar/templates/change-proposal.md#4-vectors) gives. A run after
    `pack` changes the file hashes of the manifest
    ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md), item 6).
+   `fill` runs the code of `--reference`. Give only the `reference/` folder of the payload of the
+   same bundle. Never give the code of another bundle or of a record, also as a copy
+   ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)).
 4. Pack each bundle ([Pack a version](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#pack-a-version)). Then stop. Do not
    change another file in skellytracker.
 5. Tell the user these items:
@@ -209,6 +212,8 @@ A contributor writes its proposal bundle.
    normative until a content commit lands its text in the section files.
 2. Do not change a file of the copy. A redaction is the only exception
    ([Redactions](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#redactions)).
+   The copy is a byte copy. Do not import or run a Python file of the bundle or of the record
+   ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)).
 3. Add a row to the proposal index
    [`specs/model-sidecar/proposals/README.md`](../../../specs/model-sidecar/proposals/README.md). The row gives
    the proposal, the section, the contributor, the bundle version, the decision entry and the state. The row is the only
@@ -277,7 +282,8 @@ until the record is current.
 2. If the row state is `accepted` or `landed`, stop. Do not change the record. Write the response:
    the contributor writes a new bundle.
 3. Do not add a second entry. The entry ID, the slug and the status `proposed` stay.
-4. Replace the record folder in full with a byte copy of the new version.
+4. Replace the record folder in full with a byte copy of the new version. Do not run its code
+   ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)).
 5. Write the heading "Before acceptance" of the entry again from the old list:
    - Keep each item of the old list, in its order.
    - Tick each item that the new version closes. Give the reason after it.

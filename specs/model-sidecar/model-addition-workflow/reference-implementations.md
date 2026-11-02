@@ -66,12 +66,51 @@ proposed section ID.
 
 ## Imports of other sections
 
-- Use only NumPy, OpenCV, the Python standard library and the reference modules of other sections
-  ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md)).
+- Use only NumPy, OpenCV, the standard-library modules of `REFERENCE_STDLIB` in
+  [`tools/intake_bundle.py`](../../../tools/intake_bundle.py) and the reference modules of other
+  sections ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md);
+  [ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)). To use one more
+  standard-library module, ask for it in your proposal.
+- Do not read or write a file. Do not use the network, a process, the environment or the
+  interpreter. For example, do not call `np.load`, `np.save`, `cv2.imread` or `cv2.imwrite`
+  ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)).
+- Do not use a name of `FORBIDDEN_NAMES` in `tools/intake_bundle.py`, for example `open`, `eval`,
+  `exec`, `compile`, `__import__`, `breakpoint`, `globals`, `locals`, `vars`, `__builtins__` or
+  `get_type_hints`. Do not call `input`. Give the name of a `getattr`, `setattr`, `delattr`,
+  `operator.attrgetter` or `operator.methodcaller` only as a string literal
+  ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)).
+- At module level, write only the docstring, imports, constants and definitions (`def`, `class`).
+  A constant has no call. Define each function with `def`
+  ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)).
+- The header of a `def` or a `class` and a class body also run at import. Do not put a call in a
+  default value, an annotation, a base or a class keyword. A decorator can be a name, or one call
+  with arguments that have no call, for example `@dataclass(frozen=True)`. In a class body, the
+  only call is `field(...)` or `dataclasses.field(...)` with arguments that have no call
+  ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)).
+- Do not use an attribute that `verify` refuses, on any object. Do not use a string that holds
+  such a name. `verify` refuses these attribute names
+  ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)):
+  - a name that starts with `_`, except `__name__`, `__doc__`, `__init__`, `__post_init__`,
+    `__all__` and `__main__`;
+  - a name that starts with `load`, `save`, `read`, `write`, `dump`, `imread` or `imwrite`, in
+    upper or lower case, and a name that contains `_load` or `_save`;
+  - the names of `FORBIDDEN_NAMES`, `SYSTEM_NAMES` and `FILE_NAMES`, and the OpenCV names of
+    `CV2_FILE_PREFIX` in `tools/intake_bundle.py`, for example `os`, `sys`, `environ`, `testing`
+    and `dnn`.
+- Import a section module only when its section is in the spec or in the manifest `sections` of your
+  bundle, its owner, its `base` or a `depends_on` bundle. A file in a `reference/` folder must be
+  `reference/<section_module>.py` of a section of the manifest
+  ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)).
+- `verify` reads your module as text, with `ast`. It never runs your module. It gives a finding for
+  many breaks of these rules, but it cannot find all of them. The review of a skellytracker session
+  is the gate ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)).
 - One exception: part 3 of a proposal for a new profile of `common.batch_conversion` is a standalone
   module that uses onnx and NumPy. It has the signature of `model_batch_convert` in
   `skellytracker/core/sessions/batch_conversion.py`. The implementation stage ports it
-  ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)).
+  ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)). This module
+  reads its source model and writes its target model only through onnx. The static check allows
+  only that file access, and only in `common_batch_conversion.py`
+  ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)).
 - Do not import from your repo. Do not import from the package code of skellytracker.
 - To use a function or a value of another section, import the module of that section by its module
   name. For example, write `import pre_resize_rotated_roi_crop`.

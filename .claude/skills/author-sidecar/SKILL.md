@@ -221,6 +221,10 @@ when it is `gap`. A near-miss is a gap.
    `tools/make_vectors.py` before `pack`. `fill` writes `expect`
    ([4. Vectors](../../../specs/model-sidecar/templates/change-proposal.md#4-vectors);
    [ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md), item 6).
+   `fill` runs the code of `--reference`. Give only the reference folder of your own payload. Do
+   not give a folder of another bundle or of the skellytracker checkout. Never give the code of
+   another bundle or of a record, also as a copy
+   ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)).
 4. Write each proposal file in
    [Proposals and reference files](../../../specs/model-sidecar/templates/model-intake.md#proposals-and-reference-files).
 
