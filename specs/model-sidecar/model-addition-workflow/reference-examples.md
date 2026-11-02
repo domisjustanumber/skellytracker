@@ -97,17 +97,9 @@ exports and which examples are forecasts.
    - If an example fragment exists at that path with different bytes, stop. Two exporters do not
      agree. The second exporter uses the bytes of the first copy, or a different file name.
    - Use a package fragment when it has the same content. Do not add a copy of it under a new name.
-4. **Provenance.** Write the entry of the example in `specs/model-sidecar/inventory.yaml`. Record
-   these items:
-   - the exporter repo;
-   - the path of the copy of the exporter;
-   - whether git tracks that copy (most exports are in untracked `exports/` folders, so a commit
-     alone does not identify the file);
-   - the exporter commit of the code that wrote the copy;
-   - the export command;
-   - the date;
-   - each allowed edit from step 2;
-   - the bundle ID and its version, as `bundle: <bundle id>@v<k>`.
+4. **Provenance.** Write the entry of the example in `specs/model-sidecar/inventory.yaml`. Its
+   header gives the keys and their meaning. Record each allowed edit from step 2 in `edits`, and the
+   bundle ID and its version as `bundle: <bundle id>@v<k>`.
 
    The entries come from `example/provenance.yaml` of the bundle. Check each entry against the bundle
    manifest. Drop `source`: it is not an inventory key. It is the `<exporter package>==<version>`

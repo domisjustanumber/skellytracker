@@ -99,8 +99,10 @@ fragments:
   <path under examples/>: {exporter, exporter_path, tracked, commit, notes}
 ```
 
-An example entry can also have `notes`. The other keys have the meaning of the header of
-`specs/model-sidecar/inventory.yaml`. `source` is not an inventory key. It only gives the
+An example entry can also have `notes`. The inventory entry requires `notes`: the session copies
+them, or writes them. The other keys have the meaning of the header of
+`specs/model-sidecar/inventory.yaml`. `tools/intake_bundle.py` holds the key sets of both files.
+`source` is not an inventory key. It only gives the
 `--source` value of `sidecar_refs.py`. Step 4 of
 [How to provide or replace an example](reference-examples.md#how-to-provide-or-replace-an-example)
 gives the mapping to the inventory entry.

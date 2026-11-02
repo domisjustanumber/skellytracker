@@ -86,8 +86,6 @@ examples:
       133 names and one edge set named wholebody, and has the overlay of skellytracker's package sidecar
       (rtmpose_skeleton, prefix groups, a face group) instead of the exporter's overlay.
 
-  # The provenance line of this example in the single-file spec, moved here by the split:
-  # Source: OpenMMLab-Exporter `notes/decisions/rtmo-body7.yaml` at commit `38ed76f` (the tracked copy of the sidecar its `rtmo-body7` family writes; header comment removed). Spec path: `detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml`. The exporter writes it to `rtmo/body7/`, which is not one of the spec's part folders.
   detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml:
     exporter: OpenMMLab-Exporter
     exporter_path: notes/decisions/rtmo-body7.yaml

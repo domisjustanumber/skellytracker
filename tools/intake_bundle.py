@@ -96,15 +96,12 @@ RESPONSE_KEYS = (
     "subject",
     "changes",
 )
-PROVENANCE_KEYS = {
-    "exporter",
-    "exporter_path",
-    "kind",
-    "exporter_layout_path",
-    "tracked",
-    "commit",
-    "source",
-}
+# The provenance key sets. The header of specs/model-sidecar/inventory.yaml gives their meaning;
+# tools/tests/test_examples.py checks the inventory with them.
+COPY_KEYS = {"exporter", "exporter_path", "kind", "exporter_layout_path", "tracked", "commit"}
+PROVENANCE_KEYS = COPY_KEYS | {"source"}  # an example entry of example/provenance.yaml; notes optional
+INVENTORY_KEYS = COPY_KEYS | {"edits", "notes"}  # an example entry of inventory.yaml
+OPTIONAL_INVENTORY_KEYS = {"bundle"}  # an example from before the bundles has no bundle
 FRAGMENT_KEYS = {"exporter", "exporter_path", "tracked", "commit", "notes"}
 
 SOURCE_BATCH = 3
