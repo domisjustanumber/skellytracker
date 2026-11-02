@@ -79,11 +79,14 @@ A proposal has eight parts:
    Include a case for each branch, each tie and each strict comparison. If a parameter can be a scalar
    or one value for each channel (for example `pad_value`), include a case with a scalar value on a
    3-channel input. Pixel-exact resize output is out of scope. If you need a pixel case, state its
-   tolerance in `compare`. Write the vectors to `vectors/<section ID>.yaml` in the proposal bundle,
-   in the case form that part 4 of the template gives ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md)). Name the file in
-   part 4. On acceptance, the skellytracker generator writes
-   `specs/model-sidecar/vectors/<section ID>.yaml` from the reference implementation. It must hold
-   each of your cases.
+   tolerance in `compare`. Write the author keys of the vectors to `vectors/<section ID>.yaml` in the
+   proposal bundle, in the case form that part 4 of the template gives. Then run `fill` of
+   `tools/make_vectors.py` before `pack`. It writes `expect` from the reference implementation
+   ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md), item 6). Name
+   the file in part 4. On acceptance, `make_vectors.py land` merges your cases into
+   `specs/model-sidecar/vectors/<section ID>.yaml`. It runs the landed reference implementation
+   and compares each `expect` within the tolerance
+   ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md), item 5).
 5. **Parity evidence.** Run the real model, with the reference implementation in place of the missing
    spec feature. Follow [Parity](parity.md#parity). Give the numbers, the script and the commit. If you cannot run the
    check yet, write `to run` and describe the script. A skellytracker session can record a proposal

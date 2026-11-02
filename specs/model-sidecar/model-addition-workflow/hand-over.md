@@ -49,8 +49,14 @@ intakes/
 | `proposal` with `contributes_to` | `evidence.md`, one or more `vectors/<section ID>.yaml` | `parity/` |
 
 - Each file name is the name of its target file in skellytracker. When skellytracker lands a
-  proposal, it copies `reference/<section_module>.py` to `specs/model-sidecar/reference/`, and the
-  generator writes `vectors/<section ID>.yaml` to `specs/model-sidecar/vectors/`.
+  proposal, it copies `reference/<section_module>.py` to `specs/model-sidecar/reference/`. Then
+  `make_vectors.py land` merges `vectors/<section ID>.yaml` into the file of the same name in
+  `specs/model-sidecar/vectors/`
+  ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md), item 5).
+- Before `pack`, run `fill` of `tools/make_vectors.py` on each `vectors/<section ID>.yaml` of the
+  payload. It writes `expect`. Part 4 of the
+  [change proposal template](../templates/change-proposal.md#4-vectors) gives the command
+  ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md), item 6).
 - A proposal bundle serves each model that needs it. Do not copy it into a `model` bundle. The intake
   names each proposal bundle by its bundle ID.
 - `<section_module>` names one section. [Reference implementations](reference-implementations.md)
@@ -354,9 +360,9 @@ Then choose one form:
 - **A new proposal.** Use it when no other form applies.
 - **A contribution** (`contributes_to: <slug>`). Use it when the section has a recorded owner that is
   not you, and your change is the same. A contribution holds evidence, vectors and parity only. A
-  contribution case with the `id` of an owner case must be equal to that case. Its `expect` must
-  agree with the owner `expect` within the `tolerance` of the owner file and the `compare` of the
-  case. `verify` ignores `verified_against`
+  contribution case with the `id` of an owner case must agree with that case: each key except
+  `expect` and `verified_against` is the same, and its `expect` agrees within the `tolerance` of
+  the owner file and the `compare` of the case
   ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md), item 5).
 - **A follow-up** (`base: <bundle id>`). Use it for a change on top of an open proposal. Part 3 is
   the base file plus the change, under the base module name. Part 4 holds only the new and the

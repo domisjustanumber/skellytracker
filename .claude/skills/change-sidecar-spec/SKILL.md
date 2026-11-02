@@ -125,20 +125,34 @@ Do this procedure for step 2 of phase 3.
    response is `needs-contributor`, with a follow-up bundle as in step 4. Find each
    module that a file imports. Each such module must be in `specs/model-sidecar/reference/` or be a
    file that this step copies. If one is not there, stop. Land that module first.
-7. If `tools/tests` has no test that runs the reference functions against the vectors of each changed
-   section, add that test in the same PR.
-8. Make the generator `tools/make_vectors.py` call the reference implementation for each changed
-   section that has a module. Load it with `load_reference`. Remove the formula version of that
-   section from the generator.
-9. Write the vectors with `uv run python tools/make_vectors.py`. Do not edit a vector file by hand.
-   Do this check for the vector file of each changed section.
-   The new file must hold each case of the current vector file, each case of part 4 of the proposal
-   (`specs/model-sidecar/proposals/<slug>/vectors/<section ID>.yaml`) and each case of each
-   contribution record of the proposal. A case of part 4 with the `id` of a current case replaces
-   that case. Part 4 must list each such `id`. A contribution case must be equal to the case with
-   its `id`. The builder adds its `verified_against` entry. The new file must have no other case. If
-   this is not true, stop and tell the user. This check proves the copy and the generator wiring. It
-   does not verify an independent implementation ([ADR-TA0G](../../../decisions/entries/TA0G-vector-cases-and-reference-modules.md)).
+7. Step 7 has no action. The generator runs each reference on each case of its section, and
+   `test_file_equals_the_generator_output` checks the result
+   ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md)).
+8. The generator uses the copied module. If the change alters the text that a formula module in
+   `tools/vector_formulas/` reads, update its `run` in the same content commit. Alternatively, delete
+   its `run`, keep its `CHECKS` and give the reason in the decision entry
+   ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md)).
+9. Land the vectors of each changed section with this command. It must pass.
+
+   ```sh
+   uv run python tools/make_vectors.py land specs/model-sidecar/proposals/<slug>/vectors/<section ID>.yaml [--contribution <contribution record file>...] --replaces [<id>...]
+   ```
+
+   Give `--contribution` for the vector file of the section in each contribution record of the
+   proposal. Give `--replaces` each `id` that part 4 lists as a replaced case. The tool keeps the
+   current cases, puts a part 4 case in the place of the case with its `id` and puts each other new
+   case at the end. The tool runs the landed producer and checks the form, the cases, the given
+   `expect` and the 256 KiB limit. It writes `specs/model-sidecar/vectors/<section ID>.yaml` only
+   when each check passes. If it prints a problem, stop and tell the user. This check proves the
+   copy and the generator wiring. It does not verify an independent implementation
+   ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md), item 5).
+   `land` keeps the file-level keys of the current file. It does not copy the file-level
+   `verified_against` of a contribution, or of part 4 when the section exists. It also does not copy
+   the `verified_against` of a contribution case with a known `id`. After `land`, add these
+   `verified_against` entries to the vector file by hand. A replaced case can make a current `verified_against` entry false. Remove
+   each such entry, or write `unverified` when no entry stays. Then run
+   `uv run python tools/make_vectors.py`
+   ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md)).
 10. Change the status line of the decision entry from `proposed` to `accepted`. Write the date and the
     PR ([Rules](../../../decisions/README.md#rules)). Move its row from the Proposed table to
     the end of the Active table of the [spec log](../../../specs/model-sidecar/decisions/README.md),
@@ -195,15 +209,18 @@ user accepts the proposal.
    disagreement is a spec defect or a bug. Use the skill
    [`propose-sidecar-change`](../propose-sidecar-change/SKILL.md).
 5. Copy the file to `specs/model-sidecar/reference/<section_module>.py`.
-6. If `tools/tests` has no test that runs the reference functions against the vectors of their
-   section, add that test in the same PR.
-7. Make the generator `tools/make_vectors.py` call the reference implementation for the section.
-   Load it with `load_reference`. Remove the formula version of that section from the generator.
-8. Add the implementation to `verified_against` in the generator, in the form
+6. Step 6 has no action. The generator runs the copied module on each case of its section, and
+   `test_file_equals_the_generator_output` checks the result
+   ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md)).
+7. Step 7 has no action. The generator uses the copied module as the producer of the section.
+8. Add the implementation to `verified_against` in the vector file
+   `specs/model-sidecar/vectors/<section ID>.yaml`, in the form
    `{<Exporter repo>: <file>::<function>}`. The reference implementation and its source exporter
-   count as one implementation.
-9. Write the vectors with `uv run python tools/make_vectors.py`. If an expected value changes, stop.
-   The reference implementation does not agree with the current vectors. Tell the user.
+   count as one implementation. Then run `uv run python tools/make_vectors.py`.
+9. If an expected value changes, stop. The reference implementation does not agree with the current
+   vectors. Tell the user. The generator also stops when the copied module and the formula module
+   do not agree within the tolerance
+   ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md)).
 10. Add the exporter function to `external_impl` in the front matter of the section, in the form
     `- <Exporter repo>: <file>::<function>`.
 11. Replace the fixtures of the section in the other reference modules. Do the fixture steps of

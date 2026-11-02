@@ -217,7 +217,11 @@ when it is `gap`. A near-miss is a gap.
    section.
 2. For each group, run the skill [`propose-sidecar-change`](../propose-sidecar-change/SKILL.md). Give
    it the intake file and the rows of the group.
-3. Write each proposal file in
+3. In each vector file of a proposal bundle, write only the author keys. Then run `fill` of
+   `tools/make_vectors.py` before `pack`. `fill` writes `expect`
+   ([4. Vectors](../../../specs/model-sidecar/templates/change-proposal.md#4-vectors);
+   [ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md), item 6).
+4. Write each proposal file in
    [Proposals and reference files](../../../specs/model-sidecar/templates/model-intake.md#proposals-and-reference-files).
 
 ### Step 7: Prepare the reference implementations

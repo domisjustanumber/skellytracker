@@ -6,11 +6,14 @@ To add a model or to request a change to the sidecar spec, follow the
 It is the same for an exporter agent and for a human contributor.
 Exporter agents must not change files in this repository, except the new version folders of their
 own bundles in `intakes/`. They run `pack` and `list` of `tools/intake_bundle.py` with Python 3.9 or
-later and `python -B`. They run `batch` of the same tool in the environment of this
-checkout, with `uv run --project ../freemocap/skellytracker --no-sync python -B`.
+later and `python -B`. They run `batch` of the same tool and `fill` of `tools/make_vectors.py` in
+the environment of this checkout, with `uv run --project ../freemocap/skellytracker --no-sync python -B`.
+`fill` writes only the given vector file, in the payload folder of their own bundle. They run
+`fill` before `pack`.
 These commands write no other file here
 ([ADR-FADS](decisions/entries/FADS-hand-over-bundles-in-intakes.md);
-[ADR-JB5J](decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)).
+[ADR-JB5J](decisions/entries/JB5J-one-batch-form-for-each-sidecar.md);
+[ADR-8DSW](decisions/entries/8DSW-vector-files-are-the-case-source.md)).
 
 <!-- kit:writing-rules -->
 All new and changed documentation must use ASD-STE100 Simplified Technical English.

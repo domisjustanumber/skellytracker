@@ -324,15 +324,26 @@ expected output.
 - The host code of the exporter runs only the numeric cases. An `error` case and a `failed` case
   run only against the reference implementation.
 - Write NaN as `.nan` and infinity as `.inf`. A NaN expected value is equal to NaN.
-- Round each value of `expect` to 6 decimals. `tools/make_vectors.py` writes `expect` with 6
-  decimals (skellytracker ADR-8DSW).
+- Write the author keys: each key of the example below except `expect`. Then run `fill` of
+  `tools/make_vectors.py` in the environment of the skellytracker checkout. It writes `expect` of
+  each case with your reference implementation, with 6 decimals and with the emitter of
+  skellytracker. It changes no other value. Run it before `pack`. A run after `pack` changes the
+  file hashes of the manifest (skellytracker ADR-8DSW, item 6).
+
+  ```sh
+  uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/skellytracker/tools/make_vectors.py fill <payload folder>/vectors/<section ID>.yaml --reference <payload folder>/reference
+  ```
+
+- If `fill` prints a problem, correct the author keys or the reference implementation. Then run
+  `fill` again. Do not edit `expect` by hand. The only exception is a `function: none` case.
 - A `verified_against` entry of the exporter has the form `<Exporter repo>: <file>::<function>`.
   Write the exporter commit in the note at the top of the reference file.
-- When skellytracker lands the proposal, `tools/make_vectors.py` calls the reference implementation
-  through `make_vectors.outcome` and writes `expect` again. The new `cases` must be the cases of the
-  current vector file, your cases and the cases of each contribution. A case of yours with the `id`
-  of a current case replaces that case. List each such `id` here, with the reason. If this is not
-  true, the landing stops.
+- When skellytracker lands the proposal, `make_vectors.py land` merges your file into the current
+  vector file. It keeps the current cases. A case of yours with the `id` of a current case replaces
+  that case. List each such `id` here, with the reason. `land` gets this list as `--replaces`.
+  Each other case of yours goes at the end. Then `land` runs your reference implementation and
+  compares each `expect` within the tolerance. If a check fails, the landing stops
+  (skellytracker ADR-8DSW, item 5).
 - A vector file must be 256 KiB or smaller. The limit applies to the file that
   `tools/make_vectors.py` writes, with the cases of the other proposals for the section.
 - Do not repeat a large value in each case when a smaller value tests the same branch.
@@ -521,7 +532,7 @@ write `n/a` after it.
 - [ ] Part 2.1 lists each place that the change edits.
 - [ ] Part 2.6 gives the change class, and the header and `change_class` give the same class.
 - [ ] Part 3 names the reference file, and the file exists in the proposal bundle.
-- [ ] Part 4 names the vector file, and the file exists in the proposal bundle.
+- [ ] Part 4 names the vector file, and the file exists in the proposal bundle. `fill` wrote its `expect`.
 - [ ] Part 4 gives `verified_against`, or `unverified: <reason>`.
 - [ ] Each pixel case in part 4 has its tolerance in `compare`.
 - [ ] Part 5 gives the numbers, the script path and the commit, or says `to run` and describes the

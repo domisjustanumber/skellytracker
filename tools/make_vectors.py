@@ -38,6 +38,11 @@ each skellytracker function through its adapter in `PACKAGE_RUNNERS`.
 Usage:
     python tools/make_vectors.py            # write the files
     python tools/make_vectors.py --check    # exit 1 when a file differs
+    python tools/make_vectors.py fill <bundle vectors file> --reference <bundle reference folder>
+    python tools/make_vectors.py land <part 4 file> [--contribution <file>...] --replaces [<id>...]
+
+`fill` and `land` are items 6 and 5 of ADR-8DSW. Each prints its problems and
+exits 1 when it finds one. It writes its file only when it finds none.
 """
 
 from __future__ import annotations
@@ -60,6 +65,7 @@ from typing import Any
 import numpy as np
 import yaml
 
+import intake_bundle
 import sidecar_trace
 from vector_form import (
     CASE_KEYS,
@@ -83,6 +89,7 @@ HEADER = (
 FILE_ORDER = ("section", "notes", "tolerance", "checks", "verified_against", "unverified", "cases")
 
 LINE_WIDTH = 100
+VECTOR_LIMIT = 256 * 1024
 ROUND_DIGITS = 6
 # A refusal message that starts with a rule ID names the rule that refuses the input.
 LEADING_RULE = re.compile(r"(V-[a-z][a-z0-9_.]*[a-z0-9]-\d+):")
@@ -412,7 +419,13 @@ def package_function(reference: str) -> Any:
     return getattr(module, name, None)
 
 
-def run_file(data: dict[str, Any], folder: Path = REFERENCE_DIR) -> dict[str, Any]:
+def run_file(
+    data: dict[str, Any],
+    folder: Path = REFERENCE_DIR,
+    *,
+    rules: frozenset[str] | set[str] | None = None,
+    cross_check: bool = True,
+) -> dict[str, Any]:
     """Return the data of a vector file with the `expect` of each case computed again.
 
     The producer of the section (`producer(section, folder)`) runs each case,
@@ -420,7 +433,8 @@ def run_file(data: dict[str, Any], folder: Path = REFERENCE_DIR) -> dict[str, An
     is the producer, the formula function of the same name, if any, must agree
     with it within the file tolerance and the `compare` of the case. Then
     `vector_form.file_problems` checks the form, and the checks of the file and
-    of the case run. The result is in the form of `form`.
+    of the case run. The result is in the form of `form`. `rules` replaces
+    `rule_ids()`, and `cross_check=False` skips the formula comparison (`fill`).
     """
     section = data["section"]
     source = producer(section, folder)
@@ -435,7 +449,7 @@ def run_file(data: dict[str, Any], folder: Path = REFERENCE_DIR) -> dict[str, An
                 defect(f"{case['id']}: no function {name} in {source.__name__}")
             case["expect"] = outcome(function, case["params"], case["input"])
             formula = getattr(formulas, name, None)
-            if source is not formulas and callable(formula):
+            if cross_check and source is not formulas and callable(formula):
                 computed = outcome(formula, case["params"], case["input"])
                 if not agrees(clean(case["expect"]), clean(computed), case, data["tolerance"]):
                     defect(f"{case['id']}: the reference and the formulas disagree")
@@ -443,7 +457,12 @@ def run_file(data: dict[str, Any], folder: Path = REFERENCE_DIR) -> dict[str, An
             defect(f"{case['id']}: a case with function none needs the expect of its author")
         cases.append(case)
     out = form({**data, "cases": cases})
-    found = file_problems(out, rule_ids(), reference=lambda: source, package_function=package_function)
+    found = file_problems(
+        out,
+        rule_ids() if rules is None else rules,
+        reference=lambda: source,
+        package_function=package_function,
+    )
     if found:
         defect("; ".join(found))
     for case in out["cases"]:
@@ -464,13 +483,160 @@ def generate(
     return texts
 
 
+def _load(path: Path) -> Any:
+    return yaml.safe_load(path.read_text(encoding="utf-8"))
+
+
+def fill(path: Path, reference: Path) -> list[str]:
+    """Write `expect` in one bundle vector file with the bundle reference (ADR-8DSW, item 6).
+
+    The producer is `<reference>/<section_module>.py`, else the producer of this
+    checkout. The rule IDs are those of the section files and of part 2.4 of the
+    `proposal.md` next to the reference folder. A proposed reference can differ
+    from the current text, so no formula module cross-checks it. The tool writes
+    only `path`, never a file of this checkout. Return the problems.
+    """
+    path, reference = path.resolve(), reference.resolve()
+    if path.is_relative_to(REPO_ROOT):
+        return [f"{path}: fill writes only a vector file of a payload folder outside this checkout"]
+    data = _load(path)
+    if not (isinstance(data, dict) and isinstance(data.get("section"), str)):
+        return [f"{path.name}: a vector file names its section"]
+    section = data["section"]
+    module = reference / f"{section.replace('.', '_')}.py"
+    folder = reference if module.is_file() else REFERENCE_DIR
+    rules = set(rule_ids())
+    # shortcut: a contribution has no proposal.md, so it cannot use a new rule ID of its owner yet.
+    proposal = reference.parent / "proposal.md"
+    if proposal.is_file():
+        text = proposal.read_text(encoding="utf-8", errors="replace")
+        rules.update(intake_bundle.RULE_ID.findall("".join(intake_bundle.PART_2_4.findall(text))))
+    sys.path.append(str(REFERENCE_DIR))  # a bundle module can import a landed module
+    try:
+        out = run_file(data, folder, rules=rules, cross_check=False)
+    except CaseDefect as error:
+        return [f"{path.name}: {error}"]
+    finally:
+        sys.path.remove(str(REFERENCE_DIR))
+    path.write_text(render(out), encoding="utf-8", newline="\n")
+    return []
+
+
+def land(
+    part4: Path,
+    contributions: list[Path],
+    replaces: list[str],
+    vectors_dir: Path = VECTORS_DIR,
+    folder: Path = REFERENCE_DIR,
+) -> list[str]:
+    """Land the vectors of an accepted proposal: Procedure B step 9 (ADR-8DSW, item 5).
+
+    The current cases come first. A part 4 case takes the place of the case with
+    its id, and these ids must be `replaces`. A contribution case with a known id
+    must agree with that case, `verified_against` aside. Each other case goes at
+    the end, part 4 first. The file-level keys are those of the current file
+    (of part 4 for a new section). The landed producer computes each `expect`
+    again, and each given `expect` must agree with it. The tool writes
+    `<vectors_dir>/<section>.yaml` only when it finds no problem and the file is
+    256 KiB or smaller. Return the problems.
+    """
+    files = [part4, *contributions]
+    inputs = [_load(path) for path in files]
+    if not (isinstance(inputs[0], dict) and isinstance(inputs[0].get("section"), str)):
+        return [f"{part4.name}: a vector file names its section"]
+    section = inputs[0]["section"]
+    rules = rule_ids()
+    found = []
+    for path, data in zip(files, inputs):  # noqa: B905 (one data for each file)
+        if not (isinstance(data, dict) and data.get("section") == section):
+            found.append(f"{path.name}: not a vector file of the section {section}")
+            continue
+        found += [
+            f"{path.name}: {problem}"
+            for problem in file_problems(
+                data,
+                rules,
+                reference=lambda: producer(section, folder),
+                package_function=package_function,
+            )
+        ]
+    if found:
+        return found
+
+    target = vectors_dir / f"{section}.yaml"
+    current = _load(target) if target.is_file() else {**inputs[0], "cases": []}
+    cases = list(current["cases"])
+    index = {case["id"]: n for n, case in enumerate(cases)}
+    overlap = sorted(set(index) & {case["id"] for case in inputs[0]["cases"]})
+    if overlap != sorted(set(replaces)):
+        found.append(f"{part4.name}: part 4 replaces {overlap}, --replaces gives {sorted(set(replaces))}")
+    incoming = set()
+    for n, data in enumerate(inputs):
+        for case in data["cases"]:
+            if n == 0 or case["id"] not in index:
+                if case["id"] not in index:
+                    index[case["id"]] = len(cases)
+                    cases.append(case)
+                cases[index[case["id"]]] = case
+                incoming.add(case["id"])
+            elif not intake_bundle._same_case(case, cases[index[case["id"]]], current["tolerance"]):
+                found.append(f"{files[n].name}: the case {case['id']} differs from the case with its id")
+    if found:
+        return found
+
+    # The producer writes each incoming `expect` again. Only the author writes a `function: none` one.
+    stripped = [
+        {key: value for key, value in case.items() if key != "expect"}
+        if case["id"] in incoming and case.get("function") != DATA_ONLY
+        else case
+        for case in cases
+    ]
+    try:
+        out = run_file({**current, "cases": stripped}, folder)
+    except CaseDefect as error:
+        return [str(error)]
+    found = [
+        f"{given['id']}: the given expect {given['expect']} differs from the landed producer: "
+        f"{computed['expect']}"
+        for given, computed in zip(cases, out["cases"])  # noqa: B905 (run_file keeps each case)
+        if not agrees(given["expect"], computed["expect"], computed, out["tolerance"])
+    ]
+    text = render(out)
+    size = len(text.encode("utf-8"))
+    if size > VECTOR_LIMIT:
+        found.append(f"{target.name}: the landed file has {size} bytes, more than 256 KiB")
+    if not found:
+        target.write_text(text, encoding="utf-8", newline="\n")
+    return found
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
         "--check", action="store_true", help="exit 1 when a file differs"
     )
     parser.add_argument("--out", type=Path, default=VECTORS_DIR, help="output folder")
+    commands = parser.add_subparsers(dest="command")
+    fill_command = commands.add_parser("fill", help="write expect in a bundle vector file")
+    fill_command.add_argument("file", type=Path, help="vectors/<section ID>.yaml of a payload folder")
+    fill_command.add_argument(
+        "--reference", type=Path, required=True, help="the reference folder of the payload"
+    )
+    land_command = commands.add_parser("land", help="land the vectors of an accepted proposal")
+    land_command.add_argument("part4", type=Path, help="the part 4 vector file of the record")
+    land_command.add_argument("--contribution", type=Path, nargs="+", action="extend", default=[])
+    land_command.add_argument(
+        "--replaces", nargs="*", required=True, help="each current id that part 4 replaces"
+    )
     args = parser.parse_args(argv[1:])
+
+    if args.command:
+        if args.command == "fill":
+            found = fill(args.file, args.reference)
+        else:
+            found = land(args.part4, args.contribution, args.replaces)
+        print("\n".join(found) or f"{args.command}: no problems")
+        return 1 if found else 0
 
     texts = generate()
     if args.check:

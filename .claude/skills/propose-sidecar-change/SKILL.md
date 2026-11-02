@@ -141,7 +141,7 @@ A contributor writes its proposal bundle.
    | 1 | [1. Gap](../../../specs/model-sidecar/templates/change-proposal.md#1-gap) | Give a number where possible. |
    | 2 | [2. Spec change](../../../specs/model-sidecar/templates/change-proposal.md#2-spec-change) | Write the exact normative text in ASD-STE100. List each place that the change edits. |
    | 3 | [3. Reference implementation](../../../specs/model-sidecar/templates/change-proposal.md#3-reference-implementation) | Follow [Imports of other sections](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#imports-of-other-sections). Write `reference/<section_module>.py` in the proposal bundle. If no host code exists yet, write the functions from the text of part 2, and write `source commit: none (no host code)` in the note at the top of the file. |
-   | 4 | [4. Vectors](../../../specs/model-sidecar/templates/change-proposal.md#4-vectors) | Make the vectors with part 3. Verify the numeric cases against the host implementation. An `error` case and a `failed` case run only against the reference implementation ([The step](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#the-step)). If you cannot, write `unverified: <reason>`. Give each pixel case a tolerance in `compare`. Write the cases to `vectors/<section ID>.yaml` in the proposal bundle, in the case form of the template ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md)). |
+   | 4 | [4. Vectors](../../../specs/model-sidecar/templates/change-proposal.md#4-vectors) | Make the vectors with part 3. Verify the numeric cases against the host implementation. An `error` case and a `failed` case run only against the reference implementation ([The step](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#the-step)). If you cannot, write `unverified: <reason>`. Give each pixel case a tolerance in `compare`. Write the author keys of the cases to `vectors/<section ID>.yaml` in the proposal bundle, in the case form of the template. Then run `fill` of `tools/make_vectors.py` as part 4 of the template gives. It writes `expect` ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md)). |
    | 5 | [5. Parity evidence](../../../specs/model-sidecar/templates/change-proposal.md#5-parity-evidence) | Follow [Parity](../../../specs/model-sidecar/model-addition-workflow/parity.md#parity). Commit the script. If you cannot run the script or commit it, write `to run` and describe the script. If you do not know the path or the commit of the script, write `unknown (<reason>)`. |
    | 6 | [6. skellytracker implementation proposal](../../../specs/model-sidecar/templates/change-proposal.md#6-skellytracker-implementation-proposal) | Read the package code in the checkout. If a call site is not known, write `for the implementer`. |
    | 7 | [7. Exporter impact](../../../specs/model-sidecar/templates/change-proposal.md#7-exporter-impact) | List each affected sidecar group: owner repo, inventory key or model, and change. |
@@ -158,17 +158,21 @@ A contributor writes its proposal bundle.
 1. Name each proposal bundle in the intake, in
    [Proposals and reference files](../../../specs/model-sidecar/templates/model-intake.md#proposals-and-reference-files).
 2. Do the checklist [Before you stop](../../../specs/model-sidecar/templates/change-proposal.md#before-you-stop).
-3. Pack each bundle ([Pack a version](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#pack-a-version)). Then stop. Do not
+3. Run `fill` on each `vectors/<section ID>.yaml` of each bundle, as
+   [4. Vectors](../../../specs/model-sidecar/templates/change-proposal.md#4-vectors) gives. A run after
+   `pack` changes the file hashes of the manifest
+   ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md), item 6).
+4. Pack each bundle ([Pack a version](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#pack-a-version)). Then stop. Do not
    change another file in skellytracker.
-4. Tell the user these items:
+5. Tell the user these items:
    - the bundle ID and the version of each proposal;
    - the dependencies between the proposals;
    - the `proposed` skellytracker entries that your proposals build on;
    - the primary evidence that each proposal still needs;
    - the spec defects that you found and did not propose;
    - each result that is `to run`.
-5. A skellytracker session records each proposal (phase 3). The user accepts or rejects it.
-6. To change a proposal, pack a new version ([Versions](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#versions)). Tell
+6. A skellytracker session records each proposal (phase 3). The user accepts or rejects it.
+7. To change a proposal, pack a new version ([Versions](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#versions)). Tell
    the user. A skellytracker session records it again
    ([Record a new version](#record-a-new-version)).
 
