@@ -1,0 +1,40 @@
+"""Section `post.det.selection.nms`: a reading of the section text, not an implementation.
+
+`tools/make_vectors.py` computes the vectors of the section with it. It has the
+calling convention of a reference module: `run(params, input) -> expect`, and a
+refusal of the spec raises `ValueError`. The steps stop before the unprojection.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+import post_det_decode as decode
+
+
+def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
+    """Behaviour (before unprojection)."""
+    pool = []
+    for row, (box, score, model_class) in enumerate(decode.candidates(params, input)):
+        if score <= params["score_threshold"]:
+            continue
+        class_id = decode.resolve_class(
+            model_class, params, assign_person_without_source=True
+        )
+        if class_id is not None:
+            pool.append(decode.Kept(row, box, score, class_id))
+    pool.sort(key=lambda c: (-c.score, c.row))
+    agnostic = params.get("class_agnostic", False)
+    survivors: list[decode.Kept] = []
+    for cand in pool:
+        suppressed = any(
+            (agnostic or kept.class_id == cand.class_id)
+            and decode.iou(kept.box, cand.box) > params["iou_threshold"]
+            for kept in survivors
+        )
+        if not suppressed:
+            survivors.append(cand)
+    if "post_nms_top_k" in params:
+        survivors = survivors[: params["post_nms_top_k"]]
+    threshold = decode.confidence_threshold(params)
+    return decode.published([c for c in survivors if c.score > threshold])

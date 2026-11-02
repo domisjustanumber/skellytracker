@@ -28,28 +28,15 @@ import pytest
 import yaml
 
 import make_vectors as mv
+from vector_form import agrees, entry_problems, problems
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SPEC_ROOT = REPO_ROOT / "specs" / "model-sidecar"
 VECTORS_DIR = SPEC_ROOT / "vectors"
 
-CASE_KEYS = {
-    "id",
-    "params",
-    "input",
-    "expect",
-    "unproject",
-    "tolerance",
-    "compare",
-    "function",
-    "verified_against",
-}
-REQUIRED_CASE_KEYS = {"id", "params", "input", "expect"}
 MAX_FILE_BYTES = 256 * 1024
 # The rule lines of the "Validation rules" headings (the same form as test_traceability.py).
 RULE_LINE = re.compile(r"^- \[[ xX]\] `(V-[a-z][a-z0-9_.]*[a-z0-9]-\d+)`", re.MULTILINE)
-EXPORTER_ENTRY = re.compile(r"[A-Za-z0-9][A-Za-z0-9-]*")
-FUNCTION_REFERENCE = re.compile(r"[A-Za-z0-9_./-]+\.py::[A-Za-z_][A-Za-z0-9_]*")
 
 
 # ---------------------------------------------------------------------------
@@ -78,10 +65,6 @@ def case_named(section: str, case_id: str) -> dict[str, Any]:
     return next(case for case in cases_of(section) if case["id"] == case_id)
 
 
-def approx(value: Any, case: dict[str, Any]) -> Any:
-    return pytest.approx(value, abs=case.get("tolerance", 0))
-
-
 @functools.cache
 def section_texts() -> dict[str, str]:
     """The text of each section file, keyed by the section ID of its front matter."""
@@ -108,64 +91,16 @@ def defined_rule_ids() -> frozenset[str]:
     )
 
 
-def same(a: Any, b: Any) -> bool:
-    """Compare parsed vector data; NaN equals NaN."""
-    if isinstance(a, float) and isinstance(b, float):
-        return a == b or (math.isnan(a) and math.isnan(b))
-    if isinstance(a, dict) and isinstance(b, dict):
-        return a.keys() == b.keys() and all(same(a[k], b[k]) for k in a)
-    if isinstance(a, list) and isinstance(b, list):
-        return len(a) == len(b) and all(same(x, y) for x, y in zip(a, b, strict=True))
-    return a == b
-
-
-def check_verified_entry(entry: Any) -> None:
-    """A skellytracker function that exists, or one `{<Exporter repo>: <file>::<function>}`."""
-    if isinstance(entry, str):
-        assert callable(resolve_function(entry)), entry
-        return
-    assert isinstance(entry, dict) and len(entry) == 1, entry
-    ((repo, reference),) = entry.items()
-    assert EXPORTER_ENTRY.fullmatch(repo), entry
-    assert isinstance(reference, str) and FUNCTION_REFERENCE.fullmatch(reference), entry
-
-
-def check_case(
+def case_problems(
     case: dict[str, Any], section: str, reference_dir: Path = mv.REFERENCE_DIR
-) -> None:
-    """The shape of one case, for the files of this repo and for the vectors of a proposal."""
-    assert REQUIRED_CASE_KEYS <= set(case) <= CASE_KEYS, case["id"]
-    assert all(isinstance(case[key], dict) for key in ("params", "input", "expect"))
-    expect, unproject = case["expect"], case.get("unproject")
-    has_fraction = mv.has_fraction(expect) or mv.has_fraction(unproject)
-    if has_fraction:
-        assert "tolerance" in case or "compare" in case, case["id"]
-    else:
-        assert "tolerance" not in case, case["id"]
-    if "error" in expect:
-        assert set(expect) == {"error"}, case["id"]
-        error = expect["error"]
-        assert error == mv.NO_RULE or error in defined_rule_ids(), (case["id"], error)
-    if "failed" in expect:
-        assert set(expect) == {"failed"}, case["id"]
-        failed = expect["failed"]
-        assert isinstance(failed, list) and failed == sorted(set(failed)), case["id"]
-        assert set(failed) <= defined_rule_ids(), (case["id"], failed)
-    if "compare" in case:
-        fields = set(expect) | set(unproject or {})
-        for field, rule in case["compare"].items():
-            assert field in fields, (case["id"], field)
-            assert rule and set(rule) <= mv.COMPARE_KEYS, (case["id"], field)
-            assert all(isinstance(v, (int, float)) and v >= 0 for v in rule.values())
-            assert rule.get("period", 1) > 0, (case["id"], field)
-    if "function" in case:
-        module = mv.load_reference(section, reference_dir)
-        function = getattr(module, case["function"], None)
-        assert callable(function), case["id"]
-        # The function of a case is defined in the module of its own section.
-        assert function.__module__ == module.__name__, case["id"]
-    for entry in case.get("verified_against", []):
-        check_verified_entry(entry)
+) -> list[str]:
+    """The form problems of one case (`vector_form.problems`) in this repo."""
+    return problems(
+        case,
+        defined_rule_ids(),
+        reference=lambda: mv.load_reference(section, reference_dir),
+        package_function=resolve_function,
+    )
 
 
 def resolve_function(reference: str) -> Any:
@@ -205,7 +140,7 @@ def test_file_equals_the_generator_output(path: Path) -> None:
 @pytest.mark.parametrize("path", vector_paths(), ids=lambda p: p.name)
 def test_file_parses_to_the_generator_data(path: Path) -> None:
     section = path.name.removesuffix(".yaml")
-    assert same(
+    assert agrees(
         yaml.safe_load(path.read_text(encoding="utf-8")),
         built_vectors()[section].data(),
     )
@@ -245,7 +180,7 @@ def test_unverified_gives_a_reason(path: Path) -> None:
 @pytest.mark.parametrize("path", vector_paths(), ids=lambda p: p.name)
 def test_verified_against_names_a_function_that_exists(path: Path) -> None:
     for entry in load(path.name).get("verified_against", []):
-        check_verified_entry(entry)
+        assert not entry_problems(entry, resolve_function)
 
 
 @pytest.mark.parametrize("path", vector_paths(), ids=lambda p: p.name)
@@ -256,7 +191,7 @@ def test_cases_have_the_documented_shape(path: Path) -> None:
     ids = [case["id"] for case in cases]
     assert len(ids) == len(set(ids))
     for case in cases:
-        check_case(case, data["section"])
+        assert not case_problems(case, data["section"])
 
 
 @pytest.mark.parametrize("path", vector_paths(), ids=lambda p: p.name)
@@ -325,11 +260,11 @@ def test_the_generator_writes_the_case_form_of_a_proposal(tmp_path: Path) -> Non
         ],
     )
     data = yaml.safe_load(mv.render(vectors))
-    assert same(data, vectors.data())
+    assert agrees(data, vectors.data())
     assert data["verified_against"] == [exporter]
     assert data["cases"][0]["expect"]["k"] == 1 / 3  # digits=None keeps every digit
     for case in data["cases"]:
-        check_case(case, data["section"], tmp_path)
+        assert not case_problems(case, data["section"], tmp_path)
     refused = data["cases"][2]
     for expect in (
         {"error": "V-pre.resize.letterbox-99"},
@@ -338,8 +273,7 @@ def test_the_generator_writes_the_case_form_of_a_proposal(tmp_path: Path) -> Non
         {"failed": ["V-pre.resize.letterbox-1", "V-pre.resize.letterbox-1"]},
         {"failed": [], "n_w": 1},
     ):
-        with pytest.raises(AssertionError):
-            check_case({**refused, "expect": expect}, data["section"], tmp_path)
+        assert case_problems({**refused, "expect": expect}, data["section"], tmp_path)
     with pytest.raises(FileNotFoundError):
         mv.load_reference("pre.resize.stretch", tmp_path)
 
@@ -384,8 +318,7 @@ def test_a_reference_module_imports_the_module_of_another_section(
         encoding="utf-8",
     )
     case = {"id": "rebound", "function": "value", "params": {}, "input": {}, "expect": {}}
-    with pytest.raises(AssertionError):
-        check_case(case, "g3rebind.section", tmp_path)
+    assert case_problems(case, "g3rebind.section", tmp_path)
 
 
 def test_a_module_of_another_folder_does_not_shadow_an_import(tmp_path: Path) -> None:
@@ -397,6 +330,17 @@ def test_a_module_of_another_folder_does_not_shadow_an_import(tmp_path: Path) ->
             "import g3shadow_owner\n\ndef value():\n    return g3shadow_owner.VALUE\n", encoding="utf-8"
         )
         assert mv.load_reference("g3shadow.user", folder).value() == value
+
+
+def test_a_formula_module_does_not_take_the_place_of_a_missing_sibling(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "post_unprojection.py").write_text(
+        "import pre_resize_letterbox\n", encoding="utf-8"
+    )
+    with pytest.raises(ModuleNotFoundError):
+        mv.load_reference("post.unprojection", tmp_path)
+    assert mv.post_unprojection.pre_resize_letterbox is mv.pre_resize_letterbox
 
 
 def test_the_renderer_writes_a_long_item_in_block_form_and_a_large_float() -> None:
@@ -419,7 +363,7 @@ def test_the_renderer_writes_a_long_item_in_block_form_and_a_large_float() -> No
     text = mv.render(vectors)
     assert all(len(line) <= mv.LINE_WIDTH for line in text.splitlines())
     assert "huge: 1.0e+308" in text
-    assert same(yaml.safe_load(text), vectors.data())
+    assert agrees(yaml.safe_load(text), vectors.data())
 
 
 # ---------------------------------------------------------------------------
@@ -727,7 +671,7 @@ def _iou(a: list[float], b: list[float]) -> float:
 def test_nms_result_obeys_the_rules(case: dict[str, Any]) -> None:
     params, expect = case["params"], case["expect"]
     boxes = [
-        mv.to_xyxy(row, params.get("box_format", "xyxy"))
+        mv.post_det_decode.to_xyxy(row, params.get("box_format", "xyxy"))
         for row in (
             case["input"].get("boxes") or [r[:4] for r in case["input"]["rows"]]
         )
@@ -1062,11 +1006,7 @@ def test_fit_preprocess_agrees_with_the_case(case: dict[str, Any]) -> None:
     padded, (scale, left, top) = function(image, (t_h, t_w), pad_value=0)
 
     expect = case["expect"]
-    assert (scale, left, top) == (
-        approx(expect["scale"], case),
-        approx(expect["left"], case),
-        approx(expect["top"], case),
-    )
+    assert agrees({"scale": scale, "left": left, "top": top}, expect, case)
 
     # The warped image agrees with the reported geometry. The edges blend with
     # the border, so allow the blend zone of one source pixel (`scale` pixels).

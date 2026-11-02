@@ -2,9 +2,11 @@
 
 Each vector file is `specs/model-sidecar/vectors/<section-id>.yaml`. A case is a small
 worked example: the inputs of one section's algorithm and the exact expected
-output. The formulas in this file are copies of the formulas in the section
-files. A vector that disagrees with the normative text is a defect of the spec
-or of this file: fix one of them, never the vector alone.
+output. The formulas are in `tools/vector_formulas/<section_module>.py`, one
+module per section: each one is a reading of its section file. A vector that
+disagrees with the normative text is a defect of the spec or of the formulas:
+fix one of them, never the vector alone. A broken case or formula calls
+`vector_form.defect`, which stops the generator.
 
 A file has either `verified_against` (the list of independent implementations
 that produced the same results) or `unverified` (the reason that none did). An
@@ -33,6 +35,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import re
 import sys
 import textwrap
@@ -46,9 +49,12 @@ from typing import Any
 
 import numpy as np
 
+from vector_form import NO_RULE, defect, has_fraction
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 VECTORS_DIR = REPO_ROOT / "specs" / "model-sidecar" / "vectors"
 REFERENCE_DIR = REPO_ROOT / "specs" / "model-sidecar" / "reference"
+FORMULAS_DIR = REPO_ROOT / "tools" / "vector_formulas"
 SPEC_REVISION = "vNEXT"
 GENERATED_BY = "tools/make_vectors.py"
 
@@ -75,12 +81,12 @@ LETTERBOX_PACKAGE_MATCHES: frozenset[str] = frozenset(
 
 LINE_WIDTH = 100
 ROUND_DIGITS = 6
-COMPARE_KEYS = {"atol", "period"}
-NO_RULE = "no-rule"
 # A refusal message that starts with a rule ID names the rule that refuses the input.
 LEADING_RULE = re.compile(r"(V-[a-z][a-z0-9_.]*[a-z0-9]-\d+):")
 # From this size, a float is always whole; an int of it would write all of its digits.
 EXACT_INT_LIMIT = 2.0**53
+# The folders that `load_reference` has run, as given (`str(folder)`).
+_LOADED_FOLDERS: set[str] = set()
 
 
 def load_reference(section: str, folder: Path = REFERENCE_DIR) -> ModuleType:
@@ -103,6 +109,12 @@ def load_reference(section: str, folder: Path = REFERENCE_DIR) -> ModuleType:
         cached_file = getattr(cached, "__file__", None) if cached is not None else None
         if cached is not None and (not cached_file or Path(cached_file).resolve().parent != resolved):
             del sys.modules[stem]
+    # A module of a folder that this function ran earlier must not stand in for a missing sibling.
+    for stem, cached in list(sys.modules.items()):
+        where = os.path.dirname(getattr(cached, "__file__", None) or "")
+        if where in _LOADED_FOLDERS and where != str(folder):
+            del sys.modules[stem]
+    _LOADED_FOLDERS.add(str(folder))
     sys.modules[path.stem] = module
     sys.path.insert(0, str(folder))
     try:
@@ -131,6 +143,19 @@ def outcome(
         match = LEADING_RULE.match(str(error))
         return {"error": match.group(1) if match else NO_RULE}
 
+
+# The formula modules load like reference modules, so they import each other by name.
+# A module loads before the modules that import it, so each name has one module object.
+post_det_decode = load_reference("post.det.decode", FORMULAS_DIR)
+pre_resize_letterbox = load_reference("pre.resize.letterbox", FORMULAS_DIR)
+pre_resize_stretch = load_reference("pre.resize.stretch", FORMULAS_DIR)
+pre_resize_fit = load_reference("pre.resize.fit", FORMULAS_DIR)
+pre_resize_affine_person_crop = load_reference("pre.resize.affine_person_crop", FORMULAS_DIR)
+pre_normalize = load_reference("pre.normalize", FORMULAS_DIR)
+post_det_selection_none = load_reference("post.det.selection.none", FORMULAS_DIR)
+post_det_selection_top_k = load_reference("post.det.selection.top_k", FORMULAS_DIR)
+post_det_selection_nms = load_reference("post.det.selection.nms", FORMULAS_DIR)
+post_unprojection = load_reference("post.unprojection", FORMULAS_DIR)
 
 # Absolute tolerance of the cases that hold fractional numbers.
 TOLERANCE = {"resize": 1e-4, "unprojection": 1e-4, "normalize": 1e-5, "selection": 1e-5}
@@ -166,23 +191,6 @@ def clean(value: Any, *, digits: int | None = None) -> Any:
     if isinstance(value, (list, tuple, np.ndarray)):
         return [clean(item, digits=digits) for item in value]
     raise TypeError(f"cannot write {type(value).__name__}")
-
-
-def has_fraction(value: Any) -> bool:
-    """Return True when `value` holds a number with a fractional part."""
-    if isinstance(value, float):
-        return True
-    if isinstance(value, dict):
-        return any(has_fraction(item) for item in value.values())
-    if isinstance(value, list):
-        return any(has_fraction(item) for item in value)
-    return False
-
-
-def require(condition: bool, message: str) -> None:
-    """Raise when a case does not show the edge that its id claims."""
-    if not condition:
-        raise ValueError(message)
 
 
 @dataclass
@@ -398,54 +406,6 @@ def render(vectors: Vectors) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _round_half_even(x: float) -> int:
-    return round(x)  # Python `round`: ties go to the even integer
-
-
-def _round_half_up(x: float) -> int:
-    return math.floor(x + 0.5)
-
-
-ROUNDING: dict[str, Callable[[float], int]] = {
-    "half_even": _round_half_even,
-    "half_up": _round_half_up,
-}
-
-
-def letterbox_geometry(
-    src_w: int,
-    src_h: int,
-    target_size: list[int],
-    pad_position: str,
-    rounding: str,
-) -> dict[str, int]:
-    """Section `pre.resize.letterbox`, Behaviour."""
-    t_h, t_w = target_size
-    s = min(t_w / src_w, t_h / src_h)
-    round_ = ROUNDING[rounding]
-    n_w = max(1, round_(src_w * s))
-    n_h = max(1, round_(src_h * s))
-    if pad_position == "top_left":
-        left, top = 0, 0
-    elif pad_position == "center":
-        left, top = math.floor((t_w - n_w) / 2), math.floor((t_h - n_h) / 2)
-    else:
-        raise ValueError(f"unknown pad_position {pad_position!r}")
-    require(n_w <= t_w and n_h <= t_h, "resized image is larger than the target")
-    return {"n_w": n_w, "n_h": n_h, "left": left, "top": top}
-
-
-def letterbox_unproject(
-    geometry: dict[str, int], src_w: int, src_h: int, model_xy: list[float]
-) -> list[float]:
-    """Section `pre.resize.letterbox`, Inverse."""
-    x, y = model_xy
-    return [
-        (x - geometry["left"]) * src_w / geometry["n_w"],
-        (y - geometry["top"]) * src_h / geometry["n_h"],
-    ]
-
-
 def _letterbox_case(
     case_id: str,
     target: list[int],
@@ -456,15 +416,16 @@ def _letterbox_case(
     note: str | None = None,
 ) -> Case:
     src_w, src_h = src
-    geometry = letterbox_geometry(src_w, src_h, target, pad, rounding)
+    params = {"target_size": target, "pad_position": pad, "rounding": rounding}
+    case_input = {"src_w": src_w, "src_h": src_h}
     return Case(
         id=case_id,
-        params={"target_size": target, "pad_position": pad, "rounding": rounding},
-        input={"src_w": src_w, "src_h": src_h},
-        expect=geometry,
+        params=params,
+        input=case_input,
+        expect=pre_resize_letterbox.run(params, case_input),
         unproject={
             "model_xy": model_xy,
-            "source_xy": letterbox_unproject(geometry, src_w, src_h, model_xy),
+            "source_xy": pre_resize_letterbox.inverse(params, case_input, model_xy),
         },
         verified_against=(
             [LETTERBOX_FUNCTION] if case_id in LETTERBOX_PACKAGE_MATCHES else None
@@ -484,17 +445,12 @@ def build_letterbox() -> Vectors:
     def add(*args: Any, differs_by_rounding: bool | None = None, **kwargs: Any) -> None:
         case = _letterbox_case(*args, **kwargs)
         if differs_by_rounding is not None:
-            other = letterbox_geometry(
-                case.input["src_w"],
-                case.input["src_h"],
-                case.params["target_size"],
-                case.params["pad_position"],
-                _other_rounding(case.params["rounding"]),
+            other = pre_resize_letterbox.run(
+                {**case.params, "rounding": _other_rounding(case.params["rounding"])},
+                case.input,
             )
-            require(
-                (other != case.expect) == differs_by_rounding,
-                f"{case.id}: the rounding modes do not behave as the case says",
-            )
+            if (other != case.expect) != differs_by_rounding:
+                defect(f"{case.id}: the rounding modes do not behave as the case says")
         cases.append(case)
 
     # Center padding.
@@ -747,14 +703,12 @@ def build_letterbox() -> Vectors:
         src_w, src_h = case.input["src_w"], case.input["src_h"]
         t_h, t_w = case.params["target_size"]
         s = min(t_w / src_w, t_h / src_h)
-        if "width-guard" in case.id:
-            require(round(src_w * s) == 0, f"{case.id}: n_w would not be 0")
-        if "float-noise" in case.id:
-            require(
-                int(src_w * s) != round(src_w * s)
-                and int(src_h * s) != round(src_h * s),
-                f"{case.id}: cutting and rounding give the same size",
-            )
+        if "width-guard" in case.id and round(src_w * s) != 0:
+            defect(f"{case.id}: n_w would not be 0")
+        if "float-noise" in case.id and not (
+            int(src_w * s) != round(src_w * s) and int(src_h * s) != round(src_h * s)
+        ):
+            defect(f"{case.id}: cutting and rounding give the same size")
 
     return Vectors(
         section="pre.resize.letterbox",
@@ -783,15 +737,6 @@ def build_letterbox() -> Vectors:
 # ---------------------------------------------------------------------------
 
 
-def stretch_unproject(
-    target_size: list[int], src_w: int, src_h: int, model_xy: list[float]
-) -> list[float]:
-    """Section `pre.resize.stretch`, Inverse."""
-    t_h, t_w = target_size
-    x, y = model_xy
-    return [x * src_w / t_w, y * src_h / t_h]
-
-
 def build_stretch() -> Vectors:
     cases: list[Case] = []
 
@@ -803,21 +748,17 @@ def build_stretch() -> Vectors:
         note: str | None = None,
     ) -> None:
         src_w, src_h = src
-        t_h, t_w = target
+        params = {"target_size": target}
+        case_input = {"src_w": src_w, "src_h": src_h}
         cases.append(
             Case(
                 id=case_id,
-                params={"target_size": target},
-                input={"src_w": src_w, "src_h": src_h},
-                expect={
-                    "dst_w": t_w,
-                    "dst_h": t_h,
-                    "scale_x": t_w / src_w,
-                    "scale_y": t_h / src_h,
-                },
+                params=params,
+                input=case_input,
+                expect=pre_resize_stretch.run(params, case_input),
                 unproject={
                     "model_xy": model_xy,
-                    "source_xy": stretch_unproject(target, src_w, src_h, model_xy),
+                    "source_xy": pre_resize_stretch.inverse(params, case_input, model_xy),
                 },
                 note=note,
             )
@@ -876,26 +817,6 @@ def build_stretch() -> Vectors:
 # ---------------------------------------------------------------------------
 
 
-def fit_geometry(src_w: int, src_h: int, target_size: list[int]) -> dict[str, float]:
-    """Section `pre.resize.fit`, Behaviour. Nothing is rounded."""
-    t_h, t_w = target_size
-    s = min(t_w / src_w, t_h / src_h)
-    return {
-        "scale": s,
-        "left": (t_w - src_w * s) / 2,
-        "top": (t_h - src_h * s) / 2,
-    }
-
-
-def fit_unproject(geometry: dict[str, float], model_xy: list[float]) -> list[float]:
-    """Section `pre.resize.fit`, Inverse. Uses the unrounded values."""
-    x, y = model_xy
-    return [
-        (x - geometry["left"]) / geometry["scale"],
-        (y - geometry["top"]) / geometry["scale"],
-    ]
-
-
 def build_fit() -> Vectors:
     sq = [640, 640]
     cases: list[Case] = []
@@ -908,16 +829,17 @@ def build_fit() -> Vectors:
         note: str | None = None,
     ) -> None:
         src_w, src_h = src
-        geometry = fit_geometry(src_w, src_h, target)
+        params = {"target_size": target}
+        case_input = {"src_w": src_w, "src_h": src_h}
         cases.append(
             Case(
                 id=case_id,
-                params={"target_size": target},
-                input={"src_w": src_w, "src_h": src_h},
-                expect=geometry,
+                params=params,
+                input=case_input,
+                expect=pre_resize_fit.run(params, case_input),
                 unproject={
                     "model_xy": model_xy,
-                    "source_xy": fit_unproject(geometry, model_xy),
+                    "source_xy": pre_resize_fit.inverse(params, case_input, model_xy),
                 },
                 note=note,
             )
@@ -1022,38 +944,6 @@ def build_fit() -> Vectors:
 # ---------------------------------------------------------------------------
 
 
-def affine_crop(
-    bbox_xyxy: list[float],
-    target_size: list[int],
-    expand_ratio: float,
-    maintain_aspect_ratio: bool,
-) -> dict[str, Any]:
-    """Section `pre.resize.affine_person_crop`, Behaviour. The rotation is 0."""
-    x1, y1, x2, y2 = bbox_xyxy
-    t_h, t_w = target_size
-    cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
-    w, h = (x2 - x1) * expand_ratio, (y2 - y1) * expand_ratio
-    if maintain_aspect_ratio:
-        if w > h * (t_w / t_h):
-            h = w * (t_h / t_w)
-        else:
-            w = h * (t_w / t_h)
-    sx, sy = t_w / w, t_h / h
-    return {
-        "center": [cx, cy],
-        "crop_w": w,
-        "crop_h": h,
-        "matrix": [[sx, 0, t_w / 2 - sx * cx], [0, sy, t_h / 2 - sy * cy]],
-    }
-
-
-def affine_unproject(matrix: list[list[float]], model_xy: list[float]) -> list[float]:
-    """Section `pre.resize.affine_person_crop`, Inverse: invert the scale and shift of M."""
-    (sx, _, tx), (_, sy, ty) = matrix
-    x, y = model_xy
-    return [(x - tx) / sx, (y - ty) / sy]
-
-
 def build_affine_person_crop() -> Vectors:
     cases: list[Case] = []
 
@@ -1067,20 +957,22 @@ def build_affine_person_crop() -> Vectors:
         expand_ratio: float = 1.25,
         maintain_aspect_ratio: bool = True,
     ) -> None:
-        expect = affine_crop(bbox, target, expand_ratio, maintain_aspect_ratio)
+        params = {
+            "target_size": target,
+            "expand_ratio": expand_ratio,
+            "maintain_aspect_ratio": maintain_aspect_ratio,
+        }
+        case_input = {"bbox_xyxy": bbox}
+        crop = pre_resize_affine_person_crop
         cases.append(
             Case(
                 id=case_id,
-                params={
-                    "target_size": target,
-                    "expand_ratio": expand_ratio,
-                    "maintain_aspect_ratio": maintain_aspect_ratio,
-                },
-                input={"bbox_xyxy": bbox},
-                expect=expect,
+                params=params,
+                input=case_input,
+                expect=crop.run(params, case_input),
                 unproject={
                     "model_xy": model_xy,
-                    "source_xy": affine_unproject(expect["matrix"], model_xy),
+                    "source_xy": crop.inverse(params, case_input, model_xy),
                 },
                 note=note,
             )
@@ -1165,59 +1057,7 @@ def build_affine_person_crop() -> Vectors:
 # pre.normalize
 # ---------------------------------------------------------------------------
 
-IMAGENET_MEAN_RGB = (123.675, 116.28, 103.53)
-IMAGENET_STD_RGB = (58.395, 57.12, 57.375)
 PIXELS_BGR = [[0, 0, 0], [255, 255, 255], [10, 128, 250], [200, 100, 50]]
-
-
-def resolve_mode(
-    normalization: Any, by_precision: dict[str, str] | None, precision: str
-) -> Any:
-    """Resolution order of the section: by precision, then top level, then the default."""
-    if by_precision and precision in by_precision:
-        return by_precision[precision]
-    if normalization is not None:
-        return normalization
-    return "imagenet_bgr"
-
-
-def normalize_pixels(
-    pixels_bgr: list[list[int]],
-    mode: Any,
-    color_format: str | None,
-    *,
-    legacy: bool,
-    dtype: str = "float32",
-) -> tuple[str, list[list[float]]]:
-    """Return the channel order of the tensor and the normalized pixels."""
-    if isinstance(mode, dict):
-        order = mode.get("color_format") or color_format or "rgb"
-    elif mode in ("none", "unit_float"):
-        require(color_format is not None, f"{mode} needs color_format")
-        order = color_format
-    else:
-        order = "bgr" if mode == "imagenet_bgr" else "rgb"
-
-    out: list[list[float]] = []
-    for b, g, r in pixels_bgr:
-        values = [b, g, r] if order == "bgr" else [r, g, b]
-        if isinstance(mode, dict):
-            scale = mode.get("scale", 1.0)
-            result = [
-                (v * scale - m) / sd
-                for v, m, sd in zip(values, mode["mean"], mode["std"], strict=True)
-            ]
-        elif mode == "none":
-            result = [int(v) if dtype == "uint8" else float(v) for v in values]
-        elif mode == "unit_float":
-            result = [v / 255.0 for v in values]
-        else:
-            mean, std = list(IMAGENET_MEAN_RGB), list(IMAGENET_STD_RGB)
-            if order == "bgr" and not legacy:
-                mean, std = mean[::-1], std[::-1]
-            result = [(v - m) / sd for v, m, sd in zip(values, mean, std, strict=True)]
-        out.append(result)
-    return order, out
 
 
 def build_normalize() -> Vectors:
@@ -1247,24 +1087,13 @@ def build_normalize() -> Vectors:
             params["color_format"] = color_format
         if dtype is not None:
             params["dtype"] = dtype
-        mode = resolve_mode(normalization, by_precision, precision or "fp32")
-        order, values = normalize_pixels(
-            PIXELS_BGR,
-            mode,
-            color_format,
-            legacy=bool(schema_version and schema_version.startswith("<")),
-            dtype=dtype or "float32",
-        )
+        case_input = {"pixels_bgr": PIXELS_BGR}
         cases.append(
             Case(
                 id=case_id,
                 params=params,
-                input={"pixels_bgr": PIXELS_BGR},
-                expect={
-                    "resolved_mode": mode if isinstance(mode, str) else mode["mode"],
-                    "channel_order": order,
-                    "values": values,
-                },
+                input=case_input,
+                expect=pre_normalize.run(params, case_input),
                 note=note,
             )
         )
@@ -1405,163 +1234,8 @@ def _row(i: int, score: float, cls: int) -> list[float]:
     return [*_box(i), score, cls]
 
 
-@dataclass
-class Kept:
-    row: int
-    box: list[float]
-    score: float
-    class_id: int
-
-
-def to_xyxy(box: list[float], box_format: str) -> list[float]:
-    a, b, c, d = box
-    if box_format == "xyxy":
-        return [a, b, c, d]
-    if box_format == "xywh":
-        return [a, b, a + c, b + d]
-    if box_format == "cxcywh":
-        return [a - c / 2, b - d / 2, a + c / 2, b + d / 2]
-    raise ValueError(f"unknown box_format {box_format!r}")
-
-
-def candidates(
-    params: dict[str, Any], inp: dict[str, Any]
-) -> list[tuple[list[float], float, int | None]]:
-    """Return (box in xyxy, score, model class index or None) for each input row."""
-    box_format = params.get("box_format", "xyxy")
-    if "rows" in inp:
-        fields = inp["fields"]
-        i_score = fields.index(params["score_field"])
-        i_class = (
-            fields.index(params["class_field"]) if "class_field" in params else None
-        )
-        return [
-            (
-                to_xyxy(row[0:4], box_format),
-                row[i_score],
-                None if i_class is None else int(row[i_class]),
-            )
-            for row in inp["rows"]
-        ]
-    return [
-        (to_xyxy(box, box_format), score, None)
-        for box, score in zip(inp["boxes"], inp["scores"], strict=True)
-    ]
-
-
-def resolve_class(
-    model_class: int | None,
-    params: dict[str, Any],
-    *,
-    assign_person_without_source: bool,
-) -> int | None:
-    """Map a model class index to the emitted class id; None drops the candidate."""
-    person = params.get("person_class_id", 0)
-    if model_class is None:
-        require(
-            assign_person_without_source or params.get("is_person_only", False),
-            "a candidate without a class source needs is_person_only here",
-        )
-        return person
-    class_map = params.get("class_id_map")
-    emitted = (
-        class_map[model_class]
-        if class_map is not None
-        else params.get("class_id_base", 0) + model_class
-    )
-    if emitted == -1:
-        return None
-    if params.get("is_person_only", False) and emitted != person:
-        return None
-    return emitted
-
-
-def iou(a: list[float], b: list[float]) -> float:
-    """Intersection over union. The area is (x2 - x1) * (y2 - y1): nothing is added."""
-    inter_w = max(0.0, min(a[2], b[2]) - max(a[0], b[0]))
-    inter_h = max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
-    inter = inter_w * inter_h
-    union = (a[2] - a[0]) * (a[3] - a[1]) + (b[2] - b[0]) * (b[3] - b[1]) - inter
-    return inter / union if union > 0 else 0.0
-
-
-def select_none(params: dict[str, Any], inp: dict[str, Any]) -> list[Kept]:
-    """Section `post.det.selection.none`, Behaviour (before unprojection)."""
-    threshold = params.get("confidence_threshold_default", 0.7)
-    kept = []
-    for row, (box, score, model_class) in enumerate(candidates(params, inp)):
-        class_id = resolve_class(
-            model_class, params, assign_person_without_source=False
-        )
-        if class_id is not None and score > threshold:
-            kept.append(Kept(row, box, score, class_id))
-    return kept
-
-
-def select_top_k(params: dict[str, Any], inp: dict[str, Any]) -> list[Kept]:
-    """Section `post.det.selection.top_k`, Behaviour (before unprojection)."""
-    logits = inp["class_logits"]
-    if params.get("score_activation", "none") == "sigmoid":
-        p = [[1 / (1 + math.exp(-x)) for x in row] for row in logits]
-    else:
-        p = logits
-    n_classes = len(p[0])
-    flat = sorted(
-        range(len(p) * n_classes), key=lambda i: (-p[i // n_classes][i % n_classes], i)
-    )
-    threshold = params.get("confidence_threshold_default", 0.7)
-    kept = []
-    for index in flat[: min(params["top_k"], len(flat))]:
-        row, model_class = divmod(index, n_classes)
-        score = p[row][model_class]
-        class_id = resolve_class(
-            model_class, params, assign_person_without_source=False
-        )
-        if class_id is not None and score > threshold:
-            box = to_xyxy(inp["boxes"][row], params.get("box_format", "xyxy"))
-            kept.append(Kept(row, box, score, class_id))
-    return kept
-
-
-def select_nms(params: dict[str, Any], inp: dict[str, Any]) -> list[Kept]:
-    """Section `post.det.selection.nms`, Behaviour (before unprojection)."""
-    pool = []
-    for row, (box, score, model_class) in enumerate(candidates(params, inp)):
-        if score <= params["score_threshold"]:
-            continue
-        class_id = resolve_class(model_class, params, assign_person_without_source=True)
-        if class_id is not None:
-            pool.append(Kept(row, box, score, class_id))
-    pool.sort(key=lambda c: (-c.score, c.row))
-    agnostic = params.get("class_agnostic", False)
-    survivors: list[Kept] = []
-    for cand in pool:
-        suppressed = any(
-            (agnostic or kept.class_id == cand.class_id)
-            and iou(kept.box, cand.box) > params["iou_threshold"]
-            for kept in survivors
-        )
-        if not suppressed:
-            survivors.append(cand)
-    if "post_nms_top_k" in params:
-        survivors = survivors[: params["post_nms_top_k"]]
-    threshold = params.get("confidence_threshold_default", 0.7)
-    return [c for c in survivors if c.score > threshold]
-
-
-def to_float32(value: Any) -> Any:
-    """Round every float in `value` to float32 (a host may compare in float32)."""
-    if isinstance(value, float):
-        return float(np.float32(value))
-    if isinstance(value, dict):
-        return {key: to_float32(item) for key, item in value.items()}
-    if isinstance(value, list):
-        return [to_float32(item) for item in value]
-    return value
-
-
 def _selection_case(
-    select: Callable[[dict[str, Any], dict[str, Any]], list[Kept]],
+    select: Callable[[dict[str, Any], dict[str, Any]], dict[str, Any]],
     case_id: str,
     params: dict[str, Any],
     inp: dict[str, Any],
@@ -1569,20 +1243,13 @@ def _selection_case(
     *,
     show_boxes: bool = False,
 ) -> Case:
-    kept = select(params, inp)
+    expect = select(params, inp)
+    to_float32 = post_det_decode.to_float32
     narrow = select(to_float32(params), to_float32(inp))
-    require(
-        [c.row for c in kept] == [c.row for c in narrow]
-        and [c.class_id for c in kept] == [c.class_id for c in narrow],
-        f"{case_id}: the result depends on the float width",
-    )
-    expect: dict[str, Any] = {
-        "kept_rows": [c.row for c in kept],
-        "scores": [c.score for c in kept],
-        "class_ids": [c.class_id for c in kept],
-    }
-    if show_boxes:
-        expect["boxes_xyxy"] = [c.box for c in kept]
+    if not all(expect[key] == narrow[key] for key in ("kept_rows", "class_ids")):
+        defect(f"{case_id}: the result depends on the float width")
+    if not show_boxes:
+        del expect["boxes_xyxy"]
     return Case(id=case_id, params=params, input=inp, expect=expect, note=note)
 
 
@@ -1620,7 +1287,11 @@ def build_selection_none() -> Vectors:
         note: str | None = None,
         **kwargs: Any,
     ) -> None:
-        cases.append(_selection_case(select_none, case_id, params, inp, note, **kwargs))
+        cases.append(
+            _selection_case(
+                post_det_selection_none.run, case_id, params, inp, note, **kwargs
+            )
+        )
 
     detections = {"fields": FIELDS}
     add(
@@ -1802,7 +1473,11 @@ def build_selection_top_k() -> Vectors:
         inp: dict[str, Any],
         note: str | None = None,
     ) -> None:
-        cases.append(_selection_case(select_top_k, case_id, params, inp, note))
+        cases.append(
+            _selection_case(
+                post_det_selection_top_k.run, case_id, params, inp, note
+            )
+        )
 
     add(
         "several-classes-on-one-row",
@@ -1910,7 +1585,11 @@ def build_selection_nms() -> Vectors:
         note: str | None = None,
         **kwargs: Any,
     ) -> None:
-        cases.append(_selection_case(select_nms, case_id, params, inp, note, **kwargs))
+        cases.append(
+            _selection_case(
+                post_det_selection_nms.run, case_id, params, inp, note, **kwargs
+            )
+        )
 
     base = {
         "iou_threshold": 0.5,
@@ -2096,69 +1775,6 @@ def build_selection_nms() -> Vectors:
 # ---------------------------------------------------------------------------
 
 
-def to_model_pixels(
-    scale: str, decoded_xy: list[float], input_size: list[int]
-) -> list[float]:
-    """Section `post.unprojection`, Behaviour: a decoded position in model-input pixels.
-
-    `input_size` is [height, width] of the model input.
-    """
-    in_h, in_w = input_size
-    x, y = decoded_xy
-    if scale == "pixel":
-        return [x, y]
-    if scale == "normalized_01":
-        return [x * in_w, y * in_h]
-    if scale == "normalized_11":
-        return [(x + 1) / 2 * in_w, (y + 1) / 2 * in_h]
-    raise ValueError(f"unknown scale {scale!r}")
-
-
-def resize_unproject(
-    resize: dict[str, Any],
-    src_w: int | None,
-    src_h: int | None,
-    bbox_xyxy: list[float] | None,
-    model_xy: list[float],
-) -> list[float]:
-    """Sections `pre.resize.<method>`, Inverse: model-input pixels to source pixels."""
-    method = resize["method"]
-    x, y = model_xy
-    if method == "letterbox":
-        geometry = letterbox_geometry(
-            src_w,
-            src_h,
-            resize["target_size"],
-            resize["pad_position"],
-            resize["rounding"],
-        )
-        return letterbox_unproject(geometry, src_w, src_h, model_xy)
-    if method == "stretch":
-        return stretch_unproject(resize["target_size"], src_w, src_h, model_xy)
-    if method == "fit":
-        geometry = fit_geometry(src_w, src_h, resize["target_size"])
-        return fit_unproject(geometry, model_xy)
-    if method == "none":
-        return [x, y]
-    if method == "affine_person_crop":
-        crop = affine_crop(
-            bbox_xyxy,
-            resize["target_size"],
-            resize["expand_ratio"],
-            resize["maintain_aspect_ratio"],
-        )
-        return affine_unproject(crop["matrix"], model_xy)
-    raise ValueError(f"unknown resize method {method!r}")
-
-
-def clamp_to_lower_bound(box_xyxy: list[float]) -> list[float]:
-    """Section `post.det.decode`, field `clamp_boxes`: the lower bound 0 of the source image.
-
-    The spec does not define the upper bound. The cases never reach it: see `_box_case`.
-    """
-    return [max(0, value) for value in box_xyxy]
-
-
 def _unprojection_inputs(
     resize: dict[str, Any],
     src: tuple[int, int] | None,
@@ -2167,21 +1783,17 @@ def _unprojection_inputs(
 ) -> tuple[list[int], dict[str, Any]]:
     """Return the model input size [height, width] and the `input` of a case."""
     if resize["method"] == "affine_person_crop":
-        require(
-            bbox_xyxy is not None and src is None, "an affine case gives a box only"
-        )
+        if not (bbox_xyxy is not None and src is None):
+            defect("an affine case gives a box only")
         return resize["target_size"], {"bbox_xyxy": bbox_xyxy}
     src_w, src_h = src
     if resize["method"] == "none":
         # The host passes the source image unchanged: the model input is the source size.
-        require(
-            input_size == [src_h, src_w], "method none: input_size is the source size"
-        )
+        if input_size != [src_h, src_w]:
+            defect("method none: input_size is the source size")
         return input_size, {"src_w": src_w, "src_h": src_h}
-    require(
-        input_size in (None, resize["target_size"]),
-        "input_size must equal target_size",
-    )
+    if input_size not in (None, resize["target_size"]):
+        defect("input_size must equal target_size")
     return resize["target_size"], {"src_w": src_w, "src_h": src_h}
 
 
@@ -2197,16 +1809,13 @@ def _unprojection_case(
     input_size: list[int] | None = None,
 ) -> Case:
     size, case_input = _unprojection_inputs(resize, src, bbox_xyxy, input_size)
-    src_w, src_h = src or (None, None)
-    model_xy = to_model_pixels(scale, decoded_xy, size)
+    params = {"scale": scale, "input_size": size, "resize": resize}
+    case_input = {**case_input, "decoded_xy": decoded_xy}
     return Case(
         id=case_id,
-        params={"scale": scale, "input_size": size, "resize": resize},
-        input={**case_input, "decoded_xy": decoded_xy},
-        expect={
-            "model_xy": model_xy,
-            "source_xy": resize_unproject(resize, src_w, src_h, bbox_xyxy, model_xy),
-        },
+        params=params,
+        input=case_input,
+        expect=post_unprojection.run(params, case_input),
         note=note,
     )
 
@@ -2223,39 +1832,27 @@ def _box_case(
 ) -> Case:
     src_w, src_h = src
     size, case_input = _unprojection_inputs(resize, src, None, None)
-    model_box = [
-        *to_model_pixels(scale, decoded_xyxy[:2], size),
-        *to_model_pixels(scale, decoded_xyxy[2:], size),
-    ]
-    source_box = [
-        *resize_unproject(resize, src_w, src_h, None, model_box[:2]),
-        *resize_unproject(resize, src_w, src_h, None, model_box[2:]),
-    ]
-    # The spec does not define the upper clamp bound ([0, W] or [0, W - 1]) or the result for
-    # a box without area. A case keeps clear of both, so the open questions change no result.
-    require(
-        all(x <= src_w - 1 for x in source_box[0::2])
-        and all(y <= src_h - 1 for y in source_box[1::2]),
-        f"{case_id}: a coordinate reaches the upper clamp bound",
-    )
-    clamped = clamp_to_lower_bound(source_box)
-    require(
-        clamped[2] > clamped[0] and clamped[3] > clamped[1],
-        f"{case_id}: the clamped box has no area",
-    )
-    clamp = True if clamp_boxes is None else clamp_boxes
     params: dict[str, Any] = {"scale": scale, "input_size": size, "resize": resize}
     if clamp_boxes is not None:
         params["clamp_boxes"] = clamp_boxes
+    case_input = {**case_input, "decoded_xyxy": decoded_xyxy}
+    expect = post_unprojection.run(params, case_input)
+    source_box = expect["source_xyxy"]
+    # The spec does not define the upper clamp bound ([0, W] or [0, W - 1]) or the result for
+    # a box without area. A case keeps clear of both, so the open questions change no result.
+    if not (
+        all(x <= src_w - 1 for x in source_box[0::2])
+        and all(y <= src_h - 1 for y in source_box[1::2])
+    ):
+        defect(f"{case_id}: a coordinate reaches the upper clamp bound")
+    clamped = post_unprojection.clamp_to_lower_bound(source_box)
+    if not (clamped[2] > clamped[0] and clamped[3] > clamped[1]):
+        defect(f"{case_id}: the clamped box has no area")
     return Case(
         id=case_id,
         params=params,
-        input={**case_input, "decoded_xyxy": decoded_xyxy},
-        expect={
-            "model_xyxy": model_box,
-            "source_xyxy": source_box,
-            "output_xyxy": clamped if clamp else source_box,
-        },
+        input=case_input,
+        expect=expect,
         note=note,
     )
 
