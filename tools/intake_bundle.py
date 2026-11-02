@@ -11,7 +11,8 @@ Usage::
     uv run python -B tools/intake_bundle.py batch --fields FILE --out DIR [--inputs DIR] [--root INTAKES]
 
 `pack` and `list` use only the standard library, so Python 3.9 or later runs them. `verify`
-reads YAML, so it runs in the environment of this repository. `batch` is the batch-conversion
+reads YAML and runs the producers of the vector files, so it runs in the environment of this
+repository. `batch` is the batch-conversion
 check. It imports onnx, onnxruntime and the skellytracker converter, so it runs only in the `.venv`
 of this checkout. `--fields` is a fields file or a manifest. No sub-command writes a response
 file: the skellytracker session writes them.
@@ -635,6 +636,53 @@ def _cases(data: object) -> dict[str, object]:
     return {c["id"]: c for c in cases or [] if isinstance(c, dict) and "id" in c}
 
 
+PART_2_4 = re.compile(r"^### 2\.4\b.*?(?=^#{1,3} |\Z)", re.MULTILINE | re.DOTALL)
+RULE_ID = re.compile(r"`(V-[a-z][a-z0-9_.]*[a-z0-9]-\d+)`")
+
+
+def vector_problems(data: object, section: str, folders: list[Path]) -> list[str]:
+    """Return the form problems of one bundle or record vector file (ADR-8DSW, item 2).
+
+    `folders` are bundle or record folders, the own folder first. The producer is
+    `reference/<section_module>.py` of the first folder that has it, else the skellytracker
+    producer. The rule IDs are those of the section files and of part 2.4 of each `proposal.md` in
+    `folders`. This loads the bundle reference code, numpy and the package, so `pack` and `list`
+    never call it.
+    """
+    import make_vectors
+    from vector_form import file_problems
+
+    module = f"{section.replace('.', '_')}.py"
+    own = next((f / "reference" for f in folders if (f / "reference" / module).is_file()), None)
+    rules = set(make_vectors.rule_ids())
+    for folder in folders:
+        if (folder / "proposal.md").is_file():
+            text = (folder / "proposal.md").read_text(encoding="utf-8", errors="replace")
+            rules.update(RULE_ID.findall("".join(PART_2_4.findall(text))))
+    loaded: list = []
+
+    def reference():  # noqa: ANN202
+        if not loaded:
+            loaded.append(make_vectors.load_reference(section, own) if own else make_vectors.producer(section))
+        return loaded[0]
+
+    try:
+        return file_problems(data, rules, reference=reference, package_function=make_vectors.package_function)
+    except Exception as exc:  # noqa: BLE001  # a producer that does not load, or data the check cannot read
+        return [f"the form check stopped: {type(exc).__name__}: {exc}"]
+
+
+def _same_case(mine: dict, theirs: dict, tolerance: object) -> bool:
+    """A contribution case agrees with the case of its id: `expect` within the tolerance, `verified_against` aside (ADR-8DSW, item 5)."""
+    from vector_form import agrees
+
+    def rest(case: dict) -> dict:
+        return {k: v for k, v in case.items() if k not in ("expect", "verified_against")}
+
+    atol = tolerance if isinstance(tolerance, (int, float)) and not isinstance(tolerance, bool) else 0.0
+    return rest(mine) == rest(theirs) and agrees(mine.get("expect"), theirs.get("expect"), theirs, atol)
+
+
 def _load_yaml(version_dir: Path, rel: str, yaml) -> tuple[object, str | None]:  # noqa: ANN001
     """Return (data, None), or (None, finding) for a file that YAML (or JSON) cannot read."""
     try:
@@ -879,12 +927,29 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list
     vectors = sorted(r for r in listed if r.startswith("vectors/") and r.endswith(".yaml"))
     if contribution and not vectors:
         findings.append("a contribution needs at least one vectors/<section ID>.yaml")
+    owner_dirs = [
+        o["dir"] / f"v{o['version']}"
+        for o in found.values()
+        if contribution
+        and o["manifest"].get("kind") == "proposal"
+        and o["manifest"].get("name") == manifest["contributes_to"]
+        and not o["manifest"].get("contributes_to")
+    ]
+    vector_data: dict[str, object] = {}
     for rel in vectors:
         section = rel.removeprefix("vectors/").removesuffix(".yaml")
         if section not in manifest["sections"]:
             findings.append(f"{rel}: the section {section} is not in the manifest sections")
         if listed[rel]["bytes"] > VECTOR_LIMIT:
             findings.append(f"{rel}: a vector file must be 256 KiB or smaller")
+        if not (version_dir / rel).is_file():
+            continue
+        data, problem = _load_yaml(version_dir, rel, yaml)
+        if problem:
+            findings.append(problem)
+            continue
+        vector_data[rel] = data
+        findings += [f"{rel}: {p}" for p in vector_problems(data, section, [version_dir, *owner_dirs])]
 
     # Text checks: private data, plans/ paths, links.
     terms = check_private_data.private_terms(repo)
@@ -938,31 +1003,19 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list
                         f"the section {section} has the owner {owner}: send a contribution or a follow-up"
                     )
         if contribution:
-            owner_ids = [
-                b for b, o in found.items()
-                if o["manifest"].get("kind") == "proposal"
-                and o["manifest"].get("name") == manifest["contributes_to"]
-                and not o["manifest"].get("contributes_to")
-            ]
-            if not owner_ids:
+            if not owner_dirs:
                 findings.append(f"no proposal bundle with the slug {manifest['contributes_to']}")
-            for rel in vectors:
-                data, problem = _load_yaml(version_dir, rel, yaml)
-                if problem:
-                    findings.append(problem)
-                    continue
+            for rel, data in vector_data.items():
                 mine = _cases(data)
-                theirs: dict[str, object] = {}
-                sources = [repo / SPEC / rel] + [
-                    found[o]["dir"] / f"v{found[o]['version']}" / rel for o in owner_ids
-                ]
-                for source in (s for s in sources if s.is_file()):
+                theirs: dict[str, tuple[dict, object]] = {}
+                for source in (s for s in [repo / SPEC / rel, *(d / rel for d in owner_dirs)] if s.is_file()):
                     other, _ = _load_yaml(source.parent, source.name, yaml)
-                    theirs.update(_cases(other))
+                    tolerance = other.get("tolerance") if isinstance(other, dict) else None
+                    theirs.update({i: (case, tolerance) for i, case in _cases(other).items()})
                 findings += [
                     f"{rel}: the case {case_id} differs from the owner case with the same id"
                     for case_id in sorted(set(mine) & set(theirs))
-                    if mine[case_id] != theirs[case_id]
+                    if not _same_case(mine[case_id], *theirs[case_id])
                 ]
 
     # External files.

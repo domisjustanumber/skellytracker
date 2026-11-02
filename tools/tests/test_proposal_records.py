@@ -11,6 +11,7 @@ import hashlib
 import json
 from pathlib import Path
 
+import intake_bundle as ib
 import pytest
 import yaml
 
@@ -44,6 +45,38 @@ def test_record_files_match_their_manifest(manifest_path: Path) -> None:
             continue
         data = (folder / item["path"]).read_bytes()
         assert hashlib.sha256(data).hexdigest() == item["sha256"], item["path"]
+
+
+def record_vector_problems(proposals: Path) -> list[str]:
+    """Run the vector form check of `verify` on each record vector file.
+
+    A contribution record in `<slug>/contributions/<contributor>/` also uses the reference and
+    part 2.4 of its owner record `<slug>/`.
+    """
+    found = []
+    for path in sorted(proposals.rglob("vectors/*.yaml")):
+        folders = list(dict.fromkeys([path.parent.parent, proposals / path.relative_to(proposals).parts[0]]))
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        rel = path.relative_to(proposals).as_posix()
+        found += [f"{rel}: {p}" for p in ib.vector_problems(data, path.stem, folders)]
+    return found
+
+
+def test_record_vector_files_have_the_vector_form() -> None:
+    assert record_vector_problems(PROPOSALS) == []
+
+
+def test_the_record_vector_check_finds_a_form_problem(tmp_path: Path) -> None:
+    landed = yaml.safe_load((REPO_ROOT / "specs/model-sidecar/vectors/post.det.selection.nms.yaml").read_text(encoding="utf-8"))
+    good = {**landed, "cases": landed["cases"][:1]}
+    bad = {**good, "tolerance": -1}
+    for rel, data in (("slug/vectors", good), ("slug/contributions/c/vectors", bad)):
+        (tmp_path / rel).mkdir(parents=True)
+        (tmp_path / rel / "post.det.selection.nms.yaml").write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+    assert record_vector_problems(tmp_path) == [
+        "slug/contributions/c/vectors/post.det.selection.nms.yaml: "
+        "post.det.selection.nms: tolerance must be a number of 0 or more"
+    ]
 
 
 def test_record_vector_files_are_256_kib_or_smaller() -> None:

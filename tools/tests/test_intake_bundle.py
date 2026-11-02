@@ -214,8 +214,63 @@ def test_verify_finds_a_file_that_proposal_md_names_and_the_bundle_lacks(tmp_pat
     assert findings == ["reference/post_det_selection_nms.py: proposal.md names this file, but the bundle does not have it"]
 
 
+NMS_VECTORS = REPO_ROOT / "specs" / "model-sidecar" / "vectors" / "post.det.selection.nms.yaml"
+
+
+def nms_vectors(*cases: dict) -> str:
+    """The landed nms vector file with `cases` in place of its cases."""
+    data = yaml.safe_load(NMS_VECTORS.read_text(encoding="utf-8"))
+    return yaml.safe_dump({**data, "cases": list(cases)}, sort_keys=False)
+
+
+def nms_case(number: int, **changes) -> dict:
+    case = yaml.safe_load(NMS_VECTORS.read_text(encoding="utf-8"))["cases"][number]
+    return {**case, **changes}
+
+
+def test_verify_checks_the_form_of_each_bundle_vector_file(tmp_path: Path, root: Path) -> None:
+    rel = "vectors/post.det.selection.nms.yaml"
+    good = payload(tmp_path / "g", {"proposal.md": "text\n", rel: nms_vectors(nms_case(0))})
+    ib.pack(good, proposal_fields(), root, cwd=tmp_path)
+    assert ib.verify("proposal-box-clamp@ultralytics-exporter", root) == []
+    shared = nms_case(0)
+    shared["input"] = {**shared["input"], "iou_threshold": 0.5}
+    bad = payload(tmp_path / "b", {"proposal.md": "text\n", rel: nms_vectors(shared)})
+    ib.pack(bad, proposal_fields(name="bad"), root, cwd=tmp_path)
+    assert ib.verify("proposal-bad@ultralytics-exporter", root) == [
+        f"{rel}: suppress-overlap-and-threshold: params and input share the keys ['iou_threshold']"
+    ]
+
+
+def test_verify_runs_the_bundle_reference_and_the_rules_of_part_2_4(tmp_path: Path, root: Path) -> None:
+    rel = "vectors/post.det.clamp.yaml"
+    vectors = {
+        "section": "post.det.clamp",
+        "tolerance": 0,
+        "unverified": "only the proposal text",
+        "cases": [
+            {"id": "a", "params": {}, "input": {"x": 1}, "expect": {"y": 1}},
+            {"id": "b", "function": "other", "params": {}, "input": {"x": 1}, "expect": {"y": 1}},
+            {"id": "c", "checks": ["refused"], "params": {}, "input": {"x": -1},
+             "expect": {"error": "V-post.det.clamp-1"}},
+            {"id": "d", "checks": ["refused"], "params": {}, "input": {"x": -2},
+             "expect": {"error": "V-post.det.clamp-2"}},
+        ],
+    }
+    source = payload(tmp_path, {
+        "proposal.md": "### 2.4 Validation rules\n\n- [ ] `V-post.det.clamp-1`: x must be 0 or more.\n",
+        "reference/post_det_clamp.py": "def run(params, input):\n    return {'y': input['x']}\n",
+        rel: json.dumps(vectors),
+    })
+    ib.pack(source, proposal_fields(sections=["post.det.clamp"]), root, cwd=tmp_path)
+    assert ib.verify("proposal-box-clamp@ultralytics-exporter", root) == [
+        f"{rel}: b: no function other in post_det_clamp",
+        f"{rel}: d: V-post.det.clamp-2 is not a defined rule ID",
+    ]
+
+
 def test_verify_checks_the_owner_and_the_contribution_cases(tmp_path: Path, root: Path) -> None:
-    owner_case = "cases:\n  - {id: one, input: 1, expect: 2}\n"
+    owner_case = nms_vectors(nms_case(0, id="one"), nms_case(1, id="three"))
     owner = payload(tmp_path / "o", {"proposal.md": "text\n", "vectors/post.det.selection.nms.yaml": owner_case})
     ib.pack(owner, proposal_fields(), root, cwd=tmp_path)
     respond(root, "proposal-box-clamp@ultralytics-exporter", 1)
@@ -226,13 +281,54 @@ def test_verify_checks_the_owner_and_the_contribution_cases(tmp_path: Path, root
         "the section post.det.selection.nms has the owner ultralytics-exporter: "
         "send a contribution or a follow-up"
     ]
-    other_case = "cases:\n  - {id: one, input: 1, expect: 3}\n  - {id: two, input: 2, expect: 4}\n"
+    beyond = nms_case(0, id="one")
+    beyond["expect"] = {**beyond["expect"], "scores": [0.9, 0.7001]}
+    other_params = nms_case(1, id="three")  # the same expect, other params
+    other_params["params"] = {**other_params["params"], "iou_threshold": 0.4}
+    other_case = nms_vectors(beyond, nms_case(2, id="two"), other_params)
     contribution = payload(tmp_path / "c", {"evidence.md": "text\n", "vectors/post.det.selection.nms.yaml": other_case})
     ib.pack(contribution, proposal_fields(contributor="openmmlab-exporter", contributes_to="box-clamp"), root, cwd=tmp_path)
     findings = ib.verify("proposal-box-clamp@openmmlab-exporter", root)
     assert findings == [
-        "vectors/post.det.selection.nms.yaml: the case one differs from the owner case with the same id"
+        "vectors/post.det.selection.nms.yaml: the case one differs from the owner case with the same id",
+        "vectors/post.det.selection.nms.yaml: the case three differs from the owner case with the same id",
     ]
+
+
+def test_a_contribution_uses_the_reference_and_the_part_2_4_rules_of_its_owner(tmp_path: Path, root: Path) -> None:
+    rel = "vectors/post.det.clamp.yaml"
+
+    def vectors(*cases: dict) -> str:
+        return json.dumps({"section": "post.det.clamp", "tolerance": 0, "unverified": "the proposal text", "cases": list(cases)})
+
+    owner = payload(tmp_path / "o", {
+        "proposal.md": "### 2.4 Validation rules\n\n- [ ] `V-post.det.clamp-1`: x must be 0 or more.\n",
+        "reference/post_det_clamp.py": "def run(params, input):\n    return {'y': input['x']}\n",
+        rel: vectors({"id": "a", "params": {}, "input": {"x": 1}, "expect": {"y": 1}}),
+    })
+    ib.pack(owner, proposal_fields(sections=["post.det.clamp"]), root, cwd=tmp_path)
+    contribution = payload(tmp_path / "c", {"evidence.md": "text\n", rel: vectors(
+        {"id": "b", "params": {}, "input": {"x": 2}, "expect": {"y": 2}},
+        {"id": "c", "checks": ["refused"], "params": {}, "input": {"x": -1}, "expect": {"error": "V-post.det.clamp-1"}},
+    )})
+    ib.pack(contribution, proposal_fields(sections=["post.det.clamp"], contributor="openmmlab-exporter",
+                                          contributes_to="box-clamp"), root, cwd=tmp_path)
+    assert ib.verify("proposal-box-clamp@openmmlab-exporter", root) == []
+
+
+def test_a_contribution_case_within_the_tolerance_or_with_its_own_verified_against_is_equal(
+    tmp_path: Path, root: Path
+) -> None:
+    owner = payload(tmp_path / "o", {"proposal.md": "text\n", "vectors/post.det.selection.nms.yaml": nms_vectors(nms_case(0))})
+    ib.pack(owner, proposal_fields(), root, cwd=tmp_path)
+    within = nms_case(0, verified_against=[{"OpenMMLab-Exporter": "ref/nms.py::run"}])
+    within["expect"] = {**within["expect"], "scores": [0.900004, 0.7]}  # tolerance 0.00001
+    landed = nms_case(1, verified_against=[{"OpenMMLab-Exporter": "ref/nms.py::run"}])  # the landed case
+    contribution = payload(tmp_path / "c", {
+        "evidence.md": "text\n", "vectors/post.det.selection.nms.yaml": nms_vectors(within, landed),
+    })
+    ib.pack(contribution, proposal_fields(contributor="openmmlab-exporter", contributes_to="box-clamp"), root, cwd=tmp_path)
+    assert ib.verify("proposal-box-clamp@openmmlab-exporter", root) == []
 
 
 def test_verify_checks_the_model_payload_schemas(tmp_path: Path, root: Path) -> None:
