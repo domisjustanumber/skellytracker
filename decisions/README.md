@@ -34,7 +34,6 @@ These entries are `accepted` or `evidence`.
 | [D9VT](entries/D9VT-decision-log-move.md) | The log moves to `decisions/` and `specs/model-sidecar/decisions/`; no stub; old plain-text paths stay; proposal-copy paths; supersedes k6dz | accepted |
 | [AB79](entries/AB79-one-pr-for-the-spec-build-work.md) | Exception to 0027: the spec-build work goes to `development` in one PR; one kind of change in each commit; no new `dom/NN-*` branch | accepted |
 | [FADS](entries/FADS-hand-over-bundles-in-intakes.md) | Hand-over bundles in `intakes/`: versions, manifest, states, responses, byte-copy proposal records; no gap records; supersedes pykx, faac and 0014 | accepted |
-| [KDBD](entries/KDBD-change-classes-and-spec-forced-edits.md) | Change classes `vnext`, `clarification` and `breaking`; the legacy index rule; spec-forced example edits and the part 7 table; supersedes 0009 | accepted |
 | [FDTD](entries/FDTD-evidence-sources-and-exporter-permalinks.md) | Exporter documents stay secondary; a checked upstream line is primary; user decisions in words; source forms; exporter permalinks; supersedes 0030 | accepted |
 | [QMKS](entries/QMKS-draft-sections-and-coverage-columns.md) | `spec: draft` rules, the graduation gate and the release stops; coverage and gate columns in `TRACEABILITY.md`; `no_model` reasons | accepted |
 | [JB5J](entries/JB5J-one-batch-form-for-each-sidecar.md) | One batch form for each `vNEXT` sidecar: b3 with `batch_conversion`, b1 or `dynamic`; the check by default; V0; publish rule for each verdict; supersedes JC4T | accepted |
@@ -44,6 +43,7 @@ These entries are `accepted` or `evidence`.
 | [5WKW](entries/5WKW-implementation-work-in-the-plan.md) | Stages M7 to M12 of the implementation plan hold the implementation-stage work; append only; the user decides when the plan goes; supersedes b9fm | accepted |
 | [8DSW](entries/8DSW-vector-files-are-the-case-source.md) | The vector file is the only case source; formula modules, named checks, `land` and `fill`; supersedes TA0G | accepted |
 | [AD33](entries/AD33-bundles-are-untrusted-input.md) | Bundles are untrusted input: no tool imports or runs bundle code; static checks; a reviewed, user-approved copy; ONNX checks in `batch` | accepted |
+| [NB5F](entries/NB5F-no-change-classes-and-one-re-export-request.md) | No change classes; one re-export request; a spec-forced edit can add a value read from the export graphs; supersedes KDBD | accepted |
 
 ### Proposed
 

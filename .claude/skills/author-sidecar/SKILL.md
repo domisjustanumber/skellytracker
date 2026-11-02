@@ -99,7 +99,9 @@ Keep your working draft where you like. The bundle is the hand-over
 
 1. Copy the model intake template to `intake.md` of your working draft of the `model` bundle.
 2. Read the responses of your bundles and the
-   [Re-export requests](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#re-export-requests). Do the open items first.
+   [Re-export requests](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#re-export-requests).
+   When the re-export request is open, do it first. Do not start a rebuild before it opens
+   ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
 3. Follow [How to use this template](../../../specs/model-sidecar/templates/model-intake.md#how-to-use-this-template).
 4. Fill in [Inputs before you start](../../../specs/model-sidecar/templates/model-intake.md#inputs-before-you-start).
 5. Fill in the [Header](../../../specs/model-sidecar/templates/model-intake.md#header). Write the

@@ -12,7 +12,7 @@ You do not do phase 3. A skellytracker session does it. The user decides.
    or write a change proposal. Nobody corrects the example by hand. An accepted spec change can make
    an example invalid. Then its content commit makes a spec-forced edit of the example
    ([When a spec change makes an example invalid](reference-examples.md#when-a-spec-change-makes-an-example-invalid);
-   [ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md)).
+   [ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
 2. **A proposal.** skellytracker copies the current version of your proposal bundle byte for byte
    to `specs/model-sidecar/proposals/<slug>/`. It records it as a short decision entry with status
    `proposed`. To change the proposal, pack a new version. skellytracker then replaces the copy in
@@ -23,7 +23,7 @@ You do not do phase 3. A skellytracker session does it. The user decides.
    - A content PR adds the normative text, the changelog row, the vectors and the reference
      implementation. It sets the decision entry to `accepted` (if it is not accepted yet). It also
      makes the spec-forced edit of each example that the change makes invalid
-     ([ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md)).
+     ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
    - A non-spec PR (documentation only) adds the guidance, the implementation proposal (as
      implementer guidance and an item of the implementation plan), the example and its provenance
      record ([ADR-5WKW](../../../decisions/entries/5WKW-implementation-work-in-the-plan.md)). It

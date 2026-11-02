@@ -31,7 +31,6 @@ def proposal_fields(name: str = "box-clamp", contributor: str = "ultralytics-exp
         "source_commit": SOURCE,
         "spec_commit": HEAD,
         "sections": ["post.det.selection.nms"],
-        "change_class": "vnext",
         "base": None,
         "depends_on": [],
         "contributes_to": None,
@@ -127,7 +126,7 @@ def test_pack_adds_the_sha256_of_an_external_file(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     ("change", "message"),
     [
-        ({"change_class": "minor"}, "change_class"),
+        ({"change_class": "vnext"}, "unknown key change_class"),  # ADR-NB5F
         ({"version": 3}, "unknown key version"),
         ({"spec_commit": "abc"}, "spec_commit"),
         ({"contributor": "Ultralytics-Exporter"}, "contributor"),

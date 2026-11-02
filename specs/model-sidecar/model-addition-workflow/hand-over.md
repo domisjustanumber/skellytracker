@@ -131,7 +131,6 @@ source_commit: <40 hex> | "none (no git repo)"
 spec_commit: <40 hex>     # the checkout HEAD that the contributor read
 created: YYYY-MM-DD
 sections: [<section ID>]  # model: each section that the model uses; proposal: each changed section
-change_class: vnext | clarification | breaking          # proposal
 base: <bundle id> | null                                # proposal follow-up
 depends_on: [<bundle id>]                               # proposal
 contributes_to: <slug> | null                           # proposal contribution
@@ -150,9 +149,8 @@ external:
 ```
 
 - In a proposal, the first item of `sections` is the section of the proposal index row.
-- `change_class` gives the class of the change ([Change classes](#change-classes);
-  [ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md)). A contribution
-  gives the class of its proposal.
+- A manifest has no `change_class`. A spec change has no class. `pack` and `verify` refuse the key
+  ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
 - `batch` is an integer or `dynamic`.
 - `batch_conversion` is the verdict of the [batch-conversion check](#batch-conversion-check).
 - `batch_conversion_reason` is required when `batch_conversion` is `to run`. Otherwise it is `null`.
@@ -183,28 +181,6 @@ external:
   with `../`. They are relative to the skellytracker root and name a file outside it, for example
   `../../<Exporter>/...` in the default layout.
 - Each SHA-256 is of the raw bytes of the bundle copy.
-
-## Change classes
-
-Each proposal names one class in `change_class` and in part 2. Its decision entry repeats the class
-([ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md)).
-
-| Class | Applies to | Needs |
-|---|---|---|
-| `vnext` (the default) | `vNEXT` only | The accepted decision entry. |
-| `clarification` | every `schema_version` | Each condition of [Clarifications](../format/versioning.md#clarifications). No **(vNEXT)** mark and no "Legacy behaviour" row. A summary row that says "(every `schema_version`)". Part 2.6 gives the result in exact math before and after the change, and names each host that stops conforming. Part 7 tells for each sidecar if it stays valid. |
-| `breaking` | every `schema_version` | Its own decision entry, with the explicit acceptance of the user. An item in [Every-version changes](../format/versioning.md#every-version-changes). A summary row that says "(breaking, every `schema_version`)". An audit of `skellytracker/core/detectors/**/*.yaml`. |
-
-- A `vnext` change breaks no published sidecar, because `load_sidecar` rejects `vNEXT`.
-- A package host that stops conforming after a `clarification` is a recorded gap. Write it in the
-  comment of the `implemented_by` line and in "Implementer guidance". Do not change the package code
-  in the spec-build stage.
-- A `breaking` change of a package sidecar waits for the implementation stage. The only exception is
-  a waiver of the user in the decision entry.
-- A change of any class can make an example invalid. Then the content commit edits the example, or
-  the content commit waits for the re-export bundle
-  ([When a spec change makes an example invalid](reference-examples.md#when-a-spec-change-makes-an-example-invalid);
-  [Re-export requests](#re-export-requests)).
 
 ## Batch-conversion check
 
@@ -454,7 +430,13 @@ resolution: {...}                         # required for rejected and resolved-o
 
 - `needs-contributor`: fix the findings. Pack the next version.
 - `waiting`: wait for the bundles of `waiting_on`.
-- `accepted`: wait for `landed`. Do not regenerate yet.
+- `accepted`: if the item under [Re-export requests](#re-export-requests) is closed, pack a new
+  version of the `model` bundle of each example of your repo with the impact `needs-export` in
+  part 7, with `related` set to the proposal bundle. Do not wait for `landed`. Until the item
+  closes, do not pack: the rebuild answers the row
+  ([When a spec change makes an example invalid](reference-examples.md#when-a-spec-change-makes-an-example-invalid);
+  [ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
+  Do not regenerate your other sidecars yet.
 - `landed`: regenerate the sidecar with the fields of the landed commit `subject`. Pack a new version
   of the `model` bundle with `related` set to the proposal bundle.
 - `resolved-otherwise`: do `resolution.contributor_action`. Regenerate the sidecar with the fields
@@ -503,9 +485,10 @@ it does this safety check ([ADR-AD33](../../../decisions/entries/AD33-bundles-ar
 5. A `model` bundle: run `batch` again when [The session run](#the-session-run) tells you to
    ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)). With the
    verdict `describes`, [Reference examples](reference-examples.md) then copies `example/`. The
-   `inventory.yaml` entry gets `bundle: <bundle id>@v<k>`. The same commit deletes each
-   [Re-export requests](#re-export-requests) bullet that the bundle answers. With the verdict
-   `does not describe`, the response is `waiting`. `waiting_on` names the `proposal` bundles of the
+   `inventory.yaml` entry gets `bundle: <bundle id>@v<k>`. If the bundle answers the last example
+   of the [re-export request](#re-export-requests), the same commit closes the request
+   ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
+   With the verdict `does not describe`, the response is `waiting`. `waiting_on` names the `proposal` bundles of the
    blocking rows. If no proposal bundle exists, the response is `needs-contributor`. With the verdict
    `pending`, the response is `needs-contributor`. Its findings come from "Missing evidence and runs"
    of the intake. Procedure A of the skill `change-sidecar-spec` turns `vector-runs.yaml` into
@@ -551,11 +534,10 @@ The response asks the contributor for a new version without the private data.
 ## Re-export requests
 
 The heading [Re-export requests](../decisions/open-work.md#re-export-requests) of the spec
-`open-work.md` holds each request to regenerate or export a sidecar again. Before you pack, read it.
-A request that names your repo: answer with a new version of the `model` bundle. The session deletes
-the request when it lands that bundle. For a `needs-export` example of an accepted proposal, set
-`related` to the proposal bundle. The content commit of the proposal lands your bundle
-([When a spec change makes an example invalid](reference-examples.md#when-a-spec-change-makes-an-example-invalid)).
+`open-work.md` holds one item: the rebuild of each example on one spec revision
+([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
+Before you pack, read it. Do not start a rebuild before the item opens. For a `needs-export` example of an accepted proposal, follow
+[When a spec change makes an example invalid](reference-examples.md#when-a-spec-change-makes-an-example-invalid).
 
 ## Retention
 
@@ -571,7 +553,7 @@ the request when it lands that bundle. For a `needs-export` example of an accept
 | Writer | Can write | Must not write |
 |---|---|---|
 | Contributor | new `v<k>/` folders of its own bundles; `manifest.yaml` last | `responses/`, another bundle, a finished version |
-| skellytracker session | `responses/`; tracked records; the re-export requests | a `v<k>/` folder of a contributor |
+| skellytracker session | `responses/`; tracked records; the re-export request | a `v<k>/` folder of a contributor |
 | User | deletes bundles | nothing else in `intakes/` |
 
 Nothing enforces this on a local disk. `verify` finds a hash mismatch, a contributor that is not the

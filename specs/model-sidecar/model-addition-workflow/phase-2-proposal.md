@@ -39,20 +39,14 @@ A proposal has eight parts:
    - the behaviour, forward and inverse;
    - the validation rules, with new rule IDs;
    - the selectors;
-   - the legacy behaviour and the effect on `schema_version`;
-   - the change class: `vnext`, `clarification` or `breaking`
-     ([Change classes](hand-over.md#change-classes);
-     [ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md));
    - the changelog row.
 
    Also find each place that the change must edit. Search the spec for each closed set or list that
    the change extends, for example the `role` values, the `semantic` values, the resize methods, the
    storage layout (`format.file_layout`), the Overview, the section map and the validation index
-   (`../freemocap/skellytracker/specs/model-sidecar/README.md`), and the "Legacy behaviour" heading
-   of each changed section. Add the heading to its index "Version-aware compatibility"
-   (`format.versioning`) only if it gives a legacy difference. A new field, value or section that is
-   not available before `vNEXT` goes in the availability row of the "Legacy behaviour" table of
-   `format.versioning`. Also
+   (`../freemocap/skellytracker/specs/model-sidecar/README.md`). Do not add a legacy difference, an
+   index row or an availability row
+   ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)). Also
    find each rule that names one of these values, for example the rule
    `V-pre.resize.affine_person_crop-2`: a sidecar with `pose.requires_object_detector: true` declares
    `input.resize.method: affine_person_crop`. List each place in the proposal. These edits are part

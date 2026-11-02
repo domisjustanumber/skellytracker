@@ -87,7 +87,6 @@ You do not do these steps. A skellytracker session does them, and the user decid
 | Model, and its `model` bundle ID | |
 | Intake rows with the verdict `near-miss` or `gap` | |
 | Kind (`new section`, `changed section`, `contribution` or `follow-up`) | |
-| Change class (`vnext`, `clarification` or `breaking`; the manifest key `change_class`) | |
 | Base bundle of a follow-up (`base`, or `none`) | |
 | Proposed section ID (the `id` in the section file's front matter) | |
 | Section file (the file of the changed section, or the proposed path of the new section file under `specs/model-sidecar/`) | |
@@ -143,12 +142,9 @@ its section ID or file, its heading and the edit. Examples:
   validation rules);
 - the storage layout (`format.file_layout`, heading "Storage layout");
 - the Overview, the section map and the validation index (`specs/model-sidecar/README.md`);
-- the "Legacy behaviour" heading of each changed section. Add the heading to its index
-  "Version-aware compatibility" (`format.versioning`) only if it gives a legacy difference. A new
-  field, value or section that is not available before `vNEXT` goes in the availability row of the
-  "Legacy behaviour" table of `format.versioning`;
 - the summary of changes (`specs/model-sidecar/changelog.md`).
 
+Do not add a legacy difference, an index row or an availability row (skellytracker ADR-NB5F).
 These edits are part of the same contract unit. A new role with its enum and path edits is one
 proposal.
 
@@ -186,28 +182,7 @@ rule that blocks a model, list it as a follow-up.
 The `key=value` pairs of a resolved sidecar that make the sidecar use this section. Example:
 `input.resize.method=fit`.
 
-### 2.6 Legacy behaviour and version effect
-
-- Give the change class: `vnext`, `clarification` or `breaking` (heading "Change classes" in
-  `specs/model-sidecar/model-addition-workflow/hand-over.md`; skellytracker ADR-KDBD).
-- Tell what a sidecar with `schema_version < vNEXT` does. A `vnext` change does not change the
-  legacy meaning.
-- Until skellytracker releases the spec, every change goes into the `vNEXT` revision. Write only the
-  `vNEXT` text. Do not write a second text for a later revision (heading "Scope of this revision" in
-  `specs/model-sidecar/changelog.md`). After that release, a change sets `schema_version` to the
-  release that ships it.
-- Give the new row of the "Legacy behaviour" table of the section, if the change gives a legacy
-  difference. The index of these tables is the heading "Version-aware compatibility" in
-  `specs/model-sidecar/format/versioning.md`. A new field, value or section that is not available
-  before `vNEXT` goes in the availability row of the "Legacy behaviour" table of that file.
-- If a part of the change applies to every `schema_version` and the class is not `breaking`, show
-  that this part is a clarification. Use each condition of the heading "Clarifications" in
-  `specs/model-sidecar/format/versioning.md`.
-  Give the result in exact math before the change and after the change. Name each host that stops
-  conforming. Write its gap in part 6.
-- If the change is `breaking`, give its item for the list "Every-version changes" in the same file.
-
-### 2.7 Changelog row
+### 2.6 Changelog row
 
 The row for the `vNEXT` entry of the changelog (`specs/model-sidecar/changelog.md` heading
 "`schema_version` history"), and the row for the summary of changes (heading "Summary of changes" in
@@ -474,26 +449,34 @@ List each affected sidecar group: its owner repo, the inventory key or the model
 host decoder change. Find the groups from the section rows of `specs/model-sidecar/TRACEABILITY.md`,
 and from the `model` bundles that `intake_bundle.py list` shows with an affected section in
 `sections`. Describe the change to the host decoder of the proposing exporter. At landing,
-skellytracker compares this list with the result of `sidecar_trace.py impact`. It turns the list into
-the re-export requests (heading "Re-export requests" in
-`specs/model-sidecar/model-addition-workflow/hand-over.md`).
+skellytracker compares this list with the result of `sidecar_trace.py impact`. A `needs-export` row
+is a request only after the re-export request closes (heading "Re-export requests" in
+`specs/model-sidecar/model-addition-workflow/hand-over.md`; skellytracker ADR-NB5F,
+`decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md`).
+
+Until skellytracker releases the spec, every change goes into the `vNEXT` revision. Write only the
+`vNEXT` text. Do not write a second text for a later revision (heading "Scope of this revision" in
+`specs/model-sidecar/changelog.md`). After that release, a change sets `schema_version` to the
+release that ships it.
 
 | Owner repo | Inventory key or model | Change (`none`, new fields, or regenerate) | Host decoder change |
 |---|---|---|---|
 | | | | |
-| skellytracker | package sidecars | | |
 
-The skellytracker package sidecars have `schema_version: "v2024.09.1019"`. A `vnext` change does not
-change their meaning. For a `clarification` or a `breaking` change, write for each sidecar in the
-table if it stays valid. Give the commit that you checked.
+The skellytracker package sidecars are legacy sidecars. No spec change applies to them until the
+package migrates. Do not list them.
 
 **Reference examples that the change makes invalid.** Read each example in
 `specs/model-sidecar/examples/`. Start from the section rows of `specs/model-sidecar/TRACEABILITY.md`.
 Write one row for each example that breaks a new or changed rule. The edit must follow from the
-change alone. If the example needs a value that only an export can give, the impact is
-`needs-export`. If no example breaks a rule, write `none` and the reason. The heading "When a spec
-change makes an example invalid" in
-`specs/model-sidecar/model-addition-workflow/reference-examples.md` gives the allowed edits.
+change alone. The only exception is a value that you read from the graph of an ONNX file of the
+exporter of the example, with `onnx.load(path, load_external_data=False)`. Do not run the file. Give
+the value, the file path in the exporter repo and its SHA-256 in the edit text. If the example needs
+a value that the change does not give and that the graph cannot give, the impact is `needs-export`
+(skellytracker ADR-NB5F, `decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md`).
+If no example breaks a rule, write `none` and the reason. The heading "When a spec change makes an
+example invalid" in `specs/model-sidecar/model-addition-workflow/reference-examples.md` gives the
+allowed edits.
 
 | Example (`inventory.yaml` key) | Rule ID | Impact (`forced-edit` or `needs-export`) | Edit text |
 |---|---|---|---|
@@ -534,7 +517,6 @@ write `n/a` after it.
 - [ ] Part 1 cites primary evidence, or names the primary evidence that is missing.
 - [ ] Part 1 gives each plan decision about the spec in words, with no item number, or `none`.
 - [ ] Part 2.1 lists each place that the change edits.
-- [ ] Part 2.6 gives the change class, and the header and `change_class` give the same class.
 - [ ] Part 3 names the reference file, and the file exists in the proposal bundle.
 - [ ] Part 4 names the vector file, and the file exists in the proposal bundle. `fill` wrote its `expect`.
 - [ ] Part 4 gives `verified_against`, or `unverified: <reason>`.

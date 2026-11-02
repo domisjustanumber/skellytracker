@@ -40,7 +40,7 @@ To add a model or to request a change to this specification, follow the [model a
 The field `status.spec` in the front matter of a section file gives the status of the section: `stable` or `draft`. The front matter is the authority.
 
 1. A `draft` section is normative for `vNEXT`. A writer can write its fields.
-2. A content change can change a `draft` section. The [change class](model-addition-workflow/hand-over.md#change-classes) of this change is always `vnext`. It is never `clarification` or `breaking`.
+2. A content change can change a `draft` section. A spec change has no class ([ADR-NB5F](../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
 3. The first body line of a `draft` section, after its title, is the banner "This section is a draft. ...". A `stable` section has no banner.
 4. A new section starts as `draft`. A changed `stable` section stays `stable`.
 5. A `draft` section becomes `stable` when all of these conditions are true. The Gate column of the [Implementation status](TRACEABILITY.md#implementation-status) table shows the conditions that the files show.
@@ -115,7 +115,7 @@ These fields apply when `role` includes `pose_estimator`.
 
 ## Validation rules
 
-A sidecar is valid when all of the following rules hold. A rule marked **(vNEXT)** applies only when `schema_version >= vNEXT`. A rule without the mark applies to every `schema_version`. A new rule without the mark must be a clarification ([Clarifications](format/versioning.md#clarifications)) or a change in [Every-version changes](format/versioning.md#every-version-changes). Legacy sidecars follow [Version-aware compatibility](format/versioning.md#version-aware-compatibility).
+A sidecar is valid when all of the following rules hold. A rule marked **(vNEXT)** applies only when `schema_version >= vNEXT`. A rule without the mark applies to every `schema_version`. Legacy sidecars follow [Version-aware compatibility](format/versioning.md#version-aware-compatibility).
 
 - [File composition](format/composition.md#validation-rules)
 - [Schema versioning](format/versioning.md#validation-rules)

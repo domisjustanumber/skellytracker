@@ -16,45 +16,18 @@ repository state is in the root [open-work.md](../../../decisions/open-work.md).
 
 ## Re-export requests
 
-Each item asks an exporter to regenerate a sidecar or to export it again. It names the exporter
-repo, the example or the model, and the reason. The exporter answers with a new version of its
-`model` bundle
-([Re-export requests](../model-addition-workflow/hand-over.md#re-export-requests)). The session
-deletes the item when it lands that bundle.
+This heading holds one item
+([Re-export requests](../model-addition-workflow/hand-over.md#re-export-requests);
+[ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
 
-- [ADR-CNSN](../../../decisions/entries/CNSN-spec-build-actions-after-the-fact.md), owner
-  Ultralytics-Exporter, action `regenerate`: `detectors/object_detectors/yolo26/yolo26.yaml`
-  (`model_id` `yolo26`) and `detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml` (`model_id`
-  `yolo26-body`). Remove the precision key `int8`
-  ([Every-version changes](../format/versioning.md#every-version-changes),
-  [V-common.sizes_and_artifacts-6](../common/sizes-and-artifacts.md#validation-rules)).
-- [ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md), owner
-  Ultralytics-Exporter, action `export again`: `detectors/object_detectors/yolo26/yolo26.yaml`
-  (`model_id` `yolo26`) and `detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml` (`model_id`
-  `yolo26-body`). The spec-forced edit of JB5J kept only the batch 1 groups. Run the
-  [batch-conversion check](../model-addition-workflow/hand-over.md#batch-conversion-check). With
-  the verdict `converts`, the example uses the goal form: only the key `"3"`, with
-  `batching.batch_conversion` ([Batch forms](../common/sizes-and-artifacts.md#batch-forms)). With
-  another verdict, follow [Publishing](../model-addition-workflow/validation-and-publishing.md#publishing).
-  Give `output_shapes` in each batch group ([ADR-CRV0](entries/CRV0-output-shapes-in-each-batch-group.md)).
-- [ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md), owner
-  OpenMMLab-Exporter, action `export again`:
-  `detectors/object_detectors/rtmdet-person/rtmdet-person.yaml` (`model_id` `rtmdet-person`). The
-  spec-forced edit of JB5J kept only the batch 1 groups. No measurement of `static-batch-v1` exists
-  for this family. Run the
-  [batch-conversion check](../model-addition-workflow/hand-over.md#batch-conversion-check). With
-  the verdict `converts`, the example uses the goal form: only the key `"3"`, with
-  `batching.batch_conversion` ([Batch forms](../common/sizes-and-artifacts.md#batch-forms)). With
-  another verdict, follow [Publishing](../model-addition-workflow/validation-and-publishing.md#publishing).
-  Give `output_shapes` in each batch group ([ADR-CRV0](entries/CRV0-output-shapes-in-each-batch-group.md)).
-- [ADR-CRV0](entries/CRV0-output-shapes-in-each-batch-group.md), owner OpenMMLab-Exporter, action
-  `export again`: `detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml` (`model_id`
-  `rtmo-body7`). The bundle must give `output_shapes` in each batch group, with one entry for each
-  output, from the graph, and `-1` for a symbolic axis. When `outputs[].shape` gives a shape, the
-  entry has its rank, and each fixed dim of it is equal in the entry, or `-1`.
-- [ADR-CRV0](entries/CRV0-output-shapes-in-each-batch-group.md), owner OpenMMLab-Exporter, action
-  `export again`: `detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml` (`model_id`
-  `rtmw-wholebody`). The bundle must give the same as the item above.
+- **Rebuild of each example.** Each exporter rebuilds each of its examples on one spec revision. It
+  answers with a new version of the `model` bundle of each example. Ultralytics-Exporter:
+  `yolo26`, `yolo26-body`. OpenMMLab-Exporter: `rtmdet-person`, `rtmw-wholebody`, `rtmo-body7`.
+  The prerequisite changes: the removal of the legacy layer, the one batch field with
+  `output_shapes` in each size, the minimal contract, and the one-statement fix of the selection
+  pipeline. The item opens when it names the revision and each
+  of these changes is accepted. It closes when each example is an export copy at that revision. Do
+  not start a rebuild before it opens.
 
 ## Spec defects
 

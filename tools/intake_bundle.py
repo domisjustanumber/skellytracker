@@ -48,7 +48,6 @@ FORBIDDEN_SUFFIXES = (".onnx", ".onnx.data", ".ort")
 VECTOR_LIMIT = 256 * 1024
 
 KINDS = ("model", "proposal")
-CHANGE_CLASSES = ("vnext", "clarification", "breaking")
 VERDICTS = ("describes", "does not describe", "pending")
 BATCH_VERDICTS = ("converts", "does not convert", "not applicable", "to run")
 BATCH_REASONS = ("host-runtime-cannot-load", "missing-verification-batch", "no-signal")
@@ -84,7 +83,7 @@ COMMON_KEYS = (
 KIND_KEYS = {
     "model": ("verdict", "batch_conversion", "batch_conversion_reason", "batch_forced", "batch_forced_reason",
               "no_static_reason"),
-    "proposal": ("change_class", "base", "depends_on", "contributes_to"),
+    "proposal": ("base", "depends_on", "contributes_to"),
 }
 COMPUTED = ("files", "version", "created")
 EXTERNAL_KEYS = ("path", "role", "size", "batch", "precision", "published")
@@ -190,8 +189,6 @@ def manifest_problems(manifest: dict, computed: bool = True) -> list[str]:
     if "related" in manifest and not _is_str_list(get("related")):
         problems.append("related must be a list of bundle IDs")
     if kind == "proposal":
-        if "change_class" in manifest and get("change_class") not in CHANGE_CLASSES:
-            problems.append(f"change_class must be one of {list(CHANGE_CLASSES)}")
         problems += [
             f"{key} must be a string or null"
             for key in ("base", "contributes_to")

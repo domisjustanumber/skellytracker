@@ -42,7 +42,7 @@ The `kind` and the `notes` of each entry in `inventory.yaml` give the state of t
 - A note "Drifted" is an example that is not equal to the copy of its exporter. Replace it now.
 - An item `spec change <ID>: <edit>` in `edits` is a spec-forced edit
   ([When a spec change makes an example invalid](#when-a-spec-change-makes-an-example-invalid);
-  [ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md)).
+  [ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
   Replace the example when the copy of its exporter obeys each rule.
 
 The [introduction to the examples](../examples/README.md) tells which examples come from real
@@ -76,7 +76,7 @@ exports and which examples are forecasts.
    cannot describe, that is a gap. Propose the spec change first. Replace the example in the same
    cycle. A spec-forced edit is not a correction
    ([When a spec change makes an example invalid](#when-a-spec-change-makes-an-example-invalid);
-   [ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md)).
+   [ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
 3. **Path.** The path of the example follows the
    [storage layout](../format/file-layout.md#storage-layout), also when the path of the exporter does
    not. For example, OpenMMLab-Exporter writes RTMO body7 under `keypoint_detectors/rtmo/body7/`.
@@ -106,10 +106,9 @@ exports and which examples are forecasts.
    value of the `sidecar_refs.py --source` call of step 2. Add `edits` (a list, which can be empty),
    `notes` (required) and `bundle`.
 
-   In the same commit, delete each bullet under
-   [Re-export requests](../decisions/open-work.md#re-export-requests) that this `model` bundle
-   answers. Match it by the owner repo and the `model_id`. If the bullet has other targets, delete
-   only the answered target.
+   If this `model` bundle answers the last example of the item under
+   [Re-export requests](../decisions/open-work.md#re-export-requests), close the item in the same
+   commit ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
 
    For each fragment with no package copy, write an entry in `fragments`, keyed by its path under
    `specs/model-sidecar/examples/`. Its keys are `exporter`, `exporter_path`, `tracked`, `commit`
@@ -129,7 +128,7 @@ exports and which examples are forecasts.
 7. **Land it.** A new or replaced example changes no normative text. Thus it goes in a non-spec PR
    with its provenance ([`specs/model-sidecar/AGENTS.md`](../AGENTS.md)). A spec-forced edit goes in
    the content commit of its change
-   ([ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md)).
+   ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
    Do not put a change of spec text in that PR. Put one example in each commit, so that a reviewer can examine and revert each
    replacement alone. This rule does not apply to a spec-forced edit. The commit message names the exporter commit. Follow the git rules of the
    skellytracker `AGENTS.md`, section 6.
@@ -146,7 +145,7 @@ That copy is equal to its export, plus header comments.
 
 The examples must obey the spec at each commit. An accepted spec change can make an example break a
 new or changed rule. Then the content commit of that change also edits the example. This edit is a
-spec-forced edit ([ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md)). It
+spec-forced edit ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)). It
 is not a correction of the example, and it is not a new copy. Steps 1, 2 and 7 of
 [How to provide or replace an example](#how-to-provide-or-replace-an-example) do not apply to it.
 
@@ -166,16 +165,24 @@ is not a correction of the example, and it is not a new copy. Steps 1, 2 and 7 o
    - Change a comment line that names an old value.
    - After an edit of a fragment, update each `sha256` of a `$ref` or `base` with
      `uv run python tools/sidecar_refs.py --write <example path>`. Do not use `--placeholder`.
-3. Do not add a value that the change does not give.
-4. `needs-export`: the example needs a value that only an export can give. Do not edit the example.
-   The content commit waits for the re-export bundle, in this order:
-   1. When the user accepts the proposal, a non-spec commit adds a bullet for the example under
-      [Re-export requests](../decisions/open-work.md#re-export-requests).
-   2. The exporter packs a new version of its `model` bundle, with `related` set to the proposal
-      bundle. Its verdict `describes` uses the current spec text plus the accepted part 2 of that
-      proposal. `verify` and the session check it against that text.
-   3. The content commit of the proposal lands that bundle as the replacement of the example. The
-      `inventory.yaml` entry gets `bundle: <bundle id>@v<k>`. The same commit deletes the bullet.
+3. Do not add a value that the change does not give. The only exception is a value that the
+   session reads from the graph of an ONNX file of the exporter of the example
+   ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)):
+   - Read only the graph, with `onnx.load(path, load_external_data=False)`. Do not run the file
+     ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)).
+   - The `edits` item of step 7 names the value, the file by its path in the exporter repo and its
+     SHA-256.
+   - The next export copy of the example replaces the value.
+4. `needs-export`: the example needs a value that the change does not give and that step 3 cannot
+   give. Do not edit the example
+   ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)):
+   - Until the item under [Re-export requests](../decisions/open-work.md#re-export-requests)
+     closes, the content commit of the change waits for the rebuild bundle of the example.
+   - After the item closes, the part 7 row of the accepted proposal is the request. When the
+     proposal is `accepted`, the exporter packs a new version of its `model` bundle, with `related`
+     set to the proposal bundle. Its verdict `describes` uses the current spec text plus the
+     accepted part 2 of that proposal. The content commit of the proposal lands that bundle as the
+     replacement of the example.
 
    A forced edit of a fragment that equals a package copy
    (ADR-[yve0](../../../decisions/entries/yve0-example-fragments.md)) is also `needs-export`. The package

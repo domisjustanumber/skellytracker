@@ -69,8 +69,9 @@ Do this procedure for step 1 of phase 3.
    write the sidecar.
 4. Follow "How to provide or replace an example" in
    [Reference examples](../../../specs/model-sidecar/model-addition-workflow/reference-examples.md#how-to-provide-or-replace-an-example). Do its
-   steps in order. Its step 4 also deletes each answered bullet under
-   [Re-export requests](../../../specs/model-sidecar/decisions/open-work.md#re-export-requests).
+   steps in order. Its step 4 also closes the item under
+   [Re-export requests](../../../specs/model-sidecar/decisions/open-work.md#re-export-requests) when
+   the bundle answers its last example ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
 5. If the procedure finds that the sidecar breaks a spec rule, stop. Do not correct the example by
    hand. Tell the user that the exporter must change, or that the spec needs a proposal.
 6. Add the new guidance of the intake to the "Authoring guidance" heading of each section that it is
@@ -355,31 +356,12 @@ Do this procedure when a content commit lands on a section that another open pro
 
 ### Legacy behaviour
 
-Each change has a class
-([Change classes](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#change-classes);
-[ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md)).
+A spec change has no class ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
 
-- The meaning of an older `schema_version` never changes. The only exceptions are the changes in
-  [Every-version changes](../../../specs/model-sidecar/format/versioning.md#every-version-changes).
-- Write each legacy difference in the "Legacy behaviour" heading of the section.
-- A legacy difference is a rule, a value or a behaviour that is different for an older
-  `schema_version`.
-- If a "Legacy behaviour" heading gives a legacy difference, add the heading to the index in
-  [Version-aware compatibility](../../../specs/model-sidecar/format/versioning.md#version-aware-compatibility).
-- A new field, value or section can be not available before a version. That is not a legacy
-  difference. Add it to the availability row of that version. The row is in the "Legacy behaviour"
-  table of Schema versioning. Then the "Legacy behaviour" heading of the section only links to
-  Schema versioning. Do not add the heading to the index.
-- A clarification is not a change of meaning. Use the conditions in
-  [Clarifications](../../../specs/model-sidecar/format/versioning.md#clarifications) to decide if a
-  change is a clarification.
-- Do not give a clarification the **(vNEXT)** mark. Do not write a "Legacy behaviour" row for it.
-- If a clarification makes the package host non-conforming, write the gap in the comment of the
-  `implemented_by` line. Also write it in "Implementer guidance" with the tag "(implementation
-  stage)". Do not change the package code in the spec-build stage.
-- A `breaking` change needs its own entry with the explicit acceptance of the user. Add its item to
-  [Every-version changes](../../../specs/model-sidecar/format/versioning.md#every-version-changes).
-  Audit `skellytracker/core/detectors/**/*.yaml`.
+- The legacy text of the spec stays until the content change that removes it. Until that change, no
+  other content change lands ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
+- Do not add a legacy difference, an index row or an availability row
+  ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
 
 ### `changelog.md`
 
@@ -387,9 +369,6 @@ Each change has a class
 - Add the change to the `vNEXT` row of the
   [`schema_version` history](../../../specs/model-sidecar/changelog.md#schema_version-history).
 - Write new rows in ASD-STE100. Do not reword the existing rows.
-- The summary row of a clarification says "(every `schema_version`)". The summary row of a
-  `breaking` change says "(breaking, every `schema_version`)"
-  ([ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md)).
 
 ### `vNEXT` or a release version
 
@@ -469,7 +448,7 @@ Each change has a class
 - Do not correct an example by hand. A spec-forced edit is not a correction. If a content change
   makes an example invalid, do the spec-forced edit in the same content commit
   ([When a spec change makes an example invalid](../../../specs/model-sidecar/model-addition-workflow/reference-examples.md#when-a-spec-change-makes-an-example-invalid);
-  [ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md)). Do not land a
+  [ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)). Do not land a
   content commit that leaves an example invalid.
 
 ### Reference implementations
@@ -500,13 +479,11 @@ Each change has a class
    invalid and that part 7 does not list is a landing stop: the response is `needs-contributor`, and
    the contributor sends a follow-up bundle with the missing row
    ([When a spec change makes an example invalid](../../../specs/model-sidecar/model-addition-workflow/reference-examples.md#when-a-spec-change-makes-an-example-invalid);
-   [ADR-KDBD](../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md)).
-   Name each exporter that must regenerate its sidecars. Add a bullet under
-   [Re-export requests](../../../specs/model-sidecar/decisions/open-work.md#re-export-requests) for
-   each `needs-export` example, for each `model` bundle that `intake_bundle.py list` shows with an
-   affected section in `sections`, and for each owner repo of a `breaking` change (list
-   [Every-version changes](../../../specs/model-sidecar/format/versioning.md#every-version-changes)).
-   The bullet of a `needs-export` example goes in a non-spec commit before the content commit.
+   [ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
+   Name each exporter that must regenerate its sidecars. Do not add an item under
+   [Re-export requests](../../../specs/model-sidecar/decisions/open-work.md#re-export-requests): its
+   one item covers each example, and after it closes, the part 7 row is the request
+   ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
 4. Regenerate the traceability matrix with `uv run python tools/sidecar_trace.py matrix`. Do not edit
    `specs/model-sidecar/TRACEABILITY.md` by hand.
 

@@ -1,6 +1,6 @@
 # KDBD — Change classes and spec-forced example edits
 
-**Status:** accepted, 2026-10-28 (user; PR: pending).
+**Status:** superseded by [NB5F](NB5F-no-change-classes-and-one-re-export-request.md), 2026-11-02 (user; PR: pending).
 
 ## Decision
 
