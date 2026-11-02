@@ -183,13 +183,14 @@ def generated_texts() -> dict[str, str]:
     return mv.generate()
 
 
+@functools.cache
+def built_vectors() -> dict[str, mv.Vectors]:
+    return mv.build_all()
+
+
 # ---------------------------------------------------------------------------
 # Shape of the files
 # ---------------------------------------------------------------------------
-
-
-def test_there_are_vector_files() -> None:
-    assert vector_paths()
 
 
 def test_the_folder_holds_exactly_the_generated_files() -> None:
@@ -206,7 +207,7 @@ def test_file_parses_to_the_generator_data(path: Path) -> None:
     section = path.name.removesuffix(".yaml")
     assert same(
         yaml.safe_load(path.read_text(encoding="utf-8")),
-        mv.build_all()[section].data(),
+        built_vectors()[section].data(),
     )
 
 

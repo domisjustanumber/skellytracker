@@ -783,6 +783,15 @@ def build_letterbox() -> Vectors:
 # ---------------------------------------------------------------------------
 
 
+def stretch_unproject(
+    target_size: list[int], src_w: int, src_h: int, model_xy: list[float]
+) -> list[float]:
+    """Section `pre.resize.stretch`, Inverse."""
+    t_h, t_w = target_size
+    x, y = model_xy
+    return [x * src_w / t_w, y * src_h / t_h]
+
+
 def build_stretch() -> Vectors:
     cases: list[Case] = []
 
@@ -795,7 +804,6 @@ def build_stretch() -> Vectors:
     ) -> None:
         src_w, src_h = src
         t_h, t_w = target
-        x, y = model_xy
         cases.append(
             Case(
                 id=case_id,
@@ -809,7 +817,7 @@ def build_stretch() -> Vectors:
                 },
                 unproject={
                     "model_xy": model_xy,
-                    "source_xy": [x * src_w / t_w, y * src_h / t_h],
+                    "source_xy": stretch_unproject(target, src_w, src_h, model_xy),
                 },
                 note=note,
             )
@@ -2126,8 +2134,7 @@ def resize_unproject(
         )
         return letterbox_unproject(geometry, src_w, src_h, model_xy)
     if method == "stretch":
-        t_h, t_w = resize["target_size"]
-        return [x * src_w / t_w, y * src_h / t_h]
+        return stretch_unproject(resize["target_size"], src_w, src_h, model_xy)
     if method == "fit":
         geometry = fit_geometry(src_w, src_h, resize["target_size"])
         return fit_unproject(geometry, model_xy)
