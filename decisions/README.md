@@ -34,7 +34,6 @@ These entries are `accepted` or `evidence`.
 | [D9VT](entries/D9VT-decision-log-move.md) | The log moves to `decisions/` and `specs/model-sidecar/decisions/`; no stub; old plain-text paths stay; proposal-copy paths; supersedes k6dz | accepted |
 | [AB79](entries/AB79-one-pr-for-the-spec-build-work.md) | Exception to 0027: the spec-build work goes to `development` in one PR; one kind of change in each commit; no new `dom/NN-*` branch | accepted |
 | [FADS](entries/FADS-hand-over-bundles-in-intakes.md) | Hand-over bundles in `intakes/`: versions, manifest, states, responses, byte-copy proposal records; no gap records; supersedes pykx, faac and 0014 | accepted |
-| [TA0G](entries/TA0G-vector-cases-and-reference-modules.md) | Refusals as a rule ID or `no-rule`, `failed` lists, `outcome()`, 256 KiB, union landing check, module imports and fixtures; supersedes a33q and 0013 | accepted |
 | [KDBD](entries/KDBD-change-classes-and-spec-forced-edits.md) | Change classes `vnext`, `clarification` and `breaking`; the legacy index rule; spec-forced example edits and the part 7 table; supersedes 0009 | accepted |
 | [FDTD](entries/FDTD-evidence-sources-and-exporter-permalinks.md) | Exporter documents stay secondary; a checked upstream line is primary; user decisions in words; source forms; exporter permalinks; supersedes 0030 | accepted |
 | [QMKS](entries/QMKS-draft-sections-and-coverage-columns.md) | `spec: draft` rules, the graduation gate and the release stops; coverage and gate columns in `TRACEABILITY.md`; `no_model` reasons | accepted |
@@ -43,6 +42,7 @@ These entries are `accepted` or `evidence`.
 | [QPS7](entries/QPS7-decision-entries-in-an-entries-folder.md) | The entry files of each log are in `entries/`; the checker also reads the old layout on other branches; `_Edited` lines do not count to the limit | accepted |
 | [NB91](entries/NB91-new-ids-have-a-digit.md) | New IDs have a digit and a letter in any position; `--new` draws them uniformly; old all-digit and lower-case letter-first IDs stay valid | accepted |
 | [5WKW](entries/5WKW-implementation-work-in-the-plan.md) | Stages M7 to M12 of the implementation plan hold the implementation-stage work; append only; the user decides when the plan goes; supersedes b9fm | accepted |
+| [8DSW](entries/8DSW-vector-files-are-the-case-source.md) | The vector file is the only case source; formula modules, named checks, `land` and `fill`; supersedes TA0G | accepted |
 
 ### Proposed
 

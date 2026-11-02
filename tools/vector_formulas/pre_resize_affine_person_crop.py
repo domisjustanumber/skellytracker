@@ -31,10 +31,8 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def inverse(
-    params: dict[str, Any], input: dict[str, Any], model_xy: list[float]
-) -> list[float]:
-    """Inverse: invert the scale and the shift of M."""
+def inverse(params: dict[str, Any], input: dict[str, Any]) -> dict[str, list[float]]:
+    """Inverse: invert the scale and the shift of M. `input` holds `model_xy`."""
     (sx, _, tx), (_, sy, ty) = run(params, input)["matrix"]
-    x, y = model_xy
-    return [(x - tx) / sx, (y - ty) / sy]
+    x, y = input["model_xy"]
+    return {"source_xy": [(x - tx) / sx, (y - ty) / sy]}

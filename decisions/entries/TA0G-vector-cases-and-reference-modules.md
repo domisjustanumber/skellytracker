@@ -1,6 +1,6 @@
 # TA0G — Vector cases and reference modules
 
-**Status:** accepted, 2026-10-28 (user; PR: pending).
+**Status:** superseded by [8DSW](8DSW-vector-files-are-the-case-source.md), 2026-11-02 (user; PR: pending).
 
 ## Decision
 

@@ -26,7 +26,7 @@ root log ([ADR-GN3D](../../decisions/entries/GN3D-module-decision-logs.md)).
   section ID. The rule IDs of the section are `V-<id>-<n>`. When you move or reword a section, keep
   its section ID and its rule IDs
   ([Rule IDs and section IDs](../../.claude/skills/change-sidecar-spec/SKILL.md#rule-ids-and-section-ids);
-  [ADR-TA0G](../../decisions/entries/TA0G-vector-cases-and-reference-modules.md)).
+  [ADR-8DSW](../../decisions/entries/8DSW-vector-files-are-the-case-source.md)).
 - A spec change needs a decision entry and a changelog row. Add a row to the
   [summary of changes](changelog.md#summary-of-changes). Add the change to the `vNEXT` row of the
   [changelog](changelog.md#schema_version-history).

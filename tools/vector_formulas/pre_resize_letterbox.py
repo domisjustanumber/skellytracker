@@ -51,16 +51,16 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, int]:
     return {"n_w": n_w, "n_h": n_h, "left": left, "top": top}
 
 
-def inverse(
-    params: dict[str, Any], input: dict[str, Any], model_xy: list[float]
-) -> list[float]:
-    """Inverse: a model-input position in source pixels."""
+def inverse(params: dict[str, Any], input: dict[str, Any]) -> dict[str, list[float]]:
+    """Inverse: a model-input position in source pixels. `input` holds `model_xy`."""
     geometry = run(params, input)
-    x, y = model_xy
-    return [
-        (x - geometry["left"]) * input["src_w"] / geometry["n_w"],
-        (y - geometry["top"]) * input["src_h"] / geometry["n_h"],
-    ]
+    x, y = input["model_xy"]
+    return {
+        "source_xy": [
+            (x - geometry["left"]) * input["src_w"] / geometry["n_w"],
+            (y - geometry["top"]) * input["src_h"] / geometry["n_h"],
+        ]
+    }
 
 
 def _other_rounding(params: dict[str, Any]) -> dict[str, Any]:

@@ -21,10 +21,8 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, float]:
     }
 
 
-def inverse(
-    params: dict[str, Any], input: dict[str, Any], model_xy: list[float]
-) -> list[float]:
-    """Inverse: a model-input position in source pixels."""
+def inverse(params: dict[str, Any], input: dict[str, Any]) -> dict[str, list[float]]:
+    """Inverse: a model-input position in source pixels. `input` holds `model_xy`."""
     t_h, t_w = params["target_size"]
-    x, y = model_xy
-    return [x * input["src_w"] / t_w, y * input["src_h"] / t_h]
+    x, y = input["model_xy"]
+    return {"source_xy": [x * input["src_w"] / t_w, y * input["src_h"] / t_h]}

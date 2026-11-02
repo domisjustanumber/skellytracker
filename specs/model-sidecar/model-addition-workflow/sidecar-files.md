@@ -9,7 +9,7 @@ These rules apply to each contributor that writes a sidecar or a vector file.
   exporter count as one implementation.
 - Only exporters and skellytracker count as implementations in `verified_against`. Do not list the
   upstream library. The spec describes the upstream library, but the library does not implement the
-  spec. If you ran a case through upstream code, write that in a comment in the vector file.
+  spec. If you ran a case through upstream code, write that in the `note` of the case.
 - A vector file without a verified implementation has `unverified: <reason>` in place of
   `verified_against`.
 - A vector is fully verified only when at least two independent implementations agree: two exporters,

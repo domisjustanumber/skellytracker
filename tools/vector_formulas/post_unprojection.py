@@ -57,7 +57,7 @@ def resize_unproject(
         return [x, y]
     if method not in INVERSE:
         defect(f"unknown resize method {method!r}")
-    return INVERSE[method](resize, input, model_xy)
+    return INVERSE[method](resize, {**input, "model_xy": model_xy})["source_xy"]
 
 
 def clamp_to_lower_bound(box_xyxy: list[float]) -> list[float]:

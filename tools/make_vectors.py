@@ -6,9 +6,16 @@ output. The formulas are in `tools/vector_formulas/<section_module>.py`, one
 module per section: each one is a reading of its section file. A vector that
 disagrees with the normative text is a defect of the spec or of the formulas:
 fix one of them, never the vector alone. A broken case or formula calls
-`vector_form.defect`, which stops the generator. A case declares its claims by
-name in `checks`; `run_checks` runs each one from the `CHECKS` of the formula
-module. The names are not written to the file.
+`vector_form.defect`, which stops the generator. A case or a file declares its
+claims by name in `checks`; `run_checks` runs each one from the `CHECKS` of the
+formula module. Hosts ignore `checks`.
+
+A file has one `tolerance`: compare each fractional number with an absolute
+difference of at most this value. Integers must match exactly. A case is one
+call: `run` when the case has no `function`. The case `<id>-inverse` calls the
+section's Inverse (`function: inverse`) with the input of the case `<id>` and
+`model_xy`. A validator case with `function: none` is data only: no function
+runs it. `expect` has at most 6 decimals.
 
 A file has either `verified_against` (the list of independent implementations
 that produced the same results) or `unverified` (the reason that none did). An
@@ -51,14 +58,16 @@ from typing import Any
 
 import numpy as np
 
-from vector_form import NO_RULE, CaseDefect, defect, has_fraction
+from vector_form import NO_RULE, CaseDefect, defect
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 VECTORS_DIR = REPO_ROOT / "specs" / "model-sidecar" / "vectors"
 REFERENCE_DIR = REPO_ROOT / "specs" / "model-sidecar" / "reference"
 FORMULAS_DIR = REPO_ROOT / "tools" / "vector_formulas"
-SPEC_REVISION = "vNEXT"
-GENERATED_BY = "tools/make_vectors.py"
+HEADER = (
+    "# tools/make_vectors.py writes `expect`. Edit the other keys, then run it.",
+    "# Hosts ignore `checks`. The names are the self-checks of the generator.",
+)
 
 LETTERBOX_FUNCTION = "skellytracker/core/detectors/processing/image_preprocessing.py::letterbox_preprocess"
 FIT_FUNCTION = (
@@ -146,6 +155,14 @@ def outcome(
         return {"error": match.group(1) if match else NO_RULE}
 
 
+def producer(section: str, folder: Path = REFERENCE_DIR) -> ModuleType:
+    """Return the reference of `section` in `folder`, else its formula module."""
+    module = globals().get(section.replace(".", "_"))
+    if isinstance(module, ModuleType) and not (folder / f"{module.__name__}.py").is_file():
+        return module
+    return load_reference(section, folder)
+
+
 # The formula modules load like reference modules, so they import each other by name.
 # A module loads before the modules that import it, so each name has one module object.
 post_det_decode = load_reference("post.det.decode", FORMULAS_DIR)
@@ -201,26 +218,23 @@ class Case:
     params: dict[str, Any]
     input: dict[str, Any]
     expect: dict[str, Any]
-    unproject: dict[str, Any] | None = None
     verified_against: list[str | dict[str, str]] | None = None
-    note: str | None = None  # written as a YAML comment, not as data
-    function: str | None = None  # the function of the reference implementation
+    note: str | None = None
+    function: str | None = None  # None calls `run`; `none` marks a data-only validator case
     compare: dict[str, dict[str, float]] | None = None  # per-field atol and period
-    checks: list[str] = field(default_factory=list)  # named claims; not written as data
+    checks: list[str] = field(default_factory=list)  # the named claims besides those of the file
 
-    def data(
-        self, tolerance: float, digits: int | None = ROUND_DIGITS
-    ) -> dict[str, Any]:
+    def data(self) -> dict[str, Any]:
         out: dict[str, Any] = {"id": self.id}
+        if self.note is not None:
+            out["note"] = self.note
         if self.function is not None:
             out["function"] = self.function
+        if self.checks:
+            out["checks"] = list(self.checks)
         out["params"] = clean(self.params)
         out["input"] = clean(self.input)
-        out["expect"] = clean(self.expect, digits=digits)
-        if self.unproject is not None:
-            out["unproject"] = clean(self.unproject, digits=digits)
-        if has_fraction(out["expect"]) or has_fraction(out.get("unproject")):
-            out["tolerance"] = tolerance
+        out["expect"] = clean(self.expect, digits=ROUND_DIGITS)
         if self.compare is not None:
             out["compare"] = clean(self.compare)
         if self.verified_against:
@@ -231,19 +245,20 @@ class Case:
 @dataclass
 class Vectors:
     section: str
-    reading_notes: list[str]
+    notes: list[str]
     cases: list[Case]
     tolerance: float
     verified_against: list[str | dict[str, str]] | None = None
     unverified: str | None = None
-    digits: int | None = ROUND_DIGITS  # None writes each expected value exactly
+    checks: list[str] = field(default_factory=list)  # the named claims of every case
 
     def data(self) -> dict[str, Any]:
-        out: dict[str, Any] = {
-            "section": self.section,
-            "spec_revision": SPEC_REVISION,
-            "generated_by": GENERATED_BY,
-        }
+        out: dict[str, Any] = {"section": self.section}
+        if self.notes:
+            out["notes"] = list(self.notes)
+        out["tolerance"] = self.tolerance
+        if self.checks:
+            out["checks"] = list(self.checks)
         if (self.verified_against is None) == (self.unverified is None):
             raise ValueError(f"{self.section}: give verified_against or unverified")
         if self.verified_against is not None:
@@ -253,7 +268,10 @@ class Vectors:
         ids = [case.id for case in self.cases]
         if len(ids) != len(set(ids)):
             raise ValueError(f"{self.section}: duplicate case id")
-        out["cases"] = [case.data(self.tolerance, self.digits) for case in self.cases]
+        for case in self.cases:
+            if set(case.checks) & set(self.checks):
+                raise ValueError(f"{case.id}: a check of the file is also a check of the case")
+        out["cases"] = [case.data() for case in self.cases]
         return out
 
 
@@ -345,63 +363,88 @@ def _item(value: Any, indent: int) -> list[str]:
     return lines
 
 
-def _string_entry(key: str, text: str) -> list[str]:
-    """Write a long string as a double-quoted scalar folded over several lines."""
+def _string_entry(head: str, text: str, indent: int = 0) -> list[str]:
+    """Write `head` and a double-quoted string, folded over several lines when it is long."""
+    pad = " " * indent
     quoted = json.dumps(text)
-    if len(f"{key}: {quoted}") <= LINE_WIDTH:
-        return [f"{key}: {quoted}"]
+    if len(f"{pad}{head}{quoted}") <= LINE_WIDTH:
+        return [f"{pad}{head}{quoted}"]
     body = textwrap.wrap(
         quoted[1:-1],
         width=LINE_WIDTH - 16,
         break_long_words=False,
         break_on_hyphens=False,
     )
-    lines = [f'{key}: "{body[0]}'] + [f"  {part}" for part in body[1:]]
+    if " ".join(body) != quoted[1:-1]:  # a fold would lose a double, first or last space
+        return [f"{pad}{head}{quoted}"]
+    lines = [f'{pad}{head}"{body[0]}'] + [f"{pad}  {part}" for part in body[1:]]
     lines[-1] += '"'
     return lines
-
-
-def _comment_lines(text: str, indent: int) -> list[str]:
-    pad = " " * indent
-    width = LINE_WIDTH - indent - 2
-    parts = textwrap.wrap(
-        text, width=width, break_long_words=False, break_on_hyphens=False
-    )
-    return [f"{pad}# {part}" for part in parts]
 
 
 def render(vectors: Vectors) -> str:
     """Return the text of the YAML file for `vectors`."""
     data = vectors.data()
-    lines = [
-        f"# Test vectors for the section `{vectors.section}`.",
-        f"# Generated by {GENERATED_BY}. Do not edit this file by hand.",
-        "# A case with fractional numbers gives a `tolerance`. Compare each fractional number",
-        "# with an absolute difference of at most this value. Integers must match exactly.",
-    ]
-    for note in vectors.reading_notes:
-        lines.extend(_comment_lines(note, 0))
-    lines.extend(
-        f"{key}: {_scalar(data[key])}"
-        for key in ("section", "spec_revision", "generated_by")
-    )
+    lines = [*HEADER, f"section: {_scalar(data['section'])}"]
+    if "notes" in data:
+        lines.append("notes:")
+        for note in data["notes"]:
+            lines.extend(_string_entry("- ", note, 2))
+    lines.append(f"tolerance: {_scalar(data['tolerance'])}")
+    if "checks" in data:
+        lines.extend(_entry("checks", data["checks"], 0))
     if "verified_against" in data:
         lines.extend(_entry("verified_against", data["verified_against"], 0))
     else:
-        lines.extend(_string_entry("unverified", data["unverified"]))
+        lines.extend(_string_entry("unverified: ", data["unverified"]))
     lines.append("cases:")
-    for case, case_data in zip(vectors.cases, data["cases"], strict=True):
-        head = f"  - id: {_scalar(case_data['id'])}"
-        trailing = f"{head}  # {case.note}" if case.note else head
-        if case.note and len(trailing) > LINE_WIDTH:
-            lines.append(head)
-            lines.extend(_comment_lines(case.note, 4))
-        else:
-            lines.append(trailing)
+    for case_data in data["cases"]:
+        lines.append(f"  - id: {_scalar(case_data['id'])}")
         for key, value in case_data.items():
-            if key != "id":
+            if key == "note":
+                lines.extend(_string_entry("note: ", value, 4))
+            elif key != "id":
                 lines.extend(_entry(key, value, 4))
     return "\n".join(lines) + "\n"
+
+
+# ---------------------------------------------------------------------------
+# pre.resize.* (a forward case and its Inverse case)
+# ---------------------------------------------------------------------------
+
+
+def _resize_cases(
+    module: ModuleType,
+    case_id: str,
+    params: dict[str, Any],
+    case_input: dict[str, Any],
+    model_xy: list[float],
+    **kwargs: Any,
+) -> list[Case]:
+    """Return the case `case_id` and the case `<case_id>-inverse` of one model-input position."""
+    inverse_input = {**case_input, "model_xy": model_xy}
+    return [
+        Case(
+            id=case_id,
+            params=params,
+            input=case_input,
+            expect=module.run(params, case_input),
+            **kwargs,
+        ),
+        Case(
+            id=f"{case_id}-inverse",
+            function="inverse",
+            params=params,
+            input=inverse_input,
+            expect=module.inverse(params, inverse_input),
+        ),
+    ]
+
+
+INVERSE_NOTE = (
+    "A case `<id>-inverse` applies the section's Inverse to one model-input position "
+    "(`model_xy`) of the case `<id>`."
+)
 
 
 # ---------------------------------------------------------------------------
@@ -418,19 +461,15 @@ def _letterbox_case(
     model_xy: list[float],
     note: str | None = None,
     checks: list[str] | None = None,
-) -> Case:
+) -> list[Case]:
     src_w, src_h = src
     params = {"target_size": target, "pad_position": pad, "rounding": rounding}
-    case_input = {"src_w": src_w, "src_h": src_h}
-    return Case(
-        id=case_id,
-        params=params,
-        input=case_input,
-        expect=pre_resize_letterbox.run(params, case_input),
-        unproject={
-            "model_xy": model_xy,
-            "source_xy": pre_resize_letterbox.inverse(params, case_input, model_xy),
-        },
+    return _resize_cases(
+        pre_resize_letterbox,
+        case_id,
+        params,
+        {"src_w": src_w, "src_h": src_h},
+        model_xy,
         verified_against=(
             [LETTERBOX_FUNCTION] if case_id in LETTERBOX_PACKAGE_MATCHES else None
         ),
@@ -444,7 +483,7 @@ def build_letterbox() -> Vectors:
     cases: list[Case] = []
 
     def add(*args: Any, **kwargs: Any) -> None:
-        cases.append(_letterbox_case(*args, **kwargs))
+        cases.extend(_letterbox_case(*args, **kwargs))
 
     # Center padding.
     add(
@@ -698,14 +737,14 @@ def build_letterbox() -> Vectors:
 
     return Vectors(
         section="pre.resize.letterbox",
-        reading_notes=[
+        notes=[
             "Normative text: specs/model-sidecar/pre/resize-letterbox.md.",
             "`target_size` is [height, width]. `src_w` and `src_h` are the source size in pixels.",
             "`expect` gives the size of the resized image (`n_w`, `n_h`) and its position on the "
             "padded canvas (`left`, `top`).",
-            "`unproject` applies the section's Inverse to one model-input position.",
+            INVERSE_NOTE,
             "A case that lists `verified_against` gave the same `expect` values with that function. "
-            "The function does not compute `unproject`.",
+            "The function does not compute the Inverse.",
         ],
         cases=cases,
         tolerance=TOLERANCE["resize"],
@@ -736,18 +775,8 @@ def build_stretch() -> Vectors:
         src_w, src_h = src
         params = {"target_size": target}
         case_input = {"src_w": src_w, "src_h": src_h}
-        cases.append(
-            Case(
-                id=case_id,
-                params=params,
-                input=case_input,
-                expect=pre_resize_stretch.run(params, case_input),
-                unproject={
-                    "model_xy": model_xy,
-                    "source_xy": pre_resize_stretch.inverse(params, case_input, model_xy),
-                },
-                note=note,
-            )
+        cases.extend(
+            _resize_cases(pre_resize_stretch, case_id, params, case_input, model_xy, note=note)
         )
 
     add(
@@ -783,11 +812,11 @@ def build_stretch() -> Vectors:
 
     return Vectors(
         section="pre.resize.stretch",
-        reading_notes=[
+        notes=[
             "Normative text: specs/model-sidecar/pre/resize-stretch.md.",
             "`target_size` is [height, width]. `expect` gives the size of the output image "
             "(`dst_w`, `dst_h`) and the scale factor of each axis.",
-            "`unproject` applies the section's Inverse to one model-input position.",
+            INVERSE_NOTE,
         ],
         cases=cases,
         tolerance=TOLERANCE["resize"],
@@ -817,18 +846,8 @@ def build_fit() -> Vectors:
         src_w, src_h = src
         params = {"target_size": target}
         case_input = {"src_w": src_w, "src_h": src_h}
-        cases.append(
-            Case(
-                id=case_id,
-                params=params,
-                input=case_input,
-                expect=pre_resize_fit.run(params, case_input),
-                unproject={
-                    "model_xy": model_xy,
-                    "source_xy": pre_resize_fit.inverse(params, case_input, model_xy),
-                },
-                note=note,
-            )
+        cases.extend(
+            _resize_cases(pre_resize_fit, case_id, params, case_input, model_xy, note=note)
         )
 
     add(
@@ -911,13 +930,15 @@ def build_fit() -> Vectors:
 
     return Vectors(
         section="pre.resize.fit",
-        reading_notes=[
+        notes=[
             "Normative text: specs/model-sidecar/pre/resize-fit.md. Decision: "
             "notes/decisions/0012-fit-resize-for-rtmo.md.",
             "`target_size` is [height, width]. `expect` gives the scale and the fractional "
             "offsets of the warp matrix M = [[scale, 0, left], [0, scale, top]]. The geometry "
             "does not depend on `pad_value`.",
-            "`unproject` applies the section's Inverse to one model-input position.",
+            INVERSE_NOTE,
+            "`fit_preprocess` does not compute the Inverse. Its warp matrix, inverted, gave the "
+            "same `source_xy` for each `-inverse` case.",
         ],
         cases=cases,
         tolerance=TOLERANCE["resize"],
@@ -949,18 +970,9 @@ def build_affine_person_crop() -> Vectors:
             "maintain_aspect_ratio": maintain_aspect_ratio,
         }
         case_input = {"bbox_xyxy": bbox}
-        crop = pre_resize_affine_person_crop
-        cases.append(
-            Case(
-                id=case_id,
-                params=params,
-                input=case_input,
-                expect=crop.run(params, case_input),
-                unproject={
-                    "model_xy": model_xy,
-                    "source_xy": crop.inverse(params, case_input, model_xy),
-                },
-                note=note,
+        cases.extend(
+            _resize_cases(
+                pre_resize_affine_person_crop, case_id, params, case_input, model_xy, note=note
             )
         )
 
@@ -1021,14 +1033,14 @@ def build_affine_person_crop() -> Vectors:
 
     return Vectors(
         section="pre.resize.affine_person_crop",
-        reading_notes=[
+        notes=[
             "Normative text: specs/model-sidecar/pre/resize-affine-person-crop.md.",
             "`target_size` is [height, width]. `bbox_xyxy` is the person box [x1, y1, x2, y2] "
             "in source pixels. The rotation is 0.",
             "`expect` gives the centre of the crop, its size (`crop_w`, `crop_h`) after the "
             "expansion and the aspect-ratio step, and the warp matrix M that maps source "
             "pixels to model-input pixels.",
-            "`unproject` applies the section's Inverse to one model-input position.",
+            INVERSE_NOTE,
         ],
         cases=cases,
         tolerance=TOLERANCE["resize"],
@@ -1182,7 +1194,7 @@ def build_normalize() -> Vectors:
 
     return Vectors(
         section="pre.normalize",
-        reading_notes=[
+        notes=[
             "Normative text: specs/model-sidecar/pre/normalization.md. Decision: "
             "notes/decisions/0009-imagenet-bgr-meaning.md.",
             "`pixels_bgr` are pixels of the resized frame in BGR source order, as OpenCV "
@@ -1226,20 +1238,12 @@ def _selection_case(
     params: dict[str, Any],
     inp: dict[str, Any],
     note: str | None,
-    *,
-    show_boxes: bool = False,
 ) -> Case:
-    expect = select(params, inp)
-    if not show_boxes:
-        del expect["boxes_xyxy"]
-    return Case(
-        id=case_id,
-        params=params,
-        input=inp,
-        expect=expect,
-        note=note,
-        checks=["float32-stable"],
-    )
+    return Case(id=case_id, params=params, input=inp, expect=select(params, inp), note=note)
+
+
+# The named claims of every selection case.
+SELECTION_CHECKS = ["float32-stable"]
 
 
 SELECTION_UNVERIFIED = (
@@ -1255,7 +1259,7 @@ def _selection_notes(section_file: str) -> list[str]:
         "`params` use the names of the `decode` fields. `kept_rows` are 0-based row indexes "
         "of the input, `scores` and `class_ids` are the scores and the emitted class ids of "
         "the kept detections, in output order.",
-        "The cases stop before the unprojection and the clamp. `boxes_xyxy`, when it is given, "
+        "The cases stop before the unprojection and the clamp. `boxes_xyxy` "
         "holds the kept boxes in model-input pixels. Every score and threshold gives the "
         "same result in float32 and in float64.",
     ]
@@ -1420,14 +1424,12 @@ def build_selection_none() -> Vectors:
         {**FIELD_PARAMS, "box_format": "cxcywh", "confidence_threshold_default": 0.5},
         {**detections, "rows": [[50, 40, 20, 10, 0.75, 0], [30, 30, 8, 8, 0.25, 0]]},
         "centre and size become corners: [40, 35, 60, 45]",
-        show_boxes=True,
     )
     add(
         "box-format-xywh",
         {**FIELD_PARAMS, "box_format": "xywh", "confidence_threshold_default": 0.5},
         {**detections, "rows": [[40, 35, 20, 10, 0.75, 0], [30, 30, 8, 8, 0.25, 0]]},
         "top-left corner and size become corners: [40, 35, 60, 45]",
-        show_boxes=True,
     )
     add(
         "no-row-passes",
@@ -1438,9 +1440,10 @@ def build_selection_none() -> Vectors:
 
     return Vectors(
         section="post.det.selection.none",
-        reading_notes=_selection_notes("selection-none.md"),
+        notes=_selection_notes("selection-none.md"),
         cases=cases,
         tolerance=TOLERANCE["selection"],
+        checks=SELECTION_CHECKS,
         unverified=SELECTION_UNVERIFIED,
     )
 
@@ -1542,13 +1545,14 @@ def build_selection_top_k() -> Vectors:
 
     return Vectors(
         section="post.det.selection.top_k",
-        reading_notes=[
+        notes=[
             *_selection_notes("selection-top-k.md"),
             "`class_logits` is [Q, C] (rows, classes). `boxes` is [Q, 4]. A selected pair is a "
             "(row, class); one row can be selected for several classes.",
         ],
         cases=cases,
         tolerance=TOLERANCE["selection"],
+        checks=SELECTION_CHECKS,
         unverified=(
             "No independent implementation has run these vectors yet. They come from the "
             "section text only. skellytracker has no code for this section."
@@ -1734,7 +1738,6 @@ def build_selection_nms() -> Vectors:
         {**base, "box_format": "cxcywh"},
         {"boxes": [[6, 5, 12, 10], [10, 5, 12, 10]], "scores": [0.75, 0.5]},
         "centre and size become corners [0, 0, 12, 10] and [4, 0, 16, 10]: IoU 0.5, both stay",
-        show_boxes=True,
     )
     add(
         "no-candidate-passes",
@@ -1745,7 +1748,7 @@ def build_selection_nms() -> Vectors:
 
     return Vectors(
         section="post.det.selection.nms",
-        reading_notes=[
+        notes=[
             *_selection_notes("selection-nms.md"),
             "`iou_threshold`, `score_threshold`, `class_agnostic` and `post_nms_top_k` are "
             "fields of the `nms` object; they are written without the `nms` key here. A case "
@@ -1755,6 +1758,7 @@ def build_selection_nms() -> Vectors:
         ],
         cases=cases,
         tolerance=TOLERANCE["selection"],
+        checks=SELECTION_CHECKS,
         unverified=SELECTION_UNVERIFIED,
     )
 
@@ -1802,7 +1806,6 @@ def _unprojection_case(
         input=case_input,
         expect=post_unprojection.run(params, case_input),
         note=note,
-        checks=["input-size-follows-resize"],
     )
 
 
@@ -1827,12 +1830,15 @@ def _box_case(
         input=case_input,
         expect=post_unprojection.run(params, case_input),
         note=note,
-        checks=[
-            "input-size-follows-resize",
-            "clear-of-upper-clamp-bound",
-            "keeps-area-after-clamp",
-        ],
     )
+
+
+# The named claims of every unprojection case. The box checks pass on a point case.
+UNPROJECTION_CHECKS = [
+    "input-size-follows-resize",
+    "clear-of-upper-clamp-bound",
+    "keeps-area-after-clamp",
+]
 
 
 def build_unprojection() -> Vectors:
@@ -2063,7 +2069,7 @@ def build_unprojection() -> Vectors:
 
     return Vectors(
         section="post.unprojection",
-        reading_notes=[
+        notes=[
             "Normative text: specs/model-sidecar/post/unprojection.md. It uses the Inverse of each "
             "resize section (specs/model-sidecar/pre/resize-*.md) and, for a box, `clamp_boxes` "
             "(specs/model-sidecar/post/detection-decode.md).",
@@ -2075,8 +2081,7 @@ def build_unprojection() -> Vectors:
             "in model-input pixels. `source_xy` and `source_xyxy` are the unprojected values.",
             "`output_xyxy` is the final box. It is the clamped `source_xyxy` unless "
             "`clamp_boxes` is false. The clamp here sets a negative value to 0.",
-            "Every result is exact in float64 arithmetic with the formulas of the sections, so no "
-            "case gives a `tolerance`.",
+            "Every result is exact in float64 arithmetic with the formulas of the sections.",
             "The spec does not define the upper bound of the clamp ([0, W] or [0, W - 1]) or "
             "the result for a box without area after the clamp (notes/decisions/README.md, "
             "Open work). No case reaches the upper bound or loses its area, so these open "
@@ -2084,6 +2089,7 @@ def build_unprojection() -> Vectors:
         ],
         cases=cases,
         tolerance=TOLERANCE["unprojection"],
+        checks=UNPROJECTION_CHECKS,
         unverified=(
             "No independent implementation has run these vectors yet. They come from the "
             "section text only. skellytracker has no shared unprojection function: each decoder "
@@ -2109,23 +2115,26 @@ BUILDERS: dict[str, Callable[[], Vectors]] = {
 }
 
 
-def run_checks(module: ModuleType, case: Case) -> None:
-    """Run each check that `case` names, from the `CHECKS` of its formula module.
+def run_checks(module: ModuleType, case: Case, file_checks: list[str] | None = None) -> None:
+    """Run each check that `case` or its file names, from the `CHECKS` of its formula module.
 
-    A check is `check(run, params, input, expect)` and calls `defect` when its
-    claim fails. The built-in check `refused` claims an error result: an error
-    result without it, or `refused` without an error result, is a defect.
+    A check is `check(function, params, input, expect)`, where `function` is
+    the function of the case, and calls `defect` when its claim fails. The
+    built-in check `refused` claims an error result: an error result without it,
+    or `refused` without an error result, is a defect.
     """
-    if ("error" in case.expect) != ("refused" in case.checks):
+    checks = [*(file_checks or []), *case.checks]
+    if ("error" in case.expect) != ("refused" in checks):
         defect(f"{case.id}: an error result needs the check refused, and only it")
     registry = getattr(module, "CHECKS", {})
-    for name in case.checks:
+    function = getattr(module, case.function or "run", None)
+    for name in checks:
         if name == "refused":
             continue
         if name not in registry:
             defect(f"{case.id}: {module.__name__} has no check {name}")
         try:
-            registry[name](module.run, case.params, case.input, case.expect)
+            registry[name](function, case.params, case.input, case.expect)
         except CaseDefect as error:
             defect(f"{case.id}: {name}: {error}")
 
@@ -2138,7 +2147,7 @@ def build_all() -> dict[str, Vectors]:
             raise ValueError(f"{section}: builder wrote section {vectors.section}")
         module = globals()[section.replace(".", "_")]  # the formula module loaded above
         for case in vectors.cases:
-            run_checks(module, case)
+            run_checks(module, case, vectors.checks)
     return built
 
 

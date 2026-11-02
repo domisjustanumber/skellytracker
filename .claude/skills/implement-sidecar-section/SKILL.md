@@ -13,7 +13,7 @@ skellytracker. It is for the implementation stage and the steady state
 
 The section file gives the normative text. The
 [Rules for each spec edit](../change-sidecar-spec/SKILL.md#rules-for-each-spec-edit) of the skill
-`change-sidecar-spec` ([ADR-TA0G](../../../decisions/entries/TA0G-vector-cases-and-reference-modules.md))
+`change-sidecar-spec` ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md))
 give the front matter, the vectors, the reference implementations and the traceability. This skill
 gives the order of the steps, the inputs, the outputs and the stop points.
 
@@ -149,7 +149,7 @@ A skellytracker session must land it first, with the skill
    `specs/model-sidecar/vectors/<section-id>.yaml`. Use the constant. An example is
    `test_fit_preprocess_agrees_with_the_case`. The generic test of that file checks only that a name
    in `verified_against` resolves. It does not run the function.
-8. Every case must pass. Do not edit a vector file by hand.
+8. Every case must pass. Do not edit `expect` by hand.
 9. Add the golden parity test, if the plan has one.
 10. Add the constant to `verified_against` of the section in `tools/make_vectors.py`. Then run
     `uv run python tools/make_vectors.py`.

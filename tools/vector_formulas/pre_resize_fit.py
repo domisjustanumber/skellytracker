@@ -22,13 +22,13 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, float]:
     }
 
 
-def inverse(
-    params: dict[str, Any], input: dict[str, Any], model_xy: list[float]
-) -> list[float]:
-    """Inverse: a model-input position in source pixels. Uses the unrounded values."""
+def inverse(params: dict[str, Any], input: dict[str, Any]) -> dict[str, list[float]]:
+    """Inverse: `input["model_xy"]` in source pixels. Uses the unrounded values."""
     geometry = run(params, input)
-    x, y = model_xy
-    return [
-        (x - geometry["left"]) / geometry["scale"],
-        (y - geometry["top"]) / geometry["scale"],
-    ]
+    x, y = input["model_xy"]
+    return {
+        "source_xy": [
+            (x - geometry["left"]) / geometry["scale"],
+            (y - geometry["top"]) / geometry["scale"],
+        ]
+    }

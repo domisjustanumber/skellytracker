@@ -28,7 +28,16 @@ import pytest
 import yaml
 
 import make_vectors as mv
-from vector_form import CaseDefect, agrees, entry_problems, problems
+from vector_form import (
+    CASE_KEYS,
+    FILE_KEYS,
+    CaseDefect,
+    agrees,
+    entry_problems,
+    file_problems,
+    has_fraction,
+    problems,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SPEC_ROOT = REPO_ROOT / "specs" / "model-sidecar"
@@ -65,6 +74,27 @@ def case_named(section: str, case_id: str) -> dict[str, Any]:
     return next(case for case in cases_of(section) if case["id"] == case_id)
 
 
+def forward_params(section: str) -> list[Any]:
+    """The cases that call `run`, without the `-inverse` cases."""
+    return [
+        pytest.param(case, id=case["id"])
+        for case in cases_of(section)
+        if "function" not in case
+    ]
+
+
+def inverse_of(section: str, case: dict[str, Any]) -> dict[str, Any]:
+    inverse = case_named(section, f"{case['id']}-inverse")
+    assert inverse["function"] == "inverse"
+    assert inverse["params"] == case["params"]
+    return inverse
+
+
+def exact_unless_fractional(section: str, *results: Any) -> float:
+    """The file tolerance when a result holds a fraction, else 0: integers match exactly."""
+    return load(f"{section}.yaml")["tolerance"] if has_fraction(list(results)) else 0
+
+
 @functools.cache
 def section_texts() -> dict[str, str]:
     """The text of each section file, keyed by the section ID of its front matter."""
@@ -98,7 +128,19 @@ def case_problems(
     return problems(
         case,
         defined_rule_ids(),
-        reference=lambda: mv.load_reference(section, reference_dir),
+        reference=lambda: mv.producer(section, reference_dir),
+        package_function=resolve_function,
+    )
+
+
+def vector_file_problems(
+    data: dict[str, Any], reference_dir: Path = mv.REFERENCE_DIR
+) -> list[str]:
+    """The form problems of one vector file (`vector_form.file_problems`) in this repo."""
+    return file_problems(
+        data,
+        defined_rule_ids(),
+        reference=lambda: mv.producer(data["section"], reference_dir),
         package_function=resolve_function,
     )
 
@@ -151,15 +193,18 @@ def test_file_has_the_documented_top_level_keys(path: Path) -> None:
     data = load(path.name)
     verification = "verified_against" if "verified_against" in data else "unverified"
     assert ("verified_against" in data) != ("unverified" in data)
-    assert list(data) == [
-        "section",
-        "spec_revision",
-        "generated_by",
-        verification,
-        "cases",
-    ]
-    assert data["spec_revision"] == "vNEXT"
-    assert data["generated_by"] == "tools/make_vectors.py"
+    checks = ["checks"] if "checks" in data else []
+    assert list(data) == ["section", "notes", "tolerance", *checks, verification, "cases"]
+    assert data["notes"][0].startswith("Normative text: specs/model-sidecar/")
+    assert data["tolerance"] in mv.TOLERANCE.values()
+
+
+@pytest.mark.parametrize("path", vector_paths(), ids=lambda p: p.name)
+def test_file_has_the_two_header_lines_and_no_other_comment(path: Path) -> None:
+    lines = path.read_text(encoding="utf-8").splitlines()
+    assert tuple(lines[:2]) == mv.HEADER
+    assert not [line for line in lines[2:] if line.lstrip().startswith("#")]
+    assert not {"spec_revision", "generated_by"} & set(load(path.name))
 
 
 @pytest.mark.parametrize("path", vector_paths(), ids=lambda p: p.name)
@@ -192,6 +237,125 @@ def test_cases_have_the_documented_shape(path: Path) -> None:
     assert len(ids) == len(set(ids))
     for case in cases:
         assert not case_problems(case, data["section"])
+    assert not vector_file_problems(data)
+
+
+def _pair(forward: dict[str, Any] | None = None, inverse: dict[str, Any] | None = None) -> list:
+    """The first forward case of pre.resize.stretch and its `-inverse` case, with changes."""
+    first, second = cases_of("pre.resize.stretch")[:2]
+    changed = [{**first, **(forward or {})}, {**second, **(inverse or {})}]
+    return [in_order({k: v for k, v in c.items() if v is not None}, CASE_KEYS) for c in changed]
+
+
+# Each row: the cases of a file with one broken rule between cases, and a part of the problem.
+BROKEN_CASE_LISTS = [
+    (lambda: _pair(inverse={"id": "zzz"}), "an Inverse case has function inverse"),
+    (lambda: _pair()[::-1], "follows the case"),
+    (lambda: _pair(inverse={"function": None}), "an Inverse case has function inverse"),
+    (lambda: [_pair()[0], {**_pair()[0], "id": "x-inverse"}], "an Inverse case has function"),
+    (lambda: _pair(inverse={"params": {"target_size": [1, 1]}}), "the params of its forward"),
+    (
+        lambda: _pair(inverse={"input": {"src_w": 1920, "src_h": 1080}}),
+        "forward input plus model_xy",
+    ),
+    (
+        lambda: _pair(forward={"note": "refused", "expect": {"error": "no-rule"}}),
+        "needs the check refused",
+    ),
+    (lambda: _pair(forward={"checks": ["refused"]}), "needs the check refused"),
+]
+
+
+@pytest.mark.parametrize(
+    ("cases", "problem"), BROKEN_CASE_LISTS, ids=[f"{r[1]}-{i}" for i, r in enumerate(BROKEN_CASE_LISTS)]
+)
+def test_a_file_that_breaks_a_rule_between_cases_has_a_problem(cases: Any, problem: str) -> None:
+    data = load("pre.resize.stretch.yaml")
+    assert not vector_file_problems({**data, "cases": _pair()})
+    found = vector_file_problems({**data, "cases": cases()})
+    assert any(problem in item for item in found), found
+
+
+def test_each_inverse_case_gives_source_xy() -> None:
+    inverse = [c for p in vector_paths() for c in load(p.name)["cases"] if c.get("function") == "inverse"]
+    assert inverse and all(list(case["expect"]) == ["source_xy"] for case in inverse)
+
+
+# Each row: a change to a valid case (None removes a key) and a part of the problem that it must give.
+BROKEN_FORMS = [
+    ({"note": None, "expect": {"error": "no-rule"}}, "a no-rule result needs a note"),
+    ({"function": "none"}, "function none is only for a failed result"),
+    ({"input": {"src_w": 1920, "src_h": 1080, "target_size": [640, 640]}}, "share the keys"),
+    ({"function": "no_such_function"}, "no function no_such_function"),
+    ({"tolerance": 0.0001}, "not a case form"),
+    ({"unproject": {"model_xy": [0, 0], "source_xy": [0, 0]}}, "not a case form"),
+    ({"note": ""}, "note must be a string"),
+    ({"checks": ["refused", "refused"]}, "checks must be a list"),
+]
+
+
+def in_order(mapping: dict[str, Any], order: tuple[str | None, ...]) -> dict[str, Any]:
+    """Return `mapping` with its keys in the form order; a key out of the form goes last."""
+    names = [k for key in order for k in ((key,) if key else ("verified_against", "unverified"))]
+    return {
+        **{key: mapping[key] for key in names if key in mapping},
+        **{key: value for key, value in mapping.items() if key not in names},
+    }
+
+
+@pytest.mark.parametrize(
+    ("change", "problem"), BROKEN_FORMS, ids=[row[1] for row in BROKEN_FORMS]
+)
+def test_a_case_that_breaks_a_form_rule_has_a_problem(
+    change: dict[str, Any], problem: str
+) -> None:
+    section = "pre.resize.letterbox"
+    valid = case_named(section, "center-upscale")
+    assert not case_problems(valid, section)
+    changed = {key: value for key, value in {**valid, **change}.items() if value is not None}
+    found = case_problems(in_order(changed, CASE_KEYS), section)
+    assert any(problem in item for item in found), found
+
+
+def test_a_case_keeps_the_key_order() -> None:
+    case = case_named("pre.resize.letterbox", "center-upscale")
+    moved = {"params": case["params"], **case}
+    assert any("not a case form" in found for found in case_problems(moved, "pre.resize.letterbox"))
+
+
+def test_a_data_only_validator_case_names_no_function() -> None:
+    """`function: none` with a failed result needs no producer function."""
+    case = {
+        "id": "valid",
+        "function": "none",
+        "params": {},
+        "input": {"sidecar": {}},
+        "expect": {"failed": []},
+    }
+
+    def no_producer() -> Any:
+        raise AssertionError("a data-only case does not load the producer")
+
+    assert not problems(case, [], reference=no_producer, package_function=resolve_function)
+
+
+@pytest.mark.parametrize(
+    ("change", "problem"),
+    [
+        ({"spec_revision": "vNEXT"}, "not a file form"),
+        ({"tolerance": -1}, "tolerance must be a number"),
+        ({"notes": "one note"}, "notes must be a list"),
+        ({"checks": ["input-size-follows-resize"]}, "also a check of the case"),
+    ],
+    ids=["spec-revision", "negative-tolerance", "notes-not-a-list", "check-twice"],
+)
+def test_a_file_that_breaks_a_form_rule_has_a_problem(change: dict[str, Any], problem: str) -> None:
+    data = load("pre.resize.letterbox.yaml")
+    case = in_order({**data["cases"][0], "checks": ["input-size-follows-resize"]}, CASE_KEYS)
+    valid = {**data, "cases": [case]}
+    assert not vector_file_problems(valid)
+    found = vector_file_problems(in_order({**valid, **change}, FILE_KEYS))
+    assert any(problem in item for item in found), found
 
 
 @pytest.mark.parametrize("path", vector_paths(), ids=lambda p: p.name)
@@ -200,17 +364,17 @@ def test_file_is_small(path: Path) -> None:
 
 
 def test_the_generator_writes_the_case_form_of_a_proposal(tmp_path: Path) -> None:
-    """`function`, `compare`, an error by rule ID, NaN, exact digits and an exporter entry."""
+    """`function`, `compare`, an error by rule ID, NaN, notes, data-only cases and an exporter entry."""
     (tmp_path / "pre_resize_letterbox.py").write_text(
         "def geometry(**kwargs):\n    return {}\n", encoding="utf-8"
     )
     exporter = {"OpenMMLab-Exporter": "onnx_runtime/preprocess.py::letterbox"}
+    long_note = ('a note with a colon: "quotes", a # sign and enough words ' * 3).strip()
     vectors = mv.Vectors(
         section="pre.resize.letterbox",
-        reading_notes=[],
+        notes=["Normative text: specs/model-sidecar/pre/resize-letterbox.md.", long_note],
         tolerance=1e-4,
         verified_against=[exporter],
-        digits=None,
         cases=[
             mv.Case(
                 id="two-tolerances",
@@ -234,6 +398,7 @@ def test_the_generator_writes_the_case_form_of_a_proposal(tmp_path: Path) -> Non
                 params={},
                 input={},
                 expect={"error": "V-pre.resize.letterbox-1"},
+                checks=["refused"],
             ),
             mv.Case(
                 id="refused-caller-argument",
@@ -241,11 +406,13 @@ def test_the_generator_writes_the_case_form_of_a_proposal(tmp_path: Path) -> Non
                 params={},
                 input={},
                 expect={"error": "no-rule"},
-                note="the input is a tensor shape, not a sidecar value",
+                note=long_note,
+                checks=["refused"],
             ),
-            mv.Case(id="valid", params={}, input={}, expect={"failed": []}),
+            mv.Case(id="valid", function="none", params={}, input={}, expect={"failed": []}),
             mv.Case(
                 id="one-failed-rule",
+                function="none",
                 params={},
                 input={},
                 expect={"failed": ["V-pre.resize.letterbox-1"]},
@@ -259,10 +426,16 @@ def test_the_generator_writes_the_case_form_of_a_proposal(tmp_path: Path) -> Non
             ),
         ],
     )
-    data = yaml.safe_load(mv.render(vectors))
+    text = mv.render(vectors)
+    data = yaml.safe_load(text)
     assert agrees(data, vectors.data())
+    assert all(len(line) <= mv.LINE_WIDTH for line in text.splitlines())
+    assert data["notes"][1] == data["cases"][3]["note"] == long_note
+    spaced = f" {long_note}  {long_note} "  # a fold would lose these spaces
+    assert yaml.safe_load("\n".join(mv._string_entry("note: ", spaced)))["note"] == spaced
     assert data["verified_against"] == [exporter]
-    assert data["cases"][0]["expect"]["k"] == 1 / 3  # digits=None keeps every digit
+    assert data["cases"][0]["expect"]["k"] == 0.333333  # expect has 6 decimals
+    assert not vector_file_problems(data, tmp_path)
     for case in data["cases"]:
         assert not case_problems(case, data["section"], tmp_path)
     refused = data["cases"][2]
@@ -347,10 +520,9 @@ def test_the_renderer_writes_a_long_item_in_block_form_and_a_large_float() -> No
     long_item = {"points": [[float(i) + 0.125 for i in range(12)] for _ in range(3)]}
     vectors = mv.Vectors(
         section="post.unprojection",
-        reading_notes=[],
+        notes=[],
         tolerance=1e-4,
         unverified="a test of the renderer, with no implementation",
-        digits=None,
         cases=[
             mv.Case(
                 id="long-nested-item",
@@ -460,8 +632,8 @@ def test_each_registered_check_holds_on_the_published_cases_that_declare_it() ->
         module = formula_module(section)
         registered |= {(section, name) for name in getattr(module, "CHECKS", {})}
         for case in vectors.cases:
-            mv.run_checks(module, case)
-            declared |= {(section, name) for name in case.checks}
+            mv.run_checks(module, case, vectors.checks)
+            declared |= {(section, name) for name in [*vectors.checks, *case.checks]}
     assert declared == registered
     assert {name for _, name in registered} == {row[1] for row in BROKEN_CLAIMS}
 
@@ -531,11 +703,8 @@ ANCHORS: dict[str, list[tuple[str, tuple[str | int, ...], Any]]] = {
             ("expect",),
             {"n_w": 640, "n_h": 360, "left": 0, "top": 140},
         ),
-        (
-            "center-half-even-landscape",
-            ("unproject",),
-            {"model_xy": [320, 320], "source_xy": [960, 540]},
-        ),
+        ("center-half-even-landscape-inverse", ("input", "model_xy"), [320, 320]),
+        ("center-half-even-landscape-inverse", ("expect",), {"source_xy": [960, 540]}),
         ("center-rounding-tie-half-even", ("expect", "n_h"), 50),
         ("center-rounding-tie-half-even", ("expect", "top"), 295),
         ("center-rounding-tie-half-up", ("expect", "n_h"), 51),
@@ -557,14 +726,14 @@ ANCHORS: dict[str, list[tuple[str, tuple[str | int, ...], Any]]] = {
     "pre.resize.stretch": [
         ("portrait-target", ("expect", "dst_w"), 384),
         ("portrait-target", ("expect", "dst_h"), 640),
-        ("portrait-target", ("unproject", "source_xy"), [1920, 1080]),
-        ("unproject-fractional", ("unproject", "source_xy"), [300, 168.75]),
+        ("portrait-target-inverse", ("expect", "source_xy"), [1920, 1080]),
+        ("unproject-fractional-inverse", ("expect", "source_xy"), [300, 168.75]),
     ],
     "pre.resize.fit": [
         ("fractional-offset", ("expect",), {"scale": 0.64, "left": 0, "top": 213.44}),
-        ("fractional-offset", ("unproject", "source_xy"), [500, 166.5]),
+        ("fractional-offset-inverse", ("expect", "source_xy"), [500, 166.5]),
         ("half-pixel-offset-scale-one", ("expect", "top"), 80.5),
-        ("unproject-in-the-padding", ("unproject", "source_xy"), [0, -420]),
+        ("unproject-in-the-padding-inverse", ("expect", "source_xy"), [0, -420]),
         ("one-pixel-wide-source", ("expect", "left"), 316.8),
     ],
     "pre.resize.affine_person_crop": [
@@ -902,9 +1071,9 @@ UNPROJECTION_SECTIONS = [
 @pytest.mark.parametrize(
     ("section", "case"),
     [
-        pytest.param(section, case, id=f"{section}:{case['id']}")
+        pytest.param(section, param.values[0], id=f"{section}:{param.id}")
         for section in UNPROJECTION_SECTIONS
-        for case in cases_of(section)
+        for param in forward_params(section)
     ],
 )
 def test_unprojection_inverts_the_forward_map(
@@ -912,12 +1081,16 @@ def test_unprojection_inverts_the_forward_map(
 ) -> None:
     forward = _forward_matrix(section, case)
     inverse = cv2.invertAffineTransform(forward)
-    model_x, model_y = case["unproject"]["model_xy"]
+    inverse_case = inverse_of(section, case)
+    model_x, model_y = inverse_case["input"]["model_xy"]
     source = inverse @ np.array([model_x, model_y, 1.0])
     # `scale`, `left` and `top` are rounded to 6 decimals in the file, so the
     # inverse of the file's matrix differs from `source_xy` by about 1e-5 relative.
-    expected = case["unproject"]["source_xy"]
-    assert source == pytest.approx(expected, rel=1e-5, abs=case.get("tolerance", 0))
+    expected = inverse_case["expect"]["source_xy"]
+    tolerance = exact_unless_fractional(
+        section, case["expect"], inverse_case["input"]["model_xy"], expected
+    )
+    assert source == pytest.approx(expected, rel=1e-5, abs=tolerance)
 
 
 # ---------------------------------------------------------------------------
@@ -1115,7 +1288,7 @@ def package_letterbox_geometry(case: dict[str, Any]) -> dict[str, int] | None:
     }
 
 
-@pytest.mark.parametrize("case", case_params("pre.resize.letterbox"))
+@pytest.mark.parametrize("case", forward_params("pre.resize.letterbox"))
 def test_letterbox_preprocess_agrees_exactly_where_the_case_says(
     case: dict[str, Any],
 ) -> None:
@@ -1129,13 +1302,12 @@ def test_letterbox_preprocess_agrees_exactly_where_the_case_says(
 
 def test_letterbox_file_claims_no_more_than_the_function_gives() -> None:
     data = load("pre.resize.letterbox.yaml")
+    forward = [param.values[0] for param in forward_params("pre.resize.letterbox")]
+    assert not any("verified_against" in c for c in data["cases"] if "function" in c)
     if "verified_against" in data:
-        assert all(package_letterbox_geometry(c) == c["expect"] for c in data["cases"])
+        assert all(package_letterbox_geometry(c) == c["expect"] for c in forward)
     else:
-        listed = [
-            mv.LETTERBOX_FUNCTION in c.get("verified_against", [])
-            for c in data["cases"]
-        ]
+        listed = [mv.LETTERBOX_FUNCTION in c.get("verified_against", []) for c in forward]
         assert any(listed), "the function reproduces some cases"
         assert not all(listed), "the function does not reproduce every case"
 
@@ -1149,7 +1321,7 @@ def test_fit_file_names_its_function() -> None:
     assert load("pre.resize.fit.yaml")["verified_against"] == [mv.FIT_FUNCTION]
 
 
-@pytest.mark.parametrize("case", case_params("pre.resize.fit"))
+@pytest.mark.parametrize("case", forward_params("pre.resize.fit"))
 def test_fit_preprocess_agrees_with_the_case(case: dict[str, Any]) -> None:
     function = resolve_function(mv.FIT_FUNCTION)
     t_h, t_w = case["params"]["target_size"]
@@ -1158,7 +1330,11 @@ def test_fit_preprocess_agrees_with_the_case(case: dict[str, Any]) -> None:
     padded, (scale, left, top) = function(image, (t_h, t_w), pad_value=0)
 
     expect = case["expect"]
-    assert agrees({"scale": scale, "left": left, "top": top}, expect, case)
+    inverse_case = inverse_of("pre.resize.fit", case)
+    tolerance = exact_unless_fractional(
+        "pre.resize.fit", expect, inverse_case["input"]["model_xy"], inverse_case["expect"]
+    )
+    assert agrees({"scale": scale, "left": left, "top": top}, expect, case, tolerance)
 
     # The warped image agrees with the reported geometry. The edges blend with
     # the border, so allow the blend zone of one source pixel (`scale` pixels).
@@ -1173,8 +1349,6 @@ def test_fit_preprocess_agrees_with_the_case(case: dict[str, Any]) -> None:
 
     # The unprojection is the exact inverse of the warp matrix of the function.
     matrix = np.array([[scale, 0, left], [0, scale, top]], dtype=float)
-    model_x, model_y = case["unproject"]["model_xy"]
+    model_x, model_y = inverse_case["input"]["model_xy"]
     source = cv2.invertAffineTransform(matrix) @ np.array([model_x, model_y, 1.0])
-    assert source == pytest.approx(
-        case["unproject"]["source_xy"], abs=case.get("tolerance", 0)
-    )
+    assert source == pytest.approx(inverse_case["expect"]["source_xy"], abs=tolerance)

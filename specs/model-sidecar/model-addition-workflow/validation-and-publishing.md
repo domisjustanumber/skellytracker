@@ -48,8 +48,8 @@ These rules apply to each contributor that writes a sidecar.
   of changes. From the first release that ships the spec, each change sets `schema_version` to the
   release that ships it and adds a changelog row.
 - The release step: skellytracker cuts the first release that ships the spec. One content PR then
-  replaces `vNEXT` with that release version in the spec, the changelog, every example and the
-  `spec_revision` of every vector file. This step replaces the instruction "before merging" in the
+  replaces `vNEXT` with that release version in the spec, the changelog and every example. This
+  step replaces the instruction "before merging" in the
   reviewer note of the spec changelog.
 - After the release step, regenerate your sidecars. Set `schema_version` to the skellytracker release
   that is current at export time (the exporter obligation under the heading "Semantics" in

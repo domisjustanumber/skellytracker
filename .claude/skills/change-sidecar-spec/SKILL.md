@@ -13,7 +13,7 @@ only in skellytracker. The user decides each acceptance.
 This skill wraps "Phase 3" of
 the [model addition workflow](../../../specs/model-sidecar/model-addition-workflow/README.md#phases), the
 [Rules for each spec edit](#rules-for-each-spec-edit)
-([ADR-TA0G](../../../decisions/entries/TA0G-vector-cases-and-reference-modules.md)) and the PR kinds of
+([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md)) and the PR kinds of
 [decision 0027](../../../decisions/entries/0027-single-working-branch.md#one-kind-of-change-in-each-pr).
 They give the reasons and the details. This skill gives the order of the steps, the inputs, the
 outputs and the stop points.
@@ -90,7 +90,7 @@ Do this procedure for step 1 of phase 3.
      ([Independence](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence)).
    - With `result: fail`, stop and tell the user. A failed case is a spec defect or a host bug. It
      needs a proposal.
-   - Run `uv run python tools/make_vectors.py`. Do not edit a vector file by hand.
+   - Run `uv run python tools/make_vectors.py`. Do not edit `expect` by hand.
 8. If the model is not in
    [Scope of this revision](../../../specs/model-sidecar/changelog.md#scope-of-this-revision), add
    the model to the list in the same PR
@@ -189,7 +189,7 @@ user accepts the proposal.
    results and the parity result.
 2. Make sure that the code follows [Imports of other sections](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#imports-of-other-sections). Find
    each module that the file imports. Each such module must be in `specs/model-sidecar/reference/`.
-   If one is not there, stop. Land that module first ([ADR-TA0G](../../../decisions/entries/TA0G-vector-cases-and-reference-modules.md)).
+   If one is not there, stop. Land that module first ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md)).
 3. Make sure that each docstring cites the section ID and the exporter commit.
 4. If `specs/model-sidecar/reference/<section_module>.py` exists, do not add a second reference. The
    disagreement is a spec defect or a bug. Use the skill
@@ -217,7 +217,7 @@ user accepts the proposal.
 |---|---|
 | A content change, for example the correction of a spec defect | Make sure that an accepted decision entry exists. If none exists, use [`propose-sidecar-change`](../propose-sidecar-change/SKILL.md). Then stop. If one exists, do steps 3 to 12 and step 17 of procedure B. |
 | A graduation to `stable` | (1) Run `uv run python tools/sidecar_trace.py matrix`. The Gate cell of the section must be `pass`. A `no_model` reason in `inventory.yaml` counts for the example item. Do not add another waiver. (2) The Gate column does not show two conditions. Check them by hand: an accepted decision entry exists for the section, and a named test checks each algorithm with no vectors ([Section status](../../../specs/model-sidecar/README.md#section-status), rule 5). (3) Get the explicit approval of the user. (4) In one content commit, set `status.spec: stable`, remove the banner, add the summary row and the `vNEXT` row ([`changelog.md`](#changelogmd)), run the matrix again and run the [checks](#checks). (5) Do not do steps 3 to 12 of procedure B. Do not write a new decision entry. Cite the accepted entry of the section in the commit message ([ADR-QMKS](../../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)). |
-| The release step | [Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing) gives it. First, find each section with `status.spec: draft`. If one exists, stop and tell the user. The user makes the section `stable` or removes its fields from the release ([Section status](../../../specs/model-sidecar/README.md#section-status), rule 7). Also stop and tell the user when an example or a package sidecar has `batching.batch_conversion` and the `validate` or `load` status of `common.batch_conversion` is not `implemented` ([ADR-QMKS](../../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)). Then, in one content PR, replace `vNEXT` with the release version. Do this in the spec, in `changelog.md`, in each example and in the `spec_revision` of each vector file. Then the exporters regenerate their sidecars. |
+| The release step | [Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing) gives it. First, find each section with `status.spec: draft`. If one exists, stop and tell the user. The user makes the section `stable` or removes its fields from the release ([Section status](../../../specs/model-sidecar/README.md#section-status), rule 7). Also stop and tell the user when an example or a package sidecar has `batching.batch_conversion` and the `validate` or `load` status of `common.batch_conversion` is not `implemented` ([ADR-QMKS](../../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)). Then, in one content PR, replace `vNEXT` with the release version. Do this in the spec, in `changelog.md` and in each example. Then the exporters regenerate their sidecars. |
 | A workflow change | The user asks for it ([ADR-FADS](../../../decisions/entries/FADS-hand-over-bundles-in-intakes.md)). Write the change in one non-spec commit with a decision entry that gives the reason ([Workflow changes](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#workflow-changes)). The entry is `accepted` in that commit. When the change changes the [Rules](../../../decisions/README.md#rules), change the kit in the same commit: run `uv run python tools/sync_bootstrap_kit.py --write` (it writes the copies and the blocks), and change the rest of the kit templates by hand ([ADR-Z05A](../../../decisions/entries/Z05A-essential-decision-log-rules.md)). |
 | A rewording | Do the [meaning check](#meaning-check). Change no meaning. |
 | A move | Change no words. Keep the section IDs and the rule IDs. |
@@ -269,7 +269,7 @@ Do this procedure when a content commit lands on a section that another open pro
 
 - Write each algorithm in one section only.
 - Put each rule in the section of the field that it constrains. The other sections link to it
-  ([ADR-TA0G](../../../decisions/entries/TA0G-vector-cases-and-reference-modules.md)).
+  ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md)).
 - Find each place that the change edits. Part 2 of the proposal lists these places. Examples are the
   closed sets that the change extends, the section map, the validation index and the rules that name
   a changed value.
@@ -382,7 +382,7 @@ Each change has a class
   expected output. There is one file for each section ID in `specs/model-sidecar/vectors/`. A file holds
   numbers only: no images and no ONNX files.
 - Write a validator case in the vector file of the section that owns the rule
-  ([ADR-TA0G](../../../decisions/entries/TA0G-vector-cases-and-reference-modules.md);
+  ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md);
   [Section status](../../../specs/model-sidecar/README.md#section-status)).
 - Vectors are informative. Vector cases are geometry and small arrays. Pixel-exact resize output is
   out of scope, because it depends on OpenCV internals. A pixel case, if one is necessary, states a
@@ -391,18 +391,32 @@ Each change has a class
   same results, or `unverified: <reason>`. A reference implementation and its source exporter count as
   one implementation. A vector is fully verified when two independent implementations agree: two
   exporters, or an exporter and skellytracker.
-- `tools/make_vectors.py` computes the vectors from the normative formulas. When a section has a
-  reference implementation, the generator calls it instead.
-- `tools/make_vectors.py` is the only writer of `specs/model-sidecar/vectors/`. A vector file has
-  `generated_by: tools/make_vectors.py`. Do not edit a vector file by hand.
-- A builder calls a reference function through `make_vectors.outcome`. `outcome` changes a
-  `ValueError` into the `error` expect: the rule ID at the start of the message, or `no-rule`. Any
-  other exception stops the generator.
-- The vectors of skellytracker and of a proposal use one case form
-  ([ADR-TA0G](../../../decisions/entries/TA0G-vector-cases-and-reference-modules.md)). Part 4 of the
+- `tools/make_vectors.py` computes the vectors with the producer of each section. The producer is
+  `specs/model-sidecar/reference/<section_module>.py` when it exists, else
+  `tools/vector_formulas/<section_module>.py`. While a reference is the producer and the formula
+  module has `run`, the two must agree within the tolerance
+  ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md)).
+- Each name in `checks` is `refused` or a key of `CHECKS` in
+  `tools/vector_formulas/<section_module>.py`. An unknown name stops the generator. A case with an
+  `error` result must list `refused`. Use `refused` only in such a case.
+- `tools/make_vectors.py` writes `expect` in each file of `specs/model-sidecar/vectors/`. A person
+  edits the other keys. Then the person runs `uv run python tools/make_vectors.py`. Do not edit
+  `expect` by hand. The only exception is a validator case with `function: none`: its author writes
+  its `expect`
+  ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md)).
+- The generator calls each case through `make_vectors.outcome`. `outcome` changes a `ValueError`
+  into the `error` expect: the rule ID at the start of the message, or `no-rule`. A broken case or
+  formula calls `vector_form.defect`. Its `CaseDefect`, and any other exception, stops the
+  generator.
+- The vectors of skellytracker and of a proposal use one form
+  ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md)). Part 4 of the
   [change proposal template](../../../specs/model-sidecar/templates/change-proposal.md#4-vectors)
-  gives it. `tools/tests/test_vectors.py` checks it: the keys `function` and `compare`, an error as
-  a rule ID or `no-rule`, the rule IDs in `failed`, NaN, and the entries of `verified_against`.
+  gives it. `tools/vector_form.py` checks it, and `tools/tests/test_vectors.py` runs that check: the
+  top-level keys and the case keys and their order, a `note` in each `no-rule` case,
+  `function: none` only with `failed`, different keys in `params` and `input`, a `function` that is
+  in the producer, an error as a rule ID or `no-rule`, the check `refused` exactly in each `error`
+  case, the rule IDs in `failed`, the place, `params` and `input` of each `<id>-inverse` case, NaN,
+  and the entries of `verified_against`.
 - A `verified_against` entry is a skellytracker function (`path::function`), which the test
   imports, or an exporter function (`{<Exporter repo>: <file>::<function>}`), which the test checks
   for its form only.
@@ -485,7 +499,7 @@ it.
 ### Meaning check
 
 Do these checks for each reworded section file
-([ADR-TA0G](../../../decisions/entries/TA0G-vector-cases-and-reference-modules.md)):
+([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md)):
 
 1. Run `uv run python tools/check_ste_tokens.py --rev <REV> <FILE>`. It lists each change of the
    multiset of inline-code tokens, numbers, code blocks and the field, type and default cells of the

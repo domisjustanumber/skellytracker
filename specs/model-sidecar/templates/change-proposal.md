@@ -256,7 +256,7 @@ expected output.
   covers only the numeric cases. An `error` case and a `failed` case do not need `verified_against`.
 - The reference implementation and its source exporter count as one implementation in
   `verified_against`. Only exporters and skellytracker count as implementations. Do not list the
-  upstream library. If you ran a case through upstream code, write that in a comment.
+  upstream library. If you ran a case through upstream code, write that in the `note` of the case.
 - If no implementation gave the same results yet (for example, the host code does not exist or is not
   committed), write `unverified: <reason>` in place of `verified_against`. A vector made only from a
   reading of the spec text is not verified.
@@ -266,19 +266,38 @@ expected output.
   case with a scalar value on a 3-channel input.
 - Use geometry and small arrays. Do not use images or ONNX files. Pixel-exact resize output is out of
   scope. If you need a pixel case, state its tolerance in `compare`.
-- Use the case form of `tools/make_vectors.py` exactly. `tools/tests/test_vectors.py` checks this
-  form (skellytracker ADR-TA0G, `decisions/entries/TA0G-vector-cases-and-reference-modules.md`). The keys of a case
-  are `id`, `function`, `params`, `input`, `expect`, `unproject`, `tolerance`, `compare` and
-  `verified_against`. Do not add other keys.
-- Name the function of the reference file that each case runs (`function`). Each reference function
-  returns a mapping. Its keys are the keys of `expect`.
+- Use the form of a skellytracker vector file exactly. `tools/vector_form.py` checks this form
+  (skellytracker ADR-8DSW, `decisions/entries/8DSW-vector-files-are-the-case-source.md`). The
+  top-level keys are, in this order: `section`, `notes`, `tolerance`, `checks`, `verified_against`
+  or `unverified`, and `cases`. The keys of a case are, in this order: `id`, `note`, `function`,
+  `checks`, `params`, `input`, `expect`, `compare` and `verified_against`. Do not add other keys.
+- Start the file with the 2 comment lines of the example below. Write each other note in `notes` or
+  in `note`, not in a YAML comment. `tools/make_vectors.py` does not keep the other comments. The
+  comments after the keys of the example are only help for this template.
+- `notes` is a list of strings: the reading notes of the file. The first note is
+  `Normative text: <path of the section file>`.
+- `note` is an optional string about one case.
+- `checks` is optional. It names the self-checks of the skellytracker generator. Hosts ignore
+  `checks`. A file-level `checks` applies to each case. A case lists only the checks that the file
+  does not list. Each name must be `refused` or a key of `CHECKS` in
+  `tools/vector_formulas/<section_module>.py` of skellytracker. An unknown name stops the generator.
+- A case with `expect: {error: ...}` must list the check `refused`. Use `refused` only in such a
+  case. `tools/vector_form.py` checks this (skellytracker ADR-8DSW).
+- A case is one call of one function. The reference module has `run(params, input)`. If the section
+  has an inverse, the module also has `inverse(params, input)`. Each function returns a mapping. Its
+  keys are the keys of `expect`.
+- A case without `function` calls `run`. `function` can name another function of the reference
+  module, with the same arguments.
+- An Inverse case has the `id` `<forward id>-inverse` and `function: inverse`. Put it directly after
+  its forward case. Give it the same `params` as the forward case. Its `input` is the forward `input`
+  and `model_xy`. Its `expect` is `{source_xy: [<x>, <y>]}`.
+- The keys of `params` and the keys of `input` must be different.
 - For a refused input, the reference function raises `ValueError`. Do not raise a different
   exception for a refused input.
 - Cast each input in the reference function to the dtype that the spec gives, for example `float32`.
   The vector file writes a whole float as an integer.
-- An integer must match exactly. A case with a fractional value in `expect` or `unproject` needs a
-  `tolerance` or a `compare`. `tolerance` is the largest allowed absolute difference of each
-  fractional value of the case. A case without a fractional value has no `tolerance`.
+- An integer must match exactly. `tolerance` is one number for the file. It is the largest allowed
+  absolute difference of each fractional value in `expect`, in each case.
 - `compare` gives the tolerance of one field: `atol` is the largest allowed absolute difference of the
   field. `period` compares the values of the field modulo that period, for example 2π for an angle.
   `compare` replaces `tolerance` for that field.
@@ -288,11 +307,9 @@ expected output.
   example `V-post.det.decode-5: ...`. Then the value is that rule ID. The input must fail exactly
   one rule. The rule must be in a section file, or in part 2.4 of this proposal.
 - If the input is not a sidecar value, the value is `no-rule`. Examples are a tensor of the model,
-  an argument of the caller and a second sidecar. Give the reason as a YAML comment on the `id` line
-  of the case, for example `- id: refused-shape  # the input is a tensor, not a sidecar value`. Do not
-  add a `note` key.
-- A sidecar with `schema_version < vNEXT` that uses a feature that is "Not available." also gives
-  `no-rule`.
+  an argument of the caller and a second sidecar. A `no-rule` case must have a `note`. Give the
+  reason in it, for example `note: the input is a tensor, not a sidecar value`
+  (skellytracker ADR-8DSW).
 - If no rule refuses a sidecar value, the spec needs a new rule. Add it to part 2.4. Do not use
   `no-rule` for that value.
 - Do not give a run-time function a sidecar value that a validation rule refuses. Write a
@@ -300,22 +317,22 @@ expected output.
   the rule.
 - A validator that reports each failed rule returns `{failed: [<rule IDs>]}`. Sort the list. Do not
   repeat an ID. Write `failed: []` for a valid sidecar. Do not add another `expect` key. Each ID must
-  be in a section file, or in part 2.4 of this proposal. A validator case can have no `function`
-  until an implementation exists.
+  be in a section file, or in part 2.4 of this proposal.
+- A validator case can be data only. Write `function: none` and write its `expect: {failed: [...]}`
+  yourself. The generator does not run such a case. Use `function: none` only with `failed`
+  (skellytracker ADR-8DSW).
 - The host code of the exporter runs only the numeric cases. An `error` case and a `failed` case
   run only against the reference implementation.
 - Write NaN as `.nan` and infinity as `.inf`. A NaN expected value is equal to NaN.
-- The generator rounds each expected value to 6 decimals. If the section needs exact values (for
-  example `float32` results), write each value with all of its digits, and say so in part 2.1. Then
-  the builder of the section writes the values exactly.
+- Round each value of `expect` to 6 decimals. `tools/make_vectors.py` writes `expect` with 6
+  decimals (skellytracker ADR-8DSW).
 - A `verified_against` entry of the exporter has the form `<Exporter repo>: <file>::<function>`.
   Write the exporter commit in the note at the top of the reference file.
-- `generated_by` names your reference file. When skellytracker lands the proposal,
-  `tools/make_vectors.py` calls the reference implementation through `make_vectors.outcome` and
-  writes the vector file again. Then `generated_by` is `tools/make_vectors.py`. The new `cases` must
-  be the cases of the current vector file, your cases and the cases of each contribution. A case of
-  yours with the `id` of a current case replaces that case. List each such `id` here, with the
-  reason. If this is not true, the landing stops.
+- When skellytracker lands the proposal, `tools/make_vectors.py` calls the reference implementation
+  through `make_vectors.outcome` and writes `expect` again. The new `cases` must be the cases of the
+  current vector file, your cases and the cases of each contribution. A case of yours with the `id`
+  of a current case replaces that case. List each such `id` here, with the reason. If this is not
+  true, the landing stops.
 - A vector file must be 256 KiB or smaller. The limit applies to the file that
   `tools/make_vectors.py` writes, with the cases of the other proposals for the section.
 - Do not repeat a large value in each case when a smaller value tests the same branch.
@@ -324,19 +341,30 @@ expected output.
 - The target file in skellytracker is `specs/model-sidecar/vectors/<section ID>.yaml`.
 
 ```yaml
+# tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
+# Hosts ignore `checks`. The names are the self-checks of the generator.
 section: <proposed section ID>
-spec_revision: vNEXT
-generated_by: <reference file>
+notes:
+  - "Normative text: specs/model-sidecar/<section file>."
+  - <a reading note>
+tolerance: <number>                       # the largest absolute difference of a fractional value
+checks: [<check name>]                    # optional
 verified_against:                         # or, when nothing verified the cases: unverified: <reason>
   - <Exporter repo>: <file>::<function>
 cases:
-  - id: <case id>                         # optional: a note on the case (a YAML comment, not a key)
-    function: <function of the reference file>
+  - id: <case id>
+    note: <a note on the case>            # optional; required for {error: no-rule}
+    function: <function of the reference module>  # optional: run when absent; none for a data-only validator case
+    checks: [<check name>]                # optional; [refused] for an error result
     params: {}
     input: {}
     expect: {}                            # or {error: V-<section-id>-<n>}, {error: no-rule} or {failed: [V-<section-id>-<n>]}
-    tolerance: <number>                   # only when expect or unproject has a fractional value
     compare: {}                           # optional: {<field>: {atol: <number>, period: <number>}}
+  - id: <case id>-inverse                 # an Inverse case directly after its forward case
+    function: inverse
+    params: {}                            # the params of the forward case
+    input: {model_xy: [<x>, <y>]}         # the input of the forward case and model_xy
+    expect: {source_xy: [<x>, <y>]}
 ```
 
 ## 5. Parity evidence

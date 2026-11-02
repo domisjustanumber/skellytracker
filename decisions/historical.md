@@ -48,3 +48,4 @@ the reason for a decision. The [index](README.md) has the Active and Proposed en
 | [JW9N](entries/JW9N-restate-a-kept-rule-by-a-link.md) | A link to a heading that states a kept rule restates it; later edits there cite their entry; the chain rule; supersedes ngnb and HJNP | superseded by Z05A |
 | [NSR2](entries/NSR2-adr-citations-as-links-in-each-text.md) | Cite an entry as a link with `ADR-<ID>` as link text in each text: files, plans, PR bodies, replies; commit bodies with no link | superseded by Z05A |
 | [b9fm](entries/b9fm-finished-sidecar-plans.md) | The reference-examples procedure moves to the workflow; the implementation plan links to the spec backlog; the coverage note is frozen evidence | superseded by 5WKW |
+| [TA0G](entries/TA0G-vector-cases-and-reference-modules.md) | Refusals as a rule ID or `no-rule`, `failed` lists, `outcome()`, 256 KiB, union landing check, module imports and fixtures; supersedes a33q and 0013 | superseded by 8DSW |
