@@ -21,6 +21,7 @@ import math
 import re
 import shutil
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -1363,16 +1364,16 @@ SOURCE_VALUE = 200
 LETTERBOX_PAD = 114
 
 
-def package_letterbox_geometry(case: dict[str, Any]) -> dict[str, int] | None:
+def letterbox_runner(function: Any, case: dict[str, Any]) -> dict[str, int] | None:
     """Run `letterbox_preprocess` on a flat image; None when it cannot run the case.
 
     The function reports only a scale factor, so the geometry is read from the
-    padded image: the source value (200) differs from the padding (114).
+    padded image: the source value (200) differs from the padding (114). The
+    function does not compute the Inverse.
     """
-    function = resolve_function(mv.LETTERBOX_FUNCTION)
     params = case["params"]
-    if params["pad_position"] != "top_left":
-        return None  # the function has no `center`
+    if "function" in case or params["pad_position"] != "top_left":
+        return None  # the function has no Inverse and no `center`
     image = np.full(
         (case["input"]["src_h"], case["input"]["src_w"], 3),
         SOURCE_VALUE,
@@ -1396,53 +1397,28 @@ def package_letterbox_geometry(case: dict[str, Any]) -> dict[str, int] | None:
     }
 
 
-@pytest.mark.parametrize("case", forward_params("pre.resize.letterbox"))
-def test_letterbox_preprocess_agrees_exactly_where_the_case_says(
-    case: dict[str, Any],
-) -> None:
-    geometry = package_letterbox_geometry(case)
-    listed = mv.LETTERBOX_FUNCTION in case.get("verified_against", [])
-    if geometry is None:
-        assert not listed, "a case the function cannot run is not verified"
-    else:
-        assert (geometry == case["expect"]) == listed, geometry
-
-
-def test_letterbox_file_claims_no_more_than_the_function_gives() -> None:
-    data = load("pre.resize.letterbox.yaml")
-    forward = [param.values[0] for param in forward_params("pre.resize.letterbox")]
-    assert not any("verified_against" in c for c in data["cases"] if "function" in c)
-    if "verified_against" in data:
-        assert all(package_letterbox_geometry(c) == c["expect"] for c in forward)
-    else:
-        listed = [mv.LETTERBOX_FUNCTION in c.get("verified_against", []) for c in forward]
-        assert any(listed), "the function reproduces some cases"
-        assert not all(listed), "the function does not reproduce every case"
-
-
 def _axis_extent(mask_axis: np.ndarray) -> tuple[int, int]:
     indexes = np.flatnonzero(mask_axis)
     return int(indexes[0]), int(indexes[-1])
 
 
-def test_fit_file_names_its_function() -> None:
-    assert load("pre.resize.fit.yaml")["verified_against"] == [mv.FIT_FUNCTION]
+def fit_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
+    """Run `fit_preprocess` on a flat image.
 
-
-@pytest.mark.parametrize("case", forward_params("pre.resize.fit"))
-def test_fit_preprocess_agrees_with_the_case(case: dict[str, Any]) -> None:
-    function = resolve_function(mv.FIT_FUNCTION)
+    A forward case gives the reported geometry, after a check that the warped
+    image agrees with it. An `-inverse` case gives `model_xy` mapped through the
+    inverted warp matrix of the function: the function has no Inverse.
+    """
     t_h, t_w = case["params"]["target_size"]
     src_w, src_h = case["input"]["src_w"], case["input"]["src_h"]
     image = np.full((src_h, src_w, 3), SOURCE_VALUE, dtype=np.uint8)
     padded, (scale, left, top) = function(image, (t_h, t_w), pad_value=0)
 
-    expect = case["expect"]
-    inverse_case = inverse_of("pre.resize.fit", case)
-    tolerance = exact_unless_fractional(
-        "pre.resize.fit", expect, inverse_case["input"]["model_xy"], inverse_case["expect"]
-    )
-    assert agrees({"scale": scale, "left": left, "top": top}, expect, case, tolerance)
+    if case.get("function") == "inverse":
+        matrix = np.array([[scale, 0, left], [0, scale, top]], dtype=float)
+        model_x, model_y = case["input"]["model_xy"]
+        source = cv2.invertAffineTransform(matrix) @ np.array([model_x, model_y, 1.0])
+        return {"source_xy": source.tolist()}
 
     # The warped image agrees with the reported geometry. The edges blend with
     # the border, so allow the blend zone of one source pixel (`scale` pixels).
@@ -1454,9 +1430,55 @@ def test_fit_preprocess_agrees_with_the_case(case: dict[str, Any]) -> None:
         low, high = max(start, 0.0), min(start + length * scale, size)
         assert math.floor(low) - margin <= first <= math.ceil(low) + 1
         assert math.floor(high) - 2 <= last <= math.ceil(high) + margin
+    return {"scale": scale, "left": left, "top": top}
 
-    # The unprojection is the exact inverse of the warp matrix of the function.
-    matrix = np.array([[scale, 0, left], [0, scale, top]], dtype=float)
-    model_x, model_y = inverse_case["input"]["model_xy"]
-    source = cv2.invertAffineTransform(matrix) @ np.array([model_x, model_y, 1.0])
-    assert source == pytest.approx(inverse_case["expect"]["source_xy"], abs=tolerance)
+
+# The adapter of each skellytracker `verified_against` entry. An adapter runs
+# the function on one case and returns its result in the form of `expect`, or
+# None when the function cannot run the case.
+PACKAGE_RUNNERS: dict[str, Callable[[Any, dict[str, Any]], dict[str, Any] | None]] = {
+    "skellytracker/core/detectors/processing/image_preprocessing.py::letterbox_preprocess": (
+        letterbox_runner
+    ),
+    "skellytracker/core/detectors/processing/image_preprocessing.py::fit_preprocess": fit_runner,
+}
+
+
+def package_entries(data: dict[str, Any]) -> list[str]:
+    """The skellytracker entries that a vector file names, at file or case level, in order."""
+    entries = [
+        *data.get("verified_against", []),
+        *(entry for case in data["cases"] for entry in case.get("verified_against", [])),
+    ]
+    return list(dict.fromkeys(entry for entry in entries if isinstance(entry, str)))
+
+
+def package_params() -> list[Any]:
+    """Each case of each file that names a skellytracker entry, with that entry."""
+    return [
+        pytest.param(data["section"], entry, case, id=f"{data['section']}:{case['id']}")
+        for data in (load(path.name) for path in vector_paths())
+        for entry in package_entries(data)
+        for case in data["cases"]
+    ]
+
+
+def test_each_package_runner_is_named_in_verified_against() -> None:
+    named = {entry for path in vector_paths() for entry in package_entries(load(path.name))}
+    assert set(PACKAGE_RUNNERS) == named
+
+
+@pytest.mark.parametrize(("section", "entry", "case"), package_params())
+def test_the_package_agrees_exactly_where_verified_against_names_it(
+    section: str, entry: str, case: dict[str, Any]
+) -> None:
+    """A file or a case that names the function agrees with it; each other case does not."""
+    listed = entry in load(f"{section}.yaml").get("verified_against", []) or entry in case.get(
+        "verified_against", []
+    )
+    result = PACKAGE_RUNNERS[entry](resolve_function(entry), case)
+    if result is None:
+        assert not listed, "a case the function cannot run is not verified"
+        return
+    tolerance = exact_unless_fractional(section, case["input"], case["expect"])
+    assert agrees(result, case["expect"], case, tolerance) == listed, result

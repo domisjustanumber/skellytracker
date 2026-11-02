@@ -33,7 +33,7 @@ A file has either `verified_against` (the list of independent implementations
 that produced the same results) or `unverified` (the reason that none did). An
 entry is a skellytracker function (`path::function`) or an exporter function
 (`{<Exporter repo>: <file>::<function>}`). `tools/tests/test_vectors.py` runs
-the skellytracker functions.
+each skellytracker function through its adapter in `PACKAGE_RUNNERS`.
 
 Usage:
     python tools/make_vectors.py            # write the files
@@ -81,12 +81,6 @@ HEADER = (
 )
 # The keys of a file, in their order.
 FILE_ORDER = ("section", "notes", "tolerance", "checks", "verified_against", "unverified", "cases")
-
-# The skellytracker functions that `tools/tests/test_vectors.py` runs.
-LETTERBOX_FUNCTION = "skellytracker/core/detectors/processing/image_preprocessing.py::letterbox_preprocess"
-FIT_FUNCTION = (
-    "skellytracker/core/detectors/processing/image_preprocessing.py::fit_preprocess"
-)
 
 LINE_WIDTH = 100
 ROUND_DIGITS = 6
