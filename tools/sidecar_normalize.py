@@ -66,29 +66,10 @@ class NormalizationRule:
     apply: Callable[[dict[str, Any]], bool] | None = None
 
 
-def _roles(data: Mapping[str, Any]) -> list[Any]:
-    role = data.get("role")
-    if isinstance(role, str):
-        return [role]
-    return list(role) if isinstance(role, (list, tuple)) else []
-
-
 def _input_of(data: Mapping[str, Any]) -> dict[str, Any] | None:
     """Return `input` when it is a mapping. The input defaults apply to nothing else."""
     value = data.get("input")
     return value if isinstance(value, dict) else None
-
-
-def _derive_selection(data: dict[str, Any]) -> bool:
-    if "object_detector" not in _roles(data):
-        return False
-    decode = data.get("decode")
-    if decode is None:
-        decode = data["decode"] = {}
-    if not isinstance(decode, dict) or decode.get("selection") is not None:
-        return False
-    decode["selection"] = "nms" if decode.get("requires_nms") is True else "none"
-    return True
 
 
 def _default_resize(data: dict[str, Any]) -> bool:
@@ -96,20 +77,6 @@ def _default_resize(data: dict[str, Any]) -> bool:
     if input_ is None or input_.get("resize") is not None:
         return False
     input_["resize"] = {"method": "none"}
-    return True
-
-
-def _letterbox_alias(data: dict[str, Any]) -> bool:
-    input_ = _input_of(data)
-    resize = input_.get("resize") if input_ is not None else None
-    if not isinstance(resize, dict):
-        return False
-    if (
-        resize.get("method") != "letterbox"
-        or resize.get("preserve_aspect_ratio") is not False
-    ):
-        return False
-    resize["method"] = "stretch"
     return True
 
 
@@ -123,31 +90,11 @@ def _default_normalization(data: dict[str, Any]) -> bool:
 
 NORMALIZATION_TABLE: tuple[NormalizationRule, ...] = (
     NormalizationRule(
-        name="selection",
-        section="post.det.decode",
-        heading="Legacy behaviour",
-        summary=(
-            "When `role` includes `object_detector` and `decode.selection` is absent, "
-            "`decode.selection` is `nms` if `decode.requires_nms` is true, and `none` otherwise."
-        ),
-        apply=_derive_selection,
-    ),
-    NormalizationRule(
         name="resize",
         section="common.input",
         heading="Fields",
         summary="When `input.resize` is absent, `input.resize.method` is `none`.",
         apply=_default_resize,
-    ),
-    NormalizationRule(
-        name="letterbox_alias",
-        section="pre.resize.letterbox",
-        heading="Legacy behaviour",
-        summary=(
-            "When `input.resize.method` is `letterbox` and "
-            "`input.resize.preserve_aspect_ratio` is false, `input.resize.method` is `stretch`."
-        ),
-        apply=_letterbox_alias,
     ),
     NormalizationRule(
         name="normalization",

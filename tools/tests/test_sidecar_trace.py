@@ -31,7 +31,8 @@ README = """\
 | `post.det.selection.nms` | [post/nms.md](post/nms.md) | Selection: NMS |
 """
 
-FOO = """\
+# A legacy package sidecar. The scan must not find it (ADR-NB5F).
+PACKAGE_FOO = """\
 schema_version: v2024.09.1019
 model_id: foo
 role: [object_detector]
@@ -39,6 +40,16 @@ input:
   normalization: none
   resize: {method: letterbox, preserve_aspect_ratio: false}
 decode: {requires_nms: true}
+"""
+
+FOO = """\
+schema_version: vNEXT
+model_id: foo
+source: {name: a-lib, version: "1.0"}
+role: [object_detector]
+input:
+  resize: {method: stretch}
+decode: {selection: nms}
 """
 
 BAR = """\
@@ -143,14 +154,14 @@ def repo(tmp_path: Path) -> Path:
             sort_keys=False,
         ),
     )
-    write(tmp_path, "skellytracker/core/detectors/object_detectors/foo/foo.yaml", FOO)
-    write(tmp_path, "skellytracker/core/detectors/object_detectors/foo/other.yaml", FOO)
     write(
-        tmp_path,
-        "skellytracker/core/detectors/shared/skeletons/frag.yaml",
-        "- a\n- b\n",
+        tmp_path, "skellytracker/core/detectors/object_detectors/foo/foo.yaml", PACKAGE_FOO
     )
-    write(tmp_path, "skellytracker/core/detectors/shared/empty.yaml", "")
+    examples = spec + "examples/detectors/"
+    write(tmp_path, examples + "object_detectors/foo/foo.yaml", FOO)
+    write(tmp_path, examples + "object_detectors/foo/other.yaml", FOO)
+    write(tmp_path, examples + "shared/skeletons/frag.yaml", "- a\n- b\n")
+    write(tmp_path, examples + "shared/empty.yaml", "")
     write(tmp_path, spec + "examples/detectors/object_detectors/bar/bar.yaml", BAR)
     write(
         tmp_path, spec + "examples/detectors/keypoint_detectors/baz/body/baz.yaml", BAZ
@@ -362,22 +373,29 @@ def test_missing_entries_list_the_missing_steps(repo: Path) -> None:
 def test_the_scan_finds_the_sidecars_and_skips_the_other_yaml(repo: Path) -> None:
     scan = st.scan_sidecars(repo)
     assert [s.key for s in scan.sidecars] == [
-        "foo@skellytracker",
+        "foo@a-lib",
         "baz@declared-lib",
         "bar@other-exporter",
     ]
     assert scan.skipped == (
-        "skellytracker/core/detectors/object_detectors/foo/other.yaml",
-        "skellytracker/core/detectors/shared/empty.yaml",
-        "skellytracker/core/detectors/shared/skeletons/frag.yaml",
+        "specs/model-sidecar/examples/detectors/object_detectors/foo/other.yaml",
+        "specs/model-sidecar/examples/detectors/shared/empty.yaml",
+        "specs/model-sidecar/examples/detectors/shared/skeletons/frag.yaml",
     )
+
+
+def test_the_scan_does_not_read_the_package_root(repo: Path) -> None:
+    write(repo, "skellytracker/core/detectors/shared/bad.yaml", "a: [1\n")
+    scan = st.scan_sidecars(repo)
+    shown = [s.path for s in scan.sidecars] + list(scan.skipped)
+    assert all(p.startswith("specs/model-sidecar/examples/") for p in shown)
+    assert {s.origin for s in scan.sidecars} == {"example"}
 
 
 def test_a_declared_source_wins_over_the_inventory(repo: Path) -> None:
     keys = {s.key: s for s in st.scan_sidecars(repo).sidecars}
     assert keys["baz@declared-lib"].source == "declared-lib"
     assert keys["bar@other-exporter"].source == "other-exporter"
-    assert keys["foo@skellytracker"].origin == "package"
     assert keys["bar@other-exporter"].origin == "example"
 
 
@@ -390,15 +408,15 @@ def test_an_example_without_any_source_raises(repo: Path) -> None:
 def test_a_repeated_key_raises(repo: Path) -> None:
     write(
         repo,
-        "skellytracker/core/detectors/object_detectors/copy/foo.yaml",
+        "specs/model-sidecar/examples/detectors/object_detectors/copy/foo.yaml",
         FOO,
     )
-    with pytest.raises(st.TraceError, match="foo@skellytracker"):
+    with pytest.raises(st.TraceError, match="foo@a-lib"):
         st.scan_sidecars(repo)
 
 
 def test_a_yaml_error_raises(repo: Path) -> None:
-    write(repo, "skellytracker/core/detectors/shared/bad.yaml", "a: [1\n")
+    write(repo, "specs/model-sidecar/examples/detectors/shared/bad.yaml", "a: [1\n")
     with pytest.raises(st.TraceError, match="bad.yaml"):
         st.scan_sidecars(repo)
 
@@ -409,7 +427,9 @@ def test_a_sidecar_that_cannot_resolve_raises(repo: Path) -> None:
         + "extra: {$ref: missing.yaml}\n"
     )
     write(
-        repo, "skellytracker/core/detectors/object_detectors/broken/broken.yaml", broken
+        repo,
+        "specs/model-sidecar/examples/detectors/object_detectors/broken/broken.yaml",
+        broken,
     )
     with pytest.raises(st.TraceError, match="broken.yaml"):
         st.scan_sidecars(repo)
@@ -417,11 +437,10 @@ def test_a_sidecar_that_cannot_resolve_raises(repo: Path) -> None:
 
 def test_the_scan_normalizes_each_sidecar(repo: Path) -> None:
     foo = next(s for s in st.scan_sidecars(repo).sidecars if s.model_id == "foo")
-    assert foo.legacy
-    assert foo.normalized["decode"]["selection"] == "nms"
-    assert foo.normalized["input"]["resize"]["method"] == "stretch"
-    assert foo.resolved["decode"] == {"requires_nms": True}
-    assert foo.derived == ("selection", "letterbox_alias")
+    assert foo.normalized["input"]["normalization"] == "imagenet_bgr"
+    assert "normalization" not in foo.resolved["input"]
+    assert foo.normalized["decode"] == foo.resolved["decode"]
+    assert foo.derived == ("normalization",)
 
 
 def test_the_sections_apply_to_the_right_sidecars(repo: Path) -> None:
@@ -431,7 +450,7 @@ def test_the_sections_apply_to_the_right_sidecars(repo: Path) -> None:
     assert [s.key for s in applicable["common.a"]] == [s.key for s in sidecars]
     assert [s.key for s in applicable["pre.resize.letterbox"]] == ["bar@other-exporter"]
     assert [s.key for s in applicable["post.det.selection.nms"]] == [
-        "foo@skellytracker",
+        "foo@a-lib",
         "bar@other-exporter",
     ]
 
@@ -465,7 +484,7 @@ def test_the_matrix_rows_and_cells(repo: Path) -> None:
     lines = st.render_traceability(repo).splitlines()
     header = next(line for line in lines if line.startswith("| Section | foo<br>"))
     assert header == (
-        "| Section | foo<br>@skellytracker | baz<br>@declared-lib | bar<br>@other-exporter |"
+        "| Section | foo<br>@a-lib | baz<br>@declared-lib | bar<br>@other-exporter |"
     )
     row = next(line for line in lines if line.startswith("| [`common.a`]"))
     assert row == "| [`common.a`](common/a.md) | x | x | x |"
@@ -475,20 +494,21 @@ def test_the_matrix_rows_and_cells(repo: Path) -> None:
         line for line in lines if line.startswith("| [`post.det.selection.nms`]")
     )
     assert row == (
-        "| [`post.det.selection.nms`](post/nms.md) | nms (legacy, derived) |  | nms |"
+        "| [`post.det.selection.nms`](post/nms.md) | nms |  | nms |"
     )
 
 
-def test_the_normalization_row_shows_the_mode_and_the_legacy_flag() -> None:
-    legacy = _fake_sidecar("imagenet_bgr", "v2024.09.1019", derived=())
+def test_the_normalization_row_shows_the_mode_and_the_derived_flag() -> None:
     current = _fake_sidecar("imagenet_bgr", "vNEXT", derived=())
     derived = _fake_sidecar("imagenet_bgr", "vNEXT", derived=("normalization",))
     custom = _fake_sidecar({"mode": "custom"}, "vNEXT", derived=())
-    assert st._normalization_label(legacy) == "imagenet_bgr (legacy)"
+    # A dated version adds no label: the package sidecars are not in the matrix (ADR-NB5F).
+    dated = _fake_sidecar("imagenet_bgr", "v2024.09.1019", derived=())
     assert st._normalization_label(current) == "imagenet_bgr"
     assert st._normalization_label(derived) == "imagenet_bgr (derived)"
     assert st._normalization_label(custom) == "custom"
-    assert st._normalization_label(_fake_sidecar("none", "v2024.09.1019", ())) == "none"
+    assert st._normalization_label(dated) == "imagenet_bgr"
+    assert st._normalization_label(_fake_sidecar("none", "vNEXT", ())) == "none"
 
 
 def _fake_sidecar(
@@ -498,7 +518,7 @@ def _fake_sidecar(
         key="m@s",
         model_id="m",
         source="s",
-        origin="package",
+        origin="example",
         path="p.yaml",
         schema_version=version,
         resolved={},
@@ -525,10 +545,10 @@ def test_the_bottom_up_row_shows_packed_keypoints_and_poses_outputs() -> None:
     assert st._bottom_up_label(neither) == "x"
 
 
-def test_the_selection_row_shows_the_selection_and_marks_a_derived_one() -> None:
+def test_the_selection_row_shows_the_selection_only() -> None:
     assert st._selection_label(_fake_sidecar("none", "vNEXT", ())) == "none"
-    derived = _fake_sidecar("none", "v2024.09.1019", ("selection",))
-    assert st._selection_label(derived) == "none (legacy, derived)"
+    dated = _fake_sidecar("none", "v2024.09.1019", ("normalization",))
+    assert st._selection_label(dated) == "none"
 
 
 def test_the_statuses_functions_tests_and_vectors_are_listed(repo: Path) -> None:
@@ -669,7 +689,7 @@ def test_a_changed_implementing_file_reaches_the_sections_that_name_it(
     affected = st.affected_sections({"pkg/post.py"}, repo)
     assert [a.section.id for a in affected] == ["post.det.selection.nms"]
     assert affected[0].reasons == ("implementing file changed: pkg/post.py",)
-    assert affected[0].models == ("foo@skellytracker", "bar@other-exporter")
+    assert affected[0].models == ("foo@a-lib", "bar@other-exporter")
     assert affected[0].exporters == ("Other-Exporter: exports/bar.yaml",)
 
 

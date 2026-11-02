@@ -8,51 +8,46 @@ This file links each section of the spec to the sidecars that the section applie
 
 Each column is a sidecar. `x` means that the section applies to the sidecar. A section applies when one of its `selectors` matches the normalized sidecar. A section of kind `format` or `common` with no `selectors` applies to every sidecar.
 
-The `pre.normalize` row shows the normalization mode. The selection rows show the selection. `legacy` means that the mode `imagenet_bgr` has its [legacy meaning](pre/normalization.md#legacy-behaviour). `derived` means that the sidecar does not give the value. The tool derives it, as the [legacy behaviour](post/detection-decode.md#legacy-behaviour) says.
+The `pre.normalize` row shows the normalization mode. The selection rows show the selection. In the `pre.normalize` and `pre.resize.none` rows, `derived` means that the sidecar does not give the value. The tool uses the default of the section.
 
 The `post.pose.bottom_up` row shows `packed` when an output packs the keypoints into the detection rows. It shows `poses` when an output has the semantic `poses`.
 
-| Section | rtmpose-body<br>@skellytracker | rtmpose-face<br>@skellytracker | rtmpose-hand<br>@skellytracker | rtmw-wholebody<br>@skellytracker | yolox<br>@skellytracker | rtmdet-person<br>@openmmlab-exporter | rtmo-body7<br>@openmmlab-exporter | rtmw-wholebody<br>@openmmlab-exporter | yolo26<br>@ultralytics-exporter | yolo26-body<br>@ultralytics-exporter |
-|---|---|---|---|---|---|---|---|---|---|---|
-| [`format.file_layout`](format/file-layout.md) | x | x | x | x | x | x | x | x | x | x |
-| [`format.composition`](format/composition.md) | x | x | x | x | x | x | x | x | x | x |
-| [`format.versioning`](format/versioning.md) | x | x | x | x | x | x | x | x | x | x |
-| [`common.identity`](common/identity.md) | x | x | x | x | x | x | x | x | x | x |
-| [`common.sizes_and_artifacts`](common/sizes-and-artifacts.md) | x | x | x | x | x | x | x | x | x | x |
-| [`common.batching`](common/batching.md) | x | x | x | x | x | x | x | x | x | x |
-| [`common.batch_conversion`](common/batch-conversion.md) |  |  |  |  |  |  |  |  |  |  |
-| [`common.input`](common/input.md) | x | x | x | x | x | x | x | x | x | x |
-| [`common.outputs`](common/outputs.md) | x | x | x | x | x | x | x | x | x | x |
-| [`post.unprojection`](post/unprojection.md) | x | x | x | x | x | x | x | x | x | x |
-| [`pre.resize.letterbox`](pre/resize-letterbox.md) |  |  |  |  | x | x |  |  | x | x |
-| [`pre.resize.stretch`](pre/resize-stretch.md) |  |  |  |  |  |  |  |  |  |  |
-| [`pre.resize.fit`](pre/resize-fit.md) |  |  |  |  |  |  | x |  |  |  |
-| [`pre.resize.none`](pre/resize-none.md) |  |  |  |  |  |  |  |  |  |  |
-| [`pre.resize.affine_person_crop`](pre/resize-affine-person-crop.md) | x | x | x | x |  |  |  | x |  |  |
-| [`pre.resize.interpolation`](pre/interpolation.md) | x | x | x | x | x | x | x | x | x | x |
-| [`pre.normalize`](pre/normalization.md) | imagenet_bgr (legacy) | imagenet_bgr (legacy) | imagenet_bgr (legacy) | imagenet_bgr (legacy) | none | imagenet_bgr | none | imagenet_rgb | unit_float | unit_float |
-| [`post.det.outputs`](post/detection-outputs.md) |  |  |  |  | x | x | x |  | x | x |
-| [`post.det.decode`](post/detection-decode.md) |  |  |  |  | x | x | x |  | x | x |
-| [`post.det.selection.none`](post/selection-none.md) |  |  |  |  | none (legacy, derived) |  | none |  | none | none |
-| [`post.det.selection.top_k`](post/selection-top-k.md) |  |  |  |  |  |  |  |  |  |  |
-| [`post.det.selection.nms`](post/selection-nms.md) |  |  |  |  |  | nms |  |  |  |  |
-| [`post.pose.schema`](post/pose-schema.md) | x | x | x | x |  |  | x | x |  | x |
-| [`post.pose.canonical_mapping`](post/canonical-mapping.md) | x |  | x | x |  |  |  |  |  |  |
-| [`post.pose.decode.simcc`](post/pose-decode-simcc.md) | x | x | x | x |  |  |  | x |  |  |
-| [`post.pose.decode.heatmap`](post/pose-decode-heatmap.md) |  |  |  |  |  |  |  |  |  |  |
-| [`post.pose.decode.coordinate`](post/pose-decode-coordinate.md) |  |  |  |  |  |  | x |  |  | x |
-| [`post.pose.bottom_up`](post/pose-bottom-up.md) |  |  |  |  |  |  | x (poses) |  |  | x (packed) |
-| [`post.overlay`](post/overlay.md) | x | x | x | x |  |  | x | x |  | x |
+| Section | rtmdet-person<br>@openmmlab-exporter | rtmo-body7<br>@openmmlab-exporter | rtmw-wholebody<br>@openmmlab-exporter | yolo26<br>@ultralytics-exporter | yolo26-body<br>@ultralytics-exporter |
+|---|---|---|---|---|---|
+| [`format.file_layout`](format/file-layout.md) | x | x | x | x | x |
+| [`format.composition`](format/composition.md) | x | x | x | x | x |
+| [`format.versioning`](format/versioning.md) | x | x | x | x | x |
+| [`common.identity`](common/identity.md) | x | x | x | x | x |
+| [`common.sizes_and_artifacts`](common/sizes-and-artifacts.md) | x | x | x | x | x |
+| [`common.batching`](common/batching.md) | x | x | x | x | x |
+| [`common.batch_conversion`](common/batch-conversion.md) |  |  |  |  |  |
+| [`common.input`](common/input.md) | x | x | x | x | x |
+| [`common.outputs`](common/outputs.md) | x | x | x | x | x |
+| [`post.unprojection`](post/unprojection.md) | x | x | x | x | x |
+| [`pre.resize.letterbox`](pre/resize-letterbox.md) | x |  |  | x | x |
+| [`pre.resize.stretch`](pre/resize-stretch.md) |  |  |  |  |  |
+| [`pre.resize.fit`](pre/resize-fit.md) |  | x |  |  |  |
+| [`pre.resize.none`](pre/resize-none.md) |  |  |  |  |  |
+| [`pre.resize.affine_person_crop`](pre/resize-affine-person-crop.md) |  |  | x |  |  |
+| [`pre.resize.interpolation`](pre/interpolation.md) | x | x | x | x | x |
+| [`pre.normalize`](pre/normalization.md) | imagenet_bgr | none | imagenet_rgb | unit_float | unit_float |
+| [`post.det.outputs`](post/detection-outputs.md) | x | x |  | x | x |
+| [`post.det.decode`](post/detection-decode.md) | x | x |  | x | x |
+| [`post.det.selection.none`](post/selection-none.md) |  | none |  | none | none |
+| [`post.det.selection.top_k`](post/selection-top-k.md) |  |  |  |  |  |
+| [`post.det.selection.nms`](post/selection-nms.md) | nms |  |  |  |  |
+| [`post.pose.schema`](post/pose-schema.md) |  | x | x |  | x |
+| [`post.pose.canonical_mapping`](post/canonical-mapping.md) |  |  |  |  |  |
+| [`post.pose.decode.simcc`](post/pose-decode-simcc.md) |  |  | x |  |  |
+| [`post.pose.decode.heatmap`](post/pose-decode-heatmap.md) |  |  |  |  |  |
+| [`post.pose.decode.coordinate`](post/pose-decode-coordinate.md) |  | x |  |  | x |
+| [`post.pose.bottom_up`](post/pose-bottom-up.md) |  | x (poses) |  |  | x (packed) |
+| [`post.overlay`](post/overlay.md) |  | x | x |  | x |
 
 ### Models
 
 | Key | Root | File | `schema_version` | `role` |
 |---|---|---|---|---|
-| `rtmpose-body@skellytracker` | package | `skellytracker/core/detectors/keypoint_detectors/rtmpose/body/rtmpose-body.yaml` | `v2024.09.1019` | `pose_estimator` |
-| `rtmpose-face@skellytracker` | package | `skellytracker/core/detectors/keypoint_detectors/rtmpose/face/rtmpose-face.yaml` | `v2024.09.1019` | `pose_estimator` |
-| `rtmpose-hand@skellytracker` | package | `skellytracker/core/detectors/keypoint_detectors/rtmpose/hand/rtmpose-hand.yaml` | `v2024.09.1019` | `pose_estimator` |
-| `rtmw-wholebody@skellytracker` | package | `skellytracker/core/detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml` | `v2024.09.1019` | `pose_estimator` |
-| `yolox@skellytracker` | package | `skellytracker/core/detectors/object_detectors/yolox/yolox.yaml` | `v2024.09.1019` | `object_detector` |
 | `rtmdet-person@openmmlab-exporter` | example | `specs/model-sidecar/examples/detectors/object_detectors/rtmdet-person/rtmdet-person.yaml` | `vNEXT` | `object_detector` |
 | `rtmo-body7@openmmlab-exporter` | example | `specs/model-sidecar/examples/detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml` | `vNEXT` | `object_detector`, `pose_estimator` |
 | `rtmw-wholebody@openmmlab-exporter` | example | `specs/model-sidecar/examples/detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml` | `vNEXT` | `pose_estimator` |
@@ -111,15 +106,15 @@ These steps have no implementation in skellytracker. The last column counts the 
 
 | Section | Step | Models |
 |---|---|---|
-| [`common.batch_conversion`](common/batch-conversion.md) | `validate` | 0 of 10 |
-| [`common.outputs`](common/outputs.md) | `load` | 10 of 10 |
-| [`pre.resize.stretch`](pre/resize-stretch.md) | `inverse` | 0 of 10 |
-| [`pre.resize.fit`](pre/resize-fit.md) | `inverse` | 1 of 10 |
-| [`pre.resize.none`](pre/resize-none.md) | `forward` | 0 of 10 |
-| [`pre.resize.none`](pre/resize-none.md) | `inverse` | 0 of 10 |
-| [`post.det.selection.top_k`](post/selection-top-k.md) | `validate` | 0 of 10 |
-| [`post.det.selection.top_k`](post/selection-top-k.md) | `decode` | 0 of 10 |
-| [`post.det.selection.nms`](post/selection-nms.md) | `validate` | 1 of 10 |
-| [`post.pose.decode.heatmap`](post/pose-decode-heatmap.md) | `decode` | 0 of 10 |
-| [`post.pose.decode.coordinate`](post/pose-decode-coordinate.md) | `decode` | 2 of 10 |
-| [`post.pose.bottom_up`](post/pose-bottom-up.md) | `decode` | 2 of 10 |
+| [`common.batch_conversion`](common/batch-conversion.md) | `validate` | 0 of 5 |
+| [`common.outputs`](common/outputs.md) | `load` | 5 of 5 |
+| [`pre.resize.stretch`](pre/resize-stretch.md) | `inverse` | 0 of 5 |
+| [`pre.resize.fit`](pre/resize-fit.md) | `inverse` | 1 of 5 |
+| [`pre.resize.none`](pre/resize-none.md) | `forward` | 0 of 5 |
+| [`pre.resize.none`](pre/resize-none.md) | `inverse` | 0 of 5 |
+| [`post.det.selection.top_k`](post/selection-top-k.md) | `validate` | 0 of 5 |
+| [`post.det.selection.top_k`](post/selection-top-k.md) | `decode` | 0 of 5 |
+| [`post.det.selection.nms`](post/selection-nms.md) | `validate` | 1 of 5 |
+| [`post.pose.decode.heatmap`](post/pose-decode-heatmap.md) | `decode` | 0 of 5 |
+| [`post.pose.decode.coordinate`](post/pose-decode-coordinate.md) | `decode` | 2 of 5 |
+| [`post.pose.bottom_up`](post/pose-bottom-up.md) | `decode` | 2 of 5 |

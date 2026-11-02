@@ -487,12 +487,14 @@ A spec change has no class ([ADR-NB5F](../../../decisions/entries/NB5F-no-change
 4. Regenerate the traceability matrix with `uv run python tools/sidecar_trace.py matrix`. Do not edit
    `specs/model-sidecar/TRACEABILITY.md` by hand.
 
-The trace tool scans two roots for sidecars: `skellytracker/core/detectors/` and
-`specs/model-sidecar/examples/`. It uses the discovery rule of
+The trace tool scans only `specs/model-sidecar/examples/` for sidecars until the package migrates.
+The package sidecars are legacy sidecars
+([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
+The tool uses the discovery rule of
 [`format.file_layout`](../../../specs/model-sidecar/format/file-layout.md#discovery). It keys each sidecar as
 `<model_id>@<source>`, because one `model_id` can have two sources, and it resolves composition with
-`resolve_sidecar_composition`. It normalizes each resolved sidecar with the spec defaults and the
-derivations from legacy fields, and it matches the sidecar against the `selectors` of each section.
+`resolve_sidecar_composition`. It normalizes each resolved sidecar with the spec defaults, and it
+matches the sidecar against the `selectors` of each section.
 The normalization and the selector matching are pure functions on the resolved dict. In the
 implementation stage, they move into `skellytracker/core/sidecar/` without changes.
 `TRACEABILITY.md` gives: model against section; section to skellytracker functions to tests; section

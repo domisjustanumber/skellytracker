@@ -32,49 +32,17 @@ def detector(**decode: Any) -> dict[str, Any]:
 # --------------------------------------------------------------------------------------------
 
 
-def test_requires_nms_true_derives_selection_nms() -> None:
-    assert sn.normalize(detector(requires_nms=True))["decode"]["selection"] == "nms"
-
-
-def test_requires_nms_false_derives_selection_none() -> None:
-    assert sn.normalize(detector(requires_nms=False))["decode"]["selection"] == "none"
-
-
-def test_missing_requires_nms_derives_selection_none() -> None:
-    assert sn.normalize(detector())["decode"]["selection"] == "none"
-
-
 def test_an_authored_selection_is_kept() -> None:
     data = detector(selection="top_k", requires_nms=True)
     assert sn.normalize(data)["decode"]["selection"] == "top_k"
 
 
-def test_a_null_selection_counts_as_absent() -> None:
-    data = detector(selection=None, requires_nms=True)
-    assert sn.normalize(data)["decode"]["selection"] == "nms"
-
-
-def test_a_detector_without_decode_gets_selection_none() -> None:
+def test_no_rule_derives_a_selection() -> None:
+    # The `requires_nms` derivation was for the legacy package sidecars only (ADR-NB5F).
+    assert sn.normalize(detector(requires_nms=True))["decode"] == {"requires_nms": True}
     data = detector()
     del data["decode"]
-    assert sn.normalize(data)["decode"] == {"selection": "none"}
-
-
-def test_a_pose_estimator_gets_no_selection() -> None:
-    data = {"role": ["pose_estimator"], "input": {"normalization": "none"}}
     assert "decode" not in sn.normalize(data)
-
-
-def test_a_two_role_sidecar_gets_a_selection() -> None:
-    data = detector(requires_nms=True)
-    data["role"] = ["object_detector", "pose_estimator"]
-    assert sn.normalize(data)["decode"]["selection"] == "nms"
-
-
-def test_a_role_given_as_a_string_is_read() -> None:
-    data = detector(requires_nms=True)
-    data["role"] = "object_detector"
-    assert sn.normalize(data)["decode"]["selection"] == "nms"
 
 
 def test_absent_resize_gets_method_none() -> None:
@@ -106,24 +74,11 @@ def test_letterbox_with_preserve_aspect_ratio_true_stays_letterbox() -> None:
     assert sn.normalize(data)["input"]["resize"]["method"] == "letterbox"
 
 
-def test_letterbox_with_preserve_aspect_ratio_false_becomes_stretch() -> None:
+def test_letterbox_with_preserve_aspect_ratio_false_stays_letterbox() -> None:
+    # The letterbox-stretch alias was for the legacy package sidecars only (ADR-NB5F).
     data = detector()
     data["input"]["resize"]["preserve_aspect_ratio"] = False
-    assert sn.normalize(data)["input"]["resize"]["method"] == "stretch"
-
-
-def test_the_alias_changes_only_the_method() -> None:
-    data = detector()
-    data["input"]["resize"]["preserve_aspect_ratio"] = False
-    expected = copy.deepcopy(data["input"]["resize"])
-    expected["method"] = "stretch"
-    assert sn.normalize(data)["input"]["resize"] == expected
-
-
-def test_only_letterbox_has_the_alias() -> None:
-    data = detector()
-    data["input"]["resize"] = {"method": "fit", "preserve_aspect_ratio": False}
-    assert sn.normalize(data)["input"]["resize"]["method"] == "fit"
+    assert sn.normalize(data)["input"]["resize"] == data["input"]["resize"]
 
 
 def test_absent_normalization_gets_imagenet_bgr() -> None:
@@ -163,9 +118,9 @@ def test_normalize_returns_a_copy_and_keeps_the_input() -> None:
 
 
 def test_normalize_is_idempotent() -> None:
-    data = detector(requires_nms=True)
-    data["input"]["resize"]["preserve_aspect_ratio"] = False
+    data = {"role": ["object_detector"], "input": {}, "decode": {"requires_nms": True}}
     once = sn.normalize(data)
+    assert once != data
     assert sn.normalize(once) == once
 
 
@@ -176,17 +131,11 @@ def test_normalize_needs_a_mapping() -> None:
 
 def test_derived_by_names_the_rules_that_changed_something() -> None:
     data = {"role": ["object_detector"], "input": {}, "decode": {"requires_nms": True}}
-    assert sn.derived_by(data) == ("selection", "resize", "normalization")
+    assert sn.derived_by(data) == ("resize", "normalization")
 
 
 def test_derived_by_is_empty_for_a_complete_sidecar() -> None:
     assert sn.derived_by(detector(selection="none")) == ()
-
-
-def test_the_legacy_alias_is_reported() -> None:
-    data = detector(selection="none")
-    data["input"]["resize"]["preserve_aspect_ratio"] = False
-    assert sn.derived_by(data) == ("letterbox_alias",)
 
 
 # --------------------------------------------------------------------------------------------
@@ -194,11 +143,9 @@ def test_the_legacy_alias_is_reported() -> None:
 # --------------------------------------------------------------------------------------------
 
 
-def test_the_table_has_the_five_derivations_in_order() -> None:
+def test_the_table_has_the_three_derivations_in_order() -> None:
     assert [rule.name for rule in sn.NORMALIZATION_TABLE] == [
-        "selection",
         "resize",
-        "letterbox_alias",
         "normalization",
         "custom_normalization",
     ]
@@ -418,31 +365,23 @@ def test_selectors_must_be_a_list() -> None:
 
 
 # --------------------------------------------------------------------------------------------
-# The legacy cases end to end
+# The derivations end to end
 # --------------------------------------------------------------------------------------------
 
 
-def test_a_legacy_yolox_style_sidecar_gets_the_current_selectors() -> None:
-    legacy = {
+def test_a_yolox_style_sidecar_without_a_selection_matches_no_selection() -> None:
+    old = {
         "role": ["object_detector"],
         "input": {
             "normalization": "none",
-            "resize": {"method": "letterbox", "preserve_aspect_ratio": True},
+            "resize": {"method": "letterbox", "preserve_aspect_ratio": False},
         },
         "decode": {"requires_nms": False},
     }
-    normalized = sn.normalize(legacy)
-    assert sn.matches("decode.selection=none", normalized)
+    normalized = sn.normalize(old)
+    assert not sn.matches("decode.selection", normalized)
     assert sn.matches("input.resize.method=letterbox", normalized)
-    assert not sn.matches("decode.selection", legacy)
-
-
-def test_a_legacy_stretch_alias_matches_stretch_and_not_letterbox() -> None:
-    legacy = detector(requires_nms=False)
-    legacy["input"]["resize"]["preserve_aspect_ratio"] = False
-    normalized = sn.normalize(legacy)
-    assert sn.matches("input.resize.method=stretch", normalized)
-    assert not sn.matches("input.resize.method=letterbox", normalized)
+    assert not sn.matches("input.resize.method=stretch", normalized)
 
 
 def test_an_old_pose_sidecar_without_normalization_matches_imagenet_bgr() -> None:

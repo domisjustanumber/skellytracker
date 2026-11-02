@@ -506,45 +506,35 @@ def test_the_scan_keys_are_unique() -> None:
     assert len(keys) == len(set(keys))
 
 
-def test_the_package_sidecars_have_the_legacy_version_and_the_package_source() -> None:
-    package = [s for s in scan().sidecars if s.source == "skellytracker"]
-    assert {s.model_id for s in package} == {
-        "yolox",
-        "rtmpose-body",
-        "rtmpose-hand",
-        "rtmpose-face",
-        "rtmw-wholebody",
-    }
-    for sidecar in package:
-        assert sidecar.origin == "package"
-        assert sidecar.schema_version == "v2024.09.1019"
-        assert sidecar.legacy
+def test_the_scan_finds_no_sidecar_outside_the_examples() -> None:
+    # The package sidecars are legacy sidecars until the package migrates (ADR-NB5F).
+    sidecars = scan().sidecars
+    assert sidecars
+    for sidecar in sidecars:
+        assert sidecar.origin == "example", sidecar.key
+        assert sidecar.path.startswith("specs/model-sidecar/examples/"), sidecar.key
+    assert not any(name.startswith("skellytracker/") for name in scan().skipped)
 
 
 def test_the_example_sidecars_are_at_vnext() -> None:
     for sidecar in scan().sidecars:
-        if sidecar.origin == "example":
-            assert sidecar.schema_version == "vNEXT"
-            assert not sidecar.legacy
+        assert sidecar.schema_version == "vNEXT", sidecar.key
 
 
 def test_the_scan_skips_every_other_yaml_file() -> None:
-    roots = [PACKAGE_DIR / "core" / "detectors", SPEC_DIR / "examples"]
     every_yaml = {
-        p.relative_to(REPO_ROOT).as_posix() for r in roots for p in r.rglob("*.yaml")
+        p.relative_to(REPO_ROOT).as_posix()
+        for p in (SPEC_DIR / "examples").rglob("*.yaml")
     }
     found = {sidecar.path for sidecar in scan().sidecars}
     skipped = set(scan().skipped)
     assert not found & skipped
     assert found | skipped == every_yaml
     assert len(found) == len(scan().sidecars)
-    for name in (
-        "skellytracker/core/detectors/shared/skeletons/coco17_tracked_points.yaml",
-        "skellytracker/core/detectors/keypoint_detectors/mediapipe/body/mediapipe_body.yaml",
-        "skellytracker/core/detectors/keypoint_detectors/rtmw/wholebody/rtmw_wholebody_to_canonical_mapping.yaml",
-        "specs/model-sidecar/examples/detectors/shared/skeletons/coco133_skeletons.yaml",
-    ):
-        assert name in skipped
+    assert (
+        "specs/model-sidecar/examples/detectors/shared/skeletons/coco133_skeletons.yaml"
+        in skipped
+    )
 
 
 def test_a_skipped_file_is_not_a_sidecar() -> None:
@@ -563,12 +553,18 @@ def test_a_skipped_file_is_not_a_sidecar() -> None:
 # --------------------------------------------------------------------------------------------
 
 # Synthetic sidecars pin the semantics, so a new example model does not change these tests.
-LEGACY_DETECTOR = {
-    "schema_version": "v2024.09.1019",
-    "model_id": "legacy-detector",
+NONE_DETECTOR = {
+    "schema_version": "vNEXT",
+    "model_id": "none-detector",
     "role": ["object_detector"],
     "input": {"resize": {"method": "letterbox"}, "normalization": "imagenet_bgr"},
+    "decode": {"selection": "none"},
     "outputs": [{"semantic": "detections"}],
+}
+# No rule derives a selection: a detector that omits it matches no selection section.
+NO_SELECTION_DETECTOR = {
+    **{key: value for key, value in NONE_DETECTOR.items() if key != "decode"},
+    "model_id": "no-selection-detector",
 }
 NMS_DETECTOR = {
     "schema_version": "vNEXT",
@@ -626,7 +622,8 @@ def applicability() -> dict[str, set[str]]:
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
-        (LEGACY_DETECTOR, {*DETECTOR_SECTIONS, "pre.resize.letterbox", "post.det.selection.none"}),
+        (NONE_DETECTOR, {*DETECTOR_SECTIONS, "pre.resize.letterbox", "post.det.selection.none"}),
+        (NO_SELECTION_DETECTOR, {*DETECTOR_SECTIONS, "pre.resize.letterbox"}),
         (NMS_DETECTOR, {*DETECTOR_SECTIONS, "pre.resize.letterbox", "post.det.selection.nms"}),
         (
             BOTTOM_UP_POSE,
@@ -665,20 +662,17 @@ def test_an_explicit_normalization_is_kept_and_an_omitted_one_gets_the_default()
     assert omitted.derived == ("normalization",)
 
 
-def test_a_legacy_detector_without_a_selection_gets_it_derived() -> None:
-    legacy = synthetic(LEGACY_DETECTOR)
-    assert legacy.legacy
-    assert legacy.derived == ("selection",)
-    assert legacy.normalized["decode"]["selection"] == "none"
-    for data in (NMS_DETECTOR, BOTTOM_UP_POSE):
-        assert not synthetic(data).legacy
-        assert "selection" not in synthetic(data).derived
+def test_a_detector_without_a_selection_gets_no_derived_selection() -> None:
+    omitted = synthetic(NO_SELECTION_DETECTOR)
+    assert omitted.derived == ()
+    assert "decode" not in omitted.normalized
 
 
-def test_only_a_legacy_sidecar_gets_a_derived_selection() -> None:
+def test_every_example_detector_gives_its_selection() -> None:
+    # The selection rows show only what the sidecar gives, because no rule derives a selection.
     for sidecar in scan().sidecars:
-        if not sidecar.legacy:
-            assert "selection" not in sidecar.derived, sidecar.key
+        if "object_detector" in sidecar.resolved.get("role", []):
+            assert sidecar.resolved["decode"]["selection"], sidecar.key
 
 
 def test_the_cells_that_carry_text() -> None:
@@ -687,15 +681,12 @@ def test_the_cells_that_carry_text() -> None:
 
     default = sn.normalize({"input": {}})["input"]["normalization"]
     poses = {**BOTTOM_UP_POSE, "outputs": [{"semantic": "poses"}]}
-    legacy_none = {
-        **LEGACY_DETECTOR,
-        "input": {"resize": {"method": "letterbox"}, "normalization": "none"},
-    }
-    assert cell("pre.normalize", LEGACY_DETECTOR) == "imagenet_bgr (legacy)"
-    assert cell("pre.normalize", legacy_none) == "none"
+    no_resize = {**BOTTOM_UP_POSE, "input": {"normalization": "unit_float"}}
+    assert cell("pre.normalize", NONE_DETECTOR) == "imagenet_bgr"
     assert cell("pre.normalize", NMS_DETECTOR) == f"{default} (derived)"
     assert cell("pre.normalize", BOTTOM_UP_POSE) == "unit_float"
-    assert cell("post.det.selection.none", LEGACY_DETECTOR) == "none (legacy, derived)"
+    assert cell("pre.resize.none", no_resize) == "x (derived)"
+    assert cell("post.det.selection.none", NONE_DETECTOR) == "none"
     assert cell("post.det.selection.nms", NMS_DETECTOR) == "nms"
     assert cell("post.det.selection.none", BOTTOM_UP_POSE) == "none"
     assert cell("post.pose.bottom_up", BOTTOM_UP_POSE) == "x (packed)"
