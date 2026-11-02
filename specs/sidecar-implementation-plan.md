@@ -230,7 +230,7 @@ Two rules of this part stay:
 ### M8 — Validation, preprocessing and decode gaps
 
 **Status: NOT STARTED.** It changes package code, so it waits for the implementation stage
-([Stages](model-sidecar/model-addition-workflow/README.md#stages)). The package code does not yet do what the `vNEXT` spec requires for these sections. Do NMS box area and Batch forms before M10.
+([Stages](model-sidecar/model-addition-workflow/README.md#stages)). The package code does not yet do what the `vNEXT` spec requires for these sections. Do NMS box area and Batch forms before M10a. Do Normalization modes before M10b. Do Batch forms before M10b when the RTMW export has no batch key `"1"`.
 
 - **`fit` `pad_value`.** At `vNEXT`, the spec requires `pad_value` on a `fit` resize
   ([Validation rules](model-sidecar/pre/resize-fit.md#validation-rules)). The code does not require it.
@@ -256,6 +256,17 @@ Two rules of this part stay:
   correct only for legacy sidecars.
 - **Stretch unprojection.** The `stretch` branch of `preprocess_image` returns `resize_meta = 1.0`. The
   host then has no scale factors to unproject with `x * src_w / T_w`.
+- **Normalization modes.** `build_normalization_fn` in
+  `skellytracker/core/detectors/processing/image_preprocessing.py` applies the `imagenet_rgb`
+  statistics in the channel order of the frame, as it applies `imagenet_bgr`. It does not swap the
+  channels. `InputSpec` in `skellytracker/core/sidecar/model.py` has no `color_format` field, and no
+  code reads `input.color_format`. The `imagenet_bgr` branch applies the RGB-ordered statistics to
+  the B, G and R channels of the frame. That is the pre-spec rtmlib computation, not the spec
+  meaning. Make the modes obey [Normalization modes](model-sidecar/pre/normalization.md#behaviour).
+  Remove the pre-spec computation: the spec keeps no backward compatibility. Before this change,
+  move each package sidecar that declares `imagenet_bgr` to a `custom` normalization that gives the
+  pre-spec computation, or to the ImageNet mode with `color_format: rgb`. The user decides which. The
+  ImageNet mode changes the model input, so it needs a parity check.
 - **NMS box area.** The spec's `selection: nms` uses the box-area convention of the ONNX
   `NonMaxSuppression` operator, which does not add `1` to pixel widths or heights. The generic `nms()`
   in `skellytracker/core/detectors/processing/object_detection_decode.py` adds `1`. Today only the
@@ -292,7 +303,7 @@ Two rules of this part stay:
   ([`common.sizes_and_artifacts`](model-sidecar/common/sizes-and-artifacts.md#implementer-guidance);
   see [ADR-0016](../decisions/entries/0016-sidecar-catalogs.md#artifact-hashes)).
 
-### M10 — YOLOX re-export
+### M10a — YOLOX re-export
 
 **Status: NOT STARTED.** It changes package code, so it waits for the implementation stage
 ([Stages](model-sidecar/model-addition-workflow/README.md#stages)). This stage needs M6, the catalog-key claim of M7, and the NMS box area and the batch forms of M8.
@@ -304,6 +315,44 @@ Two rules of this part stay:
   ([`format.versioning`](model-sidecar/format/versioning.md#implementer-guidance);
   [ADR-0016](../decisions/entries/0016-sidecar-catalogs.md#detector-dispatch); see also
   [ADR-0006](../decisions/entries/0006-yolox-native-contract.md)).
+
+### M10b — RTMW re-export
+
+**Status: NOT STARTED.** It changes package code, so it waits for the implementation stage
+([Stages](model-sidecar/model-addition-workflow/README.md#stages)). This stage needs the catalog, the
+roots and the dispatch of M7, Normalization modes of M8 and both checks of M9. It needs Batch forms
+of M8 when the export has no batch key `"1"`. It has no order link to M10a.
+
+- **RTMW.** Replace the legacy package sidecar
+  `skellytracker/core/detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml` with the
+  latest `vNEXT` RTMW export of OpenMMLab-Exporter. The reference example
+  [`rtmw-wholebody.yaml`](model-sidecar/examples/detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml)
+  shows its form. Run a parity check on the export. Compare it with the upstream reference output of
+  the exporter, not with the golden fixtures
+  `skellytracker/tests/sidecar/fixtures/golden/rtmw_wholebody_*_detect.json`. The package sidecar
+  declares `imagenet_bgr`, and the code gives it the pre-spec computation: it puts the B, G and R
+  channels of the frame in tensor positions 0, 1 and 2. The export declares `imagenet_rgb`, which
+  puts R, G and B there. Thus the model input changes
+  ([Normalization modes](model-sidecar/pre/normalization.md#behaviour)).
+- **Differences from the package sidecar.** The export of OpenMMLab-Exporter differs in these points
+  (checked on 2026-10-30):
+  - The `model_id` is `rtmw-wholebody133`, in the folder `rtmw/wholebody133/`. The spec does not
+    accept this `model_id` form yet (the Identity item of
+    [Spec defects](model-sidecar/decisions/open-work.md#spec-defects)).
+  - The size keys are `m`, `l-256`, `x-256`, `l-384` and `x-384`. The package `model_name` values
+    `rtmw-l-m_256x192`, `rtmw-x-l_256x192` (the default) and `rtmw-x-l_384x288` are the checkpoints
+    of `m`, `l-256` and `l-384`.
+  - The artifacts have `filename` and `sha256`, but no `url`.
+  - The export has no `pose.canonical_mapping`.
+- **Decisions before the work.** The user decides these points. Record them in a decision entry
+  before the work starts:
+  - the key that the alias `rtmpose` names. Today it names `rtmw-wholebody@skellytracker`
+    ([ADR-0016](../decisions/entries/0016-sidecar-catalogs.md#detector-dispatch));
+  - whether the old `model_name` values stay as aliases. `README.md`, the demos, the examples, the
+    tests and the keys of `RTMPOSE_MODEL_SPECS` use them;
+  - where the host gets the ONNX files;
+  - how the package keeps the canonical mapping;
+  - whether `RTMWWholebodyDetector` stays, or the generic keypoint detector of M6 runs the export.
 
 ### M11 — Repository fixes
 
