@@ -226,6 +226,12 @@ Two rules of this part stay:
   development build loads `vNEXT` sidecars (see the item Sidecar catalog and roots), validate each
   example with `SidecarModel` in `tools/tests/test_examples.py`. Until then, part 7 of the proposal
   and `uv run python tools/sidecar_trace.py impact <range>` at landing are the check.
+- **Package root in the trace scan.** Added on 2026-11-02. The trace tool scans only
+  `specs/model-sidecar/examples/` until the package migrates. The package sidecars are legacy
+  sidecars ([ADR-NB5F](../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
+  When the package sidecars follow the spec, add the package root back to the scan of
+  `tools/sidecar_trace.py`. Add the derivations that the package sidecars then need to
+  `tools/sidecar_normalize.py`.
 
 ### M8 — Validation, preprocessing and decode gaps
 
