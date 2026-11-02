@@ -2,11 +2,14 @@
 
 The shared decode steps of the `post.det.selection.*` sections. Their formula
 modules import this module by name. A broken invariant calls `defect`.
+`CHECKS` holds the named claims that a selection case can declare; each selection
+module publishes it as its own.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from collections.abc import Callable
 from typing import Any
 
 import numpy as np
@@ -118,3 +121,15 @@ def to_float32(value: Any) -> Any:
     if isinstance(value, list):
         return [to_float32(item) for item in value]
     return value
+
+
+def float32_stable(
+    run: Callable[..., dict[str, Any]], params: Any, input: Any, expect: dict[str, Any]
+) -> None:
+    """The kept rows and class ids do not change when every float is a float32."""
+    narrow = run(to_float32(params), to_float32(input))
+    if any(expect[key] != narrow[key] for key in ("kept_rows", "class_ids")):
+        defect("the result depends on the float width")
+
+
+CHECKS: dict[str, Callable[..., None]] = {"float32-stable": float32_stable}

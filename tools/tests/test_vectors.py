@@ -28,7 +28,7 @@ import pytest
 import yaml
 
 import make_vectors as mv
-from vector_form import agrees, entry_problems, problems
+from vector_form import CaseDefect, agrees, entry_problems, problems
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SPEC_ROOT = REPO_ROOT / "specs" / "model-sidecar"
@@ -364,6 +364,158 @@ def test_the_renderer_writes_a_long_item_in_block_form_and_a_large_float() -> No
     assert all(len(line) <= mv.LINE_WIDTH for line in text.splitlines())
     assert "huge: 1.0e+308" in text
     assert agrees(yaml.safe_load(text), vectors.data())
+
+
+# ---------------------------------------------------------------------------
+# Named checks (the `CHECKS` of the formula modules) and unknown enums
+# ---------------------------------------------------------------------------
+
+LETTERBOX = {"target_size": [640, 640], "pad_position": "center", "rounding": "half_even"}
+CENTER = {"method": "letterbox", **LETTERBOX}
+AFFINE = {
+    "method": "affine_person_crop",
+    "target_size": [256, 192],
+    "expand_ratio": 1.0,
+    "maintain_aspect_ratio": True,
+}
+FULL_HD = {"src_w": 1920, "src_h": 1080}
+SCORED = {"score_field": "score", "class_field": "class_id"}
+
+# Each row: the section, the check and a case that breaks its claim.
+BROKEN_CLAIMS = [
+    ("pre.resize.letterbox", "rounding-changes-result", LETTERBOX, FULL_HD),
+    ("pre.resize.letterbox", "rounding-keeps-result", LETTERBOX, {"src_w": 1280, "src_h": 101}),
+    ("pre.resize.letterbox", "scaled-width-rounds-to-zero", LETTERBOX, FULL_HD),
+    ("pre.resize.letterbox", "cut-differs-from-round", LETTERBOX, FULL_HD),
+    (
+        "post.det.selection.none",
+        "float32-stable",
+        {**SCORED, "confidence_threshold_default": 0.7},
+        # 0.70000001 > 0.7 in float64; in float32 both are 0.699999988.
+        {"fields": mv.FIELDS, "rows": [[0, 0, 8, 8, 0.70000001, 0]]},
+    ),
+    (
+        "post.unprojection",
+        "input-size-follows-resize",
+        {"scale": "pixel", "input_size": [480, 640], "resize": CENTER},
+        {**FULL_HD, "decoded_xy": [0, 0]},
+    ),
+    (
+        "post.unprojection",
+        "input-size-follows-resize",
+        {"scale": "pixel", "input_size": [256, 192], "resize": AFFINE},
+        {**FULL_HD, "bbox_xyxy": [100, 200, 196, 328], "decoded_xy": [0, 0]},
+    ),
+    (
+        "post.unprojection",
+        "input-size-follows-resize",
+        {"scale": "pixel", "input_size": [640, 640], "resize": {"method": "none"}},
+        {"src_w": 640, "src_h": 480, "decoded_xy": [0, 0]},
+    ),
+    (
+        "post.unprojection",
+        "input-size-follows-resize",
+        {"scale": "pixel", "input_size": [640, 640], "resize": CENTER},
+        {**FULL_HD, "bbox_xyxy": [100, 200, 196, 328], "decoded_xy": [0, 0]},
+    ),
+    (
+        "post.unprojection",
+        "clear-of-upper-clamp-bound",
+        {"scale": "pixel", "input_size": [640, 640], "resize": CENTER},
+        {**FULL_HD, "decoded_xyxy": [0, 140, 640, 500]},
+    ),
+    (
+        "post.unprojection",
+        "keeps-area-after-clamp",
+        {"scale": "pixel", "input_size": [640, 640], "resize": CENTER},
+        {**FULL_HD, "decoded_xyxy": [0, 0, 320, 100]},
+    ),
+]
+
+
+def formula_module(section: str) -> Any:
+    return getattr(mv, section.replace(".", "_"))
+
+
+def checked_case(section: str, checks: list[str], params: Any, inp: Any) -> mv.Case:
+    expect = formula_module(section).run(params, inp)
+    return mv.Case(id="probe", params=params, input=inp, expect=expect, checks=checks)
+
+
+@pytest.mark.parametrize(
+    ("section", "name", "params", "inp"),
+    [pytest.param(*row, id=f"{row[1]}-{i}") for i, row in enumerate(BROKEN_CLAIMS)],
+)
+def test_a_check_stops_the_generator_on_a_case_that_breaks_its_claim(
+    section: str, name: str, params: Any, inp: Any
+) -> None:
+    case = checked_case(section, [name], params, inp)
+    with pytest.raises(CaseDefect, match=f"^probe: {name}: "):
+        mv.run_checks(formula_module(section), case)
+
+
+def test_each_registered_check_holds_on_the_published_cases_that_declare_it() -> None:
+    declared, registered = set(), set()
+    for section, vectors in built_vectors().items():
+        module = formula_module(section)
+        registered |= {(section, name) for name in getattr(module, "CHECKS", {})}
+        for case in vectors.cases:
+            mv.run_checks(module, case)
+            declared |= {(section, name) for name in case.checks}
+    assert declared == registered
+    assert {name for _, name in registered} == {row[1] for row in BROKEN_CLAIMS}
+
+
+def test_the_box_checks_pass_on_a_point_case() -> None:
+    params = {"scale": "pixel", "input_size": [640, 640], "resize": CENTER}
+    checks = ["clear-of-upper-clamp-bound", "keeps-area-after-clamp"]
+    case = checked_case("post.unprojection", checks, params, {**FULL_HD, "decoded_xy": [0, 0]})
+    mv.run_checks(mv.post_unprojection, case)
+
+
+@pytest.mark.parametrize(
+    ("checks", "expect"),
+    [
+        (["no-such-check"], {"n_w": 1}),
+        ([], {"error": "no-rule"}),
+        (["refused"], {"n_w": 1}),
+    ],
+    ids=["unknown-name", "error-without-refused", "refused-without-error"],
+)
+def test_run_checks_stops_on_an_unknown_name_or_a_wrong_refused(
+    checks: list[str], expect: dict[str, Any]
+) -> None:
+    case = mv.Case(id="probe", params={}, input={}, expect=expect, checks=checks)
+    with pytest.raises(CaseDefect):
+        mv.run_checks(mv.pre_resize_letterbox, case)
+
+
+def test_run_checks_accepts_an_error_result_with_refused() -> None:
+    case = mv.Case(id="probe", params={}, input={}, expect={"error": "no-rule"}, checks=["refused"])
+    mv.run_checks(mv.pre_resize_letterbox, case)
+
+
+NONE_PIXELS = {"normalization": "none", "color_format": "rgb"}
+
+
+@pytest.mark.parametrize(
+    ("section", "params", "inp"),
+    [
+        ("pre.resize.letterbox", {**LETTERBOX, "rounding": "half_down"}, FULL_HD),
+        ("pre.normalize", {"normalization": "imagenet"}, {"pixels_bgr": [[0, 0, 0]]}),
+        ("pre.normalize", {"normalization": {"mode": "scaled"}}, {"pixels_bgr": [[0, 0, 0]]}),
+        ("pre.normalize", {**NONE_PIXELS, "color_format": "rgba"}, {"pixels_bgr": [[0, 0, 0]]}),
+        (
+            "post.det.selection.top_k",
+            {"top_k": 1, "score_activation": "softmax"},
+            {"boxes": [[0, 0, 8, 8]], "class_logits": [[0.5]]},
+        ),
+    ],
+    ids=["rounding", "normalization", "custom-mode", "color-format", "score-activation"],
+)
+def test_an_unknown_enum_value_is_a_defect(section: str, params: Any, inp: Any) -> None:
+    with pytest.raises(CaseDefect, match="unknown"):
+        formula_module(section).run(params, inp)
 
 
 # ---------------------------------------------------------------------------

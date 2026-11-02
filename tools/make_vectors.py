@@ -6,7 +6,9 @@ output. The formulas are in `tools/vector_formulas/<section_module>.py`, one
 module per section: each one is a reading of its section file. A vector that
 disagrees with the normative text is a defect of the spec or of the formulas:
 fix one of them, never the vector alone. A broken case or formula calls
-`vector_form.defect`, which stops the generator.
+`vector_form.defect`, which stops the generator. A case declares its claims by
+name in `checks`; `run_checks` runs each one from the `CHECKS` of the formula
+module. The names are not written to the file.
 
 A file has either `verified_against` (the list of independent implementations
 that produced the same results) or `unverified` (the reason that none did). An
@@ -40,7 +42,7 @@ import re
 import sys
 import textwrap
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
@@ -49,7 +51,7 @@ from typing import Any
 
 import numpy as np
 
-from vector_form import NO_RULE, defect, has_fraction
+from vector_form import NO_RULE, CaseDefect, defect, has_fraction
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 VECTORS_DIR = REPO_ROOT / "specs" / "model-sidecar" / "vectors"
@@ -204,6 +206,7 @@ class Case:
     note: str | None = None  # written as a YAML comment, not as data
     function: str | None = None  # the function of the reference implementation
     compare: dict[str, dict[str, float]] | None = None  # per-field atol and period
+    checks: list[str] = field(default_factory=list)  # named claims; not written as data
 
     def data(
         self, tolerance: float, digits: int | None = ROUND_DIGITS
@@ -414,6 +417,7 @@ def _letterbox_case(
     rounding: str,
     model_xy: list[float],
     note: str | None = None,
+    checks: list[str] | None = None,
 ) -> Case:
     src_w, src_h = src
     params = {"target_size": target, "pad_position": pad, "rounding": rounding}
@@ -431,27 +435,16 @@ def _letterbox_case(
             [LETTERBOX_FUNCTION] if case_id in LETTERBOX_PACKAGE_MATCHES else None
         ),
         note=note,
+        checks=checks or [],
     )
-
-
-def _other_rounding(rounding: str) -> str:
-    return "half_up" if rounding == "half_even" else "half_even"
 
 
 def build_letterbox() -> Vectors:
     sq = [640, 640]
     cases: list[Case] = []
 
-    def add(*args: Any, differs_by_rounding: bool | None = None, **kwargs: Any) -> None:
-        case = _letterbox_case(*args, **kwargs)
-        if differs_by_rounding is not None:
-            other = pre_resize_letterbox.run(
-                {**case.params, "rounding": _other_rounding(case.params["rounding"])},
-                case.input,
-            )
-            if (other != case.expect) != differs_by_rounding:
-                defect(f"{case.id}: the rounding modes do not behave as the case says")
-        cases.append(case)
+    def add(*args: Any, **kwargs: Any) -> None:
+        cases.append(_letterbox_case(*args, **kwargs))
 
     # Center padding.
     add(
@@ -498,7 +491,7 @@ def build_letterbox() -> Vectors:
         "half_even",
         [320, 320],
         "src_h * s = 50.5: half_even gives 50 (half_up gives 51, top 294)",
-        differs_by_rounding=True,
+        checks=["rounding-changes-result"],
     )
     add(
         "center-rounding-tie-half-up",
@@ -508,7 +501,7 @@ def build_letterbox() -> Vectors:
         "half_up",
         [320, 320],
         "src_h * s = 50.5: half_up gives 51 (half_even gives 50, top 295)",
-        differs_by_rounding=True,
+        checks=["rounding-changes-result"],
     )
     add(
         "center-rounding-tie-odd-half-even",
@@ -518,7 +511,7 @@ def build_letterbox() -> Vectors:
         "half_even",
         [320, 320],
         "src_h * s = 51.5: the even neighbour is 52, so both modes give 52",
-        differs_by_rounding=False,
+        checks=["rounding-keeps-result"],
     )
     add(
         "center-rounding-tie-odd-half-up",
@@ -528,7 +521,7 @@ def build_letterbox() -> Vectors:
         "half_up",
         [320, 320],
         "src_h * s = 51.5: both modes give 52",
-        differs_by_rounding=False,
+        checks=["rounding-keeps-result"],
     )
     add(
         "center-float-noise-below-integer",
@@ -538,6 +531,7 @@ def build_letterbox() -> Vectors:
         "half_even",
         [208, 208],
         "src_w * s = 415.99999999999994 in float64: rounding gives 416, cutting gives 415",
+        checks=["cut-differs-from-round"],
     )
     add(
         "center-non-square-target",
@@ -583,6 +577,7 @@ def build_letterbox() -> Vectors:
         "half_even",
         [319.5, 320],
         "src_w * s = 0.064 rounds to 0; max(1, x) keeps n_w at 1",
+        checks=["scaled-width-rounds-to-zero"],
     )
 
     # Top-left padding.
@@ -621,7 +616,7 @@ def build_letterbox() -> Vectors:
         "half_even",
         [640, 50],
         "src_h * s = 50.5: half_even gives 50",
-        differs_by_rounding=True,
+        checks=["rounding-changes-result"],
     )
     add(
         "top-left-rounding-tie-half-up",
@@ -631,7 +626,7 @@ def build_letterbox() -> Vectors:
         "half_up",
         [640, 51],
         "src_h * s = 50.5: half_up gives 51",
-        differs_by_rounding=True,
+        checks=["rounding-changes-result"],
     )
     add(
         "top-left-fraction-below-half",
@@ -641,7 +636,7 @@ def build_letterbox() -> Vectors:
         "half_even",
         [640, 213],
         "src_h * s = 213.12: both modes give 213",
-        differs_by_rounding=False,
+        checks=["rounding-keeps-result"],
     )
     add(
         "top-left-fraction-above-half",
@@ -651,7 +646,7 @@ def build_letterbox() -> Vectors:
         "half_up",
         [640, 360],
         "src_h * s = 359.82: both modes give 360; cutting gives 359",
-        differs_by_rounding=False,
+        checks=["rounding-keeps-result"],
     )
     add(
         "top-left-float-noise-below-integer",
@@ -661,6 +656,7 @@ def build_letterbox() -> Vectors:
         "half_even",
         [416, 312],
         "src_w * s = 415.99999999999994 and src_h * s = 311.99999999999994 in float64",
+        checks=["cut-differs-from-round"],
     )
     add(
         "top-left-scale-exactly-one",
@@ -697,18 +693,8 @@ def build_letterbox() -> Vectors:
         "half_even",
         [1, 640],
         "src_w * s = 0.064 rounds to 0; max(1, x) keeps n_w at 1",
+        checks=["scaled-width-rounds-to-zero"],
     )
-
-    for case in cases:
-        src_w, src_h = case.input["src_w"], case.input["src_h"]
-        t_h, t_w = case.params["target_size"]
-        s = min(t_w / src_w, t_h / src_h)
-        if "width-guard" in case.id and round(src_w * s) != 0:
-            defect(f"{case.id}: n_w would not be 0")
-        if "float-noise" in case.id and not (
-            int(src_w * s) != round(src_w * s) and int(src_h * s) != round(src_h * s)
-        ):
-            defect(f"{case.id}: cutting and rounding give the same size")
 
     return Vectors(
         section="pre.resize.letterbox",
@@ -1244,13 +1230,16 @@ def _selection_case(
     show_boxes: bool = False,
 ) -> Case:
     expect = select(params, inp)
-    to_float32 = post_det_decode.to_float32
-    narrow = select(to_float32(params), to_float32(inp))
-    if not all(expect[key] == narrow[key] for key in ("kept_rows", "class_ids")):
-        defect(f"{case_id}: the result depends on the float width")
     if not show_boxes:
         del expect["boxes_xyxy"]
-    return Case(id=case_id, params=params, input=inp, expect=expect, note=note)
+    return Case(
+        id=case_id,
+        params=params,
+        input=inp,
+        expect=expect,
+        note=note,
+        checks=["float32-stable"],
+    )
 
 
 SELECTION_UNVERIFIED = (
@@ -1781,20 +1770,16 @@ def _unprojection_inputs(
     bbox_xyxy: list[float] | None,
     input_size: list[int] | None,
 ) -> tuple[list[int], dict[str, Any]]:
-    """Return the model input size [height, width] and the `input` of a case."""
-    if resize["method"] == "affine_person_crop":
-        if not (bbox_xyxy is not None and src is None):
-            defect("an affine case gives a box only")
-        return resize["target_size"], {"bbox_xyxy": bbox_xyxy}
-    src_w, src_h = src
-    if resize["method"] == "none":
-        # The host passes the source image unchanged: the model input is the source size.
-        if input_size != [src_h, src_w]:
-            defect("method none: input_size is the source size")
-        return input_size, {"src_w": src_w, "src_h": src_h}
-    if input_size not in (None, resize["target_size"]):
-        defect("input_size must equal target_size")
-    return resize["target_size"], {"src_w": src_w, "src_h": src_h}
+    """Return the model input size [height, width] and the `input` of a case.
+
+    The check `input-size-follows-resize` checks both against the resize.
+    """
+    case_input: dict[str, Any] = {}
+    if src is not None:
+        case_input.update(src_w=src[0], src_h=src[1])
+    if bbox_xyxy is not None:
+        case_input["bbox_xyxy"] = bbox_xyxy
+    return input_size or resize.get("target_size"), case_input
 
 
 def _unprojection_case(
@@ -1817,6 +1802,7 @@ def _unprojection_case(
         input=case_input,
         expect=post_unprojection.run(params, case_input),
         note=note,
+        checks=["input-size-follows-resize"],
     )
 
 
@@ -1830,30 +1816,22 @@ def _box_case(
     *,
     clamp_boxes: bool | None = None,
 ) -> Case:
-    src_w, src_h = src
     size, case_input = _unprojection_inputs(resize, src, None, None)
     params: dict[str, Any] = {"scale": scale, "input_size": size, "resize": resize}
     if clamp_boxes is not None:
         params["clamp_boxes"] = clamp_boxes
     case_input = {**case_input, "decoded_xyxy": decoded_xyxy}
-    expect = post_unprojection.run(params, case_input)
-    source_box = expect["source_xyxy"]
-    # The spec does not define the upper clamp bound ([0, W] or [0, W - 1]) or the result for
-    # a box without area. A case keeps clear of both, so the open questions change no result.
-    if not (
-        all(x <= src_w - 1 for x in source_box[0::2])
-        and all(y <= src_h - 1 for y in source_box[1::2])
-    ):
-        defect(f"{case_id}: a coordinate reaches the upper clamp bound")
-    clamped = post_unprojection.clamp_to_lower_bound(source_box)
-    if not (clamped[2] > clamped[0] and clamped[3] > clamped[1]):
-        defect(f"{case_id}: the clamped box has no area")
     return Case(
         id=case_id,
         params=params,
         input=case_input,
-        expect=expect,
+        expect=post_unprojection.run(params, case_input),
         note=note,
+        checks=[
+            "input-size-follows-resize",
+            "clear-of-upper-clamp-bound",
+            "keeps-area-after-clamp",
+        ],
     )
 
 
@@ -2131,12 +2109,36 @@ BUILDERS: dict[str, Callable[[], Vectors]] = {
 }
 
 
+def run_checks(module: ModuleType, case: Case) -> None:
+    """Run each check that `case` names, from the `CHECKS` of its formula module.
+
+    A check is `check(run, params, input, expect)` and calls `defect` when its
+    claim fails. The built-in check `refused` claims an error result: an error
+    result without it, or `refused` without an error result, is a defect.
+    """
+    if ("error" in case.expect) != ("refused" in case.checks):
+        defect(f"{case.id}: an error result needs the check refused, and only it")
+    registry = getattr(module, "CHECKS", {})
+    for name in case.checks:
+        if name == "refused":
+            continue
+        if name not in registry:
+            defect(f"{case.id}: {module.__name__} has no check {name}")
+        try:
+            registry[name](module.run, case.params, case.input, case.expect)
+        except CaseDefect as error:
+            defect(f"{case.id}: {name}: {error}")
+
+
 def build_all() -> dict[str, Vectors]:
     """Return the vectors of every section, keyed by section ID."""
     built = {section: builder() for section, builder in BUILDERS.items()}
     for section, vectors in built.items():
         if vectors.section != section:
             raise ValueError(f"{section}: builder wrote section {vectors.section}")
+        module = globals()[section.replace(".", "_")]  # the formula module loaded above
+        for case in vectors.cases:
+            run_checks(module, case)
     return built
 
 

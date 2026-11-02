@@ -11,6 +11,8 @@ from typing import Any
 
 import post_det_decode as decode
 
+CHECKS = decode.CHECKS
+
 
 def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
     """Behaviour (before unprojection)."""

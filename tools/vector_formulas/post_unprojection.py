@@ -5,11 +5,13 @@ calling convention of a reference module: `run(params, input) -> expect`, and a
 refusal of the spec raises `ValueError`. A broken invariant calls `defect`.
 
 It uses the Inverse of each resize section through its formula module, and the
-lower bound of `clamp_boxes` (section `post.det.decode`) for a box.
+lower bound of `clamp_boxes` (section `post.det.decode`) for a box. `CHECKS`
+holds the named claims that a case can declare: `check(run, params, input, expect)`.
 """
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 import pre_resize_affine_person_crop
@@ -90,3 +92,52 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
         "source_xyxy": source_box,
         "output_xyxy": clamp_to_lower_bound(source_box) if clamp else source_box,
     }
+
+
+def _input_size_follows_resize(run: Callable[..., Any], params: Any, input: Any, expect: Any) -> None:
+    """`input_size` is the target size of the resize, or the source size for method none."""
+    resize = params["resize"]
+    if resize["method"] == "affine_person_crop":
+        if "bbox_xyxy" not in input or "src_w" in input or "src_h" in input:
+            defect("an affine case gives a box only")
+        if params["input_size"] != resize["target_size"]:
+            defect("input_size must equal target_size")
+        return
+    if "bbox_xyxy" in input or "src_w" not in input or "src_h" not in input:
+        defect("a non-affine case gives the source size only")
+    if resize["method"] == "none":
+        # The host passes the source image unchanged: the model input is the source size.
+        if params["input_size"] != [input["src_h"], input["src_w"]]:
+            defect("method none: input_size is the source size")
+    elif params["input_size"] != resize["target_size"]:
+        defect("input_size must equal target_size")
+
+
+# The spec does not define the upper clamp bound ([0, W] or [0, W - 1]) or the result for a box
+# without area. A box case keeps clear of both, so the open questions change no result.
+def _clear_of_upper_clamp_bound(
+    run: Callable[..., Any], params: Any, input: Any, expect: Any
+) -> None:
+    if "source_xyxy" not in expect:
+        return  # A point case has no box to clamp.
+    box = expect["source_xyxy"]
+    if not (
+        all(x <= input["src_w"] - 1 for x in box[0::2])
+        and all(y <= input["src_h"] - 1 for y in box[1::2])
+    ):
+        defect("a coordinate reaches the upper clamp bound")
+
+
+def _keeps_area_after_clamp(run: Callable[..., Any], params: Any, input: Any, expect: Any) -> None:
+    if "source_xyxy" not in expect:
+        return  # A point case has no box to clamp.
+    x1, y1, x2, y2 = clamp_to_lower_bound(expect["source_xyxy"])
+    if not (x2 > x1 and y2 > y1):
+        defect("the clamped box has no area")
+
+
+CHECKS: dict[str, Callable[..., None]] = {
+    "input-size-follows-resize": _input_size_follows_resize,
+    "clear-of-upper-clamp-bound": _clear_of_upper_clamp_bound,
+    "keeps-area-after-clamp": _keeps_area_after_clamp,
+}

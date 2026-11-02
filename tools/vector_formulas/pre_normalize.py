@@ -16,6 +16,7 @@ from vector_form import defect
 
 IMAGENET_MEAN_RGB = (123.675, 116.28, 103.53)
 IMAGENET_STD_RGB = (58.395, 57.12, 57.375)
+MODES = ("none", "unit_float", "imagenet_bgr", "imagenet_rgb")
 
 
 def resolve_mode(
@@ -39,13 +40,19 @@ def normalize_pixels(
 ) -> tuple[str, list[list[float]]]:
     """Return the channel order of the tensor and the normalized pixels."""
     if isinstance(mode, dict):
+        if mode.get("mode") != "custom":
+            defect(f"unknown normalization mode {mode.get('mode')!r}")
         order = mode.get("color_format") or color_format or "rgb"
+    elif mode not in MODES:
+        defect(f"unknown normalization mode {mode!r}")
     elif mode in ("none", "unit_float"):
         if color_format is None:
             defect(f"{mode} needs color_format")
         order = color_format
     else:
         order = "bgr" if mode == "imagenet_bgr" else "rgb"
+    if order not in ("rgb", "bgr"):
+        defect(f"unknown color_format {order!r}")
 
     out: list[list[float]] = []
     for b, g, r in pixels_bgr:
