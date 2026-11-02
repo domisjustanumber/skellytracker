@@ -123,7 +123,7 @@ proposed section ID.
 
 - The folder `specs/model-sidecar/reference/` is not a Python package, and its path has a hyphen.
   Load a reference file by its path with `importlib.util.spec_from_file_location`.
-- In skellytracker, `load_reference` of `tools/make_vectors.py` loads the file. The builders and the
+- In skellytracker, `load_reference` of `tools/make_vectors.py` loads the file. The generator and the
   tests use it. It puts the folder of the file on `sys.path` while the file runs. It registers the
   module under its file name.
 - In your repo, put the folder of your module and the folder of each imported module first on

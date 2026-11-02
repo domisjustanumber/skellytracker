@@ -83,8 +83,8 @@ Do this procedure for step 1 of phase 3.
      `specs/model-sidecar/vectors/<section>.yaml`. If it is not, ignore the run. The response is
      `needs-contributor`: run the cases again.
    - With `result: pass` and each value of `cases` `pass`, add `{<Exporter repo>: <function>}` to
-     the file-level `verified_against` of the section in `tools/make_vectors.py`. If only some cases
-     pass, add the entry to those cases only.
+     the file-level `verified_against` of the vector file of the section. If only some cases pass,
+     add the entry to those cases only.
    - Skip the run when the exporter is already in the list, or when it is the source of the landed
      reference module. The two count as one implementation
      ([Independence](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence)).

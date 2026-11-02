@@ -41,7 +41,7 @@ gives the order of the steps, the inputs, the outputs and the stop points.
 | The line `Implements: <section-id>` | The docstring of each implementing function |
 | The vector test | A test in `tools/tests/test_vectors.py` that runs the implementing function on each case of `specs/model-sidecar/vectors/<section-id>.yaml` |
 | The new front matter | `implemented_by`, `status` and `tests` of the section file |
-| The new `verified_against` | `tools/make_vectors.py`, then the vector file |
+| The new `verified_against` | The vector file `specs/model-sidecar/vectors/<section-id>.yaml` |
 | The new traceability matrix | `specs/model-sidecar/TRACEABILITY.md` |
 
 ## Procedure
@@ -144,15 +144,15 @@ A skellytracker session must land it first, with the skill
 4. Add the line `Implements: <section-id>` to the docstring of each implementing function.
 5. If `tools/tests` has no test that checks the `Implements:` lines, add that test in the same PR.
 6. Add a constant with the `path::symbol` of the implementing function to `tools/make_vectors.py`,
-   for example `FIT_FUNCTION`.
+   for example `FIT_FUNCTION`. The test of step 7 uses it.
 7. Add a parametrized test to `tools/tests/test_vectors.py` that runs the function on each case of
    `specs/model-sidecar/vectors/<section-id>.yaml`. Use the constant. An example is
    `test_fit_preprocess_agrees_with_the_case`. The generic test of that file checks only that a name
    in `verified_against` resolves. It does not run the function.
 8. Every case must pass. Do not edit `expect` by hand.
 9. Add the golden parity test, if the plan has one.
-10. Add the constant to `verified_against` of the section in `tools/make_vectors.py`. Then run
-    `uv run python tools/make_vectors.py`.
+10. Add the `path::symbol` of the constant to `verified_against` in
+    `specs/model-sidecar/vectors/<section-id>.yaml`. Then run `uv run python tools/make_vectors.py`.
 11. skellytracker counts as one implementation in `verified_against`. A vector is fully verified only
     when two independent implementations agree
     ([Independence](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence)).

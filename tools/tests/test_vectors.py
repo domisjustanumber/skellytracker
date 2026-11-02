@@ -6,7 +6,8 @@ them. These tests check four things:
 - the files have the documented shape and name existing sections. The same
   shape checks apply to the vectors of a proposal (part 4 of the change
   proposal template);
-- the files equal the generator's output, so they never drift from it;
+- the files equal the generator's output, so they never drift from it. The
+  generator computes each `expect` again from the other keys of the file;
 - hand-computed anchors from the section text agree with the files;
 - the skellytracker functions named in `verified_against` still give the same
   results as the cases that list them (and differ where a case does not).
@@ -18,6 +19,7 @@ import functools
 import importlib
 import math
 import re
+import shutil
 import sys
 from pathlib import Path
 from typing import Any
@@ -161,8 +163,9 @@ def generated_texts() -> dict[str, str]:
 
 
 @functools.cache
-def built_vectors() -> dict[str, mv.Vectors]:
-    return mv.build_all()
+def built_vectors() -> dict[str, dict[str, Any]]:
+    """The data that the generator computes from each file, keyed by section ID."""
+    return {path.stem: mv.run_file(load(path.name)) for path in vector_paths()}
 
 
 # ---------------------------------------------------------------------------
@@ -170,8 +173,15 @@ def built_vectors() -> dict[str, mv.Vectors]:
 # ---------------------------------------------------------------------------
 
 
-def test_the_folder_holds_exactly_the_generated_files() -> None:
-    assert {p.name for p in vector_paths()} == set(generated_texts())
+def test_the_folder_holds_a_file_for_each_formula_module_with_run() -> None:
+    sections = {p.stem.replace(".", "_") for p in vector_paths()}
+    with_run = {
+        p.stem for p in mv.FORMULAS_DIR.glob("*.py") if hasattr(getattr(mv, p.stem), "run")
+    }
+    references = {p.stem for p in mv.REFERENCE_DIR.glob("*.py")}
+    assert with_run <= sections
+    # A file whose section has no formula `run` has a reference (ADR-8DSW item 3).
+    assert sections - with_run <= references
 
 
 @pytest.mark.parametrize("path", vector_paths(), ids=lambda p: p.name)
@@ -184,8 +194,12 @@ def test_file_parses_to_the_generator_data(path: Path) -> None:
     section = path.name.removesuffix(".yaml")
     assert agrees(
         yaml.safe_load(path.read_text(encoding="utf-8")),
-        built_vectors()[section].data(),
+        built_vectors()[section],
     )
+
+
+# The tolerance of the files of each group of sections.
+FILE_TOLERANCE = {"resize": 1e-4, "unprojection": 1e-4, "normalize": 1e-5, "selection": 1e-5}
 
 
 @pytest.mark.parametrize("path", vector_paths(), ids=lambda p: p.name)
@@ -196,7 +210,8 @@ def test_file_has_the_documented_top_level_keys(path: Path) -> None:
     checks = ["checks"] if "checks" in data else []
     assert list(data) == ["section", "notes", "tolerance", *checks, verification, "cases"]
     assert data["notes"][0].startswith("Normative text: specs/model-sidecar/")
-    assert data["tolerance"] in mv.TOLERANCE.values()
+    group = next(name for name in FILE_TOLERANCE if name in data["section"])
+    assert data["tolerance"] == FILE_TOLERANCE[group]
 
 
 @pytest.mark.parametrize("path", vector_paths(), ids=lambda p: p.name)
@@ -370,65 +385,57 @@ def test_the_generator_writes_the_case_form_of_a_proposal(tmp_path: Path) -> Non
     )
     exporter = {"OpenMMLab-Exporter": "onnx_runtime/preprocess.py::letterbox"}
     long_note = ('a note with a colon: "quotes", a # sign and enough words ' * 3).strip()
-    vectors = mv.Vectors(
-        section="pre.resize.letterbox",
-        notes=["Normative text: specs/model-sidecar/pre/resize-letterbox.md.", long_note],
-        tolerance=1e-4,
-        verified_against=[exporter],
-        cases=[
-            mv.Case(
-                id="two-tolerances",
-                function="geometry",
-                params={},
-                input={},
-                expect={"z": 0.1, "k": 1 / 3},
-                compare={"z": {"atol": 1e-4}, "k": {"atol": 1e-6}},
-            ),
-            mv.Case(
-                id="angle",
-                function="geometry",
-                params={},
-                input={},
-                expect={"rotation": -3.14159},
-                compare={"rotation": {"atol": 1e-6, "period": 2 * math.pi}},
-            ),
-            mv.Case(
-                id="refused",
-                function="geometry",
-                params={},
-                input={},
-                expect={"error": "V-pre.resize.letterbox-1"},
-                checks=["refused"],
-            ),
-            mv.Case(
-                id="refused-caller-argument",
-                function="geometry",
-                params={},
-                input={},
-                expect={"error": "no-rule"},
-                note=long_note,
-                checks=["refused"],
-            ),
-            mv.Case(id="valid", function="none", params={}, input={}, expect={"failed": []}),
-            mv.Case(
-                id="one-failed-rule",
-                function="none",
-                params={},
-                input={},
-                expect={"failed": ["V-pre.resize.letterbox-1"]},
-            ),
-            mv.Case(
-                id="not-a-number",
-                function="geometry",
-                params={},
-                input={"x": math.nan},
-                expect={"y": math.nan, "w": math.inf},
-            ),
+    geometry = {"function": "geometry", "params": {}, "input": {}}
+    vectors = {
+        "section": "pre.resize.letterbox",
+        "notes": ["Normative text: specs/model-sidecar/pre/resize-letterbox.md.", long_note],
+        "tolerance": 1e-4,
+        "verified_against": [exporter],
+        "cases": [
+            {
+                "id": "two-tolerances",
+                **geometry,
+                "expect": {"z": 0.1, "k": 1 / 3},
+                "compare": {"z": {"atol": 1e-4}, "k": {"atol": 1e-6}},
+            },
+            {
+                "id": "angle",
+                **geometry,
+                "expect": {"rotation": -3.14159},
+                "compare": {"rotation": {"atol": 1e-6, "period": 2 * math.pi}},
+            },
+            {
+                "id": "refused",
+                **geometry,
+                "expect": {"error": "V-pre.resize.letterbox-1"},
+                "checks": ["refused"],
+            },
+            {
+                "id": "refused-caller-argument",
+                **geometry,
+                "expect": {"error": "no-rule"},
+                "note": long_note,
+                "checks": ["refused"],
+            },
+            {"id": "valid", "function": "none", "params": {}, "input": {}, "expect": {"failed": []}},
+            {
+                "id": "one-failed-rule",
+                "function": "none",
+                "params": {},
+                "input": {},
+                "expect": {"failed": ["V-pre.resize.letterbox-1"]},
+            },
+            {
+                "id": "not-a-number",
+                **geometry,
+                "input": {"x": math.nan},
+                "expect": {"y": math.nan, "w": math.inf},
+            },
         ],
-    )
+    }
     text = mv.render(vectors)
     data = yaml.safe_load(text)
-    assert agrees(data, vectors.data())
+    assert agrees(data, mv.form(vectors))
     assert all(len(line) <= mv.LINE_WIDTH for line in text.splitlines())
     assert data["notes"][1] == data["cases"][3]["note"] == long_note
     spaced = f" {long_note}  {long_note} "  # a fold would lose these spaces
@@ -518,24 +525,123 @@ def test_a_formula_module_does_not_take_the_place_of_a_missing_sibling(
 
 def test_the_renderer_writes_a_long_item_in_block_form_and_a_large_float() -> None:
     long_item = {"points": [[float(i) + 0.125 for i in range(12)] for _ in range(3)]}
-    vectors = mv.Vectors(
-        section="post.unprojection",
-        notes=[],
-        tolerance=1e-4,
-        unverified="a test of the renderer, with no implementation",
-        cases=[
-            mv.Case(
-                id="long-nested-item",
-                params={},
-                input={"items": [long_item, [list(range(40)), "x"]]},
-                expect={"huge": 1e308, "neg": -2.0**60, "whole": 3.0},
-            )
+    vectors = {
+        "section": "post.unprojection",
+        "notes": [],
+        "tolerance": 1e-4,
+        "checks": [],
+        "unverified": "a test of the renderer, with no implementation",
+        "cases": [
+            {
+                "id": "long-nested-item",
+                "checks": [],
+                "params": {},
+                "input": {"items": [long_item, [list(range(40)), "x"]]},
+                "expect": {"huge": 1e308, "neg": -2.0**60, "whole": 3.0},
+                "verified_against": [],
+            }
         ],
-    )
+    }
     text = mv.render(vectors)
     assert all(len(line) <= mv.LINE_WIDTH for line in text.splitlines())
     assert "huge: 1.0e+308" in text
-    assert agrees(yaml.safe_load(text), vectors.data())
+    assert agrees(yaml.safe_load(text), mv.form(vectors))
+    # An empty notes, checks or case verified_against goes, so the text reads back the same.
+    data = yaml.safe_load(text)
+    assert list(data) == ["section", "tolerance", "unverified", "cases"]
+    assert list(data["cases"][0]) == ["id", "params", "input", "expect"]
+    assert mv.render(data) == text
+
+
+# ---------------------------------------------------------------------------
+# The generator computes `expect` from the other keys of a file
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("path", vector_paths(), ids=lambda p: p.name)
+def test_the_generator_writes_the_same_bytes_from_the_file_without_expect(path: Path) -> None:
+    text = path.read_text(encoding="utf-8")
+    data = yaml.safe_load(text)
+    data["cases"] = [
+        {k: v for k, v in case.items() if k != "expect" or case.get("function") == "none"}
+        for case in data["cases"]
+    ]
+    assert mv.render(mv.run_file(data)) == text
+
+
+def test_a_run_keeps_a_hand_edited_note_and_restores_a_hand_edited_expect() -> None:
+    text = (VECTORS_DIR / "pre.resize.stretch.yaml").read_text(encoding="utf-8")
+    data = yaml.safe_load(text)
+    data["cases"][1]["expect"] = {"source_xy": [0, 0]}
+    assert mv.render(mv.run_file(data)) == text
+    data["cases"][0]["note"] = "a note that a person wrote"
+    expected = yaml.safe_load(text)
+    expected["cases"][0]["note"] = "a note that a person wrote"
+    assert yaml.safe_load(mv.render(mv.run_file(data))) == expected
+
+
+def test_a_data_only_case_keeps_the_expect_of_its_author_and_needs_one() -> None:
+    data = yaml.safe_load((VECTORS_DIR / "pre.resize.stretch.yaml").read_text(encoding="utf-8"))
+    valid = {"id": "valid", "function": "none", "params": {}, "input": {}, "expect": {"failed": []}}
+    data["cases"].append(valid)
+    assert mv.run_file(data)["cases"][-1] == valid
+    data["cases"][-1] = {key: value for key, value in valid.items() if key != "expect"}
+    with pytest.raises(CaseDefect, match="valid: a case with function none needs"):
+        mv.run_file(data)
+
+
+def test_a_reference_producer_writes_expect_and_must_agree_with_the_formulas(
+    tmp_path: Path,
+) -> None:
+    name = "pre.resize.stretch.yaml"
+    vectors = tmp_path / "vectors"
+    vectors.mkdir()
+    shutil.copy(VECTORS_DIR / name, vectors / name)
+    formulas = (mv.FORMULAS_DIR / "pre_resize_stretch.py").read_text(encoding="utf-8")
+
+    def reference(shift: float) -> Path:
+        """A reference that moves the x of each Inverse result by `shift`."""
+        folder = tmp_path / f"reference-{len(list(tmp_path.iterdir()))}"
+        folder.mkdir()
+        (folder / "pre_resize_stretch.py").write_text(
+            f"{formulas}\n_inverse = inverse\n\n\n"
+            "def inverse(params, input):\n"
+            "    x, y = _inverse(params, input)['source_xy']\n"
+            f"    return {{'source_xy': [x + {shift!r}, y]}}\n",
+            encoding="utf-8",
+        )
+        return folder
+
+    assert mv.generate(vectors, reference(0.0)) == {
+        name: (VECTORS_DIR / name).read_text(encoding="utf-8")
+    }
+    # Within the tolerance of the file, the value of the reference is written.
+    written = yaml.safe_load(mv.generate(vectors, reference(0.00004))[name])
+    assert written["cases"][1]["expect"]["source_xy"] == [960.00004, 540]
+    with pytest.raises(CaseDefect, match="-inverse: the reference and the formulas disagree"):
+        mv.generate(vectors, reference(0.001))
+
+
+def test_a_section_with_only_a_reference_runs_without_a_formula_module(tmp_path: Path) -> None:
+    (tmp_path / "post_only_reference.py").write_text(
+        "def run(params, input):\n    return {'y': params['a'] + input['b']}\n", encoding="utf-8"
+    )
+    case = {"id": "sum", "params": {"a": 1}, "input": {"b": 0.5}}
+    data = {"section": "post.only_reference", "tolerance": 1e-4, "unverified": "a test"}
+    assert not hasattr(mv, "post_only_reference")
+    assert mv.run_file({**data, "cases": [case]}, tmp_path)["cases"] == [{**case, "expect": {"y": 1.5}}]
+    with pytest.raises(CaseDefect, match="sum: post_only_reference has no check box-order"):
+        mv.run_file({**data, "cases": [{**case, "checks": ["box-order"]}]}, tmp_path)
+
+
+def test_the_generator_stops_on_a_file_that_breaks_the_form() -> None:
+    data = load("pre.resize.stretch.yaml")
+    forward, inverse = data["cases"][:2]
+    assert inverse["id"] == f"{forward['id']}-inverse"
+    with pytest.raises(CaseDefect, match="-inverse: an Inverse case follows the case"):
+        mv.run_file({**data, "cases": [inverse, forward, *data["cases"][2:]]})
+    with pytest.raises(CaseDefect, match="the keys .* are not a file form"):
+        mv.run_file({**data, "spec_revision": "vNEXT"})
 
 
 # ---------------------------------------------------------------------------
@@ -552,6 +658,7 @@ AFFINE = {
 }
 FULL_HD = {"src_w": 1920, "src_h": 1080}
 SCORED = {"score_field": "score", "class_field": "class_id"}
+DETECTION_FIELDS = ["x1", "y1", "x2", "y2", "score", "class_id"]
 
 # Each row: the section, the check and a case that breaks its claim.
 BROKEN_CLAIMS = [
@@ -564,7 +671,7 @@ BROKEN_CLAIMS = [
         "float32-stable",
         {**SCORED, "confidence_threshold_default": 0.7},
         # 0.70000001 > 0.7 in float64; in float32 both are 0.699999988.
-        {"fields": mv.FIELDS, "rows": [[0, 0, 8, 8, 0.70000001, 0]]},
+        {"fields": DETECTION_FIELDS, "rows": [[0, 0, 8, 8, 0.70000001, 0]]},
     ),
     (
         "post.unprojection",
@@ -609,9 +716,9 @@ def formula_module(section: str) -> Any:
     return getattr(mv, section.replace(".", "_"))
 
 
-def checked_case(section: str, checks: list[str], params: Any, inp: Any) -> mv.Case:
+def checked_case(section: str, checks: list[str], params: Any, inp: Any) -> dict[str, Any]:
     expect = formula_module(section).run(params, inp)
-    return mv.Case(id="probe", params=params, input=inp, expect=expect, checks=checks)
+    return {"id": "probe", "checks": checks, "params": params, "input": inp, "expect": expect}
 
 
 @pytest.mark.parametrize(
@@ -628,12 +735,13 @@ def test_a_check_stops_the_generator_on_a_case_that_breaks_its_claim(
 
 def test_each_registered_check_holds_on_the_published_cases_that_declare_it() -> None:
     declared, registered = set(), set()
-    for section, vectors in built_vectors().items():
+    for section, data in built_vectors().items():
         module = formula_module(section)
+        file_checks = data.get("checks", [])
         registered |= {(section, name) for name in getattr(module, "CHECKS", {})}
-        for case in vectors.cases:
-            mv.run_checks(module, case, vectors.checks)
-            declared |= {(section, name) for name in [*vectors.checks, *case.checks]}
+        for case in data["cases"]:
+            mv.run_checks(module, case, file_checks)
+            declared |= {(section, name) for name in [*file_checks, *case.get("checks", [])]}
     assert declared == registered
     assert {name for _, name in registered} == {row[1] for row in BROKEN_CLAIMS}
 
@@ -657,13 +765,13 @@ def test_the_box_checks_pass_on_a_point_case() -> None:
 def test_run_checks_stops_on_an_unknown_name_or_a_wrong_refused(
     checks: list[str], expect: dict[str, Any]
 ) -> None:
-    case = mv.Case(id="probe", params={}, input={}, expect=expect, checks=checks)
+    case = {"id": "probe", "checks": checks, "params": {}, "input": {}, "expect": expect}
     with pytest.raises(CaseDefect):
         mv.run_checks(mv.pre_resize_letterbox, case)
 
 
 def test_run_checks_accepts_an_error_result_with_refused() -> None:
-    case = mv.Case(id="probe", params={}, input={}, expect={"error": "no-rule"}, checks=["refused"])
+    case = {"id": "probe", "checks": ["refused"], "params": {}, "input": {}, "expect": {"error": "no-rule"}}
     mv.run_checks(mv.pre_resize_letterbox, case)
 
 
