@@ -47,19 +47,6 @@ STEP_STATES = {"implemented", "partial", "missing"}
 SPEC_STATES = {"stable", "draft"}
 VERSION = re.compile(r"vNEXT|v\d{4}\.\d{2}\.\d+")
 
-EXPECTED_KEYS = {
-    "yolox@skellytracker",
-    "rtmpose-body@skellytracker",
-    "rtmpose-hand@skellytracker",
-    "rtmpose-face@skellytracker",
-    "rtmw-wholebody@skellytracker",
-    "yolo26@ultralytics-exporter",
-    "yolo26-body@ultralytics-exporter",
-    "rtmdet-person@openmmlab-exporter",
-    "rtmw-wholebody@openmmlab-exporter",
-    "rtmo-body7@openmmlab-exporter",
-}
-
 
 # --------------------------------------------------------------------------------------------
 # Helpers
@@ -513,10 +500,10 @@ def test_the_matrix_has_a_row_for_each_section_and_a_column_for_each_sidecar() -
 # --------------------------------------------------------------------------------------------
 
 
-def test_the_scan_finds_exactly_the_expected_sidecars() -> None:
+def test_the_scan_keys_are_unique() -> None:
     keys = [sidecar.key for sidecar in scan().sidecars]
+    assert keys
     assert len(keys) == len(set(keys))
-    assert set(keys) == EXPECTED_KEYS
 
 
 def test_the_package_sidecars_have_the_legacy_version_and_the_package_source() -> None:
@@ -550,7 +537,7 @@ def test_the_scan_skips_every_other_yaml_file() -> None:
     skipped = set(scan().skipped)
     assert not found & skipped
     assert found | skipped == every_yaml
-    assert len(found) == len(EXPECTED_KEYS)
+    assert len(found) == len(scan().sidecars)
     for name in (
         "skellytracker/core/detectors/shared/skeletons/coco17_tracked_points.yaml",
         "skellytracker/core/detectors/keypoint_detectors/mediapipe/body/mediapipe_body.yaml",
@@ -575,57 +562,57 @@ def test_a_skipped_file_is_not_a_sidecar() -> None:
 # The applicability of the sections, as the sidecars imply it
 # --------------------------------------------------------------------------------------------
 
-BODY_HAND_FACE = [
-    "rtmpose-body@skellytracker",
-    "rtmpose-hand@skellytracker",
-    "rtmpose-face@skellytracker",
-]
-RTMW_BOTH = ["rtmw-wholebody@skellytracker", "rtmw-wholebody@openmmlab-exporter"]
-
-EXPECTED_APPLICABILITY = {
-    "common.batch_conversion": set(),
-    "pre.resize.letterbox": {
-        "yolox@skellytracker",
-        "yolo26@ultralytics-exporter",
-        "yolo26-body@ultralytics-exporter",
-        "rtmdet-person@openmmlab-exporter",
-    },
-    "pre.resize.stretch": set(),
-    "pre.resize.fit": {"rtmo-body7@openmmlab-exporter"},
-    "pre.resize.none": set(),
-    "pre.resize.affine_person_crop": {*BODY_HAND_FACE, *RTMW_BOTH},
-    "post.det.selection.none": {
-        "yolox@skellytracker",
-        "yolo26@ultralytics-exporter",
-        "yolo26-body@ultralytics-exporter",
-        "rtmo-body7@openmmlab-exporter",
-    },
-    "post.det.selection.top_k": set(),
-    "post.det.selection.nms": {"rtmdet-person@openmmlab-exporter"},
-    "post.pose.decode.simcc": {*BODY_HAND_FACE, *RTMW_BOTH},
-    "post.pose.decode.heatmap": set(),
-    "post.pose.decode.coordinate": {
-        "yolo26-body@ultralytics-exporter",
-        "rtmo-body7@openmmlab-exporter",
-    },
-    "post.pose.bottom_up": {
-        "yolo26-body@ultralytics-exporter",
-        "rtmo-body7@openmmlab-exporter",
-    },
+# Synthetic sidecars pin the semantics, so a new example model does not change these tests.
+LEGACY_DETECTOR = {
+    "schema_version": "v2024.09.1019",
+    "model_id": "legacy-detector",
+    "role": ["object_detector"],
+    "input": {"resize": {"method": "letterbox"}, "normalization": "imagenet_bgr"},
+    "outputs": [{"semantic": "detections"}],
+}
+NMS_DETECTOR = {
+    "schema_version": "vNEXT",
+    "model_id": "nms-detector",
+    "role": ["object_detector"],
+    "input": {"resize": {"method": "letterbox"}},
+    "decode": {"selection": "nms"},
+    "outputs": [{"semantic": "boxes"}],
+}
+BOTTOM_UP_POSE = {
+    "schema_version": "vNEXT",
+    "model_id": "bottom-up-pose",
+    "role": ["object_detector", "pose_estimator"],
+    "input": {"resize": {"method": "fit"}, "normalization": "unit_float"},
+    "decode": {"selection": "none"},
+    "pose": {"estimator_type": "bottom_up", "decode": {"method": "coordinate"}},
+    "outputs": [{"semantic": "detections", "packed_keypoints": {"offset": 6}}],
+}
+DETECTOR_SECTIONS = {
+    "pre.resize.interpolation",
+    "pre.normalize",
+    "post.det.decode",
+    "post.det.outputs",
+    "post.unprojection",
 }
 
-EXPECTED_NORMALIZATION = {
-    "yolox@skellytracker": "none",
-    "rtmpose-body@skellytracker": "imagenet_bgr",
-    "rtmpose-hand@skellytracker": "imagenet_bgr",
-    "rtmpose-face@skellytracker": "imagenet_bgr",
-    "rtmw-wholebody@skellytracker": "imagenet_bgr",
-    "yolo26@ultralytics-exporter": "unit_float",
-    "yolo26-body@ultralytics-exporter": "unit_float",
-    "rtmdet-person@openmmlab-exporter": "imagenet_bgr",
-    "rtmw-wholebody@openmmlab-exporter": "imagenet_rgb",
-    "rtmo-body7@openmmlab-exporter": "none",
-}
+
+def synthetic(data: dict[str, Any]) -> st.Sidecar:
+    return st.Sidecar(
+        key=f"{data['model_id']}@test",
+        model_id=data["model_id"],
+        source="test",
+        origin="example",
+        path=f"{data['model_id']}.yaml",
+        schema_version=data["schema_version"],
+        resolved=data,
+        normalized=sn.normalize(data),
+        derived=sn.derived_by(data),
+    )
+
+
+@functools.cache
+def sections_by_id() -> dict[str, st.Section]:
+    return {section.id: section for section in all_sections()}
 
 
 @functools.cache
@@ -637,81 +624,94 @@ def applicability() -> dict[str, set[str]]:
 
 
 @pytest.mark.parametrize(
-    ("section_id", "expected"), sorted(EXPECTED_APPLICABILITY.items())
+    ("data", "expected"),
+    [
+        (LEGACY_DETECTOR, {*DETECTOR_SECTIONS, "pre.resize.letterbox", "post.det.selection.none"}),
+        (NMS_DETECTOR, {*DETECTOR_SECTIONS, "pre.resize.letterbox", "post.det.selection.nms"}),
+        (
+            BOTTOM_UP_POSE,
+            {
+                *DETECTOR_SECTIONS,
+                "pre.resize.fit",
+                "post.det.selection.none",
+                "post.pose.bottom_up",
+                "post.pose.decode.coordinate",
+                "post.pose.schema",
+            },
+        ),
+    ],
+    ids=lambda value: value["model_id"] if isinstance(value, dict) else "",
 )
-def test_section_applicability(section_id: str, expected: set[str]) -> None:
-    assert applicability()[section_id] == expected
+def test_a_sidecar_matches_exactly_the_sections_of_its_selectors(
+    data: dict[str, Any], expected: set[str]
+) -> None:
+    universal = {
+        s.id
+        for s in all_sections()
+        if s.kind in sn.UNIVERSAL_KINDS and not s.front["selectors"]
+    }
+    sidecar = synthetic(data)
+    applicable = st.applicable_models(all_sections(), [sidecar])
+    assert {sid for sid, models in applicable.items() if models} == universal | expected
 
 
-def matrix_cells() -> dict[str, dict[str, str]]:
-    """Return the cell text of the generated matrix: section ID -> sidecar key -> text."""
-    lines = st.render_traceability(REPO_ROOT).splitlines()
-    start = next(i for i, line in enumerate(lines) if line.startswith("| Section | "))
-    keys = [
-        c.strip().replace("<br>@", "@") for c in lines[start].strip("|").split("|")[1:]
-    ]
-    cells: dict[str, dict[str, str]] = {}
-    for line in lines[start + 2 :]:
-        if not line.startswith("|"):
-            break
-        columns = [c.strip() for c in line.strip("|").split("|")]
-        cells[columns[0].split("`")[1]] = dict(zip(keys, columns[1:], strict=True))
-    return cells
+def test_an_explicit_normalization_is_kept_and_an_omitted_one_gets_the_default() -> None:
+    default = sn.normalize({"input": {}})["input"]["normalization"]
+    explicit = synthetic(BOTTOM_UP_POSE)
+    omitted = synthetic(NMS_DETECTOR)
+    assert explicit.normalized["input"]["normalization"] == "unit_float"
+    assert "normalization" not in explicit.derived
+    assert omitted.normalized["input"]["normalization"] == default
+    assert omitted.derived == ("normalization",)
 
 
-EXPECTED_CELLS = {
-    "pre.normalize": {
-        "yolox@skellytracker": "none",
-        "rtmpose-body@skellytracker": "imagenet_bgr (legacy)",
-        "rtmpose-hand@skellytracker": "imagenet_bgr (legacy)",
-        "rtmpose-face@skellytracker": "imagenet_bgr (legacy)",
-        "rtmw-wholebody@skellytracker": "imagenet_bgr (legacy)",
-        "yolo26@ultralytics-exporter": "unit_float",
-        "yolo26-body@ultralytics-exporter": "unit_float",
-        "rtmdet-person@openmmlab-exporter": "imagenet_bgr",
-        "rtmw-wholebody@openmmlab-exporter": "imagenet_rgb",
-        "rtmo-body7@openmmlab-exporter": "none",
-    },
-    "post.det.selection.none": {
-        "yolox@skellytracker": "none (legacy, derived)",
-        "yolo26@ultralytics-exporter": "none",
-        "yolo26-body@ultralytics-exporter": "none",
-        "rtmo-body7@openmmlab-exporter": "none",
-    },
-    "post.det.selection.nms": {"rtmdet-person@openmmlab-exporter": "nms"},
-    "post.pose.bottom_up": {
-        "yolo26-body@ultralytics-exporter": "x (packed)",
-        "rtmo-body7@openmmlab-exporter": "x (poses)",
-    },
-}
+def test_a_legacy_detector_without_a_selection_gets_it_derived() -> None:
+    legacy = synthetic(LEGACY_DETECTOR)
+    assert legacy.legacy
+    assert legacy.derived == ("selection",)
+    assert legacy.normalized["decode"]["selection"] == "none"
+    for data in (NMS_DETECTOR, BOTTOM_UP_POSE):
+        assert not synthetic(data).legacy
+        assert "selection" not in synthetic(data).derived
 
 
-@pytest.mark.parametrize(("section_id", "expected"), sorted(EXPECTED_CELLS.items()))
-def test_the_cells_that_carry_text(section_id: str, expected: dict[str, str]) -> None:
-    row = matrix_cells()[section_id]
-    assert {key: text for key, text in row.items() if text} == expected
-
-
-def test_every_sidecar_matches_the_normalization_section_with_its_mode() -> None:
+def test_only_a_legacy_sidecar_gets_a_derived_selection() -> None:
     for sidecar in scan().sidecars:
-        assert sidecar.key in applicability()["pre.normalize"]
-        mode = sidecar.normalized["input"]["normalization"]
-        assert mode == EXPECTED_NORMALIZATION[sidecar.key]
+        if not sidecar.legacy:
+            assert "selection" not in sidecar.derived, sidecar.key
 
 
-def test_the_legacy_yolox_selection_is_derived() -> None:
-    by_key = {s.key: s for s in scan().sidecars}
-    assert by_key["yolox@skellytracker"].derived == ("selection",)
-    assert by_key["yolox@skellytracker"].normalized["decode"]["selection"] == "none"
-    for key, sidecar in by_key.items():
-        if key != "yolox@skellytracker":
-            assert "selection" not in sidecar.derived, key
+def test_the_cells_that_carry_text() -> None:
+    def cell(section_id: str, data: dict[str, Any]) -> str:
+        return st._cell(sections_by_id()[section_id], synthetic(data))
+
+    default = sn.normalize({"input": {}})["input"]["normalization"]
+    poses = {**BOTTOM_UP_POSE, "outputs": [{"semantic": "poses"}]}
+    legacy_none = {
+        **LEGACY_DETECTOR,
+        "input": {"resize": {"method": "letterbox"}, "normalization": "none"},
+    }
+    assert cell("pre.normalize", LEGACY_DETECTOR) == "imagenet_bgr (legacy)"
+    assert cell("pre.normalize", legacy_none) == "none"
+    assert cell("pre.normalize", NMS_DETECTOR) == f"{default} (derived)"
+    assert cell("pre.normalize", BOTTOM_UP_POSE) == "unit_float"
+    assert cell("post.det.selection.none", LEGACY_DETECTOR) == "none (legacy, derived)"
+    assert cell("post.det.selection.nms", NMS_DETECTOR) == "nms"
+    assert cell("post.det.selection.none", BOTTOM_UP_POSE) == "none"
+    assert cell("post.pose.bottom_up", BOTTOM_UP_POSE) == "x (packed)"
+    assert cell("post.pose.bottom_up", poses) == "x (poses)"
+    assert cell("post.det.decode", NMS_DETECTOR) == "x"
 
 
 def test_format_and_common_sections_without_selectors_apply_to_every_sidecar() -> None:
     for section in all_sections():
         if section.kind in sn.UNIVERSAL_KINDS and not section.front["selectors"]:
-            assert applicability()[section.id] == EXPECTED_KEYS
+            assert applicability()[section.id] == {s.key for s in scan().sidecars}
+
+
+def test_every_sidecar_matches_the_normalization_section() -> None:
+    for sidecar in scan().sidecars:
+        assert sidecar.key in applicability()["pre.normalize"], sidecar.key
 
 
 def test_every_sidecar_matches_a_resize_section() -> None:
