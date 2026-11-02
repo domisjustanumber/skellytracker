@@ -70,6 +70,16 @@ cases:
       scores: [0.982014, 0.880797]
       class_ids: [1, 1]
       boxes_xyxy: [[10, 0, 18, 8], [0, 0, 8, 8]]
+  - id: default-confidence-threshold
+    note: "confidence_threshold_default is absent: the default is 0.7; 0.75 stays and 0.65 is
+      dropped"
+    params: {top_k: 4}
+    input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8]], class_logits: [[0.9, 0.65], [0.75, 0.5]]}
+    expect:
+      kept_rows: [0, 1]
+      scores: [0.9, 0.75]
+      class_ids: [0, 0]
+      boxes_xyxy: [[0, 0, 8, 8], [10, 0, 18, 8]]
   - id: is-person-only
     note: "only class 0 stays: pairs (0, 0) and (1, 0)"
     params: {top_k: 4, is_person_only: true, person_class_id: 0, confidence_threshold_default: 0.25}

@@ -971,6 +971,7 @@ ANCHORS: dict[str, list[tuple[str, tuple[str | int, ...], Any]]] = {
             ("expect", "scores"),
             pytest.approx([0.982014, 0.880797], abs=1e-6),
         ),
+        ("default-confidence-threshold", ("expect", "kept_rows"), [0, 1]),
     ],
     "post.det.selection.nms": [
         ("suppress-overlap-and-threshold", ("expect", "kept_rows"), [0, 2]),
