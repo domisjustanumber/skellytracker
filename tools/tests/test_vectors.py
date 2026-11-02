@@ -427,123 +427,241 @@ def test_the_renderer_writes_a_long_item_in_block_form_and_a_large_float() -> No
 # ---------------------------------------------------------------------------
 
 
-def test_letterbox_anchors() -> None:
-    section = "pre.resize.letterbox"
-    landscape = case_named(section, "center-half-even-landscape")
-    assert landscape["expect"] == {"n_w": 640, "n_h": 360, "left": 0, "top": 140}
-    assert landscape["unproject"] == {"model_xy": [320, 320], "source_xy": [960, 540]}
-    even = case_named(section, "center-rounding-tie-half-even")
-    assert (even["expect"]["n_h"], even["expect"]["top"]) == (50, 295)
-    up = case_named(section, "center-rounding-tie-half-up")
-    assert (up["expect"]["n_h"], up["expect"]["top"]) == (51, 294)
-    assert case_named(section, "center-odd-remainder-bottom")["expect"]["top"] == 80
-    assert case_named(section, "center-odd-remainder-right")["expect"]["left"] == 80
-    assert case_named(section, "center-scale-exactly-one")["expect"] == {
-        "n_w": 640,
-        "n_h": 640,
-        "left": 0,
-        "top": 0,
-    }
-    guard = case_named(section, "center-width-guard")["expect"]
-    assert (guard["n_w"], guard["left"], guard["n_h"]) == (1, 319, 640)
-    noise = case_named(section, "center-float-noise-below-integer")["expect"]
-    assert (noise["n_w"], noise["n_h"]) == (416, 312)
-    assert case_named(section, "top-left-fraction-above-half")["expect"]["n_h"] == 360
-    assert {c["params"]["pad_position"] for c in cases_of(section)} == {
-        "center",
-        "top_left",
-    }
-    assert {c["params"]["rounding"] for c in cases_of(section)} == {
-        "half_even",
-        "half_up",
-    }
+# Each row: the case id, the path into the case and the expected value, by section.
+ANCHORS: dict[str, list[tuple[str, tuple[str | int, ...], Any]]] = {
+    "pre.resize.letterbox": [
+        (
+            "center-half-even-landscape",
+            ("expect",),
+            {"n_w": 640, "n_h": 360, "left": 0, "top": 140},
+        ),
+        (
+            "center-half-even-landscape",
+            ("unproject",),
+            {"model_xy": [320, 320], "source_xy": [960, 540]},
+        ),
+        ("center-rounding-tie-half-even", ("expect", "n_h"), 50),
+        ("center-rounding-tie-half-even", ("expect", "top"), 295),
+        ("center-rounding-tie-half-up", ("expect", "n_h"), 51),
+        ("center-rounding-tie-half-up", ("expect", "top"), 294),
+        ("center-odd-remainder-bottom", ("expect", "top"), 80),
+        ("center-odd-remainder-right", ("expect", "left"), 80),
+        (
+            "center-scale-exactly-one",
+            ("expect",),
+            {"n_w": 640, "n_h": 640, "left": 0, "top": 0},
+        ),
+        ("center-width-guard", ("expect", "n_w"), 1),
+        ("center-width-guard", ("expect", "left"), 319),
+        ("center-width-guard", ("expect", "n_h"), 640),
+        ("center-float-noise-below-integer", ("expect", "n_w"), 416),
+        ("center-float-noise-below-integer", ("expect", "n_h"), 312),
+        ("top-left-fraction-above-half", ("expect", "n_h"), 360),
+    ],
+    "pre.resize.stretch": [
+        ("portrait-target", ("expect", "dst_w"), 384),
+        ("portrait-target", ("expect", "dst_h"), 640),
+        ("portrait-target", ("unproject", "source_xy"), [1920, 1080]),
+        ("unproject-fractional", ("unproject", "source_xy"), [300, 168.75]),
+    ],
+    "pre.resize.fit": [
+        ("fractional-offset", ("expect",), {"scale": 0.64, "left": 0, "top": 213.44}),
+        ("fractional-offset", ("unproject", "source_xy"), [500, 166.5]),
+        ("half-pixel-offset-scale-one", ("expect", "top"), 80.5),
+        ("unproject-in-the-padding", ("unproject", "source_xy"), [0, -420]),
+        ("one-pixel-wide-source", ("expect", "left"), 316.8),
+    ],
+    "pre.resize.affine_person_crop": [
+        ("tall-box-grows-width", ("expect", "center"), [200, 250]),
+        ("tall-box-grows-width", ("expect", "crop_w"), 375),
+        ("tall-box-grows-width", ("expect", "crop_h"), 500),
+        (
+            "tall-box-grows-width",
+            ("expect", "matrix"),
+            [[0.512, 0, -6.4], [0, 0.512, 0]],
+        ),
+        ("wide-box-grows-height", ("expect", "crop_w"), 500),
+        ("wide-box-grows-height", ("expect", "crop_h"), pytest.approx(666.666667)),
+        ("aspect-ratio-not-kept", ("expect", "matrix", 0, 0), 0.768),
+        ("aspect-ratio-not-kept", ("expect", "matrix", 1, 1), 0.512),
+    ],
+    "post.unprojection": [
+        # Letterbox with `center` on 1920x1080 -> 640x640:
+        # s = 1/3, n_h = 360, top = 140.
+        (
+            "normalized-01-top-left-corner",
+            ("expect",),
+            {"model_xy": [0, 0], "source_xy": [0, -420]},
+        ),
+        (
+            "normalized-01-bottom-right-corner",
+            ("expect",),
+            {"model_xy": [640, 640], "source_xy": [1920, 1500]},
+        ),
+        # normalized_11 maps -1 and 1 to the edges 0 and the width,
+        # not to pixel centres.
+        ("normalized-11-left-edge", ("expect", "model_xy"), [0, 320]),
+        ("normalized-11-right-edge", ("expect", "model_xy"), [640, 320]),
+        ("normalized-11-left-edge", ("expect", "source_xy"), [0, 540]),
+        ("normalized-11-right-edge", ("expect", "source_xy"), [1920, 540]),
+        (
+            "normalized-11-off-centre",
+            ("expect",),
+            {"model_xy": [160, 480], "source_xy": [480, 1020]},
+        ),
+        # target_size [384, 640]: x uses the width 640 and y uses the height 384;
+        # top = 12.
+        (
+            "normalized-01-non-square-input",
+            ("expect",),
+            {"model_xy": [320, 192], "source_xy": [960, 540]},
+        ),
+        (
+            "normalized-11-non-square-input",
+            ("expect",),
+            {"model_xy": [640, 0], "source_xy": [1920, -36]},
+        ),
+        (
+            "normalized-01-stretch",
+            ("expect",),
+            {"model_xy": [160, 480], "source_xy": [480, 810]},
+        ),
+        (
+            "pixel-affine-person-crop",
+            ("expect",),
+            {"model_xy": [96, 128], "source_xy": [148, 264]},
+        ),
+        # Box clamping.
+        ("box-clamp-default-is-true", ("expect", "source_xyxy"), [-60, -120, 600, 780]),
+        ("box-clamp-default-is-true", ("expect", "output_xyxy"), [0, 0, 600, 780]),
+        ("box-clamp-boxes-true", ("expect", "output_xyxy"), [0, 0, 600, 780]),
+        (
+            "box-clamp-boxes-false-keeps-negative-values",
+            ("expect", "output_xyxy"),
+            [-60, -120, 600, 780],
+        ),
+        (
+            "box-clamp-after-the-scale-conversion",
+            ("expect", "source_xyxy"),
+            [0, -420, 960, 540],
+        ),
+        (
+            "box-clamp-after-the-scale-conversion",
+            ("expect", "output_xyxy"),
+            [0, 0, 960, 540],
+        ),
+        (
+            "box-normalized-01-inside-the-image",
+            ("expect", "source_xyxy"),
+            [480, 420, 1440, 660],
+        ),
+        (
+            "box-normalized-01-inside-the-image",
+            ("expect", "output_xyxy"),
+            [480, 420, 1440, 660],
+        ),
+    ],
+    "pre.normalize": [
+        ("imagenet-rgb", ("expect", "channel_order"), "rgb"),
+        ("imagenet-bgr", ("expect", "channel_order"), "bgr"),
+        ("imagenet-bgr-legacy", ("expect", "channel_order"), "bgr"),
+        ("imagenet-bgr-legacy", ("params", "schema_version"), "< vNEXT"),
+        ("imagenet-bgr", ("params", "schema_version"), "vNEXT"),
+        # An all-black pixel: the well-known first row of ImageNet-normalized black.
+        (
+            "imagenet-rgb",
+            ("expect", "values", 0),
+            pytest.approx([-2.117904, -2.035714, -1.804444]),
+        ),
+    ],
+    "post.det.selection.none": [
+        ("threshold-is-strict", ("expect", "kept_rows"), [1, 4]),
+        ("class-id-map-drops-minus-one", ("expect", "kept_rows"), [0, 2, 3, 5]),
+        ("class-id-map-drops-minus-one", ("expect", "class_ids"), [2, 0, 5, 5]),
+        ("default-confidence-threshold", ("expect", "kept_rows"), [0, 2]),
+        ("no-nms-for-overlapping-boxes", ("expect", "kept_rows"), [0, 1]),
+        ("max-detections-does-not-pad", ("expect", "kept_rows"), [0, 1]),
+        ("box-format-cxcywh", ("expect", "boxes_xyxy"), [[40, 35, 60, 45]]),
+    ],
+    "post.det.selection.top_k": [
+        ("several-classes-on-one-row", ("expect", "kept_rows"), [2, 0, 0]),
+        ("several-classes-on-one-row", ("expect", "class_ids"), [1, 0, 1]),
+        ("several-classes-on-one-row", ("expect", "scores"), [0.95, 0.9, 0.8]),
+        ("ties-keep-the-lower-flat-index", ("expect", "kept_rows"), [0, 0, 1]),
+        ("ties-keep-the-lower-flat-index", ("expect", "class_ids"), [0, 1, 0]),
+        ("class-id-map-lowers-the-count", ("expect", "kept_rows"), [0]),
+        ("class-id-map-lowers-the-count", ("expect", "class_ids"), [7]),
+        ("sigmoid-and-strict-threshold", ("expect", "kept_rows"), [1, 0]),
+        (
+            "sigmoid-and-strict-threshold",
+            ("expect", "scores"),
+            pytest.approx([0.982014, 0.880797], abs=1e-6),
+        ),
+    ],
+    "post.det.selection.nms": [
+        ("suppress-overlap-and-threshold", ("expect", "kept_rows"), [0, 2]),
+        ("suppress-overlap-and-threshold", ("expect", "scores"), [0.9, 0.7]),
+        ("iou-equal-to-threshold-is-kept", ("expect", "kept_rows"), [0, 1]),
+        ("iou-above-threshold-is-suppressed", ("expect", "kept_rows"), [0]),
+        ("box-area-adds-nothing", ("expect", "kept_rows"), [0, 1]),
+        ("equal-scores-lower-row-wins", ("expect", "kept_rows"), [0, 2]),
+        ("output-is-sorted-by-score", ("expect", "kept_rows"), [1, 2, 0]),
+        ("per-class-nms-keeps-both", ("expect", "kept_rows"), [0, 1]),
+        ("class-agnostic-suppresses-across-classes", ("expect", "kept_rows"), [0]),
+        ("post-nms-top-k-keeps-the-highest", ("expect", "kept_rows"), [1, 2]),
+        ("post-nms-top-k-counts-survivors", ("expect", "kept_rows"), [0, 2]),
+        ("class-id-map-drop-comes-before-nms", ("expect", "kept_rows"), [1]),
+        ("is-person-only-drop-comes-before-nms", ("expect", "kept_rows"), [1]),
+        ("no-class-source-uses-person-class-id", ("expect", "class_ids"), [2, 2]),
+    ],
+}
 
 
-def test_stretch_anchors() -> None:
-    portrait = case_named("pre.resize.stretch", "portrait-target")
-    assert (portrait["expect"]["dst_w"], portrait["expect"]["dst_h"]) == (384, 640)
-    assert portrait["unproject"]["source_xy"] == [1920, 1080]
-    fractional = case_named("pre.resize.stretch", "unproject-fractional")
-    assert fractional["unproject"]["source_xy"] == [300, 168.75]
+@pytest.mark.parametrize(
+    ("section", "case_id", "path", "expected"),
+    [
+        pytest.param(
+            section,
+            case_id,
+            path,
+            expected,
+            id=f"{section}/{case_id}/{'.'.join(map(str, path))}",
+        )
+        for section, rows in ANCHORS.items()
+        for case_id, path, expected in rows
+    ],
+)
+def test_anchor(
+    section: str, case_id: str, path: tuple[str | int, ...], expected: Any
+) -> None:
+    value: Any = case_named(section, case_id)
+    for key in path:
+        value = value[key]
+    assert value == expected
 
 
-def test_fit_anchors() -> None:
-    section = "pre.resize.fit"
-    fractional = case_named(section, "fractional-offset")
-    assert fractional["expect"] == {"scale": 0.64, "left": 0, "top": 213.44}
-    assert fractional["unproject"]["source_xy"] == [500, 166.5]
-    assert case_named(section, "half-pixel-offset-scale-one")["expect"]["top"] == 80.5
-    padding = case_named(section, "unproject-in-the-padding")
-    assert padding["unproject"]["source_xy"] == [0, -420]
-    assert case_named(section, "one-pixel-wide-source")["expect"]["left"] == 316.8
+def test_letterbox_cases_cover_both_pad_positions_and_roundings() -> None:
+    cases = cases_of("pre.resize.letterbox")
+    assert {c["params"]["pad_position"] for c in cases} == {"center", "top_left"}
+    assert {c["params"]["rounding"] for c in cases} == {"half_even", "half_up"}
 
 
-def test_affine_person_crop_anchors() -> None:
-    section = "pre.resize.affine_person_crop"
-    tall = case_named(section, "tall-box-grows-width")["expect"]
-    assert tall["center"] == [200, 250]
-    assert (tall["crop_w"], tall["crop_h"]) == (375, 500)
-    assert tall["matrix"] == [[0.512, 0, -6.4], [0, 0.512, 0]]
-    wide = case_named(section, "wide-box-grows-height")["expect"]
-    assert (wide["crop_w"], wide["crop_h"]) == (500, pytest.approx(666.666667))
-    distorted = case_named(section, "aspect-ratio-not-kept")["expect"]
-    assert distorted["matrix"][0][0] == 0.768
-    assert distorted["matrix"][1][1] == 0.512
-
-
-def test_unprojection_anchors() -> None:
-    """Letterbox with `center` on 1920x1080 -> 640x640: s = 1/3, n_h = 360, top = 140."""
+def test_unprojection_scale_conversion_comes_first() -> None:
+    """Scale conversion comes before unprojection: 0.5 and 320 give one result."""
     section = "post.unprojection"
-    corner = case_named(section, "normalized-01-top-left-corner")["expect"]
-    assert corner == {"model_xy": [0, 0], "source_xy": [0, -420]}
-    far = case_named(section, "normalized-01-bottom-right-corner")["expect"]
-    assert far == {"model_xy": [640, 640], "source_xy": [1920, 1500]}
-    # normalized_11 maps -1 and 1 to the edges 0 and the width, not to pixel centres.
-    left = case_named(section, "normalized-11-left-edge")["expect"]
-    right = case_named(section, "normalized-11-right-edge")["expect"]
-    assert left["model_xy"] == [0, 320]
-    assert right["model_xy"] == [640, 320]
-    assert (left["source_xy"], right["source_xy"]) == ([0, 540], [1920, 540])
-    off = case_named(section, "normalized-11-off-centre")["expect"]
-    assert off == {"model_xy": [160, 480], "source_xy": [480, 1020]}
-    # target_size [384, 640]: x uses the width 640 and y uses the height 384; top = 12.
-    wide = case_named(section, "normalized-01-non-square-input")["expect"]
-    assert wide == {"model_xy": [320, 192], "source_xy": [960, 540]}
-    assert case_named(section, "normalized-11-non-square-input")["expect"] == {
-        "model_xy": [640, 0],
-        "source_xy": [1920, -36],
-    }
-    # The scale conversion comes before the unprojection: 0.5 and 320 give one result.
     pixel = case_named(section, "pixel-is-the-model-input-position")["expect"]
     assert case_named(section, "normalized-01-centre")["expect"] == pixel
     assert case_named(section, "normalized-11-centre")["expect"] == pixel
-    stretch = case_named(section, "normalized-01-stretch")["expect"]
-    assert stretch == {"model_xy": [160, 480], "source_xy": [480, 810]}
     affine = case_named(section, "pixel-affine-person-crop")["expect"]
-    assert affine == {"model_xy": [96, 128], "source_xy": [148, 264]}
     assert case_named(section, "normalized-11-affine-person-crop")["expect"] == affine
 
 
-def test_unprojection_clamp_anchors() -> None:
+def test_unprojection_clamp_boxes_defaults_to_true() -> None:
     section = "post.unprojection"
     clamped = case_named(section, "box-clamp-default-is-true")
     assert "clamp_boxes" not in clamped["params"]
-    assert clamped["expect"]["source_xyxy"] == [-60, -120, 600, 780]
-    assert clamped["expect"]["output_xyxy"] == [0, 0, 600, 780]
-    assert case_named(section, "box-clamp-boxes-true")["expect"]["output_xyxy"] == [
-        0,
-        0,
-        600,
-        780,
-    ]
     kept = case_named(section, "box-clamp-boxes-false-keeps-negative-values")
     assert kept["params"]["clamp_boxes"] is False
-    assert kept["expect"]["output_xyxy"] == [-60, -120, 600, 780]
-    padding = case_named(section, "box-clamp-after-the-scale-conversion")["expect"]
-    assert padding["source_xyxy"] == [0, -420, 960, 540]
-    assert padding["output_xyxy"] == [0, 0, 960, 540]
-    inside = case_named(section, "box-normalized-01-inside-the-image")["expect"]
-    assert inside["source_xyxy"] == inside["output_xyxy"] == [480, 420, 1440, 660]
 
 
 def test_normalize_anchors_come_from_the_published_imagenet_statistics() -> None:
@@ -554,11 +672,6 @@ def test_normalize_anchors_come_from_the_published_imagenet_statistics() -> None
     rgb = case_named(section, "imagenet-rgb")
     bgr = case_named(section, "imagenet-bgr")
     legacy = case_named(section, "imagenet-bgr-legacy")
-    assert rgb["expect"]["channel_order"] == "rgb"
-    assert bgr["expect"]["channel_order"] == "bgr"
-    assert legacy["expect"]["channel_order"] == "bgr"
-    assert legacy["params"]["schema_version"] == "< vNEXT"
-    assert bgr["params"]["schema_version"] == "vNEXT"
     for index, (b, g, r) in enumerate(rgb["input"]["pixels_bgr"]):
         expected_rgb = (np.array([r, g, b]) / 255 - mean) / std
         expected_bgr = (np.array([b, g, r]) / 255 - mean[::-1]) / std[::-1]
@@ -569,10 +682,6 @@ def test_normalize_anchors_come_from_the_published_imagenet_statistics() -> None
             expected_legacy, abs=1e-5
         )
     assert bgr["expect"]["values"] != legacy["expect"]["values"]
-    # An all-black pixel: the well-known first row of ImageNet-normalized black.
-    assert rgb["expect"]["values"][0] == pytest.approx(
-        [-2.117904, -2.035714, -1.804444]
-    )
 
 
 def test_normalize_channel_order_follows_color_format() -> None:
@@ -596,87 +705,9 @@ def test_normalize_channel_order_follows_color_format() -> None:
     assert np.allclose(np.array(custom_bgr)[:, ::-1], np.array(custom_rgb), atol=1e-5)
 
 
-def test_selection_none_anchors() -> None:
-    section = "post.det.selection.none"
-    strict = case_named(section, "threshold-is-strict")["expect"]
-    assert strict["kept_rows"] == [1, 4]
-    mapped = case_named(section, "class-id-map-drops-minus-one")["expect"]
-    assert mapped["kept_rows"] == [0, 2, 3, 5]
-    assert mapped["class_ids"] == [2, 0, 5, 5]
-    assert case_named(section, "default-confidence-threshold")["expect"][
-        "kept_rows"
-    ] == [0, 2]
-    assert case_named(section, "no-nms-for-overlapping-boxes")["expect"][
-        "kept_rows"
-    ] == [0, 1]
-    assert case_named(section, "max-detections-does-not-pad")["expect"][
-        "kept_rows"
-    ] == [0, 1]
-    corners = case_named(section, "box-format-cxcywh")["expect"]["boxes_xyxy"]
-    assert corners == [[40, 35, 60, 45]]
-
-
-def test_selection_top_k_anchors() -> None:
-    section = "post.det.selection.top_k"
-    several = case_named(section, "several-classes-on-one-row")["expect"]
-    assert several["kept_rows"] == [2, 0, 0]
-    assert several["class_ids"] == [1, 0, 1]
-    assert several["scores"] == [0.95, 0.9, 0.8]
-    ties = case_named(section, "ties-keep-the-lower-flat-index")["expect"]
-    assert (ties["kept_rows"], ties["class_ids"]) == ([0, 0, 1], [0, 1, 0])
-    lowered = case_named(section, "class-id-map-lowers-the-count")["expect"]
-    assert (lowered["kept_rows"], lowered["class_ids"]) == ([0], [7])
-    sigmoid = case_named(section, "sigmoid-and-strict-threshold")["expect"]
-    assert sigmoid["kept_rows"] == [1, 0]
-    assert sigmoid["scores"] == pytest.approx([0.982014, 0.880797], abs=1e-6)
-    assert (
-        len(case_named(section, "top-k-larger-than-the-candidates")["expect"]["scores"])
-        == 4
-    )
-
-
-def test_selection_nms_anchors() -> None:
-    section = "post.det.selection.nms"
-    example = case_named(section, "suppress-overlap-and-threshold")
-    assert example["expect"]["kept_rows"] == [0, 2]
-    assert example["expect"]["scores"] == [0.9, 0.7]
-    assert case_named(section, "iou-equal-to-threshold-is-kept")["expect"][
-        "kept_rows"
-    ] == [0, 1]
-    assert case_named(section, "iou-above-threshold-is-suppressed")["expect"][
-        "kept_rows"
-    ] == [0]
-    assert case_named(section, "box-area-adds-nothing")["expect"]["kept_rows"] == [0, 1]
-    assert case_named(section, "equal-scores-lower-row-wins")["expect"][
-        "kept_rows"
-    ] == [0, 2]
-    assert case_named(section, "output-is-sorted-by-score")["expect"]["kept_rows"] == [
-        1,
-        2,
-        0,
-    ]
-    assert case_named(section, "per-class-nms-keeps-both")["expect"]["kept_rows"] == [
-        0,
-        1,
-    ]
-    assert case_named(section, "class-agnostic-suppresses-across-classes")["expect"][
-        "kept_rows"
-    ] == [0]
-    assert case_named(section, "post-nms-top-k-keeps-the-highest")["expect"][
-        "kept_rows"
-    ] == [1, 2]
-    assert case_named(section, "post-nms-top-k-counts-survivors")["expect"][
-        "kept_rows"
-    ] == [0, 2]
-    assert case_named(section, "class-id-map-drop-comes-before-nms")["expect"][
-        "kept_rows"
-    ] == [1]
-    assert case_named(section, "is-person-only-drop-comes-before-nms")["expect"][
-        "kept_rows"
-    ] == [1]
-    assert case_named(section, "no-class-source-uses-person-class-id")["expect"][
-        "class_ids"
-    ] == [2, 2]
+def test_top_k_larger_than_the_candidates_keeps_every_candidate() -> None:
+    case = case_named("post.det.selection.top_k", "top-k-larger-than-the-candidates")
+    assert len(case["expect"]["scores"]) == 4
 
 
 # ---------------------------------------------------------------------------
