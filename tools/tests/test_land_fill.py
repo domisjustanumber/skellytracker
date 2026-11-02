@@ -193,3 +193,110 @@ def test_land_takes_the_file_keys_of_part_4_for_a_new_section(tmp_path: Path) ->
     part4 = dump(tmp_path / "part4.yaml", {**PART4_KEYS, "cases": [case("new-a", 1000)]})
     assert mv.land(part4, [], [], vectors, tmp_path / "spec-reference") == []
     assert load(vectors / NAME) == {**PART4_KEYS, "cases": [case("new-a", 1000)]}
+
+
+# ---------------------------------------------------------------------------
+# land: verified_against
+# ---------------------------------------------------------------------------
+
+A = {"Exporter-A": "host.py::stretch"}
+B = {"Exporter-B": "host.py::stretch"}
+C = {"Exporter-C": "host.py::stretch"}
+
+
+def verified(data: dict[str, Any], entries: list[Any]) -> dict[str, Any]:
+    """`data` with the file-level `verified_against` `entries` in the place of `unverified`."""
+    return {("verified_against" if k == "unverified" else k): (entries if k == "unverified" else v)
+            for k, v in data.items()}
+
+
+def entries(landed: dict[str, Any]) -> dict[str, list[Any]]:
+    return {c["id"]: c.get("verified_against", []) for c in landed["cases"]}
+
+
+def test_land_puts_a_contribution_file_entry_on_its_cases_only(
+    spec: tuple[Path, Path], tmp_path: Path
+) -> None:
+    vectors, reference = spec
+    unverified = load(vectors / NAME)["unverified"]
+    known = next(c for c in load(vectors / NAME)["cases"] if c["id"] == "landscape-to-square")
+    part4 = dump(tmp_path / "part4.yaml", {**PART4_KEYS, "cases": [case("new-a", 1000)]})
+    contribution = dump(
+        tmp_path / "c.yaml", verified({**PART4_KEYS, "cases": [known, case("new-b", 800)]}, [A])
+    )
+    assert mv.land(part4, [contribution], [], vectors, reference) == []
+    landed = load(vectors / NAME)
+    assert {i: e for i, e in entries(landed).items() if e} == {"landscape-to-square": [A], "new-b": [A]}
+    assert unverified.startswith("No independent implementation")
+    assert landed["unverified"] == mv.UNVERIFIED_SOME  # the current text is now false
+    assert "verified_against" not in landed
+
+
+def test_land_adds_the_entry_of_a_known_contribution_case_once(
+    spec: tuple[Path, Path], tmp_path: Path
+) -> None:
+    vectors, reference = spec
+    current = load(vectors / NAME)
+    current["cases"][0]["verified_against"] = [B]
+    dump(vectors / NAME, current)
+    theirs = {**current["cases"][0], "verified_against": [B, A]}
+    part4 = dump(tmp_path / "part4.yaml", {**PART4_KEYS, "cases": [case("new-a", 1000)]})
+    contribution = dump(tmp_path / "c.yaml", {**PART4_KEYS, "cases": [theirs]})
+    assert mv.land(part4, [contribution], [], vectors, reference) == []
+    landed = load(vectors / NAME)
+    assert entries(landed)[current["cases"][0]["id"]] == [B, A]
+    assert landed["unverified"] == current["unverified"]  # the current file already had a case entry
+
+
+def test_land_keeps_the_part_4_file_entries_of_a_new_section(tmp_path: Path) -> None:
+    vectors = tmp_path / "spec-vectors"
+    vectors.mkdir()
+    cases = [{**case("new-a", 1000), "verified_against": [A]}, {**case("new-b", 800), "verified_against": [B]}]
+    part4 = dump(tmp_path / "part4.yaml", verified({**PART4_KEYS, "cases": cases}, [A]))
+    assert mv.land(part4, [], [], vectors, tmp_path / "spec-reference") == []
+    landed = load(vectors / NAME)
+    assert landed["verified_against"] == [A]
+    assert "unverified" not in landed
+    assert entries(landed) == {"new-a": [], "new-b": [B]}  # the repeat of A goes
+
+
+def test_land_moves_the_current_file_entry_to_the_kept_cases(
+    spec: tuple[Path, Path], tmp_path: Path
+) -> None:
+    vectors, reference = spec
+    current = verified(load(vectors / NAME), [A])
+    replaced = next(c for c in current["cases"] if c["id"] == "portrait-target")
+    replaced["verified_against"] = [B]
+    dump(vectors / NAME, current)
+    new = {**replaced, "note": "new", "verified_against": [C]}
+    part4 = dump(tmp_path / "part4.yaml", {**PART4_KEYS, "cases": [new]})
+    assert mv.land(part4, [], ["portrait-target"], vectors, reference) == []
+    landed = load(vectors / NAME)
+    assert "verified_against" not in landed
+    assert landed["unverified"] == PART4_KEYS["unverified"]  # only part 4 has a case entry and a text
+    assert entries(landed)["portrait-target"] == [C]  # neither A nor B of the old data
+    assert all(e == [A] for i, e in entries(landed).items() if i != "portrait-target")
+
+
+def test_land_writes_a_partial_reason_when_no_text_tells_of_one(
+    spec: tuple[Path, Path], tmp_path: Path
+) -> None:
+    vectors, reference = spec
+    dump(vectors / NAME, verified(load(vectors / NAME), [A]))
+    part4 = dump(tmp_path / "part4.yaml", {**PART4_KEYS, "cases": [case("new-a", 1000)]})
+    assert mv.land(part4, [], [], vectors, reference) == []
+    assert load(vectors / NAME)["unverified"] == mv.UNVERIFIED_SOME
+
+
+def test_land_makes_an_entry_that_covers_each_case_file_level(
+    spec: tuple[Path, Path], tmp_path: Path
+) -> None:
+    vectors, reference = spec
+    dump(vectors / NAME, verified(load(vectors / NAME), [A]))
+    part4 = dump(tmp_path / "part4.yaml", verified({**PART4_KEYS, "cases": [case("new-a", 1000)]}, [A]))
+    contribution = dump(tmp_path / "c.yaml", verified({**PART4_KEYS, "cases": [case("new-b", 800)]}, [A, B]))
+    assert mv.land(part4, [contribution], [], vectors, reference) == []
+    landed = load(vectors / NAME)
+    assert landed["verified_against"] == [A]
+    assert "unverified" not in landed
+    assert {i: e for i, e in entries(landed).items() if e} == {"new-b": [B]}

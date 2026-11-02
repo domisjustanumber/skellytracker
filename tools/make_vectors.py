@@ -522,6 +522,57 @@ def fill(path: Path, reference: Path) -> list[str]:
     return []
 
 
+UNVERIFIED_SOME = (
+    "The independent implementations ran only some cases. Each of these cases lists them in "
+    "verified_against."
+)
+
+
+def place_verified(
+    current: dict[str, Any],
+    part4: dict[str, Any],
+    contributions: list[dict[str, Any]],
+    cases: list[dict[str, Any]],
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Return the file keys and the `cases` with each `verified_against` entry on the cases it covers.
+
+    A file-level entry covers each case of its file, and a case-level entry covers its case. The
+    entries of `current` cover only the current cases that part 4 keeps. An entry that covers each
+    case of `cases` is file-level, in the order that the entries come. Each other entry is
+    case-level. Without a file-level entry, the file needs `unverified`. When no case lists an
+    entry, it is that of `current`, else of part 4. Otherwise it is that of `current` or of part 4
+    only when that file has a case-level entry, because only then does its text tell of a partial
+    verification. Else it is `UNVERIFIED_SOME`.
+    """
+    covers: dict[str, list[Any]] = {}
+    order: list[Any] = []
+    replaced = {case["id"] for case in part4["cases"]}
+    kept = {**current, "cases": [case for case in current["cases"] if case["id"] not in replaced]}
+    for data in (kept, part4, *contributions):
+        for case in data["cases"]:
+            for entry in [*data.get("verified_against", []), *case.get("verified_against", [])]:
+                for found in (covers.setdefault(case["id"], []), order):
+                    if entry not in found:  # entries compare by value
+                        found.append(entry)
+    shared = [entry for entry in order if all(entry in covers.get(case["id"], []) for case in cases)]
+    keys = {key: value for key, value in current.items() if key not in ("verified_against", "unverified")}
+    placed = [
+        {**case, "verified_against": [e for e in covers.get(case["id"], []) if e not in shared]}
+        for case in cases
+    ]  # `form` drops an empty case `verified_against`
+
+    def partial(data: dict[str, Any]) -> str | None:
+        return data.get("unverified") if any(c.get("verified_against") for c in data["cases"]) else None
+
+    if shared:
+        keys["verified_against"] = shared
+    elif any(case["verified_against"] for case in placed):
+        keys["unverified"] = partial(current) or partial(part4) or UNVERIFIED_SOME
+    else:
+        keys["unverified"] = current.get("unverified") or part4.get("unverified")
+    return keys, placed
+
+
 def land(
     part4: Path,
     contributions: list[Path],
@@ -535,7 +586,8 @@ def land(
     its id, and these ids must be `replaces`. A contribution case with a known id
     must agree with that case, `verified_against` aside. Each other case goes at
     the end, part 4 first. The file-level keys are those of the current file
-    (of part 4 for a new section). The landed producer computes each `expect`
+    (of part 4 for a new section), except that `place_verified` puts each
+    `verified_against` entry on the cases it covers. The landed producer computes each `expect`
     again, and each given `expect` must agree with it. The tool writes
     `<vectors_dir>/<section>.yaml` only when it finds no problem and the file is
     256 KiB or smaller. Return the problems.
@@ -583,6 +635,7 @@ def land(
                 found.append(f"{files[n].name}: the case {case['id']} differs from the case with its id")
     if found:
         return found
+    keys, cases = place_verified(current, inputs[0], inputs[1:], cases)
 
     # The producer writes each incoming `expect` again. Only the author writes a `function: none` one.
     stripped = [
@@ -592,7 +645,7 @@ def land(
         for case in cases
     ]
     try:
-        out = run_file({**current, "cases": stripped}, folder)
+        out = run_file({**keys, "cases": stripped}, folder)
     except CaseDefect as error:
         return [str(error)]
     found = [

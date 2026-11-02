@@ -146,13 +146,12 @@ Do this procedure for step 2 of phase 3.
    when each check passes. If it prints a problem, stop and tell the user. This check proves the
    copy and the generator wiring. It does not verify an independent implementation
    ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md), item 5).
-   `land` keeps the file-level keys of the current file. It does not copy the file-level
-   `verified_against` of a contribution, or of part 4 when the section exists. It also does not copy
-   the `verified_against` of a contribution case with a known `id`. After `land`, add these
-   `verified_against` entries to the vector file by hand. A replaced case can make a current `verified_against` entry false. Remove
-   each such entry, or write `unverified` when no entry stays. Then run
-   `uv run python tools/make_vectors.py`
-   ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md)).
+   `land` puts each `verified_against` entry of the current file, of part 4 and of the
+   contributions on the cases that it covers. An entry of the current file does not cover a
+   replaced case. An entry that covers each case goes in the file-level `verified_against`. Do not
+   add these entries by hand
+   ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md)). If the package
+   test then fails on a new or replaced case, add the skellytracker entry to that case.
 10. Change the status line of the decision entry from `proposed` to `accepted`. Write the date and the
     PR ([Rules](../../../decisions/README.md#rules)). Move its row from the Proposed table to
     the end of the Active table of the [spec log](../../../specs/model-sidecar/decisions/README.md),
