@@ -27,7 +27,7 @@ status: {spec: stable, validate: partial, forward: partial}
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `normalization` | string or object | no | See [Normalization modes](normalization.md). The default is `imagenet_bgr` (the RTMPose convention). |
+| `normalization` | string or object | no | See [Behaviour](#behaviour). The default is `imagenet_bgr` (the RTMPose convention). |
 | `normalization_by_precision` | object | no | This optional override maps a precision key ([V-common.sizes_and_artifacts-6](../common/sizes-and-artifacts.md#validation-rules)) to a named mode. The values must be mode strings only. They must not be a `custom` object. Declare a `custom` normalization at the top-level `normalization`. |
 
 `normalization` and `normalization_by_precision` are fields of [`input`](../common/input.md#fields).
@@ -92,14 +92,6 @@ The values of `normalization_by_precision` must be named mode strings only. A `c
 
 > ⚠️ The `imagenet_bgr` default is the RTMPose convention. Detector models must declare their normalization explicitly. For most detectors, the default gives incorrect normalization.
 
-### Mode validation
-
-- If `normalization` is omitted, its value is `imagenet_bgr`.
-- A string value must be one of `none`, `unit_float`, `imagenet_bgr`, `imagenet_rgb`.
-- The object form must have `mode: custom`. If `mean` or `std` is present, it must be a sequence of length 3. If `scale` is present, it must be a positive number. If `color_format` is present, it must be `rgb` or `bgr`.
-- The keys of `normalization_by_precision` must be precision keys ([V-common.sizes_and_artifacts-6](../common/sizes-and-artifacts.md#validation-rules)). The values must be valid mode strings.
-- If any declared precision resolves to `none` or `unit_float`, `input.color_format` must be present. When the field is present, it must agree with `imagenet_rgb` (`rgb`), `imagenet_bgr` (`bgr`) and `custom.color_format`.
-
 ## Validation rules
 
 - [ ] `V-pre.normalize-1` If `input.normalization` is present, it must be a valid mode: `none`, `unit_float`, `imagenet_bgr`, `imagenet_rgb` or a `custom` object. A `custom` object must have `mode: custom`. If `mean` or `std` is present, it must have length 3. If `scale` is present, it must be positive. If `color_format` is present, it must be `rgb` or `bgr`.
@@ -111,7 +103,7 @@ See also [Input](../common/input.md#validation-rules).
 
 | Behaviour | `schema_version < vNEXT` (legacy) | `schema_version >= vNEXT` |
 |-----------|-----------------------------------|---------------------------|
-| `normalization: imagenet_bgr` | The RGB-ordered tuple — mean `(123.675, 116.28, 103.53)`, std `(58.395, 57.12, 57.375)` — applied in order to the B, G, R channels of the BGR frame (B uses `123.675`). This is the rtmlib convention used by the in-repo RTMPose and RTMW sidecars. | BGR-ordered statistics (B uses `103.53`); see [Normalization modes](normalization.md). To keep the legacy behaviour in a `vNEXT` sidecar, declare `normalization: {mode: custom, color_format: bgr, mean: [123.675, 116.28, 103.53], std: [58.395, 57.12, 57.375]}`. |
+| `normalization: imagenet_bgr` | The RGB-ordered tuple — mean `(123.675, 116.28, 103.53)`, std `(58.395, 57.12, 57.375)` — applied in order to the B, G, R channels of the BGR frame (B uses `123.675`). This is the rtmlib convention used by the in-repo RTMPose and RTMW sidecars. | BGR-ordered statistics (B uses `103.53`); see [Behaviour](#behaviour). To keep the legacy behaviour in a `vNEXT` sidecar, declare `normalization: {mode: custom, color_format: bgr, mean: [123.675, 116.28, 103.53], std: [58.395, 57.12, 57.375]}`. |
 
 See also [Input](../common/input.md#legacy-behaviour).
 

@@ -20,11 +20,9 @@ Sidecar: [`yolo26-body.yaml`](detectors/keypoint_detectors/yolo26/body/yolo26-bo
 
 ## RTMDet person (OpenMMLab-Exporter; NMS-free outputs, host NMS)
 
-The mmdet test pipeline letterboxes into the top-left corner with half-up rounding and pad 114, normalizing BGR pixels. The graph emits every anchor point's decoded box and sigmoid person score; the host runs the family's baseline NMS (`score_thr` 0.05, IoU 0.6, `max_per_img` 100). The row count depends on input size: 2100 at 320 and 8400 at 640.
+The mmdet test pipeline letterboxes into the top-left corner with half-up rounding and pad 114. It normalizes BGR pixels. The graph ends before NMS. It emits the decoded box and the sigmoid person score of each anchor point. The host applies the baseline NMS of the family (mmpose `test_cfg`: score > 0.05, IoU 0.6, top 100). The row count is the anchor-point count for the input size (2100 at 320, 8400 at 640), so the family-level shape leaves it as `-1`. The sidecar does not express the per-level `nms_pre` cap (1000) of mmdet ([ADR-0011](../decisions/entries/0011-rtmdet-host-nms.md)).
 
 Sidecar: [`rtmdet-person.yaml`](detectors/object_detectors/rtmdet-person/rtmdet-person.yaml).
-
-The graph ends before NMS. It emits every anchor point's decoded box and sigmoid person score, so the host applies the family's baseline NMS (mmpose `test_cfg`: score > 0.05, IoU 0.6, top 100). The row count is the anchor-point count for the input size (2100 at 320, 8400 at 640), so the family-level shape leaves it as `-1`. mmdet's per-level `nms_pre` cap (1000) is deliberately not expressed; dropping it has no measurable effect on AP.
 
 ## RTMW WholeBody (OpenMMLab-Exporter; top-down pose)
 

@@ -75,10 +75,12 @@ These rules apply to each contributor that writes a sidecar.
     run the check, or force `dynamic`.
   - The batch-conversion check runs by default. To force a fallback, write `batch_forced` (`1` or
     `dynamic`) and `batch_forced_reason` in the manifest ([Manifest](hand-over.md#manifest)). Write
-    the same choice and reason in the intake. Then you can skip the check. A skipped check has the
-    verdict `not applicable`. With `batch_forced`, publish only that form.
-  - `dynamic` also needs a passed dynamic check of the batch-conversion check (V6). If it fails, do
-    not publish the `dynamic` export.
+    the same choice and reason in the intake. With `batch_forced: 1`, you can skip the run of
+    `batch`. With `batch_forced: dynamic`, or with `no_static_reason`, skip only the verification
+    exports. Then run `batch` for the dynamic check (V6). A skipped check has the verdict
+    `not applicable`. With `batch_forced`, publish only that form.
+  - `dynamic` needs a passed dynamic check of the batch-conversion check (V6). If it fails, do not
+    publish the `dynamic` export.
   - With the verdict `to run`, mark as `published` the files of the form that you plan. The session
     verdict then decides ([The session run](hand-over.md#the-session-run)). b3 needs the session
     verdict `converts`. The reason `missing-verification-batch` allows no form: export the

@@ -25,9 +25,9 @@ A sidecar uses the `.yaml` extension. The filename is **`{model_id}.yaml`**. The
 | Artifact | Example |
 |----------|---------|
 | Sidecar (one per family) | `yolo26.yaml` |
-| ONNX models (any size × batch × precision) | `yolo26-nano_b2_fp16.onnx`, `yolo26-small_b4_fp32.onnx` |
+| ONNX models (any size × batch × precision) | `yolo26-nano_b3_fp16.onnx`, `yolo26-small_b3_fp32.onnx` |
 
-An ONNX filename gives the size, the batch and the precision: `{model_id}-{size}_{batch}_{precision}.onnx`. For example, in `yolo26-nano_b2_fp32.onnx`, `{batch}` is `b2`. For a `dynamic` batch, the filename omits the batch component: `{model_id}-{size}_{precision}.onnx`. For example, `rtmw-wholebody-l-m_fp32.onnx`.
+An ONNX filename gives the size, the batch and the precision: `{model_id}-{size}_{batch}_{precision}.onnx`. For example, in `yolo26-nano_b3_fp32.onnx`, `{batch}` is `b3`. For a `dynamic` batch, the filename omits the batch component: `{model_id}-{size}_{precision}.onnx`. For example, `rtmw-wholebody-l-m_fp32.onnx`.
 
 ### Style conventions
 
@@ -78,9 +78,9 @@ A sidecar and its ONNX files are under a sidecar root (`{sidecar_root}`, see [Si
 ```text
 detectors/object_detectors/yolo26/
   yolo26.yaml
-  yolo26-nano_b2_fp32.onnx
-  yolo26-nano_b2_fp16.onnx
-  yolo26-small_b2_fp32.onnx
+  yolo26-nano_b3_fp32.onnx
+  yolo26-nano_b3_fp16.onnx
+  yolo26-small_b3_fp32.onnx
 
 detectors/keypoint_detectors/rtmw/wholebody/
   rtmw-wholebody.yaml

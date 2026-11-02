@@ -20,7 +20,7 @@ status: {spec: stable, validate: partial, decode: partial}
 
 ## Behaviour
 
-Decoded box and keypoint coordinates are always in the input image of the model, with a **top-left origin**. In this origin, `x` grows to the right and `y` grows down. The host unprojects the coordinates to the source image (see [Unprojection](unprojection.md)). A sidecar cannot override the origin.
+Decoded box and keypoint coordinates are always in the input image of the model, with a **top-left origin**. In this origin, `x` grows to the right and `y` grows down. The host unprojects the coordinates to the source image. A sidecar cannot override the origin.
 
 The host first converts the decoded coordinates to **model-input pixels**. The value of `box_scale` or `coordinate_scale` sets the conversion:
 
