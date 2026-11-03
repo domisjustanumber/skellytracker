@@ -2,8 +2,6 @@
 id: post.pose.decode.simcc
 title: SimCC decode
 kind: postprocessor
-since: v2024.09.1019
-changed_in: []
 selectors:
   - pose.decode.method=simcc
   - outputs[].semantic=simcc_x

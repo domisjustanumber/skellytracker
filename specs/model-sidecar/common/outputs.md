@@ -2,8 +2,6 @@
 id: common.outputs
 title: Outputs
 kind: common
-since: v2024.09.1019
-changed_in: [vNEXT]
 selectors: []
 implemented_by:
   validate: skellytracker/core/sidecar/model.py::OutputSpec  # partial. No check for unique names (V-common.outputs-1) or for equal outputs in all sizes (V-common.outputs-5). OutputSemantic lacks boxes, scores and class_logits.
@@ -36,12 +34,10 @@ A sidecar with both roles lists every tensor in one `outputs` array. The `semant
 
 ## Validation rules
 
-For rules marked **(vNEXT)**, see [Validation rules](../README.md#validation-rules).
-
 - [ ] `V-common.outputs-1` The values of `outputs[].name` must be unique.
 - [ ] `V-common.outputs-2` Each output must have a `dtype`. Its keys must be precision keys ([V-common.sizes_and_artifacts-6](sizes-and-artifacts.md#validation-rules)). The keys must cover the precisions that `batch_artifacts` declares. Its values must be `float32`, `float16`, `uint8` or `int8`.
 - [ ] `V-common.outputs-3` On each output, if `rank` is present, it must equal `len(shape)`. The output must omit `rank` when it omits `shape`.
-- [ ] `V-common.outputs-4` The `semantic` of each output must be one of `detections`, `boxes`, `scores`, `class_logits`, `simcc_x`, `simcc_y`, `simcc_z`, `heatmap`, `keypoints`, `poses`. The values `boxes`/`scores`/`class_logits` are marked **(vNEXT)**. The detection semantics require `role` to include `object_detector`. The pose semantics require `role` to include `pose_estimator`.
+- [ ] `V-common.outputs-4` The `semantic` of each output must be one of `detections`, `boxes`, `scores`, `class_logits`, `simcc_x`, `simcc_y`, `simcc_z`, `heatmap`, `keypoints`, `poses` ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)). The detection semantics require `role` to include `object_detector`. The pose semantics require `role` to include `pose_estimator`.
 - [ ] `V-common.outputs-5` All sizes must share the same output names, semantics, and keypoint or class counts. Spatial-dependent dimensions can scale with the input size.
 
 See also [Identity](identity.md#validation-rules), [Sizes and artifacts](sizes-and-artifacts.md#validation-rules) and [Detection outputs](../post/detection-outputs.md#validation-rules).
@@ -53,7 +49,7 @@ See also [Identity](identity.md#validation-rules), [Sizes and artifacts](sizes-a
   - The RF-DETR tensor named `labels` holds class logits, not class ids. (Roboflow-Exporter [`README.md:519-534`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b46b98fa826ffdef46fdfba66c1f8b189a68f8c6/README.md#L519-L534))
   - The ONNX decoder of Roboflow-Exporter binds the outputs by a name substring (`dets` or `box`, `labels` or `logit`). If that fails, it binds by shape, and then by position. (Roboflow-Exporter [`onnx_runtime/convert_rf_detr_coco.py:74-113`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/d0559b9c95a9ba9922045e2bc5aeae9fb596a6b1/onnx_runtime/convert_rf_detr_coco.py#L74-L113))
   - Its PyTorch adapter renames `pred_boxes` and `pred_logits` to `dets` and `labels`. (Roboflow-Exporter [`rf_detr/python_inference.py:86-96`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b46b98fa826ffdef46fdfba66c1f8b189a68f8c6/rf_detr/python_inference.py#L86-L96))
-- The legacy `yolo26-body.yaml` of Ultralytics-Exporter declares the single tensor `output0` twice, once as `detections` and once as `poses` (both `[1, 300, 57]`). The spec requires unique output names (`V-common.outputs-1`). (Ultralytics-Exporter [`yolo_sidecar.py:574-582`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L574-L582), [`yolo_sidecar.py:596`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L596); local export `exports/detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml:13-26`, not in git)
+- The `yolo26-body.yaml` of Ultralytics-Exporter declares the single tensor `output0` twice, once as `detections` and once as `poses` (both `[1, 300, 57]`). The spec requires unique output names (`V-common.outputs-1`), so that file is invalid. (Ultralytics-Exporter [`yolo_sidecar.py:574-582`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L574-L582), [`yolo_sidecar.py:596`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L596); local export `exports/detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml:13-26`, not in git)
 
 ## Authoring guidance
 

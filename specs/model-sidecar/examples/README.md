@@ -30,7 +30,7 @@ mmpose `input_size` is `(width, height)`: the `256x192` models take `[N, 3, 256,
 
 Sidecar: [`rtmw-wholebody.yaml`](detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml).
 
-For comparison, skellytracker's in-repo `rtmw/wholebody/rtmw-wholebody.yaml` describes the rtmlib `onnx_sdk` downloads (with `url`/`url_sha256`) at `schema_version: v2024.09.1019`. It uses the legacy `imagenet_bgr` meaning (see [Version-aware compatibility](../pre/normalization.md#legacy-behaviour)).
+For comparison, skellytracker's in-repo `rtmw/wholebody/rtmw-wholebody.yaml` describes the rtmlib `onnx_sdk` downloads (with `url`/`url_sha256`) at `schema_version: v2024.09.1019`. The spec does not describe that file. Its `imagenet_bgr` does not have the meaning that [Normalization](../pre/normalization.md) gives. The package sidecars stay outside the spec until they migrate ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)).
 
 ## RTMO body7 (OpenMMLab-Exporter; bottom-up pose, NMS in the graph)
 

@@ -2,11 +2,9 @@
 id: pre.resize.fit
 title: Fit resize
 kind: preprocessor
-since: vNEXT
-changed_in: []
 selectors: [input.resize.method=fit]
 implemented_by:
-  validate: skellytracker/core/sidecar/model.py::ResizeSpec._check_method_specific_fields  # partial. pad_value is not required (V-pre.resize.fit-1). The model accepts fit in a sidecar older than vNEXT.
+  validate: skellytracker/core/sidecar/model.py::ResizeSpec._check_method_specific_fields  # partial. pad_value is not required (V-pre.resize.fit-1).
   forward: skellytracker/core/detectors/processing/image_preprocessing.py::fit_preprocess
   inverse: missing  # fit_preprocess returns scale, left and top. No code applies (x - left) / s.
 external_impl: []
@@ -36,7 +34,7 @@ M    = [[s, 0, left],
 dst  = warpAffine(src, M, (T_w, T_h), <interpolation>, borderMode=constant, borderValue=pad_value)
 ```
 
-A `fit` resize must declare `pad_value`. It must not declare `pad_position`, `rounding`, `preserve_aspect_ratio` or `crop_policy`. This matches mmpose `BottomupResize` (RTMO). A `letterbox` is not equivalent to this resize at any scale other than `1`. A letterbox resize rounds the resized size. Also, `resize` + pad gives different pixels from `warpAffine`, even when the resized size has integer values.
+A `fit` resize must declare `pad_value`. It must not declare `pad_position`, `rounding` or `crop_policy` ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)). This matches mmpose `BottomupResize` (RTMO). A `letterbox` is not equivalent to this resize at any scale other than `1`. A letterbox resize rounds the resized size. Also, `resize` + pad gives different pixels from `warpAffine`, even when the resized size has integer values.
 
 ### Inverse
 
@@ -48,15 +46,9 @@ The host applies the inverse as part of [Unprojection](../post/unprojection.md).
 
 ## Validation rules
 
-Rules marked **(vNEXT)**: see [Validation rules](../README.md#validation-rules).
-
-- [ ] `V-pre.resize.fit-1` **(vNEXT)** A `fit` resize must declare `pad_value`.
+- [ ] `V-pre.resize.fit-1` A `fit` resize must declare `pad_value`.
 
 See also [Input](../common/input.md#validation-rules) and [Sizes and artifacts](../common/sizes-and-artifacts.md#validation-rules).
-
-## Legacy behaviour
-
-Availability before `vNEXT`: [Schema versioning](../format/versioning.md#legacy-behaviour).
 
 ## Implementer guidance
 

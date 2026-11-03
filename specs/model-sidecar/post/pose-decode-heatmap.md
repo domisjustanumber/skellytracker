@@ -2,8 +2,6 @@
 id: post.pose.decode.heatmap
 title: Heatmap decode
 kind: postprocessor
-since: v2024.09.1019
-changed_in: []
 selectors:
   - pose.decode.method=heatmap
   - outputs[].semantic=heatmap

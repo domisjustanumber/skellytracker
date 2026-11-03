@@ -2,8 +2,6 @@
 id: common.batching
 title: Batching
 kind: common
-since: v2024.09.1019
-changed_in: []
 selectors: []
 implemented_by:
   validate: skellytracker/core/sidecar/model.py::BatchingSpec._check_batch_axis
@@ -23,7 +21,7 @@ status: {spec: stable, validate: implemented, load: implemented}
 | `batch_axis` | int | no | The axis of the batch dimension. The default is `0`. Non-zero batch axes are out of scope. |
 | `supports_dynamic_batch` | bool | derived | The value is `true` when `batch_artifacts` contains a `dynamic` key. The host derives it at load time. The author does not write it. |
 
-> `batching.batch_conversion` **(vNEXT, draft)** names a profile that tells the host how to make a fixed-batch artifact for a batch that `batch_artifacts` does not list. See [Batch conversion](batch-conversion.md).
+> `batching.batch_conversion` **(draft)** names a profile that tells the host how to make a fixed-batch artifact for a batch that `batch_artifacts` does not list. See [Batch conversion](batch-conversion.md).
 
 `batch_artifacts`: [Sizes and artifacts](sizes-and-artifacts.md#sizessizeonnxbatch_artifacts).
 

@@ -33,7 +33,7 @@ the reason for a decision. The [index](README.md) has the Active and Proposed en
 | [0005](entries/0005-rtmw-moved-to-rtmw-family.md) | RTMW moved to `keypoint_detectors/rtmw/` with import shims | absorbed into [`AGENTS.md#1-purpose`](../AGENTS.md#1-purpose) |
 | [0006](entries/0006-yolox-native-contract.md) | The YOLOX sidecar describes the native ONNX contract | absorbed into [`format/versioning.md#implementer-guidance`](../specs/model-sidecar/format/versioning.md#implementer-guidance) |
 | [0007](entries/0007-generic-processing-package.md) | Generic pre- and post-processing live in `core/detectors/processing/` | absorbed into [`AGENTS.md#1-purpose`](../AGENTS.md#1-purpose) |
-| [0016](entries/0016-sidecar-catalogs.md) | Sidecar catalogs: source, reference hashes, roots, discovery and the capability check | absorbed into [`model-sidecar/README.md#section-map`](../specs/model-sidecar/README.md#section-map) |
+| [0016](entries/0016-sidecar-catalogs.md) | Sidecar catalogs: source, reference hashes, roots, discovery and the capability check | superseded by 0QKK |
 | [vac0](entries/vac0-record-a-changed-proposal.md) | A changed exporter proposal: a full new copy, the same entry, a ticked "Before acceptance" list | superseded by b1c0 |
 | [b1c0](entries/b1c0-adr-citation-prefix.md) | Cite an entry as `ADR-<id>`; commit subjects end with `(ADR-<id>)`; restates the ID and edit rules of gtwq and the record-again rules of vac0 | superseded by HJNP |
 | [hxy8](entries/hxy8-scoped-agent-instructions.md) | Core root `AGENTS.md`; folder rules in a nested `AGENTS.md` with an importing `CLAUDE.md`; procedures as skills; supersedes 0001 | superseded by GN3D |

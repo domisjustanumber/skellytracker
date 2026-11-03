@@ -2,8 +2,6 @@
 id: post.pose.bottom_up
 title: Bottom-up pose
 kind: postprocessor
-since: v2024.09.1019
-changed_in: [vNEXT]
 selectors:
   - pose.estimator_type=bottom_up
   - outputs[].semantic=poses
@@ -71,14 +69,6 @@ Selection steps: [Selection: none](selection-none.md#behaviour), [Selection: NMS
 
 See also [Pose schema](pose-schema.md#validation-rules), [Coordinate decode](pose-decode-coordinate.md#validation-rules) and [Detection outputs](detection-outputs.md#validation-rules).
 
-## Legacy behaviour
-
-| Behaviour | `schema_version < vNEXT` (legacy) | `schema_version >= vNEXT` |
-|-----------|-----------------------------------|---------------------------|
-| `decode.max_detections` on a bottom-up sidecar | Also the fixed instance count of the `poses` tensor. | Detection row count only; the instance count is the row count. |
-
-Availability of `packed_keypoints` before `vNEXT`: [Schema versioning](../format/versioning.md#legacy-behaviour).
-
 ## Implementer guidance
 
 - Pose rows align with detection rows in both bottom-up exports. RTMO: every kept detection has its keypoints inside its own box, and a shifted-row control mostly does not. YOLO26: the exported head gathers the keypoints with the same anchor index as the box, so each of the 300 rows carries its own box and keypoints. (OpenMMLab-Exporter [`notes/decisions/0020-rtmo-sidecar-contract.md:65-67`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/0020-rtmo-sidecar-contract.md#L65-L67); ultralytics 8.4.184 `nn/modules/head.py:249-264`, installed copy in the Ultralytics-Exporter `.venv`)
@@ -87,5 +77,5 @@ Availability of `packed_keypoints` before `vNEXT`: [Schema versioning](../format
 ## Authoring guidance
 
 - For a bottom-up one-stage model with an in-graph NMS, three choices are wrong: `affine_person_crop` (no upstream person box), `selection: nms` with `max_detections` (the row count varies) and a different letterbox `rounding` as a substitute for `fit`. (OpenMMLab-Exporter [`notes/decisions/0020-rtmo-sidecar-contract.md:97-110`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/0020-rtmo-sidecar-contract.md#L97-L110))
-- YOLO26-pose packed row: 6 columns for the box, the score and the class, then 17 x `(x, y, score)`, in all 57 columns. The constants are `_PACKED_POSE_KEYPOINT_START` 6 and `_PACKED_POSE_KEYPOINT_STRIDE` 3, and the ONNX metadata `kpt_shape` is `[17, 3]`. The builder rejects any other last dimension. At `vNEXT` this row is `packed_keypoints: {offset: 6, components: [x, y, score]}`. (Ultralytics-Exporter [`yolo_sidecar.py:126-132`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L126-L132), [`yolo_sidecar.py:569-573`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L569-L573); `exports/detectors/keypoint_detectors/yolo26/body/yolo26-body-nano_b2_fp32.onnx`, metadata `kpt_shape`, untracked, HEAD 2e0280e050fb2bb16bf7f9a1ba89af5f18db67d4)
-- The current legacy file declares `output0` a second time as a `poses` view (rank 3, `keypoint_axis` 2, 57 entries on axis 2). The commit message says that the spec validator of that time accepted this layout. The spec requires unique output names (V-common.outputs-1). (Ultralytics-Exporter [`yolo_sidecar.py:574-582`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L574-L582), [`yolo_sidecar.py:596`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L596) and the message of [its commit](https://github.com/domisjustanumber/Ultralytics-Exporter/commit/f52ef687a7a651447ff289d0e40a7856c2b7d50c))
+- YOLO26-pose packed row: 6 columns for the box, the score and the class, then 17 x `(x, y, score)`, in all 57 columns. The constants are `_PACKED_POSE_KEYPOINT_START` 6 and `_PACKED_POSE_KEYPOINT_STRIDE` 3, and the ONNX metadata `kpt_shape` is `[17, 3]`. The builder rejects any other last dimension. In a sidecar, this row is `packed_keypoints: {offset: 6, components: [x, y, score]}`. (Ultralytics-Exporter [`yolo_sidecar.py:126-132`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L126-L132), [`yolo_sidecar.py:569-573`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L569-L573); `exports/detectors/keypoint_detectors/yolo26/body/yolo26-body-nano_b2_fp32.onnx`, metadata `kpt_shape`, untracked, HEAD 2e0280e050fb2bb16bf7f9a1ba89af5f18db67d4)
+- The current file of Ultralytics-Exporter declares `output0` a second time as a `poses` view (rank 3, `keypoint_axis` 2, 57 entries on axis 2). The commit message says that the spec validator of that time accepted this layout. The spec requires unique output names (V-common.outputs-1). (Ultralytics-Exporter [`yolo_sidecar.py:574-582`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L574-L582), [`yolo_sidecar.py:596`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L596) and the message of [its commit](https://github.com/domisjustanumber/Ultralytics-Exporter/commit/f52ef687a7a651447ff289d0e40a7856c2b7d50c))

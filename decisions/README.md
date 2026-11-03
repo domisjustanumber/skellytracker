@@ -44,6 +44,7 @@ These entries are `accepted` or `evidence`.
 | [8DSW](entries/8DSW-vector-files-are-the-case-source.md) | The vector file is the only case source; formula modules, named checks, `land` and `fill`; supersedes TA0G | accepted |
 | [AD33](entries/AD33-bundles-are-untrusted-input.md) | Bundles are untrusted input: no tool imports or runs bundle code; static checks; a reviewed, user-approved copy; ONNX checks in `batch` | accepted |
 | [NB5F](entries/NB5F-no-change-classes-and-one-re-export-request.md) | No change classes; one re-export request; a spec-forced edit can add a value read from the export graphs; supersedes KDBD | accepted |
+| [0QKK](entries/0QKK-no-legacy-layer.md) | No legacy layer; `input.normalization` required; unknown keys invalid; no `since`; rule renumbering; supersedes 0012 and 0016 | accepted |
 
 ### Proposed
 

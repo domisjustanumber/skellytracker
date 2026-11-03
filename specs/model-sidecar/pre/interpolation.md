@@ -2,8 +2,6 @@
 id: pre.resize.interpolation
 title: Interpolation
 kind: preprocessor
-since: v2024.09.1019
-changed_in: [vNEXT]
 selectors:
   - input.resize.method=letterbox
   - input.resize.method=stretch

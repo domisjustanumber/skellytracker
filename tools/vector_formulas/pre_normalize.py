@@ -4,8 +4,7 @@
 calling convention of a reference module: `run(params, input) -> expect`, and a
 refusal of the spec raises `ValueError`. A broken invariant calls `defect`.
 
-`params` use the sidecar field names. A `schema_version` that starts with `<`
-selects the legacy meaning of `imagenet_bgr`.
+`params` use the sidecar field names.
 """
 
 from __future__ import annotations
@@ -22,12 +21,12 @@ MODES = ("none", "unit_float", "imagenet_bgr", "imagenet_rgb")
 def resolve_mode(
     normalization: Any, by_precision: dict[str, str] | None, precision: str
 ) -> Any:
-    """Resolution order of the section: by precision, then top level, then the default."""
+    """Resolution order of the section: by precision, then top level. There is no default."""
+    if normalization is None:
+        raise ValueError("V-pre.normalize-1: input.normalization must be present")
     if by_precision and precision in by_precision:
         return by_precision[precision]
-    if normalization is not None:
-        return normalization
-    return "imagenet_bgr"
+    return normalization
 
 
 def normalize_pixels(
@@ -35,7 +34,6 @@ def normalize_pixels(
     mode: Any,
     color_format: str | None,
     *,
-    legacy: bool,
     dtype: str = "float32",
 ) -> tuple[str, list[list[float]]]:
     """Return the channel order of the tensor and the normalized pixels."""
@@ -69,7 +67,7 @@ def normalize_pixels(
             result = [v / 255.0 for v in values]
         else:
             mean, std = list(IMAGENET_MEAN_RGB), list(IMAGENET_STD_RGB)
-            if order == "bgr" and not legacy:
+            if order == "bgr":
                 mean, std = mean[::-1], std[::-1]
             result = [(v - m) / sd for v, m, sd in zip(values, mean, std, strict=True)]
         out.append(result)
@@ -83,12 +81,10 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
         params.get("normalization_by_precision"),
         params.get("precision") or "fp32",
     )
-    schema_version = params.get("schema_version")
     order, values = normalize_pixels(
         input["pixels_bgr"],
         mode,
         params.get("color_format"),
-        legacy=bool(schema_version and schema_version.startswith("<")),
         dtype=params.get("dtype") or "float32",
     )
     return {

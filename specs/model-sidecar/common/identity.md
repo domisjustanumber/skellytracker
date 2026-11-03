@@ -2,12 +2,10 @@
 id: common.identity
 title: Identity
 kind: common
-since: v2024.09.1019
-changed_in: [vNEXT]
 selectors: []
 implemented_by:
   validate: skellytracker/core/sidecar/loader.py::load_sidecar  # partial. load_sidecar checks V-common.identity-1. SidecarModel checks V-common.identity-2 and V-common.identity-3. No code checks V-common.identity-4 to V-common.identity-6: SidecarModel forbids the key source.
-  load: skellytracker/core/sidecar/model.py::SidecarModel  # partial. SidecarModel has no source field. No code applies the legacy default of source.
+  load: skellytracker/core/sidecar/model.py::SidecarModel  # partial. SidecarModel has no source field.
 external_impl: []
 tests:
   - skellytracker/tests/sidecar/test_model_validation.py
@@ -23,9 +21,9 @@ status: {spec: stable, validate: partial, load: partial}
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `schema_version` | string | yes | The skellytracker release version for which the author wrote the sidecar (see [Schema versioning](../format/versioning.md)). The pattern is `vYYYY.0M.BUILD[-TAG]`. |
-| `source` | object | `vNEXT`: yes | The library that wrote the sidecar. The mapping has exactly two fields: `name` and `version`. A legacy sidecar has no `source` (see [Legacy behaviour](#legacy-behaviour)). |
-| `source.name` | string | `vNEXT`: yes | The package name of the library that wrote the sidecar. Examples: `openmmlab-exporter` and `skellytracker`. The pattern is `^[a-z0-9]+(-[a-z0-9]+)*$`. |
-| `source.version` | string | `vNEXT`: yes | The released version of that library, for example `0.1.0`. |
+| `source` | object | yes | The library that wrote the sidecar. The mapping has exactly two fields: `name` and `version`. `source` has no default ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)). |
+| `source.name` | string | yes | The package name of the library that wrote the sidecar. Examples: `openmmlab-exporter` and `skellytracker`. The pattern is `^[a-z0-9]+(-[a-z0-9]+)*$`. |
+| `source.version` | string | yes | The released version of that library, for example `0.1.0`. |
 | `model_id` | string | yes | The model identifier. It matches the sidecar basename. For an object detector, it is the family, for example `yolo26`. For a keypoint detector, it is `{family}-{part}`, for example `rtmw-wholebody`. |
 | `display_name` | string | yes | A name that a person can read. |
 | `role` | array[enum] | yes | One or both of `object_detector` and `pose_estimator`. Examples: `[object_detector]`, `[pose_estimator]` and `[object_detector, pose_estimator]`. The last example is for a one-stage model such as RTMO or YOLO26-pose. |
@@ -36,19 +34,11 @@ status: {spec: stable, validate: partial, load: partial}
 - [ ] `V-common.identity-1` `model_id` must match the sidecar basename (`{model_id}.yaml`).
 - [ ] `V-common.identity-2` `role` must be a non-empty subset of `object_detector`/`pose_estimator`.
 - [ ] `V-common.identity-3` The sidecar must have `display_name`, `input` (with `name`) and a non-empty `outputs` array. Each entry of the array must have `name`.
-- [ ] `V-common.identity-4` **(vNEXT)** The sidecar must have a top-level `source` mapping. The mapping must have exactly the keys `name` and `version`.
-- [ ] `V-common.identity-5` **(vNEXT)** `source.name` must be a non-empty string. `source.version` must be a non-empty string.
-- [ ] `V-common.identity-6` **(vNEXT)** `source.name` must match the pattern `^[a-z0-9]+(-[a-z0-9]+)*$`.
-
-For rules marked **(vNEXT)**, see [Validation rules](../README.md#validation-rules).
+- [ ] `V-common.identity-4` The sidecar must have a top-level `source` mapping. The mapping must have exactly the keys `name` and `version`.
+- [ ] `V-common.identity-5` `source.name` must be a non-empty string. `source.version` must be a non-empty string.
+- [ ] `V-common.identity-6` `source.name` must match the pattern `^[a-z0-9]+(-[a-z0-9]+)*$`.
 
 See also [Outputs](outputs.md#validation-rules).
-
-## Legacy behaviour
-
-| Behaviour | `schema_version < vNEXT` (legacy) | `schema_version >= vNEXT` |
-|-----------|-----------------------------------|---------------------------|
-| `source` | Absent. The default is `{name: skellytracker, version: <schema_version>}`. | Required. |
 
 ## Implementer guidance
 
@@ -61,13 +51,6 @@ skellytracker (decision 0016):
 - A config can pin a version with `<key>==<version>`. A pin wins over the newest version. (Decision [0016](../../../decisions/entries/0016-sidecar-catalogs.md#source)) (implementation stage)
 - Two sidecars can have the same key and the same `source.version`, but different file bytes. Then that catalog entry is unavailable. The reason names the paths of the two files. (Decision [0016](../../../decisions/entries/0016-sidecar-catalogs.md#source)) (implementation stage)
 - The name `skellytracker` is reserved for the package root. In a different root, a sidecar with `source.name: skellytracker` is unavailable. Thus a user folder cannot silently replace a model that skellytracker ships. (Decision [0016](../../../decisions/entries/0016-sidecar-catalogs.md#source)) (implementation stage)
-- A legacy sidecar gets the name `skellytracker` by default (see [Legacy behaviour](#legacy-behaviour)). Thus a legacy sidecar loads only from the package root. In a local folder or a Hugging Face repo, the catalog lists it as unavailable with this reason:
-
-  ```text
-  schema_version <v> is older than vNEXT and has no `source`; legacy sidecars load only from the skellytracker package. Regenerate it at vNEXT with a `source` field.
-  ```
-
-  (Decision [0016](../../../decisions/entries/0016-sidecar-catalogs.md#source)) (implementation stage)
 - One key can be in more than one root. Then the catalog logs the root of the entry that it uses. (Decision [0016](../../../decisions/entries/0016-sidecar-catalogs.md#source)) (implementation stage)
 - Each run records three values in its output metadata: the chosen key, its `source.version` and the SHA-256 of the sidecar file. Thus a result names exactly the sidecar that made it. (Decision [0016](../../../decisions/entries/0016-sidecar-catalogs.md#source)) (implementation stage)
 

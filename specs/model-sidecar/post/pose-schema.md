@@ -2,8 +2,6 @@
 id: post.pose.schema
 title: Pose schema
 kind: schema
-since: v2024.09.1019
-changed_in: [vNEXT]
 selectors:
   - role=pose_estimator
 implemented_by:

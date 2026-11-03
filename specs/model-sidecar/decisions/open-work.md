@@ -33,9 +33,6 @@ This heading holds one item
 
 Spec defects found during the spec-build stage. Each one needs a content change to the spec:
 
-- The note "The `imagenet_bgr` default is the RTMPose convention" in the spec's normalization modes is
-  ambiguous at `vNEXT`. At `vNEXT`, `imagenet_bgr` means BGR-ordered statistics, but RTMPose uses the
-  legacy meaning ([0009](entries/0009-imagenet-bgr-meaning.md)).
 - The reviewer note of the `vNEXT` change summary says to replace `vNEXT` "before merging". The
   workflow section [Publishing](../model-addition-workflow/validation-and-publishing.md#publishing) moves that step to
   the first release that ships the spec.
@@ -66,9 +63,7 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   [reference examples](../examples/README.md) and not quoted in the RTMO
   body7 example. YAML reads both forms as the same string, but the examples do not agree.
 - Two identity rules of [Validation rules](../format/versioning.md#validation-rules) cannot pass
-  at `vNEXT`: the version pattern, and the support by the installed release. Also, the sentence "Rules
-  marked **(vNEXT)** apply only when `schema_version >= vNEXT`" is circular for `vNEXT`. `vNEXT` does
-  not match the version pattern, so the comparison has no defined result for a `vNEXT` sidecar.
+  at `vNEXT`: the version pattern, and the support by the installed release.
 - The spec does not state these facts, but a host needs them:
   - the resizes run on the source dtype (for example `uint8`, before the cast). Roboflow-Exporter
     divides by 255 and then resizes the float image ([`onnx_runtime/preprocess.py:75-78`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/d0559b9c95a9ba9922045e2bc5aeae9fb596a6b1/onnx_runtime/preprocess.py#L75-L78));
@@ -85,12 +80,6 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   `body7` is not a part folder ([Authoring guidance](../format/file-layout.md#authoring-guidance)).
   The two reference examples with both roles (RTMO body7 and YOLO26 pose) use
   `detectors/keypoint_detectors/{family}/body/`.
-- `V-common.outputs-1` (unique `outputs[].name`) has no **(vNEXT)** mark, so the text applies it to a
-  legacy sidecar too. The validator of the legacy release does not check it. The legacy YOLO26 pose
-  file of Ultralytics-Exporter declares the one tensor `output0` as `detections` and again as
-  `poses`. The spec must say which reading is correct. (Ultralytics-Exporter
-  [`yolo_sidecar.py:574-582`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L574-L582),
-  [`yolo_sidecar.py:596`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L596))
 - The spec requires `-1` as the batch axis of `input.shape` (`V-common.sizes_and_artifacts-2`). It
   gives no batch rule for `outputs[].shape`. Ultralytics-Exporter and Qualcomm-Exporter write the
   smallest native batch (`1`) there, and their sizes list the batches 1, 2 and 3. Thus the sentence

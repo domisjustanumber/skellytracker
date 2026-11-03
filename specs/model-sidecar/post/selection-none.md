@@ -2,8 +2,6 @@
 id: post.det.selection.none
 title: "Selection: none"
 kind: postprocessor
-since: v2024.09.1019
-changed_in: [vNEXT]
 selectors:
   - decode.selection=none
 implemented_by:
@@ -49,14 +47,6 @@ Pose rows of a model with both roles: [Bottom-up decode](pose-bottom-up.md#botto
 
 See also [Detection decode](detection-decode.md#validation-rules).
 
-## Legacy behaviour
-
-| Behaviour | `schema_version < vNEXT` (legacy) | `schema_version >= vNEXT` |
-|-----------|-----------------------------------|---------------------------|
-| `decode.max_detections` absent | Default `300`. | No default; valid only with `selection: none`. |
-
-See also [Detection decode](detection-decode.md#legacy-behaviour) and [Bottom-up pose](pose-bottom-up.md#legacy-behaviour).
-
 ## Implementer guidance
 
 - Ultralytics consumes the end-to-end rows with `mask = pred[:, 4] > conf_thres` and `idx = mask.nonzero()[:max_det]`. It does not sort and it does not run NMS. These are the steps of `selection: none`: a strict comparison and no NMS. The `max_det` cap does nothing for 300 rows. (ultralytics 8.4.184 `utils/nms.py:71-78`, installed copy in the Ultralytics-Exporter `.venv`)
@@ -67,7 +57,7 @@ See also [Detection decode](detection-decode.md#legacy-behaviour) and [Bottom-up
 ## Authoring guidance
 
 - RTMO keeps the in-graph NMS of mmdeploy, so it uses `selection: none` with `score_field: score`. It declares no `max_detections`: the real graph returned 4 and 11 rows on two val images. It declares `confidence_threshold_default` 0.1: an image with no person still returned one row with a score of about 6e-8. (OpenMMLab-Exporter [`notes/decisions/0020-rtmo-sidecar-contract.md:64-69`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/0020-rtmo-sidecar-contract.md#L64-L69), [`notes/decisions/0020-rtmo-sidecar-contract.md:99-103`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/0020-rtmo-sidecar-contract.md#L99-L103))
-- YOLO26: `max_detections` 300 follows from the export argument `max_det=300`. The argument `nms=False` selects the end-to-end one2one head, because Ultralytics sets `model.end2end` only for the literal `False`. The ONNX metadata shows `end2end` `True`. The exporter reads `max_detections` back from the output `shape[1]`. In a legacy file, `requires_nms: false` marks the same fact. (Ultralytics-Exporter [`export_all.py:50-57`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/69499e7d292e6f3583ab9429c45a334af3377097/export_all.py#L50-L57); [`yolo_sidecar.py:481-484`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/69499e7d292e6f3583ab9429c45a334af3377097/yolo_sidecar.py#L481-L484), [`yolo_sidecar.py:490`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/69499e7d292e6f3583ab9429c45a334af3377097/yolo_sidecar.py#L490); `exports/detectors/object_detectors/yolo26/yolo26-nano_b2_fp32.onnx`, untracked, HEAD 2e0280e050fb2bb16bf7f9a1ba89af5f18db67d4)
+- YOLO26: `max_detections` 300 follows from the export argument `max_det=300`. The argument `nms=False` selects the end-to-end one2one head, because Ultralytics sets `model.end2end` only for the literal `False`. The ONNX metadata shows `end2end` `True`. The exporter reads `max_detections` back from the output `shape[1]`. (Ultralytics-Exporter [`export_all.py:50-57`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/69499e7d292e6f3583ab9429c45a334af3377097/export_all.py#L50-L57); [`yolo_sidecar.py:481-484`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/69499e7d292e6f3583ab9429c45a334af3377097/yolo_sidecar.py#L481-L484), [`yolo_sidecar.py:490`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/69499e7d292e6f3583ab9429c45a334af3377097/yolo_sidecar.py#L490); `exports/detectors/object_detectors/yolo26/yolo26-nano_b2_fp32.onnx`, untracked, HEAD 2e0280e050fb2bb16bf7f9a1ba89af5f18db67d4)
 - Describe the graph, not `pipeline.json`. Record the in-graph NMS parameters and caps. The deploy config of mmdeploy for RTMO sets `pre_top_k=2000` and `keep_top_k=50`, and the deploy configs of the exporter inherit them. The AP effect is not checked, because the mmdeploy base file is not in the repo. Comparable caps cost -0.0114 AP on RTMDet-person-medium. (OpenMMLab-Exporter [`rtmo/README.md:16-21`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/c85abf7da34d1e4da7c129f3382173f7153f60fa/rtmo/README.md#L16-L21); [`notes/decisions/0008-cut-nms-tail.md:24-35`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/c955162d91998b94fc52d932ab6623a9f2a89a1f/notes/decisions/0008-cut-nms-tail.md#L24-L35))
 - The SDK zip of the mmpose RTMDet-hand model bakes NMS into its `end2end.onnx` with IoU 0.5, `pre_top_k` 5000, 200 boxes for each class and `keep_top_k` 100. Its `pipeline.json` and the model config say IoU 0.6. (the untracked hand models plan of OpenMMLab-Exporter (secondary))
-- Pre-NMS anchor rows are not final rows. The MediaPipe person detector emits 896 pre-NMS anchor rows, so `selection: none` does not apply to it. Qualcomm-Exporter writes `max_detections` 896 beside `requires_nms: true`. That is valid only in a legacy file: at `vNEXT`, V-post.det.selection.nms-1 forbids `max_detections` with `selection: nms`. The changelog lists what a `vNEXT` sidecar must declare. (Qualcomm-Exporter [`qai_sidecar.py:124-133`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_sidecar.py#L124-L133); [Selection: NMS](selection-nms.md#validation-rules); [Compatibility impact](../changelog.md#compatibility-impact))
+- Pre-NMS anchor rows are not final rows. The MediaPipe person detector emits 896 pre-NMS anchor rows, so `selection: none` does not apply to it. (Qualcomm-Exporter [`qai_sidecar.py:124-133`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_sidecar.py#L124-L133))

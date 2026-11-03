@@ -2,8 +2,6 @@
 id: pre.resize.none
 title: No resize
 kind: preprocessor
-since: v2024.09.1019
-changed_in: [vNEXT]
 selectors: [input.resize.method=none]
 implemented_by:
   validate: skellytracker/core/sidecar/model.py::ResizeSpec._check_method_specific_fields

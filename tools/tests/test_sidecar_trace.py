@@ -84,8 +84,6 @@ def front_matter(
         "id": section_id,
         "title": section_id,
         "kind": kind,
-        "since": "vNEXT",
-        "changed_in": [],
         "selectors": selectors,
         "implemented_by": steps,
         "external_impl": [],
@@ -435,12 +433,12 @@ def test_a_sidecar_that_cannot_resolve_raises(repo: Path) -> None:
         st.scan_sidecars(repo)
 
 
-def test_the_scan_normalizes_each_sidecar(repo: Path) -> None:
+def test_the_scan_derives_no_normalization(repo: Path) -> None:
+    # `input.normalization` has no default (ADR-0QKK).
     foo = next(s for s in st.scan_sidecars(repo).sidecars if s.model_id == "foo")
-    assert foo.normalized["input"]["normalization"] == "imagenet_bgr"
-    assert "normalization" not in foo.resolved["input"]
+    assert "normalization" not in foo.normalized["input"]
     assert foo.normalized["decode"] == foo.resolved["decode"]
-    assert foo.derived == ("normalization",)
+    assert foo.derived == ()
 
 
 def test_the_sections_apply_to_the_right_sidecars(repo: Path) -> None:
@@ -498,14 +496,12 @@ def test_the_matrix_rows_and_cells(repo: Path) -> None:
     )
 
 
-def test_the_normalization_row_shows_the_mode_and_the_derived_flag() -> None:
+def test_the_normalization_row_shows_the_mode() -> None:
     current = _fake_sidecar("imagenet_bgr", "vNEXT", derived=())
-    derived = _fake_sidecar("imagenet_bgr", "vNEXT", derived=("normalization",))
     custom = _fake_sidecar({"mode": "custom"}, "vNEXT", derived=())
     # A dated version adds no label: the package sidecars are not in the matrix (ADR-NB5F).
     dated = _fake_sidecar("imagenet_bgr", "v2024.09.1019", derived=())
     assert st._normalization_label(current) == "imagenet_bgr"
-    assert st._normalization_label(derived) == "imagenet_bgr (derived)"
     assert st._normalization_label(custom) == "custom"
     assert st._normalization_label(dated) == "imagenet_bgr"
     assert st._normalization_label(_fake_sidecar("none", "vNEXT", ())) == "none"

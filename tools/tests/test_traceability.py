@@ -45,7 +45,6 @@ KINDS_BY_FOLDER = {
 }
 STEP_STATES = {"implemented", "partial", "missing"}
 SPEC_STATES = {"stable", "draft"}
-VERSION = re.compile(r"vNEXT|v\d{4}\.\d{2}\.\d+")
 
 
 # --------------------------------------------------------------------------------------------
@@ -126,16 +125,6 @@ def test_identity_fields(path: Path) -> None:
     folder = path.parent.name
     assert front["id"].split(".")[0] == folder
     assert front["kind"] in KINDS_BY_FOLDER[folder]
-
-
-@pytest.mark.parametrize("path", section_paths(), ids=path_ids)
-def test_version_fields(path: Path) -> None:
-    front = front_of(path)
-    assert isinstance(front["since"], str) and VERSION.fullmatch(front["since"])
-    assert isinstance(front["changed_in"], list)
-    assert len(set(front["changed_in"])) == len(front["changed_in"])
-    for version in front["changed_in"]:
-        assert isinstance(version, str) and VERSION.fullmatch(version), version
 
 
 @pytest.mark.parametrize("path", section_paths(), ids=path_ids)
@@ -570,7 +559,7 @@ NMS_DETECTOR = {
     "schema_version": "vNEXT",
     "model_id": "nms-detector",
     "role": ["object_detector"],
-    "input": {"resize": {"method": "letterbox"}},
+    "input": {"resize": {"method": "letterbox"}, "normalization": "unit_float"},
     "decode": {"selection": "nms"},
     "outputs": [{"semantic": "boxes"}],
 }
@@ -652,14 +641,13 @@ def test_a_sidecar_matches_exactly_the_sections_of_its_selectors(
     assert {sid for sid, models in applicable.items() if models} == universal | expected
 
 
-def test_an_explicit_normalization_is_kept_and_an_omitted_one_gets_the_default() -> None:
-    default = sn.normalize({"input": {}})["input"]["normalization"]
+def test_an_explicit_normalization_is_kept_and_an_omitted_one_gets_no_default() -> None:
+    # `input.normalization` has no default (ADR-0QKK).
     explicit = synthetic(BOTTOM_UP_POSE)
-    omitted = synthetic(NMS_DETECTOR)
+    omitted = sn.normalize({"input": {}})
     assert explicit.normalized["input"]["normalization"] == "unit_float"
     assert "normalization" not in explicit.derived
-    assert omitted.normalized["input"]["normalization"] == default
-    assert omitted.derived == ("normalization",)
+    assert "normalization" not in omitted["input"]
 
 
 def test_a_detector_without_a_selection_gets_no_derived_selection() -> None:
@@ -679,11 +667,10 @@ def test_the_cells_that_carry_text() -> None:
     def cell(section_id: str, data: dict[str, Any]) -> str:
         return st._cell(sections_by_id()[section_id], synthetic(data))
 
-    default = sn.normalize({"input": {}})["input"]["normalization"]
     poses = {**BOTTOM_UP_POSE, "outputs": [{"semantic": "poses"}]}
     no_resize = {**BOTTOM_UP_POSE, "input": {"normalization": "unit_float"}}
     assert cell("pre.normalize", NONE_DETECTOR) == "imagenet_bgr"
-    assert cell("pre.normalize", NMS_DETECTOR) == f"{default} (derived)"
+    assert cell("pre.normalize", NMS_DETECTOR) == "unit_float"
     assert cell("pre.normalize", BOTTOM_UP_POSE) == "unit_float"
     assert cell("pre.resize.none", no_resize) == "x (derived)"
     assert cell("post.det.selection.none", NONE_DETECTOR) == "none"

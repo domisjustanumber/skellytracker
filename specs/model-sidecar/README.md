@@ -15,9 +15,9 @@ A sidecar can declare **both** roles. An example is a one-stage model such as RT
 
 ### Core properties
 
-- **One sidecar for each model family.** A single `{model_id}.yaml` file lists every size of the model. Within each size, the file lists the batch artifacts and every precision variant in `sizes.<size>.onnx.batch_artifacts`. At `vNEXT`, each size has only the batch key of the [batch form](common/sizes-and-artifacts.md#batch-forms) of the sidecar.
+- **One sidecar for each model family.** A single `{model_id}.yaml` file lists every size of the model. Within each size, the file lists the batch artifacts and every precision variant in `sizes.<size>.onnx.batch_artifacts`. Each size has only the batch key of the [batch form](common/sizes-and-artifacts.md#batch-forms) of the sidecar.
 - **Multiple sizes in each sidecar.** A family ships several sizes in one file, for example `nano`, `small` and `medium`. All sizes share one preprocessing and output contract. They differ only in input size and ONNX artifacts (see [`sizes`](common/sizes-and-artifacts.md#sizes)).
-- **Traceable compatibility.** The `schema_version` of a sidecar identifies the minimum skellytracker release that is required to consume it.
+- **Traceable version.** The `schema_version` of a sidecar identifies the skellytracker release whose contract it follows. A host loads only the versions that it implements. The spec has no legacy reading ([ADR-0QKK](../../decisions/entries/0QKK-no-legacy-layer.md)).
 - **Single source of truth.** This document is the canonical, human-readable contract. **No software parses it at runtime.** skellytracker has Pydantic `BaseModel` subclasses (the `SidecarModel` hierarchy) that follow this document. The documentation and the validators must stay aligned.
 - **Composable.** A sidecar can include shared YAML fragments with `$ref`. It can inherit values from another sidecar and override them with `base`.
 
@@ -115,7 +115,7 @@ These fields apply when `role` includes `pose_estimator`.
 
 ## Validation rules
 
-A sidecar is valid when all of the following rules hold. A rule marked **(vNEXT)** applies only when `schema_version >= vNEXT`. A rule without the mark applies to every `schema_version`. Legacy sidecars follow [Version-aware compatibility](format/versioning.md#version-aware-compatibility).
+A sidecar is valid when all of the following rules hold. Each rule applies to every sidecar ([ADR-0QKK](../../decisions/entries/0QKK-no-legacy-layer.md)).
 
 - [File composition](format/composition.md#validation-rules)
 - [Schema versioning](format/versioning.md#validation-rules)

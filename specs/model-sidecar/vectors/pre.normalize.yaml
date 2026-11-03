@@ -10,8 +10,6 @@ notes:
   - "`params` use the sidecar field names: `normalization`, `normalization_by_precision`,
     `color_format` and `dtype` are fields of `input`; `precision` selects the entry of
     `normalization_by_precision` (default fp32)."
-  - "The meaning of `imagenet_bgr` depends on `schema_version`: a case with
-    `schema_version: \"< vNEXT\"` uses the legacy meaning."
 tolerance: 0.00001
 unverified: "No independent implementation has run these vectors yet. They come from the section
   text only."
@@ -55,7 +53,7 @@ cases:
       values: [[0, 0, 0], [1, 1, 1], [0.039216, 0.501961, 0.980392], [0.784314, 0.392157, 0.196078]]
   - id: imagenet-bgr
     note: "B uses mean 103.53 and std 57.375; the tensor order is B, G, R"
-    params: {schema_version: vNEXT, normalization: imagenet_bgr}
+    params: {normalization: imagenet_bgr}
     input: {pixels_bgr: [[0, 0, 0], [255, 255, 255], [10, 128, 250], [200, 100, 50]]}
     expect:
       resolved_mode: imagenet_bgr
@@ -65,19 +63,6 @@ cases:
         - [2.64, 2.428571, 2.248908]
         - [-1.630153, 0.205182, 2.163285]
         - [1.681394, -0.285014, -1.261666]
-  - id: imagenet-bgr-legacy
-    note: "schema_version < vNEXT: B uses mean 123.675 and std 58.395
-      (notes/decisions/0009-imagenet-bgr-meaning.md)"
-    params: {schema_version: "< vNEXT", normalization: imagenet_bgr}
-    input: {pixels_bgr: [[0, 0, 0], [255, 255, 255], [10, 128, 250], [200, 100, 50]]}
-    expect:
-      resolved_mode: imagenet_bgr
-      channel_order: bgr
-      values:
-        - [-2.117904, -2.035714, -1.804444]
-        - [2.248908, 2.428571, 2.64]
-        - [-1.946656, 0.205182, 2.552854]
-        - [1.307047, -0.285014, -0.932985]
   - id: imagenet-rgb
     note: "R uses mean 123.675 and std 58.395; the tensor order is R, G, B"
     params: {normalization: imagenet_rgb}
@@ -154,18 +139,13 @@ cases:
       resolved_mode: custom
       channel_order: rgb
       values: [[-0.5, -1, -1.5], [127, 126.5, 126], [124.5, 63, 3.5], [24.5, 49, 98.5]]
-  - id: default-is-imagenet-bgr
-    note: "normalization is absent: the default is imagenet_bgr"
-    params: {schema_version: vNEXT}
-    input: {pixels_bgr: [[0, 0, 0], [255, 255, 255], [10, 128, 250], [200, 100, 50]]}
-    expect:
-      resolved_mode: imagenet_bgr
-      channel_order: bgr
-      values:
-        - [-1.804444, -2.035714, -2.117904]
-        - [2.64, 2.428571, 2.248908]
-        - [-1.630153, 0.205182, 2.163285]
-        - [1.681394, -0.285014, -1.261666]
+  - id: normalization-is-required
+    note: "input.normalization is absent, and there is no default. The sidecar shows only its
+      input block. The case checks only the rules of this section."
+    function: none
+    params: {}
+    input: {sidecar: {input: {name: input, dtype: {fp32: float32}, color_format: bgr}}}
+    expect: {failed: [V-pre.normalize-1]}
   - id: precision-override
     note: "normalization_by_precision wins over the top-level normalization"
     params:

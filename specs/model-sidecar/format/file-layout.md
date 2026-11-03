@@ -2,8 +2,6 @@
 id: format.file_layout
 title: File layout
 kind: format
-since: v2024.09.1019
-changed_in: [vNEXT]
 selectors: []
 implemented_by:
   validate: skellytracker/core/sidecar/loader.py::load_sidecar  # partial. Checks that model_id matches the file name. No check for sidecar discovery, folder layout or shared fragments.

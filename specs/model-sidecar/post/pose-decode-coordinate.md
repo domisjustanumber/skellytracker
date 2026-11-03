@@ -2,8 +2,6 @@
 id: post.pose.decode.coordinate
 title: Coordinate decode
 kind: postprocessor
-since: v2024.09.1019
-changed_in: [vNEXT]
 selectors:
   - pose.decode.method=coordinate
   - outputs[].semantic=keypoints

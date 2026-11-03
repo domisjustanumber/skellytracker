@@ -83,8 +83,6 @@ FRONT_MATTER_KEYS = (
     "id",
     "title",
     "kind",
-    "since",
-    "changed_in",
     "selectors",
     "implemented_by",
     "external_impl",
@@ -482,8 +480,7 @@ def _table(header: list[str], rows: list[list[str]]) -> list[str]:
 
 def _normalization_label(sidecar: Sidecar) -> str:
     value = sidecar.normalized["input"]["normalization"]
-    mode = str(value.get("mode", "custom")) if isinstance(value, dict) else str(value)
-    return f"{mode} (derived)" if "normalization" in sidecar.derived else mode
+    return str(value.get("mode", "custom")) if isinstance(value, dict) else str(value)
 
 
 def _selection_label(sidecar: Sidecar) -> str:
@@ -773,7 +770,7 @@ def render_traceability(repo_root: Path = REPO_ROOT) -> str:
         "`format` or `common` with no `selectors` applies to every sidecar.",
         "",
         "The `pre.normalize` row shows the normalization mode. The selection rows show the "
-        "selection. In the `pre.normalize` and `pre.resize.none` rows, `derived` means that the "
+        "selection. In the `pre.resize.none` row, `derived` means that the "
         "sidecar does not give the value. The tool uses the default of the section.",
         "",
         "The `post.pose.bottom_up` row shows `packed` when an output packs the keypoints into the "

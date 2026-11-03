@@ -2,8 +2,6 @@
 id: pre.resize.affine_person_crop
 title: Affine person crop
 kind: preprocessor
-since: v2024.09.1019
-changed_in: [vNEXT]
 selectors: [input.resize.method=affine_person_crop]
 implemented_by:
   validate: skellytracker/core/sidecar/model.py::CropPolicySpec  # partial. No crop_policy.pad_value field. SidecarModel._check_pose_requires_affine_crop checks V-pre.resize.affine_person_crop-2.

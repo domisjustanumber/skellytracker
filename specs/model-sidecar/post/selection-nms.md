@@ -2,8 +2,6 @@
 id: post.det.selection.nms
 title: "Selection: NMS"
 kind: postprocessor
-since: v2024.09.1019
-changed_in: [vNEXT]
 selectors:
   - decode.selection=nms
 implemented_by:
@@ -62,14 +60,6 @@ Pose rows of a model with both roles: [Bottom-up decode](pose-bottom-up.md#botto
 
 See also [Detection decode](detection-decode.md#validation-rules).
 
-## Legacy behaviour
-
-| Behaviour | `schema_version < vNEXT` (legacy) | `schema_version >= vNEXT` |
-|-----------|-----------------------------------|---------------------------|
-| `decode.nms` absent with host NMS | Existing host NMS behaviour (implementation-defined). | Invalid; `nms` required for `selection: nms`. |
-
-`decode.max_detections` before `vNEXT`: [Selection: none](selection-none.md#legacy-behaviour).
-
 ## Implementer guidance
 
 - The reference host decode of OpenMMLab-Exporter (`NmsDecoder`) is an ONNX `NonMaxSuppression` graph. It transposes or unsqueezes the scores to `[B, C, Q]`, uses `center_point_box=0` and feeds the thresholds at run time. `max_per_class` is `post_nms_top_k` or `2**31-1`. The decoder then applies `post_nms_top_k` again to the final rows of each image. (OpenMMLab-Exporter [`onnx_runtime/decode_nms.py:37-72`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/d2e68d27d2da0a4f22ddd19449df5601dcac87cc/onnx_runtime/decode_nms.py#L37-L72), [`onnx_runtime/decode_nms.py:125-130`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/d2e68d27d2da0a4f22ddd19449df5601dcac87cc/onnx_runtime/decode_nms.py#L125-L130), [`onnx_runtime/decode_nms.py:157-166`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/d2e68d27d2da0a4f22ddd19449df5601dcac87cc/onnx_runtime/decode_nms.py#L157-L166))
@@ -89,4 +79,4 @@ See also [Detection decode](detection-decode.md#validation-rules).
 - mmdet: `test_cfg` `score_thr=0.05`, `nms=dict(type='nms', iou_threshold=0.6)` and `max_per_img=100` map to `decode.nms` with `score_threshold: 0.05`, `iou_threshold: 0.6` and `post_nms_top_k: 100`. A test checks the values against the config text. (OpenMMLab-Exporter [`mmdeploy-convert/model_cfgs/rtmdet_nano_320-8xb32_coco-person.py:24-29`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/f29d9bba71d3669bfdab98597069151d42d1f5ff/mmdeploy-convert/model_cfgs/rtmdet_nano_320-8xb32_coco-person.py#L24-L29); [`tests/test_rtmdet_person.py:77-84`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/ba0c0876b58650ed472559f1a77780e5da13d370/tests/test_rtmdet_person.py#L77-L84))
 - `nms_pre=1000` and `min_bbox_size=0` have no field. Leaving out the per-level `nms_pre` changed AP by +0.0001 on rtmdet-tiny and by 0 on person-medium. It costs only decode time at a 0.001 threshold. (OpenMMLab-Exporter [`notes/decisions/0009-detector-output-layout-and-decode.md:75-80`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/0009-detector-output-layout-and-decode.md#L75-L80))
 - Ultralytics-Exporter exports only `nms=False` and writes no NMS parameters. For a raw-head YOLO artifact, the Ultralytics defaults are `iou` 0.7, `max_det` 300 and `conf` 0.25 (predict) or 0.001 (val). (Ultralytics-Exporter [`export_all.py:50-57`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/69499e7d292e6f3583ab9429c45a334af3377097/export_all.py#L50-L57); ultralytics 8.4.184 `cfg/default.yaml:55-57`, installed copy in the Ultralytics-Exporter `.venv`)
-- The MediaPipe person detector has an upstream `nms_iou_threshold` of 0.3 and a `min_detector_pose_box_score` of 0.75. The upstream NMS is class-agnostic (torchvision `nms`). The upstream app keeps only the first survivor of each image, which has the highest score: a loop breaks after the first box that passes the out-of-bound filter, and the pose model switches that filter off. This is `post_nms_top_k: 1` at `vNEXT`. The legacy sidecar of Qualcomm-Exporter writes only 0.75 (as `confidence_threshold_default`), no `decode.nms` and no cap. Its benchmark scores every survivor. The changelog lists what a `vNEXT` sidecar must declare ([Compatibility impact](../changelog.md#compatibility-impact)). (Qualcomm-Exporter [`qai_catalog.py:59-61`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_catalog.py#L59-L61) and [`qai_validation.py:59-73`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_validation.py#L59-L73); qai_hub_models 0.64.0 `models/mediapipe_pose/app.py:69-70`, `models/templates/mediapipe/app.py:359-386` and `utils/bounding_box_processing.py:99-108`, installed copy in the Qualcomm-Exporter `.venv`)
+- The MediaPipe person detector has an upstream `nms_iou_threshold` of 0.3 and a `min_detector_pose_box_score` of 0.75. The upstream NMS is class-agnostic (torchvision `nms`). The upstream app keeps only the first survivor of each image, which has the highest score: a loop breaks after the first box that passes the out-of-bound filter, and the pose model switches that filter off. This is `post_nms_top_k: 1`. The sidecar of Qualcomm-Exporter writes only 0.75 (as `confidence_threshold_default`), no `decode.nms` and no cap. Its benchmark scores every survivor. (Qualcomm-Exporter [`qai_catalog.py:59-61`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_catalog.py#L59-L61) and [`qai_validation.py:59-73`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_validation.py#L59-L73); qai_hub_models 0.64.0 `models/mediapipe_pose/app.py:69-70`, `models/templates/mediapipe/app.py:359-386` and `utils/bounding_box_processing.py:99-108`, installed copy in the Qualcomm-Exporter `.venv`)

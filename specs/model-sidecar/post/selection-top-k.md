@@ -2,8 +2,6 @@
 id: post.det.selection.top_k
 title: "Selection: top-k"
 kind: postprocessor
-since: vNEXT
-changed_in: []
 selectors:
   - decode.selection=top_k
 implemented_by:
@@ -48,10 +46,6 @@ Score comparisons and tie-breaking: [Selection behaviour](detection-decode.md#se
 - [ ] `V-post.det.selection.top_k-1` A sidecar with `selection: top_k` must have a `boxes` primary output, `class_logits_output` and a positive integer `top_k`. It must not have `nms`, `max_detections`, `scores_output` or `score_field`.
 
 See also [Detection decode](detection-decode.md#validation-rules).
-
-## Legacy behaviour
-
-See [Detection decode](detection-decode.md#legacy-behaviour) and [Schema versioning](../format/versioning.md#legacy-behaviour).
 
 ## Implementer guidance
 

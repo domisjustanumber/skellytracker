@@ -33,13 +33,12 @@ def detector(**decode: Any) -> dict[str, Any]:
 
 
 def test_an_authored_selection_is_kept() -> None:
-    data = detector(selection="top_k", requires_nms=True)
+    data = detector(selection="top_k")
     assert sn.normalize(data)["decode"]["selection"] == "top_k"
 
 
 def test_no_rule_derives_a_selection() -> None:
-    # The `requires_nms` derivation was for the legacy package sidecars only (ADR-NB5F).
-    assert sn.normalize(detector(requires_nms=True))["decode"] == {"requires_nms": True}
+    assert sn.normalize(detector())["decode"] == {}
     data = detector()
     del data["decode"]
     assert "decode" not in sn.normalize(data)
@@ -64,26 +63,16 @@ def test_a_given_resize_is_kept() -> None:
     assert sn.normalize(data)["input"]["resize"] == resize
 
 
-def test_letterbox_without_preserve_aspect_ratio_stays_letterbox() -> None:
+def test_a_letterbox_stays_letterbox() -> None:
     assert sn.normalize(detector())["input"]["resize"]["method"] == "letterbox"
 
 
-def test_letterbox_with_preserve_aspect_ratio_true_stays_letterbox() -> None:
-    data = detector()
-    data["input"]["resize"]["preserve_aspect_ratio"] = True
-    assert sn.normalize(data)["input"]["resize"]["method"] == "letterbox"
-
-
-def test_letterbox_with_preserve_aspect_ratio_false_stays_letterbox() -> None:
-    # The letterbox-stretch alias was for the legacy package sidecars only (ADR-NB5F).
-    data = detector()
-    data["input"]["resize"]["preserve_aspect_ratio"] = False
-    assert sn.normalize(data)["input"]["resize"] == data["input"]["resize"]
-
-
-def test_absent_normalization_gets_imagenet_bgr() -> None:
+def test_absent_normalization_stays_absent() -> None:
+    # `input.normalization` is required and has no default (ADR-0QKK).
     data = {"role": ["pose_estimator"], "input": {"resize": {"method": "fit"}}}
-    assert sn.normalize(data)["input"]["normalization"] == "imagenet_bgr"
+    normalized = sn.normalize(data)
+    assert "normalization" not in normalized["input"]
+    assert not sn.matches("input.normalization=imagenet_bgr", normalized)
 
 
 def test_a_given_normalization_is_kept() -> None:
@@ -109,7 +98,7 @@ def test_normalize_changes_nothing_else() -> None:
 
 
 def test_normalize_returns_a_copy_and_keeps_the_input() -> None:
-    data = detector(requires_nms=True)
+    data = detector(selection="none")
     before = copy.deepcopy(data)
     result = sn.normalize(data)
     assert data == before
@@ -118,7 +107,7 @@ def test_normalize_returns_a_copy_and_keeps_the_input() -> None:
 
 
 def test_normalize_is_idempotent() -> None:
-    data = {"role": ["object_detector"], "input": {}, "decode": {"requires_nms": True}}
+    data = {"role": ["object_detector"], "input": {}, "decode": {}}
     once = sn.normalize(data)
     assert once != data
     assert sn.normalize(once) == once
@@ -130,8 +119,8 @@ def test_normalize_needs_a_mapping() -> None:
 
 
 def test_derived_by_names_the_rules_that_changed_something() -> None:
-    data = {"role": ["object_detector"], "input": {}, "decode": {"requires_nms": True}}
-    assert sn.derived_by(data) == ("resize", "normalization")
+    data = {"role": ["object_detector"], "input": {}, "decode": {}}
+    assert sn.derived_by(data) == ("resize",)
 
 
 def test_derived_by_is_empty_for_a_complete_sidecar() -> None:
@@ -143,10 +132,9 @@ def test_derived_by_is_empty_for_a_complete_sidecar() -> None:
 # --------------------------------------------------------------------------------------------
 
 
-def test_the_table_has_the_three_derivations_in_order() -> None:
+def test_the_table_has_its_rules_in_order() -> None:
     assert [rule.name for rule in sn.NORMALIZATION_TABLE] == [
         "resize",
-        "normalization",
         "custom_normalization",
     ]
 
@@ -362,35 +350,6 @@ def test_a_section_without_selectors_applies_to_nothing() -> None:
 def test_selectors_must_be_a_list() -> None:
     with pytest.raises(ValueError):
         sn.applies({"kind": "schema", "selectors": "overlay"}, NORMALIZED)
-
-
-# --------------------------------------------------------------------------------------------
-# The derivations end to end
-# --------------------------------------------------------------------------------------------
-
-
-def test_a_yolox_style_sidecar_without_a_selection_matches_no_selection() -> None:
-    old = {
-        "role": ["object_detector"],
-        "input": {
-            "normalization": "none",
-            "resize": {"method": "letterbox", "preserve_aspect_ratio": False},
-        },
-        "decode": {"requires_nms": False},
-    }
-    normalized = sn.normalize(old)
-    assert not sn.matches("decode.selection", normalized)
-    assert sn.matches("input.resize.method=letterbox", normalized)
-    assert not sn.matches("input.resize.method=stretch", normalized)
-
-
-def test_an_old_pose_sidecar_without_normalization_matches_imagenet_bgr() -> None:
-    legacy = {
-        "role": ["pose_estimator"],
-        "input": {"resize": {"method": "affine_person_crop"}},
-    }
-    assert sn.matches("input.normalization=imagenet_bgr", sn.normalize(legacy))
-    assert not sn.matches("input.normalization=imagenet_bgr", legacy)
 
 
 # --------------------------------------------------------------------------------------------

@@ -2,8 +2,6 @@
 id: post.det.outputs
 title: Detection outputs
 kind: postprocessor
-since: v2024.09.1019
-changed_in: [vNEXT]
 selectors:
   - outputs[].semantic=detections
   - outputs[].semantic=boxes
@@ -63,10 +61,6 @@ Additional fields on detection output tensors:
 - [ ] `V-post.det.outputs-4` The dtypes of `scores`, `class_logits`, `boxes` and `detections` must be float types.
 
 See also [Outputs](../common/outputs.md#validation-rules), [Detection decode](detection-decode.md#validation-rules) and [Bottom-up pose](pose-bottom-up.md#validation-rules).
-
-## Legacy behaviour
-
-Availability before `vNEXT`: [Schema versioning](../format/versioning.md#legacy-behaviour).
 
 ## Implementer guidance
 

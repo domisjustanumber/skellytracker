@@ -1,6 +1,6 @@
 # 0009 — `imagenet_bgr` changes meaning at `vNEXT`; the legacy meaning stays
 
-**Status:** absorbed into [`pre/normalization.md#legacy-behaviour`](../../pre/normalization.md#legacy-behaviour), 2026-10-24 (user; the first review of [0029](../../../../decisions/entries/0029-decision-log-read-path.md)); superseded by [KDBD](../../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md), 2026-10-28 (user; PR: pending). It was accepted on 2026-10-22 (backfilled from #81).
+**Status:** absorbed into [`pre/normalization.md#legacy-behaviour`](../../format/versioning.md#version-aware-compatibility), 2026-10-24 (user; the first review of [0029](../../../../decisions/entries/0029-decision-log-read-path.md)); superseded by [KDBD](../../../../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md), 2026-10-28 (user; PR: pending). It was accepted on 2026-10-22 (backfilled from #81).
 
 ## Decision
 
@@ -24,7 +24,7 @@ The spec states the rule in these places:
 - change 6 of the [Summary of changes](../../changelog.md#summary-of-changes);
 - the `imagenet_bgr` row of [Normalization modes](../../pre/normalization.md#behaviour);
 - the `normalization: imagenet_bgr` row of
-  [Version-aware compatibility](../../pre/normalization.md#legacy-behaviour).
+  [Version-aware compatibility](../../format/versioning.md#version-aware-compatibility).
 
 ## Reason
 
@@ -85,3 +85,5 @@ _Edited 2026-10-26 (this PR): link repair._
 _Edited 2026-10-28 (this PR): link repair._
 
 _Edited 2026-10-29 (this PR): link repair._
+
+_Edited 2026-11-02 (this PR): link repair._

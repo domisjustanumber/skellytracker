@@ -2,8 +2,6 @@
 id: post.det.decode
 title: Detection decode
 kind: postprocessor
-since: v2024.09.1019
-changed_in: [vNEXT]
 selectors:
   - role=object_detector
 implemented_by:
@@ -41,7 +39,6 @@ Required when `role` includes `object_detector`. It describes how the host turns
 | `person_class_id` | int | no | The emitted class id of "person". The default is `0`. When `class_id_map` is present, this id must be one of the non-negative values of the map. |
 | `confidence_threshold_default` | float | no | The default is `0.7`. This is the default final filter of the host. The host applies it after selection. The filter is strict: `score > threshold`. It is host policy, and callers can override it. |
 | `clamp_boxes` | bool | no | The default is `true`. Clamp the unprojected boxes to the source-image bounds. |
-| `requires_nms` | bool | no | A legacy alias. If it is present, it must agree with `selection`: it is `true` if and only if `selection: nms`. |
 
 Selection-specific fields: [`max_detections`](selection-none.md#fields), [`class_logits_output`, `score_activation`, `top_k`](selection-top-k.md#fields), [`nms`](selection-nms.md#fields).
 
@@ -65,28 +62,16 @@ For a model with both roles, a step that drops a detection row also drops the co
 
 ### Detection (`object_detector`)
 
-Rules marked **(vNEXT)**: see [Validation rules](../README.md#validation-rules).
-
 - [ ] `V-post.det.decode-1` If `decode.boxes_output`, `scores_output` or `class_logits_output` is present, it must name an output with the matching semantic. `boxes_output` must name the primary output.
 - [ ] `V-post.det.decode-2` If `decode.score_field` or `decode.class_field` is present, it must appear in the `fields` of the primary `detections` output. When the primary output is `boxes`, these two decode fields must be absent. `score_field` and `scores_output` must not both be present. `class_field` and `class_logits_output` must not both be present.
 - [ ] `V-post.det.decode-3` A `detections` primary output must have a score source (`score_field` or `scores_output`), unless `selection: top_k`. A `boxes` primary output must have `scores_output` or `class_logits_output`.
-- [ ] `V-post.det.decode-4` **(vNEXT)** `decode.selection` must be present. It must be `none`, `top_k` or `nms`. If `requires_nms` is present, it must be `true` if and only if `selection: nms`. `may_include_non_person_classes` must be absent.
+- [ ] `V-post.det.decode-4` `decode.selection` must be present. It must be `none`, `top_k` or `nms` ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)).
 - [ ] `V-post.det.decode-5` If `decode.box_format` is present, it must be `xyxy`, `xywh` or `cxcywh`. If `decode.box_scale` is present, it must be `pixel`, `normalized_01` or `normalized_11`. If `decode.score_activation` is present, it must be `none` or `sigmoid`. If `decode.clamp_boxes` or `decode.is_person_only` is present, it must be a boolean.
 - [ ] `V-post.det.decode-6` If `decode.class_id_map` is present, its length must be `C` (the class dimension of `class_logits`, or the model class count). Each value must be `-1` or a non-negative integer. The non-negative values must be unique.
 - [ ] `V-post.det.decode-7` `decode.class_id_base` and `decode.person_class_id` must be non-negative integers. When `class_id_map` is present, `person_class_id` must be one of its non-negative values. Otherwise `person_class_id >= class_id_base` must be true.
 - [ ] `V-post.det.decode-8` If `decode.confidence_threshold_default` is present, it must be in `[0, 1]`.
 
 See also [Detection outputs](detection-outputs.md#validation-rules).
-
-## Legacy behaviour
-
-| Behaviour | `schema_version < vNEXT` (legacy) | `schema_version >= vNEXT` |
-|-----------|-----------------------------------|---------------------------|
-| `decode.selection` | Not authored; derived: `requires_nms: true` → `nms`, otherwise `none`. | Required. `requires_nms`, when present, must agree. |
-| `may_include_non_person_classes` | Accepted; `is_person_only = not may_include_non_person_classes` (default `true` → `false`). | Invalid; use `is_person_only`. |
-| `clamp_boxes` absent | Existing host behaviour. | Default `true`. |
-
-See also [Selection: none](selection-none.md#legacy-behaviour), [Selection: NMS](selection-nms.md#legacy-behaviour) and [Schema versioning](../format/versioning.md#legacy-behaviour).
 
 ## Implementer guidance
 
@@ -114,8 +99,8 @@ See also [Selection: none](selection-none.md#legacy-behaviour), [Selection: NMS]
 - Class mappings in use:
   - YOLO26: `class_id_base` is 0 and `person_class_id` is 0. The ONNX metadata `names` maps 0 to person. (Ultralytics-Exporter [`yolo_sidecar.py:29`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L29), [`yolo_sidecar.py:467-478`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L467-L478); `exports/detectors/object_detectors/yolo26/yolo26-nano_b2_fp32.onnx`, untracked, HEAD 2e0280e050fb2bb16bf7f9a1ba89af5f18db67d4)
   - RF-DETR: `person_class_id` is 1 (the COCO category id) and `is_person_only` is `false` (an 80-class model). (Roboflow-Exporter [`rf_detr/sidecar.py:271-284`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L271-L284))
-  - The legacy YOLO26 files write `may_include_non_person_classes` `true` for the 80-class detector. They write `false` for the pose model, whose `names` map is `{0: person}`. At `vNEXT`, `may_include_non_person_classes` is invalid and `is_person_only` replaces it. (Ultralytics-Exporter [`yolo_sidecar.py:475`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L475), [`yolo_sidecar.py:588`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L588); [Legacy behaviour](#legacy-behaviour); `exports/detectors/keypoint_detectors/yolo26/body/yolo26-body-nano_b2_fp32.onnx`, untracked, HEAD 2e0280e050fb2bb16bf7f9a1ba89af5f18db67d4)
+  - YOLO26: Ultralytics-Exporter writes `may_include_non_person_classes: true` for the 80-class detector. It writes `false` for the pose model, whose `names` map is `{0: person}`. In a sidecar, `is_person_only` is `false` for the detector and `true` for the pose model. (Ultralytics-Exporter [`yolo_sidecar.py:475`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L475), [`yolo_sidecar.py:588`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L588); `exports/detectors/keypoint_detectors/yolo26/body/yolo26-body-nano_b2_fp32.onnx`, untracked, HEAD 2e0280e050fb2bb16bf7f9a1ba89af5f18db67d4)
 - A class index plus 1 is a COCO category id only for a person-only model. The 80 COCO ids are not contiguous (12, 26, 29, 30, 45, 66, 68, 69, 71 and 83 are unused). The wrong mapping scored rtmdet-tiny at AP 0.066 instead of about 0.41. (OpenMMLab-Exporter [`notes/decisions/0001-coco-scorer-category-mapping.md:13-15`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/c955162d91998b94fc52d932ab6623a9f2a89a1f/notes/decisions/0001-coco-scorer-category-mapping.md#L13-L15))
 - `class_id_map` applies after the selection. The writer of Roboflow-Exporter refuses a model with a background slot, because a `class_id_map` cannot exclude a slot before the top-k. RF-DETR has no background slot. (Roboflow-Exporter [`rf_detr/sidecar.py:114-116`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L114-L116) and [`tests/test_sidecar.py:251-262`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/tests/test_sidecar.py#L251-L262))
 - Change the `decode` block of the sidecar in the same change as any decode rule. Roboflow-Exporter does this, and it keeps its two decoder copies in lockstep. (Roboflow-Exporter [`rf_detr/DECODE_RULES.md:23-37`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/DECODE_RULES.md#L23-L37))
-- The upstream of the MediaPipe person detector neither drops nor clamps boxes outside the image (`FILTER_OOB_BOX = False`). The `unproject_boxes` function of Qualcomm-Exporter does neither. At `vNEXT`, `clamp_boxes` defaults to `true`. Check `clamp_boxes` against the upstream. (Qualcomm-Exporter [`qai_catalog.py:61`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_catalog.py#L61) and [`qai_datasets.py:170-181`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_datasets.py#L170-L181); qai_hub_models 0.64.0 `models/mediapipe_pose/model.py:80` and `models/templates/mediapipe/app.py:375-382`, installed copy in the Qualcomm-Exporter `.venv`)
+- The upstream of the MediaPipe person detector neither drops nor clamps boxes outside the image (`FILTER_OOB_BOX = False`). The `unproject_boxes` function of Qualcomm-Exporter does neither. `clamp_boxes` defaults to `true`. Check `clamp_boxes` against the upstream. (Qualcomm-Exporter [`qai_catalog.py:61`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_catalog.py#L61) and [`qai_datasets.py:170-181`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_datasets.py#L170-L181); qai_hub_models 0.64.0 `models/mediapipe_pose/model.py:80` and `models/templates/mediapipe/app.py:375-382`, installed copy in the Qualcomm-Exporter `.venv`)

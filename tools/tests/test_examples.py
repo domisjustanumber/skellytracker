@@ -11,6 +11,7 @@ a sidecar. A fragment has one source: a package copy with the same bytes, or a
 `fragments` entry in `inventory.yaml` (ADR-yve0).
 """
 
+import functools
 import re
 from pathlib import Path
 
@@ -92,6 +93,89 @@ def test_example_uses_one_batch_form(path: Path) -> None:
     conversion = (resolved.get("batching") or {}).get("batch_conversion")
     assert (keys == {("3",)}) == (conversion is not None)
     assert conversion in (None, {"profile_id": "static-batch-v1", "source_batch_size": 3})
+
+
+SPEC_ROOT = REPO_ROOT / "specs" / "model-sidecar"
+# The keys of these maps are names (sizes, batch sizes, precisions, groups), not fields.
+NAME_KEYED_MAPS = {
+    "sizes",
+    "batch_artifacts",
+    "precision_artifacts",
+    "dtype",
+    "normalization_by_precision",
+    "groups",
+}
+# These map keypoint names to sources. The check does not read inside them.
+KEYPOINT_MAPS = {"canonical_mapping", "derived_points"}
+
+
+@functools.cache
+def defined_keys() -> frozenset[str]:
+    """Each name in backticks in a heading or a Field table of the spec index or a section file.
+
+    A dotted name such as `pose.connections[].edges` defines each of its parts. The index gives the
+    top-level keys, for example `batching`.
+    shortcut: a name, not a path. A defined key in the wrong place passes. Check paths when the
+    Fields tables give full paths.
+    shortcut: the check does not read inside `canonical_mapping` or `derived_points`, and each word
+    in backticks in a heading counts, also a value such as `none`. Parse the Field column only when
+    a misspelt key passes.
+    """
+    names: set[str] = set()
+    paths = [SPEC_ROOT / "sidecar-spec.md"]
+    paths += [p for folder in ("format", "common", "pre", "post") for p in (SPEC_ROOT / folder).glob("*.md")]
+    for path in paths:
+        fence = field_table = False
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if line.startswith("```"):
+                fence = not fence
+            field_table = line.startswith("|") and (field_table or line.startswith("| Field |"))
+            if fence:
+                continue
+            text = line if line.startswith("#") else line.split("|")[1] if field_table else ""
+            for name in re.findall(r"`([^`]+)`", text):
+                names.update(re.findall(r"[$\w]+", name))
+    return frozenset(names)
+
+
+def unknown_keys(node: object, parent: object = None) -> list[str]:
+    if isinstance(node, list):
+        return [key for item in node for key in unknown_keys(item, parent)]
+    if not isinstance(node, dict):
+        return []
+    found = []
+    for key, value in node.items():
+        if parent not in NAME_KEYED_MAPS and str(key) not in defined_keys():
+            found.append(str(key))
+        if key not in KEYPOINT_MAPS:
+            found += unknown_keys(value, key)
+    return found
+
+
+@pytest.mark.parametrize("path", example_paths(), ids=example_key)
+def test_example_has_only_keys_that_the_spec_defines(path: Path) -> None:
+    """A key that the spec does not define is invalid (V-format.composition-7, ADR-0QKK)."""
+    assert not unknown_keys(sidecar_refs.resolve(path, EXAMPLES_ROOT))
+
+
+@pytest.mark.parametrize(
+    ("where", "key"),
+    [
+        (("input", "resize"), "preserve_aspect_ratio"),
+        (("decode",), "requires_nms"),
+        (("decode",), "may_include_non_person_classes"),
+    ],
+)
+def test_the_key_check_finds_a_deleted_key(where: tuple[str, ...], key: str) -> None:
+    sidecar = sidecar_refs.resolve(example_paths()[0], EXAMPLES_ROOT)
+    functools.reduce(lambda node, name: node.setdefault(name, {}), where, sidecar)[key] = True
+    assert unknown_keys(sidecar) == [key]
+
+
+@pytest.mark.parametrize("path", example_paths(), ids=example_key)
+def test_example_declares_its_normalization(path: Path) -> None:
+    """`input.normalization` is required (ADR-0QKK)."""
+    assert "normalization" in sidecar_refs.resolve(path, EXAMPLES_ROOT)["input"]
 
 
 def placeholder_scan_paths() -> list[Path]:

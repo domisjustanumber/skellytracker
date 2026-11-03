@@ -2,8 +2,6 @@
 id: post.overlay
 title: Overlay
 kind: schema
-since: v2024.09.1019
-changed_in: []
 selectors:
   - overlay
 implemented_by:

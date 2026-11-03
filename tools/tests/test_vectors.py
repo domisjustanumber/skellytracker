@@ -938,9 +938,7 @@ ANCHORS: dict[str, list[tuple[str, tuple[str | int, ...], Any]]] = {
     "pre.normalize": [
         ("imagenet-rgb", ("expect", "channel_order"), "rgb"),
         ("imagenet-bgr", ("expect", "channel_order"), "bgr"),
-        ("imagenet-bgr-legacy", ("expect", "channel_order"), "bgr"),
-        ("imagenet-bgr-legacy", ("params", "schema_version"), "< vNEXT"),
-        ("imagenet-bgr", ("params", "schema_version"), "vNEXT"),
+        ("normalization-is-required", ("expect", "failed"), ["V-pre.normalize-1"]),
         # An all-black pixel: the well-known first row of ImageNet-normalized black.
         (
             "imagenet-rgb",
@@ -1046,17 +1044,11 @@ def test_normalize_anchors_come_from_the_published_imagenet_statistics() -> None
     section = "pre.normalize"
     rgb = case_named(section, "imagenet-rgb")
     bgr = case_named(section, "imagenet-bgr")
-    legacy = case_named(section, "imagenet-bgr-legacy")
     for index, (b, g, r) in enumerate(rgb["input"]["pixels_bgr"]):
         expected_rgb = (np.array([r, g, b]) / 255 - mean) / std
         expected_bgr = (np.array([b, g, r]) / 255 - mean[::-1]) / std[::-1]
-        expected_legacy = (np.array([b, g, r]) / 255 - mean) / std
         assert rgb["expect"]["values"][index] == pytest.approx(expected_rgb, abs=1e-5)
         assert bgr["expect"]["values"][index] == pytest.approx(expected_bgr, abs=1e-5)
-        assert legacy["expect"]["values"][index] == pytest.approx(
-            expected_legacy, abs=1e-5
-        )
-    assert bgr["expect"]["values"] != legacy["expect"]["values"]
 
 
 def test_normalize_channel_order_follows_color_format() -> None:
@@ -1066,9 +1058,6 @@ def test_normalize_channel_order_follows_color_format() -> None:
     assert case_named(section, "none-rgb")["expect"]["values"][2] == [250, 128, 10]
     assert case_named(section, "none-bgr")["expect"]["values"][2] == [10, 128, 250]
     assert case_named(section, "unit-float-rgb")["expect"]["values"][1] == [1, 1, 1]
-    assert case_named(section, "default-is-imagenet-bgr")["expect"][
-        "resolved_mode"
-    ] == ("imagenet_bgr")
     assert (
         case_named(section, "precision-override")["expect"]["resolved_mode"] == "none"
     )

@@ -2,8 +2,6 @@
 id: post.pose.canonical_mapping
 title: Canonical mapping
 kind: schema
-since: v2024.09.1019
-changed_in: []
 selectors:
   - pose.canonical_mapping
 implemented_by:

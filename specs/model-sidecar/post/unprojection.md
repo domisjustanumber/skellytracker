@@ -2,8 +2,6 @@
 id: post.unprojection
 title: Unprojection
 kind: postprocessor
-since: v2024.09.1019
-changed_in: [vNEXT]
 selectors: [role=object_detector, role=pose_estimator]
 implemented_by:
   validate: skellytracker/core/sidecar/model.py::PoseDecodeSpec._check_decode  # partial. Checks only where coordinate_scale is valid. DetectionDecodeSpec has no box_scale field.

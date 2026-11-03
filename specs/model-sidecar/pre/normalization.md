@@ -2,8 +2,6 @@
 id: pre.normalize
 title: Normalization
 kind: preprocessor
-since: v2024.09.1019
-changed_in: [vNEXT]
 selectors:
   - input.normalization=none
   - input.normalization=unit_float
@@ -11,8 +9,8 @@ selectors:
   - input.normalization=imagenet_rgb
   - input.normalization.mode=custom
 implemented_by:
-  validate: skellytracker/core/sidecar/model.py::CustomNormalization  # partial. Nothing checks input.color_format against the normalization mode.
-  forward: skellytracker/core/detectors/processing/image_preprocessing.py::build_normalization_fn  # partial. imagenet_bgr has only the legacy meaning (specs/model-sidecar/decisions/entries/0009-imagenet-bgr-meaning.md). No code reads color_format. none and unit_float return float32, not input.dtype.
+  validate: skellytracker/core/sidecar/model.py::CustomNormalization  # partial. Nothing checks input.color_format against the normalization mode. InputSpec defaults input.normalization to imagenet_bgr (V-pre.normalize-1).
+  forward: skellytracker/core/detectors/processing/image_preprocessing.py::build_normalization_fn  # partial. imagenet_bgr applies the RGB-ordered statistics to the B, G, R channels (specs/model-sidecar/decisions/entries/0009-imagenet-bgr-meaning.md). The spec does not define that computation. No code reads color_format. none and unit_float return float32, not input.dtype.
 external_impl: []
 tests:
   - skellytracker/tests/test_image_preprocessing.py
@@ -27,7 +25,7 @@ status: {spec: stable, validate: partial, forward: partial}
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `normalization` | string or object | no | See [Behaviour](#behaviour). The default is `imagenet_bgr` (the RTMPose convention). |
+| `normalization` | string or object | yes | See [Behaviour](#behaviour). It has no default ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)). |
 | `normalization_by_precision` | object | no | This optional override maps a precision key ([V-common.sizes_and_artifacts-6](../common/sizes-and-artifacts.md#validation-rules)) to a named mode. The values must be mode strings only. They must not be a `custom` object. Declare a `custom` normalization at the top-level `normalization`. |
 
 `normalization` and `normalization_by_precision` are fields of [`input`](../common/input.md#fields).
@@ -40,7 +38,7 @@ status: {spec: stable, validate: partial, forward: partial}
 |------|---------------|-------------|
 | `none` | Pass pixel values (0–255) unchanged, cast to `input.dtype`. Channel order from `input.color_format`. | Graphs that normalize internally, for example YOLOX |
 | `unit_float` | `pixel / 255.0` per channel → `[0, 1]`. Channel order from `input.color_format`. | YOLO26, which uses Ultralytics-style float input |
-| `imagenet_bgr` | `(pixel - mean) / std` on 0–255 pixels in **BGR** channel order: B uses mean `103.53` / std `57.375`, G `116.28` / `57.12`, R `123.675` / `58.395`. (Legacy sidecars use a different meaning; see [Version-aware compatibility](#legacy-behaviour).) | RTMDet |
+| `imagenet_bgr` | `(pixel - mean) / std` on 0–255 pixels in **BGR** channel order: B uses mean `103.53` / std `57.375`, G `116.28` / `57.12`, R `123.675` / `58.395`. | RTMDet |
 | `imagenet_rgb` | `(pixel - mean) / std` on 0–255 pixels in **RGB** channel order: R uses mean `123.675` / std `58.395`, G `116.28` / `57.12`, B `103.53` / `57.375`. | RTMW, RF-DETR |
 | `custom` | `(pixel * scale - mean) / std` on 0–255 channel values | Rare exports that match no named mode |
 
@@ -86,26 +84,16 @@ input:
     fp16: none
 ```
 
-The resolution order for a selected precision is: `normalization_by_precision[precision]` → top-level `normalization` → default `imagenet_bgr`.
+The resolution order for a selected precision is: `normalization_by_precision[precision]` → top-level `normalization`. There is no default ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)).
 
 The values of `normalization_by_precision` must be named mode strings only. A `custom` normalization must not be a per-precision override. Declare it at the top-level `normalization` instead.
 
-> ⚠️ The `imagenet_bgr` default is the RTMPose convention. Detector models must declare their normalization explicitly. For most detectors, the default gives incorrect normalization.
-
 ## Validation rules
 
-- [ ] `V-pre.normalize-1` If `input.normalization` is present, it must be a valid mode: `none`, `unit_float`, `imagenet_bgr`, `imagenet_rgb` or a `custom` object. A `custom` object must have `mode: custom`. If `mean` or `std` is present, it must have length 3. If `scale` is present, it must be positive. If `color_format` is present, it must be `rgb` or `bgr`.
+- [ ] `V-pre.normalize-1` `input.normalization` must be present ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)). It must be a valid mode: `none`, `unit_float`, `imagenet_bgr`, `imagenet_rgb` or a `custom` object. A `custom` object must have `mode: custom`. If `mean` or `std` is present, it must have length 3. If `scale` is present, it must be positive. If `color_format` is present, it must be `rgb` or `bgr`.
 - [ ] `V-pre.normalize-2` The keys of `normalization_by_precision` must be precision keys ([V-common.sizes_and_artifacts-6](../common/sizes-and-artifacts.md#validation-rules)). Its values must be valid mode strings. A value must not be a `custom` object.
 
 See also [Input](../common/input.md#validation-rules).
-
-## Legacy behaviour
-
-| Behaviour | `schema_version < vNEXT` (legacy) | `schema_version >= vNEXT` |
-|-----------|-----------------------------------|---------------------------|
-| `normalization: imagenet_bgr` | The RGB-ordered tuple — mean `(123.675, 116.28, 103.53)`, std `(58.395, 57.12, 57.375)` — applied in order to the B, G, R channels of the BGR frame (B uses `123.675`). This is the rtmlib convention used by the in-repo RTMPose and RTMW sidecars. | BGR-ordered statistics (B uses `103.53`); see [Behaviour](#behaviour). To keep the legacy behaviour in a `vNEXT` sidecar, declare `normalization: {mode: custom, color_format: bgr, mean: [123.675, 116.28, 103.53], std: [58.395, 57.12, 57.375]}`. |
-
-See also [Input](../common/input.md#legacy-behaviour).
 
 ## Implementer guidance
 
@@ -124,11 +112,10 @@ See also [Input](../common/input.md#legacy-behaviour).
 - OpenMMLab-Exporter checks the channel order of each family against its configs. (OpenMMLab-Exporter [`tests/test_identities.py:63-90`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/tests/test_identities.py#L63-L90))
 - RF-DETR uses `IMAGENET_MEAN` and `IMAGENET_STD` in RGB tensor order. This maps to `normalization: imagenet_rgb` and `color_format: rgb`. (Roboflow-Exporter [`rf_detr/sidecar.py:248-250`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L248-L250); Roboflow-Exporter [`onnx_runtime/preprocess.py:18-19`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/d0559b9c95a9ba9922045e2bc5aeae9fb596a6b1/onnx_runtime/preprocess.py#L18-L19))
 - The Ultralytics predictor flips BGR to RGB and then divides by 255. The validator also divides by 255. This maps to `normalization: unit_float`. (ultralytics 8.4.184 `engine/predictor.py:200-202` and `models/yolo/detect/val.py:109`, installed in the Ultralytics-Exporter `.venv`; Ultralytics-Exporter [`yolo_sidecar.py:383`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L383))
-- The Ultralytics-Exporter sidecar has no `color_format`. Its input contract has the keys `name`, `dtype`, `layout`, `normalization` and `resize`. This is valid only in a legacy file, because a `vNEXT` sidecar with `unit_float` must declare `color_format` ([V-common.input-6](../common/input.md#validation-rules)). (Ultralytics-Exporter [`yolo_sidecar.py:19`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L19), [`yolo_sidecar.py:379-390`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L379-L390))
 - The `qai_hub_models` input spec of the MediaPipe person detector has `value_range=(0.0, 1.0)` and `ColorFormat.RGB`. This maps to `normalization: unit_float`. The Qualcomm-Exporter sidecar writes `unit_float` and no `color_format`. Its host loads RGB with PIL and divides by 255. Its parity run uses a uniform [0, 1) input. (qai_hub_models 0.64.0 `models/mediapipe_pose/model.py:199-215`, installed in the Qualcomm-Exporter `.venv`; Qualcomm-Exporter [`qai_sidecar.py:139-150`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_sidecar.py#L139-L150) and [`qai_datasets.py:154-166`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_datasets.py#L154-L166); Qualcomm-Exporter [`qai_export.py:136`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/8d8e05a1c210dda5c2a1c4110bd7e4db860844fd/qai_export.py#L136))
 - Check the graph for normalization nodes before you choose a mode. The YOLO26 fp32 graph has no scaling in front of the model: the only consumer of the input `images` is `/model.0/conv/Conv`. The host must divide by 255. (Ultralytics-Exporter `exports/detectors/object_detectors/yolo26/yolo26-nano_b1_fp32.onnx`, untracked output)
 - The published RF-DETR fp32 artifact is byte-identical to the raw `model.export()` output. It has no normalization nodes. (Roboflow-Exporter [`pipeline/ARTIFACT_CONTRACT.md:9-18`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/4ae67c0f99a45a81a0e788e6abbda82db7811e32/pipeline/ARTIFACT_CONTRACT.md#L9-L18); Roboflow-Exporter [`rf_detr/export.py:82-98`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/4ae67c0f99a45a81a0e788e6abbda82db7811e32/rf_detr/export.py#L82-L98))
 - Older RF-DETR graphs have preprocessing inside the graph. They have the initializers `rfdetr_prep_scale` and `rfdetr_prep_bias` and the metadata `rfdetr_input_contract=float_rgb_nchw_0_255`. They expect raw 0-255 RGB, so host ImageNet normalization would normalize twice. The writer rejects them. (Roboflow-Exporter [`pipeline/artifacts.py:108-114`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/4ae67c0f99a45a81a0e788e6abbda82db7811e32/pipeline/artifacts.py#L108-L114); Roboflow-Exporter `exports/detectors/object_detectors/rfdetr/rfdetr-small_b1_fp32.onnx`, untracked output)
 - In one checkout (Roboflow-Exporter HEAD c64fd2a32a51e29cdbf9b1b31473c8e441839d07), 22 of the 24 local `.onnx` files were older graphs of this kind. The constants are `scale = 1 / (255 x std)` and `bias = -mean / std` for each channel. For example, the R channel has `0.0171248 = 1 / 58.395` and `-2.1179 = -123.675 / 58.395`. (Roboflow-Exporter `exports/detectors/object_detectors/rfdetr/*.onnx`, untracked output; initializer values checked in the graph)
 - The Ultralytics-Exporter writes `normalization_by_precision: {p: none}` only for a precision whose graph input dtype is `uint8` or `int8`. A test uses a `uint8` fixture. No real YOLO26 export triggers it, because every YOLO26 artifact takes float32 input. (Ultralytics-Exporter [`yolo_sidecar.py:391-393`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L391-L393); Ultralytics-Exporter [`tests/test_yolo_sidecar.py:274-284`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/tests/test_yolo_sidecar.py#L274-L284); Ultralytics-Exporter `exports/detectors/object_detectors/yolo26/yolo26.yaml:7`, untracked output)
-- The legacy `imagenet_bgr` is wrong for a model trained on RGB input. For an RTMPose hand model, it moved the keypoints by a median of 1.86, 6.98, 17.15, 3.10 and 12.34 px on five crops. `imagenet_rgb` gave 0.00 px. The RTMW sidecar in skellytracker may have the same defect. It is not measured. See [decision 0009](../decisions/entries/0009-imagenet-bgr-meaning.md) and the Open work item about the `imagenet_bgr` default note ([Open work](../decisions/README.md#open-work)). (the untracked hand models plan of OpenMMLab-Exporter (secondary); the only evidence)
+- The rtmlib computation applies the RGB-ordered statistics, mean `(123.675, 116.28, 103.53)` and std `(58.395, 57.12, 57.375)`, to the B, G, R channels of the BGR frame. The RTMPose and RTMW sidecars in skellytracker use it. It is wrong for a model trained on RGB input. For an RTMPose hand model, it moved the keypoints by a median of 1.86, 6.98, 17.15, 3.10 and 12.34 px on five crops. `imagenet_rgb` gave 0.00 px. The RTMW sidecar in skellytracker may have the same defect. It is not measured. See [decision 0009](../decisions/entries/0009-imagenet-bgr-meaning.md). (the untracked hand models plan of OpenMMLab-Exporter (secondary); the only evidence)

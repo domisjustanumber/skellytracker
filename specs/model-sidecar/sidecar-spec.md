@@ -198,7 +198,7 @@ Moved to [format/versioning.md](format/versioning.md#version-comparison).
 
 ### Version-aware compatibility
 
-Moved to [format/versioning.md](format/versioning.md#version-aware-compatibility).
+Removed. The spec has no legacy reading ([ADR-0QKK](../../decisions/entries/0QKK-no-legacy-layer.md)).
 
 ## Validation rules
 

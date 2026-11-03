@@ -1,7 +1,6 @@
 # 0012 — `fit` resize for RTMO; `pad_value` is required
 
-**Status:** absorbed into [`pre/resize-fit.md#behaviour`](../../pre/resize-fit.md#behaviour), 2026-10-24 (user; the first review of
-[0029](../../../../decisions/entries/0029-decision-log-read-path.md)). It was accepted on 2026-10-22 (backfilled from #81, which adds `fit` as change 2 of the summary in
+**Status:** absorbed into [`pre/resize-fit.md#behaviour`](../../pre/resize-fit.md#behaviour), 2026-10-24 (user; the first review of [0029](../../../../decisions/entries/0029-decision-log-read-path.md)); superseded by [0QKK](../../../../decisions/entries/0QKK-no-legacy-layer.md), 2026-11-02 (user; PR: pending). It was accepted on 2026-10-22 (backfilled from #81, which adds `fit` as change 2 of the summary in
 `specs/sidecar-spec.md` and implements it in `fit_preprocess` and `ResizeSpec`, and from
 OpenMMLab-Exporter 0020, dated 2026-10-21. The user decided on 2026-10-22 that `pad_value` is
 required.)
@@ -29,7 +28,7 @@ required.)
   the raw pixel value before normalization.
 - `pad_position`, `rounding`, `preserve_aspect_ratio` and `crop_policy` are invalid with `fit`.
 - Sidecars older than `vNEXT` do not have `fit`. See
-  [Version-aware compatibility](../../format/versioning.md#legacy-behaviour).
+  [Version-aware compatibility](../../format/versioning.md#version-aware-compatibility).
 
 ## Reason
 
@@ -128,3 +127,5 @@ _Edited 2026-10-26 (this PR): link repair._
 _Edited 2026-10-28 (this PR): link repair._
 
 _Edited 2026-10-29 (this PR): link repair._
+
+_Edited 2026-11-02 (this PR): link repair._

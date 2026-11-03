@@ -28,7 +28,7 @@ Change class `vnext`.
 6. **Where the rules go.** The content commit puts items 1 to 3 in the `output_shapes` row of
    [`batch_artifacts`](../../common/sizes-and-artifacts.md#sizessizeonnxbatch_artifacts),
    `V-common.sizes_and_artifacts-9` and
-   [Legacy behaviour](../../common/sizes-and-artifacts.md#legacy-behaviour) of
+   [Legacy behaviour](../../format/versioning.md#version-aware-compatibility) of
    `common.sizes_and_artifacts`, and the wording of item 2 in
    [Behaviour](../../common/outputs.md#behaviour) of `common.outputs`. It puts item 4 in
    [Behaviour](../../common/batch-conversion.md#behaviour) of `common.batch_conversion`.
@@ -86,3 +86,5 @@ These values are evidence only. They are not example edits. The re-export bundle
 - **Forced edits with the values above.** The forced-edit rules allow no added value.
 
 _Edited 2026-10-29 (this PR): link repair._
+
+_Edited 2026-11-02 (this PR): link repair._

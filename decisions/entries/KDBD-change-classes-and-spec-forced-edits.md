@@ -12,7 +12,7 @@ full. Items 1 to 6 are new. Item 7 restates the kept rules of 0009 by links
    of the proposal name it. The decision entry repeats it.
    `vnext` (the default) applies only at `vNEXT`. `clarification` applies at every
    `schema_version` and meets the four conditions of
-   [Clarifications](../../specs/model-sidecar/format/versioning.md#clarifications). `breaking` applies
+   [Clarifications](../../specs/model-sidecar/format/versioning.md#version-aware-compatibility). `breaking` applies
    at every `schema_version` and can make an older sidecar invalid.
 2. **Clarification.** It has no **(vNEXT)** mark and no "Legacy behaviour" row. Its summary row
    says "(every `schema_version`)". Part 2.6 gives the result in exact math before and after the
@@ -21,7 +21,7 @@ full. Items 1 to 6 are new. Item 7 restates the kept rules of 0009 by links
    that stops conforming is a recorded gap: the comment of its `implemented_by` line and
    "Implementer guidance". The rule has no time limit.
 3. **Breaking.** It needs its own entry with the explicit acceptance of the user, an item in
-   [Every-version changes](../../specs/model-sidecar/format/versioning.md#every-version-changes), a
+   [Every-version changes](../../specs/model-sidecar/format/versioning.md#version-aware-compatibility), a
    summary row that says "(breaking, every `schema_version`)", and an audit of
    `skellytracker/core/detectors/**/*.yaml`. A change of a package sidecar waits for the
    implementation stage, unless the entry gives a waiver of the user. The removal of `int8`
@@ -58,7 +58,7 @@ full. Items 1 to 6 are new. Item 7 restates the kept rules of 0009 by links
    The 0009 rules that stay (the `imagenet_bgr` meaning at each version, `imagenet_rgb`, and the
    `custom` form of the legacy computation) are in
    [Normalization modes](../../specs/model-sidecar/pre/normalization.md#behaviour) and
-   [Legacy behaviour](../../specs/model-sidecar/pre/normalization.md#legacy-behaviour). The 0009
+   [Legacy behaviour](../../specs/model-sidecar/format/versioning.md#version-aware-compatibility). The 0009
    sentence "The spec never applies `vNEXT` requirements to a legacy sidecar" changes: a
    clarification and an every-version change apply to a legacy sidecar. The legacy `imagenet_bgr`
    tuple is a result in exact math, so no clarification can change it.
@@ -86,3 +86,5 @@ full. Items 1 to 6 are new. Item 7 restates the kept rules of 0009 by links
 - **Remove an invalid example.** It breaks links and the traceability matrix.
 
 _Edited 2026-10-29 (this PR): link repair._
+
+_Edited 2026-11-02 (this PR): link repair._

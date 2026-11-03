@@ -80,14 +80,6 @@ def _default_resize(data: dict[str, Any]) -> bool:
     return True
 
 
-def _default_normalization(data: dict[str, Any]) -> bool:
-    input_ = _input_of(data)
-    if input_ is None or input_.get("normalization") is not None:
-        return False
-    input_["normalization"] = "imagenet_bgr"
-    return True
-
-
 NORMALIZATION_TABLE: tuple[NormalizationRule, ...] = (
     NormalizationRule(
         name="resize",
@@ -95,13 +87,6 @@ NORMALIZATION_TABLE: tuple[NormalizationRule, ...] = (
         heading="Fields",
         summary="When `input.resize` is absent, `input.resize.method` is `none`.",
         apply=_default_resize,
-    ),
-    NormalizationRule(
-        name="normalization",
-        section="pre.normalize",
-        heading="Fields",
-        summary="When `input.normalization` is absent, it is `imagenet_bgr`.",
-        apply=_default_normalization,
     ),
     NormalizationRule(
         name="custom_normalization",

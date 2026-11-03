@@ -2,8 +2,6 @@
 id: common.batch_conversion
 title: Batch conversion
 kind: common
-since: vNEXT
-changed_in: []
 selectors: [batching.batch_conversion]
 implemented_by:
   validate: missing  # BatchingSpec forbids the key batch_conversion (skellytracker/core/sidecar/model.py::BatchingSpec). No code checks V-common.batch_conversion-1 to V-common.batch_conversion-4.
@@ -68,16 +66,10 @@ Limits:
 
 ## Validation rules
 
-- [ ] `V-common.batch_conversion-1` **(vNEXT)** If `batching.batch_conversion` is present, it must have `profile_id` and `source_batch_size`, and no other key.
-- [ ] `V-common.batch_conversion-2` **(vNEXT)** `profile_id` must be a profile that this section defines.
-- [ ] `V-common.batch_conversion-3` **(vNEXT)** `source_batch_size` must be the int `3` ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)).
-- [ ] `V-common.batch_conversion-4` **(vNEXT)** For each size, the only key of `sizes.<size>.onnx.batch_artifacts` must be `"3"` ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)). Thus no size can have the key `dynamic`.
-
-For rules marked **(vNEXT)**, see [Validation rules](../README.md#validation-rules).
-
-## Legacy behaviour
-
-Availability before `vNEXT`: [Schema versioning](../format/versioning.md#legacy-behaviour).
+- [ ] `V-common.batch_conversion-1` If `batching.batch_conversion` is present, it must have `profile_id` and `source_batch_size`, and no other key.
+- [ ] `V-common.batch_conversion-2` `profile_id` must be a profile that this section defines.
+- [ ] `V-common.batch_conversion-3` `source_batch_size` must be the int `3` ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)).
+- [ ] `V-common.batch_conversion-4` For each size, the only key of `sizes.<size>.onnx.batch_artifacts` must be `"3"` ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)). Thus no size can have the key `dynamic`.
 
 ## Implementer guidance
 

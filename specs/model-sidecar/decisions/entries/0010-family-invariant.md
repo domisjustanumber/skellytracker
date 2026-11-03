@@ -22,7 +22,7 @@ A size entry holds only the three keys above.
 
 A sidecar with `schema_version < vNEXT` keeps the old rule. The host deep-merges every key of its size
 entries over the top level. The spec states this in the size-level keys row of
-[Version-aware compatibility](../../common/sizes-and-artifacts.md#legacy-behaviour).
+[Version-aware compatibility](../../format/versioning.md#version-aware-compatibility).
 
 The spec states the rule in these places:
 
@@ -81,3 +81,5 @@ _Edited 2026-10-26 (this PR): link repair._
 _Edited 2026-10-28 (this PR): link repair._
 
 _Edited 2026-10-29 (this PR): link repair._
+
+_Edited 2026-11-02 (this PR): link repair._

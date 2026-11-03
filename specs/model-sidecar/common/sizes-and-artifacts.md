@@ -2,8 +2,6 @@
 id: common.sizes_and_artifacts
 title: Sizes and artifacts
 kind: common
-since: v2024.09.1019
-changed_in: [vNEXT]
 selectors: []
 implemented_by:
   validate: skellytracker/core/sidecar/model.py::SizeSpec  # partial. The checks run only inside resolved_size. No check for V-common.sizes_and_artifacts-3 (specs/model-sidecar/decisions/entries/0010-family-invariant.md) or -8. -9 checks only that output_shapes exists. No check for -10 to -12: PrecisionArtifact forbids the key sha256. No check for -13: OnnxSpec accepts any number of integer keys in each size.
@@ -63,7 +61,7 @@ The full input tensor shape for a group is `[N] + sizes.<size>.input.shape[1:]`.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `sizes.<size>.onnx.batch_artifacts` | object | yes per size | The keys are quoted positive-integer native batch sizes (`"1"`, `"2"`, …) or a single `dynamic`. Before `vNEXT`, a size can list any number of batch keys. At `vNEXT`, [Batch forms](#batch-forms) gives the only valid key sets. |
+| `sizes.<size>.onnx.batch_artifacts` | object | yes per size | The keys are quoted positive-integer native batch sizes (`"1"`, `"2"`, …) or a single `dynamic`. [Batch forms](#batch-forms) gives the only valid key sets ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)). |
 | `sizes.<size>.onnx.batch_artifacts.<N>.precision_artifacts` | object | yes per group | Each key is `fp32` or `fp16`. Each value is the artifact descriptor for native batch `N`. |
 | `sizes.<size>.onnx.batch_artifacts.<N>.output_shapes` | array[array] | when `len(batch_artifacts) > 1` | The output tensor shapes for native batch `N`. They follow the order of the top-level `outputs`. |
 
@@ -72,14 +70,14 @@ The full input tensor shape for a group is `[N] + sizes.<size>.input.shape[1:]`.
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `filename` | string | yes | The ONNX filename, relative to the leaf model directory of the sidecar. |
-| `sha256` | string | `vNEXT`: yes | The SHA-256 of the file that `filename` names, in lowercase hex (64 characters). When `url` points to an archive, `sha256` is the hash of the ONNX file in the archive. |
+| `sha256` | string | yes | The SHA-256 of the file that `filename` names, in lowercase hex (64 characters). When `url` points to an archive, `sha256` is the hash of the ONNX file in the archive. |
 | `url` | string | no | The download location. It can point to an archive, for example `.zip`. |
 | `url_sha256` | string | yes when `url` present | The SHA-256 of the bytes at `url`, in lowercase hex. The bytes are the archive or file itself. |
 | `input_dtype` | string | no | This optional field is the ONNX graph input element type for this artifact. The default is `input.dtype[precision]`. If the field is authored, its value must agree with that default. |
 
 When the ONNX file is not present locally, the host can download it from `url`. In that case, the host must verify it against `url_sha256`. `url_sha256` is **mandatory** whenever `url` is present. `url` can point directly to an ONNX file, or to an archive. An archive can contain any number of files. It must contain exactly one ONNX file. The host extracts this file and renames it to `filename`. `url` is optional. A model that ships its ONNX files alongside the sidecar needs no download location.
 
-At `vNEXT`, every artifact has `sha256`, because every artifact has `filename`. `sha256` goes with `filename`, and `url_sha256` goes with `url`. When `url` points to an archive, `url_sha256` is the hash of the archive, and `sha256` is the hash of the ONNX file in it. When `url` points directly to an ONNX file, the two hashes have the same value. The host must verify the file that `filename` names against `sha256` when the file is present. The host must also verify it when the host downloads the file. For a download, the host first verifies the bytes at `url` against `url_sha256`. Then it verifies the ONNX file against `sha256`.
+Every artifact has `sha256`, because every artifact has `filename` ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)). `sha256` goes with `filename`, and `url_sha256` goes with `url`. When `url` points to an archive, `url_sha256` is the hash of the archive, and `sha256` is the hash of the ONNX file in it. When `url` points directly to an ONNX file, the two hashes have the same value. The host must verify the file that `filename` names against `sha256` when the file is present. The host must also verify it when the host downloads the file. For a download, the host first verifies the bytes at `url` against `url_sha256`. Then it verifies the ONNX file against `sha256`.
 
 **Reserved placeholder.** The value of 64 zeros (the character `0`, 64 times) is the reserved placeholder for `sha256`. The placeholder is valid only in the reference examples of this spec, under `specs/model-sidecar/examples/`. These examples name ONNX files that nobody can download. An example from an exporter that writes real hashes keeps those hashes. The other examples use the placeholder. A sidecar in any other location that holds the placeholder is invalid.
 
@@ -96,7 +94,7 @@ The input shape for a group is derived: `[N] + input.shape[1:]`. This is the bat
 
 #### Batch forms
 
-At `vNEXT`, a sidecar uses exactly one batch form. The form applies to every size and to every precision ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)). These are the three forms:
+A sidecar uses exactly one batch form. The form applies to every size and to every precision ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)). These are the three forms:
 
 | Form | Key of `batch_artifacts` in each size | `batching.batch_conversion` |
 |------|---------------------------------------|-----------------------------|
@@ -104,7 +102,7 @@ At `vNEXT`, a sidecar uses exactly one batch form. The form applies to every siz
 | b1 (a fallback) | only `"1"` | not present |
 | `dynamic` (a fallback, or the form of a model that cannot export a static graph) | only `dynamic` | not present |
 
-Any other key set is invalid. Examples are the key `"2"` or `"4"`, two keys in one size, and a different key in two sizes. Other batch sizes are not practical to run in production. A host can make another batch from a b3 artifact with the conversion profile ([Behaviour](batch-conversion.md#behaviour)). The [model addition workflow](../model-addition-workflow/validation-and-publishing.md#publishing) tells which form a family publishes. A sidecar before `vNEXT` keeps the old key rules ([Legacy behaviour](#legacy-behaviour)).
+Any other key set is invalid. Examples are the key `"2"` or `"4"`, two keys in one size, and a different key in two sizes. Other batch sizes are not practical to run in production. A host can make another batch from a b3 artifact with the conversion profile ([Behaviour](batch-conversion.md#behaviour)). The [model addition workflow](../model-addition-workflow/validation-and-publishing.md#publishing) tells which form a family publishes.
 
 ## Behaviour
 
@@ -116,31 +114,21 @@ Each size entry deep-merges over the shared top-level contract. It can set only 
 
 ## Validation rules
 
-For rules marked **(vNEXT)**, see [Validation rules](../README.md#validation-rules).
-
 - [ ] `V-common.sizes_and_artifacts-1` `sizes` must be present, with at least one size.
 - [ ] `V-common.sizes_and_artifacts-2` Each size must declare `input.shape` with `-1` as its batch axis (first dimension).
-- [ ] `V-common.sizes_and_artifacts-3` **(vNEXT)** A size entry must contain only `input.shape`, `input.resize.target_size` and `onnx`.
+- [ ] `V-common.sizes_and_artifacts-3` A size entry must contain only `input.shape`, `input.resize.target_size` and `onnx`.
 - [ ] `V-common.sizes_and_artifacts-4` If `method` is `letterbox`, `stretch`, `fit` or `affine_person_crop` and `supports_dynamic_size` is not set, the spatial dimensions of each size's `input.shape` must equal its `resize.target_size`. When `method: none` or `supports_dynamic_size: true`, the size must omit `target_size`. When `supports_dynamic_size: true`, the spatial dimensions must be `-1`.
 - [ ] `V-common.sizes_and_artifacts-5` The `onnx.batch_artifacts` of each size must use one of two key forms. The first form is quoted-string positive integer batch keys (`"1"`, `"2"`, …). The second form is a single `dynamic` key. It must not mix the two forms. Each group must have a non-empty `precision_artifacts`.
 - [ ] `V-common.sizes_and_artifacts-6` The precision keys must be the closed enum `fp32`/`fp16`.
 - [ ] `V-common.sizes_and_artifacts-7` Each precision artifact must declare `filename`. If it declares `url`, it must also declare `url_sha256`.
 - [ ] `V-common.sizes_and_artifacts-8` If a precision artifact has an `input_dtype`, it must agree with `input.dtype[precision]`.
 - [ ] `V-common.sizes_and_artifacts-9` When a size has `len(batch_artifacts) > 1`, each group must declare `output_shapes`. The length of that array must equal `len(outputs)`. Its entries must be arrays in the same order as `outputs`.
-- [ ] `V-common.sizes_and_artifacts-10` **(vNEXT)** Each precision artifact must declare `sha256`. Its value must be a string of 64 lowercase hexadecimal characters.
-- [ ] `V-common.sizes_and_artifacts-11` **(vNEXT)** When the file that `filename` names is present or downloaded, its SHA-256 must equal `sha256`.
-- [ ] `V-common.sizes_and_artifacts-12` **(vNEXT)** A sidecar outside `specs/model-sidecar/examples/` must not hold the reserved placeholder (64 zeros) as `sha256`.
-- [ ] `V-common.sizes_and_artifacts-13` **(vNEXT)** The sidecar must use one batch form ([Batch forms](#batch-forms)). The `onnx.batch_artifacts` of each size must have exactly one key. The key must be the same in every size. It must be `"3"`, `"1"` or `dynamic`. The key `"3"` is valid only when `batching.batch_conversion` is present.
+- [ ] `V-common.sizes_and_artifacts-10` Each precision artifact must declare `sha256`. Its value must be a string of 64 lowercase hexadecimal characters.
+- [ ] `V-common.sizes_and_artifacts-11` When the file that `filename` names is present or downloaded, its SHA-256 must equal `sha256`.
+- [ ] `V-common.sizes_and_artifacts-12` A sidecar outside `specs/model-sidecar/examples/` must not hold the reserved placeholder (64 zeros) as `sha256`.
+- [ ] `V-common.sizes_and_artifacts-13` The sidecar must use one batch form ([Batch forms](#batch-forms)). The `onnx.batch_artifacts` of each size must have exactly one key. The key must be the same in every size. It must be `"3"`, `"1"` or `dynamic`. The key `"3"` is valid only when `batching.batch_conversion` is present.
 
 See also [Input](input.md#validation-rules) and [Outputs](outputs.md#validation-rules).
-
-## Legacy behaviour
-
-| Behaviour | `schema_version < vNEXT` (legacy) | `schema_version >= vNEXT` |
-|-----------|-----------------------------------|---------------------------|
-| Size-level keys other than `input.shape`, `input.resize.target_size`, `onnx` | Deep-merged over the top level. | Invalid (family invariant). |
-| `sha256` of a precision artifact | Not available. Only `url_sha256` (with `url`) gives a hash. | Required on every artifact. |
-| Keys of `batch_artifacts` | Any number of quoted positive-integer keys, or a single `dynamic`, in each size. Two sizes can have different keys. | One batch form for the whole sidecar: `"3"` with `batching.batch_conversion`, `"1"`, or `dynamic` (`V-common.sizes_and_artifacts-13`). |
 
 ## Implementer guidance
 
