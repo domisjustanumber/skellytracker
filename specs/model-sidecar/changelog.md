@@ -8,7 +8,7 @@ The evidence for each change, and the findings for each repository, are in
 ### Scope of this revision
 
 This list names the models that the spec must describe
-([ADR-SS2E](../../decisions/entries/SS2E-spec-owned-version.md)):
+([ADR-6GE2](../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)):
 
 - OpenMMLab-Exporter: RTMDet (person-only family), RTMW and RTMO body7.
 - Ultralytics-Exporter: YOLO26 detection and YOLO26 pose.
@@ -30,13 +30,19 @@ The rules of this list:
 - The spec adds only the features that a model in this list needs.
   [Considered and deliberately not added](#considered-and-deliberately-not-added) lists the other
   features. That table is not a ban. The content PR that adds a feature of the table removes its row.
+- In this spec, "this revision" and "the current revision" mean the open target: the next
+  skellytracker release that includes a spec change. The open target is `2.0.0`. Each spec change
+  and each proposal targets the open target
+  ([ADR-6GE2](../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
 - In the spec-build stage, each accepted spec change goes into the spec. A proposal must give only
   the text of the current revision. A proposal must not give a second text for a later revision. A
   proposal that the user has not decided keeps the status `proposed`. The user never accepts a
   proposal for a later revision. A proposal that the user rejects becomes `rejected`
   ([Responses](model-addition-workflow/hand-over.md#responses)).
 - The spec has no RF-DETR reference example. The example returns when Roboflow-Exporter writes
-  sidecars with `schema_version: "1"`. The rules that RF-DETR motivated stay in the spec:
+  sidecars with `schema_version: "2.0.0"`
+  ([ADR-6GE2](../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). The rules
+  that RF-DETR motivated stay in the spec:
   - the `stretch` resize;
   - the `boxes`, `scores` and `class_logits` output semantics, with `class_axis`;
   - `selection: top_k`, with `class_id_map`.
@@ -75,6 +81,7 @@ The rules of this list:
 | 28 | Contract | `sizes.<size>.onnx.precision_artifacts.<precision>.input_dtype`, `outputs[].rank`, `input.resize.supports_dynamic_size`, `input.layout` and the `base` directive go. The input is NCHW. `$ref` is the only directive that reuses a file. A size entry holds `input.shape`, `input.resize.target_size` and `onnx`. The host does not merge a size entry over the top level. The section of each resize method holds the presence rules of its fields. The required `pose.geometry` (`2d` \| `3d`) replaces `pose.decode.is_3d`. Packed keypoints use the `decode.box_scale` of the detection decode, and `pose.decode.coordinate_scale` must not be present with `packed_keypoints`. One `imagenet` mode applies the ImageNet statistics in the channel order of `input.color_format`. It replaces `imagenet_bgr` and `imagenet_rgb`. `input.color_format` is required for each normalization mode, and `custom` uses it (`custom.color_format` goes). | user decision 2026-11-02: these fields gave no information, or two fields stated one fact ([ADR-90CE](../../decisions/entries/90CE-minimal-sidecar-contract.md)) | [`sizes`](common/sizes-and-artifacts.md#sizes), [`input`](common/input.md), [File composition](format/composition.md), [Pose schema](post/pose-schema.md), [Normalization](pre/normalization.md#behaviour) |
 | 29 | Decode | Selection behaviour states once the steps that the three selection modes share: the class mapping, the box conversion, the unprojection, the clamp, the size filter and the confidence threshold. `clamp_boxes` applies in each mode. The clamp sets each `x` to `[0, W]` and each `y` to `[0, H]` of the source image. New optional `decode.min_box_size` in source-image pixels: the host keeps a box only when its width and its height are both more than the value. When it is absent, the host drops no box for its size. The host assigns `person_class_id` only through `is_person_only`. A sidecar with no `class_field` and no `class_logits_output` must set `decode.is_person_only: true`. | user decision 2026-11-02: the three mode files did not agree, the clamp had no bounds, and mmdet drops small boxes (`min_bbox_size`) ([ADR-17KN](../../decisions/entries/17KN-one-selection-pipeline.md)) | [Selection behaviour](post/detection-decode.md#selection-behaviour), [`decode`](post/detection-decode.md#decode-detection), [Validation rules](post/detection-decode.md#validation-rules) |
 | 30 | Versioning | Each sidecar has `schema_version: "1"`, a quoted string. The spec owns the version. A skellytracker release does not set it. The pattern `vYYYY.0M.BUILD` goes. A host must reject a `schema_version` that it does not implement, with an error that names the version. The capability check lists such a sidecar as unavailable. The version comparison, the too-new rule, the pre-release rule and the exporter obligation go. The spec revision is `1.N`, the heading of an entry in [Revisions](#revisions). Each content commit increments `N` and adds a row to this table. From `1.0` on, a change that deletes a `V-` rule leaves its number unused. Do not publish a sidecar to a shared or remote sidecar root until a skellytracker release loads `schema_version: "1"`. | user decision 2026-11-02: the spec owns the version, and the placeholder was not a version ([ADR-SS2E](../../decisions/entries/SS2E-spec-owned-version.md)) | [Schema versioning](format/versioning.md), [Revisions](#revisions) |
+| 31 | Versioning | A spec version is the skellytracker version, in SemVer, that first releases a spec change. A release with no spec change makes no spec version. Each spec change and each proposal targets the next skellytracker release, the open target, with no version bump. The open target is `2.0.0`. Each sidecar has `schema_version: "2.0.0"`, a quoted string. `V-format.versioning-1`: `schema_version` must be a version heading of [Revisions](#revisions) or a recorded pre-release of the open target. A value can have a SemVer pre-release tag, for example `"2.0.0-rc.1"`. A pre-release host implements its own value and the open target. No other host implements a pre-release value. Each release lists the versions that it implements. A sidecar goes to a shared or remote sidecar root only after a final release loads its `schema_version`. A `V-` rule ID has no version part and never shifts. The revision `1.N` goes: each version heading has a `Released` line, and each content commit appends a `Row` line under the open target. | user decision 2026-11-03: one version number tells a user which skellytracker release loads a sidecar ([ADR-6GE2](../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)) | [Schema versioning](format/versioning.md), [Revisions](#revisions) |
 
 ### Considered and deliberately not added
 
@@ -99,34 +106,55 @@ A content change can add each of these later when a model needs it.
 
 ## `schema_version` history
 
-Each sidecar has `schema_version: "1"`. The spec owns the version, and a revision of the spec does
-not change it ([ADR-SS2E](../../decisions/entries/SS2E-spec-owned-version.md)).
+The valid `schema_version` values are in [Schema versioning](format/versioning.md)
+(`V-format.versioning-1`). The value is the skellytracker version, in SemVer, that first releases
+a spec change ([ADR-6GE2](../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
 
-| `schema_version` | From revision |
-|------------------|---------------|
-| `"1"` | `1.0` |
+| `schema_version` | From version |
+|------------------|--------------|
+| `"2.0.0"` | `2.0.0` |
 
 ## Revisions
 
-The spec revision is `1.N`. Each heading below is one revision. A content commit adds a revision:
-it increments `N` and adds one or more rows to the [summary of changes](#summary-of-changes). A
-rewording of normative text is also a content commit for this rule
-([ADR-SS2E](../../decisions/entries/SS2E-spec-owned-version.md)). Each revision has two fields:
+A spec version is the skellytracker version, in SemVer, that first releases a spec change. A
+release with no spec change makes no spec version. Each heading below is one spec version. The
+open target is the next skellytracker release that includes a spec change. Each spec change and
+each proposal targets the open target until its release
+([ADR-6GE2](../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
 
-- `Last row`: the highest row number of the summary of changes at this revision.
-- `Fingerprint`: the SHA-256 of the headings and the `V-` rule lines of the section files.
-  `tools/tests/test_changelog_revision.py` defines it. When the value is not current, that test
-  fails and gives the new value. The test sees only these lines. A content commit that changes
-  other normative text or `status.spec` must still add a revision. Review checks it.
+Each version heading has these lines:
 
-Do not change a revision after its commit. From `1.0` on, a change that deletes a `V-` rule leaves
-its number unused. No commit renumbers a rule.
+- `- Released: no.` or `- Released: yes.`: the first line. The open target has `no`.
+- ``- Row N: `<fingerprint>`.``: each content commit appends one such line under the open target,
+  with no version bump. `N` is the highest row number of the
+  [summary of changes](#summary-of-changes). The fingerprint is the SHA-256 of the headings and the
+  `V-` rule lines of the section files. `tools/tests/test_changelog_revision.py` defines it. When
+  the value is not current, that test fails and gives the new value. The test sees only these
+  lines. A content commit that changes other normative text or `status.spec` must still add a
+  summary row and a `Row` line. Review checks it. A rewording of normative text is also a content
+  commit for this rule.
+- `- Pre-release X.Y.Z-<tag>: row N.`: the session of a skellytracker pre-release appends this
+  line under its target. `N` is the last row that the pre-release holds. A pre-release value names
+  the open target at that pre-release.
 
-### 1.0
+The rules of the versions
+([ADR-6GE2](../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)):
 
-- Last row: 30.
-- Fingerprint: `9e0a04b72d3df453a263f3ac4bdf418b1412e1757722fe648a57bdf772e6b0ac`.
+- Do not change an earlier line.
+- Only the last heading can have `- Released: no.`.
+- The release sets `- Released: yes.`. A released version does not change.
+- After a release, the next change adds the heading of the version that the user bumps
+  skellytracker to on `development`.
+- When a release ships under another number, the release PR renames the unreleased heading and
+  changes the examples. The pre-release values of the old number become invalid.
+- A change that deletes a `V-` rule leaves its number unused. No commit renumbers a rule.
 
-Revision `1.0` is the first revision. It holds each row up to 30. It replaces the earlier
-`schema_version` history. No release shipped a sidecar of that history
-([ADR-SS2E](../../decisions/entries/SS2E-spec-owned-version.md) item 3).
+### 2.0.0
+
+- Released: no.
+- Row 30: `9e0a04b72d3df453a263f3ac4bdf418b1412e1757722fe648a57bdf772e6b0ac`.
+- Row 31: `4a5c08c2af251af63318fd8b8647a2f6e572e61fc38ebcf20840bd24f4a39a5a`.
+
+Version `2.0.0` is the first version. It replaces the revision `1.0` and the `schema_version`
+history before it. No release shipped a sidecar of that history
+([ADR-6GE2](../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).

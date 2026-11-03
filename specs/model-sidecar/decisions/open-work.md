@@ -15,18 +15,20 @@ This heading holds one item
 ([Re-export requests](../model-addition-workflow/hand-over.md#re-export-requests);
 [ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
 
-- **Rebuild of each example.** Each exporter rebuilds each of its examples on the spec revision
-  `1.0`. It answers with a new version of the `model` bundle of each example. Ultralytics-Exporter:
+- **Rebuild of each example.** Each exporter rebuilds each of its examples on the spec version
+  `2.0.0`. It answers with a new version of the `model` bundle of each example. Ultralytics-Exporter:
   `yolo26`, `yolo26-body`. OpenMMLab-Exporter: `rtmdet-person`, `rtmw-wholebody`, `rtmo-body7`.
   The prerequisite changes: the removal of the legacy layer
   ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)), the one batch field with
   `output_shapes` in each size ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)), the
-  minimal contract ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)), and the
+  minimal contract ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)), the
   one-statement fix of the selection pipeline
-  ([ADR-17KN](../../../decisions/entries/17KN-one-selection-pipeline.md)). The item names its
-  revision, and each of these changes is accepted. Thus the item is open
-  ([ADR-SS2E](../../../decisions/entries/SS2E-spec-owned-version.md) item 5). It closes when each
-  example is an export copy at `1.0`.
+  ([ADR-17KN](../../../decisions/entries/17KN-one-selection-pipeline.md)), and the spec version that
+  follows the skellytracker version
+  ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). The item
+  names its target, and each of these changes is accepted. Thus the item is open
+  ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md) item 5). It
+  closes when each example is an export copy at `2.0.0`.
 
 ## Spec defects
 

@@ -51,7 +51,7 @@ The resolver loads the referenced file. It replaces the whole directive node wit
 
 # detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml  (excerpt — see the full RTMW reference example)
 ---
-schema_version: "1"
+schema_version: "2.0.0"
 source:
   name: openmmlab-exporter
   version: 0.1.0

@@ -17,7 +17,7 @@ A sidecar can declare **both** roles. An example is a one-stage model such as RT
 
 - **One sidecar for each model family.** A single `{model_id}.yaml` file lists every size of the model. Within each size, the file lists every precision variant in `sizes.<size>.onnx.precision_artifacts`. One `batching.batch` gives the batch of every size and every precision ([batch form](common/sizes-and-artifacts.md#batch-forms); [ADR-JAA4](../../decisions/entries/JAA4-one-batch-field.md)).
 - **Multiple sizes in each sidecar.** A family ships several sizes in one file, for example `nano`, `small` and `medium`. All sizes share one preprocessing and output contract. They differ only in input size and ONNX artifacts (see [`sizes`](common/sizes-and-artifacts.md#sizes)).
-- **Traceable version.** The `schema_version` of a sidecar names the version of the contract that it follows. The spec owns the version, and each sidecar has `schema_version: "1"`. The [changelog](changelog.md) gives the revision `1.N` of the spec text ([ADR-SS2E](../../decisions/entries/SS2E-spec-owned-version.md)). A host loads only the versions that it implements. The spec has no legacy reading ([ADR-0QKK](../../decisions/entries/0QKK-no-legacy-layer.md)).
+- **Traceable version.** The `schema_version` of a sidecar names the spec version that it follows. The spec version is the skellytracker version, in SemVer, that first releases a spec change. The open target is `2.0.0`, so a sidecar has `schema_version: "2.0.0"`. The [changelog](changelog.md) gives the versions and the open target ([ADR-6GE2](../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). A host loads only the versions that it implements. The spec has no legacy reading ([ADR-0QKK](../../decisions/entries/0QKK-no-legacy-layer.md)).
 - **Single source of truth.** This document is the canonical, human-readable contract. **No software parses it at runtime.** skellytracker has Pydantic `BaseModel` subclasses (the `SidecarModel` hierarchy) that follow this document. The documentation and the validators must stay aligned.
 - **Composable.** A sidecar can include shared YAML fragments with `$ref`. `$ref` is the only directive that reuses a file ([ADR-90CE](../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 
@@ -39,7 +39,7 @@ To add a model or to request a change to this specification, follow the [model a
 
 The field `status.spec` in the front matter of a section file gives the status of the section: `stable` or `draft`. The front matter is the authority.
 
-1. A `draft` section is normative. A writer can write its fields ([ADR-SS2E](../../decisions/entries/SS2E-spec-owned-version.md)).
+1. A `draft` section is normative. A writer can write its fields ([ADR-QMKS](../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)).
 2. A content change can change a `draft` section. A spec change has no class ([ADR-NB5F](../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
 3. The first body line of a `draft` section, after its title, is the banner "This section is a draft. ...". A `stable` section has no banner.
 4. A new section starts as `draft`. A changed `stable` section stays `stable`.

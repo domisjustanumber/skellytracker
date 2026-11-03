@@ -1,5 +1,5 @@
 ---
-schema_version: "1"
+schema_version: "2.0.0"
 source:
   name: ultralytics-exporter
   version: 0.1.0

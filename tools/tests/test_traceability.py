@@ -518,9 +518,9 @@ def test_the_scan_finds_no_sidecar_outside_the_examples() -> None:
     assert not any(name.startswith("skellytracker/") for name in scan().skipped)
 
 
-def test_the_example_sidecars_have_schema_version_1() -> None:
+def test_the_example_sidecars_have_schema_version_2_0_0() -> None:
     for sidecar in scan().sidecars:
-        assert sidecar.schema_version == "1", sidecar.key
+        assert sidecar.schema_version == "2.0.0", sidecar.key
 
 
 def test_the_scan_skips_every_other_yaml_file() -> None:
@@ -556,7 +556,7 @@ def test_a_skipped_file_is_not_a_sidecar() -> None:
 
 # Synthetic sidecars pin the semantics, so a new example model does not change these tests.
 NONE_DETECTOR = {
-    "schema_version": "1",
+    "schema_version": "2.0.0",
     "model_id": "none-detector",
     "role": ["object_detector"],
     "input": {"resize": {"method": "letterbox"}, "normalization": "imagenet"},
@@ -569,7 +569,7 @@ NO_SELECTION_DETECTOR = {
     "model_id": "no-selection-detector",
 }
 NMS_DETECTOR = {
-    "schema_version": "1",
+    "schema_version": "2.0.0",
     "model_id": "nms-detector",
     "role": ["object_detector"],
     "input": {"resize": {"method": "letterbox"}, "normalization": "unit_float"},
@@ -577,7 +577,7 @@ NMS_DETECTOR = {
     "outputs": [{"semantic": "boxes"}],
 }
 BOTTOM_UP_POSE = {
-    "schema_version": "1",
+    "schema_version": "2.0.0",
     "model_id": "bottom-up-pose",
     "role": ["object_detector", "pose_estimator"],
     "input": {"resize": {"method": "fit"}, "normalization": "unit_float"},

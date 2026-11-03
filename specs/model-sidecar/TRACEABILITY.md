@@ -48,11 +48,11 @@ The `post.pose.bottom_up` row shows `packed` when an output packs the keypoints 
 
 | Key | Root | File | `schema_version` | `role` |
 |---|---|---|---|---|
-| `rtmdet-person@openmmlab-exporter` | example | `specs/model-sidecar/examples/detectors/object_detectors/rtmdet-person/rtmdet-person.yaml` | `1` | `object_detector` |
-| `rtmo-body7@openmmlab-exporter` | example | `specs/model-sidecar/examples/detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml` | `1` | `object_detector`, `pose_estimator` |
-| `rtmw-wholebody@openmmlab-exporter` | example | `specs/model-sidecar/examples/detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml` | `1` | `pose_estimator` |
-| `yolo26@ultralytics-exporter` | example | `specs/model-sidecar/examples/detectors/object_detectors/yolo26/yolo26.yaml` | `1` | `object_detector` |
-| `yolo26-body@ultralytics-exporter` | example | `specs/model-sidecar/examples/detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml` | `1` | `object_detector`, `pose_estimator` |
+| `rtmdet-person@openmmlab-exporter` | example | `specs/model-sidecar/examples/detectors/object_detectors/rtmdet-person/rtmdet-person.yaml` | `2.0.0` | `object_detector` |
+| `rtmo-body7@openmmlab-exporter` | example | `specs/model-sidecar/examples/detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml` | `2.0.0` | `object_detector`, `pose_estimator` |
+| `rtmw-wholebody@openmmlab-exporter` | example | `specs/model-sidecar/examples/detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml` | `2.0.0` | `pose_estimator` |
+| `yolo26@ultralytics-exporter` | example | `specs/model-sidecar/examples/detectors/object_detectors/yolo26/yolo26.yaml` | `2.0.0` | `object_detector` |
+| `yolo26-body@ultralytics-exporter` | example | `specs/model-sidecar/examples/detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml` | `2.0.0` | `object_detector`, `pose_estimator` |
 
 ## Implementation status
 

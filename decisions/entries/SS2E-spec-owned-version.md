@@ -1,6 +1,6 @@
 # SS2E — Spec-owned version
 
-**Status:** accepted, 2026-11-02 (user; PR: pending).
+**Status:** accepted, 2026-11-02 (user; PR: pending); superseded by [6GE2](6GE2-spec-version-follows-skellytracker.md), 2026-11-03 (user; PR: pending).
 
 ## Decision
 

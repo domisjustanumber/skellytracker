@@ -51,3 +51,4 @@ the reason for a decision. The [index](README.md) has the Active and Proposed en
 | [TA0G](entries/TA0G-vector-cases-and-reference-modules.md) | Refusals as a rule ID or `no-rule`, `failed` lists, `outcome()`, 256 KiB, union landing check, module imports and fixtures; supersedes a33q and 0013 | superseded by 8DSW |
 | [KDBD](entries/KDBD-change-classes-and-spec-forced-edits.md) | Change classes `vnext`, `clarification` and `breaking`; the legacy index rule; spec-forced example edits and the part 7 table; supersedes 0009 | superseded by NB5F |
 | [JB5J](entries/JB5J-one-batch-form-for-each-sidecar.md) | One batch form for each `vNEXT` sidecar: b3 with `batch_conversion`, b1 or `dynamic`; the check by default; V0; publish rule for each verdict; supersedes JC4T | superseded by JAA4 |
+| [SS2E](entries/SS2E-spec-owned-version.md) | Spec-owned version: `schema_version: "1"`, revision `1.N`, reset to `1.0`, no `vNEXT`; supersedes YNX0 | superseded by 6GE2 |
