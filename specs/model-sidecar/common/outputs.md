@@ -51,7 +51,7 @@ See also [Identity](identity.md#validation-rules), [Sizes and artifacts](sizes-a
 
 ## Authoring guidance
 
-- Write `-1` for an axis that depends on the input size, and put the concrete shapes in `output_shapes`.
+- Write `-1` for an axis that depends on the input size, and put the shape of each size in `output_shapes`, with `-1` for an axis that the graph leaves symbolic.
   - RTMDet-person has 2100 rows at 320 and 8400 at 640. The family shapes are `[-1, -1, 4]` (`boxes`) and `[-1, -1]` (`scores`). (OpenMMLab-Exporter [`rtmdet_person/sidecar.py:110-126`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmdet_person/sidecar.py#L110-L126) and [`rtmdet_person/contract.py:10-11`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/f946e5dd10174202330c63a7ddf1e9f5d4b543d7/rtmdet_person/contract.py#L10-L11))
   - RF-DETR writes `[-1, 300, 4]` and `[-1, 300, 91]` with `rank: 3`. The spec has no `rank`. Do not write it ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). (Roboflow-Exporter [`rf_detr/sidecar.py:254-270`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L254-L270))
   - The RTMW SimCC outputs have no `shape`, because the bin counts scale with the input size. They have only the `semantic` (`simcc_y` when the name ends in `y`, else `simcc_x`), `keypoint_axis: 1` and `keypoint_count: 133`. (OpenMMLab-Exporter [`rtmw/sidecar.py:108-120`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmw/sidecar.py#L108-L120))
