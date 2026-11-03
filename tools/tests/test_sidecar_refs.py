@@ -26,7 +26,7 @@ URL_HASH = "a6d08a575c9d8b8da7ce6c13e1c7341047fca35594a6d35de04b739eba51139c"
 POINTS = "- nose\n- left_eye\n"
 OUTER = "# a fragment that refers to a fragment\nnames: {$ref: points.yaml}\nextra: 1\n"
 BASE = (
-    '---\nschema_version: "vNEXT"\nmodel_id: b\n'
+    '---\nschema_version: "1"\nmodel_id: b\n'
     "display_name: Base\nrole: [object_detector]\ninput:\n  layout: NCHW\n  name: images\n"
 )
 # One flow artifact, one flow artifact with spaces and quotes, one block artifact.
@@ -34,7 +34,7 @@ SIDECAR = f"""\
 ---
 # A comment line
 
-schema_version: "vNEXT"      # the version
+schema_version: "1"      # the version
 model_id:   m
 pose:
   tracked_points:   {{$ref: "../../shared/points.yaml"}}    # flow form, double quotes
@@ -62,7 +62,7 @@ ONNX_FILES = {
     "m-nano_b1_int8.onnx": b"int8 bytes",
 }
 DERIVED_REL = "detectors/object_detectors/d/d.yaml"
-DERIVED = 'schema_version: "vNEXT"\nbase: ../b/b.yaml  # parent\nmodel_id: d\n'
+DERIVED = 'schema_version: "1"\nbase: ../b/b.yaml  # parent\nmodel_id: d\n'
 
 
 def sha(data: bytes) -> str:
@@ -232,7 +232,7 @@ def test_a_base_in_block_form_gets_a_sha256_line(root: Path) -> None:
     put(
         root,
         {
-            DERIVED_REL: 'schema_version: "vNEXT"\nbase:\n  $ref: ../b/b.yaml\nmodel_id: d\n'
+            DERIVED_REL: 'schema_version: "1"\nbase:\n  $ref: ../b/b.yaml\nmodel_id: d\n'
         },
     )
     path = root / DERIVED_REL
@@ -773,7 +773,7 @@ def test_source_is_inserted_after_schema_version_when_the_file_has_none(
     write(sidecar_of(root), root, source=("openmmlab-exporter", "0.1.0"))
     text = read(root)
     assert (
-        'schema_version: "vNEXT"      # the version\nsource:\n  name: openmmlab-exporter\n  version: 0.1.0\nmodel_id:'
+        'schema_version: "1"      # the version\nsource:\n  name: openmmlab-exporter\n  version: 0.1.0\nmodel_id:'
         in text
     )
     assert yaml.safe_load(text)["source"] == {
@@ -784,14 +784,14 @@ def test_source_is_inserted_after_schema_version_when_the_file_has_none(
 
 
 def test_source_never_changes_an_existing_source(root: Path) -> None:
-    text = "schema_version: vNEXT\nsource:\n  name:   other   # mine\n  version: '9'\nmodel_id: m\n"
+    text = "schema_version: '1'\nsource:\n  name:   other   # mine\n  version: '9'\nmodel_id: m\n"
     put(root, {SIDECAR_REL: text})
     assert write(sidecar_of(root), root, source=("openmmlab-exporter", "0.1.0")) == []
     assert read(root) == text
 
 
 def test_a_version_that_would_load_as_a_number_is_quoted(root: Path) -> None:
-    put(root, {SIDECAR_REL: "schema_version: vNEXT\nmodel_id: m\n"})
+    put(root, {SIDECAR_REL: "schema_version: '1'\nmodel_id: m\n"})
     write(sidecar_of(root), root, source=("skellytracker", "1.0"))
     text = read(root)
     assert 'version: "1.0"' in text

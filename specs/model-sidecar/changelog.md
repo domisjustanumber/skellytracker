@@ -1,18 +1,14 @@
 # Changelog
 
-## Changes in this revision (`vNEXT`)
+## Changes in this revision
 
-> **For reviewers.** This revision extends the contract so that every model in
-> [Scope of this revision](#scope-of-this-revision) can be described. The evidence behind each
-> change, and the per-repo findings, are in
-> [`sidecar-exporter-coverage.md`](../../notes/sidecar-exporter-coverage.md).
-> `vNEXT` is a placeholder: replace it with the skellytracker release that ships this revision before
-> merging. It appears in the examples and the changelog.
+The evidence for each change, and the findings for each repository, are in
+[`sidecar-exporter-coverage.md`](../../notes/sidecar-exporter-coverage.md).
 
 ### Scope of this revision
 
-This list names the models that `vNEXT` must describe
-([ADR-YNX0](decisions/entries/YNX0-vnext-scope-list.md)):
+This list names the models that the spec must describe
+([ADR-SS2E](../../decisions/entries/SS2E-spec-owned-version.md)):
 
 - OpenMMLab-Exporter: RTMDet (person-only family), RTMW and RTMO body7.
 - Ultralytics-Exporter: YOLO26 detection and YOLO26 pose.
@@ -29,26 +25,23 @@ The rules of this list:
   - skellytracker lands the model with the verdict `describes`. The PR of its example adds the model.
 - These two edits apply the rule. They need no decision entry. To remove a model from this list,
   write a new decision entry.
-- A new batch-conversion profile joins `vNEXT` in the same way: the user accepts a change proposal
+- A new batch-conversion profile joins the spec in the same way: the user accepts a change proposal
   for the profile, and each model that needs it joins this list.
-- `vNEXT` adds only the features that a model in this list needs.
+- The spec adds only the features that a model in this list needs.
   [Considered and deliberately not added](#considered-and-deliberately-not-added) lists the other
   features. That table is not a ban. The content PR that adds a feature of the table removes its row.
-- In the spec-build stage, each accepted spec change goes into `vNEXT`. A proposal must give only
-  the `vNEXT` text. A proposal must not give a second text for a later revision. A proposal that the
-  user has not decided keeps the status `proposed`. The user never accepts a proposal for a later
-  revision. A proposal that the user rejects becomes `rejected`
+- In the spec-build stage, each accepted spec change goes into the spec. A proposal must give only
+  the text of the current revision. A proposal must not give a second text for a later revision. A
+  proposal that the user has not decided keeps the status `proposed`. The user never accepts a
+  proposal for a later revision. A proposal that the user rejects becomes `rejected`
   ([Responses](model-addition-workflow/hand-over.md#responses)).
 - The spec has no RF-DETR reference example. The example returns when Roboflow-Exporter writes
-  `vNEXT` sidecars. The rules that RF-DETR motivated stay in the spec:
+  sidecars with `schema_version: "1"`. The rules that RF-DETR motivated stay in the spec:
   - the `stretch` resize;
   - the `boxes`, `scores` and `class_logits` output semantics, with `class_axis`;
   - `selection: top_k`, with `class_id_map`.
 - Do not remove an RF-DETR rule because the spec has no RF-DETR example.
 - This list is not the verdict `out of scope` of an intake row.
-- `vNEXT` is a placeholder name for this revision.
-  [Publishing](model-addition-workflow/validation-and-publishing.md#publishing) gives the release
-  step that replaces it.
 
 ### Summary of changes
 
@@ -59,14 +52,14 @@ The rules of this list:
 | 3 | Resize | Letterbox gains **required** `pad_position` (`top_left` \| `center`) and `rounding` (`half_even` \| `half_up`), with normative centre offsets and an exact-inverse unprojection. `pad_value` accepts a scalar or a per-channel array. | YOLO26 (centre, half-even), RTMDet (top-left, half-up) | [`input.resize`](pre/resize-letterbox.md) |
 | 4 | Resize | Normative unprojection for each method. All resizes are defined as **non-antialiased**. | all | [Unprojection](post/unprojection.md) |
 | 5 | Resize | `affine_person_crop` defines `maintain_aspect_ratio` and adds `crop_policy.pad_value`. | RTMW | [`input.resize`](pre/resize-affine-person-crop.md) |
-| 6 | Input | New `input.color_format` (`rgb` \| `bgr`), required when normalization is channel-agnostic (`none`/`unit_float`). `none` now means "pixels unchanged in `input.dtype`" (not only uint8). The `imagenet_*` channel order is spelled out. **Behaviour change:** at `vNEXT`, `imagenet_bgr` applies BGR-ordered statistics (B mean `103.53`). | YOLO26, RF-DETR, RTMDet | [`input`](common/input.md), [Normalization modes](pre/normalization.md) |
+| 6 | Input | New `input.color_format` (`rgb` \| `bgr`), required when normalization is channel-agnostic (`none`/`unit_float`). `none` now means "pixels unchanged in `input.dtype`" (not only uint8). The `imagenet_*` channel order is spelled out. `imagenet_bgr` applies BGR-ordered statistics (B mean `103.53`). | YOLO26, RF-DETR, RTMDet | [`input`](common/input.md), [Normalization modes](pre/normalization.md) |
 | 7 | Outputs | New detection semantics `boxes`, `scores` and `class_logits`, with `class_axis`. Output names must be unique. | RF-DETR (`dets` + `labels` logits), RTMDet (`boxes` + `scores`) | [Detection output semantics](post/detection-outputs.md#detection-output-semantics) |
 | 8 | Decode | Detection `decode` is rebuilt around a required `selection` (`none` \| `top_k` \| `nms`), output bindings (`boxes_output`, `scores_output`, `class_logits_output`), `box_scale`, `score_activation`, `class_id_map`, `clamp_boxes` and an `nms` block (`iou_threshold`, `score_threshold`, `class_agnostic`, `post_nms_top_k`). Stage order is normative, and score thresholds are strict (`>`). | RF-DETR (query×class top-k), RTMDet (host NMS), YOLO26 (graph-final rows) | [`decode`](post/detection-decode.md#decode-detection), [Selection behaviour](post/detection-decode.md#selection-behaviour) |
 | 9 | Decode | `max_detections` no longer defaults to `300`. It now only declares the graph's fixed final row count, and is valid only with `selection: none`. `selection` replaces `requires_nms`. `is_person_only` replaces `may_include_non_person_classes` (the old field inverted). The two old keys are removed. | all detectors; [ADR-0QKK](../../decisions/entries/0QKK-no-legacy-layer.md) | [`decode`](post/detection-decode.md#decode-detection) |
 | 10 | Pose | New `packed_keypoints` on a `detections` output, for one-stage models that pack keypoints into the detection row. | YOLO26 pose (`[N,300,57]`) | [`packed_keypoints`](post/pose-bottom-up.md#packed_keypoints-bottom-up-packed-rows) |
 | 11 | Pose | Bottom-up instance count is no longer overloaded onto `max_detections`. Pose rows are row-aligned with detection rows and gathered by the surviving detection indices. | YOLO26 pose, RTMO | [Bottom-up decode](post/pose-bottom-up.md#bottom-up-decode) |
 | 12 | Sizes | **Family invariant:** a size entry may set only `input.shape`, `input.resize.target_size` and `onnx`. Sizes that differ in channel order, normalization or post-processing must be separate families. This resolves the earlier contradiction between "a size is a partial document deep-merged over the top level" and "sizes share the output contract". | RTMDet person-only vs 80-class families (different NMS contracts and class counts) | [`sizes`](common/sizes-and-artifacts.md#sizes) |
-| 14 | Examples | Reference examples rewritten for this revision. RTMDet person, RTMW and RTMO body7 come from real `vNEXT` exports of OpenMMLab-Exporter; RTMDet uses its person-only family. YOLO26 detection and YOLO26 pose are written from Ultralytics-Exporter's code and will be replaced when it emits `vNEXT`. There is no RF-DETR example until Roboflow-Exporter is overhauled. All batch keys are quoted. | all | [Reference examples](examples/README.md) |
+| 14 | Examples | Reference examples rewritten for this revision. RTMDet person, RTMW and RTMO body7 come from real exports of OpenMMLab-Exporter; RTMDet uses its person-only family. YOLO26 detection and YOLO26 pose are written from Ultralytics-Exporter's code and will be replaced when it emits sidecars of this spec. There is no RF-DETR example until Roboflow-Exporter is overhauled. All batch keys are quoted. | all | [Reference examples](examples/README.md) |
 | 15 | Identity | New top-level `source` mapping with `name` (the package name of the library that wrote the sidecar) and `version` (the version of that library). It is required. | sidecar catalogs: `model_id` is not unique across sources (decision [0016](../../decisions/entries/0016-sidecar-catalogs.md)) | [`source`](common/identity.md#fields) |
 | 16 | Composition | A `$ref` mapping holds exactly `$ref` and `sha256`. `base` has the same `{$ref, sha256}` form. `sha256` is the SHA-256 of the exact bytes of the target file. The resolver checks it before it parses the file. Sidecars and fragments are UTF-8 without a BOM, with LF line endings. | sidecar catalogs: each root holds its own fragments (decision [0016](../../decisions/entries/0016-sidecar-catalogs.md)) | [Reference hashes](format/composition.md#reference-hashes) |
 | 17 | Artifacts | New artifact field `sha256` with `filename`: the SHA-256 of the file that `filename` names. It is required on every artifact. `url_sha256` stays with `url`. A 64-zero placeholder is valid only in the spec's examples. | ONNX files next to a sidecar have no hash (decision [0016](../../decisions/entries/0016-sidecar-catalogs.md)) | [`sizes.<size>.onnx.batch_artifacts`](common/sizes-and-artifacts.md#sizessizeonnxbatch_artifacts) |
@@ -75,16 +68,17 @@ The rules of this list:
 | 20 | Batching | New draft `batching.batch_conversion` (`profile_id`, `source_batch_size`) and profile `static-batch-v1`. | YOLO26 (static-batch exports) | [Batch conversion](common/batch-conversion.md) |
 | 21 | Artifacts | The precision keys are `fp32` and `fp16`. The key `int8` is removed. | int8 AP loss (YOLO26, RF-DETR) | [`batch_artifacts`](common/sizes-and-artifacts.md#sizessizeonnxbatch_artifacts) |
 | 23 | Batching | The `static-batch-v1` condition on external data applies to each tensor, not only to the initializers. The profile names the tensors that its steps do not change. Limits names the 1-D shape constants `[S, ...]` in which the first value is not the batch. | `model_batch_convert` checks each tensor; `S = 3` ([ADR-JC4T](../../decisions/entries/JC4T-parity-gates-and-batch-conversion-check.md)) | [`static-batch-v1`](common/batch-conversion.md#static-batch-v1) |
-| 24 | Status | A `draft` section is normative for `vNEXT`. It has a banner. A new section starts as `draft`. It becomes `stable` in a content change when it has an accepted entry, a `kind: export` example or a "no model" reason, verified vectors and a case for each `V-` rule. The release step stops on a `draft` section. | `common.batch_conversion` was `draft` with no rule for the status ([ADR-QMKS](../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)) | [Section status](README.md#section-status) |
-| 25 | Batching | A sidecar uses one batch form for every size and every precision: only the key `"3"` with `batching.batch_conversion` (`source_batch_size: 3`), only the key `"1"`, or only the key `dynamic`. Any other key set is invalid. `source_batch_size` must be `3`. | user decision 2026-10-29: other batch sizes are not practical to run in production ([ADR-JB5J](../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)) | [Batch forms](common/sizes-and-artifacts.md#batch-forms), [Batch conversion](common/batch-conversion.md#validation-rules) |
-| 26 | Versioning | The spec has no legacy layer. Each sidecar has one reading: the current text. A host loads only the versions that it implements. This change removes the **(vNEXT)** marks, the "Legacy behaviour" headings, the version-aware compatibility rules, the clarification rule and the list of every-version changes. It also removes the one-key `$ref` form, the string `base` form, the default `source` and the load from the package root only. `input.normalization` is required and has no default. It removes the keys `requires_nms`, `preserve_aspect_ratio` and `may_include_non_person_classes`. A key that the spec does not define is invalid. A change that removes a rule numbers the other rules of its section again from 1. | user decision 2026-10-30: no backward compatibility; nothing has shipped ([ADR-0QKK](../../decisions/entries/0QKK-no-legacy-layer.md)) | [Schema versioning](format/versioning.md#semantics), [File composition](format/composition.md#reference-hashes), [unknown keys](format/composition.md#validation-rules), [Identity](common/identity.md#fields), [Normalization](pre/normalization.md) |
+| 24 | Status | A `draft` section is normative. It has a banner. A new section starts as `draft`. It becomes `stable` in a content change when it has an accepted entry, a `kind: export` example or a "no model" reason, verified vectors and a case for each `V-` rule. The release step stops on a `draft` section. | `common.batch_conversion` was `draft` with no rule for the status ([ADR-QMKS](../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)) | [Section status](README.md#section-status) |
+| 25 | Batching | A sidecar uses one batch form for every size and every precision: only the key `"3"` with `batching.batch_conversion`, only the key `"1"`, or only the key `dynamic`. Any other key set is invalid. | user decision 2026-10-29: other batch sizes are not practical to run in production ([ADR-JB5J](../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)) | [Batch forms](common/sizes-and-artifacts.md#batch-forms), [Batch conversion](common/batch-conversion.md#validation-rules) |
+| 26 | Versioning | The spec has no legacy layer. Each sidecar has one reading: the current text. A host loads only the versions that it implements. This change removes the version marks of the rules, the "Legacy behaviour" headings, the version-aware compatibility rules, the clarification rule and the list of every-version changes. It also removes the one-key `$ref` form, the string `base` form, the default `source` and the load from the package root only. `input.normalization` is required and has no default. It removes the keys `requires_nms`, `preserve_aspect_ratio` and `may_include_non_person_classes`. A key that the spec does not define is invalid. Until revision `1.0`, a change that removes a rule numbers the other rules of its section again from 1. | user decision 2026-10-30: no backward compatibility; nothing has shipped ([ADR-0QKK](../../decisions/entries/0QKK-no-legacy-layer.md)) | [Schema versioning](format/versioning.md#semantics), [File composition](format/composition.md#reference-hashes), [unknown keys](format/composition.md#validation-rules), [Identity](common/identity.md#fields), [Normalization](pre/normalization.md) |
 | 27 | Batching | Each sidecar has one `batching.batch`: `3`, `1` or `dynamic`. It applies to each size and each precision. `batching.batch_conversion` has only `profile_id`, and it is present if and only if `batch` is `3`. This change removes `source_batch_size`, `batching.batch_axis`, the derived `native_batch_sizes` and `sizes.<size>.onnx.batch_artifacts`. Dim 0 is the batch axis. Each size has `onnx.precision_artifacts` and `onnx.output_shapes`. `output_shapes` has one entry for each output of `outputs`, in the same order. Each fixed dim of `outputs[].shape` is equal in the entry or `-1`. An axis that the graph leaves symbolic stays `-1`. Dim 0 of each entry equals `batch`, or is `-1` for `dynamic`. A `dynamic` file name has no batch segment. | user decision 2026-11-02: `source_batch_size` and `batch_axis` had one valid value each; without `output_shapes`, a host cannot get the RTMDet row count `A` ([ADR-JAA4](../../decisions/entries/JAA4-one-batch-field.md)) | [`sizes.<size>.onnx`](common/sizes-and-artifacts.md#sizessizeonnx), [Batching](common/batching.md#fields), [Batch conversion](common/batch-conversion.md#validation-rules) |
 | 28 | Contract | `sizes.<size>.onnx.precision_artifacts.<precision>.input_dtype`, `outputs[].rank`, `input.resize.supports_dynamic_size`, `input.layout` and the `base` directive go. The input is NCHW. `$ref` is the only directive that reuses a file. A size entry holds `input.shape`, `input.resize.target_size` and `onnx`. The host does not merge a size entry over the top level. The section of each resize method holds the presence rules of its fields. The required `pose.geometry` (`2d` \| `3d`) replaces `pose.decode.is_3d`. Packed keypoints use the `decode.box_scale` of the detection decode, and `pose.decode.coordinate_scale` must not be present with `packed_keypoints`. One `imagenet` mode applies the ImageNet statistics in the channel order of `input.color_format`. It replaces `imagenet_bgr` and `imagenet_rgb`. `input.color_format` is required for each normalization mode, and `custom` uses it (`custom.color_format` goes). | user decision 2026-11-02: these fields gave no information, or two fields stated one fact ([ADR-90CE](../../decisions/entries/90CE-minimal-sidecar-contract.md)) | [`sizes`](common/sizes-and-artifacts.md#sizes), [`input`](common/input.md), [File composition](format/composition.md), [Pose schema](post/pose-schema.md), [Normalization](pre/normalization.md#behaviour) |
 | 29 | Decode | Selection behaviour states once the steps that the three selection modes share: the class mapping, the box conversion, the unprojection, the clamp, the size filter and the confidence threshold. `clamp_boxes` applies in each mode. The clamp sets each `x` to `[0, W]` and each `y` to `[0, H]` of the source image. New optional `decode.min_box_size` in source-image pixels: the host keeps a box only when its width and its height are both more than the value. When it is absent, the host drops no box for its size. The host assigns `person_class_id` only through `is_person_only`. A sidecar with no `class_field` and no `class_logits_output` must set `decode.is_person_only: true`. | user decision 2026-11-02: the three mode files did not agree, the clamp had no bounds, and mmdet drops small boxes (`min_bbox_size`) ([ADR-17KN](../../decisions/entries/17KN-one-selection-pipeline.md)) | [Selection behaviour](post/detection-decode.md#selection-behaviour), [`decode`](post/detection-decode.md#decode-detection), [Validation rules](post/detection-decode.md#validation-rules) |
+| 30 | Versioning | Each sidecar has `schema_version: "1"`, a quoted string. The spec owns the version. A skellytracker release does not set it. The pattern `vYYYY.0M.BUILD` goes. A host must reject a `schema_version` that it does not implement, with an error that names the version. The capability check lists such a sidecar as unavailable. The version comparison, the too-new rule, the pre-release rule and the exporter obligation go. The spec revision is `1.N`, the heading of an entry in [Revisions](#revisions). Each content commit increments `N` and adds a row to this table. From `1.0` on, a change that deletes a `V-` rule leaves its number unused. Do not publish a sidecar to a shared or remote sidecar root until a skellytracker release loads `schema_version: "1"`. | user decision 2026-11-02: the spec owns the version, and the placeholder was not a version ([ADR-SS2E](../../decisions/entries/SS2E-spec-owned-version.md)) | [Schema versioning](format/versioning.md), [Revisions](#revisions) |
 
 ### Considered and deliberately not added
 
-Each of these can be added later as a non-breaking schema bump when a model needs it.
+A content change can add each of these later when a model needs it.
 
 | Field / feature | Reason |
 |-----------------|--------|
@@ -92,7 +86,7 @@ Each of these can be added later as a non-breaking schema bump when a model need
 | `crop_policy.border_mode`, rotated crops | Only constant borders and zero rotation are used. |
 | `score_activation: softmax` | No model uses it, and how it behaves over gap/background slots is unresolved. |
 | `class_id_map_before_selection` | No model maps classes before top-k. "Map after selection" is normative. |
-| `class_logits` with `selection: nms` (each (row, class) pair above the score threshold becomes a candidate, followed by per-class NMS) | No in-scope family needs it after the COCO-80 RTMDet family was dropped. On NMS-free RTMDet-tiny it reproduced PyTorch AP (0.4114 vs 0.4112), while best-class-per-row `scores` + `class_ids` lost 0.0051 AP / 0.031 AR. Add it as a non-breaking bump if a multi-class NMS-free family appears. |
+| `class_logits` with `selection: nms` (each (row, class) pair above the score threshold becomes a candidate, followed by per-class NMS) | No in-scope family needs it after the COCO-80 RTMDet family was dropped. On NMS-free RTMDet-tiny it reproduced PyTorch AP (0.4114 vs 0.4112), while best-class-per-row `scores` + `class_ids` lost 0.0051 AP / 0.031 AR. Add it in a content change if a multi-class NMS-free family appears. |
 | `nms.pre_nms_top_k` | A flat candidate list cannot express mmdet's per-level `nms_pre` cap without a `level_strides` field. It had no measured AP effect on person-medium (0.6255 with or without it) or RTMDet-tiny (0.4114 vs 0.4113); it only reduces host NMS time at near-zero score thresholds. |
 | `graph_candidate_limit` | Informational only; the host can't act on it. NMS-free exports have no graph-side candidate cap to describe; detection outputs are normatively the complete candidate set. |
 | `pose.decode.instance_count` | The count is derivable from the detection row axis (change 11). |
@@ -100,14 +94,39 @@ Each of these can be added later as a non-breaking schema bump when a model need
 
 ### Compatibility impact
 
-- Sidecars authored at `vNEXT` must declare `decode.selection`, `input.normalization`, letterbox `pad_position`/`rounding`, `fit` `pad_value`, `input.color_format` and, for a pose sidecar, `pose.geometry`. A size entry holds only `input.shape`, `input.resize.target_size` and `onnx`.
-- Sidecars authored at `vNEXT` must also declare `source`. They must declare `sha256` on each `$ref` and each artifact. The sidecar and each file in its tree must be UTF-8 without a BOM, with LF line endings.
+- Each sidecar must declare `decode.selection`, `input.normalization`, letterbox `pad_position`/`rounding`, `fit` `pad_value`, `input.color_format` and, for a pose sidecar, `pose.geometry`. A size entry holds only `input.shape`, `input.resize.target_size` and `onnx`.
+- Each sidecar must also declare `source`. It must declare `sha256` on each `$ref` and each artifact. The sidecar and each file in its tree must be UTF-8 without a BOM, with LF line endings.
 
 ## `schema_version` history
 
-Every future contract change must bump `schema_version` to the skellytracker release that ships it and add a changelog row below.
+Each sidecar has `schema_version: "1"`. The spec owns the version, and a revision of the spec does
+not change it ([ADR-SS2E](../../decisions/entries/SS2E-spec-owned-version.md)).
 
-| `schema_version` | Changes |
-|------------------|---------|
-| `v2024.09.1019` | Initial YAML sidecar spec: one `{model_id}.yaml` per family with a `sizes` map (size × batch × precision via `sizes.<size>.onnx.batch_artifacts`, incl. `dynamic` batch); `role` arrays (`object_detector` / `pose_estimator`, both for one-stage models); `input.normalization` modes (`none`, `unit_float`, `imagenet_bgr`, `imagenet_rgb`, `custom`) with per-precision overrides; `input.resize` (`letterbox` + `affine_person_crop` with `crop_policy`, `none`, interpolation); file composition (`$ref` includes + `base` inheritance with `null`-delete); `schema_version` as skellytracker version string; pose output contract (`tracked_points`, named `connections`, `derived_points`, `canonical_mapping` with `prefixes`, `overlay.groups`, `requires_object_detector`, and `decode` incl. `simcc`/`heatmap`/`coordinate` with 3D via `is_3d`/`depth_unit`/`depth_range`); VRM 1.0 canonical skeleton with current→VRM name-migration note; `detectors/` storage layout; per-precision `url` with mandatory `url_sha256`. |
-| `vNEXT` | Added `input.resize.method: stretch`; added `input.resize.method: fit` (full-frame affine fit with unrounded scale and centred fractional offsets; `pad_value` required) and its unprojection; letterbox `pad_position` and `rounding` (required), normative letterbox/centre-offset algorithm, per-method unprojection, non-antialiased resizes, scalar/array `pad_value`; `affine_person_crop` warp definition with `crop_policy.pad_value`. Added `input.color_format` (required for `none`/`unit_float`); `none` passes pixels in `input.dtype`; explicit `imagenet_*` channel order (`imagenet_bgr` now uses BGR-ordered statistics). Added detection semantics `boxes`, `scores` and `class_logits` (with `class_axis`); output names must be unique. Rebuilt detection `decode` around required `selection` (`none`/`top_k`/`nms`) with output bindings, `box_scale`, `score_activation`, `class_id_map`, `top_k`, `nms` (`iou_threshold`, `score_threshold`, `class_agnostic`, `post_nms_top_k`), `clamp_boxes`, `is_person_only`; normative stage order and strict thresholds. `max_detections` has no default and only declares a graph-final row count; `requires_nms` and `may_include_non_person_classes` are removed. Added `packed_keypoints` for bottom-up packed rows; bottom-up pose rows follow surviving detection rows. Size entries limited to `input.shape`, `input.resize.target_size`, `onnx` (family invariant). Added the required top-level `source` (`name`, `version`). Each `$ref` and each `base` holds the `sha256` of its target file, in the form `{$ref, sha256}`. Sidecars and fragments are UTF-8 without a BOM, with LF line endings. Each artifact holds the `sha256` of the file that `filename` names. `{cache_dir}` has the new name `{sidecar_root}`. Added the sidecar roots and the discovery rule. Added the draft `batching.batch_conversion` (`profile_id`, `source_batch_size`) and the profile `static-batch-v1`. Removed the precision key `int8`. The precision keys are `fp32` and `fp16`. In the draft profile `static-batch-v1`, no tensor can use external data. The steps do not change sparse initializers, `TENSORS` attributes or subgraphs. Step 3 also changes a 1-D shape constant `[S, ...]` in which the first value is not the batch. Added the section status rules: a `draft` section is normative for `vNEXT`, and a content change makes it `stable` when its graduation conditions are true. A sidecar uses one batch form: `"3"` with `batching.batch_conversion`, `"1"` or `dynamic`. `source_batch_size` must be `3`. Removed the legacy layer: each sidecar has one reading, and a host loads only the versions that it implements. `input.normalization` is required. A key that the spec does not define is invalid. One `batching.batch` (`3`, `1` or `dynamic`) applies to each size and each precision. `source_batch_size`, `batch_axis` and `sizes.<size>.onnx.batch_artifacts` are removed. Each size has `onnx.precision_artifacts` and `onnx.output_shapes`, with one entry for each output. A symbolic axis stays `-1`. Removed `input_dtype`, `outputs[].rank`, `supports_dynamic_size`, `input.layout` (the input is NCHW) and `base`. A size entry is not merged over the top level. Added the required `pose.geometry` (`2d`/`3d`); `is_3d` is removed. Packed keypoints use `decode.box_scale`. One `imagenet` mode in the channel order of `input.color_format` replaces `imagenet_bgr` and `imagenet_rgb`; `custom.color_format` is removed; `input.color_format` is required. The shared steps of the selection modes are stated once. `clamp_boxes` applies in each selection mode, with the bounds `[0, W]` and `[0, H]`. Added `decode.min_box_size`. A sidecar with no class source must set `decode.is_person_only: true`. |
+| `schema_version` | From revision |
+|------------------|---------------|
+| `"1"` | `1.0` |
+
+## Revisions
+
+The spec revision is `1.N`. Each heading below is one revision. A content commit adds a revision:
+it increments `N` and adds one or more rows to the [summary of changes](#summary-of-changes). A
+rewording of normative text is also a content commit for this rule
+([ADR-SS2E](../../decisions/entries/SS2E-spec-owned-version.md)). Each revision has two fields:
+
+- `Last row`: the highest row number of the summary of changes at this revision.
+- `Fingerprint`: the SHA-256 of the headings and the `V-` rule lines of the section files.
+  `tools/tests/test_changelog_revision.py` defines it. When the value is not current, that test
+  fails and gives the new value. The test sees only these lines. A content commit that changes
+  other normative text or `status.spec` must still add a revision. Review checks it.
+
+Do not change a revision after its commit. From `1.0` on, a change that deletes a `V-` rule leaves
+its number unused. No commit renumbers a rule.
+
+### 1.0
+
+- Last row: 30.
+- Fingerprint: `9e0a04b72d3df453a263f3ac4bdf418b1412e1757722fe648a57bdf772e6b0ac`.
+
+Revision `1.0` is the first revision. It holds each row up to 30. It replaces the earlier
+`schema_version` history. No release shipped a sidecar of that history
+([ADR-SS2E](../../decisions/entries/SS2E-spec-owned-version.md) item 3).

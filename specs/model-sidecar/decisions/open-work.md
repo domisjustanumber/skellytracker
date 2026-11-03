@@ -15,22 +15,23 @@ This heading holds one item
 ([Re-export requests](../model-addition-workflow/hand-over.md#re-export-requests);
 [ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
 
-- **Rebuild of each example.** Each exporter rebuilds each of its examples on one spec revision. It
-  answers with a new version of the `model` bundle of each example. Ultralytics-Exporter:
+- **Rebuild of each example.** Each exporter rebuilds each of its examples on the spec revision
+  `1.0`. It answers with a new version of the `model` bundle of each example. Ultralytics-Exporter:
   `yolo26`, `yolo26-body`. OpenMMLab-Exporter: `rtmdet-person`, `rtmw-wholebody`, `rtmo-body7`.
-  The prerequisite changes: the removal of the legacy layer, the one batch field with
-  `output_shapes` in each size, the minimal contract, and the one-statement fix of the selection
-  pipeline. The item opens when it names the revision and each
-  of these changes is accepted. It closes when each example is an export copy at that revision. Do
-  not start a rebuild before it opens.
+  The prerequisite changes: the removal of the legacy layer
+  ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)), the one batch field with
+  `output_shapes` in each size ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)), the
+  minimal contract ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)), and the
+  one-statement fix of the selection pipeline
+  ([ADR-17KN](../../../decisions/entries/17KN-one-selection-pipeline.md)). The item names its
+  revision, and each of these changes is accepted. Thus the item is open
+  ([ADR-SS2E](../../../decisions/entries/SS2E-spec-owned-version.md) item 5). It closes when each
+  example is an export copy at `1.0`.
 
 ## Spec defects
 
 Spec defects found during the spec-build stage. Each one needs a content change to the spec:
 
-- The reviewer note of the `vNEXT` change summary says to replace `vNEXT` "before merging". The
-  workflow section [Publishing](../model-addition-workflow/validation-and-publishing.md#publishing) moves that step to
-  the first release that ships the spec.
 - The [Identity](../common/identity.md) fields say that a keypoint detector's
   `model_id` is `{family}-{part}`. This rule cannot express a variant suffix or a stage suffix. The
   RTMO body7 reference example, copied from OpenMMLab-Exporter, has `model_id: rtmo-body7` in the
@@ -52,11 +53,6 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   with no class source must set `decode.is_person_only: true`, so each detection gets the class
   `person_class_id` ([`V-post.det.decode-9`](../post/detection-decode.md#validation-rules);
   [ADR-17KN](../../../decisions/entries/17KN-one-selection-pipeline.md)).
-- `schema_version` is quoted (`"vNEXT"`) in some
-  [reference examples](../examples/README.md) and not quoted in the RTMO
-  body7 example. YAML reads both forms as the same string, but the examples do not agree.
-- Two identity rules of [Validation rules](../format/versioning.md#validation-rules) cannot pass
-  at `vNEXT`: the version pattern, and the support by the installed release.
 - The spec does not state these facts, but a host needs them:
   - the resizes run on the source dtype (for example `uint8`, before the cast). Roboflow-Exporter
     divides by 255 and then resizes the float image ([`onnx_runtime/preprocess.py:75-78`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/d0559b9c95a9ba9922045e2bc5aeae9fb596a6b1/onnx_runtime/preprocess.py#L75-L78));

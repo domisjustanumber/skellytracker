@@ -31,7 +31,7 @@ def test_relative_links_resolve(path: Path) -> None:
             "`packed_keypoints` (bottom-up packed rows)",
             "packed_keypoints-bottom-up-packed-rows",
         ),
-        ("Changes in this revision (`vNEXT`)", "changes-in-this-revision-vnext"),
+        ("Changes in this revision (`1.0`)", "changes-in-this-revision-10"),
         ("`sizes.<size>.onnx.batch_artifacts`", "sizessizeonnxbatch_artifacts"),
         ("Text <em>tag</em> here", "text-tag-here"),
     ],

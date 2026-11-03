@@ -2,7 +2,7 @@
 """Write and check the reference hashes of a sidecar tree.
 
 A sidecar can refer to other files. A ``$ref`` directive includes a fragment. A top-level ``base``
-directive inherits from another sidecar. At ``vNEXT`` each of them holds the SHA-256 of the exact
+directive inherits from another sidecar. Each of them holds the SHA-256 of the exact
 bytes of its target file, and each ``filename`` artifact holds the SHA-256 of its ONNX file. The
 rules are in ``decisions/entries/0016-sidecar-catalogs.md`` and in
 ``specs/model-sidecar/format/composition.md``.

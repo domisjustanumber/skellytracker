@@ -2,7 +2,7 @@
 
 The examples under `specs/model-sidecar/examples/` follow the package's `detectors/`
 layout, so their `$ref` paths resolve with that folder as the sidecar root. They
-are not validated against `SidecarModel`: it does not load `vNEXT` sidecars yet.
+are not validated against `SidecarModel`: it does not load `schema_version: "1"` yet.
 They resolve with `sidecar_refs.resolve`, because the package resolver refuses
 `sha256` next to `$ref`.
 
@@ -63,7 +63,7 @@ def test_there_are_examples() -> None:
 def test_example_resolves(path: Path) -> None:
     resolved = sidecar_refs.resolve(path, EXAMPLES_ROOT)
     assert resolved["model_id"] == path.stem
-    assert resolved["schema_version"] == "vNEXT"
+    assert resolved["schema_version"] == "1"
 
 
 @pytest.mark.parametrize("path", example_paths(), ids=example_key)

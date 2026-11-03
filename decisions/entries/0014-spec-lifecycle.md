@@ -257,7 +257,7 @@ contract unit (one section). The intake links to each proposal. The proposal tem
   Thus a tagged version such as `v2026.10.1-dev` cannot replace `vNEXT` either. The installed version
   is `__version__ = "v2024.09.1019"` in `skellytracker/__init__.py`.
 - The spec's reviewer note in
-  [Changes in this revision (`vNEXT`)](../../specs/model-sidecar/changelog.md#changes-in-this-revision-vnext)
+  [Changes in this revision (`vNEXT`)](../../specs/model-sidecar/changelog.md#changes-in-this-revision)
   says "replace it with the skellytracker release that ships this revision before merging".
 - **A near-miss that looked correct.** On four test images, a `center` letterbox matches RTMO's
   upstream `BottomupResize` only at scale 1. At other scales the keypoints move by up to 17.89 px,
@@ -294,3 +294,5 @@ _Edited 2026-10-26 (PR: pending (uncommitted on dom/sidecar-implementation)): li
 _Edited 2026-10-28 (this PR): link repair._
 
 _Edited 2026-10-29 (this PR): link repair._
+
+_Edited 2026-11-02 (this PR): link repair._

@@ -20,7 +20,7 @@ status: {spec: stable, validate: partial, load: partial}
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `schema_version` | string | yes | The skellytracker release version for which the author wrote the sidecar (see [Schema versioning](../format/versioning.md)). The pattern is `vYYYY.0M.BUILD[-TAG]`. |
+| `schema_version` | string | yes | The version of the sidecar contract that the author followed. It is the string `"1"` (see [Schema versioning](../format/versioning.md); [ADR-SS2E](../../../decisions/entries/SS2E-spec-owned-version.md)). |
 | `source` | object | yes | The library that wrote the sidecar. The mapping has exactly two fields: `name` and `version`. `source` has no default ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)). |
 | `source.name` | string | yes | The package name of the library that wrote the sidecar. Examples: `openmmlab-exporter` and `skellytracker`. The pattern is `^[a-z0-9]+(-[a-z0-9]+)*$`. |
 | `source.version` | string | yes | The released version of that library, for example `0.1.0`. |

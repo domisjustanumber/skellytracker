@@ -370,7 +370,7 @@ def test_a_data_only_validator_case_names_no_function() -> None:
 @pytest.mark.parametrize(
     ("change", "problem"),
     [
-        ({"spec_revision": "vNEXT"}, "not a file form"),
+        ({"spec_revision": "1.0"}, "not a file form"),
         ({"tolerance": -1}, "tolerance must be a number"),
         ({"notes": "one note"}, "notes must be a list"),
         ({"checks": ["input-size-follows-resize"]}, "also a check of the case"),
@@ -654,7 +654,7 @@ def test_the_generator_stops_on_a_file_that_breaks_the_form() -> None:
     with pytest.raises(CaseDefect, match="-inverse: an Inverse case follows the case"):
         mv.run_file({**data, "cases": [inverse, forward, *data["cases"][2:]]})
     with pytest.raises(CaseDefect, match="the keys .* are not a file form"):
-        mv.run_file({**data, "spec_revision": "vNEXT"})
+        mv.run_file({**data, "spec_revision": "1.0"})
 
 
 # ---------------------------------------------------------------------------

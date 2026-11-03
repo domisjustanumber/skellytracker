@@ -47,6 +47,7 @@ These entries are `accepted` or `evidence`.
 | [JAA4](entries/JAA4-one-batch-field.md) | One `batching.batch` field; `output_shapes` in each size; no `batch_axis`; supersedes CRV0, JB5J and 0011 | accepted |
 | [90CE](entries/90CE-minimal-sidecar-contract.md) | Minimal contract: no `input_dtype`, `rank`, NHWC or `base`; plain sizes; `pose.geometry`; one `imagenet` mode; supersedes 0010 | accepted |
 | [17KN](entries/17KN-one-selection-pipeline.md) | One selection pipeline: shared steps once; `clamp_boxes` gates; bounds `[0, W]`, `[0, H]`; optional `min_box_size`; no class source needs `is_person_only` | accepted |
+| [SS2E](entries/SS2E-spec-owned-version.md) | Spec-owned version: `schema_version: "1"`, revision `1.N`, reset to `1.0`, no `vNEXT`; supersedes YNX0 | accepted |
 
 ### Proposed
 

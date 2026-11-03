@@ -43,7 +43,7 @@ decode: {requires_nms: true}
 """
 
 FOO = """\
-schema_version: vNEXT
+schema_version: "1"
 model_id: foo
 source: {name: a-lib, version: "1.0"}
 role: [object_detector]
@@ -53,7 +53,7 @@ decode: {selection: nms}
 """
 
 BAR = """\
-schema_version: vNEXT
+schema_version: "1"
 model_id: bar
 role: [object_detector]
 input:
@@ -63,7 +63,7 @@ decode: {selection: nms}
 """
 
 BAZ = """\
-schema_version: vNEXT
+schema_version: "1"
 model_id: baz
 source: {name: declared-lib, version: "1.0"}
 role: [pose_estimator]
@@ -497,14 +497,14 @@ def test_the_matrix_rows_and_cells(repo: Path) -> None:
 
 
 def test_the_normalization_row_shows_the_mode() -> None:
-    current = _fake_sidecar("imagenet_bgr", "vNEXT", derived=())
-    custom = _fake_sidecar({"mode": "custom"}, "vNEXT", derived=())
+    current = _fake_sidecar("imagenet_bgr", "1", derived=())
+    custom = _fake_sidecar({"mode": "custom"}, "1", derived=())
     # A dated version adds no label: the package sidecars are not in the matrix (ADR-NB5F).
     dated = _fake_sidecar("imagenet_bgr", "v2024.09.1019", derived=())
     assert st._normalization_label(current) == "imagenet_bgr"
     assert st._normalization_label(custom) == "custom"
     assert st._normalization_label(dated) == "imagenet_bgr"
-    assert st._normalization_label(_fake_sidecar("none", "vNEXT", ())) == "none"
+    assert st._normalization_label(_fake_sidecar("none", "1", ())) == "none"
 
 
 def _fake_sidecar(
@@ -528,7 +528,7 @@ def _fake_sidecar(
 
 def test_the_bottom_up_row_shows_packed_keypoints_and_poses_outputs() -> None:
     def sidecar(outputs: list[dict[str, Any]]) -> st.Sidecar:
-        fake = _fake_sidecar("none", "vNEXT", ())
+        fake = _fake_sidecar("none", "1", ())
         return st.Sidecar(**{**fake.__dict__, "normalized": {"outputs": outputs}})
 
     packed = sidecar([{"semantic": "detections", "packed_keypoints": {"offset": 6}}])
@@ -542,7 +542,7 @@ def test_the_bottom_up_row_shows_packed_keypoints_and_poses_outputs() -> None:
 
 
 def test_the_selection_row_shows_the_selection_only() -> None:
-    assert st._selection_label(_fake_sidecar("none", "vNEXT", ())) == "none"
+    assert st._selection_label(_fake_sidecar("none", "1", ())) == "none"
     dated = _fake_sidecar("none", "v2024.09.1019", ("normalization",))
     assert st._selection_label(dated) == "none"
 

@@ -4,9 +4,9 @@ This specification is in separate section files. Start at [the section map](READ
 
 To add a model or to request a change to the specification, follow the [model addition workflow](model-addition-workflow/README.md).
 
-## Changes in this revision (`vNEXT`)
+## Changes in this revision
 
-Moved to [changelog.md](changelog.md#changes-in-this-revision-vnext).
+Moved to [changelog.md](changelog.md#changes-in-this-revision).
 
 ### Summary of changes
 
@@ -194,7 +194,7 @@ Moved to [format/versioning.md](format/versioning.md#semantics).
 
 ### Version comparison
 
-Moved to [format/versioning.md](format/versioning.md#version-comparison).
+Removed. The spec owns `schema_version`, and a host compares no release versions ([ADR-SS2E](../../decisions/entries/SS2E-spec-owned-version.md)).
 
 ### Version-aware compatibility
 

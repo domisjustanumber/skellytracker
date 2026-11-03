@@ -48,11 +48,11 @@ The `post.pose.bottom_up` row shows `packed` when an output packs the keypoints 
 
 | Key | Root | File | `schema_version` | `role` |
 |---|---|---|---|---|
-| `rtmdet-person@openmmlab-exporter` | example | `specs/model-sidecar/examples/detectors/object_detectors/rtmdet-person/rtmdet-person.yaml` | `vNEXT` | `object_detector` |
-| `rtmo-body7@openmmlab-exporter` | example | `specs/model-sidecar/examples/detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml` | `vNEXT` | `object_detector`, `pose_estimator` |
-| `rtmw-wholebody@openmmlab-exporter` | example | `specs/model-sidecar/examples/detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml` | `vNEXT` | `pose_estimator` |
-| `yolo26@ultralytics-exporter` | example | `specs/model-sidecar/examples/detectors/object_detectors/yolo26/yolo26.yaml` | `vNEXT` | `object_detector` |
-| `yolo26-body@ultralytics-exporter` | example | `specs/model-sidecar/examples/detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml` | `vNEXT` | `object_detector`, `pose_estimator` |
+| `rtmdet-person@openmmlab-exporter` | example | `specs/model-sidecar/examples/detectors/object_detectors/rtmdet-person/rtmdet-person.yaml` | `1` | `object_detector` |
+| `rtmo-body7@openmmlab-exporter` | example | `specs/model-sidecar/examples/detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml` | `1` | `object_detector`, `pose_estimator` |
+| `rtmw-wholebody@openmmlab-exporter` | example | `specs/model-sidecar/examples/detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml` | `1` | `pose_estimator` |
+| `yolo26@ultralytics-exporter` | example | `specs/model-sidecar/examples/detectors/object_detectors/yolo26/yolo26.yaml` | `1` | `object_detector` |
+| `yolo26-body@ultralytics-exporter` | example | `specs/model-sidecar/examples/detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml` | `1` | `object_detector`, `pose_estimator` |
 
 ## Implementation status
 
@@ -66,7 +66,7 @@ The Gate column is the coverage backlog. It shows the graduation conditions of a
 |---|---|---|---|---|---|---|---|---|---|
 | [`format.file_layout`](format/file-layout.md) | stable | `validate` partial: `skellytracker/core/sidecar/loader.py::load_sidecar`<br>`load` partial: `skellytracker/core/sidecar/loader.py::_default_cache_dir` | `skellytracker/tests/sidecar/test_yolox_sidecar.py` | none | 3 export, 2 forecast | 0 of 0 | none |  | pass |
 | [`format.composition`](format/composition.md) | stable | `validate` partial: `skellytracker/core/sidecar/resolution.py::_resolve_refs`<br>`load` partial: `skellytracker/core/sidecar/resolution.py::resolve_sidecar_composition` | `skellytracker/tests/sidecar/test_resolution.py` | none | 3 export, 2 forecast | 0 of 5 | none |  | open: rules |
-| [`format.versioning`](format/versioning.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::SidecarModel._check_schema_version_pattern`<br>`load` partial: `skellytracker/core/sidecar/versioning.py::parse_skellytracker_version` | `skellytracker/tests/sidecar/test_model_validation.py` | none | 3 export, 2 forecast | 0 of 2 | none |  | open: rules |
+| [`format.versioning`](format/versioning.md) | stable | `validate` missing<br>`load` missing | `skellytracker/tests/sidecar/test_model_validation.py` | none | 3 export, 2 forecast | 0 of 2 | none |  | open: rules |
 | [`common.identity`](common/identity.md) | stable | `validate` partial: `skellytracker/core/sidecar/loader.py::load_sidecar`<br>`load` partial: `skellytracker/core/sidecar/model.py::SidecarModel` | `skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/sidecar/test_yolox_sidecar.py` | none | 3 export, 2 forecast | 0 of 6 | none |  | open: rules |
 | [`common.sizes_and_artifacts`](common/sizes-and-artifacts.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::SizeSpec`<br>`load` partial: `skellytracker/core/sidecar/model.py::SidecarModel.resolved_size` | `skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/sidecar/test_runtime.py`<br>`skellytracker/tests/sidecar/test_model_registry_sidecar_support.py` | none | 3 export, 2 forecast | 0 of 12 | none |  | open: rules |
 | [`common.batching`](common/batching.md) | stable | `validate` missing<br>`load` partial: `skellytracker/core/sidecar/model.py::OnnxSpec.supports_dynamic_batch` | `skellytracker/tests/sidecar/test_model_validation.py` | none | 3 export, 2 forecast | 0 of 0 | none |  | pass |
@@ -102,10 +102,12 @@ No section lists an external implementation. A section lists one in the `externa
 
 These steps have no implementation in skellytracker. The last column counts the sidecars that the section applies to.
 
-15 entries are `missing`.
+17 entries are `missing`.
 
 | Section | Step | Models |
 |---|---|---|
+| [`format.versioning`](format/versioning.md) | `validate` | 5 of 5 |
+| [`format.versioning`](format/versioning.md) | `load` | 5 of 5 |
 | [`common.batching`](common/batching.md) | `validate` | 5 of 5 |
 | [`common.batch_conversion`](common/batch-conversion.md) | `validate` | 0 of 5 |
 | [`common.outputs`](common/outputs.md) | `load` | 5 of 5 |

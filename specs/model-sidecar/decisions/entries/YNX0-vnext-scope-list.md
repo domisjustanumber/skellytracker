@@ -1,6 +1,6 @@
 # YNX0 — Scope of `vNEXT`
 
-**Status:** accepted, 2026-10-28 (user; PR: pending).
+**Status:** superseded by [SS2E](../../../../decisions/entries/SS2E-spec-owned-version.md), 2026-11-02 (user; PR: pending). It was accepted on 2026-10-28 (user; PR: pending).
 
 ## Decision
 
