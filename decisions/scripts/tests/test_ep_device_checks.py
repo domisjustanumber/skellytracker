@@ -7,7 +7,7 @@ import unittest
 from ep_device_checks import run_checks as rc
 
 # One driver version for each scenario. Pascal stops at R580, so its scenario C is 582.
-DRIVERS = {"A": "566.36", "B": "576.88", "C": "621.01"}
+DRIVERS = {"A": "516.94", "B": "576.88", "C": "621.01"}
 PASCAL_C = "582.78"
 
 
@@ -24,13 +24,15 @@ class PredictTable(unittest.TestCase):
     def test_turing_cc75(self):
         self.assertEqual(verdicts("7.5", DRIVERS["A"]), {
             "cpu": "ok", "cuda-cu13": "update-driver", "cuda-cu12": "update-driver",
-            "trt-rtx-cu13": "update-driver", "trt-rtx-cu12": "unsupported"})
+            "trt-rtx-cu13": "unsupported", "trt-rtx-cu12": "unsupported"})
         self.assertEqual(verdicts("7.5", DRIVERS["B"]), {
             "cpu": "ok", "cuda-cu13": "update-driver", "cuda-cu12": "ok",
-            "trt-rtx-cu13": "update-driver", "trt-rtx-cu12": "unsupported"})
+            "trt-rtx-cu13": "unsupported", "trt-rtx-cu12": "unsupported"})
+        # Measured on a GTX 1650: the cu12 pack passes on 566.36 (R565), above the R525 floor.
+        self.assertEqual(rc.predict("cuda-cu12", gpu("7.5", "566.36"), "win32")["verdict"], "ok")
         self.assertEqual(verdicts("7.5", DRIVERS["C"]), {
             "cpu": "ok", "cuda-cu13": "ok", "cuda-cu12": "ok",
-            "trt-rtx-cu13": "experimental", "trt-rtx-cu12": "unsupported"})
+            "trt-rtx-cu13": "unsupported", "trt-rtx-cu12": "unsupported"})
 
     def test_pascal_cc61_is_arch_unsupported_not_update_driver(self):
         for driver in (DRIVERS["A"], DRIVERS["B"], PASCAL_C):
@@ -58,7 +60,7 @@ class PredictTable(unittest.TestCase):
 
     def test_update_targets(self):
         self.assertEqual(rc.predict("cuda-cu13", gpu("7.5", DRIVERS["B"]), "win32")["target_branch"], 580)
-        self.assertEqual(rc.predict("cuda-cu12", gpu("7.5", DRIVERS["A"]), "win32")["target_branch"], 570)
+        self.assertEqual(rc.predict("cuda-cu12", gpu("7.5", DRIVERS["A"]), "win32")["target_branch"], 525)
 
     def test_cu12_sass_differs_by_os(self):
         self.assertEqual(rc.predict("cuda-cu12", gpu("8.0", DRIVERS["C"]), "win32")["verdict"], "unsupported")
@@ -108,6 +110,11 @@ class Compare(unittest.TestCase):
         self.assertTrue(step["routes"]["cuda-cu12"]["verdict_key_changed"])
         self.assertEqual(step["routes"]["cuda-cu12"]["key_fields_changed"], ["driver_version"])
 
+    def test_route_that_passed_before_the_update_is_a_wrong_prediction(self):
+        before = report(DRIVERS["A"], {"cuda-cu12": "pass"}, "2026-01-01T00:00:00")
+        after = report(DRIVERS["B"], {"cuda-cu12": "pass"}, "2026-01-02T00:00:00")
+        self.assertTrue(rc.compare_pair(before, after)["routes"]["cuda-cu12"]["outcome"].startswith("prediction wrong"))
+
     def test_update_that_does_not_fix_is_flagged(self):
         before = report(DRIVERS["B"], {"cuda-cu13": "fail"}, "2026-01-01T00:00:00")
         after = report(DRIVERS["C"], {"cuda-cu13": "fail"}, "2026-01-02T00:00:00")
@@ -123,6 +130,8 @@ class DriverLinks(unittest.TestCase):
                     self.assertTrue(entries, (family, osk, name))
                     for version, _, _, url in entries:
                         self.assertTrue(url.startswith("https://www.nvidia.com/"), url)
+                        if not version[0].isdigit():
+                            continue  # a generic entry, for example "older than R525"
                         branch = rc.driver_branch(version.split()[0])
                         expected = next(n for limit, n, _ in rc.SCENARIOS if branch < limit)
                         self.assertEqual(expected, name, (family, osk, version))
@@ -131,11 +140,13 @@ class DriverLinks(unittest.TestCase):
         for rows in rc.DRIVERS["pascal"].values():
             for entries in rows.values():
                 for version, *_ in entries:
+                    if not version[0].isdigit():
+                        continue
                     self.assertLessEqual(rc.driver_branch(version.split()[0]), 580, version)
 
     def test_guide_marks_the_installed_scenario_and_gives_the_next_step(self):
         text = "\n".join(rc.driver_guide(gpu("7.5", DRIVERS["B"]), "win32"))
-        self.assertIn("Scenario B (R570 to R579)  <- installed", text)
+        self.assertIn("Scenario B (R525 to R579)  <- installed", text)
         self.assertIn("install a scenario C driver", text)
         self.assertIn(rc.DRIVERS["turing"]["win32"]["C"][0][3], text)
         text = "\n".join(rc.driver_guide(gpu("6.1", PASCAL_C), "linux"))

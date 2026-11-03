@@ -63,12 +63,18 @@ The report names the scenario from the installed driver branch:
 
 | Scenario | Driver branch | Prediction on a GTX 1650 (CC 7.5) | Prediction on a GTX 10xx (CC 6.1) |
 |---|---|---|---|
-| A | below R570 | cu12 and cu13 routes: `update-driver`; `trt-rtx-cu12`: `unsupported` | `cuda-cu12`: `update-driver` to R570; the other GPU routes: `unsupported` |
-| B | R570 to R579 | `cuda-cu12`: `ok`; `cuda-cu13`, `trt-rtx-cu13`: `update-driver` to R580; `trt-rtx-cu12`: `unsupported` | `cuda-cu12`: `ok`; the other GPU routes: `unsupported` |
-| C | R580 or newer (Pascal: R580, the last branch) | `cuda-cu13`, `cuda-cu12`: `ok`; `trt-rtx-cu13`: `experimental`; `trt-rtx-cu12`: `unsupported` | `cuda-cu12`: `ok`; the other GPU routes: `unsupported` |
+| A | below R525 | `cuda-cu12`: `update-driver` to R525; `cuda-cu13`: `update-driver` to R580; the TensorRT-RTX routes: `unsupported` | `cuda-cu12`: `update-driver` to R525; the other GPU routes: `unsupported` |
+| B | R525 to R579 | `cuda-cu12`: `ok`; `cuda-cu13`: `update-driver` to R580; the TensorRT-RTX routes: `unsupported` | `cuda-cu12`: `ok`; the other GPU routes: `unsupported` |
+| C | R580 or newer (Pascal: R580, the last branch) | `cuda-cu13`, `cuda-cu12`: `ok`; the TensorRT-RTX routes: `unsupported` | `cuda-cu12`: `ok`; the other GPU routes: `unsupported` |
 
 - A driver branch is the major version rounded down to a multiple of 5. For example, 582.78 is R580
   and 576.88 is R575.
+- The `cuda-cu12` floor is R525: CUDA 12.x minor version compatibility needs a driver of 525 or
+  later (<https://docs.nvidia.com/deploy/cuda-compatibility/minor-version-compatibility.html>).
+  The pack has native code (SASS) for each CC in its list, so it needs no PTX compilation on the
+  driver.
+- TensorRT-RTX supports RTX GPUs of the Ampere generation (CC 8.0) and later
+  (<https://github.com/NVIDIA/TensorRT-RTX-EP-ABI>).
 - In scenario A and B, the suite runs all routes, also the routes that it predicts to fail. The
   failure mode is the evidence.
 - In scenario C, use `--include-unexpected` to also run the routes that it predicts to fail.
@@ -88,8 +94,8 @@ build, and the ORT and pack versions. When the key changes, the product must ver
   | Route | Lowest driver branch | GPU |
   |---|---|---|
   | `cuda-cu13` | R580 | CC 7.5 or higher |
-  | `cuda-cu12` | R570 | CC in the build list. Windows: 6.1, 7.5, 8.6, 8.9, 12.0. Linux: 6.0, 7.0, 7.5, 8.0, 8.6, 8.9, 9.0, 12.0 |
-  | `trt-rtx-cu13` | R580 | CC 7.5 or higher. CC 7.5 is experimental |
+  | `cuda-cu12` | R525 | CC in the build list. Windows: 6.1, 7.5, 8.6, 8.9, 12.0. Linux: 6.0, 7.0, 7.5, 8.0, 8.6, 8.9, 9.0, 12.0 |
+  | `trt-rtx-cu13` | R580 | CC 8.0 or higher (Ampere and later) |
   | `trt-rtx-cu12` | R570 | CC 8.0 or higher |
 
 - **Network access** to PyPI, the Azure feeds `aiinfra.pkgs.visualstudio.com`,
@@ -202,6 +208,20 @@ Measured times on an RTX 3070 (CC 8.6, Windows 11, driver 610.88):
 - `onnxconverter-common` makes an RTMO-s fp16 copy that fails the strict type check. The suite skips
   RTMO-s fp16 with that reason.
 
+### Known results on the GTX 1650
+
+Quick runs (L2 and L3) on a GTX 1650 (CC 7.5, 4 GB), Windows 11, drivers 566.36, 572.16, 576.88,
+580.88 and 621.01 (2026-11-03). The reports are in [reports/gtx-1650/](reports/gtx-1650/).
+
+- `cuda-cu12` passes L2 and L3 on each driver, also on 566.36 (R565). This result set the floor to
+  R525.
+- `cuda-cu13` lists no device below R580 ("no device" at L2: no crash and no silent CPU fallback).
+  It passes L2 and L3 on 580.88 and 621.01.
+- `trt-rtx-cu13` registers, but lists no device on 580.88 and 621.01. This result set the floor to
+  CC 8.0.
+- After each driver change, the verdict key of each route changed (field `driver_version`).
+- The runs were quick runs, so they hold no L4 (real model) results and no timings.
+
 ## What to send back
 
 Send `report.json` and `report.md` of each run.
@@ -227,8 +247,9 @@ Corresponding Driver Versions").
 
 | Scenario | OS | Version | Date | Highest CUDA | Source |
 |---|---|---|---|---|---|
-| A | Windows | 566.36 | 2024-12-05 | 12.6 Update 3 | <https://www.nvidia.com/Download/driverResults.aspx/237719/en-us> |
-| A | Linux | 565.77 | 2024-12-05 | 12.6 Update 3 | <https://www.nvidia.com/Download/driverResults.aspx/237587/en-us> |
+| A | Windows, Linux | older than R525 | – | 11.x | <https://www.nvidia.com/en-us/drivers/> |
+| B | Windows | 566.36 | 2024-12-05 | 12.6 Update 3 | <https://www.nvidia.com/Download/driverResults.aspx/237719/en-us> |
+| B | Linux | 565.77 | 2024-12-05 | 12.6 Update 3 | <https://www.nvidia.com/Download/driverResults.aspx/237587/en-us> |
 | B | Windows | 572.16 | 2025-01-30 | 12.8 | <https://www.nvidia.com/Download/driverResults.aspx/240547/en-us> |
 | B | Windows | 576.88 | 2025-07-01 | 12.9 Update 1 | <https://www.nvidia.com/en-us/drivers/details/248978/> |
 | B | Linux | 575.64.05 | 2025-07-22 | 12.9 Update 1 | <https://www.nvidia.com/en-us/drivers/details/250991/> |
@@ -253,15 +274,18 @@ The 13.0 notes give no Windows value. The newer notes give only the branch: R580
    Display Driver Uninstaller (DDU) in Safe Mode.
 4. Restart the computer.
 5. Run `nvidia-smi` and make sure that it shows the old driver version.
-6. Do the full run. Use `--out` to give the report a clear folder, for example
-   `--out reports/driver-A`. The suite runs all routes in scenario A and B.
+6. Do the full run. Use `--out` to put the report in a folder for the GPU and the driver version:
+   `--out decisions/scripts/ep_device_checks/reports/<gpu>/<driver version>`. For example:
+   `--out decisions/scripts/ep_device_checks/reports/gtx-1650/566.36`. The suite runs all routes in
+   scenario A and B.
 7. Install the current driver (scenario C) with a clean installation, as in step 3.
 8. Restart the computer, and make sure that `nvidia-smi` shows the new version.
-9. Do the full run again with a different `--out` folder, for example `--out reports/driver-C`.
+9. Do the full run again with a different `--out` folder, for example
+   `--out decisions/scripts/ep_device_checks/reports/gtx-1650/621.01`.
 10. Compare the two reports:
 
     ```sh
-    uv run --no-project --python 3.12 python -B decisions/scripts/ep_device_checks/run_checks.py compare reports/driver-A/report.json reports/driver-C/report.json --out reports/compare
+    uv run --no-project --python 3.12 python -B decisions/scripts/ep_device_checks/run_checks.py compare decisions/scripts/ep_device_checks/reports/gtx-1650/566.36/report.json decisions/scripts/ep_device_checks/reports/gtx-1650/621.01/report.json --out decisions/scripts/ep_device_checks/reports/gtx-1650/compare
     ```
 
 11. Resume Windows Update.
@@ -300,10 +324,10 @@ The suite uses the same code and the same rules table for a Pascal card.
 ### What the suite expects on Pascal
 
 - Only `cuda-cu12` is expected to work. Its build has SASS for sm_61 on Windows and Linux. It needs
-  the R570 branch or newer.
+  the R525 branch or newer.
 - `cuda-cu13`, `trt-rtx-cu13` and `trt-rtx-cu12` are `unsupported` for an architecture reason.
-  CUDA 13 has no build below CC 7.5. TensorRT-RTX has no support below CC 7.5. A driver update does
-  not fix them.
+  CUDA 13 has no build below CC 7.5. TensorRT-RTX supports CC 8.0 and later only. A driver update
+  does not fix them.
 - The `cuda-cu12` build has 42 kernels with no sm_61 version. With the CPU fallback turned
   off, a missing kernel makes the session build or the first run fail. The report then holds the
   error text and the op type. The suite runs the model again with the fallback turned on, and records
@@ -321,8 +345,9 @@ R580 Game Ready driver is 581.80 (2025-11-04, <https://www.nvidia.com/en-us/driv
 
 | Scenario | OS | Version | Date | Highest CUDA | Source |
 |---|---|---|---|---|---|
-| A | Windows | 566.36 | 2024-12-05 | 12.6 Update 3 | <https://www.nvidia.com/Download/driverResults.aspx/237719/en-us> |
-| A | Linux | 565.77 | 2024-12-05 | 12.6 Update 3 | <https://www.nvidia.com/Download/driverResults.aspx/237587/en-us> |
+| A | Windows, Linux | older than R525 | – | 11.x | <https://www.nvidia.com/en-us/drivers/> |
+| B | Windows | 566.36 | 2024-12-05 | 12.6 Update 3 | <https://www.nvidia.com/Download/driverResults.aspx/237719/en-us> |
+| B | Linux | 565.77 | 2024-12-05 | 12.6 Update 3 | <https://www.nvidia.com/Download/driverResults.aspx/237587/en-us> |
 | B | Windows | 576.88 | 2025-07-01 | 12.9 Update 1 | <https://www.nvidia.com/en-us/drivers/details/248978/> |
 | B | Linux | 575.64.05 | 2025-07-22 | 12.9 Update 1 | <https://www.nvidia.com/en-us/drivers/details/250991/> |
 | C | Windows | 582.78 (security update, R580) | 2026-09-30 | 13.0 | <https://www.nvidia.com/en-us/drivers/details/280034/> |
