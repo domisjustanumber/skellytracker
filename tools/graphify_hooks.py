@@ -35,6 +35,11 @@ HOOK = Path(__file__).with_name("graphify_hook.sh")
 HOOK_NAMES = ("post-commit", "post-checkout", "post-merge", "post-rewrite")
 MARKER = "graphify-local"
 IGNORE_LINE = "graphify-out/"
+# `uv run` sets these. The interpreter that uvx starts must not read them: on Windows, PYTHONHOME of a
+# different Python version stops it with "SRE module mismatch". The hook unsets the same names.
+UV_RUN_VARIABLES = (
+    "PYTHONHOME", "PYTHONPATH", "VIRTUAL_ENV", "UV_INTERNAL__PYTHONHOME", "UV_RUN_RECURSION_DEPTH"
+)
 
 
 def git(cwd: Path, *args: str) -> str:
@@ -90,7 +95,8 @@ def install(cwd: Path, build: bool = True) -> int:
     if uvx is None:
         print("graphify hooks: uvx is not on the PATH. Install uv, then run install again.")
         return 1
-    env = {**os.environ, "GRAPHIFY_BACKEND": "none", "GRAPHIFY_NO_TIPS": "1"}
+    env = {key: value for key, value in os.environ.items() if key not in UV_RUN_VARIABLES}
+    env.update(GRAPHIFY_BACKEND="none", GRAPHIFY_NO_TIPS="1")
     return subprocess.run(  # noqa: S603
         [uvx, "--from", pin(), "graphify", "update", "."],
         cwd=git(cwd, "rev-parse", "--show-toplevel"),

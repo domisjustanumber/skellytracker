@@ -61,6 +61,33 @@ def test_uninstall_removes_only_graphify_hooks(repo: Path) -> None:
     assert other.exists()
 
 
+def test_install_builds_without_the_variables_of_uv_run(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls = []
+
+    def fake_run(args: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        if Path(args[0]).stem == "uvx":
+            calls.append((args, kwargs["env"]))
+            return subprocess.CompletedProcess(args, 0)
+        return real_run(args, **kwargs)
+
+    real_run = subprocess.run
+    monkeypatch.setattr(gh.subprocess, "run", fake_run)
+    monkeypatch.setattr(gh.shutil, "which", lambda name: "uvx" if name == "uvx" else GIT)
+    for name in gh.UV_RUN_VARIABLES:
+        monkeypatch.setenv(name, "x")
+    assert gh.install(repo) == 0
+    [(args, env)] = calls
+    assert args == ["uvx", "--from", gh.pin(), "graphify", "update", "."]
+    assert not set(gh.UV_RUN_VARIABLES) & set(env)
+    assert env["GRAPHIFY_BACKEND"] == "none"
+
+
+def test_hook_unsets_the_variables_of_uv_run() -> None:
+    assert f"unset {' '.join(gh.UV_RUN_VARIABLES)}" in gh.HOOK.read_text(encoding="utf-8")
+
+
 def test_agents_md_uses_the_pin_of_the_hook() -> None:
     assert f"uvx --from {gh.pin()} graphify" in (ROOT / "AGENTS.md").read_text(encoding="utf-8")
 

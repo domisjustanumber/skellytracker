@@ -27,6 +27,8 @@ echo "$(date '+%F %T') start $hook $(git rev-parse --short HEAD) $top" >> "$log"
 # macOS has no timeout; Homebrew coreutils has gtimeout. With neither, the build has no limit.
 limit=$(command -v timeout || command -v gtimeout)
 # shortcut: a later run waits on the graphify lock, so quick commits rebuild one after another.
+# A git command that runs under `uv run` passes its Python variables; uvx must not read them.
+unset PYTHONHOME PYTHONPATH VIRTUAL_ENV UV_INTERNAL__PYTHONHOME UV_RUN_RECURSION_DEPTH
 ( { GRAPHIFY_BACKEND=none GRAPHIFY_MAX_WORKERS=1 GRAPHIFY_NO_TIPS=1 PYTHONHASHSEED=0 UV_NO_PROGRESS=1 \
       ${limit:+"$limit" 900} uvx --from "$PIN" graphify update . --force
     echo "$(date '+%F %T') done rc=$? $hook $top"; } </dev/null >>"$log" 2>&1 & )
