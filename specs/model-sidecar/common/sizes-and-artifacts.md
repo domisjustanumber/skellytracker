@@ -4,7 +4,7 @@ title: Sizes and artifacts
 kind: common
 selectors: []
 implemented_by:
-  validate: skellytracker/core/sidecar/model.py::SizeSpec  # partial. The checks run only inside resolved_size. OnnxSpec reads the removed batch_artifacts map, not precision_artifacts and output_shapes (decisions/entries/JAA4-one-batch-field.md). No check for V-common.sizes_and_artifacts-3 (specs/model-sidecar/decisions/entries/0010-family-invariant.md) or -8. No check for -9 or -13. No check for -10 to -12: PrecisionArtifact forbids the key sha256.
+  validate: skellytracker/core/sidecar/model.py::SizeSpec  # partial. The checks run only inside resolved_size. OnnxSpec reads the removed batch_artifacts map, not precision_artifacts and output_shapes (decisions/entries/JAA4-one-batch-field.md). No check for V-common.sizes_and_artifacts-3 (decisions/entries/90CE-minimal-sidecar-contract.md). No check for -8 or -12. No check for -9 to -11: PrecisionArtifact forbids the key sha256.
   load: skellytracker/core/sidecar/model.py::SidecarModel.resolved_size  # partial. Drops every key of a size entry except input and onnx. resolve_model_path in model_registry.py downloads artifacts and checks url_sha256. Nothing checks sha256 against the file that filename names.
 external_impl: []
 tests:
@@ -25,10 +25,10 @@ The top-level `sizes` map lists every scale of the model in one sidecar.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `sizes.<name>.input` | object | yes per size | The input for one size. It can contain **only** `shape` and `resize.target_size`. The first is required, and its batch axis is always `-1`. The second is required when `method` is `letterbox`/`stretch`/`fit`/`affine_person_crop` and `supports_dynamic_size` is not set. |
+| `sizes.<name>.input` | object | yes per size | The input for one size. It can contain **only** `shape` and `resize.target_size`. The first is required, and its batch axis is always `-1`. The section of the resize `method` tells if the second is present ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). |
 | `sizes.<name>.onnx` | object | yes per size | The artifacts for one size. `precision_artifacts` and `output_shapes` are required ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). |
 
-A size entry can contain only `input` and `onnx` (with the sub-fields above). A size entry deep-merges over the top level. The merge semantics are the same as for [`base`](../format/composition.md#base--inherit-from-another-sidecar-and-override). Any other key in a size entry is invalid. This includes `role`, `outputs`, `batching`, `decode`, `pose`, `overlay`, `input.normalization`, `input.color_format`, `input.resize.method` and other keys. Size names are lowercase tokens such as `nano`, `small` and `medium`. A size name can contain hyphens, for example `l-m` and `x-l`.
+A size entry can contain only `input.shape`, `input.resize.target_size` and `onnx` (with the sub-fields above). Any other key in a size entry is invalid. This includes `role`, `outputs`, `batching`, `decode`, `pose`, `overlay`, `input.normalization`, `input.color_format`, `input.resize.method` and other keys. The host does not merge a size entry over the top level. It reads the three fields of the size from the size entry, and each other field from the top level ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). Size names are lowercase tokens such as `nano`, `small` and `medium`. A size name can contain hyphens, for example `l-m` and `x-l`.
 
 **Family invariant.** A family has exactly one contract for preprocessing and post-processing. If two sizes need a different value for any of these items, they belong to **different families** (different sidecars):
 
@@ -40,16 +40,16 @@ A size entry can contain only `input` and `onnx` (with the sub-fields above). A 
 - NMS parameters
 - class mapping
 
-For example, an RTMDet person-only family and an 80-class RTMDet family are separate families, because their NMS contracts and class counts differ.
+For example, an RTMDet person-only family and an 80-class RTMDet family are separate families, because their NMS contracts and class counts differ. Do not add a size-level override. Make a new family instead ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 
-When a size declares `target_size`, the spatial dimensions of its `input.shape` must equal it. For `NCHW`, `shape[2:4] == target_size`. For `NHWC`, `shape[1:3] == target_size`. With `supports_dynamic_size: true`, the size omits `target_size`. When no request names a size, the first size in the list is the default. Apart from this default, how a host selects a size or a precision at runtime is out of scope. This spec only declares what is available.
+When a size declares `target_size`, the spatial dimensions of its `input.shape` must equal it: `shape[2:4] == target_size` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). When no request names a size, the first size in the list is the default. Apart from this default, how a host selects a size or a precision at runtime is out of scope. This spec only declares what is available.
 
 | Contract part | Where it lives |
 |---------------|----------------|
 | `role`, `outputs`, `input` (except `shape` / `resize.target_size`), `batching` | shared at top level |
 | `decode` | top level, when `role` includes `object_detector` |
 | `pose`, `overlay` | top level, when `role` includes `pose_estimator` |
-| `input.shape`, `input.resize.target_size` (unless `supports_dynamic_size`), `onnx.precision_artifacts`, `onnx.output_shapes` | per size (`sizes.<size>`) ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)) |
+| `input.shape`, `input.resize.target_size`, `onnx.precision_artifacts`, `onnx.output_shapes` | per size (`sizes.<size>`) ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)) |
 
 ### `sizes.<size>.onnx`
 
@@ -60,7 +60,7 @@ The full input tensor shape of an artifact is `[B] + sizes.<size>.input.shape[1:
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `sizes.<size>.onnx.precision_artifacts` | object | yes per size | Each key is `fp32` or `fp16`. Each value is the artifact descriptor of that precision ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). |
-| `sizes.<size>.onnx.output_shapes` | array[array] | yes per size | The output tensor shapes of the artifacts of the size. There is one entry for each output of the top-level `outputs`, in the same order. Dim 0 of each entry equals `batching.batch`, or is `-1` for `dynamic`. An axis that the graph leaves symbolic stays `-1`. All precisions of the size use these shapes (`V-common.sizes_and_artifacts-9`; [ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). |
+| `sizes.<size>.onnx.output_shapes` | array[array] | yes per size | The output tensor shapes of the artifacts of the size. There is one entry for each output of the top-level `outputs`, in the same order. Dim 0 of each entry equals `batching.batch`, or is `-1` for `dynamic`. An axis that the graph leaves symbolic stays `-1`. All precisions of the size use these shapes (`V-common.sizes_and_artifacts-8`; [ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). |
 
 **Per-precision artifact fields:**
 
@@ -70,7 +70,6 @@ The full input tensor shape of an artifact is `[B] + sizes.<size>.input.shape[1:
 | `sha256` | string | yes | The SHA-256 of the file that `filename` names, in lowercase hex (64 characters). When `url` points to an archive, `sha256` is the hash of the ONNX file in the archive. |
 | `url` | string | no | The download location. It can point to an archive, for example `.zip`. |
 | `url_sha256` | string | yes when `url` present | The SHA-256 of the bytes at `url`, in lowercase hex. The bytes are the archive or file itself. |
-| `input_dtype` | string | no | This optional field is the ONNX graph input element type for this artifact. The default is `input.dtype[precision]`. If the field is authored, its value must agree with that default. |
 
 When the ONNX file is not present locally, the host can download it from `url`. In that case, the host must verify it against `url_sha256`. `url_sha256` is **mandatory** whenever `url` is present. `url` can point directly to an ONNX file, or to an archive. An archive can contain any number of files. It must contain exactly one ONNX file. The host extracts this file and renames it to `filename`. `url` is optional. A model that ships its ONNX files alongside the sidecar needs no download location.
 
@@ -82,7 +81,6 @@ Rules:
 
 - Each size's `onnx.precision_artifacts` must list at least one precision.
 - The precision keys are the closed enum `fp32`, `fp16`.
-- If a precision artifact has an `input_dtype`, it must agree with `input.dtype` for that precision.
 
 #### Batch forms
 
@@ -104,25 +102,24 @@ Removed. Each size has `onnx.precision_artifacts` and `onnx.output_shapes` ([`si
 
 ### Model sizes within a family
 
-A family ships several sizes of the same model. For example, `yolo26` ships `nano`, `small` and `medium`. A single `yolo26.yaml` declares all of them. All sizes share these parts: `role`, `outputs` semantics, `batching`, the input tensor contract (`name`, `dtype`, `layout`, `color_format`, `normalization`, `resize` other than `target_size`), `decode` and `pose`. Only these parts are specific to each size: `input.shape`, `input.resize.target_size` and the ONNX artifacts. Some pose output dimensions depend on the spatial size. These dimensions can vary with the input size, and the host reads them at runtime.
+A family ships several sizes of the same model. For example, `yolo26` ships `nano`, `small` and `medium`. A single `yolo26.yaml` declares all of them. All sizes share these parts: `role`, `outputs` semantics, `batching`, the input tensor contract (`name`, `dtype`, `color_format`, `normalization`, `resize` other than `target_size`), `decode` and `pose`. Only these parts are specific to each size: `input.shape`, `input.resize.target_size` and the ONNX artifacts. Some pose output dimensions depend on the spatial size. These dimensions can vary with the input size, and the host reads them at runtime.
 
-Each size entry deep-merges over the shared top-level contract. It can set only the fields that are specific to a size (see [Sizes](#sizes)). Sizes that need any other difference are a separate family.
+The host reads the fields that are specific to a size from the size entry, and each other field from the top level. It does not merge a size entry over the top level ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). A size entry can set only the fields that are specific to a size (see [Sizes](#sizes)). Sizes that need any other difference are a separate family.
 
 ## Validation rules
 
 - [ ] `V-common.sizes_and_artifacts-1` `sizes` must be present, with at least one size.
 - [ ] `V-common.sizes_and_artifacts-2` Each size must declare `input.shape` with `-1` as its batch axis (first dimension).
 - [ ] `V-common.sizes_and_artifacts-3` A size entry must contain only `input.shape`, `input.resize.target_size` and `onnx`.
-- [ ] `V-common.sizes_and_artifacts-4` If `method` is `letterbox`, `stretch`, `fit` or `affine_person_crop` and `supports_dynamic_size` is not set, the spatial dimensions of each size's `input.shape` must equal its `resize.target_size`. When `method: none` or `supports_dynamic_size: true`, the size must omit `target_size`. When `supports_dynamic_size: true`, the spatial dimensions must be `-1`.
+- [ ] `V-common.sizes_and_artifacts-4` When a size declares `input.resize.target_size`, the spatial dimensions of its `input.shape` (`shape[2:4]`) must equal it ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 - [ ] `V-common.sizes_and_artifacts-5` Each size must have a non-empty `onnx.precision_artifacts` ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)).
 - [ ] `V-common.sizes_and_artifacts-6` The precision keys must be the closed enum `fp32`/`fp16`.
 - [ ] `V-common.sizes_and_artifacts-7` Each precision artifact must declare `filename`. If it declares `url`, it must also declare `url_sha256`.
-- [ ] `V-common.sizes_and_artifacts-8` If a precision artifact has an `input_dtype`, it must agree with `input.dtype[precision]`.
-- [ ] `V-common.sizes_and_artifacts-9` Each size must declare `onnx.output_shapes` ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). The length of that array must equal `len(outputs)`. Its entries must be arrays in the same order as `outputs`. When `outputs[i].shape` is present, entry `i` must have `len(outputs[i].shape)` dims, and each dim `d` with `outputs[i].shape[d] != -1` must equal `outputs[i].shape[d]` or be `-1`. Dim 0 of each entry must equal `batching.batch`. When `batching.batch` is `dynamic`, dim 0 must be `-1`.
-- [ ] `V-common.sizes_and_artifacts-10` Each precision artifact must declare `sha256`. Its value must be a string of 64 lowercase hexadecimal characters.
-- [ ] `V-common.sizes_and_artifacts-11` When the file that `filename` names is present or downloaded, its SHA-256 must equal `sha256`.
-- [ ] `V-common.sizes_and_artifacts-12` A sidecar outside `specs/model-sidecar/examples/` must not hold the reserved placeholder (64 zeros) as `sha256`.
-- [ ] `V-common.sizes_and_artifacts-13` The sidecar must use one batch form ([Batch forms](#batch-forms); [ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). `batching.batch` must be present. Its value must be the int `3`, the int `1` or the string `dynamic`. The value `3` is valid only when `batching.batch_conversion` is present.
+- [ ] `V-common.sizes_and_artifacts-8` Each size must declare `onnx.output_shapes` ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). The length of that array must equal `len(outputs)`. Its entries must be arrays in the same order as `outputs`. When `outputs[i].shape` is present, entry `i` must have `len(outputs[i].shape)` dims, and each dim `d` with `outputs[i].shape[d] != -1` must equal `outputs[i].shape[d]` or be `-1`. Dim 0 of each entry must equal `batching.batch`. When `batching.batch` is `dynamic`, dim 0 must be `-1`.
+- [ ] `V-common.sizes_and_artifacts-9` Each precision artifact must declare `sha256`. Its value must be a string of 64 lowercase hexadecimal characters.
+- [ ] `V-common.sizes_and_artifacts-10` When the file that `filename` names is present or downloaded, its SHA-256 must equal `sha256`.
+- [ ] `V-common.sizes_and_artifacts-11` A sidecar outside `specs/model-sidecar/examples/` must not hold the reserved placeholder (64 zeros) as `sha256`.
+- [ ] `V-common.sizes_and_artifacts-12` The sidecar must use one batch form ([Batch forms](#batch-forms); [ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). `batching.batch` must be present. Its value must be the int `3`, the int `1` or the string `dynamic`. The value `3` is valid only when `batching.batch_conversion` is present.
 
 See also [Input](input.md#validation-rules), [Outputs](outputs.md#validation-rules) and [Batch conversion](batch-conversion.md#validation-rules).
 
@@ -145,7 +142,6 @@ See also [Input](input.md#validation-rules), [Outputs](outputs.md#validation-rul
 - The ONNX download cache for `url` artifacts stays at `~/.cache/skellytracker/models`. It is not a sidecar root, so the catalog does not scan it. (skellytracker `skellytracker/core/sessions/model_registry.py` (`DEFAULT_CACHE_DIR`); decision [0016](../../../decisions/entries/0016-sidecar-catalogs.md#roots)) (implementation stage)
 - Git tracks the five package sidecars under `skellytracker/core/detectors/`, in the paths of the [Storage layout](../format/file-layout.md#storage-layout). Git does not track ONNX files. (Decision [0002](../../../decisions/entries/0002-sidecars-tracked-in-package.md))
 - `OnnxSession.create` gets each `url` artifact with `resolve_model_path` in `model_registry.py`. The optional argument `expected_filename` gives the cache file the name `filename`. The tail of the URL does not give the name. The optional argument `expected_sha256` checks the downloaded bytes against `url_sha256`. On a mismatch, the function deletes the temporary file, writes nothing to the cache and raises `ModelIntegrityError`. (skellytracker `skellytracker/core/sessions/model_registry.py` (`resolve_model_path`); decision [0002](../../../decisions/entries/0002-sidecars-tracked-in-package.md))
-- Do not rely on the code to reject a size entry with other keys. Today `SidecarModel.resolved_size` merges the whole size entry and keeps only `input` and `onnx`. It gives no error for the other keys. (skellytracker `skellytracker/core/sidecar/model.py` (`SidecarModel.resolved_size`); decision [0010](../decisions/entries/0010-family-invariant.md)) (implementation stage)
 
 ## Authoring guidance
 
@@ -168,12 +164,12 @@ See also [Input](input.md#validation-rules), [Outputs](outputs.md#validation-rul
   - Both exporters log a warning for each file that they leave out. (OpenMMLab-Exporter [`pipeline/sidecar.py:64-66`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/0c7ec77068754d98a9583fa55e957134cb489aed/pipeline/sidecar.py#L64-L66), [`pipeline/sidecar.py:72-73`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/0c7ec77068754d98a9583fa55e957134cb489aed/pipeline/sidecar.py#L72-L73); Roboflow-Exporter [`pipeline/sidecar.py:90-91`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/4ae67c0f99a45a81a0e788e6abbda82db7811e32/pipeline/sidecar.py#L90-L91), [`pipeline/sidecar.py:102-103`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/4ae67c0f99a45a81a0e788e6abbda82db7811e32/pipeline/sidecar.py#L102-L103))
   - A partial run keeps the sizes, batches and precisions already on disk. `precision_artifacts` lists only the precisions present. (Roboflow-Exporter [`tests/test_sidecar.py:206-212`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/4ae67c0f99a45a81a0e788e6abbda82db7811e32/tests/test_sidecar.py#L206-L212), [`tests/test_sidecar.py:327-359`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/4ae67c0f99a45a81a0e788e6abbda82db7811e32/tests/test_sidecar.py#L327-L359))
   - An interrupted Ultralytics-Exporter run gives a sidecar with only the artifacts present at that moment. (Ultralytics-Exporter [`yolo_sidecar.py:255-277`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L255-L277), [`yolo_sidecar.py:615-633`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L615-L633))
-- Enforce the family invariant in the writer. See [Decision 0010](../decisions/entries/0010-family-invariant.md).
+- Enforce the family invariant in the writer. See [ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md).
   - Roboflow-Exporter raises an error when two sizes differ in `num_queries`, `num_class_logits`, `num_select`, the decode background or `confidence_threshold_default`. (Roboflow-Exporter [`rf_detr/sidecar.py:95-113`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L95-L113) and [`tests/test_sidecar.py:251-262`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/tests/test_sidecar.py#L251-L262))
   - Roboflow-Exporter raises an error when the artifacts disagree on the input name or on the dtype of a precision. (Roboflow-Exporter [`rf_detr/sidecar.py:154-172`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L154-L172), [`rf_detr/sidecar.py:220-223`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L220-L223) and [`tests/test_sidecar.py:239-248`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/tests/test_sidecar.py#L239-L248))
   - Ultralytics-Exporter checks three things. The input and output batch dims of each artifact equal the batch in the file name. The input has rank 4. All artifacts share the tensor names. It does not compare dtypes or non-batch shapes across sizes. (Ultralytics-Exporter [`yolo_sidecar.py:288-339`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L288-L339) and [`tests/test_yolo_sidecar.py:416-434`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/tests/test_yolo_sidecar.py#L416-L434))
   - The channel order is a family property. The RGB ConvNeXt-B and Swin-B RTMDet variants needed their own `rtmdet-rgb` family. OpenMMLab-Exporter dropped them with their weights. (OpenMMLab-Exporter 0004 [`notes/decisions/0004-channel-order-per-family.md:7-9`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/c955162d91998b94fc52d932ab6623a9f2a89a1f/notes/decisions/0004-channel-order-per-family.md#L7-L9), [`notes/decisions/0004-channel-order-per-family.md:18-19`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/c955162d91998b94fc52d932ab6623a9f2a89a1f/notes/decisions/0004-channel-order-per-family.md#L18-L19))
-- Write `output_shapes` in each size (`V-common.sizes_and_artifacts-9`). Today the exporters write it only in some sizes.
+- Write `output_shapes` in each size (`V-common.sizes_and_artifacts-8`). Today the exporters write it only in some sizes.
   - OpenMMLab-Exporter, Ultralytics-Exporter and Qualcomm-Exporter write `output_shapes` only for a size with more than one native batch. Ultralytics-Exporter takes the shapes from the graph outputs of the first precision. (OpenMMLab-Exporter [`rtmo/sidecar.py:179-190`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmo/sidecar.py#L179-L190); Ultralytics-Exporter [`yolo_sidecar.py:402-418`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L402-L418); Qualcomm-Exporter [`qai_sidecar.py:79-95`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_sidecar.py#L79-L95))
   - Roboflow-Exporter always writes `output_shapes`, also for a single batch key, for example `[[1, 300, 4], [1, 300, 91]]`. (Roboflow-Exporter [`rf_detr/sidecar.py:185-196`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L185-L196))
   - Ultralytics-Exporter and Qualcomm-Exporter write the smallest native batch in the top-level `outputs[].shape[0]`, and the batch keys of a size can be larger. The spec examples write `-1`. (Ultralytics-Exporter [`yolo_sidecar.py:342-349`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L342-L349), [`yolo_sidecar.py:444-455`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L444-L455); Qualcomm-Exporter [`qai_sidecar.py:111-113`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_sidecar.py#L111-L113))
@@ -182,7 +178,7 @@ See also [Input](input.md#validation-rules), [Outputs](outputs.md#validation-rul
   - At batch 2, the int8 pose OKS AP is 0.109 to 0.203 below fp32. (Ultralytics-Exporter local reports `exports/detectors/keypoint_detectors/yolo26/body/yolo26-body-<size>_b2_int8.report.json`, field `performance.converted.metrics_detail.pose_ap`, not in git, HEAD 2e0280e050fb2bb16bf7f9a1ba89af5f18db67d4)
   - Roboflow-Exporter built a static QDQ int8 RF-DETR and removed it. AP went from 0.5953 to 0.4933 (-0.102), and AP50 from 0.7711 to 0.7268. (Roboflow-Exporter [`README.md:678-681`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b46b98fa826ffdef46fdfba66c1f8b189a68f8c6/README.md#L678-L681))
 - Measure each precision against its parent before you list it.
-- No exporter writes `url`, `url_sha256` or `input_dtype`.
+- No exporter writes `url` or `url_sha256`.
   - OpenMMLab-Exporter computes the SHA-256 of each file, but it does not write the hash into the sidecar. (OpenMMLab-Exporter [`rtmdet_person/sidecar.py:139-145`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmdet_person/sidecar.py#L139-L145) and [`pipeline/sidecar.py:75-76`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/0c7ec77068754d98a9583fa55e957134cb489aed/pipeline/sidecar.py#L75-L76))
   - Qualcomm-Exporter keeps the SHA-256 and the size of each ONNX file only in the report (`artifact.sha256`, `artifact.filesize_bytes`). (Qualcomm-Exporter [`qai_report.py:99-130`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_report.py#L99-L130))
   - The [model addition workflow](../model-addition-workflow/validation-and-publishing.md#source-and-hashes) says that every `filename` artifact carries a `sha256`.

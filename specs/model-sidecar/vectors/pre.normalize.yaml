@@ -3,7 +3,7 @@
 section: pre.normalize
 notes:
   - "Normative text: specs/model-sidecar/pre/normalization.md. Decision:
-    notes/decisions/0009-imagenet-bgr-meaning.md."
+    decisions/entries/90CE-minimal-sidecar-contract.md."
   - "`pixels_bgr` are pixels of the resized frame in BGR source order, as OpenCV delivers
     them. `values` are the same pixels in the channel order of the tensor
     (`channel_order`), one list of three numbers per pixel."
@@ -52,11 +52,11 @@ cases:
       channel_order: bgr
       values: [[0, 0, 0], [1, 1, 1], [0.039216, 0.501961, 0.980392], [0.784314, 0.392157, 0.196078]]
   - id: imagenet-bgr
-    note: "B uses mean 103.53 and std 57.375; the tensor order is B, G, R"
-    params: {normalization: imagenet_bgr}
+    note: "color_format bgr: the tensor order is B, G, R, and B uses mean 103.53 and std 57.375"
+    params: {normalization: imagenet, color_format: bgr}
     input: {pixels_bgr: [[0, 0, 0], [255, 255, 255], [10, 128, 250], [200, 100, 50]]}
     expect:
-      resolved_mode: imagenet_bgr
+      resolved_mode: imagenet
       channel_order: bgr
       values:
         - [-1.804444, -2.035714, -2.117904]
@@ -64,23 +64,11 @@ cases:
         - [-1.630153, 0.205182, 2.163285]
         - [1.681394, -0.285014, -1.261666]
   - id: imagenet-rgb
-    note: "R uses mean 123.675 and std 58.395; the tensor order is R, G, B"
-    params: {normalization: imagenet_rgb}
+    note: "color_format rgb: the tensor order is R, G, B, and R uses mean 123.675 and std 58.395"
+    params: {normalization: imagenet, color_format: rgb}
     input: {pixels_bgr: [[0, 0, 0], [255, 255, 255], [10, 128, 250], [200, 100, 50]]}
     expect:
-      resolved_mode: imagenet_rgb
-      channel_order: rgb
-      values:
-        - [-2.117904, -2.035714, -1.804444]
-        - [2.248908, 2.428571, 2.64]
-        - [2.163285, 0.205182, -1.630153]
-        - [-1.261666, -0.285014, 1.681394]
-  - id: imagenet-rgb-with-color-format
-    note: "color_format agrees with the mode; the result is the same"
-    params: {normalization: imagenet_rgb, color_format: rgb}
-    input: {pixels_bgr: [[0, 0, 0], [255, 255, 255], [10, 128, 250], [200, 100, 50]]}
-    expect:
-      resolved_mode: imagenet_rgb
+      resolved_mode: imagenet
       channel_order: rgb
       values:
         - [-2.117904, -2.035714, -1.804444]
@@ -88,14 +76,14 @@ cases:
         - [2.163285, 0.205182, -1.630153]
         - [-1.261666, -0.285014, 1.681394]
   - id: custom-rgb
-    note: "(pixel * scale - mean) / std; mean and std are in rgb order"
+    note: "(pixel * scale - mean) / std; mean and std are in the rgb order of input.color_format"
     params:
       normalization:
         mode: custom
-        color_format: rgb
         scale: 0.00392156862745098
         mean: [0.485, 0.456, 0.406]
         std: [0.229, 0.224, 0.225]
+      color_format: rgb
     input: {pixels_bgr: [[0, 0, 0], [255, 255, 255], [10, 128, 250], [200, 100, 50]]}
     expect:
       resolved_mode: custom
@@ -110,10 +98,10 @@ cases:
     params:
       normalization:
         mode: custom
-        color_format: bgr
         scale: 0.00392156862745098
         mean: [0.406, 0.456, 0.485]
         std: [0.225, 0.224, 0.229]
+      color_format: bgr
     input: {pixels_bgr: [[0, 0, 0], [255, 255, 255], [10, 128, 250], [200, 100, 50]]}
     expect:
       resolved_mode: custom
@@ -123,22 +111,35 @@ cases:
         - [2.64, 2.428571, 2.248908]
         - [-1.630153, 0.205182, 2.163285]
         - [1.681394, -0.285014, -1.261666]
-  - id: custom-inherits-color-format
-    note: "custom.color_format is absent: it inherits input.color_format. scale defaults to 1"
+  - id: custom-scale-defaults-to-one
+    note: "scale is absent: it is 1. The order is the bgr of input.color_format"
     params: {normalization: {mode: custom, mean: [1, 2, 3], std: [2, 2, 2]}, color_format: bgr}
     input: {pixels_bgr: [[0, 0, 0], [255, 255, 255], [10, 128, 250], [200, 100, 50]]}
     expect:
       resolved_mode: custom
       channel_order: bgr
       values: [[-0.5, -1, -1.5], [127, 126.5, 126], [4.5, 63, 123.5], [99.5, 49, 23.5]]
-  - id: custom-defaults-to-rgb
-    note: "no color_format anywhere: the order is rgb"
-    params: {normalization: {mode: custom, mean: [1, 2, 3], std: [2, 2, 2]}}
-    input: {pixels_bgr: [[0, 0, 0], [255, 255, 255], [10, 128, 250], [200, 100, 50]]}
-    expect:
-      resolved_mode: custom
-      channel_order: rgb
-      values: [[-0.5, -1, -1.5], [127, 126.5, 126], [124.5, 63, 3.5], [24.5, 49, 98.5]]
+  - id: color-format-is-required
+    note: "input.color_format is absent, and there is no default. The sidecar shows only its
+      input block. The case checks only the rules of this section."
+    function: none
+    params: {}
+    input: {sidecar: {input: {name: input, dtype: {fp32: float32}, normalization: imagenet}}}
+    expect: {failed: [V-pre.normalize-1]}
+  - id: custom-has-no-color-format
+    note: "a custom object holds only mode, scale, mean and std. It uses input.color_format.
+      The sidecar shows only its input block. The case checks only the rules of this
+      section."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        input:
+          name: input
+          dtype: {fp32: float32}
+          color_format: rgb
+          normalization: {mode: custom, color_format: bgr, mean: [0, 0, 0], std: [1, 1, 1]}
+    expect: {failed: [V-pre.normalize-1]}
   - id: normalization-is-required
     note: "input.normalization is absent, and there is no default. The sidecar shows only its
       input block. The case checks only the rules of this section."

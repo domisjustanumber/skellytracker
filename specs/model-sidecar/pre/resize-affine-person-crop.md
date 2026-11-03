@@ -32,7 +32,7 @@ This resize is the top-down pose convention. The host warps a person bounding bo
 | `input.resize.crop_policy.maintain_aspect_ratio` | bool | no | The default is `true`. When the value is `true`, the host enlarges the expanded box along its shorter side to the target aspect ratio `T_w / T_h`. When the value is `false`, the host warps the expanded box directly. This distorts the aspect ratio. |
 | `input.resize.crop_policy.pad_value` | int, float, or array[3] | no | This is the constant border value for pixels outside the source image. The default is `0`. An array gives one value for each channel, in the channel order of `input.color_format`. |
 
-[`input.resize`](../common/input.md#inputresize) and [Interpolation](interpolation.md) define `target_size`, `supports_dynamic_size` and `interpolation`. [Letterbox resize](resize-letterbox.md#behaviour) names `[T_h, T_w]`.
+[`input.resize`](../common/input.md#inputresize) and [Interpolation](interpolation.md) define `target_size` and `interpolation`. [Letterbox resize](resize-letterbox.md#behaviour) names `[T_h, T_w]`.
 
 ## Behaviour
 
@@ -62,6 +62,7 @@ The host applies the inverse as part of [Unprojection](../post/unprojection.md).
 
 - [ ] `V-pre.resize.affine_person_crop-1` If `input.resize.crop_policy.expand_ratio` is present, it must be a positive float. If `crop_policy.maintain_aspect_ratio` is present, it must be a boolean.
 - [ ] `V-pre.resize.affine_person_crop-2` If a sidecar has `pose.requires_object_detector: true`, it must declare `input.resize.method: affine_person_crop`.
+- [ ] `V-pre.resize.affine_person_crop-3` Each size must declare `input.resize.target_size`. An `affine_person_crop` resize must not declare `pad_value`, `pad_position` or `rounding` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 
 See also [Input](../common/input.md#validation-rules), [Sizes and artifacts](../common/sizes-and-artifacts.md#validation-rules) and [Pose schema](../post/pose-schema.md#validation-rules).
 

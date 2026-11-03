@@ -14,23 +14,23 @@ Sidecar: [`yolo26.yaml`](detectors/object_detectors/yolo26/yolo26.yaml).
 
 ## YOLO26 pose (Ultralytics-Exporter; bottom-up, packed keypoints)
 
-The pose export emits one `[B, 300, 57]` tensor: 6 detection columns followed by 17 × `(x, y, score)`, with keypoints in model-input pixels and keypoint scores already sigmoid-activated. It is declared once, with `packed_keypoints`.
+The pose export emits one `[B, 300, 57]` tensor: 6 detection columns followed by 17 × `(x, y, score)`, with keypoints in model-input pixels and keypoint scores already sigmoid-activated. It is declared once, with `packed_keypoints`. The packed keypoints use the `decode.box_scale` of the detection decode, so `pose.decode` has no `coordinate_scale`. The model emits 2D keypoints, so `pose.geometry` is `2d` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 
 Sidecar: [`yolo26-body.yaml`](detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml).
 
 ## RTMDet person (OpenMMLab-Exporter; NMS-free outputs, host NMS)
 
-The mmdet test pipeline letterboxes into the top-left corner with half-up rounding and pad 114. It normalizes BGR pixels. The graph ends before NMS. It emits the decoded box and the sigmoid person score of each anchor point. The host applies the baseline NMS of the family (mmdet `test_cfg`: score > 0.05, IoU 0.6, top 100). The row count is the anchor-point count for the input size (2100 at 320, 8400 at 640), so the family-level shape leaves it as `-1`. The `onnx.output_shapes` of each size give the row count. The sidecar does not express the per-level `nms_pre` cap (1000) of mmdet ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)).
+The mmdet test pipeline letterboxes into the top-left corner with half-up rounding and pad 114. It normalizes BGR pixels with ImageNet statistics, so the input is `normalization: imagenet` with `color_format: bgr`. The graph ends before NMS. It emits the decoded box and the sigmoid person score of each anchor point. The host applies the baseline NMS of the family (mmdet `test_cfg`: score > 0.05, IoU 0.6, top 100). The row count is the anchor-point count for the input size (2100 at 320, 8400 at 640), so the family-level shape leaves it as `-1`. The `onnx.output_shapes` of each size give the row count. The sidecar does not express the per-level `nms_pre` cap (1000) of mmdet ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)).
 
 Sidecar: [`rtmdet-person.yaml`](detectors/object_detectors/rtmdet-person/rtmdet-person.yaml).
 
 ## RTMW WholeBody (OpenMMLab-Exporter; top-down pose)
 
-mmpose `input_size` is `(width, height)`: the `256x192` models take `[N, 3, 256, 192]` input and the `384x288` models `[N, 3, 384, 288]`. The model consumes RGB (`bgr_to_rgb=True`) normalized with ImageNet statistics. SIMCC bin counts are twice the input width/height (`simcc_split_ratio=2.0`) and are read from the output tensors, so `shape` is omitted.
+mmpose `input_size` is `(width, height)`: the `256x192` models take `[N, 3, 256, 192]` input and the `384x288` models `[N, 3, 384, 288]`. The model consumes RGB (`bgr_to_rgb=True`) normalized with ImageNet statistics, so the input is `normalization: imagenet` with `color_format: rgb` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). SIMCC bin counts are twice the input width/height (`simcc_split_ratio=2.0`) and are read from the output tensors, so `shape` is omitted.
 
 Sidecar: [`rtmw-wholebody.yaml`](detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml).
 
-For comparison, skellytracker's in-repo `rtmw/wholebody/rtmw-wholebody.yaml` describes the rtmlib `onnx_sdk` downloads (with `url`/`url_sha256`) at `schema_version: v2024.09.1019`. The spec does not describe that file. Its `imagenet_bgr` does not have the meaning that [Normalization](../pre/normalization.md) gives. The package sidecars stay outside the spec until they migrate ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)).
+For comparison, skellytracker's in-repo `rtmw/wholebody/rtmw-wholebody.yaml` describes the rtmlib `onnx_sdk` downloads (with `url`/`url_sha256`) at `schema_version: v2024.09.1019`. The spec does not describe that file. Its `imagenet_bgr` is not a mode of [Normalization](../pre/normalization.md). The package sidecars stay outside the spec until they migrate ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)).
 
 ## RTMO body7 (OpenMMLab-Exporter; bottom-up pose, NMS in the graph)
 

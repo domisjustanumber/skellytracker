@@ -53,7 +53,7 @@ The host applies the inverse as part of [Unprojection](../post/unprojection.md).
 
 ## Validation rules
 
-- [ ] `V-pre.resize.letterbox-1` A `letterbox` resize must declare `pad_position` (`top_left` or `center`) and `rounding` (`half_even` or `half_up`) ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)).
+- [ ] `V-pre.resize.letterbox-1` A `letterbox` resize must declare `pad_position` (`top_left` or `center`) and `rounding` (`half_even` or `half_up`) ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)). Each size must declare `input.resize.target_size`. The resize must not declare `crop_policy` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 
 See also [Input](../common/input.md#validation-rules) and [Sizes and artifacts](../common/sizes-and-artifacts.md#validation-rules).
 

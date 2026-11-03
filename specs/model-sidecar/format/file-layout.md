@@ -90,7 +90,6 @@ detectors/keypoint_detectors/rtmw/wholebody/
 
 - A sidecar and its ONNX files are together in the leaf model directory (see [Storage layout](#storage-layout)).
 - **Fragment files** are shared sections that a `$ref` pulls in. A fragment file is a plain YAML value: a mapping, a sequence or a scalar. It carries **no** `schema_version`. By convention, keep fragment files under `detectors/shared/`.
-- **Base files** are the files that `base` references. A base file is an ordinary sidecar (`{model_id}.yaml`). A derived file that declares `base` is itself another `{model_id}.yaml`. The derived file must override `model_id`, so that its basename matches its own `model_id`. It must also override `schema_version`.
 
 ### Sidecar roots
 
@@ -102,7 +101,7 @@ A sidecar root (`{sidecar_root}`) is a folder that holds sidecars, their ONNX fi
 
 A sidecar root has no index file. The [discovery rule](#discovery) finds the sidecars in a root. A folder in which a host keeps the downloaded `url` artifacts is not a sidecar root.
 
-A `$ref` target or a `base` target stays inside the root of the file that refers to it (`V-format.composition-6`). The resolver reads each target from that same root (see [File composition](composition.md#ref--reference-another-file-for-any-value)).
+A `$ref` target stays inside the root of the file that refers to it (`V-format.composition-4`). The resolver reads each target from that same root (see [File composition](composition.md#ref--reference-another-file-for-any-value)).
 
 ### Discovery
 

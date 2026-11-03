@@ -14,6 +14,7 @@ a sidecar. A fragment has one source: a package copy with the same bytes, or a
 import functools
 import re
 from pathlib import Path
+from typing import Any
 
 import pytest
 import sidecar_refs
@@ -196,7 +197,7 @@ def unknown_keys(node: object, parent: object = None) -> list[str]:
 
 @pytest.mark.parametrize("path", example_paths(), ids=example_key)
 def test_example_has_only_keys_that_the_spec_defines(path: Path) -> None:
-    """A key that the spec does not define is invalid (V-format.composition-7, ADR-0QKK)."""
+    """A key that the spec does not define is invalid (V-format.composition-5, ADR-0QKK)."""
     assert not unknown_keys(sidecar_refs.resolve(path, EXAMPLES_ROOT))
 
 
@@ -206,11 +207,20 @@ def test_example_has_only_keys_that_the_spec_defines(path: Path) -> None:
         (("input", "resize"), "preserve_aspect_ratio"),
         (("decode",), "requires_nms"),
         (("decode",), "may_include_non_person_classes"),
+        (("input",), "layout"),
+        (("input", "resize"), "supports_dynamic_size"),
+        (("outputs", 0), "rank"),
+        (("sizes", "m", "onnx", "precision_artifacts", "fp32"), "input_dtype"),
+        (("pose", "decode"), "is_3d"),
     ],
 )
-def test_the_key_check_finds_a_deleted_key(where: tuple[str, ...], key: str) -> None:
+def test_the_key_check_finds_a_deleted_key(where: tuple[str | int, ...], key: str) -> None:
     sidecar = sidecar_refs.resolve(example_paths()[0], EXAMPLES_ROOT)
-    functools.reduce(lambda node, name: node.setdefault(name, {}), where, sidecar)[key] = True
+
+    def step(node: Any, name: str | int) -> Any:
+        return node[name] if isinstance(name, int) else node.setdefault(name, {})
+
+    functools.reduce(step, where, sidecar)[key] = True
     assert unknown_keys(sidecar) == [key]
 
 
@@ -218,6 +228,13 @@ def test_the_key_check_finds_a_deleted_key(where: tuple[str, ...], key: str) -> 
 def test_example_declares_its_normalization(path: Path) -> None:
     """`input.normalization` is required (ADR-0QKK)."""
     assert "normalization" in sidecar_refs.resolve(path, EXAMPLES_ROOT)["input"]
+
+
+@pytest.mark.parametrize("path", example_paths(), ids=example_key)
+def test_pose_example_declares_its_geometry(path: Path) -> None:
+    """`pose.geometry` is required at the pose level (ADR-90CE)."""
+    pose = sidecar_refs.resolve(path, EXAMPLES_ROOT).get("pose")
+    assert pose is None or pose.get("geometry") in {"2d", "3d"}
 
 
 def placeholder_scan_paths() -> list[Path]:
@@ -243,7 +260,7 @@ def test_the_placeholder_scan_reads_the_sidecars_and_the_spec() -> None:
 
 
 def test_no_file_outside_the_examples_holds_the_placeholder() -> None:
-    """The placeholder hash is valid only under `specs/model-sidecar/examples/` (V-common.sizes_and_artifacts-12)."""
+    """The placeholder hash is valid only under `specs/model-sidecar/examples/` (V-common.sizes_and_artifacts-11)."""
     holders = [
         p.relative_to(REPO_ROOT).as_posix()
         for p in placeholder_scan_paths()

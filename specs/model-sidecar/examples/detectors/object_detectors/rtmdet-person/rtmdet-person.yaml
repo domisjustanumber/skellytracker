@@ -10,9 +10,8 @@ role: [object_detector]
 input:
   name: input
   dtype: {fp32: float32, fp16: float32}
-  layout: NCHW
   color_format: bgr
-  normalization: imagenet_bgr
+  normalization: imagenet
   resize: {method: letterbox, pad_position: top_left, rounding: half_up, pad_value: 114, interpolation: linear}
 
 batching: {batch: 1}
@@ -21,12 +20,10 @@ outputs:
   - name: boxes
     dtype: {fp32: float32, fp16: float32}
     shape: [-1, -1, 4]
-    rank: 3
     semantic: boxes
   - name: scores
     dtype: {fp32: float32, fp16: float32}
     shape: [-1, -1]
-    rank: 2
     semantic: scores
 
 decode:

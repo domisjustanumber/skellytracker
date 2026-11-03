@@ -16,7 +16,7 @@ Token kinds (the name is the ``kind`` of an allow entry)
                       inside its paragraph. One padding space on each side is dropped and a line
                       break counts as one space.
     ``number``        every standalone number (``\\b\\d+(?:\\.\\d+)?\\b``) outside code spans, fenced
-                      code and front matter. Numbers in a rule-ID (``V-common.input-6``), in a link
+                      code and front matter. Numbers in a rule-ID (``V-common.input-5``), in a link
                       target, in a bare URL and in an autolink are ignored.
     ``fence``         every fenced code block, as one string, byte for byte, delimiter lines
                       included.

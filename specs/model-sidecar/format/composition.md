@@ -4,7 +4,7 @@ title: File composition
 kind: format
 selectors: []
 implemented_by:
-  validate: skellytracker/core/sidecar/resolution.py::_resolve_refs  # partial. The module checks the one-key $ref form, missing targets, cycles and paths outside the root (cache_dir in the code). It refuses the form {$ref, sha256}. Nothing checks a hash, the encoding or the line endings (V-format.composition-3 to V-format.composition-5). Nothing checks that a derived file overrides schema_version. Nothing checks V-format.composition-7: SidecarModel forbids undeclared keys, but it declares preserve_aspect_ratio, requires_nms and may_include_non_person_classes.
+  validate: skellytracker/core/sidecar/resolution.py::_resolve_refs  # partial. The module checks the one-key $ref form, missing targets, cycles and paths outside the root (cache_dir in the code). It refuses the form {$ref, sha256}. Nothing checks a hash, the encoding or the line endings (V-format.composition-2 and V-format.composition-3). Nothing checks V-format.composition-5: SidecarModel forbids undeclared keys, but it declares preserve_aspect_ratio, requires_nms and may_include_non_person_classes.
   load: skellytracker/core/sidecar/resolution.py::resolve_sidecar_composition  # partial. Resolves only the one-key $ref form and the string base form. It refuses sha256 next to $ref and a base that is not a string.
 external_impl: []
 tests: [skellytracker/tests/sidecar/test_resolution.py]
@@ -16,12 +16,9 @@ status: {spec: stable, validate: partial, load: partial}
 
 ## Behaviour
 
-Two directives provide reuse without duplication:
+One directive provides reuse without duplication: `$ref`. It can be at any value, at any depth. The directive **replaces** the value with the entire parsed content of the referenced file. The directive is recursive. `$ref` is the only directive that reuses a file. The spec has no `base` directive ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 
-| Directive | Scope | Semantics |
-|-----------|-------|-----------|
-| `$ref` | any value, any depth | The directive **replaces** the value with the entire parsed content of the referenced file. The directive is recursive. |
-| `base` | top-level only | The file **inherits** from another sidecar. The resolver **deep-merges** the keys of the current file **over** the base file. The current file wins. The directive is recursive. |
+No field has the value `null`. A sidecar omits an optional field that has no value ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 
 ### `$ref` — reference another file for any value
 
@@ -77,82 +74,25 @@ Rules:
 - **No schema on fragments** — Fragments do not carry `schema_version`. Only the top-level sidecar has a version and goes through validation.
 - **Reserved** — `$ref` is reserved. The resolver strips it during resolution. A validated field must not have the name `$ref`.
 
-### `base` — inherit from another sidecar and override
-
-To start from an existing sidecar and override only what it changes, a sidecar can declare `base` at the top level:
-
-```yaml
-# detectors/object_detectors/yolo26-fp16/yolo26-fp16.yaml — a separately published fp16 build of the family
-# (illustrative: no current exporter writes derived files; this shows the mechanism)
----
-schema_version: "vNEXT"
-base: {$ref: ../yolo26/yolo26.yaml, sha256: "<sha256>"}
-model_id: yolo26-fp16
-display_name: YOLO26 (fp16)
-sizes:
-  nano:
-    onnx:
-      precision_artifacts:
-        fp16:
-          filename: yolo26-fp16-nano_b1_fp16.onnx
-          sha256: "<sha256>"
-```
-
-Everything that the example does not list comes from `yolo26.yaml` unchanged. This includes `input`, `batching`, `outputs`, `decode`, the other sizes and the other precisions under `sizes.nano`.
-
-The merge keeps the `sha256` of a base artifact when the derived file does not override it. Thus a derived file that changes the `filename` of an artifact must also give the `sha256` of the new file (see [`sizes.<size>.onnx`](../common/sizes-and-artifacts.md#sizessizeonnx); [ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)).
-
-`base` is a mapping with exactly two keys: `$ref` and `sha256` (see [Reference hashes](#reference-hashes)). The `$ref` key holds the path of the base file ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)). The resolver does not replace the `base` mapping with the content of the base file. It merges the current file over the base file.
-
-**Merge semantics (deep merge, current wins):**
-
-| Node type | Rule |
-|-----------|------|
-| mapping + mapping | The merge works key by key. Nested mappings recurse. The merge keeps keys that are only in the base. Child keys replace base values. |
-| mapping + sequence/scalar | The child replaces the base value entirely. |
-| sequence + anything | The child replaces the base sequence entirely. The merge does **not** concatenate sequences. |
-| scalar + anything | The child replaces the base value. |
-| key absent in base | The merge adds the child key. |
-| key mapped to `null` | The merge removes the key from the merged result (delete). |
-
-A child key that maps to `null` deletes that key from the merged result. This follows JSON Merge Patch (RFC 7386). It is the only way to remove an inherited key. `null` is reserved for deletion. No field uses `null` as a value. When an optional field has no value, the sidecar omits the field. It never sets the field to `null`. The `null`-delete applies to the `base` and `sizes` deep-merges. It does not apply to `$ref`, which is a node replacement.
-
-```yaml
-# Drop the fp16 precision inherited from the base:
-sizes:
-  nano:
-    onnx:
-      precision_artifacts:
-        fp16: null
-```
-
-Rules:
-
-- **Top-level only** — The resolver recognizes `base` only at the document root.
-- **Path resolution** — The resolver resolves a `base` path relative to the directory of the file that declares it. The path can point anywhere under `{sidecar_root}`. It must not escape above `{sidecar_root}`. `{sidecar_root}` is the root of the file that declares `base`. The resolver reads the base file from that same root.
-- **Chainable** — A base file can itself declare `base`. The resolver resolves the chain depth-first before it merges the files.
-- **Versioning** — After the merge, the `schema_version` of the derived file governs validation.
-- **Reserved** — `base` is reserved at the top level. The resolver strips it during resolution.
-
 ### Reference hashes
 
 These rules apply to every sidecar ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)). A tool can write the hashes, for example `tools/sidecar_refs.py --write`.
 
-- **Form** — A `$ref` mapping must hold exactly two keys: `$ref` and `sha256`. A `base` must have the same form: `base: {$ref: <path>, sha256: <hash>}`.
+- **Form** — A `$ref` mapping must hold exactly two keys: `$ref` and `sha256`.
 - **Hash** — `sha256` is the SHA-256 of the exact bytes of the target file. Its value is a string of 64 lowercase hexadecimal characters. Write the value in quotes. YAML reads a value with digits only as a number.
 - **Check before parse** — The resolver must read the bytes of the target file. It must compare the SHA-256 of these bytes with `sha256` before it parses the file. A different value is an error. The error names the file and the directive.
 - **Bytes** — The top-level sidecar and each file in its tree must be UTF-8 without a byte order mark (BOM). These files must have LF line endings. A file with CRLF line endings is an error. The error must say that the file has CRLF line endings. A file with a BOM is an error.
-- **Full tree** — Each directive in the tree of the top-level sidecar has this form. This includes the directives in fragments and in base files. Thus a fragment that refers to a different fragment also holds the hash of that fragment. The bytes of the top-level sidecar then pin the full tree ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)).
+- **Full tree** — Each directive in the tree of the top-level sidecar has this form. This includes the directives in fragments. Thus a fragment that refers to a different fragment also holds the hash of that fragment. The bytes of the top-level sidecar then pin the full tree ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)).
 - **Every root** — These rules apply in every sidecar root, also in the package root.
 - **Stripped** — The resolver removes `sha256` when it replaces or removes its directive. Validation never sees the `sha256` of a directive.
 
 ### Resolution pipeline
 
-The resolver resolves composition **before** validation. Validation never sees `$ref` / `base`:
+The resolver resolves composition **before** validation. Validation never sees `$ref`:
 
 ```text
 parse_sidecar_file(path)            # yaml.safe_load → raw dict
-  → resolve_sidecar_composition()   # resolve $ref includes + base inheritance → flat dict
+  → resolve_sidecar_composition()   # resolve $ref includes → flat dict
   → SidecarModel.model_validate()   # typed model
 ```
 
@@ -163,12 +103,10 @@ Resolution errors are recoverable catalog errors. Each error names the file and 
 ## Validation rules
 
 - [ ] `V-format.composition-1` Each `$ref` directive must resolve to an existing file. It must terminate (no cycles). The directive must contain exactly the keys `$ref` and `sha256` ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)).
-- [ ] `V-format.composition-2` Each `base` directive must resolve and merge, with `null`-delete. The derived file must override `model_id` and `schema_version`.
-- [ ] `V-format.composition-3` Each `base` directive must be a mapping with exactly the keys `$ref` and `sha256`. Its `$ref` key must hold the path of the base file.
-- [ ] `V-format.composition-4` The `sha256` of each `$ref` directive and of each `base` directive must be a string of 64 lowercase hexadecimal characters. It must equal the SHA-256 of the exact bytes of the target file.
-- [ ] `V-format.composition-5` The top-level sidecar and each file in its tree must be UTF-8 without a BOM. These files must not have CRLF line endings.
-- [ ] `V-format.composition-6` The target of each `$ref` directive and of each `base` directive must stay inside the `{sidecar_root}` of the file that refers to it.
-- [ ] `V-format.composition-7` Each key of the resolved sidecar must be a key that the spec defines. A key that the spec does not define is invalid. This rule does not apply to the keys of a map whose keys are names, for example the size names of `sizes` ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)).
+- [ ] `V-format.composition-2` The `sha256` of each `$ref` directive must be a string of 64 lowercase hexadecimal characters. It must equal the SHA-256 of the exact bytes of the target file ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
+- [ ] `V-format.composition-3` The top-level sidecar and each file in its tree must be UTF-8 without a BOM. These files must not have CRLF line endings.
+- [ ] `V-format.composition-4` The target of each `$ref` directive must stay inside the `{sidecar_root}` of the file that refers to it ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
+- [ ] `V-format.composition-5` Each key of the resolved sidecar must be a key that the spec defines. A key that the spec does not define is invalid. This rule does not apply to the keys of a map whose keys are names, for example the size names of `sizes` ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)).
 
 ## Implementer guidance
 
@@ -176,8 +114,8 @@ No exporter evidence yet.
 
 skellytracker (decision 0016):
 
-- The resolver verifies the `sha256` of each `$ref` target and of each `base` target before it parses the target. The package resolver does not do this yet. `_resolve_refs` refuses a `$ref` mapping with a key other than `$ref`, and `_load_and_resolve` refuses a `base` that is not a string. Until the implementation stage adds the hash checks to `resolution.py`, the function `resolve` of `tools/sidecar_refs.py` is the temporary stand-in. It verifies the hashes, removes them from a copy of the tree and calls the unchanged `resolve_sidecar_composition` on the copy. Delete that function when `resolution.py` checks the hashes. Take each hash from the bytes of the file, not from a text-mode read. `parse_sidecar_file` opens the file in text mode, so it does not see a CR character. (skellytracker `skellytracker/core/sidecar/resolution.py` (`_resolve_refs`, `_load_and_resolve`, `parse_sidecar_file`); decision [0016](../../../decisions/entries/0016-sidecar-catalogs.md#reference-hashes), [Tools and line endings](../../../decisions/entries/0016-sidecar-catalogs.md#tools-and-line-endings)) (implementation stage)
-- The doc test `test_example_has_only_keys_that_the_spec_defines` of `tools/tests/test_examples.py` checks V-format.composition-7 on each reference example. The package `SidecarModel` refuses a key that it does not declare (`extra="forbid"`). It declares `preserve_aspect_ratio`, `requires_nms` and `may_include_non_person_classes`, so it does not check V-format.composition-7. (skellytracker `skellytracker/core/sidecar/model.py`; [ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)) (implementation stage)
+- The resolver verifies the `sha256` of each `$ref` target before it parses the target. The package resolver does not do this yet. `_resolve_refs` refuses a `$ref` mapping with a key other than `$ref`. `_load_and_resolve` still resolves a string `base`, which the spec does not define ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). Until the implementation stage adds the hash checks to `resolution.py`, the function `resolve` of `tools/sidecar_refs.py` is the temporary stand-in. It verifies the hashes, removes them from a copy of the tree and calls the unchanged `resolve_sidecar_composition` on the copy. Delete that function when `resolution.py` checks the hashes. Take each hash from the bytes of the file, not from a text-mode read. `parse_sidecar_file` opens the file in text mode, so it does not see a CR character. (skellytracker `skellytracker/core/sidecar/resolution.py` (`_resolve_refs`, `_load_and_resolve`, `parse_sidecar_file`); decision [0016](../../../decisions/entries/0016-sidecar-catalogs.md#reference-hashes), [Tools and line endings](../../../decisions/entries/0016-sidecar-catalogs.md#tools-and-line-endings)) (implementation stage)
+- The doc test `test_example_has_only_keys_that_the_spec_defines` of `tools/tests/test_examples.py` checks V-format.composition-5 on each reference example. The package `SidecarModel` refuses a key that it does not declare (`extra="forbid"`). It declares `preserve_aspect_ratio`, `requires_nms` and `may_include_non_person_classes`, so it does not check V-format.composition-5. (skellytracker `skellytracker/core/sidecar/model.py`; [ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)) (implementation stage)
 - The sidecars of the skellytracker package have no hashes. They stay outside the spec until they migrate ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)). (implementation stage)
 - `tools/sidecar_refs.py` writes and checks the hashes. (skellytracker `tools/sidecar_refs.py`; decision [0016](../../../decisions/entries/0016-sidecar-catalogs.md#tools-and-line-endings))
   - `--write` works depth first. It writes the hashes inside a fragment before it takes the hash of that fragment.
@@ -185,13 +123,13 @@ skellytracker (decision 0016):
   - `--write --placeholder` writes the placeholder on an artifact that has no `sha256`. It never replaces a real hash.
   - `--write --source <name>==<version>` adds `source` when the file has none. It never changes an existing `source`.
   - `--write` edits only the `sha256` entries and the `source` block as text. It keeps all other bytes. It never loads the YAML and writes it out again.
-  - `--check` verifies each `$ref` hash and each `base` hash. It verifies an ONNX hash only when the ONNX file is present. It reports a CRLF file and a BOM as separate errors. It accepts the placeholder only under `specs/model-sidecar/examples/`.
+  - `--check` verifies each `$ref` hash. It verifies an ONNX hash only when the ONNX file is present. It reports a CRLF file and a BOM as separate errors. It accepts the placeholder only under `specs/model-sidecar/examples/`.
   - The tool uses only the standard library and PyYAML. It does not import `skellytracker`.
   - The implementation stage moves `--write` and `--check` into the package as a command, with a thin wrapper in `tools/`. (implementation stage)
 
 ## Authoring guidance
 
-- No exporter writes `base`. The sidecar writers of the four exporters have no `base` key. ([OpenMMLab-Exporter](https://github.com/domisjustanumber/OpenMMLab-Exporter/tree/cce619dcfb8acae4ed66c59db935ac8cc0aa5b5b), [Roboflow-Exporter](https://github.com/domisjustanumber/Roboflow-Exporter/tree/c64fd2a32a51e29cdbf9b1b31473c8e441839d07), [Ultralytics-Exporter](https://github.com/domisjustanumber/Ultralytics-Exporter/tree/2e0280e050fb2bb16bf7f9a1ba89af5f18db67d4), [Qualcomm-Exporter](https://github.com/domisjustanumber/Qualcomm-Exporter/tree/4ca45868431b67350c3c7ed900d5b3ff9f409905); searched the Python sources outside the tests at each of these commits)
+- Do not write `base`. The spec has no `base` directive ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). No exporter writes `base`. The sidecar writers of the four exporters have no `base` key. ([OpenMMLab-Exporter](https://github.com/domisjustanumber/OpenMMLab-Exporter/tree/cce619dcfb8acae4ed66c59db935ac8cc0aa5b5b), [Roboflow-Exporter](https://github.com/domisjustanumber/Roboflow-Exporter/tree/c64fd2a32a51e29cdbf9b1b31473c8e441839d07), [Ultralytics-Exporter](https://github.com/domisjustanumber/Ultralytics-Exporter/tree/2e0280e050fb2bb16bf7f9a1ba89af5f18db67d4), [Qualcomm-Exporter](https://github.com/domisjustanumber/Qualcomm-Exporter/tree/4ca45868431b67350c3c7ed900d5b3ff9f409905); searched the Python sources outside the tests at each of these commits)
 - Roboflow-Exporter is the only exporter that writes `$ref` today. `decode.class_id_map` is `{$ref: ../../shared/class_ids/coco91.yaml}`. The path is relative to the family directory `detectors/object_detectors/rfdetr/`. A test checks that the path resolves to `<root>/detectors/shared/class_ids/coco91.yaml`. (Roboflow-Exporter [`rf_detr/sidecar.py:36-37`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L36-L37) and [`tests/test_sidecar.py:280-284`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/tests/test_sidecar.py#L280-L284))
 - The fragment `coco91.yaml` is a bare YAML sequence of 91 integers. It starts with `---` and has no `schema_version`. Each `-1` slot has a comment ("unused" or "COCO id gap"). (Roboflow-Exporter [`rf_detr/sidecar.py:331-344`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L331-L344); local export `exports/detectors/shared/class_ids/coco91.yaml`, not in git)
 - Qualcomm-Exporter wrote `pose.tracked_points` and `pose.connections` as `$ref` to `../../../shared/skeletons/{name}.yaml`. It removed the landmark models in [a later commit](https://github.com/domisjustanumber/Qualcomm-Exporter/commit/4ca45868431b67350c3c7ed900d5b3ff9f409905). A test resolved each ref with `(path.parent / reference).resolve()` and checked `is_file()`. (Qualcomm-Exporter [`qai_sidecar.py:123-142`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_sidecar.py#L123-L142), [`qai_sidecar.py:233-250`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_sidecar.py#L233-L250) and [`tests/test_qai_sidecar.py:63-91`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/tests/test_qai_sidecar.py#L63-L91))

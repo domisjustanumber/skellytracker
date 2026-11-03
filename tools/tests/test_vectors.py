@@ -783,7 +783,7 @@ NONE_PIXELS = {"normalization": "none", "color_format": "rgb"}
     ("section", "params", "inp"),
     [
         ("pre.resize.letterbox", {**LETTERBOX, "rounding": "half_down"}, FULL_HD),
-        ("pre.normalize", {"normalization": "imagenet"}, {"pixels_bgr": [[0, 0, 0]]}),
+        ("pre.normalize", {"normalization": "imagenet_bgr"}, {"pixels_bgr": [[0, 0, 0]]}),
         ("pre.normalize", {"normalization": {"mode": "scaled"}}, {"pixels_bgr": [[0, 0, 0]]}),
         ("pre.normalize", {**NONE_PIXELS, "color_format": "rgba"}, {"pixels_bgr": [[0, 0, 0]]}),
         (
@@ -939,6 +939,7 @@ ANCHORS: dict[str, list[tuple[str, tuple[str | int, ...], Any]]] = {
         ("imagenet-rgb", ("expect", "channel_order"), "rgb"),
         ("imagenet-bgr", ("expect", "channel_order"), "bgr"),
         ("normalization-is-required", ("expect", "failed"), ["V-pre.normalize-1"]),
+        ("color-format-is-required", ("expect", "failed"), ["V-pre.normalize-1"]),
         # An all-black pixel: the well-known first row of ImageNet-normalized black.
         (
             "imagenet-rgb",

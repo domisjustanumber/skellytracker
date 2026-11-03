@@ -62,7 +62,7 @@ Moved to [format/composition.md](format/composition.md#ref--reference-another-fi
 
 ### `base` — inherit from another sidecar and override
 
-Moved to [format/composition.md](format/composition.md#base--inherit-from-another-sidecar-and-override).
+Removed. `$ref` is the only directive that reuses a file ([format/composition.md](format/composition.md#ref--reference-another-file-for-any-value); [ADR-90CE](../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 
 ### Resolution pipeline
 

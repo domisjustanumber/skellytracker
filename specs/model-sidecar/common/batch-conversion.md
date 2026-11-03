@@ -71,7 +71,7 @@ Limits:
 
 ## Implementer guidance
 
-- `model_batch_convert` in `skellytracker/core/sessions/batch_conversion.py` implements `static-batch-v1`. It takes a resolved sidecar dict or the `batch_conversion` dict alone. It does not resolve `base` or `$ref`. See [File composition](../format/composition.md).
+- `model_batch_convert` in `skellytracker/core/sessions/batch_conversion.py` implements `static-batch-v1`. It takes a resolved sidecar dict or the `batch_conversion` dict alone. It does not resolve `$ref`. See [File composition](../format/composition.md).
 - The converter does not read external data. It raises `ValueError` when an initializer, a sparse initializer value, a tensor attribute of a node or a tensor of a subgraph uses external data. It does not check the `indices` of a sparse initializer.
 - `static-batch-v1` was measured on the Ultralytics-Exporter yolo26 and yolo26-body nano fp32 exports. The conversions were batch 2 to batch 1 and batch 2 to batch 3. On onnxruntime CPU, the converted outputs equal the native outputs (max abs diff 0.0, seeded random input in [0, 1)). (Measurement 2026-10-28; skellytracker `skellytracker/core/sessions/batch_conversion.py`, onnx 1.22.0, onnxruntime 1.27.0; Ultralytics-Exporter local exports `exports/detectors/object_detectors/yolo26/` and `exports/detectors/keypoint_detectors/yolo26/body/`, made with Ultralytics 8.4.173 and PyTorch 2.12.0, opset 18, not in git)
 

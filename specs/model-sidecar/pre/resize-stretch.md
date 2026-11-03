@@ -17,7 +17,7 @@ status: {spec: stable, validate: implemented, forward: partial, inverse: missing
 
 ## Fields
 
-[`input.resize`](../common/input.md#inputresize) and [Interpolation](interpolation.md) define `target_size`, `supports_dynamic_size` and `interpolation`. [Letterbox resize](resize-letterbox.md#behaviour) names `[T_h, T_w]`.
+[`input.resize`](../common/input.md#inputresize) and [Interpolation](interpolation.md) define `target_size` and `interpolation`. [Letterbox resize](resize-letterbox.md#behaviour) names `[T_h, T_w]`.
 
 ## Behaviour
 
@@ -37,7 +37,9 @@ The host applies the inverse as part of [Unprojection](../post/unprojection.md).
 
 ## Validation rules
 
-See [Input](../common/input.md#validation-rules) and [Sizes and artifacts](../common/sizes-and-artifacts.md#validation-rules).
+- [ ] `V-pre.resize.stretch-1` Each size must declare `input.resize.target_size`. A `stretch` resize must not declare `pad_value`, `pad_position`, `rounding` or `crop_policy` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
+
+See also [Input](../common/input.md#validation-rules) and [Sizes and artifacts](../common/sizes-and-artifacts.md#validation-rules).
 
 ## Implementer guidance
 

@@ -399,6 +399,12 @@ def selector_values(path: str) -> set[str]:
     return values
 
 
+# shortcut: the frozen model.py keeps imagenet_bgr and imagenet_rgb (ADR-90CE), so the check
+# skips them and asks for the merged mode imagenet; delete this at stage M8 of the
+# implementation plan, when model.py has the mode imagenet.
+MERGED_IMAGENET_MODES = {"imagenet_bgr", "imagenet_rgb"}
+
+
 def literal_cases() -> list[tuple[str, list[str], set[str]]]:
     tree = model_tree()
     return [
@@ -409,7 +415,14 @@ def literal_cases() -> list[tuple[str, list[str], set[str]]]:
         ),
         (
             "NamedNormalizationMode and custom",
-            [*alias_values(tree, "NamedNormalizationMode"), "custom"],
+            [
+                *(
+                    set(alias_values(tree, "NamedNormalizationMode"))
+                    - MERGED_IMAGENET_MODES
+                ),
+                "imagenet",
+                "custom",
+            ],
             selector_values("input.normalization")
             | selector_values("input.normalization.mode"),
         ),
@@ -546,7 +559,7 @@ NONE_DETECTOR = {
     "schema_version": "vNEXT",
     "model_id": "none-detector",
     "role": ["object_detector"],
-    "input": {"resize": {"method": "letterbox"}, "normalization": "imagenet_bgr"},
+    "input": {"resize": {"method": "letterbox"}, "normalization": "imagenet"},
     "decode": {"selection": "none"},
     "outputs": [{"semantic": "detections"}],
 }
@@ -669,7 +682,7 @@ def test_the_cells_that_carry_text() -> None:
 
     poses = {**BOTTOM_UP_POSE, "outputs": [{"semantic": "poses"}]}
     no_resize = {**BOTTOM_UP_POSE, "input": {"normalization": "unit_float"}}
-    assert cell("pre.normalize", NONE_DETECTOR) == "imagenet_bgr"
+    assert cell("pre.normalize", NONE_DETECTOR) == "imagenet"
     assert cell("pre.normalize", NMS_DETECTOR) == "unit_float"
     assert cell("pre.normalize", BOTTOM_UP_POSE) == "unit_float"
     assert cell("pre.resize.none", no_resize) == "x (derived)"

@@ -10,7 +10,6 @@ role: [object_detector, pose_estimator]
 input:
   name: images
   dtype: {fp32: float32, fp16: float32}
-  layout: NCHW
   color_format: rgb
   normalization: unit_float
   resize: {method: letterbox, pad_position: center, rounding: half_even, pad_value: 114, interpolation: linear}
@@ -21,7 +20,6 @@ outputs:
   - name: output0
     dtype: {fp32: float32, fp16: float32}
     shape: [-1, 300, 57]
-    rank: 3
     semantic: detections
     fields: [x1, y1, x2, y2, score, class_id]
     packed_keypoints:
@@ -43,6 +41,7 @@ decode:
 pose:
   estimator_type: bottom_up
   requires_object_detector: false
+  geometry: 2d
   landmark_schema: COCO17
   tracked_points: [nose, left_eye, right_eye, left_ear, right_ear, left_shoulder, right_shoulder, left_elbow, right_elbow,
     left_wrist, right_wrist, left_hip, right_hip, left_knee, right_knee, left_ankle, right_ankle]
@@ -67,7 +66,6 @@ pose:
         - [right_knee, right_ankle]
   decode:
     method: coordinate
-    coordinate_scale: pixel
 
 overlay:
   skeleton: coco_17

@@ -19,7 +19,7 @@ status: {spec: stable, validate: partial, forward: implemented, inverse: missing
 
 ## Fields
 
-[`input.resize`](../common/input.md#inputresize) and [Interpolation](interpolation.md) define `target_size`, `pad_value`, `supports_dynamic_size` and `interpolation`.
+[`input.resize`](../common/input.md#inputresize) and [Interpolation](interpolation.md) define `target_size`, `pad_value` and `interpolation`.
 
 ## Behaviour
 
@@ -34,7 +34,7 @@ M    = [[s, 0, left],
 dst  = warpAffine(src, M, (T_w, T_h), <interpolation>, borderMode=constant, borderValue=pad_value)
 ```
 
-A `fit` resize must declare `pad_value`. It must not declare `pad_position`, `rounding` or `crop_policy` ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)). This matches mmpose `BottomupResize` (RTMO). A `letterbox` is not equivalent to this resize at any scale other than `1`. A letterbox resize rounds the resized size. Also, `resize` + pad gives different pixels from `warpAffine`, even when the resized size has integer values.
+This resize matches mmpose `BottomupResize` (RTMO). A `letterbox` is not equivalent to this resize at any scale other than `1`. A letterbox resize rounds the resized size. Also, `resize` + pad gives different pixels from `warpAffine`, even when the resized size has integer values.
 
 ### Inverse
 
@@ -46,7 +46,7 @@ The host applies the inverse as part of [Unprojection](../post/unprojection.md).
 
 ## Validation rules
 
-- [ ] `V-pre.resize.fit-1` A `fit` resize must declare `pad_value`.
+- [ ] `V-pre.resize.fit-1` A `fit` resize must declare `pad_value`. Each size must declare `input.resize.target_size`. The resize must not declare `pad_position`, `rounding` or `crop_policy` ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md); [ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 
 See also [Input](../common/input.md#validation-rules) and [Sizes and artifacts](../common/sizes-and-artifacts.md#validation-rules).
 

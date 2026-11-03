@@ -10,7 +10,6 @@ role: [object_detector, pose_estimator]
 input:
   name: input
   dtype: {fp32: float32}
-  layout: NCHW
   color_format: bgr
   normalization: none
   resize:
@@ -24,13 +23,11 @@ outputs:
   - name: dets
     dtype: {fp32: float32}
     shape: [-1, -1, 5]
-    rank: 3
     semantic: detections
     fields: [x1, y1, x2, y2, score]
   - name: keypoints
     dtype: {fp32: float32}
     shape: [-1, -1, 17, 3]
-    rank: 4
     semantic: poses
     keypoint_axis: 2
     keypoint_count: 17
@@ -47,6 +44,7 @@ decode:
 pose:
   estimator_type: bottom_up
   requires_object_detector: false
+  geometry: 2d
   landmark_schema: COCO17
   tracked_points:
     - nose

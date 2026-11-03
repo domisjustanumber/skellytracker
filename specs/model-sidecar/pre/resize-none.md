@@ -17,13 +17,13 @@ status: {spec: stable, validate: implemented, forward: missing, inverse: missing
 
 ## Fields
 
-[`input.resize`](../common/input.md#inputresize) defines `target_size` and `supports_dynamic_size`.
+[`input.resize`](../common/input.md#inputresize) defines `target_size`.
 
 ## Behaviour
 
 The model takes the source image directly. The host applies no letterbox and no affine crop. The sidecar omits `target_size`. The host passes the source image unchanged.
 
-If `supports_dynamic_size: true`, the model accepts any spatial size. Otherwise, the spatial dimensions of the size's `input.shape` are concrete. They declare the exact resolution that the model expects. In that case, the caller supplies frames at that size.
+The spatial dimensions of the size's `input.shape` are concrete. They declare the exact resolution that the model expects. The caller supplies frames at that size.
 
 ### Inverse
 
@@ -35,7 +35,9 @@ The host applies the inverse as part of [Unprojection](../post/unprojection.md).
 
 ## Validation rules
 
-See [Input](../common/input.md#validation-rules) and [Sizes and artifacts](../common/sizes-and-artifacts.md#validation-rules).
+- [ ] `V-pre.resize.none-1` Each size must omit `input.resize.target_size`. A `none` resize must not declare `pad_value`, `pad_position`, `rounding` or `crop_policy` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
+
+See also [Input](../common/input.md#validation-rules) and [Sizes and artifacts](../common/sizes-and-artifacts.md#validation-rules).
 
 ## Implementer guidance
 

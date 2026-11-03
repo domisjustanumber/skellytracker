@@ -10,7 +10,6 @@ role: [object_detector]
 input:
   name: images
   dtype: {fp32: float32, fp16: float32}
-  layout: NCHW
   color_format: rgb
   normalization: unit_float
   resize: {method: letterbox, pad_position: center, rounding: half_even, pad_value: 114, interpolation: linear}
@@ -21,7 +20,6 @@ outputs:
   - name: output0
     dtype: {fp32: float32, fp16: float32}
     shape: [-1, 300, 6]
-    rank: 3
     semantic: detections
     fields: [x1, y1, x2, y2, score, class_id]
 

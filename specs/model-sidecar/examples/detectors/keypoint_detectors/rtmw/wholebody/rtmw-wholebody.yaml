@@ -10,9 +10,8 @@ role: [pose_estimator]
 input:
   name: input
   dtype: {fp32: float32, fp16: float32}
-  layout: NCHW
   color_format: rgb
-  normalization: imagenet_rgb
+  normalization: imagenet
   resize:
     method: affine_person_crop
     interpolation: linear
@@ -38,6 +37,7 @@ outputs:
 pose:
   estimator_type: top_down_single_person
   requires_object_detector: true
+  geometry: 2d
   landmark_schema: COCO_WholeBody
   # The exporter currently inlines these 133 names and edges; the shared fragments are equivalent.
   tracked_points: {$ref: ../../../shared/skeletons/coco133_tracked_points.yaml, sha256: "b59afc21868c1b4b0cac9bf0ae8a6398666d0b8a5da64a13d88079732d60441c"}

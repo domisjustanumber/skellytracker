@@ -72,7 +72,7 @@ def test_absent_normalization_stays_absent() -> None:
     data = {"role": ["pose_estimator"], "input": {"resize": {"method": "fit"}}}
     normalized = sn.normalize(data)
     assert "normalization" not in normalized["input"]
-    assert not sn.matches("input.normalization=imagenet_bgr", normalized)
+    assert not sn.matches("input.normalization=imagenet", normalized)
 
 
 def test_a_given_normalization_is_kept() -> None:
@@ -161,7 +161,6 @@ NORMALIZED = {
         "resize": {
             "method": "letterbox",
             "pad_value": 114,
-            "supports_dynamic_size": False,
         },
     },
     "outputs": [
@@ -169,7 +168,11 @@ NORMALIZED = {
         {"name": "b", "semantic": "poses", "keypoint_axis": 2},
     ],
     "decode": {"selection": "none", "is_person_only": True, "nothing": None},
-    "pose": {"canonical_mapping": {"nose": "head"}, "decode": {"method": "simcc"}},
+    "pose": {
+        "requires_object_detector": False,
+        "canonical_mapping": {"nose": "head"},
+        "decode": {"method": "simcc"},
+    },
 }
 
 
@@ -187,7 +190,7 @@ NORMALIZED = {
         "pose.decode.method=simcc",
         "input.resize.pad_value=114",
         "decode.is_person_only=true",
-        "input.resize.supports_dynamic_size=false",
+        "pose.requires_object_detector=false",
     ],
 )
 def test_matching_selectors(selector: str) -> None:
@@ -229,7 +232,7 @@ def test_selectors_that_do_not_match(selector: str) -> None:
         ("overlay", False),
         ("decode.nothing", False),
         ("outputs[].shape", False),
-        ("input.resize.supports_dynamic_size", True),
+        ("pose.requires_object_detector", True),
     ],
 )
 def test_a_selector_without_value_tests_that_the_path_exists_and_is_not_null(

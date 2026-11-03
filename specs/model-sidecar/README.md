@@ -19,7 +19,7 @@ A sidecar can declare **both** roles. An example is a one-stage model such as RT
 - **Multiple sizes in each sidecar.** A family ships several sizes in one file, for example `nano`, `small` and `medium`. All sizes share one preprocessing and output contract. They differ only in input size and ONNX artifacts (see [`sizes`](common/sizes-and-artifacts.md#sizes)).
 - **Traceable version.** The `schema_version` of a sidecar identifies the skellytracker release whose contract it follows. A host loads only the versions that it implements. The spec has no legacy reading ([ADR-0QKK](../../decisions/entries/0QKK-no-legacy-layer.md)).
 - **Single source of truth.** This document is the canonical, human-readable contract. **No software parses it at runtime.** skellytracker has Pydantic `BaseModel` subclasses (the `SidecarModel` hierarchy) that follow this document. The documentation and the validators must stay aligned.
-- **Composable.** A sidecar can include shared YAML fragments with `$ref`. It can inherit values from another sidecar and override them with `base`.
+- **Composable.** A sidecar can include shared YAML fragments with `$ref`. `$ref` is the only directive that reuses a file ([ADR-90CE](../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 
 This specification is in separate section files. See the [Section map](#section-map).
 
@@ -126,7 +126,9 @@ A sidecar is valid when all of the following rules hold. Each rule applies to ev
 - [Input](common/input.md#validation-rules)
 - [Outputs](common/outputs.md#validation-rules)
 - [Letterbox resize](pre/resize-letterbox.md#validation-rules)
+- [Stretch resize](pre/resize-stretch.md#validation-rules)
 - [Fit resize](pre/resize-fit.md#validation-rules)
+- [No resize](pre/resize-none.md#validation-rules)
 - [Affine person crop](pre/resize-affine-person-crop.md#validation-rules)
 - [Normalization](pre/normalization.md#validation-rules)
 - [Detection outputs](post/detection-outputs.md#validation-rules)

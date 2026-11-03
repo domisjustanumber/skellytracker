@@ -20,7 +20,7 @@ status: {spec: stable, validate: partial, decode: partial}
 
 Decoded box and keypoint coordinates are always in the input image of the model, with a **top-left origin**. In this origin, `x` grows to the right and `y` grows down. The host unprojects the coordinates to the source image. A sidecar cannot override the origin.
 
-The host first converts the decoded coordinates to **model-input pixels**. The value of `box_scale` or `coordinate_scale` sets the conversion:
+The host first converts the decoded coordinates to **model-input pixels**. The value of `box_scale` or `coordinate_scale` sets the conversion. Packed keypoints use `box_scale` ([`packed_keypoints`](pose-bottom-up.md#packed_keypoints-bottom-up-packed-rows); [ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)):
 
 - `normalized_01`: the host multiplies `x` by the model input width and `y` by the model input height.
 - `normalized_11`: the host maps `[-1, 1]` to `[0, width]` for the horizontal axis and to `[0, height]` for the vertical axis.

@@ -27,7 +27,7 @@ status: {spec: stable, validate: missing, load: partial}
 
 ## Validation rules
 
-This section has no rule of its own. [`V-common.sizes_and_artifacts-13`](sizes-and-artifacts.md#validation-rules) checks `batching.batch`. [Batch conversion](batch-conversion.md#validation-rules) checks `batching.batch_conversion` ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)).
+This section has no rule of its own. [`V-common.sizes_and_artifacts-12`](sizes-and-artifacts.md#validation-rules) checks `batching.batch`. [Batch conversion](batch-conversion.md#validation-rules) checks `batching.batch_conversion` ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)).
 
 ## Implementer guidance
 

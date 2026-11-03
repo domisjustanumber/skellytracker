@@ -30,7 +30,7 @@ Required when `role` includes `object_detector`. It describes how the host turns
 | `boxes_output` | string | no | The name of the primary `detections`/`boxes` output. The default is the single primary detection output of the sidecar. |
 | `scores_output` | string | no | The name of the `scores` output. Do not use it together with `score_field` or `class_logits_output`. |
 | `box_format` | enum | no | The value is `xyxy` (default), `xywh` (top-left corner and size) or `cxcywh` (centre and size). It applies to `fields[0:4]` of a `detections` output, or to the four columns of a `boxes` output. |
-| `box_scale` | enum | no | The value is `pixel` (default; model-input pixels), `normalized_01` or `normalized_11`. See [Unprojection](unprojection.md). |
+| `box_scale` | enum | no | The value is `pixel` (default; model-input pixels), `normalized_01` or `normalized_11`. Packed keypoints also use this scale ([`packed_keypoints`](pose-bottom-up.md#packed_keypoints-bottom-up-packed-rows); [ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). See [Unprojection](unprojection.md). |
 | `score_field` | string | conditional | The field that holds the score of each row. It must appear in `fields`. Required for a `detections` primary output, unless the sidecar uses `scores_output`. Invalid for a `boxes` primary output. |
 | `class_field` | string | no | The field that holds the class index of each row. It must appear in `fields`. Invalid for a `boxes` primary output. |
 | `class_id_base` | int | no | The emitted class id is `class_id_base + model class index`. The default is `0`. If `class_id_map` is present, the host ignores this field. |

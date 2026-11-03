@@ -15,7 +15,7 @@ from vector_form import defect
 
 IMAGENET_MEAN_RGB = (123.675, 116.28, 103.53)
 IMAGENET_STD_RGB = (58.395, 57.12, 57.375)
-MODES = ("none", "unit_float", "imagenet_bgr", "imagenet_rgb")
+MODES = ("none", "unit_float", "imagenet")
 
 
 def resolve_mode(
@@ -40,15 +40,14 @@ def normalize_pixels(
     if isinstance(mode, dict):
         if mode.get("mode") != "custom":
             defect(f"unknown normalization mode {mode.get('mode')!r}")
-        order = mode.get("color_format") or color_format or "rgb"
+        extra = set(mode) - {"mode", "scale", "mean", "std"}
+        if extra:
+            raise ValueError(f"V-pre.normalize-1: a custom object has the keys {sorted(extra)}")
     elif mode not in MODES:
         defect(f"unknown normalization mode {mode!r}")
-    elif mode in ("none", "unit_float"):
-        if color_format is None:
-            defect(f"{mode} needs color_format")
-        order = color_format
-    else:
-        order = "bgr" if mode == "imagenet_bgr" else "rgb"
+    if color_format is None:
+        raise ValueError("V-pre.normalize-1: input.color_format must be present")
+    order = color_format
     if order not in ("rgb", "bgr"):
         defect(f"unknown color_format {order!r}")
 
