@@ -1,8 +1,9 @@
 # EP device checks
 
 This folder holds a hardware test suite for the execution providers (EPs) of ONNX Runtime 1.31.0 on
-an NVIDIA GPU. It is the evidence harness of experiment X2 and of risk E6. An evidence decision entry
-names it ([ADR-EY8R](../../entries/EY8R-tools-and-scripts.md)). The suite does not use the
+an NVIDIA GPU. It makes the evidence for the GTX 1650 (Turing) and Pascal device checks, the driver
+update checks and the missing sm_61 kernels of the CUDA 12 pack. An evidence decision entry will
+name it ([ADR-EY8R](../../entries/EY8R-tools-and-scripts.md)). The suite does not use the
 skellytracker package code.
 
 ## What the suite tests
@@ -303,10 +304,10 @@ The suite uses the same code and the same rules table for a Pascal card.
 - `cuda-cu13`, `trt-rtx-cu13` and `trt-rtx-cu12` are `unsupported` for an architecture reason.
   CUDA 13 has no build below CC 7.5. TensorRT-RTX has no support below CC 7.5. A driver update does
   not fix them.
-- The `cuda-cu12` build has 42 kernels with no sm_61 version (risk E6). With the CPU fallback turned
+- The `cuda-cu12` build has 42 kernels with no sm_61 version. With the CPU fallback turned
   off, a missing kernel makes the session build or the first run fail. The report then holds the
   error text and the op type. The suite runs the model again with the fallback turned on, and records
-  the op types that moved to the CPU. This is the main evidence for E6.
+  the op types that moved to the CPU. This is the main evidence for the missing sm_61 kernels.
 - fp32 is the target. The suite runs fp16 only when you give `--precision fp32,fp16`. An fp16 result
   on Pascal is informational, because consumer Pascal fp16 throughput is very low.
 - On a card with less VRAM than a model needs, the suite skips the model with the reason
