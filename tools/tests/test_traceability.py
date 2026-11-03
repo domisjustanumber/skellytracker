@@ -26,26 +26,6 @@ INDEX_PATH = REPO_ROOT / "specs" / "model-sidecar" / "sidecar-spec.md"
 MODEL_PATH = REPO_ROOT / "skellytracker" / "core" / "sidecar" / "model.py"
 PACKAGE_DIR = REPO_ROOT / "skellytracker"
 
-KINDS = {"format", "common", "preprocessor", "postprocessor", "schema"}
-REQUIRED_STEPS_BY_KIND = {
-    "format": {"validate", "load"},
-    "common": {"validate", "load"},
-    "preprocessor": {"validate", "forward"},
-    "postprocessor": {"validate", "decode"},
-    "schema": {"validate", "load"},
-}
-# A preprocessor names an `inverse` step only when its algorithm has an inverse. Normalization and
-# interpolation have none: the section has an "Inverse" heading exactly when it has the step.
-OPTIONAL_STEPS_BY_KIND = {"preprocessor": {"inverse"}}
-KINDS_BY_FOLDER = {
-    "format": {"format"},
-    "common": {"common"},
-    "pre": {"preprocessor"},
-    "post": {"postprocessor", "schema"},
-}
-STEP_STATES = {"implemented", "partial", "missing"}
-SPEC_STATES = {"stable", "draft"}
-
 
 # --------------------------------------------------------------------------------------------
 # Helpers
@@ -111,36 +91,9 @@ def test_there_are_section_files() -> None:
     assert len(section_paths()) >= 28
 
 
-@pytest.mark.parametrize("path", section_paths(), ids=path_ids)
-def test_front_matter_has_exactly_the_documented_keys(path: Path) -> None:
-    assert set(front_of(path)) == set(st.FRONT_MATTER_KEYS)
-
-
-@pytest.mark.parametrize("path", section_paths(), ids=path_ids)
-def test_identity_fields(path: Path) -> None:
-    front = front_of(path)
-    assert isinstance(front["id"], str) and front["id"]
-    assert isinstance(front["title"], str) and front["title"]
-    assert front["kind"] in KINDS
-    folder = path.parent.name
-    assert front["id"].split(".")[0] == folder
-    assert front["kind"] in KINDS_BY_FOLDER[folder]
-
-
-@pytest.mark.parametrize("path", section_paths(), ids=path_ids)
-def test_selectors(path: Path) -> None:
-    front = front_of(path)
-    selectors = front["selectors"]
-    assert isinstance(selectors, list)
-    assert len(set(selectors)) == len(selectors)
-    for selector in selectors:
-        sn.parse_selector(selector)
-    if front["kind"] in sn.UNIVERSAL_KINDS:
-        # a common section of one optional key has one key-presence selector
-        assert all("=" not in selector for selector in selectors), selectors
-        assert len(selectors) <= 1, selectors
-    else:
-        assert selectors, "a section of this kind needs at least one selector"
+def test_every_section_file_has_valid_front_matter() -> None:
+    # load_sections raises a TraceError on a file whose front matter breaks a FrontMatter rule.
+    assert len(st.load_sections(REPO_ROOT)) == len(section_paths())
 
 
 @pytest.mark.parametrize("path", section_paths(), ids=path_ids)
@@ -159,18 +112,6 @@ def test_each_no_model_reason_names_a_section() -> None:
 
 
 @pytest.mark.parametrize("path", section_paths(), ids=path_ids)
-def test_implemented_by_has_the_steps_of_the_kind(path: Path) -> None:
-    front = front_of(path)
-    implemented_by = front["implemented_by"]
-    assert isinstance(implemented_by, dict)
-    required = REQUIRED_STEPS_BY_KIND[front["kind"]]
-    optional = OPTIONAL_STEPS_BY_KIND.get(front["kind"], set())
-    assert required <= set(implemented_by) <= required | optional
-    for reference in implemented_by.values():
-        assert isinstance(reference, str)
-
-
-@pytest.mark.parametrize("path", section_paths(), ids=path_ids)
 def test_a_section_names_the_inverse_step_exactly_when_it_has_an_inverse(
     path: Path,
 ) -> None:
@@ -180,37 +121,13 @@ def test_a_section_names_the_inverse_step_exactly_when_it_has_an_inverse(
 
 
 @pytest.mark.parametrize("path", section_paths(), ids=path_ids)
-def test_status_has_a_spec_state_and_a_state_for_each_step(path: Path) -> None:
-    front = front_of(path)
-    status = front["status"]
-    assert isinstance(status, dict)
-    assert set(status) == {"spec", *front["implemented_by"]}
-    assert status["spec"] in SPEC_STATES
-    for step in front["implemented_by"]:
-        assert status[step] in STEP_STATES, step
-
-
-@pytest.mark.parametrize("path", section_paths(), ids=path_ids)
-def test_a_step_is_missing_in_the_status_exactly_when_it_is_missing_in_implemented_by(
-    path: Path,
-) -> None:
-    front = front_of(path)
-    for step, reference in front["implemented_by"].items():
-        assert (reference == st.MISSING) == (front["status"][step] == "missing"), step
-
-
-@pytest.mark.parametrize("path", section_paths(), ids=path_ids)
 def test_the_other_lists(path: Path) -> None:
     front = front_of(path)
-    assert isinstance(front["external_impl"], list)
-    assert isinstance(front["tests"], list)
     assert len(set(front["tests"])) == len(front["tests"])
     for test_path in front["tests"]:
-        assert isinstance(test_path, str)
         assert test_path.startswith("skellytracker/tests/") and test_path.endswith(
             ".py"
         )
-    assert front["vectors"] is None or isinstance(front["vectors"], str)
 
 
 # --------------------------------------------------------------------------------------------
@@ -392,7 +309,7 @@ def selector_values(path: str) -> set[str]:
     """Return the values of every selector that tests the given path."""
     values = set()
     for section in all_sections():
-        for selector in section.front["selectors"]:
+        for selector in section.front.selectors:
             segments, value = sn.parse_selector(selector)
             if ".".join(segments) == path and value is not None:
                 values.add(value)
@@ -647,7 +564,7 @@ def test_a_sidecar_matches_exactly_the_sections_of_its_selectors(
     universal = {
         s.id
         for s in all_sections()
-        if s.kind in sn.UNIVERSAL_KINDS and not s.front["selectors"]
+        if s.kind in sn.UNIVERSAL_KINDS and not s.front.selectors
     }
     sidecar = synthetic(data)
     applicable = st.applicable_models(all_sections(), [sidecar])
@@ -696,7 +613,7 @@ def test_the_cells_that_carry_text() -> None:
 
 def test_format_and_common_sections_without_selectors_apply_to_every_sidecar() -> None:
     for section in all_sections():
-        if section.kind in sn.UNIVERSAL_KINDS and not section.front["selectors"]:
+        if section.kind in sn.UNIVERSAL_KINDS and not section.front.selectors:
             assert applicability()[section.id] == {s.key for s in scan().sidecars}
 
 

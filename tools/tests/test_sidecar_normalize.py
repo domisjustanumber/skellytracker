@@ -319,40 +319,26 @@ def test_parse_selector_splits_path_and_value() -> None:
 
 @pytest.mark.parametrize("kind", ["format", "common"])
 def test_format_and_common_sections_apply_to_every_sidecar(kind: str) -> None:
-    assert sn.applies({"kind": kind, "selectors": []}, {})
-    assert sn.applies({"kind": kind, "selectors": []}, NORMALIZED)
+    assert sn.applies(kind, [], {})
+    assert sn.applies(kind, [], NORMALIZED)
 
 
 def test_a_common_section_of_one_key_applies_only_when_the_key_is_present() -> None:
-    front = {"kind": "common", "selectors": ["batching.batch_conversion"]}
-    assert not sn.applies(front, {"batching": {"mode": "static"}})
-    assert sn.applies(front, {"batching": {"batch_conversion": {"profile_id": "p"}}})
+    selectors = ["batching.batch_conversion"]
+    assert not sn.applies("common", selectors, {"batching": {"mode": "static"}})
+    assert sn.applies("common", selectors, {"batching": {"batch_conversion": {"profile_id": "p"}}})
 
 
 def test_any_matching_selector_is_enough() -> None:
-    front = {
-        "kind": "postprocessor",
-        "selectors": ["role=other", "decode.selection=none"],
-    }
-    assert sn.applies(front, NORMALIZED)
+    assert sn.applies("postprocessor", ["role=other", "decode.selection=none"], NORMALIZED)
 
 
 def test_no_matching_selector_means_the_section_does_not_apply() -> None:
-    front = {
-        "kind": "postprocessor",
-        "selectors": ["role=other", "decode.selection=nms"],
-    }
-    assert not sn.applies(front, NORMALIZED)
+    assert not sn.applies("postprocessor", ["role=other", "decode.selection=nms"], NORMALIZED)
 
 
 def test_a_section_without_selectors_applies_to_nothing() -> None:
-    assert not sn.applies({"kind": "preprocessor", "selectors": []}, NORMALIZED)
-    assert not sn.applies({"kind": "preprocessor"}, NORMALIZED)
-
-
-def test_selectors_must_be_a_list() -> None:
-    with pytest.raises(ValueError):
-        sn.applies({"kind": "schema", "selectors": "overlay"}, NORMALIZED)
+    assert not sn.applies("preprocessor", [], NORMALIZED)
 
 
 # --------------------------------------------------------------------------------------------

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import re
 import shutil
 import subprocess
 import sys
@@ -89,7 +90,10 @@ def front_matter(
         "external_impl": [],
         "tests": tests or [],
         "vectors": vectors,
-        "status": {"spec": "stable", **dict.fromkeys(steps, "missing")},
+        "status": {
+            "spec": "stable",
+            **{step: "missing" if ref == "missing" else "implemented" for step, ref in steps.items()},
+        },
     }
     return "---\n" + yaml.safe_dump(front, sort_keys=False) + "---\n\n# Title\n"
 
@@ -199,6 +203,91 @@ def test_front_matter_reads_a_file_with_crlf_line_endings() -> None:
 def test_bad_front_matter_raises(text: str) -> None:
     with pytest.raises(st.TraceError):
         st.parse_front_matter(text, "file.md")
+
+
+VALID = {
+    "id": "pre.a",
+    "title": "A",
+    "kind": "preprocessor",
+    "selectors": ["input.resize.method=a"],
+    "implemented_by": {"validate": "missing", "forward": "pkg/a.py::f", "inverse": "missing"},
+    "external_impl": [],
+    "tests": [],
+    "vectors": None,
+    "status": {"spec": "draft", "validate": "missing", "forward": "partial", "inverse": "missing"},
+}
+
+DROP = object()  # a key that the test removes
+
+
+def synthetic_section(section_id: str, kind: str, implemented_by: dict[str, str]) -> st.Section:
+    front = st.FrontMatter(section_id, section_id, kind, (), implemented_by, (), (), None, {})
+    return st.Section(section_id, section_id, kind, f"{section_id}.md", front, "")
+
+
+def test_front_matter_parse_gives_an_immutable_front_matter() -> None:
+    front = st.FrontMatter.parse(VALID, "pre", "a.md")
+    assert front.selectors == ("input.resize.method=a",)
+    assert front.implemented_by["forward"] == "pkg/a.py::f"
+    assert st.FRONT_MATTER_KEYS == tuple(VALID)
+    with pytest.raises(TypeError):
+        front.status["spec"] = "stable"  # type: ignore[index]
+
+
+@pytest.mark.parametrize(
+    ("change", "folder", "problem"),
+    [
+        ({"since": "1.0"}, "pre", "unknown keys: since"),
+        ({"vectors": DROP}, "pre", "missing keys: vectors"),
+        ({"tests": None}, "pre", "`tests` must be"),
+        ({"id": "post.a"}, "pre", "must start with the folder"),
+        ({"title": ""}, "pre", "`title` must be"),
+        ({}, "post", "not allowed in 'post'"),
+        ({"selectors": []}, "pre", "needs at least one selector"),
+        ({"selectors": ["a", "a"]}, "pre", "must not repeat"),
+        ({"selectors": ["a b"]}, "pre", "bad path segment"),
+        ({"id": "", "kind": "common"}, "common", "`id` must be"),
+        ({"selectors": "a"}, "pre", "list of strings"),
+        ({"selectors": ["a", 3]}, "pre", "list of strings"),
+        ({"id": "common.a", "kind": "common", "selectors": ["a=b"]}, "common", "at most one"),
+        ({"id": "common.a", "kind": "common", "selectors": ["a", "b"]}, "common", "at most one"),
+        (
+            {"implemented_by": {"validate": "missing"}, "status": {"spec": "draft", "validate": "missing"}},
+            "pre",
+            "must have the steps",
+        ),
+        (
+            {
+                "implemented_by": {**VALID["implemented_by"], "decode": "missing"},
+                "status": {**VALID["status"], "decode": "missing"},
+            },
+            "pre",
+            "must have the steps",
+        ),
+        ({"implemented_by": []}, "pre", "map each step to a string"),
+        ({"implemented_by": {**VALID["implemented_by"], "forward": 3}}, "pre", "map each step"),
+        ({"external_impl": {}}, "pre", "`external_impl` must be"),
+        ({"vectors": 3}, "pre", "`vectors` must be"),
+        ({"status": None}, "pre", "`status` must have the keys"),
+        ({"status": {"spec": "draft"}}, "pre", "`status` must have the keys"),
+        ({"status": {**VALID["status"], "spec": "final"}}, "pre", "`status.spec` must be"),
+        ({"status": {**VALID["status"], "forward": "done"}}, "pre", "`status.forward` must be one"),
+        ({"status": {**VALID["status"], "forward": "missing"}}, "pre", "exactly when"),
+    ],
+)
+def test_front_matter_parse_refuses_a_broken_rule(
+    change: dict[str, Any], folder: str, problem: str
+) -> None:
+    data = {key: value for key, value in {**VALID, **change}.items() if value is not DROP}
+    with pytest.raises(st.TraceError, match=f"^a.md: .*{re.escape(problem)}"):
+        st.FrontMatter.parse(data, folder, "a.md")
+
+
+def test_front_matter_parse_skips_the_status_check_when_implemented_by_is_bad() -> None:
+    data = {**VALID, "implemented_by": {**VALID["implemented_by"], "forward": 3}}
+    with pytest.raises(st.TraceError) as info:
+        st.FrontMatter.parse(data, "pre", "a.md")
+    assert "`status" not in str(info.value)
 
 
 def test_split_reference() -> None:
@@ -331,13 +420,13 @@ def test_a_section_that_the_map_omits_comes_last(repo: Path) -> None:
     write(
         repo,
         "specs/model-sidecar/pre/another.md",
-        front_matter("pre.another", "preprocessor", ["x"]),
+        front_matter("pre.another", "preprocessor", ["x"], {"validate": "missing", "forward": "missing"}),
     )
     assert [s.id for s in st.load_sections(repo)][-1] == "pre.another"
 
 
 def test_a_repeated_section_id_raises(repo: Path) -> None:
-    write(repo, "specs/model-sidecar/pre/copy.md", front_matter("common.a", "common", []))
+    write(repo, "specs/model-sidecar/common/copy.md", front_matter("common.a", "common", []))
     with pytest.raises(st.TraceError, match="common.a"):
         st.load_sections(repo)
 
@@ -346,7 +435,7 @@ def test_section_properties(repo: Path) -> None:
     section = {s.id: s for s in st.load_sections(repo)}["pre.resize.letterbox"]
     assert section.path == "pre/letterbox.md"
     assert section.kind == "preprocessor"
-    assert section.tests == ["pkg/test_pre.py"]
+    assert section.tests == ("pkg/test_pre.py",)
     assert section.vectors == "vectors/pre.resize.letterbox.yaml"
     assert section.implemented_by["inverse"] == "missing"
     assert section.status["spec"] == "stable"
@@ -551,8 +640,8 @@ def test_the_statuses_functions_tests_and_vectors_are_listed(repo: Path) -> None
     text = st.render_traceability(repo)
     assert (
         "| [`pre.resize.letterbox`](pre/letterbox.md) | stable | "
-        "`validate` missing: `pkg/model.py::Resize`<br>"
-        "`forward` missing: `pkg/pre.py::letterbox`<br>"
+        "`validate` implemented: `pkg/model.py::Resize`<br>"
+        "`forward` implemented: `pkg/pre.py::letterbox`<br>"
         "`inverse` missing | `pkg/test_pre.py` | "
         "[`vectors/pre.resize.letterbox.yaml`](vectors/pre.resize.letterbox.yaml)<br>"
         "0 cases, 0 verified | 1 unknown | 0 of 0 | none |  | open: example, vectors |"
@@ -603,7 +692,7 @@ def test_the_coverage_columns_and_the_gate(repo: Path) -> None:
 
 
 def test_a_kind_export_example_meets_the_example_item_of_the_gate() -> None:
-    section = st.Section("s", "", "common", "s.md", {}, "")
+    section = synthetic_section("s", "common", {})
     counts = st.VectorCounts(cases=1, verified=1, rules=frozenset())
     assert st.gate_items(section, counts, Counter(forecast=2), None) == ["example"]
     assert st.gate_items(section, counts, Counter(export=1), None) == []
@@ -611,8 +700,8 @@ def test_a_kind_export_example_meets_the_example_item_of_the_gate() -> None:
 
 
 def test_the_vectors_item_counts_only_numeric_cases_of_an_algorithm() -> None:
-    plain = st.Section("s", "", "common", "s.md", {}, "")
-    algorithm = st.Section("p", "", "preprocessor", "p.md", {"implemented_by": {"forward": "x"}}, "")
+    plain = synthetic_section("s", "common", {})
+    algorithm = synthetic_section("p", "preprocessor", {"forward": "x"})
     none = st.VectorCounts(cases=0, verified=0, rules=frozenset())
     refusal_only = st.VectorCounts(cases=1, verified=0, rules=frozenset(), numeric=0, numeric_verified=0)
     open_case = st.VectorCounts(cases=2, verified=1, rules=frozenset(), numeric=2, numeric_verified=1)

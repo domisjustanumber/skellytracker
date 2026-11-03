@@ -340,8 +340,9 @@ Do this procedure when a content commit lands on a section that another open pro
 
 ### Front matter
 
-- Each section file starts with YAML front matter with these fields. The doc tests in
-  `tools/tests/test_traceability.py` check them.
+- Each section file starts with YAML front matter with these fields.
+  [`FrontMatter`](../../../tools/sidecar_trace.py) checks them when `tools/sidecar_trace.py` loads
+  the sections.
 
   | Field | Meaning |
   |-------|---------|
@@ -349,7 +350,7 @@ Do this procedure when a content commit lands on a section that another open pro
   | `title` | The section title. |
   | `kind` | `format`, `common`, `preprocessor`, `postprocessor` or `schema`. |
   | `selectors` | The `key=value` pairs of a resolved sidecar that select the section, for example `input.resize.method=letterbox`. A `format` or `common` section with `selectors: []` applies to every sidecar. A `common` section that is one optional key has one selector for that key, for example `batching.batch_conversion` ([ADR-QMKS](../../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)). |
-  | `implemented_by` | The skellytracker functions, as `path::symbol`, under each step of the kind. A `format`, `common` or `schema` section has `validate` and `load`. A `preprocessor` has `validate`, `forward` and an optional `inverse`. A `postprocessor` has `validate` and `decode`. `REQUIRED_STEPS_BY_KIND` in `tools/tests/test_traceability.py` gives the steps. A step with no function is `missing`. |
+  | `implemented_by` | The skellytracker functions, as `path::symbol`, under each step of the kind. A `format`, `common` or `schema` section has `validate` and `load`. A `preprocessor` has `validate`, `forward` and an optional `inverse`. A `postprocessor` has `validate` and `decode`. [`FrontMatter`](../../../tools/sidecar_trace.py) gives the steps. A step with no function is `missing`. |
   | `external_impl` | Exporter host functions that implement the section. It stays empty until an exporter contributes. |
   | `tests` | The skellytracker test files for the section. |
   | `vectors` | The test vector file of the section. |

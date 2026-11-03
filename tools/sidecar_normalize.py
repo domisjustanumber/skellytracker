@@ -5,7 +5,7 @@ sidecars the section applies to. This module holds the two pure functions that a
 
 - ``normalize(resolved)`` applies the derivations of ``NORMALIZATION_TABLE`` to a resolved
   sidecar. A resolved sidecar is the dict that ``resolve_sidecar_composition`` returns.
-- ``matches(selector, normalized)`` and ``applies(front_matter, normalized)`` match selectors
+- ``matches(selector, normalized)`` and ``applies(kind, selectors, normalized)`` match selectors
   against the normalized dict.
 
 The module is written to move into ``skellytracker/core/sidecar/`` without a change. It uses only the
@@ -36,7 +36,7 @@ from __future__ import annotations
 
 import copy
 import re
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -199,16 +199,13 @@ def matches(selector: str, normalized: Mapping[str, Any]) -> bool:
     return False
 
 
-def applies(front_matter: Mapping[str, Any], normalized: Mapping[str, Any]) -> bool:
+def applies(kind: str, selectors: Sequence[str], normalized: Mapping[str, Any]) -> bool:
     """Return True when a section applies to a normalized sidecar.
 
-    `front_matter` is the parsed front matter of the section file. A section of kind `format` or
-    `common` with no selectors applies to every sidecar. Any other section applies when any
-    selector matches.
+    `kind` and `selectors` come from the front matter of the section file. A section of kind
+    `format` or `common` with no selectors applies to every sidecar. Any other section applies when
+    any selector matches.
     """
-    selectors = front_matter.get("selectors") or []
-    if not isinstance(selectors, list):
-        raise ValueError("`selectors` is a list of strings")
-    if front_matter.get("kind") in UNIVERSAL_KINDS and not selectors:
+    if kind in UNIVERSAL_KINDS and not selectors:
         return True
     return any(matches(selector, normalized) for selector in selectors)
