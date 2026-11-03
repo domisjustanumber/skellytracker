@@ -98,7 +98,7 @@ user which inputs are missing.
 
 ## A contributor with no git repo
 
-If your code has no git repo yet, no commit exists. This rule was "An exporter with no git repo":
+If your code has no git repo yet, no commit exists. Follow these rules:
 
 - Write `none (no git repo)` in each commit cell, and in `source_commit` of the bundle manifest.
 - Write `to run` as each parity result. A script without a commit is not evidence.
