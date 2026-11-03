@@ -575,6 +575,15 @@ of M8 when the export has no batch key `"1"`. It has no order link to M10a.
   `specs/model-sidecar/README.md` names the section files, not "this document"; and a new entry
   supersedes [ADR-D9VT](../decisions/entries/D9VT-decision-log-move.md) in full, so that a recorded
   proposal maps `specs/sidecar-spec.md` to `specs/model-sidecar/README.md` (its item 4).
+- **Stale `resolved_size` docstring.** Added on 2026-11-03. The docstring of
+  `SidecarModel.resolved_size` in `skellytracker/core/sidecar/model.py` has two stale parts. First,
+  it cites the heading "Sizes" of `specs/model-sidecar/sidecar-spec.md`. The spec heading is
+  `sizes`, in the section `common.sizes_and_artifacts`. The item "Code citations of
+  `sidecar-spec.md`" also changes this citation. Second, it says that the method deep-merges the size
+  entry over the top level with the semantics of `base` inheritance. The spec has no `base` directive
+  and no deep merge of a size entry
+  ([ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md) items 3 and 4). Write the new
+  docstring when the M8 item "Sizes are plain fields" replaces the merge.
 
 ### M12 — `vNEXT` release
 

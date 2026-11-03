@@ -78,7 +78,6 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   128x128 canvas, that inverse gives 425 and the spec inverse gives 427. (`qai_hub_models==0.64.0`,
   `qai_hub_models-0.64.0-py3-none-any.whl`, `qai_hub_models/utils/image_processing.py:327-328,
   499-538`; hand calculation)
-- A code docstring under `skellytracker/` cites the spec heading "Sizes", but the heading is `sizes`.
 - The test vectors found these points that the spec does not define. Each vector file avoids them:
   - the box format and the coordinate space of the person box that `affine_person_crop` warps;
   - the order of the final rows for `selection: none`. The YOLO26 graph gives its rows in descending
