@@ -73,7 +73,6 @@ These fields apply to every sidecar, regardless of `role`.
 | `common.batch_conversion` | [common/batch-conversion.md](common/batch-conversion.md) | Batch conversion |
 | `common.input` | [common/input.md](common/input.md) | Input |
 | `common.outputs` | [common/outputs.md](common/outputs.md) | Outputs |
-| `post.unprojection` | [post/unprojection.md](post/unprojection.md) | Unprojection |
 
 ### Pre-processing
 
@@ -112,6 +111,12 @@ These fields apply when `role` includes `pose_estimator`.
 | `post.pose.decode.coordinate` | [post/pose-decode-coordinate.md](post/pose-decode-coordinate.md) | Coordinate decode |
 | `post.pose.bottom_up` | [post/pose-bottom-up.md](post/pose-bottom-up.md) | Bottom-up pose |
 | `post.overlay` | [post/overlay.md](post/overlay.md) | Overlay |
+
+### Post-processing
+
+| Section ID | File | Title |
+|------------|------|-------|
+| `post.unprojection` | [post/unprojection.md](post/unprojection.md) | Unprojection |
 
 ## Validation rules
 

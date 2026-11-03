@@ -23,7 +23,6 @@ The `post.pose.bottom_up` row shows `packed` when an output packs the keypoints 
 | [`common.batch_conversion`](common/batch-conversion.md) |  |  |  |  |  |
 | [`common.input`](common/input.md) | x | x | x | x | x |
 | [`common.outputs`](common/outputs.md) | x | x | x | x | x |
-| [`post.unprojection`](post/unprojection.md) | x | x | x | x | x |
 | [`pre.resize.letterbox`](pre/resize-letterbox.md) | x |  |  | x | x |
 | [`pre.resize.stretch`](pre/resize-stretch.md) |  |  |  |  |  |
 | [`pre.resize.fit`](pre/resize-fit.md) |  | x |  |  |  |
@@ -43,6 +42,7 @@ The `post.pose.bottom_up` row shows `packed` when an output packs the keypoints 
 | [`post.pose.decode.coordinate`](post/pose-decode-coordinate.md) |  | x |  |  | x |
 | [`post.pose.bottom_up`](post/pose-bottom-up.md) |  | x (poses) |  |  | x (packed) |
 | [`post.overlay`](post/overlay.md) |  | x | x |  | x |
+| [`post.unprojection`](post/unprojection.md) | x | x | x | x | x |
 
 ### Models
 
@@ -73,7 +73,6 @@ The Gate column is the coverage backlog. It shows the graduation conditions of a
 | [`common.batch_conversion`](common/batch-conversion.md) | draft | `validate` missing<br>`load` partial: `skellytracker/core/sessions/batch_conversion.py::model_batch_convert` | `skellytracker/tests/test_batch_conversion.py` | none | none | 0 of 3 | none |  | open: example, vectors, rules |
 | [`common.input`](common/input.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::InputSpec`<br>`load` partial: `skellytracker/core/detectors/processing/image_preprocessing.py::preprocess_image` | `skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/test_image_preprocessing.py` | none | 3 export, 2 forecast | 0 of 5 | none |  | open: rules |
 | [`common.outputs`](common/outputs.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::OutputSpec`<br>`load` missing | `skellytracker/tests/sidecar/test_model_validation.py` | none | 3 export, 2 forecast | 0 of 4 | none |  | open: rules |
-| [`post.unprojection`](post/unprojection.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::PoseDecodeSpec._check_decode`<br>`decode` partial: `skellytracker/core/detectors/processing/object_detection_decode.py::decode_prenms` | `skellytracker/tests/test_object_detection_decode.py`<br>`skellytracker/tests/sidecar/test_rtmpose_body_sidecar.py` | [`vectors/post.unprojection.yaml`](vectors/post.unprojection.yaml)<br>30 cases, 0 verified | 3 export, 2 forecast | 0 of 0 | none |  | open: vectors |
 | [`pre.resize.letterbox`](pre/resize-letterbox.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::ResizeSpec._check_method_specific_fields`<br>`forward` partial: `skellytracker/core/detectors/processing/image_preprocessing.py::letterbox_preprocess`<br>`inverse` partial: `skellytracker/core/detectors/processing/object_detection_decode.py::decode_prenms` | `skellytracker/tests/test_image_preprocessing.py`<br>`skellytracker/tests/test_object_detection_decode.py`<br>`skellytracker/tests/sidecar/test_model_validation.py` | [`vectors/pre.resize.letterbox.yaml`](vectors/pre.resize.letterbox.yaml)<br>52 cases, 8 verified | 1 export, 2 forecast | 0 of 1 | none |  | open: vectors, rules |
 | [`pre.resize.stretch`](pre/resize-stretch.md) | stable | `validate` implemented: `skellytracker/core/sidecar/model.py::ResizeSpec._check_method_specific_fields`<br>`forward` partial: `skellytracker/core/detectors/processing/image_preprocessing.py::preprocess_image`<br>`inverse` missing | none | [`vectors/pre.resize.stretch.yaml`](vectors/pre.resize.stretch.yaml)<br>12 cases, 0 verified | none | 0 of 1 | none |  | open: example, vectors, rules |
 | [`pre.resize.fit`](pre/resize-fit.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::ResizeSpec._check_method_specific_fields`<br>`forward` implemented: `skellytracker/core/detectors/processing/image_preprocessing.py::fit_preprocess`<br>`inverse` missing | `skellytracker/tests/test_image_preprocessing.py`<br>`skellytracker/tests/sidecar/test_model_validation.py` | [`vectors/pre.resize.fit.yaml`](vectors/pre.resize.fit.yaml)<br>22 cases, 22 verified | 1 export | 0 of 1 | none |  | open: rules |
@@ -93,6 +92,7 @@ The Gate column is the coverage backlog. It shows the graduation conditions of a
 | [`post.pose.decode.coordinate`](post/pose-decode-coordinate.md) | stable | `validate` implemented: `skellytracker/core/sidecar/model.py::PoseDecodeSpec._check_decode`<br>`decode` missing | `skellytracker/tests/sidecar/test_model_validation.py` | none | 1 export, 1 forecast | 0 of 1 | none |  | open: vectors, rules |
 | [`post.pose.bottom_up`](post/pose-bottom-up.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::OutputSpec._check_output`<br>`decode` missing | `skellytracker/tests/sidecar/test_model_validation.py` | none | 1 export, 1 forecast | 0 of 2 | none |  | open: vectors, rules |
 | [`post.overlay`](post/overlay.md) | stable | `validate` implemented: `skellytracker/core/sidecar/model.py::SidecarModel._check_overlay`<br>`load` partial: `skellytracker/core/detectors/overlay_groups.py::resolve_overlay_groups` | `skellytracker/tests/test_overlay_groups.py`<br>`skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/sidecar/test_rtmw_sidecar.py` | none | 2 export, 1 forecast | 0 of 5 | none |  | open: rules |
+| [`post.unprojection`](post/unprojection.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::PoseDecodeSpec._check_decode`<br>`decode` partial: `skellytracker/core/detectors/processing/object_detection_decode.py::decode_prenms` | `skellytracker/tests/test_object_detection_decode.py`<br>`skellytracker/tests/sidecar/test_rtmpose_body_sidecar.py` | [`vectors/post.unprojection.yaml`](vectors/post.unprojection.yaml)<br>30 cases, 0 verified | 3 export, 2 forecast | 0 of 0 | none |  | open: vectors |
 
 ## External implementations
 
