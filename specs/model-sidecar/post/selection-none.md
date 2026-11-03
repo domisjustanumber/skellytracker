@@ -6,7 +6,7 @@ selectors:
   - decode.selection=none
 implemented_by:
   validate: skellytracker/core/sidecar/model.py::DetectionDecodeSpec._check_ranges  # partial: it checks only max_detections > 0; no rule for forbidden fields or the row count
-  decode: skellytracker/core/detectors/processing/object_detection_decode.py::decode_nms_baked_in  # partial: the score is column 4; no class mapping, is_person_only or clamp; the caller gives the threshold
+  decode: skellytracker/core/detectors/processing/object_detection_decode.py::decode_nms_baked_in  # partial: the score is column 4; no class mapping, is_person_only, clamp or size filter; the caller gives the threshold
 external_impl: []
 tests:
   - skellytracker/tests/sidecar/test_model_validation.py
@@ -33,9 +33,9 @@ Score comparisons and tie-breaking: [Selection behaviour](detection-decode.md#se
 **`selection: none`** — the primary output rows are already final detections (for example the NMS-free head of YOLO26).
 
 1. Resolve the score of each row (`score_field` or `scores_output`). Resolve the class index of each row (`class_field`). If this field is absent, there is no class source.
-2. Map each class index with `class_id_map` or `class_id_base`. Drop each row that maps to `-1`. Apply `is_person_only`.
-3. Convert the boxes from `box_format` to `xyxy`. Apply `box_scale`. Unproject the boxes. When `clamp_boxes` is true, clamp the boxes.
-4. Apply `confidence_threshold_default`. Do not run NMS. The host does not pad or truncate the rows to reach `max_detections`.
+2. Do shared step 1 (class mapping) of [Selection behaviour](detection-decode.md#selection-behaviour).
+3. Do the shared steps 2 to 5 (box conversion, unprojection, clamp and size filter).
+4. Do shared step 6 (confidence threshold). Do not run NMS. The host does not pad or truncate the rows to reach `max_detections`.
 
 Pose rows of a model with both roles: [Bottom-up decode](pose-bottom-up.md#bottom-up-decode).
 

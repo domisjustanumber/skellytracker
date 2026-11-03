@@ -35,9 +35,9 @@ Score comparisons and tie-breaking: [Selection behaviour](detection-decode.md#se
 2. Flatten in row-major order with `flat = row * C + class`.
 3. Sort the entries by score in descending order with a stable sort. Take the first `min(top_k, Q * C)` entries.
 4. Compute `row = flat // C` and `class = flat % C`. Gather `boxes[row]`. The score is `p[row, class]`.
-5. Map `class` with `class_id_map` or `class_id_base`. Drop each pair that maps to `-1`. The final count can then be below `top_k`. Apply `is_person_only`.
-6. Convert the boxes. Apply `box_scale`. Unproject the boxes. Clamp the boxes.
-7. Apply `confidence_threshold_default`. Do not run NMS. Several selected pairs can share one row (one box, several classes). The spec allows this.
+5. Do shared step 1 (class mapping) of [Selection behaviour](detection-decode.md#selection-behaviour) on `class`. The final count can then be below `top_k`.
+6. Do the shared steps 2 to 5 (box conversion, unprojection, clamp and size filter).
+7. Do shared step 6 (confidence threshold). Do not run NMS. Several selected pairs can share one row (one box, several classes). The spec allows this.
 
 ## Validation rules
 

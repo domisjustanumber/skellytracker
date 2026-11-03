@@ -48,12 +48,10 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   border `[114, 0, 0]` (OpenCV 4.13.0). The `letterbox` pseudocode fills every channel
   (`full((T_h, T_w, 3), pad_value)`). The spec must state that a scalar fills every channel
   ([0012](entries/0012-fit-resize-for-rtmo.md)).
-- `clamp_boxes` in [`decode` (detection)](../post/detection-decode.md#decode-detection) clamps the
-  boxes to the source-image bounds. The spec does not define the bounds (`[0, W]` or `[0, W-1]`). It
-  does not define the result for a box with zero area after the clamp. OpenMMLab-Exporter
-  ([`onnx_runtime/decode_nms.py:170-171`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/d2e68d27d2da0a4f22ddd19449df5601dcac87cc/onnx_runtime/decode_nms.py#L170-L171)), Roboflow-Exporter
-  ([`rf_detr/coco_format.py:133`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/16852ca3f7e63e61fda1086ecf07491dc788581a/rf_detr/coco_format.py#L133)) and ultralytics 8.4.184 (`utils/ops.py`,
-  `clip_boxes`) clamp to `[0, W]` and `[0, H]`.
+- The spec has no description of a one-class detector of an object that is not a person. A sidecar
+  with no class source must set `decode.is_person_only: true`, so each detection gets the class
+  `person_class_id` ([`V-post.det.decode-9`](../post/detection-decode.md#validation-rules);
+  [ADR-17KN](../../../decisions/entries/17KN-one-selection-pipeline.md)).
 - `schema_version` is quoted (`"vNEXT"`) in some
   [reference examples](../examples/README.md) and not quoted in the RTMO
   body7 example. YAML reads both forms as the same string, but the examples do not agree.
@@ -87,8 +85,6 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   - the box format and the coordinate space of the person box that `affine_person_crop` warps;
   - the order of the final rows for `selection: none`. The YOLO26 graph gives its rows in descending
     score order, and ultralytics 8.4.184 keeps that order with no sort (`utils/nms.py:74-77`);
-  - the class of a candidate that has no class source when `is_person_only` is `false` (for
-    `selection: none` and `top_k`);
   - the pixel-centre convention of the unprojection (see the `cv2.warpAffine` item above).
 - The default `confidence_threshold_default` is `0.7` with a strict `>`, so a score of exactly `0.7`
   is dropped. The spec does not say that this is intended. The upstream of Qualcomm-Exporter,

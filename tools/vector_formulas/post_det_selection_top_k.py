@@ -14,7 +14,7 @@ import post_det_decode as decode
 
 from vector_form import defect
 
-CHECKS = decode.CHECKS
+CHECKS = decode.SELECTION_CHECKS
 
 
 def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
@@ -36,9 +36,7 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
     for index in flat[: min(params["top_k"], len(flat))]:
         row, model_class = divmod(index, n_classes)
         score = p[row][model_class]
-        class_id = decode.resolve_class(
-            model_class, params, assign_person_without_source=False
-        )
+        class_id = decode.resolve_class(model_class, params)
         if class_id is not None and score > threshold:
             box = decode.to_xyxy(input["boxes"][row], params.get("box_format", "xyxy"))
             kept.append(decode.Kept(row, box, score, class_id))

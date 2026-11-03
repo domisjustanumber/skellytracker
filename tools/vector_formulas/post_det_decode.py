@@ -2,8 +2,9 @@
 
 The shared decode steps of the `post.det.selection.*` sections. Their formula
 modules import this module by name. A broken invariant calls `defect`.
-`CHECKS` holds the named claims that a selection case can declare; each selection
-module publishes it as its own.
+`SELECTION_CHECKS` holds the named claims that a selection case can declare; each
+selection module publishes it as its `CHECKS`. The cases of this section are data
+only, so this module has no `CHECKS`.
 """
 
 from __future__ import annotations
@@ -64,17 +65,16 @@ def candidates(
     ]
 
 
-def resolve_class(
-    model_class: int | None,
-    params: dict[str, Any],
-    *,
-    assign_person_without_source: bool,
-) -> int | None:
-    """Map a model class index to the emitted class id; None drops the candidate."""
+def resolve_class(model_class: int | None, params: dict[str, Any]) -> int | None:
+    """Map a model class index to the emitted class id; None drops the candidate.
+
+    A candidate with no class source gets `person_class_id` only through
+    `is_person_only` (ADR-17KN): a sidecar with no class source must set it.
+    """
     person = params.get("person_class_id", 0)
     if model_class is None:
-        if not (assign_person_without_source or params.get("is_person_only", False)):
-            defect("a candidate without a class source needs is_person_only here")
+        if not params.get("is_person_only", False):
+            defect("a candidate without a class source needs is_person_only")
         return person
     class_map = params.get("class_id_map")
     emitted = (
@@ -132,4 +132,4 @@ def float32_stable(
         defect("the result depends on the float width")
 
 
-CHECKS: dict[str, Callable[..., None]] = {"float32-stable": float32_stable}
+SELECTION_CHECKS: dict[str, Callable[..., None]] = {"float32-stable": float32_stable}

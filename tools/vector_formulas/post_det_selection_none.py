@@ -11,7 +11,7 @@ from typing import Any
 
 import post_det_decode as decode
 
-CHECKS = decode.CHECKS
+CHECKS = decode.SELECTION_CHECKS
 
 
 def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
@@ -19,9 +19,7 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
     threshold = decode.confidence_threshold(params)
     kept = []
     for row, (box, score, model_class) in enumerate(decode.candidates(params, input)):
-        class_id = decode.resolve_class(
-            model_class, params, assign_person_without_source=False
-        )
+        class_id = decode.resolve_class(model_class, params)
         if class_id is not None and score > threshold:
             kept.append(decode.Kept(row, box, score, class_id))
     return decode.published(kept)

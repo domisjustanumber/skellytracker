@@ -6,7 +6,7 @@ selectors:
   - decode.selection=nms
 implemented_by:
   validate: missing
-  decode: skellytracker/core/detectors/processing/object_detection_decode.py::decode_prenms  # partial: the box area adds 1 to each side; ties are not ordered by row index; one class only; no nms block, post_nms_top_k or clamp; the caller gives the thresholds
+  decode: skellytracker/core/detectors/processing/object_detection_decode.py::decode_prenms  # partial: the box area adds 1 to each side; ties are not ordered by row index; one class only; no nms block, post_nms_top_k, clamp or size filter; the caller gives the thresholds
 external_impl: []
 tests:
   - skellytracker/tests/test_object_detection_decode.py
@@ -41,12 +41,12 @@ Score comparisons and tie-breaking: [Selection behaviour](detection-decode.md#se
 **`selection: nms`** — the primary output rows are pre-NMS candidates (for example RTMDet).
 
 1. Resolve the scores. Drop each candidate with `score <= nms.score_threshold`.
-2. Convert the boxes from `box_format` to `xyxy`. Apply `box_scale` to get model-input pixels. Do not unproject the boxes yet.
-3. Resolve the class indices from `class_field` and map them. If there is no class source, assign `person_class_id`. Apply `is_person_only`.
+2. Do shared step 2 (box conversion) of [Selection behaviour](detection-decode.md#selection-behaviour). Do not unproject the boxes yet.
+3. Resolve the class indices from `class_field`. Do shared step 1 (class mapping).
 4. Run hard NMS at `nms.iou_threshold` in model-input coordinates. Run it for each class, unless `class_agnostic: true`.
 5. Sort the survivors by score in descending order. Keep the first `nms.post_nms_top_k` survivors if that field is set.
-6. Unproject the boxes. Clamp them.
-7. Apply `confidence_threshold_default`.
+6. Do the shared steps 3 to 5 (unprojection, clamp and size filter).
+7. Do shared step 6 (confidence threshold).
 
 These decode steps correspond one-to-one to the standard ONNX `NonMaxSuppression` operator. The operator takes scores as `[B, C, Q]`. It suppresses boxes for each class when IoU is greater than `iou_threshold`. It drops candidates at or below `score_threshold`. Its box-area convention does not add `1` to pixel widths or heights.
 
@@ -77,6 +77,6 @@ See also [Detection decode](detection-decode.md#validation-rules).
 ## Authoring guidance
 
 - mmdet: `test_cfg` `score_thr=0.05`, `nms=dict(type='nms', iou_threshold=0.6)` and `max_per_img=100` map to `decode.nms` with `score_threshold: 0.05`, `iou_threshold: 0.6` and `post_nms_top_k: 100`. A test checks the values against the config text. (OpenMMLab-Exporter [`mmdeploy-convert/model_cfgs/rtmdet_nano_320-8xb32_coco-person.py:24-29`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/f29d9bba71d3669bfdab98597069151d42d1f5ff/mmdeploy-convert/model_cfgs/rtmdet_nano_320-8xb32_coco-person.py#L24-L29); [`tests/test_rtmdet_person.py:77-84`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/ba0c0876b58650ed472559f1a77780e5da13d370/tests/test_rtmdet_person.py#L77-L84))
-- `nms_pre=1000` and `min_bbox_size=0` have no field. Leaving out the per-level `nms_pre` changed AP by +0.0001 on rtmdet-tiny and by 0 on person-medium. It costs only decode time at a 0.001 threshold. (OpenMMLab-Exporter [`notes/decisions/0009-detector-output-layout-and-decode.md:75-80`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/0009-detector-output-layout-and-decode.md#L75-L80))
+- `nms_pre=1000` has no field. `min_bbox_size` maps one-to-one to [`decode.min_box_size`](detection-decode.md#decode-detection). The RTMDet person config writes `min_bbox_size=0`, so an RTMDet person sidecar must write `min_box_size: 0`. A box with zero area then goes. The `rtmdet-person` reference example does not have the field yet. Its rebuild for the re-export request adds it ([ADR-17KN](../../../decisions/entries/17KN-one-selection-pipeline.md)). mmdet applies the filter before NMS, and the spec applies it after NMS ([Implementer guidance](detection-decode.md#implementer-guidance); [ADR-17KN](../../../decisions/entries/17KN-one-selection-pipeline.md)). Leaving out the per-level `nms_pre` changed AP by +0.0001 on rtmdet-tiny and by 0 on person-medium. It costs only decode time at a 0.001 threshold. (OpenMMLab-Exporter [`notes/decisions/0009-detector-output-layout-and-decode.md:75-80`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/0009-detector-output-layout-and-decode.md#L75-L80))
 - Ultralytics-Exporter exports only `nms=False` and writes no NMS parameters. For a raw-head YOLO artifact, the Ultralytics defaults are `iou` 0.7, `max_det` 300 and `conf` 0.25 (predict) or 0.001 (val). (Ultralytics-Exporter [`export_all.py:50-57`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/69499e7d292e6f3583ab9429c45a334af3377097/export_all.py#L50-L57); ultralytics 8.4.184 `cfg/default.yaml:55-57`, installed copy in the Ultralytics-Exporter `.venv`)
 - The MediaPipe person detector has an upstream `nms_iou_threshold` of 0.3 and a `min_detector_pose_box_score` of 0.75. The upstream NMS is class-agnostic (torchvision `nms`). The upstream app keeps only the first survivor of each image, which has the highest score: a loop breaks after the first box that passes the out-of-bound filter, and the pose model switches that filter off. This is `post_nms_top_k: 1`. The sidecar of Qualcomm-Exporter writes only 0.75 (as `confidence_threshold_default`), no `decode.nms` and no cap. Its benchmark scores every survivor. (Qualcomm-Exporter [`qai_catalog.py:59-61`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_catalog.py#L59-L61) and [`qai_validation.py:59-73`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_validation.py#L59-L73); qai_hub_models 0.64.0 `models/mediapipe_pose/app.py:69-70`, `models/templates/mediapipe/app.py:359-386` and `utils/bounding_box_processing.py:99-108`, installed copy in the Qualcomm-Exporter `.venv`)

@@ -7,9 +7,9 @@ notes:
   - "`params` use the names of the `decode` fields. `kept_rows` are 0-based row indexes
     of the input, `scores` and `class_ids` are the scores and the emitted class ids of
     the kept detections, in output order."
-  - "The cases stop before the unprojection and the clamp. `boxes_xyxy` holds the kept
-    boxes in model-input pixels. Every score and threshold gives the same result in
-    float32 and in float64."
+  - "The cases stop before the unprojection, the clamp and the size filter. `boxes_xyxy`
+    holds the kept boxes in model-input pixels. Every score and threshold gives the same
+    result in float32 and in float64."
   - "`class_logits` is [Q, C] (rows, classes). `boxes` is [Q, 4]. A selected pair is a
     (row, class); one row can be selected for several classes."
 tolerance: 0.00001

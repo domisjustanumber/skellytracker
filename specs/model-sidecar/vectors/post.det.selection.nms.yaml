@@ -7,12 +7,14 @@ notes:
   - "`params` use the names of the `decode` fields. `kept_rows` are 0-based row indexes
     of the input, `scores` and `class_ids` are the scores and the emitted class ids of
     the kept detections, in output order."
-  - "The cases stop before the unprojection and the clamp. `boxes_xyxy` holds the kept
-    boxes in model-input pixels. Every score and threshold gives the same result in
-    float32 and in float64."
+  - "The cases stop before the unprojection, the clamp and the size filter. `boxes_xyxy`
+    holds the kept boxes in model-input pixels. Every score and threshold gives the same
+    result in float32 and in float64."
   - "`iou_threshold`, `score_threshold`, `class_agnostic` and `post_nms_top_k` are fields
     of the `nms` object; they are written without the `nms` key here. A case with
-    `boxes` and `scores` has no class source."
+    `boxes` and `scores` has no class source, so it sets `is_person_only: true`: a
+    sidecar with no class source must set it. Decision:
+    decisions/entries/17KN-one-selection-pipeline.md."
   - "`confidence_threshold_default` is given as 0 in most cases, so that the last step
     keeps every survivor."
 tolerance: 0.00001
@@ -28,6 +30,7 @@ cases:
       score_threshold: 0.05
       confidence_threshold_default: 0
       class_agnostic: false
+      is_person_only: true
     input:
       boxes: [[0, 0, 10, 10], [1, 1, 11, 11], [20, 20, 30, 30], [0, 0, 10, 10]]
       scores: [0.9, 0.8, 0.7, 0.04]
@@ -38,7 +41,11 @@ cases:
       boxes_xyxy: [[0, 0, 10, 10], [20, 20, 30, 30]]
   - id: iou-equal-to-threshold-is-kept
     note: "IoU is exactly 0.5 and the threshold is 0.5: suppression needs IoU > threshold"
-    params: {iou_threshold: 0.5, score_threshold: 0.05, confidence_threshold_default: 0}
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.05
+      confidence_threshold_default: 0
+      is_person_only: true
     input: {boxes: [[0, 0, 12, 10], [4, 0, 16, 10]], scores: [0.75, 0.5]}
     expect:
       kept_rows: [0, 1]
@@ -47,12 +54,20 @@ cases:
       boxes_xyxy: [[0, 0, 12, 10], [4, 0, 16, 10]]
   - id: iou-above-threshold-is-suppressed
     note: "IoU 0.5 > 0.25: row 1 is suppressed"
-    params: {iou_threshold: 0.25, score_threshold: 0.05, confidence_threshold_default: 0}
+    params:
+      iou_threshold: 0.25
+      score_threshold: 0.05
+      confidence_threshold_default: 0
+      is_person_only: true
     input: {boxes: [[0, 0, 12, 10], [4, 0, 16, 10]], scores: [0.75, 0.5]}
     expect: {kept_rows: [0], scores: [0.75], class_ids: [0], boxes_xyxy: [[0, 0, 12, 10]]}
   - id: box-area-adds-nothing
     note: "IoU is 0.5 <= 0.52. An area with + 1 on the sides gives 0.529 and would suppress row 1"
-    params: {iou_threshold: 0.52, score_threshold: 0.05, confidence_threshold_default: 0}
+    params:
+      iou_threshold: 0.52
+      score_threshold: 0.05
+      confidence_threshold_default: 0
+      is_person_only: true
     input: {boxes: [[0, 0, 12, 10], [4, 0, 16, 10]], scores: [0.75, 0.5]}
     expect:
       kept_rows: [0, 1]
@@ -61,17 +76,25 @@ cases:
       boxes_xyxy: [[0, 0, 12, 10], [4, 0, 16, 10]]
   - id: score-equal-to-score-threshold-is-dropped
     note: "candidates need score > score_threshold: 0.5 is dropped"
-    params: {iou_threshold: 0.5, score_threshold: 0.5, confidence_threshold_default: 0}
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.5
+      confidence_threshold_default: 0
+      is_person_only: true
     input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8], [20, 0, 28, 8]], scores: [0.5, 0.75, 0.25]}
     expect: {kept_rows: [1], scores: [0.75], class_ids: [0], boxes_xyxy: [[10, 0, 18, 8]]}
   - id: confidence-threshold-is-strict
     note: "the last step keeps score > 0.75 only"
-    params: {iou_threshold: 0.5, score_threshold: 0.05, confidence_threshold_default: 0.75}
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.05
+      confidence_threshold_default: 0.75
+      is_person_only: true
     input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8]], scores: [0.75, 0.875]}
     expect: {kept_rows: [1], scores: [0.875], class_ids: [0], boxes_xyxy: [[10, 0, 18, 8]]}
   - id: default-confidence-threshold
     note: "confidence_threshold_default is absent: the default is 0.7"
-    params: {iou_threshold: 0.5, score_threshold: 0.05}
+    params: {iou_threshold: 0.5, score_threshold: 0.05, is_person_only: true}
     input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8], [20, 0, 28, 8]], scores: [0.9, 0.75, 0.65]}
     expect:
       kept_rows: [0, 1]
@@ -80,7 +103,11 @@ cases:
       boxes_xyxy: [[0, 0, 8, 8], [10, 0, 18, 8]]
   - id: equal-scores-lower-row-wins
     note: "rows 0 and 1 overlap and have equal scores: row 0 stays; the output order is rows 0, 2"
-    params: {iou_threshold: 0.5, score_threshold: 0.05, confidence_threshold_default: 0}
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.05
+      confidence_threshold_default: 0
+      is_person_only: true
     input: {boxes: [[0, 0, 10, 10], [1, 1, 11, 11], [20, 20, 30, 30]], scores: [0.75, 0.75, 0.75]}
     expect:
       kept_rows: [0, 2]
@@ -89,7 +116,11 @@ cases:
       boxes_xyxy: [[0, 0, 10, 10], [20, 20, 30, 30]]
   - id: output-is-sorted-by-score
     note: "survivors are sorted by descending score, not by row"
-    params: {iou_threshold: 0.5, score_threshold: 0.05, confidence_threshold_default: 0}
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.05
+      confidence_threshold_default: 0
+      is_person_only: true
     input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8], [20, 0, 28, 8]], scores: [0.5, 0.875, 0.75]}
     expect:
       kept_rows: [1, 2, 0]
@@ -133,6 +164,7 @@ cases:
       score_threshold: 0.05
       confidence_threshold_default: 0
       post_nms_top_k: 2
+      is_person_only: true
     input:
       boxes: [[0, 0, 8, 8], [10, 0, 18, 8], [20, 0, 28, 8], [30, 0, 38, 8]]
       scores: [0.5, 0.875, 0.875, 0.75]
@@ -148,6 +180,7 @@ cases:
       score_threshold: 0.05
       confidence_threshold_default: 0
       post_nms_top_k: 2
+      is_person_only: true
     input:
       boxes: [[0, 0, 10, 10], [1, 1, 11, 11], [50, 0, 58, 8], [60, 0, 68, 8]]
       scores: [0.9, 0.85, 0.8, 0.7]
@@ -163,6 +196,7 @@ cases:
       score_threshold: 0.05
       confidence_threshold_default: 0
       post_nms_top_k: 10
+      is_person_only: true
     input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8]], scores: [0.75, 0.5]}
     expect:
       kept_rows: [0, 1]
@@ -199,12 +233,13 @@ cases:
       rows: [[0, 0, 10, 10, 0.9, 1], [0, 0, 10, 10, 0.8, 0]]
     expect: {kept_rows: [1], scores: [0.8], class_ids: [0], boxes_xyxy: [[0, 0, 10, 10]]}
   - id: no-class-source-uses-person-class-id
-    note: "no class source: every candidate gets person_class_id (2)"
+    note: "no class source and is_person_only true: every candidate gets person_class_id (2)"
     params:
       iou_threshold: 0.5
       score_threshold: 0.05
       confidence_threshold_default: 0
       person_class_id: 2
+      is_person_only: true
     input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8]], scores: [0.75, 0.5]}
     expect:
       kept_rows: [0, 1]
@@ -236,6 +271,7 @@ cases:
       score_threshold: 0.05
       confidence_threshold_default: 0
       box_format: cxcywh
+      is_person_only: true
     input: {boxes: [[6, 5, 12, 10], [10, 5, 12, 10]], scores: [0.75, 0.5]}
     expect:
       kept_rows: [0, 1]
@@ -244,6 +280,10 @@ cases:
       boxes_xyxy: [[0, 0, 12, 10], [4, 0, 16, 10]]
   - id: no-candidate-passes
     note: "the output is empty"
-    params: {iou_threshold: 0.5, score_threshold: 0.9, confidence_threshold_default: 0}
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.9
+      confidence_threshold_default: 0
+      is_person_only: true
     input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8]], scores: [0.75, 0.5]}
     expect: {kept_rows: [], scores: [], class_ids: [], boxes_xyxy: []}

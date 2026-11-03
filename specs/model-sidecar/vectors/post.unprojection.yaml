@@ -4,7 +4,7 @@ section: post.unprojection
 notes:
   - "Normative text: specs/model-sidecar/post/unprojection.md. It uses the Inverse of
     each resize section (specs/model-sidecar/pre/resize-*.md) and, for a box,
-    `clamp_boxes` (specs/model-sidecar/post/detection-decode.md)."
+    `clamp_boxes` and `min_box_size` (specs/model-sidecar/post/detection-decode.md)."
   - "`scale` is `decode.box_scale` for a box and for a packed keypoint, and
     `pose.decode.coordinate_scale` for another keypoint. `input_size` is [height, width]
     of the model input. `resize` holds the `input.resize` fields that the Inverse uses."
@@ -12,14 +12,15 @@ notes:
     `scale`, with a top-left origin. `model_xy` and `model_xyxy` are the same values in
     model-input pixels. `source_xy` and `source_xyxy` are the unprojected values."
   - "`output_xyxy` is the final box. It is the clamped `source_xyxy` unless `clamp_boxes`
-    is false. The clamp here sets a negative value to 0."
+    is false. The clamp sets each x to [0, W] and each y to [0, H], with W = `src_w` and
+    H = `src_h`. When `min_box_size` is present, the box stays only if its width (x2 -
+    x1) and its height (y2 - y1) are both more than `min_box_size`. `output_xyxy` is
+    null for a box that the size filter drops. When `min_box_size` is absent, no box is
+    dropped, also a box with zero area. Decision:
+    decisions/entries/17KN-one-selection-pipeline.md."
   - "Every result is exact in float64 arithmetic with the formulas of the sections."
-  - "The spec does not define the upper bound of the clamp ([0, W] or [0, W - 1]) or the
-    result for a box without area after the clamp (notes/decisions/README.md, Open
-    work). No case reaches the upper bound or loses its area, so these open questions
-    change no result."
 tolerance: 0.0001
-checks: [input-size-follows-resize, clear-of-upper-clamp-bound, keeps-area-after-clamp]
+checks: [input-size-follows-resize]
 unverified: "No independent implementation has run these vectors yet. They come from the section
   text only. skellytracker has no shared unprojection function: each decoder
   unprojects on its own and none reads normalized_01 or normalized_11."
@@ -304,3 +305,112 @@ cases:
       model_xyxy: [0, 0, 320, 320]
       source_xyxy: [0, -420, 960, 540]
       output_xyxy: [0, 0, 960, 540]
+  - id: box-clamp-upper-bound
+    note: "x2 = 660 * 3 = 1980 becomes W = 1920 and y2 = (520 - 140) * 3 = 1140 becomes H = 1080"
+    params:
+      scale: pixel
+      input_size: [640, 640]
+      resize:
+        method: letterbox
+        target_size: [640, 640]
+        pad_position: center
+        rounding: half_even
+    input: {src_w: 1920, src_h: 1080, decoded_xyxy: [400, 300, 660, 520]}
+    expect:
+      model_xyxy: [400, 300, 660, 520]
+      source_xyxy: [1200, 480, 1980, 1140]
+      output_xyxy: [1200, 480, 1920, 1080]
+  - id: box-zero-area-is-kept-without-min-box-size
+    note: "the box is in the bottom padding: y1 = 1110 and y2 = 1200 both become 1080. The box
+      has zero height, and min_box_size is absent, so it stays"
+    params:
+      scale: pixel
+      input_size: [640, 640]
+      resize:
+        method: letterbox
+        target_size: [640, 640]
+        pad_position: center
+        rounding: half_even
+    input: {src_w: 1920, src_h: 1080, decoded_xyxy: [100, 510, 200, 540]}
+    expect:
+      model_xyxy: [100, 510, 200, 540]
+      source_xyxy: [300, 1110, 600, 1200]
+      output_xyxy: [300, 1080, 600, 1080]
+  - id: box-zero-area-is-dropped-at-min-box-size-0
+    note: "the same box with min_box_size 0: the height 0 is not more than 0, so the box is dropped"
+    params:
+      scale: pixel
+      input_size: [640, 640]
+      resize:
+        method: letterbox
+        target_size: [640, 640]
+        pad_position: center
+        rounding: half_even
+      min_box_size: 0
+    input: {src_w: 1920, src_h: 1080, decoded_xyxy: [100, 510, 200, 540]}
+    expect:
+      model_xyxy: [100, 510, 200, 540]
+      source_xyxy: [300, 1110, 600, 1200]
+      output_xyxy: null
+  - id: box-width-equal-to-min-box-size-is-dropped
+    note: "the width is 330 - 300 = 30 and min_box_size is 30: 30 > 30 is false, so the box is
+      dropped"
+    params:
+      scale: pixel
+      input_size: [640, 640]
+      resize:
+        method: letterbox
+        target_size: [640, 640]
+        pad_position: center
+        rounding: half_even
+      min_box_size: 30
+    input: {src_w: 1920, src_h: 1080, decoded_xyxy: [100, 200, 110, 300]}
+    expect: {model_xyxy: [100, 200, 110, 300], source_xyxy: [300, 180, 330, 480], output_xyxy: null}
+  - id: box-width-above-min-box-size-is-kept
+    note: "the same box with min_box_size 29.5: 30 > 29.5 and 300 > 29.5, so the box stays"
+    params:
+      scale: pixel
+      input_size: [640, 640]
+      resize:
+        method: letterbox
+        target_size: [640, 640]
+        pad_position: center
+        rounding: half_even
+      min_box_size: 29.5
+    input: {src_w: 1920, src_h: 1080, decoded_xyxy: [100, 200, 110, 300]}
+    expect:
+      model_xyxy: [100, 200, 110, 300]
+      source_xyxy: [300, 180, 330, 480]
+      output_xyxy: [300, 180, 330, 480]
+  - id: box-min-box-size-after-the-clamp
+    note: "the clamp gives x1 = 0, so the width is 15 and not 75: 15 > 20 is false, so the box
+      is dropped"
+    params:
+      scale: pixel
+      input_size: [640, 640]
+      resize:
+        method: letterbox
+        target_size: [640, 640]
+        pad_position: center
+        rounding: half_even
+      min_box_size: 20
+    input: {src_w: 1920, src_h: 1080, decoded_xyxy: [-20, 100, 5, 400]}
+    expect: {model_xyxy: [-20, 100, 5, 400], source_xyxy: [-60, -120, 15, 780], output_xyxy: null}
+  - id: box-min-box-size-with-clamp-boxes-false
+    note: "the same box with clamp_boxes false: the filter uses the unprojected box, whose
+      width is 75 and height is 900, so the box stays"
+    params:
+      scale: pixel
+      input_size: [640, 640]
+      resize:
+        method: letterbox
+        target_size: [640, 640]
+        pad_position: center
+        rounding: half_even
+      clamp_boxes: false
+      min_box_size: 20
+    input: {src_w: 1920, src_h: 1080, decoded_xyxy: [-20, 100, 5, 400]}
+    expect:
+      model_xyxy: [-20, 100, 5, 400]
+      source_xyxy: [-60, -120, 15, 780]
+      output_xyxy: [-60, -120, 15, 780]

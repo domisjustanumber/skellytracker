@@ -4,9 +4,10 @@
 calling convention of a reference module: `run(params, input) -> expect`, and a
 refusal of the spec raises `ValueError`. A broken invariant calls `defect`.
 
-It uses the Inverse of each resize section through its formula module, and the
-lower bound of `clamp_boxes` (section `post.det.decode`) for a box. `CHECKS`
-holds the named claims that a case can declare: `check(run, params, input, expect)`.
+It uses the Inverse of each resize section through its formula module and, for a
+box, the clamp of `clamp_boxes` and the size filter of `min_box_size` (section
+`post.det.decode`, ADR-17KN). `CHECKS` holds the named claims that a case can
+declare: `check(run, params, input, expect)`.
 """
 
 from __future__ import annotations
@@ -60,16 +61,34 @@ def resize_unproject(
     return INVERSE[method](resize, {**input, "model_xy": model_xy})["source_xy"]
 
 
-def clamp_to_lower_bound(box_xyxy: list[float]) -> list[float]:
-    """Section `post.det.decode`, field `clamp_boxes`: the lower bound 0 of the source image.
+def clamp_to_source(box_xyxy: list[float], src_w: float, src_h: float) -> list[float]:
+    """Section `post.det.decode`, field `clamp_boxes`: x to [0, W] and y to [0, H].
 
-    The spec does not define the upper bound. No vector case reaches it.
+    W and H are the source-image size.
     """
-    return [max(0, value) for value in box_xyxy]
+    x1, y1, x2, y2 = box_xyxy
+    return [
+        min(max(x1, 0), src_w),
+        min(max(y1, 0), src_h),
+        min(max(x2, 0), src_w),
+        min(max(y2, 0), src_h),
+    ]
+
+
+def keeps_size(box_xyxy: list[float], min_box_size: float | None) -> bool:
+    """Section `post.det.decode`, field `min_box_size`: width and height both more than it.
+
+    The width is x2 - x1 and the height is y2 - y1, with no + 1. Absent: no box is dropped.
+    """
+    if min_box_size is None:
+        return True
+    x1, y1, x2, y2 = box_xyxy
+    return x2 - x1 > min_box_size and y2 - y1 > min_box_size
 
 
 def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
-    """Behaviour: the scale conversion, the Inverse of the resize and, for a box, the clamp."""
+    """Behaviour: the scale conversion, the Inverse of the resize and, for a box, the clamp
+    and the size filter. A box that the size filter drops has `output_xyxy` None."""
     scale, size, resize = params["scale"], params["input_size"], params["resize"]
     if "decoded_xy" in input:
         model_xy = to_model_pixels(scale, input["decoded_xy"], size)
@@ -86,11 +105,15 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
         *resize_unproject(resize, input, model_box[:2]),
         *resize_unproject(resize, input, model_box[2:]),
     ]
-    clamp = params.get("clamp_boxes", True)
+    output = (
+        clamp_to_source(source_box, input["src_w"], input["src_h"])
+        if params.get("clamp_boxes", True)
+        else source_box
+    )
     return {
         "model_xyxy": model_box,
         "source_xyxy": source_box,
-        "output_xyxy": clamp_to_lower_bound(source_box) if clamp else source_box,
+        "output_xyxy": output if keeps_size(output, params.get("min_box_size")) else None,
     }
 
 
@@ -113,31 +136,6 @@ def _input_size_follows_resize(run: Callable[..., Any], params: Any, input: Any,
         defect("input_size must equal target_size")
 
 
-# The spec does not define the upper clamp bound ([0, W] or [0, W - 1]) or the result for a box
-# without area. A box case keeps clear of both, so the open questions change no result.
-def _clear_of_upper_clamp_bound(
-    run: Callable[..., Any], params: Any, input: Any, expect: Any
-) -> None:
-    if "source_xyxy" not in expect:
-        return  # A point case has no box to clamp.
-    box = expect["source_xyxy"]
-    if not (
-        all(x <= input["src_w"] - 1 for x in box[0::2])
-        and all(y <= input["src_h"] - 1 for y in box[1::2])
-    ):
-        defect("a coordinate reaches the upper clamp bound")
-
-
-def _keeps_area_after_clamp(run: Callable[..., Any], params: Any, input: Any, expect: Any) -> None:
-    if "source_xyxy" not in expect:
-        return  # A point case has no box to clamp.
-    x1, y1, x2, y2 = clamp_to_lower_bound(expect["source_xyxy"])
-    if not (x2 > x1 and y2 > y1):
-        defect("the clamped box has no area")
-
-
 CHECKS: dict[str, Callable[..., None]] = {
     "input-size-follows-resize": _input_size_follows_resize,
-    "clear-of-upper-clamp-bound": _clear_of_upper_clamp_bound,
-    "keeps-area-after-clamp": _keeps_area_after_clamp,
 }

@@ -46,6 +46,7 @@ These entries are `accepted` or `evidence`.
 | [0QKK](entries/0QKK-no-legacy-layer.md) | No legacy layer; `input.normalization` required; unknown keys invalid; no `since`; rule renumbering; supersedes 0012 and 0016 | accepted |
 | [JAA4](entries/JAA4-one-batch-field.md) | One `batching.batch` field; `output_shapes` in each size; no `batch_axis`; supersedes CRV0, JB5J and 0011 | accepted |
 | [90CE](entries/90CE-minimal-sidecar-contract.md) | Minimal contract: no `input_dtype`, `rank`, NHWC or `base`; plain sizes; `pose.geometry`; one `imagenet` mode; supersedes 0010 | accepted |
+| [17KN](entries/17KN-one-selection-pipeline.md) | One selection pipeline: shared steps once; `clamp_boxes` gates; bounds `[0, W]`, `[0, H]`; optional `min_box_size`; no class source needs `is_person_only` | accepted |
 
 ### Proposed
 

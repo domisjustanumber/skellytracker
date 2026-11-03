@@ -180,9 +180,15 @@ def test_the_folder_holds_a_file_for_each_formula_module_with_run() -> None:
         p.stem for p in mv.FORMULAS_DIR.glob("*.py") if hasattr(getattr(mv, p.stem), "run")
     }
     references = {p.stem for p in mv.REFERENCE_DIR.glob("*.py")}
+    data_only = {
+        p.stem.replace(".", "_")
+        for p in vector_paths()
+        if all(case.get("function") == mv.DATA_ONLY for case in load(p.name)["cases"])
+    }
     assert with_run <= sections
-    # A file whose section has no formula `run` has a reference (ADR-8DSW item 3).
-    assert sections - with_run <= references
+    # A file whose section has no formula `run` has a reference (ADR-8DSW item 3), or holds
+    # only data-only validator cases, which run no function (ADR-8DSW item 2).
+    assert sections - with_run <= references | data_only
 
 
 @pytest.mark.parametrize("path", vector_paths(), ids=lambda p: p.name)
@@ -200,7 +206,13 @@ def test_file_parses_to_the_generator_data(path: Path) -> None:
 
 
 # The tolerance of the files of each group of sections.
-FILE_TOLERANCE = {"resize": 1e-4, "unprojection": 1e-4, "normalize": 1e-5, "selection": 1e-5}
+FILE_TOLERANCE = {
+    "resize": 1e-4,
+    "unprojection": 1e-4,
+    "normalize": 1e-5,
+    "selection": 1e-5,
+    "decode": 1e-5,
+}
 
 
 @pytest.mark.parametrize("path", vector_paths(), ids=lambda p: p.name)
@@ -698,18 +710,6 @@ BROKEN_CLAIMS = [
         {"scale": "pixel", "input_size": [640, 640], "resize": CENTER},
         {**FULL_HD, "bbox_xyxy": [100, 200, 196, 328], "decoded_xy": [0, 0]},
     ),
-    (
-        "post.unprojection",
-        "clear-of-upper-clamp-bound",
-        {"scale": "pixel", "input_size": [640, 640], "resize": CENTER},
-        {**FULL_HD, "decoded_xyxy": [0, 140, 640, 500]},
-    ),
-    (
-        "post.unprojection",
-        "keeps-area-after-clamp",
-        {"scale": "pixel", "input_size": [640, 640], "resize": CENTER},
-        {**FULL_HD, "decoded_xyxy": [0, 0, 320, 100]},
-    ),
 ]
 
 
@@ -745,13 +745,6 @@ def test_each_registered_check_holds_on_the_published_cases_that_declare_it() ->
             declared |= {(section, name) for name in [*file_checks, *case.get("checks", [])]}
     assert declared == registered
     assert {name for _, name in registered} == {row[1] for row in BROKEN_CLAIMS}
-
-
-def test_the_box_checks_pass_on_a_point_case() -> None:
-    params = {"scale": "pixel", "input_size": [640, 640], "resize": CENTER}
-    checks = ["clear-of-upper-clamp-bound", "keeps-area-after-clamp"]
-    case = checked_case("post.unprojection", checks, params, {**FULL_HD, "decoded_xy": [0, 0]})
-    mv.run_checks(mv.post_unprojection, case)
 
 
 @pytest.mark.parametrize(
@@ -797,6 +790,15 @@ NONE_PIXELS = {"normalization": "none", "color_format": "rgb"}
 def test_an_unknown_enum_value_is_a_defect(section: str, params: Any, inp: Any) -> None:
     with pytest.raises(CaseDefect, match="unknown"):
         formula_module(section).run(params, inp)
+
+
+def test_a_candidate_with_no_class_source_needs_is_person_only() -> None:
+    """No mode assigns `person_class_id` without `is_person_only` (ADR-17KN)."""
+    params = {"iou_threshold": 0.5, "score_threshold": 0.05}
+    inp = {"boxes": [[0, 0, 8, 8]], "scores": [0.9]}
+    with pytest.raises(CaseDefect, match="is_person_only"):
+        mv.post_det_selection_nms.run(params, inp)
+    assert mv.post_det_selection_nms.run({**params, "is_person_only": True}, inp)["class_ids"] == [0]
 
 
 # ---------------------------------------------------------------------------
@@ -934,6 +936,30 @@ ANCHORS: dict[str, list[tuple[str, tuple[str | int, ...], Any]]] = {
             ("expect", "output_xyxy"),
             [480, 420, 1440, 660],
         ),
+        # The upper clamp bound is W and H, and the size filter of min_box_size (ADR-17KN).
+        ("box-clamp-upper-bound", ("expect", "output_xyxy"), [1200, 480, 1920, 1080]),
+        (
+            "box-zero-area-is-kept-without-min-box-size",
+            ("expect", "output_xyxy"),
+            [300, 1080, 600, 1080],
+        ),
+        ("box-zero-area-is-dropped-at-min-box-size-0", ("expect", "output_xyxy"), None),
+        ("box-width-equal-to-min-box-size-is-dropped", ("expect", "output_xyxy"), None),
+        (
+            "box-width-above-min-box-size-is-kept",
+            ("expect", "output_xyxy"),
+            [300, 180, 330, 480],
+        ),
+        ("box-min-box-size-after-the-clamp", ("expect", "output_xyxy"), None),
+        (
+            "box-min-box-size-with-clamp-boxes-false",
+            ("expect", "output_xyxy"),
+            [-60, -120, 15, 780],
+        ),
+    ],
+    "post.det.decode": [
+        ("min-box-size-is-not-negative", ("expect", "failed"), ["V-post.det.decode-8"]),
+        ("no-class-source-needs-is-person-only", ("expect", "failed"), ["V-post.det.decode-9"]),
     ],
     "pre.normalize": [
         ("imagenet-rgb", ("expect", "channel_order"), "rgb"),
@@ -1305,24 +1331,51 @@ BOX_CASES = [
 def test_the_output_box_is_the_clamped_source_box_unless_clamp_boxes_is_false(
     case: dict[str, Any],
 ) -> None:
-    expect = case["expect"]
-    source = np.array(expect["source_xyxy"], dtype=float)
-    if case["params"].get("clamp_boxes", True):
-        assert expect["output_xyxy"] == np.maximum(source, 0).tolist()
+    """The clamp sets x to [0, W] and y to [0, H]; then `min_box_size` can drop the box (ADR-17KN)."""
+    params, expect = case["params"], case["expect"]
+    box = np.array(expect["source_xyxy"], dtype=float)
+    if params.get("clamp_boxes", True):
+        box = np.clip(box, 0, [case["input"]["src_w"], case["input"]["src_h"]] * 2)
+    size = params.get("min_box_size")
+    if size is not None and not (box[2] - box[0] > size and box[3] - box[1] > size):
+        assert expect["output_xyxy"] is None
     else:
-        assert expect["output_xyxy"] == expect["source_xyxy"]
+        assert expect["output_xyxy"] == box.tolist()
 
 
-@pytest.mark.parametrize("case", BOX_CASES)
-def test_no_box_case_depends_on_the_open_questions_of_the_clamp(
-    case: dict[str, Any],
-) -> None:
-    """The spec leaves the upper bound (W or W - 1) and a box without area undefined."""
-    source = np.array(case["expect"]["source_xyxy"], dtype=float)
-    assert source[0::2].max() <= case["input"]["src_w"] - 1
-    assert source[1::2].max() <= case["input"]["src_h"] - 1
-    x1, y1, x2, y2 = np.maximum(source, 0)
-    assert x2 > x1 and y2 > y1
+def test_an_absent_min_box_size_drops_no_box() -> None:
+    unfiltered = [c for c in cases_of(UNPROJECTION) if "decoded_xyxy" in c["input"]]
+    unfiltered = [c for c in unfiltered if "min_box_size" not in c["params"]]
+    assert unfiltered and all(c["expect"]["output_xyxy"] is not None for c in unfiltered)
+    x1, y1, x2, y2 = case_named(UNPROJECTION, "box-zero-area-is-kept-without-min-box-size")[
+        "expect"
+    ]["output_xyxy"]
+    assert (x2 - x1) * (y2 - y1) == 0
+
+
+def test_the_size_filter_cases_cover_zero_area_the_strict_limit_and_clamp_boxes_false() -> None:
+    zero = case_named(UNPROJECTION, "box-zero-area-is-dropped-at-min-box-size-0")
+    assert zero["params"]["min_box_size"] == 0 and zero["expect"]["output_xyxy"] is None
+    # The width equals min_box_size: the filter needs more than it, so the box is dropped.
+    limit = case_named(UNPROJECTION, "box-width-equal-to-min-box-size-is-dropped")
+    x1, _, x2, _ = limit["expect"]["source_xyxy"]
+    assert x2 - x1 == limit["params"]["min_box_size"] and limit["expect"]["output_xyxy"] is None
+    above = case_named(UNPROJECTION, "box-width-above-min-box-size-is-kept")
+    assert above["input"] == limit["input"] and above["expect"]["output_xyxy"] is not None
+    # The same box: the clamp makes it too narrow; without the clamp, it stays.
+    clamped = case_named(UNPROJECTION, "box-min-box-size-after-the-clamp")
+    unclamped = case_named(UNPROJECTION, "box-min-box-size-with-clamp-boxes-false")
+    assert clamped["input"] == unclamped["input"]
+    assert unclamped["params"]["clamp_boxes"] is False
+    assert clamped["expect"]["output_xyxy"] is None
+    assert unclamped["expect"]["output_xyxy"] == unclamped["expect"]["source_xyxy"]
+
+
+def test_a_box_case_reaches_the_upper_clamp_bound() -> None:
+    case = case_named(UNPROJECTION, "box-clamp-upper-bound")
+    x1, y1, x2, y2 = case["expect"]["source_xyxy"]
+    assert x2 > case["input"]["src_w"] and y2 > case["input"]["src_h"]
+    assert case["expect"]["output_xyxy"][2:] == [case["input"]["src_w"], case["input"]["src_h"]]
 
 
 def test_the_unprojection_cases_cover_every_scale_method_and_clamp_setting() -> None:
