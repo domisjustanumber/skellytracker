@@ -43,7 +43,7 @@
 9. **Where the rules are.** Items 1 and 2:
    [Parity](../../specs/model-sidecar/model-addition-workflow/parity.md) and part 5 of the
    templates. Items 3 and 6:
-   [Batch-conversion check](../../specs/model-sidecar/model-addition-workflow/hand-over.md#batch-conversion-check)
+   [Batch-conversion check](../../specs/model-sidecar/model-addition-workflow/batch-conversion-check.md#batch-conversion-check)
    and step 1b of
    [phase 1](../../specs/model-sidecar/model-addition-workflow/phase-1-intake.md). Item 4:
    [Publishing](../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing).
@@ -82,3 +82,5 @@
 - **The exporter takes the dependency now.** uv cannot resolve it in three of four exporters.
 
 _Edited 2026-10-29 (this PR): link repair._
+
+_Edited 2026-11-03 (this PR): link repair._

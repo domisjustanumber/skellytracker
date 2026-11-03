@@ -35,14 +35,14 @@ Item 4 restates the other rules ([ADR-Z05A](Z05A-essential-decision-log-rules.md
    - JB5J items 2 to 4, and the JC4T item 3 rules of JB5J item 5:
      [Publishing](../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing),
      [Manifest](../../specs/model-sidecar/model-addition-workflow/hand-over.md#manifest),
-     [Batch-conversion check](../../specs/model-sidecar/model-addition-workflow/hand-over.md#batch-conversion-check)
+     [Batch-conversion check](../../specs/model-sidecar/model-addition-workflow/batch-conversion-check.md#batch-conversion-check)
      and step 1b of [phase 1](../../specs/model-sidecar/model-addition-workflow/phase-1-intake.md).
      Until the workflow commit of ADR-0QKK item 6, these headings name `batch_artifacts` keys and
      `source_batch_size`. Item 1 replaces those names.
    - The other rules of JB5J item 5:
      [Parity](../../specs/model-sidecar/model-addition-workflow/parity.md), template part
      [5](../../specs/model-sidecar/templates/change-proposal.md#5-parity-evidence),
-     [Run the tool](../../specs/model-sidecar/model-addition-workflow/hand-over.md#run-the-tool),
+     [Run the tool](../../specs/model-sidecar/model-addition-workflow/batch-conversion-check.md#run-the-tool),
      [Imports](../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#imports-of-other-sections),
      and [`static-batch-v1`](../../specs/model-sidecar/common/batch-conversion.md#static-batch-v1),
      [Behaviour](../../specs/model-sidecar/common/batch-conversion.md#behaviour) and
@@ -83,3 +83,5 @@ Item 4 restates the other rules ([ADR-Z05A](Z05A-essential-decision-log-rules.md
 - **Keep a batch key in each size.** It states one value again in each size.
 - **A value from the sidecar for a symbolic axis**, for example `keypoint_count` 133. The entry then
   does not agree with the graph.
+
+_Edited 2026-11-03 (this PR): link repair._

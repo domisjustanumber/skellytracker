@@ -31,7 +31,7 @@ file `intake.md` of a `model` bundle ([Hand-over bundles](hand-over.md#payload))
      and a run of `batch`
      ([Publishing](validation-and-publishing.md#publishing); [ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)).
    - Write input B with your writer code, and run the `batch` sub-command of the hand-over tool
-     ([Batch-conversion check](hand-over.md#batch-conversion-check)).
+     ([Batch-conversion check](batch-conversion-check.md#batch-conversion-check)).
    - The result is the evidence of row G6b. It fills the section "Batch conversion check" of the
      intake. Step 3 gives the verdict of row G6b.
 2. For each row, write:

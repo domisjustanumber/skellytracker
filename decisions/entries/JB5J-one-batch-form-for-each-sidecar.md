@@ -41,9 +41,9 @@ rule). Item 5 restates the other rules of JC4T by links
 5. **The rules that stay.** JC4T items 1 and 2:
    [Parity](../../specs/model-sidecar/model-addition-workflow/parity.md) and part 5 of the templates.
    Item 3, except V0:
-   [Batch-conversion check](../../specs/model-sidecar/model-addition-workflow/hand-over.md#batch-conversion-check)
+   [Batch-conversion check](../../specs/model-sidecar/model-addition-workflow/batch-conversion-check.md#batch-conversion-check)
    and step 1b of [phase 1](../../specs/model-sidecar/model-addition-workflow/phase-1-intake.md).
-   Item 6: [Run the tool](../../specs/model-sidecar/model-addition-workflow/hand-over.md#run-the-tool)
+   Item 6: [Run the tool](../../specs/model-sidecar/model-addition-workflow/batch-conversion-check.md#run-the-tool)
    and the draft exporter guide
    ([Run the skellytracker tools](../../specs/draft/exporter-guide/sidecars/README.md#run-the-skellytracker-tools)).
    Item 7:
@@ -86,3 +86,5 @@ rule). Item 5 restates the other rules of JC4T by links
 - **A `V-` rule for the publish rule.** The rule is about publication, not about one sidecar.
 
 _Edited 2026-10-29 (this PR): link repair._
+
+_Edited 2026-11-03 (this PR): link repair._

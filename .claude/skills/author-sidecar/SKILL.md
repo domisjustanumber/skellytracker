@@ -112,7 +112,7 @@ Keep your working draft where you like. The bundle is the hand-over
 1. Do step 1 of
    [Phase 1](../../../specs/model-sidecar/model-addition-workflow/phase-1-intake.md#phase-1-can-the-current-spec-describe-the-model).
    Then do step 1b of phase 1, the batch-conversion check
-   ([Batch-conversion check](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#batch-conversion-check)).
+   ([Batch-conversion check](../../../specs/model-sidecar/model-addition-workflow/batch-conversion-check.md#batch-conversion-check)).
    Fill in
    [Batch conversion check](../../../specs/model-sidecar/templates/model-intake.md#batch-conversion-check)
    with its evidence. Then do step 2 of phase 1. Write one row for each property of the runtime

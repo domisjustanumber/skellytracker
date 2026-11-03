@@ -78,7 +78,7 @@ Do these steps:
    Give the reason. Describe the script and its gates. You can write the numbers of a run without a
    commit, but they are not evidence.
 8. Unless the fields give `batch_forced` or `no_static_reason`, the
-   [batch-conversion check](hand-over.md#batch-conversion-check) of phase 1 (step 1b) is the
+   [batch-conversion check](batch-conversion-check.md#batch-conversion-check) of phase 1 (step 1b) is the
    parity check of the generated batch artifacts
    ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). Its tolerance is in the authoring guidance of
    [`common.batch_conversion`](../common/batch-conversion.md#authoring-guidance). Do not make the
