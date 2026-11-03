@@ -1,0 +1,9 @@
+[DONE] uv run --no-project --python 3.12 python -B decisions/scripts/ep_device_checks/run_checks.py --quick --include-unexpected --redact-check --out reports/gtx-1650/566.36
+
+[DONE] uv run --no-project --python 3.12 python -B decisions/scripts/ep_device_checks/run_checks.py --quick --include-unexpected --redact-check --out reports/gtx-1650/572.16
+
+[DONE] uv run --no-project --python 3.12 python -B decisions/scripts/ep_device_checks/run_checks.py --quick --include-unexpected --redact-check --out reports/gtx-1650/576.88
+
+[DONE] uv run --no-project --python 3.12 python -B decisions/scripts/ep_device_checks/run_checks.py --quick --include-unexpected --redact-check --out reports/gtx-1650/580.88
+
+[DONE] uv run --no-project --python 3.12 python -B decisions/scripts/ep_device_checks/run_checks.py --quick --include-unexpected --redact-check --out reports/gtx-1650/621.01
