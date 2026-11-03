@@ -33,7 +33,6 @@ These entries are `accepted` or `evidence`.
 | [EY8R](entries/EY8R-tools-and-scripts.md) | Tools are in the root `tools/`; a script is in `scripts/` of the log that holds its entry; a script that a later step runs becomes a tool | accepted |
 | [D9VT](entries/D9VT-decision-log-move.md) | The log moves to `decisions/` and `specs/model-sidecar/decisions/`; no stub; old plain-text paths stay; proposal-copy paths; supersedes k6dz | accepted |
 | [AB79](entries/AB79-one-pr-for-the-spec-build-work.md) | Exception to 0027: the spec-build work goes to `development` in one PR; one kind of change in each commit; no new `dom/NN-*` branch | accepted |
-| [FADS](entries/FADS-hand-over-bundles-in-intakes.md) | Hand-over bundles in `intakes/`: versions, manifest, states, responses, byte-copy proposal records; no gap records; supersedes pykx, faac and 0014 | accepted |
 | [FDTD](entries/FDTD-evidence-sources-and-exporter-permalinks.md) | Exporter documents stay secondary; a checked upstream line is primary; user decisions in words; source forms; exporter permalinks; supersedes 0030 | accepted |
 | [QMKS](entries/QMKS-draft-sections-and-coverage-columns.md) | `spec: draft` rules, the graduation gate and the release stops; coverage and gate columns in `TRACEABILITY.md`; `no_model` reasons | accepted |
 | [Z05A](entries/Z05A-essential-decision-log-rules.md) | The Rules keep only the rules that no tool or loaded document states; the kit sync writes the kit Rules; supersedes z934, JW9N, NSR2, 0031 | accepted |
@@ -48,6 +47,8 @@ These entries are `accepted` or `evidence`.
 | [90CE](entries/90CE-minimal-sidecar-contract.md) | Minimal contract: no `input_dtype`, `rank`, NHWC or `base`; plain sizes; `pose.geometry`; one `imagenet` mode; supersedes 0010 | accepted |
 | [17KN](entries/17KN-one-selection-pipeline.md) | One selection pipeline: shared steps once; `clamp_boxes` gates; bounds `[0, W]`, `[0, H]`; optional `min_box_size`; no class source needs `is_person_only` | accepted |
 | [6GE2](entries/6GE2-spec-version-follows-skellytracker.md) | Spec version follows skellytracker SemVer: released headings, recorded pre-releases, IDs never shift, `2.0.0` ships the loader, ban per target; supersedes SS2E | accepted |
+| [ZXD7](entries/ZXD7-bundle-process.md) | Bundle process: no release step; manifest `spec_version`; entry status = proposal state; owner rule; `-2` n/a until a final release loads it; supersedes FADS | accepted |
+| [CN15](entries/CN15-spec-readme-is-the-only-entry-point.md) | The spec `README.md` is the only entry point; `sidecar-spec.md` is frozen, and M11 deletes it after the code cites section IDs; the root README links the spec | accepted |
 
 ### Proposed
 

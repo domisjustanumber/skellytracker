@@ -105,9 +105,11 @@ def test_pack_writes_lf_text_hashes_and_a_yaml_readable_manifest(tmp_path: Path,
     assert manifest["version"] == 1
     assert manifest["created"] == "2026-10-28"
     assert {f["path"]: f["bytes"] for f in manifest["files"]} == {"data.npy": 9, "proposal.md": 14}
+    assert manifest["spec_version"] == ib.spec_version()
     assert ib.manifest_problems(manifest) == []
     again = ib.pack(source, proposal_fields(), root, cwd=tmp_path)
     assert again.name == "v2"
+    assert ib.read_manifest(again)["created"] == "2026-10-28"  # the created of version 1 (ADR-ZXD7)
 
 
 def test_pack_adds_the_sha256_of_an_external_file(tmp_path: Path) -> None:
@@ -128,6 +130,7 @@ def test_pack_adds_the_sha256_of_an_external_file(tmp_path: Path) -> None:
     [
         ({"change_class": "vnext"}, "unknown key change_class"),  # ADR-NB5F
         ({"version": 3}, "unknown key version"),
+        ({"spec_version": "2.0.0"}, "unknown key spec_version"),  # pack writes it (ADR-ZXD7)
         ({"spec_commit": "abc"}, "spec_commit"),
         ({"contributor": "Ultralytics-Exporter"}, "contributor"),
     ],
@@ -424,7 +427,8 @@ def test_pack_refuses_a_new_version_of_a_finished_proposal_but_not_of_a_model(tm
     source = payload(tmp_path, {"proposal.md": "text\n", "intake.md": "text\n"})
     ib.pack(source, proposal_fields(), root, cwd=tmp_path)
     respond(root, "proposal-box-clamp@ultralytics-exporter", 1, state="accepted")
-    with pytest.raises(ib.BundleError, match="new slug"):
+    respond(root, "proposal-box-clamp@ultralytics-exporter", 2, state="needs-contributor")
+    with pytest.raises(ib.BundleError, match="is accepted: write a new bundle with a new slug"):
         ib.pack(source, proposal_fields(), root, cwd=tmp_path)
     ib.pack(source, model_fields(), root, cwd=tmp_path)
     respond(root, "model-yolo26@ultralytics-exporter", 1, state="landed")
@@ -470,17 +474,109 @@ def test_a_section_owner_keeps_its_role_after_a_later_finding(tmp_path: Path, ro
     assert any("has the owner ultralytics-exporter" in f for f in findings)
 
 
-def test_a_tracked_record_keeps_the_section_owner_after_the_bundle_is_deleted(tmp_path: Path, root: Path) -> None:
+def fake_repo(tmp_path: Path, changelog: str = "### 2.0.0\n") -> Path:
+    """A synthetic checkout with only a changelog. `record` adds proposal records and their entries."""
     repo = tmp_path / "repo"
-    record = repo / "specs" / "model-sidecar" / "proposals" / "box-clamp"
-    record.mkdir(parents=True)
-    (record / "manifest.yaml").write_text(json.dumps(proposal_fields()), encoding="utf-8")
-    found = ib.bundles(root)
+    (repo / "specs" / "model-sidecar").mkdir(parents=True)
+    (repo / "specs" / "model-sidecar" / "changelog.md").write_text(changelog, encoding="utf-8")
+    return repo
+
+
+def record(repo: Path, status: str, created: str = "2026-10-28", **fields) -> None:
+    """Add the record `proposals/<name>/` and its spec-log entry `AB12-<name>.md`."""
+    manifest = {**proposal_fields(**fields), "version": 1, "created": created, "spec_version": "2.0.0"}
+    folder = repo / "specs" / "model-sidecar" / "proposals" / manifest["name"]
+    folder.mkdir(parents=True)
+    (folder / "manifest.yaml").write_text(json.dumps(manifest), encoding="utf-8")
+    entries = repo / "specs" / "model-sidecar" / "decisions" / "entries"
+    entries.mkdir(parents=True, exist_ok=True)
+    text = f"# AB12 - A proposal\n\n**Status:** {status}, 2026-11-03 (user; PR: pending).\n"
+    (entries / f"AB12-{manifest['name']}.md").write_text(text, encoding="utf-8")
+
+
+def test_spec_version_is_the_newest_version_heading(tmp_path: Path) -> None:
+    text = "## Revisions\n\n### 9.1.0\n\n- Pre-release 10.0.0-rc.1: row 3.\n\n### 10.0.0\n\n### Scope of this revision\n"
+    assert ib.spec_version(fake_repo(tmp_path, text)) == "10.0.0"
+    assert ib.spec_version(fake_repo(tmp_path / "x", "## Revisions\n")) is None
+
+
+def test_pack_needs_a_version_heading(tmp_path: Path, root: Path) -> None:
+    with pytest.raises(ib.BundleError, match="no version heading"):
+        ib.pack(payload(tmp_path, {"proposal.md": "x\n"}), proposal_fields(), root, cwd=tmp_path,
+                repo=fake_repo(tmp_path, "# Changelog\n"))
+
+
+def test_verify_finds_a_newer_spec_version_and_a_manifest_with_no_spec_version(tmp_path: Path, root: Path) -> None:
+    source = payload(tmp_path, {"proposal.md": "text\n"})
+    version_dir = ib.pack(source, proposal_fields(), root, cwd=tmp_path, repo=fake_repo(tmp_path, "### 1.9.0\n"))
+    assert ib.read_manifest(version_dir)["spec_version"] == "1.9.0"
+    assert ib.list_lines(root)[1:3] == ["  sections: post.det.selection.nms", "  spec_version: 1.9.0"]
+    assert ib.verify("proposal-box-clamp@ultralytics-exporter", root) == [
+        f"the checkout has the newer spec version {ib.spec_version()} (spec_version 1.9.0); "
+        "read its changes and pack a new version"
+    ]
+    manifest = ib.read_manifest(version_dir)
+    del manifest["spec_version"]
+    (version_dir / "manifest.yaml").write_text(json.dumps(manifest), encoding="utf-8")
+    assert ib.verify("proposal-box-clamp@ultralytics-exporter", root) == [
+        "manifest: missing key spec_version; pack a new version"
+    ]
+
+
+def test_a_tracked_record_keeps_the_section_owner_after_the_bundle_is_deleted(tmp_path: Path, root: Path) -> None:
+    repo = fake_repo(tmp_path)
+    record(repo, "proposed")
+    found = ib.bundles(root, repo)
     assert ib.owners(found, repo) == {"post.det.selection.nms": "ultralytics-exporter"}
-    (repo / "specs" / "model-sidecar" / "proposals" / "README.md").write_text(
-        "| [box-clamp](box-clamp/proposal.md) | `x` | E | [0001](x.md) | rejected |\n", encoding="utf-8"
-    )
-    assert ib.owners(found, repo) == {}
+    entry = repo / "specs" / "model-sidecar" / "decisions" / "entries" / "AB12-box-clamp.md"
+    for status, owned in (("accepted", True), ("absorbed into [x](x.md)", True), ("superseded by [CD34](x.md)", False),
+                          ("rejected", False)):
+        entry.write_text(f"**Status:** {status}, 2026-11-03.\n", encoding="utf-8")
+        assert bool(ib.owners(found, repo)) is owned, status
+    entry.unlink()
+    assert ib.owners(found, repo) == {}  # a record with no entry owns nothing; the record test finds it
+
+
+def test_the_owner_has_the_earlier_created_then_the_slug_that_sorts_first(tmp_path: Path) -> None:
+    repo = fake_repo(tmp_path)
+    record(repo, "proposed", "2026-10-02", name="zeta", contributor="aa-exporter")
+    record(repo, "accepted", "2026-10-01", name="omega", contributor="bb-exporter", sections=["pre.resize.fit"])
+    record(repo, "proposed", "2026-10-01", name="beta", contributor="cc-exporter")
+    record(repo, "proposed", "2026-10-01", name="gamma", contributor="dd-exporter")
+    assert ib.owners({}, repo) == {"post.det.selection.nms": "cc-exporter", "pre.resize.fit": "bb-exporter"}
+
+
+def test_the_entry_status_gives_the_state_and_a_response_must_agree(tmp_path: Path, root: Path) -> None:
+    repo = fake_repo(tmp_path)
+    source = payload(tmp_path, {"proposal.md": "text\n"})
+    ib.pack(source, proposal_fields(), root, cwd=tmp_path, repo=repo)
+    name = "proposal-box-clamp@ultralytics-exporter"
+    respond(root, name, 1, state="recorded")
+    record(repo, "rejected")
+    assert f"{name} v1 rejected (can delete)" in ib.list_lines(root, repo)
+    assert (
+        "responses: the latest state recorded does not agree with the entry status rejected; "
+        "the session writes a response rejected or resolved-otherwise"
+    ) in ib.verify(name, root, repo)
+    with pytest.raises(ib.BundleError, match="is rejected"):
+        ib.pack(source, proposal_fields(), root, cwd=tmp_path, repo=repo)
+    entry = repo / "specs" / "model-sidecar" / "decisions" / "entries" / "AB12-box-clamp.md"
+    entry.write_text("**Status:** proposed, 2026-11-03.\n", encoding="utf-8")
+    assert f"{name} v1 recorded" in ib.list_lines(root, repo)
+    assert not any(f.startswith("responses:") for f in ib.verify(name, root, repo))
+    assert ib.pack(source, proposal_fields(), root, cwd=tmp_path, repo=repo).name == "v2"
+    entry.write_text("**Status:** absorbed into [x](x.md).\n", encoding="utf-8")
+    assert f"{name} v2 landed (new version) (can delete)" in ib.list_lines(root, repo)
+
+
+def test_each_record_folder_has_exactly_one_entry() -> None:
+    assert {slug: len(paths) for slug, paths in ib.record_entries().items() if len(paths) != 1} == {}
+
+
+def test_each_new_inventory_example_names_its_bundle() -> None:
+    inventory = yaml.safe_load((REPO_ROOT / "specs" / "model-sidecar" / "inventory.yaml").read_text(encoding="utf-8"))
+    without = {key for key, entry in inventory["examples"].items() if "bundle" not in entry}
+    assert without <= ib.NO_BUNDLE_EXAMPLES
 
 
 def test_responses_are_json_that_yaml_also_reads(tmp_path: Path, root: Path) -> None:
@@ -776,7 +872,7 @@ def converts_bundle(
         })
     entry = {
         "exporter": "E", "exporter_path": "x.yaml", "kind": "export", "exporter_layout_path": "x.yaml",
-        "tracked": True, "commit": SOURCE, "source": {"package": "e", "version": "0.1.0"},
+        "tracked": True, "commit": SOURCE,
     }
     batching: dict = {"batch": sidecar_source or 1}
     if sidecar_source:

@@ -176,6 +176,10 @@ Do this step when no row is blocking (step 5 of
 
 1. Let the sidecar writer code of the exporter write the sidecar. Do not write the sidecar by hand.
    Follow [Sidecar YAML](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#sidecar-yaml).
+   The writer writes `schema_version` as a quoted string: the newest version heading
+   under [Revisions](../../../specs/model-sidecar/changelog.md#revisions), today the open target `"2.0.0"`
+   ([Schema versioning](../../../specs/model-sidecar/format/versioning.md#behaviour);
+   [ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
 2. If you cannot change the writer code yet, write the exact YAML as a draft in
    [The sidecar](../../../specs/model-sidecar/templates/model-intake.md#the-sidecar).
 3. If a row is `unverified`, do not change the writer code for that row. Write the draft with the
@@ -243,7 +247,7 @@ Do this step for every final verdict, also after step 6. Follow
    Hand over the section to `propose-sidecar-change`.
 4. Skip a section that one of your proposals changes. The part 3 file of the proposal is the reference
    implementation.
-5. Skip a part of the spec that has no algorithm, for example `input.layout`.
+5. Skip a part of the spec that has no algorithm, for example `common.identity`.
 6. For each other section, do "The step" of Reference implementations. Write
    `reference/<section_module>.py` of the `model` bundle.
 7. If the host code is not committed, write `to run`. Do the step after the commit.
@@ -256,10 +260,15 @@ Do this step for every final verdict, also after step 6. Follow
    `describes`, `does not describe` or `pending`. A blocking row gives `does not describe`, also
    when other rows are `unverified`.
 2. Pack the `model` bundle
-   ([Pack a version](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#pack-a-version)). Then stop. Do not change
+   ([Pack a version](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#pack-a-version)).
+   `pack` writes the newest version heading of the checkout, today the open target `2.0.0`, to the
+   manifest as `spec_version`
+   ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)). Then stop. Do not change
    another file in skellytracker.
-3. Do not publish a `vNEXT` sidecar to a shared or remote folder
-   ([Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing)).
+3. Do not publish a sidecar to a shared or remote sidecar root until a final skellytracker release
+   loads its `schema_version`. A pre-release does not end this ban
+   ([Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing);
+   [ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
 4. Tell the user these items:
    - the final verdict;
    - the files that you wrote;

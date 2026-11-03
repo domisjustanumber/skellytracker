@@ -29,8 +29,8 @@ skellytracker session does it in [phase 3](phase-3-skellytracker.md), for a mode
     [`TRACEABILITY.md`](../TRACEABILITY.md). It maps each example to the sections that it uses.
   - `uv run python tools/sidecar_trace.py examples --exporters-root <dir>` compares each example
     with the copy of its exporter.
-- `SidecarModel` does not accept a `vNEXT` sidecar yet. The loader rejects `"vNEXT"`, and the model
-  forbids the `source` and `sha256` keys. When the package accepts them, the examples can be
+- The package `SidecarModel` does not accept an example yet. It rejects `schema_version: "2.0.0"`,
+  and it forbids the `source` and `sha256` keys. When the package accepts them, the examples can be
   validated with `SidecarModel`. They are never run.
 
 ## State of the examples
@@ -38,7 +38,7 @@ skellytracker session does it in [phase 3](phase-3-skellytracker.md), for a mode
 The `kind` and the `notes` of each entry in `inventory.yaml` give the state of the example:
 
 - `kind: forecast` is an example that is written from exporter code. Replace it when its exporter
-  writes `vNEXT`.
+  writes `schema_version: "2.0.0"`.
 - A note "Drifted" is an example that is not equal to the copy of its exporter. Replace it now.
 - An item `spec change <ID>: <edit>` in `edits` is a spec-forced edit
   ([When a spec change makes an example invalid](#when-a-spec-change-makes-an-example-invalid);
@@ -53,8 +53,8 @@ exports and which examples are forecasts.
 1. **Preconditions.**
    - The writer code of the exporter writes the sidecar. A sidecar that is written by hand is not
      a candidate.
-   - The sidecar has `schema_version: "vNEXT"` and no legacy-only fields. An export with an older
-     `schema_version` is not a candidate.
+   - The sidecar has `schema_version: "2.0.0"`, the open target, and only the keys that the spec
+     defines. An export with another `schema_version` is not a candidate.
    - The checks of the exporter pass.
    - The parity check against the upstream library passes for at least one size: first the
      preprocessed input, then the final outputs.
@@ -62,14 +62,14 @@ exports and which examples are forecasts.
    of the current version of the `model` bundle ([Payload](hand-over.md#payload)). Only these
    changes are allowed:
    1. Remove the sizes after the first size. Replace them with the comment
-      `# <sizes>: identical to <first> except input.shape, input.resize.target_size and filenames`.
+      `# <sizes>: identical to <first> except input.shape, input.resize.target_size, output_shapes and filenames`.
       Before you write the comment, make sure that it is true for the export.
    2. Add comment lines that explain a field. Remove the header comment block of the exporter.
       Record "header comment removed" in the provenance.
-   3. If the exporter does not write `source` and the `sha256` hashes, add them with
-      `uv run python tools/sidecar_refs.py --write --placeholder --source <exporter package>==<version>`.
-      Record "source and hashes added" in the provenance. When the exporter writes these fields,
-      the copy is byte for byte again.
+   3. If the exporter does not write the `sha256` hashes, add them with
+      `uv run python tools/sidecar_refs.py --write --placeholder`. Record "hashes added" in the
+      provenance. When the exporter writes the hashes, the copy is byte for byte again. A sidecar
+      with no `source` is not a candidate: `source` is required (`V-common.identity-4`).
 
    If the sidecar breaks a spec rule, the exporter must change, or a spec change proposal is
    necessary. Never correct the example by hand. If the real export shows a contract that the spec
@@ -99,12 +99,12 @@ exports and which examples are forecasts.
    - Use a package fragment when it has the same content. Do not add a copy of it under a new name.
 4. **Provenance.** Write the entry of the example in `specs/model-sidecar/inventory.yaml`. Its
    header gives the keys and their meaning. Record each allowed edit from step 2 in `edits`, and the
-   bundle ID and its version as `bundle: <bundle id>@v<k>`.
+   bundle ID and its version as `bundle: <bundle id>@v<k>`. Each new entry must have `bundle`.
 
    The entries come from `example/provenance.yaml` of the bundle. Check each entry against the bundle
-   manifest. Drop `source`: it is not an inventory key. It is the `<exporter package>==<version>`
-   value of the `sidecar_refs.py --source` call of step 2. Add `edits` (a list, which can be empty),
-   `notes` (required) and `bundle`.
+   manifest. An entry has no `source`: the example sidecar holds it
+   ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)). Add `edits` (a list, which can be
+   empty), `notes` (required) and `bundle`.
 
    If this `model` bundle answers the last example of the item under
    [Re-export requests](../decisions/open-work.md#re-export-requests), close the item in the same
@@ -116,7 +116,7 @@ exports and which examples are forecasts.
 
    If a replaced example was the last example that uses `$ref` to a fragment copy, delete that copy
    and its entry in the same PR.
-5. **Hashes.** The `$ref` and `base` hashes of an example are real. They must agree with the fragment
+5. **Hashes.** The `$ref` hashes of an example are real. They must agree with the fragment
    files of the example, so copy each fragment unchanged from the exporter (step 3). Keep an ONNX
    `sha256` that the exporter wrote, also when the ONNX file is not in this repo.
    `tools/sidecar_refs.py --check` verifies an ONNX hash only when the file is present. If the
@@ -163,7 +163,7 @@ is not a correction of the example, and it is not a new copy. Steps 1, 2 and 7 o
    - Change `model_id`. Change each file name that contains `model_id` or a size key.
    - Move the file to the folder that the rule gives. The file name must be `{model_id}.yaml`.
    - Change a comment line that names an old value.
-   - After an edit of a fragment, update each `sha256` of a `$ref` or `base` with
+   - After an edit of a fragment, update each `sha256` of a `$ref` with
      `uv run python tools/sidecar_refs.py --write <example path>`. Do not use `--placeholder`.
 3. Do not add a value that the change does not give. The only exception is a value that the
    session reads from the graph of an ONNX file of the exporter of the example

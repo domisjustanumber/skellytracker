@@ -50,8 +50,8 @@ gives the order of the steps, the inputs, the outputs and the stop points.
 
 1. Read the front matter of the section file: `implemented_by`, `status`, `tests`, `vectors`,
    `external_impl` and `selectors`.
-2. Read the normative headings: "Fields", "Behaviour" (with "Inverse", if the section has it),
-   "Validation rules" and "Legacy behaviour".
+2. Read the normative headings: "Fields", "Behaviour" (with "Inverse", if the section has it) and
+   "Validation rules".
 3. Read the "Implementer guidance" heading. If it is empty, use only the normative text. Do not guess
    the guidance.
 4. Read the sections that the text links to. Read the sections that link to its rules.
@@ -112,15 +112,19 @@ A skellytracker session must land it first, with the skill
    test if the implementer guidance names one.
 6. Write the existing code that the change touches. If no code does a step yet (`missing`), write the
    code that the new code calls or replaces, or `none`.
-7. Write the legacy behaviour that the code must keep for an older `schema_version`.
+7. Do not plan a legacy reading. The code has one reading of a sidecar: the current text of the
+   spec. A host lists an older spec version only while the current text reads that version in the
+   same way ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md);
+   [ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
 8. List the prerequisites: the work in other sections or in the implementation plan that this section
    needs first. An example is a field of another section that `model.py` does not have yet. Each
    prerequisite is a separate PR before the PR of this section.
-9. `load_sidecar` rejects `vNEXT`. A development build must load `vNEXT` sidecars
-   ([Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing)). If a test needs a
-   `vNEXT` sidecar and a development build cannot load one yet, write that work as the first
-   prerequisite. If the implementation plan has no item for it, tell the user. Do not design that work in
-   this plan.
+9. The frozen package rejects `schema_version: "2.0.0"`. Stage M8 of the
+   [implementation plan](../../../specs/sidecar-implementation-plan.md) moves the version check to
+   SemVer ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). If a
+   test needs a `"2.0.0"` sidecar and the package cannot load one yet, write that work as the first
+   prerequisite. If the implementation plan has no item for it, tell the user. Do not design that
+   work in this plan.
 10. In the spec-build stage, report the plan. Then stop.
 
 ### Step 5: Port or compare
@@ -137,26 +141,26 @@ A skellytracker session must land it first, with the skill
 
 ### Step 6: Implement and test
 
-1. Implement each step of the plan from the normative text.
-2. Keep the legacy behaviour for each older `schema_version`.
-3. Implement each validation rule of the section. Add a test for each rule ID to
+1. Implement each step of the plan from the normative text. Do not keep a legacy reading
+   ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)).
+2. Implement each validation rule of the section. Add a test for each rule ID to
    `skellytracker/tests/sidecar/test_model_validation.py`.
-4. Add the line `Implements: <section-id>` to the docstring of each implementing function.
-5. If `tools/tests` has no test that checks the `Implements:` lines, add that test in the same PR.
-6. Add an adapter to `PACKAGE_RUNNERS` in `tools/tests/test_vectors.py`. Its key is the
+3. Add the line `Implements: <section-id>` to the docstring of each implementing function.
+4. If `tools/tests` has no test that checks the `Implements:` lines, add that test in the same PR.
+5. Add an adapter to `PACKAGE_RUNNERS` in `tools/tests/test_vectors.py`. Its key is the
    `path::symbol` of the implementing function. The adapter runs the function on one case and
    returns the result in the form of `expect`, or `None` when the function cannot run the case. An
    example is `fit_runner`. Do not add a constant to `tools/make_vectors.py`.
-7. The generic test `test_the_package_agrees_exactly_where_verified_against_names_it` runs the
+6. The generic test `test_the_package_agrees_exactly_where_verified_against_names_it` runs the
    adapter on each case of each vector file that names the function in `verified_against`. A case
    that the entry covers must agree with its `expect`. Each other case of that file must differ, or
    its adapter result must be `None`. `test_each_package_runner_is_named_in_verified_against` fails
    when an adapter has no entry, or an entry has no adapter. Do not add a test for one function.
-8. Every case must pass. Do not edit `expect` by hand.
-9. Add the golden parity test, if the plan has one.
-10. Add the `path::symbol` of the implementing function (the key of its adapter) to
-    `verified_against` in `specs/model-sidecar/vectors/<section-id>.yaml`. Then run `uv run python tools/make_vectors.py`.
-11. skellytracker counts as one implementation in `verified_against`. A vector is fully verified only
+7. Every case must pass. Do not edit `expect` by hand.
+8. Add the golden parity test, if the plan has one.
+9. Add the `path::symbol` of the implementing function (the key of its adapter) to
+   `verified_against` in `specs/model-sidecar/vectors/<section-id>.yaml`. Then run `uv run python tools/make_vectors.py`.
+10. skellytracker counts as one implementation in `verified_against`. A vector is fully verified only
     when two independent implementations agree
     ([Independence](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence)).
 

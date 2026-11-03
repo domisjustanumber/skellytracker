@@ -11,8 +11,8 @@ the environment of this checkout, with `uv run --project ../freemocap/skellytrac
 `fill` writes only the given vector file, in the payload folder of their own bundle. They run
 `fill` before `pack`.
 These commands write no other file here
-([ADR-FADS](decisions/entries/FADS-hand-over-bundles-in-intakes.md);
-[ADR-JB5J](decisions/entries/JB5J-one-batch-form-for-each-sidecar.md);
+([ADR-ZXD7](decisions/entries/ZXD7-bundle-process.md);
+[ADR-JAA4](decisions/entries/JAA4-one-batch-field.md);
 [ADR-8DSW](decisions/entries/8DSW-vector-files-are-the-case-source.md)).
 `fill` runs the code of its reference folder. Exporter agents run `fill` only with the reference
 folder of their own bundle. `fill` refuses a folder of this checkout and a folder that is not the
@@ -60,7 +60,7 @@ Do not change the implementation code under `skellytracker/`.
   ([section 5](#5-decision-log)).
 - The files under `specs/model-sidecar/proposals/` are informative records. Each record is a byte copy
   of a hand-over bundle version ([Tracked records](specs/model-sidecar/model-addition-workflow/hand-over.md#tracked-records);
-  [ADR-FADS](decisions/entries/FADS-hand-over-bundles-in-intakes.md)).
+  [ADR-ZXD7](decisions/entries/ZXD7-bundle-process.md)).
 - `specs/draft/exporter-guide/` is not complete. A local plan of the user owns it
   (ADR-[x64y](decisions/entries/x64y-draft-exporter-guide-folder.md)).
 - `specs/sidecar-implementation-plan.md` is a tracked file, not a local plan. It holds the
@@ -174,7 +174,7 @@ Change the rest of a kit template by hand when a rule of this log changes
 - `intakes/` is the local hand-over folder. Git ignores it. Do not commit it. Do not link it from a
   tracked file. Do not run `git clean -x` or `git clean -X`. Use the main checkout, not a worktree,
   to process bundles ([Hand-over bundles](specs/model-sidecar/model-addition-workflow/hand-over.md);
-  [ADR-FADS](decisions/entries/FADS-hand-over-bundles-in-intakes.md)).
+  [ADR-ZXD7](decisions/entries/ZXD7-bundle-process.md)).
   <!-- kit:push-and-attribution -->
 - Do not push to a git remote without the approval of the user. One approval for a PR covers its
   push, its draft PR and its description.

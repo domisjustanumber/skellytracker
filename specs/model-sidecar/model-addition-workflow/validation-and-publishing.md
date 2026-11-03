@@ -7,23 +7,19 @@ These rules apply to each contributor that writes a sidecar.
 - The validation rules are in the section files. Each section file has a "Validation rules" heading,
   and each rule there has a rule ID (`V-<section-id>-<n>`). The validation index is the heading
   "Validation rules" in `../freemocap/skellytracker/specs/model-sidecar/README.md`. It links to the
-  rules of each section, and it gives the meaning of **(vNEXT)**: a rule marked **(vNEXT)** applies
-  only when `schema_version >= vNEXT`.
+  rules of each section.
 - Walk the "Validation rules" of every section that the sidecar uses.
-- A `vNEXT` sidecar must pass every rule, also each rule marked **(vNEXT)**, except the two rules in
-  the next bullet.
-- `V-format.versioning-1` (the version pattern) and `V-format.versioning-2` (the support by the
-  installed release), in `../freemocap/skellytracker/specs/model-sidecar/format/versioning.md`,
-  cannot pass for `vNEXT`. Record them as `n/a at vNEXT`. They apply after the release step (see
-  "Publishing").
-- Check the "Legacy behaviour" heading of each section that the sidecar uses, if the section has one.
-  "Version-aware compatibility" in
-  `../freemocap/skellytracker/specs/model-sidecar/format/versioning.md` indexes each "Legacy
-  behaviour" heading that gives a legacy difference. The availability of a new feature is in the
-  "Legacy behaviour" table of Schema versioning. The legacy text stays until the content
-  change that removes it ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)). A `vNEXT` sidecar must not
-  use a legacy-only form: `requires_nms` without `selection`, `may_include_non_person_classes`, or
-  `letterbox` with `preserve_aspect_ratio: false`.
+- Each rule applies to every sidecar. Each sidecar has one reading: the current spec text. A key
+  that the spec does not define is invalid (`V-format.composition-5`;
+  [ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)).
+- Record `V-format.versioning-1` (the valid `schema_version` values) as `pass` or `fail`. Until
+  `2.0.0` ships, only `"2.0.0"` and its recorded pre-releases pass. Record `V-format.versioning-2`
+  (a host rejects a version that it does not implement) as
+  `n/a until a final release loads the target`. For the open target `2.0.0`, that release is
+  skellytracker `2.0.0`. Both rules are in
+  `../freemocap/skellytracker/specs/model-sidecar/format/versioning.md`
+  ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md);
+  [ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
 - Record the rule ID (`V-<section-id>-<n>`) of each rule that you checked in the intake.
 - If a row of the intake is blocking ([Phase 1](phase-1-intake.md), step 3), do not walk the
   checklist. Write `skipped`.
@@ -31,42 +27,52 @@ These rules apply to each contributor that writes a sidecar.
   each result that depends on an `unverified` row as provisional.
 - Run the checks of your repo. Use a skellytracker sidecar checker only if the spec or this section
   names it.
-- Do not use the skellytracker `load_sidecar` to check a `vNEXT` sidecar. It rejects `vNEXT` (see
-  "Publishing").
+- Do not use the skellytracker `load_sidecar` to check a sidecar. The package code is frozen until
+  it migrates, and it rejects `schema_version: "2.0.0"` (see "Publishing").
 
 ## Publishing
 
-- Do not publish a `vNEXT` sidecar to a shared or remote folder, for example a Hugging Face repo. Keep
-  it in your repo and in the spec examples. One exception: in the implementation stage,
-  skellytracker can use a private Hugging Face test repo.
-- The reason: `vNEXT` is not a version. It does not match the `schema_version` pattern
-  `vYYYY.0M.BUILD[-TAG]`, so no skellytracker release can load it. (`load_sidecar` validates the
-  sidecar with `SidecarModel`, which checks `schema_version` with `parse_skellytracker_version` in
-  `skellytracker/core/sidecar/versioning.py`.)
-- In the spec-build stage, each spec change goes into `vNEXT` and adds one row to the `vNEXT` summary
-  of changes. From the first release that ships the spec, each change sets `schema_version` to the
-  release that ships it and adds a changelog row.
-- The release step: skellytracker cuts the first release that ships the spec. One content PR then
-  replaces `vNEXT` with that release version in the spec, the changelog and every example. This
-  step replaces the instruction "before merging" in the
-  reviewer note of the spec changelog.
-- After the release step, regenerate your sidecars. Set `schema_version` to the skellytracker release
-  that is current at export time (the exporter obligation under the heading "Semantics" in
-  `../freemocap/skellytracker/specs/model-sidecar/format/versioning.md`). Then you can publish them.
-- A development build of skellytracker will load `vNEXT` sidecars. A release will not (skellytracker
-  decision 0016). A development build has a `__version__` with a pre-release tag, or an explicit
-  opt-in setting. The code does not do this yet. The trace tool only resolves sidecars. It does not
-  validate them, so it works with `vNEXT`.
-- The batch artifacts. A sidecar uses one batch form for every size and every precision: b3, b1 or
-  `dynamic` ([Batch forms](../common/sizes-and-artifacts.md#batch-forms);
-  [ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)). You publish one batch
-  artifact for each size and precision, in that form.
-  - b3 is the goal. `sizes.<size>.onnx.batch_artifacts` has only the key `"3"`. The sidecar has
-    `batching.batch_conversion: {profile_id: static-batch-v1, source_batch_size: 3}`. b3 needs the
+- The publish ban. Do not publish a sidecar to a shared or remote sidecar root, for example a
+  Hugging Face repo, until a final skellytracker release loads its `schema_version`. The ban applies
+  to each target. A pre-release does not end it. Keep the sidecar in your repo and in the spec
+  examples. One exception: in the implementation stage, skellytracker can use a private Hugging
+  Face test repo ([Authoring guidance](../format/versioning.md#authoring-guidance) of
+  `format.versioning`; [ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
+- skellytracker `2.0.0` ships the SemVer loader, so its release ends the ban for `"2.0.0"`. The
+  package code before it is frozen: `SidecarModel` requires a CalVer string and rejects `"2.0.0"`.
+- A sidecar with a pre-release `schema_version`, for example `"2.0.0-rc.1"`, is a test sidecar. Put
+  it only in the private test repo. Only that skellytracker pre-release loads it. After the final
+  release, export the sidecar again.
+- Each spec change and each proposal targets the open target. Until the user bumps skellytracker,
+  the open target is `2.0.0`. A content commit adds its rows to the summary of changes and appends
+  one ``- Row N: `<fingerprint>`.`` line under the open target in
+  [Revisions](../changelog.md#revisions). No commit bumps the version.
+- The release has no step that replaces a version in the spec
+  ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)). The session of the
+  skellytracker release of the open target sets `- Released: yes.` under its version heading, in
+  the release PR. A released version does not change. After a release, the next spec change adds
+  the heading of the version that the user bumps skellytracker to on `development`. When the release
+  ships the open target under another number, the release PR renames the unreleased heading and
+  changes the examples. The pre-release values of the old number then become invalid
+  ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
+- The session of a skellytracker pre-release appends one ``- Pre-release X.Y.Z-<tag>: row N.`` line
+  under the open target.
+- The `2.0.0` release stops when a section is `draft`. The user then graduates the section or
+  removes its fields from the release. The release also stops when an example or a package sidecar
+  has `batching.batch_conversion` and the `validate` or `load` status of `common.batch_conversion`
+  is not `implemented`. The skill `change-sidecar-spec` gives both stops
+  ([ADR-QMKS](../../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)).
+- After a final release loads the `schema_version` of your sidecars, you can publish them.
+- The batch artifacts. A sidecar has one `batching.batch` for every size and every precision: b3,
+  b1 or `dynamic` ([Batch forms](../common/sizes-and-artifacts.md#batch-forms);
+  [ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). You publish one artifact for each size
+  and precision, in that form.
+  - b3 is the goal. The sidecar has `batching.batch: 3` and
+    `batching.batch_conversion: {profile_id: static-batch-v1}`. b3 needs the
     verdict `converts` of the [batch-conversion check](hand-over.md#batch-conversion-check). Thus
     `external` lists the verification batches 1, 2, 3 and 4 of each size and precision.
-  - b1 and `dynamic` are the fallbacks. `batch_artifacts` has only the key `"1"`, or only the key
-    `dynamic`. The sidecar has no `batch_conversion`. A fallback is allowed with the verdict
+  - b1 and `dynamic` are the fallbacks. The sidecar has `batching.batch: 1` or
+    `batching.batch: dynamic`, and no `batch_conversion`. A fallback is allowed with the verdict
     `does not convert`. It is also allowed when the person who runs the exporter forces it.
   - A model that cannot export a static graph publishes `dynamic`. Write why in
     `no_static_reason` of the manifest, and in the intake. Then the family does not need
@@ -87,22 +93,23 @@ These rules apply to each contributor that writes a sidecar.
   - The other files of the check (for example b2 and b4, and b1 of a b3 family) have
     `published: false` in `external` of the bundle manifest. Do not publish them.
   - No validation rule checks the publication. `intake_bundle.py verify` checks this rule for each
-    verdict. `V-common.sizes_and_artifacts-13` checks the batch form of the sidecar.
+    verdict. `V-common.sizes_and_artifacts-12` checks the batch form of the sidecar.
 
 ## `source` and hashes
 
-A `vNEXT` sidecar has a top-level `source`. It also has a `sha256` on every `$ref`, every `base` and
-every `filename` artifact (skellytracker decision 0016). The spec text is in these section files:
+Each sidecar has a top-level `source`. It also has a `sha256` on every `$ref` and every `filename`
+artifact ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)). The spec text is in these
+section files:
 
 - `source`: section `common.identity`, in
   `../freemocap/skellytracker/specs/model-sidecar/common/identity.md` (rules `V-common.identity-4`
   to `V-common.identity-6`).
-- The hashes of `$ref` and `base`, and the rules for the bytes of a file: section
+- The hashes of `$ref`, and the rules for the bytes of a file: section
   `format.composition`, in `../freemocap/skellytracker/specs/model-sidecar/format/composition.md`
   (the heading "Reference hashes").
 - The hash of an artifact and the reserved placeholder: section `common.sizes_and_artifacts`, in
   `../freemocap/skellytracker/specs/model-sidecar/common/sizes-and-artifacts.md` (the heading
-  `sizes.<size>.onnx.batch_artifacts`).
+  `sizes.<size>.onnx`).
 
 Rules:
 
@@ -119,14 +126,13 @@ Rules:
   `python ../freemocap/skellytracker/tools/sidecar_refs.py --write <sidecar>`.
   - The tool needs only the standard library and PyYAML. It does not import `skellytracker`. Thus the
     Python of your repo can run it.
-  - The tool adds or updates only the `sha256` entries in the files of the sidecar tree. It also
-    changes a `base` path string to the form `{$ref, sha256}`. It keeps all other bytes. It does not
-    change line endings: on a CRLF file or a file with a BOM, it stops with an error and changes no
-    file.
+  - The tool adds or updates only the `sha256` entries in the files of the sidecar tree. It keeps
+    all other bytes. It does not change line endings: on a CRLF file or a file with a BOM, it stops
+    with an error and changes no file.
 - Then check the hashes:
   `python ../freemocap/skellytracker/tools/sidecar_refs.py --check <sidecar>`. The check must
   pass. It fails on a hash that does not match, on a missing hash, on a CRLF file and on a BOM.
 - Never write the placeholder hash (64 zeros). It is valid only in the spec's own examples. Thus do
   not use the option `--placeholder`.
-- Publish a sidecar to a shared folder or a Hugging Face repo only after the release step
+- Publish a sidecar to a shared folder or a Hugging Face repo only when the publish ban allows it
   (see "Publishing").

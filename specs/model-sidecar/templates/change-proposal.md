@@ -63,8 +63,9 @@ You do not do these steps. A skellytracker session does them, and the user decid
 
 1. A skellytracker session verifies the current version of the bundle. It copies the version byte for
    byte to `specs/model-sidecar/proposals/<slug>/` of the skellytracker repo. It records the proposal
-   as a short decision entry with the status `proposed` (`specs/model-sidecar/model-addition-workflow/hand-over.md`, "Session steps"). A
-   response file in the bundle gives the state.
+   as a short decision entry with the status `proposed` (`specs/model-sidecar/model-addition-workflow/hand-over.md`, "Session steps"). The
+   status of that entry gives the state of the proposal. A response file in the bundle is a notice
+   (heading "Responses" in the same file; skellytracker ADR-ZXD7).
 2. The user accepts or rejects the proposal.
 3. After acceptance:
    - A content PR adds the normative text, the changelog row, the vectors and the reference
@@ -94,6 +95,7 @@ You do not do these steps. A skellytracker session does them, and the user decid
 | skellytracker decision entries with the status `proposed` that cover the same property (or `none`) | |
 | skellytracker folder that you read (normally `../freemocap/skellytracker`) | |
 | skellytracker commit of the spec text that you read (`git -C <folder> rev-parse HEAD`; add `+ uncommitted changes` if `git -C <folder> status --porcelain` lists a file that you read) | |
+| Target spec version: the newest version heading under "Revisions" in `specs/model-sidecar/changelog.md`, today the open target `2.0.0`. `pack` writes it to the manifest as `spec_version`. | |
 
 ## 1. Gap
 
@@ -144,7 +146,8 @@ its section ID or file, its heading and the edit. Examples:
 - the Overview, the section map and the validation index (`specs/model-sidecar/README.md`);
 - the summary of changes (`specs/model-sidecar/changelog.md`).
 
-Do not add a legacy difference, an index row or an availability row (skellytracker ADR-NB5F).
+Do not add a legacy difference, an index row or an availability row (skellytracker ADR-NB5F). The
+spec has no legacy reading of an older `schema_version` (skellytracker ADR-0QKK).
 These edits are part of the same contract unit. A new role with its enum and path edits is one
 proposal.
 
@@ -166,10 +169,10 @@ The forward algorithm, step by step. If the section changes coordinates, also gi
 ### 2.4 Validation rules
 
 Write one rule on each line. Give each new rule a new rule ID in the form `V-<section-id>-<n>`, for
-example `V-pre.resize.letterbox-1` (skellytracker decision 0013). Use the proposed section ID. Mark
-each rule that applies only at `vNEXT` with **(vNEXT)** (the validation index in
-`specs/model-sidecar/README.md` gives its meaning). Use the form of the heading "Validation rules" in a
-section file, for example `specs/model-sidecar/pre/resize-letterbox.md`.
+example `V-pre.resize.letterbox-1` (skellytracker decision 0013). Use the proposed section ID. Use
+the form of the heading "Validation rules" in a section file, for example
+`specs/model-sidecar/pre/resize-letterbox.md`. Do not renumber an existing rule. A rule ID never
+shifts. To delete a rule, name its ID: its number stays unused (skellytracker ADR-6GE2).
 
 Also find each existing rule that names a value that the change adds or changes. Example: rule
 `V-pre.resize.affine_person_crop-2`: a sidecar with `pose.requires_object_detector: true` must
@@ -184,9 +187,10 @@ The `key=value` pairs of a resolved sidecar that make the sidecar use this secti
 
 ### 2.6 Changelog row
 
-The row for the `vNEXT` entry of the changelog (`specs/model-sidecar/changelog.md` heading
-"`schema_version` history"), and the row for the summary of changes (heading "Summary of changes" in
-the same file).
+The row for the summary of changes (`specs/model-sidecar/changelog.md` heading "Summary of
+changes"). The change targets the open target (header). Do not write a `Row` line under
+"Revisions" and do not change `schema_version`: the skellytracker session that lands the change
+adds the `Row` line under the open target (skellytracker ADR-6GE2).
 
 ## 3. Reference implementation
 
@@ -433,7 +437,7 @@ The code for each contract part today:
 | Sidecar loading and composition | `skellytracker/core/sidecar/loader.py`, `skellytracker/core/sidecar/resolution.py` | `load_sidecar`, `resolve_sidecar_composition` |
 | From a sidecar to an ONNX model spec | `skellytracker/core/sidecar/runtime.py` | `sidecar_model_spec` |
 | Validation | `skellytracker/core/sidecar/model.py` | `SidecarModel`, `ResizeSpec`, `DetectionDecodeSpec`, `PoseDecodeSpec` |
-| Catalog and discovery of sidecars | none yet | skellytracker decision 0016 gives the rules. |
+| Catalog and discovery of sidecars | none yet | `format.file-layout` (`specs/model-sidecar/format/file-layout.md`, headings "Sidecar roots" and "Discovery") gives the rules (skellytracker ADR-0QKK). |
 
 | Item | Value |
 |---|---|
@@ -454,17 +458,18 @@ is a request only after the re-export request closes (heading "Re-export request
 `specs/model-sidecar/model-addition-workflow/hand-over.md`; skellytracker ADR-NB5F,
 `decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md`).
 
-Until skellytracker releases the spec, every change goes into the `vNEXT` revision. Write only the
-`vNEXT` text. Do not write a second text for a later revision (heading "Scope of this revision" in
-`specs/model-sidecar/changelog.md`). After that release, a change sets `schema_version` to the
-release that ships it.
+Each change targets the open target: the next skellytracker release that includes a spec change
+(skellytracker ADR-6GE2, `decisions/entries/6GE2-spec-version-follows-skellytracker.md`). Write
+only the text of the open target. Do not write a second text for an older or a later version. Each
+sidecar has one reading: the current spec text (skellytracker ADR-0QKK,
+`decisions/entries/0QKK-no-legacy-layer.md`).
 
 | Owner repo | Inventory key or model | Change (`none`, new fields, or regenerate) | Host decoder change |
 |---|---|---|---|
 | | | | |
 
-The skellytracker package sidecars are legacy sidecars. No spec change applies to them until the
-package migrates. Do not list them.
+The skellytracker package sidecars stay outside the spec until the package migrates (skellytracker
+ADR-0QKK). Do not list them.
 
 **Reference examples that the change makes invalid.** Read each example in
 `specs/model-sidecar/examples/`. Start from the section rows of `specs/model-sidecar/TRACEABILITY.md`.
@@ -486,7 +491,8 @@ allowed edits.
 sidecar writer code writes it, with the proposed fields. Put it in `example/detectors/...` of the
 proposal bundle, in the storage layout, with each fragment that it names. Write
 `example/provenance.yaml` with the `examples` entry and the `fragments` entries, in the form of
-`specs/model-sidecar/inventory.yaml`. The candidate is not a spec example. After acceptance,
+`specs/model-sidecar/inventory.yaml`. Do not write `source` in it: the session takes `source` from
+the example sidecar (skellytracker ADR-ZXD7). The candidate is not a spec example. After acceptance,
 skellytracker copies the real export.
 
 | Item | Value |

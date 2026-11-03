@@ -7,7 +7,7 @@ The workflow is the same for each contributor: an exporter agent, a human contri
 skellytracker session. An exporter is a repo that makes ONNX files and writes their sidecars, for
 example OpenMMLab-Exporter. You do not need an exporter repo to follow this workflow.
 
-The [sidecar spec](../sidecar-spec.md) is normative for the meaning of a sidecar. This workflow is
+The [sidecar spec](../README.md) is normative for the meaning of a sidecar. This workflow is
 normative for the process: it tells how to apply the spec to a new model, and how to request a spec
 change. It does not change the meaning of the spec. If this workflow and the spec do not agree, the
 spec is correct. This workflow is not a section of the spec. It has no section ID and no rule IDs.
@@ -68,7 +68,7 @@ the exporters in the same cycle.
 ## Hand-over
 
 Give your files to skellytracker in a bundle in `../freemocap/skellytracker/intakes/`
-([ADR-FADS](../../../decisions/entries/FADS-hand-over-bundles-in-intakes.md)).
+([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)).
 [Hand-over bundles](hand-over.md) gives the layout, the manifest, the versions, the states and the
 responses. Write one `model` bundle for each family, and one `proposal` bundle for each contract unit.
 skellytracker does not read the `plans/` folder of your repo.
@@ -85,7 +85,7 @@ Get these inputs before you start:
 
 - the ONNX files of every size and precision. A family needs the verification batches 1, 2, 3 and 4,
   unless it forces a fallback form or the model cannot export a static graph ([Batch-conversion check](hand-over.md#batch-conversion-check);
-  [ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)). Add the `dynamic` export
+  [ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). Add the `dynamic` export
   if you plan to publish it;
 - the upstream inference config;
 - the upstream preprocessing code and postprocessing code;
@@ -125,11 +125,14 @@ The decisions behind this workflow are in the skellytracker decision log:
 [0013](../../../decisions/entries/0013-spec-structure.md) (section IDs, rule IDs, reference
 implementations and test vectors; superseded by
 [ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md), the vector files as the case source and the reference modules), [0014](../../../decisions/entries/0014-spec-lifecycle.md) (the spec
-lifecycle, the `vNEXT` rule and the new-model workflow; superseded by
-[ADR-FADS](../../../decisions/entries/FADS-hand-over-bundles-in-intakes.md)),
-[ADR-FADS](../../../decisions/entries/FADS-hand-over-bundles-in-intakes.md) (the hand-over bundles and the proposal records),
+lifecycle, the `vNEXT` rule and the new-model workflow; superseded by ADR-FADS, which
+[ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md) superseded),
+[ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md) (the bundle process: the hand-over bundles, the proposal records and their state),
 [ADR-JC4T](../../../decisions/entries/JC4T-parity-gates-and-batch-conversion-check.md) (the parity gates and the batch-conversion check; superseded by
-[ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md), one batch form for each sidecar),
+ADR-JB5J, which [ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md) superseded: one batch field for each sidecar),
+[ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md) (no legacy layer),
+[ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md) (the spec version and the publish ban),
+[ADR-CN15](../../../decisions/entries/CN15-spec-readme-is-the-only-entry-point.md) (the spec README is the only entry point),
 [x64y](../../../decisions/entries/x64y-draft-exporter-guide-folder.md) (this folder and the draft
 exporter guide) and [b9fm](../../../decisions/entries/b9fm-finished-sidecar-plans.md) (the reference
 examples procedure).

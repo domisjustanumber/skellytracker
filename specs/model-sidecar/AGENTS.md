@@ -9,29 +9,34 @@ root log ([ADR-GN3D](../../decisions/entries/GN3D-module-decision-logs.md)).
 - The section files under this folder are normative. Read the sections that apply before you change
   a sidecar, an example or the spec. The [section map](README.md#section-map) lists them.
 - Link to the spec by its relative path. Do not link to a branch URL.
-- Every spec change goes into the `vNEXT` revision until the first skellytracker release that ships
-  the spec ([Publishing](model-addition-workflow/validation-and-publishing.md#publishing)).
-- `load_sidecar` rejects `schema_version: "vNEXT"` (`SidecarModel._check_schema_version_pattern` in
-  `skellytracker/core/sidecar/model.py`). Do not publish a `vNEXT` sidecar to a shared or remote
-  folder.
-- A spec change has no class. It applies to each sidecar from the commit that lands it. The package
-  sidecars are legacy sidecars: no spec change applies to them until the package migrates. The
-  legacy text of the spec stays until the content change that removes it. Until that change, no
-  other content change lands ([ADR-NB5F](../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
+- Each spec change and each proposal targets the open target: the next skellytracker release. Until
+  the user bumps skellytracker, the open target is `2.0.0`
+  ([Revisions](changelog.md#revisions); [ADR-6GE2](../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
+- Do not publish a sidecar to a shared or remote sidecar root until a final skellytracker release
+  loads its `schema_version`. This ban applies to each target. A pre-release does not end it. The
+  private test repo of the implementation stage is the one exception. Put a sidecar with a
+  pre-release `schema_version` only in the private test repo. The exporter exports it again after
+  the final release ([Authoring guidance](format/versioning.md#authoring-guidance);
+  [Publishing](model-addition-workflow/validation-and-publishing.md#publishing)).
+- A spec change has no class. It applies to each sidecar from the commit that lands it
+  ([ADR-NB5F](../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)). Each
+  sidecar has one reading: the current spec text. The spec has no legacy reading. The package
+  sidecars stay outside the spec until they migrate
+  ([ADR-0QKK](../../decisions/entries/0QKK-no-legacy-layer.md)).
 - Make a spec change in the section file that owns the rule. The `id` in the front matter is the
   section ID. The rule IDs of the section are `V-<id>-<n>`. When you move or reword a section, keep
   its section ID and its rule IDs
   ([Rule IDs and section IDs](../../.claude/skills/change-sidecar-spec/SKILL.md#rule-ids-and-section-ids);
   [ADR-8DSW](../../decisions/entries/8DSW-vector-files-are-the-case-source.md)).
 - A spec change needs a decision entry and a changelog row. Add a row to the
-  [summary of changes](changelog.md#summary-of-changes). Add the change to the `vNEXT` row of the
-  [changelog](changelog.md#schema_version-history).
+  [summary of changes](changelog.md#summary-of-changes). A content commit also appends one
+  ``- Row N: `<fingerprint>`.`` line under the open target in [Revisions](changelog.md#revisions).
 - Stop on a gap. If a model property does not map exactly to a spec section, do not approximate it.
   A near-miss is a gap. A gap that a skellytracker session finds goes on the
   [spec-defect list](decisions/open-work.md#spec-defects). Then stop. A contributor writes the
   change proposal with the parts of [`templates/change-proposal.md`](templates/change-proposal.md)
   and packs it as a `proposal` bundle ([Hand-over bundles](model-addition-workflow/hand-over.md);
-  [ADR-FADS](../../decisions/entries/FADS-hand-over-bundles-in-intakes.md)). A skellytracker session copies
+  [ADR-ZXD7](../../decisions/entries/ZXD7-bundle-process.md)). A skellytracker session copies
   the bundle version to `proposals/<slug>/` and records it as a short decision entry with status
   `proposed`. Then stop. The user accepts or rejects the proposal.
 - Put one kind of change in each PR

@@ -21,7 +21,7 @@ applies for every verdict of the intake.
 - Skip the step if one of your proposals changes the section. The part 3 file of the proposal is the
   reference implementation. If the user rejects the proposal, do the step for the current text.
 - A part of the spec without an algorithm needs no reference implementation, for example
-  `input.layout`, `input.dtype` or `input.resize.method: none`.
+  `input.dtype` or `input.resize.method: none`.
 - Do the step from committed host code. If the host code is not committed yet, or if it exists only
   in a plan, write `to run` in the intake. Do the step after the commit. This bullet is for a section
   of the current spec. For part 3 of a proposal, see phase 2.
@@ -107,7 +107,7 @@ proposed section ID.
 - One exception: part 3 of a proposal for a new profile of `common.batch_conversion` is a standalone
   module that uses onnx and NumPy. It has the signature of `model_batch_convert` in
   `skellytracker/core/sessions/batch_conversion.py`. The implementation stage ports it
-  ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)). This module
+  ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). This module
   reads its source model and writes its target model only through onnx. The static check allows
   only that file access, and only in `common_batch_conversion.py`
   ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)).

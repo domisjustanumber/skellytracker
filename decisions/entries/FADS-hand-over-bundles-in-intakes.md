@@ -1,6 +1,6 @@
 # FADS — Hand-over bundles in `intakes/`
 
-**Status:** accepted, 2026-10-28 (user; PR: pending).
+**Status:** accepted, 2026-10-28 (user; PR: pending); superseded by [ZXD7](ZXD7-bundle-process.md), 2026-11-03 (user; PR: pending).
 
 ## Decision
 

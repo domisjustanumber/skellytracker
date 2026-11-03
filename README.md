@@ -182,6 +182,7 @@ KEYPOINT_DETECTOR_REGISTRY["my_detector"] = MyDetector
 ## Contributing
 
 Pull requests are welcome. [`AGENTS.md`](AGENTS.md) gives the full rules for human and AI contributors.
+The [sidecar spec](specs/model-sidecar/README.md) gives the contract of the YAML sidecar that an ONNX detector reads.
 
 1. Fork the repo. Create your branch from `development`.
 2. Install the dev tools: `uv sync --extra all-cpu`. Then run `uv run pre-commit install` once.

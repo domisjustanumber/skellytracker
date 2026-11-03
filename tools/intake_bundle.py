@@ -62,9 +62,20 @@ STATES = (
     "closed",
 )
 FINISHED = {"landed", "rejected", "resolved-otherwise", "closed"}
+# A bundle with no entry: the latest response gives the state and the owner role.
 OWNING = {"recorded", "accepted", "landed"}
 NOT_OWNING = {"rejected", "resolved-otherwise", "closed"}
 UNREADABLE = {"_unreadable": True}
+# The status of the spec-log entry of a proposal record is the authority for its state (ADR-ZXD7, item 3).
+# Each status allows these response states; the first one is the state when the latest response disagrees.
+ALLOWED_RESPONSES = {
+    "proposed": ("recorded", "accepted", "needs-contributor"),
+    "rejected": ("rejected", "resolved-otherwise"),
+    "accepted": ("landed",),
+    "absorbed into": ("landed",),
+    "superseded by": ("landed",),
+}
+OWNING_ENTRY = {"proposed", "accepted", "absorbed into"}
 
 COMMON_KEYS = (
     "bundle_format",
@@ -74,6 +85,7 @@ COMMON_KEYS = (
     "version",
     "source_commit",
     "spec_commit",
+    "spec_version",
     "created",
     "sections",
     "related",
@@ -85,7 +97,7 @@ KIND_KEYS = {
               "no_static_reason"),
     "proposal": ("base", "depends_on", "contributes_to"),
 }
-COMPUTED = ("files", "version", "created")
+COMPUTED = ("files", "version", "created", "spec_version")
 EXTERNAL_KEYS = ("path", "role", "size", "batch", "precision", "published")
 RESPONSE_KEYS = (
     "answers_version",
@@ -102,9 +114,19 @@ RESPONSE_KEYS = (
 # The provenance key sets. The header of specs/model-sidecar/inventory.yaml gives their meaning;
 # tools/tests/test_examples.py checks the inventory with them.
 COPY_KEYS = {"exporter", "exporter_path", "kind", "exporter_layout_path", "tracked", "commit"}
-PROVENANCE_KEYS = COPY_KEYS | {"source"}  # an example entry of example/provenance.yaml; notes optional
+# An example entry of example/provenance.yaml; notes optional. It has no source: the session takes
+# source from the example sidecar (ADR-ZXD7, item 6).
+PROVENANCE_KEYS = COPY_KEYS
 INVENTORY_KEYS = COPY_KEYS | {"edits", "notes"}  # an example entry of inventory.yaml
-OPTIONAL_INVENTORY_KEYS = {"bundle"}  # an example from before the bundles has no bundle
+OPTIONAL_INVENTORY_KEYS = {"bundle"}  # only an entry of NO_BUNDLE_EXAMPLES has no bundle
+# The examples from before the bundles. Each other example entry of inventory.yaml must have bundle (ADR-ZXD7, item 6).
+NO_BUNDLE_EXAMPLES = frozenset({
+    "detectors/object_detectors/yolo26/yolo26.yaml",
+    "detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml",
+    "detectors/object_detectors/rtmdet-person/rtmdet-person.yaml",
+    "detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml",
+    "detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml",
+})
 FRAGMENT_KEYS = {"exporter", "exporter_path", "tracked", "commit", "notes"}
 
 SOURCE_BATCH = 3
@@ -118,6 +140,10 @@ INPUT_B_ITEMS = 4
 
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
 SHA64 = re.compile(r"^[0-9a-f]{64}$")
+SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
+VERSION_HEADING = re.compile(r"^### (\d+\.\d+\.\d+)[ \t]*$", re.MULTILINE)
+ENTRY_FILE = re.compile(r"^[0-9A-Za-z]{4}-(?P<slug>.+)\.md$")
+ENTRY_STATUS = re.compile(r"^\*\*Status:\*\*\s*(proposed|accepted|absorbed into|superseded by|rejected)\b", re.MULTILINE)
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 CONTRIBUTOR = re.compile(r"^[a-z0-9][a-z0-9-]*$")
@@ -165,7 +191,11 @@ def manifest_problems(manifest: dict, computed: bool = True) -> list[str]:
         return [f"kind must be one of {list(KINDS)}, not {kind!r}"]
     allowed = set(COMMON_KEYS) | set(KIND_KEYS[kind])
     required = allowed if computed else allowed - set(COMPUTED)
-    problems += [f"missing key {key}" for key in sorted(required - set(manifest))]
+    # A manifest with no spec_version is from before ADR-ZXD7: pack writes each computed key.
+    problems += [
+        f"missing key {key}" + ("; pack a new version" if key in COMPUTED else "")
+        for key in sorted(required - set(manifest))
+    ]
     problems += [f"unknown key {key}" for key in sorted(set(manifest) - required)]
     get = manifest.get
     if get("bundle_format", BUNDLE_FORMAT) != BUNDLE_FORMAT:
@@ -182,6 +212,8 @@ def manifest_problems(manifest: dict, computed: bool = True) -> list[str]:
         problems.append("spec_commit must be 40 hex digits")
     if computed and not DATE.match(str(get("created", ""))):
         problems.append("created must be YYYY-MM-DD")
+    if computed and "spec_version" in manifest and not SEMVER.match(str(get("spec_version"))):
+        problems.append("spec_version must be MAJOR.MINOR.PATCH, a version heading of the changelog")
     if computed and not (isinstance(get("version"), int) and get("version", 0) >= 1):
         problems.append("version must be an integer of 1 or more")
     if "sections" in manifest and not (_is_str_list(get("sections")) and get("sections")):
@@ -369,17 +401,67 @@ def responses(bundle_dir: Path) -> list[dict]:
     return result
 
 
-def bundles(root: Path) -> dict[str, dict]:
-    """Return each bundle in `root` with its current version, manifest, state and responses."""
+def spec_version(repo: Path = REPO_ROOT) -> str | None:
+    """Return the newest version heading of the changelog of the spec, for example `2.0.0`, or None.
+
+    A heading is never a pre-release: the changelog gives a pre-release as a line under its version.
+    """
+    path = repo / SPEC / "changelog.md"
+    found = VERSION_HEADING.findall(path.read_text(encoding="utf-8")) if path.is_file() else []
+    return max(found, key=_version_key) if found else None
+
+
+def _version_key(version: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in version.split("."))
+
+
+def record_entries(repo: Path = REPO_ROOT) -> dict[str, list[Path]]:
+    """Return the spec-log entry files `<id>-<slug>.md` of each record folder `proposals/<slug>/`.
+
+    Each record has exactly one entry (ADR-ZXD7, item 3).
+    """
+    proposals = repo / SPEC / "proposals"
+    slugs = sorted(p.name for p in proposals.iterdir() if p.is_dir()) if proposals.is_dir() else []
+    entries = sorted((repo / SPEC / "decisions" / "entries").glob("*.md"))
+    names = {e: ENTRY_FILE.match(e.name) for e in entries}
+    return {s: [e for e in entries if names[e] and names[e]["slug"] == s] for s in slugs}
+
+
+def entry_statuses(repo: Path = REPO_ROOT) -> dict[str, str]:
+    """Return the entry status of each proposal record, by the bundle ID of the record manifest.
+
+    The check reads the status line of the entry as plain text. A record with no entry, or with a
+    status that is not a proposal status, is not in the result.
+    """
+    result: dict[str, str] = {}
+    for slug, paths in record_entries(repo).items():
+        manifest = read_manifest(repo / SPEC / "proposals" / slug) or {}
+        status = ENTRY_STATUS.search(paths[0].read_text(encoding="utf-8")) if paths else None
+        if status and all(isinstance(manifest.get(k), str) for k in ("kind", "name", "contributor")):
+            result[bundle_id(manifest)] = status.group(1)
+    return result
+
+
+def _state(answers: list[dict], entry: str | None) -> str:
+    """Return the state of a bundle: the latest response, unless the entry status does not allow it."""
+    state = answers[-1].get("state", "unreadable") if answers else "submitted"
+    allowed = ALLOWED_RESPONSES.get(entry or "")
+    return state if allowed is None or state in allowed else allowed[0]
+
+
+def bundles(root: Path, repo: Path = REPO_ROOT) -> dict[str, dict]:
+    """Return each bundle in `root` with its current version, manifest, state, entry status and responses."""
     found: dict[str, dict] = {}
     if not root.is_dir():
         return found
+    statuses = entry_statuses(repo)
     for bundle_dir in sorted(p for p in root.iterdir() if p.is_dir()):
         if not BUNDLE_ID.match(bundle_dir.name):
             continue
         current = current_version(bundle_dir)
         answers = responses(bundle_dir)
-        state = answers[-1].get("state", "unreadable") if answers else "submitted"
+        entry = statuses.get(bundle_dir.name)
+        state = _state(answers, entry)
         manifest = read_manifest(current[1]) if current else None
         if manifest is not None and manifest.get("_unreadable"):
             manifest, state = {}, "unreadable manifest"
@@ -391,6 +473,7 @@ def bundles(root: Path) -> dict[str, dict]:
             "version": current[0] if current else None,
             "manifest": manifest or {},
             "state": state if current else "in progress",
+            "entry": entry,
             "responses": answers,
             "recorded": recorded,
         }
@@ -419,51 +502,36 @@ def _names(name: str, bundle: str) -> bool:
     return bundle == name or (name.endswith("@") and bundle.startswith(name))
 
 
-def _record_states(repo: Path) -> dict[str, str]:
-    """Return the state of each row of the proposal index, by slug."""
-    index = repo / SPEC / "proposals" / "README.md"
-    states: dict[str, str] = {}
-    if index.is_file():
-        for line in index.read_text(encoding="utf-8").splitlines():
-            match = re.match(r"^\| \[([^\]]+)\]\([^)]*\) \|.*\| ([^|]+?) \|$", line)
-            if match:
-                states[match.group(1)] = match.group(2).split()[0]
-    return states
-
-
 def owners(found: dict[str, dict], repo: Path | None = None) -> dict[str, str]:
-    """Return the owner contributor of each section.
+    """Return the owner contributor of each section (ADR-ZXD7, item 3).
 
-    The owner is the contributor of the first proposal bundle on that section that reached
-    `recorded`, until it is rejected, resolved otherwise or closed. A contribution never owns a
-    section. A tracked record in `specs/model-sidecar/proposals/` wins, so a deleted bundle keeps
-    its ownership.
+    A proposal with an entry owns its sections while the entry status is proposed, accepted or
+    absorbed into. A proposal bundle with no entry owns them from its first `recorded` response
+    until it is rejected, resolved otherwise or closed. A tracked record in
+    `specs/model-sidecar/proposals/` keeps the role after the user deletes the bundle. A
+    contribution never owns a section. When more than one proposal can own a section, the owner has
+    the earlier manifest `created`, then the slug that sorts first.
     """
-    result: dict[str, str] = {}
+    candidates = []
     if repo is not None:
-        states = _record_states(repo)
+        statuses = entry_statuses(repo)
         for path in sorted((repo / SPEC / "proposals").glob("*/manifest.yaml")):
-            try:
-                manifest = json.loads(path.read_text(encoding="utf-8"))
-            except (ValueError, OSError):
-                continue
-            if not isinstance(manifest, dict) or manifest.get("contributes_to"):
-                continue
-            if states.get(path.parent.name) in NOT_OWNING:
-                continue
-            for section in manifest.get("sections") or []:
-                result.setdefault(section, str(manifest.get("contributor", "")))
-    candidates = sorted(
-        (info["recorded"], bid)
-        for bid, info in found.items()
-        if info["manifest"].get("kind") == "proposal"
-        and not info["manifest"].get("contributes_to")
-        and info["recorded"] is not None
-        and info["state"] not in NOT_OWNING
-    )
-    for _, bid in candidates:
-        for section in found[bid]["manifest"].get("sections") or []:
-            result.setdefault(section, found[bid]["manifest"]["contributor"])
+            manifest = read_manifest(path.parent) or {}
+            names = all(isinstance(manifest.get(k), str) for k in ("kind", "name", "contributor"))
+            if names and statuses.get(bundle_id(manifest)) in OWNING_ENTRY:
+                candidates.append(manifest)
+    for info in found.values():
+        manifest = info["manifest"]
+        if manifest.get("kind") != "proposal" or manifest.get("contributes_to"):
+            continue
+        if info["entry"] in OWNING_ENTRY or (
+            info["entry"] is None and info["recorded"] is not None and info["state"] not in NOT_OWNING
+        ):
+            candidates.append(manifest)
+    result: dict[str, str] = {}
+    for manifest in sorted(candidates, key=lambda m: (str(m.get("created", "")), str(m.get("name", "")))):
+        for section in manifest.get("sections") or []:
+            result.setdefault(section, str(manifest.get("contributor", "")))
     return result
 
 
@@ -485,14 +553,26 @@ def _text_form(data: bytes, rel: str) -> bytes:
 
 
 def pack(
-    source: Path, fields: dict, root: Path = DEFAULT_ROOT, cwd: Path | None = None, today: str | None = None
+    source: Path,
+    fields: dict,
+    root: Path = DEFAULT_ROOT,
+    cwd: Path | None = None,
+    today: str | None = None,
+    repo: Path = REPO_ROOT,
 ) -> Path:
-    """Write a new version of a bundle and return its folder. The manifest is written last."""
+    """Write a new version of a bundle and return its folder. The manifest is written last.
+
+    `spec_version` is the newest version heading of the changelog of `repo` (ADR-ZXD7, item 2).
+    Each later version keeps the `created` of version 1.
+    """
     problems = manifest_problems(fields, computed=False)
     if problems:
         raise BundleError("bad fields file:\n  " + "\n  ".join(problems))
     if not source.is_dir():
         raise BundleError(f"{source} is not a folder")
+    newest = spec_version(repo)
+    if newest is None:
+        raise BundleError(f"{SPEC}/changelog.md has no version heading")
     payload: dict[str, bytes] = {}
     for path in sorted(p for p in source.rglob("*") if p.is_file()):
         rel = path.relative_to(source).as_posix()
@@ -527,11 +607,14 @@ def pack(
         external.append({**item, "sha256": digest.hexdigest()})
     bundle_dir = root / bundle_id(fields)
     answers = responses(bundle_dir)
-    last_state = answers[-1].get("state") if answers else None
-    if fields["kind"] == "proposal" and (last_state == "accepted" or last_state in FINISHED):
-        raise BundleError(f"the bundle is {last_state}: write a new bundle with a new slug")
+    state = _state(answers, entry_statuses(repo).get(bundle_id(fields)))
+    if any(a.get("state") == "accepted" for a in answers):
+        state = "accepted"
+    if fields["kind"] == "proposal" and (state == "accepted" or state in FINISHED):
+        raise BundleError(f"the bundle is {state}: write a new bundle with a new slug")
     existing = _numbered(bundle_dir, "v")
     version = existing[-1][0] + 1 if existing else 1
+    created = [m.get("created") for _, d in existing for m in [read_manifest(d) or {}] if DATE.match(str(m.get("created")))]
     version_dir = bundle_dir / f"v{version}"
     version_dir.mkdir(parents=True)
     files = []
@@ -543,8 +626,9 @@ def pack(
     manifest = {
         "bundle_format": BUNDLE_FORMAT,
         **{k: v for k, v in fields.items() if k != "bundle_format"},
+        "spec_version": newest,
         "version": version,
-        "created": today or datetime.date.today().isoformat(),
+        "created": created[0] if created else today or datetime.date.today().isoformat(),
         "files": files,
         "external": external,
     }
@@ -560,7 +644,7 @@ def pack(
 
 def list_lines(root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list[str]:
     """Return the text that `list` prints."""
-    found = bundles(root)
+    found = bundles(root, repo)
     lines = []
     for bid, info in found.items():
         # A contribution is not named by the slug prefix that its siblings give; only its owner bundle is.
@@ -588,6 +672,8 @@ def list_lines(root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list[str]:
             lines.append(f"  needed by: {', '.join(needed_by)}")
         if info["manifest"].get("sections"):
             lines.append(f"  sections: {', '.join(info['manifest']['sections'])}")
+        if info["manifest"].get("spec_version"):
+            lines.append(f"  spec_version: {info['manifest']['spec_version']}")
         lines.extend(
             f"  {f}" for f in last.get("findings") or [] if str(f).startswith("deferred:")
         )
@@ -1100,7 +1186,7 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list
 
     import check_links
 
-    found = bundles(root)
+    found = bundles(root, repo)
     info = found.get(name)
     if info is None:
         return [f"no bundle {name} in {root}"]
@@ -1244,7 +1330,7 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list
     findings += [f"the bundle {o} does not exist" for o in others if o and o not in found]
     if manifest["kind"] == "proposal":
         owned = owners(found, repo)
-        if not contribution and not manifest["base"] and info["recorded"] is None:
+        if not contribution and not manifest["base"] and info["recorded"] is None and info["entry"] is None:
             for section in manifest["sections"]:
                 owner = owned.get(section)
                 if owner and owner != manifest["contributor"]:
@@ -1289,8 +1375,15 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list
             findings.append(f"responses/{path.name}: not JSON")
             continue
         findings.extend(f"responses/{path.name}: {p}" for p in response_problems(data))
+    allowed = ALLOWED_RESPONSES.get(info["entry"] or "")
+    latest = info["responses"][-1].get("state") if info["responses"] else "submitted"
+    if allowed and latest not in allowed:
+        findings.append(
+            f"responses: the latest state {latest} does not agree with the entry status {info['entry']}; "
+            f"the session writes a response {' or '.join(allowed)}"
+        )
 
-    # Spec drift.
+    # Spec drift: the changed sections since spec_commit, and a newer version in the checkout (ADR-ZXD7, item 2).
     changed = changed_sections(manifest["spec_commit"], repo)
     if changed is None:
         findings.append("spec_commit not found in this checkout; pack again on the current checkout")
@@ -1300,6 +1393,12 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list
             for section in manifest["sections"]
             if section in changed
         ]
+    newest = spec_version(repo)
+    if newest and _version_key(newest) > _version_key(manifest["spec_version"]):
+        findings.append(
+            f"the checkout has the newer spec version {newest} (spec_version {manifest['spec_version']}); "
+            "read its changes and pack a new version"
+        )
     return findings
 
 

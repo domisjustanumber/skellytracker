@@ -16,10 +16,9 @@ Tell the user or the skellytracker maintainers the name of the branch.
 
 | File | Use |
 |---|---|
-| `../freemocap/skellytracker/specs/model-sidecar/sidecar-spec.md` | The entry point of the spec. It is the permanent index: it keeps each old heading as an anchor with a link to the section file that holds the text now. |
-| `../freemocap/skellytracker/specs/model-sidecar/README.md` | The section map: each section ID and its file. It also has the validation index and the meaning of **(vNEXT)**. |
+| `../freemocap/skellytracker/specs/model-sidecar/README.md` | The only entry point of the spec: the overview, the conventions, the section map (each section ID and its file) and the validation index. Start there. |
 | `../freemocap/skellytracker/specs/model-sidecar/format/`, `common/`, `pre/`, `post/` | The section files. They are the normative text of the spec. |
-| `../freemocap/skellytracker/specs/model-sidecar/changelog.md` | The `vNEXT` summary of changes, the table "Considered and deliberately not added" and the `schema_version` history. |
+| `../freemocap/skellytracker/specs/model-sidecar/changelog.md` | The summary of changes, the table "Considered and deliberately not added", the `schema_version` history and the spec versions with the open target (the heading "Revisions"). |
 | `../freemocap/skellytracker/specs/model-sidecar/examples/README.md` | The reference examples. They are not upstream evidence. |
 | `../freemocap/skellytracker/specs/model-sidecar/inventory.yaml` | The provenance of each reference example. |
 | `../freemocap/skellytracker/specs/model-sidecar/templates/model-intake.md` | The template for phase 1. |
@@ -60,10 +59,11 @@ its topic applies to your model.
 
 ## Section IDs
 
-The spec is split into section files under `specs/model-sidecar/`. `specs/model-sidecar/sidecar-spec.md`
-is the index. The section map `../freemocap/skellytracker/specs/model-sidecar/README.md` lists each
-section ID and its file. The section ID is the `id` in the front matter of the section file, for
-example `pre.resize.letterbox`. Each validation rule has a rule ID in the form `V-<section-id>-<n>`,
+The spec is split into section files under `specs/model-sidecar/`. The entry point is
+`../freemocap/skellytracker/specs/model-sidecar/README.md`. Its section map lists each section ID
+and its file ([ADR-CN15](../../../decisions/entries/CN15-spec-readme-is-the-only-entry-point.md)).
+The file `specs/model-sidecar/sidecar-spec.md` is a frozen index. Do not start there. The section ID
+is the `id` in the front matter of the section file, for example `pre.resize.letterbox`. Each validation rule has a rule ID in the form `V-<section-id>-<n>`,
 for example `V-pre.resize.letterbox-1`. When this workflow names a spec heading, it also names the
 section ID or the file that holds the heading.
 
@@ -85,11 +85,12 @@ each difference in the intake.
 ## Links to the spec
 
 In a tracked file outside skellytracker, for example in an exporter, name the spec as
-`specs/model-sidecar/sidecar-spec.md` of the skellytracker repo. That file is the permanent entry
-point. The section map is `specs/model-sidecar/README.md`. You can also name a section file under
-`specs/model-sidecar/`, for example `specs/model-sidecar/pre/resize-letterbox.md`. Do not link to a
+`specs/model-sidecar/README.md` of the skellytracker repo. That file is the entry point. You can
+also name a section file under `specs/model-sidecar/`, for example
+`specs/model-sidecar/pre/resize-letterbox.md`. Do not cite `specs/model-sidecar/sidecar-spec.md`
+([ADR-CN15](../../../decisions/entries/CN15-spec-readme-is-the-only-entry-point.md)). Do not link to a
 URL of a branch. A branch URL breaks when the branch moves or when someone deletes it. Do not link to
 the spec with a relative path into a local skellytracker checkout. That path does not resolve on
 GitHub or in a different folder layout. It also points into a working tree that is often on a
-feature branch. Name the spec in a code span: `specs/model-sidecar/sidecar-spec.md` of the
+feature branch. Name the spec in a code span: `specs/model-sidecar/README.md` of the
 skellytracker repo.

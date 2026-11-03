@@ -26,8 +26,8 @@
   your code that writes the value. If no such code exists, write `none yet (no code)`. Such a row is
   not `unverified` only because the code does not exist or you cannot read it. The model intake
   template lists these rows (heading "Verdicts").
-- Do not publish a `vNEXT` sidecar to a shared or remote folder (see
-  [Publishing](validation-and-publishing.md#publishing)).
+- Do not publish a sidecar to a shared or remote folder until a final skellytracker release loads
+  its `schema_version` (see [Publishing](validation-and-publishing.md#publishing)).
 
 ## User decisions
 
@@ -44,7 +44,7 @@ These rules come from [ADR-FDTD](../../../decisions/entries/FDTD-evidence-source
   words.
 - If the decision is about the workflow or these rules, tell the user. A bundle does not change the
   workflow ([Workflow changes](hand-over.md#workflow-changes),
-  [ADR-FADS](../../../decisions/entries/FADS-hand-over-bundles-in-intakes.md)).
+  [ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)).
 
 ## Sources
 

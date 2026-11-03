@@ -1,11 +1,13 @@
 # Mapping hints for phase 1
 
-- **Graph.** Record the input name, dtype, layout, and static or dynamic dims. Read the dims from the
+- **Graph.** Record the input name, dtype, layout, and static or dynamic dims. The spec allows only an
+  NCHW input (the heading "Authoring guidance" in
+  `../freemocap/skellytracker/specs/model-sidecar/common/input.md`). Read the dims from the
   graph. A config name or a file name (for example "dynamic") is not evidence of the dims. Record the
-  name, dtype and shape of each output. Record the batch of each file and the batch axis. Record the
-  I/O dtype for each precision: fp16 files often keep float32 I/O. Look for normalization inside the
-  graph (Sub, Div or Mul near the input). Look for NMS or TopK near the outputs. A step inside the
-  graph is a row too.
+  name, dtype and shape of each output. Record the batch of each file. Dim 0 is the batch axis.
+  Record the I/O dtype for each precision: fp16 files often keep float32 I/O. Look for normalization
+  inside the graph (Sub, Div or Mul near the input). Look for NMS or TopK near the outputs. A step
+  inside the graph is a row too.
 - **NMS inside the graph.** The sidecar does not declare the NMS parameters of the graph, but they
   change the outputs. Record the IoU threshold, the score threshold and the row caps of the graph.
   Compare them with the upstream test config. A different value is an export defect: write it in the
@@ -51,8 +53,13 @@
   rows (`none`), top-k over logits (`top_k`), or host NMS (`nms`). Record if the sigmoid is in the
   graph. Take the thresholds from the upstream test config, not from the defaults. Record the class
   IDs. Check `clamp_boxes` against the upstream: the default is `true`, so a sidecar without the field
-  clamps the boxes. The spec does not define the upper bound of the clamp
-  ([Spec defects](../decisions/open-work.md#spec-defects)) or the dtype of the score comparison.
+  clamps the boxes. The clamp bounds are `[0, W]` and `[0, H]`, with `W` and `H` the source-image
+  size (the heading "Selection behaviour" in
+  `../freemocap/skellytracker/specs/model-sidecar/post/detection-decode.md`). Map the area filter of
+  the upstream, for example `min_bbox_size` of mmdet, to `decode.min_box_size`. Omit
+  `decode.min_box_size` when the upstream keeps the boxes with zero area
+  ([ADR-17KN](../../../decisions/entries/17KN-one-selection-pipeline.md)). The spec does not define
+  the dtype of the score comparison ([Spec defects](../decisions/open-work.md#spec-defects)).
   Record what the upstream does.
 - **Pose.** Write `tracked_points` in native model output order. Record the connections, the decode
   method and the `landmark_schema`. For a bottom-up model, record how the pose rows align with the

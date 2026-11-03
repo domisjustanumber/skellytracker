@@ -52,3 +52,4 @@ the reason for a decision. The [index](README.md) has the Active and Proposed en
 | [KDBD](entries/KDBD-change-classes-and-spec-forced-edits.md) | Change classes `vnext`, `clarification` and `breaking`; the legacy index rule; spec-forced example edits and the part 7 table; supersedes 0009 | superseded by NB5F |
 | [JB5J](entries/JB5J-one-batch-form-for-each-sidecar.md) | One batch form for each `vNEXT` sidecar: b3 with `batch_conversion`, b1 or `dynamic`; the check by default; V0; publish rule for each verdict; supersedes JC4T | superseded by JAA4 |
 | [SS2E](entries/SS2E-spec-owned-version.md) | Spec-owned version: `schema_version: "1"`, revision `1.N`, reset to `1.0`, no `vNEXT`; supersedes YNX0 | superseded by 6GE2 |
+| [FADS](entries/FADS-hand-over-bundles-in-intakes.md) | Hand-over bundles in `intakes/`: versions, manifest, states, responses, byte-copy proposal records; no gap records; supersedes pykx, faac and 0014 | superseded by ZXD7 |

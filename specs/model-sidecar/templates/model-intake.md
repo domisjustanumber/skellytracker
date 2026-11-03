@@ -26,8 +26,8 @@ that holds it. Read the skellytracker files in the skellytracker checkout (read-
 3. Fill in every slot. Do not delete a pre-filled row. Do not leave a cell empty. If a value does not
    apply or is not known, write `not used`, `missing`, `unknown`, `to run`, `skipped` or `none`, with
    the reason.
-4. Read the spec. Its entry point is `specs/model-sidecar/sidecar-spec.md`. The section map
-   `specs/model-sidecar/README.md` lists each section ID and its section file. The spec is normative.
+4. Read the spec. Its only entry point is `specs/model-sidecar/README.md` (skellytracker ADR-CN15).
+   Its section map lists each section ID and its section file. The spec is normative.
 5. Do not approximate a property. If the spec does not describe a property exactly, the verdict is
    `near-miss` or `gap`.
 6. Group the `near-miss` and `gap` rows by the part of the spec that they change. Write one change
@@ -99,13 +99,14 @@ tell the user which inputs are missing.
 | Upstream config (file path, and upstream commit or release) | |
 | skellytracker folder that you read (normally `../freemocap/skellytracker`) | |
 | skellytracker commit of the spec text that you read (`git -C <folder> rev-parse HEAD`; add `+ uncommitted changes` if `git -C <folder> status --porcelain` lists a file that you read) | |
+| Spec version that you read: the newest version heading under "Revisions" in `specs/model-sidecar/changelog.md`, today the open target `2.0.0`. `pack` writes it to the manifest as `spec_version`. | |
 | Date | |
 
 **ONNX files.** Write one row for each file. Fill in the SHA-256 now, for example with
 `sha256sum <file>`. It identifies the file that you read. It is not the artifact field `sha256` of
 the sidecar (`common.sizes_and_artifacts`, heading "Authoring guidance").
 
-| File | Size | Batch key | Precision | `published` or `verification-only` | SHA-256 |
+| File | Size | Batch (`3`, `1`, `dynamic`, or a verification batch) | Precision | `published` or `verification-only` | SHA-256 |
 |---|---|---|---|---|---|
 | | | | | | |
 
@@ -215,11 +216,11 @@ Source: the ONNX graph of each file.
 |---|---|---|---|---|---|---|
 | G1 | Input name | | [`common.input`](../common/input.md#authoring-guidance) | | | |
 | G2 | Input dtype | | [`common.input`](../common/input.md#authoring-guidance) | | | |
-| G3 | Input layout (`NCHW` or `NHWC`) | | [`common.input`](../common/input.md#authoring-guidance) | | | |
-| G4 | Input dims (batch, channels, height, width): static or dynamic, for each size | | [`common.sizes_and_artifacts`](../common/sizes-and-artifacts.md#authoring-guidance), [`common.input`](../common/input.md#authoring-guidance) (`supports_dynamic_size`) | | | |
+| G3 | Input layout. The spec input is NCHW only, and the sidecar has no layout field. Convert a TFLite or MediaPipe model with an NHWC input with `tf2onnx --inputs-as-nchw` before the intake. Write the conversion command in the evidence column. If you cannot convert the input to NCHW, the verdict is `gap` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md) item 2). | | [`common.input`](../common/input.md#authoring-guidance) | `not used` | | |
+| G4 | Input dims (batch, channels, height, width) for each size. The channels and the spatial dims must be static. | | [`common.sizes_and_artifacts`](../common/sizes-and-artifacts.md#authoring-guidance), [`common.input`](../common/input.md#authoring-guidance) | | | |
 | G5 | Output: name, dtype and shape. Add one row for each output. | | [`common.outputs`](../common/outputs.md#authoring-guidance) | | | |
-| G6 | Batch of each file: a static `N`, or dynamic | | [`common.sizes_and_artifacts`](../common/sizes-and-artifacts.md#authoring-guidance) (`sizes.<size>.onnx.batch_artifacts`) | | | |
-| G6a | Batch axis (`batching.batch_axis`; the spec allows only `0`) | | [`common.batching`](../common/batching.md#authoring-guidance) | | | |
+| G6 | Batch of each file: a static `N`, or dynamic. The sidecar has one `batching.batch` for each size and each precision: `3`, `1` or `dynamic`. | | [`common.batching`](../common/batching.md#authoring-guidance) (`batching.batch`), [`common.sizes_and_artifacts`](../common/sizes-and-artifacts.md#authoring-guidance) (Batch forms) | | | |
+| G6a | Batch axis: dim 0 of each input and each output. The spec has no field for it. If the batch is on another axis, the verdict is `gap`. | | [`common.batching`](../common/batching.md#authoring-guidance) | `not used` | | |
 | G6b | Batch conversion: the verdict of the batch-conversion check (`converts`: `exact`; `does not convert`: `gap`; `not applicable`: `out of scope`; `to run`: `unverified`). See "Batch conversion check" below. | | [`common.batch_conversion`](../common/batch-conversion.md#authoring-guidance) | `batching.batch_conversion`, or `not used` | | |
 | G7 | I/O dtype for each precision: the input and every output | | [`common.input`](../common/input.md#authoring-guidance), [`common.outputs`](../common/outputs.md#authoring-guidance) | | | |
 | G8 | Normalization inside the graph (Sub, Div or Mul near the input) | | [`pre.normalize`](../pre/normalization.md#authoring-guidance) | | | |
@@ -237,7 +238,7 @@ field that is not a per-size field, they are two families. Write one intake for 
 | F2 | `role`: `object_detector`, `pose_estimator`, or both | | [`common.identity`](../common/identity.md#authoring-guidance) | | | |
 | F3 | Sizes, and what differs between them. A size sets only `input.shape`, `input.resize.target_size` and `onnx`. Use the upstream size name, also for a family with one size. If the upstream has no size name, choose a lowercase token and give the reason. | | [`common.sizes_and_artifacts`](../common/sizes-and-artifacts.md#authoring-guidance) | | | |
 | F4 | One contract for all sizes: channel order, normalization, resize method, output semantics, selection mode, NMS parameters, class mapping | | [`common.sizes_and_artifacts`](../common/sizes-and-artifacts.md#authoring-guidance) (family invariant) | | | |
-| F5 | ONNX file names: `{model_id}-{size}_{batch}_{precision}.onnx`, or `{model_id}-{size}_{precision}.onnx` for a dynamic batch | | [`format.file_layout`](../format/file-layout.md#authoring-guidance) | | | |
+| F5 | ONNX file names: `{model_id}-{size}_b{batch}_{precision}.onnx`, where `{batch}` is `batching.batch`, or `{model_id}-{size}_{precision}.onnx` for the batch `dynamic` | | [`format.file_layout`](../format/file-layout.md#authoring-guidance) | | | |
 | F6 | `display_name` (required) | | [`common.identity`](../common/identity.md#authoring-guidance) | | | |
 
 ### Preprocessing
@@ -276,8 +277,8 @@ Source: the upstream inference pipeline and the code of each transform.
 | T7a | Resize call and its pixel-centre convention (`cv2.resize` or `cv2.warpAffine`, or another library) | | `pre.resize.<method>` ([letterbox](../pre/resize-letterbox.md#authoring-guidance), [stretch](../pre/resize-stretch.md#authoring-guidance), [fit](../pre/resize-fit.md#authoring-guidance), [none](../pre/resize-none.md#authoring-guidance), [affine_person_crop](../pre/resize-affine-person-crop.md#authoring-guidance)), [`pre.resize.interpolation`](../pre/interpolation.md#authoring-guidance) | | | |
 | T7b | Dtype of the image when the upstream resizes it (for example uint8, before the cast) | | `pre.resize.<method>` ([letterbox](../pre/resize-letterbox.md#authoring-guidance), [stretch](../pre/resize-stretch.md#authoring-guidance), [fit](../pre/resize-fit.md#authoring-guidance), [none](../pre/resize-none.md#authoring-guidance), [affine_person_crop](../pre/resize-affine-person-crop.md#authoring-guidance)), [`pre.normalize`](../pre/normalization.md#authoring-guidance) | | | |
 | T8 | Crop policy: expand ratio and aspect ratio (`crop_policy`, `affine_person_crop` only) | | [`pre.resize.affine_person_crop`](../pre/resize-affine-person-crop.md#authoring-guidance) | | | |
-| T9 | Channel order of the tensor that the model consumes (`input.color_format`) | | [`common.input`](../common/input.md#authoring-guidance), [`pre.normalize`](../pre/normalization.md#authoring-guidance) | | | |
-| T10 | Normalization for each precision: mean, std and scale, and its arithmetic (for example a float32 division by 255, or a multiplication by `1/255`) | | [`pre.normalize`](../pre/normalization.md#authoring-guidance) | | | |
+| T9 | Channel order of the tensor that the model consumes (`input.color_format`, required for each normalization mode). The mode `imagenet` and the mode `custom` apply their values in this channel order. | | [`common.input`](../common/input.md#authoring-guidance), [`pre.normalize`](../pre/normalization.md#authoring-guidance) | | | |
+| T10 | Normalization for each precision (`input.normalization`, required, with no default): mean, std and scale, and its arithmetic (for example a float32 division by 255, or a multiplication by `1/255`) | | [`pre.normalize`](../pre/normalization.md#authoring-guidance) | | | |
 | T11 | Layout change (HWC to CHW) and cast to `input.dtype` | | [`common.input`](../common/input.md#authoring-guidance) | | | |
 | T12 | Order of the steps: the upstream order compared with the order of the spec | | [`pre.normalize`](../pre/normalization.md#authoring-guidance) | | | |
 
@@ -291,6 +292,10 @@ Source: the upstream postprocessing code and the upstream test config.
   Row D11 also applies to the keypoints of a pose estimator. Fill it in for every model.
 - `clamp_boxes` has the default `true`. A sidecar without the field clamps the boxes. Check the
   upstream before you omit the field.
+- `min_box_size` has no default. A sidecar without the field drops no box for its size, and a box
+  with zero area stays. Check the upstream for an area filter, for example mmdet `min_bbox_size`.
+  If the upstream has one, write `decode.min_box_size`. If the upstream keeps each box, omit the
+  field.
 
 | # | Property | Upstream evidence (file and line, or config key) | Section ID (the `id` in the section file's front matter) | Sidecar value | Verdict | What differs or what is missing |
 |---|---|---|---|---|---|---|
@@ -300,12 +305,12 @@ Source: the upstream postprocessing code and the upstream test config.
 | D4 | Selection: graph-final rows (`none`), top-k over logits (`top_k`), or host NMS (`nms`) | | [`post.det.decode`](../post/detection-decode.md#authoring-guidance) (`selection`), `post.det.selection.<selection>` ([none](../post/selection-none.md#authoring-guidance), [top_k](../post/selection-top-k.md#authoring-guidance), [nms](../post/selection-nms.md#authoring-guidance)) | | | |
 | D5 | Score activation: sigmoid inside the graph or on the host (`score_activation`) | | [`post.det.decode`](../post/detection-decode.md#authoring-guidance), [`post.det.selection.top_k`](../post/selection-top-k.md#authoring-guidance) (`score_activation`) | | | |
 | D6 | Score source and class source (`score_field`, `scores_output`, `class_field`, `class_logits_output`) | | [`post.det.decode`](../post/detection-decode.md#authoring-guidance), [`post.det.selection.top_k`](../post/selection-top-k.md#authoring-guidance) (`class_logits_output`) | | | |
-| D7 | Thresholds from the upstream test config: NMS IoU, NMS score, final confidence | | [`post.det.selection.nms`](../post/selection-nms.md#authoring-guidance) (`nms`), [`post.det.decode`](../post/detection-decode.md#authoring-guidance) (`confidence_threshold_default`) | | | |
+| D7 | Thresholds from the upstream test config: NMS IoU, NMS score and the box-size filter (mmdet `min_bbox_size`), final confidence | | [`post.det.selection.nms`](../post/selection-nms.md#authoring-guidance) (`nms`), [`post.det.decode`](../post/detection-decode.md#authoring-guidance) (`min_box_size`, `confidence_threshold_default`) | | | |
 | D8 | Threshold comparison (`>` or `>=`), the dtype of the comparison, and the tie order | | [`post.det.decode`](../post/detection-decode.md#authoring-guidance) (Selection behaviour) | | | |
 | D9 | Row limits: graph-final row count (`max_detections`), `top_k`, `nms.post_nms_top_k` | | [`post.det.selection.none`](../post/selection-none.md#authoring-guidance), [`post.det.selection.top_k`](../post/selection-top-k.md#authoring-guidance), [`post.det.selection.nms`](../post/selection-nms.md#authoring-guidance) | | | |
-| D10 | Class IDs: `class_id_base`, `class_id_map`, `is_person_only`, `person_class_id` | | [`post.det.decode`](../post/detection-decode.md#authoring-guidance) | | | |
+| D10 | Class IDs: `class_id_base`, `class_id_map`, `is_person_only`, `person_class_id`. The host assigns `person_class_id` only through `is_person_only`. A model with no class source (no `class_field` and no `class_logits_output`) must set `is_person_only: true` (`V-post.det.decode-9`). A one-class model of something other than people is a `gap`. | | [`post.det.decode`](../post/detection-decode.md#authoring-guidance) | | | |
 | D11 | Unprojection of boxes and keypoints to the source image (the inverse of the resize method) | | [`post.unprojection`](../post/unprojection.md#authoring-guidance), `pre.resize.<method>` ([letterbox](../pre/resize-letterbox.md#authoring-guidance), [stretch](../pre/resize-stretch.md#authoring-guidance), [fit](../pre/resize-fit.md#authoring-guidance), [none](../pre/resize-none.md#authoring-guidance), [affine_person_crop](../pre/resize-affine-person-crop.md#authoring-guidance)) (Inverse), `post.pose.decode.<method>` ([simcc](../post/pose-decode-simcc.md#authoring-guidance), [heatmap](../post/pose-decode-heatmap.md#authoring-guidance), [coordinate](../post/pose-decode-coordinate.md#authoring-guidance)) | | | |
-| D12 | Box clamp to the source image (`clamp_boxes`, default `true`): the clamp bounds, and what the upstream does with a box that has no area after the clamp | | [`post.det.decode`](../post/detection-decode.md#authoring-guidance) | | | |
+| D12 | Box clamp to the source image (`clamp_boxes`, default `true`) and the box-size filter (`min_box_size`, no default). The spec clamps each `x` to `[0, W]` and each `y` to `[0, H]` of the source image: compare the upstream bounds. Write what the upstream does with a box that has no area or a small area. An upstream area filter maps to `min_box_size`. | | [`post.det.decode`](../post/detection-decode.md#authoring-guidance) | | | |
 
 ### Pose
 
@@ -318,7 +323,7 @@ Source: the upstream postprocessing code and the upstream test config.
 | K1 | Estimator type and `requires_object_detector` | | [`post.pose.schema`](../post/pose-schema.md#authoring-guidance) | | | |
 | K2 | `tracked_points` in native output order | | [`post.pose.schema`](../post/pose-schema.md#authoring-guidance) (`pose.tracked_points`) | | | |
 | K3 | Connections: named skeletons and their edges | | [`post.pose.schema`](../post/pose-schema.md#authoring-guidance) (`pose.connections`) | | | |
-| K4 | Decode method (`simcc`, `heatmap` or `coordinate`) and its parameters (`coordinate_scale`, `is_3d`, `depth_unit`, `depth_range`) | | [`post.pose.schema`](../post/pose-schema.md#authoring-guidance) (`pose.decode`), `post.pose.decode.<method>` ([simcc](../post/pose-decode-simcc.md#authoring-guidance), [heatmap](../post/pose-decode-heatmap.md#authoring-guidance), [coordinate](../post/pose-decode-coordinate.md#authoring-guidance)) | | | |
+| K4 | Output geometry (`pose.geometry`: `2d` or `3d`, required), decode method (`simcc`, `heatmap` or `coordinate`) and its parameters (`coordinate_scale`, `depth_unit`, `depth_range`) | | [`post.pose.schema`](../post/pose-schema.md#authoring-guidance) (`pose.geometry`, `pose.decode`), `post.pose.decode.<method>` ([simcc](../post/pose-decode-simcc.md#authoring-guidance), [heatmap](../post/pose-decode-heatmap.md#authoring-guidance), [coordinate](../post/pose-decode-coordinate.md#authoring-guidance)) | | | |
 | K5 | Keypoint axis and keypoint count of each pose output | | [`post.pose.schema`](../post/pose-schema.md#authoring-guidance) (`keypoint_axis`, `keypoint_count`) | | | |
 | K6 | Bottom-up row alignment: pose row `q` belongs to detection row `q` | | [`post.pose.bottom_up`](../post/pose-bottom-up.md#authoring-guidance) | | | |
 | K7 | Keypoints packed into the detection row (`packed_keypoints`) | | [`post.pose.bottom_up`](../post/pose-bottom-up.md#authoring-guidance) | | | |
@@ -337,20 +342,23 @@ writes the value yet, or you cannot read it, follow "Values that the exporter ch
 
 | # | Property | Evidence (exporter code that writes the value) | Section ID (the `id` in the section file's front matter) | Sidecar value | Verdict | What differs or what is missing |
 |---|---|---|---|---|---|---|
-| Y1 | Batch keys are quoted strings (`"1"`, not `1`) | | [`common.sizes_and_artifacts`](../common/sizes-and-artifacts.md#authoring-guidance) (`sizes.<size>.onnx.batch_artifacts`) | | | |
-| Y2 | `schema_version` is the string `vNEXT` until skellytracker releases the spec. YAML reads `vNEXT` and `"vNEXT"` as the same string. | | [`format.versioning`](../format/versioning.md#authoring-guidance) | | | |
+| Y1 | `batching.batch` is the int `3`, the int `1` or the string `dynamic`, once for the sidecar (`V-common.sizes_and_artifacts-12`). Each size has `onnx.precision_artifacts` and `onnx.output_shapes`. | | [`common.batching`](../common/batching.md#authoring-guidance) (`batching.batch`), [`common.sizes_and_artifacts`](../common/sizes-and-artifacts.md#authoring-guidance) (`sizes.<size>.onnx`) | | | |
+| Y2 | `schema_version` is the open target as a quoted string, for example `"2.0.0"` (`V-format.versioning-1`). Without the quotes, YAML can read the value as a number. | | [`format.versioning`](../format/versioning.md#authoring-guidance) | | | |
 | Y3 | Each size contains only `input.shape`, `input.resize.target_size` and `onnx` | | [`common.sizes_and_artifacts`](../common/sizes-and-artifacts.md#authoring-guidance) | | | |
-| Y4 | No `null` values. In the spec, `null` only deletes an inherited key in a merge. | | [`format.composition`](../format/composition.md#authoring-guidance) (`base`) | | | |
-| Y5 | Each `$ref` and `base` path resolves and stays inside `{sidecar_root}` | | [`format.composition`](../format/composition.md#authoring-guidance) | | | |
-| Y6 | No legacy-only form: `requires_nms` without `selection`, `may_include_non_person_classes`, or `letterbox` with `preserve_aspect_ratio: false` | | The "Legacy behaviour" heading of [`post.det.decode`](../post/detection-decode.md#authoring-guidance) and [`pre.resize.letterbox`](../pre/resize-letterbox.md#authoring-guidance); the index is "Version-aware compatibility" in [`format.versioning`](../format/versioning.md#authoring-guidance) | | | |
-| Y7 | A top-level `source`; a `sha256` on every `$ref`, `base` and `filename` artifact; UTF-8 without BOM; LF line endings | | [`common.identity`](../common/identity.md#authoring-guidance) (`source`), [`format.composition`](../format/composition.md#authoring-guidance) (Reference hashes), [`common.sizes_and_artifacts`](../common/sizes-and-artifacts.md#authoring-guidance) (`sha256`) | | | |
+| Y4 | No `null` values. A sidecar omits an optional field that has no value (heading "Behaviour" of `format.composition`). | | [`format.composition`](../format/composition.md#authoring-guidance) | | | |
+| Y5 | Each `$ref` path resolves and stays inside `{sidecar_root}`. The sidecar has no `base`. | | [`format.composition`](../format/composition.md#authoring-guidance) | | | |
+| Y6 | Each key is a key that the spec defines (`V-format.composition-5`). A key that the spec does not define is invalid, for example the removed keys `requires_nms`, `preserve_aspect_ratio`, `may_include_non_person_classes`, `input.layout`, `base` and `batch_artifacts`. | | [`format.composition`](../format/composition.md#authoring-guidance) | | | |
+| Y7 | A top-level `source`; a `sha256` on every `$ref` and every `filename` artifact; UTF-8 without BOM; LF line endings | | [`common.identity`](../common/identity.md#authoring-guidance) (`source`), [`format.composition`](../format/composition.md#authoring-guidance) (Reference hashes), [`common.sizes_and_artifacts`](../common/sizes-and-artifacts.md#authoring-guidance) (`sha256`) | | | |
 
-Row Y7: a `vNEXT` sidecar must have these fields, UTF-8 without a BOM and LF line endings. If the
+Row Y7: a sidecar must have these fields, UTF-8 without a BOM and LF line endings. If the
 exporter does not write them yet, the verdict stays `exact`. Write the exporter defect in the last
 column. This row does not stop the intake. The exporter must write the fields and regenerate its
-`vNEXT` sidecars.
+sidecars.
 
-Do not publish a `vNEXT` sidecar to a shared or remote folder. No skellytracker release can load it.
+Do not publish a sidecar to a shared or remote sidecar root until a final skellytracker release
+loads its `schema_version`. A pre-release does not end this ban. A sidecar with a pre-release
+`schema_version`, for example `"2.0.0-rc.1"`, goes only to the private test repo
+(`format.versioning`, heading "Authoring guidance"; skellytracker ADR-6GE2).
 
 ### Path in the storage layout
 
@@ -421,32 +429,31 @@ If a row is `unverified` and no row is blocking, walk the checklist on the draft
 Walk the validation rules of every section that the sidecar uses. Each section file has a
 "Validation rules" heading, and each rule there has a rule ID (`V-<section-id>-<n>`, for example
 `V-pre.resize.letterbox-1`). The validation index (`specs/model-sidecar/README.md` heading "Validation
-rules") links to the rules of each section. It also gives the meaning of **(vNEXT)**: a rule marked
-**(vNEXT)** applies only when `schema_version >= vNEXT`. Also check the "Legacy behaviour" heading of
-each section that the sidecar uses, if the section has one. The index of these headings is
-"Version-aware compatibility" (`specs/model-sidecar/format/versioning.md`). A `vNEXT` sidecar must not use
-a legacy-only form. Then run the checks of the exporter.
+rules") links to the rules of each section. Each sidecar has one reading: the current spec text.
+Then run the checks of the exporter.
 
-- A `vNEXT` sidecar must pass every rule, also each rule marked **(vNEXT)**, except the two rules in
-  the next bullet.
-- `V-format.versioning-1` (the version pattern) and `V-format.versioning-2` (the support by the
-  installed release) cannot pass for `vNEXT`. Write `n/a at vNEXT` as their result. They apply after
-  the release step.
+- A sidecar must pass every rule, except `V-format.versioning-2` (next bullet).
+- `V-format.versioning-1` (the value of `schema_version`): write `pass` or `fail`. Check the value
+  against the version headings under "Revisions" in `specs/model-sidecar/changelog.md`. Until
+  `2.0.0` ships, only `"2.0.0"` and its recorded pre-releases pass.
+- `V-format.versioning-2` (a host rejects a version that it does not implement): write
+  `n/a until a final release loads the target`. No host implements the open target until its final
+  release. For `2.0.0`, that is the `2.0.0` release.
 
-skellytracker cannot check a `vNEXT` sidecar yet:
+The skellytracker package cannot check a sidecar of the open target yet:
 
-- `SidecarModel` (`skellytracker/core/sidecar/model.py`) rejects `schema_version: "vNEXT"`. The value
+- `SidecarModel` (`skellytracker/core/sidecar/model.py`) rejects `schema_version: "2.0.0"`. The value
   does not match the version pattern of `parse_skellytracker_version`
   (`skellytracker/core/sidecar/versioning.py`).
-- `SidecarModel` forbids unknown keys, and it does not have all the `vNEXT` fields yet. For example,
-  `DetectionDecodeSpec` has no `selection`.
+- `SidecarModel` forbids undeclared keys, and it does not declare all the fields of the current
+  text. For example, `DetectionDecodeSpec` has no `selection`.
 
 So walk the checklist by hand where the checks of the exporter do not cover a rule.
 
 The pre-filled rows are group headers. Under each group, add one row for each rule that you checked.
 Write its rule ID (`V-<section-id>-<n>`). Write `not used` for a group that the sidecar does not use.
 
-| Group | Rule ID (`V-<section-id>-<n>`) | Result (`pass`, `fail`, `not used`, `n/a at vNEXT` or `skipped`) | How checked (script and commit, or by hand) |
+| Group | Rule ID (`V-<section-id>-<n>`) | Result (`pass`, `fail`, `not used`, `n/a until a final release loads the target` or `skipped`) | How checked (script and commit, or by hand) |
 |---|---|---|---|
 | Identity and composition (`format.versioning`, `format.composition`, `common.identity`) | | | |
 | Sizes and artifacts (`common.sizes_and_artifacts`, `common.batching`) | | | |
@@ -587,7 +594,7 @@ reference implementation of that section. Do it for every verdict.
 - Skip it if one of your proposals changes the section. The part 3 file of the proposal is the
   reference implementation.
 - A part of the spec without an algorithm needs no reference implementation, for example
-  `input.layout`, `input.dtype` or `input.resize.method: none`.
+  `input.dtype` or `input.resize.method: none`.
 - Do it from committed host code. If the host code is not committed yet, or if it exists only in a
   plan, write `to run` in the table. Do the step after the commit.
 - `<section_module>` is the section ID from the front matter of the section file (`id`), with each

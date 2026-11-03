@@ -84,7 +84,6 @@ A contributor writes its proposal bundle.
 | An exporter repo | The parity script of part 5, committed in the exporter repo. |
 | An exporter repo | The bundle ID of each proposal in the intake. |
 | skellytracker | `specs/model-sidecar/proposals/<slug>/`: a byte copy of the current bundle version ([Tracked records](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#tracked-records)). |
-| skellytracker | A row in the proposal index [`specs/model-sidecar/proposals/README.md`](../../../specs/model-sidecar/proposals/README.md). |
 | skellytracker | `specs/model-sidecar/decisions/entries/<id>-<slug>.md`: a short decision entry "Spec change: <slug>", with the status `proposed`. |
 | skellytracker | A row for the entry in the Proposed table of [`specs/model-sidecar/decisions/README.md`](../../../specs/model-sidecar/decisions/README.md). |
 | skellytracker | A response file in the bundle ([Responses](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#responses)). |
@@ -114,6 +113,10 @@ A contributor writes its proposal bundle.
    proposal: a new proposal, a contribution or a follow-up
    ([Proposal forms](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#proposal-forms)). If a `proposed` entry covers your
    rows, do not write a competing proposal. Cite the entry in the header and in part 1.
+   Only the owner of a section writes parts 2, 3 and 6 of a new proposal for it. A follow-up
+   (`base`) can change parts 2 and 3 of its base. Give the reason in part 8
+   ([Section owner](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#section-owner);
+   [ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)).
 7. If the exporter has no git repo, follow
    [A contributor with no git repo](../../../specs/model-sidecar/model-addition-workflow/README.md#a-contributor-with-no-git-repo).
 
@@ -214,19 +217,24 @@ A contributor writes its proposal bundle.
    ([Redactions](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#redactions)).
    The copy is a byte copy. Do not import or run a Python file of the bundle or of the record
    ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)).
-3. Add a row to the proposal index
-   [`specs/model-sidecar/proposals/README.md`](../../../specs/model-sidecar/proposals/README.md). The row gives
-   the proposal, the section, the contributor, the bundle version, the decision entry and the state. The row is the only
-   place of the state. `open-work.md` has no line for each proposal.
+3. The status of the decision entry of the record ([Step 4](#step-4-write-the-decision-entry)) is
+   the state of the proposal. No other file holds the state. `proposals/README.md` has no table, and
+   `open-work.md` has no line for each proposal
+   ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)).
 4. On acceptance, the content commit takes the text, the code and the vectors from the record. It
-   sets the decision entry and the row state to `accepted`. The last commit of the proposal sets the
-   row state to `landed`. When the content commit lands part 6, it adds an item of the implementation
-   plan for the implementer guidance (step 15 of `change-sidecar-spec`;
-   [ADR-5WKW](../../../decisions/entries/5WKW-implementation-work-in-the-plan.md)). A rejected proposal gets the row state `rejected`.
-   Its record stays. A
-   proposal whose goal a different change meets gets the row state `resolved-otherwise` (procedure E
-   of [`change-sidecar-spec`](../change-sidecar-spec/SKILL.md#procedure-e-resolve-a-proposal-by-a-different-change)).
-5. Write the response with the new state ([Responses](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#responses)).
+   sets the decision entry to `accepted`. An entry that is `accepted`, `absorbed into` or
+   `superseded by` is landed. When the content commit lands part 6, it adds an item of the
+   implementation plan for the implementer guidance (step 15 of `change-sidecar-spec`;
+   [ADR-5WKW](../../../decisions/entries/5WKW-implementation-work-in-the-plan.md)). A rejected
+   proposal gets the entry status `rejected`. Its record stays. A proposal whose goal a different
+   change meets also gets `rejected`, with the reason "Resolved by", and the response
+   `resolved-otherwise` (procedure E of
+   [`change-sidecar-spec`](../change-sidecar-spec/SKILL.md#procedure-e-resolve-a-proposal-by-a-different-change)).
+5. Write the response ([Responses](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#responses)).
+   A response is a notice of the entry status. A `proposed` entry allows `recorded`, `accepted` and
+   `needs-contributor`. A `rejected` entry allows `rejected` and `resolved-otherwise`. A landed entry
+   allows `landed`. Write a response that agrees with the entry. A bundle with no entry gets its
+   state from its latest response ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)).
 
 ### Step 4: Write the decision entry
 
@@ -238,8 +246,9 @@ A contributor writes its proposal bundle.
 3. Write the status line: `**Status:** proposed, <YYYY-MM-DD> (<source>).` The source is the bundle
    ID and its version, for example `proposal-letterbox-floor-rounding@openmmlab-exporter@v1`.
 4. Start the Decision section with "**Proposed, not decided.**" and a link to `proposal.md`. Then
-   give these items in a list: the section, the change, the version, the models, the entries that the
-   proposal supersedes on acceptance, and the related proposals.
+   give these items in a list: the section, the change, the target spec version (the open target,
+   for example `2.0.0`), the models, the entries that the proposal supersedes on acceptance, and
+   the related proposals.
 5. In Reason, give the gap (part 1) in a few sentences. In Evidence, give the parity state (part 5).
    In Open work, write only the link to the `open-work.md` of the spec log. Add the heading "Before
    acceptance" at the end. List each failed item of
@@ -255,7 +264,8 @@ A contributor writes its proposal bundle.
    0020". Write the entry in ASD-STE100.
 8. Add the entry to the Proposed table of the spec log, with the status `proposed`. Its
    Section cell is the section ID of the proposal in backticks, or `none`. Do not add a line to
-   `open-work.md`: the proposal index lists the proposals.
+   `open-work.md`: the Proposed table lists the proposals. The status `proposed` is the state of the
+   proposal ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)).
 9. If the proposal supersedes an accepted entry on acceptance, write the superseding entry now, with
    the status `proposed`. Restate each kept rule in full or by a link, as the
    [Rules](../../../decisions/README.md#rules) allow.
@@ -279,8 +289,9 @@ Do these steps when a recorded proposal bundle has a new complete version. These
 until the record is current.
 
 1. Do Step 1 and Step 2 for the new version.
-2. If the row state is `accepted` or `landed`, stop. Do not change the record. Write the response:
-   the contributor writes a new bundle.
+2. If the status of the entry is not `proposed`, or a response of the bundle is `accepted`, stop. Do not
+   change the record. Write the response: the
+   contributor writes a new bundle.
 3. Do not add a second entry. The entry ID, the slug and the status `proposed` stay.
 4. Replace the record folder in full with a byte copy of the new version. Do not run its code
    ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)).
@@ -292,8 +303,8 @@ until the record is current.
 6. Change the Decision, the Reason and the Evidence of the entry only where the new version changes
    them. Keep the entry inside the entry limit.
 7. Add `recorded again <YYYY-MM-DD> (<bundle id>@v<k>)` to the status line of the entry.
-8. If the Decision cell or the Section cell of the index row changes, change the row in the same
-   commit.
+8. If the Decision cell or the Section cell of the Proposed-table row changes, change the row in
+   the same commit.
 9. Do Step 5. Put the new record in a non-spec commit. End the commit subject with `(ADR-<ID>)` of
    the entry. Then write the response.
 
@@ -305,4 +316,4 @@ until the record is current.
 | You packed the proposal bundles (exporter repo). | Stop. Report to the user. |
 | A proposal bundle has a missing part or a `verify` finding (skellytracker). | Write the response `needs-contributor`. Do not write the part yourself. |
 | You wrote the `proposed` entry (skellytracker). | Stop. The user accepts or rejects the proposal. |
-| A new version of a proposal with the row state `accepted` or `landed` (skellytracker). | Stop. Do not change the record. The contributor writes a new bundle. |
+| A new version of a proposal whose entry is not `proposed`, or whose bundle has an `accepted` response (skellytracker). | Stop. Do not change the record. The contributor writes a new bundle. |

@@ -18,17 +18,22 @@ These rules apply to each contributor that writes a sidecar or a vector file.
 
 ## Sidecar YAML
 
-- Quote the integer batch keys: write `"1":`, not `1:`. An unquoted key is a YAML integer, and schema
-  validation rejects it.
-- Set `schema_version` to the string `vNEXT` until the release step (see [Publishing](validation-and-publishing.md#publishing)). YAML reads
-  `vNEXT` and `"vNEXT"` as the same string, so both forms are correct. The spec examples use both
-  forms.
+- Write `batching.batch` as the integer `3` or `1`, or as the string `dynamic`
+  (`V-common.sizes_and_artifacts-12`). Do not quote `3` or `1`.
+- Set `schema_version` to the quoted string `"2.0.0"`, the open target. Write the quotes: YAML reads
+  an unquoted `2.0` as a number, and a number is not a valid `schema_version`
+  (`V-format.versioning-1`; [ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
+  Write a pre-release value only in a test sidecar (see
+  [Publishing](validation-and-publishing.md#publishing)).
 - A size entry contains only `input.shape`, `input.resize.target_size` and `onnx`. All other fields
   are shared at the top level (the family invariant under the `sizes` heading in
   `../freemocap/skellytracker/specs/model-sidecar/common/sizes-and-artifacts.md`, rule
   `V-common.sizes_and_artifacts-3`).
-- Do not write `null` values. Omit an optional field. In the spec, `null` only deletes an inherited key
-  in a `base` merge or a `sizes` merge.
+- Each size has `onnx.output_shapes`. `outputs[].shape` stays optional. For example, the RTMW SimCC
+  outputs have no `shape` (the heading "Authoring guidance" in
+  `../freemocap/skellytracker/specs/model-sidecar/common/outputs.md`).
+- Do not write `null` values. Omit an optional field. No field has the value `null` (the heading
+  "Behaviour" in `../freemocap/skellytracker/specs/model-sidecar/format/composition.md`).
 
 ## Path
 
