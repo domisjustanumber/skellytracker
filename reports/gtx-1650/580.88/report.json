@@ -1,0 +1,524 @@
+{
+ "schema": 1,
+ "suite": "ep_device_checks",
+ "created": "2026-11-03T22:34:54+00:00",
+ "args": {
+  "routes": [
+   "cpu",
+   "cuda-cu13",
+   "cuda-cu12",
+   "trt-rtx-cu13",
+   "trt-rtx-cu12"
+  ],
+  "quick": true,
+  "models": [],
+  "precisions": [
+   "fp32",
+   "fp16"
+  ],
+  "runs": 20,
+  "include_unexpected": true
+ },
+ "host": {
+  "os": "Windows",
+  "os_release": "11",
+  "os_build": "10.0.26300",
+  "machine": "AMD64",
+  "python": "3.12.13"
+ },
+ "gpu": {
+  "source": "nvml",
+  "count": 1,
+  "name": "NVIDIA GeForce GTX 1650",
+  "cc": "7.5",
+  "driver_version": "580.88",
+  "cuda_driver_nvml": "13.0",
+  "vram_total_mb": 4096,
+  "pci": "10de:1f91:08ea1028",
+  "cuda_driver_api": "13.0",
+  "driver_branch": 580
+ },
+ "scenario": {
+  "name": "C",
+  "text": "R580 or newer",
+  "driver_branch": 580
+ },
+ "anomalies": [],
+ "rules": {
+  "RULES": {
+   "cpu": {},
+   "cuda-cu13": {
+    "driver_min": 580,
+    "cc_min": "7.5",
+    "why_arch": "CUDA 13 has no build below CC 7.5"
+   },
+   "cuda-cu12": {
+    "driver_min": 570,
+    "sass": {
+     "win32": [
+      "6.1",
+      "7.5",
+      "8.6",
+      "8.9",
+      "12.0"
+     ],
+     "linux": [
+      "6.0",
+      "7.0",
+      "7.5",
+      "8.0",
+      "8.6",
+      "8.9",
+      "9.0",
+      "12.0"
+     ]
+    },
+    "why_arch": "the cu12 build has no SASS for this CC"
+   },
+   "trt-rtx-cu13": {
+    "driver_min": 580,
+    "cc_min": "7.5",
+    "experimental_below": "8.0",
+    "why_arch": "TensorRT-RTX has no support below CC 7.5"
+   },
+   "trt-rtx-cu12": {
+    "driver_min": 570,
+    "cc_min": "8.0",
+    "why_arch": "TensorRT-RTX cu12 needs CC 8.0 or higher"
+   }
+  },
+  "LAST_BRANCH": [
+   [
+    "7.0",
+    580
+   ]
+  ]
+ },
+ "routes": {
+  "cpu": {
+   "predicted": {
+    "verdict": "ok",
+    "reason": "built in"
+   },
+   "ran": true,
+   "run_reason": "predicted to work",
+   "install": {
+    "ok": true,
+    "seconds": 0.1,
+    "download_mb": 26.8
+   },
+   "packages": {
+    "onnxruntime": "1.31.0"
+   },
+   "l2": {
+    "ok": true,
+    "ep_name": "CPUExecutionProvider",
+    "devices": [
+     {
+      "ep_name": "CPUExecutionProvider",
+      "type": "CPU",
+      "vendor_id": "0x8086",
+      "device_id": "0x0000",
+      "description": "Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz",
+      "ep_metadata": {
+       "version": "1.31.0"
+      }
+     }
+    ],
+    "selected": {
+     "ep_name": "CPUExecutionProvider",
+     "type": "CPU",
+     "vendor_id": "0x8086",
+     "device_id": "0x0000",
+     "description": "Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz",
+     "ep_metadata": {
+      "version": "1.31.0"
+     }
+    }
+   },
+   "l3": {
+    "atol": 1e-05,
+    "session_ms": 1.2,
+    "assignment": {
+     "CPUExecutionProvider": {
+      "nodes": 2,
+      "op_types": [
+       "Conv",
+       "Relu"
+      ]
+     }
+    },
+    "first_run_ms": 0.3,
+    "nan": 0,
+    "inf": 0,
+    "max_abs_diff": 0.0,
+    "max_abs_ref": 12.193702697753906,
+    "shapes_match": true,
+    "out_shapes": [
+     [
+      1,
+      8,
+      64,
+      64
+     ]
+    ],
+    "ok": true
+   },
+   "library_dirs": [],
+   "l4": [],
+   "observed": {
+    "verdict": "pass"
+   },
+   "match": "yes",
+   "verdict_key": {
+    "fields": {
+     "driver_version": "580.88",
+     "pci": "10de:1f91:08ea1028",
+     "os_build": "10.0.26300",
+     "packages": {
+      "onnxruntime": "1.31.0"
+     }
+    },
+    "hash": "aab29a3062bf9f78"
+   }
+  },
+  "cuda-cu13": {
+   "predicted": {
+    "verdict": "ok",
+    "reason": "floors pass"
+   },
+   "ran": true,
+   "run_reason": "predicted to work",
+   "install": {
+    "ok": true,
+    "seconds": 0.2,
+    "download_mb": 1036.9
+   },
+   "packages": {
+    "onnxruntime": "1.31.0",
+    "nvidia-cublas": "13.8.0.4",
+    "nvidia-cudnn-cu13": "9.27.0.42",
+    "onnxruntime-ep-cuda13": "0.3.0"
+   },
+   "l2": {
+    "ok": true,
+    "library": "onnxruntime_providers_cuda.dll",
+    "longest_path_chars": 126,
+    "register_ms": 2630.4,
+    "ep_name": "CUDAExecutionProvider",
+    "devices": [
+     {
+      "ep_name": "CUDAExecutionProvider",
+      "type": "GPU",
+      "vendor_id": "0x10de",
+      "device_id": "0x1f91",
+      "description": "NVIDIA GeForce GTX 1650",
+      "ep_metadata": {
+       "cuda_compute_capability": "7.5",
+       "cuda_device_id": "0",
+       "cuda_device_name": "NVIDIA GeForce GTX 1650",
+       "library_path": "<work>\\envs\\cuda-cu13\\.venv\\Lib\\site-packages\\onnxruntime_ep_cuda\\onnxruntime_providers_cuda.dll",
+       "version": "0.3.0"
+      }
+     }
+    ],
+    "selected": {
+     "ep_name": "CUDAExecutionProvider",
+     "type": "GPU",
+     "vendor_id": "0x10de",
+     "device_id": "0x1f91",
+     "description": "NVIDIA GeForce GTX 1650",
+     "ep_metadata": {
+      "cuda_compute_capability": "7.5",
+      "cuda_device_id": "0",
+      "cuda_device_name": "NVIDIA GeForce GTX 1650",
+      "library_path": "<work>\\envs\\cuda-cu13\\.venv\\Lib\\site-packages\\onnxruntime_ep_cuda\\onnxruntime_providers_cuda.dll",
+      "version": "0.3.0"
+     }
+    }
+   },
+   "l3": {
+    "atol": 0.001,
+    "session_ms": 1212.7,
+    "assignment": {
+     "CUDAExecutionProvider": {
+      "nodes": 2,
+      "op_types": [
+       "Conv",
+       "Relu"
+      ]
+     }
+    },
+    "first_run_ms": 2658.9,
+    "nan": 0,
+    "inf": 0,
+    "max_abs_diff": 2.86102294921875e-06,
+    "max_abs_ref": 12.193702697753906,
+    "shapes_match": true,
+    "out_shapes": [
+     [
+      1,
+      8,
+      64,
+      64
+     ]
+    ],
+    "ok": true
+   },
+   "library_dirs": [
+    "nvidia/cu13/bin/x86_64",
+    "nvidia/cudnn/bin"
+   ],
+   "l4": [],
+   "observed": {
+    "verdict": "pass"
+   },
+   "match": "yes",
+   "verdict_key": {
+    "fields": {
+     "driver_version": "580.88",
+     "pci": "10de:1f91:08ea1028",
+     "os_build": "10.0.26300",
+     "packages": {
+      "onnxruntime": "1.31.0",
+      "nvidia-cublas": "13.8.0.4",
+      "nvidia-cudnn-cu13": "9.27.0.42",
+      "onnxruntime-ep-cuda13": "0.3.0"
+     }
+    },
+    "hash": "d335f1a706726d2e"
+   }
+  },
+  "cuda-cu12": {
+   "predicted": {
+    "verdict": "ok",
+    "reason": "floors pass"
+   },
+   "ran": true,
+   "run_reason": "predicted to work",
+   "install": {
+    "ok": true,
+    "seconds": 0.2,
+    "download_mb": 1569.3
+   },
+   "packages": {
+    "onnxruntime": "1.31.0",
+    "nvidia-cublas-cu12": "12.9.2.10",
+    "nvidia-cuda-runtime-cu12": "12.9.79",
+    "nvidia-cudnn-cu12": "9.27.0.42",
+    "onnxruntime-ep-cuda12": "0.3.0"
+   },
+   "l2": {
+    "ok": true,
+    "library": "onnxruntime_providers_cuda.dll",
+    "longest_path_chars": 144,
+    "register_ms": 2309.5,
+    "ep_name": "CUDAExecutionProvider",
+    "devices": [
+     {
+      "ep_name": "CUDAExecutionProvider",
+      "type": "GPU",
+      "vendor_id": "0x10de",
+      "device_id": "0x1f91",
+      "description": "NVIDIA GeForce GTX 1650",
+      "ep_metadata": {
+       "cuda_compute_capability": "7.5",
+       "cuda_device_id": "0",
+       "cuda_device_name": "NVIDIA GeForce GTX 1650",
+       "library_path": "<work>\\envs\\cuda-cu12\\.venv\\Lib\\site-packages\\onnxruntime_ep_cuda\\onnxruntime_providers_cuda.dll",
+       "version": "0.3.0"
+      }
+     }
+    ],
+    "selected": {
+     "ep_name": "CUDAExecutionProvider",
+     "type": "GPU",
+     "vendor_id": "0x10de",
+     "device_id": "0x1f91",
+     "description": "NVIDIA GeForce GTX 1650",
+     "ep_metadata": {
+      "cuda_compute_capability": "7.5",
+      "cuda_device_id": "0",
+      "cuda_device_name": "NVIDIA GeForce GTX 1650",
+      "library_path": "<work>\\envs\\cuda-cu12\\.venv\\Lib\\site-packages\\onnxruntime_ep_cuda\\onnxruntime_providers_cuda.dll",
+      "version": "0.3.0"
+     }
+    }
+   },
+   "l3": {
+    "atol": 0.001,
+    "session_ms": 324.0,
+    "assignment": {
+     "CUDAExecutionProvider": {
+      "nodes": 2,
+      "op_types": [
+       "Conv",
+       "Relu"
+      ]
+     }
+    },
+    "first_run_ms": 529.0,
+    "nan": 0,
+    "inf": 0,
+    "max_abs_diff": 2.86102294921875e-06,
+    "max_abs_ref": 12.193702697753906,
+    "shapes_match": true,
+    "out_shapes": [
+     [
+      1,
+      8,
+      64,
+      64
+     ]
+    ],
+    "ok": true
+   },
+   "library_dirs": [
+    "nvidia/cublas/bin",
+    "nvidia/cuda_nvrtc/bin",
+    "nvidia/cuda_runtime/bin",
+    "nvidia/cudnn/bin"
+   ],
+   "l4": [],
+   "observed": {
+    "verdict": "pass"
+   },
+   "match": "yes",
+   "verdict_key": {
+    "fields": {
+     "driver_version": "580.88",
+     "pci": "10de:1f91:08ea1028",
+     "os_build": "10.0.26300",
+     "packages": {
+      "onnxruntime": "1.31.0",
+      "nvidia-cublas-cu12": "12.9.2.10",
+      "nvidia-cuda-runtime-cu12": "12.9.79",
+      "nvidia-cudnn-cu12": "9.27.0.42",
+      "onnxruntime-ep-cuda12": "0.3.0"
+     }
+    },
+    "hash": "ab3875ef538b548b"
+   }
+  },
+  "trt-rtx-cu13": {
+   "predicted": {
+    "verdict": "experimental",
+    "reason": "floors pass; not proven below CC 8.0"
+   },
+   "ran": true,
+   "run_reason": "predicted to work",
+   "install": {
+    "ok": true,
+    "seconds": 0.1,
+    "download_mb": 132.5
+   },
+   "packages": {
+    "onnxruntime": "1.31.0",
+    "onnxruntime-ep-nv-tensorrt-rtx-cu13": "0.5.0"
+   },
+   "l2": {
+    "ok": false,
+    "library": "onnxruntime_providers_nv_tensorrt_rtx.dll",
+    "longest_path_chars": 146,
+    "register_ms": 1384.3,
+    "ep_name": "NvTensorRTRTXExecutionProvider",
+    "devices": [],
+    "reason": "RuntimeError: no device: get_ep_devices() lists no NvTensorRTRTXExecutionProvider device that matches {'vendor_id': 4318}",
+    "mode": "no-device"
+   },
+   "l3": null,
+   "library_dirs": [],
+   "l4": [],
+   "observed": {
+    "verdict": "fail",
+    "stage": "L2",
+    "mode": "no-device",
+    "reason": "RuntimeError: no device: get_ep_devices() lists no NvTensorRTRTXExecutionProvider device that matches {'vendor_id': 4318}"
+   },
+   "match": "informational",
+   "verdict_key": {
+    "fields": {
+     "driver_version": "580.88",
+     "pci": "10de:1f91:08ea1028",
+     "os_build": "10.0.26300",
+     "packages": {
+      "onnxruntime": "1.31.0",
+      "onnxruntime-ep-nv-tensorrt-rtx-cu13": "0.5.0"
+     }
+    },
+    "hash": "f8522caad6048090"
+   }
+  },
+  "trt-rtx-cu12": {
+   "predicted": {
+    "verdict": "unsupported",
+    "reason": "CC 7.5: TensorRT-RTX cu12 needs CC 8.0 or higher"
+   },
+   "ran": true,
+   "run_reason": "predicted to fail: record how it fails",
+   "install": {
+    "ok": true,
+    "seconds": 0.1,
+    "download_mb": 136.2
+   },
+   "packages": {
+    "onnxruntime": "1.31.0",
+    "onnxruntime-ep-nv-tensorrt-rtx-cu12": "0.5.0"
+   },
+   "l2": {
+    "ok": false,
+    "library": "onnxruntime_providers_nv_tensorrt_rtx.dll",
+    "longest_path_chars": 146,
+    "register_ms": 1346.5,
+    "ep_name": "NvTensorRTRTXExecutionProvider",
+    "devices": [],
+    "reason": "RuntimeError: no device: get_ep_devices() lists no NvTensorRTRTXExecutionProvider device that matches {'vendor_id': 4318}",
+    "mode": "no-device"
+   },
+   "l3": null,
+   "library_dirs": [],
+   "l4": [],
+   "observed": {
+    "verdict": "fail",
+    "stage": "L2",
+    "mode": "no-device",
+    "reason": "RuntimeError: no device: get_ep_devices() lists no NvTensorRTRTXExecutionProvider device that matches {'vendor_id': 4318}"
+   },
+   "match": "yes",
+   "verdict_key": {
+    "fields": {
+     "driver_version": "580.88",
+     "pci": "10de:1f91:08ea1028",
+     "os_build": "10.0.26300",
+     "packages": {
+      "onnxruntime": "1.31.0",
+      "onnxruntime-ep-nv-tensorrt-rtx-cu12": "0.5.0"
+     }
+    },
+    "hash": "b93bc467917d926f"
+   }
+  }
+ },
+ "prep": {
+  "versions": {
+   "onnxruntime": "1.31.0",
+   "onnx": "1.23.2",
+   "onnxconverter-common": "1.16.0",
+   "numpy": "2.5.4"
+  },
+  "models": {},
+  "install": {
+   "ok": true,
+   "seconds": 0.2,
+   "download_mb": 41.8
+  }
+ },
+ "findings": [],
+ "disk_mb": {
+  "uv_cache": 4463,
+  "envs": 4458,
+  "models_and_assets": 0,
+  "work_total_hardlinks_once": 4466
+ },
+ "duration_s": 26
+}
