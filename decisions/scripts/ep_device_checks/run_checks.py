@@ -59,14 +59,18 @@ CU12_SASS = {
 RULES = {
     "cpu": {},
     "cuda-cu13": {"driver_min": 580, "cc_min": "7.5", "why_arch": "CUDA 13 has no build below CC 7.5"},
-    "cuda-cu12": {"driver_min": 570, "sass": CU12_SASS, "why_arch": "the cu12 build has no SASS for this CC"},
-    "trt-rtx-cu13": {"driver_min": 580, "cc_min": "7.5", "experimental_below": "8.0",
-                     "why_arch": "TensorRT-RTX has no support below CC 7.5"},
-    "trt-rtx-cu12": {"driver_min": 570, "cc_min": "8.0", "why_arch": "TensorRT-RTX cu12 needs CC 8.0 or higher"},
+    # CUDA 12.x minor version compatibility: driver >= 525 (NVIDIA "Minor Version Compatibility" table).
+    # Measured: the pack passes L2 and L3 on a GTX 1650 with driver 566.36 (R565).
+    "cuda-cu12": {"driver_min": 525, "sass": CU12_SASS, "why_arch": "the cu12 build has no SASS for this CC"},
+    # NVIDIA: the TensorRT RTX EP is for "RTX GPUs (Ampere and later)" (github.com/NVIDIA/TensorRT-RTX-EP-ABI).
+    # Measured: on a GTX 1650 (CC 7.5) with drivers 580.88 and 621.01, the EP registers but lists no device.
+    "trt-rtx-cu13": {"driver_min": 580, "cc_min": "8.0",
+                     "why_arch": "TensorRT-RTX supports Ampere (CC 8.0) and later only"},
+    "trt-rtx-cu12": {"driver_min": 570, "cc_min": "8.0", "why_arch": "TensorRT-RTX supports Ampere (CC 8.0) and later only"},
 }
 # The last driver branch for each CC range: L1 never offers an update past it.
 LAST_BRANCH = [("7.0", 580)]  # Maxwell, Pascal and Volta end at R580
-SCENARIOS = [(570, "A", "below R570"), (580, "B", "R570 to R579"), (10**6, "C", "R580 or newer")]
+SCENARIOS = [(525, "A", "below R525"), (580, "B", "R525 to R579"), (10**6, "C", "R580 or newer")]
 
 # Driver downloads for the driver test, by GPU family, OS and scenario: (version, date, max CUDA, URL).
 # The same rows are in README.md ("Driver versions", "Pascal driver versions"), checked on 2026-11-03.
@@ -75,29 +79,33 @@ NV = "https://www.nvidia.com/"
 DRIVERS = {
     "turing": {
         "win32": {
-            "A": [("566.36", "2024-12-05", "12.6 Update 3", NV + "Download/driverResults.aspx/237719/en-us")],
-            "B": [("572.16", "2025-01-30", "12.8", NV + "Download/driverResults.aspx/240547/en-us"),
+            "A": [("older than R525", "", "11.x", NV + "en-us/drivers/")],
+            "B": [("566.36", "2024-12-05", "12.6 Update 3", NV + "Download/driverResults.aspx/237719/en-us"),
+                  ("572.16", "2025-01-30", "12.8", NV + "Download/driverResults.aspx/240547/en-us"),
                   ("576.88", "2025-07-01", "12.9 Update 1", NV + "en-us/drivers/details/248978/")],
             "C": [("580.88", "2025-07-31", "13.0", NV + "en-us/drivers/details/251255/"),
                   ("621.01 (newest)", "2026-10-21", "13.4 or higher", NV + "en-us/drivers/details/282412/")],
         },
         "linux": {
-            "A": [("565.77", "2024-12-05", "12.6 Update 3", NV + "Download/driverResults.aspx/237587/en-us")],
-            "B": [("575.64.05", "2025-07-22", "12.9 Update 1", NV + "en-us/drivers/details/250991/")],
+            "A": [("older than R525", "", "11.x", NV + "en-us/drivers/")],
+            "B": [("565.77", "2024-12-05", "12.6 Update 3", NV + "Download/driverResults.aspx/237587/en-us"),
+                  ("575.64.05", "2025-07-22", "12.9 Update 1", NV + "en-us/drivers/details/250991/")],
             "C": [("580.196.07", "2026-10-21", "13.0", NV + "en-us/drivers/details/281487/"),
                   ("615.78.08", "2026-10-07", "13.4", NV + "en-us/drivers/details/280299/")],
         },
     },
     "pascal": {
         "win32": {
-            "A": [("566.36", "2024-12-05", "12.6 Update 3", NV + "Download/driverResults.aspx/237719/en-us")],
-            "B": [("576.88", "2025-07-01", "12.9 Update 1", NV + "en-us/drivers/details/248978/")],
+            "A": [("older than R525", "", "11.x", NV + "en-us/drivers/")],
+            "B": [("566.36", "2024-12-05", "12.6 Update 3", NV + "Download/driverResults.aspx/237719/en-us"),
+                  ("576.88", "2025-07-01", "12.9 Update 1", NV + "en-us/drivers/details/248978/")],
             "C": [("582.78 (R580 security update, the last branch)", "2026-09-30", "13.0",
                    NV + "en-us/drivers/details/280034/")],
         },
         "linux": {
-            "A": [("565.77", "2024-12-05", "12.6 Update 3", NV + "Download/driverResults.aspx/237587/en-us")],
-            "B": [("575.64.05", "2025-07-22", "12.9 Update 1", NV + "en-us/drivers/details/250991/")],
+            "A": [("older than R525", "", "11.x", NV + "en-us/drivers/")],
+            "B": [("565.77", "2024-12-05", "12.6 Update 3", NV + "Download/driverResults.aspx/237587/en-us"),
+                  ("575.64.05", "2025-07-22", "12.9 Update 1", NV + "en-us/drivers/details/250991/")],
             "C": [("580.196.07 (the last branch)", "2026-10-21", "13.0", NV + "en-us/drivers/details/281487/")],
         },
     },
@@ -1028,7 +1036,9 @@ def compare_pair(before: dict, after: dict) -> dict:
         changed_fields = sorted(k for k in set(b.get("key_fields") or {}) | set(a.get("key_fields") or {})
                                 if (b.get("key_fields") or {}).get(k) != (a.get("key_fields") or {}).get(k))
         ok_before, ok_after = b["observed"] in ("pass", "partial"), a["observed"] in ("pass", "partial")
-        if b["predicted"] == "update-driver" and branch_after >= (b["target_branch"] or 0):
+        if b["predicted"] == "update-driver" and ok_before:
+            outcome = "prediction wrong: the route passed before the driver update"
+        elif b["predicted"] == "update-driver" and branch_after >= (b["target_branch"] or 0):
             outcome = ("as predicted: the driver update fixed it" if ok_after else
                        "NOT as predicted: the driver reached the target branch, but the route still fails"
                        if a["observed"] == "fail" else f"not checked: observed {a['observed']}")
