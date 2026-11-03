@@ -27,7 +27,6 @@ Tell the user or the skellytracker maintainers the name of the branch.
 | `../freemocap/skellytracker/.claude/skills/propose-sidecar-change/SKILL.md` | The skill `propose-sidecar-change`: the steps of phase 2. |
 | `../freemocap/skellytracker/specs/model-sidecar/model-addition-workflow/README.md` | The entry point of this workflow. |
 | `../freemocap/skellytracker/specs/draft/exporter-guide/sidecars/README.md` | The sidecar part of the draft exporter guide: the rules that only an exporter needs, the block for the exporter `AGENTS.md` and the checkout steps. |
-| `../freemocap/skellytracker/specs/model-sidecar/model-addition-workflow/reference-examples.md` | The procedure that turns an exporter sidecar into a spec example. |
 | `../freemocap/skellytracker/decisions/` | The root decision log of skellytracker. |
 | `../freemocap/skellytracker/specs/model-sidecar/decisions/` | The decision log of the sidecar spec. |
 | `../freemocap/skellytracker/skellytracker/` | The skellytracker package code. Read it for part 6 of a proposal. Do not import it. |
@@ -46,9 +45,11 @@ A path that starts with `skellytracker/`, `specs/` or `decisions/` names a file 
 repo. Read it in your skellytracker checkout, for example `../freemocap/skellytracker/`. A path
 that starts with `plans/` names a file in your repo. skellytracker keeps its logs in `decisions/` and
 `specs/model-sidecar/decisions/`. An exporter repo has `notes/decisions/`. Thus always write the
-repo name with the number of a decision entry, for example "skellytracker decision 0012" or
-"OpenMMLab-Exporter 0020". In a file of the exporter, a
-number without a repo name is a decision of that exporter.
+repo name with the ID of a decision entry: `skellytracker ADR-<ID>` or `<Repo> ADR-<ID>`, for
+example `skellytracker ADR-0012` or `OpenMMLab-Exporter ADR-0020`. Add a full-SHA permalink to an
+entry of another repo when the entry is on the default branch of that repo. This workflow links
+each skellytracker entry. In a file of the exporter, an ID without a repo name is a decision of that
+exporter ([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).
 
 ## Decision entries
 

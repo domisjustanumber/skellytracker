@@ -4,7 +4,7 @@ The `batch` sub-command checks if the profile `static-batch-v1` converts the bat
 family to the batches 1, 2 and 4 ([`common.batch_conversion`](../common/batch-conversion.md);
 [ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). Do it
 in step 1b of [phase 1](phase-1-intake.md). It gives the evidence of row G6b of the intake and the
-value of `batch_conversion` in the manifest. The converter is
+value of `batch_conversion` in the manifest ([Manifest](hand-over.md#manifest)). The converter is
 `skellytracker/core/sessions/batch_conversion.py::model_batch_convert`.
 
 ## Run the tool
@@ -32,10 +32,10 @@ uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/ske
 - `--fields` is your fields file. `batch` reads its `external` list: each ONNX file of the family,
   with its `size`, `batch`, `precision` and `published`. The tolerance comes from `precision`.
 - A family needs each size and each precision at the verification batches 1, 2, 3 and 4. This is
-  also true for a family that plans b3 only. A family with only `dynamic` files and
-  `no_static_reason` does not need them. Otherwise, only `batch_forced` in the fields skips this need ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)).
-  `published` follows [Publishing](validation-and-publishing.md#publishing). Add the `dynamic`
-  export if you plan to publish it.
+  also true for a family that plans b3 only. [Publishing](validation-and-publishing.md#publishing) gives the two
+  exemptions: `batch_forced` and `no_static_reason` ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md);
+  [ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)). `published` follows [Publishing](validation-and-publishing.md#publishing). Add the
+  `dynamic` export if you plan to publish it.
 - The verification batches, input A, input B and the tolerance are in
   [Authoring guidance](../common/batch-conversion.md#authoring-guidance) of `common.batch_conversion`
   ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)).
@@ -66,14 +66,15 @@ fix the export.
 
 | Verdict | When | Row G6b | Next |
 |---|---|---|---|
-| `converts` | V3 and V5 pass for each size, precision and `N` | `exact` | Apply [Publishing](validation-and-publishing.md#publishing). With b3, the writer code writes the fragment of `conversion.yaml`. |
-| `does not convert` | V3 or V5 fails on a complete set of inputs | `gap` | Leave `batching.batch_conversion` out. Publish a fallback form: b1 or `dynamic`. Write a `proposal` bundle for a new profile. `differences.json` and `residual-diff.json` are its part 5 evidence. |
-| `not applicable` | V0 gives `not applicable`, or you skip the check. Both need `batch_forced` or `no_static_reason`. | `out of scope` | Publish the form of `batch_forced`, or `dynamic` with `no_static_reason`. V6 still gates a `dynamic` file. |
-| `to run` | A reason: `missing-verification-batch`, `host-runtime-cannot-load` or `no-signal` (each run of a pair is empty) | `unverified` | Write the reason in `batch_conversion_reason`. The skellytracker session runs the check again. Without `batch_forced`, the reason `missing-verification-batch` allows no published form: export the verification batches, set `batch_forced`, or, if the model cannot export a static graph, give `no_static_reason`. |
+| `converts` | V3 and V5 pass for each size, precision and `N` | `exact` | Apply [Publishing](validation-and-publishing.md#publishing) ([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)). With b3, the writer code writes the fragment of `conversion.yaml`. |
+| `does not convert` | V3 or V5 fails on a complete set of inputs | `gap` | Leave `batching.batch_conversion` out. Apply [Publishing](validation-and-publishing.md#publishing). Write a `proposal` bundle for a new profile. `differences.json` and `residual-diff.json` are its part 5 evidence. |
+| `not applicable` | V0 gives `not applicable`, or you skip the check. Both need `batch_forced` or `no_static_reason`. | `out of scope` | Apply [Publishing](validation-and-publishing.md#publishing). |
+| `to run` | A reason: `missing-verification-batch`, `host-runtime-cannot-load` or `no-signal` (each run of a pair is empty) | `unverified` | Write the reason in `batch_conversion_reason`. The skellytracker session runs the check again ([The session run](hand-over.md#the-session-run)). Apply [Publishing](validation-and-publishing.md#publishing). |
 
 ## Output
 
-`batch` writes these files to `--out`. Put the folder in the bundle as `batch/`:
+`batch` writes these files to `--out`. Put the folder in the bundle as `batch/`
+([Payload](hand-over.md#payload)):
 
 - `report.json`: the versions of Python, NumPy, onnx and onnxruntime, the skellytracker commit,
   `profile_id`, `S`, the results of V0 to V6 for each file and each `N`, and the verdict;

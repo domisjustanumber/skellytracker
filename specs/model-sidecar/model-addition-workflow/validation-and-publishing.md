@@ -21,8 +21,8 @@ These rules apply to each contributor that writes a sidecar.
   ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md);
   [ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
 - Record the rule ID (`V-<section-id>-<n>`) of each rule that you checked in the intake.
-- If a row of the intake is blocking ([Phase 1](phase-1-intake.md), step 3), do not walk the
-  checklist. Write `skipped`.
+- If a row of the intake is blocking ([Blocking rows](phase-1-intake.md#blocking-rows)), do not
+  walk the checklist. Write `skipped`.
 - If a row is `unverified` and no row is blocking, walk the checklist on the draft. Mark
   each result that depends on an `unverified` row as provisional.
 - Run the checks of your repo. Use a skellytracker sidecar checker only if the spec or this section
@@ -89,7 +89,8 @@ These rules apply to each contributor that writes a sidecar.
   - With the verdict `to run`, mark as `published` the files of the form that you plan. The session
     verdict then decides ([The session run](hand-over.md#the-session-run)). b3 needs the session
     verdict `converts`. The reason `missing-verification-batch` allows no form: export the
-    verification batches, or force a fallback form.
+    verification batches, force a fallback form, or, if the model cannot export a static graph,
+    give `no_static_reason` ([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).
   - The other files of the check (for example b2 and b4, and b1 of a b3 family) have
     `published: false` in `external` of the bundle manifest. Do not publish them.
   - No validation rule checks the publication. `intake_bundle.py verify` checks this rule for each

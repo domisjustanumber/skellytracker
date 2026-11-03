@@ -1,10 +1,11 @@
 # Hand-over bundles
 
 A contributor gives its files to skellytracker in a bundle. A bundle is a folder in `intakes/` at the
-root of the skellytracker checkout. This file is the source of the bundle rules. The tool
-`tools/intake_bundle.py` is the source of the rules that it checks
-([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)). The skills and the templates link
-to this file.
+root of the skellytracker checkout. This file and
+[Batch-conversion check](batch-conversion-check.md#batch-conversion-check) are the source of the
+bundle rules. The tool `tools/intake_bundle.py` is the source of the rules that it checks
+([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)). The skills link to this file. The
+templates name it ([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).
 
 ## Location
 
@@ -163,9 +164,10 @@ external:
   `dynamic`. `batch_forced_reason` gives the reason. It is required when `batch_forced` is set.
   Otherwise both are `null`.
 - `no_static_reason` tells why the model cannot export a static graph. It is required when each
-  `external` entry has `batch: dynamic` and `batch_forced` is `null`. Otherwise it is `null`. If the
-  model can export a static graph, export the verification batches, or set `batch_forced: dynamic`
-  with its reason ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)).
+  `external` entry has `batch: dynamic` and `batch_forced` is `null`. Otherwise it is `null`.
+  [Publishing](validation-and-publishing.md#publishing) tells when a model can use it
+  ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md);
+  [ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).
 - `batch_conversion: not applicable` needs `batch_forced` or `no_static_reason`. With either one,
   `batch_conversion_reason` is not `missing-verification-batch`, because V0 then gives
   `not applicable`.
@@ -427,7 +429,10 @@ it does this safety check ([ADR-AD33](../../../decisions/entries/AD33-bundles-ar
 
 ### The session run
 
-The session runs `batch` again when the manifest gives `converts`, `does not convert` or `to run`. It
+The session runs `batch` of the
+[Batch-conversion check](batch-conversion-check.md#batch-conversion-check) again
+([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)) when the
+manifest gives `converts`, `does not convert` or `to run`. It
 also runs `batch` again when a published `dynamic` file exists, for each verdict. It does not run
 `batch` for a skipped check: `not applicable` with `batch_forced` and no published `dynamic` file. It gives the
 manifest as `--fields`, `v<k>/batch/inputs/` of the version that it checks as `--inputs` and a folder

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Pack, list and verify the hand-over bundles in `intakes/`.
 
-The rules are in `specs/model-sidecar/model-addition-workflow/hand-over.md`.
+The rules are in `specs/model-sidecar/model-addition-workflow/hand-over.md` and
+`specs/model-sidecar/model-addition-workflow/batch-conversion-check.md`.
 
 Usage::
 

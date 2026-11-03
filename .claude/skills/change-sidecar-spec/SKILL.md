@@ -220,7 +220,9 @@ user accepts the proposal.
 8. Add the implementation to `verified_against` in the vector file
    `specs/model-sidecar/vectors/<section ID>.yaml`, in the form
    `{<Exporter repo>: <file>::<function>}`. The reference implementation and its source exporter
-   count as one implementation. Then run `uv run python tools/make_vectors.py`.
+   count as one implementation
+   ([Independence](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence)).
+   Then run `uv run python tools/make_vectors.py`.
 9. If an expected value changes, stop. The reference implementation does not agree with the current
    vectors. Tell the user. The generator also stops when the copied module and the formula module
    do not agree within the tolerance
@@ -441,9 +443,10 @@ A spec change has no class ([ADR-NB5F](../../../decisions/entries/NB5F-no-change
   out of scope, because it depends on OpenCV internals. A pixel case, if one is necessary, states a
   tolerance.
 - Each vector file has `verified_against`, the list of the independent implementations that gave the
-  same results, or `unverified: <reason>`. A reference implementation and its source exporter count as
-  one implementation. A vector is fully verified when two independent implementations agree: two
-  exporters, or an exporter and skellytracker.
+  same results, or `unverified: <reason>`.
+  [Independence](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence)
+  gives the implementations that count, and when a vector is fully verified
+  ([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).
 - `tools/make_vectors.py` computes the vectors with the producer of each section. The producer is
   `specs/model-sidecar/reference/<section_module>.py` when it exists, else
   `tools/vector_formulas/<section_module>.py`. While a reference is the producer and the formula

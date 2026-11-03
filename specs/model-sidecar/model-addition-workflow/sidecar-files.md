@@ -10,8 +10,10 @@ These rules apply to each contributor that writes a sidecar or a vector file.
 - Only exporters and skellytracker count as implementations in `verified_against`. Do not list the
   upstream library. The spec describes the upstream library, but the library does not implement the
   spec. If you ran a case through upstream code, write that in the `note` of the case.
+- List an implementation in `verified_against` only when it gives the same results
+  ([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).
 - A vector file without a verified implementation has `unverified: <reason>` in place of
-  `verified_against`.
+  `verified_against`. For example, the host code does not exist or is not committed.
 - A vector is fully verified only when at least two independent implementations agree: two exporters,
   or an exporter and skellytracker.
 - A vector made only from a reading of the spec text is not verified.

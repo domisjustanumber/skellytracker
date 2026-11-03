@@ -12,16 +12,20 @@ implementation exists yet. Two things add a reference implementation:
 for reference modules ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md)).
 Part 4 of the change proposal template gives the form of a vector case.
 
-**Rule.** Your plan can implement a sidecar section on the host side. Then the plan must
+## When to do the step
+
+Your plan can implement a sidecar section on the host side. Then the plan must
 include a step that gives the reference implementation of that section to skellytracker. The rule
-applies for every verdict of the intake.
+applies for every verdict of the intake. These skip rules apply to each section
+([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)):
 
 - Skip the step if `../freemocap/skellytracker/specs/model-sidecar/reference/<section_module>.py`
-  exists.
+  exists. If your host code and that file do not agree, follow the last paragraph of
+  [The step](#the-step).
 - Skip the step if one of your proposals changes the section. The part 3 file of the proposal is the
   reference implementation. If the user rejects the proposal, do the step for the current text.
 - A part of the spec without an algorithm needs no reference implementation, for example
-  `input.dtype` or `input.resize.method: none`.
+  `common.identity`, `input.dtype` or `input.resize.method: none`.
 - Do the step from committed host code. If the host code is not committed yet, or if it exists only
   in a plan, write `to run` in the intake. Do the step after the commit. This bullet is for a section
   of the current spec. For part 3 of a proposal, see phase 2.
@@ -180,17 +184,17 @@ The skill `author-sidecar` includes this step.
    from.
 2. Run the functions against the vectors of the section (see [Vectors](reading-the-spec.md#vectors)).
    They must pass. If the vector file says `unverified`, also run the numeric cases through your
-   host code, and record both results in `vector-runs.yaml` ([Payload](hand-over.md#payload)). If
-   the section has no vector file yet, record that. Your
-   host code runs only the numeric cases. An `error` case and a `failed` case run only against a
-   reference module.
+   host code, and record both results in `vector-runs.yaml`. If the section has no vector file yet,
+   record that. [Payload](hand-over.md#payload) gives the cases that are host runs
+   ([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).
 3. Run the functions in place of your host code in your parity check. Record that the
    result does not change. If you cannot run the parity check yet, write `to run`.
 4. Write the functions to `reference/<section_module>.py` of your `model` bundle
    ([Payload](hand-over.md#payload)). Put a short note at the top of the file: the section ID, the
    source commit, the vector results and the parity result. The reference implementation of a
    proposal is in its proposal bundle instead (phase 2, part 3).
-5. Pack the bundle and stop. A skellytracker session lands the file. It adds `specs/model-sidecar/reference/<section_module>.py`,
+5. Write the final verdict ([Final verdict](phase-1-intake.md#final-verdict)). Then pack the bundle
+   and stop ([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)). A skellytracker session lands the file. It adds `specs/model-sidecar/reference/<section_module>.py`,
    adds the implementation to `verified_against` in the vector file of the section, and adds the
    exporter function to `external_impl` of the section.
 

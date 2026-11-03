@@ -160,9 +160,9 @@ A skellytracker session must land it first, with the skill
 8. Add the golden parity test, if the plan has one.
 9. Add the `path::symbol` of the implementing function (the key of its adapter) to
    `verified_against` in `specs/model-sidecar/vectors/<section-id>.yaml`. Then run `uv run python tools/make_vectors.py`.
-10. skellytracker counts as one implementation in `verified_against`. A vector is fully verified only
-    when two independent implementations agree
-    ([Independence](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence)).
+10. Follow
+    [Independence](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence)
+    for the implementations that count in `verified_against`.
 
 ### Step 7: Update the traceability
 

@@ -5,7 +5,9 @@
   change proposal (phase 2) and stop.
 - Known case: an ROI refiner is a gap. An ROI refiner is a model that gives a region of interest to
   the next model, for example a hand re-crop model. Do not describe it as a pose estimator with two
-  fake keypoints.
+  fake keypoints, for example `role: [pose_estimator]` with the points `crop_center` and
+  `crop_scale`. The spec has no role for a model that gives a crop region, and a host reads the
+  outputs of a pose estimator as keypoints ([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).
 - The evidence for a row is an upstream file and line, an upstream config key, or a read of the ONNX
   graph (the command, and the node or tensor name). A plan, a paper, a README, the notes of a
   contributor (for example an exporter) and a spec reference example are secondary sources. Mark a secondary citation with
@@ -22,10 +24,20 @@
   with the commit of the check table ([ADR-FDTD](../../../decisions/entries/FDTD-evidence-sources-and-exporter-permalinks.md)).
 - A claim that no passing check maps to an upstream line stays `(secondary)`.
 - A value that you choose (in an exporter, the exporter chooses it) has no upstream evidence.
-  Examples are a name, a rule for the YAML file and a path. Judge its row against the spec only. Cite
-  your code that writes the value. If no such code exists, write `none yet (no code)`. Such a row is
-  not `unverified` only because the code does not exist or you cannot read it. The model intake
-  template lists these rows (heading "Verdicts").
+  Examples are a name, a rule for the YAML file and a path. The model intake template lists these
+  rows (heading "Verdicts"). For these rows
+  ([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)):
+  - Judge the verdict against the spec only. The sidecar value is what the spec requires.
+  - Cite your code that writes the value. If no such code exists, write `none yet (no code)`. If you
+    cannot read the code, write `not read (<reason>)`.
+  - Such a row is not `unverified` only because the code does not exist or you cannot read it. In
+    that case, write `not checked` in the last column.
+  - If the exporter writes a different value today, the verdict stays `exact`. Write the exporter
+    defect in the last column.
+  - Such a row is a `gap` only when the spec has no rule for the role of the model (a new role), for
+    example no `model_id` rule or no branch of the storage layout. The proposal of the role covers
+    the row. Row F1 gives one more `gap`: the current text has no `model_id` for a second model of
+    one family and one part.
 - Do not publish a sidecar to a shared or remote folder until a final skellytracker release loads
   its `schema_version` (see [Publishing](validation-and-publishing.md#publishing)).
 

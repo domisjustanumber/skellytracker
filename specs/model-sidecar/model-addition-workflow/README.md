@@ -20,6 +20,8 @@ spec is correct. This workflow is not a section of the spec. It has no section I
 - [Sidecar files](sidecar-files.md): Independence, Sidecar YAML, Path.
 - [Validation and publishing](validation-and-publishing.md): Validation, Publishing, `source` and
   hashes.
+- [Batch-conversion check](batch-conversion-check.md): the `batch` sub-command, its inputs, steps,
+  verdicts and output.
 - [Phase 1: can the current spec describe the model?](phase-1-intake.md)
 - [Parity](parity.md)
 - [Mapping hints for phase 1](mapping-hints.md)
@@ -84,7 +86,8 @@ gives the commit of your repo in `source_commit`.
 Get these inputs before you start:
 
 - the ONNX files of every size and precision. A family needs the verification batches 1, 2, 3 and 4,
-  unless it forces a fallback form or the model cannot export a static graph ([Batch-conversion check](batch-conversion-check.md#batch-conversion-check);
+  unless it forces a fallback form or the model cannot export a static graph
+  ([Publishing](validation-and-publishing.md#publishing);
   [ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). Add the `dynamic` export
   if you plan to publish it;
 - the upstream inference config;

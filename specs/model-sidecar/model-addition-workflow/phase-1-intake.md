@@ -21,15 +21,11 @@ file `intake.md` of a `model` bundle ([Hand-over bundles](hand-over.md#payload))
    - The check runs by default. Export each size and each precision at the verification batches 1,
      2, 3 and 4. Use the same commit and the same settings. Only the batch changes. b4 is
      verification-only: you never publish it.
-   - A model that cannot export a static graph does not need the verification exports or
-     `batch_forced`. Write why in `no_static_reason` of the manifest, and in the intake. It publishes
-     `dynamic`. The dynamic check (V6) still needs input B for each size and a run of `batch`.
-   - The person who runs the exporter can force a fallback form: b1 or `dynamic`. Then write
-     `batch_forced` and `batch_forced_reason` in the manifest, and the same choice and reason in the
-     intake. With `batch_forced: 1`, you can then skip this step. With `batch_forced: dynamic`, you
-     can skip the verification exports. But the dynamic check (V6) still needs input B for each size
-     and a run of `batch`
-     ([Publishing](validation-and-publishing.md#publishing); [ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)).
+   - A forced fallback form (`batch_forced`) or a model that cannot export a static graph
+     (`no_static_reason`) can skip a part of the check. [Publishing](validation-and-publishing.md#publishing)
+     gives these rules and the dynamic check (V6)
+     ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md);
+     [ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).
    - Write input B with your writer code, and run the `batch` sub-command of the hand-over tool
      ([Batch-conversion check](batch-conversion-check.md#batch-conversion-check)).
    - The result is the evidence of row G6b. It fills the section "Batch conversion check" of the
@@ -40,33 +36,10 @@ file `intake.md` of a `model` bundle ([Hand-over bundles](hand-over.md#payload))
    - the section ID (the `id` in the front matter of the section file);
    - the sidecar value;
    - a verdict.
-3. Give each row one of these verdicts:
-   - `exact`: the section describes the property with these values.
-   - `near-miss`: the spec has a section and a field for the property, but no value describes the
-     property exactly. A detail differs, for example the rounding, the pixel centres, the arithmetic
-     precision, the order of steps or the threshold comparison. A detail that the spec does not define
-     is also a near-miss when it changes the output for some input. A name or a path changes no
-     tensor and no decoded output, so its row is never a `near-miss`.
-   - `gap`: the spec has no section and no field for the property, for example a rotated crop, a
-     border mode or a role for an ROI refiner. A property that the spec calls out of scope, or that the
-     spec lists in "Considered and deliberately not added"
-     (`../freemocap/skellytracker/specs/model-sidecar/changelog.md`), is also a gap.
-   - `unverified`: you do not have the evidence for a verdict. Name the missing evidence in the row. If
-     you expect a verdict, write it there too.
-   - `out of scope`: the step is before or after the runtime contract of this model. Examples: a step
-     that makes the box from the outputs of another model, a gate that decides if the model runs, or a
-     choice that uses an earlier frame.
-
-   In each row that is not `exact`, write what differs or what is missing.
-
-   To choose between `near-miss` and `gap`, find the section and the field that hold the property. If
-   no section and no field hold it, the verdict is `gap`. If a field holds it but none of its values
-   describes the upstream, the verdict is `near-miss`.
-
-   A blocking row is a `near-miss` or `gap` row other than row G6b. Row G6b with the verdict `gap`
-   (`does not convert`) only leaves `batching.batch_conversion` out of the sidecar. It also sends a
-   new-profile proposal to phase 2. The rules below use this term.
-4. Continue as follows. A blocking row comes before an `unverified` row:
+3. Give each row one of the verdicts of [Verdicts](#verdicts). In each row that is not `exact`,
+   write what differs or what is missing.
+4. Continue as follows. Do a blocking row before an `unverified` row
+   ([Blocking rows](#blocking-rows)):
    - A blocking row: go to phase 2 for that row (the skill `propose-sidecar-change`). A near-miss is a
      gap. Do this also when other rows are `unverified`. List those rows in the final verdict.
    - Row G6b is `gap` (the verdict `does not convert`): leave `batching.batch_conversion` out of the
@@ -86,16 +59,59 @@ file `intake.md` of a `model` bundle ([Hand-over bundles](hand-over.md#payload))
      [Publishing](validation-and-publishing.md#publishing) says.
    - Run the numeric vector cases of each section that the model uses through your host code.
      Record `pass`, `fail` or `no vectors` for each section in `vector-runs.yaml` of the `model`
-     bundle ([Payload](hand-over.md#payload)). An `error` case and a `failed` case are not host runs.
+     bundle. [Payload](hand-over.md#payload) gives the cases that are host runs
+     ([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).
      Do this also when a reference module of the section already exists.
    - Walk the validation checklist (see
      [Validation](validation-and-publishing.md#validation)).
    - Prove parity (see [Parity](parity.md#parity)).
-6. Write the final verdict:
-   - `describes`: every row is `exact` or `out of scope`, and parity passes. Row G6b can also be
-     `gap` (step 4).
-   - `does not describe`: a row is blocking, also when other rows are `unverified`.
-   - `pending`: no row is blocking, but a row is `unverified` or parity is `to run`.
+6. Write the final verdict ([Final verdict](#final-verdict)).
 
-   If parity fails, you missed or misjudged a property. Go back to step 1 and find it. Until you find
-   it, the verdict is `pending`. Do not make the tolerance larger to pass.
+## Verdicts
+
+These verdicts apply to each row of the intake
+([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)):
+
+- `exact`: the section describes the property with these values.
+- `near-miss`: the spec has a section and a field for the property, but no value describes the
+  property exactly. A detail differs, for example the rounding, the pixel centres, the arithmetic
+  precision, the order of steps or the threshold comparison. A detail that the spec does not define
+  is also a near-miss when it changes the output for some input. A name or a path changes no
+  tensor and no decoded output, so its row is never a `near-miss`.
+- `gap`: the spec has no section and no field for the property, for example a rotated crop, a
+  border mode or a role for an ROI refiner. A property that the spec calls out of scope, or that the
+  spec lists in "Considered and deliberately not added"
+  (`../freemocap/skellytracker/specs/model-sidecar/changelog.md`), is also a gap.
+- `unverified`: you do not have the evidence for a verdict. Name the missing evidence in the row. If
+  you expect a verdict, write it there too.
+- `out of scope`: the step is before or after the runtime contract of this model. Examples: a step
+  that makes the box from the outputs of another model, a gate that decides if the model runs, or a
+  choice that uses an earlier frame.
+
+To choose between `near-miss` and `gap`, find the section and the field that hold the property. If
+no section and no field hold it, the verdict is `gap`. If a field holds it but none of its values
+describes the upstream, the verdict is `near-miss`.
+
+[Rules](rules.md#rules) gives the verdict of a row with a value that the exporter chooses.
+[Near-misses seen so far](mapping-hints.md#near-misses-seen-so-far) lists the known near-misses.
+
+## Blocking rows
+
+A blocking row is a `near-miss` or `gap` row other than row G6b. Row G6b with the verdict `gap`
+(`does not convert`) only leaves `batching.batch_conversion` out of the sidecar. It also sends a
+new-profile proposal to phase 2. A blocking row comes before an `unverified` row: go to phase 2 for
+it, also when other rows are `unverified`. The steps of this file use this term
+([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).
+
+## Final verdict
+
+Write one final verdict for the model
+([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)):
+
+- `describes`: every row is `exact` or `out of scope`, and parity passes. Row G6b can also be
+  `gap` (step 4).
+- `does not describe`: a row is blocking, also when other rows are `unverified`.
+- `pending`: no row is blocking, but a row is `unverified` or parity is `to run`.
+
+If parity fails, you missed or misjudged a property. Go back to step 1 and find it. Until you find
+it, the verdict is `pending`. Do not make the tolerance larger to pass.

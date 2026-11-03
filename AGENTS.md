@@ -148,6 +148,9 @@ Cite each entry as a Markdown link with `ADR-<ID>` as the link text, in upper ca
 This rule applies to each text that you write: a tracked file, a plan, a PR body and a reply to the
 user. In a reply or a plan, the path is relative to the repository root or to the file.
 This rule also applies to an older entry with a lower-case file name.
+A template in `specs/model-sidecar/templates/` cites a skellytracker entry as `skellytracker ADR-<ID>`,
+with no link, because its copies leave this repository
+([ADR-ESP4](decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).
 A commit message cannot hold a working link. In the commit body, write `ADR-<ID>` with no link.
 Cite an entry of another repository with the repository name and `ADR-<ID>`. Also link it with a
 full-SHA permalink when the entry is on the default branch of that repository

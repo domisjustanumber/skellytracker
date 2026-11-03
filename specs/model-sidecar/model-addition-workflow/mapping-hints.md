@@ -65,9 +65,20 @@
   method and the `landmark_schema`. For a bottom-up model, record how the pose rows align with the
   detection rows. The spec says that a packed keypoint `score` is already activated. The spec has no
   field for a keypoint-score activation. If the host must activate the keypoint scores, that is a gap.
-- **Near-misses seen so far.**
-  - A letterbox where the upstream code warps to a fractional size. That is `fit`, not `letterbox`
-    (OpenMMLab-Exporter 0020).
-  - A letterbox where the upstream code cuts the scaled size with `int()` or `floor`. The `rounding`
-    field has no value for a cut.
-  - An ROI refiner described as a pose estimator with two fake keypoints. That is a gap.
+
+## Near-misses seen so far
+
+These cases came up in earlier intakes
+([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).
+
+- **A letterbox where the upstream code warps to a fractional size.** The upstream code warps the
+  full frame with `cv2.warpAffine` to a scaled size that is not rounded. If you map it to
+  `letterbox`, the verdict is `near-miss`: `letterbox` rounds the scaled size and uses a resize plus
+  padding. Read the section `pre.resize.fit`
+  (`../freemocap/skellytracker/specs/model-sidecar/pre/resize-fit.md`) and compare it with the
+  upstream code ([ADR-0012](../decisions/entries/0012-fit-resize-for-rtmo.md);
+  [OpenMMLab-Exporter ADR-0020](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/0020-rtmo-sidecar-contract.md).
+- **A letterbox where the upstream code cuts the scaled size with `int()` or `floor`.** The
+  `rounding` field has no value for a cut. The verdict is `near-miss`.
+- **An ROI refiner described as a pose estimator with two fake keypoints.** The verdict is `gap`.
+  The rule is the known case of [Rules](rules.md#rules).

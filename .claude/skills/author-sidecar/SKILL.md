@@ -48,8 +48,9 @@ follow the workflow or the guide. The spec is normative.
 Get these inputs before you start
 ([Inputs](../../../specs/model-sidecar/model-addition-workflow/README.md#inputs)):
 
-- the ONNX files of every size and precision, also at the verification batches 1, 2, 3 and 4 (not
-  needed for a forced fallback form or a model that cannot export a static graph);
+- the ONNX files of every size and precision, also at the verification batches 1, 2, 3 and 4
+  ([Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing)
+  gives the exceptions);
 - the upstream inference config (the test pipeline);
 - the upstream preprocessing code and postprocessing code;
 - one reference output of the upstream library on a known image.
@@ -70,7 +71,7 @@ Write these files in a `model` bundle, or in the exporter repo where the table s
 | The parity script, committed in the exporter repo | When you can run the parity check. |
 | `reference/<section_module>.py` of the bundle | For each section that the exporter implements on its host side and that has no reference implementation. |
 | `example/` of the bundle | When the verdict is `describes`. |
-| `batch/` of the bundle | When you run the batch-conversion check. It runs by default. You can skip it only for `batch_forced: 1`. A `dynamic` form still runs it for the dynamic check. |
+| `batch/` of the bundle | When you run the batch-conversion check. [Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing) gives when you can skip it. |
 | A `proposal` bundle | The skill `propose-sidecar-change` writes one bundle for each contract unit with a `near-miss` or a `gap`. |
 
 Keep your working draft where you like. The bundle is the hand-over
@@ -138,14 +139,14 @@ Keep your working draft where you like. The bundle is the hand-over
    [Rules](../../../specs/model-sidecar/model-addition-workflow/rules.md#rules). Do not paste private data: no user
    paths, hostnames, email addresses or raw environment dumps
    ([Private data](../../../AGENTS.md#8-private-data)).
-5. For a value that the exporter chooses (a name, a YAML rule or a path), follow "Values that the
-   exporter chooses" in [Verdicts](../../../specs/model-sidecar/templates/model-intake.md#verdicts). Such a
-   row is not `unverified` only because the exporter code does not exist or you cannot read it.
+5. For a value that the exporter chooses (a name, a YAML rule or a path), follow
+   [Rules](../../../specs/model-sidecar/model-addition-workflow/rules.md#rules).
 6. Do not copy a value from a reference example. Reference examples are not evidence.
 7. Give each row a verdict. Use the test in
-   [Verdicts](../../../specs/model-sidecar/templates/model-intake.md#verdicts).
-8. Compare each row with "Near-misses seen so far" in the hints. A known near-miss must not get the
-   verdict `exact`.
+   [Verdicts](../../../specs/model-sidecar/model-addition-workflow/phase-1-intake.md#verdicts).
+8. Compare each row with
+   [Near-misses seen so far](../../../specs/model-sidecar/model-addition-workflow/mapping-hints.md#near-misses-seen-so-far).
+   A known near-miss must not get the verdict `exact`.
 9. In each row that is not `exact`, write what differs or what is missing.
 10. If you find a spec defect that no row of this model needs, do not propose it. Write it in the
     [Final verdict](../../../specs/model-sidecar/templates/model-intake.md#final-verdict) table. Tell the
@@ -156,8 +157,8 @@ Keep your working draft where you like. The bundle is the hand-over
 First, try to get the missing evidence of each `unverified` row. Then give the row its verdict.
 
 Then use the first row of this table that applies. A blocking row is a `near-miss` or `gap` row other
-than row G6b (step 3 of
-[Phase 1](../../../specs/model-sidecar/model-addition-workflow/phase-1-intake.md#phase-1-can-the-current-spec-describe-the-model)).
+than row G6b
+([Blocking rows](../../../specs/model-sidecar/model-addition-workflow/phase-1-intake.md#blocking-rows)).
 A blocking row comes before an `unverified` row.
 
 | The rows | The next step |
@@ -193,17 +194,14 @@ Do this step when no row is blocking (step 5 of
    difference in "The sidecar" of the intake.
 7. Choose the published batch artifacts. Follow
    [Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing).
-   The sidecar uses one batch form: b3 with `batching.batch_conversion` (needs `converts`), b1 or
-   `dynamic`. A fallback form needs the verdict `does not convert`, or the choice of the user with
-   its reason in `batch_forced` and `batch_forced_reason`. A model that cannot export a static
-   graph publishes `dynamic` without `batch_forced`. Write why in `no_static_reason`.
 8. Do each item of the [Validation checklist](../../../specs/model-sidecar/templates/model-intake.md#validation-checklist).
    Follow [Validation](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#validation). Write the rule ID of each
    rule that you checked.
 9. Run the numeric vector cases of each section that the model uses through the host code. Record
    each section in `vector-runs.yaml` of the bundle
-   ([Payload](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#payload)). An `error`
-   case and a `failed` case are not host runs.
+   ([Payload](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#payload)).
+   [4. Vectors](../../../specs/model-sidecar/templates/change-proposal.md#4-vectors) gives the cases
+   that the host runs.
 10. Prove parity. Follow [Parity](../../../specs/model-sidecar/model-addition-workflow/parity.md#parity). Fill in
    [Parity proof](../../../specs/model-sidecar/templates/model-intake.md#parity-proof). Fill in each cell
    that you can, also when the result is `to run`: the gates, the test images, the upstream reference
@@ -240,18 +238,12 @@ Do this step for every final verdict, also after step 6. Follow
 [Reference implementations](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#reference-implementations).
 
 1. List each section that the exporter implements on its host side.
-2. Skip a section that has a reference implementation:
-   `../freemocap/skellytracker/specs/model-sidecar/reference/<section_module>.py`. Use it or match it
-   in the host code.
-3. If your host code and that reference implementation do not agree, do not write a second reference.
-   Hand over the section to `propose-sidecar-change`.
-4. Skip a section that one of your proposals changes. The part 3 file of the proposal is the reference
-   implementation.
-5. Skip a part of the spec that has no algorithm, for example `common.identity`.
-6. For each other section, do "The step" of Reference implementations. Write
-   `reference/<section_module>.py` of the `model` bundle.
-7. If the host code is not committed, write `to run`. Do the step after the commit.
-8. Fill in the reference table in
+2. For each section, follow
+   [When to do the step](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#when-to-do-the-step).
+   If a reference implementation of the section exists, use it or match it in the host code. Do
+   [The step](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#the-step)
+   for each section that you do not skip.
+3. Fill in the reference table in
    [Proposals and reference files](../../../specs/model-sidecar/templates/model-intake.md#proposals-and-reference-files).
 
 ### Step 8: Write the final verdict and stop

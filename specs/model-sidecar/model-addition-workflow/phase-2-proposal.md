@@ -7,7 +7,10 @@ a `proposal` bundle, with the files that [Hand-over bundles](hand-over.md#payloa
 form first ([Proposal forms](hand-over.md#proposal-forms)). The skill `propose-sidecar-change` gives
 the order of the steps. The intake names each proposal bundle. Then stop.
 
-Before you write a proposal:
+## Before you write a proposal
+
+Do these checks before you write a proposal
+([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)):
 
 - Find your model in the heading "Scope of this revision" of
   `../freemocap/skellytracker/specs/model-sidecar/changelog.md`. If it is not in the list, say so in
@@ -28,11 +31,14 @@ Before you write a proposal:
   crop), write its bundle ID in the header and in `depends_on` of the manifest. One parity script can serve several
   proposals. Cite it in part 5 of each.
 
+## The parts of a proposal
+
 A proposal has eight parts:
 
 1. **Gap.** Give the property, its upstream evidence, and the reason why the nearest section is wrong.
    Show it with a number where possible. Example: a `center` letterbox in place of `fit` gives an
-   input max abs diff of 35 on a 333×500 image (OpenMMLab-Exporter 0020).
+   input max abs diff of 35 on a 333×500 image 
+   ([OpenMMLab-Exporter ADR-0020](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/0020-rtmo-sidecar-contract.md)).
 2. **Spec change.** Write the exact normative text as it will appear in the spec:
    - the new or changed sections;
    - the fields table;
@@ -68,8 +74,9 @@ A proposal has eight parts:
 4. **Vectors.** A test vector is a small worked case: concrete inputs to the algorithm of one section,
    and the exact expected output. Use geometry and small arrays. Do not use images or ONNX files. Make
    the vectors with the reference implementation. Then verify the numeric cases against your host
-   implementation. An `error` case and a `failed` case run only against the reference implementation
-   ([The step](reference-implementations.md#the-step)).
+   implementation. [4. Vectors](../templates/change-proposal.md#4-vectors) of the template gives the
+   cases that run against your host implementation
+   ([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).
    Include a case for each branch, each tie and each strict comparison. If a parameter can be a scalar
    or one value for each channel (for example `pad_value`), include a case with a scalar value on a
    3-channel input. Pixel-exact resize output is out of scope. If you need a pixel case, state its
@@ -98,8 +105,11 @@ A proposal has eight parts:
    - the tests: the vectors, and a golden parity test;
    - the existing skellytracker code that the change touches.
 
-   Read the package code in `../freemocap/skellytracker/skellytracker/`. The template lists the
-   code for each contract part. This part is advisory: the implementer checks it. If you cannot find
+   Read the package code in `../freemocap/skellytracker/skellytracker/`. The Steps column of
+   [Implementation status](../TRACEABILITY.md#implementation-status) names the code of each section.
+   Read the whole file that it names, also its helpers. Part 6 of the template names the other code
+   ([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).
+   This part is advisory: the implementer checks it. If you cannot find
    a call site, write `for the implementer` and say what is not known. On acceptance, this text
    becomes the implementer guidance of the section and an item of the implementation plan
    ([ADR-5WKW](../../../decisions/entries/5WKW-implementation-work-in-the-plan.md)).

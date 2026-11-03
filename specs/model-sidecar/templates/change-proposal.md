@@ -13,8 +13,11 @@ README gives the stages and the phases. Phase 1 is the model intake template (`s
 
 This template has no relative links to other files, so its references stay correct after you copy it.
 It names each skellytracker file by its path in a code span, each spec section by its section ID, and
-each spec heading by its text and the section file that holds it. Read the skellytracker files in the
-skellytracker checkout (read-only) `../freemocap/skellytracker`.
+each spec heading by its text and the section file that holds it. It names each workflow rule by its
+heading and the workflow file that holds it, for example "Before you write a proposal" in
+`specs/model-sidecar/model-addition-workflow/phase-2-proposal.md`. Read the rule there
+(skellytracker ADR-ESP4). Read the skellytracker files in the skellytracker checkout (read-only)
+`../freemocap/skellytracker`.
 
 ## How to use this template
 
@@ -30,51 +33,25 @@ skellytracker checkout (read-only) `../freemocap/skellytracker`.
 6. Write the proposed spec text in ASD-STE100 Simplified Technical English. Use short sentences and
    active voice. Use "must" for a requirement. Keep technical names, field names, enum values,
    formulas, code and YAML unchanged.
-7. Before you write, find your model in the heading "Scope of this revision"
-   (`specs/model-sidecar/changelog.md`). If your model is not in the list, write this in part 1. Do
-   not write a scope entry. If the user accepts the proposal, the model joins the list. Then read the
-   table "Considered and deliberately not added" in the same file. If the feature is in it, cite the
-   row in part 1, and give the evidence that your model needs it now.
-8. Before you write, find the skellytracker decision entries with the status `proposed` that cover
-   your rows. Read the index in `specs/model-sidecar/decisions/README.md` of the skellytracker repo. Also read each
-   `proposed` entry that the guidance of your sections cites. Run `intake_bundle.py list` and choose
-   the form of the proposal: a new proposal, a contribution or a follow-up (`specs/model-sidecar/model-addition-workflow/hand-over.md`,
-   "Proposal forms"). If an entry covers your rows, do not write a competing proposal:
-   - Cite the entry in the header and in part 1.
-   - Add your evidence, your vectors and your parity plan in a contribution.
-   - If your rows need a different change, write a follow-up. Say where your proposal differs. Give
-     the reason in part 8.
-9. If this proposal needs another proposal, write its bundle ID in the header and in `depends_on` of
-   the manifest. Do not edit another bundle. `intake_bundle.py list` shows the reverse links. One parity script can serve several proposals. Cite it in part 5 of each.
-10. After you write the proposal, pack the bundle and stop. Do not change a file in skellytracker. The
-    only exception: `pack` writes the new version folder of your bundle in `intakes/`. The proposed spec text
-    can contain YAML excerpts. Do not write a sidecar file of the model with the proposed fields.
+7. Before you write, do each step of "Before you write a proposal" in
+   `specs/model-sidecar/model-addition-workflow/phase-2-proposal.md`. Choose the form of the
+   proposal as "Proposal forms" in `specs/model-sidecar/model-addition-workflow/hand-over.md` says.
+8. After you write the proposal, pack the bundle and stop. Do not change a file in skellytracker. The
+   only exception: `pack` writes the new version folder of your bundle in `intakes/`. The proposed spec text
+   can contain YAML excerpts. Do not write a sidecar file of the model with the proposed fields.
 
-**Section IDs.** The spec is split into section files under `specs/model-sidecar/`. Each section file has a
-section ID: the `id` in its front matter, for example `pre.resize.letterbox` or
-`post.det.selection.nms` (skellytracker decision 0013). The section map (`specs/model-sidecar/README.md`)
-lists each section ID and its file. For a changed section, use its section ID. For a new section,
-propose an ID in the same scheme (`<format|common|pre|post>.<area>[.<name>]`). The skellytracker
-session that lands the change sets the final section ID and the final rule IDs.
+**Section IDs.** For a changed section, use its section ID. For a new section, propose an ID.
+"Section IDs" in `specs/model-sidecar/model-addition-workflow/reading-the-spec.md` and "Module names"
+in `specs/model-sidecar/model-addition-workflow/reference-implementations.md` give the scheme. The
+skellytracker session that lands the change sets the final section ID and the final rule IDs.
 
 ## What happens next
 
-You do not do these steps. A skellytracker session does them, and the user decides.
-
-1. A skellytracker session verifies the current version of the bundle. It copies the version byte for
-   byte to `specs/model-sidecar/proposals/<slug>/` of the skellytracker repo. It records the proposal
-   as a short decision entry with the status `proposed` (`specs/model-sidecar/model-addition-workflow/hand-over.md`, "Session steps"). The
-   status of that entry gives the state of the proposal. A response file in the bundle is a notice
-   (heading "Responses" in the same file; skellytracker ADR-ZXD7).
-2. The user accepts or rejects the proposal.
-3. After acceptance:
-   - A content PR adds the normative text, the changelog row, the vectors and the reference
-     implementation. Together they define the meaning of the change.
-   - A non-spec PR (documentation only) adds the guidance, the skellytracker implementation
-     proposal (as implementer guidance and an item of the implementation plan), the example and its
-     provenance record.
-   - When skellytracker implements the spec, an implementation PR adds the code.
-4. Then the exporter writes the sidecar with the new fields, and finishes phase 1 for the model.
+You do not do these steps. A skellytracker session does them, and the user decides. Item 2 and
+item 3 of `specs/model-sidecar/model-addition-workflow/phase-3-skellytracker.md` give the steps. The
+status of the `proposed` entry of the proposal gives its state. A response file in the bundle is a
+notice ("Responses" in `specs/model-sidecar/model-addition-workflow/hand-over.md`; skellytracker
+ADR-ZXD7).
 
 ## Header
 
@@ -101,15 +78,13 @@ You do not do these steps. A skellytracker session does them, and the user decid
 
 Give the property, its upstream evidence, and the reason why the nearest section is wrong. Show the
 difference with a number where possible. Example: a `center` letterbox in place of `fit` gives an input
-max abs diff of 35 on a 333×500 image (OpenMMLab-Exporter 0020).
+max abs diff of 35 on a 333×500 image 
+([OpenMMLab-Exporter ADR-0020](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/0020-rtmo-sidecar-contract.md)).
 
-If the only evidence is a secondary source (a plan, a paper, a README or the notes of an exporter),
-mark it `(secondary)`. A check-backed claim gives an upstream line as primary evidence
-(`specs/model-sidecar/model-addition-workflow/rules.md`). Name the primary file or config key that a
-reader must check. Before the user accepts the proposal, this part must cite the primary evidence.
-Cite each source in a form of the heading "Sources" in
-`specs/model-sidecar/model-addition-workflow/rules.md` (skellytracker ADR-FDTD,
-`decisions/entries/FDTD-evidence-sources-and-exporter-permalinks.md`).
+Give the evidence as "Rules" in `specs/model-sidecar/model-addition-workflow/rules.md` says. Cite
+each source in a form of the heading "Sources" in the same file (skellytracker ADR-FDTD). If the
+primary evidence is missing, name the primary file or config key that a reader must check. Before
+the user accepts the proposal, this part must cite the primary evidence.
 
 | Item | Value |
 |---|---|
@@ -133,9 +108,9 @@ The new or changed sections, each with its proposed section ID, its title and it
 new section, also give its front matter (`id`, `title` and `kind`) and its row in the section map
 (`specs/model-sidecar/README.md`).
 
-**Places that the change edits.** A change often extends a closed set or a list in more than one
-place. Search the spec for each value set or list that the change extends. List each place here, with
-its section ID or file, its heading and the edit. Examples:
+**Places that the change edits.** Find each place as part 2 of
+`specs/model-sidecar/model-addition-workflow/phase-2-proposal.md` says. List each place here, with its
+section ID or file, its heading and the edit. Places that a change often edits:
 
 - the `role` values (the Overview in `specs/model-sidecar/README.md`, `common.identity` and its validation
   rules);
@@ -145,11 +120,6 @@ its section ID or file, its heading and the edit. Examples:
 - the storage layout (`format.file_layout`, heading "Storage layout");
 - the Overview, the section map and the validation index (`specs/model-sidecar/README.md`);
 - the summary of changes (`specs/model-sidecar/changelog.md`).
-
-Do not add a legacy difference, an index row or an availability row (skellytracker ADR-NB5F). The
-spec has no legacy reading of an older `schema_version` (skellytracker ADR-0QKK).
-These edits are part of the same contract unit. A new role with its enum and path edits is one
-proposal.
 
 ### 2.2 Fields table
 
@@ -169,7 +139,7 @@ The forward algorithm, step by step. If the section changes coordinates, also gi
 ### 2.4 Validation rules
 
 Write one rule on each line. Give each new rule a new rule ID in the form `V-<section-id>-<n>`, for
-example `V-pre.resize.letterbox-1` (skellytracker decision 0013). Use the proposed section ID. Use
+example `V-pre.resize.letterbox-1` (skellytracker ADR-0013). Use the proposed section ID. Use
 the form of the heading "Validation rules" in a section file, for example
 `specs/model-sidecar/pre/resize-letterbox.md`. Do not renumber an existing rule. A rule ID never
 shifts. To delete a rule, name its ID: its number stays unused (skellytracker ADR-6GE2).
@@ -194,29 +164,12 @@ adds the `Row` line under the open target (skellytracker ADR-6GE2).
 
 ## 3. Reference implementation
 
-- Write the smallest functions that implement exactly the text of part 2.
-- Follow "Imports of other sections" in
-  `specs/model-sidecar/model-addition-workflow/reference-implementations.md`.
-- Write one function for each algorithm.
-- In each docstring, cite the proposed section ID.
-- Your host decoder needs this behaviour. The reference implementation is the clean, minimal form of
-  your host code.
-- If no host code exists yet, write the functions from the text of part 2. Write
-  `source commit: none (no host code)` in the note at the top of the file. Part 4 is then
-  `unverified: no host implementation`.
-- If the proposal changes a section, follow "Full section" in
-  `specs/model-sidecar/model-addition-workflow/reference-implementations.md`.
-- If the proposal changes more than one section, or needs a section that has no module, follow "A
-  proposal that changes more than one section" and "When the other section has no module" in the
-  same file.
-- Write the code to `reference/<section_module>.py` in the proposal bundle. Name that file here.
-- `<section_module>` is the proposed section ID with each dot replaced by an underscore
-  (`pre.resize.letterbox` gives `pre_resize_letterbox`). A proposal always uses the proposed section
-  ID. For a changed section, that is the `id` in the front matter of its section file.
-- To load or run a reference file, follow "Run a module that imports another module" in
-  `specs/model-sidecar/model-addition-workflow/reference-implementations.md`. Keep your case code outside `reference/` ("Code for the cases").
-- On acceptance, skellytracker adds the code as `specs/model-sidecar/reference/<section_module>.py`. It is
-  informative spec code, not package code. It is the single executable meaning of the new text.
+Write the reference implementation as part 3 of
+`specs/model-sidecar/model-addition-workflow/phase-2-proposal.md` says. Follow these headings in
+`specs/model-sidecar/model-addition-workflow/reference-implementations.md`: "Full section", "Module
+names", "Imports of other sections", "A proposal that changes more than one section", "When the other
+section has no module", "Code for the cases" and "Run a module that imports another module". Write
+the code to `reference/<section_module>.py` in the proposal bundle. Name that file here.
 
 | Item | Value |
 |---|---|
@@ -230,15 +183,15 @@ A test vector is a small worked case: concrete inputs to the algorithm of one se
 expected output.
 
 - Make the vectors with the reference implementation of part 3.
-- Run the numeric cases through the host implementation of the exporter. List it in
+- Run the numeric cases through the host implementation of the exporter. A host run of an exporter
+  compares only the numeric cases. An `error` case and a `failed` case run only against the reference
+  implementation, and they do not need `verified_against`. List the host implementation in
   `verified_against` only if it gives the same results. A `verified_against` that the exporter gives
-  covers only the numeric cases. An `error` case and a `failed` case do not need `verified_against`.
-- The reference implementation and its source exporter count as one implementation in
-  `verified_against`. Only exporters and skellytracker count as implementations. Do not list the
-  upstream library. If you ran a case through upstream code, write that in the `note` of the case.
-- If no implementation gave the same results yet (for example, the host code does not exist or is not
-  committed), write `unverified: <reason>` in place of `verified_against`. A vector made only from a
-  reading of the spec text is not verified.
+  covers only the numeric cases (skellytracker ADR-ESP4).
+- Write `verified_against`, or `unverified: <reason>` in its place, as "Independence" in
+  `specs/model-sidecar/model-addition-workflow/sidecar-files.md` says. For example, write
+  `unverified: <reason>` when the host code does not exist or is not committed
+  (skellytracker ADR-ESP4).
 - Include a case for each branch of the algorithm, and the edge cases: rounding ties, strict `>`
   comparisons and tie order.
 - If a parameter can be a scalar or one value for each channel (for example `pad_value`), include a
@@ -300,8 +253,6 @@ expected output.
 - A validator case can be data only. Write `function: none` and write its `expect: {failed: [...]}`
   yourself. The generator does not run such a case. Use `function: none` only with `failed`
   (skellytracker ADR-8DSW).
-- The host code of the exporter runs only the numeric cases. An `error` case and a `failed` case
-  run only against the reference implementation.
 - Write NaN as `.nan` and infinity as `.inf`. A NaN expected value is equal to NaN.
 - Write the author keys: each key of the example below except `expect`. Then run `fill` of
   `tools/make_vectors.py` in the environment of the skellytracker checkout. It writes `expect` of
@@ -404,47 +355,28 @@ Follow the parity rules of the model addition workflow
 
 ## 6. skellytracker implementation proposal
 
-skellytracker does not build this now. It builds it when it implements the spec. Do not change
-skellytracker code. On acceptance, this text becomes the implementer guidance of the section and an
-item of the implementation plan.
+Write this part as part 6 of `specs/model-sidecar/model-addition-workflow/phase-2-proposal.md` says.
+Do not change skellytracker code. Read the package code in
+`../freemocap/skellytracker/skellytracker/`.
 
-This part is advisory: the implementer checks it. Read the package code in
-`../freemocap/skellytracker/skellytracker/`. If you cannot find a call site, write
-`for the implementer`, and say what is not known.
-
-Write:
-
-- where the code goes: a module and a function under `skellytracker/core/detectors/processing/`, or
-  a new module;
-- the dispatch point, for example a new branch in `preprocess_image`
-  (`skellytracker/core/detectors/processing/image_preprocessing.py`), which selects the resize by
-  `input_spec.resize.method`;
-- the validator changes in `skellytracker/core/sidecar/model.py`, with the rule IDs of part 2.4;
-- the tests: the vectors of part 4, and a golden parity test (for example, the tests in
-  `skellytracker/tests/sidecar/` compare detector output with golden fixtures);
-- the existing skellytracker code that the change touches (file and function).
-
-The code for each contract part today:
+The code for each contract part today: the Steps column of the table "Implementation status" in
+`specs/model-sidecar/TRACEABILITY.md` names the function of each step of each section. Read the whole
+file that the Steps column names, also its helpers. The Steps column does not give these parts
+(skellytracker ADR-ESP4):
 
 | Contract part | File | Functions or classes |
 |---|---|---|
-| Resize and normalization | `skellytracker/core/detectors/processing/image_preprocessing.py` | `preprocess_image`, `letterbox_preprocess`, `fit_preprocess`, `build_normalization_fn` |
-| Top-down affine crop | `skellytracker/core/detectors/processing/affine_crop.py` | `top_down_affine`, `bbox_xyxy2cs`, `get_warp_matrix` |
-| Detection decode, and the box unprojection (a division by the letterbox `ratio`) | `skellytracker/core/detectors/processing/object_detection_decode.py` | `decode_prenms`, `decode_nms_baked_in`, `boxes_to_xyxy`, `nms`, `multiclass_nms` |
-| SimCC pose decode, and the keypoint unprojection from the crop | `skellytracker/core/detectors/processing/simcc_decode.py` | `simcc_pose_decode`, `decode_simcc` |
 | Detector dispatch by `detector_type` | `skellytracker/core/detectors/detector_base_classes.py` | `OBJECT_DETECTOR_REGISTRY`, `KEYPOINT_DETECTOR_REGISTRY`, `build_object_detector`, `build_keypoint_detector` |
 | A stage: one optional object detector and its keypoint detectors | `skellytracker/core/tracker/detection_stage.py` | `DetectionStage` |
-| Sidecar loading and composition | `skellytracker/core/sidecar/loader.py`, `skellytracker/core/sidecar/resolution.py` | `load_sidecar`, `resolve_sidecar_composition` |
 | From a sidecar to an ONNX model spec | `skellytracker/core/sidecar/runtime.py` | `sidecar_model_spec` |
-| Validation | `skellytracker/core/sidecar/model.py` | `SidecarModel`, `ResizeSpec`, `DetectionDecodeSpec`, `PoseDecodeSpec` |
-| Catalog and discovery of sidecars | none yet | `format.file-layout` (`specs/model-sidecar/format/file-layout.md`, headings "Sidecar roots" and "Discovery") gives the rules (skellytracker ADR-0QKK). |
+| Catalog and discovery of sidecars | none yet | `format.file_layout` (`specs/model-sidecar/format/file-layout.md`, headings "Sidecar roots" and "Discovery") gives the rules (skellytracker ADR-0QKK). |
 
 | Item | Value |
 |---|---|
 | Module and function | |
 | Dispatch point | |
 | Validator changes (`model.py`, with rule IDs) | |
-| Tests | |
+| Tests (the vectors of part 4, and a golden parity test, for example in `skellytracker/tests/sidecar/`) | |
 | Existing code that the change touches | |
 
 ## 7. Exporter impact

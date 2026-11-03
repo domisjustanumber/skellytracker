@@ -212,6 +212,11 @@ BLOCKS = (
             ("[ADR-JB5J](decisions/entries/JB5J-one-batch-form-for-each-sidecar.md).", f"[ADR-0001]({KIT_0001})."),
             ("This rule also applies to an older entry with a lower-case file name.\n", ""),
             (
+                "A template in `specs/model-sidecar/templates/` cites a skellytracker entry as"
+                " `skellytracker ADR-<ID>`,\nwith no link, because its copies leave this repository.\n",
+                "",
+            ),
+            (
                 "\n([ADR-Z05A](decisions/entries/Z05A-essential-decision-log-rules.md); see the\n"
                 "[Rules](decisions/README.md#rules)).",
                 "\n(see the [Rules](decisions/README.md#rules)).",
