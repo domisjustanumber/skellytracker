@@ -181,3 +181,6 @@ intakes/
 
 # Local list of private terms for tools/check_private_data.py (decision 0030). Never commit it.
 .private-terms
+
+# Local graphify code graph of each checkout (decision 87B2). Never commit it.
+graphify-out/

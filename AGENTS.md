@@ -88,6 +88,7 @@ Use `uv run` for project commands. Do not depend on an activated virtual environ
 ```sh
 uv sync --extra all-cpu                     # dev tools, MediaPipe, onnx, CPU ONNX Runtime
 uv run pre-commit install                   # hooks; once per clone, and again after .pre-commit-config.yaml changes
+uv run python tools/graphify_hooks.py install  # optional code graph; in each checkout, and again after tools/graphify_hook.sh changes
 uv run pytest -m "not video"                # package tests and doc tests; must pass
 uv run pytest tools/tests                   # doc tests only: links, examples, decision log, private data
 uv run pytest -o faulthandler_timeout=300   # all tests, with the video tests
@@ -100,6 +101,18 @@ uv run ruff check skellytracker/ tools/ decisions/scripts/  # lint
   ([`skellytracker/AGENTS.md`](skellytracker/AGENTS.md#tests)).
 - Report each new test failure to the user. Fix the failures of one root cause in one PR. Do not put
   other changes in that PR ([Phase 3](specs/model-sidecar/model-addition-workflow/phase-3-skellytracker.md)).
+- graphify is an optional local tool ([ADR-87B2](decisions/entries/87B2-local-graphify-code-graph.md)).
+  It keeps a code graph in `graphify-out/` in the root of a checkout. Git ignores this folder.
+  Do not commit a file from it. Git hooks update the graph after each commit, checkout, merge and
+  rebase.
+- If `graphify-out/graph.json` exists, run `uvx --from graphifyy==0.9.100 graphify query "<question>"`
+  before you search the code. The subcommands `path "A" "B"` and `explain "X"` are also available.
+  Run each `graphify` command of this section with the prefix `uvx --from graphifyy==0.9.100`.
+  The graph can be older than the working tree. Read a file before you change it.
+- Do not run `graphify install`, `graphify hook install` or a `graphify <agent> install` command.
+  They write to `CLAUDE.md`, `AGENTS.md`, `.gitattributes`, the git config or agent settings.
+- Do not run `/graphify`, `graphify extract`, `graphify label` or `graphify add` without the approval
+  of the user. They can send files to an LLM or fetch URLs.
 
 ## 4. Sidecar Rules
 

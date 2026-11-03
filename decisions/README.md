@@ -43,6 +43,7 @@ These entries are `accepted` or `evidence`.
 | [QPS7](entries/QPS7-decision-entries-in-an-entries-folder.md) | The entry files of each log are in `entries/`; the checker also reads the old layout on other branches; `_Edited` lines do not count to the limit | accepted |
 | [NB91](entries/NB91-new-ids-have-a-digit.md) | New IDs have a digit and a letter in any position; `--new` draws them uniformly; old all-digit and lower-case letter-first IDs stay valid | accepted |
 | [5WKW](entries/5WKW-implementation-work-in-the-plan.md) | Stages M7 to M12 of the implementation plan hold the implementation-stage work; append only; the user decides when the plan goes; supersedes b9fm | accepted |
+| [87B2](entries/87B2-local-graphify-code-graph.md) | Optional local graphify code graph in an ignored `graphify-out/`; `uvx` pin; hooks from `tools/graphify_hooks.py`; opt-in for each checkout | accepted |
 
 ### Proposed
 
