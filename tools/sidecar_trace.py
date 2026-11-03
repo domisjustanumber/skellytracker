@@ -29,7 +29,7 @@ The tool reads the models from the working tree. It changes no file.
 
 ``examples`` compares each reference example with the exporter's copy
 (``DIR/<exporter>/<exporter_path>``, from ``specs/model-sidecar/inventory.yaml``). It resolves ``$ref``
-and ``base`` on both sides with ``sidecar_refs.resolve`` and compares the parsed YAML, so comments
+on both sides with ``sidecar_refs.resolve`` and compares the parsed YAML, so comments
 and ``$ref`` fragments do not count. When the exporter's copy does not resolve, the tool compares
 it as written and says so. It prints to stdout only. CI does not run it: CI has no exporter
 checkouts.
@@ -1268,7 +1268,7 @@ def _problem(exc: Exception) -> str:
 
 
 def _resolved_or_plain(path: Path) -> tuple[Any, str | None]:
-    """Resolve `$ref` and `base` of an exporter's copy; else read it as it is.
+    """Resolve each `$ref` of an exporter's copy; else read it as it is.
 
     Return the data and, when the copy did not resolve, the reason. Raise `yaml.YAMLError` when
     the copy is not YAML. The root of the copy is the parent of its nearest `detectors` folder,

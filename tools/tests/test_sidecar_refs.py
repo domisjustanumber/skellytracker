@@ -19,16 +19,11 @@ from sidecar_refs import PLACEHOLDER, SidecarRefsError, check, resolve, write
 
 TOOLS_DIR = Path(sidecar_refs.__file__).resolve().parent
 SIDECAR_REL = "detectors/object_detectors/m/m.yaml"
-BASE_REL = "detectors/object_detectors/b/b.yaml"
 HEX = re.compile(r"[0-9a-f]{64}")
 URL_HASH = "a6d08a575c9d8b8da7ce6c13e1c7341047fca35594a6d35de04b739eba51139c"
 
 POINTS = "- nose\n- left_eye\n"
 OUTER = "# a fragment that refers to a fragment\nnames: {$ref: points.yaml}\nextra: 1\n"
-BASE = (
-    '---\nschema_version: "1"\nmodel_id: b\n'
-    "display_name: Base\nrole: [object_detector]\ninput:\n  layout: NCHW\n  name: images\n"
-)
 # One flow artifact, one flow artifact with spaces and quotes, one block artifact.
 SIDECAR = f"""\
 ---
@@ -41,28 +36,29 @@ pose:
   connections:
     $ref: ../../shared/outer.yaml    # block form
 
+batching:
+  batch: 1
 sizes:
   nano:
     onnx:
-      batch_artifacts:
-        "1":
-          precision_artifacts:
-            fp32: {{filename: m-nano_b1_fp32.onnx}}   # flow form
-            fp16: {{ filename: 'm-nano_b1_fp16.onnx', url: https://example.invalid/a.zip, url_sha256: "{URL_HASH}" }}
-            int8:
-              filename: m-nano_b1_int8.onnx    # block form
-              url: https://example.invalid/b.zip
-              url_sha256: "{URL_HASH}"
+      precision_artifacts:
+        fp32: {{filename: m-nano_b1_fp32.onnx}}   # flow form
+        fp16: {{ filename: 'm-nano_b1_fp16.onnx', url: https://example.invalid/a.zip, url_sha256: "{URL_HASH}" }}
+  small:
+    onnx:
+      precision_artifacts:
+        fp32:
+          filename: m-small_b1_fp32.onnx    # block form
+          url: https://example.invalid/b.zip
+          url_sha256: "{URL_HASH}"
 
 # final comment
 """
 ONNX_FILES = {
     "m-nano_b1_fp32.onnx": b"fp32 bytes",
     "m-nano_b1_fp16.onnx": b"fp16 bytes",
-    "m-nano_b1_int8.onnx": b"int8 bytes",
+    "m-small_b1_fp32.onnx": b"small fp32 bytes",
 }
-DERIVED_REL = "detectors/object_detectors/d/d.yaml"
-DERIVED = 'schema_version: "1"\nbase: ../b/b.yaml  # parent\nmodel_id: d\n'
 
 
 def sha(data: bytes) -> str:
@@ -83,7 +79,6 @@ def standard_files() -> dict[str, str | bytes]:
         SIDECAR_REL: SIDECAR,
         "detectors/shared/points.yaml": POINTS,
         "detectors/shared/outer.yaml": OUTER,
-        BASE_REL: BASE,
     }
 
 
@@ -125,8 +120,7 @@ def snapshot(root: Path) -> dict[Path, bytes]:
 
 
 def strip_added(text: str) -> str:
-    """Remove the entries that `--write` inserts: a `sha256` entry, a `base` mapping, `source`."""
-    text = re.sub(r'base: \{\$ref: (.*?), sha256: "[0-9a-f]{64}"\}', r"base: \1", text)
+    """Remove the entries that `--write` inserts: a `sha256` entry and `source`."""
     text = re.sub(r', sha256: "[0-9a-f]{64}"', "", text)
     text = re.sub(r'\n *sha256: "[0-9a-f]{64}"', "", text)
     return re.sub(r"\nsource:\n  name: .*\n  version: .*", "", text)
@@ -204,45 +198,15 @@ def test_a_fragment_that_two_files_refer_to_is_read_once(root_with_onnx: Path) -
     assert check(sidecar_of(root), root) == []
 
 
-def test_base_becomes_a_hashed_mapping(root: Path) -> None:
-    put(root, {DERIVED_REL: DERIVED})
-    path = root / DERIVED_REL
-    assert any("`base` ../b/b.yaml has no `sha256`" in e for e in check(path, root))
-    write(path, root)
-    expected = sha((root / BASE_REL).read_bytes())
-    assert read(root, DERIVED_REL) == DERIVED.replace(
-        "base: ../b/b.yaml", f'base: {{$ref: ../b/b.yaml, sha256: "{expected}"}}'
-    )
-    assert check(path, root) == []
-
-
-def test_a_base_with_quotes_or_a_flow_indicator_stays_valid(root: Path) -> None:
-    put(root, {"detectors/object_detectors/b,2/b2.yaml": BASE})
-    quoted = 'base: "../b,2/b2.yaml"\n'
-    plain = "base: ../b,2/b2.yaml\n"
-    for text in (quoted, plain):
-        put(root, {DERIVED_REL: text})
-        write(root / DERIVED_REL, root)
-        loaded = yaml.safe_load(read(root, DERIVED_REL))
-        assert loaded["base"]["$ref"] == "../b,2/b2.yaml"
-        assert check(root / DERIVED_REL, root) == []
-
-
-def test_a_base_in_block_form_gets_a_sha256_line(root: Path) -> None:
-    put(
-        root,
-        {
-            DERIVED_REL: 'schema_version: "1"\nbase:\n  $ref: ../b/b.yaml\nmodel_id: d\n'
-        },
-    )
-    path = root / DERIVED_REL
-    write(path, root)
-    loaded = yaml.safe_load(read(root, DERIVED_REL))
-    assert loaded["base"] == {
-        "$ref": "../b/b.yaml",
-        "sha256": sha((root / BASE_REL).read_bytes()),
-    }
-    assert check(path, root) == []
+def test_a_top_level_base_is_refused(root: Path) -> None:
+    # `$ref` is the only directive (ADR-90CE); the frozen package would still merge a `base` file.
+    text = 'schema_version: "1"\nbase: ../../shared/points.yaml\nmodel_id: d\n'
+    put(root, {SIDECAR_REL: text})
+    errors = check(sidecar_of(root), root)
+    assert len(errors) == 1 and "`base` is not a directive" in errors[0]
+    with pytest.raises(SidecarRefsError, match="`base` is not a directive"):
+        write(sidecar_of(root), root)
+    assert read(root) == text
 
 
 # --------------------------------------------------------------------------------------------
@@ -492,11 +456,11 @@ def test_a_block_mapping_artifact_gets_a_line_after_the_filename_line(
 ) -> None:
     root = root_with_onnx
     write(sidecar_of(root), root)
-    digest = sha(ONNX_FILES["m-nano_b1_int8.onnx"])
+    digest = sha(ONNX_FILES["m-small_b1_fp32.onnx"])
     assert (
-        "              filename: m-nano_b1_int8.onnx    # block form\n"
-        f'              sha256: "{digest}"\n'
-        "              url: https://example.invalid/b.zip\n"
+        "          filename: m-small_b1_fp32.onnx    # block form\n"
+        f'          sha256: "{digest}"\n'
+        "          url: https://example.invalid/b.zip\n"
     ) in read(root)
 
 
@@ -561,7 +525,7 @@ def test_check_verifies_an_onnx_hash_only_when_the_file_is_present(root: Path) -
     )
     other_files = [
         "detectors/object_detectors/m/m-nano_b1_fp16.onnx",
-        "detectors/object_detectors/m/m-nano_b1_int8.onnx",
+        "detectors/object_detectors/m/m-small_b1_fp32.onnx",
     ]
     put(root, dict.fromkeys(other_files, b"x"))
     write(sidecar_of(root), root)
@@ -613,28 +577,23 @@ def test_an_onnx_file_next_to_the_fragment_only_is_not_used(root: Path) -> None:
     assert "sha256" not in read(root, "detectors/shared/arts.yaml")
 
 
-BASE_WITH_ARTIFACT = BASE + (
-    "sizes:\n  nano:\n    onnx:\n      batch_artifacts:\n"
-    '        "1":\n          precision_artifacts:\n            fp32: {filename: b.onnx}\n'
-)
-
-
-def test_artifacts_in_a_base_use_the_folder_of_the_derived_sidecar(root: Path) -> None:
+def test_artifacts_in_a_fragment_use_the_folder_of_the_leaf_sidecar(root: Path) -> None:
     # The runtime loads `sidecar_dir / filename` with the folder of the leaf sidecar.
+    fragment = "detectors/shared/sizes.yaml"
     put(
         root,
         {
-            BASE_REL: BASE_WITH_ARTIFACT,
-            DERIVED_REL: DERIVED,
-            "detectors/object_detectors/b/b.onnx": b"next to the base",
-            "detectors/object_detectors/d/b.onnx": b"next to the derived sidecar",
+            fragment: "nano:\n  onnx:\n    precision_artifacts:\n      fp32: {filename: s.onnx}\n",
+            SIDECAR_REL: "model_id: m\nsizes: {$ref: ../../shared/sizes.yaml}\n",
+            "detectors/shared/s.onnx": b"next to the fragment",
+            "detectors/object_detectors/m/s.onnx": b"next to the leaf sidecar",
         },
     )
-    write(root / DERIVED_REL, root)
-    base = read(root, BASE_REL)
-    assert f'sha256: "{sha(b"next to the derived sidecar")}"' in base
-    assert sha(b"next to the base") not in base
-    assert check(root / DERIVED_REL, root) == []
+    write(sidecar_of(root), root)
+    text = read(root, fragment)
+    assert f'sha256: "{sha(b"next to the leaf sidecar")}"' in text
+    assert sha(b"next to the fragment") not in text
+    assert check(sidecar_of(root), root) == []
 
 
 # --------------------------------------------------------------------------------------------
@@ -694,7 +653,7 @@ def test_write_keeps_every_byte_outside_the_inserted_entries(
         {
             SIDECAR_REL: SIDECAR.replace(
                 "model_id:   m\n",
-                "model_id:   m\nbase: '../b/b.yaml'   # single quotes\n",
+                "model_id:   m\nextra: {$ref: '../../shared/points.yaml'}   # single quotes\n",
             )
         },
     )
@@ -707,7 +666,7 @@ def test_write_keeps_every_byte_outside_the_inserted_entries(
         assert strip_added(after[path]) == before[path]
     assert "\r" not in after[sidecar_of(root)]
     hashes = HEX.findall(after[sidecar_of(root)])
-    # Two url_sha256 values, then: the points fragment, the outer fragment, base, 3 artifacts.
+    # Two url_sha256 values, then: the points fragment, the outer fragment, `extra`, 3 artifacts.
     assert len(hashes) == 2 + 6
 
 
@@ -810,10 +769,8 @@ def test_source_goes_before_the_first_key_when_there_is_no_schema_version(
 
 
 def test_source_is_added_to_the_named_sidecar_only(root: Path) -> None:
-    put(root, {DERIVED_REL: DERIVED})
-    write(root / DERIVED_REL, root, source=("x", "1"))
-    assert "source:" in read(root, DERIVED_REL)
-    assert "source:" not in read(root, BASE_REL)
+    write(sidecar_of(root), root, source=("x", "1"))
+    assert "source:" in read(root)
     assert "source:" not in read(root, "detectors/shared/outer.yaml")
 
 
@@ -853,30 +810,11 @@ def test_resolve_accepts_a_hashed_tree_and_gives_the_same_data(
     hashed = resolve(sidecar_of(root), root)
     assert hashed["pose"] == unhashed["pose"]
     # The artifact hashes stay in the data: they are valid fields.
-    fp32 = hashed["sizes"]["nano"]["onnx"]["batch_artifacts"]["1"][
-        "precision_artifacts"
-    ]["fp32"]
+    fp32 = hashed["sizes"]["nano"]["onnx"]["precision_artifacts"]["fp32"]
     assert fp32 == {
         "filename": "m-nano_b1_fp32.onnx",
         "sha256": sha(ONNX_FILES["m-nano_b1_fp32.onnx"]),
     }
-
-
-def test_resolve_handles_a_hashed_base(root: Path) -> None:
-    put(root, {DERIVED_REL: DERIVED + "display_name: Derived\ninput:\n  name: null\n"})
-    path = root / DERIVED_REL
-    unhashed = resolve(path, root)
-    assert unhashed == package_resolve(path, root)
-    write(path, root)
-    assert "base: {$ref: ../b/b.yaml, sha256:" in read(root, DERIVED_REL)
-    hashed = resolve(path, root)
-    assert hashed == unhashed
-    assert hashed["model_id"] == "d"
-    assert hashed["display_name"] == "Derived"
-    assert hashed["input"] == {
-        "layout": "NCHW"
-    }  # `name: null` deletes the key of the base
-    assert hashed["role"] == ["object_detector"]
 
 
 def test_resolve_rejects_a_tampered_fragment(root_with_onnx: Path) -> None:

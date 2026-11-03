@@ -580,7 +580,7 @@ def test_batch_converts_down_and_up_and_writes_the_fragment(family) -> None:  # 
     assert upward["v5"]["result"] == "pass"
     assert upward["v5"]["B"]["outputs"]["y"]["rows"] == 4
     assert yaml.safe_load((out / "conversion.yaml").read_text(encoding="utf-8")) == {
-        "batching": {"batch_conversion": {"profile_id": "static-batch-v1", "source_batch_size": 3}}
+        "batching": {"batch_conversion": {"profile_id": "static-batch-v1"}}
     }
     assert json.loads((out / "report.json").read_text(encoding="utf-8")) == json.loads(json.dumps(report))
     assert not (out / "residual-diff.json").exists()
@@ -761,7 +761,7 @@ def test_batch_runs_only_in_the_venv_of_the_checkout(
 
 def converts_bundle(
     tmp_path: Path, published: tuple, sidecar_source: int | None, conversion: bool, sizes: dict | None = None,
-    batches: tuple = (1, 2, 3, 4), **fields,
+    batches: tuple = (1, 2, 3, 4), profile: dict = ib.PROFILE, **fields,
 ) -> Path:
     """Pack a model bundle (by default `converts`) with the given batches and return its intakes folder."""
     root = tmp_path / "freemocap" / "skellytracker" / "intakes"
@@ -780,14 +780,14 @@ def converts_bundle(
     }
     batching: dict = {"batch": sidecar_source or 1}
     if sidecar_source:
-        batching["batch_conversion"] = {"profile_id": "static-batch-v1"}
+        batching["batch_conversion"] = profile
     files = {
         "intake.md": "text\n",
         "example/provenance.yaml": json.dumps({"examples": {"detectors/x.yaml": entry}}),
         "example/detectors/x.yaml": json.dumps({"batching": batching} | ({"sizes": sizes} if sizes else {})),
     }
     if conversion:
-        files["batch/conversion.yaml"] = json.dumps({"batching": {"batch_conversion": ib.PROFILE}})
+        files["batch/conversion.yaml"] = json.dumps({"batching": {"batch_conversion": profile}})
     fields = {"batch_conversion": "converts", "batch_forced": None, "batch_forced_reason": None} | fields
     ib.pack(payload(tmp_path, files), model_fields(external=external, **fields), root, cwd=tmp_path)
     return root
@@ -814,7 +814,17 @@ def test_verify_checks_the_publish_rule(tmp_path: Path) -> None:
     root = converts_bundle(tmp_path / "b", (3,), None, conversion=False)
     assert ib.verify("model-yolo26@ultralytics-exporter", root) == [
         SIDECAR_FINDING,
-        "publish rule: batch/conversion.yaml must have source_batch_size: 3",
+        "publish rule: example/detectors/x.yaml must have batching.batch: 3",
+        "publish rule: batch/conversion.yaml must have batching.batch_conversion: {'profile_id': 'static-batch-v1'}",
+    ]
+
+
+def test_verify_refuses_the_removed_source_batch_size(tmp_path: Path) -> None:
+    old = {"profile_id": "static-batch-v1", "source_batch_size": 3}  # the form before ADR-JAA4
+    root = converts_bundle(tmp_path, (3,), 3, conversion=True, profile=old)
+    assert ib.verify("model-yolo26@ultralytics-exporter", root) == [
+        f"publish rule: example/detectors/x.yaml must have batching.batch_conversion: {ib.PROFILE}",
+        f"publish rule: batch/conversion.yaml must have batching.batch_conversion: {ib.PROFILE}",
     ]
 
 

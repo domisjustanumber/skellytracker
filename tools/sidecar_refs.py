@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
 """Write and check the reference hashes of a sidecar tree.
 
-A sidecar can refer to other files. A ``$ref`` directive includes a fragment. A top-level ``base``
-directive inherits from another sidecar. Each of them holds the SHA-256 of the exact
-bytes of its target file, and each ``filename`` artifact holds the SHA-256 of its ONNX file. The
-rules are in ``decisions/entries/0016-sidecar-catalogs.md`` and in
-``specs/model-sidecar/format/composition.md``.
+A sidecar can refer to other files. A ``$ref`` directive includes a fragment. ``$ref`` is the only
+directive (``decisions/entries/90CE-minimal-sidecar-contract.md``). Each ``$ref`` holds the SHA-256
+of the exact bytes of its target file. Each ``filename`` artifact holds the SHA-256 of its ONNX file.
+The rules are in ``specs/model-sidecar/format/composition.md``.
 
 Commands::
 
     python tools/sidecar_refs.py --write SIDECAR [--placeholder] [--source NAME==VERSION] [--root DIR]
     python tools/sidecar_refs.py --check SIDECAR [--root DIR]
 
-``--write`` goes depth first. It fills in ``sha256`` on every ``$ref`` and ``base`` of the tree, so
+``--write`` goes depth first. It fills in ``sha256`` on every ``$ref`` of the tree, so
 the hashes inside a fragment are in place before the tool takes the hash of that fragment. It also
 fills in ``sha256`` on every ``filename`` artifact whose ONNX file is in the folder of SIDECAR (the
-leaf model folder). This is true also when a fragment or a base file declares the artifact:
+leaf model folder). This is true also when a fragment declares the artifact:
 ``filename`` is relative to the leaf model folder
 (``specs/model-sidecar/common/sizes-and-artifacts.md``, "Per-precision artifact fields"). ``--placeholder``
 writes the reserved 64-zero value on an artifact that has no ``sha256`` and no ONNX file. It never
@@ -27,7 +26,7 @@ flow mappings) and the ``source`` block. It keeps every other byte, with the com
 the order and the blank lines. It never loads the YAML and writes it out again. It changes no file
 when it reports an error.
 
-``--check`` verifies every ``$ref`` and ``base`` hash against the exact bytes of the target file,
+``--check`` verifies every ``$ref`` hash against the exact bytes of the target file,
 before any parsing. It verifies an ONNX hash only when the ONNX file is present in the folder of
 SIDECAR. A CRLF file or a file with a byte order mark is an error of its own. The placeholder is
 valid only in a file under ``specs/model-sidecar/examples/``. The exit status is 1 when a check fails.
@@ -64,7 +63,6 @@ _STR_TAG = "tag:yaml.org,2002:str"
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 _PLAIN_SAFE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._+\-]*")
 _BOM_PREFIXES = (b"\xef\xbb\xbf", b"\xff\xfe", b"\xfe\xff")
-_FLOW_INDICATORS = ",[]{}"
 _CHUNK = 1 << 20
 
 
@@ -156,11 +154,10 @@ def _sha_value(node: yaml.Node) -> tuple[str | None, str | None]:
 
 @dataclass
 class _Reference:
-    kind: str  # "$ref" or "base"
     line: int
     target: str
     path_node: yaml.ScalarNode
-    mapping: yaml.MappingNode | None  # None for `base: <path>`
+    mapping: yaml.MappingNode
     sha_node: yaml.Node | None
 
 
@@ -189,49 +186,27 @@ def _scan(text: str) -> _Scan:
     except yaml.YAMLError as exc:
         scan.problems.append((1, "cannot parse YAML: " + " ".join(str(exc).split())))
         return scan
-    base_ids: set[int] = set()
     if isinstance(scan.root, yaml.MappingNode):
-        for key, value in scan.root.value:
-            if not (isinstance(key, yaml.ScalarNode) and key.value == "base"):
-                continue
-            line = key.start_mark.line + 1
-            if isinstance(value, yaml.ScalarNode):
-                if value.tag == _STR_TAG:
-                    scan.references.append(
-                        _Reference("base", line, value.value, value, None, None)
-                    )
-                else:
-                    scan.problems.append((line, "`base` must be a file path string"))
-            elif isinstance(value, yaml.MappingNode) and "$ref" in _key_map(value):
-                base_ids.add(id(value))
-            else:
-                scan.problems.append(
-                    (
-                        line,
-                        "`base` must be a file path or a mapping with `$ref` and `sha256`",
-                    )
-                )
-    _walk(scan.root, scan, set(), base_ids)
+        for key, _ in scan.root.value:
+            if isinstance(key, yaml.ScalarNode) and key.value == "base":
+                scan.problems.append((key.start_mark.line + 1, "`base` is not a directive; use `$ref` (ADR-90CE)"))
+    _walk(scan.root, scan, set())
     return scan
 
 
-def _walk(
-    node: yaml.Node | None, scan: _Scan, seen: set[int], base_ids: set[int]
-) -> None:
+def _walk(node: yaml.Node | None, scan: _Scan, seen: set[int]) -> None:
     if node is None or id(node) in seen:
         return
     seen.add(id(node))
     if isinstance(node, yaml.SequenceNode):
         for item in node.value:
-            _walk(item, scan, seen, base_ids)
+            _walk(item, scan, seen)
         return
     if not isinstance(node, yaml.MappingNode):
         return
     keys = _key_map(node)
     if "$ref" in keys:
-        _add_mapping_reference(
-            node, keys, "base" if id(node) in base_ids else "$ref", scan
-        )
+        _add_mapping_reference(node, keys, scan)
         return
     for key, value in node.value:
         is_artifact_map = (
@@ -242,11 +217,11 @@ def _walk(
         if is_artifact_map:
             for _, artifact in value.value:
                 _add_artifact(artifact, scan)
-        _walk(value, scan, seen, base_ids)
+        _walk(value, scan, seen)
 
 
 def _add_mapping_reference(
-    node: yaml.MappingNode, keys: dict[str, yaml.Node], kind: str, scan: _Scan
+    node: yaml.MappingNode, keys: dict[str, yaml.Node], scan: _Scan
 ) -> None:
     line = node.start_mark.line + 1
     extra = sorted(k for k in keys if k not in ("$ref", "sha256"))
@@ -255,16 +230,16 @@ def _add_mapping_reference(
         scan.problems.append(
             (
                 line,
-                f"a `{kind}` mapping must hold only `$ref` and `sha256`, found {extra}",
+                f"a `$ref` mapping must hold only `$ref` and `sha256`, found {extra}",
             )
         )
     elif not isinstance(path_node, yaml.ScalarNode) or path_node.tag != _STR_TAG:
         scan.problems.append(
-            (line, f"the `$ref` of a `{kind}` mapping must be a file path string")
+            (line, "the `$ref` of a `$ref` mapping must be a file path string")
         )
     else:
         scan.references.append(
-            _Reference(kind, line, path_node.value, path_node, node, keys.get("sha256"))
+            _Reference(line, path_node.value, path_node, node, keys.get("sha256"))
         )
 
 
@@ -434,7 +409,7 @@ class _Run:
         if new_data != data:
             self.final[path] = new_data
 
-    # ---- $ref and base -------------------------------------------------------------------
+    # ---- $ref -------------------------------------------------------------------------
 
     def _reference(
         self,
@@ -450,17 +425,17 @@ class _Run:
             self.error(
                 path,
                 ref.line,
-                f"`{ref.kind}` target {ref.target!r} is not a valid path",
+                f"`$ref` target {ref.target!r} is not a valid path",
             )
             return
         if not target.is_relative_to(self.root):
             self.error(
-                path, ref.line, f"`{ref.kind}` target {ref.target} is outside the root"
+                path, ref.line, f"`$ref` target {ref.target} is outside the root"
             )
             return
         if not target.is_file():
             self.error(
-                path, ref.line, f"`{ref.kind}` target {ref.target} does not exist"
+                path, ref.line, f"`$ref` target {ref.target} does not exist"
             )
             return
         if target in chain:
@@ -476,31 +451,23 @@ class _Run:
     def _check_reference(self, path: Path, ref: _Reference, digest: str) -> None:
         if ref.sha_node is None:
             if self.strict:
-                self.error(path, ref.line, f"`{ref.kind}` {ref.target} has no `sha256`")
+                self.error(path, ref.line, f"`$ref` {ref.target} has no `sha256`")
             return
         value, problem = _sha_value(ref.sha_node)
         if problem:
-            self.error(path, ref.line, f"`{ref.kind}` {ref.target}: {problem}")
+            self.error(path, ref.line, f"`$ref` {ref.target}: {problem}")
         elif value != digest:
             self.error(
                 path,
                 ref.line,
-                f"`sha256` of `{ref.kind}` {ref.target} does not match the file "
+                f"`sha256` of `$ref` {ref.target} does not match the file "
                 f"(the file has {digest}, the directive has {value})",
             )
 
     def _write_reference(
         self, path: Path, text: str, ref: _Reference, digest: str, edits: list[_Edit]
     ) -> None:
-        if ref.mapping is None:
-            # `base: <path>` becomes `base: {$ref: <path>, sha256: "..."}`
-            node = ref.path_node
-            original = text[node.start_mark.index : node.end_mark.index]
-            if node.style is None and any(c in original for c in _FLOW_INDICATORS):
-                original = json.dumps(node.value, ensure_ascii=False)
-            new = f'{{$ref: {original}, sha256: "{digest}"}}'
-            edits.append(_Edit(node.start_mark.index, node.end_mark.index, new))
-        elif ref.sha_node is None:
+        if ref.sha_node is None:
             edits.append(
                 _insert_pair(text, ref.mapping, ref.path_node, "sha256", digest)
             )
@@ -623,7 +590,7 @@ def check(path: Path, root: Path | None = None) -> list[str]:
 
 
 def files(path: Path, root: Path | None = None) -> list[Path]:
-    """Return the YAML files of a sidecar tree: each `$ref` and `base` target, then the sidecar."""
+    """Return the YAML files of a sidecar tree: each `$ref` target, then the sidecar."""
     path = Path(path).resolve()
     run = _Run(root=_root(path, root), top=path, strict=False)
     run.start()
@@ -664,8 +631,7 @@ def resolve(path: Path, root: Path) -> Any:
     """Resolve a sidecar tree that can hold reference hashes. TEMPORARY.
 
     Verify every hash that the tree holds (a missing hash is accepted). Copy the files that the
-    sidecar reaches to a temporary folder. Remove the hashes from `$ref` mappings, and change
-    `base: {$ref: <path>, sha256: <hash>}` to `base: <path>`. Call the unchanged
+    sidecar reaches to a temporary folder. Remove the hashes from `$ref` mappings. Call the unchanged
     `resolve_sidecar_composition` on the copy. Raise `SidecarRefsError` on a bad hash.
 
     This function is the only place that imports `skellytracker`. Delete it when
@@ -708,11 +674,7 @@ def _without_reference_hashes(data: Any) -> Any:
             return [strip(item) for item in node]
         return node
 
-    data = strip(data)
-    base = data.get("base") if isinstance(data, dict) else None
-    if isinstance(base, dict) and set(base) == {"$ref"}:
-        data = {**data, "base": base["$ref"]}
-    return data
+    return strip(data)
 
 
 # --------------------------------------------------------------------------------------------

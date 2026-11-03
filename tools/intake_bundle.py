@@ -108,7 +108,7 @@ OPTIONAL_INVENTORY_KEYS = {"bundle"}  # an example from before the bundles has n
 FRAGMENT_KEYS = {"exporter", "exporter_path", "tracked", "commit", "notes"}
 
 SOURCE_BATCH = 3
-PROFILE = {"profile_id": "static-batch-v1", "source_batch_size": SOURCE_BATCH}
+PROFILE = {"profile_id": "static-batch-v1"}  # the whole batching.batch_conversion of a b3 sidecar (ADR-JAA4)
 VERIFICATION_BATCHES = (1, 2, 3, 4)
 FORMS = (SOURCE_BATCH, 1, "dynamic")  # the values of batching.batch (ADR-JAA4)
 TARGETS = (1, 2, 4)
@@ -1024,7 +1024,7 @@ def _publish_problems(version_dir: Path, listed: dict, manifest: dict, yaml) -> 
     published_files = {
         Path(i["path"]).name: (str(i["batch"]), i["precision"]) for i in external if i["published"]
     }
-    # shortcut: reads the top-level `batching` and `sizes` of the sidecar only, not a `base` or a `$ref`;
+    # shortcut: reads the top-level `batching` and `sizes` of the sidecar only, not a `$ref`;
     # enough for the spec examples.
     for rel in (f"example/{path}" for path in examples):
         if rel not in listed:
@@ -1055,14 +1055,18 @@ def _publish_problems(version_dir: Path, listed: dict, manifest: dict, yaml) -> 
                 f"publish rule: {rel} must have batching.batch_conversion "
                 f"if and only if the published batch is {SOURCE_BATCH}"
             )
+        elif source and batching["batch_conversion"] != PROFILE:
+            findings.append(f"publish rule: {rel} must have batching.batch_conversion: {PROFILE}")
+        if source and batching.get("batch") != SOURCE_BATCH:
+            findings.append(f"publish rule: {rel} must have batching.batch: {SOURCE_BATCH}")
     if source and verdict == "converts":
         fragment = (
             (load("batch/conversion.yaml").get("batching") or {}).get("batch_conversion") or {}
             if "batch/conversion.yaml" in listed
             else {}
         )
-        if fragment.get("source_batch_size") != SOURCE_BATCH:
-            findings.append(f"publish rule: batch/conversion.yaml must have source_batch_size: {SOURCE_BATCH}")
+        if fragment != PROFILE:
+            findings.append(f"publish rule: batch/conversion.yaml must have batching.batch_conversion: {PROFILE}")
     dynamic = sorted(
         {(i["size"], i["precision"]) for i in external if i["published"] and i["batch"] == "dynamic"}, key=str
     )
@@ -1637,7 +1641,10 @@ def batch_check(
                 }
                 converted = Path(scratch) / f"{len(tuples)}.onnx"
                 try:  # V3
-                    summary = model_batch_convert(source, converted, target_batch=target, batch_conversion=PROFILE)
+                    # shortcut: the package converter still needs source_batch_size; drop it when M8 of
+                    # specs/sidecar-implementation-plan.md changes the converter.
+                    profile = {**PROFILE, "source_batch_size": SOURCE_BATCH}
+                    summary = model_batch_convert(source, converted, target_batch=target, batch_conversion=profile)
                     record["v3"] = {"result": "pass", "summary": dataclasses.asdict(summary)}
                 except Exception as exc:  # noqa: BLE001  # any refusal of the converter is a V3 failure
                     record["v3"] = {"result": "fail", "error": clean(str(exc))}
