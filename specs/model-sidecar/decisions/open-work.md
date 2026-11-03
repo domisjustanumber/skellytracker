@@ -8,11 +8,6 @@ repository state is in the root [open-work.md](../../../decisions/open-work.md).
 
 - `specs/model-sidecar/post/canonical-mapping.md` links to the VRM specification by the branch `master`. A
   rewording PR must pin the two links to a commit.
-- **Absorption gap.** [ADR-0011](entries/0011-rtmdet-host-nms.md) stays Active. Its gap: the `-1` row axis
-  of the RTMDet `boxes` and `scores` shapes takes its value from `output_shapes`.
-  [ADR-CRV0](entries/CRV0-output-shapes-in-each-batch-group.md) closes the gap. Absorb
-  [ADR-0011](entries/0011-rtmdet-host-nms.md) into `specs/model-sidecar/post/selection-nms.md#authoring-guidance`
-  when the content of [ADR-CRV0](entries/CRV0-output-shapes-in-each-batch-group.md) lands.
 
 ## Re-export requests
 
@@ -80,15 +75,6 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   `body7` is not a part folder ([Authoring guidance](../format/file-layout.md#authoring-guidance)).
   The two reference examples with both roles (RTMO body7 and YOLO26 pose) use
   `detectors/keypoint_detectors/{family}/body/`.
-- The spec requires `-1` as the batch axis of `input.shape` (`V-common.sizes_and_artifacts-2`). It
-  gives no batch rule for `outputs[].shape`. Ultralytics-Exporter and Qualcomm-Exporter write the
-  smallest native batch (`1`) there, and their sizes list the batches 1, 2 and 3. Thus the sentence
-  of [`batch_artifacts`](../common/sizes-and-artifacts.md#sizessizeonnxbatch_artifacts) that lets the
-  top-level `outputs[].shape` replace the `output_shapes` of a size with one batch key is ambiguous.
-  (Ultralytics-Exporter [`yolo_sidecar.py:342-349`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L342-L349),
-  [`yolo_sidecar.py:436-455`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L436-L455); Qualcomm-Exporter
-  [`qai_sidecar.py:79-95`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_sidecar.py#L79-L95),
-  [`qai_sidecar.py:111-118`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_sidecar.py#L111-L118))
 - [`letterbox`](../pre/resize-letterbox.md#fields) has no `rounding` value for `floor`, and its
   [inverse](../pre/resize-letterbox.md#inverse) uses the rounded size. The `resize_pad` function of
   `qai_hub_models` 0.64.0 (the MediaPipe person detector) cuts the scaled size with `math.floor`, and

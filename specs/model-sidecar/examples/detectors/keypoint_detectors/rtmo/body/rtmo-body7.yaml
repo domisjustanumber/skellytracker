@@ -18,7 +18,7 @@ input:
     pad_value: 114
     interpolation: linear
 
-batching: {batch_axis: 0}
+batching: {batch: 1}
 
 outputs:
   - name: dets
@@ -105,7 +105,8 @@ sizes:
       resize:
         target_size: [640, 640]
     onnx:
-      batch_artifacts:
-        "1":
-          precision_artifacts:
-            fp32: {filename: rtmo-body7-m_b1_fp32.onnx, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+      precision_artifacts:
+        fp32: {filename: rtmo-body7-m_b1_fp32.onnx, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+      output_shapes:
+        - [1, -1, -1]
+        - [1, -1, 17, 3]

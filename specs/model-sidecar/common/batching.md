@@ -4,12 +4,12 @@ title: Batching
 kind: common
 selectors: []
 implemented_by:
-  validate: skellytracker/core/sidecar/model.py::BatchingSpec._check_batch_axis
-  load: skellytracker/core/sidecar/model.py::OnnxSpec.supports_dynamic_batch
+  validate: missing  # No code reads batching.batch. BatchingSpec checks the removed key batch_axis (decisions/entries/JAA4-one-batch-field.md).
+  load: skellytracker/core/sidecar/model.py::OnnxSpec.supports_dynamic_batch  # partial. It reads the key dynamic of the removed batch_artifacts map, not batching.batch.
 external_impl: []
 tests: [skellytracker/tests/sidecar/test_model_validation.py]
 vectors: null
-status: {spec: stable, validate: implemented, load: implemented}
+status: {spec: stable, validate: missing, load: partial}
 ---
 
 # Batching
@@ -18,20 +18,20 @@ status: {spec: stable, validate: implemented, load: implemented}
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `batch_axis` | int | no | The axis of the batch dimension. The default is `0`. Non-zero batch axes are out of scope. |
-| `supports_dynamic_batch` | bool | derived | The value is `true` when `batch_artifacts` contains a `dynamic` key. The host derives it at load time. The author does not write it. |
+| `batch` | int or string | yes | The batch of each artifact of the sidecar: `3`, `1` or `dynamic`. It applies to each size and each precision. Dim 0 of each input and each output is the batch axis. [Batch forms](sizes-and-artifacts.md#batch-forms) gives the three forms ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). |
+| `supports_dynamic_batch` | bool | derived | The value is `true` when `batching.batch` is `dynamic` ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). The host derives it at load time. The author does not write it. |
 
-> `batching.batch_conversion` **(draft)** names a profile that tells the host how to make a fixed-batch artifact for a batch that `batch_artifacts` does not list. See [Batch conversion](batch-conversion.md).
+> `batching.batch_conversion` **(draft)** names a profile that tells the host how to make a fixed-batch artifact for a batch other than `batching.batch`. It is present if and only if `batching.batch` is `3` ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). See [Batch conversion](batch-conversion.md).
 
-`batch_artifacts`: [Sizes and artifacts](sizes-and-artifacts.md#sizessizeonnxbatch_artifacts).
+`precision_artifacts` and `output_shapes`: [Sizes and artifacts](sizes-and-artifacts.md#sizessizeonnx).
 
 ## Validation rules
 
-- [ ] `V-common.batching-1` If `batching.batch_axis` is present, it must be `0`.
+This section has no rule of its own. [`V-common.sizes_and_artifacts-13`](sizes-and-artifacts.md#validation-rules) checks `batching.batch`. [Batch conversion](batch-conversion.md#validation-rules) checks `batching.batch_conversion` ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)).
 
 ## Implementer guidance
 
-- Every published artifact of the exporters that have code has a static batch. Thus `batch_artifacts` has quoted integer keys and never `dynamic`, and `batching` is `{batch_axis: 0}`.
+- Every published artifact of the exporters that have code has a static batch. Thus no exporter writes a `dynamic` artifact.
   - OpenMMLab-Exporter `specialize_batch` pins dim 0 of every graph input and output. Its re-export uses batch 1, 2 and 3. (OpenMMLab-Exporter [`onnx_convert/batch.py:28-50`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/ed59f0019d6a392b6de651c4e6f334f379b8ee64/onnx_convert/batch.py#L28-L50); OpenMMLab-Exporter 0035 [`notes/decisions/0035-published-artifact-reuse-and-p8-reexport.md:30-33`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/c85abf7da34d1e4da7c129f3382173f7153f60fa/notes/decisions/0035-published-artifact-reuse-and-p8-reexport.md#L30-L33))
   - Roboflow-Exporter exports with `dynamic_batch=False` (opset 17) and requires that the leading dim of every input and output equals N. (Roboflow-Exporter [`rf_detr/export.py:41-50`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/16852ca3f7e63e61fda1086ecf07491dc788581a/rf_detr/export.py#L41-L50), [`onnx_runtime/contract.py:79-94`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/16852ca3f7e63e61fda1086ecf07491dc788581a/onnx_runtime/contract.py#L79-L94) and [`pipeline/artifacts.py:115`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/4ae67c0f99a45a81a0e788e6abbda82db7811e32/pipeline/artifacts.py#L115), [`pipeline/artifacts.py:146-154`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/4ae67c0f99a45a81a0e788e6abbda82db7811e32/pipeline/artifacts.py#L146-L154))
   - Ultralytics-Exporter never exports a dynamic batch. The ONNX metadata `args` has `dynamic: False`. (Ultralytics-Exporter [`export_all.py:50-57`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/69499e7d292e6f3583ab9429c45a334af3377097/export_all.py#L50-L57), [`export_all.py:138-158`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/69499e7d292e6f3583ab9429c45a334af3377097/export_all.py#L138-L158); local file `exports/detectors/object_detectors/yolo26/yolo26-nano_b2_fp32.onnx`, not in git)
@@ -46,5 +46,5 @@ status: {spec: stable, validate: implemented, load: implemented}
 
 ## Authoring guidance
 
-- Run the graph at more than one batch before you write a `dynamic` key. A graph can fix the batch in constants inside the graph and not only in the I/O dims. The Ultralytics-Exporter batch 2 graphs hold the batch in `int64` `Reshape` constants. (Ultralytics-Exporter [`yolo_sidecar.py:114-124`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L114-L124), [`yolo_sidecar.py:668-701`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L668-L701))
+- Run the graph at more than one batch before you write `batch: dynamic`. A graph can fix the batch in constants inside the graph and not only in the I/O dims. The Ultralytics-Exporter batch 2 graphs hold the batch in `int64` `Reshape` constants. (Ultralytics-Exporter [`yolo_sidecar.py:114-124`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L114-L124), [`yolo_sidecar.py:668-701`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L668-L701))
 - Verify a `dynamic` export at the batches 1, 2 and 3 against the static exports when they exist, and always against its own batch 1 runs. Use the dynamic check of [Batch-conversion check](../model-addition-workflow/hand-over.md#batch-conversion-check). If it fails, do not publish the `dynamic` export ([Publishing](../model-addition-workflow/validation-and-publishing.md#publishing)).

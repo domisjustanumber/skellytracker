@@ -778,9 +778,9 @@ def converts_bundle(
         "exporter": "E", "exporter_path": "x.yaml", "kind": "export", "exporter_layout_path": "x.yaml",
         "tracked": True, "commit": SOURCE, "source": {"package": "e", "version": "0.1.0"},
     }
-    batching: dict = {"batch_axis": 0}
+    batching: dict = {"batch": sidecar_source or 1}
     if sidecar_source:
-        batching["batch_conversion"] = {"profile_id": "static-batch-v1", "source_batch_size": sidecar_source}
+        batching["batch_conversion"] = {"profile_id": "static-batch-v1"}
     files = {
         "intake.md": "text\n",
         "example/provenance.yaml": json.dumps({"examples": {"detectors/x.yaml": entry}}),
@@ -794,7 +794,7 @@ def converts_bundle(
 
 
 SIDECAR_FINDING = (
-    "publish rule: example/detectors/x.yaml must have batching.batch_conversion.source_batch_size: 3 "
+    "publish rule: example/detectors/x.yaml must have batching.batch_conversion "
     "if and only if the published batch is 3"
 )
 
@@ -891,8 +891,8 @@ def test_pack_checks_the_forced_batch_form(tmp_path: Path, root: Path, change: d
 
 
 def test_verify_finds_a_precision_that_the_sidecar_does_not_give(tmp_path: Path) -> None:
-    root = converts_bundle(tmp_path, (3,), 3, conversion=True, sizes={"nano": {"onnx": {"batch_artifacts": {
-        "3": {"precision_artifacts": {"fp16": {"filename": "m_b3_fp32.onnx"}}}}}}})
+    root = converts_bundle(tmp_path, (3,), 3, conversion=True, sizes={"nano": {"onnx": {
+        "precision_artifacts": {"fp16": {"filename": "m_b3_fp32.onnx"}}}}})
     assert ib.verify("model-yolo26@ultralytics-exporter", root) == [
         "precision mismatch: m_b3_fp32.onnx is batch 3 fp32 in the manifest but not in example/detectors/x.yaml"
     ]

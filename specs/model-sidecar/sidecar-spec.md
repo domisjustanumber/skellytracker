@@ -78,7 +78,7 @@ Moved to [common/identity.md](common/identity.md).
 
 ### `sizes.<size>.onnx.batch_artifacts`
 
-Moved to [common/sizes-and-artifacts.md](common/sizes-and-artifacts.md#sizessizeonnxbatch_artifacts).
+Removed. Each size has `onnx.precision_artifacts` and `onnx.output_shapes` ([common/sizes-and-artifacts.md](common/sizes-and-artifacts.md#sizessizeonnx); [ADR-JAA4](../../decisions/entries/JAA4-one-batch-field.md)).
 
 ### `input`
 

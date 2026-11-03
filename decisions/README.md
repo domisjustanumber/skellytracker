@@ -36,7 +36,6 @@ These entries are `accepted` or `evidence`.
 | [FADS](entries/FADS-hand-over-bundles-in-intakes.md) | Hand-over bundles in `intakes/`: versions, manifest, states, responses, byte-copy proposal records; no gap records; supersedes pykx, faac and 0014 | accepted |
 | [FDTD](entries/FDTD-evidence-sources-and-exporter-permalinks.md) | Exporter documents stay secondary; a checked upstream line is primary; user decisions in words; source forms; exporter permalinks; supersedes 0030 | accepted |
 | [QMKS](entries/QMKS-draft-sections-and-coverage-columns.md) | `spec: draft` rules, the graduation gate and the release stops; coverage and gate columns in `TRACEABILITY.md`; `no_model` reasons | accepted |
-| [JB5J](entries/JB5J-one-batch-form-for-each-sidecar.md) | One batch form for each `vNEXT` sidecar: b3 with `batch_conversion`, b1 or `dynamic`; the check by default; V0; publish rule for each verdict; supersedes JC4T | accepted |
 | [Z05A](entries/Z05A-essential-decision-log-rules.md) | The Rules keep only the rules that no tool or loaded document states; the kit sync writes the kit Rules; supersedes z934, JW9N, NSR2, 0031 | accepted |
 | [QPS7](entries/QPS7-decision-entries-in-an-entries-folder.md) | The entry files of each log are in `entries/`; the checker also reads the old layout on other branches; `_Edited` lines do not count to the limit | accepted |
 | [NB91](entries/NB91-new-ids-have-a-digit.md) | New IDs have a digit and a letter in any position; `--new` draws them uniformly; old all-digit and lower-case letter-first IDs stay valid | accepted |
@@ -45,6 +44,7 @@ These entries are `accepted` or `evidence`.
 | [AD33](entries/AD33-bundles-are-untrusted-input.md) | Bundles are untrusted input: no tool imports or runs bundle code; static checks; a reviewed, user-approved copy; ONNX checks in `batch` | accepted |
 | [NB5F](entries/NB5F-no-change-classes-and-one-re-export-request.md) | No change classes; one re-export request; a spec-forced edit can add a value read from the export graphs; supersedes KDBD | accepted |
 | [0QKK](entries/0QKK-no-legacy-layer.md) | No legacy layer; `input.normalization` required; unknown keys invalid; no `since`; rule renumbering; supersedes 0012 and 0016 | accepted |
+| [JAA4](entries/JAA4-one-batch-field.md) | One `batching.batch` field; `output_shapes` in each size; no `batch_axis`; supersedes CRV0, JB5J and 0011 | accepted |
 
 ### Proposed
 

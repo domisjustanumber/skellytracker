@@ -1,6 +1,6 @@
 # 0011 — RTMDet: NMS-free graph with host `selection: nms`; no `pre_nms_top_k`
 
-**Status:** accepted, 2026-10-22 (backfilled from
+**Status:** superseded by [JAA4](../../../../decisions/entries/JAA4-one-batch-field.md), 2026-11-02 (user; PR: pending). It was accepted on 2026-10-22 (backfilled from
 [#81, `specs/model-sidecar/sidecar-spec.md`, "RTMDet person"](../../sidecar-spec.md#rtmdet-person-openmmlab-exporter-nms-free-outputs-host-nms)
 and OpenMMLab-Exporter 0008, OpenMMLab-Exporter 0009, OpenMMLab-Exporter 0016 and
 OpenMMLab-Exporter 0017; the measurements are dated 2026-10-20).

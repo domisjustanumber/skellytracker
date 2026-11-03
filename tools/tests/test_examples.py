@@ -85,21 +85,63 @@ def test_example_has_a_source(path: Path) -> None:
 
 
 @pytest.mark.parametrize("path", example_paths(), ids=example_key)
-def test_example_uses_one_batch_form(path: Path) -> None:
-    """V-common.sizes_and_artifacts-13, V-common.batch_conversion-3 and V-common.batch_conversion-4."""
+def test_example_has_one_batch_field(path: Path) -> None:
+    """One `batching.batch`, and `batching.batch_conversion` only with batch 3 (ADR-JAA4, item 1).
+
+    The key check does not find `batch_artifacts`: its Removed stub heading still names it.
+    """
     resolved = sidecar_refs.resolve(path, EXAMPLES_ROOT)
-    keys = {tuple(size["onnx"]["batch_artifacts"]) for size in resolved["sizes"].values()}
-    assert len(keys) == 1 and next(iter(keys)) in {("3",), ("1",), ("dynamic",)}, keys
-    conversion = (resolved.get("batching") or {}).get("batch_conversion")
-    assert (keys == {("3",)}) == (conversion is not None)
-    assert conversion in (None, {"profile_id": "static-batch-v1", "source_batch_size": 3})
+    batching = resolved["batching"]
+    batch = batching["batch"]
+    assert not isinstance(batch, bool) and batch in (3, 1, "dynamic"), batching
+    assert set(batching) <= {"batch", "batch_conversion"}, batching
+    conversion = batching.get("batch_conversion")
+    assert (batch == 3) == (conversion is not None), batching
+    assert conversion in (None, {"profile_id": "static-batch-v1"}), batching
+    for size, entry in resolved["sizes"].items():
+        assert "batch_artifacts" not in entry["onnx"], size
+
+
+@pytest.mark.parametrize("path", example_paths(), ids=example_key)
+def test_example_gives_output_shapes_in_each_size(path: Path) -> None:
+    """`onnx.output_shapes` of each size: one entry for each output, in order (ADR-JAA4, item 2).
+
+    An entry has the dims of `outputs[i].shape`. Each fixed dim of that shape is equal or -1 in the
+    entry. Dim 0 is `batching.batch`, or -1 for `dynamic`.
+    """
+    resolved = sidecar_refs.resolve(path, EXAMPLES_ROOT)
+    outputs, batch = resolved["outputs"], resolved["batching"]["batch"]
+    for size, entry in resolved["sizes"].items():
+        shapes = entry["onnx"].get("output_shapes")
+        assert isinstance(shapes, list) and len(shapes) == len(outputs), size
+        for output, shape in zip(outputs, shapes, strict=True):
+            where = (size, output["name"])
+            assert isinstance(shape, list) and shape, where
+            assert shape[0] == (-1 if batch == "dynamic" else batch), where
+            family = output.get("shape")
+            if family is None:
+                continue
+            assert len(shape) == len(family), where
+            assert all(f == -1 or d in (f, -1) for f, d in zip(family, shape, strict=True)), where
+
+
+@pytest.mark.parametrize("path", example_paths(), ids=example_key)
+def test_the_hash_tool_finds_the_artifacts_of_each_size(path: Path) -> None:
+    """`sidecar_refs` scans each `precision_artifacts` entry. A moved key hides an artifact from the hash check."""
+    scanned = {
+        artifact.filename
+        for file in sidecar_refs.files(path, EXAMPLES_ROOT)
+        for artifact in sidecar_refs._scan(file.read_text(encoding="utf-8")).artifacts
+    }
+    for size, entry in sidecar_refs.resolve(path, EXAMPLES_ROOT)["sizes"].items():
+        names = {artifact["filename"] for artifact in entry["onnx"]["precision_artifacts"].values()}
+        assert names and names <= scanned, (size, sorted(names - scanned))
 
 
 SPEC_ROOT = REPO_ROOT / "specs" / "model-sidecar"
-# The keys of these maps are names (sizes, batch sizes, precisions, groups), not fields.
+# The keys of these maps are names (sizes, precisions, groups), not fields.
 NAME_KEYED_MAPS = {
     "sizes",
-    "batch_artifacts",
     "precision_artifacts",
     "dtype",
     "normalization_by_precision",

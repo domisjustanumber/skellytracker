@@ -23,9 +23,9 @@ A sidecar uses the `.yaml` extension. The filename is **`{model_id}.yaml`**. The
 | Artifact | Example |
 |----------|---------|
 | Sidecar (one per family) | `yolo26.yaml` |
-| ONNX models (any size × batch × precision) | `yolo26-nano_b3_fp16.onnx`, `yolo26-small_b3_fp32.onnx` |
+| ONNX models (any size × precision) | `yolo26-nano_b3_fp16.onnx`, `yolo26-small_b3_fp32.onnx` |
 
-An ONNX filename gives the size, the batch and the precision: `{model_id}-{size}_{batch}_{precision}.onnx`. For example, in `yolo26-nano_b3_fp32.onnx`, `{batch}` is `b3`. For a `dynamic` batch, the filename omits the batch component: `{model_id}-{size}_{precision}.onnx`. For example, `rtmw-wholebody-l-m_fp32.onnx`.
+An ONNX filename gives the size, the batch and the precision: `{model_id}-{size}_b{batch}_{precision}.onnx`. `{batch}` is the value of `batching.batch`. For example, `yolo26-nano_b3_fp32.onnx` has the batch `3`. When `batching.batch` is `dynamic`, the filename has no batch segment: `{model_id}-{size}_{precision}.onnx`. For example, `rtmw-wholebody-l-m_fp32.onnx` ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)).
 
 ### Style conventions
 
@@ -46,12 +46,12 @@ A sidecar and its ONNX files are under a sidecar root (`{sidecar_root}`, see [Si
     object_detectors/
       {family}/                     # role: object_detector
         {model_id}.yaml
-        {model_id}-{size}_{batch}_{precision}.onnx
+        {model_id}-{size}_b{batch}_{precision}.onnx
     keypoint_detectors/
       {family}/                     # role: pose_estimator
         hand/
           {model_id}.yaml
-          {model_id}-{size}_{batch}_{precision}.onnx
+          {model_id}-{size}_b{batch}_{precision}.onnx
         face/
           {model_id}.yaml
           ...
@@ -60,7 +60,7 @@ A sidecar and its ONNX files are under a sidecar root (`{sidecar_root}`, see [Si
           ...
         wholebody/
           {model_id}.yaml
-          {model_id}-{size}_{batch}_{precision}.onnx
+          {model_id}-{size}_b{batch}_{precision}.onnx
     shared/                         # optional $ref fragments (no schema_version)
       skeletons/                    # tracked-point lists and skeletons
       class_ids/                    # class_id_map fragments (e.g. coco91.yaml)
@@ -136,7 +136,7 @@ See [Identity](../common/identity.md#validation-rules) and [File composition](co
   - OpenMMLab-Exporter writes `detectors/keypoint_detectors/rtmw/wholebody/` and `detectors/object_detectors/rtmdet-person/`. (OpenMMLab-Exporter [`tests/test_rtmw.py:73-77`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/ba0c0876b58650ed472559f1a77780e5da13d370/tests/test_rtmw.py#L73-L77); OpenMMLab-Exporter [`rtmdet_person/identity.py:26`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmdet_person/identity.py#L26))
   - Ultralytics-Exporter writes `object_detectors/yolo26/yolo26.yaml` and `keypoint_detectors/yolo26/body/yolo26-body.yaml`. (Ultralytics-Exporter [`yolo_sidecar.py:103-107`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L103-L107))
   - Qualcomm-Exporter writes `object_detectors/mediapipe-person-detector/`. (Qualcomm-Exporter [`qai_catalog.py:35-42`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_catalog.py#L35-L42))
-- Name each ONNX file `{model_id}-{size}_b{batch}_{precision}.onnx`.
+- Name each ONNX file `{model_id}-{size}_b{batch}_{precision}.onnx`. For the batch `dynamic`, leave out the batch segment ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)).
   - Examples: `rtmw-wholebody-m_b3_fp32` and `rtmw-wholebody-x-384_b1_fp16`. (OpenMMLab-Exporter [`tests/test_rtmw.py:73-77`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/ba0c0876b58650ed472559f1a77780e5da13d370/tests/test_rtmw.py#L73-L77))
   - Qualcomm-Exporter uses the size name `default` for its one-size family. (Qualcomm-Exporter [`qai_catalog.py:38-39`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_catalog.py#L38-L39))
 - Each exporter finds its artifacts with a file name pattern, and it skips other files without an error.

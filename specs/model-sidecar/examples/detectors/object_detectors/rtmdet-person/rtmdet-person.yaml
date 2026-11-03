@@ -15,7 +15,7 @@ input:
   normalization: imagenet_bgr
   resize: {method: letterbox, pad_position: top_left, rounding: half_up, pad_value: 114, interpolation: linear}
 
-batching: {batch_axis: 0}
+batching: {batch: 1}
 
 outputs:
   - name: boxes
@@ -53,25 +53,21 @@ sizes:
       resize:
         target_size: [320, 320]
     onnx:
-      batch_artifacts:
-        "1":
-          precision_artifacts:
-            fp32: {filename: rtmdet-person-nano_b1_fp32.onnx, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
-            fp16: {filename: rtmdet-person-nano_b1_fp16.onnx, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
-          output_shapes:
-            - [1, 2100, 4]
-            - [1, 2100]
+      precision_artifacts:
+        fp32: {filename: rtmdet-person-nano_b1_fp32.onnx, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+        fp16: {filename: rtmdet-person-nano_b1_fp16.onnx, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+      output_shapes:
+        - [1, 2100, 4]
+        - [1, 2100]
   medium:
     input:
       shape: [-1, 3, 640, 640]
       resize:
         target_size: [640, 640]
     onnx:
-      batch_artifacts:
-        "1":
-          precision_artifacts:
-            fp32: {filename: rtmdet-person-medium_b1_fp32.onnx, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
-            fp16: {filename: rtmdet-person-medium_b1_fp16.onnx, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
-          output_shapes:
-            - [1, 8400, 4]
-            - [1, 8400]
+      precision_artifacts:
+        fp32: {filename: rtmdet-person-medium_b1_fp32.onnx, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+        fp16: {filename: rtmdet-person-medium_b1_fp16.onnx, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+      output_shapes:
+        - [1, 8400, 4]
+        - [1, 8400]

@@ -15,7 +15,7 @@ input:
   normalization: unit_float
   resize: {method: letterbox, pad_position: center, rounding: half_even, pad_value: 114, interpolation: linear}
 
-batching: {batch_axis: 0}
+batching: {batch: 1}
 
 outputs:
   - name: output0
@@ -44,11 +44,9 @@ sizes:
       resize:
         target_size: [640, 640]
     onnx:
-      batch_artifacts:
-        "1":
-          precision_artifacts:
-            fp32: {filename: yolo26-nano_b1_fp32.onnx, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
-            fp16: {filename: yolo26-nano_b1_fp16.onnx, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
-          output_shapes:
-            - [1, 300, 6]
+      precision_artifacts:
+        fp32: {filename: yolo26-nano_b1_fp32.onnx, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+        fp16: {filename: yolo26-nano_b1_fp16.onnx, sha256: "0000000000000000000000000000000000000000000000000000000000000000"}
+      output_shapes:
+        - [1, 300, 6]
   # small, medium, large, xlarge: identical to nano (640x640, batch 1) except filenames.

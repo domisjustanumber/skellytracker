@@ -110,7 +110,7 @@ FRAGMENT_KEYS = {"exporter", "exporter_path", "tracked", "commit", "notes"}
 SOURCE_BATCH = 3
 PROFILE = {"profile_id": "static-batch-v1", "source_batch_size": SOURCE_BATCH}
 VERIFICATION_BATCHES = (1, 2, 3, 4)
-FORMS = (SOURCE_BATCH, 1, "dynamic")  # the batch forms of V-common.sizes_and_artifacts-13
+FORMS = (SOURCE_BATCH, 1, "dynamic")  # the values of batching.batch (ADR-JAA4)
 TARGETS = (1, 2, 4)
 DYNAMIC_BATCHES = (1, 2, 3)
 TOLERANCE = {"fp32": 1e-5, "fp16": 1e-3}
@@ -1030,14 +1030,15 @@ def _publish_problems(version_dir: Path, listed: dict, manifest: dict, yaml) -> 
         if rel not in listed:
             continue
         sidecar = load(rel)
+        batching = sidecar.get("batching") or {}
+        sidecar_batch = str(batching.get("batch"))  # one batch for each size and precision (ADR-JAA4)
         listed_files: dict[str, tuple[str, str]] = {}
         sizes = sidecar.get("sizes")
         for size in sizes.values() if isinstance(sizes, dict) else []:
-            groups = ((size or {}).get("onnx") or {}).get("batch_artifacts") or {}
-            for batch, group in groups.items() if isinstance(groups, dict) else []:
-                for precision, entry in ((group or {}).get("precision_artifacts") or {}).items():
-                    if isinstance(entry, dict) and entry.get("filename"):
-                        listed_files[entry["filename"]] = (str(batch), precision)
+            artifacts = ((size or {}).get("onnx") or {}).get("precision_artifacts") or {}
+            for precision, entry in artifacts.items() if isinstance(artifacts, dict) else []:
+                if isinstance(entry, dict) and entry.get("filename"):
+                    listed_files[entry["filename"]] = (sidecar_batch, precision)
         if isinstance(sizes, dict):
             for name, (batch, precision) in sorted(published_files.items()):
                 if listed_files.get(name) != (batch, precision):
@@ -1049,10 +1050,9 @@ def _publish_problems(version_dir: Path, listed: dict, manifest: dict, yaml) -> 
                 f"{rel}: {name} has no published external entry"
                 for name in sorted(set(listed_files) - set(published_files))
             ]
-        fragment = (sidecar.get("batching") or {}).get("batch_conversion") or {}
-        if (fragment.get("source_batch_size") == SOURCE_BATCH) != source:
+        if (batching.get("batch_conversion") is not None) != source:
             findings.append(
-                f"publish rule: {rel} must have batching.batch_conversion.source_batch_size: {SOURCE_BATCH} "
+                f"publish rule: {rel} must have batching.batch_conversion "
                 f"if and only if the published batch is {SOURCE_BATCH}"
             )
     if source and verdict == "converts":

@@ -21,14 +21,14 @@ status: {spec: stable, validate: partial, load: partial}
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `name` | string | yes | The name of the ONNX input tensor. |
-| `dtype` | object | yes | A map of precision → ONNX graph input element type, for example `{fp32: float32, fp16: float16}`. When all variants share one type, every entry is that type, for example `{fp32: float32, fp16: float32}`. The keys are precision keys ([V-common.sizes_and_artifacts-6](sizes-and-artifacts.md#validation-rules)). They cover the precisions that `batch_artifacts` declares. |
+| `dtype` | object | yes | A map of precision → ONNX graph input element type, for example `{fp32: float32, fp16: float16}`. When all variants share one type, every entry is that type, for example `{fp32: float32, fp16: float32}`. The keys are precision keys ([V-common.sizes_and_artifacts-6](sizes-and-artifacts.md#validation-rules)). They cover the precisions that `precision_artifacts` declares ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). |
 | `layout` | enum | no | `NCHW` or `NHWC`. The first value is the default. |
 | `color_format` | enum | conditional | `rgb` or `bgr`. This is the channel order of the tensor that the model consumes. It is **required** when the normalization of any declared precision resolves to `none` or `unit_float`. Those modes treat every channel in the same way. Otherwise, the field is optional. When the field is present, it must agree with `imagenet_rgb`/`imagenet_bgr` or with `custom.color_format`. |
 | `resize` | object | no | The resize configuration (see below). A sidecar can omit this field only when the model consumes the source image unchanged. This has the same effect as `method: none`. `target_size` is set for each size (`sizes.<size>.input.resize.target_size`). The other fields are shared. |
 
 [Normalization](../pre/normalization.md#fields) defines `normalization` and `normalization_by_precision`.
 
-`shape` is **not** a top-level field. A sidecar declares the input image shape for each size as `sizes.<size>.input.shape` (see [Sizes](sizes-and-artifacts.md#sizes)). The batch axis of the shape is always `-1`. The concrete native batch size is in the keys of `batch_artifacts`. It is never in the shape. The channels and the spatial dimensions are concrete. The exception is when [`input.resize.supports_dynamic_size`](#inputresize) is `true`. Then the spatial dimensions are `-1`.
+`shape` is **not** a top-level field. A sidecar declares the input image shape for each size as `sizes.<size>.input.shape` (see [Sizes](sizes-and-artifacts.md#sizes)). The batch axis of the shape is always `-1`. The batch is in `batching.batch` ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). It is never in the shape. The channels and the spatial dimensions are concrete. The exception is when [`input.resize.supports_dynamic_size`](#inputresize) is `true`. Then the spatial dimensions are `-1`.
 
 `color_format` is a single top-level value. It covers every precision. A sidecar cannot describe a family whose precisions need different channel orders. The author must split that family.
 
@@ -52,7 +52,7 @@ Each `method` has its own section: [`letterbox`](../pre/resize-letterbox.md), [`
 ## Validation rules
 
 - [ ] `V-common.input-1` If `input.resize.target_size` is present, it must be an array `[height, width]` of length 2.
-- [ ] `V-common.input-2` `input.dtype` must be present. Its keys must be precision keys ([V-common.sizes_and_artifacts-6](sizes-and-artifacts.md#validation-rules)). The keys must cover the precisions that `batch_artifacts` declares. Its values must be `float32`, `float16`, `uint8` or `int8`. If `input.layout` is present, it must be `NCHW` or `NHWC`.
+- [ ] `V-common.input-2` `input.dtype` must be present. Its keys must be precision keys ([V-common.sizes_and_artifacts-6](sizes-and-artifacts.md#validation-rules)). The keys must cover the precisions that `precision_artifacts` declares ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). Its values must be `float32`, `float16`, `uint8` or `int8`. If `input.layout` is present, it must be `NCHW` or `NHWC`.
 - [ ] `V-common.input-3` `input.resize.method` must be `letterbox`, `stretch`, `fit`, `affine_person_crop` or `none` ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)). `input.resize.interpolation` must be `linear`, `area`, `cubic` or `nearest`.
 - [ ] `V-common.input-4` `pad_value` must not be present unless `method` is `letterbox` or `fit`. `pad_position` and `rounding` must not be present unless `method: letterbox` ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)). `crop_policy` must not be present unless `method: affine_person_crop`.
 - [ ] `V-common.input-5` If `pad_value` or `crop_policy.pad_value` is present, it must be a number or an array of numbers with length 3.

@@ -92,17 +92,15 @@ display_name: YOLO26 (fp16)
 sizes:
   nano:
     onnx:
-      batch_artifacts:
-        "1":
-          precision_artifacts:
-            fp16:
-              filename: yolo26-fp16-nano_b1_fp16.onnx
-              sha256: "<sha256>"
+      precision_artifacts:
+        fp16:
+          filename: yolo26-fp16-nano_b1_fp16.onnx
+          sha256: "<sha256>"
 ```
 
 Everything that the example does not list comes from `yolo26.yaml` unchanged. This includes `input`, `batching`, `outputs`, `decode`, the other sizes and the other precisions under `sizes.nano`.
 
-The merge keeps the `sha256` of a base artifact when the derived file does not override it. Thus a derived file that changes the `filename` of an artifact must also give the `sha256` of the new file (see [`sizes.<size>.onnx.batch_artifacts`](../common/sizes-and-artifacts.md#sizessizeonnxbatch_artifacts)).
+The merge keeps the `sha256` of a base artifact when the derived file does not override it. Thus a derived file that changes the `filename` of an artifact must also give the `sha256` of the new file (see [`sizes.<size>.onnx`](../common/sizes-and-artifacts.md#sizessizeonnx); [ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)).
 
 `base` is a mapping with exactly two keys: `$ref` and `sha256` (see [Reference hashes](#reference-hashes)). The `$ref` key holds the path of the base file ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)). The resolver does not replace the `base` mapping with the content of the base file. It merges the current file over the base file.
 
@@ -124,10 +122,8 @@ A child key that maps to `null` deletes that key from the merged result. This fo
 sizes:
   nano:
     onnx:
-      batch_artifacts:
-        "1":
-          precision_artifacts:
-            fp16: null
+      precision_artifacts:
+        fp16: null
 ```
 
 Rules:

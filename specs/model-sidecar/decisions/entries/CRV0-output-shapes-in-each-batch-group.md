@@ -1,6 +1,6 @@
 # CRV0 — `output_shapes` in each batch group
 
-**Status:** accepted, 2026-10-29 (user; PR: pending).
+**Status:** superseded by [JAA4](../../../../decisions/entries/JAA4-one-batch-field.md), 2026-11-02 (user; PR: pending).
 
 ## Decision
 

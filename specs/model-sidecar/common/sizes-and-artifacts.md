@@ -4,7 +4,7 @@ title: Sizes and artifacts
 kind: common
 selectors: []
 implemented_by:
-  validate: skellytracker/core/sidecar/model.py::SizeSpec  # partial. The checks run only inside resolved_size. No check for V-common.sizes_and_artifacts-3 (specs/model-sidecar/decisions/entries/0010-family-invariant.md) or -8. -9 checks only that output_shapes exists. No check for -10 to -12: PrecisionArtifact forbids the key sha256. No check for -13: OnnxSpec accepts any number of integer keys in each size.
+  validate: skellytracker/core/sidecar/model.py::SizeSpec  # partial. The checks run only inside resolved_size. OnnxSpec reads the removed batch_artifacts map, not precision_artifacts and output_shapes (decisions/entries/JAA4-one-batch-field.md). No check for V-common.sizes_and_artifacts-3 (specs/model-sidecar/decisions/entries/0010-family-invariant.md) or -8. No check for -9 or -13. No check for -10 to -12: PrecisionArtifact forbids the key sha256.
   load: skellytracker/core/sidecar/model.py::SidecarModel.resolved_size  # partial. Drops every key of a size entry except input and onnx. resolve_model_path in model_registry.py downloads artifacts and checks url_sha256. Nothing checks sha256 against the file that filename names.
 external_impl: []
 tests:
@@ -26,7 +26,7 @@ The top-level `sizes` map lists every scale of the model in one sidecar.
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `sizes.<name>.input` | object | yes per size | The input for one size. It can contain **only** `shape` and `resize.target_size`. The first is required, and its batch axis is always `-1`. The second is required when `method` is `letterbox`/`stretch`/`fit`/`affine_person_crop` and `supports_dynamic_size` is not set. |
-| `sizes.<name>.onnx` | object | yes per size | The artifacts for one size. `batch_artifacts` is required. |
+| `sizes.<name>.onnx` | object | yes per size | The artifacts for one size. `precision_artifacts` and `output_shapes` are required ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). |
 
 A size entry can contain only `input` and `onnx` (with the sub-fields above). A size entry deep-merges over the top level. The merge semantics are the same as for [`base`](../format/composition.md#base--inherit-from-another-sidecar-and-override). Any other key in a size entry is invalid. This includes `role`, `outputs`, `batching`, `decode`, `pose`, `overlay`, `input.normalization`, `input.color_format`, `input.resize.method` and other keys. Size names are lowercase tokens such as `nano`, `small` and `medium`. A size name can contain hyphens, for example `l-m` and `x-l`.
 
@@ -49,21 +49,18 @@ When a size declares `target_size`, the spatial dimensions of its `input.shape` 
 | `role`, `outputs`, `input` (except `shape` / `resize.target_size`), `batching` | shared at top level |
 | `decode` | top level, when `role` includes `object_detector` |
 | `pose`, `overlay` | top level, when `role` includes `pose_estimator` |
-| `input.shape`, `input.resize.target_size` (unless `supports_dynamic_size`), `onnx.batch_artifacts` | per size (`sizes.<size>`) |
+| `input.shape`, `input.resize.target_size` (unless `supports_dynamic_size`), `onnx.precision_artifacts`, `onnx.output_shapes` | per size (`sizes.<size>`) ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)) |
 
-### `sizes.<size>.onnx.batch_artifacts`
+### `sizes.<size>.onnx`
 
-This is a mapping from **native batch size** → artifact group. A sidecar declares it **for each size** under `sizes.<size>.onnx.batch_artifacts`. The keys are **strings**: either a positive integer batch size written as a quoted string, or the literal `dynamic`. This literal means that the model accepts any runtime batch size. Each group contains a `precision_artifacts` map. The map uses the per-precision schema below.
+This object holds the artifacts of one size. Each artifact has the batch that `batching.batch` gives ([Batching](batching.md#fields); [ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). Dim 0 is the batch axis.
 
-> **YAML authors: quote integer batch keys.** The key set mixes integer-like batch sizes with the string `dynamic`. For this reason, `batch_artifacts` is a string-keyed map (`dict[str, ...]`). Write `"1":`, not `1:`. YAML parses an unquoted key as an integer, and schema validation fails (`Input should be a valid string`).
-
-The full input tensor shape for a group is `[N] + sizes.<size>.input.shape[1:]`. The batch key `N` supplies the batch dimension. The `input.shape` of the size supplies the channels and the spatial dimensions. These are identical across all precisions and batches for that size.
+The full input tensor shape of an artifact is `[B] + sizes.<size>.input.shape[1:]`. `B` is `batching.batch`. For `dynamic`, `B` is the batch of each run. The `input.shape` of the size supplies the channels and the spatial dimensions. These are the same for all precisions of the size.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `sizes.<size>.onnx.batch_artifacts` | object | yes per size | The keys are quoted positive-integer native batch sizes (`"1"`, `"2"`, …) or a single `dynamic`. [Batch forms](#batch-forms) gives the only valid key sets ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)). |
-| `sizes.<size>.onnx.batch_artifacts.<N>.precision_artifacts` | object | yes per group | Each key is `fp32` or `fp16`. Each value is the artifact descriptor for native batch `N`. |
-| `sizes.<size>.onnx.batch_artifacts.<N>.output_shapes` | array[array] | when `len(batch_artifacts) > 1` | The output tensor shapes for native batch `N`. They follow the order of the top-level `outputs`. |
+| `sizes.<size>.onnx.precision_artifacts` | object | yes per size | Each key is `fp32` or `fp16`. Each value is the artifact descriptor of that precision ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). |
+| `sizes.<size>.onnx.output_shapes` | array[array] | yes per size | The output tensor shapes of the artifacts of the size. There is one entry for each output of the top-level `outputs`, in the same order. Dim 0 of each entry equals `batching.batch`, or is `-1` for `dynamic`. An axis that the graph leaves symbolic stays `-1`. All precisions of the size use these shapes (`V-common.sizes_and_artifacts-9`; [ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). |
 
 **Per-precision artifact fields:**
 
@@ -83,26 +80,25 @@ Every artifact has `sha256`, because every artifact has `filename` ([ADR-0QKK](.
 
 Rules:
 
-- Each size's `batch_artifacts` must have at least one key. Each key is a **string**: a quoted positive integer (`"1"`, `"2"`, …) or `dynamic`. YAML parses an unquoted `1:` as an integer, and validation rejects it.
-- A size's `batch_artifacts` can contain integer-like keys **or** a single `dynamic` key, but never both. A mix of `dynamic` with integer keys is a validation error.
-- Each group must list at least one precision.
+- Each size's `onnx.precision_artifacts` must list at least one precision.
 - The precision keys are the closed enum `fp32`, `fp16`.
-- `batching.native_batch_sizes` is **derived** for each size. Its values are the integer-like keys of `batch_artifacts`, parsed as integers. A `dynamic` key means that any runtime batch size is accepted. It is not a separate field.
 - If a precision artifact has an `input_dtype`, it must agree with `input.dtype` for that precision.
-
-The input shape for a group is derived: `[N] + input.shape[1:]`. This is the batch key `N` plus the image shape of the size. When a size lists only one batch key, the top-level `outputs[].shape` can replace the `output_shapes` of each group.
 
 #### Batch forms
 
-A sidecar uses exactly one batch form. The form applies to every size and to every precision ([ADR-JB5J](../../../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)). These are the three forms:
+A sidecar has one `batching.batch`. It applies to every size and to every precision ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). These are the three batch forms:
 
-| Form | Key of `batch_artifacts` in each size | `batching.batch_conversion` |
-|------|---------------------------------------|-----------------------------|
-| b3 (the goal) | only `"3"` | required: `{profile_id: static-batch-v1, source_batch_size: 3}` ([Batch conversion](batch-conversion.md)) |
-| b1 (a fallback) | only `"1"` | not present |
-| `dynamic` (a fallback, or the form of a model that cannot export a static graph) | only `dynamic` | not present |
+| Form | `batching.batch` | `batching.batch_conversion` |
+|------|------------------|-----------------------------|
+| b3 (the goal) | `3` | required: `{profile_id: static-batch-v1}` ([Batch conversion](batch-conversion.md)) |
+| b1 (a fallback) | `1` | not present |
+| `dynamic` (a fallback, or the form of a model that cannot export a static graph) | `dynamic` | not present |
 
-Any other key set is invalid. Examples are the key `"2"` or `"4"`, two keys in one size, and a different key in two sizes. Other batch sizes are not practical to run in production. A host can make another batch from a b3 artifact with the conversion profile ([Behaviour](batch-conversion.md#behaviour)). The [model addition workflow](../model-addition-workflow/validation-and-publishing.md#publishing) tells which form a family publishes.
+Any other value is invalid, for example `2` or `4`. Other batch sizes are not practical to run in production. The [file name](../format/file-layout.md#file-extension-and-naming) of an artifact has the batch of the form. A `dynamic` file name has no batch segment. A host can make another batch from a b3 artifact with the conversion profile ([Behaviour](batch-conversion.md#behaviour)). The [model addition workflow](../model-addition-workflow/validation-and-publishing.md#publishing) tells which form a family publishes.
+
+### `sizes.<size>.onnx.batch_artifacts`
+
+Removed. Each size has `onnx.precision_artifacts` and `onnx.output_shapes` ([`sizes.<size>.onnx`](#sizessizeonnx); [ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)).
 
 ## Behaviour
 
@@ -118,17 +114,17 @@ Each size entry deep-merges over the shared top-level contract. It can set only 
 - [ ] `V-common.sizes_and_artifacts-2` Each size must declare `input.shape` with `-1` as its batch axis (first dimension).
 - [ ] `V-common.sizes_and_artifacts-3` A size entry must contain only `input.shape`, `input.resize.target_size` and `onnx`.
 - [ ] `V-common.sizes_and_artifacts-4` If `method` is `letterbox`, `stretch`, `fit` or `affine_person_crop` and `supports_dynamic_size` is not set, the spatial dimensions of each size's `input.shape` must equal its `resize.target_size`. When `method: none` or `supports_dynamic_size: true`, the size must omit `target_size`. When `supports_dynamic_size: true`, the spatial dimensions must be `-1`.
-- [ ] `V-common.sizes_and_artifacts-5` The `onnx.batch_artifacts` of each size must use one of two key forms. The first form is quoted-string positive integer batch keys (`"1"`, `"2"`, …). The second form is a single `dynamic` key. It must not mix the two forms. Each group must have a non-empty `precision_artifacts`.
+- [ ] `V-common.sizes_and_artifacts-5` Each size must have a non-empty `onnx.precision_artifacts` ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)).
 - [ ] `V-common.sizes_and_artifacts-6` The precision keys must be the closed enum `fp32`/`fp16`.
 - [ ] `V-common.sizes_and_artifacts-7` Each precision artifact must declare `filename`. If it declares `url`, it must also declare `url_sha256`.
 - [ ] `V-common.sizes_and_artifacts-8` If a precision artifact has an `input_dtype`, it must agree with `input.dtype[precision]`.
-- [ ] `V-common.sizes_and_artifacts-9` When a size has `len(batch_artifacts) > 1`, each group must declare `output_shapes`. The length of that array must equal `len(outputs)`. Its entries must be arrays in the same order as `outputs`.
+- [ ] `V-common.sizes_and_artifacts-9` Each size must declare `onnx.output_shapes` ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). The length of that array must equal `len(outputs)`. Its entries must be arrays in the same order as `outputs`. When `outputs[i].shape` is present, entry `i` must have `len(outputs[i].shape)` dims, and each dim `d` with `outputs[i].shape[d] != -1` must equal `outputs[i].shape[d]` or be `-1`. Dim 0 of each entry must equal `batching.batch`. When `batching.batch` is `dynamic`, dim 0 must be `-1`.
 - [ ] `V-common.sizes_and_artifacts-10` Each precision artifact must declare `sha256`. Its value must be a string of 64 lowercase hexadecimal characters.
 - [ ] `V-common.sizes_and_artifacts-11` When the file that `filename` names is present or downloaded, its SHA-256 must equal `sha256`.
 - [ ] `V-common.sizes_and_artifacts-12` A sidecar outside `specs/model-sidecar/examples/` must not hold the reserved placeholder (64 zeros) as `sha256`.
-- [ ] `V-common.sizes_and_artifacts-13` The sidecar must use one batch form ([Batch forms](#batch-forms)). The `onnx.batch_artifacts` of each size must have exactly one key. The key must be the same in every size. It must be `"3"`, `"1"` or `dynamic`. The key `"3"` is valid only when `batching.batch_conversion` is present.
+- [ ] `V-common.sizes_and_artifacts-13` The sidecar must use one batch form ([Batch forms](#batch-forms); [ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). `batching.batch` must be present. Its value must be the int `3`, the int `1` or the string `dynamic`. The value `3` is valid only when `batching.batch_conversion` is present.
 
-See also [Input](input.md#validation-rules) and [Outputs](outputs.md#validation-rules).
+See also [Input](input.md#validation-rules), [Outputs](outputs.md#validation-rules) and [Batch conversion](batch-conversion.md#validation-rules).
 
 ## Implementer guidance
 
@@ -177,11 +173,8 @@ See also [Input](input.md#validation-rules) and [Outputs](outputs.md#validation-
   - Roboflow-Exporter raises an error when the artifacts disagree on the input name or on the dtype of a precision. (Roboflow-Exporter [`rf_detr/sidecar.py:154-172`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L154-L172), [`rf_detr/sidecar.py:220-223`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L220-L223) and [`tests/test_sidecar.py:239-248`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/tests/test_sidecar.py#L239-L248))
   - Ultralytics-Exporter checks three things. The input and output batch dims of each artifact equal the batch in the file name. The input has rank 4. All artifacts share the tensor names. It does not compare dtypes or non-batch shapes across sizes. (Ultralytics-Exporter [`yolo_sidecar.py:288-339`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L288-L339) and [`tests/test_yolo_sidecar.py:416-434`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/tests/test_yolo_sidecar.py#L416-L434))
   - The channel order is a family property. The RGB ConvNeXt-B and Swin-B RTMDet variants needed their own `rtmdet-rgb` family. OpenMMLab-Exporter dropped them with their weights. (OpenMMLab-Exporter 0004 [`notes/decisions/0004-channel-order-per-family.md:7-9`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/c955162d91998b94fc52d932ab6623a9f2a89a1f/notes/decisions/0004-channel-order-per-family.md#L7-L9), [`notes/decisions/0004-channel-order-per-family.md:18-19`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/c955162d91998b94fc52d932ab6623a9f2a89a1f/notes/decisions/0004-channel-order-per-family.md#L18-L19))
-- Write each batch key as `str(batch)`. PyYAML then quotes the key (`'1':`).
-  - The Qualcomm-Exporter test asserts that the keys reload as `["1"]`. (Qualcomm-Exporter [`tests/test_qai_sidecar.py:20-52`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/tests/test_qai_sidecar.py#L20-L52))
-  - The Roboflow-Exporter test accepts either quote style. (Roboflow-Exporter [`tests/test_sidecar.py:215-223`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/tests/test_sidecar.py#L215-L223))
-- Write `output_shapes` for a size with more than one native batch.
-  - OpenMMLab-Exporter, Ultralytics-Exporter and Qualcomm-Exporter write `output_shapes` only for such a size. Ultralytics-Exporter takes the shapes from the graph outputs of the first precision. (OpenMMLab-Exporter [`rtmo/sidecar.py:179-190`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmo/sidecar.py#L179-L190); Ultralytics-Exporter [`yolo_sidecar.py:402-418`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L402-L418); Qualcomm-Exporter [`qai_sidecar.py:79-95`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_sidecar.py#L79-L95))
+- Write `output_shapes` in each size (`V-common.sizes_and_artifacts-9`). Today the exporters write it only in some sizes.
+  - OpenMMLab-Exporter, Ultralytics-Exporter and Qualcomm-Exporter write `output_shapes` only for a size with more than one native batch. Ultralytics-Exporter takes the shapes from the graph outputs of the first precision. (OpenMMLab-Exporter [`rtmo/sidecar.py:179-190`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmo/sidecar.py#L179-L190); Ultralytics-Exporter [`yolo_sidecar.py:402-418`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L402-L418); Qualcomm-Exporter [`qai_sidecar.py:79-95`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_sidecar.py#L79-L95))
   - Roboflow-Exporter always writes `output_shapes`, also for a single batch key, for example `[[1, 300, 4], [1, 300, 91]]`. (Roboflow-Exporter [`rf_detr/sidecar.py:185-196`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L185-L196))
   - Ultralytics-Exporter and Qualcomm-Exporter write the smallest native batch in the top-level `outputs[].shape[0]`, and the batch keys of a size can be larger. The spec examples write `-1`. (Ultralytics-Exporter [`yolo_sidecar.py:342-349`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L342-L349), [`yolo_sidecar.py:444-455`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L444-L455); Qualcomm-Exporter [`qai_sidecar.py:111-113`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_sidecar.py#L111-L113))
 - Do not list an `int8` file. The spec has only the precisions `fp32` and `fp16`. The measured int8 files lose much AP.
@@ -206,6 +199,8 @@ See also [Input](input.md#validation-rules) and [Outputs](outputs.md#validation-
 # Excerpt of yolo26.yaml (Ultralytics-Exporter): every YOLO26 size is exported at 640x640;
 # sizes differ only in their artifacts. medium/large/xlarge follow the same pattern.
 # The excerpt leaves out the `sha256` of each artifact.
+batching:
+  batch: 1
 sizes:
   nano:
     input:
@@ -213,20 +208,20 @@ sizes:
       resize:
         target_size: [640, 640]
     onnx:
-      batch_artifacts:
-        "1":
-          precision_artifacts:
-            fp32: {filename: yolo26-nano_b1_fp32.onnx}
-            fp16: {filename: yolo26-nano_b1_fp16.onnx}
+      precision_artifacts:
+        fp32: {filename: yolo26-nano_b1_fp32.onnx}
+        fp16: {filename: yolo26-nano_b1_fp16.onnx}
+      output_shapes:
+        - [1, 300, 6]
   small:
     input:
       shape: [-1, 3, 640, 640]
       resize:
         target_size: [640, 640]
     onnx:
-      batch_artifacts:
-        "1":
-          precision_artifacts:
-            fp32: {filename: yolo26-small_b1_fp32.onnx}
-            fp16: {filename: yolo26-small_b1_fp16.onnx}
+      precision_artifacts:
+        fp32: {filename: yolo26-small_b1_fp32.onnx}
+        fp16: {filename: yolo26-small_b1_fp16.onnx}
+      output_shapes:
+        - [1, 300, 6]
 ```

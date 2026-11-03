@@ -13,3 +13,5 @@ the reason for a decision. The [index](README.md) has the Active and Proposed en
 | [0012](entries/0012-fit-resize-for-rtmo.md) | `fit` resize for RTMO; `pad_value` is required | superseded by 0QKK |
 | [0010](entries/0010-family-invariant.md) | Family invariant: a size sets only its shape, target size and artifacts | absorbed into [`common/sizes-and-artifacts.md#sizes`](../common/sizes-and-artifacts.md#sizes) |
 | [0008](entries/0008-vnext-scope.md) | `vNEXT` scope, and the features considered and not added | superseded by YNX0 |
+| [0011](entries/0011-rtmdet-host-nms.md) | RTMDet: NMS-free graph with host `selection: nms`; no `pre_nms_top_k` | superseded by JAA4 |
+| [CRV0](entries/CRV0-output-shapes-in-each-batch-group.md) | `vNEXT`: `output_shapes` in each batch group, one entry for each output; a symbolic axis stays `-1`; legacy keeps the old rule | superseded by JAA4 |
