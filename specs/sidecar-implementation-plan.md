@@ -290,6 +290,153 @@ Two rules of this part stay:
   example `rtmw_wholebody_detector.py` and `yolox_person_detector.py`. A b3 sidecar has no key
   `"1"`. To run it at batch 1 or 2, the host must make the artifact with `model_batch_convert`
   (Behaviour 3 of [`common.batch_conversion`](model-sidecar/common/batch-conversion.md#behaviour)).
+- **Package model at spec version 2.0.0.** Added on 2026-11-03. The spec cleanup removed the legacy
+  layer, gave each sidecar one batch field, reduced the contract to the fields that carry
+  information and made the spec version the skellytracker version
+  ([ADR-0QKK](../decisions/entries/0QKK-no-legacy-layer.md);
+  [ADR-JAA4](../decisions/entries/JAA4-one-batch-field.md);
+  [ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md);
+  [ADR-6GE2](../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). The package code
+  did not change.
+  Change `skellytracker/core/sidecar/model.py` as follows:
+  - Remove the three deleted keys `preserve_aspect_ratio`, `requires_nms` and
+    `may_include_non_person_classes`. `SidecarModel` then checks `V-format.composition-5`: a key
+    that the spec does not define is invalid
+    ([Validation rules](model-sidecar/format/composition.md#validation-rules)).
+  - Remove the fields that the contract does not have: `input_dtype`, `rank`,
+    `batching.batch_axis`, `layout`, `supports_dynamic_size` and `is_3d`
+    ([ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md)).
+  - Add `pose.geometry`. It replaces `is_3d`. Today `PoseSpec` rejects `pose.geometry`, thus the
+    package rejects each sidecar that declares it.
+  - Make `input.normalization` required. It has no default. Today the default is `imagenet_bgr`
+    ([ADR-0QKK](../decisions/entries/0QKK-no-legacy-layer.md)).
+  - Require the top-level `source` (`V-common.identity-4` to `V-common.identity-6`) and the
+    `sha256` of each artifact (`V-common.sizes_and_artifacts-9`). They have no default
+    ([ADR-0QKK](../decisions/entries/0QKK-no-legacy-layer.md) item 1). Today `SidecarModel` has
+    no `source` field and `PrecisionArtifact` forbids `sha256`. M9 adds the hash checks of the file
+    bytes.
+  - Remove the default `300` of `DetectionDecodeSpec.max_detections`. The field has no default. It
+    is valid only with `selection: none` (`V-post.det.selection.none-1`;
+    [ADR-0QKK](../decisions/entries/0QKK-no-legacy-layer.md)).
+  - In `_resolve_refs` of `skellytracker/core/sidecar/resolution.py`, accept only the directive
+    form `{$ref, sha256}` (`V-format.composition-1`). Today `_resolve_refs` refuses a directive with
+    more than one key.
+  - Other package modules read the removed fields. Change them in the same work:
+    `skellytracker/core/detectors/processing/image_preprocessing.py` (the `preserve_aspect_ratio`
+    branch, the NHWC branch and the `imagenet_bgr` fallback of `resolve_normalization_mode`),
+    `skellytracker/core/detectors/processing/simcc_decode.py` (`is_3d`),
+    `SidecarModel._check_pose_output_shapes` (`simcc_z` keys on `pose.geometry: 3d`) and
+    `skellytracker/core/sessions/batch_conversion.py` (`source_batch_size` becomes
+    `batching.batch`). Also change the tests that use these fields, for example
+    `skellytracker/tests/sidecar/test_model_validation.py` and
+    `skellytracker/tests/test_batch_conversion.py`.
+- **Sizes are plain fields.** Added on 2026-11-02. A size entry holds only `input.shape`,
+  `input.resize.target_size` and `onnx`. The host does not merge a size entry over the top level
+  ([ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md) item 4). Today
+  `SidecarModel.resolved_size` deep-merges each size entry over the top level with `_deep_merge`,
+  and `SidecarModel.sizes` accepts any key in a size entry. Replace the merge with a read of the
+  three size fields and of the other fields from the top level. Type the size entry, so that
+  `SidecarModel` checks `V-common.sizes_and_artifacts-3`. Remove `_deep_merge` from
+  `skellytracker/core/sidecar/resolution.py` together with the `base` handling.
+- **SemVer `schema_version`.** Added on 2026-11-03. Each sidecar has `schema_version: "2.0.0"`, a
+  quoted SemVer string. The frozen package rejects it
+  ([ADR-6GE2](../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). Today
+  `skellytracker/core/sidecar/versioning.py`, `loader.py` and
+  `SidecarModel._check_schema_version_pattern` in `model.py` read `schema_version` in the CalVer
+  pattern `vYYYY.0M.BUILD[-TAG]`. `loader.py` compares it with the installed skellytracker version.
+  Remove that comparison (`is_schema_version_supported`) and the CalVer pattern (`_VERSION_RE`,
+  `parse_skellytracker_version` and `require_stable_version`). Today the pattern also rejects
+  `vNEXT`. `_check_schema_version_pattern` must check the SemVer pattern `MAJOR.MINOR.PATCH` with
+  an optional pre-release tag
+  ([ADR-6GE2](../decisions/entries/6GE2-spec-version-follows-skellytracker.md) item 2). The host
+  must accept the SemVer `schema_version` values that it implements. Each release lists these
+  values. It is not necessary for a release to implement an older version. A host lists an older version
+  only while its current text reads it the same way: there is no legacy reading
+  ([ADR-0QKK](../decisions/entries/0QKK-no-legacy-layer.md)). A pre-release host also
+  lists its own pre-release value and the open target, for example `"2.0.0-rc.1"` and `"2.0.0"`.
+  No other host accepts a pre-release value. The host must reject a `schema_version` that it does
+  not implement, with an error that names that version (`V-format.versioning-1` and
+  `V-format.versioning-2` of
+  [Validation rules](model-sidecar/format/versioning.md#validation-rules);
+  [Behaviour](model-sidecar/format/versioning.md#behaviour)). The capability check of M7 lists such
+  a sidecar as unavailable. This loader is a requirement of the `2.0.0` release: skellytracker
+  `2.0.0` ships it ([ADR-6GE2](../decisions/entries/6GE2-spec-version-follows-skellytracker.md)
+  item 4). The bump of skellytracker to `2.0.0` and the SemVer pattern of
+  `bumpver` in `pyproject.toml` are the work of the user. They are not items of this plan.
+- **Flattened batch form.** Added on 2026-11-02. The item Batch forms above names the old batch keys
+  and the old rule IDs. This item gives the new names. The work of that item stays. Each sidecar has
+  one field `batching.batch`. Each size has `onnx.precision_artifacts` and `onnx.output_shapes`
+  ([ADR-JAA4](../decisions/entries/JAA4-one-batch-field.md);
+  [Batch forms](model-sidecar/common/sizes-and-artifacts.md#batch-forms)). Replace
+  `OnnxSpec.batch_artifacts` and `BatchArtifactGroup` with these fields. `runtime.py` must find an
+  artifact by its size and its precision. `model_batch_convert` must take the batch of the source
+  artifact from `batching.batch`. Also do these steps:
+  - Add `batching.batch` and `batching.batch_conversion` to `BatchingSpec`. Today `BatchingSpec`
+    forbids `batch_conversion`. Check `V-common.sizes_and_artifacts-12` and
+    `V-common.batch_conversion-1` to `V-common.batch_conversion-3`.
+  - Replace the `batch_key` argument of `runtime.py` with the size and the precision. Change its
+    callers too: the RTMPose body, face and hand detectors, `rtmw_wholebody_detector.py`,
+    `yolox_person_detector.py` and `skellytracker/tests/sidecar/test_runtime.py`. Today each
+    detector asks for the batch key `"1"`.
+  - A sidecar with `batching.batch: 3` has no batch-1 or batch-2 artifact. To run it at batch 1 or
+    2, the host must make the artifact with `model_batch_convert` (Behaviour 3 of
+    [`common.batch_conversion`](model-sidecar/common/batch-conversion.md#behaviour)).
+- **The `output_shapes` rule.** Added on 2026-11-02. This item is the package item of
+  [ADR-CRV0](model-sidecar/decisions/entries/CRV0-output-shapes-in-each-batch-group.md) (commit
+  0881564), in the flattened batch form. `SizeSpec._check_output_shapes` must check
+  `V-common.sizes_and_artifacts-8`. Each size declares `output_shapes`, with one entry for each
+  output, in the order of `outputs`. When `outputs[i].shape` is present, entry `i` has its rank, and
+  each fixed dim of that shape is equal in the entry or `-1`. Dim 0 equals `batching.batch`, or is
+  `-1` for `dynamic`
+  ([Validation rules](model-sidecar/common/sizes-and-artifacts.md#validation-rules)). Remove the
+  legacy rule. The package keeps no rule for a sidecar before spec version `2.0.0`. An artifact that
+  `model_batch_convert` makes takes the `output_shapes` of its size, with dim 0 changed by step 2 of
+  the profile ([ADR-JAA4](../decisions/entries/JAA4-one-batch-field.md) item 2).
+- **One `imagenet` mode.** Added on 2026-11-02. The item Normalization modes above names the modes
+  `imagenet_bgr` and `imagenet_rgb`. The spec merged them into one mode, `imagenet`. It applies the
+  statistics in the channel order of `input.color_format`
+  ([ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md);
+  [Normalization modes](model-sidecar/pre/normalization.md#behaviour)). Put `imagenet` in
+  `NamedNormalizationMode` and in `build_normalization_fn`, and remove the two old modes. Add
+  `input.color_format` to `InputSpec` as a required field (`V-common.input-5` and
+  `V-pre.normalize-1`). Remove `CustomNormalization.color_format`. Today its default is `rgb`.
+  `build_normalization_fn` must take the channel order of `imagenet` and of `custom` from
+  `input.color_format`. Then delete `MERGED_IMAGENET_MODES` from
+  `tools/tests/test_traceability.py`, and update `test_the_literal_reader_finds_the_known_values`.
+  The user decides the normalization of each package sidecar, as the item Normalization modes above
+  says.
+- **Clamp, size filter and class source.** Added on 2026-11-02. `DetectionDecodeSpec` must accept
+  `clamp_boxes` and `min_box_size`, and check them (`V-post.det.decode-5` and
+  `V-post.det.decode-8`). In each selection mode, the decode must clamp each unprojected box to
+  `[0, W]` and `[0, H]` only when `clamp_boxes` is `true`. Then it must drop each box unless its
+  width and its height are both more than `min_box_size`. A sidecar with no class source must set
+  `decode.is_person_only: true` (`V-post.det.decode-9`). See
+  [Selection behaviour](model-sidecar/post/detection-decode.md#selection-behaviour) and
+  [ADR-17KN](../decisions/entries/17KN-one-selection-pipeline.md). `DetectionDecodeSpec` must
+  also accept the required `decode.selection` (`V-post.det.decode-4`) and the fields of each
+  selection mode. Today it has no `selection` field and forbids an unknown key, thus it rejects
+  each migrated sidecar. The decode of each mode must run the shared steps of Selection behaviour.
+  Part B of M6 adds the modes that the package does not decode yet. The host assigns
+  `person_class_id` only through `is_person_only`. Step 3 of `nms` has no assignment of its own
+  ([ADR-17KN](../decisions/entries/17KN-one-selection-pipeline.md) items 1 and 5).
+- **Migrate the package sidecars.** Added on 2026-11-02. Each package sidecar must follow the open
+  target `2.0.0` of the spec. The items above make the package reject each package sidecar of
+  today. Thus do this item in the same change as the items above, for all five package sidecars:
+  `yolox`, `rtmw-wholebody`, `rtmpose-body`, `rtmpose-hand` and `rtmpose-face`. In each package
+  sidecar, set
+  these fields when they apply: `schema_version: "2.0.0"`, `source`, the hashes, `decode.selection`,
+  `pad_position`, `rounding`, `input.color_format`, an explicit `input.normalization` (see One
+  `imagenet` mode), the flattened batch form and `pose.geometry`. Delete the keys that the spec
+  does not define: `layout`, `batching.batch_axis`, `preserve_aspect_ratio` and `requires_nms`.
+  The YOLOX sidecar has no class source, thus it gets `decode.is_person_only: true`
+  (`V-post.det.decode-9`). Set `clamp_boxes` and `min_box_size` as the upstream of each detector
+  does ([ADR-17KN](../decisions/entries/17KN-one-selection-pipeline.md)). Inline the `base` of
+  `skellytracker/core/detectors/keypoint_detectors/rtmw/wholebody/rtmw_wholebody_to_canonical_mapping.yaml`.
+  It is the only `base:` of the package. The spec has no `base` directive
+  ([ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md)). Then remove the `base`
+  handling of `skellytracker/core/sidecar/resolution.py`. M10a and M10b later replace the YOLOX and
+  RTMW sidecars with re-exports. When all package sidecars follow the spec, do the item Package root
+  in the trace scan of M7.
 
 ### M9 — Source and hash checks
 
@@ -308,6 +455,9 @@ Two rules of this part stay:
   `url_sha256`, and only during a download
   ([`common.sizes_and_artifacts`](model-sidecar/common/sizes-and-artifacts.md#implementer-guidance);
   see [ADR-0016](../decisions/entries/0016-sidecar-catalogs.md#artifact-hashes)).
+- **No `base` hashes.** Added on 2026-11-02. The spec has no `base` directive
+  ([ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md) item 3). Of the hashes in the
+  item Reference hash checks in the resolver, only the `$ref` hashes remain.
 
 ### M10a — YOLOX re-export
 
@@ -321,6 +471,9 @@ Two rules of this part stay:
   ([`format.versioning`](model-sidecar/format/versioning.md#implementer-guidance);
   [ADR-0016](../decisions/entries/0016-sidecar-catalogs.md#detector-dispatch); see also
   [ADR-0006](../decisions/entries/0006-yolox-native-contract.md)).
+- **YOLOX sidecar fields.** Added on 2026-11-02. M8 migrates the YOLOX package sidecar (the item
+  Migrate the package sidecars). After the re-export above, make sure that the new YOLOX sidecar
+  has the fields of that item, with the values of the new export.
 
 ### M10b — RTMW re-export
 
@@ -359,6 +512,10 @@ of M8 when the export has no batch key `"1"`. It has no order link to M10a.
   - where the host gets the ONNX files;
   - how the package keeps the canonical mapping;
   - whether `RTMWWholebodyDetector` stays, or the generic keypoint detector of M6 runs the export.
+- **RTMW sidecar fields.** Added on 2026-11-02. M8 migrates the RTMW package sidecar and inlines
+  the `base` of `rtmw_wholebody_to_canonical_mapping.yaml` (the item Migrate the package sidecars).
+  After the replacement above, make sure that the new RTMW sidecar has the fields of that item, with
+  the values of the new export.
 
 ### M11 — Repository fixes
 
@@ -387,6 +544,37 @@ of M8 when the export has no batch key `"1"`. It has no order link to M10a.
   run-time checks their own IDs, for example `C-<section-id>-<n>`. A sidecar before `vNEXT` that uses
   a feature that is "Not available." also gives `no-rule`. A rule `V-format.versioning-<n>` can
   replace that use. The user decides both.
+- **Code citations of `sidecar-spec.md`.** Added on 2026-11-02. This item carries out item 3 of
+  [ADR-CN15](../decisions/entries/CN15-spec-readme-is-the-only-entry-point.md). Docstrings and
+  comments of the package cite headings of `specs/model-sidecar/sidecar-spec.md`, for example in
+  `skellytracker/core/sidecar/model.py` and
+  `skellytracker/core/detectors/processing/image_preprocessing.py`. Change each citation to the
+  section ID of its section file, for example `pre.normalize`. A citation of the whole file, for
+  example in `model.py` line 1 and `skellytracker/tests/sidecar/test_model_validation.py` line 2,
+  cites `specs/model-sidecar/README.md`. In `tools/tests/test_traceability.py`, change `CITATION`
+  and `citations()` to read the section-ID form, so that `test_the_code_cites_the_spec` counts the
+  new citations. Replace `test_every_spec_citation_in_the_code_names_a_heading_of_the_index` with a
+  test that checks that each cited section ID exists (`section_ids()`). Remove `INDEX_PATH`,
+  `normalized_heading` and `test_a_citation_compares_without_case_and_backticks`.
+  `defined_keys()` in `tools/tests/test_examples.py` also reads `sidecar-spec.md`. Today only that
+  file defines the top-level key `batching`. First give the top-level keys another source, for
+  example a `batching` heading or Field row in `common/batching.md`. Then remove that path from its
+  list. Change the citation check in
+  [Checks](../.claude/skills/change-sidecar-spec/SKILL.md#checks) of the `change-sidecar-spec`
+  skill, and remove the rule for the frozen file from its
+  [Spec structure](../.claude/skills/change-sidecar-spec/SKILL.md#spec-structure). Each changed
+  rule cites
+  [ADR-CN15](../decisions/entries/CN15-spec-readme-is-the-only-entry-point.md).
+  The user first changes the two links to the file in
+  `specs/draft/exporter-guide/sidecars/README.md`
+  ([ADR-x64y](../decisions/entries/x64y-draft-exporter-guide-folder.md)). Then delete
+  `sidecar-spec.md`. Each link to it goes to `specs/model-sidecar/README.md` or to a section file. A
+  decided entry gets its link repairs and a link-repair `_Edited` line. A plain-text path in a
+  decided entry stays, because it is history.
+  Two more changes go with the deletion: the "Single source of truth" bullet of
+  `specs/model-sidecar/README.md` names the section files, not "this document"; and a new entry
+  supersedes [ADR-D9VT](../decisions/entries/D9VT-decision-log-move.md) in full, so that a recorded
+  proposal maps `specs/sidecar-spec.md` to `specs/model-sidecar/README.md` (its item 4).
 
 ### M12 — `vNEXT` release
 
@@ -395,6 +583,16 @@ of M8 when the export has no batch key `"1"`. It has no order link to M10a.
 - **`vNEXT` release step.** At the first skellytracker release that ships the spec, one content PR
   replaces `vNEXT` with that release version everywhere. Then the exporters regenerate their sidecars
   ([Publishing](model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing)). OpenMMLab-Exporter ([`rtmdet_person/sidecar.py:30`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmdet_person/sidecar.py#L30)) and Roboflow-Exporter ([`rf_detr/sidecar.py:32`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L32)) write `vNEXT` today.
+- **The first package release.** Added on 2026-11-03. The spec version is the skellytracker
+  version. The spec has no `vNEXT`, and the open target is `2.0.0`
+  ([ADR-6GE2](../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). Thus M12 becomes
+  the first package release that ships the spec: the skellytracker `2.0.0` release. It is the first
+  release that loads `"2.0.0"`, thus M8 comes before it (the item SemVer `schema_version`). The
+  `vNEXT` release step above is moot. These parts of other stages are also moot: the development
+  build of M7 that loads `vNEXT` sidecars, and the parts of M8, M9 and M11 that apply before
+  `vNEXT`. In the other text of M7 to M12, `vNEXT` means the open target `2.0.0`. The V- rule
+  checks of the examples in M7 do not wait for a development build. They wait for the package model
+  of M8.
 
 ## Reference examples
 
