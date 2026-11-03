@@ -145,6 +145,21 @@ run. Keep the work folder path short: a pack file path of 240 characters or more
 
 The suite prints the report folder at the end. It holds `report.json` and `report.md`.
 
+### Driver links
+
+Each run prints the driver download links for the GPU and the OS, at the start and at the end. The
+list marks the installed scenario and gives the next step of the
+[driver procedure](#driver-procedure-gtx-1650-turing-cc-75). The end of the run also gives the
+`compare` command with the path of the new report. To print only the links, run this command. It
+downloads nothing and runs no test:
+
+```sh
+uv run --no-project --python 3.12 python -B decisions/scripts/ep_device_checks/run_checks.py drivers
+```
+
+The links come from the table `DRIVERS` in `run_checks.py`. That table holds the same rows as the
+tables of this README. If you change a row, change it in both places.
+
 ## Sizes and times
 
 Measured on Windows 11 with an empty uv cache (`win_amd64` wheels, from the `uv.lock` of each
@@ -230,7 +245,8 @@ The 13.0 notes give no Windows value. The newer notes give only the branch: R580
 1. Pause Windows Update: open Settings > Windows Update > Pause updates. Windows Update can replace
    the GPU driver during the test. A stronger method is the group policy "Do not include drivers with
    Windows Updates" (<https://learn.microsoft.com/windows/client-management/mdm/policy-csp-update>).
-2. Download the old driver of scenario A or B from the table.
+2. Download the old driver of scenario A or B from the table. The suite also prints these links
+   ([Driver links](#driver-links)).
 3. Install it with a clean installation. In the NVIDIA installer, select "Custom (Advanced)" and then
    "Perform a clean installation". For a downgrade, you can also first remove the current driver with
    Display Driver Uninstaller (DDU) in Safe Mode.
