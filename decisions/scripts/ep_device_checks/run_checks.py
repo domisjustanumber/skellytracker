@@ -68,6 +68,41 @@ RULES = {
 LAST_BRANCH = [("7.0", 580)]  # Maxwell, Pascal and Volta end at R580
 SCENARIOS = [(570, "A", "below R570"), (580, "B", "R570 to R579"), (10**6, "C", "R580 or newer")]
 
+# Driver downloads for the driver test, by GPU family, OS and scenario: (version, date, max CUDA, URL).
+# The same rows are in README.md ("Driver versions", "Pascal driver versions"), checked on 2026-11-03.
+# "turing" rows list the GTX 1650; "pascal" rows list the GTX 1060 and the GTX 1050 Ti.
+NV = "https://www.nvidia.com/"
+DRIVERS = {
+    "turing": {
+        "win32": {
+            "A": [("566.36", "2024-12-05", "12.6 Update 3", NV + "Download/driverResults.aspx/237719/en-us")],
+            "B": [("572.16", "2025-01-30", "12.8", NV + "Download/driverResults.aspx/240547/en-us"),
+                  ("576.88", "2025-07-01", "12.9 Update 1", NV + "en-us/drivers/details/248978/")],
+            "C": [("580.88", "2025-07-31", "13.0", NV + "en-us/drivers/details/251255/"),
+                  ("621.01 (newest)", "2026-10-21", "13.4 or higher", NV + "en-us/drivers/details/282412/")],
+        },
+        "linux": {
+            "A": [("565.77", "2024-12-05", "12.6 Update 3", NV + "Download/driverResults.aspx/237587/en-us")],
+            "B": [("575.64.05", "2025-07-22", "12.9 Update 1", NV + "en-us/drivers/details/250991/")],
+            "C": [("580.196.07", "2026-10-21", "13.0", NV + "en-us/drivers/details/281487/"),
+                  ("615.78.08", "2026-10-07", "13.4", NV + "en-us/drivers/details/280299/")],
+        },
+    },
+    "pascal": {
+        "win32": {
+            "A": [("566.36", "2024-12-05", "12.6 Update 3", NV + "Download/driverResults.aspx/237719/en-us")],
+            "B": [("576.88", "2025-07-01", "12.9 Update 1", NV + "en-us/drivers/details/248978/")],
+            "C": [("582.78 (R580 security update, the last branch)", "2026-09-30", "13.0",
+                   NV + "en-us/drivers/details/280034/")],
+        },
+        "linux": {
+            "A": [("565.77", "2024-12-05", "12.6 Update 3", NV + "Download/driverResults.aspx/237587/en-us")],
+            "B": [("575.64.05", "2025-07-22", "12.9 Update 1", NV + "en-us/drivers/details/250991/")],
+            "C": [("580.196.07 (the last branch)", "2026-10-21", "13.0", NV + "en-us/drivers/details/281487/")],
+        },
+    },
+}
+
 # The packs. The pins come from the EP catalog draft of this work.
 ROUTES = {
     "cpu": {"ep": "CPUExecutionProvider", "select": {"type": "CPU"}, "atol": 1e-5, "deps": []},
@@ -250,6 +285,44 @@ def scenario(gpu: dict | None) -> dict:
     if name == "C" and cap:
         text = f"R{cap} (the last branch for CC {gpu['cc']})"
     return {"name": name, "text": text, "driver_branch": branch}
+
+
+def driver_family(cc: str) -> str:
+    """The DRIVERS family: Pascal and older use the R580-capped list; CC 7.0 and newer the Turing list."""
+    return "pascal" if cc_tuple(cc) < (7, 0) else "turing"
+
+
+def driver_guide(gpu: dict | None, osk: str, report_path: Path | None = None) -> list[str]:
+    """Console lines with the driver download links and the next step of the driver test."""
+    if not gpu:
+        return ["Driver test: no NVIDIA GPU found."]
+    family, sc = driver_family(gpu["cc"]), scenario(gpu)["name"]
+    rows = DRIVERS[family].get(osk)
+    if not rows:
+        return [f"Driver test: no driver list for the OS {osk}."]
+    cap = last_branch(gpu["cc"])
+    lines = ["", "Driver test (README.md, 'Driver procedure'):",
+             f"  Installed: {gpu['driver_version']} (R{gpu['driver_branch']}), scenario {sc}."]
+    if cap:
+        lines.append(f"  CC {gpu['cc']}: R{cap} is the last driver branch. Do not install a newer branch.")
+    for _, name, text in SCENARIOS:
+        label = f"R{cap}" if name == "C" and cap else text
+        mark = "  <- installed" if name == sc else ""
+        lines.append(f"  Scenario {name} ({label}){mark}:")
+        for version, date, cuda, url in rows[name]:
+            lines.append(f"    {version:<12} {date}  CUDA {cuda:<14} {url}")
+    report = str(report_path) if report_path else "<this run>/report.json"
+    if sc == "C":
+        lines += ["  Next: to test 'update-driver', install a scenario A or B driver (clean installation),",
+                  "  run the suite again with a new --out folder, then install a scenario C driver,",
+                  "  run again, and run: run_checks.py compare <A or B report.json> <C report.json>"]
+    else:
+        lines += ["  Next: install a scenario C driver from the list (clean installation), restart,",
+                  "  run the suite again with a new --out folder, then run:",
+                  f"  run_checks.py compare {report} <new report.json>"]
+    if osk == "win32":
+        lines.append("  Before a driver change, stop Windows Update from replacing the driver (README step 1).")
+    return lines
 
 
 def anomalies(gpu: dict | None) -> list[str]:
@@ -826,6 +899,7 @@ def run_main(argv: list[str]) -> int:
     for route, rec in routes.items():
         p = rec["predicted"]
         print(f"  {route:13} predicted {p['verdict']:14} {'run' if rec['ran'] else 'skip':4}  {p['reason']}")
+    print("\n".join(driver_guide(gpu, os_key())), flush=True)
     if args.plan_only:
         return 0
     work = args.work.resolve()
@@ -862,6 +936,7 @@ def run_main(argv: list[str]) -> int:
     (out / "report.md").write_text(markdown(report), encoding="utf-8")
     print("\n" + markdown(report))
     print(f"Report folder: {out}")
+    print("\n".join(driver_guide(gpu, os_key(), out / "report.json")))
     if args.redact_check:
         found = redact_findings((out / "report.json").read_text(encoding="utf-8")
                                 + (out / "report.md").read_text(encoding="utf-8"))
@@ -984,9 +1059,19 @@ def compare_markdown(result: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def drivers_main(argv: list[str]) -> int:
+    """Print the driver links and the next step for the detected GPU. No download, no test."""
+    argparse.ArgumentParser(prog="run_checks.py drivers", description="Print the driver test links.").parse_args(argv)
+    gpu, _ = detect_gpu()
+    print("\n".join(driver_guide(gpu, os_key())))
+    return 0
+
+
 def main(argv: list[str]) -> int:
     if argv and argv[0] == "compare":
         return compare_main(argv[1:])
+    if argv and argv[0] == "drivers":
+        return drivers_main(argv[1:])
     return run_main(argv)
 
 

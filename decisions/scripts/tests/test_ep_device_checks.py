@@ -114,6 +114,36 @@ class Compare(unittest.TestCase):
         self.assertTrue(rc.compare_pair(before, after)["routes"]["cuda-cu13"]["outcome"].startswith("NOT"))
 
 
+class DriverLinks(unittest.TestCase):
+    def test_every_family_and_os_has_https_links_for_each_scenario(self):
+        for family, by_os in rc.DRIVERS.items():
+            for osk, rows in by_os.items():
+                self.assertEqual(sorted(rows), ["A", "B", "C"], (family, osk))
+                for name, entries in rows.items():
+                    self.assertTrue(entries, (family, osk, name))
+                    for version, _, _, url in entries:
+                        self.assertTrue(url.startswith("https://www.nvidia.com/"), url)
+                        branch = rc.driver_branch(version.split()[0])
+                        expected = next(n for limit, n, _ in rc.SCENARIOS if branch < limit)
+                        self.assertEqual(expected, name, (family, osk, version))
+
+    def test_pascal_links_never_pass_r580(self):
+        for rows in rc.DRIVERS["pascal"].values():
+            for entries in rows.values():
+                for version, *_ in entries:
+                    self.assertLessEqual(rc.driver_branch(version.split()[0]), 580, version)
+
+    def test_guide_marks_the_installed_scenario_and_gives_the_next_step(self):
+        text = "\n".join(rc.driver_guide(gpu("7.5", DRIVERS["B"]), "win32"))
+        self.assertIn("Scenario B (R570 to R579)  <- installed", text)
+        self.assertIn("install a scenario C driver", text)
+        self.assertIn(rc.DRIVERS["turing"]["win32"]["C"][0][3], text)
+        text = "\n".join(rc.driver_guide(gpu("6.1", PASCAL_C), "linux"))
+        self.assertIn("R580 is the last driver branch", text)
+        self.assertIn("install a scenario A or B driver", text)
+        self.assertEqual(rc.driver_guide(None, "win32"), ["Driver test: no NVIDIA GPU found."])
+
+
 class Matching(unittest.TestCase):
     def test_match(self):
         self.assertEqual(rc.match("ok", "pass"), "yes")
