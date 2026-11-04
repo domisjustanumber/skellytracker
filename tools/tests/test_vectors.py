@@ -716,6 +716,19 @@ BROKEN_CLAIMS = [
         {"scale": "pixel", "input_size": [640, 640], "resize": CENTER},
         {**FULL_HD, "bbox_xyxy": [100, 200, 196, 328], "decoded_xy": [0, 0]},
     ),
+    # Scale 1 and no padding: pixel (0, 0) is a source pixel.
+    (
+        "pre.resize.fit",
+        "pixel-0-0-outside-source",
+        {"target_size": [640, 640]},
+        {"src_w": 640, "src_h": 640},
+    ),
+    (
+        "pre.resize.affine_person_crop",
+        "pixel-0-0-outside-source",
+        AFFINE,
+        {"src_w": 640, "src_h": 480, "bbox_xyxy": [100, 100, 300, 400]},
+    ),
 ]
 
 
@@ -1533,11 +1546,15 @@ def fit_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
 
     A forward case gives the reported geometry, after a check that the warped
     image agrees with it. An `-inverse` case gives `model_xy` mapped through the
-    inverted warp matrix of the function: the function has no Inverse.
+    inverted warp matrix of the function: the function has no Inverse. A
+    `border` case gives pixel (0, 0), which is in the padding of each such case.
     """
     t_h, t_w = case["params"]["target_size"]
     src_w, src_h = case["input"]["src_w"], case["input"]["src_h"]
     image = np.full((src_h, src_w, 3), SOURCE_VALUE, dtype=np.uint8)
+    if case.get("function") == "border":
+        padded, _ = function(image, (t_h, t_w), pad_value=case["params"]["pad_value"])
+        return {"border": padded[0, 0].tolist()}
     padded, (scale, left, top) = function(image, (t_h, t_w), pad_value=0)
 
     if case.get("function") == "inverse":

@@ -246,13 +246,19 @@ Two rules of this part stay:
   the default `pad_value=0`. Add the missing validator rule, so that no valid `vNEXT` sidecar uses the
   default. Add a test of the rejection to `skellytracker/tests/sidecar/test_model_validation.py`.
   `test_fit_method_is_valid` already sets `pad_value: 114` ([ADR-0012](model-sidecar/decisions/entries/0012-fit-resize-for-rtmo.md)).
-- **`fit` scalar pad.** `fit_preprocess` in
+- **Scalar and array pad values.** `fit_preprocess` in
   `skellytracker/core/detectors/processing/image_preprocessing.py` passes a scalar `pad_value` to
   `cv2.warpAffine` as `float(pad_value)`. OpenCV then fills only channel 0 of a 3-channel image: a
-  scalar `114` gives the border `[114, 0, 0]`. A scalar must fill every channel, because
-  `letterbox_preprocess` in the same file already does this (`np.full`). The spec does not state this
-  rule. The spec must state it (see the [spec defects](model-sidecar/decisions/open-work.md#spec-defects), and
-  [ADR-0012](model-sidecar/decisions/entries/0012-fit-resize-for-rtmo.md)).
+  scalar `114` gives the border `[114, 0, 0]`. The spec requires `[114, 114, 114]`
+  ([ADR-BJF9](../decisions/entries/BJF9-scalar-pad-value-fills-every-channel.md)).
+  Expand a scalar to three values before the call. Also accept an array of int values: the type
+  hint `tuple[float, ...] | list[float]` makes beartype reject the YAML array `[114, 114, 114]`, and
+  the `int` hint of `letterbox_preprocess` rejects each array. Add `crop_policy.pad_value` to
+  `CropPolicySpec`, and pass its expanded value to `cv2.warpAffine` in `top_down_affine`. The case
+  `scalar-pad-fills-each-channel` of
+  [`pre.resize.fit`](model-sidecar/vectors/pre.resize.fit.yaml) fails for `fit_preprocess` until
+  this item is done. Then put `fit_preprocess` back in the file-level `verified_against` of that
+  file, and remove `unverified` and the case-level entries.
 - **Letterbox rounding.** `letterbox_preprocess` in
   `skellytracker/core/detectors/processing/image_preprocessing.py` cuts the resized size with `int()`.
   The `vNEXT` spec rounds with `half_even` or `half_up`, places the image at `top_left` or `center`,

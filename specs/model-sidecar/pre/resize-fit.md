@@ -5,14 +5,14 @@ kind: preprocessor
 selectors: [input.resize.method=fit]
 implemented_by:
   validate: skellytracker/core/sidecar/model.py::ResizeSpec._check_method_specific_fields  # partial. pad_value is not required (V-pre.resize.fit-1).
-  forward: skellytracker/core/detectors/processing/image_preprocessing.py::fit_preprocess
+  forward: skellytracker/core/detectors/processing/image_preprocessing.py::fit_preprocess  # partial. A scalar pad_value fills only channel 0, and an array of int values raises.
   inverse: missing  # fit_preprocess returns scale, left and top. No code applies (x - left) / s.
 external_impl: []
 tests:
   - skellytracker/tests/test_image_preprocessing.py
   - skellytracker/tests/sidecar/test_model_validation.py
 vectors: vectors/pre.resize.fit.yaml
-status: {spec: stable, validate: partial, forward: implemented, inverse: missing}
+status: {spec: stable, validate: partial, forward: partial, inverse: missing}
 ---
 
 # Fit resize
@@ -31,8 +31,11 @@ left = (T_w - src_w * s) / 2          # fractional; not rounded
 top  = (T_h - src_h * s) / 2          # fractional; not rounded
 M    = [[s, 0, left],
         [0, s, top ]]
-dst  = warpAffine(src, M, (T_w, T_h), <interpolation>, borderMode=constant, borderValue=pad_value)
+border = [pad_value] * 3 if pad_value is a scalar else pad_value
+dst  = warpAffine(src, M, (T_w, T_h), <interpolation>, borderMode=constant, borderValue=border)
 ```
+
+`border` has one value for each channel. A scalar `pad_value` fills each channel ([ADR-BJF9](../../../decisions/entries/BJF9-scalar-pad-value-fills-every-channel.md)).
 
 This resize matches mmpose `BottomupResize` (RTMO). A `letterbox` is not equivalent to this resize at any scale other than `1`. A letterbox resize rounds the resized size. Also, `resize` + pad gives different pixels from `warpAffine`, even when the resized size has integer values.
 

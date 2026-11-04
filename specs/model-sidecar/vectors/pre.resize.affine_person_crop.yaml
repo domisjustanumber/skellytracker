@@ -12,6 +12,8 @@ notes:
     sidecar, and `expect.failed` lists the rules of this section that it fails."
   - "A case `<id>-inverse` applies the section's Inverse to one model-input position
     (`model_xy`) of the case `<id>`."
+  - "A case with `function: border` gives `border`, the value of a pixel outside the
+    source image, one value for each channel. `pad_value` is `crop_policy.pad_value`."
 tolerance: 0.0001
 unverified: "No independent implementation has run these vectors yet. They come from the section
   text only."
@@ -204,3 +206,16 @@ cases:
           requires_object_detector: true
           geometry: "2d"
     expect: {failed: [V-pre.resize.affine_person_crop-2]}
+  - id: scalar-pad-fills-each-channel
+    note: "a scalar crop_policy.pad_value s gives [s, s, s]. The box touches the source corner,
+      so pixel (0, 0) of the crop maps to (-87.5, -50), outside the source. The source
+      pixels can have any value"
+    function: border
+    checks: [pixel-0-0-outside-source]
+    params:
+      target_size: [256, 192]
+      expand_ratio: 1.25
+      maintain_aspect_ratio: true
+      pad_value: 114
+    input: {src_w: 640, src_h: 480, bbox_xyxy: [0, 0, 200, 400]}
+    expect: {border: [114, 114, 114]}

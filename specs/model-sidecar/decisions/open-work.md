@@ -44,13 +44,6 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   uses "`cv2.resize` / `cv2.warpAffine`, half-pixel centres". `cv2.warpAffine` maps the pixel centres
   in a different way. A 2x upscale of the ramp `[0, 10, 20, 30]` gives `2.5` with `cv2.resize` and
   `5.0` with `cv2.warpAffine` at destination `x = 1` (OpenCV 4.13.0).
-- The `pad_value` row of [`input.resize`](../common/input.md#inputresize) and the
-  `crop_policy.pad_value` row say only that an array is per channel. They do not say what a scalar
-  fills. The `fit` and `affine_person_crop` pseudocode passes `pad_value` unchanged to
-  `cv2.warpAffine`. With a scalar, `cv2.warpAffine` fills only channel 0: a scalar `114` gives the
-  border `[114, 0, 0]` (OpenCV 4.13.0). The `letterbox` pseudocode fills every channel
-  (`full((T_h, T_w, 3), pad_value)`). The spec must state that a scalar fills every channel
-  ([0012](entries/0012-fit-resize-for-rtmo.md)).
 - The spec has no description of a one-class detector of an object that is not a person. A sidecar
   with no class source must set `decode.is_person_only: true`, so each detection gets the class
   `person_class_id` ([`V-post.det.decode-9`](../post/detection-decode.md#validation-rules);

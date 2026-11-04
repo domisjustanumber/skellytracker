@@ -30,7 +30,7 @@ This resize is the top-down pose convention. The host warps a person bounding bo
 |-------|------|----------|-------------|
 | `input.resize.crop_policy.expand_ratio` | float | no | This factor expands the bounding box before the affine warp. The default is `1.25`. |
 | `input.resize.crop_policy.maintain_aspect_ratio` | bool | no | The default is `true`. When the value is `true`, the host enlarges the expanded box along its shorter side to the target aspect ratio `T_w / T_h`. When the value is `false`, the host warps the expanded box directly. This distorts the aspect ratio. |
-| `input.resize.crop_policy.pad_value` | int, float, or array[3] | no | This is the constant border value for pixels outside the source image. The default is `0`. An array gives one value for each channel, in the channel order of `input.color_format`. |
+| `input.resize.crop_policy.pad_value` | int, float, or array[3] | no | This is the constant border value for pixels outside the source image. The default is `0`. An array gives one value for each channel, in the channel order of `input.color_format`. A scalar `s` gives the same value to each channel: it means `[s, s, s]` ([ADR-BJF9](../../../decisions/entries/BJF9-scalar-pad-value-fills-every-channel.md)). |
 
 [`input.resize`](../common/input.md#inputresize) and [Interpolation](interpolation.md) define `target_size` and `interpolation`. [Letterbox resize](resize-letterbox.md#behaviour) names `[T_h, T_w]`.
 
@@ -45,7 +45,9 @@ if maintain_aspect_ratio:
     if w > h * (T_w / T_h): h = w * (T_h / T_w)
     else:                   w = h * (T_w / T_h)
 M        = affine map taking the (w, h) box around center onto [0, T_w] x [0, T_h]
-dst      = warpAffine(src, M, (T_w, T_h), <interpolation>, borderMode=constant, borderValue=pad_value)
+pad      = crop_policy.pad_value
+border   = [pad] * 3 if pad is a scalar else pad
+dst      = warpAffine(src, M, (T_w, T_h), <interpolation>, borderMode=constant, borderValue=border)
 ```
 
 This matches mmpose `GetBBoxCenterScale(padding=1.25)` + `TopdownAffine`.
