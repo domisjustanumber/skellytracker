@@ -16,6 +16,7 @@ These entries are `accepted` or `evidence`.
 | # | Decision | Status |
 |---|----------|--------|
 | [Q6W6](entries/Q6W6-strict-score-comparisons.md) | Keep strict `>` in each score comparison of the detection decode, by intent; guidance names the `>=` upstreams | accepted |
+| [G79P](entries/G79P-pixel-centres-per-resize-method.md) | Pixel centres follow the OpenCV call of the resize method: `cv2.resize` for `letterbox` and `stretch`, `cv2.warpAffine` for `fit` and `affine_person_crop` | accepted |
 
 ### Proposed
 

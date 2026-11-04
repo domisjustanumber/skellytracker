@@ -41,7 +41,7 @@ left, top = (floor((T_w - n_w) / 2), floor((T_h - n_h) / 2))  # pad_position: ce
 dst[top:top+n_h, left:left+n_w] = resize(src, (n_w, n_h), <interpolation>)
 ```
 
-If the position is `center`, any odd remainder goes to the right and the bottom. The pair `half_even` and `center` matches Ultralytics `LetterBox`. The pair `half_up` and `top_left` matches mmdet `Resize(keep_ratio=True)` + `Pad(size=…)`.
+`resize` is `cv2.resize` ([Pixel centres](interpolation.md#pixel-centres)). If the position is `center`, any odd remainder goes to the right and the bottom. The pair `half_even` and `center` matches Ultralytics `LetterBox`. The pair `half_up` and `top_left` matches mmdet `Resize(keep_ratio=True)` + `Pad(size=…)`.
 
 ### Inverse
 
@@ -50,6 +50,8 @@ The host applies the inverse as part of [Unprojection](../post/unprojection.md).
 | Method | Unprojection (model-input pixels → source pixels) |
 |--------|---------------------------------------------------|
 | `letterbox` | `x_src = (x - left) * src_w / n_w`, `y_src = (y - top) * src_h / n_h` — the exact inverse of the resize, using the rounded `n_w`/`n_h` and the pad offsets from the letterbox algorithm. |
+
+The positions are on the image plane of `cv2.resize`. The inverse adds no `0.5` offset ([Pixel centres](interpolation.md#pixel-centres)).
 
 ## Validation rules
 

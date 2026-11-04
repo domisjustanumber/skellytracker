@@ -28,7 +28,7 @@ status: {spec: stable, validate: implemented, forward: partial}
 
 ## Behaviour
 
-**The host does not antialias resizes.** Every interpolation value below names the plain OpenCV filter (`cv2.resize` / `cv2.warpAffine`, half-pixel centres). These filters have no support that adapts when the host downscales an image. If a host uses another library, it must reproduce that behaviour. For example, torchvision with `antialias=False` reproduces it. PIL `BILINEAR` does not.
+**The host does not antialias resizes.** Every interpolation value below names the plain OpenCV filter of `cv2.resize` or `cv2.warpAffine`. [Pixel centres](#pixel-centres) gives the call of each method. These filters have no support that adapts when the host downscales an image. If a host uses another library, it must reproduce that behaviour and the pixel centres of the call. For example, torchvision with `antialias=False` reproduces `cv2.resize`. PIL `BILINEAR` does not.
 
 **Interpolation values:**
 
@@ -38,6 +38,19 @@ status: {spec: stable, validate: implemented, forward: partial}
 | `area` | `cv2.INTER_AREA` | Downscale with area resampling |
 | `cubic` | `cv2.INTER_CUBIC` | Upscale with higher quality |
 | `nearest` | `cv2.INTER_NEAREST` | Nearest-neighbor |
+
+### Pixel centres
+
+Each resize method that resizes the image uses the pixel-centre convention of one OpenCV call ([ADR-G79P](../decisions/entries/G79P-pixel-centres-per-resize-method.md)). `none` makes no resize call. Its inverse is the identity. The table gives the call of each other method:
+
+| Method | Call | Coordinate | Centre of pixel `i` |
+|--------|------|------------|---------------------|
+| `letterbox`, `stretch` | `cv2.resize` | A position on the image plane. Pixel `i` covers `[i, i + 1)`. | `i + 0.5` |
+| `fit`, `affine_person_crop` | `cv2.warpAffine` | A pixel index. The destination pixel `(x, y)` samples the source at `M^-1 · (x, y, 1)`. | `i` |
+
+`cv2.resize` samples at half-pixel centres for `linear`, `cubic` and `area`. With `cv2.resize`, `nearest` (`cv2.INTER_NEAREST`) gives the destination pixel `x` the source pixel `floor(x * src_n / dst_n)`. This is not a half-pixel rule. The coordinate convention of the table does not change.
+
+The model-input coordinates of [Unprojection](../post/unprojection.md#behaviour) use the convention of the method. The Inverse of each method maps them back in the same convention. No step adds or removes a `0.5` offset.
 
 ## Validation rules
 

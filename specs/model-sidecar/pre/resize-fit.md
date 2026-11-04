@@ -37,7 +37,7 @@ dst  = warpAffine(src, M, (T_w, T_h), <interpolation>, borderMode=constant, bord
 
 `border` has one value for each channel. A scalar `pad_value` fills each channel ([ADR-BJF9](../../../decisions/entries/BJF9-scalar-pad-value-fills-every-channel.md)).
 
-This resize matches mmpose `BottomupResize` (RTMO). A `letterbox` is not equivalent to this resize at any scale other than `1`. A letterbox resize rounds the resized size. Also, `resize` + pad gives different pixels from `warpAffine`, even when the resized size has integer values.
+`warpAffine` is `cv2.warpAffine`. Its pixel centres are at integer coordinates ([Pixel centres](interpolation.md#pixel-centres)). This resize matches mmpose `BottomupResize` (RTMO). A `letterbox` is not equivalent to this resize at any scale other than `1`. A letterbox resize rounds the resized size. Also, `resize` + pad gives different pixels from `warpAffine`, even when the resized size has integer values.
 
 ### Inverse
 
@@ -46,6 +46,8 @@ The host applies the inverse as part of [Unprojection](../post/unprojection.md).
 | Method | Unprojection (model-input pixels → source pixels) |
 |--------|---------------------------------------------------|
 | `fit` | `x_src = (x - left) / s`, `y_src = (y - top) / s` — the exact inverse of `M`, using the unrounded `s`, `left` and `top` from the `fit` algorithm. |
+
+The positions are pixel indices of `cv2.warpAffine`. The inverse adds no `0.5` offset ([Pixel centres](interpolation.md#pixel-centres)).
 
 ## Validation rules
 

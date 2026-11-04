@@ -40,10 +40,10 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   `body` part folder. A hand landmark model and a hand re-crop model of one family would both get
   `{family}-hand`. The spec must allow a suffix after the part, or the exporters must rename these
   models. OpenMMLab-Exporter sets `FAMILY = "rtmo-body7"` ([`rtmo/identity.py:24`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmo/identity.py#L24)).
-- The [`input.resize`](../pre/interpolation.md#behaviour) text says that every interpolation
-  uses "`cv2.resize` / `cv2.warpAffine`, half-pixel centres". `cv2.warpAffine` maps the pixel centres
-  in a different way. A 2x upscale of the ramp `[0, 10, 20, 30]` gives `2.5` with `cv2.resize` and
-  `5.0` with `cv2.warpAffine` at destination `x = 1` (OpenCV 4.13.0).
+- `cv2.warpAffine` runs `cv2.INTER_AREA` as `cv2.INTER_LINEAR` (OpenCV 4.13.0). `area` with `fit`
+  or `affine_person_crop` thus gives the pixels of `linear`. The
+  [interpolation](../pre/interpolation.md#behaviour) table names `cv2.INTER_AREA` for `area`. No
+  current model uses this pair ([ADR-G79P](entries/G79P-pixel-centres-per-resize-method.md)).
 - The spec has no description of a one-class detector of an object that is not a person. A sidecar
   with no class source must set `decode.is_person_only: true`, so each detection gets the class
   `person_class_id` ([`V-post.det.decode-9`](../post/detection-decode.md#validation-rules);
@@ -76,8 +76,7 @@ Spec defects found during the spec-build stage. Each one needs a content change 
 - The test vectors found these points that the spec does not define. Each vector file avoids them:
   - the box format and the coordinate space of the person box that `affine_person_crop` warps;
   - the order of the final rows for `selection: none`. The YOLO26 graph gives its rows in descending
-    score order, and ultralytics 8.4.184 keeps that order with no sort (`utils/nms.py:74-77`);
-  - the pixel-centre convention of the unprojection (see the `cv2.warpAffine` item above).
+    score order, and ultralytics 8.4.184 keeps that order with no sort (`utils/nms.py:74-77`).
 - No resize method crops a rotated ROI (centre, size and rotation) that the host gives with no
   detector box. `V-post.pose.schema-2` and `V-pre.resize.affine_person_crop-2` tie a top-down model
   to `requires_object_detector: true` and to `affine_person_crop`. The `crop_policy` of that method

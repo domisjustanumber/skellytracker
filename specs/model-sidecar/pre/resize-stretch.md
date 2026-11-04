@@ -27,6 +27,8 @@ The host resizes the whole source image directly to `target_size`. The x and y s
 dst = resize(src, (T_w, T_h), <interpolation>)
 ```
 
+`resize` is `cv2.resize` ([Pixel centres](interpolation.md#pixel-centres)).
+
 ### Inverse
 
 The host applies the inverse as part of [Unprojection](../post/unprojection.md).
@@ -34,6 +36,8 @@ The host applies the inverse as part of [Unprojection](../post/unprojection.md).
 | Method | Unprojection (model-input pixels → source pixels) |
 |--------|---------------------------------------------------|
 | `stretch` | `x_src = x * src_w / T_w`, `y_src = y * src_h / T_h`. |
+
+The positions are on the image plane of `cv2.resize`. The inverse adds no `0.5` offset ([Pixel centres](interpolation.md#pixel-centres)).
 
 ## Validation rules
 

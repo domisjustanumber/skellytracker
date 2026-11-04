@@ -18,7 +18,7 @@ status: {spec: stable, validate: partial, decode: partial}
 
 ## Behaviour
 
-Decoded box and keypoint coordinates are always in the input image of the model, with a **top-left origin**. In this origin, `x` grows to the right and `y` grows down. The host unprojects the coordinates to the source image. A sidecar cannot override the origin.
+Decoded box and keypoint coordinates are always in the input image of the model, with a **top-left origin**. In this origin, `x` grows to the right and `y` grows down. The host unprojects the coordinates to the source image. A sidecar cannot override the origin. The pixel centres follow the resize method ([Pixel centres](../pre/interpolation.md#pixel-centres)). For `letterbox` and `stretch`, `x = 0` is the left edge of pixel 0. For `fit` and `affine_person_crop`, `x = 0` is the centre of pixel 0. No step of the unprojection adds or removes a `0.5` offset. The source coordinates keep the convention of the method. The host does not convert a box between the two conventions, also when an `affine_person_crop` model gets the box of a detector.
 
 The host first converts the decoded coordinates to **model-input pixels**. The value of `box_scale` or `coordinate_scale` sets the conversion. Packed keypoints use `box_scale` ([`packed_keypoints`](pose-bottom-up.md#packed_keypoints-bottom-up-packed-rows); [ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)):
 

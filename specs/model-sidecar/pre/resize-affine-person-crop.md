@@ -50,7 +50,7 @@ border   = [pad] * 3 if pad is a scalar else pad
 dst      = warpAffine(src, M, (T_w, T_h), <interpolation>, borderMode=constant, borderValue=border)
 ```
 
-This matches mmpose `GetBBoxCenterScale(padding=1.25)` + `TopdownAffine`.
+`warpAffine` is `cv2.warpAffine`. Its pixel centres are at integer coordinates ([Pixel centres](interpolation.md#pixel-centres)). This matches mmpose `GetBBoxCenterScale(padding=1.25)` + `TopdownAffine`.
 
 ### Inverse
 
@@ -59,6 +59,8 @@ The host applies the inverse as part of [Unprojection](../post/unprojection.md).
 | Method | Unprojection (model-input pixels → source pixels) |
 |--------|---------------------------------------------------|
 | `affine_person_crop` | Apply the inverse of the affine warp `M`. |
+
+The positions are pixel indices of `cv2.warpAffine`. The inverse adds no `0.5` offset ([Pixel centres](interpolation.md#pixel-centres)).
 
 ## Validation rules
 
