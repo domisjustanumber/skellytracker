@@ -62,7 +62,9 @@ Spec defects found during the spec-build stage. Each one needs a content change 
     `packed_keypoints`). No exporter checks this channel: the RTMO probe of OpenMMLab-Exporter
     compares only `x` and `y` ([`notes/decisions/scripts/rtmo_sidecar_probe.py:97-102`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/scripts/rtmo_sidecar_probe.py#L97-L102));
   - the host frame is BGR, and the host converts it to `input.color_format`;
-  - the arithmetic precision of the geometry and of the pixel math.
+  - the arithmetic precision of the geometry and of the pixel math;
+  - the dtype of a score comparison. A float64 score `0.7` passes `>` against a float32 threshold
+    `0.7`, because the float32 value is `0.699999988` (numpy 2.4.6).
 - The [Storage layout](../format/file-layout.md#storage-layout) gives no folder to a sidecar whose
   `role` has both `object_detector` and `pose_estimator`. Both one-stage pose exporters write such a
   sidecar under `detectors/keypoint_detectors/`. Ultralytics-Exporter uses `yolo26/body/`
@@ -83,10 +85,6 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   - the order of the final rows for `selection: none`. The YOLO26 graph gives its rows in descending
     score order, and ultralytics 8.4.184 keeps that order with no sort (`utils/nms.py:74-77`);
   - the pixel-centre convention of the unprojection (see the `cv2.warpAffine` item above).
-- The default `confidence_threshold_default` is `0.7` with a strict `>`, so a score of exactly `0.7`
-  is dropped. The spec does not say that this is intended. The upstream of Qualcomm-Exporter,
-  `qai_hub_models` 0.64.0, keeps a score equal to the threshold in `batched_nms` (`>=`,
-  `utils/bounding_box_processing.py:86`).
 - No resize method crops a rotated ROI (centre, size and rotation) that the host gives with no
   detector box. `V-post.pose.schema-2` and `V-pre.resize.affine_person_crop-2` tie a top-down model
   to `requires_object_detector: true` and to `affine_person_crop`. The `crop_policy` of that method

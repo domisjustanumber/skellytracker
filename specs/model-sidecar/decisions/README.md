@@ -15,6 +15,7 @@ These entries are `accepted` or `evidence`.
 
 | # | Decision | Status |
 |---|----------|--------|
+| [Q6W6](entries/Q6W6-strict-score-comparisons.md) | Keep strict `>` in each score comparison of the detection decode, by intent; guidance names the `>=` upstreams | accepted |
 
 ### Proposed
 
