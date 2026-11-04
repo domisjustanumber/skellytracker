@@ -19,7 +19,7 @@ Selector syntax
 A selector is ``<path>=<value>`` or ``<path>``.
 
 - ``<path>`` is a list of keys, separated by dots, on the normalized dict. A segment ``name[]``
-  means "any element of the list at ``name``", for example ``outputs[].semantic=heatmap``.
+  means "any element of the list at ``name``", for example ``outputs[].semantic=simcc_x``.
 - A selector without ``=value`` matches when the path exists and the node is not null.
 - A selector with ``=value`` compares strings: ``str(node) == value``, with ``True`` and ``False``
   written ``true`` and ``false``. When the node is a list of scalars, the selector matches when any

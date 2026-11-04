@@ -204,7 +204,7 @@ def test_matching_selectors(selector: str) -> None:
         "input.normalization=none",
         "decode.selection=nms",
         "role=other",
-        "outputs[].semantic=heatmap",
+        "outputs[].semantic=simcc_x",
         "outputs.semantic=detections",
         "outputs[].name=c",
         "input.resize.method.deeper=letterbox",
@@ -305,9 +305,9 @@ def test_a_selector_must_be_a_string() -> None:
 
 
 def test_parse_selector_splits_path_and_value() -> None:
-    assert sn.parse_selector("outputs[].semantic=heatmap") == (
+    assert sn.parse_selector("outputs[].semantic=simcc_x") == (
         ("outputs[]", "semantic"),
-        "heatmap",
+        "simcc_x",
     )
     assert sn.parse_selector("overlay") == (("overlay",), None)
 
