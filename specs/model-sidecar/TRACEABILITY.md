@@ -38,7 +38,6 @@ The `post.pose.bottom_up` row shows `packed` when an output packs the keypoints 
 | [`post.pose.schema`](post/pose-schema.md) |  | x | x |  | x |
 | [`post.pose.canonical_mapping`](post/canonical-mapping.md) |  |  |  |  |  |
 | [`post.pose.decode.simcc`](post/pose-decode-simcc.md) |  |  | x |  |  |
-| [`post.pose.decode.heatmap`](post/pose-decode-heatmap.md) |  |  |  |  |  |
 | [`post.pose.decode.coordinate`](post/pose-decode-coordinate.md) |  | x |  |  | x |
 | [`post.pose.bottom_up`](post/pose-bottom-up.md) |  | x (poses) |  |  | x (packed) |
 | [`post.overlay`](post/overlay.md) |  | x | x |  | x |
@@ -88,7 +87,6 @@ The Gate column is the coverage backlog. It shows the graduation conditions of a
 | [`post.pose.schema`](post/pose-schema.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::PoseSpec`<br>`load` partial: `skellytracker/core/sidecar/loader.py::load_sidecar` | `skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/sidecar/test_rtmpose_body_sidecar.py`<br>`skellytracker/tests/sidecar/test_rtmpose_hand_sidecar.py`<br>`skellytracker/tests/sidecar/test_rtmpose_face_sidecar.py`<br>`skellytracker/tests/sidecar/test_rtmw_sidecar.py` | none | 2 export, 1 forecast | 0 of 9 | none |  | open: rules |
 | [`post.pose.canonical_mapping`](post/canonical-mapping.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::PoseSpec._check_pose`<br>`load` implemented: `skellytracker/core/io/tracker_mapping.py::TrackerMapping` | `skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/sidecar/test_rtmpose_body_sidecar.py`<br>`skellytracker/tests/sidecar/test_rtmpose_hand_sidecar.py`<br>`skellytracker/tests/sidecar/test_rtmw_sidecar.py` | none | none | 0 of 1 | none |  | open: example, rules |
 | [`post.pose.decode.simcc`](post/pose-decode-simcc.md) | stable | `validate` missing<br>`decode` partial: `skellytracker/core/detectors/processing/simcc_decode.py::simcc_pose_decode` | `skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/sidecar/test_rtmpose_body_sidecar.py`<br>`skellytracker/tests/sidecar/test_rtmpose_hand_sidecar.py`<br>`skellytracker/tests/sidecar/test_rtmpose_face_sidecar.py`<br>`skellytracker/tests/sidecar/test_rtmw_sidecar.py` | none | 1 export | 0 of 1 | none |  | open: vectors, rules |
-| [`post.pose.decode.heatmap`](post/pose-decode-heatmap.md) | stable | `validate` missing<br>`decode` missing | `skellytracker/tests/sidecar/test_model_validation.py` | none | none | 0 of 1 | none |  | open: example, vectors, rules |
 | [`post.pose.decode.coordinate`](post/pose-decode-coordinate.md) | stable | `validate` implemented: `skellytracker/core/sidecar/model.py::PoseDecodeSpec._check_decode`<br>`decode` missing | `skellytracker/tests/sidecar/test_model_validation.py` | none | 1 export, 1 forecast | 0 of 1 | none |  | open: vectors, rules |
 | [`post.pose.bottom_up`](post/pose-bottom-up.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::OutputSpec._check_output`<br>`decode` missing | `skellytracker/tests/sidecar/test_model_validation.py` | none | 1 export, 1 forecast | 0 of 2 | none |  | open: vectors, rules |
 | [`post.overlay`](post/overlay.md) | stable | `validate` implemented: `skellytracker/core/sidecar/model.py::SidecarModel._check_overlay`<br>`load` partial: `skellytracker/core/detectors/overlay_groups.py::resolve_overlay_groups` | `skellytracker/tests/test_overlay_groups.py`<br>`skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/sidecar/test_rtmw_sidecar.py` | none | 2 export, 1 forecast | 0 of 5 | none |  | open: rules |
@@ -102,7 +100,7 @@ No section lists an external implementation. A section lists one in the `externa
 
 These steps have no implementation in skellytracker. The last column counts the sidecars that the section applies to.
 
-17 entries are `missing`.
+15 entries are `missing`.
 
 | Section | Step | Models |
 |---|---|---|
@@ -119,7 +117,5 @@ These steps have no implementation in skellytracker. The last column counts the 
 | [`post.det.selection.top_k`](post/selection-top-k.md) | `decode` | 0 of 5 |
 | [`post.det.selection.nms`](post/selection-nms.md) | `validate` | 1 of 5 |
 | [`post.pose.decode.simcc`](post/pose-decode-simcc.md) | `validate` | 1 of 5 |
-| [`post.pose.decode.heatmap`](post/pose-decode-heatmap.md) | `validate` | 0 of 5 |
-| [`post.pose.decode.heatmap`](post/pose-decode-heatmap.md) | `decode` | 0 of 5 |
 | [`post.pose.decode.coordinate`](post/pose-decode-coordinate.md) | `decode` | 2 of 5 |
 | [`post.pose.bottom_up`](post/pose-bottom-up.md) | `decode` | 2 of 5 |

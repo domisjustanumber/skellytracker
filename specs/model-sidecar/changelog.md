@@ -86,6 +86,7 @@ The rules of this list:
 | 32 | Resize | A scalar `pad_value` or `crop_policy.pad_value` `s` means `[s, s, s]`. It fills each channel. The `fit` and `affine_person_crop` pseudocode expands a scalar to one value for each channel before `warpAffine`. | user decision 2026-11-04: OpenCV fills only channel 0 for a scalar `borderValue`, and RTMO body7 writes the scalar `114` ([ADR-BJF9](../../decisions/entries/BJF9-scalar-pad-value-fills-every-channel.md)) | [`input.resize`](common/input.md#inputresize), [`fit`](pre/resize-fit.md), [`affine_person_crop`](pre/resize-affine-person-crop.md) |
 | 33 | Resize | Each resize method that resizes the image has one pixel-centre convention. `letterbox` and `stretch` use the image plane of `cv2.resize`: pixel `i` covers `[i, i + 1)`. `cv2.resize` samples at half-pixel centres for `linear`, `cubic` and `area`. `nearest` is `cv2.INTER_NEAREST`: the destination pixel `x` takes the source pixel `floor(x * src_n / dst_n)`. `fit` and `affine_person_crop` use the integer pixel centres of `cv2.warpAffine`: the destination pixel `(x, y)` samples the source at `M^-1 · (x, y, 1)`. Each Inverse and the unprojection use the convention of the method. No step adds or removes a `0.5` offset. The host does not convert a box between the two conventions. The formulas do not change. | mmpose `TopdownAffine` and `BottomupResize` warp with `cv2.warpAffine` and invert with `M^-1`; ultralytics `LetterBox` resizes with `cv2.resize` and inverts with `(x - pad) / gain`; user decision 2026-11-04 ([ADR-G79P](decisions/entries/G79P-pixel-centres-per-resize-method.md)) | [Pixel centres](pre/interpolation.md#pixel-centres), [`letterbox`](pre/resize-letterbox.md), [`stretch`](pre/resize-stretch.md), [`fit`](pre/resize-fit.md), [`affine_person_crop`](pre/resize-affine-person-crop.md), [Unprojection](post/unprojection.md#behaviour) |
 | 34 | Resize | New optional `input.resize.compute_dtype`: `uint8` or `float32`. The default is `uint8`. It applies to `letterbox`, `stretch`, `fit` and `affine_person_crop`. With `uint8`, the host resizes and pads the 8-bit image, and the result is 8-bit. With `float32`, the host casts the image to float32 first, and it does not round or clamp the result. The normalization and the cast to `input.dtype` come after the resize. `V-pre.resize.interpolation-1`: the value must be `uint8` or `float32`. `V-pre.resize.none-1`: a `none` resize must not declare `compute_dtype`. | user decision 2026-11-04: RF-DETR resizes the float image, and no field stated the dtype of the resize ([ADR-PHJ3](decisions/entries/PHJ3-resize-compute-dtype.md)) | [Compute dtype](pre/interpolation.md#compute-dtype), [No resize](pre/resize-none.md#validation-rules) |
+| 35 | Pose | The heatmap decode goes. `pose.decode.method` is `simcc` or `coordinate`. `outputs[].semantic` has no value `heatmap`. The section `post.pose.decode.heatmap` and its rule `V-post.pose.decode.heatmap-1` go. The rule number stays unused. | user decision 2026-11-04: no sidecar uses it. A host could not implement the section, because it had no tie rule, no refinement, no scale to the model input, no score definition and no vectors ([ADR-9MJ6](../../decisions/entries/9MJ6-remove-the-heatmap-decode.md)) | [`pose.decode`](post/pose-schema.md#posedecode), [Outputs](common/outputs.md#validation-rules) |
 
 ### Considered and deliberately not added
 
@@ -102,6 +103,7 @@ A content change can add each of these later when a model needs it.
 | `graph_candidate_limit` | Informational only; the host can't act on it. NMS-free exports have no graph-side candidate cap to describe; detection outputs are normatively the complete candidate set. |
 | `pose.decode.instance_count` | The count is derivable from the detection row axis (change 11). |
 | Soft-NMS / per-class IoU, masks, multi-input models, quantized outputs | Out of scope. No in-scope model needs them. |
+| `pose.decode.method: heatmap` and `semantic: heatmap` | No sidecar uses them (change 35). A heatmap model adds them again with a full contract: the tie rule, the refinement, the scale to the model input, the score and vectors. |
 
 ### Compatibility impact
 
@@ -161,6 +163,7 @@ The rules of the versions
 - Row 32: `4a5c08c2af251af63318fd8b8647a2f6e572e61fc38ebcf20840bd24f4a39a5a`.
 - Row 33: `bfa5d2ae55d4b0a709f659d4bd23ca20d273596d2161a8c88ce7446f56f7d808`.
 - Row 34: `990009b0154349819ea9b863c5437e1f13f452f7e9fcfab7cd759f784304aed9`.
+- Row 35: `7a9c42a3f0d213b2f4ca71601294f485e403b6322503371fe5fad40c8ee3a5bf`.
 
 Version `2.0.0` is the first version. It replaces the revision `1.0` and the `schema_version`
 history before it. No release shipped a sidecar of that history

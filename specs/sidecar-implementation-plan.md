@@ -336,6 +336,14 @@ Two rules of this part stay:
     `batching.batch`). Also change the tests that use these fields, for example
     `skellytracker/tests/sidecar/test_model_validation.py` and
     `skellytracker/tests/test_batch_conversion.py`.
+- **Heatmap decode removed.** Added on 2026-11-04. The spec has no `heatmap` decode method and no
+  `heatmap` output semantic ([ADR-9MJ6](../decisions/entries/9MJ6-remove-the-heatmap-decode.md)).
+  `skellytracker/core/sidecar/model.py` still accepts them. Remove `heatmap` from `OutputSemantic`
+  and `PoseDecodeSpec.method`. Remove each `heatmap` value and branch of
+  `PoseDecodeSpec._check_decode`, `SidecarModel._check_outputs_semantics` (the `pose_semantics` set)
+  and `SidecarModel._check_pose_output_shapes` (the `elif` branch and the `keypoint_count` tuple). Remove
+  `test_heatmap_3d_is_rejected` from `skellytracker/tests/sidecar/test_model_validation.py`. Then
+  delete `REMOVED_VALUES` in `tools/tests/test_traceability.py`.
 - **Sizes are plain fields.** Added on 2026-11-02. A size entry holds only `input.shape`,
   `input.resize.target_size` and `onnx`. The host does not merge a size entry over the top level
   ([ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md) item 4). Today

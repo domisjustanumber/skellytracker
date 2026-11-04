@@ -107,7 +107,6 @@ These fields apply when `role` includes `pose_estimator`.
 | `post.pose.schema` | [post/pose-schema.md](post/pose-schema.md) | Pose schema |
 | `post.pose.canonical_mapping` | [post/canonical-mapping.md](post/canonical-mapping.md) | Canonical mapping |
 | `post.pose.decode.simcc` | [post/pose-decode-simcc.md](post/pose-decode-simcc.md) | SimCC decode |
-| `post.pose.decode.heatmap` | [post/pose-decode-heatmap.md](post/pose-decode-heatmap.md) | Heatmap decode |
 | `post.pose.decode.coordinate` | [post/pose-decode-coordinate.md](post/pose-decode-coordinate.md) | Coordinate decode |
 | `post.pose.bottom_up` | [post/pose-bottom-up.md](post/pose-bottom-up.md) | Bottom-up pose |
 | `post.overlay` | [post/overlay.md](post/overlay.md) | Overlay |
@@ -145,7 +144,6 @@ A sidecar is valid when all of the following rules hold. Each rule applies to ev
 - [Pose schema](post/pose-schema.md#validation-rules)
 - [Canonical mapping](post/canonical-mapping.md#validation-rules)
 - [SimCC decode](post/pose-decode-simcc.md#validation-rules)
-- [Heatmap decode](post/pose-decode-heatmap.md#validation-rules)
 - [Coordinate decode](post/pose-decode-coordinate.md#validation-rules)
 - [Bottom-up pose](post/pose-bottom-up.md#validation-rules)
 - [Overlay](post/overlay.md#validation-rules)

@@ -242,7 +242,7 @@ Source: the upstream postprocessing code and the upstream test config.
 
 | # | Property | Upstream evidence (file and line, or config key) | Section ID (the `id` in the section file's front matter) | Sidecar value | Verdict | What differs or what is missing |
 |---|---|---|---|---|---|---|
-| D1 | Semantic of each output (`detections`, `boxes`, `scores`, `class_logits`, `simcc_x`, `simcc_y`, `simcc_z`, `heatmap`, `keypoints` or `poses`). Add one row for each output. | | `common.outputs`, `post.det.outputs` | | | |
+| D1 | Semantic of each output (`detections`, `boxes`, `scores`, `class_logits`, `simcc_x`, `simcc_y`, `simcc_z`, `keypoints` or `poses`). Add one row for each output. | | `common.outputs`, `post.det.outputs` | | | |
 | D2 | Fields of a detection row (`fields`) and box format (`box_format`) | | `post.det.outputs`, `post.det.decode` | | | |
 | D3 | Box scale: model-input pixels or normalized (`box_scale`) | | `post.det.decode`, `post.unprojection` | | | |
 | D4 | Selection: graph-final rows (`none`), top-k over logits (`top_k`), or host NMS (`nms`) | | `post.det.decode` (`selection`), `post.det.selection.<selection>` (`none`, `top_k`, `nms`) | | | |
@@ -252,7 +252,7 @@ Source: the upstream postprocessing code and the upstream test config.
 | D8 | Threshold comparison (`>` or `>=`), the dtype of the comparison, and the tie order | | `post.det.decode` (Selection behaviour) | | | |
 | D9 | Row limits: graph-final row count (`max_detections`), `top_k`, `nms.post_nms_top_k` | | `post.det.selection.none`, `post.det.selection.top_k`, `post.det.selection.nms` | | | |
 | D10 | Class IDs: `class_id_base`, `class_id_map`, `is_person_only`, `person_class_id`. The host assigns `person_class_id` only through `is_person_only`. A model with no class source (no `class_field` and no `class_logits_output`) must set `is_person_only: true` (`V-post.det.decode-9`). A one-class model of something other than people is a `gap`. | | `post.det.decode` | | | |
-| D11 | Unprojection of boxes and keypoints to the source image (the inverse of the resize method) | | `post.unprojection`, `pre.resize.<method>` (`letterbox`, `stretch`, `fit`, `none`, `affine_person_crop`) (Inverse), `post.pose.decode.<method>` (`simcc`, `heatmap`, `coordinate`) | | | |
+| D11 | Unprojection of boxes and keypoints to the source image (the inverse of the resize method) | | `post.unprojection`, `pre.resize.<method>` (`letterbox`, `stretch`, `fit`, `none`, `affine_person_crop`) (Inverse), `post.pose.decode.<method>` (`simcc`, `coordinate`) | | | |
 | D12 | Box clamp to the source image (`clamp_boxes`, default `true`) and the box-size filter (`min_box_size`, no default). The spec clamps each `x` to `[0, W]` and each `y` to `[0, H]` of the source image: compare the upstream bounds. Write what the upstream does with a box that has no area or a small area. An upstream area filter maps to `min_box_size`. | | `post.det.decode` | | | |
 
 ### Pose
@@ -266,11 +266,11 @@ Source: the upstream postprocessing code and the upstream test config.
 | K1 | Estimator type and `requires_object_detector` | | `post.pose.schema` | | | |
 | K2 | `tracked_points` in native output order | | `post.pose.schema` (`pose.tracked_points`) | | | |
 | K3 | Connections: named skeletons and their edges | | `post.pose.schema` (`pose.connections`) | | | |
-| K4 | Output geometry (`pose.geometry`: `2d` or `3d`, required), decode method (`simcc`, `heatmap` or `coordinate`) and its parameters (`coordinate_scale`, `depth_unit`, `depth_range`) | | `post.pose.schema` (`pose.geometry`, `pose.decode`), `post.pose.decode.<method>` (`simcc`, `heatmap`, `coordinate`) | | | |
+| K4 | Output geometry (`pose.geometry`: `2d` or `3d`, required), decode method (`simcc` or `coordinate`) and its parameters (`coordinate_scale`, `depth_unit`, `depth_range`) | | `post.pose.schema` (`pose.geometry`, `pose.decode`), `post.pose.decode.<method>` (`simcc`, `coordinate`) | | | |
 | K5 | Keypoint axis and keypoint count of each pose output | | `post.pose.schema` (`keypoint_axis`, `keypoint_count`) | | | |
 | K6 | Bottom-up row alignment: pose row `q` belongs to detection row `q` | | `post.pose.bottom_up` | | | |
 | K7 | Keypoints packed into the detection row (`packed_keypoints`) | | `post.pose.bottom_up` | | | |
-| K8 | Keypoint score: its source, and its activation. The spec says that a packed keypoint `score` is already activated. The spec has no field for a keypoint-score activation: if the host must activate the scores, the verdict is `gap`. | | `post.pose.decode.<method>` (`simcc`, `heatmap`, `coordinate`), `post.pose.bottom_up` | | | |
+| K8 | Keypoint score: its source, and its activation. The spec says that a packed keypoint `score` is already activated. The spec has no field for a keypoint-score activation: if the host must activate the scores, the verdict is `gap`. | | `post.pose.decode.<method>` (`simcc`, `coordinate`), `post.pose.bottom_up` | | | |
 | K9 | Canonical mapping (optional) | | `post.pose.canonical_mapping` | | | |
 | K10 | Overlay (optional) | | `post.overlay` | | | |
 | K11 | Landmark schema (`pose.landmark_schema`, optional) | | `post.pose.schema` | | | |

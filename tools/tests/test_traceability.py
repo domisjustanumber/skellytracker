@@ -321,6 +321,10 @@ def selector_values(path: str) -> set[str]:
 # implementation plan, when model.py has the mode imagenet.
 MERGED_IMAGENET_MODES = {"imagenet_bgr", "imagenet_rgb"}
 
+# shortcut: the frozen model.py still accepts heatmap, which the spec removed (ADR-9MJ6), so the
+# check skips it; delete this at stage M8 of the implementation plan, when model.py drops it.
+REMOVED_VALUES = {"heatmap"}
+
 
 def literal_cases() -> list[tuple[str, list[str], set[str]]]:
     tree = model_tree()
@@ -345,12 +349,12 @@ def literal_cases() -> list[tuple[str, list[str], set[str]]]:
         ),
         (
             "OutputSemantic",
-            alias_values(tree, "OutputSemantic"),
+            sorted(set(alias_values(tree, "OutputSemantic")) - REMOVED_VALUES),
             selector_values("outputs[].semantic"),
         ),
         (
             "PoseDecodeSpec.method",
-            field_values(tree, "PoseDecodeSpec", "method"),
+            sorted(set(field_values(tree, "PoseDecodeSpec", "method")) - REMOVED_VALUES),
             selector_values("pose.decode.method"),
         ),
         ("Role", alias_values(tree, "Role"), selector_values("role")),

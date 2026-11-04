@@ -33,7 +33,7 @@ The pose output contract declares these items:
 |-------|------|----------|-------------|
 | `pose.estimator_type` | enum | yes | The value is `top_down_single_person`, `top_down_multi_person` or `bottom_up`. A top-down model sees one person in each crop (single-person outputs). A bottom-up model emits all persons in one pass (for example RTMO or YOLO26-pose). |
 | `pose.requires_object_detector` | bool | yes | The value is `true` when the model uses a person crop from an upstream detector. This is the case for top-down models: the host warps each detection box with `affine_person_crop`. The value is `false` when the model uses the full image. This is the case for bottom-up models. It must be consistent with `estimator_type`. |
-| `pose.geometry` | enum | yes | The output kind of the family: `2d` or `3d`. A catalog can filter models by it. With `3d`, the model emits a third coordinate, the root-relative depth in `pose.decode.depth_unit`. Its form is one of these: a `simcc_z` output (`simcc`), `(N, K, 3)` keypoints (`coordinate`), a `poses` tensor `(B, I, K, 4)` or a `z` packed component (bottom-up `coordinate`). The `heatmap` decode is `2d` only ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). |
+| `pose.geometry` | enum | yes | The output kind of the family: `2d` or `3d`. A catalog can filter models by it. With `3d`, the model emits a third coordinate, the root-relative depth in `pose.decode.depth_unit`. Its form is one of these: a `simcc_z` output (`simcc`), `(N, K, 3)` keypoints (`coordinate`), a `poses` tensor `(B, I, K, 4)` or a `z` packed component (bottom-up `coordinate`). |
 | `pose.landmark_schema` | string | no | The keypoint convention that the model uses (for example `COCO_WholeBody`, `COCO17`, `MediaPipe_Hand`, `MediaPipe_Pose`, `LaPa_106`). |
 | `pose.tracked_points` | array[string] or `$ref` | yes | The ordered list of keypoint names that the model outputs. The i-th name is the i-th model output index. |
 | `pose.connections` | array[Skeleton] or `$ref` | yes | The named skeletons. Each skeleton joins `tracked_points` into a different skeleton. |
@@ -49,7 +49,7 @@ Additional fields on pose output tensors:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `keypoint_axis` | int | conditional | The axis that holds the keypoints in a pose output. The default is `1` for `(N, K, …)` tensors (`simcc_x`/`simcc_y`/`simcc_z`/`heatmap`/`keypoints`). For `poses` `(B, I, K, …)`, the field is required and its value is `2`. |
+| `keypoint_axis` | int | conditional | The axis that holds the keypoints in a pose output. The default is `1` for `(N, K, …)` tensors (`simcc_x`/`simcc_y`/`simcc_z`/`keypoints`). For `poses` `(B, I, K, …)`, the field is required and its value is `2`. |
 | `keypoint_count` | int | no | The number of keypoints in a pose output. If the author sets this field, it must equal `len(tracked_points)`. If the author omits it, its value is `len(tracked_points)`. |
 
 `poses` tensor layout: [Bottom-up pose](pose-bottom-up.md#fields).
@@ -87,7 +87,7 @@ This field declares how the raw output tensors of the model become keypoints.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `pose.decode.method` | enum | yes | The value is `simcc`, `heatmap` or `coordinate`. |
+| `pose.decode.method` | enum | yes | The value is `simcc` or `coordinate`. |
 | `pose.decode.depth_unit` | enum | required when `pose.geometry: 3d` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)) | The unit of the root-relative depth coordinate: `m` (RTMW3D), `mm` or `pixel` (MediaPipe, scaled by the image width). |
 
 Method-specific fields: [`pose.decode.coordinate_scale`](pose-decode-coordinate.md#fields), [`pose.decode.depth_range`](pose-decode-simcc.md#fields).
@@ -95,7 +95,6 @@ Method-specific fields: [`pose.decode.coordinate_scale`](pose-decode-coordinate.
 Decode methods:
 
 - [SimCC decode](pose-decode-simcc.md#behaviour)
-- [Heatmap decode](pose-decode-heatmap.md#behaviour)
 - [Coordinate decode](pose-decode-coordinate.md#behaviour)
 
 #### Shape key
@@ -114,11 +113,11 @@ Decode methods:
 
 - [ ] `V-post.pose.schema-1` The sidecar must declare `pose` (with `estimator_type`, `requires_object_detector` and `geometry`), `pose.decode`, `pose.tracked_points` and `pose.connections` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 - [ ] `V-post.pose.schema-2` `pose.requires_object_detector` must be a boolean. It must be consistent with `pose.estimator_type`. It must be `true` for `top_down_single_person`/`top_down_multi_person`. It must be `false` for `bottom_up`.
-- [ ] `V-post.pose.schema-3` `pose.estimator_type` must be one of `top_down_single_person`, `top_down_multi_person` or `bottom_up`. `pose.decode.method` must be one of `simcc`, `heatmap` or `coordinate`.
+- [ ] `V-post.pose.schema-3` `pose.estimator_type` must be one of `top_down_single_person`, `top_down_multi_person` or `bottom_up`. `pose.decode.method` must be `simcc` or `coordinate`.
 - [ ] `V-post.pose.schema-4` The names in `pose.tracked_points` must be unique.
 - [ ] `V-post.pose.schema-5` Every `pose.connections[].edges` endpoint must appear in `pose.tracked_points` or `pose.derived_points`. The `pose.connections[].name` values must be unique.
 - [ ] `V-post.pose.schema-6` The names in `pose.derived_points` must be unique. Each derivation must be a string (passthrough), a list of names (mean) or a name→number map (weighted). Every referenced source name must appear in `pose.tracked_points`.
-- [ ] `V-post.pose.schema-7` A `simcc` decoder must declare exactly one `simcc_x` output and exactly one `simcc_y` output. It must declare one `simcc_z` output if and only if `pose.geometry: 3d`. A `heatmap` decoder must declare exactly one output with `semantic: heatmap`. A `coordinate` decoder must declare exactly one `keypoints` output (single-person). For a `bottom_up` model, this decoder must instead declare one primary detection output. It must also declare either one `poses` output, or `packed_keypoints` on the `detections` output. It must not declare both ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
+- [ ] `V-post.pose.schema-7` A `simcc` decoder must declare exactly one `simcc_x` output and exactly one `simcc_y` output. It must declare one `simcc_z` output if and only if `pose.geometry: 3d`. A `coordinate` decoder must declare exactly one `keypoints` output (single-person). For a `bottom_up` model, this decoder must instead declare one primary detection output. It must also declare either one `poses` output, or `packed_keypoints` on the `detections` output. It must not declare both ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 - [ ] `V-post.pose.schema-8` If the author sets `keypoint_count` on a pose output, it must equal `len(pose.tracked_points)`.
 - [ ] `V-post.pose.schema-9` `pose.geometry` must be `2d` or `3d`. When it is `3d`, `pose.decode.depth_unit` must be present and must be one of `m`, `mm` or `pixel`. `depth_unit` and `depth_range` must not be present unless `pose.geometry: 3d` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 
