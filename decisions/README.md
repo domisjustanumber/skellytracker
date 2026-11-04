@@ -26,19 +26,10 @@ These entries are `accepted` or `evidence`.
 
 | # | Decision | Status |
 |---|----------|--------|
-| [p3n3](entries/p3n3-ai-attribution-warning.md) | No AI attribution in check-ins; a commit-msg hook warns and does not stop the commit | accepted |
 | [x64y](entries/x64y-draft-exporter-guide-folder.md) | The workflow, with the sidecar-file, validation and publishing rules, is in `model-addition-workflow/`; the exporter-only guide is a draft; no stub | accepted |
 | [yve0](entries/yve0-example-fragments.md) | An example fragment has one source: a package copy with the same bytes, or a `fragments` entry in `inventory.yaml` | accepted |
-| [GN3D](entries/GN3D-module-decision-logs.md) | Core and nested `AGENTS.md` and skills; a root log and a log for each module in `LOG_DIRS`; placement; one ID space; supersedes hxy8 | accepted |
-| [EY8R](entries/EY8R-tools-and-scripts.md) | Tools are in the root `tools/`; a script is in `scripts/` of the log that holds its entry; a script that a later step runs becomes a tool | accepted |
-| [D9VT](entries/D9VT-decision-log-move.md) | The log moves to `decisions/` and `specs/model-sidecar/decisions/`; no stub; old plain-text paths stay; proposal-copy paths; supersedes k6dz | accepted |
 | [AB79](entries/AB79-one-pr-for-the-spec-build-work.md) | Exception to 0027: the spec-build work goes to `development` in one PR; one kind of change in each commit; no new `dom/NN-*` branch | accepted |
-| [FDTD](entries/FDTD-evidence-sources-and-exporter-permalinks.md) | Exporter documents stay secondary; a checked upstream line is primary; user decisions in words; source forms; exporter permalinks; supersedes 0030 | accepted |
 | [QMKS](entries/QMKS-draft-sections-and-coverage-columns.md) | `spec: draft` rules, the graduation gate and the release stops; coverage and gate columns in `TRACEABILITY.md`; `no_model` reasons | accepted |
-| [Z05A](entries/Z05A-essential-decision-log-rules.md) | The Rules keep only the rules that no tool or loaded document states; the kit sync writes the kit Rules; supersedes z934, JW9N, NSR2, 0031 | accepted |
-| [QPS7](entries/QPS7-decision-entries-in-an-entries-folder.md) | The entry files of each log are in `entries/`; the checker also reads the old layout on other branches; `_Edited` lines do not count to the limit | accepted |
-| [NB91](entries/NB91-new-ids-have-a-digit.md) | New IDs have a digit and a letter in any position; `--new` draws them uniformly; old all-digit and lower-case letter-first IDs stay valid | accepted |
-| [5WKW](entries/5WKW-implementation-work-in-the-plan.md) | Stages M7 to M12 of the implementation plan hold the implementation-stage work; append only; the user decides when the plan goes; supersedes b9fm | accepted |
 | [8DSW](entries/8DSW-vector-files-are-the-case-source.md) | The vector file is the only case source; formula modules, named checks, `land` and `fill`; supersedes TA0G | accepted |
 | [AD33](entries/AD33-bundles-are-untrusted-input.md) | Bundles are untrusted input: no tool imports or runs bundle code; static checks; a reviewed, user-approved copy; ONNX checks in `batch` | accepted |
 | [NB5F](entries/NB5F-no-change-classes-and-one-re-export-request.md) | No change classes; one re-export request; a spec-forced edit can add a value read from the export graphs; supersedes KDBD | accepted |
@@ -51,6 +42,7 @@ These entries are `accepted` or `evidence`.
 | [CN15](entries/CN15-spec-readme-is-the-only-entry-point.md) | The spec `README.md` is the only entry point; `sidecar-spec.md` is frozen, and M11 deletes it after the code cites section IDs; the root README links the spec | accepted |
 | [ESP4](entries/ESP4-one-home-for-each-workflow-rule.md) | One home for each workflow rule; skills link it; templates are forms with no relative link; new phase-1 headings; three rules move to `rules.md` | accepted |
 | [0PK7](entries/0PK7-selection-boxes-space-flag.md) | Each selection vector case gives `boxes_xyxy` and `boxes_space` (`model_input` or `source`); a host reads the flag | accepted |
+| [2XW6](entries/2XW6-process-entries-consolidation.md) | Consolidation: restates the rules that stay of Z05A, GN3D, QPS7, NB91, EY8R, D9VT, p3n3, 5WKW and FDTD; changes no decision | accepted |
 
 ### Proposed
 

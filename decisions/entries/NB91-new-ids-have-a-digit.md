@@ -1,6 +1,6 @@
 # NB91 — New IDs have a digit and a letter
 
-**Status:** accepted, 2026-10-29 (user; PR: pending).
+**Status:** accepted, 2026-10-29 (user; PR: pending); superseded by [2XW6](2XW6-process-entries-consolidation.md), 2026-11-04 (user; PR: pending).
 
 ## Decision
 

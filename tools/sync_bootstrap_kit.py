@@ -16,6 +16,14 @@ section under that heading, up to the next ``## `` heading. Any other block name
 the lines ``<!-- kit:<name> -->`` and ``<!-- /kit -->``, which are in the live file and in the kit
 file. The kit text of a block is the live text without its citations of single live entries, with
 the edits applied. ``--write`` writes only the text of each block and keeps the rest of the kit file.
+
+The kit takes this live text. The blocks are the Rules of ``decisions/README.md``, the sections 5, 7
+and 8 of ``AGENTS.md``, and the marker blocks ``writing-rules``, ``skills``, ``plans-folder`` and
+``push-and-attribution`` in the other sections of ``AGENTS.md``. The copies are
+``decisions/template.md``, ``.pre-commit-config.yaml``, ``.gitleaks.toml``,
+``.github/workflows/secrets.yml`` and ``tools/tests/conftest.py``. The copies also include the
+tools ``check_decision_log.py``, ``check_links.py``, ``check_private_data.py`` and
+``check_ai_attribution.py``, each with its test.
 """
 
 from __future__ import annotations
@@ -202,8 +210,9 @@ BLOCKS = (
                 "before you change sidecar code, a sidecar, an example,\nthe spec, the agent instructions or the PR"
                 " workflow.\nFor spec work, also read the [`README.md`](specs/model-sidecar/decisions/README.md) and"
                 " the\n[`open-work.md`](specs/model-sidecar/decisions/open-work.md) of the spec log in\n"
-                "`specs/model-sidecar/decisions/`.\nAn entry goes in the spec log only when each file that its"
-                " Decision section names or changes is in\n`specs/model-sidecar/`.",
+                "`specs/model-sidecar/decisions/`.\nAn entry goes in the log of a module only when each file that"
+                " its Decision section names or changes\nis in that module, for example `specs/model-sidecar/` for"
+                " the spec log.",
                 "before you change {{AREAS}} or these instructions.\nFor a task in a module with a log, also read"
                 " the `decisions/README.md` and the\n`decisions/open-work.md` of that module. The `AGENTS.md` of"
                 " the module links to its log.\nAn entry goes in the log of a module only when each file that its"

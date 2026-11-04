@@ -6,12 +6,8 @@ to copy. The kit is in [`bootstrap/`](bootstrap/). Its folders have the layout o
 each file goes to the same relative path.
 
 The rules come from the skellytracker decision log:
-[ADR-GN3D](../../decisions/entries/GN3D-module-decision-logs.md),
-[ADR-Z05A](../../decisions/entries/Z05A-essential-decision-log-rules.md),
-[ADR-FDTD](../../decisions/entries/FDTD-evidence-sources-and-exporter-permalinks.md),
-[ADR-P3N3](../../decisions/entries/p3n3-ai-attribution-warning.md) and
-[ADR-EY8R](../../decisions/entries/EY8R-tools-and-scripts.md). The kit has their final form. It does
-not have their history.
+[ADR-2XW6](../../decisions/entries/2XW6-process-entries-consolidation.md) and the entries that it
+restates. The kit has their final form. It does not have their history.
 
 ## What the kit gives
 

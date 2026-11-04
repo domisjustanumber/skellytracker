@@ -1,6 +1,6 @@
 # 5WKW — Implementation work in the plan
 
-**Status:** accepted, 2026-10-29 (user; PR: pending).
+**Status:** accepted, 2026-10-29 (user; PR: pending); superseded by [2XW6](2XW6-process-entries-consolidation.md), 2026-11-04 (user; PR: pending).
 
 ## Decision
 

@@ -571,10 +571,8 @@ of M8 when the export has no batch key `"1"`. It has no order link to M10a.
   `sidecar-spec.md`. Each link to it goes to `specs/model-sidecar/README.md` or to a section file. A
   decided entry gets its link repairs and a link-repair `_Edited` line. A plain-text path in a
   decided entry stays, because it is history.
-  Two more changes go with the deletion: the "Single source of truth" bullet of
-  `specs/model-sidecar/README.md` names the section files, not "this document"; and a new entry
-  supersedes [ADR-D9VT](../decisions/entries/D9VT-decision-log-move.md) in full, so that a recorded
-  proposal maps `specs/sidecar-spec.md` to `specs/model-sidecar/README.md` (its item 4).
+  One more change goes with the deletion: the "Single source of truth" bullet of
+  `specs/model-sidecar/README.md` names the section files, not "this document".
 - **Stale `resolved_size` docstring.** Added on 2026-11-03. The docstring of
   `SidecarModel.resolved_size` in `skellytracker/core/sidecar/model.py` has two stale parts. First,
   it cites the heading "Sizes" of `specs/model-sidecar/sidecar-spec.md`. The spec heading is

@@ -1,6 +1,6 @@
 # p3n3 — No AI attribution in check-ins; a commit-msg hook warns and does not stop the commit
 
-**Status:** accepted, 2026-10-26 (user).
+**Status:** accepted, 2026-10-26 (user); superseded by [2XW6](2XW6-process-entries-consolidation.md), 2026-11-04 (user; PR: pending).
 
 ## Decision
 

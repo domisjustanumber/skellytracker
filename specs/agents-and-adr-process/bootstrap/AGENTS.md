@@ -63,7 +63,8 @@ Read [`decisions/README.md`](decisions/README.md) and
 For a task in a module with a log, also read the `decisions/README.md` and the
 `decisions/open-work.md` of that module. The `AGENTS.md` of the module links to its log.
 An entry goes in the log of a module only when each file that its Decision section names or
-changes is in that module. All other entries go in the root log, also each case that you cannot decide.
+changes is in that module.
+All other entries go in the root log, also each case that you cannot decide.
 A new module log needs the approval of the user. The PR that adds it also adds its folder to
 `LOG_DIRS` of `tools/check_decision_log.py`.
 Each log has a `README.md` with an Active table, a Proposed table and `## Open work`, a

@@ -121,8 +121,10 @@ the spec, the agent instructions or the PR workflow.
 For spec work, also read the [`README.md`](specs/model-sidecar/decisions/README.md) and the
 [`open-work.md`](specs/model-sidecar/decisions/open-work.md) of the spec log in
 `specs/model-sidecar/decisions/`.
-An entry goes in the spec log only when each file that its Decision section names or changes is in
-`specs/model-sidecar/`. All other entries go in the root log, also each case that you cannot decide.
+An entry goes in the log of a module only when each file that its Decision section names or changes
+is in that module, for example `specs/model-sidecar/` for the spec log
+([ADR-2XW6](decisions/entries/2XW6-process-entries-consolidation.md)).
+All other entries go in the root log, also each case that you cannot decide.
 A new module log needs the approval of the user. The PR that adds it also adds its folder to
 `LOG_DIRS` of `tools/check_decision_log.py`.
 Each log has a `README.md` with an Active table, a Proposed table and `## Open work`, a

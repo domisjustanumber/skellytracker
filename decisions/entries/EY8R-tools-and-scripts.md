@@ -1,6 +1,6 @@
 # EY8R — Tools and scripts
 
-**Status:** accepted, 2026-10-28 (user).
+**Status:** accepted, 2026-10-28 (user); superseded by [2XW6](2XW6-process-entries-consolidation.md), 2026-11-04 (user; PR: pending).
 
 ## Decision
 
