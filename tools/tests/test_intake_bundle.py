@@ -506,15 +506,21 @@ def test_pack_needs_a_version_heading(tmp_path: Path, root: Path) -> None:
                 repo=fake_repo(tmp_path, "# Changelog\n"))
 
 
-def test_verify_finds_a_newer_spec_version_and_a_manifest_with_no_spec_version(tmp_path: Path, root: Path) -> None:
+def test_verify_finds_a_spec_version_that_is_not_a_heading_or_is_old_and_a_missing_one(
+    tmp_path: Path, root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     source = payload(tmp_path, {"proposal.md": "text\n"})
     version_dir = ib.pack(source, proposal_fields(), root, cwd=tmp_path, repo=fake_repo(tmp_path, "### 1.9.0\n"))
     assert ib.read_manifest(version_dir)["spec_version"] == "1.9.0"
     assert ib.list_lines(root)[1:3] == ["  sections: post.det.selection.nms", "  spec_version: 1.9.0"]
     assert ib.verify("proposal-box-clamp@ultralytics-exporter", root) == [
-        f"the checkout has the newer spec version {ib.spec_version()} (spec_version 1.9.0); "
-        "read its changes and pack a new version"
+        "spec_version 1.9.0 is not a version heading of the changelog of this checkout; pack a new version"
     ]
+    with monkeypatch.context() as patch:
+        patch.setattr(ib, "version_headings", lambda repo=None: ["1.9.0", "2.0.0"])
+        assert ib.verify("proposal-box-clamp@ultralytics-exporter", root) == [
+            "the checkout has the newer spec version 2.0.0 (spec_version 1.9.0); read its changes and pack a new version"
+        ]
     manifest = ib.read_manifest(version_dir)
     del manifest["spec_version"]
     (version_dir / "manifest.yaml").write_text(json.dumps(manifest), encoding="utf-8")

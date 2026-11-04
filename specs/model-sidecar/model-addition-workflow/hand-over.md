@@ -399,7 +399,8 @@ it does this safety check ([ADR-AD33](../../../decisions/entries/AD33-bundles-ar
    precision of each published file in the example sidecar, a published `dynamic` file without a
    passed dynamic check and the response files. It gives a drift finding for each manifest
    `sections` entry that changed since `spec_commit`, and for a version heading in the checkout that
-   is newer than `spec_version`. It gives a finding for a manifest with no `spec_version`
+   is newer than `spec_version`. It gives a finding for a manifest with no `spec_version`, and for
+   a `spec_version` that is not a version heading of the checkout
    ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)). Each failed check gives a
    finding and the response `needs-contributor`. `verify` reads each
    `reference/` module of the bundle and of its owner bundle as text, with `ast`. It never imports

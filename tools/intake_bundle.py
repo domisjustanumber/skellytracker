@@ -402,13 +402,18 @@ def responses(bundle_dir: Path) -> list[dict]:
     return result
 
 
-def spec_version(repo: Path = REPO_ROOT) -> str | None:
-    """Return the newest version heading of the changelog of the spec, for example `2.0.0`, or None.
+def version_headings(repo: Path = REPO_ROOT) -> list[str]:
+    """Return the version headings of the changelog of the spec, for example `["2.0.0"]`.
 
     A heading is never a pre-release: the changelog gives a pre-release as a line under its version.
     """
     path = repo / SPEC / "changelog.md"
-    found = VERSION_HEADING.findall(path.read_text(encoding="utf-8")) if path.is_file() else []
+    return VERSION_HEADING.findall(path.read_text(encoding="utf-8")) if path.is_file() else []
+
+
+def spec_version(repo: Path = REPO_ROOT) -> str | None:
+    """Return the newest version heading of the changelog of the spec, for example `2.0.0`, or None."""
+    found = version_headings(repo)
     return max(found, key=_version_key) if found else None
 
 
@@ -1394,8 +1399,14 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list
             for section in manifest["sections"]
             if section in changed
         ]
-    newest = spec_version(repo)
-    if newest and _version_key(newest) > _version_key(manifest["spec_version"]):
+    headings = version_headings(repo)
+    newest = max(headings, key=_version_key) if headings else None
+    if headings and manifest["spec_version"] not in headings:
+        findings.append(
+            f"spec_version {manifest['spec_version']} is not a version heading of the changelog of this "
+            "checkout; pack a new version"
+        )
+    elif newest and _version_key(newest) > _version_key(manifest["spec_version"]):
         findings.append(
             f"the checkout has the newer spec version {newest} (spec_version {manifest['spec_version']}); "
             "read its changes and pack a new version"
