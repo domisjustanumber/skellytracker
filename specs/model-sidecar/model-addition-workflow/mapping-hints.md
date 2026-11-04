@@ -44,11 +44,10 @@
     centres in different places. Match the call that the spec names for the method. Record the
     convention of the upstream call in the intake
     ([Spec defects](../decisions/open-work.md#spec-defects));
-  - the border value of each warp, for each channel. For `fit` and `affine_person_crop`, give one
-    value for each channel, for example `pad_value: [114, 114, 114]`. This form is `exact` under the
-    current text. A scalar is correct for `letterbox`. In your host code, give `cv2.warpAffine` one
-    value for each channel. A scalar `borderValue` fills only the first channel
-    ([Spec defects](../decisions/open-work.md#spec-defects)).
+  - the border value of each warp, for each channel. A scalar `pad_value` `s` means `[s, s, s]` for
+    each method ([`input.resize`](../common/input.md#inputresize)). An upstream border with
+    different values for the channels needs an array. In your host code, give `cv2.warpAffine` one
+    value for each channel. A scalar `borderValue` fills only the first channel.
 - **Outputs and decode.** Record the semantics of each output. Record the `selection`: graph-final
   rows (`none`), top-k over logits (`top_k`), or host NMS (`nms`). Record if the sigmoid is in the
   graph. Take the thresholds from the upstream test config, not from the defaults. Record the class

@@ -199,11 +199,8 @@ Source: the upstream inference pipeline and the code of each transform.
   call, or the same convention.
 - In OpenCV, a scalar `borderValue` fills only the first channel of a 3-channel image. Record the
   border value of each upstream warp for each channel.
-- For `fit` and `affine_person_crop`, write one value for each channel, for example
-  `[114, 114, 114]`. The spec does not say yet what a scalar fills for these methods. That is a known
-  spec defect. The array form is `exact` under the current text. A scalar `0` gives the same border
-  in both readings. A scalar is correct for `letterbox`, because the `letterbox` pseudocode fills
-  every channel.
+- In the spec, a scalar `pad_value` `s` means `[s, s, s]` for each method. A scalar is `exact` when
+  the upstream border has the same value in each channel. Otherwise, write an array.
 
 | # | Property | Upstream evidence (file and line, or config key) | Section ID (the `id` in the section file's front matter) | Sidecar value | Verdict | What differs or what is missing |
 |---|---|---|---|---|---|---|
@@ -215,7 +212,7 @@ Source: the upstream inference pipeline and the code of each transform.
 | T4b | Arithmetic of the scale, the scaled size and the offsets: float32 or float64, and the order of the operations. In float64, `77 * (640 / 77)` is `639.9999999999999`. | | `pre.resize.<method>` (`letterbox`, `stretch`, `fit`, `none`, `affine_person_crop`) | | | |
 | T5 | Position of the image on the canvas (`pad_position`, `letterbox` only) | | `pre.resize.letterbox` | | | |
 | T5a | `fit` geometry: a scale that is not rounded, offsets `left` and `top` that are centred and fractional, and one warp matrix `M` (`fit` only) | | `pre.resize.fit` | | | |
-| T6 | Pad value or border value (`pad_value`, or `crop_policy.pad_value` for `affine_person_crop`), for each channel. An array of three values for `fit` and `affine_person_crop`. | | `common.input` (`pad_value`), `pre.resize.affine_person_crop` (`crop_policy.pad_value`) | | | |
+| T6 | Pad value or border value (`pad_value`, or `crop_policy.pad_value` for `affine_person_crop`), for each channel. A scalar `s` means `[s, s, s]`. | | `common.input` (`pad_value`), `pre.resize.affine_person_crop` (`crop_policy.pad_value`) | | | |
 | T7 | Interpolation filter, and no antialias | | `pre.resize.interpolation` | | | |
 | T7a | Resize call and its pixel-centre convention (`cv2.resize` or `cv2.warpAffine`, or another library) | | `pre.resize.<method>` (`letterbox`, `stretch`, `fit`, `none`, `affine_person_crop`), `pre.resize.interpolation` | | | |
 | T7b | Dtype of the image when the upstream resizes it (for example uint8, before the cast) | | `pre.resize.<method>` (`letterbox`, `stretch`, `fit`, `none`, `affine_person_crop`), `pre.normalize` | | | |
