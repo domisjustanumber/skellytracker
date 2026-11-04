@@ -626,7 +626,7 @@ Run these commands before each PR. Each command must pass.
 3. `uv run pytest tools/tests -q`. It also runs the private-data check
    ([Private data](../../../AGENTS.md#8-private-data)).
 4. `uv run pytest -m "not video"`
-5. `uv run ruff check skellytracker/ tools/ decisions/scripts/`. When `specs/model-sidecar/reference/`
+5. `uv run ruff check skellytracker/ tools/ decisions/scripts/ specs/model-sidecar/decisions/scripts/`. When `specs/model-sidecar/reference/`
    exists, add it to the command.
 
 ## Stop points
