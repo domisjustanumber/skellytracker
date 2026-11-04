@@ -7,9 +7,17 @@ notes:
   - "`params` use the names of the `decode` fields. `kept_rows` are 0-based row indexes
     of the input, `scores` and `class_ids` are the scores and the emitted class ids of
     the kept detections, in output order."
-  - "The cases stop before the unprojection, the clamp and the size filter. `boxes_xyxy`
-    holds the kept boxes in model-input pixels. Every score and threshold gives the same
-    result in float32 and in float64."
+  - "Each case gives `boxes_xyxy` and `boxes_space`. A case without `resize` has
+    `boxes_space: model_input`. It stops before the unprojection, the clamp and the size
+    filter. Its boxes are the kept boxes in model-input pixels. A case with `resize` has
+    `boxes_space: source`. It also does the unprojection, the clamp and the size filter
+    (shared steps 3 to 5). Its boxes are the final boxes in source-image pixels. Each
+    box is the `output_xyxy` of post.unprojection, not its `source_xyxy`. Its
+    `input_size` and `resize` in `params`, and its `src_w` and `src_h` in `input`, are
+    those of specs/model-sidecar/post/unprojection.md
+    (specs/model-sidecar/vectors/post.unprojection.yaml). Decision:
+    decisions/entries/17KN-one-selection-pipeline.md. Every score and threshold gives
+    the same result in float32 and in float64."
 tolerance: 0.00001
 checks: [float32-stable]
 unverified: "No independent implementation has run these vectors yet. They come from the section
@@ -31,6 +39,7 @@ cases:
       scores: [0.875, 0.75]
       class_ids: [0, 1]
       boxes_xyxy: [[10, 0, 18, 8], [40, 0, 48, 8]]
+      boxes_space: model_input
   - id: default-confidence-threshold
     note: "confidence_threshold_default is absent: the default is 0.7"
     params: {score_field: score, class_field: class_id}
@@ -46,6 +55,7 @@ cases:
       scores: [0.9, 0.75]
       class_ids: [0, 0]
       boxes_xyxy: [[0, 0, 8, 8], [20, 0, 28, 8]]
+      boxes_space: model_input
   - id: class-id-map-drops-minus-one
     note: "model class 1 maps to -1: rows 1 and 4 are dropped; the others get the mapped ids"
     params:
@@ -67,6 +77,7 @@ cases:
       scores: [0.9, 0.75, 0.625, 0.375]
       class_ids: [2, 0, 5, 5]
       boxes_xyxy: [[0, 0, 8, 8], [20, 0, 28, 8], [30, 0, 38, 8], [50, 0, 58, 8]]
+      boxes_space: model_input
   - id: class-id-base
     note: "emitted class id = class_id_base + model class index"
     params:
@@ -83,6 +94,7 @@ cases:
       scores: [0.75, 0.5]
       class_ids: [1, 3]
       boxes_xyxy: [[0, 0, 8, 8], [10, 0, 18, 8]]
+      boxes_space: model_input
   - id: class-id-map-wins-over-base
     note: "class_id_map is present: class_id_base is ignored"
     params:
@@ -100,6 +112,7 @@ cases:
       scores: [0.75, 0.5]
       class_ids: [3, 4]
       boxes_xyxy: [[0, 0, 8, 8], [10, 0, 18, 8]]
+      boxes_space: model_input
   - id: is-person-only-with-class-field
     note: "emitted ids are 1, 2, 1, 3; only person_class_id 1 stays (rows 0 and 2)"
     params:
@@ -121,6 +134,7 @@ cases:
       scores: [0.875, 0.625]
       class_ids: [1, 1]
       boxes_xyxy: [[0, 0, 8, 8], [20, 0, 28, 8]]
+      boxes_space: model_input
   - id: is-person-only-without-class-source
     note: "no class source: every candidate gets person_class_id (3); row 1 has score == threshold"
     params:
@@ -134,6 +148,7 @@ cases:
       scores: [0.875, 0.75]
       class_ids: [3, 3]
       boxes_xyxy: [[0, 0, 8, 8], [20, 0, 28, 8]]
+      boxes_space: model_input
   - id: max-detections-does-not-pad
     note: "the graph gives max_detections = 4 rows; 2 pass the threshold, so the output has 2 rows"
     params:
@@ -153,6 +168,7 @@ cases:
       scores: [0.875, 0.75]
       class_ids: [0, 0]
       boxes_xyxy: [[0, 0, 8, 8], [10, 0, 18, 8]]
+      boxes_space: model_input
   - id: no-nms-for-overlapping-boxes
     note: "two identical boxes: selection none does not suppress either of them"
     params: {score_field: score, class_field: class_id, confidence_threshold_default: 0.5}
@@ -164,6 +180,7 @@ cases:
       scores: [0.875, 0.75]
       class_ids: [0, 0]
       boxes_xyxy: [[0, 0, 10, 10], [0, 0, 10, 10]]
+      boxes_space: model_input
   - id: box-format-cxcywh
     note: "centre and size become corners: [40, 35, 60, 45]"
     params:
@@ -174,7 +191,12 @@ cases:
     input:
       fields: [x1, y1, x2, y2, score, class_id]
       rows: [[50, 40, 20, 10, 0.75, 0], [30, 30, 8, 8, 0.25, 0]]
-    expect: {kept_rows: [0], scores: [0.75], class_ids: [0], boxes_xyxy: [[40, 35, 60, 45]]}
+    expect:
+      kept_rows: [0]
+      scores: [0.75]
+      class_ids: [0]
+      boxes_xyxy: [[40, 35, 60, 45]]
+      boxes_space: model_input
   - id: box-format-xywh
     note: "top-left corner and size become corners: [40, 35, 60, 45]"
     params:
@@ -185,11 +207,16 @@ cases:
     input:
       fields: [x1, y1, x2, y2, score, class_id]
       rows: [[40, 35, 20, 10, 0.75, 0], [30, 30, 8, 8, 0.25, 0]]
-    expect: {kept_rows: [0], scores: [0.75], class_ids: [0], boxes_xyxy: [[40, 35, 60, 45]]}
+    expect:
+      kept_rows: [0]
+      scores: [0.75]
+      class_ids: [0]
+      boxes_xyxy: [[40, 35, 60, 45]]
+      boxes_space: model_input
   - id: no-row-passes
     note: "the output is empty"
     params: {score_field: score, class_field: class_id, confidence_threshold_default: 0.9}
     input:
       fields: [x1, y1, x2, y2, score, class_id]
       rows: [[0, 0, 8, 8, 0.875, 0], [10, 0, 18, 8, 0.75, 0]]
-    expect: {kept_rows: [], scores: [], class_ids: [], boxes_xyxy: []}
+    expect: {kept_rows: [], scores: [], class_ids: [], boxes_xyxy: [], boxes_space: model_input}

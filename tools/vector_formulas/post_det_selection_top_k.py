@@ -2,7 +2,8 @@
 
 `tools/make_vectors.py` computes the vectors of the section with it. It has the
 calling convention of a reference module: `run(params, input) -> expect`, and a
-refusal of the spec raises `ValueError`. The steps stop before the unprojection.
+refusal of the spec raises `ValueError`. The steps stop before the unprojection,
+unless the case gives `resize`.
 """
 
 from __future__ import annotations
@@ -18,7 +19,7 @@ CHECKS = decode.SELECTION_CHECKS
 
 
 def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
-    """Behaviour (before unprojection)."""
+    """Behaviour. A case with `resize` also does shared steps 3 to 5."""
     logits = input["class_logits"]
     activation = params.get("score_activation", "none")
     if activation == "sigmoid":
@@ -40,4 +41,4 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
         if class_id is not None and score > threshold:
             box = decode.to_xyxy(input["boxes"][row], params.get("box_format", "xyxy"))
             kept.append(decode.Kept(row, box, score, class_id))
-    return decode.published(kept)
+    return decode.published(decode.unproject_clamp_and_filter(kept, params, input), params)

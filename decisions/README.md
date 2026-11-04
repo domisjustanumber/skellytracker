@@ -50,6 +50,7 @@ These entries are `accepted` or `evidence`.
 | [ZXD7](entries/ZXD7-bundle-process.md) | Bundle process: no release step; manifest `spec_version`; entry status = proposal state; owner rule; `-2` n/a until a final release loads it; supersedes FADS | accepted |
 | [CN15](entries/CN15-spec-readme-is-the-only-entry-point.md) | The spec `README.md` is the only entry point; `sidecar-spec.md` is frozen, and M11 deletes it after the code cites section IDs; the root README links the spec | accepted |
 | [ESP4](entries/ESP4-one-home-for-each-workflow-rule.md) | One home for each workflow rule; skills link it; templates are forms with no relative link; new phase-1 headings; three rules move to `rules.md` | accepted |
+| [0PK7](entries/0PK7-selection-boxes-space-flag.md) | Each selection vector case gives `boxes_xyxy` and `boxes_space` (`model_input` or `source`); a host reads the flag | accepted |
 
 ### Proposed
 

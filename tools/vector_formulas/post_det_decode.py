@@ -9,11 +9,12 @@ only, so this module has no `CHECKS`.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from collections.abc import Callable
 from typing import Any
 
 import numpy as np
+import post_unprojection
 
 from vector_form import defect
 
@@ -102,13 +103,57 @@ def confidence_threshold(params: dict[str, Any]) -> float:
     return params.get("confidence_threshold_default", DEFAULT_CONFIDENCE)
 
 
-def published(kept: list[Kept]) -> dict[str, Any]:
-    """The `expect` of a selection case: the kept detections in output order."""
+def unproject_clamp_and_filter(
+    kept: list[Kept], params: dict[str, Any], inp: dict[str, Any]
+) -> list[Kept]:
+    """Shared steps 3 to 5: the unprojection, the clamp and the size filter (ADR-17KN).
+
+    Only a case that gives `resize` does these steps. The other cases stop before them.
+    `params` has `input_size` and `resize`, and `inp` has `src_w` and `src_h`, as in
+    section `post.unprojection`. The kept boxes become the final boxes in source pixels.
+    The `input-size-follows-resize` check of `post.unprojection` stops a bad case.
+    A case without `resize` must not give the parameters of steps 3 to 5.
+    """
+    if "resize" not in params:
+        unused = [key for key in ("input_size", "min_box_size", "clamp_boxes") if key in params]
+        unused += [key for key in ("src_w", "src_h") if key in inp]
+        if params.get("box_scale", "pixel") != "pixel":
+            unused.append("box_scale")
+        if unused:
+            defect(f"{', '.join(unused)} need resize: a case without resize stops before step 3")
+        return kept
+    if params["resize"]["method"] == "affine_person_crop":
+        # shortcut: no end-to-end selection case uses affine; add bbox_xyxy here when one does.
+        defect("an end-to-end selection case cannot use affine_person_crop: it needs bbox_xyxy")
+    box_params = {
+        "scale": params.get("box_scale", "pixel"),
+        "input_size": params["input_size"],
+        "resize": params["resize"],
+        **{key: params[key] for key in ("clamp_boxes", "min_box_size") if key in params},
+    }
+    source = {"src_w": inp["src_w"], "src_h": inp["src_h"]}
+    post_unprojection.CHECKS["input-size-follows-resize"](post_unprojection.run, box_params, source, None)
+    out = []
+    for cand in kept:
+        box = post_unprojection.run(box_params, {**source, "decoded_xyxy": cand.box})["output_xyxy"]
+        if box is not None:
+            out.append(replace(cand, box=box))
+    return out
+
+
+def published(kept: list[Kept], params: dict[str, Any]) -> dict[str, Any]:
+    """The `expect` of a selection case: the kept detections in output order.
+
+    Each case gives the boxes as `boxes_xyxy`. `boxes_space` tells the pixel space of the boxes.
+    A case with `resize` gives `source`: the final boxes in source-image pixels.
+    A case without `resize` gives `model_input`: the boxes in model-input pixels.
+    """
     return {
         "kept_rows": [c.row for c in kept],
         "scores": [c.score for c in kept],
         "class_ids": [c.class_id for c in kept],
         "boxes_xyxy": [c.box for c in kept],
+        "boxes_space": "source" if "resize" in params else "model_input",
     }
 
 

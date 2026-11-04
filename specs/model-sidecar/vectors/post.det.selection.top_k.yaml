@@ -7,9 +7,17 @@ notes:
   - "`params` use the names of the `decode` fields. `kept_rows` are 0-based row indexes
     of the input, `scores` and `class_ids` are the scores and the emitted class ids of
     the kept detections, in output order."
-  - "The cases stop before the unprojection, the clamp and the size filter. `boxes_xyxy`
-    holds the kept boxes in model-input pixels. Every score and threshold gives the same
-    result in float32 and in float64."
+  - "Each case gives `boxes_xyxy` and `boxes_space`. A case without `resize` has
+    `boxes_space: model_input`. It stops before the unprojection, the clamp and the size
+    filter. Its boxes are the kept boxes in model-input pixels. A case with `resize` has
+    `boxes_space: source`. It also does the unprojection, the clamp and the size filter
+    (shared steps 3 to 5). Its boxes are the final boxes in source-image pixels. Each
+    box is the `output_xyxy` of post.unprojection, not its `source_xyxy`. Its
+    `input_size` and `resize` in `params`, and its `src_w` and `src_h` in `input`, are
+    those of specs/model-sidecar/post/unprojection.md
+    (specs/model-sidecar/vectors/post.unprojection.yaml). Decision:
+    decisions/entries/17KN-one-selection-pipeline.md. Every score and threshold gives
+    the same result in float32 and in float64."
   - "`class_logits` is [Q, C] (rows, classes). `boxes` is [Q, 4]. A selected pair is a
     (row, class); one row can be selected for several classes."
 tolerance: 0.00001
@@ -28,6 +36,7 @@ cases:
       scores: [0.95, 0.9, 0.8]
       class_ids: [1, 0, 1]
       boxes_xyxy: [[20, 0, 28, 8], [0, 0, 8, 8], [0, 0, 8, 8]]
+      boxes_space: model_input
   - id: ties-keep-the-lower-flat-index
     note: "all scores are equal: flat indexes 0, 1, 2 are selected (rows 0, 0, 1)"
     params: {top_k: 3, confidence_threshold_default: 0.25}
@@ -37,6 +46,7 @@ cases:
       scores: [0.5, 0.5, 0.5]
       class_ids: [0, 1, 0]
       boxes_xyxy: [[0, 0, 8, 8], [0, 0, 8, 8], [10, 0, 18, 8]]
+      boxes_space: model_input
   - id: top-k-larger-than-the-candidates
     note: "min(top_k, Q * C) = 4 pairs are selected"
     params: {top_k: 10, confidence_threshold_default: 0.25}
@@ -46,6 +56,7 @@ cases:
       scores: [0.875, 0.75, 0.625, 0.5]
       class_ids: [1, 0, 0, 1]
       boxes_xyxy: [[10, 0, 18, 8], [0, 0, 8, 8], [10, 0, 18, 8], [0, 0, 8, 8]]
+      boxes_space: model_input
   - id: class-id-map-lowers-the-count
     note: "the top 3 pairs are (0, 0), (0, 1), (1, 0); class 0 maps to -1; pair (1, 1) does not
       take their place"
@@ -55,12 +66,22 @@ cases:
       person_class_id: 7
       confidence_threshold_default: 0.25
     input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8]], class_logits: [[0.9, 0.8], [0.7, 0.6]]}
-    expect: {kept_rows: [0], scores: [0.8], class_ids: [7], boxes_xyxy: [[0, 0, 8, 8]]}
+    expect:
+      kept_rows: [0]
+      scores: [0.8]
+      class_ids: [7]
+      boxes_xyxy: [[0, 0, 8, 8]]
+      boxes_space: model_input
   - id: top-k-limit-comes-before-the-confidence-filter
     note: "the top 2 pairs have scores 0.9 and 0.8; 0.8 is dropped; 0.7 does not take its place"
     params: {top_k: 2, confidence_threshold_default: 0.85}
     input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8]], class_logits: [[0.9, 0.8], [0.7, 0.6]]}
-    expect: {kept_rows: [0], scores: [0.9], class_ids: [0], boxes_xyxy: [[0, 0, 8, 8]]}
+    expect:
+      kept_rows: [0]
+      scores: [0.9]
+      class_ids: [0]
+      boxes_xyxy: [[0, 0, 8, 8]]
+      boxes_space: model_input
   - id: sigmoid-and-strict-threshold
     note: "sigmoid(0) = 0.5 is not above the threshold 0.5; the kept scores are sigmoid values"
     params: {top_k: 4, score_activation: sigmoid, confidence_threshold_default: 0.5}
@@ -70,6 +91,7 @@ cases:
       scores: [0.982014, 0.880797]
       class_ids: [1, 1]
       boxes_xyxy: [[10, 0, 18, 8], [0, 0, 8, 8]]
+      boxes_space: model_input
   - id: default-confidence-threshold
     note: "confidence_threshold_default is absent: the default is 0.7; 0.75 stays and 0.65 is
       dropped"
@@ -80,6 +102,7 @@ cases:
       scores: [0.9, 0.75]
       class_ids: [0, 0]
       boxes_xyxy: [[0, 0, 8, 8], [10, 0, 18, 8]]
+      boxes_space: model_input
   - id: is-person-only
     note: "only class 0 stays: pairs (0, 0) and (1, 0)"
     params: {top_k: 4, is_person_only: true, person_class_id: 0, confidence_threshold_default: 0.25}
@@ -89,6 +112,7 @@ cases:
       scores: [0.9, 0.7]
       class_ids: [0, 0]
       boxes_xyxy: [[0, 0, 8, 8], [10, 0, 18, 8]]
+      boxes_space: model_input
   - id: class-id-base
     note: "emitted class id = class_id_base + model class index"
     params: {top_k: 2, class_id_base: 5, person_class_id: 5, confidence_threshold_default: 0.25}
@@ -98,3 +122,24 @@ cases:
       scores: [0.9, 0.8]
       class_ids: [5, 6]
       boxes_xyxy: [[0, 0, 8, 8], [0, 0, 8, 8]]
+      boxes_space: model_input
+  - id: size-filter-comes-after-the-top-k-limit
+    note: "the top 2 pairs are rows 0 and 1. The size filter drops row 0: its width 10 is not
+      more than 10. Row 2 does not take its place"
+    params:
+      top_k: 2
+      confidence_threshold_default: 0.25
+      min_box_size: 10
+      input_size: [100, 100]
+      resize: {method: none}
+    input:
+      src_w: 100
+      src_h: 100
+      boxes: [[0, 0, 10, 10], [50, 50, 70, 70], [20, 0, 40, 20]]
+      class_logits: [[0.9], [0.8], [0.7]]
+    expect:
+      kept_rows: [1]
+      scores: [0.8]
+      class_ids: [0]
+      boxes_xyxy: [[50, 50, 70, 70]]
+      boxes_space: source

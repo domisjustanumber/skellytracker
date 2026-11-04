@@ -808,6 +808,48 @@ def test_a_candidate_with_no_class_source_needs_is_person_only() -> None:
     assert mv.post_det_selection_nms.run({**params, "is_person_only": True}, inp)["class_ids"] == [0]
 
 
+def test_an_end_to_end_selection_case_cannot_use_the_affine_crop() -> None:
+    """The selection cases give no `bbox_xyxy`, so an affine resize is a defect."""
+    params = {
+        "iou_threshold": 0.5,
+        "score_threshold": 0.05,
+        "is_person_only": True,
+        "input_size": [8, 8],
+        "resize": {"method": "affine_person_crop"},
+    }
+    inp = {"src_w": 8, "src_h": 8, "boxes": [[0, 0, 8, 8]], "scores": [0.9]}
+    with pytest.raises(CaseDefect, match="affine_person_crop"):
+        mv.post_det_selection_nms.run(params, inp)
+
+
+def test_an_end_to_end_selection_case_obeys_the_input_size_check() -> None:
+    """With `resize: none`, `input_size` must be the source size."""
+    params = {"top_k": 1, "input_size": [100, 90], "resize": {"method": "none"}}
+    inp = {"src_w": 100, "src_h": 100, "boxes": [[0, 0, 8, 8]], "class_logits": [[0.9]]}
+    with pytest.raises(CaseDefect, match="source size"):
+        mv.post_det_selection_top_k.run(params, inp)
+
+
+@pytest.mark.parametrize(
+    ("extra_params", "extra_input"),
+    [
+        ({"min_box_size": 100}, {}),
+        ({"clamp_boxes": True}, {}),
+        ({"box_scale": "normalized_01"}, {}),
+        ({}, {"src_w": 8, "src_h": 8}),
+    ],
+    ids=["min-box-size", "clamp-boxes", "box-scale", "source-size"],
+)
+def test_a_selection_case_without_resize_cannot_give_the_step_3_to_5_params(
+    extra_params: dict[str, Any], extra_input: dict[str, Any]
+) -> None:
+    """A case without `resize` stops before step 3, so these parameters are a defect."""
+    params = {"iou_threshold": 0.5, "score_threshold": 0.05, "is_person_only": True, **extra_params}
+    inp = {"boxes": [[0, 0, 8, 8]], "scores": [0.9], **extra_input}
+    with pytest.raises(CaseDefect, match="need resize"):
+        mv.post_det_selection_nms.run(params, inp)
+
+
 # ---------------------------------------------------------------------------
 # Hand-computed anchors (from the section text, not from the generator)
 # ---------------------------------------------------------------------------
@@ -1004,6 +1046,7 @@ ANCHORS: dict[str, list[tuple[str, tuple[str | int, ...], Any]]] = {
             pytest.approx([0.982014, 0.880797], abs=1e-6),
         ),
         ("default-confidence-threshold", ("expect", "kept_rows"), [0, 1]),
+        ("size-filter-comes-after-the-top-k-limit", ("expect", "kept_rows"), [1]),
     ],
     "post.det.selection.nms": [
         ("suppress-overlap-and-threshold", ("expect", "kept_rows"), [0, 2]),
@@ -1020,6 +1063,22 @@ ANCHORS: dict[str, list[tuple[str, tuple[str | int, ...], Any]]] = {
         ("class-id-map-drop-comes-before-nms", ("expect", "kept_rows"), [1]),
         ("is-person-only-drop-comes-before-nms", ("expect", "kept_rows"), [1]),
         ("no-class-source-uses-person-class-id", ("expect", "class_ids"), [2, 2]),
+        ("size-filter-comes-after-nms", ("expect", "kept_rows"), [2]),
+        ("size-filter-comes-after-post-nms-top-k", ("expect", "kept_rows"), [1]),
+        ("nms-comes-before-the-clamp", ("expect", "kept_rows"), [0, 1]),
+        (
+            "nms-comes-before-the-clamp",
+            ("expect", "boxes_xyxy"),
+            [[0, 0, 10, 10], [0, 0, 10, 10]],
+        ),
+        ("size-filter-uses-source-pixels", ("expect", "kept_rows"), [0, 1]),
+        (
+            "size-filter-uses-source-pixels",
+            ("expect", "boxes_xyxy"),
+            [[375, 142.5, 750, 517.5], [1125, 142.5, 1237.5, 330]],
+        ),
+        ("size-filter-uses-source-pixels", ("expect", "boxes_space"), "source"),
+        ("suppress-overlap-and-threshold", ("expect", "boxes_space"), "model_input"),
     ],
 }
 
@@ -1154,6 +1213,22 @@ def test_top_k_result_obeys_the_rules(case: dict[str, Any]) -> None:
         (r, c) for r, c in zip(expect["kept_rows"], expect["class_ids"], strict=True)
     ]
     assert len(pairs) == len(set(pairs))
+
+
+@pytest.mark.parametrize(
+    "case",
+    case_params("post.det.selection.nms")
+    + case_params("post.det.selection.top_k")
+    + case_params("post.det.selection.none"),
+)
+def test_box_key_follows_resize(case: dict[str, Any]) -> None:
+    """Each selection case gives `boxes_xyxy` and `boxes_space`.
+
+    A case with `resize` gives `source`. A case without `resize` gives `model_input`.
+    """
+    expect = case["expect"]
+    assert list(expect) == ["kept_rows", "scores", "class_ids", "boxes_xyxy", "boxes_space"]
+    assert expect["boxes_space"] == ("source" if "resize" in case["params"] else "model_input")
 
 
 @pytest.mark.parametrize("case", case_params("post.det.selection.none"))

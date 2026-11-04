@@ -2,7 +2,8 @@
 
 `tools/make_vectors.py` computes the vectors of the section with it. It has the
 calling convention of a reference module: `run(params, input) -> expect`, and a
-refusal of the spec raises `ValueError`. The steps stop before the unprojection.
+refusal of the spec raises `ValueError`. The steps stop before the unprojection,
+unless the case gives `resize`.
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ CHECKS = decode.SELECTION_CHECKS
 
 
 def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
-    """Behaviour (before unprojection)."""
+    """Behaviour. A case with `resize` also does shared steps 3 to 5."""
     pool = []
     for row, (box, score, model_class) in enumerate(decode.candidates(params, input)):
         if score <= params["score_threshold"]:
@@ -36,5 +37,6 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
             survivors.append(cand)
     if "post_nms_top_k" in params:
         survivors = survivors[: params["post_nms_top_k"]]
+    survivors = decode.unproject_clamp_and_filter(survivors, params, input)
     threshold = decode.confidence_threshold(params)
-    return decode.published([c for c in survivors if c.score > threshold])
+    return decode.published([c for c in survivors if c.score > threshold], params)
