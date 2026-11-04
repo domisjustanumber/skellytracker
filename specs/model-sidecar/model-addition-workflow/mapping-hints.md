@@ -34,7 +34,9 @@
   If the upstream has no size name, choose a token and write the reason in the intake.
 - **Preprocessing.** For each value, record the upstream line behind it. If the "Authoring guidance"
   heading of a spec section has text, use it. Also record:
-  - the dtype of the image when the upstream resizes it (for example uint8, before the cast);
+  - the dtype of the image when the upstream resizes it. An 8-bit resize is the default
+    `compute_dtype: uint8`. A float resize is `compute_dtype: float32`
+    ([Compute dtype](../pre/interpolation.md#compute-dtype));
   - the arithmetic of the scale, the scaled size and the offsets: float32 or float64, and the order of
     the operations. In float64, `77 * (640 / 77)` is `639.9999999999999`. Thus a rounding at an
     integer or at a tie can change the size;

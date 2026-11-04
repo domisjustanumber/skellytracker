@@ -218,7 +218,7 @@ Source: the upstream inference pipeline and the code of each transform.
 | T6 | Pad value or border value (`pad_value`, or `crop_policy.pad_value` for `affine_person_crop`), for each channel. A scalar `s` means `[s, s, s]`. | | `common.input` (`pad_value`), `pre.resize.affine_person_crop` (`crop_policy.pad_value`) | | | |
 | T7 | Interpolation filter, and no antialias | | `pre.resize.interpolation` | | | |
 | T7a | Resize call and its pixel-centre convention (`cv2.resize` or `cv2.warpAffine`, or another library) | | `pre.resize.<method>` (`letterbox`, `stretch`, `fit`, `none`, `affine_person_crop`), `pre.resize.interpolation` | | | |
-| T7b | Dtype of the image when the upstream resizes it (for example uint8, before the cast) | | `pre.resize.<method>` (`letterbox`, `stretch`, `fit`, `none`, `affine_person_crop`), `pre.normalize` | | | |
+| T7b | Dtype of the image when the upstream resizes and pads it (`input.resize.compute_dtype`: `uint8` for an 8-bit image, `float32` for a float image) | | `pre.resize.interpolation` | | | |
 | T8 | Crop policy: expand ratio and aspect ratio (`crop_policy`, `affine_person_crop` only) | | `pre.resize.affine_person_crop` | | | |
 | T9 | Channel order of the tensor that the model consumes (`input.color_format`, required for each normalization mode). The mode `imagenet` and the mode `custom` apply their values in this channel order. | | `common.input`, `pre.normalize` | | | |
 | T10 | Normalization for each precision (`input.normalization`, required, with no default): mean, std and scale, and its arithmetic (for example a float32 division by 255, or a multiplication by `1/255`) | | `pre.normalize` | | | |

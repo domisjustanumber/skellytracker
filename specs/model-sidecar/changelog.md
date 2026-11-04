@@ -45,7 +45,8 @@ The rules of this list:
   that RF-DETR motivated stay in the spec:
   - the `stretch` resize;
   - the `boxes`, `scores` and `class_logits` output semantics, with `class_axis`;
-  - `selection: top_k`, with `class_id_map`.
+  - `selection: top_k`, with `class_id_map`;
+  - `input.resize.compute_dtype: float32`.
 - Do not remove an RF-DETR rule because the spec has no RF-DETR example.
 - This list is not the verdict `out of scope` of an intake row.
 
