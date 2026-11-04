@@ -194,9 +194,12 @@ Source: the upstream inference pipeline and the code of each transform.
 - Write the upstream order of all steps in row T12. The spec normalizes after the resize. If the
   upstream order is different, write the difference in row T12.
 - The resizes of the spec are not antialiased. Check the upstream resize call.
-- `cv2.resize` uses half-pixel centres. `cv2.warpAffine` puts the pixel centres at integer
-  coordinates. The spec names the OpenCV call for each method. Check that the upstream uses the same
-  call, or the same convention.
+- `cv2.resize` uses half-pixel centres for `linear`, `cubic` and `area`. `cv2.INTER_NEAREST` takes
+  the source pixel `floor(x * src_n / dst_n)`. `cv2.warpAffine` puts the pixel centres at integer
+  coordinates. The spec uses `cv2.resize` for `letterbox` and `stretch`, and `cv2.warpAffine` for
+  `fit` and `affine_person_crop`. The inverse uses the same convention (the heading "Pixel centres"
+  of `pre.resize.interpolation`; skellytracker ADR-G79P). Check that the upstream uses the same
+  call, or the same convention, also in its inverse.
 - In OpenCV, a scalar `borderValue` fills only the first channel of a 3-channel image. Record the
   border value of each upstream warp for each channel.
 - In the spec, a scalar `pad_value` `s` means `[s, s, s]` for each method. A scalar is `exact` when
