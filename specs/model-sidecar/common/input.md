@@ -41,7 +41,7 @@ status: {spec: stable, validate: partial, load: partial}
 | `target_size` | array[2] | conditional | `[height, width]` that the host resizes the input to. A sidecar declares it in `sizes.<size>.input.resize.target_size`. The section of each `method` tells if it is present ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). |
 | `pad_value` | int, float, or array[3] | conditional | It is a raw pixel value (before normalization). An array gives one value for each channel, in the order of `input.color_format`. A scalar `s` gives the same value to each channel: it means `[s, s, s]` ([ADR-BJF9](../../../decisions/entries/BJF9-scalar-pad-value-fills-every-channel.md)). For `letterbox`, the default is `114`. The section of each `method` tells if it is present ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). |
 
-Method-specific fields: [`pad_position`, `rounding`](../pre/resize-letterbox.md#fields), [`interpolation`](../pre/interpolation.md#fields), [`crop_policy`](../pre/resize-affine-person-crop.md#fields).
+Method-specific fields: [`pad_position`, `rounding`](../pre/resize-letterbox.md#fields), [`interpolation`, `compute_dtype`](../pre/interpolation.md#fields), [`crop_policy`](../pre/resize-affine-person-crop.md#fields).
 
 Each `method` has its own section: [`letterbox`](../pre/resize-letterbox.md), [`stretch`](../pre/resize-stretch.md), [`fit`](../pre/resize-fit.md), [`affine_person_crop`](../pre/resize-affine-person-crop.md), [`none`](../pre/resize-none.md).
 

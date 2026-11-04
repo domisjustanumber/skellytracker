@@ -135,6 +135,7 @@ A sidecar is valid when all of the following rules hold. Each rule applies to ev
 - [Fit resize](pre/resize-fit.md#validation-rules)
 - [No resize](pre/resize-none.md#validation-rules)
 - [Affine person crop](pre/resize-affine-person-crop.md#validation-rules)
+- [Interpolation](pre/interpolation.md#validation-rules)
 - [Normalization](pre/normalization.md#validation-rules)
 - [Detection outputs](post/detection-outputs.md#validation-rules)
 - [Detection decode](post/detection-decode.md#validation-rules)

@@ -8,12 +8,12 @@ selectors:
   - input.resize.method=fit
   - input.resize.method=affine_person_crop
 implemented_by:
-  validate: skellytracker/core/sidecar/model.py::ResizeSpec
-  forward: skellytracker/core/detectors/processing/image_preprocessing.py::preprocess_image  # partial. The affine_person_crop branch ignores interpolation. top_down_affine always uses cv2.INTER_LINEAR.
+  validate: skellytracker/core/sidecar/model.py::ResizeSpec  # partial. ResizeSpec has no compute_dtype field. Its extra="forbid" rejects each value, also uint8 and float32. It does not check V-pre.resize.interpolation-1.
+  forward: skellytracker/core/detectors/processing/image_preprocessing.py::preprocess_image  # partial. The affine_person_crop branch ignores interpolation. top_down_affine always uses cv2.INTER_LINEAR. Each branch resizes the uint8 frame and ignores compute_dtype.
 external_impl: []
 tests: []
-vectors: null
-status: {spec: stable, validate: implemented, forward: partial}
+vectors: vectors/pre.resize.interpolation.yaml
+status: {spec: stable, validate: partial, forward: partial}
 ---
 
 # Interpolation
@@ -23,8 +23,9 @@ status: {spec: stable, validate: implemented, forward: partial}
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `interpolation` | enum | no | This is the resize filter that the host uses. The default is `linear`. This field applies to `letterbox`, `stretch`, `fit` and `affine_person_crop`. |
+| `compute_dtype` | enum | no | This is the dtype in which the host resizes and pads the image: `uint8` or `float32`. The default is `uint8`. This field applies to `letterbox`, `stretch`, `fit` and `affine_person_crop`. [Compute dtype](#compute-dtype) gives the behaviour ([ADR-PHJ3](../decisions/entries/PHJ3-resize-compute-dtype.md)). |
 
-`interpolation` is a field of [`input.resize`](../common/input.md#inputresize).
+`interpolation` and `compute_dtype` are fields of [`input.resize`](../common/input.md#inputresize).
 
 ## Behaviour
 
@@ -52,9 +53,22 @@ Each resize method that resizes the image uses the pixel-centre convention of on
 
 The model-input coordinates of [Unprojection](../post/unprojection.md#behaviour) use the convention of the method. The Inverse of each method maps them back in the same convention. No step adds or removes a `0.5` offset.
 
+### Compute dtype
+
+The host resizes and pads the image in `input.resize.compute_dtype` ([ADR-PHJ3](../decisions/entries/PHJ3-resize-compute-dtype.md)). Then the [normalization](normalization.md#behaviour) takes the result and casts it to `input.dtype`.
+
+| Value | Host behaviour |
+|-------|----------------|
+| `uint8` | The host resizes and pads the 8-bit image. The result is the 8-bit output of the OpenCV filter. |
+| `float32` | The host casts the 8-bit image to float32 first. Then it resizes and pads in float32. It does not round or clamp the result. The values stay on the 0-255 scale. |
+
+The pad and the border of the warp have the compute dtype. A `none` resize has no `compute_dtype` ([No resize](resize-none.md#validation-rules)).
+
 ## Validation rules
 
-See [Input](../common/input.md#validation-rules).
+- [ ] `V-pre.resize.interpolation-1` If `input.resize.compute_dtype` is present, it must be `uint8` or `float32` ([ADR-PHJ3](../decisions/entries/PHJ3-resize-compute-dtype.md)).
+
+See also [Input](../common/input.md#validation-rules).
 
 ## Implementer guidance
 

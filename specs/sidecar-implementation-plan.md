@@ -443,6 +443,18 @@ Two rules of this part stay:
   handling of `skellytracker/core/sidecar/resolution.py`. M10a and M10b later replace the YOLOX and
   RTMW sidecars with re-exports. When all package sidecars follow the spec, do the item Package root
   in the trace scan of M7.
+- **Resize compute dtype.** Added on 2026-11-04. The spec adds the optional
+  `input.resize.compute_dtype`: `uint8` or `float32`, with the default `uint8`
+  ([ADR-PHJ3](model-sidecar/decisions/entries/PHJ3-resize-compute-dtype.md);
+  [Compute dtype](model-sidecar/pre/interpolation.md#compute-dtype)). `ResizeSpec` in
+  `skellytracker/core/sidecar/model.py` has no such field, and its `extra="forbid"` rejects a sidecar
+  that declares it. Add the field and `V-pre.resize.interpolation-1`. Reject the field for
+  `method: none` (`V-pre.resize.none-1`). Each branch of `preprocess_image` in
+  `skellytracker/core/detectors/processing/image_preprocessing.py` resizes and pads the uint8 frame.
+  `letterbox_preprocess` fills a uint8 canvas and casts the resize to uint8. For `float32`, cast the
+  frame to float32 before the resize and the pad, and keep the canvas in float32. Do not round or
+  clamp the result. Add the cases of `pre.resize.interpolation.yaml` and the new case of
+  `pre.resize.none.yaml` to `skellytracker/tests/sidecar/test_model_validation.py`.
 
 ### M9 — Source and hash checks
 

@@ -30,3 +30,14 @@ cases:
         input: {name: input, dtype: {fp32: float32}, resize: {method: none, rounding: half_even}}
         sizes: {nano: {input: {shape: [-1, 3, 480, 640]}}}
     expect: {failed: [V-pre.resize.none-1]}
+  - id: none-has-no-compute-dtype
+    note: "a none resize does not resize, so input.resize.compute_dtype is not allowed. The
+      sidecar shows only its input and sizes blocks. The case checks only the rules of
+      this section."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        input: {name: input, dtype: {fp32: float32}, resize: {method: none, compute_dtype: float32}}
+        sizes: {nano: {input: {shape: [-1, 3, 480, 640]}}}
+    expect: {failed: [V-pre.resize.none-1]}

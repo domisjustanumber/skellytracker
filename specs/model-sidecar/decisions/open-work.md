@@ -49,13 +49,13 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   `person_class_id` ([`V-post.det.decode-9`](../post/detection-decode.md#validation-rules);
   [ADR-17KN](../../../decisions/entries/17KN-one-selection-pipeline.md)).
 - The spec does not state these facts, but a host needs them:
-  - the resizes run on the source dtype (for example `uint8`, before the cast). Roboflow-Exporter
-    divides by 255 and then resizes the float image ([`onnx_runtime/preprocess.py:75-78`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/d0559b9c95a9ba9922045e2bc5aeae9fb596a6b1/onnx_runtime/preprocess.py#L75-L78));
   - the keypoint scores in a `poses` tensor are already activated (the spec states this only for
     `packed_keypoints`). No exporter checks this channel: the RTMO probe of OpenMMLab-Exporter
     compares only `x` and `y` ([`notes/decisions/scripts/rtmo_sidecar_probe.py:97-102`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/scripts/rtmo_sidecar_probe.py#L97-L102));
   - the host frame is BGR, and the host converts it to `input.color_format`;
-  - the arithmetic precision of the geometry and of the pixel math;
+  - the arithmetic precision of the geometry and of the pixel math. Two cases of
+    [ADR-PHJ3](entries/PHJ3-resize-compute-dtype.md) are open: a fractional `pad_value` with
+    `compute_dtype: uint8`, and the cast of a `float32` resize to an integer `input.dtype`;
   - the dtype of a score comparison. A float64 score `0.7` passes `>` against a float32 threshold
     `0.7`, because the float32 value is `0.699999988` (numpy 2.4.6).
 - The [Storage layout](../format/file-layout.md#storage-layout) gives no folder to a sidecar whose

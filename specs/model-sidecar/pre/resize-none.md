@@ -35,7 +35,7 @@ The host applies the inverse as part of [Unprojection](../post/unprojection.md).
 
 ## Validation rules
 
-- [ ] `V-pre.resize.none-1` Each size must omit `input.resize.target_size`. A `none` resize must not declare `pad_value`, `pad_position`, `rounding` or `crop_policy` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
+- [ ] `V-pre.resize.none-1` Each size must omit `input.resize.target_size`. A `none` resize must not declare `pad_value`, `pad_position`, `rounding`, `crop_policy` or `compute_dtype` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md); [ADR-PHJ3](../decisions/entries/PHJ3-resize-compute-dtype.md)).
 
 See also [Input](../common/input.md#validation-rules) and [Sizes and artifacts](../common/sizes-and-artifacts.md#validation-rules).
 
