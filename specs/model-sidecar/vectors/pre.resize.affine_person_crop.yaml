@@ -144,3 +144,63 @@ cases:
           resize: {method: affine_person_crop, interpolation: linear, pad_position: center}
         sizes: {m: {input: {shape: [-1, 3, 256, 192], resize: {target_size: [256, 192]}}}}
     expect: {failed: [V-pre.resize.affine_person_crop-3]}
+  - id: affine-crop-expand-ratio-is-positive
+    note: "crop_policy.expand_ratio is -1.25. The value is a float, but it is not positive. The
+      sidecar shows only its input and sizes blocks. The case checks only the rules of
+      this section."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        input:
+          name: input
+          dtype: {fp32: float32}
+          resize:
+            method: affine_person_crop
+            interpolation: linear
+            crop_policy: {expand_ratio: -1.25}
+        sizes: {m: {input: {shape: [-1, 3, 256, 192], resize: {target_size: [256, 192]}}}}
+    expect: {failed: [V-pre.resize.affine_person_crop-1]}
+  - id: affine-crop-maintain-aspect-ratio-is-boolean
+    note: "crop_policy.maintain_aspect_ratio is the quoted string \"yes\". A string is not a
+      boolean. The sidecar shows only its input and sizes blocks. The case checks only the
+      rules of this section."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        input:
+          name: input
+          dtype: {fp32: float32}
+          resize:
+            method: affine_person_crop
+            interpolation: linear
+            crop_policy: {maintain_aspect_ratio: "yes"}
+        sizes: {m: {input: {shape: [-1, 3, 256, 192], resize: {target_size: [256, 192]}}}}
+    expect: {failed: [V-pre.resize.affine_person_crop-1]}
+  - id: object-detector-needs-affine-crop
+    note: "pose.requires_object_detector is true, but input.resize.method is letterbox. The
+      selector of this section does not match this sidecar. Rule -2 applies to each
+      sidecar with pose.requires_object_detector: true. The letterbox resize declares
+      pad_position and rounding, and it has no crop_policy. The size declares target_size.
+      The pose block holds only estimator_type, requires_object_detector and geometry. The
+      sidecar shows only its input, sizes and pose blocks. The case checks only the rules
+      of this section."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        input:
+          name: input
+          dtype: {fp32: float32}
+          resize:
+            method: letterbox
+            interpolation: linear
+            pad_position: center
+            rounding: half_even
+        sizes: {m: {input: {shape: [-1, 3, 256, 192], resize: {target_size: [256, 192]}}}}
+        pose:
+          estimator_type: top_down_single_person
+          requires_object_detector: true
+          geometry: "2d"
+    expect: {failed: [V-pre.resize.affine_person_crop-2]}
