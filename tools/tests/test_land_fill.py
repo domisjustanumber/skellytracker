@@ -30,7 +30,12 @@ def dump(path: Path, data: dict[str, Any]) -> Path:
 
 
 def strip_expect(data: dict[str, Any]) -> dict[str, Any]:
-    return {**data, "cases": [{k: v for k, v in c.items() if k != "expect"} for c in data["cases"]]}
+    """Drop each `expect` that fill writes. A data-only case keeps the `expect` of its author."""
+    cases = [
+        c if c.get("function") == mv.DATA_ONLY else {k: v for k, v in c.items() if k != "expect"}
+        for c in data["cases"]
+    ]
+    return {**data, "cases": cases}
 
 
 def case(case_id: str, src_w: int, *, shift: float = 0.0, **extra: Any) -> dict[str, Any]:

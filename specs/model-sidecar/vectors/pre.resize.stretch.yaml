@@ -3,8 +3,10 @@
 section: pre.resize.stretch
 notes:
   - "Normative text: specs/model-sidecar/pre/resize-stretch.md."
-  - "`target_size` is [height, width]. `expect` gives the size of the output image
-    (`dst_w`, `dst_h`) and the scale factor of each axis."
+  - "`target_size` is [height, width]. The `expect` of a numeric case gives the size of
+    the output image (`dst_w`, `dst_h`) and the scale factor of each axis."
+  - "A case with `function: none` is a data-only validator case: `input.sidecar` is the
+    sidecar, and `expect.failed` lists the rules of this section that it fails."
   - "A case `<id>-inverse` applies the section's Inverse to one model-input position
     (`model_xy`) of the case `<id>`."
 tolerance: 0.0001
@@ -71,3 +73,30 @@ cases:
     params: {target_size: [640, 640]}
     input: {src_w: 1, src_h: 100, model_xy: [640, 320]}
     expect: {source_xy: [1, 50]}
+  - id: stretch-needs-target-size
+    note: "the size declares no input.resize.target_size. The sidecar shows only its input and
+      sizes blocks. The case checks only the rules of this section."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        input:
+          name: input
+          dtype: {fp32: float32}
+          resize: {method: stretch, interpolation: linear}
+        sizes: {nano: {input: {shape: [-1, 3, 384, 384]}}}
+    expect: {failed: [V-pre.resize.stretch-1]}
+  - id: stretch-has-no-pad-value
+    note: "a stretch resize does not pad, so input.resize.pad_value is not allowed. The sidecar
+      shows only its input and sizes blocks. The case checks only the rules of this
+      section."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        input:
+          name: input
+          dtype: {fp32: float32}
+          resize: {method: stretch, interpolation: linear, pad_value: 114}
+        sizes: {nano: {input: {shape: [-1, 3, 384, 384], resize: {target_size: [384, 384]}}}}
+    expect: {failed: [V-pre.resize.stretch-1]}

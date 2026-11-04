@@ -443,7 +443,9 @@ def run_file(
     `rule_ids()`, and `cross_check=False` skips the formula comparison (`fill`).
     """
     section = data["section"]
-    source = producer(section, folder)
+    # A file of data-only validator cases runs no function, so its section needs no producer.
+    data_only = all(case.get("function") == DATA_ONLY for case in data["cases"])
+    source = None if data_only else producer(section, folder)
     formulas = globals().get(section.replace(".", "_"))  # None: the section has only a reference
     cases = []
     for given in data["cases"]:

@@ -603,6 +603,12 @@ def test_a_data_only_case_keeps_the_expect_of_its_author_and_needs_one() -> None
         mv.run_file(data)
 
 
+def test_a_file_of_only_data_only_cases_needs_no_producer(tmp_path: Path) -> None:
+    case = {"id": "c", "function": "none", "params": {}, "input": {}, "expect": {"failed": []}}
+    data = {"section": "no.such.section", "tolerance": 0.0001, "unverified": "test", "cases": [case]}
+    assert mv.run_file(data, tmp_path)["cases"] == [case]
+
+
 def test_a_reference_producer_writes_expect_and_must_agree_with_the_formulas(
     tmp_path: Path,
 ) -> None:
@@ -737,7 +743,8 @@ def test_a_check_stops_the_generator_on_a_case_that_breaks_its_claim(
 def test_each_registered_check_holds_on_the_published_cases_that_declare_it() -> None:
     declared, registered = set(), set()
     for section, data in built_vectors().items():
-        module = formula_module(section)
+        data_only = all(case.get("function") == mv.DATA_ONLY for case in data["cases"])
+        module = None if data_only else formula_module(section)
         file_checks = data.get("checks", [])
         registered |= {(section, name) for name in getattr(module, "CHECKS", {})}
         for case in data["cases"]:

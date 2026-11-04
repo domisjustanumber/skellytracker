@@ -9,7 +9,7 @@ implemented_by:
   inverse: missing  # The identity inverse has no code.
 external_impl: []
 tests: []
-vectors: null
+vectors: vectors/pre.resize.none.yaml
 status: {spec: stable, validate: implemented, forward: missing, inverse: missing}
 ---
 
