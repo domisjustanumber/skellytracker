@@ -1,0 +1,41 @@
+{
+  "bundle_format": 1,
+  "kind": "proposal",
+  "name": "simcc-score-rule",
+  "contributor": "openmmlab-exporter",
+  "source_commit": "c2e610e91fee0a961032e12737ff9147697a7e53",
+  "spec_commit": "b065f6e6850686b65bcd08ca944116d739aa62de",
+  "sections": [
+    "post.pose.decode.simcc"
+  ],
+  "base": null,
+  "depends_on": [],
+  "contributes_to": null,
+  "related": [],
+  "external": [],
+  "spec_version": "2.0.0",
+  "version": 2,
+  "created": "2026-11-06",
+  "files": [
+    {
+      "path": "evidence.md",
+      "sha256": "9c80962e4131903654ca14d9baaa90eb4451c2ca40465bebe17eaed2f25419c5",
+      "bytes": 5959
+    },
+    {
+      "path": "proposal.md",
+      "sha256": "d25fd9e7d9cdb1ed1aee2c880d80ea48ce409978514fe8c3747402efd1447520",
+      "bytes": 25860
+    },
+    {
+      "path": "reference/post_pose_decode_simcc.py",
+      "sha256": "ff3c99bf7327e259c024d2483718125f58619fd31d7c34ed0fdf949813d6ca14",
+      "bytes": 4233
+    },
+    {
+      "path": "vectors/post.pose.decode.simcc.yaml",
+      "sha256": "1fc93744df5a948bf372134b076f6868892ea3a0aaf773d83ad05ecd2c05dd11",
+      "bytes": 5335
+    }
+  ]
+}
