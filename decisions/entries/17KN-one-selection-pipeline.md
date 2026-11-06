@@ -1,6 +1,6 @@
 # 17KN — One selection pipeline
 
-**Status:** accepted, 2026-11-02 (user; PR: pending).
+**Status:** absorbed into [`post/detection-decode.md#selection-behaviour`](../../specs/model-sidecar/post/detection-decode.md#selection-behaviour), 2026-11-06 (user; PR: pending).
 
 ## Decision
 

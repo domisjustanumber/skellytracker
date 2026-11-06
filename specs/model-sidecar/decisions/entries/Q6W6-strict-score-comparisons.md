@@ -1,6 +1,6 @@
 # Q6W6 — Strict `>` in each score comparison of the detection decode
 
-**Status:** accepted, 2026-11-04 (user; PR: pending).
+**Status:** absorbed into [`post/detection-decode.md#selection-behaviour`](../../post/detection-decode.md#selection-behaviour), 2026-11-06 (user; PR: pending).
 
 ## Decision
 

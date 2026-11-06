@@ -35,15 +35,12 @@ These entries are `accepted` or `evidence`.
 | [NB5F](entries/NB5F-no-change-classes-and-one-re-export-request.md) | No change classes; one re-export request; a spec-forced edit can add a value read from the export graphs; supersedes KDBD | accepted |
 | [0QKK](entries/0QKK-no-legacy-layer.md) | No legacy layer; `input.normalization` required; unknown keys invalid; no `since`; rule renumbering; supersedes 0012 and 0016 | accepted |
 | [JAA4](entries/JAA4-one-batch-field.md) | One `batching.batch` field; `output_shapes` in each size; no `batch_axis`; supersedes CRV0, JB5J and 0011 | accepted |
-| [90CE](entries/90CE-minimal-sidecar-contract.md) | Minimal contract: no `input_dtype`, `rank`, NHWC or `base`; plain sizes; `pose.geometry`; one `imagenet` mode; supersedes 0010 | accepted |
-| [17KN](entries/17KN-one-selection-pipeline.md) | One selection pipeline: shared steps once; `clamp_boxes` gates; bounds `[0, W]`, `[0, H]`; optional `min_box_size`; no class source needs `is_person_only` | accepted |
 | [6GE2](entries/6GE2-spec-version-follows-skellytracker.md) | Spec version follows skellytracker SemVer: released headings, recorded pre-releases, IDs never shift, `2.0.0` ships the loader, ban per target; supersedes SS2E | accepted |
 | [ZXD7](entries/ZXD7-bundle-process.md) | Bundle process: no release step; manifest `spec_version`; entry status = proposal state; owner rule; `-2` n/a until a final release loads it; supersedes FADS | accepted |
 | [CN15](entries/CN15-spec-readme-is-the-only-entry-point.md) | The spec `README.md` is the only entry point; `sidecar-spec.md` is frozen, and M11 deletes it after the code cites section IDs; the root README links the spec | accepted |
 | [ESP4](entries/ESP4-one-home-for-each-workflow-rule.md) | One home for each workflow rule; skills link it; templates are forms with no relative link; new phase-1 headings; three rules move to `rules.md` | accepted |
 | [0PK7](entries/0PK7-selection-boxes-space-flag.md) | Each selection vector case gives `boxes_xyxy` and `boxes_space` (`model_input` or `source`); a host reads the flag | accepted |
 | [2XW6](entries/2XW6-process-entries-consolidation.md) | Consolidation: restates the rules that stay of Z05A, GN3D, QPS7, NB91, EY8R, D9VT, p3n3, 5WKW and FDTD; changes no decision | accepted |
-| [BJF9](entries/BJF9-scalar-pad-value-fills-every-channel.md) | A scalar pad value fills every channel | accepted |
 | [9MJ6](entries/9MJ6-remove-the-heatmap-decode.md) | Remove the heatmap decode: no `heatmap` method, semantic or section until a model brings a full contract | accepted |
 | [9HBB](entries/9HBB-simcc-decode-is-2d-only.md) | The SimCC decode is 2D only: no `simcc_z`, no `depth_range`; a 3D SimCC model adds its own section | accepted |
 

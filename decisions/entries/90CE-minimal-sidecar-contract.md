@@ -1,6 +1,6 @@
 # 90CE — Minimal sidecar contract
 
-**Status:** accepted, 2026-11-02 (user; PR: pending).
+**Status:** absorbed into [`common/input.md#fields`](../../specs/model-sidecar/common/input.md#fields), 2026-11-06 (user; PR: pending).
 
 ## Decision
 

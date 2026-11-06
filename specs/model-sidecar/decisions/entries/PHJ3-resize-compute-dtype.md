@@ -1,6 +1,6 @@
 # PHJ3 — Resize compute dtype
 
-**Status:** accepted, 2026-11-04 (user; PR: pending).
+**Status:** absorbed into [`pre/interpolation.md#compute-dtype`](../../pre/interpolation.md#compute-dtype), 2026-11-06 (user; PR: pending).
 
 ## Decision
 

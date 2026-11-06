@@ -1,6 +1,6 @@
 # BJF9 — A scalar pad value fills every channel
 
-**Status:** accepted, 2026-11-04 (user; PR: pending).
+**Status:** absorbed into [`common/input.md#inputresize`](../../specs/model-sidecar/common/input.md#inputresize), 2026-11-06 (user; PR: pending).
 
 ## Decision
 

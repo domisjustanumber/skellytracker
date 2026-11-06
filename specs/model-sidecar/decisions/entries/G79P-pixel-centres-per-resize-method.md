@@ -1,6 +1,6 @@
 # G79P — Pixel centres follow the OpenCV call of each resize method
 
-**Status:** accepted, 2026-11-04 (user; PR: pending).
+**Status:** absorbed into [`pre/interpolation.md#pixel-centres`](../../pre/interpolation.md#pixel-centres), 2026-11-06 (user; PR: pending).
 
 ## Decision
 
