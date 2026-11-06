@@ -30,6 +30,7 @@ proposals of a section here.
 |---|----------|---------|--------|
 | [3S5G](entries/3S5G-affine-crop-matrix.md) | Spec change: the warp matrix `M` of `affine_person_crop` in the float32 steps of mmpose | `pre.resize.affine_person_crop` | proposed |
 | [50BW](entries/50BW-verification-batches.md) | Spec change: the verification batches of `static-batch-v1` are 1, 2, 3 and 6, not 1, 2, 3 and 4 (guidance only) | `common.batch_conversion` | proposed |
+| [52NQ](entries/52NQ-model-id-suffix.md) | Spec change: keypoint detector id `{family}-{group}[-{variant}]` | `common.identity` | proposed |
 
 The entries that are `rejected`, `superseded by XXXX`, `absorbed into <path>#<anchor>`,
 `evidence; used by XXXX` or `done` are in [historical.md](historical.md).
