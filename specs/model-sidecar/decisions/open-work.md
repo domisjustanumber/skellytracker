@@ -23,9 +23,11 @@ This heading holds one item
   `output_shapes` in each size ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)), the
   minimal contract ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)), the
   one-statement fix of the selection pipeline
-  ([ADR-17KN](../../../decisions/entries/17KN-one-selection-pipeline.md)), and the spec version that
+  ([ADR-17KN](../../../decisions/entries/17KN-one-selection-pipeline.md)), the spec version that
   follows the skellytracker version
-  ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). The item
+  ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)), and the
+  `license` block with the model license and the training data
+  ([ADR-SE3Y](entries/SE3Y-license-and-training-data.md)). The item
   names its target, and each of these changes is accepted. Thus the item is open
   ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md) item 5). It
   closes when each example is an export copy at `2.0.0`.

@@ -18,6 +18,7 @@ These entries are `accepted` or `evidence`.
 | [Q6W6](entries/Q6W6-strict-score-comparisons.md) | Keep strict `>` in each score comparison of the detection decode, by intent; guidance names the `>=` upstreams | accepted |
 | [G79P](entries/G79P-pixel-centres-per-resize-method.md) | Pixel centres follow the OpenCV call of the resize method: `cv2.resize` for `letterbox` and `stretch`, `cv2.warpAffine` for `fit` and `affine_person_crop` | accepted |
 | [PHJ3](entries/PHJ3-resize-compute-dtype.md) | New optional `input.resize.compute_dtype`: `uint8` (default) or `float32`; the dtype of the resize and the pad; `V-pre.resize.interpolation-1` | accepted |
+| [SE3Y](entries/SE3Y-license-and-training-data.md) | New draft section `common.license`: mandatory model license and training data, SPDX ids, `unknown` with a reason; examples `needs-export` | accepted |
 
 ### Proposed
 
