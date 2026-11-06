@@ -167,7 +167,7 @@ def test_list_gives_states_owners_reverse_links_and_can_delete(tmp_path: Path, r
     respond(root, "proposal-box-clamp@ultralytics-exporter", 1)
     respond(root, "proposal-old@roboflow-exporter", 1, state="closed")
     respond(root, "proposal-old@roboflow-exporter", 2, state="closed", findings=["deferred: wait for the release"])
-    lines = ib.list_lines(root)
+    lines = ib.list_lines(root, tmp_path)  # a repo with no tracked records, so only these bundles own sections
     assert "proposal-box-clamp@ultralytics-exporter v1 recorded" in lines
     assert "  needed by: proposal-box-clamp@roboflow-exporter" in lines
     assert "proposal-old@roboflow-exporter v1 closed (can delete)" in lines
@@ -602,7 +602,8 @@ def test_responses_are_json_that_yaml_also_reads(tmp_path: Path, root: Path) -> 
 
 def test_each_sub_command_takes_root_after_its_name(root: Path, capsys: pytest.CaptureFixture) -> None:
     assert ib.main(["list", "--root", str(root)]) == 0
-    assert capsys.readouterr().out == "no bundles\n"
+    # The empty root gives no bundle line. The tracked records of this repo can still own sections.
+    assert capsys.readouterr().out.splitlines()[0] in ("no bundles", "section owners:")
 
 
 # --------------------------------------------------------------------------------------------
