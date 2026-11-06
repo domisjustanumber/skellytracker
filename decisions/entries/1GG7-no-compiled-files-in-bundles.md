@@ -1,6 +1,6 @@
 # 1GG7 — No compiled files in bundles
 
-**Status:** accepted, 2026-11-06 (user; PR: pending).
+**Status:** absorbed into [`model-addition-workflow/hand-over.md#payload`](../../specs/model-sidecar/model-addition-workflow/hand-over.md#payload), 2026-11-06 (user; PR: pending).
 
 ## Decision
 

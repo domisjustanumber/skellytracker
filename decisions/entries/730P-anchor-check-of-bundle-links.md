@@ -1,6 +1,6 @@
 # 730P — Anchor check of bundle links
 
-**Status:** accepted, 2026-11-06 (user; PR: pending).
+**Status:** absorbed into [`model-addition-workflow/hand-over.md#pack-a-version`](../../specs/model-sidecar/model-addition-workflow/hand-over.md#pack-a-version), 2026-11-06 (user; PR: pending).
 
 ## Decision
 
