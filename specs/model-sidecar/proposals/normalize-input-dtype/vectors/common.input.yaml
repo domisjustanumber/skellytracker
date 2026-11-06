@@ -1,0 +1,32 @@
+# tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
+# Hosts ignore `checks`. The names are the self-checks of the generator.
+section: common.input
+notes:
+  - "Normative text: specs/model-sidecar/common/input.md."
+  - "Each case is a data-only validator case (`function: none`): `input.sidecar` is the
+    sidecar, and `expect.failed` lists the rules of this section that it fails."
+tolerance: 0.0001
+unverified: "No validator has run these cases yet. They come from the section text only."
+cases:
+  - id: uint8-is-an-input-dtype
+    note: "float32 and uint8 are values of input.dtype. The sidecar shows only its input block.
+      The case checks only the rules of this section."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        input:
+          name: input
+          dtype: {fp32: float32, fp16: uint8}
+          color_format: rgb
+          normalization: unit_float
+          normalization_by_precision: {fp16: none}
+    expect: {failed: []}
+  - id: int8-is-not-an-input-dtype
+    note: "int8 is not a value of input.dtype. The pixels 128 to 255 do not fit in int8. The
+      sidecar shows only its input block. The case checks only the rules of this section."
+    function: none
+    params: {}
+    input:
+      sidecar: {input: {name: input, dtype: {fp32: int8}, color_format: bgr, normalization: none}}
+    expect: {failed: [V-common.input-2]}
