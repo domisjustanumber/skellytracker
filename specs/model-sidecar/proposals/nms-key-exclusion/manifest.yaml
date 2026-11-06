@@ -1,0 +1,38 @@
+{
+  "bundle_format": 1,
+  "kind": "proposal",
+  "name": "nms-key-exclusion",
+  "contributor": "openmmlab-exporter",
+  "source_commit": "c2e610e91fee0a961032e12737ff9147697a7e53",
+  "spec_commit": "b065f6e6850686b65bcd08ca944116d739aa62de",
+  "sections": [
+    "post.det.selection.nms"
+  ],
+  "base": null,
+  "depends_on": [],
+  "contributes_to": null,
+  "related": [
+    "model-yolox-person@openmmlab-exporter"
+  ],
+  "external": [],
+  "spec_version": "2.0.0",
+  "version": 1,
+  "created": "2026-11-06",
+  "files": [
+    {
+      "path": "proposal.md",
+      "sha256": "2f213c537aad0c97323de3d1177a47a8bc9a970082727301c6d4d2b906786d65",
+      "bytes": 34354
+    },
+    {
+      "path": "reference/post_det_selection_nms.py",
+      "sha256": "2cc1617d8065f9fd23fa892215449eb0cb920821edb5e57b2db58971dc2b7989",
+      "bytes": 19008
+    },
+    {
+      "path": "vectors/post.det.selection.nms.yaml",
+      "sha256": "104dfd261d937383132d2f647a8f58635f204e84ac1c7954bd4ed9075c1b8181",
+      "bytes": 18041
+    }
+  ]
+}
