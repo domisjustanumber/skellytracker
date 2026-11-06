@@ -7,7 +7,9 @@ implemented_by:
   validate: skellytracker/core/sidecar/model.py::ResizeSpec._check_method_specific_fields  # partial. pad_position and rounding are not required. The model accepts preserve_aspect_ratio, a key that the spec does not define.
   forward: skellytracker/core/detectors/processing/image_preprocessing.py::letterbox_preprocess  # partial. Puts the image at the top left, truncates the size, and nothing reads pad_position or rounding. preprocess_image raises for preserve_aspect_ratio false, a key that the spec does not define.
   inverse: skellytracker/core/detectors/processing/object_detection_decode.py::decode_prenms  # partial. Divides by one ratio. Does not use the rounded n_w and n_h or the pad offsets.
-external_impl: []
+external_impl:
+  - OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox
+  - OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points
 tests:
   - skellytracker/tests/test_image_preprocessing.py
   - skellytracker/tests/test_object_detection_decode.py

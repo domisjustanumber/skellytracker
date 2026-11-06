@@ -7,7 +7,8 @@ selectors:
 implemented_by:
   validate: skellytracker/core/sidecar/model.py::DetectionDecodeSpec  # partial: no selection, output bindings, box_scale, class_id_map, is_person_only, clamp_boxes or min_box_size; max_detections defaults to 300
   decode: skellytracker/core/detectors/object_detectors/yolox/yolox_decode.py::yolox_detection_decode  # partial: the tensor count picks the path, not selection; no box_scale, class_id_map, is_person_only, clamp or size filter; the caller gives the thresholds
-external_impl: []
+external_impl:
+  - OpenMMLab-Exporter: onnx_runtime/decode_nms.py::NmsDecoder
 tests:
   - skellytracker/tests/sidecar/test_model_validation.py
   - skellytracker/tests/test_object_detection_decode.py

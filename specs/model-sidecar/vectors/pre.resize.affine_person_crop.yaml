@@ -15,8 +15,8 @@ notes:
   - "A case with `function: border` gives `border`, the value of a pixel outside the
     source image, one value for each channel. `pad_value` is `crop_policy.pad_value`."
 tolerance: 0.0001
-unverified: "No independent implementation has run these vectors yet. They come from the section
-  text only."
+unverified: "The independent implementations ran only some cases. Each of these cases lists them
+  in verified_against."
 cases:
   - id: tall-box-grows-width
     note: "box 200x400, expanded to 250x500; 250 < 500 * 0.75, so w = 375. The centre maps to
@@ -28,11 +28,15 @@ cases:
       crop_w: 375
       crop_h: 500
       matrix: [[0.512, 0, -6.4], [0, 0.512, 0]]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::affine_crop_geometry}
   - id: tall-box-grows-width-inverse
     function: inverse
     params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: true}
     input: {bbox_xyxy: [100, 50, 300, 450], model_xy: [96, 128]}
     expect: {source_xy: [200, 250]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::unproject_affine}
   - id: wide-box-grows-height
     note: "box 400x200, expanded to 500x250; 500 > 250 * 0.75, so h = 500 * 256 / 192. The
       top-left corner of the target maps to the top-left corner of the crop"
@@ -43,11 +47,15 @@ cases:
       crop_w: 500
       crop_h: 666.666667
       matrix: [[0.384, 0, 19.2], [0, 0.384, 89.6]]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::affine_crop_geometry}
   - id: wide-box-grows-height-inverse
     function: inverse
     params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: true}
     input: {bbox_xyxy: [0, 0, 400, 200], model_xy: [0, 0]}
     expect: {source_xy: [-50, -233.333333]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::unproject_affine}
   - id: no-expansion
     note: "expand_ratio 1.0: w = 100 grows to 150 to match the aspect ratio 192 / 256"
     params: {target_size: [256, 192], expand_ratio: 1, maintain_aspect_ratio: true}
@@ -57,11 +65,15 @@ cases:
       crop_w: 150
       crop_h: 200
       matrix: [[1.28, 0, 19.2], [0, 1.28, -25.6]]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::affine_crop_geometry}
   - id: no-expansion-inverse
     function: inverse
     params: {target_size: [256, 192], expand_ratio: 1, maintain_aspect_ratio: true}
     input: {bbox_xyxy: [10, 20, 110, 220], model_xy: [192, 256]}
     expect: {source_xy: [135, 220]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::unproject_affine}
   - id: aspect-ratio-not-kept
     note: "maintain_aspect_ratio false: the box is warped as it is, so the x and y scales differ"
     params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: false}
@@ -71,11 +83,15 @@ cases:
       crop_w: 250
       crop_h: 500
       matrix: [[0.768, 0, -57.6], [0, 0.512, 0]]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::affine_crop_geometry}
   - id: aspect-ratio-not-kept-inverse
     function: inverse
     params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: false}
     input: {bbox_xyxy: [100, 50, 300, 450], model_xy: [192, 256]}
     expect: {source_xy: [325, 500]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::unproject_affine}
   - id: box-outside-the-image
     note: "the crop can reach outside the source image"
     params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: true}
@@ -85,11 +101,15 @@ cases:
       crop_w: 375
       crop_h: 500
       matrix: [[0.512, 0, 70.4], [0, 0.512, 35.84]]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::affine_crop_geometry}
   - id: box-outside-the-image-inverse
     function: inverse
     params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: true}
     input: {bbox_xyxy: [-50, -20, 150, 380], model_xy: [96, 128]}
     expect: {source_xy: [50, 180]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::unproject_affine}
   - id: square-target
     note: "a square box in a square target: w = h = 125"
     params: {target_size: [288, 288], expand_ratio: 1.25, maintain_aspect_ratio: true}
@@ -99,11 +119,15 @@ cases:
       crop_w: 125
       crop_h: 125
       matrix: [[2.304, 0, 28.8], [0, 2.304, 28.8]]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::affine_crop_geometry}
   - id: square-target-inverse
     function: inverse
     params: {target_size: [288, 288], expand_ratio: 1.25, maintain_aspect_ratio: true}
     input: {bbox_xyxy: [0, 0, 100, 100], model_xy: [288, 288]}
     expect: {source_xy: [112.5, 112.5]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::unproject_affine}
   - id: target-384x288
     note: "target_size [384, 288] is 288 wide and 384 high: w = 625 * 288 / 384 = 468.75. The
       target centre maps to the centre of the box"
@@ -114,11 +138,15 @@ cases:
       crop_w: 468.75
       crop_h: 625
       matrix: [[0.6144, 0, -114.048], [0, 0.6144, -23.04]]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::affine_crop_geometry}
   - id: target-384x288-inverse
     function: inverse
     params: {target_size: [384, 288], expand_ratio: 1.25, maintain_aspect_ratio: true}
     input: {bbox_xyxy: [320, 100, 520, 600], model_xy: [144, 192]}
     expect: {source_xy: [420, 350]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::unproject_affine}
   - id: affine-crop-needs-target-size
     note: "the size declares no input.resize.target_size. The sidecar shows only its input and
       sizes blocks. The case checks only the rules of this section."
@@ -219,3 +247,5 @@ cases:
       pad_value: 114
     input: {src_w: 640, src_h: 480, bbox_xyxy: [0, 0, 200, 400]}
     expect: {border: [114, 114, 114]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::affine_person_crop}

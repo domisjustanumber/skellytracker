@@ -6,7 +6,9 @@ selectors: [role=object_detector, role=pose_estimator]
 implemented_by:
   validate: skellytracker/core/sidecar/model.py::PoseDecodeSpec._check_decode  # partial. Checks only where coordinate_scale is valid. DetectionDecodeSpec has no box_scale field.
   decode: skellytracker/core/detectors/processing/object_detection_decode.py::decode_prenms  # partial. No shared unprojection function. Each decoder divides by the letterbox ratio or applies the affine inverse itself (decode_simcc). No normalized_01 or normalized_11 conversion.
-external_impl: []
+external_impl:
+  - OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_points
+  - OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_boxes
 tests:
   - skellytracker/tests/test_object_detection_decode.py
   - skellytracker/tests/sidecar/test_rtmpose_body_sidecar.py

@@ -21,9 +21,9 @@ notes:
   - "Every result is exact in float64 arithmetic with the formulas of the sections."
 tolerance: 0.0001
 checks: [input-size-follows-resize]
-unverified: "No independent implementation has run these vectors yet. They come from the section
-  text only. skellytracker has no shared unprojection function: each decoder
-  unprojects on its own and none reads normalized_01 or normalized_11."
+unverified: "One implementation ran each case: OpenMMLab-Exporter, with a different function for
+  each group of cases. Each case lists its function in verified_against. A vector is
+  fully verified only when two independent implementations agree."
 cases:
   - id: pixel-is-the-model-input-position
     note: "no conversion: s = 1/3 and top = 140, so y_src = (320 - 140) * 3 = 540"
@@ -37,6 +37,8 @@ cases:
         rounding: half_even
     input: {src_w: 1920, src_h: 1080, decoded_xy: [320, 320]}
     expect: {model_xy: [320, 320], source_xy: [960, 540]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_points}
   - id: normalized-01-centre
     note: "0.5 * 640 = 320: the same result as the pixel case, because the conversion comes first"
     params:
@@ -49,6 +51,8 @@ cases:
         rounding: half_even
     input: {src_w: 1920, src_h: 1080, decoded_xy: [0.5, 0.5]}
     expect: {model_xy: [320, 320], source_xy: [960, 540]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_points}
   - id: normalized-01-top-left-corner
     note: "the top of the model input is padding: y_src = (0 - 140) * 3 = -420"
     params:
@@ -61,6 +65,8 @@ cases:
         rounding: half_even
     input: {src_w: 1920, src_h: 1080, decoded_xy: [0, 0]}
     expect: {model_xy: [0, 0], source_xy: [0, -420]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_points}
   - id: normalized-01-bottom-right-corner
     note: "1 maps to x = 640, the right edge of the model input, and not to 639"
     params:
@@ -73,6 +79,8 @@ cases:
         rounding: half_even
     input: {src_w: 1920, src_h: 1080, decoded_xy: [1, 1]}
     expect: {model_xy: [640, 640], source_xy: [1920, 1500]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_points}
   - id: normalized-11-left-edge
     note: "-1 maps to x = 0, the left edge of the model input, and not to the centre of pixel 0"
     params:
@@ -85,6 +93,8 @@ cases:
         rounding: half_even
     input: {src_w: 1920, src_h: 1080, decoded_xy: [-1, 0]}
     expect: {model_xy: [0, 320], source_xy: [0, 540]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_points}
   - id: normalized-11-right-edge
     note: "1 maps to x = 640, the right edge, and not to the centre of the last pixel"
     params:
@@ -97,6 +107,8 @@ cases:
         rounding: half_even
     input: {src_w: 1920, src_h: 1080, decoded_xy: [1, 0]}
     expect: {model_xy: [640, 320], source_xy: [1920, 540]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_points}
   - id: normalized-11-centre
     note: "0 maps to the middle of the model input: (320, 320)"
     params:
@@ -109,6 +121,8 @@ cases:
         rounding: half_even
     input: {src_w: 1920, src_h: 1080, decoded_xy: [0, 0]}
     expect: {model_xy: [320, 320], source_xy: [960, 540]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_points}
   - id: normalized-11-off-centre
     note: "(-0.5 + 1) / 2 * 640 = 160 and (0.5 + 1) / 2 * 640 = 480"
     params:
@@ -121,6 +135,8 @@ cases:
         rounding: half_even
     input: {src_w: 1920, src_h: 1080, decoded_xy: [-0.5, 0.5]}
     expect: {model_xy: [160, 480], source_xy: [480, 1020]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_points}
   - id: normalized-01-non-square-input
     note: "target_size [384, 640] is 640 wide and 384 high: x scales with 640 and y with 384.
       top = 12"
@@ -134,6 +150,8 @@ cases:
         rounding: half_even
     input: {src_w: 1920, src_h: 1080, decoded_xy: [0.5, 0.5]}
     expect: {model_xy: [320, 192], source_xy: [960, 540]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_points}
   - id: normalized-11-non-square-input
     note: "x = 640 and y = 0; y_src = (0 - 12) * 3 = -36"
     params:
@@ -146,6 +164,8 @@ cases:
         rounding: half_even
     input: {src_w: 1920, src_h: 1080, decoded_xy: [1, -1]}
     expect: {model_xy: [640, 0], source_xy: [1920, -36]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_points}
   - id: normalized-01-letterbox-top-left
     note: "(640, 360) is the bottom-right corner of the resized image: the source corner"
     params:
@@ -158,6 +178,8 @@ cases:
         rounding: half_up
     input: {src_w: 1920, src_h: 1080, decoded_xy: [1, 0.5625]}
     expect: {model_xy: [640, 360], source_xy: [1920, 1080]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_points}
   - id: normalized-01-stretch
     note: "(160, 480) in model-input pixels; x_src = 160 * 1920 / 640, y_src = 480 * 1080 / 640"
     params:
@@ -166,6 +188,8 @@ cases:
       resize: {method: stretch, target_size: [640, 640]}
     input: {src_w: 1920, src_h: 1080, decoded_xy: [0.25, 0.75]}
     expect: {model_xy: [160, 480], source_xy: [480, 810]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_points}
   - id: normalized-11-stretch
     note: "the far corner of the model input maps to the far corner of the source"
     params:
@@ -174,6 +198,8 @@ cases:
       resize: {method: stretch, target_size: [640, 640]}
     input: {src_w: 1920, src_h: 1080, decoded_xy: [1, 1]}
     expect: {model_xy: [640, 640], source_xy: [1920, 1080]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_points}
   - id: normalized-01-fit
     note: "fit does not round: s = 0.5, left = 0, top = 140"
     params:
@@ -182,11 +208,15 @@ cases:
       resize: {method: fit, target_size: [640, 640]}
     input: {src_w: 1280, src_h: 720, decoded_xy: [0.25, 0.5]}
     expect: {model_xy: [160, 320], source_xy: [320, 360]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_points}
   - id: normalized-01-no-resize
     note: "method none: the model input is the source image; input_size is [480, 640]"
     params: {scale: normalized_01, input_size: [480, 640], resize: {method: none}}
     input: {src_w: 640, src_h: 480, decoded_xy: [0.5, 0.25]}
     expect: {model_xy: [320, 120], source_xy: [320, 120]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_points}
   - id: pixel-affine-person-crop
     note: "the centre of the target, (96, 128), maps to the centre of the person box, (148,
       264); the box is 96x128 and the scale is 2"
@@ -200,6 +230,8 @@ cases:
         maintain_aspect_ratio: true
     input: {bbox_xyxy: [100, 200, 196, 328], decoded_xy: [96, 128]}
     expect: {model_xy: [96, 128], source_xy: [148, 264]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_points}
   - id: normalized-11-affine-person-crop
     note: "0 maps to (96, 128) in model-input pixels: the same position as the pixel case"
     params:
@@ -212,6 +244,8 @@ cases:
         maintain_aspect_ratio: true
     input: {bbox_xyxy: [100, 200, 196, 328], decoded_xy: [0, 0]}
     expect: {model_xy: [96, 128], source_xy: [148, 264]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_points}
   - id: box-normalized-01-inside-the-image
     note: "clamp_boxes is absent, so the default true applies; the box is inside the image and
       the clamp changes nothing"
@@ -228,6 +262,8 @@ cases:
       model_xyxy: [160, 280, 480, 360]
       source_xyxy: [480, 420, 1440, 660]
       output_xyxy: [480, 420, 1440, 660]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_boxes}
   - id: box-normalized-11-edge-and-inside
     note: "x1 = -1 maps to 0: on the edge, so the clamp changes nothing"
     params:
@@ -243,6 +279,8 @@ cases:
       model_xyxy: [0, 160, 320, 480]
       source_xyxy: [0, 60, 960, 1020]
       output_xyxy: [0, 60, 960, 1020]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_boxes}
   - id: box-clamp-default-is-true
     note: "clamp_boxes is absent: x1 = -60 and y1 = -120 become 0"
     params:
@@ -258,6 +296,8 @@ cases:
       model_xyxy: [-20, 100, 200, 400]
       source_xyxy: [-60, -120, 600, 780]
       output_xyxy: [0, 0, 600, 780]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_boxes}
   - id: box-clamp-boxes-true
     note: "the same box with clamp_boxes true"
     params:
@@ -274,6 +314,8 @@ cases:
       model_xyxy: [-20, 100, 200, 400]
       source_xyxy: [-60, -120, 600, 780]
       output_xyxy: [0, 0, 600, 780]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_boxes}
   - id: box-clamp-boxes-false-keeps-negative-values
     note: "the same box with clamp_boxes false: the output is the unprojected box"
     params:
@@ -290,6 +332,8 @@ cases:
       model_xyxy: [-20, 100, 200, 400]
       source_xyxy: [-60, -120, 600, 780]
       output_xyxy: [-60, -120, 600, 780]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_boxes}
   - id: box-clamp-after-the-scale-conversion
     note: "the box starts in the top padding: y1 = -420 becomes 0"
     params:
@@ -305,6 +349,8 @@ cases:
       model_xyxy: [0, 0, 320, 320]
       source_xyxy: [0, -420, 960, 540]
       output_xyxy: [0, 0, 960, 540]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_boxes}
   - id: box-clamp-upper-bound
     note: "x2 = 660 * 3 = 1980 becomes W = 1920 and y2 = (520 - 140) * 3 = 1140 becomes H = 1080"
     params:
@@ -320,6 +366,8 @@ cases:
       model_xyxy: [400, 300, 660, 520]
       source_xyxy: [1200, 480, 1980, 1140]
       output_xyxy: [1200, 480, 1920, 1080]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_boxes}
   - id: box-zero-area-is-kept-without-min-box-size
     note: "the box is in the bottom padding: y1 = 1110 and y2 = 1200 both become 1080. The box
       has zero height, and min_box_size is absent, so it stays"
@@ -336,6 +384,8 @@ cases:
       model_xyxy: [100, 510, 200, 540]
       source_xyxy: [300, 1110, 600, 1200]
       output_xyxy: [300, 1080, 600, 1080]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_boxes}
   - id: box-zero-area-is-dropped-at-min-box-size-0
     note: "the same box with min_box_size 0: the height 0 is not more than 0, so the box is dropped"
     params:
@@ -352,6 +402,8 @@ cases:
       model_xyxy: [100, 510, 200, 540]
       source_xyxy: [300, 1110, 600, 1200]
       output_xyxy: null
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/decode_nms.py::NmsDecoder}
   - id: box-width-equal-to-min-box-size-is-dropped
     note: "the width is 330 - 300 = 30 and min_box_size is 30: 30 > 30 is false, so the box is
       dropped"
@@ -366,6 +418,8 @@ cases:
       min_box_size: 30
     input: {src_w: 1920, src_h: 1080, decoded_xyxy: [100, 200, 110, 300]}
     expect: {model_xyxy: [100, 200, 110, 300], source_xyxy: [300, 180, 330, 480], output_xyxy: null}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/decode_nms.py::NmsDecoder}
   - id: box-width-above-min-box-size-is-kept
     note: "the same box with min_box_size 29.5: 30 > 29.5 and 300 > 29.5, so the box stays"
     params:
@@ -382,6 +436,8 @@ cases:
       model_xyxy: [100, 200, 110, 300]
       source_xyxy: [300, 180, 330, 480]
       output_xyxy: [300, 180, 330, 480]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/decode_nms.py::NmsDecoder}
   - id: box-min-box-size-after-the-clamp
     note: "the clamp gives x1 = 0, so the width is 15 and not 75: 15 > 20 is false, so the box
       is dropped"
@@ -396,6 +452,8 @@ cases:
       min_box_size: 20
     input: {src_w: 1920, src_h: 1080, decoded_xyxy: [-20, 100, 5, 400]}
     expect: {model_xyxy: [-20, 100, 5, 400], source_xyxy: [-60, -120, 15, 780], output_xyxy: null}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/decode_nms.py::NmsDecoder}
   - id: box-min-box-size-with-clamp-boxes-false
     note: "the same box with clamp_boxes false: the filter uses the unprojected box, whose
       width is 75 and height is 900, so the box stays"
@@ -414,3 +472,5 @@ cases:
       model_xyxy: [-20, 100, 5, 400]
       source_xyxy: [-60, -120, 15, 780]
       output_xyxy: [-60, -120, 15, 780]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/decode_nms.py::NmsDecoder}

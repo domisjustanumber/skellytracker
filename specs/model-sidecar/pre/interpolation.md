@@ -10,7 +10,9 @@ selectors:
 implemented_by:
   validate: skellytracker/core/sidecar/model.py::ResizeSpec  # partial. ResizeSpec has no compute_dtype field. Its extra="forbid" rejects each value, also uint8 and float32. It does not check V-pre.resize.interpolation-1.
   forward: skellytracker/core/detectors/processing/image_preprocessing.py::preprocess_image  # partial. The affine_person_crop branch ignores interpolation. top_down_affine always uses cv2.INTER_LINEAR. Each branch resizes the uint8 frame and ignores compute_dtype.
-external_impl: []
+external_impl:
+  - OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox
+  - OpenMMLab-Exporter: onnx_runtime/preprocess.py::affine_person_crop
 tests: []
 vectors: vectors/pre.resize.interpolation.yaml
 status: {spec: stable, validate: partial, forward: partial}

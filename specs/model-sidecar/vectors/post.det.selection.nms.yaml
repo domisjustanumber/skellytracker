@@ -27,8 +27,8 @@ notes:
     keeps every survivor."
 tolerance: 0.00001
 checks: [float32-stable]
-unverified: "No independent implementation has run these vectors yet. They come from the section
-  text only."
+verified_against:
+  - {OpenMMLab-Exporter: onnx_runtime/decode_nms.py::NmsDecoder}
 cases:
   - id: suppress-overlap-and-threshold
     note: "row 1: IoU 0.68 > 0.5; row 3: 0.04 <= 0.05. No class source: class_ids get

@@ -11,157 +11,212 @@ notes:
   - "A case that lists `verified_against` gave the same `expect` values with that
     function. The function does not compute the Inverse."
 tolerance: 0.0001
-unverified: "letterbox_preprocess implements only part of the section: it has no pad_position
-  center, it cuts the scaled size instead of rounding it, and it fails when n_w would
-  be 0. A case that lists verified_against gave the same n_w, n_h, left and top with
-  that function. No independent implementation has run the other cases."
+unverified: "One implementation ran each case: OpenMMLab-Exporter, with a different function for
+  each group of cases. Each case lists its function in verified_against. A vector is
+  fully verified only when two independent implementations agree."
 cases:
   - id: center-half-even-landscape
     note: "s = 1/3; the image fills the width and sits in the middle of the height"
     params: {target_size: [640, 640], pad_position: center, rounding: half_even}
     input: {src_w: 1920, src_h: 1080}
     expect: {n_w: 640, n_h: 360, left: 0, top: 140}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: center-half-even-landscape-inverse
     function: inverse
     params: {target_size: [640, 640], pad_position: center, rounding: half_even}
     input: {src_w: 1920, src_h: 1080, model_xy: [320, 320]}
     expect: {source_xy: [960, 540]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
   - id: center-half-even-portrait
     note: "the padding is on the left and right"
     params: {target_size: [640, 640], pad_position: center, rounding: half_even}
     input: {src_w: 1080, src_h: 1920}
     expect: {n_w: 360, n_h: 640, left: 140, top: 0}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: center-half-even-portrait-inverse
     function: inverse
     params: {target_size: [640, 640], pad_position: center, rounding: half_even}
     input: {src_w: 1080, src_h: 1920, model_xy: [320, 100]}
     expect: {source_xy: [540, 300]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
   - id: center-odd-remainder-bottom
     note: "161 rows of padding: 80 above, 81 below (the odd row goes to the bottom)"
     params: {target_size: [640, 640], pad_position: center, rounding: half_even}
     input: {src_w: 640, src_h: 479}
     expect: {n_w: 640, n_h: 479, left: 0, top: 80}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: center-odd-remainder-bottom-inverse
     function: inverse
     params: {target_size: [640, 640], pad_position: center, rounding: half_even}
     input: {src_w: 640, src_h: 479, model_xy: [10.5, 80]}
     expect: {source_xy: [10.5, 0]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
   - id: center-odd-remainder-right
     note: "161 columns of padding: 80 on the left, 81 on the right"
     params: {target_size: [640, 640], pad_position: center, rounding: half_even}
     input: {src_w: 479, src_h: 640}
     expect: {n_w: 479, n_h: 640, left: 80, top: 0}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: center-odd-remainder-right-inverse
     function: inverse
     params: {target_size: [640, 640], pad_position: center, rounding: half_even}
     input: {src_w: 479, src_h: 640, model_xy: [80, 10.5]}
     expect: {source_xy: [0, 10.5]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
   - id: center-rounding-tie-half-even
     note: "src_h * s = 50.5: half_even gives 50 (half_up gives 51, top 294)"
     checks: [rounding-changes-result]
     params: {target_size: [640, 640], pad_position: center, rounding: half_even}
     input: {src_w: 1280, src_h: 101}
     expect: {n_w: 640, n_h: 50, left: 0, top: 295}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: center-rounding-tie-half-even-inverse
     function: inverse
     params: {target_size: [640, 640], pad_position: center, rounding: half_even}
     input: {src_w: 1280, src_h: 101, model_xy: [320, 320]}
     expect: {source_xy: [640, 50.5]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
   - id: center-rounding-tie-half-up
     note: "src_h * s = 50.5: half_up gives 51 (half_even gives 50, top 295)"
     checks: [rounding-changes-result]
     params: {target_size: [640, 640], pad_position: center, rounding: half_up}
     input: {src_w: 1280, src_h: 101}
     expect: {n_w: 640, n_h: 51, left: 0, top: 294}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: center-rounding-tie-half-up-inverse
     function: inverse
     params: {target_size: [640, 640], pad_position: center, rounding: half_up}
     input: {src_w: 1280, src_h: 101, model_xy: [320, 320]}
     expect: {source_xy: [640, 51.490196]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
   - id: center-rounding-tie-odd-half-even
     note: "src_h * s = 51.5: the even neighbour is 52, so both modes give 52"
     checks: [rounding-keeps-result]
     params: {target_size: [640, 640], pad_position: center, rounding: half_even}
     input: {src_w: 1280, src_h: 103}
     expect: {n_w: 640, n_h: 52, left: 0, top: 294}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: center-rounding-tie-odd-half-even-inverse
     function: inverse
     params: {target_size: [640, 640], pad_position: center, rounding: half_even}
     input: {src_w: 1280, src_h: 103, model_xy: [320, 320]}
     expect: {source_xy: [640, 51.5]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
   - id: center-rounding-tie-odd-half-up
     note: "src_h * s = 51.5: both modes give 52"
     checks: [rounding-keeps-result]
     params: {target_size: [640, 640], pad_position: center, rounding: half_up}
     input: {src_w: 1280, src_h: 103}
     expect: {n_w: 640, n_h: 52, left: 0, top: 294}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: center-rounding-tie-odd-half-up-inverse
     function: inverse
     params: {target_size: [640, 640], pad_position: center, rounding: half_up}
     input: {src_w: 1280, src_h: 103, model_xy: [320, 320]}
     expect: {source_xy: [640, 51.5]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
   - id: center-float-noise-below-integer
     note: "src_w * s = 415.99999999999994 in float64: rounding gives 416, cutting gives 415"
     checks: [cut-differs-from-round]
     params: {target_size: [416, 416], pad_position: center, rounding: half_even}
     input: {src_w: 1440, src_h: 1080}
     expect: {n_w: 416, n_h: 312, left: 0, top: 52}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: center-float-noise-below-integer-inverse
     function: inverse
     params: {target_size: [416, 416], pad_position: center, rounding: half_even}
     input: {src_w: 1440, src_h: 1080, model_xy: [208, 208]}
     expect: {source_xy: [720, 540]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
   - id: center-non-square-target
     note: "target_size is [height, width]: [384, 640] is 640 wide and 384 high"
     params: {target_size: [384, 640], pad_position: center, rounding: half_even}
     input: {src_w: 1920, src_h: 1080}
     expect: {n_w: 640, n_h: 360, left: 0, top: 12}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: center-non-square-target-inverse
     function: inverse
     params: {target_size: [384, 640], pad_position: center, rounding: half_even}
     input: {src_w: 1920, src_h: 1080, model_xy: [320, 192]}
     expect: {source_xy: [960, 540]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
   - id: center-upscale
     note: "s = 2"
     params: {target_size: [640, 640], pad_position: center, rounding: half_even}
     input: {src_w: 320, src_h: 240}
     expect: {n_w: 640, n_h: 480, left: 0, top: 80}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: center-upscale-inverse
     function: inverse
     params: {target_size: [640, 640], pad_position: center, rounding: half_even}
     input: {src_w: 320, src_h: 240, model_xy: [320, 320]}
     expect: {source_xy: [160, 120]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
   - id: center-scale-exactly-one
     note: "no resize and no padding: the unprojection is the identity"
     params: {target_size: [640, 640], pad_position: center, rounding: half_even}
     input: {src_w: 640, src_h: 640}
     expect: {n_w: 640, n_h: 640, left: 0, top: 0}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: center-scale-exactly-one-inverse
     function: inverse
     params: {target_size: [640, 640], pad_position: center, rounding: half_even}
     input: {src_w: 640, src_h: 640, model_xy: [123.5, 456.25]}
     expect: {source_xy: [123.5, 456.25]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
   - id: center-one-pixel-wide-source
     note: "s = 6.4; n_w = round(6.4) = 6"
     params: {target_size: [640, 640], pad_position: center, rounding: half_even}
     input: {src_w: 1, src_h: 100}
     expect: {n_w: 6, n_h: 640, left: 317, top: 0}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: center-one-pixel-wide-source-inverse
     function: inverse
     params: {target_size: [640, 640], pad_position: center, rounding: half_even}
     input: {src_w: 1, src_h: 100, model_xy: [320, 320]}
     expect: {source_xy: [0.5, 50]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
   - id: center-width-guard
     note: "src_w * s = 0.064 rounds to 0; max(1, x) keeps n_w at 1"
     checks: [scaled-width-rounds-to-zero]
     params: {target_size: [640, 640], pad_position: center, rounding: half_even}
     input: {src_w: 1, src_h: 10000}
     expect: {n_w: 1, n_h: 640, left: 319, top: 0}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: center-width-guard-inverse
     function: inverse
     params: {target_size: [640, 640], pad_position: center, rounding: half_even}
     input: {src_w: 1, src_h: 10000, model_xy: [319.5, 320]}
     expect: {source_xy: [0.5, 5000]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
   - id: top-left-half-up-landscape
     note: "the image sits in the top-left corner; the padding is below"
     params: {target_size: [640, 640], pad_position: top_left, rounding: half_up}
@@ -169,11 +224,14 @@ cases:
     expect: {n_w: 640, n_h: 360, left: 0, top: 0}
     verified_against:
       - skellytracker/core/detectors/processing/image_preprocessing.py::letterbox_preprocess
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: top-left-half-up-landscape-inverse
     function: inverse
     params: {target_size: [640, 640], pad_position: top_left, rounding: half_up}
     input: {src_w: 1920, src_h: 1080, model_xy: [320, 180]}
     expect: {source_xy: [960, 540]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
   - id: top-left-half-even-landscape
     note: "the bottom-right corner of the image maps to the bottom-right corner of the source"
     params: {target_size: [640, 640], pad_position: top_left, rounding: half_even}
@@ -181,11 +239,14 @@ cases:
     expect: {n_w: 640, n_h: 360, left: 0, top: 0}
     verified_against:
       - skellytracker/core/detectors/processing/image_preprocessing.py::letterbox_preprocess
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: top-left-half-even-landscape-inverse
     function: inverse
     params: {target_size: [640, 640], pad_position: top_left, rounding: half_even}
     input: {src_w: 1280, src_h: 720, model_xy: [640, 360]}
     expect: {source_xy: [1280, 720]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
   - id: top-left-half-even-portrait
     note: "the padding is on the right"
     params: {target_size: [640, 640], pad_position: top_left, rounding: half_even}
@@ -193,11 +254,14 @@ cases:
     expect: {n_w: 360, n_h: 640, left: 0, top: 0}
     verified_against:
       - skellytracker/core/detectors/processing/image_preprocessing.py::letterbox_preprocess
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: top-left-half-even-portrait-inverse
     function: inverse
     params: {target_size: [640, 640], pad_position: top_left, rounding: half_even}
     input: {src_w: 1080, src_h: 1920, model_xy: [360, 640]}
     expect: {source_xy: [1080, 1920]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
   - id: top-left-rounding-tie-half-even
     note: "src_h * s = 50.5: half_even gives 50"
     checks: [rounding-changes-result]
@@ -206,22 +270,29 @@ cases:
     expect: {n_w: 640, n_h: 50, left: 0, top: 0}
     verified_against:
       - skellytracker/core/detectors/processing/image_preprocessing.py::letterbox_preprocess
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: top-left-rounding-tie-half-even-inverse
     function: inverse
     params: {target_size: [640, 640], pad_position: top_left, rounding: half_even}
     input: {src_w: 1280, src_h: 101, model_xy: [640, 50]}
     expect: {source_xy: [1280, 101]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
   - id: top-left-rounding-tie-half-up
     note: "src_h * s = 50.5: half_up gives 51"
     checks: [rounding-changes-result]
     params: {target_size: [640, 640], pad_position: top_left, rounding: half_up}
     input: {src_w: 1280, src_h: 101}
     expect: {n_w: 640, n_h: 51, left: 0, top: 0}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: top-left-rounding-tie-half-up-inverse
     function: inverse
     params: {target_size: [640, 640], pad_position: top_left, rounding: half_up}
     input: {src_w: 1280, src_h: 101, model_xy: [640, 51]}
     expect: {source_xy: [1280, 101]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
   - id: top-left-fraction-below-half
     note: "src_h * s = 213.12: both modes give 213"
     checks: [rounding-keeps-result]
@@ -230,33 +301,44 @@ cases:
     expect: {n_w: 640, n_h: 213, left: 0, top: 0}
     verified_against:
       - skellytracker/core/detectors/processing/image_preprocessing.py::letterbox_preprocess
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: top-left-fraction-below-half-inverse
     function: inverse
     params: {target_size: [640, 640], pad_position: top_left, rounding: half_even}
     input: {src_w: 1000, src_h: 333, model_xy: [640, 213]}
     expect: {source_xy: [1000, 333]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
   - id: top-left-fraction-above-half
     note: "src_h * s = 359.82: both modes give 360; cutting gives 359"
     checks: [rounding-keeps-result]
     params: {target_size: [640, 640], pad_position: top_left, rounding: half_up}
     input: {src_w: 1366, src_h: 768}
     expect: {n_w: 640, n_h: 360, left: 0, top: 0}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: top-left-fraction-above-half-inverse
     function: inverse
     params: {target_size: [640, 640], pad_position: top_left, rounding: half_up}
     input: {src_w: 1366, src_h: 768, model_xy: [640, 360]}
     expect: {source_xy: [1366, 768]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
   - id: top-left-float-noise-below-integer
     note: "src_w * s = 415.99999999999994 and src_h * s = 311.99999999999994 in float64"
     checks: [cut-differs-from-round]
     params: {target_size: [416, 416], pad_position: top_left, rounding: half_even}
     input: {src_w: 1440, src_h: 1080}
     expect: {n_w: 416, n_h: 312, left: 0, top: 0}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: top-left-float-noise-below-integer-inverse
     function: inverse
     params: {target_size: [416, 416], pad_position: top_left, rounding: half_even}
     input: {src_w: 1440, src_h: 1080, model_xy: [416, 312]}
     expect: {source_xy: [1440, 1080]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
   - id: top-left-scale-exactly-one
     note: "no resize: the unprojection is the identity"
     params: {target_size: [640, 640], pad_position: top_left, rounding: half_even}
@@ -264,11 +346,14 @@ cases:
     expect: {n_w: 640, n_h: 480, left: 0, top: 0}
     verified_against:
       - skellytracker/core/detectors/processing/image_preprocessing.py::letterbox_preprocess
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: top-left-scale-exactly-one-inverse
     function: inverse
     params: {target_size: [640, 640], pad_position: top_left, rounding: half_even}
     input: {src_w: 640, src_h: 480, model_xy: [100, 100]}
     expect: {source_xy: [100, 100]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
   - id: top-left-upscale
     note: "s = 2"
     params: {target_size: [640, 640], pad_position: top_left, rounding: half_up}
@@ -276,11 +361,14 @@ cases:
     expect: {n_w: 640, n_h: 480, left: 0, top: 0}
     verified_against:
       - skellytracker/core/detectors/processing/image_preprocessing.py::letterbox_preprocess
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: top-left-upscale-inverse
     function: inverse
     params: {target_size: [640, 640], pad_position: top_left, rounding: half_up}
     input: {src_w: 320, src_h: 240, model_xy: [640, 480]}
     expect: {source_xy: [320, 240]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
   - id: top-left-one-pixel-wide-source
     note: "s = 6.4; n_w = round(6.4) = 6"
     params: {target_size: [640, 640], pad_position: top_left, rounding: half_even}
@@ -288,19 +376,26 @@ cases:
     expect: {n_w: 6, n_h: 640, left: 0, top: 0}
     verified_against:
       - skellytracker/core/detectors/processing/image_preprocessing.py::letterbox_preprocess
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: top-left-one-pixel-wide-source-inverse
     function: inverse
     params: {target_size: [640, 640], pad_position: top_left, rounding: half_even}
     input: {src_w: 1, src_h: 100, model_xy: [6, 640]}
     expect: {source_xy: [1, 100]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
   - id: top-left-width-guard
     note: "src_w * s = 0.064 rounds to 0; max(1, x) keeps n_w at 1"
     checks: [scaled-width-rounds-to-zero]
     params: {target_size: [640, 640], pad_position: top_left, rounding: half_even}
     input: {src_w: 1, src_h: 10000}
     expect: {n_w: 1, n_h: 640, left: 0, top: 0}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox}
   - id: top-left-width-guard-inverse
     function: inverse
     params: {target_size: [640, 640], pad_position: top_left, rounding: half_even}
     input: {src_w: 1, src_h: 10000, model_xy: [1, 640]}
     expect: {source_xy: [1, 10000]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/unprojection.py::inverse_points}
