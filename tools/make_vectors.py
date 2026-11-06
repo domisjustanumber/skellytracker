@@ -390,7 +390,9 @@ def run_checks(
     `refused` without an error result, is a defect.
     """
     case_id = case["id"]
-    checks = [*(file_checks or []), *case.get("checks", [])]
+    # A file check claims a property of the computed function; a data-only case has none.
+    shared = [] if case.get("function") == DATA_ONLY else file_checks or []
+    checks = [*shared, *case.get("checks", [])]
     if ("error" in case["expect"]) != ("refused" in checks):
         defect(f"{case_id}: an error result needs the check refused, and only it")
     registry = getattr(module, "CHECKS", {})

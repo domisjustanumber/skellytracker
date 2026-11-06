@@ -784,6 +784,14 @@ def test_run_checks_stops_on_an_unknown_name_or_a_wrong_refused(
         mv.run_checks(mv.pre_resize_letterbox, case)
 
 
+def test_run_checks_skips_the_file_checks_for_a_data_only_case() -> None:
+    case = {"id": "probe", "function": "none", "params": {}, "input": {"decode": {"top_k": 1}},
+            "expect": {"failed": ["V-post.det.selection.nms-1"]}}
+    mv.run_checks(mv.post_det_selection_nms, case, ["float32-stable"])
+    with pytest.raises(CaseDefect):  # a check that the case itself names still runs
+        mv.run_checks(mv.post_det_selection_nms, {**case, "checks": ["no-such-check"]}, ["float32-stable"])
+
+
 def test_run_checks_accepts_an_error_result_with_refused() -> None:
     case = {"id": "probe", "checks": ["refused"], "params": {}, "input": {}, "expect": {"error": "no-rule"}}
     mv.run_checks(mv.pre_resize_letterbox, case)
