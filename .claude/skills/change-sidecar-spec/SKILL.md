@@ -605,8 +605,9 @@ the lint workflow checks `tools/` and `specs/model-sidecar/reference/`. They che
 - The selectors of the sections cover each `Literal` value in `skellytracker/core/sidecar/model.py`
   for `resize.method`, `normalization`, `semantic` and `pose.decode.method`. The check skips
   `imagenet_bgr` and `imagenet_rgb` (`MERGED_IMAGENET_MODES` in `tools/tests/test_traceability.py`)
-  and asks for the merged mode `imagenet`. It also skips `heatmap` (`REMOVED_VALUES`), which the
-  spec removed ([ADR-9MJ6](../../../decisions/entries/9MJ6-remove-the-heatmap-decode.md)).
+  and asks for the merged mode `imagenet`. It also skips `heatmap` and `simcc_z` (`REMOVED_VALUES`),
+  which the spec removed ([ADR-9MJ6](../../../decisions/entries/9MJ6-remove-the-heatmap-decode.md);
+  [ADR-9HBB](../../../decisions/entries/9HBB-simcc-decode-is-2d-only.md)).
   The frozen `model.py` keeps the old values until stage M8 of the [implementation plan](../../../specs/sidecar-implementation-plan.md)
   ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 - Each relative link in `AGENTS.md`, `decisions/`, `specs/` and `notes/` resolves, with its `#anchor`.

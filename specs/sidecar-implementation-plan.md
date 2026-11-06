@@ -331,7 +331,7 @@ Two rules of this part stay:
     `skellytracker/core/detectors/processing/image_preprocessing.py` (the `preserve_aspect_ratio`
     branch, the NHWC branch and the `imagenet_bgr` fallback of `resolve_normalization_mode`),
     `skellytracker/core/detectors/processing/simcc_decode.py` (`is_3d`),
-    `SidecarModel._check_pose_output_shapes` (`simcc_z` keys on `pose.geometry: 3d`) and
+    `SidecarModel._check_pose_output_shapes` (a `simcc` decoder needs `pose.geometry: 2d`) and
     `skellytracker/core/sessions/batch_conversion.py` (`source_batch_size` becomes
     `batching.batch`). Also change the tests that use these fields, for example
     `skellytracker/tests/sidecar/test_model_validation.py` and
@@ -344,6 +344,15 @@ Two rules of this part stay:
   and `SidecarModel._check_pose_output_shapes` (the `elif` branch and the `keypoint_count` tuple). Remove
   `test_heatmap_3d_is_rejected` from `skellytracker/tests/sidecar/test_model_validation.py`. Then
   delete `REMOVED_VALUES` in `tools/tests/test_traceability.py`.
+- **3D SimCC decode removed.** Added on 2026-11-06. The SimCC decode is 2D only: the spec has no
+  `simcc_z` output semantic and no `pose.decode.depth_range`
+  ([ADR-9HBB](../decisions/entries/9HBB-simcc-decode-is-2d-only.md)).
+  `skellytracker/core/sidecar/model.py` still accepts them. Remove `simcc_z` from `OutputSemantic`,
+  `depth_range` from `PoseDecodeSpec`, and their branches of `PoseDecodeSpec._check_decode`,
+  `SidecarModel._check_outputs_semantics` and `SidecarModel._check_pose_output_shapes`. Refuse
+  `method: simcc` with `pose.geometry: 3d` (`V-post.pose.schema-7`). Remove
+  `test_simcc_3d_requires_depth_range` from `skellytracker/tests/sidecar/test_model_validation.py`.
+  Then remove `simcc_z` from `REMOVED_VALUES` in `tools/tests/test_traceability.py`.
 - **Sizes are plain fields.** Added on 2026-11-02. A size entry holds only `input.shape`,
   `input.resize.target_size` and `onnx`. The host does not merge a size entry over the top level
   ([ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md) item 4). Today

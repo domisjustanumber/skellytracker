@@ -242,7 +242,7 @@ Source: the upstream postprocessing code and the upstream test config.
 
 | # | Property | Upstream evidence (file and line, or config key) | Section ID (the `id` in the section file's front matter) | Sidecar value | Verdict | What differs or what is missing |
 |---|---|---|---|---|---|---|
-| D1 | Semantic of each output (`detections`, `boxes`, `scores`, `class_logits`, `simcc_x`, `simcc_y`, `simcc_z`, `keypoints` or `poses`). Add one row for each output. | | `common.outputs`, `post.det.outputs` | | | |
+| D1 | Semantic of each output (`detections`, `boxes`, `scores`, `class_logits`, `simcc_x`, `simcc_y`, `keypoints` or `poses`). Add one row for each output. | | `common.outputs`, `post.det.outputs` | | | |
 | D2 | Fields of a detection row (`fields`) and box format (`box_format`) | | `post.det.outputs`, `post.det.decode` | | | |
 | D3 | Box scale: model-input pixels or normalized (`box_scale`) | | `post.det.decode`, `post.unprojection` | | | |
 | D4 | Selection: graph-final rows (`none`), top-k over logits (`top_k`), or host NMS (`nms`) | | `post.det.decode` (`selection`), `post.det.selection.<selection>` (`none`, `top_k`, `nms`) | | | |
@@ -266,7 +266,7 @@ Source: the upstream postprocessing code and the upstream test config.
 | K1 | Estimator type and `requires_object_detector` | | `post.pose.schema` | | | |
 | K2 | `tracked_points` in native output order | | `post.pose.schema` (`pose.tracked_points`) | | | |
 | K3 | Connections: named skeletons and their edges | | `post.pose.schema` (`pose.connections`) | | | |
-| K4 | Output geometry (`pose.geometry`: `2d` or `3d`, required), decode method (`simcc` or `coordinate`) and its parameters (`coordinate_scale`, `depth_unit`, `depth_range`) | | `post.pose.schema` (`pose.geometry`, `pose.decode`), `post.pose.decode.<method>` (`simcc`, `coordinate`) | | | |
+| K4 | Output geometry (`pose.geometry`: `2d` or `3d`, required), decode method (`simcc` or `coordinate`) and its parameters (`coordinate_scale`, `depth_unit`) | | `post.pose.schema` (`pose.geometry`, `pose.decode`), `post.pose.decode.<method>` (`simcc`, `coordinate`) | | | |
 | K5 | Keypoint axis and keypoint count of each pose output | | `post.pose.schema` (`keypoint_axis`, `keypoint_count`) | | | |
 | K6 | Bottom-up row alignment: pose row `q` belongs to detection row `q` | | `post.pose.bottom_up` | | | |
 | K7 | Keypoints packed into the detection row (`packed_keypoints`) | | `post.pose.bottom_up` | | | |

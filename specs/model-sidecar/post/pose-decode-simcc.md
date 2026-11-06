@@ -6,10 +6,9 @@ selectors:
   - pose.decode.method=simcc
   - outputs[].semantic=simcc_x
   - outputs[].semantic=simcc_y
-  - outputs[].semantic=simcc_z
 implemented_by:
   validate: missing  # PoseDecodeSpec._check_decode (skellytracker/core/sidecar/model.py) keys on the removed key pose.decode.is_3d, and PoseSpec forbids pose.geometry (decisions/entries/90CE-minimal-sidecar-contract.md).
-  decode: skellytracker/core/detectors/processing/simcc_decode.py::simcc_pose_decode  # partial: no 3D (it raises); the split ratio is fixed at 2.0, not read from the bin counts; the score is the mean of the two softmax peaks
+  decode: skellytracker/core/detectors/processing/simcc_decode.py::simcc_pose_decode  # partial: the split ratio is fixed at 2.0, not read from the bin counts; the score is the mean of the two softmax peaks
 external_impl: []
 tests:
   - skellytracker/tests/sidecar/test_model_validation.py
@@ -25,15 +24,12 @@ status: {spec: stable, validate: missing, decode: partial}
 
 ## Fields
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `pose.decode.depth_range` | array[2] | required when `pose.geometry: 3d` and `method: simcc` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)) | The `[min, max]` root-relative depth (in `depth_unit`) that `Z_bins` span. The decoded bin position maps linearly to depth. |
-
-`pose.decode.depth_range` is a field of [`pose.decode`](pose-schema.md#posedecode). That section defines the other `pose.decode` fields.
+This section has no field of its own. [`pose.decode`](pose-schema.md#posedecode) defines the `pose.decode` fields.
 
 ## Behaviour
 
-- `simcc` — one `simcc_x` `(N, K, X_bins)` output and one `simcc_y` `(N, K, Y_bins)` output. When `pose.geometry: 3d`, there is also a `simcc_z` `(N, K, Z_bins)` output. The host reads the bin counts from the output tensors. The bin→pixel scale is `input_width / X_bins` and `input_height / Y_bins` (see Shape key). The location of each keypoint is the argmax bin. Its score is the max value. Decoded keypoints are in cropped image space. The host unprojects them to the source image. When `pose.geometry: 3d`, the `z` axis maps `Z_bins` linearly onto `depth_range` (in `depth_unit`).
+- `simcc` — one `simcc_x` `(N, K, X_bins)` output and one `simcc_y` `(N, K, Y_bins)` output. The host reads the bin counts from the output tensors. The bin→pixel scale is `input_width / X_bins` and `input_height / Y_bins` (see Shape key). The location of each keypoint is the argmax bin. Its score is the max value. Decoded keypoints are in cropped image space. The host unprojects them to the source image.
+- The SimCC decode is 2D only. `V-post.pose.schema-7` requires `pose.geometry: 2d` with `method: simcc`. A 3D SimCC model adds a new section with its own contract ([ADR-9HBB](../../../decisions/entries/9HBB-simcc-decode-is-2d-only.md)).
 
 [Shape key](pose-schema.md#shape-key)
 
@@ -41,7 +37,7 @@ status: {spec: stable, validate: missing, decode: partial}
 
 ### Pose (`pose_estimator`)
 
-- [ ] `V-post.pose.decode.simcc-1` When `pose.geometry: 3d` and `pose.decode.method: simcc`, `pose.decode.depth_range` must be present. It must be a length-2 array `[min, max]` in `depth_unit` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
+This section has no rule of its own ([ADR-9HBB](../../../decisions/entries/9HBB-simcc-decode-is-2d-only.md)).
 
 See also [Pose schema](pose-schema.md#validation-rules).
 

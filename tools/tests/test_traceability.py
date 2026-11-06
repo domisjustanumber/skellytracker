@@ -321,9 +321,10 @@ def selector_values(path: str) -> set[str]:
 # implementation plan, when model.py has the mode imagenet.
 MERGED_IMAGENET_MODES = {"imagenet_bgr", "imagenet_rgb"}
 
-# shortcut: the frozen model.py still accepts heatmap, which the spec removed (ADR-9MJ6), so the
-# check skips it; delete this at stage M8 of the implementation plan, when model.py drops it.
-REMOVED_VALUES = {"heatmap"}
+# shortcut: the frozen model.py still accepts heatmap and simcc_z, which the spec removed (ADR-9MJ6,
+# ADR-9HBB), so the check skips them; delete this at stage M8 of the implementation plan, when
+# model.py drops them.
+REMOVED_VALUES = {"heatmap", "simcc_z"}
 
 
 def literal_cases() -> list[tuple[str, list[str], set[str]]]:
