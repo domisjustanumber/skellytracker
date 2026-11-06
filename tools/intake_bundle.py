@@ -46,7 +46,19 @@ BUNDLE_FORMAT = 1
 TEXT_SUFFIXES = {".md", ".yaml", ".yml", ".py", ".json", ".txt", ".csv", ".toml"}
 # shortcut: a suffix test only; an ONNX external-data file with another name passes; add a magic check if one appears.
 FORBIDDEN_SUFFIXES = (".onnx", ".onnx.data", ".ort")
+# Compiled Python cannot be reviewed as text (ADR-1GG7).
+COMPILED_SUFFIXES = (".pyc", ".pyo")
 VECTOR_LIMIT = 256 * 1024
+
+
+def refused_file(rel: str) -> str | None:
+    """Return why `pack` and `verify` refuse the payload file `rel`, or None (ADR-AD33; ADR-1GG7)."""
+    lower = rel.lower()
+    if lower.endswith(FORBIDDEN_SUFFIXES):
+        return f"{rel}: do not copy ONNX files into a bundle; name them in external"
+    if lower.endswith(COMPILED_SUFFIXES) or "__pycache__" in lower.split("/"):
+        return f"{rel}: do not put compiled files in a bundle; run Python with -B"
+    return None
 
 KINDS = ("model", "proposal")
 VERDICTS = ("describes", "does not describe", "pending")
@@ -584,8 +596,8 @@ def pack(
         rel = path.relative_to(source).as_posix()
         if rel == "manifest.yaml":
             raise BundleError("the payload must not hold manifest.yaml: pack writes it")
-        if rel.lower().endswith(FORBIDDEN_SUFFIXES):
-            raise BundleError(f"{rel}: do not copy ONNX files into a bundle; name them in external")
+        if reason := refused_file(rel):
+            raise BundleError(reason)
         data = path.read_bytes()
         payload[rel] = _text_form(data, rel) if is_text(rel) else data
     terms = check_private_data.private_terms(REPO_ROOT) + check_private_data.private_terms(
@@ -1223,8 +1235,8 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list
         if not path.is_file():
             findings.append(f"{rel}: the file is missing")
             continue
-        if rel.lower().endswith(FORBIDDEN_SUFFIXES):
-            findings.append(f"{rel}: do not copy ONNX files into a bundle; name them in external")
+        if reason := refused_file(rel):
+            findings.append(reason)
         data = path.read_bytes()
         if sha256(data) != item["sha256"] or len(data) != item["bytes"]:
             findings.append(f"{rel}: the hash or the size does not match the manifest")

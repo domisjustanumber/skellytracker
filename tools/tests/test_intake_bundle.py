@@ -401,6 +401,21 @@ def test_pack_refuses_a_lone_cr_and_an_onnx_file(tmp_path: Path, root: Path, fil
     assert not root.exists()
 
 
+@pytest.mark.parametrize("rel", ["reference/__pycache__/m.cpython-314.pyc", "reference/m.pyc", "m.pyo"])
+def test_pack_and_verify_refuse_a_compiled_file(tmp_path: Path, root: Path, rel: str) -> None:
+    message = f"{rel}: do not put compiled files in a bundle; run Python with -B"
+    with pytest.raises(ib.BundleError, match=re.escape(message)):
+        ib.pack(payload(tmp_path, {"proposal.md": b"x\n", rel: b"\x00"}), proposal_fields(), root, cwd=tmp_path)
+    # A version that lists the file, as an older pack wrote it.
+    version_dir = ib.pack(payload(tmp_path / "ok", {"proposal.md": b"x\n"}), proposal_fields(), root, cwd=tmp_path)
+    (version_dir / rel).parent.mkdir(parents=True, exist_ok=True)
+    (version_dir / rel).write_bytes(b"\x00")
+    manifest = json.loads((version_dir / "manifest.yaml").read_text(encoding="utf-8"))
+    manifest["files"].append({"path": rel, "sha256": ib.sha256(b"\x00"), "bytes": 1})
+    (version_dir / "manifest.yaml").write_text(json.dumps(manifest), encoding="utf-8")
+    assert message in ib.verify("proposal-box-clamp@ultralytics-exporter", root)
+
+
 @pytest.mark.parametrize("path", ["C:/Windows/win.ini", "C:x"])
 def test_a_manifest_file_path_must_not_be_a_drive_path(path: str) -> None:
     manifest = {**proposal_fields(), "version": 1, "created": "2026-10-29",

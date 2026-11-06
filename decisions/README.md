@@ -45,6 +45,7 @@ These entries are `accepted` or `evidence`.
 | [2XW6](entries/2XW6-process-entries-consolidation.md) | Consolidation: restates the rules that stay of Z05A, GN3D, QPS7, NB91, EY8R, D9VT, p3n3, 5WKW and FDTD; changes no decision | accepted |
 | [BJF9](entries/BJF9-scalar-pad-value-fills-every-channel.md) | A scalar pad value fills every channel | accepted |
 | [9MJ6](entries/9MJ6-remove-the-heatmap-decode.md) | Remove the heatmap decode: no `heatmap` method, semantic or section until a model brings a full contract | accepted |
+| [1GG7](entries/1GG7-no-compiled-files-in-bundles.md) | No compiled files in bundles: `pack` and `verify` refuse `__pycache__/`, `.pyc` and `.pyo` | accepted |
 
 ### Proposed
 

@@ -74,6 +74,10 @@ intakes/
   [Reference examples](reference-examples.md) copies the real export.
 - Do not copy ONNX files into a bundle. The manifest names each ONNX file in `external`, with its
   SHA-256. `pack` and `verify` refuse a file that ends in `.onnx`, `.onnx.data` or `.ort`.
+- Do not put a compiled file in a bundle. A session cannot review compiled code as text. Run each
+  Python command on the payload with `python -B`. `pack` and `verify` refuse a `__pycache__/` folder
+  and a file that ends in `.pyc` or `.pyo`
+  ([ADR-1GG7](../../../decisions/entries/1GG7-no-compiled-files-in-bundles.md)).
 - Write a text file as UTF-8, with no BOM and with LF line ends. `pack` changes CRLF to LF and
   removes a BOM. It refuses a lone CR.
 
@@ -393,7 +397,7 @@ it does this safety check ([ADR-AD33](../../../decisions/entries/AD33-bundles-ar
 1. Run `python -B tools/intake_bundle.py list`.
 2. For each bundle that is `submitted` or marked `(new version)`, run `uv run python -B
    tools/intake_bundle.py verify <bundle id>`. `verify` checks the manifest, the hashes, the layout,
-   each `reference/` and `vectors/` file that `proposal.md` names, the text form, ONNX files, private data, `plans/` paths, the links from the record path, the
+   each `reference/` and `vectors/` file that `proposal.md` names, the text form, ONNX files, compiled files, private data, `plans/` paths, the links from the record path, the
    bundle links, the section owner, the payload schemas, the `vectors_sha256` of each vector run, the
    form and the size (256 KiB) of each vector file, the contribution cases, the external files, the publish rule and the
    precision of each published file in the example sidecar, a published `dynamic` file without a
