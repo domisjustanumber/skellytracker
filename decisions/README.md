@@ -46,6 +46,7 @@ These entries are `accepted` or `evidence`.
 | [BJF9](entries/BJF9-scalar-pad-value-fills-every-channel.md) | A scalar pad value fills every channel | accepted |
 | [9MJ6](entries/9MJ6-remove-the-heatmap-decode.md) | Remove the heatmap decode: no `heatmap` method, semantic or section until a model brings a full contract | accepted |
 | [1GG7](entries/1GG7-no-compiled-files-in-bundles.md) | No compiled files in bundles: `pack` and `verify` refuse `__pycache__/`, `.pyc` and `.pyo` | accepted |
+| [730P](entries/730P-anchor-check-of-bundle-links.md) | `pack` and `verify` check each link of a proposal from its record path, with its `#anchor`, as the link test does | accepted |
 
 ### Proposed
 

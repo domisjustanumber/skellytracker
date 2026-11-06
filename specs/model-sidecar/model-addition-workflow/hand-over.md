@@ -211,7 +211,11 @@ Moved to [Batch-conversion check](batch-conversion-check.md#batch-conversion-che
 
    `pack` checks the keys and the values, scans each text file for private data (it reads
    `.private-terms` of both repos), copies the files, adds the hashes and writes the manifest last.
-   It refuses a bad fields file and a file with private data.
+   It refuses a bad fields file and a file with private data. For a proposal, it also refuses a
+   relative link of a `.md` file that does not resolve from the record path, with its `#anchor`
+   ([ADR-730P](../../../decisions/entries/730P-anchor-check-of-bundle-links.md)). A link must
+   resolve at the current text. To quote a new heading, write its name as text, or quote the new
+   text in a fenced block.
 4. Stop. Tell the user the bundle ID and the version.
 
 `pack` and `list` use only the standard library. They write no file in the checkout except the new
@@ -397,7 +401,7 @@ it does this safety check ([ADR-AD33](../../../decisions/entries/AD33-bundles-ar
 1. Run `python -B tools/intake_bundle.py list`.
 2. For each bundle that is `submitted` or marked `(new version)`, run `uv run python -B
    tools/intake_bundle.py verify <bundle id>`. `verify` checks the manifest, the hashes, the layout,
-   each `reference/` and `vectors/` file that `proposal.md` names, the text form, ONNX files, compiled files, private data, `plans/` paths, the links from the record path, the
+   each `reference/` and `vectors/` file that `proposal.md` names, the text form, ONNX files, compiled files, private data, `plans/` paths, the links from the record path with their `#anchor`, the
    bundle links, the section owner, the payload schemas, the `vectors_sha256` of each vector run, the
    form and the size (256 KiB) of each vector file, the contribution cases, the external files, the publish rule and the
    precision of each published file in the example sidecar, a published `dynamic` file without a

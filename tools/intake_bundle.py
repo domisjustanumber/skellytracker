@@ -34,6 +34,7 @@ import subprocess
 import sys
 import types
 from pathlib import Path
+from urllib.parse import unquote
 
 import check_private_data
 
@@ -49,6 +50,47 @@ FORBIDDEN_SUFFIXES = (".onnx", ".onnx.data", ".ort")
 # Compiled Python cannot be reviewed as text (ADR-1GG7).
 COMPILED_SUFFIXES = (".pyc", ".pyo")
 VECTOR_LIMIT = 256 * 1024
+
+
+def link_findings(folder: Path, rels: object, manifest: dict, repo: Path = REPO_ROOT) -> list[str]:
+    """Return one text for each relative link of a proposal `.md` file that fails from its record path.
+
+    The link test checks each record as `tools/tests/test_links.py` does: the file of a link is a
+    file of the bundle or of `repo`, and its `#anchor` is a heading of that Markdown file. A record
+    is a byte copy, so `pack` refuses such a link and `verify` gives a finding (ADR-730P).
+    """
+    import check_links  # standard library only, so `pack` still runs on Python 3.9
+
+    if manifest.get("kind") != "proposal":
+        return []
+    contribution = manifest.get("contributes_to")
+    record = (
+        f"{SPEC}/proposals/{contribution}/contributions/{manifest.get('contributor')}"
+        if contribution
+        else f"{SPEC}/proposals/{manifest.get('name')}"
+    )
+    listed = set(rels)
+    found: list[str] = []
+    for rel in sorted(r for r in listed if r.endswith(".md") and (folder / r).is_file()):
+        for number, target in check_links.links(folder / rel):
+            if re.match(r"^[a-z][a-z0-9+.-]*:", target, re.IGNORECASE):
+                continue
+            file_part, _, anchor = target.partition("#")
+            parts: list[str] = []
+            for part in ((Path(record) / rel).parent / unquote(file_part)).as_posix().split("/"):
+                if part == "..":
+                    if parts:
+                        parts.pop()
+                elif part not in ("", "."):
+                    parts.append(part)
+            resolved = "/".join(parts) if file_part else f"{record}/{rel}"
+            inside = resolved.removeprefix(record + "/") if resolved.startswith(record + "/") else None
+            dest = folder / inside if inside in listed else repo / resolved
+            if not dest.exists():
+                found.append(f"{rel}:{number}: the link {target} does not resolve from {record}/")
+            elif anchor and dest.suffix.lower() == ".md" and unquote(anchor) not in check_links.anchors(dest):
+                found.append(f"{rel}:{number}: the link {target} names a heading that does not exist")
+    return found
 
 
 def refused_file(rel: str) -> str | None:
@@ -611,6 +653,8 @@ def pack(
     ]
     if findings:
         raise BundleError("private data in the payload:\n  " + "\n  ".join(findings))
+    if findings := link_findings(source, payload, fields, repo):
+        raise BundleError("links that fail from the record path:\n  " + "\n  ".join(findings))
     external = []
     for item in fields["external"]:
         target = (root.parent / item["path"]).resolve()
@@ -1202,8 +1246,6 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list
     """Return the findings for the current version of one bundle. An empty list means it passes."""
     import yaml  # only verify needs it
 
-    import check_links
-
     found = bundles(root, repo)
     info = found.get(name)
     if info is None:
@@ -1306,35 +1348,13 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list
 
     # Text checks: private data, plans/ paths, links.
     terms = check_private_data.private_terms(repo)
-    record = (
-        f"{SPEC}/proposals/{manifest['contributes_to']}/contributions/{manifest['contributor']}"
-        if contribution
-        else f"{SPEC}/proposals/{manifest['name']}"
-    )
     for rel in sorted(r for r in listed if is_text(r) and (version_dir / r).is_file()):
         text = (version_dir / rel).read_text(encoding="utf-8", errors="replace")
         findings.extend(f"private data: {f}" for f in check_private_data.scan_text(rel, text, terms))
         for number, line in enumerate(text.splitlines(), 1):
             if "plans/" in line:
                 findings.append(f"{rel}:{number}: cites a plans/ path")
-        if manifest["kind"] != "proposal" or not rel.endswith(".md"):
-            continue
-        for number, target in check_links.links(version_dir / rel):
-            if re.match(r"^[a-z][a-z0-9+.-]*:", target, re.IGNORECASE) or target.startswith("#"):
-                continue
-            file_part = target.partition("#")[0]
-            in_record = (Path(record) / rel).parent / file_part
-            parts: list[str] = []
-            for part in in_record.as_posix().split("/"):
-                if part == "..":
-                    if parts:
-                        parts.pop()
-                elif part not in ("", "."):
-                    parts.append(part)
-            resolved = "/".join(parts)
-            inside = resolved.removeprefix(record + "/") if resolved.startswith(record + "/") else None
-            if not ((inside is not None and inside in listed) or (repo / resolved).exists()):
-                findings.append(f"{rel}:{number}: the link {target} does not resolve from {record}/")
+    findings += link_findings(version_dir, listed, manifest, repo)
 
     # Payload schemas.
     for rel in ("vector-runs.yaml", "example/provenance.yaml"):

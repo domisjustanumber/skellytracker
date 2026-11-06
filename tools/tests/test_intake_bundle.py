@@ -185,11 +185,12 @@ def test_a_good_bundle_verifies(tmp_path: Path, root: Path) -> None:
 def test_verify_finds_changed_bytes_text_form_plans_links_and_size(tmp_path: Path, root: Path) -> None:
     source = payload(tmp_path, {
         "proposal.md": "text\n",
-        "notes.md": "From plans/x.md. See [gone](../../no-such-file.md).\n",
+        "notes.md": "From plans/x.md.\n",
         "vectors/post.det.selection.nms.yaml": "cases: []\n" + "#" * ib.VECTOR_LIMIT,
     })
     version_dir = ib.pack(source, proposal_fields(), root, cwd=tmp_path)
     (version_dir / "proposal.md").write_bytes(b"text\r\n")
+    (version_dir / "notes.md").write_bytes(b"From plans/x.md. See [gone](../../no-such-file.md).\n")
     findings = ib.verify("proposal-box-clamp@ultralytics-exporter", root)
     assert "proposal.md: the hash or the size does not match the manifest" in findings
     assert "proposal.md: a text file must be UTF-8 with no BOM and LF line ends" in findings
@@ -399,6 +400,25 @@ def test_pack_refuses_a_lone_cr_and_an_onnx_file(tmp_path: Path, root: Path, fil
     with pytest.raises(ib.BundleError, match=message):
         ib.pack(payload(tmp_path, files), proposal_fields(), root, cwd=tmp_path)
     assert not root.exists()
+
+
+def test_pack_and_verify_check_the_anchor_of_each_link(tmp_path: Path, root: Path) -> None:
+    good = (
+        "# Gap\n\nSee [the gap](#gap), [the map](../../README.md#section-map) and [notes](notes.md#notes).\n\n"
+        "```markdown\n[Proposed heading](#not-yet)\n```\n"
+    )
+    bad = "See [new](#keypoint-detector-id) and [new](../../common/identity.md#keypoint-detector-id).\n"
+    with pytest.raises(ib.BundleError) as refused:
+        ib.pack(payload(tmp_path, {"proposal.md": good + bad, "notes.md": "# Notes\n"}), proposal_fields(), root, cwd=tmp_path)
+    assert str(refused.value).count("names a heading that does not exist") == 2
+    version_dir = ib.pack(
+        payload(tmp_path / "ok", {"proposal.md": good, "notes.md": "# Notes\n"}), proposal_fields(), root, cwd=tmp_path
+    )
+    assert not [f for f in ib.verify("proposal-box-clamp@ultralytics-exporter", root) if "link" in f]
+    (version_dir / "proposal.md").write_bytes((good + bad).encode("utf-8"))
+    findings = ib.verify("proposal-box-clamp@ultralytics-exporter", root)
+    assert "proposal.md:8: the link #keypoint-detector-id names a heading that does not exist" in findings
+    assert any("../../common/identity.md#keypoint-detector-id names a heading" in f for f in findings)
 
 
 @pytest.mark.parametrize("rel", ["reference/__pycache__/m.cpython-314.pyc", "reference/m.pyc", "m.pyo"])
