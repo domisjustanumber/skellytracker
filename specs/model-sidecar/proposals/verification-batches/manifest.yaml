@@ -1,0 +1,1022 @@
+{
+  "bundle_format": 1,
+  "kind": "proposal",
+  "name": "verification-batches",
+  "contributor": "openmmlab-exporter",
+  "source_commit": "9810e483c69efddea7a8b93e671d6250eb47c5f0",
+  "spec_commit": "8351b7f8c20c8db74eb3e547478970e4dceb0308",
+  "sections": [
+    "common.batch_conversion"
+  ],
+  "base": null,
+  "depends_on": [],
+  "contributes_to": null,
+  "related": [],
+  "external": [
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-n_b1_fp32.onnx",
+      "role": "artifact",
+      "size": "n",
+      "batch": 1,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "16803632c41013fd8a78984b2da97556aa432bf282cb382b2ce98623e93730ab"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-n_b2_fp32.onnx",
+      "role": "artifact",
+      "size": "n",
+      "batch": 2,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "66582a8f110712faf746caecd41363662e06e12a9fdf77fc6c4a97eb3fa3a870"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-n_b3_fp32.onnx",
+      "role": "artifact",
+      "size": "n",
+      "batch": 3,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "0ed61a5892f13dcd1f8547995efcde7e59709c661ff3b662e763a03bb60fba9a"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-n_b4_fp32.onnx",
+      "role": "artifact",
+      "size": "n",
+      "batch": 4,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "c3214605842a0bb48abfbfda5534f8fc9d8f8f1240d1237b9ac8ffd0fdf527d3"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-n_b6_fp32.onnx",
+      "role": "artifact",
+      "size": "n",
+      "batch": 6,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "c84d2f7f7b4d219a40b1f98b275a856ccb8bcbd552aac14d5569236017881e1a"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-n_b1_fp16.onnx",
+      "role": "artifact",
+      "size": "n",
+      "batch": 1,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "507911ee944dbf9b1f05448697955c8320645878b0e79fbee5a64e7e7e7aaadd"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-n_b2_fp16.onnx",
+      "role": "artifact",
+      "size": "n",
+      "batch": 2,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "977c6225dbf40d97bd32bb02bcee52789cb31e27c6ec6e5e2f3ad46d75012779"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-n_b3_fp16.onnx",
+      "role": "artifact",
+      "size": "n",
+      "batch": 3,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "cfd71e31fd93a089d47aff107be31378e9c6b8b1ffc1252d23ef18dba31479bd"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-n_b4_fp16.onnx",
+      "role": "artifact",
+      "size": "n",
+      "batch": 4,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "5ba10c071b97c9f0e063cc1ab194d9ad64e7559ff7e55ce449d3cce79251637f"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-n_b6_fp16.onnx",
+      "role": "artifact",
+      "size": "n",
+      "batch": 6,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "07f589dc43a1d19ee9c8319cb57f812c0c0c191e97d9a9699558393f56092177"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-t_b1_fp32.onnx",
+      "role": "artifact",
+      "size": "t",
+      "batch": 1,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "9f6410c75805a9a17181ec6fc2f4a44a3105445a70e28aeb26764b00d2a4c48d"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-t_b2_fp32.onnx",
+      "role": "artifact",
+      "size": "t",
+      "batch": 2,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "378c9e30e8261b05b82308ead3c8f8f66d366e3ef33808275ed5425323766099"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-t_b3_fp32.onnx",
+      "role": "artifact",
+      "size": "t",
+      "batch": 3,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "6cc7ef01291610204c28984c1cdf8409f1658d3e91e71dc1a6130a198aaa9417"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-t_b4_fp32.onnx",
+      "role": "artifact",
+      "size": "t",
+      "batch": 4,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "3a5a1618678beebf3dfd5380cdcca486ad12e698bea3eb33afd1e1bc16bd8748"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-t_b6_fp32.onnx",
+      "role": "artifact",
+      "size": "t",
+      "batch": 6,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "4a7409c458069f9f4d3dcc323116296c57ba3e0bf710e6cfb7812f379d256fcb"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-t_b1_fp16.onnx",
+      "role": "artifact",
+      "size": "t",
+      "batch": 1,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "a2615dbe19260cf86f31eb08eeb1bafd683286b90e49dacfa1b6ccc315098b32"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-t_b2_fp16.onnx",
+      "role": "artifact",
+      "size": "t",
+      "batch": 2,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "7617adf841cda34b98b8d8cb1949731ff6bdc82ea846cbf9e9f46659d12a4146"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-t_b3_fp16.onnx",
+      "role": "artifact",
+      "size": "t",
+      "batch": 3,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "3e31298302a0f3372814484834222b1d5f4ec9d5a01db0c11c681a3e005803d7"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-t_b4_fp16.onnx",
+      "role": "artifact",
+      "size": "t",
+      "batch": 4,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "f7af009fdaf544c878f9afa091940c875064d53d7c475557c60d76007428c0f5"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-t_b6_fp16.onnx",
+      "role": "artifact",
+      "size": "t",
+      "batch": 6,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "72bdd8f85b5e98333ebc44c9607ae90459730b25e3376c9828b767d3a2ccdedb"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-s_b1_fp32.onnx",
+      "role": "artifact",
+      "size": "s",
+      "batch": 1,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "19e8962beba40facaf7eb68e68c8518941ebe89c94815f8e3c6f84ae33e679b0"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-s_b2_fp32.onnx",
+      "role": "artifact",
+      "size": "s",
+      "batch": 2,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "b646838c147149b00917cb6badbb595714bdf0d973d7bf8d0e3540616fa1c143"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-s_b3_fp32.onnx",
+      "role": "artifact",
+      "size": "s",
+      "batch": 3,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "d77cae3b8603ef421f9e34bfeeada633827a7d0d631c1ea8e39b5c912e8be80b"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-s_b4_fp32.onnx",
+      "role": "artifact",
+      "size": "s",
+      "batch": 4,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "e22d3e22a90124a1d0b06edf5fac60b1c4987fa18e0c6e828b7634206ec4bcd7"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-s_b6_fp32.onnx",
+      "role": "artifact",
+      "size": "s",
+      "batch": 6,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "64114d065c1f0a65f23eb6150e3d6bd096633e6befbe2eee9c3355938cf3b398"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-s_b1_fp16.onnx",
+      "role": "artifact",
+      "size": "s",
+      "batch": 1,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "87c10ca60091744a2b1b6a9af753033a2909bfb0fda768df3349ef29a02d35ba"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-s_b2_fp16.onnx",
+      "role": "artifact",
+      "size": "s",
+      "batch": 2,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "6518eb94af1c9977a5a6b138fa42375dab54aff38ddd984aa5c0d151aeba8857"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-s_b3_fp16.onnx",
+      "role": "artifact",
+      "size": "s",
+      "batch": 3,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "67cde9acaecd13821fae0049018e9d35bdef7f1496b0177ebfd12156eb786c60"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-s_b4_fp16.onnx",
+      "role": "artifact",
+      "size": "s",
+      "batch": 4,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "a7927ff7b707e79cfdaef9d80695bc5eb8ad3cebc96b75c42dfd666ef4815e28"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-s_b6_fp16.onnx",
+      "role": "artifact",
+      "size": "s",
+      "batch": 6,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "11b0d90b2401e49e4110dfee2d8ea2ed3e22871140f6013c870bd3f470196cbc"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-m_b1_fp32.onnx",
+      "role": "artifact",
+      "size": "m",
+      "batch": 1,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "a03c054a61ceb1e8ee1a2e704ef9af9198acdf578222f39fec23348d06cccf97"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-m_b2_fp32.onnx",
+      "role": "artifact",
+      "size": "m",
+      "batch": 2,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "355ec84c1f2a34b9363dd11d30fd385d620b2d72a4b5386f68863751cc9974fb"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-m_b3_fp32.onnx",
+      "role": "artifact",
+      "size": "m",
+      "batch": 3,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "957ee80507633b2cf7f72fea1730a78a22767808f1b1989da637eb61d050e1c3"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-m_b4_fp32.onnx",
+      "role": "artifact",
+      "size": "m",
+      "batch": 4,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "350763cf74796d8db47f57c981180d509f6550f45328ba9fd9ebb711e0007a9c"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-m_b6_fp32.onnx",
+      "role": "artifact",
+      "size": "m",
+      "batch": 6,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "5009a6ec060363d3bea8747fc8d1b9b2548a4b500db10e6ca5c1f9bee940e23e"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-m_b1_fp16.onnx",
+      "role": "artifact",
+      "size": "m",
+      "batch": 1,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "5ff8c36b8d0947249c4cfe8b296ef8c7400059b7dabe7c59a3c4dd2fe7c188a7"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-m_b2_fp16.onnx",
+      "role": "artifact",
+      "size": "m",
+      "batch": 2,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "c49b20679a2a6d0ed4188afb3b350f77c0b0adbdb48635505faf65ef4bcf3573"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-m_b3_fp16.onnx",
+      "role": "artifact",
+      "size": "m",
+      "batch": 3,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "1852e6d014c4183973dd575b094a597e97a2b2f50c980597abc4e97185eebf41"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-m_b4_fp16.onnx",
+      "role": "artifact",
+      "size": "m",
+      "batch": 4,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "d7f00b8b301abc65bc522b5d832e987aad5ec16dc18131233f8907f1088dbeb9"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-m_b6_fp16.onnx",
+      "role": "artifact",
+      "size": "m",
+      "batch": 6,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "8217c516ff10fc9e1e894e00dce08ce333abf2d7adcc696e783a2579e4516ca9"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-l_b1_fp32.onnx",
+      "role": "artifact",
+      "size": "l",
+      "batch": 1,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "844c50bd0783918f1801f0ce96e566965065c78954ea1d153e0929de6eb90a56"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-l_b2_fp32.onnx",
+      "role": "artifact",
+      "size": "l",
+      "batch": 2,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "4e0dc0784d642de805bc5f4ac64f5f8d7a59164d077cd79c49ffdf526928acb1"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-l_b3_fp32.onnx",
+      "role": "artifact",
+      "size": "l",
+      "batch": 3,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "cb604ce590d9977f5ecdc8cfb65a1589e89cd82794901c2693b0d12e47296fe6"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-l_b4_fp32.onnx",
+      "role": "artifact",
+      "size": "l",
+      "batch": 4,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "4a1666af84bc2f090dbd3014f98f89fddbc36a1ac5e7489dcfe149b6937e1f8b"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-l_b6_fp32.onnx",
+      "role": "artifact",
+      "size": "l",
+      "batch": 6,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "fddf3daf4982927db0cc71a25bbc10db8ec518c7e02937c14d1d76d8506e92b3"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-l_b1_fp16.onnx",
+      "role": "artifact",
+      "size": "l",
+      "batch": 1,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "38083f9418229d236114b5afe84c340444f59420d2e00233d9c01801c5f320e9"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-l_b2_fp16.onnx",
+      "role": "artifact",
+      "size": "l",
+      "batch": 2,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "b3bc0a40a3252e2d82572246019b7b8579cf224493fc796499f98083560f4ec6"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-l_b3_fp16.onnx",
+      "role": "artifact",
+      "size": "l",
+      "batch": 3,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "b083b8334b2683178f75b8b0f4c0443536f6d04d75a5bdead982273bbcecb2fb"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-l_b4_fp16.onnx",
+      "role": "artifact",
+      "size": "l",
+      "batch": 4,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "c6801e3166a34f48fdfd21098a1e85a722db101c0b0d3d9d88387e8bf77cf328"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-l_b6_fp16.onnx",
+      "role": "artifact",
+      "size": "l",
+      "batch": 6,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "a305fd2767caf3c337313a217d088066a4aed549adb7100f6d79625029bf2415"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-x_b1_fp32.onnx",
+      "role": "artifact",
+      "size": "x",
+      "batch": 1,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "14777ed333f1c7afb635bcd832c1f9622ea0729fac7519c8421c85f81aa5c230"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-x_b2_fp32.onnx",
+      "role": "artifact",
+      "size": "x",
+      "batch": 2,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "345b69064e4427bb705e7452a8bfd0754527bfa5ea4bc93e53748e63ad47ad35"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-x_b3_fp32.onnx",
+      "role": "artifact",
+      "size": "x",
+      "batch": 3,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "f2b25a9dea9f630bef67a53d137ee4e1b8b12c0fe324c38af0e4deb5c03ddfdc"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-x_b4_fp32.onnx",
+      "role": "artifact",
+      "size": "x",
+      "batch": 4,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "115832cf0151fb64b383d418100b76ac68debdf8dd2eec8f3ced0ae57c97a006"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-x_b6_fp32.onnx",
+      "role": "artifact",
+      "size": "x",
+      "batch": 6,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "5709e1c95b0f1ccacb315846d13d299db42dd72852435c66b8085cd4fc506b72"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-x_b1_fp16.onnx",
+      "role": "artifact",
+      "size": "x",
+      "batch": 1,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "ec0dd78d15bddbb49da4f455f6c9c6e516bea5280cc7e942e20aab88befc3d9a"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-x_b2_fp16.onnx",
+      "role": "artifact",
+      "size": "x",
+      "batch": 2,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "29b1cd093ba2c37896dae3bfa97ccf070dae9fc7df5e8de936141cab85db3dc3"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-x_b3_fp16.onnx",
+      "role": "artifact",
+      "size": "x",
+      "batch": 3,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "885a31265f01b295d167c3ba9811c3a854116edba247ab3fdb2e6efaf0594be0"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-x_b4_fp16.onnx",
+      "role": "artifact",
+      "size": "x",
+      "batch": 4,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "83bec3b40f75ba2f537b03186e379a911d5b1a11df2f2a988b900481d9acc5bf"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/object_detectors/yolox-person/yolox-person-x_b6_fp16.onnx",
+      "role": "artifact",
+      "size": "x",
+      "batch": 6,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "a3f64d7d30e91874fbca49247350e2f444d366bee6fbb6406a2a304856721216"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-m_b1_fp32.onnx",
+      "role": "artifact",
+      "size": "m",
+      "batch": 1,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "49223a7eb69229587c10dd40666fb882b999a543b1a6366fdda00317ef6fdebc"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-m_b2_fp32.onnx",
+      "role": "artifact",
+      "size": "m",
+      "batch": 2,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "538da646d40c87122220fca0376a13321c223b97a2ef4b86a160159feb7eb62b"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-m_b3_fp32.onnx",
+      "role": "artifact",
+      "size": "m",
+      "batch": 3,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "9deb3b12b3e7ec09a4e6714e81c9b1c4add84915bd9cc08e7ef896e2be27c766"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-m_b4_fp32.onnx",
+      "role": "artifact",
+      "size": "m",
+      "batch": 4,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "fa23d125e269b91d04d239ef292a8d5e6b4218e34c518de99c1ae684dd8686c4"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-m_b6_fp32.onnx",
+      "role": "artifact",
+      "size": "m",
+      "batch": 6,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "f4dda7d5093bfb892ddae9df124d3532ffccc48e5f9fc35f0ca828b50a2a6717"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-m_b1_fp16.onnx",
+      "role": "artifact",
+      "size": "m",
+      "batch": 1,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "cf24f1016a65f23f0ed94587ac381c9cabd5cedaac28d3d02b9a1245e8c5241e"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-m_b2_fp16.onnx",
+      "role": "artifact",
+      "size": "m",
+      "batch": 2,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "db2aea20e986cd47d9ba2b9c36ee80315a9a727e23b8428f31bec950f454699d"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-m_b3_fp16.onnx",
+      "role": "artifact",
+      "size": "m",
+      "batch": 3,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "18d188fe822aed101924015be001f24497e90f0a7c12ec61fe4078ca9aa7f663"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-m_b4_fp16.onnx",
+      "role": "artifact",
+      "size": "m",
+      "batch": 4,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "cb0676a9b251d9872c64b8e7a8a9a46f59e309e5eb0075b0acda3c794bf11f1e"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-m_b6_fp16.onnx",
+      "role": "artifact",
+      "size": "m",
+      "batch": 6,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "b065de00355e4cef3890d61be1548ed52f64d7b348c23f1f984ed46aab9dcea4"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-l-256_b1_fp32.onnx",
+      "role": "artifact",
+      "size": "l-256",
+      "batch": 1,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "6ccf6d6161a43e5fb4428ed2f6de2d2663c933988bd18bbdff9f4f5cd87305c3"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-l-256_b2_fp32.onnx",
+      "role": "artifact",
+      "size": "l-256",
+      "batch": 2,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "84840c77facc20b88016272d44cbb101d75a72dd46cd6ea267bae8590b66113a"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-l-256_b3_fp32.onnx",
+      "role": "artifact",
+      "size": "l-256",
+      "batch": 3,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "55142772c3eaf7e92d1e4c0751abb68421c222b0654f145411a4af9347d78b74"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-l-256_b4_fp32.onnx",
+      "role": "artifact",
+      "size": "l-256",
+      "batch": 4,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "556372c199cf42f2ca1ca1799200c28b8e47f31a3b6a7e62c53d833a8500a973"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-l-256_b6_fp32.onnx",
+      "role": "artifact",
+      "size": "l-256",
+      "batch": 6,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "24f4d07fd6a406b219fa7b17f1e9dc97b4bf2a49c4c0434671412e4d81dc01b5"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-l-256_b1_fp16.onnx",
+      "role": "artifact",
+      "size": "l-256",
+      "batch": 1,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "59f58d490be2fb06a063f5aa52a8c598d8ba1edc06710b361a3ec275055cf096"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-l-256_b2_fp16.onnx",
+      "role": "artifact",
+      "size": "l-256",
+      "batch": 2,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "22811d1f6fe291ea7a8d67b056987eb8e8f5555a3fbf14470b7a00f8d0f937f5"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-l-256_b3_fp16.onnx",
+      "role": "artifact",
+      "size": "l-256",
+      "batch": 3,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "ff2279b5058380c511dd65dfa243341f3da14cbcb8466dd30b94126a303fd93d"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-l-256_b4_fp16.onnx",
+      "role": "artifact",
+      "size": "l-256",
+      "batch": 4,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "eb113666d83506cbc84d0f8bf2c658602f15a95c676728bf5ee1a847bf4919ff"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-l-256_b6_fp16.onnx",
+      "role": "artifact",
+      "size": "l-256",
+      "batch": 6,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "fb2fa6e639a32cff92da32abc8f977573ea50423b398f0a5e1a0deb546a309cb"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-x-256_b1_fp32.onnx",
+      "role": "artifact",
+      "size": "x-256",
+      "batch": 1,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "c830700e71aa761081622356817eb0ede44ca41a02d3611903a52b1f94ef0236"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-x-256_b2_fp32.onnx",
+      "role": "artifact",
+      "size": "x-256",
+      "batch": 2,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "93b01b29db3f35860732d36711cb03555b809299351e274e1de2769f7b9b30c6"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-x-256_b3_fp32.onnx",
+      "role": "artifact",
+      "size": "x-256",
+      "batch": 3,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "84b270f7931f7f2fb29853bb216ff56c1b2388743a28d65e50f70249b113fd92"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-x-256_b4_fp32.onnx",
+      "role": "artifact",
+      "size": "x-256",
+      "batch": 4,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "bf543f2582d71c3e6f60c30ea592d3abee9c8291bcd355d4d0fd6e33ddfe2e34"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-x-256_b6_fp32.onnx",
+      "role": "artifact",
+      "size": "x-256",
+      "batch": 6,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "2218d8935f250f5f2c131a5c5000041c42e629ecf9566fe3a03c7feeb4983fd8"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-x-256_b1_fp16.onnx",
+      "role": "artifact",
+      "size": "x-256",
+      "batch": 1,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "a948a32813a618a423245cfc03a413726631abffac2de3edc075b37584675a23"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-x-256_b2_fp16.onnx",
+      "role": "artifact",
+      "size": "x-256",
+      "batch": 2,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "b2cecc2454878aa5f660763d9ff6a340de95a1c11a171fc95dffec9bd090cb87"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-x-256_b3_fp16.onnx",
+      "role": "artifact",
+      "size": "x-256",
+      "batch": 3,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "2c934932e017105158d34b682d6da942a844ebfcd69a80e8e660536fab70bc89"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-x-256_b4_fp16.onnx",
+      "role": "artifact",
+      "size": "x-256",
+      "batch": 4,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "9dcac10452c1c6479b79568a214e3998d1c0eaaf28f3f1af617dfda543b1b80d"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-x-256_b6_fp16.onnx",
+      "role": "artifact",
+      "size": "x-256",
+      "batch": 6,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "ab5f650772fdcfd958e88bc391662bc63731177818a4023dfad4c3650154584c"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-l-384_b1_fp32.onnx",
+      "role": "artifact",
+      "size": "l-384",
+      "batch": 1,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "0459169e06d70ef0cea342826dda9db5b3776267f650df6237f18891be3d27a9"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-l-384_b2_fp32.onnx",
+      "role": "artifact",
+      "size": "l-384",
+      "batch": 2,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "165f09ec148b02e07d959a77df4a44c4600bf7247977369286a06c2224037385"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-l-384_b3_fp32.onnx",
+      "role": "artifact",
+      "size": "l-384",
+      "batch": 3,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "7fe2674a61dc865e97c9ce735d8d501e3a94ad4190d1951378d83561a34daf7a"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-l-384_b4_fp32.onnx",
+      "role": "artifact",
+      "size": "l-384",
+      "batch": 4,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "4abadf460987cd4e6f12e2fc6d12044c7303d1d707ce252388cec00746813b46"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-l-384_b6_fp32.onnx",
+      "role": "artifact",
+      "size": "l-384",
+      "batch": 6,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "8e678aeb777441d0e5bc59fbef817e0e7835c5b717ff64ae45717a00efb9826a"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-l-384_b1_fp16.onnx",
+      "role": "artifact",
+      "size": "l-384",
+      "batch": 1,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "9773e719bd71f211924be91e767ccb108f58e479658fc76a068ca4ef414ee6fd"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-l-384_b2_fp16.onnx",
+      "role": "artifact",
+      "size": "l-384",
+      "batch": 2,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "dcf0aa299d7f6ae6cc3db9b855abe20a6f88359dde34f8dbc59fdee637313c0d"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-l-384_b3_fp16.onnx",
+      "role": "artifact",
+      "size": "l-384",
+      "batch": 3,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "1506cf1cde6128292d0c3dd74f32530544143e87b802902f0cc7d2954aee8e20"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-l-384_b4_fp16.onnx",
+      "role": "artifact",
+      "size": "l-384",
+      "batch": 4,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "f9b1332d409f1b268dc894911aeb90b4dae6b2055a14986e9161152140bc008f"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-l-384_b6_fp16.onnx",
+      "role": "artifact",
+      "size": "l-384",
+      "batch": 6,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "f3e06849c750c68d59d213b740a3839be85b3a28458165bb35601d7228755b1e"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-x-384_b1_fp32.onnx",
+      "role": "artifact",
+      "size": "x-384",
+      "batch": 1,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "2e31eff71186672b72a1d55be10da68861076e25626ab6d0752610b8167c608b"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-x-384_b2_fp32.onnx",
+      "role": "artifact",
+      "size": "x-384",
+      "batch": 2,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "1e3256d2d97aaf2497a67198a3454236a004bf3f0fe0528c8c42569801b1d21a"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-x-384_b3_fp32.onnx",
+      "role": "artifact",
+      "size": "x-384",
+      "batch": 3,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "10effcbe6135659f9b79452e8beafe542178dfb298acedeb7276dd2d54d3f1b7"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-x-384_b4_fp32.onnx",
+      "role": "artifact",
+      "size": "x-384",
+      "batch": 4,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "f0a4a5c2e512a819a805a97d8a0f82088e88ef25ab78e6f773a40e9fd72566d4"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-x-384_b6_fp32.onnx",
+      "role": "artifact",
+      "size": "x-384",
+      "batch": 6,
+      "precision": "fp32",
+      "published": false,
+      "sha256": "4ffab2895bec08cea48ad219e665a0b3812242498c100b24f0cdae6a41787182"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-x-384_b1_fp16.onnx",
+      "role": "artifact",
+      "size": "x-384",
+      "batch": 1,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "c16af246d21e00ca996aa1efb6cf55cb8d8628de1209d32f6669c936952864a7"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-x-384_b2_fp16.onnx",
+      "role": "artifact",
+      "size": "x-384",
+      "batch": 2,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "0b00b6c1216c6fe45fc13a61c4babf7ae686d61a637c9680b0d24dfcff13681a"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-x-384_b3_fp16.onnx",
+      "role": "artifact",
+      "size": "x-384",
+      "batch": 3,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "f0daa384ce548c92b1162f5a1b8c449d1173db4c80583191d31e2881cac1e239"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-x-384_b4_fp16.onnx",
+      "role": "artifact",
+      "size": "x-384",
+      "batch": 4,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "89dfc2ed3add842c4015cd48bd0199dd952462fe503daed3425a8871f3ad4fbc"
+    },
+    {
+      "path": "../../OpenMMLab-Exporter/exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-x-384_b6_fp16.onnx",
+      "role": "artifact",
+      "size": "x-384",
+      "batch": 6,
+      "precision": "fp16",
+      "published": false,
+      "sha256": "b71722a01fd970934a478b006d13cdeb2b8153e8866e03d2333fced4a1e47e54"
+    }
+  ],
+  "spec_version": "2.0.0",
+  "version": 1,
+  "created": "2026-11-06",
+  "files": [
+    {
+      "path": "evidence.md",
+      "sha256": "2698fa7c880e2841247a3a704971541b7a05d79bcd9e6ea769ea4fbbf591fd35",
+      "bytes": 12701
+    },
+    {
+      "path": "proposal.md",
+      "sha256": "8bf99847935eca8c8ae92c3e7bcaceee3fc473bb83d16a0f8aea242dce413927",
+      "bytes": 23460
+    }
+  ]
+}
