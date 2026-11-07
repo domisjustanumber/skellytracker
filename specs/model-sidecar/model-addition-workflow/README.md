@@ -85,7 +85,7 @@ gives the commit of your repo in `source_commit`.
 
 Get these inputs before you start:
 
-- the ONNX files of every size and precision. A family needs the verification batches 1, 2, 3 and 4,
+- the ONNX files of every size and precision. A family needs the verification batches 1, 2, 3 and 6,
   unless it forces a fallback form or the model cannot export a static graph
   ([Publishing](validation-and-publishing.md#publishing);
   [ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). Add the `dynamic` export

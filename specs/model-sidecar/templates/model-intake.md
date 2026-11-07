@@ -57,8 +57,8 @@ Get these inputs before you fill in the property table.
 
 | Input | Path, URL or command | Status (`found` or `missing`) |
 |---|---|---|
-| The ONNX files: every size and precision, at the verification batches 1, 2, 3 and 4. The `dynamic` export, if you plan to publish it. "Publishing" in `specs/model-sidecar/model-addition-workflow/validation-and-publishing.md` gives the exceptions | | |
-| Input B of the batch-conversion check: `batch/inputs/<size>.npy` for each size, with 4 different preprocessed images. "Publishing" in `specs/model-sidecar/model-addition-workflow/validation-and-publishing.md` tells when the check does not run | | |
+| The ONNX files: every size and precision, at the verification batches 1, 2, 3 and 6. The `dynamic` export, if you plan to publish it. "Publishing" in `specs/model-sidecar/model-addition-workflow/validation-and-publishing.md` gives the exceptions | | |
+| Input B of the batch-conversion check: `batch/inputs/<size>.npy` for each size, with 6 different preprocessed images. "Publishing" in `specs/model-sidecar/model-addition-workflow/validation-and-publishing.md` tells when the check does not run | | |
 | The upstream inference config (the test pipeline, not the training pipeline) | | |
 | The upstream preprocessing code | | |
 | The upstream postprocessing code | | |

@@ -186,12 +186,12 @@ FRAGMENT_KEYS = {"exporter", "exporter_path", "tracked", "commit", "notes"}
 
 SOURCE_BATCH = 3
 PROFILE = {"profile_id": "static-batch-v1"}  # the whole batching.batch_conversion of a b3 sidecar (ADR-JAA4)
-VERIFICATION_BATCHES = (1, 2, 3, 4)
+VERIFICATION_BATCHES = (1, 2, 3, 6)
 FORMS = (SOURCE_BATCH, 1, "dynamic")  # the values of batching.batch (ADR-JAA4)
-TARGETS = (1, 2, 4)
+TARGETS = (1, 2, 6)
 DYNAMIC_BATCHES = (1, 2, 3)
 TOLERANCE = {"fp32": 1e-5, "fp16": 1e-3}
-INPUT_B_ITEMS = 4
+INPUT_B_ITEMS = 6
 
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
 SHA64 = re.compile(r"^[0-9a-f]{64}$")
@@ -1157,7 +1157,7 @@ def _publish_problems(version_dir: Path, listed: dict, manifest: dict, yaml) -> 
             findings.append(
                 f"publish rule: the batch form {form} is not allowed with batch_conversion {verdict!r} "
                 f"and batch_forced {forced!r}"
-                + ("; export the verification batches 1, 2, 3 and 4, or set batch_forced" if unverifiable else "")
+                + ("; export the verification batches 1, 2, 3 and 6, or set batch_forced" if unverifiable else "")
             )
         if form == SOURCE_BATCH:
             missing = [
@@ -1678,7 +1678,7 @@ class _Runner:
 
 
 def _input_items(inputs: Path, size: object, cache: dict):  # noqa: ANN202
-    """Return the input B items of one size: `inputs/<size>.npy`, 4 different items."""
+    """Return the input B items of one size: `inputs/<size>.npy`, INPUT_B_ITEMS different items."""
     if size not in cache:
         import numpy as np
 

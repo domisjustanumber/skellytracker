@@ -43,6 +43,7 @@ These entries are `accepted` or `evidence`.
 | [2XW6](entries/2XW6-process-entries-consolidation.md) | Consolidation: restates the rules that stay of Z05A, GN3D, QPS7, NB91, EY8R, D9VT, p3n3, 5WKW and FDTD; changes no decision | accepted |
 | [9MJ6](entries/9MJ6-remove-the-heatmap-decode.md) | Remove the heatmap decode: no `heatmap` method, semantic or section until a model brings a full contract | accepted |
 | [9HBB](entries/9HBB-simcc-decode-is-2d-only.md) | The SimCC decode is 2D only: no `simcc_z`, no `depth_range`; a 3D SimCC model adds its own section | accepted |
+| [JY47](entries/JY47-verification-batch-6-in-the-workflow.md) | The workflow, the templates, the skills and `intake_bundle.py` use the verification batches 1, 2, 3 and 6 and 6 input B items (after 50BW) | accepted |
 
 ### Proposed
 

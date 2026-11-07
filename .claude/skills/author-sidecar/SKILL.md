@@ -48,7 +48,7 @@ follow the workflow or the guide. The spec is normative.
 Get these inputs before you start
 ([Inputs](../../../specs/model-sidecar/model-addition-workflow/README.md#inputs)):
 
-- the ONNX files of every size and precision, also at the verification batches 1, 2, 3 and 4
+- the ONNX files of every size and precision, also at the verification batches 1, 2, 3 and 6
   ([Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing)
   gives the exceptions);
 - the upstream inference config (the test pipeline);

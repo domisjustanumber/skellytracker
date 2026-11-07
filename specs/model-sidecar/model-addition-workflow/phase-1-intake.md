@@ -19,7 +19,7 @@ file `intake.md` of a `model` bundle ([Hand-over bundles](hand-over.md#payload))
    **Step 1b: batch-conversion check.** Do this step right after step 1, before step 2
    ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)).
    - The check runs by default. Export each size and each precision at the verification batches 1,
-     2, 3 and 4. Use the same commit and the same settings. Only the batch changes. b4 is
+     2, 3 and 6. Use the same commit and the same settings. Only the batch changes. b6 is
      verification-only: you never publish it.
    - A forced fallback form (`batch_forced`) or a model that cannot export a static graph
      (`no_static_reason`) can skip a part of the check. [Publishing](validation-and-publishing.md#publishing)

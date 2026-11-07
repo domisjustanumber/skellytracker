@@ -656,7 +656,7 @@ def test_each_sub_command_takes_root_after_its_name(root: Path, capsys: pytest.C
 # skellytracker/tests/test_batch_conversion.py and adds a bias, a dynamic form and an empty form.
 # --------------------------------------------------------------------------------------------
 
-ITEMS = np.arange(12, dtype=np.float32).reshape(4, 3)
+ITEMS = np.arange(18, dtype=np.float32).reshape(6, 3)
 
 
 def onnx_file(
@@ -719,14 +719,14 @@ def family(tmp_path: Path):  # noqa: ANN201
 
 
 def test_batch_converts_down_and_up_and_writes_the_fragment(family) -> None:  # noqa: ANN001
-    root, fields, out = family({1: {}, 2: {}, 3: {}, 4: {}})
+    root, fields, out = family({1: {}, 2: {}, 3: {}, 6: {}})
     report = ib.batch_check(fields, out, root=root)
     assert (report["batch_conversion"], report["batch_conversion_reason"]) == ("converts", None)
-    assert [t["target"] for t in report["tuples"]] == [1, 2, 4]
+    assert [t["target"] for t in report["tuples"]] == [1, 2, 6]
     upward = report["tuples"][2]
     assert upward["v3"]["result"] == "pass"
     assert upward["v5"]["result"] == "pass"
-    assert upward["v5"]["B"]["outputs"]["y"]["rows"] == 4
+    assert upward["v5"]["B"]["outputs"]["y"]["rows"] == 6
     assert yaml.safe_load((out / "conversion.yaml").read_text(encoding="utf-8")) == {
         "batching": {"batch_conversion": {"profile_id": "static-batch-v1"}}
     }
@@ -735,7 +735,7 @@ def test_batch_converts_down_and_up_and_writes_the_fragment(family) -> None:  # 
 
 
 def test_batch_does_not_convert_a_batch_dependent_export(family) -> None:  # noqa: ANN001
-    batches = {1: {"bias": 1.0}, 2: {"bias": 1.0}, 3: {}, 4: {"bias": 1.0}, "dynamic": {"bias": 1.0}}
+    batches = {1: {"bias": 1.0}, 2: {"bias": 1.0}, 3: {}, 6: {"bias": 1.0}, "dynamic": {"bias": 1.0}}
     root, fields, out = family(batches)
     report = ib.batch_check(fields, out, root=root)
     assert report["batch_conversion"] == "does not convert"
@@ -747,10 +747,10 @@ def test_batch_does_not_convert_a_batch_dependent_export(family) -> None:  # noq
     assert dynamic["static"]["b3/A"]["pass"] is False
 
 
-@pytest.mark.parametrize("gone", [(3,), (4,), (1, 2, 4)])
+@pytest.mark.parametrize("gone", [(3,), (6,), (1, 2, 6)])
 def test_batch_needs_each_verification_batch(family, gone: tuple) -> None:  # noqa: ANN001
     """Also a b3-only family: V0 does not skip it (ADR-JB5J, audit finding C15)."""
-    root, fields, out = family({b: {} for b in (1, 2, 3, 4) if b not in gone})
+    root, fields, out = family({b: {} for b in (1, 2, 3, 6) if b not in gone})
     report = ib.batch_check(fields, out, root=root)
     assert (report["batch_conversion"], report["batch_conversion_reason"]) == ("to run", "missing-verification-batch")
     assert report["v0"]["missing"] == [["n", "fp32", b] for b in gone]
@@ -773,21 +773,21 @@ def test_batch_skips_the_check_of_a_forced_fallback(family) -> None:  # noqa: AN
 
 def test_batch_gives_to_run_when_the_runtime_cannot_load_a_file(family) -> None:  # noqa: ANN001
     onnx = pytest.importorskip("onnx")
-    root, fields, out = family({1: {}, 2: {"ir_version": onnx.IR_VERSION + 1}, 3: {}, 4: {}})
+    root, fields, out = family({1: {}, 2: {"ir_version": onnx.IR_VERSION + 1}, 3: {}, 6: {}})
     report = ib.batch_check(fields, out, root=root)
     assert (report["batch_conversion"], report["batch_conversion_reason"]) == ("to run", "host-runtime-cannot-load")
     assert list(report["v0b"]) == ["../../Exporter/m_b2_fp32.onnx"]
 
 
 def test_batch_gives_no_signal_when_every_output_is_empty(family) -> None:  # noqa: ANN001
-    root, fields, out = family({b: {"empty": True} for b in (1, 2, 3, 4)})
+    root, fields, out = family({b: {"empty": True} for b in (1, 2, 3, 6)})
     report = ib.batch_check(fields, out, root=root)
     assert (report["batch_conversion"], report["batch_conversion_reason"]) == ("to run", "no-signal")
 
 
 def test_batch_fails_v6_on_a_dynamic_file_with_other_output_names(family, tmp_path: Path) -> None:  # noqa: ANN001
     onnx = pytest.importorskip("onnx")
-    root, fields, out = family({1: {}, 2: {}, 3: {}, 4: {}, "dynamic": {}})
+    root, fields, out = family({1: {}, 2: {}, 3: {}, 6: {}, "dynamic": {}})
     path = tmp_path / "Exporter" / "m_bdynamic_fp32.onnx"
     model = onnx.load(str(path))
     model.graph.node[-1].output[0] = "z"
@@ -832,8 +832,8 @@ def reshape_by_constant(path: Path, batch: int | str) -> Path:
 
 
 def test_batch_gives_does_not_convert_when_the_converted_graph_does_not_run(family, tmp_path: Path) -> None:  # noqa: ANN001
-    root, fields, out = family({1: {}, 2: {}, 3: {}, 4: {}})
-    for batch in (1, 2, 3, 4):
+    root, fields, out = family({1: {}, 2: {}, 3: {}, 6: {}})
+    for batch in (1, 2, 3, 6):
         reshape_by_constant(tmp_path / "Exporter" / f"m_b{batch}_fp32.onnx", batch)
     (out / "conversion.yaml").write_text("old\n", encoding="utf-8")
     report = ib.batch_check(fields, out, root=root)
@@ -843,7 +843,7 @@ def test_batch_gives_does_not_convert_when_the_converted_graph_does_not_run(fami
 
 def test_batch_takes_a_dynamic_non_batch_dim_from_input_b(family, tmp_path: Path) -> None:  # noqa: ANN001
     onnx = pytest.importorskip("onnx")
-    root, fields, out = family({1: {}, 2: {}, 3: {}, 4: {}, "dynamic": {}})
+    root, fields, out = family({1: {}, 2: {}, 3: {}, 6: {}, "dynamic": {}})
     path = tmp_path / "Exporter" / "m_bdynamic_fp32.onnx"
     model = onnx.load(str(path))
     model.graph.input[0].type.tensor_type.shape.dim[1].dim_param = "C"
@@ -891,10 +891,10 @@ def test_batch_gives_v6_to_run_without_input_b(family) -> None:  # noqa: ANN001
 
 @pytest.mark.parametrize(
     ("items", "message"),
-    [(ITEMS[:3], "must hold 4 items"), (np.stack([ITEMS[0]] * 4), "more than once"), (None, "input B not found")],
+    [(ITEMS[:3], "must hold 6 items"), (np.stack([ITEMS[0]] * 6), "more than once"), (None, "input B not found")],
 )
-def test_batch_needs_input_b_with_four_different_items(family, items, message: str) -> None:  # noqa: ANN001
-    root, fields, out = family({1: {}, 2: {}, 3: {}, 4: {}}, items=items)
+def test_batch_needs_input_b_with_six_different_items(family, items, message: str) -> None:  # noqa: ANN001
+    root, fields, out = family({1: {}, 2: {}, 3: {}, 6: {}}, items=items)
     with pytest.raises(ib.BundleError, match=message):
         ib.batch_check(fields, out, root=root)
 
@@ -909,7 +909,7 @@ def test_batch_runs_only_in_the_venv_of_the_checkout(
 
 def converts_bundle(
     tmp_path: Path, published: tuple, sidecar_source: int | None, conversion: bool, sizes: dict | None = None,
-    batches: tuple = (1, 2, 3, 4), profile: dict = ib.PROFILE, **fields,
+    batches: tuple = (1, 2, 3, 6), profile: dict = ib.PROFILE, **fields,
 ) -> Path:
     """Pack a model bundle (by default `converts`) with the given batches and return its intakes folder."""
     root = tmp_path / "freemocap" / "skellytracker" / "intakes"
@@ -978,19 +978,19 @@ def test_verify_refuses_the_removed_source_batch_size(tmp_path: Path) -> None:
 
 UNVERIFIABLE = (
     "publish rule: the batch form {} is not allowed with batch_conversion 'to run' and batch_forced None; "
-    "export the verification batches 1, 2, 3 and 4, or set batch_forced"
+    "export the verification batches 1, 2, 3 and 6, or set batch_forced"
 )
 
 
 @pytest.mark.parametrize(
     ("published", "fields", "batches", "finding"),
     [
-        ((1,), {"batch_conversion": "does not convert"}, (1, 2, 3, 4), None),
-        ((3,), {"batch_conversion": "does not convert"}, (1, 2, 3, 4),
+        ((1,), {"batch_conversion": "does not convert"}, (1, 2, 3, 6), None),
+        ((3,), {"batch_conversion": "does not convert"}, (1, 2, 3, 6),
          "publish rule: the batch form 3 is not allowed with batch_conversion 'does not convert' and batch_forced None"),
-        ((1,), {"batch_conversion": "converts"}, (1, 2, 3, 4),
+        ((1,), {"batch_conversion": "converts"}, (1, 2, 3, 6),
          "publish rule: the batch form 1 is not allowed with batch_conversion 'converts' and batch_forced None"),
-        ((1,), {"batch_conversion": "converts", "batch_forced": 1, "batch_forced_reason": "user choice"}, (1, 2, 3, 4),
+        ((1,), {"batch_conversion": "converts", "batch_forced": 1, "batch_forced_reason": "user choice"}, (1, 2, 3, 6),
          None),
         ((1,), {"batch_conversion": "not applicable", "batch_forced": 1, "batch_forced_reason": "user choice"}, (1,),
          None),
@@ -999,13 +999,13 @@ UNVERIFIABLE = (
          "publish another batch form or fix the export"),
         ((3,), {"batch_conversion": "to run", "batch_conversion_reason": "missing-verification-batch"}, (3,),
          (UNVERIFIABLE.format(3),
-          "publish rule: a b3 publish needs the verification batches: ['n/fp32/b1', 'n/fp32/b2', 'n/fp32/b4']")),
+          "publish rule: a b3 publish needs the verification batches: ['n/fp32/b1', 'n/fp32/b2', 'n/fp32/b6']")),
         ((1,), {"batch_conversion": "to run", "batch_conversion_reason": "missing-verification-batch"}, (1,),
          UNVERIFIABLE.format(1)),
-        ((1,), {"batch_conversion": "to run", "batch_conversion_reason": "no-signal"}, (1, 2, 3, 4), None),
-        ((), {"batch_conversion": "converts"}, (1, 2, 3, 4),
+        ((1,), {"batch_conversion": "to run", "batch_conversion_reason": "no-signal"}, (1, 2, 3, 6), None),
+        ((), {"batch_conversion": "converts"}, (1, 2, 3, 6),
          "publish rule: n fp32 must have exactly one published file, not 0"),
-        ((), {"batch_conversion": "converts", "verdict": "pending"}, (1, 2, 3, 4), None),
+        ((), {"batch_conversion": "converts", "verdict": "pending"}, (1, 2, 3, 6), None),
     ],
 )
 def test_verify_checks_the_publish_rule_for_every_verdict(
@@ -1460,7 +1460,7 @@ def test_the_onnx_check_refuses_a_file_that_onnx_cannot_read(tmp_path: Path) -> 
 
 
 def test_batch_refuses_a_model_before_any_run(family, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: ANN001
-    root, fields, out = family({1: {}, 2: {}, 3: {}, 4: {}})
+    root, fields, out = family({1: {}, 2: {}, 3: {}, 6: {}})
     tiny_model(tmp_path / "Exporter" / "m_b2_fp32.onnx", domain="my.custom")
 
     def no_run(*_args: object) -> None:

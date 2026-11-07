@@ -1,8 +1,9 @@
 # Batch-conversion check
 
 The `batch` sub-command checks if the profile `static-batch-v1` converts the batch 3 export of a
-family to the batches 1, 2 and 4 ([`common.batch_conversion`](../common/batch-conversion.md);
-[ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). Do it
+family to the batches 1, 2 and 6 ([`common.batch_conversion`](../common/batch-conversion.md);
+[ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md);
+[ADR-JY47](../../../decisions/entries/JY47-verification-batch-6-in-the-workflow.md)). Do it
 in step 1b of [phase 1](phase-1-intake.md). It gives the evidence of row G6b of the intake and the
 value of `batch_conversion` in the manifest ([Manifest](hand-over.md#manifest)). The converter is
 `skellytracker/core/sessions/batch_conversion.py::model_batch_convert`.
@@ -31,7 +32,7 @@ uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/ske
 
 - `--fields` is your fields file. `batch` reads its `external` list: each ONNX file of the family,
   with its `size`, `batch`, `precision` and `published`. The tolerance comes from `precision`.
-- A family needs each size and each precision at the verification batches 1, 2, 3 and 4. This is
+- A family needs each size and each precision at the verification batches 1, 2, 3 and 6. This is
   also true for a family that plans b3 only. [Publishing](validation-and-publishing.md#publishing) gives the two
   exemptions: `batch_forced` and `no_static_reason` ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md);
   [ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)). `published` follows [Publishing](validation-and-publishing.md#publishing). Add the
@@ -40,7 +41,7 @@ uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/ske
   [Authoring guidance](../common/batch-conversion.md#authoring-guidance) of `common.batch_conversion`
   ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)).
 - `batch` reads input B from `<out>/inputs/<size>.npy`, one file for each size (`--inputs` gives
-  another folder). Your writer code writes it. Its shape is `[4] + input.shape[1:]`. Its dtype is the
+  another folder). Your writer code writes it. Its shape is `[6] + input.shape[1:]`. Its dtype is the
   dtype of the graph input (float32 or uint8). For an fp16 graph with a float16 input, `batch` casts
   float32 items to float16. A dim of the graph input that is not a number takes its value from
   input B.
@@ -49,11 +50,11 @@ uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/ske
 
 | Step | What `batch` does |
 |---|---|
-| V0 | Applicability, for the whole family. A family with only dynamic files: `not applicable` when the fields give `no_static_reason`, else the pair rule below. A family with no file: `to run` with the reason `missing-verification-batch`. A (size, precision) pair without batch 1, 2, 3 or 4: `not applicable` when the fields give `batch_forced`, else `to run` with the reason `missing-verification-batch`. A family with only b3 files also gets `to run` ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). |
+| V0 | Applicability, for the whole family. A family with only dynamic files: `not applicable` when the fields give `no_static_reason`, else the pair rule below. A family with no file: `to run` with the reason `missing-verification-batch`. A (size, precision) pair without batch 1, 2, 3 or 6: `not applicable` when the fields give `batch_forced`, else `to run` with the reason `missing-verification-batch`. A family with only b3 files also gets `to run` ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). |
 | V0b | It checks that the onnx and onnxruntime of the environment can load each file: `ir_version`, each `opset_import` version and an onnxruntime CPU session. If not: `to run` with the reason `host-runtime-cannot-load`. |
 | V1 | It compares the native batch 3 graph with each native batch `N` graph (`differences.json`). This is evidence only. |
 | V2 | It makes the fragment `batching.batch_conversion: {profile_id: static-batch-v1}`. |
-| V3 | It converts batch 3 to `N` = 1, 2 and 4 with `model_batch_convert`. It records the summary or the `ValueError` text. |
+| V3 | It converts batch 3 to `N` = 1, 2 and 6 with `model_batch_convert`. It records the summary or the `ValueError` text. |
 | V4 | It compares each converted graph with the native graph of the same batch. This is evidence only. |
 | V5 | Numeric parity on onnxruntime CPU, with input A and the first `N` items of input B: the same output names, dtypes and shapes, with the tolerance of the [Authoring guidance](../common/batch-conversion.md#authoring-guidance). A run in which each output is empty does not count. A converted file that does not run fails V5. A native file that does not run gives `to run` with the reason `host-runtime-cannot-load`. |
 | V6 | The dynamic check, for each `dynamic` file. (a) It compares the `dynamic` file with each static file of the same size and precision at the batches 1, 2 and 3 that exists. A missing static file of these batches does not block V6. (b) It runs the `dynamic` file at batch 1 on three items, then at the batches 2 and 3 on the same items. Row `i` must equal the batch 1 output of item `i`. An output with no leading batch dim gets `no check`. If V6 compares no output that is not empty, the result is `to run` with the reason `no-signal`. If `batch` cannot feed the file, the result is `to run` and the reason gives the error. |

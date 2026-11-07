@@ -70,7 +70,7 @@ These rules apply to each contributor that writes a sidecar.
   - b3 is the goal. The sidecar has `batching.batch: 3` and
     `batching.batch_conversion: {profile_id: static-batch-v1}`. b3 needs the
     verdict `converts` of the [batch-conversion check](batch-conversion-check.md#batch-conversion-check). Thus
-    `external` lists the verification batches 1, 2, 3 and 4 of each size and precision.
+    `external` lists the verification batches 1, 2, 3 and 6 of each size and precision.
   - b1 and `dynamic` are the fallbacks. The sidecar has `batching.batch: 1` or
     `batching.batch: dynamic`, and no `batch_conversion`. A fallback is allowed with the verdict
     `does not convert`. It is also allowed when the person who runs the exporter forces it.
@@ -91,7 +91,7 @@ These rules apply to each contributor that writes a sidecar.
     verdict `converts`. The reason `missing-verification-batch` allows no form: export the
     verification batches, force a fallback form, or, if the model cannot export a static graph,
     give `no_static_reason` ([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).
-  - The other files of the check (for example b2 and b4, and b1 of a b3 family) have
+  - The other files of the check (for example b2 and b6, and b1 of a b3 family) have
     `published: false` in `external` of the bundle manifest. Do not publish them.
   - No validation rule checks the publication. `intake_bundle.py verify` checks this rule for each
     verdict. `V-common.sizes_and_artifacts-12` checks the batch form of the sidecar.

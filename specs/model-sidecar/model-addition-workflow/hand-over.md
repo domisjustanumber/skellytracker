@@ -184,7 +184,7 @@ external:
      `does not convert` needs `1` or `dynamic`, and `not applicable` needs `dynamic`. `to run` allows each form: the session verdict
      decides ([The session run](#the-session-run)). With the reason `missing-verification-batch`,
      `to run` allows no form, because the session cannot add a missing file;
-  4. with `3`, `external` has the batches 1, 2, 3 and 4 of each pair;
+  4. with `3`, `external` has the batches 1, 2, 3 and 6 of each pair;
   5. the sidecar of `example/` lists exactly the published files. Its `batching.batch` is that
      `batch`. It has `batching.batch_conversion: {profile_id: static-batch-v1}` if and only if the
      `batch` is `3`. With `converts` and `3`, `batch/conversion.yaml` also has that
@@ -459,7 +459,7 @@ field `batch_conversion` gives the session verdict. The session verdict is the g
 | `converts` | The manifest gives `converts`, and `verify` gives a publish-rule finding. | `needs-contributor`: "apply the publish rule, pack the next version". |
 | `does not convert` | The manifest gives `converts` or `to run`. | `needs-contributor`, with the session `residual-diff.json` and the parity values. The contributor publishes a fallback form (b1 or `dynamic`) and writes the new-profile proposal. |
 | `to run` | The reason is `host-runtime-cannot-load`, or V6 of a published `dynamic` file has this reason. | Stop and ask the user. The fix is a newer onnx and onnxruntime in `uv.lock` of skellytracker. |
-| `to run` | The reason is `missing-verification-batch`. | `needs-contributor`: "export the verification batches 1, 2, 3 and 4 of each size and precision, or set `batch_forced`, pack the next version". |
+| `to run` | The reason is `missing-verification-batch`. | `needs-contributor`: "export the verification batches 1, 2, 3 and 6 of each size and precision, or set `batch_forced`, pack the next version". |
 | `to run` | The reason is `no-signal`, or V6 of a published `dynamic` file has this reason. | `needs-contributor`: "write input B with images that give outputs that are not empty, pack the next version". A b3 publish needs the session verdict `converts`. |
 | `not applicable` | any | The manifest must give `batch_forced`, and the published form must equal it. Or the manifest gives `no_static_reason`, and the published form is `dynamic`. If not: `needs-contributor`. |
 
