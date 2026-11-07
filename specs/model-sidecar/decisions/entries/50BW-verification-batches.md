@@ -1,11 +1,12 @@
 # 50BW — Spec change: verification-batches
 
-**Status:** proposed, 2026-11-06 (proposal-verification-batches@openmmlab-exporter@v1).
+**Status:** accepted, 2026-11-06 (user; PR: pending).
 
 ## Decision
 
-**Proposed, not decided.** The proposal is
-[`proposal.md`](../../proposals/verification-batches/proposal.md).
+The user accepted the proposal on 2026-11-06. The record is
+[`proposal.md`](../../proposals/verification-batches/proposal.md)
+(proposal-verification-batches@openmmlab-exporter@v1).
 
 - Section: [`common.batch_conversion`](../../common/batch-conversion.md).
 - Change: only the Authoring guidance changes. The verification batches of the `static-batch-v1`
@@ -17,9 +18,15 @@
 - Target spec version: `2.0.0`.
 - Models: `rtmw-wholebody133` and `yolox-person` (measured), and each later family with a b3
   publish.
-- Supersedes on acceptance: none.
+- Supersedes: none.
 - Related: `model-yolox-person@openmmlab-exporter` and `model-rtmw-wholebody133@openmmlab-exporter`
   name this bundle. Neither model waits for it.
+- The user confirmed two plan decisions. The verification batches change from 1, 2, 3 and 4 to 1,
+  2, 3 and 6. Batch 4 goes, and `S` stays 3. Input B grows from 4 to 6 different preprocessed
+  images of each size.
+- Landing order: the user decided that this change and its workflow and tool commit land before
+  the next versions of the two model bundles. Thus the contributor packs them once, with b6 files
+  and 6 input B items.
 
 ## Reason
 
@@ -41,12 +48,8 @@ The control with `N` = 1, 2 and 4 agrees with the hand-over reports for 65 of 66
 
 See [open-work.md](../open-work.md).
 
-## Before acceptance
+## Notes at acceptance
 
-- The user must confirm or refuse each plan decision of part 1:
-  - the verification batches change from 1, 2, 3 and 4 to 1, 2, 3 and 6, batch 4 goes, and `S`
-    stays 3;
-  - input B grows from 4 to 6 different preprocessed images of each size.
 - The header says that the model bundles are not packed yet. Both model bundles now exist.
 - The follow-up table of part 2.1 does not list these restatements of batch 4: phase 1 Step 1b
   ([phase-1-intake.md](../../model-addition-workflow/phase-1-intake.md)), "for example b2 and b4"
