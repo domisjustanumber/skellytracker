@@ -33,7 +33,7 @@ import shutil
 import subprocess
 import sys
 import types
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from urllib.parse import unquote
 
 import check_private_data
@@ -1531,7 +1531,7 @@ def _graph_problems(graph, folder: Path, nodes=None, tensors=None) -> list[str]:
             continue
         location = next((e.value for e in tensor.external_data if e.key == "location"), "")
         target = (folder / location).resolve()
-        if not location or location.startswith(("/", "\\")) or Path(location).is_absolute() or ".." in location or not target.is_relative_to(folder):
+        if not location or location.startswith(("/", "\\")) or PureWindowsPath(location).drive or Path(location).is_absolute() or ".." in location or not target.is_relative_to(folder):
             found.append(f"the tensor {tensor.name} has external data outside the folder of the model: {location!r}")
     return found
 
