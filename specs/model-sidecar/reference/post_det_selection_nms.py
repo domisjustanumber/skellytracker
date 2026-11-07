@@ -21,6 +21,15 @@ Note:
   problems, and no expect value changed. The check float32-stable passes.
 - Parity: unchanged. The yolox-person parity check ran with this module in place of the host code
   (OpenMMLab-Exporter ADR-3NNK (decisions/scripts/yolox_person_reference_swap.py at 53a48480d0b715f9b726963bce002ddb503b050b)). That run used this file before this note line changed (SHA-256 b93949be81e65edac82c9714668c0f24592faac7fe1338fa442a5c6b62db87bf).
+- Exclusion check: check_excluded_fields refuses class_logits_output, top_k and max_detections in
+  the decode block (V-post.det.selection.nms-1). Its source is the rule text, not the host code.
+  The host does not check the exclusion (host code unchanged at
+  c2e610e91fee0a961032e12737ff9147697a7e53). The vector file adds 3 data-only validator cases
+  (function: none), one for each field. No case runs the check. The 24 numeric cases give the
+  same result as with the file before the check (skellytracker
+  b065f6e6850686b65bcd08ca944116d739aa62de). The check refuses only an invalid decode block, and
+  the yolox-person decode block has none of the three fields, so the parity result above does
+  not change.
 
 The functions work on one image. The batch axis B is a loop outside this module.
 
@@ -34,6 +43,9 @@ Differences from the host code (each one gives the same result for a valid sidec
   refuses a value that is not a positive integer (V-post.det.selection.nms-1).
 - The host also reads class scores [B, Q, C]. The spec gives scores [B, Q] only, so this module
   does not read that layout.
+- The host does not refuse class_logits_output, top_k or max_detections. It reads
+  class_logits_output as the name of its scores output and ignores top_k and max_detections.
+  This module refuses each of the three fields (V-post.det.selection.nms-1).
 
 Precision: the section text states the steps in exact math. This module computes in float64.
 A float16 or float32 value converts to float64 exactly, so each comparison uses the exact value,
@@ -56,6 +68,20 @@ import post_unprojection
 
 # The fields of the nms object. A vector case gives them at the top level of params.
 NMS_KEYS = ("iou_threshold", "score_threshold", "class_agnostic", "post_nms_top_k")
+
+# The decode fields that a sidecar with selection: nms must not have (V-post.det.selection.nms-1),
+# and where the intent of each field belongs.
+EXCLUDED_FIELDS = {
+    "class_logits_output": "class_logits_output is valid only with selection: top_k.",
+    "top_k": (
+        "top_k is the pair count of selection: top_k. A candidate limit before the NMS (mmdet nms_pre)"
+        " has no field."
+    ),
+    "max_detections": (
+        "max_detections is valid only with selection: none, as the fixed row count of the graph. A cap"
+        " after the NMS is nms.post_nms_top_k."
+    ),
+}
 
 
 def float_array(values: Any) -> np.ndarray:
@@ -97,6 +123,22 @@ def nms_settings(nms: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError(f"V-post.det.selection.nms-1: nms.post_nms_top_k must be a positive integer, got {top_k!r}")
     out["post_nms_top_k"] = top_k
     return out
+
+
+def check_excluded_fields(decode: Mapping[str, Any]) -> None:
+    """Refuse a decode field that selection: nms does not allow (V-post.det.selection.nms-1).
+
+    A sidecar with selection: nms must not have class_logits_output, top_k or max_detections. The
+    check is for the key: a key with any value fails. The message tells where the intent of the
+    field belongs (EXCLUDED_FIELDS).
+
+    Source: the text of V-post.det.selection.nms-1 (section post.det.selection.nms, heading
+    "Validation rules"). The host OpenMMLab-Exporter onnx_runtime/decode_nms.py::NmsDecoder does not
+    check this rule at c2e610e91fee0a961032e12737ff9147697a7e53.
+    """
+    for key, intent in EXCLUDED_FIELDS.items():
+        if key in decode:
+            raise ValueError(f"V-post.det.selection.nms-1: a sidecar with selection: nms must not have {key}. {intent}")
 
 
 def box_iou(box: Any, boxes: Any) -> np.ndarray:
@@ -197,6 +239,7 @@ def decode_image(
         class_indexes: (Q,) model class indexes (the class_field column), or None when the
             sidecar has no class source.
         decode: the decode block, with the nms object.
+            It must not have class_logits_output, top_k or max_detections (check_excluded_fields).
         input_size: [height, width] of the model input. A box_scale other than pixel needs it.
         resize: the input.resize block. None stops before shared steps 3 to 5: the boxes then
             stay in model-input pixels.
@@ -224,6 +267,7 @@ def decode_image(
     Source: OpenMMLab-Exporter onnx_runtime/decode_nms.py::NmsDecoder.decode at
     5dd5c93ac6555ac907ae2ebfbc27dc6de5e3c278.
     """
+    check_excluded_fields(decode)
     nms = nms_settings(decode.get("nms") or {})
     score = float_array(scores).reshape(-1)
     model = post_det_decode.to_xyxy(float_array(boxes).reshape(-1, 4), decode)

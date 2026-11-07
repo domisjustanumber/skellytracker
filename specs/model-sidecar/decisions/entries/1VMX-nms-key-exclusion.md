@@ -1,11 +1,12 @@
 # 1VMX — Spec change: nms-key-exclusion
 
-**Status:** proposed, 2026-11-06 (proposal-nms-key-exclusion@openmmlab-exporter@v1).
+**Status:** accepted, 2026-11-06 (user; PR: pending).
 
 ## Decision
 
-**Proposed, not decided.** The proposal is
-[`proposal.md`](../../proposals/nms-key-exclusion/proposal.md).
+The user accepted the proposal on 2026-11-06. The record is
+[`proposal.md`](../../proposals/nms-key-exclusion/proposal.md)
+(proposal-nms-key-exclusion@openmmlab-exporter@v1).
 
 - Section: [`post.det.selection.nms`](../../post/selection-nms.md).
 - Change: no normative text changes. The landed reference module
@@ -15,9 +16,15 @@
   the end. The 24 numeric cases do not change.
 - Target spec version: `2.0.0`.
 - Models: `yolox-person` (no sidecar change).
-- Supersedes on acceptance: none.
+- Supersedes: none.
 - Related: `model-yolox-person@openmmlab-exporter`. Its response asked for this change, because the
   landed module did not check the rule.
+- The user confirmed two plan decisions. The module refuses the three keys exactly as the current
+  text of `V-post.det.selection.nms-1` says, and the text does not change. The gap of
+  `class_logits_output` with `selection: nms` (NMS over the scores of each class) is only noted in
+  part 8 of the proposal.
+- Landing form: the user chose a non-spec commit, as a reference implementation of the current
+  text with its vectors. The commit adds no changelog row, and the fingerprint does not change.
 
 ## Reason
 
@@ -37,13 +44,8 @@ numeric cases at OpenMMLab-Exporter `c2e610e`. No validator ran the 3 new cases.
 
 See [open-work.md](../open-work.md).
 
-## Before acceptance
+## Notes at acceptance
 
-- The user must confirm or refuse each plan decision of part 1:
-  - the module refuses the three keys exactly as the current rule says, and the text does not
-    change;
-  - the gap of `class_logits_output` with `selection: nms` (NMS over the scores of each class) is
-    only noted in part 8.
 - The landing form: the workflow has no path for a changed reference module with no text change.
   It can be a content commit with an empty part 2, or a non-spec commit of a reference
   implementation of the current text with its vectors. With no text change, the changelog

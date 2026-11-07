@@ -1201,7 +1201,7 @@ def _iou(a: list[float], b: list[float]) -> float:
     return inter / union
 
 
-@pytest.mark.parametrize("case", case_params("post.det.selection.nms"))
+@pytest.mark.parametrize("case", forward_params("post.det.selection.nms"))
 def test_nms_result_obeys_the_rules(case: dict[str, Any]) -> None:
     params, expect = case["params"], case["expect"]
     boxes = [
@@ -1238,7 +1238,7 @@ def test_top_k_result_obeys_the_rules(case: dict[str, Any]) -> None:
 
 @pytest.mark.parametrize(
     "case",
-    case_params("post.det.selection.nms")
+    forward_params("post.det.selection.nms")
     + case_params("post.det.selection.top_k")
     + case_params("post.det.selection.none"),
 )
