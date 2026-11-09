@@ -5,6 +5,9 @@ These rules apply to each contributor that writes a sidecar or a vector file.
 ## Independence
 
 - A reference implementation made from the code of an exporter is not independent of that exporter.
+- Host code that an exporter wrote from its own reference module, or checked against it, is not
+  independent of that module. The skellytracker implementation or the implementation of a second
+  exporter can verify it ([ADR-3HZ4](../../../decisions/entries/3HZ4-decision-questions-and-rule-defaults.md)).
 - In the `verified_against` list of a vector file, the reference implementation and its source
   exporter count as one implementation.
 - Only exporters and skellytracker count as implementations in `verified_against`. Do not list the

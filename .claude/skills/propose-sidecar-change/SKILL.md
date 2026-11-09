@@ -206,6 +206,9 @@ A contributor writes its proposal bundle.
 4. If a part is missing, give the finding in the response. Do not write the missing part from your
    own reading of the spec.
 5. Do not write a reference implementation from your own reading of the spec.
+6. Record a bundle with no finding of items 1 to 5. Do not ask the user first. Report the side
+   effects of the record, for example the new section owner and the `depends_on` bundles
+   ([ADR-3HZ4](../../../decisions/entries/3HZ4-decision-questions-and-rule-defaults.md)).
 
 ### Step 3: Copy the proposal into the spec folder
 
@@ -275,8 +278,13 @@ A contributor writes its proposal bundle.
 2. Run `uv run pytest tools/tests -q`. All tests must pass.
 3. The proposal file and the entry are a non-spec change. Put them in a non-spec PR
    ([section 6](../../../AGENTS.md#6-git-rules) of `AGENTS.md`).
-4. Stop. Tell the user the entry number and the decision to make.
-5. The user accepts or rejects the proposal. After acceptance, use the skill
+4. Stop. Tell the user the entry number. Ask the decision in the form of
+   [Decision questions](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#decision-questions).
+   For a version that meets a recorded
+   [conditional acceptance](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#conditional-acceptance), do not ask the decision.
+   Report the version, and ask only for the copy approval of its reference files.
+5. The user accepts or rejects the proposal. A met conditional acceptance is the acceptance of the
+   user. After acceptance, use the skill
    [`change-sidecar-spec`](../change-sidecar-spec/SKILL.md).
 
 ### Record a new version
@@ -298,6 +306,10 @@ until the record is current.
    - Tick each item that the new version closes. Give the reason after it.
    - Rewrite each item that the new version changes. Mark it `(changed <YYYY-MM-DD>)`.
    - Add each new item at the end of its group. Mark it `(new <YYYY-MM-DD>)`.
+   - For a version that meets a
+     [conditional acceptance](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#conditional-acceptance),
+     delete each closed item. Do not tick it. Git keeps the old list
+     ([ADR-80PC](../../../decisions/entries/80PC-conditional-acceptance-and-landed-copy-fixes.md)).
 6. Change the Decision, the Reason and the Evidence of the entry only where the new version changes
    them. Keep the entry inside the entry limit.
 7. Add `recorded again <YYYY-MM-DD> (<bundle id>@v<k>)` to the status line of the entry.
@@ -313,5 +325,5 @@ until the record is current.
 | The checkout does not exist, or it is not on the branch `dom/sidecar-implementation` (exporter repo). | Stop. Ask the user what to do. |
 | You packed the proposal bundles (exporter repo). | Stop. Report to the user. |
 | A proposal bundle has a missing part or a `verify` finding (skellytracker). | Write the response `needs-contributor`. Do not write the part yourself. |
-| You wrote the `proposed` entry (skellytracker). | Stop. The user accepts or rejects the proposal. |
+| You wrote the `proposed` entry (skellytracker). | Stop. The user accepts or rejects the proposal. A met [conditional acceptance](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#conditional-acceptance) is the acceptance of the user. |
 | A new version of a proposal whose entry is not `proposed`, or whose bundle has an `accepted` response (skellytracker). | Stop. Do not change the record. The contributor writes a new bundle. |

@@ -48,6 +48,8 @@ These entries are `accepted` or `evidence`.
 | [9HBB](entries/9HBB-simcc-decode-is-2d-only.md) | The SimCC decode is 2D only: no `simcc_z`, no `depth_range`; a 3D SimCC model adds its own section | accepted |
 | [4KW6](entries/4KW6-onnxruntime-1-31-for-the-cpu-check.md) | `onnx-cpu` requires `onnxruntime>=1.31` (lock 1.31.1): no fp16 noise in the batch check; the GPU cap stays | accepted |
 | [M3RY](entries/M3RY-answers-version-names-an-existing-version.md) | `answers_version` is the version a response answers; `verify` refuses a higher number in the latest response; run `verify` after each response | accepted |
+| [3HZ4](entries/3HZ4-decision-questions-and-rule-defaults.md) | One form for each decision question, with the copy and push approvals; a rule decides first; defaults that need no question | accepted |
+| [80PC](entries/80PC-conditional-acceptance-and-landed-copy-fixes.md) | A conditional acceptance is a `needs-contributor` response; "Notes at acceptance"; docstring fixes in the landed reference copy | accepted |
 
 ### Proposed
 

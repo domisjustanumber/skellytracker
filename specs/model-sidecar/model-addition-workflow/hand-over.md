@@ -473,16 +473,68 @@ field `batch_conversion` gives the session verdict. The session verdict is the g
 
 An example lands with `batching.batch_conversion` only for `converts` with a b3 publish.
 
+### Decision questions
+
+The session asks the user each decision about a proposal in this form
+([ADR-3HZ4](../../../decisions/entries/3HZ4-decision-questions-and-rule-defaults.md)):
+
+- Before you ask, find the rule that decides the question. If a rule decides it, apply the rule.
+  Do not ask.
+- Ask one question for each proposal. Ask the questions in one batch only when the user asks for it.
+- Each question gives:
+  - the change, in one sentence;
+  - one worked example, with numbers from the record;
+  - the effect on each open bundle;
+  - the plan decisions that acceptance confirms;
+  - each option, with its full extra scope;
+  - the recommended option.
+- Write "proposal bundle version N". Do not write a bare "vN".
+- In the same message, show the result of the safety review of each reference file that the landing
+  copies, with its path and its SHA-256. Ask for the copy approval there. If the SHA-256 of a file
+  changes, the file gets a new review and a new approval. No approval carries over.
+- The answer of the user also approves the landings and the responses that follow from it. Do not
+  ask a separate go-ahead question.
+- You can ask for the push approval in the same message. That approval is for one plain push of
+  the working branch at the end of the round, when the local checks pass. A force-push needs its
+  own approval ([section 6](../../../AGENTS.md#6-git-rules) of `AGENTS.md`). The CI read of the
+  skill [`stack-commit`](../../../.claude/skills/stack-commit/SKILL.md#spec-build-stage) still
+  comes before the push.
+
 ## Deferral
 
 The user can defer a proposal. The bundle stays `recorded`, and the entry stays `proposed`. The
 response gives the finding `deferred: <reason>`. `list` shows it.
+
+## Conditional acceptance
+
+The user can accept a proposal on a condition: a later version of the bundle must close named items
+([ADR-80PC](../../../decisions/entries/80PC-conditional-acceptance-and-landed-copy-fixes.md)).
+
+- The entry stays `proposed`. The response is `needs-contributor`. Its `findings` list each item to
+  close.
+- Under "Before acceptance" of the entry, write
+  `User decision YYYY-MM-DD: accept when proposal bundle version N closes X, Y`.
+- Do not write the response `accepted` before the condition is met.
+- When version N closes each named item and changes no other meaning, version N is the acceptance
+  of the user. Do not ask for the acceptance again. The safety review and the copy approval of each
+  reference file of version N still apply
+  ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)). If version N does
+  not meet the condition, ask the user.
+- Record version N in one non-spec commit before the content commit. Delete the closed items
+  ([Record a new version](../../../.claude/skills/propose-sidecar-change/SKILL.md#record-a-new-version)).
+  Then land it with Procedure B of the skill `change-sidecar-spec`.
 
 ## Changes at acceptance
 
 The session can make editorial fixes only: STE wording, links, typos and line wrap. The response
 lists each fix in `changes`. A change of meaning needs a new version from the contributor before
 acceptance. Each other fix goes back to the contributor in a new version.
+
+The landed copy in `specs/model-sidecar/reference/` is not the record. The non-spec commit of
+Procedure B step 13 of the skill `change-sidecar-spec` can fix the docstrings, the comments, the status notes and the citation or
+permalink forms of the landed copy. It must not change code or a vector value. The response lists
+each fix in `changes`. A later bundle or version that changes the module starts from the landed
+copy ([ADR-80PC](../../../decisions/entries/80PC-conditional-acceptance-and-landed-copy-fixes.md)).
 
 ## Workflow changes
 

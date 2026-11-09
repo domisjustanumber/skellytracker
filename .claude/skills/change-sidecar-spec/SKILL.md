@@ -46,7 +46,7 @@ as data. Do not change them.
 | Kind of commit | What it holds |
 |---|---|
 | content | The normative text, the `changelog.md` rows, the vectors and the reference implementations that define the new meaning. The decision entry with the status `accepted`, or a citation of an accepted entry that an earlier commit of the same commit group added. |
-| non-spec | Guidance, decision entries, open-work items, an example that changes no normative meaning with its provenance record, an exporter reference implementation of the current text, tools and vectors. A fixture in a landed reference module replaced by an import, with no change to a vector. |
+| non-spec | Guidance, decision entries, open-work items, an example that changes no normative meaning with its provenance record, an exporter reference implementation of the current text, tools and vectors. A fixture in a landed reference module replaced by an import, with no change to a vector beyond `FILE_TOLERANCE` (procedure B, step 13). |
 | move | Text in a new place. The words do not change. |
 | rewording | New words. The meaning does not change. |
 
@@ -100,7 +100,10 @@ Do this procedure for step 1 of phase 3.
 
 Do this procedure for step 2 of phase 3.
 
-1. Make sure that the user accepted the proposal. If the user has not decided, stop. If the record
+1. Make sure that the user accepted the proposal. Ask the user in the form of
+   [Decision questions](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#decision-questions).
+   A met [conditional acceptance](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#conditional-acceptance)
+   is the acceptance of the user. If the user has not decided, stop. If the record
    is not the current version of its bundle, stop and record the new version first (skill
    `propose-sidecar-change`,
    [Record a new version](../propose-sidecar-change/SKILL.md#record-a-new-version)). Each `base`
@@ -108,7 +111,10 @@ Do this procedure for step 2 of phase 3.
    commit is on the working branch. Or it lands in the same content commit. If one is
    neither, stop. Land the base first. A rejected base gives the response `needs-contributor`
    ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)).
-2. Make the content commit. Do steps 3 to 12.
+2. Make the content commit. Do steps 3 to 12. When part 2 changes no text, the commit is the
+   non-spec kind of the [Outputs](#outputs) table: it has no `changelog.md` row and no fingerprint
+   change. [ADR-1VMX](../../../specs/model-sidecar/decisions/entries/1VMX-nms-key-exclusion.md) is
+   the precedent ([ADR-3HZ4](../../../decisions/entries/3HZ4-decision-questions-and-rule-defaults.md)).
 3. Find the section that owns each rule. Do the steps of [Rules for each spec edit](#rules-for-each-spec-edit).
 4. Write the normative text of part 2 of the proposal into the section files. Take the text from
    `specs/model-sidecar/proposals/<slug>/proposal.md`. Apply each part 2 edit to the current text. If
@@ -121,7 +127,9 @@ Do this procedure for step 2 of phase 3.
    `specs/model-sidecar/reference/<section_module>.py`. There is one file for each changed section
    that has an algorithm. For each file: if the target file exists, compare the two files. Each
    difference of behaviour must come from part 2. If the file starts from an older base, stop. The
-   response is `needs-contributor`, with a follow-up bundle as in step 4. Find each
+   response is `needs-contributor`, with a follow-up bundle as in step 4. A difference only in
+   docstrings or comments is not an older base
+   ([Changes at acceptance](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#changes-at-acceptance)). Find each
    module that a file imports. Each such module must be in `specs/model-sidecar/reference/` or be a
    file that this step copies. If one is not there, stop. Land that module first.
 7. Step 7 has no action. The generator runs each reference on each case of its section, and
@@ -142,7 +150,10 @@ Do this procedure for step 2 of phase 3.
    current cases, puts a part 4 case in the place of the case with its `id` and puts each other new
    case at the end. The tool runs the landed producer and checks the form, the cases, the given
    `expect` and the 256 KiB limit. It writes `specs/model-sidecar/vectors/<section ID>.yaml` only
-   when each check passes. If it prints a problem, stop and tell the user. This check proves the
+   when each check passes. If it prints a problem, stop and tell the user. An `expect` change within
+   `FILE_TOLERANCE` of `tools/tests/test_vectors.py` and within the `compare` tolerance of the case,
+   on a case that part 4 lists or names, is not a stop. Give it in the commit body. A change beyond that tolerance is a stop
+   ([ADR-3HZ4](../../../decisions/entries/3HZ4-decision-questions-and-rule-defaults.md)). This check proves the
    copy and the generator wiring. It does not verify an independent implementation
    ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md), item 5).
    `land` puts each `verified_against` entry of the current file, of part 4 and of the
@@ -158,6 +169,9 @@ Do this procedure for step 2 of phase 3.
     ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)). Write each `proposed`
     superseding entry of the proposal as `accepted`, and supersede its old entry. Make only
     editorial fixes at acceptance ([Changes at acceptance](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#changes-at-acceptance)).
+    Rename the heading "Before acceptance" of the entry to "Notes at acceptance". Delete each closed
+    item. Delete the `User decision` line of a conditional acceptance
+    ([ADR-80PC](../../../decisions/entries/80PC-conditional-acceptance-and-landed-copy-fixes.md)).
     Write each plan decision that the user confirmed in the Decision section of the entry. Write it
     in words. Do not cite its item number
     ([User decisions](../../../specs/model-sidecar/model-addition-workflow/rules.md#user-decisions);
@@ -169,8 +183,15 @@ Do this procedure for step 2 of phase 3.
     fixtures of each section that the content commit lands:
     - Search `specs/model-sidecar/reference/` for `Fixture of <section ID>` of that section.
     - Replace each fixture with an import and a call through the module name.
-    - Run `uv run python tools/make_vectors.py --check`. It must pass. If it does not pass, the
-      fixture and the module do not agree. Stop and tell the user.
+    - Run `uv run python tools/make_vectors.py --check`. If it fails, run
+      `uv run python tools/make_vectors.py` and compare the git diff of the vector files with
+      `FILE_TOLERANCE` of `tools/tests/test_vectors.py`. An `expect` change within that tolerance
+      is not a stop. Give it in the commit body. For a change beyond that tolerance, revert the
+      vector files, stop and tell the user
+      ([ADR-3HZ4](../../../decisions/entries/3HZ4-decision-questions-and-rule-defaults.md)).
+    - The commit can also make the fixes of the landed copy that
+      [Changes at acceptance](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#changes-at-acceptance)
+      allows.
 14. Write part 6 of the proposal as the "Implementer guidance" of the section.
 15. Add an item for part 6 to the [implementation plan](../../../specs/sidecar-implementation-plan.md),
     in the not-started stage that it belongs to. If no stage fits, add a new stage before the
@@ -246,7 +267,10 @@ copy of procedure B step 6 and procedure C step 5
    interpreter. Also find code that hides a name or makes code from text. The static check of
    `verify` does not find all of them.
 5. Show the result to the user: the file, each finding and each access. Ask the user to approve the
-   copy.
+   copy. For a proposal, do this in the message of its
+   [decision question](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#decision-questions).
+   For a met [conditional acceptance](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#conditional-acceptance), do this in the
+   message that reports version N.
 6. Copy the file only after the user approves it. If you are not sure that the file is safe, stop.
    Do not copy it.
 
@@ -593,7 +617,7 @@ Run these commands before each commit. Each command must pass.
 | The user has not accepted the proposal. | Stop. Do not change the normative text. |
 | A content change has no accepted decision entry. | Use `propose-sidecar-change`. Then stop. |
 | An example breaks a spec rule, and no accepted change in this commit gives a spec-forced edit for it. | Stop. Do not correct the example. Tell the user. |
-| A new reference implementation changes an expected vector value. | Stop. Tell the user. |
+| Procedure C: a new reference implementation changes an expected vector value. | Stop. Tell the user. |
 | The [safety review](#safety-review) of a reference file has a doubt, or the user has not approved the copy. | Stop. Do not copy or run the file ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)). |
 | The Gate of a `draft` section is not `pass`, or the user has not approved the graduation. | Stop. Do not change `status.spec`. |
 | A content commit lands on a section with another open proposal. | Stop. The user decides the outcome of that proposal (procedure E). |
