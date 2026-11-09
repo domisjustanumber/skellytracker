@@ -6,11 +6,11 @@ This file uses ASD-STE100 Simplified Technical English.
 
 | Field | Value |
 |---|---|
-| Title | Each normalization mode casts its result to `input.dtype`; a `uint8` input needs `none` and an 8-bit resize; `int8` is not an input dtype; the `custom` defaults |
+| Title | Each normalization mode casts its result to `input.dtype`; a `uint8` input needs `none` and an 8-bit resize; `int8` is not an input dtype |
 | Slug | `normalize-input-dtype` |
 | Date | 2026-11-06 |
 | Exporter repo | OpenMMLab-Exporter |
-| Exporter commit (`git rev-parse HEAD` in the exporter repo, or `none (no git repo)`) | `33e657d957872999aa04eb46d977eea1634be365` |
+| Exporter commit (`git rev-parse HEAD` in the exporter repo, or `none (no git repo)`) | `ecee56e1ea1b4d3901c76a73b713ed0256675e78` |
 | Model, and its `model` bundle ID | `yolox-person` (`model-yolox-person@openmmlab-exporter`) and `rtmw-wholebody133` (`model-rtmw-wholebody133@openmmlab-exporter`). Both use `pre.normalize` with a `float32` input. Neither model needs a value that this proposal adds or removes. |
 | Intake rows with the verdict `near-miss` or `gap` | none. The rows T10 (normalization) and T11 (cast to `input.dtype`) of both intakes are `exact`. The proposal comes from the reference step of `pre.normalize`: the skellytracker response of 2026-11-06 to `model-yolox-person@openmmlab-exporter` found that the reference module of that bundle does not implement the current text (part 1). |
 | Kind (`new section`, `changed section`, `contribution` or `follow-up`) | `changed section` |
@@ -18,26 +18,46 @@ This file uses ASD-STE100 Simplified Technical English.
 | Proposed section ID (the `id` in the section file's front matter) | `pre.normalize` (primary). The proposal also changes `common.input` (rule `V-common.input-2`). |
 | Section file (the file of the changed section, or the proposed path of the new section file under `specs/model-sidecar/`) | `specs/model-sidecar/pre/normalization.md`; also `specs/model-sidecar/common/input.md` |
 | Depends on (`depends_on`: bundle IDs that must land first, or `none`) | none |
-| skellytracker decision entries with the status `proposed` that cover the same property (or `none`) | none. The Proposed table of the spec log holds ADR-3S5G (`pre.resize.affine_person_crop`) and ADR-50BW (`common.batch_conversion`) only. |
+| skellytracker decision entries with the status `proposed` that cover the same property (or `none`) | skellytracker ADR-XH1J records version 1 of this proposal. This version replaces that record. The other entries of the Proposed table of the spec log are skellytracker ADR-3S5G (`pre.resize.affine_person_crop`), skellytracker ADR-52NQ (`common.identity`) and skellytracker ADR-03PH (`post.pose.decode.simcc`). None of them covers `pre.normalize` or `common.input`. |
 | skellytracker folder that you read (normally `../freemocap/skellytracker`) | `../freemocap/skellytracker` (branch `dom/sidecar-implementation`) |
-| skellytracker commit of the spec text that you read (`git -C <folder> rev-parse HEAD`; add `+ uncommitted changes` if `git -C <folder> status --porcelain` lists a file that you read) | `b065f6e6850686b65bcd08ca944116d739aa62de` |
+| skellytracker commit of the spec text that you read (`git -C <folder> rev-parse HEAD`; add `+ uncommitted changes` if `git -C <folder> status --porcelain` lists a file that you read) | `8fed6f34eb22643e0b6cc38a7c6b80014bfe1d75` |
 | Target spec version: the newest version heading under "Revisions" in `specs/model-sidecar/changelog.md`, today the open target `2.0.0`. `pack` writes it to the manifest as `spec_version`. | `2.0.0` |
 
-**Section owner.** No bundle in `intakes/` and no record in `specs/model-sidecar/proposals/` owns
-`pre.normalize` or `common.input`. `intake_bundle.py list` at `b065f6e6` gives the owners
-`common.batch_conversion` and `pre.resize.affine_person_crop` only. Thus this is a new proposal
-("Proposal forms" and "Section owner" in
+**Section owner.** skellytracker ADR-XH1J records version 1 of this bundle with the status
+`proposed`. Thus this bundle owns `pre.normalize` and `common.input`. `intake_bundle.py list` at
+`8fed6f34` gives the owner `openmmlab-exporter` for both sections. This is version 2 of the same
+proposal ("Versions", "Proposal forms" and "Section owner" in
 `specs/model-sidecar/model-addition-workflow/hand-over.md`).
+
+**Changes in version 2.** This version answers the responses r1 and r2 of skellytracker
+(skellytracker ADR-XH1J):
+
+- The user accepted the dtype rules and the plan decisions of part 1 (r2). The text of these rules
+  does not change.
+- The user does not accept the dtype rules, the `custom` defaults and the correction of the `none`
+  row as one contract unit (r2). This version removes the `custom` defaults (`scale: 1`,
+  `mean: [0, 0, 0]`, `std: [1, 1, 1]`) and the change of the `none` row from part 2, from the
+  part 3 file and from the vectors. The separate bundle
+  `proposal-normalize-custom-defaults@openmmlab-exporter` holds them, with `related` set to this
+  bundle.
+- The part 3 file: its docstring now gives the `yolox-person` parity result `pass` (part 5) and
+  lists `V-common.input-5` as a rule of another section. Part 3 now lists the three changes of
+  behaviour that version 1 did not list.
+- Part 5 tells how the part 3 file differs from the measured file, and gives the equality check.
+- The vectors ran again at the spec commit of the header.
+- "Before you stop": the box "No file in skellytracker changed" is ticked. The stale note is gone.
+- Part 5 gives the RTMW check that r2 asks for (`imagenet`, `rgb`): pass (OpenMMLab-Exporter
+  ADR-21VF).
 
 ## 1. Gap
 
 | Item | Value |
 |---|---|
-| Property | The dtype rules of the normalization step. (a) Each mode casts its result to the `input.dtype` entry of the selected precision. The mode table states the cast only for `none`. (b) A `uint8` input is valid only with the resolved normalization `none` and an 8-bit resize. No rule states this. (c) `int8` is not an input dtype. `V-common.input-2` allows it. (d) The check of the top-level `input.normalization` applies also when `normalization_by_precision` covers the precision. The current rule states this. Only the reference module and the host must follow it. (e) A `custom` object with no `scale`, `mean` or `std` uses `scale: 1`, `mean: [0, 0, 0]` and `std: [1, 1, 1]`. The text gives the default of `scale` only in a YAML comment, and no default for `mean` and `std`. |
-| Upstream evidence (file and line, or config key; full upstream SHA, then the tag) | The gap is in the spec text. No upstream model needs a new value. The evidence is the spec text, the hosts and the writers. (1) The cast of every mode: skellytracker ADR-PHJ3 (accepted 2026-11-04), Decision item 2: "The normalization then takes the result and casts it to `input.dtype`." The heading "Compute dtype" in `specs/model-sidecar/pre/interpolation.md` says the same. ONNX Runtime refuses a tensor whose dtype is not the dtype of the graph input (part 1, Measured difference). (2) The OpenMMLab-Exporter host casts every mode ([`onnx_runtime/preprocess.py:264-265`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/7bc72b45137faa4b211d05a38f58812ffae5a109/onnx_runtime/preprocess.py#L264-L265)), refuses `uint8` with a mode other than `none` ([`:261-262`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/7bc72b45137faa4b211d05a38f58812ffae5a109/onnx_runtime/preprocess.py#L261-L262)), has no `int8` ([`:63`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/7bc72b45137faa4b211d05a38f58812ffae5a109/onnx_runtime/preprocess.py#L63)), gives the `custom` defaults ([`:158-160`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/7bc72b45137faa4b211d05a38f58812ffae5a109/onnx_runtime/preprocess.py#L158-L160)) and checks the top-level value also with an override ([`:168-179`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/7bc72b45137faa4b211d05a38f58812ffae5a109/onnx_runtime/preprocess.py#L168-L179), [`:198`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/7bc72b45137faa4b211d05a38f58812ffae5a109/onnx_runtime/preprocess.py#L198)). (3) The skellytracker package gives the same `custom` defaults: `CustomNormalization` has `scale: float = 1.0` (`skellytracker/core/sidecar/model.py`), and `build_normalization_fn` uses `mode.mean or [0.0, 0.0, 0.0]` and `mode.std or [1.0, 1.0, 1.0]` (`skellytracker/core/detectors/processing/image_preprocessing.py`). (4) The Ultralytics-Exporter writer reads the input dtype from the graph. It names `TensorProto.INT8` `int8` ([`yolo_sidecar.py:83-86`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L83-L86)). It writes the override `none` for a precision whose input dtype is `uint8` or `int8` ([`yolo_sidecar.py:391-393`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L391-L393)). (5) The mode table names YOLOX as a graph that normalizes internally. The YOLOX data preprocessor of the HumanArt configs has no `mean` and no `std`, so the model takes raw 0-255 BGR pixels, and the graph does not normalize: mmpose `5408bc76f5b848cf925a0d1857899011d8c5b497` (tag `v1.3.2`), [`projects/rtmpose/yolox/humanart/yolox_s_8xb8-300e_humanart.py:11-20`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/projects/rtmpose/yolox/humanart/yolox_s_8xb8-300e_humanart.py#L11-L20). |
-| Plan decisions about the spec that this proposal uses, in words (or `none`) (heading "User decisions" in `specs/model-sidecar/model-addition-workflow/rules.md`) | The user decided on 2026-11-06 to write this proposal for the dtype rules, in place of a reference module that implements only the current text. The part 3 module of this proposal becomes the reference implementation of `pre.normalize`. Thus the bundles `model-yolox-person@openmmlab-exporter` and `model-rtmw-wholebody133@openmmlab-exporter` skip the reference step for this section (the second skip rule of "When to do the step" in `specs/model-sidecar/model-addition-workflow/reference-implementations.md`). The user decided on 2026-11-06 to remove `int8` from the values of `input.dtype` (`V-common.input-2`). The values of `outputs[].dtype` (`V-common.outputs-2`) keep `int8`. |
+| Property | The dtype rules of the normalization step. (a) Each mode casts its result to the `input.dtype` entry of the selected precision. The mode table states the cast only for `none`. (b) A `uint8` input is valid only with the resolved normalization `none` and an 8-bit resize. No rule states this. (c) `int8` is not an input dtype. `V-common.input-2` allows it. (d) The check of the top-level `input.normalization` applies also when `normalization_by_precision` covers the precision. The current rule states this. Only the reference module and the host must follow it. Not in this proposal: the values of absent `custom` keys and the "Typical use" of the `none` row (the separate bundle `proposal-normalize-custom-defaults@openmmlab-exporter`). |
+| Upstream evidence (file and line, or config key; full upstream SHA, then the tag) | The gap is in the spec text. No upstream model needs a new value. The evidence is the spec text, the hosts and the writers. (1) The cast of every mode: skellytracker ADR-PHJ3 (accepted 2026-11-04), Decision item 2: "The normalization then takes the result and casts it to `input.dtype`." The heading "Compute dtype" in `specs/model-sidecar/pre/interpolation.md` says the same. ONNX Runtime refuses a tensor whose dtype is not the dtype of the graph input (part 1, Measured difference). (2) The OpenMMLab-Exporter host casts every mode ([`onnx_runtime/preprocess.py:264-265`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/7bc72b45137faa4b211d05a38f58812ffae5a109/onnx_runtime/preprocess.py#L264-L265)), refuses `uint8` with a mode other than `none` ([`:261-262`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/7bc72b45137faa4b211d05a38f58812ffae5a109/onnx_runtime/preprocess.py#L261-L262)), has no `int8` ([`:63`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/7bc72b45137faa4b211d05a38f58812ffae5a109/onnx_runtime/preprocess.py#L63)) and checks the top-level value also with an override ([`:168-179`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/7bc72b45137faa4b211d05a38f58812ffae5a109/onnx_runtime/preprocess.py#L168-L179), [`:198`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/7bc72b45137faa4b211d05a38f58812ffae5a109/onnx_runtime/preprocess.py#L198)). (3) The Ultralytics-Exporter writer reads the input dtype from the graph. It names `TensorProto.INT8` `int8` ([`yolo_sidecar.py:83-86`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L83-L86)). It writes the override `none` for a precision whose input dtype is `uint8` or `int8` ([`yolo_sidecar.py:391-393`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L391-L393)). |
+| Plan decisions about the spec that this proposal uses, in words (or `none`) (heading "User decisions" in `specs/model-sidecar/model-addition-workflow/rules.md`) | The user decided on 2026-11-06 to write this proposal for the dtype rules, in place of a reference module that implements only the current text. The part 3 module of this proposal becomes the reference implementation of `pre.normalize`. Thus the bundles `model-yolox-person@openmmlab-exporter` and `model-rtmw-wholebody133@openmmlab-exporter` skip the reference step for this section (the second skip rule of "When to do the step" in `specs/model-sidecar/model-addition-workflow/reference-implementations.md`). The user decided on 2026-11-06 to remove `int8` from the values of `input.dtype` (`V-common.input-2`). The values of `outputs[].dtype` (`V-common.outputs-2`) keep `int8`. The user confirmed these decisions and accepted the dtype rules on 2026-11-06 (skellytracker response r2, skellytracker ADR-XH1J). The user decided on 2026-11-06 that the `custom` defaults and the correction of the `none` row are not one contract unit with the dtype rules. They go in a separate proposal bundle (r2). |
 | Nearest section ID (the `id` in the section file's front matter) | `pre.normalize`; for `int8`, `common.input` |
-| Why the nearest section is wrong | The skellytracker response of 2026-11-06 to `model-yolox-person@openmmlab-exporter` lists four differences between the reference module of that bundle and the current text: (a) the module casts the result of each mode to `input.dtype`, but the mode table states the cast only for `none`; (b) the module refuses `uint8` with a mode other than `none`, but no rule refuses that sidecar; (c) the module refuses `int8`, which `V-common.input-2` allows; (d) the module accepted a missing top-level `input.normalization` when the override covers the precision, but `V-pre.normalize-1` requires it. For (a), the text of `pre.normalize` disagrees with ADR-PHJ3 and with `pre.resize.interpolation`, which say that the normalization casts to `input.dtype`. A host that follows only the mode table gives a `float32` tensor to a `float16` graph input, and ONNX Runtime refuses it. For (b), a mode other than `none` gives fractional values, and a `float32` resize gives fractional values. The cast of a fractional value to `uint8` is not defined. The spec log names this open case: "the cast of a `float32` resize to an integer `input.dtype`" ("Spec defects" in `specs/model-sidecar/decisions/open-work.md`). For (c), no mode gives a defined `int8` value: with `none`, the pixels 128 to 255 do not fit, and the other modes give fractional values. For (d), the rule is clear. The module and the host now follow it, so the text does not change. For (e), `V-pre.normalize-1` allows a `custom` object with no `mean` or `std` ("If `mean` or `std` is present ..."), but the text gives no value for them. |
+| Why the nearest section is wrong | The skellytracker response of 2026-11-06 to `model-yolox-person@openmmlab-exporter` lists four differences between the reference module of that bundle and the current text: (a) the module casts the result of each mode to `input.dtype`, but the mode table states the cast only for `none`; (b) the module refuses `uint8` with a mode other than `none`, but no rule refuses that sidecar; (c) the module refuses `int8`, which `V-common.input-2` allows; (d) the module accepted a missing top-level `input.normalization` when the override covers the precision, but `V-pre.normalize-1` requires it. For (a), the text of `pre.normalize` disagrees with ADR-PHJ3 and with `pre.resize.interpolation`, which say that the normalization casts to `input.dtype`. A host that follows only the mode table gives a `float32` tensor to a `float16` graph input, and ONNX Runtime refuses it. For (b), a mode other than `none` gives fractional values, and a `float32` resize gives fractional values. The cast of a fractional value to `uint8` is not defined. The spec log names this open case: "the cast of a `float32` resize to an integer `input.dtype`" ("Spec defects" in `specs/model-sidecar/decisions/open-work.md`). For (c), no mode gives a defined `int8` value: with `none`, the pixels 128 to 255 do not fit, and the other modes give fractional values. For (d), the rule is clear. The module and the host now follow it, so the text does not change. A `custom` object with no `mean` or `std` has no value in the current text. This proposal does not change that (part 3, "The custom keys"). |
 | Measured difference (number, image and script) | An uncommitted check of this draft (secondary; NumPy 2.5.4, ONNX 1.23.2, ONNX Runtime 1.31.1 on the CPU, a one-node `Identity` graph). (1) A `float32` tensor for a `float16` graph input: ONNX Runtime raises `INVALID_ARGUMENT : Unexpected input data type. Actual: (tensor(float)) , expected: (tensor(float16))`. (2) The cast to `float16` changes the `unit_float` values of the 4 vector pixels by up to 1.3e-4, and the `imagenet` values by up to 8.6e-4. The cases `unit-float-float16` and `imagenet-float16` of part 4 hold these values. Both are more than the vector tolerance 1e-5. (3) The `imagenet` values of the 4 vector pixels, cast to `uint8`, give `[255, 254, 254]`, `[2, 2, 2]`, `[255, 0, 2]` and `[1, 0, 255]`, with no warning. (4) `float32` resize values cast to `uint8`: `127.5` gives `127` (a truncation, not a rounding), `-63.66` gives `193` and `314.37` gives `58`, with no warning. A `cubic` resize in `float32` gives values from -63.66 to 314.37 on noise (skellytracker ADR-PHJ3, Evidence). (5) The `none` pixels cast to `int8`: `200` gives `-56` and `255` gives `-1`. |
 | Model in "Scope of this revision" (`specs/model-sidecar/changelog.md`): yes, or no (it joins the list on acceptance; do not write a scope entry) | yes for `rtmw-wholebody133` (OpenMMLab-Exporter: RTMW). `yolox-person`: no. This proposal does not change a value of that model, so it does not add the model to the list. |
 | Row in "Considered and deliberately not added" (`specs/model-sidecar/changelog.md`), and the evidence that a model needs it now (or `none`) | none. The row "Soft-NMS / per-class IoU, masks, multi-input models, quantized outputs" is about outputs. This proposal keeps `int8` in the output dtypes. |
@@ -68,9 +88,9 @@ The section ID, the title, the kind and the selectors do not change. No section-
 | `pre.normalize` | front matter, `implemented_by.validate` | Replace the comment with: `# partial. NamedNormalizationMode has imagenet_bgr and imagenet_rgb, not imagenet. CustomNormalization has a color_format field. Nothing checks that input.color_format is present. InputSpec defaults input.normalization to imagenet_bgr (V-pre.normalize-1). Nothing checks V-pre.normalize-3.` |
 | `pre.normalize` | front matter, `implemented_by.forward` | Replace the last sentence "none and unit_float return float32, not input.dtype." with "No mode casts to input.dtype: build_normalization_fn returns float32, and preprocess_image casts the tensor to float32." The code casts each mode to `float32` (`build_normalization_fn`) and casts the tensor to `float32` again (`preprocess_image`, its last line). |
 | `pre.normalize` | front matter, `vectors` | No change (`vectors/pre.normalize.yaml`). |
-| `pre.normalize` | Behaviour, the mode table | The rows `none` and `custom` of 2.3. |
+| `pre.normalize` | Behaviour, the mode table | No edit. The row `none` keeps "cast to `input.dtype`". The new paragraph states the cast for each mode. |
 | `pre.normalize` | Behaviour, after the mode table | The new paragraph "Cast to `input.dtype`" of 2.3. |
-| `pre.normalize` | Behaviour, the custom-mode YAML | The comments of 2.3. |
+| `pre.normalize` | Behaviour, the custom-mode YAML | No edit. |
 | `pre.normalize` | Behaviour, the per-precision YAML | The comment of 2.3. |
 | `pre.normalize` | Validation rules | Add `V-pre.normalize-3` (2.4). |
 | `pre.normalize` | Implementer guidance | Replace the first bullet and the third bullet (the OpenMMLab-Exporter host) with the two bullets of 2.3. Replace the bullet that starts "The Ultralytics-Exporter writes `normalization_by_precision`" with the bullet of 2.3. |
@@ -103,13 +123,7 @@ The section ID, the title, the kind and the selectors do not change. No section-
 
 ### 2.3 Behaviour
 
-**The mode table of `pre.normalize`.** Replace the rows `none` and `custom`. The rows `unit_float`
-and `imagenet` do not change.
-
-| Mode | Host behavior | Typical use |
-|------|---------------|-------------|
-| `none` | Pass pixel values (0–255) unchanged. Channel order from `input.color_format`. | Graphs that take raw 0–255 pixels: graphs that normalize internally, and models with no upstream `mean` and `std`, for example YOLOX and RTMO |
-| `custom` | `(pixel * scale - mean) / std` on 0–255 channel values. `mean` and `std` are in the channel order of `input.color_format`. Each key other than `mode` is optional. When a key is absent, its value is `scale: 1`, `mean: [0, 0, 0]` or `std: [1, 1, 1]`. | Rare exports that match no named mode |
+**The mode table of `pre.normalize`.** No change.
 
 **New paragraph after the mode table:**
 
@@ -119,18 +133,6 @@ and `imagenet` do not change.
 > ([Compute dtype](../../pre/interpolation.md#compute-dtype)). For `method: none`, it is the 8-bit
 > source pixel. A `float16` input rounds each result to `float16`. A `uint8` input is valid only
 > with `none` and with an 8-bit resize (`V-pre.normalize-3`), so its cast keeps each value.
-
-**The custom-mode YAML.** Change the comments of `mean` and `std`:
-
-```yaml
-input:
-  color_format: rgb              # required; the order of mean and std
-  normalization:
-    mode: custom
-    scale: 0.00392156862745098   # optional; default 1.0
-    mean: [0.0, 0.0, 0.0]        # optional; default [0.0, 0.0, 0.0]
-    std: [1.0, 1.0, 1.0]         # optional; default [1.0, 1.0, 1.0]
-```
 
 **The per-precision YAML.** Change the comment. The YAML does not change.
 
@@ -161,9 +163,8 @@ Replace the third bullet with:
 
 - That host supports the modes `none`, `unit_float`, `imagenet` and `custom`, and the host names
   `imagenet_bgr` and `imagenet_rgb` at the top level. It checks the top-level
-  `input.normalization` also when `normalization_by_precision` covers the precision. Its `custom`
-  defaults are `scale: 1`, `mean: [0, 0, 0]` and `std: [1, 1, 1]`. Its function has no
-  `input.resize.compute_dtype`. (OpenMMLab-Exporter
+  `input.normalization` also when `normalization_by_precision` covers the precision. Its function
+  has no `input.resize.compute_dtype`. (OpenMMLab-Exporter
   [`onnx_runtime/preprocess.py:142-211`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/7bc72b45137faa4b211d05a38f58812ffae5a109/onnx_runtime/preprocess.py#L142-L211))
 
 Replace the bullet that starts "The Ultralytics-Exporter writes `normalization_by_precision`" with:
@@ -200,8 +201,9 @@ The session adds the link of the decision entry of this proposal to both rules.
 Unchanged rules that name a value of the change:
 
 - `V-pre.normalize-1`: unchanged. It requires `input.normalization` with no condition, so (d)
-  needs no text change. Its sentence "If `mean` or `std` is present, it must have length 3." stays.
-  Behaviour now gives the values for an absent key (e).
+  needs no text change. It allows a `custom` object with no `mean` or `std` ("If `mean` or `std`
+  is present ..."). The text gives no value for them. This proposal does not change that (part 3,
+  "The custom keys").
 - `V-pre.normalize-2`: unchanged. An override is a named mode string. `V-pre.normalize-3` reads the
   resolved mode, so an override `none` can make a `uint8` precision valid.
 - `V-common.outputs-2`: unchanged. The output dtypes keep `int8` (plan decision of part 1).
@@ -221,7 +223,7 @@ selectors.
 
 | # | Area | Change | Driven by | Section |
 |---|------|--------|-----------|---------|
-| (next) | Input | Each normalization mode casts its result to the `input.dtype` entry of the selected precision. A `custom` object gives the defaults `scale: 1`, `mean: [0, 0, 0]` and `std: [1, 1, 1]`. `V-pre.normalize-3`: a `uint8` input needs the resolved normalization `none` and `input.resize.compute_dtype` absent or `uint8`. `V-common.input-2`: the input dtypes are `float32`, `float16` and `uint8`. `int8` goes. The output dtypes keep `int8`. | user decision 2026-11-06: the mode table stated the cast only for `none`, the cast of a fractional value to `uint8` was not defined, and no mode gives a defined `int8` input (the decision entry of this proposal) | [Normalization](../../pre/normalization.md#behaviour), [Input](../../common/input.md#validation-rules) |
+| (next) | Input | Each normalization mode casts its result to the `input.dtype` entry of the selected precision. `V-pre.normalize-3`: a `uint8` input needs the resolved normalization `none` and `input.resize.compute_dtype` absent or `uint8`. `V-common.input-2`: the input dtypes are `float32`, `float16` and `uint8`. `int8` goes. The output dtypes keep `int8`. | user decision 2026-11-06: the mode table stated the cast only for `none`, the cast of a fractional value to `uint8` was not defined, and no mode gives a defined `int8` input (the decision entry of this proposal) | [Normalization](../../pre/normalization.md#behaviour), [Input](../../common/input.md#validation-rules) |
 
 ## 3. Reference implementation
 
@@ -229,7 +231,7 @@ selectors.
 |---|---|
 | Reference file in the proposal bundle (`reference/<section_module>.py`) | `reference/pre_normalize.py` |
 | Target file in skellytracker (`specs/model-sidecar/reference/<section_module>.py`) | `specs/model-sidecar/reference/pre_normalize.py` (new file) |
-| Functions (one for each algorithm) | `custom_parameters` (the `custom` check and defaults), `check_top_level` (`V-pre.normalize-1`), `check_overrides` (`V-pre.normalize-2`), `resolve_normalization` (the resolution order), `input_dtype` (the values of `input.dtype`), `check_uint8` (`V-pre.normalize-3`), `source_pixels` (the pixels in the compute dtype), `tensor_order` (the channel order), `normalize_none`, `normalize_unit_float`, `normalize_imagenet`, `normalize_custom`, `cast_to_input_dtype` (the cast), `normalize` (the full step), `check_rules` (rules -1, -2 and -3 of one `input` block); `run` for the cases; helpers `is_number` and `mode_name` |
+| Functions (one for each algorithm) | `custom_parameters` (the `custom` check, and the default of `scale`), `check_top_level` (`V-pre.normalize-1`), `check_overrides` (`V-pre.normalize-2`), `resolve_normalization` (the resolution order), `input_dtype` (the values of `input.dtype`), `check_uint8` (`V-pre.normalize-3`), `source_pixels` (the pixels in the compute dtype), `tensor_order` (the channel order), `normalize_none`, `normalize_unit_float`, `normalize_imagenet`, `normalize_custom`, `cast_to_input_dtype` (the cast), `normalize` (the full step), `check_rules` (rules -1, -2 and -3 of one `input` block); `run` for the cases; helpers `is_number` and `mode_name` |
 
 **Full section.** skellytracker has no reference implementation of `pre.normalize`. Thus the file
 implements the full section as changed: the resolution, the channel order, the four modes, the cast
@@ -247,25 +249,70 @@ the rule ID `V-common.input-2`. The data-only validator cases of that rule are i
 `common.input` (part 4), because a validator case goes in the vector file of the section that owns
 the rule.
 
+**Rules of other sections.** The file refuses three rules of other sections with their rule IDs:
+`V-common.input-2` (`input_dtype`), `V-common.input-5` (`tensor_order`, a `color_format` other
+than `rgb` or `bgr`) and `V-pre.resize.interpolation-1` (`pre_resize_interpolation.compute_dtype`).
+The module docstring lists them.
+
 **Imports.** The file imports `pre_resize_interpolation` (the landed module of
 `pre.resize.interpolation`). It calls `pre_resize_interpolation.compute_dtype` for the dtype of
 `input.resize.compute_dtype` and for the rule `V-pre.resize.interpolation-1`. It has no fixture.
 
+**The custom keys.** The current text gives the default 1.0 of `scale` in the comment of the
+custom-mode YAML (Behaviour of `pre.normalize`), and the current case `custom-scale-defaults-to-one`
+uses it. The file keeps that default. `V-pre.normalize-1` allows a `custom` object with no `mean` or
+no `std`, but the text gives no value for them. The file does not add a value:
+
+- `check_top_level` and `check_rules` accept such an object, because no rule refuses it.
+- `normalize` refuses it with a `ValueError` with no rule ID, because the text gives no result.
+- No vector case uses this input. Part 4 of the change proposal template does not allow `no-rule`
+  for a sidecar value ("If no rule refuses a sidecar value, the spec needs a new rule. Add it to
+  part 2.4."). A rule ID needs a rule in 2.4. This proposal adds no such rule: the values of the
+  absent keys are the subject of the separate bundle
+  `proposal-normalize-custom-defaults@openmmlab-exporter` (part 8).
+
+When that bundle lands, its part 3 file gives the values, and the refusal goes.
+
 **Source.** OpenMMLab-Exporter `onnx_runtime/preprocess.py::make_normalizer`, with
 `resolve_normalization` and its two check helpers, at `7bc72b45137faa4b211d05a38f58812ffae5a109`
 (the commit "Check the top-level normalization when an override applies"). It is equal at
-`c2e610e91fee0a961032e12737ff9147697a7e53`. The host function has no `compute_dtype`, so the
+`c82f2f1138faa5dd82a45639215e9411245e19cb`. The host function has no `compute_dtype`, so the
 `compute_dtype` part of `V-pre.normalize-3` and `source_pixels` come from the text of part 2. The
-file computes in float64 and then casts. `reference_problems` of skellytracker
-`tools/intake_bundle.py` (at `b065f6e6`) finds no problem in the file. `check_rules` gives the
-expected result of each of the 8 data-only validator cases of the `pre.normalize` vector file of
-part 4 (a scratch run). With `dtype` absent, `normalize` gives the values before the cast. Only the
-vector cases use that form.
+host gives values for an absent `mean` or `std`. The file does not (The custom keys). The file
+computes in float64 and then casts. `reference_problems` of skellytracker `tools/intake_bundle.py`
+(at `8fed6f34`) finds no problem in the file. `check_rules` gives the expected result of each of the
+8 data-only validator cases of the `pre.normalize` vector file of part 4 (a scratch run). With
+`dtype` absent, `normalize` gives the values before the cast. Only the vector cases use that form.
 
-**Changes from the module of `model-yolox-person@openmmlab-exporter` v1.** The cast of each mode
-stays. The `uint8` refusal now has the rule ID `V-pre.normalize-3` and also refuses a `float32`
-`compute_dtype`. The `int8` refusal now has the rule ID `V-common.input-2`. The top-level value is
-checked also when the override applies (d). The `custom` defaults are now the text of 2.3 (e).
+**Changes from the module of `model-yolox-person@openmmlab-exporter` v1.**
+
+- The cast of each mode stays.
+- The `uint8` refusal now has the rule ID `V-pre.normalize-3`. It also refuses a `float32`
+  `compute_dtype`.
+- The `int8` refusal now has the rule ID `V-common.input-2`.
+- The top-level value is checked also when the override applies (d).
+- The order of the checks. The held module checked the precision of the caller, then the override
+  (`V-pre.normalize-2`), then a missing resolved value (`V-pre.normalize-1`). This file checks the
+  top-level value first (`V-pre.normalize-1`), then the precision of the caller, then the override
+  (`V-pre.normalize-2`). Thus `normalize` refuses a sidecar that breaks `V-pre.normalize-1` and
+  `V-pre.normalize-2` with `V-pre.normalize-1`. The held module refused it with
+  `V-pre.normalize-2`. `check_rules` gives both rule IDs.
+- `source_pixels` refuses a pixel that is not an integer from 0 to 255 when the resize is 8-bit
+  (`compute_dtype` absent or `uint8`, also `method: none`). The refusal has no rule ID, because
+  the pixels are a tensor, not a sidecar value (case `uint8-resize-pixels-are-integers`). The held
+  module took each number.
+- An invalid `compute_dtype` (a value other than `uint8` or `float32`) gives two different rule
+  IDs. `normalize` refuses it with `V-pre.resize.interpolation-1`, from
+  `pre_resize_interpolation.compute_dtype`. `check_rules` checks only the rules of this section: it
+  gives `V-pre.normalize-3` when a precision has the input dtype `uint8`, and no rule ID for other
+  input dtypes. Both results are correct: such a sidecar breaks `V-pre.resize.interpolation-1`, and
+  with a `uint8` input also `V-pre.normalize-3`. The held module did not read `compute_dtype`.
+- An absent `mean` or `std`: the held module gave `[0, 0, 0]` or `[1, 1, 1]`, as the host does.
+  This file refuses it in `normalize` (The custom keys).
+
+**Changes from version 1 of this bundle.** The constant `CUSTOM_DEFAULTS` is now `DEFAULT_SCALE`
+(1.0). `custom_parameters` returns `None` for an absent `mean` or `std`. `normalize` refuses
+`None`. The module docstring changed. No other definition changed (part 5).
 
 ## 4. Vectors
 
@@ -273,16 +320,14 @@ checked also when the override applies (d). The `custom` defaults are now the te
 |---|---|
 | Vector files in the proposal bundle | `vectors/pre.normalize.yaml`; `vectors/common.input.yaml` |
 | Target files in skellytracker | `specs/model-sidecar/vectors/pre.normalize.yaml` (existing file); `specs/model-sidecar/vectors/common.input.yaml` (new file) |
-| `verified_against` | `pre.normalize`: the file keeps `unverified` ("The independent implementations ran only some cases. ..."). The 16 numeric cases that the host can express list `{OpenMMLab-Exporter: onnx_runtime/preprocess.py::make_normalizer}` in their `verified_against`: the 12 current numeric cases and 4 new ones. `common.input`: `unverified` (data-only validator cases). |
-| Replaced case ids (`--replaces`) | `pre.normalize`: the 15 current ids `none-rgb`, `none-bgr`, `none-uint8`, `unit-float-rgb`, `unit-float-bgr`, `imagenet-bgr`, `imagenet-rgb`, `custom-rgb`, `custom-bgr`, `custom-scale-defaults-to-one`, `color-format-is-required`, `custom-has-no-color-format`, `normalization-is-required`, `precision-override` and `precision-without-override`. Reason: the part 4 file is the full file of the section as changed. Each of these cases is a copy of the current case. No key changes. `fill` wrote the same `expect`. `common.input`: none (new file). |
+| `verified_against` | `pre.normalize`: the file keeps `unverified` ("The independent implementations ran only some cases. ..."). The 14 numeric cases that the host can express list `{OpenMMLab-Exporter: onnx_runtime/preprocess.py::make_normalizer}` in their `verified_against`: the 12 current numeric cases and 2 new ones. `common.input`: `unverified` (data-only validator cases). |
+| Replaced case ids (`--replaces`) | `pre.normalize`: the 15 current ids `none-rgb`, `none-bgr`, `none-uint8`, `unit-float-rgb`, `unit-float-bgr`, `imagenet-bgr`, `imagenet-rgb`, `custom-rgb`, `custom-bgr`, `custom-scale-defaults-to-one`, `color-format-is-required`, `custom-has-no-color-format`, `normalization-is-required`, `precision-override` and `precision-without-override`. Reason: the part 4 file is the full file of the section as changed. Each of these cases is equal to the current case at `8fed6f34`. No key changes. `fill` wrote the same `expect`. `common.input`: none (new file). |
 
-**The `pre.normalize` file.** The 15 current cases and 11 new cases. The new cases:
+**The `pre.normalize` file.** The 15 current cases and 9 new cases. The new cases:
 
 - the cast to `float16`: `unit-float-float16` and `imagenet-float16`. The expected values are
   `float16` values. A result with no cast differs by up to 1.3e-4 and 8.6e-4, more than the
   tolerance 1e-5. Thus these cases fail a host that does not cast;
-- the `custom` defaults: `custom-mean-and-std-defaults` (`scale` only) and `custom-all-defaults`
-  (`mode` only; equal to `none`);
 - the pixels of a `float32` resize: `float32-resize-pixels` (fractional pixels, also below 0 and
   above 255, with `resize: {compute_dtype: float32}`);
 - a `no-rule` refusal: `uint8-resize-pixels-are-integers` (a fractional pixel without a `float32`
@@ -294,58 +339,97 @@ checked also when the override applies (d). The `custom` defaults are now the te
 
 The file adds two notes: the meaning of `dtype` and `resize` in `params`, and the scope of a
 validator case. `params.resize` is `input.resize`. Only its `compute_dtype` is read. The tolerance
-stays 1e-5. No case has `compare`. No case is a pixel case of a resize.
+stays 1e-5. No case has `compare`. No case is a pixel case of a resize. Version 1 had two more
+cases for absent `custom` keys. They are now in the separate bundle
+`proposal-normalize-custom-defaults@openmmlab-exporter`.
 
 **The `common.input` file.** Two data-only validator cases: `uint8-is-an-input-dtype` (no failed
 rule) and `int8-is-not-an-input-dtype` (`V-common.input-2`).
 
-**`fill`.** `fill` of skellytracker `tools/make_vectors.py` (at `b065f6e6`), run with `python -B`
-on both files with the `reference/` folder of this payload, printed "fill: no problems" for each
-file. It kept the `expect` of each of the 15 current cases. `vector_problems` of
-`tools/intake_bundle.py` finds no problem in either file (a scratch run).
+**`fill`.** `fill` of skellytracker `tools/make_vectors.py` (at `8fed6f34`), run with `python -B`
+on a copy of the payload with its `reference/` folder, printed "fill: no problems" for each file
+and changed no byte of either file. It kept the `expect` of each of the 15 current cases.
+`vector_problems` of `tools/intake_bundle.py` finds no problem in either file (a scratch run).
 
 **Host run.** The numeric cases ran through the OpenMMLab-Exporter host
-`onnx_runtime/preprocess.py::make_normalizer` at `c2e610e91fee0a961032e12737ff9147697a7e53` (the
-function is equal at `7bc72b45137faa4b211d05a38f58812ffae5a109`). The run used
-`normalize_case` of `pipeline/handover.py` and the comparison of `agrees` of skellytracker
-`tools/vector_form.py`, with the file tolerance. Result: 16 of 17 numeric cases pass. The host gives
-`float16` for the two `float16` cases and `uint8` for `none-uint8` and `precision-override`. The
-host cannot express `float32-resize-pixels`, because its function takes an 8-bit canvas and has no
-`compute_dtype`. That case has no `verified_against`. The `error` case and the `failed` cases are
-not host runs.
+`onnx_runtime/preprocess.py::make_normalizer` at `c82f2f1138faa5dd82a45639215e9411245e19cb` (the
+function is equal at `7bc72b45137faa4b211d05a38f58812ffae5a109`). The run used `normalize_case` of
+`pipeline/handover.py` and the comparison of `agrees` of skellytracker `tools/vector_form.py`, with
+the file tolerance. Result: 14 of 15 numeric cases pass. The host gives `float16` for the two
+`float16` cases and `uint8` for `none-uint8` and `precision-override`. The host cannot express
+`float32-resize-pixels`, because its function takes an 8-bit canvas and has no `compute_dtype`.
+That case has no `verified_against`. The `error` case and the `failed` cases are not host runs.
 
 ## 5. Parity evidence
 
 The check is step 3 of "The step" (the reference swap) for `yolox-person`, with the part 3 file in
 place of the host normalizer. It reran the committed script of OpenMMLab-Exporter ADR-3NNK,
-unchanged, on 2026-11-06. The part 3 file of the run has the SHA-256
-`a08587221f792e0c37c69d18015ccd2547c9957b61afef682227035706770c75`, the file of this bundle. The
-record is
+unchanged, on 2026-11-06, with version 1 of the part 3 file (SHA-256
+`a08587221f792e0c37c69d18015ccd2547c9957b61afef682227035706770c75`). The record is
 [OpenMMLab-Exporter ADR-YR3X](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/33e657d957872999aa04eb46d977eea1634be365/decisions/entries/YR3X-normalize-reference-swap.md).
+
+**Version 2 of the part 3 file did not run in the parity check.** It differs from the measured
+file in these points only: the constant `CUSTOM_DEFAULTS` is now `DEFAULT_SCALE`;
+`custom_parameters` returns `None` for an absent `mean` or `std`; `normalize` refuses that `None`
+(a new statement in its `custom` branch only); the module docstring. A scratch check (not
+committed; secondary; NumPy 2.5.4, Python 3.14) shows that the two files give equal results on the
+path of the parity check:
+
+- An `ast` comparison of the two files, with the docstrings removed: only `CUSTOM_DEFAULTS` (now
+  `DEFAULT_SCALE`), `custom_parameters` and `normalize` differ.
+- The parity script calls only `pre_normalize.normalize` of the part 3 file. Both files give equal
+  results (resolved mode, dtype, shape and each value) for each vector case of version 1 that has
+  no absent `custom` key: 15 numeric cases, 1 `error` case (the same message) and 8 validator cases
+  (the same `check_rules` result).
+- Both files give bit-equal tensors on 60 random `uint8` images (6 shapes from 1 x 7 to
+  960 x 960) for each of these branches: `none`, `bgr`, `float32` (the sidecar branch of
+  `yolox-person`); `imagenet`, `bgr` and `imagenet`, `rgb`, `float32` (the controls); `none`,
+  `bgr`, `float16` and `uint8`; `unit_float`, `rgb`, `float32`; and `none`, `bgr`, `float32` with
+  the override `{fp16: none}` and `precision: fp16`.
+- The results differ only for a `custom` object with no `mean` or no `std`: version 1 gives values,
+  version 2 refuses it. No call of the parity check uses a `custom` object.
+
+Thus the measured result applies to version 2. This proposal does not claim a run with version 2.
 
 | Item | Value |
 |---|---|
 | Gates, set before the run, their source, and pass gate or control | The verdict rule of the script, set before the run (the script docstring at `53a48480d0b715f9b726963bce002ddb503b050b`): the gates and the controls of the parity script have the same pass or fail as the baseline run (pass gate); the parity exit code is 0 (pass gate); the gate data is equal to the baseline, also the G1 data; only `max_box_diff_px` can change (pass gate); each sidecar letterbox call and each sidecar normalizer call is equal to the host bit for bit (pass gate); no sidecar decoder call has a row, score or class difference (pass gate); control decoder differences and environment differences are reported only (control). One known difference: the script also requires each host file to be equal to the file at the baseline commit. `onnx_runtime/preprocess.py` changed after the baseline commit (`7bc72b45137faa4b211d05a38f58812ffae5a109` adds the top-level check). Thus `host_and_parity_files_not_equal_to_baseline_commit` lists that file, and `result_does_not_change` is false for that reason only. The same file is the only environment difference. The proposal reads the result from the other verdict fields. That change has no effect on the sidecar value `normalization: none`. |
-| Test images (paths or dataset IDs), and the branch that each image runs | The images of the baseline run of OpenMMLab-Exporter ADR-3NNK (the `images.json` of that run; COCO val2017 images and the synthetic images of the parity script). Branch: `none` with `color_format: bgr` and a `float32` input for each image. The `imagenet` controls of the parity script run the `imagenet` branch. No image runs `unit_float`, `custom`, `float16` or `uint8`. The vectors of part 4 cover those branches. |
+| Test images (paths or dataset IDs), and the branch that each image runs | The images of the baseline run of OpenMMLab-Exporter ADR-3NNK (the `images.json` of that run; COCO val2017 images and the synthetic images of the parity script). Branch: `none` with `color_format: bgr` and a `float32` input for each image. The `imagenet` controls of the parity script run the `imagenet` branch. No image runs `unit_float`, `custom`, `float16` or `uint8`. The vectors of part 4 cover those branches. `rtmw-wholebody133` (`imagenet`, `rgb`): no run. The RTMW reference swap is `to run`. The committed RTMW parity scripts need reference files that are not committed and container dumps that were not kept. A smaller check of the normalizer on real RTMW crops needs a new evidence script. The user decides on it. |
 | Upstream reference: library, version, config and command | The upstream data of the baseline run: mmdet and mmpose in the published exporter image, the HumanArt YOLOX configs (OpenMMLab-Exporter ADR-3NNK). The script copies the container output of the baseline run. It does not run the container again. |
 | Export error: the ONNX file on the upstream tensor, compared with the upstream model (metric and value) | Equal to the baseline run: 155 of 155 gate and control pass/fail values are the same (6 sizes, fp32 and fp16), and the gate data has no difference that the rule does not allow. |
 | Preprocessed input: maximum absolute difference for each image | 0. The G1 data is equal to the baseline. The sidecar normalizer gives 540 of 540 tensors equal to the host (mode `none`, `bgr`, `float32`). The letterbox canvas and its geometry are equal in 324 of 324 calls. |
 | Row count for each image: sidecar path and upstream | Equal to the run of OpenMMLab-Exporter ADR-3NNK: the decode totals of the two runs are the same (12296 rows on 432 image entries on the sidecar path). |
 | Final outputs of each role (Parity, step 5): the compared output, metric and value | `object_detector` on the sidecar path, compared with the host on the same inputs: no decoder call has a row, score or class difference. The boxes differ by at most 1.22e-4 px, the same values as in the run of ADR-3NNK (the decode modules compute in float64). |
-| Result (`pass`, `fail` or `to run`) | `pass`. The result does not change: each verdict value of the script passes, except the host-file rule, for the reason in the Gates row. |
+| Result (`pass`, `fail` or `to run`) | `pass` for `yolox-person`, measured with version 1 of the part 3 file. Version 2 gives equal results on that path (the equality check above). The result does not change: each verdict value of the script passes, except the host-file rule, for the reason in the Gates row. `rtmw-wholebody133`: `pass` on its branch (`imagenet`, `rgb`, `float32`), with version 2 of the part 3 file (see "RTMW" below the table). |
 | Script path in the exporter repo | `decisions/scripts/yolox_person_reference_swap.py` (it runs `decisions/scripts/yolox_person_parity.py` unchanged) |
 | Exporter commit of the script | [`53a48480d0b715f9b726963bce002ddb503b050b`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/53a48480d0b715f9b726963bce002ddb503b050b/decisions/scripts/yolox_person_reference_swap.py) |
-| Command | `uv run python decisions/scripts/yolox_person_reference_swap.py --out <new folder> --reference-dir <scratch folder>`. The scratch folder holds the five landed modules of `specs/model-sidecar/reference/` at `b065f6e6` (`pre_resize_letterbox.py`, `pre_resize_interpolation.py`, `post_det_decode.py`, `post_det_selection_nms.py`, `post_unprojection.py`) and `reference/pre_normalize.py` of this bundle. The run needs the host GPU and the baseline inputs. |
+| Command | `uv run python decisions/scripts/yolox_person_reference_swap.py --out <new folder> --reference-dir <scratch folder>`. The scratch folder holds the five landed modules of `specs/model-sidecar/reference/` at `b065f6e6850686b65bcd08ca944116d739aa62de` (`pre_resize_letterbox.py`, `pre_resize_interpolation.py`, `post_det_decode.py`, `post_det_selection_nms.py`, `post_unprojection.py`) and version 1 of `reference/pre_normalize.py` of this bundle. The run needs the host GPU and the baseline inputs. |
+
+**RTMW (`imagenet`, `rgb`).** The skellytracker response r2 asks for a run on the branch of
+`rtmw-wholebody133`, the model in scope. A committed CPU check compares the part 3 file with the
+RTMW host normalizer `make_normalizer("imagenet_rgb", "rgb")` on the same BGR `uint8` pixels. It
+runs no model, because the normalizer is the only changed step on this branch, and the check
+covers each possible input of that step. The record is
+[OpenMMLab-Exporter ADR-21VF](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/ecee56e5a76b49ec0c8ee14bfda1c30ab33d5a55/decisions/entries/21VF-rtmw-normalize-reference-check.md).
+
+| Item | Value |
+|---|---|
+| Gate, set before the run | An absolute difference of at most 5e-7 for each value, and equal shapes and dtypes. The bound comes from the float32 roundings of the host (the mean, the difference and the std at the 0-255 scale, and the result); the script docstring gives it. One 8-bit grey level is 1.7e-2 after the division. |
+| Inputs | All 768 channel and value pairs (the normalization is elementwise, so this covers each `uint8` crop), and the RTMW crops (host `affine_person_crop`, the RTMW resize block) of the 300 non-synthetic persons of `decisions/scripts/pose_parity_boxes.json` (COCO val2017) at 256 x 192 and 384 x 288. |
+| Result | `pass`. The 768 pairs: 401 values are equal, and the largest difference is 2.38e-7. The crops: 143769600 values, the largest difference 2.38e-7, no shape or dtype difference. The spec form `make_normalizer("imagenet", "rgb")` gives the same results as the host form. |
+| Part 3 file | The run loaded version 2 with SHA-256 `879fe3ae788dede8d825cdb9d94177122da7fc096e9e60ee3420f2f0e2fa6747`. The file of this bundle (SHA-256 `88cf2d1fc83103d14f442593c561731ea52ec23ff96e1f8353f42fe03b59e559`) differs only in one docstring sentence, which gives this result. An `ast` comparison with the docstrings removed shows equal code. |
+| Script and commit | [`decisions/scripts/rtmw_normalize_reference_check.py`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/c8ca30caf2bca4e8a88d8342739d5fc5addc343a/decisions/scripts/rtmw_normalize_reference_check.py) at `c8ca30caf2bca4e8a88d8342739d5fc5addc343a`; Python 3.14.2, NumPy 2.5.4, OpenCV 5.0.0 |
+| Command | `uv run python -B decisions/scripts/rtmw_normalize_reference_check.py --out <new folder> --reference-dir <folder with pre_normalize.py and the landed pre_resize_interpolation.py>` |
 
 ## 6. skellytracker implementation proposal
 
 | Item | Value |
 |---|---|
-| Module and function | `skellytracker/core/detectors/processing/image_preprocessing.py`: `build_normalization_fn` gets the input dtype of the precision (`input_spec.dtype[precision]`) and casts the result of each mode to it as the last step. `preprocess_image` must not cast the tensor to `float32` again; it keeps the dtype of the normalization. The `custom` branch keeps its defaults. |
+| Module and function | `skellytracker/core/detectors/processing/image_preprocessing.py`: `build_normalization_fn` gets the input dtype of the precision (`input_spec.dtype[precision]`) and casts the result of each mode to it as the last step. `preprocess_image` must not cast the tensor to `float32` again; it keeps the dtype of the normalization. |
 | Dispatch point | `preprocess_image` (the call of `build_normalization_fn`). No new dispatch. |
 | Validator changes (`model.py`, with rule IDs) | `skellytracker/core/sidecar/model.py`: a new type for the input dtypes (`float32`, `float16`, `uint8`) for `InputSpec.dtype` (`V-common.input-2`). `OutputSpec.dtype` keeps `OnnxDtype` with `int8` (`V-common.outputs-2`). A validator of the resolved sidecar for `V-pre.normalize-3`: for each precision whose input dtype is `uint8`, the resolved mode is `none`, and `input.resize.compute_dtype` is absent or `uint8` (`ResizeSpec` has no `compute_dtype` field yet; skellytracker ADR-PHJ3). `V-pre.normalize-1`: no default for `normalization`, also with an override. |
 | Tests (the vectors of part 4, and a golden parity test, for example in `skellytracker/tests/sidecar/`) | A test that runs the numeric cases of `vectors/pre.normalize.yaml` through `build_normalization_fn` and compares the dtype and the values. A validator test with the data-only cases of both vector files. A golden test: one image of the `yolox-person` parity set through `preprocess_image` with the sidecar, compared with the host tensor. |
-| Existing code that the change touches | `skellytracker/core/detectors/processing/image_preprocessing.py` (`build_normalization_fn`, `preprocess_image`, `resolve_normalization_mode`); `skellytracker/core/sidecar/model.py` (`OnnxDtype`, `InputSpec`, `CustomNormalization`, `PrecisionArtifact.input_dtype`); the ONNX session feed of the detectors, which today takes a `float32` tensor for each input. |
+| Existing code that the change touches | `skellytracker/core/detectors/processing/image_preprocessing.py` (`build_normalization_fn`, `preprocess_image`, `resolve_normalization_mode`); `skellytracker/core/sidecar/model.py` (`OnnxDtype`, `InputSpec`, `PrecisionArtifact.input_dtype`); the ONNX session feed of the detectors, which today takes a `float32` tensor for each input. |
 
 ## 7. Exporter impact
 
@@ -385,11 +469,14 @@ examples.
 |---|---|---|
 | The near-miss: keep the text, and write a module that casts only for `none` (the current mode table). | The text then disagrees with skellytracker ADR-PHJ3 and with "Compute dtype". A host gives a `float32` tensor to a `float16` graph input, and ONNX Runtime refuses it. | Part 1, (1) |
 | A module of the current text, with no proposal (the other choice of the skellytracker response). | The user chose this proposal on 2026-11-06. The current text has no rule for a `uint8` input with `imagenet`, so a module of the current text must cast fractional values to `uint8`, which is not defined. | Part 1, (3) and (4) |
-| Round, clamp and then cast a fractional value to `uint8`, in place of a rule. | No model in scope needs it. It adds a rounding rule and a clamp that no upstream states. The Ultralytics-Exporter writer already writes `none` for a `uint8` input. | Part 1, Upstream evidence (4) |
+| Round, clamp and then cast a fractional value to `uint8`, in place of a rule. | No model in scope needs it. It adds a rounding rule and a clamp that no upstream states. The Ultralytics-Exporter writer already writes `none` for a `uint8` input. | Part 1, Upstream evidence (3) |
 | Keep `int8`, and define its cast (for example `pixel - 128` with `none`). | No exporter writes an `int8` input for a published artifact. No upstream states such an offset. The user decided on 2026-11-06 to remove `int8` from the input dtypes. | Part 1, (5) |
 | Also remove `int8` from the output dtypes (`V-common.outputs-2`). | The user decided on 2026-11-06 that the output dtypes keep `int8`. An output is not cast by the host. | Part 1, plan decisions |
 | Put the `compute_dtype` part of `V-pre.normalize-3` in `pre.resize.interpolation` as a second rule. | One rule then reads the resolved mode and the other reads the resize, for one cast. The cast is a step of `pre.normalize`, so its rule goes there. A sidecar that breaks the rule fails one rule ID. | 2.4 |
-| No `custom` defaults: require `mean` and `std`. | `V-pre.normalize-1` already allows an absent key ("If `mean` or `std` is present ..."). The OpenMMLab-Exporter host and the skellytracker package already use the identity defaults. A required key would make valid sidecars invalid. | Part 1, Upstream evidence (2) and (3) |
+| Keep the `custom` defaults and the correction of the `none` row in this proposal (version 1). | The user does not accept them as one contract unit with the dtype rules (skellytracker response r2). They are in the separate bundle `proposal-normalize-custom-defaults@openmmlab-exporter`. | Part 1, plan decisions |
+| Keep the `mean` and `std` defaults in the part 3 file, with no text. | The module then gives a value that the text does not give. The response r2 asks to remove the defaults from the reference module. | Part 3, The custom keys |
+| A `no-rule` vector case for a `custom` object with no `mean` or `std`. | The object is a sidecar value. Part 4 of the template does not allow `no-rule` for a sidecar value. | Part 3, The custom keys |
+| A rule in 2.4 that requires `mean` and `std`. | `V-pre.normalize-1` allows an absent key today, so the rule would make valid sidecars invalid. The values of the absent keys are the subject of the separate bundle. | Part 3, The custom keys |
 | A rule that refuses `std` with a zero value. | Not in this proposal. No model needs it, and the change is not a dtype rule. | none |
 
 ## Before you stop
@@ -415,5 +502,4 @@ examples.
 - [x] Part 7 lists each example that the change makes invalid, or says `none` with the reason.
 - [x] Each citation of a spec text, a base file or a record names a heading or a case `id`, not a
       line number of a copy.
-- [ ] No file in skellytracker changed, except the version folder that `pack` wrote in `intakes/`.
-      Not packed yet: this is a draft. No file in skellytracker changed.
+- [x] No file in skellytracker changed, except the version folder that `pack` wrote in `intakes/`.

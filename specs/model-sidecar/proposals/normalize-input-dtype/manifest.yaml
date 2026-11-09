@@ -3,8 +3,8 @@
   "kind": "proposal",
   "name": "normalize-input-dtype",
   "contributor": "openmmlab-exporter",
-  "source_commit": "33e657d957872999aa04eb46d977eea1634be365",
-  "spec_commit": "b065f6e6850686b65bcd08ca944116d739aa62de",
+  "source_commit": "ecee56e1ea1b4d3901c76a73b713ed0256675e78",
+  "spec_commit": "8fed6f34eb22643e0b6cc38a7c6b80014bfe1d75",
   "sections": [
     "pre.normalize",
     "common.input"
@@ -18,18 +18,18 @@
   ],
   "external": [],
   "spec_version": "2.0.0",
-  "version": 1,
+  "version": 2,
   "created": "2026-11-06",
   "files": [
     {
       "path": "proposal.md",
-      "sha256": "3885deac757b4fb434ffb1819a5af220d48ec8765f2598dbaba0facc9e2b75ed",
-      "bytes": 47460
+      "sha256": "b2baa87e404920b7cce44f27b8a5145d9babe76020a4fe52196dc727ef11af19",
+      "bytes": 55652
     },
     {
       "path": "reference/pre_normalize.py",
-      "sha256": "a08587221f792e0c37c69d18015ccd2547c9957b61afef682227035706770c75",
-      "bytes": 18429
+      "sha256": "88cf2d1fc83103d14f442593c561731ea52ec23ff96e1f8353f42fe03b59e559",
+      "bytes": 20019
     },
     {
       "path": "vectors/common.input.yaml",
@@ -38,8 +38,8 @@
     },
     {
       "path": "vectors/pre.normalize.yaml",
-      "sha256": "ec5a80ff6be607b6f978a11145d1ebca7b6ab7318ca55c06f92d0d6371a31249",
-      "bytes": 14772
+      "sha256": "923695467b0f4a0e1a1be944dfcdd19e52d7039e22e57ccb1d53c8aa14c418a4",
+      "bytes": 13674
     }
   ]
 }

@@ -3,18 +3,24 @@
 This file uses ASD-STE100 Simplified Technical English.
 
 Section ID: pre.normalize (section file specs/model-sidecar/pre/normalization.md).
-Proposal: proposal-normalize-input-dtype@openmmlab-exporter (slug normalize-input-dtype). No
-skellytracker decision entry covers it yet.
+Proposal: proposal-normalize-input-dtype@openmmlab-exporter (slug normalize-input-dtype), version 2.
+skellytracker decision entry: XH1J (proposed).
 Target file in skellytracker: specs/model-sidecar/reference/pre_normalize.py.
 
 Source commit: OpenMMLab-Exporter onnx_runtime/preprocess.py::make_normalizer, with its helpers
 resolve_normalization, the top-level check and the custom check, at
 7bc72b45137faa4b211d05a38f58812ffae5a109 ("Check the top-level normalization when an override
 applies"). That host code casts the result of each mode to the input dtype, refuses uint8 with a
-mode other than none, has no int8, checks the top-level normalization also when an override
-applies, and gives the custom defaults scale 1, mean [0, 0, 0] and std [1, 1, 1]. The host
-function has no input.resize.compute_dtype. Thus the compute_dtype part of V-pre.normalize-3 comes
-from the text of part 2 of the proposal only.
+mode other than none, has no int8 and checks the top-level normalization also when an override
+applies. The host function has no input.resize.compute_dtype. Thus the compute_dtype part of
+V-pre.normalize-3 comes from the text of part 2 of the proposal only.
+
+The custom keys. The current text gives the default of scale (1.0) in the comment of the
+custom-mode YAML, and the current case custom-scale-defaults-to-one uses it. This file keeps that
+default. V-pre.normalize-1 allows a custom object with no mean or no std, but the text gives no
+value for them. This file does not add a value: check_top_level and check_rules accept such an
+object, and normalize refuses it with no rule ID. No vector case uses it. The separate proposal
+proposal-normalize-custom-defaults@openmmlab-exporter proposes the values.
 
 Full section. skellytracker has no reference implementation of this section. Thus this file
 implements the full section as changed: the resolution of the mode for a precision, the channel
@@ -25,15 +31,25 @@ Imported sections: pre.resize.interpolation (module pre_resize_interpolation, in
 specs/model-sidecar/reference/). Its function compute_dtype gives the dtype of
 input.resize.compute_dtype. Fixtures: none.
 
-A rule of another section that this module refuses: V-common.input-2 (the values of input.dtype).
-The section common.input has no algorithm and no reference module. The cast needs the set of
-values, so the function input_dtype refuses a value outside it, with that rule ID.
+Rules of other sections that this module refuses:
+- V-common.input-2 (the values of input.dtype). The section common.input has no algorithm and no
+  reference module. The cast needs the set of values, so the function input_dtype refuses a value
+  outside it, with that rule ID.
+- V-common.input-5 (the values of input.color_format). tensor_order refuses a value other than rgb
+  or bgr, with that rule ID.
+- V-pre.resize.interpolation-1 (the values of input.resize.compute_dtype), through
+  pre_resize_interpolation.compute_dtype.
 
 Vector results: vectors/pre.normalize.yaml of the proposal bundle. make_vectors.py fill (at
-skellytracker b065f6e6850686b65bcd08ca944116d739aa62de) wrote expect with this file. It found no
+skellytracker 8fed6f34eb22643e0b6cc38a7c6b80014bfe1d75) wrote expect with this file. It found no
 problem. It kept the expect of each of the 15 current cases. The host function make_normalizer
 gives the same results for each numeric case that it can express (part 4 of the proposal).
-Parity: yolox-person: to run (part 5 of the proposal). rtmw-wholebody133: to run.
+Parity: yolox-person: pass (OpenMMLab-Exporter ADR-YR3X), measured with version 1 of this file
+(SHA-256 a08587221f792e0c37c69d18015ccd2547c9957b61afef682227035706770c75). This version differs
+only in the custom keys and in this docstring. On the branch of that run (none, bgr, float32),
+both versions give equal results (part 5 of the proposal). rtmw-wholebody133: pass on the branch
+imagenet, rgb, float32 (OpenMMLab-Exporter ADR-21VF), measured with this version before this
+sentence changed (SHA-256 879fe3ae788dede8d825cdb9d94177122da7fc096e9e60ee3420f2f0e2fa6747).
 
 The input is pixels of the resized frame in BGR source order, as OpenCV delivers them. The last
 axis holds the 3 channels. The pixels have the compute dtype of the resize (uint8 or float32).
@@ -65,8 +81,8 @@ RULE_COLOR_FORMAT = "V-common.input-5"
 # The named modes of pre.normalize. A custom object is the fourth mode.
 MODES = ("none", "unit_float", "imagenet")
 CUSTOM_KEYS = ("mode", "scale", "mean", "std")
-# The values of a custom key that is absent.
-CUSTOM_DEFAULTS = {"scale": 1.0, "mean": (0.0, 0.0, 0.0), "std": (1.0, 1.0, 1.0)}
+# The value of an absent custom scale (the comment of the custom-mode YAML of the section).
+DEFAULT_SCALE = 1.0
 PRECISION_KEYS = ("fp32", "fp16")
 COLOR_FORMATS = ("bgr", "rgb")
 # The values of input.dtype (V-common.input-2). int8 is not a value.
@@ -81,13 +97,16 @@ def is_number(value: Any) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
-def custom_parameters(normalization: Mapping[str, Any]) -> tuple[float, tuple[float, ...], tuple[float, ...]]:
+def custom_parameters(
+    normalization: Mapping[str, Any],
+) -> tuple[float, tuple[float, ...] | None, tuple[float, ...] | None]:
     """Check a custom normalization object and return scale, mean and std.
 
     pre.normalize, rule V-pre.normalize-1: the object holds only mode, scale, mean and std. The
     mode must be custom. If scale is present, it must be a positive number. If mean or std is
-    present, it must have 3 numbers. Behaviour, the custom row: each key other than mode is
-    optional. The defaults are scale 1, mean [0, 0, 0] and std [1, 1, 1].
+    present, it must have 3 numbers. The comment of the custom-mode YAML gives the default 1.0 of
+    scale. The text gives no value for an absent mean or std, so this function returns None for
+    it. normalize refuses None.
 
     Source: the custom check of OpenMMLab-Exporter onnx_runtime/preprocess.py at
     7bc72b45137faa4b211d05a38f58812ffae5a109.
@@ -97,12 +116,15 @@ def custom_parameters(normalization: Mapping[str, Any]) -> tuple[float, tuple[fl
     unknown = sorted(set(normalization) - set(CUSTOM_KEYS))
     if unknown:
         raise ValueError(f"{RULE_NORMALIZATION}: unknown keys of a custom normalization: {unknown}")
-    scale = normalization.get("scale", CUSTOM_DEFAULTS["scale"])
+    scale = normalization.get("scale", DEFAULT_SCALE)
     if not is_number(scale) or not scale > 0:
         raise ValueError(f"{RULE_NORMALIZATION}: the custom scale must be a positive number: {scale!r}")
     stats = []
     for key in ("mean", "std"):
-        values = normalization.get(key, CUSTOM_DEFAULTS[key])
+        if key not in normalization:
+            stats.append(None)
+            continue
+        values = normalization[key]
         if isinstance(values, (str, bytes)) or not isinstance(values, Sequence) or len(values) != 3:
             raise ValueError(f"{RULE_NORMALIZATION}: the custom {key} must have 3 numbers: {values!r}")
         if not all(is_number(value) for value in values):
@@ -307,6 +329,9 @@ def normalize(
     name = mode_name(mode)
     if name == "custom":
         scale, mean, std = custom_parameters(mode)
+        if mean is None or std is None:
+            # V-pre.normalize-1 allows the object, but the text gives no value (module docstring).
+            raise ValueError("the section text gives no value for an absent custom mean or std")
     resize = resize or {}
     if dtype is not None:
         input_dtype(dtype)
