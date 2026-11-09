@@ -18,6 +18,7 @@ from typing import Any
 
 import pytest
 import sidecar_refs
+import sidecar_trace
 import yaml
 from intake_bundle import FRAGMENT_KEYS, INVENTORY_KEYS, OPTIONAL_INVENTORY_KEYS
 
@@ -156,7 +157,8 @@ KEYPOINT_MAPS = {"canonical_mapping", "derived_points"}
 def defined_keys() -> frozenset[str]:
     """Each name in backticks in a heading or a Field table of the spec index or a section file.
 
-    A dotted name such as `pose.connections[].edges` defines each of its parts. The index gives the
+    The field path of each `selectors` item of a section also counts, for example
+    `batching.batch_conversion`, which no Field table names. A dotted name such as `pose.connections[].edges` defines each of its parts. The index gives the
     top-level keys, for example `batching`.
     shortcut: a name, not a path. A defined key in the wrong place passes. Check paths when the
     Fields tables give full paths.
@@ -167,6 +169,10 @@ def defined_keys() -> frozenset[str]:
     names: set[str] = set()
     paths = [SPEC_ROOT / "sidecar-spec.md"]
     paths += [p for folder in ("format", "common", "pre", "post") for p in (SPEC_ROOT / folder).glob("*.md")]
+    for path in paths[1:]:
+        front, _ = sidecar_trace.parse_front_matter(path.read_text(encoding="utf-8"), str(path))
+        for selector in front.get("selectors") or []:
+            names.update(re.findall(r"\w+", str(selector).split("=")[0]))
     for path in paths:
         fence = field_table = False
         for line in path.read_text(encoding="utf-8").splitlines():
@@ -193,6 +199,11 @@ def unknown_keys(node: object, parent: object = None) -> list[str]:
         if key not in KEYPOINT_MAPS:
             found += unknown_keys(value, key)
     return found
+
+
+def test_a_selector_path_is_a_defined_key() -> None:
+    """`batching.batch_conversion` is only in a selector and a note (ADR-JAA4)."""
+    assert "batch_conversion" in defined_keys()
 
 
 @pytest.mark.parametrize("path", example_paths(), ids=example_key)
