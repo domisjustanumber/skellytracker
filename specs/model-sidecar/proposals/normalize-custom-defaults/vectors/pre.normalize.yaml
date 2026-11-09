@@ -1,0 +1,41 @@
+# tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
+# Hosts ignore `checks`. The names are the self-checks of the generator.
+section: pre.normalize
+notes:
+  - "Normative text: specs/model-sidecar/pre/normalization.md. Decision:
+    decisions/entries/90CE-minimal-sidecar-contract.md."
+  - "`pixels_bgr` are pixels of the resized frame in BGR source order, as OpenCV delivers
+    them. `values` are the same pixels in the channel order of the tensor
+    (`channel_order`), one list of three numbers per pixel."
+  - "`params` use the sidecar field names: `normalization`, `normalization_by_precision`,
+    `color_format` and `dtype` are fields of `input`; `precision` selects the entry of
+    `normalization_by_precision` (default fp32)."
+  - "`dtype` is the entry of `input.dtype` for the precision. Each mode casts its result
+    to it. A case without `dtype` gives the values before the cast. `resize` is
+    `input.resize`. Only its `compute_dtype` is used (default uint8): the pixels have
+    that dtype."
+tolerance: 0.00001
+unverified: "The independent implementations ran only some cases. Each of these cases lists them
+  in verified_against."
+cases:
+  - id: custom-mean-and-std-defaults
+    note: "mean and std are absent: they are [0, 0, 0] and [1, 1, 1]. The result is pixel * scale"
+    params: {normalization: {mode: custom, scale: 0.5}, color_format: rgb, dtype: float32}
+    input: {pixels_bgr: [[0, 0, 0], [255, 255, 255], [10, 128, 250], [200, 100, 50]]}
+    expect:
+      resolved_mode: custom
+      channel_order: rgb
+      values: [[0, 0, 0], [127.5, 127.5, 127.5], [125, 64, 5], [25, 50, 100]]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::make_normalizer}
+  - id: custom-all-defaults
+    note: "only mode is present: scale 1, mean [0, 0, 0] and std [1, 1, 1] give the pixels
+      unchanged, as none"
+    params: {normalization: {mode: custom}, color_format: bgr, dtype: float32}
+    input: {pixels_bgr: [[0, 0, 0], [255, 255, 255], [10, 128, 250], [200, 100, 50]]}
+    expect:
+      resolved_mode: custom
+      channel_order: bgr
+      values: [[0, 0, 0], [255, 255, 255], [10, 128, 250], [200, 100, 50]]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::make_normalizer}
