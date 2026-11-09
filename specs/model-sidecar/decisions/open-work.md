@@ -35,7 +35,8 @@ Spec defects found during the spec-build stage. Each one needs a content change 
 - The spec does not state these facts, but a host needs them:
   - the keypoint scores in a `poses` tensor are already activated (the spec states this only for
     `packed_keypoints`). No exporter checks this channel: the RTMO probe of OpenMMLab-Exporter
-    compares only `x` and `y` ([`notes/decisions/scripts/rtmo_sidecar_probe.py:97-102`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/scripts/rtmo_sidecar_probe.py#L97-L102));
+    compares only `x` and `y` ([`notes/decisions/scripts/rtmo_sidecar_probe.py:97-102`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/scripts/rtmo_sidecar_probe.py#L97-L102)).
+    Do this item when a model with both roles or a `poses` output has an open bundle;
   - the host frame is BGR, and the host converts it to `input.color_format`;
   - the arithmetic precision of the geometry (except the warp matrix `M` of `affine_person_crop`)
     and of the pixel math. One case of [ADR-PHJ3](entries/PHJ3-resize-compute-dtype.md) is open: a
@@ -50,7 +51,8 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   sidecar under `detectors/keypoint_detectors/`. Ultralytics-Exporter uses `yolo26/body/`
   ([`yolo_sidecar.py:104-107`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L104-L107)). OpenMMLab-Exporter uses
   `rtmo/coco17/` ([`rtmo/identity.py:42`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/d9704753a22792c32a1d3018a0c9e9ea2d279d71/rtmo/identity.py#L42)).
-  No reference example has both roles.
+  No reference example has both roles. Do this item when a model with both roles or a `poses`
+  output has an open bundle.
 - [`letterbox`](../pre/resize-letterbox.md#fields) has no `rounding` value for `floor`, and its
   [inverse](../pre/resize-letterbox.md#inverse) uses the rounded size. The `resize_pad` function of
   `qai_hub_models` 0.64.0 (the MediaPipe person detector) cuts the scaled size with `math.floor`, and

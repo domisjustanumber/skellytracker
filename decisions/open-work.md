@@ -44,12 +44,4 @@ The implementation-stage work is in the stages M7 to M12 of the
 - **Exporter coverage note.** Retire `notes/sidecar-exporter-coverage.md` at the end of the
   spec-build stage. First, copy its unique measurements to an evidence entry
   ([ADR-5WKW](entries/5WKW-implementation-work-in-the-plan.md)).
-
-Repository state, not code work ([gtwq](entries/gtwq-random-entry-ids.md)):
-
 - On 2026-10-22, the workflow runs on `freemocap/skellytracker` end in `startup_failure`.
-- **Old mirror numbers.** [0028](entries/0028-entry-edits-and-citations.md) and
-  [0029](entries/0029-decision-log-read-path.md) name "OpenMMLab-Exporter 0040 (planned)".
-  [0030](entries/0030-no-private-data.md) names "OpenMMLab-Exporter 0041 (planned)". On 2026-10-24, these
-  numbers belong to other entries in OpenMMLab-Exporter, and [0032](entries/0032-entry-numbers-and-edits.md)
-  retires the mirror rule. The bodies do not change. These lines name no current entry.
