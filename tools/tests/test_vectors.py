@@ -213,6 +213,7 @@ FILE_TOLERANCE = {
     "normalize": 1e-5,
     "selection": 1e-5,
     "decode": 1e-5,
+    "common.input": 1e-4,
 }
 
 

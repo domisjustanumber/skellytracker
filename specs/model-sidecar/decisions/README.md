@@ -20,6 +20,7 @@ These entries are `accepted` or `evidence`.
 | [1VMX](entries/1VMX-nms-key-exclusion.md) | Spec change: the NMS reference refuses the keys of `V-post.det.selection.nms-1` | accepted |
 | [3S5G](entries/3S5G-affine-crop-matrix.md) | Spec change: the warp matrix `M` of `affine_person_crop` in the float32 steps of mmpose | accepted |
 | [03PH](entries/03PH-simcc-score-rule.md) | Spec change: the 2D SimCC score is the smaller raw peak | accepted |
+| [XH1J](entries/XH1J-normalize-input-dtype.md) | Spec change: each normalization casts to `input.dtype`; no `int8` input | accepted |
 
 ### Proposed
 
@@ -30,7 +31,6 @@ proposals of a section here.
 | # | Decision | Section | Status |
 |---|----------|---------|--------|
 | [52NQ](entries/52NQ-model-id-suffix.md) | Spec change: keypoint detector id `{family}-{group}[-{variant}]` | `common.identity` | proposed |
-| [XH1J](entries/XH1J-normalize-input-dtype.md) | Spec change: each normalization casts to `input.dtype`; no `int8` input | `pre.normalize` | proposed |
 | [1V57](entries/1V57-normalize-custom-defaults.md) | Spec change: an absent `custom` key defaults to identity; YOLOX takes raw pixels | `pre.normalize` | proposed |
 
 The entries that are `rejected`, `superseded by XXXX`, `absorbed into <path>#<anchor>`,

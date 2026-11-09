@@ -4,13 +4,13 @@ title: Input
 kind: common
 selectors: []
 implemented_by:
-  validate: skellytracker/core/sidecar/model.py::InputSpec  # partial. No color_format field (V-common.input-5) and no crop_policy.pad_value. Nothing checks that dtype covers the declared precisions. pad_value is not required for fit.
+  validate: skellytracker/core/sidecar/model.py::InputSpec  # partial. No color_format field (V-common.input-5) and no crop_policy.pad_value. Nothing checks that dtype covers the declared precisions. pad_value is not required for fit. OnnxDtype of InputSpec.dtype allows int8 (V-common.input-2).
   load: skellytracker/core/detectors/processing/image_preprocessing.py::preprocess_image  # partial. Ignores input.dtype. Raises for method none and for letterbox with preserve_aspect_ratio false. The spec does not define preserve_aspect_ratio.
 external_impl: []
 tests:
   - skellytracker/tests/sidecar/test_model_validation.py
   - skellytracker/tests/test_image_preprocessing.py
-vectors: null
+vectors: vectors/common.input.yaml
 status: {spec: stable, validate: partial, load: partial}
 ---
 
@@ -21,7 +21,7 @@ status: {spec: stable, validate: partial, load: partial}
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `name` | string | yes | The name of the ONNX input tensor. |
-| `dtype` | object | yes | A map of precision → ONNX graph input element type, for example `{fp32: float32, fp16: float16}`. When all variants share one type, every entry is that type, for example `{fp32: float32, fp16: float32}`. The keys are precision keys ([V-common.sizes_and_artifacts-6](sizes-and-artifacts.md#validation-rules)). They cover the precisions that `precision_artifacts` declares ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). |
+| `dtype` | object | yes | A map of precision → ONNX graph input element type, for example `{fp32: float32, fp16: float16}`. When all variants share one type, every entry is that type, for example `{fp32: float32, fp16: float32}`. The keys are precision keys ([V-common.sizes_and_artifacts-6](sizes-and-artifacts.md#validation-rules)). They cover the precisions that `precision_artifacts` declares ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). Each value is `float32`, `float16` or `uint8` (`V-common.input-2`). |
 | `color_format` | enum | yes | `rgb` or `bgr`. This is the channel order of the tensor that the model consumes. Each normalization mode uses it ([Normalization](../pre/normalization.md#behaviour); [ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). |
 | `resize` | object | no | The resize configuration (see below). A sidecar can omit this field only when the model consumes the source image unchanged. This has the same effect as `method: none`. `target_size` is set for each size (`sizes.<size>.input.resize.target_size`). The other fields are shared. |
 
@@ -48,7 +48,7 @@ Each `method` has its own section: [`letterbox`](../pre/resize-letterbox.md), [`
 ## Validation rules
 
 - [ ] `V-common.input-1` If `input.resize.target_size` is present, it must be an array `[height, width]` of length 2.
-- [ ] `V-common.input-2` `input.dtype` must be present. Its keys must be precision keys ([V-common.sizes_and_artifacts-6](sizes-and-artifacts.md#validation-rules)). The keys must cover the precisions that `precision_artifacts` declares ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). Its values must be `float32`, `float16`, `uint8` or `int8` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
+- [ ] `V-common.input-2` `input.dtype` must be present. Its keys must be precision keys ([V-common.sizes_and_artifacts-6](sizes-and-artifacts.md#validation-rules)). The keys must cover the precisions that `precision_artifacts` declares ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). Its values must be `float32`, `float16` or `uint8` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md); [ADR-XH1J](../decisions/entries/XH1J-normalize-input-dtype.md)).
 - [ ] `V-common.input-3` `input.resize.method` must be `letterbox`, `stretch`, `fit`, `affine_person_crop` or `none` ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)). `input.resize.interpolation` must be `linear`, `area`, `cubic` or `nearest`.
 - [ ] `V-common.input-4` If `pad_value` or `crop_policy.pad_value` is present, it must be a number or an array of numbers with length 3.
 - [ ] `V-common.input-5` The value of `input.color_format` must be `rgb` or `bgr`. [V-pre.normalize-1](../pre/normalization.md#validation-rules) makes it required ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
@@ -81,5 +81,6 @@ See also [Identity](identity.md#validation-rules), [Sizes and artifacts](sizes-a
   - An fp16 conversion with `keep_io_types=True` keeps the float32 I/O, so the exporters write `{fp32: float32, fp16: float32}`. OpenMMLab-Exporter and Roboflow-Exporter check that the I/O of every published artifact is float32. (OpenMMLab-Exporter [`onnx_convert/FP16_CONTRACT.md:11-16`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/6ed34e42d6aab2ff126df9a6e297560f51775772/onnx_convert/FP16_CONTRACT.md#L11-L16) and [`rtmo/contract.py:8-11`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmo/contract.py#L8-L11); Roboflow-Exporter [`pipeline/artifacts.py:125-130`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/4ae67c0f99a45a81a0e788e6abbda82db7811e32/pipeline/artifacts.py#L125-L130))
   - Qualcomm-Exporter keys the map by the precisions that it finds across all batches. (Qualcomm-Exporter [`qai_sidecar.py:74-76`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_sidecar.py#L74-L76), [`qai_sidecar.py:106-110`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_sidecar.py#L106-L110))
   - With a float32 input for every precision, the sidecar needs no `normalization_by_precision`. (Ultralytics-Exporter [`yolo_sidecar.py:391-393`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L391-L393))
+  - An `int8` graph input has no valid `input.dtype` (`V-common.input-2`). With `none`, the pixels 128 to 255 do not fit in `int8`: `200` becomes `-56` and `255` becomes `-1` (NumPy 2.5.4). The other modes give fractional values. Export the graph with a `uint8` or a float input.
 - Convert a TFLite or MediaPipe model with `tf2onnx --inputs-as-nchw`. The spec has no NHWC form ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). A TFLite model has an NHWC input. This is a plan fact, with no other evidence.
   - The command `tf2onnx --opset 17 --inputs-as-nchw input_1` gives an NCHW ONNX input. The shapes are `[B, 3, 256, 256]` (re-crop) and `[B, 3, 224, 224]` (landmark). The command removes every layout `Transpose`. (the untracked hand pipeline plan of MediaPipe-Exporter (secondary))

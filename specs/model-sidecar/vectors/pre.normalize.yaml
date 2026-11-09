@@ -10,6 +10,12 @@ notes:
   - "`params` use the sidecar field names: `normalization`, `normalization_by_precision`,
     `color_format` and `dtype` are fields of `input`; `precision` selects the entry of
     `normalization_by_precision` (default fp32)."
+  - "`dtype` is the entry of `input.dtype` for the precision. Each mode casts its result
+    to it. A case without `dtype` gives the values before the cast. `resize` is
+    `input.resize`. Only its `compute_dtype` is used (default uint8): the pixels have
+    that dtype."
+  - "A validator case (`function: none`) shows only the input block of the sidecar. It
+    checks only the rules of this section."
 tolerance: 0.00001
 unverified: "The independent implementations ran only some cases. Each of these cases lists them
   in verified_against."
@@ -196,3 +202,123 @@ cases:
       values: [[0, 0, 0], [1, 1, 1], [0.980392, 0.501961, 0.039216], [0.196078, 0.392157, 0.784314]]
     verified_against:
       - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::make_normalizer}
+  - id: unit-float-float16
+    note: "the cast to a float16 input rounds each value to float16: 250 / 255 gives 0.980469,
+      not 0.980392. Without the cast, the largest difference is 1.3e-4, more than the
+      tolerance"
+    params: {normalization: unit_float, color_format: rgb, dtype: float16}
+    input: {pixels_bgr: [[0, 0, 0], [255, 255, 255], [10, 128, 250], [200, 100, 50]]}
+    expect:
+      resolved_mode: unit_float
+      channel_order: rgb
+      values: [[0, 0, 0], [1, 1, 1], [0.980469, 0.501953, 0.039215], [0.196045, 0.39209, 0.78418]]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::make_normalizer}
+  - id: imagenet-float16
+    note: "the cast to a float16 input rounds each value to float16. Without the cast, the
+      largest difference is 8.6e-4"
+    params: {normalization: imagenet, color_format: bgr, dtype: float16}
+    input: {pixels_bgr: [[0, 0, 0], [255, 255, 255], [10, 128, 250], [200, 100, 50]]}
+    expect:
+      resolved_mode: imagenet
+      channel_order: bgr
+      values:
+        - [-1.804688, -2.035156, -2.117188]
+        - [2.640625, 2.427734, 2.248047]
+        - [-1.629883, 0.2052, 2.164062]
+        - [1.681641, -0.284912, -1.261719]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::make_normalizer}
+  - id: float32-resize-pixels
+    note: "a float32 resize gives fractional pixels, also below 0 and above 255 (a cubic filter
+      has no clamp). The mode takes them unchanged"
+    params:
+      normalization: unit_float
+      color_format: bgr
+      dtype: float32
+      resize: {compute_dtype: float32}
+    input: {pixels_bgr: [[127.5, 0.25, 254.75], [-3.5, 260, 128]]}
+    expect:
+      resolved_mode: unit_float
+      channel_order: bgr
+      values: [[0.5, 0.00098, 0.99902], [-0.013725, 1.019608, 0.501961]]
+  - id: uint8-resize-pixels-are-integers
+    note: "the pixels are a tensor of the resize, not a sidecar value. An 8-bit resize gives
+      integers from 0 to 255"
+    checks: [refused]
+    params: {normalization: none, color_format: bgr, dtype: float32}
+    input: {pixels_bgr: [[127.5, 0, 0]]}
+    expect: {error: no-rule}
+  - id: uint8-needs-normalization-none
+    note: "the fp16 input is uint8, and the fp16 normalization resolves to imagenet. The cast
+      of its fractional values to uint8 is not defined"
+    function: none
+    params: {}
+    input:
+      sidecar:
+        input:
+          name: input
+          dtype: {fp32: float32, fp16: uint8}
+          color_format: rgb
+          normalization: imagenet
+    expect: {failed: [V-pre.normalize-3]}
+  - id: uint8-with-override-none-is-valid
+    note: "the override gives none to the uint8 precision. The fp32 precision keeps unit_float"
+    function: none
+    params: {}
+    input:
+      sidecar:
+        input:
+          name: input
+          dtype: {fp32: float32, fp16: uint8}
+          color_format: rgb
+          normalization: unit_float
+          normalization_by_precision: {fp16: none}
+    expect: {failed: []}
+  - id: uint8-needs-an-8-bit-resize
+    note: "a float32 resize gives fractional values. Their cast to a uint8 input is not
+      defined, also with normalization none"
+    function: none
+    params: {}
+    input:
+      sidecar:
+        input:
+          name: input
+          dtype: {fp32: uint8}
+          color_format: rgb
+          normalization: none
+          resize:
+            method: letterbox
+            pad_position: center
+            rounding: half_even
+            pad_value: 114
+            interpolation: linear
+            compute_dtype: float32
+    expect: {failed: [V-pre.normalize-3]}
+  - id: top-level-is-required-with-an-override
+    note: "the override covers the only precision, but input.normalization is absent. The rule
+      requires it with no condition"
+    function: none
+    params: {}
+    input:
+      sidecar:
+        input:
+          name: input
+          dtype: {fp32: float32}
+          color_format: bgr
+          normalization_by_precision: {fp32: none}
+    expect: {failed: [V-pre.normalize-1]}
+  - id: top-level-is-checked-with-an-override
+    note: "the override covers the only precision, but the top-level custom object has a scale
+      that is not positive"
+    function: none
+    params: {}
+    input:
+      sidecar:
+        input:
+          name: input
+          dtype: {fp32: float32}
+          color_format: bgr
+          normalization: {mode: custom, scale: -1}
+          normalization_by_precision: {fp32: none}
+    expect: {failed: [V-pre.normalize-1]}
