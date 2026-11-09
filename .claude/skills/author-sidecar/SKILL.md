@@ -256,14 +256,13 @@ Do this step for every final verdict, also after step 6. Follow
    when other rows are `unverified`.
 2. Pack the `model` bundle
    ([Pack a version](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#pack-a-version)).
-   `pack` writes the newest version heading of the checkout, today the open target `2.0.0`, to the
-   manifest as `spec_version`
+   `pack` writes the newest version heading of the checkout, today
+   [the open target](../../../specs/model-sidecar/changelog.md#revisions), to the manifest as
+   `spec_version`
    ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)). Then stop. Do not change
    another file in skellytracker.
-3. Do not publish a sidecar to a shared or remote sidecar root until a final skellytracker release
-   loads its `schema_version`. A pre-release does not end this ban
-   ([Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing);
-   [ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
+3. Publish a sidecar only when the publish ban allows it
+   ([Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing)).
 4. Tell the user these items:
    - the final verdict;
    - the files that you wrote;

@@ -9,15 +9,11 @@ root log ([ADR-GN3D](../../decisions/entries/GN3D-module-decision-logs.md)).
 - The section files under this folder are normative. Read the sections that apply before you change
   a sidecar, an example or the spec. The [section map](README.md#section-map) lists them.
 - Link to the spec by its relative path. Do not link to a branch URL.
-- Each spec change and each proposal targets the open target: the next skellytracker release. Until
-  the user bumps skellytracker, the open target is `2.0.0`
-  ([Revisions](changelog.md#revisions); [ADR-6GE2](../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
-- Do not publish a sidecar to a shared or remote sidecar root until a final skellytracker release
-  loads its `schema_version`. This ban applies to each target. A pre-release does not end it. The
-  private test repo of the implementation stage is the one exception. Put a sidecar with a
-  pre-release `schema_version` only in the private test repo. The exporter exports it again after
-  the final release ([Authoring guidance](format/versioning.md#authoring-guidance);
-  [Publishing](model-addition-workflow/validation-and-publishing.md#publishing)).
+- Each spec change and each proposal targets [the open target](changelog.md#revisions): the next
+  skellytracker release
+  ([ADR-6GE2](../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
+- Publish a sidecar only when the publish ban allows it
+  ([Publishing](model-addition-workflow/validation-and-publishing.md#publishing)).
 - A spec change has no class. It applies to each sidecar from the commit that lands it
   ([ADR-C0YD](../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md) item 1). Each
   sidecar has one reading: the current spec text. The spec has no legacy reading. The package
@@ -32,13 +28,8 @@ root log ([ADR-GN3D](../../decisions/entries/GN3D-module-decision-logs.md)).
   [summary of changes](changelog.md#summary-of-changes). A content commit also appends one
   ``- Row N: `<fingerprint>`.`` line under the open target in [Revisions](changelog.md#revisions).
 - Stop on a gap. If a model property does not map exactly to a spec section, do not approximate it.
-  A near-miss is a gap. A gap that a skellytracker session finds goes on the
-  [spec-defect list](decisions/open-work.md#spec-defects). Then stop. A contributor writes the
-  change proposal with the parts of [`templates/change-proposal.md`](templates/change-proposal.md)
-  and packs it as a `proposal` bundle ([Hand-over bundles](model-addition-workflow/hand-over.md);
-  [ADR-ZXD7](../../decisions/entries/ZXD7-bundle-process.md)). A skellytracker session copies
-  the bundle version to `proposals/<slug>/` and records it as a short decision entry with status
-  `proposed`. Then stop. The user accepts or rejects the proposal.
+  A near-miss is a gap. Then follow
+  [`propose-sidecar-change`](../../.claude/skills/propose-sidecar-change/SKILL.md).
 - Put one kind of change in each PR
   (ADR-[0027](../../decisions/entries/0027-single-working-branch.md#one-kind-of-change-in-each-pr)).
   In the spec-build stage, the exception of

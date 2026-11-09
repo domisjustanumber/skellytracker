@@ -7,8 +7,8 @@ You do not do phase 3. A skellytracker session does it. The user decides.
    (in `specs/model-sidecar/inventory.yaml`) and any new guidance from the intake. The procedure is
    [Reference examples](reference-examples.md) in this workflow.
    Its preconditions: your writer code writes the sidecar itself (not by hand), with
-   `schema_version: "2.0.0"` (the open target) and only the keys that the spec defines; your checks
-   pass; parity passes for at least one size. The
+   `schema_version: "2.0.0"` ([the open target](../changelog.md#revisions)) and only the keys that
+   the spec defines; your checks pass; parity passes for at least one size. The
    procedure copies your sidecar byte for byte. If your sidecar breaks a spec rule, fix your writer code
    or write a change proposal. Nobody corrects the example by hand. An accepted spec change can make
    an example invalid. Then its content commit makes a spec-forced edit of the example

@@ -62,7 +62,6 @@ These rules apply to each contributor that writes a sidecar.
   has `batching.batch_conversion` and the `validate` or `load` status of `common.batch_conversion`
   is not `implemented`. The skill `change-sidecar-spec` gives both stops
   ([ADR-QMKS](../../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)).
-- After a final release loads the `schema_version` of your sidecars, you can publish them.
 - The batch artifacts. A sidecar has one `batching.batch` for every size and every precision: b3,
   b1 or `dynamic` ([Batch forms](../common/sizes-and-artifacts.md#batch-forms);
   [ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). You publish one artifact for each size

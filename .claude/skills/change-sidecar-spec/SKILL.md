@@ -381,9 +381,9 @@ A spec change has no class ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-
 
 ### The open target
 
-- Each spec change and each proposal targets the open target: the next skellytracker release that
-  includes a spec change. The open target is `2.0.0`
-  ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
+- Each spec change and each proposal targets
+  [the open target](../../../specs/model-sidecar/changelog.md#revisions): the next skellytracker
+  release that includes a spec change ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
 - If a model that needs the change is not in
   [Scope of this revision](../../../specs/model-sidecar/changelog.md#scope-of-this-revision), add the
   model to the list in the non-spec commit of the change
