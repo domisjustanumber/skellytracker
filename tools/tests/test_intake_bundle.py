@@ -621,6 +621,23 @@ def test_the_entry_status_gives_the_state_and_a_response_must_agree(tmp_path: Pa
     assert f"{name} v2 landed (new version) (can delete)" in ib.list_lines(root, repo)
 
 
+def test_answers_version_must_name_an_existing_version(tmp_path: Path, root: Path) -> None:
+    repo = fake_repo(tmp_path)
+    source = payload(tmp_path, {"proposal.md": "text\n"})
+    ib.pack(source, proposal_fields(), root, cwd=tmp_path, repo=repo)
+    name = "proposal-box-clamp@ultralytics-exporter"
+    finding = (
+        "responses: the latest response gives answers_version 2, but the current version is v1; "
+        "answers_version is the version that the response answers"
+    )
+    respond(root, name, 1, state="needs-contributor", answers_version=2)
+    assert finding in ib.verify(name, root, repo)
+    respond(root, name, 2, state="needs-contributor", answers_version=1)
+    assert not any(f.startswith("responses: the latest response gives") for f in ib.verify(name, root, repo))
+    assert ib.pack(source, proposal_fields(), root, cwd=tmp_path, repo=repo).name == "v2"
+    assert f"{name} v2 needs-contributor (new version)" in ib.list_lines(root, repo)
+
+
 def test_each_record_folder_has_exactly_one_entry() -> None:
     assert {slug: len(paths) for slug, paths in ib.record_entries().items() if len(paths) != 1} == {}
 

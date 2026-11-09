@@ -325,7 +325,7 @@ Only the skellytracker session writes `responses/r<n>.yaml`. It writes JSON. The
 the keys:
 
 ```yaml
-answers_version: 2
+answers_version: 2                        # the version that this response answers
 date: YYYY-MM-DD
 state: needs-contributor | waiting | recorded | accepted | landed | rejected | resolved-otherwise | closed
 findings: ["<what the contributor must fix>", "deferred: <reason>"]
@@ -338,6 +338,10 @@ changes: ["<editorial fix made at acceptance>"]
 resolution: {...}                         # required for rejected and resolved-otherwise
 ```
 
+- `answers_version` is the number of the version that the response answers. It is not the next
+  version. `list` marks a bundle `(new version)` when its current version is not the
+  `answers_version` of its latest response. `verify` gives a finding when that number is lower
+  than 1 or higher than the current version ([ADR-M3RY](../../../decisions/entries/M3RY-answers-version-names-an-existing-version.md)).
 - `findings` holds each failed `verify` check and each item that the contributor must fix.
 - `rejected` needs a one-line `resolution.reason`.
 - `resolved-otherwise` means: the user accepted the goal of the proposal, but a different proposal
@@ -434,7 +438,9 @@ it does this safety check ([ADR-AD33](../../../decisions/entries/AD33-bundles-ar
    `pending`, the response is `needs-contributor`. Its findings come from "Missing evidence and runs"
    of the intake. Procedure A of the skill `change-sidecar-spec` turns `vector-runs.yaml` into
    `verified_against`.
-6. After each commit, write the next response with the new state and the commit subject.
+6. After each commit, write the next response with the new state and the commit subject. Then run
+   `verify` on the bundle again. It checks the new response. If it gives an
+   `answers_version` finding, write a new response with the correct `answers_version`.
 
 ### The session run
 
