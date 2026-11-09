@@ -321,6 +321,26 @@ def test_provenance_entry_is_complete(key: str) -> None:
     assert isinstance(entry["edits"], list)
 
 
+# The family folder of an example, and the name of the family in the scope list of the changelog.
+# A new family needs a row here.
+SCOPE_NAMES = {"rtmw": "RTMW", "yolox-person": "YOLOX (person)"}
+
+
+@pytest.mark.parametrize("key", sorted(inventory()["examples"]))
+def test_example_family_is_in_the_scope_of_this_revision(key: str) -> None:
+    """Procedure A of `change-sidecar-spec` adds the model of a new example to the scope list.
+
+    Only this direction holds: the scope list also names models with no example.
+    """
+    family = key.split("/")[2]
+    assert family in SCOPE_NAMES, f"add the scope name of the family {family!r} to SCOPE_NAMES"
+    changelog = (REPO_ROOT / "specs" / "model-sidecar" / "changelog.md").read_text(encoding="utf-8")
+    scope = changelog.split("### Scope of this revision", 1)[1].split("\nThe rules of this list:", 1)[0]
+    exporter = inventory()["examples"][key]["exporter"]
+    line = next((x for x in scope.splitlines() if x.startswith(f"- {exporter}: ")), "")
+    assert SCOPE_NAMES[family] in line, (key, line)
+
+
 def fragment_paths() -> list[Path]:
     """Every YAML file of the examples that is not a sidecar."""
     return sorted(p for p in EXAMPLES_DETECTORS.rglob("*.yaml") if not is_sidecar(p))
