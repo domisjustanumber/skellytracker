@@ -21,8 +21,9 @@ per-channel pad value, the Inverse, and the validation rules V-pre.resize.affine
 and -3. The proposal changes only the arithmetic of M. The Inverse text does not change: it is the
 inverse of M.
 
-Imports of other sections: none. Fixtures of pre.resize.interpolation (that section has no
-reference module): INTERPOLATION_FLAGS and COMPUTE_DTYPES.
+Imports of other sections: pre.resize.interpolation (pre_resize_interpolation, the values
+INTERPOLATION_FLAGS and COMPUTE_DTYPES). Fixtures: none. In skellytracker, this import replaced the
+fixtures of pre.resize.interpolation of the recorded file.
 
 The function crop_size refuses a box that gives an empty crop (w <= 0 or h <= 0, or NaN) with
 ValueError. The section text has no such rule. The box is a detector output, not a sidecar value,
@@ -38,7 +39,7 @@ Parity result: pass (part 5 of the proposal, OpenMMLab-Exporter ADR-6A8S). The p
 version 1 of this file (SHA-256 62bd8750eb82b0f8c5204900e646b6e412d1d6b9eda9a8f34baed9fbb5883219).
 Version 2 changes only lines of this docstring. The code is the same.
 
-Uses only NumPy, OpenCV and the Python standard library.
+Uses only NumPy, OpenCV, the Python standard library and the module pre_resize_interpolation.
 """
 
 from __future__ import annotations
@@ -49,6 +50,7 @@ from typing import Any
 
 import cv2
 import numpy as np
+import pre_resize_interpolation
 
 SECTION_ID = "pre.resize.affine_person_crop"
 METHOD = "affine_person_crop"
@@ -57,16 +59,6 @@ DEFAULT_MAINTAIN_ASPECT_RATIO = True
 DEFAULT_PAD_VALUE = 0
 # Rule V-pre.resize.affine_person_crop-3: the fields that an affine_person_crop resize must not declare.
 NOT_ALLOWED_RESIZE_FIELDS = ("pad_value", "pad_position", "rounding")
-
-# Fixture of pre.resize.interpolation.
-INTERPOLATION_FLAGS = {
-    "linear": cv2.INTER_LINEAR,
-    "area": cv2.INTER_AREA,
-    "cubic": cv2.INTER_CUBIC,
-    "nearest": cv2.INTER_NEAREST,
-}
-# Fixture of pre.resize.interpolation.
-COMPUTE_DTYPES = {"uint8": np.uint8, "float32": np.float32}
 
 
 def crop_size(
@@ -204,17 +196,17 @@ def warp_image(
     """pre.resize.affine_person_crop, Behaviour: warp the image with M to (T_w, T_h).
 
     The image is HWC (or HW), in the channel order of input.color_format. The warp runs in
-    compute_dtype (the fixture of pre.resize.interpolation). The border mode is constant. The
+    compute_dtype (section pre.resize.interpolation). The border mode is constant. The
     destination pixel (x, y) samples the source at M^-1 (x, y, 1) (ADR-G79P).
     """
     t_h, t_w = (int(value) for value in target_size)
-    source = np.ascontiguousarray(np.asarray(image).astype(COMPUTE_DTYPES[compute_dtype]))
+    source = np.ascontiguousarray(np.asarray(image).astype(pre_resize_interpolation.COMPUTE_DTYPES[compute_dtype]))
     channels = 1 if source.ndim == 2 else int(source.shape[2])
     return cv2.warpAffine(
         source,
         np.asarray(matrix, dtype=np.float64),
         (t_w, t_h),
-        flags=INTERPOLATION_FLAGS[interpolation],
+        flags=pre_resize_interpolation.INTERPOLATION_FLAGS[interpolation],
         borderMode=cv2.BORDER_CONSTANT,
         borderValue=border_value(pad_value, channels),
     )

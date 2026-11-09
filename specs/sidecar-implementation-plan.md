@@ -472,6 +472,23 @@ Two rules of this part stay:
   frame to float32 before the resize and the pad, and keep the canvas in float32. Do not round or
   clamp the result. Add the cases of `pre.resize.interpolation.yaml` and the new case of
   `pre.resize.none.yaml` to `skellytracker/tests/sidecar/test_model_validation.py`.
+- **Affine crop matrix in float32.** Added on 2026-11-09. The spec gives the warp matrix `M` of
+  `affine_person_crop` in float32 steps, as mmpose v1.3.2 computes it
+  ([ADR-3S5G](model-sidecar/decisions/entries/3S5G-affine-crop-matrix.md);
+  [Behaviour](model-sidecar/pre/resize-affine-person-crop.md#behaviour)). The package code keeps the
+  dtype of the box, and `get_warp_matrix` puts the second warp point above the centre. In the
+  `affine_person_crop` branch of `preprocess_image` in
+  `skellytracker/core/detectors/processing/image_preprocessing.py`, cast the person box to float32,
+  also the full-frame box. In `get_warp_matrix` of
+  `skellytracker/core/detectors/processing/affine_crop.py`, put the second point left of the centre
+  (`src_dir = [src_w * -0.5, 0]`, `dst_dir = [dst_w * -0.5, 0]`). Make the same change in the second
+  copy in `skellytracker/core/detectors/keypoint_detectors/rtmpose/rtmpose_preprocessing.py`. The
+  branch with `maintain_aspect_ratio: false` raises `NotImplementedError` now. The implementer
+  decides that branch. The Inverse in `decode_simcc` needs no change. Run the numeric cases of
+  [`pre.resize.affine_person_crop`](model-sidecar/vectors/pre.resize.affine_person_crop.yaml)
+  through `bbox_xyxy2cs`, `top_down_affine` and `get_warp_matrix`, and add a golden test with its
+  three COCO cases, for example in `skellytracker/tests/sidecar/`. Then update the `forward` note of
+  the front matter of the section.
 
 ### M9 — Source and hash checks
 

@@ -10,13 +10,13 @@ Note:
   onnx_runtime/unprojection.py::unproject_boxes and onnx_runtime/preprocess.py::to_model_pixels at
   5dd5c93ac6555ac907ae2ebfbc27dc6de5e3c278. The host code is unchanged at
   18320f4e51660fe0cb9c546441eb9be09d53f339.
-- Imported section modules: pre.resize.letterbox (pre_resize_letterbox, the function inverse) and
-  post.det.decode (post_det_decode, the functions clamp_enabled, clamp and size_mask). Both modules
-  are in the same bundle.
-- Fixtures: pre.resize.stretch (stretch_inverse), pre.resize.fit (fit_inverse) and
-  pre.resize.affine_person_crop (affine_person_crop_inverse). No place of "Imports of other
-  sections" has a module of these sections for this bundle. The module pre_resize_affine_person_crop
-  is in the rtmw-wholebody133 model bundle, not in this bundle.
+- Imported section modules: pre.resize.letterbox (pre_resize_letterbox, the function inverse),
+  post.det.decode (post_det_decode, the functions clamp_enabled, clamp and size_mask) and
+  pre.resize.affine_person_crop (pre_resize_affine_person_crop, the functions inverse, check_rules
+  and case_policy). In skellytracker, the import of pre_resize_affine_person_crop replaced the
+  fixture affine_person_crop_inverse of the bundle file (ADR-3S5G).
+- Fixtures: pre.resize.stretch (stretch_inverse) and pre.resize.fit (fit_inverse). No place of
+  "Imports of other sections" has a module of these sections.
 - The method none has no algorithm (its Inverse is the identity), so no section module exists for
   it. This module returns the position unchanged.
 - Vector results: specs/model-sidecar/vectors/post.unprojection.yaml of skellytracker
@@ -40,14 +40,11 @@ from __future__ import annotations
 from typing import Any
 
 import post_det_decode
+import pre_resize_affine_person_crop
 import pre_resize_letterbox
 
 SCALES = ("pixel", "normalized_01", "normalized_11")
 RESIZE_METHODS = ("letterbox", "stretch", "fit", "none", "affine_person_crop")
-# Fixture of pre.resize.affine_person_crop.
-DEFAULT_EXPAND_RATIO = 1.25
-# Fixture of pre.resize.affine_person_crop.
-DEFAULT_MAINTAIN_ASPECT_RATIO = True
 
 
 def required(mapping: dict[str, Any], keys: tuple[str, ...], where: str) -> None:
@@ -132,57 +129,17 @@ def fit_inverse(params: dict[str, Any], input: dict[str, Any]) -> dict[str, list
     return {"source_xy": [(x - left) / scale, (y - top) / scale]}
 
 
-def affine_person_crop_inverse(params: dict[str, Any], input: dict[str, Any]) -> dict[str, list[float]]:
-    """Fixture of pre.resize.affine_person_crop. The Inverse of the warp M, with the rotation 0.
-
-    The centre is the centre of bbox_xyxy. The size (w, h) is the box size times expand_ratio. When
-    maintain_aspect_ratio is true, the shorter side grows to the aspect ratio T_w / T_h. M is
-    [[s_x, 0, t_x], [0, s_y, t_y]] with s_x = T_w / w, s_y = T_h / h, t_x = T_w / 2 - s_x * c_x and
-    t_y = T_h / 2 - s_y * c_y. The Inverse is x_src = x * (1 / s_x) + (-t_x / s_x) and
-    y_src = y * (1 / s_y) + (-t_y / s_y). In exact math this is x_src = c_x - w / 2 + x * w / T_w and
-    y_src = c_y - h / 2 + y * h / T_h. params is the input.resize block with target_size and the
-    optional expand_ratio (default 1.25) and maintain_aspect_ratio (default true). input holds
-    bbox_xyxy and model_xy. A box that gives an empty crop gives ValueError.
-
-    Source: OpenMMLab-Exporter onnx_runtime/preprocess.py::affine_crop_geometry,
-    onnx_runtime/preprocess.py::AffineCropMeta.inverse_matrix and
-    onnx_runtime/unprojection.py::_inverse_axes (the affine branch) at
-    5dd5c93ac6555ac907ae2ebfbc27dc6de5e3c278.
-    """
-    required(params, ("target_size",), "the affine_person_crop resize")
-    required(input, ("bbox_xyxy", "model_xy"), "the affine_person_crop input")
-    target_h, target_w = positive_pair(params["target_size"], "target_size")
-    ratio = params.get("expand_ratio", DEFAULT_EXPAND_RATIO)
-    if isinstance(ratio, bool) or not isinstance(ratio, (int, float)) or not ratio > 0:
-        raise ValueError(f"V-pre.resize.affine_person_crop-1: expand_ratio must be a positive number, not {ratio!r}")
-    keep = params.get("maintain_aspect_ratio", DEFAULT_MAINTAIN_ASPECT_RATIO)
-    if not isinstance(keep, bool):
-        raise ValueError(f"V-pre.resize.affine_person_crop-1: maintain_aspect_ratio must be a boolean, not {keep!r}")
-    x1, y1, x2, y2 = (float(value) for value in input["bbox_xyxy"])
-    center_x, center_y = (x1 + x2) / 2, (y1 + y2) / 2
-    width, height = (x2 - x1) * ratio, (y2 - y1) * ratio
-    if keep:
-        if width > height * (target_w / target_h):
-            height = width * (target_h / target_w)
-        else:
-            width = height * (target_w / target_h)
-    if not (width > 0 and height > 0):
-        raise ValueError(f"the person box {input['bbox_xyxy']!r} gives an empty crop")
-    scale_x, scale_y = target_w / width, target_h / height
-    shift_x = target_w / 2 - scale_x * center_x
-    shift_y = target_h / 2 - scale_y * center_y
-    x, y = input["model_xy"]
-    return {"source_xy": [x * (1 / scale_x) + (-shift_x / scale_x), y * (1 / scale_y) + (-shift_y / scale_y)]}
-
-
 def resize_inverse(
     resize: dict[str, Any], input: dict[str, Any], model_xy: list[float]
 ) -> list[float]:
     """Map one position in model-input pixels to source pixels (post.unprojection, Behaviour).
 
     resize is the input.resize block. input holds src_w and src_h, or bbox_xyxy for
-    affine_person_crop. letterbox calls pre_resize_letterbox.inverse. stretch, fit and
-    affine_person_crop use the fixtures of this module. none returns the position unchanged.
+    affine_person_crop. letterbox calls pre_resize_letterbox.inverse. affine_person_crop calls
+    pre_resize_affine_person_crop.inverse. resize holds target_size and the optional expand_ratio
+    and maintain_aspect_ratio. A target_size that is not two positive numbers, and an expand_ratio or
+    a maintain_aspect_ratio that breaks V-pre.resize.affine_person_crop-1, give ValueError. stretch
+    and fit use the fixtures of this module. none returns the position unchanged.
     Source: OpenMMLab-Exporter onnx_runtime/unprojection.py::inverse_points at
     5dd5c93ac6555ac907ae2ebfbc27dc6de5e3c278.
     """
@@ -205,7 +162,14 @@ def resize_inverse(
         return stretch_inverse(resize, given)["source_xy"]
     if method == "fit":
         return fit_inverse(resize, given)["source_xy"]
-    return affine_person_crop_inverse(resize, given)["source_xy"]
+    required(resize, ("target_size",), "the affine_person_crop resize")
+    positive_pair(resize["target_size"], "target_size")
+    policy = pre_resize_affine_person_crop.case_policy(resize)
+    resolved = {"method": method, "target_size": resize["target_size"], "crop_policy": policy}
+    failed = pre_resize_affine_person_crop.check_rules({"sizes": {"case": {"input": {"resize": resolved}}}})
+    if failed:
+        raise ValueError(f"{failed[0]}: the crop_policy values {policy!r} are not valid")
+    return pre_resize_affine_person_crop.inverse(resize, given)["source_xy"]
 
 
 def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
