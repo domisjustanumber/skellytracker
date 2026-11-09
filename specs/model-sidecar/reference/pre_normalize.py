@@ -4,8 +4,8 @@ This file uses ASD-STE100 Simplified Technical English.
 
 Section ID: pre.normalize (section file specs/model-sidecar/pre/normalization.md).
 Proposal: proposal-normalize-custom-defaults@openmmlab-exporter (slug normalize-custom-defaults).
-No skellytracker decision entry covers it yet. It depends on
-proposal-normalize-input-dtype@openmmlab-exporter (skellytracker decision entry XH1J). This file
+skellytracker ADR-1V57 covers it. It depends on
+proposal-normalize-input-dtype@openmmlab-exporter (skellytracker ADR-XH1J). This file
 is the part 3 file of that proposal, version 2 (SHA-256
 88cf2d1fc83103d14f442593c561731ea52ec23ff96e1f8353f42fe03b59e559), with one change: an absent
 custom key has a value (scale 1, mean [0, 0, 0], std [1, 1, 1]).
@@ -23,10 +23,10 @@ The custom keys. Each key of a custom object other than mode is optional (V-pre.
 absent key has the value scale 1, mean [0, 0, 0] or std [1, 1, 1] (the custom row of the proposed
 mode table). The host function gives the same values.
 
-Full section. skellytracker has no reference implementation of this section. Thus this file
-implements the full section as changed: the resolution of the mode for a precision, the channel
-order, the four modes, the cast to input.dtype, and the validation rules V-pre.normalize-1, -2
-and -3. The section has no inverse.
+Full section. This file implements the full section as changed: the resolution of the mode for a
+precision, the channel order, the four modes, the cast to input.dtype, and the validation rules
+V-pre.normalize-1, -2 and -3. The section has no inverse. In skellytracker, this file replaced the
+reference implementation of ADR-XH1J.
 
 Imported sections: pre.resize.interpolation (module pre_resize_interpolation, in
 specs/model-sidecar/reference/). Its function compute_dtype gives the dtype of

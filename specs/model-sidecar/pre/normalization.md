@@ -128,6 +128,16 @@ See also [Input](../common/input.md#validation-rules).
   `skellytracker/core/sessions/onnx_session.py` (`OnnxSession.run_batched`, `_warmup`); part 6 of
   [`proposal.md`](../proposals/normalize-input-dtype/proposal.md#6-skellytracker-implementation-proposal);
   [ADR-XH1J](../decisions/entries/XH1J-normalize-input-dtype.md)) (implementation stage)
+- The package code already gives the `custom` defaults of Behaviour. `CustomNormalization.scale`
+  has the default `1.0`. `build_normalization_fn` uses `mode.mean or [0.0, 0.0, 0.0]` and
+  `mode.std or [1.0, 1.0, 1.0]`. Thus the defaults need no code change and no validator change.
+  The test of the numeric cases of the vector file also runs the two `custom` default cases. No
+  golden test covers the defaults, because no model uses `custom`. (skellytracker
+  `skellytracker/core/sidecar/model.py` (`CustomNormalization`) and
+  `skellytracker/core/detectors/processing/image_preprocessing.py` (`build_normalization_fn`);
+  part 6 of
+  [`proposal.md`](../proposals/normalize-custom-defaults/proposal.md#6-skellytracker-implementation-proposal);
+  [ADR-1V57](../decisions/entries/1V57-normalize-custom-defaults.md)) (implementation stage)
 
 ## Authoring guidance
 

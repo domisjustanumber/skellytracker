@@ -528,7 +528,10 @@ Two rules of this part stay:
   resolved sidecar for `V-pre.normalize-3`. Its `compute_dtype` part needs the field of the item
   Resize compute dtype. Run the numeric cases of
   [`pre.normalize`](model-sidecar/vectors/pre.normalize.yaml) through `build_normalization_fn` and
-  compare the dtype and the values. Add the data-only cases of `pre.normalize.yaml` and
+  compare the dtype and the values. These cases include the two `custom` default cases of
+  [ADR-1V57](model-sidecar/decisions/entries/1V57-normalize-custom-defaults.md). The package code
+  already gives those defaults. The case `custom-mean-and-std-defaults` also needs the channel
+  order of the item One `imagenet` mode. Add the data-only cases of `pre.normalize.yaml` and
   [`common.input.yaml`](model-sidecar/vectors/common.input.yaml) to
   `skellytracker/tests/sidecar/test_model_validation.py`. Add a golden test: one image of the
   `yolox-person` parity set through `preprocess_image` with the sidecar, compared with the host
