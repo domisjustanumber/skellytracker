@@ -105,6 +105,10 @@ no section and no field hold it, the verdict is `gap`. If a field holds it but n
 describes the upstream, the verdict is `near-miss`.
 
 [Rules](rules.md#rules) gives the verdict of a row with a value that the exporter chooses.
+
+A model must have a known license of its weights (`V-common.license-5`). If research finds no
+license of the weights, write `unknown` in row LC2 and the verdict `gap`. Such a model gets no
+sidecar ([ADR-V8FK](../../../decisions/entries/V8FK-license-evidence-and-models-with-no-license.md)).
 [Near-misses seen so far](mapping-hints.md#near-misses-seen-so-far) lists the known near-misses.
 
 ## Blocking rows
@@ -112,7 +116,8 @@ describes the upstream, the verdict is `near-miss`.
 A blocking row is a `near-miss` or `gap` row other than row G6b. Row G6b with the verdict `gap`
 (`does not convert`) only leaves `batching.batch_conversion` out of the sidecar. It also sends a
 new-profile proposal to phase 2. A blocking row comes before an `unverified` row: go to phase 2 for
-it, also when other rows are `unverified`. The steps of this file use this term
+it, also when other rows are `unverified`. Row LC2 with an unknown license of the weights is the
+exception: write no proposal. Stop and tell the user. The steps of this file use this term
 ([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).
 
 ## Final verdict

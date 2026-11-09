@@ -9,7 +9,9 @@
   `crop_scale`. The spec has no role for a model that gives a crop region, and a host reads the
   outputs of a pose estimator as keypoints ([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).
 - The evidence for a row is an upstream file and line, an upstream config key, or a read of the ONNX
-  graph (the command, and the node or tensor name). A plan, a paper, a README, the notes of a
+  graph (the command, and the node or tensor name). For a `license` row, the license page of the
+  weights or of a dataset is also primary evidence. Give its URL and the date that you read it
+  ([ADR-V8FK](../../../decisions/entries/V8FK-license-evidence-and-models-with-no-license.md)). A plan, a paper, a README, the notes of a
   contributor (for example an exporter) and a spec reference example are secondary sources. Mark a secondary citation with
   `(secondary)`. A row that has only a secondary source is `unverified`. The next two bullets give
   the exceptions.

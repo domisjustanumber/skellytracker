@@ -284,7 +284,7 @@ the training started from, and the license page of each dataset. Read the headin
 
 - All sizes share the `license` block. If two sizes differ in license or in training data, they are
   two families.
-- For a license page, give its URL and the date that you read it.
+- A license page of the weights or of a dataset is primary evidence. Give its URL and the date that you read it (skellytracker ADR-V8FK).
 - Write `unknown` only after research that finds no answer. Each reason names each source that you
   checked, and the date.
 - A host does not change its inference for this block. These rows need no parity run.
@@ -292,9 +292,9 @@ the training started from, and the license page of each dataset. Read the headin
 | # | Property | Upstream evidence (file and line, or config key) | Section ID (the `id` in the section file's front matter) | Sidecar value | Verdict | What differs or what is missing |
 |---|---|---|---|---|---|---|
 | LC1 | The `license` mapping and its keys: `model` and `training_data`, and `training_data_unknown_reason` only with `training_data: unknown` (`V-common.license-1`) | | `common.license` | | | |
-| LC2 | License of the weights (`license.model`): an SPDX license expression, and its `url`. `license.model.id` must not be `unknown` (`V-common.license-2`, `V-common.license-3`, `V-common.license-5`). | | `common.license` | | | |
+| LC2 | License of the weights (`license.model`): an SPDX license expression, and its `url`. `license.model.id` must not be `unknown` (`V-common.license-2`, `V-common.license-3`, `V-common.license-5`). If research finds no license of the weights, the verdict is `gap`, and the model gets no sidecar and no proposal (skellytracker ADR-V8FK). | | `common.license` | | | |
 | LC3 | The datasets of the training run (`license.training_data`, `use: training`): one entry for each dataset of the upstream training config (`V-common.license-6`, `V-common.license-7`) | | `common.license` | | | |
-| LC4 | The datasets of each checkpoint that the training started from (`use: pretraining`). Follow each start checkpoint to the end of its chain, for example through the backbone `init_cfg` or `load_from` (`V-common.license-7`). | | `common.license` | | | |
+| LC4 | The datasets of each checkpoint that the training started from (`use: pretraining`). Follow each start checkpoint to the end of its chain, for example through the backbone `init_cfg` or `load_from`. A distillation teacher counts as a start checkpoint (skellytracker ADR-1BS2) (`V-common.license-7`). | | `common.license` | | | |
 | LC5 | License of each dataset (`license.training_data[].license`): an SPDX license expression. A `LicenseRef-<name>` id needs a `url` (`V-common.license-2`, `V-common.license-3`). In the evidence column, give the version of the SPDX License List that you checked against. | | `common.license` | | | |
 | LC6 | Each `unknown` value and its reason: a license object with `id: unknown` and `unknown_reason`, or `training_data: unknown` and `training_data_unknown_reason` (`V-common.license-4`, `V-common.license-6`) | | `common.license` | | | |
 
