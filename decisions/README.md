@@ -33,7 +33,6 @@ These entries are `accepted` or `evidence`.
 | [8DSW](entries/8DSW-vector-files-are-the-case-source.md) | The vector file is the only case source; formula modules, named checks, `land` and `fill`; supersedes TA0G | accepted |
 | [AD33](entries/AD33-bundles-are-untrusted-input.md) | Bundles are untrusted input: no tool imports or runs bundle code; static checks; a reviewed, user-approved copy; ONNX checks in `batch` | accepted |
 | [YS4C](entries/YS4C-example-removal-by-a-user-ruling.md) | A user ruling that names an example removes it in place of the rebuild wait; the 2026-11-09 ruling names four examples; supersedes NB5F | accepted |
-| [1TR6](entries/1TR6-workflow-copies-of-the-keypoint-detector-id.md) | The workflow copies of the id rule follow 52NQ: `{family}-{group}[-{variant}]` in `{family}/{group}/` | accepted |
 | [7F6X](entries/7F6X-license-rows-in-the-model-intake.md) | The model intake gets the License rows LC1 to LC6; out of scope and parity follow R6J9; row T11 names the cast | accepted |
 | [V8FK](entries/V8FK-license-evidence-and-models-with-no-license.md) | A license page is primary evidence; a model with no known weights license gets no sidecar and no proposal | accepted |
 | [A2CW](entries/A2CW-dataset-owner-page-is-enough-evidence.md) | A page or README of a dataset owner is enough evidence for the license and the contents of the dataset | accepted |
@@ -47,7 +46,6 @@ These entries are `accepted` or `evidence`.
 | [2XW6](entries/2XW6-process-entries-consolidation.md) | Consolidation: restates the rules that stay of Z05A, GN3D, QPS7, NB91, EY8R, D9VT, p3n3, 5WKW and FDTD; changes no decision | accepted |
 | [9MJ6](entries/9MJ6-remove-the-heatmap-decode.md) | Remove the heatmap decode: no `heatmap` method, semantic or section until a model brings a full contract | accepted |
 | [9HBB](entries/9HBB-simcc-decode-is-2d-only.md) | The SimCC decode is 2D only: no `simcc_z`, no `depth_range`; a 3D SimCC model adds its own section | accepted |
-| [JY47](entries/JY47-verification-batch-6-in-the-workflow.md) | The workflow, the templates, the skills and `intake_bundle.py` use the verification batches 1, 2, 3 and 6 and 6 input B items (after 50BW) | accepted |
 | [4KW6](entries/4KW6-onnxruntime-1-31-for-the-cpu-check.md) | `onnx-cpu` requires `onnxruntime>=1.31` (lock 1.31.1): no fp16 noise in the batch check; the GPU cap stays | accepted |
 | [M3RY](entries/M3RY-answers-version-names-an-existing-version.md) | `answers_version` is the version a response answers; `verify` refuses a higher number in the latest response; run `verify` after each response | accepted |
 

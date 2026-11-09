@@ -1,6 +1,6 @@
 # 1TR6 — Workflow copies of the keypoint detector id
 
-**Status:** accepted, 2026-11-09 (user; PR: pending).
+**Status:** done, 2026-11-09 (user; PR: pending).
 
 ## Decision
 
