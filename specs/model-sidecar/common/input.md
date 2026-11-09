@@ -64,6 +64,14 @@ See also [Identity](identity.md#validation-rules), [Sizes and artifacts](sizes-a
 - The reference hosts of the exporters decode an image with PIL `convert("RGB")`. They have no BGR path.
   - A host that holds OpenCV BGR frames must convert them to `input.color_format`. (Roboflow-Exporter [`onnx_runtime/preprocess.py:58-62`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/d0559b9c95a9ba9922045e2bc5aeae9fb596a6b1/onnx_runtime/preprocess.py#L58-L62), [`onnx_runtime/preprocess.py:74-75`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/d0559b9c95a9ba9922045e2bc5aeae9fb596a6b1/onnx_runtime/preprocess.py#L74-L75); Qualcomm-Exporter [`qai_datasets.py:154`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_datasets.py#L154))
   - The decision log records that the spec does not state that the host frame is BGR. ([decision log](../decisions/README.md#open-work))
+- To check `V-common.input-2`, the package model needs a type for the input dtypes `float32`,
+  `float16` and `uint8`. `InputSpec.dtype` must use it. Today `InputSpec.dtype` uses `OnnxDtype`,
+  which also has `int8`. `OutputSpec.dtype` keeps `OnnxDtype` with `int8` (`V-common.outputs-2`).
+  [Normalization](../pre/normalization.md#implementer-guidance) gives the cast to the input dtype.
+  (skellytracker `skellytracker/core/sidecar/model.py` (`OnnxDtype`, `InputSpec`, `OutputSpec`);
+  part 6 of
+  [`proposal.md`](../proposals/normalize-input-dtype/proposal.md#6-skellytracker-implementation-proposal);
+  [ADR-XH1J](../decisions/entries/XH1J-normalize-input-dtype.md)) (implementation stage)
 
 ## Authoring guidance
 

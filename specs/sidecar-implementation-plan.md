@@ -510,6 +510,31 @@ Two rules of this part stay:
   through `get_simcc_maximum` and `decode_simcc`, and add a golden test on one RTMW crop with
   mmpose scores, for example in `skellytracker/tests/sidecar/`. Then update the `decode` status and
   the `partial` note of the front matter of the section.
+- **Cast to the input dtype.** Added on 2026-11-09. Each normalization mode casts its result to the
+  `input.dtype` entry of the precision as the last step. A `uint8` input needs the resolved
+  normalization `none`, and `input.resize.compute_dtype` absent or `uint8` (`V-pre.normalize-3`).
+  `int8` is not an input dtype (`V-common.input-2`). The output dtypes keep it
+  ([ADR-XH1J](model-sidecar/decisions/entries/XH1J-normalize-input-dtype.md);
+  [Behaviour](model-sidecar/pre/normalization.md#behaviour)). The package code returns float32 from
+  each mode, and `preprocess_image` casts the tensor to float32 again. In `build_normalization_fn` of
+  `skellytracker/core/detectors/processing/image_preprocessing.py`, get
+  `input_spec.dtype[precision]` and cast the result of each mode to it as the last step. In
+  `preprocess_image`, keep the dtype of the normalization. In
+  `skellytracker/core/sessions/onnx_session.py`, the feed of `OnnxSession.run_batched` and the
+  warm-up tensor of `_warmup` are float32. Make them use the input dtype. In
+  `skellytracker/core/sidecar/model.py`, add a type for the input dtypes (`float32`, `float16`,
+  `uint8`) and use it for `InputSpec.dtype`.
+  `OutputSpec.dtype` keeps `OnnxDtype` with `int8` (`V-common.outputs-2`). Add a validator of the
+  resolved sidecar for `V-pre.normalize-3`. Its `compute_dtype` part needs the field of the item
+  Resize compute dtype. Run the numeric cases of
+  [`pre.normalize`](model-sidecar/vectors/pre.normalize.yaml) through `build_normalization_fn` and
+  compare the dtype and the values. Add the data-only cases of `pre.normalize.yaml` and
+  [`common.input.yaml`](model-sidecar/vectors/common.input.yaml) to
+  `skellytracker/tests/sidecar/test_model_validation.py`. Add a golden test: one image of the
+  `yolox-person` parity set through `preprocess_image` with the sidecar, compared with the host
+  tensor, for example in `skellytracker/tests/sidecar/`. Then update the `validate` and `forward`
+  notes of the front matter of `pre.normalize`, and the `validate` and `load` notes of
+  `common.input`.
 
 ### M9 — Source and hash checks
 

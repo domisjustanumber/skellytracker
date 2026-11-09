@@ -109,6 +109,25 @@ See also [Input](../common/input.md#validation-rules).
 - That host supports the modes `none`, `unit_float`, `imagenet` and `custom`, and the host names `imagenet_bgr` and `imagenet_rgb` at the top level. It checks the top-level `input.normalization` also when `normalization_by_precision` covers the precision. Its function has no `input.resize.compute_dtype`. (OpenMMLab-Exporter [`onnx_runtime/preprocess.py:142-211`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/7bc72b45137faa4b211d05a38f58812ffae5a109/onnx_runtime/preprocess.py#L142-L211))
 - The Roboflow-Exporter host divides by 255, resizes, and then applies `(x - mean) / std` with mean `(0.485, 0.456, 0.406)` and std `(0.229, 0.224, 0.225)` in RGB order. (Roboflow-Exporter [`onnx_runtime/preprocess.py:18-19`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/d0559b9c95a9ba9922045e2bc5aeae9fb596a6b1/onnx_runtime/preprocess.py#L18-L19), [`onnx_runtime/preprocess.py:74-86`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/d0559b9c95a9ba9922045e2bc5aeae9fb596a6b1/onnx_runtime/preprocess.py#L74-L86))
 - This matches `imagenet` with `color_format: rgb` on 0-255 pixels and `compute_dtype: float32`. Mean x 255 is `123.675 / 116.28 / 103.53`, and std x 255 is `58.395 / 57.12 / 57.375`. The bilinear weights sum to 1, so the result differs from that mode only by float32 rounding ([Interpolation implementer guidance](interpolation.md#implementer-guidance)). A test checks the channel means with `rtol=2e-3`. (Roboflow-Exporter [`tests/test_onnx_runtime.py:164-178`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/d0559b9c95a9ba9922045e2bc5aeae9fb596a6b1/tests/test_onnx_runtime.py#L164-L178))
+- To give the cast of Behaviour, the package code needs these changes. `build_normalization_fn`
+  must get the input dtype of the precision (`input_spec.dtype[precision]`). Each mode must cast its
+  result to that dtype as the last step. Today each mode returns float32. `preprocess_image` must
+  keep the dtype of the normalization. Today it casts the tensor to float32 again. The feed of
+  `OnnxSession.run_batched` and the warm-up tensor of `_warmup` are float32 now. A validator of the
+  resolved sidecar must check `V-pre.normalize-3`: for each precision with the input dtype `uint8`,
+  the resolved mode is `none`, and `input.resize.compute_dtype` is absent or `uint8`. `ResizeSpec`
+  has no `compute_dtype` field yet ([ADR-PHJ3](../decisions/entries/PHJ3-resize-compute-dtype.md)).
+  `V-pre.normalize-1` gives no default to `normalization`, also with an override. Run the numeric
+  cases of the vector file through `build_normalization_fn`, and compare the dtype and the values.
+  Add a validator test with the data-only cases of this vector file and of
+  [`common.input`](../vectors/common.input.yaml). Add a golden test: one image of the
+  `yolox-person` parity set through `preprocess_image` with the sidecar, compared with the host
+  tensor. (skellytracker `skellytracker/core/detectors/processing/image_preprocessing.py`
+  (`build_normalization_fn`, `preprocess_image`, `resolve_normalization_mode`),
+  `skellytracker/core/sidecar/model.py` (`ResizeSpec`) and
+  `skellytracker/core/sessions/onnx_session.py` (`OnnxSession.run_batched`, `_warmup`); part 6 of
+  [`proposal.md`](../proposals/normalize-input-dtype/proposal.md#6-skellytracker-implementation-proposal);
+  [ADR-XH1J](../decisions/entries/XH1J-normalize-input-dtype.md)) (implementation stage)
 
 ## Authoring guidance
 
