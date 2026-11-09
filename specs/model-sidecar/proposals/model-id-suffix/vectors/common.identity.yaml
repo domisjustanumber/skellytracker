@@ -5,14 +5,17 @@ notes:
   - "Normative text: specs/model-sidecar/common/identity.md."
   - "Each case is a data-only validator case (`function: none`). `input.path` is the path
     of the sidecar under its sidecar root. `input.sidecar` shows only the blocks that
-    the rules read. `expect.failed` lists the rules of this section that the sidecar
-    fails."
+    V-common.identity-7 and V-common.identity-8 read. Each case checks only these two
+    rules. The other rules of this section need fields that the cases do not show.
+    `expect.failed` lists the rules of these two that the sidecar fails."
   - "The family `demo` is not a real model. It gives short keypoint lists."
 tolerance: 0
 unverified: "No validator implements V-common.identity-7 or V-common.identity-8 yet."
 cases:
   - id: group-is-a-part
-    note: "a body-region group: rtmw-wholebody in rtmw/wholebody/"
+    note: "a body-region group: rtmw-wholebody in rtmw/wholebody/. The sidecar shows only
+      model_id, role and pose. The case checks only V-common.identity-7 and
+      V-common.identity-8."
     function: none
     params: {}
     input:
@@ -20,7 +23,8 @@ cases:
       sidecar: {model_id: rtmw-wholebody, role: [pose_estimator], pose: {tracked_points: [a, b, c]}}
     expect: {failed: []}
   - id: group-is-a-keypoint-set
-    note: "the keypoint set hand5 has 5 tracked points"
+    note: "the keypoint set hand5 has 5 tracked points. The sidecar shows only model_id, role
+      and pose. The case checks only V-common.identity-7 and V-common.identity-8."
     function: none
     params: {}
     input:
@@ -31,7 +35,9 @@ cases:
         pose: {tracked_points: [a, b, c, d, e]}
     expect: {failed: []}
   - id: variant-after-the-group
-    note: "a variant token after the group, with one -"
+    note: "a variant token after the group, with one - between them. The sidecar shows only
+      model_id, role and pose. The case checks only V-common.identity-7 and
+      V-common.identity-8."
     function: none
     params: {}
     input:
@@ -42,7 +48,8 @@ cases:
         pose: {tracked_points: [a, b, c, d, e]}
     expect: {failed: []}
   - id: two-variant-tokens
-    note: "a variant can have more than one token"
+    note: "a variant can have more than one token. The sidecar shows only model_id, role and
+      pose. The case checks only V-common.identity-7 and V-common.identity-8."
     function: none
     params: {}
     input:
@@ -53,7 +60,9 @@ cases:
         pose: {tracked_points: [a, b]}
     expect: {failed: []}
   - id: variant-needs-a-hyphen
-    note: "rtmo-body7 in rtmo/body/: the id does not start with rtmo-body- and is not rtmo-body"
+    note: "rtmo-body7 in rtmo/body/: the id does not start with rtmo-body- and is not
+      rtmo-body. The sidecar shows only model_id, role and pose. The case checks only
+      V-common.identity-7 and V-common.identity-8."
     function: none
     params: {}
     input:
@@ -65,7 +74,8 @@ cases:
     expect: {failed: [V-common.identity-7]}
   - id: count-of-the-group-must-match
     note: "rtmo-body7 in rtmo/body7/: body7 reads as a keypoint set with 7 points, but the
-      model has 17"
+      model has 17. The sidecar shows only model_id, role and pose. The case checks only
+      V-common.identity-7 and V-common.identity-8."
     function: none
     params: {}
     input:
@@ -76,7 +86,9 @@ cases:
         pose: {tracked_points: [a, b, c, d, e, f, g, h, i, j, k, l, m, "n", o, p, q]}
     expect: {failed: [V-common.identity-8]}
   - id: keypoint-set-and-variant
-    note: "rtmo-coco17-body7 in rtmo/coco17/ with 17 tracked points"
+    note: "rtmo-coco17-body7 in rtmo/coco17/ with 17 tracked points. The sidecar shows only
+      model_id, role and pose. The case checks only V-common.identity-7 and
+      V-common.identity-8."
     function: none
     params: {}
     input:
@@ -88,7 +100,8 @@ cases:
     expect: {failed: []}
   - id: id-must-start-with-the-group-folder
     note: "rtmw-wholebody133 in rtmw/wholebody/: the id is not rtmw-wholebody or
-      rtmw-wholebody-<variant>"
+      rtmw-wholebody-<variant>. The sidecar shows only model_id, role and pose. The case
+      checks only V-common.identity-7 and V-common.identity-8."
     function: none
     params: {}
     input:
@@ -99,7 +112,9 @@ cases:
         pose: {tracked_points: [a, b, c]}
     expect: {failed: [V-common.identity-7]}
   - id: id-must-start-with-the-family-folder
-    note: "rtmw-wholebody in rtmpose/wholebody/: the family folder is rtmpose"
+    note: "rtmw-wholebody in rtmpose/wholebody/: the family folder is rtmpose. The sidecar
+      shows only model_id, role and pose. The case checks only V-common.identity-7 and
+      V-common.identity-8."
     function: none
     params: {}
     input:
@@ -107,7 +122,9 @@ cases:
       sidecar: {model_id: rtmw-wholebody, role: [pose_estimator], pose: {tracked_points: [a, b, c]}}
     expect: {failed: [V-common.identity-7]}
   - id: group-with-no-count
-    note: "hands is not a part, and it has no keypoint count"
+    note: "hands is not a part, and it has no keypoint count. The sidecar shows only
+      model_id, role and pose. The case checks only V-common.identity-7 and
+      V-common.identity-8."
     function: none
     params: {}
     input:
@@ -115,7 +132,8 @@ cases:
       sidecar: {model_id: demo-hands, role: [pose_estimator], pose: {tracked_points: [a, b]}}
     expect: {failed: [V-common.identity-8]}
   - id: count-with-a-leading-zero
-    note: "hand05 does not match ^[a-z]+[1-9][0-9]*$"
+    note: "hand05 does not match ^[a-z]+[1-9][0-9]*$. The sidecar shows only model_id, role
+      and pose. The case checks only V-common.identity-7 and V-common.identity-8."
     function: none
     params: {}
     input:
@@ -126,7 +144,8 @@ cases:
         pose: {tracked_points: [a, b, c, d, e]}
     expect: {failed: [V-common.identity-8]}
   - id: object-detector-keeps-the-family-id
-    note: "the rules apply only under detectors/keypoint_detectors/"
+    note: "the rules apply only under detectors/keypoint_detectors/. The sidecar shows only
+      model_id and role. The case checks only V-common.identity-7 and V-common.identity-8."
     function: none
     params: {}
     input:

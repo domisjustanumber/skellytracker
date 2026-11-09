@@ -1,6 +1,7 @@
 # 52NQ — Spec change: model-id-suffix
 
-**Status:** proposed, 2026-11-06 (proposal-model-id-suffix@openmmlab-exporter@v2).
+**Status:** proposed, 2026-11-06 (proposal-model-id-suffix@openmmlab-exporter@v2);
+recorded again 2026-11-09 (proposal-model-id-suffix@openmmlab-exporter@v3).
 
 ## Decision
 
@@ -33,8 +34,9 @@ RTMPose COCO-17 and Halpe-26 both become `rtmpose-body`. The id does not tell th
 ## Evidence
 
 Parity: none. A name changes no tensor and no decoded output. The vectors are `unverified`: no
-validator implements the two new rules. v2 fixes both findings of the response to v1: the
-links to the proposed heading are text, and part 2.1 lists the missed places.
+validator implements the two new rules. v2 fixed both findings of the response to v1. v3 scopes
+each vector case to `V-common.identity-7` and `-8`, removes the unlisted sentence of part 2.1 and
+records the keypoint-set pattern as plan decision 3 of part 1. The normative text does not change.
 
 ## Open work
 
@@ -42,28 +44,51 @@ See [open-work.md](../open-work.md).
 
 ## Before acceptance
 
-- The user must confirm or refuse each plan decision of part 1:
+- [x] The user must confirm or refuse each plan decision of part 1:
   - the spec gets an id grammar with a keypoint-set group and a variant suffix, and the exporter
     does not rename `rtmw-wholebody133` to `rtmw-wholebody`;
   - the spec adopts the exporter grammar `{family}-{keypoints}[-{training}]` in
-    `{family}/{keypoints}/` (OpenMMLab-Exporter ADR-0039).
-- Part 2.4 says "The rules keep both V-common.identity-7 and V-common.identity-8 unchanged (a user
+    `{family}/{keypoints}/` (OpenMMLab-Exporter ADR-0039);
+  - the keypoint-set pattern stays `^[a-z]+[1-9][0-9]*$`, so `h36m17` waits for a model that
+    needs it.
+
+  The user accepted the proposal with these decisions on 2026-11-06. (changed 2026-11-09)
+- [x] Part 2.4 says "The rules keep both V-common.identity-7 and V-common.identity-8 unchanged (a user
   decision)". Part 1 does not list this decision, and the sentence does not say what is unchanged.
-- Each `input.sidecar` of the vector cases is partial, so the other rules of `common.identity`
+  v3 removes the sentence.
+- [x] Each `input.sidecar` of the vector cases is partial, so the other rules of `common.identity`
   would fail on it. The cases expect `failed: []`. The cases must say that they check only
   `V-common.identity-7` and `-8`. This change of meaning needs a new version
   ([Changes at acceptance](../../model-addition-workflow/hand-over.md#changes-at-acceptance)).
-- No `near-miss` or `gap` row drives the proposal: rows F1 and L1 are `exact` with an exporter
+  v3 says this in the file note, in each case note and in part 4.
+- [x] No `near-miss` or `gap` row drives the proposal: rows F1 and L1 are `exact` with an exporter
   departure. The user decides if a proposal that the user asked for is acceptable on `exact` rows.
-- The keypoint-set pattern `^[a-z]+[1-9][0-9]*$` refuses a set name with an inner digit, `_` or
-  `-`, for example `h36m17`.
-- `V-common.identity-7` and `-8` check the file path. They also apply to the sidecars with both
-  roles under `keypoint_detectors/`. The open both-roles defect can change that scope.
+  The user accepted it on 2026-11-06.
+- [x] The keypoint-set pattern `^[a-z]+[1-9][0-9]*$` refuses a set name with an inner digit, `_` or
+  `-`, for example `h36m17`. The user kept the pattern on 2026-11-06. Part 1 and part 8 of v3 record it.
+- [x] `V-common.identity-7` and `-8` check the file path. They also apply to the sidecars with both
+  roles under `keypoint_detectors/`. The open both-roles defect can change that scope. The user
+  accepted this scope with the proposal.
 - The workflow copies of the old rule change in a separate non-spec commit with its own entry
   ([Workflow changes](../../model-addition-workflow/hand-over.md#workflow-changes)).
-  `specs/sidecar-implementation-plan.md` also names `keypoint_detectors/{family}/{part}/`.
+  `specs/sidecar-implementation-plan.md` also names `keypoint_detectors/{family}/{part}/`. The user
+  decided this on 2026-11-06. Part 2.1 of v3 lists the copies. (changed 2026-11-09)
 - Part 7: the example `rtmo-body7.yaml` becomes invalid (`needs-export`). The rebuild item of
   [Re-export requests](../open-work.md#re-export-requests) names it.
 - Recording this entry makes OpenMMLab-Exporter the owner of `common.identity` and
   `format.file_layout` while the entry is `proposed`
   ([Section owner](../../model-addition-workflow/hand-over.md#section-owner)).
+- The content commit must wait for an OpenMMLab-Exporter rebuild bundle of `rtmo-body7`, because
+  part 7 gives `needs-export` and the Re-export item is open
+  ([When a spec change makes an example invalid](../../model-addition-workflow/reference-examples.md#when-a-spec-change-makes-an-example-invalid)
+  step 4). (new 2026-11-09)
+- The content commit must add `V-common.identity-7` and `-8` to `common/identity.md` before
+  `tools/make_vectors.py land` runs. `land` checks each `expect.failed` against the rule IDs of the
+  section files. (new 2026-11-09)
+- If the RTMW example lands first, the current Storage layout puts it in `rtmw/wholebody/`. There
+  it breaks `V-common.identity-7`, and part 7 does not list it. Land this change first, or a
+  follow-up bundle must add the part 7 row (step 1 of the same heading). (new 2026-11-09)
+- Note: no case tests the pattern branch of `V-common.identity-7`. Each `{family}` and
+  `{variant}` of the cases matches `^[a-z0-9]+(-[a-z0-9]+)*$`, but part 4 says that the cases cover
+  each branch. A later version can add a case. The session must not add one at acceptance.
+  (new 2026-11-09)

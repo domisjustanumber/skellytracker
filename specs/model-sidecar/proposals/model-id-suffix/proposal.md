@@ -10,7 +10,7 @@ This file uses ASD-STE100 Simplified Technical English.
 | Slug | `model-id-suffix` |
 | Date | 2026-11-06 |
 | Exporter repo | OpenMMLab-Exporter |
-| Exporter commit (`git rev-parse HEAD` in the exporter repo, or `none (no git repo)`) | `c2e610e91fee0a961032e12737ff9147697a7e53` |
+| Exporter commit (`git rev-parse HEAD` in the exporter repo, or `none (no git repo)`) | `ecee56e1ea1b4d3901c76a73b713ed0256675e78` |
 | Model, and its `model` bundle ID | `rtmw-wholebody133`, `model-rtmw-wholebody133@openmmlab-exporter` |
 | Intake rows with the verdict `near-miss` or `gap` | None. Rows F1 (`model_id`) and L1 (sidecar path) of the RTMW intake are `exact` under the current text, with an exporter departure in the last column: the exporter writes `rtmw-wholebody133` in `detectors/keypoint_detectors/rtmw/wholebody133/`. The user asked for this proposal on 2026-11-06, so that the spec allows the exporter value (part 1, plan decisions). |
 | Kind (`new section`, `changed section`, `contribution` or `follow-up`) | `changed section` |
@@ -18,9 +18,9 @@ This file uses ASD-STE100 Simplified Technical English.
 | Proposed section ID (the `id` in the section file's front matter) | `common.identity` (primary); `format.file_layout` (second) |
 | Section file (the file of the changed section, or the proposed path of the new section file under `specs/model-sidecar/`) | `specs/model-sidecar/common/identity.md`; `specs/model-sidecar/format/file-layout.md` |
 | Depends on (`depends_on`: bundle IDs that must land first, or `none`) | none |
-| skellytracker decision entries with the status `proposed` that cover the same property (or `none`) | none. The Proposed table of the spec log has skellytracker ADR-3S5G (`pre.resize.affine_person_crop`) and skellytracker ADR-50BW (`common.batch_conversion`). Neither covers `common.identity` or `format.file_layout`. The Proposed table of the root log is empty. |
+| skellytracker decision entries with the status `proposed` that cover the same property (or `none`) | none. The Proposed table of the spec log has skellytracker ADR-3S5G (`pre.resize.affine_person_crop`), skellytracker ADR-03PH (`post.pose.decode.simcc`) and skellytracker ADR-XH1J (`pre.normalize`). None of them covers `common.identity` or `format.file_layout`. The table also has skellytracker ADR-52NQ: it records version 2 of this proposal. The Proposed table of the root log is empty. |
 | skellytracker folder that you read (normally `../freemocap/skellytracker`) | `../freemocap/skellytracker` (branch `dom/sidecar-implementation`) |
-| skellytracker commit of the spec text that you read (`git -C <folder> rev-parse HEAD`; add `+ uncommitted changes` if `git -C <folder> status --porcelain` lists a file that you read) | `b065f6e6850686b65bcd08ca944116d739aa62de` |
+| skellytracker commit of the spec text that you read (`git -C <folder> rev-parse HEAD`; add `+ uncommitted changes` if `git -C <folder> status --porcelain` lists a file that you read) | `8fed6f34eb22643e0b6cc38a7c6b80014bfe1d75` |
 | Target spec version: the newest version heading under "Revisions" in `specs/model-sidecar/changelog.md`, today the open target `2.0.0`. `pack` writes it to the manifest as `spec_version`. | `2.0.0` |
 
 ## 1. Gap
@@ -29,7 +29,7 @@ This file uses ASD-STE100 Simplified Technical English.
 |---|---|
 | Property | The `model_id` and the folder of a keypoint detector when one family has more than one keypoint model for one body region. The OpenMMLab-Exporter form is `{family}-{keypoints}[-{training}]` in the folder `{family}/{keypoints}/`. `{keypoints}` is a keypoint set with its point count, for example `wholebody133` or `coco17`. The ids are `rtmw-wholebody133` in `rtmw/wholebody133/` and `rtmo-coco17-body7` in `rtmo/coco17/`. |
 | Upstream evidence (file and line, or config key; full upstream SHA, then the tag) | A `model_id` is a value that the exporter chooses. It has no upstream evidence ("Rules" in `specs/model-sidecar/model-addition-workflow/rules.md`). The code that writes the values: OpenMMLab-Exporter [`rtmw/identity.py:33-36`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/d9704753a22792c32a1d3018a0c9e9ea2d279d71/rtmw/identity.py#L33-L36) and [`rtmo/identity.py:39-42`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/d9704753a22792c32a1d3018a0c9e9ea2d279d71/rtmo/identity.py#L39-L42). The upstream fact that makes a part token too small: one family has two keypoint outputs for one body region. mmpose v1.3.2 (`5408bc76f5b848cf925a0d1857899011d8c5b497`, tag `v1.3.2`) has RTMPose body models with 17 points ([`configs/body_2d_keypoint/rtmpose/body8/rtmpose-m_8xb256-420e_body8-256x192.py:77`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/configs/body_2d_keypoint/rtmpose/body8/rtmpose-m_8xb256-420e_body8-256x192.py#L77)) and with 26 points ([`configs/body_2d_keypoint/rtmpose/body8/rtmpose-m_8xb512-700e_body8-halpe26-256x192.py:4`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/configs/body_2d_keypoint/rtmpose/body8/rtmpose-m_8xb512-700e_body8-halpe26-256x192.py#L4)). RTMO has two COCO-17 model lines with different training sets ([`configs/body_2d_keypoint/rtmo/coco/rtmo-m_16xb16-600e_coco-640x640.py:255`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/configs/body_2d_keypoint/rtmo/coco/rtmo-m_16xb16-600e_coco-640x640.py#L255) and [`configs/body_2d_keypoint/rtmo/body7/rtmo-m_16xb16-600e_body7-640x640.py:467`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/configs/body_2d_keypoint/rtmo/body7/rtmo-m_16xb16-600e_body7-640x640.py#L467)). |
-| Plan decisions about the spec that this proposal uses, in words (or `none`) (heading "User decisions" in `specs/model-sidecar/model-addition-workflow/rules.md`) | (1) The user decided on 2026-11-06 that the RTMW intake needs a proposal for the `model_id`: the spec gets a grammar with a variant suffix, and the exporter does not rename `rtmw-wholebody133`. (2) The exporter grammar and its ids are an exporter decision of the user: [OpenMMLab-Exporter ADR-0039](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/d9704753a22792c32a1d3018a0c9e9ea2d279d71/decisions/entries/0039-keypoint-model-id-format.md). |
+| Plan decisions about the spec that this proposal uses, in words (or `none`) (heading "User decisions" in `specs/model-sidecar/model-addition-workflow/rules.md`) | (1) The user decided on 2026-11-06 that the RTMW intake needs a proposal for the `model_id`: the spec gets a grammar with a variant suffix, and the exporter does not rename `rtmw-wholebody133`. (2) The exporter grammar and its ids are an exporter decision of the user: [OpenMMLab-Exporter ADR-0039](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/d9704753a22792c32a1d3018a0c9e9ea2d279d71/decisions/entries/0039-keypoint-model-id-format.md). (3) The user decided on 2026-11-06 to keep the keypoint-set pattern `^[a-z]+[1-9][0-9]*$`: a set name has only letters, so `h36m17` does not match. A later proposal can widen the pattern when a model needs it. |
 | Nearest section ID (the `id` in the section file's front matter) | `common.identity` (the `model_id` row of Fields); `format.file_layout` (Storage layout) |
 | Why the nearest section is wrong | The text gives `{family}-{part}` for a keypoint detector and the folder `{family}/{part}/` with the parts `hand`, `face`, `body` and `wholebody`. (1) It cannot express a suffix after the part. The spec itself names this defect: "Spec defects" item 1 of `specs/model-sidecar/decisions/open-work.md`. The reference example `rtmo-body7` in the `body` folder does not follow the text. (2) It has no id for a second model of one family and one part ("Rules" in `rules.md`, row F1). RTMPose COCO-17 and RTMPose Halpe-26 both get `rtmpose-body`. (3) A part does not tell the keypoint output. `rtmw-wholebody` does not say 133 points. |
 | Measured difference (number, image and script) | A name changes no tensor and no decoded output. Count of the current reference examples that the text cannot express: 1 of 5 (`rtmo-body7`). |
@@ -78,8 +78,6 @@ A row with "No edit" names a place that has an affected value and stays valid.
 | `specs/model-sidecar/vectors/common.identity.yaml` | new file | The data-only cases of part 4. |
 | `specs/model-sidecar/TRACEABILITY.md` | generated | Run the generator after the content commit. |
 | `specs/model-sidecar/examples/detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml` | example | Breaks `V-common.identity-7` (part 7). |
-
-The rules keep both `V-common.identity-7` and `V-common.identity-8` unchanged (a user decision).
 
 The workflow files repeat the current rule: "Identity" in `model-addition-workflow/mapping-hints.md`,
 rows F1 and L1 of `templates/model-intake.md` and the paragraph on a model-specific folder under them,
@@ -171,7 +169,9 @@ The two rules apply to each sidecar in the branch `detectors/keypoint_detectors/
 | Replaced case ids (`--replaces`) | none (new file) |
 
 Each case gives `input.path` (the path of the sidecar under its sidecar root) and `input.sidecar`
-(only the blocks that the rules read). The cases cover each branch: a part group, a keypoint-set
+(only the blocks that the rules read). Each case checks only `V-common.identity-7` and
+`V-common.identity-8`, and its `note` says this. The other rules of `common.identity` need fields
+that the cases do not show. The cases cover each branch: a part group, a keypoint-set
 group, a variant, a variant with no `-`, a count that does not match, an id that does not start with
 the folder, a family folder that does not match, a group that is neither form, and an object
 detector.
@@ -240,6 +240,7 @@ output.
 | A suffix with no `-`, for example `rtmo-body7` in `rtmo/body/`. | The id then does not give the end of the group. `body7` reads as a keypoint set with 7 points. | `V-common.identity-8` |
 | No rule for the folder: any `model_id` that equals the basename. | Two exporters can then put unrelated ids in one folder, and the folder does not tell the model. The open-work item asks for a rule. | "Spec defects" item 1 of `specs/model-sidecar/decisions/open-work.md` |
 | A rule that the keypoint-set name must be a known set (`coco`, `halpe`, `wholebody`). | The spec has no list of keypoint sets. The count check finds the most likely error (a training token in the group). | none |
+| A keypoint-set pattern that allows a digit in the set name, for example `h36m17`. | The user decided to keep `^[a-z]+[1-9][0-9]*$` now (part 1, plan decisions). No id in part 7 has a digit in its set name. A later proposal can widen the pattern when a model needs it. | Part 1 |
 
 ## Before you stop
 

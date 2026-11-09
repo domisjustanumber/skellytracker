@@ -3,8 +3,8 @@
   "kind": "proposal",
   "name": "model-id-suffix",
   "contributor": "openmmlab-exporter",
-  "source_commit": "c2e610e91fee0a961032e12737ff9147697a7e53",
-  "spec_commit": "b065f6e6850686b65bcd08ca944116d739aa62de",
+  "source_commit": "ecee56e1ea1b4d3901c76a73b713ed0256675e78",
+  "spec_commit": "8fed6f34eb22643e0b6cc38a7c6b80014bfe1d75",
   "sections": [
     "common.identity",
     "format.file_layout"
@@ -15,7 +15,7 @@
   "related": [],
   "external": [],
   "spec_version": "2.0.0",
-  "version": 2,
+  "version": 3,
   "created": "2026-11-06",
   "files": [
     {
@@ -25,13 +25,13 @@
     },
     {
       "path": "proposal.md",
-      "sha256": "89637b76b64adc8dc311b2930861467890f9457b51280612dccc1b223de93833",
-      "bytes": 29373
+      "sha256": "2ba5d22fa8502f7009196c19e2140af5da84b70dfe5ef07356c73bc7be3a901c",
+      "bytes": 30068
     },
     {
       "path": "vectors/common.identity.yaml",
-      "sha256": "cf6ad5654e0edee8761c255e1676d05b3c78be4cac97abf70f2cc05c2af07cb2",
-      "bytes": 5350
+      "sha256": "6b80de44e79a082dfc56d1e79ff8ee2c6274fcc8f373d843244b75c0139a02f6",
+      "bytes": 6991
     }
   ]
 }
