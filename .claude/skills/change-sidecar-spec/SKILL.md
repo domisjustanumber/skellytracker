@@ -486,7 +486,9 @@ A spec change has no class ([ADR-NB5F](../../../decisions/entries/NB5F-no-change
   makes an example invalid, do the spec-forced edit in the same content commit
   ([When a spec change makes an example invalid](../../../specs/model-sidecar/model-addition-workflow/reference-examples.md#when-a-spec-change-makes-an-example-invalid);
   [ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)). Do not land a
-  content commit that leaves an example invalid.
+  content commit that leaves an example invalid. If a user ruling names the example, remove it with
+  step 12 of that heading
+  ([ADR-YS4C](../../../decisions/entries/YS4C-example-removal-by-a-user-ruling.md)).
 
 ### Reference implementations
 

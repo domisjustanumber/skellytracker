@@ -1,6 +1,6 @@
 # NB5F — No change classes and one re-export request
 
-**Status:** accepted, 2026-11-02 (user; PR: pending).
+**Status:** superseded by [YS4C](YS4C-example-removal-by-a-user-ruling.md), 2026-11-09 (user; PR: pending).
 
 ## Decision
 

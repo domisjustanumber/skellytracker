@@ -177,7 +177,8 @@ is not a correction of the example, and it is not a new copy. Steps 1, 2 and 7 o
    give. Do not edit the example
    ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)):
    - Until the item under [Re-export requests](../decisions/open-work.md#re-export-requests)
-     closes, the content commit of the change waits for the rebuild bundle of the example.
+     closes, the content commit of the change waits for the rebuild bundle of the example. Step 12
+     gives the exception.
    - After the item closes, the part 7 row of the accepted proposal is the request. When the
      proposal is `accepted`, the exporter packs a new version of its `model` bundle, with `related`
      set to the proposal bundle. Its verdict `describes` uses the current spec text plus the
@@ -203,4 +204,23 @@ is not a correction of the example, and it is not a new copy. Steps 1, 2 and 7 o
 11. Replace the example with steps 1 to 8 of
     [How to provide or replace an example](#how-to-provide-or-replace-an-example) only when the copy
     of the exporter obeys each rule. This clears the `spec change` items. Until then, keep the
-    example and its `spec change` items.
+    example and its `spec change` items, except when step 12 removes it.
+12. **Removal by a user ruling.** A decision entry can record a user ruling that names an example
+    that gets no rebuild. A content commit that makes such an example invalid removes it. It does not
+    wait for a rebuild bundle ([ADR-YS4C](../../../decisions/entries/YS4C-example-removal-by-a-user-ruling.md)):
+    - Delete the example file, its entry in `specs/model-sidecar/inventory.yaml` and its line in
+      `NO_BUNDLE_EXAMPLES` of `tools/intake_bundle.py`. Delete each fragment that only this example
+      used.
+    - Keep the heading of the example in the
+      [introduction to the examples](../examples/README.md), because other files link its anchor.
+      Replace its text with one line that tells that the example is removed and cites the ruling.
+    - Repair each link to the file and each text that names the example as a current fact.
+    - Regenerate the matrix with `uv run python tools/sidecar_trace.py matrix`.
+    - Remove the example from the item under
+      [Re-export requests](../decisions/open-work.md#re-export-requests). A part 7 row of the removed
+      example is not a request.
+    - The models of the example stay in "Scope of this revision" of the
+      [changelog](../changelog.md) until a decision entry removes them.
+    - The example comes back only with
+      [How to provide or replace an example](#how-to-provide-or-replace-an-example), from a new
+      `model` bundle.

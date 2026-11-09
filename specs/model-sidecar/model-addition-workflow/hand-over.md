@@ -376,7 +376,9 @@ resolution: {...}                         # required for rejected and resolved-o
   closes, do not pack: the rebuild answers the row
   ([When a spec change makes an example invalid](reference-examples.md#when-a-spec-change-makes-an-example-invalid);
   [ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
-  Do not regenerate your other sidecars yet.
+  Do not regenerate your other sidecars yet. A part 7 row of an example that a user ruling removed is
+  not a request
+  ([ADR-YS4C](../../../decisions/entries/YS4C-example-removal-by-a-user-ruling.md)).
 - `landed`: regenerate the sidecar with the fields of the landed commit `subject`. Pack a new version
   of the `model` bundle with `related` set to the proposal bundle.
 - `resolved-otherwise`: do `resolution.contributor_action`. Regenerate the sidecar with the fields
@@ -513,7 +515,9 @@ The response asks the contributor for a new version without the private data.
 The heading [Re-export requests](../decisions/open-work.md#re-export-requests) of the spec
 `open-work.md` holds one item: the rebuild of each example on one spec version
 ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
-Before you pack, read it. Do not start a rebuild before the item opens. For a `needs-export` example of an accepted proposal, follow
+Before you pack, read it. Do not start a rebuild before the item opens. Do not rebuild an example
+that a user ruling removed
+([ADR-YS4C](../../../decisions/entries/YS4C-example-removal-by-a-user-ruling.md)). For a `needs-export` example of an accepted proposal, follow
 [When a spec change makes an example invalid](reference-examples.md#when-a-spec-change-makes-an-example-invalid).
 
 ## Retention

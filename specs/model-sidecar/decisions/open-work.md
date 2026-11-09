@@ -13,11 +13,13 @@ repository state is in the root [open-work.md](../../../decisions/open-work.md).
 
 This heading holds one item
 ([Re-export requests](../model-addition-workflow/hand-over.md#re-export-requests);
-[ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
+[ADR-YS4C](../../../decisions/entries/YS4C-example-removal-by-a-user-ruling.md)).
 
 - **Rebuild of each example.** Each exporter rebuilds each of its examples on the spec version
-  `2.0.0`. It answers with a new version of the `model` bundle of each example. Ultralytics-Exporter:
-  `yolo26`, `yolo26-body`. OpenMMLab-Exporter: `rtmdet-person`, `rtmw-wholebody`, `rtmo-body7`.
+  `2.0.0`. It answers with a new version of the `model` bundle of each example. OpenMMLab-Exporter:
+  `rtmw-wholebody`, as `rtmw-wholebody133`. A user ruling gives no rebuild to `rtmdet-person`,
+  `rtmo-body7`, `yolo26` and `yolo26-body`. The content commits of 52NQ and of the successor of
+  SE3Y remove them ([ADR-YS4C](../../../decisions/entries/YS4C-example-removal-by-a-user-ruling.md)).
   The prerequisite changes: the removal of the legacy layer
   ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)), the one batch field with
   `output_shapes` in each size ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)), the
@@ -30,7 +32,7 @@ This heading holds one item
   ([ADR-SE3Y](entries/SE3Y-license-and-training-data.md)). The item
   names its target, and each of these changes is accepted. Thus the item is open
   ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md) item 5). It
-  closes when each example is an export copy at `2.0.0`.
+  closes when each example that stays is an export copy at `2.0.0`.
 
 ## Spec defects
 

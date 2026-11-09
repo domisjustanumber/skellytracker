@@ -73,21 +73,22 @@ See [open-work.md](../open-work.md).
   ([Workflow changes](../../model-addition-workflow/hand-over.md#workflow-changes)).
   `specs/sidecar-implementation-plan.md` also names `keypoint_detectors/{family}/{part}/`. The user
   decided this on 2026-11-06. Part 2.1 of v3 lists the copies. (changed 2026-11-09)
-- Part 7: the example `rtmo-body7.yaml` becomes invalid (`needs-export`). The rebuild item of
-  [Re-export requests](../open-work.md#re-export-requests) names it.
+- Part 7: the example `rtmo-body7.yaml` becomes invalid (`needs-export`). A user ruling gives it
+  no rebuild, so the content commit removes it
+  ([ADR-YS4C](../../../../decisions/entries/YS4C-example-removal-by-a-user-ruling.md)). (changed 2026-11-09)
 - Recording this entry makes OpenMMLab-Exporter the owner of `common.identity` and
   `format.file_layout` while the entry is `proposed`
   ([Section owner](../../model-addition-workflow/hand-over.md#section-owner)).
-- The content commit must wait for an OpenMMLab-Exporter rebuild bundle of `rtmo-body7`, because
-  part 7 gives `needs-export` and the Re-export item is open
-  ([When a spec change makes an example invalid](../../model-addition-workflow/reference-examples.md#when-a-spec-change-makes-an-example-invalid)
-  step 4). (new 2026-11-09)
+- The content commit removes `rtmo-body7` with step 12 of
+  [When a spec change makes an example invalid](../../model-addition-workflow/reference-examples.md#when-a-spec-change-makes-an-example-invalid).
+  Parts 2.1 and 7 say that the re-export rebuilds it. This change of meaning needs a follow-up
+  bundle (`base` this bundle) that changes both parts. The session lands both in one content
+  commit. (changed 2026-11-09)
 - The content commit must add `V-common.identity-7` and `-8` to `common/identity.md` before
   `tools/make_vectors.py land` runs. `land` checks each `expect.failed` against the rule IDs of the
   section files. (new 2026-11-09)
-- If the RTMW example lands first, the current Storage layout puts it in `rtmw/wholebody/`. There
-  it breaks `V-common.identity-7`, and part 7 does not list it. Land this change first, or a
-  follow-up bundle must add the part 7 row (step 1 of the same heading). (new 2026-11-09)
+- The RTMW example lands after this change, in `rtmw/wholebody133/`, so part 7 needs no row for
+  it. (changed 2026-11-09)
 - Note: no case tests the pattern branch of `V-common.identity-7`. Each `{family}` and
   `{variant}` of the cases matches `^[a-z0-9]+(-[a-z0-9]+)*$`, but part 4 says that the cases cover
   each branch. A later version can add a case. The session must not add one at acceptance.
