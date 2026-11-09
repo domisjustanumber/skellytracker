@@ -29,6 +29,7 @@ proposals of a section here.
 | # | Decision | Section | Status |
 |---|----------|---------|--------|
 | [52NQ](entries/52NQ-model-id-suffix.md) | Spec change: keypoint detector id `{family}-{group}[-{variant}]` | `common.identity` | proposed |
+| [KZ9J](entries/KZ9J-model-id-suffix-rtmo-removed.md) | Spec change: follow-up of 52NQ; the example `rtmo-body7` is removed, not rebuilt | `common.identity` | proposed |
 
 The entries that are `rejected`, `superseded by XXXX`, `absorbed into <path>#<anchor>`,
 `evidence; used by XXXX` or `done` are in [historical.md](historical.md).
