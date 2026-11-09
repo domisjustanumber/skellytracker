@@ -72,6 +72,8 @@ See also [Outputs](outputs.md#validation-rules).
 
 No exporter evidence yet.
 
+- `load_sidecar` knows the path of the sidecar and its root, so it can check `V-common.identity-7` and `V-common.identity-8` after the basename check, when the path under the root starts with `detectors/keypoint_detectors/`. `SidecarModel` does not know the path. `V-common.identity-8` needs the resolved `pose.tracked_points`, so it runs after `resolve_sidecar_composition`. The package sidecars use the part groups `rtmpose/body/` and `rtmw/wholebody/`, so they pass. (skellytracker `skellytracker/core/sidecar/loader.py` (`load_sidecar`); part 6 of the [model-id-suffix proposal](../proposals/model-id-suffix/proposal.md); [ADR-52NQ](../decisions/entries/52NQ-model-id-suffix.md)) (implementation stage)
+
 skellytracker ([ADR-0016](../../../decisions/entries/0016-sidecar-catalogs.md)):
 
 - The catalog key of a sidecar is `<model_id>@<source.name>`, for example `rtmw-wholebody@openmmlab-exporter`. Do not use `model_id` alone as the key. Two sources can write the same `model_id`. ([ADR-0016](../../../decisions/entries/0016-sidecar-catalogs.md#source)) (implementation stage)

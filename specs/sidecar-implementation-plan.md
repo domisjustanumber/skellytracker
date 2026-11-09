@@ -538,6 +538,18 @@ Two rules of this part stay:
   tensor, for example in `skellytracker/tests/sidecar/`. Then update the `validate` and `forward`
   notes of the front matter of `pre.normalize`, and the `validate` and `load` notes of
   `common.input`.
+- **Keypoint detector id.** Added on 2026-11-09. The `model_id` of a keypoint detector is
+  `{family}-{group}` or `{family}-{group}-{variant}` in `keypoint_detectors/{family}/{group}/`
+  ([ADR-52NQ](model-sidecar/decisions/entries/52NQ-model-id-suffix.md);
+  [Keypoint detector id](model-sidecar/common/identity.md#keypoint-detector-id)). No code checks
+  `V-common.identity-7` or `V-common.identity-8`. In `load_sidecar` of
+  `skellytracker/core/sidecar/loader.py`, after the basename check, check both rules on the path
+  under the sidecar root when it starts with `detectors/keypoint_detectors/`. Check
+  `V-common.identity-8` after `resolve_sidecar_composition`, because it needs the resolved
+  `pose.tracked_points`. Raise `SidecarValidationError` with the rule ID. Add a test that writes each
+  data-only case of [`common.identity`](model-sidecar/vectors/common.identity.yaml) to a temporary
+  sidecar root at `input.path` and checks the failed rules, for example in
+  `skellytracker/tests/sidecar/`. Then update the `validate` note of the front matter of the section.
 
 ### M9 — Source and hash checks
 
