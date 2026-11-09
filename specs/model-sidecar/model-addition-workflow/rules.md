@@ -11,7 +11,11 @@
 - The evidence for a row is an upstream file and line, an upstream config key, or a read of the ONNX
   graph (the command, and the node or tensor name). For a `license` row, the license page of the
   weights or of a dataset is also primary evidence. Give its URL and the date that you read it
-  ([ADR-V8FK](../../../decisions/entries/V8FK-license-evidence-and-models-with-no-license.md)). A plan, a paper, a README, the notes of a
+  ([ADR-V8FK](../../../decisions/entries/V8FK-license-evidence-and-models-with-no-license.md)). A
+  page or a README of the owner of a dataset is enough evidence for the license and the contents of
+  that dataset, for example the datasets that a combined annotation file holds. Give its URL, its
+  commit or the date that you read it
+  ([ADR-A2CW](../../../decisions/entries/A2CW-dataset-owner-page-is-enough-evidence.md)). A plan, a paper, a README, the notes of a
   contributor (for example an exporter) and a spec reference example are secondary sources. Mark a secondary citation with
   `(secondary)`. A row that has only a secondary source is `unverified`. The next two bullets give
   the exceptions.

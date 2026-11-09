@@ -285,6 +285,7 @@ the training started from, and the license page of each dataset. Read the headin
 - All sizes share the `license` block. If two sizes differ in license or in training data, they are
   two families.
 - A license page of the weights or of a dataset is primary evidence. Give its URL and the date that you read it (skellytracker ADR-V8FK).
+- A page or a README of the owner of a dataset is enough evidence for the license and the contents of that dataset (skellytracker ADR-A2CW).
 - Write `unknown` only after research that finds no answer. Each reason names each source that you
   checked, and the date.
 - A host does not change its inference for this block. These rows need no parity run.
