@@ -5,7 +5,7 @@ kind: preprocessor
 selectors: [input.resize.method=affine_person_crop]
 implemented_by:
   validate: skellytracker/core/sidecar/model.py::CropPolicySpec  # partial. No crop_policy.pad_value field. SidecarModel._check_pose_requires_affine_crop checks V-pre.resize.affine_person_crop-2.
-  forward: skellytracker/core/detectors/processing/affine_crop.py::top_down_affine  # partial. Always uses cv2.INTER_LINEAR and no pad_value. preprocess_image raises when maintain_aspect_ratio is false.
+  forward: skellytracker/core/detectors/processing/affine_crop.py::top_down_affine  # partial. Always uses cv2.INTER_LINEAR and no pad_value. preprocess_image raises when maintain_aspect_ratio is false. The arithmetic of `M` is not met: the box keeps the dtype of the caller, and the second warp point is above the centre (the rtmlib form).
   inverse: skellytracker/core/detectors/processing/simcc_decode.py::decode_simcc  # partial. Applies the inverse to SimCC keypoints only. get_warp_matrix(inv=True) has no caller.
 external_impl: []
 tests:
@@ -36,21 +36,41 @@ This resize is the top-down pose convention. The host warps a person bounding bo
 
 ## Behaviour
 
-The rotation of the warp is always `0`. Rotated crops are out of scope. The normative warp is:
+The rotation of the warp is always `0`. Rotated crops are out of scope. The steps write the person box as `bbox_xyxy = [x1, y1, x2, y2]`. The normative warp is:
 
 ```text
-center   = bbox center
-(w, h)   = bbox size * expand_ratio
+# float32: each value is float32, and the host rounds the result of each operation to float32
+x1, y1, x2, y2 = f32(bbox_xyxy)
+e   = f32(expand_ratio)
+c_x = (x1 + x2) * 0.5
+c_y = (y1 + y2) * 0.5
+w   = (x2 - x1) * e
+h   = (y2 - y1) * e
 if maintain_aspect_ratio:
-    if w > h * (T_w / T_h): h = w * (T_h / T_w)
-    else:                   w = h * (T_w / T_h)
-M        = affine map taking the (w, h) box around center onto [0, T_w] x [0, T_h]
+    a = f32(T_w / T_h)
+    if w > h * a: h = w / a
+    else:         w = h * a
+
+# three point pairs, float32: P in source pixels, Q in model-input pixels
+P0 = (c_x, c_y)                          Q0 = (T_w / 2, T_h / 2)
+P1 = (c_x - w * 0.5, c_y)                Q1 = (0, T_h / 2)
+if maintain_aspect_ratio:
+    P2 = (P1.x, P1.y + (P0.x - P1.x))    Q2 = (0, T_h / 2 + T_w / 2)
+else:
+    P2 = (c_x, c_y - h * 0.5)            Q2 = (T_w / 2, 0)
+
+M        = the affine map that takes P0, P1, P2 onto Q0, Q1, Q2, solved in float64
 pad      = crop_policy.pad_value
 border   = [pad] * 3 if pad is a scalar else pad
 dst      = warpAffine(src, M, (T_w, T_h), <interpolation>, borderMode=constant, borderValue=border)
 ```
 
-`warpAffine` is `cv2.warpAffine`. Its pixel centres are at integer coordinates ([Pixel centres](interpolation.md#pixel-centres)). This matches mmpose `GetBBoxCenterScale(padding=1.25)` + `TopdownAffine`.
+- `f32(v)` rounds one value to float32 (IEEE 754 binary32, round to nearest, ties to even). `T_w / T_h` is a float64 division of the two integers, then one rounding.
+- `w > h * a` is a strict comparison of two float32 values. When `w` equals `h * a`, `h` does not change.
+- With `maintain_aspect_ratio: true`, `M` uses `c` and `w` only, not `h`. The branch `h = w / a` and the strict `>` set only `h`: the crop height that mmpose returns as `input_scale`. The y scale of `M` comes from the float32 points. It can differ from the x scale and from `T_h / h`. Do not make `M` from `T_w / w` and `T_h / h`.
+- `cv2.getAffineTransform(src, dst)` with the float32 arrays `src = [P0, P1, P2]` and `dst = [Q0, Q1, Q2]` gives `M`.
+
+`warpAffine` is `cv2.warpAffine`. Its pixel centres are at integer coordinates ([Pixel centres](interpolation.md#pixel-centres)). For a float32 box and `maintain_aspect_ratio: true`, `M` is the matrix of mmpose `GetBBoxCenterScale(padding=expand_ratio)` + `TopdownAffine`.
 
 ### Inverse
 
@@ -75,6 +95,10 @@ See also [Input](../common/input.md#validation-rules), [Sizes and artifacts](../
 - Compare a host with mmpose at `flip_test=False`. All five RTMW configs set `test_cfg=dict(flip_test=True)`. The sidecar has no field for the flip test, and the exported graph is one forward pass. The effect of the flip test is not measured. (OpenMMLab-Exporter `rtmw-*.py` in [`mmdeploy-convert/model_cfgs/`](https://github.com/domisjustanumber/OpenMMLab-Exporter/tree/491c17b43c0f2011dfd386ab5c6345ef0f850ada/mmdeploy-convert/model_cfgs), line 117 in the 256x192 configs and line 119 in the 384x288 configs)
 - A host script that followed only the spec text matched mmpose `inference_topdown` (`flip_test=False`, same boxes). The spec text was `affine_person_crop`, `imagenet_rgb`, SimCC argmax and the inverse affine. The mean difference was 0.0 to 0.4 px (max 2.4 px) on five confident crops. It was 2.9 px on one crop with mean score 0.10, where a flat SimCC peak changed bin. The model was an RTMPose hand model, not RTMW. The script is not in the repo. (the untracked hand models plan of OpenMMLab-Exporter (secondary); the only evidence)
 - No exporter implements the crop or its inverse yet. The module `rtmw/preprocess.py` only declares the `affine_person_crop` values. The consumer of the sidecar runs the preprocessing. (OpenMMLab-Exporter [`rtmw/preprocess.py:5-16`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmw/preprocess.py#L5-L16))
+- For a float32 box and `maintain_aspect_ratio: true`, the float32 steps of Behaviour give the `M` of mmpose v1.3.2 bit for bit with `cv2.getAffineTransform`. Another float64 solver can differ in the last bits. On 6370 persons (6352 COCO val2017 persons and 18 synthetic boxes), the exact-math `M` differed from the mmpose `M` by more than 1e-6 for 6226 persons at 256x192 and for 6245 persons at 384x288. The maximum was 2.4e-3 and 3.6e-3. On OpenCV 5.0.0, 5992 crops (256x192) and 6047 crops (384x288) of the 6370 differed, by 1 grey level at most. (OpenMMLab-Exporter [`decisions/scripts/affine_crop_matrix_check.py`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/0d07c982fb6915fee6fa0b8ccac35873c77c4db2/decisions/scripts/affine_crop_matrix_check.py) at `0d07c982fb6915fee6fa0b8ccac35873c77c4db2`, gates G2 and G3; [OpenMMLab-Exporter ADR-6A8S](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/a37a47d29f227365661eae59ab9b2f8da665c18d/decisions/entries/6A8S-affine-crop-matrix-evidence.md); mmpose [`mmpose/structures/bbox/transforms.py:66-67`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/structures/bbox/transforms.py#L66-L67), [`mmpose/structures/bbox/transforms.py:406-435`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/structures/bbox/transforms.py#L406-L435), [`mmpose/datasets/transforms/topdown_transforms.py:67-70`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/datasets/transforms/topdown_transforms.py#L67-L70) and [`mmpose/datasets/transforms/topdown_transforms.py:85-118`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/datasets/transforms/topdown_transforms.py#L85-L118))
+- mmpose computes `P1.x` as `c_x + (-0.5 * w)` in float64 (NumPy 1.24.4 in the exporter image) and stores the result in a float32 array. The float64 result, rounded to float32, always equals the float32 operation of Behaviour (double rounding from binary64 to binary32 is exact for `+` and `-`). The same holds for `P2.y` of the branch with `maintain_aspect_ratio: false`. mmpose `inference_topdown` keeps the dtype of the boxes of the caller. A float64 box gives a float64 centre and crop size; the warp points still round to float32. For a parity run, give mmpose float32 boxes. (mmpose [`mmpose/structures/bbox/transforms.py:411-416`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/structures/bbox/transforms.py#L411-L416) and [`mmpose/apis/inference.py:169-170`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/apis/inference.py#L169-L170))
+- The vectors compare `M`, not crop pixels. OpenCV 4.5.4 and 5.0.0 warp one `M` to different pixels: 0 of 6370 crops equal on each of 6 runs, up to 7 grey levels. (OpenMMLab-Exporter `decisions/scripts/affine_crop_matrix_check.py`, record R1; [OpenMMLab-Exporter ADR-6A8S](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/a37a47d29f227365661eae59ab9b2f8da665c18d/decisions/entries/6A8S-affine-crop-matrix-evidence.md); [OpenMMLab-Exporter ADR-0053](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/a37a47d29f227365661eae59ab9b2f8da665c18d/decisions/entries/0053-pose-sidecar-parity-runs.md) found 0 of 318 crops equal, up to 6 grey levels)
+- mmpose maps the keypoints back with a closed form of the float32 centre and crop size, not with the inverse of `M`. The two differ by float32 rounding only: 9.6e-5 px at most on 6 runs. (OpenMMLab-Exporter `decisions/scripts/affine_crop_matrix_check.py`, record R2; [OpenMMLab-Exporter ADR-6A8S](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/a37a47d29f227365661eae59ab9b2f8da665c18d/decisions/entries/6A8S-affine-crop-matrix-evidence.md); mmpose [`mmpose/models/pose_estimators/topdown.py:150-156`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/models/pose_estimators/topdown.py#L150-L156))
 
 ## Authoring guidance
 

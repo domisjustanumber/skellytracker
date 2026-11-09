@@ -55,9 +55,10 @@ Spec defects found during the spec-build stage. Each one needs a content change 
     `packed_keypoints`). No exporter checks this channel: the RTMO probe of OpenMMLab-Exporter
     compares only `x` and `y` ([`notes/decisions/scripts/rtmo_sidecar_probe.py:97-102`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/scripts/rtmo_sidecar_probe.py#L97-L102));
   - the host frame is BGR, and the host converts it to `input.color_format`;
-  - the arithmetic precision of the geometry and of the pixel math. Two cases of
-    [ADR-PHJ3](entries/PHJ3-resize-compute-dtype.md) are open: a fractional `pad_value` with
-    `compute_dtype: uint8`, and the cast of a `float32` resize to an integer `input.dtype`;
+  - the arithmetic precision of the geometry (except the warp matrix `M` of `affine_person_crop`)
+    and of the pixel math. Two cases of [ADR-PHJ3](entries/PHJ3-resize-compute-dtype.md) are open: a
+    fractional `pad_value` with `compute_dtype: uint8`, and the cast of a `float32` resize to an
+    integer `input.dtype`;
   - the dtype of a score comparison. A float64 score `0.7` passes `>` against a float32 threshold
     `0.7`, because the float32 value is `0.699999988` (numpy 2.4.6).
 - The [Storage layout](../format/file-layout.md#storage-layout) gives no folder to a sidecar whose

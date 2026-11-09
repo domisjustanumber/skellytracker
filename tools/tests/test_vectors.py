@@ -1303,6 +1303,9 @@ UNPROJECTION_SECTIONS = [
         pytest.param(section, param.values[0], id=f"{section}:{param.id}")
         for section in UNPROJECTION_SECTIONS
         for param in forward_params(section)
+        # Some affine crop cases have no `<id>-inverse` case; each other forward case must have one.
+        if section != "pre.resize.affine_person_crop"
+        or any(other["id"] == f"{param.id}-inverse" for other in cases_of(section))
     ],
 )
 def test_unprojection_inverts_the_forward_map(

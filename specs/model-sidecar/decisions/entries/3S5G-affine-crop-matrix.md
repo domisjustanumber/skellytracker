@@ -1,12 +1,12 @@
 # 3S5G — Spec change: affine-crop-matrix
 
-**Status:** proposed, 2026-11-06 (proposal-affine-crop-matrix@openmmlab-exporter@v1); recorded
-again 2026-11-09 (proposal-affine-crop-matrix@openmmlab-exporter@v2).
+**Status:** accepted, 2026-11-09 (user; PR: pending).
 
 ## Decision
 
-**Proposed, not decided.** The proposal is
-[`proposal.md`](../../proposals/affine-crop-matrix/proposal.md).
+The user accepted the proposal on 2026-11-09. The record is
+[`proposal.md`](../../proposals/affine-crop-matrix/proposal.md)
+(proposal-affine-crop-matrix@openmmlab-exporter@v2).
 
 - Section: [`pre.resize.affine_person_crop`](../../pre/resize-affine-person-crop.md).
 - Change: the Behaviour gives the warp matrix `M` in float32 steps, as mmpose v1.3.2 computes it.
@@ -18,9 +18,13 @@ again 2026-11-09 (proposal-affine-crop-matrix@openmmlab-exporter@v2).
   `reference/post_unprojection.py`.
 - Target spec version: `2.0.0`.
 - Models: RTMW (OpenMMLab-Exporter `rtmw-wholebody133`).
-- Supersedes on acceptance: none.
+- Supersedes: none.
 - Related: `model-rtmw-wholebody133@openmmlab-exporter` (intake row T4b needs this proposal);
   `proposal-simcc-score-rule@openmmlab-exporter` (its parity run made the upstream dumps).
+- The user confirmed three plan decisions on 2026-11-06. Intake row T4b (the arithmetic of the
+  crop) is a `near-miss`. The proposal covers only the crop matrix `M`, not the normalization or
+  the unprojection. Intake rows T10 (normalization) and D11 (unprojection) are `exact`, because
+  they differ from mmpose only by the float32 rounding of a result.
 
 ## Reason
 
@@ -45,14 +49,8 @@ new run. The vectors are `unverified`: no host implements the proposed text.
 
 See [open-work.md](../open-work.md).
 
-## Before acceptance
+## Notes at acceptance
 
-- [x] The user must confirm or refuse each plan decision of part 1. The user confirmed all three on
-  2026-11-06:
-  - intake row T4b (the arithmetic of the crop) is a `near-miss`;
-  - the proposal covers only the crop matrix `M`, not the normalization or the unprojection;
-  - intake rows T10 (normalization) and D11 (unprojection) are `exact`, because they differ from
-    mmpose only by the float32 rounding of a result.
 - [x] The docstring of the reference file says "No skellytracker decision entry covers it" and
   "Parity result: to run". Both notes are stale. v2 fixes both notes, as the user asked.
 - [x] After `land`, the file-level `unverified` text of the vector file says that the cases come from
