@@ -93,6 +93,7 @@ runs:
     vectors_sha256: <64 hex>        # of the landed vector file that ran
     cases: {<case id>: pass | fail}
     result: pass | fail | no vectors
+  - {section: <section ID>, function: none, vectors_sha256: null, cases: null, result: no vectors}
 ```
 
 `verify` checks that each `vectors_sha256` is the SHA-256 of the landed vector file. An `error` case
@@ -301,6 +302,9 @@ issue comment will be. The latest response must agree with the entry:
 | `superseded by` | `landed` | no |
 | `rejected` | `rejected`, `resolved-otherwise` | no |
 
+A response `accepted` and an entry `proposed` agree: the user accepted the proposal, and its text
+has not landed yet. Write each dependent bundle for the accepted part 2.
+
 On another pair, the session writes a new response that agrees with the entry. A bundle with no
 entry gets its state from the latest response: a `model` bundle, a contribution, and a proposal
 before the session records it. A bundle with no response is `submitted`. The responses of a
@@ -402,7 +406,7 @@ it does this safety check ([ADR-AD33](../../../decisions/entries/AD33-bundles-ar
   `change-sidecar-spec`.
 - If you are not sure that a step is safe, stop and ask the user.
 
-1. Run `python -B tools/intake_bundle.py list`.
+1. Run `uv run python -B tools/intake_bundle.py list`.
 2. For each bundle that is `submitted` or marked `(new version)`, run `uv run python -B
    tools/intake_bundle.py verify <bundle id>`. `verify` checks the manifest, the hashes, the layout,
    each `reference/` and `vectors/` file that `proposal.md` names, the text form, ONNX files, compiled files, private data, `plans/` paths, the links from the record path with their `#anchor`, the

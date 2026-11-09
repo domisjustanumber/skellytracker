@@ -69,7 +69,7 @@ that is missing in part 1.
 
 In skellytracker:
 
-- the proposal bundles in `intakes/`. `python -B tools/intake_bundle.py list` lists them
+- the proposal bundles in `intakes/`. `uv run python -B tools/intake_bundle.py list` lists them
   ([Session steps](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#session-steps)).
 
 A gap that a skellytracker session finds goes on the spec-defect list of the
@@ -230,11 +230,9 @@ A contributor writes its proposal bundle.
    change meets also gets `rejected`, with the reason "Resolved by", and the response
    `resolved-otherwise` (procedure E of
    [`change-sidecar-spec`](../change-sidecar-spec/SKILL.md#procedure-e-resolve-a-proposal-by-a-different-change)).
-5. Write the response ([Responses](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#responses)).
-   A response is a notice of the entry status. A `proposed` entry allows `recorded`, `accepted` and
-   `needs-contributor`. A `rejected` entry allows `rejected` and `resolved-otherwise`. A landed entry
-   allows `landed`. Write a response that agrees with the entry. A bundle with no entry gets its
-   state from its latest response ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)).
+5. Write a response that agrees with the entry
+   ([Responses](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#responses);
+   [States](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#states)).
 
 ### Step 4: Write the decision entry
 
