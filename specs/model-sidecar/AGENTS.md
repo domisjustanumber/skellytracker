@@ -19,7 +19,7 @@ root log ([ADR-GN3D](../../decisions/entries/GN3D-module-decision-logs.md)).
   the final release ([Authoring guidance](format/versioning.md#authoring-guidance);
   [Publishing](model-addition-workflow/validation-and-publishing.md#publishing)).
 - A spec change has no class. It applies to each sidecar from the commit that lands it
-  ([ADR-NB5F](../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)). Each
+  ([ADR-C0YD](../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md) item 1). Each
   sidecar has one reading: the current spec text. The spec has no legacy reading. The package
   sidecars stay outside the spec until they migrate
   ([ADR-0QKK](../../decisions/entries/0QKK-no-legacy-layer.md)).

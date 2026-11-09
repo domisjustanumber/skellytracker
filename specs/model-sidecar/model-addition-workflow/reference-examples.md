@@ -37,7 +37,7 @@ skellytracker session does it in [phase 3](phase-3-skellytracker.md), for a mode
 
 An item `spec change <ID>: <edit>` in `edits` of the entry in `inventory.yaml` is a spec-forced edit
 ([When a spec change makes an example invalid](#when-a-spec-change-makes-an-example-invalid);
-[ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
+[ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md) item 4).
 Replace the example when the copy of its exporter obeys each rule
 ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md)).
 
@@ -69,7 +69,7 @@ Replace the example when the copy of its exporter obeys each rule
    cannot describe, that is a gap. Propose the spec change first. Replace the example in the same
    cycle. A spec-forced edit is not a correction
    ([When a spec change makes an example invalid](#when-a-spec-change-makes-an-example-invalid);
-   [ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
+   [ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md) item 4).
 3. **Path.** The path of the example follows the
    [storage layout](../format/file-layout.md#storage-layout), also when the path of the exporter does
    not. For example, a sidecar in a folder that is not a group, such as `rtmo/body7/`, goes under
@@ -116,7 +116,7 @@ Replace the example when the copy of its exporter obeys each rule
 7. **Land it.** A new or replaced example changes no normative text. Thus it goes in a non-spec PR
    with its provenance ([`specs/model-sidecar/AGENTS.md`](../AGENTS.md)). A spec-forced edit goes in
    the content commit of its change
-   ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
+   ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md) item 4).
    Do not put a change of spec text in that PR. Put one example in each commit, so that a reviewer can examine and revert each
    replacement alone. This rule does not apply to a spec-forced edit. The commit message names the exporter commit. Follow the git rules of the
    skellytracker `AGENTS.md`, section 6.
@@ -128,7 +128,7 @@ Replace the example when the copy of its exporter obeys each rule
 
 The examples must obey the spec at each commit. An accepted spec change can make an example break a
 new or changed rule. Then the content commit of that change also edits the example. This edit is a
-spec-forced edit ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)). It
+spec-forced edit ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md) item 4). It
 is not a correction of the example, and it is not a new copy. Steps 1, 2 and 7 of
 [How to provide or replace an example](#how-to-provide-or-replace-an-example) do not apply to it.
 
@@ -151,7 +151,7 @@ is not a correction of the example, and it is not a new copy. Steps 1, 2 and 7 o
      `uv run python tools/sidecar_refs.py --write <example path>`. Do not use `--placeholder`.
 3. Do not add a value that the change does not give. The only exception is a value that the
    session reads from the graph of an ONNX file of the exporter of the example
-   ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)):
+   ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md) item 3):
    - Read only the graph, with `onnx.load(path, load_external_data=False)`. Do not run the file
      ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)).
    - The `edits` item of step 7 names the value, the file by its path in the exporter repo and its

@@ -43,7 +43,7 @@ the backlog for it.
 
 **Scan.** One root holds sidecars: the examples (``specs/model-sidecar/examples/``, with that folder
 as the cache dir). The tool does not scan the package sidecars. They are legacy sidecars until the
-package migrates (ADR-NB5F). A YAML file is a sidecar when its top level has ``schema_version`` and
+package migrates (ADR-C0YD item 1). A YAML file is a sidecar when its top level has ``schema_version`` and
 a ``model_id`` equal to its file name without the extension. The tool skips every other YAML file.
 It resolves each sidecar with ``sidecar_refs.resolve``, which accepts files without hashes. The key
 of a sidecar is ``<model_id>@<source>``: ``source.name`` when the sidecar has it, else the

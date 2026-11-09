@@ -32,7 +32,7 @@ README = """\
 | `post.det.selection.nms` | [post/nms.md](post/nms.md) | Selection: NMS |
 """
 
-# A legacy package sidecar. The scan must not find it (ADR-NB5F).
+# A legacy package sidecar. The scan must not find it (ADR-C0YD item 1).
 PACKAGE_FOO = """\
 schema_version: v2024.09.1019
 model_id: foo
@@ -588,7 +588,7 @@ def test_the_matrix_rows_and_cells(repo: Path) -> None:
 def test_the_normalization_row_shows_the_mode() -> None:
     current = _fake_sidecar("imagenet_bgr", "1", derived=())
     custom = _fake_sidecar({"mode": "custom"}, "1", derived=())
-    # A dated version adds no label: the package sidecars are not in the matrix (ADR-NB5F).
+    # A dated version adds no label: the package sidecars are not in the matrix (ADR-C0YD item 1).
     dated = _fake_sidecar("imagenet_bgr", "v2024.09.1019", derived=())
     assert st._normalization_label(current) == "imagenet_bgr"
     assert st._normalization_label(custom) == "custom"

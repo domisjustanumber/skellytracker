@@ -228,7 +228,7 @@ Two rules of this part stay:
   and `uv run python tools/sidecar_trace.py impact <range>` at landing are the check.
 - **Package root in the trace scan.** Added on 2026-11-02. The trace tool scans only
   `specs/model-sidecar/examples/` until the package migrates. The package sidecars are legacy
-  sidecars ([ADR-NB5F](../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
+  sidecars ([ADR-C0YD](../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md) item 1).
   When the package sidecars follow the spec, add the package root back to the scan of
   `tools/sidecar_trace.py`. Add the derivations that the package sidecars then need to
   `tools/sidecar_normalize.py`.

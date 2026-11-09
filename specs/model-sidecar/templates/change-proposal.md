@@ -82,7 +82,7 @@ max abs diff of 35 on a 333×500 image
 ([OpenMMLab-Exporter ADR-0020](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/0020-rtmo-sidecar-contract.md)).
 
 Give the evidence as "Rules" in `specs/model-sidecar/model-addition-workflow/rules.md` says. Cite
-each source in a form of the heading "Sources" in the same file (skellytracker ADR-FDTD). If the
+each source in a form of the heading "Sources" in the same file. If the
 primary evidence is missing, name the primary file or config key that a reader must check. Before
 the user accepts the proposal, this part must cite the primary evidence.
 
@@ -410,7 +410,7 @@ change alone. The only exception is a value that you read from the graph of an O
 exporter of the example, with `onnx.load(path, load_external_data=False)`. Do not run the file. Give
 the value, the file path in the exporter repo and its SHA-256 in the edit text. If the example needs
 a value that the change does not give and that the graph cannot give, the impact is `needs-export`
-(skellytracker ADR-NB5F, `decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md`).
+(skellytracker ADR-C0YD item 2, `decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md`).
 If a user ruling names the example, write the impact `removed (user ruling)`: the content commit
 removes the example, and the row is not a request (skellytracker ADR-C0YD,
 `decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md`). If no example breaks a rule, write `none` and the

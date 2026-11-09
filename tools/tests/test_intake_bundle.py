@@ -139,7 +139,7 @@ def test_pack_adds_the_sha256_of_an_external_file(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     ("change", "message"),
     [
-        ({"change_class": "vnext"}, "unknown key change_class"),  # ADR-NB5F
+        ({"change_class": "vnext"}, "unknown key change_class"),  # ADR-C0YD item 1
         ({"version": 3}, "unknown key version"),
         ({"spec_version": "2.0.0"}, "unknown key spec_version"),  # pack writes it (ADR-ZXD7)
         ({"spec_commit": "abc"}, "spec_commit"),

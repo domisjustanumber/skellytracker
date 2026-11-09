@@ -276,7 +276,7 @@ A contributor writes its proposal bundle.
    accepts the proposal.
 2. Run `uv run pytest tools/tests -q`. All tests must pass.
 3. The proposal file and the entry are a non-spec change. Put them in a non-spec PR
-   ([0027](../../../decisions/entries/0027-single-working-branch.md#one-kind-of-change-in-each-pr)).
+   ([section 6](../../../AGENTS.md#6-git-rules) of `AGENTS.md`).
 4. Stop. Tell the user the entry number and the decision to make.
 5. The user accepts or rejects the proposal. After acceptance, use the skill
    [`change-sidecar-spec`](../change-sidecar-spec/SKILL.md).

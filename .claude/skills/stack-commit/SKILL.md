@@ -9,7 +9,6 @@ This skill uses ASD-STE100 Simplified Technical English.
 
 The git rules of the root [`AGENTS.md`](../../../AGENTS.md#6-git-rules) also apply: no push and no
 other outside action without the approval of the user, and no AI attribution.
-ADR-[0027](../../../decisions/entries/0027-single-working-branch.md) gives the reasons for these steps.
 
 ## Spec-build stage
 

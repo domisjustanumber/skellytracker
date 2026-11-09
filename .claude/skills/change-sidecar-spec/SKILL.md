@@ -14,7 +14,7 @@ This skill wraps "Phase 3" of
 the [model addition workflow](../../../specs/model-sidecar/model-addition-workflow/README.md#phases), the
 [Rules for each spec edit](#rules-for-each-spec-edit)
 ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md)) and the PR kinds of
-[decision 0027](../../../decisions/entries/0027-single-working-branch.md#one-kind-of-change-in-each-pr).
+[section 6](../../../AGENTS.md#6-git-rules) of `AGENTS.md`.
 They give the reasons and the details. This skill gives the order of the steps, the inputs, the
 outputs and the stop points.
 
@@ -370,7 +370,7 @@ Do this procedure when a content commit lands on a section that another open pro
 
 ### One reading
 
-A spec change has no class ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
+A spec change has no class ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md) item 1).
 
 - Each sidecar has one reading: the current text of the spec. Do not add a legacy reading, a
   "Legacy behaviour" heading, a version mark on a rule, an index row or an availability row
@@ -483,7 +483,7 @@ A spec change has no class ([ADR-NB5F](../../../decisions/entries/NB5F-no-change
 - Do not correct an example by hand. A spec-forced edit is not a correction. If a content change
   makes an example invalid, do the spec-forced edit in the same content commit
   ([When a spec change makes an example invalid](../../../specs/model-sidecar/model-addition-workflow/reference-examples.md#when-a-spec-change-makes-an-example-invalid);
-  [ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)). Do not land a
+  [ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md) item 4). Do not land a
   content commit that leaves an example invalid. If a user ruling names the example, remove it with
   step 12 of that heading
   ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md)).
@@ -516,7 +516,7 @@ A spec change has no class ([ADR-NB5F](../../../decisions/entries/NB5F-no-change
    invalid and that part 7 does not list is a landing stop: the response is `needs-contributor`, and
    the contributor sends a follow-up bundle with the missing row
    ([When a spec change makes an example invalid](../../../specs/model-sidecar/model-addition-workflow/reference-examples.md#when-a-spec-change-makes-an-example-invalid);
-   [ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
+   [ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md) item 4).
    Name each exporter that must regenerate its sidecars. Do not add an item under
    [Re-export requests](../../../specs/model-sidecar/decisions/open-work.md#re-export-requests): the
    part 7 row is the request
@@ -526,7 +526,7 @@ A spec change has no class ([ADR-NB5F](../../../decisions/entries/NB5F-no-change
 
 The trace tool scans only `specs/model-sidecar/examples/` for sidecars until the package migrates.
 The package sidecars stay outside the spec until they migrate
-([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
+([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md) item 1).
 The tool uses the discovery rule of
 [`format.file_layout`](../../../specs/model-sidecar/format/file-layout.md#discovery). It keys each sidecar as
 `<model_id>@<source>`, because one `model_id` can have two sources, and it resolves composition with
@@ -609,7 +609,7 @@ the lint workflow checks `tools/` and `specs/model-sidecar/reference/`. They che
   which the spec removed ([ADR-9MJ6](../../../decisions/entries/9MJ6-remove-the-heatmap-decode.md);
   [ADR-9HBB](../../../decisions/entries/9HBB-simcc-decode-is-2d-only.md)).
   The frozen `model.py` keeps the old values until stage M8 of the [implementation plan](../../../specs/sidecar-implementation-plan.md)
-  ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
+  ([Fields](../../../specs/model-sidecar/common/input.md#fields) of `common.input`).
 - Each relative link in `AGENTS.md`, `decisions/`, `specs/` and `notes/` resolves, with its `#anchor`.
 - Each skeleton copy in the examples equals its package copy, and at least one example refers to it.
 - `TRACEABILITY.md` equals a new generation, with line endings normalized.

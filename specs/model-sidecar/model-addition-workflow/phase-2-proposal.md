@@ -52,7 +52,7 @@ A proposal has eight parts:
    storage layout (`format.file_layout`), the Overview, the section map and the validation index
    (`../freemocap/skellytracker/specs/model-sidecar/README.md`). Do not add a legacy difference, an
    index row or an availability row
-   ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)). Also
+   ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md) item 1). Also
    find each rule that names one of these values, for example the rule
    `V-pre.resize.affine_person_crop-2`: a sidecar with `pose.requires_object_detector: true` declares
    `input.resize.method: affine_person_crop`. List each place in the proposal. These edits are part

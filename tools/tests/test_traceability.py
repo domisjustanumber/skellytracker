@@ -431,7 +431,7 @@ def test_the_scan_keys_are_unique() -> None:
 
 
 def test_the_scan_finds_no_sidecar_outside_the_examples() -> None:
-    # The package sidecars are legacy sidecars until the package migrates (ADR-NB5F).
+    # The package sidecars are legacy sidecars until the package migrates (ADR-C0YD item 1).
     sidecars = scan().sidecars
     assert sidecars
     for sidecar in sidecars:

@@ -40,7 +40,7 @@ To add a model or to request a change to this specification, follow the [model a
 The field `status.spec` in the front matter of a section file gives the status of the section: `stable` or `draft`. The front matter is the authority.
 
 1. A `draft` section is normative. A writer can write its fields ([ADR-QMKS](../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)).
-2. A content change can change a `draft` section. A spec change has no class ([ADR-NB5F](../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
+2. A content change can change a `draft` section. A spec change has no class ([ADR-C0YD](../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md) item 1).
 3. The first body line of a `draft` section, after its title, is the banner "This section is a draft. ...". A `stable` section has no banner.
 4. A new section starts as `draft`. A changed `stable` section stays `stable`.
 5. A `draft` section becomes `stable` when all of these conditions are true. The Gate column of the [Implementation status](TRACEABILITY.md#implementation-status) table shows the conditions that the files show.

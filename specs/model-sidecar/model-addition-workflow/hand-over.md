@@ -160,7 +160,7 @@ external:
   `changelog.md` in the checkout. `pack` writes it. It is never a pre-release. `spec_commit` names
   the exact text that the contributor read ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)).
 - A manifest has no `change_class`. A spec change has no class. `pack` and `verify` refuse the key
-  ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
+  ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md) item 1).
 - `batch` is an integer or `dynamic`.
 - `batch_conversion` is the verdict of the [batch-conversion check](batch-conversion-check.md#batch-conversion-check).
 - `batch_conversion_reason` is required when `batch_conversion` is `to run`. Otherwise it is `null`.
@@ -360,7 +360,7 @@ resolution: {...}                         # required for rejected and resolved-o
 
   The decision entry of the proposal becomes `rejected`. Its reason is
   "Resolved by [ADR-<X>](<path of X>)", with a relative path
-  ([ADR-Z05A](../../../decisions/entries/Z05A-essential-decision-log-rules.md)). Procedure E of the
+  ([section 5](../../../AGENTS.md#5-decision-log) of `AGENTS.md`). Procedure E of the
   skill `change-sidecar-spec` gives the session steps.
 
 ### Read a response
