@@ -1,6 +1,6 @@
 # 3S5G — Spec change: affine-crop-matrix
 
-**Status:** accepted, 2026-11-09 (user; PR: pending).
+**Status:** absorbed into [`pre/resize-affine-person-crop.md#behaviour`](../../pre/resize-affine-person-crop.md#behaviour), 2026-11-09 (user; PR: pending).
 
 ## Decision
 

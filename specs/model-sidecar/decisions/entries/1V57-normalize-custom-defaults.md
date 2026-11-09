@@ -1,6 +1,6 @@
 # 1V57 — Spec change: normalize-custom-defaults
 
-**Status:** accepted, 2026-11-09 (user; PR: pending).
+**Status:** absorbed into [`pre/normalization.md#behaviour`](../../pre/normalization.md#behaviour), 2026-11-09 (user; PR: pending).
 
 ## Decision
 

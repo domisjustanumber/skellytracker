@@ -1,6 +1,6 @@
 # 03PH — Spec change: simcc-score-rule
 
-**Status:** accepted, 2026-11-09 (user; PR: pending).
+**Status:** absorbed into [`post/pose-decode-simcc.md#behaviour`](../../post/pose-decode-simcc.md#behaviour), 2026-11-09 (user; PR: pending).
 
 ## Decision
 
