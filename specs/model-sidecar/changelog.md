@@ -92,6 +92,7 @@ The rules of this list:
 | 38 | Resize | `affine_person_crop` gives the steps of its warp matrix `M` in float32: the box rounds to float32; the centre, the crop size and the aspect fix with `a = f32(T_w / T_h)` are float32; `M` comes from three float32 point pairs that use `c` and `w` only. The branch `h = w / a` and the strict `>` set only the crop height (mmpose `input_scale`), not `M`. The Inverse stays the inverse of `M`. | user decision 2026-11-09: RTMW (mmpose `TopdownAffine`) ([ADR-3S5G](decisions/entries/3S5G-affine-crop-matrix.md)) | [Affine person crop](pre/resize-affine-person-crop.md#behaviour) |
 | 39 | Pose | The SimCC decode gives its steps: the argmax of each axis on the raw values (a tie takes the lowest bin), the score `min(peak_x, peak_y)` with no softmax, the bin `-1` on each axis for a score `<= 0`, the rule for a NaN raw value (the bin of the first NaN, and a comparison with a NaN is false), and the bin scale with no offset (2D). | user decision 2026-11-09: RTMW (mmpose `get_simcc_maximum`) ([ADR-03PH](decisions/entries/03PH-simcc-score-rule.md)) | [SimCC decode](post/pose-decode-simcc.md#behaviour) |
 | 40 | Input | Each normalization mode casts its result to the `input.dtype` entry of the selected precision. `V-pre.normalize-3`: a `uint8` input needs the resolved normalization `none` and `input.resize.compute_dtype` absent or `uint8`. `V-common.input-2`: the input dtypes are `float32`, `float16` and `uint8`. `int8` goes. The output dtypes keep `int8`. | user decision 2026-11-06: the mode table stated the cast only for `none`, the cast of a fractional value to `uint8` was not defined, and no mode gives a defined `int8` input ([ADR-XH1J](decisions/entries/XH1J-normalize-input-dtype.md)) | [Normalization](pre/normalization.md#behaviour), [Input](common/input.md#validation-rules) |
+| 41 | Input | An absent key of a `custom` normalization has the value `scale: 1`, `mean: [0, 0, 0]` or `std: [1, 1, 1]`. The `none` row names YOLOX and RTMO as models whose upstream does not normalize. | user decision 2026-11-09: `V-pre.normalize-1` allowed an absent `mean` or `std` with no value, and the `none` row said that YOLOX normalizes internally ([ADR-1V57](decisions/entries/1V57-normalize-custom-defaults.md)) | [Normalization](pre/normalization.md#behaviour) |
 
 ### Considered and deliberately not added
 
@@ -175,6 +176,7 @@ The rules of the versions
 - Row 38: `3dfdaea4409b04e537993deed4b2ec0d127cc68acbc086c9a4a6388dd637235d`.
 - Row 39: `3dfdaea4409b04e537993deed4b2ec0d127cc68acbc086c9a4a6388dd637235d`.
 - Row 40: `85a85089fa3ff1a21579b41d3361e724062abd06ccbea7de8ad913838f79d01f`.
+- Row 41: `85a85089fa3ff1a21579b41d3361e724062abd06ccbea7de8ad913838f79d01f`.
 
 Version `2.0.0` is the first version. It replaces the revision `1.0` and the `schema_version`
 history before it. No release shipped a sidecar of that history

@@ -35,10 +35,10 @@ status: {spec: stable, validate: partial, forward: partial}
 
 | Mode | Host behavior | Typical use |
 |------|---------------|-------------|
-| `none` | Pass pixel values (0–255) unchanged, cast to `input.dtype`. Channel order from `input.color_format`. | Graphs that normalize internally, for example YOLOX |
+| `none` | Pass pixel values (0–255) unchanged, cast to `input.dtype`. Channel order from `input.color_format`. | Graphs that take raw 0–255 pixels: graphs that normalize internally, and models whose upstream does not normalize, for example YOLOX (no `mean` and no `std`) and RTMO (`mean` `[0, 0, 0]` and `std` `[1, 1, 1]`) |
 | `unit_float` | `pixel / 255.0` per channel → `[0, 1]`. Channel order from `input.color_format`. | YOLO26, which uses Ultralytics-style float input |
 | `imagenet` | `(pixel - mean) / std` on 0–255 pixels, in the channel order of `input.color_format`. Each channel uses the statistics of its color: R uses mean `123.675` / std `58.395`, G `116.28` / `57.12`, B `103.53` / `57.375`. | RTMDet (`bgr`), RTMW and RF-DETR (`rgb`) |
-| `custom` | `(pixel * scale - mean) / std` on 0–255 channel values. `mean` and `std` are in the channel order of `input.color_format`. | Rare exports that match no named mode |
+| `custom` | `(pixel * scale - mean) / std` on 0–255 channel values. `mean` and `std` are in the channel order of `input.color_format`. Each key other than `mode` is optional. When a key is absent, its value is `scale: 1`, `mean: [0, 0, 0]` or `std: [1, 1, 1]`. | Rare exports that match no named mode |
 
 **Cast to `input.dtype`.** Each mode casts its result to the `input.dtype` entry of the selected
 precision ([Input](../common/input.md#fields)). The cast is the last step of this section. The
@@ -71,8 +71,8 @@ input:
   normalization:
     mode: custom
     scale: 0.00392156862745098   # optional; default 1.0
-    mean: [0.0, 0.0, 0.0]
-    std: [1.0, 1.0, 1.0]
+    mean: [0.0, 0.0, 0.0]        # optional; default [0.0, 0.0, 0.0]
+    std: [1.0, 1.0, 1.0]         # optional; default [1.0, 1.0, 1.0]
 ```
 
 **Per-precision overrides:**
@@ -106,7 +106,7 @@ See also [Input](../common/input.md#validation-rules).
 
 - The OpenMMLab-Exporter host takes BGR frames. Its mode `imagenet_bgr` (`imagenet` with `color_format: bgr`) applies the statistics directly to the BGR canvas. Its mode `imagenet_rgb` (`imagenet` with `color_format: rgb`) flips the channels to RGB first. It computes each mode in float32 and then casts the result to the input dtype: `float32`, `float16` or `uint8`. It refuses `uint8` with a mode other than `none`. It has no `int8`. (OpenMMLab-Exporter [`onnx_runtime/preprocess.py:63`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/7bc72b45137faa4b211d05a38f58812ffae5a109/onnx_runtime/preprocess.py#L63), [`onnx_runtime/preprocess.py:214-305`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/7bc72b45137faa4b211d05a38f58812ffae5a109/onnx_runtime/preprocess.py#L214-L305))
 - A BGR mean image `[103.53, 116.28, 123.675]` normalizes to 0 under both ImageNet modes of that host. (OpenMMLab-Exporter [`tests/test_onnx_runtime.py:439-443`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/adb332ce066323cc3d912b1a8250ee9b88eb3548/tests/test_onnx_runtime.py#L439-L443))
-- That host supports the modes `none`, `unit_float`, `imagenet` and `custom`, and the host names `imagenet_bgr` and `imagenet_rgb` at the top level. It checks the top-level `input.normalization` also when `normalization_by_precision` covers the precision. Its function has no `input.resize.compute_dtype`. (OpenMMLab-Exporter [`onnx_runtime/preprocess.py:142-211`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/7bc72b45137faa4b211d05a38f58812ffae5a109/onnx_runtime/preprocess.py#L142-L211))
+- That host supports the modes `none`, `unit_float`, `imagenet` and `custom`, and the host names `imagenet_bgr` and `imagenet_rgb` at the top level. It checks the top-level `input.normalization` also when `normalization_by_precision` covers the precision. Its `custom` defaults are `scale: 1`, `mean: [0, 0, 0]` and `std: [1, 1, 1]`. Its function has no `input.resize.compute_dtype`. (OpenMMLab-Exporter [`onnx_runtime/preprocess.py:142-211`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/7bc72b45137faa4b211d05a38f58812ffae5a109/onnx_runtime/preprocess.py#L142-L211))
 - The Roboflow-Exporter host divides by 255, resizes, and then applies `(x - mean) / std` with mean `(0.485, 0.456, 0.406)` and std `(0.229, 0.224, 0.225)` in RGB order. (Roboflow-Exporter [`onnx_runtime/preprocess.py:18-19`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/d0559b9c95a9ba9922045e2bc5aeae9fb596a6b1/onnx_runtime/preprocess.py#L18-L19), [`onnx_runtime/preprocess.py:74-86`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/d0559b9c95a9ba9922045e2bc5aeae9fb596a6b1/onnx_runtime/preprocess.py#L74-L86))
 - This matches `imagenet` with `color_format: rgb` on 0-255 pixels and `compute_dtype: float32`. Mean x 255 is `123.675 / 116.28 / 103.53`, and std x 255 is `58.395 / 57.12 / 57.375`. The bilinear weights sum to 1, so the result differs from that mode only by float32 rounding ([Interpolation implementer guidance](interpolation.md#implementer-guidance)). A test checks the channel means with `rtol=2e-3`. (Roboflow-Exporter [`tests/test_onnx_runtime.py:164-178`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/d0559b9c95a9ba9922045e2bc5aeae9fb596a6b1/tests/test_onnx_runtime.py#L164-L178))
 - To give the cast of Behaviour, the package code needs these changes. `build_normalization_fn`

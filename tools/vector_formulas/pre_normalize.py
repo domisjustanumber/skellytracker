@@ -76,11 +76,11 @@ def normalize_pixels(
     for b, g, r in pixels_bgr:
         values = [b, g, r] if order == "bgr" else [r, g, b]
         if isinstance(mode, dict):
+            # The custom row: an absent key is scale 1, mean [0, 0, 0] or std [1, 1, 1].
             scale = mode.get("scale", 1.0)
-            result = [
-                (v * scale - m) / sd
-                for v, m, sd in zip(values, mode["mean"], mode["std"], strict=True)
-            ]
+            mean = mode.get("mean", (0.0, 0.0, 0.0))
+            std = mode.get("std", (1.0, 1.0, 1.0))
+            result = [(v * scale - m) / sd for v, m, sd in zip(values, mean, std, strict=True)]
         elif mode == "none":
             result = [float(v) for v in values]
         elif mode == "unit_float":
