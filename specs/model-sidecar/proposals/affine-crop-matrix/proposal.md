@@ -10,7 +10,7 @@ This file uses ASD-STE100 Simplified Technical English.
 | Slug | `affine-crop-matrix` |
 | Date | 2026-11-06 |
 | Exporter repo | OpenMMLab-Exporter |
-| Exporter commit (`git rev-parse HEAD` in the exporter repo, or `none (no git repo)`) | `a37a47d29f227365661eae59ab9b2f8da665c18d` |
+| Exporter commit (`git rev-parse HEAD` in the exporter repo, or `none (no git repo)`) | `ecee56e1ea1b4d3901c76a73b713ed0256675e78` |
 | Model, and its `model` bundle ID | `rtmw-wholebody133`, `model-rtmw-wholebody133@openmmlab-exporter` |
 | Intake rows with the verdict `near-miss` or `gap` | T4b (arithmetic of the crop), `near-miss` |
 | Kind (`new section`, `changed section`, `contribution` or `follow-up`) | `changed section` |
@@ -18,9 +18,9 @@ This file uses ASD-STE100 Simplified Technical English.
 | Proposed section ID (the `id` in the section file's front matter) | `pre.resize.affine_person_crop` |
 | Section file (the file of the changed section, or the proposed path of the new section file under `specs/model-sidecar/`) | `specs/model-sidecar/pre/resize-affine-person-crop.md` |
 | Depends on (`depends_on`: bundle IDs that must land first, or `none`) | none |
-| skellytracker decision entries with the status `proposed` that cover the same property (or `none`) | none. The Proposed table of the spec log is empty. |
+| skellytracker decision entries with the status `proposed` that cover the same property (or `none`) | skellytracker ADR-3S5G only. It is the entry of version 1 of this proposal. The user accepted the proposal on 2026-11-06. The entry keeps the status `proposed` until the proposal lands. The other entries of the Proposed table of the spec log do not cover this property: skellytracker ADR-52NQ (`common.identity`), skellytracker ADR-03PH (`post.pose.decode.simcc`) and skellytracker ADR-XH1J (`pre.normalize`). The Proposed table of the root log is empty. |
 | skellytracker folder that you read (normally `../freemocap/skellytracker`) | `../freemocap/skellytracker` (branch `dom/sidecar-implementation`) |
-| skellytracker commit of the spec text that you read (`git -C <folder> rev-parse HEAD`; add `+ uncommitted changes` if `git -C <folder> status --porcelain` lists a file that you read) | `8351b7f8c20c8db74eb3e547478970e4dceb0308` |
+| skellytracker commit of the spec text that you read (`git -C <folder> rev-parse HEAD`; add `+ uncommitted changes` if `git -C <folder> status --porcelain` lists a file that you read) | `8fed6f34eb22643e0b6cc38a7c6b80014bfe1d75` |
 | Target spec version: the newest version heading under "Revisions" in `specs/model-sidecar/changelog.md`, today the open target `2.0.0`. `pack` writes it to the manifest as `spec_version`. | `2.0.0` |
 
 ## 1. Gap
@@ -67,9 +67,10 @@ centre (the rtmlib form)." The other keys do not change.
 | `specs/model-sidecar/changelog.md` | Summary of changes | The row of 2.6. |
 | `specs/model-sidecar/decisions/open-work.md` | Spec defects, the item "The spec does not state these facts, but a host needs them", the sub-item "the arithmetic precision of the geometry and of the pixel math" | The content commit changes the start of the sub-item to "the arithmetic precision of the geometry (except the warp matrix `M` of `affine_person_crop`) and of the pixel math". The rest of the sub-item stays. |
 | `specs/model-sidecar/decisions/open-work.md` | Spec defects, the item "The test vectors found these points that the spec does not define", the sub-item "the box format and the coordinate space of the person box that `affine_person_crop` warps" | No edit. The sub-item stays. The proposal covers only the arithmetic of the crop matrix `M` (the user ruling of 2026-11-06). The box format and the coordinate space of the box that a host gives to the crop are a different property: a contract between the detector output and the crop. Thus they are outside the scope of this proposal, and a separate decision must close the sub-item. The steps use the xyxy names of the current vector file as the input of the float32 steps. They do not state the coordinate space of the box, or which detector box the host gives to the crop. Thus the sub-item stays. An earlier draft of this proposal removed the sub-item. This version keeps it. |
-| `specs/model-sidecar/vectors/pre.resize.affine_person_crop.yaml` | existing file | `land` adds the 9 cases of part 4 at the end. It replaces no case. `land` keeps the file keys of the current file, so the landing session also adds the last note of the part 4 file to `notes`. |
+| `specs/model-sidecar/vectors/pre.resize.affine_person_crop.yaml` | existing file | `land` adds the 9 cases of part 4 at the end. It replaces no case. `land` keeps the file keys of the current file, so the landing session also adds the last note of the part 4 file to `notes`. The current `unverified` text says that only some cases list their implementations in `verified_against`. `land` keeps that text. It stays true, because the 9 new cases list no implementation. |
 | `tools/vector_formulas/pre_resize_affine_person_crop.py` | `run`, `inverse` | The formula module must read the new text: the float32 steps and `M` from the three points. Keep `border` and `CHECKS`. Else the cross-check of `land` fails on the 7 new forward cases (their `compare` has `atol` 1e-6): a scratch run of `land` with the current formulas stopped at `coco-tall-box-float32-steps`. The same scratch run, with `run` and `inverse` of the formulas from the new text, found no problems and wrote 29 cases. |
 | `specs/model-sidecar/reference/pre_resize_affine_person_crop.py` | new file | The file of part 3. |
+| `specs/model-sidecar/reference/post_unprojection.py` | the fixture `affine_person_crop_inverse` and the fixture values `DEFAULT_EXPAND_RATIO` and `DEFAULT_MAINTAIN_ASPECT_RATIO` | The fixtures implement the current exact-math Inverse. When the file of part 3 lands, skellytracker replaces them with an import of `pre_resize_affine_person_crop` and a call ("When the other section has no module" in `specs/model-sidecar/model-addition-workflow/reference-implementations.md`: a fixture is temporary). The affine cases of `post.unprojection.yaml` keep their values (next row). |
 | `specs/model-sidecar/vectors/post.unprojection.yaml` | cases `pixel-affine-person-crop` and `normalized-11-affine-person-crop` | No value changes. Their box values are exact in float32, and the reference of part 3 gives `source_xy` `[148, 264]`. |
 | `specs/model-sidecar/TRACEABILITY.md` | generated | Run the generator after the content commit. |
 | `pre.resize.interpolation`, `post.unprojection`, `common.input`, `pre.normalize` | all headings | No edit. The proposal does not change the pixel centres, `compute_dtype`, the scalar `pad_value`, the unprojection or the normalization. |
@@ -192,11 +193,11 @@ section. It holds two fixtures of `pre.resize.interpolation` (`INTERPOLATION_FLA
 `COMPUTE_DTYPES`), because that section has no reference module. `source commit: none (no host
 code)`: the exporter host implements the current text, not the proposed text. `check_rules` gives
 the expected result of the 5 data-only validator cases of the current vector file (a scratch run).
-`reference_problems` of skellytracker `tools/intake_bundle.py` (at `8351b7f8`) finds no problem in
+`reference_problems` of skellytracker `tools/intake_bundle.py` (at `8fed6f34`) finds no problem in
 the file. `crop_size` refuses a box that gives an empty crop with `ValueError`. The text has no such
-rule (part 8). The docstring line "Parity result: to run" was written before the run of part 5. The
-file is byte-identical to the file of that run (SHA-256 `62bd8750`), and part 5 gives the result
-(`pass`).
+rule (part 8). Version 2 of the file changes only two notes of its module docstring: the decision
+entry (skellytracker ADR-3S5G) and the parity result (`pass`, part 5). The code is the same as in the
+file of the run of part 5. Part 5 gives the two SHA-256 values and the proof.
 
 ## 4. Vectors
 
@@ -221,11 +222,12 @@ values, so each of these cases also tests the float32 rounding of the box.
   `aspect-fix-tie-keeps-h`, only `crop_h`), so the case separates the two texts. The Inverse cases
   keep the file tolerance 1e-4, because the Inverse text does not change, and the mmpose closed form
   differs from the inverse of `M` by float32 rounding only (2.3, Guidance).
-- `fill` of skellytracker `tools/make_vectors.py` (at `8351b7f8`) wrote `expect` with the reference
-  file of part 3 and found no problems.
-- The 20 current cases keep their values. `fill` on a scratch copy of the current file with the
-  reference file of part 3 changed only one value, inside the tolerance 1e-4: `crop_h` of
-  `wide-box-grows-height`, 666.666667 to 666.666687. The 5 data-only cases do not run.
+- `fill` of skellytracker `tools/make_vectors.py` (at `8fed6f34`) wrote `expect` with the reference
+  file of part 3 and found no problems. It changed no byte of the file of version 1.
+- The 20 current cases keep their values. `fill` (at `8fed6f34`) on a scratch copy of the current
+  file and the 9 new cases, with the reference file of part 3, changed only one value, inside the
+  tolerance 1e-4: `crop_h` of `wide-box-grows-height`, 666.666667 to 666.666687. The 5 data-only
+  cases do not run.
 - The `M` of the three COCO cases equals the upstream `M` of the same persons in the mmpose v1.3.2
   dumps (gate G1 of part 5). An uncommitted case-level comparison gives the same result (a secondary
   note, `evidence.md`). The other cases come from the text only.
@@ -238,8 +240,16 @@ The result is `pass` on each of the 6 runs
 ([OpenMMLab-Exporter ADR-6A8S](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/a37a47d29f227365661eae59ab9b2f8da665c18d/decisions/entries/6A8S-affine-crop-matrix-evidence.md)).
 The run used existing upstream dumps of the OpenMMLab-Exporter ADR-VB67 run, so it needed no
 container. The script wrote the gates below to `gates.json` at 2026-11-06T19:44:54Z, before the
-measurement, with the SHA-256 of the reference file of part 3 (`62bd8750`). The measurement started
-after that time. `evidence.md` gives the inputs, the values of each run and the result files.
+measurement, with the SHA-256 of version 1 of the reference file of part 3 (`62bd8750`). The
+measurement started after that time. `evidence.md` gives the inputs, the values of each run and the
+result files.
+
+**Version 2.** The reference file of version 2 differs from the file of the run only in lines of
+its module docstring. The run used the file with the SHA-256
+`62bd8750eb82b0f8c5204900e646b6e412d1d6b9eda9a8f34baed9fbb5883219`. The file of version 2 has the
+SHA-256 `dd06867f3e4aaea0d2a2a06dd4ea1556d95f6e3103aab722535dda8f37e8b302`. With the docstrings
+removed, `ast.dump` gives the same result for the two files. Thus the code is the same, and the
+result of OpenMMLab-Exporter ADR-6A8S applies to version 2. This version has no new run.
 
 | Item | Value |
 |---|---|

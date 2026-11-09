@@ -3,8 +3,8 @@
   "kind": "proposal",
   "name": "affine-crop-matrix",
   "contributor": "openmmlab-exporter",
-  "source_commit": "a37a47d29f227365661eae59ab9b2f8da665c18d",
-  "spec_commit": "8351b7f8c20c8db74eb3e547478970e4dceb0308",
+  "source_commit": "ecee56e1ea1b4d3901c76a73b713ed0256675e78",
+  "spec_commit": "8fed6f34eb22643e0b6cc38a7c6b80014bfe1d75",
   "sections": [
     "pre.resize.affine_person_crop"
   ],
@@ -14,23 +14,23 @@
   "related": [],
   "external": [],
   "spec_version": "2.0.0",
-  "version": 1,
+  "version": 2,
   "created": "2026-11-06",
   "files": [
     {
       "path": "evidence.md",
-      "sha256": "d11a4f0f4d2c47b8e1d4891585558319c1ad977e87575b20e35cd9bfeb307a10",
-      "bytes": 13726
+      "sha256": "1c3d2f435f5f9efbba2a529d25603dd80fa0a67b4b1eb2291d8fa2f273c6355f",
+      "bytes": 15060
     },
     {
       "path": "proposal.md",
-      "sha256": "5ffbdcf33dc32556d892128e9174778b07973b09a52d402404071a9aa18abc94",
-      "bytes": 43727
+      "sha256": "61dc697182665c4b3468f17a99148d3c89e4eb7090ca91f42024aa77289f3077",
+      "bytes": 45609
     },
     {
       "path": "reference/pre_resize_affine_person_crop.py",
-      "sha256": "62bd8750eb82b0f8c5204900e646b6e412d1d6b9eda9a8f34baed9fbb5883219",
-      "bytes": 14702
+      "sha256": "dd06867f3e4aaea0d2a2a06dd4ea1556d95f6e3103aab722535dda8f37e8b302",
+      "bytes": 14909
     },
     {
       "path": "vectors/pre.resize.affine_person_crop.yaml",

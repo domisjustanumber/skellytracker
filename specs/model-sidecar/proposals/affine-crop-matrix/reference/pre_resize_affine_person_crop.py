@@ -4,8 +4,8 @@ This file uses ASD-STE100 Simplified Technical English.
 
 Section ID: pre.resize.affine_person_crop (section file
 specs/model-sidecar/pre/resize-affine-person-crop.md).
-Proposal: proposal-affine-crop-matrix@openmmlab-exporter (slug affine-crop-matrix). No skellytracker
-decision entry covers it.
+Proposal: proposal-affine-crop-matrix@openmmlab-exporter (slug affine-crop-matrix). skellytracker
+ADR-3S5G covers it.
 Target file in skellytracker: specs/model-sidecar/reference/pre_resize_affine_person_crop.py.
 
 source commit: none (no host code). The OpenMMLab-Exporter host code implements the current text
@@ -29,12 +29,14 @@ ValueError. The section text has no such rule. The box is a detector output, not
 so the refusal has no rule ID. A host is free here: the section text does not define the result for
 such a box, and no vector case tests it.
 
-Vector results: fill of skellytracker tools/make_vectors.py (8351b7f8c20c8db74eb3e547478970e4dceb0308,
+Vector results: fill of skellytracker tools/make_vectors.py (8fed6f34eb22643e0b6cc38a7c6b80014bfe1d75,
 NumPy 2.4.6, OpenCV 4.13.0) wrote the expect of the cases of part 4 with this file and found no
 problems. The 20 current cases of specs/model-sidecar/vectors/pre.resize.affine_person_crop.yaml
 agree with this file at their tolerance 1e-4. A copy is not an implementation, so the vectors stay
 unverified.
-Parity result: to run (part 5 of the proposal).
+Parity result: pass (part 5 of the proposal, OpenMMLab-Exporter ADR-6A8S). The parity run used
+version 1 of this file (SHA-256 62bd8750eb82b0f8c5204900e646b6e412d1d6b9eda9a8f34baed9fbb5883219).
+Version 2 changes only lines of this docstring. The code is the same.
 
 Uses only NumPy, OpenCV and the Python standard library.
 """

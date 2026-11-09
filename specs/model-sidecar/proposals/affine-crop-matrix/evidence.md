@@ -28,8 +28,10 @@ the files of the clone at that commit, and the files at the links below (SHA-256
 
 - The current text, in exact math: OpenMMLab-Exporter `onnx_runtime/preprocess.py::affine_crop_geometry`
   and `AffineCropMeta.matrix` at [`a37a47d29f227365661eae59ab9b2f8da665c18d`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/a37a47d29f227365661eae59ab9b2f8da665c18d/onnx_runtime/preprocess.py).
-  The file has not changed since commit `5dd5c93ac6555ac907ae2ebfbc27dc6de5e3c278`
+  At that commit, the file had not changed since commit `5dd5c93ac6555ac907ae2ebfbc27dc6de5e3c278`
   ([OpenMMLab-Exporter ADR-H1EF](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/a37a47d29f227365661eae59ab9b2f8da665c18d/decisions/entries/H1EF-host-code-passes-all-section-vectors.md)).
+  The later commit `7bc72b45137faa4b211d05a38f58812ffae5a109` changes only the normalization check
+  of the file. The affine functions are the same at the exporter commit of this version.
   Its docstring says: "The crop follows the spec text. It does not copy the float32
   `cv2.getAffineTransform` of mmpose." Record R0 of the parity run confirms it: the host crop is the
   warp with the exact-math `M`.
@@ -98,11 +100,24 @@ the check of the skellytracker form.
   `tools/make_vectors.py` at `8351b7f8c20c8db74eb3e547478970e4dceb0308` wrote `expect` and found no
   problems. A second `fill` on a scratch copy, after the final edits of the proposal text, changed
   no byte.
+- Version 2: `fill` of skellytracker `tools/make_vectors.py` at
+  `8fed6f34eb22643e0b6cc38a7c6b80014bfe1d75` (NumPy 2.4.6, OpenCV 4.13.0) ran again on the payload
+  file with the reference file of version 2. It found no problems and changed no byte.
 - The 20 current cases of `specs/model-sidecar/vectors/pre.resize.affine_person_crop.yaml` at
-  `8351b7f8` agree with the reference file at the tolerance 1e-4 (`fill` on a scratch copy; one value
-  changed inside the tolerance). `check_rules` gives the `expect` of each of the 5 data-only cases.
-- The reference file of the bundle: `reference/pre_resize_affine_person_crop.py`, SHA-256
-  `62bd8750eb82b0f8c5204900e646b6e412d1d6b9eda9a8f34baed9fbb5883219`. The gated run used this file.
+  `8fed6f34` agree with the reference file at the tolerance 1e-4 (`fill` on a scratch copy of the
+  current file and the 9 new cases; one value changed inside the tolerance). `check_rules` gives the
+  `expect` of each of the 5 data-only cases. Since `8351b7f8`, the current file lists the
+  OpenMMLab-Exporter host in `verified_against` of its 15 numeric cases. No `expect` changed.
+- The OpenMMLab-Exporter host (`onnx_runtime/preprocess.py::affine_crop_geometry` and
+  `unproject_affine`, NumPy 2.5.4, OpenCV 5.0.0) implements the current text. On the 9 new cases, the
+  7 forward cases fail at `atol` 1e-6 (the maximum difference is 2.8e-3), and the 2 Inverse cases pass
+  at the tolerance 1e-4 (the maximum difference is 6.8e-5). The host passes each of the 15 numeric
+  current cases. This is the result of part 7 of the proposal.
+- The reference file of the bundle: `reference/pre_resize_affine_person_crop.py`. Version 1 has the
+  SHA-256 `62bd8750eb82b0f8c5204900e646b6e412d1d6b9eda9a8f34baed9fbb5883219`. The gated run used this
+  file. Version 2 has the SHA-256
+  `dd06867f3e4aaea0d2a2a06dd4ea1556d95f6e3103aab722535dda8f37e8b302`. It changes only lines of the
+  module docstring. With the docstrings removed, `ast.dump` gives the same result for the two files.
   The manifest of `pack` gives the final hash.
 
 ## Parity
