@@ -126,18 +126,5 @@ These rules apply only to an agent or a person in an exporter repo:
 
 ## Decisions
 
-The decisions behind this workflow are in the skellytracker decision log:
-[0013](../../../decisions/entries/0013-spec-structure.md) (section IDs, rule IDs, reference
-implementations and test vectors; superseded by
-[ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md), the vector files as the case source and the reference modules), [0014](../../../decisions/entries/0014-spec-lifecycle.md) (the spec
-lifecycle, the `vNEXT` rule and the new-model workflow; superseded by ADR-FADS, which
-[ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md) superseded),
-[ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md) (the bundle process: the hand-over bundles, the proposal records and their state),
-[ADR-JC4T](../../../decisions/entries/JC4T-parity-gates-and-batch-conversion-check.md) (the parity gates and the batch-conversion check; superseded by
-ADR-JB5J, which [ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md) superseded: one batch field for each sidecar),
-[ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md) (no legacy layer),
-[ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md) (the spec version and the publish ban),
-[ADR-CN15](../../../decisions/entries/CN15-spec-readme-is-the-only-entry-point.md) (the spec README is the only entry point),
-[x64y](../../../decisions/entries/x64y-draft-exporter-guide-folder.md) (this folder and the draft
-exporter guide) and [b9fm](../../../decisions/entries/b9fm-finished-sidecar-plans.md) (the reference
-examples procedure).
+The decisions behind this workflow are in the [root decision log](../../../decisions/README.md) and
+the [spec decision log](../decisions/README.md) of skellytracker.

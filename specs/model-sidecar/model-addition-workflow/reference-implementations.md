@@ -1,7 +1,6 @@
 # Reference implementations
 
-If `../freemocap/skellytracker/specs/model-sidecar/reference/` does not exist, no reference
-implementation exists yet. Two things add a reference implementation:
+Two things add a reference implementation:
 
 1. an accepted proposal (phase 2, part 3);
 2. an exporter that implements a section on its host side.

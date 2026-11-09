@@ -2,9 +2,7 @@
 
 This file gives the procedure that adds a reference example to the spec or replaces one. A
 skellytracker session does it in [phase 3](phase-3-skellytracker.md), for a model with the verdict
-`describes`. This procedure was the section "Reference examples" of
-[`specs/sidecar-implementation-plan.md`](../../sidecar-implementation-plan.md#reference-examples)
-([ADR-B9FM](../../../decisions/entries/b9fm-finished-sidecar-plans.md)).
+`describes`.
 
 ## What the examples are
 
