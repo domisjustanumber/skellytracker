@@ -1,6 +1,6 @@
 # 52NQ — Spec change: model-id-suffix
 
-**Status:** accepted, 2026-11-09 (user; PR: pending).
+**Status:** absorbed into [`common/identity.md#keypoint-detector-id`](../../common/identity.md#keypoint-detector-id), 2026-11-09 (user; PR: pending).
 
 ## Decision
 

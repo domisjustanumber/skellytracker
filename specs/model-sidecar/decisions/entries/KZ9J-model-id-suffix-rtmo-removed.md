@@ -1,6 +1,6 @@
 # KZ9J — Spec change: model-id-suffix-rtmo-removed
 
-**Status:** accepted, 2026-11-09 (user; PR: pending).
+**Status:** done, 2026-11-09 (user; PR: pending).
 
 ## Decision
 

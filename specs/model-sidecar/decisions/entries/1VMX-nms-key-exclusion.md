@@ -1,6 +1,6 @@
 # 1VMX — Spec change: nms-key-exclusion
 
-**Status:** accepted, 2026-11-06 (user; PR: pending).
+**Status:** absorbed into [`post/selection-nms.md#validation-rules`](../../post/selection-nms.md#validation-rules), 2026-11-09 (user; PR: pending).
 
 ## Decision
 

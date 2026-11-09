@@ -1,6 +1,6 @@
 # 50BW — Spec change: verification-batches
 
-**Status:** accepted, 2026-11-06 (user; PR: pending).
+**Status:** absorbed into [`common/batch-conversion.md#authoring-guidance`](../../common/batch-conversion.md#authoring-guidance), 2026-11-09 (user; PR: pending).
 
 ## Decision
 

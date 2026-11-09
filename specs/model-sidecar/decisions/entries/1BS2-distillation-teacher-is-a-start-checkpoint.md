@@ -1,6 +1,6 @@
 # 1BS2 — A distillation teacher is a start checkpoint
 
-**Status:** accepted, 2026-11-09 (user; PR: pending).
+**Status:** absorbed into [`common/license.md#fields`](../../common/license.md#fields), 2026-11-09 (user; PR: pending).
 
 ## Decision
 
