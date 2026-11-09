@@ -2,33 +2,33 @@
 
 Revision: [Changes in this revision](../changelog.md#changes-in-this-revision).
 
-Each example is a sidecar for this revision from the named exporter. The OpenMMLab-Exporter examples (RTMDet person, RTMW) come from its real exports. The Ultralytics-Exporter examples (YOLO26 detection and pose) are written from that exporter's code and published artifacts: tensor names, shapes, dtypes, sizes, batches, precisions and filenames. The examples keep only batch 1, but the exporter publishes the batches 1, 2 and 3. Each example has `batching.batch: 1` and no `batching.batch_conversion`. Each size has `onnx.precision_artifacts` and `onnx.output_shapes` ([Batching](../common/batching.md); [ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). The YOLO26 examples will be replaced when Ultralytics-Exporter emits `schema_version: "2.0.0"`. Each example has `schema_version: "2.0.0"` ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). There is no RF-DETR example until Roboflow-Exporter is overhauled; the `stretch`, `top_k` and `class_logits` rules have no example until then. Where a family has more sizes than shown, the omitted sizes differ only in `input.shape`, `target_size`, `output_shapes` and filenames.
-
-Each example also has a top-level [`source`](../common/identity.md#fields) and every hash: the `sha256` of each `$ref` ([Reference hashes](../format/composition.md#reference-hashes)) and of each artifact ([Sizes and artifacts](../common/sizes-and-artifacts.md#fields)). No exporter writes these fields yet. `tools/sidecar_refs.py --write --placeholder --source` added them. `source.version` is the current version of the exporter package, also for the YOLO26 examples. The ONNX artifacts have the reserved placeholder hash, because nobody can download the ONNX files of an example. Thus each example differs from its exporter copy until the exporter writes these fields.
+Each example is a byte copy of a sidecar that an exporter wrote for this revision
+([Reference examples](../model-addition-workflow/reference-examples.md)). The provenance of each
+example is in [`inventory.yaml`](../inventory.yaml). Each example has `schema_version: "2.0.0"`
+([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)), the top-level
+[`source`](../common/identity.md#fields), the real `sha256` of each artifact, the
+[`license`](../common/license.md) block and the batch `3` with `batching.batch_conversion`
+([Batching](../common/batching.md)). A user ruling removed the examples that get no rebuild. Their
+headings stay, because other files link them
+([ADR-YS4C](../../../decisions/entries/YS4C-example-removal-by-a-user-ruling.md)).
 
 ## YOLO26 detector (Ultralytics-Exporter; NMS-free, graph-final rows)
 
-Centre letterbox with half-even rounding, RGB `unit_float` input, and one packed `[B, 300, 6]` tensor of final detections (`nms=False`, `max_det=300` at export). Each precision keeps float32 I/O.
-
-Sidecar: [`yolo26.yaml`](detectors/object_detectors/yolo26/yolo26.yaml).
+Removed by the content commit of [ADR-NBG2](../decisions/entries/NBG2-license-and-training-data-without-the-deferred-examples.md). A user ruling gives this example no rebuild ([ADR-YS4C](../../../decisions/entries/YS4C-example-removal-by-a-user-ruling.md)). Git history keeps the file.
 
 ## YOLO26 pose (Ultralytics-Exporter; bottom-up, packed keypoints)
 
-The pose export emits one `[B, 300, 57]` tensor: 6 detection columns followed by 17 × `(x, y, score)`, with keypoints in model-input pixels and keypoint scores already sigmoid-activated. It is declared once, with `packed_keypoints`. The packed keypoints use the `decode.box_scale` of the detection decode, so `pose.decode` has no `coordinate_scale`. The model emits 2D keypoints, so `pose.geometry` is `2d` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
-
-Sidecar: [`yolo26-body.yaml`](detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml).
+Removed by the content commit of [ADR-NBG2](../decisions/entries/NBG2-license-and-training-data-without-the-deferred-examples.md). A user ruling gives this example no rebuild ([ADR-YS4C](../../../decisions/entries/YS4C-example-removal-by-a-user-ruling.md)). Git history keeps the file.
 
 ## RTMDet person (OpenMMLab-Exporter; NMS-free outputs, host NMS)
 
-The mmdet test pipeline letterboxes into the top-left corner with half-up rounding and pad 114. It normalizes BGR pixels with ImageNet statistics, so the input is `normalization: imagenet` with `color_format: bgr`. The graph ends before NMS. It emits the decoded box and the sigmoid person score of each anchor point. The host applies the baseline NMS of the family (mmdet `test_cfg`: score > 0.05, IoU 0.6, top 100). The row count is the anchor-point count for the input size (2100 at 320, 8400 at 640), so the family-level shape leaves it as `-1`. The `onnx.output_shapes` of each size give the row count. The sidecar does not express the per-level `nms_pre` cap (1000) of mmdet ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)).
-
-Sidecar: [`rtmdet-person.yaml`](detectors/object_detectors/rtmdet-person/rtmdet-person.yaml).
+Removed by the content commit of [ADR-NBG2](../decisions/entries/NBG2-license-and-training-data-without-the-deferred-examples.md). A user ruling gives this example no rebuild ([ADR-YS4C](../../../decisions/entries/YS4C-example-removal-by-a-user-ruling.md)). Git history keeps the file.
 
 ## RTMW WholeBody (OpenMMLab-Exporter; top-down pose)
 
-mmpose `input_size` is `(width, height)`: the `256x192` models take `[N, 3, 256, 192]` input and the `384x288` models `[N, 3, 384, 288]`. The model consumes RGB (`bgr_to_rgb=True`) normalized with ImageNet statistics, so the input is `normalization: imagenet` with `color_format: rgb` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). SIMCC bin counts are twice the input width/height (`simcc_split_ratio=2.0`) and are read from the output tensors, so `shape` is omitted.
+mmpose `input_size` is `(width, height)`: the `256x192` sizes (`m`, `l-256`, `x-256`) take `[N, 3, 256, 192]` input and the `384x288` sizes (`l-384`, `x-384`) `[N, 3, 384, 288]`. The model consumes RGB (`bgr_to_rgb=True`) normalized with ImageNet statistics, so the input is `normalization: imagenet` with `color_format: rgb` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). SimCC bin counts are twice the input width and height (`simcc_split_ratio=2.0`) and come from `onnx.output_shapes`. The sidecar writes the 133 tracked points and the `wholebody` connections inline, with no `$ref`. The id and the folder follow [Keypoint detector id](../common/identity.md#keypoint-detector-id).
 
-Sidecar: [`rtmw-wholebody.yaml`](detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml).
+Sidecar: [`rtmw-wholebody133.yaml`](detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133.yaml).
 
 For comparison, skellytracker's in-repo `rtmw/wholebody/rtmw-wholebody.yaml` describes the rtmlib `onnx_sdk` downloads (with `url`/`url_sha256`) at `schema_version: v2024.09.1019`. The spec does not describe that file. Its `imagenet_bgr` is not a mode of [Normalization](../pre/normalization.md). The package sidecars stay outside the spec until they migrate ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)).
 

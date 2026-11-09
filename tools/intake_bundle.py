@@ -175,12 +175,7 @@ PROVENANCE_KEYS = COPY_KEYS
 INVENTORY_KEYS = COPY_KEYS | {"edits", "notes"}  # an example entry of inventory.yaml
 OPTIONAL_INVENTORY_KEYS = {"bundle"}  # only an entry of NO_BUNDLE_EXAMPLES has no bundle
 # The examples from before the bundles. Each other example entry of inventory.yaml must have bundle (ADR-ZXD7, item 6).
-NO_BUNDLE_EXAMPLES = frozenset({
-    "detectors/object_detectors/yolo26/yolo26.yaml",
-    "detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml",
-    "detectors/object_detectors/rtmdet-person/rtmdet-person.yaml",
-    "detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml",
-})
+NO_BUNDLE_EXAMPLES: frozenset[str] = frozenset()  # ADR-YS4C removed the last one
 FRAGMENT_KEYS = {"exporter", "exporter_path", "tracked", "commit", "notes"}
 
 SOURCE_BATCH = 3

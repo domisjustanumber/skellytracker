@@ -455,10 +455,7 @@ def test_the_scan_skips_every_other_yaml_file() -> None:
     assert not found & skipped
     assert found | skipped == every_yaml
     assert len(found) == len(scan().sidecars)
-    assert (
-        "specs/model-sidecar/examples/detectors/shared/skeletons/coco133_skeletons.yaml"
-        in skipped
-    )
+    assert not skipped  # no example uses a fragment since ADR-NBG2
 
 
 def test_a_skipped_file_is_not_a_sidecar() -> None:

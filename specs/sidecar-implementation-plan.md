@@ -598,7 +598,7 @@ of M8 when the export has no batch key `"1"`. It has no order link to M10a.
 - **RTMW.** Replace the legacy package sidecar
   `skellytracker/core/detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml` with the
   latest `vNEXT` RTMW export of OpenMMLab-Exporter. The reference example
-  [`rtmw-wholebody.yaml`](model-sidecar/examples/detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml)
+  [`rtmw-wholebody133.yaml`](model-sidecar/examples/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133.yaml)
   shows its form. Run a parity check on the export. Compare it with the upstream reference output of
   the exporter, not with the golden fixtures
   `skellytracker/tests/sidecar/fixtures/golden/rtmw_wholebody_*_detect.json`. The package sidecar

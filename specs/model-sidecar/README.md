@@ -73,6 +73,7 @@ These fields apply to every sidecar, regardless of `role`.
 | `common.batch_conversion` | [common/batch-conversion.md](common/batch-conversion.md) | Batch conversion |
 | `common.input` | [common/input.md](common/input.md) | Input |
 | `common.outputs` | [common/outputs.md](common/outputs.md) | Outputs |
+| `common.license` | [common/license.md](common/license.md) | License and training data |
 
 ### Pre-processing
 
@@ -129,6 +130,7 @@ A sidecar is valid when all of the following rules hold. Each rule applies to ev
 - [Batch conversion](common/batch-conversion.md#validation-rules)
 - [Input](common/input.md#validation-rules)
 - [Outputs](common/outputs.md#validation-rules)
+- [License and training data](common/license.md#validation-rules)
 - [Letterbox resize](pre/resize-letterbox.md#validation-rules)
 - [Stretch resize](pre/resize-stretch.md#validation-rules)
 - [Fit resize](pre/resize-fit.md#validation-rules)

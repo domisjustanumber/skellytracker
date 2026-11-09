@@ -36,88 +36,20 @@
 # graduation gate accepts it in place of a kind: export example.
 
 examples:
-  detectors/object_detectors/yolo26/yolo26.yaml:
-    exporter: Ultralytics-Exporter
-    exporter_path: exports/detectors/object_detectors/yolo26/yolo26.yaml
-    kind: forecast
-    exporter_layout_path: null
-    tracked: false
-    commit: f52ef68
-    edits:
-      - "source and hashes added"
-      - "spec change CNSN: int8 precision removed"
-      - "spec change JB5J: batch groups 2 and 3 removed"
-      - "spec change JAA4: batching {batch_axis: 0} replaced by batching {batch: 1}; the batch 1 group of each size flattened into onnx.precision_artifacts and onnx.output_shapes"
-      - "spec change 90CE: input.layout and outputs[].rank removed"
-      - 'spec change SS2E: schema_version set to "1"'
-      - 'spec change 6GE2: schema_version set to "2.0.0"'
-    notes: >-
-      The exporter still writes schema_version v2024.09.1019 (yolo_sidecar.py). Its copy uses the keys
-      preserve_aspect_ratio, requires_nms and may_include_non_person_classes, which the spec does not
-      define (spec change 0QKK), no color_format,
-      and the static output shape [1, 300, 6].
-
-  detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml:
-    exporter: Ultralytics-Exporter
-    exporter_path: exports/detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml
-    kind: forecast
-    exporter_layout_path: null
-    tracked: false
-    commit: f52ef68
-    edits:
-      - "source and hashes added"
-      - "spec change CNSN: int8 precision removed"
-      - "spec change JB5J: batch groups 2 and 3 removed"
-      - "spec change JAA4: batching {batch_axis: 0} replaced by batching {batch: 1}; the batch 1 group of each size flattened into onnx.precision_artifacts and onnx.output_shapes"
-      - "spec change 90CE: input.layout and outputs[].rank removed; pose.geometry: 2d added; pose.decode.coordinate_scale removed"
-      - 'spec change SS2E: schema_version set to "1"'
-      - 'spec change 6GE2: schema_version set to "2.0.0"'
-    notes: >-
-      The exporter still writes schema_version v2024.09.1019. Its copy has the same undefined keys as
-      yolo26.yaml and declares output0 twice (detections, then poses with keypoint_axis 2) instead of
-      one detections output with packed_keypoints.
-
-  detectors/object_detectors/rtmdet-person/rtmdet-person.yaml:
+  detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133.yaml:
     exporter: OpenMMLab-Exporter
-    exporter_path: exports/detectors/object_detectors/rtmdet-person/rtmdet-person.yaml
+    exporter_path: exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133.yaml
     kind: export
     exporter_layout_path: null
     tracked: false
-    commit: eed3361
-    edits:
-      - "source and hashes added"
-      - "spec change JB5J: nano batch group 2 and the medium batch 2 comment removed"
-      - "spec change JAA4: batching {batch_axis: 0} replaced by batching {batch: 1}; the batch 1 group of each size flattened into onnx.precision_artifacts and onnx.output_shapes"
-      - "spec change 90CE: input.layout and outputs[].rank removed; input.normalization imagenet_bgr replaced by imagenet"
-      - 'spec change SS2E: schema_version set to "1"'
-      - 'spec change 6GE2: schema_version set to "2.0.0"'
+    commit: 3e326df00726df8110773ed62cf38d02948a71a5
+    edits: []
     notes: >-
-      Same contract as the exporter's copy, except the batch form and the spec-forced edits: the example
-      keeps only the batch 1 artifacts (spec change JB5J) in the flattened form (spec change JAA4). The
-      exporter's copy has batching.batch_axis and batch_artifacts groups 1, 2 and 3 in nano and medium.
-      It also has input.layout, outputs[].rank and imagenet_bgr (spec change 90CE).
-
-  detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml:
-    exporter: OpenMMLab-Exporter
-    exporter_path: exports/detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml
-    kind: export
-    exporter_layout_path: null
-    tracked: false
-    commit: eed3361
-    edits:
-      - "source and hashes added"
-      - "spec change JAA4: batching {batch_axis: 0} replaced by batching {batch: 1}; the batch 1 group of each size flattened into onnx.precision_artifacts"
-      - "spec change JAA4: onnx.output_shapes [1, -1, 384], [1, -1, 512] added to size m, read from the graph of exports/detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody-m_b1_fp32.onnx (SHA-256 49223a7eb69229587c10dd40666fb882b999a543b1a6366fdda00317ef6fdebc)"
-      - "spec change JAA4: onnx.output_shapes [1, -1, 576], [1, -1, 768] added to size l-384, read from the graph of exports/detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody-l-384_b1_fp32.onnx (SHA-256 0459169e06d70ef0cea342826dda9db5b3776267f650df6237f18891be3d27a9)"
-      - "spec change JAA4: the comment line of the other sizes split in two lines that name their output_shapes, read from the graphs of exports/detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody-l-256_b1_fp32.onnx (SHA-256 6ccf6d6161a43e5fb4428ed2f6de2d2663c933988bd18bbdff9f4f5cd87305c3) and rtmw-wholebody-x-256_b1_fp32.onnx (SHA-256 c830700e71aa761081622356817eb0ede44ca41a02d3611903a52b1f94ef0236), as m, and rtmw-wholebody-x-384_b1_fp32.onnx (SHA-256 2e31eff71186672b72a1d55be10da68861076e25626ab6d0752610b8167c608b), as l-384"
-      - "spec change 90CE: input.layout removed; input.normalization imagenet_rgb replaced by imagenet; pose.geometry: 2d added"
-      - 'spec change SS2E: schema_version set to "1"'
-      - 'spec change 6GE2: schema_version set to "2.0.0"'
-    notes: >-
-      Drifted from the exporter's copy; replace it with the procedure. The example adds
-      crop_policy.pad_value 0, refers to the shared coco133 skeleton fragments where the exporter inlines
-      133 names and one edge set named wholebody, and has the overlay of skellytracker's package sidecar
-      (rtmpose_skeleton, prefix groups, a face group) instead of the exporter's overlay.
+      A byte copy of the sidecar that the exporter writer code wrote for the hand-over bundle. The
+      exporter turns off its sidecar output until the verdict describes, so exporter_path does not
+      exist yet. When the exporter turns it on, the same writer writes the same bytes there. The
+      sidecar has the real SHA-256 of each b3 ONNX file and no $ref.
+    bundle: model-rtmw-wholebody133@openmmlab-exporter@v2
 
 fragments: {}
 

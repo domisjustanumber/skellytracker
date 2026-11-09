@@ -11,27 +11,14 @@ repository state is in the root [open-work.md](../../../decisions/open-work.md).
 
 ## Re-export requests
 
-This heading holds one item
+This heading holds at most one item
 ([Re-export requests](../model-addition-workflow/hand-over.md#re-export-requests);
 [ADR-YS4C](../../../decisions/entries/YS4C-example-removal-by-a-user-ruling.md)).
 
-- **Rebuild of each example.** Each exporter rebuilds each of its examples on the spec version
-  `2.0.0`. It answers with a new version of the `model` bundle of each example. OpenMMLab-Exporter:
-  `rtmw-wholebody`, as `rtmw-wholebody133`. A user ruling gives no rebuild to `rtmdet-person`,
-  `yolo26` and `yolo26-body`. The content commit of NBG2 removes them ([ADR-YS4C](../../../decisions/entries/YS4C-example-removal-by-a-user-ruling.md)).
-  The prerequisite changes: the removal of the legacy layer
-  ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)), the one batch field with
-  `output_shapes` in each size ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)), the
-  minimal contract ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)), the
-  one-statement fix of the selection pipeline
-  ([ADR-17KN](../../../decisions/entries/17KN-one-selection-pipeline.md)), the spec version that
-  follows the skellytracker version
-  ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)), and the
-  `license` block with the model license and the training data
-  ([ADR-NBG2](entries/NBG2-license-and-training-data-without-the-deferred-examples.md)). The item
-  names its target, and each of these changes is accepted. Thus the item is open
-  ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md) item 5). It
-  closes when each example that stays is an export copy at `2.0.0`.
+No item is open. The item "Rebuild of each example" closed when the content commit of
+[ADR-NBG2](entries/NBG2-license-and-training-data-without-the-deferred-examples.md) landed the
+`rtmw-wholebody133` export copy, the last example that stays
+([ADR-YS4C](../../../decisions/entries/YS4C-example-removal-by-a-user-ruling.md)).
 
 ## Spec defects
 
@@ -63,8 +50,7 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   sidecar under `detectors/keypoint_detectors/`. Ultralytics-Exporter uses `yolo26/body/`
   ([`yolo_sidecar.py:104-107`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L104-L107)). OpenMMLab-Exporter uses
   `rtmo/coco17/` ([`rtmo/identity.py:42`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/d9704753a22792c32a1d3018a0c9e9ea2d279d71/rtmo/identity.py#L42)).
-  The reference example with both roles (YOLO26 pose) uses
-  `detectors/keypoint_detectors/{family}/body/`.
+  No reference example has both roles.
 - [`letterbox`](../pre/resize-letterbox.md#fields) has no `rounding` value for `floor`, and its
   [inverse](../pre/resize-letterbox.md#inverse) uses the rounded size. The `resize_pad` function of
   `qai_hub_models` 0.64.0 (the MediaPipe person detector) cuts the scaled size with `math.floor`, and

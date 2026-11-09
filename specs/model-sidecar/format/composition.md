@@ -49,7 +49,7 @@ The resolver loads the referenced file. It replaces the whole directive node wit
     - [nose, neck]
     - [neck, left_shoulder]
 
-# detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml  (excerpt — see the full RTMW reference example)
+# detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml  (an illustrative excerpt; the fragments are the package copies)
 ---
 schema_version: "2.0.0"
 source:
