@@ -14,7 +14,7 @@
   row.
 - **Identity.** Record `model_id`, `display_name` and `role`. For an object detector, `model_id` is
   the family. Thus the folder name and the file name are the same, for example
-  `object_detectors/rtmdet-person/rtmdet-person.yaml`. For a keypoint detector, `model_id` is
+  `object_detectors/yolox-person/yolox-person.yaml`. For a keypoint detector, `model_id` is
   `{family}-{group}` or `{family}-{group}-{variant}` in `keypoint_detectors/{family}/{group}/`, for
   example `rtmw-wholebody133` in `keypoint_detectors/rtmw/wholebody133/`
   ([Keypoint detector id](../common/identity.md#keypoint-detector-id); [ADR-1TR6](../../../decisions/entries/1TR6-workflow-copies-of-the-keypoint-detector-id.md)). A name changes no

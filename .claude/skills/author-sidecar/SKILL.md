@@ -131,7 +131,7 @@ Keep your working draft where you like. The bundle is the hand-over
    | [Preprocessing](../../../specs/model-sidecar/templates/model-intake.md#preprocessing) | "Preprocessing" |
    | [Outputs and decode](../../../specs/model-sidecar/templates/model-intake.md#outputs-and-decode) | "Outputs and decode" |
    | [Pose](../../../specs/model-sidecar/templates/model-intake.md#pose) | "Pose" |
-| [License](../../../specs/model-sidecar/templates/model-intake.md#license) | The headings "Fields", "Behaviour" and "Authoring guidance" of [`common.license`](../../../specs/model-sidecar/common/license.md) |
+   | [License](../../../specs/model-sidecar/templates/model-intake.md#license) | The headings "Fields", "Behaviour" and "Authoring guidance" of [`common.license`](../../../specs/model-sidecar/common/license.md) |
    | [YAML](../../../specs/model-sidecar/templates/model-intake.md#yaml) | [Sidecar YAML](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#sidecar-yaml) |
    | [Path in the storage layout](../../../specs/model-sidecar/templates/model-intake.md#path-in-the-storage-layout) | [Path](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#path) |
    | [Steps outside the model contract](../../../specs/model-sidecar/templates/model-intake.md#steps-outside-the-model-contract) | Step 1 of phase 1 (the runtime contract) |

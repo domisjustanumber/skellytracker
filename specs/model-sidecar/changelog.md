@@ -10,7 +10,7 @@ The evidence for each change, and the findings for each repository, are in
 This list names the models that the spec must describe
 ([ADR-6GE2](../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)):
 
-- OpenMMLab-Exporter: RTMDet (person-only family), RTMW and RTMO body7.
+- OpenMMLab-Exporter: RTMDet (person-only family), RTMW, RTMO body7 and YOLOX (person).
 - Ultralytics-Exporter: YOLO26 detection and YOLO26 pose.
 - Roboflow-Exporter: RF-DETR.
 

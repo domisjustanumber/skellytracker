@@ -77,8 +77,7 @@ Do these steps:
    only in the local `plans/` folder or only in a bundle is not evidence. A tracked copy of a bundle
    file is evidence ([Tracked records](hand-over.md#tracked-records)), but the script must still
    have a commit in your repo. Use the folder of your repo for evidence
-   scripts. If your repo has no such folder, use `notes/decisions/scripts/` (OpenMMLab-Exporter
-   uses it).
+   scripts.
 7. If you cannot run the check, or if you cannot commit the script, write `to run` as the result.
    Give the reason. Describe the script and its gates. You can write the numbers of a run without a
    commit, but they are not evidence.

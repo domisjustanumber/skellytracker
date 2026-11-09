@@ -328,8 +328,7 @@ Follow the parity rules of the model addition workflow
 - Compare each final output of each role, as step 5 of Parity says. Write which output you
   compared.
 - Commit the script in the exporter repo, so that the commit can be cited. Use the folder of the
-  exporter for evidence scripts. If the exporter has no such folder, use `notes/decisions/scripts/`
-  (OpenMMLab-Exporter uses it). A script that is only in a local plan folder is not evidence.
+  exporter for evidence scripts. A script that is only in a local plan folder is not evidence.
 - Give the numbers, the script and the commit. If one script serves several proposals, cite it here
   and in each of the other proposals.
 - If you cannot run the check yet (for example, no ONNX file exists, the upstream cannot run, or the
