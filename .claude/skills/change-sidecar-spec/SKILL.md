@@ -572,6 +572,9 @@ The doc tests in `tools/tests/` run in CI. Their docstrings give what they check
 or renames a function named by `implemented_by` updates the front matter and `TRACEABILITY.md` in
 the same commit.
 
+Write each YAML file with LF line ends. `.gitattributes` changes the line ends of a YAML file only at
+commit. The local checks read the bytes in the working tree.
+
 Run these commands before each commit. Each command must pass.
 
 1. `uv run python tools/make_vectors.py --check`

@@ -101,4 +101,12 @@ The sidecar paths are under `core/detectors/`.
   - In a run of all video tests, `test_process_video.py` does not finish:
     `PoseLandmarker.__del__` runs during `detect_for_video`, and that call does not return. Alone, it
     passes.
+- On Windows, a run of `uv run pytest -m "not video"` can stop in the MediaPipe tests and not
+  finish. This is a known defect. Report it. Run the tests in two parts:
+
+  ```sh
+  uv run pytest -m "not video" skellytracker/tests/test_mediapipe_detectors.py
+  uv run pytest -m "not video" --deselect skellytracker/tests/test_mediapipe_detectors.py
+  ```
+
 - If a failure shows a code defect, report it. Do not fix the code in the spec-build stage.

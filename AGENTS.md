@@ -103,8 +103,9 @@ uv run ruff check skellytracker/ tools/ decisions/scripts/ specs/model-sidecar/d
 
 - `uv run python -m skellytracker` starts a live webcam demo. Do not run it without a camera and a
   display.
-- The first test run needs network access. On Windows, some video tests fail
-  ([`skellytracker/AGENTS.md`](skellytracker/AGENTS.md#tests)).
+- The first test run needs network access. On Windows, some video tests fail, and the
+  `-m "not video"` run can stop in the MediaPipe tests.
+  [`skellytracker/AGENTS.md`](skellytracker/AGENTS.md#tests) gives the known failures and the split run.
 - Report each new test failure to the user. Fix the failures of one root cause in one PR. Do not put
   other changes in that PR ([Phase 3](specs/model-sidecar/model-addition-workflow/phase-3-skellytracker.md)).
 
