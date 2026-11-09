@@ -386,9 +386,9 @@ host decoder change. Find the groups from the section rows of `specs/model-sidec
 and from the `model` bundles that `intake_bundle.py list` shows with an affected section in
 `sections`. Describe the change to the host decoder of the proposing exporter. At landing,
 skellytracker compares this list with the result of `sidecar_trace.py impact`. A `needs-export` row
-is a request only after the re-export request closes (heading "Re-export requests" in
-`specs/model-sidecar/model-addition-workflow/hand-over.md`; skellytracker ADR-NB5F,
-`decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md`).
+of an accepted proposal is the request for a new export of the example (heading "Re-export requests"
+in `specs/model-sidecar/model-addition-workflow/hand-over.md`; skellytracker ADR-C0YD,
+`decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md`).
 
 Each change targets the open target: the next skellytracker release that includes a spec change
 (skellytracker ADR-6GE2, `decisions/entries/6GE2-spec-version-follows-skellytracker.md`). Write
@@ -411,11 +411,13 @@ exporter of the example, with `onnx.load(path, load_external_data=False)`. Do no
 the value, the file path in the exporter repo and its SHA-256 in the edit text. If the example needs
 a value that the change does not give and that the graph cannot give, the impact is `needs-export`
 (skellytracker ADR-NB5F, `decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md`).
-If no example breaks a rule, write `none` and the reason. The heading "When a spec change makes an
-example invalid" in `specs/model-sidecar/model-addition-workflow/reference-examples.md` gives the
-allowed edits.
+If a user ruling names the example, write the impact `removed (user ruling)`: the content commit
+removes the example, and the row is not a request (skellytracker ADR-C0YD,
+`decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md`). If no example breaks a rule, write `none` and the
+reason. The heading "When a spec change makes an example invalid" in
+`specs/model-sidecar/model-addition-workflow/reference-examples.md` gives the allowed edits.
 
-| Example (`inventory.yaml` key) | Rule ID | Impact (`forced-edit` or `needs-export`) | Edit text |
+| Example (`inventory.yaml` key) | Rule ID | Impact (`forced-edit`, `needs-export` or `removed (user ruling)`) | Edit text |
 |---|---|---|---|
 | | | | |
 

@@ -1,6 +1,6 @@
 # YS4C — Example removal by a user ruling
 
-**Status:** accepted, 2026-11-09 (user; PR: pending).
+**Status:** superseded by [C0YD](C0YD-the-part-7-row-is-the-re-export-request.md), 2026-11-09 (user; PR: pending).
 
 ## Decision
 

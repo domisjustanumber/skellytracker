@@ -32,7 +32,7 @@ These entries are `accepted` or `evidence`.
 | [QMKS](entries/QMKS-draft-sections-and-coverage-columns.md) | `spec: draft` rules, the graduation gate and the release stops; coverage and gate columns in `TRACEABILITY.md`; `no_model` reasons | accepted |
 | [8DSW](entries/8DSW-vector-files-are-the-case-source.md) | The vector file is the only case source; formula modules, named checks, `land` and `fill`; supersedes TA0G | accepted |
 | [AD33](entries/AD33-bundles-are-untrusted-input.md) | Bundles are untrusted input: no tool imports or runs bundle code; static checks; a reviewed, user-approved copy; ONNX checks in `batch` | accepted |
-| [YS4C](entries/YS4C-example-removal-by-a-user-ruling.md) | A user ruling that names an example removes it in place of the rebuild wait; the 2026-11-09 ruling names four examples; supersedes NB5F | accepted |
+| [C0YD](entries/C0YD-the-part-7-row-is-the-re-export-request.md) | No re-export item is open; the part 7 `needs-export` row is the request; removal by a user ruling; no pre-bundle or forecast examples; supersedes YS4C | accepted |
 | [7F6X](entries/7F6X-license-rows-in-the-model-intake.md) | The model intake gets the License rows LC1 to LC6; out of scope and parity follow R6J9; row T11 names the cast | accepted |
 | [V8FK](entries/V8FK-license-evidence-and-models-with-no-license.md) | A license page is primary evidence; a model with no known weights license gets no sidecar and no proposal | accepted |
 | [A2CW](entries/A2CW-dataset-owner-page-is-enough-evidence.md) | A page or README of a dataset owner is enough evidence for the license and the contents of the dataset | accepted |

@@ -35,18 +35,11 @@ skellytracker session does it in [phase 3](phase-3-skellytracker.md), for a mode
 
 ## State of the examples
 
-The `kind` and the `notes` of each entry in `inventory.yaml` give the state of the example:
-
-- `kind: forecast` is an example that is written from exporter code. Replace it when its exporter
-  writes `schema_version: "2.0.0"`.
-- A note "Drifted" is an example that is not equal to the copy of its exporter. Replace it now.
-- An item `spec change <ID>: <edit>` in `edits` is a spec-forced edit
-  ([When a spec change makes an example invalid](#when-a-spec-change-makes-an-example-invalid);
-  [ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
-  Replace the example when the copy of its exporter obeys each rule.
-
-The [introduction to the examples](../examples/README.md) tells which examples come from real
-exports and which examples are forecasts.
+An item `spec change <ID>: <edit>` in `edits` of the entry in `inventory.yaml` is a spec-forced edit
+([When a spec change makes an example invalid](#when-a-spec-change-makes-an-example-invalid);
+[ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
+Replace the example when the copy of its exporter obeys each rule
+([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md)).
 
 ## How to provide or replace an example
 
@@ -105,10 +98,6 @@ exports and which examples are forecasts.
    ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)). Add `edits` (a list, which can be
    empty), `notes` (required) and `bundle`.
 
-   If this `model` bundle answers the last example of the item under
-   [Re-export requests](../decisions/open-work.md#re-export-requests), close the item in the same
-   commit ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
-
    For each fragment with no package copy, write an entry in `fragments`, keyed by its path under
    `specs/model-sidecar/examples/`. Its keys are `exporter`, `exporter_path`, `tracked`, `commit`
    and `notes`. When the package gets a copy of the fragment, delete the entry.
@@ -144,7 +133,8 @@ is not a correction of the example, and it is not a new copy. Steps 1, 2 and 7 o
 [How to provide or replace an example](#how-to-provide-or-replace-an-example) do not apply to it.
 
 1. Find each example that the change makes invalid. Part 7 of the accepted proposal names each
-   example, its rule ID, its impact (`forced-edit` or `needs-export`) and its edit. Run
+   example, its rule ID, its impact (`forced-edit`, `needs-export` or `removed (user ruling)`) and its
+   edit ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md)). Run
    `uv run python tools/sidecar_trace.py impact <range>` on the range of the content commit. Compare
    its report with part 7. The report is the cross-check, not the authority. If the change makes an
    example invalid and part 7 does not list it, stop. The proposal is already `accepted`, so the
@@ -168,20 +158,18 @@ is not a correction of the example, and it is not a new copy. Steps 1, 2 and 7 o
      SHA-256.
    - The next export copy of the example replaces the value.
 4. `needs-export`: the example needs a value that the change does not give and that step 3 cannot
-   give. Do not edit the example
-   ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)):
-   - Until the item under [Re-export requests](../decisions/open-work.md#re-export-requests)
-     closes, the content commit of the change waits for the rebuild bundle of the example. Step 12
-     gives the exception.
-   - After the item closes, the part 7 row of the accepted proposal is the request. When the
-     proposal is `accepted`, the exporter packs a new version of its `model` bundle, with `related`
-     set to the proposal bundle. Its verdict `describes` uses the current spec text plus the
-     accepted part 2 of that proposal. The content commit of the proposal lands that bundle as the
-     replacement of the example.
+   give. Do not edit the example. The part 7 row of the accepted proposal is the request
+   ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md)).
+   When the proposal is `accepted`, the exporter packs a new version of its `model` bundle, with
+   `related` set to the proposal bundle. Its verdict `describes` uses the current spec text plus the
+   accepted part 2 of that proposal. The content commit of the proposal lands that bundle as the
+   replacement of the example. Step 12 gives the exception.
 
    A forced edit of a fragment that equals a package copy
-   (ADR-[yve0](../../../decisions/entries/yve0-example-fragments.md)) is also `needs-export`. The package
-   code does not change in the spec-build stage, and a copy under a new name is not allowed.
+   (ADR-[yve0](../../../decisions/entries/yve0-example-fragments.md)) is also `needs-export`
+   ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md)).
+   The package code does not change in the spec-build stage, and a copy under a new name is not
+   allowed.
 5. Keep the placeholder hash of 64 zeros for an ONNX file. `uv run python tools/sidecar_refs.py --check <example path>`
    must pass for each example that the commit changes. `uv run pytest tools/tests/test_examples.py`
    runs this check on each example.
@@ -201,18 +189,17 @@ is not a correction of the example, and it is not a new copy. Steps 1, 2 and 7 o
     example and its `spec change` items, except when step 12 removes it.
 12. **Removal by a user ruling.** A decision entry can record a user ruling that names an example
     that gets no rebuild. A content commit that makes such an example invalid removes it. It does not
-    wait for a rebuild bundle ([ADR-YS4C](../../../decisions/entries/YS4C-example-removal-by-a-user-ruling.md)):
-    - Delete the example file, its entry in `specs/model-sidecar/inventory.yaml` and its line in
-      `NO_BUNDLE_EXAMPLES` of `tools/intake_bundle.py`. Delete each fragment that only this example
-      used.
+    wait for a rebuild bundle ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md)):
+    - Delete the example file and its entry in `specs/model-sidecar/inventory.yaml`. Delete each
+      fragment that only this example used.
     - Keep the heading of the example in the
       [introduction to the examples](../examples/README.md), because other files link its anchor.
       Replace its text with one line that tells that the example is removed and cites the ruling.
     - Repair each link to the file and each text that names the example as a current fact.
     - Regenerate the matrix with `uv run python tools/sidecar_trace.py matrix`.
-    - Remove the example from the item under
-      [Re-export requests](../decisions/open-work.md#re-export-requests). A part 7 row of the removed
-      example is not a request.
+    - A part 7 row of the removed example has the impact `removed (user ruling)`. It is not a
+      request. If an item under [Re-export requests](../decisions/open-work.md#re-export-requests)
+      is open, remove the example from it.
     - The models of the example stay in "Scope of this revision" of the
       [changelog](../changelog.md) until a decision entry removes them.
     - The example comes back only with

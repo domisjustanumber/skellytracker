@@ -13,7 +13,7 @@ repository state is in the root [open-work.md](../../../decisions/open-work.md).
 
 This heading holds at most one item
 ([Re-export requests](../model-addition-workflow/hand-over.md#re-export-requests);
-[ADR-YS4C](../../../decisions/entries/YS4C-example-removal-by-a-user-ruling.md)).
+[ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md)).
 
 No item is open. The item "Rebuild of each example" closed when the content commit of
 [ADR-NBG2](entries/NBG2-license-and-training-data-without-the-deferred-examples.md) landed the

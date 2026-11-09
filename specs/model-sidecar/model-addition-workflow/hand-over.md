@@ -109,7 +109,7 @@ skellytracker adds the validator cases of the item `rules`. Read the column. Do 
 ```yaml
 examples:
   <path under examples/>:
-    {exporter, exporter_path, kind: export | forecast, exporter_layout_path, tracked, commit}
+    {exporter, exporter_path, kind: export, exporter_layout_path, tracked, commit}
 fragments:
   <path under examples/>: {exporter, exporter_path, tracked, commit, notes}
 ```
@@ -370,15 +370,13 @@ resolution: {...}                         # required for rejected and resolved-o
   user.
 - `needs-contributor`: fix the findings. Pack the next version.
 - `waiting`: wait for the bundles of `waiting_on`.
-- `accepted`: if the item under [Re-export requests](#re-export-requests) is closed, pack a new
-  version of the `model` bundle of each example of your repo with the impact `needs-export` in
-  part 7, with `related` set to the proposal bundle. Do not wait for `landed`. Until the item
-  closes, do not pack: the rebuild answers the row
+- `accepted`: pack a new version of the `model` bundle of each example of your repo with the impact
+  `needs-export` in part 7, with `related` set to the proposal bundle. Do not wait for `landed`. The
+  part 7 row is the request
   ([When a spec change makes an example invalid](reference-examples.md#when-a-spec-change-makes-an-example-invalid);
-  [ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
-  Do not regenerate your other sidecars yet. A part 7 row of an example that a user ruling removed is
-  not a request
-  ([ADR-YS4C](../../../decisions/entries/YS4C-example-removal-by-a-user-ruling.md)).
+  [ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md)).
+  Do not regenerate your other sidecars yet. A part 7 row with the impact `removed (user ruling)` is
+  not a request ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md)).
 - `landed`: regenerate the sidecar with the fields of the landed commit `subject`. Pack a new version
   of the `model` bundle with `related` set to the proposal bundle.
 - `resolved-otherwise`: do `resolution.contributor_action`. Regenerate the sidecar with the fields
@@ -432,9 +430,7 @@ it does this safety check ([ADR-AD33](../../../decisions/entries/AD33-bundles-ar
    ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). With the
    verdict `describes`, [Reference examples](reference-examples.md) then copies `example/`. The
    new `inventory.yaml` entry must have `bundle: <bundle id>@v<k>`
-   ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)). If the bundle answers the
-   last example of the [re-export request](#re-export-requests), the same commit closes the request
-   ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
+   ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)).
    With the verdict `does not describe`, the response is `waiting`. `waiting_on` names the `proposal` bundles of the
    blocking rows. If no proposal bundle exists, the response is `needs-contributor`. With the verdict
    `pending`, the response is `needs-contributor`. Its findings come from "Missing evidence and runs"
@@ -512,13 +508,16 @@ The response asks the contributor for a new version without the private data.
 
 ## Re-export requests
 
-The heading [Re-export requests](../decisions/open-work.md#re-export-requests) of the spec
-`open-work.md` holds one item: the rebuild of each example on one spec version
-([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
-Before you pack, read it. Do not start a rebuild before the item opens. Do not rebuild an example
-that a user ruling removed
-([ADR-YS4C](../../../decisions/entries/YS4C-example-removal-by-a-user-ruling.md)). For a `needs-export` example of an accepted proposal, follow
+No re-export item is open. For a `needs-export` example of an accepted proposal, the part 7 row is
+the request: follow
 [When a spec change makes an example invalid](reference-examples.md#when-a-spec-change-makes-an-example-invalid).
+Do not rebuild an example that a user ruling removed.
+
+Only the user opens a re-export item. The heading
+[Re-export requests](../decisions/open-work.md#re-export-requests) of the spec `open-work.md` then
+holds one item. The item names its examples and when it closes. Before you pack, read it. The
+exporter follows it. The session closes it in the commit that lands its last example
+([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md)).
 
 ## Retention
 

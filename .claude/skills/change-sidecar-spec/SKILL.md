@@ -69,9 +69,7 @@ Do this procedure for step 1 of phase 3.
    write the sidecar.
 4. Follow "How to provide or replace an example" in
    [Reference examples](../../../specs/model-sidecar/model-addition-workflow/reference-examples.md#how-to-provide-or-replace-an-example). Do its
-   steps in order. Its step 4 also closes the item under
-   [Re-export requests](../../../specs/model-sidecar/decisions/open-work.md#re-export-requests) when
-   the bundle answers its last example ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
+   steps in order.
 5. If the procedure finds that the sidecar breaks a spec rule, stop. Do not correct the example by
    hand. Tell the user that the exporter must change, or that the spec needs a proposal.
 6. Add the new guidance of the intake to the "Authoring guidance" heading of each section that it is
@@ -428,8 +426,8 @@ A spec change has no class ([ADR-NB5F](../../../decisions/entries/NB5F-no-change
   (ADR-[yve0](../../../decisions/entries/yve0-example-fragments.md)).
 - Each example has a provenance entry in `specs/model-sidecar/inventory.yaml`: its source, the exporter, the
   path of the exporter copy, its `kind`, whether git tracks that copy, the exporter commit of the code
-  that writes it, and the edits made to the copy. `kind: export` is a copy of exporter output.
-  `kind: forecast` is written from exporter code before the exporter writes that sidecar.
+  that writes it, and the edits made to the copy. `kind: export` is a copy of exporter output
+  ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md)).
 - `inventory.yaml` is docs only. skellytracker does not read it at run time. It is not the index of a
   remote sidecar folder. It holds only the data that a scan cannot find: the provenance of each
   example and each fragment, and the `no_model` reasons.
@@ -488,7 +486,7 @@ A spec change has no class ([ADR-NB5F](../../../decisions/entries/NB5F-no-change
   [ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)). Do not land a
   content commit that leaves an example invalid. If a user ruling names the example, remove it with
   step 12 of that heading
-  ([ADR-YS4C](../../../decisions/entries/YS4C-example-removal-by-a-user-ruling.md)).
+  ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md)).
 
 ### Reference implementations
 
@@ -520,9 +518,9 @@ A spec change has no class ([ADR-NB5F](../../../decisions/entries/NB5F-no-change
    ([When a spec change makes an example invalid](../../../specs/model-sidecar/model-addition-workflow/reference-examples.md#when-a-spec-change-makes-an-example-invalid);
    [ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
    Name each exporter that must regenerate its sidecars. Do not add an item under
-   [Re-export requests](../../../specs/model-sidecar/decisions/open-work.md#re-export-requests): its
-   one item covers each example, and after it closes, the part 7 row is the request
-   ([ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
+   [Re-export requests](../../../specs/model-sidecar/decisions/open-work.md#re-export-requests): the
+   part 7 row is the request
+   ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md)).
 4. Regenerate the traceability matrix with `uv run python tools/sidecar_trace.py matrix`. Do not edit
    `specs/model-sidecar/TRACEABILITY.md` by hand.
 

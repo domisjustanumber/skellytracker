@@ -70,3 +70,4 @@ the reason for a decision. The [index](README.md) has the Active and Proposed en
 | [NB5F](entries/NB5F-no-change-classes-and-one-re-export-request.md) | No change classes; one re-export request; a spec-forced edit can add a value read from the export graphs; supersedes KDBD | superseded by YS4C |
 | [1TR6](entries/1TR6-workflow-copies-of-the-keypoint-detector-id.md) | The workflow copies of the id rule follow 52NQ: `{family}-{group}[-{variant}]` in `{family}/{group}/` | done |
 | [JY47](entries/JY47-verification-batch-6-in-the-workflow.md) | The workflow, the templates, the skills and `intake_bundle.py` use the verification batches 1, 2, 3 and 6 and 6 input B items (after 50BW) | done |
+| [YS4C](entries/YS4C-example-removal-by-a-user-ruling.md) | A user ruling that names an example removes it in place of the rebuild wait; the 2026-11-09 ruling names four examples; supersedes NB5F | superseded by C0YD |
