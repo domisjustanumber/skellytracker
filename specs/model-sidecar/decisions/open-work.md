@@ -57,7 +57,10 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   - the host frame is BGR, and the host converts it to `input.color_format`;
   - the arithmetic precision of the geometry (except the warp matrix `M` of `affine_person_crop`)
     and of the pixel math. One case of [ADR-PHJ3](entries/PHJ3-resize-compute-dtype.md) is open: a
-    fractional `pad_value` with `compute_dtype: uint8`;
+    fractional `pad_value` with `compute_dtype: uint8`. The `pre.normalize` reference computes in
+    float64 and then casts to `float16`, but a host can compute in float32. Near a `float16`
+    rounding midpoint, the two results differ by one `float16` step. This is more than the
+    tolerance 1e-5 ([ADR-XH1J](entries/XH1J-normalize-input-dtype.md));
   - the dtype of a score comparison. A float64 score `0.7` passes `>` against a float32 threshold
     `0.7`, because the float32 value is `0.699999988` (numpy 2.4.6).
 - The [Storage layout](../format/file-layout.md#storage-layout) gives no folder to a sidecar whose
