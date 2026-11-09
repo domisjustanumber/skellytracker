@@ -79,10 +79,9 @@ exports and which examples are forecasts.
    [ADR-NB5F](../../../decisions/entries/NB5F-no-change-classes-and-one-re-export-request.md)).
 3. **Path.** The path of the example follows the
    [storage layout](../format/file-layout.md#storage-layout), also when the path of the exporter does
-   not. For example, OpenMMLab-Exporter writes RTMO body7 under `keypoint_detectors/rtmo/body7/`.
-   The part folders of the spec are `hand`, `face`, `body` and `wholebody`, so the example is under
-   `rtmo/body/`. Record the path of the exporter in the provenance as a defect for the exporter to
-   fix.
+   not. For example, a sidecar in a folder that is not a group, such as `rtmo/body7/`, goes under
+   the group folder that the layout gives ([ADR-1TR6](../../../decisions/entries/1TR6-workflow-copies-of-the-keypoint-detector-id.md)). Record the path of the exporter in the provenance
+   as a defect for the exporter to fix.
 
    **Fragments.** A fragment is a file that a `$ref` of the sidecar names: a file under
    `detectors/shared/` (a skeleton or a class-id map), or a file next to the sidecar (for example a
@@ -135,11 +134,6 @@ exports and which examples are forecasts.
 8. **Keep it current.** When an exporter changes what it writes, replace the example again with the
    same steps. `tools/sidecar_trace.py examples` shows when an example and the copy of its exporter
    are not equal.
-
-Example: the RTMO body7 example comes from the tracked copy `notes/decisions/rtmo-body7.yaml` of
-OpenMMLab-Exporter at commit
-[`38ed76f`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/rtmo-body7.yaml).
-That copy is equal to its export, plus header comments.
 
 ## When a spec change makes an example invalid
 

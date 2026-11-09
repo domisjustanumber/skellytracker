@@ -36,8 +36,7 @@
     defect in the last column.
   - Such a row is a `gap` only when the spec has no rule for the role of the model (a new role), for
     example no `model_id` rule or no branch of the storage layout. The proposal of the role covers
-    the row. Row F1 gives one more `gap`: the current text has no `model_id` for a second model of
-    one family and one part.
+    the row.
 - Do not publish a sidecar to a shared or remote folder until a final skellytracker release loads
   its `schema_version` (see [Publishing](validation-and-publishing.md#publishing)).
 

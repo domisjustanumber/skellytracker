@@ -15,15 +15,14 @@
 - **Identity.** Record `model_id`, `display_name` and `role`. For an object detector, `model_id` is
   the family. Thus the folder name and the file name are the same, for example
   `object_detectors/rtmdet-person/rtmdet-person.yaml`. For a keypoint detector, `model_id` is
-  `{family}-{part}`, for example `rtmw-wholebody` in `keypoint_detectors/rtmw/wholebody/`. The spec
-  has no rule yet for a suffix after the part, or for two models of one family and one part
-  ([Spec defects](../decisions/open-work.md#spec-defects)). Until a spec change adds such a rule,
-  the current text applies. A name changes no tensor and no decoded output, so the `model_id` row is
-  never a `near-miss`:
-  - Write `{family}-{part}` as the sidecar value. The verdict is `exact`. If the exporter or the spec
-    example uses an id with a suffix, write that id in the last column.
-  - If another model of the same family and part also needs the id `{family}-{part}`, the current
-    text has no id for your model. The row is a `gap`.
+  `{family}-{group}` or `{family}-{group}-{variant}` in `keypoint_detectors/{family}/{group}/`, for
+  example `rtmw-wholebody133` in `keypoint_detectors/rtmw/wholebody133/`
+  ([Keypoint detector id](../common/identity.md#keypoint-detector-id); [ADR-1TR6](../../../decisions/entries/1TR6-workflow-copies-of-the-keypoint-detector-id.md)). A name changes no
+  tensor and no decoded output, so the `model_id` row is never a `near-miss`:
+  - Write the id of that grammar as the sidecar value. The verdict is `exact`. If the exporter writes
+    another id, write that id in the last column as an exporter defect.
+  - Two models of one family and one group take two variants, for example
+    `mediapipe-hand-landmark` and `mediapipe-hand-recrop`.
   - If the spec has no `model_id` rule for the role of the model (a new role), the row is a `gap`.
     The proposal of the role covers it.
 - **Family.** One family has one preprocessing contract and one post-processing contract. If two sizes

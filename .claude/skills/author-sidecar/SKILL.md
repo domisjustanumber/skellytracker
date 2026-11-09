@@ -188,7 +188,7 @@ Do this step when no row is blocking (step 5 of
 4. Check the path of the sidecar against [Path](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#path). The
    spec path is the sidecar value of row L1.
 5. If the exporter writes the sidecar to a different folder, write the exporter path in row L1 as an
-   exporter defect. An example is a model-specific folder such as `rtmo/body7/`. Report the defect to
+   exporter defect. An example is a folder that is not a group, such as `rtmo/body7/` (`V-common.identity-8`). Report the defect to
    the user in step 8.
 6. Compare your values with the reference example of the same family, if one exists. Write each
    difference in "The sidecar" of the intake.

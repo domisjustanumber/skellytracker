@@ -177,7 +177,7 @@ field that is not a per-size field, they are two families. Write one intake for 
 
 | # | Property | Upstream evidence (file and line, or config key) | Section ID (the `id` in the section file's front matter) | Sidecar value | Verdict | What differs or what is missing |
 |---|---|---|---|---|---|---|
-| F1 | `model_id`. An object detector uses the family (`yolo26`). A keypoint detector uses `{family}-{part}` (`rtmw-wholebody`). The spec has no rule yet for a suffix after the part (the spec example `rtmo-body7`), or for two models of one family and one part. Until a spec change adds such a rule, write `{family}-{part}`: the verdict is `exact`. If the exporter or the spec example uses an id with a suffix, write that id in the last column. A name is never a `near-miss`. If another model of the same family and part also needs `{family}-{part}`, the row is a `gap`. A new role with no `model_id` rule is a `gap`. | | `common.identity` | | | |
+| F1 | `model_id`. An object detector uses the family (`yolo26`). A keypoint detector uses `{family}-{group}` or `{family}-{group}-{variant}` (`rtmw-wholebody133`, `rtmo-coco17-body7`; `common.identity`, heading "Keypoint detector id"). Write that id: the verdict is `exact`. If the exporter writes another id, write that id in the last column. A name is never a `near-miss`. A new role with no `model_id` rule is a `gap`. | | `common.identity` | | | |
 | F2 | `role`: `object_detector`, `pose_estimator`, or both | | `common.identity` | | | |
 | F3 | Sizes, and what differs between them. A size sets only `input.shape`, `input.resize.target_size` and `onnx`. Use the upstream size name, also for a family with one size. If the upstream has no size name, choose a lowercase token and give the reason. | | `common.sizes_and_artifacts` | | | |
 | F4 | One contract for all sizes: channel order, normalization, resize method, output semantics, selection mode, NMS parameters, class mapping | | `common.sizes_and_artifacts` (family invariant) | | | |
@@ -306,10 +306,10 @@ role. Write the path under the export root.
 
 | # | Property | Evidence (exporter code that writes the file) | Section ID (the `id` in the section file's front matter) | Sidecar value | Verdict | What differs or what is missing |
 |---|---|---|---|---|---|---|
-| L1 | Sidecar path: `<export root>/detectors/object_detectors/{family}/{model_id}.yaml`, where `{family}` is the `model_id`; or `<export root>/detectors/keypoint_detectors/{family}/{part}/{model_id}.yaml`, where `{part}` is `hand`, `face`, `body` or `wholebody` | | `format.file_layout` (Storage layout) | | | |
+| L1 | Sidecar path: `<export root>/detectors/object_detectors/{family}/{model_id}.yaml`, where `{family}` is the `model_id`; or `<export root>/detectors/keypoint_detectors/{family}/{group}/{model_id}.yaml`, where `{group}` is `hand`, `face`, `body`, `wholebody` or a keypoint set with its keypoint count (`wholebody133`) | | `format.file_layout` (Storage layout) | | | |
 | L2 | The ONNX files are in the same folder as the sidecar | | `format.file_layout` (File pairing rules) | | | |
 
-A model-specific folder, for example `body7`, does not conform. If the exporter writes to such a
+A folder that is not a group, for example `body7`, does not conform: 7 is not a keypoint count of RTMO. If the exporter writes to such a
 folder, the sidecar value is still the spec path. Write the path of the exporter in the last column
 as an exporter defect. The verdict of row L1 stays `exact`.
 

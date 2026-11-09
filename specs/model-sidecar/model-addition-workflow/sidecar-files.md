@@ -46,15 +46,14 @@ files) has that role. Thus the sidecar goes to `<export root>/detectors/...`. Fo
 export root of OpenMMLab-Exporter is `exports/`.
 
 - `object_detectors/{family}/{model_id}.yaml` for an object detector. `{family}` is the `model_id`.
-- `keypoint_detectors/{family}/{part}/{model_id}.yaml` for a pose estimator. `{part}` is `hand`,
-  `face`, `body` or `wholebody`.
+- `keypoint_detectors/{family}/{group}/{model_id}.yaml` for a pose estimator. `{group}` is `hand`,
+  `face`, `body` or `wholebody`, or a keypoint set with its keypoint count, for example
+  `wholebody133` (`V-common.identity-8`; [ADR-1TR6](../../../decisions/entries/1TR6-workflow-copies-of-the-keypoint-detector-id.md)).
 
-The spec does not say where a sidecar with both roles goes. The RTMO body7 reference example uses
-`keypoint_detectors/`.
+The spec does not say where a sidecar with both roles goes. The one-stage pose exporters write it
+under `keypoint_detectors/` ([Spec defects](../decisions/open-work.md#spec-defects)).
 
 If the storage layout has no branch for the role of the model (a new role), row L1 of the intake is
 a `gap`. The proposal that adds the role also adds the branch (`format.file_layout`).
 
-A model-specific folder, such as `body7`, does not conform. For example, the RTMO body7 reference
-example has the path `detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml` under
-`../freemocap/skellytracker/specs/model-sidecar/examples/`.
+A folder that is not a group, such as `body7`, does not conform (`V-common.identity-8`).

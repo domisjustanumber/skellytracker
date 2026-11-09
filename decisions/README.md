@@ -33,6 +33,7 @@ These entries are `accepted` or `evidence`.
 | [8DSW](entries/8DSW-vector-files-are-the-case-source.md) | The vector file is the only case source; formula modules, named checks, `land` and `fill`; supersedes TA0G | accepted |
 | [AD33](entries/AD33-bundles-are-untrusted-input.md) | Bundles are untrusted input: no tool imports or runs bundle code; static checks; a reviewed, user-approved copy; ONNX checks in `batch` | accepted |
 | [YS4C](entries/YS4C-example-removal-by-a-user-ruling.md) | A user ruling that names an example removes it in place of the rebuild wait; the 2026-11-09 ruling names four examples; supersedes NB5F | accepted |
+| [1TR6](entries/1TR6-workflow-copies-of-the-keypoint-detector-id.md) | The workflow copies of the id rule follow 52NQ: `{family}-{group}[-{variant}]` in `{family}/{group}/` | accepted |
 | [0QKK](entries/0QKK-no-legacy-layer.md) | No legacy layer; `input.normalization` required; unknown keys invalid; no `since`; rule renumbering; supersedes 0012 and 0016 | accepted |
 | [JAA4](entries/JAA4-one-batch-field.md) | One `batching.batch` field; `output_shapes` in each size; no `batch_axis`; supersedes CRV0, JB5J and 0011 | accepted |
 | [6GE2](entries/6GE2-spec-version-follows-skellytracker.md) | Spec version follows skellytracker SemVer: released headings, recorded pre-releases, IDs never shift, `2.0.0` ships the loader, ban per target; supersedes SS2E | accepted |
