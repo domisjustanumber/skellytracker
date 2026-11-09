@@ -563,7 +563,9 @@ length and passive voice gives advice only. Do not reword the existing changelog
 
 - In the spec-build stage, do not change a file under `skellytracker/`. A test fix in
   `skellytracker/tests/` is the only exception
-  ([Stages](../../../specs/model-sidecar/model-addition-workflow/README.md#stages)).
+  ([Stages](../../../specs/model-sidecar/model-addition-workflow/README.md#stages)). A test or CI fix
+  is its own commit on the working branch. Do not ask for the branch
+  ([ADR-R39S](../../../decisions/entries/R39S-test-fix-on-the-working-branch.md)).
 - Do not change an exporter repo.
 
 ## Checks

@@ -28,7 +28,7 @@ These entries are `accepted` or `evidence`.
 |---|----------|--------|
 | [x64y](entries/x64y-draft-exporter-guide-folder.md) | The workflow, with the sidecar-file, validation and publishing rules, is in `model-addition-workflow/`; the exporter-only guide is a draft; no stub | accepted |
 | [yve0](entries/yve0-example-fragments.md) | An example fragment has one source: a package copy with the same bytes, or a `fragments` entry in `inventory.yaml` | accepted |
-| [AB79](entries/AB79-one-pr-for-the-spec-build-work.md) | Exception to 0027: the spec-build work goes to `development` in one PR; one kind of change in each commit; no new `dom/NN-*` branch | accepted |
+| [R39S](entries/R39S-test-fix-on-the-working-branch.md) | Exception to 0027: one spec-build PR; one change kind per commit; no `dom/NN-*` branch; a test fix is a commit on the working branch; CI read; supersedes AB79 | accepted |
 | [QMKS](entries/QMKS-draft-sections-and-coverage-columns.md) | `spec: draft` rules, the graduation gate and the release stops; coverage and gate columns in `TRACEABILITY.md`; `no_model` reasons | accepted |
 | [8DSW](entries/8DSW-vector-files-are-the-case-source.md) | The vector file is the only case source; formula modules, named checks, `land` and `fill`; supersedes TA0G | accepted |
 | [AD33](entries/AD33-bundles-are-untrusted-input.md) | Bundles are untrusted input: no tool imports or runs bundle code; static checks; a reviewed, user-approved copy; ONNX checks in `batch` | accepted |

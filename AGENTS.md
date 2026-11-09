@@ -108,6 +108,8 @@ uv run ruff check skellytracker/ tools/ decisions/scripts/ specs/model-sidecar/d
   [`skellytracker/AGENTS.md`](skellytracker/AGENTS.md#tests) gives the known failures and the split run.
 - Report each new test failure to the user. Fix the failures of one root cause in one PR. Do not put
   other changes in that PR ([Phase 3](specs/model-sidecar/model-addition-workflow/phase-3-skellytracker.md)).
+  In the spec-build stage, the fix is its own commit on the working branch. Do not ask for the branch
+  ([ADR-R39S](decisions/entries/R39S-test-fix-on-the-working-branch.md)).
 
 ## 4. Sidecar Rules
 
@@ -192,11 +194,11 @@ Change the rest of a kit template by hand when a rule of this log changes
 - Commit only on the working branch `dom/sidecar-implementation`. Open PRs against `development`,
   not `main`.
 - In the spec-build stage, the work goes to `development` in one PR from the working branch
-  ([ADR-AB79](decisions/entries/AB79-one-pr-for-the-spec-build-work.md)). It ends when the user opens the one
-  PR. Each commit has one kind of change.
+  ([ADR-R39S](decisions/entries/R39S-test-fix-on-the-working-branch.md)). It ends when the user opens
+  the one PR. Each commit has one kind of change.
   In the rules of the sidecar process, "the same PR" means the same commit group. A content,
-  non-spec, move or rewording PR means a commit of that kind. The test-fix rule of
-  [section 3](#3-install-and-test) does not change.
+  non-spec, move or rewording PR means a commit of that kind. A test fix of
+  [section 3](#3-install-and-test) is its own commit on the working branch.
 - Keep the checkout `../freemocap/skellytracker` on the working branch. Exporter agents read the spec
   there. If the checkout is on a different branch, an exporter agent stops and asks the user.
 - Before you commit, rebase, push or write a PR body, load the

@@ -1,6 +1,6 @@
 # AB79 — One PR for the spec-build work
 
-**Status:** accepted, 2026-10-28 (user; PR: pending).
+**Status:** superseded by [R39S](R39S-test-fix-on-the-working-branch.md), 2026-11-09 (user; PR: pending).
 
 ## Decision
 

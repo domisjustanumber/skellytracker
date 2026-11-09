@@ -35,6 +35,8 @@ You do not do phase 3. A skellytracker session does it. The user decides.
 4. A skellytracker session orders its commits with the skill
    [`stack-commit`](../../../.claude/skills/stack-commit/SKILL.md).
 5. In the spec-build stage, no file under `skellytracker/` changes. The only exception is a test fix
-   in `skellytracker/tests/`, with one PR for each root cause. A code defect is reported, and its fix
-   waits for the implementation stage. Docs, tools, vectors and reference implementations outside
-   `skellytracker/` can change.
+   in `skellytracker/tests/`. A fix of one root cause of a test or CI failure is its own commit on the
+   working branch, with no other change
+   ([ADR-R39S](../../../decisions/entries/R39S-test-fix-on-the-working-branch.md)). A code defect is
+   reported, and its fix waits for the implementation stage. Docs, tools, vectors and reference
+   implementations outside `skellytracker/` can change.
