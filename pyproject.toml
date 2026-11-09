@@ -85,7 +85,8 @@ onnx = ["onnx"]
 # used by the RTMPose + YOLOX detectors for inference.
 
 # CPU — any platform. Also enables CoreML EP on macOS with Apple Silicon.
-onnx-cpu = ["onnxruntime"]
+# >=1.31: 1.27 CPU gives run-to-run noise on fp16 graphs (batch-conversion check).
+onnx-cpu = ["onnxruntime>=1.31"]
 
 # NVIDIA GPU via CUDA 12 (Linux / Windows).
 # Bundles the CUDA 12 + cuDNN 9 runtime DLLs as pip packages so users

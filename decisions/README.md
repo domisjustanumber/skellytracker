@@ -44,6 +44,7 @@ These entries are `accepted` or `evidence`.
 | [9MJ6](entries/9MJ6-remove-the-heatmap-decode.md) | Remove the heatmap decode: no `heatmap` method, semantic or section until a model brings a full contract | accepted |
 | [9HBB](entries/9HBB-simcc-decode-is-2d-only.md) | The SimCC decode is 2D only: no `simcc_z`, no `depth_range`; a 3D SimCC model adds its own section | accepted |
 | [JY47](entries/JY47-verification-batch-6-in-the-workflow.md) | The workflow, the templates, the skills and `intake_bundle.py` use the verification batches 1, 2, 3 and 6 and 6 input B items (after 50BW) | accepted |
+| [4KW6](entries/4KW6-onnxruntime-1-31-for-the-cpu-check.md) | `onnx-cpu` requires `onnxruntime>=1.31` (lock 1.31.1): no fp16 noise in the batch check; the GPU cap stays | accepted |
 
 ### Proposed
 
