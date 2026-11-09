@@ -97,6 +97,27 @@ See also [Pose schema](pose-schema.md#validation-rules).
   [`numpy/_core/src/multiarray/argfunc.dispatch.c.src:313-345`](https://github.com/numpy/numpy/blob/c60f172b3330f76d6592362137f34c4a3030a001/numpy/_core/src/multiarray/argfunc.dispatch.c.src#L313-L345)
   at NumPy `c60f172b3330f76d6592362137f34c4a3030a001`)
 - fp16 can move a SimCC keypoint to another bin. On one crop of a hand model, 4 of 21 fp16 keypoints fell in a different bin than fp32. The fp16 accuracy of the SimCC decode is not measured. (the untracked hand models plan of OpenMMLab-Exporter (secondary))
+- To give the steps of Behaviour, the package code needs these changes. `get_simcc_maximum` must
+  not apply a softmax. Its score must be `np.where(max_x > max_y, max_y, max_x)` of the raw peaks,
+  and the `-1` rule stays. With `np.argmax` and `np.max`, these steps also give the NaN rule.
+  `decode_simcc` must read the bin scale from the bin counts (`input_width / X_bins`), not from
+  `_SIMCC_SPLIT_RATIO`. `rtmpose_preprocessing.py` has a second copy of `get_simcc_maximum`. Its
+  copy of `decode_simcc` is `rtmpose_letterbox_postprocess`. In `golden_parity.py`,
+  `simcc_bin_size_px` uses `_SIMCC_SPLIT_RATIO`: the bin size must also come from the bin counts. The `confidence_threshold: 0.004` defaults of the RTMPose
+  body, face and hand detectors and of the RTMW detector need a value for the raw score. The `is_3d`
+  branch of `simcc_pose_decode` does not change. Stage M8 of the implementation plan removes it
+  ([ADR-9HBB](../../../decisions/entries/9HBB-simcc-decode-is-2d-only.md)). No validator change is
+  necessary. Run the numeric cases of the vector file through `get_simcc_maximum` and
+  `decode_simcc`. Add a golden test on one RTMW crop with mmpose scores. (skellytracker
+  `skellytracker/core/detectors/processing/simcc_decode.py` (`get_simcc_maximum`, `decode_simcc`,
+  `simcc_pose_decode`), `skellytracker/core/detectors/keypoint_detectors/rtmpose/rtmpose_preprocessing.py`,
+  `skellytracker/tests/sidecar/golden_parity.py` (`simcc_bin_size_px`),
+  `skellytracker/core/detectors/keypoint_detectors/rtmpose/body/rtmpose_body_detector.py`,
+  `skellytracker/core/detectors/keypoint_detectors/rtmpose/face/rtmpose_face_detector.py`,
+  `skellytracker/core/detectors/keypoint_detectors/rtmpose/hand/rtmpose_hand_detector.py` and
+  `skellytracker/core/detectors/keypoint_detectors/rtmw/wholebody/rtmw_wholebody_detector.py`
+  (`confidence_threshold`); part 6 of [`proposal.md`](../proposals/simcc-score-rule/proposal.md#6-skellytracker-implementation-proposal);
+  [ADR-03PH](../decisions/entries/03PH-simcc-score-rule.md)) (implementation stage)
 
 ## Authoring guidance
 

@@ -489,6 +489,27 @@ Two rules of this part stay:
   through `bbox_xyxy2cs`, `top_down_affine` and `get_warp_matrix`, and add a golden test with its
   three COCO cases, for example in `skellytracker/tests/sidecar/`. Then update the `forward` note of
   the front matter of the section.
+- **SimCC score without softmax.** Added on 2026-11-09. The spec gives the 2D SimCC decode of
+  mmpose v1.3.2: the argmax of the raw values, the score `min(peak_x, peak_y)` with no softmax, the
+  bin `-1` for a score `<= 0`, the NaN rule and the bin scale from the bin counts
+  ([ADR-03PH](model-sidecar/decisions/entries/03PH-simcc-score-rule.md);
+  [Behaviour](model-sidecar/post/pose-decode-simcc.md#behaviour)). The package code takes the mean
+  of the two softmax peaks and a fixed split ratio of 2.0. In `get_simcc_maximum` of
+  `skellytracker/core/detectors/processing/simcc_decode.py`, remove the softmax and take the score
+  `np.where(max_x > max_y, max_y, max_x)`. Keep the `-1` rule. In `decode_simcc`, read the bin scale
+  from the bin counts (`input_width / X_bins`), not from `_SIMCC_SPLIT_RATIO`. Make the same changes
+  in `get_simcc_maximum` and `rtmpose_letterbox_postprocess` (the copy of `decode_simcc`) of
+  `skellytracker/core/detectors/keypoint_detectors/rtmpose/rtmpose_preprocessing.py`.
+  In `skellytracker/tests/sidecar/golden_parity.py`, `simcc_bin_size_px` and `_golden_bin` use
+  `_SIMCC_SPLIT_RATIO`, and the parity helper computes the softmax mean as the score. Change them
+  to the bin counts and the new score. The new score has no fixed range. Thus the
+  `confidence_threshold: 0.004` defaults of the RTMPose body, face and hand detectors and of the RTMW
+  detector fit only the softmax score. The implementer decides the new defaults. Do not change the
+  `is_3d` branch of `simcc_pose_decode` here. The item 3D SimCC decode removed covers it. Run the
+  numeric cases of [`post.pose.decode.simcc`](model-sidecar/vectors/post.pose.decode.simcc.yaml)
+  through `get_simcc_maximum` and `decode_simcc`, and add a golden test on one RTMW crop with
+  mmpose scores, for example in `skellytracker/tests/sidecar/`. Then update the `decode` status and
+  the `partial` note of the front matter of the section.
 
 ### M9 — Source and hash checks
 
