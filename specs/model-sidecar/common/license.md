@@ -59,6 +59,12 @@ The `license` block gives the license of the weights and the training data of th
 ## Authoring guidance
 
 - The exporter knows the upstream checkpoint that it exports. Thus the exporter writes this block, not a skellytracker session ([ADR-NBG2](../decisions/entries/NBG2-license-and-training-data-without-the-deferred-examples.md)).
+- List the datasets of each checkpoint in the start chain, not only the datasets of the last training ([Fields](#fields)).
+  - OpenMMLab-Exporter follows two rulings of its user for a checkpoint chain. A distillation teacher counts as a start checkpoint. Where a checkpoint name and its config disagree on the datasets, the list holds the union of the two dataset sets. Neither ruling adds a dataset to the RTMW list. (OpenMMLab-Exporter ADR-EC75 [`decisions/entries/EC75-sidecar-license-block.md:16-17`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/3e326df00726df8110773ed62cf38d02948a71a5/decisions/entries/EC75-sidecar-license-block.md#L16-L17) (secondary))
+- skellytracker has no list of `LicenseRef-` names. `V-common.license-3` only requires a `url` for a `LicenseRef-` id.
+  - The seven `LicenseRef-` names of the RTMW example are proposals of OpenMMLab-Exporter. (OpenMMLab-Exporter [`rtmw/README.md:119-129`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/3e326df00726df8110773ed62cf38d02948a71a5/rtmw/README.md#L119-L129) (secondary))
+- A permissive model license does not clear a model for commercial use.
+  - The RTMW weights are `Apache-2.0`. No RTMW training dataset is fully permissive. Each dataset is non-commercial, research only or `unknown`, or it holds such a part. Thus a user must check the dataset terms before a commercial use. ([`rtmw-wholebody133.yaml`](../examples/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133.yaml) `license`; OpenMMLab-Exporter ADR-EC75 [`decisions/entries/EC75-sidecar-license-block.md:41-43`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/3e326df00726df8110773ed62cf38d02948a71a5/decisions/entries/EC75-sidecar-license-block.md#L41-L43); OpenMMLab-Exporter [`rtmw/README.md:130-131`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/3e326df00726df8110773ed62cf38d02948a71a5/rtmw/README.md#L130-L131) (secondary))
 
 ## Examples
 

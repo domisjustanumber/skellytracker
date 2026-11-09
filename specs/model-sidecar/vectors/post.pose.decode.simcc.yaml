@@ -14,8 +14,12 @@ notes:
     NumPy 2.4.6 (the copy is not committed: secondary)."
   - "`.nan` is a NaN raw value or a NaN score. In `expect`, `.nan` agrees only with a NaN."
 tolerance: 0.000001
-unverified: "No exporter and no skellytracker code implements the proposed score rule yet. The
-  skellytracker decode takes the mean of the two softmax peaks."
+unverified: "The OpenMMLab-Exporter host function decode_simcc implements the score rule and
+  passes 15 of 15 numeric cases (OpenMMLab-Exporter ADR-HJF1 item 8). It is not an
+  independent implementation: the same exporter wrote it after its own reference
+  module of the score-rule proposal (skellytracker ADR-03PH). No independent
+  implementation exists yet. The skellytracker decode takes the mean of the two
+  softmax peaks."
 cases:
   - id: score-is-the-y-peak
     note: "peak_x 0.9 > peak_y 0.6, so the score is 0.6"
