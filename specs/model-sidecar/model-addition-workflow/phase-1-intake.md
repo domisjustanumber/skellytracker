@@ -86,7 +86,15 @@ These verdicts apply to each row of the intake
   you expect a verdict, write it there too.
 - `out of scope`: the step is before or after the runtime contract of this model. Examples: a step
   that makes the box from the outputs of another model, a gate that decides if the model runs, or a
-  choice that uses an earlier frame.
+  choice that uses an earlier frame. These steps are also `out of scope`
+  ([ADR-R6J9](../decisions/entries/R6J9-test-time-steps-and-unreachable-branches.md)):
+  - a test-time augmentation that runs the runtime contract more than once and combines the
+    results, for example the flip test of mmpose;
+  - a value that the upstream decode computes in addition to the final outputs of the role, when the
+    sidecar does not declare it and it changes no final output, for example the keypoint visibility
+    of mmpose.
+
+  The row cites the evidence and tells which of the two steps it is.
 
 To choose between `near-miss` and `gap`, find the section and the field that hold the property. If
 no section and no field hold it, the verdict is `gap`. If a field holds it but none of its values

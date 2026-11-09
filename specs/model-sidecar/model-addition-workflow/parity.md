@@ -43,6 +43,11 @@ Do these steps:
    0.5, a size with an odd pad gap, a portrait image, a landscape image, a downscale and an upscale.
    For a detector, use an image with no detection and an image with several detections. One image is
    not enough. Record the reason for each image.
+   A branch that no real image can reach, for example a score `<= 0`, a tie or a NaN of a decode,
+   needs no image. Name the branch and its coverage: the vector cases of the section that your host
+   passes, or a committed check that runs crafted inputs through the upstream code and compares your
+   host bit for bit
+   ([ADR-R6J9](../decisions/entries/R6J9-test-time-steps-and-unreachable-branches.md)).
 3. Measure the export error. Give the tensor of the upstream preprocessing to the ONNX file. Compare
    its outputs with the outputs of the upstream model on the same tensor.
 4. Compare the preprocessed input. Compare the tensor of the sidecar path with the tensor of the

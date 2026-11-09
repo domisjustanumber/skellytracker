@@ -18,6 +18,7 @@ These entries are `accepted` or `evidence`.
 | [NBG2](entries/NBG2-license-and-training-data-without-the-deferred-examples.md) | New draft section `common.license`; RTMW rebuild replaces its example, three deferred examples go; supersedes SE3Y | accepted |
 | [50BW](entries/50BW-verification-batches.md) | Spec change: the verification batches of `static-batch-v1` are 1, 2, 3 and 6, not 1, 2, 3 and 4 (guidance only) | accepted |
 | [1VMX](entries/1VMX-nms-key-exclusion.md) | Spec change: the NMS reference refuses the keys of `V-post.det.selection.nms-1` | accepted |
+| [R6J9](entries/R6J9-test-time-steps-and-unreachable-branches.md) | `out of scope` covers a test-time augmentation and an undeclared extra decode value; parity needs no image for an unreachable branch | accepted |
 
 ### Proposed
 
