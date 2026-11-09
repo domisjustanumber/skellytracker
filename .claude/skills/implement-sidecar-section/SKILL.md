@@ -183,7 +183,7 @@ A skellytracker session must land it first, with the skill
 
 1. Run these commands. Each command must pass:
    - `uv run pytest -m "not video"`
-   - `uv run ruff check skellytracker/ tools/ decisions/scripts/ specs/model-sidecar/decisions/scripts/`
+   - `uv run ruff check skellytracker/ tools/ decisions/scripts/ specs/model-sidecar/decisions/scripts/ specs/model-sidecar/reference/`
    - `uv run python tools/make_vectors.py --check`
    - `uv run python tools/sidecar_trace.py matrix --check`
 2. Do not run `black` or `isort` on the package.

@@ -98,7 +98,7 @@ uv run pre-commit install                   # hooks; once per clone, and again a
 uv run pytest -m "not video"                # package tests and doc tests; must pass
 uv run pytest tools/tests                   # doc tests only: links, examples, decision log, private data
 uv run pytest -o faulthandler_timeout=300   # all tests, with the video tests
-uv run ruff check skellytracker/ tools/ decisions/scripts/ specs/model-sidecar/decisions/scripts/  # lint
+uv run ruff check skellytracker/ tools/ decisions/scripts/ specs/model-sidecar/decisions/scripts/ specs/model-sidecar/reference/  # lint
 ```
 
 - `uv run python -m skellytracker` starts a live webcam demo. Do not run it without a camera and a
