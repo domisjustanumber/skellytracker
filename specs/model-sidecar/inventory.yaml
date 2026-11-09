@@ -51,6 +51,21 @@ examples:
       sidecar has the real SHA-256 of each b3 ONNX file and no $ref.
     bundle: model-rtmw-wholebody133@openmmlab-exporter@v2
 
+  detectors/object_detectors/yolox-person/yolox-person.yaml:
+    exporter: OpenMMLab-Exporter
+    exporter_path: exports/detectors/object_detectors/yolox-person/yolox-person.yaml
+    kind: export
+    exporter_layout_path: null
+    tracked: false
+    commit: 96da6e69eedfe5978f133f29d8b6a76c7bf25392
+    edits: []
+    notes: >-
+      A byte copy of the sidecar that the exporter writer code wrote for the hand-over bundle. The
+      exporter turns off its sidecar output until the verdict describes, so exporter_path does not
+      exist yet. When the exporter turns it on, the same writer writes the same bytes there. The
+      sidecar has the real SHA-256 of each b3 ONNX file and no $ref.
+    bundle: model-yolox-person@openmmlab-exporter@v3
+
 fragments: {}
 
 no_model: {}

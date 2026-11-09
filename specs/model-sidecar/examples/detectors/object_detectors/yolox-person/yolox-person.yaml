@@ -1,0 +1,227 @@
+---
+schema_version: "2.0.0"
+source:
+  name: openmmlab-exporter
+  version: 0.1.0
+model_id: yolox-person
+display_name: YOLOX Person
+role:
+- object_detector
+license:
+  model:
+    id: Apache-2.0
+    url: https://github.com/open-mmlab/mmpose/blob/v1.3.2/LICENSE
+  training_data:
+  - name: COCO 2017 (train2017, person annotations)
+    url: https://cocodataset.org/
+    use: training
+    license:
+      id: CC-BY-4.0 AND LicenseRef-COCO-Images
+      url: https://cocodataset.org/#termsofuse
+  - name: Human-Art
+    url: https://idea-research.github.io/HumanArt/
+    use: training
+    license:
+      id: CC-BY-NC-SA-4.0
+      url: https://docs.google.com/document/d/19j-6GFOCYBDU4CxwRSKgORndse_j5iHGK0RCJ2TvXNQ/edit?usp=sharing
+input:
+  name: input
+  dtype:
+    fp32: float32
+    fp16: float32
+  color_format: bgr
+  normalization: none
+  resize:
+    method: letterbox
+    pad_position: top_left
+    rounding: half_up
+    pad_value: 114
+    interpolation: linear
+batching:
+  batch: 3
+  batch_conversion:
+    profile_id: static-batch-v1
+outputs:
+- name: boxes
+  dtype:
+    fp32: float32
+    fp16: float32
+  shape:
+  - -1
+  - -1
+  - 4
+  semantic: boxes
+- name: scores
+  dtype:
+    fp32: float32
+    fp16: float32
+  shape:
+  - -1
+  - -1
+  semantic: scores
+decode:
+  selection: nms
+  boxes_output: boxes
+  scores_output: scores
+  box_format: xyxy
+  box_scale: pixel
+  class_id_base: 0
+  person_class_id: 0
+  is_person_only: true
+  confidence_threshold_default: 0.7
+  clamp_boxes: false
+  nms:
+    iou_threshold: 0.65
+    score_threshold: 0.01
+    class_agnostic: false
+sizes:
+  n:
+    input:
+      shape:
+      - -1
+      - 3
+      - 416
+      - 416
+      resize:
+        target_size:
+        - 416
+        - 416
+    onnx:
+      precision_artifacts:
+        fp32:
+          filename: yolox-person-n_b3_fp32.onnx
+          sha256: 0ed61a5892f13dcd1f8547995efcde7e59709c661ff3b662e763a03bb60fba9a
+        fp16:
+          filename: yolox-person-n_b3_fp16.onnx
+          sha256: cfd71e31fd93a089d47aff107be31378e9c6b8b1ffc1252d23ef18dba31479bd
+      output_shapes:
+      - - 3
+        - 3549
+        - 4
+      - - 3
+        - 3549
+  t:
+    input:
+      shape:
+      - -1
+      - 3
+      - 416
+      - 416
+      resize:
+        target_size:
+        - 416
+        - 416
+    onnx:
+      precision_artifacts:
+        fp32:
+          filename: yolox-person-t_b3_fp32.onnx
+          sha256: 6cc7ef01291610204c28984c1cdf8409f1658d3e91e71dc1a6130a198aaa9417
+        fp16:
+          filename: yolox-person-t_b3_fp16.onnx
+          sha256: 3e31298302a0f3372814484834222b1d5f4ec9d5a01db0c11c681a3e005803d7
+      output_shapes:
+      - - 3
+        - 3549
+        - 4
+      - - 3
+        - 3549
+  s:
+    input:
+      shape:
+      - -1
+      - 3
+      - 640
+      - 640
+      resize:
+        target_size:
+        - 640
+        - 640
+    onnx:
+      precision_artifacts:
+        fp32:
+          filename: yolox-person-s_b3_fp32.onnx
+          sha256: d77cae3b8603ef421f9e34bfeeada633827a7d0d631c1ea8e39b5c912e8be80b
+        fp16:
+          filename: yolox-person-s_b3_fp16.onnx
+          sha256: 67cde9acaecd13821fae0049018e9d35bdef7f1496b0177ebfd12156eb786c60
+      output_shapes:
+      - - 3
+        - 8400
+        - 4
+      - - 3
+        - 8400
+  m:
+    input:
+      shape:
+      - -1
+      - 3
+      - 640
+      - 640
+      resize:
+        target_size:
+        - 640
+        - 640
+    onnx:
+      precision_artifacts:
+        fp32:
+          filename: yolox-person-m_b3_fp32.onnx
+          sha256: 957ee80507633b2cf7f72fea1730a78a22767808f1b1989da637eb61d050e1c3
+        fp16:
+          filename: yolox-person-m_b3_fp16.onnx
+          sha256: 1852e6d014c4183973dd575b094a597e97a2b2f50c980597abc4e97185eebf41
+      output_shapes:
+      - - 3
+        - 8400
+        - 4
+      - - 3
+        - 8400
+  l:
+    input:
+      shape:
+      - -1
+      - 3
+      - 640
+      - 640
+      resize:
+        target_size:
+        - 640
+        - 640
+    onnx:
+      precision_artifacts:
+        fp32:
+          filename: yolox-person-l_b3_fp32.onnx
+          sha256: cb604ce590d9977f5ecdc8cfb65a1589e89cd82794901c2693b0d12e47296fe6
+        fp16:
+          filename: yolox-person-l_b3_fp16.onnx
+          sha256: b083b8334b2683178f75b8b0f4c0443536f6d04d75a5bdead982273bbcecb2fb
+      output_shapes:
+      - - 3
+        - 8400
+        - 4
+      - - 3
+        - 8400
+  x:
+    input:
+      shape:
+      - -1
+      - 3
+      - 640
+      - 640
+      resize:
+        target_size:
+        - 640
+        - 640
+    onnx:
+      precision_artifacts:
+        fp32:
+          filename: yolox-person-x_b3_fp32.onnx
+          sha256: f2b25a9dea9f630bef67a53d137ee4e1b8b12c0fe324c38af0e4deb5c03ddfdc
+        fp16:
+          filename: yolox-person-x_b3_fp16.onnx
+          sha256: 885a31265f01b295d167c3ba9811c3a854116edba247ab3fdb2e6efaf0594be0
+      output_shapes:
+      - - 3
+        - 8400
+        - 4
+      - - 3
+        - 8400

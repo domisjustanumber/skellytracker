@@ -24,6 +24,12 @@ Removed by the content commit of [ADR-NBG2](../decisions/entries/NBG2-license-an
 
 Removed by the content commit of [ADR-NBG2](../decisions/entries/NBG2-license-and-training-data-without-the-deferred-examples.md). A user ruling gives this example no rebuild ([ADR-YS4C](../../../decisions/entries/YS4C-example-removal-by-a-user-ruling.md)). Git history keeps the file.
 
+## YOLOX person (OpenMMLab-Exporter; NMS-free outputs, host NMS)
+
+The mmdet test pipeline letterboxes into the top-left corner with half-up rounding and pad 114. YOLOX takes raw BGR pixels, so the input is `normalization: none` with `color_format: bgr`. The graph ends before NMS. It emits the decoded `xyxy` box in model-input pixels and the person score of each candidate. The host applies the NMS of the family (score > 0.01, IoU 0.65). The sizes `n` and `t` take `416x416` input, and `s`, `m`, `l` and `x` take `640x640`. The candidate count changes with the input size, so the family-level shapes leave it as `-1`, and the `onnx.output_shapes` of each size give it.
+
+Sidecar: [`yolox-person.yaml`](detectors/object_detectors/yolox-person/yolox-person.yaml).
+
 ## RTMW WholeBody (OpenMMLab-Exporter; top-down pose)
 
 mmpose `input_size` is `(width, height)`: the `256x192` sizes (`m`, `l-256`, `x-256`) take `[N, 3, 256, 192]` input and the `384x288` sizes (`l-384`, `x-384`) `[N, 3, 384, 288]`. The model consumes RGB (`bgr_to_rgb=True`) normalized with ImageNet statistics, so the input is `normalization: imagenet` with `color_format: rgb` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). SimCC bin counts are twice the input width and height (`simcc_split_ratio=2.0`) and come from `onnx.output_shapes`. The sidecar writes the 133 tracked points and the `wholebody` connections inline, with no `$ref`. The id and the folder follow [Keypoint detector id](../common/identity.md#keypoint-detector-id).
