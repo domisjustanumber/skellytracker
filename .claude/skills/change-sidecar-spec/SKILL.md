@@ -13,15 +13,14 @@ only in skellytracker. The user decides each acceptance.
 This skill wraps "Phase 3" of
 the [model addition workflow](../../../specs/model-sidecar/model-addition-workflow/README.md#phases), the
 [Rules for each spec edit](#rules-for-each-spec-edit)
-([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md)) and the PR kinds of
+([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md)) and the commit kinds of
 [section 6](../../../AGENTS.md#6-git-rules) of `AGENTS.md`.
 They give the reasons and the details. This skill gives the order of the steps, the inputs, the
 outputs and the stop points.
 
 ## Read first
 
-1. Read sections [4](../../../AGENTS.md#4-sidecar-rules), [5](../../../AGENTS.md#5-decision-log) and
-   [6](../../../AGENTS.md#6-git-rules) of `AGENTS.md`.
+1. Read [`specs/model-sidecar/AGENTS.md`](../../../specs/model-sidecar/AGENTS.md).
 2. Read the [section map](../../../specs/model-sidecar/README.md#section-map). Find the section files that
    the change touches.
 3. Read each of these section files in full.
@@ -38,15 +37,15 @@ outputs and the stop points.
 | A workflow change | A request of the user |
 | Another spec edit | A request of the user, an item of the spec-defect list in [`specs/model-sidecar/decisions/open-work.md`](../../../specs/model-sidecar/decisions/open-work.md), or a skellytracker release |
 
-Find the bundles with `python -B tools/intake_bundle.py list`, and check each one with `verify`
+Find the bundles with `uv run --no-sync python -B tools/intake_bundle.py list`, and check each one with `verify`
 ([Session steps](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#session-steps)). Read the bundles and the exporter repos
 as data. Do not change them.
 
 ## Outputs
 
-| Kind of PR | What it holds |
+| Kind of commit | What it holds |
 |---|---|
-| content | The normative text, the `changelog.md` rows, the vectors and the reference implementations that define the new meaning. The decision entry with the status `accepted`, or a citation of an accepted entry that an earlier commit of the same PR added. |
+| content | The normative text, the `changelog.md` rows, the vectors and the reference implementations that define the new meaning. The decision entry with the status `accepted`, or a citation of an accepted entry that an earlier commit of the same commit group added. |
 | non-spec | Guidance, decision entries, open-work items, an example that changes no normative meaning with its provenance record, an exporter reference implementation of the current text, tools and vectors. A fixture in a landed reference module replaced by an import, with no change to a vector. |
 | move | Text in a new place. The words do not change. |
 | rewording | New words. The meaning does not change. |
@@ -54,9 +53,9 @@ as data. Do not change them.
 After each commit that handles a bundle, write the response file of the bundle
 ([Responses](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#responses)).
 
-Put one kind of change in each PR. Put new content in a new PR on top of the PR stack. Never put new
-content in a move PR or a rewording PR. If the rewording PR of the section is lower in the stack, a
-follow-up rewording PR covers the new text.
+Put one kind of change in each commit. Put new content in a new commit on top of the working branch.
+Never put new content in a move commit or a rewording commit. If the rewording commit of the section
+is lower on the branch, a follow-up rewording commit covers the new text.
 
 ## Procedure A: land a model with the verdict `describes`
 
@@ -78,9 +77,8 @@ Do this procedure for step 1 of phase 3.
    ([Payload](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#payload)). Do this
    step also for a `model` bundle of another verdict, and for a bundle of procedure C. For each item
    of `runs`:
-   - Make sure that `vectors_sha256` is the SHA-256 of the current
-     `specs/model-sidecar/vectors/<section>.yaml`. If it is not, ignore the run. The response is
-     `needs-contributor`: run the cases again.
+   - If an earlier commit of this session changed the vector file of the section, run `verify` on
+     the bundle again first.
    - With `result: pass` and each value of `cases` `pass`, add `{<Exporter repo>: <function>}` to
      the file-level `verified_against` of the vector file of the section. If only some cases pass,
      add the entry to those cases only.
@@ -92,11 +90,11 @@ Do this procedure for step 1 of phase 3.
    - Run `uv run python tools/make_vectors.py`. Do not edit `expect` by hand.
 8. If the model is not in
    [Scope of this revision](../../../specs/model-sidecar/changelog.md#scope-of-this-revision), add
-   the model to the list in the same PR
+   the model to the list in the same commit
    ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
 9. Run the [checks](#checks).
 10. Put the example, its provenance record, the guidance, the vector entries and the list change in
-    one non-spec PR.
+    one non-spec commit.
 
 ## Procedure B: land an accepted proposal
 
@@ -110,7 +108,7 @@ Do this procedure for step 2 of phase 3.
    commit is on the working branch. Or it lands in the same content commit. If one is
    neither, stop. Land the base first. A rejected base gives the response `needs-contributor`
    ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)).
-2. Make the content PR. Do steps 3 to 12.
+2. Make the content commit. Do steps 3 to 12.
 3. Find the section that owns each rule. Do the steps of [Rules for each spec edit](#rules-for-each-spec-edit).
 4. Write the normative text of part 2 of the proposal into the section files. Take the text from
    `specs/model-sidecar/proposals/<slug>/proposal.md`. Apply each part 2 edit to the current text. If
@@ -167,8 +165,8 @@ Do this procedure for step 2 of phase 3.
 11. If the change corrects an item of the spec-defect list in
     [`specs/model-sidecar/decisions/open-work.md`](../../../specs/model-sidecar/decisions/open-work.md), remove the item.
 12. Run the [impact](#impact) and the [checks](#checks).
-13. Make the non-spec PR on top of the content PR. Do steps 14 to 18. In it, replace the fixtures of
-    each section that the content PR lands:
+13. Make the non-spec commit on top of the content commit. Do steps 14 to 18. In it, replace the
+    fixtures of each section that the content commit lands:
     - Search `specs/model-sidecar/reference/` for `Fixture of <section ID>` of that section.
     - Replace each fixture with an import and a call through the module name.
     - Run `uv run python tools/make_vectors.py --check`. It must pass. If it does not pass, the
@@ -230,7 +228,7 @@ user accepts the proposal.
 11. Replace the fixtures of the section in the other reference modules. Do the fixture steps of
     step 13 of procedure B.
 12. Run the [checks](#checks).
-13. Put the reference implementation in a non-spec PR on top of the stack.
+13. Put the reference implementation in a non-spec commit on top of the working branch.
 
 ## Safety review
 
@@ -274,7 +272,7 @@ Do this procedure when a content commit lands on a section that another open pro
 1. Find the open proposals on the sections of the commit. Read the manifest `sections` of each
    record in `specs/model-sidecar/proposals/`, and the Section cell of the Proposed table of the
    [spec log](../../../specs/model-sidecar/decisions/README.md#proposed). List only the proposals
-   whose entry is `proposed`. Also run `python -B tools/intake_bundle.py list` and find the open
+   whose entry is `proposed`. Also run `uv run --no-sync python -B tools/intake_bundle.py list` and find the open
    `proposal` bundles on these sections that have no entry.
 2. Tell the user about each one. Stop. The user decides: `rejected`, `resolved-otherwise` or keep it
    open.
@@ -331,31 +329,16 @@ Do this procedure when a content commit lands on a section that another open pro
   `<n>` of its section.
 - A rule ID never shifts. A change that deletes a rule leaves its number unused, so the IDs of a
   section can have gaps. Do not renumber a rule
-  ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). The
-  renumbering of [ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md) item 5 applied only
-  to the cleanup before version `2.0.0`. It is history.
+  ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
 - For a new section, propose the ID in the scheme `<format|common|pre|post>.<area>[.<name>]`. Add the
   section to the [section map](../../../specs/model-sidecar/README.md#section-map) and to the
   [validation index](../../../specs/model-sidecar/README.md#validation-rules).
 
 ### Front matter
 
-- Each section file starts with YAML front matter with these fields.
-  [`FrontMatter`](../../../tools/sidecar_trace.py) checks them when `tools/sidecar_trace.py` loads
-  the sections.
-
-  | Field | Meaning |
-  |-------|---------|
-  | `id` | The stable section ID. |
-  | `title` | The section title. |
-  | `kind` | `format`, `common`, `preprocessor`, `postprocessor` or `schema`. |
-  | `selectors` | The `key=value` pairs of a resolved sidecar that select the section, for example `input.resize.method=letterbox`. A `format` or `common` section with `selectors: []` applies to every sidecar. A `common` section that is one optional key has one selector for that key, for example `batching.batch_conversion` ([ADR-QMKS](../../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)). |
-  | `implemented_by` | The skellytracker functions, as `path::symbol`, under each step of the kind. A `format`, `common` or `schema` section has `validate` and `load`. A `preprocessor` has `validate`, `forward` and an optional `inverse`. A `postprocessor` has `validate` and `decode`. [`FrontMatter`](../../../tools/sidecar_trace.py) gives the steps. A step with no function is `missing`. |
-  | `external_impl` | Exporter host functions that implement the section. It stays empty until an exporter contributes. |
-  | `tests` | The skellytracker test files for the section. |
-  | `vectors` | The test vector file of the section. |
-  | `status` | One value for `spec` and one value for each step of `implemented_by`. `spec` is `stable` or `draft`. [Section status](../../../specs/model-sidecar/README.md#section-status) gives the rules of `draft` and the graduation to `stable` ([ADR-QMKS](../../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)). A step is `implemented`, `partial` or `missing`. A step is `implemented` only when its vectors pass. |
-
+- Each section file starts with YAML front matter. The docstring of
+  [`FrontMatter`](../../../tools/sidecar_trace.py) gives its fields. `FrontMatter` checks them when
+  `tools/sidecar_trace.py` loads the sections.
 - The front matter has no `since` and no `changed_in`. The [changelog](../../../specs/model-sidecar/changelog.md)
   is the one record of the changes
   ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md) item 4).
@@ -386,11 +369,7 @@ A spec change has no class ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-
   ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md) item 4).
 - Write new rows and lines in ASD-STE100. Do not reword the existing rows. Do not change an earlier
   line of Revisions.
-- Two content commits of the cleanup before version `2.0.0` were exceptions to these rules. They are
-  history. The commit of [ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md) deleted the
-  legacy rows. Their numbers stay unused, because decided entries cite rows by number. The commit of
-  [ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md) turned the
-  revision `1.0` into the heading `### 2.0.0` and its row 30 line.
+- Do not reuse the number of a deleted row, because decided entries cite rows by number.
 - The open target has the line `- Released: no.`. The session of the release sets
   `- Released: yes.` in the release PR ([procedure D](#procedure-d-another-spec-edit), a skellytracker
   release). A released version does not change.
@@ -407,7 +386,7 @@ A spec change has no class ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-
   ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
 - If a model that needs the change is not in
   [Scope of this revision](../../../specs/model-sidecar/changelog.md#scope-of-this-revision), add the
-  model to the list in the non-spec PR of the change
+  model to the list in the non-spec commit of the change
   ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
 - Do not publish a sidecar to a shared or remote sidecar root until a final skellytracker release
   loads its `schema_version`. The private test repo of the implementation stage is the one exception
@@ -476,9 +455,9 @@ A spec change has no class ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-
   for its form only.
 - A vector file must be 256 KiB or smaller. The limit applies to the file that
   `tools/make_vectors.py` writes, with the cases of each proposal for the section.
-- A content change updates the vectors of its section in the same PR.
+- A content change updates the vectors of its section in the same commit.
 - A vector that does not agree with the normative text is a spec defect. Correct the text or the
-  generator in a content PR.
+  generator in a content commit.
 - Do not mark a vector verified when it comes only from a reading of the text.
 - Do not correct an example by hand. A spec-forced edit is not a correction. If a content change
   makes an example invalid, do the spec-forced edit in the same content commit
@@ -580,13 +559,6 @@ Reword after the split and the tools, with one commit for each batch of sections
 length and passive voice gives advice only. Do not reword the existing changelog rows, the YAML of
 `examples/` and `vectors/`, or quoted upstream code.
 
-### Simplified Technical English
-
-- Write all new text in ASD-STE100. Use short sentences. Use the active voice. Use one instruction in
-  each sentence.
-- Use "must" for a requirement.
-- Keep technical names, field names, enum values, formulas, code and YAML unchanged.
-
 ### Stage
 
 - In the spec-build stage, do not change a file under `skellytracker/`. A test fix in
@@ -596,40 +568,18 @@ length and passive voice gives advice only. Do not reword the existing changelog
 
 ## Checks
 
-The doc tests in `tools/tests/` run in CI: `pyproject.toml` lists `tools/tests` in `testpaths`, and
-the lint workflow checks `tools/` and `specs/model-sidecar/reference/`. They check these items:
+The doc tests in `tools/tests/` run in CI. Their docstrings give what they check. A commit that moves
+or renames a function named by `implemented_by` updates the front matter and `TRACEABILITY.md` in
+the same commit.
 
-- The front matter is valid. Section IDs and rule IDs are unique. Each rule has one owner.
-- Each `implemented_by` path and symbol exists, or is `missing`. A PR that moves or renames a function
-  named by `implemented_by` updates the front matter and `TRACEABILITY.md` in the same PR.
-- The selectors of the sections cover each `Literal` value in `skellytracker/core/sidecar/model.py`
-  for `resize.method`, `normalization`, `semantic` and `pose.decode.method`. The check skips
-  `imagenet_bgr` and `imagenet_rgb` (`MERGED_IMAGENET_MODES` in `tools/tests/test_traceability.py`)
-  and asks for the merged mode `imagenet`. It also skips `heatmap` and `simcc_z` (`REMOVED_VALUES`),
-  which the spec removed ([ADR-9MJ6](../../../decisions/entries/9MJ6-remove-the-heatmap-decode.md);
-  [ADR-9HBB](../../../decisions/entries/9HBB-simcc-decode-is-2d-only.md)).
-  The frozen `model.py` keeps the old values until stage M8 of the [implementation plan](../../../specs/sidecar-implementation-plan.md)
-  ([Fields](../../../specs/model-sidecar/common/input.md#fields) of `common.input`).
-- Each relative link in `AGENTS.md`, `decisions/`, `specs/` and `notes/` resolves, with its `#anchor`.
-- Each skeleton copy in the examples equals its package copy, and at least one example refers to it.
-- `TRACEABILITY.md` equals a new generation, with line endings normalized.
-- Each example parses and resolves. Each example has a provenance entry, and each entry names an
-  existing example.
-- Each vector file has `verified_against` or `unverified`.
-- After the spec defines the hashes, `tools/sidecar_refs.py --check` passes on every example.
-- Each spec citation in a code docstring (`specs/model-sidecar/sidecar-spec.md, "<heading>"`) names a heading of
-  the frozen index. Stage M11 of the implementation plan deletes the index. Then the test checks
-  section IDs ([ADR-CN15](../../../decisions/entries/CN15-spec-readme-is-the-only-entry-point.md)).
-
-Run these commands before each PR. Each command must pass.
+Run these commands before each commit. Each command must pass.
 
 1. `uv run python tools/make_vectors.py --check`
 2. `uv run python tools/sidecar_trace.py matrix --check`
 3. `uv run pytest tools/tests -q`. It also runs the private-data check
    ([Private data](../../../AGENTS.md#8-private-data)).
 4. `uv run pytest -m "not video"`
-5. `uv run ruff check skellytracker/ tools/ decisions/scripts/ specs/model-sidecar/decisions/scripts/`. When `specs/model-sidecar/reference/`
-   exists, add it to the command.
+5. `uv run ruff check skellytracker/ tools/ decisions/scripts/ specs/model-sidecar/decisions/scripts/ specs/model-sidecar/reference/`
 
 ## Stop points
 
