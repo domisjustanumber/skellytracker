@@ -550,6 +550,17 @@ Two rules of this part stay:
   data-only case of [`common.identity`](model-sidecar/vectors/common.identity.yaml) to a temporary
   sidecar root at `input.path` and checks the failed rules, for example in
   `skellytracker/tests/sidecar/`. Then update the `validate` note of the front matter of the section.
+- **License block.** Added on 2026-11-09. Each sidecar has the `license` block with the model
+  license and the training data ([ADR-NBG2](model-sidecar/decisions/entries/NBG2-license-and-training-data-without-the-deferred-examples.md);
+  [License and training data](model-sidecar/common/license.md)). `SidecarModel` in
+  `skellytracker/core/sidecar/model.py` forbids the key `license`, so the package rejects each
+  example. Add a model of the block and check `V-common.license-1` to `V-common.license-7`. The SPDX
+  check of `V-common.license-3` needs a copy of the SPDX License List: pin its version (the
+  Implementer guidance names 3.29.0). Add the data-only cases of
+  [`common.license`](model-sidecar/vectors/common.license.yaml) to
+  `skellytracker/tests/sidecar/test_model_validation.py`. Then update the `validate` and `load`
+  notes of the front matter of the section. The section is `draft`, so the `2.0.0` release also
+  needs its graduation or its removal from the release.
 
 ### M9 — Source and hash checks
 
