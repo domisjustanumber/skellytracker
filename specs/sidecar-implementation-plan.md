@@ -1,8 +1,8 @@
 # Implement the Model Sidecar Spec + Dogfood YOLOX/RTMW
 
-> **Decisions.** The decisions behind this plan are recorded in the decision log, [`decisions/`](../decisions/README.md). Entries 0002 to 0007 record its key decisions and milestones, and entry 0016 replaces the key, discovery and root rules of M6 Part A. This plan stays until the user decides to delete it ([ADR-5WKW](../decisions/entries/5WKW-implementation-work-in-the-plan.md)). Record a new decision as a decision entry, not in this plan.
+> **Decisions.** The decisions behind this plan are recorded in the decision log, [`decisions/`](../decisions/README.md). Entries 0002 to 0007 record its key decisions and milestones, and entry [ADR-0016](../decisions/entries/0016-sidecar-catalogs.md) (superseded by [ADR-0QKK](../decisions/entries/0QKK-no-legacy-layer.md)) replaces the key, discovery and root rules of M6 Part A. This plan stays until the user decides to delete it ([ADR-5WKW](../decisions/entries/5WKW-implementation-work-in-the-plan.md)). Record a new decision as a decision entry, not in this plan.
 
-> Status: **M1 to M5 are done. M6 to M12 have not started.** M6 changes package code, so it waits for the implementation stage (decision 0014). [M8](#m8--validation-preprocessing-and-decode-gaps) lists the known package gaps. The "Status" line of each milestone below gives its state.
+> Status: **M1 to M5 are done. M6 to M12 have not started.** M6 changes package code, so it waits for the implementation stage ([Stages](model-sidecar/model-addition-workflow/README.md#stages)). [M8](#m8--validation-preprocessing-and-decode-gaps) lists the known package gaps. The "Status" line of each milestone below gives its state.
 
 ## Context
 
@@ -160,7 +160,7 @@ Tests: full suite unmodified and still green (`pytest skellytracker/tests` — 4
 
 ### M6 — Generic sidecar-driven detector (drop in a YAML + ONNX, no new Python)
 
-**Status: NOT STARTED.** M6 changes package code, so it waits for the implementation stage (decision 0014).
+**Status: NOT STARTED.** M6 changes package code, so it waits for the implementation stage ([Stages](model-sidecar/model-addition-workflow/README.md#stages)).
 
 **Goal:** today, migrating a model family to the sidecar system still means hand-writing a `@dataclass` detector (`preprocess`/`postprocess`/`detect`/`model_spec`) per family and manually registering it — see `YoloxPersonDetector`, `RTMWWholebodyDetector`, `RTMPoseBodyDetector`/`RTMPoseHandDetector`/`RTMPoseFaceDetector`. The bodies of these are now thin wrappers around the generic `core/detectors/processing/*` functions, but they're still bespoke code per model. M6's goal is to close that last mile: **finding an ONNX file for an object or keypoint detector, writing a conforming sidecar YAML for it, and running it from skellytracker with zero new Python**, for the decode/preprocess combinations the spec already describes.
 
@@ -588,7 +588,9 @@ Two rules of this part stay:
 **Status: NOT STARTED.** It changes package code, so it waits for the implementation stage
 ([Stages](model-sidecar/model-addition-workflow/README.md#stages)). This stage needs M6, the catalog-key claim of M7, and the NMS box area and the batch forms of M8.
 
-- **YOLOX.** Re-export YOLOX to a contract that the spec describes: dynamic batch
+- **YOLOX.** Re-export YOLOX to the contract of the reference example
+  [`yolox-person.yaml`](model-sidecar/examples/detectors/object_detectors/yolox-person/yolox-person.yaml):
+  `batching.batch: 3` with `batching.batch_conversion.profile_id: static-batch-v1`
   (`common.batching`), no NMS in the graph, and host `selection: nms` (`post.det.selection.nms`). Run
   a parity check on the new export. Then remove the claim of
   the hand-written YOLOX detector on the catalog key `yolox@skellytracker`
@@ -619,9 +621,6 @@ of M8 when the export has no batch key `"1"`. It has no order link to M10a.
   ([Normalization modes](model-sidecar/pre/normalization.md#behaviour)).
 - **Differences from the package sidecar.** The export of OpenMMLab-Exporter differs in these points
   (checked on 2026-10-30):
-  - The `model_id` is `rtmw-wholebody133`, in the folder `rtmw/wholebody133/`. The spec does not
-    accept this `model_id` form yet (the Identity item of
-    [Spec defects](model-sidecar/decisions/open-work.md#spec-defects)).
   - The size keys are `m`, `l-256`, `x-256`, `l-384` and `x-384`. The package `model_name` values
     `rtmw-l-m_256x192`, `rtmw-x-l_256x192` (the default) and `rtmw-x-l_384x288` are the checkpoints
     of `m`, `l-256` and `l-384`.
@@ -709,19 +708,15 @@ of M8 when the export has no batch key `"1"`. It has no order link to M10a.
 
 ### M12 — `vNEXT` release
 
-**Status: NOT STARTED.** It waits for the first skellytracker release that ships the spec. It changes the spec, the examples and the vectors, not the package code. This is the last stage.
+**Status: NOT STARTED.** It waits for the first skellytracker release that ships the spec. It changes the spec, the examples and the vectors, not the package code. This is the last stage. The `vNEXT` release step is moot, because the spec has no `vNEXT` ([ADR-6GE2](../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
 
-- **`vNEXT` release step.** At the first skellytracker release that ships the spec, one content PR
-  replaces `vNEXT` with that release version everywhere. Then the exporters regenerate their sidecars
-  ([Publishing](model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing)). OpenMMLab-Exporter ([`rtmdet_person/sidecar.py:30`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmdet_person/sidecar.py#L30)) and Roboflow-Exporter ([`rf_detr/sidecar.py:32`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L32)) write `vNEXT` today.
 - **The first package release.** Added on 2026-11-03. The spec version is the skellytracker
   version. The spec has no `vNEXT`, and the open target is `2.0.0`
   ([ADR-6GE2](../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). Thus M12 becomes
   the first package release that ships the spec: the skellytracker `2.0.0` release. It is the first
-  release that loads `"2.0.0"`, thus M8 comes before it (the item SemVer `schema_version`). The
-  `vNEXT` release step above is moot. These parts of other stages are also moot: the development
-  build of M7 that loads `vNEXT` sidecars, and the parts of M8, M9 and M11 that apply before
-  `vNEXT`. In the other text of M7 to M12, `vNEXT` means the open target `2.0.0`. The V- rule
+  release that loads `"2.0.0"`, thus M8 comes before it (the item SemVer `schema_version`). These
+  parts of other stages are moot: the development build of M7 that loads `vNEXT` sidecars, and the
+  parts of M8, M9 and M11 that apply before `vNEXT`. In the other text of M7 to M12, `vNEXT` means the open target `2.0.0`. The V- rule
   checks of the examples in M7 do not wait for a development build. They wait for the package model
   of M8.
 
@@ -738,4 +733,4 @@ Moved to [Reference examples](model-sidecar/model-addition-workflow/reference-ex
 
 ## Resuming this plan in a fresh session
 
-M1 to M5 are done. Each milestone above gives its file layout. The four generic processing modules are in `core/detectors/processing/` (decision 0007). Do not create the deleted modules `yolox_preprocessing.py`, `rtmpose_preprocessing.py` and `rtmpose_simcc_decode.py` again. The next work is M6. It starts in the implementation stage (decision 0014). Use the skill `implement-sidecar-section`. Before Part A, read decision 0016. No `GenericObjectDetector` or `GenericKeypointDetector` class exists yet.
+M1 to M5 are done. Each milestone above gives its file layout. The four generic processing modules are in `core/detectors/processing/` (decision 0007). Do not create the deleted modules `yolox_preprocessing.py`, `rtmpose_preprocessing.py` and `rtmpose_simcc_decode.py` again. The next work is M6. It starts in the implementation stage ([Stages](model-sidecar/model-addition-workflow/README.md#stages)). Use the skill `implement-sidecar-section`. Before Part A, read decision 0016. No `GenericObjectDetector` or `GenericKeypointDetector` class exists yet.
