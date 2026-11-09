@@ -95,6 +95,7 @@ The rules of this list:
 | 41 | Input | An absent key of a `custom` normalization has the value `scale: 1`, `mean: [0, 0, 0]` or `std: [1, 1, 1]`. The `none` row names YOLOX and RTMO as models whose upstream does not normalize. | user decision 2026-11-09: `V-pre.normalize-1` allowed an absent `mean` or `std` with no value, and the `none` row said that YOLOX normalizes internally ([ADR-1V57](decisions/entries/1V57-normalize-custom-defaults.md)) | [Normalization](pre/normalization.md#behaviour) |
 | 42 | Identity | The `model_id` of a keypoint detector is `{family}-{group}` or `{family}-{group}-{variant}`. `{group}` is a body region or a keypoint set with its keypoint count (`wholebody133`). The folder is `keypoint_detectors/{family}/{group}/`. New rules `V-common.identity-7` and `V-common.identity-8`. | RTMW (`rtmw-wholebody133`), RTMO body7 (`rtmo-coco17-body7`); user decision 2026-11-06 ([ADR-52NQ](decisions/entries/52NQ-model-id-suffix.md), [ADR-KZ9J](decisions/entries/KZ9J-model-id-suffix-rtmo-removed.md)) | [Identity](common/identity.md#keypoint-detector-id) |
 | 43 | License | New draft section `common.license`: the required `license` block with the model license and the training data, as SPDX ids, and `unknown` only with a reason. New rules `V-common.license-1` to `V-common.license-7`. | user decision 2026-11-06 ([ADR-NBG2](decisions/entries/NBG2-license-and-training-data-without-the-deferred-examples.md)) | [License and training data](common/license.md) |
+| 44 | License | `license.training_data` also lists each dataset of a distillation teacher, with `use: pretraining`. | user decision 2026-11-09 ([ADR-1BS2](decisions/entries/1BS2-distillation-teacher-is-a-start-checkpoint.md)) | [License and training data](common/license.md#fields) |
 
 ### Considered and deliberately not added
 
@@ -181,6 +182,7 @@ The rules of the versions
 - Row 41: `85a85089fa3ff1a21579b41d3361e724062abd06ccbea7de8ad913838f79d01f`.
 - Row 42: `2122b815a8c7100aac5a246ec0563df5714de6684baebdf92a4aab09f19891cc`.
 - Row 43: `f3ddc2567f48b2d0c7df3ec2d95cf3deebea62997b895c6841334e69c34407ff`.
+- Row 44: `f3ddc2567f48b2d0c7df3ec2d95cf3deebea62997b895c6841334e69c34407ff`.
 
 Version `2.0.0` is the first version. It replaces the revision `1.0` and the `schema_version`
 history before it. No release shipped a sidecar of that history

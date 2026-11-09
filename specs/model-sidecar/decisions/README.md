@@ -21,6 +21,7 @@ These entries are `accepted` or `evidence`.
 | [R6J9](entries/R6J9-test-time-steps-and-unreachable-branches.md) | `out of scope` covers a test-time augmentation and an undeclared extra decode value; parity needs no image for an unreachable branch | accepted |
 | [52NQ](entries/52NQ-model-id-suffix.md) | Spec change: keypoint detector id `{family}-{group}[-{variant}]` | accepted |
 | [KZ9J](entries/KZ9J-model-id-suffix-rtmo-removed.md) | Spec change: follow-up of 52NQ; the example `rtmo-body7` is removed, not rebuilt | accepted |
+| [1BS2](entries/1BS2-distillation-teacher-is-a-start-checkpoint.md) | `common.license`: the datasets of a distillation teacher count, with `use: pretraining` | accepted |
 
 ### Proposed
 

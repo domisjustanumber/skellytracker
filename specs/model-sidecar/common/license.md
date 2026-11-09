@@ -24,11 +24,11 @@ The `license` block gives the license of the weights and the training data of th
 |-------|------|----------|-------------|
 | `license` | object | yes | The keys `model` and `training_data`, and `training_data_unknown_reason` only when `training_data` is `unknown`. |
 | `license.model` | license object | yes | The license of the weights. |
-| `license.training_data` | array or `unknown` | yes | One dataset entry for each dataset that made the weights. This includes each dataset of a checkpoint that the training started from. |
+| `license.training_data` | array or `unknown` | yes | One dataset entry for each dataset that made the weights. This includes each dataset of a checkpoint that the training started from, and each dataset of a distillation teacher ([ADR-1BS2](../decisions/entries/1BS2-distillation-teacher-is-a-start-checkpoint.md)). |
 | `license.training_data_unknown_reason` | string | only with `training_data: unknown` | Why the datasets are not known ([Behaviour](#behaviour)). |
 | `license.training_data[].name` | string | yes | The name of the dataset. |
 | `license.training_data[].url` | string | no | A public page of the dataset. |
-| `license.training_data[].use` | enum | yes | `pretraining` (the dataset made a checkpoint that the training started from) or `training`. |
+| `license.training_data[].use` | enum | yes | `pretraining` (the dataset made a checkpoint that the training started from, or a distillation teacher) or `training`. |
 | `license.training_data[].license` | license object | yes | The license of the dataset. |
 | license object `id` | string | yes | An SPDX license expression, or `unknown`. An expression can hold a `LicenseRef-<name>` id for a license that the SPDX License List does not list. |
 | license object `url` | string | no | The license text. It is required for a `LicenseRef-` id (`V-common.license-3`). |
