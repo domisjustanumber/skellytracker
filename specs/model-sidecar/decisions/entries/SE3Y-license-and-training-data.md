@@ -1,6 +1,6 @@
 # SE3Y — License and training data
 
-**Status:** accepted, 2026-11-06 (user; PR: pending).
+**Status:** superseded by [NBG2](NBG2-license-and-training-data-without-the-deferred-examples.md), 2026-11-09 (user; PR: pending).
 
 ## Decision
 

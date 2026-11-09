@@ -23,3 +23,4 @@ the reason for a decision. The [index](README.md) has the Active and Proposed en
 | [03PH](entries/03PH-simcc-score-rule.md) | Spec change: the 2D SimCC score is the smaller raw peak | absorbed into [`post/pose-decode-simcc.md#behaviour`](../post/pose-decode-simcc.md#behaviour) |
 | [XH1J](entries/XH1J-normalize-input-dtype.md) | Spec change: each normalization casts to `input.dtype`; no `int8` input | absorbed into [`pre/normalization.md#behaviour`](../pre/normalization.md#behaviour) |
 | [1V57](entries/1V57-normalize-custom-defaults.md) | Spec change: an absent `custom` key defaults to identity; YOLOX takes raw pixels | absorbed into [`pre/normalization.md#behaviour`](../pre/normalization.md#behaviour) |
+| [SE3Y](entries/SE3Y-license-and-training-data.md) | New draft section `common.license`: mandatory model license and training data, SPDX ids, `unknown` with a reason; examples `needs-export` | superseded by NBG2 |

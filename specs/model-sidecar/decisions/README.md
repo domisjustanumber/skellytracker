@@ -15,7 +15,7 @@ These entries are `accepted` or `evidence`.
 
 | # | Decision | Status |
 |---|----------|--------|
-| [SE3Y](entries/SE3Y-license-and-training-data.md) | New draft section `common.license`: mandatory model license and training data, SPDX ids, `unknown` with a reason; examples `needs-export` | accepted |
+| [NBG2](entries/NBG2-license-and-training-data-without-the-deferred-examples.md) | New draft section `common.license`; RTMW rebuild replaces its example, three deferred examples go; supersedes SE3Y | accepted |
 | [50BW](entries/50BW-verification-batches.md) | Spec change: the verification batches of `static-batch-v1` are 1, 2, 3 and 6, not 1, 2, 3 and 4 (guidance only) | accepted |
 | [1VMX](entries/1VMX-nms-key-exclusion.md) | Spec change: the NMS reference refuses the keys of `V-post.det.selection.nms-1` | accepted |
 
