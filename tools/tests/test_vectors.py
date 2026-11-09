@@ -214,6 +214,7 @@ FILE_TOLERANCE = {
     "selection": 1e-5,
     "decode": 1e-5,
     "common.input": 1e-4,
+    "common.identity": 0,  # data-only validator cases
 }
 
 

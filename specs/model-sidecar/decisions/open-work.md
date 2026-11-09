@@ -18,8 +18,7 @@ This heading holds one item
 - **Rebuild of each example.** Each exporter rebuilds each of its examples on the spec version
   `2.0.0`. It answers with a new version of the `model` bundle of each example. OpenMMLab-Exporter:
   `rtmw-wholebody`, as `rtmw-wholebody133`. A user ruling gives no rebuild to `rtmdet-person`,
-  `rtmo-body7`, `yolo26` and `yolo26-body`. The content commits of 52NQ and of NBG2 remove
-  them ([ADR-YS4C](../../../decisions/entries/YS4C-example-removal-by-a-user-ruling.md)).
+  `yolo26` and `yolo26-body`. The content commit of NBG2 removes them ([ADR-YS4C](../../../decisions/entries/YS4C-example-removal-by-a-user-ruling.md)).
   The prerequisite changes: the removal of the legacy layer
   ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)), the one batch field with
   `output_shapes` in each size ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)), the
@@ -38,12 +37,6 @@ This heading holds one item
 
 Spec defects found during the spec-build stage. Each one needs a content change to the spec:
 
-- The [Identity](../common/identity.md) fields say that a keypoint detector's
-  `model_id` is `{family}-{part}`. This rule cannot express a variant suffix or a stage suffix. The
-  RTMO body7 reference example, copied from OpenMMLab-Exporter, has `model_id: rtmo-body7` in the
-  `body` part folder. A hand landmark model and a hand re-crop model of one family would both get
-  `{family}-hand`. The spec must allow a suffix after the part, or the exporters must rename these
-  models. OpenMMLab-Exporter sets `FAMILY = "rtmo-body7"` ([`rtmo/identity.py:24`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmo/identity.py#L24)).
 - `cv2.warpAffine` runs `cv2.INTER_AREA` as `cv2.INTER_LINEAR` (OpenCV 4.13.0). `area` with `fit`
   or `affine_person_crop` thus gives the pixels of `linear`. The
   [interpolation](../pre/interpolation.md#behaviour) table names `cv2.INTER_AREA` for `area`. No
@@ -69,9 +62,8 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   `role` has both `object_detector` and `pose_estimator`. Both one-stage pose exporters write such a
   sidecar under `detectors/keypoint_detectors/`. Ultralytics-Exporter uses `yolo26/body/`
   ([`yolo_sidecar.py:104-107`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L104-L107)). OpenMMLab-Exporter uses
-  `rtmo/body7/` ([`rtmo/identity.py:27`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmo/identity.py#L27)).
-  `body7` is not a part folder ([Authoring guidance](../format/file-layout.md#authoring-guidance)).
-  The two reference examples with both roles (RTMO body7 and YOLO26 pose) use
+  `rtmo/coco17/` ([`rtmo/identity.py:42`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/d9704753a22792c32a1d3018a0c9e9ea2d279d71/rtmo/identity.py#L42)).
+  The reference example with both roles (YOLO26 pose) uses
   `detectors/keypoint_detectors/{family}/body/`.
 - [`letterbox`](../pre/resize-letterbox.md#fields) has no `rounding` value for `floor`, and its
   [inverse](../pre/resize-letterbox.md#inverse) uses the rounded size. The `resize_pad` function of

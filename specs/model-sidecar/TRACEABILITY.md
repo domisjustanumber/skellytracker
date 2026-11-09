@@ -12,43 +12,42 @@ The `pre.normalize` row shows the normalization mode. The selection rows show th
 
 The `post.pose.bottom_up` row shows `packed` when an output packs the keypoints into the detection rows. It shows `poses` when an output has the semantic `poses`.
 
-| Section | rtmdet-person<br>@openmmlab-exporter | rtmo-body7<br>@openmmlab-exporter | rtmw-wholebody<br>@openmmlab-exporter | yolo26<br>@ultralytics-exporter | yolo26-body<br>@ultralytics-exporter |
-|---|---|---|---|---|---|
-| [`format.file_layout`](format/file-layout.md) | x | x | x | x | x |
-| [`format.composition`](format/composition.md) | x | x | x | x | x |
-| [`format.versioning`](format/versioning.md) | x | x | x | x | x |
-| [`common.identity`](common/identity.md) | x | x | x | x | x |
-| [`common.sizes_and_artifacts`](common/sizes-and-artifacts.md) | x | x | x | x | x |
-| [`common.batching`](common/batching.md) | x | x | x | x | x |
-| [`common.batch_conversion`](common/batch-conversion.md) |  |  |  |  |  |
-| [`common.input`](common/input.md) | x | x | x | x | x |
-| [`common.outputs`](common/outputs.md) | x | x | x | x | x |
-| [`pre.resize.letterbox`](pre/resize-letterbox.md) | x |  |  | x | x |
-| [`pre.resize.stretch`](pre/resize-stretch.md) |  |  |  |  |  |
-| [`pre.resize.fit`](pre/resize-fit.md) |  | x |  |  |  |
-| [`pre.resize.none`](pre/resize-none.md) |  |  |  |  |  |
-| [`pre.resize.affine_person_crop`](pre/resize-affine-person-crop.md) |  |  | x |  |  |
-| [`pre.resize.interpolation`](pre/interpolation.md) | x | x | x | x | x |
-| [`pre.normalize`](pre/normalization.md) | imagenet | none | imagenet | unit_float | unit_float |
-| [`post.det.outputs`](post/detection-outputs.md) | x | x |  | x | x |
-| [`post.det.decode`](post/detection-decode.md) | x | x |  | x | x |
-| [`post.det.selection.none`](post/selection-none.md) |  | none |  | none | none |
-| [`post.det.selection.top_k`](post/selection-top-k.md) |  |  |  |  |  |
-| [`post.det.selection.nms`](post/selection-nms.md) | nms |  |  |  |  |
-| [`post.pose.schema`](post/pose-schema.md) |  | x | x |  | x |
-| [`post.pose.canonical_mapping`](post/canonical-mapping.md) |  |  |  |  |  |
-| [`post.pose.decode.simcc`](post/pose-decode-simcc.md) |  |  | x |  |  |
-| [`post.pose.decode.coordinate`](post/pose-decode-coordinate.md) |  | x |  |  | x |
-| [`post.pose.bottom_up`](post/pose-bottom-up.md) |  | x (poses) |  |  | x (packed) |
-| [`post.overlay`](post/overlay.md) |  | x | x |  | x |
-| [`post.unprojection`](post/unprojection.md) | x | x | x | x | x |
+| Section | rtmdet-person<br>@openmmlab-exporter | rtmw-wholebody<br>@openmmlab-exporter | yolo26<br>@ultralytics-exporter | yolo26-body<br>@ultralytics-exporter |
+|---|---|---|---|---|
+| [`format.file_layout`](format/file-layout.md) | x | x | x | x |
+| [`format.composition`](format/composition.md) | x | x | x | x |
+| [`format.versioning`](format/versioning.md) | x | x | x | x |
+| [`common.identity`](common/identity.md) | x | x | x | x |
+| [`common.sizes_and_artifacts`](common/sizes-and-artifacts.md) | x | x | x | x |
+| [`common.batching`](common/batching.md) | x | x | x | x |
+| [`common.batch_conversion`](common/batch-conversion.md) |  |  |  |  |
+| [`common.input`](common/input.md) | x | x | x | x |
+| [`common.outputs`](common/outputs.md) | x | x | x | x |
+| [`pre.resize.letterbox`](pre/resize-letterbox.md) | x |  | x | x |
+| [`pre.resize.stretch`](pre/resize-stretch.md) |  |  |  |  |
+| [`pre.resize.fit`](pre/resize-fit.md) |  |  |  |  |
+| [`pre.resize.none`](pre/resize-none.md) |  |  |  |  |
+| [`pre.resize.affine_person_crop`](pre/resize-affine-person-crop.md) |  | x |  |  |
+| [`pre.resize.interpolation`](pre/interpolation.md) | x | x | x | x |
+| [`pre.normalize`](pre/normalization.md) | imagenet | imagenet | unit_float | unit_float |
+| [`post.det.outputs`](post/detection-outputs.md) | x |  | x | x |
+| [`post.det.decode`](post/detection-decode.md) | x |  | x | x |
+| [`post.det.selection.none`](post/selection-none.md) |  |  | none | none |
+| [`post.det.selection.top_k`](post/selection-top-k.md) |  |  |  |  |
+| [`post.det.selection.nms`](post/selection-nms.md) | nms |  |  |  |
+| [`post.pose.schema`](post/pose-schema.md) |  | x |  | x |
+| [`post.pose.canonical_mapping`](post/canonical-mapping.md) |  |  |  |  |
+| [`post.pose.decode.simcc`](post/pose-decode-simcc.md) |  | x |  |  |
+| [`post.pose.decode.coordinate`](post/pose-decode-coordinate.md) |  |  |  | x |
+| [`post.pose.bottom_up`](post/pose-bottom-up.md) |  |  |  | x (packed) |
+| [`post.overlay`](post/overlay.md) |  | x |  | x |
+| [`post.unprojection`](post/unprojection.md) | x | x | x | x |
 
 ### Models
 
 | Key | Root | File | `schema_version` | `role` |
 |---|---|---|---|---|
 | `rtmdet-person@openmmlab-exporter` | example | `specs/model-sidecar/examples/detectors/object_detectors/rtmdet-person/rtmdet-person.yaml` | `2.0.0` | `object_detector` |
-| `rtmo-body7@openmmlab-exporter` | example | `specs/model-sidecar/examples/detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml` | `2.0.0` | `object_detector`, `pose_estimator` |
 | `rtmw-wholebody@openmmlab-exporter` | example | `specs/model-sidecar/examples/detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml` | `2.0.0` | `pose_estimator` |
 | `yolo26@ultralytics-exporter` | example | `specs/model-sidecar/examples/detectors/object_detectors/yolo26/yolo26.yaml` | `2.0.0` | `object_detector` |
 | `yolo26-body@ultralytics-exporter` | example | `specs/model-sidecar/examples/detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml` | `2.0.0` | `object_detector`, `pose_estimator` |
@@ -63,34 +62,34 @@ The Gate column is the coverage backlog. It shows the graduation conditions of a
 
 | Section | Spec | Steps | Tests | Vectors | Examples | Rules with a case | Reference | No model | Gate |
 |---|---|---|---|---|---|---|---|---|---|
-| [`format.file_layout`](format/file-layout.md) | stable | `validate` partial: `skellytracker/core/sidecar/loader.py::load_sidecar`<br>`load` partial: `skellytracker/core/sidecar/loader.py::_default_cache_dir` | `skellytracker/tests/sidecar/test_yolox_sidecar.py` | none | 3 export, 2 forecast | 0 of 0 | none |  | pass |
-| [`format.composition`](format/composition.md) | stable | `validate` partial: `skellytracker/core/sidecar/resolution.py::_resolve_refs`<br>`load` partial: `skellytracker/core/sidecar/resolution.py::resolve_sidecar_composition` | `skellytracker/tests/sidecar/test_resolution.py` | none | 3 export, 2 forecast | 0 of 5 | none |  | open: rules |
-| [`format.versioning`](format/versioning.md) | stable | `validate` missing<br>`load` missing | `skellytracker/tests/sidecar/test_model_validation.py` | none | 3 export, 2 forecast | 0 of 2 | none |  | open: rules |
-| [`common.identity`](common/identity.md) | stable | `validate` partial: `skellytracker/core/sidecar/loader.py::load_sidecar`<br>`load` partial: `skellytracker/core/sidecar/model.py::SidecarModel` | `skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/sidecar/test_yolox_sidecar.py` | none | 3 export, 2 forecast | 0 of 6 | none |  | open: rules |
-| [`common.sizes_and_artifacts`](common/sizes-and-artifacts.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::SizeSpec`<br>`load` partial: `skellytracker/core/sidecar/model.py::SidecarModel.resolved_size` | `skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/sidecar/test_runtime.py`<br>`skellytracker/tests/sidecar/test_model_registry_sidecar_support.py` | none | 3 export, 2 forecast | 0 of 12 | none |  | open: rules |
-| [`common.batching`](common/batching.md) | stable | `validate` missing<br>`load` partial: `skellytracker/core/sidecar/model.py::OnnxSpec.supports_dynamic_batch` | `skellytracker/tests/sidecar/test_model_validation.py` | none | 3 export, 2 forecast | 0 of 0 | none |  | pass |
+| [`format.file_layout`](format/file-layout.md) | stable | `validate` partial: `skellytracker/core/sidecar/loader.py::load_sidecar`<br>`load` partial: `skellytracker/core/sidecar/loader.py::_default_cache_dir` | `skellytracker/tests/sidecar/test_yolox_sidecar.py` | none | 2 export, 2 forecast | 0 of 0 | none |  | pass |
+| [`format.composition`](format/composition.md) | stable | `validate` partial: `skellytracker/core/sidecar/resolution.py::_resolve_refs`<br>`load` partial: `skellytracker/core/sidecar/resolution.py::resolve_sidecar_composition` | `skellytracker/tests/sidecar/test_resolution.py` | none | 2 export, 2 forecast | 0 of 5 | none |  | open: rules |
+| [`format.versioning`](format/versioning.md) | stable | `validate` missing<br>`load` missing | `skellytracker/tests/sidecar/test_model_validation.py` | none | 2 export, 2 forecast | 0 of 2 | none |  | open: rules |
+| [`common.identity`](common/identity.md) | stable | `validate` partial: `skellytracker/core/sidecar/loader.py::load_sidecar`<br>`load` partial: `skellytracker/core/sidecar/model.py::SidecarModel` | `skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/sidecar/test_yolox_sidecar.py` | [`vectors/common.identity.yaml`](vectors/common.identity.yaml)<br>12 cases, 0 verified | 2 export, 2 forecast | 2 of 8 | none |  | open: rules |
+| [`common.sizes_and_artifacts`](common/sizes-and-artifacts.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::SizeSpec`<br>`load` partial: `skellytracker/core/sidecar/model.py::SidecarModel.resolved_size` | `skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/sidecar/test_runtime.py`<br>`skellytracker/tests/sidecar/test_model_registry_sidecar_support.py` | none | 2 export, 2 forecast | 0 of 12 | none |  | open: rules |
+| [`common.batching`](common/batching.md) | stable | `validate` missing<br>`load` partial: `skellytracker/core/sidecar/model.py::OnnxSpec.supports_dynamic_batch` | `skellytracker/tests/sidecar/test_model_validation.py` | none | 2 export, 2 forecast | 0 of 0 | none |  | pass |
 | [`common.batch_conversion`](common/batch-conversion.md) | draft | `validate` missing<br>`load` partial: `skellytracker/core/sessions/batch_conversion.py::model_batch_convert` | `skellytracker/tests/test_batch_conversion.py` | none | none | 0 of 3 | none |  | open: example, vectors, rules |
-| [`common.input`](common/input.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::InputSpec`<br>`load` partial: `skellytracker/core/detectors/processing/image_preprocessing.py::preprocess_image` | `skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/test_image_preprocessing.py` | [`vectors/common.input.yaml`](vectors/common.input.yaml)<br>2 cases, 0 verified | 3 export, 2 forecast | 1 of 5 | none |  | open: rules |
-| [`common.outputs`](common/outputs.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::OutputSpec`<br>`load` missing | `skellytracker/tests/sidecar/test_model_validation.py` | none | 3 export, 2 forecast | 0 of 4 | none |  | open: rules |
+| [`common.input`](common/input.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::InputSpec`<br>`load` partial: `skellytracker/core/detectors/processing/image_preprocessing.py::preprocess_image` | `skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/test_image_preprocessing.py` | [`vectors/common.input.yaml`](vectors/common.input.yaml)<br>2 cases, 0 verified | 2 export, 2 forecast | 1 of 5 | none |  | open: rules |
+| [`common.outputs`](common/outputs.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::OutputSpec`<br>`load` missing | `skellytracker/tests/sidecar/test_model_validation.py` | none | 2 export, 2 forecast | 0 of 4 | none |  | open: rules |
 | [`pre.resize.letterbox`](pre/resize-letterbox.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::ResizeSpec._check_method_specific_fields`<br>`forward` partial: `skellytracker/core/detectors/processing/image_preprocessing.py::letterbox_preprocess`<br>`inverse` partial: `skellytracker/core/detectors/processing/object_detection_decode.py::decode_prenms` | `skellytracker/tests/test_image_preprocessing.py`<br>`skellytracker/tests/test_object_detection_decode.py`<br>`skellytracker/tests/sidecar/test_model_validation.py` | [`vectors/pre.resize.letterbox.yaml`](vectors/pre.resize.letterbox.yaml)<br>52 cases, 52 verified | 1 export, 2 forecast | 0 of 1 | [`reference/pre_resize_letterbox.py`](reference/pre_resize_letterbox.py) |  | open: rules |
 | [`pre.resize.stretch`](pre/resize-stretch.md) | stable | `validate` implemented: `skellytracker/core/sidecar/model.py::ResizeSpec._check_method_specific_fields`<br>`forward` partial: `skellytracker/core/detectors/processing/image_preprocessing.py::preprocess_image`<br>`inverse` missing | none | [`vectors/pre.resize.stretch.yaml`](vectors/pre.resize.stretch.yaml)<br>14 cases, 0 verified | none | 1 of 1 | none |  | open: example, vectors |
-| [`pre.resize.fit`](pre/resize-fit.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::ResizeSpec._check_method_specific_fields`<br>`forward` partial: `skellytracker/core/detectors/processing/image_preprocessing.py::fit_preprocess`<br>`inverse` missing | `skellytracker/tests/test_image_preprocessing.py`<br>`skellytracker/tests/sidecar/test_model_validation.py` | [`vectors/pre.resize.fit.yaml`](vectors/pre.resize.fit.yaml)<br>23 cases, 22 verified | 1 export | 0 of 1 | none |  | open: vectors, rules |
+| [`pre.resize.fit`](pre/resize-fit.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::ResizeSpec._check_method_specific_fields`<br>`forward` partial: `skellytracker/core/detectors/processing/image_preprocessing.py::fit_preprocess`<br>`inverse` missing | `skellytracker/tests/test_image_preprocessing.py`<br>`skellytracker/tests/sidecar/test_model_validation.py` | [`vectors/pre.resize.fit.yaml`](vectors/pre.resize.fit.yaml)<br>23 cases, 22 verified | none | 0 of 1 | none |  | open: example, vectors, rules |
 | [`pre.resize.none`](pre/resize-none.md) | stable | `validate` implemented: `skellytracker/core/sidecar/model.py::ResizeSpec._check_method_specific_fields`<br>`forward` missing<br>`inverse` missing | none | [`vectors/pre.resize.none.yaml`](vectors/pre.resize.none.yaml)<br>3 cases, 0 verified | none | 1 of 1 | none |  | open: example, vectors |
 | [`pre.resize.affine_person_crop`](pre/resize-affine-person-crop.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::CropPolicySpec`<br>`forward` partial: `skellytracker/core/detectors/processing/affine_crop.py::top_down_affine`<br>`inverse` partial: `skellytracker/core/detectors/processing/simcc_decode.py::decode_simcc` | `skellytracker/tests/test_image_preprocessing.py`<br>`skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/sidecar/test_rtmpose_body_sidecar.py` | [`vectors/pre.resize.affine_person_crop.yaml`](vectors/pre.resize.affine_person_crop.yaml)<br>29 cases, 15 verified | 1 export | 3 of 3 | [`reference/pre_resize_affine_person_crop.py`](reference/pre_resize_affine_person_crop.py) |  | open: vectors |
-| [`pre.resize.interpolation`](pre/interpolation.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::ResizeSpec`<br>`forward` partial: `skellytracker/core/detectors/processing/image_preprocessing.py::preprocess_image` | none | [`vectors/pre.resize.interpolation.yaml`](vectors/pre.resize.interpolation.yaml)<br>2 cases, 0 verified | 3 export, 2 forecast | 1 of 1 | [`reference/pre_resize_interpolation.py`](reference/pre_resize_interpolation.py) |  | open: vectors |
-| [`pre.normalize`](pre/normalization.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::CustomNormalization`<br>`forward` partial: `skellytracker/core/detectors/processing/image_preprocessing.py::build_normalization_fn` | `skellytracker/tests/test_image_preprocessing.py`<br>`skellytracker/tests/sidecar/test_model_validation.py` | [`vectors/pre.normalize.yaml`](vectors/pre.normalize.yaml)<br>26 cases, 16 verified | 3 export, 2 forecast | 2 of 3 | [`reference/pre_normalize.py`](reference/pre_normalize.py) |  | open: vectors, rules |
-| [`post.det.outputs`](post/detection-outputs.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::SidecarModel._check_outputs_semantics`<br>`decode` partial: `skellytracker/core/detectors/object_detectors/yolox/yolox_decode.py::yolox_detection_decode` | `skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/test_yolox_detector.py` | none | 2 export, 2 forecast | 0 of 4 | none |  | open: vectors, rules |
-| [`post.det.decode`](post/detection-decode.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::DetectionDecodeSpec`<br>`decode` partial: `skellytracker/core/detectors/object_detectors/yolox/yolox_decode.py::yolox_detection_decode` | `skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/test_object_detection_decode.py`<br>`skellytracker/tests/test_yolox_detector.py` | [`vectors/post.det.decode.yaml`](vectors/post.det.decode.yaml)<br>2 cases, 0 verified | 2 export, 2 forecast | 2 of 9 | [`reference/post_det_decode.py`](reference/post_det_decode.py) |  | open: vectors, rules |
-| [`post.det.selection.none`](post/selection-none.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::DetectionDecodeSpec._check_ranges`<br>`decode` partial: `skellytracker/core/detectors/processing/object_detection_decode.py::decode_nms_baked_in` | `skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/test_object_detection_decode.py`<br>`skellytracker/tests/test_yolox_detector.py` | [`vectors/post.det.selection.none.yaml`](vectors/post.det.selection.none.yaml)<br>12 cases, 0 verified | 1 export, 2 forecast | 0 of 1 | none |  | open: vectors, rules |
+| [`pre.resize.interpolation`](pre/interpolation.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::ResizeSpec`<br>`forward` partial: `skellytracker/core/detectors/processing/image_preprocessing.py::preprocess_image` | none | [`vectors/pre.resize.interpolation.yaml`](vectors/pre.resize.interpolation.yaml)<br>2 cases, 0 verified | 2 export, 2 forecast | 1 of 1 | [`reference/pre_resize_interpolation.py`](reference/pre_resize_interpolation.py) |  | open: vectors |
+| [`pre.normalize`](pre/normalization.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::CustomNormalization`<br>`forward` partial: `skellytracker/core/detectors/processing/image_preprocessing.py::build_normalization_fn` | `skellytracker/tests/test_image_preprocessing.py`<br>`skellytracker/tests/sidecar/test_model_validation.py` | [`vectors/pre.normalize.yaml`](vectors/pre.normalize.yaml)<br>26 cases, 16 verified | 2 export, 2 forecast | 2 of 3 | [`reference/pre_normalize.py`](reference/pre_normalize.py) |  | open: vectors, rules |
+| [`post.det.outputs`](post/detection-outputs.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::SidecarModel._check_outputs_semantics`<br>`decode` partial: `skellytracker/core/detectors/object_detectors/yolox/yolox_decode.py::yolox_detection_decode` | `skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/test_yolox_detector.py` | none | 1 export, 2 forecast | 0 of 4 | none |  | open: vectors, rules |
+| [`post.det.decode`](post/detection-decode.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::DetectionDecodeSpec`<br>`decode` partial: `skellytracker/core/detectors/object_detectors/yolox/yolox_decode.py::yolox_detection_decode` | `skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/test_object_detection_decode.py`<br>`skellytracker/tests/test_yolox_detector.py` | [`vectors/post.det.decode.yaml`](vectors/post.det.decode.yaml)<br>2 cases, 0 verified | 1 export, 2 forecast | 2 of 9 | [`reference/post_det_decode.py`](reference/post_det_decode.py) |  | open: vectors, rules |
+| [`post.det.selection.none`](post/selection-none.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::DetectionDecodeSpec._check_ranges`<br>`decode` partial: `skellytracker/core/detectors/processing/object_detection_decode.py::decode_nms_baked_in` | `skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/test_object_detection_decode.py`<br>`skellytracker/tests/test_yolox_detector.py` | [`vectors/post.det.selection.none.yaml`](vectors/post.det.selection.none.yaml)<br>12 cases, 0 verified | 2 forecast | 0 of 1 | none |  | open: example, vectors, rules |
 | [`post.det.selection.top_k`](post/selection-top-k.md) | stable | `validate` missing<br>`decode` missing | none | [`vectors/post.det.selection.top_k.yaml`](vectors/post.det.selection.top_k.yaml)<br>10 cases, 0 verified | none | 0 of 1 | none |  | open: example, vectors, rules |
 | [`post.det.selection.nms`](post/selection-nms.md) | stable | `validate` missing<br>`decode` partial: `skellytracker/core/detectors/processing/object_detection_decode.py::decode_prenms` | `skellytracker/tests/test_object_detection_decode.py`<br>`skellytracker/tests/test_yolox_detector.py` | [`vectors/post.det.selection.nms.yaml`](vectors/post.det.selection.nms.yaml)<br>27 cases, 27 verified | 1 export | 1 of 1 | [`reference/post_det_selection_nms.py`](reference/post_det_selection_nms.py) |  | pass |
-| [`post.pose.schema`](post/pose-schema.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::PoseSpec`<br>`load` partial: `skellytracker/core/sidecar/loader.py::load_sidecar` | `skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/sidecar/test_rtmpose_body_sidecar.py`<br>`skellytracker/tests/sidecar/test_rtmpose_hand_sidecar.py`<br>`skellytracker/tests/sidecar/test_rtmpose_face_sidecar.py`<br>`skellytracker/tests/sidecar/test_rtmw_sidecar.py` | none | 2 export, 1 forecast | 0 of 9 | none |  | open: rules |
+| [`post.pose.schema`](post/pose-schema.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::PoseSpec`<br>`load` partial: `skellytracker/core/sidecar/loader.py::load_sidecar` | `skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/sidecar/test_rtmpose_body_sidecar.py`<br>`skellytracker/tests/sidecar/test_rtmpose_hand_sidecar.py`<br>`skellytracker/tests/sidecar/test_rtmpose_face_sidecar.py`<br>`skellytracker/tests/sidecar/test_rtmw_sidecar.py` | none | 1 export, 1 forecast | 0 of 9 | none |  | open: rules |
 | [`post.pose.canonical_mapping`](post/canonical-mapping.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::PoseSpec._check_pose`<br>`load` implemented: `skellytracker/core/io/tracker_mapping.py::TrackerMapping` | `skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/sidecar/test_rtmpose_body_sidecar.py`<br>`skellytracker/tests/sidecar/test_rtmpose_hand_sidecar.py`<br>`skellytracker/tests/sidecar/test_rtmw_sidecar.py` | none | none | 0 of 1 | none |  | open: example, rules |
 | [`post.pose.decode.simcc`](post/pose-decode-simcc.md) | stable | `validate` missing<br>`decode` partial: `skellytracker/core/detectors/processing/simcc_decode.py::simcc_pose_decode` | `skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/sidecar/test_rtmpose_body_sidecar.py`<br>`skellytracker/tests/sidecar/test_rtmpose_hand_sidecar.py`<br>`skellytracker/tests/sidecar/test_rtmpose_face_sidecar.py`<br>`skellytracker/tests/sidecar/test_rtmw_sidecar.py` | [`vectors/post.pose.decode.simcc.yaml`](vectors/post.pose.decode.simcc.yaml)<br>16 cases, 0 verified | 1 export | 0 of 0 | [`reference/post_pose_decode_simcc.py`](reference/post_pose_decode_simcc.py) |  | open: vectors |
-| [`post.pose.decode.coordinate`](post/pose-decode-coordinate.md) | stable | `validate` implemented: `skellytracker/core/sidecar/model.py::PoseDecodeSpec._check_decode`<br>`decode` missing | `skellytracker/tests/sidecar/test_model_validation.py` | none | 1 export, 1 forecast | 0 of 1 | none |  | open: vectors, rules |
-| [`post.pose.bottom_up`](post/pose-bottom-up.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::OutputSpec._check_output`<br>`decode` missing | `skellytracker/tests/sidecar/test_model_validation.py` | none | 1 export, 1 forecast | 0 of 2 | none |  | open: vectors, rules |
-| [`post.overlay`](post/overlay.md) | stable | `validate` implemented: `skellytracker/core/sidecar/model.py::SidecarModel._check_overlay`<br>`load` partial: `skellytracker/core/detectors/overlay_groups.py::resolve_overlay_groups` | `skellytracker/tests/test_overlay_groups.py`<br>`skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/sidecar/test_rtmw_sidecar.py` | none | 2 export, 1 forecast | 0 of 5 | none |  | open: rules |
-| [`post.unprojection`](post/unprojection.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::PoseDecodeSpec._check_decode`<br>`decode` partial: `skellytracker/core/detectors/processing/object_detection_decode.py::decode_prenms` | `skellytracker/tests/test_object_detection_decode.py`<br>`skellytracker/tests/sidecar/test_rtmpose_body_sidecar.py` | [`vectors/post.unprojection.yaml`](vectors/post.unprojection.yaml)<br>30 cases, 30 verified | 3 export, 2 forecast | 0 of 0 | [`reference/post_unprojection.py`](reference/post_unprojection.py) |  | pass |
+| [`post.pose.decode.coordinate`](post/pose-decode-coordinate.md) | stable | `validate` implemented: `skellytracker/core/sidecar/model.py::PoseDecodeSpec._check_decode`<br>`decode` missing | `skellytracker/tests/sidecar/test_model_validation.py` | none | 1 forecast | 0 of 1 | none |  | open: example, vectors, rules |
+| [`post.pose.bottom_up`](post/pose-bottom-up.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::OutputSpec._check_output`<br>`decode` missing | `skellytracker/tests/sidecar/test_model_validation.py` | none | 1 forecast | 0 of 2 | none |  | open: example, vectors, rules |
+| [`post.overlay`](post/overlay.md) | stable | `validate` implemented: `skellytracker/core/sidecar/model.py::SidecarModel._check_overlay`<br>`load` partial: `skellytracker/core/detectors/overlay_groups.py::resolve_overlay_groups` | `skellytracker/tests/test_overlay_groups.py`<br>`skellytracker/tests/sidecar/test_model_validation.py`<br>`skellytracker/tests/sidecar/test_rtmw_sidecar.py` | none | 1 export, 1 forecast | 0 of 5 | none |  | open: rules |
+| [`post.unprojection`](post/unprojection.md) | stable | `validate` partial: `skellytracker/core/sidecar/model.py::PoseDecodeSpec._check_decode`<br>`decode` partial: `skellytracker/core/detectors/processing/object_detection_decode.py::decode_prenms` | `skellytracker/tests/test_object_detection_decode.py`<br>`skellytracker/tests/sidecar/test_rtmpose_body_sidecar.py` | [`vectors/post.unprojection.yaml`](vectors/post.unprojection.yaml)<br>30 cases, 30 verified | 2 export, 2 forecast | 0 of 0 | [`reference/post_unprojection.py`](reference/post_unprojection.py) |  | pass |
 
 ## External implementations
 
@@ -113,18 +112,18 @@ These steps have no implementation in skellytracker. The last column counts the 
 
 | Section | Step | Models |
 |---|---|---|
-| [`format.versioning`](format/versioning.md) | `validate` | 5 of 5 |
-| [`format.versioning`](format/versioning.md) | `load` | 5 of 5 |
-| [`common.batching`](common/batching.md) | `validate` | 5 of 5 |
-| [`common.batch_conversion`](common/batch-conversion.md) | `validate` | 0 of 5 |
-| [`common.outputs`](common/outputs.md) | `load` | 5 of 5 |
-| [`pre.resize.stretch`](pre/resize-stretch.md) | `inverse` | 0 of 5 |
-| [`pre.resize.fit`](pre/resize-fit.md) | `inverse` | 1 of 5 |
-| [`pre.resize.none`](pre/resize-none.md) | `forward` | 0 of 5 |
-| [`pre.resize.none`](pre/resize-none.md) | `inverse` | 0 of 5 |
-| [`post.det.selection.top_k`](post/selection-top-k.md) | `validate` | 0 of 5 |
-| [`post.det.selection.top_k`](post/selection-top-k.md) | `decode` | 0 of 5 |
-| [`post.det.selection.nms`](post/selection-nms.md) | `validate` | 1 of 5 |
-| [`post.pose.decode.simcc`](post/pose-decode-simcc.md) | `validate` | 1 of 5 |
-| [`post.pose.decode.coordinate`](post/pose-decode-coordinate.md) | `decode` | 2 of 5 |
-| [`post.pose.bottom_up`](post/pose-bottom-up.md) | `decode` | 2 of 5 |
+| [`format.versioning`](format/versioning.md) | `validate` | 4 of 4 |
+| [`format.versioning`](format/versioning.md) | `load` | 4 of 4 |
+| [`common.batching`](common/batching.md) | `validate` | 4 of 4 |
+| [`common.batch_conversion`](common/batch-conversion.md) | `validate` | 0 of 4 |
+| [`common.outputs`](common/outputs.md) | `load` | 4 of 4 |
+| [`pre.resize.stretch`](pre/resize-stretch.md) | `inverse` | 0 of 4 |
+| [`pre.resize.fit`](pre/resize-fit.md) | `inverse` | 0 of 4 |
+| [`pre.resize.none`](pre/resize-none.md) | `forward` | 0 of 4 |
+| [`pre.resize.none`](pre/resize-none.md) | `inverse` | 0 of 4 |
+| [`post.det.selection.top_k`](post/selection-top-k.md) | `validate` | 0 of 4 |
+| [`post.det.selection.top_k`](post/selection-top-k.md) | `decode` | 0 of 4 |
+| [`post.det.selection.nms`](post/selection-nms.md) | `validate` | 1 of 4 |
+| [`post.pose.decode.simcc`](post/pose-decode-simcc.md) | `validate` | 1 of 4 |
+| [`post.pose.decode.coordinate`](post/pose-decode-coordinate.md) | `decode` | 1 of 4 |
+| [`post.pose.bottom_up`](post/pose-bottom-up.md) | `decode` | 1 of 4 |

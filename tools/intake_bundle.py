@@ -180,7 +180,6 @@ NO_BUNDLE_EXAMPLES = frozenset({
     "detectors/keypoint_detectors/yolo26/body/yolo26-body.yaml",
     "detectors/object_detectors/rtmdet-person/rtmdet-person.yaml",
     "detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml",
-    "detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml",
 })
 FRAGMENT_KEYS = {"exporter", "exporter_path", "tracked", "commit", "notes"}
 

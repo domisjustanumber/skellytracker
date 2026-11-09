@@ -280,15 +280,30 @@ def test_no_file_outside_the_examples_holds_the_placeholder() -> None:
     assert not holders, holders
 
 
+TOKENS = r"[a-z0-9]+(-[a-z0-9]+)*"  # the pattern of {family} and {variant} (V-common.identity-7)
+
+
 @pytest.mark.parametrize("path", example_paths(), ids=example_key)
 def test_example_follows_the_storage_layout(path: Path) -> None:
+    """The folder and the keypoint detector id (V-common.identity-7, V-common.identity-8)."""
     parts = path.relative_to(EXAMPLES_ROOT / "detectors").parts
     if parts[0] == "object_detectors":
         assert len(parts) == 3, parts
-    else:
-        assert parts[0] == "keypoint_detectors"
-        assert len(parts) == 4, parts
-        assert parts[2] in {"hand", "face", "body", "wholebody"}, parts
+        return
+    assert parts[0] == "keypoint_detectors"
+    assert len(parts) == 4, parts
+    family, group = parts[1], parts[2]
+    model_id = sidecar_refs.resolve(path, EXAMPLES_ROOT)["model_id"]
+    assert re.fullmatch(TOKENS, family), parts
+    assert model_id == f"{family}-{group}" or (
+        model_id.startswith(f"{family}-{group}-")
+        and re.fullmatch(TOKENS, model_id.removeprefix(f"{family}-{group}-"))
+    ), (model_id, parts)
+    keypoint_set = re.fullmatch(r"[a-z]+([1-9][0-9]*)", group)
+    assert group in {"hand", "face", "body", "wholebody"} or keypoint_set, parts
+    if keypoint_set:
+        tracked = sidecar_refs.resolve(path, EXAMPLES_ROOT)["pose"]["tracked_points"]
+        assert int(keypoint_set.group(1)) == len(tracked), (group, len(tracked))
 
 
 def test_every_example_has_one_provenance_entry() -> None:

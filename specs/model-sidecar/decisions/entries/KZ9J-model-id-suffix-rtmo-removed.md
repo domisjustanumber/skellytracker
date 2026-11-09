@@ -1,11 +1,12 @@
 # KZ9J — Spec change: model-id-suffix-rtmo-removed
 
-**Status:** proposed, 2026-11-09 (proposal-model-id-suffix-rtmo-removed@openmmlab-exporter@v1).
+**Status:** accepted, 2026-11-09 (user; PR: pending).
 
 ## Decision
 
-**Proposed, not decided.** The proposal is
-[`proposal.md`](../../proposals/model-id-suffix-rtmo-removed/proposal.md).
+The user accepted the follow-up on 2026-11-09. The record is
+[`proposal.md`](../../proposals/model-id-suffix-rtmo-removed/proposal.md)
+(proposal-model-id-suffix-rtmo-removed@openmmlab-exporter@v1).
 
 - Kind: a follow-up of `proposal-model-id-suffix@openmmlab-exporter`
   ([ADR-52NQ](52NQ-model-id-suffix.md)). The session lands both in one content commit.
@@ -33,7 +34,3 @@ Parity: none. A name changes no tensor. The follow-up has no reference file and 
 
 See [open-work.md](../open-work.md).
 
-## Before acceptance
-
-- The user must accept or reject the follow-up. It makes only the three changes of response r6 of
-  the base.

@@ -19,6 +19,8 @@ These entries are `accepted` or `evidence`.
 | [50BW](entries/50BW-verification-batches.md) | Spec change: the verification batches of `static-batch-v1` are 1, 2, 3 and 6, not 1, 2, 3 and 4 (guidance only) | accepted |
 | [1VMX](entries/1VMX-nms-key-exclusion.md) | Spec change: the NMS reference refuses the keys of `V-post.det.selection.nms-1` | accepted |
 | [R6J9](entries/R6J9-test-time-steps-and-unreachable-branches.md) | `out of scope` covers a test-time augmentation and an undeclared extra decode value; parity needs no image for an unreachable branch | accepted |
+| [52NQ](entries/52NQ-model-id-suffix.md) | Spec change: keypoint detector id `{family}-{group}[-{variant}]` | accepted |
+| [KZ9J](entries/KZ9J-model-id-suffix-rtmo-removed.md) | Spec change: follow-up of 52NQ; the example `rtmo-body7` is removed, not rebuilt | accepted |
 
 ### Proposed
 
@@ -28,8 +30,6 @@ proposals of a section here.
 
 | # | Decision | Section | Status |
 |---|----------|---------|--------|
-| [52NQ](entries/52NQ-model-id-suffix.md) | Spec change: keypoint detector id `{family}-{group}[-{variant}]` | `common.identity` | proposed |
-| [KZ9J](entries/KZ9J-model-id-suffix-rtmo-removed.md) | Spec change: follow-up of 52NQ; the example `rtmo-body7` is removed, not rebuilt | `common.identity` | proposed |
 
 The entries that are `rejected`, `superseded by XXXX`, `absorbed into <path>#<anchor>`,
 `evidence; used by XXXX` or `done` are in [historical.md](historical.md).

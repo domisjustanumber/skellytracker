@@ -418,7 +418,7 @@ def test_pack_and_verify_check_the_anchor_of_each_link(tmp_path: Path, root: Pat
         "# Gap\n\nSee [the gap](#gap), [the map](../../README.md#section-map) and [notes](notes.md#notes).\n\n"
         "```markdown\n[Proposed heading](#not-yet)\n```\n"
     )
-    bad = "See [new](#keypoint-detector-id) and [new](../../common/identity.md#keypoint-detector-id).\n"
+    bad = "See [new](#no-such-heading) and [new](../../common/identity.md#no-such-heading).\n"
     with pytest.raises(ib.BundleError) as refused:
         ib.pack(payload(tmp_path, {"proposal.md": good + bad, "notes.md": "# Notes\n"}), proposal_fields(), root, cwd=tmp_path)
     assert str(refused.value).count("names a heading that does not exist") == 2
@@ -428,8 +428,8 @@ def test_pack_and_verify_check_the_anchor_of_each_link(tmp_path: Path, root: Pat
     assert not [f for f in ib.verify("proposal-box-clamp@ultralytics-exporter", root) if "link" in f]
     (version_dir / "proposal.md").write_bytes((good + bad).encode("utf-8"))
     findings = ib.verify("proposal-box-clamp@ultralytics-exporter", root)
-    assert "proposal.md:8: the link #keypoint-detector-id names a heading that does not exist" in findings
-    assert any("../../common/identity.md#keypoint-detector-id names a heading" in f for f in findings)
+    assert "proposal.md:8: the link #no-such-heading names a heading that does not exist" in findings
+    assert any("../../common/identity.md#no-such-heading names a heading" in f for f in findings)
 
 
 @pytest.mark.parametrize("rel", ["reference/__pycache__/m.cpython-314.pyc", "reference/m.pyc", "m.pyo"])

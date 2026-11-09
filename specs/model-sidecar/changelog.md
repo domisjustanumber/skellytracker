@@ -93,6 +93,7 @@ The rules of this list:
 | 39 | Pose | The SimCC decode gives its steps: the argmax of each axis on the raw values (a tie takes the lowest bin), the score `min(peak_x, peak_y)` with no softmax, the bin `-1` on each axis for a score `<= 0`, the rule for a NaN raw value (the bin of the first NaN, and a comparison with a NaN is false), and the bin scale with no offset (2D). | user decision 2026-11-09: RTMW (mmpose `get_simcc_maximum`) ([ADR-03PH](decisions/entries/03PH-simcc-score-rule.md)) | [SimCC decode](post/pose-decode-simcc.md#behaviour) |
 | 40 | Input | Each normalization mode casts its result to the `input.dtype` entry of the selected precision. `V-pre.normalize-3`: a `uint8` input needs the resolved normalization `none` and `input.resize.compute_dtype` absent or `uint8`. `V-common.input-2`: the input dtypes are `float32`, `float16` and `uint8`. `int8` goes. The output dtypes keep `int8`. | user decision 2026-11-06: the mode table stated the cast only for `none`, the cast of a fractional value to `uint8` was not defined, and no mode gives a defined `int8` input ([ADR-XH1J](decisions/entries/XH1J-normalize-input-dtype.md)) | [Normalization](pre/normalization.md#behaviour), [Input](common/input.md#validation-rules) |
 | 41 | Input | An absent key of a `custom` normalization has the value `scale: 1`, `mean: [0, 0, 0]` or `std: [1, 1, 1]`. The `none` row names YOLOX and RTMO as models whose upstream does not normalize. | user decision 2026-11-09: `V-pre.normalize-1` allowed an absent `mean` or `std` with no value, and the `none` row said that YOLOX normalizes internally ([ADR-1V57](decisions/entries/1V57-normalize-custom-defaults.md)) | [Normalization](pre/normalization.md#behaviour) |
+| 42 | Identity | The `model_id` of a keypoint detector is `{family}-{group}` or `{family}-{group}-{variant}`. `{group}` is a body region or a keypoint set with its keypoint count (`wholebody133`). The folder is `keypoint_detectors/{family}/{group}/`. New rules `V-common.identity-7` and `V-common.identity-8`. | RTMW (`rtmw-wholebody133`), RTMO body7 (`rtmo-coco17-body7`); user decision 2026-11-06 ([ADR-52NQ](decisions/entries/52NQ-model-id-suffix.md), [ADR-KZ9J](decisions/entries/KZ9J-model-id-suffix-rtmo-removed.md)) | [Identity](common/identity.md#keypoint-detector-id) |
 
 ### Considered and deliberately not added
 
@@ -177,6 +178,7 @@ The rules of the versions
 - Row 39: `3dfdaea4409b04e537993deed4b2ec0d127cc68acbc086c9a4a6388dd637235d`.
 - Row 40: `85a85089fa3ff1a21579b41d3361e724062abd06ccbea7de8ad913838f79d01f`.
 - Row 41: `85a85089fa3ff1a21579b41d3361e724062abd06ccbea7de8ad913838f79d01f`.
+- Row 42: `2122b815a8c7100aac5a246ec0563df5714de6684baebdf92a4aab09f19891cc`.
 
 Version `2.0.0` is the first version. It replaces the revision `1.0` and the `schema_version`
 history before it. No release shipped a sidecar of that history

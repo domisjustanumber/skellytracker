@@ -69,7 +69,7 @@ See also [Identity](identity.md#validation-rules), [Sizes and artifacts](sizes-a
 
 ```yaml
 # One-stage detector + pose model with separate tensors (role: [object_detector, pose_estimator]).
-# Excerpt of the RTMO body7 reference example. NMS is inside the graph, so the row count is
+# Excerpt of an RTMO body7 sidecar of OpenMMLab-Exporter. NMS is inside the graph, so the row count is
 # dynamic and the host uses `selection: none`. For the packed single-tensor layout that
 # YOLO26-pose emits, see the YOLO26 pose reference example.
 outputs:

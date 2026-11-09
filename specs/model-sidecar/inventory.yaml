@@ -119,26 +119,6 @@ examples:
       133 names and one edge set named wholebody, and has the overlay of skellytracker's package sidecar
       (rtmpose_skeleton, prefix groups, a face group) instead of the exporter's overlay.
 
-  detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml:
-    exporter: OpenMMLab-Exporter
-    exporter_path: notes/decisions/rtmo-body7.yaml
-    kind: export
-    exporter_layout_path: exports/detectors/keypoint_detectors/rtmo/body7/rtmo-body7.yaml
-    tracked: true
-    commit: eed3361
-    edits:
-      - "header comment removed"
-      - "source and hashes added"
-      - "spec change JAA4: batching {batch_axis: 0} replaced by batching {batch: 1}; the batch 1 group of each size flattened into onnx.precision_artifacts"
-      - "spec change JAA4: onnx.output_shapes [1, -1, -1], [1, -1, 17, 3] added to size m, read from the graph of exports/detectors/keypoint_detectors/rtmo/body7/rtmo-body7-m_b1_fp32.onnx (SHA-256 0dbaad50530f68b66b448f9f5be735fbe2cfd36b3a91bad7f8216b9ce2ab2250)"
-      - "spec change 90CE: input.layout and outputs[].rank removed; pose.geometry: 2d added"
-      - 'spec change SS2E: schema_version set to "1"'
-      - 'spec change 6GE2: schema_version set to "2.0.0"'
-    notes: >-
-      The tracked copy was last committed at 38ed76f; the current writer (rtmo/sidecar.py at eed3361)
-      writes the same contract, except the spec-forced edits. The exporter's exports/ copy adds fp16,
-      batch groups 2 and 3 and sizes s, l and t.
-
 fragments: {}
 
 no_model: {}
