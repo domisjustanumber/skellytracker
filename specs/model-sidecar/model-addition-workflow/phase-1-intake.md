@@ -16,6 +16,10 @@ file `intake.md` of a `model` bundle ([Hand-over bundles](hand-over.md#payload))
    `affine_person_crop`. It ends at the decoded outputs in source-image coordinates. An upstream step
    before or after the contract is also a row, with the verdict `out of scope`.
 
+   The `license` block is not a part of the runtime contract. Also write its rows: the license of
+   the weights and of each dataset that made the weights (`common.license`;
+   [ADR-7F6X](../../../decisions/entries/7F6X-license-rows-in-the-model-intake.md)).
+
    **Step 1b: batch-conversion check.** Do this step right after step 1, before step 2
    ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)).
    - The check runs by default. Export each size and each precision at the verification batches 1,

@@ -63,6 +63,7 @@ Get these inputs before you fill in the property table.
 | The upstream preprocessing code | | |
 | The upstream postprocessing code | | |
 | One reference output of the upstream library on a known image | | |
+| The license of the weights, the upstream training config, and the config of each checkpoint that the training started from (`common.license`) | | |
 
 If an input is missing, do not stop. Write `missing` in its row. Use the best secondary source for the
 rows that need the input, and give each of these rows the verdict `unverified`. A `near-miss` row or a
@@ -222,7 +223,7 @@ Source: the upstream inference pipeline and the code of each transform.
 | T8 | Crop policy: expand ratio and aspect ratio (`crop_policy`, `affine_person_crop` only) | | `pre.resize.affine_person_crop` | | | |
 | T9 | Channel order of the tensor that the model consumes (`input.color_format`, required for each normalization mode). The mode `imagenet` and the mode `custom` apply their values in this channel order. | | `common.input`, `pre.normalize` | | | |
 | T10 | Normalization for each precision (`input.normalization`, required, with no default): mean, std and scale, and its arithmetic (for example a float32 division by 255, or a multiplication by `1/255`) | | `pre.normalize` | | | |
-| T11 | Layout change (HWC to CHW) and cast to `input.dtype` | | `common.input` | | | |
+| T11 | Layout change (HWC to CHW) and cast to `input.dtype`. Each normalization mode casts its result to `input.dtype` as its last step. A `uint8` input needs the normalization `none` (`V-pre.normalize-3`). | | `common.input`, `pre.normalize` (Cast to `input.dtype`) | | | |
 | T12 | Order of the steps: the upstream order compared with the order of the spec | | `pre.normalize` | | | |
 
 ### Outputs and decode
@@ -275,6 +276,28 @@ Source: the upstream postprocessing code and the upstream test config.
 | K10 | Overlay (optional) | | `post.overlay` | | | |
 | K11 | Landmark schema (`pose.landmark_schema`, optional) | | `post.pose.schema` | | | |
 
+### License
+
+Source: the license of the weights, the upstream training config, the config of each checkpoint that
+the training started from, and the license page of each dataset. Read the headings "Fields" and
+"Behaviour" of `common.license` (skellytracker ADR-7F6X).
+
+- All sizes share the `license` block. If two sizes differ in license or in training data, they are
+  two families.
+- For a license page, give its URL and the date that you read it.
+- Write `unknown` only after research that finds no answer. Each reason names each source that you
+  checked, and the date.
+- A host does not change its inference for this block. These rows need no parity run.
+
+| # | Property | Upstream evidence (file and line, or config key) | Section ID (the `id` in the section file's front matter) | Sidecar value | Verdict | What differs or what is missing |
+|---|---|---|---|---|---|---|
+| LC1 | The `license` mapping and its keys: `model` and `training_data`, and `training_data_unknown_reason` only with `training_data: unknown` (`V-common.license-1`) | | `common.license` | | | |
+| LC2 | License of the weights (`license.model`): an SPDX license expression, and its `url`. `license.model.id` must not be `unknown` (`V-common.license-2`, `V-common.license-3`, `V-common.license-5`). | | `common.license` | | | |
+| LC3 | The datasets of the training run (`license.training_data`, `use: training`): one entry for each dataset of the upstream training config (`V-common.license-6`, `V-common.license-7`) | | `common.license` | | | |
+| LC4 | The datasets of each checkpoint that the training started from (`use: pretraining`). Follow each start checkpoint to the end of its chain, for example through the backbone `init_cfg` or `load_from` (`V-common.license-7`). | | `common.license` | | | |
+| LC5 | License of each dataset (`license.training_data[].license`): an SPDX license expression. A `LicenseRef-<name>` id needs a `url` (`V-common.license-2`, `V-common.license-3`). In the evidence column, give the version of the SPDX License List that you checked against. | | `common.license` | | | |
+| LC6 | Each `unknown` value and its reason: a license object with `id: unknown` and `unknown_reason`, or `training_data: unknown` and `training_data_unknown_reason` (`V-common.license-4`, `V-common.license-6`) | | `common.license` | | | |
+
 ### YAML
 
 These rows are rules for the sidecar file. In the evidence column, cite the exporter code that writes
@@ -319,9 +342,14 @@ layout").
 
 ### Steps outside the model contract
 
-Write one row for each upstream step before or after the runtime contract of this model. Phase 1
+Write one row for each upstream step before or after the runtime contract of this model. Also write
+one row for each test-time augmentation that runs the runtime contract more than once and combines
+the results, for example the flip test of mmpose. Also write one row for each value that the upstream
+decode computes in addition to the final outputs, when the sidecar does not declare it and it changes
+no final output (skellytracker ADR-R6J9). Phase 1
 (`specs/model-sidecar/model-addition-workflow/phase-1-intake.md`) gives the verdict `out of scope`,
-examples and what to do with such a row. If the upstream has no such step, write `none` in row X1.
+examples and what to do with such a row. In the last column, tell which kind of step the row is. If
+the upstream has no such step, write `none` in row X1.
 
 | # | Property | Upstream evidence (file and line, or config key) | Section | Sidecar value | Verdict | What the step does |
 |---|---|---|---|---|---|---|
@@ -371,7 +399,7 @@ The skellytracker package cannot check a sidecar of the open target yet:
   does not match the version pattern of `parse_skellytracker_version`
   (`skellytracker/core/sidecar/versioning.py`).
 - `SidecarModel` forbids undeclared keys, and it does not declare all the fields of the current
-  text. For example, `DetectionDecodeSpec` has no `selection`.
+  text. For example, `DetectionDecodeSpec` has no `selection`, and `SidecarModel` has no `license`.
 
 So walk the checklist by hand where the checks of the exporter do not cover a rule.
 
@@ -381,6 +409,7 @@ Write its rule ID (`V-<section-id>-<n>`). Write `not used` for a group that the 
 | Group | Rule ID (`V-<section-id>-<n>`) | Result (`pass`, `fail`, `not used`, `n/a until a final release loads the target` or `skipped`) | How checked (script and commit, or by hand) |
 |---|---|---|---|
 | Identity and composition (`format.versioning`, `format.composition`, `common.identity`) | | | |
+| License (`common.license`) | | | |
 | Sizes and artifacts (`common.sizes_and_artifacts`, `common.batching`) | | | |
 | Input, resize, normalization (`common.input`, `pre.*`) | | | |
 | Outputs (common) (`common.outputs`) | | | |
@@ -422,7 +451,10 @@ result with the upstream library.
   plan (see [Proposals and reference files](#proposals-and-reference-files)).
 - Set each gate before the run.
 - Use more than one test image. Each branch of each section that the sidecar uses must run on at
-  least one image.
+  least one image. A branch that no real image can reach, for example a score `<= 0`, a tie or a NaN
+  of a decode, needs no image. Name the branch and its coverage: the vector cases that the host
+  passes, or a committed check that runs crafted inputs through the upstream code and compares the
+  host bit for bit ("Parity", step 2; skellytracker ADR-R6J9).
 - Commit the parity script in the exporter repo. A script that is only in a local plan folder is not
   evidence.
 
@@ -442,6 +474,7 @@ parity script for this model, name it and its commit, and record what it does no
 |---|---|
 | Gates, set before the run, their source, and pass gate or control | |
 | Test images (paths or dataset IDs), and the branch that each image runs | |
+| Branches that no real image reaches, and the coverage of each (vector cases, or a committed check and its commit), or `none` | |
 | Upstream reference: library, version, config and command | |
 | Export error: the ONNX file on the upstream tensor, compared with the upstream model (metric and value) | |
 | Preprocessed input: maximum absolute difference for each image (expect 0; if not 0, the cause) | |

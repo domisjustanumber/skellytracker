@@ -53,7 +53,9 @@ Get these inputs before you start
   gives the exceptions);
 - the upstream inference config (the test pipeline);
 - the upstream preprocessing code and postprocessing code;
-- one reference output of the upstream library on a known image.
+- one reference output of the upstream library on a known image;
+- the license of the weights, the upstream training config, and the config of each checkpoint
+  that the training started from (`common.license`).
 
 If an input is missing, do not stop. Write `missing` for it in the intake.
 
@@ -129,6 +131,7 @@ Keep your working draft where you like. The bundle is the hand-over
    | [Preprocessing](../../../specs/model-sidecar/templates/model-intake.md#preprocessing) | "Preprocessing" |
    | [Outputs and decode](../../../specs/model-sidecar/templates/model-intake.md#outputs-and-decode) | "Outputs and decode" |
    | [Pose](../../../specs/model-sidecar/templates/model-intake.md#pose) | "Pose" |
+| [License](../../../specs/model-sidecar/templates/model-intake.md#license) | The headings "Fields", "Behaviour" and "Authoring guidance" of [`common.license`](../../../specs/model-sidecar/common/license.md) |
    | [YAML](../../../specs/model-sidecar/templates/model-intake.md#yaml) | [Sidecar YAML](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#sidecar-yaml) |
    | [Path in the storage layout](../../../specs/model-sidecar/templates/model-intake.md#path-in-the-storage-layout) | [Path](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#path) |
    | [Steps outside the model contract](../../../specs/model-sidecar/templates/model-intake.md#steps-outside-the-model-contract) | Step 1 of phase 1 (the runtime contract) |

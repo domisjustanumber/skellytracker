@@ -92,7 +92,9 @@ Get these inputs before you start:
   if you plan to publish it;
 - the upstream inference config;
 - the upstream preprocessing code and postprocessing code;
-- one reference output of the upstream library on a known image.
+- one reference output of the upstream library on a known image;
+- the license of the weights, the upstream training config, and the config of each checkpoint
+  that the training started from (`common.license`).
 
 If an input is missing, do not stop. Write `missing` for it in the intake. Use the best secondary
 source for the rows that need the input, and give each of these rows the verdict `unverified`. A
