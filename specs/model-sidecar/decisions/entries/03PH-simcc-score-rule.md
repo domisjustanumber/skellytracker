@@ -1,11 +1,12 @@
 # 03PH — Spec change: simcc-score-rule
 
-**Status:** proposed, 2026-11-06 (proposal-simcc-score-rule@openmmlab-exporter@v2); recorded again 2026-11-09 (proposal-simcc-score-rule@openmmlab-exporter@v3).
+**Status:** accepted, 2026-11-09 (user; PR: pending).
 
 ## Decision
 
-**Proposed, not decided.** The proposal is
-[`proposal.md`](../../proposals/simcc-score-rule/proposal.md).
+The user accepted the proposal on 2026-11-09. The record is
+[`proposal.md`](../../proposals/simcc-score-rule/proposal.md)
+(proposal-simcc-score-rule@openmmlab-exporter@v3).
 
 - Section: [`post.pose.decode.simcc`](../../post/pose-decode-simcc.md).
 - Change: the Behaviour gives the 2D SimCC decode exactly. The location of each axis is the argmax
@@ -18,10 +19,13 @@
   module and 16 vector cases are new.
 - Target spec version: `2.0.0`.
 - Models: RTMW (OpenMMLab-Exporter `rtmw-wholebody133`).
-- Supersedes on acceptance: none.
+- Supersedes: none.
 - Related: `model-rtmw-wholebody133@openmmlab-exporter` (intake row K8 needs this proposal);
   [ADR-9HBB](../../../../decisions/entries/9HBB-simcc-decode-is-2d-only.md) (the SimCC decode is 2D
   only); [ADR-3S5G](3S5G-affine-crop-matrix.md) (it uses the same parity run).
+- The user confirmed two plan decisions on 2026-11-06. Row K8 (keypoint score) of the RTMW intake
+  needs this proposal. The proposal covers only the 2D decode. This agrees with
+  [ADR-9HBB](../../../../decisions/entries/9HBB-simcc-decode-is-2d-only.md).
 
 ## Reason
 
@@ -29,8 +33,8 @@ The current Behaviour says only "Its score is the max value". SimCC has two peak
 The text does not say how they combine, whether a softmax comes first, which bin a tie selects, or
 what a score `<= 0` gives. mmpose v1.3.2 takes the smaller raw peak with no softmax, and the
 skellytracker host takes the mean of the two softmax peaks. Thus a keypoint threshold does not
-transfer from one host to the other. The [spec defects](../open-work.md#spec-defects) list this
-item.
+transfer from one host to the other. The [spec defects](../open-work.md#spec-defects) listed this
+item. The content commit of this entry removes it.
 
 ## Evidence
 
@@ -48,13 +52,8 @@ of v1 and rebases on the 2D-only text. v3 rebases on spec commit `8fed6f3`.
 
 See [open-work.md](../open-work.md).
 
-## Before acceptance
+## Notes at acceptance
 
-- [x] The user must confirm or refuse each plan decision of part 1. The user confirmed both on
-  2026-11-06, and v3 part 1 records them in words:
-  - row K8 (keypoint score) of the RTMW intake needs this proposal;
-  - the proposal covers only the 2D decode. This agrees with
-    [ADR-9HBB](../../../../decisions/entries/9HBB-simcc-decode-is-2d-only.md).
 - The tie branch and the NaN branch did not occur on real outputs. Only the vectors and an
   uncommitted random check of v3 cover them. That check and its mmpose copy are not committed
   (secondary). The score `<= 0` branch ran only on RTMPose Halpe26 (4 keypoints), not on RTMW.
@@ -79,8 +78,10 @@ See [open-work.md](../open-work.md).
   The claim that `amax` propagates a NaN is true. The landed text does not use this link, so no
   action is necessary.
   (new 2026-11-09)
-- The vector note says that the mmpose copy ran "on each case" with the same result. mmpose does
+- [x] The vector note says that the mmpose copy ran "on each case" with the same result. mmpose does
   not refuse the case `shapes-of-x-and-y-differ`: it reshapes `simcc_y`. The content commit must
-  change the note to "each numeric case" (editorial). (new 2026-11-09)
-- The content commit must rewrite the relative links of the proposed text from the record path to
-  the section and changelog paths (editorial, part 2). (new 2026-11-09)
+  change the note to "each numeric case" (editorial). (new 2026-11-09) The content commit makes
+  this fix.
+- [x] The content commit must rewrite the relative links of the proposed text from the record path to
+  the section and changelog paths (editorial, part 2). (new 2026-11-09) The content commit makes
+  this fix.

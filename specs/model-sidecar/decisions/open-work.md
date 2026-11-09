@@ -107,16 +107,6 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   [`docs/mediapipe-whole-body.md:141-143`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L141-L143), [`docs/mediapipe-whole-body.md:147-149`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L147-L149)). Qualcomm-Exporter multiplies `z` by the
   input width and writes `depth_unit: pixel` ([`qai_catalog.py:346`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_catalog.py#L346),
   [`qai_sidecar.py:255`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_sidecar.py#L255)). Thus two hosts can give depths that differ by a factor of 2.5.
-- [SimCC decode](../post/pose-decode-simcc.md#behaviour) says "Its score is the max value". SimCC has
-  two peaks for each keypoint. The text does not say how the two peaks combine, if a softmax comes
-  first, which bin a tie selects, or what a score `<= 0` gives. mmpose v1.3.2 applies no softmax
-  by default (`apply_softmax=False`,
-  [`mmpose/codecs/utils/post_processing.py:41-44`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/codecs/utils/post_processing.py#L41-L44)).
-  It takes the smaller of the two raw peaks, and sets the location to `-1` for a score `<= 0`
-  ([`mmpose/codecs/utils/post_processing.py:93-99`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/codecs/utils/post_processing.py#L93-L99)). The skellytracker host takes the mean of
-  the two softmax peaks
-  ([`simcc_decode.py`](../../../skellytracker/core/detectors/processing/simcc_decode.py), lines
-  53-63). Thus a keypoint threshold does not transfer from one host to the other.
 - The spec has no role for an ROI refiner model. `V-common.identity-2` allows only `object_detector`
   and `pose_estimator` ([Identity](../common/identity.md#validation-rules)). The closed `semantic` set
   has no value for ROI points ([Outputs](../common/outputs.md#fields)). The

@@ -90,6 +90,7 @@ The rules of this list:
 | 36 | Pose | The SimCC decode is 2D only. `outputs[].semantic` has no value `simcc_z`, and `pose.decode` has no field `depth_range`. `V-post.pose.schema-7`: a `simcc` decoder must have `pose.geometry: 2d`. The rule `V-post.pose.decode.simcc-1` goes. Its number stays unused. `pose.geometry: 3d` stays for the `coordinate` decode. | user decision 2026-11-06: no model in scope has a `simcc_z` output, and a host could not implement the 3D text, because it had no score rule for three peaks and no exact depth formula ([ADR-9HBB](../../decisions/entries/9HBB-simcc-decode-is-2d-only.md)) | [SimCC decode](post/pose-decode-simcc.md#behaviour), [Pose schema](post/pose-schema.md#validation-rules), [Outputs](common/outputs.md#validation-rules) |
 | 37 | Batching | The verification batches of the parity check of `static-batch-v1` are 1, 2, 3 and 6. Batch 6 replaces batch 4 as the conversion to a larger batch. Input B holds 6 different preprocessed images of each size. `S`, the profile and the tolerance do not change. | user decision 2026-11-06: b1, b2, b3 and b6 are more representative of end-user batch sizes, so the verification files are also benchmark values ([ADR-50BW](decisions/entries/50BW-verification-batches.md)) | [Batch conversion](common/batch-conversion.md#authoring-guidance) |
 | 38 | Resize | `affine_person_crop` gives the steps of its warp matrix `M` in float32: the box rounds to float32; the centre, the crop size and the aspect fix with `a = f32(T_w / T_h)` are float32; `M` comes from three float32 point pairs that use `c` and `w` only. The branch `h = w / a` and the strict `>` set only the crop height (mmpose `input_scale`), not `M`. The Inverse stays the inverse of `M`. | user decision 2026-11-09: RTMW (mmpose `TopdownAffine`) ([ADR-3S5G](decisions/entries/3S5G-affine-crop-matrix.md)) | [Affine person crop](pre/resize-affine-person-crop.md#behaviour) |
+| 39 | Pose | The SimCC decode gives its steps: the argmax of each axis on the raw values (a tie takes the lowest bin), the score `min(peak_x, peak_y)` with no softmax, the bin `-1` on each axis for a score `<= 0`, the rule for a NaN raw value (the bin of the first NaN, and a comparison with a NaN is false), and the bin scale with no offset (2D). | user decision 2026-11-09: RTMW (mmpose `get_simcc_maximum`) ([ADR-03PH](decisions/entries/03PH-simcc-score-rule.md)) | [SimCC decode](post/pose-decode-simcc.md#behaviour) |
 
 ### Considered and deliberately not added
 
@@ -171,6 +172,7 @@ The rules of the versions
 - Row 36: `3dfdaea4409b04e537993deed4b2ec0d127cc68acbc086c9a4a6388dd637235d`.
 - Row 37: `3dfdaea4409b04e537993deed4b2ec0d127cc68acbc086c9a4a6388dd637235d`.
 - Row 38: `3dfdaea4409b04e537993deed4b2ec0d127cc68acbc086c9a4a6388dd637235d`.
+- Row 39: `3dfdaea4409b04e537993deed4b2ec0d127cc68acbc086c9a4a6388dd637235d`.
 
 Version `2.0.0` is the first version. It replaces the revision `1.0` and the `schema_version`
 history before it. No release shipped a sidecar of that history

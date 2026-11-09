@@ -207,6 +207,7 @@ def test_file_parses_to_the_generator_data(path: Path) -> None:
 
 # The tolerance of the files of each group of sections.
 FILE_TOLERANCE = {
+    "simcc": 1e-6,
     "resize": 1e-4,
     "unprojection": 1e-4,
     "normalize": 1e-5,
@@ -757,12 +758,16 @@ def test_each_registered_check_holds_on_the_published_cases_that_declare_it() ->
     declared, registered = set(), set()
     for section, data in built_vectors().items():
         data_only = all(case.get("function") == mv.DATA_ONLY for case in data["cases"])
-        module = None if data_only else formula_module(section)
+        # As make_vectors.run_file: the formula module, else the reference of the section.
+        module = None if data_only else getattr(mv, section.replace(".", "_"), None) or mv.producer(section)
         file_checks = data.get("checks", [])
         registered |= {(section, name) for name in getattr(module, "CHECKS", {})}
         for case in data["cases"]:
             mv.run_checks(module, case, file_checks)
-            declared |= {(section, name) for name in [*file_checks, *case.get("checks", [])]}
+            # `refused` is the built-in check of run_checks, not a key of CHECKS.
+            declared |= {
+                (section, name) for name in [*file_checks, *case.get("checks", [])] if name != "refused"
+            }
     assert declared == registered
     assert {name for _, name in registered} == {row[1] for row in BROKEN_CLAIMS}
 

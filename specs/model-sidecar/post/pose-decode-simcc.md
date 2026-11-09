@@ -16,7 +16,7 @@ tests:
   - skellytracker/tests/sidecar/test_rtmpose_hand_sidecar.py
   - skellytracker/tests/sidecar/test_rtmpose_face_sidecar.py
   - skellytracker/tests/sidecar/test_rtmw_sidecar.py
-vectors: null
+vectors: vectors/post.pose.decode.simcc.yaml
 status: {spec: stable, validate: missing, decode: partial}
 ---
 
@@ -28,7 +28,37 @@ This section has no field of its own. [`pose.decode`](pose-schema.md#posedecode)
 
 ## Behaviour
 
-- `simcc` — one `simcc_x` `(N, K, X_bins)` output and one `simcc_y` `(N, K, Y_bins)` output. The host reads the bin counts from the output tensors. The bin→pixel scale is `input_width / X_bins` and `input_height / Y_bins` (see Shape key). The location of each keypoint is the argmax bin. Its score is the max value. Decoded keypoints are in cropped image space. The host unprojects them to the source image.
+- `simcc` — one `simcc_x` `(N, K, X_bins)` output and one `simcc_y` `(N, K, Y_bins)` output. The
+  host reads the bin counts from the output tensors. For each crop `n` and each keypoint `k`, the
+  host does the steps below on the raw values of `simcc_x` and `simcc_y`. The host does not apply a
+  softmax.
+
+```text
+bin_x  = argmax over b of simcc_x[n, k, b]       (on a tie, the lowest b; see NaN below)
+bin_y  = argmax over b of simcc_y[n, k, b]       (on a tie, the lowest b; see NaN below)
+peak_x = simcc_x[n, k, bin_x]
+peak_y = simcc_y[n, k, bin_y]
+score  = peak_y   when peak_x > peak_y
+         peak_x   otherwise                      (thus min(peak_x, peak_y) when no peak is NaN)
+when score <= 0:
+    bin_x = -1, bin_y = -1
+x = bin_x * input_width / X_bins
+y = bin_y * input_height / Y_bins
+```
+
+- The score is a raw output value. It has no fixed range: it can be negative or more than 1.
+- A keypoint with a score `<= 0` keeps its score. Its position is `x = -input_width / X_bins` and
+  `y = -input_height / Y_bins`. The host unprojects it as each other keypoint.
+- Bin `0` gives the position `0`. The decode adds no half-bin offset.
+- NaN raw values. In a row of `simcc_x` or `simcc_y` that holds a NaN, the bin is the lowest `b`
+  with a NaN, and the peak is NaN. Each comparison with a NaN is false. Thus:
+  - A NaN in the row of `simcc_x` gives the score NaN.
+  - A NaN only in the row of `simcc_y` gives the score `peak_x`. When `peak_x <= 0`, both axes get
+    the bin `-1`.
+  - A NaN score is not `<= 0`. The bins stay, and the position comes from the bins. The position
+    is never NaN.
+- The decoded keypoints are in the model-input pixels of the crop. The host unprojects them to the
+  source image ([Unprojection](unprojection.md)).
 - The SimCC decode is 2D only. `V-post.pose.schema-7` requires `pose.geometry: 2d` with `method: simcc`. A 3D SimCC model adds a new section with its own contract ([ADR-9HBB](../../../decisions/entries/9HBB-simcc-decode-is-2d-only.md)).
 
 [Shape key](pose-schema.md#shape-key)
@@ -43,7 +73,29 @@ See also [Pose schema](pose-schema.md#validation-rules).
 
 ## Implementer guidance
 
-- The spec says that the SimCC score is the max value. Hosts use different rules. The mmpose function `get_simcc_maximum` takes `min(max(simcc_x), max(simcc_y))` on the raw outputs. The skellytracker function `get_simcc_maximum` takes the mean of the two softmax peaks. The rtmlib function takes the mean of the two raw peaks. A host with the min rule differed from mmpose by at most 0.0033 in score. The scores have different scales, so a keypoint threshold does not transfer between hosts. (skellytracker `skellytracker/core/detectors/processing/simcc_decode.py` (`get_simcc_maximum`); the untracked hand models plan of OpenMMLab-Exporter (secondary))
+- The score is the score of mmpose v1.3.2 `get_simcc_maximum` with `apply_softmax=False`. The
+  skellytracker function `get_simcc_maximum` takes the mean of the two softmax peaks. The rtmlib
+  function takes the mean of the two raw peaks. On COCO val2017 (6352 GT persons, flip test off),
+  RTMW-m gave the body AP 0.7477 with the rule of this section, 0.7461 with the raw mean and 0.6560
+  with the softmax mean. The detectors of skellytracker drop a keypoint below
+  `confidence_threshold: 0.004`. That value fits only the softmax score. (OpenMMLab-Exporter
+  [`notes/decisions/scripts/simcc_score_rule_parity.py`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/16b06c10986d2010989b101a13d56cbfebbd6748/notes/decisions/scripts/simcc_score_rule_parity.py)
+  at `16b06c10986d2010989b101a13d56cbfebbd6748`,
+  [OpenMMLab-Exporter ADR-0053](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/d9704753a22792c32a1d3018a0c9e9ea2d279d71/decisions/entries/0053-pose-sidecar-parity-runs.md);
+  skellytracker `skellytracker/core/detectors/processing/simcc_decode.py` (`get_simcc_maximum`)
+  and `skellytracker/core/detectors/keypoint_detectors/rtmw/wholebody/rtmw_wholebody_detector.py`
+  (`confidence_threshold`))
+- The NaN rule of Behaviour is the result of mmpose v1.3.2 on NumPy arrays. `np.argmax` gives the
+  index of the first NaN, `np.amax` gives NaN, and the comparisons `max_val_x > max_val_y` and
+  `vals <= 0.` are false for a NaN. In Python, `np.argmax`, `np.max` and
+  `np.where(peak_x > peak_y, peak_y, peak_x)` give the rule. In another language, do not use a max
+  function that skips a NaN or that gives a later NaN. Do not replace the strict `>` with a `min`
+  function. When one peak is NaN, a `min` function can give NaN or the other peak, and that is
+  not always the result of this rule (for example, `np.minimum` gives NaN for a NaN `peak_y`).
+  ([`mmpose/codecs/utils/post_processing.py:90-99`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/codecs/utils/post_processing.py#L90-L99)
+  at mmpose `5408bc76f5b848cf925a0d1857899011d8c5b497`, tag `v1.3.2`;
+  [`numpy/_core/src/multiarray/argfunc.dispatch.c.src:313-345`](https://github.com/numpy/numpy/blob/c60f172b3330f76d6592362137f34c4a3030a001/numpy/_core/src/multiarray/argfunc.dispatch.c.src#L313-L345)
+  at NumPy `c60f172b3330f76d6592362137f34c4a3030a001`)
 - fp16 can move a SimCC keypoint to another bin. On one crop of a hand model, 4 of 21 fp16 keypoints fell in a different bin than fp32. The fp16 accuracy of the SimCC decode is not measured. (the untracked hand models plan of OpenMMLab-Exporter (secondary))
 
 ## Authoring guidance
