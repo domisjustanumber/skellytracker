@@ -13,6 +13,18 @@ the same `post_processing.py`):
 - [`mmpose/models/heads/base_head.py:78-94`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/models/heads/base_head.py#L78-L94) (the first value is `keypoint_scores`)
 - [`configs/wholebody_2d_keypoint/rtmpose/cocktail14/rtmw-m_8xb1024-270e_cocktail14-256x192.py:47-53`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/configs/wholebody_2d_keypoint/rtmpose/cocktail14/rtmw-m_8xb1024-270e_cocktail14-256x192.py#L47-L53) (the RTMW codec)
 
+The rule for a NaN raw value (version 3) comes from `get_simcc_maximum` on NumPy arrays. NumPy
+`c60f172b3330f76d6592362137f34c4a3030a001` (branch `main`), read on GitHub:
+
+- [`numpy/_core/src/multiarray/argfunc.dispatch.c.src:181-262`](https://github.com/numpy/numpy/blob/c60f172b3330f76d6592362137f34c4a3030a001/numpy/_core/src/multiarray/argfunc.dispatch.c.src#L181-L262)
+  and [`:313-345`](https://github.com/numpy/numpy/blob/c60f172b3330f76d6592362137f34c4a3030a001/numpy/_core/src/multiarray/argfunc.dispatch.c.src#L313-L345)
+  (the argmax of a float row stops at the first NaN: "nan encountered; it's maximal")
+- [`numpy/_core/fromnumeric.py:3380`](https://github.com/numpy/numpy/blob/c60f172b3330f76d6592362137f34c4a3030a001/numpy/_core/fromnumeric.py#L3380)
+  (`amax`: "NaN values are propagated")
+
+A copy of the text of `get_simcc_maximum` ran on the vector cases and on 600 random batches with
+NumPy 2.4.6 (part 5 of `proposal.md`). The copy is not committed, so it is secondary.
+
 ## Parity run (OpenMMLab-Exporter ADR-0053)
 
 - Scripts: OpenMMLab-Exporter commit `16b06c10986d2010989b101a13d56cbfebbd6748` (on `main`), folder

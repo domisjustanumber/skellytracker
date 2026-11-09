@@ -3,8 +3,8 @@
   "kind": "proposal",
   "name": "simcc-score-rule",
   "contributor": "openmmlab-exporter",
-  "source_commit": "c2e610e91fee0a961032e12737ff9147697a7e53",
-  "spec_commit": "b065f6e6850686b65bcd08ca944116d739aa62de",
+  "source_commit": "ecee56e1ea1b4d3901c76a73b713ed0256675e78",
+  "spec_commit": "8fed6f34eb22643e0b6cc38a7c6b80014bfe1d75",
   "sections": [
     "post.pose.decode.simcc"
   ],
@@ -14,28 +14,28 @@
   "related": [],
   "external": [],
   "spec_version": "2.0.0",
-  "version": 2,
+  "version": 3,
   "created": "2026-11-06",
   "files": [
     {
       "path": "evidence.md",
-      "sha256": "9c80962e4131903654ca14d9baaa90eb4451c2ca40465bebe17eaed2f25419c5",
-      "bytes": 5959
+      "sha256": "7409d610bd6f2bf16d01c34ea3621c54c86b83e914f8d7f79a0eaf35373276e1",
+      "bytes": 6950
     },
     {
       "path": "proposal.md",
-      "sha256": "d25fd9e7d9cdb1ed1aee2c880d80ea48ce409978514fe8c3747402efd1447520",
-      "bytes": 25860
+      "sha256": "cb300a92a637113858927150f6c4d9d405be58bc0d4efc9c3fd40d45c80bac00",
+      "bytes": 32889
     },
     {
       "path": "reference/post_pose_decode_simcc.py",
-      "sha256": "ff3c99bf7327e259c024d2483718125f58619fd31d7c34ed0fdf949813d6ca14",
-      "bytes": 4233
+      "sha256": "01eae31229ef0ce234da802e97201f479a4a971857332799273b9c8af74c5d86",
+      "bytes": 4652
     },
     {
       "path": "vectors/post.pose.decode.simcc.yaml",
-      "sha256": "1fc93744df5a948bf372134b076f6868892ea3a0aaf773d83ad05ecd2c05dd11",
-      "bytes": 5335
+      "sha256": "0805dcdab64d6be21c4592cb4b0ba83a6eecd944402592b505c9608dbb5e3784",
+      "bytes": 7406
     }
   ]
 }

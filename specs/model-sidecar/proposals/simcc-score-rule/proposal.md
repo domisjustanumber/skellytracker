@@ -6,11 +6,11 @@ This file uses ASD-STE100 Simplified Technical English.
 
 | Field | Value |
 |---|---|
-| Title | The SimCC keypoint score, the tie rule and the rule for a score `<= 0` (2D) |
+| Title | The SimCC keypoint score, the tie rule, the rule for a score `<= 0` and the rule for a NaN raw value (2D) |
 | Slug | `simcc-score-rule` |
 | Date | 2026-11-06 |
 | Exporter repo | OpenMMLab-Exporter |
-| Exporter commit (`git rev-parse HEAD` in the exporter repo, or `none (no git repo)`) | `c2e610e91fee0a961032e12737ff9147697a7e53` |
+| Exporter commit (`git rev-parse HEAD` in the exporter repo, or `none (no git repo)`) | `ecee56e1ea1b4d3901c76a73b713ed0256675e78` |
 | Model, and its `model` bundle ID | `rtmw-wholebody133`, `model-rtmw-wholebody133@openmmlab-exporter` |
 | Intake rows with the verdict `near-miss` or `gap` | K8 (keypoint score), `near-miss` |
 | Kind (`new section`, `changed section`, `contribution` or `follow-up`) | `changed section` |
@@ -18,20 +18,20 @@ This file uses ASD-STE100 Simplified Technical English.
 | Proposed section ID (the `id` in the section file's front matter) | `post.pose.decode.simcc` |
 | Section file (the file of the changed section, or the proposed path of the new section file under `specs/model-sidecar/`) | `specs/model-sidecar/post/pose-decode-simcc.md` |
 | Depends on (`depends_on`: bundle IDs that must land first, or `none`) | none |
-| skellytracker decision entries with the status `proposed` that cover the same property (or `none`) | none. The Proposed table of the spec log has two entries, skellytracker ADR-3S5G (`pre.resize.affine_person_crop`) and skellytracker ADR-50BW (`common.batch_conversion`). Neither covers `post.pose.decode.simcc`. |
+| skellytracker decision entries with the status `proposed` that cover the same property (or `none`) | skellytracker ADR-03PH, the entry of version 2 of this proposal. No other entry. The Proposed table of the spec log also has skellytracker ADR-3S5G (`pre.resize.affine_person_crop`), skellytracker ADR-52NQ (`common.identity`) and skellytracker ADR-XH1J (`pre.normalize`). None of them covers `post.pose.decode.simcc`. |
 | skellytracker folder that you read (normally `../freemocap/skellytracker`) | `../freemocap/skellytracker` (branch `dom/sidecar-implementation`) |
-| skellytracker commit of the spec text that you read (`git -C <folder> rev-parse HEAD`; add `+ uncommitted changes` if `git -C <folder> status --porcelain` lists a file that you read) | `b065f6e6850686b65bcd08ca944116d739aa62de` |
+| skellytracker commit of the spec text that you read (`git -C <folder> rev-parse HEAD`; add `+ uncommitted changes` if `git -C <folder> status --porcelain` lists a file that you read) | `8fed6f34eb22643e0b6cc38a7c6b80014bfe1d75` |
 | Target spec version: the newest version heading under "Revisions" in `specs/model-sidecar/changelog.md`, today the open target `2.0.0`. `pack` writes it to the manifest as `spec_version`. | `2.0.0` |
 
 ## 1. Gap
 
 | Item | Value |
 |---|---|
-| Property | The SimCC decode of mmpose v1.3.2. (1) The bin of each axis is the argmax of the raw output; a tie gives the lowest bin. (2) The score is the smaller of the two raw peaks of `simcc_x` and `simcc_y`. No softmax comes first. (3) When the score is `<= 0`, each axis of the keypoint gets the bin `-1`, before the scale. (4) The pixel of bin `b` is `b / simcc_split_ratio`, with no half-bin offset. The section is 2D only (skellytracker ADR-9HBB), so these four steps are the full section. |
-| Upstream evidence (file and line, or config key; full upstream SHA, then the tag) | mmpose `5408bc76f5b848cf925a0d1857899011d8c5b497` (tag `v1.3.2`). (1) to (3): [`mmpose/codecs/utils/post_processing.py:41-44`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/codecs/utils/post_processing.py#L41-L44) (`apply_softmax: bool = False`), [`:90-99`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/codecs/utils/post_processing.py#L90-L99) (`np.argmax`, `np.amax`, `mask = max_val_x > max_val_y`, `locs[vals <= 0.] = -1`); [`mmpose/codecs/simcc_label.py:174`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/codecs/simcc_label.py#L174) (no softmax). (4): [`mmpose/codecs/simcc_label.py:191`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/codecs/simcc_label.py#L191) (`keypoints /= self.simcc_split_ratio`, after the `-1`); RTMW codec [`configs/wholebody_2d_keypoint/rtmpose/cocktail14/rtmw-m_8xb1024-270e_cocktail14-256x192.py:47-53`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/configs/wholebody_2d_keypoint/rtmpose/cocktail14/rtmw-m_8xb1024-270e_cocktail14-256x192.py#L47-L53) (`simcc_split_ratio=2.0`, `use_dark=False`). The `decode_visibility` branch keeps the first value as the score: [`mmpose/models/heads/base_head.py:81-86`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/models/heads/base_head.py#L81-L86). |
+| Property | The SimCC decode of mmpose v1.3.2. (1) The bin of each axis is the argmax of the raw output; a tie gives the lowest bin. (2) The score is the smaller of the two raw peaks of `simcc_x` and `simcc_y`. No softmax comes first. (3) When the score is `<= 0`, each axis of the keypoint gets the bin `-1`, before the scale. (4) The pixel of bin `b` is `b / simcc_split_ratio`, with no half-bin offset. (5) In a row that holds a NaN raw value, the bin is the lowest index of a NaN, and the peak is NaN. A comparison with a NaN is false. Thus a NaN in `simcc_x` gives the score NaN, a NaN only in `simcc_y` gives the score `peak_x`, and a NaN score keeps its bins. The section is 2D only (skellytracker ADR-9HBB), so these five steps are the full section. |
+| Upstream evidence (file and line, or config key; full upstream SHA, then the tag) | mmpose `5408bc76f5b848cf925a0d1857899011d8c5b497` (tag `v1.3.2`). (1) to (3): [`mmpose/codecs/utils/post_processing.py:41-44`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/codecs/utils/post_processing.py#L41-L44) (`apply_softmax: bool = False`), [`:90-99`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/codecs/utils/post_processing.py#L90-L99) (`np.argmax`, `np.amax`, `mask = max_val_x > max_val_y`, `locs[vals <= 0.] = -1`); [`mmpose/codecs/simcc_label.py:174`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/codecs/simcc_label.py#L174) (no softmax). (4): [`mmpose/codecs/simcc_label.py:191`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/codecs/simcc_label.py#L191) (`keypoints /= self.simcc_split_ratio`, after the `-1`); RTMW codec [`configs/wholebody_2d_keypoint/rtmpose/cocktail14/rtmw-m_8xb1024-270e_cocktail14-256x192.py:47-53`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/configs/wholebody_2d_keypoint/rtmpose/cocktail14/rtmw-m_8xb1024-270e_cocktail14-256x192.py#L47-L53) (`simcc_split_ratio=2.0`, `use_dark=False`). The `decode_visibility` branch keeps the first value as the score: [`mmpose/models/heads/base_head.py:81-86`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/models/heads/base_head.py#L81-L86). (5): the same lines [`post_processing.py:90-99`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/codecs/utils/post_processing.py#L90-L99) on NumPy arrays: `np.argmax` gives the index of the first NaN, `np.amax` gives NaN, and `max_val_x > max_val_y` and `vals <= 0.` are false for a NaN. NumPy `c60f172b3330f76d6592362137f34c4a3030a001` (branch `main`): the argmax of a float row stops at the first NaN ([`numpy/_core/src/multiarray/argfunc.dispatch.c.src:181-262`](https://github.com/numpy/numpy/blob/c60f172b3330f76d6592362137f34c4a3030a001/numpy/_core/src/multiarray/argfunc.dispatch.c.src#L181-L262), [`:313-345`](https://github.com/numpy/numpy/blob/c60f172b3330f76d6592362137f34c4a3030a001/numpy/_core/src/multiarray/argfunc.dispatch.c.src#L313-L345), "nan encountered; it's maximal"), and `amax` propagates a NaN ([`numpy/_core/fromnumeric.py:3380`](https://github.com/numpy/numpy/blob/c60f172b3330f76d6592362137f34c4a3030a001/numpy/_core/fromnumeric.py#L3380)). `SimCCLabel.decode` divides the bins by `simcc_split_ratio` and does not change the scores ([`simcc_label.py:174-191`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/codecs/simcc_label.py#L174-L191), `use_dark=False`). |
 | Plan decisions about the spec that this proposal uses, in words (or `none`) (heading "User decisions" in `specs/model-sidecar/model-addition-workflow/rules.md`) | The user decided on 2026-11-06 that row K8 of the RTMW intake needs this proposal. The user decided on 2026-11-06 that the proposal covers only the 2D decode: no model of this exporter has a `simcc_z` output. skellytracker ADR-9HBB then made the section 2D only, so this decision agrees with the spec. |
 | Nearest section ID (the `id` in the section file's front matter) | `post.pose.decode.simcc` |
-| Why the nearest section is wrong | Behaviour says "The location of each keypoint is the argmax bin. Its score is the max value." SimCC has two peaks for each keypoint. The text does not say how the two peaks combine, or if a softmax comes first. It has no tie rule and no rule for a score `<= 0`. The spec itself names this defect ("Spec defects", the SimCC item, in `specs/model-sidecar/decisions/open-work.md`). The skellytracker host takes the mean of the two softmax peaks, so a keypoint threshold does not transfer between hosts. |
+| Why the nearest section is wrong | Behaviour says "The location of each keypoint is the argmax bin. Its score is the max value." SimCC has two peaks for each keypoint. The text does not say how the two peaks combine, or if a softmax comes first. It has no tie rule, no rule for a score `<= 0` and no rule for a NaN raw value. The spec itself names this defect ("Spec defects", the SimCC item, in `specs/model-sidecar/decisions/open-work.md`). The skellytracker host takes the mean of the two softmax peaks, so a keypoint threshold does not transfer between hosts. |
 | Measured difference (number, image and script) | COCO val2017, all 6352 non-crowd GT persons with keypoints, GT boxes, flip test off, body OKS AP (17 points). RTMW-m 256x192: upstream 0.7477; min of the raw peaks (this proposal) 0.7477; mean of the raw peaks (rtmlib) 0.7461; mean of the softmax peaks (skellytracker today) 0.6560. RTMW-x 384x288: 0.7953, 0.7952, 0.7951, 0.7218. The AR of the four rules is the same within 0.0003, because the bins are the same. Script: OpenMMLab-Exporter `notes/decisions/scripts/simcc_score_rule_parity.py` at [`16b06c10986d2010989b101a13d56cbfebbd6748`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/16b06c10986d2010989b101a13d56cbfebbd6748/notes/decisions/scripts/simcc_score_rule_parity.py) ([OpenMMLab-Exporter ADR-0053](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/d9704753a22792c32a1d3018a0c9e9ea2d279d71/decisions/entries/0053-pose-sidecar-parity-runs.md)). `evidence.md` gives the files and their hashes. |
 | Model in "Scope of this revision" (`specs/model-sidecar/changelog.md`): yes, or no (it joins the list on acceptance; do not write a scope entry) | yes (OpenMMLab-Exporter: RTMW) |
 | Row in "Considered and deliberately not added" (`specs/model-sidecar/changelog.md`), and the evidence that a model needs it now (or `none`) | none. The row `score_activation: softmax` is about detection scores. The row of the 3D SimCC decode (change 36, skellytracker ADR-9HBB) is about a 3D model. This proposal does not add a 3D decode. |
@@ -56,7 +56,7 @@ peaks until the implementation stage.
 |---|---|---|
 | `post.pose.decode.simcc` | front matter | `vectors` (above). |
 | `post.pose.decode.simcc` | Behaviour | Replace the first bullet (the `simcc` bullet) with the text of 2.3. Keep the second bullet ("The SimCC decode is 2D only. ...") unchanged, after the new text. Keep the line `[Shape key](pose-schema.md#shape-key)`. |
-| `post.pose.decode.simcc` | Implementer guidance | Replace the first bullet ("The spec says that the SimCC score is the max value. ...") with the bullet of 2.3, "Guidance". Keep the fp16 bullet. |
+| `post.pose.decode.simcc` | Implementer guidance | Replace the first bullet ("The spec says that the SimCC score is the max value. ...") with the two bullets of 2.3, "Guidance". Keep the fp16 bullet. |
 | `specs/model-sidecar/changelog.md` | Summary of changes | The row of 2.6. |
 | `specs/model-sidecar/decisions/open-work.md` | Spec defects, the SimCC item (the item that starts with "SimCC decode says "Its score is the max value"") | The content commit removes the item. |
 | `specs/model-sidecar/vectors/post.pose.decode.simcc.yaml` | new file | The cases of part 4. |
@@ -81,12 +81,12 @@ is 2D only. ...") stays unchanged. It comes after the new text. The text below s
   softmax.
 
 ```text
-bin_x  = argmax over b of simcc_x[n, k, b]       (on a tie, the lowest b)
-bin_y  = argmax over b of simcc_y[n, k, b]       (on a tie, the lowest b)
+bin_x  = argmax over b of simcc_x[n, k, b]       (on a tie, the lowest b; see NaN below)
+bin_y  = argmax over b of simcc_y[n, k, b]       (on a tie, the lowest b; see NaN below)
 peak_x = simcc_x[n, k, bin_x]
 peak_y = simcc_y[n, k, bin_y]
 score  = peak_y   when peak_x > peak_y
-         peak_x   otherwise                      (thus min(peak_x, peak_y))
+         peak_x   otherwise                      (thus min(peak_x, peak_y) when no peak is NaN)
 when score <= 0:
     bin_x = -1, bin_y = -1
 x = bin_x * input_width / X_bins
@@ -97,11 +97,18 @@ y = bin_y * input_height / Y_bins
 - A keypoint with a score `<= 0` keeps its score. Its position is `x = -input_width / X_bins` and
   `y = -input_height / Y_bins`. The host unprojects it as each other keypoint.
 - Bin `0` gives the position `0`. The decode adds no half-bin offset.
+- NaN raw values. In a row of `simcc_x` or `simcc_y` that holds a NaN, the bin is the lowest `b`
+  with a NaN, and the peak is NaN. Each comparison with a NaN is false. Thus:
+  - A NaN in the row of `simcc_x` gives the score NaN.
+  - A NaN only in the row of `simcc_y` gives the score `peak_x`. When `peak_x <= 0`, both axes get
+    the bin `-1`.
+  - A NaN score is not `<= 0`. The bins stay, and the position comes from the bins. The position
+    is never NaN.
 - The decoded keypoints are in the model-input pixels of the crop. The host unprojects them to the
   source image ([Unprojection](../../post/unprojection.md)).
 - The SimCC decode is 2D only. `V-post.pose.schema-7` requires `pose.geometry: 2d` with `method: simcc`. A 3D SimCC model adds a new section with its own contract ([ADR-9HBB](../../../../decisions/entries/9HBB-simcc-decode-is-2d-only.md)).
 
-**Guidance** (the new first bullet of Implementer guidance):
+**Guidance** (the two new first bullets of Implementer guidance):
 
 - The score is the score of mmpose v1.3.2 `get_simcc_maximum` with `apply_softmax=False`. The
   skellytracker function `get_simcc_maximum` takes the mean of the two softmax peaks. The rtmlib
@@ -109,11 +116,23 @@ y = bin_y * input_height / Y_bins
   RTMW-m gave the body AP 0.7477 with the rule of this section, 0.7461 with the raw mean and 0.6560
   with the softmax mean. The detectors of skellytracker drop a keypoint below
   `confidence_threshold: 0.004`. That value fits only the softmax score. (OpenMMLab-Exporter
-  `notes/decisions/scripts/simcc_score_rule_parity.py` at
-  `16b06c10986d2010989b101a13d56cbfebbd6748`, OpenMMLab-Exporter ADR-0053; skellytracker
-  `skellytracker/core/detectors/processing/simcc_decode.py` (`get_simcc_maximum`) and
-  `skellytracker/core/detectors/keypoint_detectors/rtmw/wholebody/rtmw_wholebody_detector.py`
+  [`notes/decisions/scripts/simcc_score_rule_parity.py`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/16b06c10986d2010989b101a13d56cbfebbd6748/notes/decisions/scripts/simcc_score_rule_parity.py)
+  at `16b06c10986d2010989b101a13d56cbfebbd6748`,
+  [OpenMMLab-Exporter ADR-0053](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/d9704753a22792c32a1d3018a0c9e9ea2d279d71/decisions/entries/0053-pose-sidecar-parity-runs.md);
+  skellytracker `skellytracker/core/detectors/processing/simcc_decode.py` (`get_simcc_maximum`)
+  and `skellytracker/core/detectors/keypoint_detectors/rtmw/wholebody/rtmw_wholebody_detector.py`
   (`confidence_threshold`))
+- The NaN rule of Behaviour is the result of mmpose v1.3.2 on NumPy arrays. `np.argmax` gives the
+  index of the first NaN, `np.amax` gives NaN, and the comparisons `max_val_x > max_val_y` and
+  `vals <= 0.` are false for a NaN. In Python, `np.argmax`, `np.max` and
+  `np.where(peak_x > peak_y, peak_y, peak_x)` give the rule. In another language, do not use a max
+  function that skips a NaN or that gives a later NaN. Do not replace the strict `>` with a `min`
+  function. When one peak is NaN, a `min` function can give NaN or the other peak, and that is
+  not always the result of this rule (for example, `np.minimum` gives NaN for a NaN `peak_y`).
+  ([`mmpose/codecs/utils/post_processing.py:90-99`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/codecs/utils/post_processing.py#L90-L99)
+  at mmpose `5408bc76f5b848cf925a0d1857899011d8c5b497`, tag `v1.3.2`;
+  [`numpy/_core/src/multiarray/argfunc.dispatch.c.src:313-345`](https://github.com/numpy/numpy/blob/c60f172b3330f76d6592362137f34c4a3030a001/numpy/_core/src/multiarray/argfunc.dispatch.c.src#L313-L345)
+  at NumPy `c60f172b3330f76d6592362137f34c4a3030a001`)
 
 The change has no inverse. The unprojection is the Inverse of the resize method.
 
@@ -132,7 +151,7 @@ No change: `pose.decode.method=simcc`, `outputs[].semantic=simcc_x` and
 
 | # | Area | Change | Driven by | Section |
 |---|------|--------|-----------|---------|
-| (next) | Pose | The SimCC decode gives its steps: the argmax of each axis on the raw values (a tie takes the lowest bin), the score `min(peak_x, peak_y)` with no softmax, the bin `-1` on each axis for a score `<= 0`, and the bin scale with no offset (2D). | RTMW (mmpose `get_simcc_maximum`) | [SimCC decode](../../post/pose-decode-simcc.md#behaviour) |
+| (next) | Pose | The SimCC decode gives its steps: the argmax of each axis on the raw values (a tie takes the lowest bin), the score `min(peak_x, peak_y)` with no softmax, the bin `-1` on each axis for a score `<= 0`, the rule for a NaN raw value (the bin of the first NaN, and a comparison with a NaN is false), and the bin scale with no offset (2D). | RTMW (mmpose `get_simcc_maximum`) | [SimCC decode](../../post/pose-decode-simcc.md#behaviour) |
 
 ## 3. Reference implementation
 
@@ -144,8 +163,11 @@ No change: `pose.decode.method=simcc`, `outputs[].semantic=simcc_x` and
 
 The file implements the full section. The section is 2D only (skellytracker ADR-9HBB). It imports
 no other section. `source commit: none (no host code)`: OpenMMLab-Exporter has no committed host
-SimCC decode. The parity run of part 5 loaded version 1 of this file. Version 2 changes only
-docstring lines (part 5).
+SimCC decode. The parity run of part 5 loaded version 1 of this file. Versions 2 and 3 change only
+docstring lines (part 5). The code of version 1 already gives the rule for a NaN raw value of 2.3:
+`np.argmax` and `np.max` in `peak`, the strict `>` of `np.where` in `keypoint_score` and
+`scores <= 0` in `mark_low_scores`. Version 3 states the rule in the docstrings of these three
+functions and does not change a code line.
 
 ## 4. Vectors
 
@@ -158,11 +180,20 @@ docstring lines (part 5).
 
 The cases cover: the score from each axis, equal peaks (the strict `>`), raw values above 1, the tie
 of each axis, a score of exactly 0, one negative peak, a small positive score, the bin scale with
-bin 0, the bin counts from the tensors, two crops with two keypoints and a tensor refusal
-(`no-rule`). All 12 cases are `pose.geometry: 2d`. The tolerance is `1e-6`. `fill` of
-skellytracker `tools/make_vectors.py` (at `8351b7f8`) wrote `expect` with the reference file of
-part 3 and found no problems. Version 2 changes only one note of the file. The cases and their
-`expect` values are byte-identical to version 1.
+bin 0, the bin counts from the tensors, two crops with two keypoints, a NaN raw value (a NaN in
+`simcc_x` that is not at its largest number, a NaN in `simcc_y` after its largest number, a NaN
+in `simcc_y` with a negative `peak_x`, two NaN values in one row and a row of NaN values only) and a
+tensor refusal (`no-rule`). All 16 cases are `pose.geometry: 2d`. The tolerance is `1e-6`. In
+`input` and `expect`, a NaN is `.nan`. `agrees` of skellytracker `tools/vector_form.py` gives NaN
+equal to NaN. `fill` of skellytracker `tools/make_vectors.py` (at
+`8fed6f34eb22643e0b6cc38a7c6b80014bfe1d75`) wrote `expect` with the reference file of part 3 and
+found no problems. Version 3 adds the 4 NaN cases (ids `nan-in-x-gives-a-nan-score`,
+`nan-in-y-gives-the-x-score`, `nan-in-y-with-a-negative-x-peak` and
+`nan-in-both-rows-takes-the-first-nan`) and one note, and changes one other note. `fill` also
+puts the 2D note on one line. The 12 cases of version 2 and their `expect` values do not change. A
+copy of the text of mmpose `get_simcc_maximum` (post_processing.py:41-105) gave the same bins and
+scores on each case, and the same positions after the division by `simcc_split_ratio` (NumPy 2.4.6;
+the copy is not committed: secondary).
 
 ## 5. Parity evidence
 
@@ -171,12 +202,28 @@ The run of 2026-11-06 with the reference file of version 1 of this bundle ([Open
 same rule. The gates were written to `gates.json` before the run (2026-11-06T17:23:17Z). They equal
 the gates of the first run. `evidence.md` gives the files.
 
-The reference file of version 2 differs from the measured file only in docstring lines. The
+The reference file of version 3 differs from the measured file only in docstring lines. The
 measured file (version 1) has the SHA-256
 `45f24b0dcabb4ba0f7d17e1325d5989e17f09c0a6d632077bbe221d462777879`. The file of version 2 has the
-SHA-256 `ff3c99bf7327e259c024d2483718125f58619fd31d7c34ed0fdf949813d6ca14`. The decode code is
-identical: `ast.dump` of the two modules, with the docstrings removed, gives the same text. Thus the
-result of OpenMMLab-Exporter ADR-VB67 applies to version 2. No new run was made.
+SHA-256 `ff3c99bf7327e259c024d2483718125f58619fd31d7c34ed0fdf949813d6ca14`. The file of version 3
+has the SHA-256 `01eae31229ef0ce234da802e97201f479a4a971857332799273b9c8af74c5d86`. The decode
+code is identical: `ast.dump` of the three modules, with the docstrings removed, gives the same
+text. Version 3 adds the rule for a NaN raw value to the text of 2.3. The code of version 1 already
+gave that rule, so version 3 changes no code line. The result of OpenMMLab-Exporter ADR-VB67 thus
+applies to version 3 for each finite input. No new run was made, and this proposal does not claim
+one.
+
+A second check ran the module of version 2 and the module of version 3 on the same inputs: the 15
+numeric cases of part 4, and 600 random batches of float32 rows (300 finite batches with 8510
+keypoints, and 300 batches with NaN values with 9003 keypoints; the bin counts 384, 512, 576 and
+768 of RTMW and four small counts; ties, zero and negative peaks, and rows of NaN values only). The
+bins, the positions and the scores were equal on each input. A copy of the text of mmpose
+`get_simcc_maximum` gave the same results on each input (NumPy 2.4.6). The check script is not
+committed: it is secondary. The parity run did not test the NaN branch, and no gate counts NaN raw
+values. The decode-only check counts a NaN score as a difference (`!=`,
+[`decisions/scripts/simcc_score_rule_parity.py:507-510`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/438138208691a522f54320961f058e61b60d54a3/decisions/scripts/simcc_score_rule_parity.py#L507-L510)),
+and it found 0 differences. Thus no upstream score was NaN. A NaN only in `simcc_y` does not give a
+NaN score, so the run does not exclude it. The vectors of part 4 cover the NaN branch.
 
 | Item | Value |
 |---|---|
@@ -196,11 +243,11 @@ result of OpenMMLab-Exporter ADR-VB67 applies to version 2. No new run was made.
 
 | Item | Value |
 |---|---|
-| Module and function | `skellytracker/core/detectors/processing/simcc_decode.py`: change `get_simcc_maximum` to the steps of 2.3 (no softmax; `np.where(max_x > max_y, max_y, max_x)`; the `-1` rule stays). `decode_simcc` must read the bin scale from the bin counts (`input_width / X_bins`), not from `_SIMCC_SPLIT_RATIO`. This proposal does not change the 3D branch of `simcc_pose_decode` (`is_3d`). Stage M8 of `specs/sidecar-implementation-plan.md` removes the 3D SimCC code of the package (skellytracker ADR-9HBB). |
+| Module and function | `skellytracker/core/detectors/processing/simcc_decode.py`: change `get_simcc_maximum` to the steps of 2.3 (no softmax; `np.where(max_x > max_y, max_y, max_x)`; the `-1` rule stays). With `np.argmax` and `np.max`, these steps also give the rule for a NaN raw value. `decode_simcc` must read the bin scale from the bin counts (`input_width / X_bins`), not from `_SIMCC_SPLIT_RATIO`. This proposal does not change the 3D branch of `simcc_pose_decode` (`is_3d`). Stage M8 of `specs/sidecar-implementation-plan.md` removes the 3D SimCC code of the package (skellytracker ADR-9HBB). |
 | Dispatch point | `simcc_pose_decode` (`pose.decode.method: simcc`). No new dispatch. |
 | Validator changes (`model.py`, with rule IDs) | none. The change adds no rule. The check of `V-post.pose.schema-7` (`pose.geometry: 2d` with `method: simcc`) is in stage M8 of `specs/sidecar-implementation-plan.md` (skellytracker ADR-9HBB). |
 | Tests (the vectors of part 4, and a golden parity test, for example in `skellytracker/tests/sidecar/`) | A test that runs the numeric cases of `vectors/post.pose.decode.simcc.yaml` through `get_simcc_maximum` and `decode_simcc`. A golden test on one RTMW crop with mmpose scores. |
-| Existing code that the change touches | `skellytracker/core/detectors/processing/simcc_decode.py` (`get_simcc_maximum`, `decode_simcc`, `simcc_pose_decode`); `skellytracker/core/detectors/keypoint_detectors/rtmpose/rtmpose_preprocessing.py` (a second call of `get_simcc_maximum`); the `confidence_threshold: 0.004` defaults of the RTMPose body, face and hand detectors and of the RTMW detector (a raw score needs another default). |
+| Existing code that the change touches | `skellytracker/core/detectors/processing/simcc_decode.py` (`get_simcc_maximum`, `decode_simcc`, `simcc_pose_decode`); `skellytracker/core/detectors/keypoint_detectors/rtmpose/rtmpose_preprocessing.py` (a second call of `get_simcc_maximum`); `skellytracker/tests/sidecar/golden_parity.py` (`simcc_bin_size_px` imports `_SIMCC_SPLIT_RATIO`; the bin size must also come from the bin counts); the `confidence_threshold: 0.004` defaults of the RTMPose body, face and hand detectors and of the RTMW detector (a raw score needs another default). |
 
 ## 7. Exporter impact
 
@@ -234,6 +281,7 @@ The example `detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml` ha
 | The mean of the two raw peaks (rtmlib). | It is not the upstream score. AP 0.7461 against 0.7477. | Part 1 |
 | `min(peak_x, peak_y)` with no rule for a score `<= 0`. | mmpose sets the bin `-1`. A host without the rule gives another position for those keypoints (3 keypoints in the Halpe26 run). | Part 5, G6 |
 | Also set the 3D steps (`simcc_z`) in this proposal. | skellytracker ADR-9HBB made the section 2D only. A 3D SimCC model adds a new section with its own contract. No model of this exporter has a `simcc_z` output, so no parity run can test 3D steps. | Part 1; skellytracker ADR-9HBB |
+| A NaN rule of its own, for example the score NaN for each NaN raw value, or the bin `-1` for a NaN score. | It is not the upstream result. mmpose v1.3.2 gives the score `peak_x` for a NaN only in `simcc_y`, and it keeps the bins of a NaN score. A different rule gives other scores and positions than mmpose for these keypoints. | Part 1, step (5); the cases `nan-in-y-gives-the-x-score` and `nan-in-x-gives-a-nan-score` |
 | The visibility of `decode_visibility=True` as the score. | The head keeps the first value as the score. The visibility is a separate output, out of scope of this proposal. | `base_head.py:81-86` |
 
 ## Before you stop

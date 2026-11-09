@@ -6,16 +6,17 @@ Target file in skellytracker: specs/model-sidecar/reference/post_pose_decode_sim
 Imported sections: none. Fixtures: none.
 
 source commit: none (no host code). OpenMMLab-Exporter has no committed host SimCC decode. The
-functions come from the text of part 2 of the proposal. The parity run of part 5 loaded this file.
+functions come from the text of part 2 of the proposal. The parity run of part 5 loaded version 1
+of this file. Versions 2 and 3 change only docstrings: the code is the same.
 
 Vector results: the cases of vectors/post.pose.decode.simcc.yaml of the proposal bundle. They are
 unverified: no exporter and no skellytracker code implements the proposed rule yet.
 
 The module implements the full section: the argmax bin of each axis, the score, the rule for a
-score <= 0 and the bin-to-pixel scale. The section is 2D only (skellytracker ADR-9HBB). The
-keypoints that it returns are in the model-input pixels of the crop. The unprojection to the
-source image is the Inverse of the resize method (section post.unprojection). It is not in this
-module.
+score <= 0, the rule for a NaN raw value and the bin-to-pixel scale. The section is 2D only
+(skellytracker ADR-9HBB). The keypoints that it returns are in the model-input pixels of the crop.
+The unprojection to the source image is the Inverse of the resize method (section
+post.unprojection). It is not in this module.
 """
 
 from __future__ import annotations
@@ -29,7 +30,8 @@ def peak(simcc: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """post.pose.decode.simcc: the argmax bin and the peak value of each row.
 
     `simcc` has the shape (N, K, bins), as float32 raw values. No softmax. On a tie, the bin
-    is the lowest index (np.argmax). Returns (bin, peak), each of shape (N, K).
+    is the lowest index (np.argmax). In a row that holds a NaN, the bin is the lowest index of a
+    NaN (np.argmax), and the peak is NaN (np.max). Returns (bin, peak), each of shape (N, K).
     """
     return np.argmax(simcc, axis=-1), np.max(simcc, axis=-1)
 
@@ -37,7 +39,8 @@ def peak(simcc: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 def keypoint_score(peak_x: np.ndarray, peak_y: np.ndarray) -> np.ndarray:
     """post.pose.decode.simcc: the score is peak_y where peak_x > peak_y, else peak_x.
 
-    This is min(peak_x, peak_y).
+    This is min(peak_x, peak_y) when no peak is NaN. A comparison with a NaN is false. Thus a NaN
+    peak_x gives the score NaN, and a NaN peak_y with a number peak_x gives the score peak_x.
     """
     return np.where(peak_x > peak_y, peak_y, peak_x)
 
@@ -46,7 +49,7 @@ def mark_low_scores(bins: np.ndarray, scores: np.ndarray) -> np.ndarray:
     """post.pose.decode.simcc: where score <= 0, each axis of the keypoint gets the bin -1.
 
     `bins` has the shape (N, K, 2). The comparison is not strict: a score of exactly 0 gets the
-    bin -1.
+    bin -1. A NaN score is not <= 0, so its bins stay.
     """
     marked = np.array(bins, dtype=np.int64)
     marked[scores <= 0] = -1
