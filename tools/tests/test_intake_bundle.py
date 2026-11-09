@@ -642,12 +642,6 @@ def test_each_record_folder_has_exactly_one_entry() -> None:
     assert {slug: len(paths) for slug, paths in ib.record_entries().items() if len(paths) != 1} == {}
 
 
-def test_each_new_inventory_example_names_its_bundle() -> None:
-    inventory = yaml.safe_load((REPO_ROOT / "specs" / "model-sidecar" / "inventory.yaml").read_text(encoding="utf-8"))
-    without = {key for key, entry in inventory["examples"].items() if "bundle" not in entry}
-    assert without <= ib.NO_BUNDLE_EXAMPLES
-
-
 def test_responses_are_json_that_yaml_also_reads(tmp_path: Path, root: Path) -> None:
     respond(root, "proposal-box-clamp@ultralytics-exporter", 1, state="rejected", resolution={"reason": "no"})
     text = (root / "proposal-box-clamp@ultralytics-exporter" / "responses" / "r1.yaml").read_text(encoding="utf-8")

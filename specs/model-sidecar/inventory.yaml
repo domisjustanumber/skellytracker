@@ -7,7 +7,7 @@
 # entry has no source key. An entry has these keys:
 #   exporter              the exporter repo
 #   exporter_path         the path of the exporter's copy, relative to the exporter repo
-#   kind                  export: copied from exporter output; forecast: written from exporter code
+#   kind                  export: copied from exporter output
 #   exporter_layout_path  the exporter's own output path when it does not follow the spec's storage
 #                         layout (an exporter defect), else null
 #   tracked               whether exporter_path is tracked in git (most exports are untracked build
@@ -22,9 +22,8 @@
 #                         example invalid")
 #   notes                 known differences from the exporter's copy
 #   bundle                the hand-over bundle of the copy, as <bundle id>@v<k>; provenance text, not a
-#                         path (specs/model-sidecar/model-addition-workflow/hand-over.md). Each new
-#                         entry must have it. Only the examples from before the bundles have no
-#                         bundle key (NO_BUNDLE_EXAMPLES in tools/intake_bundle.py)
+#                         path (specs/model-sidecar/model-addition-workflow/hand-over.md). Each
+#                         entry must have it
 # fragments: the provenance of each fragment under specs/model-sidecar/examples/ that has no package
 # copy, keyed by its path there. A fragment is a YAML file that is not a sidecar, in shared/ or next to
 # a sidecar. A fragment with a package copy has the same bytes as that copy and no entry. The copy is

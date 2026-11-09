@@ -172,10 +172,8 @@ COPY_KEYS = {"exporter", "exporter_path", "kind", "exporter_layout_path", "track
 # An example entry of example/provenance.yaml; notes optional. It has no source: the session takes
 # source from the example sidecar (ADR-ZXD7, item 6).
 PROVENANCE_KEYS = COPY_KEYS
-INVENTORY_KEYS = COPY_KEYS | {"edits", "notes"}  # an example entry of inventory.yaml
-OPTIONAL_INVENTORY_KEYS = {"bundle"}  # only an entry of NO_BUNDLE_EXAMPLES has no bundle
-# The examples from before the bundles. Each other example entry of inventory.yaml must have bundle (ADR-ZXD7, item 6).
-NO_BUNDLE_EXAMPLES: frozenset[str] = frozenset()  # ADR-YS4C removed the last one
+# An example entry of inventory.yaml. Each entry has bundle (ADR-ZXD7, item 6; ADR-C0YD).
+INVENTORY_KEYS = COPY_KEYS | {"edits", "notes", "bundle"}
 FRAGMENT_KEYS = {"exporter", "exporter_path", "tracked", "commit", "notes"}
 
 SOURCE_BATCH = 3
@@ -1103,8 +1101,8 @@ def _payload_problems(version_dir: Path, rel: str, yaml, repo: Path = REPO_ROOT)
         for path, entry in (data.get("examples") or {}).items():
             if not isinstance(entry, dict) or not PROVENANCE_KEYS <= set(entry) <= PROVENANCE_KEYS | {"notes"}:
                 problems.append(f"example/provenance.yaml examples[{path}] must have the keys {sorted(PROVENANCE_KEYS)} and may have notes")
-            elif entry["kind"] not in ("export", "forecast"):
-                problems.append(f"example/provenance.yaml examples[{path}].kind must be export or forecast")
+            elif entry["kind"] != "export":
+                problems.append(f"example/provenance.yaml examples[{path}].kind must be export")
         for path, entry in (data.get("fragments") or {}).items():
             if not isinstance(entry, dict) or set(entry) != FRAGMENT_KEYS:
                 problems.append(f"example/provenance.yaml fragments[{path}] must have exactly the keys {sorted(FRAGMENT_KEYS)}")

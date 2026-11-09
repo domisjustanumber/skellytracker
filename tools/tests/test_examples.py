@@ -20,7 +20,7 @@ import pytest
 import sidecar_refs
 import sidecar_trace
 import yaml
-from intake_bundle import FRAGMENT_KEYS, INVENTORY_KEYS, OPTIONAL_INVENTORY_KEYS
+from intake_bundle import FRAGMENT_KEYS, INVENTORY_KEYS
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES_ROOT = REPO_ROOT / "specs" / "model-sidecar" / "examples"
@@ -314,9 +314,9 @@ def test_every_example_has_one_provenance_entry() -> None:
 @pytest.mark.parametrize("key", sorted(inventory()["examples"]))
 def test_provenance_entry_is_complete(key: str) -> None:
     entry = inventory()["examples"][key]
-    assert set(entry) - OPTIONAL_INVENTORY_KEYS == INVENTORY_KEYS
-    assert re.fullmatch(r"(model|proposal)-\S+@\S+@v\d+", entry.get("bundle", "model-x@y@v1"))
-    assert entry["kind"] in {"export", "forecast"}
+    assert set(entry) == INVENTORY_KEYS
+    assert re.fullmatch(r"(model|proposal)-\S+@\S+@v\d+", entry["bundle"])
+    assert entry["kind"] == "export"
     assert isinstance(entry["tracked"], bool)
     assert isinstance(entry["edits"], list)
 
