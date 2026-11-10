@@ -50,6 +50,7 @@ These entries are `accepted` or `evidence`.
 | [M3RY](entries/M3RY-answers-version-names-an-existing-version.md) | `answers_version` is the version a response answers; `verify` refuses a higher number in the latest response; run `verify` after each response | accepted |
 | [3HZ4](entries/3HZ4-decision-questions-and-rule-defaults.md) | One form for each decision question, with the copy and push approvals; a rule decides first; defaults that need no question | accepted |
 | [80PC](entries/80PC-conditional-acceptance-and-landed-copy-fixes.md) | A conditional acceptance is a `needs-contributor` response; "Notes at acceptance"; docstring fixes in the landed reference copy | accepted |
+| [FM0B](entries/FM0B-one-response-for-each-commit-group.md) | One response per bundle per commit group; append-only; rules land before repack requests; named waits; drift exceptions; no drift once finished | accepted |
 
 ### Proposed
 

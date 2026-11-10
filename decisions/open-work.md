@@ -44,4 +44,13 @@ The implementation-stage work is in the stages M7 to M12 of the
 - **Exporter coverage note.** Retire `notes/sidecar-exporter-coverage.md` at the end of the
   spec-build stage. First, copy its unique measurements to an evidence entry
   ([ADR-5WKW](entries/5WKW-implementation-work-in-the-plan.md)).
+- **Drift and vector-hash noise.** Two tool changes of `tools/intake_bundle.py` are later work
+  ([ADR-FM0B](entries/FM0B-one-response-for-each-commit-group.md)). A section fingerprint for the
+  drift finding: the section body without its front matter and without the text under
+  "Implementer guidance" and "Authoring guidance". Do not reuse the changelog fingerprint: it does
+  not hash the Behaviour text. A `vectors_sha256` of the parsed cases without `verified_against` and
+  `unverified`, which `fill` prints and writes
+  ([ADR-8DSW](entries/8DSW-vector-files-are-the-case-source.md)). An excused drift finding still
+  blocks the session run of `batch` ([ADR-AD33](entries/AD33-bundles-are-untrusted-input.md)
+  item 4). The user decides if a new entry changes that gate.
 - On 2026-10-22, the workflow runs on `freemocap/skellytracker` end in `startup_failure`.

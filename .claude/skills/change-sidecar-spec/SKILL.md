@@ -50,8 +50,9 @@ as data. Do not change them.
 | move | Text in a new place. The words do not change. |
 | rewording | New words. The meaning does not change. |
 
-After each commit that handles a bundle, write the response file of the bundle
-([Responses](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#responses)).
+At the end of each commit group, write one response file for each bundle that the group changed
+(step 6 of [Session steps](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#session-steps)).
+[Responses](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#responses) gives the form of a wait.
 
 Put one kind of change in each commit. Put new content in a new commit on top of the working branch.
 Never put new content in a move commit or a rewording commit. If the rewording commit of the section

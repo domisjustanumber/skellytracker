@@ -313,7 +313,7 @@ bundle follow these paths:
 | Kind | Path |
 |---|---|
 | `model` | `submitted` -> `needs-contributor` or `waiting` (the response names the proposal bundles) -> `landed` (the example is committed); or -> `closed` |
-| `proposal` | `submitted` -> `needs-contributor` or `recorded` -> `accepted` -> `landed`; or -> `rejected`; or -> `resolved-otherwise`; or -> `closed` (withdrawn before `recorded`). `recorded` or `accepted` -> `needs-contributor` (a landing stop; the bundle keeps its owner role) -> `recorded` or `accepted` |
+| `proposal` | `submitted` -> `needs-contributor` or `recorded` -> `accepted` -> `landed`; or `recorded` -> `landed` when the landing is in the same session and part 7 has no `needs-export` row ([ADR-FM0B](../../../decisions/entries/FM0B-one-response-for-each-commit-group.md)); or -> `rejected`; or -> `resolved-otherwise`; or -> `closed` (withdrawn before `recorded`). `recorded` or `accepted` -> `needs-contributor` (a landing stop; the bundle keeps its owner role) -> `recorded` or `accepted` |
 | contribution | `submitted` -> `needs-contributor` or `recorded` -> `landed` with its base; -> `closed` when the base is `rejected`. `recorded` -> `needs-contributor` -> `recorded` |
 | withdrawn | The contributor tells the user. Before `recorded`, the session writes `closed`. After `recorded`, it writes `rejected` with the reason "Withdrawn by contributor". |
 
@@ -347,6 +347,16 @@ resolution: {...}                         # required for rejected and resolved-o
   `answers_version` of its latest response. `verify` gives a finding when that number is lower
   than 1 or higher than the current version ([ADR-M3RY](../../../decisions/entries/M3RY-answers-version-names-an-existing-version.md)).
 - `findings` holds each failed `verify` check and each item that the contributor must fix.
+- The last item of the `findings` of a `needs-contributor` response is the "Next version" list: the
+  manifest fields to change (`spec_commit`, `related`, `external`), the files to add or remove and
+  the runs to do again.
+- To ask for a rebase, write the finding `set spec_commit at or after the commit "<subject>"`. Do
+  not give a SHA.
+- Each wait names the bundle, its owner and the trigger that ends the wait. A `waiting` response
+  gives the bundles in `waiting_on`, and the owner and the trigger in `findings`. Write a `waiting`
+  response for a `model` bundle only when its `waiting_on` changes.
+- Responses are append-only. Do not change a response file. A correction is a new `r<n>`
+  ([ADR-FM0B](../../../decisions/entries/FM0B-one-response-for-each-commit-group.md)).
 - `rejected` needs a one-line `resolution.reason`.
 - `resolved-otherwise` means: the user accepted the goal of the proposal, but a different proposal
   bundle landed, which meets all or some of the goals. That bundle has its own accepted entry. For a
@@ -373,7 +383,9 @@ resolution: {...}                         # required for rejected and resolved-o
   ([States](#states)). If a response and the entry do not agree, the entry is correct. Tell the
   user.
 - `needs-contributor`: fix the findings. Pack the next version.
-- `waiting`: wait for the bundles of `waiting_on`.
+- `waiting`: the bundles of `waiting_on` block the verdict of your `model` bundle. Pack its next
+  version one time, after each bundle of `waiting_on` is landed
+  ([ADR-FM0B](../../../decisions/entries/FM0B-one-response-for-each-commit-group.md)).
 - `accepted`: pack a new version of the `model` bundle of each example of your repo with the impact
   `needs-export` in part 7, with `related` set to the proposal bundle. Do not wait for `landed`. The
   part 7 row is the request
@@ -417,8 +429,21 @@ it does this safety check ([ADR-AD33](../../../decisions/entries/AD33-bundles-ar
    `sections` entry that changed since `spec_commit`, and for a version heading in the checkout that
    is newer than `spec_version`. It gives a finding for a manifest with no `spec_version`, and for
    a `spec_version` that is not a version heading of the checkout
-   ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)). Each failed check gives a
-   finding and the response `needs-contributor`. `verify` reads each
+   ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)). When the state of the latest
+   response is finished (`landed`, `rejected`, `resolved-otherwise` or `closed`), `verify` does not
+   do the `spec_commit` and version-heading checks of this step
+   ([ADR-FM0B](../../../decisions/entries/FM0B-one-response-for-each-commit-group.md)). Each failed
+   check gives a finding and the response `needs-contributor`, with two exceptions
+   ([ADR-FM0B](../../../decisions/entries/FM0B-one-response-for-each-commit-group.md)):
+   - A drift finding or a `vectors_sha256` mismatch is not `needs-contributor` when a landed bundle
+     in `related` or `waiting_on`, or an edit of guidance only, caused it, and the example validates
+     at HEAD. The session decides this. The response gives the finding as a note and says why.
+   - A new check that tests only the workflow form gives a note, not a finding, for a version that
+     was packed before the commit that adds the check. This exception never applies to an
+     [ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md) check, for example
+     the check of compiled files, ONNX files, private data or imports.
+
+   `verify` reads each
    `reference/` module of the bundle and of its owner bundle as text, with `ast`. It never imports
    it. It gives a finding for the breaks of the rules of
    [Imports of other sections](reference-implementations.md#imports-of-other-sections) that it can
@@ -440,9 +465,18 @@ it does this safety check ([ADR-AD33](../../../decisions/entries/AD33-bundles-ar
    `pending`, the response is `needs-contributor`. Its findings come from "Missing evidence and runs"
    of the intake. Procedure A of the skill `change-sidecar-spec` turns `vector-runs.yaml` into
    `verified_against`.
-6. After each commit, write the next response with the new state and the commit subject. Then run
-   `verify` on the bundle again. It checks the new response. If it gives an
-   `answers_version` finding, write a new response with the correct `answers_version`.
+6. Write the responses in this order
+   ([ADR-FM0B](../../../decisions/entries/FM0B-one-response-for-each-commit-group.md)):
+   - Before you write a response that asks for a new version or a rebase, land each tool, workflow,
+     template or rule change of the round that changes what `verify` or the intake requires.
+   - Before you answer the `model` bundles of a contributor, land each proposal of that contributor
+     that the user accepted in this round.
+   - At the end of each commit group, after the decisions of the user, write one response for each
+     bundle that the group changed. The response gives the new state and the subject of each commit.
+     Also write the next response of each `waiting` model bundle that `list` marks
+     `waiting_on no longer open`.
+   - Then run `verify` on each bundle again. It checks the new response. If it gives an
+     `answers_version` finding, write a new response with the correct `answers_version`.
 
 ### The session run
 
@@ -503,7 +537,9 @@ The session asks the user each decision about a proposal in this form
 ## Deferral
 
 The user can defer a proposal. The bundle stays `recorded`, and the entry stays `proposed`. The
-response gives the finding `deferred: <reason>`. `list` shows it.
+response gives the finding `deferred: <reason>`. The reason names what the proposal waits for, for
+example a bundle, its owner and the trigger that ends the wait
+([ADR-FM0B](../../../decisions/entries/FM0B-one-response-for-each-commit-group.md)). `list` shows it.
 
 ## Conditional acceptance
 
