@@ -33,9 +33,9 @@ spec. If this guide and the spec do not agree, the spec is correct.
 - The Sidecars section names each file by its path in the skellytracker checkout, in a code span. It has
   no relative Markdown links, because exporter agents open its paths from the root of the exporter
   repo. The block for the exporter `AGENTS.md` has no relative links, because relative links break
-  when the block is copied to another repo. For the same reason, the change proposal template has no
-  relative links to other files. The model
-  intake template has them only in the section column of its property tables.
+  when the block is copied to another repo. For the same reason, the change proposal template and
+  the model intake template have no relative links to other files
+  ([ADR-ESP4](../../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).
 - The skellytracker paths in the Sidecars section start at the root of the exporter repo. The exporter repos
   and the `freemocap` folder must be in the same parent folder.
 - When the block changes here, the exporters copy it again. A change of the Sidecars section needs no
