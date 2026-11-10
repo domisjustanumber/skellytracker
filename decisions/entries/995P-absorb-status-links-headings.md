@@ -1,6 +1,6 @@
 # 995P — An absorbed status links the headings that state the rules
 
-**Status:** accepted, 2026-11-10 (user; PR: pending).
+**Status:** absorbed into [`decisions/README.md#rules`](../README.md#rules), [`check_decision_log.py`](../../tools/check_decision_log.py), [`change-sidecar-spec/SKILL.md#procedure-b-land-an-accepted-proposal`](../../.claude/skills/change-sidecar-spec/SKILL.md#procedure-b-land-an-accepted-proposal), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

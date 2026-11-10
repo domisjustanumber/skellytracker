@@ -23,7 +23,6 @@ These entries are `accepted` or `evidence`.
 |---|----------|--------|
 | [6J8E](entries/6J8E-exporters-run-released-skellytracker.md) | Exporters run a pinned skellytracker release; code changes come as a patch; upstream parity is the independent check; acceptance waits for the gate | accepted |
 | [x64y](entries/x64y-draft-exporter-guide-folder.md) | The workflow, with the sidecar-file, validation and publishing rules, is in `model-addition-workflow/`; the exporter-only guide is a draft; no stub | accepted |
-| [995P](entries/995P-absorb-status-links-headings.md) | An `absorbed into` status links each heading that states a rule; too long: title headings; the checker reports a `.md` link with no anchor | accepted |
 | [VCQ7](entries/VCQ7-cite-entries-skill.md) | The skill `cite-entries` gives the steps of the citation rule of `AGENTS.md` section 5; `stack-commit` loads it; no hook for now | accepted |
 | [CN15](entries/CN15-spec-readme-is-the-only-entry-point.md) | The spec `README.md` is the only entry point; `sidecar-spec.md` is frozen, and M11 deletes it after the code cites section IDs; the root README links the spec | accepted |
 | [9MJ6](entries/9MJ6-remove-the-heatmap-decode.md) | Remove the heatmap decode: no `heatmap` method, semantic or section until a model brings a full contract | accepted |
