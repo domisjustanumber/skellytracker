@@ -540,6 +540,8 @@ tells which row is blocking.
 | Missing evidence and runs: each `unverified` row and the evidence that it needs, and each result that is `to run` (or `none`) | |
 | `out of scope` rows to tell the user | |
 | Spec defects that you found and did not propose (or `none`) | |
+| Findings of earlier responses, and the part of this version that answers each one (or `none`) | |
+| Notes and questions to the skellytracker session (or `none`) | |
 
 Then pack the bundle and stop. If the verdict is `describes`, a skellytracker session can add the
 sidecar as a spec example (under `specs/model-sidecar/examples/`, with its provenance in

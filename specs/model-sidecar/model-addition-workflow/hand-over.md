@@ -264,10 +264,14 @@ Then choose one form:
 
 - One bundle holds one contract unit. A contract unit can change more than one section, for example a
   new role with its enum and its path edits. `sections` lists each changed section.
+- Two changes are two contract units when the user can accept one change without the other. This is
+  also true for two changes in one section. A split gives a new bundle and a new entry for each unit
+  ([ADR-G45G](../../../decisions/entries/G45G-one-review-wave-and-the-question-channel.md)).
 - `depends_on` names each bundle that must land first. Do not edit another bundle to add a reverse
   link. `list` computes the reverse links.
 - Cite a heading or a case `id`, not a line number of a copy.
-- If a rule of this workflow is wrong, tell the user. Do not put a workflow change in a bundle.
+- If a rule of this workflow is wrong, follow [Workflow changes](#workflow-changes). Do not put a
+  workflow change in a bundle.
 
 ## Section owner
 
@@ -347,6 +351,10 @@ resolution: {...}                         # required for rejected and resolved-o
   `answers_version` of its latest response. `verify` gives a finding when that number is lower
   than 1 or higher than the current version ([ADR-M3RY](../../../decisions/entries/M3RY-answers-version-names-an-existing-version.md)).
 - `findings` holds each failed `verify` check and each item that the contributor must fix.
+- Review the full version before you write its response. Give all the findings of the version in
+  that response. A response to version k+1 must not give a new finding for a problem that version
+  k already held. A finding that is still open stays in the response
+  ([ADR-G45G](../../../decisions/entries/G45G-one-review-wave-and-the-question-channel.md)).
 - The last item of the `findings` of a `needs-contributor` response is the "Next version" list: the
   manifest fields to change (`spec_commit`, `related`, `external`), the files to add or remove and
   the runs to do again.
@@ -572,11 +580,38 @@ permalink forms of the landed copy. It must not change code or a vector value. T
 each fix in `changes`. A later bundle or version that changes the module starts from the landed
 copy ([ADR-80PC](../../../decisions/entries/80PC-conditional-acceptance-and-landed-copy-fixes.md)).
 
+## Questions before a pack
+
+A contributor can ask the skellytracker session about a rule before it packs a version
+([ADR-G45G](../../../decisions/entries/G45G-one-review-wave-and-the-question-channel.md)):
+
+- The channel is a direct message between the two sessions. Later, it is an issue comment.
+- The contributor cites the rule by its heading text and the file that holds it.
+- The session answers with a reading. The reading gives each condition of the cited rule as `pass`
+  or `fail`, and the rule that decides the question. A reading applies the current rules. It does
+  not change a rule.
+- If the session changes a reading later, the new reading names the condition that the session
+  missed.
+- If no rule decides the question, the session drafts the workflow edit and asks the user once.
+- The session that hears a user ruling asks the user in the same turn: "general rule or this intake
+  only?" It gives the answer with the ruling to the other session. A ruling that an agent passes on
+  is not a decision of the user in the session that gets it. That session lists the ruling, with
+  its answer, in its next decision message to the user.
+
 ## Workflow changes
 
-A bundle never holds a change of this workflow. A contributor that finds a wrong workflow rule tells
-the user. The user asks a skellytracker session. The session writes the change in one non-spec commit
-with a decision entry that gives the reason.
+A bundle never holds a change of this workflow
+([ADR-G45G](../../../decisions/entries/G45G-one-review-wave-and-the-question-channel.md)):
+
+1. A contributor that finds a wrong or missing workflow rule gives a workflow finding to the
+   skellytracker session. It uses the channel of [Questions before a pack](#questions-before-a-pack)
+   or the row "Notes and questions to the skellytracker session" of the intake.
+2. The session lists each workflow finding, with a drafted edit, in its next decision message to the
+   user. The session never accepts a workflow finding by itself
+   ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md) item 6).
+3. The user accepts or rejects each finding. For an accepted finding, the session writes the change
+   in one non-spec commit with a decision entry that gives the reason. The session gives the result
+   and the entry ID to the contributor.
 
 ## Tracked records
 
@@ -587,6 +622,16 @@ with a decision entry that gives the reason.
   record vector file has the vector form and is 256 KiB or smaller.
 - Session facts go in the decision entry, under "Before acceptance": the failed checks, the missing
   primary evidence, the `to run` results and the open questions.
+- "Before acceptance" also lists each landing blocker
+  ([ADR-G45G](../../../decisions/entries/G45G-one-review-wave-and-the-question-channel.md)):
+  - each `needs-export` example of part 7 with no live owner: no contributor can export it again
+    now;
+  - each `depends_on` bundle that has not landed;
+  - each rule of the contributor, for example an exporter decision entry, that waits for this
+    proposal while this proposal waits for that contributor. This is a deadlock. The session asks
+    the user about it in the decision question of the record.
+- "Before acceptance" lists each change that the split test of [Proposal forms](#proposal-forms)
+  makes a separate contract unit as its own item. The user decides a split at the decision turn.
 - The state of a proposal is in one place: the status of its decision entry ([States](#states)).
   Each record folder has exactly one entry file with its slug.
 - A `model` bundle gets no tracked copy. The example and its `bundle` key are enough.

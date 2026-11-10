@@ -59,9 +59,13 @@
 - If the decision is about the spec, list it under "Plan decisions" in part 1 of the proposal. The
   user confirms or refuses it before acceptance. The decision entry of the proposal records it in
   words.
-- If the decision is about the workflow or these rules, tell the user. A bundle does not change the
-  workflow ([Workflow changes](hand-over.md#workflow-changes),
-  [ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)).
+- If the decision is about the workflow or these rules, give it to the skellytracker session as a
+  workflow finding, with the answer to "general rule or this intake only?"
+  ([Questions before a pack](hand-over.md#questions-before-a-pack)). The user decides each workflow
+  finding in the skellytracker session. A bundle does not change the workflow
+  ([Workflow changes](hand-over.md#workflow-changes),
+  [ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md),
+  [ADR-G45G](../../../decisions/entries/G45G-one-review-wave-and-the-question-channel.md)).
 
 ## Sources
 

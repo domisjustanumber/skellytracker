@@ -51,6 +51,7 @@ These entries are `accepted` or `evidence`.
 | [3HZ4](entries/3HZ4-decision-questions-and-rule-defaults.md) | One form for each decision question, with the copy and push approvals; a rule decides first; defaults that need no question | accepted |
 | [80PC](entries/80PC-conditional-acceptance-and-landed-copy-fixes.md) | A conditional acceptance is a `needs-contributor` response; "Notes at acceptance"; docstring fixes in the landed reference copy | accepted |
 | [FM0B](entries/FM0B-one-response-for-each-commit-group.md) | One response per bundle per commit group; append-only; rules land before repack requests; named waits; drift exceptions; no drift once finished | accepted |
+| [G45G](entries/G45G-one-review-wave-and-the-question-channel.md) | One review wave per version; landing blockers and split test at record time; questions before a pack; workflow findings go to the user | accepted |
 
 ### Proposed
 
