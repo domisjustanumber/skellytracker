@@ -47,6 +47,7 @@ These entries are `accepted` or `evidence`.
 | [4KW6](entries/4KW6-onnxruntime-1-31-for-the-cpu-check.md) | `onnx-cpu` requires `onnxruntime>=1.31` (lock 1.31.1): no fp16 noise in the batch check; the GPU cap stays | accepted |
 | [VV8B](entries/VV8B-fragments-have-an-inventory-entry.md) | Each example fragment has a `fragments` entry in `inventory.yaml`; no package-copy source; a forced fragment edit is `needs-export`; supersedes yve0 | accepted |
 | [BQZ9](entries/BQZ9-intake-process-consolidation.md) | Consolidation: restates the rules that stay of C0YD, 3HZ4, FM0B, 3AM0 and 37CD | accepted |
+| [6G6G](entries/6G6G-ci-read-before-the-push.md) | Read the fork CI before each push, not before the request; a red or empty read stops an early-approved push; narrows R39S item 9 | accepted |
 
 ### Proposed
 

@@ -564,8 +564,9 @@ The session asks the user each decision about a proposal in this form
 - You can ask for the push approval in the same message. That approval is for one plain push of
   the working branch at the end of the round, when the local checks pass. A force-push needs its
   own approval ([section 6](../../../AGENTS.md#6-git-rules) of `AGENTS.md`). The CI read of the
-  skill [`stack-commit`](../../../.claude/skills/stack-commit/SKILL.md#spec-build-stage) still
-  comes before the push.
+  skill [`stack-commit`](../../../.claude/skills/stack-commit/SKILL.md#spec-build-stage) comes
+  before the push. A red run or an empty list stops the push
+  ([ADR-6G6G](../../../decisions/entries/6G6G-ci-read-before-the-push.md)).
 
 ## Deferral
 

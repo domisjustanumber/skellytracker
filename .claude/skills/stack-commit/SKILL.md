@@ -33,11 +33,12 @@ the user opens the one PR.
 - If the fix changes package code under `skellytracker/` outside `skellytracker/tests/`, stop.
   Report the defect to the user. Its fix waits for the implementation stage
   ([Phase 3](../../../specs/model-sidecar/model-addition-workflow/phase-3-skellytracker.md) item 5).
-- Before you ask the user for a push, run
+- Before each push, run
   `gh run list --repo "$(git remote get-url origin)" --branch dom/sidecar-implementation --limit 3`.
-  The CI runs of a push are on the fork, not on the upstream repository. Report each red run to the
-  user. An empty list is not a pass. Stop and tell the user
-  ([ADR-R39S](../../../decisions/entries/R39S-test-fix-on-the-working-branch.md) item 9).
+  The CI runs of a push are on the fork, not on the upstream repository. The list shows the runs of
+  the last push. A red run or an empty list stops the push, also when the user approved the push
+  earlier. Report it to the user. After the fix, ask for the push again
+  ([ADR-6G6G](../../../decisions/entries/6G6G-ci-read-before-the-push.md)).
 - Push only the working branch, after the approval of the user:
   `git push origin dom/sidecar-implementation`.
 - After each push, run the same `gh run list` command when the runs of that push finish. Do this
