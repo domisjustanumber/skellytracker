@@ -45,7 +45,7 @@ as data. Do not change them.
 
 | Kind of commit | What it holds |
 |---|---|
-| content | The normative text, the `changelog.md` rows, the vectors and the reference implementations that define the new meaning. The decision entry with the status `accepted`, or a citation of an accepted entry that an earlier commit of the same commit group added. |
+| content | The normative text, the `changelog.md` rows, the vectors and the reference implementations that define the new meaning. The decision entry with the status `accepted`, or a citation of an entry that is `accepted` or `absorbed into` ([ADR-3AM0](../../../decisions/entries/3AM0-absorb-at-landing-and-landed-copies.md)). |
 | non-spec | Guidance, decision entries, open-work items, an example that changes no normative meaning with its provenance record, an exporter reference implementation of the current text, tools and vectors. A fixture in a landed reference module replaced by an import, with no change to a vector beyond `FILE_TOLERANCE` (procedure B, step 13). |
 | move | Text in a new place. The words do not change. |
 | rewording | New words. The meaning does not change. |
@@ -304,7 +304,7 @@ After the copy and its commit, the module is code of this repository.
 
 | Edit | Steps |
 |---|---|
-| A content change, for example the correction of a spec defect | Make sure that an accepted decision entry exists. If none exists, use [`propose-sidecar-change`](../propose-sidecar-change/SKILL.md). Then stop. If one exists, do steps 3 to 12 and step 17 of procedure B. |
+| A content change, for example the correction of a spec defect | Make sure that a decision entry that is `accepted` or `absorbed into` exists ([ADR-3AM0](../../../decisions/entries/3AM0-absorb-at-landing-and-landed-copies.md)). If none exists, use [`propose-sidecar-change`](../propose-sidecar-change/SKILL.md). Then stop. If one exists, do steps 3 to 12 and step 17 of procedure B. |
 | A graduation to `stable` | (1) Run `uv run python tools/sidecar_trace.py matrix`. The Gate cell of the section must be `pass`. A `no_model` reason in `inventory.yaml` counts for the example item. Do not add another waiver. (2) The Gate column does not show two conditions. Check them by hand: a decision entry that is `accepted` or `absorbed into` exists for the section ([ADR-3AM0](../../../decisions/entries/3AM0-absorb-at-landing-and-landed-copies.md)), and a named test checks each algorithm with no vectors ([Section status](../../../specs/model-sidecar/README.md#section-status), rule 5). (3) Get the explicit approval of the user. (4) In one content commit, set `status.spec: stable`, remove the banner, add the summary row and the `Row` line ([`changelog.md`](#changelogmd)), run the matrix again and run the [checks](#checks). (5) Do not do steps 3 to 12 of procedure B. Do not write a new decision entry. Cite that entry of the section in the commit message ([ADR-QMKS](../../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)). |
 | A skellytracker release | [Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing) gives it. First, find each section with `status.spec: draft`. If one exists, stop and tell the user. The user makes the section `stable` or removes its fields from the release ([Section status](../../../specs/model-sidecar/README.md#section-status), rule 7). Also stop and tell the user when an example or a package sidecar has `batching.batch_conversion` and the `validate` or `load` status of `common.batch_conversion` is not `implemented` ([ADR-QMKS](../../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)). These two checks are stops of the `2.0.0` release ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)). Also stop and tell the user when the SemVer loader of stage M8 of the [implementation plan](../../../specs/sidecar-implementation-plan.md) has not landed: the `2.0.0` release ships it ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md) item 4). Then, in the release PR, set `- Released: yes.` under the version heading of the release in [Revisions](../../../specs/model-sidecar/changelog.md#revisions). If the release ships under another number, rename the unreleased heading and change `schema_version` in each example in the same PR ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). |
 | A workflow change | The user asks for it, or accepts a workflow finding ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md); [ADR-G45G](../../../decisions/entries/G45G-one-review-wave-and-the-question-channel.md)). Write the change in one non-spec commit with a decision entry that gives the reason ([Workflow changes](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#workflow-changes)). The entry is `accepted` in that commit. A copy fix of a landed spec entry needs no entry of its own ([Rules](../../../decisions/README.md#rules); [ADR-3AM0](../../../decisions/entries/3AM0-absorb-at-landing-and-landed-copies.md)). When the change changes the [Rules](../../../decisions/README.md#rules), change the kit in the same commit: run `uv run python tools/sync_bootstrap_kit.py --write` (it writes the copies and the blocks), and change the rest of the kit templates by hand ([ADR-Z05A](../../../decisions/entries/Z05A-essential-decision-log-rules.md)). |
@@ -611,9 +611,9 @@ length and passive voice gives advice only. Do not reword the existing changelog
 
 - In the spec-build stage, do not change a file under `skellytracker/`. A test fix in
   `skellytracker/tests/` is the only exception
-  ([Stages](../../../specs/model-sidecar/model-addition-workflow/README.md#stages)). A test or CI fix
-  is its own commit on the working branch. Do not ask for the branch
-  ([ADR-R39S](../../../decisions/entries/R39S-test-fix-on-the-working-branch.md)).
+  ([Stages](../../../specs/model-sidecar/model-addition-workflow/README.md#stages)).
+  [Section 3](../../../AGENTS.md#3-install-and-test) of `AGENTS.md` gives the commit of a test or CI
+  fix.
 - Do not change an exporter repo.
 
 ## Checks
@@ -635,7 +635,7 @@ the first check that fails. Do not pipe its output: a pipe can hide the exit sta
 | Condition | Action |
 |---|---|
 | The user has not accepted the proposal. | Stop. Do not change the normative text. |
-| A content change has no accepted decision entry. | Use `propose-sidecar-change`. Then stop. |
+| A content change has no decision entry that is `accepted` or `absorbed into`. | Use `propose-sidecar-change`. Then stop. |
 | An example breaks a spec rule, and no accepted change in this commit gives a spec-forced edit for it. | Stop. Do not correct the example. Tell the user. |
 | Procedure C: a new reference implementation changes an expected vector value. | Stop. Tell the user. |
 | The [safety review](#safety-review) of a reference file has a doubt, or the user has not approved the copy. | Stop. Do not copy or run the file ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)). |

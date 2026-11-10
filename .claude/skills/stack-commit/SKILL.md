@@ -28,9 +28,8 @@ the user opens the one PR.
 - The parent of a range is the commit before the commit group (`git log` shows it). Give each report
   that a step puts in the PR body to the user in the session. Also write a summary of it in the
   message of the last commit of the group.
-- A fix of one root cause of a test or CI failure is its own commit on `dom/sidecar-implementation`,
-  with no other change. Report it to the user. Do not ask for the branch
-  ([ADR-R39S](../../../decisions/entries/R39S-test-fix-on-the-working-branch.md) item 5).
+- [Section 3](../../../AGENTS.md#3-install-and-test) of `AGENTS.md` gives the commit of a test or
+  CI fix.
 - If the fix changes package code under `skellytracker/` outside `skellytracker/tests/`, stop.
   Report the defect to the user. Its fix waits for the implementation stage
   ([Phase 3](../../../specs/model-sidecar/model-addition-workflow/phase-3-skellytracker.md) item 5).
