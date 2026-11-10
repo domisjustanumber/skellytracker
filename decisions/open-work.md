@@ -53,4 +53,3 @@ The implementation-stage work is in the stages M7 to M12 of the
   ([ADR-8DSW](entries/8DSW-vector-files-are-the-case-source.md)). An excused drift finding still
   blocks the session run of `batch` ([ADR-AD33](entries/AD33-bundles-are-untrusted-input.md)
   item 4). The user decides if a new entry changes that gate.
-- On 2026-10-22, the workflow runs on `freemocap/skellytracker` end in `startup_failure`.
