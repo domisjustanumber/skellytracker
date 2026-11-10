@@ -107,7 +107,7 @@ A spec change has no class ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-
 
 ## Examples and vectors
 
-- The reference examples belong to the spec. The doc tests check that each example parses, resolves and has provenance. No test runs the `V-` rules on them yet (see M7 of the [implementation plan](../../../specs/sidecar-implementation-plan.md)).
+- The reference examples belong to the spec. The doc tests check that each example parses, resolves and has provenance. They also check that each example has only keys that the spec defines (`V-format.composition-5`; [ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md) item 11). No test runs the other `V-` rules on them yet (see M7 of the [implementation plan](../../../specs/sidecar-implementation-plan.md)).
 - Each example is a file under `specs/model-sidecar/examples/`, in the `detectors/` layout of the package,
   so that `$ref` paths resolve. The examples use unchanged copies of their fragments, under
   `specs/model-sidecar/examples/detectors/shared/` or next to the sidecar. Each fragment has an entry in

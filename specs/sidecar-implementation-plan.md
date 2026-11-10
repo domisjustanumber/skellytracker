@@ -196,7 +196,7 @@ Two rules of this part stay:
 ### M7 — Sidecar catalog, dispatch and trace tools
 
 **Status: NOT STARTED.** It changes package code, so it waits for the implementation stage
-([Stages](model-sidecar/model-addition-workflow/README.md#stages)). The generic detector of M6 needs these parts. Do them in this order: trace-tool functions, the catalog and its roots, then the capability check. The V- rule checks of the examples need a development build that loads `vNEXT` sidecars, so they come last.
+([Stages](model-sidecar/model-addition-workflow/README.md#stages)). The generic detector of M6 needs these parts. Do them in this order: trace-tool functions, the catalog and its roots, then the capability check. The V- rule checks of the examples wait for the package model of M8, so they come last.
 
 - **Trace-tool functions.** Move `tools/sidecar_normalize.py` (the normalization table and the
   selector matching that the sidecar trace tool uses) into `skellytracker/core/sidecar/` without
@@ -218,12 +218,15 @@ Two rules of this part stay:
   an error, not a silent fallback
   ([`format.versioning`](model-sidecar/format/versioning.md#implementer-guidance); see
   [ADR-0016](../decisions/entries/0016-sidecar-catalogs.md#capability-check)).
-- **V- rule checks of the examples.** The doc tests only parse and resolve each reference example,
-  and check its provenance (`tools/tests/test_examples.py`).
-  They do not run the `V-` rules on it, because `load_sidecar` rejects `vNEXT` and the package code
-  does not change in the spec-build stage. Thus no test checks that a spec-forced edit keeps an
-  example valid ([ADR-KDBD](../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md), item 5). When a
-  development build loads `vNEXT` sidecars (see the item Sidecar catalog and roots), validate each
+- **V- rule checks of the examples.** The doc tests parse and resolve each reference example, and
+  check its provenance (`tools/tests/test_examples.py`). They also check that it has only keys that
+  the spec defines (`V-format.composition-5`;
+  [ADR-0QKK](../decisions/entries/0QKK-no-legacy-layer.md) item 11). They do not run the other
+  `V-` rules on it, because `load_sidecar` rejects `"2.0.0"`
+  ([ADR-6GE2](../decisions/entries/6GE2-spec-version-follows-skellytracker.md)) and the package code
+  does not change in the spec-build stage. Thus no test checks the other rules after a spec-forced
+  edit of an example ([ADR-KDBD](../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md), item 5). When the
+  package model of M8 loads `"2.0.0"` sidecars (see M12, "The first package release"), validate each
   example with `SidecarModel` in `tools/tests/test_examples.py`. Until then, part 7 of the proposal
   and `uv run python tools/sidecar_trace.py impact <range>` at landing are the check.
 - **Package root in the trace scan.** Added on 2026-11-02. The trace tool scans only
