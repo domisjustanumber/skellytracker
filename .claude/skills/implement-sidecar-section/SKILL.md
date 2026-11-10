@@ -181,11 +181,8 @@ A skellytracker session must land it first, with the skill
 
 ### Step 8: Check and stop
 
-1. Run these commands. Each command must pass:
-   - `uv run pytest -m "not video"`
-   - `uv run ruff check skellytracker/ tools/ decisions/scripts/ specs/model-sidecar/decisions/scripts/ specs/model-sidecar/reference/`
-   - `uv run python tools/make_vectors.py --check`
-   - `uv run python tools/sidecar_trace.py matrix --check`
+1. Run `uv run python tools/run_checks.py`. It must pass. Its docstring lists the checks
+   ([ADR-0RNH](../../../decisions/entries/0RNH-check-runner-dry-pack-and-record.md)).
 2. Do not run `black` or `isort` on the package.
 3. Put the implementation in its own PR. Do not put a spec change in it
    ([section 6](../../../AGENTS.md#6-git-rules) of `AGENTS.md`). Put

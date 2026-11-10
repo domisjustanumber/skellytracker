@@ -214,9 +214,12 @@ A contributor writes its proposal bundle.
 
 ### Step 3: Copy the proposal into the spec folder
 
-1. Copy the current version folder `v<k>/` byte for byte to `specs/model-sidecar/proposals/<slug>/`.
-   Copy a contribution to `specs/model-sidecar/proposals/<slug>/contributions/<contributor>/`
-   ([Session steps](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#session-steps)). The copy is informative. It is not
+1. Run `uv run --no-sync python -B tools/intake_bundle.py record <bundle id>`. It copies the
+   current version folder `v<k>/` byte for byte to `specs/model-sidecar/proposals/<slug>/`, and a
+   contribution to `specs/model-sidecar/proposals/<slug>/contributions/<contributor>/`
+   ([Tracked records](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#tracked-records);
+   [ADR-0RNH](../../../decisions/entries/0RNH-check-runner-dry-pack-and-record.md)). Do not copy
+   the files by hand. The copy is informative. It is not
    normative until a content commit lands its text in the section files.
 2. Do not change a file of the copy. A redaction is the only exception
    ([Redactions](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#redactions)).
@@ -304,7 +307,8 @@ until the record is current.
    change the record. Write the response: the
    contributor writes a new bundle.
 3. Do not add a second entry. The entry ID, the slug and the status `proposed` stay.
-4. Replace the record folder in full with a byte copy of the new version. Do not run its code
+4. Run `record` of [Step 3](#step-3-copy-the-proposal-into-the-spec-folder). It replaces the
+   record folder in full with a byte copy of the new version. Do not run its code
    ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)).
 5. Write the heading "Before acceptance" of the entry again from the old list:
    - Keep each item of the old list, in its order.

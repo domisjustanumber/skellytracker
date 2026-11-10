@@ -625,14 +625,10 @@ the same commit.
 Write each YAML file with LF line ends. `.gitattributes` changes the line ends of a YAML file only at
 commit. The local checks read the bytes in the working tree.
 
-Run these commands before each commit. Each command must pass.
-
-1. `uv run python tools/make_vectors.py --check`
-2. `uv run python tools/sidecar_trace.py matrix --check`
-3. `uv run pytest tools/tests -q`. It also runs the private-data check
-   ([Private data](../../../AGENTS.md#8-private-data)).
-4. `uv run pytest -m "not video"`
-5. `uv run ruff check skellytracker/ tools/ decisions/scripts/ specs/model-sidecar/decisions/scripts/ specs/model-sidecar/reference/`
+Run `uv run python tools/run_checks.py` before each commit. It must pass. Its docstring lists the
+checks, also the private-data check ([Private data](../../../AGENTS.md#8-private-data)). It stops at
+the first check that fails. Do not pipe its output: a pipe can hide the exit status
+([ADR-0RNH](../../../decisions/entries/0RNH-check-runner-dry-pack-and-record.md)).
 
 ## Stop points
 
