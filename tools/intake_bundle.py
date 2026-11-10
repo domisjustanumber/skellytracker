@@ -697,7 +697,12 @@ def pack(
 
 
 def list_lines(root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list[str]:
-    """Return the text that `list` prints."""
+    """Return the text that `list` prints.
+
+    A `waiting` model bundle gets the line `waiting_on no longer open: <ids>` when a bundle of the
+    `waiting_on` of its latest response is finished. The session then writes its next response
+    (ADR-FM0B).
+    """
     found = bundles(root, repo)
     lines = []
     for bid, info in found.items():
@@ -724,6 +729,10 @@ def list_lines(root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list[str]:
         lines.append(line)
         if needed_by:
             lines.append(f"  needed by: {', '.join(needed_by)}")
+        if info["manifest"].get("kind") == "model" and info["state"] == "waiting":
+            done = [w for w in last.get("waiting_on") or [] if found.get(w, {}).get("state") in FINISHED]
+            if done:
+                lines.append(f"  waiting_on no longer open: {', '.join(done)}")
         if info["manifest"].get("sections"):
             lines.append(f"  sections: {', '.join(info['manifest']['sections'])}")
         if info["manifest"].get("spec_version"):
@@ -1421,6 +1430,9 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list
         )
 
     # Spec drift: the changed sections since spec_commit, and a newer version in the checkout (ADR-ZXD7, item 2).
+    # A finished bundle gets no drift finding: no later response asks for a new version (ADR-FM0B).
+    if latest in FINISHED:
+        return findings
     changed = changed_sections(manifest["spec_commit"], repo)
     if changed is None:
         findings.append("spec_commit not found in this checkout; pack again on the current checkout")

@@ -210,11 +210,26 @@ def test_verify_finds_changed_bytes_text_form_plans_links_and_size(tmp_path: Pat
     assert "vectors/post.det.selection.nms.yaml: a vector file must be 256 KiB or smaller" in findings
 
 
-def test_verify_finds_an_unknown_spec_commit(tmp_path: Path, root: Path) -> None:
+def test_verify_finds_an_unknown_spec_commit_and_no_spec_findings_once_finished(tmp_path: Path, root: Path) -> None:
     source = payload(tmp_path, {"proposal.md": "text\n"})
     ib.pack(source, proposal_fields(spec_commit="0" * 40), root, cwd=tmp_path)
     findings = ib.verify("proposal-box-clamp@ultralytics-exporter", root)
     assert findings == ["spec_commit not found in this checkout; pack again on the current checkout"]
+    respond(root, "proposal-box-clamp@ultralytics-exporter", 1, state="landed")
+    assert ib.verify("proposal-box-clamp@ultralytics-exporter", root) == []
+
+
+def test_list_marks_a_waiting_model_whose_waiting_on_is_finished(tmp_path: Path, root: Path) -> None:
+    source = payload(tmp_path, {"proposal.md": "text\n"})
+    ib.pack(source, proposal_fields(), root, cwd=tmp_path)
+    ib.pack(source, proposal_fields(name="other-clamp"), root, cwd=tmp_path)
+    ib.pack(source, model_fields(), root, cwd=tmp_path)
+    waits = ["proposal-box-clamp@ultralytics-exporter", "proposal-other-clamp@ultralytics-exporter"]
+    respond(root, "model-yolo26@ultralytics-exporter", 1, state="waiting", waiting_on=waits)
+    respond(root, waits[0], 1)
+    assert not any("no longer open" in line for line in ib.list_lines(root))
+    respond(root, waits[0], 2, state="landed")
+    assert f"  waiting_on no longer open: {waits[0]}" in ib.list_lines(root)
 
 
 def test_verify_finds_a_file_that_proposal_md_names_and_the_bundle_lacks(tmp_path: Path, root: Path) -> None:
