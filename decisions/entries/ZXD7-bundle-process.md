@@ -1,6 +1,6 @@
 # ZXD7 — Bundle process
 
-**Status:** accepted, 2026-11-03 (user; PR: pending).
+**Status:** absorbed into [`model-addition-workflow/README.md`](../../specs/model-sidecar/model-addition-workflow/README.md), [`templates/model-intake.md#validation-checklist`](../../specs/model-sidecar/templates/model-intake.md#validation-checklist), [`change-sidecar-spec/SKILL.md`](../../.claude/skills/change-sidecar-spec/SKILL.md), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

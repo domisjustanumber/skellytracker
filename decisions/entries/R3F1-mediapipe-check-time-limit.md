@@ -1,6 +1,6 @@
 # R3F1 — A time limit for the MediaPipe check
 
-**Status:** accepted, 2026-11-10 (user; PR: pending).
+**Status:** absorbed into [`tools/run_checks.py`](../../tools/run_checks.py), [`skellytracker/AGENTS.md#tests`](../../skellytracker/AGENTS.md#tests), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

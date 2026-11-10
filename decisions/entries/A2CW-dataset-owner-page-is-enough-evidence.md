@@ -1,6 +1,6 @@
 # A2CW — A dataset owner page is enough evidence
 
-**Status:** accepted, 2026-11-09 (user; PR: pending).
+**Status:** absorbed into [`model-addition-workflow/rules.md#rules`](../../specs/model-sidecar/model-addition-workflow/rules.md#rules), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

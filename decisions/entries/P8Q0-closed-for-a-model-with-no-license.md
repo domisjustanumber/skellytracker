@@ -1,6 +1,6 @@
 # P8Q0 — The response `closed` for a model with no known license
 
-**Status:** accepted, 2026-11-10 (user; PR: pending).
+**Status:** absorbed into [`model-addition-workflow/hand-over.md`](../../specs/model-sidecar/model-addition-workflow/hand-over.md), [`tools/intake_bundle.py`](../../tools/intake_bundle.py), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

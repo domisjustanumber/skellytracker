@@ -1,6 +1,6 @@
 # QMKS — Draft sections and the coverage columns
 
-**Status:** accepted, 2026-10-28 (user; PR: pending).
+**Status:** absorbed into [`README.md#section-status`](../../specs/model-sidecar/README.md#section-status), [`change-sidecar-spec/SKILL.md`](../../.claude/skills/change-sidecar-spec/SKILL.md), [`model-addition-workflow/README.md`](../../specs/model-sidecar/model-addition-workflow/README.md), [`tools/sidecar_trace.py`](../../tools/sidecar_trace.py), [`tools/sidecar_normalize.py`](../../tools/sidecar_normalize.py), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

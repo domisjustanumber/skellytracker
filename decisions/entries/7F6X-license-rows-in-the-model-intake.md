@@ -1,6 +1,6 @@
 # 7F6X — License rows in the model intake
 
-**Status:** accepted, 2026-11-09 (user; PR: pending).
+**Status:** absorbed into [`templates/model-intake.md#license`](../../specs/model-sidecar/templates/model-intake.md#license), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

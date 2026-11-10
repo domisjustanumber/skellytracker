@@ -1,6 +1,6 @@
 # 0PK7 — Each selection vector case names the space of its boxes
 
-**Status:** accepted, 2026-11-04 (user; PR: pending).
+**Status:** absorbed into [`README.md`](../../specs/model-sidecar/README.md), [`implement-sidecar-section/SKILL.md`](../../.claude/skills/implement-sidecar-section/SKILL.md), [`tools/vector_formulas/post_det_decode.py`](../../tools/vector_formulas/post_det_decode.py), [`tools/tests/test_vectors.py`](../../tools/tests/test_vectors.py), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

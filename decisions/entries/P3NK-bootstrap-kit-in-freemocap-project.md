@@ -1,6 +1,6 @@
 # P3NK — The bootstrap kit moves to freemocap/project; the sync tool stays here
 
-**Status:** accepted, 2026-11-10 (user; PR: pending).
+**Status:** absorbed into [`AGENTS.md#5-decision-log`](../../AGENTS.md#5-decision-log), [`tools/sync_bootstrap_kit.py`](../../tools/sync_bootstrap_kit.py), [`tools/tests/test_bootstrap_kit.py`](../../tools/tests/test_bootstrap_kit.py), [`decisions/README.md#rules`](../README.md#rules), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

@@ -1,6 +1,6 @@
 # 0QKK — No legacy layer in the sidecar spec
 
-**Status:** accepted, 2026-11-02 (user; PR: pending).
+**Status:** absorbed into [`README.md`](../../specs/model-sidecar/README.md), [`change-sidecar-spec/SKILL.md`](../../.claude/skills/change-sidecar-spec/SKILL.md), [`templates/model-intake.md#yaml`](../../specs/model-sidecar/templates/model-intake.md#yaml), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

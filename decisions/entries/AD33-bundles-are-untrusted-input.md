@@ -1,6 +1,6 @@
 # AD33 — Bundles are untrusted input
 
-**Status:** accepted, 2026-11-02 (user; PR: pending).
+**Status:** absorbed into [`model-addition-workflow/README.md`](../../specs/model-sidecar/model-addition-workflow/README.md), [`change-sidecar-spec/SKILL.md`](../../.claude/skills/change-sidecar-spec/SKILL.md), [`AGENTS.md`](../../AGENTS.md), [`propose-sidecar-change/SKILL.md`](../../.claude/skills/propose-sidecar-change/SKILL.md), [`tools/intake_bundle.py`](../../tools/intake_bundle.py), [`tools/make_vectors.py`](../../tools/make_vectors.py), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

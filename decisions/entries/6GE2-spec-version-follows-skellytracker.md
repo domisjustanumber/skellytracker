@@ -1,6 +1,6 @@
 # 6GE2 — Spec version follows the skellytracker version
 
-**Status:** accepted, 2026-11-03 (user; PR: pending).
+**Status:** absorbed into [`README.md`](../../specs/model-sidecar/README.md), [`change-sidecar-spec/SKILL.md`](../../.claude/skills/change-sidecar-spec/SKILL.md), [`model-addition-workflow/validation-and-publishing.md#publishing`](../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing), [`tools/tests/test_changelog_revision.py`](../../tools/tests/test_changelog_revision.py), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

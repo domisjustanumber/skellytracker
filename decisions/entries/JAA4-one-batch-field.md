@@ -1,6 +1,6 @@
 # JAA4 — One batch field for each sidecar
 
-**Status:** accepted, 2026-11-02 (user; PR: pending).
+**Status:** absorbed into [`README.md`](../../specs/model-sidecar/README.md), [`model-addition-workflow/README.md`](../../specs/model-sidecar/model-addition-workflow/README.md), [`draft/exporter-guide/sidecars/README.md#run-the-skellytracker-tools`](../../specs/draft/exporter-guide/sidecars/README.md#run-the-skellytracker-tools), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

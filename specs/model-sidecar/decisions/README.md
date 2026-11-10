@@ -15,8 +15,6 @@ These entries are `accepted` or `evidence`.
 
 | # | Decision | Status |
 |---|----------|--------|
-| [NBG2](entries/NBG2-license-and-training-data-without-the-deferred-examples.md) | New draft section `common.license`; RTMW rebuild replaces its example, three deferred examples go; supersedes SE3Y | accepted |
-| [R6J9](entries/R6J9-test-time-steps-and-unreachable-branches.md) | `out of scope` covers a test-time augmentation and an undeclared extra decode value; parity needs no image for an unreachable branch | accepted |
 
 ### Proposed
 

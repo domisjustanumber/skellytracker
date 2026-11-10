@@ -1,6 +1,6 @@
 # 4KW6 — onnxruntime 1.31 or later for the CPU environment
 
-**Status:** accepted, 2026-11-09 (user).
+**Status:** absorbed into [`model-addition-workflow/batch-conversion-check.md#run-the-tool`](../../specs/model-sidecar/model-addition-workflow/batch-conversion-check.md#run-the-tool), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

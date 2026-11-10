@@ -1,6 +1,6 @@
 # VV8B — Each example fragment has an inventory entry
 
-**Status:** accepted, 2026-11-10 (user; PR: pending).
+**Status:** absorbed into [`model-addition-workflow/reference-examples.md`](../../specs/model-sidecar/model-addition-workflow/reference-examples.md), [`tools/tests/test_examples.py`](../../tools/tests/test_examples.py), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

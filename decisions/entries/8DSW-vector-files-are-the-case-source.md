@@ -1,6 +1,6 @@
 # 8DSW — Vector files are the case source
 
-**Status:** accepted, 2026-11-02 (user; PR: pending).
+**Status:** absorbed into [`templates/change-proposal.md#4-vectors`](../../specs/model-sidecar/templates/change-proposal.md#4-vectors), [`change-sidecar-spec/SKILL.md`](../../.claude/skills/change-sidecar-spec/SKILL.md), [`model-addition-workflow/README.md`](../../specs/model-sidecar/model-addition-workflow/README.md), [`AGENTS.md#repository-instructions`](../../AGENTS.md#repository-instructions), [`tools/make_vectors.py`](../../tools/make_vectors.py), [`tools/vector_form.py`](../../tools/vector_form.py), [`README.md`](../../specs/model-sidecar/README.md), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

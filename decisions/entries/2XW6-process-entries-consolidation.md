@@ -1,6 +1,6 @@
 # 2XW6 — Consolidation of the decision-log and repository-process entries
 
-**Status:** accepted, 2026-11-04 (user; PR: pending).
+**Status:** absorbed into [`AGENTS.md`](../../AGENTS.md), [`decisions/README.md#rules`](../README.md#rules), [`model-addition-workflow/README.md`](../../specs/model-sidecar/model-addition-workflow/README.md), [`AGENTS.md#sidecar-rules`](../../specs/model-sidecar/AGENTS.md#sidecar-rules), [`propose-sidecar-change/SKILL.md`](../../.claude/skills/propose-sidecar-change/SKILL.md), [`change-sidecar-spec/SKILL.md`](../../.claude/skills/change-sidecar-spec/SKILL.md), [`implement-sidecar-section/SKILL.md`](../../.claude/skills/implement-sidecar-section/SKILL.md), [`tools/check_decision_log.py`](../../tools/check_decision_log.py), [`tools/check_links.py`](../../tools/check_links.py), [`tools/sync_bootstrap_kit.py`](../../tools/sync_bootstrap_kit.py), [`tools/check_ai_attribution.py`](../../tools/check_ai_attribution.py), [`tools/check_private_data.py`](../../tools/check_private_data.py), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

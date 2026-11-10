@@ -1,6 +1,6 @@
 # 6G6G — The CI read comes before the push
 
-**Status:** accepted, 2026-11-10 (user; PR: pending).
+**Status:** absorbed into [`stack-commit/SKILL.md#spec-build-stage`](../../.claude/skills/stack-commit/SKILL.md#spec-build-stage), [`model-addition-workflow/hand-over.md#decision-questions`](../../specs/model-sidecar/model-addition-workflow/hand-over.md#decision-questions), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

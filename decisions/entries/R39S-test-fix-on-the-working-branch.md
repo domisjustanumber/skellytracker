@@ -1,6 +1,6 @@
 # R39S — A test fix goes on the working branch in the spec-build stage
 
-**Status:** accepted, 2026-11-09 (user; PR: pending).
+**Status:** absorbed into [`stack-commit/SKILL.md`](../../.claude/skills/stack-commit/SKILL.md), [`AGENTS.md`](../../AGENTS.md), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

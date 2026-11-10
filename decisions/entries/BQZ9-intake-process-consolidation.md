@@ -1,6 +1,6 @@
 # BQZ9 — Consolidation of the intake-process entries
 
-**Status:** accepted, 2026-11-10 (user; PR: pending).
+**Status:** absorbed into [`AGENTS.md#sidecar-rules`](../../specs/model-sidecar/AGENTS.md#sidecar-rules), [`change-sidecar-spec/SKILL.md`](../../.claude/skills/change-sidecar-spec/SKILL.md), [`templates/change-proposal.md#7-exporter-impact`](../../specs/model-sidecar/templates/change-proposal.md#7-exporter-impact), [`model-addition-workflow/README.md`](../../specs/model-sidecar/model-addition-workflow/README.md), [`README.md`](../../specs/model-sidecar/README.md), [`propose-sidecar-change/SKILL.md`](../../.claude/skills/propose-sidecar-change/SKILL.md), [`author-sidecar/SKILL.md`](../../.claude/skills/author-sidecar/SKILL.md), [`tools/intake_bundle.py`](../../tools/intake_bundle.py), [`decisions/README.md#rules`](../README.md#rules), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

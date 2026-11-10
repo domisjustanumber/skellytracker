@@ -1,6 +1,6 @@
 # NBG2 — License and training data without the deferred examples
 
-**Status:** accepted, 2026-11-09 (user; PR: pending).
+**Status:** absorbed into [`README.md`](../../README.md), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

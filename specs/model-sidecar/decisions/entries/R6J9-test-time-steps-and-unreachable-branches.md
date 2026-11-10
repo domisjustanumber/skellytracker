@@ -1,6 +1,6 @@
 # R6J9 — Test-time steps and unreachable branches
 
-**Status:** accepted, 2026-11-09 (user; PR: pending).
+**Status:** absorbed into [`model-addition-workflow/README.md`](../../model-addition-workflow/README.md), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

@@ -1,6 +1,6 @@
 # ESP4 — One home for each workflow rule; the templates are forms
 
-**Status:** accepted, 2026-11-03 (user; PR: pending).
+**Status:** absorbed into [`model-addition-workflow/README.md`](../../specs/model-sidecar/model-addition-workflow/README.md), [`templates/model-intake.md`](../../specs/model-sidecar/templates/model-intake.md), [`templates/change-proposal.md`](../../specs/model-sidecar/templates/change-proposal.md), [`AGENTS.md#5-decision-log`](../../AGENTS.md#5-decision-log), 2026-11-10 (user; PR: pending).
 
 ## Decision
 
