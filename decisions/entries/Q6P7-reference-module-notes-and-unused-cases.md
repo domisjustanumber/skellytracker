@@ -1,6 +1,6 @@
 # Q6P7 — Reference modules implement the text, and unused cases are `not used`
 
-**Status:** accepted, 2026-11-09 (user; PR: pending).
+**Status:** absorbed into [`model-addition-workflow/reference-implementations.md#the-step`](../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#the-step), 2026-11-09 (user; PR: pending).
 
 ## Decision
 
