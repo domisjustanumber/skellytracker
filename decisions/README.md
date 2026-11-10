@@ -3,18 +3,13 @@
 This log records the technical decisions for skellytracker that affect more than one module, with
 their reasons and evidence. The [spec log](../specs/model-sidecar/decisions/README.md) holds the
 decisions of the sidecar spec only ([ADR-GN3D](entries/GN3D-module-decision-logs.md)). Read this file before you change the spec, a sidecar, the
-sidecar code, the agent instructions or the PR workflow. Also read [open-work.md](open-work.md). Then
-read the Active entries that apply to your task. Then you do not repeat a settled question or a
-completed measurement. Read a Proposed entry only for spec work in its section, or when a skill tells
-you to. Read an entry of [historical.md](historical.md) only to find the reason for a decision
-([ADR-Z05A](entries/Z05A-essential-decision-log-rules.md)).
+sidecar code, the agent instructions or the PR workflow. Also read [open-work.md](open-work.md). The
+[Rules](#rules) tell you which entries to read.
 
 Each entry gives the decision, its reason, the evidence (when there is evidence), the alternatives
 rejected and a "Not repeated" section for pitfalls already found. Entries 0002 to 0012, here and in
 the spec log, are backfilled. They record decisions made before this log existed, and they cite the original sources.
-When a decision changes, add a new entry that supersedes the old entry in full. A change of the
-text under a heading that an entry links does not supersede that entry
-([ADR-Z05A](entries/Z05A-essential-decision-log-rules.md)). The body of a
+When a decision changes, add a new entry that supersedes the old entry in full. The body of a
 decided entry changes only by the edits that the [Rules](#rules) allow. To write an entry, use
 [template.md](template.md).
 
@@ -50,6 +45,7 @@ These entries are `accepted` or `evidence`.
 | [BQZ9](entries/BQZ9-intake-process-consolidation.md) | Consolidation: restates the rules that stay of C0YD, 3HZ4, FM0B, 3AM0 and 37CD | accepted |
 | [6G6G](entries/6G6G-ci-read-before-the-push.md) | Read the fork CI before each push, not before the request; a red or empty read stops an early-approved push; narrows R39S item 9 | accepted |
 | [P3NK](entries/P3NK-bootstrap-kit-in-freemocap-project.md) | The bootstrap kit moves to `agents-and-adr-process/` of freemocap/project; the sync tool stays here; `--check` skips with no checkout; one kit PR in each repo | accepted |
+| [5EVP](entries/5EVP-absorb-across-documents.md) | The absorb documents together state the rules; open work in the plan or open work does not block; tests and vector notes count; no 90% consolidation | accepted |
 
 ### Proposed
 
@@ -71,6 +67,10 @@ implementation-stage work is in the [implementation plan](../specs/sidecar-imple
 
 ## Rules
 
+- Read the Active entries that apply to your task. Then you do not repeat a settled question or a
+  completed measurement. Read a Proposed entry only for spec work in its section, or when a skill
+  tells you to. Read an entry of [historical.md](historical.md) only to find the reason for a
+  decision ([ADR-Z05A](entries/Z05A-essential-decision-log-rules.md)).
 - The body of an entry that is not `proposed` changes only by four edits: a link or anchor repair, a
   typo that does not change the meaning, the redaction of private data, and a change of ID with the
   repair of its citations. Each edit adds `_Edited YYYY-MM-DD (#PR): <kind>._` at the end of the
@@ -81,12 +81,18 @@ implementation-stage work is in the [implementation plan](../specs/sidecar-imple
   ([ADR-GN3D](entries/GN3D-module-decision-logs.md)), the skills, the model addition workflow, the exporter
   guide, the templates of `specs/model-sidecar/templates/`, the Rules of this file with
   [template.md](template.md), and the docstring of a tool in `tools/` for the rules that it checks
-  ([ADR-Z05A](entries/Z05A-essential-decision-log-rules.md)). An accepted entry is absorbed when one absorb
-  document states all of its rules.
+  ([ADR-Z05A](entries/Z05A-essential-decision-log-rules.md)). A test in `tools/tests/` is a tool here.
+  The spec includes the `notes` of its vector files. An accepted entry is absorbed when the absorb
+  documents together state all of its rules. Open work of the entry does not stop the absorb when
+  `open-work.md` or the implementation plan states that work in full. A link to the entry is not
+  enough. The status `absorbed into` has one link for each absorb document that states a rule of the
+  entry, to the heading that holds those rules or to the file
+  ([ADR-5EVP](entries/5EVP-absorb-across-documents.md)).
 - The entry that supersedes an old entry restates each rule of the old entry that stays. A link can
   restate a rule. The link must go to a heading of an absorb document, and that heading must state
   the rule. The commit that changes the text under such a heading cites its own entry next to the
-  changed rule ([ADR-Z05A](entries/Z05A-essential-decision-log-rules.md)).
+  changed rule. That change does not supersede the entry that links the heading
+  ([ADR-Z05A](entries/Z05A-essential-decision-log-rules.md)).
 - Only these status changes are allowed: `proposed` to `accepted` or `rejected`; `accepted` to
   `superseded by XXXX`, `absorbed into <path>#<anchor>` or `done`; `absorbed into <path>#<anchor>`
   to `superseded by XXXX` ([ADR-Z05A](entries/Z05A-essential-decision-log-rules.md)); and `evidence` to
@@ -100,11 +106,11 @@ implementation-stage work is in the [implementation plan](../specs/sidecar-imple
   and the full-SHA permalinks. A tool is the source of a rule that it checks
   ([ADR-Z05A](entries/Z05A-essential-decision-log-rules.md)).
 - A consolidation entry states the rules that stay from a group of entries, and it supersedes each
-  entry of the group. It changes no decision. Write one at the end of the spec-build stage, and when the read-path limit
-  fails.
+  entry of the group. It changes no decision. Write one at the end of the spec-build stage.
 - When the read path is at 90% of its limit or more, first absorb each accepted entry whose rules
-  one absorb document states. Then write a consolidation entry
-  ([ADR-3AM0](entries/3AM0-absorb-at-landing-and-landed-copies.md)).
+  the absorb documents state ([ADR-3AM0](entries/3AM0-absorb-at-landing-and-landed-copies.md)). Then
+  write each rule that no absorb document states in the absorb document where it belongs, and
+  absorb its entry ([ADR-5EVP](entries/5EVP-absorb-across-documents.md)).
 - A commit that only makes a workflow, skill, template or tool copy agree with a landed spec entry
   cites that entry. It needs no entry of its own. A new rule is not a copy
   ([ADR-3AM0](entries/3AM0-absorb-at-landing-and-landed-copies.md)).

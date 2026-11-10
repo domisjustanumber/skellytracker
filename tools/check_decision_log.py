@@ -115,7 +115,9 @@ ALPHABET = "0123456789" + LETTERS
 # the upper-case rule, and it starts with a letter.
 ID = "(?:[" + ALPHABET + "]{4}|[" + LETTERS.lower() + "][" + ALPHABET.lower() + "]{3})"
 
-ABSORBED = r"absorbed into (?:\[[^\]]+\]\([^)\s]+\)|`[^`]+`)"
+# One link or code span for each absorb document that states a rule of the entry.
+ABSORBED_TARGET = r"(?:\[[^\]]+\]\([^)\s]+\)|`[^`]+`)"
+ABSORBED = rf"absorbed into {ABSORBED_TARGET}(?:, {ABSORBED_TARGET})*"
 STATUS_FORMS = {
     "Active": ("accepted", "evidence"),
     "Proposed": ("proposed",),
@@ -136,7 +138,8 @@ ENTRY_LIKE = re.compile(r"^[0-9a-zA-Z]{4}-.*\.md$")
 # YAML 1.2 and spreadsheets read an ID such as 1E23 or 12E3 as a number, so no new ID has this form.
 NUMBER_LIKE = re.compile(r"\d+E\d+")
 STATUS_PARAGRAPH = re.compile(r"^\*\*Status:\*\*.*?(?=\n[ \t]*\n|\n#|\Z)", re.MULTILINE | re.DOTALL)
-STATUS_EXEMPTION_LIMIT = 1_000
+# An `absorbed into` status has one link for each absorb document, so it can be long.
+STATUS_EXEMPTION_LIMIT = 2_000
 # Only the form `_Edited YYYY-MM-DD (<PR>): <kind>._` is exempt, so that no body text can hide in it.
 EDITED_LINE = re.compile(r"^_Edited \d{4}-\d{2}-\d{2} \([^\n]{1,80}\): [A-Za-z0-9 -]{1,40}\._[ \t]*$", re.MULTILINE)
 TABLE_HEADING = re.compile(r"^### (\w+)\s*$")

@@ -102,9 +102,10 @@ def test_matching_index_passes(tmp_path: Path) -> None:
             [
                 row(2, "absorbed into `AGENTS.md`", "y"),
                 row(3, "absorbed into [`AGENTS.md#5`](../../AGENTS.md#5)", "z"),
+                row(4, "absorbed into [`AGENTS.md#5`](../../AGENTS.md#5), `tools/x.py`", "w"),
             ]
         ),
-        entries={"0001-x.md": "# 0001\n", "0002-y.md": "# 0002\n", "0003-z.md": ""},
+        entries={"0001-x.md": "# 0001\n", "0002-y.md": "# 0002\n", "0003-z.md": "", "0004-w.md": ""},
     )
     assert cdl.check(root) == []
 

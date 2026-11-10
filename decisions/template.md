@@ -31,7 +31,7 @@ the root log or the log of a module.
 
 - **Status.** `accepted` is a decision. `evidence` is a measurement. `proposed` is a spec change
   proposal that waits for a decision. A later status change sets `rejected`,
-  `superseded by XXXX`, `absorbed into <path>#<anchor>`, `evidence; used by XXXX` or `done` (see the
+  `superseded by XXXX`, `absorbed into <path>#<anchor>, …`, `evidence; used by XXXX` or `done` (see the
   [Rules](README.md#rules)). The source says who decided or where the entry comes from, for example
   "user" or "backfilled from #81".
 - **Depends on.** Optional. Write it only when the entry waits for a decision of another repo. Use a

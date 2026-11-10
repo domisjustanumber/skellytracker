@@ -292,10 +292,10 @@ BLOCKS = (
             ),
             ("Until a commit is on `development`,", f"Until a commit is on {BRANCH},"),
             ("agree with a landed spec entry\n  cites that entry.", "agree with a landed entry\n  cites that entry."),
-            (
-                " Write one at the end of the spec-build stage, and when the read-path limit\n  fails.",
-                " Write one when the read-path limit fails.",
-            ),
+            ("only for spec work in its section", "only for work in its section"),
+            ("\n  The spec includes the `notes` of its vector files.", ""),
+            ("`open-work.md` or the implementation plan states", "`open-work.md` states"),
+            (" Write one at the end of the spec-build stage.", ""),
             (
                 " An older entry keeps its lower-case ID in its file name, heading and index row. Do not edit\n"
                 "  older text only to change the case.",
