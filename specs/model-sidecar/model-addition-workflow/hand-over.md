@@ -200,10 +200,6 @@ external:
   `../../<Exporter>/...` in the default layout.
 - Each SHA-256 is of the raw bytes of the bundle copy.
 
-## Batch-conversion check
-
-Moved to [Batch-conversion check](batch-conversion-check.md#batch-conversion-check).
-
 ## Pack a version
 
 1. Write the payload in a folder of your repo. Where you keep your working draft is your choice.
