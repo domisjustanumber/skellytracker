@@ -26,6 +26,7 @@ These entries are `accepted` or `evidence`.
 
 | # | Decision | Status |
 |---|----------|--------|
+| [6J8E](entries/6J8E-exporters-run-released-skellytracker.md) | Exporters run a pinned skellytracker release; code changes come as a patch; upstream parity is the independent check; acceptance waits for the gate | accepted |
 | [x64y](entries/x64y-draft-exporter-guide-folder.md) | The workflow, with the sidecar-file, validation and publishing rules, is in `model-addition-workflow/`; the exporter-only guide is a draft; no stub | accepted |
 | [R39S](entries/R39S-test-fix-on-the-working-branch.md) | Exception to 0027: one spec-build PR; one change kind per commit; no `dom/NN-*` branch; a test fix is a commit on the working branch; CI read; supersedes AB79 | accepted |
 | [QMKS](entries/QMKS-draft-sections-and-coverage-columns.md) | `spec: draft` rules, the graduation gate and the release stops; coverage and gate columns in `TRACEABILITY.md`; `no_model` reasons | accepted |

@@ -583,6 +583,71 @@ Two rules of this part stay:
   ([ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md) item 3). Of the hashes in the
   item Reference hash checks in the resolver, only the `$ref` hashes remain.
 
+### M10 — Shared runtime and the acceptance gate
+
+**Status: NOT STARTED.** Added on 2026-11-10. It changes package code, tools and the workflow, so it
+waits for the implementation stage
+([Stages](model-sidecar/model-addition-workflow/README.md#stages)). It carries out
+[ADR-6J8E](../decisions/entries/6J8E-exporters-run-released-skellytracker.md). This stage needs M6,
+the catalog of M7, and the package model and SemVer `schema_version` of M8. It has no order link to
+M10a and M10b.
+
+- **Pre-release for the exporters.** Publish a skellytracker pre-release of `2.0.0` that loads
+  `"2.0.0"` sidecars and runs a sidecar model with no hand-written detector. Record it as
+  [ADR-6GE2](../decisions/entries/6GE2-spec-version-follows-skellytracker.md) gives.
+- **Exporter runtime.** Each exporter pins that release as its ONNX host. Its host code for the spec
+  sections retires. The user changes the draft exporter guide
+  ([ADR-x64y](../decisions/entries/x64y-draft-exporter-guide-folder.md)). Do not change an exporter
+  repository.
+- **Patch in the bundle.** Add a patch file to the bundle payload in
+  [Payload](model-sidecar/model-addition-workflow/hand-over.md#payload), and the release tag and the
+  SHA-256 of the patch to the manifest. `pack` and `verify` of `tools/intake_bundle.py` must accept
+  the patch, refuse a binary change, and give a finding for each path outside the scope of
+  [ADR-6J8E](../decisions/entries/6J8E-exporters-run-released-skellytracker.md) item 3. Add tests.
+- **Patch review and run.** Write the safety review of a patch in the skill: the whole diff, and
+  `subprocess`, network calls, `eval` and `exec`, `pickle` and `torch.load`, file writes, code that
+  runs at import, encoded data, and ONNX external-data paths. The session applies the patch only after
+  the approval of the user, in a disposable checkout, with no network and no credentials. Change
+  [section 6](../AGENTS.md#6-git-rules) of `AGENTS.md`: the bundle steps stay in the main checkout,
+  and only the run of the patched code moves out.
+- **Acceptance gate.** Add the file `.claude/skills/implement-sidecar-section/proposal-gate.md`. Its
+  first line tells an exporter agent to stop. No workflow file links to it. Its steps:
+  1. Triage: ask the user if skellytracker implements the `recorded` proposal for acceptance.
+  2. Plan: steps 1 to 4 of the skill, with the proposed text of the record, not the current spec.
+  3. Apply the patch.
+  4. Section gate: each vector case of the bundle agrees through its `PACKAGE_RUNNERS` adapter. Add
+     the skellytracker `path::symbol` to `verified_against`. On a disagreement, never edit `expect`.
+     Find the cause: an unclear text or an exporter defect gives `needs-contributor`. A defect of
+     skellytracker gets a fix.
+  5. Model gate: the package loads the sidecar with no V- rule failure. Get each `external` ONNX file
+     and check its SHA-256. The run on the reference image matches the `parity/` output of the bundle
+     within the tolerances of [Parity](model-sidecar/model-addition-workflow/parity.md), for at least
+     one size. No reference output gives `needs-contributor`.
+  6. Catalog: put the sidecar in the package sidecar root. Add a test that builds the detector by its
+     catalog key and runs one frame.
+  7. Report: write the response `verified`. The user accepts. Then land the content commit
+     (procedure B of `change-sidecar-spec`), the implementation commit and the catalog commit, in
+     this order.
+
+  Add `verified` to [States](model-sidecar/model-addition-workflow/hand-over.md#states) and
+  [Responses](model-sidecar/model-addition-workflow/hand-over.md#responses). Add the gate as a
+  precondition to step 1 of procedure B of `change-sidecar-spec`. Give contributors the short form
+  in [phase 3](model-sidecar/model-addition-workflow/phase-3-skellytracker.md).
+- **Models with the verdict `describes`.** They do only steps 5 to 7 of the gate. Step 5 replaces
+  "parity passes for at least one size" in the preconditions of procedure A of
+  `change-sidecar-spec`.
+- **Independence rule.** Change
+  [Independence](model-sidecar/model-addition-workflow/sidecar-files.md#independence) and the
+  `verified_against` rule of
+  [Examples and vectors](../.claude/skills/change-sidecar-spec/spec-edit-rules.md#examples-and-vectors)
+  to item 5 of [ADR-6J8E](../decisions/entries/6J8E-exporters-run-released-skellytracker.md).
+  Change step 5 of `implement-sidecar-section` from "port" to "apply the patch". The user decides
+  how a case with no upstream output is verified, for example a validation-error case.
+- **GitHub Issues.** After the Issues channel exists, the text goes in an issue and the patch in a
+  fork PR. Before the first fork PR, harden CI: `pull_request` and not `pull_request_target`, a
+  read-only `GITHUB_TOKEN`, an approval before a workflow of an outside contributor runs,
+  CODEOWNERS for `.github/` and `tools/`, and branch protection on `development`.
+
 ### M10a — YOLOX re-export
 
 **Status: NOT STARTED.** It changes package code, so it waits for the implementation stage
