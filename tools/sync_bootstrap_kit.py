@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
-"""Write or check the copied files and blocks of the bootstrap kit (decisions 0031 and Z05A).
+"""Write or check the copied files and blocks of the bootstrap kit (decisions 0031, Z05A and P3NK).
 
 Usage::
 
     python tools/sync_bootstrap_kit.py --check   # fail when a copy differs from its live file
     python tools/sync_bootstrap_kit.py --write   # write each copy again from its live file
 
-The kit in ``specs/agents-and-adr-process/bootstrap/`` holds copies of the tools and configs of this
-repo, for a new repo to copy. Each copy is its live file with a short list of exact text edits that
-remove the parts that belong only to this repo. A change to a live file must be copied to the kit:
-run ``--write`` and commit both files. The doc tests run ``--check``. Standard library only.
+The kit in ``agents-and-adr-process/bootstrap/`` of the freemocap/project repo holds copies of the
+tools and configs of this repo, for a new repo to copy. This tool stays here as the reference
+implementation of the kit sync. It finds the kit in the checkout ``../project``, or two folders up
+when this repo is in the ``repos/`` folder of that checkout. Each copy is its live file with a short
+list of exact text edits that remove the parts that belong only to this repo. A change to a live
+file must be copied to the kit: run ``--write`` and commit the changed kit files in a PR to
+freemocap/project. The doc tests run ``--check``. When the kit is not there, ``--check`` prints a
+note and passes, and ``--write`` fails. Standard library only.
 
 The kit templates also hold blocks of live text. A block named ``## <heading>`` is the whole
 section under that heading, up to the next ``## `` heading. Any other block name is the text between
@@ -33,7 +37,11 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-KIT = Path("specs") / "agents-and-adr-process" / "bootstrap"
+# The kit is in the freemocap/project checkout: a sibling folder, or the folder above repos/.
+_REPO = Path(__file__).resolve().parents[1]
+_PROJECT = Path("..", "..") if _REPO.parent.name == "repos" else Path("..", "project")
+KIT = _PROJECT / "agents-and-adr-process" / "bootstrap"
+NO_KIT = f"bootstrap kit: {KIT.as_posix()} not found; clone https://github.com/freemocap/project there"
 
 
 @dataclass(frozen=True)
@@ -231,13 +239,20 @@ BLOCKS = (
                 "\n(see the [Rules](decisions/README.md#rules)).",
             ),
             (
-                "\nThe bootstrap kit in `specs/agents-and-adr-process/` is guidance, not a part of the sidecar spec.\n"
+                "\nThe bootstrap kit is in `agents-and-adr-process/` of the\n"
+                "[freemocap/project](https://github.com/freemocap/project) repository. It is guidance, not a part\n"
+                "of the sidecar spec.\n"
                 "It holds the final form of the rules of this decision log for a new repository.\n"
+                "Clone that repository to `../project`, or put this repository in its `repos/` folder.\n"
+                "`tools/sync_bootstrap_kit.py` stays in this repository. It is the reference implementation of\n"
+                "the kit sync.\n"
                 "Each kit copy is its live file with the text edits that `tools/sync_bootstrap_kit.py` lists.\n"
                 "The kit templates also hold blocks of the live files: whole sections, and the text between the\n"
                 "lines `<!-- kit:<name> -->` and `<!-- /kit -->`. The tool lists them with their edits.\n"
                 "When you change a copied live file or a block, run `uv run python tools/sync_bootstrap_kit.py"
-                " --write`.\nCommit the kit files in the same PR.\nThe kit decision log must stay valid.\n"
+                " --write`.\nCommit the changed kit files in a PR to freemocap/project.\n"
+                "Link that PR from the PR of this repository.\n"
+                "The kit decision log must stay valid. The tests of freemocap/project check it.\n"
                 "Change the rest of a kit template by hand when a rule of this log changes.\n",
                 "",
             ),
@@ -409,11 +424,18 @@ def write(root: Path) -> None:
 
 def main(argv: list[str]) -> int:
     root = Path.cwd()
+    missing = not (root / KIT).is_dir()
     if argv[1:] == ["--write"]:
+        if missing:
+            print(NO_KIT)
+            return 1
         write(root)
         print(f"bootstrap kit: wrote {len(COPIES)} copies and {len(BLOCKS)} blocks")
         return 0
     if argv[1:] == ["--check"]:
+        if missing:
+            print(f"{NO_KIT}; check skipped")
+            return 0
         errors = check(root)
         print("\n".join(errors) if errors else f"bootstrap kit: {len(COPIES)} copies and {len(BLOCKS)} blocks match")
         return 1 if errors else 0

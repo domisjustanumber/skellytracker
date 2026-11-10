@@ -163,14 +163,20 @@ full-SHA permalink when the entry is on the default branch of that repository
 ([ADR-Z05A](decisions/entries/Z05A-essential-decision-log-rules.md); see the
 [Rules](decisions/README.md#rules)).
 
-The bootstrap kit in `specs/agents-and-adr-process/` is guidance, not a part of the sidecar spec.
+The bootstrap kit is in `agents-and-adr-process/` of the
+[freemocap/project](https://github.com/freemocap/project) repository. It is guidance, not a part
+of the sidecar spec.
 It holds the final form of the rules of this decision log for a new repository.
+Clone that repository to `../project`, or put this repository in its `repos/` folder.
+`tools/sync_bootstrap_kit.py` stays in this repository. It is the reference implementation of
+the kit sync ([ADR-P3NK](decisions/entries/P3NK-bootstrap-kit-in-freemocap-project.md)).
 Each kit copy is its live file with the text edits that `tools/sync_bootstrap_kit.py` lists.
 The kit templates also hold blocks of the live files: whole sections, and the text between the
 lines `<!-- kit:<name> -->` and `<!-- /kit -->`. The tool lists them with their edits.
 When you change a copied live file or a block, run `uv run python tools/sync_bootstrap_kit.py --write`.
-Commit the kit files in the same PR.
-The kit decision log must stay valid.
+Commit the changed kit files in a PR to freemocap/project.
+Link that PR from the PR of this repository.
+The kit decision log must stay valid. The tests of freemocap/project check it.
 Change the rest of a kit template by hand when a rule of this log changes
 ([ADR-Z05A](decisions/entries/Z05A-essential-decision-log-rules.md)).
 

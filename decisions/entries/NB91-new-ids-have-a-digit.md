@@ -20,7 +20,7 @@
    of the rules that they check. This entry changes the ID rule in that docstring. It does not change
    a rule of that entry, so it does not supersede that entry. The kit gets the rule by
    [`tools/sync_bootstrap_kit.py`](../../tools/sync_bootstrap_kit.py), and the kit guide
-   [`specs/agents-and-adr-process/README.md`](../../specs/agents-and-adr-process/README.md) states it.
+   [`specs/agents-and-adr-process/README.md`](https://github.com/freemocap/project/blob/0d88941c2d458743d338d08141f31696e36fb99e/agents-and-adr-process/README.md) states it.
 
 ## Reason
 
@@ -52,3 +52,5 @@
 - **A letter first and a digit in the last 3 characters.** It gives 486,640 IDs, about 40% fewer than
   this rule, and the user did not want the restriction.
 - **A fixed position for the digit.** It gives fewer IDs and adds a pattern with no use.
+
+_Edited 2026-11-10 (this PR): link repair._

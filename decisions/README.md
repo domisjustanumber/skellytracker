@@ -49,6 +49,7 @@ These entries are `accepted` or `evidence`.
 | [VV8B](entries/VV8B-fragments-have-an-inventory-entry.md) | Each example fragment has a `fragments` entry in `inventory.yaml`; no package-copy source; a forced fragment edit is `needs-export`; supersedes yve0 | accepted |
 | [BQZ9](entries/BQZ9-intake-process-consolidation.md) | Consolidation: restates the rules that stay of C0YD, 3HZ4, FM0B, 3AM0 and 37CD | accepted |
 | [6G6G](entries/6G6G-ci-read-before-the-push.md) | Read the fork CI before each push, not before the request; a red or empty read stops an early-approved push; narrows R39S item 9 | accepted |
+| [P3NK](entries/P3NK-bootstrap-kit-in-freemocap-project.md) | The bootstrap kit moves to `agents-and-adr-process/` of freemocap/project; the sync tool stays here; `--check` skips with no checkout; one kit PR in each repo | accepted |
 
 ### Proposed
 

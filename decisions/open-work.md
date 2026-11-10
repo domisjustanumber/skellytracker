@@ -53,3 +53,8 @@ The implementation-stage work is in the stages M7 to M12 of the
   ([ADR-8DSW](entries/8DSW-vector-files-are-the-case-source.md)). An excused drift finding still
   blocks the session run of `batch` ([ADR-AD33](entries/AD33-bundles-are-untrusted-input.md)
   item 4). The user decides if a new entry changes that gate.
+- **Kit PR in freemocap/project.** The kit is on the branch `dom/agents-and-adr-kit` of
+  freemocap/project, in a PR for its owner
+  ([ADR-P3NK](entries/P3NK-bootstrap-kit-in-freemocap-project.md)). The link repairs in 0031, NB91,
+  QPS7 and Z05A pin the commit `0d88941` of that branch. When the PR merges with a different SHA,
+  pin the merged commit.

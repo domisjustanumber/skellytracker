@@ -40,7 +40,7 @@ these entries by links.
    The relative-path form of item 2 is a removed default (cut unit R103). The older forms of item 5
    stay valid. A tool accepts them.
 5. **0031.** [`AGENTS.md#5-decision-log`](../../AGENTS.md#5-decision-log) and
-   [Keep the kit current](../../specs/agents-and-adr-process/README.md#keep-the-kit-current) state 0031
+   [Keep the kit current](https://github.com/freemocap/project/blob/0d88941c2d458743d338d08141f31696e36fb99e/agents-and-adr-process/README.md#keep-the-kit-current) state 0031
    items 1 to 5, with `--check`, the doc tests and kit entry 0001.
 6. **The kit.** The kit templates take the same Rules, the same sections 5, 7 and 8 of `AGENTS.md`,
    and the shared rules of its other sections. A shared rule outside these sections is between the
@@ -86,3 +86,5 @@ these entries by links.
 - **Raise the index limit.** The duplicates stay, and they drift.
 
 _Edited 2026-10-29 (this PR): link repair._
+
+_Edited 2026-11-10 (this PR): link repair._

@@ -4,7 +4,7 @@
 
 ## Decision
 
-1. **The kit.** [`specs/agents-and-adr-process/`](../../specs/agents-and-adr-process/README.md) holds
+1. **The kit.** [`specs/agents-and-adr-process/`](https://github.com/freemocap/project/blob/0d88941c2d458743d338d08141f31696e36fb99e/agents-and-adr-process/README.md) holds
    a guide and a kit of files for a coding agent that creates a new repo. The guide gives the
    procedure, the rules and their reasons. The kit folder `bootstrap/` has the layout of the new
    repo. The kit is guidance. It is not a part of the sidecar spec, so it has no section ID and no
@@ -56,3 +56,5 @@
 _Edited 2026-10-28 (this PR): link repair._
 
 _Edited 2026-10-29 (this PR): link repair._
+
+_Edited 2026-11-10 (this PR): link repair._

@@ -6,7 +6,7 @@
 
 1. **The layout.** The entry files of each log are in `<log>/entries/`. This applies to the root log,
    the spec log in `specs/model-sidecar/decisions/`, the kit log and the module template of
-   [`specs/agents-and-adr-process/`](../../specs/agents-and-adr-process/README.md). The files that do
+   [`specs/agents-and-adr-process/`](https://github.com/freemocap/project/blob/0d88941c2d458743d338d08141f31696e36fb99e/agents-and-adr-process/README.md). The files that do
    something stay in the log folder: `README.md`, `historical.md`, `open-work.md`, `template.md`,
    `scripts/` and `evidence/`. IDs, file names and statuses do not change.
 2. **References.** No stub stays at an old path. Each link in this repo to an old path goes to the
@@ -49,3 +49,5 @@
 - **`adr/`.** It is 4 characters shorter. The user chose `entries/`, the word of the Rules.
 - **A stub at each old path.** [ADR-D9VT](D9VT-decision-log-move.md) rejected stubs for the last
   move. Git keeps the history.
+
+_Edited 2026-11-10 (this PR): link repair._
