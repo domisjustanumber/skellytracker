@@ -20,7 +20,8 @@ This file is a part of the skill [`change-sidecar-spec`](SKILL.md).
   `reference/<section_module>.py`, `templates/` and `model-addition-workflow/` (the process to add a
   model and to request a spec change; it is not a section). The draft exporter guide is in
   `specs/draft/exporter-guide/`. `notes/sidecar-exporter-coverage.md` is frozen evidence.
-  It is not spec text. Do not add or remove a line in it.
+  It is not spec text. Change only its status lines, each in place. Do not add or remove a line in
+  it ([ADR-2XW6](../../../decisions/entries/2XW6-process-entries-consolidation.md)).
 
 ## One algorithm in one place
 
@@ -57,7 +58,11 @@ This file is a part of the skill [`change-sidecar-spec`](SKILL.md).
 - For a new section, set `external_impl: []`. Set each step of `implemented_by` to `missing`. Set each step of `status` to
   `missing`. Set `status.spec` to `draft`. Add the draft banner as the first body line after the
   title ([ADR-QMKS](../../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)).
-- Change `selectors` when the change adds or removes a value that selects the section.
+- No test fails a draft section for an open item of its Gate column. Only the release stop acts on
+  a draft section ([ADR-QMKS](../../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)).
+- Change `selectors` when the change adds or removes a value that selects the section. A common
+  section that is one optional key, for example `batching.batch_conversion`, has one key-presence
+  selector ([ADR-QMKS](../../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)).
 - A preprocessor has an `inverse` step only when the section has an "Inverse" heading.
 
 ## One reading

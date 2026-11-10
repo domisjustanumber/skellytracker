@@ -44,6 +44,10 @@ gives the order of the steps, the inputs, the outputs and the stop points.
 | The new `verified_against` | The vector file `specs/model-sidecar/vectors/<section-id>.yaml` |
 | The new traceability matrix | `specs/model-sidecar/TRACEABILITY.md` |
 
+The adapter of a selection section compares `boxes_xyxy` in the space that `boxes_space` of the case
+names (`model_input` or `source`). It does not infer the space from the other keys
+([ADR-0PK7](../../../decisions/entries/0PK7-selection-boxes-space-flag.md)).
+
 ## Procedure
 
 ### Step 1: Read the section
