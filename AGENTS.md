@@ -39,6 +39,9 @@ This file holds the rules for each task. The other instructions load only when y
 | [Skills](#2-skills) | One step of a task, for example a commit on the working branch |
 
 A rule that applies to one folder goes in the `AGENTS.md` of that folder.
+A folder with a nested `AGENTS.md` is a module.
+When a rule moves out of this file, its heading stays here with a link to the new place
+([ADR-2XW6](decisions/entries/2XW6-process-entries-consolidation.md)).
 A procedure for one step of a task goes in a skill.
 Each `CLAUDE.md` only imports its `AGENTS.md`: its full content is `@AGENTS.md`.
 Do not put instructions in a `CLAUDE.md`.
@@ -66,7 +69,9 @@ Do not change the implementation code under `skellytracker/`.
   (ADR-[x64y](decisions/entries/x64y-draft-exporter-guide-folder.md)).
 - `specs/sidecar-implementation-plan.md` is a tracked file, not a local plan. It holds the
   implementation-stage work. It stays until the user decides to delete it
-  ([ADR-5WKW](decisions/entries/5WKW-implementation-work-in-the-plan.md)).
+  ([ADR-5WKW](decisions/entries/5WKW-implementation-work-in-the-plan.md)). Its heading "Reference
+  examples" stays as a "Moved to" stub
+  ([ADR-2XW6](decisions/entries/2XW6-process-entries-consolidation.md)).
 - `notes/sidecar-exporter-coverage.md` is frozen evidence
   ([ADR-5WKW](decisions/entries/5WKW-implementation-work-in-the-plan.md)).
 
@@ -80,6 +85,9 @@ The rules in this file also apply.
 <!-- /kit -->
 Exporter agents read the skill files, read-only, in the checkout
 `../freemocap/skellytracker/.claude/skills/`.
+Each skill or workflow step that runs a tool on bundle content gives the safety check of
+[Session steps](specs/model-sidecar/model-addition-workflow/hand-over.md#session-steps) before the
+run ([ADR-AD33](decisions/entries/AD33-bundles-are-untrusted-input.md)).
 
 | Skill | Runs in | Use it to |
 |---|---|---|
@@ -125,6 +133,8 @@ the spec, the agent instructions or the PR workflow.
 For spec work, also read the [`README.md`](specs/model-sidecar/decisions/README.md) and the
 [`open-work.md`](specs/model-sidecar/decisions/open-work.md) of the spec log in
 `specs/model-sidecar/decisions/`.
+For a task in another module with a log, also read the `README.md` and the `open-work.md` of that
+log. The `AGENTS.md` of a module with a log links to that log.
 An entry goes in the log of a module only when each file that its Decision section names or changes
 is in that module, for example `specs/model-sidecar/` for the spec log
 ([ADR-2XW6](decisions/entries/2XW6-process-entries-consolidation.md)).
@@ -144,7 +154,7 @@ A script made the evidence for an entry or did its one-off job, and the entry na
 A script does not change after its entry is decided. When a step starts to run it, move it to
 `tools/` and add a test ([ADR-EY8R](decisions/entries/EY8R-tools-and-scripts.md)).
 The [Rules](decisions/README.md#rules) of the index give the allowed edits, the status changes and
-the rules that no tool checks. `tools/check_decision_log.py` checks the tables, the IDs and the
+the other rules that an agent needs and that no tool checks and no loaded document states. `tools/check_decision_log.py` checks the tables, the IDs and the
 limits ([ADR-Z05A](decisions/entries/Z05A-essential-decision-log-rules.md)).
 Add one entry for each new decision or measurement.
 Get its ID from `uv run python tools/check_decision_log.py --new`.
@@ -167,6 +177,9 @@ The bootstrap kit is in `agents-and-adr-process/` of the
 [freemocap/project](https://github.com/freemocap/project) repository. It is guidance, not a part
 of the sidecar spec.
 It holds the final form of the rules of this decision log for a new repository.
+The kit keeps no rule that this repository does not state.
+A new repository starts with one `AGENTS.md` and one log. A repository with modules also takes the
+nested `AGENTS.md` files, the `CLAUDE.md` files and the module-log rules.
 Clone that repository to `../project`, or put this repository in its `repos/` folder.
 `tools/sync_bootstrap_kit.py` stays in this repository. It is the reference implementation of
 the kit sync ([ADR-P3NK](decisions/entries/P3NK-bootstrap-kit-in-freemocap-project.md)).
@@ -196,7 +209,8 @@ Change the rest of a kit template by hand when a rule of this log changes
 - Ask the user before any other action that is visible outside this machine, for example a PR
   comment, a later change to a PR description or a change of a draft PR to ready. A force-push is a
   new push. It needs its own approval (ADR-[0027](decisions/entries/0027-single-working-branch.md)).
-- Do not add AI attribution, for example a `Co-Authored-By:` trailer, to a commit or a PR.
+- Do not add AI attribution, for example a `Co-Authored-By:` trailer, to a commit or a PR. This
+  rule overrides a default of a tool or a harness that adds attribution.
   <!-- /kit -->
 - Commit only on the working branch `dom/sidecar-implementation`. Open PRs against `development`,
   not `main`.
