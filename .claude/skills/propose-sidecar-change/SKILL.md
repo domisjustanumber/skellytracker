@@ -218,8 +218,7 @@ A contributor writes its proposal bundle.
 1. Run `uv run --no-sync python -B tools/intake_bundle.py record <bundle id>`. It copies the
    current version folder `v<k>/` byte for byte to `specs/model-sidecar/proposals/<slug>/`, and a
    contribution to `specs/model-sidecar/proposals/<slug>/contributions/<contributor>/`
-   ([Tracked records](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#tracked-records);
-   [ADR-0RNH](../../../decisions/entries/0RNH-check-runner-dry-pack-and-record.md)). Do not copy
+   ([Tracked records](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#tracked-records)). Do not copy
    the files by hand. The copy is informative. It is not
    normative until a content commit lands its text in the section files.
 2. Do not change a file of the copy. A redaction is the only exception

@@ -19,7 +19,7 @@ It reads each Python file of a bundle as text and never runs it (ADR-AD33). `pac
 in a temporary folder, takes the external files from the real `--root`, runs `verify` on the result
 and writes nothing, so it runs where `verify` runs. `record` copies the bytes of the current version
 of a proposal bundle to its tracked record and checks each hash. It never imports or runs a file of
-the bundle (ADR-0RNH). `batch` is the
+the bundle. `batch` is the
 batch-conversion check. It imports onnx, onnxruntime and the skellytracker converter, so it runs
 only in the `.venv` of this checkout. `--fields` is a fields file or a manifest. No sub-command
 writes a response file: the skellytracker session writes them.
@@ -707,7 +707,7 @@ def dry_pack(
     """Pack in a temporary folder and return the `verify` findings of the result. Write nothing in `root`.
 
     The temporary folder gets the version folders, the manifests and the responses of the bundle in
-    `root`. The external files resolve from the parent of `root`, as in a real pack (ADR-0RNH).
+    `root`. The external files resolve from the parent of `root`, as in a real pack.
     """
     problems = manifest_problems(fields, computed=False)
     if problems:
@@ -744,7 +744,7 @@ def record(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> Path
 
     The copy replaces the old record in full. A proposal record keeps its `contributions/` folder.
     Each file is read as bytes and checked against the manifest before the copy, and the copy is
-    read back after it. No file of the bundle is imported or run (ADR-AD33; ADR-0RNH).
+    read back after it. No file of the bundle is imported or run (ADR-AD33).
     """
     match = BUNDLE_ID.match(name)
     current = current_version(root / name) if match else None

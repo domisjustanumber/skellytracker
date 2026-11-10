@@ -19,7 +19,7 @@ The tool runs these checks in this order, with the Python of the environment tha
 The MediaPipe tests run in their own process. On Windows, one run of all non-video tests can stop
 in them and not finish (the test notes of ``skellytracker/AGENTS.md``). The tool prints each
 command before it runs it. It exits with the status of the first check that fails, or 0.
-The tool is the source of this list (ADR-0RNH).
+The tool is the source of this list.
 """
 
 from __future__ import annotations

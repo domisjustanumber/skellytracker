@@ -261,7 +261,7 @@ Do this step for every final verdict, also after step 6. Follow
 2. Pack the `model` bundle
    ([Pack a version](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#pack-a-version)).
    Pack each proposal bundle that it names first. Before each pack, you can do a dry run with
-   `pack --dry-run`. It gives the `verify` findings and writes nothing ([ADR-0RNH](../../../decisions/entries/0RNH-check-runner-dry-pack-and-record.md)).
+   `pack --dry-run`. It gives the `verify` findings and writes nothing.
    `pack` writes the newest version heading of the checkout, today
    [the open target](../../../specs/model-sidecar/changelog.md#revisions), to the manifest as
    `spec_version`

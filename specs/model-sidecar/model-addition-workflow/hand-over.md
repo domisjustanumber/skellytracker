@@ -220,8 +220,7 @@ external:
    text in a fenced block.
 
    Before the real pack, you can do a dry run. It packs in a temporary folder, takes the external
-   files from the real paths, runs `verify` on the result and writes nothing
-   ([ADR-0RNH](../../../decisions/entries/0RNH-check-runner-dry-pack-and-record.md)).
+   files from the real paths, runs `verify` on the result and writes nothing.
    It runs `verify`, so run it in the environment of the checkout:
 
    ```sh
@@ -230,8 +229,7 @@ external:
 
 4. Stop. Tell the user the bundle ID and the version.
 
-Pack the proposal bundles before the `model` bundles that name them
-([ADR-0RNH](../../../decisions/entries/0RNH-check-runner-dry-pack-and-record.md)).
+Pack the proposal bundles before the `model` bundles that name them.
 
 `pack` and `list` use only the standard library. They write no file in the checkout except the new
 version folder. `pack --dry-run` writes no file in the checkout.
@@ -279,8 +277,7 @@ Then choose one form:
 - One bundle holds one contract unit. A contract unit can change more than one section, for example a
   new role with its enum and its path edits. `sections` lists each changed section.
 - Two changes are two contract units when the user can accept one change without the other. This is
-  also true for two changes in one section. A split gives a new bundle and a new entry for each unit
-  ([ADR-G45G](../../../decisions/entries/G45G-one-review-wave-and-the-question-channel.md)).
+  also true for two changes in one section. A split gives a new bundle and a new entry for each unit.
 - `depends_on` names each bundle that must land first. Do not edit another bundle to add a reverse
   link. `list` computes the reverse links.
 - Cite a heading or a case `id`, not a line number of a copy.
@@ -367,8 +364,7 @@ resolution: {...}                         # required for rejected and resolved-o
 - `findings` holds each failed `verify` check and each item that the contributor must fix.
 - Review the full version before you write its response. Give all the findings of the version in
   that response. A response to version k+1 must not give a new finding for a problem that version
-  k already held. A finding that is still open stays in the response
-  ([ADR-G45G](../../../decisions/entries/G45G-one-review-wave-and-the-question-channel.md)).
+  k already held. A finding that is still open stays in the response.
 - The last item of the `findings` of a `needs-contributor` response is the "Next version" list: the
   manifest fields to change (`spec_commit`, `related`, `external`), the files to add or remove and
   the runs to do again.
@@ -586,8 +582,7 @@ entries. A cycle is a deadlock. Ask the user about it in the same question ([ADR
 
 ## Conditional acceptance
 
-The user can accept a proposal on a condition: a later version of the bundle must close named items
-([ADR-80PC](../../../decisions/entries/80PC-conditional-acceptance-and-landed-copy-fixes.md)).
+The user can accept a proposal on a condition: a later version of the bundle must close named items.
 
 - The entry stays `proposed`. The response is `needs-contributor`. Its `findings` list each item to
   close.
@@ -613,16 +608,14 @@ The landed copy in `specs/model-sidecar/reference/` is not the record. The non-s
 Procedure B step 13 of the skill `change-sidecar-spec` can fix the docstrings, the comments, the status notes and the citation or
 permalink forms of the landed copy. It must not change code or a vector value. The response lists
 each fix in `changes`. A later bundle or version that changes the module starts from the landed
-copy ([ADR-80PC](../../../decisions/entries/80PC-conditional-acceptance-and-landed-copy-fixes.md)).
+copy.
 
 At acceptance, the heading "Before acceptance" of the entry becomes "Notes at acceptance". Delete
-each closed item. Delete the `User decision` line of a conditional acceptance
-([ADR-80PC](../../../decisions/entries/80PC-conditional-acceptance-and-landed-copy-fixes.md)).
+each closed item. Delete the `User decision` line of a conditional acceptance.
 
 ## Questions before a pack
 
-A contributor can ask the skellytracker session about a rule before it packs a version
-([ADR-G45G](../../../decisions/entries/G45G-one-review-wave-and-the-question-channel.md)):
+A contributor can ask the skellytracker session about a rule before it packs a version:
 
 - The channel is a direct message between the two sessions. Later, it is an issue comment.
 - The contributor cites the rule by its heading text and the file that holds it.
@@ -639,8 +632,7 @@ A contributor can ask the skellytracker session about a rule before it packs a v
 
 ## Workflow changes
 
-A bundle never holds a change of this workflow
-([ADR-G45G](../../../decisions/entries/G45G-one-review-wave-and-the-question-channel.md)):
+A bundle never holds a change of this workflow:
 
 1. A contributor that finds a wrong or missing workflow rule gives a workflow finding to the
    skellytracker session. It uses the channel of [Questions before a pack](#questions-before-a-pack)
@@ -663,15 +655,13 @@ A bundle never holds a change of this workflow
   hash. It replaces the old copy in full and keeps the `contributions/` folder of a proposal record.
   It refuses a `model` bundle, a proposal record whose entry is not `proposed`, and the record of
   another bundle with the same slug. It never imports or runs a file of the bundle
-  ([ADR-0RNH](../../../decisions/entries/0RNH-check-runner-dry-pack-and-record.md);
-  [ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)).
+  ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)).
 - The session writes no file in the record, except `redactions.yaml`.
 - A doc test checks the SHA-256 of each record file against its manifest. It also checks that each
   record vector file has the vector form and is 256 KiB or smaller.
 - Session facts go in the decision entry, under "Before acceptance": the failed checks, the missing
   primary evidence, the `to run` results and the open questions.
-- "Before acceptance" also lists each landing blocker
-  ([ADR-G45G](../../../decisions/entries/G45G-one-review-wave-and-the-question-channel.md)):
+- "Before acceptance" also lists each landing blocker:
   - each `needs-export` example of part 7 with no live owner: no contributor can export it again
     now;
   - each `depends_on` bundle that has not landed;

@@ -64,8 +64,7 @@
   ([Questions before a pack](hand-over.md#questions-before-a-pack)). The user decides each workflow
   finding in the skellytracker session. A bundle does not change the workflow
   ([Workflow changes](hand-over.md#workflow-changes),
-  [ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md),
-  [ADR-G45G](../../../decisions/entries/G45G-one-review-wave-and-the-question-channel.md)).
+  [ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)).
 
 ## Sources
 

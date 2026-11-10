@@ -134,5 +134,4 @@ If parity fails, you missed or misjudged a property. Go back to step 1 and find 
 it, the verdict is `pending`. Do not make the tolerance larger to pass.
 
 The Final verdict table of the intake also gives the findings of earlier responses, with the part of
-this version that answers each one, and the notes and questions to the skellytracker session
-([ADR-G45G](../../../decisions/entries/G45G-one-review-wave-and-the-question-channel.md)).
+this version that answers each one, and the notes and questions to the skellytracker session.

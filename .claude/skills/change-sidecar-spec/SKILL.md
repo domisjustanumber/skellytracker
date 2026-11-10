@@ -356,8 +356,7 @@ commit. The local checks read the bytes in the working tree.
 
 Run `uv run python tools/run_checks.py` before each commit. It must pass. Its docstring lists the
 checks, also the private-data check ([Private data](../../../AGENTS.md#8-private-data)). It stops at
-the first check that fails. Do not pipe its output: a pipe can hide the exit status
-([ADR-0RNH](../../../decisions/entries/0RNH-check-runner-dry-pack-and-record.md)).
+the first check that fails. Do not pipe its output: a pipe can hide the exit status.
 
 ## Stop points
 
