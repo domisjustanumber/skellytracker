@@ -276,6 +276,7 @@ BLOCKS = (
                 "  tool in `tools/` for the rules that it checks.",
             ),
             ("Until a commit is on `development`,", f"Until a commit is on {BRANCH},"),
+            ("agree with a landed spec entry\n  cites that entry.", "agree with a landed entry\n  cites that entry."),
             (
                 " Write one at the end of the spec-build stage, and when the read-path limit\n  fails.",
                 " Write one when the read-path limit fails.",

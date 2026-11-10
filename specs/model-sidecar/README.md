@@ -44,7 +44,7 @@ The field `status.spec` in the front matter of a section file gives the status o
 3. The first body line of a `draft` section, after its title, is the banner "This section is a draft. ...". A `stable` section has no banner.
 4. A new section starts as `draft`. A changed `stable` section stays `stable`.
 5. A `draft` section becomes `stable` when all of these conditions are true. The Gate column of the [Implementation status](TRACEABILITY.md#implementation-status) table shows the conditions that the files show.
-   - An accepted decision entry exists for the section.
+   - A decision entry that is `accepted` or `absorbed into` exists for the section ([ADR-3AM0](../../decisions/entries/3AM0-absorb-at-landing-and-landed-copies.md)).
    - A reference example with `kind: export` uses the section, or the user records "no model" with a reason in `no_model` of [`inventory.yaml`](inventory.yaml).
    - Each algorithm of the section has vectors with verified cases. When vectors cannot hold the input of the algorithm, for example an ONNX file, a named test checks the algorithm.
    - Each `V-` rule of the section has a vector case in the vector file of the section that names it: a validator case (`failed`) or a reference refusal case (`error`). An `error` case and a `failed` case need no `verified_against`.

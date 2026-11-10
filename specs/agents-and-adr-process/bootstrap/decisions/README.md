@@ -66,6 +66,10 @@ The open work is in [open-work.md](open-work.md).
   and the full-SHA permalinks. A tool is the source of a rule that it checks.
 - A consolidation entry states the rules that stay from a group of entries, and it supersedes each
   entry of the group. It changes no decision. Write one when the read-path limit fails.
+- When the read path is at 90% of its limit or more, first absorb each accepted entry whose rules
+  one absorb document states. Then write a consolidation entry.
+- A commit that only makes a workflow, skill, template or tool copy agree with a landed entry
+  cites that entry. It needs no entry of its own. A new rule is not a copy.
 - Delete an open-work item when the work is done. Put a dated fact in `open-work.md` or in an
   entry, not in `AGENTS.md`.
 - Put long evidence in a tracked file next to the entry, and link to it. A PR that raises a limit

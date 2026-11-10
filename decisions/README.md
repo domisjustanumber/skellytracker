@@ -52,6 +52,7 @@ These entries are `accepted` or `evidence`.
 | [80PC](entries/80PC-conditional-acceptance-and-landed-copy-fixes.md) | A conditional acceptance is a `needs-contributor` response; "Notes at acceptance"; docstring fixes in the landed reference copy | accepted |
 | [FM0B](entries/FM0B-one-response-for-each-commit-group.md) | One response per bundle per commit group; append-only; rules land before repack requests; named waits; drift exceptions; no drift once finished | accepted |
 | [G45G](entries/G45G-one-review-wave-and-the-question-channel.md) | One review wave per version; landing blockers and split test at record time; questions before a pack; workflow findings go to the user | accepted |
+| [3AM0](entries/3AM0-absorb-at-landing-and-landed-copies.md) | Absorb a landed entry in its landing group; absorbed counts as landed; absorb before consolidation at 90%; copy search at landing; a copy fix needs no own entry | accepted |
 
 ### Proposed
 
@@ -104,6 +105,12 @@ implementation-stage work is in the [implementation plan](../specs/sidecar-imple
 - A consolidation entry states the rules that stay from a group of entries, and it supersedes each
   entry of the group. It changes no decision. Write one at the end of the spec-build stage, and when the read-path limit
   fails.
+- When the read path is at 90% of its limit or more, first absorb each accepted entry whose rules
+  one absorb document states. Then write a consolidation entry
+  ([ADR-3AM0](entries/3AM0-absorb-at-landing-and-landed-copies.md)).
+- A commit that only makes a workflow, skill, template or tool copy agree with a landed spec entry
+  cites that entry. It needs no entry of its own. A new rule is not a copy
+  ([ADR-3AM0](entries/3AM0-absorb-at-landing-and-landed-copies.md)).
 - Delete an open-work item when the work is done. Put a dated fact in `open-work.md` or in an
   entry, not in `AGENTS.md`.
 - Put long evidence in a tracked file next to the entry, and link to it. A PR that raises a limit

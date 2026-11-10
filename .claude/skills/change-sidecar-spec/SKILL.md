@@ -108,9 +108,10 @@ Do this procedure for step 2 of phase 3.
    is not the current version of its bundle, stop and record the new version first (skill
    `propose-sidecar-change`,
    [Record a new version](../propose-sidecar-change/SKILL.md#record-a-new-version)). Each `base`
-   proposal and each `depends_on` proposal must be landed: its entry is `accepted` and its content
-   commit is on the working branch. Or it lands in the same content commit. If one is
-   neither, stop. Land the base first. A rejected base gives the response `needs-contributor`
+   proposal and each `depends_on` proposal must be landed: its entry is `accepted` or `absorbed into`
+   ([ADR-3AM0](../../../decisions/entries/3AM0-absorb-at-landing-and-landed-copies.md)),
+   and its content commit is on the working branch. Or it lands in the same content commit. If one
+   is neither, stop. Land the base first. A rejected base gives the response `needs-contributor`
    ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)).
 2. Make the content commit. Do steps 3 to 12. When part 2 changes no text, the commit is the
    non-spec kind of the [Outputs](#outputs) table: it has no `changelog.md` row and no fingerprint
@@ -180,7 +181,7 @@ Do this procedure for step 2 of phase 3.
 11. If the change corrects an item of the spec-defect list in
     [`specs/model-sidecar/decisions/open-work.md`](../../../specs/model-sidecar/decisions/open-work.md), remove the item.
 12. Run the [impact](#impact) and the [checks](#checks).
-13. Make the non-spec commit on top of the content commit. Do steps 14 to 18. In it, replace the
+13. Make the non-spec commit on top of the content commit. Do steps 14 to 20. In it, replace the
     fixtures of each section that the content commit lands:
     - Search `specs/model-sidecar/reference/` for `Fixture of <section ID>` of that section.
     - Replace each fixture with an import and a call through the module name.
@@ -202,11 +203,31 @@ Do this procedure for step 2 of phase 3.
 17. If a model that needs the change is not in
     [Scope of this revision](../../../specs/model-sidecar/changelog.md#scope-of-this-revision), add
     the model to the list ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
-18. When the exporter writes the sidecar with the new fields, add the example with procedure A.
+18. Search `.claude/skills/`, `specs/model-sidecar/model-addition-workflow/`,
+    `specs/model-sidecar/templates/`, `tools/` and `tools/tests/` for each field, value and rule ID
+    that the content commit changes. Update each copy in this commit. Where a workflow file or a
+    skill can link the home heading, link it in place of the value
+    ([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md) item 1). A
+    template and a tool keep the value. Report each copy in `specs/draft/exporter-guide/` to the
+    user. Do not change it ([ADR-x64y](../../../decisions/entries/x64y-draft-exporter-guide-folder.md)).
+    For a new section or a new required key, add its rows to `templates/model-intake.md` and to the
+    [Inputs](../author-sidecar/SKILL.md#inputs) of `author-sidecar` in this commit
+    ([ADR-3AM0](../../../decisions/entries/3AM0-absorb-at-landing-and-landed-copies.md)).
+19. Absorb the entry when the spec states each rule of the entry. In this commit, change its status
+    to `absorbed into <section file>#<anchor>`, with the date and the PR. Use the heading that states
+    the main rule. Name the other headings in the commit body. Move its row from the Active table of the
+    [spec log](../../../specs/model-sidecar/decisions/README.md) to its
+    [historical table](../../../specs/model-sidecar/decisions/historical.md). Copy each open item under
+    its "Notes at acceptance" heading to the
+    [open work](../../../specs/model-sidecar/decisions/open-work.md) of the spec log. The entry body
+    does not change ([Rules](../../../decisions/README.md#rules)). If the spec does not state a rule
+    of the entry, the entry stays `accepted`. Do not ask the user
+    ([ADR-3AM0](../../../decisions/entries/3AM0-absorb-at-landing-and-landed-copies.md)).
+20. When the exporter writes the sidecar with the new fields, add the example with procedure A.
     When the last commit of the proposal lands, write the response `landed` for each bundle of the
     proposal. Then do [procedure E](#procedure-e-resolve-a-proposal-by-a-different-change)
     for each other open proposal on the same sections.
-19. In the implementation stage, implement the section with the skill
+21. In the implementation stage, implement the section with the skill
     [`implement-sidecar-section`](../implement-sidecar-section/SKILL.md).
 
 ## Procedure C: land a reference implementation of an exporter
@@ -282,9 +303,9 @@ After the copy and its commit, the module is code of this repository.
 | Edit | Steps |
 |---|---|
 | A content change, for example the correction of a spec defect | Make sure that an accepted decision entry exists. If none exists, use [`propose-sidecar-change`](../propose-sidecar-change/SKILL.md). Then stop. If one exists, do steps 3 to 12 and step 17 of procedure B. |
-| A graduation to `stable` | (1) Run `uv run python tools/sidecar_trace.py matrix`. The Gate cell of the section must be `pass`. A `no_model` reason in `inventory.yaml` counts for the example item. Do not add another waiver. (2) The Gate column does not show two conditions. Check them by hand: an accepted decision entry exists for the section, and a named test checks each algorithm with no vectors ([Section status](../../../specs/model-sidecar/README.md#section-status), rule 5). (3) Get the explicit approval of the user. (4) In one content commit, set `status.spec: stable`, remove the banner, add the summary row and the `Row` line ([`changelog.md`](#changelogmd)), run the matrix again and run the [checks](#checks). (5) Do not do steps 3 to 12 of procedure B. Do not write a new decision entry. Cite the accepted entry of the section in the commit message ([ADR-QMKS](../../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)). |
+| A graduation to `stable` | (1) Run `uv run python tools/sidecar_trace.py matrix`. The Gate cell of the section must be `pass`. A `no_model` reason in `inventory.yaml` counts for the example item. Do not add another waiver. (2) The Gate column does not show two conditions. Check them by hand: a decision entry that is `accepted` or `absorbed into` exists for the section ([ADR-3AM0](../../../decisions/entries/3AM0-absorb-at-landing-and-landed-copies.md)), and a named test checks each algorithm with no vectors ([Section status](../../../specs/model-sidecar/README.md#section-status), rule 5). (3) Get the explicit approval of the user. (4) In one content commit, set `status.spec: stable`, remove the banner, add the summary row and the `Row` line ([`changelog.md`](#changelogmd)), run the matrix again and run the [checks](#checks). (5) Do not do steps 3 to 12 of procedure B. Do not write a new decision entry. Cite that entry of the section in the commit message ([ADR-QMKS](../../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)). |
 | A skellytracker release | [Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing) gives it. First, find each section with `status.spec: draft`. If one exists, stop and tell the user. The user makes the section `stable` or removes its fields from the release ([Section status](../../../specs/model-sidecar/README.md#section-status), rule 7). Also stop and tell the user when an example or a package sidecar has `batching.batch_conversion` and the `validate` or `load` status of `common.batch_conversion` is not `implemented` ([ADR-QMKS](../../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)). These two checks are stops of the `2.0.0` release ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)). Also stop and tell the user when the SemVer loader of stage M8 of the [implementation plan](../../../specs/sidecar-implementation-plan.md) has not landed: the `2.0.0` release ships it ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md) item 4). Then, in the release PR, set `- Released: yes.` under the version heading of the release in [Revisions](../../../specs/model-sidecar/changelog.md#revisions). If the release ships under another number, rename the unreleased heading and change `schema_version` in each example in the same PR ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). |
-| A workflow change | The user asks for it, or accepts a workflow finding ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md); [ADR-G45G](../../../decisions/entries/G45G-one-review-wave-and-the-question-channel.md)). Write the change in one non-spec commit with a decision entry that gives the reason ([Workflow changes](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#workflow-changes)). The entry is `accepted` in that commit. When the change changes the [Rules](../../../decisions/README.md#rules), change the kit in the same commit: run `uv run python tools/sync_bootstrap_kit.py --write` (it writes the copies and the blocks), and change the rest of the kit templates by hand ([ADR-Z05A](../../../decisions/entries/Z05A-essential-decision-log-rules.md)). |
+| A workflow change | The user asks for it, or accepts a workflow finding ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md); [ADR-G45G](../../../decisions/entries/G45G-one-review-wave-and-the-question-channel.md)). Write the change in one non-spec commit with a decision entry that gives the reason ([Workflow changes](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#workflow-changes)). The entry is `accepted` in that commit. A copy fix of a landed spec entry needs no entry of its own ([Rules](../../../decisions/README.md#rules); [ADR-3AM0](../../../decisions/entries/3AM0-absorb-at-landing-and-landed-copies.md)). When the change changes the [Rules](../../../decisions/README.md#rules), change the kit in the same commit: run `uv run python tools/sync_bootstrap_kit.py --write` (it writes the copies and the blocks), and change the rest of the kit templates by hand ([ADR-Z05A](../../../decisions/entries/Z05A-essential-decision-log-rules.md)). |
 | A rewording | Do the [meaning check](#meaning-check). Change no meaning. |
 | A move | Change no words. Keep the section IDs and the rule IDs. |
 

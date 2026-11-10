@@ -612,6 +612,8 @@ A bundle never holds a change of this workflow
 3. The user accepts or rejects each finding. For an accepted finding, the session writes the change
    in one non-spec commit with a decision entry that gives the reason. The session gives the result
    and the entry ID to the contributor.
+4. A copy fix of a landed spec entry needs no entry of its own ([Rules](../../../decisions/README.md#rules);
+   [ADR-3AM0](../../../decisions/entries/3AM0-absorb-at-landing-and-landed-copies.md)).
 
 ## Tracked records
 
