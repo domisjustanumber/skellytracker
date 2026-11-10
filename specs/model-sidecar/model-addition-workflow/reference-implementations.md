@@ -46,6 +46,8 @@ reference-implementation step of the section.
   change. Do not write a new file.
 - A follow-up copies the file of its base and adds its change
   ([Proposal forms](hand-over.md#proposal-forms)).
+- If the text does not define a branch exactly, that is a spec defect, not a finding against the
+  file ([Session steps](hand-over.md#session-steps) step 7).
 
 ## Module names
 

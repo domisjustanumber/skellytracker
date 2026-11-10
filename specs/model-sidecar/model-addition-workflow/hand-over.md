@@ -482,7 +482,9 @@ it does this safety check ([ADR-AD33](../../../decisions/entries/AD33-bundles-ar
    `<id>-<slug>.md` to the spec log, with its row in the Proposed table. A contribution: copy it to
    `proposals/<slug>/contributions/<contributor>/` with `record`. It gets no new entry.
    Before acceptance, the owner entry gets one Evidence line. After acceptance, only the tracked copy
-   is added.
+   is added. At record time, find the sidecar groups of each section that part 2 changes in the
+   section rows of `TRACEABILITY.md`. Each group that part 7 does not list is a finding of the same
+   response ([ADR-37CD](../../../decisions/entries/37CD-retro-follow-up-session-rules.md)).
 5. A `model` bundle: run `batch` again when [The session run](#the-session-run) tells you to
    ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). With the
    verdict `describes`, [Reference examples](reference-examples.md) then copies `example/`. The
@@ -505,6 +507,16 @@ it does this safety check ([ADR-AD33](../../../decisions/entries/AD33-bundles-ar
      `waiting_on no longer open`.
    - Then run `verify` on each bundle again. It checks the new response. If it gives an
      `answers_version` finding, write a new response with the correct `answers_version`.
+   - Do not write a finding against text that an uncommitted edit of the session changes. Commit the
+     edit first, or write the finding as `deferred: <pending entry>` ([ADR-37CD](../../../decisions/entries/37CD-retro-follow-up-session-rules.md)).
+   - A decision that adds a required sidecar key lands with the text of its section. If that text
+     has not landed, the response says `exporters: do not implement until <section ID> lands`
+     ([ADR-37CD](../../../decisions/entries/37CD-retro-follow-up-session-rules.md)).
+7. A review finding that only a change of the spec text can fix is a spec defect, not a
+   `needs-contributor` finding. Examples are a branch that the text does not define and text that
+   no implementation can follow exactly. Add it to [Spec defects](../decisions/open-work.md#spec-defects)
+   of the open work of the spec log. Ask the user in the same session
+   ([ADR-37CD](../../../decisions/entries/37CD-retro-follow-up-session-rules.md)).
 
 ### The session run
 
@@ -551,6 +563,7 @@ The session asks the user each decision about a proposal in this form
   - each option, with its full extra scope;
   - the recommended option.
 - Write "proposal bundle version N". Do not write a bare "vN".
+- When the user asks a question, answer it in text before you continue ([ADR-37CD](../../../decisions/entries/37CD-retro-follow-up-session-rules.md)).
 - In the same message, show the result of the safety review of each reference file that the landing
   copies, with its path and its SHA-256. Ask for the copy approval there. If the SHA-256 of a file
   changes, the file gets a new review and a new approval. No approval carries over.
@@ -568,6 +581,12 @@ The user can defer a proposal. The bundle stays `recorded`, and the entry stays 
 response gives the finding `deferred: <reason>`. The reason names what the proposal waits for, for
 example a bundle, its owner and the trigger that ends the wait
 ([ADR-FM0B](../../../decisions/entries/FM0B-one-response-for-each-commit-group.md)). `list` shows it.
+
+If the owner of a bundle that a proposal waits for defers it or is not active, ask the user in the
+decision question: remove the example with the ruling of
+[When a spec change makes an example invalid](reference-examples.md#when-a-spec-change-makes-an-example-invalid),
+or wait. Before you write a wait, follow the chain of `waiting_on`, `depends_on` and the waits of the
+entries. A cycle is a deadlock. Ask the user about it in the same question ([ADR-37CD](../../../decisions/entries/37CD-retro-follow-up-session-rules.md)).
 
 ## Conditional acceptance
 

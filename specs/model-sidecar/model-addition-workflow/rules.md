@@ -76,7 +76,8 @@
   proposal, a reference file and spec guidance. The rule "Do not cite or link `plans/`"
   also applies to a bundle file of any repo. Cite upstream code, and the code of another repo, with
   a GitHub permalink. The permalink must pin a full 40-character SHA on the default branch of that
-  repo. The next bullets give the other forms.
+  repo. A permalink to an older commit of the default branch stays valid. In a new version, change
+  only the permalinks whose cited lines changed ([ADR-37CD](../../../decisions/entries/37CD-retro-follow-up-session-rules.md)). The next bullets give the other forms.
 - Cite an untracked plan or note of your repo as `the untracked <topic> plan of <repo> (secondary)`.
   Do not write its path or an item number. `verify` gives a finding for each line of a bundle file
   that contains `plans/` ([Session steps](hand-over.md#session-steps)).

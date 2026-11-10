@@ -50,6 +50,7 @@ These entries are `accepted` or `evidence`.
 | [3HZ4](entries/3HZ4-decision-questions-and-rule-defaults.md) | One form for each decision question, with the copy and push approvals; a rule decides first; defaults that need no question | accepted |
 | [FM0B](entries/FM0B-one-response-for-each-commit-group.md) | One response per bundle per commit group; append-only; rules land before repack requests; named waits; drift exceptions; no drift once finished | accepted |
 | [3AM0](entries/3AM0-absorb-at-landing-and-landed-copies.md) | Absorb a landed entry in its landing group; absorbed counts as landed; absorb before consolidation at 90%; copy search at landing; a copy fix needs no own entry | accepted |
+| [37CD](entries/37CD-retro-follow-up-session-rules.md) | Answer questions first; part 7 at record; no finding on uncommitted text; new keys land with text; spec defects; wait cycles; old permalinks; one parity run | accepted |
 
 ### Proposed
 
