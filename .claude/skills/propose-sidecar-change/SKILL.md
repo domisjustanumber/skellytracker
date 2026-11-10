@@ -69,7 +69,7 @@ that is missing in part 1.
 
 In skellytracker:
 
-- the proposal bundles in `intakes/`. `uv run python -B tools/intake_bundle.py list` lists them
+- the proposal bundles in `intakes/`. `uv run --no-sync python -B tools/intake_bundle.py list` lists them
   ([Session steps](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#session-steps)).
 
 A gap that a skellytracker session finds goes on the spec-defect list of the
@@ -290,7 +290,7 @@ A contributor writes its proposal bundle.
 4. Stop. Tell the user the entry number. Ask the decision in the form of
    [Decision questions](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#decision-questions).
    For a version that meets a recorded
-   [conditional acceptance](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#conditional-acceptance), do not ask the decision.
+   [conditional acceptance](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#conditional-acceptance), do not ask the user to decide.
    Report the version, and ask only for the copy approval of its reference files.
 5. The user accepts or rejects the proposal. A met conditional acceptance is the acceptance of the
    user. After acceptance, use the skill
@@ -318,8 +318,7 @@ until the record is current.
    - Add each new item at the end of its group. Mark it `(new <YYYY-MM-DD>)`.
    - For a version that meets a
      [conditional acceptance](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#conditional-acceptance),
-     delete each closed item. Do not tick it. Git keeps the old list
-     ([ADR-80PC](../../../decisions/entries/80PC-conditional-acceptance-and-landed-copy-fixes.md)).
+     delete each closed item. Do not tick it. Git keeps the old list.
 6. Change the Decision, the Reason and the Evidence of the entry only where the new version changes
    them. Keep the entry inside the entry limit.
 7. Add `recorded again <YYYY-MM-DD> (<bundle id>@v<k>)` to the status line of the entry.
