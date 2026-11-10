@@ -110,7 +110,9 @@ The sidecar paths are under `core/detectors/`.
   ```
 
   `tools/run_checks.py` stops the MediaPipe check after 300 s, runs the next checks and then exits
-  with 124. Report the note that it prints. On Python 3.13 or later, the hang is a regression
+  with 124. Report the note that it prints. On Python 3.13 or later, the hang is a regression.
+  Do not change the MediaPipe tests to hide the hang, for example with a skip, an xfail or a
+  timeout plugin: they are its regression test
   ([ADR-R3F1](../decisions/entries/R3F1-mediapipe-check-time-limit.md)).
 
 - If a failure shows a code defect, report it. Do not fix the code in the spec-build stage.
