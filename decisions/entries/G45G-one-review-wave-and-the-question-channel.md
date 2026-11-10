@@ -1,6 +1,6 @@
 # G45G — One review wave, landing blockers at record time, and the question channel before a pack
 
-**Status:** accepted, 2026-11-09 (user; PR: pending).
+**Status:** absorbed into [`model-addition-workflow/hand-over.md#responses`](../../specs/model-sidecar/model-addition-workflow/hand-over.md#responses), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

@@ -172,9 +172,9 @@ Do this procedure for step 2 of phase 3.
     ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)). Write each `proposed`
     superseding entry of the proposal as `accepted`, and supersede its old entry. Make only
     editorial fixes at acceptance ([Changes at acceptance](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#changes-at-acceptance)).
-    Rename the heading "Before acceptance" of the entry to "Notes at acceptance". Delete each closed
-    item. Delete the `User decision` line of a conditional acceptance
-    ([ADR-80PC](../../../decisions/entries/80PC-conditional-acceptance-and-landed-copy-fixes.md)).
+    Change the heading "Before acceptance" of the entry as
+    [Changes at acceptance](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#changes-at-acceptance)
+    says.
     Write each plan decision that the user confirmed in the Decision section of the entry. Write it
     in words. Do not cite its item number
     ([User decisions](../../../specs/model-sidecar/model-addition-workflow/rules.md#user-decisions);

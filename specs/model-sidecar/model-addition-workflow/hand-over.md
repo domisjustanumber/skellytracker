@@ -600,6 +600,10 @@ permalink forms of the landed copy. It must not change code or a vector value. T
 each fix in `changes`. A later bundle or version that changes the module starts from the landed
 copy ([ADR-80PC](../../../decisions/entries/80PC-conditional-acceptance-and-landed-copy-fixes.md)).
 
+At acceptance, the heading "Before acceptance" of the entry becomes "Notes at acceptance". Delete
+each closed item. Delete the `User decision` line of a conditional acceptance
+([ADR-80PC](../../../decisions/entries/80PC-conditional-acceptance-and-landed-copy-fixes.md)).
+
 ## Questions before a pack
 
 A contributor can ask the skellytracker session about a rule before it packs a version

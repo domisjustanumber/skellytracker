@@ -48,11 +48,8 @@ These entries are `accepted` or `evidence`.
 | [9HBB](entries/9HBB-simcc-decode-is-2d-only.md) | The SimCC decode is 2D only: no `simcc_z`, no `depth_range`; a 3D SimCC model adds its own section | accepted |
 | [4KW6](entries/4KW6-onnxruntime-1-31-for-the-cpu-check.md) | `onnx-cpu` requires `onnxruntime>=1.31` (lock 1.31.1): no fp16 noise in the batch check; the GPU cap stays | accepted |
 | [3HZ4](entries/3HZ4-decision-questions-and-rule-defaults.md) | One form for each decision question, with the copy and push approvals; a rule decides first; defaults that need no question | accepted |
-| [80PC](entries/80PC-conditional-acceptance-and-landed-copy-fixes.md) | A conditional acceptance is a `needs-contributor` response; "Notes at acceptance"; docstring fixes in the landed reference copy | accepted |
 | [FM0B](entries/FM0B-one-response-for-each-commit-group.md) | One response per bundle per commit group; append-only; rules land before repack requests; named waits; drift exceptions; no drift once finished | accepted |
-| [G45G](entries/G45G-one-review-wave-and-the-question-channel.md) | One review wave per version; landing blockers and split test at record time; questions before a pack; workflow findings go to the user | accepted |
 | [3AM0](entries/3AM0-absorb-at-landing-and-landed-copies.md) | Absorb a landed entry in its landing group; absorbed counts as landed; absorb before consolidation at 90%; copy search at landing; a copy fix needs no own entry | accepted |
-| [0RNH](entries/0RNH-check-runner-dry-pack-and-record.md) | `tools/run_checks.py` runs the commit checks; `pack --dry-run`; `record` makes the byte copy; pack proposals before their models | accepted |
 
 ### Proposed
 

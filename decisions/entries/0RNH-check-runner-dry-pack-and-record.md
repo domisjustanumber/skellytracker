@@ -1,6 +1,6 @@
 # 0RNH — One check runner, a dry pack and a record command
 
-**Status:** accepted, 2026-11-09 (user; PR: pending).
+**Status:** absorbed into [`.claude/skills/change-sidecar-spec/SKILL.md#checks`](../../.claude/skills/change-sidecar-spec/SKILL.md#checks), 2026-11-10 (user; PR: pending).
 
 ## Decision
 
