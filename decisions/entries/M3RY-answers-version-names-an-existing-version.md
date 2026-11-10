@@ -1,6 +1,6 @@
 # M3RY — `answers_version` names an existing version
 
-**Status:** accepted, 2026-11-09 (user).
+**Status:** absorbed into [`model-addition-workflow/hand-over.md#responses`](../../specs/model-sidecar/model-addition-workflow/hand-over.md#responses), 2026-11-09 (user; PR: pending).
 
 ## Decision
 
