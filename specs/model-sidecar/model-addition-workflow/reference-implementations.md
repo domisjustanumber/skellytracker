@@ -177,10 +177,14 @@ proposed section ID.
 
 The skill `author-sidecar` includes this step.
 
-1. Write the clean, minimal form of your host code. Follow
+1. Implement the current section text. Start from your host code. Where your host code departs
+   from the text, follow the text. List each departure in the row of the section in the reference
+   table of the intake, or write a proposal in the same pack
+   ([ADR-Q6P7](../../../decisions/entries/Q6P7-reference-module-notes-and-unused-cases.md)). Follow
    [Imports of other sections](#imports-of-other-sections). Write one function for each
    algorithm. In each docstring, cite the section ID and the commit of your repo that the code comes
-   from.
+   from. One section has one module across all of your bundles. If more than one of your bundles
+   holds the file of a section, the files must be the same.
 2. Run the functions against the vectors of the section (see [Vectors](reading-the-spec.md#vectors)).
    They must pass. If the vector file says `unverified`, also run the numeric cases through your
    host code, and record both results in `vector-runs.yaml`. If the section has no vector file yet,
@@ -189,9 +193,12 @@ The skill `author-sidecar` includes this step.
 3. Run the functions in place of your host code in your parity check. Record that the
    result does not change. If you cannot run the parity check yet, write `to run`.
 4. Write the functions to `reference/<section_module>.py` of your `model` bundle
-   ([Payload](hand-over.md#payload)). Put a short note at the top of the file: the section ID, the
-   source commit, the vector results and the parity result. The reference implementation of a
-   proposal is in its proposal bundle instead (phase 2, part 3).
+   ([Payload](hand-over.md#payload)). Put a short note at the top of the file. It holds only the
+   section ID, the source commit, the section ID of each module that it imports and the section ID
+   of each fixture. Do not put the vector results
+   or the parity result in the note. They go in `vector-runs.yaml` and in the reference table of the
+   intake. The reference implementation of a proposal is in its proposal bundle instead (phase 2,
+   part 3). Its results go in parts 4 and 5 of the proposal.
 5. Write the final verdict ([Final verdict](phase-1-intake.md#final-verdict)). Then pack the bundle
    and stop ([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)). A skellytracker session lands the file. It adds `specs/model-sidecar/reference/<section_module>.py`,
    adds the implementation to `verified_against` in the vector file of the section, and adds the

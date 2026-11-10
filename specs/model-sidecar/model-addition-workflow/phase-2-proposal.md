@@ -47,6 +47,10 @@ A proposal has eight parts:
    - the selectors;
    - the changelog row.
 
+   For each new step, state its behaviour on NaN, on inf, on a tie and on an empty input. If the
+   text does not define one of them, write `out of scope` for it
+   ([ADR-Q6P7](../../../decisions/entries/Q6P7-reference-module-notes-and-unused-cases.md)).
+
    Also find each place that the change must edit. Search the spec for each closed set or list that
    the change extends, for example the `role` values, the `semantic` values, the resize methods, the
    storage layout (`format.file_layout`), the Overview, the section map and the validation index
@@ -77,7 +81,10 @@ A proposal has eight parts:
    implementation. [4. Vectors](../templates/change-proposal.md#4-vectors) of the template gives the
    cases that run against your host implementation
    ([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).
-   Include a case for each branch, each tie and each strict comparison. If a parameter can be a scalar
+   Include a case for each branch, each tie and each strict comparison. A case with a partial input
+   gives only a part of a sidecar or of the inputs of a step. Write in its `note` the rules that the
+   case checks
+   ([ADR-Q6P7](../../../decisions/entries/Q6P7-reference-module-notes-and-unused-cases.md)). If a parameter can be a scalar
    or one value for each channel (for example `pad_value`), include a case with a scalar value on a
    3-channel input. Pixel-exact resize output is out of scope. If you need a pixel case, state its
    tolerance in `compare`. Write the author keys of the vectors to `vectors/<section ID>.yaml` in the

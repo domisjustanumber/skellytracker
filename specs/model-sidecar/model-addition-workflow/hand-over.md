@@ -91,13 +91,19 @@ runs:
   - section: <section ID>
     function: <file>::<function>
     vectors_sha256: <64 hex>        # of the landed vector file that ran
-    cases: {<case id>: pass | fail}
+    cases: {<case id>: pass | fail | not used}
     result: pass | fail | no vectors
   - {section: <section ID>, function: none, vectors_sha256: null, cases: null, result: no vectors}
 ```
 
 `verify` checks that each `vectors_sha256` is the SHA-256 of the landed vector file. An `error` case
 and a `failed` case are not host runs.
+
+Run each numeric case of each mode that the model uses, for example a method or a parameter value.
+Write `not used` for each case of a mode that the model does not use. A `not used` case does not
+block the verdict. `result` is `pass` when each other case passes. A `not used` case is not
+verified, so it does not close the Gate item `vectors`
+([ADR-Q6P7](../../../decisions/entries/Q6P7-reference-module-notes-and-unused-cases.md)).
 
 The Gate column of [Implementation status](../TRACEABILITY.md#implementation-status) lists the open
 coverage items of each section. A `model` bundle can close the items `example` and `vectors` of the

@@ -53,6 +53,7 @@ These entries are `accepted` or `evidence`.
 | [FM0B](entries/FM0B-one-response-for-each-commit-group.md) | One response per bundle per commit group; append-only; rules land before repack requests; named waits; drift exceptions; no drift once finished | accepted |
 | [G45G](entries/G45G-one-review-wave-and-the-question-channel.md) | One review wave per version; landing blockers and split test at record time; questions before a pack; workflow findings go to the user | accepted |
 | [3AM0](entries/3AM0-absorb-at-landing-and-landed-copies.md) | Absorb a landed entry in its landing group; absorbed counts as landed; absorb before consolidation at 90%; copy search at landing; a copy fix needs no own entry | accepted |
+| [Q6P7](entries/Q6P7-reference-module-notes-and-unused-cases.md) | A reference module implements the text; one module per section; the note holds no results; `not used` cases; NaN, tie and partial-input checks | accepted |
 
 ### Proposed
 

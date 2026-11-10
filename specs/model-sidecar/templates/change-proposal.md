@@ -456,10 +456,15 @@ write `n/a` after it.
 - [ ] Part 1 cites primary evidence, or names the primary evidence that is missing.
 - [ ] Part 1 gives each plan decision about the spec in words, with no item number, or `none`.
 - [ ] Part 2.1 lists each place that the change edits.
+- [ ] Part 2 gives the behaviour of each new step on NaN, on inf, on a tie and on an empty input, or
+      `out of scope`, as part 2 of "The parts of a proposal" in
+      `specs/model-sidecar/model-addition-workflow/phase-2-proposal.md` says (skellytracker ADR-Q6P7).
 - [ ] Part 3 names the reference file, and the file exists in the proposal bundle.
 - [ ] Part 4 names the vector file, and the file exists in the proposal bundle. `fill` wrote its `expect`.
 - [ ] Part 4 gives `verified_against`, or `unverified: <reason>`.
 - [ ] Each pixel case in part 4 has its tolerance in `compare`.
+- [ ] Each case with a partial input in part 4 names in its `note` the rules that it checks, as part 4
+      of "The parts of a proposal" in the same file says (skellytracker ADR-Q6P7).
 - [ ] Part 5 gives the numbers, the script path and the commit, or says `to run` and describes the
       script. Tick this box also for `to run` with a description of the script.
 - [ ] If the result of part 5 is `pass` or `fail`, the parity script is committed in the exporter
@@ -467,6 +472,8 @@ write `n/a` after it.
 - [ ] Part 7 lists each example that the change makes invalid, or says `none` with the reason.
 - [ ] Each citation of a spec text, a base file or a record names a heading or a case `id`, not a
       line number of a copy.
+- [ ] Each citation of upstream code or of the code of another repo is a permalink with a full
+      40-character SHA, as "Sources" in `specs/model-sidecar/model-addition-workflow/rules.md` says.
 - [ ] No file in skellytracker changed, except the version folder that `pack` wrote in `intakes/`.
 
 A proposal with `to run` in part 5 is ready for a skellytracker session to record. It is not ready for
