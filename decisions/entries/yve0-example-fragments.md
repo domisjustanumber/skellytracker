@@ -1,6 +1,6 @@
 # yve0 — Example fragments without a package copy
 
-**Status:** accepted, 2026-10-26 (user).
+**Status:** superseded by [VV8B](VV8B-fragments-have-an-inventory-entry.md), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

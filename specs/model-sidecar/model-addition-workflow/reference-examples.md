@@ -76,17 +76,12 @@ Replace the example when the copy of its exporter obeys each rule
 
    **Fragments.** A fragment is a file that a `$ref` of the sidecar names: a file under
    `detectors/shared/` (a skeleton or a class-id map), or a file next to the sidecar (for example a
-   `canonical_mapping` file). The example uses the same relative path. Copy each fragment unchanged
-   (ADR-[yve0](../../../decisions/entries/yve0-example-fragments.md)):
-   - If the package has a fragment at the same path with the same bytes, copy it. It has no
-     provenance entry.
-   - If the package has a fragment at the same path with different bytes, stop. The exporter and the
-     package do not agree. Fix one of them first.
-   - If the package has no fragment at that path, copy the fragment of the exporter. Write its
-     provenance in `fragments` of `specs/model-sidecar/inventory.yaml` (step 4).
+   `canonical_mapping` file). The example uses the same relative path. Copy each fragment of the
+   exporter unchanged ([ADR-VV8B](../../../decisions/entries/VV8B-fragments-have-an-inventory-entry.md)):
+   - Write its provenance in `fragments` of `specs/model-sidecar/inventory.yaml` (step 4). A package
+     copy is not a source. The package sidecars stay outside the spec until they migrate.
    - If an example fragment exists at that path with different bytes, stop. Two exporters do not
      agree. The second exporter uses the bytes of the first copy, or a different file name.
-   - Use a package fragment when it has the same content. Do not add a copy of it under a new name.
 4. **Provenance.** Write the entry of the example in `specs/model-sidecar/inventory.yaml`. Its
    header gives the keys and their meaning. Record each allowed edit from step 2 in `edits`, and the
    bundle ID and its version as `bundle: <bundle id>@v<k>`. Each new entry must have `bundle`.
@@ -96,9 +91,10 @@ Replace the example when the copy of its exporter obeys each rule
    ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)). Add `edits` (a list, which can be
    empty), `notes` (required) and `bundle`.
 
-   For each fragment with no package copy, write an entry in `fragments`, keyed by its path under
+   For each fragment, write an entry in `fragments`, keyed by its path under
    `specs/model-sidecar/examples/`. Its keys are `exporter`, `exporter_path`, `tracked`, `commit`
-   and `notes`. When the package gets a copy of the fragment, delete the entry.
+   and `notes`. When no example reaches the fragment through `$ref` or `base`, delete the fragment
+   and its entry.
 
    If a replaced example was the last example that uses `$ref` to a fragment copy, delete that copy
    and its entry in the same PR.
@@ -163,11 +159,8 @@ is not a correction of the example, and it is not a new copy. Steps 1, 2 and 7 o
    accepted part 2 of that proposal. The content commit of the proposal lands that bundle as the
    replacement of the example. Step 12 gives the exception.
 
-   A forced edit of a fragment that equals a package copy
-   (ADR-[yve0](../../../decisions/entries/yve0-example-fragments.md)) is also `needs-export`
-   ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md)).
-   The package code does not change in the spec-build stage, and a copy under a new name is not
-   allowed.
+   A fragment is always a copy with no change, so a forced edit of a fragment is also
+   `needs-export` ([ADR-VV8B](../../../decisions/entries/VV8B-fragments-have-an-inventory-entry.md)).
 5. Keep the placeholder hash of 64 zeros for an ONNX file. `uv run python tools/sidecar_refs.py --check <example path>`
    must pass for each example that the commit changes. `uv run pytest tools/tests/test_examples.py`
    runs this check on each example.

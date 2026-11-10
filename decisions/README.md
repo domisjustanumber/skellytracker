@@ -27,7 +27,6 @@ These entries are `accepted` or `evidence`.
 | # | Decision | Status |
 |---|----------|--------|
 | [x64y](entries/x64y-draft-exporter-guide-folder.md) | The workflow, with the sidecar-file, validation and publishing rules, is in `model-addition-workflow/`; the exporter-only guide is a draft; no stub | accepted |
-| [yve0](entries/yve0-example-fragments.md) | An example fragment has one source: a package copy with the same bytes, or a `fragments` entry in `inventory.yaml` | accepted |
 | [R39S](entries/R39S-test-fix-on-the-working-branch.md) | Exception to 0027: one spec-build PR; one change kind per commit; no `dom/NN-*` branch; a test fix is a commit on the working branch; CI read; supersedes AB79 | accepted |
 | [QMKS](entries/QMKS-draft-sections-and-coverage-columns.md) | `spec: draft` rules, the graduation gate and the release stops; coverage and gate columns in `TRACEABILITY.md`; `no_model` reasons | accepted |
 | [8DSW](entries/8DSW-vector-files-are-the-case-source.md) | The vector file is the only case source; formula modules, named checks, `land` and `fill`; supersedes TA0G | accepted |
@@ -51,6 +50,7 @@ These entries are `accepted` or `evidence`.
 | [FM0B](entries/FM0B-one-response-for-each-commit-group.md) | One response per bundle per commit group; append-only; rules land before repack requests; named waits; drift exceptions; no drift once finished | accepted |
 | [3AM0](entries/3AM0-absorb-at-landing-and-landed-copies.md) | Absorb a landed entry in its landing group; absorbed counts as landed; absorb before consolidation at 90%; copy search at landing; a copy fix needs no own entry | accepted |
 | [37CD](entries/37CD-retro-follow-up-session-rules.md) | Answer questions first; part 7 at record; no finding on uncommitted text; new keys land with text; spec defects; wait cycles; old permalinks; one parity run | accepted |
+| [VV8B](entries/VV8B-fragments-have-an-inventory-entry.md) | Each example fragment has a `fragments` entry in `inventory.yaml`; no package-copy source; a forced fragment edit is `needs-export`; supersedes yve0 | accepted |
 
 ### Proposed
 

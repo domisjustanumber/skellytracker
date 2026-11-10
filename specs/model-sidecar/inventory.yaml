@@ -24,12 +24,12 @@
 #   bundle                the hand-over bundle of the copy, as <bundle id>@v<k>; provenance text, not a
 #                         path (specs/model-sidecar/model-addition-workflow/hand-over.md). Each
 #                         entry must have it
-# fragments: the provenance of each fragment under specs/model-sidecar/examples/ that has no package
-# copy, keyed by its path there. A fragment is a YAML file that is not a sidecar, in shared/ or next to
-# a sidecar. A fragment with a package copy has the same bytes as that copy and no entry. The copy is
-# unchanged, so an entry has no kind and no edits. An entry has these keys:
+# fragments: the provenance of each fragment under specs/model-sidecar/examples/, keyed by its path
+# there. A fragment is a YAML file that is not a sidecar, in shared/ or next to a sidecar. A package
+# copy is not a source. The copy is unchanged, so an entry has no kind and no edits. An entry has
+# these keys:
 #   exporter, exporter_path, tracked, commit  as for examples
-#   notes                                     why the fragment is not in the package
+#   notes                                     free text about the fragment
 # no_model: the sections that no model uses, keyed by section ID. The value is the reason of the
 # user. The user adds an entry. TRACEABILITY.md shows the reason in the "No model" column, and the
 # graduation gate accepts it in place of a kind: export example.

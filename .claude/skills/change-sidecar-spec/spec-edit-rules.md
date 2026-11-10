@@ -105,9 +105,8 @@ A spec change has no class ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-
 - The reference examples belong to the spec. The doc tests check that each example parses, resolves and has provenance. No test runs the `V-` rules on them yet (see M7 of the [implementation plan](../../../specs/sidecar-implementation-plan.md)).
 - Each example is a file under `specs/model-sidecar/examples/`, in the `detectors/` layout of the package,
   so that `$ref` paths resolve. The examples use unchanged copies of their fragments, under
-  `specs/model-sidecar/examples/detectors/shared/` or next to the sidecar. A fragment has one source:
-  a package copy with the same bytes, or a `fragments` entry in `specs/model-sidecar/inventory.yaml`
-  (ADR-[yve0](../../../decisions/entries/yve0-example-fragments.md)).
+  `specs/model-sidecar/examples/detectors/shared/` or next to the sidecar. Each fragment has an entry in
+  `fragments` of `specs/model-sidecar/inventory.yaml` ([ADR-VV8B](../../../decisions/entries/VV8B-fragments-have-an-inventory-entry.md)).
 - Each example has a provenance entry in `specs/model-sidecar/inventory.yaml`: its source, the exporter, the
   path of the exporter copy, its `kind`, whether git tracks that copy, the exporter commit of the code
   that writes it, and the edits made to the copy. `kind: export` is a copy of exporter output

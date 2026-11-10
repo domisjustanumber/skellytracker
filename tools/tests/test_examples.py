@@ -7,8 +7,8 @@ They resolve with `sidecar_refs.resolve`, because the package resolver refuses
 `sha256` next to `$ref`.
 
 Every other YAML file under the examples is a fragment, in `shared/` or next to
-a sidecar. A fragment has one source: a package copy with the same bytes, or a
-`fragments` entry in `inventory.yaml` (ADR-yve0).
+a sidecar. Each fragment has a `fragments` entry in `inventory.yaml`. A package
+copy is not a source (ADR-VV8B).
 """
 
 import functools
@@ -26,7 +26,6 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES_ROOT = REPO_ROOT / "specs" / "model-sidecar" / "examples"
 INVENTORY_PATH = REPO_ROOT / "specs" / "model-sidecar" / "inventory.yaml"
 EXAMPLES_DETECTORS = EXAMPLES_ROOT / "detectors"
-PACKAGE_DETECTORS = REPO_ROOT / "skellytracker" / "core" / "detectors"
 
 
 def is_sidecar(path: Path) -> bool:
@@ -346,19 +345,10 @@ def fragment_paths() -> list[Path]:
     return sorted(p for p in EXAMPLES_DETECTORS.rglob("*.yaml") if not is_sidecar(p))
 
 
-def package_copy(fragment: Path) -> Path:
-    return PACKAGE_DETECTORS / fragment.relative_to(EXAMPLES_DETECTORS)
-
-
 @pytest.mark.parametrize("fragment", fragment_paths(), ids=example_key)
-def test_fragment_has_one_source(fragment: Path) -> None:
-    """A package copy with the same bytes, or a `fragments` entry. Not both."""
-    copy, entry = package_copy(fragment), fragment_entries().get(example_key(fragment))
-    assert copy.is_file() != (entry is not None), example_key(fragment)
-    if copy.is_file():
-        assert fragment.read_bytes().replace(b"\r\n", b"\n") == (
-            copy.read_bytes().replace(b"\r\n", b"\n")
-        )
+def test_fragment_has_an_entry(fragment: Path) -> None:
+    """Each fragment has a `fragments` entry. A package copy is not a source."""
+    assert example_key(fragment) in fragment_entries(), example_key(fragment)
 
 
 def test_every_fragment_entry_names_a_fragment() -> None:

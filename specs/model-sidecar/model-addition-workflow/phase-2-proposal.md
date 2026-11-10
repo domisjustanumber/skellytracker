@@ -129,7 +129,7 @@ A proposal has eight parts:
    Your sidecar writer code writes it, with the proposed fields. Do not write it by hand. Put it in
    `example/detectors/...` of the proposal bundle, in the storage layout, with each fragment that it
    names. Write `example/provenance.yaml` with an `examples` entry and a `fragments` entry for each
-   fragment that has no package copy, with the keys of `specs/model-sidecar/inventory.yaml`. Run
+   fragment, with the keys of `specs/model-sidecar/inventory.yaml`. Run
    `python ../freemocap/skellytracker/tools/sidecar_refs.py --check <sidecar>` on it. The candidate
    shows the reviewer the full sidecar. It is not a spec example. After acceptance, the procedure
    [Reference examples](reference-examples.md) copies your real export.
