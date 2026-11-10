@@ -1,6 +1,6 @@
 # 3AM0 — Absorb a landed entry in its landing group, and copy fixes with no own entry
 
-**Status:** accepted, 2026-11-09 (user; PR: pending).
+**Status:** superseded by [BQZ9](BQZ9-intake-process-consolidation.md), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

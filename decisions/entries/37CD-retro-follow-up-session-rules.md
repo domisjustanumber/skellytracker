@@ -1,6 +1,6 @@
 # 37CD — Session rules that the intake retro left out
 
-**Status:** accepted, 2026-11-10 (user; PR: pending).
+**Status:** superseded by [BQZ9](BQZ9-intake-process-consolidation.md), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

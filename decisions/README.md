@@ -31,7 +31,6 @@ These entries are `accepted` or `evidence`.
 | [QMKS](entries/QMKS-draft-sections-and-coverage-columns.md) | `spec: draft` rules, the graduation gate and the release stops; coverage and gate columns in `TRACEABILITY.md`; `no_model` reasons | accepted |
 | [8DSW](entries/8DSW-vector-files-are-the-case-source.md) | The vector file is the only case source; formula modules, named checks, `land` and `fill`; supersedes TA0G | accepted |
 | [AD33](entries/AD33-bundles-are-untrusted-input.md) | Bundles are untrusted input: no tool imports or runs bundle code; static checks; a reviewed, user-approved copy; ONNX checks in `batch` | accepted |
-| [C0YD](entries/C0YD-the-part-7-row-is-the-re-export-request.md) | No re-export item is open; the part 7 `needs-export` row is the request; removal by a user ruling; no pre-bundle or forecast examples; supersedes YS4C | accepted |
 | [7F6X](entries/7F6X-license-rows-in-the-model-intake.md) | The model intake gets the License rows LC1 to LC6; out of scope and parity follow R6J9; row T11 names the cast | accepted |
 | [V8FK](entries/V8FK-license-evidence-and-models-with-no-license.md) | A license page is primary evidence; a model with no known weights license gets no sidecar and no proposal | accepted |
 | [A2CW](entries/A2CW-dataset-owner-page-is-enough-evidence.md) | A page or README of a dataset owner is enough evidence for the license and the contents of the dataset | accepted |
@@ -46,11 +45,8 @@ These entries are `accepted` or `evidence`.
 | [9MJ6](entries/9MJ6-remove-the-heatmap-decode.md) | Remove the heatmap decode: no `heatmap` method, semantic or section until a model brings a full contract | accepted |
 | [9HBB](entries/9HBB-simcc-decode-is-2d-only.md) | The SimCC decode is 2D only: no `simcc_z`, no `depth_range`; a 3D SimCC model adds its own section | accepted |
 | [4KW6](entries/4KW6-onnxruntime-1-31-for-the-cpu-check.md) | `onnx-cpu` requires `onnxruntime>=1.31` (lock 1.31.1): no fp16 noise in the batch check; the GPU cap stays | accepted |
-| [3HZ4](entries/3HZ4-decision-questions-and-rule-defaults.md) | One form for each decision question, with the copy and push approvals; a rule decides first; defaults that need no question | accepted |
-| [FM0B](entries/FM0B-one-response-for-each-commit-group.md) | One response per bundle per commit group; append-only; rules land before repack requests; named waits; drift exceptions; no drift once finished | accepted |
-| [3AM0](entries/3AM0-absorb-at-landing-and-landed-copies.md) | Absorb a landed entry in its landing group; absorbed counts as landed; absorb before consolidation at 90%; copy search at landing; a copy fix needs no own entry | accepted |
-| [37CD](entries/37CD-retro-follow-up-session-rules.md) | Answer questions first; part 7 at record; no finding on uncommitted text; new keys land with text; spec defects; wait cycles; old permalinks; one parity run | accepted |
 | [VV8B](entries/VV8B-fragments-have-an-inventory-entry.md) | Each example fragment has a `fragments` entry in `inventory.yaml`; no package-copy source; a forced fragment edit is `needs-export`; supersedes yve0 | accepted |
+| [BQZ9](entries/BQZ9-intake-process-consolidation.md) | Consolidation: restates the rules that stay of C0YD, 3HZ4, FM0B, 3AM0 and 37CD | accepted |
 
 ### Proposed
 
