@@ -46,6 +46,7 @@ These entries are `accepted` or `evidence`.
 | [6G6G](entries/6G6G-ci-read-before-the-push.md) | Read the fork CI before each push, not before the request; a red or empty read stops an early-approved push; narrows R39S item 9 | accepted |
 | [P3NK](entries/P3NK-bootstrap-kit-in-freemocap-project.md) | The bootstrap kit moves to `agents-and-adr-process/` of freemocap/project; the sync tool stays here; `--check` skips with no checkout; one kit PR in each repo | accepted |
 | [5EVP](entries/5EVP-absorb-across-documents.md) | The absorb documents together state the rules; open work in the plan or open work does not block; tests and vector notes count; no 90% consolidation | accepted |
+| [R3F1](entries/R3F1-mediapipe-check-time-limit.md) | `run_checks.py` stops the MediaPipe check after 300 s, runs the next checks and exits 124; the note says known on 3.12, regression on 3.13+ | accepted |
 
 ### Proposed
 

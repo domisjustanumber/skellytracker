@@ -109,4 +109,8 @@ The sidecar paths are under `core/detectors/`.
   uv run pytest -m "not video" --deselect skellytracker/tests/test_mediapipe_detectors.py
   ```
 
+  `tools/run_checks.py` stops the MediaPipe check after 300 s, runs the next checks and then exits
+  with 124. Report the note that it prints. On Python 3.13 or later, the hang is a regression
+  ([ADR-R3F1](../decisions/entries/R3F1-mediapipe-check-time-limit.md)).
+
 - If a failure shows a code defect, report it. Do not fix the code in the spec-build stage.
