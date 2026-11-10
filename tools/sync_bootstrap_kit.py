@@ -292,6 +292,8 @@ BLOCKS = (
             ),
             ("Until a commit is on `development`,", f"Until a commit is on {BRANCH},"),
             ("agree with a landed spec entry\n  cites that entry.", "agree with a landed entry\n  cites that entry."),
+            ("in a decided entry, a script or a vector-file comment stays", "in a decided entry or a script stays"),
+            ("its new path. A path of an exporter repo stays.", "its new path."),
             ("only for spec work in its section", "only for work in its section"),
             ("\n  The spec includes the `notes` of its vector files.", ""),
             ("`open-work.md` or the implementation plan states", "`open-work.md` states"),

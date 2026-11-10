@@ -78,7 +78,12 @@ implementation-stage work is in the [implementation plan](../specs/sidecar-imple
   repair of its citations. Each edit adds `_Edited YYYY-MM-DD (#PR): <kind>._` at the end of the
   entry, for example `re-ID from XXXX` ([ADR-Z05A](entries/Z05A-essential-decision-log-rules.md)). For a
   change of ID, the renamed entry gets `re-ID from XXXX`, and each repaired entry gets
-  `citation repair`. Add these two lines only to an entry that is on `development`.
+  `citation repair`. Add these two lines only to an entry that is on `development`. A plain-text
+  old path in a decided entry, a script or a vector-file comment stays, and means the same file at
+  its new path. A path of an exporter repo stays
+  ([ADR-2XW6](entries/2XW6-process-entries-consolidation.md)).
+- A decision that a document or code refers to must be in an entry. "This log" in an older entry or
+  in the Rules means all logs ([ADR-2XW6](entries/2XW6-process-entries-consolidation.md)).
 - An absorb document is one of these: the spec, the root or a nested `AGENTS.md`
   ([ADR-GN3D](entries/GN3D-module-decision-logs.md)), the skills, the model addition workflow, the exporter
   guide, the templates of `specs/model-sidecar/templates/`, the Rules of this file with
@@ -118,7 +123,8 @@ implementation-stage work is in the [implementation plan](../specs/sidecar-imple
   ([ADR-3AM0](entries/3AM0-absorb-at-landing-and-landed-copies.md)).
 - Delete an open-work item when the work is done. Put a dated fact in `open-work.md` or in an
   entry, not in `AGENTS.md`.
-- Put long evidence in a tracked file next to the entry, and link to it. A PR that raises a limit
+- Put long evidence in a tracked file in `evidence/` of the log folder, and link to it
+  ([ADR-2XW6](entries/2XW6-process-entries-consolidation.md)). A PR that raises a limit
   of `tools/check_decision_log.py` must add an entry.
 - An ID changes only on a `re-ID:` line of `tools/check_decision_log.py`, to the ID of a new `--new`
   run. An older entry keeps its lower-case ID in its file name, heading and index row. Do not edit
