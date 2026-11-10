@@ -47,6 +47,7 @@ These entries are `accepted` or `evidence`.
 | [P3NK](entries/P3NK-bootstrap-kit-in-freemocap-project.md) | The bootstrap kit moves to `agents-and-adr-process/` of freemocap/project; the sync tool stays here; `--check` skips with no checkout; one kit PR in each repo | accepted |
 | [5EVP](entries/5EVP-absorb-across-documents.md) | The absorb documents together state the rules; open work in the plan or open work does not block; tests and vector notes count; no 90% consolidation | accepted |
 | [R3F1](entries/R3F1-mediapipe-check-time-limit.md) | `run_checks.py` stops the MediaPipe check after 300 s, runs the next checks and exits 124; the note says known on 3.12, regression on 3.13+ | accepted |
+| [P8Q0](entries/P8Q0-closed-for-a-model-with-no-license.md) | A model bundle with row LC2 `unknown` gets `closed`; a new version of a `closed` model bundle is `submitted` again | accepted |
 
 ### Proposed
 

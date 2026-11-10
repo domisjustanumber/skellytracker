@@ -327,7 +327,7 @@ bundle follow these paths:
 
 | Kind | Path |
 |---|---|
-| `model` | `submitted` -> `needs-contributor` or `waiting` (the response names the proposal bundles) -> `landed` (the example is committed); or -> `closed` |
+| `model` | `submitted` -> `needs-contributor` or `waiting` (the response names the proposal bundles) -> `landed` (the example is committed); or -> `closed`. A new version of a `closed` model bundle is `submitted` again ([ADR-P8Q0](../../../decisions/entries/P8Q0-closed-for-a-model-with-no-license.md)) |
 | `proposal` | `submitted` -> `needs-contributor` or `recorded` -> `accepted` -> `landed`; or `recorded` -> `landed` when the landing is in the same session and part 7 has no `needs-export` row ([ADR-FM0B](../../../decisions/entries/FM0B-one-response-for-each-commit-group.md)); or -> `rejected`; or -> `resolved-otherwise`; or -> `closed` (withdrawn before `recorded`). `recorded` or `accepted` -> `needs-contributor` (a landing stop; the bundle keeps its owner role) -> `recorded` or `accepted` |
 | contribution | `submitted` -> `needs-contributor` or `recorded` -> `landed` with its base; -> `closed` when the base is `rejected`. `recorded` -> `needs-contributor` -> `recorded` |
 | withdrawn | The contributor tells the user. Before `recorded`, the session writes `closed`. After `recorded`, it writes `rejected` with the reason "Withdrawn by contributor". |
@@ -483,7 +483,10 @@ it does this safety check ([ADR-AD33](../../../decisions/entries/AD33-bundles-ar
    new `inventory.yaml` entry must have `bundle: <bundle id>@v<k>`
    ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)).
    With the verdict `does not describe`, the response is `waiting`. `waiting_on` names the `proposal` bundles of the
-   blocking rows. If no proposal bundle exists, the response is `needs-contributor`. With the verdict
+   blocking rows. If no proposal bundle exists, the response is `needs-contributor`. If row LC2 is
+   `unknown`, the response is `closed`: the model has no known license of its weights
+   (`V-common.license-5`), and it gets no sidecar
+   ([ADR-P8Q0](../../../decisions/entries/P8Q0-closed-for-a-model-with-no-license.md)). With the verdict
    `pending`, the response is `needs-contributor`. Its findings come from "Missing evidence and runs"
    of the intake. Procedure A of the skill `change-sidecar-spec` turns `vector-runs.yaml` into
    `verified_against`.

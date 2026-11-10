@@ -219,6 +219,16 @@ def test_verify_finds_an_unknown_spec_commit_and_no_spec_findings_once_finished(
     assert ib.verify("proposal-box-clamp@ultralytics-exporter", root) == []
 
 
+def test_a_new_version_of_a_closed_model_bundle_is_submitted_again(tmp_path: Path, root: Path) -> None:
+    source = payload(tmp_path, {"intake.md": "text\n"})
+    ib.pack(source, model_fields(), root, cwd=tmp_path)
+    name = "model-yolo26@ultralytics-exporter"
+    respond(root, name, 1, state="closed", findings=["LC2: no known license of the weights"])
+    assert f"{name} v1 closed (can delete)" in ib.list_lines(root)
+    ib.pack(source, model_fields(), root, cwd=tmp_path)
+    assert f"{name} v2 submitted (new version)" in ib.list_lines(root)
+
+
 def test_list_marks_a_waiting_model_whose_waiting_on_is_finished(tmp_path: Path, root: Path) -> None:
     source = payload(tmp_path, {"proposal.md": "text\n"})
     ib.pack(source, proposal_fields(), root, cwd=tmp_path)

@@ -509,7 +509,11 @@ def _state(answers: list[dict], entry: str | None) -> str:
 
 
 def bundles(root: Path, repo: Path = REPO_ROOT) -> dict[str, dict]:
-    """Return each bundle in `root` with its current version, manifest, state, entry status and responses."""
+    """Return each bundle in `root` with its current version, manifest, state, entry status and responses.
+
+    A `closed` model bundle with a version newer than the `answers_version` of its latest response is
+    `submitted` again (ADR-P8Q0).
+    """
     found: dict[str, dict] = {}
     if not root.is_dir():
         return found
@@ -524,6 +528,9 @@ def bundles(root: Path, repo: Path = REPO_ROOT) -> dict[str, dict]:
         manifest = read_manifest(current[1]) if current else None
         if manifest is not None and manifest.get("_unreadable"):
             manifest, state = {}, "unreadable manifest"
+        elif state == "closed" and manifest and manifest.get("kind") == "model":
+            if current[0] > answers[-1].get("answers_version", 0):
+                state = "submitted"
         recorded = next(
             (a.get("date", "") for a in answers if a.get("state") in OWNING), None
         )
@@ -1543,7 +1550,8 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT, overlay
 
     # Spec drift: the changed sections since spec_commit, and a newer version in the checkout (ADR-ZXD7, item 2).
     # A finished bundle gets no drift finding: no later response asks for a new version (ADR-FM0B).
-    if latest in FINISHED:
+    # A new version of a closed model bundle is not finished (ADR-P8Q0).
+    if latest in FINISHED and info["state"] in FINISHED:
         return findings
     changed = changed_sections(manifest["spec_commit"], repo)
     if changed is None:
