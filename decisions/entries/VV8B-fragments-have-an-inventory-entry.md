@@ -1,6 +1,6 @@
 # VV8B — Each example fragment has an inventory entry
 
-**Status:** absorbed into [`model-addition-workflow/reference-examples.md`](../../specs/model-sidecar/model-addition-workflow/reference-examples.md), [`tools/tests/test_examples.py`](../../tools/tests/test_examples.py), 2026-11-10 (user; PR: pending).
+**Status:** absorbed into [`reference-examples.md#how-to-provide-or-replace-an-example`](../../specs/model-sidecar/model-addition-workflow/reference-examples.md#how-to-provide-or-replace-an-example), [`reference-examples.md#when-a-spec-change-makes-an-example-invalid`](../../specs/model-sidecar/model-addition-workflow/reference-examples.md#when-a-spec-change-makes-an-example-invalid), [`inventory.yaml`](../../specs/model-sidecar/inventory.yaml), [`test_examples.py`](../../tools/tests/test_examples.py), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

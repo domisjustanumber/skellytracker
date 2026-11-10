@@ -1,6 +1,6 @@
 # R39S — A test fix goes on the working branch in the spec-build stage
 
-**Status:** absorbed into [`stack-commit/SKILL.md`](../../.claude/skills/stack-commit/SKILL.md), [`AGENTS.md`](../../AGENTS.md), 2026-11-10 (user; PR: pending).
+**Status:** absorbed into [`stack-commit/SKILL.md#spec-build-stage`](../../.claude/skills/stack-commit/SKILL.md#spec-build-stage), [`stack-commit/SKILL.md#commit-groups`](../../.claude/skills/stack-commit/SKILL.md#commit-groups), [`stack-commit/SKILL.md#one-worktree-and-frozen-prs`](../../.claude/skills/stack-commit/SKILL.md#one-worktree-and-frozen-prs), [`after-spec-build.md#commit-rebase-and-push-after-the-spec-build-stage`](../../.claude/skills/stack-commit/after-spec-build.md#commit-rebase-and-push-after-the-spec-build-stage), [`AGENTS.md#3-install-and-test`](../../AGENTS.md#3-install-and-test), [`AGENTS.md#6-git-rules`](../../AGENTS.md#6-git-rules), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

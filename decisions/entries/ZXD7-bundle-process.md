@@ -1,6 +1,6 @@
 # ZXD7 — Bundle process
 
-**Status:** absorbed into [`model-addition-workflow/README.md`](../../specs/model-sidecar/model-addition-workflow/README.md), [`templates/model-intake.md#validation-checklist`](../../specs/model-sidecar/templates/model-intake.md#validation-checklist), [`change-sidecar-spec/SKILL.md`](../../.claude/skills/change-sidecar-spec/SKILL.md), 2026-11-10 (user; PR: pending).
+**Status:** absorbed into [`change-sidecar-spec/SKILL.md#procedure-b-land-an-accepted-proposal`](../../.claude/skills/change-sidecar-spec/SKILL.md#procedure-b-land-an-accepted-proposal), [`change-sidecar-spec/SKILL.md#procedure-d-another-spec-edit`](../../.claude/skills/change-sidecar-spec/SKILL.md#procedure-d-another-spec-edit), [`change-sidecar-spec/SKILL.md#procedure-e-resolve-a-proposal-by-a-different-change`](../../.claude/skills/change-sidecar-spec/SKILL.md#procedure-e-resolve-a-proposal-by-a-different-change), [`propose-sidecar-change/SKILL.md#step-3-write-each-proposal`](../../.claude/skills/propose-sidecar-change/SKILL.md#step-3-write-each-proposal), [`validation-and-publishing.md#validation`](../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#validation), [`model-intake.md#validation-checklist`](../../specs/model-sidecar/templates/model-intake.md#validation-checklist), [`hand-over.md#hand-over-bundles`](../../specs/model-sidecar/model-addition-workflow/hand-over.md#hand-over-bundles), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

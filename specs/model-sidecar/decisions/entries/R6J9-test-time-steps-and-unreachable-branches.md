@@ -1,6 +1,6 @@
 # R6J9 — Test-time steps and unreachable branches
 
-**Status:** absorbed into [`model-addition-workflow/README.md`](../../model-addition-workflow/README.md), 2026-11-10 (user; PR: pending).
+**Status:** absorbed into [`phase-1-intake.md#verdicts`](../../model-addition-workflow/phase-1-intake.md#verdicts), [`parity.md#parity`](../../model-addition-workflow/parity.md#parity), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

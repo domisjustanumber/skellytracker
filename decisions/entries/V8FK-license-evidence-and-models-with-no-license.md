@@ -1,6 +1,6 @@
 # V8FK — License evidence and models with no license
 
-**Status:** absorbed into [`model-addition-workflow/README.md`](../../specs/model-sidecar/model-addition-workflow/README.md), [`templates/model-intake.md#license`](../../specs/model-sidecar/templates/model-intake.md#license), 2026-11-10 (user; PR: pending).
+**Status:** absorbed into [`rules.md#rules`](../../specs/model-sidecar/model-addition-workflow/rules.md#rules), [`phase-1-intake.md#verdicts`](../../specs/model-sidecar/model-addition-workflow/phase-1-intake.md#verdicts), [`phase-1-intake.md#blocking-rows`](../../specs/model-sidecar/model-addition-workflow/phase-1-intake.md#blocking-rows), [`model-intake.md#license`](../../specs/model-sidecar/templates/model-intake.md#license), [`hand-over.md#session-steps`](../../specs/model-sidecar/model-addition-workflow/hand-over.md#session-steps), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

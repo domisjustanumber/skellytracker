@@ -1,6 +1,6 @@
 # QMKS — Draft sections and the coverage columns
 
-**Status:** absorbed into [`README.md#section-status`](../../specs/model-sidecar/README.md#section-status), [`change-sidecar-spec/SKILL.md`](../../.claude/skills/change-sidecar-spec/SKILL.md), [`model-addition-workflow/README.md`](../../specs/model-sidecar/model-addition-workflow/README.md), [`tools/sidecar_trace.py`](../../tools/sidecar_trace.py), [`tools/sidecar_normalize.py`](../../tools/sidecar_normalize.py), 2026-11-10 (user; PR: pending).
+**Status:** absorbed into [`model-sidecar/README.md#section-status`](../../specs/model-sidecar/README.md#section-status), [`change-sidecar-spec/SKILL.md#procedure-d-another-spec-edit`](../../.claude/skills/change-sidecar-spec/SKILL.md#procedure-d-another-spec-edit), [`change-sidecar-spec/SKILL.md#outputs`](../../.claude/skills/change-sidecar-spec/SKILL.md#outputs), [`validation-and-publishing.md#publishing`](../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing), [`hand-over.md#payload`](../../specs/model-sidecar/model-addition-workflow/hand-over.md#payload), [`spec-edit-rules.md#examples-and-vectors`](../../.claude/skills/change-sidecar-spec/spec-edit-rules.md#examples-and-vectors), [`spec-edit-rules.md#front-matter`](../../.claude/skills/change-sidecar-spec/spec-edit-rules.md#front-matter), [`sidecar_trace.py`](../../tools/sidecar_trace.py), [`sidecar_normalize.py`](../../tools/sidecar_normalize.py), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

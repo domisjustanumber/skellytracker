@@ -1,6 +1,6 @@
 # NBG2 — License and training data without the deferred examples
 
-**Status:** absorbed into [`README.md`](../../README.md), 2026-11-10 (user; PR: pending).
+**Status:** absorbed into [`license.md#fields`](../../common/license.md#fields), [`license.md#behaviour`](../../common/license.md#behaviour), [`license.md#validation-rules`](../../common/license.md#validation-rules), [`license.md#implementer-guidance`](../../common/license.md#implementer-guidance), [`model-sidecar/README.md#section-status`](../../README.md#section-status), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

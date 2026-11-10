@@ -1,6 +1,6 @@
 # ESP4 — One home for each workflow rule; the templates are forms
 
-**Status:** absorbed into [`model-addition-workflow/README.md`](../../specs/model-sidecar/model-addition-workflow/README.md), [`templates/model-intake.md`](../../specs/model-sidecar/templates/model-intake.md), [`templates/change-proposal.md`](../../specs/model-sidecar/templates/change-proposal.md), [`AGENTS.md#5-decision-log`](../../AGENTS.md#5-decision-log), 2026-11-10 (user; PR: pending).
+**Status:** absorbed into [`hand-over.md#workflow-changes`](../../specs/model-sidecar/model-addition-workflow/hand-over.md#workflow-changes), [`hand-over.md#hand-over-bundles`](../../specs/model-sidecar/model-addition-workflow/hand-over.md#hand-over-bundles), [`model-intake.md#model-intake-template`](../../specs/model-sidecar/templates/model-intake.md#model-intake-template), [`change-proposal.md#change-proposal-template`](../../specs/model-sidecar/templates/change-proposal.md#change-proposal-template), [`AGENTS.md#5-decision-log`](../../AGENTS.md#5-decision-log), [`reading-the-spec.md#path-bases`](../../specs/model-sidecar/model-addition-workflow/reading-the-spec.md#path-bases), 2026-11-10 (user; PR: pending).
 
 ## Decision
 
