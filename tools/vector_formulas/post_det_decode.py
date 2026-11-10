@@ -112,7 +112,10 @@ def unproject_clamp_and_filter(
     `params` has `input_size` and `resize`, and `inp` has `src_w` and `src_h`, as in
     section `post.unprojection`. The kept boxes become the final boxes in source pixels.
     The `input-size-follows-resize` check of `post.unprojection` stops a bad case.
-    A case without `resize` must not give the parameters of steps 3 to 5.
+    A case without `resize` must not give the parameters of steps 3 to 5, and its `box_scale` is
+    only `pixel`. It still does step 6, the confidence threshold. A case with
+    `resize.method: affine_person_crop` stops, because a selection case gives no `bbox_xyxy`
+    (ADR-0PK7).
     """
     if "resize" not in params:
         unused = [key for key in ("input_size", "min_box_size", "clamp_boxes") if key in params]

@@ -9,7 +9,8 @@ The tool reads each text file that git tracks, and each new file that git does n
 generated lock files. It reports:
 
 - an absolute path in a user folder (``C:\\Users\\<name>``, ``/home/<name>``, ``/Users/<Name>``);
-- an email address that is not on the allowlist;
+- an email address that is not on the allowlist. The allowlist keeps ``noreply@anthropic.com``, so
+  that a document can name the AI attribution that the rules forbid;
 - a private IPv4 address (``10.x.x.x``, ``172.16.x.x`` to ``172.31.x.x``, ``192.168.x.x``);
 - a token with a known prefix, or a private-key header;
 - a term of the local, untracked file ``.private-terms`` (one term on each line, ``#`` starts a
