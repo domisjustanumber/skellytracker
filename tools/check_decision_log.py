@@ -23,6 +23,8 @@ The labels of the root log have no prefix. The labels of a module log start with
 - a link ``[XXXX](YYYY-<slug>.md)`` in a log where XXXX is not YYYY;
 - a ``# XXXX`` heading that is not the ID of its file name;
 - a Status cell that is not one of the status forms, or that is in the wrong table;
+- an ``absorbed into`` link or code span to a Markdown file with no ``#anchor``: link the heading
+  that states the rule, or the title heading of the file;
 - a ``superseded by XXXX`` or ``used by XXXX`` that names no decided entry, or that the status line of
   the entry does not link to the file of entry XXXX. The entry XXXX can be in a different log. Then
   the link has a relative path before the file name, and the path must resolve to that file;
@@ -115,7 +117,7 @@ ALPHABET = "0123456789" + LETTERS
 # the upper-case rule, and it starts with a letter.
 ID = "(?:[" + ALPHABET + "]{4}|[" + LETTERS.lower() + "][" + ALPHABET.lower() + "]{3})"
 
-# One link or code span for each absorb document that states a rule of the entry.
+# One link or code span for each heading or file that states a rule of the entry (the Rules).
 ABSORBED_TARGET = r"(?:\[[^\]]+\]\([^)\s]+\)|`[^`]+`)"
 ABSORBED = rf"absorbed into {ABSORBED_TARGET}(?:, {ABSORBED_TARGET})*"
 STATUS_FORMS = {
@@ -138,7 +140,7 @@ ENTRY_LIKE = re.compile(r"^[0-9a-zA-Z]{4}-.*\.md$")
 # YAML 1.2 and spreadsheets read an ID such as 1E23 or 12E3 as a number, so no new ID has this form.
 NUMBER_LIKE = re.compile(r"\d+E\d+")
 STATUS_PARAGRAPH = re.compile(r"^\*\*Status:\*\*.*?(?=\n[ \t]*\n|\n#|\Z)", re.MULTILINE | re.DOTALL)
-# An `absorbed into` status has one link for each absorb document, so it can be long.
+# An `absorbed into` status has one link for each heading that states a rule, so it can be long.
 STATUS_EXEMPTION_LIMIT = 2_000
 # Only the form `_Edited YYYY-MM-DD (<PR>): <kind>._` is exempt, so that no body text can hide in it.
 EDITED_LINE = re.compile(r"^_Edited \d{4}-\d{2}-\d{2} \([^\n]{1,80}\): [A-Za-z0-9 -]{1,40}\._[ \t]*$", re.MULTILINE)
@@ -272,6 +274,13 @@ def status_match(status: str, table: str) -> re.Match[str] | None:
     return None
 
 
+def absorbed_targets(status: str) -> list[str]:
+    """The link targets and the code spans outside links of an `absorbed into` status."""
+    links = re.findall(r"\]\(([^)\s]+)\)", status)
+    spans = re.findall(r"`([^`]+)`", re.sub(r"\[[^\]]+\]\([^)\s]+\)", "", status))
+    return links + spans
+
+
 def status_errors(r: IndexRow, by_id: dict[str, IndexRow]) -> list[str]:
     where = r.where
     match = status_match(r.status, r.table)
@@ -288,6 +297,12 @@ def status_errors(r: IndexRow, by_id: dict[str, IndexRow]) -> list[str]:
             errors.append(f"{where}: status {r.status!r} names no other indexed entry")
         elif named.status.startswith(NOT_DECIDED):
             errors.append(f"{where}: status {r.status!r} names an entry that is {named.status!r}")
+    if r.status.startswith("absorbed into"):
+        errors.extend(
+            f"{where}: status links the Markdown file {target} with no heading anchor"
+            for target in absorbed_targets(r.status)
+            if target.endswith(".md")
+        )
     if r.table == "Proposed" and not SECTION.fullmatch(r.section):
         errors.append(
             f"{where}: Section cell {r.section!r} is not a section ID in backticks or `none`"

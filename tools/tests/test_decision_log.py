@@ -100,7 +100,7 @@ def test_matching_index_passes(tmp_path: Path) -> None:
         active=row(1, "accepted"),
         historical="\n".join(
             [
-                row(2, "absorbed into `AGENTS.md`", "y"),
+                row(2, "absorbed into `AGENTS.md#5`", "y"),
                 row(3, "absorbed into [`AGENTS.md#5`](../../AGENTS.md#5)", "z"),
                 row(4, "absorbed into [`AGENTS.md#5`](../../AGENTS.md#5), `tools/x.py`", "w"),
             ]
@@ -131,6 +131,20 @@ def test_status_must_match_its_table(tmp_path: Path) -> None:
         "'superseded by 0002' must not be in the Active table" in e for e in errors
     )
     assert any("'proposed' must not be in the Historical table" in e for e in errors)
+
+
+def test_an_absorbed_status_links_a_heading_of_each_markdown_file(tmp_path: Path) -> None:
+    root = make_log(
+        tmp_path,
+        historical="\n".join(
+            [row(1, "absorbed into [`a.md`](../a.md), `tools/x.py`"), row(2, "absorbed into `b.md`", "y")]
+        ),
+        entries={"0001-x.md": "", "0002-y.md": ""},
+    )
+    errors = cdl.check(root)
+    assert any("Markdown file ../a.md with no heading anchor" in e for e in errors)
+    assert any("Markdown file b.md with no heading anchor" in e for e in errors)
+    assert not any("tools/x.py" in e for e in errors)
 
 
 def test_unknown_status_is_reported(tmp_path: Path) -> None:

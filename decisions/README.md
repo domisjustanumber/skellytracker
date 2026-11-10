@@ -23,6 +23,7 @@ These entries are `accepted` or `evidence`.
 |---|----------|--------|
 | [6J8E](entries/6J8E-exporters-run-released-skellytracker.md) | Exporters run a pinned skellytracker release; code changes come as a patch; upstream parity is the independent check; acceptance waits for the gate | accepted |
 | [x64y](entries/x64y-draft-exporter-guide-folder.md) | The workflow, with the sidecar-file, validation and publishing rules, is in `model-addition-workflow/`; the exporter-only guide is a draft; no stub | accepted |
+| [995P](entries/995P-absorb-status-links-headings.md) | An `absorbed into` status links each heading that states a rule; too long: title headings; the checker reports a `.md` link with no anchor | accepted |
 | [CN15](entries/CN15-spec-readme-is-the-only-entry-point.md) | The spec `README.md` is the only entry point; `sidecar-spec.md` is frozen, and M11 deletes it after the code cites section IDs; the root README links the spec | accepted |
 | [9MJ6](entries/9MJ6-remove-the-heatmap-decode.md) | Remove the heatmap decode: no `heatmap` method, semantic or section until a model brings a full contract | accepted |
 | [9HBB](entries/9HBB-simcc-decode-is-2d-only.md) | The SimCC decode is 2D only: no `simcc_z`, no `depth_range`; a 3D SimCC model adds its own section | accepted |
@@ -70,9 +71,16 @@ implementation-stage work is in the [implementation plan](../specs/sidecar-imple
   The spec includes the `notes` of its vector files. An accepted entry is absorbed when the absorb
   documents together state all of its rules. Open work of the entry does not stop the absorb when
   `open-work.md` or the implementation plan states that work in full. A link to the entry is not
-  enough. The status `absorbed into` has one link for each absorb document that states a rule of the
-  entry, to the heading that holds those rules or to the file
-  ([ADR-5EVP](entries/5EVP-absorb-across-documents.md)).
+  enough ([ADR-5EVP](entries/5EVP-absorb-across-documents.md)).
+- The status `absorbed into` has one link for each heading that states a rule of the entry. Link a
+  heading one time, also when it states two or more rules. Link a file with no anchor only when the
+  rule is not under a heading, for example in a tool docstring or a YAML file. When the status
+  paragraph is longer than `STATUS_EXEMPTION_LIMIT`, replace the headings of one file with the title
+  heading of that file. Start with the file that has the most links. If the paragraph is still too
+  long, replace the files of one document, for example the workflow, with the title heading of its
+  main file. A commit that renames a heading repairs each status link to that heading. A change from
+  a file link to heading links is a link repair
+  ([ADR-995P](entries/995P-absorb-status-links-headings.md)).
 - The entry that supersedes an old entry restates each rule of the old entry that stays. A link can
   restate a rule. The link must go to a heading of an absorb document, and that heading must state
   the rule. The commit that changes the text under such a heading cites its own entry next to the

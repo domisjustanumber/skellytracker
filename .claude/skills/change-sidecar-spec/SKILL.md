@@ -216,8 +216,9 @@ Do this procedure for step 2 of phase 3.
     [Inputs](../author-sidecar/SKILL.md#inputs) of `author-sidecar` in this commit
     ([ADR-3AM0](../../../decisions/entries/3AM0-absorb-at-landing-and-landed-copies.md)).
 19. Absorb the entry when the spec states each rule of the entry. In this commit, change its status
-    to `absorbed into <section file>#<anchor>`, with the date and the PR. Use the heading that states
-    the main rule. Name the other headings in the commit body. Move its row from the Active table of the
+    to `absorbed into`, with the date and the PR. The [Rules](../../../decisions/README.md#rules) give
+    the links: one for each heading that states a rule
+    ([ADR-995P](../../../decisions/entries/995P-absorb-status-links-headings.md)). Move its row from the Active table of the
     [spec log](../../../specs/model-sidecar/decisions/README.md) to its
     [historical table](../../../specs/model-sidecar/decisions/historical.md). Copy each open item under
     its "Notes at acceptance" heading to the

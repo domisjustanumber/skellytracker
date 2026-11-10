@@ -300,6 +300,7 @@ BLOCKS = (
             ("in a decided entry, a script or a vector-file comment stays", "in a decided entry or a script stays"),
             ("its new path. A path of an exporter repo stays.", "its new path."),
             ("only for spec work in its section", "only for work in its section"),
+            ("of one document, for example the workflow, with", "of one document with"),
             ("\n  The spec includes the `notes` of its vector files.", ""),
             ("`open-work.md` or the implementation plan states", "`open-work.md` states"),
             (" Write one at the end of the spec-build stage.", ""),
