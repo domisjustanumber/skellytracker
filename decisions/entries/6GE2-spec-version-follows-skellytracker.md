@@ -44,7 +44,7 @@ workflow commit of [ADR-0QKK](0QKK-no-legacy-layer.md) item 6.
    - SS2E item 2: [Revisions](../../specs/model-sidecar/changelog.md#revisions), and the docstring
      of `tools/tests/test_changelog_revision.py`.
    - SS2E item 3: the
-     [`change-sidecar-spec` skill](../../.claude/skills/change-sidecar-spec/SKILL.md#changelogmd).
+     [`change-sidecar-spec` skill](../../.claude/skills/change-sidecar-spec/spec-edit-rules.md#changelogmd).
    - SS2E item 4: [Behaviour](../../specs/model-sidecar/format/versioning.md#behaviour) and
      [Authoring guidance](../../specs/model-sidecar/format/versioning.md#authoring-guidance), with
      the ban of item 4. The workflow commit of [ADR-0QKK](0QKK-no-legacy-layer.md) item 6

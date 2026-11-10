@@ -22,7 +22,7 @@ root log ([ADR-GN3D](../../decisions/entries/GN3D-module-decision-logs.md)).
 - Make a spec change in the section file that owns the rule. The `id` in the front matter is the
   section ID. The rule IDs of the section are `V-<id>-<n>`. When you move or reword a section, keep
   its section ID and its rule IDs
-  ([Rule IDs and section IDs](../../.claude/skills/change-sidecar-spec/SKILL.md#rule-ids-and-section-ids);
+  ([Rule IDs and section IDs](../../.claude/skills/change-sidecar-spec/spec-edit-rules.md#rule-ids-and-section-ids);
   [ADR-8DSW](../../decisions/entries/8DSW-vector-files-are-the-case-source.md)).
 - A spec change needs a decision entry and a changelog row. Add a row to the
   [summary of changes](changelog.md#summary-of-changes). A content commit also appends one

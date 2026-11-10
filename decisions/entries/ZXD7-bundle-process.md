@@ -54,7 +54,7 @@ commit of [ADR-0QKK](0QKK-no-legacy-layer.md) item 6 accepts it.
      [Phases](../../specs/model-sidecar/model-addition-workflow/README.md#phases) and the phase files,
      [Reference implementations](../../specs/model-sidecar/model-addition-workflow/reference-implementations.md),
      [Independence](../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence)
-     and [Stage](../../.claude/skills/change-sidecar-spec/SKILL.md#stage). Item 1 replaces the 0014
+     and [Stage](../../.claude/skills/change-sidecar-spec/spec-edit-rules.md#stage). Item 1 replaces the 0014
      version bullets. The 0014 pitfalls stay in the workflow and the skills.
 
 ## Reason

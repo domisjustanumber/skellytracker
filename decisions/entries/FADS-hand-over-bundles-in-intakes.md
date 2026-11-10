@@ -56,7 +56,7 @@ stay by links, as [ADR-JW9N](JW9N-restate-a-kept-rule-by-a-link.md) allows.
    - 0014 "Independence":
      [Independence](../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence).
    - 0014 "Who writes what" goes: items 1 and 2 replace it. Its rule "do not change an exporter
-     repo" is in [Stage](../../.claude/skills/change-sidecar-spec/SKILL.md#stage).
+     repo" is in [Stage](../../.claude/skills/change-sidecar-spec/spec-edit-rules.md#stage).
    - 0014 "Not repeated" goes as a list. Its pitfalls stay as rules of the workflow and the skills.
 
 ## Reason

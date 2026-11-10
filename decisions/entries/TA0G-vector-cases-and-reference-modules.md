@@ -39,7 +39,7 @@ full. Items 1 to 6 are new or changed. Item 7 restates the rules that stay by li
    - Items 1 to 3, and a33q items 2 to 4 and 6 to 8:
      [4. Vectors](../../specs/model-sidecar/templates/change-proposal.md#4-vectors) of the change
      proposal template and
-     [Examples and vectors](../../.claude/skills/change-sidecar-spec/SKILL.md#examples-and-vectors).
+     [Examples and vectors](../../.claude/skills/change-sidecar-spec/spec-edit-rules.md#examples-and-vectors).
    - Items 4 and 5, and a33q item 1: the same headings and step 9 of
      [Procedure B](../../.claude/skills/change-sidecar-spec/SKILL.md#procedure-b-land-an-accepted-proposal).
      Items 4 and 5 replace a33q items 10 and 11.

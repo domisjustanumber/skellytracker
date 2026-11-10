@@ -94,7 +94,7 @@ A skellytracker session must land it first, with the skill
    names one. That table can name an exporter for the reference implementation and for the example.
 4. Do not write a reference implementation, an example or vectors to remove the block. Do not mark a
    vector verified. A reading of the text alone does not verify a vector
-   ([Examples and vectors](../change-sidecar-spec/SKILL.md#examples-and-vectors)).
+   ([Examples and vectors](../change-sidecar-spec/spec-edit-rules.md#examples-and-vectors)).
 
 ### Step 4: Plan the work
 

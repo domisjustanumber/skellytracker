@@ -49,7 +49,7 @@ rules of TA0G by links ([ADR-Z05A](Z05A-essential-decision-log-rules.md)).
 7. **The rules that stay.** TA0G items 1, 2, 4 and 6, the last sentence of item 3, and the a33q and
    0013 rules of item 7 stay, except where items 1 to 6 change them. They stay where TA0G item 7
    puts them: [4. Vectors](../../specs/model-sidecar/templates/change-proposal.md#4-vectors),
-   [Examples and vectors](../../.claude/skills/change-sidecar-spec/SKILL.md#examples-and-vectors),
+   [Examples and vectors](../../.claude/skills/change-sidecar-spec/spec-edit-rules.md#examples-and-vectors),
    [Reference implementations](../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#reference-implementations)
    and
    [Rules for each spec edit](../../.claude/skills/change-sidecar-spec/SKILL.md#rules-for-each-spec-edit).

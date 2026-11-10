@@ -25,7 +25,7 @@ to 5 are new. Item 6 restates the rules that stay by a link
    `schema_version` history of the changelog. It edits each row of the summary of changes that
    names `vNEXT`, a `schema_version` or a change class. This is one exception to the rule "Do not
    reword the existing rows" of the
-   [`change-sidecar-spec` skill](../../.claude/skills/change-sidecar-spec/SKILL.md#changelogmd).
+   [`change-sidecar-spec` skill](../../.claude/skills/change-sidecar-spec/spec-edit-rules.md#changelogmd).
    The rows keep their numbers. After `1.0`, no commit rewords an existing row.
 4. **No `vNEXT`.** `vNEXT` goes from the spec, the examples, `inventory.yaml` and the tools and
    tests that the checks need. In the heading

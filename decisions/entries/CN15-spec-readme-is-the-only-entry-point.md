@@ -32,7 +32,7 @@ This entry supersedes no entry. The non-spec workflow commit of
    - A new entry supersedes [ADR-D9VT](D9VT-decision-log-move.md) in full. Its item 4 maps
      `specs/sidecar-spec.md` to `specs/model-sidecar/README.md`.
 4. **The workflow commit.** The commit that accepts this entry makes these edits:
-   - In [Spec structure](../../.claude/skills/change-sidecar-spec/SKILL.md#spec-structure) of the
+   - In [Spec structure](../../.claude/skills/change-sidecar-spec/spec-edit-rules.md#spec-structure) of the
      `change-sidecar-spec` skill, items 1 to 3 replace the rule "`sidecar-spec.md` is the permanent
      entry point". The changed rule cites this entry.
    - `reading-the-spec.md` names `README.md` as the entry point. An exporter cites
@@ -65,7 +65,7 @@ This entry supersedes no entry. The non-spec workflow commit of
   path that the working branch does not have.
 - The code citations name headings of the index. Thus the index cannot go while the code cites
   it. A section ID does not change
-  ([Rule IDs and section IDs](../../.claude/skills/change-sidecar-spec/SKILL.md#rule-ids-and-section-ids)).
+  ([Rule IDs and section IDs](../../.claude/skills/change-sidecar-spec/spec-edit-rules.md#rule-ids-and-section-ids)).
 
 ## Consequences
 

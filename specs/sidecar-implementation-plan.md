@@ -685,7 +685,7 @@ of M8 when the export has no batch key `"1"`. It has no order link to M10a.
   list. Change the citation check in
   [Checks](../.claude/skills/change-sidecar-spec/SKILL.md#checks) of the `change-sidecar-spec`
   skill, and remove the rule for the frozen file from its
-  [Spec structure](../.claude/skills/change-sidecar-spec/SKILL.md#spec-structure). Each changed
+  [Spec structure](../.claude/skills/change-sidecar-spec/spec-edit-rules.md#spec-structure). Each changed
   rule cites
   [ADR-CN15](../decisions/entries/CN15-spec-readme-is-the-only-entry-point.md).
   The user first changes the two links to the file in
