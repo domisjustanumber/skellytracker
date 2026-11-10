@@ -680,6 +680,88 @@ def test_each_sub_command_takes_root_after_its_name(root: Path, capsys: pytest.C
     assert capsys.readouterr().out == "no bundles\n"
 
 
+def tree(folder: Path) -> dict[str, bytes]:
+    return {p.relative_to(folder).as_posix(): p.read_bytes() for p in folder.rglob("*") if p.is_file()}
+
+
+def test_a_dry_pack_verifies_the_new_version_and_writes_nothing(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+    root = tmp_path / "skellytracker" / "intakes"
+    model = tmp_path / "Exporter" / "m.onnx"
+    model.parent.mkdir(parents=True)
+    model.write_bytes(b"onnx")
+    item = {"path": "../Exporter/m.onnx", "role": "artifact", "size": "n", "batch": 3,
+            "precision": "fp32", "published": False}
+    fields = proposal_fields(external=[item])
+    name = "proposal-box-clamp@ultralytics-exporter"
+    ib.pack(payload(tmp_path, {"proposal.md": "text\n"}), fields, root, cwd=tmp_path)
+    respond(root, name, 1)
+    before = tree(root)
+    assert ib.dry_pack(tmp_path / "payload", fields, root, cwd=tmp_path) == []
+    bad = payload(tmp_path / "next", {"proposal.md": "From plans/x.md.\n"})
+    assert ib.dry_pack(bad, fields, root, cwd=tmp_path) == ["proposal.md:1: cites a plans/ path"]
+    assert tree(root) == before
+    assert f"{name} v1 recorded" in ib.list_lines(root)
+    (tmp_path / "fields.json").write_text(json.dumps(fields), encoding="utf-8")
+    command = ["pack", "--dry-run", "--from", str(bad), "--fields", str(tmp_path / "fields.json"), "--root", str(root)]
+    assert ib.main(command) == 1
+    assert "dry run: nothing written" in capsys.readouterr().out
+    assert tree(root) == before
+
+
+def entry(repo: Path, slug: str, status: str) -> None:
+    entries = repo / "specs" / "model-sidecar" / "decisions" / "entries"
+    entries.mkdir(parents=True, exist_ok=True)
+    (entries / f"AB12-{slug}.md").write_text(f"# AB12 - A proposal\n\n**Status:** {status}, 2026-11-09.\n", encoding="utf-8")
+
+
+def test_record_replaces_the_record_with_a_byte_copy_and_keeps_its_contributions(tmp_path: Path, root: Path) -> None:
+    repo = fake_repo(tmp_path)
+    name = "proposal-box-clamp@ultralytics-exporter"
+    first = ib.pack(payload(tmp_path, {"proposal.md": "v1\n", "old.md": "old\n"}), proposal_fields(), root,
+                    cwd=tmp_path, repo=repo)
+    folder = ib.record(name, root, repo)
+    assert folder == repo / "specs" / "model-sidecar" / "proposals" / "box-clamp"
+    assert tree(folder) == tree(first)
+    (folder / "contributions" / "aa-exporter").mkdir(parents=True)
+    (folder / "contributions" / "aa-exporter" / "evidence.md").write_bytes(b"e\n")
+    entry(repo, "box-clamp", "proposed")
+    second = ib.pack(payload(tmp_path / "next", {"proposal.md": "v2\n"}), proposal_fields(), root, cwd=tmp_path, repo=repo)
+    ib.record(name, root, repo)
+    assert tree(folder) == {**tree(second), "contributions/aa-exporter/evidence.md": b"e\n"}
+    contribution = ib.pack(payload(tmp_path / "c", {"evidence.md": "c\n"}),
+                           proposal_fields(contributor="bb-exporter", contributes_to="box-clamp"), root,
+                           cwd=tmp_path, repo=repo)
+    copy = ib.record("proposal-box-clamp@bb-exporter", root, repo)
+    assert copy == folder / "contributions" / "bb-exporter"
+    assert tree(copy) == tree(contribution)
+    entry(repo, "box-clamp", "accepted")
+    with pytest.raises(ib.BundleError, match="the entry of the record is accepted"):
+        ib.record(name, root, repo)
+
+
+def test_record_refuses_a_changed_file_a_model_and_the_record_of_another_bundle(tmp_path: Path, root: Path) -> None:
+    repo = fake_repo(tmp_path)
+    source = payload(tmp_path, {"proposal.md": "text\n", "intake.md": "text\n"})
+    version_dir = ib.pack(source, proposal_fields(), root, cwd=tmp_path, repo=repo)
+    (version_dir / "proposal.md").write_bytes(b"changed\n")
+    with pytest.raises(ib.BundleError, match="the hash or the size does not match"):
+        ib.record("proposal-box-clamp@ultralytics-exporter", root, repo)
+    (version_dir / "extra.md").write_bytes(b"x\n")
+    with pytest.raises(ib.BundleError, match="not the files of its manifest"):
+        ib.record("proposal-box-clamp@ultralytics-exporter", root, repo)
+    ib.pack(source, model_fields(), root, cwd=tmp_path, repo=repo)
+    with pytest.raises(ib.BundleError, match="a model bundle gets no tracked record"):
+        ib.record("model-yolo26@ultralytics-exporter", root, repo)
+    ib.pack(source, proposal_fields(contributor="roboflow-exporter"), root, cwd=tmp_path, repo=repo)
+    ib.record("proposal-box-clamp@roboflow-exporter", root, repo)
+    (version_dir / "proposal.md").write_bytes(b"text\n")
+    (version_dir / "extra.md").unlink()
+    with pytest.raises(ib.BundleError, match="is the record of another bundle"):
+        ib.record("proposal-box-clamp@ultralytics-exporter", root, repo)
+    kept = ib.read_manifest(repo / "specs" / "model-sidecar" / "proposals" / "box-clamp")
+    assert kept["contributor"] == "roboflow-exporter"
+
+
 # --------------------------------------------------------------------------------------------
 # batch: the batch-conversion check. The graph builder copies the reshape model of
 # skellytracker/tests/test_batch_conversion.py and adds a bias, a dynamic form and an empty form.

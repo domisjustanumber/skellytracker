@@ -7,13 +7,19 @@ The rules are in `specs/model-sidecar/model-addition-workflow/hand-over.md` and
 Usage::
 
     python -B tools/intake_bundle.py pack --from DIR --fields FILE.json [--root INTAKES]
+    uv run python -B tools/intake_bundle.py pack --dry-run --from DIR --fields FILE.json [--root INTAKES]
     python -B tools/intake_bundle.py list [--root INTAKES]
     uv run python -B tools/intake_bundle.py verify BUNDLE [--root INTAKES]
+    python -B tools/intake_bundle.py record BUNDLE [--root INTAKES]
     uv run python -B tools/intake_bundle.py batch --fields FILE --out DIR [--inputs DIR] [--root INTAKES]
 
 `pack` and `list` use only the standard library, so Python 3.9 or later runs them. `verify`
 reads YAML and the producers of this checkout, so it runs in the environment of this repository.
-It reads each Python file of a bundle as text and never runs it (ADR-AD33). `batch` is the
+It reads each Python file of a bundle as text and never runs it (ADR-AD33). `pack --dry-run` packs
+in a temporary folder, takes the external files from the real `--root`, runs `verify` on the result
+and writes nothing, so it runs where `verify` runs. `record` copies the bytes of the current version
+of a proposal bundle to its tracked record and checks each hash. It never imports or runs a file of
+the bundle (ADR-0RNH). `batch` is the
 batch-conversion check. It imports onnx, onnxruntime and the skellytracker converter, so it runs
 only in the `.venv` of this checkout. `--fields` is a fields file or a manifest. No sub-command
 writes a response file: the skellytracker session writes them.
@@ -32,6 +38,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import types
 from pathlib import Path, PureWindowsPath
 from urllib.parse import unquote
@@ -611,11 +618,13 @@ def pack(
     cwd: Path | None = None,
     today: str | None = None,
     repo: Path = REPO_ROOT,
+    external_base: Path | None = None,
 ) -> Path:
     """Write a new version of a bundle and return its folder. The manifest is written last.
 
     `spec_version` is the newest version heading of the changelog of `repo` (ADR-ZXD7, item 2).
-    Each later version keeps the `created` of version 1.
+    Each later version keeps the `created` of version 1. The `external` paths are relative to
+    `external_base`, by default the parent of `root`.
     """
     problems = manifest_problems(fields, computed=False)
     if problems:
@@ -648,11 +657,12 @@ def pack(
     if findings := link_findings(source, payload, fields, repo):
         raise BundleError("links that fail from the record path:\n  " + "\n  ".join(findings))
     external = []
+    base = external_base or root.parent
     for item in fields["external"]:
-        target = (root.parent / item["path"]).resolve()
+        target = (base / item["path"]).resolve()
         if not target.is_file():
             raise BundleError(f"external file not found: {item['path']}")
-        if target.is_relative_to(root.parent.resolve()):
+        if target.is_relative_to(base.resolve()):
             raise BundleError(f"external file must be outside the skellytracker repo: {item['path']}")
         digest = hashlib.sha256()
         with target.open("rb") as handle:
@@ -689,6 +699,102 @@ def pack(
     text = json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
     (version_dir / "manifest.yaml").write_bytes(text.encode("utf-8"))
     return version_dir
+
+
+def dry_pack(
+    source: Path, fields: dict, root: Path = DEFAULT_ROOT, cwd: Path | None = None, repo: Path = REPO_ROOT
+) -> list[str]:
+    """Pack in a temporary folder and return the `verify` findings of the result. Write nothing in `root`.
+
+    The temporary folder gets the version folders, the manifests and the responses of the bundle in
+    `root`. The external files resolve from the parent of `root`, as in a real pack (ADR-0RNH).
+    """
+    problems = manifest_problems(fields, computed=False)
+    if problems:
+        raise BundleError("bad fields file:\n  " + "\n  ".join(problems))
+    name = bundle_id(fields)
+    with tempfile.TemporaryDirectory() as temp:
+        overlay = Path(temp)
+        old = root / name
+        for _, version_dir in _numbered(old, "v"):
+            (overlay / name / version_dir.name).mkdir(parents=True)
+            if (version_dir / "manifest.yaml").is_file():
+                shutil.copyfile(version_dir / "manifest.yaml", overlay / name / version_dir.name / "manifest.yaml")
+        if (old / "responses").is_dir():
+            shutil.copytree(old / "responses", overlay / name / "responses")
+        pack(source, fields, overlay, cwd, repo=repo, external_base=root.parent)
+        return verify(name, root, repo, overlay=overlay)
+
+
+# --------------------------------------------------------------------------------------------
+# record (standard library only; a byte copy, never a run: ADR-AD33)
+# --------------------------------------------------------------------------------------------
+
+
+def record_folder(manifest: dict, repo: Path = REPO_ROOT) -> Path:
+    """Return the tracked record folder of a proposal or a contribution ([Tracked records] of hand-over.md)."""
+    contribution = manifest.get("contributes_to")
+    if contribution:
+        return repo / SPEC / "proposals" / contribution / "contributions" / manifest["contributor"]
+    return repo / SPEC / "proposals" / manifest["name"]
+
+
+def record(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> Path:
+    """Copy the current version of a proposal bundle byte for byte to its tracked record, and return the record.
+
+    The copy replaces the old record in full. A proposal record keeps its `contributions/` folder.
+    Each file is read as bytes and checked against the manifest before the copy, and the copy is
+    read back after it. No file of the bundle is imported or run (ADR-AD33; ADR-0RNH).
+    """
+    match = BUNDLE_ID.match(name)
+    current = current_version(root / name) if match else None
+    if current is None:
+        raise BundleError(f"no complete version of the bundle {name} in {root}")
+    version_dir = current[1]
+    manifest = read_manifest(version_dir) or {}
+    if problems := manifest_problems(manifest):
+        raise BundleError("bad manifest; run verify:\n  " + "\n  ".join(problems))
+    own = (manifest["kind"], manifest["name"], manifest["contributor"])
+    if (match["kind"], match["name"], match["contributor"]) != own:
+        raise BundleError("the manifest kind, name or contributor does not match the bundle ID; run verify")
+    if manifest["kind"] != "proposal":
+        raise BundleError("a model bundle gets no tracked record")
+    contribution = manifest["contributes_to"]
+    if contribution is not None and not NAME.match(contribution):
+        raise BundleError(f"contributes_to must be a slug, not {contribution!r}")
+    status = entry_statuses(repo).get(name)
+    if not contribution and status not in (None, "proposed"):
+        raise BundleError(f"the entry of the record is {status}: do not change the record")
+    folder = record_folder(manifest, repo)
+    old = read_manifest(folder)
+    if old is not None and (old.get("kind"), old.get("name"), old.get("contributor")) != own:
+        raise BundleError(f"{folder.relative_to(repo).as_posix()} is the record of another bundle; resolve the slug")
+    listed = {f["path"]: f for f in manifest["files"]}
+    on_disk = {p.relative_to(version_dir).as_posix() for p in version_dir.rglob("*") if p.is_file()}
+    if on_disk - {"manifest.yaml"} != set(listed):
+        raise BundleError("the files of the version are not the files of its manifest; run verify")
+    payload = {"manifest.yaml": (version_dir / "manifest.yaml").read_bytes()}
+    for rel, item in listed.items():
+        if reason := refused_file(rel):
+            raise BundleError(reason)
+        payload[rel] = (version_dir / rel).read_bytes()
+        if sha256(payload[rel]) != item["sha256"] or len(payload[rel]) != item["bytes"]:
+            raise BundleError(f"{rel}: the hash or the size does not match the manifest; run verify")
+    if folder.is_dir():
+        for child in folder.iterdir():
+            if not contribution and child.name == "contributions":
+                continue
+            if child.is_dir():
+                shutil.rmtree(child)
+            else:
+                child.unlink()
+    for rel, data in payload.items():
+        target = folder / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
+    if changed := [rel for rel, data in payload.items() if (folder / rel).read_bytes() != data]:
+        raise BundleError("the copy differs from the bundle: " + ", ".join(changed))
+    return folder
 
 
 # --------------------------------------------------------------------------------------------
@@ -1243,11 +1349,17 @@ def _publish_problems(version_dir: Path, listed: dict, manifest: dict, yaml) -> 
     return findings
 
 
-def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list[str]:
-    """Return the findings for the current version of one bundle. An empty list means it passes."""
+def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT, overlay: Path | None = None) -> list[str]:
+    """Return the findings for the current version of one bundle. An empty list means it passes.
+
+    The bundles in `overlay` replace those of `root` with the same ID (`pack --dry-run`). The
+    external files resolve from the parent of `root`.
+    """
     import yaml  # only verify needs it
 
     found = bundles(root, repo)
+    if overlay is not None:
+        found.update(bundles(overlay, repo))
     info = found.get(name)
     if info is None:
         return [f"no bundle {name} in {root}"]
@@ -1968,9 +2080,16 @@ def main(argv: list[str]) -> int:
     pack_parser = commands.add_parser("pack", parents=[root], help="write a new version of a bundle")
     pack_parser.add_argument("--from", dest="source", type=Path, required=True)
     pack_parser.add_argument("--fields", type=Path, required=True)
+    pack_parser.add_argument(
+        "--dry-run", action="store_true", help="pack in a temporary folder, run verify and write nothing"
+    )
     commands.add_parser("list", parents=[root], help="list the bundles, their states and the section owners")
     verify_parser = commands.add_parser("verify", parents=[root], help="check the current version of a bundle")
     verify_parser.add_argument("bundle")
+    record_parser = commands.add_parser(
+        "record", parents=[root], help="copy the current version of a proposal bundle to its tracked record"
+    )
+    record_parser.add_argument("bundle")
     batch_parser = commands.add_parser("batch", parents=[root], help="run the batch-conversion check")
     batch_parser.add_argument("--fields", type=Path, required=True, help="a fields file or a manifest")
     batch_parser.add_argument("--out", type=Path, required=True, help="the batch/ folder to write")
@@ -1987,14 +2106,22 @@ def main(argv: list[str]) -> int:
             print(f"batch_conversion_reason: {report['batch_conversion_reason']}")
             for check in report["dynamic_check"]:
                 print(f"dynamic check {check['size']} {check['precision']}: {check['result']}")
-        elif args.command == "pack":
+        elif args.command == "pack" and not args.dry_run:
             fields = json.loads(args.fields.read_text(encoding="utf-8"))
             version_dir = pack(args.source, fields, args.root)
             print(f"packed {version_dir.parent.name} {version_dir.name}")
         elif args.command == "list":
             print("\n".join(list_lines(args.root)) or "no bundles")
+        elif args.command == "record":
+            folder = record(args.bundle, args.root)
+            print(f"recorded {args.bundle} in {folder.relative_to(REPO_ROOT).as_posix()}")
         else:
-            findings = verify(args.bundle, args.root)
+            if args.command == "pack":
+                print("dry run: nothing written")
+                fields = json.loads(args.fields.read_text(encoding="utf-8"))
+                findings = dry_pack(args.source, fields, args.root)
+            else:
+                findings = verify(args.bundle, args.root)
             print("findings:")
             for finding in findings:
                 print(f"  - {json.dumps(finding, ensure_ascii=False)}")
