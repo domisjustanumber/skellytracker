@@ -179,8 +179,7 @@ The skill `author-sidecar` includes this step.
 
 1. Implement the current section text. Start from your host code. Where your host code departs
    from the text, follow the text. List each departure in the row of the section in the reference
-   table of the intake, or write a proposal in the same pack
-   ([ADR-Q6P7](../../../decisions/entries/Q6P7-reference-module-notes-and-unused-cases.md)). Follow
+   table of the intake, or write a proposal in the same pack. Follow
    [Imports of other sections](#imports-of-other-sections). Write one function for each
    algorithm. In each docstring, cite the section ID and the commit of your repo that the code comes
    from. One section has one module across all of your bundles. If more than one of your bundles

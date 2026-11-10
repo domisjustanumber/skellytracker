@@ -2,8 +2,7 @@
 
 The `batch` sub-command checks if the profile `static-batch-v1` converts the batch 3 export of a
 family to the batches 1, 2 and 6 ([`common.batch_conversion`](../common/batch-conversion.md);
-[ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md);
-[ADR-JY47](../../../decisions/entries/JY47-verification-batch-6-in-the-workflow.md)). Do it
+[ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). Do it
 in step 1b of [phase 1](phase-1-intake.md). It gives the evidence of row G6b of the intake and the
 value of `batch_conversion` in the manifest ([Manifest](hand-over.md#manifest)). The converter is
 `skellytracker/core/sessions/batch_conversion.py::model_batch_convert`.

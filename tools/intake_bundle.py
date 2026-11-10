@@ -1526,7 +1526,7 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT, overlay
             findings.append(f"responses/{path.name}: not JSON")
             continue
         findings.extend(f"responses/{path.name}: {p}" for p in response_problems(data))
-    # A response answers an existing version; a higher number hides the next version from list (ADR-M3RY).
+    # A response answers an existing version; a higher number hides the next version from list (hand-over.md, Responses).
     answered = info["responses"][-1].get("answers_version") if info["responses"] else None
     if isinstance(answered, int) and info["version"] and not 1 <= answered <= info["version"]:
         findings.append(

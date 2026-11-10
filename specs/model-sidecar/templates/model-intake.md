@@ -446,8 +446,7 @@ result with the upstream library.
 - If a section has test vectors (`specs/model-sidecar/vectors/`), the host implementation must first
   pass each numeric case of each mode that the model uses. Write `not used` for each other case.
   Record the result of each section in `vector-runs.yaml` of the `model` bundle, as "Payload" in
-  `specs/model-sidecar/model-addition-workflow/hand-over.md` says (skellytracker ADR-ESP4,
-  skellytracker ADR-Q6P7).
+  `specs/model-sidecar/model-addition-workflow/hand-over.md` says (skellytracker ADR-ESP4).
 - If a reference implementation of a section exists (`specs/model-sidecar/reference/`), use it or match it.
 - If no reference implementation of a section exists, add the reference-implementation step to your
   plan (see [Proposals and reference files](#proposals-and-reference-files)).
@@ -522,8 +521,7 @@ for every verdict. Skip a section as "When to do the step" in
 `specs/model-sidecar/model-addition-workflow/reference-implementations.md` says. For each other
 section, do "The step" in the same file. Write one row for each section in the table below. If the
 host code is not committed yet, write `to run` in the table (skellytracker ADR-ESP4). Write each
-departure of the host code from the section text, or `none`, as step 1 of "The step" says
-(skellytracker ADR-Q6P7).
+departure of the host code from the section text, or `none`, as step 1 of "The step" says.
 
 | Section ID (the `id` in the section file's front matter) | Host code (file, function and commit) | Reference file in the bundle (`reference/<section_module>.py`) | Vector result | Parity result unchanged (`yes`, `no` or `to run`) | Departures of the host code from the text (or `none`) |
 |---|---|---|---|---|---|

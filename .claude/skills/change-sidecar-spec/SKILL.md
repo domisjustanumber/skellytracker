@@ -83,7 +83,7 @@ Do this procedure for step 1 of phase 3.
    - With `result: pass` and each value of `cases` `pass`, add `{<Exporter repo>: <function>}` to
      the file-level `verified_against` of the vector file of the section. If only some cases pass,
      add the entry to those cases only. A `not used` case is not a pass
-     ([ADR-Q6P7](../../../decisions/entries/Q6P7-reference-module-notes-and-unused-cases.md)).
+     ([Payload](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#payload)).
    - Skip the run when the exporter is already in the list, or when it is the source of the landed
      reference module. The two count as one implementation
      ([Independence](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence)).
@@ -244,7 +244,7 @@ user accepts the proposal.
 
 1. Read the note at the top of the file. It must give the section ID and the source commit. Read the
    vector results in `vector-runs.yaml` and the parity result in the reference table of the intake
-   ([ADR-Q6P7](../../../decisions/entries/Q6P7-reference-module-notes-and-unused-cases.md)).
+   ([The step](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#the-step)).
 2. Make sure that the code follows [Imports of other sections](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#imports-of-other-sections). Find
    each module that the file imports. Each such module must be in `specs/model-sidecar/reference/`.
    If one is not there, stop. Land that module first ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md)).

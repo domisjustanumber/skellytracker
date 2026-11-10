@@ -102,8 +102,7 @@ and a `failed` case are not host runs.
 Run each numeric case of each mode that the model uses, for example a method or a parameter value.
 Write `not used` for each case of a mode that the model does not use. A `not used` case does not
 block the verdict. `result` is `pass` when each other case passes. A `not used` case is not
-verified, so it does not close the Gate item `vectors`
-([ADR-Q6P7](../../../decisions/entries/Q6P7-reference-module-notes-and-unused-cases.md)).
+verified, so it does not close the Gate item `vectors`.
 
 The Gate column of [Implementation status](../TRACEABILITY.md#implementation-status) lists the open
 coverage items of each section. A `model` bundle can close the items `example` and `vectors` of the
@@ -368,7 +367,7 @@ resolution: {...}                         # required for rejected and resolved-o
 - `answers_version` is the number of the version that the response answers. It is not the next
   version. `list` marks a bundle `(new version)` when its current version is not the
   `answers_version` of its latest response. `verify` gives a finding when that number is lower
-  than 1 or higher than the current version ([ADR-M3RY](../../../decisions/entries/M3RY-answers-version-names-an-existing-version.md)).
+  than 1 or higher than the current version.
 - `findings` holds each failed `verify` check and each item that the contributor must fix.
 - Review the full version before you write its response. Give all the findings of the version in
   that response. A response to version k+1 must not give a new finding for a problem that version

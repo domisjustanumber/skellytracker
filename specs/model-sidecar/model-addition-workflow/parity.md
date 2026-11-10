@@ -9,8 +9,7 @@ preprocessing and the decode exactly as the sidecar declares. Write it from the 
 the reference implementation of the proposal replaces the missing spec feature.
 
 - If a section has test vectors, your host implementation must first pass each numeric case of each
-  mode that the model uses. [Payload](hand-over.md#payload) gives the `not used` cases
-  ([ADR-Q6P7](../../../decisions/entries/Q6P7-reference-module-notes-and-unused-cases.md)).
+  mode that the model uses. [Payload](hand-over.md#payload) gives the `not used` cases.
 - If a reference implementation of the section exists, use it or match it.
 - If no reference implementation of the section exists, your plan must include the
   reference-implementation step (see

@@ -71,7 +71,7 @@ Replace the example when the copy of its exporter obeys each rule
 3. **Path.** The path of the example follows the
    [storage layout](../format/file-layout.md#storage-layout), also when the path of the exporter does
    not. For example, a sidecar in a folder that is not a group, such as `rtmo/body7/`, goes under
-   the group folder that the layout gives ([ADR-1TR6](../../../decisions/entries/1TR6-workflow-copies-of-the-keypoint-detector-id.md)). Record the path of the exporter in the provenance
+   the group folder that the layout gives. Record the path of the exporter in the provenance
    as a defect for the exporter to fix.
 
    **Fragments.** A fragment is a file that a `$ref` of the sidecar names: a file under

@@ -51,7 +51,7 @@ export root of OpenMMLab-Exporter is `exports/`.
 - `object_detectors/{family}/{model_id}.yaml` for an object detector. `{family}` is the `model_id`.
 - `keypoint_detectors/{family}/{group}/{model_id}.yaml` for a pose estimator. `{group}` is `hand`,
   `face`, `body` or `wholebody`, or a keypoint set with its keypoint count, for example
-  `wholebody133` (`V-common.identity-8`; [ADR-1TR6](../../../decisions/entries/1TR6-workflow-copies-of-the-keypoint-detector-id.md)).
+  `wholebody133` (`V-common.identity-8`).
 
 The spec does not say where a sidecar with both roles goes. The one-stage pose exporters write it
 under `keypoint_detectors/` ([Spec defects](../decisions/open-work.md#spec-defects)).

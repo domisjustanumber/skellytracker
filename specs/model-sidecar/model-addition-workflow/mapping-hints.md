@@ -17,7 +17,7 @@
   `object_detectors/yolox-person/yolox-person.yaml`. For a keypoint detector, `model_id` is
   `{family}-{group}` or `{family}-{group}-{variant}` in `keypoint_detectors/{family}/{group}/`, for
   example `rtmw-wholebody133` in `keypoint_detectors/rtmw/wholebody133/`
-  ([Keypoint detector id](../common/identity.md#keypoint-detector-id); [ADR-1TR6](../../../decisions/entries/1TR6-workflow-copies-of-the-keypoint-detector-id.md)). A name changes no
+  ([Keypoint detector id](../common/identity.md#keypoint-detector-id)). A name changes no
   tensor and no decoded output, so the `model_id` row is never a `near-miss`:
   - Write the id of that grammar as the sidecar value. The verdict is `exact`. If the exporter writes
     another id, write that id in the last column as an exporter defect.
