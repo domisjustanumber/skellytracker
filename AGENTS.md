@@ -96,6 +96,7 @@ Use `uv run` for project commands. Do not depend on an activated virtual environ
 ```sh
 uv sync --extra all-cpu                     # dev tools, MediaPipe, onnx, CPU ONNX Runtime
 uv run pre-commit install                   # hooks; once per clone, and again after .pre-commit-config.yaml changes
+uv run python tools/run_checks.py           # the checks before each commit; stops at the first failure
 uv run pytest -m "not video"                # package tests and doc tests; must pass
 uv run pytest tools/tests                   # doc tests only: links, examples, decision log, private data
 uv run pytest -o faulthandler_timeout=300   # all tests, with the video tests

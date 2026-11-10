@@ -97,12 +97,8 @@ A spec change has no class ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-
   [Scope of this revision](../../../specs/model-sidecar/changelog.md#scope-of-this-revision), add the
   model to the list in the non-spec commit of the change
   ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
-- Do not publish a sidecar to a shared or remote sidecar root until a final skellytracker release
-  loads its `schema_version`. The private test repo of the implementation stage is the one exception
-  ([Authoring guidance](../../../specs/model-sidecar/format/versioning.md#authoring-guidance);
-  [Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing)).
-  The frozen package rejects `"2.0.0"` until stage M8 of the
-  [implementation plan](../../../specs/sidecar-implementation-plan.md).
+- Publish a sidecar only when the publish ban allows it
+  ([Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing)).
 
 ## Examples and vectors
 

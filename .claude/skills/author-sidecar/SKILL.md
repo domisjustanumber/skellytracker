@@ -208,10 +208,7 @@ Do this step when no row is blocking (step 5 of
 10. Prove parity. Follow [Parity](../../../specs/model-sidecar/model-addition-workflow/parity.md#parity). Fill in
    [Parity proof](../../../specs/model-sidecar/templates/model-intake.md#parity-proof). Fill in each cell
    that you can, also when the result is `to run`: the gates, the test images, the upstream reference
-   and the script. Record the result of one committed parity run at the final commit of the host
-   code: after the host changes, the vector runs of item 9 and the reference modules of step 7. Then
-   do the dry pack and the pack of step 8
-   ([ADR-37CD](../../../decisions/entries/37CD-retro-follow-up-session-rules.md)).
+   and the script.
 11. Commit the parity script in the exporter repo. If you cannot run the script or commit it, write
     `to run` as the result. If you do not know the path or the commit of the script, write
     `unknown (<reason>)`.
@@ -254,7 +251,10 @@ Do this step for every final verdict, also after step 6. Follow
 
 ### Step 8: Write the final verdict and stop
 
-1. Write the [Final verdict](../../../specs/model-sidecar/templates/model-intake.md#final-verdict):
+1. Run the committed parity check at the final commit of the host code, after the vector runs of
+   step 5 and the reference modules of step 7. Its result is the parity result of the intake
+   ([ADR-37CD](../../../decisions/entries/37CD-retro-follow-up-session-rules.md)). Then write the
+   [Final verdict](../../../specs/model-sidecar/templates/model-intake.md#final-verdict):
    `describes`, `does not describe` or `pending`. A blocking row gives `does not describe`, also
    when other rows are `unverified`.
 2. Pack the `model` bundle

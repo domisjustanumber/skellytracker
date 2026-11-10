@@ -9,8 +9,7 @@ root log ([ADR-GN3D](../../decisions/entries/GN3D-module-decision-logs.md)).
 - The section files under this folder are normative. Read the sections that apply before you change
   a sidecar, an example or the spec. The [section map](README.md#section-map) lists them.
 - Link to the spec by its relative path. Do not link to a branch URL.
-- Each spec change and each proposal targets [the open target](changelog.md#revisions): the next
-  skellytracker release
+- Each spec change and each proposal targets [the open target](changelog.md#revisions)
   ([ADR-6GE2](../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
 - Publish a sidecar only when the publish ban allows it
   ([Publishing](model-addition-workflow/validation-and-publishing.md#publishing)).

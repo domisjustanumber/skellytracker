@@ -27,7 +27,7 @@
    ([Sources](../../specs/model-sidecar/model-addition-workflow/rules.md#sources)).
 8. **One parity run.** The contributor records one committed parity run at the final commit of the
    host code: after the host changes, the vector runs and the reference modules. Then it does the dry
-   pack and the pack (`author-sidecar` step 3 item 10).
+   pack and the pack (`author-sidecar` Step 8 item 1).
 
 The model addition workflow states items 1 to 7. The skill `author-sidecar` states item 8.
 

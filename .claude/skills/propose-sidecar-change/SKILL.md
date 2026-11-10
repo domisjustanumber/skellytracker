@@ -208,7 +208,8 @@ A contributor writes its proposal bundle.
 4. If a part is missing, give the finding in the response. Do not write the missing part from your
    own reading of the spec.
 5. Do not write a reference implementation from your own reading of the spec.
-6. Record a bundle with no finding of items 1 to 5. Do not ask the user first. Report the side
+6. Do the part 7 check of [Session steps](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#session-steps) step 4.
+   Record a bundle with no finding of items 1 to 6. Do not ask the user first. Report the side
    effects of the record, for example the new section owner and the `depends_on` bundles
    ([ADR-3HZ4](../../../decisions/entries/3HZ4-decision-questions-and-rule-defaults.md)).
 
@@ -238,8 +239,8 @@ A contributor writes its proposal bundle.
    change meets also gets `rejected`, with the reason "Resolved by", and the response
    `resolved-otherwise` (procedure E of
    [`change-sidecar-spec`](../change-sidecar-spec/SKILL.md#procedure-e-resolve-a-proposal-by-a-different-change)).
-5. Write a response that agrees with the entry
-   ([Responses](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#responses);
+5. At the end of the commit group, write a response that agrees with the entry
+   ([Session steps](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#session-steps) step 6; [Responses](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#responses);
    [States](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#states)).
 
 ### Step 4: Write the decision entry
@@ -283,7 +284,7 @@ A contributor writes its proposal bundle.
 
 1. Do not change the spec text, the changelog, the vectors or the examples. They come after the user
    accepts the proposal.
-2. Run `uv run pytest tools/tests -q`. All tests must pass.
+2. Run `uv run python tools/run_checks.py`. It must pass.
 3. The proposal file and the entry are a non-spec change. Put them in a non-spec PR
    ([section 6](../../../AGENTS.md#6-git-rules) of `AGENTS.md`).
 4. Stop. Tell the user the entry number. Ask the decision in the form of
