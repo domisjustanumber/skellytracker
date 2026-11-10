@@ -69,7 +69,7 @@ These rules apply to each contributor that writes a sidecar.
   - b3 is the goal. The sidecar has `batching.batch: 3` and
     `batching.batch_conversion: {profile_id: static-batch-v1}`. b3 needs the
     verdict `converts` of the [batch-conversion check](batch-conversion-check.md#batch-conversion-check). Thus
-    `external` lists the verification batches 1, 2, 3 and 6 of each size and precision.
+    `external` lists the [verification batches](../common/batch-conversion.md#authoring-guidance) of each size and precision.
   - b1 and `dynamic` are the fallbacks. The sidecar has `batching.batch: 1` or
     `batching.batch: dynamic`, and no `batch_conversion`. A fallback is allowed with the verdict
     `does not convert`. It is also allowed when the person who runs the exporter forces it.

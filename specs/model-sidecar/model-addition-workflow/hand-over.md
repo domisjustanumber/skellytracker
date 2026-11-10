@@ -190,7 +190,7 @@ external:
      `does not convert` needs `1` or `dynamic`, and `not applicable` needs `dynamic`. `to run` allows each form: the session verdict
      decides ([The session run](#the-session-run)). With the reason `missing-verification-batch`,
      `to run` allows no form, because the session cannot add a missing file;
-  4. with `3`, `external` has the batches 1, 2, 3 and 6 of each pair;
+  4. with `3`, `external` has the [verification batches](../common/batch-conversion.md#authoring-guidance) of each pair;
   5. the sidecar of `example/` lists exactly the published files. Its `batching.batch` is that
      `batch`. It has `batching.batch_conversion: {profile_id: static-batch-v1}` if and only if the
      `batch` is `3`. With `converts` and `3`, `batch/conversion.yaml` also has that

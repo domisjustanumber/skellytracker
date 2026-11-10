@@ -31,7 +31,7 @@ uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/ske
 
 - `--fields` is your fields file. `batch` reads its `external` list: each ONNX file of the family,
   with its `size`, `batch`, `precision` and `published`. The tolerance comes from `precision`.
-- A family needs each size and each precision at the verification batches 1, 2, 3 and 6. This is
+- A family needs each size and each precision at the [verification batches](../common/batch-conversion.md#authoring-guidance). This is
   also true for a family that plans b3 only. [Publishing](validation-and-publishing.md#publishing) gives the two
   exemptions: `batch_forced` and `no_static_reason` ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md);
   [ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)). `published` follows [Publishing](validation-and-publishing.md#publishing). Add the
