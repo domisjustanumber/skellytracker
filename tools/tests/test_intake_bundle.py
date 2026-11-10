@@ -364,7 +364,9 @@ def test_verify_checks_the_model_payload_schemas(tmp_path: Path, root: Path) -> 
     landed = (REPO_ROOT / "specs" / "model-sidecar" / "vectors" / "post.det.selection.nms.yaml").read_bytes()
     runs = {"exporter": "Ultralytics-Exporter", "commit": SOURCE, "runs": [
         {"section": "post.det.selection.nms", "function": "a.py::f", "vectors_sha256": ib.sha256(landed),
-         "cases": {"one": "pass"}, "result": "maybe"}]}
+         "cases": {"one": "pass", "two": "not used"}, "result": "maybe"},
+        {"section": "post.det.selection.nms", "function": "a.py::f", "vectors_sha256": ib.sha256(landed),
+         "cases": {"one": "skipped"}, "result": "pass"}]}
     provenance = {"examples": {"detectors/x.yaml": {"exporter": "E", "kind": "export"}}}
     source = payload(tmp_path, {
         "intake.md": "text\n",
@@ -374,8 +376,9 @@ def test_verify_checks_the_model_payload_schemas(tmp_path: Path, root: Path) -> 
     ib.pack(source, model_fields(), root, cwd=tmp_path)
     findings = ib.verify("model-yolo26@ultralytics-exporter", root)
     assert findings[0] == "vector-runs.yaml runs[1].result must be pass, fail or no vectors"
-    assert findings[1].startswith("example/provenance.yaml examples[detectors/x.yaml] must have the keys")
-    assert len(findings) == 2
+    assert findings[1] == "vector-runs.yaml runs[2].cases values must be pass, fail or not used"
+    assert findings[2].startswith("example/provenance.yaml examples[detectors/x.yaml] must have the keys")
+    assert len(findings) == 3
 
 
 def test_verify_finds_a_stale_vector_run_and_unreadable_payload_files(tmp_path: Path, root: Path) -> None:

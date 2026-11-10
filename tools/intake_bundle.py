@@ -1090,8 +1090,8 @@ def _payload_problems(version_dir: Path, rel: str, yaml, repo: Path = REPO_ROOT)
                 problems.append(f"vector-runs.yaml runs[{number}].vectors_sha256 must be 64 hex digits")
             if not isinstance(run["cases"], (dict, type(None))):
                 problems.append(f"vector-runs.yaml runs[{number}].cases must be a mapping")
-            elif any(v not in ("pass", "fail") for v in (run["cases"] or {}).values()):
-                problems.append(f"vector-runs.yaml runs[{number}].cases values must be pass or fail")
+            elif any(v not in ("pass", "fail", "not used") for v in (run["cases"] or {}).values()):
+                problems.append(f"vector-runs.yaml runs[{number}].cases values must be pass, fail or not used")
             if run["result"] != "no vectors" and SHA64.match(str(run["vectors_sha256"])):
                 landed = repo / SPEC / "vectors" / f"{run['section']}.yaml"
                 if not landed.is_file():
