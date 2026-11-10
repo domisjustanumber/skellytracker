@@ -15,6 +15,10 @@ Run `batch` from your repo root, in the skellytracker environment of the checkou
 uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/skellytracker/tools/intake_bundle.py batch --fields <fields file> --out <payload folder>/batch
 ```
 
+- The `onnx-cpu` extra needs `onnxruntime>=1.31`. On onnxruntime 1.27 for CPU, two runs of one fp16
+  file can give different outputs, and V5 fails
+  ([ADR-4KW6](../../../decisions/entries/4KW6-onnxruntime-1-31-for-the-cpu-check.md)).
+
 - The user syncs the checkout one time: `uv sync --extra all-cpu` in `../freemocap/skellytracker`.
   If the import of skellytracker fails, stop. Ask the user to sync the checkout.
 - The command writes no file in the checkout. `--no-sync` stops uv from writing `uv.lock` and

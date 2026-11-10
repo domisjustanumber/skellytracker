@@ -62,6 +62,10 @@ proposed section ID.
   the inverse with the forward algorithm (the heading "Inverse"). Do not put two sections together in
   one module.
 - Write the section ID in the note at the top of the file.
+- A section module must not have the name of an installed module, for example `pre_commit`. After
+  the copy, the import would load the installed module. `verify` gives a finding for a new section
+  name that is an installed module
+  ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)).
 - To load or run a reference file, follow
   [Run a module that imports another module](#run-a-module-that-imports-another-module).
 - The heading "Reference mappings in skellytracker" in
@@ -75,7 +79,8 @@ proposed section ID.
   [`tools/intake_bundle.py`](../../../tools/intake_bundle.py) and the reference modules of other
   sections ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md);
   [ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)). To use one more
-  standard-library module, ask for it in your proposal.
+  standard-library module, ask for it in your proposal. A change of `REFERENCE_STDLIB` is a
+  non-spec commit ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)).
 - Do not read or write a file. Do not use the network, a process, the environment or the
   interpreter. For example, do not call `np.load`, `np.save`, `cv2.imread` or `cv2.imwrite`
   ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)).

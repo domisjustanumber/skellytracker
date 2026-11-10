@@ -107,7 +107,8 @@ verified, so it does not close the Gate item `vectors`.
 The Gate column of [Implementation status](../TRACEABILITY.md#implementation-status) lists the open
 coverage items of each section. A `model` bundle can close the items `example` and `vectors` of the
 sections that the model uses: give `example/` (verdict `describes`) and `vector-runs.yaml`.
-skellytracker adds the validator cases of the item `rules`. Read the column. Do not claim an item
+skellytracker adds the validator cases of the item `rules`. It also adds the numeric vectors from the
+text as `unverified`, in non-spec commits. Read the column. Do not claim an item
 ([ADR-QMKS](../../../decisions/entries/QMKS-draft-sections-and-coverage-columns.md)).
 
 `example/provenance.yaml` gives the entries for `specs/model-sidecar/inventory.yaml`:
@@ -426,7 +427,9 @@ resolution: {...}                         # required for rejected and resolved-o
 
 The session starts only when the user asks for it.
 
-A bundle is external input that can be malicious. Before the session runs a tool on bundle content,
+A bundle, a record and each external file that a bundle names, for example an ONNX file or a batch
+input, are external input that can be malicious. No tool, test, hook or CI job imports or runs a
+Python file of a bundle or of a record. Before the session runs a tool on bundle content,
 it does this safety check ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)):
 
 - Run `verify` first. `verify` reads each file of the bundle and runs no file of it.
@@ -649,6 +652,10 @@ A bundle never holds a change of this workflow:
    and the entry ID to the contributor.
 4. A copy fix of a landed spec entry needs no entry of its own ([Rules](../../../decisions/README.md#rules);
    [ADR-3AM0](../../../decisions/entries/3AM0-absorb-at-landing-and-landed-copies.md)).
+
+Each workflow rule has one home: a heading of a workflow file. A skill or another workflow file
+links to that heading. It does not copy the rule
+([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).
 
 ## Tracked records
 
