@@ -1,0 +1,13 @@
+# Built-in pipeline of v2.0.0. It shows one mediapipe_tasks node: the MediaPipe Holistic
+# landmarker on the full frame. Holistic is single person, so max_instances is 1.
+schema_version: "2.0.0"
+pipeline_id: mediapipe-holistic-tasks
+source: skellytracker
+description: MediaPipe Holistic, one Tasks landmarker on the full frame.
+nodes:
+  - id: holistic
+    type: mediapipe_tasks
+    inputs: {image: frame.image}
+    params: {variant: holistic}
+outputs:
+  body: holistic.keypoints

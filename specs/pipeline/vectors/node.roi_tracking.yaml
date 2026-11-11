@@ -1,0 +1,101 @@
+# tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
+# Hosts ignore `checks`. The names are the self-checks of the generator.
+section: node.roi_tracking
+notes:
+  - "Normative text: specs/pipeline/nodes/roi_tracking.md."
+  - "`previous` and `current` are null for an empty input. Else each holds one [cx, cy,
+    w, h, rotation] or null (an empty row) for each row, in source-image pixels, with
+    `rotation` in radians. `previous_keypoints` is absent or null, or holds `xy` (one
+    list of [x, y] for each row) and `present`. A missing param takes its default (the
+    Holistic hand values)."
+  - "`rois` is null for an empty output. Else it holds one ROI or null for each row."
+tolerance: 0.000001
+unverified: "Only the reference implementation ran the cases. No independent implementation
+  exists yet."
+cases:
+  - id: near-previous-roi-is-kept
+    note: "row 0: offsets 4 and 2 are at most 0.2 x 50 and the size changes 5 and 3 are at most
+      0.4 x 50, so the previous ROI stays; row 1: an empty current row gives an empty row"
+    params: {}
+    input:
+      previous: [[104, 98, 55, 47, 0], [10, 10, 20, 20, 0]]
+      current: [[100, 100, 50, 50, 0], null]
+    expect: {rois: [[104, 98, 55, 47, 0], null]}
+  - id: empty-previous-gives-the-current-roi
+    note: "the first frame: previous@prev is empty, and the node still runs"
+    params: {}
+    input: {previous: null, current: [[100, 100, 50, 50, 0]]}
+    expect: {rois: [[100, 100, 50, 50, 0]]}
+  - id: empty-current-gives-empty-output
+    params: {}
+    input: {previous: [[100, 100, 50, 50, 0]], current: null}
+    expect: {rois: null}
+  - id: rotation-limit
+    note: "row 0: 39 degrees is at most 40; row 1: 41 degrees is more than 40"
+    params: {}
+    input:
+      previous: [[100, 100, 50, 50, 0.6806784082777885], [100, 100, 50, 50, 0.7155849933176751]]
+      current: [[100, 100, 50, 50, 0], [100, 100, 50, 50, 0]]
+    expect: {rois: [[100, 100, 50, 50, 0.680678], [100, 100, 50, 50, 0]]}
+  - id: offset-in-the-rotated-frame
+    note: "the current ROI turns by 90 degrees, so its x axis is the image y axis: row 0 moves
+      15 along the image x axis, that is 15 along the ROI y axis (more than 0.2 x 50); row
+      1 moves 15 along the image y axis, that is 15 along the ROI x axis (at most 0.2 x
+      100)"
+    params: {}
+    input:
+      previous: [[115, 100, 100, 50, 1.5707963267948966], [100, 115, 100, 50, 1.5707963267948966]]
+      current: [[100, 100, 100, 50, 1.5707963267948966], [100, 100, 100, 50, 1.5707963267948966]]
+    expect: {rois: [[100, 100, 100, 50, 1.570796], [100, 115, 100, 50, 1.570796]]}
+  - id: size-limit
+    note: "row 0: the width changes by 25, more than 0.4 x 50; row 1: the height changes by 20,
+      equal to the limit"
+    params: {}
+    input:
+      previous: [[100, 100, 75, 50, 0], [100, 100, 50, 70, 0]]
+      current: [[100, 100, 50, 50, 0], [100, 100, 50, 50, 0]]
+    expect: {rois: [[100, 100, 50, 50, 0], [100, 100, 50, 70, 0]]}
+  - id: previous-keypoints-inside-the-shrunk-roi
+    note: "the half size is (1 - 0.1) x 25 = 22.5: row 0 has a point at u = 23; row 1 has its
+      points inside, and the test skips a NaN point; row 2 is not present, so the far
+      point is not tested; row 3 has no previous ROI"
+    params: {}
+    input:
+      previous: [[102, 100, 50, 50, 0], [102, 100, 50, 50, 0], [102, 100, 50, 50, 0], null]
+      current:
+        - [100, 100, 50, 50, 0]
+        - [100, 100, 50, 50, 0]
+        - [100, 100, 50, 50, 0]
+        - [100, 100, 50, 50, 0]
+      previous_keypoints:
+        xy:
+          - [[123, 100], [100, 100]]
+          - [[122, 100], [.nan, .nan]]
+          - [[500, 500], [100, 100]]
+          - [[100, 100], [100, 100]]
+        present: [true, true, false, true]
+    expect:
+      rois:
+        - [100, 100, 50, 50, 0]
+        - [102, 100, 50, 50, 0]
+        - [102, 100, 50, 50, 0]
+        - [100, 100, 50, 50, 0]
+  - id: holistic-face-limits
+    note: "the face values 15, 0.1, 0.3 and -0.2: an offset of 7 is more than 0.1 x 50, so the
+      current ROI is used (the hand defaults keep the previous ROI)"
+    params: {max_rotation_deg: 15, max_offset: 0.1, max_size_change: 0.3, keypoint_margin: -0.2}
+    input: {previous: [[107, 100, 50, 50, 0]], current: [[100, 100, 50, 50, 0]]}
+    expect: {rois: [[100, 100, 50, 50, 0]]}
+  - id: positive-margin-grows-the-roi
+    note: "the half size is (1 + 0.5) x 25 = 37.5, so a point at u = 30 is inside"
+    params: {keypoint_margin: 0.5}
+    input:
+      previous: [[102, 100, 50, 50, 0]]
+      current: [[100, 100, 50, 50, 0]]
+      previous_keypoints: {xy: [[[130, 100]]], present: [true]}
+    expect: {rois: [[102, 100, 50, 50, 0]]}
+  - id: margin-of-minus-1-is-refused
+    checks: [refused]
+    params: {keypoint_margin: -1}
+    input: {previous: null, current: null}
+    expect: {error: V-node.roi_tracking-1}

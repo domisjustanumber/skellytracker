@@ -1,0 +1,162 @@
+# tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
+# Hosts ignore `checks`. The names are the self-checks of the generator.
+section: node.roi_from_points
+notes:
+  - "Normative text: specs/pipeline/nodes/roi_from_points.md."
+  - "`names` are the point names of the input port, known at load. `keypoints` is null
+    for an empty input. Else `xy` holds one list of [x, y] for each row, in source-image
+    pixels, with `visibility` and `present` for each row. A missing param takes its
+    default."
+  - "`rois` is null for an empty output. Else it holds one [cx, cy, w, h, rotation] or
+    null (an empty row) for each row. `rotation` is in radians."
+  - "Three cases mean the same as cases of
+    skellytracker/tests/test_keypoint_bbox_detector.py: empty-input-gives-empty-output
+    (test_returns_no_boxes_without_parent_keypoints) and the rows 0 and 2 of
+    missing-points-give-empty-rows
+    (test_returns_no_boxes_when_center_points_below_min_visibility and
+    test_returns_no_boxes_when_all_center_points_invalid). Decision:
+    decisions/entries/3SF2-pipeline-spec-and-node-workflow.md item 4."
+tolerance: 0.000001
+unverified: "Only the reference implementation ran the cases. No independent implementation
+  exists yet."
+cases:
+  - id: bounds-default
+    note: "the axis-aligned box around the three points: x 100 to 140, y 180 to 240"
+    params: {points: [body.wrist, body.index, body.pinky]}
+    input:
+      names: [body.wrist, body.index, body.pinky, hand.wrist]
+      keypoints:
+        xy: [[[100, 200], [140, 180], [120, 240], [.nan, .nan]]]
+        visibility: [[0.9, 0.8, 0.7, 0]]
+        present: [true]
+    expect: {rois: [[120, 210, 40, 60, 0]]}
+  - id: bounds-rotated-frame-with-extrapolated-end-and-transform
+    note: "tip = -0.5 wrist + 1.5 index = (160, 170); the box is in the frame rotated from the
+      wrist to tip with the target 90 degrees; then shift, square_long and scale"
+    params:
+      points: [body.wrist, body.index, body.pinky]
+      derived: [{name: tip, weights: {body.wrist: -0.5, body.index: 1.5}}]
+      alignment_start: body.wrist
+      alignment_end: tip
+      target_rotation_deg: 90
+      shift_x: 0.1
+      shift_y: -0.2
+      square_long: true
+      scale: 1.5
+    input:
+      names: [body.wrist, body.index, body.pinky, hand.wrist]
+      keypoints:
+        xy: [[[100, 200], [140, 180], [120, 240], [.nan, .nan]]]
+        visibility: [[0.9, 0.8, 0.7, 0]]
+        present: [true]
+    expect: {rois: [[140, 210, 67.082039, 67.082039, 1.107149]]}
+  - id: alignment-holistic-hand
+    note: "middle = (2 index + pinky) / 3; centre at the wrist, size 2 |middle - wrist|, target
+      90 degrees, then shift_y -0.1, square_long and scale 2.7"
+    params:
+      points: [body.wrist]
+      derived:
+        - {name: middle, weights: {body.index: 0.6666666666666666, body.pinky: 0.3333333333333333}}
+      size_rule: alignment
+      alignment_start: body.wrist
+      alignment_end: middle
+      target_rotation_deg: 90
+      shift_y: -0.1
+      square_long: true
+      scale: 2.7
+    input:
+      names: [body.wrist, body.index, body.pinky, hand.wrist]
+      keypoints:
+        xy: [[[300, 400], [330, 340], [300, 350], [.nan, .nan]]]
+        visibility: [[0.9, 0.8, 0.7, 0]]
+        present: [true]
+    expect: {rois: [[304, 388.666667, 324.499615, 324.499615, 0.339293]]}
+  - id: alignment-without-target-has-rotation-0
+    note: "|index - wrist| = 50, so w = h = 100; shift_y -0.5 moves the centre up by 50 pixels"
+    params:
+      points: [body.wrist]
+      size_rule: alignment
+      alignment_start: body.wrist
+      alignment_end: body.index
+      shift_y: -0.5
+    input:
+      names: [body.wrist, body.index, body.pinky, hand.wrist]
+      keypoints:
+        xy: [[[100, 200], [130, 160], [120, 240], [.nan, .nan]]]
+        visibility: [[0.9, 0.8, 0.7, 0]]
+        present: [true]
+    expect: {rois: [[100, 150, 100, 100, 0]]}
+  - id: rotation-pi-normalises-to-minus-pi
+    note: "the vector points down: 90 - (-90) = 180 degrees, and NormalizeRadians(\u03c0) =
+      -\u03c0; the shift along the ROI y axis then moves the centre up in the image"
+    params:
+      points: [body.wrist]
+      size_rule: alignment
+      alignment_start: body.wrist
+      alignment_end: body.index
+      target_rotation_deg: 90
+      shift_y: 0.25
+    input:
+      names: [body.wrist, body.index, body.pinky, hand.wrist]
+      keypoints:
+        xy: [[[200, 100], [200, 160], [120, 240], [.nan, .nan]]]
+        visibility: [[0.9, 0.8, 0.7, 0]]
+        present: [true]
+    expect: {rois: [[200, 70, 120, 120, -3.141593]]}
+  - id: alias-takes-the-first-present-name
+    note: "row 0 has no hand wrist, so body.wrist counts; row 1 has the hand wrist, so it
+      counts; row 2 is not present"
+    params: {points: [[hand.wrist, body.wrist], body.index]}
+    input:
+      names: [body.wrist, body.index, body.pinky, hand.wrist]
+      keypoints:
+        xy:
+          - [[100, 200], [140, 180], [120, 240], [.nan, .nan]]
+          - [[100, 200], [140, 180], [120, 240], [110, 210]]
+          - [[.nan, .nan], [.nan, .nan], [.nan, .nan], [.nan, .nan]]
+        visibility: [[0.9, 0.8, 0.7, 0], [0.9, 0.8, 0.7, 0.9], [0, 0, 0, 0]]
+        present: [true, true, false]
+    expect: {rois: [[120, 190, 40, 20, 0], [125, 195, 30, 30, 0], null]}
+  - id: missing-points-give-empty-rows
+    note: "row 0: visibility 0.1 is not greater than 0.5; row 1: the test is strict; row 2: a
+      NaN point is not present; row 3: one point gives a box of size 0"
+    params: {points: [body.wrist], score_threshold: 0.5}
+    input:
+      names: [body.wrist, body.index, body.pinky, hand.wrist]
+      keypoints:
+        xy:
+          - [[10, 10], [.nan, .nan], [.nan, .nan], [.nan, .nan]]
+          - [[10, 10], [.nan, .nan], [.nan, .nan], [.nan, .nan]]
+          - [[.nan, .nan], [.nan, .nan], [.nan, .nan], [.nan, .nan]]
+          - [[10, 10], [.nan, .nan], [.nan, .nan], [.nan, .nan]]
+        visibility: [[0.1, 0, 0, 0], [0.5, 0, 0, 0], [0.9, 0, 0, 0], [0.9, 0, 0, 0]]
+        present: [true, true, true, true]
+    expect: {rois: [null, null, null, [10, 10, 0, 0, 0]]}
+  - id: empty-input-gives-empty-output
+    params: {points: [body.wrist]}
+    input: {names: [body.wrist, body.index, body.pinky, hand.wrist], keypoints: null}
+    expect: {rois: null}
+  - id: alignment-needs-start-and-end
+    checks: [refused]
+    params: {points: [body.wrist], size_rule: alignment, alignment_start: body.wrist}
+    input: {names: [body.wrist, body.index, body.pinky, hand.wrist], keypoints: null}
+    expect: {error: V-node.roi_from_points-1}
+  - id: unknown-point-name
+    checks: [refused]
+    params: {points: [body.wrist, body.nose]}
+    input: {names: [body.wrist, body.index, body.pinky, hand.wrist], keypoints: null}
+    expect: {error: V-node.roi_from_points-2}
+  - id: derived-names-must-be-unique
+    checks: [refused]
+    params:
+      points: [mid]
+      derived:
+        - {name: mid, weights: {body.index: 0.5, body.pinky: 0.5}}
+        - {name: mid, weights: {body.wrist: 1}}
+    input: {names: [body.wrist, body.index, body.pinky, hand.wrist], keypoints: null}
+    expect: {error: V-node.roi_from_points-3}
+  - id: bounds-target-needs-start-and-end
+    checks: [refused]
+    params: {points: [body.wrist, body.index], target_rotation_deg: 0}
+    input: {names: [body.wrist, body.index, body.pinky, hand.wrist], keypoints: null}
+    expect: {error: V-node.roi_from_points-4}

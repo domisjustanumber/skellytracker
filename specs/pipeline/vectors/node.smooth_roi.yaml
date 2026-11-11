@@ -1,0 +1,62 @@
+# tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
+# Hosts ignore `checks`. The names are the self-checks of the generator.
+section: node.smooth_roi
+notes:
+  - "Normative text: specs/pipeline/nodes/smooth_roi.md. The rotation uses
+    NormalizeRadians of specs/pipeline/nodes/roi_from_points.md."
+  - "A case is one sequence. `frames` holds one item for each frame. An item is a list of
+    instance rows, and a row is an ROI [cx, cy, w, h, rotation] or null (the row is not
+    present). A null item is an empty input. `rois` holds one output item for each input
+    item. `rotation` is in radians."
+  - "A throwaway script ran the reference and
+    skellytracker/core/temporal_processing/bbox_smoothing.py (apply_bbox_ema) on 500
+    random `video` sequences with rotation 0 and a random alpha, with missing boxes. The
+    results agreed within 1e-9."
+tolerance: 0.000000001
+unverified: "Only the reference ran the cases. The comparison with apply_bbox_ema is in the
+  notes, but that function has another signature, so it is not a verified_against
+  entry."
+cases:
+  - id: defaults
+    note: "alpha 0.5: the mean of the previous output and the input"
+    params: {}
+    input:
+      running_mode: video
+      frames: [[[100, 100, 50, 80, 0]], [[110, 90, 60, 80, 0]], [[120, 90, 60, 100, 0]]]
+    expect: {rois: [[[100, 100, 50, 80, 0]], [[105, 95, 55, 80, 0]], [[112.5, 92.5, 57.5, 90, 0]]]}
+  - id: alpha-zero-passes-the-input
+    params: {alpha: 0}
+    input: {running_mode: video, frames: [[[100, 100, 50, 80, 0]], [[110, 90, 60, 80, 0]]]}
+    expect: {rois: [[[100, 100, 50, 80, 0]], [[110, 90, 60, 80, 0]]]}
+  - id: alpha-one-keeps-the-first-roi
+    params: {alpha: 1}
+    input: {running_mode: video, frames: [[[100, 100, 50, 80, 0]], [[110, 90, 60, 80, 0]]]}
+    expect: {rois: [[[100, 100, 50, 80, 0]], [[100, 100, 50, 80, 0]]]}
+  - id: rotation-on-the-short-arc
+    note: "the turn from -2.9 to 3.0 is NormalizeRadians(5.9) = 5.9 - 2 pi; the result stays
+      near pi, not near 0"
+    params: {alpha: 0.5}
+    input: {running_mode: video, frames: [[[100, 100, 50, 50, 3]], [[100, 100, 50, 50, -2.9]]]}
+    expect: {rois: [[[100, 100, 50, 50, 3]], [[100, 100, 50, 50, -3.091593]]]}
+  - id: row-not-present-keeps-its-state
+    note: "row 1 is not present on frame 1, so frame 2 blends with the output of frame 0"
+    params: {alpha: 0.4}
+    input:
+      running_mode: video
+      frames:
+        - [[100, 100, 50, 80, 0], [300, 200, 40, 40, 0.5]]
+        - [[110, 100, 50, 80, 0], null]
+        - [[120, 100, 50, 80, 0], [310, 200, 40, 40, 0.3]]
+    expect:
+      rois:
+        - [[100, 100, 50, 80, 0], [300, 200, 40, 40, 0.5]]
+        - [[106, 100, 50, 80, 0], null]
+        - [[114.4, 100, 50, 80, 0], [306, 200, 40, 40, 0.38]]
+  - id: empty-input-does-not-run
+    params: {}
+    input: {running_mode: video, frames: [[[100, 100, 50, 80, 0]], null, [[120, 100, 50, 80, 0]]]}
+    expect: {rois: [[[100, 100, 50, 80, 0]], null, [[110, 100, 50, 80, 0]]]}
+  - id: image-mode-passes-through
+    params: {}
+    input: {running_mode: image, frames: [[[100, 100, 50, 80, 0]], [[120, 100, 50, 80, 0]]]}
+    expect: {rois: [[[100, 100, 50, 80, 0]], [[120, 100, 50, 80, 0]]]}

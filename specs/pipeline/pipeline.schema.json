@@ -1,0 +1,1202 @@
+{
+  "$defs": {
+    "ConcatNode": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "The node id. `pipeline` and `frame` are reserved.",
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "inputs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Input name to `<node>.<port>`, with an optional `@prev`.",
+          "title": "Inputs",
+          "type": "object"
+        },
+        "params": {
+          "$ref": "#/$defs/NoParams"
+        },
+        "type": {
+          "const": "concat",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "title": "ConcatNode",
+      "type": "object"
+    },
+    "DerivedPoint": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "The name of the new point.",
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "weights": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "description": "Point name to weight. A negative weight extrapolates, for example wrist 1.5 and elbow -0.5.",
+          "minProperties": 1,
+          "title": "Weights",
+          "type": "object"
+        }
+      },
+      "required": [
+        "name",
+        "weights"
+      ],
+      "title": "DerivedPoint",
+      "type": "object"
+    },
+    "DetectorNode": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "The node id. `pipeline` and `frame` are reserved.",
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "inputs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Input name to `<node>.<port>`, with an optional `@prev`.",
+          "title": "Inputs",
+          "type": "object"
+        },
+        "params": {
+          "$ref": "#/$defs/DetectorParams"
+        },
+        "type": {
+          "const": "detector",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "params"
+      ],
+      "title": "DetectorNode",
+      "type": "object"
+    },
+    "DetectorParams": {
+      "additionalProperties": false,
+      "properties": {
+        "decode": {
+          "additionalProperties": true,
+          "description": "Changes of the `decode` fields of the sidecar. The load checks each name against the sidecar.",
+          "live": false,
+          "source": "ADR-7NY2 item 11",
+          "title": "Decode",
+          "type": "object"
+        },
+        "execution_provider": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A concrete EP for this node. Empty: the EP of the run.",
+          "live": false,
+          "source": "ADR-7NY2 item 12",
+          "title": "Execution Provider"
+        },
+        "key": {
+          "description": "The catalog key of the model, `<model_id>@<source>`.",
+          "live": false,
+          "source": "ADR-7NY2 item 10",
+          "title": "Key",
+          "type": "string"
+        },
+        "max_instances": {
+          "default": 1,
+          "description": "The number of instance rows that this node makes (object detector or one-stage model).",
+          "live": false,
+          "minimum": 1,
+          "source": "ADR-99MH item 1",
+          "title": "Max Instances",
+          "type": "integer"
+        },
+        "precision": {
+          "anyOf": [
+            {
+              "enum": [
+                "fp32",
+                "fp16"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The precision of the artifact. Empty: fp16 on a GPU EP, fp32 on CPU.",
+          "live": false,
+          "source": "ADR-7NY2 item 10",
+          "title": "Precision"
+        },
+        "sidecar_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The SHA-256 of the sidecar file bytes. Required in a shipped or an exported file.",
+          "live": false,
+          "source": "ADR-7NY2 item 10",
+          "title": "Sidecar Sha256"
+        },
+        "size": {
+          "description": "A size name of the `sizes` of the sidecar.",
+          "live": false,
+          "source": "ADR-7NY2 item 10",
+          "title": "Size",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "size"
+      ],
+      "title": "DetectorParams",
+      "type": "object"
+    },
+    "FirstOfNode": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "The node id. `pipeline` and `frame` are reserved.",
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "inputs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Input name to `<node>.<port>`, with an optional `@prev`.",
+          "title": "Inputs",
+          "type": "object"
+        },
+        "params": {
+          "$ref": "#/$defs/NoParams"
+        },
+        "type": {
+          "const": "first_of",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "title": "FirstOfNode",
+      "type": "object"
+    },
+    "FitnessCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "expansion_ratio": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "bbox_area_collapse (0.05).",
+          "title": "Expansion Ratio"
+        },
+        "kind": {
+          "description": "The check. A check that fails asks for a new detection.",
+          "enum": [
+            "min_keypoint_visibility",
+            "keypoints_within_bbox_ratio",
+            "max_frames_without_redetect",
+            "bbox_area_collapse"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "min_area_ratio": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "bbox_area_collapse (0.25).",
+          "title": "Min Area Ratio"
+        },
+        "min_visibility": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "bbox_area_collapse (0.0).",
+          "title": "Min Visibility"
+        },
+        "n_frames": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "max_frames_without_redetect (30).",
+          "title": "N Frames"
+        },
+        "threshold": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "min_keypoint_visibility (0.3) or keypoints_within_bbox_ratio (0.5).",
+          "title": "Threshold"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "FitnessCheck",
+      "type": "object"
+    },
+    "GateNode": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "The node id. `pipeline` and `frame` are reserved.",
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "inputs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Input name to `<node>.<port>`, with an optional `@prev`.",
+          "title": "Inputs",
+          "type": "object"
+        },
+        "params": {
+          "$ref": "#/$defs/GateParams"
+        },
+        "type": {
+          "const": "gate",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "params"
+      ],
+      "title": "GateNode",
+      "type": "object"
+    },
+    "GateParams": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "description": "Pass `value` when `condition` is empty, is present, or has a score greater than `threshold`.",
+          "enum": [
+            "is_empty",
+            "is_present",
+            "score_above"
+          ],
+          "live": false,
+          "source": "ADR-7NY2 item 6",
+          "title": "Mode",
+          "type": "string"
+        },
+        "threshold": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The score threshold of the mode `score_above`.",
+          "live": true,
+          "source": "ADR-7NY2 item 6",
+          "title": "Threshold"
+        }
+      },
+      "required": [
+        "mode"
+      ],
+      "title": "GateParams",
+      "type": "object"
+    },
+    "Instrumentation": {
+      "additionalProperties": false,
+      "properties": {
+        "taps": {
+          "description": "The record and replay taps.",
+          "items": {
+            "$ref": "#/$defs/Tap"
+          },
+          "title": "Taps",
+          "type": "array"
+        },
+        "timing_points": {
+          "description": "`<node>.<point>` or `pipeline.run`. Empty: no timing point is on.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Timing Points",
+          "type": "array"
+        }
+      },
+      "title": "Instrumentation",
+      "type": "object"
+    },
+    "MediapipeTasksNode": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "The node id. `pipeline` and `frame` are reserved.",
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "inputs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Input name to `<node>.<port>`, with an optional `@prev`.",
+          "title": "Inputs",
+          "type": "object"
+        },
+        "params": {
+          "$ref": "#/$defs/MediapipeTasksParams"
+        },
+        "type": {
+          "const": "mediapipe_tasks",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "params"
+      ],
+      "title": "MediapipeTasksNode",
+      "type": "object"
+    },
+    "MediapipeTasksParams": {
+      "additionalProperties": false,
+      "properties": {
+        "max_instances": {
+          "default": 1,
+          "description": "`num_poses`, `num_hands` or `num_faces`. Holistic is single person: 1.",
+          "live": false,
+          "minimum": 1,
+          "source": "MediaPipe Tasks default; ADR-8NVD item 4",
+          "title": "Max Instances",
+          "type": "integer"
+        },
+        "min_detection_confidence": {
+          "default": 0.5,
+          "description": "The minimum detection score (Holistic: the pose and the face detection).",
+          "live": false,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "source": "MediaPipe Tasks default",
+          "title": "Min Detection Confidence",
+          "type": "number"
+        },
+        "min_presence_confidence": {
+          "default": 0.5,
+          "description": "The minimum presence score (Holistic: the landmark confidence of each part).",
+          "live": false,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "source": "MediaPipe Tasks default",
+          "title": "Min Presence Confidence",
+          "type": "number"
+        },
+        "min_tracking_confidence": {
+          "default": 0.5,
+          "description": "The minimum tracking score in VIDEO mode. Holistic has no tracking option.",
+          "live": false,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "source": "MediaPipe Tasks default",
+          "title": "Min Tracking Confidence",
+          "type": "number"
+        },
+        "pose_model": {
+          "default": "heavy",
+          "description": "The pose landmarker model. Only for the variant `pose`.",
+          "enum": [
+            "lite",
+            "full",
+            "heavy"
+          ],
+          "live": false,
+          "source": "MediapipePoseDetectorConfig.model_complexity",
+          "title": "Pose Model",
+          "type": "string"
+        },
+        "variant": {
+          "description": "The Tasks landmarker.",
+          "enum": [
+            "pose",
+            "hand",
+            "face",
+            "holistic"
+          ],
+          "live": false,
+          "source": "ADR-8NVD item 4",
+          "title": "Variant",
+          "type": "string"
+        }
+      },
+      "required": [
+        "variant"
+      ],
+      "title": "MediapipeTasksParams",
+      "type": "object"
+    },
+    "NoParams": {
+      "additionalProperties": false,
+      "description": "A node type with no params.",
+      "properties": {},
+      "title": "NoParams",
+      "type": "object"
+    },
+    "RedetectNode": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "The node id. `pipeline` and `frame` are reserved.",
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "inputs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Input name to `<node>.<port>`, with an optional `@prev`.",
+          "title": "Inputs",
+          "type": "object"
+        },
+        "params": {
+          "$ref": "#/$defs/RedetectParams"
+        },
+        "type": {
+          "const": "redetect",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "title": "RedetectNode",
+      "type": "object"
+    },
+    "RedetectParams": {
+      "additionalProperties": false,
+      "properties": {
+        "fitness_checks": {
+          "description": "Checks on the previous frame that ask for a new detection.",
+          "items": {
+            "$ref": "#/$defs/FitnessCheck"
+          },
+          "live": false,
+          "source": "BBoxPolicyConfig.fitness_checks",
+          "title": "Fitness Checks",
+          "type": "array"
+        },
+        "redetect_interval": {
+          "default": 1,
+          "description": "Ask for a new detection at least each this many frames.",
+          "live": true,
+          "minimum": 1,
+          "source": "BBoxPolicyConfig.redetect_interval",
+          "title": "Redetect Interval",
+          "type": "integer"
+        }
+      },
+      "title": "RedetectParams",
+      "type": "object"
+    },
+    "RoiFromPointsNode": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "The node id. `pipeline` and `frame` are reserved.",
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "inputs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Input name to `<node>.<port>`, with an optional `@prev`.",
+          "title": "Inputs",
+          "type": "object"
+        },
+        "params": {
+          "$ref": "#/$defs/RoiFromPointsParams"
+        },
+        "type": {
+          "const": "roi_from_points",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "params"
+      ],
+      "title": "RoiFromPointsNode",
+      "type": "object"
+    },
+    "RoiFromPointsParams": {
+      "additionalProperties": false,
+      "properties": {
+        "alignment_end": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The end point of the alignment rule.",
+          "live": false,
+          "source": "ADR-7NY2 item 6",
+          "title": "Alignment End"
+        },
+        "alignment_start": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The start point of the alignment rule.",
+          "live": false,
+          "source": "ADR-7NY2 item 6",
+          "title": "Alignment Start"
+        },
+        "derived": {
+          "description": "Points made from other points with weights. They can be used in `points` and in the alignment.",
+          "items": {
+            "$ref": "#/$defs/DerivedPoint"
+          },
+          "live": false,
+          "source": "ADR-7NY2 item 6",
+          "title": "Derived",
+          "type": "array"
+        },
+        "points": {
+          "description": "The points of the ROI. A list of names is one point with aliases: the first present name counts.",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            ]
+          },
+          "live": false,
+          "minItems": 1,
+          "source": "ADR-7NY2 item 6",
+          "title": "Points",
+          "type": "array"
+        },
+        "scale": {
+          "default": 1.0,
+          "description": "Multiply the width and the height by this value.",
+          "exclusiveMinimum": 0.0,
+          "live": true,
+          "source": "MediaPipe RectTransformationCalculator default",
+          "title": "Scale",
+          "type": "number"
+        },
+        "score_threshold": {
+          "default": 0.0,
+          "description": "A point counts only when its score is greater than this value.",
+          "live": true,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "source": "ADR-7NY2 item 6",
+          "title": "Score Threshold",
+          "type": "number"
+        },
+        "shift_x": {
+          "default": 0.0,
+          "description": "Shift along the ROI x axis, in ROI widths.",
+          "live": true,
+          "source": "MediaPipe RectTransformationCalculator default",
+          "title": "Shift X",
+          "type": "number"
+        },
+        "shift_y": {
+          "default": 0.0,
+          "description": "Shift along the ROI y axis, in ROI heights.",
+          "live": true,
+          "source": "MediaPipe RectTransformationCalculator default",
+          "title": "Shift Y",
+          "type": "number"
+        },
+        "size_rule": {
+          "default": "bounds",
+          "description": "`bounds`: the box around the points. `alignment`: centre at the start point, size 2 \u00d7 the distance from start to end.",
+          "enum": [
+            "bounds",
+            "alignment"
+          ],
+          "live": false,
+          "source": "MediaPipe AlignmentPointsRectsCalculator; ADR-7NY2 item 6",
+          "title": "Size Rule",
+          "type": "string"
+        },
+        "square_long": {
+          "default": false,
+          "description": "Make the ROI square with its longer side.",
+          "live": true,
+          "source": "MediaPipe RectTransformationCalculator default",
+          "title": "Square Long",
+          "type": "boolean"
+        },
+        "target_rotation_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The rotation target in degrees. Empty: rotation `none`, an axis-aligned ROI.",
+          "live": false,
+          "source": "MediaPipe rect rotation; ADR-7NY2 item 6",
+          "title": "Target Rotation Deg"
+        }
+      },
+      "required": [
+        "points"
+      ],
+      "title": "RoiFromPointsParams",
+      "type": "object"
+    },
+    "RoiTrackingNode": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "The node id. `pipeline` and `frame` are reserved.",
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "inputs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Input name to `<node>.<port>`, with an optional `@prev`.",
+          "title": "Inputs",
+          "type": "object"
+        },
+        "params": {
+          "$ref": "#/$defs/RoiTrackingParams"
+        },
+        "type": {
+          "const": "roi_tracking",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "title": "RoiTrackingNode",
+      "type": "object"
+    },
+    "RoiTrackingParams": {
+      "additionalProperties": false,
+      "properties": {
+        "keypoint_margin": {
+          "default": -0.1,
+          "description": "Each previous point must be inside the new ROI grown by this part (negative: shrunk).",
+          "live": true,
+          "source": "MediaPipe Holistic hand RoiTrackingCalculator (face: -0.2)",
+          "title": "Keypoint Margin",
+          "type": "number"
+        },
+        "max_offset": {
+          "default": 0.2,
+          "description": "The largest x and y offset, as a part of the new ROI size.",
+          "live": true,
+          "minimum": 0.0,
+          "source": "MediaPipe Holistic hand RoiTrackingCalculator (face: 0.1)",
+          "title": "Max Offset",
+          "type": "number"
+        },
+        "max_rotation_deg": {
+          "default": 40.0,
+          "description": "Keep the previous ROI only when the rotation differs by this much or less.",
+          "live": true,
+          "minimum": 0.0,
+          "source": "MediaPipe Holistic hand RoiTrackingCalculator (face: 15)",
+          "title": "Max Rotation Deg",
+          "type": "number"
+        },
+        "max_size_change": {
+          "default": 0.4,
+          "description": "The largest width and height difference, as a part of the new ROI size.",
+          "live": true,
+          "minimum": 0.0,
+          "source": "MediaPipe Holistic hand RoiTrackingCalculator (face: 0.3)",
+          "title": "Max Size Change",
+          "type": "number"
+        }
+      },
+      "title": "RoiTrackingParams",
+      "type": "object"
+    },
+    "SmoothKeypointsNode": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "The node id. `pipeline` and `frame` are reserved.",
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "inputs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Input name to `<node>.<port>`, with an optional `@prev`.",
+          "title": "Inputs",
+          "type": "object"
+        },
+        "params": {
+          "$ref": "#/$defs/SmoothKeypointsParams"
+        },
+        "type": {
+          "const": "smooth_keypoints",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "title": "SmoothKeypointsNode",
+      "type": "object"
+    },
+    "SmoothKeypointsParams": {
+      "additionalProperties": false,
+      "properties": {
+        "backoff_multiplier": {
+          "default": 2.0,
+          "description": "Multiply the miss limit by this value after a reset with no detection between.",
+          "live": false,
+          "minimum": 1.0,
+          "source": "KeypointResetPolicyConfig",
+          "title": "Backoff Multiplier",
+          "type": "number"
+        },
+        "beta": {
+          "default": 0.0,
+          "description": "one_euro: the speed coefficient.",
+          "live": true,
+          "minimum": 0.0,
+          "source": "KeypointSmoothingConfig",
+          "title": "Beta",
+          "type": "number"
+        },
+        "d_cutoff": {
+          "default": 1.0,
+          "description": "one_euro: the cutoff frequency of the derivative.",
+          "exclusiveMinimum": 0.0,
+          "live": true,
+          "source": "KeypointSmoothingConfig",
+          "title": "D Cutoff",
+          "type": "number"
+        },
+        "filter": {
+          "default": "one_euro",
+          "description": "The filter.",
+          "enum": [
+            "one_euro",
+            "kalman"
+          ],
+          "live": false,
+          "source": "KeypointSmoothingConfig.kind",
+          "title": "Filter",
+          "type": "string"
+        },
+        "max_backoff_misses": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The largest miss limit after back-off. Empty: no limit.",
+          "live": false,
+          "source": "KeypointResetPolicyConfig",
+          "title": "Max Backoff Misses"
+        },
+        "max_consecutive_misses": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Reset the filter state after this many frames with no point. Empty: no reset.",
+          "live": false,
+          "source": "KeypointResetPolicyConfig",
+          "title": "Max Consecutive Misses"
+        },
+        "max_gap_frames": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hold the last value of a missing point for this many frames. Empty: no hold.",
+          "live": false,
+          "source": "KeypointSmoothingConfig",
+          "title": "Max Gap Frames"
+        },
+        "max_velocity": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Refuse a point that moves more than this many pixels per frame. Empty: accept each point.",
+          "live": true,
+          "source": "KeypointSmoothingConfig",
+          "title": "Max Velocity"
+        },
+        "measurement_noise": {
+          "default": 10.0,
+          "description": "kalman: the measurement noise (pixels\u00b2).",
+          "exclusiveMinimum": 0.0,
+          "live": true,
+          "source": "KalmanKeypointSmoothingConfig",
+          "title": "Measurement Noise",
+          "type": "number"
+        },
+        "min_cutoff": {
+          "default": 1.0,
+          "description": "one_euro: the minimum cutoff frequency.",
+          "exclusiveMinimum": 0.0,
+          "live": true,
+          "source": "KeypointSmoothingConfig",
+          "title": "Min Cutoff",
+          "type": "number"
+        },
+        "process_noise_pos": {
+          "default": 1.0,
+          "description": "kalman: the process noise of the position (pixels\u00b2 per frame).",
+          "exclusiveMinimum": 0.0,
+          "live": true,
+          "source": "KalmanKeypointSmoothingConfig",
+          "title": "Process Noise Pos",
+          "type": "number"
+        },
+        "process_noise_vel": {
+          "default": 0.1,
+          "description": "kalman: the process noise of the velocity.",
+          "exclusiveMinimum": 0.0,
+          "live": true,
+          "source": "KalmanKeypointSmoothingConfig",
+          "title": "Process Noise Vel",
+          "type": "number"
+        }
+      },
+      "title": "SmoothKeypointsParams",
+      "type": "object"
+    },
+    "SmoothRoiNode": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "The node id. `pipeline` and `frame` are reserved.",
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "inputs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Input name to `<node>.<port>`, with an optional `@prev`.",
+          "title": "Inputs",
+          "type": "object"
+        },
+        "params": {
+          "$ref": "#/$defs/SmoothRoiParams"
+        },
+        "type": {
+          "const": "smooth_roi",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "title": "SmoothRoiNode",
+      "type": "object"
+    },
+    "SmoothRoiParams": {
+      "additionalProperties": false,
+      "properties": {
+        "alpha": {
+          "default": 0.5,
+          "description": "The weight of the previous ROI: new = alpha \u00d7 previous + (1 \u2212 alpha) \u00d7 input.",
+          "live": true,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "source": "BBoxSmoothingConfig.alpha (freemocap uses 0.4)",
+          "title": "Alpha",
+          "type": "number"
+        }
+      },
+      "title": "SmoothRoiParams",
+      "type": "object"
+    },
+    "Tap": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "description": "`record` writes the port; `replay` reads it from files.",
+          "enum": [
+            "record",
+            "replay"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "description": "The name of the tap and of its sub-folder.",
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "port": {
+          "description": "`<node>.<port>`.",
+          "title": "Port",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "port",
+        "name"
+      ],
+      "title": "Tap",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One pipeline file: `<pipeline_id>.pipeline.yaml`.",
+  "properties": {
+    "description": {
+      "default": "",
+      "description": "A short text for people.",
+      "title": "Description",
+      "type": "string"
+    },
+    "instrumentation": {
+      "$ref": "#/$defs/Instrumentation",
+      "description": "Timing points and taps."
+    },
+    "nodes": {
+      "description": "The nodes, in any order.",
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "concat": "#/$defs/ConcatNode",
+            "detector": "#/$defs/DetectorNode",
+            "first_of": "#/$defs/FirstOfNode",
+            "gate": "#/$defs/GateNode",
+            "mediapipe_tasks": "#/$defs/MediapipeTasksNode",
+            "redetect": "#/$defs/RedetectNode",
+            "roi_from_points": "#/$defs/RoiFromPointsNode",
+            "roi_tracking": "#/$defs/RoiTrackingNode",
+            "smooth_keypoints": "#/$defs/SmoothKeypointsNode",
+            "smooth_roi": "#/$defs/SmoothRoiNode"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/DetectorNode"
+          },
+          {
+            "$ref": "#/$defs/MediapipeTasksNode"
+          },
+          {
+            "$ref": "#/$defs/RoiFromPointsNode"
+          },
+          {
+            "$ref": "#/$defs/RoiTrackingNode"
+          },
+          {
+            "$ref": "#/$defs/GateNode"
+          },
+          {
+            "$ref": "#/$defs/FirstOfNode"
+          },
+          {
+            "$ref": "#/$defs/ConcatNode"
+          },
+          {
+            "$ref": "#/$defs/SmoothKeypointsNode"
+          },
+          {
+            "$ref": "#/$defs/SmoothRoiNode"
+          },
+          {
+            "$ref": "#/$defs/RedetectNode"
+          }
+        ]
+      },
+      "minItems": 1,
+      "title": "Nodes",
+      "type": "array"
+    },
+    "outputs": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Public output name to `<node>.<port>`.",
+      "minProperties": 1,
+      "title": "Outputs",
+      "type": "object"
+    },
+    "pipeline_id": {
+      "description": "The id of the pipeline. The file name is `<pipeline_id>.pipeline.yaml`.",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "title": "Pipeline Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "description": "The pipeline spec version, in SemVer, in quotes.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source": {
+      "description": "Who made the file, for example `skellytracker`. The key is `<pipeline_id>@<source>`.",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "title": "Source",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "pipeline_id",
+    "source",
+    "nodes",
+    "outputs"
+  ],
+  "title": "PipelineConfig",
+  "type": "object"
+}

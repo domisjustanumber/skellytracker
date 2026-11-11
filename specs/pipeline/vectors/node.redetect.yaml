@@ -1,0 +1,147 @@
+# tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
+# Hosts ignore `checks`. The names are the self-checks of the generator.
+section: node.redetect
+notes:
+  - "Normative text: specs/pipeline/nodes/redetect.md."
+  - "A case is one sequence. Each item of `frames` gives the `frame_number` and the
+    `@prev` inputs of one frame. `previous_keypoints` is a list of instance rows, and a
+    row is a list of points [x, y, visibility]. `previous_rois` is a list of instance
+    rows, and a row is an ROI [cx, cy, w, h, rotation] or null (the row is not present).
+    A null input is empty. `rotation` is in radians. `triggered` is true for each frame
+    where the node gives the image."
+  - "A throwaway script ran the reference and
+    skellytracker/core/temporal_processing/bbox_policy.py (BBoxPolicy.should_redetect,
+    with the four checks) on 2700 random `video` sequences with rotation 0, one row,
+    random intervals and the checks of these cases. The results were equal."
+tolerance: 0.000000001
+unverified: "Only the reference ran the cases. The comparison with BBoxPolicy.should_redetect is
+  in the notes, but that method has another signature, so it is not a verified_against
+  entry."
+cases:
+  - id: defaults-each-frame
+    params: {}
+    input:
+      running_mode: video
+      frames:
+        - {frame_number: 0, previous_keypoints: null, previous_rois: null}
+        - {frame_number: 1, previous_keypoints: null, previous_rois: null}
+        - {frame_number: 2, previous_keypoints: null, previous_rois: null}
+    expect: {triggered: [true, true, true]}
+  - id: redetect-interval
+    note: "a trigger on frame 0, then when frame_number - last trigger >= 3"
+    params: {redetect_interval: 3}
+    input:
+      running_mode: video
+      frames:
+        - {frame_number: 0, previous_keypoints: null, previous_rois: null}
+        - {frame_number: 1, previous_keypoints: null, previous_rois: null}
+        - {frame_number: 2, previous_keypoints: null, previous_rois: null}
+        - {frame_number: 3, previous_keypoints: null, previous_rois: null}
+        - {frame_number: 4, previous_keypoints: null, previous_rois: null}
+    expect: {triggered: [true, false, false, true, false]}
+  - id: live-frame-number-skips
+    note: "the interval counts frame numbers, so a skip counts"
+    params: {redetect_interval: 3}
+    input:
+      running_mode: live
+      frames:
+        - {frame_number: 0, previous_keypoints: null, previous_rois: null}
+        - {frame_number: 2, previous_keypoints: null, previous_rois: null}
+        - {frame_number: 3, previous_keypoints: null, previous_rois: null}
+        - {frame_number: 7, previous_keypoints: null, previous_rois: null}
+        - {frame_number: 8, previous_keypoints: null, previous_rois: null}
+    expect: {triggered: [true, false, true, true, false]}
+  - id: min-keypoint-visibility
+    note: "mean visibility of the valid points: 0.5 passes, 0.2 fails, no valid point passes;
+      on the last frame row 1 fails"
+    params: {redetect_interval: 100, fitness_checks: [{kind: min_keypoint_visibility}]}
+    input:
+      running_mode: video
+      frames:
+        - {frame_number: 0, previous_keypoints: null, previous_rois: null}
+        - frame_number: 1
+          previous_keypoints: [[[10, 10, 0.4], [20, 20, 0.6], [.nan, .nan, 0]]]
+          previous_rois: null
+        - frame_number: 2
+          previous_keypoints: [[[10, 10, 0.1], [20, 20, 0.3]]]
+          previous_rois: null
+        - frame_number: 3
+          previous_keypoints: [[[.nan, .nan, 0], [.nan, .nan, 0]]]
+          previous_rois: null
+        - frame_number: 4
+          previous_keypoints: [[[10, 10, 0.9], [20, 20, 0.9]], [[50, 50, 0.1], [60, 60, 0.1]]]
+          previous_rois: null
+    expect: {triggered: [true, false, true, false, true]}
+  - id: keypoints-within-rotated-roi
+    note: "rotation pi/2 turns the 100 x 20 ROI upright: 2 of 2 points are inside, then 1 of 3,
+      then no ROI"
+    params: {redetect_interval: 100, fitness_checks: [{kind: keypoints_within_bbox_ratio}]}
+    input:
+      running_mode: video
+      frames:
+        - {frame_number: 0, previous_keypoints: null, previous_rois: null}
+        - frame_number: 1
+          previous_keypoints: [[[100, 140, 1], [100, 60, 1]]]
+          previous_rois: [[100, 100, 100, 20, 1.5707963267948966]]
+        - frame_number: 2
+          previous_keypoints: [[[140, 100, 1], [60, 100, 1], [100, 140, 1]]]
+          previous_rois: [[100, 100, 100, 20, 1.5707963267948966]]
+        - frame_number: 3
+          previous_keypoints: [[[140, 100, 1], [60, 100, 1]]]
+          previous_rois: [null]
+    expect: {triggered: [true, false, true, false]}
+  - id: max-frames-without-redetect
+    params:
+      redetect_interval: 100
+      fitness_checks: [{kind: max_frames_without_redetect, n_frames: 2}]
+    input:
+      running_mode: video
+      frames:
+        - {frame_number: 0, previous_keypoints: null, previous_rois: null}
+        - {frame_number: 1, previous_keypoints: null, previous_rois: null}
+        - {frame_number: 2, previous_keypoints: null, previous_rois: null}
+        - {frame_number: 3, previous_keypoints: null, previous_rois: null}
+    expect: {triggered: [true, false, true, false]}
+  - id: bbox-area-collapse
+    note: "the ROI area is 10000; 80 x 80 grows to 88 x 88 and passes; the two points with
+      visibility 0.5 or more span 20 x 20, 22 x 22 < 0.25 x 10000 fails; one counted point
+      fails; a row with no point fails; no ROI passes"
+    params:
+      redetect_interval: 100
+      fitness_checks: [{kind: bbox_area_collapse, min_visibility: 0.5}]
+    input:
+      running_mode: video
+      frames:
+        - {frame_number: 0, previous_keypoints: null, previous_rois: null}
+        - frame_number: 1
+          previous_keypoints: [[[60, 60, 0.9], [140, 140, 0.9]]]
+          previous_rois: [[100, 100, 100, 100, 0]]
+        - frame_number: 2
+          previous_keypoints: [[[90, 90, 0.9], [110, 110, 0.9], [0, 0, 0.1], [200, 200, 0.1]]]
+          previous_rois: [[100, 100, 100, 100, 0]]
+        - frame_number: 3
+          previous_keypoints: [[[90, 90, 0.9], [110, 110, 0.2]]]
+          previous_rois: [[100, 100, 100, 100, 0]]
+        - frame_number: 4
+          previous_keypoints: [[[.nan, .nan, 0], [.nan, .nan, 0]]]
+          previous_rois: [[100, 100, 100, 100, 0]]
+        - frame_number: 5
+          previous_keypoints: [[[.nan, .nan, 0], [.nan, .nan, 0]]]
+          previous_rois: [null]
+    expect: {triggered: [true, false, true, true, true, false]}
+  - id: image-mode-each-frame
+    params: {redetect_interval: 5}
+    input:
+      running_mode: image
+      frames:
+        - {frame_number: 0, previous_keypoints: null, previous_rois: null}
+        - {frame_number: 0, previous_keypoints: null, previous_rois: null}
+    expect: {triggered: [true, true]}
+  - id: refused-field-of-another-check
+    note: "n_frames is a field of max_frames_without_redetect"
+    checks: [refused]
+    params: {fitness_checks: [{kind: min_keypoint_visibility, n_frames: 3}]}
+    input:
+      running_mode: video
+      frames: [{frame_number: 0, previous_keypoints: null, previous_rois: null}]
+    expect: {error: V-node.redetect-1}

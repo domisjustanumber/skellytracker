@@ -1,0 +1,31 @@
+# Spec example, structure only. It shows two chains on one frame: a person detector and a body
+# model, and a hand detector and a hand model.
+schema_version: "2.0.0"
+pipeline_id: rtmpose-hand-detector
+source: skellytracker
+description: >-
+  Structure only. YOLOX person then RTMPose body, and an RTMDet hand detector then RTMPose hand.
+nodes:
+  - id: person
+    type: detector
+    inputs: {image: frame.image}
+    params:
+      key: yolox-person@openmmlab-exporter
+      size: m
+      decode:
+        nms: {post_nms_top_k: 1}
+  - id: body
+    type: detector
+    inputs: {image: frame.image, rois: person.rois}
+    params: {key: rtmpose-body17@openmmlab-exporter, size: m}
+  - id: hands
+    type: detector
+    inputs: {image: frame.image}
+    params: {key: rtmdet-hand@openmmlab-exporter, size: m, max_instances: 2}
+  - id: hand
+    type: detector
+    inputs: {image: frame.image, rois: hands.rois}
+    params: {key: rtmpose-hand21@openmmlab-exporter, size: m}
+outputs:
+  body: body.keypoints
+  hands: hand.keypoints

@@ -1,0 +1,107 @@
+# tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
+# Hosts ignore `checks`. The names are the self-checks of the generator.
+section: node.gate
+notes:
+  - "Normative text: specs/pipeline/nodes/gate.md."
+  - "`value_type` and `condition_type` are the port types, known at load. A value of an
+    instance port (`roi`, `keypoints`, `detections`) is null (empty) or one row or null
+    (an empty row) for each instance. A value of another port type is null (empty) or a
+    placeholder string. A `keypoints` row of `condition` holds `xy` and `visibility`; a
+    `detections` row holds `confidence`."
+tolerance: 0.000001
+unverified: "Only the reference implementation ran the cases. No independent implementation
+  exists yet."
+cases:
+  - id: is-empty-passes-on-an-empty-condition
+    note: "the previous keypoints are empty on the first frame, so the image goes to the detector"
+    params: {mode: is_empty}
+    input: {value_type: image, condition_type: keypoints, value: frame-image, condition: null}
+    expect: {value: frame-image}
+  - id: is-empty-blocks-on-a-present-row
+    params: {mode: is_empty}
+    input:
+      value_type: image
+      condition_type: keypoints
+      value: frame-image
+      condition: [{xy: [[10, 20]], visibility: [0.9]}]
+    expect: {value: null}
+  - id: is-empty-passes-when-no-row-is-present
+    note: "a value with no present row is empty"
+    params: {mode: is_empty}
+    input:
+      value_type: image
+      condition_type: keypoints
+      value: frame-image
+      condition: [null, null]
+    expect: {value: frame-image}
+  - id: is-present-row-by-row
+    note: "row 0 passes; row 1 has an empty condition row; row 2 has an empty value row"
+    params: {mode: is_present}
+    input:
+      value_type: roi
+      condition_type: keypoints
+      value: [[100, 100, 50, 50, 0], [200, 200, 40, 40, 0], null]
+      condition: [{xy: [[10, 20]], visibility: [0.9]}, null, {xy: [[10, 20]], visibility: [0.9]}]
+    expect: {value: [[100, 100, 50, 50, 0], null, null]}
+  - id: score-above-detections-is-strict
+    note: "row 0: 0.8 is greater than 0.5; row 1: 0.5 is not; row 2: an empty row has no score"
+    params: {mode: score_above, threshold: 0.5}
+    input:
+      value_type: roi
+      condition_type: detections
+      value: [[100, 100, 50, 50, 0], [200, 200, 40, 40, 0], [300, 300, 30, 30, 0]]
+      condition: [{confidence: 0.8}, {confidence: 0.5}, null]
+    expect: {value: [[100, 100, 50, 50, 0], null, null]}
+  - id: score-above-keypoints-skips-nan-points
+    note: "the mean visibility of the two points that are not NaN is 0.7, greater than 0.6;
+      with the NaN point, the mean of the three would be 0.4667"
+    params: {mode: score_above, threshold: 0.6}
+    input:
+      value_type: image
+      condition_type: keypoints
+      value: frame-image
+      condition: [{xy: [[10, 10], [.nan, .nan], [20, 20]], visibility: [0.9, 0, 0.5]}]
+    expect: {value: frame-image}
+  - id: score-of-an-all-nan-row-is-0
+    note: "row 0: each point is NaN, so the score is 0, not greater than 0; row 1 passes"
+    params: {mode: score_above, threshold: 0}
+    input:
+      value_type: roi
+      condition_type: keypoints
+      value: [[100, 100, 50, 50, 0], [200, 200, 40, 40, 0]]
+      condition:
+        - {xy: [[.nan, .nan], [.nan, .nan]], visibility: [0, 0]}
+        - {xy: [[10, 10], [20, 20]], visibility: [0.2, 0.4]}
+    expect: {value: [null, [200, 200, 40, 40, 0]]}
+  - id: empty-value-gives-empty-output
+    params: {mode: is_present}
+    input:
+      value_type: image
+      condition_type: keypoints
+      value: null
+      condition: [{xy: [[10, 20]], visibility: [0.9]}]
+    expect: {value: null}
+  - id: score-above-needs-a-threshold
+    checks: [refused]
+    params: {mode: score_above}
+    input: {value_type: image, condition_type: keypoints, value: frame-image, condition: null}
+    expect: {error: V-node.gate-1}
+  - id: is-empty-has-no-threshold
+    checks: [refused]
+    params: {mode: is_empty, threshold: 0.5}
+    input: {value_type: image, condition_type: keypoints, value: frame-image, condition: null}
+    expect: {error: V-node.gate-1}
+  - id: score-above-on-a-roi-condition-is-refused
+    checks: [refused]
+    params: {mode: score_above, threshold: 0.5}
+    input: {value_type: image, condition_type: roi, value: frame-image, condition: null}
+    expect: {error: V-node.gate-2}
+  - id: row-counts-must-match
+    checks: [refused]
+    params: {mode: is_present}
+    input:
+      value_type: roi
+      condition_type: detections
+      value: [[100, 100, 50, 50, 0], [200, 200, 40, 40, 0]]
+      condition: [{confidence: 0.8}]
+    expect: {error: V-node.gate-3}

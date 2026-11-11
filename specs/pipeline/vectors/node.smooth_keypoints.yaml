@@ -1,0 +1,178 @@
+# tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
+# Hosts ignore `checks`. The names are the self-checks of the generator.
+section: node.smooth_keypoints
+notes:
+  - "Normative text: specs/pipeline/nodes/smooth_keypoints.md."
+  - "A case is one sequence. `frames` holds one item for each frame. An item is a list of
+    instance rows, and a row is a list of points [x, y]. `.nan` is a missing value. A
+    null item is an empty input. `keypoints` holds one output item for each input item.
+    The visibility and z of a point pass through unchanged, so the cases leave them out."
+  - "`params` holds the params that the file writes. The other params take their defaults."
+  - "dt is in frames: 1 in `video`, and (timestamp_ms - previous timestamp_ms) /
+    `frame_interval_ms` in `live`."
+  - "A throwaway script ran the reference and the filters and the reset counters of
+    skellytracker/core/temporal_processing/ (OneEuroFilter, KalmanFilter and
+    KeypointResetPolicy, with the filter state cleared on a reset) on 1400 random
+    `video` sequences with the params of these cases. The results agreed within 1e-9."
+tolerance: 0.000000001
+unverified: "Only the reference ran the cases. The comparison with the skellytracker filters is
+  in the notes, but that code has another signature, so it is not a verified_against
+  entry."
+cases:
+  - id: one-euro-defaults
+    note: "the first frame passes through; then alpha = 1 / (1 + 1 / (2 pi)) for each axis"
+    params: {}
+    input:
+      running_mode: video
+      frames:
+        - [[[0, 0], [100, 50]]]
+        - [[[10, 0], [100, 50]]]
+        - [[[20, 5], [102, 50]]]
+        - [[[30, 5], [102, 50]]]
+    expect:
+      keypoints:
+        - [[[0, 0], [100, 50]]]
+        - [[[8.626974, 0], [100, 50]]]
+        - [[[18.438454, 4.313487], [101.725395, 50]]]
+        - [[[28.41257, 4.90574], [101.962296, 50]]]
+  - id: one-euro-speed-coefficient
+    note: "beta adds 0.1 x |dx| to the cutoff, so a fast point gets less smoothing"
+    params: {min_cutoff: 0.5, beta: 0.1, d_cutoff: 2}
+    input: {running_mode: video, frames: [[[[0, 0]]], [[[10, 0]]], [[[20, 5]]], [[[30, 5]]]]}
+    expect:
+      keypoints:
+        - [[[0, 0]]]
+        - [[[8.996149, 0]]]
+        - [[[18.997361, 4.290942]]]
+        - [[[29.004184, 4.851312]]]
+  - id: kalman-defaults
+    note: "constant velocity: predict, then update with K = P[:, 0] / (P00 + R) on each axis"
+    params: {filter: kalman}
+    input: {running_mode: video, frames: [[[[0, 0]]], [[[10, 0]]], [[[20, 5]]], [[[30, 5]]]]}
+    expect:
+      keypoints:
+        - [[[0, 0]]]
+        - [[[9.173554, 0]]]
+        - [[[16.784566, 3.392283]]]
+        - [[[26.990311, 5.005293]]]
+  - id: one-euro-gap-hold
+    note: "the point holds its last estimate for 2 frames, is NaN on the third, then starts again"
+    params: {max_gap_frames: 2}
+    input:
+      running_mode: video
+      frames:
+        - [[[0, 0]]]
+        - [[[10, 0]]]
+        - [[[.nan, .nan]]]
+        - [[[.nan, .nan]]]
+        - [[[.nan, .nan]]]
+        - [[[40, 0]]]
+    expect:
+      keypoints:
+        - [[[0, 0]]]
+        - [[[8.626974, 0]]]
+        - [[[8.626974, 0]]]
+        - [[[8.626974, 0]]]
+        - [[[.nan, .nan]]]
+        - [[[40, 0]]]
+  - id: kalman-gap-predicts
+    note: "in a gap the output is the prediction est + v dt; a small measurement_noise follows
+      the measurements more closely"
+    params:
+      filter: kalman
+      process_noise_pos: 4
+      process_noise_vel: 0.5
+      measurement_noise: 2
+      max_gap_frames: 2
+    input:
+      running_mode: video
+      frames:
+        - [[[0, 0]]]
+        - [[[10, 0]]]
+        - [[[20, 0]]]
+        - [[[.nan, .nan]]]
+        - [[[.nan, .nan]]]
+        - [[[.nan, .nan]]]
+    expect:
+      keypoints:
+        - [[[0, 0]]]
+        - [[[9.736842, 0]]]
+        - [[[19.738562, 0]]]
+        - [[[28.79085, 0]]]
+        - [[[37.843137, 0]]]
+        - [[[.nan, .nan]]]
+  - id: velocity-rejection
+    note: "the jump of 90 pixels is more than max_velocity x dt = 15, so the point is held"
+    params: {max_gap_frames: 1, max_velocity: 15}
+    input: {running_mode: video, frames: [[[[0, 0]]], [[[10, 0]]], [[[100, 0]]], [[[20, 0]]]]}
+    expect: {keypoints: [[[[0, 0]]], [[[8.626974, 0]]], [[[8.626974, 0]]], [[[18.438454, 0]]]]}
+  - id: reset-with-backoff
+    note: "limits 2, then min(2 x 2, 3) = 3: a reset after the frame indices 3 and 6 ends the
+      hold; the index 7 starts again from the input"
+    params:
+      max_gap_frames: 10
+      max_consecutive_misses: 2
+      backoff_multiplier: 2
+      max_backoff_misses: 3
+    input:
+      running_mode: video
+      frames:
+        - [[[0, 0]]]
+        - [[[10, 0]]]
+        - [[[.nan, .nan]]]
+        - [[[.nan, .nan]]]
+        - [[[.nan, .nan]]]
+        - [[[.nan, .nan]]]
+        - [[[.nan, .nan]]]
+        - [[[50, 0]]]
+    expect:
+      keypoints:
+        - [[[0, 0]]]
+        - [[[8.626974, 0]]]
+        - [[[8.626974, 0]]]
+        - [[[8.626974, 0]]]
+        - [[[.nan, .nan]]]
+        - [[[.nan, .nan]]]
+        - [[[.nan, .nan]]]
+        - [[[50, 0]]]
+  - id: live-dt-and-empty-input
+    note: "frame_interval_ms 40: dt = 1, 1, 1, 2; the empty input at 80 ms is a frame with no
+      point, and the point holds"
+    params: {max_gap_frames: 1}
+    input:
+      running_mode: live
+      frame_interval_ms: 40
+      timestamps_ms: [0, 40, 80, 120, 200]
+      frames: [[[[0, 0]]], [[[10, 0]]], null, [[[30, 0]]], [[[50, 0]]]]
+    expect:
+      keypoints:
+        - [[[0, 0]]]
+        - [[[8.626974, 0]]]
+        - [[[8.626974, 0]]]
+        - [[[27.065429, 0]]]
+        - [[[48.309454, 0]]]
+  - id: image-mode-passes-through
+    note: "image mode keeps no state, so the output is the input"
+    params: {}
+    input: {running_mode: image, frames: [[[[0, 0]]], [[[10, 0]]]]}
+    expect: {keypoints: [[[[0, 0]]], [[[10, 0]]]]}
+  - id: refused-param-of-the-other-filter
+    note: "beta is a one_euro param, and the filter is kalman"
+    checks: [refused]
+    params: {filter: kalman, beta: 0.1}
+    input: {running_mode: video, frames: [[[[0, 0]]]]}
+    expect: {error: V-node.smooth_keypoints-1}
+  - id: refused-backoff-without-miss-limit
+    checks: [refused]
+    params: {backoff_multiplier: 3}
+    input: {running_mode: video, frames: [[[[0, 0]]]]}
+    expect: {error: V-node.smooth_keypoints-2}
+  - id: refused-timestamp-not-increasing
+    checks: [refused]
+    params: {}
+    input:
+      running_mode: live
+      frame_interval_ms: 40
+      timestamps_ms: [0, 40, 40]
+      frames: [[[[0, 0]]], [[[10, 0]]], [[[20, 0]]]]
+    expect: {error: V-node.smooth_keypoints-3}

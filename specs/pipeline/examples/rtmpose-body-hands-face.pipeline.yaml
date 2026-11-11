@@ -1,0 +1,76 @@
+# Planned built-in pipeline. It shows a fan-out: a body model gives the points of two hand ROIs
+# and one face ROI (roi_from_points), a model runs on each ROI, and concat joins the points of
+# the person into one keypoints output. The hand and face ROI rules are not measured yet.
+schema_version: "2.0.0"
+pipeline_id: rtmpose-body-hands-face
+source: skellytracker
+description: >-
+  YOLOX person, RTMPose body, then RTMPose hands and face on ROIs from the body points.
+  The hand and face ROI rules are not measured yet.
+nodes:
+  - id: person
+    type: detector
+    inputs: {image: frame.image}
+    params:
+      key: yolox-person@openmmlab-exporter
+      size: m
+      decode:
+        nms: {post_nms_top_k: 1}
+  - id: body
+    type: detector
+    inputs: {image: frame.image, rois: person.rois}
+    params: {key: rtmpose-body17@openmmlab-exporter, size: m}
+  - id: left_hand_roi
+    type: roi_from_points
+    inputs: {keypoints: body.keypoints}
+    params:
+      points: [left_wrist, left_elbow]
+      derived:
+        - name: left_hand_center
+          weights: {left_wrist: 1.5, left_elbow: -0.5}
+      size_rule: alignment
+      alignment_start: left_hand_center
+      alignment_end: left_wrist
+      square_long: true
+      scale: 2.0
+  - id: right_hand_roi
+    type: roi_from_points
+    inputs: {keypoints: body.keypoints}
+    params:
+      points: [right_wrist, right_elbow]
+      derived:
+        - name: right_hand_center
+          weights: {right_wrist: 1.5, right_elbow: -0.5}
+      size_rule: alignment
+      alignment_start: right_hand_center
+      alignment_end: right_wrist
+      square_long: true
+      scale: 2.0
+  - id: face_roi
+    type: roi_from_points
+    inputs: {keypoints: body.keypoints}
+    params:
+      points: [nose, left_eye, right_eye, left_ear, right_ear]
+      square_long: true
+      scale: 1.5
+  - id: left_hand
+    type: detector
+    inputs: {image: frame.image, rois: left_hand_roi.rois}
+    params: {key: rtmpose-hand21@openmmlab-exporter, size: m}
+  - id: right_hand
+    type: detector
+    inputs: {image: frame.image, rois: right_hand_roi.rois}
+    params: {key: rtmpose-hand21@openmmlab-exporter, size: m}
+  - id: face
+    type: detector
+    inputs: {image: frame.image, rois: face_roi.rois}
+    params: {key: rtmpose-face106@openmmlab-exporter, size: m}
+  - id: joined
+    type: concat
+    inputs:
+      body: body.keypoints
+      left_hand: left_hand.keypoints
+      right_hand: right_hand.keypoints
+      face: face.keypoints
+outputs:
+  wholebody: joined.keypoints
