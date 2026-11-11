@@ -2,7 +2,9 @@
 
 This log records the technical decisions for skellytracker that affect more than one module, with
 their reasons and evidence. The [spec log](../specs/model-sidecar/decisions/README.md) holds the
-decisions of the sidecar spec only ([ADR-GN3D](entries/GN3D-module-decision-logs.md)). Read this file before you change the spec, a sidecar, the
+decisions of the sidecar spec only ([ADR-GN3D](entries/GN3D-module-decision-logs.md)). The
+[pipeline spec log](../specs/pipeline/decisions/README.md) holds the decisions of the pipeline spec
+only ([ADR-3SF2](entries/3SF2-pipeline-spec-and-node-workflow.md)). Read this file before you change the spec, a sidecar, the
 sidecar code, the agent instructions or the PR workflow. Also read [open-work.md](open-work.md). The
 [Rules](#rules) tell you which entries to read.
 

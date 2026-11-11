@@ -36,6 +36,7 @@ This file holds the rules for each task. The other instructions load only when y
 |---|---|
 | [`skellytracker/AGENTS.md`](skellytracker/AGENTS.md) | Package code and tests: layout, detector registries, ONNX Runtime, code conventions, test notes |
 | [`specs/model-sidecar/AGENTS.md`](specs/model-sidecar/AGENTS.md) | The sidecar spec, a sidecar or a reference example |
+| [`specs/pipeline/AGENTS.md`](specs/pipeline/AGENTS.md) | The pipeline spec: the pipeline config format, its node types and its examples |
 | [Skills](#2-skills) | One step of a task, for example a commit on the working branch |
 
 A rule that applies to one folder goes in the `AGENTS.md` of that folder.

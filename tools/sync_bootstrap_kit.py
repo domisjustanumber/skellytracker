@@ -86,7 +86,7 @@ COPIES = (
             ),
             ("LAST_UNLIMITED_ENTRY = 25\n", "LAST_UNLIMITED_ENTRY = 0\n"),
             (
-                'LOG_DIRS = (LOG_DIR, Path("specs") / "model-sidecar" / "decisions")\n',
+                'LOG_DIRS = (LOG_DIR, Path("specs") / "model-sidecar" / "decisions", Path("specs") / "pipeline" / "decisions")\n',
                 "LOG_DIRS = (LOG_DIR,)  # A step of the kit guide adds the module logs.\n",
             ),
             (

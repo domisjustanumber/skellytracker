@@ -91,7 +91,7 @@ from pathlib import Path
 
 LOG_DIR = Path("decisions")
 # The root log first. Add the folder of each module log, relative to ROOT.
-LOG_DIRS = (LOG_DIR, Path("specs") / "model-sidecar" / "decisions")
+LOG_DIRS = (LOG_DIR, Path("specs") / "model-sidecar" / "decisions", Path("specs") / "pipeline" / "decisions")
 # A folder where a log was before a move. Only --new reads it, in other worktrees and on branches.
 OLD_LOG_DIRS: tuple[Path, ...] = (Path("notes") / "decisions",)
 # The folder of the entry files in each log. A log before the move to it had them in the log folder.
