@@ -31,6 +31,7 @@ These entries are `accepted` or `evidence`.
 | [AMJ8](entries/AMJ8-replace-package-onnx-detectors.md) | Replace the package ONNX detectors with exporter models; no legacy layer; shipped sidecars in `core/model_zoo/`; RTMPose replacements block v2.0.0 | accepted |
 | [AQR4](entries/AQR4-detectors-and-pipelines-entry-points.md) | Entry points `detectors` and `pipelines`; `system/`, `metrics/`, `eps/` under an eager `core`; calibration outside pipelines; user root | accepted |
 | [MSH0](entries/MSH0-supported-platforms-v2.md) | v2.0.0 supports Python 3.11 to 3.13 and MediaPipe 1.2.2; no Intel Mac | accepted |
+| [EM74](entries/EM74-stage-order-and-ci-models.md) | New code beside old; order N5, pre-release, P, Da, N6, Db, Dc; standalone generic detectors; generated ONNX models in CI | accepted |
 
 ### Proposed
 
