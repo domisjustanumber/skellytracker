@@ -34,6 +34,7 @@ These entries are `accepted` or `evidence`.
 | [EM74](entries/EM74-stage-order-and-ci-models.md) | New code beside old; order N5, pre-release, P, Da, N6, Db, Dc; standalone generic detectors; generated ONNX models in CI | accepted |
 | [7NY2](entries/7NY2-pipeline-form-graph-and-nodes.md) | Pipeline config: one Pydantic model from YAML; flat node graph with `@prev`; detector, `mediapipe_tasks` and closed glue nodes | accepted |
 | [99MH](entries/99MH-pipeline-outputs-and-running.md) | Pipeline outputs with an instance dimension; running modes; batch k × cameras, camera count when stateful; session sharing; load checks | accepted |
+| [Q59W](entries/Q59W-pipeline-timing-and-taps.md) | Pipeline timing points and JSONL events with a header; record and replay taps; COCO-only CLI run for skellybench | accepted |
 
 ### Proposed
 
