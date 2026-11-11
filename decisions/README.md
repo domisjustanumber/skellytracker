@@ -33,6 +33,7 @@ These entries are `accepted` or `evidence`.
 | [MSH0](entries/MSH0-supported-platforms-v2.md) | v2.0.0 supports Python 3.11 to 3.13 and MediaPipe 1.2.2; no Intel Mac | accepted |
 | [EM74](entries/EM74-stage-order-and-ci-models.md) | New code beside old; order N5, pre-release, P, Da, N6, Db, Dc; standalone generic detectors; generated ONNX models in CI | accepted |
 | [7NY2](entries/7NY2-pipeline-form-graph-and-nodes.md) | Pipeline config: one Pydantic model from YAML; flat node graph with `@prev`; detector, `mediapipe_tasks` and closed glue nodes | accepted |
+| [99MH](entries/99MH-pipeline-outputs-and-running.md) | Pipeline outputs with an instance dimension; running modes; batch k × cameras, camera count when stateful; session sharing; load checks | accepted |
 
 ### Proposed
 
