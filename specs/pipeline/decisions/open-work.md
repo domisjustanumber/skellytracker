@@ -7,12 +7,9 @@ root [open-work.md](../../../decisions/open-work.md).
 
 ## Draft spec
 
-- **The draft.** Write the draft spec in `specs/pipeline/`: the Pydantic reference model and the
-  JSON Schema that a tool makes from it, the node tables, the `V-` rules, the examples, the glue
-  reference implementations and their vectors
-  ([ADR-3SF2](../../../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md)).
-- **Vector tool.** `tools/make_vectors.py` maps the section prefix `node.` to `specs/pipeline/`,
-  with tests. This comes with the draft, before the glue vectors.
+- **Named tests.** `first_of` and `concat` have no vectors. Each needs a named test in
+  `tools/tests/` ([ADR-3SF2](../../../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md)
+  item 4).
 - **Node workflow.** After the draft lands: one workflow file and one node-proposal template in
   `specs/pipeline/`, the landing skill `change-pipeline-spec`, and the `node.` mapping of
   `tools/intake_bundle.py` ([ADR-3SF2](../../../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md)
