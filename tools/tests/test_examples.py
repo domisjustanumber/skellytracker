@@ -167,7 +167,7 @@ def defined_keys() -> frozenset[str]:
     """
     names: set[str] = set()
     paths = [SPEC_ROOT / "sidecar-spec.md"]
-    paths += [p for folder in ("format", "common", "pre", "post") for p in (SPEC_ROOT / folder).glob("*.md")]
+    paths += [p for folder in ("format", "common", "pre", "post") for p in (SPEC_ROOT / folder).rglob("*.md")]
     for path in paths[1:]:
         front, _ = sidecar_trace.parse_front_matter(path.read_text(encoding="utf-8"), str(path))
         for selector in front.get("selectors") or []:

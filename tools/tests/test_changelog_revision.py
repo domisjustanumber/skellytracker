@@ -11,7 +11,9 @@ to the summary of changes. The session of a skellytracker pre-release appends
 A test cannot see the commit that it runs in, so the baseline is a value in the changelog: the
 fingerprint of the last `Row` line. The fingerprint is the SHA-256 of the sorted heading lines and
 `V-` rule lines of the section files (`format/`, `common/`, `pre/`, `post/`), outside code blocks.
-The lines are sorted, so a move of a section or a rule does not change the value. A checked rule
+The lines are sorted, so a move of a section or a rule does not change the value. Each relative link
+is written relative to the top section folder, so a move into a subfolder of `post/` does not
+change the value either. A checked rule
 counts as unchecked, so the implementation of a rule does not change the value either.
 
 A commit that changes a heading or a rule thus fails here until it adds a summary row and a `Row`
@@ -30,6 +32,7 @@ Compare with the parent commit in CI if that edit happens.
 """
 
 import hashlib
+import posixpath
 import re
 from pathlib import Path
 from typing import NamedTuple
@@ -37,7 +40,8 @@ from typing import NamedTuple
 import pytest
 import sidecar_trace as st
 
-CHANGELOG = st.spec_dir() / "changelog.md"
+SPEC = st.spec_dir()
+CHANGELOG = SPEC / "changelog.md"
 SUMMARY_ROW = re.compile(r"^\| (\d+) \|", re.MULTILINE)
 NUMBER = r"(\d+)\.(\d+)\.(\d+)"
 RELEASED = re.compile(r"- Released: (yes|no)\.")
@@ -55,7 +59,25 @@ class Version(NamedTuple):
     pre_releases: list[tuple[tuple[int, int, int], str, int, int]]
 
 
-def normative_fingerprint(paths: list[Path]) -> str:
+LINK_PATH = re.compile(r"\]\(([^)#\s:]+)")
+
+
+def top_folder_links(line: str, path: Path, spec: Path) -> str:
+    """Write each relative link of `line` relative to the top section folder of `path`, for example `post/`.
+
+    A section file one folder deeper, for example in `post/object/`, then gives the same line as
+    in `post/`. Thus a move into a subfolder does not change the fingerprint.
+    """
+    if not path.is_relative_to(spec):
+        return line
+    relative = path.relative_to(spec).as_posix()
+    folder, top = posixpath.dirname(relative), relative.split("/")[0]
+    return LINK_PATH.sub(
+        lambda m: "](" + posixpath.relpath(posixpath.normpath(posixpath.join(folder, m[1])), top), line
+    )
+
+
+def normative_fingerprint(paths: list[Path], spec: Path = SPEC) -> str:
     """Return the SHA-256 of the sorted heading lines and `V-` rule lines of the section files."""
     lines = []
     for path in paths:
@@ -65,7 +87,8 @@ def normative_fingerprint(paths: list[Path]) -> str:
             if line.startswith("```"):
                 fenced = not fenced
             elif not fenced and (line.startswith("#") or st.RULE_LINE.match(line)):
-                lines.append(re.sub(r"^- \[[xX]\]", "- [ ]", line.rstrip()))
+                line = re.sub(r"^- \[[xX]\]", "- [ ]", line.rstrip())
+                lines.append(top_folder_links(line, path, spec))
     return hashlib.sha256("\n".join(sorted(lines)).encode("utf-8")).hexdigest()
 
 
@@ -197,3 +220,11 @@ def test_the_fingerprint_ignores_order_checkboxes_and_code(tmp_path: Path) -> No
     )
     assert fingerprint("# A\n\n- [ ] `V-ab-1` x\n- [ ] `V-ab-2` z\n") != base
     assert fingerprint("# B\n\n- [ ] `V-ab-1` x\n- [ ] `V-ab-2` y\n") != base
+
+
+def test_the_fingerprint_ignores_a_move_into_a_subfolder(tmp_path: Path) -> None:
+    flat, deep = tmp_path / "post" / "a.md", tmp_path / "post" / "object" / "a.md"
+    deep.parent.mkdir(parents=True)
+    flat.write_text("---\nid: a\n---\n- [ ] `V-ab-1` x ([y](../../d/e.md#f)).\n", encoding="utf-8")
+    deep.write_text("---\nid: a\n---\n- [ ] `V-ab-1` x ([y](../../../d/e.md#f)).\n", encoding="utf-8")
+    assert normative_fingerprint([flat], tmp_path) == normative_fingerprint([deep], tmp_path)

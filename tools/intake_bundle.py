@@ -925,7 +925,7 @@ def _section_id(path: Path) -> str | None:
 
 def section_modules(repo: Path = REPO_ROOT) -> set[str]:
     """Return the module name of each section of the spec, for example `pre_resize_letterbox`."""
-    ids = (_section_id(p) for folder in SECTION_FOLDERS for p in sorted((repo / SPEC / folder).glob("*.md")))
+    ids = (_section_id(p) for folder in SECTION_FOLDERS for p in sorted((repo / SPEC / folder).rglob("*.md")))
     return {i.replace(".", "_") for i in ids if i}
 
 
@@ -1107,7 +1107,7 @@ def changed_sections(spec_commit: str, repo: Path = REPO_ROOT) -> list[str] | No
     ids = set()
     for rel in result.stdout.splitlines():
         parts = rel.split("/")
-        if len(parts) != 4 or parts[2] not in SECTION_FOLDERS or not rel.endswith(".md"):
+        if len(parts) < 4 or parts[2] not in SECTION_FOLDERS or not rel.endswith(".md"):
             continue
         path = repo / rel
         if not path.is_file():

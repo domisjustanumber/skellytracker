@@ -340,7 +340,7 @@ def section_files(repo_root: Path = REPO_ROOT) -> list[Path]:
     return [
         path
         for folder in SECTION_FOLDERS
-        for path in sorted((base / folder).glob("*.md"))
+        for path in sorted((base / folder).rglob("*.md"))
     ]
 
 
@@ -355,7 +355,7 @@ def load_sections(repo_root: Path = REPO_ROOT) -> list[Section]:
     for path in section_files(repo_root):
         relative = path.relative_to(base).as_posix()
         data, body = parse_front_matter(path.read_text(encoding="utf-8"), relative)
-        front = FrontMatter.parse(data, path.parent.name, relative)
+        front = FrontMatter.parse(data, relative.split("/")[0], relative)
         section_id = front.id
         if section_id in found:
             raise TraceError(
