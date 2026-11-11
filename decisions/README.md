@@ -36,6 +36,7 @@ These entries are `accepted` or `evidence`.
 | [99MH](entries/99MH-pipeline-outputs-and-running.md) | Pipeline outputs with an instance dimension; running modes; batch k × cameras, camera count when stateful; session sharing; load checks | accepted |
 | [Q59W](entries/Q59W-pipeline-timing-and-taps.md) | Pipeline timing points and JSONL events with a header; record and replay taps; COCO-only CLI run for skellybench | accepted |
 | [8NVD](entries/8NVD-pipeline-api-warnings-and-catalog.md) | Pipeline API `core.pipelines`; built-ins; `PipelineWarning`; dependency reports; Holistic for MediaPipe; node catalog | accepted |
+| [3SF2](entries/3SF2-pipeline-spec-and-node-workflow.md) | Pipeline spec in `specs/pipeline/`: section IDs, reference model and schema, glue vectors, changelog, own module log, node workflow | accepted |
 
 ### Proposed
 
