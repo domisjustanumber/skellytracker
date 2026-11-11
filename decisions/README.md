@@ -27,6 +27,7 @@ These entries are `accepted` or `evidence`.
 | [CN15](entries/CN15-spec-readme-is-the-only-entry-point.md) | The spec `README.md` is the only entry point; `sidecar-spec.md` is frozen, and M11 deletes it after the code cites section IDs; the root README links the spec | accepted |
 | [9MJ6](entries/9MJ6-remove-the-heatmap-decode.md) | Remove the heatmap decode: no `heatmap` method, semantic or section until a model brings a full contract | accepted |
 | [9HBB](entries/9HBB-simcc-decode-is-2d-only.md) | The SimCC decode is 2D only: no `simcc_z`, no `depth_range`; a 3D SimCC model adds its own section | accepted |
+| [87B2](entries/87B2-local-graphify-code-graph.md) | Optional local graphify code graph in an ignored `graphify-out/`; `uvx` pin; hooks from `tools/graphify_hooks.py`; opt-in for each checkout | accepted |
 
 ### Proposed
 
