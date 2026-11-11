@@ -37,7 +37,7 @@ An ONNX filename gives the size, the batch and the precision: `{model_id}-{size}
 
 ### Storage layout
 
-A sidecar and its ONNX files are under a sidecar root (`{sidecar_root}`, see [Sidecar roots](#sidecar-roots)). The package root is `skellytracker/core`. The layout follows the detector taxonomy:
+A sidecar and its ONNX files are under a sidecar root (`{sidecar_root}`, see [Sidecar roots](#sidecar-roots)). The package root is `skellytracker/core/model_zoo` ([ADR-AMJ8](../../../decisions/entries/AMJ8-replace-package-onnx-detectors.md)). The layout follows the detector taxonomy:
 
 ```text
 {sidecar_root}/
@@ -96,7 +96,7 @@ detectors/keypoint_detectors/rtmw/wholebody/
 
 A sidecar root (`{sidecar_root}`) is a folder that holds sidecars, their ONNX files and their fragments. Each sidecar root must follow the [Storage layout](#storage-layout). These folders are sidecar roots:
 
-- the package root, `skellytracker/core`;
+- the package root, `skellytracker/core/model_zoo`;
 - each local folder that a user adds;
 - each Hugging Face repo snapshot. The top folder of the snapshot is `{sidecar_root}`.
 
