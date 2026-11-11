@@ -1,13 +1,16 @@
-"""Write `expect` in each sidecar vector file with the producer of its section.
+"""Write `expect` in each sidecar and pipeline vector file with the producer of its section.
 
-Each vector file is `specs/model-sidecar/vectors/<section-id>.yaml`. A case is a small
+Each vector file is `specs/model-sidecar/vectors/<section-id>.yaml`. The vector file of a
+section ID that starts with `node.` is `specs/pipeline/vectors/<section-id>.yaml`, and its
+reference folder is `specs/pipeline/reference/` (`dirs`; ADR-3SF2 item 4). A case is a small
 worked example: the inputs of one section's algorithm and the exact expected
 output. The vector file is the only source of its cases (ADR-8DSW). A person
 writes the other keys. This tool reads each file, computes `expect` of each case
 again and writes the file.
 
 The producer of a section is `specs/model-sidecar/reference/<section_module>.py`
-when it exists, else the formula module `tools/vector_formulas/<section_module>.py`.
+(or in the pipeline reference folder) when it exists, else the formula module
+`tools/vector_formulas/<section_module>.py`.
 Each formula module is a reading of its section file. A vector that disagrees
 with the normative text is a defect of the spec or of the producer: fix one of
 them, never the vector alone. When a reference is the producer, the formula
@@ -43,6 +46,11 @@ Usage:
 
 `fill` and `land` are items 6 and 5 of ADR-8DSW. Each prints its problems and
 exits 1 when it finds one. It writes its file only when it finds none.
+
+The generate mode and `--check` read the vector files of both vector folders. The tool writes
+each file to its own folder and checks it there. With `--out`, all files go to that one folder.
+A vector folder that does not exist has no files. The rule IDs are those of the sidecar section
+files and of the rule lines of `specs/pipeline/**/*.md`, except `specs/pipeline/decisions/`.
 """
 
 from __future__ import annotations
@@ -81,6 +89,9 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 VECTORS_DIR = REPO_ROOT / "specs" / "model-sidecar" / "vectors"
 REFERENCE_DIR = REPO_ROOT / "specs" / "model-sidecar" / "reference"
 FORMULAS_DIR = REPO_ROOT / "tools" / "vector_formulas"
+PIPELINE_DIR = REPO_ROOT / "specs" / "pipeline"
+# The (vector folder, reference folder) of the sidecar spec and of the pipeline spec.
+FOLDERS = ((VECTORS_DIR, REFERENCE_DIR), (PIPELINE_DIR / "vectors", PIPELINE_DIR / "reference"))
 HEADER = (
     "# tools/make_vectors.py writes `expect`. Edit the other keys, then run it.",
     "# Hosts ignore `checks`. The names are the self-checks of the generator.",
@@ -97,6 +108,15 @@ LEADING_RULE = re.compile(r"(V-[a-z][a-z0-9_.]*[a-z0-9]-\d+):")
 EXACT_INT_LIMIT = 2.0**53
 # The folders that `load_reference` has run, as given (`str(folder)`).
 _LOADED_FOLDERS: set[str] = set()
+
+
+def dirs(section: str) -> tuple[Path, Path]:
+    """Return the vector folder and the reference folder of `section`.
+
+    A section ID that starts with `node.` is a pipeline section (ADR-3SF2 item 4). Each other
+    section ID is a sidecar section.
+    """
+    return FOLDERS[1] if section.startswith("node.") else FOLDERS[0]
 
 
 def load_reference(section: str, folder: Path = REFERENCE_DIR) -> ModuleType:
@@ -409,9 +429,20 @@ def run_checks(
 
 
 def rule_ids() -> frozenset[str]:
-    """Return every rule ID that a section file defines."""
+    """Return every rule ID that a sidecar section file or a pipeline spec file defines."""
     sections = sidecar_trace.load_sections()
-    return frozenset(rule for section in sections for rule in sidecar_trace.section_rules(section))
+    pipeline = [
+        path
+        for path in PIPELINE_DIR.rglob("*.md")
+        if path.relative_to(PIPELINE_DIR).parts[0] != "decisions"
+    ]
+    return frozenset(
+        rule for section in sections for rule in sidecar_trace.section_rules(section)
+    ) | frozenset(
+        rule
+        for path in pipeline
+        for rule in sidecar_trace.RULE_LINE.findall(path.read_text(encoding="utf-8"))
+    )
 
 
 def package_function(reference: str) -> Any:
@@ -501,7 +532,7 @@ def fill(path: Path, reference: Path) -> list[str]:
     """Write `expect` in one bundle vector file with the bundle reference (ADR-8DSW, item 6).
 
     The producer is `<reference>/<section_module>.py`, else the producer of this
-    checkout. The rule IDs are those of the section files and of part 2.4 of the
+    checkout in the reference folder of the section (`dirs`). The rule IDs are those of the section files and of part 2.4 of the
     `proposal.md` next to the reference folder. A proposed reference can differ
     from the current text, so no formula module cross-checks it. The tool writes
     only `path`, never a file of this checkout. It runs the code of `reference`,
@@ -521,20 +552,21 @@ def fill(path: Path, reference: Path) -> list[str]:
         return [f"{path.name}: a vector file names its section"]
     section = data["section"]
     module = reference / f"{section.replace('.', '_')}.py"
-    folder = reference if module.is_file() else REFERENCE_DIR
+    landed = dirs(section)[1]
+    folder = reference if module.is_file() else landed
     rules = set(rule_ids())
     # shortcut: a contribution has no proposal.md, so it cannot use a new rule ID of its owner yet.
     proposal = reference.parent / "proposal.md"
     if proposal.is_file():
         text = proposal.read_text(encoding="utf-8", errors="replace")
         rules.update(intake_bundle.RULE_ID.findall("".join(intake_bundle.PART_2_4.findall(text))))
-    sys.path.append(str(REFERENCE_DIR))  # a bundle module can import a landed module
+    sys.path.append(str(landed))  # a bundle module can import a landed module
     try:
         out = run_file(data, folder, rules=rules, cross_check=False)
     except CaseDefect as error:
         return [f"{path.name}: {error}"]
     finally:
-        sys.path.remove(str(REFERENCE_DIR))
+        sys.path.remove(str(landed))
     path.write_text(render(out), encoding="utf-8", newline="\n")
     return []
 
@@ -594,8 +626,8 @@ def land(
     part4: Path,
     contributions: list[Path],
     replaces: list[str],
-    vectors_dir: Path = VECTORS_DIR,
-    folder: Path = REFERENCE_DIR,
+    vectors_dir: Path | None = None,
+    folder: Path | None = None,
 ) -> list[str]:
     """Land the vectors of an accepted proposal: Procedure B step 9 (ADR-8DSW, item 5).
 
@@ -607,13 +639,16 @@ def land(
     `verified_against` entry on the cases it covers. The landed producer computes each `expect`
     again, and each given `expect` must agree with it. The tool writes
     `<vectors_dir>/<section>.yaml` only when it finds no problem and the file is
-    256 KiB or smaller. Return the problems.
+    256 KiB or smaller. Without `vectors_dir` or `folder`, the tool uses the folder of the
+    section (`dirs`). Return the problems.
     """
     files = [part4, *contributions]
     inputs = [_load(path) for path in files]
     if not (isinstance(inputs[0], dict) and isinstance(inputs[0].get("section"), str)):
         return [f"{part4.name}: a vector file names its section"]
     section = inputs[0]["section"]
+    vectors_dir = vectors_dir or dirs(section)[0]
+    folder = folder or dirs(section)[1]
     rules = rule_ids()
     found = []
     for path, data in zip(files, inputs):  # noqa: B905 (one data for each file)
@@ -685,7 +720,9 @@ def main(argv: list[str]) -> int:
     parser.add_argument(
         "--check", action="store_true", help="exit 1 when a file differs"
     )
-    parser.add_argument("--out", type=Path, default=VECTORS_DIR, help="output folder")
+    parser.add_argument(
+        "--out", type=Path, help="one output folder for all files (default: the folder of each file)"
+    )
     commands = parser.add_subparsers(dest="command")
     fill_command = commands.add_parser("fill", help="write expect in a bundle vector file")
     fill_command.add_argument("file", type=Path, help="vectors/<section ID>.yaml of a payload folder")
@@ -708,21 +745,24 @@ def main(argv: list[str]) -> int:
         print("\n".join(found) or f"{args.command}: no problems")
         return 1 if found else 0
 
-    texts = generate()
+    texts = {
+        (args.out or vectors_dir) / name: text
+        for vectors_dir, folder in FOLDERS
+        for name, text in generate(vectors_dir, folder).items()
+    }
     if args.check:
         stale = [
-            name
-            for name, text in texts.items()
-            if not (args.out / name).is_file()
-            or (args.out / name).read_text(encoding="utf-8") != text
+            path.name
+            for path, text in texts.items()
+            if not path.is_file() or path.read_text(encoding="utf-8") != text
         ]
         print("\n".join(f"differs: {name}" for name in stale) or "vectors are current")
         return 1 if stale else 0
 
-    args.out.mkdir(parents=True, exist_ok=True)
-    for name, text in texts.items():
-        (args.out / name).write_text(text, encoding="utf-8", newline="\n")
-    print(f"wrote {len(texts)} files to {args.out}")
+    for path, text in texts.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8", newline="\n")
+    print(f"wrote {len(texts)} files")
     return 0
 
 

@@ -22,6 +22,9 @@ The test sees only the headings and the `V-` rule lines. Each `V-` rule is one l
 commit that changes other normative text or `status.spec` must still add a summary row and a `Row`
 line. Review checks it.
 
+`tools/tests/test_pipeline_changelog.py` applies the same rule to `specs/pipeline/changelog.md`
+through `versions` and `assert_last_row` (ADR-3SF2 item 5).
+
 shortcut: the test cannot see an edit of an earlier line or of a released version; review stops it.
 Compare with the parent commit in CI if that edit happens.
 """
@@ -99,8 +102,8 @@ def parse_versions(revisions_text: str) -> list[Version]:
     return found
 
 
-def versions() -> list[Version]:
-    text = CHANGELOG.read_text(encoding="utf-8").split("\n## Revisions\n", 1)[1]
+def versions(changelog: Path = CHANGELOG) -> list[Version]:
+    text = changelog.read_text(encoding="utf-8").split("\n## Revisions\n", 1)[1]
     return parse_versions(text.split("\n## ", 1)[0])
 
 
@@ -132,11 +135,12 @@ def test_the_rows_rise_and_each_pre_release_names_an_earlier_row() -> None:
             )
 
 
-def test_the_last_row_line_holds_the_last_row_and_the_fingerprint() -> None:
-    *_, last = versions()
+def assert_last_row(changelog: Path, paths: list[Path]) -> None:
+    """Fail unless the last `Row` line holds the highest summary row and the fingerprint of `paths`."""
+    *_, last = versions(changelog)
     row, recorded = last.rows[-1]
-    rows = [int(n) for n in SUMMARY_ROW.findall(CHANGELOG.read_text(encoding="utf-8"))]
-    current = normative_fingerprint(st.section_files())
+    rows = [int(n) for n in SUMMARY_ROW.findall(changelog.read_text(encoding="utf-8"))]
+    current = normative_fingerprint(paths)
     if last.released:
         action = (
             "add a new version heading with `- Released: no.` and a `- Row N:` line"
@@ -149,6 +153,10 @@ def test_the_last_row_line_holds_the_last_row_and_the_fingerprint() -> None:
     )
     assert max(rows) == row, message
     assert recorded == current, message
+
+
+def test_the_last_row_line_holds_the_last_row_and_the_fingerprint() -> None:
+    assert_last_row(CHANGELOG, st.section_files())
 
 
 def test_the_parse_reads_the_version_lines() -> None:

@@ -1,7 +1,8 @@
-"""The sidecar test vectors match their generator, their sections and the package.
+"""The sidecar and pipeline test vectors match their generator, their sections and the package.
 
-The vector files are in `specs/model-sidecar/vectors/`. `tools/make_vectors.py` writes
-them. These tests check four things:
+The vector files are in `specs/model-sidecar/vectors/`, and the files of the `node.*` sections
+are in `specs/pipeline/vectors/` (ADR-3SF2 item 4). `tools/make_vectors.py` writes them. These
+tests check four things:
 
 - the files have the documented shape and name existing sections. The same
   shape checks apply to the vectors of a proposal (part 4 of the change
@@ -45,6 +46,7 @@ from vector_form import (
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SPEC_ROOT = REPO_ROOT / "specs" / "model-sidecar"
 VECTORS_DIR = SPEC_ROOT / "vectors"
+PIPELINE_ROOT = REPO_ROOT / "specs" / "pipeline"
 
 MAX_FILE_BYTES = 256 * 1024
 # The rule lines of the "Validation rules" headings (the same form as test_traceability.py).
@@ -57,12 +59,19 @@ RULE_LINE = re.compile(r"^- \[[ xX]\] `(V-[a-z][a-z0-9_.]*[a-z0-9]-\d+)`", re.MU
 
 
 def vector_paths() -> list[Path]:
-    return sorted(VECTORS_DIR.glob("*.yaml"))
+    """The vector files of both vector folders (`make_vectors.FOLDERS`)."""
+    return sorted(path for vectors, _ in mv.FOLDERS for path in vectors.glob("*.yaml"))
+
+
+def reference_of(section: str) -> Path:
+    """The reference folder of `section` (`make_vectors.dirs`)."""
+    return mv.dirs(section)[1]
 
 
 @functools.cache
 def load(name: str) -> dict[str, Any]:
-    return yaml.safe_load((VECTORS_DIR / name).read_text(encoding="utf-8"))
+    vectors = mv.dirs(name.removesuffix(".yaml"))[0]
+    return yaml.safe_load((vectors / name).read_text(encoding="utf-8"))
 
 
 def cases_of(section: str) -> list[dict[str, Any]]:
@@ -102,7 +111,7 @@ def exact_unless_fractional(section: str, *results: Any) -> float:
 def section_texts() -> dict[str, str]:
     """The text of each section file, keyed by the section ID of its front matter."""
     found: dict[str, str] = {}
-    for path in SPEC_ROOT.rglob("*.md"):
+    for path in [*SPEC_ROOT.rglob("*.md"), *PIPELINE_ROOT.rglob("*.md")]:
         text = path.read_text(encoding="utf-8")
         if text.startswith("---\n"):
             front_matter = yaml.safe_load(text.split("---\n", 2)[1])
@@ -125,25 +134,25 @@ def defined_rule_ids() -> frozenset[str]:
 
 
 def case_problems(
-    case: dict[str, Any], section: str, reference_dir: Path = mv.REFERENCE_DIR
+    case: dict[str, Any], section: str, reference_dir: Path | None = None
 ) -> list[str]:
     """The form problems of one case (`vector_form.problems`) in this repo."""
     return problems(
         case,
         defined_rule_ids(),
-        reference=lambda: mv.producer(section, reference_dir),
+        reference=lambda: mv.producer(section, reference_dir or reference_of(section)),
         package_function=resolve_function,
     )
 
 
 def vector_file_problems(
-    data: dict[str, Any], reference_dir: Path = mv.REFERENCE_DIR
+    data: dict[str, Any], reference_dir: Path | None = None
 ) -> list[str]:
     """The form problems of one vector file (`vector_form.file_problems`) in this repo."""
     return file_problems(
         data,
         defined_rule_ids(),
-        reference=lambda: mv.producer(data["section"], reference_dir),
+        reference=lambda: mv.producer(data["section"], reference_dir or reference_of(data["section"])),
         package_function=resolve_function,
     )
 
@@ -160,13 +169,13 @@ def resolve_function(reference: str) -> Any:
 
 @functools.cache
 def generated_texts() -> dict[str, str]:
-    return mv.generate()
+    return {name: text for folders in mv.FOLDERS for name, text in mv.generate(*folders).items()}
 
 
 @functools.cache
 def built_vectors() -> dict[str, dict[str, Any]]:
     """The data that the generator computes from each file, keyed by section ID."""
-    return {path.stem: mv.run_file(load(path.name)) for path in vector_paths()}
+    return {path.stem: mv.run_file(load(path.name), reference_of(path.stem)) for path in vector_paths()}
 
 
 # ---------------------------------------------------------------------------
@@ -179,7 +188,7 @@ def test_the_folder_holds_a_file_for_each_formula_module_with_run() -> None:
     with_run = {
         p.stem for p in mv.FORMULAS_DIR.glob("*.py") if hasattr(getattr(mv, p.stem), "run")
     }
-    references = {p.stem for p in mv.REFERENCE_DIR.glob("*.py")}
+    references = {p.stem for _, folder in mv.FOLDERS for p in folder.glob("*.py")}
     data_only = {
         p.stem.replace(".", "_")
         for p in vector_paths()
@@ -216,6 +225,13 @@ FILE_TOLERANCE = {
     "common.input": 1e-4,
     "common.identity": 0,  # data-only validator cases
     "common.license": 0,  # data-only validator cases
+    # Pipeline glue nodes (ADR-3SF2 item 4): the ROI geometry, and the filters, which run in float64.
+    "node.roi_from_points": 1e-6,
+    "node.roi_tracking": 1e-6,
+    "node.gate": 1e-6,
+    "node.smooth_keypoints": 1e-9,
+    "node.smooth_roi": 1e-9,
+    "node.redetect": 1e-9,
 }
 
 
@@ -226,8 +242,11 @@ def test_file_has_the_documented_top_level_keys(path: Path) -> None:
     assert ("verified_against" in data) != ("unverified" in data)
     checks = ["checks"] if "checks" in data else []
     assert list(data) == ["section", "notes", "tolerance", *checks, verification, "cases"]
-    assert data["notes"][0].startswith("Normative text: specs/model-sidecar/")
-    group = next(name for name in FILE_TOLERANCE if name in data["section"])
+    assert data["notes"][0].startswith(
+        ("Normative text: specs/model-sidecar/", "Normative text: specs/pipeline/")
+    )
+    group = next((name for name in FILE_TOLERANCE if name in data["section"]), None)
+    assert group, f"{path.name}: add the tolerance of its group of sections to FILE_TOLERANCE"
     assert data["tolerance"] == FILE_TOLERANCE[group]
 
 
@@ -583,7 +602,7 @@ def test_the_generator_writes_the_same_bytes_from_the_file_without_expect(path: 
         {k: v for k, v in case.items() if k != "expect" or case.get("function") == "none"}
         for case in data["cases"]
     ]
-    assert mv.render(mv.run_file(data)) == text
+    assert mv.render(mv.run_file(data, reference_of(data["section"]))) == text
 
 
 def test_a_run_keeps_a_hand_edited_note_and_restores_a_hand_edited_expect() -> None:
@@ -643,6 +662,48 @@ def test_a_reference_producer_writes_expect_and_must_agree_with_the_formulas(
     assert written["cases"][1]["expect"]["source_xy"] == [960.00004, 540]
     with pytest.raises(CaseDefect, match="-inverse: the reference and the formulas disagree"):
         mv.generate(vectors, reference(0.001))
+
+
+def test_main_routes_each_file_to_the_folders_of_its_section(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A `node.*` file is made and checked in the pipeline folders, each other file in the sidecar ones."""
+    name, node_name = "pre.resize.stretch.yaml", "node.double.yaml"
+    sidecar, pipeline = tmp_path / "sidecar", tmp_path / "pipeline"
+    (sidecar / "vectors").mkdir(parents=True)
+    (pipeline / "vectors").mkdir(parents=True)
+    (pipeline / "reference").mkdir()
+    shutil.copy(VECTORS_DIR / name, sidecar / "vectors" / name)
+    (pipeline / "reference" / "node_double.py").write_text(
+        "def run(params, input):\n    return {'y': 2 * input['x']}\n", encoding="utf-8"
+    )
+    node = {
+        "section": "node.double",
+        "tolerance": 0,
+        "unverified": "a test",
+        "cases": [{"id": "two", "params": {}, "input": {"x": 2}}],
+    }
+    (pipeline / "vectors" / node_name).write_text(yaml.safe_dump(node, sort_keys=False), encoding="utf-8")
+    folders = ((sidecar / "vectors", sidecar / "reference"), (pipeline / "vectors", pipeline / "reference"))
+    monkeypatch.setattr(mv, "FOLDERS", folders)
+    assert mv.dirs("node.double") == folders[1]
+    assert mv.dirs("pre.resize.stretch") == folders[0]
+
+    assert mv.main(["make_vectors.py", "--check"]) == 1  # the node file has no expect yet
+    assert mv.main(["make_vectors.py"]) == 0
+    assert load_path(pipeline / "vectors" / node_name)["cases"][0]["expect"] == {"y": 4}
+    assert (sidecar / "vectors" / name).read_text(encoding="utf-8") == (VECTORS_DIR / name).read_text(
+        encoding="utf-8"
+    )
+    assert sorted(p.name for p in tmp_path.rglob("*.yaml")) == [node_name, name]
+    assert mv.main(["make_vectors.py", "--check"]) == 0
+    # With --out, each file goes to the one folder.
+    assert mv.main(["make_vectors.py", "--out", str(tmp_path / "out")]) == 0
+    assert sorted(p.name for p in (tmp_path / "out").iterdir()) == [node_name, name]
+
+
+def load_path(path: Path) -> dict[str, Any]:
+    return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
 def test_a_section_with_only_a_reference_runs_without_a_formula_module(tmp_path: Path) -> None:
@@ -762,7 +823,7 @@ def test_each_registered_check_holds_on_the_published_cases_that_declare_it() ->
     for section, data in built_vectors().items():
         data_only = all(case.get("function") == mv.DATA_ONLY for case in data["cases"])
         # As make_vectors.run_file: the formula module, else the reference of the section.
-        module = None if data_only else getattr(mv, section.replace(".", "_"), None) or mv.producer(section)
+        module = None if data_only else getattr(mv, section.replace(".", "_"), None) or mv.producer(section, mv.dirs(section)[1])
         file_checks = data.get("checks", [])
         registered |= {(section, name) for name in getattr(module, "CHECKS", {})}
         for case in data["cases"]:
