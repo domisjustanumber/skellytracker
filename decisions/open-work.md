@@ -29,7 +29,9 @@ The implementation-stage work is in the stages M7 to M12 of the
   does not get the `exclude-dependencies` of this repository. The user decides the change. The
   options: a wider `requires-python`, a NumPy range, the headless OpenCV package, a lock refresh to
   onnx 1.23.2 or later (keep the `onnxruntime-gpu<1.27` cap in mind), and a split non-video test run on Python 3.12, 3.13 and 3.14. Until then, an exporter runs
-  the batch tool in the checkout environment.
+  the batch tool in the checkout environment. [ADR-MSH0](entries/MSH0-supported-platforms-v2.md)
+  widens the range to `<3.14` in the implementation stage. An exporter with `>=3.14` stays outside
+  it.
 - **Exporter guide rewording.** A rewording PR removes each exporter repository name that is only an
   example from `specs/draft/exporter-guide/` and from all files of
   `specs/model-sidecar/model-addition-workflow/`. A citation of an exporter entry or commit as
