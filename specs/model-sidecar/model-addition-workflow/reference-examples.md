@@ -79,7 +79,8 @@ Replace the example when the copy of its exporter obeys each rule
    `canonical_mapping` file). The example uses the same relative path. Copy each fragment of the
    exporter unchanged ([ADR-VV8B](../../../decisions/entries/VV8B-fragments-have-an-inventory-entry.md)):
    - Write its provenance in `fragments` of `specs/model-sidecar/inventory.yaml` (step 4). A package
-     copy is not a source. The package sidecars stay outside the spec until they migrate.
+     copy is not a source. The old package sidecars stay outside the spec until they are deleted
+     ([ADR-AMJ8](../../../decisions/entries/AMJ8-replace-package-onnx-detectors.md)).
    - If an example fragment exists at that path with different bytes, stop. Two exporters do not
      agree. The second exporter uses the bytes of the first copy, or a different file name.
 4. **Provenance.** Write the entry of the example in `specs/model-sidecar/inventory.yaml`. Its

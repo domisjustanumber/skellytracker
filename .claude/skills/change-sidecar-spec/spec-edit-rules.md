@@ -212,9 +212,10 @@ A spec change has no class ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-
 4. Regenerate the traceability matrix with `uv run python tools/sidecar_trace.py matrix`. Do not edit
    `specs/model-sidecar/TRACEABILITY.md` by hand.
 
-The trace tool scans only `specs/model-sidecar/examples/` for sidecars until the package migrates.
-The package sidecars stay outside the spec until they migrate
-([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md) item 1).
+The trace tool scans only `specs/model-sidecar/examples/` for sidecars.
+The old package sidecars stay outside the spec until they are deleted. They do not migrate:
+exporter models replace them
+([ADR-AMJ8](../../../decisions/entries/AMJ8-replace-package-onnx-detectors.md)).
 The tool uses the discovery rule of
 [`format.file_layout`](../../../specs/model-sidecar/format/file-layout.md#discovery). It keys each sidecar as
 `<model_id>@<source>`, because one `model_id` can have two sources, and it resolves composition with

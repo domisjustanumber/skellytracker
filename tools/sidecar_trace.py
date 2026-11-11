@@ -42,8 +42,9 @@ Normalization and interpolation have no inverse, so they have no ``inverse`` ste
 the backlog for it.
 
 **Scan.** One root holds sidecars: the examples (``specs/model-sidecar/examples/``, with that folder
-as the cache dir). The tool does not scan the package sidecars. They are legacy sidecars until the
-package migrates (ADR-C0YD item 1). A YAML file is a sidecar when its top level has ``schema_version`` and
+as the cache dir). The tool does not scan the old package sidecars. They are deleted and replaced,
+not migrated (ADR-AMJ8). The package root ``skellytracker/core/model_zoo`` holds no spec sidecar
+yet. A YAML file is a sidecar when its top level has ``schema_version`` and
 a ``model_id`` equal to its file name without the extension. The tool skips every other YAML file.
 It resolves each sidecar with ``sidecar_refs.resolve``, which accepts files without hashes. The key
 of a sidecar is ``<model_id>@<source>``: ``source.name`` when the sidecar has it, else the
@@ -472,7 +473,7 @@ class Sidecar:
     key: str
     model_id: str
     source: str
-    origin: str  # "example", the only scan root until the package migrates
+    origin: str  # "example", the only scan root until core/model_zoo holds spec sidecars
     path: str  # relative to the repository root, with forward slashes
     schema_version: str
     resolved: dict[str, Any] = field(repr=False)

@@ -399,8 +399,8 @@ sidecar has one reading: the current spec text (skellytracker ADR-0QKK,
 |---|---|---|---|
 | | | | |
 
-The skellytracker package sidecars stay outside the spec until the package migrates (skellytracker
-ADR-0QKK). Do not list them.
+The old skellytracker package sidecars stay outside the spec until they are deleted. They do not
+migrate (skellytracker ADR-AMJ8). Do not list them.
 
 **Reference examples that the change makes invalid.** Read each example in
 `specs/model-sidecar/examples/`. Start from the section rows of `specs/model-sidecar/TRACEABILITY.md`.

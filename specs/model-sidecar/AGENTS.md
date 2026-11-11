@@ -15,9 +15,10 @@ root log ([ADR-GN3D](../../decisions/entries/GN3D-module-decision-logs.md)).
   ([Publishing](model-addition-workflow/validation-and-publishing.md#publishing)).
 - A spec change has no class. It applies to each sidecar from the commit that lands it
   ([ADR-C0YD](../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md) item 1). Each
-  sidecar has one reading: the current spec text. The spec has no legacy reading. The package
-  sidecars stay outside the spec until they migrate
-  ([ADR-0QKK](../../decisions/entries/0QKK-no-legacy-layer.md)).
+  sidecar has one reading: the current spec text. The spec has no legacy reading
+  ([ADR-0QKK](../../decisions/entries/0QKK-no-legacy-layer.md)). The old package sidecars stay
+  outside the spec until they are deleted. They do not migrate: exporter models replace them
+  ([ADR-AMJ8](../../decisions/entries/AMJ8-replace-package-onnx-detectors.md)).
 - Make a spec change in the section file that owns the rule. The `id` in the front matter is the
   section ID. The rule IDs of the section are `V-<id>-<n>`. When you move or reword a section, keep
   its section ID and its rule IDs
