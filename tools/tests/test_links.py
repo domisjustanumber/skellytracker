@@ -1,4 +1,4 @@
-"""Every relative link in each `AGENTS.md`, `decisions/`, `specs/`, `notes/` and `.claude/skills/` resolves."""
+"""Every relative link in each `AGENTS.md`, `decisions/`, `specs/`, `notes/` and `.claude/skills/` resolves, except in the frozen proposal records."""
 
 import shutil
 import subprocess
@@ -121,6 +121,14 @@ def test_decision_logs_in_any_folder_are_checked_and_pinned(tmp_path: Path) -> N
         assert check_file(doc, tmp_path) == [
             f"{rel}:1: GitHub link must pin a full SHA: https://github.com/o/r/blob/main/x.py"
         ]
+
+
+def test_proposal_records_are_skipped(tmp_path: Path) -> None:
+    records = tmp_path / "specs" / "model-sidecar" / "proposals"
+    (records / "slug").mkdir(parents=True)
+    for doc in (records / "README.md", records / "slug" / "proposal.md"):
+        doc.write_text("[gone](gone.md)\n", encoding="utf-8")
+    assert markdown_files(tmp_path) == [records / "README.md"]
 
 
 @pytest.mark.skipif(shutil.which("git") is None, reason="git is not on the PATH")

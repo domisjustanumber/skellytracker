@@ -39,6 +39,7 @@ These entries are `accepted` or `evidence`.
 | [Q59W](entries/Q59W-pipeline-timing-and-taps.md) | Pipeline timing points and JSONL events with a header; record and replay taps; COCO-only CLI run for skellybench | accepted |
 | [8NVD](entries/8NVD-pipeline-api-warnings-and-catalog.md) | Pipeline API `core.pipelines`; built-ins; `PipelineWarning`; dependency reports; Holistic for MediaPipe; node catalog | accepted |
 | [3SF2](entries/3SF2-pipeline-spec-and-node-workflow.md) | Pipeline spec in `specs/pipeline/`: section IDs, reference model and schema, glue vectors, changelog, own module log, node workflow | accepted |
+| [1HKJ](entries/1HKJ-proposal-record-links-not-checked.md) | The link check skips the frozen proposal records; their old links stay; the changelog map resolves old IDs | accepted |
 | [88WQ](entries/88WQ-sidecar-vocabulary.md) | Sidecar vocabulary: `object` and `keypoint` blocks, role `keypoint_detector`, `post/object/` and `post/keypoint/`, classes by name, one name per concept | accepted |
 
 ### Proposed

@@ -153,12 +153,18 @@ def repo_files(root: Path) -> list[str]:
     return names
 
 
+PROPOSAL_RECORDS = "specs/model-sidecar/proposals/"
+
+
 def markdown_files(root: Path) -> list[Path]:
     """Return the tracked docs the link check covers."""
     files = []
     for rel in repo_files(root):
         parts = rel.split("/")
         if not rel.endswith(".md") or not (root / rel).is_file():
+            continue
+        # A proposal record is a frozen byte copy of a bundle. Its links name the spec as it was then.
+        if rel.startswith(PROPOSAL_RECORDS) and rel != PROPOSAL_RECORDS + "README.md":
             continue
         if rel.startswith(("specs/", "notes/", ".claude/skills/")):
             files.append(root / rel)
