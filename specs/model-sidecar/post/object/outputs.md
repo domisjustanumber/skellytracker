@@ -28,7 +28,7 @@ An `object_detector` sidecar must declare exactly **one primary detection output
 
 | Semantic | Shape | Dtype | Meaning |
 |----------|-------|-------|---------|
-| `detections` | `[B, Q, F]` | float | Packed rows. `fields` lists the name of each of the `F` columns (for example `x1, y1, x2, y2, score, class_id`). The output can also carry [`packed_keypoints`](pose-bottom-up.md#packed_keypoints-bottom-up-packed-rows). Primary. |
+| `detections` | `[B, Q, F]` | float | Packed rows. `fields` lists the name of each of the `F` columns (for example `x1, y1, x2, y2, score, class_id`). The output can also carry [`packed_keypoints`](../keypoint/bottom-up.md#packed_keypoints-bottom-up-packed-rows). Primary. |
 | `boxes` | `[B, Q, 4]` | float | Box coordinates only. The scores come from a `scores` companion or a `class_logits` companion. Primary. |
 | `scores` | `[B, Q]` | float | The confidence of each row. The rows align with the rows of the primary output. |
 | `class_logits` | `[B, Q, C]` | float | Logits or scores for each row and each class. The class axis is last, unless `class_axis` sets a different axis. |
@@ -41,7 +41,7 @@ An `object_detector` sidecar must declare exactly **one primary detection output
 
 ### `outputs` (detection)
 
-The fields common to every output are in [Outputs](../common/outputs.md#fields).
+The fields common to every output are in [Outputs](../../common/outputs.md#fields).
 
 Additional fields on detection output tensors:
 
@@ -49,7 +49,7 @@ Additional fields on detection output tensors:
 |-------|------|----------|-------------|
 | `fields` | array | conditional | The ordered field names for each detection row (for example `[x1, y1, x2, y2, score, class_id]`). Required for `semantic: detections`. Must not be present for the other detection semantics. If `packed_keypoints` is present, its length must equal `packed_keypoints.offset`. Otherwise, its length must equal the last tensor dimension. |
 | `class_axis` | int | no | For `class_logits` only: the axis that holds the class dimension. The default is `-1`. A negative value follows Python/ONNX indexing. It must not be the batch axis. |
-| `packed_keypoints` | object | no | For a `detections` output only, in one-stage models that can estimate pose. See [`packed_keypoints`](pose-bottom-up.md#packed_keypoints-bottom-up-packed-rows). |
+| `packed_keypoints` | object | no | For a `detections` output only, in one-stage models that can estimate pose. See [`packed_keypoints`](../keypoint/bottom-up.md#packed_keypoints-bottom-up-packed-rows). |
 
 ## Validation rules
 
@@ -60,7 +60,7 @@ Additional fields on detection output tensors:
 - [ ] `V-post.det.outputs-3` The last dimension of a `boxes` output must be `4`. The shape of `scores` must equal the primary shape without its last dimension. The non-class axes of `class_logits` must equal the outer axes of `boxes`. If `class_axis` is present, it must be a valid non-batch axis. The class dimension must be concrete.
 - [ ] `V-post.det.outputs-4` The dtypes of `scores`, `class_logits`, `boxes` and `detections` must be float types.
 
-See also [Outputs](../common/outputs.md#validation-rules), [Detection decode](detection-decode.md#validation-rules) and [Bottom-up pose](pose-bottom-up.md#validation-rules).
+See also [Outputs](../../common/outputs.md#validation-rules), [Detection decode](decode.md#validation-rules) and [Bottom-up pose](../keypoint/bottom-up.md#validation-rules).
 
 ## Implementer guidance
 

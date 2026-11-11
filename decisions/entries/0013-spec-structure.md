@@ -281,7 +281,7 @@ The body has these headings, in this order:
 ## Evidence
 
 - `specs/sidecar-spec.md` has 1,625 lines and 106,300 bytes (2026-10-22). The detection `decode` and
-  [Selection behaviour](../../specs/model-sidecar/post/detection-decode.md#selection-behaviour) headings, which hold the NMS
+  [Selection behaviour](../../specs/model-sidecar/post/object/decode.md#selection-behaviour) headings, which hold the NMS
   rules, have 72 lines together.
 - The `fit` spec text ([0012](../../specs/model-sidecar/decisions/entries/0012-fit-resize-for-rtmo.md)) changed text under seven headings:
   [Compatibility impact](../../specs/model-sidecar/changelog.md#compatibility-impact),
@@ -338,3 +338,5 @@ _Edited 2026-10-26 (this PR): link repair._
 _Edited 2026-10-28 (this PR): link repair._
 
 _Edited 2026-10-29 (this PR): link repair._
+
+_Edited 2026-11-11 (this PR): link repair._

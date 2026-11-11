@@ -1,6 +1,6 @@
 # 17KN — One selection pipeline
 
-**Status:** absorbed into [`post/detection-decode.md#selection-behaviour`](../../specs/model-sidecar/post/detection-decode.md#selection-behaviour), 2026-11-06 (user; PR: pending).
+**Status:** absorbed into [`post/detection-decode.md#selection-behaviour`](../../specs/model-sidecar/post/object/decode.md#selection-behaviour), 2026-11-06 (user; PR: pending).
 
 ## Decision
 
@@ -9,7 +9,7 @@ No decided entry states a rule that this entry changes. Its content commit comes
 revision `1.0` holds it. The workflow side lands as [ADR-0QKK](0QKK-no-legacy-layer.md) item 6 says.
 
 1. **The shared steps, stated once.**
-   [Selection behaviour](../../specs/model-sidecar/post/detection-decode.md#selection-behaviour)
+   [Selection behaviour](../../specs/model-sidecar/post/object/decode.md#selection-behaviour)
    states each step that the three selection modes share: the class mapping (`class_id_map` or
    `class_id_base`, the drop of `-1`, `is_person_only`), the box conversion, `box_scale`, the
    unprojection, the clamp, the size filter and `confidence_threshold_default`. Each mode file
@@ -27,11 +27,11 @@ revision `1.0` holds it. The workflow side lands as [ADR-0QKK](0QKK-no-legacy-la
    than `min_box_size`. When it is absent, the step drops no box. A box with zero area also stays.
    A validation clause of `post.det.decode` requires a non-negative number. The field maps
    one-to-one to `min_bbox_size` of mmdet. The text under
-   [Authoring guidance](../../specs/model-sidecar/post/selection-nms.md#authoring-guidance) that
+   [Authoring guidance](../../specs/model-sidecar/post/object/selection-nms.md#authoring-guidance) that
    gives `min_bbox_size` no field changes and cites this entry.
 5. **No class source.** The host assigns `person_class_id` only through `is_person_only`. Step 3
    of `nms` loses its own assignment. A new rule in
-   [Validation rules](../../specs/model-sidecar/post/detection-decode.md#validation-rules): a
+   [Validation rules](../../specs/model-sidecar/post/object/decode.md#validation-rules): a
    sidecar with no class source (no `class_field` and no `class_logits_output`) must set
    `decode.is_person_only: true`. The open-work item on this class goes.
 6. **Vectors and formulas.** The formula of `post_unprojection.py` in `tools/vector_formulas/`
@@ -74,7 +74,7 @@ No example changes.
 ## Evidence
 
 - The clamp lines of the exporter decoders and ultralytics 8.4.184:
-  [Implementer guidance](../../specs/model-sidecar/post/detection-decode.md#implementer-guidance).
+  [Implementer guidance](../../specs/model-sidecar/post/object/decode.md#implementer-guidance).
 - mmdet 3.3.0, `BaseDenseHead._bbox_post_process`, clamps, rescales to the original image, keeps a
   box only when `w` and `h` are above `min_bbox_size`, then applies NMS. The RTMDet person config
   sets it to 0
@@ -90,3 +90,5 @@ No example changes.
   drops the box, it differs from the exporter decoders and ultralytics.
 - **Assign `person_class_id` with no class source in each mode.** A detector of other objects then
   gives "person" with no error.
+
+_Edited 2026-11-11 (this PR): link repair._

@@ -26,10 +26,10 @@ OpenMMLab-Exporter 0017; the measurements are dated 2026-10-20).
 - The spec has no `nms.pre_nms_top_k` field. The sidecar does not express the mmdet `nms_pre` cap.
   The person configs set `nms_pre` to 1000.
 - The spec does not allow `class_logits` with `selection: nms`. The rule is in
-  [Validation rules](../../post/selection-nms.md#validation-rules): `selection: nms` forbids
+  [Validation rules](../../post/object/selection-nms.md#validation-rules): `selection: nms` forbids
   `class_logits_output`.
 - The detection outputs are the complete candidate set. The decode steps are in
-  [Selection behaviour](../../post/detection-decode.md#selection-behaviour).
+  [Selection behaviour](../../post/object/decode.md#selection-behaviour).
 
 ## Reason
 
@@ -142,3 +142,5 @@ _Edited 2026-10-26 (this PR): link repair._
 _Edited 2026-10-28 (this PR): link repair._
 
 _Edited 2026-10-29 (this PR): link repair._
+
+_Edited 2026-11-11 (this PR): link repair._

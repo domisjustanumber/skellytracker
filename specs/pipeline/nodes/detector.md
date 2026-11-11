@@ -59,7 +59,7 @@ A `detector` node runs one ONNX model. It does the preprocessing, the inference 
 - An object detector or a one-stage model gives `max_instances` rows. The present rows come first, in descending score order. Padding rows come last. A missing point is NaN with visibility 0 ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 1).
 - The `rois` output holds the box of each `detections` row as an ROI with rotation 0 ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 8).
 - A top-down keypoint model runs once for each present row of its `rois` input. Row `i` of `keypoints` belongs to row `i` of `rois`. A row that is not present gives a keypoint row that is not present ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 1).
-- NMS is a part of the postprocessing of the model. The sidecar section [`post.det.selection.nms`](../../model-sidecar/post/selection-nms.md) defines it ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 9).
+- NMS is a part of the postprocessing of the model. The sidecar section [`post.det.selection.nms`](../../model-sidecar/post/object/selection-nms.md) defines it ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 9).
 - The timing points are `preprocess`, `inference` and `postprocess` ([ADR-Q59W](../../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 1).
 
 ## Validation rules

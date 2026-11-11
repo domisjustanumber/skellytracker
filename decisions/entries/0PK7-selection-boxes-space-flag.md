@@ -17,7 +17,7 @@ This entry supersedes no entry. It adds one key to the selection case form of
    case.
 2. **The two values.** A `model_input` case gives no `params.resize`. It does not do shared steps 3
    to 5 of
-   [Selection behaviour](../../specs/model-sidecar/post/detection-decode.md#selection-behaviour).
+   [Selection behaviour](../../specs/model-sidecar/post/object/decode.md#selection-behaviour).
    It still does step 6, the confidence threshold. Its `boxes_xyxy` holds the kept boxes in
    model-input pixels. A `source` case gives `params.resize`. It also does shared steps 3 to 5: the
    unprojection, the clamp and the size filter. Its `boxes_xyxy` holds the final boxes in
@@ -78,3 +78,5 @@ This entry supersedes no entry. It adds one key to the selection case form of
 - No boxes in the end-to-end cases: the case `nms-comes-before-the-clamp` then cannot show that the
   clamp gives the two kept rows the same box. It also breaks
   [ADR-8DSW](8DSW-vector-files-are-the-case-source.md) item 2.
+
+_Edited 2026-11-11 (this PR): link repair._

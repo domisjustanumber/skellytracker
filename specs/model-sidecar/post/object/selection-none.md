@@ -24,20 +24,20 @@ status: {spec: stable, validate: partial, decode: partial}
 |-------|------|----------|-------------|
 | `max_detections` | int | no | The fixed number of final rows that the graph emits (for example `300` for YOLO26). This field is valid only with `selection: none`. It is never a host-side cap. It has no default. |
 
-`max_detections` is a field of [`decode`](detection-decode.md#decode-detection). That section defines the other `decode` fields.
+`max_detections` is a field of [`decode`](decode.md#decode-detection). That section defines the other `decode` fields.
 
 ## Behaviour
 
-Score comparisons and tie-breaking: [Selection behaviour](detection-decode.md#selection-behaviour).
+Score comparisons and tie-breaking: [Selection behaviour](decode.md#selection-behaviour).
 
 **`selection: none`** — the primary output rows are already final detections (for example the NMS-free head of YOLO26).
 
 1. Resolve the score of each row (`score_field` or `scores_output`). Resolve the class index of each row (`class_field`). If this field is absent, there is no class source.
-2. Do shared step 1 (class mapping) of [Selection behaviour](detection-decode.md#selection-behaviour).
+2. Do shared step 1 (class mapping) of [Selection behaviour](decode.md#selection-behaviour).
 3. Do the shared steps 2 to 5 (box conversion, unprojection, clamp and size filter).
 4. Do shared step 6 (confidence threshold). Do not run NMS. The host does not pad or truncate the rows to reach `max_detections`.
 
-Pose rows of a model with both roles: [Bottom-up decode](pose-bottom-up.md#bottom-up-decode).
+Pose rows of a model with both roles: [Bottom-up decode](../keypoint/bottom-up.md#bottom-up-decode).
 
 ## Validation rules
 
@@ -45,13 +45,13 @@ Pose rows of a model with both roles: [Bottom-up decode](pose-bottom-up.md#botto
 
 - [ ] `V-post.det.selection.none-1` A sidecar with `selection: none` must not have `top_k`, `nms` or `class_logits_output`. If `max_detections` is present, it must be a positive integer. When the row dimension of the primary output is concrete, this value must equal that dimension.
 
-See also [Detection decode](detection-decode.md#validation-rules).
+See also [Detection decode](decode.md#validation-rules).
 
 ## Implementer guidance
 
 - Ultralytics consumes the end-to-end rows with `mask = pred[:, 4] > conf_thres` and `idx = mask.nonzero()[:max_det]`. It does not sort and it does not run NMS. These are the steps of `selection: none`: a strict comparison and no NMS. The `max_det` cap does nothing for 300 rows. (ultralytics 8.4.184 `utils/nms.py:71-78`, installed copy in the Ultralytics-Exporter `.venv`)
 - A YOLO26 graph gives `max_det` (300) rows for each image, in descending score order. The in-graph top-k runs over (anchor, class) pairs, so one box can repeat with different class ids. (ultralytics 8.4.184 `nn/modules/head.py:92-102, 266-288`, installed copy in the Ultralytics-Exporter `.venv`)
-- The spec does not define the order of the final rows for `selection: none`. The decision log records this point ([spec defects](../decisions/README.md#open-work), item on the test vectors).
+- The spec does not define the order of the final rows for `selection: none`. The decision log records this point ([spec defects](../../decisions/README.md#open-work), item on the test vectors).
 - YOLO26 box mAP50-95 on COCO val2017 at batch 2, PyTorch against fp32 ONNX: nano 0.4023 / 0.3971, small 0.4801 / 0.4717, medium 0.5238 / 0.5193, large 0.5444 / 0.5357, xlarge 0.5683 / 0.5635. The numbers come from the Ultralytics validator at its defaults (`conf` 0.001, `max_det` 300, `rect` off for a static ONNX). They do not come from a skellytracker host. (Ultralytics-Exporter `exports/detectors/object_detectors/yolo26/yolo26-nano_b2_fp32.report.json` and the reports of the other sizes, field `performance.pytorch.ap` and `performance.converted.ap`, untracked, HEAD 2e0280e050fb2bb16bf7f9a1ba89af5f18db67d4; [`yolo_validation.py:170-176`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_validation.py#L170-L176), [`yolo_validation.py:271-278`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_validation.py#L271-L278); ultralytics 8.4.184 `engine/validator.py:144-145, 232-233`, installed copy in the Ultralytics-Exporter `.venv`)
 
 ## Authoring guidance

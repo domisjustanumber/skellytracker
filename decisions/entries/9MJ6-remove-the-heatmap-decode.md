@@ -10,7 +10,7 @@
 2. **What goes.** The section `post.pose.decode.heatmap` and its file `post/pose-decode-heatmap.md`.
    The value `heatmap` of `pose.decode.method`. The value `heatmap` of `outputs[].semantic`, because
    only this method used it. The rule `V-post.pose.decode.heatmap-1`. Its number stays unused.
-3. **What changes.** [`post.pose.schema`](../../specs/model-sidecar/post/pose-schema.md) and
+3. **What changes.** [`post.pose.schema`](../../specs/model-sidecar/post/keypoint/schema.md) and
    [`common.outputs`](../../specs/model-sidecar/common/outputs.md) do not list `heatmap`, also in
    `V-post.pose.schema-3`, `V-post.pose.schema-7` and `V-common.outputs-3`. These rule IDs stay. The
    section map, the validation index and the model intake template do not list the section. The
@@ -47,3 +47,4 @@
 - **Keep the section and record the defect.** The spec then keeps a `stable` contract that a host
   cannot implement.
 
+_Edited 2026-11-11 (this PR): link repair._

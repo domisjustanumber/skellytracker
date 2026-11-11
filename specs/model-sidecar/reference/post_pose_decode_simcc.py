@@ -1,6 +1,6 @@
 """Reference implementation of the section post.pose.decode.simcc, as the proposal simcc-score-rule changes it.
 
-Section ID: post.pose.decode.simcc (section file specs/model-sidecar/post/pose-decode-simcc.md).
+Section ID: post.pose.decode.simcc (section file specs/model-sidecar/post/keypoint/decode-simcc.md).
 Proposal: simcc-score-rule of OpenMMLab-Exporter, part 3.
 Target file in skellytracker: specs/model-sidecar/reference/post_pose_decode_simcc.py.
 Imported sections: none. Fixtures: none.

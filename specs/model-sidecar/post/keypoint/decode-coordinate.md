@@ -21,18 +21,18 @@ status: {spec: stable, validate: implemented, decode: missing}
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `pose.decode.coordinate_scale` | enum | no | For `coordinate` only. It must not be present when an output has [`packed_keypoints`](pose-bottom-up.md#packed_keypoints-bottom-up-packed-rows): the packed keypoints use `decode.box_scale` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). The value is the scale of the decoded coordinates: `pixel` (raw pixels in the input image; default), `normalized_01` ([0, 1] fraction of the input) or `normalized_11` ([-1, 1] centered on the input). |
+| `pose.decode.coordinate_scale` | enum | no | For `coordinate` only. It must not be present when an output has [`packed_keypoints`](bottom-up.md#packed_keypoints-bottom-up-packed-rows): the packed keypoints use `decode.box_scale` ([ADR-90CE](../../../../decisions/entries/90CE-minimal-sidecar-contract.md)). The value is the scale of the decoded coordinates: `pixel` (raw pixels in the input image; default), `normalized_01` ([0, 1] fraction of the input) or `normalized_11` ([-1, 1] centered on the input). |
 
-`pose.decode.coordinate_scale` is a field of [`pose.decode`](pose-schema.md#posedecode). That section defines the other `pose.decode` fields.
+`pose.decode.coordinate_scale` is a field of [`pose.decode`](schema.md#posedecode). That section defines the other `pose.decode` fields.
 
 ## Behaviour
 
 - `coordinate` — the coordinates are already decoded (no argmax). They are in the scale of the model input image, as `coordinate_scale` sets, or as `decode.box_scale` sets for packed keypoints. The host unprojects them to the source image. There are three forms:
-  - single-person — one output with `semantic: keypoints`. The shape is `(N, K, 2)` (`x, y`), or `(N, K, 3)` (`x, y, z`) when `pose.geometry: 3d` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). `z` is root-relative depth (in `depth_unit`).
+  - single-person — one output with `semantic: keypoints`. The shape is `(N, K, 2)` (`x, y`), or `(N, K, 3)` (`x, y, z`) when `pose.geometry: 3d` ([ADR-90CE](../../../../decisions/entries/90CE-minimal-sidecar-contract.md)). `z` is root-relative depth (in `depth_unit`).
   - bottom-up, separate tensors — a primary detection output plus a `poses` output.
   - bottom-up, packed — a `detections` output that carries `packed_keypoints`.
 
-[Shape key](pose-schema.md#shape-key)
+[Shape key](schema.md#shape-key)
 
 ## Validation rules
 
@@ -40,7 +40,7 @@ status: {spec: stable, validate: implemented, decode: missing}
 
 - [ ] `V-post.pose.decode.coordinate-1` `pose.decode.coordinate_scale` must not be present unless `pose.decode.method: coordinate`. If it is present, it must be `pixel`, `normalized_01` or `normalized_11`.
 
-See also [Pose schema](pose-schema.md#validation-rules) and [Bottom-up pose](pose-bottom-up.md#validation-rules).
+See also [Pose schema](schema.md#validation-rules) and [Bottom-up pose](bottom-up.md#validation-rules).
 
 ## Implementer guidance
 
@@ -49,6 +49,6 @@ See also [Pose schema](pose-schema.md#validation-rules) and [Bottom-up pose](pos
 
 ## Authoring guidance
 
-- YOLO26-pose: `pose.decode` is `{method: coordinate}`. `coordinate_scale` is not present, because the packed keypoints use `decode.box_scale` (pixel) ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). The Pose26 export decode gives the keypoints as `(xy + anchor) * stride` in model-input pixels. The graph applies the sigmoid to the third value. (Ultralytics-Exporter [`yolo_sidecar.py:527`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L527); ultralytics 8.4.184 `nn/modules/head.py:765-777`, installed copy in the Ultralytics-Exporter `.venv`)
-- MediaPipe landmark models (historical code of Qualcomm-Exporter): the wrapper multiplies the landmark output by `[W, H, W]` of the crop (face 192, hand 256). Thus the ONNX gives crop pixels, with z scaled by the width. The historical sidecar says `{method: coordinate, coordinate_scale: pixel, is_3d: true, depth_unit: pixel}`. In this spec, that is `pose.geometry: 3d` and `pose.decode: {method: coordinate, coordinate_scale: pixel, depth_unit: pixel}` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). The README calls z relative, not metric. (Qualcomm-Exporter [`qai_catalog.py:336-361`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_catalog.py#L336-L361); [`qai_sidecar.py:251-259`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_sidecar.py#L251-L259); [`README.md:147-149`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/README.md#L147-L149); `qai_catalog.py:89, 122`, commit a095041a5e9450df18637596fbaf6409f79e9fc6 on no branch (secondary))
+- YOLO26-pose: `pose.decode` is `{method: coordinate}`. `coordinate_scale` is not present, because the packed keypoints use `decode.box_scale` (pixel) ([ADR-90CE](../../../../decisions/entries/90CE-minimal-sidecar-contract.md)). The Pose26 export decode gives the keypoints as `(xy + anchor) * stride` in model-input pixels. The graph applies the sigmoid to the third value. (Ultralytics-Exporter [`yolo_sidecar.py:527`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L527); ultralytics 8.4.184 `nn/modules/head.py:765-777`, installed copy in the Ultralytics-Exporter `.venv`)
+- MediaPipe landmark models (historical code of Qualcomm-Exporter): the wrapper multiplies the landmark output by `[W, H, W]` of the crop (face 192, hand 256). Thus the ONNX gives crop pixels, with z scaled by the width. The historical sidecar says `{method: coordinate, coordinate_scale: pixel, is_3d: true, depth_unit: pixel}`. In this spec, that is `pose.geometry: 3d` and `pose.decode: {method: coordinate, coordinate_scale: pixel, depth_unit: pixel}` ([ADR-90CE](../../../../decisions/entries/90CE-minimal-sidecar-contract.md)). The README calls z relative, not metric. (Qualcomm-Exporter [`qai_catalog.py:336-361`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_catalog.py#L336-L361); [`qai_sidecar.py:251-259`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_sidecar.py#L251-L259); [`README.md:147-149`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/README.md#L147-L149); `qai_catalog.py:89, 122`, commit a095041a5e9450df18637596fbaf6409f79e9fc6 on no branch (secondary))
 - The `TensorsToLandmarksCalculator` of MediaPipe divides z by the crop size and by `normalize_z` 0.4. The spec has no field for the second divisor. (the untracked hand pipeline plan of MediaPipe-Exporter (secondary))

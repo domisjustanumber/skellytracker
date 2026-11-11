@@ -1,6 +1,6 @@
 """Reference implementation of section `post.det.decode` (the shared decode steps).
 
-Section ID: post.det.decode (specs/model-sidecar/post/detection-decode.md, heading
+Section ID: post.det.decode (specs/model-sidecar/post/object/decode.md, heading
 "Selection behaviour": the score order with its tie rule and shared steps 1, 2, 4, 5 and 6;
 ADR-17KN).
 

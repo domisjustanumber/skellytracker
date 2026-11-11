@@ -437,7 +437,7 @@ Two rules of this part stay:
   `[0, W]` and `[0, H]` only when `clamp_boxes` is `true`. Then it must drop each box unless its
   width and its height are both more than `min_box_size`. A sidecar with no class source must set
   `decode.is_person_only: true` (`V-post.det.decode-9`). See
-  [Selection behaviour](model-sidecar/post/detection-decode.md#selection-behaviour) and
+  [Selection behaviour](model-sidecar/post/object/decode.md#selection-behaviour) and
   [ADR-17KN](../decisions/entries/17KN-one-selection-pipeline.md). `DetectionDecodeSpec` must
   also accept the required `decode.selection` (`V-post.det.decode-4`) and the fields of each
   selection mode. Today it has no `selection` field and forbids an unknown key, thus it rejects
@@ -496,7 +496,7 @@ Two rules of this part stay:
   mmpose v1.3.2: the argmax of the raw values, the score `min(peak_x, peak_y)` with no softmax, the
   bin `-1` for a score `<= 0`, the NaN rule and the bin scale from the bin counts
   ([ADR-03PH](model-sidecar/decisions/entries/03PH-simcc-score-rule.md);
-  [Behaviour](model-sidecar/post/pose-decode-simcc.md#behaviour)). The package code takes the mean
+  [Behaviour](model-sidecar/post/keypoint/decode-simcc.md#behaviour)). The package code takes the mean
   of the two softmax peaks and a fixed split ratio of 2.0. In `get_simcc_maximum` of
   `skellytracker/core/detectors/processing/simcc_decode.py`, remove the softmax and take the score
   `np.where(max_x > max_y, max_y, max_x)`. Keep the `-1` rule. In `decode_simcc`, read the bin scale

@@ -1,6 +1,6 @@
 # 1VMX — Spec change: nms-key-exclusion
 
-**Status:** absorbed into [`post/selection-nms.md#validation-rules`](../../post/selection-nms.md#validation-rules), 2026-11-09 (user; PR: pending).
+**Status:** absorbed into [`post/selection-nms.md#validation-rules`](../../post/object/selection-nms.md#validation-rules), 2026-11-09 (user; PR: pending).
 
 ## Decision
 
@@ -8,7 +8,7 @@ The user accepted the proposal on 2026-11-06. The record is
 [`proposal.md`](../../proposals/nms-key-exclusion/proposal.md)
 (proposal-nms-key-exclusion@openmmlab-exporter@v1).
 
-- Section: [`post.det.selection.nms`](../../post/selection-nms.md).
+- Section: [`post.det.selection.nms`](../../post/object/selection-nms.md).
 - Change: no normative text changes. The landed reference module
   `reference/post_det_selection_nms.py` gets `EXCLUDED_FIELDS` and `check_excluded_fields`. It
   refuses `class_logits_output`, `top_k` and `max_detections` with `selection: nms`, as the
@@ -61,3 +61,5 @@ See [open-work.md](../open-work.md).
 - Recording this entry makes OpenMMLab-Exporter the owner of `post.det.selection.nms` while the
   entry is `proposed`
   ([Section owner](../../model-addition-workflow/hand-over.md#section-owner)).
+
+_Edited 2026-11-11 (this PR): link repair._

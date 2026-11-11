@@ -110,19 +110,19 @@ Moved to [README.md](README.md#detection-fields-object_detector-role).
 
 ### Detection output semantics
 
-Moved to [post/detection-outputs.md](post/detection-outputs.md#detection-output-semantics).
+Moved to [post/detection-outputs.md](post/object/outputs.md#detection-output-semantics).
 
 ### `outputs` (detection)
 
-Moved to [post/detection-outputs.md](post/detection-outputs.md#outputs-detection).
+Moved to [post/detection-outputs.md](post/object/outputs.md#outputs-detection).
 
 ### `decode` (detection)
 
-Moved to [post/detection-decode.md](post/detection-decode.md#decode-detection).
+Moved to [post/detection-decode.md](post/object/decode.md#decode-detection).
 
 ### Selection behaviour
 
-Moved to [post/detection-decode.md](post/detection-decode.md#selection-behaviour).
+Moved to [post/detection-decode.md](post/object/decode.md#selection-behaviour).
 
 ## Pose-estimation fields (`pose_estimator` role)
 
@@ -130,51 +130,51 @@ Moved to [README.md](README.md#pose-estimation-fields-pose_estimator-role).
 
 ### `outputs` (pose)
 
-Moved to [post/pose-schema.md](post/pose-schema.md#outputs-pose).
+Moved to [post/pose-schema.md](post/keypoint/schema.md#outputs-pose).
 
 ### `packed_keypoints` (bottom-up packed rows)
 
-Moved to [post/pose-bottom-up.md](post/pose-bottom-up.md#packed_keypoints-bottom-up-packed-rows).
+Moved to [post/pose-bottom-up.md](post/keypoint/bottom-up.md#packed_keypoints-bottom-up-packed-rows).
 
 ### `pose` (pose estimator)
 
-Moved to [post/pose-schema.md](post/pose-schema.md).
+Moved to [post/pose-schema.md](post/keypoint/schema.md).
 
 #### `pose.tracked_points`
 
-Moved to [post/pose-schema.md](post/pose-schema.md#posetracked_points).
+Moved to [post/pose-schema.md](post/keypoint/schema.md#posetracked_points).
 
 #### `pose.connections`
 
-Moved to [post/pose-schema.md](post/pose-schema.md#poseconnections).
+Moved to [post/pose-schema.md](post/keypoint/schema.md#poseconnections).
 
 #### `pose.derived_points`
 
-Moved to [post/pose-schema.md](post/pose-schema.md#posederived_points).
+Moved to [post/pose-schema.md](post/keypoint/schema.md#posederived_points).
 
 #### `pose.canonical_mapping`
 
-Moved to [post/canonical-mapping.md](post/canonical-mapping.md#posecanonical_mapping).
+Moved to [post/canonical-mapping.md](post/keypoint/canonical-mapping.md#posecanonical_mapping).
 
 #### Canonical skeleton
 
-Moved to [post/canonical-mapping.md](post/canonical-mapping.md#canonical-skeleton).
+Moved to [post/canonical-mapping.md](post/keypoint/canonical-mapping.md#canonical-skeleton).
 
 #### Reference implementations
 
-Moved to [post/canonical-mapping.md](post/canonical-mapping.md#reference-mappings-in-skellytracker).
+Moved to [post/canonical-mapping.md](post/keypoint/canonical-mapping.md#reference-mappings-in-skellytracker).
 
 #### `pose.decode`
 
-Moved to [post/pose-schema.md](post/pose-schema.md#posedecode).
+Moved to [post/pose-schema.md](post/keypoint/schema.md#posedecode).
 
 #### Bottom-up decode
 
-Moved to [post/pose-bottom-up.md](post/pose-bottom-up.md#bottom-up-decode).
+Moved to [post/pose-bottom-up.md](post/keypoint/bottom-up.md#bottom-up-decode).
 
 ### `overlay` (visualization, pose estimator)
 
-Moved to [post/overlay.md](post/overlay.md).
+Moved to [post/overlay.md](post/keypoint/overlay.md).
 
 ## Model sizes within a family
 

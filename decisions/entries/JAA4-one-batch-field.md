@@ -1,6 +1,6 @@
 # JAA4 — One batch field for each sidecar
 
-**Status:** absorbed into [`batching.md#fields`](../../specs/model-sidecar/common/batching.md#fields), [`sizes-and-artifacts.md#sizes-and-artifacts`](../../specs/model-sidecar/common/sizes-and-artifacts.md#sizes-and-artifacts), [`batch-conversion.md#batch-conversion`](../../specs/model-sidecar/common/batch-conversion.md#batch-conversion), [`file-layout.md#file-extension-and-naming`](../../specs/model-sidecar/format/file-layout.md#file-extension-and-naming), [`selection-nms.md#selection-nms`](../../specs/model-sidecar/post/selection-nms.md#selection-nms), [`detection-outputs.md#implementer-guidance`](../../specs/model-sidecar/post/detection-outputs.md#implementer-guidance), [`detection-decode.md#behaviour`](../../specs/model-sidecar/post/detection-decode.md#behaviour), [`validation-and-publishing.md#publishing`](../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing), [`hand-over.md#manifest`](../../specs/model-sidecar/model-addition-workflow/hand-over.md#manifest), [`batch-conversion-check.md#batch-conversion-check`](../../specs/model-sidecar/model-addition-workflow/batch-conversion-check.md#batch-conversion-check), [`phase-1-intake.md#phase-1-can-the-current-spec-describe-the-model`](../../specs/model-sidecar/model-addition-workflow/phase-1-intake.md#phase-1-can-the-current-spec-describe-the-model), [`reference-implementations.md#imports-of-other-sections`](../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#imports-of-other-sections), [`change-proposal.md#5-parity-evidence`](../../specs/model-sidecar/templates/change-proposal.md#5-parity-evidence), [`sidecars/README.md#run-the-skellytracker-tools`](../../specs/draft/exporter-guide/sidecars/README.md#run-the-skellytracker-tools), 2026-11-10 (user; PR: pending).
+**Status:** absorbed into [`batching.md#fields`](../../specs/model-sidecar/common/batching.md#fields), [`sizes-and-artifacts.md#sizes-and-artifacts`](../../specs/model-sidecar/common/sizes-and-artifacts.md#sizes-and-artifacts), [`batch-conversion.md#batch-conversion`](../../specs/model-sidecar/common/batch-conversion.md#batch-conversion), [`file-layout.md#file-extension-and-naming`](../../specs/model-sidecar/format/file-layout.md#file-extension-and-naming), [`selection-nms.md#selection-nms`](../../specs/model-sidecar/post/object/selection-nms.md#selection-nms), [`detection-outputs.md#implementer-guidance`](../../specs/model-sidecar/post/object/outputs.md#implementer-guidance), [`detection-decode.md#behaviour`](../../specs/model-sidecar/post/object/decode.md#behaviour), [`validation-and-publishing.md#publishing`](../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing), [`hand-over.md#manifest`](../../specs/model-sidecar/model-addition-workflow/hand-over.md#manifest), [`batch-conversion-check.md#batch-conversion-check`](../../specs/model-sidecar/model-addition-workflow/batch-conversion-check.md#batch-conversion-check), [`phase-1-intake.md#phase-1-can-the-current-spec-describe-the-model`](../../specs/model-sidecar/model-addition-workflow/phase-1-intake.md#phase-1-can-the-current-spec-describe-the-model), [`reference-implementations.md#imports-of-other-sections`](../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#imports-of-other-sections), [`change-proposal.md#5-parity-evidence`](../../specs/model-sidecar/templates/change-proposal.md#5-parity-evidence), [`sidecars/README.md#run-the-skellytracker-tools`](../../specs/draft/exporter-guide/sidecars/README.md#run-the-skellytracker-tools), 2026-11-10 (user; PR: pending).
 
 ## Decision
 
@@ -52,10 +52,10 @@ Item 4 restates the other rules ([ADR-Z05A](Z05A-essential-decision-log-rules.md
    - ADR-0011: the RTMDet person graph ends before NMS. It gives `boxes` `[B, A, 4]` (`xyxy`,
      model-input pixels) and `scores` `[B, A]`. The sidecar declares `decode.selection: nms`. The
      other rules: [RTMDet person](../../specs/model-sidecar/examples/README.md#rtmdet-person-openmmlab-exporter-nms-free-outputs-host-nms),
-     [Authoring guidance](../../specs/model-sidecar/post/selection-nms.md#authoring-guidance) and
-     [Validation rules](../../specs/model-sidecar/post/selection-nms.md#validation-rules) of
+     [Authoring guidance](../../specs/model-sidecar/post/object/selection-nms.md#authoring-guidance) and
+     [Validation rules](../../specs/model-sidecar/post/object/selection-nms.md#validation-rules) of
      `post.det.selection.nms`,
-     [Behaviour](../../specs/model-sidecar/post/detection-decode.md#behaviour) of the detection
+     [Behaviour](../../specs/model-sidecar/post/object/decode.md#behaviour) of the detection
      decode,
      [Not added](../../specs/model-sidecar/changelog.md#considered-and-deliberately-not-added)
      and [`sizes`](../../specs/model-sidecar/common/sizes-and-artifacts.md#sizes). Item 2 gives the
@@ -85,3 +85,5 @@ Item 4 restates the other rules ([ADR-Z05A](Z05A-essential-decision-log-rules.md
   does not agree with the graph.
 
 _Edited 2026-11-03 (this PR): link repair._
+
+_Edited 2026-11-11 (this PR): link repair._

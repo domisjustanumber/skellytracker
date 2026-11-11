@@ -2,7 +2,7 @@
 
 Note:
 
-- Section ID: post.det.selection.nms (specs/model-sidecar/post/selection-nms.md, heading
+- Section ID: post.det.selection.nms (specs/model-sidecar/post/object/selection-nms.md, heading
   "Behaviour", steps 1 to 7).
 - Source commit: OpenMMLab-Exporter 5dd5c93ac6555ac907ae2ebfbc27dc6de5e3c278 (ADR-H1EF). The host
   code is unchanged at 18320f4e51660fe0cb9c546441eb9be09d53f339. Host functions:

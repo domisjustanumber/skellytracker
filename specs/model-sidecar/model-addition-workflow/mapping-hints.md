@@ -56,7 +56,7 @@
   IDs. Check `clamp_boxes` against the upstream: the default is `true`, so a sidecar without the field
   clamps the boxes. The clamp bounds are `[0, W]` and `[0, H]`, with `W` and `H` the source-image
   size (the heading "Selection behaviour" in
-  `../freemocap/skellytracker/specs/model-sidecar/post/detection-decode.md`). Map the area filter of
+  `../freemocap/skellytracker/specs/model-sidecar/post/object/decode.md`). Map the area filter of
   the upstream, for example `min_bbox_size` of mmdet, to `decode.min_box_size`. Omit
   `decode.min_box_size` when the upstream keeps the boxes with zero area
   ([ADR-17KN](../../../decisions/entries/17KN-one-selection-pipeline.md)). The spec does not define

@@ -63,7 +63,7 @@ The output schema gives these fields for each output:
 ## Behaviour
 
 1. The run gives the output schema before frame 0 ([ADR-99MH](../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 1).
-2. The `connections` come from the [overlay](../model-sidecar/post/overlay.md) of the sidecar of the node that makes the points. For a `mediapipe_tasks` node, they come from the MediaPipe YAML files in `core/detectors/keypoint_detectors/mediapipe/` ([ADR-AQR4](../../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 5).
+2. The `connections` come from the [overlay](../model-sidecar/post/keypoint/overlay.md) of the sidecar of the node that makes the points. For a `mediapipe_tasks` node, they come from the MediaPipe YAML files in `core/detectors/keypoint_detectors/mediapipe/` ([ADR-AQR4](../../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 5).
 3. Each output has the same shapes on each frame ([ADR-99MH](../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 1).
 4. The cameras stay separate. No output joins the values of two cameras ([ADR-99MH](../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 1).
 5. This draft defines the value of a `keypoints` port and of a `detections` port. The value of an output of another port type is not fixed yet.

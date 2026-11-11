@@ -1,11 +1,11 @@
 # 0003 — `tracked_points` are in native model output order
 
-**Status:** absorbed into [`post/pose-schema.md#posetracked_points`](../../specs/model-sidecar/post/pose-schema.md#posetracked_points), 2026-10-25 (user; the absorption review).
+**Status:** absorbed into [`post/pose-schema.md#posetracked_points`](../../specs/model-sidecar/post/keypoint/schema.md#posetracked_points), 2026-10-25 (user; the absorption review).
 
 ## Decision
 
 - A sidecar lists `pose.tracked_points` in the order of the model output. The i-th name is the i-th output
-  index. This is the rule in [`pose.tracked_points`](../../specs/model-sidecar/post/pose-schema.md#posetracked_points) in the
+  index. This is the rule in [`pose.tracked_points`](../../specs/model-sidecar/post/keypoint/schema.md#posetracked_points) in the
   spec.
 - The RTMW whole-body sidecar follows the rule. Its list is
   `skellytracker/core/detectors/shared/skeletons/coco133_tracked_points.yaml`. The order is:
@@ -87,3 +87,5 @@ _Edited 2026-10-26 (this PR): link repair._
 _Edited 2026-10-28 (this PR): link repair._
 
 _Edited 2026-10-29 (this PR): link repair._
+
+_Edited 2026-11-11 (this PR): link repair._

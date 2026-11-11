@@ -1,6 +1,6 @@
 # 03PH — Spec change: simcc-score-rule
 
-**Status:** absorbed into [`post/pose-decode-simcc.md#behaviour`](../../post/pose-decode-simcc.md#behaviour), 2026-11-09 (user; PR: pending).
+**Status:** absorbed into [`post/pose-decode-simcc.md#behaviour`](../../post/keypoint/decode-simcc.md#behaviour), 2026-11-09 (user; PR: pending).
 
 ## Decision
 
@@ -8,7 +8,7 @@ The user accepted the proposal on 2026-11-09. The record is
 [`proposal.md`](../../proposals/simcc-score-rule/proposal.md)
 (proposal-simcc-score-rule@openmmlab-exporter@v3).
 
-- Section: [`post.pose.decode.simcc`](../../post/pose-decode-simcc.md).
+- Section: [`post.pose.decode.simcc`](../../post/keypoint/decode-simcc.md).
 - Change: the Behaviour gives the 2D SimCC decode exactly. The location of each axis is the argmax
   bin of the raw values, and a tie gives the lowest bin. The score is `min(peak_x, peak_y)` of the
   raw peaks, with no softmax. A score `<= 0` sets the bin `-1` on both axes before the scale, and
@@ -85,3 +85,5 @@ See [open-work.md](../open-work.md).
 - [x] The content commit must rewrite the relative links of the proposed text from the record path to
   the section and changelog paths (editorial, part 2). (new 2026-11-09) The content commit makes
   this fix.
+
+_Edited 2026-11-11 (this PR): link repair._

@@ -23,11 +23,11 @@ status: {spec: stable, validate: missing, decode: missing}
 | `score_activation` | enum | no | The value is `none` (default) or `sigmoid`. The host applies it to `class_logits` before selection. |
 | `top_k` | int | conditional | The number of (row, class) pairs to select. Required for `selection: top_k`. |
 
-These are fields of [`decode`](detection-decode.md#decode-detection). That section defines the other `decode` fields. [Detection output semantics](detection-outputs.md#detection-output-semantics) defines `B`, `Q` and `C`.
+These are fields of [`decode`](decode.md#decode-detection). That section defines the other `decode` fields. [Detection output semantics](outputs.md#detection-output-semantics) defines `B`, `Q` and `C`.
 
 ## Behaviour
 
-Score comparisons and tie-breaking: [Selection behaviour](detection-decode.md#selection-behaviour).
+Score comparisons and tie-breaking: [Selection behaviour](decode.md#selection-behaviour).
 
 **`selection: top_k`** — the model gives class logits for each row. The host takes a global top-k of the (row, class) pairs (for example RF-DETR).
 
@@ -35,7 +35,7 @@ Score comparisons and tie-breaking: [Selection behaviour](detection-decode.md#se
 2. Flatten in row-major order with `flat = row * C + class`.
 3. Sort the entries by score in descending order with a stable sort. Take the first `min(top_k, Q * C)` entries.
 4. Compute `row = flat // C` and `class = flat % C`. Gather `boxes[row]`. The score is `p[row, class]`.
-5. Do shared step 1 (class mapping) of [Selection behaviour](detection-decode.md#selection-behaviour) on `class`. The final count can then be below `top_k`.
+5. Do shared step 1 (class mapping) of [Selection behaviour](decode.md#selection-behaviour) on `class`. The final count can then be below `top_k`.
 6. Do the shared steps 2 to 5 (box conversion, unprojection, clamp and size filter).
 7. Do shared step 6 (confidence threshold). Do not run NMS. Several selected pairs can share one row (one box, several classes). The spec allows this.
 
@@ -45,12 +45,12 @@ Score comparisons and tie-breaking: [Selection behaviour](detection-decode.md#se
 
 - [ ] `V-post.det.selection.top_k-1` A sidecar with `selection: top_k` must have a `boxes` primary output, `class_logits_output` and a positive integer `top_k`. It must not have `nms`, `max_detections`, `scores_output` or `score_field`.
 
-See also [Detection decode](detection-decode.md#validation-rules).
+See also [Detection decode](decode.md#validation-rules).
 
 ## Implementer guidance
 
 - The decoder of Roboflow-Exporter matches the steps 1 to 4 and 7. It applies the sigmoid to the logits `[Q, C]`. The function `_select_topk_multiclass` flattens the scores in row-major order and sorts with `np.lexsort((flat_index, -score))`: descending score, ties by ascending flat index. It takes the first `min(num_select, Q * C)` entries and computes `row = idx // C` and `class = idx % C`. Then it applies `score > threshold` and runs no NMS. One query can give several records (the same box with different classes). (Roboflow-Exporter [`rf_detr/coco_format.py:40-64`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/coco_format.py#L40-L64), [`rf_detr/coco_format.py:122-127`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/coco_format.py#L122-L127) and [`onnx_runtime/convert_rf_detr_coco.py:40-66`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/onnx_runtime/convert_rf_detr_coco.py#L40-L66))
-- The decoders of Roboflow-Exporter also convert cxcywh boxes to xyxy, scale them with the original image size and clip them (the box part of step 6). They do not apply step 5 (`class_id_map`). No reference implementation exists yet. (Roboflow-Exporter [`rf_detr/coco_format.py:130-146`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/coco_format.py#L130-L146); [known open items](../../draft/exporter-guide/sidecars/known-open-items.md#known-open-items-for-the-exporter-overhaul))
+- The decoders of Roboflow-Exporter also convert cxcywh boxes to xyxy, scale them with the original image size and clip them (the box part of step 6). They do not apply step 5 (`class_id_map`). No reference implementation exists yet. (Roboflow-Exporter [`rf_detr/coco_format.py:130-146`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/coco_format.py#L130-L146); [known open items](../../../draft/exporter-guide/sidecars/known-open-items.md#known-open-items-for-the-exporter-overhaul))
 - The 100 detections for each image in the RF-DETR accuracy runs come from the evaluator cap (`max_dets` 100) after the 300-pair top-k. The cap is not a sidecar field and it is not part of the selection. (Roboflow-Exporter [`rf_detr/ACCURACY_CONTRACT.md:57-64`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/4ae67c0f99a45a81a0e788e6abbda82db7811e32/rf_detr/ACCURACY_CONTRACT.md#L57-L64) and [`rf_detr/model_report.py:206-215`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/4ae67c0f99a45a81a0e788e6abbda82db7811e32/rf_detr/model_report.py#L206-L215))
 - RF-DETR graph parity (nano, batch 1, COCO val2017, 5,000 images, ONNX Runtime CUDA provider, threshold 0.0, `num_select` 300, `max_dets` 100): PyTorch AP 0.480397 and AP50 0.671185. The fp32 ONNX gives AP 0.480287 and AP50 0.671145 (delta AP -0.00011). The fp16 ONNX gives AP 0.48023 (delta AP -0.000167). All passes use the same preprocessing, so the numbers show graph parity under that preprocessing. (Roboflow-Exporter `exports/detectors/object_detectors/rfdetr/rfdetr-nano_b1_fp32.onnx.model.report.json` and `rfdetr-nano_b1_fp16.onnx.model.report.json`, fields `scoring.accuracy.passes[*].metrics.values.ap` and `scoring.accuracy.comparisons[0].deltas`, untracked, HEAD c64fd2a32a51e29cdbf9b1b31473c8e441839d07; [`rf_detr/ACCURACY_CONTRACT.md:31-38`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/4ae67c0f99a45a81a0e788e6abbda82db7811e32/rf_detr/ACCURACY_CONTRACT.md#L31-L38))
 

@@ -1,6 +1,6 @@
 # Q6W6 — Strict `>` in each score comparison of the detection decode
 
-**Status:** absorbed into [`post/detection-decode.md#selection-behaviour`](../../post/detection-decode.md#selection-behaviour), 2026-11-06 (user; PR: pending).
+**Status:** absorbed into [`post/detection-decode.md#selection-behaviour`](../../post/object/decode.md#selection-behaviour), 2026-11-06 (user; PR: pending).
 
 ## Decision
 
@@ -14,12 +14,12 @@ No normative change, no changelog row, no vector change."
 1. Each score comparison of the detection decode stays strict (`>`). A score equal to
    `nms.score_threshold` or to `confidence_threshold_default` does not pass. This is intended.
 2. The normative text does not change.
-   [Selection behaviour](../../post/detection-decode.md#selection-behaviour) already makes each
+   [Selection behaviour](../../post/object/decode.md#selection-behaviour) already makes each
    score comparison strict.
 3. The Implementer guidance of
-   [Detection decode](../../post/detection-decode.md#implementer-guidance) names the upstreams that
+   [Detection decode](../../post/object/decode.md#implementer-guidance) names the upstreams that
    use `>` and the two that use `>=`. The `qai_hub_models` bullet of
-   [Selection: NMS](../../post/selection-nms.md#implementer-guidance) cites this entry, not the
+   [Selection: NMS](../../post/object/selection-nms.md#implementer-guidance) cites this entry, not the
    spec-defect item.
 4. No vector changes. The current cases pin each strict comparison.
 5. It deletes the `confidence_threshold_default` item of the
@@ -87,3 +87,5 @@ Upstreams with `>=`:
 - The first strict rule cited mmdet from memory
   ([`notes/sidecar-exporter-coverage.md`](../../../../notes/sidecar-exporter-coverage.md), "Make every
   score threshold"). The mmdet line above is now checked.
+
+_Edited 2026-11-11 (this PR): link repair._

@@ -16,7 +16,7 @@ status: {spec: stable, validate: partial, load: missing}
 
 ## Fields
 
-Each entry describes one ONNX output tensor. `outputs` is required for every sidecar. The fields below are common to every role. The [object-detection](../post/detection-outputs.md#outputs-detection) and [pose-estimation](../post/pose-schema.md#outputs-pose) sections describe the role-specific fields.
+Each entry describes one ONNX output tensor. `outputs` is required for every sidecar. The fields below are common to every role. The [object-detection](../post/object/outputs.md#outputs-detection) and [pose-estimation](../post/keypoint/schema.md#outputs-pose) sections describe the role-specific fields.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -38,7 +38,7 @@ A sidecar with both roles lists every tensor in one `outputs` array. The `semant
 - [ ] `V-common.outputs-3` The `semantic` of each output must be one of `detections`, `boxes`, `scores`, `class_logits`, `simcc_x`, `simcc_y`, `keypoints`, `poses` ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)). The detection semantics require `role` to include `object_detector`. The pose semantics require `role` to include `pose_estimator`.
 - [ ] `V-common.outputs-4` All sizes must share the same output names, semantics, and keypoint or class counts. Spatial-dependent dimensions can scale with the input size.
 
-See also [Identity](identity.md#validation-rules), [Sizes and artifacts](sizes-and-artifacts.md#validation-rules) and [Detection outputs](../post/detection-outputs.md#validation-rules).
+See also [Identity](identity.md#validation-rules), [Sizes and artifacts](sizes-and-artifacts.md#validation-rules) and [Detection outputs](../post/object/outputs.md#validation-rules).
 
 ## Implementer guidance
 

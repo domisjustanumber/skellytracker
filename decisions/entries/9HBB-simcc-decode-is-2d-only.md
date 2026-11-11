@@ -10,7 +10,7 @@
 2. **What goes.** The value `simcc_z` of `outputs[].semantic`, because only the 3D SimCC decode used
    it. The field `pose.decode.depth_range`. The rule `V-post.pose.decode.simcc-1`. Its number stays
    unused. The `Z_bins` item of the Shape key. The 3D sentences of the Behaviour of
-   [`post.pose.decode.simcc`](../../specs/model-sidecar/post/pose-decode-simcc.md#behaviour), and its
+   [`post.pose.decode.simcc`](../../specs/model-sidecar/post/keypoint/decode-simcc.md#behaviour), and its
    selector `outputs[].semantic=simcc_z`.
 3. **What changes.** `V-post.pose.schema-7`: a `simcc` decoder must have `pose.geometry: 2d`. A 3D
    SimCC sidecar fails with this rule ID. `V-post.pose.schema-9` no longer names `depth_range`.
@@ -53,3 +53,5 @@
 - **Move the 3D part to a draft section now.** Section status rule 7 stops the release while a
   section is `draft`, and no 3D implementation can make it `stable`. The text stays vague until the
   release removes it.
+
+_Edited 2026-11-11 (this PR): link repair._

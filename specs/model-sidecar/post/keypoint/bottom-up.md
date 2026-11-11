@@ -20,9 +20,9 @@ status: {spec: stable, validate: partial, decode: missing}
 
 ## Fields
 
-For `semantic: poses` (bottom-up, separate tensor), the tensor is `(B, I, K, 3)` with `keypoint_axis: 2`. The tensor axes are the batch, the instances (`I`), the keypoints (`K`) and the values `(x, y, score)` of each keypoint. When `pose.geometry: 3d`, the tensor is `(B, I, K, 4)` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). In this case, the values of each keypoint are `x, y, z, score`, with `z` as root-relative depth in `pose.decode.depth_unit`. The instance axis `I` equals the row axis `Q` of the primary detection output.
+For `semantic: poses` (bottom-up, separate tensor), the tensor is `(B, I, K, 3)` with `keypoint_axis: 2`. The tensor axes are the batch, the instances (`I`), the keypoints (`K`) and the values `(x, y, score)` of each keypoint. When `pose.geometry: 3d`, the tensor is `(B, I, K, 4)` ([ADR-90CE](../../../../decisions/entries/90CE-minimal-sidecar-contract.md)). In this case, the values of each keypoint are `x, y, z, score`, with `z` as root-relative depth in `pose.decode.depth_unit`. The instance axis `I` equals the row axis `Q` of the primary detection output.
 
-[Shape key](pose-schema.md#shape-key)
+[Shape key](schema.md#shape-key)
 
 ### `packed_keypoints` (bottom-up packed rows)
 
@@ -31,7 +31,7 @@ Some one-stage models append the keypoints to each detection row. They do not em
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `packed_keypoints.offset` | int | yes | The index of the first keypoint column. It must equal `len(fields)`. |
-| `packed_keypoints.components` | array[enum] | yes | The column order for each keypoint, drawn from `x`, `y`, `z` and `score`. It must contain `x` and `y`. It must contain `z` if and only if `pose.geometry: 3d` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). |
+| `packed_keypoints.components` | array[enum] | yes | The column order for each keypoint, drawn from `x`, `y`, `z` and `score`. It must contain `x` and `y`. It must contain `z` if and only if `pose.geometry: 3d` ([ADR-90CE](../../../../decisions/entries/90CE-minimal-sidecar-contract.md)). |
 
 ```yaml
 outputs:
@@ -49,7 +49,7 @@ Rules:
 
 - This object is valid only when `role` includes both roles, when `pose.estimator_type: bottom_up`, and when `pose.decode.method: coordinate`.
 - The condition `offset + K * len(components) == shape[-1]` must hold, where `K = len(pose.tracked_points)`. Component `c` of keypoint `k` is in column `offset + k * len(components) + index(c)`.
-- Keypoint coordinates are in the scale that `decode.box_scale` sets. `pose.decode.coordinate_scale` must not be present ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). The model already activates each keypoint `score`.
+- Keypoint coordinates are in the scale that `decode.box_scale` sets. `pose.decode.coordinate_scale` must not be present ([ADR-90CE](../../../../decisions/entries/90CE-minimal-sidecar-contract.md)). The model already activates each keypoint `score`.
 
 ## Behaviour
 
@@ -57,16 +57,16 @@ Rules:
 
 Bottom-up models (`bottom_up`, for example RTMO or YOLO26-pose) work on the full image. They decode with `coordinate`. Each detection row `q` has pose row `q`. The pose row is either `poses[b, q]` or the packed keypoint columns of `detections[b, q]`. Thus the instance count always equals the detection row count. The host runs the detection `decode` (`selection: none` or `nms`). It emits keypoints for exactly the surviving detection rows, in the same order. The host unprojects the keypoints with the same transform as the boxes.
 
-Selection steps: [Selection: none](selection-none.md#behaviour), [Selection: NMS](selection-nms.md#behaviour).
+Selection steps: [Selection: none](../object/selection-none.md#behaviour), [Selection: NMS](../object/selection-nms.md#behaviour).
 
 ## Validation rules
 
 ### Pose (`pose_estimator`)
 
 - [ ] `V-post.pose.bottom_up-1` A `poses` output must declare `keypoint_axis: 2`. Its instance axis must equal the row axis of the primary detection output.
-- [ ] `V-post.pose.bottom_up-2` If `packed_keypoints` is present, it must be on a `detections` output. A sidecar with packed keypoints must have both roles, `estimator_type: bottom_up` and `pose.decode.method: coordinate`. `offset` must equal `len(fields)`. `components` must be a list of unique values from `x`, `y`, `z` and `score`. The list must contain `x` and `y`. It must contain `z` if and only if `pose.geometry: 3d`. When the last dimension is concrete, `offset + len(tracked_points) * len(components)` must equal `shape[-1]`. `pose.decode.coordinate_scale` must not be present when `packed_keypoints` is present. The packed keypoints use `decode.box_scale` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
+- [ ] `V-post.pose.bottom_up-2` If `packed_keypoints` is present, it must be on a `detections` output. A sidecar with packed keypoints must have both roles, `estimator_type: bottom_up` and `pose.decode.method: coordinate`. `offset` must equal `len(fields)`. `components` must be a list of unique values from `x`, `y`, `z` and `score`. The list must contain `x` and `y`. It must contain `z` if and only if `pose.geometry: 3d`. When the last dimension is concrete, `offset + len(tracked_points) * len(components)` must equal `shape[-1]`. `pose.decode.coordinate_scale` must not be present when `packed_keypoints` is present. The packed keypoints use `decode.box_scale` ([ADR-90CE](../../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 
-See also [Pose schema](pose-schema.md#validation-rules), [Coordinate decode](pose-decode-coordinate.md#validation-rules) and [Detection outputs](detection-outputs.md#validation-rules).
+See also [Pose schema](schema.md#validation-rules), [Coordinate decode](decode-coordinate.md#validation-rules) and [Detection outputs](../object/outputs.md#validation-rules).
 
 ## Implementer guidance
 

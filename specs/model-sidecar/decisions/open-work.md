@@ -6,7 +6,7 @@ repository state is in the root [open-work.md](../../../decisions/open-work.md).
 
 ## Repository state
 
-- `specs/model-sidecar/post/canonical-mapping.md` links to the VRM specification by the branch `master`. A
+- `specs/model-sidecar/post/keypoint/canonical-mapping.md` links to the VRM specification by the branch `master`. A
   rewording PR must pin the two links to a commit.
 
 ## Re-export requests
@@ -30,7 +30,7 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   current model uses this pair ([ADR-G79P](entries/G79P-pixel-centres-per-resize-method.md)).
 - The spec has no description of a one-class detector of an object that is not a person. A sidecar
   with no class source must set `decode.is_person_only: true`, so each detection gets the class
-  `person_class_id` ([`V-post.det.decode-9`](../post/detection-decode.md#validation-rules);
+  `person_class_id` ([`V-post.det.decode-9`](../post/object/decode.md#validation-rules);
   [ADR-17KN](../../../decisions/entries/17KN-one-selection-pipeline.md)).
 - The spec does not state these facts, but a host needs them:
   - the keypoint scores in a `poses` tensor are already activated (the spec states this only for
@@ -73,7 +73,7 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   border with the edge pixels (MediaPipe-Exporter [`docs/mediapipe-whole-body.md:79-88`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L79-L88), [`docs/mediapipe-whole-body.md:381-399`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L381-L399)).
   Qualcomm-Exporter writes `affine_person_crop` with `expand_ratio: 1.0` as an approximation
   ([`qai_sidecar.py:270-276`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_sidecar.py#L270-L276), [`README.md:129-133`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/README.md#L129-L133)).
-  ([Pose schema](../post/pose-schema.md#validation-rules),
+  ([Pose schema](../post/keypoint/schema.md#validation-rules),
   [`affine_person_crop`](../pre/resize-affine-person-crop.md#validation-rules))
 - The MediaPipe hand landmark model has four outputs: 21 landmarks, a hand flag, a handedness score
   and 21 world landmarks in metres (MediaPipe-Exporter [`docs/mediapipe-whole-body.md:199`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L199), [`docs/mediapipe-whole-body.md:147-151`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L147-L151)). The closed
@@ -83,7 +83,7 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   item 0) ([`docs/mediapipe-whole-body.md:362-363`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L362-L363), [`docs/mediapipe-whole-body.md:404-408`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L404-L408)). Without the flag, a host gives
   landmarks for a crop with no hand. The landmark wrapper of Qualcomm-Exporter keeps only the
   landmarks ([`qai_catalog.py:358-360`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_catalog.py#L358-L360)).
-- [`pose.decode`](../post/pose-schema.md#posedecode) has no field for a divisor of the raw depth. The
+- [`pose.decode`](../post/keypoint/schema.md#posedecode) has no field for a divisor of the raw depth. The
   spec has no rule that maps a `pixel` depth to the source image
   ([Unprojection](../post/unprojection.md#behaviour)). MediaPipe computes the depth as
   `z / input_width / normalize_z`. `normalize_z` is 0.4 for the hand graph and 1.0 for the pose and

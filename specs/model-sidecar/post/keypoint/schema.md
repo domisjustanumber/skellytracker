@@ -43,7 +43,7 @@ The pose output contract declares these items:
 
 ### `outputs` (pose)
 
-The fields common to every output are in [Outputs](../common/outputs.md#fields).
+The fields common to every output are in [Outputs](../../common/outputs.md#fields).
 
 Additional fields on pose output tensors:
 
@@ -52,7 +52,7 @@ Additional fields on pose output tensors:
 | `keypoint_axis` | int | conditional | The axis that holds the keypoints in a pose output. The default is `1` for `(N, K, …)` tensors (`simcc_x`/`simcc_y`/`keypoints`). For `poses` `(B, I, K, …)`, the field is required and its value is `2`. |
 | `keypoint_count` | int | no | The number of keypoints in a pose output. If the author sets this field, it must equal `len(tracked_points)`. If the author omits it, its value is `len(tracked_points)`. |
 
-`poses` tensor layout: [Bottom-up pose](pose-bottom-up.md#fields).
+`poses` tensor layout: [Bottom-up pose](bottom-up.md#fields).
 
 ### `pose.tracked_points`
 
@@ -88,14 +88,14 @@ This field declares how the raw output tensors of the model become keypoints.
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `pose.decode.method` | enum | yes | The value is `simcc` or `coordinate`. |
-| `pose.decode.depth_unit` | enum | required when `pose.geometry: 3d` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)) | The unit of the root-relative depth coordinate: `m`, `mm` or `pixel` (MediaPipe, scaled by the image width). |
+| `pose.decode.depth_unit` | enum | required when `pose.geometry: 3d` ([ADR-90CE](../../../../decisions/entries/90CE-minimal-sidecar-contract.md)) | The unit of the root-relative depth coordinate: `m`, `mm` or `pixel` (MediaPipe, scaled by the image width). |
 
-Method-specific field: [`pose.decode.coordinate_scale`](pose-decode-coordinate.md#fields).
+Method-specific field: [`pose.decode.coordinate_scale`](decode-coordinate.md#fields).
 
 Decode methods:
 
-- [SimCC decode](pose-decode-simcc.md#behaviour)
-- [Coordinate decode](pose-decode-coordinate.md#behaviour)
+- [SimCC decode](decode-simcc.md#behaviour)
+- [Coordinate decode](decode-coordinate.md#behaviour)
 
 #### Shape key
 
@@ -110,24 +110,24 @@ Decode methods:
 
 ### Pose (`pose_estimator`)
 
-- [ ] `V-post.pose.schema-1` The sidecar must declare `pose` (with `estimator_type`, `requires_object_detector` and `geometry`), `pose.decode`, `pose.tracked_points` and `pose.connections` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
+- [ ] `V-post.pose.schema-1` The sidecar must declare `pose` (with `estimator_type`, `requires_object_detector` and `geometry`), `pose.decode`, `pose.tracked_points` and `pose.connections` ([ADR-90CE](../../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 - [ ] `V-post.pose.schema-2` `pose.requires_object_detector` must be a boolean. It must be consistent with `pose.estimator_type`. It must be `true` for `top_down_single_person`/`top_down_multi_person`. It must be `false` for `bottom_up`.
 - [ ] `V-post.pose.schema-3` `pose.estimator_type` must be one of `top_down_single_person`, `top_down_multi_person` or `bottom_up`. `pose.decode.method` must be `simcc` or `coordinate`.
 - [ ] `V-post.pose.schema-4` The names in `pose.tracked_points` must be unique.
 - [ ] `V-post.pose.schema-5` Every `pose.connections[].edges` endpoint must appear in `pose.tracked_points` or `pose.derived_points`. The `pose.connections[].name` values must be unique.
 - [ ] `V-post.pose.schema-6` The names in `pose.derived_points` must be unique. Each derivation must be a string (passthrough), a list of names (mean) or a name→number map (weighted). Every referenced source name must appear in `pose.tracked_points`.
-- [ ] `V-post.pose.schema-7` A `simcc` decoder must declare exactly one `simcc_x` output and exactly one `simcc_y` output. It must have `pose.geometry: 2d`: the spec has no 3D SimCC decode ([ADR-9HBB](../../../decisions/entries/9HBB-simcc-decode-is-2d-only.md)). A `coordinate` decoder must declare exactly one `keypoints` output (single-person). For a `bottom_up` model, this decoder must instead declare one primary detection output. It must also declare either one `poses` output, or `packed_keypoints` on the `detections` output. It must not declare both ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
+- [ ] `V-post.pose.schema-7` A `simcc` decoder must declare exactly one `simcc_x` output and exactly one `simcc_y` output. It must have `pose.geometry: 2d`: the spec has no 3D SimCC decode ([ADR-9HBB](../../../../decisions/entries/9HBB-simcc-decode-is-2d-only.md)). A `coordinate` decoder must declare exactly one `keypoints` output (single-person). For a `bottom_up` model, this decoder must instead declare one primary detection output. It must also declare either one `poses` output, or `packed_keypoints` on the `detections` output. It must not declare both ([ADR-90CE](../../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 - [ ] `V-post.pose.schema-8` If the author sets `keypoint_count` on a pose output, it must equal `len(pose.tracked_points)`.
-- [ ] `V-post.pose.schema-9` `pose.geometry` must be `2d` or `3d`. When it is `3d`, `pose.decode.depth_unit` must be present and must be one of `m`, `mm` or `pixel`. `depth_unit` must not be present unless `pose.geometry: 3d` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
+- [ ] `V-post.pose.schema-9` `pose.geometry` must be `2d` or `3d`. When it is `3d`, `pose.decode.depth_unit` must be present and must be one of `m`, `mm` or `pixel`. `depth_unit` must not be present unless `pose.geometry: 3d` ([ADR-90CE](../../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 
-See also [Affine person crop](../pre/resize-affine-person-crop.md#validation-rules), [Canonical mapping](canonical-mapping.md#validation-rules) and [Bottom-up pose](pose-bottom-up.md#validation-rules).
+See also [Affine person crop](../../pre/resize-affine-person-crop.md#validation-rules), [Canonical mapping](canonical-mapping.md#validation-rules) and [Bottom-up pose](bottom-up.md#validation-rules).
 
 ## Implementer guidance
 
 - Take the keypoint count from `len(tracked_points)` or `keypoint_count`, not from the ONNX shape. The keypoint axis of the real RTMW-M graph is symbolic (`[1, symbolic, 384]`). (OpenMMLab-Exporter [`rtmw/contract.py:12-13`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/68a6c6d103a63d9df10668990d937abb23de73fb/rtmw/contract.py#L12-L13); [`notes/decisions/0019-rtmw-real-export-sidecar-contract.md:27-28`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/c85abf7da34d1e4da7c129f3382173f7153f60fa/notes/decisions/0019-rtmw-real-export-sidecar-contract.md#L27-L28))
-- No exporter checks the third channel of the RTMO `[B, Q, 17, 3]` poses tensor. The probe of OpenMMLab-Exporter compares x and y only (`kpts[:, :, :2]`). The reading `(x, y, score)` comes from the spec, not from a measurement. The spec states the activation of the keypoint scores only for `packed_keypoints` ([spec defects](../decisions/README.md#open-work), item on facts that a host needs). (OpenMMLab-Exporter [`notes/decisions/scripts/rtmo_sidecar_probe.py:97-102`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/scripts/rtmo_sidecar_probe.py#L97-L102))
+- No exporter checks the third channel of the RTMO `[B, Q, 17, 3]` poses tensor. The probe of OpenMMLab-Exporter compares x and y only (`kpts[:, :, :2]`). The reading `(x, y, score)` comes from the spec, not from a measurement. The spec states the activation of the keypoint scores only for `packed_keypoints` ([spec defects](../../decisions/README.md#open-work), item on facts that a host needs). (OpenMMLab-Exporter [`notes/decisions/scripts/rtmo_sidecar_probe.py:97-102`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/scripts/rtmo_sidecar_probe.py#L97-L102))
 - The YOLO26-pose graph applies the sigmoid to the keypoint score inside the graph (the third value of each keypoint). (ultralytics 8.4.184 `nn/modules/head.py:765-777`, installed copy in the Ultralytics-Exporter `.venv`)
-- Use the decoded keypoint arrays in `tracked_points` order. Do not reorder them in the detector. Compare the keypoints of a parity test by name, not by array position. ([ADR-0003](../../../decisions/entries/0003-tracked-points-native-order.md))
+- Use the decoded keypoint arrays in `tracked_points` order. Do not reorder them in the detector. Compare the keypoints of a parity test by name, not by array position. ([ADR-0003](../../../../decisions/entries/0003-tracked-points-native-order.md))
 
 ## Authoring guidance
 
@@ -137,7 +137,7 @@ See also [Affine person crop](../pre/resize-affine-person-crop.md#validation-rul
 - YOLO26-pose: `connections` is one hard-coded skeleton `coco_17` with 16 edges and no upstream key. The Ultralytics `Annotator` skeleton has 19 edges. It adds the eye-eye edge and the two ear-shoulder edges. (Ultralytics-Exporter [`yolo_sidecar.py:58-76`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L58-L76); ultralytics 8.4.184 `utils/plotting.py:351-371`, installed copy in the Ultralytics-Exporter `.venv`)
 - MediaPipe landmark models (historical code of Qualcomm-Exporter): `role` is `[pose_estimator]`, `estimator_type` is `top_down_single_person` and `requires_object_detector` is `true`. `landmark_schema` is `MediaPipe_FaceMesh` or `MediaPipe_Hand`. The one output is `{name: landmarks, semantic: keypoints, keypoint_axis: 1, keypoint_count: 468 or 21, shape [B, K, 3]}`. (Qualcomm-Exporter [`qai_sidecar.py:230-262`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_sidecar.py#L230-L262) (face); `qai_sidecar.py:270-310`, commit a095041a5e9450df18637596fbaf6409f79e9fc6 on no branch (secondary) (hand and face))
 - The `tracked_points` of the MediaPipe models came from constants of the exporter: 21 hand names from `wrist` to `pinky_tip` in landmark index order, and `face_0000` to `face_0467`. The `connections` came from the upstream index pairs (`HAND_LANDMARK_CONNECTIONS`, `FACE_LANDMARK_CONNECTIONS`), converted to name pairs, as one skeleton `<family>_skeleton`. (Qualcomm-Exporter `qai_sidecar.py:15-39, 130-180`, commit a095041a5e9450df18637596fbaf6409f79e9fc6 on no branch (secondary) (hand and face); [`qai_sidecar.py:15`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_sidecar.py#L15), [`qai_sidecar.py:97-137`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_sidecar.py#L97-L137) (face))
-- The landmark wrapper of Qualcomm-Exporter keeps only `out[-1]`, the landmarks tensor. The ONNX file thus has no output for a face flag, a hand flag or a handedness, and a host cannot gate on presence. The output semantics of the spec are a closed set with no presence score and no handedness ([Outputs](../common/outputs.md#fields)). (Qualcomm-Exporter [`qai_catalog.py:336-361`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_catalog.py#L336-L361))
+- The landmark wrapper of Qualcomm-Exporter keeps only `out[-1]`, the landmarks tensor. The ONNX file thus has no output for a face flag, a hand flag or a handedness, and a host cannot gate on presence. The output semantics of the spec are a closed set with no presence score and no handedness ([Outputs](../../common/outputs.md#fields)). (Qualcomm-Exporter [`qai_catalog.py:336-361`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_catalog.py#L336-L361))
 - The MediaPipe hand landmark model is top-down, but its crop does not come from a detector box. The pipeline builds a rotated ROI from the wrist, index and pinky keypoints of a body pose. The spec ties `top_down_*` to `requires_object_detector: true` (V-post.pose.schema-2). (the untracked hand pipeline plan of MediaPipe-Exporter (secondary))
 
 ## Examples
