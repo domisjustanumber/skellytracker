@@ -23,7 +23,7 @@ A `detector` node runs one ONNX model. It does the preprocessing, the inference 
 | `precision` | `Optional[Literal['fp32', 'fp16']]` |  | `null` | no | The precision of the artifact. Empty: fp16 on a GPU EP and fp32 on CPU; fp32 when the size has no fp16 artifact. | ADR-7NY2 item 10 |
 | `execution_provider` | `str \| None` |  | `null` | no | A key of the EP catalog for this node, for example `cuda`, `trt-rtx` or `cpu`. Empty: the EP of the run. | ADR-7NY2 item 12; ADR-9NW0 item 1 |
 | `ep_options` | `dict[str, str]` |  | `{}` | no | EP options for this node: option names and values that the EP catalog allows for its EP. Empty: the EP options of the run when the node uses the EP of the run, else none. | ADR-9NW0 item 2 |
-| `max_instances` | `int` | >= 1 | `1` | no | The number of instance rows `I` that this node makes (object detector or one-stage model). | ADR-0WJB item 1 |
+| `max_instances` | `int` | >= 1 | `1` | no | The number of instance rows `I` that this node makes (object detector or one-stage model). | ADR-ZYS9 item 1 |
 | `object_decode` | `dict[str, Any]` |  | `{}` | no | Changes of the fields of the `object.decode` block of the sidecar. The load checks each name against the sidecar. | ADR-7NY2 item 11; ADR-88WQ item 7 |
 <!-- /node-table:params -->
 
@@ -44,8 +44,8 @@ A `detector` node runs one ONNX model. It does the preprocessing, the inference 
 - `execution_provider` is a key of the EP catalog, for example `cuda`, `trt-rtx` or `cpu`. When it is empty, the node uses the EP of the run. There is no EP policy ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 12; [ADR-9NW0](../../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 1).
 - `ep_options` holds the EP options of the node. The EP catalog lists the allowed names and values of its EP. When it is empty and the node uses the EP of the run, the node uses the EP options of the run ([ADR-9NW0](../../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 2).
 - `object_decode` holds only the fields of the sidecar block [`object.decode`](../../model-sidecar/post/object/decode.md#objectdecode) that the file changes. The mapping nests as the sidecar block nests, for example `object_decode: {nms: {post_nms_top_k: 1}}`. Each other field keeps the value of the sidecar. The defaults come from the sidecar, because a threshold is tuned to one model and one size ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 11). In v1, no value changes during a run (item 1). There is no param for the fields of `keypoint.decode` until a keypoint field can be tuned ([ADR-88WQ](../../../decisions/entries/88WQ-sidecar-vocabulary.md) item 7).
-- `max_instances` is the row count `I` of the outputs of a node that makes instances: an object detector or a model with both roles. A top-down keypoint model takes its rows from its `rois` input ([ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 1).
-- The limit of `max_instances` comes from the selection mode of the sidecar, after the changes of `object_decode` ([ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 7):
+- `max_instances` is the row count `I` of the outputs of a node that makes instances: an object detector or a model with both roles. A top-down keypoint model takes its rows from its `rois` input ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1).
+- The limit of `max_instances` comes from the selection mode of the sidecar, after the changes of `object_decode` ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 7):
   - `selection: nms` with `nms.post_nms_top_k`: `post_nms_top_k`. A change of `post_nms_top_k` in `object_decode` sets the limit.
   - `selection: top_k`: `top_k`.
   - `selection: none`: `max_detections`, or the row count `Q` of the primary output when `max_detections` is absent.
@@ -53,7 +53,7 @@ A `detector` node runs one ONNX model. It does the preprocessing, the inference 
 
 ## Behaviour
 
-- The `role` of the sidecar decides the ports that the node uses ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 5; [ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 1):
+- The `role` of the sidecar decides the ports that the node uses ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 5; [ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1):
 
   | Model | `role` | Inputs | Outputs |
   |---|---|---|---|
@@ -66,7 +66,7 @@ A `detector` node runs one ONNX model. It does the preprocessing, the inference 
 - Each `detections` row has a `class_index`: the class index that the sidecar decode keeps ([Selection behaviour](../../model-sidecar/post/object/decode.md#selection-behaviour) shared step 1). The output schema gives the `class_names` from [`object.classes`](../../model-sidecar/post/object/decode.md#objectclasses) of the sidecar ([Outputs](../outputs.md#fields)).
 - The `rois` output holds the box of each `detections` row as an ROI with rotation 0 ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 8).
 - An object detector or a one-stage model sets the `instance_score` of each `rois` and `keypoints` row: the `score` of its `detections` row. A top-down keypoint model copies the `instance_score` of its `rois` row ([Graph](../graph.md#behaviour) item 8).
-- A top-down keypoint model runs once for each present row of its `rois` input. Row `i` of `keypoints` belongs to row `i` of `rois`. A row that is not present gives a keypoint row that is not present ([ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 1).
+- A top-down keypoint model runs once for each present row of its `rois` input. Row `i` of `keypoints` belongs to row `i` of `rois`. A row that is not present gives a keypoint row that is not present ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1).
 - **Crop.** Only the detector node cuts pixels, always from `frame.image` ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 8). The steps are in this order:
   1. The glue nodes make the ROI. The ROI rules of `roi_from_points` apply the shift, then the square, then `expand_ratio` ([ROI from points](roi_from_points.md#behaviour) step 9).
   2. Right before the warp, the detector node applies the padding and the aspect fix of the crop of its sidecar ([Affine crop](../../model-sidecar/pre/resize-affine-crop.md#behaviour): `crop_policy.expand_ratio` and `crop_policy.maintain_aspect_ratio`).

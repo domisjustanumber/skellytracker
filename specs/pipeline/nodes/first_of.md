@@ -33,7 +33,7 @@ This node has no parameters.
 - The node examines its inputs in the order of the list. The order is the priority. It gives the first input that is not empty.
 - When all inputs are empty, the output is empty.
 - An empty input does not stop the node. This is a rule of the node, as [Graph](../graph.md#behaviour) item 6 allows.
-- An `@prev` input is empty on the first frame, and in the running mode `image` ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 4; [ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 2).
+- An `@prev` input is empty on the first frame, and in the running mode `image` ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 4; [ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 2).
 - The output has the instance source of the inputs ([Graph](../graph.md#behaviour) item 8).
 - The timing point is `run` ([ADR-Q59W](../../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 1).
 

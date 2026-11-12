@@ -54,7 +54,7 @@ The fields of the header line ([ADR-Q59W](../../decisions/entries/Q59W-pipeline-
 | `points_on` | The timing points that are on. |
 | `nodes` | One item for each node. |
 
-The fields of a node item: `id`, `type`, `batching`, `inputs` (each with a `prev` flag), `key`, `sidecar_sha256`, `artifact_sha256`, `size`, `precision`, `execution` and `stage_providers`. A node item has no `shared_with`, because no session is shared ([ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 6). `execution` holds `requested_ep`, `used_ep`, the device, `gpu_uuid`, `ep_device_id`, the EP options that change the numbers, `cpu_nodes` (the count of the nodes of the session on the CPU EP) and `cpu_op_types` (their op types) ([ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 5).
+The fields of a node item: `id`, `type`, `batching`, `inputs` (each with a `prev` flag), `key`, `sidecar_sha256`, `artifact_sha256`, `size`, `precision`, `execution` and `stage_providers`. A node item has no `shared_with`, because no session is shared ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 6). `execution` holds `requested_ep`, `used_ep`, the device, `gpu_uuid`, `ep_device_id`, the EP options that change the numbers, `cpu_nodes` (the count of the nodes of the session on the CPU EP) and `cpu_op_types` (their op types) ([ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 5).
 
 ## Behaviour
 

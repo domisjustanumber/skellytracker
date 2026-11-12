@@ -16,7 +16,7 @@ root [open-work.md](../../../decisions/open-work.md).
 - **Multi-person identity.** I > 1 is allowed everywhere. Without an `associate` node, a row has no
   identity across frames, and each `track_ids` value is -1
   ([Graph](../graph.md#behaviour) item 8;
-  [ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 1). A later
+  [ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1). A later
   `associate` node type gives the rows an identity. Until then, the temporal nodes filter row `i`,
   which can be another person on the next frame.
 - **Values of other port types.** The value of an output or a tap of the port type `image` or

@@ -10,7 +10,7 @@ status: {spec: draft}
 
 > This section is a draft. Its fields and rules can change before the section becomes `stable`.
 
-A run starts a pipeline with run parameters. The same file runs in each running mode. This section gives the run parameters, the frame time, the running modes, the batch, the stateful pipelines, the sessions, the warnings and the start checks ([ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) items 2 to 7; [ADR-48PG](../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) items 6 and 7; [ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 2, 4 and 5).
+A run starts a pipeline with run parameters. The same file runs in each running mode. This section gives the run parameters, the frame time, the running modes, the batch, the stateful pipelines, the sessions, the warnings and the start checks ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) items 2 to 7; [ADR-48PG](../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) items 6 and 7; [ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 2, 4 and 5).
 
 ## Fields
 
@@ -41,25 +41,25 @@ A warning has these fields ([ADR-48PG](../../decisions/entries/48PG-pipeline-api
 
 ## Behaviour
 
-1. **Running modes.** The run sets the running mode. The file is the same in each mode ([ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 2):
+1. **Running modes.** The run sets the running mode. The file is the same in each mode ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 2):
    - `image`: each `@prev` value is empty. The frame size can change from call to call. The run has one camera.
    - `video`: the run gets each frame in order.
    - `live`: `frame_index` can skip. The caller drops frames. The run drops no frame.
-2. **Frame time.** The temporal nodes use `timestamp_ms` ([ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 2):
+2. **Frame time.** The temporal nodes use `timestamp_ms` ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 2):
    - `live`: each frame must have a `timestamp_ms` (`V-pipeline.running-6`). There is no fallback.
    - `video`: the caller can give `timestamp_ms`. A caller timestamp wins. For a frame with no `timestamp_ms`, the run uses `timestamp_ms = frame_index × 1000 / fps`.
    - `image`: the run uses no `timestamp_ms`.
    - The `timestamp_ms` of a camera must increase from frame to frame ([`V-node.smooth_keypoints-3`](nodes/smooth_keypoints.md#validation-rules)).
-3. **Cameras.** In `video` and `image`, each call gives one frame for each camera id of the run. In `live`, a call can hold a subset of the camera ids of the run ([ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 3).
-4. **Batch.** The run chooses the batch at start ([ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 4):
+3. **Cameras.** In `video` and `image`, each call gives one frame for each camera id of the run. In `live`, a call can hold a subset of the camera ids of the run ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 3).
+4. **Batch.** The run chooses the batch at start ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 4):
    - In `video` and `image`, the batch is k × camera count. The run chooses k from the free VRAM, and counts the `I` of each node that takes ROIs. k is 1 until the host can measure the free VRAM.
    - In `live`, the batch is the camera count.
    - In `video`, the batch of a stateful pipeline is the camera count (Behaviour item 5).
    - A node that takes ROIs batches to that batch × the `I` of the instance source of its ROI input. The run converts the batch at start.
    - The run converts each artifact with `batching.batch: 3` to its batch at start ([Batch conversion](../model-sidecar/common/batch-conversion.md)).
    - The run pads a missed frame. It gives a blank crop to each empty crop slot, for example the slot of a padding ROI row. It drops the result of each padded item.
-5. **Stateful pipelines.** A pipeline is stateful when it has an `@prev` input, or a temporal node upstream of a detector node. The temporal nodes are `smooth_roi`, `smooth_keypoints`, `redetect`, and `mediapipe_tasks` in the landmarker mode `VIDEO`. A temporal node with no detector node downstream does not make a pipeline stateful. `roi_tracking` keeps no state, so it is not a temporal node. In `video`, a stateful pipeline runs at batch = camera count. There is no switch to turn this off. The run writes one log line that names the stateful nodes, and gives the warning `batch_limited_by_state` ([ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 5).
-6. **No session sharing.** A run owns its inference sessions. Each node builds its own sessions. No session is shared between nodes or between runs. `close()` frees the sessions of the run ([ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 6).
+5. **Stateful pipelines.** A pipeline is stateful when it has an `@prev` input, or a temporal node upstream of a detector node. The temporal nodes are `smooth_roi`, `smooth_keypoints`, `redetect`, and `mediapipe_tasks` in the landmarker mode `VIDEO`. A temporal node with no detector node downstream does not make a pipeline stateful. `roi_tracking` keeps no state, so it is not a temporal node. In `video`, a stateful pipeline runs at batch = camera count. There is no switch to turn this off. The run writes one log line that names the stateful nodes, and gives the warning `batch_limited_by_state` ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 5).
+6. **No session sharing.** A run owns its inference sessions. Each node builds its own sessions. No session is shared between nodes or between runs. `close()` frees the sessions of the run ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 6).
 7. **Execution provider.** The EP key and the EP options are parameters of the run. The EP catalog in `core/eps/` owns the EP keys and lists the allowed options of each EP ([ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 1 and 2). A detector node can give its own EP in `execution_provider` and its own options in `ep_options`. There is no EP policy such as `recommended:latency`. The caller resolves a recommended form to an EP key and its options ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 12; [ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 3).
    - A run never uses another EP than the requested EP. An EP that is not available or does not start stops the start of the run before frame 0 ([ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 4).
    - A session can have nodes on the CPU EP. The run reports them ([ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 5).
@@ -69,7 +69,7 @@ A warning has these fields ([ADR-48PG](../../decisions/entries/48PG-pipeline-api
    - `missing_dependency`: a node needs an optional extra that is not installed, or an ONNX file that is absent or whose hash does not agree. A load gives this warning. A start fails before frame 0 ([Validation rules](#validation-rules)).
    - The load result holds the warnings that are known before start. The run holds the full list. The run gives each new warning to the warning receiver one time, also during the run, from the thread that makes the call.
 9. **Replayed and unused ports.** A port is used when it is an output, an input of a node that runs, or the port of a `record` tap. A node whose outputs are all replayed or not used does not run. The upstream nodes of a replayed port do not run when nothing else uses them ([Taps](taps.md#behaviour)).
-10. **Start checks.** The run does these checks before frame 0 ([ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 7): `V-pipeline.running-3`, `V-pipeline.running-4`, `V-pipeline.running-5`, [`V-pipeline.taps-2`](taps.md#validation-rules), [`V-pipeline.taps-3`](taps.md#validation-rules), [`V-pipeline.taps-4`](taps.md#validation-rules), [`V-pipeline.taps-5`](taps.md#validation-rules), [`V-pipeline.taps-6`](taps.md#validation-rules) and [`V-pipeline.taps-7`](taps.md#validation-rules).
+10. **Start checks.** The run does these checks before frame 0 ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 7): `V-pipeline.running-3`, `V-pipeline.running-4`, `V-pipeline.running-5`, [`V-pipeline.taps-2`](taps.md#validation-rules), [`V-pipeline.taps-3`](taps.md#validation-rules), [`V-pipeline.taps-4`](taps.md#validation-rules), [`V-pipeline.taps-5`](taps.md#validation-rules), [`V-pipeline.taps-6`](taps.md#validation-rules) and [`V-pipeline.taps-7`](taps.md#validation-rules).
 
 ## Validation rules
 
@@ -89,7 +89,7 @@ A warning has these fields ([ADR-48PG](../../decisions/entries/48PG-pipeline-api
 
 ## Authoring guidance
 
-- A previous-frame input lowers the batch in `video`. A `smooth_keypoints` node after the last detector node does not, because it runs on the host, frame by frame, after the batched pass ([ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 5).
+- A previous-frame input lowers the batch in `video`. A `smooth_keypoints` node after the last detector node does not, because it runs on the host, frame by frame, after the batched pass ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 5).
 - A live caller must give a `timestamp_ms` that increases, for example from the capture clock of the camera.
 
 ## Examples

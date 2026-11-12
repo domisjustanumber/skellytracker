@@ -45,7 +45,7 @@ place of `keypoint_bbox` in a pipeline, but it does not reproduce `keypoint_bbox
 - An ROI is `(cx, cy, w, h, rotation)` in source-image pixels, with `rotation` in radians,
   clockwise in the image, in `[-π, π)` ([Graph](../graph.md#behaviour) item 3).
 - The output has one row for each row of the input
-  ([ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 1). Row `i` of
+  ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1). Row `i` of
   `rois` comes from row `i` of `keypoints`. An empty row has `present` false.
 - A name in `points`, `alignment_start` and `alignment_end` is a point name of the input, with its
   prefix, for example `body.left_wrist`, or the name of a derived point. A source of a derived point

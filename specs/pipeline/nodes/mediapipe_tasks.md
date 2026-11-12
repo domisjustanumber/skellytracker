@@ -48,9 +48,9 @@ The params use the shared names of the pipeline spec, not the MediaPipe option n
 
 ## Behaviour
 
-- The running mode of the landmarker follows the `running_mode` of the run: `IMAGE` for `image`, and `VIDEO` for `video` and `live` ([ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) items 2 and 5).
+- The running mode of the landmarker follows the `running_mode` of the run: `IMAGE` for `image`, and `VIDEO` for `video` and `live` ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) items 2 and 5).
 - In `VIDEO` mode the node gives the `timestamp_ms` of each frame to the landmarker ([Running](../running.md#behaviour)).
-- In `VIDEO` mode the node is stateful. In the running mode `video`, a pipeline with this node upstream of a detector node thus runs at batch = camera count ([ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 5).
+- In `VIDEO` mode the node is stateful. In the running mode `video`, a pipeline with this node upstream of a detector node thus runs at batch = camera count ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 5).
 - The `instance_score` of each present row is 1.0, because the Tasks results have no instance score ([Graph](../graph.md#behaviour) item 8). The rows keep the order of MediaPipe.
 - The output is one `keypoints` set with `max_instances` rows, in the instance format of [Graph](../graph.md#behaviour) item 8. The node is the instance source of its output. The score of a point is the landmark visibility of MediaPipe ([ADR-88WQ](../../../decisions/entries/88WQ-sidecar-vocabulary.md) item 4). Each point name has a prefix:
 
@@ -79,9 +79,9 @@ The params use the shared names of the pipeline spec, not the MediaPipe option n
 - In `VIDEO` mode, the landmarker needs strictly increasing integer timestamps. The node gives the `timestamp_ms` of the frame, which increases ([`V-node.smooth_keypoints-3`](smooth_keypoints.md#validation-rules) gives the same rule for the smoother). Today's code makes the timestamp from `int(time.monotonic() * 1000)`. On Windows with Python 3.11 or 3.12, that can give the same value for two frames: `time.monotonic()` then uses `GetTickCount64()`, with steps of 15.625 ms. MediaPipe then raises `ValueError: Input timestamp must be monotonically increasing` ([ADR-MSH0](../../../decisions/entries/MSH0-supported-platforms-v2.md) Evidence; [ADR-EM74](../../../decisions/entries/EM74-stage-order-and-ci-models.md) item 6).
 - The node must close its landmarker safely, also when the garbage collector frees the node. On Python 3.12, `PoseLandmarker.__del__` → `close()` can wait for a MediaPipe dispatcher future that does not complete, and the process hangs at exit ([ADR-MSH0](../../../decisions/entries/MSH0-supported-platforms-v2.md) Evidence; [ADR-EM74](../../../decisions/entries/EM74-stage-order-and-ci-models.md) item 6; [ADR-48PG](../../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 4).
 - Today's package closes and builds a VIDEO-mode landmarker again after frames with no keypoints. The node does not do this. The measurement found no stuck landmarker on MediaPipe 0.10.33. Run it again on MediaPipe 1.2.2 ([ADR-6JWJ](../decisions/entries/6JWJ-mediapipe-video-landmarker-does-not-stick.md)).
-- In `live` mode, `frame_index` can skip, and a call can hold a subset of the cameras ([ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) items 2 and 3).
-- The cameras stay separate ([ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 1). In `VIDEO` mode, each camera thus needs its own landmarker state and its own timestamp sequence.
-- The output edges come from the MediaPipe YAML files ([ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 1).
+- In `live` mode, `frame_index` can skip, and a call can hold a subset of the cameras ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) items 2 and 3).
+- The cameras stay separate ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1). In `VIDEO` mode, each camera thus needs its own landmarker state and its own timestamp sequence.
+- The output edges come from the MediaPipe YAML files ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1).
 
 ## Authoring guidance
 

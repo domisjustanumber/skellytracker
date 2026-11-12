@@ -10,7 +10,7 @@ status: {spec: draft}
 
 > This section is a draft. Its fields and rules can change before the section becomes `stable`.
 
-The `outputs` block maps public output names to ports. For each call, the run gives one result for each camera of the call. The result holds the value of each output, with an instance dimension. The output schema describes each output before frame 0 ([ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 1).
+The `outputs` block maps public output names to ports. For each call, the run gives one result for each camera of the call. The result holds the value of each output, with an instance dimension. The output schema describes each output before frame 0 ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1).
 
 ## Fields
 
@@ -83,10 +83,10 @@ The output schema gives these fields for each output:
 
 ## Behaviour
 
-1. The run gives the output schema before frame 0 ([ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 1).
+1. The run gives the output schema before frame 0 ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1).
 2. The `edges` come from the [overlay](../model-sidecar/post/keypoint/overlay.md#fields) of the sidecar of the node that makes the points: the skeleton that `keypoint.overlay.skeleton` names, else the first of `keypoint.skeletons`. For a `mediapipe_tasks` node, they come from the MediaPipe YAML files in `core/detectors/keypoint_detectors/mediapipe/` ([ADR-AQR4](../../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 5).
-3. Each output has the same shapes on each frame ([ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 1).
-4. The cameras stay separate. No output joins the values of two cameras ([ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 1). In `live`, a call can hold a subset of the cameras of the run. The run then gives a result only for each camera of the call ([ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 3).
+3. Each output has the same shapes on each frame ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1).
+4. The cameras stay separate. No output joins the values of two cameras ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1). In `live`, a call can hold a subset of the cameras of the run. The run then gives a result only for each camera of the call ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 3).
 5. A detector node fills `class_index` in each `detections` row. `gate` and `first_of` pass a `detections` value with its rows unchanged, so they keep `class_index`. No other node type makes or passes a `detections` value.
 6. This draft defines the value of a `keypoints` port, a `detections` port and a `roi` port. The value of an output of the port type `image` or `tensor` is not fixed yet ([open work](decisions/open-work.md)).
 
@@ -98,11 +98,11 @@ The output schema gives these fields for each output:
 ## Implementer guidance
 
 - The reference model checks `V-pipeline.outputs-1` in `check_structure`. It does not check `V-pipeline.outputs-2`, because the point names come from the sidecars and the MediaPipe assets. (skellytracker `specs/pipeline/reference/pipeline_config.py`)
-- The result has no adapter to the old `Observation` type ([ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 1).
+- The result has no adapter to the old `Observation` type ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1).
 
 ## Authoring guidance
 
-- `I` can be more than 1, also for an output. Without an `associate` node, a row has no identity across frames: row `i` of two frames can be two persons ([ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 1).
+- `I` can be more than 1, also for an output. Without an `associate` node, a row has no identity across frames: row `i` of two frames can be two persons ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1).
 
 ## Examples
 
