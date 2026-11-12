@@ -23,6 +23,7 @@ These entries are `accepted` or `evidence`.
 
 | # | Decision | Status |
 |---|----------|--------|
+| [9K2M](entries/9K2M-agent-session-rules.md) | One commit for each call; skills `ask-the-user` and `brief-subagent`; a spec change that the user decides gets an `accepted` entry | accepted |
 | [6J8E](entries/6J8E-exporters-run-released-skellytracker.md) | Exporters run a pinned skellytracker release; code changes come as a patch; upstream parity is the independent check; acceptance waits for the gate | accepted |
 | [x64y](entries/x64y-draft-exporter-guide-folder.md) | The workflow, with the sidecar-file, validation and publishing rules, is in `model-addition-workflow/`; the exporter-only guide is a draft; no stub | accepted |
 | [VCQ7](entries/VCQ7-cite-entries-skill.md) | The skill `cite-entries` gives the steps of the citation rule of `AGENTS.md` section 5; `stack-commit` loads it; no hook for now | accepted |

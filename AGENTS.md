@@ -98,6 +98,8 @@ run ([ADR-AD33](decisions/entries/AD33-bundles-are-untrusted-input.md)).
 | [`implement-sidecar-section`](.claude/skills/implement-sidecar-section/SKILL.md) | this repository | Implement a spec section in the package code. In the spec-build stage, plan only. |
 | [`stack-commit`](.claude/skills/stack-commit/SKILL.md) | this repository | Commit, rebase and push on the working branch, and write a PR body |
 | [`cite-entries`](.claude/skills/cite-entries/SKILL.md) | this repository | Cite decision entries in a reply, a plan, a PR body or a commit message |
+| [`ask-the-user`](.claude/skills/ask-the-user/SKILL.md) | this repository | Ask the user a question or give options, with an example and a source for each |
+| [`brief-subagent`](.claude/skills/brief-subagent/SKILL.md) | this repository | Brief a sub-agent, and check its `path:line` claims before you use them |
 
 ## 3. Install and Test
 

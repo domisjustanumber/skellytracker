@@ -13,6 +13,18 @@ other outside action without the approval of the user, and no AI attribution.
 Before you write a commit message or a PR body that names a decision entry, load
 [`cite-entries`](../cite-entries/SKILL.md).
 
+## Commit commands
+
+- Run `git add <path>` for each file of the commit, also for a new file. `git commit -- <path>`
+  refuses a file that git does not track yet.
+- Then run `git commit -- <path>` with the same paths. The commit then holds only these files, also
+  when the index holds staged files of other work.
+- After each commit, run `git show --stat HEAD`. Make sure that it shows only the files of this
+  commit.
+- Run each `git commit` in its own tool call. Read its result before the next commit. A failed
+  commit then stops the group
+  ([ADR-9K2M](../../../decisions/entries/9K2M-agent-session-rules.md)).
+
 ## Spec-build stage
 
 In the spec-build stage, the exception of
