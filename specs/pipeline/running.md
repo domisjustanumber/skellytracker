@@ -10,7 +10,7 @@ status: {spec: draft}
 
 > This section is a draft. Its fields and rules can change before the section becomes `stable`.
 
-A run starts a pipeline with run parameters. The same file runs in each running mode. This section gives the run parameters, the frame time, the running modes, the batch, the stateful pipelines, the session sharing, the warnings and the start checks ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) items 2 to 7; [ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) items 6 and 7; [ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 2, 4 and 5).
+A run starts a pipeline with run parameters. The same file runs in each running mode. This section gives the run parameters, the frame time, the running modes, the batch, the stateful pipelines, the session sharing, the warnings and the start checks ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) items 2 to 7; [ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) items 1, 6 and 7; [ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 2, 4 and 5).
 
 ## Fields
 
@@ -22,6 +22,8 @@ A pipeline file has no field of this section. A run takes these parameters:
 | running mode | yes | `image`, `video` or `live`. |
 | execution provider | yes | A key of the EP catalog, for example `cuda`, `trt-rtx` or `cpu`. |
 | EP options | no | A mapping of option names to values, all strings. The EP catalog lists the allowed names and values of each EP. Default: empty. |
+| device | no | One GPU key or a list of GPU keys. The run uses exactly those GPUs. Default: each GPU that qualifies ([ADR-P1F3](../../decisions/entries/P1F3-hardware-probe-devices-and-multi-gpu.md)). |
+| VRAM reserve | no | The bytes of VRAM that the run leaves free on each GPU that it uses, for example for a camera app and a player. Default: 1 GiB ([Behaviour](#behaviour) item 4; [ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 1). |
 | `fps` | no | A float. Default: 30.0. Only in `video`, for a frame with no `timestamp_ms` ([Behaviour](#behaviour) item 2). |
 | timing | no | On or off, and the destination of the events ([Timing](timing.md)). |
 | tap folder | no | The folder of the taps ([Taps](taps.md)). |
@@ -52,7 +54,7 @@ A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api
    - The `timestamp_ms` of a camera must increase from frame to frame ([`V-node.smooth_keypoints-3`](nodes/smooth_keypoints.md#validation-rules)).
 3. **Cameras.** In `video` and `image`, each call gives one frame for each camera id of the run. In `live`, a call can hold a subset of the camera ids of the run ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 3).
 4. **Batch.** The run chooses the batch at start ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 4):
-   - In `video` and `image`, the batch is k × camera count. The run chooses k from the free VRAM, and counts the `I` of each node that takes ROIs. k is 1 until the host can measure the free VRAM.
+   - In `video` and `image`, the batch is k × camera count. The run chooses k for each GPU that it uses, from the free VRAM of that GPU minus the VRAM reserve, and counts the `I` of each node that takes ROIs. k is 1 until the host can measure the free VRAM ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 1).
    - In `live`, the batch is the camera count.
    - In `video`, the batch of a stateful pipeline is the camera count (Behaviour item 5).
    - A node that takes ROIs batches to that batch × the `I` of the instance source of its ROI input. The run converts the batch at start.
