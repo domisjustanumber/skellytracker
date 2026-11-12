@@ -4,7 +4,7 @@ No Pydantic dependency here — this module only resolves a sidecar file (plus
 any fragments/bases it references) into a single flat `dict`/list/scalar tree.
 Validation of that resolved tree happens one layer up, in `model.py`/`loader.py`.
 
-Resolution pipeline (see specs/sidecar-spec.md, "Resolution pipeline"):
+Resolution pipeline (see specs/model-sidecar/sidecar-spec.md, "Resolution pipeline"):
 
     parse_sidecar_file(path)            # yaml.safe_load -> raw dict
       -> resolve_sidecar_composition()  # resolve $ref includes + base inheritance -> flat dict

@@ -4,7 +4,7 @@ Used by both `TrackerMapping` (`canonical_mapping`/`derived_points` YAML files)
 and the sidecar `SidecarModel` (`pose.canonical_mapping`/`pose.derived_points`
 fields) — kept dependency-free so neither has to import the other's package.
 
-See specs/sidecar-spec.md, "pose.canonical_mapping" / "pose.derived_points".
+See specs/model-sidecar/sidecar-spec.md, "pose.canonical_mapping" / "pose.derived_points".
 """
 from __future__ import annotations
 

@@ -1,5 +1,5 @@
 """Tests for skellytracker.core.sidecar.model.SidecarModel against the spec's
-"Validation rules" checklist (specs/sidecar-spec.md). Each test is commented
+"Validation rules" checklist (specs/model-sidecar/sidecar-spec.md). Each test is commented
 with the rule it exercises.
 """
 from __future__ import annotations
@@ -303,6 +303,20 @@ class TestInputAndNormalization:
         data["input"]["dtype"] = {"bogus": "float32"}
         with pytest.raises(ValidationError):
             SidecarModel.model_validate(data)
+
+    def test_int8_precision_rejected(self):
+        data = _minimal_detector()
+        data["input"]["dtype"] = {"int8": "float32"}
+        with pytest.raises(ValidationError):
+            SidecarModel.model_validate(data)
+
+    def test_int8_precision_artifact_rejected(self):
+        data = _minimal_detector()
+        precision_artifacts = data["sizes"]["nano"]["onnx"]["batch_artifacts"]["2"]["precision_artifacts"]
+        precision_artifacts["int8"] = {"filename": "toy-nano_b2_int8.onnx"}
+        sidecar = SidecarModel.model_validate(data)
+        with pytest.raises(ValidationError):
+            sidecar.resolved_size("nano")
 
     def test_normalization_named_mode_accepted(self):
         data = _minimal_detector()

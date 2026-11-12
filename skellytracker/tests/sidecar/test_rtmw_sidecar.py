@@ -18,6 +18,11 @@ import pytest
 
 from skellytracker.core.sidecar.loader import load_sidecar
 
+from .golden_parity import (
+    PARITY_EXECUTION_PROVIDER,
+    SimccParityRun,
+)
+
 _RTMW_DIR = (
     Path(__file__).resolve().parents[2]
     / "core"
@@ -109,23 +114,26 @@ class TestRTMWParityAgainstGoldenFixture:
         )
 
         config = OnnxSessionConfig(
-            batch_size=1, models=[RTMWWholebodyDetector.model_spec(model_name)]
+            batch_size=1,
+            models=[RTMWWholebodyDetector.model_spec(model_name)],
+            execution_provider=PARITY_EXECUTION_PROVIDER,
         )
         session = OnnxSession.create(config)
         try:
             detector = RTMWWholebodyDetector.create(
                 RTMWWholebodyDetectorConfig(model_name=model_name), session
             )
-            kpts = detector.detect(test_image)
+            run = SimccParityRun(detector, test_image)
         finally:
             session.close()
 
+        kpts = run.keypoints
         assert set(golden.keys()) <= set(
             kpts.names
         )  # every golden name is a real tracked point
 
         seen = 0
-        for name, xyz in zip(kpts.names, kpts.xyz, strict=True):
+        for index, (name, xyz) in enumerate(zip(kpts.names, kpts.xyz, strict=True)):
             if name not in golden:
                 # below-threshold points are omitted from the golden fixture
                 assert np.isnan(xyz[0]) or np.isnan(xyz[1])
@@ -134,9 +142,7 @@ class TestRTMWParityAgainstGoldenFixture:
             expected = golden[name]
             actual = np.array([xyz[0], xyz[1]])
             expected_arr = np.array([expected["x"], expected["y"]])
-            assert np.allclose(
-                actual, expected_arr, atol=1e-3
-            ), f"{name}: actual={actual}, expected={expected_arr}"
+            run.assert_keypoint_matches(index, name, actual, expected_arr)
         assert seen == len(golden)
 
 

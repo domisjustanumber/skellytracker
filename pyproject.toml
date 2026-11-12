@@ -85,7 +85,8 @@ onnx = ["onnx"]
 # used by the RTMPose + YOLOX detectors for inference.
 
 # CPU — any platform. Also enables CoreML EP on macOS with Apple Silicon.
-onnx-cpu = ["onnxruntime"]
+# >=1.31: 1.27 CPU gives run-to-run noise on fp16 graphs (batch-conversion check).
+onnx-cpu = ["onnxruntime>=1.31"]
 
 # NVIDIA GPU via CUDA 12 (Linux / Windows).
 # Bundles the CUDA 12 + cuDNN 9 runtime DLLs as pip packages so users
@@ -147,6 +148,7 @@ dev = [
     "isort",
     "pip-tools",
     "poethepoet>=0.32.0",
+    "pre-commit==4.6.2",
     "pytest",
     "ruff",
 ]
@@ -196,7 +198,6 @@ extend-select = ["B", "S", "C4", "ISC", "PERF"]
 
 [project.scripts]
 skellytracker = "skellytracker.__main__:cli_main"
-skellytracker_blendshapes = "skellytracker.scripts.blendshapes_to_csv:main"
 
 [tool.uv.sources]
 skellytracker-rust = { path = "skellytracker-rust" }
@@ -218,7 +219,7 @@ url = "https://pypi.nvidia.com"
 # =============================================================================
 
 [tool.pytest.ini_options]
-testpaths = ["skellytracker/tests"]
+testpaths = ["skellytracker/tests", "tools/tests", "decisions/scripts/tests"]
 markers = [
     "video: tests that run inference over real video frames (slow, requires test recording)",
 ]

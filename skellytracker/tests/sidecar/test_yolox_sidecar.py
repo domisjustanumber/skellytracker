@@ -14,6 +14,13 @@ import pytest
 
 from skellytracker.core.sidecar.loader import load_sidecar
 
+from .golden_parity import (
+    BOX_MIN_IOU,
+    CONFIDENCE_ATOL,
+    PARITY_EXECUTION_PROVIDER,
+    box_iou,
+)
+
 _YOLOX_DIR = (
     Path(__file__).resolve().parents[2]
     / "core"
@@ -70,7 +77,9 @@ class TestYoloxParityAgainstGoldenFixture:
         )
 
         config = OnnxSessionConfig(
-            batch_size=1, models=[YoloxPersonDetector.model_spec(model_name)]
+            batch_size=1,
+            models=[YoloxPersonDetector.model_spec(model_name)],
+            execution_provider=PARITY_EXECUTION_PROVIDER,
         )
         session = OnnxSession.create(config)
         try:
@@ -84,17 +93,17 @@ class TestYoloxParityAgainstGoldenFixture:
 
         assert len(results) == len(golden)
         for bb, expected in zip(results, golden, strict=True):
-            actual = np.array([bb.x1, bb.y1, bb.x2, bb.y2, bb.confidence])
-            expected_arr = np.array(
-                [
-                    expected["x1"],
-                    expected["y1"],
-                    expected["x2"],
-                    expected["y2"],
-                    expected["confidence"],
-                ]
+            actual_box = np.array([bb.x1, bb.y1, bb.x2, bb.y2])
+            expected_box = np.array(
+                [expected["x1"], expected["y1"], expected["x2"], expected["y2"]]
             )
-            assert np.allclose(actual, expected_arr, atol=1e-4)
+            iou = box_iou(actual_box, expected_box)
+            assert (
+                iou >= BOX_MIN_IOU
+            ), f"box: actual={actual_box}, expected={expected_box}, IoU={iou:.4f}"
+            assert bb.confidence == pytest.approx(
+                expected["confidence"], abs=CONFIDENCE_ATOL
+            )
 
 
 def _fake_response(body: bytes) -> MagicMock:
