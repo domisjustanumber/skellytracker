@@ -10,6 +10,8 @@ check two things:
   `live` (a bool) and `source` (a string). The `section` of each node class is `node.<type>`, and
   the front matter `id` of `nodes/<type>.md` is that section. Each port type is a known port
   type. Each `specs/pipeline/examples/*.pipeline.yaml` passes `PipelineConfig.model_validate`.
+  The structural checks refuse a small config for each newer rule (point-name prefixes, list
+  inputs, `any` types, outputs and taps with no `@prev` or frame port).
 
 The repository tests skip when the reference model does not exist. The example test also skips
 when there are no examples.
@@ -178,3 +180,46 @@ EXAMPLES = sorted((mps.PIPELINE_DIR / "examples").glob("*.pipeline.yaml"))
 def test_each_example_passes_the_model(path: Path) -> None:
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     mps.load_model().PipelineConfig.model_validate(data)
+
+
+def _config(nodes: list[dict], outputs: dict | None = None, taps: list[dict] | None = None) -> dict:
+    """A small pipeline config with a person detector `person` and a body model `body`."""
+    base = [
+        {"id": "person", "type": "detector", "inputs": {"image": "frame.image"}, "params": {"key": "p@x", "size": "m"}},
+        {"id": "body", "type": "detector", "inputs": {"image": "frame.image", "rois": "person.rois"},
+         "params": {"key": "b@x", "size": "m"}},
+    ]
+    return {
+        "schema_version": "2.0.0", "pipeline_id": "t", "source": {"name": "skellytracker", "version": "2.0.0"},
+        "nodes": base + nodes, "outputs": outputs or {"body": "body.keypoints"},
+        "instrumentation": {"taps": taps or []},
+    }
+
+
+ROI = {"id": "roi", "type": "roi_from_points", "inputs": {"keypoints": "body.keypoints"}}
+
+
+@needs_model
+@pytest.mark.parametrize(
+    ("config", "rule"),
+    [
+        (_config([{**ROI, "params": {"points": ["left_wrist"]}}]), "V-pipeline.graph-8"),
+        (_config([{**ROI, "params": {"points": ["hand.wrist"]}}]), "V-pipeline.graph-8"),
+        (_config([{**ROI, "params": {"points": ["body.a"], "derived_points": {"m": {"body.a": 0.5, "body.b": 0.4}}}}]),
+         "V-node.roi_from_points-5"),
+        (_config([{"id": "pick", "type": "first_of", "inputs": ["person.rois", "body.keypoints"]}]), "V-node.first_of-1"),
+        (_config([{"id": "pick", "type": "first_of", "inputs": ["body.keypoints"]},
+                  {"id": "crop", "type": "smooth_roi", "inputs": {"rois": "pick.value"}}]), "V-pipeline.graph-3"),
+        (_config([], outputs={"body": "body.keypoints@prev"}), "V-pipeline.outputs-1"),
+        (_config([], outputs={"image": "frame.image"}), "V-pipeline.outputs-1"),
+        (_config([], taps=[{"action": "record", "port": "frame.image", "name": "img"}]), "V-pipeline.taps-1"),
+        (_config([{"id": "m", "type": "merge", "inputs": {"target": "body.keypoints", "source": "body.keypoints"},
+                   "params": {"slots": {"hand": "body.wrist"}, "source_anchor": "body.wrist",
+                              "map": {"body.wrist": "face.tip"}}}]), "V-node.merge-2"),
+    ],
+    ids=["no-prefix", "unknown-prefix", "weight-sum", "first-of-types", "any-type-inferred",
+         "output-prev", "output-frame", "tap-frame", "merge-map-column"],
+)
+def test_the_reference_model_refuses_the_new_structural_cases(config: dict, rule: str) -> None:
+    with pytest.raises(ValueError, match=rule):
+        mps.load_model().PipelineConfig.model_validate(config)

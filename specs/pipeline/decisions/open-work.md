@@ -7,10 +7,29 @@ root [open-work.md](../../../decisions/open-work.md).
 
 ## Draft spec
 
-- **Named tests.** `first_of` and `concat` have no vectors. Each needs a named test in
-  `tools/tests/` ([ADR-3SF2](../../../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md)
-  item 4).
 - **Node workflow.** After the draft lands: one workflow file and one node-proposal template in
   `specs/pipeline/`, the landing skill `change-pipeline-spec`, and the `node.` mapping of
   `tools/intake_bundle.py` ([ADR-3SF2](../../../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md)
-  item 5).
+  item 7).
+- **Rotated crop.** A detector node crops an axis-aligned box. A crop of a rotated ROI waits for
+  the rotated-crop proposal of OpenMMLab-Exporter, the owner of `pre.resize.affine_person_crop`
+  ([Node: detector](../nodes/detector.md#behaviour)). Record its bundle when it arrives. The
+  decomposed MediaPipe example needs it.
+- **Multi-person identity.** I > 1 is allowed everywhere. Without an `associate` node, a row has no
+  identity across frames, and each `track_ids` value is -1
+  ([Graph](../graph.md#behaviour) item 8;
+  [ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 1). A later
+  `associate` node type gives the rows an identity. Until then, the temporal nodes filter row `i`,
+  which can be another person on the next frame.
+- **Values of other port types.** The value of an output or a tap of the port type `image` or
+  `tensor` is not fixed ([Outputs](../outputs.md#behaviour) item 6). Fix it in the
+  implementation stage P, before the first output of such a port.
+- **Video replay.** A replay refuses a tap with no image list hash, so only the COCO input form can
+  be replayed ([Taps](../taps.md#behaviour) item 5). A video replay needs an image list hash for
+  video.
+- **ROI input of `mediapipe_tasks`.** The node has no ROI input in v1
+  ([ADR-8NVD](../../../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 4).
+- **Face blendshapes.** The `mediapipe_tasks` node gives no face blendshapes. They are planned
+  work after the development-streaming merge.
+- **MediaPipe 1.2.2.** Run the scripts of
+  [ADR-6JWJ](entries/6JWJ-mediapipe-video-landmarker-does-not-stick.md) again on MediaPipe 1.2.2.
