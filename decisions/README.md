@@ -47,6 +47,7 @@ These entries are `accepted` or `evidence`.
 | [9NW0](entries/9NW0-ep-keys-options-and-failures.md) | EP keys from the EP catalog; a run takes `ep_options`; a whole-EP failure raises before frame 0; CPU nodes are reported | accepted |
 | [BH7C](entries/BH7C-two-spec-build-prs-and-a-pr-for-each-stage.md) | Two spec-build PRs rebuilt at the gate; one stacked PR for each implementation stage; cherry-pick of `hw-and-ep-work`; supersedes R39S and 0027 | accepted |
 | [M2C6](entries/M2C6-exact-pins-and-one-python-patch-release.md) | Exact pins, no ranges; Python `==3.13.18`; `onnxruntime` 1.31 base dependency; GPU EPs only as CUDA 13 plugin packs; supersedes MWY9 | accepted |
+| [NPX6](entries/NPX6-newest-opset-and-fp16-gpu-placement-check.md) | Exporters export at the newest supported opset and check that each fp16 file has no node on the CPU EP of a GPU EP | accepted |
 
 ### Proposed
 
