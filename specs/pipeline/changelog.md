@@ -13,6 +13,7 @@ the lines is the form of the [sidecar changelog](../model-sidecar/changelog.md#r
 | 3 | Detector | The `detector` node crops a rotated ROI: the sidecar crop `affine_crop` takes the ROI with its rotation. A box is an ROI with rotation 0. | user decision 2026-11-12 ([ADR-G3FA](../model-sidecar/decisions/entries/G3FA-affine-crop-rotated-roi.md)) | [Node: detector](nodes/detector.md#behaviour) |
 | 4 | Running | EP keys from the EP catalog (`trt-rtx`, not `tensorrt`). The run parameter EP options and the `detector` param `ep_options`. A run never uses another EP than the requested EP: an EP that is not available or does not start stops the start. The warning `ep_partial_placement` replaces `ep_fallback`. The NMS session requests `cpu`. The timing `execution` block has `cpu_nodes` and `cpu_op_types`; the CLI has `--ep-option`. | [ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md), [ADR-48PG](../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) | [Running](running.md#behaviour), [Node: detector](nodes/detector.md#behaviour), [Timing](timing.md#fields) |
 | 5 | Running | No session sharing: a run owns its sessions, and each node builds its own. The timing node item loses `shared_with`. `V-pipeline.running-4` checks the EP key against the EP catalog and each EP option against its allow-list. The citations of ADR-99MH go to ADR-0WJB, also in `V-node.concat-2`. | [ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md), [ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) | [Running](running.md#behaviour), [Timing](timing.md#fields) |
+| 6 | Running | Session sharing only inside one run: the nodes of one run with the same artifact, batch, EP key, EP options and device share one session; no session is shared between runs. The timing node item has `shared_with` again. The citations of ADR-0WJB go to ADR-ZYS9, also in `V-node.concat-2`. | [ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) | [Running](running.md#behaviour), [Node: detector](nodes/detector.md#implementer-guidance), [Timing](timing.md#fields) |
 
 ## Revisions
 
@@ -39,3 +40,4 @@ Each version heading has these lines:
 - Row 3: `17bec6f1ff03d85db76923100e7d0f121a51a257b62cac76cfd459351a4b9952`.
 - Row 4: `17bec6f1ff03d85db76923100e7d0f121a51a257b62cac76cfd459351a4b9952`.
 - Row 5: `7426a5b07aeab25bb91ffb31706909e00d329c7520d13abcc3fb078406b21df2`.
+- Row 6: `45d0f788ad97dae170e2e187ac451dfbb5a8aed4ae6bff8c54b37d1480684d57`.
