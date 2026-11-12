@@ -26,12 +26,12 @@ The implementation-stage work is in the stages M7 to M12 of the
   onnxruntime 1.30.0; Qualcomm-Exporter Python `>=3.12,<3.14`, `numpy>=2.0`, `opencv-python` in its
   lock. uv cannot resolve the dependency in three of the four. In Qualcomm-Exporter,
   `opencv-contrib-python` next to `opencv-python` puts two `cv2` builds in one folder. A consumer
-  does not get the `exclude-dependencies` of this repository. The user decides the change. The
-  options: a wider `requires-python`, a NumPy range, the headless OpenCV package, a lock refresh to
-  onnx 1.23.2 or later (keep the `onnxruntime-gpu<1.27` cap in mind), and a split non-video test run on Python 3.12, 3.13 and 3.14. Until then, an exporter runs
-  the batch tool in the checkout environment. [ADR-MSH0](entries/MSH0-supported-platforms-v2.md)
-  widens the range to `<3.14` in the implementation stage. An exporter with `>=3.14` stays outside
-  it.
+  does not get the `exclude-dependencies` of this repository.
+  [ADR-B4QR](entries/B4QR-exact-pins-and-cuda-13.md) decides exact pins, ONNX Runtime 1.31 with
+  CUDA 13 and `requires-python = ">=3.11,<3.14"`. The exporters that agents build again use those
+  pins. The OpenCV package (`opencv-contrib-python` or a headless package) is not decided. The
+  dependency stage of the implementation plan writes the pins. Until then, an exporter runs the batch
+  tool in the checkout environment.
 - **Exporter guide rewording.** A rewording PR removes each exporter repository name that is only an
   example from `specs/draft/exporter-guide/` and from all files of
   `specs/model-sidecar/model-addition-workflow/`. A citation of an exporter entry or commit as

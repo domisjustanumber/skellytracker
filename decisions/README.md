@@ -33,8 +33,6 @@ These entries are `accepted` or `evidence`.
 | [87B2](entries/87B2-local-graphify-code-graph.md) | Optional local graphify code graph in an ignored `graphify-out/`; `uvx` pin; hooks from `tools/graphify_hooks.py`; opt-in for each checkout | accepted |
 | [AMJ8](entries/AMJ8-replace-package-onnx-detectors.md) | Replace the package ONNX detectors with exporter models; no legacy layer; shipped sidecars in `core/model_zoo/`; RTMPose replacements block v2.0.0 | accepted |
 | [AQR4](entries/AQR4-detectors-and-pipelines-entry-points.md) | Entry points `detectors` and `pipelines`; `system/`, `metrics/`, `eps/` under an eager `core`; calibration outside pipelines; user root | accepted |
-| [MSH0](entries/MSH0-supported-platforms-v2.md) | v2.0.0 supports Python 3.11 to 3.13 and MediaPipe 1.2.2; no Intel Mac | accepted |
-| [EM74](entries/EM74-stage-order-and-ci-models.md) | New code beside old; order N5, pre-release, P, Da, N6, Db, Dc; standalone generic detectors; generated ONNX models in CI | accepted |
 | [7NY2](entries/7NY2-pipeline-form-graph-and-nodes.md) | Pipeline config: one Pydantic model from YAML; flat node graph with `@prev`; detector, `mediapipe_tasks` and closed glue nodes | accepted |
 | [99MH](entries/99MH-pipeline-outputs-and-running.md) | Pipeline outputs with an instance dimension; running modes; batch k × cameras, camera count when stateful; session sharing; load checks | accepted |
 | [8NVD](entries/8NVD-pipeline-api-warnings-and-catalog.md) | Pipeline API `core.pipelines`; built-ins; `PipelineWarning`; dependency reports; Holistic for MediaPipe; node catalog | accepted |
@@ -43,6 +41,8 @@ These entries are `accepted` or `evidence`.
 | [88WQ](entries/88WQ-sidecar-vocabulary.md) | Sidecar vocabulary: `object` and `keypoint` blocks, role `keypoint_detector`, `post/object/` and `post/keypoint/`, classes by name, one name per concept | accepted |
 | [GKD1](entries/GKD1-estimator-type-says-the-crop.md) | `keypoint.estimator_type` says whether a model needs a crop; `keypoint.requires_object_detector` goes | accepted |
 | [0WTV](entries/0WTV-system-metrics-and-pipeline-timing-helper.md) | `core/metrics/` holds only system metrics; the pipeline timing helper is `core/pipelines/timing.py`; supersedes Q59W and keeps its other rules | accepted |
+| [B4QR](entries/B4QR-exact-pins-and-cuda-13.md) | Exact pins for each dependency; ONNX Runtime 1.31 with CUDA 13; Python 3.11 to 3.13, MediaPipe 1.2.2, no Intel Mac; supersedes MSH0 | accepted |
+| [NHM3](entries/NHM3-phases-to-the-exporter-checkpoint.md) | Phase 0 and phase 1 to the exporter checkpoint; pre-release at the checkpoint; new code beside old; supersedes EM74 | accepted |
 
 ### Proposed
 

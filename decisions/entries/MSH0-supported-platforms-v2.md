@@ -1,6 +1,6 @@
 # MSH0 — Supported platforms of v2.0.0: Python 3.11 to 3.13, MediaPipe 1.2.2, no Intel Mac
 
-**Status:** accepted, 2026-11-11 (user).
+**Status:** superseded by [B4QR](B4QR-exact-pins-and-cuda-13.md), 2026-11-12 (user; PR: pending).
 
 ## Decision
 

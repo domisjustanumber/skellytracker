@@ -1,6 +1,6 @@
 # EM74 — New code beside old code; the order N5, pre-release, P, Da, N6, Db, Dc; generated ONNX models in CI
 
-**Status:** accepted, 2026-11-11 (user).
+**Status:** superseded by [NHM3](NHM3-phases-to-the-exporter-checkpoint.md), 2026-11-12 (user; PR: pending).
 
 ## Decision
 
