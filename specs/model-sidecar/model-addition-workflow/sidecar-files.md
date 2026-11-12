@@ -21,6 +21,19 @@ These rules apply to each contributor that writes a sidecar or a vector file.
   or an exporter and skellytracker.
 - A vector made only from a reading of the spec text is not verified.
 
+From the 2.0.0 pre-release, these rules replace the rules above
+([ADR-6J8E](../../../decisions/entries/6J8E-exporters-run-released-skellytracker.md) items 5 and 7):
+
+- An exporter that runs skellytracker is not independent of skellytracker.
+- A vector is verified when the skellytracker code, with the patch, agrees with it, and the vector
+  comes from an upstream reference output. The `note` of each case gives the upstream tool and its
+  version.
+- A case with no upstream output, for example a refusal case or a data-only validation case, is
+  verified when the skellytracker code agrees with it and its `note` names the spec rule that it
+  tests: a rule ID `V-<id>-<n>` or a Behaviour item of the section. The spec text is the source of
+  such a case
+  ([ADR-JJ7E](../../../decisions/entries/JJ7E-no-upstream-case-verified-by-skellytracker.md)).
+
 ## Sidecar YAML
 
 - Write `batching.batch` as the integer `3` or `1`, or as the string `dynamic`

@@ -1670,3 +1670,12 @@ def test_patch_release_is_optional_and_a_model_has_no_patch_release() -> None:
     assert "patch_release must be null or the release tag of the patch" in ib.manifest_problems(
         proposal_fields(patch_release="v 2"), computed=False
     )
+
+
+def test_a_verified_response_agrees_with_a_proposed_entry_and_owns_its_sections() -> None:
+    response = {"answers_version": 1, "date": "2026-11-12", "state": "verified", "findings": [],
+                "batch_conversion": None, "waiting_on": [], "records": [], "decision": None,
+                "subject": None, "changes": []}
+    assert not ib.response_problems(response)
+    assert ib._state([response], "proposed") == "verified"
+    assert "verified" in ib.OWNING

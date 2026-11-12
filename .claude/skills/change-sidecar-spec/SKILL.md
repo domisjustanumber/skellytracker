@@ -64,7 +64,9 @@ Do this procedure for step 1 of phase 3.
 
 1. Read the intake of the current bundle version. Make sure that the final verdict is `describes`.
 2. Make sure that parity has numbers, a script path and an exporter commit. A result `to run` is not
-   a pass.
+   a pass. From the 2.0.0 pre-release, steps 5 to 7 of the
+   [acceptance gate](../implement-sidecar-section/proposal-gate.md) replace this step
+   ([ADR-6J8E](../../../decisions/entries/6J8E-exporters-run-released-skellytracker.md) item 6).
 3. Do not use a draft sidecar of an intake as an example. The sidecar writer code of the exporter must
    write the sidecar.
 4. Follow "How to provide or replace an example" in
@@ -102,7 +104,11 @@ Do this procedure for step 1 of phase 3.
 
 Do this procedure for step 2 of phase 3.
 
-1. Make sure that the user accepted the proposal. A met
+1. From the 2.0.0 pre-release, make sure that the proposal passed the
+   [acceptance gate](../implement-sidecar-section/proposal-gate.md): its latest response is
+   `verified` or later
+   ([ADR-6J8E](../../../decisions/entries/6J8E-exporters-run-released-skellytracker.md) item 6).
+   Make sure that the user accepted the proposal. A met
    [conditional acceptance](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#conditional-acceptance)
    is the acceptance of the user. If the user has not decided, ask in the form of
    [Decision questions](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#decision-questions).

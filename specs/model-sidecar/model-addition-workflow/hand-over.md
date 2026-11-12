@@ -47,7 +47,7 @@ intakes/
 | Kind | Required files | Optional files |
 |---|---|---|
 | `model` | `intake.md` | `example/detectors/...` and `example/provenance.yaml` (verdict `describes`); `reference/<section_module>.py`; `vector-runs.yaml`; `batch/` (the files of the [batch-conversion check](batch-conversion-check.md#batch-conversion-check)) |
-| `proposal` | `proposal.md` | `reference/<section_module>.py` and `vectors/<section ID>.yaml` for each changed section that has an algorithm; `evidence.md`; `example/` |
+| `proposal` | `proposal.md` | `reference/<section_module>.py` and `vectors/<section ID>.yaml` for each changed section that has an algorithm; `evidence.md`; `example/`; `skellytracker.patch` (from the 2.0.0 pre-release, [Patches](#patches)) |
 | `proposal` with `contributes_to` | `evidence.md`, one or more `vectors/<section ID>.yaml` | `parity/` |
 
 - Each file name is the name of its target file in skellytracker. When skellytracker lands a
@@ -147,6 +147,7 @@ sections: [<section ID>]  # model: each section that the model uses; proposal: e
 base: <bundle id> | null                                # proposal follow-up
 depends_on: [<bundle id>]                               # proposal
 contributes_to: <slug> | null                           # proposal contribution
+patch_release: <release tag> | null                     # proposal; optional; from the 2.0.0 pre-release
 related: [<bundle id>]
 verdict: describes | does not describe | pending        # model
 batch_conversion: converts | does not convert | not applicable | to run   # model
@@ -168,6 +169,9 @@ external:
   the exact text that the contributor read ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)).
 - A manifest has no `change_class`. A spec change has no class. `pack` and `verify` refuse the key
   ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md) item 1).
+- `patch_release` is the skellytracker release tag that `skellytracker.patch` applies to. A proposal
+  with the patch needs it. A proposal with no patch has no `patch_release`, or `null`
+  ([Patches](#patches)).
 - `batch` is an integer or `dynamic`.
 - `batch_conversion` is the verdict of the [batch-conversion check](batch-conversion-check.md#batch-conversion-check).
 - `batch_conversion_reason` is required when `batch_conversion` is `to run`. Otherwise it is `null`.
@@ -200,6 +204,38 @@ external:
   with `../`. They are relative to the skellytracker root and name a file outside it, for example
   `../../<Exporter>/...` in the default layout.
 - Each SHA-256 is of the raw bytes of the bundle copy.
+
+## Patches
+
+From the 2.0.0 pre-release, each exporter runs a pinned skellytracker release as its ONNX host. A
+proposal that needs a change of the package code then holds the patch `skellytracker.patch`
+([ADR-6J8E](../../../decisions/entries/6J8E-exporters-run-released-skellytracker.md) items 1 to 3).
+Until then, a proposal holds a reference implementation, as [Payload](#payload) gives.
+
+- Make the patch with `git diff` against the tag of the pinned release. Write the tag in
+  `patch_release`.
+- The patch changes only files under `skellytracker/`. A change to `pyproject.toml`, `uv.lock`,
+  `.github/`, `.pre-commit-config.yaml`, `tools/`, `specs/` or a `conftest.py` stops the review. A
+  new dependency is a gap for the user, not a part of a patch.
+- The patch holds only text changes. `pack` refuses, and `verify` finds, a binary change, a path
+  outside `skellytracker/`, a `conftest.py`, and a patch with no `patch_release`.
+- A contribution holds no patch.
+
+### Patch review
+
+A patch is untrusted input
+([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)). The session does
+these steps (6J8E item 4):
+
+1. Read the whole diff. Look for `subprocess`, network calls, `eval` and `exec`, `pickle` and
+   `torch.load`, file writes, code that runs at import, encoded data, and ONNX external-data paths.
+2. Show the result of the review to the user, with the SHA-256 of the patch. Ask for the approval of
+   the run. If the SHA-256 changes, the patch gets a new review and a new approval.
+3. After the approval, apply the patch only in a disposable clone in a temporary folder, with no
+   network access and no credentials. The bundle steps stay in the main checkout. Only the run of
+   the patched code moves out.
+4. Never commit the patch as sent. Rebase it onto `development`, run the acceptance gate of the
+   skill `implement-sidecar-section` again and commit the result as its own implementation commit.
 
 ## Pack a version
 
@@ -313,7 +349,7 @@ issue comment will be. The latest response must agree with the entry:
 
 | Entry status | Responses that agree with it | Owns its sections |
 |---|---|---|
-| `proposed` | `recorded`, `accepted`, `needs-contributor` | yes |
+| `proposed` | `recorded`, `verified`, `accepted`, `needs-contributor` | yes |
 | `accepted`, `absorbed into` | `landed` | yes |
 | `superseded by` | `landed` | no |
 | `rejected` | `rejected`, `resolved-otherwise` | no |
@@ -333,6 +369,10 @@ bundle follow these paths:
 | contribution | `submitted` -> `needs-contributor` or `recorded` -> `landed` with its base; -> `closed` when the base is `rejected`. `recorded` -> `needs-contributor` -> `recorded` |
 | withdrawn | The contributor tells the user. Before `recorded`, the session writes `closed`. After `recorded`, it writes `rejected` with the reason "Withdrawn by contributor". |
 
+- From the 2.0.0 pre-release, a proposal goes from `recorded` to `verified` when it passes the
+  acceptance gate, and the user accepts only a `verified` proposal. A `model` bundle with the verdict
+  `describes` gets `verified` before `landed`
+  ([ADR-6J8E](../../../decisions/entries/6J8E-exporters-run-released-skellytracker.md) item 6).
 - `landed` means that the commit is on the working branch `dom/sidecar-implementation`. The response
   gives its commit subject, not its SHA, because a rebase changes SHAs.
 - For a proposal with an entry, the entry is the authority. For a landed model, the entry of
@@ -347,7 +387,7 @@ the keys:
 ```yaml
 answers_version: 2                        # the version that this response answers
 date: YYYY-MM-DD
-state: needs-contributor | waiting | recorded | accepted | landed | rejected | resolved-otherwise | closed
+state: needs-contributor | waiting | recorded | verified | accepted | landed | rejected | resolved-otherwise | closed
 findings: ["<what the contributor must fix>", "deferred: <reason>"]
 batch_conversion: converts | does not convert | not applicable | to run | null
 waiting_on: [<bundle id>]
@@ -402,6 +442,8 @@ resolution: {...}                         # required for rejected and resolved-o
   ([States](#states)). If a response and the entry do not agree, the entry is correct. Tell the
   user.
 - `needs-contributor`: fix the findings. Pack the next version.
+- `verified`: the bundle passed the acceptance gate of skellytracker. Wait for the decision of the
+  user. Do not pack a new version.
 - `waiting`: the bundles of `waiting_on` block the verdict of your `model` bundle. Pack its next
   version one time, after each bundle of `waiting_on` is landed
   ([ADR-FM0B](../../../decisions/entries/FM0B-one-response-for-each-commit-group.md)).
@@ -437,6 +479,7 @@ it does this safety check ([ADR-AD33](../../../decisions/entries/AD33-bundles-ar
 - Do not import, run or `fill` with a Python file of a bundle or of a record. Python code of a bundle
   runs only after the review and the copy of Procedure B step 6 or Procedure C step 5 of the skill
   `change-sidecar-spec`.
+- Do not apply or run a patch of a bundle before the steps of [Patch review](#patch-review).
 - If you are not sure that a step is safe, stop and ask the user.
 
 1. Run `uv run python -B tools/intake_bundle.py list`.

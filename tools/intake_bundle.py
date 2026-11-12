@@ -149,6 +149,7 @@ STATES = (
     "needs-contributor",
     "waiting",
     "recorded",
+    "verified",  # the acceptance gate passed; from the 2.0.0 pre-release (ADR-6J8E, item 6)
     "accepted",
     "landed",
     "rejected",
@@ -157,13 +158,13 @@ STATES = (
 )
 FINISHED = {"landed", "rejected", "resolved-otherwise", "closed"}
 # A bundle with no entry: the latest response gives the state and the owner role.
-OWNING = {"recorded", "accepted", "landed"}
+OWNING = {"recorded", "verified", "accepted", "landed"}
 NOT_OWNING = {"rejected", "resolved-otherwise", "closed"}
 UNREADABLE = {"_unreadable": True}
 # The status of the spec-log entry of a proposal record is the authority for its state (ADR-ZXD7, item 3).
 # Each status allows these response states; the first one is the state when the latest response disagrees.
 ALLOWED_RESPONSES = {
-    "proposed": ("recorded", "accepted", "needs-contributor"),
+    "proposed": ("recorded", "verified", "accepted", "needs-contributor"),
     "rejected": ("rejected", "resolved-otherwise"),
     "accepted": ("landed",),
     "absorbed into": ("landed",),

@@ -219,7 +219,10 @@ Change the rest of a kit template by hand when a rule of this log changes
 - `intakes/` is the local hand-over folder. Git ignores it. Do not commit it. Do not link it from a
   tracked file. Do not run `git clean -x` or `git clean -X`. Use the main checkout, not a worktree,
   to process bundles ([Hand-over bundles](specs/model-sidecar/model-addition-workflow/hand-over.md);
-  [ADR-ZXD7](decisions/entries/ZXD7-bundle-process.md)).
+  [ADR-ZXD7](decisions/entries/ZXD7-bundle-process.md)). From the 2.0.0 pre-release, only the run
+  of a patch moves to a disposable clone
+  ([Patch review](specs/model-sidecar/model-addition-workflow/hand-over.md#patch-review);
+  [ADR-6J8E](decisions/entries/6J8E-exporters-run-released-skellytracker.md) item 4).
   <!-- kit:push-and-attribution -->
 - Do not push to a git remote without the approval of the user. One approval for a PR covers its
   push, its draft PR and its description.

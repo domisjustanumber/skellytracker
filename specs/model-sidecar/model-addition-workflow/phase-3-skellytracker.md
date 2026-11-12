@@ -38,3 +38,11 @@ You do not do phase 3. A skellytracker session does it. The user decides.
    in `skellytracker/tests/` ([section 3](../../../AGENTS.md#3-install-and-test) of `AGENTS.md`). A code defect is
    reported, and its fix waits for the implementation stage. Docs, tools, vectors and reference
    implementations outside `skellytracker/` can change.
+6. **From the 2.0.0 pre-release.** skellytracker implements your proposal before the user decides.
+   It applies your patch ([Patches](hand-over.md#patches)), runs your vectors through its code,
+   loads your sidecar, runs your model on the reference image against your `parity/` output and puts
+   the model in its catalog. Then it writes the response `verified`
+   ([States](hand-over.md#states)). The user accepts only a `verified` proposal. A model with the
+   verdict `describes` gets the model run and the catalog step only. This replaces "parity passes
+   for at least one size" in item 1
+   ([ADR-6J8E](../../../decisions/entries/6J8E-exporters-run-released-skellytracker.md) item 6).

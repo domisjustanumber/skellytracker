@@ -142,6 +142,12 @@ A skellytracker session must land it first, with the skill
    You found a spec defect or a bug. Use the skill
    [`propose-sidecar-change`](../propose-sidecar-change/SKILL.md). Do not change the vectors to match
    the code.
+4. From the 2.0.0 pre-release, a proposal gives its code change as `skellytracker.patch`, not as a
+   reference implementation to port. Apply the patch: follow
+   [Patch review](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#patch-review).
+   The [acceptance gate](proposal-gate.md) gives the steps for a proposal
+   ([ADR-6J8E](../../../decisions/entries/6J8E-exporters-run-released-skellytracker.md) items 2
+   and 6).
 
 ### Step 6: Implement and test
 
