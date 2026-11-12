@@ -1,6 +1,6 @@
 # 7NY2 — Pipeline config: one Pydantic model from a YAML file; a flat node graph with `@prev`; detector, `mediapipe_tasks` and a closed set of glue nodes
 
-**Status:** accepted, 2026-11-10 (user).
+**Status:** superseded by [W5QD](W5QD-pipeline-entries-consolidation.md), 2026-11-12 (user; PR: pending).
 
 ## Decision
 

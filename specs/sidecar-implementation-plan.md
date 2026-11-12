@@ -199,7 +199,8 @@ The hardware and EP work stayed a parallel track on the branch
 ### 0.5 Gate: the implementation stage
 
 **Status: STARTED.** It needs 0.1 to 0.4. Done: the retirement of
-`notes/sidecar-exporter-coverage.md`, with its unique measurements in [ADR-Z0CC](../decisions/entries/Z0CC-exporter-coverage-measurements.md).
+`notes/sidecar-exporter-coverage.md`, with its unique measurements in [ADR-Z0CC](../decisions/entries/Z0CC-exporter-coverage-measurements.md),
+and the consolidation entry [ADR-W5QD](../decisions/entries/W5QD-pipeline-entries-consolidation.md) of the pipeline entries.
 
 - The user declares the implementation stage in a new entry. The entry changes
   [section 1](../AGENTS.md#1-purpose) of `AGENTS.md` and the "Stage" part of the skill

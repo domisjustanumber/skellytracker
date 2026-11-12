@@ -1,6 +1,6 @@
 # ZYS9 — Pipeline outputs with an instance dimension; running modes; batch k × cameras; session sharing only inside one run; load checks; the default EP
 
-**Status:** accepted, 2026-11-12 (user).
+**Status:** superseded by [W5QD](W5QD-pipeline-entries-consolidation.md), 2026-11-12 (user; PR: pending).
 
 ## Decision
 

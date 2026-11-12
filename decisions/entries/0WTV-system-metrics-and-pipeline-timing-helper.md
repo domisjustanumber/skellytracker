@@ -1,6 +1,6 @@
 # 0WTV — `core/metrics/` holds only system metrics; the pipeline timing helper is `core/pipelines/timing.py`
 
-**Status:** accepted, 2026-11-12 (user).
+**Status:** superseded by [W5QD](W5QD-pipeline-entries-consolidation.md), 2026-11-12 (user; PR: pending).
 
 ## Decision
 

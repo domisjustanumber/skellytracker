@@ -1,6 +1,6 @@
 # V7GZ — Pipeline API with `device` and `vram_reserve_bytes`; built-ins; warnings; Holistic; node catalog
 
-**Status:** accepted, 2026-11-12 (user).
+**Status:** superseded by [W5QD](W5QD-pipeline-entries-consolidation.md), 2026-11-12 (user; PR: pending).
 
 ## Decision
 
