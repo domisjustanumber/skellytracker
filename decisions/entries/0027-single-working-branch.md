@@ -1,6 +1,6 @@
 # 0027 — One working branch for the PR stack
 
-**Status:** absorbed into [`AGENTS.md#6-git-rules`](../../AGENTS.md#6-git-rules), 2026-10-25 (user; the absorption review).
+**Status:** superseded by [BH7C](BH7C-two-spec-build-prs-and-a-pr-for-each-stage.md), 2026-11-12 (user; PR: pending).
 
 ## Decision
 
