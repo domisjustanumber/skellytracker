@@ -25,8 +25,8 @@ The tool is the source of this list.
 Check 8 has a time limit of ``MEDIAPIPE_TIMEOUT`` seconds, because the MediaPipe tests can hang on
 Windows with Python 3.12 (decision R3F1). When the limit runs out, the tool stops the process and
 each process that it started, prints a note and runs the next checks. Then it exits with
-``HUNG_STATUS``, also when the next checks pass. On Python 3.12 the note calls the hang known. On
-Python 3.13 or later the note calls it a regression.
+``HUNG_STATUS``, also when the next checks pass, and its last line repeats the note. On Python 3.12
+the note calls the hang known. On Python 3.13 or later the note calls it a regression.
 """
 
 from __future__ import annotations
@@ -63,7 +63,10 @@ def time_limit(command: list[str]) -> float | None:
 
 def hang_note() -> str:
     if sys.version_info < (3, 13):
-        return "This is the known MediaPipe hang of Python 3.12 on Windows (skellytracker/AGENTS.md)."
+        return (
+            "This is the known MediaPipe hang of Python 3.12 on Windows (skellytracker/AGENTS.md). A failed"
+            ' MediaPipe test with "Input timestamp must be monotonically increasing" is the same known defect.'
+        )
     return "This is a regression: the MediaPipe hang of Python 3.12 is back on a newer Python."
 
 
@@ -98,6 +101,8 @@ def run(
         if status:
             print(f"failed with exit status {status}", file=sys.stderr)
             return status
+    if result == HUNG_STATUS:
+        print(f"result: {HUNG_STATUS}. Only the stopped check failed. {hang_note()}", file=sys.stderr)
     return result
 
 

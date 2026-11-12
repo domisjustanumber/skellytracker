@@ -33,7 +33,9 @@ def test_a_hung_check_is_stopped_and_the_next_checks_run(tmp_path: Path, capsys)
     assert result == run_checks.HUNG_STATUS
     assert time.monotonic() - start < 30
     assert marker.exists()
-    assert "stopped after 1 s" in capsys.readouterr().err
+    err = capsys.readouterr().err
+    assert "stopped after 1 s" in err
+    assert err.splitlines()[-1].startswith(f"result: {run_checks.HUNG_STATUS}. Only the stopped check failed.")
 
 
 def test_only_the_mediapipe_check_has_a_time_limit() -> None:
