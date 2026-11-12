@@ -30,6 +30,7 @@ These entries are `accepted` or `evidence`.
 | [M2C6](entries/M2C6-exact-pins-and-one-python-patch-release.md) | Exact pins, no ranges; Python `==3.13.18`; `onnxruntime` 1.31 base dependency; GPU EPs only as CUDA 13 plugin packs; supersedes MWY9 | accepted |
 | [W5QD](entries/W5QD-pipeline-entries-consolidation.md) | Consolidation of the pipeline entries 7NY2, ZYS9, V7GZ and 0WTV: links to the pipeline spec, and the Python API names that it does not state | accepted |
 | [V6G2](entries/V6G2-implementation-stage.md) | The implementation stage starts at the rebuild of phase 0; the spec-build code and git rules end; the spec can still change through proposals | accepted |
+| [RH69](entries/RH69-repository-infrastructure-first.md) | The rebuild puts the repository infrastructure in `dom/52-process` and the rest in `dom/53-spec`; supersedes BH7C | accepted |
 | [Z0CC](entries/Z0CC-exporter-coverage-measurements.md) | Exporter coverage measurements of 2026-10: RF-DETR graph checks, RTMDet AP of resize and NMS, COCO id and in-graph cap defects | evidence |
 | [246B](entries/246B-ep-catalog-store-and-install.md) | EP catalog and lock in the package; option allow-lists; one EP store; `urllib` download after a user action; no mirror; installer EP page | accepted |
 | [D8DH](entries/D8DH-sessions-errors-and-the-ready-rule.md) | `core/errors.py`; one exit-code table; an EP pack is ready when installed, current, registered and with a device; no EP variables | accepted |

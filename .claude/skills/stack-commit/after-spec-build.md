@@ -10,18 +10,17 @@ The rules of the skill also apply.
 
 Do these steps one time, at the gate of phase 0, after the exporter kit and the copy of
 `hw-and-ep-work`
-([ADR-BH7C](../../../decisions/entries/BH7C-two-spec-build-prs-and-a-pr-for-each-stage.md) item 2).
+([ADR-BH7C](../../../decisions/entries/BH7C-two-spec-build-prs-and-a-pr-for-each-stage.md) item 2;
+[ADR-RH69](../../../decisions/entries/RH69-repository-infrastructure-first.md)).
 
 1. Run `git worktree list`. It must show one worktree.
 2. Keep the old history: `git branch dom/spec-build-history dom/sidecar-implementation`.
-3. Make `dom/52-process` on the last commit of #81. Take the process files from the final files of
-   the working branch. A root entry that links a spec file goes in `dom/53-spec`. Give
-   `dom/52-process` its own form of `AGENTS.md` and of the index files. `dom/52-process` holds the
-   agent instructions, the process skills, the decision log rules, the process entries, the checks in
-   `tools/` and the repository configuration.
-4. Make `dom/53-spec` on `dom/52-process` with the rest: the model sidecar spec, the pipeline spec,
-   their skills, tools and entries, and the implementation plan. `git diff dom/spec-build-history
-   dom/53-spec` must show no change.
+3. Make `dom/52-process` on the last commit of #81 with the repository infrastructure of the final
+   files ([ADR-RH69](../../../decisions/entries/RH69-repository-infrastructure-first.md) item 1).
+   Give `run_checks.py` and the lint workflow their own form with only the checks that the tree of
+   `dom/52-process` can run.
+4. Make `dom/53-spec` on `dom/52-process` with the rest (RH69 item 2). `git diff
+   dom/spec-build-history dom/53-spec` must show no change.
 5. Put each kind of change in its own commit. Run `uv run python tools/run_checks.py` on the last
    commit of each branch.
 6. Move the working branch to `dom/53-spec`. Then push `dom/spec-build-history`, the two PR
