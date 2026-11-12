@@ -1,4 +1,4 @@
-"""The sidecar spec does not use a name that decision 88WQ retires.
+"""The sidecar spec and the pipeline spec do not use a name that a decision retires (88WQ, GKD1).
 
 Spec version 2.0.0 keeps no alias for an old name. The frozen texts keep their old names: the
 proposal records, the decision logs, the changelog with its old-to-new ID map and the frozen
@@ -14,8 +14,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-# shortcut: the pipeline spec adopts the 88WQ names in a later commit group; add specs/pipeline then.
-SPECS = (ROOT / "specs" / "model-sidecar",)
+SPECS = (ROOT / "specs" / "model-sidecar", ROOT / "specs" / "pipeline")
 FROZEN = ("proposals/", "decisions/", "changelog.md", "sidecar-spec.md")
 SUFFIXES = {".md", ".yaml", ".yml", ".json", ".py"}
 RETIRED = {
@@ -58,7 +57,7 @@ def test_no_live_spec_file_uses_a_retired_name(name: str) -> None:
         for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1)
         if pattern.search(line)
     ]
-    assert not hits, f"{name} is retired by 88WQ: " + ", ".join(hits)
+    assert not hits, f"{name} is a retired name: " + ", ".join(hits)
 
 
 def test_the_frozen_texts_are_skipped() -> None:
