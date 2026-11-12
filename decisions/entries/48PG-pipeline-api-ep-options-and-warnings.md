@@ -1,6 +1,6 @@
 # 48PG — Pipeline API `core.pipelines` with EP options; built-ins; warnings with `ep_partial_placement`; dependency reports; Holistic for MediaPipe; the node catalog
 
-**Status:** accepted, 2026-11-12 (user).
+**Status:** superseded by [V7GZ](V7GZ-pipeline-api-device-and-vram-reserve.md), 2026-11-12 (user; PR: pending).
 
 ## Decision
 

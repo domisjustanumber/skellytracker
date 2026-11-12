@@ -1,6 +1,6 @@
 # AQR4 — Two entry points `detectors` and `pipelines`; the hw-and-ep modules go under an eager `core`; calibration stays outside pipelines
 
-**Status:** accepted, 2026-11-11 (user).
+**Status:** superseded by [0XW9](0XW9-entry-points-layout-guard-test-and-session-code.md), 2026-11-12 (user; PR: pending).
 
 ## Decision
 

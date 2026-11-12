@@ -24,14 +24,17 @@ These entries are `accepted` or `evidence`.
 | # | Decision | Status |
 |---|----------|--------|
 | [AMJ8](entries/AMJ8-replace-package-onnx-detectors.md) | Replace the package ONNX detectors with exporter models; no legacy layer; shipped sidecars in `core/model_zoo/`; RTMPose replacements block v2.0.0 | accepted |
-| [AQR4](entries/AQR4-detectors-and-pipelines-entry-points.md) | Entry points `detectors` and `pipelines`; `system/`, `metrics/`, `eps/` under an eager `core`; calibration outside pipelines; user root | accepted |
+| [0XW9](entries/0XW9-entry-points-layout-guard-test-and-session-code.md) | Entry points `detectors` and `pipelines`; `system/`, `metrics/`, `eps/` under an eager `core`; one `eps` guard test; new session code in `core/eps/` | accepted |
 | [7NY2](entries/7NY2-pipeline-form-graph-and-nodes.md) | Pipeline config: one Pydantic model from YAML; flat node graph with `@prev`; detector, `mediapipe_tasks` and closed glue nodes | accepted |
 | [ZYS9](entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) | Pipeline outputs with an instance dimension; running modes; batch k × cameras; session sharing only inside one run; load checks; default EP | accepted |
-| [48PG](entries/48PG-pipeline-api-ep-options-and-warnings.md) | Pipeline API `core.pipelines` with `ep_options`; built-ins; `PipelineWarning` with `ep_partial_placement`; dependency reports; Holistic; node catalog | accepted |
+| [V7GZ](entries/V7GZ-pipeline-api-device-and-vram-reserve.md) | Pipeline API `core.pipelines` with `device` and `vram_reserve_bytes`; built-ins; `PipelineWarning`; dependency reports; Holistic; node catalog | accepted |
 | [0WTV](entries/0WTV-system-metrics-and-pipeline-timing-helper.md) | `core/metrics/` holds only system metrics; the pipeline timing helper is `core/pipelines/timing.py`; supersedes Q59W and keeps its other rules | accepted |
 | [NHM3](entries/NHM3-phases-to-the-exporter-checkpoint.md) | Phase 0 and phase 1 to the exporter checkpoint; pre-release at the checkpoint; new code beside old; supersedes EM74 | accepted |
 | [9NW0](entries/9NW0-ep-keys-options-and-failures.md) | EP keys from the EP catalog; a run takes `ep_options`; a whole-EP failure raises before frame 0; CPU nodes are reported | accepted |
 | [M2C6](entries/M2C6-exact-pins-and-one-python-patch-release.md) | Exact pins, no ranges; Python `==3.13.18`; `onnxruntime` 1.31 base dependency; GPU EPs only as CUDA 13 plugin packs; supersedes MWY9 | accepted |
+| [246B](entries/246B-ep-catalog-store-and-install.md) | EP catalog and lock in the package; option allow-lists; one EP store; `urllib` download after a user action; no mirror; installer EP page | accepted |
+| [D8DH](entries/D8DH-sessions-errors-and-the-ready-rule.md) | `core/errors.py`; one exit-code table; an EP pack is ready when installed, current, registered and with a device; no EP variables | accepted |
+| [P1F3](entries/P1F3-hardware-probe-devices-and-multi-gpu.md) | Hardware probe fields; `free_vram`; `device_key`; default GPU by VRAM; a run splits its cameras across GPUs; no pre-Turing GPUs | accepted |
 
 ### Proposed
 
