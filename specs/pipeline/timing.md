@@ -10,7 +10,7 @@ status: {spec: draft}
 
 > This section is a draft. Its fields and rules can change before the section becomes `stable`.
 
-A run can measure the time of fixed points of each node. Each measured point gives one event. The run writes the events as JSONL, after one header line. A benchmark run takes a COCO file as input. This section gives the timing points, the events, the header and the COCO input form ([ADR-Q59W](../../decisions/entries/Q59W-pipeline-timing-and-taps.md) items 1 to 4 and 6).
+A run can measure the time of fixed points of each node. Each measured point gives one event. The run writes the events as JSONL, after a header line. A benchmark run takes a COCO file as input. This section gives the timing points, the events, the header, the canonical JSON of a hash and the COCO input form ([ADR-Q59W](../../decisions/entries/Q59W-pipeline-timing-and-taps.md) items 1 to 4 and 6).
 
 ## Fields
 
@@ -30,11 +30,10 @@ The fields of an event ([ADR-Q59W](../../decisions/entries/Q59W-pipeline-timing-
 
 | Field | Description |
 |-------|-------------|
-| `frame_number` | The frame number. |
-| `camera_id` | The camera id. `null` for one call over the camera batch. |
+| `images` | One item `{frame_index, camera_id}` for each image of the call. A field of an item is never null. |
 | `node_id` | The node id, or `pipeline`. |
 | `point` | The point name. |
-| `batch_size` | The batch of the call. 1 for a glue node. |
+| `batch_size` | The length of `images`. |
 | `start_ns` | The start, in nanoseconds of a monotonic clock (`perf_counter_ns`). |
 | `end_ns` | The end, on the same clock. |
 
@@ -44,27 +43,31 @@ The fields of the header line ([ADR-Q59W](../../decisions/entries/Q59W-pipeline-
 |-------|-------------|
 | `schema` | `skellytracker.timing/1`. |
 | `run_id` | The id of the run. |
-| the version, the clock and one anchor | The skellytracker version, the clock of the events and one anchor of that clock. This draft does not fix their field names. |
-| `mode` | The mode of the run. This draft does not fix its values. |
+| `skellytracker_version` | The version of skellytracker that made the file. |
+| `clock` | `{name, implementation, resolution_ns}`. `name` is `perf_counter_ns`. `implementation` and `resolution_ns` come from `time.get_clock_info("perf_counter")`. `implementation` is information only. |
+| `anchor` | `{perf_counter_ns, unix_ns}`: one reading of the event clock and of the Unix clock, read together. |
 | `running_mode` | `image`, `video` or `live` ([Running](running.md#behaviour)). |
 | `warmup_passes` | The number of warm-up passes. |
-| `image_list_sha256` | The hash of the image list ([Behaviour](#behaviour)). |
+| `image_list_sha256` | The hash of the image list of the COCO input form, or null ([Behaviour](#behaviour) item 6). |
 | `camera_ids` | The camera ids of the run. |
-| `pipeline_sha256` | The SHA-256 of the pipeline config. This draft does not fix the bytes that it hashes. |
+| `pipeline_sha256` | The SHA-256 of the canonical JSON of the config ([Behaviour](#behaviour) item 5). |
 | `points_on` | The timing points that are on. |
 | `nodes` | One item for each node. |
 
-The fields of a node item: `id`, `type`, `batching`, `inputs` (each with a `prev` flag), `key`, `sidecar_sha256`, `size`, `precision`, `execution`, `stage_providers` and `shared_with`. `execution` holds `requested_ep`, `used_ep`, the device, `gpu_uuid`, `ep_device_id` and the EP options that change the numbers.
+The fields of a node item: `id`, `type`, `batching`, `inputs` (each with a `prev` flag), `key`, `sidecar_sha256`, `artifact_sha256`, `size`, `precision`, `execution`, `stage_providers` and `shared_with`. `execution` holds `requested_ep`, `used_ep`, the device, `gpu_uuid`, `ep_device_id` and the EP options that change the numbers.
 
 ## Behaviour
 
 1. `instrumentation.timing_points` selects the points. The run parameter timing off turns each point off. The run parameter of the destination gives where the events go ([ADR-Q59W](../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 1).
 2. A node that does not run gives no event. A warm-up pass gives no event ([ADR-Q59W](../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 2).
-3. The first line of a JSONL file is the header, one for each run and process. Each other line is one event. When a session changes during a run, the run writes a new header ([ADR-Q59W](../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 3).
+3. The first line of a JSONL file is a header, one for each run and process. Each other line is an event or a header. When a session changes during a run, the run writes a new header line. A header applies to the events after it, until the next header ([ADR-Q59W](../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 3).
 4. Derived values come from helpers outside the hot path. The events do not hold them ([ADR-Q59W](../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 4):
-   - `task_id` is `{frame}:{camera_id or "batch"}:{node_id}:{point}`.
+   - `task_id` is `{frame_index}:{camera_id}:{node_id}:{point}`, one for each item of `images`.
    - `duration_ms` is (`end_ns` − `start_ns`) / 1e6.
-5. **COCO input form.** A benchmark run takes a COCO annotations file and an image folder. It has one camera. The `image_id` of each image comes from the COCO file. `image_list_sha256` is the SHA-256 of the sorted `image_id` values joined with `\n` ([ADR-Q59W](../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 6).
+5. **Canonical JSON.** A hash of a config is the SHA-256 of its canonical JSON. The canonical JSON is UTF-8 bytes, with sorted keys, the separators `,` and `:`, no whitespace and no escape of non-ASCII characters: `json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")`.
+   - `pipeline_sha256` hashes the mapping of `schema_version`, `nodes` and `outputs` of the config. The keys `pipeline_id`, `description`, `source` and `instrumentation` are not in it. The config is first validated by the reference model, with the defaults of the spec: `PipelineConfig.model_dump(mode="json")`. It holds no value from a sidecar and no EP ([ADR-Q59W](../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 3).
+   - `upstream_sha256` of a tap uses the same bytes ([Taps](taps.md#fields)).
+6. **COCO input form.** A benchmark run takes a COCO annotations file and an image folder. It has one camera. The `image_id` of each image comes from the COCO file. `image_list_sha256` is the SHA-256 of the UTF-8 bytes of the `image_id` values, in ascending order, each as a decimal integer, joined with `\n`, with no line feed at the end ([ADR-Q59W](../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 6). A run with no COCO input has `image_list_sha256: null`.
 
 ## Validation rules
 
@@ -73,8 +76,9 @@ The fields of a node item: `id`, `type`, `batching`, `inputs` (each with a `prev
 ## Implementer guidance
 
 - The reference model checks `V-pipeline.timing-1` in `check_structure`. The `timing_points` of each node class give the points. (skellytracker `specs/pipeline/reference/pipeline_config.py`)
-- A helper in `core/metrics/` aggregates the events to the skellybench timing record. `stages_ms_per_image` is the sum of the detector point times divided by the sum of `batch_size`. The `run` time of a glue node goes to `excluded_ms_per_image` ([ADR-Q59W](../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 4).
+- A helper in `core/metrics/` aggregates the events to the skellybench timing record. `stages_ms_per_image` is the sum of the model point times divided by the sum of `batch_size`. The model points are the points of each detector node and the `run` point of each `mediapipe_tasks` node. The `run` time of a glue node goes to `excluded_ms_per_image` ([ADR-Q59W](../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 4).
 - skellybench runs `python -m skellytracker run --pipeline … --coco <annotations.json> --images <dir> --out … [--ep …] [--timing on]` as a subprocess. The timing files and the tap files are the contract ([ADR-Q59W](../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 6).
+- The header has no field `mode`: skellytracker has no IO binding to report.
 
 ## Authoring guidance
 

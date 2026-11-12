@@ -10,12 +10,13 @@
           "type": "string"
         },
         "inputs": {
-          "additionalProperties": {
+          "description": "A list of `<node>.<port>`, each with an optional `@prev`. At least one item.",
+          "items": {
             "type": "string"
           },
-          "description": "Input name to `<node>.<port>`, with an optional `@prev`.",
+          "minItems": 1,
           "title": "Inputs",
-          "type": "object"
+          "type": "array"
         },
         "params": {
           "$ref": "#/$defs/NoParams"
@@ -31,32 +32,6 @@
         "type"
       ],
       "title": "ConcatNode",
-      "type": "object"
-    },
-    "DerivedPoint": {
-      "additionalProperties": false,
-      "properties": {
-        "name": {
-          "description": "The name of the new point.",
-          "pattern": "^[a-z][a-z0-9_-]*$",
-          "title": "Name",
-          "type": "string"
-        },
-        "weights": {
-          "additionalProperties": {
-            "type": "number"
-          },
-          "description": "Point name to weight. A negative weight extrapolates, for example wrist 1.5 and elbow -0.5.",
-          "minProperties": 1,
-          "title": "Weights",
-          "type": "object"
-        }
-      },
-      "required": [
-        "name",
-        "weights"
-      ],
-      "title": "DerivedPoint",
       "type": "object"
     },
     "DetectorNode": {
@@ -96,14 +71,6 @@
     "DetectorParams": {
       "additionalProperties": false,
       "properties": {
-        "decode": {
-          "additionalProperties": true,
-          "description": "Changes of the `decode` fields of the sidecar. The load checks each name against the sidecar.",
-          "live": false,
-          "source": "ADR-7NY2 item 11",
-          "title": "Decode",
-          "type": "object"
-        },
         "execution_provider": {
           "anyOf": [
             {
@@ -120,20 +87,28 @@
           "title": "Execution Provider"
         },
         "key": {
-          "description": "The catalog key of the model, `<model_id>@<source>`.",
+          "description": "The catalog key of the model, `<model_id>@<source.name>`, with an optional pin `==<version>`.",
           "live": false,
-          "source": "ADR-7NY2 item 10",
+          "source": "ADR-7NY2 item 10; ADR-88WQ item 7",
           "title": "Key",
           "type": "string"
         },
         "max_instances": {
           "default": 1,
-          "description": "The number of instance rows that this node makes (object detector or one-stage model).",
+          "description": "The number of instance rows `I` that this node makes (object detector or one-stage model).",
           "live": false,
           "minimum": 1,
           "source": "ADR-99MH item 1",
           "title": "Max Instances",
           "type": "integer"
+        },
+        "object_decode": {
+          "additionalProperties": true,
+          "description": "Changes of the fields of the `object.decode` block of the sidecar. The load checks each name against the sidecar.",
+          "live": false,
+          "source": "ADR-7NY2 item 11; ADR-88WQ item 7",
+          "title": "Object Decode",
+          "type": "object"
         },
         "precision": {
           "anyOf": [
@@ -149,7 +124,7 @@
             }
           ],
           "default": null,
-          "description": "The precision of the artifact. Empty: fp16 on a GPU EP, fp32 on CPU.",
+          "description": "The precision of the artifact. Empty: fp16 on a GPU EP and fp32 on CPU; fp32 when the size has no fp16 artifact.",
           "live": false,
           "source": "ADR-7NY2 item 10",
           "title": "Precision"
@@ -171,7 +146,7 @@
           "title": "Sidecar Sha256"
         },
         "size": {
-          "description": "A size name of the `sizes` of the sidecar.",
+          "description": "A size key of the `sizes` of the sidecar.",
           "live": false,
           "source": "ADR-7NY2 item 10",
           "title": "Size",
@@ -195,12 +170,13 @@
           "type": "string"
         },
         "inputs": {
-          "additionalProperties": {
+          "description": "A list of `<node>.<port>`, each with an optional `@prev`. At least one item.",
+          "items": {
             "type": "string"
           },
-          "description": "Input name to `<node>.<port>`, with an optional `@prev`.",
+          "minItems": 1,
           "title": "Inputs",
-          "type": "object"
+          "type": "array"
         },
         "params": {
           "$ref": "#/$defs/NoParams"
@@ -221,10 +197,21 @@
     "FitnessCheck": {
       "additionalProperties": false,
       "properties": {
-        "expansion_ratio": {
+        "check": {
+          "description": "The check. A check that fails asks for a new detection.",
+          "enum": [
+            "min_keypoint_score",
+            "keypoints_within_bbox_ratio",
+            "max_frames_without_redetect",
+            "bbox_area_collapse"
+          ],
+          "title": "Check",
+          "type": "string"
+        },
+        "expand_ratio": {
           "anyOf": [
             {
-              "minimum": 0.0,
+              "exclusiveMinimum": 0.0,
               "type": "number"
             },
             {
@@ -232,19 +219,8 @@
             }
           ],
           "default": null,
-          "description": "bbox_area_collapse (0.05).",
-          "title": "Expansion Ratio"
-        },
-        "kind": {
-          "description": "The check. A check that fails asks for a new detection.",
-          "enum": [
-            "min_keypoint_visibility",
-            "keypoints_within_bbox_ratio",
-            "max_frames_without_redetect",
-            "bbox_area_collapse"
-          ],
-          "title": "Kind",
-          "type": "string"
+          "description": "bbox_area_collapse (1.10).",
+          "title": "Expand Ratio"
         },
         "min_area_ratio": {
           "anyOf": [
@@ -260,10 +236,9 @@
           "description": "bbox_area_collapse (0.25).",
           "title": "Min Area Ratio"
         },
-        "min_visibility": {
+        "min_score": {
           "anyOf": [
             {
-              "maximum": 1.0,
               "minimum": 0.0,
               "type": "number"
             },
@@ -273,7 +248,7 @@
           ],
           "default": null,
           "description": "bbox_area_collapse (0.0).",
-          "title": "Min Visibility"
+          "title": "Min Score"
         },
         "n_frames": {
           "anyOf": [
@@ -292,7 +267,6 @@
         "threshold": {
           "anyOf": [
             {
-              "maximum": 1.0,
               "minimum": 0.0,
               "type": "number"
             },
@@ -301,12 +275,12 @@
             }
           ],
           "default": null,
-          "description": "min_keypoint_visibility (0.3) or keypoints_within_bbox_ratio (0.5).",
+          "description": "min_keypoint_score (0.3) or keypoints_within_bbox_ratio (0.5).",
           "title": "Threshold"
         }
       },
       "required": [
-        "kind"
+        "check"
       ],
       "title": "FitnessCheck",
       "type": "object"
@@ -363,7 +337,6 @@
         "threshold": {
           "anyOf": [
             {
-              "maximum": 1.0,
               "minimum": 0.0,
               "type": "number"
             },
@@ -374,7 +347,7 @@
           "default": null,
           "description": "The score threshold of the mode `score_above`.",
           "live": true,
-          "source": "ADR-7NY2 item 6",
+          "source": "ADR-7NY2 item 6; ADR-88WQ item 6",
           "title": "Threshold"
         }
       },
@@ -449,63 +422,63 @@
           "description": "`num_poses`, `num_hands` or `num_faces`. Holistic is single person: 1.",
           "live": false,
           "minimum": 1,
-          "source": "MediaPipe Tasks default; ADR-8NVD item 4",
+          "source": "MediaPipe `num_poses`, `num_hands`, `num_faces` (Tasks default 1); ADR-8NVD item 4",
           "title": "Max Instances",
           "type": "integer"
         },
-        "min_detection_confidence": {
+        "min_detection_score": {
           "default": 0.5,
           "description": "The minimum detection score (Holistic: the pose and the face detection).",
           "live": false,
           "maximum": 1.0,
           "minimum": 0.0,
-          "source": "MediaPipe Tasks default",
-          "title": "Min Detection Confidence",
+          "source": "MediaPipe `min_*_detection_confidence` (Tasks default 0.5)",
+          "title": "Min Detection Score",
           "type": "number"
         },
-        "min_presence_confidence": {
+        "min_presence_score": {
           "default": 0.5,
-          "description": "The minimum presence score (Holistic: the landmark confidence of each part).",
+          "description": "The minimum presence score (Holistic: the landmark score of each part).",
           "live": false,
           "maximum": 1.0,
           "minimum": 0.0,
-          "source": "MediaPipe Tasks default",
-          "title": "Min Presence Confidence",
+          "source": "MediaPipe `min_*_presence_confidence`, Holistic `min_*_landmarks_confidence` (Tasks default 0.5)",
+          "title": "Min Presence Score",
           "type": "number"
         },
-        "min_tracking_confidence": {
+        "min_tracking_score": {
           "default": 0.5,
           "description": "The minimum tracking score in VIDEO mode. Holistic has no tracking option.",
           "live": false,
           "maximum": 1.0,
           "minimum": 0.0,
-          "source": "MediaPipe Tasks default",
-          "title": "Min Tracking Confidence",
+          "source": "MediaPipe `min_tracking_confidence` (Tasks default 0.5)",
+          "title": "Min Tracking Score",
           "type": "number"
         },
-        "pose_model": {
+        "size": {
           "default": "heavy",
-          "description": "The pose landmarker model. Only for the variant `pose`.",
+          "description": "The model size of the pose landmarker. Only for the variant `body`.",
           "enum": [
             "lite",
             "full",
             "heavy"
           ],
           "live": false,
-          "source": "MediapipePoseDetectorConfig.model_complexity",
-          "title": "Pose Model",
+          "source": "MediaPipe asset `pose_landmarker_<size>`; MediapipePoseDetectorConfig.model_complexity",
+          "title": "Size",
           "type": "string"
         },
         "variant": {
-          "description": "The Tasks landmarker.",
+          "description": "The Tasks landmarker: pose (`body`), hand, face or holistic.",
           "enum": [
-            "pose",
+            "body",
             "hand",
             "face",
             "holistic"
           ],
           "live": false,
-          "source": "ADR-8NVD item 4",
+          "source": "ADR-8NVD item 4; ADR-88WQ item 4",
           "title": "Variant",
           "type": "string"
         }
@@ -514,6 +487,95 @@
         "variant"
       ],
       "title": "MediapipeTasksParams",
+      "type": "object"
+    },
+    "MergeNode": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "The node id. `pipeline` and `frame` are reserved.",
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "inputs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Input name to `<node>.<port>`, with an optional `@prev`.",
+          "title": "Inputs",
+          "type": "object"
+        },
+        "params": {
+          "$ref": "#/$defs/MergeParams"
+        },
+        "type": {
+          "const": "merge",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "params"
+      ],
+      "title": "MergeNode",
+      "type": "object"
+    },
+    "MergeParams": {
+      "additionalProperties": false,
+      "properties": {
+        "map": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Target point to slot column `<slot>.<point>`. A present slot point replaces the target point.",
+          "live": false,
+          "source": "ADR-7NY2 item 6",
+          "title": "Map",
+          "type": "object"
+        },
+        "max_distance": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The largest anchor distance, as a part of the diagonal of the box around the present points of the target row. Empty: no limit.",
+          "live": true,
+          "source": "ADR-7NY2 item 6",
+          "title": "Max Distance"
+        },
+        "slots": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Slot name to the target point that anchors the slot, for example `left_hand: body.left_wrist`.",
+          "live": false,
+          "minProperties": 1,
+          "source": "ADR-7NY2 item 6",
+          "title": "Slots",
+          "type": "object"
+        },
+        "source_anchor": {
+          "description": "The point of `source` that the node compares with the slot anchors, for example `hand.wrist`.",
+          "live": false,
+          "source": "ADR-7NY2 item 6",
+          "title": "Source Anchor",
+          "type": "string"
+        }
+      },
+      "required": [
+        "slots",
+        "source_anchor"
+      ],
+      "title": "MergeParams",
       "type": "object"
     },
     "NoParams": {
@@ -649,15 +711,40 @@
           "source": "ADR-7NY2 item 6",
           "title": "Alignment Start"
         },
-        "derived": {
-          "description": "Points made from other points with weights. They can be used in `points` and in the alignment.",
-          "items": {
-            "$ref": "#/$defs/DerivedPoint"
+        "derived_points": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              }
+            ]
           },
+          "description": "Derived point name to derivation, in the map form of the sidecar `keypoint.derived_points`: passthrough, mean or weighted.",
           "live": false,
-          "source": "ADR-7NY2 item 6",
-          "title": "Derived",
-          "type": "array"
+          "source": "ADR-7NY2 item 6; ADR-88WQ item 6",
+          "title": "Derived Points",
+          "type": "object"
+        },
+        "expand_ratio": {
+          "default": 1.0,
+          "description": "Multiply the width and the height by this value.",
+          "exclusiveMinimum": 0.0,
+          "live": true,
+          "source": "MediaPipe RectTransformationCalculator scale default; ADR-88WQ item 4",
+          "title": "Expand Ratio",
+          "type": "number"
         },
         "points": {
           "description": "The points of the ROI. A list of names is one point with aliases: the first present name counts.",
@@ -680,22 +767,12 @@
           "title": "Points",
           "type": "array"
         },
-        "scale": {
-          "default": 1.0,
-          "description": "Multiply the width and the height by this value.",
-          "exclusiveMinimum": 0.0,
-          "live": true,
-          "source": "MediaPipe RectTransformationCalculator default",
-          "title": "Scale",
-          "type": "number"
-        },
         "score_threshold": {
           "default": 0.0,
           "description": "A point counts only when its score is greater than this value.",
           "live": true,
-          "maximum": 1.0,
           "minimum": 0.0,
-          "source": "ADR-7NY2 item 6",
+          "source": "ADR-7NY2 item 6; ADR-88WQ item 6",
           "title": "Score Threshold",
           "type": "number"
         },
@@ -868,18 +945,9 @@
     "SmoothKeypointsParams": {
       "additionalProperties": false,
       "properties": {
-        "backoff_multiplier": {
-          "default": 2.0,
-          "description": "Multiply the miss limit by this value after a reset with no detection between.",
-          "live": false,
-          "minimum": 1.0,
-          "source": "KeypointResetPolicyConfig",
-          "title": "Backoff Multiplier",
-          "type": "number"
-        },
         "beta": {
           "default": 0.0,
-          "description": "one_euro: the speed coefficient.",
+          "description": "one_euro: the speed coefficient, in Hz per px/s.",
           "live": true,
           "minimum": 0.0,
           "source": "KeypointSmoothingConfig",
@@ -888,7 +956,7 @@
         },
         "d_cutoff": {
           "default": 1.0,
-          "description": "one_euro: the cutoff frequency of the derivative.",
+          "description": "one_euro: the cutoff frequency of the derivative, in Hz.",
           "exclusiveMinimum": 0.0,
           "live": true,
           "source": "KeypointSmoothingConfig",
@@ -907,53 +975,21 @@
           "title": "Filter",
           "type": "string"
         },
-        "max_backoff_misses": {
+        "max_gap_ms": {
           "anyOf": [
             {
-              "minimum": 1,
-              "type": "integer"
+              "exclusiveMinimum": 0.0,
+              "type": "number"
             },
             {
               "type": "null"
             }
           ],
           "default": null,
-          "description": "The largest miss limit after back-off. Empty: no limit.",
+          "description": "Hold the last value of a missing point for this many milliseconds after its last detection. Empty: no hold.",
           "live": false,
-          "source": "KeypointResetPolicyConfig",
-          "title": "Max Backoff Misses"
-        },
-        "max_consecutive_misses": {
-          "anyOf": [
-            {
-              "minimum": 1,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Reset the filter state after this many frames with no point. Empty: no reset.",
-          "live": false,
-          "source": "KeypointResetPolicyConfig",
-          "title": "Max Consecutive Misses"
-        },
-        "max_gap_frames": {
-          "anyOf": [
-            {
-              "minimum": 1,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Hold the last value of a missing point for this many frames. Empty: no hold.",
-          "live": false,
-          "source": "KeypointSmoothingConfig",
-          "title": "Max Gap Frames"
+          "source": "KeypointSmoothingConfig.max_gap_frames",
+          "title": "Max Gap Ms"
         },
         "max_velocity": {
           "anyOf": [
@@ -966,14 +1002,14 @@
             }
           ],
           "default": null,
-          "description": "Refuse a point that moves more than this many pixels per frame. Empty: accept each point.",
+          "description": "Refuse a point that moves faster than this many pixels per second since its last detection. Empty: accept each point.",
           "live": true,
           "source": "KeypointSmoothingConfig",
           "title": "Max Velocity"
         },
         "measurement_noise": {
           "default": 10.0,
-          "description": "kalman: the measurement noise (pixels\u00b2).",
+          "description": "kalman: the measurement noise, in px\u00b2.",
           "exclusiveMinimum": 0.0,
           "live": true,
           "source": "KalmanKeypointSmoothingConfig",
@@ -982,7 +1018,7 @@
         },
         "min_cutoff": {
           "default": 1.0,
-          "description": "one_euro: the minimum cutoff frequency.",
+          "description": "one_euro: the minimum cutoff frequency, in Hz.",
           "exclusiveMinimum": 0.0,
           "live": true,
           "source": "KeypointSmoothingConfig",
@@ -990,22 +1026,38 @@
           "type": "number"
         },
         "process_noise_pos": {
-          "default": 1.0,
-          "description": "kalman: the process noise of the position (pixels\u00b2 per frame).",
+          "default": 30.0,
+          "description": "kalman: the process noise of the position, in px\u00b2 per second.",
           "exclusiveMinimum": 0.0,
           "live": true,
-          "source": "KalmanKeypointSmoothingConfig",
+          "source": "KalmanKeypointSmoothingConfig (1 px\u00b2 per frame at 30 fps)",
           "title": "Process Noise Pos",
           "type": "number"
         },
         "process_noise_vel": {
-          "default": 0.1,
-          "description": "kalman: the process noise of the velocity.",
+          "default": 2700.0,
+          "description": "kalman: the process noise of the velocity, in (px/s)\u00b2 per second.",
           "exclusiveMinimum": 0.0,
           "live": true,
-          "source": "KalmanKeypointSmoothingConfig",
+          "source": "KalmanKeypointSmoothingConfig (0.1 (px/frame)\u00b2 per frame at 30 fps)",
           "title": "Process Noise Vel",
           "type": "number"
+        },
+        "reset_after_ms": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Clear the filter state of a row after this many milliseconds with no valid point. Empty: no reset.",
+          "live": false,
+          "source": "KeypointResetPolicyConfig",
+          "title": "Reset After Ms"
         }
       },
       "title": "SmoothKeypointsParams",
@@ -1047,30 +1099,53 @@
     "SmoothRoiParams": {
       "additionalProperties": false,
       "properties": {
-        "alpha": {
+        "previous_weight": {
           "default": 0.5,
-          "description": "The weight of the previous ROI: new = alpha \u00d7 previous + (1 \u2212 alpha) \u00d7 input.",
+          "description": "The weight of the previous ROI: new = previous_weight \u00d7 previous + (1 \u2212 previous_weight) \u00d7 input.",
           "live": true,
           "maximum": 1.0,
           "minimum": 0.0,
-          "source": "BBoxSmoothingConfig.alpha (freemocap uses 0.4)",
-          "title": "Alpha",
+          "source": "BBoxSmoothingConfig.alpha (freemocap uses 0.4); ADR-88WQ item 4",
+          "title": "Previous Weight",
           "type": "number"
         }
       },
       "title": "SmoothRoiParams",
       "type": "object"
     },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Who made the file, for example `skellytracker`. The key is `<pipeline_id>@<name>`.",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "description": "The version of the file. The newest version of a key wins, in PEP 440 order.",
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "title": "Source",
+      "type": "object"
+    },
     "Tap": {
       "additionalProperties": false,
       "properties": {
-        "kind": {
+        "action": {
           "description": "`record` writes the port; `replay` reads it from files.",
           "enum": [
             "record",
             "replay"
           ],
-          "title": "Kind",
+          "title": "Action",
           "type": "string"
         },
         "name": {
@@ -1080,13 +1155,13 @@
           "type": "string"
         },
         "port": {
-          "description": "`<node>.<port>`.",
+          "description": "`<node>.<port>`, with no `@prev`.",
           "title": "Port",
           "type": "string"
         }
       },
       "required": [
-        "kind",
+        "action",
         "port",
         "name"
       ],
@@ -1117,6 +1192,7 @@
             "first_of": "#/$defs/FirstOfNode",
             "gate": "#/$defs/GateNode",
             "mediapipe_tasks": "#/$defs/MediapipeTasksNode",
+            "merge": "#/$defs/MergeNode",
             "redetect": "#/$defs/RedetectNode",
             "roi_from_points": "#/$defs/RoiFromPointsNode",
             "roi_tracking": "#/$defs/RoiTrackingNode",
@@ -1148,6 +1224,9 @@
             "$ref": "#/$defs/ConcatNode"
           },
           {
+            "$ref": "#/$defs/MergeNode"
+          },
+          {
             "$ref": "#/$defs/SmoothKeypointsNode"
           },
           {
@@ -1166,7 +1245,7 @@
       "additionalProperties": {
         "type": "string"
       },
-      "description": "Public output name to `<node>.<port>`.",
+      "description": "Public output name to `<node>.<port>`, with no `@prev`.",
       "minProperties": 1,
       "title": "Outputs",
       "type": "object"
@@ -1184,10 +1263,8 @@
       "type": "string"
     },
     "source": {
-      "description": "Who made the file, for example `skellytracker`. The key is `<pipeline_id>@<source>`.",
-      "pattern": "^[a-z][a-z0-9_-]*$",
-      "title": "Source",
-      "type": "string"
+      "$ref": "#/$defs/Source",
+      "description": "The source of the file, as the sidecar `source`: `{name, version}`."
     }
   },
   "required": [

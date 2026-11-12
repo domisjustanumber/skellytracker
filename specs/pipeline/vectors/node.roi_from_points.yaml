@@ -3,10 +3,10 @@
 section: node.roi_from_points
 notes:
   - "Normative text: specs/pipeline/nodes/roi_from_points.md."
-  - "`names` are the point names of the input port, known at load. `keypoints` is null
-    for an empty input. Else `xy` holds one list of [x, y] for each row, in source-image
-    pixels, with `visibility` and `present` for each row. A missing param takes its
-    default."
+  - "`point_names` are the point names of the input port, known at load. `keypoints` is
+    null for an empty input. Else `xy` holds one list of [x, y] for each row, in
+    source-image pixels, with `score` and `present` for each row. A missing param takes
+    its default."
   - "`rois` is null for an empty output. Else it holds one [cx, cy, w, h, rotation] or
     null (an empty row) for each row. `rotation` is in radians."
   - "Three cases mean the same as cases of
@@ -24,51 +24,50 @@ cases:
     note: "the axis-aligned box around the three points: x 100 to 140, y 180 to 240"
     params: {points: [body.wrist, body.index, body.pinky]}
     input:
-      names: [body.wrist, body.index, body.pinky, hand.wrist]
+      point_names: [body.wrist, body.index, body.pinky, hand.wrist]
       keypoints:
         xy: [[[100, 200], [140, 180], [120, 240], [.nan, .nan]]]
-        visibility: [[0.9, 0.8, 0.7, 0]]
+        score: [[0.9, 0.8, 0.7, 0]]
         present: [true]
     expect: {rois: [[120, 210, 40, 60, 0]]}
   - id: bounds-rotated-frame-with-extrapolated-end-and-transform
     note: "tip = -0.5 wrist + 1.5 index = (160, 170); the box is in the frame rotated from the
-      wrist to tip with the target 90 degrees; then shift, square_long and scale"
+      wrist to tip with the target 90 degrees; then shift, square_long and expand_ratio"
     params:
       points: [body.wrist, body.index, body.pinky]
-      derived: [{name: tip, weights: {body.wrist: -0.5, body.index: 1.5}}]
+      derived_points: {tip: {body.wrist: -0.5, body.index: 1.5}}
       alignment_start: body.wrist
       alignment_end: tip
       target_rotation_deg: 90
       shift_x: 0.1
       shift_y: -0.2
       square_long: true
-      scale: 1.5
+      expand_ratio: 1.5
     input:
-      names: [body.wrist, body.index, body.pinky, hand.wrist]
+      point_names: [body.wrist, body.index, body.pinky, hand.wrist]
       keypoints:
         xy: [[[100, 200], [140, 180], [120, 240], [.nan, .nan]]]
-        visibility: [[0.9, 0.8, 0.7, 0]]
+        score: [[0.9, 0.8, 0.7, 0]]
         present: [true]
     expect: {rois: [[140, 210, 67.082039, 67.082039, 1.107149]]}
   - id: alignment-holistic-hand
     note: "middle = (2 index + pinky) / 3; centre at the wrist, size 2 |middle - wrist|, target
-      90 degrees, then shift_y -0.1, square_long and scale 2.7"
+      90 degrees, then shift_y -0.1, square_long and expand_ratio 2.7"
     params:
       points: [body.wrist]
-      derived:
-        - {name: middle, weights: {body.index: 0.6666666666666666, body.pinky: 0.3333333333333333}}
+      derived_points: {middle: {body.index: 0.6666666666666666, body.pinky: 0.3333333333333333}}
       size_rule: alignment
       alignment_start: body.wrist
       alignment_end: middle
       target_rotation_deg: 90
       shift_y: -0.1
       square_long: true
-      scale: 2.7
+      expand_ratio: 2.7
     input:
-      names: [body.wrist, body.index, body.pinky, hand.wrist]
+      point_names: [body.wrist, body.index, body.pinky, hand.wrist]
       keypoints:
         xy: [[[300, 400], [330, 340], [300, 350], [.nan, .nan]]]
-        visibility: [[0.9, 0.8, 0.7, 0]]
+        score: [[0.9, 0.8, 0.7, 0]]
         present: [true]
     expect: {rois: [[304, 388.666667, 324.499615, 324.499615, 0.339293]]}
   - id: alignment-without-target-has-rotation-0
@@ -80,10 +79,10 @@ cases:
       alignment_end: body.index
       shift_y: -0.5
     input:
-      names: [body.wrist, body.index, body.pinky, hand.wrist]
+      point_names: [body.wrist, body.index, body.pinky, hand.wrist]
       keypoints:
         xy: [[[100, 200], [130, 160], [120, 240], [.nan, .nan]]]
-        visibility: [[0.9, 0.8, 0.7, 0]]
+        score: [[0.9, 0.8, 0.7, 0]]
         present: [true]
     expect: {rois: [[100, 150, 100, 100, 0]]}
   - id: rotation-pi-normalises-to-minus-pi
@@ -97,10 +96,10 @@ cases:
       target_rotation_deg: 90
       shift_y: 0.25
     input:
-      names: [body.wrist, body.index, body.pinky, hand.wrist]
+      point_names: [body.wrist, body.index, body.pinky, hand.wrist]
       keypoints:
         xy: [[[200, 100], [200, 160], [120, 240], [.nan, .nan]]]
-        visibility: [[0.9, 0.8, 0.7, 0]]
+        score: [[0.9, 0.8, 0.7, 0]]
         present: [true]
     expect: {rois: [[200, 70, 120, 120, -3.141593]]}
   - id: alias-takes-the-first-present-name
@@ -108,55 +107,85 @@ cases:
       counts; row 2 is not present"
     params: {points: [[hand.wrist, body.wrist], body.index]}
     input:
-      names: [body.wrist, body.index, body.pinky, hand.wrist]
+      point_names: [body.wrist, body.index, body.pinky, hand.wrist]
       keypoints:
         xy:
           - [[100, 200], [140, 180], [120, 240], [.nan, .nan]]
           - [[100, 200], [140, 180], [120, 240], [110, 210]]
           - [[.nan, .nan], [.nan, .nan], [.nan, .nan], [.nan, .nan]]
-        visibility: [[0.9, 0.8, 0.7, 0], [0.9, 0.8, 0.7, 0.9], [0, 0, 0, 0]]
+        score: [[0.9, 0.8, 0.7, 0], [0.9, 0.8, 0.7, 0.9], [0, 0, 0, 0]]
         present: [true, true, false]
     expect: {rois: [[120, 190, 40, 20, 0], [125, 195, 30, 30, 0], null]}
   - id: missing-points-give-empty-rows
-    note: "row 0: visibility 0.1 is not greater than 0.5; row 1: the test is strict; row 2: a
-      NaN point is not present; row 3: one point gives a box of size 0"
+    note: "row 0: score 0.1 is not greater than 0.5; row 1: the test is strict; row 2: a NaN
+      point is not present; row 3: one point gives a box of size 0"
     params: {points: [body.wrist], score_threshold: 0.5}
     input:
-      names: [body.wrist, body.index, body.pinky, hand.wrist]
+      point_names: [body.wrist, body.index, body.pinky, hand.wrist]
       keypoints:
         xy:
           - [[10, 10], [.nan, .nan], [.nan, .nan], [.nan, .nan]]
           - [[10, 10], [.nan, .nan], [.nan, .nan], [.nan, .nan]]
           - [[.nan, .nan], [.nan, .nan], [.nan, .nan], [.nan, .nan]]
           - [[10, 10], [.nan, .nan], [.nan, .nan], [.nan, .nan]]
-        visibility: [[0.1, 0, 0, 0], [0.5, 0, 0, 0], [0.9, 0, 0, 0], [0.9, 0, 0, 0]]
+        score: [[0.1, 0, 0, 0], [0.5, 0, 0, 0], [0.9, 0, 0, 0], [0.9, 0, 0, 0]]
         present: [true, true, true, true]
     expect: {rois: [null, null, null, [10, 10, 0, 0, 0]]}
   - id: empty-input-gives-empty-output
     params: {points: [body.wrist]}
-    input: {names: [body.wrist, body.index, body.pinky, hand.wrist], keypoints: null}
+    input: {point_names: [body.wrist, body.index, body.pinky, hand.wrist], keypoints: null}
     expect: {rois: null}
   - id: alignment-needs-start-and-end
     checks: [refused]
     params: {points: [body.wrist], size_rule: alignment, alignment_start: body.wrist}
-    input: {names: [body.wrist, body.index, body.pinky, hand.wrist], keypoints: null}
+    input: {point_names: [body.wrist, body.index, body.pinky, hand.wrist], keypoints: null}
     expect: {error: V-node.roi_from_points-1}
   - id: unknown-point-name
     checks: [refused]
     params: {points: [body.wrist, body.nose]}
-    input: {names: [body.wrist, body.index, body.pinky, hand.wrist], keypoints: null}
+    input: {point_names: [body.wrist, body.index, body.pinky, hand.wrist], keypoints: null}
     expect: {error: V-node.roi_from_points-2}
-  - id: derived-names-must-be-unique
+  - id: derived-point-name-must-be-a-name
+    note: "a derived point name has no dot, so it is never a point name of the input"
     checks: [refused]
-    params:
-      points: [mid]
-      derived:
-        - {name: mid, weights: {body.index: 0.5, body.pinky: 0.5}}
-        - {name: mid, weights: {body.wrist: 1}}
-    input: {names: [body.wrist, body.index, body.pinky, hand.wrist], keypoints: null}
+    params: {points: [body.mid], derived_points: {body.mid: [body.index, body.pinky]}}
+    input: {point_names: [body.wrist, body.index, body.pinky, hand.wrist], keypoints: null}
     expect: {error: V-node.roi_from_points-3}
   - id: bounds-target-needs-start-and-end
     checks: [refused]
     params: {points: [body.wrist, body.index], target_rotation_deg: 0}
-    input: {names: [body.wrist, body.index, body.pinky, hand.wrist], keypoints: null}
+    input: {point_names: [body.wrist, body.index, body.pinky, hand.wrist], keypoints: null}
     expect: {error: V-node.roi_from_points-4}
+  - id: weights-must-sum-to-1
+    checks: [refused]
+    params: {points: [mid], derived_points: {mid: {body.index: 0.5, body.pinky: 0.4}}}
+    input: {point_names: [body.wrist, body.index, body.pinky, hand.wrist], keypoints: null}
+    expect: {error: V-node.roi_from_points-5}
+  - id: mean-and-passthrough-derived-points
+    note: "mid = the mean of index and pinky = (130, 210); wrist2 = the wrist; the box is
+      around the wrist and mid"
+    params:
+      points: [wrist2, mid]
+      derived_points: {mid: [body.index, body.pinky], wrist2: body.wrist}
+    input:
+      point_names: [body.wrist, body.index, body.pinky, hand.wrist]
+      keypoints:
+        xy: [[[100, 200], [140, 180], [120, 240], [.nan, .nan]]]
+        score: [[0.9, 0.8, 0.7, 0]]
+        present: [true]
+    expect: {rois: [[115, 205, 30, 10, 0]]}
+  - id: instance-score-is-copied-from-the-keypoints-row
+    note: "row 0 makes an ROI and keeps the instance score 0.8 of its keypoints row; row 1 has
+      a missing point, so its ROI row is empty and its instance score is the padding value
+      0"
+    params: {points: [body.wrist]}
+    input:
+      point_names: [body.wrist, body.index, body.pinky, hand.wrist]
+      keypoints:
+        xy:
+          - [[100, 200], [140, 180], [120, 240], [.nan, .nan]]
+          - [[.nan, .nan], [140, 180], [120, 240], [.nan, .nan]]
+        score: [[0.9, 0.8, 0.7, 0], [0, 0.8, 0.7, 0]]
+        present: [true, true]
+        instance_score: [0.8, 0.6]
+    expect: {rois: [[100, 200, 0, 0, 0], null], instance_score: [0.8, 0]}

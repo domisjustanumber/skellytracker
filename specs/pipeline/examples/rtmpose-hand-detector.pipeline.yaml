@@ -1,10 +1,13 @@
 # Spec example, structure only. It shows two chains on one frame: a person detector and a body
-# model, and a hand detector and a hand model.
+# model, and a hand detector (two hands) and a hand model. The hands have their own instance
+# source, so concat cannot join them to the body. merge puts each hand row in the slot of the
+# nearest body wrist and replaces the body wrists with the hand wrists.
 schema_version: "2.0.0"
 pipeline_id: rtmpose-hand-detector
-source: skellytracker
+source: {name: skellytracker, version: "2.0.0"}
 description: >-
-  Structure only. YOLOX person then RTMPose body, and an RTMDet hand detector then RTMPose hand.
+  Structure only. YOLOX person then RTMPose body, and an RTMDet hand detector then RTMPose hand;
+  merge joins the hands to the body.
 nodes:
   - id: person
     type: detector
@@ -12,7 +15,7 @@ nodes:
     params:
       key: yolox-person@openmmlab-exporter
       size: m
-      decode:
+      object_decode:
         nms: {post_nms_top_k: 1}
   - id: body
     type: detector
@@ -26,6 +29,12 @@ nodes:
     type: detector
     inputs: {image: frame.image, rois: hands.rois}
     params: {key: rtmpose-hand21@openmmlab-exporter, size: m}
+  - id: body_hands
+    type: merge
+    inputs: {target: body.keypoints, source: hand.keypoints}
+    params:
+      slots: {right_hand: body.right_wrist, left_hand: body.left_wrist}
+      source_anchor: hand.wrist
+      map: {body.right_wrist: right_hand.wrist, body.left_wrist: left_hand.wrist}
 outputs:
-  body: body.keypoints
-  hands: hand.keypoints
+  body_hands: body_hands.keypoints

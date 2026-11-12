@@ -6,8 +6,8 @@ notes:
   - "`value_type` and `condition_type` are the port types, known at load. A value of an
     instance port (`roi`, `keypoints`, `detections`) is null (empty) or one row or null
     (an empty row) for each instance. A value of another port type is null (empty) or a
-    placeholder string. A `keypoints` row of `condition` holds `xy` and `visibility`; a
-    `detections` row holds `confidence`."
+    placeholder string. A `keypoints` row of `condition` holds `xy` and `score`; a
+    `detections` row holds `score` and `class_index`; the test uses only `score`."
 tolerance: 0.000001
 unverified: "Only the reference implementation ran the cases. No independent implementation
   exists yet."
@@ -23,7 +23,7 @@ cases:
       value_type: image
       condition_type: keypoints
       value: frame-image
-      condition: [{xy: [[10, 20]], visibility: [0.9]}]
+      condition: [{xy: [[10, 20]], score: [0.9]}]
     expect: {value: null}
   - id: is-empty-passes-when-no-row-is-present
     note: "a value with no present row is empty"
@@ -41,7 +41,7 @@ cases:
       value_type: roi
       condition_type: keypoints
       value: [[100, 100, 50, 50, 0], [200, 200, 40, 40, 0], null]
-      condition: [{xy: [[10, 20]], visibility: [0.9]}, null, {xy: [[10, 20]], visibility: [0.9]}]
+      condition: [{xy: [[10, 20]], score: [0.9]}, null, {xy: [[10, 20]], score: [0.9]}]
     expect: {value: [[100, 100, 50, 50, 0], null, null]}
   - id: score-above-detections-is-strict
     note: "row 0: 0.8 is greater than 0.5; row 1: 0.5 is not; row 2: an empty row has no score"
@@ -50,17 +50,17 @@ cases:
       value_type: roi
       condition_type: detections
       value: [[100, 100, 50, 50, 0], [200, 200, 40, 40, 0], [300, 300, 30, 30, 0]]
-      condition: [{confidence: 0.8}, {confidence: 0.5}, null]
+      condition: [{score: 0.8, class_index: 0}, {score: 0.5, class_index: 0}, null]
     expect: {value: [[100, 100, 50, 50, 0], null, null]}
   - id: score-above-keypoints-skips-nan-points
-    note: "the mean visibility of the two points that are not NaN is 0.7, greater than 0.6;
-      with the NaN point, the mean of the three would be 0.4667"
+    note: "the mean score of the two points that are not NaN is 0.7, greater than 0.6; with the
+      NaN point, the mean of the three would be 0.4667"
     params: {mode: score_above, threshold: 0.6}
     input:
       value_type: image
       condition_type: keypoints
       value: frame-image
-      condition: [{xy: [[10, 10], [.nan, .nan], [20, 20]], visibility: [0.9, 0, 0.5]}]
+      condition: [{xy: [[10, 10], [.nan, .nan], [20, 20]], score: [0.9, 0, 0.5]}]
     expect: {value: frame-image}
   - id: score-of-an-all-nan-row-is-0
     note: "row 0: each point is NaN, so the score is 0, not greater than 0; row 1 passes"
@@ -70,8 +70,8 @@ cases:
       condition_type: keypoints
       value: [[100, 100, 50, 50, 0], [200, 200, 40, 40, 0]]
       condition:
-        - {xy: [[.nan, .nan], [.nan, .nan]], visibility: [0, 0]}
-        - {xy: [[10, 10], [20, 20]], visibility: [0.2, 0.4]}
+        - {xy: [[.nan, .nan], [.nan, .nan]], score: [0, 0]}
+        - {xy: [[10, 10], [20, 20]], score: [0.2, 0.4]}
     expect: {value: [null, [200, 200, 40, 40, 0]]}
   - id: empty-value-gives-empty-output
     params: {mode: is_present}
@@ -79,7 +79,7 @@ cases:
       value_type: image
       condition_type: keypoints
       value: null
-      condition: [{xy: [[10, 20]], visibility: [0.9]}]
+      condition: [{xy: [[10, 20]], score: [0.9]}]
     expect: {value: null}
   - id: score-above-needs-a-threshold
     checks: [refused]
@@ -103,5 +103,5 @@ cases:
       value_type: roi
       condition_type: detections
       value: [[100, 100, 50, 50, 0], [200, 200, 40, 40, 0]]
-      condition: [{confidence: 0.8}]
+      condition: [{score: 0.8, class_index: 0}]
     expect: {error: V-node.gate-3}

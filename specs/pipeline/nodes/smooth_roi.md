@@ -22,7 +22,7 @@ item 5).
 <!-- node-table:params -->
 | Param | Type | Range | Default | Live | Description | Source |
 |---|---|---|---|---|---|---|
-| `alpha` | `float` | >= 0.0, <= 1.0 | `0.5` | yes | The weight of the previous ROI: new = alpha × previous + (1 − alpha) × input. | BBoxSmoothingConfig.alpha (freemocap uses 0.4) |
+| `previous_weight` | `float` | >= 0.0, <= 1.0 | `0.5` | yes | The weight of the previous ROI: new = previous_weight × previous + (1 − previous_weight) × input. | BBoxSmoothingConfig.alpha (freemocap uses 0.4); ADR-88WQ item 4 |
 <!-- /node-table:params -->
 
 <!-- node-table:ports -->
@@ -32,12 +32,14 @@ item 5).
 | `rois` | output | `roi` |
 <!-- /node-table:ports -->
 
-- An ROI is `(cx, cy, w, h, rotation)` in source-image pixels, with `rotation` in radians, as in
-  [ROI from points](roi_from_points.md#fields).
-- `alpha` is the weight of the previous output, not the weight of the input. `alpha = 0` passes the
-  input through. `alpha = 1` keeps the first ROI of the row.
+- An ROI is `(cx, cy, w, h, rotation)` in source-image pixels, with `rotation` in radians
+  ([Graph](../graph.md#behaviour) item 3).
+- `previous_weight` is the weight of the previous output, not the weight of the input.
+  `previous_weight = 0` passes the input through. `previous_weight = 1` keeps the first ROI of the
+  row. Today's code names it `alpha` ([ADR-88WQ](../../../decisions/entries/88WQ-sidecar-vocabulary.md)
+  item 4).
 - The output `rois` has the rows of the input. A row that is not present in the input is not present
-  in the output.
+  in the output. The `instance_score` of each row passes through unchanged.
 
 ## Behaviour
 
@@ -53,15 +55,16 @@ item 5).
    present. The state of the row does not change.
 5. **First ROI of a row.** When row `i` is present and its state is empty, the output is the input
    ROI, and `prev` becomes that ROI.
-6. **Next ROIs.** When row `i` is present and has a state, with `in` the input ROI:
+6. **Next ROIs.** When row `i` is present and has a state, with `in` the input ROI and
+   `k = previous_weight`:
 
    ```text
-   cx       = alpha · prev.cx + (1 - alpha) · in.cx
-   cy       = alpha · prev.cy + (1 - alpha) · in.cy
-   w        = alpha · prev.w  + (1 - alpha) · in.w
-   h        = alpha · prev.h  + (1 - alpha) · in.h
+   cx       = k · prev.cx + (1 - k) · in.cx
+   cy       = k · prev.cy + (1 - k) · in.cy
+   w        = k · prev.w  + (1 - k) · in.w
+   h        = k · prev.h  + (1 - k) · in.h
    turn     = NormalizeRadians(prev.rotation - in.rotation)
-   rotation = NormalizeRadians(in.rotation + alpha · turn)
+   rotation = NormalizeRadians(in.rotation + k · turn)
    ```
 
    `NormalizeRadians` is that of [ROI from points](roi_from_points.md#behaviour), with a result in
@@ -87,8 +90,8 @@ None yet.
 
 ## Authoring guidance
 
-- The default `alpha` is 0.5. freemocap uses 0.4.
-- A larger `alpha` gives a steadier crop and more lag. When a person moves fast, a crop with lag
+- The default `previous_weight` is 0.5. freemocap uses 0.4.
+- A larger `previous_weight` gives a steadier crop and more lag. When a person moves fast, a crop with lag
   can cut off a limb.
 - Without an `associate` node, the rows have no track identity, so row `i` of two frames can be two
   persons ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 1). With
@@ -102,5 +105,5 @@ The vector file [`node.smooth_roi.yaml`](../vectors/node.smooth_roi.yaml) holds 
 - id: crop_smooth
   type: smooth_roi
   inputs: {rois: person.rois}
-  params: {alpha: 0.4}
+  params: {previous_weight: 0.4}
 ```

@@ -19,12 +19,12 @@ SCORED_TYPES = ("detections", "keypoints")
 def score(condition_type: str, row: dict[str, Any]) -> float:
     """Return the score of one present row of condition (node.gate, Fields).
 
-    A detections row holds confidence. A keypoints row holds xy and visibility: the score is the
-    mean visibility of the points whose x and y are not NaN, or 0 when each point is NaN.
+    A detections row holds score and class_index; the test uses only score. A keypoints row holds xy and score: the score of the row is the
+    mean score of the points whose x and y are not NaN, or 0 when each point is NaN.
     """
     if condition_type == "detections":
-        return row["confidence"]
-    seen = [v for (x, y), v in zip(row["xy"], row["visibility"]) if not (math.isnan(x) or math.isnan(y))]  # noqa: B905 (one row)
+        return row["score"]
+    seen = [v for (x, y), v in zip(row["xy"], row["score"]) if not (math.isnan(x) or math.isnan(y))]  # noqa: B905 (one row)
     return sum(seen) / len(seen) if seen else 0.0
 
 

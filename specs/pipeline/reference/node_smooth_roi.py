@@ -23,11 +23,11 @@ import node_roi_from_points
 RUNNING_MODES = ("image", "video", "live")
 
 
-def blend(previous: list[float], given: list[float], alpha: float) -> list[float]:
-    """alpha x previous + (1 - alpha) x given, with the rotation on the short arc (node.smooth_roi)."""
-    cx, cy, w, h = (alpha * a + (1.0 - alpha) * b for a, b in zip(previous[:4], given[:4]))  # noqa: B905
+def blend(previous: list[float], given: list[float], weight: float) -> list[float]:
+    """weight x previous + (1 - weight) x given, with the rotation on the short arc (node.smooth_roi)."""
+    cx, cy, w, h = (weight * a + (1.0 - weight) * b for a, b in zip(previous[:4], given[:4]))  # noqa: B905
     turn = node_roi_from_points.normalize_radians(previous[4] - given[4])
-    rotation = node_roi_from_points.normalize_radians(given[4] + alpha * turn)
+    rotation = node_roi_from_points.normalize_radians(given[4] + weight * turn)
     return [cx, cy, w, h, rotation]
 
 
@@ -36,10 +36,10 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
 
     input holds running_mode and frames. The result holds rois, one output frame for each input frame.
     """
-    unknown = sorted(set(params) - {"alpha"})
+    unknown = sorted(set(params) - {"previous_weight"})
     if unknown:
         raise ValueError(f"unknown params {unknown}")
-    alpha = params.get("alpha", 0.5)
+    weight = params.get("previous_weight", 0.5)
     if input["running_mode"] not in RUNNING_MODES:
         raise ValueError(f"unknown running_mode {input['running_mode']!r}")
     if input["running_mode"] == "image":
@@ -53,7 +53,7 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
         out_frame = []
         for i, roi in enumerate(frame):
             if roi is not None:
-                previous[i] = list(roi) if i not in previous else blend(previous[i], roi, alpha)
+                previous[i] = list(roi) if i not in previous else blend(previous[i], roi, weight)
             out_frame.append(None if roi is None else previous[i])
         output.append(out_frame)
     return {"rois": output}

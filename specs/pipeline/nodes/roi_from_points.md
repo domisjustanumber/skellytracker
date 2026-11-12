@@ -11,7 +11,8 @@ status: {spec: draft}
 > This section is a draft. Its fields and rules can change before the section becomes `stable`.
 
 The node `roi_from_points` makes one ROI from the keypoints of each present instance row. A later
-detector node crops each ROI. The node uses the MediaPipe rect rules: a rotation from two points, a
+detector node crops each ROI. A crop of a rotated ROI waits for the rotated-crop proposal of
+OpenMMLab-Exporter ([Node: detector](detector.md#behaviour)). The node uses the MediaPipe rect rules: a rotation from two points, a
 box around the points or a box from the alignment points, and then one rect transformation
 ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6). It takes the
 place of `keypoint_bbox` in a pipeline, but it does not reproduce `keypoint_bbox`
@@ -23,16 +24,16 @@ place of `keypoint_bbox` in a pipeline, but it does not reproduce `keypoint_bbox
 | Param | Type | Range | Default | Live | Description | Source |
 |---|---|---|---|---|---|---|
 | `points` | `list[str \| list[str]]` | length >= 1 | required | no | The points of the ROI. A list of names is one point with aliases: the first present name counts. | ADR-7NY2 item 6 |
-| `derived` | `list[DerivedPoint]` |  | `[]` | no | Points made from other points with weights. They can be used in `points` and in the alignment. | ADR-7NY2 item 6 |
+| `derived_points` | `dict[str, str \| list[str] \| dict[str, float]]` |  | `{}` | no | Derived point name to derivation, in the map form of the sidecar `keypoint.derived_points`: passthrough, mean or weighted. | ADR-7NY2 item 6; ADR-88WQ item 6 |
 | `size_rule` | `Literal['bounds', 'alignment']` |  | `"bounds"` | no | `bounds`: the box around the points. `alignment`: centre at the start point, size 2 × the distance from start to end. | MediaPipe AlignmentPointsRectsCalculator; ADR-7NY2 item 6 |
 | `alignment_start` | `str \| None` |  | `null` | no | The start point of the alignment rule. | ADR-7NY2 item 6 |
 | `alignment_end` | `str \| None` |  | `null` | no | The end point of the alignment rule. | ADR-7NY2 item 6 |
 | `target_rotation_deg` | `float \| None` |  | `null` | no | The rotation target in degrees. Empty: rotation `none`, an axis-aligned ROI. | MediaPipe rect rotation; ADR-7NY2 item 6 |
-| `score_threshold` | `float` | >= 0.0, <= 1.0 | `0.0` | yes | A point counts only when its score is greater than this value. | ADR-7NY2 item 6 |
+| `score_threshold` | `float` | >= 0.0 | `0.0` | yes | A point counts only when its score is greater than this value. | ADR-7NY2 item 6; ADR-88WQ item 6 |
 | `shift_x` | `float` |  | `0.0` | yes | Shift along the ROI x axis, in ROI widths. | MediaPipe RectTransformationCalculator default |
 | `shift_y` | `float` |  | `0.0` | yes | Shift along the ROI y axis, in ROI heights. | MediaPipe RectTransformationCalculator default |
 | `square_long` | `bool` |  | `false` | yes | Make the ROI square with its longer side. | MediaPipe RectTransformationCalculator default |
-| `scale` | `float` | > 0.0 | `1.0` | yes | Multiply the width and the height by this value. | MediaPipe RectTransformationCalculator default |
+| `expand_ratio` | `float` | > 0.0 | `1.0` | yes | Multiply the width and the height by this value. | MediaPipe RectTransformationCalculator scale default; ADR-88WQ item 4 |
 <!-- /node-table:params -->
 
 <!-- node-table:ports -->
@@ -42,19 +43,30 @@ place of `keypoint_bbox` in a pipeline, but it does not reproduce `keypoint_bbox
 | `rois` | output | `roi` |
 <!-- /node-table:ports -->
 
-- An ROI is `(cx, cy, w, h, rotation)` in source-image pixels
-  ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 8). `rotation`
-  is in radians. A positive rotation turns the ROI clockwise in the image, because the image y axis
-  points down. The ROI x axis is `(cos(rotation), sin(rotation))` and the ROI y axis is
-  `(-sin(rotation), cos(rotation))`, in image pixels.
+- An ROI is `(cx, cy, w, h, rotation)` in source-image pixels, with `rotation` in radians,
+  clockwise in the image, in `[-π, π)` ([Graph](../graph.md#behaviour) item 3).
 - The output has one row for each row of the input
   ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 1). Row `i` of
   `rois` comes from row `i` of `keypoints`. An empty row has `present` false.
-- A name in `points`, `alignment_start`, `alignment_end` and a `weights` key is a point name of the
-  input, with its prefix, for example `body.left_wrist`.
+- A name in `points`, `alignment_start` and `alignment_end` is a point name of the input, with its
+  prefix, for example `body.left_wrist`, or the name of a derived point. A source of a derived point
+  is a point name of the input.
 - `alignment_start` and `alignment_end` are used by the size rule `alignment`, and by the size rule
   `bounds` when `target_rotation_deg` is given. In other cases the node does not use them.
-- The weights of a derived point do not have to add up to 1.
+- `derived_points` has the map form of the sidecar
+  [`keypoint.derived_points`](../../model-sidecar/post/keypoint/schema.md#keypointderived_points)
+  ([ADR-88WQ](../../../decisions/entries/88WQ-sidecar-vocabulary.md) item 6). This is a copy of that
+  definition. Each entry is a name and one derivation:
+
+  | Form | YAML | Meaning |
+  |------|------|---------|
+  | passthrough | `wrist2: body.wrist` | The derived point is the point with that name. |
+  | mean | `mid: [body.left_hip, body.right_hip]` | The derived point is the unweighted mean of the listed points. |
+  | weighted | `tip: {body.wrist: -0.5, body.index: 1.5}` | The derived point is the weighted sum of the listed points. The node uses the weights as given. The weights must sum to 1, within an absolute tolerance of `1e-6`. A weight can be negative. |
+
+  A derived point is missing when one or more of its sources are missing. The score of a derived
+  point is the minimum of the scores of its sources. The sidecar form `[prefix]` is not allowed in a
+  pipeline file.
 
 ## Behaviour
 
@@ -62,12 +74,14 @@ place of `keypoint_bbox` in a pipeline, but it does not reproduce `keypoint_bbox
    ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6).
 2. The node does steps 3 to 9 for each row `i` of `keypoints`. If row `i` is not present, row `i` of
    `rois` is empty.
-3. **Present points.** A point of the input is present when its visibility is greater than
-   `score_threshold` and its x and its y are not NaN. The test is strict: a visibility equal to
-   `score_threshold` is not present.
-4. **Derived points.** For each entry of `derived`, in its order: when each point of its `weights`
-   is present, the derived point is present at `(Σ w_k · x_k, Σ w_k · y_k)`, over the keys `k` of
-   `weights`. Else the derived point is not present. A negative weight extrapolates.
+3. **Present points.** A point of the input is present when its score is greater than
+   `score_threshold` and its x and its y are not NaN. The test is strict, as each score comparison
+   of the sidecar spec ([Selection behaviour](../../model-sidecar/post/object/decode.md#selection-behaviour)):
+   a score equal to `score_threshold` is not present.
+4. **Derived points.** For each entry of `derived_points`: when each source is present, the derived
+   point is present at `(Σ w_k · x_k, Σ w_k · y_k)`, over the sources `k`. The weight `w_k` is 1 for
+   a passthrough, `1 / n` for a mean of `n` points, and the given weight for a weighted entry. Else
+   the derived point is not present. A negative weight extrapolates.
 5. **Resolved points.** For each entry of `points`, in its order: a name is one point. A list of
    names is one point with aliases: the first present name of the list counts. The required points
    of the row are the entries of `points`, and `alignment_start` and `alignment_end` when the node
@@ -101,16 +115,18 @@ place of `keypoint_bbox` in a pipeline, but it does not reproduce `keypoint_bbox
    1. Shift along the ROI axes: `cx = cx + w · shift_x · c - h · shift_y · s` and
       `cy = cy + w · shift_x · s + h · shift_y · c`.
    2. If `square_long` is true: `w = h = max(w, h)`.
-   3. Scale: `w = w · scale` and `h = h · scale`.
+   3. Expand: `w = w · expand_ratio` and `h = h · expand_ratio`.
 
-   Row `i` of `rois` is `(cx, cy, w, h, rotation)`, present.
+   Row `i` of `rois` is `(cx, cy, w, h, rotation)`, present. It has the `instance_score` of row `i`
+   of `keypoints` ([Graph](../graph.md#behaviour) item 8).
 
 ## Validation rules
 
 - [ ] `V-node.roi_from_points-1` The size rule `alignment` needs `alignment_start` and `alignment_end`.
-- [ ] `V-node.roi_from_points-2` Each name in `points`, `alignment_start` and `alignment_end` must be a point name of the input or the `name` of an entry of `derived`. Each key of a `weights` must be a point name of the input. The host checks this at load, against the output schema of the input port.
-- [ ] `V-node.roi_from_points-3` The `name` of each entry of `derived` must be unique in `derived`, and it must not be a point name of the input.
+- [ ] `V-node.roi_from_points-2` Each name in `points`, `alignment_start` and `alignment_end` must be a point name of the input or a key of `derived_points`. Each source of a derived point must be a point name of the input. The host checks this at load, against the output schema of the input port.
+- [ ] `V-node.roi_from_points-3` Each key of `derived_points` must be a name. A name has no dot, so it is not a point name of the input.
 - [ ] `V-node.roi_from_points-4` The size rule `bounds` with a `target_rotation_deg` needs `alignment_start` and `alignment_end`.
+- [ ] `V-node.roi_from_points-5` A mean derived point must have at least one source. The weights of a weighted derived point must sum to 1, within an absolute tolerance of `1e-6`, as in the sidecar rule `V-post.keypoint.schema-6`.
 
 ## Implementer guidance
 
@@ -121,8 +137,9 @@ place of `keypoint_bbox` in a pipeline, but it does not reproduce `keypoint_bbox
 - The rotation formula and `NormalizeRadians` are those of MediaPipe `DetectionsToRectsCalculator`
   and `AlignmentPointsRectsCalculator`. (MediaPipe-Exporter
   [`docs/mediapipe-whole-body.md:63-77`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L63-L77))
-- The order shift, `square_long`, scale is the order of MediaPipe `RectTransformationCalculator`.
-  The node has one `scale` for the width and the height. (MediaPipe-Exporter
+- The order shift, `square_long`, `expand_ratio` is the order of MediaPipe
+  `RectTransformationCalculator`. The node has one `expand_ratio` for the width and the height: the
+  `scale_x` and `scale_y` of MediaPipe with one value. (MediaPipe-Exporter
   [`docs/mediapipe-whole-body.md:79-90`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L79-L90))
 - The box of step 8 does not depend on the origin of the pixel frame. An implementation can
   subtract a point near the box before the rotation, for better float precision.
@@ -133,20 +150,20 @@ place of `keypoint_bbox` in a pipeline, but it does not reproduce `keypoint_bbox
 
 - To make the Holistic hand ROI from the pose, add the derived point
   `middle = (2 · index + pinky) / 3`, use the size rule `alignment` from the wrist to `middle` with
-  `target_rotation_deg: 90`, then `shift_y: -0.1`, `square_long: true` and `scale: 2.7`.
+  `target_rotation_deg: 90`, then `shift_y: -0.1`, `square_long: true` and `expand_ratio: 2.7`.
   MediaPipe gates this branch on the wrist visibility only (`> 0.1`). `score_threshold: 0.1` also
   tests the index point and the pinky point, so it is stricter. (MediaPipe-Exporter
   [`docs/mediapipe-whole-body.md:384-389`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L384-L389))
 - To make the hand ROI from the previous hand landmarks, use the size rule `bounds` with the
   12 palm points, a derived MCP point with the weights 0.25, 0.25 and 0.5, the alignment from the
   wrist to that point with `target_rotation_deg: 90`, then `shift_y: -0.1`, `square_long: true` and
-  `scale: 2.0`. (MediaPipe-Exporter
+  `expand_ratio: 2.0`. (MediaPipe-Exporter
   [`docs/mediapipe-whole-body.md:395-399`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L395-L399))
 - To make the loose Holistic face ROI, use the size rule `bounds` with the pose points 0 to 10, the
   alignment from the right eye to the left eye with `target_rotation_deg: 0`, then
-  `square_long: true` and `scale: 3.0`. (MediaPipe-Exporter
+  `square_long: true` and `expand_ratio: 3.0`. (MediaPipe-Exporter
   [`docs/mediapipe-whole-body.md:456-457`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L456-L457))
-- Use aliases for a point that another model of the same root can also give, for example a hand
+- Use aliases for a point that another model of the same instance source can also give, for example a hand
   wrist and a body wrist. Put the better point first.
 - `keypoint_bbox` used the mean of its centre points, the largest distance of point pairs, a square
   box and a minimum size. Do not expect the same boxes from this node
@@ -160,12 +177,11 @@ cases.
 ```yaml
 - id: hand_roi
   type: roi_from_points
-  inputs: {keypoints: pose.keypoints}
+  inputs: {keypoints: body.keypoints}
   params:
     points: [body.left_wrist]
-    derived:
-      - name: left_middle
-        weights: {body.left_index: 0.6666666666666666, body.left_pinky: 0.3333333333333333}
+    derived_points:
+      left_middle: {body.left_index: 0.6666666666666666, body.left_pinky: 0.3333333333333333}
     size_rule: alignment
     alignment_start: body.left_wrist
     alignment_end: left_middle
@@ -173,5 +189,5 @@ cases.
     score_threshold: 0.1
     shift_y: -0.1
     square_long: true
-    scale: 2.7
+    expand_ratio: 2.7
 ```

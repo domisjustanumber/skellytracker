@@ -54,8 +54,11 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
 
     params holds the params of the node; a missing param takes its default. input holds previous
     and current (None for an empty input, else one [cx, cy, w, h, rotation] or None for each row)
-    and the optional previous_keypoints (None or absent, else xy and present). The result holds
-    rois: None for an empty output, else one ROI or None for each row.
+    and the optional previous_keypoints (None or absent, else xy and present). It can also hold
+    previous_instance_score and current_instance_score (one value for each row). The result holds
+    rois: None for an empty output, else one ROI or None for each row. With current_instance_score,
+    it also holds instance_score: a kept previous row keeps its previous value, from the last frame
+    on which the instance source ran (pipeline.graph, Behaviour item 8); an empty row has 0.
     """
     params = {**DEFAULTS, **params}
     if not params["keypoint_margin"] > -1:
@@ -65,11 +68,20 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
         return {"rois": None}
     previous = input["previous"] or [None] * len(current)
     keypoints = input.get("previous_keypoints")
-    rows = []
+    rows, kept = [], []
     for i, roi in enumerate(current):
         if roi is None or previous[i] is None:
             rows.append(roi)
+            kept.append(False)
             continue
         points = keypoints["xy"][i] if keypoints is not None and keypoints["present"][i] else []
-        rows.append(previous[i] if keep_previous(params, previous[i], roi, points) else roi)
-    return {"rois": rows}
+        kept.append(keep_previous(params, previous[i], roi, points))
+        rows.append(previous[i] if kept[-1] else roi)
+    if "current_instance_score" not in input:
+        return {"rois": rows}
+    previous_scores = input.get("previous_instance_score") or [0.0] * len(current)
+    scores = [
+        0.0 if row is None else (previous_scores[i] if kept[i] else input["current_instance_score"][i])
+        for i, row in enumerate(rows)
+    ]
+    return {"rois": rows, "instance_score": scores}

@@ -25,28 +25,31 @@ This node has no parameters.
 | `value` | output | `any` |
 <!-- /node-table:ports -->
 
-- The input name `*` means one or more inputs. Each input has its own name. The names have no meaning for the node.
-- The output `value` has the port type of the inputs.
+- `inputs` is a list of one or more port references. The input name `*` in the ports table stands for each item of the list. The items have no labels.
+- The output `value` has the port type of the inputs ([Graph](../graph.md#behaviour) item 4).
 
 ## Behaviour
 
-- The node examines its inputs in the order of the keys in `inputs` in the file. It gives the first input that is not empty.
+- The node examines its inputs in the order of the list. The order is the priority. It gives the first input that is not empty.
 - When all inputs are empty, the output is empty.
+- An empty input does not stop the node. This is a rule of the node, as [Graph](../graph.md#behaviour) item 6 allows.
 - An `@prev` input is empty on the first frame, and in the running mode `image` ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 4; [ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 2).
+- The output has the instance source of the inputs ([Graph](../graph.md#behaviour) item 8).
 - The timing point is `run` ([ADR-Q59W](../../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 1).
 
 ## Validation rules
 
-- [ ] `V-node.first_of-1` All inputs must have the same port type. An input of the port type `any` agrees with each port type.
+- [ ] `V-node.first_of-1` All inputs must have the same port type. An input of the port type `any` takes the type of its own inputs ([Graph](../graph.md#behaviour) item 4).
+- [ ] `V-node.first_of-2` When the inputs are instance ports (`roi`, `keypoints` or `detections`), they must have one instance source. The host checks this at load.
 
 ## Implementer guidance
 
-- This node has a named test and no vector file ([ADR-3SF2](../../../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md) item 4).
-- The loader must keep the order of the keys of `inputs` as the file gives it.
+- This node has a named test and no vector file: `tools/tests/test_pipeline_glue_nodes.py` runs the reference implementation `specs/pipeline/reference/node_first_of.py` ([ADR-3SF2](../../../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md) item 4).
+- The reference model checks `V-node.first_of-1` in `check_structure`. (skellytracker `specs/pipeline/reference/pipeline_config.py`)
 
 ## Authoring guidance
 
-- Put the preferred source first in `inputs`.
+- Put the preferred source first in the list.
 
 ## Examples
 
@@ -55,7 +58,5 @@ The ROIs of the current frame come from a new detection. When the detector did n
 ```yaml
   - id: rois
     type: first_of
-    inputs:
-      detected: person.rois
-      tracked: from_points.rois@prev
+    inputs: [person.rois, from_points.rois@prev]
 ```

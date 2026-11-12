@@ -1,8 +1,10 @@
 # Built-in pipeline of v2.0.0. It shows one mediapipe_tasks node: the MediaPipe Holistic
-# landmarker on the full frame. Holistic is single person, so max_instances is 1.
+# landmarker on the full frame. Holistic is single person, so max_instances is 1. The points
+# have the prefixes body, right_hand, left_hand and face, in this order. The output is
+# geometry 3d with depth_unit pixel: z is the MediaPipe depth, scaled by the image width.
 schema_version: "2.0.0"
 pipeline_id: mediapipe-holistic-tasks
-source: skellytracker
+source: {name: skellytracker, version: "2.0.0"}
 description: MediaPipe Holistic, one Tasks landmarker on the full frame.
 nodes:
   - id: holistic
@@ -10,4 +12,4 @@ nodes:
     inputs: {image: frame.image}
     params: {variant: holistic}
 outputs:
-  body: holistic.keypoints
+  holistic: holistic.keypoints

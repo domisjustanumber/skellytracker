@@ -36,23 +36,24 @@ MediaPipe `RoiTrackingCalculator`
 | `rois` | output | `roi` |
 <!-- /node-table:ports -->
 
-- An ROI is `(cx, cy, w, h, rotation)` in source-image pixels, with `rotation` in radians, as in
-  [ROI from points](roi_from_points.md#fields).
+- An ROI is `(cx, cy, w, h, rotation)` in source-image pixels, with `rotation` in radians
+  ([Graph](../graph.md#behaviour) item 3).
 - `previous` is usually an `@prev` value, or an ROI that `roi_from_points` makes from the keypoints
   of the previous frame. `current` is the ROI of this frame.
-- `previous_keypoints` is optional. When it is not connected or it is empty, the node does not do
-  the keypoint test (step 7).
+- `previous_keypoints` is an optional input. An empty optional input does not stop the node
+  ([Graph](../graph.md#behaviour) item 6). When it is not connected or it is empty, the node does not
+  do the keypoint test (step 7).
 - The output has one row for each row of `current`
   ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 1). Row `i` of
-  each input goes with row `i` of the other inputs.
+  each input goes with row `i` of the other inputs, so the inputs have the same number of rows
+  (`V-node.roi_tracking-2`).
 
 ## Behaviour
 
 1. If `current` is empty, the node does not run. `rois` is empty
    ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6).
-2. An empty `previous` does not stop the node. This is an exception to the empty-input rule of
-   [ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6, because
-   `previous` is empty on the first frame. The node then uses an empty row for each row of
+2. An empty `previous` does not stop the node. This is a rule of the node, as
+   [Graph](../graph.md#behaviour) item 6 allows, because `previous` is empty on the first frame. The node then uses an empty row for each row of
    `previous`.
 3. The node does steps 4 to 8 for each row `i`. Let `(cx, cy, w, h, r)` be row `i` of `current` and
    `(pcx, pcy, pw, ph, pr)` row `i` of `previous`. If row `i` of `current` is empty, row `i` of
@@ -69,14 +70,18 @@ MediaPipe `RoiTrackingCalculator`
 7. **Keypoints.** If row `i` of `previous_keypoints` is present: for each point of that row whose x
    and y are not NaN, compute `(u, v)` as in step 5. If
    `|u| > (1 + keypoint_margin) · w / 2` or `|v| > (1 + keypoint_margin) · h / 2` for one point,
-   row `i` of `rois` is the current ROI. The test does not use the visibility of the points.
+   row `i` of `rois` is the current ROI. The test does not use the score of the points.
 8. If no test of steps 4 to 7 gives the current ROI, row `i` of `rois` is the previous ROI.
+   It keeps the `instance_score` of the previous row: the value of the last frame on which the
+   instance source ran. Else row `i` has the `instance_score` of the current row
+   ([Graph](../graph.md#behaviour) item 8).
 
 Each test uses `>`. A value equal to its limit passes the test.
 
 ## Validation rules
 
 - [ ] `V-node.roi_tracking-1` `keypoint_margin` must be greater than -1.
+- [ ] `V-node.roi_tracking-2` `previous`, `current` and `previous_keypoints` must have the same number of rows `I`. The host checks this at load, from the instance sources of the connected outputs.
 
 ## Implementer guidance
 
@@ -102,8 +107,9 @@ Each test uses `>`. A value equal to its limit passes the test.
 - To follow Holistic, connect `previous` to a `roi_from_points` node that reads the keypoints of
   the previous frame (`<node>.keypoints@prev`), and connect `previous_keypoints` to the same
   keypoints.
-- `roi_tracking` makes a pipeline stateful when it is upstream of a detector node
-  ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 5).
+- `roi_tracking` keeps no state, so it is not in the list of stateful nodes. Its `@prev` input makes
+  the pipeline stateful ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md)
+  item 5).
 
 ## Examples
 

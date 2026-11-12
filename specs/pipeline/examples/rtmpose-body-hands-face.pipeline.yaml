@@ -1,9 +1,11 @@
 # Planned built-in pipeline. It shows a fan-out: a body model gives the points of two hand ROIs
 # and one face ROI (roi_from_points), a model runs on each ROI, and concat joins the points of
-# the person into one keypoints output. The hand and face ROI rules are not measured yet.
+# the person into one keypoints output, in the order body, right_hand, left_hand, face. When a
+# hand or the face has no ROI, concat still gives the body points, and the columns of that part
+# are missing points (NaN, score 0). The hand and face ROI rules are not measured yet.
 schema_version: "2.0.0"
 pipeline_id: rtmpose-body-hands-face
-source: skellytracker
+source: {name: skellytracker, version: "2.0.0"}
 description: >-
   YOLOX person, RTMPose body, then RTMPose hands and face on ROIs from the body points.
   The hand and face ROI rules are not measured yet.
@@ -14,52 +16,50 @@ nodes:
     params:
       key: yolox-person@openmmlab-exporter
       size: m
-      decode:
+      object_decode:
         nms: {post_nms_top_k: 1}
   - id: body
     type: detector
     inputs: {image: frame.image, rois: person.rois}
     params: {key: rtmpose-body17@openmmlab-exporter, size: m}
-  - id: left_hand_roi
-    type: roi_from_points
-    inputs: {keypoints: body.keypoints}
-    params:
-      points: [left_wrist, left_elbow]
-      derived:
-        - name: left_hand_center
-          weights: {left_wrist: 1.5, left_elbow: -0.5}
-      size_rule: alignment
-      alignment_start: left_hand_center
-      alignment_end: left_wrist
-      square_long: true
-      scale: 2.0
   - id: right_hand_roi
     type: roi_from_points
     inputs: {keypoints: body.keypoints}
     params:
-      points: [right_wrist, right_elbow]
-      derived:
-        - name: right_hand_center
-          weights: {right_wrist: 1.5, right_elbow: -0.5}
+      points: [body.right_wrist, body.right_elbow]
+      derived_points:
+        right_hand_center: {body.right_wrist: 1.5, body.right_elbow: -0.5}
       size_rule: alignment
       alignment_start: right_hand_center
-      alignment_end: right_wrist
+      alignment_end: body.right_wrist
       square_long: true
-      scale: 2.0
+      expand_ratio: 2.0
+  - id: left_hand_roi
+    type: roi_from_points
+    inputs: {keypoints: body.keypoints}
+    params:
+      points: [body.left_wrist, body.left_elbow]
+      derived_points:
+        left_hand_center: {body.left_wrist: 1.5, body.left_elbow: -0.5}
+      size_rule: alignment
+      alignment_start: left_hand_center
+      alignment_end: body.left_wrist
+      square_long: true
+      expand_ratio: 2.0
   - id: face_roi
     type: roi_from_points
     inputs: {keypoints: body.keypoints}
     params:
-      points: [nose, left_eye, right_eye, left_ear, right_ear]
+      points: [body.nose, body.left_eye, body.right_eye, body.left_ear, body.right_ear]
       square_long: true
-      scale: 1.5
-  - id: left_hand
-    type: detector
-    inputs: {image: frame.image, rois: left_hand_roi.rois}
-    params: {key: rtmpose-hand21@openmmlab-exporter, size: m}
+      expand_ratio: 1.5
   - id: right_hand
     type: detector
     inputs: {image: frame.image, rois: right_hand_roi.rois}
+    params: {key: rtmpose-hand21@openmmlab-exporter, size: m}
+  - id: left_hand
+    type: detector
+    inputs: {image: frame.image, rois: left_hand_roi.rois}
     params: {key: rtmpose-hand21@openmmlab-exporter, size: m}
   - id: face
     type: detector
@@ -67,10 +67,6 @@ nodes:
     params: {key: rtmpose-face106@openmmlab-exporter, size: m}
   - id: joined
     type: concat
-    inputs:
-      body: body.keypoints
-      left_hand: left_hand.keypoints
-      right_hand: right_hand.keypoints
-      face: face.keypoints
+    inputs: [body.keypoints, right_hand.keypoints, left_hand.keypoints, face.keypoints]
 outputs:
   wholebody: joined.keypoints

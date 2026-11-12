@@ -99,3 +99,13 @@ cases:
     params: {keypoint_margin: -1}
     input: {previous: null, current: null}
     expect: {error: V-node.roi_tracking-1}
+  - id: kept-previous-row-keeps-its-instance-score
+    note: "row 0 keeps the previous ROI, so it keeps the previous instance score 0.9, from the
+      last frame on which the detector ran; row 1 takes the current ROI and its score 0.7"
+    params: {}
+    input:
+      previous: [[104, 98, 55, 47, 0], [100, 100, 50, 50, 0.7155849933176751]]
+      current: [[100, 100, 50, 50, 0], [100, 100, 50, 50, 0]]
+      previous_instance_score: [0.9, 0.9]
+      current_instance_score: [0.6, 0.7]
+    expect: {rois: [[104, 98, 55, 47, 0], [100, 100, 50, 50, 0]], instance_score: [0.9, 0.7]}
