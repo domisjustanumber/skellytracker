@@ -31,7 +31,11 @@ proposal (6J8E item 6).
    file and check its SHA-256. The run on the reference image matches the `parity/` output of the
    bundle within the tolerances of
    [Parity](../../../specs/model-sidecar/model-addition-workflow/parity.md), for at least one size.
-   A bundle with no reference output gets `needs-contributor`.
+   A bundle with no reference output gets `needs-contributor`. On a host with an NVIDIA GPU, run
+   each fp16 file on the EP packs `cuda` and `trt-rtx`, at each published batch form. Read the count
+   of the nodes of each session on the CPU EP. A count above 0 gives `needs-contributor`, with the op
+   types. With no NVIDIA GPU host, write `to run` for this check in the response
+   ([ADR-EY4F](../../../decisions/entries/EY4F-acceptance-gate-checks-fp16-gpu-placement.md)).
 6. **Catalog.** Put the sidecar in the package sidecar root `core/model_zoo/`. Add a test that
    builds the detector by its catalog key and runs one frame.
 7. **Report.** Write the response `verified`
