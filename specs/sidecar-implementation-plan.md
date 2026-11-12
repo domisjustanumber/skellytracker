@@ -1,6 +1,6 @@
 # Implementation Plan: Phases to the Exporter Checkpoint
 
-> **Decisions.** The decisions behind this plan are recorded in the decision log, [`decisions/`](../decisions/README.md). The phases and their order follow [ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md). The dependency pins follow [ADR-B4QR](../decisions/entries/B4QR-exact-pins-and-cuda-13.md). The implementation-stage work follows [ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) (replace the package ONNX detectors) and [ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) (the entry points and the layout). The pipeline design is in [ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md), [ADR-99MH](../decisions/entries/99MH-pipeline-outputs-and-running.md), [ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md), [ADR-3SF2](../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md), [ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-helper.md) and the [pipeline log](pipeline/decisions/README.md). The sidecar names follow [ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) and [ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md). Entries 0002 to 0007 record the decisions of M1 to M5 ([History](#history)). This plan stays until the user decides to delete it ([ADR-5WKW](../decisions/entries/5WKW-implementation-work-in-the-plan.md)). Record a new decision as a decision entry, not in this plan.
+> **Decisions.** The decisions behind this plan are recorded in the decision log, [`decisions/`](../decisions/README.md). The phases and their order follow [ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md). The dependency pins and the GPU EP packs follow [ADR-MWY9](../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md). The implementation-stage work follows [ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) (replace the package ONNX detectors) and [ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) (the entry points and the layout). The pipeline design is in [ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md), [ADR-99MH](../decisions/entries/99MH-pipeline-outputs-and-running.md), [ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md), [ADR-3SF2](../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md), [ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-helper.md) and the [pipeline log](pipeline/decisions/README.md). The sidecar names follow [ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) and [ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md). Entries 0002 to 0007 record the decisions of M1 to M5 ([History](#history)). This plan stays until the user decides to delete it ([ADR-5WKW](../decisions/entries/5WKW-implementation-work-in-the-plan.md)). Record a new decision as a decision entry, not in this plan.
 
 > Status: **M1 to M5 are done. Phase 0 started on 2026-11-12. Phase 1 waits for the gate of phase 0.** Phase 0 is in the spec-build stage, and phase 1 is in the implementation stage ([Stages](model-sidecar/model-addition-workflow/README.md#stages)). The [stage order](#stage-order) gives each stage. The "Status" line of each stage gives its state.
 
@@ -50,7 +50,7 @@ stages give the order of the work and hold their items.
 | 0.4 Merge `hw-and-ep-work` | — | `tools/run_checks.py` after the merge; stage 1.3 is written | old |
 | 0.5 Gate: the implementation stage | 0.1 to 0.4 | a new entry of the user | old |
 | **Phase 1, implementation stage** | | | |
-| 1.1 Dependencies | 0.5 | the gates of [ADR-B4QR](../decisions/entries/B4QR-exact-pins-and-cuda-13.md) item 6 | old |
+| 1.1 Dependencies | 0.5 | the gates of [ADR-MWY9](../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md) item 7 | old |
 | 1.2 Package layout | 1.1 | full suite with no change of expected values | old |
 | 1.3 Hardware and EP API | 1.2 | written by 0.4 | old |
 | 1.4 Spec loader | 1.2 | new validation tests; each reference example validates | old |
@@ -158,8 +158,9 @@ changes the draft exporter guide ([ADR-x64y](../decisions/entries/x64y-draft-exp
 - **Exporter runtime.** Each exporter pins the pre-release of 1.11 as its ONNX host. Its host code
   for the spec sections retires ([ADR-6J8E](../decisions/entries/6J8E-exporters-run-released-skellytracker.md) item 1). The kit gives the form of the pin. Stage 1.11
   sets the version.
-- **Dependency pins.** The exporters use the pins of the pre-release ([ADR-B4QR](../decisions/entries/B4QR-exact-pins-and-cuda-13.md) item 1): Python 3.11
-  to 3.13, ONNX Runtime 1.31 and CUDA 13.
+- **Dependency pins.** The exporters use the pins of the pre-release ([ADR-MWY9](../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md) item 1): Python 3.11
+  to 3.13 and ONNX Runtime 1.31. A GPU EP comes from the CUDA 13 plugin packs of the EP catalog of
+  the pre-release ([ADR-MWY9](../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md) item 3).
 - **Patches and pipelines.** The templates and the skills `author-sidecar` and
   `propose-sidecar-change` take the patch of 0.1 and the pipeline file of 0.2.
 - The item "Exporter guide rewording" of the [open work](../decisions/open-work.md).
@@ -179,7 +180,8 @@ changes the draft exporter guide ([ADR-x64y](../decisions/entries/x64y-draft-exp
 - Write stage 1.3 from the local plans of the track. Git does not track those plans, so 1.3 gets
   their content, not a link. Bring that content in line with [ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 3 (`system/`, `metrics/`
   and `eps/` under an eager `core`; the import isolation rules are withdrawn), [ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-helper.md) item 1 and
-  [ADR-B4QR](../decisions/entries/B4QR-exact-pins-and-cuda-13.md) (CUDA 13: the CUDA 12 floors and the Pascal test go).
+  [ADR-MWY9](../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md) items 2 and 3 (one ONNX Runtime core; the GPU EPs are CUDA 13 plugin packs:
+  the CUDA 12 floors, the CUDA 12 packs and the Pascal test go).
 - After the merge, the user removes the worktree of the branch.
 - Gate: `uv run python tools/run_checks.py` passes after the merge. Stage 1.3 has its items and its
   gate.
@@ -199,36 +201,37 @@ changes the draft exporter guide ([ADR-x64y](../decisions/entries/x64y-draft-exp
 
 ### 1.1 Dependencies
 
-**Status: NOT STARTED.** [ADR-B4QR](../decisions/entries/B4QR-exact-pins-and-cuda-13.md) gives the rules. Each item below is its own commit group.
+**Status: NOT STARTED.** [ADR-MWY9](../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md) gives the rules. Each item below is its own commit group.
 
 - **Exact pins.** Pin each dependency of `dependencies` and of each extra with `==`, at the version
   of a new `uv.lock`. Use an environment marker where a platform needs it. Today
   `opencv-contrib-python`, `onnx`, `polars` and `scipy` have no version, and other dependencies have
   ranges. The OpenCV package (`opencv-contrib-python` or a headless package) is not decided (the
   [open work](../decisions/open-work.md)). Ask the user before you pin it.
-- **ONNX Runtime 1.31 and CUDA 13.** Pin one ONNX Runtime 1.31 release in `onnx-cpu`, `onnx-cuda`
-  and `onnx-trt`. Check that `onnxruntime-directml` has that release. If not, tell the user. Replace
-  the `-cu12` packages with the packages of the `cuda` and `cudnn` extras of `onnxruntime-gpu`
-  (CUDA 13 and `nvidia-cudnn-cu13`), each with an exact pin. Find the TensorRT release that the
-  TensorRT EP of that ONNX Runtime release loads, then pin it. Replace the comments of
-  `pyproject.toml` that explain the CUDA 12 cap. Check that `onnxruntime.preload_dlls()` finds the
-  CUDA 13 libraries. The gate is a local run on an NVIDIA host that shows the CUDA EP, not a
-  fallback to the CPU.
+- **One ONNX Runtime core.** Make `onnxruntime` with one exact 1.31 release a base dependency.
+  Remove the extras `onnx-cpu`, `onnx-cuda`, `onnx-trt` and `onnx-directml`, the `all-*` and
+  `recommended-*` extras that name them, and the packages `onnxruntime-gpu`,
+  `onnxruntime-directml`, `tensorrt` and `nvidia-*-cu12`. Remove the comments of `pyproject.toml`
+  that explain the CUDA 12 cap. Remove the TensorRT, DirectML and CUDA library loading paths of the
+  old `core/sessions/` code: the old ONNX detectors are then CPU only. Change each command that
+  names a removed extra, for example `uv sync --extra all-cpu`. The gate is the suite on the CPU
+  core. The GPU EPs come in stage 1.3 as plugin packs
+  ([ADR-MWY9](../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md) items 2, 3 and 7).
 - **MediaPipe 1.2.2.** This is its own commit group. Pin the `mediapipe` extra at 1.2.2
-  ([ADR-B4QR](../decisions/entries/B4QR-exact-pins-and-cuda-13.md) item 4). The gate is the
+  ([ADR-MWY9](../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md) item 5). The gate is the
   MediaPipe tests. A change of their expected values goes in one commit, before a parity baseline.
   Then run the scripts of
   [ADR-6JWJ](pipeline/decisions/entries/6JWJ-mediapipe-video-landmarker-does-not-stick.md) again on
   MediaPipe 1.2.2. If a VIDEO-mode landmarker then stays empty while a person is visible, write a new
   entry in the pipeline log with the evidence.
 - **Python 3.13.** This is its own commit group. Set `requires-python = ">=3.11,<3.14"`, add the
-  3.13 classifier, make a new `uv.lock` and add 3.13 to the CI matrix ([ADR-B4QR](../decisions/entries/B4QR-exact-pins-and-cuda-13.md) item 3). The gate is
+  3.13 classifier, make a new `uv.lock` and add 3.13 to the CI matrix ([ADR-MWY9](../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md) item 4). The gate is
   the full suite on 3.13, with no hang in the MediaPipe tests. Check that each dependency resolves
   for 3.13 on each supported platform. The evidence of
-  [ADR-B4QR](../decisions/entries/B4QR-exact-pins-and-cuda-13.md) item 3 came from a freeze, not from the lock.
+  [ADR-MWY9](../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md) item 4 came from a freeze, not from the lock.
 - **No Intel Mac.** This is its own commit group. The uv environment for macOS becomes
   `sys_platform == 'darwin' and platform_machine == 'arm64'`, with `required-environments`
-  ([ADR-B4QR](../decisions/entries/B4QR-exact-pins-and-cuda-13.md) item 5). The README says that Intel Mac is not supported. Check that
+  ([ADR-MWY9](../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md) item 6). The README says that Intel Mac is not supported. Check that
   `required-environments` fails at lock time for a missing wheel.
 - Gate: the gates above. The full suite passes with no change of expected values, except the one
   MediaPipe commit.
@@ -262,7 +265,10 @@ The known scope:
   `core/metrics/` holds only system metrics ([ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-helper.md) item 1).
 - `eps.build_session()`. Stage 1.10 builds each ONNX session with it ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 5).
 - The execution provider information in `detectors` and `pipelines`.
-- ONNX Runtime 1.31 and CUDA 13 ([ADR-B4QR](../decisions/entries/B4QR-exact-pins-and-cuda-13.md)).
+- The `cuda` and `trt-rtx` plugin EP packs, CUDA 13 only, with the EP catalog and the EP store
+  ([ADR-MWY9](../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md) item 3). The gate includes a local run on an NVIDIA host: `eps.build_session()`
+  builds a session on each pack, and the node assignment shows the requested EP
+  ([ADR-MWY9](../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md) item 7).
 - Gate: stage 0.4 writes it.
 
 ### 1.4 Spec loader (was N1)
@@ -737,7 +743,7 @@ in parallel with 1.3 to 1.7.
   frames can then get the same millisecond timestamp, and MediaPipe raises "Input timestamp must be
   monotonically increasing". A landmarker that the test does not close is then garbage-collected
   later, and its `close()` can hang. Python 3.13 uses a finer clock
-  ([ADR-B4QR](../decisions/entries/B4QR-exact-pins-and-cuda-13.md) item 3). Make the timestamp fallback
+  ([ADR-MWY9](../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md) item 4). Make the timestamp fallback
   increase on each call. Make the detectors close their landmarkers safely, also when the garbage
   collector frees them. Put the same fix in the runner. Do not change the
   MediaPipe tests to close their detectors or to add teardown. These tests show the defect when it
@@ -933,7 +939,9 @@ in parallel with 1.3 to 1.7.
     EP API are in.
   - The old ONNX detectors, their `detector_type` keys and their `model_name` values go in a later
     release.
-  - Intel Mac is not supported. The GPU extras use CUDA 13 ([ADR-B4QR](../decisions/entries/B4QR-exact-pins-and-cuda-13.md)).
+  - Intel Mac is not supported. `onnxruntime` is a base dependency. A GPU EP installs with
+    `skellytracker-eps install` as a CUDA 13 plugin pack. The old ONNX detectors run on the CPU only
+    ([ADR-MWY9](../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md)).
   - freemocap must not move to 2.0.0 before it migrates.
 - Gate: each part of the [checkpoint](#checkpoint) is done. An exporter environment pins the
   pre-release and runs one model and one pipeline. The full suite passes.
@@ -1096,7 +1104,8 @@ these parts:
 - **Frame rate.** The hard-coded 30 fps goes. A `video` caller gives `timestamp_ms` or the run
   parameter `fps`.
 - **Dependency pins.** freemocap pins `mediapipe==0.10.33` in a uv override. It uses the exact pins
-  of skellytracker ([ADR-B4QR](../decisions/entries/B4QR-exact-pins-and-cuda-13.md)). The user changes freemocap.
+  of skellytracker ([ADR-MWY9](../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md)). freemocap gets the GPU EPs from the plugin packs of `eps`, not
+  from ONNX Runtime extras. The user changes freemocap.
 
 ### Later
 
