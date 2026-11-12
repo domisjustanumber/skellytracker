@@ -934,6 +934,9 @@ in parallel with 1.3 to 1.7.
   `specs/pipeline/examples/` to `core/model_zoo/pipelines/`
   ([ADR-3SF2](../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md) item 2;
   [ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 3).
+  The spec examples pin no `sidecar_sha256`. The copy adds the `sidecar_sha256` of each `detector`
+  node, because a shipped file must have it
+  ([ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 10).
 - **Multi-person.** A pipeline can have more than one row (`I > 1`). But a row has no identity
   across frames, and each `track_ids` value is -1, until an `associate` node exists
   ([ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1). The temporal nodes
