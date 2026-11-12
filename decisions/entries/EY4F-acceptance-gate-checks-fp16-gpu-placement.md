@@ -1,6 +1,6 @@
 # EY4F — The acceptance gate checks the fp16 GPU placement of each model
 
-**Status:** accepted, 2026-11-12 (user).
+**Status:** absorbed into [`proposal-gate.md#steps`](../../.claude/skills/implement-sidecar-section/proposal-gate.md#steps), [`proposal-gate.md#a-model-with-the-verdict-describes`](../../.claude/skills/implement-sidecar-section/proposal-gate.md#a-model-with-the-verdict-describes), [`proposal-gate.md#the-first-models`](../../.claude/skills/implement-sidecar-section/proposal-gate.md#the-first-models), 2026-11-12 (absorb at 90%; PR: pending).
 
 ## Decision
 

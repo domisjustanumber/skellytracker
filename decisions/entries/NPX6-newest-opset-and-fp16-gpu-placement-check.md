@@ -1,6 +1,6 @@
 # NPX6 — Exporters use the newest opset and check that each fp16 file runs fully on the GPU
 
-**Status:** accepted, 2026-11-12 (user).
+**Status:** absorbed into [`validation-and-publishing.md#opset-and-gpu-placement`](../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#opset-and-gpu-placement), [`model-intake.md#batch-conversion-check`](../../specs/model-sidecar/templates/model-intake.md#batch-conversion-check), [`author-sidecar/SKILL.md#step-5-write-and-check-the-sidecar`](../../.claude/skills/author-sidecar/SKILL.md#step-5-write-and-check-the-sidecar), 2026-11-12 (absorb at 90%; PR: pending).
 
 ## Decision
 
