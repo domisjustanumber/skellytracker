@@ -10,13 +10,14 @@ jobs:
     name: Full tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v10.0.0
         with:
           python-version: "3.12"
-          enable-caching: true
-      - run: uv sync --extra recommended
-      - uses: actions/cache@v4
+          enable-cache: true
+      - run: uv sync --extra recommended-cpu
+      - run: sudo apt-get update && sudo apt-get install -y libgl1 libegl1 libgles2 xvfb
+      - uses: actions/cache@v6.1.0
         with:
           path: |
             ~/.cache/skellytracker/test_images
@@ -24,4 +25,4 @@ jobs:
             ~/.cache/skellytracker/test_data
             ~/.freemocap/skellytracker-models
           key: test-assets-full-${{ runner.os }}-v1
-      - run: uv run pytest
+      - run: xvfb-run -a uv run pytest -o faulthandler_timeout=300
