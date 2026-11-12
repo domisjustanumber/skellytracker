@@ -76,7 +76,7 @@ The fields of a node item: `id`, `type`, `batching`, `inputs` (each with a `prev
 ## Implementer guidance
 
 - The reference model checks `V-pipeline.timing-1` in `check_structure`. The `timing_points` of each node class give the points. (skellytracker `specs/pipeline/reference/pipeline_config.py`)
-- A helper in `core/metrics/` aggregates the events to the skellybench timing record. `stages_ms_per_image` is the sum of the model point times divided by the sum of `batch_size`. The model points are the points of each detector node and the `run` point of each `mediapipe_tasks` node. The `run` time of a glue node goes to `excluded_ms_per_image` ([ADR-Q59W](../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 4).
+- The public helper `core/pipelines/timing.py` aggregates the events to the skellybench timing record. `stages_ms_per_image` is the sum of the model point times divided by the sum of `batch_size`. The model points are the points of each detector node and the `run` point of each `mediapipe_tasks` node. The `run` time of a glue node goes to `excluded_ms_per_image` ([ADR-0WTV](../../decisions/entries/0WTV-system-metrics-and-pipeline-timing-helper.md) item 2).
 - skellybench runs `python -m skellytracker run --pipeline … --coco <annotations.json> --images <dir> --out … [--ep …] [--timing on]` as a subprocess. The timing files and the tap files are the contract ([ADR-Q59W](../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 6).
 - The header has no field `mode`: skellytracker has no IO binding to report.
 
