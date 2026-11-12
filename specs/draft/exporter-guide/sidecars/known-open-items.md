@@ -3,6 +3,11 @@
 Each item names a reference implementation or a reference example that an exporter owes. The
 overhaul plan of each exporter must handle them.
 
+From the 2.0.0 pre-release, the exporter host code retires, and the items that name a reference
+implementation end
+([ADR-6J8E](../../../../decisions/entries/6J8E-exporters-run-released-skellytracker.md) item 1).
+The items that name a reference example stay.
+
 | Exporter | Item |
 |---|---|
 | OpenMMLab-Exporter | It implements these sections on its host side: the `letterbox` resize and the normalization (`onnx_runtime/preprocess.py`: `letterbox`, `make_normalizer`), `selection: nms` with the letterbox unprojection and the box clamp (`onnx_runtime/decode_nms.py`: `NmsDecoder`), and the `fit` resize (`notes/decisions/scripts/rtmo_sidecar_probe.py`: `fit_resize`, the parity probe of OpenMMLab-Exporter 0020). No reference implementation exists for these sections. The overhaul plan must include the [reference-implementation step](../../../model-sidecar/model-addition-workflow/reference-implementations.md#reference-implementations) for each. |

@@ -25,6 +25,9 @@ and its final location.
 
 ## Add a model or request a spec change
 
+To add a pipeline file, or to change a node type of the pipeline spec, follow
+[Pipeline contributions](../../pipeline/contributions.md).
+
 To add a model, or to request a change to the sidecar spec, follow the
 [model addition workflow](../../model-sidecar/model-addition-workflow/README.md). It is the same
 process for an exporter agent, a human contributor and a skellytracker session. It also holds the

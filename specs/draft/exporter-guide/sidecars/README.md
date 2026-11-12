@@ -101,22 +101,26 @@ These rules are in [ADR-JC4T](../../../../decisions/entries/JC4T-parity-gates-an
   uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/skellytracker/tools/intake_bundle.py batch <args>
   ```
 
-- The exporter cannot import skellytracker into its own code yet. Do not add skellytracker as a
-  dependency of the exporter repo yet. The dependency pins of skellytracker stop it now.
-- The target rule after the pin change: each exporter adds skellytracker as a dependency, with a uv
-  path source to the local checkout.
+- Before the 2.0.0 pre-release, do not add skellytracker as a dependency of the exporter repo.
+- From the 2.0.0 pre-release, each exporter adds the pre-release as a dependency with an exact pin.
+  It runs that release as its ONNX host
+  ([ADR-6J8E](../../../../decisions/entries/6J8E-exporters-run-released-skellytracker.md) item 1;
+  [ADR-MWY9](../../../../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md)):
 
   ```toml
-  dependencies = ["skellytracker[onnx]"]
-
-  [tool.uv.sources]
-  skellytracker = { path = "../freemocap/skellytracker", editable = true }
+  dependencies = ["skellytracker==<pre-release>"]
   ```
 
-  `editable = true` gives the current checkout with no reinstall. The extra `onnx` gives onnx. The
-  check needs onnxruntime with `CPUExecutionProvider`. An exporter with no onnxruntime adds the extra
-  `onnx-cpu`. Do not add `onnx-cpu` next to `onnxruntime-gpu`, because both install the module
-  `onnxruntime`.
+  `<pre-release>` is the version of the 2.0.0 pre-release. Each dependency of the exporter has an
+  exact pin (`==`), with no range. Pin each package that the exporter shares with skellytracker to
+  its version in the `uv.lock` of that release. skellytracker brings ONNX Runtime 1.31 for the CPU.
+  Do not add `onnxruntime`, `onnxruntime-gpu` or `onnxruntime-directml` to the exporter. For a GPU,
+  install a plugin EP pack with `skellytracker-eps install cuda` or
+  `skellytracker-eps install trt-rtx`. The packs need CUDA 13 and an NVIDIA GPU of the Turing
+  generation or newer.
+- The exporter host code for the spec sections then retires. A section that the release does not
+  implement is a gap. Its proposal holds `skellytracker.patch`
+  ([Patches](../../../model-sidecar/model-addition-workflow/hand-over.md#patches)).
 
 ## The block for the exporter `AGENTS.md`
 
@@ -136,7 +140,9 @@ Do not change this section here. Copy it again when the source changes.
   `../freemocap/skellytracker/specs/model-sidecar/model-addition-workflow/hand-over.md`.
 - Run the batch check in the checkout environment:
   `uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/skellytracker/tools/intake_bundle.py batch ...`.
-  Do not add skellytracker as a dependency yet.
+  Before the 2.0.0 pre-release, do not add skellytracker as a dependency. Then pin the pre-release.
+- To add a pipeline file or to change a node type, follow
+  `../freemocap/skellytracker/specs/pipeline/contributions.md`.
 - Before each sidecar task, read the section "Sidecars" of
   `../freemocap/skellytracker/specs/draft/exporter-guide/sidecars/README.md`. Follow the workflow in
   `../freemocap/skellytracker/specs/model-sidecar/model-addition-workflow/README.md`.
