@@ -171,6 +171,11 @@ names", "Imports of other sections", "A proposal that changes more than one sect
 section has no module", "Code for the cases" and "Run a module that imports another module". Write
 the code to `reference/<section_module>.py` in the proposal bundle. Name that file here.
 
+From the 2.0.0 pre-release, write no reference implementation. Write the change of the package
+code as `skellytracker.patch` in the proposal bundle, as "Patches" in
+`specs/model-sidecar/model-addition-workflow/hand-over.md` says (skellytracker ADR-6J8E). Name the
+patch and its `patch_release` here.
+
 | Item | Value |
 |---|---|
 | Reference file in the proposal bundle (`reference/<section_module>.py`) | |

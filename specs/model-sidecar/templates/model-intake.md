@@ -522,6 +522,8 @@ for every verdict. Skip a section as "When to do the step" in
 section, do "The step" in the same file. Write one row for each section in the table below. If the
 host code is not committed yet, write `to run` in the table (skellytracker ADR-ESP4). Write each
 departure of the host code from the section text, or `none`, as step 1 of "The step" says.
+From the 2.0.0 pre-release, the pinned skellytracker release is the host. Skip this step, and write
+`none (pre-release host)` below (skellytracker ADR-6J8E).
 
 | Section ID (the `id` in the section file's front matter) | Host code (file, function and commit) | Reference file in the bundle (`reference/<section_module>.py`) | Vector result | Parity result unchanged (`yes`, `no` or `to run`) | Departures of the host code from the text (or `none`) |
 |---|---|---|---|---|---|

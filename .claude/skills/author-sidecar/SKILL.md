@@ -82,6 +82,12 @@ Keep your working draft where you like. The bundle is the hand-over
 
 ## Procedure
 
+From the 2.0.0 pre-release, the exporter runs the pinned skellytracker release as its ONNX host
+([Patches](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#patches);
+[ADR-6J8E](../../../decisions/entries/6J8E-exporters-run-released-skellytracker.md) item 1). Then
+the host code of steps 5 and 8 is that release. Step 7 does not apply. A section that the release
+does not implement is a gap: its proposal holds `skellytracker.patch` (step 6).
+
 ### Step 1: Prepare
 
 1. Before the overhaul of the exporter, run this workflow only when the user asks. Then write only the
@@ -283,6 +289,10 @@ Do this step for every final verdict, also after step 6. Follow
      ([Retention](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#retention)).
 5. A skellytracker session does phase 3
    ([Phase 3](../../../specs/model-sidecar/model-addition-workflow/phase-3-skellytracker.md#phase-3-what-skellytracker-does-next)).
+6. To add a pipeline that uses the model, follow
+   [Add a pipeline](../../../specs/pipeline/contributions.md#add-a-pipeline). Name the `model`
+   bundle in `depends_on` of the `pipeline` bundle
+   ([ADR-271H](../../../decisions/entries/271H-pipeline-bundles.md)).
 
 ## Stop points
 

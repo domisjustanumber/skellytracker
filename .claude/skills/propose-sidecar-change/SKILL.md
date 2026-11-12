@@ -155,6 +155,14 @@ A contributor writes its proposal bundle.
 7. If your host code does not agree with an existing reference implementation, write a proposal. Do
    not write a second reference implementation
    ([Reference implementations](../../../specs/model-sidecar/model-addition-workflow/reference-implementations.md#reference-implementations)).
+8. From the 2.0.0 pre-release, part 3 holds no reference implementation. Give the change of the
+   package code as `skellytracker.patch` in the proposal bundle, against the tag of the pinned
+   release ([Patches](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#patches);
+   [ADR-6J8E](../../../decisions/entries/6J8E-exporters-run-released-skellytracker.md) item 2).
+   Verify the vectors of part 4 with the release and the patch
+   ([Independence](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence)).
+9. A change of a pipeline node type is a node proposal, not a sidecar proposal. Follow
+   [Change a node type](../../../specs/pipeline/contributions.md#change-a-node-type).
 
 ### Step 4: Link and stop
 
