@@ -146,7 +146,10 @@ item 7 and [ADR-271H](../decisions/entries/271H-pipeline-bundles.md).
 
 ### 0.3 Exporter kit
 
-**Status: NOT STARTED.** The kit is the draft exporter guide (`specs/draft/exporter-guide/`), the
+**Status: DONE (2026-11-12).** The user accepted the kit. Done: the pre-release pin with exact pins
+(Python 3.13.18, [ADR-M2C6](../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md)), the patch and the pipeline file in the templates and the skills
+`author-sidecar` and `propose-sidecar-change`, the opset and fp16 GPU placement check
+([ADR-NPX6](../decisions/entries/NPX6-newest-opset-and-fp16-gpu-placement-check.md); [ADR-EY4F](../decisions/entries/EY4F-acceptance-gate-checks-fp16-gpu-placement.md)) and the rewording of the example exporter names. The kit is the draft exporter guide (`specs/draft/exporter-guide/`), the
 templates of `specs/model-sidecar/templates/` and the skills that exporter agents read. The user
 changes the draft exporter guide ([ADR-x64y](../decisions/entries/x64y-draft-exporter-guide-folder.md)). Do not change an exporter repository.
 
