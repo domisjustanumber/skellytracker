@@ -4,8 +4,8 @@ Use this workflow for each new model. Use it also to request a change to the sid
 workflow is also called the "new-model workflow".
 
 The workflow is the same for each contributor: an exporter agent, a human contributor or a
-skellytracker session. An exporter is a repo that makes ONNX files and writes their sidecars, for
-example OpenMMLab-Exporter. You do not need an exporter repo to follow this workflow.
+skellytracker session. An exporter is a repo that makes ONNX files and writes their sidecars.
+You do not need an exporter repo to follow this workflow.
 
 The [sidecar spec](../README.md) is normative for the meaning of a sidecar. This workflow is
 normative for the process: it tells how to apply the spec to a new model, and how to request a spec

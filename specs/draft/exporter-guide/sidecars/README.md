@@ -1,8 +1,7 @@
 # Sidecar exporter guide
 
 This guide gives the rules that exporters follow when they write sidecars. An exporter is a repo
-that makes ONNX files and writes their sidecars: OpenMMLab-Exporter, Roboflow-Exporter,
-Ultralytics-Exporter, Qualcomm-Exporter and MediaPipe-Exporter.
+that makes ONNX files and writes their sidecars.
 
 This folder is the sidecar part of the [draft exporter guide](../README.md). The draft guide is not
 complete. The rules in this folder are complete, and they apply now.

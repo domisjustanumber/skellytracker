@@ -46,7 +46,7 @@ repo. Read it in your skellytracker checkout, for example `../freemocap/skellytr
 that starts with `plans/` names a file in your repo. skellytracker keeps its logs in `decisions/` and
 `specs/model-sidecar/decisions/`. An exporter repo has `notes/decisions/`. Thus always write the
 repo name with the ID of a decision entry: `skellytracker ADR-<ID>` or `<Repo> ADR-<ID>`, for
-example `skellytracker ADR-0012` or `OpenMMLab-Exporter ADR-0020`. Add a full-SHA permalink to an
+example `skellytracker ADR-0012`. Add a full-SHA permalink to an
 entry of another repo when the entry is on the default branch of that repo. This workflow links
 each skellytracker entry. In a file of the exporter, an ID without a repo name is a decision of that
 exporter ([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).

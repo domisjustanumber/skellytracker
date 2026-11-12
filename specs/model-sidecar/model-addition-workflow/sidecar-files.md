@@ -59,7 +59,7 @@ Put the sidecar at its path in the storage layout of the spec (the heading "Stor
 `../freemocap/skellytracker/specs/model-sidecar/format/file-layout.md`). In the spec, the layout
 starts at `{sidecar_root}`. In your repo, the export root (the folder that holds your exported
 files) has that role. Thus the sidecar goes to `<export root>/detectors/...`. For example, the
-export root of OpenMMLab-Exporter is `exports/`.
+export root can be `exports/`.
 
 - `object_detectors/{family}/{model_id}.yaml` for an object detector. `{family}` is the `model_id`.
 - `keypoint_detectors/{family}/{group}/{model_id}.yaml` for a pose estimator. `{group}` is `hand`,
