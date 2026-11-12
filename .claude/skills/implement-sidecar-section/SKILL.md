@@ -1,0 +1,204 @@
+---
+name: implement-sidecar-section
+description: Use this skill in skellytracker when you implement one section of the sidecar spec in the package code, in the implementation stage. Use it also when you plan that work.
+---
+
+# Implement a sidecar section
+
+This skill uses ASD-STE100 Simplified Technical English.
+
+This skill implements one section of the sidecar spec in the skellytracker package. It runs only in
+skellytracker. It is for the implementation stage and the steady state
+([Stages](../../../specs/model-sidecar/model-addition-workflow/README.md#stages)).
+
+The section file gives the normative text. The
+[Rules for each spec edit](../change-sidecar-spec/SKILL.md#rules-for-each-spec-edit) of the skill
+`change-sidecar-spec` ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md))
+give the front matter, the vectors, the reference implementations and the traceability. This skill
+gives the order of the steps, the inputs, the outputs and the stop points.
+
+## Stage
+
+- [Section 1](../../../AGENTS.md#1-purpose) of `AGENTS.md` names the current stage.
+- If step 3 finds that the work is blocked, do only steps 1 to 3. A blocked section gets no plan.
+  Report the result of step 3. Then stop.
+
+## Inputs
+
+- The section ID, for example `post.object.selection.top_k`. The
+  [section map](../../../specs/model-sidecar/README.md#section-map) gives the section file.
+- `<section_module>` is the section ID with each dot replaced by an underscore, for example
+  `post_object_selection_top_k`.
+
+## Outputs
+
+| Output | Where |
+|---|---|
+| The code of each step | `skellytracker/`, for example a function under `skellytracker/core/detectors/processing/` and a validator in `skellytracker/core/sidecar/model.py` |
+| The line `Implements: <section-id>` | The docstring of each implementing function |
+| The adapter | An entry in `PACKAGE_RUNNERS` of `tools/tests/test_vectors.py` that runs the implementing function on one case of `specs/model-sidecar/vectors/<section-id>.yaml` |
+| The new front matter | `implemented_by`, `status` and `tests` of the section file |
+| The new `verified_against` | The vector file `specs/model-sidecar/vectors/<section-id>.yaml` |
+| The new traceability matrix | `specs/model-sidecar/TRACEABILITY.md` |
+
+The adapter of a selection section compares `boxes_xyxy` in the space that `boxes_space` of the case
+names (`model_input` or `source`). It does not infer the space from the other keys
+([ADR-0PK7](../../../decisions/entries/0PK7-selection-boxes-space-flag.md)).
+
+## Procedure
+
+### Step 1: Read the section
+
+1. Read the front matter of the section file: `implemented_by`, `status`, `tests`, `vectors`,
+   `external_impl` and `selectors`.
+2. Read the normative headings: "Fields", "Behaviour" (with "Inverse", if the section has it) and
+   "Validation rules".
+3. Read the "Implementer guidance" heading. If it is empty, use only the normative text. Do not guess
+   the guidance.
+4. Read the sections that the text links to. Read the sections that link to its rules.
+5. Read the decision entries that cite the section.
+6. Read the stages of the [implementation plan](../../../specs/sidecar-implementation-plan.md) and
+   the [spec defects](../../../specs/model-sidecar/decisions/open-work.md#spec-defects) of the spec log.
+   Find the items about the section ([ADR-5WKW](../../../decisions/entries/5WKW-implementation-work-in-the-plan.md)).
+7. Read the code that `implemented_by` names. Read the tests that `tests` names.
+
+### Step 2: Find the evidence
+
+| Evidence | Where to look |
+|---|---|
+| A reference example that uses the section | [`TRACEABILITY.md`](../../../specs/model-sidecar/TRACEABILITY.md#models-and-sections), "Models and sections": the row of the section, in the columns of the models with the root `example` (see "Models") |
+| Verified vectors | `specs/model-sidecar/vectors/<section-id>.yaml`: `verified_against` at the top of the file, or for each case. `unverified: <reason>` means that no implementation verified the file. |
+| A reference implementation | `specs/model-sidecar/reference/<section_module>.py` |
+| An exporter implementation | `external_impl` in the front matter, and "External implementations" in `TRACEABILITY.md` |
+| A bundle that waits to land | `uv run --no-sync python -B tools/intake_bundle.py list` ([Hand-over bundles](../../../specs/model-sidecar/model-addition-workflow/hand-over.md)): a `model` bundle with `reference/<section_module>.py`, and each `proposal` bundle that changes the section. Read the files. Do not change them. |
+
+If the section has no vector file, the section has no verified vectors.
+
+An exporter file that waits to land is not a reference implementation yet. It does not end a block.
+A skellytracker session must land it first, with the skill
+[`change-sidecar-spec`](../change-sidecar-spec/SKILL.md).
+
+### Step 3: Find out if the work is blocked
+
+1. The work is blocked when all three conditions are true:
+   - no reference example uses the section;
+   - the vectors are `unverified`, or the section has no vector file;
+   - no reference implementation exists.
+2. If the work is blocked, stop. Do not do step 4. Report these items:
+   - that the work is blocked;
+   - the three missing items;
+   - the items that end the block: a reference implementation, a reference example that uses the
+     section, or an exporter implementation that verifies the vectors. One of them is sufficient;
+   - each exporter file from step 2 that waits to land.
+3. Name the exporter that owes each missing item, if
+   [Known open items for the exporter overhaul](../../../specs/draft/exporter-guide/sidecars/known-open-items.md#known-open-items-for-the-exporter-overhaul)
+   names one. That table can name an exporter for the reference implementation and for the example.
+4. Do not write a reference implementation, an example or vectors to remove the block. Do not mark a
+   vector verified. A reading of the text alone does not verify a vector
+   ([Examples and vectors](../change-sidecar-spec/spec-edit-rules.md#examples-and-vectors)).
+
+### Step 4: Plan the work
+
+1. List the steps of `implemented_by` (for example `validate`, `forward`, `inverse`, `decode` or
+   `load`) and their `status`.
+2. For each step that is not `implemented`, write where the code goes. Use the implementer guidance.
+   If the guidance does not say, write `for the implementer` and the open question.
+3. Write the dispatch point, for example a branch in `preprocess_image` in
+   `skellytracker/core/detectors/processing/image_preprocessing.py`. If no code dispatches on the
+   field of the section yet, write `none yet`. Write where a new dispatch point can go as
+   `for the implementer`.
+4. Write the validator changes in `skellytracker/core/sidecar/model.py`, with the rule ID of each
+   validation rule.
+5. Write the tests: the adapter in `PACKAGE_RUNNERS`, a test for each rule ID, and a golden parity
+   test if the implementer guidance names one.
+6. Write the existing code that the change touches. If no code does a step yet (`missing`), write the
+   code that the new code calls or replaces, or `none`.
+7. Do not plan a legacy reading. The code has one reading of a sidecar: the current text of the
+   spec. A host lists an older spec version only while the current text reads that version in the
+   same way ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md);
+   [ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
+8. List the prerequisites: the work in other sections or in the implementation plan that this section
+   needs first. An example is a field of another section that `model.py` does not have yet. Each
+   prerequisite is a separate PR before the PR of this section.
+9. The frozen package rejects `schema_version: "2.0.0"`. Stage 1.4 of the
+   [implementation plan](../../../specs/sidecar-implementation-plan.md#14-spec-loader-was-n1) moves the version check to
+   SemVer ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). If a
+   test needs a `"2.0.0"` sidecar and the package cannot load one yet, write that work as the first
+   prerequisite. If the implementation plan has no item for it, tell the user. Do not design that
+   work in this plan.
+
+### Step 5: Port or compare
+
+1. If a reference implementation exists, port it into the package. The package must not import from
+   `specs/`. If the reference module imports another reference module, call the package code of that
+   other section. Do not port it into this section.
+2. If `external_impl` names an exporter function, read it in the exporter repo. Do not change the
+   exporter repo. Compare its results with your code on the vector cases.
+3. If your code does not agree with a reference implementation or with an exporter function, stop.
+   You found a spec defect or a bug. Use the skill
+   [`propose-sidecar-change`](../propose-sidecar-change/SKILL.md). Do not change the vectors to match
+   the code.
+4. From the 2.0.0 pre-release, a proposal gives its code change as `skellytracker.patch`, not as a
+   reference implementation to port. Apply the patch: follow
+   [Patch review](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#patch-review).
+   The [acceptance gate](proposal-gate.md) gives the steps for a proposal
+   ([ADR-6J8E](../../../decisions/entries/6J8E-exporters-run-released-skellytracker.md) items 2
+   and 6).
+
+### Step 6: Implement and test
+
+1. Implement each step of the plan from the normative text. Do not keep a legacy reading
+   ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)).
+2. Implement each validation rule of the section. Add a test for each rule ID to
+   `skellytracker/tests/sidecar/test_model_validation.py`.
+3. Add the line `Implements: <section-id>` to the docstring of each implementing function.
+4. If `tools/tests` has no test that checks the `Implements:` lines, add that test in the same PR.
+5. Add an adapter to `PACKAGE_RUNNERS` in `tools/tests/test_vectors.py`. Its key is the
+   `path::symbol` of the implementing function. The adapter runs the function on one case and
+   returns the result in the form of `expect`, or `None` when the function cannot run the case. An
+   example is `fit_runner`. Do not add a constant to `tools/make_vectors.py`.
+6. The generic test `test_the_package_agrees_exactly_where_verified_against_names_it` runs the
+   adapter on each case of each vector file that names the function in `verified_against`. A case
+   that the entry covers must agree with its `expect`. Each other case of that file must differ, or
+   its adapter result must be `None`. `test_each_package_runner_is_named_in_verified_against` fails
+   when an adapter has no entry, or an entry has no adapter. Do not add a test for one function.
+7. Every case must pass. Do not edit `expect` by hand.
+8. Add the golden parity test, if the plan has one.
+9. Add the `path::symbol` of the implementing function (the key of its adapter) to
+   `verified_against` in `specs/model-sidecar/vectors/<section-id>.yaml`. Then run `uv run python tools/make_vectors.py`.
+10. Follow
+    [Independence](../../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence)
+    for the implementations that count in `verified_against`.
+
+### Step 7: Update the traceability
+
+1. Write each implementing function in `implemented_by`, as `path::symbol`.
+2. Set the `status` of each step:
+   - `implemented`: the step does the full normative text, and every case of the vector file passes;
+   - `partial`: the step does only a part of the text. Write what is missing in a comment after the
+     path in `implemented_by`;
+   - `missing`: no function does the step.
+3. Add the new test files to `tests`.
+4. Regenerate the matrix with `uv run python tools/sidecar_trace.py matrix`. Do not edit
+   `specs/model-sidecar/TRACEABILITY.md` by hand.
+5. If the change completes an item of the [implementation plan](../../../specs/sidecar-implementation-plan.md), delete its bullet
+   and add one line to the status of its stage, in the same PR
+   ([ADR-5WKW](../../../decisions/entries/5WKW-implementation-work-in-the-plan.md)).
+
+### Step 8: Check and stop
+
+1. Run `uv run python tools/run_checks.py`. It must pass. Its docstring lists the checks.
+2. Do not run `black` or `isort` on the package.
+3. Put the implementation in its own PR. Do not put a spec change in it
+   ([section 6](../../../AGENTS.md#6-git-rules) of `AGENTS.md`). Put
+   each prerequisite of step 4 in its own PR before it.
+4. Ask the user before the push ([section 6](../../../AGENTS.md#6-git-rules) of `AGENTS.md`).
+
+## Stop points
+
+| Condition | Action |
+|---|---|
+| No reference example uses the section, the vectors are not verified and no reference implementation exists. | Stop after step 3. Do not plan the work. Report the work as blocked, the missing items, the items that end the block and the exporter that owes each item. Do not write the missing items. |
+| Your code does not agree with a reference implementation or an exporter function. | Stop. Use `propose-sidecar-change`. |
+| A vector case fails. | Find the cause in the code. Do not change the vector. If the vector does not agree with the text, report a spec defect. |
+| The PR is ready. | Ask the user before the push. |
