@@ -1,6 +1,6 @@
 # 99MH — Pipeline outputs with an instance dimension; running modes; batch k × cameras, and camera count for stateful pipelines; session sharing; load checks
 
-**Status:** accepted, 2026-11-11 (user).
+**Status:** superseded by [0WJB](0WJB-pipeline-outputs-running-no-session-sharing.md), 2026-11-12 (user; PR: pending).
 
 ## Decision
 

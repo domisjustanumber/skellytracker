@@ -111,3 +111,4 @@ the reason for a decision. The [index](README.md) has the Active and Proposed en
 | [EM74](entries/EM74-stage-order-and-ci-models.md) | New code beside old; order N5, pre-release, P, Da, N6, Db, Dc; standalone generic detectors; generated ONNX models in CI | superseded by NHM3 |
 | [B4QR](entries/B4QR-exact-pins-and-cuda-13.md) | Exact pins for each dependency; ONNX Runtime 1.31 with CUDA 13; Python 3.11 to 3.13, MediaPipe 1.2.2, no Intel Mac | superseded by MWY9 |
 | [8NVD](entries/8NVD-pipeline-api-warnings-and-catalog.md) | Pipeline API `core.pipelines`; built-ins; `PipelineWarning`; dependency reports; Holistic for MediaPipe; node catalog | superseded by 48PG |
+| [99MH](entries/99MH-pipeline-outputs-and-running.md) | Pipeline outputs with an instance dimension; running modes; batch k × cameras, camera count when stateful; session sharing; load checks | superseded by 0WJB |
