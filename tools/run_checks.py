@@ -7,17 +7,22 @@ Usage::
 
 The tool runs these checks in this order, with the Python of the environment that runs it:
 
-1. ``ruff check skellytracker/ tools/``
-2. ``pytest tools/tests -q``. It also runs the private-data check.
-3. ``pytest -m "not video" skellytracker/tests/test_mediapipe_detectors.py``
-4. ``pytest -m "not video"`` without the MediaPipe file and without ``tools/tests``
+1. ``ruff check skellytracker/ tools/ decisions/scripts/ specs/model-sidecar/decisions/scripts/ specs/model-sidecar/reference/ specs/pipeline/reference/``
+2. ``tools/check_decision_log.py``
+3. ``tools/sync_bootstrap_kit.py --check``
+4. ``tools/make_vectors.py --check``
+5. ``tools/make_pipeline_schema.py --check``
+6. ``tools/sidecar_trace.py matrix --check``
+7. ``pytest tools/tests -q``. It also runs the private-data check.
+8. ``pytest -m "not video" skellytracker/tests/test_mediapipe_detectors.py``
+9. ``pytest -m "not video"`` without the MediaPipe file and without ``tools/tests``
 
 The MediaPipe tests run in their own process. On Windows, one run of all non-video tests can stop
 in them and not finish (the test notes of ``skellytracker/AGENTS.md``). The tool prints each
 command before it runs it. It exits with the status of the first check that fails, or 0.
 The tool is the source of this list.
 
-Check 3 has a time limit of ``MEDIAPIPE_TIMEOUT`` seconds, because the MediaPipe tests can hang on
+Check 8 has a time limit of ``MEDIAPIPE_TIMEOUT`` seconds, because the MediaPipe tests can hang on
 Windows with Python 3.12 (decision R3F1). When the limit runs out, the tool stops the process and
 each process that it started, prints a note and runs the next checks. Then it exits with
 ``HUNG_STATUS``, also when the next checks pass, and its last line repeats the note. On Python 3.12
@@ -37,7 +42,14 @@ MEDIAPIPE_TIMEOUT = 300
 HUNG_STATUS = 124
 PY = sys.executable
 CHECKS = [
-    [PY, "-m", "ruff", "check", "skellytracker/", "tools/"],
+    [PY, "-m", "ruff", "check", "skellytracker/", "tools/", "decisions/scripts/",
+     "specs/model-sidecar/decisions/scripts/", "specs/model-sidecar/reference/",
+     "specs/pipeline/reference/"],
+    [PY, "tools/check_decision_log.py"],
+    [PY, "tools/sync_bootstrap_kit.py", "--check"],
+    [PY, "tools/make_vectors.py", "--check"],
+    [PY, "tools/make_pipeline_schema.py", "--check"],
+    [PY, "tools/sidecar_trace.py", "matrix", "--check"],
     [PY, "-m", "pytest", "tools/tests", "-q"],
     [PY, "-m", "pytest", "-m", "not video", MEDIAPIPE],
     [PY, "-m", "pytest", "-m", "not video", "--deselect", MEDIAPIPE, "--deselect", "tools/tests"],
@@ -45,7 +57,7 @@ CHECKS = [
 
 
 def time_limit(command: list[str]) -> float | None:
-    """The time limit of a check in seconds: only the MediaPipe check (check 3) has one."""
+    """The time limit of a check in seconds: only the MediaPipe check (check 8) has one."""
     return MEDIAPIPE_TIMEOUT if command[-1] == MEDIAPIPE else None
 
 

@@ -17,4 +17,6 @@ jobs:
           python-version: "3.12"
           enable-cache: true
       - run: uv sync
-      - run: uv run ruff check skellytracker/ tools/
+      # specs/model-sidecar/reference/ holds informative reference implementations once the first one lands.
+      # specs/pipeline/reference/ holds the reference model of the pipeline spec once it lands.
+      - run: uv run ruff check skellytracker/ tools/ decisions/scripts/ specs/model-sidecar/decisions/scripts/ $(test -d specs/model-sidecar/reference && echo specs/model-sidecar/reference/) $(test -d specs/pipeline/reference && echo specs/pipeline/reference/)
