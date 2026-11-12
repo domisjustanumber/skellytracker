@@ -15,7 +15,8 @@ Usage::
 
 `pack` and `list` use only the standard library, so Python 3.9 or later runs them. `verify`
 reads YAML and the producers of this checkout, so it runs in the environment of this repository.
-It reads each Python file of a bundle as text and never runs it (ADR-AD33). `pack --dry-run` packs
+It reads each Python file of a bundle as text and never runs it (ADR-AD33). `pack` and `verify` read
+a proposal patch `skellytracker.patch` as text, never apply it, and check its scope (ADR-6J8E). `pack --dry-run` packs
 in a temporary folder, takes the external files from the real `--root`, runs `verify` on the result
 and writes nothing, so it runs where `verify` runs. `record` copies the bytes of the current version
 of a proposal bundle to its tracked record and checks each hash. It never imports or runs a file of
@@ -51,7 +52,7 @@ SPEC = "specs/model-sidecar"
 SECTION_FOLDERS = ("format", "common", "pre", "post")
 
 BUNDLE_FORMAT = 1
-TEXT_SUFFIXES = {".md", ".yaml", ".yml", ".py", ".json", ".txt", ".csv", ".toml"}
+TEXT_SUFFIXES = {".md", ".yaml", ".yml", ".py", ".json", ".txt", ".csv", ".toml", ".patch"}
 # shortcut: a suffix test only; an ONNX external-data file with another name passes; add a magic check if one appears.
 FORBIDDEN_SUFFIXES = (".onnx", ".onnx.data", ".ort")
 # Compiled Python cannot be reviewed as text (ADR-1GG7).
@@ -108,6 +109,37 @@ def refused_file(rel: str) -> str | None:
     if lower.endswith(COMPILED_SUFFIXES) or "__pycache__" in lower.split("/"):
         return f"{rel}: do not put compiled files in a bundle; run Python with -B"
     return None
+
+
+PATCH_FILE = "skellytracker.patch"
+PATCH_PATH = re.compile(r"^(?:diff --git a/(\S+) b/(\S+)|--- a/(\S+)|\+\+\+ b/(\S+)|(?:rename|copy) (?:from|to) (\S+))$")
+PATCH_BINARY = re.compile(r"^(?:GIT binary patch|Binary files .* differ)$")
+
+
+def patch_problems(text: str) -> list[str]:
+    """Return why a patch leaves its scope (ADR-6J8E, items 2 and 3). The patch is read as text, never applied."""
+    lines = text.split("\n")
+    problems = [f"{PATCH_FILE}: a binary change; a patch holds only text changes" for line in lines if PATCH_BINARY.match(line)][:1]
+    paths = sorted({path for line in lines if (match := PATCH_PATH.match(line)) for path in match.groups() if path})
+    if not paths:
+        problems.append(f"{PATCH_FILE}: not a unified diff with a/ and b/ paths")
+    problems += [
+        f"{PATCH_FILE}: {path}: a patch changes only skellytracker/ and no conftest.py; this stops the review"
+        for path in paths
+        if not path.startswith("skellytracker/") or path.rsplit("/", 1)[-1] == "conftest.py"
+    ]
+    return problems
+
+
+def patch_findings(manifest: dict, rels: object, read) -> list[str]:  # noqa: ANN001
+    """Return the patch findings of a payload: its kind, `patch_release` and `patch_problems` (ADR-6J8E)."""
+    release = manifest.get("patch_release")
+    if PATCH_FILE not in rels:
+        return [f"patch_release needs the file {PATCH_FILE}"] if release is not None else []
+    if manifest.get("kind") != "proposal" or manifest.get("contributes_to"):
+        return [f"{PATCH_FILE}: only a proposal that is not a contribution can hold a patch"]
+    problems = [] if release is not None else [f"{PATCH_FILE}: set patch_release to the release tag of the patch"]
+    return problems + patch_problems(read(PATCH_FILE))
 
 KINDS = ("model", "proposal")
 VERDICTS = ("describes", "does not describe", "pending")
@@ -175,7 +207,8 @@ KIND_KEYS = {
               "no_static_reason"),
     "proposal": ("base", "depends_on", "contributes_to"),
 }
-COMPUTED = ("files", "version", "created", "spec_version")
+OPTIONAL_KEYS = {"model": (), "proposal": ("patch_release",)}  # ADR-6J8E, item 2
+COMPUTED =("files", "version", "created", "spec_version")
 EXTERNAL_KEYS = ("path", "role", "size", "batch", "precision", "published")
 RESPONSE_KEYS = (
     "answers_version",
@@ -259,14 +292,19 @@ def manifest_problems(manifest: dict, computed: bool = True) -> list[str]:
     kind = manifest.get("kind")
     if kind not in KINDS:
         return [f"kind must be one of {list(KINDS)}, not {kind!r}"]
-    allowed = set(COMMON_KEYS) | set(KIND_KEYS[kind])
-    required = allowed if computed else allowed - set(COMPUTED)
+    allowed = set(COMMON_KEYS) | set(KIND_KEYS[kind]) | set(OPTIONAL_KEYS[kind])
+    required = (allowed if computed else allowed - set(COMPUTED)) - set(OPTIONAL_KEYS[kind])
     # A manifest with no spec_version is from before ADR-ZXD7: pack writes each computed key.
     problems += [
         f"missing key {key}" + ("; pack a new version" if key in COMPUTED else "")
         for key in sorted(required - set(manifest))
     ]
-    problems += [f"unknown key {key}" for key in sorted(set(manifest) - required)]
+    problems += [f"unknown key {key}" for key in sorted(set(manifest) - allowed)]
+    if not computed:
+        problems += [f"unknown key {key}" for key in sorted(set(manifest) & set(COMPUTED))]
+    release = manifest.get("patch_release")
+    if release is not None and not (isinstance(release, str) and release and not re.search(r"\s", release)):
+        problems.append("patch_release must be null or the release tag of the patch")
     get = manifest.get
     if get("bundle_format", BUNDLE_FORMAT) != BUNDLE_FORMAT:
         problems.append(f"bundle_format must be {BUNDLE_FORMAT}")
@@ -667,7 +705,9 @@ def pack(
             raise BundleError(reason)
         data = path.read_bytes()
         payload[rel] = _text_form(data, rel) if is_text(rel) else data
-    terms = check_private_data.private_terms(REPO_ROOT) + check_private_data.private_terms(
+    if problems := patch_findings(fields, payload, lambda rel: payload[rel].decode("utf-8")):
+        raise BundleError("bad patch:\n  " + "\n  ".join(problems))
+    terms =check_private_data.private_terms(REPO_ROOT) + check_private_data.private_terms(
         cwd or Path.cwd()
     )
     findings = [
@@ -1435,6 +1475,10 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT, overlay
     }[manifest["kind"]]
     what = "contribution" if contribution else manifest["kind"]
     findings += [f"{rel}: a {what} bundle needs this file" for rel in required if rel not in listed]
+    findings += patch_findings(
+        manifest, listed, lambda rel: (version_dir / rel).read_text(encoding="utf-8", errors="replace")
+        if (version_dir / rel).is_file() else ""
+    )
     if manifest["kind"] == "proposal" and not contribution and "proposal.md" in listed:
         # Parts 3 and 4 name the reference and vector files by their bundle path.
         text = (version_dir / "proposal.md").read_text(encoding="utf-8", errors="replace")

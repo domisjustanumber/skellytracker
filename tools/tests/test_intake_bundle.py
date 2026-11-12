@@ -1604,3 +1604,69 @@ def test_batch_refuses_a_model_before_any_run(family, tmp_path: Path, monkeypatc
     with pytest.raises(ib.BundleError, match=r"batch does not run \.\./\.\./Exporter/m_b2_fp32\.onnx: .*my\.custom"):
         ib.batch_check(fields, out, root=root)
     assert not (out / "report.json").exists()
+
+
+GOOD_PATCH = (
+    "diff --git a/skellytracker/core/x.py b/skellytracker/core/x.py\n"
+    "--- a/skellytracker/core/x.py\n+++ b/skellytracker/core/x.py\n@@ -1 +1 @@\n-a = 1\n+a = 2\n"
+)
+
+
+def test_pack_and_verify_accept_a_patch_in_skellytracker(tmp_path: Path, root: Path) -> None:
+    files = {"proposal.md": "x\n", ib.PATCH_FILE: GOOD_PATCH}
+    version_dir = ib.pack(payload(tmp_path, files), proposal_fields(patch_release="v2.0.0-rc.1"), root, cwd=tmp_path)
+    manifest = json.loads((version_dir / "manifest.yaml").read_text(encoding="utf-8"))
+    assert manifest["patch_release"] == "v2.0.0-rc.1"
+    assert any(f["path"] == ib.PATCH_FILE for f in manifest["files"])
+    assert not [f for f in ib.verify("proposal-box-clamp@ultralytics-exporter", root) if "patch" in f]
+
+
+@pytest.mark.parametrize(
+    ("patch", "message"),
+    [
+        (GOOD_PATCH + "diff --git a/m.bin b/m.bin\nGIT binary patch\nliteral 1\n", "a binary change"),
+        (GOOD_PATCH.replace("skellytracker/core/x.py", "pyproject.toml"), "pyproject.toml: a patch changes only skellytracker/"),
+        (GOOD_PATCH.replace("core/x.py", "tests/conftest.py"), "tests/conftest.py: a patch changes only skellytracker/"),
+        ("not a diff\n", "not a unified diff"),
+    ],
+)
+def test_pack_refuses_a_patch_outside_its_scope(tmp_path: Path, root: Path, patch: str, message: str) -> None:
+    files = {"proposal.md": "x\n", ib.PATCH_FILE: patch}
+    with pytest.raises(ib.BundleError, match=re.escape(message)):
+        ib.pack(payload(tmp_path, files), proposal_fields(patch_release="v2.0.0-rc.1"), root, cwd=tmp_path)
+
+
+def test_verify_finds_a_patch_outside_its_scope(tmp_path: Path, root: Path) -> None:
+    files = {"proposal.md": "x\n", ib.PATCH_FILE: GOOD_PATCH}
+    version_dir = ib.pack(payload(tmp_path, files), proposal_fields(patch_release="v2.0.0-rc.1"), root, cwd=tmp_path)
+    bad = GOOD_PATCH.replace("skellytracker/core/x.py", "tools/x.py").encode("utf-8")
+    (version_dir / ib.PATCH_FILE).write_bytes(bad)
+    manifest = json.loads((version_dir / "manifest.yaml").read_text(encoding="utf-8"))
+    for item in manifest["files"]:
+        if item["path"] == ib.PATCH_FILE:
+            item.update(sha256=ib.sha256(bad), bytes=len(bad))
+    (version_dir / "manifest.yaml").write_text(json.dumps(manifest), encoding="utf-8")
+    findings = ib.verify("proposal-box-clamp@ultralytics-exporter", root)
+    assert f"{ib.PATCH_FILE}: tools/x.py: a patch changes only skellytracker/ and no conftest.py; this stops the review" in findings
+
+
+@pytest.mark.parametrize(
+    ("files", "fields", "message"),
+    [
+        ({"proposal.md": "x\n", ib.PATCH_FILE: GOOD_PATCH}, proposal_fields(), "set patch_release"),
+        ({"proposal.md": "x\n"}, proposal_fields(patch_release="v2.0.0-rc.1"), "patch_release needs the file"),
+        ({"evidence.md": "x\n", "vectors/a.yaml": "cases: []\n", ib.PATCH_FILE: GOOD_PATCH},
+         proposal_fields(contributes_to="box-clamp", patch_release="v2.0.0-rc.1"), "only a proposal that is not a contribution"),
+    ],
+)
+def test_pack_needs_a_patch_and_its_release_together(tmp_path: Path, root: Path, files: dict, fields: dict, message: str) -> None:
+    with pytest.raises(ib.BundleError, match=re.escape(message)):
+        ib.pack(payload(tmp_path, files), fields, root, cwd=tmp_path)
+
+
+def test_patch_release_is_optional_and_a_model_has_no_patch_release() -> None:
+    assert not [p for p in ib.manifest_problems(proposal_fields(), computed=False) if "patch_release" in p]
+    assert "unknown key patch_release" in ib.manifest_problems(model_fields(patch_release="v2.0.0"), computed=False)
+    assert "patch_release must be null or the release tag of the patch" in ib.manifest_problems(
+        proposal_fields(patch_release="v 2"), computed=False
+    )
