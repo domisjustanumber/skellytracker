@@ -141,7 +141,7 @@ def patch_findings(manifest: dict, rels: object, read) -> list[str]:  # noqa: AN
     problems = [] if release is not None else [f"{PATCH_FILE}: set patch_release to the release tag of the patch"]
     return problems + patch_problems(read(PATCH_FILE))
 
-KINDS = ("model", "proposal")
+KINDS = ("model", "proposal", "pipeline")  # pipeline: ADR-271H
 VERDICTS = ("describes", "does not describe", "pending")
 BATCH_VERDICTS = ("converts", "does not convert", "not applicable", "to run")
 BATCH_REASONS = ("host-runtime-cannot-load", "missing-verification-batch", "no-signal")
@@ -207,8 +207,9 @@ KIND_KEYS = {
     "model": ("verdict", "batch_conversion", "batch_conversion_reason", "batch_forced", "batch_forced_reason",
               "no_static_reason"),
     "proposal": ("base", "depends_on", "contributes_to"),
+    "pipeline": ("depends_on",),
 }
-OPTIONAL_KEYS = {"model": (), "proposal": ("patch_release",)}  # ADR-6J8E, item 2
+OPTIONAL_KEYS = {"model": (), "proposal": ("patch_release",), "pipeline": ()}  # ADR-6J8E, item 2
 COMPUTED =("files", "version", "created", "spec_version")
 EXTERNAL_KEYS = ("path", "role", "size", "batch", "precision", "published")
 RESPONSE_KEYS = (
@@ -244,6 +245,7 @@ INPUT_B_ITEMS = 6
 
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
 SHA64 = re.compile(r"^[0-9a-f]{64}$")
+NODE_SECTION = re.compile(r"^node\.[a-z][a-z0-9_]*$")
 SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
 VERSION_HEADING = re.compile(r"^### (\d+\.\d+\.\d+)[ \t]*$", re.MULTILINE)
 ENTRY_FILE = re.compile(r"^[0-9A-Za-z]{4}-(?P<slug>.+)\.md$")
@@ -252,7 +254,7 @@ DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 CONTRIBUTOR = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 BUNDLE_ID = re.compile(
-    r"^(?P<kind>model|proposal)-(?P<name>[A-Za-z0-9][A-Za-z0-9._-]*)@(?P<contributor>[a-z0-9][a-z0-9-]*)$"
+    r"^(?P<kind>model|proposal|pipeline)-(?P<name>[A-Za-z0-9][A-Za-z0-9._-]*)@(?P<contributor>[a-z0-9][a-z0-9-]*)$"
 )
 NO_GIT = "none (no git repo)"
 
@@ -337,6 +339,11 @@ def manifest_problems(manifest: dict, computed: bool = True) -> list[str]:
         ]
         if "depends_on" in manifest and not _is_str_list(get("depends_on")):
             problems.append("depends_on must be a list of bundle IDs")
+    elif kind == "pipeline":
+        if "depends_on" in manifest and not _is_str_list(get("depends_on")):
+            problems.append("depends_on must be a list of bundle IDs")
+        if _is_str_list(get("sections")) and not all(NODE_SECTION.match(s) for s in get("sections")):
+            problems.append("sections of a pipeline must be the node sections node.<type> that it uses")
     else:
         if "verdict" in manifest and get("verdict") not in VERDICTS:
             problems.append(f"verdict must be one of {list(VERDICTS)}")
@@ -900,7 +907,7 @@ def list_lines(root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list[str]:
         lines.append(line)
         if needed_by:
             lines.append(f"  needed by: {', '.join(needed_by)}")
-        if info["manifest"].get("kind") == "model" and info["state"] == "waiting":
+        if info["manifest"].get("kind") in ("model", "pipeline") and info["state"] == "waiting":
             done = [w for w in last.get("waiting_on") or [] if found.get(w, {}).get("state") in FINISHED]
             if done:
                 lines.append(f"  waiting_on no longer open: {', '.join(done)}")
@@ -1416,6 +1423,87 @@ def _publish_problems(version_dir: Path, listed: dict, manifest: dict, yaml) -> 
     return findings
 
 
+PIPELINE_SPEC = "specs/pipeline"
+SIDECAR_ROOTS = (f"{SPEC}/examples/detectors", "skellytracker/core/model_zoo/detectors")
+
+
+def _unique_yaml(text: str, yaml):  # noqa: ANN001, ANN202
+    """Load YAML safely and refuse a duplicate key (V-pipeline.file-5)."""
+
+    class Loader(yaml.SafeLoader):
+        pass
+
+    def mapping(loader, node, deep=False):  # noqa: ANN001, ANN202
+        keys = [loader.construct_object(k, deep=deep) for k, _ in node.value]
+        if len(keys) != len(set(map(str, keys))):
+            raise yaml.YAMLError(f"duplicate key in the mapping at line {node.start_mark.line + 1}")
+        return yaml.SafeLoader.construct_mapping(loader, node, deep)
+
+    Loader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, mapping)
+    return yaml.load(text, Loader=Loader)  # noqa: S506 - a SafeLoader subclass
+
+
+def _sidecars(model_id: str, folders: list[Path], yaml) -> dict[str, str]:  # noqa: ANN001
+    """Return {source.name: sha256 of the bytes} of each sidecar `<model_id>.yaml` under the folders."""
+    found: dict[str, str] = {}
+    for folder in folders:
+        for path in sorted(folder.rglob(f"{model_id}.yaml")) if folder.is_dir() else []:
+            data = path.read_bytes()
+            try:
+                source = (yaml.safe_load(data) or {}).get("source") or {}
+            except (yaml.YAMLError, AttributeError):
+                continue
+            if isinstance(source, dict) and isinstance(source.get("name"), str):
+                found[source["name"]] = sha256(data)
+    return found
+
+
+def _pipeline_problems(version_dir: Path, manifest: dict, found: dict, repo: Path, yaml) -> list[str]:  # noqa: ANN001
+    """Return the findings of the pipeline file of a `pipeline` bundle (ADR-271H, item 3).
+
+    The file is data. The check uses only the reference model of this repository and runs no bundle code.
+    """
+    rel = f"{manifest['name']}.pipeline.yaml"
+    path = version_dir / rel
+    if not path.is_file():
+        return []
+    try:
+        data = _unique_yaml(path.read_text(encoding="utf-8"), yaml)
+    except yaml.YAMLError as exc:
+        return [f"{rel}: not valid YAML: {exc}"]
+    import make_pipeline_schema  # the reference model of this checkout, not bundle code
+
+    model = make_pipeline_schema.load_model(repo / PIPELINE_SPEC / "reference" / "pipeline_config.py")
+    try:
+        model.PipelineConfig.model_validate(data)
+    except ValueError as exc:
+        return [f"{rel}: the pipeline spec refuses it: {' '.join(str(exc).split())[:400]}"]
+    problems = []
+    if data["pipeline_id"] != manifest["name"]:
+        problems.append(f"{rel}: pipeline_id {data['pipeline_id']} is not the bundle name {manifest['name']}")
+    if data["source"]["name"] != manifest["contributor"]:
+        problems.append(f"{rel}: source.name must be the contributor {manifest['contributor']}")
+    pending = [found[b] for b in manifest["depends_on"] if b in found and found[b]["manifest"].get("kind") == "model"]
+    for node in data["nodes"]:
+        if node.get("type") != "detector":
+            continue
+        params = node.get("params") or {}
+        model_id, _, source = str(params.get("key", "")).partition("@")
+        landed = _sidecars(model_id, [repo / r for r in SIDECAR_ROOTS], yaml)
+        waiting = _sidecars(
+            model_id, [b["dir"] / f"v{b['version']}" / "example" for b in pending if b["manifest"].get("name") == model_id], yaml
+        )
+        digest = landed.get(source) or waiting.get(source)
+        where = f"{rel}: node {node.get('id')}"
+        if digest is None:
+            problems.append(f"{where}: no landed sidecar and no depends_on model bundle has the key {params.get('key')}")
+        elif params.get("sidecar_sha256") is None:
+            problems.append(f"{where}: a shipped pipeline file needs sidecar_sha256 ({digest})")
+        elif params["sidecar_sha256"] != digest:
+            problems.append(f"{where}: sidecar_sha256 {params['sidecar_sha256']} is not the sidecar hash {digest}")
+    return problems
+
+
 def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT, overlay: Path | None = None) -> list[str]:
     """Return the findings for the current version of one bundle. An empty list means it passes.
 
@@ -1473,6 +1561,7 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT, overlay
     required = {
         "model": ["intake.md"],
         "proposal": ["evidence.md"] if contribution else ["proposal.md"],
+        "pipeline": ["pipeline.md", f"{manifest['name']}.pipeline.yaml"],
     }[manifest["kind"]]
     what = "contribution" if contribution else manifest["kind"]
     findings += [f"{rel}: a {what} bundle needs this file" for rel in required if rel not in listed]
@@ -1549,6 +1638,9 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT, overlay
     others = list(manifest["related"])
     if manifest["kind"] == "proposal":
         others += [manifest["base"], *manifest["depends_on"]]
+    if manifest["kind"] == "pipeline":
+        others += manifest["depends_on"]
+        findings += _pipeline_problems(version_dir, manifest, found, repo, yaml)
     findings += [f"the bundle {o} does not exist" for o in others if o and o not in found]
     if manifest["kind"] == "proposal":
         owned = owners(found, repo)

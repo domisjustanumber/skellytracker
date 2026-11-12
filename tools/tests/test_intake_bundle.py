@@ -1679,3 +1679,70 @@ def test_a_verified_response_agrees_with_a_proposed_entry_and_owns_its_sections(
     assert not ib.response_problems(response)
     assert ib._state([response], "proposed") == "verified"
     assert "verified" in ib.OWNING
+
+
+YOLOX_SIDECAR = REPO_ROOT / "specs/model-sidecar/examples/detectors/object_detectors/yolox-person/yolox-person.yaml"
+
+
+def pipeline_fields(**extra) -> dict:
+    return {
+        "bundle_format": 1,
+        "kind": "pipeline",
+        "name": "yolox-boxes",
+        "contributor": "openmmlab-exporter",
+        "source_commit": SOURCE,
+        "spec_commit": HEAD,
+        "sections": ["node.detector"],
+        "depends_on": [],
+        "related": [],
+        "external": [],
+        **extra,
+    }
+
+
+def pipeline_file(sha: str | None = None, name: str = "openmmlab-exporter", key: str = "yolox-person@openmmlab-exporter") -> str:
+    sha_line = f"\n      sidecar_sha256: {sha}" if sha else ""
+    return (
+        'schema_version: "2.0.0"\npipeline_id: yolox-boxes\n'
+        f'source: {{name: {name}, version: "0.1.0"}}\n'
+        "nodes:\n  - id: person\n    type: detector\n    inputs: {image: frame.image}\n"
+        f"    params:\n      key: {key}\n      size: m{sha_line}\n"
+        "outputs:\n  person_box: person.detections\n"
+    )
+
+
+def pack_pipeline(tmp_path: Path, root: Path, text: str, **fields) -> Path:
+    files = {"pipeline.md": "A YOLOX box pipeline.\n", "yolox-boxes.pipeline.yaml": text}
+    return ib.pack(payload(tmp_path, files), pipeline_fields(**fields), root, cwd=tmp_path)
+
+
+def test_a_pipeline_bundle_passes_with_the_hash_of_a_landed_sidecar(tmp_path: Path, root: Path) -> None:
+    pack_pipeline(tmp_path, root, pipeline_file(ib.sha256(YOLOX_SIDECAR.read_bytes())))
+    findings = ib.verify("pipeline-yolox-boxes@openmmlab-exporter", root)
+    assert not [f for f in findings if "pipeline" in f or "sidecar" in f], findings
+
+
+@pytest.mark.parametrize(
+    ("text", "message"),
+    [
+        (pipeline_file(), "a shipped pipeline file needs sidecar_sha256"),
+        (pipeline_file("a" * 64), "is not the sidecar hash"),
+        (pipeline_file(key="no-such-model@openmmlab-exporter"), "no landed sidecar and no depends_on model bundle"),
+        (pipeline_file(name="skellytracker"), "source.name must be the contributor openmmlab-exporter"),
+        (pipeline_file().replace("size: m", "size: m\n      size: t"), "duplicate key"),
+        (pipeline_file().replace("outputs:", "unknown_key: 1\noutputs:"), "the pipeline spec refuses it"),
+    ],
+)
+def test_verify_checks_the_pipeline_file(tmp_path: Path, root: Path, text: str, message: str) -> None:
+    pack_pipeline(tmp_path, root, text)
+    findings = ib.verify("pipeline-yolox-boxes@openmmlab-exporter", root)
+    assert any(message in f for f in findings), findings
+
+
+def test_a_pipeline_bundle_needs_its_files_and_node_sections(tmp_path: Path, root: Path) -> None:
+    assert "sections of a pipeline must be the node sections node.<type> that it uses" in ib.manifest_problems(
+        pipeline_fields(sections=["post.object.selection.nms"]), computed=False
+    )
+    ib.pack(payload(tmp_path, {"pipeline.md": "x\n"}), pipeline_fields(), root, cwd=tmp_path)
+    findings = ib.verify("pipeline-yolox-boxes@openmmlab-exporter", root)
+    assert "yolox-boxes.pipeline.yaml: a pipeline bundle needs this file" in findings
