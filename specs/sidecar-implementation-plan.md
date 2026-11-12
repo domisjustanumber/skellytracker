@@ -1,6 +1,6 @@
 # Implementation Plan: Phases to the Exporter Checkpoint
 
-> **Decisions.** The decisions behind this plan are recorded in the decision log, [`decisions/`](../decisions/README.md). The phases and their order follow [ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md). The dependency pins and the GPU EP packs follow [ADR-MWY9](../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md). The implementation-stage work follows [ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) (replace the package ONNX detectors) and [ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) (the entry points and the layout). The pipeline design is in [ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md), [ADR-99MH](../decisions/entries/99MH-pipeline-outputs-and-running.md), [ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md), [ADR-3SF2](../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md), [ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-helper.md) and the [pipeline log](pipeline/decisions/README.md). The sidecar names follow [ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) and [ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md). Entries 0002 to 0007 record the decisions of M1 to M5 ([History](#history)). This plan stays until the user decides to delete it ([ADR-5WKW](../decisions/entries/5WKW-implementation-work-in-the-plan.md)). Record a new decision as a decision entry, not in this plan.
+> **Decisions.** The decisions behind this plan are recorded in the decision log, [`decisions/`](../decisions/README.md). The phases and their order follow [ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md). The dependency pins and the GPU EP packs follow [ADR-MWY9](../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md). The implementation-stage work follows [ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) (replace the package ONNX detectors) and [ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) (the entry points and the layout). The pipeline design is in [ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md), [ADR-99MH](../decisions/entries/99MH-pipeline-outputs-and-running.md), [ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md), [ADR-3SF2](../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md), [ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-helper.md) and the [pipeline log](pipeline/decisions/README.md). The sidecar names follow [ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) and [ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md). Entries 0002 to 0007 record the decisions of M1 to M5 ([History](#history)). This plan stays until the user decides to delete it ([ADR-5WKW](../decisions/entries/5WKW-implementation-work-in-the-plan.md)). Record a new decision as a decision entry, not in this plan.
 
 > Status: **M1 to M5 are done. Phase 0 started on 2026-11-12. Phase 1 waits for the gate of phase 0.** Phase 0 is in the spec-build stage, and phase 1 is in the implementation stage ([Stages](model-sidecar/model-addition-workflow/README.md#stages)). The [stage order](#stage-order) gives each stage. The "Status" line of each stage gives its state.
 
@@ -258,7 +258,7 @@ The known scope:
 
 - `core/system/`, `core/metrics/` and `core/eps/` under the eager `core` ([ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 3).
   `core/metrics/` holds only system metrics ([ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-helper.md) item 1).
-- `eps.build_session()`. Stage 1.10 builds each ONNX session with it ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 5).
+- `eps.build_session()`. Stage 1.10 builds each ONNX session with it ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 5).
 - The execution provider information in `detectors` and `pipelines`.
 - The `cuda` and `trt-rtx` plugin EP packs, CUDA 13 only, with the EP catalog and the EP store
   ([ADR-MWY9](../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md) item 3). The gate includes a local run on an NVIDIA host: `eps.build_session()`
@@ -617,9 +617,9 @@ the old code. Put each fix in the module of its spec section in `processing/pre/
   ([ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 13).
 - Each entry has `available` and `unavailable_reason`: the extra (`importlib.util.find_spec` with a
   literal name), the ONNX file and its hash
-  ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 7).
+  ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 7).
 - `describe_detector(key)` and the CLI `detectors` and `describe`
-  ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 9): the sizes,
+  ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 9): the sizes,
   the precisions, the `sidecar_sha256`, the ports, the params with their sidecar defaults, and the
   point names.
 - Gate: the catalog tests on temporary roots pass. A test checks that each entry of the static
@@ -724,7 +724,7 @@ in parallel with 1.3 to 1.7.
 - A standalone module under `core/detectors/` runs the MediaPipe Tasks `HolisticLandmarker`.
   MediaPipe 1.2.2 has `mediapipe/tasks/python/vision/holistic_landmarker.py`. The module does not use
   the old MediaPipe detector classes, the old detector contract or `core/tracker/`. The
-  `mediapipe_tasks` node of 1.10 wraps it ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 4).
+  `mediapipe_tasks` node of 1.10 wraps it ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 4).
 - It gives the outputs and the point names of the `holistic` variant of
   [`mediapipe_tasks`](pipeline/nodes/mediapipe_tasks.md). Holistic is single person, so
   `max_instances` is 1. The output has `geometry: 3d` and `depth_unit: pixel` ([ADR-6DKT](pipeline/decisions/entries/6DKT-instance-rows-carry-class-and-score.md) item 6). In
@@ -800,7 +800,7 @@ in parallel with 1.3 to 1.7.
 **Status: NOT STARTED.** It needs 1.3 (`eps.build_session()`), 1.7, 1.8, 1.9 and the pipeline spec
 ([`specs/pipeline/`](pipeline/README.md)). It builds `core/pipelines/` and
 `core/pipelines/_runtime/` beside the old `core/tracker/`. The old run code does not change
-([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 1).
+([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 1).
 
 - **Config.** Move `PipelineConfig` and the node configs, with the union keyed on `type`, from
   `specs/pipeline/reference/pipeline_config.py` into `core/pipelines/config.py`. Add a doc test that
@@ -809,7 +809,7 @@ in parallel with 1.3 to 1.7.
   export and the load checks
   ([ADR-99MH](../decisions/entries/99MH-pipeline-outputs-and-running.md) item 7). Each file has the
   required `source:` field, and its key is `<pipeline_id>@<source>`
-  ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 2). Pipelines use
+  ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 2). Pipelines use
   the sidecar catalog key rules: the newest version wins, `<key>==<version>` pins, and
   `skellytracker` is reserved ([ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) item 7).
 - **Discovery.** Read `*.pipeline.yaml` in `core/model_zoo/pipelines/` and in
@@ -851,7 +851,7 @@ in parallel with 1.3 to 1.7.
   ([ADR-6DKT](pipeline/decisions/entries/6DKT-instance-rows-carry-class-and-score.md) items 1 and 2).
 - **`mediapipe_tasks` node.** One node with `variant: body | hand | face | holistic`. It wraps the
   Holistic runner of 1.8, with its timestamp fix and its safe close, and calls the Tasks
-  landmarkers directly for the other variants. It uses the MediaPipe assets ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 4). Its
+  landmarkers directly for the other variants. It uses the MediaPipe assets ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 4). Its
   params are `min_detection_score`, `min_presence_score`, `min_tracking_score` and `size`
   ([ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) item 7). It has no reset and no back-off ([ADR-6JWJ](pipeline/decisions/entries/6JWJ-mediapipe-video-landmarker-does-not-stick.md)).
   Holistic is single person, so its `max_instances` is 1. Its output has `geometry: 3d` and
@@ -869,9 +869,9 @@ in parallel with 1.3 to 1.7.
   - `smooth_keypoints` refuses a timestamp that does not increase. It has `reset_after_ms` and no
     miss counter.
 - **Sessions.** Build each ONNX session with `eps.build_session()`
-  ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 5).
+  ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 5).
 - **Warnings.** `PipelineWarning`, `PipelineRun.warnings`, `on_warning` and `MissingDependencyError`
-  ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) items 6 and 7).
+  ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) items 6 and 7).
 - **Timing.** The timing events, the header, the derive helpers and the skellybench aggregator in
   `core/pipelines/timing.py` ([ADR-Q59W](../decisions/entries/Q59W-pipeline-timing-and-taps.md)
   items 1 to 4; [ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-helper.md)
@@ -888,14 +888,14 @@ in parallel with 1.3 to 1.7.
   fixed ([Outputs](pipeline/outputs.md#behaviour)). Fix it before the first output of such a port.
 - **CLI.** `run` with the COCO form
   ([ADR-Q59W](../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 6), `validate` and `nodes`
-  ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 9). Stage 1.6 gives
+  ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 9). Stage 1.6 gives
   `detectors` and `describe`.
 - **Node catalog.** `list_node_types()`, the tool that makes the spec table of each node type, and
-  its doc test ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 9).
+  its doc test ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 9).
 - **Webcam demo.** `output_schema` gives `edges` for each output, from the sidecar
   `keypoint.overlay` or the MediaPipe YAML files. Port `python -m skellytracker` to `start_pipeline`
   in `live` mode with `--pipeline <key>`. One generic annotator draws each output
-  ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 8).
+  ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 8).
 - **Pipeline bundles.** Copy each contributed pipeline of `specs/pipeline/examples/` that has an
   entry in `specs/pipeline/inventory.yaml` to `core/model_zoo/pipelines/`. Add the load checks of
   [ADR-99MH](../decisions/entries/99MH-pipeline-outputs-and-running.md) item 7 and a run gate on
@@ -904,7 +904,7 @@ in parallel with 1.3 to 1.7.
 - **Built-ins.** Copy `yolox-rtmw-wholebody` and `mediapipe-holistic-tasks` from
   `specs/pipeline/examples/` to `core/model_zoo/pipelines/`
   ([ADR-3SF2](../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md) item 2;
-  [ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 3).
+  [ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 3).
 - **Multi-person.** A pipeline can have more than one row (`I > 1`). But a row has no identity
   across frames, and each `track_ids` value is -1, until an `associate` node exists
   ([ADR-99MH](../decisions/entries/99MH-pipeline-outputs-and-running.md) item 1). The temporal nodes
@@ -987,7 +987,7 @@ through the model addition workflow. The stages below are the work of skellytrac
 - The host-side canonical mappings (`rtmpose_body17_to_canonical_mapping.yaml`,
   `rtmpose_hand_to_canonical_mapping.yaml`) are skellytracker work, not exporter work.
 - The built-in pipeline `rtmpose-body-hands-face`
-  ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 3). Before it
+  ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 3). Before it
   ships, measure the body17 hand ROI rule (elbow to wrist) and the face ROI rule. No reference
   defines them. The measurement also decides whether `min_size_px` comes back.
 - Gate: the model gate of 0.1, run locally. `rtmpose-body-hands-face` runs.

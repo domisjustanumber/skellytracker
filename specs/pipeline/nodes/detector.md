@@ -88,13 +88,13 @@ A `detector` node runs one ONNX model. It does the preprocessing, the inference 
 - The host runs one NMS implementation ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 9). The sidecar section [`post.object.selection.nms`](../../model-sidecar/post/object/selection-nms.md#behaviour) gives its steps.
 - A shipped or an exported pipeline file must have `sidecar_sha256` ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 10). For a hand-written file with no `sidecar_sha256`, the loader logs the hash that it resolves.
 - The host does the checks of this section at load, because they need the sidecar. The reference model does not do them (`specs/pipeline/reference/pipeline_config.py`).
-- The runtime builds each ONNX session with `eps.build_session()` ([ADR-8NVD](../../../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 5). When the requested EP and the used EP differ, the run gives the warning `ep_fallback` (item 6).
+- The runtime builds each ONNX session with `eps.build_session()` ([ADR-48PG](../../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 5). When the requested EP and the used EP differ, the run gives the warning `ep_fallback` (item 6).
 - In one process, nodes with the same artifact `sha256`, batch and execution share one inference session. The file says nothing about it ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 6).
 
 ## Authoring guidance
 
 - Write only the params that the file changes ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 11).
-- To keep only the best detection of a single-person pipeline, set `object_decode.nms.post_nms_top_k` to 1. The built-in `yolox-rtmw-wholebody` does this ([ADR-8NVD](../../../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 3).
+- To keep only the best detection of a single-person pipeline, set `object_decode.nms.post_nms_top_k` to 1. The built-in `yolox-rtmw-wholebody` does this ([ADR-48PG](../../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 3).
 
 ## Examples
 

@@ -111,13 +111,13 @@ class DetectorParams(Strict):
 
 class MediapipeTasksParams(Strict):
     variant: Literal["body", "hand", "face", "holistic"] = param(
-        description="The Tasks landmarker: pose (`body`), hand, face or holistic.", live=False, source="ADR-8NVD item 4; ADR-88WQ item 4"
+        description="The Tasks landmarker: pose (`body`), hand, face or holistic.", live=False, source="ADR-48PG item 4; ADR-88WQ item 4"
     )
     max_instances: int = param(
         1,
         description="`num_poses`, `num_hands` or `num_faces`. Holistic is single person: 1.",
         live=False,
-        source="MediaPipe `num_poses`, `num_hands`, `num_faces` (Tasks default 1); ADR-8NVD item 4",
+        source="MediaPipe `num_poses`, `num_hands`, `num_faces` (Tasks default 1); ADR-48PG item 4",
         ge=1,
     )
     size: Literal["lite", "full", "heavy"] = param(

@@ -10,15 +10,15 @@ status: {spec: draft}
 
 > This section is a draft. Its fields and rules can change before the section becomes `stable`.
 
-A `mediapipe_tasks` node wraps one MediaPipe Tasks landmarker: pose, hand, face or holistic. It calls the Tasks landmarker directly and uses the MediaPipe assets of [ADR-AQR4](../../../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) ([ADR-8NVD](../../../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 4). The landmarker does its own detection, crops and tracking. The pipeline spec does not define them ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 7). The node has no reset and no back-off ([ADR-6JWJ](../decisions/entries/6JWJ-mediapipe-video-landmarker-does-not-stick.md)).
+A `mediapipe_tasks` node wraps one MediaPipe Tasks landmarker: pose, hand, face or holistic. It calls the Tasks landmarker directly and uses the MediaPipe assets of [ADR-AQR4](../../../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) ([ADR-48PG](../../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 4). The landmarker does its own detection, crops and tracking. The pipeline spec does not define them ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 7). The node has no reset and no back-off ([ADR-6JWJ](../decisions/entries/6JWJ-mediapipe-video-landmarker-does-not-stick.md)).
 
 ## Fields
 
 <!-- node-table:params -->
 | Param | Type | Range | Default | Live | Description | Source |
 |---|---|---|---|---|---|---|
-| `variant` | `Literal['body', 'hand', 'face', 'holistic']` |  | required | no | The Tasks landmarker: pose (`body`), hand, face or holistic. | ADR-8NVD item 4; ADR-88WQ item 4 |
-| `max_instances` | `int` | >= 1 | `1` | no | `num_poses`, `num_hands` or `num_faces`. Holistic is single person: 1. | MediaPipe `num_poses`, `num_hands`, `num_faces` (Tasks default 1); ADR-8NVD item 4 |
+| `variant` | `Literal['body', 'hand', 'face', 'holistic']` |  | required | no | The Tasks landmarker: pose (`body`), hand, face or holistic. | ADR-48PG item 4; ADR-88WQ item 4 |
+| `max_instances` | `int` | >= 1 | `1` | no | `num_poses`, `num_hands` or `num_faces`. Holistic is single person: 1. | MediaPipe `num_poses`, `num_hands`, `num_faces` (Tasks default 1); ADR-48PG item 4 |
 | `size` | `Literal['lite', 'full', 'heavy']` |  | `"heavy"` | no | The model size of the pose landmarker. Only for the variant `body`. | MediaPipe asset `pose_landmarker_<size>`; MediapipePoseDetectorConfig.model_complexity |
 | `min_detection_score` | `float` | >= 0.0, <= 1.0 | `0.5` | no | The minimum detection score (Holistic: the pose and the face detection). | MediaPipe `min_*_detection_confidence` (Tasks default 0.5) |
 | `min_presence_score` | `float` | >= 0.0, <= 1.0 | `0.5` | no | The minimum presence score (Holistic: the landmark score of each part). | MediaPipe `min_*_presence_confidence`, Holistic `min_*_landmarks_confidence` (Tasks default 0.5) |
@@ -64,9 +64,9 @@ The params use the shared names of the pipeline spec, not the MediaPipe option n
 - The holistic order body, right hand, left hand, face is the order of freemocap.
 - The output schema has `geometry: 3d` and `depth_unit: pixel` ([Outputs](../outputs.md#fields)). The node gives source-image pixels: it multiplies the normalised x and z of a landmark by the image width, and y by the image height. Thus z is the relative depth of MediaPipe, scaled by the image width, as the sidecar spec describes for the MediaPipe landmark models ([Coordinate decode](../../model-sidecar/post/keypoint/decode-coordinate.md#implementer-guidance)).
 - The body names are the point names of `body/mediapipe_body.yaml`. The hand names are the point names of `hands/mediapipe_hand.yaml`. A face name is `face_` and the four-digit index of the point, as in `face/mediapipe_face_contour.yaml`. These files are in `skellytracker/core/detectors/keypoint_detectors/mediapipe/`.
-- The 478 face points include the 10 iris points. They hold each point of the 136-point face contour subset ([ADR-8NVD](../../../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) Reason; [ADR-MSH0](../../../decisions/entries/MSH0-supported-platforms-v2.md)).
-- The variant `holistic` is single person ([ADR-8NVD](../../../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 4).
-- The node has no ROI input in v1. An ROI input is open work ([ADR-8NVD](../../../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 4).
+- The 478 face points include the 10 iris points. They hold each point of the 136-point face contour subset ([ADR-48PG](../../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) Reason; [ADR-MSH0](../../../decisions/entries/MSH0-supported-platforms-v2.md)).
+- The variant `holistic` is single person ([ADR-48PG](../../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 4).
+- The node has no ROI input in v1. An ROI input is open work ([ADR-48PG](../../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 4).
 - The node does not use an execution provider. It ignores the EP of the run (`MediapipeTasksParams` in `specs/pipeline/reference/pipeline_config.py` has no `execution_provider`).
 - The timing point is `run`. Its time counts as model time in the skellybench timing record ([Timing](../timing.md#implementer-guidance); [ADR-Q59W](../../../decisions/entries/Q59W-pipeline-timing-and-taps.md) items 1 and 4).
 
@@ -77,7 +77,7 @@ The params use the shared names of the pipeline spec, not the MediaPipe option n
 ## Implementer guidance
 
 - In `VIDEO` mode, the landmarker needs strictly increasing integer timestamps. The node gives the `timestamp_ms` of the frame, which increases ([`V-node.smooth_keypoints-3`](smooth_keypoints.md#validation-rules) gives the same rule for the smoother). Today's code makes the timestamp from `int(time.monotonic() * 1000)`. On Windows with Python 3.11 or 3.12, that can give the same value for two frames: `time.monotonic()` then uses `GetTickCount64()`, with steps of 15.625 ms. MediaPipe then raises `ValueError: Input timestamp must be monotonically increasing` ([ADR-MSH0](../../../decisions/entries/MSH0-supported-platforms-v2.md) Evidence; [ADR-EM74](../../../decisions/entries/EM74-stage-order-and-ci-models.md) item 6).
-- The node must close its landmarker safely, also when the garbage collector frees the node. On Python 3.12, `PoseLandmarker.__del__` → `close()` can wait for a MediaPipe dispatcher future that does not complete, and the process hangs at exit ([ADR-MSH0](../../../decisions/entries/MSH0-supported-platforms-v2.md) Evidence; [ADR-EM74](../../../decisions/entries/EM74-stage-order-and-ci-models.md) item 6; [ADR-8NVD](../../../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 4).
+- The node must close its landmarker safely, also when the garbage collector frees the node. On Python 3.12, `PoseLandmarker.__del__` → `close()` can wait for a MediaPipe dispatcher future that does not complete, and the process hangs at exit ([ADR-MSH0](../../../decisions/entries/MSH0-supported-platforms-v2.md) Evidence; [ADR-EM74](../../../decisions/entries/EM74-stage-order-and-ci-models.md) item 6; [ADR-48PG](../../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 4).
 - Today's package closes and builds a VIDEO-mode landmarker again after frames with no keypoints. The node does not do this. The measurement found no stuck landmarker on MediaPipe 0.10.33. Run it again on MediaPipe 1.2.2 ([ADR-6JWJ](../decisions/entries/6JWJ-mediapipe-video-landmarker-does-not-stick.md)).
 - In `live` mode, `frame_index` can skip, and a call can hold a subset of the cameras ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md) items 2 and 3).
 - The cameras stay separate ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 1). In `VIDEO` mode, each camera thus needs its own landmarker state and its own timestamp sequence.
@@ -85,8 +85,8 @@ The params use the shared names of the pipeline spec, not the MediaPipe option n
 
 ## Authoring guidance
 
-- The built-in `mediapipe-holistic-tasks` uses the variant `holistic`. It has no keypoint parity with the old MediaPipe builders ([ADR-8NVD](../../../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) items 3 and 4).
-- For a face on the full frame, prefer `holistic` to `face`. Holistic found a small face on the full frame where `FaceLandmarker` found none ([ADR-8NVD](../../../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) Reason).
+- The built-in `mediapipe-holistic-tasks` uses the variant `holistic`. It has no keypoint parity with the old MediaPipe builders ([ADR-48PG](../../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) items 3 and 4).
+- For a face on the full frame, prefer `holistic` to `face`. Holistic found a small face on the full frame where `FaceLandmarker` found none ([ADR-48PG](../../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) Reason).
 
 ## Examples
 
