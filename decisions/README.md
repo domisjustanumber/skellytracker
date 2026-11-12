@@ -37,12 +37,12 @@ These entries are `accepted` or `evidence`.
 | [EM74](entries/EM74-stage-order-and-ci-models.md) | New code beside old; order N5, pre-release, P, Da, N6, Db, Dc; standalone generic detectors; generated ONNX models in CI | accepted |
 | [7NY2](entries/7NY2-pipeline-form-graph-and-nodes.md) | Pipeline config: one Pydantic model from YAML; flat node graph with `@prev`; detector, `mediapipe_tasks` and closed glue nodes | accepted |
 | [99MH](entries/99MH-pipeline-outputs-and-running.md) | Pipeline outputs with an instance dimension; running modes; batch k × cameras, camera count when stateful; session sharing; load checks | accepted |
-| [Q59W](entries/Q59W-pipeline-timing-and-taps.md) | Pipeline timing points and JSONL events with a header; record and replay taps; COCO-only CLI run for skellybench | accepted |
 | [8NVD](entries/8NVD-pipeline-api-warnings-and-catalog.md) | Pipeline API `core.pipelines`; built-ins; `PipelineWarning`; dependency reports; Holistic for MediaPipe; node catalog | accepted |
 | [3SF2](entries/3SF2-pipeline-spec-and-node-workflow.md) | Pipeline spec in `specs/pipeline/`: section IDs, reference model and schema, glue vectors, changelog, own module log, node workflow | accepted |
 | [1HKJ](entries/1HKJ-proposal-record-links-not-checked.md) | The link check skips the frozen proposal records; their old links stay; the changelog map resolves old IDs | accepted |
 | [88WQ](entries/88WQ-sidecar-vocabulary.md) | Sidecar vocabulary: `object` and `keypoint` blocks, role `keypoint_detector`, `post/object/` and `post/keypoint/`, classes by name, one name per concept | accepted |
 | [GKD1](entries/GKD1-estimator-type-says-the-crop.md) | `keypoint.estimator_type` says whether a model needs a crop; `keypoint.requires_object_detector` goes | accepted |
+| [0WTV](entries/0WTV-system-metrics-and-pipeline-timing-helper.md) | `core/metrics/` holds only system metrics; the pipeline timing helper is `core/pipelines/timing.py`; supersedes Q59W and keeps its other rules | accepted |
 
 ### Proposed
 

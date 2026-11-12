@@ -1,6 +1,6 @@
 # Q59W — Pipeline instrumentation: fixed timing points, JSONL events with a header, record and replay taps, and a CLI run for skellybench
 
-**Status:** accepted, 2026-11-11 (user).
+**Status:** superseded by [0WTV](0WTV-system-metrics-and-pipeline-timing-helper.md), 2026-11-12 (user; PR: pending).
 
 ## Decision
 
