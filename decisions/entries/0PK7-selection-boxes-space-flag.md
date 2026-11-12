@@ -1,6 +1,6 @@
 # 0PK7 — Each selection vector case names the space of its boxes
 
-**Status:** absorbed into [`post.det.selection.nms.yaml`](../../specs/model-sidecar/vectors/post.det.selection.nms.yaml), [`post.det.selection.top_k.yaml`](../../specs/model-sidecar/vectors/post.det.selection.top_k.yaml), [`post.det.selection.none.yaml`](../../specs/model-sidecar/vectors/post.det.selection.none.yaml), [`post_det_decode.py`](../../tools/vector_formulas/post_det_decode.py), [`test_vectors.py`](../../tools/tests/test_vectors.py), [`implement-sidecar-section/SKILL.md#outputs`](../../.claude/skills/implement-sidecar-section/SKILL.md#outputs), 2026-11-10 (user; PR: pending).
+**Status:** absorbed into [`post.det.selection.nms.yaml`](../../specs/model-sidecar/vectors/post.object.selection.nms.yaml), [`post.det.selection.top_k.yaml`](../../specs/model-sidecar/vectors/post.object.selection.top_k.yaml), [`post.det.selection.none.yaml`](../../specs/model-sidecar/vectors/post.object.selection.none.yaml), [`post_det_decode.py`](../../tools/vector_formulas/post_object_decode.py), [`test_vectors.py`](../../tools/tests/test_vectors.py), [`implement-sidecar-section/SKILL.md#outputs`](../../.claude/skills/implement-sidecar-section/SKILL.md#outputs), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

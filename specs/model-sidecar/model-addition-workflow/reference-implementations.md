@@ -70,7 +70,7 @@ proposed section ID.
   [Run a module that imports another module](#run-a-module-that-imports-another-module).
 - The heading "Reference mappings in skellytracker" in
   `../freemocap/skellytracker/specs/model-sidecar/post/keypoint/canonical-mapping.md` (the old spec heading
-  "Reference implementations" under `pose.canonical_mapping`) is about the canonical mapping files of
+  "Reference implementations" under `keypoint.canonical_mapping`) is about the canonical mapping files of
   the package. It is not about these files.
 
 ## Imports of other sections

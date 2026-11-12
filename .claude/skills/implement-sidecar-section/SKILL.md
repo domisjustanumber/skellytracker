@@ -28,10 +28,10 @@ gives the order of the steps, the inputs, the outputs and the stop points.
 
 ## Inputs
 
-- The section ID, for example `post.det.selection.top_k`. The
+- The section ID, for example `post.object.selection.top_k`. The
   [section map](../../../specs/model-sidecar/README.md#section-map) gives the section file.
 - `<section_module>` is the section ID with each dot replaced by an underscore, for example
-  `post_det_selection_top_k`.
+  `post_object_selection_top_k`.
 
 ## Outputs
 

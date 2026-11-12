@@ -57,13 +57,13 @@
   clamps the boxes. The clamp bounds are `[0, W]` and `[0, H]`, with `W` and `H` the source-image
   size (the heading "Selection behaviour" in
   `../freemocap/skellytracker/specs/model-sidecar/post/object/decode.md`). Map the area filter of
-  the upstream, for example `min_bbox_size` of mmdet, to `decode.min_box_size`. Omit
-  `decode.min_box_size` when the upstream keeps the boxes with zero area
+  the upstream, for example `min_bbox_size` of mmdet, to `object.decode.min_box_size`. Omit
+  `object.decode.min_box_size` when the upstream keeps the boxes with zero area
   ([ADR-17KN](../../../decisions/entries/17KN-one-selection-pipeline.md)). The spec does not define
   the dtype of the score comparison ([Spec defects](../decisions/open-work.md#spec-defects)).
   Record what the upstream does.
-- **Pose.** Write `tracked_points` in native model output order. Record the connections, the decode
-  method and the `landmark_schema`. For a bottom-up model, record how the pose rows align with the
+- **Pose.** Write `point_names` in native model output order. Record the skeletons, the decode
+  method and the `landmark_schema`. For a bottom-up model, record how the keypoint rows align with the
   detection rows. The spec says that a packed keypoint `score` is already activated. The spec has no
   field for a keypoint-score activation. If the host must activate the keypoint scores, that is a gap.
 

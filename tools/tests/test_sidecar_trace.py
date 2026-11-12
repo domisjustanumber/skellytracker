@@ -29,7 +29,7 @@ README = """\
 |------------|------|-------|
 | `common.a` | [common/a.md](common/a.md) | Common A |
 | `pre.resize.letterbox` | [pre/letterbox.md](pre/letterbox.md) | Letterbox |
-| `post.det.selection.nms` | [post/nms.md](post/nms.md) | Selection: NMS |
+| `post.object.selection.nms` | [post/nms.md](post/nms.md) | Selection: NMS |
 """
 
 # A legacy package sidecar. The scan must not find it (ADR-C0YD item 1).
@@ -50,7 +50,7 @@ source: {name: a-lib, version: "1.0"}
 role: [object_detector]
 input:
   resize: {method: stretch}
-decode: {selection: nms}
+object: {classes: [person], decode: {selection: nms}}
 """
 
 BAR = """\
@@ -60,14 +60,14 @@ role: [object_detector]
 input:
   normalization: unit_float
   resize: {method: letterbox, pad_position: center, rounding: half_even}
-decode: {selection: nms}
+object: {classes: [person], decode: {selection: nms}}
 """
 
 BAZ = """\
 schema_version: "1"
 model_id: baz
 source: {name: declared-lib, version: "1.0"}
-role: [pose_estimator]
+role: [keypoint_detector]
 input: {resize: {method: fit}}
 """
 
@@ -129,9 +129,9 @@ def repo(tmp_path: Path) -> Path:
         tmp_path,
         spec + "post/nms.md",
         front_matter(
-            "post.det.selection.nms",
+            "post.object.selection.nms",
             "postprocessor",
-            ["decode.selection=nms"],
+            ["object.decode.selection=nms"],
             {"validate": "missing", "decode": "pkg/post.py::decode"},
         ),
     )
@@ -404,7 +404,7 @@ def test_the_section_map_lists_the_rows_in_order(repo: Path) -> None:
     assert [(r.id, r.file, r.title) for r in rows] == [
         ("common.a", "common/a.md", "Common A"),
         ("pre.resize.letterbox", "pre/letterbox.md", "Letterbox"),
-        ("post.det.selection.nms", "post/nms.md", "Selection: NMS"),
+        ("post.object.selection.nms", "post/nms.md", "Selection: NMS"),
     ]
 
 
@@ -412,7 +412,7 @@ def test_sections_come_in_the_order_of_the_map(repo: Path) -> None:
     assert [s.id for s in st.load_sections(repo)] == [
         "common.a",
         "pre.resize.letterbox",
-        "post.det.selection.nms",
+        "post.object.selection.nms",
     ]
 
 
@@ -448,7 +448,7 @@ def test_missing_entries_list_the_missing_steps(repo: Path) -> None:
         ("common.a", "validate"),
         ("common.a", "load"),
         ("pre.resize.letterbox", "inverse"),
-        ("post.det.selection.nms", "validate"),
+        ("post.object.selection.nms", "validate"),
     ]
 
 
@@ -526,7 +526,7 @@ def test_the_scan_derives_no_normalization(repo: Path) -> None:
     # `input.normalization` has no default (ADR-0QKK).
     foo = next(s for s in st.scan_sidecars(repo).sidecars if s.model_id == "foo")
     assert "normalization" not in foo.normalized["input"]
-    assert foo.normalized["decode"] == foo.resolved["decode"]
+    assert foo.normalized["object"] == foo.resolved["object"]
     assert foo.derived == ()
 
 
@@ -536,7 +536,7 @@ def test_the_sections_apply_to_the_right_sidecars(repo: Path) -> None:
     applicable = st.applicable_models(sections, sidecars)
     assert [s.key for s in applicable["common.a"]] == [s.key for s in sidecars]
     assert [s.key for s in applicable["pre.resize.letterbox"]] == ["bar@other-exporter"]
-    assert [s.key for s in applicable["post.det.selection.nms"]] == [
+    assert [s.key for s in applicable["post.object.selection.nms"]] == [
         "foo@a-lib",
         "bar@other-exporter",
     ]
@@ -578,10 +578,10 @@ def test_the_matrix_rows_and_cells(repo: Path) -> None:
     row = next(line for line in lines if line.startswith("| [`pre.resize.letterbox`]"))
     assert row == "| [`pre.resize.letterbox`](pre/letterbox.md) |  |  | x |"
     row = next(
-        line for line in lines if line.startswith("| [`post.det.selection.nms`]")
+        line for line in lines if line.startswith("| [`post.object.selection.nms`]")
     )
     assert row == (
-        "| [`post.det.selection.nms`](post/nms.md) | nms |  | nms |"
+        "| [`post.object.selection.nms`](post/nms.md) | nms |  | nms |"
     )
 
 
@@ -609,24 +609,24 @@ def _fake_sidecar(
         resolved={},
         normalized={
             "input": {"normalization": normalization},
-            "decode": {"selection": "none"},
+            "object": {"decode": {"selection": "none"}},
         },
         derived=derived,
     )
 
 
-def test_the_bottom_up_row_shows_packed_keypoints_and_poses_outputs() -> None:
+def test_the_bottom_up_row_shows_packed_keypoints_and_instance_keypoints_outputs() -> None:
     def sidecar(outputs: list[dict[str, Any]]) -> st.Sidecar:
         fake = _fake_sidecar("none", "1", ())
         return st.Sidecar(**{**fake.__dict__, "normalized": {"outputs": outputs}})
 
-    packed = sidecar([{"semantic": "detections", "packed_keypoints": {"offset": 6}}])
-    poses = sidecar([{"semantic": "detections"}, {"semantic": "poses"}])
-    both = sidecar([{"semantic": "poses", "packed_keypoints": {"offset": 6}}])
-    neither = sidecar([{"semantic": "detections", "packed_keypoints": None}])
+    packed = sidecar([{"semantic": "packed_detections", "packed_keypoints": {"offset": 6}}])
+    poses = sidecar([{"semantic": "packed_detections"}, {"semantic": "instance_keypoints"}])
+    both = sidecar([{"semantic": "instance_keypoints", "packed_keypoints": {"offset": 6}}])
+    neither = sidecar([{"semantic": "packed_detections", "packed_keypoints": None}])
     assert st._bottom_up_label(packed) == "x (packed)"
-    assert st._bottom_up_label(poses) == "x (poses)"
-    assert st._bottom_up_label(both) == "x (packed, poses)"
+    assert st._bottom_up_label(poses) == "x (instance_keypoints)"
+    assert st._bottom_up_label(both) == "x (packed, instance_keypoints)"
     assert st._bottom_up_label(neither) == "x"
 
 
@@ -772,7 +772,7 @@ def test_a_changed_implementing_file_reaches_the_sections_that_name_it(
     repo: Path,
 ) -> None:
     affected = st.affected_sections({"pkg/post.py"}, repo)
-    assert [a.section.id for a in affected] == ["post.det.selection.nms"]
+    assert [a.section.id for a in affected] == ["post.object.selection.nms"]
     assert affected[0].reasons == ("implementing file changed: pkg/post.py",)
     assert affected[0].models == ("foo@a-lib", "bar@other-exporter")
     assert affected[0].exporters == ("Other-Exporter: exports/bar.yaml",)
@@ -809,7 +809,7 @@ def test_the_impact_text_lists_each_section_and_a_summary(repo: Path) -> None:
     assert "\npre.resize.letterbox\n  reason: section file changed" in text
     assert "  exporters: Other-Exporter: exports/bar.yaml\n" in text
     assert (
-        "\nSummary\n  sections (2):\n    post.det.selection.nms\n    pre.resize.letterbox\n"
+        "\nSummary\n  sections (2):\n    post.object.selection.nms\n    pre.resize.letterbox\n"
         in text
     )
 
@@ -1013,7 +1013,7 @@ def test_a_symbol_that_one_side_lacks_has_changed(git_repo: Path) -> None:
     write(
         git_repo, "pkg/post.py", POST_V1.replace("def decode(", "def decode_renamed(")
     )
-    item = reached(git_repo)["post.det.selection.nms"]
+    item = reached(git_repo)["post.object.selection.nms"]
     assert item.reasons == ("implementing function changed: pkg/post.py::decode",)
 
 
@@ -1026,7 +1026,7 @@ def test_a_deleted_or_unreadable_file_changes_in_whole(
         (git_repo / "pkg" / "post.py").unlink()
     else:
         write(git_repo, "pkg/post.py", "def decode(:\n")
-    item = reached(git_repo)["post.det.selection.nms"]
+    item = reached(git_repo)["post.object.selection.nms"]
     assert item.reasons == ("implementing file changed: pkg/post.py",)
     assert item.functions == ("pkg/post.py::decode",)
 
@@ -1213,8 +1213,8 @@ def test_compare_examples_reports_an_exporter_copy_that_is_not_yaml(
 
 EXAMPLE_BAR = "specs/model-sidecar/examples/detectors/object_detectors/bar/bar.yaml"
 EXAMPLE_POINTS = "specs/model-sidecar/examples/detectors/shared/points.yaml"
-POINTS_REF = "pose:\n  tracked_points: {$ref: ../../shared/points.yaml}\n"
-POINTS_INLINE = "pose:\n  tracked_points: [a, b]\n"
+POINTS_REF = "keypoint:\n  point_names: {$ref: ../../shared/points.yaml}\n"
+POINTS_INLINE = "keypoint:\n  point_names: [a, b]\n"
 
 
 def test_compare_examples_resolves_a_fragment_of_the_example(
@@ -1234,7 +1234,7 @@ def test_compare_examples_resolves_a_fragment_of_the_example(
     )
     _, bar = st.compare_examples(repo, exporters)
     assert bar.lines == (
-        "pose.tracked_points: ['a', 'b'] in the example, ['a', 'c'] in the exporter copy",
+        "keypoint.point_names: ['a', 'b'] in the example, ['a', 'c'] in the exporter copy",
     )
 
 
@@ -1247,7 +1247,7 @@ def test_compare_examples_resolves_a_fragment_of_the_exporter_copy(
     write(
         exporters,
         "Other-Exporter/exports/bar.yaml",
-        BAR + "pose:\n  tracked_points: {$ref: points.yaml}\n",
+        BAR + "keypoint:\n  point_names: {$ref: points.yaml}\n",
     )
     _, bar = st.compare_examples(repo, exporters)
     assert (bar.status, bar.lines, bar.notes) == ("same", (), ())
@@ -1261,7 +1261,7 @@ def test_compare_examples_says_when_the_exporter_copy_does_not_resolve(
     write(
         exporters,
         "Other-Exporter/exports/bar.yaml",
-        BAR + "pose:\n  tracked_points: {$ref: missing.yaml}\n",
+        BAR + "keypoint:\n  point_names: {$ref: missing.yaml}\n",
     )
     _, bar = st.compare_examples(repo, exporters)
     assert bar.status == "different"
@@ -1283,7 +1283,7 @@ def test_compare_examples_reports_an_example_that_does_not_resolve(
         repo,
         EXAMPLE_BAR,
         BAR
-        + f'pose:\n  tracked_points: {{$ref: ../../shared/points.yaml, sha256: "{wrong}"}}\n',
+        + f'keypoint:\n  point_names: {{$ref: ../../shared/points.yaml, sha256: "{wrong}"}}\n',
     )
     exporters = tmp_path_factory.mktemp("exporters")
     write(exporters, "Other-Exporter/exports/bar.yaml", BAR + POINTS_INLINE)

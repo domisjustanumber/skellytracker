@@ -39,7 +39,7 @@ heading and the workflow file that holds it, for example "Blocking rows" in
 **Section IDs.** "Section IDs" in `specs/model-sidecar/model-addition-workflow/reading-the-spec.md`
 tells what a section ID is. Write the section ID in the section column. Each pre-filled row names the
 section ID that usually applies. `pre.resize.<method>` is the section of the resize method, for
-example `pre.resize.letterbox`. `post.det.selection.<selection>` and `post.pose.decode.<method>` have
+example `pre.resize.letterbox`. `post.object.selection.<selection>` and `post.keypoint.decode.<method>` have
 the same form. A row with a placeholder lists the values that the placeholder can take. If a
 different section describes the property, change it.
 
@@ -138,7 +138,7 @@ Rules for the rows:
   the command or script that read the graph, and the node or tensor name.
 - A row that does not apply to this model still needs evidence. Write `not used` as the sidecar value.
   The verdict is `exact` when the spec also does not use the field for this model. Example: a model
-  with only the `pose_estimator` role has no detection `decode`.
+  with only the `keypoint_detector` role has no `object` block.
 - A step inside the graph is also a row. Its sidecar value is the host setting that does not do the
   step again. Example: the graph normalizes the input, so the host uses `normalization: none`.
 - The verdicts are `exact`, `near-miss`, `gap`, `unverified` and `out of scope` (see
@@ -168,8 +168,8 @@ Source: the ONNX graph of each file.
 | G6b | Batch conversion: the verdict of the batch-conversion check (`converts`: `exact`; `does not convert`: `gap`; `not applicable`: `out of scope`; `to run`: `unverified`). See "Batch conversion check" below. | | `common.batch_conversion` | `batching.batch_conversion`, or `not used` | | |
 | G7 | I/O dtype for each precision: the input and every output | | `common.input`, `common.outputs` | | | |
 | G8 | Normalization inside the graph (Sub, Div or Mul near the input) | | `pre.normalize` | | | |
-| G9 | NMS or TopK inside the graph (near the outputs) | | `post.det.decode` (Selection behaviour) | | | |
-| G9a | Parameters of the NMS inside the graph: IoU threshold, score threshold and row caps, compared with the upstream test config. The sidecar does not declare them. A value that differs from the upstream is an export defect: write it in the last column. | | `post.det.selection.none` | `not used` | | |
+| G9 | NMS or TopK inside the graph (near the outputs) | | `post.object.decode` (Selection behaviour) | | | |
+| G9a | Parameters of the NMS inside the graph: IoU threshold, score threshold and row caps, compared with the upstream test config. The sidecar does not declare them. A value that differs from the upstream is an export defect: write it in the last column. | | `post.object.selection.none` | `not used` | | |
 
 ### Family
 
@@ -179,9 +179,9 @@ field that is not a per-size field, they are two families. Write one intake for 
 | # | Property | Upstream evidence (file and line, or config key) | Section ID (the `id` in the section file's front matter) | Sidecar value | Verdict | What differs or what is missing |
 |---|---|---|---|---|---|---|
 | F1 | `model_id`. An object detector uses the family (`yolo26`). A keypoint detector uses `{family}-{group}` or `{family}-{group}-{variant}` (`rtmw-wholebody133`, `rtmo-coco17-body7`; `common.identity`, heading "Keypoint detector id"). Write that id: the verdict is `exact`. If the exporter writes another id, write that id in the last column. A name is never a `near-miss`. A new role with no `model_id` rule is a `gap`. | | `common.identity` | | | |
-| F2 | `role`: `object_detector`, `pose_estimator`, or both | | `common.identity` | | | |
+| F2 | `role`: `object_detector`, `keypoint_detector`, or both | | `common.identity` | | | |
 | F3 | Sizes, and what differs between them. A size sets only `input.shape`, `input.resize.target_size` and `onnx`. Use the upstream size name, also for a family with one size. If the upstream has no size name, choose a lowercase token and give the reason. | | `common.sizes_and_artifacts` | | | |
-| F4 | One contract for all sizes: channel order, normalization, resize method, output semantics, selection mode, NMS parameters, class mapping | | `common.sizes_and_artifacts` (family invariant) | | | |
+| F4 | One contract for all sizes: channel order, normalization, resize method, output semantics, selection mode, NMS parameters, classes | | `common.sizes_and_artifacts` (family invariant) | | | |
 | F5 | ONNX file names: `{model_id}-{size}_b{batch}_{precision}.onnx`, where `{batch}` is `batching.batch`, or `{model_id}-{size}_{precision}.onnx` for the batch `dynamic` | | `format.file_layout` | | | |
 | F6 | `display_name` (required) | | `common.identity` | | | |
 
@@ -238,43 +238,43 @@ Source: the upstream postprocessing code and the upstream test config.
   upstream before you omit the field.
 - `min_box_size` has no default. A sidecar without the field drops no box for its size, and a box
   with zero area stays. Check the upstream for an area filter, for example mmdet `min_bbox_size`.
-  If the upstream has one, write `decode.min_box_size`. If the upstream keeps each box, omit the
+  If the upstream has one, write `object.decode.min_box_size`. If the upstream keeps each box, omit the
   field.
 
 | # | Property | Upstream evidence (file and line, or config key) | Section ID (the `id` in the section file's front matter) | Sidecar value | Verdict | What differs or what is missing |
 |---|---|---|---|---|---|---|
-| D1 | Semantic of each output (`detections`, `boxes`, `scores`, `class_logits`, `simcc_x`, `simcc_y`, `keypoints` or `poses`). Add one row for each output. | | `common.outputs`, `post.det.outputs` | | | |
-| D2 | Fields of a detection row (`fields`) and box format (`box_format`) | | `post.det.outputs`, `post.det.decode` | | | |
-| D3 | Box scale: model-input pixels or normalized (`box_scale`) | | `post.det.decode`, `post.unprojection` | | | |
-| D4 | Selection: graph-final rows (`none`), top-k over logits (`top_k`), or host NMS (`nms`) | | `post.det.decode` (`selection`), `post.det.selection.<selection>` (`none`, `top_k`, `nms`) | | | |
-| D5 | Score activation: sigmoid inside the graph or on the host (`score_activation`) | | `post.det.decode`, `post.det.selection.top_k` (`score_activation`) | | | |
-| D6 | Score source and class source (`score_field`, `scores_output`, `class_field`, `class_logits_output`) | | `post.det.decode`, `post.det.selection.top_k` (`class_logits_output`) | | | |
-| D7 | Thresholds from the upstream test config: NMS IoU, NMS score and the box-size filter (mmdet `min_bbox_size`), final confidence | | `post.det.selection.nms` (`nms`), `post.det.decode` (`min_box_size`, `confidence_threshold_default`) | | | |
-| D8 | Threshold comparison (`>` or `>=`), the dtype of the comparison, and the tie order | | `post.det.decode` (Selection behaviour) | | | |
-| D9 | Row limits: graph-final row count (`max_detections`), `top_k`, `nms.post_nms_top_k` | | `post.det.selection.none`, `post.det.selection.top_k`, `post.det.selection.nms` | | | |
-| D10 | Class IDs: `class_id_base`, `class_id_map`, `is_person_only`, `person_class_id`. The host assigns `person_class_id` only through `is_person_only`. A model with no class source (no `class_field` and no `class_logits_output`) must set `is_person_only: true` (`V-post.det.decode-9`). A one-class model of something other than people is a `gap`. | | `post.det.decode` | | | |
-| D11 | Unprojection of boxes and keypoints to the source image (the inverse of the resize method) | | `post.unprojection`, `pre.resize.<method>` (`letterbox`, `stretch`, `fit`, `none`, `affine_person_crop`) (Inverse), `post.pose.decode.<method>` (`simcc`, `coordinate`) | | | |
-| D12 | Box clamp to the source image (`clamp_boxes`, default `true`) and the box-size filter (`min_box_size`, no default). The spec clamps each `x` to `[0, W]` and each `y` to `[0, H]` of the source image: compare the upstream bounds. Write what the upstream does with a box that has no area or a small area. An upstream area filter maps to `min_box_size`. | | `post.det.decode` | | | |
+| D1 | Semantic of each output (`packed_detections`, `boxes`, `scores`, `class_logits`, `simcc_x`, `simcc_y`, `keypoint_coordinates` or `instance_keypoints`). Add one row for each output. | | `common.outputs`, `post.object.outputs` | | | |
+| D2 | Fields of a detection row (`fields`) and box format (`box_format`) | | `post.object.outputs`, `post.object.decode` | | | |
+| D3 | Box space: model-input pixels or normalized (`box_space`) | | `post.object.decode`, `post.unprojection` | | | |
+| D4 | Selection: graph-final rows (`none`), top-k over logits (`top_k`), or host NMS (`nms`) | | `post.object.decode` (`selection`), `post.object.selection.<selection>` (`none`, `top_k`, `nms`) | | | |
+| D5 | Score activation: sigmoid inside the graph or on the host (`score_activation`) | | `post.object.decode`, `post.object.selection.top_k` (`score_activation`) | | | |
+| D6 | Score source and class source (`score_field`, `scores_output`, `class_field`, `class_logits_output`) | | `post.object.decode`, `post.object.selection.top_k` (`class_logits_output`) | | | |
+| D7 | Thresholds from the upstream test config: NMS IoU, NMS score and the box-size filter (mmdet `min_bbox_size`), final confidence | | `post.object.selection.nms` (`nms`), `post.object.decode` (`min_box_size`, `min_score`) | | | |
+| D8 | Threshold comparison (`>` or `>=`), the dtype of the comparison, and the tie order | | `post.object.decode` (Selection behaviour) | | | |
+| D9 | Row limits: graph-final row count (`max_detections`), `top_k`, `nms.post_nms_top_k` | | `post.object.selection.none`, `post.object.selection.top_k`, `post.object.selection.nms` | | | |
+| D10 | Classes: `object.classes` (the class names in model index order) and `object.decode.keep_classes` (the classes that the host keeps). A model with no class source (no `class_field` and no `class_logits_output`) has exactly one class (`V-post.object.decode-9`). | | `post.object.decode` | | | |
+| D11 | Unprojection of boxes and keypoints to the source image (the inverse of the resize method) | | `post.unprojection`, `pre.resize.<method>` (`letterbox`, `stretch`, `fit`, `none`, `affine_person_crop`) (Inverse), `post.keypoint.decode.<method>` (`simcc`, `coordinate`) | | | |
+| D12 | Box clamp to the source image (`clamp_boxes`, default `true`) and the box-size filter (`min_box_size`, no default). The spec clamps each `x` to `[0, W]` and each `y` to `[0, H]` of the source image: compare the upstream bounds. Write what the upstream does with a box that has no area or a small area. An upstream area filter maps to `min_box_size`. | | `post.object.decode` | | | |
 
 ### Pose
 
-- Write `tracked_points` in the native output order of the model: the i-th name is the i-th keypoint
+- Write `point_names` in the native output order of the model: the i-th name is the i-th keypoint
   that the model gives. Do not reorder the names.
-- If the model has no `pose_estimator` role, write `not used` in every row.
+- If the model has no `keypoint_detector` role, write `not used` in every row.
 
 | # | Property | Upstream evidence (file and line, or config key) | Section ID (the `id` in the section file's front matter) | Sidecar value | Verdict | What differs or what is missing |
 |---|---|---|---|---|---|---|
-| K1 | Estimator type and `requires_object_detector` | | `post.pose.schema` | | | |
-| K2 | `tracked_points` in native output order | | `post.pose.schema` (`pose.tracked_points`) | | | |
-| K3 | Connections: named skeletons and their edges | | `post.pose.schema` (`pose.connections`) | | | |
-| K4 | Output geometry (`pose.geometry`: `2d` or `3d`, required), decode method (`simcc` or `coordinate`) and its parameters (`coordinate_scale`, `depth_unit`) | | `post.pose.schema` (`pose.geometry`, `pose.decode`), `post.pose.decode.<method>` (`simcc`, `coordinate`) | | | |
-| K5 | Keypoint axis and keypoint count of each pose output | | `post.pose.schema` (`keypoint_axis`, `keypoint_count`) | | | |
-| K6 | Bottom-up row alignment: pose row `q` belongs to detection row `q` | | `post.pose.bottom_up` | | | |
-| K7 | Keypoints packed into the detection row (`packed_keypoints`) | | `post.pose.bottom_up` | | | |
-| K8 | Keypoint score: its source, and its activation. The spec says that a packed keypoint `score` is already activated. The spec has no field for a keypoint-score activation: if the host must activate the scores, the verdict is `gap`. | | `post.pose.decode.<method>` (`simcc`, `coordinate`), `post.pose.bottom_up` | | | |
-| K9 | Canonical mapping (optional) | | `post.pose.canonical_mapping` | | | |
-| K10 | Overlay (optional) | | `post.overlay` | | | |
-| K11 | Landmark schema (`pose.landmark_schema`, optional) | | `post.pose.schema` | | | |
+| K1 | Estimator type and `requires_object_detector` | | `post.keypoint.schema` | | | |
+| K2 | `point_names` in native output order | | `post.keypoint.schema` (`keypoint.point_names`) | | | |
+| K3 | Skeletons: named skeletons and their edges | | `post.keypoint.schema` (`keypoint.skeletons`) | | | |
+| K4 | Output geometry (`keypoint.geometry`: `2d` or `3d`, required), decode method (`simcc` or `coordinate`) and its parameters (`coordinate_space`, `depth_unit`) | | `post.keypoint.schema` (`keypoint.geometry`, `keypoint.decode`), `post.keypoint.decode.<method>` (`simcc`, `coordinate`) | | | |
+| K5 | Keypoint axis and keypoint count of each pose output | | `post.keypoint.schema` (`keypoint_axis`, `keypoint_count`) | | | |
+| K6 | Bottom-up row alignment: pose row `q` belongs to detection row `q` | | `post.keypoint.bottom_up` | | | |
+| K7 | Keypoints packed into the detection row (`packed_keypoints`) | | `post.keypoint.bottom_up` | | | |
+| K8 | Keypoint score: its source, and its activation. The spec says that a packed keypoint `score` is already activated. The spec has no field for a keypoint-score activation: if the host must activate the scores, the verdict is `gap`. | | `post.keypoint.decode.<method>` (`simcc`, `coordinate`), `post.keypoint.bottom_up` | | | |
+| K9 | Canonical mapping (optional) | | `post.keypoint.canonical_mapping` | | | |
+| K10 | Overlay (optional) | | `post.keypoint.overlay` | | | |
+| K11 | Landmark schema (`keypoint.landmark_schema`, optional) | | `post.keypoint.schema` | | | |
 
 ### License
 
@@ -414,9 +414,9 @@ Write its rule ID (`V-<section-id>-<n>`). Write `not used` for a group that the 
 | Sizes and artifacts (`common.sizes_and_artifacts`, `common.batching`) | | | |
 | Input, resize, normalization (`common.input`, `pre.*`) | | | |
 | Outputs (common) (`common.outputs`) | | | |
-| Detection (`object_detector`: `post.det.*`) | | | |
-| Pose (`pose_estimator`: `post.pose.*`) | | | |
-| Overlay (`post.overlay`) | | | |
+| Detection (`object_detector`: `post.object.*`) | | | |
+| Pose (`keypoint_detector`: `post.keypoint.*`) | | | |
+| Overlay (`post.keypoint.overlay`) | | | |
 
 **Checks of the exporter.**
 
@@ -481,7 +481,7 @@ parity script for this model, name it and its commit, and record what it does no
 | Preprocessed input: maximum absolute difference for each image (expect 0; if not 0, the cause) | |
 | Row count for each image: sidecar path and upstream | |
 | Boxes, scores and classes in source-image coordinates (`object_detector` role): metric and value | |
-| Keypoints and keypoint scores in source-image coordinates (`pose_estimator` role): metric and value | |
+| Keypoints and keypoint scores in source-image coordinates (`keypoint_detector` role): metric and value | |
 | Final outputs of another role (Parity, step 5): output, metric and value | |
 | Result (`pass`, `fail`, `to run` or `skipped`) | |
 | Script path in the exporter repo | |

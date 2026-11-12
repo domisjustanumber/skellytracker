@@ -31,9 +31,9 @@ SIDECAR = f"""\
 
 schema_version: "1"      # the version
 model_id:   m
-pose:
-  tracked_points:   {{$ref: "../../shared/points.yaml"}}    # flow form, double quotes
-  connections:
+keypoint:
+  point_names:   {{$ref: "../../shared/points.yaml"}}    # flow form, double quotes
+  skeletons:
     $ref: ../../shared/outer.yaml    # block form
 
 batching:
@@ -760,11 +760,11 @@ def test_a_version_that_would_load_as_a_number_is_quoted(root: Path) -> None:
 def test_source_goes_before_the_first_key_when_there_is_no_schema_version(
     root: Path,
 ) -> None:
-    put(root, {SIDECAR_REL: "---\n# note\nmodel_id: m\nrole: [pose_estimator]\n"})
+    put(root, {SIDECAR_REL: "---\n# note\nmodel_id: m\nrole: [keypoint_detector]\n"})
     write(sidecar_of(root), root, source=("x", "1.2.3"))
     assert (
         read(root)
-        == "---\n# note\nsource:\n  name: x\n  version: 1.2.3\nmodel_id: m\nrole: [pose_estimator]\n"
+        == "---\n# note\nsource:\n  name: x\n  version: 1.2.3\nmodel_id: m\nrole: [keypoint_detector]\n"
     )
 
 
@@ -797,7 +797,7 @@ def test_resolve_accepts_an_unhashed_tree_and_matches_the_package_resolver(
 ) -> None:
     result = resolve(sidecar_of(root), root)
     assert result == package_resolve(sidecar_of(root), root)
-    assert result["pose"]["connections"]["names"] == ["nose", "left_eye"]
+    assert result["keypoint"]["skeletons"]["names"] == ["nose", "left_eye"]
 
 
 def test_resolve_accepts_a_hashed_tree_and_gives_the_same_data(
@@ -808,7 +808,7 @@ def test_resolve_accepts_a_hashed_tree_and_gives_the_same_data(
     write(sidecar_of(root), root)
     assert "sha256" in read(root, "detectors/shared/outer.yaml")
     hashed = resolve(sidecar_of(root), root)
-    assert hashed["pose"] == unhashed["pose"]
+    assert hashed["keypoint"] == unhashed["keypoint"]
     # The artifact hashes stay in the data: they are valid fields.
     fp32 = hashed["sizes"]["nano"]["onnx"]["precision_artifacts"]["fp32"]
     assert fp32 == {

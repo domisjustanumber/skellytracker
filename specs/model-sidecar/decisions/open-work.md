@@ -28,15 +28,7 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   or `affine_person_crop` thus gives the pixels of `linear`. The
   [interpolation](../pre/interpolation.md#behaviour) table names `cv2.INTER_AREA` for `area`. No
   current model uses this pair ([ADR-G79P](entries/G79P-pixel-centres-per-resize-method.md)).
-- The spec has no description of a one-class detector of an object that is not a person. A sidecar
-  with no class source must set `decode.is_person_only: true`, so each detection gets the class
-  `person_class_id` ([`V-post.det.decode-9`](../post/object/decode.md#validation-rules);
-  [ADR-17KN](../../../decisions/entries/17KN-one-selection-pipeline.md)).
 - The spec does not state these facts, but a host needs them:
-  - the keypoint scores in a `poses` tensor are already activated (the spec states this only for
-    `packed_keypoints`). No exporter checks this channel: the RTMO probe of OpenMMLab-Exporter
-    compares only `x` and `y` ([`notes/decisions/scripts/rtmo_sidecar_probe.py:97-102`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/scripts/rtmo_sidecar_probe.py#L97-L102)).
-    Do this item when a model with both roles or a `poses` output has an open bundle;
   - the host frame is BGR, and the host converts it to `input.color_format`;
   - the arithmetic precision of the geometry (except the warp matrix `M` of `affine_person_crop`)
     and of the pixel math. One case of [ADR-PHJ3](entries/PHJ3-resize-compute-dtype.md) is open: a
@@ -47,11 +39,11 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   - the dtype of a score comparison. A float64 score `0.7` passes `>` against a float32 threshold
     `0.7`, because the float32 value is `0.699999988` (numpy 2.4.6).
 - The [Storage layout](../format/file-layout.md#storage-layout) gives no folder to a sidecar whose
-  `role` has both `object_detector` and `pose_estimator`. Both one-stage pose exporters write such a
+  `role` has both `object_detector` and `keypoint_detector`. Both one-stage pose exporters write such a
   sidecar under `detectors/keypoint_detectors/`. Ultralytics-Exporter uses `yolo26/body/`
   ([`yolo_sidecar.py:104-107`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L104-L107)). OpenMMLab-Exporter uses
   `rtmo/coco17/` ([`rtmo/identity.py:42`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/d9704753a22792c32a1d3018a0c9e9ea2d279d71/rtmo/identity.py#L42)).
-  No reference example has both roles. Do this item when a model with both roles or a `poses`
+  No reference example has both roles. Do this item when a model with both roles or an `instance_keypoints`
   output has an open bundle.
 - [`letterbox`](../pre/resize-letterbox.md#fields) has no `rounding` value for `floor`, and its
   [inverse](../pre/resize-letterbox.md#inverse) uses the rounded size. The `resize_pad` function of
@@ -65,7 +57,7 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   - the order of the final rows for `selection: none`. The YOLO26 graph gives its rows in descending
     score order, and ultralytics 8.4.184 keeps that order with no sort (`utils/nms.py:74-77`).
 - No resize method crops a rotated ROI (centre, size and rotation) that the host gives with no
-  detector box. `V-post.pose.schema-2` and `V-pre.resize.affine_person_crop-2` tie a top-down model
+  detector box. `V-post.keypoint.schema-2` and `V-pre.resize.affine_person_crop-2` tie a top-down model
   to `requires_object_detector: true` and to `affine_person_crop`. The `crop_policy` of that method
   has only `expand_ratio` and `maintain_aspect_ratio`. The MediaPipe Holistic hand chain makes its
   ROI from the wrist, pinky and index keypoints of a body pose. It moves the ROI along its own axis
@@ -73,17 +65,17 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   border with the edge pixels (MediaPipe-Exporter [`docs/mediapipe-whole-body.md:79-88`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L79-L88), [`docs/mediapipe-whole-body.md:381-399`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L381-L399)).
   Qualcomm-Exporter writes `affine_person_crop` with `expand_ratio: 1.0` as an approximation
   ([`qai_sidecar.py:270-276`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_sidecar.py#L270-L276), [`README.md:129-133`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/README.md#L129-L133)).
-  ([Pose schema](../post/keypoint/schema.md#validation-rules),
+  ([Keypoint schema](../post/keypoint/schema.md#validation-rules),
   [`affine_person_crop`](../pre/resize-affine-person-crop.md#validation-rules))
 - The MediaPipe hand landmark model has four outputs: 21 landmarks, a hand flag, a handedness score
   and 21 world landmarks in metres (MediaPipe-Exporter [`docs/mediapipe-whole-body.md:199`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L199), [`docs/mediapipe-whole-body.md:147-151`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L147-L151)). The closed
-  `semantic` set of [Outputs](../common/outputs.md#fields) and `V-post.pose.schema-7` (one
-  `keypoints` output for a `coordinate` decoder) let a sidecar declare only the landmarks. MediaPipe
+  `semantic` set of [Outputs](../common/outputs.md#fields) and `V-post.keypoint.schema-7` (one
+  `keypoint_coordinates` output for a `coordinate` decoder) let a sidecar declare only the landmarks. MediaPipe
   keeps a hand only when the flag is `> 0.5`. The handedness is the probability of `Right` (label
   item 0) ([`docs/mediapipe-whole-body.md:362-363`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L362-L363), [`docs/mediapipe-whole-body.md:404-408`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L404-L408)). Without the flag, a host gives
   landmarks for a crop with no hand. The landmark wrapper of Qualcomm-Exporter keeps only the
   landmarks ([`qai_catalog.py:358-360`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_catalog.py#L358-L360)).
-- [`pose.decode`](../post/keypoint/schema.md#posedecode) has no field for a divisor of the raw depth. The
+- [`keypoint.decode`](../post/keypoint/schema.md#keypointdecode) has no field for a divisor of the raw depth. The
   spec has no rule that maps a `pixel` depth to the source image
   ([Unprojection](../post/unprojection.md#behaviour)). MediaPipe computes the depth as
   `z / input_width / normalize_z`. `normalize_z` is 0.4 for the hand graph and 1.0 for the pose and
@@ -92,7 +84,7 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   input width and writes `depth_unit: pixel` ([`qai_catalog.py:346`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_catalog.py#L346),
   [`qai_sidecar.py:255`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_sidecar.py#L255)). Thus two hosts can give depths that differ by a factor of 2.5.
 - The spec has no role for an ROI refiner model. `V-common.identity-2` allows only `object_detector`
-  and `pose_estimator` ([Identity](../common/identity.md#validation-rules)). The closed `semantic` set
+  and `keypoint_detector` ([Identity](../common/identity.md#validation-rules)). The closed `semantic` set
   has no value for ROI points ([Outputs](../common/outputs.md#fields)). The
   [Storage layout](../format/file-layout.md#storage-layout) has no folder for such a model. The
   MediaPipe Holistic hand ROI refinement model gives two points in crop pixels. The host maps them to

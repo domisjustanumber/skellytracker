@@ -5,7 +5,7 @@
   change proposal (phase 2) and stop.
 - Known case: an ROI refiner is a gap. An ROI refiner is a model that gives a region of interest to
   the next model, for example a hand re-crop model. Do not describe it as a pose estimator with two
-  fake keypoints, for example `role: [pose_estimator]` with the points `crop_center` and
+  fake keypoints, for example `role: [keypoint_detector]` with the points `crop_center` and
   `crop_scale`. The spec has no role for a model that gives a crop region, and a host reads the
   outputs of a pose estimator as keypoints ([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).
 - The evidence for a row is an upstream file and line, an upstream config key, or a read of the ONNX

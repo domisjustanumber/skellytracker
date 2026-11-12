@@ -61,7 +61,7 @@ Do these steps:
    - the row count of each image;
    - for the `object_detector` role: the boxes, the scores and the classes, with box AP or per-row
      box differences;
-   - for the `pose_estimator` role: the keypoints and the keypoint scores, with OKS or per-point
+   - for the `keypoint_detector` role: the keypoints and the keypoint scores, with OKS or per-point
      differences;
    - for another role: each final output that the section of the role defines.
 

@@ -138,6 +138,21 @@ ALLOWED_RESPONSES = {
     "superseded by": ("landed",),
 }
 OWNING_ENTRY = {"proposed", "accepted", "absorbed into"}
+# The section IDs that ADR-88WQ renamed. The frozen records and the decided entries keep the old
+# IDs, so the owner of an old ID owns the new ID.
+RENAMED_SECTIONS = {
+    "post.det.outputs": "post.object.outputs",
+    "post.det.decode": "post.object.decode",
+    "post.det.selection.none": "post.object.selection.none",
+    "post.det.selection.top_k": "post.object.selection.top_k",
+    "post.det.selection.nms": "post.object.selection.nms",
+    "post.pose.schema": "post.keypoint.schema",
+    "post.pose.canonical_mapping": "post.keypoint.canonical_mapping",
+    "post.pose.decode.simcc": "post.keypoint.decode.simcc",
+    "post.pose.decode.coordinate": "post.keypoint.decode.coordinate",
+    "post.pose.bottom_up": "post.keypoint.bottom_up",
+    "post.overlay": "post.keypoint.overlay",
+}
 
 COMMON_KEYS = (
     "bundle_format",
@@ -576,7 +591,8 @@ def owners(found: dict[str, dict], repo: Path | None = None) -> dict[str, str]:
     until it is rejected, resolved otherwise or closed. A tracked record in
     `specs/model-sidecar/proposals/` keeps the role after the user deletes the bundle. A
     contribution never owns a section. When more than one proposal can own a section, the owner has
-    the earlier manifest `created`, then the slug that sorts first.
+    the earlier manifest `created`, then the slug that sorts first. An old section ID of
+    `RENAMED_SECTIONS` counts as its new ID.
     """
     candidates = []
     if repo is not None:
@@ -597,7 +613,7 @@ def owners(found: dict[str, dict], repo: Path | None = None) -> dict[str, str]:
     result: dict[str, str] = {}
     for manifest in sorted(candidates, key=lambda m: (str(m.get("created", "")), str(m.get("name", "")))):
         for section in manifest.get("sections") or []:
-            result.setdefault(section, str(manifest.get("contributor", "")))
+            result.setdefault(RENAMED_SECTIONS.get(section, section), str(manifest.get("contributor", "")))
     return result
 
 
@@ -930,7 +946,7 @@ def section_modules(repo: Path = REPO_ROOT) -> set[str]:
 
 
 def module_names(manifests: list) -> set[str]:
-    """Return the module name of each string of the `sections` of the manifests, for example `post_det_clamp`."""
+    """Return the module name of each string of the `sections` of the manifests, for example `post_object_clamp`."""
     sections = (s for m in manifests if isinstance(m, dict) for s in m.get("sections") or [])
     return {s.replace(".", "_") for s in sections if isinstance(s, str)}
 
@@ -1020,6 +1036,8 @@ def reference_problems(path: Path, sections: object = ()) -> tuple[list[str], li
     profile = path.stem == PROFILE_MODULE
     packages = REFERENCE_PACKAGES | ({"onnx"} if profile else set())
     spec_modules = section_modules()
+    # A frozen record can import a section module by its old name (RENAMED_SECTIONS).
+    spec_modules |= {o.replace(".", "_") for o, n in RENAMED_SECTIONS.items() if n.replace(".", "_") in spec_modules}
     # A new section name has a section folder prefix, so it cannot stand for `os`. It must also not
     # be an installed module, for example `pre_commit`: after the copy, the import would load that.
     # `find_spec` of a top-level name only searches the paths; it runs no code of the bundle.
@@ -1490,7 +1508,7 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT, overlay
         owned = owners(found, repo)
         if not contribution and not manifest["base"] and info["recorded"] is None and info["entry"] is None:
             for section in manifest["sections"]:
-                owner = owned.get(section)
+                owner = owned.get(RENAMED_SECTIONS.get(section, section))
                 if owner and owner != manifest["contributor"]:
                     findings.append(
                         f"the section {section} has the owner {owner}: send a contribution or a follow-up"

@@ -634,7 +634,7 @@ def _normalization_label(sidecar: Sidecar) -> str:
 
 
 def _selection_label(sidecar: Sidecar) -> str:
-    return str(sidecar.normalized["decode"]["selection"])
+    return str(sidecar.normalized["object"]["decode"]["selection"])
 
 
 def _bottom_up_label(sidecar: Sidecar) -> str:
@@ -642,7 +642,7 @@ def _bottom_up_label(sidecar: Sidecar) -> str:
         label
         for label, selector in (
             ("packed", "outputs[].packed_keypoints"),
-            ("poses", "outputs[].semantic=poses"),
+            ("instance_keypoints", "outputs[].semantic=instance_keypoints"),
         )
         if sidecar_normalize.matches(selector, sidecar.normalized)
     ]
@@ -652,9 +652,9 @@ def _bottom_up_label(sidecar: Sidecar) -> str:
 def _cell(section: Section, sidecar: Sidecar) -> str:
     if section.id == "pre.normalize":
         return _normalization_label(sidecar)
-    if section.id == "post.pose.bottom_up":
+    if section.id == "post.keypoint.bottom_up":
         return _bottom_up_label(sidecar)
-    if section.id.startswith("post.det.selection."):
+    if section.id.startswith("post.object.selection."):
         return _selection_label(sidecar)
     for (section_id, rule), note in _DERIVED_NOTES.items():
         if section.id == section_id and rule in sidecar.derived:
@@ -923,8 +923,8 @@ def render_traceability(repo_root: Path = REPO_ROOT) -> str:
         "selection. In the `pre.resize.none` row, `derived` means that the "
         "sidecar does not give the value. The tool uses the default of the section.",
         "",
-        "The `post.pose.bottom_up` row shows `packed` when an output packs the keypoints into the "
-        "detection rows. It shows `poses` when an output has the semantic `poses`.",
+        "The `post.keypoint.bottom_up` row shows `packed` when an output packs the keypoints into the "
+        "detection rows. It shows `instance_keypoints` when an output has the semantic `instance_keypoints`.",
         "",
         *_matrix_lines(sections, sidecars, applicable),
         "",
@@ -1327,7 +1327,7 @@ def _diff_flat_lists(example: list[Any], exporter: list[Any], where: str) -> lis
 
     A short pair of lists is shown as it is. For a longer pair, the line counts the items that
     only one side has and shows the first three of them. The same items in a different order
-    are a difference too: the order of `tracked_points` is the order of the model output.
+    are a difference too: the order of `point_names` is the order of the model output.
     """
     ours, theirs = [repr(item) for item in example], [repr(item) for item in exporter]
     if ours == theirs:  # `repr` tells apart 1, 1.0 and True

@@ -140,13 +140,13 @@ def test_the_hash_tool_finds_the_artifacts_of_each_size(path: Path) -> None:
 
 
 SPEC_ROOT = REPO_ROOT / "specs" / "model-sidecar"
-# The keys of these maps are names (sizes, precisions, groups), not fields.
+# The keys of these maps are names (sizes, precisions, overlay parts), not fields.
 NAME_KEYED_MAPS = {
     "sizes",
     "precision_artifacts",
     "dtype",
     "normalization_by_precision",
-    "groups",
+    "parts",
 }
 # These map keypoint names to sources. The check does not read inside them.
 KEYPOINT_MAPS = {"canonical_mapping", "derived_points"}
@@ -157,7 +157,7 @@ def defined_keys() -> frozenset[str]:
     """Each name in backticks in a heading or a Field table of the spec index or a section file.
 
     The field path of each `selectors` item of a section also counts, for example
-    `batching.batch_conversion`, which no Field table names. A dotted name such as `pose.connections[].edges` defines each of its parts. The index gives the
+    `batching.batch_conversion`, which no Field table names. A dotted name such as `keypoint.skeletons[].edges` defines each of its parts. The index gives the
     top-level keys, for example `batching`.
     shortcut: a name, not a path. A defined key in the wrong place passes. Check paths when the
     Fields tables give full paths.
@@ -215,13 +215,13 @@ def test_example_has_only_keys_that_the_spec_defines(path: Path) -> None:
     ("where", "key"),
     [
         (("input", "resize"), "preserve_aspect_ratio"),
-        (("decode",), "requires_nms"),
-        (("decode",), "may_include_non_person_classes"),
+        (("object", "decode"), "requires_nms"),
+        (("object", "decode"), "may_include_non_person_classes"),
         (("input",), "layout"),
         (("input", "resize"), "supports_dynamic_size"),
         (("outputs", 0), "rank"),
         (("sizes", "m", "onnx", "precision_artifacts", "fp32"), "input_dtype"),
-        (("pose", "decode"), "is_3d"),
+        (("keypoint", "decode"), "is_3d"),
     ],
 )
 def test_the_key_check_finds_a_deleted_key(where: tuple[str | int, ...], key: str) -> None:
@@ -241,10 +241,10 @@ def test_example_declares_its_normalization(path: Path) -> None:
 
 
 @pytest.mark.parametrize("path", example_paths(), ids=example_key)
-def test_pose_example_declares_its_geometry(path: Path) -> None:
-    """`pose.geometry` is required at the pose level (ADR-90CE)."""
-    pose = sidecar_refs.resolve(path, EXAMPLES_ROOT).get("pose")
-    assert pose is None or pose.get("geometry") in {"2d", "3d"}
+def test_keypoint_example_declares_its_geometry(path: Path) -> None:
+    """`keypoint.geometry` is required at the keypoint level (ADR-90CE)."""
+    keypoint = sidecar_refs.resolve(path, EXAMPLES_ROOT).get("keypoint")
+    assert keypoint is None or keypoint.get("geometry") in {"2d", "3d"}
 
 
 def placeholder_scan_paths() -> list[Path]:
@@ -301,8 +301,8 @@ def test_example_follows_the_storage_layout(path: Path) -> None:
     keypoint_set = re.fullmatch(r"[a-z]+([1-9][0-9]*)", group)
     assert group in {"hand", "face", "body", "wholebody"} or keypoint_set, parts
     if keypoint_set:
-        tracked = sidecar_refs.resolve(path, EXAMPLES_ROOT)["pose"]["tracked_points"]
-        assert int(keypoint_set.group(1)) == len(tracked), (group, len(tracked))
+        points = sidecar_refs.resolve(path, EXAMPLES_ROOT)["keypoint"]["point_names"]
+        assert int(keypoint_set.group(1)) == len(points), (group, len(points))
 
 
 def test_every_example_has_one_provenance_entry() -> None:

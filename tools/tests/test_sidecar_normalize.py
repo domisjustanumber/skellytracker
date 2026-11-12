@@ -23,7 +23,7 @@ def detector(**decode: Any) -> dict[str, Any]:
             "normalization": "unit_float",
             "resize": {"method": "letterbox", "pad_value": 114},
         },
-        "decode": decode,
+        "object": {"classes": ["person"], "decode": decode},
     }
 
 
@@ -34,24 +34,24 @@ def detector(**decode: Any) -> dict[str, Any]:
 
 def test_an_authored_selection_is_kept() -> None:
     data = detector(selection="top_k")
-    assert sn.normalize(data)["decode"]["selection"] == "top_k"
+    assert sn.normalize(data)["object"]["decode"]["selection"] == "top_k"
 
 
 def test_no_rule_derives_a_selection() -> None:
-    assert sn.normalize(detector())["decode"] == {}
+    assert sn.normalize(detector())["object"]["decode"] == {}
     data = detector()
-    del data["decode"]
-    assert "decode" not in sn.normalize(data)
+    del data["object"]
+    assert "object" not in sn.normalize(data)
 
 
 def test_absent_resize_gets_method_none() -> None:
-    data = {"role": ["pose_estimator"], "input": {"normalization": "none"}}
+    data = {"role": ["keypoint_detector"], "input": {"normalization": "none"}}
     assert sn.normalize(data)["input"]["resize"] == {"method": "none"}
 
 
 def test_a_null_resize_counts_as_absent() -> None:
     data = {
-        "role": ["pose_estimator"],
+        "role": ["keypoint_detector"],
         "input": {"normalization": "none", "resize": None},
     }
     assert sn.normalize(data)["input"]["resize"] == {"method": "none"}
@@ -59,7 +59,7 @@ def test_a_null_resize_counts_as_absent() -> None:
 
 def test_a_given_resize_is_kept() -> None:
     resize = {"method": "fit", "pad_value": 114}
-    data = {"role": ["pose_estimator"], "input": {"resize": resize}}
+    data = {"role": ["keypoint_detector"], "input": {"resize": resize}}
     assert sn.normalize(data)["input"]["resize"] == resize
 
 
@@ -69,7 +69,7 @@ def test_a_letterbox_stays_letterbox() -> None:
 
 def test_absent_normalization_stays_absent() -> None:
     # `input.normalization` is required and has no default (ADR-0QKK).
-    data = {"role": ["pose_estimator"], "input": {"resize": {"method": "fit"}}}
+    data = {"role": ["keypoint_detector"], "input": {"resize": {"method": "fit"}}}
     normalized = sn.normalize(data)
     assert "normalization" not in normalized["input"]
     assert not sn.matches("input.normalization=imagenet", normalized)
@@ -87,7 +87,7 @@ def test_a_custom_normalization_stays_an_object() -> None:
 
 
 def test_input_defaults_do_not_invent_an_input() -> None:
-    data = {"role": ["pose_estimator"]}
+    data = {"role": ["keypoint_detector"]}
     assert sn.normalize(data) == data
 
 
@@ -107,7 +107,7 @@ def test_normalize_returns_a_copy_and_keeps_the_input() -> None:
 
 
 def test_normalize_is_idempotent() -> None:
-    data = {"role": ["object_detector"], "input": {}, "decode": {}}
+    data = {"role": ["object_detector"], "input": {}, "object": {"decode": {}}}
     once = sn.normalize(data)
     assert once != data
     assert sn.normalize(once) == once
@@ -119,7 +119,7 @@ def test_normalize_needs_a_mapping() -> None:
 
 
 def test_derived_by_names_the_rules_that_changed_something() -> None:
-    data = {"role": ["object_detector"], "input": {}, "decode": {}}
+    data = {"role": ["object_detector"], "input": {}, "object": {"decode": {}}}
     assert sn.derived_by(data) == ("resize",)
 
 
@@ -155,7 +155,7 @@ def test_only_the_custom_rule_has_no_action() -> None:
 # --------------------------------------------------------------------------------------------
 
 NORMALIZED = {
-    "role": ["object_detector", "pose_estimator"],
+    "role": ["object_detector", "keypoint_detector"],
     "input": {
         "normalization": "unit_float",
         "resize": {
@@ -164,11 +164,11 @@ NORMALIZED = {
         },
     },
     "outputs": [
-        {"name": "a", "semantic": "detections", "packed_keypoints": {"offset": 6}},
-        {"name": "b", "semantic": "poses", "keypoint_axis": 2},
+        {"name": "a", "semantic": "packed_detections", "packed_keypoints": {"offset": 6}},
+        {"name": "b", "semantic": "instance_keypoints", "keypoint_axis": 2},
     ],
-    "decode": {"selection": "none", "is_person_only": True, "nothing": None},
-    "pose": {
+    "object": {"decode": {"selection": "none", "clamp_boxes": True, "nothing": None}},
+    "keypoint": {
         "requires_object_detector": False,
         "canonical_mapping": {"nose": "head"},
         "decode": {"method": "simcc"},
@@ -181,16 +181,16 @@ NORMALIZED = {
     [
         "input.resize.method=letterbox",
         "input.normalization=unit_float",
-        "decode.selection=none",
+        "object.decode.selection=none",
         "role=object_detector",
-        "role=pose_estimator",
-        "outputs[].semantic=detections",
-        "outputs[].semantic=poses",
+        "role=keypoint_detector",
+        "outputs[].semantic=packed_detections",
+        "outputs[].semantic=instance_keypoints",
         "outputs[].keypoint_axis=2",
-        "pose.decode.method=simcc",
+        "keypoint.decode.method=simcc",
         "input.resize.pad_value=114",
-        "decode.is_person_only=true",
-        "pose.requires_object_detector=false",
+        "object.decode.clamp_boxes=true",
+        "keypoint.requires_object_detector=false",
     ],
 )
 def test_matching_selectors(selector: str) -> None:
@@ -202,18 +202,18 @@ def test_matching_selectors(selector: str) -> None:
     [
         "input.resize.method=stretch",
         "input.normalization=none",
-        "decode.selection=nms",
+        "object.decode.selection=nms",
         "role=other",
         "outputs[].semantic=simcc_x",
-        "outputs.semantic=detections",
+        "outputs.semantic=packed_detections",
         "outputs[].name=c",
         "input.resize.method.deeper=letterbox",
         "input.normalization.mode=custom",
-        "decode.is_person_only=True",
-        "decode.is_person_only=false",
+        "object.decode.clamp_boxes=True",
+        "object.decode.clamp_boxes=false",
         "input.resize.pad_value=114.0",
         "input.resize=letterbox",
-        "pose.canonical_mapping=head",
+        "keypoint.canonical_mapping=head",
         "missing.path=x",
     ],
 )
@@ -224,15 +224,15 @@ def test_selectors_that_do_not_match(selector: str) -> None:
 @pytest.mark.parametrize(
     ("selector", "expected"),
     [
-        ("pose.canonical_mapping", True),
+        ("keypoint.canonical_mapping", True),
         ("outputs[].packed_keypoints", True),
         ("outputs[].keypoint_axis", True),
         ("outputs[].name", True),
         ("role", True),
-        ("overlay", False),
-        ("decode.nothing", False),
+        ("keypoint.overlay", False),
+        ("object.decode.nothing", False),
         ("outputs[].shape", False),
-        ("pose.requires_object_detector", True),
+        ("keypoint.requires_object_detector", True),
     ],
 )
 def test_a_selector_without_value_tests_that_the_path_exists_and_is_not_null(
@@ -330,11 +330,11 @@ def test_a_common_section_of_one_key_applies_only_when_the_key_is_present() -> N
 
 
 def test_any_matching_selector_is_enough() -> None:
-    assert sn.applies("postprocessor", ["role=other", "decode.selection=none"], NORMALIZED)
+    assert sn.applies("postprocessor", ["role=other", "object.decode.selection=none"], NORMALIZED)
 
 
 def test_no_matching_selector_means_the_section_does_not_apply() -> None:
-    assert not sn.applies("postprocessor", ["role=other", "decode.selection=nms"], NORMALIZED)
+    assert not sn.applies("postprocessor", ["role=other", "object.decode.selection=nms"], NORMALIZED)
 
 
 def test_a_section_without_selectors_applies_to_nothing() -> None:

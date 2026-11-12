@@ -6,7 +6,7 @@ refusal of the spec raises `ValueError`. A broken invariant calls `defect`.
 
 It uses the Inverse of each resize section through its formula module and, for a
 box, the clamp of `clamp_boxes` and the size filter of `min_box_size` (section
-`post.det.decode`, ADR-17KN). `CHECKS` holds the named claims that a case can
+`post.object.decode`, ADR-17KN). `CHECKS` holds the named claims that a case can
 declare: `check(run, params, input, expect)`.
 """
 
@@ -62,7 +62,7 @@ def resize_unproject(
 
 
 def clamp_to_source(box_xyxy: list[float], src_w: float, src_h: float) -> list[float]:
-    """Section `post.det.decode`, field `clamp_boxes`: x to [0, W] and y to [0, H].
+    """Section `post.object.decode`, field `clamp_boxes`: x to [0, W] and y to [0, H].
 
     W and H are the source-image size.
     """
@@ -76,7 +76,7 @@ def clamp_to_source(box_xyxy: list[float], src_w: float, src_h: float) -> list[f
 
 
 def keeps_size(box_xyxy: list[float], min_box_size: float | None) -> bool:
-    """Section `post.det.decode`, field `min_box_size`: width and height both more than it.
+    """Section `post.object.decode`, field `min_box_size`: width and height both more than it.
 
     The width is x2 - x1 and the height is y2 - y1, with no + 1. Absent: no box is dropped.
     """

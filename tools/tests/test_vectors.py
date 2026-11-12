@@ -741,8 +741,8 @@ AFFINE = {
     "maintain_aspect_ratio": True,
 }
 FULL_HD = {"src_w": 1920, "src_h": 1080}
-SCORED = {"score_field": "score", "class_field": "class_id"}
-DETECTION_FIELDS = ["x1", "y1", "x2", "y2", "score", "class_id"]
+SCORED = {"classes": ["person"], "score_field": "score", "class_field": "class_index"}
+DETECTION_FIELDS = ["x1", "y1", "x2", "y2", "score", "class_index"]
 
 # Each row: the section, the check and a case that breaks its claim.
 BROKEN_CLAIMS = [
@@ -751,9 +751,9 @@ BROKEN_CLAIMS = [
     ("pre.resize.letterbox", "scaled-width-rounds-to-zero", LETTERBOX, FULL_HD),
     ("pre.resize.letterbox", "cut-differs-from-round", LETTERBOX, FULL_HD),
     (
-        "post.det.selection.none",
+        "post.object.selection.none",
         "float32-stable",
-        {**SCORED, "confidence_threshold_default": 0.7},
+        {**SCORED, "min_score": 0.7},
         # 0.70000001 > 0.7 in float64; in float32 both are 0.699999988.
         {"fields": DETECTION_FIELDS, "rows": [[0, 0, 8, 8, 0.70000001, 0]]},
     ),
@@ -854,11 +854,11 @@ def test_run_checks_stops_on_an_unknown_name_or_a_wrong_refused(
 
 
 def test_run_checks_skips_the_file_checks_for_a_data_only_case() -> None:
-    case = {"id": "probe", "function": "none", "params": {}, "input": {"decode": {"top_k": 1}},
-            "expect": {"failed": ["V-post.det.selection.nms-1"]}}
-    mv.run_checks(mv.post_det_selection_nms, case, ["float32-stable"])
+    case = {"id": "probe", "function": "none", "params": {}, "input": {"object": {"decode": {"top_k": 1}}},
+            "expect": {"failed": ["V-post.object.selection.nms-1"]}}
+    mv.run_checks(mv.post_object_selection_nms, case, ["float32-stable"])
     with pytest.raises(CaseDefect):  # a check that the case itself names still runs
-        mv.run_checks(mv.post_det_selection_nms, {**case, "checks": ["no-such-check"]}, ["float32-stable"])
+        mv.run_checks(mv.post_object_selection_nms, {**case, "checks": ["no-such-check"]}, ["float32-stable"])
 
 
 def test_run_checks_accepts_an_error_result_with_refused() -> None:
@@ -877,8 +877,8 @@ NONE_PIXELS = {"normalization": "none", "color_format": "rgb"}
         ("pre.normalize", {"normalization": {"mode": "scaled"}}, {"pixels_bgr": [[0, 0, 0]]}),
         ("pre.normalize", {**NONE_PIXELS, "color_format": "rgba"}, {"pixels_bgr": [[0, 0, 0]]}),
         (
-            "post.det.selection.top_k",
-            {"top_k": 1, "score_activation": "softmax"},
+            "post.object.selection.top_k",
+            {"classes": ["person"], "top_k": 1, "score_activation": "softmax"},
             {"boxes": [[0, 0, 8, 8]], "class_logits": [[0.5]]},
         ),
     ],
@@ -889,13 +889,13 @@ def test_an_unknown_enum_value_is_a_defect(section: str, params: Any, inp: Any) 
         formula_module(section).run(params, inp)
 
 
-def test_a_candidate_with_no_class_source_needs_is_person_only() -> None:
-    """No mode assigns `person_class_id` without `is_person_only` (ADR-17KN)."""
-    params = {"iou_threshold": 0.5, "score_threshold": 0.05}
+def test_a_candidate_with_no_class_source_needs_one_class() -> None:
+    """A candidate with no class source has the class index 0 of the one class (ADR-88WQ)."""
+    params = {"iou_threshold": 0.5, "score_threshold": 0.05, "classes": ["person", "car"]}
     inp = {"boxes": [[0, 0, 8, 8]], "scores": [0.9]}
-    with pytest.raises(CaseDefect, match="is_person_only"):
-        mv.post_det_selection_nms.run(params, inp)
-    assert mv.post_det_selection_nms.run({**params, "is_person_only": True}, inp)["class_ids"] == [0]
+    with pytest.raises(CaseDefect, match="one class"):
+        mv.post_object_selection_nms.run(params, inp)
+    assert mv.post_object_selection_nms.run({**params, "classes": ["person"]}, inp)["class_indices"] == [0]
 
 
 def test_an_end_to_end_selection_case_cannot_use_the_affine_crop() -> None:
@@ -903,21 +903,21 @@ def test_an_end_to_end_selection_case_cannot_use_the_affine_crop() -> None:
     params = {
         "iou_threshold": 0.5,
         "score_threshold": 0.05,
-        "is_person_only": True,
+        "classes": ["person"],
         "input_size": [8, 8],
         "resize": {"method": "affine_person_crop"},
     }
     inp = {"src_w": 8, "src_h": 8, "boxes": [[0, 0, 8, 8]], "scores": [0.9]}
     with pytest.raises(CaseDefect, match="affine_person_crop"):
-        mv.post_det_selection_nms.run(params, inp)
+        mv.post_object_selection_nms.run(params, inp)
 
 
 def test_an_end_to_end_selection_case_obeys_the_input_size_check() -> None:
     """With `resize: none`, `input_size` must be the source size."""
-    params = {"top_k": 1, "input_size": [100, 90], "resize": {"method": "none"}}
+    params = {"classes": ["person"], "top_k": 1, "input_size": [100, 90], "resize": {"method": "none"}}
     inp = {"src_w": 100, "src_h": 100, "boxes": [[0, 0, 8, 8]], "class_logits": [[0.9]]}
     with pytest.raises(CaseDefect, match="source size"):
-        mv.post_det_selection_top_k.run(params, inp)
+        mv.post_object_selection_top_k.run(params, inp)
 
 
 @pytest.mark.parametrize(
@@ -925,19 +925,19 @@ def test_an_end_to_end_selection_case_obeys_the_input_size_check() -> None:
     [
         ({"min_box_size": 100}, {}),
         ({"clamp_boxes": True}, {}),
-        ({"box_scale": "normalized_01"}, {}),
+        ({"box_space": "normalized_01"}, {}),
         ({}, {"src_w": 8, "src_h": 8}),
     ],
-    ids=["min-box-size", "clamp-boxes", "box-scale", "source-size"],
+    ids=["min-box-size", "clamp-boxes", "box-space", "source-size"],
 )
 def test_a_selection_case_without_resize_cannot_give_the_step_3_to_5_params(
     extra_params: dict[str, Any], extra_input: dict[str, Any]
 ) -> None:
     """A case without `resize` stops before step 3, so these parameters are a defect."""
-    params = {"iou_threshold": 0.5, "score_threshold": 0.05, "is_person_only": True, **extra_params}
+    params = {"iou_threshold": 0.5, "score_threshold": 0.05, "classes": ["person"], **extra_params}
     inp = {"boxes": [[0, 0, 8, 8]], "scores": [0.9], **extra_input}
     with pytest.raises(CaseDefect, match="need resize"):
-        mv.post_det_selection_nms.run(params, inp)
+        mv.post_object_selection_nms.run(params, inp)
 
 
 # ---------------------------------------------------------------------------
@@ -1096,9 +1096,14 @@ ANCHORS: dict[str, list[tuple[str, tuple[str | int, ...], Any]]] = {
             [-60, -120, 15, 780],
         ),
     ],
-    "post.det.decode": [
-        ("min-box-size-is-not-negative", ("expect", "failed"), ["V-post.det.decode-8"]),
-        ("no-class-source-needs-is-person-only", ("expect", "failed"), ["V-post.det.decode-9"]),
+    "post.object.decode": [
+        ("min-box-size-is-not-negative", ("expect", "failed"), ["V-post.object.decode-8"]),
+        ("no-class-source-needs-one-class", ("expect", "failed"), ["V-post.object.decode-9"]),
+        ("classes-length-is-the-class-count", ("expect", "failed"), ["V-post.object.decode-10"]),
+        ("keep-classes-names-a-class", ("expect", "failed"), ["V-post.object.decode-11"]),
+        ("classes-need-one-name", ("expect", "failed"), ["V-post.object.decode-10"]),
+        ("class-names-are-unique", ("expect", "failed"), ["V-post.object.decode-10"]),
+        ("keep-classes-has-no-null", ("expect", "failed"), ["V-post.object.decode-11"]),
     ],
     "pre.normalize": [
         ("imagenet-rgb", ("expect", "channel_order"), "rgb"),
@@ -1112,23 +1117,25 @@ ANCHORS: dict[str, list[tuple[str, tuple[str | int, ...], Any]]] = {
             pytest.approx([-2.117904, -2.035714, -1.804444]),
         ),
     ],
-    "post.det.selection.none": [
+    "post.object.selection.none": [
         ("threshold-is-strict", ("expect", "kept_rows"), [1, 4]),
-        ("class-id-map-drops-minus-one", ("expect", "kept_rows"), [0, 2, 3, 5]),
-        ("class-id-map-drops-minus-one", ("expect", "class_ids"), [2, 0, 5, 5]),
+        ("keep-classes-drops-the-other-classes", ("expect", "kept_rows"), [0, 2, 3, 5]),
+        ("keep-classes-drops-the-other-classes", ("expect", "class_indices"), [0, 2, 3, 3]),
+        ("null-class-is-dropped", ("expect", "kept_rows"), [0, 2]),
+        ("null-class-is-dropped-with-keep-classes", ("expect", "kept_rows"), [2]),
         ("default-confidence-threshold", ("expect", "kept_rows"), [0, 2]),
         ("no-nms-for-overlapping-boxes", ("expect", "kept_rows"), [0, 1]),
         ("max-detections-does-not-pad", ("expect", "kept_rows"), [0, 1]),
         ("box-format-cxcywh", ("expect", "boxes_xyxy"), [[40, 35, 60, 45]]),
     ],
-    "post.det.selection.top_k": [
+    "post.object.selection.top_k": [
         ("several-classes-on-one-row", ("expect", "kept_rows"), [2, 0, 0]),
-        ("several-classes-on-one-row", ("expect", "class_ids"), [1, 0, 1]),
+        ("several-classes-on-one-row", ("expect", "class_indices"), [1, 0, 1]),
         ("several-classes-on-one-row", ("expect", "scores"), [0.95, 0.9, 0.8]),
         ("ties-keep-the-lower-flat-index", ("expect", "kept_rows"), [0, 0, 1]),
-        ("ties-keep-the-lower-flat-index", ("expect", "class_ids"), [0, 1, 0]),
-        ("class-id-map-lowers-the-count", ("expect", "kept_rows"), [0]),
-        ("class-id-map-lowers-the-count", ("expect", "class_ids"), [7]),
+        ("ties-keep-the-lower-flat-index", ("expect", "class_indices"), [0, 1, 0]),
+        ("keep-classes-lowers-the-count", ("expect", "kept_rows"), [0]),
+        ("keep-classes-lowers-the-count", ("expect", "class_indices"), [1]),
         ("sigmoid-and-strict-threshold", ("expect", "kept_rows"), [1, 0]),
         (
             "sigmoid-and-strict-threshold",
@@ -1138,7 +1145,7 @@ ANCHORS: dict[str, list[tuple[str, tuple[str | int, ...], Any]]] = {
         ("default-confidence-threshold", ("expect", "kept_rows"), [0, 1]),
         ("size-filter-comes-after-the-top-k-limit", ("expect", "kept_rows"), [1]),
     ],
-    "post.det.selection.nms": [
+    "post.object.selection.nms": [
         ("suppress-overlap-and-threshold", ("expect", "kept_rows"), [0, 2]),
         ("suppress-overlap-and-threshold", ("expect", "scores"), [0.9, 0.7]),
         ("iou-equal-to-threshold-is-kept", ("expect", "kept_rows"), [0, 1]),
@@ -1150,9 +1157,8 @@ ANCHORS: dict[str, list[tuple[str, tuple[str | int, ...], Any]]] = {
         ("class-agnostic-suppresses-across-classes", ("expect", "kept_rows"), [0]),
         ("post-nms-top-k-keeps-the-highest", ("expect", "kept_rows"), [1, 2]),
         ("post-nms-top-k-counts-survivors", ("expect", "kept_rows"), [0, 2]),
-        ("class-id-map-drop-comes-before-nms", ("expect", "kept_rows"), [1]),
-        ("is-person-only-drop-comes-before-nms", ("expect", "kept_rows"), [1]),
-        ("no-class-source-uses-person-class-id", ("expect", "class_ids"), [2, 2]),
+        ("class-filter-comes-before-nms", ("expect", "kept_rows"), [1]),
+        ("no-class-source-gives-class-zero", ("expect", "class_indices"), [0, 0]),
         ("size-filter-comes-after-nms", ("expect", "kept_rows"), [2]),
         ("size-filter-comes-after-post-nms-top-k", ("expect", "kept_rows"), [1]),
         ("nms-comes-before-the-clamp", ("expect", "kept_rows"), [0, 1]),
@@ -1253,7 +1259,7 @@ def test_normalize_channel_order_follows_color_format() -> None:
 
 
 def test_top_k_larger_than_the_candidates_keeps_every_candidate() -> None:
-    case = case_named("post.det.selection.top_k", "top-k-larger-than-the-candidates")
+    case = case_named("post.object.selection.top_k", "top-k-larger-than-the-candidates")
     assert len(case["expect"]["scores"]) == 4
 
 
@@ -1270,20 +1276,20 @@ def _iou(a: list[float], b: list[float]) -> float:
     return inter / union
 
 
-@pytest.mark.parametrize("case", forward_params("post.det.selection.nms"))
+@pytest.mark.parametrize("case", forward_params("post.object.selection.nms"))
 def test_nms_result_obeys_the_rules(case: dict[str, Any]) -> None:
     params, expect = case["params"], case["expect"]
     boxes = [
-        mv.post_det_decode.to_xyxy(row, params.get("box_format", "xyxy"))
+        mv.post_object_decode.to_xyxy(row, params.get("box_format", "xyxy"))
         for row in (
             case["input"].get("boxes") or [r[:4] for r in case["input"]["rows"]]
         )
     ]
-    rows, scores, classes = expect["kept_rows"], expect["scores"], expect["class_ids"]
+    rows, scores, classes = expect["kept_rows"], expect["scores"], expect["class_indices"]
     assert len(rows) == len(set(rows)) == len(scores) == len(classes)
     assert scores == sorted(scores, reverse=True)
     assert all(s > params["score_threshold"] for s in scores)
-    assert all(s > params.get("confidence_threshold_default", 0.7) for s in scores)
+    assert all(s > params.get("min_score", 0.7) for s in scores)
     if "post_nms_top_k" in params:
         assert len(rows) <= params["post_nms_top_k"]
     for i in range(len(rows)):
@@ -1292,24 +1298,24 @@ def test_nms_result_obeys_the_rules(case: dict[str, Any]) -> None:
                 assert _iou(boxes[rows[i]], boxes[rows[j]]) <= params["iou_threshold"]
 
 
-@pytest.mark.parametrize("case", case_params("post.det.selection.top_k"))
+@pytest.mark.parametrize("case", case_params("post.object.selection.top_k"))
 def test_top_k_result_obeys_the_rules(case: dict[str, Any]) -> None:
     params, expect = case["params"], case["expect"]
     scores = expect["scores"]
     assert len(scores) <= params["top_k"]
     assert scores == sorted(scores, reverse=True)
-    assert all(s > params.get("confidence_threshold_default", 0.7) for s in scores)
+    assert all(s > params.get("min_score", 0.7) for s in scores)
     pairs = [
-        (r, c) for r, c in zip(expect["kept_rows"], expect["class_ids"], strict=True)
+        (r, c) for r, c in zip(expect["kept_rows"], expect["class_indices"], strict=True)
     ]
     assert len(pairs) == len(set(pairs))
 
 
 @pytest.mark.parametrize(
     "case",
-    forward_params("post.det.selection.nms")
-    + case_params("post.det.selection.top_k")
-    + case_params("post.det.selection.none"),
+    forward_params("post.object.selection.nms")
+    + case_params("post.object.selection.top_k")
+    + case_params("post.object.selection.none"),
 )
 def test_box_key_follows_resize(case: dict[str, Any]) -> None:
     """Each selection case gives `boxes_xyxy` and `boxes_space`.
@@ -1317,17 +1323,17 @@ def test_box_key_follows_resize(case: dict[str, Any]) -> None:
     A case with `resize` gives `source`. A case without `resize` gives `model_input`.
     """
     expect = case["expect"]
-    assert list(expect) == ["kept_rows", "scores", "class_ids", "boxes_xyxy", "boxes_space"]
+    assert list(expect) == ["kept_rows", "scores", "class_indices", "boxes_xyxy", "boxes_space"]
     assert expect["boxes_space"] == ("source" if "resize" in case["params"] else "model_input")
 
 
-@pytest.mark.parametrize("case", case_params("post.det.selection.none"))
+@pytest.mark.parametrize("case", case_params("post.object.selection.none"))
 def test_none_result_obeys_the_rules(case: dict[str, Any]) -> None:
     params, expect = case["params"], case["expect"]
     rows = expect["kept_rows"]
     assert rows == sorted(set(rows))
     assert all(
-        s > params.get("confidence_threshold_default", 0.7) for s in expect["scores"]
+        s > params.get("min_score", 0.7) for s in expect["scores"]
     )
     if "max_detections" in params:
         # The graph gives a fixed number of rows; the host neither pads nor truncates.

@@ -1,4 +1,4 @@
-"""Section `post.det.selection.nms`: a reading of the section text, not an implementation.
+"""Section `post.object.selection.nms`: a reading of the section text, not an implementation.
 
 `tools/make_vectors.py` computes the vectors of the section with it. It has the
 calling convention of a reference module: `run(params, input) -> expect`, and a
@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import post_det_decode as decode
+import post_object_decode as decode
 
 CHECKS = decode.SELECTION_CHECKS
 

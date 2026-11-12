@@ -287,7 +287,7 @@ Two rules of this part stay:
   in `skellytracker/core/detectors/processing/object_detection_decode.py` adds `1`. Today only the
   legacy YOLOX path uses it. It also breaks a tie between equal scores toward the higher row index,
   but the spec breaks it toward the lower row index. The vectors in
-  [`post.det.selection.nms`](model-sidecar/vectors/post.det.selection.nms.yaml) show both
+  [`post.det.selection.nms`](model-sidecar/vectors/post.object.selection.nms.yaml) show both
   differences.
 - **Batch forms.** At `vNEXT`, a sidecar uses one batch form: only `"3"` with
   `batching.batch_conversion`, only `"1"`, or only `dynamic`
@@ -509,7 +509,7 @@ Two rules of this part stay:
   `confidence_threshold: 0.004` defaults of the RTMPose body, face and hand detectors and of the RTMW
   detector fit only the softmax score. The implementer decides the new defaults. Do not change the
   `is_3d` branch of `simcc_pose_decode` here. The item 3D SimCC decode removed covers it. Run the
-  numeric cases of [`post.pose.decode.simcc`](model-sidecar/vectors/post.pose.decode.simcc.yaml)
+  numeric cases of [`post.pose.decode.simcc`](model-sidecar/vectors/post.keypoint.decode.simcc.yaml)
   through `get_simcc_maximum` and `decode_simcc`, and add a golden test on one RTMW crop with
   mmpose scores, for example in `skellytracker/tests/sidecar/`. Then update the `decode` status and
   the `partial` note of the front matter of the section.

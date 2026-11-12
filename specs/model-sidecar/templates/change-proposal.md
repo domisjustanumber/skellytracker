@@ -145,7 +145,7 @@ the form of the heading "Validation rules" in a section file, for example
 shifts. To delete a rule, name its ID: its number stays unused (skellytracker ADR-6GE2).
 
 Also find each existing rule that names a value that the change adds or changes. Example: rule
-`V-pre.resize.affine_person_crop-2`: a sidecar with `pose.requires_object_detector: true` must
+`V-pre.resize.affine_person_crop-2`: a sidecar with `keypoint.requires_object_detector: true` must
 declare `input.resize.method: affine_person_crop`. A top-down model with a new resize method fails
 this rule. List each such rule here: changed, or unchanged with the reason. If you do not change a
 rule that blocks a model, list it as a follow-up.
@@ -236,7 +236,7 @@ expected output.
 - A case for a refused input writes `expect: {error: <value>}`. Do not add another `expect` key.
   Do not give the error message.
 - If a validation rule refuses the input, start the message with the rule ID and a colon, for
-  example `V-post.det.decode-5: ...`. Then the value is that rule ID. The input must fail exactly
+  example `V-post.object.decode-5: ...`. Then the value is that rule ID. The input must fail exactly
   one rule. The rule must be in a section file, or in part 2.4 of this proposal.
 - If the input is not a sidecar value, the value is `no-rule`. Examples are a tensor of the model,
   an argument of the caller and a second sidecar. A `no-rule` case must have a `note`. Give the

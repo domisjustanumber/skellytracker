@@ -199,10 +199,11 @@ def test_each_rule_belongs_to_the_section_of_its_file() -> None:
             )
 
 
-def test_the_rules_of_a_section_are_numbered_from_one_without_gaps() -> None:
+def test_the_rules_of_a_section_are_unique_and_numbered_from_one() -> None:
+    """A deleted rule leaves its number unused, so a section can have gaps (ADR-6GE2)."""
     for path, matches in defined_rules().items():
-        numbers = sorted(int(match["number"]) for match in matches)
-        assert numbers == list(range(1, len(numbers) + 1)), relative(path)
+        numbers = [int(match["number"]) for match in matches]
+        assert numbers == sorted(set(numbers)) and all(n >= 1 for n in numbers), relative(path)
 
 
 def test_every_rule_that_a_section_file_names_is_defined() -> None:
@@ -326,6 +327,19 @@ MERGED_IMAGENET_MODES = {"imagenet_bgr", "imagenet_rgb"}
 # model.py drops them.
 REMOVED_VALUES = {"heatmap", "simcc_z"}
 
+# shortcut: the frozen model.py keeps the names from before ADR-88WQ, so the check maps them to the
+# new names; delete this at stage M8 of the implementation plan, when model.py has the new names.
+RENAMED_VALUES = {
+    "pose_estimator": "keypoint_detector",
+    "detections": "packed_detections",
+    "keypoints": "keypoint_coordinates",
+    "poses": "instance_keypoints",
+}
+
+
+def renamed(values: list[str]) -> list[str]:
+    return [RENAMED_VALUES.get(value, value) for value in values]
+
 
 def literal_cases() -> list[tuple[str, list[str], set[str]]]:
     tree = model_tree()
@@ -350,15 +364,15 @@ def literal_cases() -> list[tuple[str, list[str], set[str]]]:
         ),
         (
             "OutputSemantic",
-            sorted(set(alias_values(tree, "OutputSemantic")) - REMOVED_VALUES),
+            renamed(sorted(set(alias_values(tree, "OutputSemantic")) - REMOVED_VALUES)),
             selector_values("outputs[].semantic"),
         ),
         (
             "PoseDecodeSpec.method",
             sorted(set(field_values(tree, "PoseDecodeSpec", "method")) - REMOVED_VALUES),
-            selector_values("pose.decode.method"),
+            selector_values("keypoint.decode.method"),
         ),
-        ("Role", alias_values(tree, "Role"), selector_values("role")),
+        ("Role", renamed(alias_values(tree, "Role")), selector_values("role")),
     ]
 
 
@@ -479,12 +493,12 @@ NONE_DETECTOR = {
     "model_id": "none-detector",
     "role": ["object_detector"],
     "input": {"resize": {"method": "letterbox"}, "normalization": "imagenet"},
-    "decode": {"selection": "none"},
-    "outputs": [{"semantic": "detections"}],
+    "object": {"classes": ["person"], "decode": {"selection": "none"}},
+    "outputs": [{"semantic": "packed_detections"}],
 }
 # No rule derives a selection: a detector that omits it matches no selection section.
 NO_SELECTION_DETECTOR = {
-    **{key: value for key, value in NONE_DETECTOR.items() if key != "decode"},
+    **{key: value for key, value in NONE_DETECTOR.items() if key != "object"},
     "model_id": "no-selection-detector",
 }
 NMS_DETECTOR = {
@@ -492,23 +506,23 @@ NMS_DETECTOR = {
     "model_id": "nms-detector",
     "role": ["object_detector"],
     "input": {"resize": {"method": "letterbox"}, "normalization": "unit_float"},
-    "decode": {"selection": "nms"},
+    "object": {"classes": ["person"], "decode": {"selection": "nms"}},
     "outputs": [{"semantic": "boxes"}],
 }
 BOTTOM_UP_POSE = {
     "schema_version": "2.0.0",
     "model_id": "bottom-up-pose",
-    "role": ["object_detector", "pose_estimator"],
+    "role": ["object_detector", "keypoint_detector"],
     "input": {"resize": {"method": "fit"}, "normalization": "unit_float"},
-    "decode": {"selection": "none"},
-    "pose": {"estimator_type": "bottom_up", "decode": {"method": "coordinate"}},
-    "outputs": [{"semantic": "detections", "packed_keypoints": {"offset": 6}}],
+    "object": {"classes": ["person"], "decode": {"selection": "none"}},
+    "keypoint": {"estimator_type": "bottom_up", "decode": {"method": "coordinate"}},
+    "outputs": [{"semantic": "packed_detections", "packed_keypoints": {"offset": 6}}],
 }
 DETECTOR_SECTIONS = {
     "pre.resize.interpolation",
     "pre.normalize",
-    "post.det.decode",
-    "post.det.outputs",
+    "post.object.decode",
+    "post.object.outputs",
     "post.unprojection",
 }
 
@@ -543,18 +557,18 @@ def applicability() -> dict[str, set[str]]:
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
-        (NONE_DETECTOR, {*DETECTOR_SECTIONS, "pre.resize.letterbox", "post.det.selection.none"}),
+        (NONE_DETECTOR, {*DETECTOR_SECTIONS, "pre.resize.letterbox", "post.object.selection.none"}),
         (NO_SELECTION_DETECTOR, {*DETECTOR_SECTIONS, "pre.resize.letterbox"}),
-        (NMS_DETECTOR, {*DETECTOR_SECTIONS, "pre.resize.letterbox", "post.det.selection.nms"}),
+        (NMS_DETECTOR, {*DETECTOR_SECTIONS, "pre.resize.letterbox", "post.object.selection.nms"}),
         (
             BOTTOM_UP_POSE,
             {
                 *DETECTOR_SECTIONS,
                 "pre.resize.fit",
-                "post.det.selection.none",
-                "post.pose.bottom_up",
-                "post.pose.decode.coordinate",
-                "post.pose.schema",
+                "post.object.selection.none",
+                "post.keypoint.bottom_up",
+                "post.keypoint.decode.coordinate",
+                "post.keypoint.schema",
             },
         ),
     ],
@@ -585,32 +599,32 @@ def test_an_explicit_normalization_is_kept_and_an_omitted_one_gets_no_default() 
 def test_a_detector_without_a_selection_gets_no_derived_selection() -> None:
     omitted = synthetic(NO_SELECTION_DETECTOR)
     assert omitted.derived == ()
-    assert "decode" not in omitted.normalized
+    assert "object" not in omitted.normalized
 
 
 def test_every_example_detector_gives_its_selection() -> None:
     # The selection rows show only what the sidecar gives, because no rule derives a selection.
     for sidecar in scan().sidecars:
         if "object_detector" in sidecar.resolved.get("role", []):
-            assert sidecar.resolved["decode"]["selection"], sidecar.key
+            assert sidecar.resolved["object"]["decode"]["selection"], sidecar.key
 
 
 def test_the_cells_that_carry_text() -> None:
     def cell(section_id: str, data: dict[str, Any]) -> str:
         return st._cell(sections_by_id()[section_id], synthetic(data))
 
-    poses = {**BOTTOM_UP_POSE, "outputs": [{"semantic": "poses"}]}
+    poses = {**BOTTOM_UP_POSE, "outputs": [{"semantic": "instance_keypoints"}]}
     no_resize = {**BOTTOM_UP_POSE, "input": {"normalization": "unit_float"}}
     assert cell("pre.normalize", NONE_DETECTOR) == "imagenet"
     assert cell("pre.normalize", NMS_DETECTOR) == "unit_float"
     assert cell("pre.normalize", BOTTOM_UP_POSE) == "unit_float"
     assert cell("pre.resize.none", no_resize) == "x (derived)"
-    assert cell("post.det.selection.none", NONE_DETECTOR) == "none"
-    assert cell("post.det.selection.nms", NMS_DETECTOR) == "nms"
-    assert cell("post.det.selection.none", BOTTOM_UP_POSE) == "none"
-    assert cell("post.pose.bottom_up", BOTTOM_UP_POSE) == "x (packed)"
-    assert cell("post.pose.bottom_up", poses) == "x (poses)"
-    assert cell("post.det.decode", NMS_DETECTOR) == "x"
+    assert cell("post.object.selection.none", NONE_DETECTOR) == "none"
+    assert cell("post.object.selection.nms", NMS_DETECTOR) == "nms"
+    assert cell("post.object.selection.none", BOTTOM_UP_POSE) == "none"
+    assert cell("post.keypoint.bottom_up", BOTTOM_UP_POSE) == "x (packed)"
+    assert cell("post.keypoint.bottom_up", poses) == "x (instance_keypoints)"
+    assert cell("post.object.decode", NMS_DETECTOR) == "x"
 
 
 def test_format_and_common_sections_without_selectors_apply_to_every_sidecar() -> None:

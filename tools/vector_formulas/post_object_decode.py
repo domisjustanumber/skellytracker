@@ -1,6 +1,6 @@
-"""Section `post.det.decode`: a reading of the section text, not an implementation.
+"""Section `post.object.decode`: a reading of the section text, not an implementation.
 
-The shared decode steps of the `post.det.selection.*` sections. Their formula
+The shared decode steps of the `post.object.selection.*` sections. Their formula
 modules import this module by name. A broken invariant calls `defect`.
 `SELECTION_CHECKS` holds the named claims that a selection case can declare; each
 selection module publishes it as its `CHECKS`. The cases of this section are data
@@ -18,7 +18,7 @@ import post_unprojection
 
 from vector_form import defect
 
-# The default of `confidence_threshold_default`.
+# The default of `min_score`.
 DEFAULT_CONFIDENCE = 0.7
 
 
@@ -67,27 +67,23 @@ def candidates(
 
 
 def resolve_class(model_class: int | None, params: dict[str, Any]) -> int | None:
-    """Map a model class index to the emitted class id; None drops the candidate.
+    """Return the class index of a candidate; None drops it (shared step 1, ADR-88WQ).
 
-    A candidate with no class source gets `person_class_id` only through
-    `is_person_only` (ADR-17KN): a sidecar with no class source must set it.
+    A candidate with no class source has the class index 0, and its sidecar has one class.
+    An index outside `classes`, or a gap (None), drops the candidate. With `keep_classes`, a class whose name
+    is not in the list drops the candidate.
     """
-    person = params.get("person_class_id", 0)
+    classes = params["classes"]
     if model_class is None:
-        if not params.get("is_person_only", False):
-            defect("a candidate without a class source needs is_person_only")
-        return person
-    class_map = params.get("class_id_map")
-    emitted = (
-        class_map[model_class]
-        if class_map is not None
-        else params.get("class_id_base", 0) + model_class
-    )
-    if emitted == -1:
+        if len(classes) != 1:
+            defect("a sidecar with no class source has exactly one class")
+        model_class = 0
+    if not 0 <= model_class < len(classes) or classes[model_class] is None:
         return None
-    if params.get("is_person_only", False) and emitted != person:
+    keep = params.get("keep_classes")
+    if keep is not None and classes[model_class] not in keep:
         return None
-    return emitted
+    return model_class
 
 
 def iou(a: list[float], b: list[float]) -> float:
@@ -100,7 +96,7 @@ def iou(a: list[float], b: list[float]) -> float:
 
 
 def confidence_threshold(params: dict[str, Any]) -> float:
-    return params.get("confidence_threshold_default", DEFAULT_CONFIDENCE)
+    return params.get("min_score", DEFAULT_CONFIDENCE)
 
 
 def unproject_clamp_and_filter(
@@ -112,7 +108,7 @@ def unproject_clamp_and_filter(
     `params` has `input_size` and `resize`, and `inp` has `src_w` and `src_h`, as in
     section `post.unprojection`. The kept boxes become the final boxes in source pixels.
     The `input-size-follows-resize` check of `post.unprojection` stops a bad case.
-    A case without `resize` must not give the parameters of steps 3 to 5, and its `box_scale` is
+    A case without `resize` must not give the parameters of steps 3 to 5, and its `box_space` is
     only `pixel`. It still does step 6, the confidence threshold. A case with
     `resize.method: affine_person_crop` stops, because a selection case gives no `bbox_xyxy`
     (ADR-0PK7).
@@ -120,8 +116,8 @@ def unproject_clamp_and_filter(
     if "resize" not in params:
         unused = [key for key in ("input_size", "min_box_size", "clamp_boxes") if key in params]
         unused += [key for key in ("src_w", "src_h") if key in inp]
-        if params.get("box_scale", "pixel") != "pixel":
-            unused.append("box_scale")
+        if params.get("box_space", "pixel") != "pixel":
+            unused.append("box_space")
         if unused:
             defect(f"{', '.join(unused)} need resize: a case without resize stops before step 3")
         return kept
@@ -129,7 +125,7 @@ def unproject_clamp_and_filter(
         # shortcut: no end-to-end selection case uses affine; add bbox_xyxy here when one does.
         defect("an end-to-end selection case cannot use affine_person_crop: it needs bbox_xyxy")
     box_params = {
-        "scale": params.get("box_scale", "pixel"),
+        "scale": params.get("box_space", "pixel"),
         "input_size": params["input_size"],
         "resize": params["resize"],
         **{key: params[key] for key in ("clamp_boxes", "min_box_size") if key in params},
@@ -154,7 +150,7 @@ def published(kept: list[Kept], params: dict[str, Any]) -> dict[str, Any]:
     return {
         "kept_rows": [c.row for c in kept],
         "scores": [c.score for c in kept],
-        "class_ids": [c.class_id for c in kept],
+        "class_indices": [c.class_id for c in kept],
         "boxes_xyxy": [c.box for c in kept],
         "boxes_space": "source" if "resize" in params else "model_input",
     }
@@ -176,7 +172,7 @@ def float32_stable(
 ) -> None:
     """The kept rows and class ids do not change when every float is a float32."""
     narrow = run(to_float32(params), to_float32(input))
-    if any(expect[key] != narrow[key] for key in ("kept_rows", "class_ids")):
+    if any(expect[key] != narrow[key] for key in ("kept_rows", "class_indices")):
         defect("the result depends on the float width")
 
 

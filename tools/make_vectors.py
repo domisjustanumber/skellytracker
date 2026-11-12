@@ -186,15 +186,15 @@ def producer(section: str, folder: Path = REFERENCE_DIR) -> ModuleType:
 
 # The formula modules load like reference modules, so they import each other by name.
 # A module loads before the modules that import it, so each name has one module object.
-post_det_decode = load_reference("post.det.decode", FORMULAS_DIR)
+post_object_decode = load_reference("post.object.decode", FORMULAS_DIR)
 pre_resize_letterbox = load_reference("pre.resize.letterbox", FORMULAS_DIR)
 pre_resize_stretch = load_reference("pre.resize.stretch", FORMULAS_DIR)
 pre_resize_fit = load_reference("pre.resize.fit", FORMULAS_DIR)
 pre_resize_affine_person_crop = load_reference("pre.resize.affine_person_crop", FORMULAS_DIR)
 pre_normalize = load_reference("pre.normalize", FORMULAS_DIR)
-post_det_selection_none = load_reference("post.det.selection.none", FORMULAS_DIR)
-post_det_selection_top_k = load_reference("post.det.selection.top_k", FORMULAS_DIR)
-post_det_selection_nms = load_reference("post.det.selection.nms", FORMULAS_DIR)
+post_object_selection_none = load_reference("post.object.selection.none", FORMULAS_DIR)
+post_object_selection_top_k = load_reference("post.object.selection.top_k", FORMULAS_DIR)
+post_object_selection_nms = load_reference("post.object.selection.nms", FORMULAS_DIR)
 post_unprojection = load_reference("post.unprojection", FORMULAS_DIR)
 
 

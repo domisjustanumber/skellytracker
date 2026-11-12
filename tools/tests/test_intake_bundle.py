@@ -30,7 +30,7 @@ def proposal_fields(name: str = "box-clamp", contributor: str = "ultralytics-exp
         "contributor": contributor,
         "source_commit": SOURCE,
         "spec_commit": HEAD,
-        "sections": ["post.det.selection.nms"],
+        "sections": ["post.object.selection.nms"],
         "base": None,
         "depends_on": [],
         "contributes_to": None,
@@ -48,7 +48,7 @@ def model_fields(**extra) -> dict:
         "contributor": "ultralytics-exporter",
         "source_commit": SOURCE,
         "spec_commit": HEAD,
-        "sections": ["post.det.selection.nms"],
+        "sections": ["post.object.selection.nms"],
         "related": [],
         "verdict": "describes",
         "batch_conversion": "not applicable",
@@ -184,7 +184,7 @@ def test_list_gives_states_owners_reverse_links_and_can_delete(tmp_path: Path, r
     assert "proposal-old@roboflow-exporter v1 closed (can delete)" in lines
     assert "  deferred: wait for the release" in lines
     assert "proposal-draft@roboflow-exporter - in progress" in lines
-    assert lines[-1] == "  post.det.selection.nms: ultralytics-exporter"
+    assert lines[-1] == "  post.object.selection.nms: ultralytics-exporter"
 
 
 def test_a_good_bundle_verifies(tmp_path: Path, root: Path) -> None:
@@ -197,7 +197,7 @@ def test_verify_finds_changed_bytes_text_form_plans_links_and_size(tmp_path: Pat
     source = payload(tmp_path, {
         "proposal.md": "text\n",
         "notes.md": "From plans/x.md.\n",
-        "vectors/post.det.selection.nms.yaml": "cases: []\n" + "#" * ib.VECTOR_LIMIT,
+        "vectors/post.object.selection.nms.yaml": "cases: []\n" + "#" * ib.VECTOR_LIMIT,
     })
     version_dir = ib.pack(source, proposal_fields(), root, cwd=tmp_path)
     (version_dir / "proposal.md").write_bytes(b"text\r\n")
@@ -207,7 +207,7 @@ def test_verify_finds_changed_bytes_text_form_plans_links_and_size(tmp_path: Pat
     assert "proposal.md: a text file must be UTF-8 with no BOM and LF line ends" in findings
     assert "notes.md:1: cites a plans/ path" in findings
     assert any("the link ../../no-such-file.md does not resolve" in f for f in findings)
-    assert "vectors/post.det.selection.nms.yaml: a vector file must be 256 KiB or smaller" in findings
+    assert "vectors/post.object.selection.nms.yaml: a vector file must be 256 KiB or smaller" in findings
 
 
 def test_verify_finds_an_unknown_spec_commit_and_no_spec_findings_once_finished(tmp_path: Path, root: Path) -> None:
@@ -244,16 +244,16 @@ def test_list_marks_a_waiting_model_whose_waiting_on_is_finished(tmp_path: Path,
 
 def test_verify_finds_a_file_that_proposal_md_names_and_the_bundle_lacks(tmp_path: Path, root: Path) -> None:
     text = (
-        "Code: `reference/post_det_selection_nms.py`.\n"
+        "Code: `reference/post_object_selection_nms.py`.\n"
         "Target: `specs/model-sidecar/reference/x.py`, `vectors/<section ID>.yaml`.\n"
     )
     source = payload(tmp_path, {"proposal.md": text})
     ib.pack(source, proposal_fields(), root, cwd=tmp_path)
     findings = ib.verify("proposal-box-clamp@ultralytics-exporter", root)
-    assert findings == ["reference/post_det_selection_nms.py: proposal.md names this file, but the bundle does not have it"]
+    assert findings == ["reference/post_object_selection_nms.py: proposal.md names this file, but the bundle does not have it"]
 
 
-NMS_VECTORS = REPO_ROOT / "specs" / "model-sidecar" / "vectors" / "post.det.selection.nms.yaml"
+NMS_VECTORS = REPO_ROOT / "specs" / "model-sidecar" / "vectors" / "post.object.selection.nms.yaml"
 
 
 def nms_vectors(*cases: dict) -> str:
@@ -268,7 +268,7 @@ def nms_case(number: int, **changes) -> dict:
 
 
 def test_verify_checks_the_form_of_each_bundle_vector_file(tmp_path: Path, root: Path) -> None:
-    rel = "vectors/post.det.selection.nms.yaml"
+    rel = "vectors/post.object.selection.nms.yaml"
     good = payload(tmp_path / "g", {"proposal.md": "text\n", rel: nms_vectors(nms_case(0))})
     ib.pack(good, proposal_fields(), root, cwd=tmp_path)
     assert ib.verify("proposal-box-clamp@ultralytics-exporter", root) == []
@@ -282,42 +282,42 @@ def test_verify_checks_the_form_of_each_bundle_vector_file(tmp_path: Path, root:
 
 
 def test_verify_runs_the_bundle_reference_and_the_rules_of_part_2_4(tmp_path: Path, root: Path) -> None:
-    rel = "vectors/post.det.clamp.yaml"
+    rel = "vectors/post.object.clamp.yaml"
     vectors = {
-        "section": "post.det.clamp",
+        "section": "post.object.clamp",
         "tolerance": 0,
         "unverified": "only the proposal text",
         "cases": [
             {"id": "a", "params": {}, "input": {"x": 1}, "expect": {"y": 1}},
             {"id": "b", "function": "other", "params": {}, "input": {"x": 1}, "expect": {"y": 1}},
             {"id": "c", "checks": ["refused"], "params": {}, "input": {"x": -1},
-             "expect": {"error": "V-post.det.clamp-1"}},
+             "expect": {"error": "V-post.object.clamp-1"}},
             {"id": "d", "checks": ["refused"], "params": {}, "input": {"x": -2},
-             "expect": {"error": "V-post.det.clamp-2"}},
+             "expect": {"error": "V-post.object.clamp-2"}},
         ],
     }
     source = payload(tmp_path, {
-        "proposal.md": "### 2.4 Validation rules\n\n- [ ] `V-post.det.clamp-1`: x must be 0 or more.\n",
-        "reference/post_det_clamp.py": "def run(params, input):\n    return {'y': input['x']}\n",
+        "proposal.md": "### 2.4 Validation rules\n\n- [ ] `V-post.object.clamp-1`: x must be 0 or more.\n",
+        "reference/post_object_clamp.py": "def run(params, input):\n    return {'y': input['x']}\n",
         rel: json.dumps(vectors),
     })
-    ib.pack(source, proposal_fields(sections=["post.det.clamp"]), root, cwd=tmp_path)
+    ib.pack(source, proposal_fields(sections=["post.object.clamp"]), root, cwd=tmp_path)
     assert ib.verify("proposal-box-clamp@ultralytics-exporter", root) == [
-        f"{rel}: b: no function other in post_det_clamp",
-        f"{rel}: d: V-post.det.clamp-2 is not a defined rule ID",
+        f"{rel}: b: no function other in post_object_clamp",
+        f"{rel}: d: V-post.object.clamp-2 is not a defined rule ID",
     ]
 
 
 def test_verify_checks_the_owner_and_the_contribution_cases(tmp_path: Path, root: Path) -> None:
     owner_case = nms_vectors(nms_case(0, id="one"), nms_case(1, id="three"))
-    owner = payload(tmp_path / "o", {"proposal.md": "text\n", "vectors/post.det.selection.nms.yaml": owner_case})
+    owner = payload(tmp_path / "o", {"proposal.md": "text\n", "vectors/post.object.selection.nms.yaml": owner_case})
     ib.pack(owner, proposal_fields(), root, cwd=tmp_path)
     respond(root, "proposal-box-clamp@ultralytics-exporter", 1)
     rival = payload(tmp_path / "r", {"proposal.md": "text\n"})
     ib.pack(rival, proposal_fields(name="other-clamp", contributor="roboflow-exporter"), root, cwd=tmp_path)
     findings = ib.verify("proposal-other-clamp@roboflow-exporter", root)
     assert findings == [
-        "the section post.det.selection.nms has the owner ultralytics-exporter: "
+        "the section post.object.selection.nms has the owner ultralytics-exporter: "
         "send a contribution or a follow-up"
     ]
     beyond = nms_case(0, id="one")
@@ -325,32 +325,32 @@ def test_verify_checks_the_owner_and_the_contribution_cases(tmp_path: Path, root
     other_params = nms_case(1, id="three")  # the same expect, other params
     other_params["params"] = {**other_params["params"], "iou_threshold": 0.4}
     other_case = nms_vectors(beyond, nms_case(2, id="two"), other_params)
-    contribution = payload(tmp_path / "c", {"evidence.md": "text\n", "vectors/post.det.selection.nms.yaml": other_case})
+    contribution = payload(tmp_path / "c", {"evidence.md": "text\n", "vectors/post.object.selection.nms.yaml": other_case})
     ib.pack(contribution, proposal_fields(contributor="openmmlab-exporter", contributes_to="box-clamp"), root, cwd=tmp_path)
     findings = ib.verify("proposal-box-clamp@openmmlab-exporter", root)
     assert findings == [
-        "vectors/post.det.selection.nms.yaml: the case one differs from the owner case with the same id",
-        "vectors/post.det.selection.nms.yaml: the case three differs from the owner case with the same id",
+        "vectors/post.object.selection.nms.yaml: the case one differs from the owner case with the same id",
+        "vectors/post.object.selection.nms.yaml: the case three differs from the owner case with the same id",
     ]
 
 
 def test_a_contribution_uses_the_reference_and_the_part_2_4_rules_of_its_owner(tmp_path: Path, root: Path) -> None:
-    rel = "vectors/post.det.clamp.yaml"
+    rel = "vectors/post.object.clamp.yaml"
 
     def vectors(*cases: dict) -> str:
-        return json.dumps({"section": "post.det.clamp", "tolerance": 0, "unverified": "the proposal text", "cases": list(cases)})
+        return json.dumps({"section": "post.object.clamp", "tolerance": 0, "unverified": "the proposal text", "cases": list(cases)})
 
     owner = payload(tmp_path / "o", {
-        "proposal.md": "### 2.4 Validation rules\n\n- [ ] `V-post.det.clamp-1`: x must be 0 or more.\n",
-        "reference/post_det_clamp.py": "def run(params, input):\n    return {'y': input['x']}\n",
+        "proposal.md": "### 2.4 Validation rules\n\n- [ ] `V-post.object.clamp-1`: x must be 0 or more.\n",
+        "reference/post_object_clamp.py": "def run(params, input):\n    return {'y': input['x']}\n",
         rel: vectors({"id": "a", "params": {}, "input": {"x": 1}, "expect": {"y": 1}}),
     })
-    ib.pack(owner, proposal_fields(sections=["post.det.clamp"]), root, cwd=tmp_path)
+    ib.pack(owner, proposal_fields(sections=["post.object.clamp"]), root, cwd=tmp_path)
     contribution = payload(tmp_path / "c", {"evidence.md": "text\n", rel: vectors(
         {"id": "b", "params": {}, "input": {"x": 2}, "expect": {"y": 2}},
-        {"id": "c", "checks": ["refused"], "params": {}, "input": {"x": -1}, "expect": {"error": "V-post.det.clamp-1"}},
+        {"id": "c", "checks": ["refused"], "params": {}, "input": {"x": -1}, "expect": {"error": "V-post.object.clamp-1"}},
     )})
-    ib.pack(contribution, proposal_fields(sections=["post.det.clamp"], contributor="openmmlab-exporter",
+    ib.pack(contribution, proposal_fields(sections=["post.object.clamp"], contributor="openmmlab-exporter",
                                           contributes_to="box-clamp"), root, cwd=tmp_path)
     assert ib.verify("proposal-box-clamp@openmmlab-exporter", root) == []
 
@@ -358,24 +358,24 @@ def test_a_contribution_uses_the_reference_and_the_part_2_4_rules_of_its_owner(t
 def test_a_contribution_case_within_the_tolerance_or_with_its_own_verified_against_is_equal(
     tmp_path: Path, root: Path
 ) -> None:
-    owner = payload(tmp_path / "o", {"proposal.md": "text\n", "vectors/post.det.selection.nms.yaml": nms_vectors(nms_case(0))})
+    owner = payload(tmp_path / "o", {"proposal.md": "text\n", "vectors/post.object.selection.nms.yaml": nms_vectors(nms_case(0))})
     ib.pack(owner, proposal_fields(), root, cwd=tmp_path)
     within = nms_case(0, verified_against=[{"OpenMMLab-Exporter": "ref/nms.py::run"}])
     within["expect"] = {**within["expect"], "scores": [0.900004, 0.7]}  # tolerance 0.00001
     landed = nms_case(1, verified_against=[{"OpenMMLab-Exporter": "ref/nms.py::run"}])  # the landed case
     contribution = payload(tmp_path / "c", {
-        "evidence.md": "text\n", "vectors/post.det.selection.nms.yaml": nms_vectors(within, landed),
+        "evidence.md": "text\n", "vectors/post.object.selection.nms.yaml": nms_vectors(within, landed),
     })
     ib.pack(contribution, proposal_fields(contributor="openmmlab-exporter", contributes_to="box-clamp"), root, cwd=tmp_path)
     assert ib.verify("proposal-box-clamp@openmmlab-exporter", root) == []
 
 
 def test_verify_checks_the_model_payload_schemas(tmp_path: Path, root: Path) -> None:
-    landed = (REPO_ROOT / "specs" / "model-sidecar" / "vectors" / "post.det.selection.nms.yaml").read_bytes()
+    landed = (REPO_ROOT / "specs" / "model-sidecar" / "vectors" / "post.object.selection.nms.yaml").read_bytes()
     runs = {"exporter": "Ultralytics-Exporter", "commit": SOURCE, "runs": [
-        {"section": "post.det.selection.nms", "function": "a.py::f", "vectors_sha256": ib.sha256(landed),
+        {"section": "post.object.selection.nms", "function": "a.py::f", "vectors_sha256": ib.sha256(landed),
          "cases": {"one": "pass", "two": "not used"}, "result": "maybe"},
-        {"section": "post.det.selection.nms", "function": "a.py::f", "vectors_sha256": ib.sha256(landed),
+        {"section": "post.object.selection.nms", "function": "a.py::f", "vectors_sha256": ib.sha256(landed),
          "cases": {"one": "skipped"}, "result": "pass"}]}
     provenance = {"examples": {"detectors/x.yaml": {"exporter": "E", "kind": "export"}}}
     source = payload(tmp_path, {
@@ -393,7 +393,7 @@ def test_verify_checks_the_model_payload_schemas(tmp_path: Path, root: Path) -> 
 
 def test_verify_finds_a_stale_vector_run_and_unreadable_payload_files(tmp_path: Path, root: Path) -> None:
     runs = {"exporter": "E", "commit": SOURCE, "runs": [
-        {"section": "post.det.selection.nms", "function": "a.py::f", "vectors_sha256": "b" * 64,
+        {"section": "post.object.selection.nms", "function": "a.py::f", "vectors_sha256": "b" * 64,
          "cases": [], "result": "pass"}]}
     source = payload(tmp_path, {
         "intake.md": "text\n",
@@ -519,7 +519,7 @@ def test_list_marks_new_versions_sections_and_keeps_sibling_contributions_apart(
     respond(root, "proposal-box-clamp@aa-exporter", 1, state="closed")
     lines = ib.list_lines(root)
     assert "proposal-box-clamp@ultralytics-exporter v2 recorded (new version)" in lines
-    assert "  sections: post.det.selection.nms" in lines
+    assert "  sections: post.object.selection.nms" in lines
     assert "proposal-box-clamp@aa-exporter v1 closed (can delete)" in lines
     assert not any("needed by: proposal-box-clamp@bb-exporter" in line for line in lines)
 
@@ -586,7 +586,7 @@ def test_verify_finds_a_spec_version_that_is_not_a_heading_or_is_old_and_a_missi
     source = payload(tmp_path, {"proposal.md": "text\n"})
     version_dir = ib.pack(source, proposal_fields(), root, cwd=tmp_path, repo=fake_repo(tmp_path, "### 1.9.0\n"))
     assert ib.read_manifest(version_dir)["spec_version"] == "1.9.0"
-    assert ib.list_lines(root)[1:3] == ["  sections: post.det.selection.nms", "  spec_version: 1.9.0"]
+    assert ib.list_lines(root)[1:3] == ["  sections: post.object.selection.nms", "  spec_version: 1.9.0"]
     assert ib.verify("proposal-box-clamp@ultralytics-exporter", root) == [
         "spec_version 1.9.0 is not a version heading of the changelog of this checkout; pack a new version"
     ]
@@ -607,7 +607,7 @@ def test_a_tracked_record_keeps_the_section_owner_after_the_bundle_is_deleted(tm
     repo = fake_repo(tmp_path)
     record(repo, "proposed")
     found = ib.bundles(root, repo)
-    assert ib.owners(found, repo) == {"post.det.selection.nms": "ultralytics-exporter"}
+    assert ib.owners(found, repo) == {"post.object.selection.nms": "ultralytics-exporter"}
     entry = repo / "specs" / "model-sidecar" / "decisions" / "entries" / "AB12-box-clamp.md"
     for status, owned in (("accepted", True), ("absorbed into [x](x.md)", True), ("superseded by [CD34](x.md)", False),
                           ("rejected", False)):
@@ -623,7 +623,19 @@ def test_the_owner_has_the_earlier_created_then_the_slug_that_sorts_first(tmp_pa
     record(repo, "accepted", "2026-10-01", name="omega", contributor="bb-exporter", sections=["pre.resize.fit"])
     record(repo, "proposed", "2026-10-01", name="beta", contributor="cc-exporter")
     record(repo, "proposed", "2026-10-01", name="gamma", contributor="dd-exporter")
-    assert ib.owners({}, repo) == {"post.det.selection.nms": "cc-exporter", "pre.resize.fit": "bb-exporter"}
+    assert ib.owners({}, repo) == {"post.object.selection.nms": "cc-exporter", "pre.resize.fit": "bb-exporter"}
+
+
+def test_the_owner_of_an_old_section_id_owns_its_new_id(tmp_path: Path) -> None:
+    """The frozen records keep the section IDs from before ADR-88WQ."""
+    repo = fake_repo(tmp_path)
+    record(repo, "accepted", name="nms", contributor="aa-exporter", sections=["post.det.selection.nms"])
+    record(repo, "accepted", name="simcc", contributor="bb-exporter", sections=["post.pose.decode.simcc"])
+    assert ib.owners({}, repo) == {
+        "post.object.selection.nms": "aa-exporter",
+        "post.keypoint.decode.simcc": "bb-exporter",
+    }
+    assert {new.replace(".", "_") for new in ib.RENAMED_SECTIONS.values()} <= ib.section_modules()
 
 
 def test_the_entry_status_gives_the_state_and_a_response_must_agree(tmp_path: Path, root: Path) -> None:
@@ -1270,7 +1282,7 @@ def inverse(params, input):
 '''
 
 
-def reference_findings(tmp_path: Path, text: str, name: str = "post_det_clamp.py") -> list[str]:
+def reference_findings(tmp_path: Path, text: str, name: str = "post_object_clamp.py") -> list[str]:
     path = tmp_path / "check" / name
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
@@ -1278,7 +1290,7 @@ def reference_findings(tmp_path: Path, text: str, name: str = "post_det_clamp.py
 
 
 def test_the_static_check_passes_a_clean_module_and_finds_its_functions(tmp_path: Path) -> None:
-    path = tmp_path / "post_det_clamp.py"
+    path = tmp_path / "post_object_clamp.py"
     path.write_text(CLEAN_MODULE, encoding="utf-8")
     assert ib.reference_problems(path) == ([], ["run", "inverse"])
 
@@ -1290,7 +1302,7 @@ def test_the_static_check_passes_a_clean_module_and_finds_its_functions(tmp_path
         ("import os as numpy\n", "line 1: imports os: not NumPy"),
         ("import importlib.util\n", "imports importlib.util"),
         ("from importlib import import_module\n", "imports importlib"),
-        ("from . import post_det_decode\n", "line 1: a relative import"),
+        ("from . import post_object_decode\n", "line 1: a relative import"),
         ("from pre_resize_fit import run\n", "line 1: from pre_resize_fit import: import the section module"),
         ("import onnx\n", "imports onnx: not NumPy"),
         ("from numpy import load\n", "imports load from numpy"),
@@ -1366,7 +1378,7 @@ def test_the_static_check_finds_each_kind_of_finding(tmp_path: Path, text: str, 
 def test_the_static_check_allows_onnx_only_in_the_profile_module(tmp_path: Path) -> None:
     profile = "import onnx\n\ndef model_batch_convert(source, target, **kw):\n    onnx.save(onnx.load(source), target)\n"
     assert reference_findings(tmp_path, profile, "common_batch_conversion.py") == []
-    assert reference_findings(tmp_path, profile, "post_det_clamp.py") != []
+    assert reference_findings(tmp_path, profile, "post_object_clamp.py") != []
 
 
 def test_the_static_check_allows_the_safe_headers_of_a_definition(tmp_path: Path) -> None:
@@ -1385,7 +1397,7 @@ def test_only_a_manifest_section_is_a_new_section_module(tmp_path: Path) -> None
     """A file next to the module does not count, and a new section name must not be an installed module."""
     (tmp_path / "check").mkdir()
     (tmp_path / "check" / "post_new_section.py").write_text("", encoding="utf-8")
-    path = tmp_path / "check" / "post_det_clamp.py"
+    path = tmp_path / "check" / "post_object_clamp.py"
     path.write_text("import os\nimport post_new_section\nimport pre_commit.util\n", encoding="utf-8")
     not_allowed = "not NumPy, OpenCV, a listed standard-library module or a section module"
     assert ib.reference_problems(path)[0] == [
@@ -1422,15 +1434,15 @@ def test_the_malicious_module_writes_its_marker_when_it_runs(tmp_path: Path, mar
 
 
 def test_verify_reads_a_malicious_reference_module_and_never_runs_it(tmp_path: Path, root: Path, marker: Path) -> None:
-    rel = "vectors/post.det.clamp.yaml"
-    vectors = {"section": "post.det.clamp", "tolerance": 0, "unverified": "a test",
+    rel = "vectors/post.object.clamp.yaml"
+    vectors = {"section": "post.object.clamp", "tolerance": 0, "unverified": "a test",
                "cases": [{"id": "a", "params": {}, "input": {"x": 1}, "expect": {"y": 1}}]}
     source = payload(tmp_path, {
-        "proposal.md": "text\n", "reference/post_det_clamp.py": MALICIOUS, rel: json.dumps(vectors),
+        "proposal.md": "text\n", "reference/post_object_clamp.py": MALICIOUS, rel: json.dumps(vectors),
     })
-    ib.pack(source, proposal_fields(sections=["post.det.clamp"]), root, cwd=tmp_path)
+    ib.pack(source, proposal_fields(sections=["post.object.clamp"]), root, cwd=tmp_path)
     findings = ib.verify("proposal-box-clamp@ultralytics-exporter", root)
-    module = "reference/post_det_clamp.py"
+    module = "reference/post_object_clamp.py"
     at_import = "use only a docstring, imports, constants and definitions"
     assert findings == [
         f"{module}: line 2: the module runs code at import (Expr); {at_import}",
@@ -1445,16 +1457,16 @@ def test_verify_reads_a_malicious_reference_module_and_never_runs_it(tmp_path: P
 
 
 def test_a_contribution_gets_the_findings_of_its_owner_module(tmp_path: Path, root: Path, marker: Path) -> None:
-    rel = "vectors/post.det.clamp.yaml"
-    vectors = {"section": "post.det.clamp", "tolerance": 0, "unverified": "a test",
+    rel = "vectors/post.object.clamp.yaml"
+    vectors = {"section": "post.object.clamp", "tolerance": 0, "unverified": "a test",
                "cases": [{"id": "a", "params": {}, "input": {"x": 1}, "expect": {"y": 1}}]}
-    owner = payload(tmp_path / "o", {"proposal.md": "text\n", "reference/post_det_clamp.py": MALICIOUS})
-    ib.pack(owner, proposal_fields(sections=["post.det.clamp"]), root, cwd=tmp_path)
+    owner = payload(tmp_path / "o", {"proposal.md": "text\n", "reference/post_object_clamp.py": MALICIOUS})
+    ib.pack(owner, proposal_fields(sections=["post.object.clamp"]), root, cwd=tmp_path)
     contribution = payload(tmp_path / "c", {"evidence.md": "text\n", rel: json.dumps(vectors)})
-    ib.pack(contribution, proposal_fields(sections=["post.det.clamp"], contributor="openmmlab-exporter",
+    ib.pack(contribution, proposal_fields(sections=["post.object.clamp"], contributor="openmmlab-exporter",
                                           contributes_to="box-clamp"), root, cwd=tmp_path)
     findings = ib.verify("proposal-box-clamp@openmmlab-exporter", root)
-    prefix = "proposal-box-clamp@ultralytics-exporter/v1/reference/post_det_clamp.py: "
+    prefix = "proposal-box-clamp@ultralytics-exporter/v1/reference/post_object_clamp.py: "
     assert [f[: len(prefix)] for f in findings] == [prefix] * 7
     assert not marker.exists()
 
@@ -1464,13 +1476,13 @@ def test_verify_allows_the_sections_of_a_depends_on_bundle_and_refuses_a_shim_fi
     ib.pack(other, proposal_fields(name="new-thing", sections=["post.new_thing"]), root, cwd=tmp_path)
     module = "import post_new_thing\nimport pre_commit\n\n\ndef run(params, input):\n    return post_new_thing.run(params, input)\n"
     source = payload(tmp_path / "s", {
-        "proposal.md": "text\n", "reference/post_det_clamp.py": module, "reference/pre_commit.py": '"""A shim."""\n',
+        "proposal.md": "text\n", "reference/post_object_clamp.py": module, "reference/pre_commit.py": '"""A shim."""\n',
     })
-    ib.pack(source, proposal_fields(sections=["post.det.clamp"], depends_on=["proposal-new-thing@ultralytics-exporter"]),
+    ib.pack(source, proposal_fields(sections=["post.object.clamp"], depends_on=["proposal-new-thing@ultralytics-exporter"]),
             root, cwd=tmp_path)
     findings = [f for f in ib.verify("proposal-box-clamp@ultralytics-exporter", root) if f.startswith("reference/")]
     assert findings == [
-        "reference/post_det_clamp.py: line 2: imports pre_commit: not NumPy, OpenCV, a listed standard-library module "
+        "reference/post_object_clamp.py: line 2: imports pre_commit: not NumPy, OpenCV, a listed standard-library module "
         "or a section module",
         "reference/pre_commit.py: not reference/<section_module>.py of a section of the manifest",
     ]
