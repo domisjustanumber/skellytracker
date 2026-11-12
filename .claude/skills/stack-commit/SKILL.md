@@ -27,49 +27,33 @@ Before you write a commit message or a PR body that names a decision entry, load
 
 ## Spec-build stage
 
-These rules apply until the rebuild at the gate of phase 0
-([ADR-BH7C](../../../decisions/entries/BH7C-two-spec-build-prs-and-a-pr-for-each-stage.md) item 3).
+The spec-build stage ended at the rebuild at the gate of phase 0
+([ADR-V6G2](../../../decisions/entries/V6G2-implementation-stage.md)).
+[`after-spec-build.md`](after-spec-build.md) gives the steps after the rebuild. Its rules that stay are
+in [CI read](#ci-read) and [Old PR references](#old-pr-references).
 
-- The spec-build work goes to `development` in two PRs: `dom/52-process`, then `dom/53-spec`. Until
-  the rebuild, all of it is on `dom/sidecar-implementation`
-  ([ADR-BH7C](../../../decisions/entries/BH7C-two-spec-build-prs-and-a-pr-for-each-stage.md) item 1).
-  [Rebuild at the gate](after-spec-build.md#rebuild-at-the-gate) gives the steps.
-- Commit only on `dom/sidecar-implementation`, on top of its current commits.
-- Until the rebuild, do not add a `dom/NN-*` branch.
-- Do not make a fixup commit for a lower PR. Do not run a rebase with `--update-refs`.
-- Do not start a rebase below the commit "Remove the precision int8 from the sidecar model". Only
-  the rebuild goes below it.
-- Put one kind of change in each commit: content, move, rewording or non-spec.
-- The tree must be valid after the last commit of each commit group.
-- The parent of a range is the commit before the commit group (`git log` shows it). Give each report
-  that a step puts in the PR body to the user in the session. Also write a summary of it in the
-  message of the last commit of the group.
-- [Section 3](../../../AGENTS.md#3-install-and-test) of `AGENTS.md` gives the commit of a test or
-  CI fix.
-- If the fix changes package code under `skellytracker/` outside `skellytracker/tests/`, stop.
-  Report the defect to the user. Its fix waits for the implementation stage
-  ([Phase 3](../../../specs/model-sidecar/model-addition-workflow/phase-3-skellytracker.md) item 5).
+## CI read
+
 - Before each push, run
   `gh run list --repo "$(git remote get-url origin)" --branch dom/sidecar-implementation --limit 3`.
   The CI runs of a push are on the fork, not on the upstream repository. The list shows the runs of
   the last push. A red run or an empty list stops the push, also when the user approved the push
   earlier. Report it to the user. After the fix, ask for the push again
   ([ADR-6G6G](../../../decisions/entries/6G6G-ci-read-before-the-push.md)).
-- Push only the working branch, after the approval of the user:
-  `git push origin dom/sidecar-implementation`.
 - After each push, run the same `gh run list` command when the runs of that push finish. Do this
   before the next push. Report a red result to the user
   ([ADR-R39S](../../../decisions/entries/R39S-test-fix-on-the-working-branch.md) item 9).
-- "this PR" in an `_Edited_` line and "PR: pending" in a status line name the spec-build PR that
-  holds the file. They stay as written after the PR opens
+
+## Old PR references
+
+- "this PR" in an `_Edited_` line and "PR: pending" in a status line of the spec-build stage name the
+  spec-build PR that holds the file. They stay as written after the PR opens
   ([ADR-R39S](../../../decisions/entries/R39S-test-fix-on-the-working-branch.md) item 7).
-- The user opens each spec-build PR and writes its body.
-- The steps of [`after-spec-build.md`](after-spec-build.md) apply after the rebuild.
 
 ## Commit groups
 
-A commit group is a run of commits in a row on the working branch that do one task. Outside the
-spec-build stage, the commits of one PR are its commit group.
+A commit group is a run of commits in a row on the working branch that do one task. The commits of
+one PR are its commit group.
 
 Before the last commit of a group, examine each decision entry that the group wrote or landed, and
 each entry whose rules the group wrote into an absorb document. When the absorb documents state all
@@ -80,8 +64,7 @@ no other skill ([Rules](../../../decisions/README.md#rules); [ADR-W823](../../..
 ## One worktree and frozen PRs
 
 - Use one worktree only. Do not add a worktree. A rebase does not move a branch that a different
-  worktree has checked out. The worktree of `hw-and-ep-work` stays until the stage "Merge
-  `hw-and-ep-work`" copies its commits. Until then, each rebase waits
+  worktree has checked out
   ([ADR-BH7C](../../../decisions/entries/BH7C-two-spec-build-prs-and-a-pr-for-each-stage.md) item 6).
 - Do not change #81 (`dom/add-sidecar-spec`) or the old branches `dom/01-*` to `dom/51-*`. After the
   rebuild, the old branches are not in the stack

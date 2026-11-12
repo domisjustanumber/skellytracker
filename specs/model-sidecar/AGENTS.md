@@ -32,8 +32,7 @@ root log ([ADR-GN3D](../../decisions/entries/GN3D-module-decision-logs.md)).
 - Stop on a gap. If a model property does not map exactly to a spec section, do not approximate it.
   A near-miss is a gap. Then follow
   [`propose-sidecar-change`](../../.claude/skills/propose-sidecar-change/SKILL.md).
-- Put one kind of change in each PR. In the spec-build stage, put one kind of change in each
-  commit ([section 6](../../AGENTS.md#6-git-rules) of `AGENTS.md`).
+- Put one kind of change in each PR.
   The kinds are: content (a change of normative meaning), move, rewording, and non-spec (decision
   log, agent files, tools, test vectors, guidance, CI, test fixes).
   - A non-spec PR can also add an example that changes no normative meaning, with its provenance

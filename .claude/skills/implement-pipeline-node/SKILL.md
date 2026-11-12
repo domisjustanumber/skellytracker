@@ -16,7 +16,7 @@ file gives only the differences
 ## Stage
 
 The [Stage](../implement-sidecar-section/SKILL.md#stage) rules of `implement-sidecar-section`
-apply. In the spec-build stage, do only steps 1 to 4. Report the plan. Then stop.
+apply.
 
 ## Inputs
 

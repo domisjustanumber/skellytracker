@@ -56,9 +56,11 @@ of one model family. The spec starts at [`specs/model-sidecar/README.md`](specs/
 The exporter repositories make ONNX files and write their sidecars: OpenMMLab-Exporter,
 Roboflow-Exporter, Ultralytics-Exporter and Qualcomm-Exporter.
 
-The spec is in its spec-build stage ([Stages](specs/model-sidecar/model-addition-workflow/README.md#stages)).
-In this stage, the exporters add models and the spec changes.
-Do not change the implementation code under `skellytracker/`.
+The project is in its implementation stage from the rebuild at the gate of phase 0
+([Stages](specs/model-sidecar/model-addition-workflow/README.md#stages);
+[ADR-V6G2](decisions/entries/V6G2-implementation-stage.md)).
+The stages of phase 1 of the implementation plan implement the spec in the package code.
+The spec can still change through a proposal.
 
 - The root [decision log](decisions/README.md) is in `decisions/`. The sidecar spec has its own
   [log](specs/model-sidecar/decisions/README.md) in `specs/model-sidecar/decisions/`
@@ -93,9 +95,9 @@ run ([ADR-AD33](decisions/entries/AD33-bundles-are-untrusted-input.md)).
 | [`author-sidecar`](.claude/skills/author-sidecar/SKILL.md) | an exporter repo | Add a model: the intake, the sidecar, parity and the host-side reference implementations |
 | [`propose-sidecar-change`](.claude/skills/propose-sidecar-change/SKILL.md) | an exporter repo, or this repository | Write a spec change proposal for a near-miss or a gap, and record it as a `proposed` entry |
 | [`change-sidecar-spec`](.claude/skills/change-sidecar-spec/SKILL.md) | this repository | Land a model, an accepted proposal or a reference implementation in the spec |
-| [`implement-sidecar-section`](.claude/skills/implement-sidecar-section/SKILL.md) | this repository | Implement a spec section in the package code. In the spec-build stage, plan only. |
+| [`implement-sidecar-section`](.claude/skills/implement-sidecar-section/SKILL.md) | this repository | Implement a spec section in the package code |
 | [`change-pipeline-spec`](.claude/skills/change-pipeline-spec/SKILL.md) | this repository | Land a pipeline bundle or an accepted node proposal, or update pinned sidecar hashes after a re-export |
-| [`implement-pipeline-node`](.claude/skills/implement-pipeline-node/SKILL.md) | this repository | Implement a node type of the pipeline spec in the package code. In the spec-build stage, plan only. |
+| [`implement-pipeline-node`](.claude/skills/implement-pipeline-node/SKILL.md) | this repository | Implement a node type of the pipeline spec in the package code |
 | [`stack-commit`](.claude/skills/stack-commit/SKILL.md) | this repository | Commit, rebase and push on the working branch, and write a PR body |
 | [`cite-entries`](.claude/skills/cite-entries/SKILL.md) | this repository | Cite decision entries in a reply, a plan, a PR body or a commit message |
 | [`ask-the-user`](.claude/skills/ask-the-user/SKILL.md) | this repository | Ask the user a question or give options, with an example and a source for each |
@@ -122,7 +124,7 @@ uv run ruff check skellytracker/ tools/ decisions/scripts/ specs/model-sidecar/d
   `-m "not video"` run can stop in the MediaPipe tests.
   [`skellytracker/AGENTS.md`](skellytracker/AGENTS.md#tests) gives the known failures and the split run.
 - Report each new test or CI failure to the user. Fix the failures of one root cause in one PR. Do
-  not put other changes in that PR. In the spec-build stage, the fix is its own commit on the working branch. Do not ask for the branch
+  not put other changes in that PR
   ([ADR-R39S](decisions/entries/R39S-test-fix-on-the-working-branch.md)).
 - graphify is an optional local tool ([ADR-87B2](decisions/entries/87B2-local-graphify-code-graph.md)).
   It keeps a code graph in `graphify-out/` in the root of a checkout. Git ignores this folder.
@@ -234,14 +236,6 @@ Change the rest of a kit template by hand when a rule of this log changes
   <!-- /kit -->
 - Commit only on the working branch `dom/sidecar-implementation`. Open PRs against `development`,
   not `main`.
-- In the spec-build stage, the work goes to `development` in two PRs: `dom/52-process`, then
-  `dom/53-spec`. At the gate of phase 0, the session rebuilds them from the final files of the
-  working branch. The spec-build rules end at the rebuild. Then each stage of phase 1 is one stacked
-  PR ([ADR-BH7C](decisions/entries/BH7C-two-spec-build-prs-and-a-pr-for-each-stage.md)). Each commit
-  has one kind of change.
-  In the rules of the sidecar process, "the same PR" means the same commit group. A content,
-  non-spec, move or rewording PR means a commit of that kind. [Section 3](#3-install-and-test)
-  gives the commit of a test fix.
 - Keep the checkout `../freemocap/skellytracker` on the working branch. Exporter agents read the spec
   there. If the checkout is on a different branch, an exporter agent stops and asks the user.
 - Before you commit, rebase, push or write a PR body, load the

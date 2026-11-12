@@ -196,8 +196,7 @@ A spec change has no class ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-
    only. Before you commit it, use `HEAD` for the uncommitted changes. After you commit it, use
    `<content commit>^..<content commit>`. Do not use a range that holds other commits.
 2. Write the models, the exporters, the skellytracker functions, the tests and the vectors of the
-   report in the PR body. In the spec-build stage, give the report to the user, and write a summary of
-   it in the message of the last commit of the commit group.
+   report in the PR body.
 3. Compare the report with the part 7 table of the proposal. An example that the change makes
    invalid and that part 7 does not list is a landing stop: the response is `needs-contributor`, and
    the contributor sends a follow-up bundle with the missing row
@@ -260,8 +259,7 @@ Do these checks for each reworded section file
    answers questions with exact answers from the vectors. Each answer must be correct. Rewrite the
    unclear text that causes a wrong answer. Ask the old text the same questions. Its wrong answers are
    clarity defects that the rewrite must correct.
-5. Put the claims tables, the approved token differences and the probe results in the PR body. In
-   the spec-build stage, give them to the user, and write a summary in the commit message.
+5. Put the claims tables, the approved token differences and the probe results in the PR body.
 
 Reword after the split and the tools, with one commit for each batch of sections. A lint for sentence
 length and passive voice gives advice only. Do not reword the existing changelog rows, the YAML of
@@ -269,9 +267,4 @@ length and passive voice gives advice only. Do not reword the existing changelog
 
 ## Stage
 
-- In the spec-build stage, do not change a file under `skellytracker/`. A test fix in
-  `skellytracker/tests/` is the only exception
-  ([Stages](../../../specs/model-sidecar/model-addition-workflow/README.md#stages)).
-  [Section 3](../../../AGENTS.md#3-install-and-test) of `AGENTS.md` gives the commit of a test or CI
-  fix.
 - Do not change an exporter repo.

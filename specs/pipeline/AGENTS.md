@@ -24,6 +24,5 @@ root log.
 - A pipeline file or a node change comes through [Pipeline contributions](contributions.md). The
   skill [`change-pipeline-spec`](../../.claude/skills/change-pipeline-spec/SKILL.md) lands it
   ([ADR-271H](../../decisions/entries/271H-pipeline-bundles.md)).
-- In the spec-build stage, do not change a file under `skellytracker/`.
 - An entry whose files are all in `specs/pipeline/` goes in [`decisions/`](decisions/README.md). An
   entry with files in another module goes in the [root log](../../decisions/README.md).

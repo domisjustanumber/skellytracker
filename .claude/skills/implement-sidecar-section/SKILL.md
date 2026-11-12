@@ -20,9 +20,6 @@ gives the order of the steps, the inputs, the outputs and the stop points.
 ## Stage
 
 - [Section 1](../../../AGENTS.md#1-purpose) of `AGENTS.md` names the current stage.
-- In the spec-build stage, no file under `skellytracker/` changes
-  ([Stages](../../../specs/model-sidecar/model-addition-workflow/README.md#stages)).
-- In the spec-build stage, do only steps 1 to 4. Report the plan. Then stop.
 - If step 3 finds that the work is blocked, do only steps 1 to 3. A blocked section gets no plan.
   Report the result of step 3. Then stop.
 
@@ -129,7 +126,6 @@ A skellytracker session must land it first, with the skill
    test needs a `"2.0.0"` sidecar and the package cannot load one yet, write that work as the first
    prerequisite. If the implementation plan has no item for it, tell the user. Do not design that
    work in this plan.
-10. In the spec-build stage, report the plan. Then stop.
 
 ### Step 5: Port or compare
 
@@ -202,7 +198,6 @@ A skellytracker session must land it first, with the skill
 
 | Condition | Action |
 |---|---|
-| The project is in the spec-build stage. | Do steps 1 to 4. Report the plan. Then stop. |
 | No reference example uses the section, the vectors are not verified and no reference implementation exists. | Stop after step 3. Do not plan the work. Report the work as blocked, the missing items, the items that end the block and the exporter that owes each item. Do not write the missing items. |
 | Your code does not agree with a reference implementation or an exporter function. | Stop. Use `propose-sidecar-change`. |
 | A vector case fails. | Find the cause in the code. Do not change the vector. If the vector does not agree with the text, report a spec defect. |

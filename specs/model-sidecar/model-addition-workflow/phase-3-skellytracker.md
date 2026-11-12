@@ -34,10 +34,9 @@ You do not do phase 3. A skellytracker session does it. The user decides.
 3. Then you write the sidecar with the new fields, and you finish phase 1 for the model.
 4. A skellytracker session orders its commits with the skill
    [`stack-commit`](../../../.claude/skills/stack-commit/SKILL.md).
-5. In the spec-build stage, no file under `skellytracker/` changes. The only exception is a test fix
-   in `skellytracker/tests/` ([section 3](../../../AGENTS.md#3-install-and-test) of `AGENTS.md`). A code defect is
-   reported, and its fix waits for the implementation stage. Docs, tools, vectors and reference
-   implementations outside `skellytracker/` can change.
+5. A skellytracker session can change the package code. A code defect gets its own PR
+   ([section 3](../../../AGENTS.md#3-install-and-test) of `AGENTS.md`;
+   [ADR-V6G2](../../../decisions/entries/V6G2-implementation-stage.md)).
 6. **From the 2.0.0 pre-release.** skellytracker implements your proposal before the user decides.
    It applies your patch ([Patches](hand-over.md#patches)), runs your vectors through its code,
    loads your sidecar, runs your model on the reference image against your `parity/` output and puts

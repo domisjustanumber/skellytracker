@@ -2,9 +2,6 @@
 
 These rules apply to the code and the tests under `skellytracker/`.
 The root [`AGENTS.md`](../AGENTS.md) also applies.
-In the spec-build stage, do not change the implementation code. You can change `tests/` to fix a test
-([Stages](../specs/model-sidecar/model-addition-workflow/README.md#stages);
-[Phase 3](../specs/model-sidecar/model-addition-workflow/phase-3-skellytracker.md)).
 To change a package sidecar, also read [`specs/model-sidecar/AGENTS.md`](../specs/model-sidecar/AGENTS.md).
 
 ## Layout
@@ -115,4 +112,4 @@ The sidecar paths are under `core/detectors/`.
   timeout plugin: they are its regression test
   ([ADR-R3F1](../decisions/entries/R3F1-mediapipe-check-time-limit.md)).
 
-- If a failure shows a code defect, report it. Do not fix the code in the spec-build stage.
+- If a failure shows a code defect, report it.

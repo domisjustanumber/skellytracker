@@ -4,7 +4,7 @@ This file uses ASD-STE100 Simplified Technical English.
 
 These steps of the [`stack-commit`](SKILL.md) skill apply after the rebuild at the gate of phase 0
 ([ADR-BH7C](../../../decisions/entries/BH7C-two-spec-build-prs-and-a-pr-for-each-stage.md) item 3).
-Until then, [Spec-build stage](SKILL.md#spec-build-stage) applies. The rules of the skill also apply.
+The rules of the skill also apply.
 
 ## Rebuild at the gate
 

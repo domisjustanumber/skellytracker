@@ -13,8 +13,7 @@ same words as a correct one ([ADR-9K2M](../../../decisions/entries/9K2M-agent-se
 ## The brief
 
 1. State the goal, the files to read and the facts that you already know.
-2. State the files that the agent can change. A review or a search changes no file. In the
-   spec-build stage, no agent changes a file under `skellytracker/`.
+2. State the files that the agent can change. A review or a search changes no file.
 3. Tell the agent to give each location as `path:line` from `grep -n` output or Read output, with
    the quoted line.
 4. If the agent runs a tool on bundle content, give the safety check of
