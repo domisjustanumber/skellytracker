@@ -90,9 +90,15 @@ class DetectorParams(Strict):
     )
     execution_provider: str | None = param(
         None,
-        description="A concrete EP for this node. Empty: the EP of the run.",
+        description="A key of the EP catalog for this node, for example `cuda`, `trt-rtx` or `cpu`. Empty: the EP of the run.",
         live=False,
-        source="ADR-7NY2 item 12",
+        source="ADR-7NY2 item 12; ADR-9NW0 item 1",
+    )
+    ep_options: dict[str, str] = param(
+        default_factory=dict,
+        description="EP options for this node: option names and values that the EP catalog allows for its EP. Empty: the EP options of the run when the node uses the EP of the run, else none.",
+        live=False,
+        source="ADR-9NW0 item 2",
     )
     max_instances: int = param(
         1,

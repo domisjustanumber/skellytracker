@@ -54,7 +54,7 @@ The fields of the header line ([ADR-Q59W](../../decisions/entries/Q59W-pipeline-
 | `points_on` | The timing points that are on. |
 | `nodes` | One item for each node. |
 
-The fields of a node item: `id`, `type`, `batching`, `inputs` (each with a `prev` flag), `key`, `sidecar_sha256`, `artifact_sha256`, `size`, `precision`, `execution`, `stage_providers` and `shared_with`. `execution` holds `requested_ep`, `used_ep`, the device, `gpu_uuid`, `ep_device_id` and the EP options that change the numbers.
+The fields of a node item: `id`, `type`, `batching`, `inputs` (each with a `prev` flag), `key`, `sidecar_sha256`, `artifact_sha256`, `size`, `precision`, `execution`, `stage_providers` and `shared_with`. `execution` holds `requested_ep`, `used_ep`, the device, `gpu_uuid`, `ep_device_id`, the EP options that change the numbers, `cpu_nodes` (the count of the nodes of the session on the CPU EP) and `cpu_op_types` (their op types) ([ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 5).
 
 ## Behaviour
 
@@ -77,7 +77,7 @@ The fields of a node item: `id`, `type`, `batching`, `inputs` (each with a `prev
 
 - The reference model checks `V-pipeline.timing-1` in `check_structure`. The `timing_points` of each node class give the points. (skellytracker `specs/pipeline/reference/pipeline_config.py`)
 - The public helper `core/pipelines/timing.py` aggregates the events to the skellybench timing record. `stages_ms_per_image` is the sum of the model point times divided by the sum of `batch_size`. The model points are the points of each detector node and the `run` point of each `mediapipe_tasks` node. The `run` time of a glue node goes to `excluded_ms_per_image` ([ADR-0WTV](../../decisions/entries/0WTV-system-metrics-and-pipeline-timing-helper.md) item 2).
-- skellybench runs `python -m skellytracker run --pipeline … --coco <annotations.json> --images <dir> --out … [--ep …] [--timing on]` as a subprocess. The timing files and the tap files are the contract ([ADR-Q59W](../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 6).
+- skellybench runs `python -m skellytracker run --pipeline … --coco <annotations.json> --images <dir> --out … [--ep <key>] [--ep-option <name>=<value> …] [--timing on]` as a subprocess. The timing files and the tap files are the contract ([ADR-Q59W](../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 6). The EP flags are in [ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 2.
 - The header has no field `mode`: skellytracker has no IO binding to report.
 
 ## Authoring guidance

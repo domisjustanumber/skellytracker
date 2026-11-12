@@ -71,6 +71,16 @@
     "DetectorParams": {
       "additionalProperties": false,
       "properties": {
+        "ep_options": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "EP options for this node: option names and values that the EP catalog allows for its EP. Empty: the EP options of the run when the node uses the EP of the run, else none.",
+          "live": false,
+          "source": "ADR-9NW0 item 2",
+          "title": "Ep Options",
+          "type": "object"
+        },
         "execution_provider": {
           "anyOf": [
             {
@@ -81,9 +91,9 @@
             }
           ],
           "default": null,
-          "description": "A concrete EP for this node. Empty: the EP of the run.",
+          "description": "A key of the EP catalog for this node, for example `cuda`, `trt-rtx` or `cpu`. Empty: the EP of the run.",
           "live": false,
-          "source": "ADR-7NY2 item 12",
+          "source": "ADR-7NY2 item 12; ADR-9NW0 item 1",
           "title": "Execution Provider"
         },
         "key": {

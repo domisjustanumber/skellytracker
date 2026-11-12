@@ -10,7 +10,7 @@ status: {spec: draft}
 
 > This section is a draft. Its fields and rules can change before the section becomes `stable`.
 
-A run starts a pipeline with run parameters. The same file runs in each running mode. This section gives the run parameters, the frame time, the running modes, the batch, the stateful pipelines, the session sharing, the warnings and the start checks ([ADR-99MH](../../decisions/entries/99MH-pipeline-outputs-and-running.md) items 2 to 7; [ADR-48PG](../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) items 6 and 7).
+A run starts a pipeline with run parameters. The same file runs in each running mode. This section gives the run parameters, the frame time, the running modes, the batch, the stateful pipelines, the session sharing, the warnings and the start checks ([ADR-99MH](../../decisions/entries/99MH-pipeline-outputs-and-running.md) items 2 to 7; [ADR-48PG](../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) items 6 and 7; [ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 2, 4 and 5).
 
 ## Fields
 
@@ -20,7 +20,8 @@ A pipeline file has no field of this section. A run takes these parameters:
 |-----------|----------|-------------|
 | camera ids | yes | The ids of the cameras of the run. |
 | running mode | yes | `image`, `video` or `live`. |
-| execution provider | yes | A concrete EP, for example `cuda`, `tensorrt` or `cpu`. |
+| execution provider | yes | A key of the EP catalog, for example `cuda`, `trt-rtx` or `cpu`. |
+| EP options | no | A mapping of option names to values, all strings. The EP catalog lists the allowed names and values of each EP. Default: empty. |
 | `fps` | no | A float. Default: 30.0. Only in `video`, for a frame with no `timestamp_ms` ([Behaviour](#behaviour) item 2). |
 | timing | no | On or off, and the destination of the events ([Timing](timing.md)). |
 | tap folder | no | The folder of the taps ([Taps](taps.md)). |
@@ -33,7 +34,7 @@ A warning has these fields ([ADR-48PG](../../decisions/entries/48PG-pipeline-api
 
 | Field | Description |
 |-------|-------------|
-| `code` | `batch_limited_by_state`, `ep_fallback` or `missing_dependency`. |
+| `code` | `batch_limited_by_state`, `ep_partial_placement` or `missing_dependency`. |
 | `message` | A text for people. The log line uses the same text. |
 | `node_ids` | The ids of the nodes that the warning is about. |
 | `details` | A mapping with more facts. |
@@ -59,10 +60,12 @@ A warning has these fields ([ADR-48PG](../../decisions/entries/48PG-pipeline-api
    - The run pads a missed frame. It gives a blank crop to each empty crop slot, for example the slot of a padding ROI row. It drops the result of each padded item.
 5. **Stateful pipelines.** A pipeline is stateful when it has an `@prev` input, or a temporal node upstream of a detector node. The temporal nodes are `smooth_roi`, `smooth_keypoints`, `redetect`, and `mediapipe_tasks` in the landmarker mode `VIDEO`. A temporal node with no detector node downstream does not make a pipeline stateful. `roi_tracking` keeps no state, so it is not a temporal node. In `video`, a stateful pipeline runs at batch = camera count. There is no switch to turn this off. The run writes one log line that names the stateful nodes, and gives the warning `batch_limited_by_state` ([ADR-99MH](../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 5).
 6. **Session sharing.** In one process, the nodes with the same artifact SHA-256, batch and execution share one inference session. The file does not control this ([ADR-99MH](../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 6).
-7. **Execution provider.** The EP is a parameter of the run. A detector node can give its own EP in `execution_provider`. There is no EP policy such as `recommended:latency` ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 12).
+7. **Execution provider.** The EP key and the EP options are parameters of the run. The EP catalog in `core/eps/` owns the EP keys and lists the allowed options of each EP ([ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 1 and 2). A detector node can give its own EP in `execution_provider` and its own options in `ep_options`. There is no EP policy such as `recommended:latency`. The caller resolves a recommended form to an EP key and its options ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 12; [ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 3).
+   - A run never uses another EP than the requested EP. An EP that is not available or does not start stops the start of the run before frame 0 ([ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 4).
+   - A session can have nodes on the CPU EP. The run reports them ([ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 5).
 8. **Warnings.** The run gives a warning for each of these conditions ([ADR-48PG](../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) items 6 and 7):
    - `batch_limited_by_state`: the pipeline is stateful and the running mode is `video` (Behaviour item 5).
-   - `ep_fallback`: the EP that a node uses is not the EP that the node requests.
+   - `ep_partial_placement`: a session of the node has nodes on the CPU EP. `details` gives the node count of each EP and the CPU op types. The run gives it one time for each session ([ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 5).
    - `missing_dependency`: a node needs an optional extra that is not installed, or an ONNX file that is absent or whose hash does not agree. A load gives this warning. A start fails before frame 0 ([Validation rules](#validation-rules)).
    - The load result holds the warnings that are known before start. The run holds the full list. The run gives each new warning to the warning receiver one time, also during the run, from the thread that makes the call.
 9. **Replayed and unused ports.** A port is used when it is an output, an input of a node that runs, or the port of a `record` tap. A node whose outputs are all replayed or not used does not run. The upstream nodes of a replayed port do not run when nothing else uses them ([Taps](taps.md#behaviour)).

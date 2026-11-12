@@ -67,7 +67,7 @@ The params use the shared names of the pipeline spec, not the MediaPipe option n
 - The 478 face points include the 10 iris points. They hold each point of the 136-point face contour subset ([ADR-48PG](../../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) Reason; [ADR-MSH0](../../../decisions/entries/MSH0-supported-platforms-v2.md)).
 - The variant `holistic` is single person ([ADR-48PG](../../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 4).
 - The node has no ROI input in v1. An ROI input is open work ([ADR-48PG](../../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 4).
-- The node does not use an execution provider. It ignores the EP of the run (`MediapipeTasksParams` in `specs/pipeline/reference/pipeline_config.py` has no `execution_provider`).
+- The node does not use an execution provider. It ignores the EP and the EP options of the run (`MediapipeTasksParams` in `specs/pipeline/reference/pipeline_config.py` has no `execution_provider`).
 - The timing point is `run`. Its time counts as model time in the skellybench timing record ([Timing](../timing.md#implementer-guidance); [ADR-Q59W](../../../decisions/entries/Q59W-pipeline-timing-and-taps.md) items 1 and 4).
 
 ## Validation rules
