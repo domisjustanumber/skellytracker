@@ -1,6 +1,6 @@
 # G3FA — Spec change: affine-crop-rotated-roi
 
-**Status:** accepted, 2026-11-12 (user; PR: pending); proposed 2026-11-12 (proposal-affine-crop-rotated-roi@openmmlab-exporter@v1); recorded again 2026-11-12 (proposal-affine-crop-rotated-roi@openmmlab-exporter@v2).
+**Status:** absorbed into [`resize-affine-crop.md#fields`](../../pre/resize-affine-crop.md#fields), [`resize-affine-crop.md#behaviour`](../../pre/resize-affine-crop.md#behaviour), [`resize-affine-crop.md#validation-rules`](../../pre/resize-affine-crop.md#validation-rules), [`input.md#validation-rules`](../../common/input.md#validation-rules), [`detector.md#behaviour`](../../../pipeline/nodes/detector.md#behaviour), 2026-11-12 (user; PR: pending).
 
 ## Decision
 

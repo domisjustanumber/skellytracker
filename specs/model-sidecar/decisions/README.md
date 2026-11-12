@@ -15,7 +15,6 @@ These entries are `accepted` or `evidence`.
 
 | # | Decision | Status |
 |---|----------|--------|
-| [G3FA](entries/G3FA-affine-crop-rotated-roi.md) | Spec change: the affine crop takes an ROI with a rotation; `affine_person_crop` becomes `affine_crop` | accepted |
 
 ### Proposed
 

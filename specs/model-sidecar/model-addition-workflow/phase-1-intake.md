@@ -12,8 +12,8 @@ file `intake.md` of a `model` bundle ([Hand-over bundles](hand-over.md#payload))
    An upstream step that does nothing for this model is also a row. The row gives the evidence that
    the step does nothing.
 
-   The runtime contract starts at the inputs of the model: the source image, and the box for
-   `affine_person_crop`. It ends at the decoded outputs in source-image coordinates. An upstream step
+   The runtime contract starts at the inputs of the model: the source image, and the box or
+   the ROI for `affine_crop`. It ends at the decoded outputs in source-image coordinates. An upstream step
    before or after the contract is also a row, with the verdict `out of scope`.
 
    The `license` block is not a part of the runtime contract. Also write its rows: the license of
@@ -82,8 +82,8 @@ These verdicts apply to each row of the intake
   precision, the order of steps or the threshold comparison. A detail that the spec does not define
   is also a near-miss when it changes the output for some input. A name or a path changes no
   tensor and no decoded output, so its row is never a `near-miss`.
-- `gap`: the spec has no section and no field for the property, for example a rotated crop, a
-  border mode or a role for an ROI refiner. A property that the spec calls out of scope, or that the
+- `gap`: the spec has no section and no field for the property, for example a border mode or a
+  role for an ROI refiner. A property that the spec calls out of scope, or that the
   spec lists in "Considered and deliberately not added"
   (`../freemocap/skellytracker/specs/model-sidecar/changelog.md`), is also a gap.
 - `unverified`: you do not have the evidence for a verdict. Name the missing evidence in the row. If

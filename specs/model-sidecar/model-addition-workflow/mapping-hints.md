@@ -43,7 +43,7 @@
     the last bit for 126 of the 256 byte values;
   - the pixel-centre convention of each resize call. `cv2.resize` and `cv2.warpAffine` put the pixel
     centres in different places. The spec uses `cv2.resize` for `letterbox` and `stretch`, and
-    `cv2.warpAffine` for `fit` and `affine_person_crop`. The inverse uses the same convention
+    `cv2.warpAffine` for `fit` and `affine_crop`. The inverse uses the same convention
     ([Pixel centres](../pre/interpolation.md#pixel-centres)). Record the convention of the
     upstream call and of its inverse in the intake;
   - the border value of each warp, for each channel. A scalar `pad_value` `s` means `[s, s, s]` for

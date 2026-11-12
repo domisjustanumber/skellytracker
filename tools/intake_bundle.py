@@ -138,7 +138,7 @@ ALLOWED_RESPONSES = {
     "superseded by": ("landed",),
 }
 OWNING_ENTRY = {"proposed", "accepted", "absorbed into"}
-# The section IDs that ADR-88WQ renamed. The frozen records and the decided entries keep the old
+# The section IDs that ADR-88WQ and ADR-G3FA renamed. The frozen records and the decided entries keep the old
 # IDs, so the owner of an old ID owns the new ID.
 RENAMED_SECTIONS = {
     "post.det.outputs": "post.object.outputs",
@@ -152,6 +152,7 @@ RENAMED_SECTIONS = {
     "post.pose.decode.coordinate": "post.keypoint.decode.coordinate",
     "post.pose.bottom_up": "post.keypoint.bottom_up",
     "post.overlay": "post.keypoint.overlay",
+    "pre.resize.affine_person_crop": "pre.resize.affine_crop",
 }
 
 COMMON_KEYS = (

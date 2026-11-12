@@ -15,7 +15,7 @@ Note:
 - Imported section modules: post.object.decode (post_object_decode: shared steps 1, 2, 4, 5 and 6) and
   post.unprojection (post_unprojection: the box_space conversion of shared step 2 and the
   unprojection of shared step 3). post_unprojection imports pre.resize.letterbox
-  (pre_resize_letterbox) and has a fixture of the pre.resize.affine_person_crop Inverse.
+  (pre_resize_letterbox) and pre.resize.affine_crop (pre_resize_affine_crop).
 - Fixtures: none.
 - Vector results: specs/model-sidecar/vectors/post.object.selection.nms.yaml of skellytracker
   8351b7f8c20c8db74eb3e547478970e4dceb0308. All 24 cases pass through run (20 cases with

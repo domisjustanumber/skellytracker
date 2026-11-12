@@ -280,13 +280,21 @@ change of `processing/` in place changes their output.
 - Add new modules in `processing/pre/` and `processing/post/`, one module for each spec section
   ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 4). Port them from
   `specs/model-sidecar/reference/`, for example `pre/resize_letterbox.py`, `pre/normalize.py`,
-  `pre/resize_affine_person_crop.py`, `post/object_selection_nms.py`, `post/object_decode.py`,
+  `pre/resize_affine_crop.py`, `post/object_selection_nms.py`, `post/object_decode.py`,
   `post/keypoint_decode_simcc.py` and `post/unprojection.py`.
 - These modules carry the behaviour items of M8: letterbox rounding, the scalar and array pad
   values, the `fit` `pad_value`, the stretch unprojection, the normalization modes and the one
   `imagenet` mode, the NMS box area, the clamp, the size filter and the class filter, the resize
   compute dtype, the affine crop matrix in float32, the SimCC score without softmax and the cast to
   the input dtype. The dispatchers take the new spec model.
+- Port `pre/resize_affine_crop.py` from `specs/model-sidecar/reference/pre_resize_affine_crop.py`:
+  `roi_from_box`, `crop_size`, `warp_points`, `warp_matrix`, `affine_crop` and `unproject`
+  ([ADR-G3FA](model-sidecar/decisions/entries/G3FA-affine-crop-rotated-roi.md);
+  [Implementer guidance](model-sidecar/pre/resize-affine-crop.md#implementer-guidance)). The resize
+  dispatcher calls it on `input.resize.method: affine_crop`. The pipeline `detector` node gives each
+  present row of its `rois` input as `(c_x, c_y, w, h, rotation)`. Do not reuse the old
+  `get_warp_matrix` for a rotated crop: its `rot` argument turns a point above the centre. Add the
+  module to `PACKAGE_RUNNERS` for `pre.resize.affine_crop`, with the `bbox_xyxy` and `roi` cases.
 - Add each new function to `PACKAGE_RUNNERS` in `tools/tests/test_vectors.py` and to
   `verified_against`. The old entries (for example `letterbox_preprocess` and `fit_preprocess`) stay
   until Db, because the test requires that the agreeing entries equal the listed entries. Check
@@ -898,17 +906,18 @@ the exporter. N1 and N2 come before N5.
     resolver has no `base` directive.
 - **Sidecar vocabulary.** Added on 2026-11-12. The spec uses one name for each concept, with no
   alias ([ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md);
-  [ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md); row 46 and row 47 of the
-  [changelog](model-sidecar/changelog.md#summary-of-changes) give the full map). The new model:
+  [ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md);
+  [ADR-G3FA](model-sidecar/decisions/entries/G3FA-affine-crop-rotated-roi.md); rows 46, 47 and 48 of
+  the [changelog](model-sidecar/changelog.md#summary-of-changes) give the full map). The new model:
   - takes the role `keypoint_detector`, not `pose_estimator`;
   - has the blocks `object:` (`object.decode`, `object.classes`) and `keypoint:`
     (`keypoint.decode`, `keypoint.geometry`, `keypoint.estimator_type`, `keypoint.point_names`,
     `keypoint.skeletons`, `keypoint.overlay` with `parts` and `edges`);
   - takes `min_score`, `box_space`, `coordinate_space`, the `fields` column `class_index`, and the
     semantics `packed_detections`, `keypoint_coordinates` and `instance_keypoints`;
-  - has no `keypoint.requires_object_detector`. `V-pre.resize.affine_person_crop-2` reads
+  - has no `keypoint.requires_object_detector`. `V-pre.resize.affine_crop-2` reads
     `keypoint.estimator_type`: a top-down model must declare
-    `input.resize.method: affine_person_crop`;
+    `input.resize.method: affine_crop`;
   - refuses a duplicate YAML key (`V-format.composition-6`);
   - applies the rules of a decoded keypoint and of a derived point: a keypoint with a score `<= 0`
     or NaN is missing, a derived point is missing when a source is missing, and the weights of a

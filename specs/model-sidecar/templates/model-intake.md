@@ -100,8 +100,8 @@ The verdicts are `exact`, `near-miss`, `gap`, `unverified` and `out of scope`. "
 `specs/model-sidecar/model-addition-workflow/phase-1-intake.md` gives their meaning and the test
 between `near-miss` and `gap`. Examples of that test:
 
-- No section and no field hold the property, so the verdict is `gap`: a rotated crop, a border mode,
-  a model that gives a crop region.
+- No section and no field hold the property, so the verdict is `gap`: a border mode, a model that
+  gives a crop region.
 - A field holds the property, but none of its values describes the upstream, so the verdict is
   `near-miss`: the upstream code rounds the letterbox size with `floor`, and the letterbox `rounding`
   has only `half_even` and `half_up` (section `pre.resize.letterbox`,
@@ -198,7 +198,7 @@ Source: the upstream inference pipeline and the code of each transform.
 - `cv2.resize` uses half-pixel centres for `linear`, `cubic` and `area`. `cv2.INTER_NEAREST` takes
   the source pixel `floor(x * src_n / dst_n)`. `cv2.warpAffine` puts the pixel centres at integer
   coordinates. The spec uses `cv2.resize` for `letterbox` and `stretch`, and `cv2.warpAffine` for
-  `fit` and `affine_person_crop`. The inverse uses the same convention (the heading "Pixel centres"
+  `fit` and `affine_crop`. The inverse uses the same convention (the heading "Pixel centres"
   of `pre.resize.interpolation`; skellytracker ADR-G79P). Check that the upstream uses the same
   call, or the same convention, also in its inverse.
 - In OpenCV, a scalar `borderValue` fills only the first channel of a 3-channel image. Record the
@@ -209,18 +209,18 @@ Source: the upstream inference pipeline and the code of each transform.
 | # | Property | Upstream evidence (file and line, or config key) | Section ID (the `id` in the section file's front matter) | Sidecar value | Verdict | What differs or what is missing |
 |---|---|---|---|---|---|---|
 | T1 | Channel order of the source image that the upstream pipeline reads (BGR or RGB). The spec has no field for it: it is the evidence for T9. Write `not used` as the sidecar value. | | `common.input` | `not used` | | |
-| T2 | Resize method (`letterbox`, `stretch`, `fit`, `affine_person_crop` or `none`) | | `common.input` (`input.resize`), `pre.resize.<method>` (`letterbox`, `stretch`, `fit`, `none`, `affine_person_crop`) | | | |
+| T2 | Resize method (`letterbox`, `stretch`, `fit`, `affine_crop` or `none`) | | `common.input` (`input.resize`), `pre.resize.<method>` (`letterbox`, `stretch`, `fit`, `none`, `affine_crop`) | | | |
 | T3 | Target size `[height, width]` for each size | | `common.input` (`input.resize`), `common.sizes_and_artifacts` | | | |
-| T4 | Scale factor: its formula, for example `min(T_w / src_w, T_h / src_h)` | | `pre.resize.<method>` (`letterbox`, `stretch`, `fit`, `none`, `affine_person_crop`) | | | |
+| T4 | Scale factor: its formula, for example `min(T_w / src_w, T_h / src_h)` | | `pre.resize.<method>` (`letterbox`, `stretch`, `fit`, `none`, `affine_crop`) | | | |
 | T4a | Rounding of the scaled size (`rounding`, `letterbox` only) | | `pre.resize.letterbox` | | | |
-| T4b | Arithmetic of the scale, the scaled size and the offsets: float32 or float64, and the order of the operations. In float64, `77 * (640 / 77)` is `639.9999999999999`. | | `pre.resize.<method>` (`letterbox`, `stretch`, `fit`, `none`, `affine_person_crop`) | | | |
+| T4b | Arithmetic of the scale, the scaled size and the offsets: float32 or float64, and the order of the operations. In float64, `77 * (640 / 77)` is `639.9999999999999`. | | `pre.resize.<method>` (`letterbox`, `stretch`, `fit`, `none`, `affine_crop`) | | | |
 | T5 | Position of the image on the canvas (`pad_position`, `letterbox` only) | | `pre.resize.letterbox` | | | |
 | T5a | `fit` geometry: a scale that is not rounded, offsets `left` and `top` that are centred and fractional, and one warp matrix `M` (`fit` only) | | `pre.resize.fit` | | | |
-| T6 | Pad value or border value (`pad_value`, or `crop_policy.pad_value` for `affine_person_crop`), for each channel. A scalar `s` means `[s, s, s]`. | | `common.input` (`pad_value`), `pre.resize.affine_person_crop` (`crop_policy.pad_value`) | | | |
+| T6 | Pad value or border value (`pad_value`, or `crop_policy.pad_value` for `affine_crop`), for each channel. A scalar `s` means `[s, s, s]`. | | `common.input` (`pad_value`), `pre.resize.affine_crop` (`crop_policy.pad_value`) | | | |
 | T7 | Interpolation filter, and no antialias | | `pre.resize.interpolation` | | | |
-| T7a | Resize call and its pixel-centre convention (`cv2.resize` or `cv2.warpAffine`, or another library) | | `pre.resize.<method>` (`letterbox`, `stretch`, `fit`, `none`, `affine_person_crop`), `pre.resize.interpolation` | | | |
+| T7a | Resize call and its pixel-centre convention (`cv2.resize` or `cv2.warpAffine`, or another library) | | `pre.resize.<method>` (`letterbox`, `stretch`, `fit`, `none`, `affine_crop`), `pre.resize.interpolation` | | | |
 | T7b | Dtype of the image when the upstream resizes and pads it (`input.resize.compute_dtype`: `uint8` for an 8-bit image, `float32` for a float image) | | `pre.resize.interpolation` | | | |
-| T8 | Crop policy: expand ratio and aspect ratio (`crop_policy`, `affine_person_crop` only) | | `pre.resize.affine_person_crop` | | | |
+| T8 | Crop policy: expand ratio and aspect ratio (`crop_policy`, `affine_crop` only) | | `pre.resize.affine_crop` | | | |
 | T9 | Channel order of the tensor that the model consumes (`input.color_format`, required for each normalization mode). The mode `imagenet` and the mode `custom` apply their values in this channel order. | | `common.input`, `pre.normalize` | | | |
 | T10 | Normalization for each precision (`input.normalization`, required, with no default): mean, std and scale, and its arithmetic (for example a float32 division by 255, or a multiplication by `1/255`) | | `pre.normalize` | | | |
 | T11 | Layout change (HWC to CHW) and cast to `input.dtype`. Each normalization mode casts its result to `input.dtype` as its last step. A `uint8` input needs the normalization `none` (`V-pre.normalize-3`). | | `common.input`, `pre.normalize` (Cast to `input.dtype`) | | | |
@@ -253,7 +253,7 @@ Source: the upstream postprocessing code and the upstream test config.
 | D8 | Threshold comparison (`>` or `>=`), the dtype of the comparison, and the tie order | | `post.object.decode` (Selection behaviour) | | | |
 | D9 | Row limits: graph-final row count (`max_detections`), `top_k`, `nms.post_nms_top_k` | | `post.object.selection.none`, `post.object.selection.top_k`, `post.object.selection.nms` | | | |
 | D10 | Classes: `object.classes` (the class names in model index order) and `object.decode.keep_classes` (the classes that the host keeps). A model with no class source (no `class_field` and no `class_logits_output`) has exactly one class (`V-post.object.decode-9`). | | `post.object.decode` | | | |
-| D11 | Unprojection of boxes and keypoints to the source image (the inverse of the resize method) | | `post.unprojection`, `pre.resize.<method>` (`letterbox`, `stretch`, `fit`, `none`, `affine_person_crop`) (Inverse), `post.keypoint.decode.<method>` (`simcc`, `coordinate`) | | | |
+| D11 | Unprojection of boxes and keypoints to the source image (the inverse of the resize method) | | `post.unprojection`, `pre.resize.<method>` (`letterbox`, `stretch`, `fit`, `none`, `affine_crop`) (Inverse), `post.keypoint.decode.<method>` (`simcc`, `coordinate`) | | | |
 | D12 | Box clamp to the source image (`clamp_boxes`, default `true`) and the box-size filter (`min_box_size`, no default). The spec clamps each `x` to `[0, W]` and each `y` to `[0, H]` of the source image: compare the upstream bounds. Write what the upstream does with a box that has no area or a small area. An upstream area filter maps to `min_box_size`. | | `post.object.decode` | | | |
 
 ### Pose

@@ -57,8 +57,8 @@ A proposal has eight parts:
    index row or an availability row
    ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md) item 1). Also
    find each rule that names one of these values, for example the rule
-   `V-pre.resize.affine_person_crop-2`: a sidecar with a top-down `keypoint.estimator_type` declares
-   `input.resize.method: affine_person_crop`. List each place in the proposal. These edits are part
+   `V-pre.resize.affine_crop-2`: a sidecar with a top-down `keypoint.estimator_type` declares
+   `input.resize.method: affine_crop`. List each place in the proposal. These edits are part
    of the same contract unit: a new role, with its enum and path edits, is one proposal. The
    proposed text can contain YAML excerpts. Do not put a full sidecar in the proposed text. A
    candidate example of the model is a separate file (part 7).

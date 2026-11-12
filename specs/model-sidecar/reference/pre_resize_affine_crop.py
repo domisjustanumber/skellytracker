@@ -36,7 +36,7 @@ not a sidecar value, so the refusals have no rule ID.
 
 Vector results: fill of skellytracker tools/make_vectors.py (924c9773e48432a7ef7162b26942f69692615fbe)
 wrote the expect of the cases of part 4 with this file.
-Parity result: to run (part 5 of the proposal).
+Parity result: pass (OpenMMLab-Exporter ADR-WRM2, gates G1 to G3).
 
 Uses only NumPy, OpenCV, the Python standard library and the module pre_resize_interpolation.
 """
