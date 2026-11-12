@@ -3,7 +3,7 @@
 ## Changes in this revision
 
 The evidence for each change, and the findings for each repository, are in
-[`sidecar-exporter-coverage.md`](../../notes/sidecar-exporter-coverage.md).
+[ADR-Z0CC](../../decisions/entries/Z0CC-exporter-coverage-measurements.md).
 
 ### Scope of this revision
 

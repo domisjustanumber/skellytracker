@@ -73,8 +73,6 @@ Do not change the implementation code under `skellytracker/`.
   ([ADR-5WKW](decisions/entries/5WKW-implementation-work-in-the-plan.md)). Its heading "Reference
   examples" stays as a "Moved to" stub
   ([ADR-2XW6](decisions/entries/2XW6-process-entries-consolidation.md)).
-- `notes/sidecar-exporter-coverage.md` is frozen evidence
-  ([ADR-5WKW](decisions/entries/5WKW-implementation-work-in-the-plan.md)).
 
 ## 2. Skills
 

@@ -85,7 +85,9 @@ Upstreams with `>=`:
 ## Not repeated
 
 - The first strict rule cited mmdet from memory
-  ([`notes/sidecar-exporter-coverage.md`](../../../../notes/sidecar-exporter-coverage.md), "Make every
-  score threshold"). The mmdet line above is now checked.
+  (`notes/sidecar-exporter-coverage.md`, "Make every score threshold";
+  [ADR-Z0CC](../../../../decisions/entries/Z0CC-exporter-coverage-measurements.md)). The mmdet line above is now checked.
 
 _Edited 2026-11-11 (this PR): link repair._
+
+_Edited 2026-11-12 (this PR): link repair._

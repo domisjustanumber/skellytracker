@@ -19,9 +19,7 @@ This file is a part of the skill [`change-sidecar-spec`](SKILL.md).
   `pre/`, `post/`, `examples/detectors/`, `vectors/<section-id>.yaml`,
   `reference/<section_module>.py`, `templates/` and `model-addition-workflow/` (the process to add a
   model and to request a spec change; it is not a section). The draft exporter guide is in
-  `specs/draft/exporter-guide/`. `notes/sidecar-exporter-coverage.md` is frozen evidence.
-  It is not spec text. Change only its status lines, each in place. Do not add or remove a line in
-  it ([ADR-2XW6](../../../decisions/entries/2XW6-process-entries-consolidation.md)).
+  `specs/draft/exporter-guide/`.
 
 ## One algorithm in one place
 

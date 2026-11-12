@@ -198,14 +198,14 @@ The hardware and EP work stayed a parallel track on the branch
 
 ### 0.5 Gate: the implementation stage
 
-**Status: NOT STARTED.** It needs 0.1 to 0.4.
+**Status: STARTED.** It needs 0.1 to 0.4. Done: the retirement of
+`notes/sidecar-exporter-coverage.md`, with its unique measurements in [ADR-Z0CC](../decisions/entries/Z0CC-exporter-coverage-measurements.md).
 
 - The user declares the implementation stage in a new entry. The entry changes
   [section 1](../AGENTS.md#1-purpose) of `AGENTS.md` and the "Stage" part of the skill
   `implement-sidecar-section`, and says which rules of [ADR-0014](../decisions/entries/0014-spec-lifecycle.md) end.
 - The end of the spec-build stage also has a consolidation entry (the
-  [Rules](../decisions/README.md#rules)) and the retirement of `notes/sidecar-exporter-coverage.md`
-  (the [open work](../decisions/open-work.md)).
+  [Rules](../decisions/README.md#rules)).
 - Then the session rebuilds the spec-build work into the two PRs `dom/52-process` and `dom/53-spec`
   ([Rebuild at the gate](../.claude/skills/stack-commit/after-spec-build.md#rebuild-at-the-gate)).
   The user opens them. Each stage of phase 1 is then one stacked PR, from `dom/54-dependencies`

@@ -63,7 +63,7 @@ revision can add the feature if a multi-class NMS-free family appears.
 ## Alternatives rejected
 
 - Adopt the whole Roboflow-Exporter draft that
-  [the exporter coverage plan](../../../../notes/sidecar-exporter-coverage.md) starts from.
+  [the exporter coverage plan](../../../../decisions/entries/Z0CC-exporter-coverage-measurements.md) starts from.
   The draft has fields that no exported model uses. The coverage plan trims them.
 
 ## Not repeated
@@ -76,3 +76,5 @@ _Edited 2026-10-26 (this PR): link repair._
 _Edited 2026-10-28 (this PR): link repair._
 
 _Edited 2026-10-29 (this PR): link repair._
+
+_Edited 2026-11-12 (this PR): link repair._

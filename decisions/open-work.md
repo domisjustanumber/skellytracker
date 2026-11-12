@@ -34,9 +34,6 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   version works, a new entry moves it to `specs/exporter-guide/`
   ([x64y](entries/x64y-draft-exporter-guide-folder.md)). Each new part of the guide goes in a new
   folder beside `sidecars/`.
-- **Exporter coverage note.** Retire `notes/sidecar-exporter-coverage.md` at the end of the
-  spec-build stage. First, copy its unique measurements to an evidence entry
-  ([ADR-5WKW](entries/5WKW-implementation-work-in-the-plan.md)).
 - **Drift and vector-hash noise.** Two tool changes of `tools/intake_bundle.py` are later work
   ([ADR-FM0B](entries/FM0B-one-response-for-each-commit-group.md)). A section fingerprint for the
   drift finding: the section body without its front matter and without the text under
