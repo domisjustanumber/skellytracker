@@ -1,6 +1,6 @@
 # MWY9 — Exact pins; one ONNX Runtime 1.31 core with plugin EP packs; CUDA 13 only; Python 3.11 to 3.13, MediaPipe 1.2.2, no Intel Mac
 
-**Status:** accepted, 2026-11-12 (user).
+**Status:** superseded by [M2C6](M2C6-exact-pins-and-one-python-patch-release.md), 2026-11-12 (user; PR: pending).
 
 ## Decision
 

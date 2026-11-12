@@ -113,3 +113,4 @@ the reason for a decision. The [index](README.md) has the Active and Proposed en
 | [8NVD](entries/8NVD-pipeline-api-warnings-and-catalog.md) | Pipeline API `core.pipelines`; built-ins; `PipelineWarning`; dependency reports; Holistic for MediaPipe; node catalog | superseded by 48PG |
 | [99MH](entries/99MH-pipeline-outputs-and-running.md) | Pipeline outputs with an instance dimension; running modes; batch k × cameras, camera count when stateful; session sharing; load checks | superseded by 0WJB |
 | [0WJB](entries/0WJB-pipeline-outputs-running-no-session-sharing.md) | Pipeline outputs with an instance dimension; running modes; batch k × cameras; no session sharing; load checks; default EP `performance` | superseded by ZYS9 |
+| [MWY9](entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md) | Exact pins; `onnxruntime` 1.31 base dependency; GPU EPs only as CUDA 13 plugin packs; Python 3.11 to 3.13; supersedes B4QR | superseded by M2C6 |
