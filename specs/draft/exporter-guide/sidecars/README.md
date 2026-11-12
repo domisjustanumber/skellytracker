@@ -104,7 +104,7 @@ These rules are in [ADR-JC4T](../../../../decisions/entries/JC4T-parity-gates-an
 - From the 2.0.0 pre-release, each exporter adds the pre-release as a dependency with an exact pin.
   It runs that release as its ONNX host
   ([ADR-6J8E](../../../../decisions/entries/6J8E-exporters-run-released-skellytracker.md) item 1;
-  [ADR-MWY9](../../../../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md)):
+  [ADR-M2C6](../../../../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md)):
 
   ```toml
   dependencies = ["skellytracker==<pre-release>"]
