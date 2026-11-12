@@ -3,8 +3,8 @@
   "kind": "proposal",
   "name": "affine-crop-rotated-roi",
   "contributor": "openmmlab-exporter",
-  "source_commit": "2c554cb817ec1cce82af0c97f46e96eef15e3cb6",
-  "spec_commit": "924c9773e48432a7ef7162b26942f69692615fbe",
+  "source_commit": "b11331b85e5e26007b31ae16eac89afb6cc79602",
+  "spec_commit": "114e7950ff5b0534b53bd4176af319d42f522042",
   "sections": [
     "pre.resize.affine_crop",
     "pre.resize.affine_person_crop"
@@ -15,13 +15,13 @@
   "related": [],
   "external": [],
   "spec_version": "2.0.0",
-  "version": 1,
+  "version": 2,
   "created": "2026-11-12",
   "files": [
     {
       "path": "proposal.md",
-      "sha256": "fa2daa4278cdce7a8996ab890effe74b021a6e701cb61a02b87ba7695ec4c8a2",
-      "bytes": 52120
+      "sha256": "279672e1b0cbbf6a58b9ea1ca6c0f96f08e6119bd56825addd1e01d086a11672",
+      "bytes": 55150
     },
     {
       "path": "reference/pre_resize_affine_crop.py",
