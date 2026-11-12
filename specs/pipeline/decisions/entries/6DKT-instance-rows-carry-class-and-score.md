@@ -1,6 +1,6 @@
 # 6DKT — Instance rows carry a class and an instance score; tap lines carry their row; `concat` fills an empty input
 
-**Status:** accepted, 2026-11-12 (user).
+**Status:** absorbed into [`graph.md#behaviour`](../../graph.md#behaviour), [`outputs.md#fields`](../../outputs.md#fields), [`outputs.md#behaviour`](../../outputs.md#behaviour), [`taps.md#fields`](../../taps.md#fields), [`taps.md#behaviour`](../../taps.md#behaviour), [`taps.md#validation-rules`](../../taps.md#validation-rules), [`detector.md#behaviour`](../../nodes/detector.md#behaviour), [`merge.md#behaviour`](../../nodes/merge.md#behaviour), [`mediapipe_tasks.md#behaviour`](../../nodes/mediapipe_tasks.md#behaviour), [`concat.md#behaviour`](../../nodes/concat.md#behaviour), 2026-11-12 (absorb sweep, user; PR: pending).
 
 ## Decision
 

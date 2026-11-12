@@ -23,29 +23,15 @@ These entries are `accepted` or `evidence`.
 
 | # | Decision | Status |
 |---|----------|--------|
-| [9K2M](entries/9K2M-agent-session-rules.md) | One commit for each call; skills `ask-the-user` and `brief-subagent`; a spec change that the user decides gets an `accepted` entry | accepted |
-| [6J8E](entries/6J8E-exporters-run-released-skellytracker.md) | Exporters run a pinned skellytracker release; code changes come as a patch; upstream parity is the independent check; acceptance waits for the gate | accepted |
-| [x64y](entries/x64y-draft-exporter-guide-folder.md) | The workflow, with the sidecar-file, validation and publishing rules, is in `model-addition-workflow/`; the exporter-only guide is a draft; no stub | accepted |
-| [VCQ7](entries/VCQ7-cite-entries-skill.md) | The skill `cite-entries` gives the steps of the citation rule of `AGENTS.md` section 5; `stack-commit` loads it; no hook for now | accepted |
-| [CN15](entries/CN15-spec-readme-is-the-only-entry-point.md) | The spec `README.md` is the only entry point; `sidecar-spec.md` is frozen, and M11 deletes it after the code cites section IDs; the root README links the spec | accepted |
-| [9MJ6](entries/9MJ6-remove-the-heatmap-decode.md) | Remove the heatmap decode: no `heatmap` method, semantic or section until a model brings a full contract | accepted |
-| [9HBB](entries/9HBB-simcc-decode-is-2d-only.md) | The SimCC decode is 2D only: no `simcc_z`, no `depth_range`; a 3D SimCC model adds its own section | accepted |
-| [87B2](entries/87B2-local-graphify-code-graph.md) | Optional local graphify code graph in an ignored `graphify-out/`; `uvx` pin; hooks from `tools/graphify_hooks.py`; opt-in for each checkout | accepted |
 | [AMJ8](entries/AMJ8-replace-package-onnx-detectors.md) | Replace the package ONNX detectors with exporter models; no legacy layer; shipped sidecars in `core/model_zoo/`; RTMPose replacements block v2.0.0 | accepted |
 | [AQR4](entries/AQR4-detectors-and-pipelines-entry-points.md) | Entry points `detectors` and `pipelines`; `system/`, `metrics/`, `eps/` under an eager `core`; calibration outside pipelines; user root | accepted |
 | [7NY2](entries/7NY2-pipeline-form-graph-and-nodes.md) | Pipeline config: one Pydantic model from YAML; flat node graph with `@prev`; detector, `mediapipe_tasks` and closed glue nodes | accepted |
 | [ZYS9](entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) | Pipeline outputs with an instance dimension; running modes; batch k × cameras; session sharing only inside one run; load checks; default EP | accepted |
 | [48PG](entries/48PG-pipeline-api-ep-options-and-warnings.md) | Pipeline API `core.pipelines` with `ep_options`; built-ins; `PipelineWarning` with `ep_partial_placement`; dependency reports; Holistic; node catalog | accepted |
-| [3SF2](entries/3SF2-pipeline-spec-and-node-workflow.md) | Pipeline spec in `specs/pipeline/`: section IDs, reference model and schema, glue vectors, changelog, own module log, node workflow | accepted |
-| [1HKJ](entries/1HKJ-proposal-record-links-not-checked.md) | The link check skips the frozen proposal records; their old links stay; the changelog map resolves old IDs | accepted |
 | [88WQ](entries/88WQ-sidecar-vocabulary.md) | Sidecar vocabulary: `object` and `keypoint` blocks, role `keypoint_detector`, `post/object/` and `post/keypoint/`, classes by name, one name per concept | accepted |
-| [GKD1](entries/GKD1-estimator-type-says-the-crop.md) | `keypoint.estimator_type` says whether a model needs a crop; `keypoint.requires_object_detector` goes | accepted |
 | [0WTV](entries/0WTV-system-metrics-and-pipeline-timing-helper.md) | `core/metrics/` holds only system metrics; the pipeline timing helper is `core/pipelines/timing.py`; supersedes Q59W and keeps its other rules | accepted |
 | [NHM3](entries/NHM3-phases-to-the-exporter-checkpoint.md) | Phase 0 and phase 1 to the exporter checkpoint; pre-release at the checkpoint; new code beside old; supersedes EM74 | accepted |
-| [JJ7E](entries/JJ7E-no-upstream-case-verified-by-skellytracker.md) | From the pre-release, a vector case with no upstream output is verified when skellytracker agrees and its note names the spec rule | accepted |
-| [271H](entries/271H-pipeline-bundles.md) | A `pipeline` bundle kind with `depends_on`; spec example before stage 1.10; the session updates pinned `sidecar_sha256` after a re-export | accepted |
 | [9NW0](entries/9NW0-ep-keys-options-and-failures.md) | EP keys from the EP catalog; a run takes `ep_options`; a whole-EP failure raises before frame 0; CPU nodes are reported | accepted |
-| [BH7C](entries/BH7C-two-spec-build-prs-and-a-pr-for-each-stage.md) | Two spec-build PRs rebuilt at the gate; one stacked PR for each implementation stage; cherry-pick of `hw-and-ep-work`; supersedes R39S and 0027 | accepted |
 | [M2C6](entries/M2C6-exact-pins-and-one-python-patch-release.md) | Exact pins, no ranges; Python `==3.13.18`; `onnxruntime` 1.31 base dependency; GPU EPs only as CUDA 13 plugin packs; supersedes MWY9 | accepted |
 
 ### Proposed

@@ -1,6 +1,6 @@
 # CN15 — The spec README is the only entry point of the spec
 
-**Status:** accepted, 2026-11-03 (user; PR: pending).
+**Status:** absorbed into [`spec-edit-rules.md#spec-structure`](../../.claude/skills/change-sidecar-spec/spec-edit-rules.md#spec-structure), [`reading-the-spec.md#section-ids`](../../specs/model-sidecar/model-addition-workflow/reading-the-spec.md#section-ids), [`reading-the-spec.md#links-to-the-spec`](../../specs/model-sidecar/model-addition-workflow/reading-the-spec.md#links-to-the-spec), [`model-intake.md#how-to-use-this-template`](../../specs/model-sidecar/templates/model-intake.md#how-to-use-this-template), 2026-11-12 (absorb sweep, user; PR: pending).
 
 ## Decision
 

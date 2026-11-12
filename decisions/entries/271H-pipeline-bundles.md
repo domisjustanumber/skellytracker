@@ -1,6 +1,6 @@
 # 271H — Pipeline bundles: a `pipeline` bundle kind; a spec example before the pipeline API; the session updates pinned sidecar hashes
 
-**Status:** accepted, 2026-11-12 (user).
+**Status:** absorbed into [`hand-over.md#layout`](../../specs/model-sidecar/model-addition-workflow/hand-over.md#layout), [`hand-over.md#pipeline-bundles`](../../specs/model-sidecar/model-addition-workflow/hand-over.md#pipeline-bundles), [`contributions.md#choose-the-path`](../../specs/pipeline/contributions.md#choose-the-path), [`contributions.md#add-a-pipeline`](../../specs/pipeline/contributions.md#add-a-pipeline), [`file.md#validation-rules`](../../specs/pipeline/file.md#validation-rules), [`pipeline/AGENTS.md#pipeline-spec-rules`](../../specs/pipeline/AGENTS.md#pipeline-spec-rules), [`change-pipeline-spec/SKILL.md#procedure-a-land-a-pipeline-bundle`](../../.claude/skills/change-pipeline-spec/SKILL.md#procedure-a-land-a-pipeline-bundle), [`change-pipeline-spec/SKILL.md#procedure-c-update-the-pinned-hashes-after-a-re-export`](../../.claude/skills/change-pipeline-spec/SKILL.md#procedure-c-update-the-pinned-hashes-after-a-re-export), [`inventory.yaml`](../../specs/pipeline/inventory.yaml), 2026-11-12 (absorb sweep, user; PR: pending).
 
 ## Decision
 

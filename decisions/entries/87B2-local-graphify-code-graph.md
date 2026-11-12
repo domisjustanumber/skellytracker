@@ -1,6 +1,6 @@
 # 87B2 — Optional local graphify code graph in an ignored `graphify-out/`; `uvx` pin; hooks from `tools/graphify_hooks.py`; opt-in for each checkout
 
-**Status:** accepted, 2026-11-03 (user).
+**Status:** absorbed into [`AGENTS.md#3-install-and-test`](../../AGENTS.md#3-install-and-test), [`graphify_hooks.py`](../../tools/graphify_hooks.py), 2026-11-12 (absorb sweep, user; PR: pending).
 
 ## Decision
 

@@ -1,6 +1,6 @@
 # JJ7E — A vector case with no upstream output is verified when skellytracker agrees and its note names the spec rule
 
-**Status:** accepted, 2026-11-12 (user).
+**Status:** absorbed into [`sidecar-files.md#independence`](../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence), [`proposal-gate.md#steps`](../../.claude/skills/implement-sidecar-section/proposal-gate.md#steps), 2026-11-12 (absorb sweep, user; PR: pending).
 
 ## Decision
 

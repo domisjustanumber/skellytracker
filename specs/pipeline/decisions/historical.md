@@ -9,3 +9,4 @@ the reason for a decision. The [index](README.md) has the Active and Proposed en
 
 | # | Decision | Status |
 |---|----------|--------|
+| [6DKT](entries/6DKT-instance-rows-carry-class-and-score.md) | Instance rows carry `class_index` and `instance_score`; tap lines carry `row` and the class name; `concat` fills an empty input | absorbed into [`graph.md#behaviour`](../graph.md#behaviour), [`outputs.md#fields`](../outputs.md#fields), [`outputs.md#behaviour`](../outputs.md#behaviour), [`taps.md#fields`](../taps.md#fields), [`taps.md#behaviour`](../taps.md#behaviour), [`taps.md#validation-rules`](../taps.md#validation-rules), [`detector.md#behaviour`](../nodes/detector.md#behaviour), [`merge.md#behaviour`](../nodes/merge.md#behaviour), [`mediapipe_tasks.md#behaviour`](../nodes/mediapipe_tasks.md#behaviour), [`concat.md#behaviour`](../nodes/concat.md#behaviour) |

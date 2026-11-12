@@ -1,6 +1,6 @@
 # 9HBB — The SimCC decode is 2D only
 
-**Status:** accepted, 2026-11-06 (user; PR: pending).
+**Status:** absorbed into [`decode-simcc.md#behaviour`](../../specs/model-sidecar/post/keypoint/decode-simcc.md#behaviour), [`decode-simcc.md#keypoint-keypoint_detector`](../../specs/model-sidecar/post/keypoint/decode-simcc.md#keypoint-keypoint_detector), [`schema.md#fields`](../../specs/model-sidecar/post/keypoint/schema.md#fields), [`schema.md#keypointdecode`](../../specs/model-sidecar/post/keypoint/schema.md#keypointdecode), [`schema.md#keypoint-keypoint_detector`](../../specs/model-sidecar/post/keypoint/schema.md#keypoint-keypoint_detector), [`outputs.md#fields`](../../specs/model-sidecar/common/outputs.md#fields), [`outputs.md#validation-rules`](../../specs/model-sidecar/common/outputs.md#validation-rules), [`model-intake.md#outputs-and-decode`](../../specs/model-sidecar/templates/model-intake.md#outputs-and-decode), [`changelog.md#summary-of-changes`](../../specs/model-sidecar/changelog.md#summary-of-changes), [`changelog.md#considered-and-deliberately-not-added`](../../specs/model-sidecar/changelog.md#considered-and-deliberately-not-added), [`hand-over.md#section-owner`](../../specs/model-sidecar/model-addition-workflow/hand-over.md#section-owner), [`mapping-hints.md#mapping-hints-for-phase-1`](../../specs/model-sidecar/model-addition-workflow/mapping-hints.md#mapping-hints-for-phase-1), 2026-11-12 (absorb sweep, user; PR: pending).
 
 ## Decision
 

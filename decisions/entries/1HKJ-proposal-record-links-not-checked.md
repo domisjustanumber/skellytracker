@@ -1,6 +1,6 @@
 # 1HKJ — The link check skips the frozen proposal records
 
-**Status:** accepted, 2026-11-11 (user).
+**Status:** absorbed into [`check_links.py`](../../tools/check_links.py), [`hand-over.md#tracked-records`](../../specs/model-sidecar/model-addition-workflow/hand-over.md#tracked-records), 2026-11-12 (absorb sweep, user; PR: pending).
 
 ## Decision
 

@@ -1,6 +1,6 @@
 # 9MJ6 — Remove the heatmap decode
 
-**Status:** accepted, 2026-11-04 (user; PR: pending).
+**Status:** absorbed into [`schema.md#keypointdecode`](../../specs/model-sidecar/post/keypoint/schema.md#keypointdecode), [`schema.md#keypoint-keypoint_detector`](../../specs/model-sidecar/post/keypoint/schema.md#keypoint-keypoint_detector), [`outputs.md#fields`](../../specs/model-sidecar/common/outputs.md#fields), [`outputs.md#validation-rules`](../../specs/model-sidecar/common/outputs.md#validation-rules), [`changelog.md#summary-of-changes`](../../specs/model-sidecar/changelog.md#summary-of-changes), [`changelog.md#considered-and-deliberately-not-added`](../../specs/model-sidecar/changelog.md#considered-and-deliberately-not-added), [`mapping-hints.md#mapping-hints-for-phase-1`](../../specs/model-sidecar/model-addition-workflow/mapping-hints.md#mapping-hints-for-phase-1), 2026-11-12 (absorb sweep, user; PR: pending).
 
 ## Decision
 

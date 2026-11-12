@@ -1,6 +1,6 @@
 # 9K2M — Agent session rules: one commit for each call, questions to the user, sub-agent briefs, spec changes that the user decides
 
-**Status:** accepted, 2026-11-11 (user, after a session retrospective).
+**Status:** absorbed into [`stack-commit/SKILL.md#commit-commands`](../../.claude/skills/stack-commit/SKILL.md#commit-commands), [`ask-the-user/SKILL.md#steps`](../../.claude/skills/ask-the-user/SKILL.md#steps), [`ask-the-user/SKILL.md#check-before-you-send`](../../.claude/skills/ask-the-user/SKILL.md#check-before-you-send), [`brief-subagent/SKILL.md#the-brief`](../../.claude/skills/brief-subagent/SKILL.md#the-brief), [`brief-subagent/SKILL.md#the-result`](../../.claude/skills/brief-subagent/SKILL.md#the-result), [`change-sidecar-spec/SKILL.md#procedure-d-another-spec-edit`](../../.claude/skills/change-sidecar-spec/SKILL.md#procedure-d-another-spec-edit), 2026-11-12 (absorb sweep, user; PR: pending).
 
 ## Decision
 

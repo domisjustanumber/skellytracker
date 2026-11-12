@@ -1,6 +1,6 @@
 # BH7C — Two spec-build PRs from a rebuild at the gate; one stacked PR for each implementation stage
 
-**Status:** accepted, 2026-11-12 (user).
+**Status:** absorbed into [`AGENTS.md#3-install-and-test`](../../AGENTS.md#3-install-and-test), [`AGENTS.md#6-git-rules`](../../AGENTS.md#6-git-rules), [`stack-commit/SKILL.md#spec-build-stage`](../../.claude/skills/stack-commit/SKILL.md#spec-build-stage), [`stack-commit/SKILL.md#commit-groups`](../../.claude/skills/stack-commit/SKILL.md#commit-groups), [`stack-commit/SKILL.md#one-worktree-and-frozen-prs`](../../.claude/skills/stack-commit/SKILL.md#one-worktree-and-frozen-prs), [`after-spec-build.md#commit-rebase-and-push-after-the-spec-build-stage`](../../.claude/skills/stack-commit/after-spec-build.md#commit-rebase-and-push-after-the-spec-build-stage), [`after-spec-build.md#rebuild-at-the-gate`](../../.claude/skills/stack-commit/after-spec-build.md#rebuild-at-the-gate), [`after-spec-build.md#the-working-branch-and-the-pr-branches`](../../.claude/skills/stack-commit/after-spec-build.md#the-working-branch-and-the-pr-branches), [`after-spec-build.md#add-a-commit`](../../.claude/skills/stack-commit/after-spec-build.md#add-a-commit), 2026-11-12 (absorb sweep, user; PR: pending).
 
 ## Decision
 

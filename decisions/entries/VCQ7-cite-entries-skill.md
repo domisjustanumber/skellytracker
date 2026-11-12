@@ -1,6 +1,6 @@
 # VCQ7 — A skill for the citation of entries
 
-**Status:** accepted, 2026-11-10 (user; PR: pending).
+**Status:** absorbed into [`cite-entries/SKILL.md#cite-decision-entries`](../../.claude/skills/cite-entries/SKILL.md#cite-decision-entries), [`AGENTS.md#2-skills`](../../AGENTS.md#2-skills), [`stack-commit/SKILL.md#commit-rebase-and-push-on-the-working-branch`](../../.claude/skills/stack-commit/SKILL.md#commit-rebase-and-push-on-the-working-branch), 2026-11-12 (absorb sweep, user; PR: pending).
 
 ## Decision
 

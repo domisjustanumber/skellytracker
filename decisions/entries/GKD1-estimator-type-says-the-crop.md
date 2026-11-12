@@ -1,6 +1,6 @@
 # GKD1 — `keypoint.estimator_type` says whether a model needs a crop; `keypoint.requires_object_detector` goes
 
-**Status:** accepted, 2026-11-12 (user).
+**Status:** absorbed into [`schema.md#fields`](../../specs/model-sidecar/post/keypoint/schema.md#fields), [`bottom-up.md#bottom-up-decode`](../../specs/model-sidecar/post/keypoint/bottom-up.md#bottom-up-decode), [`resize-affine-crop.md#validation-rules`](../../specs/model-sidecar/pre/resize-affine-crop.md#validation-rules), [`changelog.md#summary-of-changes`](../../specs/model-sidecar/changelog.md#summary-of-changes), [`detector.md#behaviour`](../../specs/pipeline/nodes/detector.md#behaviour), [`detector.md#validation-rules`](../../specs/pipeline/nodes/detector.md#validation-rules), [`model-sidecar/AGENTS.md#sidecar-rules`](../../specs/model-sidecar/AGENTS.md#sidecar-rules), [`test_retired_names.py`](../../tools/tests/test_retired_names.py), 2026-11-12 (absorb sweep, user; PR: pending).
 
 ## Decision
 
