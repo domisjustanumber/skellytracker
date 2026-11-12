@@ -26,7 +26,7 @@ root [open-work.md](../../../decisions/open-work.md).
   be replayed ([Taps](../taps.md#behaviour) item 5). A video replay needs an image list hash for
   video.
 - **ROI input of `mediapipe_tasks`.** The node has no ROI input in v1
-  ([ADR-48PG](../../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 4).
+  ([ADR-V7GZ](../../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 4).
 - **Face blendshapes.** The `mediapipe_tasks` node gives no face blendshapes. They are planned
   work after the development-streaming merge.
 - **MediaPipe 1.2.2.** Run the scripts of

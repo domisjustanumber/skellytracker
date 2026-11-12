@@ -90,14 +90,14 @@ A `detector` node runs one ONNX model. It does the preprocessing, the inference 
 - The host runs one NMS implementation ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 9). The sidecar section [`post.object.selection.nms`](../../model-sidecar/post/object/selection-nms.md#behaviour) gives its steps.
 - A shipped or an exported pipeline file must have `sidecar_sha256` ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 10). For a hand-written file with no `sidecar_sha256`, the loader logs the hash that it resolves.
 - The host does the checks of this section at load, because they need the sidecar. The reference model does not do them (`specs/pipeline/reference/pipeline_config.py`).
-- The runtime builds each ONNX session with `eps.build_session()` ([ADR-48PG](../../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 5). The session runs on the requested EP, or the start of the run fails before frame 0 ([ADR-9NW0](../../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 4). When a session has nodes on the CPU EP, the run gives the warning `ep_partial_placement` ([ADR-48PG](../../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 6; [ADR-9NW0](../../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 5).
+- The runtime builds each ONNX session with `eps.build_session()` ([ADR-V7GZ](../../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 5). The session runs on the requested EP, or the start of the run fails before frame 0 ([ADR-9NW0](../../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 4). When a session has nodes on the CPU EP, the run gives the warning `ep_partial_placement` ([ADR-V7GZ](../../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 6; [ADR-9NW0](../../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 5).
 - In one run, nodes with the same artifact `sha256`, batch, EP key, EP options and device share one inference session. No session is shared between runs. The file says nothing about it ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 6).
 - The ONNX `NonMaxSuppression` session of the node requests `cpu` ([ADR-9NW0](../../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 7).
 
 ## Authoring guidance
 
 - Write only the params that the file changes ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 11).
-- To keep only the best detection of a single-person pipeline, set `object_decode.nms.post_nms_top_k` to 1. The built-in `yolox-rtmw-wholebody` does this ([ADR-48PG](../../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 3).
+- To keep only the best detection of a single-person pipeline, set `object_decode.nms.post_nms_top_k` to 1. The built-in `yolox-rtmw-wholebody` does this ([ADR-V7GZ](../../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 3).
 
 ## Examples
 

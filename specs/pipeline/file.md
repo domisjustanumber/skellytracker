@@ -10,7 +10,7 @@ status: {spec: draft}
 
 > This section is a draft. Its fields and rules can change before the section becomes `stable`.
 
-A pipeline file is one YAML file that gives one pipeline config. It names the nodes of the graph, the public outputs and the instrumentation. It refers to sidecars and never copies them. This section gives the top-level keys, the input forms, the key of a pipeline and the discovery of pipeline files ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) items 1 to 3; [ADR-48PG](../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 2).
+A pipeline file is one YAML file that gives one pipeline config. It names the nodes of the graph, the public outputs and the instrumentation. It refers to sidecars and never copies them. This section gives the top-level keys, the input forms, the key of a pipeline and the discovery of pipeline files ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) items 1 to 3; [ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 2).
 
 ## Fields
 
@@ -39,11 +39,11 @@ A **name** is a string that matches `^[a-z][a-z0-9_-]*$`.
    - When the catalog finds more than one version of one key, the newest `source.version` wins, in PEP 440 order.
    - A load can pin a version with `<pipeline_id>@<source.name>==<version>`. A pin wins over the newest version.
    - The name `skellytracker` is reserved for the package root. In another root, a pipeline file with `source.name: skellytracker` is unavailable.
-   - When the same key and the same version are in two files, a list of the pipelines shows both files. A load by that key is then an error that names both paths ([ADR-48PG](../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 2).
+   - When the same key and the same version are in two files, a list of the pipelines shows both files. A load by that key is then an error that names both paths ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 2).
    - A load by path always works.
 7. **Discovery.** A host finds the pipeline files that match `*.pipeline.yaml` in two roots ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 2):
    - the package root `core/model_zoo/pipelines/`;
-   - `<user root>/pipelines/`. The user root is the user root of the sidecar catalog ([File layout](../model-sidecar/format/file-layout.md#implementer-guidance); [ADR-AQR4](../../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 6).
+   - `<user root>/pipelines/`. The user root is the user root of the sidecar catalog ([File layout](../model-sidecar/format/file-layout.md#implementer-guidance); [ADR-0XW9](../../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 6).
 
    In both roots, the folder `pipelines/` is beside the folder `detectors/` of the sidecar [storage layout](../model-sidecar/format/file-layout.md#storage-layout). The sidecar discovery never takes a pipeline file, because a pipeline file has no `model_id` ([Discovery](../model-sidecar/format/file-layout.md#discovery)).
 8. **Export.** An export writes the config in one of two forms ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 3):

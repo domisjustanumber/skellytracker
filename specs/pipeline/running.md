@@ -10,7 +10,7 @@ status: {spec: draft}
 
 > This section is a draft. Its fields and rules can change before the section becomes `stable`.
 
-A run starts a pipeline with run parameters. The same file runs in each running mode. This section gives the run parameters, the frame time, the running modes, the batch, the stateful pipelines, the session sharing, the warnings and the start checks ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) items 2 to 7; [ADR-48PG](../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) items 6 and 7; [ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 2, 4 and 5).
+A run starts a pipeline with run parameters. The same file runs in each running mode. This section gives the run parameters, the frame time, the running modes, the batch, the stateful pipelines, the session sharing, the warnings and the start checks ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) items 2 to 7; [ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) items 6 and 7; [ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 2, 4 and 5).
 
 ## Fields
 
@@ -30,7 +30,7 @@ A pipeline file has no field of this section. A run takes these parameters:
 
 Each call gives, for each camera of the call, one frame with its `frame_index` and, in `video` and `live`, its `timestamp_ms` (a float, in milliseconds).
 
-A warning has these fields ([ADR-48PG](../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 6):
+A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 6):
 
 | Field | Description |
 |-------|-------------|
@@ -63,7 +63,7 @@ A warning has these fields ([ADR-48PG](../../decisions/entries/48PG-pipeline-api
 7. **Execution provider.** The EP key and the EP options are parameters of the run. The EP catalog in `core/eps/` owns the EP keys and lists the allowed options of each EP ([ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 1 and 2). A detector node can give its own EP in `execution_provider` and its own options in `ep_options`. There is no EP policy such as `recommended:latency`. The caller resolves a recommended form to an EP key and its options ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 12; [ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 3).
    - A run never uses another EP than the requested EP. An EP that is not available or does not start stops the start of the run before frame 0 ([ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 4).
    - A session can have nodes on the CPU EP. The run reports them ([ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 5).
-8. **Warnings.** The run gives a warning for each of these conditions ([ADR-48PG](../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) items 6 and 7):
+8. **Warnings.** The run gives a warning for each of these conditions ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) items 6 and 7):
    - `batch_limited_by_state`: the pipeline is stateful and the running mode is `video` (Behaviour item 5).
    - `ep_partial_placement`: a session of the node has nodes on the CPU EP. `details` gives the node count of each EP and the CPU op types. The run gives it one time for each session ([ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 5).
    - `missing_dependency`: a node needs an optional extra that is not installed, or an ONNX file that is absent or whose hash does not agree. A load gives this warning. A start fails before frame 0 ([Validation rules](#validation-rules)).
@@ -82,9 +82,9 @@ A warning has these fields ([ADR-48PG](../../decisions/entries/48PG-pipeline-api
 
 ## Implementer guidance
 
-- The runtime builds each ONNX session with `eps.build_session()`. The `execution` facts of the timing header come from that build ([ADR-48PG](../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 5).
-- The availability of an extra comes from `importlib.util.find_spec` with a literal name, the presence of each ONNX file and its hash ([ADR-48PG](../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 7).
-- The warnings do not use the Python `warnings` module ([ADR-48PG](../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 6).
+- The runtime builds each ONNX session with `eps.build_session()`. The `execution` facts of the timing header come from that build ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 5).
+- The availability of an extra comes from `importlib.util.find_spec` with a literal name, the presence of each ONNX file and its hash ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 7).
+- The warnings do not use the Python `warnings` module ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 6).
 - The run parameter "frame interval" of the first draft is removed. The temporal nodes use `timestamp_ms` in each mode that keeps state.
 
 ## Authoring guidance

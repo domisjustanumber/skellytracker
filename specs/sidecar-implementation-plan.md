@@ -1,6 +1,6 @@
 # Implementation Plan: Phases to the Exporter Checkpoint
 
-> **Decisions.** The decisions behind this plan are recorded in the decision log, [`decisions/`](../decisions/README.md). The phases and their order follow [ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md). The dependency pins and the GPU EP packs follow [ADR-M2C6](../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md). The implementation-stage work follows [ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) (replace the package ONNX detectors) and [ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) (the entry points and the layout). The pipeline design is in [ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md), [ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md), [ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md), [ADR-3SF2](../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md), [ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-helper.md) and the [pipeline log](pipeline/decisions/README.md). The sidecar names follow [ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) and [ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md). Entries 0002 to 0007 record the decisions of M1 to M5 ([History](#history)). This plan stays until the user decides to delete it ([ADR-5WKW](../decisions/entries/5WKW-implementation-work-in-the-plan.md)). Record a new decision as a decision entry, not in this plan.
+> **Decisions.** The decisions behind this plan are recorded in the decision log, [`decisions/`](../decisions/README.md). The phases and their order follow [ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md). The dependency pins and the GPU EP packs follow [ADR-M2C6](../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md). The implementation-stage work follows [ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) (replace the package ONNX detectors) and [ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) (the entry points and the layout). The pipeline design is in [ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md), [ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md), [ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md), [ADR-3SF2](../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md), [ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-helper.md) and the [pipeline log](pipeline/decisions/README.md). The sidecar names follow [ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) and [ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md). Entries 0002 to 0007 record the decisions of M1 to M5 ([History](#history)). This plan stays until the user decides to delete it ([ADR-5WKW](../decisions/entries/5WKW-implementation-work-in-the-plan.md)). Record a new decision as a decision entry, not in this plan.
 
 > Status: **M1 to M5 are done. Phase 0 started on 2026-11-12. Phase 1 waits for the gate of phase 0.** Phase 0 is in the spec-build stage, and phase 1 is in the implementation stage ([Stages](model-sidecar/model-addition-workflow/README.md#stages)). The [stage order](#stage-order) gives each stage. The "Status" line of each stage gives its state.
 
@@ -8,7 +8,7 @@
 
 `specs/model-sidecar/sidecar-spec.md` defines a YAML "sidecar" format that describes the runtime I/O contract for ONNX detector/pose models: input tensor shape, normalization, resize, batching, output semantics, and decode logic. Two commits (`ec12b32`, `837bd09`) landed the spec document itself; this plan implements it in code.
 
-The implementation-stage work re-implements each package ONNX detector on a fixed-batch, spec-compliant model from the exporters, starting with `yolox-person` and `rtmw-wholebody133`. The old detectors, their sidecars and their golden fixtures are deleted and replaced. They do not migrate to the spec ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md)). The new code goes beside the old code. Phase 2 deletes the old code ([ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md)). MediaPipe stays outside the spec and keeps working. Two entry points, `detectors` and `pipelines`, list the models and the pipelines and start a pipeline run ([ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md)).
+The implementation-stage work re-implements each package ONNX detector on a fixed-batch, spec-compliant model from the exporters, starting with `yolox-person` and `rtmw-wholebody133`. The old detectors, their sidecars and their golden fixtures are deleted and replaced. They do not migrate to the spec ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md)). The new code goes beside the old code. Phase 2 deletes the old code ([ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md)). MediaPipe stays outside the spec and keeps working. Two entry points, `detectors` and `pipelines`, list the models and the pipelines and start a pipeline run ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md)).
 
 Explicitly out of scope for this repo/plan: the skellycam API surface that exposes available models to FMC, and the FMC pipeline-builder UI. Those live in other repos.
 
@@ -178,7 +178,7 @@ changes the draft exporter guide ([ADR-x64y](../decisions/entries/x64y-draft-exp
 - The device check scripts need an entry that names them, or a move to `tools/` with a test
   ([ADR-EY8R](../decisions/entries/EY8R-tools-and-scripts.md)).
 - Write stage 1.3 from the local plans of the track. Git does not track those plans, so 1.3 gets
-  their content, not a link. Bring that content in line with [ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 3 (`system/`, `metrics/`
+  their content, not a link. Bring that content in line with [ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 3 (`system/`, `metrics/`
   and `eps/` under an eager `core`; the import isolation rules are withdrawn), [ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-helper.md) item 1 and
   [ADR-M2C6](../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md) items 2 and 3 (one ONNX Runtime core; the GPU EPs are CUDA 13 plugin packs:
   the CUDA 12 floors, the CUDA 12 packs and the Pascal test go), and with [ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) (the EP keys, the EP
@@ -246,10 +246,10 @@ changes the draft exporter guide ([ADR-x64y](../decisions/entries/x64y-draft-exp
 
 **Status: NOT STARTED.** This stage has only the layout items that leave the old ONNX code alone.
 
-- `core/__init__.py` stays eager ([ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 3). Stage 1.3 puts `system/`, `metrics/` and `eps/`
+- `core/__init__.py` stays eager ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 3). Stage 1.3 puts `system/`, `metrics/` and `eps/`
   under `core/`.
 - Move charuco and aruco to `core/detectors/calibration_detectors/`
-  ([ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 4).
+  ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 4).
 - Create `core/model_zoo/`, the package sidecar root
   ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 5). Add
   `skellytracker/core/model_zoo/**/*.onnx` to `.gitignore`. flit puts each file of the package
@@ -259,7 +259,7 @@ changes the draft exporter guide ([ADR-x64y](../decisions/entries/x64y-draft-exp
   write their keypoint lists in full, so `core/model_zoo/` needs no `shared/` yet. Stage 2.3 moves it.
 - `core/tracker/` keeps its name. Stage 2.4 deletes it.
 - Update the paths in the README, the examples, the demos and the tests. Add no shim
-  ([ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 7).
+  ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 7).
 - Gate: the full suite passes with no change of expected values.
 
 ### 1.3 Hardware and EP API
@@ -267,9 +267,9 @@ changes the draft exporter guide ([ADR-x64y](../decisions/entries/x64y-draft-exp
 **Status: NOT WRITTEN.** Stage 0.4 writes this stage from the plans of the hardware and EP track.
 The known scope:
 
-- `core/system/`, `core/metrics/` and `core/eps/` under the eager `core` ([ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 3).
+- `core/system/`, `core/metrics/` and `core/eps/` under the eager `core` ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 3).
   `core/metrics/` holds only system metrics ([ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-helper.md) item 1).
-- `eps.build_session()`. Stage 1.10 builds each ONNX session with it ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 5).
+- `eps.build_session()`. Stage 1.10 builds each ONNX session with it ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 5).
 - The EP catalog owns the EP keys `trt-rtx`, `cuda`, `coreml` and `cpu`, and refuses each reserved
   key with its reason. It lists the allowed option names and values of each EP.
   `eps.build_session()` refuses an option that the catalog does not list, before it calls ONNX
@@ -579,7 +579,7 @@ the old code. Put each fix in the module of its spec section in `processing/pre/
   `core/model_zoo/`. `platformdirs` becomes a direct dependency. skellytracker keeps no settings
   file. `list_detectors`, `list_pipelines`, `load_pipeline` and `start_pipeline` take
   `user_root: Path | None`. The order is the argument, then `SKELLYTRACKER_USER_ROOT`, then the
-  default ([ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 6).
+  default ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 6).
 - The cross-platform tasks:
   - CRLF: the spec rejects CRLF (`V-format.composition-3`). The error names CRLF.
   - Symlinks: Hugging Face snapshot files are symlinks into `blobs/`. The new loader does not call
@@ -631,7 +631,7 @@ the old code. Put each fix in the module of its spec section in `processing/pre/
     corrupt cache file; the atomic write; the record that a download writes; the forced full hash.
 - The `detectors` list in `core/detectors`: the catalog entries and a static table of the entries
   with no sidecar (MediaPipe, charuco, aruco). Each entry has the category `onnx`, `mediapipe` or
-  `calibration` ([ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md)
+  `calibration` ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md)
   item 2). An exporter model has the key `<model_id>@<source.name>`. A model of skellytracker has
   the key `<detector_type>@skellytracker`
   ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 6). The list does
@@ -639,9 +639,9 @@ the old code. Put each fix in the module of its spec section in `processing/pre/
   ([ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 13).
 - Each entry has `available` and `unavailable_reason`: the extra (`importlib.util.find_spec` with a
   literal name), the ONNX file and its hash
-  ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 7).
+  ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 7).
 - `describe_detector(key)` and the CLI `detectors` and `describe`
-  ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 9): the sizes,
+  ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 9): the sizes,
   the precisions, the `sidecar_sha256`, the ports, the params with their sidecar defaults, and the
   point names.
 - Gate: the catalog tests on temporary roots pass. A test checks that each entry of the static
@@ -653,7 +653,7 @@ the old code. Put each fix in the module of its spec section in `processing/pre/
   [`format.versioning`](model-sidecar/format/versioning.md#implementer-guidance)).
 - **Catalog and roots.** The catalog is the `detectors` entry point (stage 1.6). Each entry has the
   category `onnx`, `mediapipe` or `calibration`
-  ([ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 2). An
+  ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 2). An
   exporter model has the key `<model_id>@<source.name>`, and a model of skellytracker has the key
   `<detector_type>@skellytracker`
   ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 6). Build the
@@ -746,7 +746,7 @@ in parallel with 1.3 to 1.7.
 - A standalone module under `core/detectors/` runs the MediaPipe Tasks `HolisticLandmarker`.
   MediaPipe 1.2.2 has `mediapipe/tasks/python/vision/holistic_landmarker.py`. The module does not use
   the old MediaPipe detector classes, the old detector contract or `core/tracker/`. The
-  `mediapipe_tasks` node of 1.10 wraps it ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 4).
+  `mediapipe_tasks` node of 1.10 wraps it ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 4).
 - It gives the outputs and the point names of the `holistic` variant of
   [`mediapipe_tasks`](pipeline/nodes/mediapipe_tasks.md). Holistic is single person, so
   `max_instances` is 1. The output has `geometry: 3d` and `depth_unit: pixel` ([ADR-6DKT](pipeline/decisions/entries/6DKT-instance-rows-carry-class-and-score.md) item 6). In
@@ -822,7 +822,7 @@ in parallel with 1.3 to 1.7.
 **Status: NOT STARTED.** It needs 1.3 (`eps.build_session()`), 1.7, 1.8, 1.9 and the pipeline spec
 ([`specs/pipeline/`](pipeline/README.md)). It builds `core/pipelines/` and
 `core/pipelines/_runtime/` beside the old `core/tracker/`. The old run code does not change
-([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 1).
+([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 1).
 
 - **Config.** Move `PipelineConfig` and the node configs, with the union keyed on `type`, from
   `specs/pipeline/reference/pipeline_config.py` into `core/pipelines/config.py`. Add a doc test that
@@ -831,7 +831,7 @@ in parallel with 1.3 to 1.7.
   export and the load checks
   ([ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 7). Each file has the
   required `source:` field, and its key is `<pipeline_id>@<source>`
-  ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 2). Pipelines use
+  ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 2). Pipelines use
   the sidecar catalog key rules: the newest version wins, `<key>==<version>` pins, and
   `skellytracker` is reserved ([ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) item 7).
 - **Discovery.** Read `*.pipeline.yaml` in `core/model_zoo/pipelines/` and in
@@ -874,7 +874,7 @@ in parallel with 1.3 to 1.7.
   ([ADR-6DKT](pipeline/decisions/entries/6DKT-instance-rows-carry-class-and-score.md) items 1 and 2).
 - **`mediapipe_tasks` node.** One node with `variant: body | hand | face | holistic`. It wraps the
   Holistic runner of 1.8, with its timestamp fix and its safe close, and calls the Tasks
-  landmarkers directly for the other variants. It uses the MediaPipe assets ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 4). Its
+  landmarkers directly for the other variants. It uses the MediaPipe assets ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 4). Its
   params are `min_detection_score`, `min_presence_score`, `min_tracking_score` and `size`
   ([ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) item 7). It has no reset and no back-off ([ADR-6JWJ](pipeline/decisions/entries/6JWJ-mediapipe-video-landmarker-does-not-stick.md)).
   Holistic is single person, so its `max_instances` is 1. Its output has `geometry: 3d` and
@@ -892,12 +892,12 @@ in parallel with 1.3 to 1.7.
   - `smooth_keypoints` refuses a timestamp that does not increase. It has `reset_after_ms` and no
     miss counter.
 - **Sessions.** Build each ONNX session with `eps.build_session()`
-  ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 5). `start_pipeline` takes `ep_options`, and a `detector` node takes
-  `execution_provider` and `ep_options` ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 1; [ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 2). The NMS session
+  ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 5). `start_pipeline` takes `ep_options`, and a `detector` node takes
+  `execution_provider` and `ep_options` ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 1; [ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 2). The NMS session
   requests `cpu` ([ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 7). The timing `execution` block gives `cpu_nodes` and
   `cpu_op_types` ([ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 5).
 - **Warnings.** `PipelineWarning`, `PipelineRun.warnings`, `on_warning` and `MissingDependencyError`
-  ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) items 6 and 7). The warning `ep_partial_placement` fires one time for each session
+  ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) items 6 and 7). The warning `ep_partial_placement` fires one time for each session
   with nodes on the CPU EP ([ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 5).
 - **Timing.** The timing events, the header, the derive helpers and the skellybench aggregator in
   `core/pipelines/timing.py` ([ADR-Q59W](../decisions/entries/Q59W-pipeline-timing-and-taps.md)
@@ -915,19 +915,19 @@ in parallel with 1.3 to 1.7.
   fixed ([Outputs](pipeline/outputs.md#behaviour)). Fix it before the first output of such a port.
 - **CLI.** `run` with the COCO form
   ([ADR-Q59W](../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 6), `validate` and `nodes`
-  ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 9). Stage 1.6 gives
+  ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 9). Stage 1.6 gives
   `detectors` and `describe`. `run` takes `--ep <key>` and `--ep-option <name>=<value>`, and exits
   with 3 when an EP is not available, 4 when a session was not created and 5 when the GPU memory is
   exhausted ([ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 2 and 6). With no
   `--ep`, `run` uses `eps.recommend("performance")` and prints the chosen EP and its options
   ([ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 8).
 - **Node catalog.** `list_node_types()`, the tool that makes the spec table of each node type, and
-  its doc test ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 9).
+  its doc test ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 9).
 - **Webcam demo.** `output_schema` gives `edges` for each output, from the sidecar
   `keypoint.overlay` or the MediaPipe YAML files. Port `python -m skellytracker` to `start_pipeline`
   in `live` mode with `--pipeline <key>`, and the default EP of [ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 8. One generic
   annotator draws each output
-  ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 8).
+  ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 8).
 - **Pipeline bundles.** Copy each contributed pipeline of `specs/pipeline/examples/` that has an
   entry in `specs/pipeline/inventory.yaml` to `core/model_zoo/pipelines/`. Add the load checks of
   [ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 7 and a run gate on
@@ -936,7 +936,7 @@ in parallel with 1.3 to 1.7.
 - **Built-ins.** Copy `yolox-rtmw-wholebody` and `mediapipe-holistic-tasks` from
   `specs/pipeline/examples/` to `core/model_zoo/pipelines/`
   ([ADR-3SF2](../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md) item 2;
-  [ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 3).
+  [ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 3).
   The spec examples pin no `sidecar_sha256`. The copy adds the `sidecar_sha256` of each `detector`
   node, because a shipped file must have it
   ([ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 10).
@@ -1025,7 +1025,7 @@ through the model addition workflow. The stages below are the work of skellytrac
 - The host-side canonical mappings (`rtmpose_body17_to_canonical_mapping.yaml`,
   `rtmpose_hand_to_canonical_mapping.yaml`) are skellytracker work, not exporter work.
 - The built-in pipeline `rtmpose-body-hands-face`
-  ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 3). Before it
+  ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 3). Before it
   ships, measure the body17 hand ROI rule (elbow to wrist) and the face ROI rule. No reference
   defines them. The measurement also decides whether `min_size_px` comes back.
 - Gate: the model gate of 0.1, run locally. `rtmpose-body-hands-face` runs.
@@ -1089,10 +1089,10 @@ through the model addition workflow. The stages below are the work of skellytrac
   `precomputed_object_detector.py`, the three old MediaPipe detector classes and `run_demo.py`, the
   old annotators and the demo builders
   ([ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md) item 7;
-  [ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 5).
+  [ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 5).
 - charuco and aruco become plain classes with their own frozen config dataclass and `detect(image)`.
   They subclass no base
-  ([ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 4). The
+  ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 4). The
   calibration demos call these classes.
 - Move the tests that still apply to the new runtime. The cases of `test_keypoint_bbox_detector.py`
   and `test_detection_stage_hierarchy.py` seed `roi_from_points` vector cases only when their meaning
@@ -1135,7 +1135,7 @@ these parts:
   `frame_number`.
 - **Charuco.** charuco runs through `detectors`, beside the pipeline, on the same frames. Pipelines
   have no calibration node
-  ([ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 4). Remove the
+  ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 4). Remove the
   link between charuco and the tracker in the typed recording graph.
 - **Resets.** Remove `max_consecutive_misses=10`. `smooth_keypoints` has only `reset_after_ms`, and
   `mediapipe_tasks` has no reset
@@ -1187,7 +1187,7 @@ these parts:
 
 ## Resuming this plan in a fresh session
 
-M1 to M5 are done ([History](#history)). Each milestone gives its file layout. The four generic processing modules are in `core/detectors/processing/` ([ADR-0007](../decisions/entries/0007-generic-processing-package.md)). `rtmpose_preprocessing.py` is still tracked, but no module imports it. Stage 2.3 deletes it. Do not create the deleted modules `yolox_preprocessing.py` and `rtmpose_simcc_decode.py` again. The next work is phase 0. It changes no file under `skellytracker/`. Before you start, read [ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md), [ADR-B4QR](../decisions/entries/B4QR-exact-pins-and-cuda-13.md), [ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) and [ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md). Before 1.10, read the [pipeline spec](pipeline/README.md) and its [decision log](pipeline/decisions/README.md). Use the skill `implement-sidecar-section` for each stage of phase 1. No `GenericObjectDetector` or `GenericKeypointDetector` class exists yet.
+M1 to M5 are done ([History](#history)). Each milestone gives its file layout. The four generic processing modules are in `core/detectors/processing/` ([ADR-0007](../decisions/entries/0007-generic-processing-package.md)). `rtmpose_preprocessing.py` is still tracked, but no module imports it. Stage 2.3 deletes it. Do not create the deleted modules `yolox_preprocessing.py` and `rtmpose_simcc_decode.py` again. The next work is phase 0. It changes no file under `skellytracker/`. Before you start, read [ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md), [ADR-B4QR](../decisions/entries/B4QR-exact-pins-and-cuda-13.md), [ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) and [ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md). Before 1.10, read the [pipeline spec](pipeline/README.md) and its [decision log](pipeline/decisions/README.md). Use the skill `implement-sidecar-section` for each stage of phase 1. No `GenericObjectDetector` or `GenericKeypointDetector` class exists yet.
 
 ## Reference examples
 
