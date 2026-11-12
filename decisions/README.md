@@ -35,7 +35,7 @@ These entries are `accepted` or `evidence`.
 | [AQR4](entries/AQR4-detectors-and-pipelines-entry-points.md) | Entry points `detectors` and `pipelines`; `system/`, `metrics/`, `eps/` under an eager `core`; calibration outside pipelines; user root | accepted |
 | [7NY2](entries/7NY2-pipeline-form-graph-and-nodes.md) | Pipeline config: one Pydantic model from YAML; flat node graph with `@prev`; detector, `mediapipe_tasks` and closed glue nodes | accepted |
 | [99MH](entries/99MH-pipeline-outputs-and-running.md) | Pipeline outputs with an instance dimension; running modes; batch k × cameras, camera count when stateful; session sharing; load checks | accepted |
-| [8NVD](entries/8NVD-pipeline-api-warnings-and-catalog.md) | Pipeline API `core.pipelines`; built-ins; `PipelineWarning`; dependency reports; Holistic for MediaPipe; node catalog | accepted |
+| [48PG](entries/48PG-pipeline-api-ep-options-and-warnings.md) | Pipeline API `core.pipelines` with `ep_options`; built-ins; `PipelineWarning` with `ep_partial_placement`; dependency reports; Holistic; node catalog | accepted |
 | [3SF2](entries/3SF2-pipeline-spec-and-node-workflow.md) | Pipeline spec in `specs/pipeline/`: section IDs, reference model and schema, glue vectors, changelog, own module log, node workflow | accepted |
 | [1HKJ](entries/1HKJ-proposal-record-links-not-checked.md) | The link check skips the frozen proposal records; their old links stay; the changelog map resolves old IDs | accepted |
 | [88WQ](entries/88WQ-sidecar-vocabulary.md) | Sidecar vocabulary: `object` and `keypoint` blocks, role `keypoint_detector`, `post/object/` and `post/keypoint/`, classes by name, one name per concept | accepted |

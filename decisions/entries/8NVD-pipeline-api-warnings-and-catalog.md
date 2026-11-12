@@ -1,6 +1,6 @@
 # 8NVD — Pipeline API `core.pipelines`; built-ins; warnings and dependency reports; Holistic for MediaPipe; the node catalog for outside authors
 
-**Status:** accepted, 2026-11-11 (user).
+**Status:** superseded by [48PG](48PG-pipeline-api-ep-options-and-warnings.md), 2026-11-12 (user; PR: pending).
 
 ## Decision
 
