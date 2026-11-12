@@ -161,6 +161,7 @@ NORMALIZED = {
         "resize": {
             "method": "letterbox",
             "pad_value": 114,
+            "crop_policy": {"maintain_aspect_ratio": False},
         },
     },
     "outputs": [
@@ -169,7 +170,6 @@ NORMALIZED = {
     ],
     "object": {"decode": {"selection": "none", "clamp_boxes": True, "nothing": None}},
     "keypoint": {
-        "requires_object_detector": False,
         "canonical_mapping": {"nose": "head"},
         "decode": {"method": "simcc"},
     },
@@ -190,7 +190,7 @@ NORMALIZED = {
         "keypoint.decode.method=simcc",
         "input.resize.pad_value=114",
         "object.decode.clamp_boxes=true",
-        "keypoint.requires_object_detector=false",
+        "input.resize.crop_policy.maintain_aspect_ratio=false",
     ],
 )
 def test_matching_selectors(selector: str) -> None:
@@ -232,7 +232,7 @@ def test_selectors_that_do_not_match(selector: str) -> None:
         ("keypoint.overlay", False),
         ("object.decode.nothing", False),
         ("outputs[].shape", False),
-        ("keypoint.requires_object_detector", True),
+        ("input.resize.crop_policy.maintain_aspect_ratio", True),
     ],
 )
 def test_a_selector_without_value_tests_that_the_path_exists_and_is_not_null(

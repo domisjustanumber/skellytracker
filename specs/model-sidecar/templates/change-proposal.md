@@ -145,7 +145,7 @@ the form of the heading "Validation rules" in a section file, for example
 shifts. To delete a rule, name its ID: its number stays unused (skellytracker ADR-6GE2).
 
 Also find each existing rule that names a value that the change adds or changes. Example: rule
-`V-pre.resize.affine_person_crop-2`: a sidecar with `keypoint.requires_object_detector: true` must
+`V-pre.resize.affine_person_crop-2`: a sidecar with a top-down `keypoint.estimator_type` must
 declare `input.resize.method: affine_person_crop`. A top-down model with a new resize method fails
 this rule. List each such rule here: changed, or unchanged with the reason. If you do not change a
 rule that blocks a model, list it as a follow-up.

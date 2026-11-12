@@ -264,7 +264,7 @@ Source: the upstream postprocessing code and the upstream test config.
 
 | # | Property | Upstream evidence (file and line, or config key) | Section ID (the `id` in the section file's front matter) | Sidecar value | Verdict | What differs or what is missing |
 |---|---|---|---|---|---|---|
-| K1 | Estimator type and `requires_object_detector` | | `post.keypoint.schema` | | | |
+| K1 | Estimator type (`keypoint.estimator_type`) | | `post.keypoint.schema` | | | |
 | K2 | `point_names` in native output order | | `post.keypoint.schema` (`keypoint.point_names`) | | | |
 | K3 | Skeletons: named skeletons and their edges | | `post.keypoint.schema` (`keypoint.skeletons`) | | | |
 | K4 | Output geometry (`keypoint.geometry`: `2d` or `3d`, required), decode method (`simcc` or `coordinate`) and its parameters (`coordinate_space`, `depth_unit`) | | `post.keypoint.schema` (`keypoint.geometry`, `keypoint.decode`), `post.keypoint.decode.<method>` (`simcc`, `coordinate`) | | | |

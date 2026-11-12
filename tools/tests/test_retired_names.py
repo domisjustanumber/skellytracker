@@ -35,6 +35,7 @@ RETIRED = {
     "overlay.groups": r"\boverlay\.groups\b",
     "connections": r"`connections`|\bconnections:",
     "expansion_ratio": r"\bexpansion_ratio\b",
+    "requires_object_detector": r"\brequires_object_detector\b",
 }
 
 

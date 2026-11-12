@@ -57,8 +57,7 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   - the order of the final rows for `selection: none`. The YOLO26 graph gives its rows in descending
     score order, and ultralytics 8.4.184 keeps that order with no sort (`utils/nms.py:74-77`).
 - No resize method crops a rotated ROI (centre, size and rotation) that the host gives with no
-  detector box. `V-post.keypoint.schema-2` and `V-pre.resize.affine_person_crop-2` tie a top-down model
-  to `requires_object_detector: true` and to `affine_person_crop`. The `crop_policy` of that method
+  detector box. `V-pre.resize.affine_person_crop-2` ties a top-down model to `affine_person_crop`. The `crop_policy` of that method
   has only `expand_ratio` and `maintain_aspect_ratio`. The MediaPipe Holistic hand chain makes its
   ROI from the wrist, pinky and index keypoints of a body pose. It moves the ROI along its own axis
   (`shift_y` -0.1), makes it square (`square_long`), scales it (2.7, 1.0 or 2.0) and fills the
