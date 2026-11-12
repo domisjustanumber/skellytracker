@@ -539,7 +539,9 @@ change of `processing/` in place changes their output.
 - **Warnings.** `PipelineWarning`, `PipelineRun.warnings`, `on_warning` and `MissingDependencyError`
   ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) items 6 and 7).
 - **Timing.** The timing events, the header, the derive helpers and the skellybench aggregator in
-  `core/metrics/` ([ADR-Q59W](../decisions/entries/Q59W-pipeline-timing-and-taps.md) items 1 to 4).
+  `core/pipelines/timing.py` ([ADR-Q59W](../decisions/entries/Q59W-pipeline-timing-and-taps.md)
+  items 1 to 4; [ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-helper.md)
+  item 2).
 - **Taps.** The tap actions `record` and `replay`
   ([ADR-Q59W](../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 5). Each JSONL line has
   `row`, its row index. A `detections.jsonl` line writes `class`, the class name, in place of
