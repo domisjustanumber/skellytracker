@@ -33,11 +33,11 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   `requires-python = ">=3.11,<3.14"`. The exporters that agents build again use those pins. The OpenCV package (`opencv-contrib-python` or a headless package) is not decided. The
   dependency stage of the implementation plan writes the pins. Until then, an exporter runs the batch
   tool in the checkout environment.
-- **Exporter guide rewording.** A rewording PR removes each exporter repository name that is only an
-  example from `specs/draft/exporter-guide/` and from all files of
-  `specs/model-sidecar/model-addition-workflow/`. A citation of an exporter entry or commit as
-  evidence stays. It also removes the open items that do not apply to a new exporter
-  ([x64y](entries/x64y-draft-exporter-guide-folder.md), item 6).
+- **Exporter open items.** At the 2.0.0 pre-release, remove the rows of
+  `specs/draft/exporter-guide/sidecars/known-open-items.md` that name a reference implementation.
+  They do not apply to a new exporter, and the skill `implement-sidecar-section` uses them until
+  then ([x64y](entries/x64y-draft-exporter-guide-folder.md), item 6;
+  [ADR-6J8E](entries/6J8E-exporters-run-released-skellytracker.md) item 1).
 - The exporters are re-implemented against the current exporter guide. This file does not track the
   old exporter copies or paths.
 - **Draft exporter guide.** `specs/draft/exporter-guide/` is not complete. A local plan of the user
