@@ -10,7 +10,7 @@ status: {spec: draft}
 
 > This section is a draft. Its fields and rules can change before the section becomes `stable`.
 
-The graph of a pipeline is a flat list of nodes. Each node has an id, a type and inputs. An input refers to an output port of another node, or to the camera frame. The suffix `@prev` refers to the value of the previous frame. This section gives the node fields, the port types, the ROI type, the empty values, the point names and the instance rows of a port ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) items 4, 6 and 8; [ADR-99MH](../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 1).
+The graph of a pipeline is a flat list of nodes. Each node has an id, a type and inputs. An input refers to an output port of another node, or to the camera frame. The suffix `@prev` refers to the value of the previous frame. This section gives the node fields, the port types, the ROI type, the empty values, the point names and the instance rows of a port ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) items 4, 6 and 8; [ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 1).
 
 ## Fields
 
@@ -41,7 +41,7 @@ The [README](README.md#terms) gives the letter key `I`, `P` and the other letter
 ## Behaviour
 
 1. **Order.** The nodes are in any order. A node runs after each node that it takes a same-frame input from.
-2. **`@prev`.** An input with `@prev` gets the value of the port on the previous frame that the run processed for the same camera. The value is empty on the first frame. In the running mode `image`, each `@prev` value is empty ([ADR-99MH](../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 2). An `@prev` edge does not count for the cycle check. The frame has no `@prev` value.
+2. **`@prev`.** An input with `@prev` gets the value of the port on the previous frame that the run processed for the same camera. The value is empty on the first frame. In the running mode `image`, each `@prev` value is empty ([ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 2). An `@prev` edge does not count for the cycle check. The frame has no `@prev` value.
 3. **ROI.** An ROI is `(cx, cy, w, h, rotation)` in source-image pixels: the centre, the width, the height and the rotation. A box is an ROI with rotation 0 ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 8):
    - `rotation` is in radians, in `[-π, π)`. A positive rotation turns the ROI clockwise in the image, because the image y axis points down.
    - The ROI x axis is `(cos(rotation), sin(rotation))` and the ROI y axis is `(-sin(rotation), cos(rotation))`, in image pixels.
@@ -59,7 +59,7 @@ The [README](README.md#terms) gives the letter key `I`, `P` and the other letter
    - A `merge` node gives the prefix of each slot name to the columns of that slot ([Node: merge](nodes/merge.md#behaviour)).
    - The other glue nodes keep the names. An output adds no prefix.
    - Each point name in a param has its prefix, for example `body.left_wrist` (`V-pipeline.graph-8`). A derived point of `roi_from_points` is local to its node and has no prefix.
-8. **Instance rows.** Each `roi`, `keypoints` and `detections` value has `I` rows ([ADR-99MH](../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 1):
+8. **Instance rows.** Each `roi`, `keypoints` and `detections` value has `I` rows ([ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 1):
    - The **instance source** of a value is the node that makes its instance rows: an object detector, a one-stage model or a `mediapipe_tasks` node. `I` is the `max_instances` of the instance source. `I` is fixed for the run. Each frame has the same shapes. `I` can be more than 1.
    - The present rows come first, in descending order of the instance score: the `score` of the `detections` row of an object detector or a one-stage model. Each present row of a `mediapipe_tasks` node has the instance score 1.0, so its rows keep the order of MediaPipe. A tie goes to the lower row index, as in the sidecar [selection behaviour](../model-sidecar/post/object/decode.md#selection-behaviour). The padding rows come last. A padding row has `present` false.
    - A missing point has NaN coordinates and the score 0 ([Decoded keypoints](../model-sidecar/post/keypoint/schema.md#decoded-keypoints)).
@@ -90,7 +90,7 @@ The [README](README.md#terms) gives the letter key `I`, `P` and the other letter
 
 ## Authoring guidance
 
-- Use `@prev` only where a node needs the previous frame. An `@prev` input makes the pipeline stateful, and a stateful pipeline runs at batch = camera count in the running mode `video` ([Running](running.md#behaviour); [ADR-99MH](../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 5).
+- Use `@prev` only where a node needs the previous frame. An `@prev` input makes the pipeline stateful, and a stateful pipeline runs at batch = camera count in the running mode `video` ([Running](running.md#behaviour); [ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 5).
 
 ## Examples
 

@@ -44,7 +44,7 @@ MediaPipe `RoiTrackingCalculator`
   ([Graph](../graph.md#behaviour) item 6). When it is not connected or it is empty, the node does not
   do the keypoint test (step 7).
 - The output has one row for each row of `current`
-  ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 1). Row `i` of
+  ([ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 1). Row `i` of
   each input goes with row `i` of the other inputs, so the inputs have the same number of rows
   (`V-node.roi_tracking-2`).
 
@@ -108,7 +108,7 @@ Each test uses `>`. A value equal to its limit passes the test.
   the previous frame (`<node>.keypoints@prev`), and connect `previous_keypoints` to the same
   keypoints.
 - `roi_tracking` keeps no state, so it is not in the list of stateful nodes. Its `@prev` input makes
-  the pipeline stateful ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md)
+  the pipeline stateful ([ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md)
   item 5).
 
 ## Examples

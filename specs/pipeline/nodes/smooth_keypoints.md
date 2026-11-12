@@ -16,7 +16,7 @@ point that moves too fast, and reset the filter state of a row after a time with
 ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6). The node
 uses time units: the time step comes from `timestamp_ms`, a rate is per second and a duration is in
 milliseconds. A `smooth_keypoints` node with no detector node downstream does not make a pipeline
-stateful ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 5).
+stateful ([ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 5).
 
 ## Fields
 
@@ -58,7 +58,7 @@ stateful ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-runnin
 ## Behaviour
 
 1. **Running mode.** In the running mode `image`, the output is the input, and the node keeps no
-   state ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 2). The
+   state ([ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 2). The
    steps that follow apply to `video` and `live`.
 2. **Empty input.** Before the first input that is not empty, the node does not run, and its output
    is empty. After it, an empty `keypoints` input does not stop the node. The node runs on rows in
@@ -160,7 +160,7 @@ stateful ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-runnin
    step 6.2.
 10. **Rows.** Row `i` of the input gives row `i` of the output. Without an `associate` node, the
     rows have no track identity, so row `i` of two frames can be two persons
-    ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 1).
+    ([ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 1).
 
 ## Validation rules
 
@@ -207,7 +207,7 @@ stateful ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-runnin
 - Use `reset_after_ms` to stop a long hold, and to clear the old derivative or covariance of a row
   after the person leaves the image.
 - To smooth the final keypoints, put the node after the last detector. Then it does not limit the
-  batch ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 5).
+  batch ([ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 5).
 
 ## Examples
 

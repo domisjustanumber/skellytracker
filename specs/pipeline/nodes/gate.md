@@ -34,7 +34,7 @@ a gate sends the image to a person detector only when the keypoints of the previ
 - `value` and `condition` take each port type. The output `value` has the port type of the input
   `value`.
 - An instance port is a port of the type `roi`, `keypoints` or `detections`. It has one row for each
-  instance ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 1). A
+  instance ([ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 1). A
   row is present or empty.
 - A port value is empty when it has no value, for example an `@prev` value on the first frame or
   the output of a node that did not run. A value of an instance port with no present row is also
@@ -80,7 +80,7 @@ a gate sends the image to a person detector only when the keypoints of the previ
 - The score test uses `>`, as the MediaPipe `ThresholdingCalculator` does. (MediaPipe-Exporter
   [`docs/mediapipe-whole-body.md:155-157`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L155-L157))
 - An empty row keeps its place in the output. The shapes of the output do not change from frame to
-  frame ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 1).
+  frame ([ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 1).
 - A missing point has NaN coordinates and the score 0
   ([Decoded keypoints](../../model-sidecar/post/keypoint/schema.md#decoded-keypoints)). The keypoint
   score of the row does not count it.

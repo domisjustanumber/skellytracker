@@ -16,7 +16,7 @@ detector node that takes it runs only when it is not empty
 ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6). The node
 asks for a detection at a fixed interval, and when a fitness check on the previous frame fails. A
 `redetect` node upstream of a detector makes a pipeline stateful
-([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 5).
+([ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 5).
 
 ## Fields
 
@@ -65,7 +65,7 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
    item 6). Empty `previous_keypoints` and `previous_rois` do not stop the node, because they are
    optional inputs.
 2. **Running mode.** In the running mode `image`, the output is always the image, and the node keeps
-   no state ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 2).
+   no state ([ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 2).
    The steps that follow apply to `video` and `live`.
 3. **State.** The node keeps `last`, the `frame_index` of the last frame on which it gave the image.
    It is empty at the start. Let `n` be the `frame_index` of this frame. In `live`, `frame_index`

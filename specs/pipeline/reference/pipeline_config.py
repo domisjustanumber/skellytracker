@@ -104,7 +104,7 @@ class DetectorParams(Strict):
         1,
         description="The number of instance rows `I` that this node makes (object detector or one-stage model).",
         live=False,
-        source="ADR-99MH item 1",
+        source="ADR-0WJB item 1",
         ge=1,
     )
     object_decode: dict[str, Any] = param(

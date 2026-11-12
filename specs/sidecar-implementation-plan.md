@@ -1,6 +1,6 @@
 # Implementation Plan: Phases to the Exporter Checkpoint
 
-> **Decisions.** The decisions behind this plan are recorded in the decision log, [`decisions/`](../decisions/README.md). The phases and their order follow [ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md). The dependency pins and the GPU EP packs follow [ADR-MWY9](../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md). The implementation-stage work follows [ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) (replace the package ONNX detectors) and [ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) (the entry points and the layout). The pipeline design is in [ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md), [ADR-99MH](../decisions/entries/99MH-pipeline-outputs-and-running.md), [ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md), [ADR-3SF2](../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md), [ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-helper.md) and the [pipeline log](pipeline/decisions/README.md). The sidecar names follow [ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) and [ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md). Entries 0002 to 0007 record the decisions of M1 to M5 ([History](#history)). This plan stays until the user decides to delete it ([ADR-5WKW](../decisions/entries/5WKW-implementation-work-in-the-plan.md)). Record a new decision as a decision entry, not in this plan.
+> **Decisions.** The decisions behind this plan are recorded in the decision log, [`decisions/`](../decisions/README.md). The phases and their order follow [ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md). The dependency pins and the GPU EP packs follow [ADR-MWY9](../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md). The implementation-stage work follows [ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) (replace the package ONNX detectors) and [ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) (the entry points and the layout). The pipeline design is in [ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md), [ADR-0WJB](../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md), [ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md), [ADR-3SF2](../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md), [ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-helper.md) and the [pipeline log](pipeline/decisions/README.md). The sidecar names follow [ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) and [ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md). Entries 0002 to 0007 record the decisions of M1 to M5 ([History](#history)). This plan stays until the user decides to delete it ([ADR-5WKW](../decisions/entries/5WKW-implementation-work-in-the-plan.md)). Record a new decision as a decision entry, not in this plan.
 
 > Status: **M1 to M5 are done. Phase 0 started on 2026-11-12. Phase 1 waits for the gate of phase 0.** Phase 0 is in the spec-build stage, and phase 1 is in the implementation stage ([Stages](model-sidecar/model-addition-workflow/README.md#stages)). The [stage order](#stage-order) gives each stage. The "Status" line of each stage gives its state.
 
@@ -141,7 +141,7 @@ item 7 and [ADR-271H](../decisions/entries/271H-pipeline-bundles.md).
   `node.<type>` proposals to `specs/pipeline/` in `tools/intake_bundle.py`; the skills
   `change-pipeline-spec` (with the hash update after a re-export) and `implement-pipeline-node`.
 - Open for stage 1.10: the run gate of a pipeline bundle and its tolerance, and the load checks of
-  [ADR-99MH](../decisions/entries/99MH-pipeline-outputs-and-running.md) item 7 in `verify`. The
+  [ADR-0WJB](../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 7 in `verify`. The
   exporter guide of 0.3 links the workflow.
 
 ### 0.3 Exporter kit
@@ -827,7 +827,7 @@ in parallel with 1.3 to 1.7.
   checks that the committed `specs/pipeline/pipeline.schema.json` agrees
   ([ADR-3SF2](../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md) item 3). Add load,
   export and the load checks
-  ([ADR-99MH](../decisions/entries/99MH-pipeline-outputs-and-running.md) item 7). Each file has the
+  ([ADR-0WJB](../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 7). Each file has the
   required `source:` field, and its key is `<pipeline_id>@<source>`
   ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 2). Pipelines use
   the sidecar catalog key rules: the newest version wins, `<key>==<version>` pins, and
@@ -836,7 +836,7 @@ in parallel with 1.3 to 1.7.
   `<user root>/pipelines/` ([ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md)
   item 2). `list_pipelines()` gives the load result, the availability and the warnings.
 - **Executor.** The executor of `_runtime/` has these parts
-  ([ADR-99MH](../decisions/entries/99MH-pipeline-outputs-and-running.md)):
+  ([ADR-0WJB](../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md)):
   - the DAG order and `@prev`;
   - the empty-input rule: an empty required input stops a node, and an empty optional input does
     not ([Graph](pipeline/graph.md#behaviour));
@@ -924,7 +924,7 @@ in parallel with 1.3 to 1.7.
   ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 8).
 - **Pipeline bundles.** Copy each contributed pipeline of `specs/pipeline/examples/` that has an
   entry in `specs/pipeline/inventory.yaml` to `core/model_zoo/pipelines/`. Add the load checks of
-  [ADR-99MH](../decisions/entries/99MH-pipeline-outputs-and-running.md) item 7 and a run gate on
+  [ADR-0WJB](../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 7 and a run gate on
   `run/` to `verify` of `tools/intake_bundle.py`, and set the tolerance
   ([ADR-271H](../decisions/entries/271H-pipeline-bundles.md) item 3).
 - **Built-ins.** Copy `yolox-rtmw-wholebody` and `mediapipe-holistic-tasks` from
@@ -933,7 +933,7 @@ in parallel with 1.3 to 1.7.
   [ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 3).
 - **Multi-person.** A pipeline can have more than one row (`I > 1`). But a row has no identity
   across frames, and each `track_ids` value is -1, until an `associate` node exists
-  ([ADR-99MH](../decisions/entries/99MH-pipeline-outputs-and-running.md) item 1). The temporal nodes
+  ([ADR-0WJB](../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 1). The temporal nodes
   filter row `i`, which can be another person on the next frame. Thus the v2 pipelines run single
   person (`max_instances` 1). "Later" holds the multi-person work.
 - **Investigations.** Read `SharedSessionPool` and `TrackerLease` in the freemocap development-streaming
@@ -1110,7 +1110,7 @@ through the model addition workflow. The stages below are the work of skellytrac
 freemocap is outside this plan. It uses the old detectors and their keys, so it must not move to
 2.0.0 before it migrates ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md)).
 freemocap moves to `pipelines` itself. skellytracker gives no adapter to the old `Observation`
-([ADR-99MH](../decisions/entries/99MH-pipeline-outputs-and-running.md) item 1). The migration has
+([ADR-0WJB](../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 1). The migration has
 these parts:
 
 - **Point names.** A pipeline point name has the id of its node as a prefix, for example

@@ -108,7 +108,7 @@
           "description": "The number of instance rows `I` that this node makes (object detector or one-stage model).",
           "live": false,
           "minimum": 1,
-          "source": "ADR-99MH item 1",
+          "source": "ADR-0WJB item 1",
           "title": "Max Instances",
           "type": "integer"
         },

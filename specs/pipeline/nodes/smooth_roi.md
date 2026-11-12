@@ -14,7 +14,7 @@ The node `smooth_roi` smooths the ROI of each instance row over time with an exp
 average (EMA). A stable crop gives more stable keypoints
 ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6). The smoothed
 ROI is usually the crop of the next frame, so a `smooth_roi` node upstream of a detector makes a
-pipeline stateful ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md)
+pipeline stateful ([ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md)
 item 5).
 
 ## Fields
@@ -44,7 +44,7 @@ item 5).
 ## Behaviour
 
 1. **Running mode.** In the running mode `image`, the output is the input, and the node keeps no
-   state ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 2). The
+   state ([ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 2). The
    steps that follow apply to `video` and `live`.
 2. **Empty input.** When `rois` is empty, the node does not run. The output is empty and the state
    does not change ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md)
@@ -94,7 +94,7 @@ None yet.
 - A larger `previous_weight` gives a steadier crop and more lag. When a person moves fast, a crop with lag
   can cut off a limb.
 - Without an `associate` node, the rows have no track identity, so row `i` of two frames can be two
-  persons ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 1). With
+  persons ([ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 1). With
   `max_instances: 1`, this does not apply.
 
 ## Examples
