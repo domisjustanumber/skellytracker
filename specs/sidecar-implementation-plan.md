@@ -52,7 +52,7 @@ stages give the order of the work and hold their items.
 | **Phase 1, implementation stage** | | | |
 | 1.1 Dependencies | 0.5 | the gates of [ADR-M2C6](../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md) item 7 | old |
 | 1.2 Package layout | 1.1 | full suite with no change of expected values | old |
-| 1.3 Hardware and EP API | 1.2 | written by 0.4 | old |
+| 1.3 Hardware and EP API | 1.2 | the default suite offline; the `ep_pack` and PyInstaller jobs; the local GPU gate | old |
 | 1.4 Spec loader | 1.2 | new validation tests; each reference example validates | old |
 | 1.5 Spec processing | 1.4 | the vector cases of the new entries agree; the old entries do not change | old |
 | 1.6 Catalog and `detectors` | 1.4 | catalog tests on temporary roots; static-table test | old |
@@ -166,7 +166,14 @@ changes the draft exporter guide ([ADR-x64y](../decisions/entries/x64y-draft-exp
 
 ### 0.4 Merge `hw-and-ep-work`
 
-**Status: NOT STARTED.** The hardware and EP work stays a parallel track on the branch
+**Status: DONE (2026-11-12).** The six commits of the EP device check suite are on the working branch.
+[ADR-V9NK](../decisions/entries/V9NK-ep-device-checks-evidence.md) names the suite. [ADR-NZK1](../decisions/entries/NZK1-ep-options-evidence.md) names the EP option scripts in
+`decisions/scripts/ep_options/`. Stage 1.3 is written from [ADR-246B](../decisions/entries/246B-ep-catalog-store-and-install.md), [ADR-D8DH](../decisions/entries/D8DH-sessions-errors-and-the-ready-rule.md),
+[ADR-P1F3](../decisions/entries/P1F3-hardware-probe-devices-and-multi-gpu.md), [ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) and [ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md). `tools/run_checks.py` stops only at
+the known MediaPipe hang on Windows, and the doc tests pass. The user removes the worktree of
+`hw-and-ep-work`.
+
+The hardware and EP work stayed a parallel track on the branch
 `hw-and-ep-work` until this stage ([ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md) item 3).
 
 - Copy the six commits of the EP device check suite to the working branch with `git cherry-pick`
@@ -264,29 +271,187 @@ changes the draft exporter guide ([ADR-x64y](../decisions/entries/x64y-draft-exp
 
 ### 1.3 Hardware and EP API
 
-**Status: NOT WRITTEN.** Stage 0.4 writes this stage from the plans of the hardware and EP track.
-The known scope:
+**Status: NOT STARTED.** Stage 0.4 (Merge `hw-and-ep-work`) wrote this stage on 2026-11-12.
 
-- `core/system/`, `core/metrics/` and `core/eps/` under the eager `core` ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 3).
-  `core/metrics/` holds only system metrics ([ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-helper.md) item 1).
-- `eps.build_session()`. Stage 1.10 builds each ONNX session with it ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 5).
-- The EP catalog owns the EP keys `trt-rtx`, `cuda`, `coreml` and `cpu`, and refuses each reserved
-  key with its reason. It lists the allowed option names and values of each EP.
-  `eps.build_session()` refuses an option that the catalog does not list, before it calls ONNX
-  Runtime. `eps.recommend(form)` gives the forms `performance` and `accuracy` ([ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 1 to 3).
-- `eps.build_session()` sets `enable_fallback=0` and `session.record_ep_graph_assignment_info=1`. It
-  checks that the requested EP is the first provider and has at least one node. It raises
-  `EpUnavailableError`, `SessionCreationError` or `VRAMExhaustionError` before frame 0. The session
-  report gives the node count of each EP, the CPU node count and the CPU op types ([ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 4
-  and 5).
-- The execution provider information in `detectors` and `pipelines`.
-- The `cuda` and `trt-rtx` plugin EP packs, CUDA 13 only, with the EP catalog and the EP store
-  ([ADR-M2C6](../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md) item 3). The gate includes a local run on an NVIDIA host: `eps.build_session()`
-  builds a session on each pack, and the node assignment shows the requested EP. Tests: an unknown
-  option name or value is refused before ONNX Runtime, a missing pack raises `EpUnavailableError`,
-  and no session is built again on the CPU
+It needs 1.1 and 1.2. It can run in parallel with 1.4 to 1.7. Stage 1.10 (The pipeline API) needs
+it. It builds `core/system/`, `core/metrics/` and `core/eps/` under the eager `core`
+([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 3), the GPU EP
+packs ([ADR-M2C6](../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md) item 3) and
+the EP rules of [ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md). Rules of the stage:
+
+- `eps.build_session()` serves only the new code, not `OnnxSession` or `Tracker.create`. This stage
+  does not change old core files. Stage 2.4 deletes `core/sessions/`
+  ([ADR-D8DH](../decisions/entries/D8DH-sessions-errors-and-the-ready-rule.md)).
+- `eps` reads no sidecar. The caller fills `ModelRef` from the new loader of stage 1.4.
+- `system`, `metrics` and `eps` can import `core` code. One guard test stays: a fresh
+  `import skellytracker.core.eps` loads no `onnxruntime`. The freeze rule stays: no import by a
+  computed name; a lazy import is a plain statement in a function body.
+- New direct dependencies, with exact pins: `nvidia-ml-py`, `psutil` (Windows marker only) and
+  `platformdirs`. No `certifi`.
+- An EP flow has no licence accept step. A pack shows a plain licence link.
+
+Items ([ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-helper.md) item 1;
+[ADR-P1F3](../decisions/entries/P1F3-hardware-probe-devices-and-multi-gpu.md)):
+
+- **Records.** Each record is a `@dataclass(frozen=True)` with no `dict` field. Memory is `int` bytes, time is `int` ns, and a field that ends in
+  `utilization` is a `float` ratio from 0 to 1. Vendor data goes in a last field
+  `nvidia: Nvidia<Name> | None = None`. The join key of a GPU is `pci_bus_id`, else an OS id.
+  `device_key` is `<kind>:<pci_vendor>:<pci_device>:<n>` (for example `gpu:10de:2484:0`), with `n`
+  the rank by `pci_bus_id`. No text holds an absolute path or a hostname.
+- **Caller rules.** The probes and the sampler make no CUDA call and load no EP library. They do not
+  raise for missing hardware or ORT: the field is `None`, with one line in `probe_errors` or
+  `sample_errors`. Each call is thread-safe. NVML access resets after a fork.
+- **`core.system`.** `probe_host()`, `probe_runtime()`, `probe_environment()` (each cached) and
+  `probe_loaded_libraries()`. `HostInfo` has the OS, `os_build`, `native_arch`, CPU, memory, `gpus`
+  (PCI ids, LUID, driver, VRAM; NVIDIA UUID and compute capability), virtualization and container.
+  `probe_runtime()` gives facts only. The private readers are in `core/_hardware/`: NVML, the OS
+  readers, Windows PDH, DXGI, and one D3DKMT adapter-address query only for the LUID-to-bus-id join.
+- **`core.metrics`.** `LiveSampler.sample(pids)` gives `LiveSample` (CPU, memory, each asked process
+  with RSS and Windows PDH VRAM, each NVML GPU). `free_vram(device)` is one NVML read with no state; it gives `None` with no NVML value.
+- **EP catalog.** `core/eps/ep_catalog.yaml` (by hand) and `core/eps/ep_lock.yaml` (only
+  `tools/ep_catalog.py --refresh` writes it: URL, sha256 and sizes of each wheel)
+  ([ADR-246B](../decisions/entries/246B-ep-catalog-store-and-install.md)):
+
+  | Key | Kind | Pack, or the EP name | Floors |
+  |---|---|---|---|
+  | `trt-rtx` | plugin, GPU | `onnxruntime-ep-nv-tensorrt-rtx-cu13==0.5.0` (PyPI) | NVIDIA CC ≥ 8.0, driver branch ≥ R580 |
+  | `cuda` | plugin, GPU | `onnxruntime-ep-cuda13==0.3.0` with `nvidia-cublas` and `nvidia-cudnn-cu13==9.27.0.42` (Azure feed `onnxruntime-cuda-13`) | NVIDIA CC ≥ 7.5, driver branch ≥ R580 |
+  | `coreml` | built in, GPU EP | `CoreMLExecutionProvider`, macOS arm64 only | Apple Silicon |
+  | `cpu` | built in | `CPUExecutionProvider` | – |
+
+  `trt`, `directml`, `openvino`, `qnn`, `migraphx` and `vitisai` are reserved, each with a reason;
+  `openvino` has only a CI test pack. `ort_core` must equal the `onnxruntime` pin;
+  `tools/ep_catalog.py --check` fails on drift. A pack outside its tested ORT versions is
+  `untested-ort` and stays usable, with one warning line for each process (`trt-rtx` 0.5.0 on ORT 1.31).
+- **EP options.** The catalog lists the allowed names and values. Each other option is refused
+  ([ADR-NZK1](../decisions/entries/NZK1-ep-options-evidence.md)):
+
+  | EP | Allowed | Default set of `recommend("performance")` |
+  |---|---|---|
+  | `cuda` | `prefer_nhwc` 0/1, `use_tf32` 0/1, `arena.max_mem` (positive bytes) | `prefer_nhwc=1` for fp16 only |
+  | `trt-rtx` | `enable_cuda_graph` 0/1 | EP defaults and a catalog `nv_runtime_cache_path` |
+  | `coreml` | `MLComputeUnits` `ALL`, `CPUAndGPU`, `CPUAndNeuralEngine`, `CPUOnly` | EP defaults |
+  | `cpu` | none | `ORT_ENABLE_ALL`, default threads |
+
+  `device_id` is refused for each EP: the device comes from the device map. `build_session()` sets
+  threads and the graph optimization level as `SessionOptions` attributes, never as session config
+  entries.
+- **EP store and install** ([ADR-246B](../decisions/entries/246B-ep-catalog-store-and-install.md)).
+  The store is `platformdirs.user_data_dir("skellytracker", appauthor=False)/eps`, or
+  `SKELLYTRACKER_EP_STORE`, with one folder `<pack_id>/<pack_ver>/` for each pack. `install()` uses the standard library. It downloads only after an
+  explicit user action, only `https`, with resume by byte ranges, the system proxy (no PAC file) and
+  the system trust store. The sha256 against the lock is the gate. It refuses zip-slip and a path of
+  240 characters or more (never `\\?\`), then moves the folder with one `os.replace`.
+  `install(plan, from_dir=...)` is "Install from folder". `ensure_registered()` prepends the Windows
+  DLL folders of the `cuda` pack to `PATH`, registers the library by path, and checks that
+  `get_ep_devices()` holds the catalog `ep_name`.
+- **Verification.** L0 present and current, L1 floors from `probe_host()` (the CUDA floor comes from
+  the driver branch), L2 registers and lists the device (`spawn` child), L3 a probe Conv+ReLU model
+  with each node on the target EP and the output within `l3_atol` of CPU. "Ready" means installed,
+  current, registers and lists a device. The verification state only adds one warning line for each
+  process ([ADR-D8DH](../decisions/entries/D8DH-sessions-errors-and-the-ready-rule.md)).
+- **CLI `skellytracker-eps`** (and the poe task `setup-eps`): `status`, `recommend`, `install`, `verify`, `remove`, `gc`, `download`, `selftest` and `doctor`.
+  `status` imports no `onnxruntime` and uses no network; `--json` has the schema
+  `skellytracker.eps.status/1`, and `--format ini` is UTF-16LE with a BOM. `install` takes
+  `--progress jsonl` and `--cancel-file` for the freemocap installer page. No environment variable
+  picks the EP or the device. Both CLIs use one exit-code table
+  ([ADR-D8DH](../decisions/entries/D8DH-sessions-errors-and-the-ready-rule.md)):
+
+  | Code | 0 | 1 | 2 | 3 | 4 | 5 | 6 |
+  |---|---|---|---|---|---|---|---|
+  | Meaning | ok | failure | usage, refused key or option | EP not available | session not created | GPU memory exhausted | cancelled |
+- **`build_session(model, *, execution_provider, ep_options=None, device_key=None, model_ref=None)`**
+  returns the session and its `SessionReport`. `model` is bytes or a path; the NMS session of
+  stage 1.10 passes its bytes with `cpu`. The steps: refuse a reserved or unknown key and each
+  option that the catalog does not list, before ORT; check the core and the pack state; register;
+  set `intra_op_num_threads=1` and `inter_op_num_threads=1` for a GPU EP;
+  `session.record_ep_graph_assignment_info=1`; add a plugin EP with `add_provider_for_devices`,
+  never `providers=[name]`; create with `enable_fallback=0`; warm up one run; check that the
+  requested EP is the first provider and has at least one node. It calls the cached `probe_host()`
+  only for a GPU EP ([ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 4
+  and 5; [ADR-D8DH](../decisions/entries/D8DH-sessions-errors-and-the-ready-rule.md)).
+  `SessionReport` gives the requested and the used EP, the pack, `ort_version`, the device
+  (`device_key`, `gpu_uuid`), the sanitized `ep_options`, `artifact_sha256`, `nodes_by_ep`,
+  `cpu_nodes`, `cpu_op_types`, `build_ns` and `warmup_ns`. `cpu_nodes` and `cpu_op_types` are a
+  stable contract for the fp16 placement check
+  ([ADR-EY4F](../decisions/entries/EY4F-acceptance-gate-checks-fp16-gpu-placement.md)).
+- **Devices** ([ADR-P1F3](../decisions/entries/P1F3-hardware-probe-devices-and-multi-gpu.md);
+  [ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md)). With no
+  `device_key`, a session uses the GPU with the most VRAM that the EP lists; on a tie, the lowest
+  PCI bus id. `run_devices(execution_provider, device=None)` (proposed name) gives `RunDevice`
+  records (`device_key`, `gpu_key`, `name`, `pci_bus_id`, `vram_total_bytes`): the GPUs that pass
+  the L1 floors, in that order, restricted by `device`. A `device` that is not such a GPU raises
+  `EpUnavailableError`. The GPU set of a run is the GPUs that each GPU EP of its nodes lists. Stage
+  1.10 splits the cameras across them and sizes batch k on each GPU from
+  `free_vram(device) - vram_reserve_bytes`
+  ([ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 4).
+- **`recommend(form)`.** `accuracy` gives `cpu` with fp32 on each host. `performance` gives the first
+  ready candidate of the first matching hardware class of the catalog, and names each skipped
+  candidate with its reason, the device and the source row. NVIDIA CC ≥ 8.0 with R580 gives
+  `trt-rtx`, then `cuda`; CC 7.5 with R580 gives `cuda`; below R580 gives `cpu` with a driver update
+  offer; Apple Silicon gives `coreml`; each other host, also an NVIDIA GPU older than Turing, gives
+  `cpu`. No benchmark runs on the host. `select_precision()` gives the default of
+  [ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 10; `coreml` is fp16
+  first.
+- **`detectors` and `pipelines`.** Their entries carry no EP state; `eps.status()` and
+  `eps.recommend()` give it. `eps` gives the start check of
+  [ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 7:
+  the EP is ready and the catalog allows each option.
+- **Errors.** `core/errors.py`: `EpRequestError(ValueError)` (exit 2), `EpUnavailableError` with the
+  install hint (exit 3), `SessionCreationError(message, report)` (exit 4) and `VRAMExhaustionError`,
+  also a `MemoryError` (exit 5). Each pickles. Stage 1.10 adds `MissingDependencyError`.
+- **PyInstaller.** `skellytracker/_pyinstaller/` (outside `core/`) has the `pyinstaller40` entry
+  points and a data-only `hook-skellytracker.py` that collects `**/*.yaml`. A metadata read of a
+  fixed name is a literal `importlib.metadata.version("<name>")` call.
+
+Ordered steps. Each step is one commit group of one PR. After each step, run
+`uv run pytest -m "not video"`, the ruff command and `uv run python tools/run_checks.py`.
+
+| # | Step |
+|---|---|
+| 1 | Dependencies of the stage; the test markers `gpu`, `ep_pack` and `pyinstaller` |
+| 2 | `core/errors.py` |
+| 3 | Records and skeletons of `system`, `metrics` and `_hardware`; the guard and freeze tests |
+| 4 | Host readers and `probe_host()`, with an evidence entry for their costs |
+| 5 | `probe_runtime()`, `probe_environment()`, `probe_loaded_libraries()` |
+| 6 | `LiveSampler`, PDH and `free_vram(device)` |
+| 7 | Catalog, lock, loader, `eps` records and `tools/ep_catalog.py` with its tests |
+| 8 | `recommend()`, `select_precision()` and `run_devices()` |
+| 9 | Store, download engine, `install()`, `gc()` and the path guard |
+| 10 | `ensure_registered()` |
+| 11 | Verification L2 and L3, and the device match |
+| 12 | `build_session()` and `SessionReport` |
+| 13 | The start check of stage 1.10 |
+| 14 | CLI, console script, poe task and the exit-code table |
+| 15 | `selftest` and the `ep_pack` CI job (the OpenVINO test pack; CoreML and CPU on macOS) |
+| 16 | PyInstaller hook, entry points, fast tests and the slow frozen smoke job |
+| 17 | The local GPU gate, with an evidence entry |
+| 18 | Docs in ASD-STE100: `README.md`, `GPU_SETUP_GUIDE.md`, `skellytracker/AGENTS.md` |
+| 19 | The status of this stage |
+
+Open data (none of it blocks the gate): the full GTX 1650 run on a driver of R580 or later
+(informational only); the Linux checks (pack preloads, driver branch rule, proxy and trust store
+paths); a two-GPU host; Smart App Control on a Windows host, before 1.11; CoreML fp16 on an Apple
+Silicon Mac, before 1.11. [ADR-V9NK](../decisions/entries/V9NK-ep-device-checks-evidence.md) has
+the GTX 1650 facts so far.
+
+Gate:
+
+- The default suite passes offline with no GPU: the guard and freeze tests, the host readers on
+  fakes, `recommend()` for each hardware class, `run_devices()` on two fake GPUs, the engine on a
+  local `http.server` with a `Range` handler, and each CLI exit code. `build_session()` tests on
+  generated ONNX models: an option that the catalog does not list, and `device_id`, raise `EpRequestError` before ORT; a missing pack raises
+  `EpUnavailableError`; no session is built again on the CPU; a report with the requested EP not
+  first or with 0 nodes raises `SessionCreationError`
   ([ADR-M2C6](../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md) item 7).
-- Gate: stage 0.4 writes it.
+- The `ep_pack` job and the slow PyInstaller job pass. CI runs no real model
+  ([ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md) item 8).
+- The local GPU gate on an NVIDIA host with CC ≥ 8.0 and a driver of R580 or later: after
+  `skellytracker-eps install`, L3 passes for `cuda` and `trt-rtx`; `eps.build_session()` builds a
+  session on each pack, and the node assignment shows the requested EP; each fp16 artifact of
+  `yolox-person` and `rtmw-wholebody133` has `cpu_nodes` 0; `run_devices()` and
+  `build_session(device_key=...)` work on the one GPU; a frozen smoke app installs `trt-rtx` in a
+  fresh store and binds `NvTensorRTRTXExecutionProvider`.
 
 ### 1.4 Spec loader (was N1)
 
@@ -892,7 +1057,7 @@ in parallel with 1.3 to 1.7.
   - `smooth_keypoints` refuses a timestamp that does not increase. It has `reset_after_ms` and no
     miss counter.
 - **Sessions.** Build each ONNX session with `eps.build_session()`
-  ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 5). `start_pipeline` takes `ep_options`, and a `detector` node takes
+  ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 5). `start_pipeline` takes `ep_options`, `device` and `vram_reserve_bytes`, and a `detector` node takes
   `execution_provider` and `ep_options` ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 1; [ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 2). The NMS session
   requests `cpu` ([ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 7). The timing `execution` block gives `cpu_nodes` and
   `cpu_op_types` ([ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 5).
@@ -916,8 +1081,9 @@ in parallel with 1.3 to 1.7.
 - **CLI.** `run` with the COCO form
   ([ADR-Q59W](../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 6), `validate` and `nodes`
   ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 9). Stage 1.6 gives
-  `detectors` and `describe`. `run` takes `--ep <key>` and `--ep-option <name>=<value>`, and exits
-  with 3 when an EP is not available, 4 when a session was not created and 5 when the GPU memory is
+  `detectors` and `describe`. `run` takes `--ep <key>`, `--ep-option <name>=<value>` and the repeatable `--device <key>`
+  ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 1). It uses the exit-code table of
+  [ADR-D8DH](../decisions/entries/D8DH-sessions-errors-and-the-ready-rule.md) item 2, and exits with 3 when an EP is not available, 4 when a session was not created and 5 when the GPU memory is
   exhausted ([ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 2 and 6). With no
   `--ep`, `run` uses `eps.recommend("performance")` and prints the chosen EP and its options
   ([ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 8).
@@ -1084,7 +1250,8 @@ through the model addition workflow. The stages below are the work of skellytrac
 **Status: NOT STARTED.**
 
 - It comes after 2.3, when each built-in runs as a pipeline config. Delete `core/tracker/`
-  (`Tracker`, `DetectionStage`, `MultiPersonTracker`), `TrackerConfig`, `DetectionStageConfig`, the
+  (`Tracker`, `DetectionStage`, `MultiPersonTracker`), the old `core/sessions/` code
+  ([ADR-D8DH](../decisions/entries/D8DH-sessions-errors-and-the-ready-rule.md) item 13), `TrackerConfig`, `DetectionStageConfig`, the
   old detector contract and each old config base, `object_detectors/keypoint_bbox/`,
   `precomputed_object_detector.py`, the three old MediaPipe detector classes and `run_demo.py`, the
   old annotators and the demo builders
