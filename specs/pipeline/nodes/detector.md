@@ -92,7 +92,6 @@ A `detector` node runs one ONNX model. It does the preprocessing, the inference 
 - The host does the checks of this section at load, because they need the sidecar. The reference model does not do them (`specs/pipeline/reference/pipeline_config.py`).
 - The runtime builds each ONNX session with `eps.build_session()` ([ADR-48PG](../../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 5). The session runs on the requested EP, or the start of the run fails before frame 0 ([ADR-9NW0](../../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 4). When a session has nodes on the CPU EP, the run gives the warning `ep_partial_placement` ([ADR-48PG](../../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 6; [ADR-9NW0](../../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 5).
 - The ONNX `NonMaxSuppression` session of the node requests `cpu` ([ADR-9NW0](../../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 7).
-- In one process, nodes with the same artifact `sha256`, batch and execution share one inference session. The file says nothing about it ([ADR-0WJB](../../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 6).
 
 ## Authoring guidance
 

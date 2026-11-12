@@ -10,7 +10,7 @@ status: {spec: draft}
 
 > This section is a draft. Its fields and rules can change before the section becomes `stable`.
 
-A run starts a pipeline with run parameters. The same file runs in each running mode. This section gives the run parameters, the frame time, the running modes, the batch, the stateful pipelines, the session sharing, the warnings and the start checks ([ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) items 2 to 7; [ADR-48PG](../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) items 6 and 7; [ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 2, 4 and 5).
+A run starts a pipeline with run parameters. The same file runs in each running mode. This section gives the run parameters, the frame time, the running modes, the batch, the stateful pipelines, the sessions, the warnings and the start checks ([ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) items 2 to 7; [ADR-48PG](../../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) items 6 and 7; [ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 2, 4 and 5).
 
 ## Fields
 
@@ -59,7 +59,7 @@ A warning has these fields ([ADR-48PG](../../decisions/entries/48PG-pipeline-api
    - The run converts each artifact with `batching.batch: 3` to its batch at start ([Batch conversion](../model-sidecar/common/batch-conversion.md)).
    - The run pads a missed frame. It gives a blank crop to each empty crop slot, for example the slot of a padding ROI row. It drops the result of each padded item.
 5. **Stateful pipelines.** A pipeline is stateful when it has an `@prev` input, or a temporal node upstream of a detector node. The temporal nodes are `smooth_roi`, `smooth_keypoints`, `redetect`, and `mediapipe_tasks` in the landmarker mode `VIDEO`. A temporal node with no detector node downstream does not make a pipeline stateful. `roi_tracking` keeps no state, so it is not a temporal node. In `video`, a stateful pipeline runs at batch = camera count. There is no switch to turn this off. The run writes one log line that names the stateful nodes, and gives the warning `batch_limited_by_state` ([ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 5).
-6. **Session sharing.** In one process, the nodes with the same artifact SHA-256, batch and execution share one inference session. The file does not control this ([ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 6).
+6. **No session sharing.** A run owns its inference sessions. Each node builds its own sessions. No session is shared between nodes or between runs. `close()` frees the sessions of the run ([ADR-0WJB](../../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 6).
 7. **Execution provider.** The EP key and the EP options are parameters of the run. The EP catalog in `core/eps/` owns the EP keys and lists the allowed options of each EP ([ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 1 and 2). A detector node can give its own EP in `execution_provider` and its own options in `ep_options`. There is no EP policy such as `recommended:latency`. The caller resolves a recommended form to an EP key and its options ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 12; [ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 3).
    - A run never uses another EP than the requested EP. An EP that is not available or does not start stops the start of the run before frame 0 ([ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 4).
    - A session can have nodes on the CPU EP. The run reports them ([ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 5).
@@ -76,7 +76,7 @@ A warning has these fields ([ADR-48PG](../../decisions/entries/48PG-pipeline-api
 - [ ] `V-pipeline.running-1` The camera ids must be a non-empty list of unique ids. In the running mode `image`, the list must hold exactly one id.
 - [ ] `V-pipeline.running-2` In `video` and `image`, each call must give a frame for each camera id of the run, and no frame for another id. In `live`, each call must give a frame for one or more camera ids of the run, and no frame for another id.
 - [ ] `V-pipeline.running-3` Each ONNX artifact of each node that runs must be present, with the SHA-256 that its sidecar gives. Each optional extra that a node that runs needs must be installed. Else the start must fail before frame 0 with an error that names the extra or the file, and the nodes.
-- [ ] `V-pipeline.running-4` The EP of each node that runs must be an EP that the host supports.
+- [ ] `V-pipeline.running-4` The EP of each node that runs must be a key of the EP catalog that is not reserved and is ready on the host. Its EP options must be names and values that the catalog allows for that EP ([ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 1, 2 and 4).
 - [ ] `V-pipeline.running-5` A node that runs must have no replayed output port.
 - [ ] `V-pipeline.running-6` In the running mode `live`, each frame must have a `timestamp_ms`.
 
