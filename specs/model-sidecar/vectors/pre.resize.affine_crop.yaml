@@ -1,0 +1,474 @@
+# tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
+# Hosts ignore `checks`. The names are the self-checks of the generator.
+section: pre.resize.affine_crop
+notes:
+  - "Normative text: specs/model-sidecar/pre/resize-affine-crop.md."
+  - "`target_size` is [height, width]. `roi` is the ROI [c_x, c_y, w, h, rotation] in
+    source pixels, with the rotation in radians. `bbox_xyxy` is a box [x1, y1, x2, y2]
+    in source pixels: the box gives the ROI with rotation 0. A case gives `roi` or
+    `bbox_xyxy`."
+  - "The `expect` of a numeric case gives the centre of the crop, its size (`crop_w`
+    along the ROI x axis, `crop_h` along the ROI y axis) after the expansion and the
+    aspect-ratio step, and the warp matrix M that maps source pixels to model-input
+    pixels."
+  - "A case with `function: none` is a data-only validator case: `input.sidecar` is the
+    sidecar, and `expect.failed` lists the rules of this section that it fails."
+  - "A case `<id>-inverse` applies the section's Inverse to one model-input position
+    (`model_xy`) of the case `<id>`."
+  - "A case with `function: border` gives `border`, the value of a pixel outside the
+    source image, one value for each channel. `pad_value` is `crop_policy.pad_value`."
+  - "A case with `compare` atol 1e-6 tests the float32 steps of Behaviour. At least one
+    value of each such case differs from the exact-math value by more than 1e-6 (in
+    aspect-fix-tie-keeps-h, only crop_h)."
+tolerance: 0.0001
+unverified: "The independent implementations ran only some cases. Each of these cases lists them
+  in verified_against. The cases with a `roi` input list no implementation."
+cases:
+  - id: tall-box-grows-width
+    note: "box 200x400, expanded to 250x500; 250 < 500 * 0.75, so w = 375. The centre maps to
+      the centre of the target"
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [100, 50, 300, 450]}
+    expect:
+      center: [200, 250]
+      crop_w: 375
+      crop_h: 500
+      matrix: [[0.512, 0, -6.4], [0, 0.512, 0]]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::affine_crop_geometry}
+  - id: tall-box-grows-width-inverse
+    function: inverse
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [100, 50, 300, 450], model_xy: [96, 128]}
+    expect: {source_xy: [200, 250]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::unproject_affine}
+  - id: wide-box-grows-height
+    note: "box 400x200, expanded to 500x250; 500 > 250 * 0.75, so h = 500 * 256 / 192. The
+      top-left corner of the target maps to the top-left corner of the crop"
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [0, 0, 400, 200]}
+    expect:
+      center: [200, 100]
+      crop_w: 500
+      crop_h: 666.666687
+      matrix: [[0.384, 0, 19.2], [0, 0.384, 89.6]]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::affine_crop_geometry}
+  - id: wide-box-grows-height-inverse
+    function: inverse
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [0, 0, 400, 200], model_xy: [0, 0]}
+    expect: {source_xy: [-50, -233.333333]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::unproject_affine}
+  - id: no-expansion
+    note: "expand_ratio 1.0: w = 100 grows to 150 to match the aspect ratio 192 / 256"
+    params: {target_size: [256, 192], expand_ratio: 1, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [10, 20, 110, 220]}
+    expect:
+      center: [60, 120]
+      crop_w: 150
+      crop_h: 200
+      matrix: [[1.28, 0, 19.2], [0, 1.28, -25.6]]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::affine_crop_geometry}
+  - id: no-expansion-inverse
+    function: inverse
+    params: {target_size: [256, 192], expand_ratio: 1, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [10, 20, 110, 220], model_xy: [192, 256]}
+    expect: {source_xy: [135, 220]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::unproject_affine}
+  - id: aspect-ratio-not-kept
+    note: "maintain_aspect_ratio false: the box is warped as it is, so the x and y scales differ"
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: false}
+    input: {bbox_xyxy: [100, 50, 300, 450]}
+    expect:
+      center: [200, 250]
+      crop_w: 250
+      crop_h: 500
+      matrix: [[0.768, 0, -57.6], [0, 0.512, 0]]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::affine_crop_geometry}
+  - id: aspect-ratio-not-kept-inverse
+    function: inverse
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: false}
+    input: {bbox_xyxy: [100, 50, 300, 450], model_xy: [192, 256]}
+    expect: {source_xy: [325, 500]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::unproject_affine}
+  - id: box-outside-the-image
+    note: "the crop can reach outside the source image"
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [-50, -20, 150, 380]}
+    expect:
+      center: [50, 180]
+      crop_w: 375
+      crop_h: 500
+      matrix: [[0.512, 0, 70.4], [0, 0.512, 35.84]]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::affine_crop_geometry}
+  - id: box-outside-the-image-inverse
+    function: inverse
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [-50, -20, 150, 380], model_xy: [96, 128]}
+    expect: {source_xy: [50, 180]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::unproject_affine}
+  - id: square-target
+    note: "a square box in a square target: w = h = 125"
+    params: {target_size: [288, 288], expand_ratio: 1.25, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [0, 0, 100, 100]}
+    expect:
+      center: [50, 50]
+      crop_w: 125
+      crop_h: 125
+      matrix: [[2.304, 0, 28.8], [0, 2.304, 28.8]]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::affine_crop_geometry}
+  - id: square-target-inverse
+    function: inverse
+    params: {target_size: [288, 288], expand_ratio: 1.25, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [0, 0, 100, 100], model_xy: [288, 288]}
+    expect: {source_xy: [112.5, 112.5]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::unproject_affine}
+  - id: target-384x288
+    note: "target_size [384, 288] is 288 wide and 384 high: w = 625 * 288 / 384 = 468.75. The
+      target centre maps to the centre of the box"
+    params: {target_size: [384, 288], expand_ratio: 1.25, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [320, 100, 520, 600]}
+    expect:
+      center: [420, 350]
+      crop_w: 468.75
+      crop_h: 625
+      matrix: [[0.6144, 0, -114.048], [0, 0.6144, -23.04]]
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::affine_crop_geometry}
+  - id: target-384x288-inverse
+    function: inverse
+    params: {target_size: [384, 288], expand_ratio: 1.25, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [320, 100, 520, 600], model_xy: [144, 192]}
+    expect: {source_xy: [420, 350]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::unproject_affine}
+  - id: affine-crop-needs-target-size
+    note: "the size declares no input.resize.target_size. The sidecar shows only its input and
+      sizes blocks. The case checks only the rules of this section."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        input:
+          name: input
+          dtype: {fp32: float32}
+          resize: {method: affine_crop, interpolation: linear}
+        sizes: {m: {input: {shape: [-1, 3, 256, 192]}}}
+    expect: {failed: [V-pre.resize.affine_crop-3]}
+  - id: affine-crop-has-no-pad-position
+    note: "an affine_crop resize does not letterbox, so input.resize.pad_position is not
+      allowed. The sidecar shows only its input and sizes blocks. The case checks only the
+      rules of this section."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        input:
+          name: input
+          dtype: {fp32: float32}
+          resize: {method: affine_crop, interpolation: linear, pad_position: center}
+        sizes: {m: {input: {shape: [-1, 3, 256, 192], resize: {target_size: [256, 192]}}}}
+    expect: {failed: [V-pre.resize.affine_crop-3]}
+  - id: affine-crop-expand-ratio-is-positive
+    note: "crop_policy.expand_ratio is -1.25. The value is a float, but it is not positive. The
+      sidecar shows only its input and sizes blocks. The case checks only the rules of
+      this section."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        input:
+          name: input
+          dtype: {fp32: float32}
+          resize: {method: affine_crop, interpolation: linear, crop_policy: {expand_ratio: -1.25}}
+        sizes: {m: {input: {shape: [-1, 3, 256, 192], resize: {target_size: [256, 192]}}}}
+    expect: {failed: [V-pre.resize.affine_crop-1]}
+  - id: affine-crop-maintain-aspect-ratio-is-boolean
+    note: "crop_policy.maintain_aspect_ratio is the quoted string \"yes\". A string is not a
+      boolean. The sidecar shows only its input and sizes blocks. The case checks only the
+      rules of this section."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        input:
+          name: input
+          dtype: {fp32: float32}
+          resize:
+            method: affine_crop
+            interpolation: linear
+            crop_policy: {maintain_aspect_ratio: "yes"}
+        sizes: {m: {input: {shape: [-1, 3, 256, 192], resize: {target_size: [256, 192]}}}}
+    expect: {failed: [V-pre.resize.affine_crop-1]}
+  - id: top-down-needs-affine-crop
+    note: "keypoint.estimator_type is top_down_single_person, but input.resize.method is
+      letterbox. The selector of this section does not match this sidecar. Rule -2 applies
+      to each sidecar with a top-down estimator_type. The letterbox resize declares
+      pad_position and rounding, and it has no crop_policy. The size declares target_size.
+      The keypoint block holds only estimator_type and geometry. The sidecar shows only
+      its input, sizes and keypoint blocks. The case checks only the rules of this
+      section."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        input:
+          name: input
+          dtype: {fp32: float32}
+          resize:
+            method: letterbox
+            interpolation: linear
+            pad_position: center
+            rounding: half_even
+        sizes: {m: {input: {shape: [-1, 3, 256, 192], resize: {target_size: [256, 192]}}}}
+        keypoint: {estimator_type: top_down_single_person, geometry: "2d"}
+    expect: {failed: [V-pre.resize.affine_crop-2]}
+  - id: scalar-pad-fills-each-channel
+    note: "a scalar crop_policy.pad_value s gives [s, s, s]. The box touches the source corner,
+      so pixel (0, 0) of the crop maps to (-87.5, -50), outside the source. The source
+      pixels can have any value"
+    function: border
+    checks: [pixel-0-0-outside-source]
+    params:
+      target_size: [256, 192]
+      expand_ratio: 1.25
+      maintain_aspect_ratio: true
+      pad_value: 114
+    input: {src_w: 640, src_h: 480, bbox_xyxy: [0, 0, 200, 400]}
+    expect: {border: [114, 114, 114]}
+    verified_against:
+      - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::affine_person_crop}
+  - id: coco-tall-box-float32-steps
+    note: "COCO val2017 annotation 187477, target 256x192. The box rounds to float32 first.
+      45.475 < 80.6 * 0.75, so w = h * a. M comes from the float32 points. It differs from
+      the exact-math M by 2.1e-3"
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [525.26, 280.49, 561.64, 344.97]}
+    expect:
+      center: [543.450012, 312.72998]
+      crop_w: 60.450012
+      crop_h: 80.600014
+      matrix: [[3.176175, 0, -1630.09224], [0, 3.176175, -865.285087]]
+    compare:
+      center: {atol: 0.000001}
+      crop_w: {atol: 0.000001}
+      crop_h: {atol: 0.000001}
+      matrix: {atol: 0.000001}
+  - id: coco-tall-box-float32-steps-inverse
+    function: inverse
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [525.26, 280.49, 561.64, 344.97], model_xy: [0, 0]}
+    expect: {source_xy: [513.224976, 272.429932]}
+  - id: coco-wide-box-float32-steps
+    note: "COCO val2017 annotation 1708970, target 256x192. 49.85 > 58.4 * 0.75, so h = w / a
+      in float32. M uses w and not h"
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [600.12, 379.28, 640, 426]}
+    expect:
+      center: [620.059998, 402.640015]
+      crop_w: 49.850006
+      crop_h: 66.466675
+      matrix: [[3.851557, 0, -2292.196145], [0, 3.851557, -1422.790786]]
+    compare:
+      center: {atol: 0.000001}
+      crop_w: {atol: 0.000001}
+      crop_h: {atol: 0.000001}
+      matrix: {atol: 0.000001}
+  - id: coco-box-target-384x288-float32-steps
+    note: "COCO val2017 annotation 1224758, target 384x288. h = w / a in float32. M differs
+      from the exact-math M by 2.8e-3"
+    params: {target_size: [384, 288], expand_ratio: 1.25, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [380.51, 37.97, 416.12, 83.38]}
+    expect:
+      center: [398.315002, 60.674999]
+      crop_w: 44.512482
+      crop_h: 59.349976
+      matrix: [[6.4701, 0, -2433.137805], [0, 6.470099, -200.573231]]
+    compare:
+      center: {atol: 0.000001}
+      crop_w: {atol: 0.000001}
+      crop_h: {atol: 0.000001}
+      matrix: {atol: 0.000001}
+  - id: aspect-fix-divides-by-a
+    note: "target 384x256, so a = f32(256 / 384) is not exact. w = 64.02 in float32 and w > 10
+      * a, so h = w / a = 96.029991. w * (384 / 256) in float32 gives 96.029999"
+    params: {target_size: [384, 256], expand_ratio: 1, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [0, 0, 64.02, 10]}
+    expect:
+      center: [32.009998, 5]
+      crop_w: 64.019997
+      crop_h: 96.029991
+      matrix: [[3.998751, 0, 0], [0, 3.998751, 172.006247]]
+    compare:
+      center: {atol: 0.000001}
+      crop_w: {atol: 0.000001}
+      crop_h: {atol: 0.000001}
+      matrix: {atol: 0.000001}
+  - id: aspect-fix-tie-keeps-h
+    note: "target 384x256 and expand_ratio 1. x2 is f32(100 * a), so w equals h * a in float32.
+      The comparison w > h * a is strict, so h stays 100. The other branch gives h = w / a
+      = 100.000008. In exact math w > h * T_w / T_h is true. M uses w only, so M is the
+      same in both texts. Only crop_h separates them"
+    params: {target_size: [384, 256], expand_ratio: 1, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [0, 0, 66.66667175292969, 100]}
+    expect:
+      center: [33.333336, 50]
+      crop_w: 66.666672
+      crop_h: 100
+      matrix: [[3.84, 0, 0], [0, 3.84, 0.000015]]
+    compare:
+      center: {atol: 0.000001}
+      crop_w: {atol: 0.000001}
+      crop_h: {atol: 0.000001}
+      matrix: {atol: 0.000001}
+  - id: aspect-ratio-not-kept-float32-steps
+    note: "maintain_aspect_ratio false: P2 is above the centre and uses h, so the x and y
+      scales of M differ. The box is that of coco-tall-box-float32-steps"
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: false}
+    input: {bbox_xyxy: [525.26, 280.49, 561.64, 344.97]}
+    expect:
+      center: [543.450012, 312.72998]
+      crop_w: 45.475006
+      crop_h: 80.600014
+      matrix: [[4.222102, 0, -2198.501558], [0, 3.176177, -865.285839]]
+    compare:
+      center: {atol: 0.000001}
+      crop_w: {atol: 0.000001}
+      crop_h: {atol: 0.000001}
+      matrix: {atol: 0.000001}
+  - id: aspect-ratio-not-kept-float32-steps-inverse
+    function: inverse
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: false}
+    input: {bbox_xyxy: [525.26, 280.49, 561.64, 344.97], model_xy: [192, 256]}
+    expect: {source_xy: [566.1875, 353.029999]}
+  - id: expand-ratio-rounds-to-float32
+    note: "expand_ratio 1.1 is not exact in float32. e = f32(1.1) multiplies the float32 box
+      size. The box is that of coco-box-target-384x288-float32-steps"
+    params: {target_size: [256, 192], expand_ratio: 1.1, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [380.51, 37.97, 416.12, 83.38]}
+    expect:
+      center: [398.315002, 60.674999]
+      crop_w: 39.170986
+      crop_h: 52.227982
+      matrix: [[4.90159, 0, -1856.377003], [0, 4.901589, -169.403938]]
+    compare:
+      center: {atol: 0.000001}
+      crop_w: {atol: 0.000001}
+      crop_h: {atol: 0.000001}
+      matrix: {atol: 0.000001}
+  - id: roi-rotation-0-equals-box
+    note: "the ROI of the box [100, 50, 300, 450] of tall-box-grows-width, with rotation 0. The
+      expect equals the expect of tall-box-grows-width"
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: true}
+    input: {roi: [200, 250, 200, 400, 0]}
+    expect:
+      center: [200, 250]
+      crop_w: 375
+      crop_h: 500
+      matrix: [[0.512, 0, -6.4], [0, 0.512, 0]]
+  - id: roi-quarter-turn
+    note: "the ROI of roi-rotation-0-equals-box, turned by pi/2 (clockwise in the image). The
+      ROI x axis points down the image. The aspect step is the same: w = 375 and h = 500
+      along the ROI axes"
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: true}
+    input: {roi: [200, 250, 200, 400, 1.5707963267948966]}
+    expect:
+      center: [200, 250]
+      crop_w: 375
+      crop_h: 500
+      matrix: [[0, 0.512, -32], [-0.512, 0, 230.4]]
+  - id: roi-quarter-turn-inverse
+    note: "the middle of the right edge of the model input maps to c + (w / 2) * (cos r, sin r)
+      = (200, 437.5)"
+    function: inverse
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: true}
+    input: {roi: [200, 250, 200, 400, 1.5707963267948966], model_xy: [192, 128]}
+    expect: {source_xy: [200, 437.5]}
+  - id: roi-negative-rotation
+    note: "a wide ROI turned by -pi/6 (counterclockwise in the image). 500 > 250 * 0.75, so h =
+      w / a along the ROI y axis. M uses w only"
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: true}
+    input: {roi: [640, 360, 400, 200, -0.5235987755982988]}
+    expect:
+      center: [640, 360]
+      crop_w: 500
+      crop_h: 666.666687
+      matrix: [[0.332554, -0.192, -47.714403], [0.192, 0.332554, -114.599356]]
+  - id: roi-negative-rotation-inverse
+    note: "the top-left corner of the model input maps to the ROI corner c - (w / 2) * x_axis -
+      (h / 2) * y_axis"
+    function: inverse
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: true}
+    input: {roi: [640, 360, 400, 200, -0.5235987755982988], model_xy: [0, 0]}
+    expect: {source_xy: [256.826986, 196.32487]}
+  - id: roi-rotation-aspect-ratio-not-kept
+    note: "maintain_aspect_ratio false and rotation 1: P2 is half the crop height from the
+      centre, against the ROI y axis (-sin r, cos r). The x and y scales of M differ"
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: false}
+    input: {roi: [300, 200, 120, 300, 1]}
+    expect:
+      center: [300, 200]
+      crop_w: 150
+      crop_h: 375
+      matrix: [[0.691587, 1.077083, -326.892659], [-0.574444, 0.368846, 226.563972]]
+  - id: roi-rotation-aspect-ratio-not-kept-inverse
+    note: "the bottom-right corner of the model input maps to c + (w / 2) * x_axis + (h / 2) *
+      y_axis"
+    function: inverse
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: false}
+    input: {roi: [300, 200, 120, 300, 1], model_xy: [192, 256]}
+    expect: {source_xy: [182.746857, 364.417]}
+  - id: roi-half-turn
+    note: "rotation -pi, the lower limit of [-pi, pi). The crop is upside down: the ROI x axis
+      is (-1, 0) and the ROI y axis is (0, -1), within float64 rounding"
+    params: {target_size: [256, 192], expand_ratio: 1, maintain_aspect_ratio: true}
+    input: {roi: [100, 100, 150, 200, -3.141592653589793]}
+    expect:
+      center: [100, 100]
+      crop_w: 150
+      crop_h: 200
+      matrix: [[-1.28, 0, 224], [0, -1.28, 256]]
+  - id: roi-half-turn-inverse
+    note: "the top-left corner of the model input maps to the bottom-right corner of the ROI in
+      the image, (175, 200)"
+    function: inverse
+    params: {target_size: [256, 192], expand_ratio: 1, maintain_aspect_ratio: true}
+    input: {roi: [100, 100, 150, 200, -3.141592653589793], model_xy: [0, 0]}
+    expect: {source_xy: [175, 200]}
+  - id: roi-expand-along-roi-axes
+    note: "a square ROI 50 x 50, turned by pi/4, in a square target. expand_ratio 1.2 grows the
+      ROI along its own axes to 60.000004 x 60.000004 (f32(50 * f32(1.2))). An ROI that
+      the pipeline already grew by 1.25 thus gives a crop 1.5 times the size of the points
+      box"
+    params: {target_size: [256, 256], expand_ratio: 1.2, maintain_aspect_ratio: true}
+    input: {roi: [320, 240, 50, 50, 0.7853981633974483]}
+    expect:
+      center: [320, 240]
+      crop_w: 60.000004
+      crop_h: 60.000004
+      matrix: [[3.016989, 3.016989, -1561.513803], [-3.016991, 3.016989, 369.359809]]
+  - id: roi-rotation-not-finite
+    note: "the rotation is NaN. The ROI is a host value, not a sidecar value, so no rule
+      refuses it. The host refuses it"
+    checks: [refused]
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: true}
+    input: {roi: [200, 250, 200, 400, .nan]}
+    expect: {error: no-rule}
+  - id: roi-empty-crop
+    note: "w = h = 0 gives an empty crop after the aspect step. The ROI is a host value, not a
+      sidecar value, so no rule refuses it. The host refuses it"
+    checks: [refused]
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: true}
+    input: {roi: [200, 250, 0, 0, 0]}
+    expect: {error: no-rule}

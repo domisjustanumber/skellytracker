@@ -1,0 +1,45 @@
+{
+  "bundle_format": 1,
+  "kind": "proposal",
+  "name": "normalize-input-dtype",
+  "contributor": "openmmlab-exporter",
+  "source_commit": "ecee56e1ea1b4d3901c76a73b713ed0256675e78",
+  "spec_commit": "8fed6f34eb22643e0b6cc38a7c6b80014bfe1d75",
+  "sections": [
+    "pre.normalize",
+    "common.input"
+  ],
+  "base": null,
+  "depends_on": [],
+  "contributes_to": null,
+  "related": [
+    "model-yolox-person@openmmlab-exporter",
+    "model-rtmw-wholebody133@openmmlab-exporter"
+  ],
+  "external": [],
+  "spec_version": "2.0.0",
+  "version": 2,
+  "created": "2026-11-06",
+  "files": [
+    {
+      "path": "proposal.md",
+      "sha256": "b2baa87e404920b7cce44f27b8a5145d9babe76020a4fe52196dc727ef11af19",
+      "bytes": 55652
+    },
+    {
+      "path": "reference/pre_normalize.py",
+      "sha256": "88cf2d1fc83103d14f442593c561731ea52ec23ff96e1f8353f42fe03b59e559",
+      "bytes": 20019
+    },
+    {
+      "path": "vectors/common.input.yaml",
+      "sha256": "8754346414ea6c4e1ed61ebdf29207eca928623d0f4e1c9a1aca6821c3f89245",
+      "bytes": 1390
+    },
+    {
+      "path": "vectors/pre.normalize.yaml",
+      "sha256": "923695467b0f4a0e1a1be944dfcdd19e52d7039e22e57ccb1d53c8aa14c418a4",
+      "bytes": 13674
+    }
+  ]
+}

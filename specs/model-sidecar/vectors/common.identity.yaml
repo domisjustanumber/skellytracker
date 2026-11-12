@@ -1,0 +1,158 @@
+# tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
+# Hosts ignore `checks`. The names are the self-checks of the generator.
+section: common.identity
+notes:
+  - "Normative text: specs/model-sidecar/common/identity.md."
+  - "Each case is a data-only validator case (`function: none`). `input.path` is the path
+    of the sidecar under its sidecar root. `input.sidecar` shows only the blocks that
+    V-common.identity-7 and V-common.identity-8 read. Each case checks only these two
+    rules. The other rules of this section need fields that the cases do not show.
+    `expect.failed` lists the rules of these two that the sidecar fails."
+  - "The family `demo` is not a real model. It gives short keypoint lists."
+tolerance: 0
+unverified: "No validator implements V-common.identity-7 or V-common.identity-8 yet."
+cases:
+  - id: group-is-a-part
+    note: "a body-region group: rtmw-wholebody in rtmw/wholebody/. The sidecar shows only
+      model_id, role and keypoint. The case checks only V-common.identity-7 and
+      V-common.identity-8."
+    function: none
+    params: {}
+    input:
+      path: detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml
+      sidecar:
+        model_id: rtmw-wholebody
+        role: [keypoint_detector]
+        keypoint: {point_names: [a, b, c]}
+    expect: {failed: []}
+  - id: group-is-a-keypoint-set
+    note: "the keypoint set hand5 has 5 points. The sidecar shows only model_id, role and
+      keypoint. The case checks only V-common.identity-7 and V-common.identity-8."
+    function: none
+    params: {}
+    input:
+      path: detectors/keypoint_detectors/demo/hand5/demo-hand5.yaml
+      sidecar:
+        model_id: demo-hand5
+        role: [keypoint_detector]
+        keypoint: {point_names: [a, b, c, d, e]}
+    expect: {failed: []}
+  - id: variant-after-the-group
+    note: "a variant token after the group, with one - between them. The sidecar shows only
+      model_id, role and keypoint. The case checks only V-common.identity-7 and
+      V-common.identity-8."
+    function: none
+    params: {}
+    input:
+      path: detectors/keypoint_detectors/demo/hand5/demo-hand5-landmark.yaml
+      sidecar:
+        model_id: demo-hand5-landmark
+        role: [keypoint_detector]
+        keypoint: {point_names: [a, b, c, d, e]}
+    expect: {failed: []}
+  - id: two-variant-tokens
+    note: "a variant can have more than one token. The sidecar shows only model_id, role and
+      keypoint. The case checks only V-common.identity-7 and V-common.identity-8."
+    function: none
+    params: {}
+    input:
+      path: detectors/keypoint_detectors/demo/body/demo-body-body7-v2.yaml
+      sidecar:
+        model_id: demo-body-body7-v2
+        role: [keypoint_detector]
+        keypoint: {point_names: [a, b]}
+    expect: {failed: []}
+  - id: variant-needs-a-hyphen
+    note: "rtmo-body7 in rtmo/body/: the id does not start with rtmo-body- and is not
+      rtmo-body. The sidecar shows only model_id, role and keypoint. The case checks only
+      V-common.identity-7 and V-common.identity-8."
+    function: none
+    params: {}
+    input:
+      path: detectors/keypoint_detectors/rtmo/body/rtmo-body7.yaml
+      sidecar:
+        model_id: rtmo-body7
+        role: [object_detector, keypoint_detector]
+        keypoint: {point_names: [a, b, c, d, e, f, g, h, i, j, k, l, m, "n", o, p, q]}
+    expect: {failed: [V-common.identity-7]}
+  - id: count-of-the-group-must-match
+    note: "rtmo-body7 in rtmo/body7/: body7 reads as a keypoint set with 7 points, but the
+      model has 17. The sidecar shows only model_id, role and keypoint. The case checks
+      only V-common.identity-7 and V-common.identity-8."
+    function: none
+    params: {}
+    input:
+      path: detectors/keypoint_detectors/rtmo/body7/rtmo-body7.yaml
+      sidecar:
+        model_id: rtmo-body7
+        role: [object_detector, keypoint_detector]
+        keypoint: {point_names: [a, b, c, d, e, f, g, h, i, j, k, l, m, "n", o, p, q]}
+    expect: {failed: [V-common.identity-8]}
+  - id: keypoint-set-and-variant
+    note: "rtmo-coco17-body7 in rtmo/coco17/ with 17 points. The sidecar shows only model_id,
+      role and keypoint. The case checks only V-common.identity-7 and V-common.identity-8."
+    function: none
+    params: {}
+    input:
+      path: detectors/keypoint_detectors/rtmo/coco17/rtmo-coco17-body7.yaml
+      sidecar:
+        model_id: rtmo-coco17-body7
+        role: [object_detector, keypoint_detector]
+        keypoint: {point_names: [a, b, c, d, e, f, g, h, i, j, k, l, m, "n", o, p, q]}
+    expect: {failed: []}
+  - id: id-must-start-with-the-group-folder
+    note: "rtmw-wholebody133 in rtmw/wholebody/: the id is not rtmw-wholebody or
+      rtmw-wholebody-<variant>. The sidecar shows only model_id, role and keypoint. The
+      case checks only V-common.identity-7 and V-common.identity-8."
+    function: none
+    params: {}
+    input:
+      path: detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody133.yaml
+      sidecar:
+        model_id: rtmw-wholebody133
+        role: [keypoint_detector]
+        keypoint: {point_names: [a, b, c]}
+    expect: {failed: [V-common.identity-7]}
+  - id: id-must-start-with-the-family-folder
+    note: "rtmw-wholebody in rtmpose/wholebody/: the family folder is rtmpose. The sidecar
+      shows only model_id, role and keypoint. The case checks only V-common.identity-7 and
+      V-common.identity-8."
+    function: none
+    params: {}
+    input:
+      path: detectors/keypoint_detectors/rtmpose/wholebody/rtmw-wholebody.yaml
+      sidecar:
+        model_id: rtmw-wholebody
+        role: [keypoint_detector]
+        keypoint: {point_names: [a, b, c]}
+    expect: {failed: [V-common.identity-7]}
+  - id: group-with-no-count
+    note: "hands is not a part, and it has no keypoint count. The sidecar shows only model_id,
+      role and keypoint. The case checks only V-common.identity-7 and V-common.identity-8."
+    function: none
+    params: {}
+    input:
+      path: detectors/keypoint_detectors/demo/hands/demo-hands.yaml
+      sidecar: {model_id: demo-hands, role: [keypoint_detector], keypoint: {point_names: [a, b]}}
+    expect: {failed: [V-common.identity-8]}
+  - id: count-with-a-leading-zero
+    note: "hand05 does not match ^[a-z]+[1-9][0-9]*$. The sidecar shows only model_id, role and
+      keypoint. The case checks only V-common.identity-7 and V-common.identity-8."
+    function: none
+    params: {}
+    input:
+      path: detectors/keypoint_detectors/demo/hand05/demo-hand05.yaml
+      sidecar:
+        model_id: demo-hand05
+        role: [keypoint_detector]
+        keypoint: {point_names: [a, b, c, d, e]}
+    expect: {failed: [V-common.identity-8]}
+  - id: object-detector-keeps-the-family-id
+    note: "the rules apply only under detectors/keypoint_detectors/. The sidecar shows only
+      model_id and role. The case checks only V-common.identity-7 and V-common.identity-8."
+    function: none
+    params: {}
+    input:
+      path: detectors/object_detectors/rtmdet-person/rtmdet-person.yaml
+      sidecar: {model_id: rtmdet-person, role: [object_detector]}
+    expect: {failed: []}

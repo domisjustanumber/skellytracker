@@ -1,0 +1,24 @@
+# Built-in pipeline of v2.0.0. It shows a top-down chain: a YOLOX person detector keeps the
+# best person (post_nms_top_k: 1), and RTMW finds 133 whole-body points in that person ROI.
+schema_version: "2.0.0"
+pipeline_id: yolox-rtmw-wholebody
+source: {name: skellytracker, version: "2.0.0"}
+description: YOLOX person detector, then RTMW whole-body keypoints (133 points) for one person.
+nodes:
+  - id: person
+    type: detector
+    inputs: {image: frame.image}
+    params:
+      key: yolox-person@openmmlab-exporter
+      size: m
+      object_decode:
+        nms: {post_nms_top_k: 1}
+  - id: wholebody
+    type: detector
+    inputs: {image: frame.image, rois: person.rois}
+    params:
+      key: rtmw-wholebody133@openmmlab-exporter
+      size: m
+outputs:
+  wholebody: wholebody.keypoints
+  person_box: person.detections

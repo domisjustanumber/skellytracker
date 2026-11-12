@@ -1,0 +1,133 @@
+# tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
+# Hosts ignore `checks`. The names are the self-checks of the generator.
+section: post.keypoint.decode.simcc
+notes:
+  - "Normative text: specs/model-sidecar/post/keypoint/decode-simcc.md."
+  - "The cases are `keypoint.geometry: 2d`. The section is 2D only (skellytracker ADR-9HBB)."
+  - "`target_size` is [height, width] of the model input. `simcc_x` and `simcc_y` are the
+    raw output values, with the shape (B, P, bins). The host reads them as float32 and
+    applies no softmax."
+  - "`bins` is the argmax bin of each axis after the rule for a score <= 0. `keypoints`
+    are in the model-input pixels of the crop (x, y). `scores` has the shape (B, P)."
+  - "The upstream function mmpose v1.3.2 get_simcc_maximum gives the same bins and scores
+    for each numeric case. A copy of its function text ran on each numeric case with
+    NumPy 2.4.6 (the copy is not committed: secondary)."
+  - "`.nan` is a NaN raw value or a NaN score. In `expect`, `.nan` agrees only with a NaN."
+tolerance: 0.000001
+unverified: "The OpenMMLab-Exporter host function decode_simcc implements the score rule and
+  passes 15 of 15 numeric cases (OpenMMLab-Exporter ADR-HJF1 item 8). It is not an
+  independent implementation: the same exporter wrote it after its own reference
+  module of the score-rule proposal (skellytracker ADR-03PH). No independent
+  implementation exists yet. The skellytracker decode takes the mean of the two
+  softmax peaks."
+cases:
+  - id: score-is-the-y-peak
+    note: "peak_x 0.9 > peak_y 0.6, so the score is 0.6"
+    params: {target_size: [4, 3]}
+    input: {simcc_x: [[[0.1, 0.9, 0.2, 0, 0, 0]]], simcc_y: [[[0, 0, 0.6, 0.1, 0, 0, 0, 0]]]}
+    expect: {bins: [[[1, 2]]], keypoints: [[[0.5, 1]]], scores: [[0.6]]}
+  - id: score-is-the-x-peak
+    note: "peak_x 0.3 < peak_y 0.8, so the score is 0.3"
+    params: {target_size: [4, 3]}
+    input: {simcc_x: [[[0, 0, 0, 0, 0.3, 0.1]]], simcc_y: [[[0.8, 0, 0, 0, 0, 0, 0, 0.2]]]}
+    expect: {bins: [[[4, 0]]], keypoints: [[[2, 0]]], scores: [[0.3]]}
+  - id: equal-peaks
+    note: "peak_x = peak_y: the strict `>` is false, so the score is peak_x"
+    params: {target_size: [4, 3]}
+    input: {simcc_x: [[[0, 0.5, 0, 0, 0, 0]]], simcc_y: [[[0, 0, 0, 0, 0, 0.5, 0, 0]]]}
+    expect: {bins: [[[1, 5]]], keypoints: [[[0.5, 2.5]]], scores: [[0.5]]}
+  - id: raw-values-above-one
+    note: "no softmax: a raw peak can be above 1, and the score keeps it"
+    params: {target_size: [4, 3]}
+    input: {simcc_x: [[[0, 0, 1.7, 0.4, 0, 0]]], simcc_y: [[[0, 1.9, 0, 0, 0, 0, 0, 0]]]}
+    expect: {bins: [[[2, 1]]], keypoints: [[[1, 0.5]]], scores: [[1.7]]}
+  - id: tie-takes-the-lowest-bin
+    note: "two equal maxima on each axis: the bin is the lower index"
+    params: {target_size: [4, 3]}
+    input: {simcc_x: [[[0.2, 0.7, 0.7, 0.1, 0, 0]]], simcc_y: [[[0, 0, 0, 0.4, 0, 0, 0.4, 0]]]}
+    expect: {bins: [[[1, 3]]], keypoints: [[[0.5, 1.5]]], scores: [[0.4]]}
+  - id: score-zero-gives-bin-minus-one
+    note: "peak_x 0 and peak_y 0.4: the score is 0, and 0 <= 0, so both axes get the bin -1.
+      The x pixel is -1 * 3 / 6 = -0.5 and the y pixel is -1 * 4 / 8 = -0.5"
+    params: {target_size: [4, 3]}
+    input: {simcc_x: [[[0, 0, 0, 0, 0, 0]]], simcc_y: [[[0, 0, 0.4, 0, 0, 0, 0, 0]]]}
+    expect: {bins: [[[-1, -1]]], keypoints: [[[-0.5, -0.5]]], scores: [[0]]}
+  - id: one-negative-peak-marks-both-axes
+    note: "peak_x 0.5 and peak_y -0.1: the score is -0.1, so the x axis also gets the bin -1"
+    params: {target_size: [4, 3]}
+    input:
+      simcc_x: [[[0, 0, 0, 0.5, 0, 0]]]
+      simcc_y: [[[-0.3, -0.2, -0.1, -0.4, -0.5, -0.6, -0.7, -0.8]]]
+    expect: {bins: [[[-1, -1]]], keypoints: [[[-0.5, -0.5]]], scores: [[-0.1]]}
+  - id: small-positive-score-keeps-the-bins
+    note: "the score 0.000002 is more than 0, so the bins stay"
+    params: {target_size: [4, 3]}
+    input: {simcc_x: [[[0, 0, 0.000002, 0, 0, 0]]], simcc_y: [[[0, 0, 0, 0, 0, 0, 0.5, 0]]]}
+    expect: {bins: [[[2, 6]]], keypoints: [[[1, 3]]], scores: [[0.000002]]}
+  - id: bin-scale-of-each-axis
+    note: "the scale is target width / X_bins = 3 / 6 and target height / Y_bins = 4 / 8: bin 5
+      gives x 2.5, and bin 7 gives y 3.5. Bin 0 gives 0 (no half-bin offset)"
+    params: {target_size: [4, 3]}
+    input:
+      simcc_x: [[[0, 0, 0, 0, 0, 0.6], [0.6, 0, 0, 0, 0, 0]]]
+      simcc_y: [[[0, 0, 0, 0, 0, 0, 0, 0.6], [0.6, 0, 0, 0, 0, 0, 0, 0]]]
+    expect: {bins: [[[5, 7], [0, 0]]], keypoints: [[[2.5, 3.5], [0, 0]]], scores: [[0.6, 0.6]]}
+  - id: bin-counts-come-from-the-tensors
+    note: "X_bins = 3 for the width 3, so one bin is one pixel"
+    params: {target_size: [2, 3]}
+    input: {simcc_x: [[[0, 0, 0.6]]], simcc_y: [[[0, 0.6]]]}
+    expect: {bins: [[[2, 1]]], keypoints: [[[2, 1]]], scores: [[0.6]]}
+  - id: two-crops-two-keypoints
+    note: "each crop and each keypoint is one row: crop 1, keypoint 0 has a score <= 0"
+    params: {target_size: [4, 3]}
+    input:
+      simcc_x:
+        - [[0, 0.8, 0, 0, 0, 0], [0, 0, 0, 0.4, 0, 0]]
+        - [[-0.1, -0.2, -0.3, -0.4, -0.5, -0.6], [0, 0, 0, 0, 0, 0.9]]
+      simcc_y:
+        - [[0, 0, 0, 0.7, 0, 0, 0, 0], [0, 0.6, 0, 0, 0, 0, 0, 0]]
+        - [[0, 0, 0.2, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0.3, 0]]
+    expect:
+      bins: [[[1, 3], [3, 1]], [[-1, -1], [5, 6]]]
+      keypoints: [[[0.5, 1.5], [1.5, 0.5]], [[-0.5, -0.5], [2.5, 3]]]
+      scores: [[0.7, 0.4], [-0.1, 0.3]]
+  - id: nan-in-x-gives-a-nan-score
+    note: "simcc_x has a NaN at bin 3, and its largest number -0.1 is at bin 0. The bin of x is
+      the first NaN, 3, and peak_x is NaN. peak_x > peak_y is false, so the score is
+      peak_x, NaN. NaN <= 0 is false, so the bins stay"
+    params: {target_size: [4, 3]}
+    input:
+      simcc_x: [[[-0.1, -0.2, -0.3, .nan, -0.5, -0.6]]]
+      simcc_y: [[[0, 0, 0.6, 0.1, 0, 0, 0, 0]]]
+    expect: {bins: [[[3, 2]]], keypoints: [[[1.5, 1]]], scores: [[.nan]]}
+  - id: nan-in-y-gives-the-x-score
+    note: "simcc_y has a NaN at bin 4, after its largest number 0.6 at bin 2. The bin of y is
+      4, and peak_y is NaN. peak_x 0.9 > NaN is false, so the score is peak_x, 0.9"
+    params: {target_size: [4, 3]}
+    input: {simcc_x: [[[0.1, 0.9, 0.2, 0, 0, 0]]], simcc_y: [[[0, 0, 0.6, 0.1, .nan, 0, 0, 0]]]}
+    expect: {bins: [[[1, 4]]], keypoints: [[[0.5, 2]]], scores: [[0.9]]}
+  - id: nan-in-y-with-a-negative-x-peak
+    note: "simcc_y has a NaN, so the score is peak_x, -0.2. -0.2 <= 0, so both axes get the bin -1"
+    params: {target_size: [4, 3]}
+    input:
+      simcc_x: [[[-0.5, -0.2, -0.3, -0.4, -0.6, -0.7]]]
+      simcc_y: [[[0, 0, 0.6, .nan, 0, 0, 0, 0]]]
+    expect: {bins: [[[-1, -1]]], keypoints: [[[-0.5, -0.5]]], scores: [[-0.2]]}
+  - id: nan-in-both-rows-takes-the-first-nan
+    note: "keypoint 0: simcc_x has NaN at bins 2 and 4, and simcc_y has NaN at bins 0 and 7.
+      Each bin is the first NaN of its row, 2 and 0, and the score is NaN. Keypoint 1:
+      each value is NaN, so each bin is 0, and the score is NaN"
+    params: {target_size: [4, 3]}
+    input:
+      simcc_x: [[[0.1, 0.9, .nan, 0, .nan, 0], [.nan, .nan, .nan, .nan, .nan, .nan]]]
+      simcc_y:
+        - [[.nan, 0, 0.6, 0.1, 0, 0, 0, .nan], [.nan, .nan, .nan, .nan, .nan, .nan, .nan, .nan]]
+    expect: {bins: [[[2, 0], [0, 0]]], keypoints: [[[1, 0], [0, 0]]], scores: [[.nan, .nan]]}
+  - id: shapes-of-x-and-y-differ
+    note: "simcc_x has B = 1 and simcc_y has B = 2. The input is a tensor, not a sidecar value"
+    checks: [refused]
+    params: {target_size: [4, 3]}
+    input:
+      simcc_x: [[[0, 0.5, 0, 0, 0, 0]]]
+      simcc_y: [[[0, 0.5, 0, 0, 0, 0, 0, 0]], [[0, 0.5, 0, 0, 0, 0, 0, 0]]]
+    expect: {error: no-rule}

@@ -1,0 +1,493 @@
+# tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
+# Hosts ignore `checks`. The names are the self-checks of the generator.
+section: post.det.selection.nms
+notes:
+  - "Normative text: specs/model-sidecar/post/selection-nms.md and
+    specs/model-sidecar/post/detection-decode.md."
+  - "`params` use the names of the `decode` fields. `kept_rows` are 0-based row indexes
+    of the input, `scores` and `class_ids` are the scores and the emitted class ids of
+    the kept detections, in output order."
+  - "Each case gives `boxes_xyxy` and `boxes_space`. A case without `resize` has
+    `boxes_space: model_input`. It stops before the unprojection, the clamp and the size
+    filter. Its boxes are the kept boxes in model-input pixels. A case with `resize` has
+    `boxes_space: source`. It also does the unprojection, the clamp and the size filter
+    (shared steps 3 to 5). Its boxes are the final boxes in source-image pixels. Each
+    box is the `output_xyxy` of post.unprojection, not its `source_xyxy`. Its
+    `input_size` and `resize` in `params`, and its `src_w` and `src_h` in `input`, are
+    those of specs/model-sidecar/post/unprojection.md
+    (specs/model-sidecar/vectors/post.unprojection.yaml). Decision:
+    decisions/entries/17KN-one-selection-pipeline.md. Every score and threshold gives
+    the same result in float32 and in float64."
+  - "`iou_threshold`, `score_threshold`, `class_agnostic` and `post_nms_top_k` are fields
+    of the `nms` object; they are written without the `nms` key here. A case with
+    `boxes` and `scores` has no class source, so it sets `is_person_only: true`: a
+    sidecar with no class source must set it. Decision:
+    decisions/entries/17KN-one-selection-pipeline.md."
+  - "`confidence_threshold_default` is given as 0 in most cases, so that the last step
+    keeps every survivor."
+tolerance: 0.00001
+checks: [float32-stable]
+verified_against:
+  - {OpenMMLab-Exporter: onnx_runtime/decode_nms.py::NmsDecoder}
+cases:
+  - id: suppress-overlap-and-threshold
+    note: "row 1: IoU 0.68 > 0.5; row 3: 0.04 <= 0.05. No class source: class_ids get
+      person_class_id"
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.05
+      confidence_threshold_default: 0
+      class_agnostic: false
+      is_person_only: true
+    input:
+      boxes: [[0, 0, 10, 10], [1, 1, 11, 11], [20, 20, 30, 30], [0, 0, 10, 10]]
+      scores: [0.9, 0.8, 0.7, 0.04]
+    expect:
+      kept_rows: [0, 2]
+      scores: [0.9, 0.7]
+      class_ids: [0, 0]
+      boxes_xyxy: [[0, 0, 10, 10], [20, 20, 30, 30]]
+      boxes_space: model_input
+  - id: iou-equal-to-threshold-is-kept
+    note: "IoU is exactly 0.5 and the threshold is 0.5: suppression needs IoU > threshold"
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.05
+      confidence_threshold_default: 0
+      is_person_only: true
+    input: {boxes: [[0, 0, 12, 10], [4, 0, 16, 10]], scores: [0.75, 0.5]}
+    expect:
+      kept_rows: [0, 1]
+      scores: [0.75, 0.5]
+      class_ids: [0, 0]
+      boxes_xyxy: [[0, 0, 12, 10], [4, 0, 16, 10]]
+      boxes_space: model_input
+  - id: iou-above-threshold-is-suppressed
+    note: "IoU 0.5 > 0.25: row 1 is suppressed"
+    params:
+      iou_threshold: 0.25
+      score_threshold: 0.05
+      confidence_threshold_default: 0
+      is_person_only: true
+    input: {boxes: [[0, 0, 12, 10], [4, 0, 16, 10]], scores: [0.75, 0.5]}
+    expect:
+      kept_rows: [0]
+      scores: [0.75]
+      class_ids: [0]
+      boxes_xyxy: [[0, 0, 12, 10]]
+      boxes_space: model_input
+  - id: box-area-adds-nothing
+    note: "IoU is 0.5 <= 0.52. An area with + 1 on the sides gives 0.529 and would suppress row 1"
+    params:
+      iou_threshold: 0.52
+      score_threshold: 0.05
+      confidence_threshold_default: 0
+      is_person_only: true
+    input: {boxes: [[0, 0, 12, 10], [4, 0, 16, 10]], scores: [0.75, 0.5]}
+    expect:
+      kept_rows: [0, 1]
+      scores: [0.75, 0.5]
+      class_ids: [0, 0]
+      boxes_xyxy: [[0, 0, 12, 10], [4, 0, 16, 10]]
+      boxes_space: model_input
+  - id: score-equal-to-score-threshold-is-dropped
+    note: "candidates need score > score_threshold: 0.5 is dropped"
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.5
+      confidence_threshold_default: 0
+      is_person_only: true
+    input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8], [20, 0, 28, 8]], scores: [0.5, 0.75, 0.25]}
+    expect:
+      kept_rows: [1]
+      scores: [0.75]
+      class_ids: [0]
+      boxes_xyxy: [[10, 0, 18, 8]]
+      boxes_space: model_input
+  - id: confidence-threshold-is-strict
+    note: "the last step keeps score > 0.75 only"
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.05
+      confidence_threshold_default: 0.75
+      is_person_only: true
+    input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8]], scores: [0.75, 0.875]}
+    expect:
+      kept_rows: [1]
+      scores: [0.875]
+      class_ids: [0]
+      boxes_xyxy: [[10, 0, 18, 8]]
+      boxes_space: model_input
+  - id: default-confidence-threshold
+    note: "confidence_threshold_default is absent: the default is 0.7"
+    params: {iou_threshold: 0.5, score_threshold: 0.05, is_person_only: true}
+    input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8], [20, 0, 28, 8]], scores: [0.9, 0.75, 0.65]}
+    expect:
+      kept_rows: [0, 1]
+      scores: [0.9, 0.75]
+      class_ids: [0, 0]
+      boxes_xyxy: [[0, 0, 8, 8], [10, 0, 18, 8]]
+      boxes_space: model_input
+  - id: equal-scores-lower-row-wins
+    note: "rows 0 and 1 overlap and have equal scores: row 0 stays; the output order is rows 0, 2"
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.05
+      confidence_threshold_default: 0
+      is_person_only: true
+    input: {boxes: [[0, 0, 10, 10], [1, 1, 11, 11], [20, 20, 30, 30]], scores: [0.75, 0.75, 0.75]}
+    expect:
+      kept_rows: [0, 2]
+      scores: [0.75, 0.75]
+      class_ids: [0, 0]
+      boxes_xyxy: [[0, 0, 10, 10], [20, 20, 30, 30]]
+      boxes_space: model_input
+  - id: output-is-sorted-by-score
+    note: "survivors are sorted by descending score, not by row"
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.05
+      confidence_threshold_default: 0
+      is_person_only: true
+    input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8], [20, 0, 28, 8]], scores: [0.5, 0.875, 0.75]}
+    expect:
+      kept_rows: [1, 2, 0]
+      scores: [0.875, 0.75, 0.5]
+      class_ids: [0, 0, 0]
+      boxes_xyxy: [[10, 0, 18, 8], [20, 0, 28, 8], [0, 0, 8, 8]]
+      boxes_space: model_input
+  - id: per-class-nms-keeps-both
+    note: "two identical boxes of different classes: per-class NMS keeps both"
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.05
+      confidence_threshold_default: 0
+      score_field: score
+      class_field: class_id
+      class_agnostic: false
+    input:
+      fields: [x1, y1, x2, y2, score, class_id]
+      rows: [[0, 0, 10, 10, 0.875, 0], [0, 0, 10, 10, 0.75, 1]]
+    expect:
+      kept_rows: [0, 1]
+      scores: [0.875, 0.75]
+      class_ids: [0, 1]
+      boxes_xyxy: [[0, 0, 10, 10], [0, 0, 10, 10]]
+      boxes_space: model_input
+  - id: class-agnostic-suppresses-across-classes
+    note: "the same input with class_agnostic true: row 1 is suppressed"
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.05
+      confidence_threshold_default: 0
+      score_field: score
+      class_field: class_id
+      class_agnostic: true
+    input:
+      fields: [x1, y1, x2, y2, score, class_id]
+      rows: [[0, 0, 10, 10, 0.875, 0], [0, 0, 10, 10, 0.75, 1]]
+    expect:
+      kept_rows: [0]
+      scores: [0.875]
+      class_ids: [0]
+      boxes_xyxy: [[0, 0, 10, 10]]
+      boxes_space: model_input
+  - id: post-nms-top-k-keeps-the-highest
+    note: "rows 1 and 2 have equal scores: the lower row comes first; the first 2 survivors stay"
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.05
+      confidence_threshold_default: 0
+      post_nms_top_k: 2
+      is_person_only: true
+    input:
+      boxes: [[0, 0, 8, 8], [10, 0, 18, 8], [20, 0, 28, 8], [30, 0, 38, 8]]
+      scores: [0.5, 0.875, 0.875, 0.75]
+    expect:
+      kept_rows: [1, 2]
+      scores: [0.875, 0.875]
+      class_ids: [0, 0]
+      boxes_xyxy: [[10, 0, 18, 8], [20, 0, 28, 8]]
+      boxes_space: model_input
+  - id: post-nms-top-k-counts-survivors
+    note: "row 1 is suppressed and takes no slot: the 2 slots go to rows 0 and 2"
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.05
+      confidence_threshold_default: 0
+      post_nms_top_k: 2
+      is_person_only: true
+    input:
+      boxes: [[0, 0, 10, 10], [1, 1, 11, 11], [50, 0, 58, 8], [60, 0, 68, 8]]
+      scores: [0.9, 0.85, 0.8, 0.7]
+    expect:
+      kept_rows: [0, 2]
+      scores: [0.9, 0.8]
+      class_ids: [0, 0]
+      boxes_xyxy: [[0, 0, 10, 10], [50, 0, 58, 8]]
+      boxes_space: model_input
+  - id: post-nms-top-k-larger-than-the-survivors
+    note: "all survivors stay"
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.05
+      confidence_threshold_default: 0
+      post_nms_top_k: 10
+      is_person_only: true
+    input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8]], scores: [0.75, 0.5]}
+    expect:
+      kept_rows: [0, 1]
+      scores: [0.75, 0.5]
+      class_ids: [0, 0]
+      boxes_xyxy: [[0, 0, 8, 8], [10, 0, 18, 8]]
+      boxes_space: model_input
+  - id: class-id-map-drop-comes-before-nms
+    note: "row 0 (class 1 maps to -1) is dropped before NMS, so it cannot suppress row 1"
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.05
+      confidence_threshold_default: 0
+      score_field: score
+      class_field: class_id
+      class_id_map: [0, -1]
+      class_agnostic: true
+    input:
+      fields: [x1, y1, x2, y2, score, class_id]
+      rows: [[0, 0, 10, 10, 0.9, 1], [0, 0, 10, 10, 0.8, 0]]
+    expect:
+      kept_rows: [1]
+      scores: [0.8]
+      class_ids: [0]
+      boxes_xyxy: [[0, 0, 10, 10]]
+      boxes_space: model_input
+  - id: is-person-only-drop-comes-before-nms
+    note: "row 0 is not a person: it is dropped before NMS, so it cannot suppress row 1"
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.05
+      confidence_threshold_default: 0
+      score_field: score
+      class_field: class_id
+      is_person_only: true
+      person_class_id: 0
+      class_agnostic: true
+    input:
+      fields: [x1, y1, x2, y2, score, class_id]
+      rows: [[0, 0, 10, 10, 0.9, 1], [0, 0, 10, 10, 0.8, 0]]
+    expect:
+      kept_rows: [1]
+      scores: [0.8]
+      class_ids: [0]
+      boxes_xyxy: [[0, 0, 10, 10]]
+      boxes_space: model_input
+  - id: no-class-source-uses-person-class-id
+    note: "no class source and is_person_only true: every candidate gets person_class_id (2)"
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.05
+      confidence_threshold_default: 0
+      person_class_id: 2
+      is_person_only: true
+    input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8]], scores: [0.75, 0.5]}
+    expect:
+      kept_rows: [0, 1]
+      scores: [0.75, 0.5]
+      class_ids: [2, 2]
+      boxes_xyxy: [[0, 0, 8, 8], [10, 0, 18, 8]]
+      boxes_space: model_input
+  - id: class-id-base
+    note: "emitted class id = class_id_base + model class index"
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.05
+      confidence_threshold_default: 0
+      score_field: score
+      class_field: class_id
+      class_id_base: 1
+      person_class_id: 1
+    input:
+      fields: [x1, y1, x2, y2, score, class_id]
+      rows: [[0, 0, 8, 8, 0.75, 0], [10, 0, 18, 8, 0.5, 2]]
+    expect:
+      kept_rows: [0, 1]
+      scores: [0.75, 0.5]
+      class_ids: [1, 3]
+      boxes_xyxy: [[0, 0, 8, 8], [10, 0, 18, 8]]
+      boxes_space: model_input
+  - id: box-format-cxcywh
+    note: "centre and size become corners [0, 0, 12, 10] and [4, 0, 16, 10]: IoU 0.5, both stay"
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.05
+      confidence_threshold_default: 0
+      box_format: cxcywh
+      is_person_only: true
+    input: {boxes: [[6, 5, 12, 10], [10, 5, 12, 10]], scores: [0.75, 0.5]}
+    expect:
+      kept_rows: [0, 1]
+      scores: [0.75, 0.5]
+      class_ids: [0, 0]
+      boxes_xyxy: [[0, 0, 12, 10], [4, 0, 16, 10]]
+      boxes_space: model_input
+  - id: no-candidate-passes
+    note: "the output is empty"
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.9
+      confidence_threshold_default: 0
+      is_person_only: true
+    input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8]], scores: [0.75, 0.5]}
+    expect: {kept_rows: [], scores: [], class_ids: [], boxes_xyxy: [], boxes_space: model_input}
+  - id: size-filter-comes-after-nms
+    note: "row 0 suppresses row 1 (IoU 0.83). Then the size filter drops row 0: its width 10 is
+      not more than 10. Row 1 does not come back"
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.05
+      confidence_threshold_default: 0
+      is_person_only: true
+      min_box_size: 10
+      input_size: [100, 100]
+      resize: {method: none}
+    input:
+      src_w: 100
+      src_h: 100
+      boxes: [[0, 0, 10, 10], [0, 0, 11, 11], [50, 50, 70, 70]]
+      scores: [0.9, 0.8, 0.7]
+    expect:
+      kept_rows: [2]
+      scores: [0.7]
+      class_ids: [0]
+      boxes_xyxy: [[50, 50, 70, 70]]
+      boxes_space: source
+  - id: size-filter-comes-after-post-nms-top-k
+    note: "rows 0 and 1 take the 2 places. Then the size filter drops row 0. Row 2 does not
+      take its place"
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.05
+      confidence_threshold_default: 0
+      post_nms_top_k: 2
+      is_person_only: true
+      min_box_size: 10
+      input_size: [100, 100]
+      resize: {method: none}
+    input:
+      src_w: 100
+      src_h: 100
+      boxes: [[0, 0, 10, 10], [50, 50, 70, 70], [20, 0, 40, 20]]
+      scores: [0.9, 0.8, 0.7]
+    expect:
+      kept_rows: [1]
+      scores: [0.8]
+      class_ids: [0]
+      boxes_xyxy: [[50, 50, 70, 70]]
+      boxes_space: source
+  - id: nms-comes-before-the-clamp
+    note: "IoU of the unclamped boxes is 100 / 300 = 0.33, so both stay. The clamp then gives
+      both rows the box [0, 0, 10, 10]"
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.05
+      confidence_threshold_default: 0
+      is_person_only: true
+      input_size: [100, 100]
+      resize: {method: none}
+    input: {src_w: 100, src_h: 100, boxes: [[-20, 0, 10, 10], [0, 0, 10, 10]], scores: [0.9, 0.8]}
+    expect:
+      kept_rows: [0, 1]
+      scores: [0.9, 0.8]
+      class_ids: [0, 0]
+      boxes_xyxy: [[0, 0, 10, 10], [0, 0, 10, 10]]
+      boxes_space: source
+  - id: size-filter-uses-source-pixels
+    note: "centered letterbox of 1920x1080 into 512x512: s = 1/3.75 and top = 112. Row 1 is 30
+      pixels wide in model-input pixels and 112.5 pixels wide in source pixels, so it
+      stays only when the size filter uses source pixels"
+    params:
+      iou_threshold: 0.5
+      score_threshold: 0.05
+      confidence_threshold_default: 0
+      is_person_only: true
+      min_box_size: 100
+      input_size: [512, 512]
+      resize:
+        method: letterbox
+        target_size: [512, 512]
+        pad_position: center
+        rounding: half_even
+    input:
+      src_w: 1920
+      src_h: 1080
+      boxes: [[100, 150, 200, 250], [300, 150, 330, 200]]
+      scores: [0.9, 0.8]
+    expect:
+      kept_rows: [0, 1]
+      scores: [0.9, 0.8]
+      class_ids: [0, 0]
+      boxes_xyxy: [[375, 142.5, 750, 517.5], [1125, 142.5, 1237.5, 330]]
+      boxes_space: source
+  - id: nms-has-no-max-detections
+    note: "decode.max_detections is present with selection nms. max_detections is valid only
+      with selection none, as the fixed row count of the graph. A cap after the NMS is
+      nms.post_nms_top_k. The sidecar shows only its outputs and decode blocks. The case
+      checks only the rules of this section."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        outputs:
+          - {name: boxes, dtype: {fp32: float32}, shape: [-1, -1, 4], semantic: boxes}
+          - {name: scores, dtype: {fp32: float32}, shape: [-1, -1], semantic: scores}
+        decode:
+          selection: nms
+          boxes_output: boxes
+          scores_output: scores
+          box_format: xyxy
+          box_scale: pixel
+          is_person_only: true
+          max_detections: 100
+          nms: {iou_threshold: 0.6, score_threshold: 0.05}
+    expect: {failed: [V-post.det.selection.nms-1]}
+  - id: nms-has-no-top-k
+    note: "decode.top_k is present with selection nms. top_k is the pair count of selection
+      top_k. A candidate limit before the NMS (mmdet nms_pre) has no field. The sidecar
+      shows only its outputs and decode blocks. The case checks only the rules of this
+      section."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        outputs:
+          - {name: boxes, dtype: {fp32: float32}, shape: [-1, -1, 4], semantic: boxes}
+          - {name: scores, dtype: {fp32: float32}, shape: [-1, -1], semantic: scores}
+        decode:
+          selection: nms
+          boxes_output: boxes
+          scores_output: scores
+          box_format: xyxy
+          box_scale: pixel
+          is_person_only: true
+          top_k: 1000
+          nms: {iou_threshold: 0.6, score_threshold: 0.05}
+    expect: {failed: [V-post.det.selection.nms-1]}
+  - id: nms-has-no-class-logits-output
+    note: "decode.class_logits_output is present with selection nms. class_logits_output is
+      valid only with selection top_k. The class_logits output is the class source, so the
+      sidecar does not need is_person_only. The sidecar shows only its outputs and decode
+      blocks. The case checks only the rules of this section."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        outputs:
+          - {name: boxes, dtype: {fp32: float32}, shape: [-1, -1, 4], semantic: boxes}
+          - {name: logits, dtype: {fp32: float32}, shape: [-1, -1, 80], semantic: class_logits}
+        decode:
+          selection: nms
+          boxes_output: boxes
+          class_logits_output: logits
+          box_format: xyxy
+          box_scale: pixel
+          nms: {iou_threshold: 0.6, score_threshold: 0.05}
+    expect: {failed: [V-post.det.selection.nms-1]}

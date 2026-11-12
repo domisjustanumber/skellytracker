@@ -1,0 +1,41 @@
+{
+  "bundle_format": 1,
+  "kind": "proposal",
+  "name": "affine-crop-matrix",
+  "contributor": "openmmlab-exporter",
+  "source_commit": "ecee56e1ea1b4d3901c76a73b713ed0256675e78",
+  "spec_commit": "8fed6f34eb22643e0b6cc38a7c6b80014bfe1d75",
+  "sections": [
+    "pre.resize.affine_person_crop"
+  ],
+  "base": null,
+  "depends_on": [],
+  "contributes_to": null,
+  "related": [],
+  "external": [],
+  "spec_version": "2.0.0",
+  "version": 2,
+  "created": "2026-11-06",
+  "files": [
+    {
+      "path": "evidence.md",
+      "sha256": "1c3d2f435f5f9efbba2a529d25603dd80fa0a67b4b1eb2291d8fa2f273c6355f",
+      "bytes": 15060
+    },
+    {
+      "path": "proposal.md",
+      "sha256": "61dc697182665c4b3468f17a99148d3c89e4eb7090ca91f42024aa77289f3077",
+      "bytes": 45609
+    },
+    {
+      "path": "reference/pre_resize_affine_person_crop.py",
+      "sha256": "dd06867f3e4aaea0d2a2a06dd4ea1556d95f6e3103aab722535dda8f37e8b302",
+      "bytes": 14909
+    },
+    {
+      "path": "vectors/pre.resize.affine_person_crop.yaml",
+      "sha256": "44b19c61540e361f70b5618220b3a8a6b63714120a5157447c00c8b4ae0eb643",
+      "bytes": 6674
+    }
+  ]
+}

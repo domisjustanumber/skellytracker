@@ -1,0 +1,36 @@
+# tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
+# Hosts ignore `checks`. The names are the self-checks of the generator.
+section: pre.resize.interpolation
+notes:
+  - "Normative text: specs/model-sidecar/pre/interpolation.md."
+  - "Each case is a data-only validator case (`function: none`): `input.sidecar` is the
+    sidecar, and `expect.failed` lists the rules of this section that it fails."
+tolerance: 0.0001
+unverified: "No validator has run these cases yet. They come from the section text only."
+cases:
+  - id: compute-dtype-float32-is-valid
+    note: "a stretch resize can resize in float32. The sidecar shows only its input and sizes
+      blocks. The case checks only the rules of this section."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        input:
+          name: input
+          dtype: {fp32: float32}
+          resize: {method: stretch, interpolation: linear, compute_dtype: float32}
+        sizes: {nano: {input: {shape: [-1, 3, 560, 560], resize: {target_size: [560, 560]}}}}
+    expect: {failed: []}
+  - id: compute-dtype-float16-is-not-a-value
+    note: "compute_dtype has only the values uint8 and float32. The sidecar shows only its
+      input and sizes blocks. The case checks only the rules of this section."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        input:
+          name: input
+          dtype: {fp32: float32}
+          resize: {method: stretch, interpolation: linear, compute_dtype: float16}
+        sizes: {nano: {input: {shape: [-1, 3, 560, 560], resize: {target_size: [560, 560]}}}}
+    expect: {failed: [V-pre.resize.interpolation-1]}

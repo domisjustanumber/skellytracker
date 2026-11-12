@@ -1,0 +1,103 @@
+# Spec example, structure only. It sketches the MediaPipe pose and hand chain with detector and
+# glue nodes: redetect, a pose detector, an ROI from the points of the previous frame (@prev),
+# first_of, smooth_roi, roi_tracking, gate and smooth_keypoints. Both hands run from frame 0: an
+# empty optional input (`previous_keypoints` of roi_tracking on frame 0) does not stop a node.
+# The model keys and sizes wait for the sidecar proposals of MediaPipe-Exporter.
+schema_version: "2.0.0"
+pipeline_id: mediapipe-holistic-decomposed
+source: {name: skellytracker, version: "2.0.0"}
+description: >-
+  Structure only: waits for sidecar proposals. MediaPipe pose and both hands as detector and glue
+  nodes.
+nodes:
+  # Ask for a new pose detection when the previous frame has no good pose.
+  - id: trigger
+    type: redetect
+    inputs: {image: frame.image, previous_keypoints: body.keypoints@prev}
+  - id: pose_detector
+    type: detector
+    inputs: {image: trigger.image}
+    params: {key: mediapipe-pose-detector@mediapipe-exporter, size: full}
+  # The pose ROI from the points of the previous frame.
+  - id: pose_roi_prev
+    type: roi_from_points
+    inputs: {keypoints: body.keypoints@prev}
+    params:
+      points: [body.left_hip, body.right_hip, body.nose]
+      derived_points:
+        hip_center: [body.left_hip, body.right_hip]
+      size_rule: alignment
+      alignment_start: hip_center
+      alignment_end: body.nose
+      target_rotation_deg: 90
+      square_long: true
+      expand_ratio: 1.25
+  - id: pose_roi
+    type: first_of
+    inputs: [pose_detector.rois, pose_roi_prev.rois]
+  - id: pose_roi_smooth
+    type: smooth_roi
+    inputs: {rois: pose_roi.value}
+  - id: body
+    type: detector
+    inputs: {image: frame.image, rois: pose_roi_smooth.rois}
+    params: {key: mediapipe-pose-landmarker@mediapipe-exporter, size: full}
+  # The right hand ROI from the pose points, kept stable with roi_tracking.
+  - id: right_hand_roi
+    type: roi_from_points
+    inputs: {keypoints: body.keypoints}
+    params:
+      points: [body.right_wrist, body.right_index, body.right_pinky]
+      size_rule: alignment
+      alignment_start: body.right_wrist
+      alignment_end: body.right_index
+      target_rotation_deg: 90
+      square_long: true
+      expand_ratio: 2.7
+  - id: right_hand_tracked
+    type: roi_tracking
+    inputs:
+      previous: right_hand_tracked.rois@prev
+      current: right_hand_roi.rois
+      previous_keypoints: right_hand.keypoints@prev
+  - id: right_hand_gate
+    type: gate
+    inputs: {value: right_hand_tracked.rois, condition: body.keypoints}
+    params: {mode: score_above, threshold: 0.5}
+  - id: right_hand
+    type: detector
+    inputs: {image: frame.image, rois: right_hand_gate.value}
+    params: {key: mediapipe-hand-landmarker@mediapipe-exporter, size: full}
+  # The left hand: the same chain on the left points.
+  - id: left_hand_roi
+    type: roi_from_points
+    inputs: {keypoints: body.keypoints}
+    params:
+      points: [body.left_wrist, body.left_index, body.left_pinky]
+      size_rule: alignment
+      alignment_start: body.left_wrist
+      alignment_end: body.left_index
+      target_rotation_deg: 90
+      square_long: true
+      expand_ratio: 2.7
+  - id: left_hand_tracked
+    type: roi_tracking
+    inputs:
+      previous: left_hand_tracked.rois@prev
+      current: left_hand_roi.rois
+      previous_keypoints: left_hand.keypoints@prev
+  - id: left_hand_gate
+    type: gate
+    inputs: {value: left_hand_tracked.rois, condition: body.keypoints}
+    params: {mode: score_above, threshold: 0.5}
+  - id: left_hand
+    type: detector
+    inputs: {image: frame.image, rois: left_hand_gate.value}
+    params: {key: mediapipe-hand-landmarker@mediapipe-exporter, size: full}
+  - id: body_smooth
+    type: smooth_keypoints
+    inputs: {keypoints: body.keypoints}
+outputs:
+  body: body_smooth.keypoints
+  right_hand: right_hand.keypoints
+  left_hand: left_hand.keypoints

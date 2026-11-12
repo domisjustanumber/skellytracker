@@ -1,0 +1,724 @@
+---
+schema_version: "2.0.0"
+source:
+  name: openmmlab-exporter
+  version: 0.2.0
+model_id: rtmw-wholebody133
+display_name: RTMW WholeBody
+role:
+- keypoint_detector
+license:
+  model:
+    id: Apache-2.0
+    url: https://github.com/open-mmlab/mmpose/blob/v1.3.2/LICENSE
+  training_data:
+  - name: COCO-WholeBody
+    url: https://github.com/jin-s13/COCO-WholeBody
+    use: training
+    license:
+      id: CC-BY-NC-4.0 AND LicenseRef-COCO-Images
+      url: https://github.com/jin-s13/COCO-WholeBody#terms-of-use
+  - name: AI Challenger (human keypoint)
+    url: https://arxiv.org/abs/1711.06475
+    use: training
+    license:
+      id: unknown
+      unknown_reason: 'Checked 2026-11-06: challenger.ai is offline. The archived challenger.ai/terms (2018-08-11) is the
+        contestant registration agreement (竞赛选手报名协议). Its 第三条 §1 keeps all rights in the provided images and data for the
+        organiser, unless the separate dataset download agreement says otherwise. §2 asks for a fee when results depend on
+        the base data. §3 allows use of the base data only for non-commercial research or teaching. The dataset download agreement
+        (/terms/data) has no Wayback copy. The archived challenger.ai/dataset/keypoint (2019-06-23) does not hold the agreement
+        text. GitHub AIChallenger/AI_Challenger_2017 has no license. arXiv 1711.06475 has no license statement and says the
+        images were collected from Internet search engines. A web search found no copy of the download agreement.'
+  - name: CrowdPose
+    url: https://github.com/Jeff-sjtu/CrowdPose
+    use: training
+    license:
+      id: unknown
+      unknown_reason: 'Checked 2026-11-06: the GitHub Jeff-sjtu/CrowdPose README has no license section and no terms for the
+        Google Drive download. The repository has no LICENSE file on master or main. arXiv 1812.00324 has no license statement.
+        The images come from COCO, MPII and AI Challenger. Secondary sources disagree and are not used: arXiv 2606.07053 (TrioPose)
+        says "CC BY 4.0 ... non-commercial", Roboflow says CC BY 4.0, hyper.ai says "Other".'
+  - name: MPII Human Pose
+    url: https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/software-and-datasets/mpii-human-pose-dataset
+    use: training
+    license:
+      id: BSD-2-Clause AND LicenseRef-MPII-Images
+      url: https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/software-and-datasets/mpii-human-pose-dataset/download
+  - name: sub-JHMDB
+    url: https://is.mpg.de/code/jhmdb-joint-annotated-human-motion-data-base
+    use: training
+    license:
+      id: unknown
+      unknown_reason: 'Checked 2026-11-06: the MPI-IS page is.mpg.de/code/jhmdb-joint-annotated-human-motion-data-base (archived
+        2026-06-17; the live page is behind a bot wall) gives only ''licence_type: PS:License 1.0''. That label is a department-wide
+        website label with no published text. MPI-IS also puts it on MIT (HMR), BSD-2-Clause (Monocle) and SMPL-type non-commercial
+        items. jhmdb.is.tue.mpg.de refuses connections, and its archived pages have no license text. The videos come from
+        HMDB51. The Brown HMDB page says CC BY 4.0, and the clips come from commercial films and YouTube.'
+  - name: Halpe-FullBody
+    url: https://github.com/Fang-Haoshu/Halpe-FullBody
+    use: training
+    license:
+      id: unknown
+      unknown_reason: 'Checked 2026-11-06: the GitHub Fang-Haoshu/Halpe-FullBody README has no license, only a citation request.
+        The repository has no LICENSE file on master or main. A web search found no license. The images are HICO-DET train2015.
+        The HICO-DET site websites.umich.edu/~ywchao/hico/ shows a bot wall. The archived www-personal.umich.edu/~ywchao/hico/
+        (HTTP 200, 2016 to 2022-04-05) and the HICO-DET paper arXiv 1702.05448 have no license text. The Halpe paper arXiv
+        2211.03375 says the HICO-DET images carry an unversioned ''Creative Common license'' and that the dataset is released
+        through MVIG-SJTU/AlphaPose. AlphaPose is licensed for non-commercial use, but its LICENSE covers the software. HAKE
+        (MIT) does not hold the Halpe data.'
+  - name: PoseTrack18
+    url: https://posetrack.net/
+    use: training
+    license:
+      id: CC-BY-NC-4.0
+      url: https://creativecommons.org/licenses/by-nc/4.0/
+  - name: Human-Art
+    url: https://idea-research.github.io/HumanArt/
+    use: training
+    license:
+      id: CC-BY-NC-SA-4.0
+      url: https://docs.google.com/document/d/19j-6GFOCYBDU4CxwRSKgORndse_j5iHGK0RCJ2TvXNQ/edit?usp=sharing
+  - name: UBody
+    url: https://osx-ubody.github.io/
+    use: training
+    license:
+      id: CC-BY-NC-SA-4.0 AND LicenseRef-UBody-Media
+      url: https://docs.google.com/document/d/1R-nn6qguO0YDkPKBleZ8NyrqGrjLXfJ7AQTTsATMYZc/edit?usp=sharing
+  - name: WFLW
+    url: https://github.com/wywu/LAB
+    use: training
+    license:
+      id: unknown
+      unknown_reason: 'Checked 2026-11-06: the official page wywu.github.io/projects/LAB/WFLW.html returns 404, and its archived
+        copies (2019-10-21, 2026-09-30) have no license. The GitHub wywu/LAB README has no dataset license. wywu/LAB LICENSE
+        is the Caffe BSD license of the code. The images come from WIDER FACE, whose page shuoyang1213.me/WIDERFACE says "Creative
+        Common License (cc by-nc-nd)" with no version.'
+  - name: 300W
+    url: https://ibug.doc.ic.ac.uk/resources/300-W/
+    use: training
+    license:
+      id: LicenseRef-300W-Research-Only
+      url: https://ibug.doc.ic.ac.uk/resources/300-W/
+  - name: COFW
+    url: https://data.caltech.edu/records/bc0bf-nc666
+    use: training
+    license:
+      id: CC-BY-4.0 AND LicenseRef-COFW-LFPW-Images
+      url: https://data.caltech.edu/records/bc0bf-nc666
+  - name: LaPa
+    url: https://github.com/JDAI-CV/lapa-dataset
+    use: training
+    license:
+      id: LicenseRef-LaPa-NonCommercial
+      url: https://github.com/JDAI-CV/lapa-dataset#license
+  - name: InterHand2.6M
+    url: https://mks0601.github.io/InterHand2.6M/
+    use: training
+    license:
+      id: CC-BY-NC-4.0
+      url: https://github.com/facebookresearch/InterHand2.6M/blob/main/LICENSE
+  - name: COCO 2017 (person keypoints)
+    url: https://cocodataset.org/
+    use: pretraining
+    license:
+      id: CC-BY-4.0 AND LicenseRef-COCO-Images
+      url: https://cocodataset.org/#termsofuse
+  - name: ImageNet-1k (ILSVRC 2012)
+    url: https://image-net.org/
+    use: pretraining
+    license:
+      id: LicenseRef-ImageNet-Terms-of-Access
+      url: https://image-net.org/download.php
+input:
+  name: input
+  dtype:
+    fp32: float32
+    fp16: float32
+  color_format: rgb
+  normalization: imagenet
+  resize:
+    method: affine_crop
+    interpolation: linear
+    crop_policy:
+      expand_ratio: 1.25
+      maintain_aspect_ratio: true
+      pad_value: 0
+batching:
+  batch: 3
+  batch_conversion:
+    profile_id: static-batch-v1
+outputs:
+- name: simcc_x
+  dtype:
+    fp32: float32
+    fp16: float32
+  semantic: simcc_x
+  keypoint_axis: 1
+  keypoint_count: 133
+- name: simcc_y
+  dtype:
+    fp32: float32
+    fp16: float32
+  semantic: simcc_y
+  keypoint_axis: 1
+  keypoint_count: 133
+keypoint:
+  estimator_type: top_down_single_person
+  geometry: 2d
+  landmark_schema: COCO_WholeBody
+  point_names:
+  - nose
+  - left_eye
+  - right_eye
+  - left_ear
+  - right_ear
+  - left_shoulder
+  - right_shoulder
+  - left_elbow
+  - right_elbow
+  - left_wrist
+  - right_wrist
+  - left_hip
+  - right_hip
+  - left_knee
+  - right_knee
+  - left_ankle
+  - right_ankle
+  - left_big_toe
+  - left_small_toe
+  - left_heel
+  - right_big_toe
+  - right_small_toe
+  - right_heel
+  - face-0
+  - face-1
+  - face-2
+  - face-3
+  - face-4
+  - face-5
+  - face-6
+  - face-7
+  - face-8
+  - face-9
+  - face-10
+  - face-11
+  - face-12
+  - face-13
+  - face-14
+  - face-15
+  - face-16
+  - face-17
+  - face-18
+  - face-19
+  - face-20
+  - face-21
+  - face-22
+  - face-23
+  - face-24
+  - face-25
+  - face-26
+  - face-27
+  - face-28
+  - face-29
+  - face-30
+  - face-31
+  - face-32
+  - face-33
+  - face-34
+  - face-35
+  - face-36
+  - face-37
+  - face-38
+  - face-39
+  - face-40
+  - face-41
+  - face-42
+  - face-43
+  - face-44
+  - face-45
+  - face-46
+  - face-47
+  - face-48
+  - face-49
+  - face-50
+  - face-51
+  - face-52
+  - face-53
+  - face-54
+  - face-55
+  - face-56
+  - face-57
+  - face-58
+  - face-59
+  - face-60
+  - face-61
+  - face-62
+  - face-63
+  - face-64
+  - face-65
+  - face-66
+  - face-67
+  - left_hand_root
+  - left_thumb1
+  - left_thumb2
+  - left_thumb3
+  - left_thumb4
+  - left_forefinger1
+  - left_forefinger2
+  - left_forefinger3
+  - left_forefinger4
+  - left_middle_finger1
+  - left_middle_finger2
+  - left_middle_finger3
+  - left_middle_finger4
+  - left_ring_finger1
+  - left_ring_finger2
+  - left_ring_finger3
+  - left_ring_finger4
+  - left_pinky_finger1
+  - left_pinky_finger2
+  - left_pinky_finger3
+  - left_pinky_finger4
+  - right_hand_root
+  - right_thumb1
+  - right_thumb2
+  - right_thumb3
+  - right_thumb4
+  - right_forefinger1
+  - right_forefinger2
+  - right_forefinger3
+  - right_forefinger4
+  - right_middle_finger1
+  - right_middle_finger2
+  - right_middle_finger3
+  - right_middle_finger4
+  - right_ring_finger1
+  - right_ring_finger2
+  - right_ring_finger3
+  - right_ring_finger4
+  - right_pinky_finger1
+  - right_pinky_finger2
+  - right_pinky_finger3
+  - right_pinky_finger4
+  skeletons:
+  - name: wholebody
+    edges:
+    - - left_ankle
+      - left_knee
+    - - left_knee
+      - left_hip
+    - - right_ankle
+      - right_knee
+    - - right_knee
+      - right_hip
+    - - left_hip
+      - right_hip
+    - - left_shoulder
+      - left_hip
+    - - right_shoulder
+      - right_hip
+    - - left_shoulder
+      - right_shoulder
+    - - left_shoulder
+      - left_elbow
+    - - right_shoulder
+      - right_elbow
+    - - left_elbow
+      - left_wrist
+    - - right_elbow
+      - right_wrist
+    - - left_eye
+      - right_eye
+    - - nose
+      - left_eye
+    - - nose
+      - right_eye
+    - - left_eye
+      - left_ear
+    - - right_eye
+      - right_ear
+    - - left_ear
+      - left_shoulder
+    - - right_ear
+      - right_shoulder
+    - - left_ankle
+      - left_big_toe
+    - - left_ankle
+      - left_small_toe
+    - - left_ankle
+      - left_heel
+    - - right_ankle
+      - right_big_toe
+    - - right_ankle
+      - right_small_toe
+    - - right_ankle
+      - right_heel
+    - - left_hand_root
+      - left_thumb1
+    - - left_thumb1
+      - left_thumb2
+    - - left_thumb2
+      - left_thumb3
+    - - left_thumb3
+      - left_thumb4
+    - - left_hand_root
+      - left_forefinger1
+    - - left_forefinger1
+      - left_forefinger2
+    - - left_forefinger2
+      - left_forefinger3
+    - - left_forefinger3
+      - left_forefinger4
+    - - left_hand_root
+      - left_middle_finger1
+    - - left_middle_finger1
+      - left_middle_finger2
+    - - left_middle_finger2
+      - left_middle_finger3
+    - - left_middle_finger3
+      - left_middle_finger4
+    - - left_hand_root
+      - left_ring_finger1
+    - - left_ring_finger1
+      - left_ring_finger2
+    - - left_ring_finger2
+      - left_ring_finger3
+    - - left_ring_finger3
+      - left_ring_finger4
+    - - left_hand_root
+      - left_pinky_finger1
+    - - left_pinky_finger1
+      - left_pinky_finger2
+    - - left_pinky_finger2
+      - left_pinky_finger3
+    - - left_pinky_finger3
+      - left_pinky_finger4
+    - - right_hand_root
+      - right_thumb1
+    - - right_thumb1
+      - right_thumb2
+    - - right_thumb2
+      - right_thumb3
+    - - right_thumb3
+      - right_thumb4
+    - - right_hand_root
+      - right_forefinger1
+    - - right_forefinger1
+      - right_forefinger2
+    - - right_forefinger2
+      - right_forefinger3
+    - - right_forefinger3
+      - right_forefinger4
+    - - right_hand_root
+      - right_middle_finger1
+    - - right_middle_finger1
+      - right_middle_finger2
+    - - right_middle_finger2
+      - right_middle_finger3
+    - - right_middle_finger3
+      - right_middle_finger4
+    - - right_hand_root
+      - right_ring_finger1
+    - - right_ring_finger1
+      - right_ring_finger2
+    - - right_ring_finger2
+      - right_ring_finger3
+    - - right_ring_finger3
+      - right_ring_finger4
+    - - right_hand_root
+      - right_pinky_finger1
+    - - right_pinky_finger1
+      - right_pinky_finger2
+    - - right_pinky_finger2
+      - right_pinky_finger3
+    - - right_pinky_finger3
+      - right_pinky_finger4
+  decode:
+    method: simcc
+  overlay:
+    skeleton: wholebody
+    keypoint_color:
+    - 0
+    - 183
+    - 235
+    parts:
+      body:
+        edges:
+        - - left_ankle
+          - left_knee
+        - - left_knee
+          - left_hip
+        - - right_ankle
+          - right_knee
+        - - right_knee
+          - right_hip
+        - - left_hip
+          - right_hip
+        - - left_shoulder
+          - left_hip
+        - - right_shoulder
+          - right_hip
+        - - left_shoulder
+          - right_shoulder
+        - - left_shoulder
+          - left_elbow
+        - - right_shoulder
+          - right_elbow
+        - - left_elbow
+          - left_wrist
+        - - right_elbow
+          - right_wrist
+        - - left_eye
+          - right_eye
+        - - nose
+          - left_eye
+        - - nose
+          - right_eye
+        - - left_eye
+          - left_ear
+        - - right_eye
+          - right_ear
+        - - left_ear
+          - left_shoulder
+        - - right_ear
+          - right_shoulder
+        - - left_ankle
+          - left_big_toe
+        - - left_ankle
+          - left_small_toe
+        - - left_ankle
+          - left_heel
+        - - right_ankle
+          - right_big_toe
+        - - right_ankle
+          - right_small_toe
+        - - right_ankle
+          - right_heel
+        edge_color:
+        - 0
+        - 200
+        - 83
+      left_hand:
+        edges:
+        - - left_hand_root
+          - left_thumb1
+        - - left_thumb1
+          - left_thumb2
+        - - left_thumb2
+          - left_thumb3
+        - - left_thumb3
+          - left_thumb4
+        - - left_hand_root
+          - left_forefinger1
+        - - left_forefinger1
+          - left_forefinger2
+        - - left_forefinger2
+          - left_forefinger3
+        - - left_forefinger3
+          - left_forefinger4
+        - - left_hand_root
+          - left_middle_finger1
+        - - left_middle_finger1
+          - left_middle_finger2
+        - - left_middle_finger2
+          - left_middle_finger3
+        - - left_middle_finger3
+          - left_middle_finger4
+        - - left_hand_root
+          - left_ring_finger1
+        - - left_ring_finger1
+          - left_ring_finger2
+        - - left_ring_finger2
+          - left_ring_finger3
+        - - left_ring_finger3
+          - left_ring_finger4
+        - - left_hand_root
+          - left_pinky_finger1
+        - - left_pinky_finger1
+          - left_pinky_finger2
+        - - left_pinky_finger2
+          - left_pinky_finger3
+        - - left_pinky_finger3
+          - left_pinky_finger4
+        edge_color:
+        - 0
+        - 130
+        - 200
+      right_hand:
+        edges:
+        - - right_hand_root
+          - right_thumb1
+        - - right_thumb1
+          - right_thumb2
+        - - right_thumb2
+          - right_thumb3
+        - - right_thumb3
+          - right_thumb4
+        - - right_hand_root
+          - right_forefinger1
+        - - right_forefinger1
+          - right_forefinger2
+        - - right_forefinger2
+          - right_forefinger3
+        - - right_forefinger3
+          - right_forefinger4
+        - - right_hand_root
+          - right_middle_finger1
+        - - right_middle_finger1
+          - right_middle_finger2
+        - - right_middle_finger2
+          - right_middle_finger3
+        - - right_middle_finger3
+          - right_middle_finger4
+        - - right_hand_root
+          - right_ring_finger1
+        - - right_ring_finger1
+          - right_ring_finger2
+        - - right_ring_finger2
+          - right_ring_finger3
+        - - right_ring_finger3
+          - right_ring_finger4
+        - - right_hand_root
+          - right_pinky_finger1
+        - - right_pinky_finger1
+          - right_pinky_finger2
+        - - right_pinky_finger2
+          - right_pinky_finger3
+        - - right_pinky_finger3
+          - right_pinky_finger4
+        edge_color:
+        - 255
+        - 82
+        - 82
+sizes:
+  m:
+    input:
+      shape:
+      - -1
+      - 3
+      - 256
+      - 192
+      resize:
+        target_size:
+        - 256
+        - 192
+    onnx:
+      precision_artifacts:
+        fp32:
+          filename: rtmw-wholebody133-m_b3_fp32.onnx
+          sha256: 77fb20ae9d7b1bf3021029d482b24c3d5f5994bf0cc895debfc052382c4c14db
+        fp16:
+          filename: rtmw-wholebody133-m_b3_fp16.onnx
+          sha256: c9e01ef287f2c18e75828153167af21d10f9f4fd5119cbef61e34c15e4a90179
+      output_shapes:
+      - - 3
+        - -1
+        - 384
+      - - 3
+        - -1
+        - 512
+  l-256:
+    input:
+      shape:
+      - -1
+      - 3
+      - 256
+      - 192
+      resize:
+        target_size:
+        - 256
+        - 192
+    onnx:
+      precision_artifacts:
+        fp32:
+          filename: rtmw-wholebody133-l-256_b3_fp32.onnx
+          sha256: b1e3296d35441eb8445fe1c9bac1e97a07bd7d87e97639e054d187ce6ffb9a39
+        fp16:
+          filename: rtmw-wholebody133-l-256_b3_fp16.onnx
+          sha256: 5a024db8ec53240ca6785e328560fb3fd3fb3c1cbfde3be0597204b16828e25a
+      output_shapes:
+      - - 3
+        - -1
+        - 384
+      - - 3
+        - -1
+        - 512
+  x-256:
+    input:
+      shape:
+      - -1
+      - 3
+      - 256
+      - 192
+      resize:
+        target_size:
+        - 256
+        - 192
+    onnx:
+      precision_artifacts:
+        fp32:
+          filename: rtmw-wholebody133-x-256_b3_fp32.onnx
+          sha256: 1437f4614bc04a351573a90e939e3289cee92c0bc9c0ee88ca5e8fe734cd5676
+        fp16:
+          filename: rtmw-wholebody133-x-256_b3_fp16.onnx
+          sha256: a23f019ea6e9abd032879cc9b39362a4b27ae68784157f5473c8ae5259677c31
+      output_shapes:
+      - - 3
+        - -1
+        - 384
+      - - 3
+        - -1
+        - 512
+  l-384:
+    input:
+      shape:
+      - -1
+      - 3
+      - 384
+      - 288
+      resize:
+        target_size:
+        - 384
+        - 288
+    onnx:
+      precision_artifacts:
+        fp32:
+          filename: rtmw-wholebody133-l-384_b3_fp32.onnx
+          sha256: f0b6a798acb6efb0a4092842d3a6affd43f8410b3d80c55fd08c589486dbd848
+        fp16:
+          filename: rtmw-wholebody133-l-384_b3_fp16.onnx
+          sha256: 8b97bcaed8d242b5af124e9388a01d40b28d8389f247813016740c5ea5f62612
+      output_shapes:
+      - - 3
+        - -1
+        - 576
+      - - 3
+        - -1
+        - 768
+  x-384:
+    input:
+      shape:
+      - -1
+      - 3
+      - 384
+      - 288
+      resize:
+        target_size:
+        - 384
+        - 288
+    onnx:
+      precision_artifacts:
+        fp32:
+          filename: rtmw-wholebody133-x-384_b3_fp32.onnx
+          sha256: ed5b7b2b1d82b323ad753979bf67dbff537e2b43cdf5458aeb3d2f8920b2cf73
+        fp16:
+          filename: rtmw-wholebody133-x-384_b3_fp16.onnx
+          sha256: 322657d54a3a057e674eac8cbc0701329852d958cdc3d6483e28bfa58fd958d1
+      output_shapes:
+      - - 3
+        - -1
+        - 576
+      - - 3
+        - -1
+        - 768

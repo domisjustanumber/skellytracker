@@ -1,0 +1,40 @@
+{
+  "bundle_format": 1,
+  "kind": "proposal",
+  "name": "normalize-custom-defaults",
+  "contributor": "openmmlab-exporter",
+  "source_commit": "ecee56e1ea1b4d3901c76a73b713ed0256675e78",
+  "spec_commit": "8fed6f34eb22643e0b6cc38a7c6b80014bfe1d75",
+  "sections": [
+    "pre.normalize"
+  ],
+  "base": null,
+  "depends_on": [
+    "proposal-normalize-input-dtype@openmmlab-exporter"
+  ],
+  "contributes_to": null,
+  "related": [
+    "proposal-normalize-input-dtype@openmmlab-exporter"
+  ],
+  "external": [],
+  "spec_version": "2.0.0",
+  "version": 1,
+  "created": "2026-11-09",
+  "files": [
+    {
+      "path": "proposal.md",
+      "sha256": "0be42a09d0f18e65104463d863499af000026711a42626d2ffd95fa81a9aab51",
+      "bytes": 30446
+    },
+    {
+      "path": "reference/pre_normalize.py",
+      "sha256": "673ed8b318adeaab84db3948c054780694625bece2b1ffef1556c22263ca4962",
+      "bytes": 19495
+    },
+    {
+      "path": "vectors/pre.normalize.yaml",
+      "sha256": "3a7a47eed9395781acbcafc678ad196dd82683704ab8824016a9b7ff8f4e9342",
+      "bytes": 2277
+    }
+  ]
+}

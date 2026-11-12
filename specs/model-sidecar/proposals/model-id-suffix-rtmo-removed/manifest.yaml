@@ -1,0 +1,27 @@
+{
+  "bundle_format": 1,
+  "kind": "proposal",
+  "name": "model-id-suffix-rtmo-removed",
+  "contributor": "openmmlab-exporter",
+  "source_commit": "3e326df00726df8110773ed62cf38d02948a71a5",
+  "spec_commit": "4b1b2dfe0e3747d00eca8f61db8a7d47fc43d66f",
+  "sections": [
+    "common.identity",
+    "format.file_layout"
+  ],
+  "base": "proposal-model-id-suffix@openmmlab-exporter",
+  "depends_on": [],
+  "contributes_to": null,
+  "related": [],
+  "external": [],
+  "spec_version": "2.0.0",
+  "version": 1,
+  "created": "2026-11-09",
+  "files": [
+    {
+      "path": "proposal.md",
+      "sha256": "b738ded7b5268b13a45489ac31937e27bc31ca938506460e2761803af77c82b6",
+      "bytes": 9900
+    }
+  ]
+}

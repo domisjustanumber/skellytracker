@@ -1,0 +1,37 @@
+{
+  "bundle_format": 1,
+  "kind": "proposal",
+  "name": "affine-crop-rotated-roi",
+  "contributor": "openmmlab-exporter",
+  "source_commit": "b11331b85e5e26007b31ae16eac89afb6cc79602",
+  "spec_commit": "114e7950ff5b0534b53bd4176af319d42f522042",
+  "sections": [
+    "pre.resize.affine_crop",
+    "pre.resize.affine_person_crop"
+  ],
+  "base": "proposal-affine-crop-matrix@openmmlab-exporter",
+  "depends_on": [],
+  "contributes_to": null,
+  "related": [],
+  "external": [],
+  "spec_version": "2.0.0",
+  "version": 2,
+  "created": "2026-11-12",
+  "files": [
+    {
+      "path": "proposal.md",
+      "sha256": "279672e1b0cbbf6a58b9ea1ca6c0f96f08e6119bd56825addd1e01d086a11672",
+      "bytes": 55150
+    },
+    {
+      "path": "reference/pre_resize_affine_crop.py",
+      "sha256": "d6a5dc294908963a1ee7486a50b59c656a851ef1d262f12e3ad77da7a30e686a",
+      "bytes": 16974
+    },
+    {
+      "path": "vectors/pre.resize.affine_crop.yaml",
+      "sha256": "df390e4502d1d692f567637ea2ae40fefceac79d4e462794195634b47893ae11",
+      "bytes": 10058
+    }
+  ]
+}

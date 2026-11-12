@@ -1,0 +1,72 @@
+# specs/model-sidecar/inventory.yaml - docs-only. skellytracker does not read it at runtime.
+# It is not the index of a remote sidecar folder (see decisions/entries/0QKK-no-legacy-layer.md).
+#
+# examples: the provenance of each reference example under specs/model-sidecar/examples/, keyed by its path
+# there. The procedure to provide or replace an example is in
+# specs/model-sidecar/model-addition-workflow/reference-examples.md. Each example holds its own source (source.name and source.version), so an
+# entry has no source key. An entry has these keys:
+#   exporter              the exporter repo
+#   exporter_path         the path of the exporter's copy, relative to the exporter repo
+#   kind                  export: copied from exporter output
+#   exporter_layout_path  the exporter's own output path when it does not follow the spec's storage
+#                         layout (an exporter defect), else null
+#   tracked               whether exporter_path is tracked in git (most exports are untracked build
+#                         output under exports/)
+#   commit                the exporter commit of the code that writes the sidecar
+#   edits                 the allowed edits made to the exporter's copy: "header comment removed",
+#                         "hashes added" (tools/sidecar_refs.py --write --placeholder, while the
+#                         exporter does not write the hashes; an older entry records "source and
+#                         hashes added", from before source was required), and
+#                         "spec change <ID>: <edit>" (a spec-forced edit; <ID> is the bare ID of the
+#                         decision entry; see reference-examples.md, "When a spec change makes an
+#                         example invalid")
+#   notes                 known differences from the exporter's copy
+#   bundle                the hand-over bundle of the copy, as <bundle id>@v<k>; provenance text, not a
+#                         path (specs/model-sidecar/model-addition-workflow/hand-over.md). Each
+#                         entry must have it
+# fragments: the provenance of each fragment under specs/model-sidecar/examples/, keyed by its path
+# there. A fragment is a YAML file that is not a sidecar, in shared/ or next to a sidecar. A package
+# copy is not a source. The copy is unchanged, so an entry has no kind and no edits. An entry has
+# these keys:
+#   exporter, exporter_path, tracked, commit  as for examples
+#   notes                                     free text about the fragment
+# no_model: the sections that no model uses, keyed by section ID. The value is the reason of the
+# user. The user adds an entry. TRACEABILITY.md shows the reason in the "No model" column, and the
+# graduation gate accepts it in place of a kind: export example.
+
+examples:
+  detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133.yaml:
+    exporter: OpenMMLab-Exporter
+    exporter_path: exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133.yaml
+    kind: export
+    exporter_layout_path: null
+    tracked: false
+    commit: d1b6fb2d0efbafb12c785d96386c1253439b27af
+    edits: []
+    notes: >-
+      A byte copy of the sidecar that the exporter writer code wrote for the hand-over bundle. The
+      exporter turns off its sidecar output until the verdict describes, so exporter_path does not
+      exist yet. When the exporter turns it on, the same writer writes the same bytes there. The
+      sidecar has the real SHA-256 of each b3 ONNX file and no $ref. Version 4 is the opset 17
+      re-export (OpenMMLab-Exporter ADR-69KK): source.version 0.2.0 and new b3 hashes, with no
+      CPU node on the cuda or the trt-rtx plugin EP (OpenMMLab-Exporter ADR-DG2G).
+    bundle: model-rtmw-wholebody133@openmmlab-exporter@v4
+
+  detectors/object_detectors/yolox-person/yolox-person.yaml:
+    exporter: OpenMMLab-Exporter
+    exporter_path: exports/detectors/object_detectors/yolox-person/yolox-person.yaml
+    kind: export
+    exporter_layout_path: null
+    tracked: false
+    commit: dd8a72d9730aea0cfff088da7f7b034f6d4717d2
+    edits: []
+    notes: >-
+      A byte copy of the sidecar that the exporter writer code wrote for the hand-over bundle. The
+      exporter turns off its sidecar output until the verdict describes, so exporter_path does not
+      exist yet. When the exporter turns it on, the same writer writes the same bytes there. The
+      sidecar has the real SHA-256 of each b3 ONNX file and no $ref.
+    bundle: model-yolox-person@openmmlab-exporter@v4
+
+fragments: {}
+
+no_model: {}

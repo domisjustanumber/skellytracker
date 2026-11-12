@@ -1,0 +1,141 @@
+# tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
+# Hosts ignore `checks`. The names are the self-checks of the generator.
+section: pre.resize.affine_person_crop
+notes:
+  - "Normative text: specs/model-sidecar/pre/resize-affine-person-crop.md."
+  - "`target_size` is [height, width]. `bbox_xyxy` is the person box [x1, y1, x2, y2] in
+    source pixels. The rotation is 0."
+  - "The `expect` of a numeric case gives the centre of the crop, its size (`crop_w`,
+    `crop_h`) after the expansion and the aspect-ratio step, and the warp matrix M that
+    maps source pixels to model-input pixels."
+  - "A case with `function: none` is a data-only validator case: `input.sidecar` is the
+    sidecar, and `expect.failed` lists the rules of this section that it fails."
+  - "A case `<id>-inverse` applies the section's Inverse to one model-input position
+    (`model_xy`) of the case `<id>`."
+  - "A case with `function: border` gives `border`, the value of a pixel outside the
+    source image, one value for each channel. `pad_value` is `crop_policy.pad_value`."
+  - "A case with `compare` atol 1e-6 tests the float32 steps of Behaviour. At least one
+    value of each such case differs from the exact-math value by more than 1e-6 (in
+    aspect-fix-tie-keeps-h, only crop_h)."
+tolerance: 0.0001
+unverified: "No host implementation of the proposed text exists. The cases come from the
+  reference file of the proposal affine-crop-matrix."
+cases:
+  - id: coco-tall-box-float32-steps
+    note: "COCO val2017 annotation 187477, target 256x192. The box rounds to float32 first.
+      45.475 < 80.6 * 0.75, so w = h * a. M comes from the float32 points. It differs from
+      the exact-math M by 2.1e-3"
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [525.26, 280.49, 561.64, 344.97]}
+    expect:
+      center: [543.450012, 312.72998]
+      crop_w: 60.450012
+      crop_h: 80.600014
+      matrix: [[3.176175, 0, -1630.09224], [0, 3.176175, -865.285087]]
+    compare:
+      center: {atol: 0.000001}
+      crop_w: {atol: 0.000001}
+      crop_h: {atol: 0.000001}
+      matrix: {atol: 0.000001}
+  - id: coco-tall-box-float32-steps-inverse
+    function: inverse
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [525.26, 280.49, 561.64, 344.97], model_xy: [0, 0]}
+    expect: {source_xy: [513.224976, 272.429932]}
+  - id: coco-wide-box-float32-steps
+    note: "COCO val2017 annotation 1708970, target 256x192. 49.85 > 58.4 * 0.75, so h = w / a
+      in float32. M uses w and not h"
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [600.12, 379.28, 640, 426]}
+    expect:
+      center: [620.059998, 402.640015]
+      crop_w: 49.850006
+      crop_h: 66.466675
+      matrix: [[3.851557, 0, -2292.196145], [0, 3.851557, -1422.790786]]
+    compare:
+      center: {atol: 0.000001}
+      crop_w: {atol: 0.000001}
+      crop_h: {atol: 0.000001}
+      matrix: {atol: 0.000001}
+  - id: coco-box-target-384x288-float32-steps
+    note: "COCO val2017 annotation 1224758, target 384x288. h = w / a in float32. M differs
+      from the exact-math M by 2.8e-3"
+    params: {target_size: [384, 288], expand_ratio: 1.25, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [380.51, 37.97, 416.12, 83.38]}
+    expect:
+      center: [398.315002, 60.674999]
+      crop_w: 44.512482
+      crop_h: 59.349976
+      matrix: [[6.4701, 0, -2433.137805], [0, 6.470099, -200.573231]]
+    compare:
+      center: {atol: 0.000001}
+      crop_w: {atol: 0.000001}
+      crop_h: {atol: 0.000001}
+      matrix: {atol: 0.000001}
+  - id: aspect-fix-divides-by-a
+    note: "target 384x256, so a = f32(256 / 384) is not exact. w = 64.02 in float32 and w > 10
+      * a, so h = w / a = 96.029991. w * (384 / 256) in float32 gives 96.029999"
+    params: {target_size: [384, 256], expand_ratio: 1, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [0, 0, 64.02, 10]}
+    expect:
+      center: [32.009998, 5]
+      crop_w: 64.019997
+      crop_h: 96.029991
+      matrix: [[3.998751, 0, 0], [0, 3.998751, 172.006247]]
+    compare:
+      center: {atol: 0.000001}
+      crop_w: {atol: 0.000001}
+      crop_h: {atol: 0.000001}
+      matrix: {atol: 0.000001}
+  - id: aspect-fix-tie-keeps-h
+    note: "target 384x256 and expand_ratio 1. x2 is f32(100 * a), so w equals h * a in float32.
+      The comparison w > h * a is strict, so h stays 100. The other branch gives h = w / a
+      = 100.000008. In exact math w > h * T_w / T_h is true. M uses w only, so M is the
+      same in both texts. Only crop_h separates them"
+    params: {target_size: [384, 256], expand_ratio: 1, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [0, 0, 66.66667175292969, 100]}
+    expect:
+      center: [33.333336, 50]
+      crop_w: 66.666672
+      crop_h: 100
+      matrix: [[3.84, 0, 0], [0, 3.84, 0.000015]]
+    compare:
+      center: {atol: 0.000001}
+      crop_w: {atol: 0.000001}
+      crop_h: {atol: 0.000001}
+      matrix: {atol: 0.000001}
+  - id: aspect-ratio-not-kept-float32-steps
+    note: "maintain_aspect_ratio false: P2 is above the centre and uses h, so the x and y
+      scales of M differ. The box is that of coco-tall-box-float32-steps"
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: false}
+    input: {bbox_xyxy: [525.26, 280.49, 561.64, 344.97]}
+    expect:
+      center: [543.450012, 312.72998]
+      crop_w: 45.475006
+      crop_h: 80.600014
+      matrix: [[4.222102, 0, -2198.501558], [0, 3.176177, -865.285839]]
+    compare:
+      center: {atol: 0.000001}
+      crop_w: {atol: 0.000001}
+      crop_h: {atol: 0.000001}
+      matrix: {atol: 0.000001}
+  - id: aspect-ratio-not-kept-float32-steps-inverse
+    function: inverse
+    params: {target_size: [256, 192], expand_ratio: 1.25, maintain_aspect_ratio: false}
+    input: {bbox_xyxy: [525.26, 280.49, 561.64, 344.97], model_xy: [192, 256]}
+    expect: {source_xy: [566.1875, 353.029999]}
+  - id: expand-ratio-rounds-to-float32
+    note: "expand_ratio 1.1 is not exact in float32. e = f32(1.1) multiplies the float32 box
+      size. The box is that of coco-box-target-384x288-float32-steps"
+    params: {target_size: [256, 192], expand_ratio: 1.1, maintain_aspect_ratio: true}
+    input: {bbox_xyxy: [380.51, 37.97, 416.12, 83.38]}
+    expect:
+      center: [398.315002, 60.674999]
+      crop_w: 39.170986
+      crop_h: 52.227982
+      matrix: [[4.90159, 0, -1856.377003], [0, 4.901589, -169.403938]]
+    compare:
+      center: {atol: 0.000001}
+      crop_w: {atol: 0.000001}
+      crop_h: {atol: 0.000001}
+      matrix: {atol: 0.000001}

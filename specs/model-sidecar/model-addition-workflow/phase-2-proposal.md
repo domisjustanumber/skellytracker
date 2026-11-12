@@ -1,0 +1,136 @@
+# Phase 2: propose a spec change and its implementation
+
+Write one proposal for each new or changed contract unit
+([Proposal forms](hand-over.md#proposal-forms)). Fill
+`../freemocap/skellytracker/specs/model-sidecar/templates/change-proposal.md`. Each proposal is
+a `proposal` bundle, with the files that [Hand-over bundles](hand-over.md#payload) gives. Choose its
+form first ([Proposal forms](hand-over.md#proposal-forms)). The skill `propose-sidecar-change` gives
+the order of the steps. The intake names each proposal bundle. Then stop.
+
+## Before you write a proposal
+
+Do these checks before you write a proposal
+([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)):
+
+- Find your model in the heading "Scope of this revision" of
+  `../freemocap/skellytracker/specs/model-sidecar/changelog.md`. If it is not in the list, say so in
+  part 1. Do not write a scope entry. The model joins the list when the user accepts the proposal.
+- Read the table "Considered and deliberately not added" of the spec
+  (`../freemocap/skellytracker/specs/model-sidecar/changelog.md`). If your gap is in it, cite the
+  row in part 1. Give the evidence that a model needs the feature now.
+- Find the `proposed` entries of the skellytracker decision log that cover your rows. Read the index
+  in `../freemocap/skellytracker/specs/model-sidecar/decisions/README.md`. Also read each `proposed` entry
+  that the guidance of your sections cites. If an entry covers your rows, do not write a competing
+  proposal:
+  - Cite the entry in the header and in part 1.
+  - Add your evidence, your vectors and your parity plan in a contribution
+    ([Proposal forms](hand-over.md#proposal-forms)).
+  - If your rows need a different change, write a follow-up. Say where your proposal differs. Give
+    the reason in part 8.
+- If a proposal needs another proposal (for example, a decode that uses the unprojection of a new
+  crop), write its bundle ID in the header and in `depends_on` of the manifest. One parity script can serve several
+  proposals. Cite it in part 5 of each.
+
+## The parts of a proposal
+
+A proposal has eight parts:
+
+1. **Gap.** Give the property, its upstream evidence, and the reason why the nearest section is wrong.
+   Show it with a number where possible. Example: a `center` letterbox in place of `fit` gives an
+   input max abs diff of 35 on a 333×500 image 
+   ([OpenMMLab-Exporter ADR-0020](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/0020-rtmo-sidecar-contract.md)).
+2. **Spec change.** Write the exact normative text as it will appear in the spec:
+   - the new or changed sections;
+   - the fields table;
+   - the behaviour, forward and inverse;
+   - the validation rules, with new rule IDs;
+   - the selectors;
+   - the changelog row.
+
+   For each new step, state its behaviour on NaN, on inf, on a tie and on an empty input. If the
+   text does not define one of them, write `out of scope` for it.
+
+   Also find each place that the change must edit. Search the spec for each closed set or list that
+   the change extends, for example the `role` values, the `semantic` values, the resize methods, the
+   storage layout (`format.file_layout`), the Overview, the section map and the validation index
+   (`../freemocap/skellytracker/specs/model-sidecar/README.md`). Do not add a legacy difference, an
+   index row or an availability row
+   ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md) item 1). Also
+   find each rule that names one of these values, for example the rule
+   `V-pre.resize.affine_crop-2`: a sidecar with a top-down `keypoint.estimator_type` declares
+   `input.resize.method: affine_crop`. List each place in the proposal. These edits are part
+   of the same contract unit: a new role, with its enum and path edits, is one proposal. The
+   proposed text can contain YAML excerpts. Do not put a full sidecar in the proposed text. A
+   candidate example of the model is a separate file (part 7).
+3. **Reference implementation.** Write the smallest functions that implement exactly the proposed
+   text. Follow [Imports of other sections](reference-implementations.md#imports-of-other-sections).
+   Write one function for each algorithm. Each docstring cites the proposed section ID. Write the
+   code to `reference/<section_module>.py` in the proposal bundle. Make `<section_module>` from the
+   proposed section ID. If the proposal changes a section, follow
+   [Full section](reference-implementations.md#full-section)
+   ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md)). Name the file in the proposal. On acceptance, skellytracker adds it as
+   `specs/model-sidecar/reference/<section_module>.py`. It is informative spec code, not package code. It is
+   the single executable meaning of the new text. Your host decoder needs this behaviour, so the
+   reference implementation is the clean, minimal form of your host code. If no host code exists
+   yet, write the functions from the text of part 2. Write `source commit: none (no host code)` in
+   the note at the top of the file. Part 4 is then `unverified: no host implementation`.
+4. **Vectors.** A test vector is a small worked case: concrete inputs to the algorithm of one section,
+   and the exact expected output. Use geometry and small arrays. Do not use images or ONNX files. Make
+   the vectors with the reference implementation. Then verify the numeric cases against your host
+   implementation. [4. Vectors](../templates/change-proposal.md#4-vectors) of the template gives the
+   cases that run against your host implementation
+   ([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).
+   Include a case for each branch, each tie and each strict comparison. A case with a partial input
+   gives only a part of a sidecar or of the inputs of a step. Write in its `note` the rules that the
+   case checks. If a parameter can be a scalar
+   or one value for each channel (for example `pad_value`), include a case with a scalar value on a
+   3-channel input. Pixel-exact resize output is out of scope. If you need a pixel case, state its
+   tolerance in `compare`. Write the author keys of the vectors to `vectors/<section ID>.yaml` in the
+   proposal bundle, in the case form that part 4 of the template gives. Then run `fill` of
+   `tools/make_vectors.py` before `pack`. It writes `expect` from the reference implementation
+   ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md), item 6).
+   Give `fill` only the `reference/` folder of your own payload
+   ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)). Name
+   the file in part 4. On acceptance, `make_vectors.py land` merges your cases into
+   `specs/model-sidecar/vectors/<section ID>.yaml`. It runs the landed reference implementation
+   and compares each `expect` within the tolerance
+   ([ADR-8DSW](../../../decisions/entries/8DSW-vector-files-are-the-case-source.md), item 5).
+5. **Parity evidence.** Run the real model, with the reference implementation in place of the missing
+   spec feature. Follow [Parity](parity.md#parity). Give the numbers, the script and the commit. If you cannot run the
+   check yet, write `to run` and describe the script. A skellytracker session can record a proposal
+   with `to run` as `proposed`. Before the user accepts the proposal, part 5 must give the numbers,
+   the script and the commit.
+6. **skellytracker implementation proposal.** skellytracker does not build it now. It builds it when
+   it implements the spec. Write:
+   - where the code goes: a module and a function under `skellytracker/core/detectors/processing/`,
+     or a new module;
+   - the dispatch point, for example a branch in `preprocess_image`
+     (`skellytracker/core/detectors/processing/image_preprocessing.py`);
+   - the validator changes in `skellytracker/core/sidecar/model.py`, with rule IDs;
+   - the tests: the vectors, and a golden parity test;
+   - the existing skellytracker code that the change touches.
+
+   Read the package code in `../freemocap/skellytracker/skellytracker/`. The Steps column of
+   [Implementation status](../TRACEABILITY.md#implementation-status) names the code of each section.
+   Read the whole file that it names, also its helpers. Part 6 of the template names the other code
+   ([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).
+   This part is advisory: the implementer checks it. If you cannot find
+   a call site, write `for the implementer` and say what is not known. On acceptance, this text
+   becomes the implementer guidance of the section and an item of the implementation plan
+   ([ADR-5WKW](../../../decisions/entries/5WKW-implementation-work-in-the-plan.md)).
+7. **Exporter impact.** List each affected sidecar group: its owner repo, its inventory key or
+   model, and its change. Describe
+   the change to your own host decoder. Fill the table of the examples that the change makes invalid.
+   Use the section rows of `../freemocap/skellytracker/specs/model-sidecar/TRACEABILITY.md` and your
+   own reading of each example
+   ([When a spec change makes an example invalid](reference-examples.md#when-a-spec-change-makes-an-example-invalid)).
+
+   A candidate example is optional. Write it only after your host code implements the proposed text.
+   Your sidecar writer code writes it, with the proposed fields. Do not write it by hand. Put it in
+   `example/detectors/...` of the proposal bundle, in the storage layout, with each fragment that it
+   names. Write `example/provenance.yaml` with an `examples` entry and a `fragments` entry for each
+   fragment, with the keys of `specs/model-sidecar/inventory.yaml`. Run
+   `python ../freemocap/skellytracker/tools/sidecar_refs.py --check <sidecar>` on it. The candidate
+   shows the reviewer the full sidecar. It is not a spec example. After acceptance, the procedure
+   [Reference examples](reference-examples.md) copies your real export.
+8. **Alternatives considered.** Include the near-miss, and the reason why you rejected it.

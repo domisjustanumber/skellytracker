@@ -1,0 +1,247 @@
+# tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
+# Hosts ignore `checks`. The names are the self-checks of the generator.
+section: post.object.selection.none
+notes:
+  - "Normative text: specs/model-sidecar/post/object/selection-none.md and
+    specs/model-sidecar/post/object/decode.md."
+  - "`params` use the names of the `object.decode` fields, and `classes` for
+    `object.classes`. `kept_rows` are 0-based row indexes of the input, `scores` and
+    `class_indices` are the scores and the class indexes of the kept detections, in
+    output order."
+  - "Each case gives `boxes_xyxy` and `boxes_space`. A case without `resize` has
+    `boxes_space: model_input`. It stops before the unprojection, the clamp and the size
+    filter. Its boxes are the kept boxes in model-input pixels. A case with `resize` has
+    `boxes_space: source`. It also does the unprojection, the clamp and the size filter
+    (shared steps 3 to 5). Its boxes are the final boxes in source-image pixels. Each
+    box is the `output_xyxy` of post.unprojection, not its `source_xyxy`. Its
+    `input_size` and `resize` in `params`, and its `src_w` and `src_h` in `input`, are
+    those of specs/model-sidecar/post/unprojection.md
+    (specs/model-sidecar/vectors/post.unprojection.yaml). Decision:
+    decisions/entries/17KN-one-selection-pipeline.md. Every score and threshold gives
+    the same result in float32 and in float64."
+tolerance: 0.00001
+checks: [float32-stable]
+unverified: "No independent implementation has run these vectors yet. They come from the section
+  text only."
+cases:
+  - id: threshold-is-strict
+    note: "rows 0 and 3 have score == threshold: both are dropped"
+    params: {classes: [person, car], score_field: score, class_field: class_index, min_score: 0.5}
+    input:
+      fields: [x1, y1, x2, y2, score, class_index]
+      rows:
+        - [0, 0, 8, 8, 0.5, 0]
+        - [10, 0, 18, 8, 0.875, 0]
+        - [20, 0, 28, 8, 0.25, 0]
+        - [30, 0, 38, 8, 0.5, 1]
+        - [40, 0, 48, 8, 0.75, 1]
+    expect:
+      kept_rows: [1, 4]
+      scores: [0.875, 0.75]
+      class_indices: [0, 1]
+      boxes_xyxy: [[10, 0, 18, 8], [40, 0, 48, 8]]
+      boxes_space: model_input
+  - id: default-confidence-threshold
+    note: "min_score is absent: the default is 0.7"
+    params: {classes: [person], score_field: score, class_field: class_index}
+    input:
+      fields: [x1, y1, x2, y2, score, class_index]
+      rows:
+        - [0, 0, 8, 8, 0.9, 0]
+        - [10, 0, 18, 8, 0.65, 0]
+        - [20, 0, 28, 8, 0.75, 0]
+        - [30, 0, 38, 8, 0.5, 0]
+    expect:
+      kept_rows: [0, 2]
+      scores: [0.9, 0.75]
+      class_indices: [0, 0]
+      boxes_xyxy: [[0, 0, 8, 8], [20, 0, 28, 8]]
+      boxes_space: model_input
+  - id: keep-classes-drops-the-other-classes
+    note: "keep_classes has no car (class 1): rows 1 and 4 are dropped; the others keep their
+      class index"
+    params:
+      classes: [person, car, bicycle, dog]
+      score_field: score
+      class_field: class_index
+      min_score: 0.25
+      keep_classes: [person, bicycle, dog]
+    input:
+      fields: [x1, y1, x2, y2, score, class_index]
+      rows:
+        - [0, 0, 8, 8, 0.9, 0]
+        - [10, 0, 18, 8, 0.875, 1]
+        - [20, 0, 28, 8, 0.75, 2]
+        - [30, 0, 38, 8, 0.625, 3]
+        - [40, 0, 48, 8, 0.5, 1]
+        - [50, 0, 58, 8, 0.375, 3]
+    expect:
+      kept_rows: [0, 2, 3, 5]
+      scores: [0.9, 0.75, 0.625, 0.375]
+      class_indices: [0, 2, 3, 3]
+      boxes_xyxy: [[0, 0, 8, 8], [20, 0, 28, 8], [30, 0, 38, 8], [50, 0, 58, 8]]
+      boxes_space: model_input
+  - id: null-class-is-dropped
+    note: "class 1 is null (a gap): rows 1 and 3 are dropped, also with no keep_classes"
+    params:
+      classes: [person, null, car]
+      score_field: score
+      class_field: class_index
+      min_score: 0.25
+    input:
+      fields: [x1, y1, x2, y2, score, class_index]
+      rows:
+        - [0, 0, 8, 8, 0.9, 0]
+        - [10, 0, 18, 8, 0.8, 1]
+        - [20, 0, 28, 8, 0.7, 2]
+        - [30, 0, 38, 8, 0.6, 1]
+    expect:
+      kept_rows: [0, 2]
+      scores: [0.9, 0.7]
+      class_indices: [0, 2]
+      boxes_xyxy: [[0, 0, 8, 8], [20, 0, 28, 8]]
+      boxes_space: model_input
+  - id: null-class-is-dropped-with-keep-classes
+    note: "class 1 is null and keep_classes is [car]: only row 2 stays"
+    params:
+      classes: [person, null, car]
+      score_field: score
+      class_field: class_index
+      min_score: 0.25
+      keep_classes: [car]
+    input:
+      fields: [x1, y1, x2, y2, score, class_index]
+      rows:
+        - [0, 0, 8, 8, 0.9, 0]
+        - [10, 0, 18, 8, 0.8, 1]
+        - [20, 0, 28, 8, 0.7, 2]
+        - [30, 0, 38, 8, 0.6, 1]
+    expect:
+      kept_rows: [2]
+      scores: [0.7]
+      class_indices: [2]
+      boxes_xyxy: [[20, 0, 28, 8]]
+      boxes_space: model_input
+  - id: class-is-the-model-class-index
+    note: "with no keep_classes, the class of each kept detection is its model class index"
+    params:
+      classes: [person, car, bicycle]
+      score_field: score
+      class_field: class_index
+      min_score: 0.25
+    input:
+      fields: [x1, y1, x2, y2, score, class_index]
+      rows: [[0, 0, 8, 8, 0.75, 0], [10, 0, 18, 8, 0.5, 2]]
+    expect:
+      kept_rows: [0, 1]
+      scores: [0.75, 0.5]
+      class_indices: [0, 2]
+      boxes_xyxy: [[0, 0, 8, 8], [10, 0, 18, 8]]
+      boxes_space: model_input
+  - id: keep-one-class-with-class-field
+    note: "the class indexes are 0, 1, 0, 2; keep_classes is [person] (index 0), so rows 0 and
+      2 stay"
+    params:
+      classes: [person, car, bicycle]
+      score_field: score
+      class_field: class_index
+      min_score: 0.25
+      keep_classes: [person]
+    input:
+      fields: [x1, y1, x2, y2, score, class_index]
+      rows:
+        - [0, 0, 8, 8, 0.875, 0]
+        - [10, 0, 18, 8, 0.75, 1]
+        - [20, 0, 28, 8, 0.625, 0]
+        - [30, 0, 38, 8, 0.5, 2]
+    expect:
+      kept_rows: [0, 2]
+      scores: [0.875, 0.625]
+      class_indices: [0, 0]
+      boxes_xyxy: [[0, 0, 8, 8], [20, 0, 28, 8]]
+      boxes_space: model_input
+  - id: no-class-source-gives-class-zero
+    note: "no class source: every candidate has the class index 0 of the one class; row 1 has
+      score == threshold"
+    params: {classes: [person], scores_output: scores, min_score: 0.5}
+    input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8], [20, 0, 28, 8]], scores: [0.875, 0.5, 0.75]}
+    expect:
+      kept_rows: [0, 2]
+      scores: [0.875, 0.75]
+      class_indices: [0, 0]
+      boxes_xyxy: [[0, 0, 8, 8], [20, 0, 28, 8]]
+      boxes_space: model_input
+  - id: max-detections-does-not-pad
+    note: "the graph gives max_detections = 4 rows; 2 pass the threshold, so the output has 2 rows"
+    params:
+      classes: [person]
+      score_field: score
+      class_field: class_index
+      max_detections: 4
+      min_score: 0.5
+    input:
+      fields: [x1, y1, x2, y2, score, class_index]
+      rows:
+        - [0, 0, 8, 8, 0.875, 0]
+        - [10, 0, 18, 8, 0.75, 0]
+        - [20, 0, 28, 8, 0.25, 0]
+        - [30, 0, 38, 8, 0.125, 0]
+    expect:
+      kept_rows: [0, 1]
+      scores: [0.875, 0.75]
+      class_indices: [0, 0]
+      boxes_xyxy: [[0, 0, 8, 8], [10, 0, 18, 8]]
+      boxes_space: model_input
+  - id: no-nms-for-overlapping-boxes
+    note: "two identical boxes: selection none does not suppress either of them"
+    params: {classes: [person], score_field: score, class_field: class_index, min_score: 0.5}
+    input:
+      fields: [x1, y1, x2, y2, score, class_index]
+      rows: [[0, 0, 10, 10, 0.875, 0], [0, 0, 10, 10, 0.75, 0]]
+    expect:
+      kept_rows: [0, 1]
+      scores: [0.875, 0.75]
+      class_indices: [0, 0]
+      boxes_xyxy: [[0, 0, 10, 10], [0, 0, 10, 10]]
+      boxes_space: model_input
+  - id: box-format-cxcywh
+    note: "centre and size become corners: [40, 35, 60, 45]"
+    params:
+      classes: [person]
+      score_field: score
+      class_field: class_index
+      box_format: cxcywh
+      min_score: 0.5
+    input:
+      fields: [x1, y1, x2, y2, score, class_index]
+      rows: [[50, 40, 20, 10, 0.75, 0], [30, 30, 8, 8, 0.25, 0]]
+    expect:
+      kept_rows: [0]
+      scores: [0.75]
+      class_indices: [0]
+      boxes_xyxy: [[40, 35, 60, 45]]
+      boxes_space: model_input
+  - id: box-format-xywh
+    note: "top-left corner and size become corners: [40, 35, 60, 45]"
+    params:
+      classes: [person]
+      score_field: score
+      class_field: class_index
+      box_format: xywh
+      min_score: 0.5
+    input:
+      fields: [x1, y1, x2, y2, score, class_index]
+      rows: [[40, 35, 20, 10, 0.75, 0], [30, 30, 8, 8, 0.25, 0]]
+    expect:
+      kept_rows: [0]
+      scores: [0.75]
+      class_indices: [0]
+      boxes_xyxy: [[40, 35, 60, 45]]
+      boxes_space: model_input
+  - id: no-row-passes
+    note: "the output is empty"
+    params: {classes: [person], score_field: score, class_field: class_index, min_score: 0.9}
+    input:
+      fields: [x1, y1, x2, y2, score, class_index]
+      rows: [[0, 0, 8, 8, 0.875, 0], [10, 0, 18, 8, 0.75, 0]]
+    expect: {kept_rows: [], scores: [], class_indices: [], boxes_xyxy: [], boxes_space: model_input}

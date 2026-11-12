@@ -1,0 +1,105 @@
+# tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
+# Hosts ignore `checks`. The names are the self-checks of the generator.
+section: common.license
+notes:
+  - "Normative text: specs/model-sidecar/common/license.md."
+  - "Each case is a data-only validator case (`function: none`): `input.sidecar` shows
+    only the license block, and `expect.failed` lists the rules of this section that it
+    fails. Each case checks only the rules of this section."
+tolerance: 0
+unverified: "No validator has run these cases yet. They come from the section text only."
+cases:
+  - id: complete-block
+    note: "a model license and one training dataset with a LicenseRef id and its url."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        license:
+          model: {id: Apache-2.0, url: "https://example.org/LICENSE"}
+          training_data:
+            - name: demo-set
+              url: "https://example.org/data"
+              use: training
+              license: {id: "CC-BY-4.0 AND LicenseRef-Demo-Terms", url: "https://example.org/terms"}
+    expect: {failed: []}
+  - id: unknown-training-data-with-a-reason
+    note: "training_data is unknown, and training_data_unknown_reason gives the sources and the
+      date."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        license:
+          model: {id: MIT}
+          training_data: unknown
+          training_data_unknown_reason: "Not public: the model card and the paper name no dataset (checked 2026-11-09)."
+    expect: {failed: []}
+  - id: extra-key-in-license
+    note: "the license mapping has a key that the section does not define."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        license:
+          model: {id: MIT}
+          training_data: [{name: demo-set, use: training, license: {id: MIT}}]
+          notes: "free text"
+    expect: {failed: [V-common.license-1]}
+  - id: license-object-with-an-extra-key
+    note: "a license object has the key version, which the section does not define."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        license:
+          model: {id: MIT, version: "1"}
+          training_data: [{name: demo-set, use: training, license: {id: MIT}}]
+    expect: {failed: [V-common.license-2]}
+  - id: licenseref-without-a-url
+    note: "a LicenseRef id needs the url of the license text."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        license:
+          model: {id: MIT}
+          training_data: [{name: demo-set, use: training, license: {id: LicenseRef-Demo-Terms}}]
+    expect: {failed: [V-common.license-3]}
+  - id: unknown-id-without-a-reason
+    note: "a dataset license id is unknown, and unknown_reason is absent."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        license:
+          model: {id: MIT}
+          training_data: [{name: demo-set, use: training, license: {id: unknown}}]
+    expect: {failed: [V-common.license-4]}
+  - id: unknown-model-license
+    note: "the license of the weights must be known. unknown_reason is present, so only
+      V-common.license-5 fails."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        license:
+          model: {id: unknown, unknown_reason: "No license file (checked 2026-11-09)."}
+          training_data: [{name: demo-set, use: training, license: {id: MIT}}]
+    expect: {failed: [V-common.license-5]}
+  - id: empty-training-data
+    note: "training_data must be unknown or a non-empty array."
+    function: none
+    params: {}
+    input: {sidecar: {license: {model: {id: MIT}, training_data: []}}}
+    expect: {failed: [V-common.license-6]}
+  - id: dataset-with-a-bad-use
+    note: "use must be pretraining or training."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        license:
+          model: {id: MIT}
+          training_data: [{name: demo-set, use: finetuning, license: {id: MIT}}]
+    expect: {failed: [V-common.license-7]}

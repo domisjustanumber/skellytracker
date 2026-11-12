@@ -1,0 +1,142 @@
+# tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
+# Hosts ignore `checks`. The names are the self-checks of the generator.
+section: post.object.selection.top_k
+notes:
+  - "Normative text: specs/model-sidecar/post/object/selection-top-k.md and
+    specs/model-sidecar/post/object/decode.md."
+  - "`params` use the names of the `object.decode` fields, and `classes` for
+    `object.classes`. `kept_rows` are 0-based row indexes of the input, `scores` and
+    `class_indices` are the scores and the class indexes of the kept detections, in
+    output order."
+  - "Each case gives `boxes_xyxy` and `boxes_space`. A case without `resize` has
+    `boxes_space: model_input`. It stops before the unprojection, the clamp and the size
+    filter. Its boxes are the kept boxes in model-input pixels. A case with `resize` has
+    `boxes_space: source`. It also does the unprojection, the clamp and the size filter
+    (shared steps 3 to 5). Its boxes are the final boxes in source-image pixels. Each
+    box is the `output_xyxy` of post.unprojection, not its `source_xyxy`. Its
+    `input_size` and `resize` in `params`, and its `src_w` and `src_h` in `input`, are
+    those of specs/model-sidecar/post/unprojection.md
+    (specs/model-sidecar/vectors/post.unprojection.yaml). Decision:
+    decisions/entries/17KN-one-selection-pipeline.md. Every score and threshold gives
+    the same result in float32 and in float64."
+  - "`class_logits` is [Q, C] (rows, classes). `boxes` is [Q, 4]. A selected pair is a
+    (row, class); one row can be selected for several classes."
+tolerance: 0.00001
+checks: [float32-stable]
+unverified: "No independent implementation has run these vectors yet. They come from the section
+  text only. skellytracker has no code for this section."
+cases:
+  - id: several-classes-on-one-row
+    note: "the top 3 pairs are (2, 1), (0, 0) and (0, 1): row 0 is selected twice, with two classes"
+    params: {classes: [person, car, bicycle], top_k: 3, min_score: 0.25}
+    input:
+      boxes: [[0, 0, 8, 8], [10, 0, 18, 8], [20, 0, 28, 8]]
+      class_logits: [[0.9, 0.8, 0.1], [0.2, 0.3, 0.1], [0.4, 0.95, 0.05]]
+    expect:
+      kept_rows: [2, 0, 0]
+      scores: [0.95, 0.9, 0.8]
+      class_indices: [1, 0, 1]
+      boxes_xyxy: [[20, 0, 28, 8], [0, 0, 8, 8], [0, 0, 8, 8]]
+      boxes_space: model_input
+  - id: ties-keep-the-lower-flat-index
+    note: "all scores are equal: flat indexes 0, 1, 2 are selected (rows 0, 0, 1)"
+    params: {classes: [person, car], top_k: 3, min_score: 0.25}
+    input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8]], class_logits: [[0.5, 0.5], [0.5, 0.5]]}
+    expect:
+      kept_rows: [0, 0, 1]
+      scores: [0.5, 0.5, 0.5]
+      class_indices: [0, 1, 0]
+      boxes_xyxy: [[0, 0, 8, 8], [0, 0, 8, 8], [10, 0, 18, 8]]
+      boxes_space: model_input
+  - id: top-k-larger-than-the-candidates
+    note: "min(top_k, Q * C) = 4 pairs are selected"
+    params: {classes: [person, car], top_k: 10, min_score: 0.25}
+    input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8]], class_logits: [[0.75, 0.5], [0.625, 0.875]]}
+    expect:
+      kept_rows: [1, 0, 1, 0]
+      scores: [0.875, 0.75, 0.625, 0.5]
+      class_indices: [1, 0, 0, 1]
+      boxes_xyxy: [[10, 0, 18, 8], [0, 0, 8, 8], [10, 0, 18, 8], [0, 0, 8, 8]]
+      boxes_space: model_input
+  - id: keep-classes-lowers-the-count
+    note: "the top 3 pairs are (0, 0), (0, 1), (1, 0); class 0 (car) is not in keep_classes;
+      pair (1, 1) does not take their place"
+    params: {classes: [car, person], top_k: 3, min_score: 0.25, keep_classes: [person]}
+    input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8]], class_logits: [[0.9, 0.8], [0.7, 0.6]]}
+    expect:
+      kept_rows: [0]
+      scores: [0.8]
+      class_indices: [1]
+      boxes_xyxy: [[0, 0, 8, 8]]
+      boxes_space: model_input
+  - id: top-k-limit-comes-before-the-confidence-filter
+    note: "the top 2 pairs have scores 0.9 and 0.8; 0.8 is dropped; 0.7 does not take its place"
+    params: {classes: [person, car], top_k: 2, min_score: 0.85}
+    input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8]], class_logits: [[0.9, 0.8], [0.7, 0.6]]}
+    expect:
+      kept_rows: [0]
+      scores: [0.9]
+      class_indices: [0]
+      boxes_xyxy: [[0, 0, 8, 8]]
+      boxes_space: model_input
+  - id: sigmoid-and-strict-threshold
+    note: "sigmoid(0) = 0.5 is not above the threshold 0.5; the kept scores are sigmoid values"
+    params: {classes: [person, car], top_k: 4, score_activation: sigmoid, min_score: 0.5}
+    input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8]], class_logits: [[0, 2], [-2, 4]]}
+    expect:
+      kept_rows: [1, 0]
+      scores: [0.982014, 0.880797]
+      class_indices: [1, 1]
+      boxes_xyxy: [[10, 0, 18, 8], [0, 0, 8, 8]]
+      boxes_space: model_input
+  - id: default-confidence-threshold
+    note: "min_score is absent: the default is 0.7; 0.75 stays and 0.65 is dropped"
+    params: {classes: [person, car], top_k: 4}
+    input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8]], class_logits: [[0.9, 0.65], [0.75, 0.5]]}
+    expect:
+      kept_rows: [0, 1]
+      scores: [0.9, 0.75]
+      class_indices: [0, 0]
+      boxes_xyxy: [[0, 0, 8, 8], [10, 0, 18, 8]]
+      boxes_space: model_input
+  - id: keep-one-class
+    note: "only class 0 (person) stays: pairs (0, 0) and (1, 0)"
+    params: {classes: [person, car], top_k: 4, min_score: 0.25, keep_classes: [person]}
+    input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8]], class_logits: [[0.9, 0.8], [0.7, 0.6]]}
+    expect:
+      kept_rows: [0, 1]
+      scores: [0.9, 0.7]
+      class_indices: [0, 0]
+      boxes_xyxy: [[0, 0, 8, 8], [10, 0, 18, 8]]
+      boxes_space: model_input
+  - id: class-is-the-model-class-index
+    note: "with no keep_classes, the class of each pair is its model class index"
+    params: {classes: [person, car], top_k: 2, min_score: 0.25}
+    input: {boxes: [[0, 0, 8, 8], [10, 0, 18, 8]], class_logits: [[0.9, 0.8], [0.7, 0.6]]}
+    expect:
+      kept_rows: [0, 0]
+      scores: [0.9, 0.8]
+      class_indices: [0, 1]
+      boxes_xyxy: [[0, 0, 8, 8], [0, 0, 8, 8]]
+      boxes_space: model_input
+  - id: size-filter-comes-after-the-top-k-limit
+    note: "the top 2 pairs are rows 0 and 1. The size filter drops row 0: its width 10 is not
+      more than 10. Row 2 does not take its place"
+    params:
+      classes: [person]
+      top_k: 2
+      min_box_size: 10
+      input_size: [100, 100]
+      resize: {method: none}
+      min_score: 0.25
+    input:
+      src_w: 100
+      src_h: 100
+      boxes: [[0, 0, 10, 10], [50, 50, 70, 70], [20, 0, 40, 20]]
+      class_logits: [[0.9], [0.8], [0.7]]
+    expect:
+      kept_rows: [1]
+      scores: [0.8]
+      class_indices: [0]
+      boxes_xyxy: [[50, 50, 70, 70]]
+      boxes_space: source

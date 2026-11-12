@@ -1,0 +1,63 @@
+---
+id: post.object.selection.none
+title: "Selection: none"
+kind: postprocessor
+selectors:
+  - object.decode.selection=none
+implemented_by:
+  validate: skellytracker/core/sidecar/model.py::DetectionDecodeSpec._check_ranges  # partial: it checks only max_detections > 0; no rule for forbidden fields or the row count
+  decode: skellytracker/core/detectors/processing/object_detection_decode.py::decode_nms_baked_in  # partial: the score is column 4; no class filter, clamp or size filter; the caller gives the threshold
+external_impl: []
+tests:
+  - skellytracker/tests/sidecar/test_model_validation.py
+  - skellytracker/tests/test_object_detection_decode.py
+  - skellytracker/tests/test_yolox_detector.py
+vectors: vectors/post.object.selection.none.yaml
+status: {spec: stable, validate: partial, decode: partial}
+---
+
+# Selection: none
+
+## Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `max_detections` | int | no | The fixed number of final rows that the graph emits (for example `300` for YOLO26). This field is valid only with `selection: none`. It is never a host-side cap. It has no default. |
+
+`max_detections` is a field of [`object.decode`](decode.md#objectdecode). That section defines the other `object.decode` fields.
+
+## Behaviour
+
+Score comparisons and tie-breaking: [Selection behaviour](decode.md#selection-behaviour).
+
+**`selection: none`** — the primary output rows are already final detections (for example the NMS-free head of YOLO26).
+
+1. Resolve the score of each row (`score_field` or `scores_output`). Resolve the class index of each row (`class_field`). If this field is absent, there is no class source.
+2. Do shared step 1 (class filter) of [Selection behaviour](decode.md#selection-behaviour).
+3. Do the shared steps 2 to 5 (box conversion, unprojection, clamp and size filter).
+4. Do shared step 6 (score threshold). Do not run NMS. The host does not pad or truncate the rows to reach `max_detections`.
+
+Keypoint rows of a model with both roles: [Bottom-up decode](../keypoint/bottom-up.md#bottom-up-decode).
+
+## Validation rules
+
+### Object (`object_detector`)
+
+- [ ] `V-post.object.selection.none-1` A sidecar with `selection: none` must not have `top_k`, `nms` or `class_logits_output`. If `max_detections` is present, it must be a positive integer. When the row dimension of the primary output is concrete, this value must equal that dimension.
+
+See also [Object decode](decode.md#validation-rules).
+
+## Implementer guidance
+
+- Ultralytics consumes the end-to-end rows with `mask = pred[:, 4] > conf_thres` and `idx = mask.nonzero()[:max_det]`. It does not sort and it does not run NMS. These are the steps of `selection: none`: a strict comparison and no NMS. The `max_det` cap does nothing for 300 rows. (ultralytics 8.4.184 `utils/nms.py:71-78`, installed copy in the Ultralytics-Exporter `.venv`)
+- A YOLO26 graph gives `max_det` (300) rows for each image, in descending score order. The in-graph top-k runs over (anchor, class) pairs, so one box can repeat with different class ids. (ultralytics 8.4.184 `nn/modules/head.py:92-102, 266-288`, installed copy in the Ultralytics-Exporter `.venv`)
+- The spec does not define the order of the final rows for `selection: none`. The decision log records this point ([spec defects](../../decisions/README.md#open-work), item on the test vectors).
+- YOLO26 box mAP50-95 on COCO val2017 at batch 2, PyTorch against fp32 ONNX: nano 0.4023 / 0.3971, small 0.4801 / 0.4717, medium 0.5238 / 0.5193, large 0.5444 / 0.5357, xlarge 0.5683 / 0.5635. The numbers come from the Ultralytics validator at its defaults (`conf` 0.001, `max_det` 300, `rect` off for a static ONNX). They do not come from a skellytracker host. (Ultralytics-Exporter `exports/detectors/object_detectors/yolo26/yolo26-nano_b2_fp32.report.json` and the reports of the other sizes, field `performance.pytorch.ap` and `performance.converted.ap`, untracked, HEAD 2e0280e050fb2bb16bf7f9a1ba89af5f18db67d4; [`yolo_validation.py:170-176`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_validation.py#L170-L176), [`yolo_validation.py:271-278`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_validation.py#L271-L278); ultralytics 8.4.184 `engine/validator.py:144-145, 232-233`, installed copy in the Ultralytics-Exporter `.venv`)
+
+## Authoring guidance
+
+- RTMO keeps the in-graph NMS of mmdeploy, so it uses `selection: none` with `score_field: score`. It declares no `max_detections`: the real graph returned 4 and 11 rows on two val images. It declares `min_score` 0.1: an image with no person still returned one row with a score of about 6e-8. (OpenMMLab-Exporter [`notes/decisions/0020-rtmo-sidecar-contract.md:64-69`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/0020-rtmo-sidecar-contract.md#L64-L69), [`notes/decisions/0020-rtmo-sidecar-contract.md:99-103`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/38ed76f1221d68987e1d56b84daa99559d97588c/notes/decisions/0020-rtmo-sidecar-contract.md#L99-L103))
+- YOLO26: `max_detections` 300 follows from the export argument `max_det=300`. The argument `nms=False` selects the end-to-end one2one head, because Ultralytics sets `model.end2end` only for the literal `False`. The ONNX metadata shows `end2end` `True`. The exporter reads `max_detections` back from the output `shape[1]`. (Ultralytics-Exporter [`export_all.py:50-57`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/69499e7d292e6f3583ab9429c45a334af3377097/export_all.py#L50-L57); [`yolo_sidecar.py:481-484`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/69499e7d292e6f3583ab9429c45a334af3377097/yolo_sidecar.py#L481-L484), [`yolo_sidecar.py:490`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/69499e7d292e6f3583ab9429c45a334af3377097/yolo_sidecar.py#L490); `exports/detectors/object_detectors/yolo26/yolo26-nano_b2_fp32.onnx`, untracked, HEAD 2e0280e050fb2bb16bf7f9a1ba89af5f18db67d4)
+- Describe the graph, not `pipeline.json`. Record the in-graph NMS parameters and caps. The deploy config of mmdeploy for RTMO sets `pre_top_k=2000` and `keep_top_k=50`, and the deploy configs of the exporter inherit them. The AP effect is not checked, because the mmdeploy base file is not in the repo. Comparable caps cost -0.0114 AP on RTMDet-person-medium. (OpenMMLab-Exporter [`rtmo/README.md:16-21`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/c85abf7da34d1e4da7c129f3382173f7153f60fa/rtmo/README.md#L16-L21); [`notes/decisions/0008-cut-nms-tail.md:24-35`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/c955162d91998b94fc52d932ab6623a9f2a89a1f/notes/decisions/0008-cut-nms-tail.md#L24-L35))
+- The SDK zip of the mmpose RTMDet-hand model bakes NMS into its `end2end.onnx` with IoU 0.5, `pre_top_k` 5000, 200 boxes for each class and `keep_top_k` 100. Its `pipeline.json` and the model config say IoU 0.6. (the untracked hand models plan of OpenMMLab-Exporter (secondary))
+- Pre-NMS anchor rows are not final rows. The MediaPipe person detector emits 896 pre-NMS anchor rows, so `selection: none` does not apply to it. (Qualcomm-Exporter [`qai_sidecar.py:124-133`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_sidecar.py#L124-L133))
