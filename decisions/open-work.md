@@ -8,8 +8,9 @@ your task.
 
 ## Implementation stage
 
-The implementation-stage work is in the stages M7 to M12 of the
-[implementation plan](../specs/sidecar-implementation-plan.md) ([ADR-5WKW](entries/5WKW-implementation-work-in-the-plan.md)).
+The implementation-stage work is in the stages of phase 1 and phase 2 of the
+[implementation plan](../specs/sidecar-implementation-plan.md) ([ADR-5WKW](entries/5WKW-implementation-work-in-the-plan.md);
+[ADR-NHM3](entries/NHM3-phases-to-the-exporter-checkpoint.md)).
 
 ## Repository state
 
