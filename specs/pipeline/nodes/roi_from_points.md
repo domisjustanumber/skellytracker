@@ -52,20 +52,10 @@ place of `keypoint_bbox` in a pipeline, but it does not reproduce `keypoint_bbox
   is a point name of the input.
 - `alignment_start` and `alignment_end` are used by the size rule `alignment`, and by the size rule
   `bounds` when `target_rotation_deg` is given. In other cases the node does not use them.
-- `derived_points` has the map form of the sidecar
+- `derived_points` has the forms, the missing rule and the score rule of the sidecar
   [`keypoint.derived_points`](../../model-sidecar/post/keypoint/schema.md#keypointderived_points)
-  ([ADR-88WQ](../../../decisions/entries/88WQ-sidecar-vocabulary.md) item 6). This is a copy of that
-  definition. Each entry is a name and one derivation:
-
-  | Form | YAML | Meaning |
-  |------|------|---------|
-  | passthrough | `wrist2: body.wrist` | The derived point is the point with that name. |
-  | mean | `mid: [body.left_hip, body.right_hip]` | The derived point is the unweighted mean of the listed points. |
-  | weighted | `tip: {body.wrist: -0.5, body.index: 1.5}` | The derived point is the weighted sum of the listed points. The node uses the weights as given. The weights must sum to 1, within an absolute tolerance of `1e-6`. A weight can be negative. |
-
-  A derived point is missing when one or more of its sources are missing. The score of a derived
-  point is the minimum of the scores of its sources. The sidecar form `[prefix]` is not allowed in a
-  pipeline file.
+  ([ADR-88WQ](../../../decisions/entries/88WQ-sidecar-vocabulary.md) items 6 and 7). Each source is a
+  point name of the input. The sidecar form `[prefix]` is not allowed in a pipeline file.
 
 ## Behaviour
 
