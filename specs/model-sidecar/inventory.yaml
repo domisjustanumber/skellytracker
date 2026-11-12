@@ -41,14 +41,16 @@ examples:
     kind: export
     exporter_layout_path: null
     tracked: false
-    commit: dd8a72d9730aea0cfff088da7f7b034f6d4717d2
+    commit: d1b6fb2d0efbafb12c785d96386c1253439b27af
     edits: []
     notes: >-
       A byte copy of the sidecar that the exporter writer code wrote for the hand-over bundle. The
       exporter turns off its sidecar output until the verdict describes, so exporter_path does not
       exist yet. When the exporter turns it on, the same writer writes the same bytes there. The
-      sidecar has the real SHA-256 of each b3 ONNX file and no $ref.
-    bundle: model-rtmw-wholebody133@openmmlab-exporter@v3
+      sidecar has the real SHA-256 of each b3 ONNX file and no $ref. Version 4 is the opset 17
+      re-export (OpenMMLab-Exporter ADR-69KK): source.version 0.2.0 and new b3 hashes, with no
+      CPU node on the cuda or the trt-rtx plugin EP (OpenMMLab-Exporter ADR-DG2G).
+    bundle: model-rtmw-wholebody133@openmmlab-exporter@v4
 
   detectors/object_detectors/yolox-person/yolox-person.yaml:
     exporter: OpenMMLab-Exporter

@@ -2,7 +2,7 @@
 schema_version: "2.0.0"
 source:
   name: openmmlab-exporter
-  version: 0.1.0
+  version: 0.2.0
 model_id: rtmw-wholebody133
 display_name: RTMW WholeBody
 role:
@@ -607,10 +607,10 @@ sizes:
       precision_artifacts:
         fp32:
           filename: rtmw-wholebody133-m_b3_fp32.onnx
-          sha256: 9deb3b12b3e7ec09a4e6714e81c9b1c4add84915bd9cc08e7ef896e2be27c766
+          sha256: 77fb20ae9d7b1bf3021029d482b24c3d5f5994bf0cc895debfc052382c4c14db
         fp16:
           filename: rtmw-wholebody133-m_b3_fp16.onnx
-          sha256: 18d188fe822aed101924015be001f24497e90f0a7c12ec61fe4078ca9aa7f663
+          sha256: c9e01ef287f2c18e75828153167af21d10f9f4fd5119cbef61e34c15e4a90179
       output_shapes:
       - - 3
         - -1
@@ -633,10 +633,10 @@ sizes:
       precision_artifacts:
         fp32:
           filename: rtmw-wholebody133-l-256_b3_fp32.onnx
-          sha256: 55142772c3eaf7e92d1e4c0751abb68421c222b0654f145411a4af9347d78b74
+          sha256: b1e3296d35441eb8445fe1c9bac1e97a07bd7d87e97639e054d187ce6ffb9a39
         fp16:
           filename: rtmw-wholebody133-l-256_b3_fp16.onnx
-          sha256: ff2279b5058380c511dd65dfa243341f3da14cbcb8466dd30b94126a303fd93d
+          sha256: 5a024db8ec53240ca6785e328560fb3fd3fb3c1cbfde3be0597204b16828e25a
       output_shapes:
       - - 3
         - -1
@@ -659,10 +659,10 @@ sizes:
       precision_artifacts:
         fp32:
           filename: rtmw-wholebody133-x-256_b3_fp32.onnx
-          sha256: 84b270f7931f7f2fb29853bb216ff56c1b2388743a28d65e50f70249b113fd92
+          sha256: 1437f4614bc04a351573a90e939e3289cee92c0bc9c0ee88ca5e8fe734cd5676
         fp16:
           filename: rtmw-wholebody133-x-256_b3_fp16.onnx
-          sha256: 2c934932e017105158d34b682d6da942a844ebfcd69a80e8e660536fab70bc89
+          sha256: a23f019ea6e9abd032879cc9b39362a4b27ae68784157f5473c8ae5259677c31
       output_shapes:
       - - 3
         - -1
@@ -685,10 +685,10 @@ sizes:
       precision_artifacts:
         fp32:
           filename: rtmw-wholebody133-l-384_b3_fp32.onnx
-          sha256: 7fe2674a61dc865e97c9ce735d8d501e3a94ad4190d1951378d83561a34daf7a
+          sha256: f0b6a798acb6efb0a4092842d3a6affd43f8410b3d80c55fd08c589486dbd848
         fp16:
           filename: rtmw-wholebody133-l-384_b3_fp16.onnx
-          sha256: 1506cf1cde6128292d0c3dd74f32530544143e87b802902f0cc7d2954aee8e20
+          sha256: 8b97bcaed8d242b5af124e9388a01d40b28d8389f247813016740c5ea5f62612
       output_shapes:
       - - 3
         - -1
@@ -711,10 +711,10 @@ sizes:
       precision_artifacts:
         fp32:
           filename: rtmw-wholebody133-x-384_b3_fp32.onnx
-          sha256: 10effcbe6135659f9b79452e8beafe542178dfb298acedeb7276dd2d54d3f1b7
+          sha256: ed5b7b2b1d82b323ad753979bf67dbff537e2b43cdf5458aeb3d2f8920b2cf73
         fp16:
           filename: rtmw-wholebody133-x-384_b3_fp16.onnx
-          sha256: f0daa384ce548c92b1162f5a1b8c449d1173db4c80583191d31e2881cac1e239
+          sha256: 322657d54a3a057e674eac8cbc0701329852d958cdc3d6483e28bfa58fd958d1
       output_shapes:
       - - 3
         - -1
