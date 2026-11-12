@@ -16,6 +16,7 @@ These entries are `accepted` or `evidence`.
 
 | # | Decision | Status |
 |---|----------|--------|
+| [6JWJ](entries/6JWJ-mediapipe-video-landmarker-does-not-stick.md) | A MediaPipe VIDEO-mode landmarker finds a person again after a gap; `mediapipe_tasks` has no reset; run again on MediaPipe 1.2.2 | evidence |
 
 ### Proposed
 
