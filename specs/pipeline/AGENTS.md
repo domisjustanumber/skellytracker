@@ -12,6 +12,8 @@ root log.
 - The pipeline spec never defines model processing. Preprocessing, inference and postprocessing of a
   model are in the [sidecar spec](../model-sidecar/README.md). A change of model processing is a
   sidecar proposal.
+- The pipeline spec links to a sidecar definition. It must not restate it
+  ([ADR-88WQ](../../decisions/entries/88WQ-sidecar-vocabulary.md) item 7).
 - The Pydantic reference model in `reference/` is the source of the JSON Schema and of the node
   tables. Do not edit the schema or a node table by hand. Run the tool that makes them.
 - Each node type has one params model with a type, a range, a default, a description and `live`

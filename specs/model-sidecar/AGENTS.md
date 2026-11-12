@@ -24,6 +24,8 @@ root log ([ADR-GN3D](../../decisions/entries/GN3D-module-decision-logs.md)).
   its section ID and its rule IDs
   ([Rule IDs and section IDs](../../.claude/skills/change-sidecar-spec/spec-edit-rules.md#rule-ids-and-section-ids);
   [ADR-8DSW](../../decisions/entries/8DSW-vector-files-are-the-case-source.md)).
+- The sidecar spec and the pipeline spec must use one name for each concept. Do not add an alias
+  for an old name ([ADR-88WQ](../../decisions/entries/88WQ-sidecar-vocabulary.md)).
 - A spec change needs a decision entry and a changelog row. Add a row to the
   [summary of changes](changelog.md#summary-of-changes). A content commit also appends one
   ``- Row N: `<fingerprint>`.`` line under the open target in [Revisions](changelog.md#revisions).
