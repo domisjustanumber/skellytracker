@@ -36,7 +36,11 @@ the root log or the log of a module.
   "user" or "backfilled from #81".
 - **Depends on.** Optional. Write it only when the entry waits for a decision of another repo. Use a
   permalink that pins a full SHA on the default branch of that repo.
-- **Decision.** What is decided, written so that a reader can apply it.
+- **Decision.** What is decided, written so that a reader can apply it. An entry that supersedes an
+  old entry links the heading that states each kept rule, and writes text only for a changed rule and
+  for a kept rule that no heading states.
+- **Absorb at landing.** When the absorb documents state all the rules of the entry, absorb it in
+  the last commit of the group that writes it ([Rules](README.md#rules)).
 - **Reason.** Why. Each entry gives its own reasons.
 - **Consequences.** Optional. What becomes harder, what must change later and what the decision
   costs.

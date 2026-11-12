@@ -288,12 +288,17 @@ BLOCKS = (
         (
             ("only to an entry that is on `development`.", f"only to an entry that is on {BRANCH}."),
             (
-                "the spec, the root or a nested `AGENTS.md`, the skills, the model addition workflow, the exporter\n"
+                "the spec (the sidecar spec and the pipeline spec), the root or a nested `AGENTS.md`, the skills, the model addition workflow, the exporter\n"
                 "  guide, the templates of `specs/model-sidecar/templates/`, the Rules of this file with\n"
                 "  [template.md](template.md), and the docstring of a tool in `tools/` for the rules that it checks.",
                 "the root or a nested `AGENTS.md`, the skills, {{NORMATIVE_DOCS, for example the spec or the\n"
                 "  contract files}}, the Rules of this file with [template.md](template.md), and the docstring of a\n"
                 "  tool in `tools/` for the rules that it checks.",
+            ),
+            (
+                "\n  From the implementation stage, the docstring of a public module of the package is an absorb\n"
+                "  document for the rules of the API of that module.",
+                "",
             ),
             ("Until a commit is on `development`,", f"Until a commit is on {BRANCH},"),
             ("agree with a landed spec entry\n  cites that entry.", "agree with a landed entry\n  cites that entry."),

@@ -47,6 +47,7 @@ These entries are `accepted` or `evidence`.
 | [9NW0](entries/9NW0-ep-keys-options-and-failures.md) | EP keys from the EP catalog; a run takes `ep_options`; a whole-EP failure raises before frame 0; CPU nodes are reported | accepted |
 | [BH7C](entries/BH7C-two-spec-build-prs-and-a-pr-for-each-stage.md) | Two spec-build PRs rebuilt at the gate; one stacked PR for each implementation stage; cherry-pick of `hw-and-ep-work`; supersedes R39S and 0027 | accepted |
 | [M2C6](entries/M2C6-exact-pins-and-one-python-patch-release.md) | Exact pins, no ranges; Python `==3.13.18`; `onnxruntime` 1.31 base dependency; GPU EPs only as CUDA 13 plugin packs; supersedes MWY9 | accepted |
+| [W823](entries/W823-absorb-in-the-commit-group-that-states-the-rules.md) | Absorb each entry in the group that states its rules, also with no skill; restate kept rules by link; package docstrings later | accepted |
 
 ### Proposed
 
@@ -83,15 +84,22 @@ implementation-stage work is in the [implementation plan](../specs/sidecar-imple
   ([ADR-2XW6](entries/2XW6-process-entries-consolidation.md)).
 - A decision that a document or code refers to must be in an entry. "This log" in an older entry or
   in the Rules means all logs ([ADR-2XW6](entries/2XW6-process-entries-consolidation.md)).
-- An absorb document is one of these: the spec, the root or a nested `AGENTS.md`
+- An absorb document is one of these: the spec (the sidecar spec and the pipeline spec), the root or a nested `AGENTS.md`
   ([ADR-GN3D](entries/GN3D-module-decision-logs.md)), the skills, the model addition workflow, the exporter
   guide, the templates of `specs/model-sidecar/templates/`, the Rules of this file with
   [template.md](template.md), and the docstring of a tool in `tools/` for the rules that it checks
   ([ADR-Z05A](entries/Z05A-essential-decision-log-rules.md)). A test in `tools/tests/` is a tool here.
+  From the implementation stage, the docstring of a public module of the package is an absorb
+  document for the rules of the API of that module ([ADR-W823](entries/W823-absorb-in-the-commit-group-that-states-the-rules.md)).
   The spec includes the `notes` of its vector files. An accepted entry is absorbed when the absorb
   documents together state all of its rules. Open work of the entry does not stop the absorb when
   `open-work.md` or the implementation plan states that work in full. A link to the entry is not
   enough ([ADR-5EVP](entries/5EVP-absorb-across-documents.md)).
+- Absorb at landing. The commit group that writes or lands an entry, or that writes the rules of an
+  entry into the absorb documents, absorbs the entry in its last commit when the absorb documents
+  state all of its rules. This applies in each log, in each skill and without a skill. If an absorb
+  document does not state a rule, the entry stays `accepted`. Do not ask the user
+  ([ADR-W823](entries/W823-absorb-in-the-commit-group-that-states-the-rules.md)).
 - The status `absorbed into` has one link for each heading that states a rule of the entry. Link a
   heading one time, also when it states two or more rules. Link a file with no anchor only when the
   rule is not under a heading, for example in a tool docstring or a YAML file. When the status
@@ -103,7 +111,8 @@ implementation-stage work is in the [implementation plan](../specs/sidecar-imple
   ([ADR-995P](entries/995P-absorb-status-links-headings.md)).
 - The entry that supersedes an old entry restates each rule of the old entry that stays. A link can
   restate a rule. The link must go to a heading of an absorb document, and that heading must state
-  the rule. The commit that changes the text under such a heading cites its own entry next to the
+  the rule. Link the heading of each kept rule that a heading states. Write text only for a changed
+  rule and for a kept rule that no heading states ([ADR-W823](entries/W823-absorb-in-the-commit-group-that-states-the-rules.md)). The commit that changes the text under such a heading cites its own entry next to the
   changed rule. That change does not supersede the entry that links the heading
   ([ADR-Z05A](entries/Z05A-essential-decision-log-rules.md)).
 - Only these status changes are allowed: `proposed` to `accepted` or `rejected`; `accepted` to
