@@ -2,8 +2,9 @@
 
 This folder holds a hardware test suite for the execution providers (EPs) of ONNX Runtime 1.31.0 on
 an NVIDIA GPU. It makes the evidence for the GTX 1650 (Turing) and Pascal device checks, the driver
-update checks and the missing sm_61 kernels of the CUDA 12 pack. An evidence decision entry will
-name it ([ADR-EY8R](../../entries/EY8R-tools-and-scripts.md)). The suite does not use the
+update checks and the missing sm_61 kernels of the CUDA 12 pack. The evidence entry
+[ADR-V9NK](../../entries/V9NK-ep-device-checks-evidence.md) names it
+([ADR-EY8R](../../entries/EY8R-tools-and-scripts.md)). The suite does not use the
 skellytracker package code.
 
 ## What the suite tests
@@ -106,13 +107,13 @@ build, and the ORT and pack versions. When the key changes, the product must ver
 
 ### Get the suite
 
-The folder is on the branch `hw-and-ep-work`. Clone the repository that has this branch. Replace
-`<repository URL>` with its URL.
+The folder is on the branch `dom/sidecar-implementation`. Clone the repository that has this branch.
+Replace `<repository URL>` with its URL.
 
 ```sh
 git clone <repository URL> skellytracker
 cd skellytracker
-git checkout hw-and-ep-work
+git checkout dom/sidecar-implementation
 ```
 
 Run all commands of this README in the root folder of the clone. The suite does not need the
