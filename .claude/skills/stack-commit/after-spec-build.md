@@ -2,9 +2,28 @@
 
 This file uses ASD-STE100 Simplified Technical English.
 
-These steps of the [`stack-commit`](SKILL.md) skill apply when the spec-build stage ends
-([ADR-R39S](../../../decisions/entries/R39S-test-fix-on-the-working-branch.md) item 8). Until then,
-[Spec-build stage](SKILL.md#spec-build-stage) applies. The rules of the skill also apply.
+These steps of the [`stack-commit`](SKILL.md) skill apply after the rebuild at the gate of phase 0
+([ADR-BH7C](../../../decisions/entries/BH7C-two-spec-build-prs-and-a-pr-for-each-stage.md) item 3).
+Until then, [Spec-build stage](SKILL.md#spec-build-stage) applies. The rules of the skill also apply.
+
+## Rebuild at the gate
+
+Do these steps one time, at the gate of phase 0, after the exporter kit and the copy of
+`hw-and-ep-work`
+([ADR-BH7C](../../../decisions/entries/BH7C-two-spec-build-prs-and-a-pr-for-each-stage.md) item 2).
+
+1. Run `git worktree list`. It must show one worktree.
+2. Keep the old history: `git branch dom/spec-build-history dom/sidecar-implementation`.
+3. Make `dom/52-process` on the last commit of #81. Take the process files from the final files of
+   the working branch. A root entry that links a spec file goes in `dom/53-spec`. Give
+   `dom/52-process` its own form of `AGENTS.md` and of the index files.
+4. Make `dom/53-spec` on `dom/52-process` with the rest. `git diff dom/spec-build-history
+   dom/53-spec` must show no change.
+5. Put each kind of change in its own commit. Run `uv run python tools/run_checks.py` on the last
+   commit of each branch.
+6. Move the working branch to `dom/53-spec`. Then push `dom/spec-build-history`, the two PR
+   branches and the working branch, after the approval of the user. This push is a force-push.
+7. The user opens the two PRs.
 
 ## The working branch and the PR branches
 
@@ -13,6 +32,10 @@ These steps of the [`stack-commit`](SKILL.md) skill apply when the spec-build st
 - Each PR has a branch `dom/NN-<topic>`. `NN` has two digits: the order in which the PRs are opened.
   The branch points to the last commit of its PR. Do not commit on a `dom/NN-*` branch. Do not check
   one out.
+- The stack starts with `dom/52-process` and `dom/53-spec`. Then each stage of phase 1 of the
+  implementation plan is one PR, in the stage order: `dom/54-dependencies`, `dom/55-package-layout`
+  and so on. The gate of the stage is the gate of its PR
+  ([ADR-BH7C](../../../decisions/entries/BH7C-two-spec-build-prs-and-a-pr-for-each-stage.md) item 4).
 
 ## Add a commit
 
@@ -22,16 +45,14 @@ These steps of the [`stack-commit`](SKILL.md) skill apply when the spec-build st
   `git commit --fixup=<sha>`. `<sha>` is a commit of that PR. Then run:
 
   ```sh
-  git rebase -i --autosquash --update-refs dom/03-sidecar-spec-fixes
+  git rebase -i --autosquash --update-refs origin/dom/add-sidecar-spec
   ```
 
   Always write `--update-refs`, also when the config sets `rebase.updateRefs`. A different clone can
   have a different config. In the todo list, a line `update-ref refs/heads/dom/NN-<topic>` follows
   the last commit of each PR. To move a commit to a different PR, move its `pick` line to the other
-  side of an `update-ref` line.
-- **A change to `dom/03-*`.** Add `--rebase-merges`, and start the rebase at `dom/add-sidecar-spec`.
-  Do not start a rebase below `dom/03-*` without `--rebase-merges`. A rebase without it removes the
-  merges.
+  side of an `update-ref` line. Do not start a rebase below the last commit of #81
+  ([ADR-BH7C](../../../decisions/entries/BH7C-two-spec-build-prs-and-a-pr-for-each-stage.md) item 5).
 - **A decision entry.** Put a change of ID in the PR that adds the entry. Put each citation repair in
   the PR that adds the citation.
 - Before a rebase, run `git worktree list`. If it shows more than one worktree, stop and ask the user.

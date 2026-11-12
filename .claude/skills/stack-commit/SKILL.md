@@ -27,17 +27,18 @@ Before you write a commit message or a PR body that names a decision entry, load
 
 ## Spec-build stage
 
-In the spec-build stage, the exception of
-[ADR-R39S](../../../decisions/entries/R39S-test-fix-on-the-working-branch.md) applies. It ends when
-the user opens the one PR.
+These rules apply until the rebuild at the gate of phase 0
+([ADR-BH7C](../../../decisions/entries/BH7C-two-spec-build-prs-and-a-pr-for-each-stage.md) item 3).
 
-- The one PR holds every commit on `dom/sidecar-implementation`. This includes the root files:
-  `decisions/`, `tools/`, `.claude/skills/`, `AGENTS.md`, `.gitignore` and `.gitattributes`
-  ([ADR-R39S](../../../decisions/entries/R39S-test-fix-on-the-working-branch.md) item 1).
+- The spec-build work goes to `development` in two PRs: `dom/52-process`, then `dom/53-spec`. Until
+  the rebuild, all of it is on `dom/sidecar-implementation`
+  ([ADR-BH7C](../../../decisions/entries/BH7C-two-spec-build-prs-and-a-pr-for-each-stage.md) item 1).
+  [Rebuild at the gate](after-spec-build.md#rebuild-at-the-gate) gives the steps.
 - Commit only on `dom/sidecar-implementation`, on top of its current commits.
-- Do not add a `dom/NN-*` branch.
+- Until the rebuild, do not add a `dom/NN-*` branch.
 - Do not make a fixup commit for a lower PR. Do not run a rebase with `--update-refs`.
-- Do not start a rebase below the commit "Remove the precision int8 from the sidecar model".
+- Do not start a rebase below the commit "Remove the precision int8 from the sidecar model". Only
+  the rebuild goes below it.
 - Put one kind of change in each commit: content, move, rewording or non-spec.
 - The tree must be valid after the last commit of each commit group.
 - The parent of a range is the commit before the commit group (`git log` shows it). Give each report
@@ -59,11 +60,11 @@ the user opens the one PR.
 - After each push, run the same `gh run list` command when the runs of that push finish. Do this
   before the next push. Report a red result to the user
   ([ADR-R39S](../../../decisions/entries/R39S-test-fix-on-the-working-branch.md) item 9).
-- "this PR" in an `_Edited_` line and "PR: pending" in a status line name the one PR. They stay as
-  written after the PR opens
+- "this PR" in an `_Edited_` line and "PR: pending" in a status line name the spec-build PR that
+  holds the file. They stay as written after the PR opens
   ([ADR-R39S](../../../decisions/entries/R39S-test-fix-on-the-working-branch.md) item 7).
-- The user opens the one PR and writes its body.
-- The steps of [`after-spec-build.md`](after-spec-build.md) apply when the spec-build stage ends.
+- The user opens each spec-build PR and writes its body.
+- The steps of [`after-spec-build.md`](after-spec-build.md) apply after the rebuild.
 
 ## Commit groups
 
@@ -73,8 +74,11 @@ spec-build stage, the commits of one PR are its commit group.
 ## One worktree and frozen PRs
 
 - Use one worktree only. Do not add a worktree. A rebase does not move a branch that a different
-  worktree has checked out.
-- Do not change #81 (`dom/add-sidecar-spec`), `dom/01-*` or `dom/02-*`. `dom/03-*` holds the merges
-  of `dom/01-*` and `dom/02-*`.
+  worktree has checked out. The worktree of `hw-and-ep-work` stays until the stage "Merge
+  `hw-and-ep-work`" copies its commits. Until then, each rebase waits
+  ([ADR-BH7C](../../../decisions/entries/BH7C-two-spec-build-prs-and-a-pr-for-each-stage.md) item 6).
+- Do not change #81 (`dom/add-sidecar-spec`) or the old branches `dom/01-*` to `dom/51-*`. After the
+  rebuild, the old branches are not in the stack
+  ([ADR-BH7C](../../../decisions/entries/BH7C-two-spec-build-prs-and-a-pr-for-each-stage.md) item 5).
 - Do not change the commits of an open PR that other files cite. Do not add commits to it. Do not
   rebase it. #81 is such a PR: `specs/sidecar-implementation-plan.md` cites its commit SHAs.

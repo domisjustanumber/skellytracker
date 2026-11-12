@@ -236,9 +236,11 @@ Change the rest of a kit template by hand when a rule of this log changes
   <!-- /kit -->
 - Commit only on the working branch `dom/sidecar-implementation`. Open PRs against `development`,
   not `main`.
-- In the spec-build stage, the work goes to `development` in one PR from the working branch
-  ([ADR-R39S](decisions/entries/R39S-test-fix-on-the-working-branch.md)). It ends when the user opens
-  the one PR. Each commit has one kind of change.
+- In the spec-build stage, the work goes to `development` in two PRs: `dom/52-process`, then
+  `dom/53-spec`. At the gate of phase 0, the session rebuilds them from the final files of the
+  working branch. The spec-build rules end at the rebuild. Then each stage of phase 1 is one stacked
+  PR ([ADR-BH7C](decisions/entries/BH7C-two-spec-build-prs-and-a-pr-for-each-stage.md)). Each commit
+  has one kind of change.
   In the rules of the sidecar process, "the same PR" means the same commit group. A content,
   non-spec, move or rewording PR means a commit of that kind. [Section 3](#3-install-and-test)
   gives the commit of a test fix.

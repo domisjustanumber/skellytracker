@@ -166,9 +166,11 @@ changes the draft exporter guide ([ADR-x64y](../decisions/entries/x64y-draft-exp
 **Status: NOT STARTED.** The hardware and EP work stays a parallel track on the branch
 `hw-and-ep-work` until this stage ([ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md) item 3).
 
-- Merge `hw-and-ep-work` into the working branch. On 2026-11-12 the branch has 9 commits that the
+- Copy the six commits of the EP device check suite to the working branch with `git cherry-pick`
+  ([ADR-BH7C](../decisions/entries/BH7C-two-spec-build-prs-and-a-pr-for-each-stage.md) item 6). On 2026-11-12 the branch has 9 commits that the
   working branch does not have: the EP device check suite in `decisions/scripts/ep_device_checks/`
-  with its reports and its test, and older copies of the graphify commits. Keep the graphify files of
+  with its reports and its test, older copies of the graphify commits and one merge commit. Do not
+  copy the graphify commits or the merge commit. Keep the graphify files of
   the working branch ([ADR-87B2](../decisions/entries/87B2-local-graphify-code-graph.md)). No commit of the branch changes a file under `skellytracker/`.
 - The device check scripts need an entry that names them, or a move to `tools/` with a test
   ([ADR-EY8R](../decisions/entries/EY8R-tools-and-scripts.md)).
@@ -180,8 +182,8 @@ changes the draft exporter guide ([ADR-x64y](../decisions/entries/x64y-draft-exp
   options, the raise on a whole-EP failure and the report of CPU nodes).
 - The EP option measurements that [ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) cites need an evidence entry with their scripts
   ([ADR-EY8R](../decisions/entries/EY8R-tools-and-scripts.md)).
-- After the merge, the user removes the worktree of the branch.
-- Gate: `uv run python tools/run_checks.py` passes after the merge. Stage 1.3 has its items and its
+- After the copy, the branch and its worktree retire. The user removes the worktree.
+- Gate: `uv run python tools/run_checks.py` passes after the copy. Stage 1.3 has its items and its
   gate.
 
 ### 0.5 Gate: the implementation stage
@@ -193,7 +195,11 @@ changes the draft exporter guide ([ADR-x64y](../decisions/entries/x64y-draft-exp
   `implement-sidecar-section`, and says which rules of [ADR-0014](../decisions/entries/0014-spec-lifecycle.md) end.
 - The end of the spec-build stage also has a consolidation entry (the
   [Rules](../decisions/README.md#rules)) and the retirement of `notes/sidecar-exporter-coverage.md`
-  (the [open work](../decisions/open-work.md)). The user decides when the one PR of [ADR-R39S](../decisions/entries/R39S-test-fix-on-the-working-branch.md) opens.
+  (the [open work](../decisions/open-work.md)).
+- Then the session rebuilds the spec-build work into the two PRs `dom/52-process` and `dom/53-spec`
+  ([Rebuild at the gate](../.claude/skills/stack-commit/after-spec-build.md#rebuild-at-the-gate)).
+  The user opens them. Each stage of phase 1 is then one stacked PR, from `dom/54-dependencies`
+  ([ADR-BH7C](../decisions/entries/BH7C-two-spec-build-prs-and-a-pr-for-each-stage.md)).
 
 ## Phase 1 — Implementation stage
 
