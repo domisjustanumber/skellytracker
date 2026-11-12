@@ -221,6 +221,10 @@ Do this step when no row is blocking (step 5 of
     `unknown (<reason>)`.
 12. If parity fails, you missed or misjudged a property. Go back to step 3. Do not make the tolerance
     larger.
+13. Do [Opset and GPU placement](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#opset-and-gpu-placement).
+    Fill in "Opset and GPU placement" of the intake. Report each node on the CPU EP to the user in
+    step 8 as an exporter defect
+    ([ADR-NPX6](../../../decisions/entries/NPX6-newest-opset-and-fp16-gpu-placement-check.md)).
 
 ### Step 6: Hand over each `near-miss` and `gap`
 

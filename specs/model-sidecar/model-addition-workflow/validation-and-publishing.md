@@ -30,6 +30,22 @@ These rules apply to each contributor that writes a sidecar.
 - Do not use the skellytracker `load_sidecar` to check a sidecar. The package code is frozen until
   it migrates, and it rejects `schema_version: "2.0.0"` (see "Publishing").
 
+## Opset and GPU placement
+
+These rules are in [ADR-NPX6](../../../decisions/entries/NPX6-newest-opset-and-fp16-gpu-placement-check.md).
+
+- Export each ONNX file at the newest opset that your export tool and the pinned ONNX Runtime both
+  support. If you use an older opset, write the reason in the intake.
+- Run each fp16 file on each GPU EP that you can run, at each batch form that you publish. Record
+  the count of the nodes on the CPU EP and their op types. From the 2.0.0 pre-release, run the EP
+  packs `cuda` and `trt-rtx` of the EP catalog, and read `cpu_nodes` and `cpu_op_types` in the
+  `execution` block of the run timing
+  ([Timing](../../pipeline/timing.md#fields)).
+- A node on the CPU EP is an exporter defect. Export again at a newer opset, or change the graph,
+  until no node is on the CPU EP. If no change removes the node, write the node and the reason in
+  the intake.
+- If you cannot run a GPU EP, write `to run` with the reason. Then the opset rule is the minimum.
+
 ## Publishing
 
 - The publish ban. Do not publish a sidecar to a shared or remote sidecar root, for example a

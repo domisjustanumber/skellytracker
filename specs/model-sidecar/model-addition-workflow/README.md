@@ -18,8 +18,8 @@ spec is correct. This workflow is not a section of the spec. It has no section I
   to the spec.
 - [Rules](rules.md): the evidence rules and the stop rule.
 - [Sidecar files](sidecar-files.md): Independence, Sidecar YAML, Path.
-- [Validation and publishing](validation-and-publishing.md): Validation, Publishing, `source` and
-  hashes.
+- [Validation and publishing](validation-and-publishing.md): Validation, Opset and GPU placement,
+  Publishing, `source` and hashes.
 - [Batch-conversion check](batch-conversion-check.md): the `batch` sub-command, its inputs, steps,
   verdicts and output.
 - [Phase 1: can the current spec describe the model?](phase-1-intake.md)

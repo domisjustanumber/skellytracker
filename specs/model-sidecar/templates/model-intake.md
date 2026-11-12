@@ -507,6 +507,17 @@ each field. Put the output folder in the bundle as `batch/`.
 | Dynamic check (V6) of each `dynamic` file: `pass`, `fail`, `to run` or `not used` | |
 | Command, skellytracker commit, and the onnx and onnxruntime versions of `report.json` | |
 
+**Opset and GPU placement.** Follow "Opset and GPU placement" in
+`specs/model-sidecar/model-addition-workflow/validation-and-publishing.md` (skellytracker ADR-NPX6).
+
+| Item | Value |
+|---|---|
+| Opset of each ONNX file | |
+| Newest opset that the export tool and the pinned ONNX Runtime both support | |
+| Reason for an older opset, or `none` | |
+| Nodes on the CPU EP for each fp16 file, GPU EP and batch form (count and op types), or `to run` with the reason | |
+| How you got the counts (tool, ONNX Runtime version, EP pack version) | |
+
 ## Proposals and reference files
 
 **Proposals.** Write one row for each proposal. Write each proposal with the change proposal template

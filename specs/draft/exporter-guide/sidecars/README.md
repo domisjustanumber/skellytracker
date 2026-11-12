@@ -170,6 +170,7 @@ The Sidecars section is split into these files:
 - [Sidecar files](../../../model-sidecar/model-addition-workflow/sidecar-files.md): Independence,
   Sidecar YAML, Path. It is in the model addition workflow.
 - [Validation and publishing](../../../model-sidecar/model-addition-workflow/validation-and-publishing.md):
-  Validation, Publishing, `source` and hashes. It is in the model addition workflow.
+  Validation, Opset and GPU placement, Publishing, `source` and hashes. It is in the model
+  addition workflow.
 
 The [known open items for the exporter overhaul](known-open-items.md) are not a part of the Sidecars section.
