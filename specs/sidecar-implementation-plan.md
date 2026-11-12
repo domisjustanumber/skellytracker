@@ -1,20 +1,24 @@
 # Implement the Model Sidecar Spec + Dogfood YOLOX/RTMW
 
-> **Decisions.** The decisions behind this plan are recorded in the decision log, [`decisions/`](../decisions/README.md). Entries 0002 to 0007 record its key decisions and milestones, and entry [ADR-0016](../decisions/entries/0016-sidecar-catalogs.md) (superseded by [ADR-0QKK](../decisions/entries/0QKK-no-legacy-layer.md)) replaces the key, discovery and root rules of M6 Part A. This plan stays until the user decides to delete it ([ADR-5WKW](../decisions/entries/5WKW-implementation-work-in-the-plan.md)). Record a new decision as a decision entry, not in this plan.
+> **Decisions.** The decisions behind this plan are recorded in the decision log, [`decisions/`](../decisions/README.md). Entries 0002 to 0007 record the decisions of M1 to M5. The implementation-stage work follows [ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) (replace the package ONNX detectors), [ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) (the entry points and the layout), [ADR-MSH0](../decisions/entries/MSH0-supported-platforms-v2.md) (the supported platforms) and [ADR-EM74](../decisions/entries/EM74-stage-order-and-ci-models.md) (the stage order). The pipeline design is in [ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md), [ADR-99MH](../decisions/entries/99MH-pipeline-outputs-and-running.md), [ADR-Q59W](../decisions/entries/Q59W-pipeline-timing-and-taps.md), [ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md), [ADR-3SF2](../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md) and the [pipeline log](pipeline/decisions/README.md). The sidecar names follow [ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) and [ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md). This plan stays until the user decides to delete it ([ADR-5WKW](../decisions/entries/5WKW-implementation-work-in-the-plan.md)). Record a new decision as a decision entry, not in this plan.
 
-> Status: **M1 to M5 are done. M6 to M12 have not started.** M6 changes package code, so it waits for the implementation stage ([Stages](model-sidecar/model-addition-workflow/README.md#stages)). [M8](#m8--validation-preprocessing-and-decode-gaps) lists the known package gaps. The "Status" line of each milestone below gives its state.
+> Status: **M1 to M5 are done. The implementation-stage work has not started.** It changes package code, so it waits for the implementation stage ([Stages](model-sidecar/model-addition-workflow/README.md#stages)). The [stage order](#stage-order) gives the stages L, N1 to N6, the 2.0.0 pre-release, P, Da, Db, Dc and the 2.0.0 release. The sections M6 to M12 give the details of their items. [M8](#m8--validation-preprocessing-and-decode-gaps) lists the known package gaps. The "Status" line of each section gives its state.
 
 ## Context
 
 `specs/model-sidecar/sidecar-spec.md` defines a YAML "sidecar" format that describes the runtime I/O contract for ONNX detector/pose models: input tensor shape, normalization, resize, batching, output semantics, and decode logic. Two commits (`ec12b32`, `837bd09`) landed the spec document itself; this plan implements it in code.
 
-The goal is to "eat our own dog food": implement the sidecar system, then migrate the two existing hand-written ONNX detectors — YOLOX (person object detector) and RTMW/RTMPose wholebody (133-keypoint pose estimator) — to be driven by sidecar YAML instead of hardcoded Python constants (model URLs, mean/std, input sizes, output permutations). This must be a **no-functional-change** migration: same models, same math, same detection/keypoint output — just loaded declaratively.
+M1 to M5 had the goal to "eat our own dog food": implement the sidecar system, then migrate the two existing hand-written ONNX detectors — YOLOX (person object detector) and RTMW/RTMPose wholebody (133-keypoint pose estimator) — to be driven by sidecar YAML instead of hardcoded Python constants (model URLs, mean/std, input sizes, output permutations). This was a **no-functional-change** migration: same models, same math, same detection/keypoint output — just loaded declaratively.
+
+The implementation-stage work has a different goal. skellytracker re-implements each package ONNX detector on a fixed-batch, spec-compliant model from the exporters, starting with `yolox-person` and `rtmw-wholebody133`. The old detectors, their sidecars and their golden fixtures are deleted and replaced. They do not migrate to the spec ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md)). The new code goes beside the old code. The stages Da, Db and Dc delete the old code ([ADR-EM74](../decisions/entries/EM74-stage-order-and-ci-models.md)). MediaPipe stays outside the spec and keeps working. Two entry points, `detectors` and `pipelines`, list the models and the pipelines and start a pipeline run ([ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md)).
 
 Explicitly out of scope for this repo/plan: the skellycam API surface that exposes available models to FMC, and the FMC pipeline-builder UI. Those live in other repos.
 
 Note: `CLAUDE.md` at the repo root is stale — it describes a pre-rewrite architecture (`trackers/`, `TrackedObjectDefinition`, `composite_gpu_tracker`) that no longer exists after commit `2c2615c` ("Structural rewrite (#75)"). This plan targets the **current** `skellytracker/core/` package. `CLAUDE.md` now only imports `AGENTS.md`, which describes the current layout (decision 0001).
 
 ## Key decisions
+
+These decisions apply to M1 to M5. They are history. For the new code, [ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) replaces decisions 1, 3, 4 and 5: the shipped sidecars go in `core/model_zoo/`, the old detectors are deleted with their keys and shims, and the YOLOX re-export has no NMS in the graph. Decision 2 stays: `point_names` (formerly `tracked_points`) is in the native model order ([ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md)).
 
 1. **Storage layout.** Sidecar YAML files are git-tracked inside the package tree at `skellytracker/core/detectors/object_detectors/{family}/{model_id}.yaml` and `skellytracker/core/detectors/keypoint_detectors/{family}/{group}/{model_id}.yaml`, matching the spec's layout exactly. ONNX binaries are **not** git-tracked — they still download through the existing `ModelSource`/`resolve_model_path()` (`skellytracker/core/sessions/model_registry.py`), extended to (a) save under the sidecar's own directory instead of the flat `~/.cache/skellytracker/models/`, (b) honor the sidecar's `filename` field instead of deriving it from the URL, and (c) verify `url_sha256`. This reuses the existing download/zip-extraction machinery rather than building a new one. **(a) was not implemented:** downloaded ONNX files still cache flat in `~/.cache/skellytracker/models/` under the sidecar's `filename` (see M2); decision 0016 (sidecar catalogs) keeps that location. (b) and (c) are done.
 
@@ -132,6 +136,7 @@ Tests: `tests/sidecar/test_rtmpose_{body,hand,face}_sidecar.py` — sidecar load
   - `core/detectors/affine_crop.py` — `bbox_xyxy2cs`, `top_down_affine`, `get_warp_matrix`, `_rotate_point`, `_get_3rd_point`, moved verbatim.
   - `core/detectors/simcc_decode.py` — `get_simcc_maximum`, `_stable_softmax`, `decode_simcc` (renamed from `rtmpose_letterbox_postprocess` — same math, moved verbatim), and `simcc_pose_decode` (the sidecar-dispatching entry point, merged in from the deleted `rtmpose_simcc_decode.py`).
 - Deleted `rtmpose_preprocessing.py` and `rtmpose_simcc_decode.py` entirely. `rtmpose_letterbox_preprocess` (the other half of the old `rtmpose_preprocessing.py` pairing) was dead code by this point — nothing called it after M4b's detector rewrites switched body/hand/face to the generic `preprocess_image()` — so it was deleted rather than moved.
+- **Correction (2026-11-12):** `rtmpose_preprocessing.py` was not deleted. It is still tracked, but no module imports it ([ADR-0007](../decisions/entries/0007-generic-processing-package.md)). Stage Db deletes it with `keypoint_detectors/rtmpose/`. `rtmpose_simcc_decode.py` is deleted.
 - **The circular-import workaround is gone**, not just relocated: since `core/detectors/affine_crop.py` and `core/detectors/simcc_decode.py` sit outside the `keypoint_detectors.rtmpose` package, importing them no longer triggers `rtmpose/__init__.py`'s eager detector imports. `image_preprocessing.py`'s deferred `bbox_xyxy2cs`/`top_down_affine` import and `rtmw_wholebody_detector.py`'s deferred `simcc_pose_decode` import both became plain top-level imports.
 - All import sites updated: `image_preprocessing.py`, `rtmw_wholebody_detector.py`, and the three body/hand/face detectors now import from `core.detectors.affine_crop`/`core.detectors.simcc_decode`; `tests/test_image_preprocessing.py` likewise.
 
@@ -158,28 +163,595 @@ Tests: full suite unmodified and still green (`pytest skellytracker/tests` — 4
 - Run the full test suite (`pytest skellytracker/tests`) to catch anything transitively exercising YOLOX/RTMPose through `Tracker`/`process_video`/`process_batch`.
 - Flag (don't execute) a `CLAUDE.md` refresh describing the new `core/sidecar/` package as a follow-up.
 
+### Stage order
+
+**Status: NOT STARTED.** Each stage below changes package code, so it waits for the implementation
+stage ([Stages](model-sidecar/model-addition-workflow/README.md#stages)).
+
+skellytracker re-implements each package ONNX detector on a fixed-batch, spec-compliant model from
+the exporters. The old dynamic-batch detectors, their sidecars and their golden fixtures are deleted
+and replaced. They do not migrate to the spec
+([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md)). The new code goes beside
+the old code. The stages Da, Db and Dc delete the old code
+([ADR-EM74](../decisions/entries/EM74-stage-order-and-ci-models.md)). The stages give the order of
+the work. The sections M6 to M12 give the details of the items that the stages name.
+
+Rules for each stage:
+
+- The old ONNX detectors, the old loader `core/sidecar/`, the old processing modules, `core/tracker/`
+  and the old detector contract do not change until their replacements pass the gate. Then a
+  deletion stage removes them.
+- New code does not import the old loader, the old processing modules, `core/tracker/` or the old
+  detector contract. No shared function gets a legacy switch.
+- New code takes the execution provider as `execution_provider`. The old demos with `provider=` are
+  replaced code ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md)).
+- New code uses the current sidecar names
+  ([ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md);
+  [ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md)). The old package code keeps
+  the old names until a deletion stage removes it.
+- MediaPipe works after each stage. The MediaPipe tests keep their expected values, except in the
+  one commit of the MediaPipe change (L) and in Dc.
+- Do not change the MediaPipe tests to close their detectors or to add teardown. These tests show
+  the timestamp defect when it comes back
+  ([ADR-EM74](../decisions/entries/EM74-stage-order-and-ci-models.md) item 6).
+- Each commit has one kind of change. Load the skill
+  [`stack-commit`](../.claude/skills/stack-commit/SKILL.md) before a commit.
+
+Reason for the order: the old detectors call `load_sidecar` at import (for example
+`rtmpose_body_detector.py`). A change of `core/sidecar/` in place makes them fail at import. A
+change of `processing/` in place changes their output.
+
+| Stage | Needs | Gate | Working ONNX code after the stage |
+|---|---|---|---|
+| L: layout, MediaPipe 1.2.2, Python 3.13, no Intel Mac | — | full suite with no change; each platform change is its own commit group | old |
+| N1: spec loader | L | new validation tests; each reference example validates | old |
+| N2: spec processing | N1 | the vector cases of the new entries agree; the old entries do not change | old |
+| N3: catalog and `detectors` | N1 | catalog tests on temporary roots; static-table test | old |
+| N4: standalone generic detectors | N2, N3 | detector tests on generated ONNX models; old tests unchanged | old, and the new detectors on a generated model |
+| N5: `yolox-person`, `rtmw-wholebody133` | N4, M10 | the M10 model gate at the detector level, run locally | old, and the new detectors |
+| Pre-release 2.0.0 | N5 | full suite | old, and the new detectors |
+| P: pipeline API | N4, the pipeline spec | the gate of P | old, and the new pipelines |
+| Da: delete the old YOLOX and RTMW | P | full suite without the deleted tests | new YOLOX and RTMW pipelines, old RTMPose |
+| N6: RTMPose `body17`, `hand21`, `face106` | P, M10, the exporter | the M10 model gate; `rtmpose-body-hands-face` runs | all new, and old RTMPose |
+| Db: delete the old RTMPose, the old loader and the old processing | N6 | full suite; vector tests | new ONNX only, old run code |
+| Dc: delete the old run code | P, Db | full suite; each built-in runs as a pipeline config | new only, as pipeline configs |
+| Release 2.0.0 | Dc | full suite | new only, as pipeline configs |
+
+### L — Package layout
+
+**Status: NOT STARTED.** This stage has only the layout items that leave the old ONNX code alone.
+
+- `core/__init__.py` stays eager
+  ([ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 3). The
+  hardware and EP track puts `system/`, `metrics/` and `eps/` under `core/`. That track is not a
+  stage of this plan. P needs its `eps.build_session()`.
+- Move charuco and aruco to `core/detectors/calibration_detectors/`
+  ([ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 4).
+- Create `core/model_zoo/`, the package sidecar root
+  ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 5). Add
+  `skellytracker/core/model_zoo/**/*.onnx` to `.gitignore`. flit puts each file of the package
+  folder in a wheel. Thus build each release from a clean checkout. Add a check that fails the build
+  when a wheel or an sdist holds an `.onnx` file.
+- `core/detectors/shared/` does not move yet, because the old sidecars `$ref` it. The new exports
+  write their keypoint lists in full, so `core/model_zoo/` needs no `shared/` yet. Db moves it.
+- `core/tracker/` keeps its name. Dc deletes it.
+- Update the paths in the README, the examples, the demos and the tests. Add no shim
+  ([ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 7).
+- **MediaPipe 1.2.2.** This is its own commit group. Move the `mediapipe` extra from 0.10.33 to 1.2.2
+  ([ADR-MSH0](../decisions/entries/MSH0-supported-platforms-v2.md) items 2 and 4). The gate is the
+  MediaPipe tests. A change of their expected values goes in one commit, before a parity baseline.
+  Then run the scripts of
+  [ADR-6JWJ](pipeline/decisions/entries/6JWJ-mediapipe-video-landmarker-does-not-stick.md) again on
+  MediaPipe 1.2.2. If a VIDEO-mode landmarker then stays empty while a person is visible, write a new
+  entry in the pipeline log with the evidence.
+- **Python 3.13.** This is its own commit group. Set `requires-python = ">=3.11,<3.14"`, make a new
+  `uv.lock` and add 3.13 to the CI matrix
+  ([ADR-MSH0](../decisions/entries/MSH0-supported-platforms-v2.md) item 1). The gate is the full
+  suite on 3.13, with no hang in the MediaPipe tests. Check that each dependency resolves for 3.13 on
+  each supported platform. The evidence of ADR-MSH0 came from a freeze, not from the lock.
+- **No Intel Mac.** This is its own commit group. The uv environment for macOS becomes
+  `sys_platform == 'darwin' and platform_machine == 'arm64'`, with `required-environments`
+  ([ADR-MSH0](../decisions/entries/MSH0-supported-platforms-v2.md) item 3). The README says that
+  Intel Mac is not supported. Check that `required-environments` fails at lock time for a missing
+  wheel.
+- Gate: the full suite passes with no change of expected values, except the one MediaPipe commit.
+
+### N1 — Spec loader beside the old loader
+
+**Status: NOT STARTED.**
+
+- A new package `core/model_spec/` holds the spec loader and the spec model
+  ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 8). The old
+  `core/sidecar/` does not change. Db moves the new package to `core/sidecar/`.
+- The loader takes its sidecar root as an argument. It does not take the nearest folder named
+  `core`.
+- The model items of M8: "Package model at spec version 2.0.0", "Sidecar vocabulary", "SemVer
+  `schema_version`", "Flattened batch form", "Sizes are plain fields", "The `output_shapes` rule",
+  "Heatmap decode removed", "3D SimCC decode removed", "License block" and "Keypoint detector id".
+  Also the validation rules that the behaviour items of M8 name.
+- The M9 item "Reference hash checks in the resolver". N3 does the artifact hash checks.
+- The M7 item "V- rule checks of the examples".
+- Gate: the new validation tests pass, and each reference example validates.
+
+### N2 — Spec processing beside the old processing
+
+**Status: NOT STARTED.**
+
+- Add new modules in `processing/pre/` and `processing/post/`, one module for each spec section
+  ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 4). Port them from
+  `specs/model-sidecar/reference/`, for example `pre/resize_letterbox.py`, `pre/normalize.py`,
+  `pre/resize_affine_person_crop.py`, `post/object_selection_nms.py`, `post/object_decode.py`,
+  `post/keypoint_decode_simcc.py` and `post/unprojection.py`.
+- These modules carry the behaviour items of M8: letterbox rounding, the scalar and array pad
+  values, the `fit` `pad_value`, the stretch unprojection, the normalization modes and the one
+  `imagenet` mode, the NMS box area, the clamp, the size filter and the class filter, the resize
+  compute dtype, the affine crop matrix in float32, the SimCC score without softmax and the cast to
+  the input dtype. The dispatchers take the new spec model.
+- Add each new function to `PACKAGE_RUNNERS` in `tools/tests/test_vectors.py` and to
+  `verified_against`. The old entries (for example `letterbox_preprocess` and `fit_preprocess`) stay
+  until Db, because the test requires that the agreeing entries equal the listed entries. Check
+  whether a change of `verified_against` needs a spec content commit.
+- Gate: the vector cases of the new entries agree. The old entries do not change.
+
+### N3 — Catalog and the `detectors` entry point
+
+**Status: NOT STARTED.**
+
+- The roots of M7: `core/model_zoo/`, the user root and Hugging Face snapshots. The user root is
+  `platformdirs.user_data_dir("skellytracker", appauthor=False)` + `/models`, with the layout of
+  `core/model_zoo/`. `platformdirs` becomes a direct dependency. skellytracker keeps no settings
+  file. `list_detectors`, `list_pipelines`, `load_pipeline` and `start_pipeline` take
+  `user_root: Path | None`. The order is the argument, then `SKELLYTRACKER_USER_ROOT`, then the
+  default ([ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 6).
+- The cross-platform tasks:
+  - CRLF: the spec rejects CRLF (`V-format.composition-3`). The error names CRLF.
+  - Symlinks: Hugging Face snapshot files are symlinks into `blobs/`. The new loader does not call
+    `Path.resolve()` on a path in a root, because it follows a symlink out of the root.
+  - Case: each folder name is lower case, as in the layout. The docs say it.
+  - File locks: on Windows, a model update or a Hugging Face refresh closes the sessions first, or
+    writes the new revision beside the old one.
+  - Path length: test a long user name and a non-ASCII user name with ONNX Runtime.
+- The capability check, for each artifact. A user can copy only some sizes or precisions.
+- The M9 item "Artifact hash checks", with the hash check cache below.
+- **Hash check cache.** No decision entry records this design. It is plan work.
+  - Reason: `V-common.sizes_and_artifacts-10` requires that each present or downloaded ONNX file
+    has the SHA-256 of its `sha256` field. An ONNX file can have several hundred MB, and the
+    capability check looks at each artifact at each start. A full hash of each file at each start
+    is too slow. Thus the host hashes a file only when it first sees the file and after the file
+    changes.
+  - Record: one record for each hashed file. The key is the sidecar root and the path of the file
+    relative to that root. The fields are `size` (`st_size`), `mtime_ns` (`st_mtime_ns`), `file_id`
+    (`st_dev` and `st_ino`; on Windows, NTFS gives the file index in `st_ino`), `sha256` (lowercase
+    hex) and `checked_at`. The record holds the hash, not a pass or a fail. Thus a changed sidecar
+    `sha256` needs no new hash.
+  - Hit: `size`, `mtime_ns` and `file_id` are equal to the values of the file. The host compares the
+    stored `sha256` with the sidecar `sha256`.
+  - Miss: a field is different, or no record exists. The host reads the file in chunks (for example
+    1 MiB) with `hashlib`, and writes a new record.
+  - Download: the host hashes the bytes while it writes them. It checks `url_sha256` on the
+    downloaded bytes, and `sha256` on the ONNX file that it writes or extracts. Then it writes the
+    record, with no second read.
+  - Location: one file, for example `hash-cache.json`, in the user cache folder of `platformdirs`,
+    beside the download cache. The cache is not in a sidecar root: the package root is read-only,
+    and the Hugging Face hub manages its own cache. A deleted cache file costs only a new hash of
+    each file.
+  - Writes: write the cache to a temporary file in the same folder, then call `os.replace`. Thus a
+    reader never sees a partial file. When several processes write, the last write wins. A cache
+    file that does not parse is an empty cache: log one warning, then write a new cache. An argument
+    and an environment variable force a full hash of each file, for tests and for support.
+  - Limits: the cache finds a corrupt file, a partial download and a wrong file. It does not protect
+    against a local user with write access. FAT32 and exFAT store the modification time in steps of
+    2 s. A file that changes within 2 s, with the same size and the same file id, can hit an old
+    record. Accept this case, and name it in the docstring.
+  - Later, optional: in the Hugging Face cache, the `blobs/` file name of an LFS file is its
+    SHA-256. Compare that name with `sha256` only when it is 64 lowercase hex characters. Hash the
+    file in all other cases.
+  - Spec: add one line to the implementer guidance of `common.sizes_and_artifacts` in a non-spec
+    commit. A host can keep the hash of a file with its size, modification time and file id, and
+    hash the file again when one of these changes.
+  - Tests: a hit; a miss after a change of the size, of the modification time and of the file id; a
+    corrupt cache file; the atomic write; the record that a download writes; the forced full hash.
+- The `detectors` list in `core/detectors`: the catalog entries and a static table of the entries
+  with no sidecar (MediaPipe, charuco, aruco). Each entry has the category `onnx`, `mediapipe` or
+  `calibration` ([ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md)
+  item 2). An exporter model has the key `<model_id>@<source.name>`. A model of skellytracker has
+  the key `<detector_type>@skellytracker`
+  ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 6). The list does
+  not import a detector module. `keypoint_bbox` and `precomputed` are not in the list
+  ([ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 13).
+- Each entry has `available` and `unavailable_reason`: the extra (`importlib.util.find_spec` with a
+  literal name), the ONNX file and its hash
+  ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 7).
+- `describe_detector(key)` and the CLI `detectors` and `describe`
+  ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 9): the sizes,
+  the precisions, the `sidecar_sha256`, the ports, the params with their sidecar defaults, and the
+  point names.
+- Gate: the catalog tests on temporary roots pass. A test checks that each entry of the static
+  table has a known class.
+
+### N4 — Standalone generic detectors
+
+**Status: NOT STARTED.**
+
+- The generic object detector and the generic keypoint detector of M6, in `core/detectors/generic/`
+  ([ADR-EM74](../decisions/entries/EM74-stage-order-and-ci-models.md) item 3). Each one takes a
+  catalog entry, a size, a precision and a session. It runs the sidecar preprocessing, the inference
+  and the postprocessing on a batch of images or crops. It has no old registry key, no
+  `detector_type`, no old config base and no link to `DetectionStageConfig` or `DetectionContext`.
+  The `detector` node of P wraps them.
+- The generic keypoint detector reads `keypoint.estimator_type`. A `top_down_single_person` or
+  `top_down_multi_person` model takes crops. A `bottom_up` model takes the full image
+  ([ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md) item 2).
+- The generic keypoint detector groups the edges for drawing from `keypoint.overlay` (`parts`,
+  `edges`) and `keypoint.skeletons`. The old `resolve_overlay_groups` stays until Db.
+- The batch conversion at session start for each `batching.batch: 3` artifact
+  (`model_batch_convert`), as a function that P calls. N4 does not change `core/tracker/` or
+  `DetectionStage.run_batch`. `test_run_batched.py` stays.
+- The session takes the execution provider as `execution_provider`.
+- The detector tests on generated ONNX models
+  ([ADR-EM74](../decisions/entries/EM74-stage-order-and-ci-models.md) item 5): `onnx.helper` makes
+  tiny fixed-batch models at run time, with a sidecar in a temporary root. The tests cover the
+  loader, the catalog, the generic detectors, the batch conversion and the decode. CI runs no real
+  model.
+- Gate: the detector tests pass on the three operating systems. The existing tests pass with no
+  change of expected values.
+
+### N5 — The first new models
+
+**Status: NOT STARTED.** This stage replaces M10a and M10b.
+
+- `yolox-person` and `rtmw-wholebody133` from OpenMMLab-Exporter go in `core/model_zoo/`, with their
+  ONNX files beside their sidecars. Git does not track the ONNX files
+  ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) items 1 and 5). The keys
+  are `yolox-person@openmmlab-exporter` and `rtmw-wholebody133@openmmlab-exporter`.
+- The reference examples show the form:
+  [`yolox-person.yaml`](model-sidecar/examples/detectors/object_detectors/yolox-person/yolox-person.yaml)
+  (`batching.batch: 3` with `batching.batch_conversion`, no NMS in the graph, host
+  `selection: nms`) and
+  [`rtmw-wholebody133.yaml`](model-sidecar/examples/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133.yaml).
+  OpenMMLab-Exporter re-exports both models with the names of
+  [ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) and without
+  `keypoint.requires_object_detector`
+  ([ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md)).
+- The sizes give at least the coverage of today. `yolox-person` has `t` and `m` (the old `yolox-tiny`
+  and `yolox-m`, the same HumanArt checkpoints). `rtmw-wholebody133` has the three old checkpoints:
+  `rtmw-l-m_256x192`, `rtmw-x-l_256x192` and `rtmw-x-l_384x288`. The example has the size keys `m`,
+  `l-256`, `x-256`, `l-384` and `x-384`. Check which checkpoint each size uses.
+- The models come through the model addition workflow and pass the acceptance gate of M10
+  ([ADR-6J8E](../decisions/entries/6J8E-exporters-run-released-skellytracker.md) item 6). Run parity
+  against the upstream reference output of the exporter, at the detector level. Do not compare with
+  the old golden fixtures.
+- The RTMW model input changes. The old package sidecar declares `imagenet_bgr`, and the old code
+  puts the B, G and R channels of the frame in tensor positions 0, 1 and 2. The export declares
+  `normalization: imagenet` with `color_format: rgb`, which puts R, G and B there
+  ([Normalization modes](model-sidecar/pre/normalization.md#behaviour)).
+- Decided before the work: the old keys `rtmpose` and `yolox_person` and the old `model_name` values
+  go, with no alias ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md)
+  item 2). The host gets the ONNX files from `core/model_zoo/` (item 5). The generic keypoint
+  detector of N4 runs the RTMW export.
+- Open before the work: the export has no `keypoint.canonical_mapping`. The host-side canonical
+  mappings are skellytracker work. The user decides how the package keeps the canonical mapping of
+  `rtmw-wholebody133`. Record the decision in a decision entry before the work starts.
+- N5 writes no Python pipeline builders
+  ([ADR-EM74](../decisions/entries/EM74-stage-order-and-ci-models.md) item 3). P adds the pipeline
+  files.
+- When the first spec sidecar is in `core/model_zoo/`, do the M7 item "Package root in the trace
+  scan".
+- Gate: the M10 model gate, run locally. The old detectors still pass.
+
+### Pre-release 2.0.0
+
+**Status: NOT STARTED.**
+
+- It comes after N5 and before any deletion
+  ([ADR-EM74](../decisions/entries/EM74-stage-order-and-ci-models.md) item 4). The old and the new
+  detectors are side by side.
+- It is the release of the M10 item "Pre-release for the exporters". The exporters need the new
+  loader and the generic detectors, not the pipeline API
+  ([ADR-6J8E](../decisions/entries/6J8E-exporters-run-released-skellytracker.md)).
+- Its release note says these things:
+  - The new spec loader, the catalog and the generic detectors are in.
+  - The pipeline API comes in a later pre-release.
+  - The old ONNX detectors, their `detector_type` keys and their `model_name` values go in a later
+    release.
+  - Intel Mac is not supported ([ADR-MSH0](../decisions/entries/MSH0-supported-platforms-v2.md)).
+  - freemocap must not move to 2.0.0 before it migrates.
+- Gate: the full suite passes.
+
+### P — The pipeline API
+
+**Status: NOT STARTED.** P needs N4, the pipeline spec ([`specs/pipeline/`](pipeline/README.md)) and
+`eps.build_session()` of the hardware and EP track. P builds `core/pipelines/` and
+`core/pipelines/_runtime/` beside the old `core/tracker/`. The old run code does not change
+([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 1).
+
+- **Config.** Move `PipelineConfig` and the node configs, with the union keyed on `type`, from
+  `specs/pipeline/reference/pipeline_config.py` into `core/pipelines/config.py`. Add a doc test that
+  checks that the committed `specs/pipeline/pipeline.schema.json` agrees
+  ([ADR-3SF2](../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md) item 3). Add load,
+  export and the load checks
+  ([ADR-99MH](../decisions/entries/99MH-pipeline-outputs-and-running.md) item 7). Each file has the
+  required `source:` field, and its key is `<pipeline_id>@<source>`
+  ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 2). Pipelines use
+  the sidecar catalog key rules: the newest version wins, `<key>==<version>` pins, and
+  `skellytracker` is reserved ([ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) item 7).
+- **Discovery.** Read `*.pipeline.yaml` in `core/model_zoo/pipelines/` and in
+  `<user root>/pipelines/` ([ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md)
+  item 2). `list_pipelines()` gives the load result, the availability and the warnings.
+- **Executor.** The executor of `_runtime/` has these parts
+  ([ADR-99MH](../decisions/entries/99MH-pipeline-outputs-and-running.md)):
+  - the DAG order and `@prev`;
+  - the empty-input rule: an empty required input stops a node, and an empty optional input does
+    not ([Graph](pipeline/graph.md#behaviour));
+  - the instance rows, with point names that have the id of their node as a prefix (for example
+    `body.nose`);
+  - the running modes `image`, `video` and `live`;
+  - the batch: `video` and `image` batch to k × cameras, `live` batches to the camera count, and a
+    node that takes ROIs batches to that batch × the `I` of its instance source. `start_pipeline`
+    takes `camera_ids`;
+  - the batch conversion of each artifact at start, and the padding of a missed frame or crop, with
+    its result dropped;
+  - the batch rule of a stateful pipeline and its warning `batch_limited_by_state`;
+  - the session sharing.
+- **Time.** Each output, timing event and tap row has `frame_index`. In `video` and `live`, each
+  frame has `timestamp_ms` (a float). A `video` frame with no `timestamp_ms` uses
+  `frame_index × 1000 / fps`, with the run parameter `fps` (default 30.0). A `live` run has no
+  fallback ([Running](pipeline/running.md#behaviour)).
+- **`detector` node.** It wraps the generic detectors of N4. A node with a top-down keypoint model
+  has a `rois` input. A node with a `bottom_up` model or an object detector has no `rois` input
+  ([ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md) item 4). Its decode param
+  is `object_decode` ([ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) item 7). NMS is an
+  ONNX `NonMaxSuppression` graph on the CPU provider, with `max_output_boxes_per_class` `2**31-1`,
+  in the new `processing/post/` decode of N2. `post_nms_top_k` applies to the final rows
+  ([ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 9). The gate is
+  [`post.object.selection.nms`](model-sidecar/vectors/post.object.selection.nms.yaml).
+- **Class and instance score.** A `detections` value has `class_index` `(I,)`, with -1 for a
+  padding row. The output schema and `tap.json` give `class_names`, the `object.classes` of the
+  model. Each `keypoints` and `roi` value has `instance_score` `(I,)`. The instance source sets it:
+  the detection score of the row, or 1.0 from `mediapipe_tasks`. Each other node copies it from its
+  input row, and `merge` copies it from its `target` input. A row that a node keeps from `@prev`
+  keeps its score. A padding row has 0
+  ([ADR-6DKT](pipeline/decisions/entries/6DKT-instance-rows-carry-class-and-score.md) items 1 and 2).
+- **`mediapipe_tasks` node.** One node with `variant: body | hand | face | holistic`. It calls the
+  Tasks landmarkers directly and uses the MediaPipe assets
+  ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 4). Its params
+  are `min_detection_score`, `min_presence_score`, `min_tracking_score` and `size`
+  ([ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) item 7). The timestamp fix and the
+  safe close of M11 go into it. It has no reset and no back-off
+  ([ADR-6JWJ](pipeline/decisions/entries/6JWJ-mediapipe-video-landmarker-does-not-stick.md)).
+  Holistic is single person, so its `max_instances` is 1. Its output has `geometry: 3d` and
+  `depth_unit: pixel` ([ADR-6DKT](pipeline/decisions/entries/6DKT-instance-rows-carry-class-and-score.md)
+  item 6). In v2 it has no ROI input and no face blendshapes.
+- **Glue nodes.** `roi_from_points`, `roi_tracking`, `gate`, `first_of`, `concat`, `merge`,
+  `smooth_keypoints`, `smooth_roi` and `redetect`
+  ([ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6).
+  - [`merge`](pipeline/nodes/merge.md) takes `target` keypoints and `source` keypoints of any
+    instance source. Each source row goes to the slot with the nearest anchor, one row for each
+    slot. The output has the target columns, with the `map` replacements, and one column set for
+    each slot.
+  - [`concat`](pipeline/nodes/concat.md) never replaces a point. An empty input does not stop it.
+    The columns of that input are missing points: x, y and z are NaN, and the score is 0
+    ([ADR-6DKT](pipeline/decisions/entries/6DKT-instance-rows-carry-class-and-score.md) item 5).
+  - `smooth_keypoints` refuses a timestamp that does not increase. It has `reset_after_ms` and no
+    miss counter.
+- **Sessions.** Build each ONNX session with `eps.build_session()`
+  ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 5).
+- **Warnings.** `PipelineWarning`, `PipelineRun.warnings`, `on_warning` and `MissingDependencyError`
+  ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) items 6 and 7).
+- **Timing.** The timing events, the header, the derive helpers and the skellybench aggregator in
+  `core/metrics/` ([ADR-Q59W](../decisions/entries/Q59W-pipeline-timing-and-taps.md) items 1 to 4).
+- **Taps.** The tap actions `record` and `replay`
+  ([ADR-Q59W](../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 5). Each JSONL line has
+  `row`, its row index. A `detections.jsonl` line writes `class`, the class name, in place of
+  `category_id`. A `keypoints.jsonl` line and an `roi.jsonl` line write `score`, the
+  `instance_score` of the row. A tap applies no rescoring. A replay puts each line in its row, and
+  refuses a bad `row` (`V-pipeline.taps-6`) and an unknown `class` (`V-pipeline.taps-7`)
+  ([ADR-6DKT](pipeline/decisions/entries/6DKT-instance-rows-carry-class-and-score.md) items 3
+  and 4).
+- **Other port types.** The value of an output or a tap of the port type `image` or `tensor` is not
+  fixed ([Outputs](pipeline/outputs.md#behaviour)). Fix it before the first output of such a port.
+- **CLI.** `run` with the COCO form
+  ([ADR-Q59W](../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 6), `validate` and `nodes`
+  ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 9). N3 gives
+  `detectors` and `describe`.
+- **Node catalog.** `list_node_types()`, the tool that makes the spec table of each node type, and
+  its doc test ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 9).
+- **Webcam demo.** `output_schema` gives `edges` for each output, from the sidecar
+  `keypoint.overlay` or the MediaPipe YAML files. Port `python -m skellytracker` to `start_pipeline`
+  in `live` mode with `--pipeline <key>`. One generic annotator draws each output
+  ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 8).
+- **Built-ins.** Copy `yolox-rtmw-wholebody` and `mediapipe-holistic-tasks` from
+  `specs/pipeline/examples/` to `core/model_zoo/pipelines/`
+  ([ADR-3SF2](../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md) item 2;
+  [ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 3).
+- **Multi-person.** A pipeline can have more than one row (`I > 1`). But a row has no identity
+  across frames, and each `track_ids` value is -1, until an `associate` node exists
+  ([ADR-99MH](../decisions/entries/99MH-pipeline-outputs-and-running.md) item 1). The temporal nodes
+  filter row `i`, which can be another person on the next frame. Thus the v2 pipelines run single
+  person (`max_instances` 1). "Later" holds the multi-person work.
+- **Investigations.** Read `SharedSessionPool` and `TrackerLease` in the freemocap development-streaming
+  work: what freemocap needs (a lease for each stream, the lifetime, thread safety), and whether
+  the session sharing covers it. Study frame drops in `live` mode: a latest-frame mailbox, a count of
+  dropped frames, a `drop` timing point and MediaPipe LIVE_STREAM.
+- Gate: tests on generated ONNX models for each node type, the load checks, the empty-input rule,
+  the `concat` empty-input fill, the instance rows with `class_index` and `instance_score`, `@prev`,
+  the stateful batch rule and its warning, the timing parents, and record and replay with `row`. The
+  glue vectors and the named tests of the glue nodes agree. The aggregator output passes
+  `skellybench.schema.validate_timing`. `mediapipe-holistic-tasks` runs and gives the expected point
+  sets.
+
+### Da — Delete the old YOLOX and RTMW
+
+**Status: NOT STARTED.**
+
+- Da comes after P, so that YOLOX and YOLOX+RTMW always have a working pipeline
+  ([ADR-EM74](../decisions/entries/EM74-stage-order-and-ci-models.md)).
+- Delete `object_detectors/yolox/` (with `prepare_yolox_onnx`, `_yolox_dynamic_batch.py` and
+  `yolox_decode.py`) and `keypoint_detectors/rtmw/`, with the old wholebody shim in
+  `keypoint_detectors/rtmpose/wholebody/`: the modules, the sidecars, the demos and the registry
+  entries. Delete their tests and golden fixtures, and each `shared/` fragment that only they use.
+  Check first which `shared/` fragments and canonical mapping files the new sidecars need.
+- Update the README, the examples and the demos.
+- Gate: the full suite passes without the deleted tests. The old RTMPose tests and the MediaPipe
+  tests pass with no change of expected values.
+
+### N6 — The RTMPose replacements
+
+**Status: NOT STARTED.**
+
+- The replacements of RTMPose body, hand and face come from OpenMMLab-Exporter through the
+  acceptance gate of M10, on the pre-release
+  ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 7). They block
+  v2.0.0. The `model_id` values are proposals. The exporter applies the `model_id` rules.
+
+  | Proposed `model_id` | Replaces | Keypoints | Input | Sizes, minimum |
+  |---|---|---|---|---|
+  | `rtmpose-body17` | `rtmpose-body`: `rtmpose-s_256x192`, `rtmpose-m_256x192` | 17 (COCO) | 256×192 | `s`, `m` |
+  | `rtmpose-hand21` | `rtmpose-hand`: one size | 21 | 256×256 | `m` |
+  | `rtmpose-face106` | `rtmpose-face`: one size | 106 | 256×256 | `m` |
+
+- Each model has the contract of the two N5 models: `schema_version: "2.0.0"`, `batching.batch: 3`
+  with `batching.batch_conversion`, and an fp32 and an fp16 artifact for each size, with `filename`
+  and `sha256`.
+- The host-side canonical mappings (`rtmpose_body17_to_canonical_mapping.yaml`,
+  `rtmpose_hand_to_canonical_mapping.yaml`) are skellytracker work, not exporter work.
+- The built-in pipeline `rtmpose-body-hands-face`
+  ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 3). Before it
+  ships, measure the body17 hand ROI rule (elbow to wrist) and the face ROI rule. No reference
+  defines them. The measurement also decides whether `min_size_px` comes back.
+- Gate: the M10 model gate, run locally. `rtmpose-body-hands-face` runs.
+
+### Db — Delete the old RTMPose, the old loader and the old processing
+
+**Status: NOT STARTED.**
+
+- Delete `keypoint_detectors/rtmpose/` (body, face, hand, `rtmpose_keypoint_detector.py`,
+  `rtmpose_preprocessing.py` and `run_demo.py`), with its sidecars, demos, tests and golden
+  fixtures.
+- Delete the old loader `core/sidecar/`. Then move `core/model_spec/` to `core/sidecar/` with one
+  `git mv` ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 8).
+- Move `core/detectors/shared/` into `core/model_zoo/detectors/shared/` when a new sidecar `$ref`s
+  it. Otherwise delete the old fragments.
+- Delete the old processing modules (`image_preprocessing.py`, `affine_crop.py`,
+  `object_detection_decode.py` and `simcc_decode.py`), `golden_parity.py`,
+  `test_image_preprocessing.py`, `test_object_detection_decode.py`, the old entries of
+  `PACKAGE_RUNNERS` and the old `resolve_overlay_groups`.
+- Delete `REMOVED_VALUES` and `MERGED_IMAGENET_MODES` in `tools/tests/test_traceability.py` when the
+  model at `core/sidecar/` has none of those values.
+- Gate: the full suite and the vector tests pass.
+
+### Dc — Delete the old run code
+
+**Status: NOT STARTED.**
+
+- Dc comes after P and Db, when each built-in runs as a pipeline config. Delete `core/tracker/`
+  (`Tracker`, `DetectionStage`, `MultiPersonTracker`), `TrackerConfig`, `DetectionStageConfig`, the
+  old detector contract and each old config base, `object_detectors/keypoint_bbox/`,
+  `precomputed_object_detector.py`, the three old MediaPipe detector classes and `run_demo.py`, the
+  old annotators and the demo builders
+  ([ADR-EM74](../decisions/entries/EM74-stage-order-and-ci-models.md) item 2;
+  [ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 5).
+- charuco and aruco become plain classes with their own frozen config dataclass and `detect(image)`.
+  They subclass no base
+  ([ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 4). The
+  calibration demos call these classes.
+- Move the tests that still apply to the new runtime. The cases of `test_keypoint_bbox_detector.py`
+  and `test_detection_stage_hierarchy.py` seed `roi_from_points` vector cases only when their meaning
+  is the same ([ADR-3SF2](../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md) item 4). The
+  minimum-size case does not move.
+- Gate: the full suite passes. Each built-in runs as a pipeline config. The MediaPipe built-in gives
+  the expected point sets (body, both hands, face). It has no keypoint parity with the old builders,
+  because Holistic is a different graph.
+
+### Release 2.0.0
+
+**Status: NOT STARTED.**
+
+- The 2.0.0 release (M12) comes after Dc. 2.0.0 ships with the old detectors and the old run code
+  already deleted. Thus freemocap migrates one time
+  ([ADR-EM74](../decisions/entries/EM74-stage-order-and-ci-models.md) item 2).
+- Its release note warns that these are gone: the old ONNX detectors, their `detector_type` keys and
+  `model_name` values, `canonical_mapping_path()`, `Tracker`, `TrackerConfig`,
+  `DetectionStageConfig` and the old MediaPipe detector classes. freemocap uses them, so it must not
+  move to 2.0.0 before it migrates.
+- Gate: the full suite passes.
+
+### freemocap migration
+
+freemocap is outside this plan. It uses the old detectors and their keys, so it must not move to
+2.0.0 before it migrates ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md)).
+freemocap moves to `pipelines` itself. skellytracker gives no adapter to the old `Observation`
+([ADR-99MH](../decisions/entries/99MH-pipeline-outputs-and-running.md) item 1). The migration has
+these parts:
+
+- **Point names.** A pipeline point name has the id of its node as a prefix, for example
+  `left_hand.wrist`. freemocap removes the prefix at the first dot, and needs names that carry the
+  side. Its own map gives `left_hand.wrist` → `left_hand_wrist`. The pipeline spec has no rule for
+  this map.
+- **Frame index.** The outputs, the timing events and the taps use `frame_index`, not
+  `frame_number`.
+- **Charuco.** charuco runs through `detectors`, beside the pipeline, on the same frames. Pipelines
+  have no calibration node
+  ([ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 4). Remove the
+  link between charuco and the tracker in the typed recording graph.
+- **Resets.** Remove `max_consecutive_misses=10`. `smooth_keypoints` has only `reset_after_ms`, and
+  `mediapipe_tasks` has no reset
+  ([ADR-6JWJ](pipeline/decisions/entries/6JWJ-mediapipe-video-landmarker-does-not-stick.md)).
+- **Timestamps.** A `live` caller must give a `timestamp_ms` that increases. A `live` run has no
+  fallback.
+- **Frame rate.** The hard-coded 30 fps goes. A `video` caller gives `timestamp_ms` or the run
+  parameter `fps`.
+- **MediaPipe pin.** freemocap pins `mediapipe==0.10.33` in a uv override. It keeps 0.10.33 until it
+  changes that pin ([ADR-MSH0](../decisions/entries/MSH0-supported-platforms-v2.md)).
+
+### Later
+
+- Move the ONNX files of `core/model_zoo/` to a Hugging Face repo
+  ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 5).
+- Multi-person tracking with the new pipelines: an `associate` node gives the rows an identity
+  across frames. Until then, each `track_ids` value is -1, and the v2 pipelines run single person.
+- A better batch strategy than the padding of missed frames and crops, for example no work for a
+  padded frame.
+- The ROI input of `mediapipe_tasks`, with `min_size_px` on `roi_from_points` and
+  `assumed_handedness` on the `hand` variant. Do it when MediaPipe on a YOLOX box or the cropped
+  MediaPipe tracker of freemocap needs it.
+- The decomposed ONNX Holistic. It waits for sidecar proposals: a crop that takes a rotated ROI,
+  weighted NMS, detection keypoints and the `roi_refiner` role
+  ([ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 7).
+- Real tiny models in CI, from the Hugging Face repo, with a trimmed upstream reference. CI uses
+  generated models until then ([ADR-EM74](../decisions/entries/EM74-stage-order-and-ci-models.md)).
+- Face blendshapes. This is planned work after the merge with the freemocap development-streaming
+  work. The `mediapipe_tasks` node of v2 gives no blendshapes.
+- The hardware and EP track adds execution provider information to `detectors` and `pipelines`.
+
 ### M6 — Generic sidecar-driven detector (drop in a YAML + ONNX, no new Python)
 
-**Status: NOT STARTED.** M6 changes package code, so it waits for the implementation stage ([Stages](model-sidecar/model-addition-workflow/README.md#stages)).
+**Status: NOT STARTED.** Stage N4 builds Part A. N2 and later work build Part B.
 
-**Goal:** today, migrating a model family to the sidecar system still means hand-writing a `@dataclass` detector (`preprocess`/`postprocess`/`detect`/`model_spec`) per family and manually registering it — see `YoloxPersonDetector`, `RTMWWholebodyDetector`, `RTMPoseBodyDetector`/`RTMPoseHandDetector`/`RTMPoseFaceDetector`. The bodies of these are now thin wrappers around the generic `core/detectors/processing/*` functions, but they're still bespoke code per model. M6's goal is to close that last mile: **finding an ONNX file for an object or keypoint detector, writing a conforming sidecar YAML for it, and running it from skellytracker with zero new Python**, for the decode/preprocess combinations the spec already describes.
+**Goal.** The generic detectors are the re-implementation of the package ONNX detectors
+([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md)). A new model needs its
+sidecar and its ONNX files, and no new Python, when its sidecar uses only the preprocessing and the
+decode that the package implements.
 
-This milestone has two independent parts — a generic detector class/factory, and filling in the decode coverage gaps the current generic modules leave unimplemented. Either can land first; the factory is more valuable once decode coverage is broad enough that most new sidecars won't immediately hit a `NotImplementedError`.
+**Removed from this milestone.** These parts of the earlier text go
+([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md);
+[ADR-EM74](../decisions/entries/EM74-stage-order-and-ci-models.md) item 3):
 
-**Two known gaps motivate this milestone, and neither is closed by anything already done through M4d:**
+- the generic config in the `TrackerConfig` union. The pipeline config replaces `TrackerConfig`;
+- the fill of the old registries `OBJECT_DETECTOR_REGISTRY` and `KEYPOINT_DETECTOR_REGISTRY`;
+- the coexistence of a hand-written detector with the generic detector, and the claim of a catalog
+  key;
+- the YOLOX gap (the raw-anchor-grid decode and the graph surgery of `prepare_yolox_onnx`). The
+  `yolox-person` export has no NMS in the graph and uses host `selection: nms`. Da deletes the old
+  YOLOX.
 
-1. **The Python config/registration infrastructure is behind the sidecar infrastructure.** The sidecar YAML contract (`core/sidecar/`) and the generic processing math (`core/detectors/processing/`) are already fully generic — they don't know or care which family a model belongs to. But there is no generic Python *config* or *registration* path that lets a caller actually use a bare sidecar+ONNX pair: every detector still needs a hand-written `@dataclass` class, a hand-written `*Config` subclass with a fixed `Literal[...]` `detector_type`, and a hand-added `REGISTRY["..."] = SomeClass` line, before `TrackerConfig`/`Tracker` can run it at all. The sidecar side of the system outran the Python plumbing needed to drive it generically — Part A below is what closes that gap.
-2. **YOLOX has decode math that is inherently family-specific and cannot become generic**, independent of how much Part B below gets built out. `_decode_yolox_raw_anchor_grid` (`yolox_decode.py`) reconstructs boxes from YOLOX's stride-based anchor-free grid (strides `[8,16,32]`, per-cell offset + `exp(wh)` decode) — that's specific to YOLOX's detection-head architecture, not a decode *strategy* the sidecar spec's declarative `decode` fields (`box_format`, `score_field`, `requires_nms`, ...) are designed to express. `yolox_detection_decode`'s dispatch also branches on the *loaded* ONNX graph's actual output tensor count/shape (2 outputs = pre-NMS; 1 output shape[-1]==5 = NMS baked in; shape[-1]==4 = raw grid) rather than purely on declared sidecar fields, and loading the checkpoint at all requires `prepare_yolox_onnx`'s ONNX graph surgery (`_yolox_dynamic_batch.py` — patching a static `batch=1` graph to a symbolic batch dim and extracting pre-NMS outputs, because the checkpoint's baked-in NMS/Squeeze subgraph breaks for `batch>1`) — a Python callable (`sidecar_model_spec(..., prepare=prepare_yolox_onnx)`), not a declarative sidecar field. None of this is a coverage gap Part B can fill; it's a permanent property of this model export. **YOLOX keeps its own hand-written detector/decode module, coexisting with the generic detector for other families, until it is re-exported** to a contract the spec describes (dynamic batch, no NMS in the graph, host `selection: nms`) — open work under decision 0016, which would retire the graph surgery and the exception.
+**Part A — Generic detectors:**
 
-**Part A — Generic detector class + auto-registration:**
-
-> **Read decision 0016 (sidecar catalogs, in `decisions/`) before starting Part A. It replaces several rules below.** Catalog keys are `<model_id>@<source.name>` (from a new `source` field in each sidecar), not `sidecar:{model_id}`. Sidecars are discovered in every configured root — the package, local folders a user adds, and pinned Hugging Face repos — not only the package's `detectors/` folders; a YAML file is a sidecar when its top level has `schema_version` and a `model_id` equal to its basename. Detector code is chosen from the sidecar's role and sections, and a capability check marks sidecars that use unimplemented sections as unavailable. The existing `detector_type` keys stay as aliases. A hand-written detector may claim a catalog key, and the generic path never handles a claimed key: YOLOX claims `yolox@skellytracker` (gap 2 above), which answers the coexistence bullet below.
-
-- Add `GenericObjectDetector` and `GenericKeypointDetector` — generic `ObjectDetector`/`KeypointDetector` implementations, parameterized entirely by a loaded `SidecarModel` (plus a resolved size/precision), whose `preprocess`/`postprocess`/`detect`/`model_spec` bodies are exactly what the current per-family classes already delegate to (`preprocess_image`, `yolox_detection_decode`-style generic decode dispatch, `simcc_pose_decode`, `sidecar_model_spec`). No family-specific subclassing should be required for models whose sidecar only uses implemented decode/resize options (see Part B).
-- *(Replaced by 0016: the key is `<model_id>@<source.name>`, and the existing `detector_type` strings stay as aliases. The config/`TrackerConfig` work below still applies.)* Decide and implement a `detector_type` convention for generic sidecars — e.g. derive it from `model_id` (`sidecar:{model_id}` or similar) — since today's registries key off a fixed `Literal[...]` string per hand-written config class (`YoloxPersonDetectorConfig.detector_type`, etc.). A generic config (`GenericObjectDetectorConfig`/`GenericKeypointDetectorConfig`) needs a `model_id`/sidecar-path field instead of a fixed literal, and `TrackerConfig`'s discriminated-union validation needs to accept it. This is the concrete fix for gap 1 above — today nothing in `skellytracker/core/config/` or `TrackerConfig` can express "run this arbitrary sidecar" without a matching hand-written config class already existing.
-- *(Replaced by 0016: discovery scans every configured root — package, user folders, pinned HF repos — with the discovery rule above, not only these two package folders.)* Add auto-discovery/registration: scan `detectors/object_detectors/*/` and `detectors/keypoint_detectors/*/*/` for sidecar YAMLs at import/startup time and populate `OBJECT_DETECTOR_REGISTRY`/`KEYPOINT_DETECTOR_REGISTRY` with generic detector entries, instead of requiring a hand-edited `REGISTRY["..."] = SomeClass` line per model (today's convention — see every `*_detector.py`'s bottom-of-file registration).
-- *(Decided by 0016: a hand-written detector claims its catalog key, and the generic path never handles a claimed key.)* Decide how a hand-written family-specific detector (kept for families needing custom decode logic — YOLOX per gap 2 above being the clearest permanent example, via its raw-anchor-grid decode in `yolox_decode.py`) coexists with/overrides the generic auto-registered one for the same `model_id`, so a family that can never be purely generic doesn't collide with auto-discovery.
-- Existing hand-written detectors (YOLOX, RTMW wholebody, RTMPose body/hand/face) are **not required to be replaced** by the generic class in this milestone — RTMW/RTMPose could plausibly move to the generic class once Part A lands, since their preprocess/decode (`affine_person_crop`/`simcc`) are already fully generic; YOLOX cannot, per gap 2. The bar for M6 is that a *new* model needs no new Python, not that old ones are rewritten.
+- Add `GenericObjectDetector` and `GenericKeypointDetector` in `core/detectors/generic/`. A loaded
+  spec model, a size, a precision and a session give all their parameters. They use the new modules
+  of `processing/pre/` and `processing/post/` (N2). N4 gives their scope.
+- A sidecar that uses a section that the package does not implement is unavailable in the catalog
+  (the capability check of M7). It does not fail at run time.
 
 **Part B — Fill decode/preprocess coverage gaps:**
 
@@ -190,191 +762,173 @@ Stage [M8](#m8--validation-preprocessing-and-decode-gaps) of this plan lists the
 
 Two rules of this part stay:
 
-- The sidecar `decode` fields must control the decode. Today the thresholds and limits come from the Python defaults of each detector config (the known gap under M3).
-- Test each new decode path with a real export: a sidecar, its ONNX file and an upstream reference output from the exporter. A spec reference example is never a test input, because it has no ONNX file. New decode math has no earlier output to compare with, so compare it with the output of the upstream library.
+- The sidecar `object.decode` and `keypoint.decode` fields must control the decode. A detector config must not hold its own thresholds and limits (the known gap under M3).
+- Test each new decode path with a real export: a sidecar, its ONNX file and an upstream reference output from the exporter. A spec reference example is never a test input, because it has no ONNX file. New decode math has no earlier output to compare with, so compare it with the output of the upstream library. CI tests the same path on generated ONNX models.
 
 ### M7 — Sidecar catalog, dispatch and trace tools
 
-**Status: NOT STARTED.** It changes package code, so it waits for the implementation stage
-([Stages](model-sidecar/model-addition-workflow/README.md#stages)). The generic detector of M6 needs these parts. Do them in this order: trace-tool functions, the catalog and its roots, then the capability check. The V- rule checks of the examples wait for the package model of M8, so they come last.
+**Status: NOT STARTED.** N1 does the V- rule checks of the examples. N3 does the trace-tool
+functions, the catalog, the roots and the capability check. N5 starts the item "Package root in the
+trace scan".
 
 - **Trace-tool functions.** Move `tools/sidecar_normalize.py` (the normalization table and the
-  selector matching that the sidecar trace tool uses) into `skellytracker/core/sidecar/` without
-  changes. The trace tool then imports them from the package. The capability check of [ADR-0016](../decisions/entries/0016-sidecar-catalogs.md) uses the
+  selector matching that the sidecar trace tool uses) into `skellytracker/core/model_spec/` without
+  changes. The trace tool then imports them from the package. The capability check uses the
   same functions ([ADR-0013](../decisions/entries/0013-spec-structure.md);
   [`format.versioning`](model-sidecar/format/versioning.md#implementer-guidance)).
-- **Sidecar catalog and roots.** Build the catalog of [ADR-0016](../decisions/entries/0016-sidecar-catalogs.md): the catalog key
-  `<model_id>@<source.name>`, the version order and the version pins, the reserved name
-  `skellytracker`, the root log and the run metadata
-  ([`common.identity`](model-sidecar/common/identity.md#implementer-guidance)). Build the roots:
-  the package root, local folders, Hugging Face repo snapshots (pin, refresh, cache paths without
-  symlink resolution), development builds, user models and discovery in each root. Rename
-  `cache_dir` to the sidecar root in the code
-  ([`format.file_layout`](model-sidecar/format/file-layout.md#implementer-guidance)). See
-  [ADR-0016](../decisions/entries/0016-sidecar-catalogs.md#decision).
-- **Capability check and dispatch.** Build the capability check of [ADR-0016](../decisions/entries/0016-sidecar-catalogs.md). Map a catalog entry to
-  detector code by its role and its spec sections. Keep the `detector_type` keys as aliases of
-  `<model_id>@skellytracker`. Let a hand-written detector claim a catalog key. Make an unknown size
-  an error, not a silent fallback
-  ([`format.versioning`](model-sidecar/format/versioning.md#implementer-guidance); see
-  [ADR-0016](../decisions/entries/0016-sidecar-catalogs.md#capability-check)).
+- **Catalog and roots.** The catalog is the `detectors` entry point (N3). Each entry has the
+  category `onnx`, `mediapipe` or `calibration`
+  ([ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 2). An
+  exporter model has the key `<model_id>@<source.name>`, and a model of skellytracker has the key
+  `<detector_type>@skellytracker`
+  ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 6). Build the
+  version order, the version pins, the reserved name `skellytracker`, the root log and the run
+  metadata ([`common.identity`](model-sidecar/common/identity.md#implementer-guidance)). The roots
+  are `core/model_zoo/`, the user root and Hugging Face repo snapshots (pin, refresh, cache paths
+  without symlink resolution), with discovery in each root
+  ([Sidecar roots](model-sidecar/format/file-layout.md#sidecar-roots);
+  [Discovery](model-sidecar/format/file-layout.md#discovery)). The new code calls the root the
+  sidecar root, not `cache_dir`
+  ([`format.file_layout`](model-sidecar/format/file-layout.md#implementer-guidance)).
+- **Capability check and dispatch.** Build the capability check for each artifact. Map a catalog entry to
+  a generic detector by its role (`object_detector` or `keypoint_detector`) and its spec sections. There are no aliases and no claims: the old `detector_type` keys go with the old detectors ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 2). An unknown size
+  is an error, not a silent fallback
+  ([`format.versioning`](model-sidecar/format/versioning.md#implementer-guidance)).
 - **V- rule checks of the examples.** The doc tests parse and resolve each reference example, and
   check its provenance (`tools/tests/test_examples.py`). They also check that it has only keys that
   the spec defines (`V-format.composition-5`;
   [ADR-0QKK](../decisions/entries/0QKK-no-legacy-layer.md) item 11). They do not run the other
-  `V-` rules on it, because `load_sidecar` rejects `"2.0.0"`
-  ([ADR-6GE2](../decisions/entries/6GE2-spec-version-follows-skellytracker.md)) and the package code
-  does not change in the spec-build stage. Thus no test checks the other rules after a spec-forced
-  edit of an example ([ADR-KDBD](../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md), item 5). When the
-  package model of M8 loads `"2.0.0"` sidecars (see M12, "The first package release"), validate each
-  example with `SidecarModel` in `tools/tests/test_examples.py`. Until then, part 7 of the proposal
+  `V-` rules on it, because the old `load_sidecar` rejects `"2.0.0"`
+  ([ADR-6GE2](../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). Thus no test checks the other rules after a spec-forced
+  edit of an example ([ADR-KDBD](../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md), item 5). In N1, validate each
+  example with the new model in `tools/tests/test_examples.py`. Until then, part 7 of the proposal
   and `uv run python tools/sidecar_trace.py impact <range>` at landing are the check.
-- **Package root in the trace scan.** Added on 2026-11-02. The trace tool scans only
-  `specs/model-sidecar/examples/` until the package migrates. The package sidecars are legacy
-  sidecars ([ADR-C0YD](../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md) item 1).
-  When the package sidecars follow the spec, add the package root back to the scan of
-  `tools/sidecar_trace.py`. Add the derivations that the package sidecars then need to
-  `tools/sidecar_normalize.py`.
+- **Package root in the trace scan.** The trace tool scans only
+  `specs/model-sidecar/examples/`. The old package sidecars stay outside the spec until they are deleted ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md)). When the first spec sidecar is in `core/model_zoo/` (N5), add `core/model_zoo/` to the scan of
+  `tools/sidecar_trace.py`. Add the derivations that the new sidecars need to
+  the normalization table.
 
 ### M8 — Validation, preprocessing and decode gaps
 
 **Status: NOT STARTED.** It changes package code, so it waits for the implementation stage
-([Stages](model-sidecar/model-addition-workflow/README.md#stages)). The package code does not yet do what the `vNEXT` spec requires for these sections. Do NMS box area and Batch forms before M10a. Do Normalization modes before M10b. Do Batch forms before M10b when the RTMW export has no batch key `"1"`.
+([Stages](model-sidecar/model-addition-workflow/README.md#stages)). Each item names the gap of the
+old code against the open target `2.0.0`. Do not change the old code
+([ADR-EM74](../decisions/entries/EM74-stage-order-and-ci-models.md)). Put each fix in the new code:
 
-- **`fit` `pad_value`.** At `vNEXT`, the spec requires `pad_value` on a `fit` resize
-  ([Validation rules](model-sidecar/pre/resize-fit.md#validation-rules)). The code does not require it.
-  `ResizeSpec._check_method_specific_fields` in `skellytracker/core/sidecar/model.py` accepts a `fit`
-  resize without `pad_value`. Then `preprocess_image` in
-  `skellytracker/core/detectors/processing/image_preprocessing.py` uses `0`, and `fit_preprocess` has
-  the default `pad_value=0`. Add the missing validator rule, so that no valid `vNEXT` sidecar uses the
-  default. Add a test of the rejection to `skellytracker/tests/sidecar/test_model_validation.py`.
-  `test_fit_method_is_valid` already sets `pad_value: 114` ([ADR-0012](model-sidecar/decisions/entries/0012-fit-resize-for-rtmo.md)).
-- **Scalar and array pad values.** `fit_preprocess` in
-  `skellytracker/core/detectors/processing/image_preprocessing.py` passes a scalar `pad_value` to
+- a model or loader item goes in `core/model_spec/` (N1);
+- a behaviour item goes in the module of its spec section in `processing/pre/` or
+  `processing/post/` (N2). Its validation rule goes in the model of N1.
+
+The new code has no legacy parameter. The tests go beside the new code. The old golden fixtures go
+with their detectors. A golden test of the new code compares with the upstream reference output of
+the exporter. N1 and N2 come before N5.
+
+- **`fit` `pad_value`.** The spec requires `pad_value` on a `fit` resize
+  ([Validation rules](model-sidecar/pre/resize-fit.md#validation-rules)). The old code does not require it: `ResizeSpec._check_method_specific_fields` accepts a `fit`
+  resize without `pad_value`, and `fit_preprocess` has
+  the default `pad_value=0`. The new model requires it, and the new `fit` module has no default. Test the rejection ([ADR-0012](model-sidecar/decisions/entries/0012-fit-resize-for-rtmo.md)).
+- **Scalar and array pad values.** The old `fit_preprocess` passes a scalar `pad_value` to
   `cv2.warpAffine` as `float(pad_value)`. OpenCV then fills only channel 0 of a 3-channel image: a
   scalar `114` gives the border `[114, 0, 0]`. The spec requires `[114, 114, 114]`
   ([ADR-BJF9](../decisions/entries/BJF9-scalar-pad-value-fills-every-channel.md)).
-  Expand a scalar to three values before the call. Also accept an array of int values: the type
-  hint `tuple[float, ...] | list[float]` makes beartype reject the YAML array `[114, 114, 114]`, and
-  the `int` hint of `letterbox_preprocess` rejects each array. Add `crop_policy.pad_value` to
-  `CropPolicySpec`, and pass its expanded value to `cv2.warpAffine` in `top_down_affine`. The case
+  The new code expands a scalar to three values before the call. It also accepts an array of int values, for example the YAML array `[114, 114, 114]`. The new model has `crop_policy.pad_value`, and
+  the new affine crop passes its expanded value to `cv2.warpAffine`. The case
   `scalar-pad-fills-each-channel` of
-  [`pre.resize.fit`](model-sidecar/vectors/pre.resize.fit.yaml) fails for `fit_preprocess` until
-  this item is done. Then put `fit_preprocess` back in the file-level `verified_against` of that
-  file, and remove `unverified` and the case-level entries.
-- **Letterbox rounding.** `letterbox_preprocess` in
-  `skellytracker/core/detectors/processing/image_preprocessing.py` cuts the resized size with `int()`.
-  The `vNEXT` spec rounds with `half_even` or `half_up`, places the image at `top_left` or `center`,
-  and keeps each side at least 1 pixel. The function has no `center` position and fails on a source
+  [`pre.resize.fit`](model-sidecar/vectors/pre.resize.fit.yaml) fails for the old `fit_preprocess`. Add the new function to the file-level `verified_against` of that
+  file. At Db, remove `unverified` and the case-level entries of the old function.
+- **Letterbox rounding.** The old `letterbox_preprocess` cuts the resized size with `int()`.
+  The spec rounds with `half_even` or `half_up`, places the image at `top_left` or `center`,
+  and keeps each side at least 1 pixel. The old function has no `center` position and fails on a source
   that is 1 pixel wide. It reproduces 8 of the 12 `top_left` cases in
-  [`pre.resize.letterbox`](model-sidecar/vectors/pre.resize.letterbox.yaml). The cut size is
-  correct only for legacy sidecars.
-- **Stretch unprojection.** The `stretch` branch of `preprocess_image` returns `resize_meta = 1.0`. The
-  host then has no scale factors to unproject with `x * src_w / T_w`.
-- **Normalization modes.** `build_normalization_fn` in
-  `skellytracker/core/detectors/processing/image_preprocessing.py` applies the `imagenet_rgb`
-  statistics in the channel order of the frame, as it applies `imagenet_bgr`. It does not swap the
-  channels. `InputSpec` in `skellytracker/core/sidecar/model.py` has no `color_format` field, and no
-  code reads `input.color_format`. The `imagenet_bgr` branch applies the RGB-ordered statistics to
+  [`pre.resize.letterbox`](model-sidecar/vectors/pre.resize.letterbox.yaml). The new module reproduces each case.
+- **Stretch unprojection.** The `stretch` branch of the old `preprocess_image` returns `resize_meta = 1.0`. The
+  host then has no scale factors to unproject with `x * src_w / T_w`. The new module returns the scale factors.
+- **Normalization modes.** The old `build_normalization_fn` applies the `imagenet_rgb`
+  statistics in the channel order of the frame, as it applies `imagenet_bgr`. The `imagenet_bgr` branch applies the RGB-ordered statistics to
   the B, G and R channels of the frame. That is the pre-spec rtmlib computation, not the spec
-  meaning. Make the modes obey [Normalization modes](model-sidecar/pre/normalization.md#behaviour).
-  Remove the pre-spec computation: the spec keeps no backward compatibility. Before this change,
-  move each package sidecar that declares `imagenet_bgr` to a `custom` normalization that gives the
-  pre-spec computation, or to the ImageNet mode with `color_format: rgb`. The user decides which. The
-  ImageNet mode changes the model input, so it needs a parity check.
+  meaning. The new module obeys [Normalization modes](model-sidecar/pre/normalization.md#behaviour).
+  The old package sidecars keep the pre-spec computation until Da and Db delete them. No package sidecar moves to a new mode ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md)).
+- **One `imagenet` mode.** The spec has one mode, `imagenet`. It applies the
+  statistics in the channel order of `input.color_format`
+  ([ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md);
+  [Normalization modes](model-sidecar/pre/normalization.md#behaviour)). The new model has `imagenet` in
+  its named modes and `input.color_format` as a required field (`V-common.input-5` and
+  `V-pre.normalize-1`). It has no `CustomNormalization.color_format`. The new module takes the channel order of `imagenet` and of `custom` from
+  `input.color_format`.
 - **NMS box area.** The spec's `selection: nms` uses the box-area convention of the ONNX
-  `NonMaxSuppression` operator, which does not add `1` to pixel widths or heights. The generic `nms()`
-  in `skellytracker/core/detectors/processing/object_detection_decode.py` adds `1`. Today only the
-  legacy YOLOX path uses it. It also breaks a tie between equal scores toward the higher row index,
+  `NonMaxSuppression` operator, which does not add `1` to pixel widths or heights. The old `nms()`
+  in `object_detection_decode.py` adds `1`. Only the
+  old YOLOX path uses it. It also breaks a tie between equal scores toward the higher row index,
   but the spec breaks it toward the lower row index. The vectors in
-  [`post.det.selection.nms`](model-sidecar/vectors/post.object.selection.nms.yaml) show both
-  differences.
-- **Batch forms.** At `vNEXT`, a sidecar uses one batch form: only `"3"` with
-  `batching.batch_conversion`, only `"1"`, or only `dynamic`
+  [`post.object.selection.nms`](model-sidecar/vectors/post.object.selection.nms.yaml) show both
+  differences. P uses an ONNX `NonMaxSuppression` graph for the new decode.
+- **Clamp, size filter and class filter.** The new model accepts `object.decode.clamp_boxes` and `object.decode.min_box_size`, and checks them (`V-post.object.decode-5` and
+  `V-post.object.decode-8`). In each selection mode, the decode clamps each unprojected box to
+  `[0, W]` and `[0, H]` only when `clamp_boxes` is `true`. Then it drops each box unless its
+  width and its height are both more than `min_box_size`. The new model requires `object.decode.selection` (`V-post.object.decode-4`) and the fields of each
+  selection mode. It requires `object.classes` (`V-post.object.decode-10`) and checks `object.decode.keep_classes` (`V-post.object.decode-11`). A sidecar with no class source has exactly one name in `object.classes` (`V-post.object.decode-9`). The decode of each mode runs the shared steps of [Selection behaviour](model-sidecar/post/object/decode.md#selection-behaviour), with the class filter first ([ADR-17KN](../decisions/entries/17KN-one-selection-pipeline.md); [ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) item 3). Part B of M6 adds the modes that the package does not decode yet.
+- **Batch forms.** A sidecar uses one batch form: `batching.batch: 3` with
+  `batching.batch_conversion`, `1`, or `dynamic`
   ([Batch forms](model-sidecar/common/sizes-and-artifacts.md#batch-forms);
-  [ADR-JB5J](../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)). `OnnxSpec._check_batch_keys` in
-  `skellytracker/core/sidecar/model.py` accepts any set of integer keys, and `BatchingSpec` forbids
-  the key `batch_conversion`. Add `V-common.sizes_and_artifacts-13` and `V-common.batch_conversion-1`
-  to `V-common.batch_conversion-4` for `vNEXT`. The detectors ask for the batch key `"1"`, for
-  example `rtmw_wholebody_detector.py` and `yolox_person_detector.py`. A b3 sidecar has no key
-  `"1"`. To run it at batch 1 or 2, the host must make the artifact with `model_batch_convert`
-  (Behaviour 3 of [`common.batch_conversion`](model-sidecar/common/batch-conversion.md#behaviour)).
-- **Package model at spec version 2.0.0.** Added on 2026-11-03. The spec cleanup removed the legacy
+  [ADR-JB5J](../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)). The item "Flattened
+  batch form" gives the fields and the rules.
+- **Package model at spec version 2.0.0.** The spec cleanup removed the legacy
   layer, gave each sidecar one batch field, reduced the contract to the fields that carry
   information and made the spec version the skellytracker version
   ([ADR-0QKK](../decisions/entries/0QKK-no-legacy-layer.md);
   [ADR-JAA4](../decisions/entries/JAA4-one-batch-field.md);
   [ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md);
-  [ADR-6GE2](../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). The package code
-  did not change.
-  Change `skellytracker/core/sidecar/model.py` as follows:
-  - Remove the three deleted keys `preserve_aspect_ratio`, `requires_nms` and
-    `may_include_non_person_classes`. `SidecarModel` then checks `V-format.composition-5`: a key
+  [ADR-6GE2](../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). The new model:
+  - has no key that the spec does not define, for example `preserve_aspect_ratio`, `requires_nms` and
+    `may_include_non_person_classes`. A key
     that the spec does not define is invalid
-    ([Validation rules](model-sidecar/format/composition.md#validation-rules)).
-  - Remove the fields that the contract does not have: `input_dtype`, `rank`,
-    `batching.batch_axis`, `layout`, `supports_dynamic_size` and `is_3d`
-    ([ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md)).
-  - Add `pose.geometry`. It replaces `is_3d`. Today `PoseSpec` rejects `pose.geometry`, thus the
-    package rejects each sidecar that declares it.
-  - Make `input.normalization` required. It has no default. Today the default is `imagenet_bgr`
-    ([ADR-0QKK](../decisions/entries/0QKK-no-legacy-layer.md)).
-  - Require the top-level `source` (`V-common.identity-4` to `V-common.identity-6`) and the
-    `sha256` of each artifact (`V-common.sizes_and_artifacts-9`). They have no default
-    ([ADR-0QKK](../decisions/entries/0QKK-no-legacy-layer.md) item 1). Today `SidecarModel` has
-    no `source` field and `PrecisionArtifact` forbids `sha256`. M9 adds the hash checks of the file
-    bytes.
-  - Remove the default `300` of `DetectionDecodeSpec.max_detections`. The field has no default. It
-    is valid only with `selection: none` (`V-post.det.selection.none-1`;
-    [ADR-0QKK](../decisions/entries/0QKK-no-legacy-layer.md)).
-  - In `_resolve_refs` of `skellytracker/core/sidecar/resolution.py`, accept only the directive
-    form `{$ref, sha256}` (`V-format.composition-1`). Today `_resolve_refs` refuses a directive with
-    more than one key.
-  - Other package modules read the removed fields. Change them in the same work:
-    `skellytracker/core/detectors/processing/image_preprocessing.py` (the `preserve_aspect_ratio`
-    branch, the NHWC branch and the `imagenet_bgr` fallback of `resolve_normalization_mode`),
-    `skellytracker/core/detectors/processing/simcc_decode.py` (`is_3d`),
-    `SidecarModel._check_pose_output_shapes` (a `simcc` decoder needs `pose.geometry: 2d`) and
-    `skellytracker/core/sessions/batch_conversion.py` (`source_batch_size` becomes
-    `batching.batch`). Also change the tests that use these fields, for example
-    `skellytracker/tests/sidecar/test_model_validation.py` and
-    `skellytracker/tests/test_batch_conversion.py`.
-- **Heatmap decode removed.** Added on 2026-11-04. The spec has no `heatmap` decode method and no
-  `heatmap` output semantic ([ADR-9MJ6](../decisions/entries/9MJ6-remove-the-heatmap-decode.md)).
-  `skellytracker/core/sidecar/model.py` still accepts them. Remove `heatmap` from `OutputSemantic`
-  and `PoseDecodeSpec.method`. Remove each `heatmap` value and branch of
-  `PoseDecodeSpec._check_decode`, `SidecarModel._check_outputs_semantics` (the `pose_semantics` set)
-  and `SidecarModel._check_pose_output_shapes` (the `elif` branch and the `keypoint_count` tuple). Remove
-  `test_heatmap_3d_is_rejected` from `skellytracker/tests/sidecar/test_model_validation.py`. Then
-  delete `REMOVED_VALUES` in `tools/tests/test_traceability.py`.
-- **3D SimCC decode removed.** Added on 2026-11-06. The SimCC decode is 2D only: the spec has no
-  `simcc_z` output semantic and no `pose.decode.depth_range`
-  ([ADR-9HBB](../decisions/entries/9HBB-simcc-decode-is-2d-only.md)).
-  `skellytracker/core/sidecar/model.py` still accepts them. Remove `simcc_z` from `OutputSemantic`,
-  `depth_range` from `PoseDecodeSpec`, and their branches of `PoseDecodeSpec._check_decode`,
-  `SidecarModel._check_outputs_semantics` and `SidecarModel._check_pose_output_shapes`. Refuse
-  `method: simcc` with `pose.geometry: 3d` (`V-post.pose.schema-7`). Remove
-  `test_simcc_3d_requires_depth_range` from `skellytracker/tests/sidecar/test_model_validation.py`.
-  Then remove `simcc_z` from `REMOVED_VALUES` in `tools/tests/test_traceability.py`.
-- **Sizes are plain fields.** Added on 2026-11-02. A size entry holds only `input.shape`,
+    (`V-format.composition-5`; [Validation rules](model-sidecar/format/composition.md#validation-rules));
+  - has no `input_dtype`, `rank`, `batching.batch_axis`, `layout`, `supports_dynamic_size` or
+    `is_3d` ([ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md));
+  - has `keypoint.geometry`. A `simcc` decoder needs `keypoint.geometry: 2d`;
+  - requires `input.normalization`, with no default
+    ([ADR-0QKK](../decisions/entries/0QKK-no-legacy-layer.md));
+  - requires the top-level `source` (`V-common.identity-4` to `V-common.identity-6`) and the
+    `sha256` of each artifact (`V-common.sizes_and_artifacts-9`), with no default. M9 adds the hash checks of the file
+    bytes;
+  - gives `object.decode.max_detections` no default. The field is valid only with `selection: none` (`V-post.object.selection.none-1`);
+  - accepts only the `$ref` directive form `{$ref, sha256}` (`V-format.composition-1`). The new
+    resolver has no `base` directive.
+- **Sidecar vocabulary.** Added on 2026-11-12. The spec uses one name for each concept, with no
+  alias ([ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md);
+  [ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md); row 46 and row 47 of the
+  [changelog](model-sidecar/changelog.md#summary-of-changes) give the full map). The new model:
+  - takes the role `keypoint_detector`, not `pose_estimator`;
+  - has the blocks `object:` (`object.decode`, `object.classes`) and `keypoint:`
+    (`keypoint.decode`, `keypoint.geometry`, `keypoint.estimator_type`, `keypoint.point_names`,
+    `keypoint.skeletons`, `keypoint.overlay` with `parts` and `edges`);
+  - takes `min_score`, `box_space`, `coordinate_space`, the `fields` column `class_index`, and the
+    semantics `packed_detections`, `keypoint_coordinates` and `instance_keypoints`;
+  - has no `keypoint.requires_object_detector`. `V-pre.resize.affine_person_crop-2` reads
+    `keypoint.estimator_type`: a top-down model must declare
+    `input.resize.method: affine_person_crop`;
+  - refuses a duplicate YAML key (`V-format.composition-6`);
+  - applies the rules of a decoded keypoint and of a derived point: a keypoint with a score `<= 0`
+    or NaN is missing, a derived point is missing when a source is missing, and the weights of a
+    derived point sum to 1 within `1e-6`
+    ([Keypoint schema](model-sidecar/post/keypoint/schema.md#fields)).
+- **Heatmap decode removed.** The spec has no `heatmap` decode method and no `heatmap` output
+  semantic ([ADR-9MJ6](../decisions/entries/9MJ6-remove-the-heatmap-decode.md)). The new model has
+  neither. The old `core/sidecar/model.py` still accepts them. `REMOVED_VALUES` in
+  `tools/tests/test_traceability.py` goes at Db.
+- **3D SimCC decode removed.** The SimCC decode is 2D only: the spec has no
+  `simcc_z` output semantic and no `keypoint.decode.depth_range` ([ADR-9HBB](../decisions/entries/9HBB-simcc-decode-is-2d-only.md)).
+  The new model has neither. It refuses `method: simcc` with `keypoint.geometry: 3d` (`V-post.keypoint.schema-7`).
+- **Sizes are plain fields.** A size entry holds only `input.shape`,
   `input.resize.target_size` and `onnx`. The host does not merge a size entry over the top level
-  ([ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md) item 4). Today
-  `SidecarModel.resolved_size` deep-merges each size entry over the top level with `_deep_merge`,
-  and `SidecarModel.sizes` accepts any key in a size entry. Replace the merge with a read of the
-  three size fields and of the other fields from the top level. Type the size entry, so that
-  `SidecarModel` checks `V-common.sizes_and_artifacts-3`. Remove `_deep_merge` from
-  `skellytracker/core/sidecar/resolution.py` together with the `base` handling.
-- **SemVer `schema_version`.** Added on 2026-11-03. Each sidecar has `schema_version: "2.0.0"`, a
-  quoted SemVer string. The frozen package rejects it
-  ([ADR-6GE2](../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). Today
-  `skellytracker/core/sidecar/versioning.py`, `loader.py` and
-  `SidecarModel._check_schema_version_pattern` in `model.py` read `schema_version` in the CalVer
-  pattern `vYYYY.0M.BUILD[-TAG]`. `loader.py` compares it with the installed skellytracker version.
-  Remove that comparison (`is_schema_version_supported`) and the CalVer pattern (`_VERSION_RE`,
-  `parse_skellytracker_version` and `require_stable_version`). Today the pattern also rejects
-  `vNEXT`. `_check_schema_version_pattern` must check the SemVer pattern `MAJOR.MINOR.PATCH` with
+  ([ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md) item 4). The new model types the size entry, so that it checks `V-common.sizes_and_artifacts-3`. It reads the
+  three size fields and the other fields from the top level. It has no deep merge.
+- **SemVer `schema_version`.** Each sidecar has `schema_version: "2.0.0"`, a
+  quoted SemVer string ([ADR-6GE2](../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). The old loader reads the CalVer
+  pattern `vYYYY.0M.BUILD[-TAG]` and rejects
+  `"2.0.0"`. The new loader checks the SemVer pattern `MAJOR.MINOR.PATCH` with
   an optional pre-release tag
-  ([ADR-6GE2](../decisions/entries/6GE2-spec-version-follows-skellytracker.md) item 2). The host
+  (item 2). The host
   must accept the SemVer `schema_version` values that it implements. Each release lists these
   values. It is not necessary for a release to implement an older version. A host lists an older version
   only while its current text reads it the same way: there is no legacy reading
@@ -385,215 +939,125 @@ Two rules of this part stay:
   `V-format.versioning-2` of
   [Validation rules](model-sidecar/format/versioning.md#validation-rules);
   [Behaviour](model-sidecar/format/versioning.md#behaviour)). The capability check of M7 lists such
-  a sidecar as unavailable. This loader is a requirement of the `2.0.0` release: skellytracker
-  `2.0.0` ships it ([ADR-6GE2](../decisions/entries/6GE2-spec-version-follows-skellytracker.md)
-  item 4). The bump of skellytracker to `2.0.0` and the SemVer pattern of
+  a sidecar as unavailable. This loader is a requirement of the `2.0.0` release (item 4). The bump of skellytracker to `2.0.0` and the SemVer pattern of
   `bumpver` in `pyproject.toml` are the work of the user. They are not items of this plan.
-- **Flattened batch form.** Added on 2026-11-02. The item Batch forms above names the old batch keys
-  and the old rule IDs. This item gives the new names. The work of that item stays. Each sidecar has
-  one field `batching.batch`. Each size has `onnx.precision_artifacts` and `onnx.output_shapes`
+- **Flattened batch form.** Each sidecar has one field `batching.batch`. Each size has
+  `onnx.precision_artifacts` and `onnx.output_shapes`
   ([ADR-JAA4](../decisions/entries/JAA4-one-batch-field.md);
-  [Batch forms](model-sidecar/common/sizes-and-artifacts.md#batch-forms)). Replace
-  `OnnxSpec.batch_artifacts` and `BatchArtifactGroup` with these fields. `runtime.py` must find an
-  artifact by its size and its precision. `model_batch_convert` must take the batch of the source
-  artifact from `batching.batch`. Also do these steps:
-  - Add `batching.batch` and `batching.batch_conversion` to `BatchingSpec`. Today `BatchingSpec`
-    forbids `batch_conversion`. Check `V-common.sizes_and_artifacts-12` and
-    `V-common.batch_conversion-1` to `V-common.batch_conversion-3`.
-  - Replace the `batch_key` argument of `runtime.py` with the size and the precision. Change its
-    callers too: the RTMPose body, face and hand detectors, `rtmw_wholebody_detector.py`,
-    `yolox_person_detector.py` and `skellytracker/tests/sidecar/test_runtime.py`. Today each
-    detector asks for the batch key `"1"`.
-  - A sidecar with `batching.batch: 3` has no batch-1 or batch-2 artifact. To run it at batch 1 or
-    2, the host must make the artifact with `model_batch_convert` (Behaviour 3 of
-    [`common.batch_conversion`](model-sidecar/common/batch-conversion.md#behaviour)).
-- **The `output_shapes` rule.** Added on 2026-11-02. This item is the package item of
+  [Batch forms](model-sidecar/common/sizes-and-artifacts.md#batch-forms)). The new model has
+  `batching.batch` and `batching.batch_conversion`, and checks `V-common.sizes_and_artifacts-12`,
+  `V-common.sizes_and_artifacts-13` and `V-common.batch_conversion-1` to
+  `V-common.batch_conversion-4`. The new code finds an artifact by its size and its precision, not
+  by a batch key. The batch conversion of N4 takes the batch of the source artifact from
+  `batching.batch`. A sidecar with `batching.batch: 3` has no batch-1 or batch-2 artifact. To run it
+  at another batch, the host makes the artifact with `model_batch_convert` (Behaviour 3 of
+  [`common.batch_conversion`](model-sidecar/common/batch-conversion.md#behaviour)).
+- **The `output_shapes` rule.** This item is the package item of
   [ADR-CRV0](model-sidecar/decisions/entries/CRV0-output-shapes-in-each-batch-group.md) (commit
-  0881564), in the flattened batch form. `SizeSpec._check_output_shapes` must check
-  `V-common.sizes_and_artifacts-8`. Each size declares `output_shapes`, with one entry for each
+  0881564), in the flattened batch form. The new model checks `V-common.sizes_and_artifacts-8`. Each size declares `output_shapes`, with one entry for each
   output, in the order of `outputs`. When `outputs[i].shape` is present, entry `i` has its rank, and
   each fixed dim of that shape is equal in the entry or `-1`. Dim 0 equals `batching.batch`, or is
   `-1` for `dynamic`
-  ([Validation rules](model-sidecar/common/sizes-and-artifacts.md#validation-rules)). Remove the
-  legacy rule. The package keeps no rule for a sidecar before spec version `2.0.0`. An artifact that
+  ([Validation rules](model-sidecar/common/sizes-and-artifacts.md#validation-rules)). An artifact that
   `model_batch_convert` makes takes the `output_shapes` of its size, with dim 0 changed by step 2 of
   the profile ([ADR-JAA4](../decisions/entries/JAA4-one-batch-field.md) item 2).
-- **One `imagenet` mode.** Added on 2026-11-02. The item Normalization modes above names the modes
-  `imagenet_bgr` and `imagenet_rgb`. The spec merged them into one mode, `imagenet`. It applies the
-  statistics in the channel order of `input.color_format`
-  ([ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md);
-  [Normalization modes](model-sidecar/pre/normalization.md#behaviour)). Put `imagenet` in
-  `NamedNormalizationMode` and in `build_normalization_fn`, and remove the two old modes. Add
-  `input.color_format` to `InputSpec` as a required field (`V-common.input-5` and
-  `V-pre.normalize-1`). Remove `CustomNormalization.color_format`. Today its default is `rgb`.
-  `build_normalization_fn` must take the channel order of `imagenet` and of `custom` from
-  `input.color_format`. Then delete `MERGED_IMAGENET_MODES` from
-  `tools/tests/test_traceability.py`, and update `test_the_literal_reader_finds_the_known_values`.
-  The user decides the normalization of each package sidecar, as the item Normalization modes above
-  says.
-- **Clamp, size filter and class source.** Added on 2026-11-02. `DetectionDecodeSpec` must accept
-  `clamp_boxes` and `min_box_size`, and check them (`V-post.det.decode-5` and
-  `V-post.det.decode-8`). In each selection mode, the decode must clamp each unprojected box to
-  `[0, W]` and `[0, H]` only when `clamp_boxes` is `true`. Then it must drop each box unless its
-  width and its height are both more than `min_box_size`. A sidecar with no class source must set
-  `decode.is_person_only: true` (`V-post.det.decode-9`). See
-  [Selection behaviour](model-sidecar/post/object/decode.md#selection-behaviour) and
-  [ADR-17KN](../decisions/entries/17KN-one-selection-pipeline.md). `DetectionDecodeSpec` must
-  also accept the required `decode.selection` (`V-post.det.decode-4`) and the fields of each
-  selection mode. Today it has no `selection` field and forbids an unknown key, thus it rejects
-  each migrated sidecar. The decode of each mode must run the shared steps of Selection behaviour.
-  Part B of M6 adds the modes that the package does not decode yet. The host assigns
-  `person_class_id` only through `is_person_only`. Step 3 of `nms` has no assignment of its own
-  ([ADR-17KN](../decisions/entries/17KN-one-selection-pipeline.md) items 1 and 5).
-- **Migrate the package sidecars.** Added on 2026-11-02. Each package sidecar must follow the open
-  target `2.0.0` of the spec. The items above make the package reject each package sidecar of
-  today. Thus do this item in the same change as the items above, for all five package sidecars:
-  `yolox`, `rtmw-wholebody`, `rtmpose-body`, `rtmpose-hand` and `rtmpose-face`. In each package
-  sidecar, set
-  these fields when they apply: `schema_version: "2.0.0"`, `source`, the hashes, `decode.selection`,
-  `pad_position`, `rounding`, `input.color_format`, an explicit `input.normalization` (see One
-  `imagenet` mode), the flattened batch form and `pose.geometry`. Delete the keys that the spec
-  does not define: `layout`, `batching.batch_axis`, `preserve_aspect_ratio` and `requires_nms`.
-  The YOLOX sidecar has no class source, thus it gets `decode.is_person_only: true`
-  (`V-post.det.decode-9`). Set `clamp_boxes` and `min_box_size` as the upstream of each detector
-  does ([ADR-17KN](../decisions/entries/17KN-one-selection-pipeline.md)). Inline the `base` of
-  `skellytracker/core/detectors/keypoint_detectors/rtmw/wholebody/rtmw_wholebody_to_canonical_mapping.yaml`.
-  It is the only `base:` of the package. The spec has no `base` directive
-  ([ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md)). Then remove the `base`
-  handling of `skellytracker/core/sidecar/resolution.py`. M10a and M10b later replace the YOLOX and
-  RTMW sidecars with re-exports. When all package sidecars follow the spec, do the item Package root
-  in the trace scan of M7.
-- **Resize compute dtype.** Added on 2026-11-04. The spec adds the optional
+- **Package sidecars deleted and replaced.** The old package sidecars `yolox`, `rtmw-wholebody`,
+  `rtmpose-body`, `rtmpose-hand` and `rtmpose-face` do not migrate to the spec. They are deleted and
+  replaced: N5 and N6 add the exporter models, and Da and Db delete the old sidecars
+  ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 1). The old
+  `base` of `rtmw_wholebody_to_canonical_mapping.yaml` goes with its sidecar.
+- **Resize compute dtype.** The spec has the optional
   `input.resize.compute_dtype`: `uint8` or `float32`, with the default `uint8`
   ([ADR-PHJ3](model-sidecar/decisions/entries/PHJ3-resize-compute-dtype.md);
-  [Compute dtype](model-sidecar/pre/interpolation.md#compute-dtype)). `ResizeSpec` in
-  `skellytracker/core/sidecar/model.py` has no such field, and its `extra="forbid"` rejects a sidecar
-  that declares it. Add the field and `V-pre.resize.interpolation-1`. Reject the field for
-  `method: none` (`V-pre.resize.none-1`). Each branch of `preprocess_image` in
-  `skellytracker/core/detectors/processing/image_preprocessing.py` resizes and pads the uint8 frame.
-  `letterbox_preprocess` fills a uint8 canvas and casts the resize to uint8. For `float32`, cast the
-  frame to float32 before the resize and the pad, and keep the canvas in float32. Do not round or
+  [Compute dtype](model-sidecar/pre/interpolation.md#compute-dtype)). The new model has the field and checks `V-pre.resize.interpolation-1`. It rejects the field for
+  `method: none` (`V-pre.resize.none-1`). The new resize modules resize and pad the uint8 frame for `uint8`. For `float32`, they cast the
+  frame to float32 before the resize and the pad, and keep the canvas in float32. They do not round or
   clamp the result. Add the cases of `pre.resize.interpolation.yaml` and the new case of
-  `pre.resize.none.yaml` to `skellytracker/tests/sidecar/test_model_validation.py`.
-- **Affine crop matrix in float32.** Added on 2026-11-09. The spec gives the warp matrix `M` of
+  `pre.resize.none.yaml` to the validation tests of the new model.
+- **Affine crop matrix in float32.** The spec gives the warp matrix `M` of
   `affine_person_crop` in float32 steps, as mmpose v1.3.2 computes it
   ([ADR-3S5G](model-sidecar/decisions/entries/3S5G-affine-crop-matrix.md);
-  [Behaviour](model-sidecar/pre/resize-affine-person-crop.md#behaviour)). The package code keeps the
-  dtype of the box, and `get_warp_matrix` puts the second warp point above the centre. In the
-  `affine_person_crop` branch of `preprocess_image` in
-  `skellytracker/core/detectors/processing/image_preprocessing.py`, cast the person box to float32,
-  also the full-frame box. In `get_warp_matrix` of
-  `skellytracker/core/detectors/processing/affine_crop.py`, put the second point left of the centre
-  (`src_dir = [src_w * -0.5, 0]`, `dst_dir = [dst_w * -0.5, 0]`). Make the same change in the second
-  copy in `skellytracker/core/detectors/keypoint_detectors/rtmpose/rtmpose_preprocessing.py`. The
-  branch with `maintain_aspect_ratio: false` raises `NotImplementedError` now. The implementer
-  decides that branch. The Inverse in `decode_simcc` needs no change. Run the numeric cases of
+  [Behaviour](model-sidecar/pre/resize-affine-person-crop.md#behaviour)). The old code keeps the
+  dtype of the box, and its `get_warp_matrix` puts the second warp point above the centre. The new module casts the person box to float32,
+  also the full-frame box. It puts the second point left of the centre
+  (`src_dir = [src_w * -0.5, 0]`, `dst_dir = [dst_w * -0.5, 0]`). The implementer decides the branch with `maintain_aspect_ratio: false`. Run the numeric cases of
   [`pre.resize.affine_person_crop`](model-sidecar/vectors/pre.resize.affine_person_crop.yaml)
-  through `bbox_xyxy2cs`, `top_down_affine` and `get_warp_matrix`, and add a golden test with its
-  three COCO cases, for example in `skellytracker/tests/sidecar/`. Then update the `forward` note of
+  through the new module, and add a golden test with its
+  three COCO cases. Then update the `forward` note of
   the front matter of the section.
-- **SimCC score without softmax.** Added on 2026-11-09. The spec gives the 2D SimCC decode of
+- **SimCC score without softmax.** The spec gives the 2D SimCC decode of
   mmpose v1.3.2: the argmax of the raw values, the score `min(peak_x, peak_y)` with no softmax, the
   bin `-1` for a score `<= 0`, the NaN rule and the bin scale from the bin counts
   ([ADR-03PH](model-sidecar/decisions/entries/03PH-simcc-score-rule.md);
-  [Behaviour](model-sidecar/post/keypoint/decode-simcc.md#behaviour)). The package code takes the mean
-  of the two softmax peaks and a fixed split ratio of 2.0. In `get_simcc_maximum` of
-  `skellytracker/core/detectors/processing/simcc_decode.py`, remove the softmax and take the score
-  `np.where(max_x > max_y, max_y, max_x)`. Keep the `-1` rule. In `decode_simcc`, read the bin scale
-  from the bin counts (`input_width / X_bins`), not from `_SIMCC_SPLIT_RATIO`. Make the same changes
-  in `get_simcc_maximum` and `rtmpose_letterbox_postprocess` (the copy of `decode_simcc`) of
-  `skellytracker/core/detectors/keypoint_detectors/rtmpose/rtmpose_preprocessing.py`.
-  In `skellytracker/tests/sidecar/golden_parity.py`, `simcc_bin_size_px` and `_golden_bin` use
-  `_SIMCC_SPLIT_RATIO`, and the parity helper computes the softmax mean as the score. Change them
-  to the bin counts and the new score. The new score has no fixed range. Thus the
-  `confidence_threshold: 0.004` defaults of the RTMPose body, face and hand detectors and of the RTMW
-  detector fit only the softmax score. The implementer decides the new defaults. Do not change the
-  `is_3d` branch of `simcc_pose_decode` here. The item 3D SimCC decode removed covers it. Run the
-  numeric cases of [`post.pose.decode.simcc`](model-sidecar/vectors/post.keypoint.decode.simcc.yaml)
-  through `get_simcc_maximum` and `decode_simcc`, and add a golden test on one RTMW crop with
-  mmpose scores, for example in `skellytracker/tests/sidecar/`. Then update the `decode` status and
+  [Behaviour](model-sidecar/post/keypoint/decode-simcc.md#behaviour)). The old code takes the mean
+  of the two softmax peaks and a fixed split ratio of 2.0. The new module takes the score
+  `np.where(max_x > max_y, max_y, max_x)`, keeps the `-1` rule, and reads the bin scale
+  from the bin counts (`input_width / X_bins`). The new score has no fixed range. Thus the
+  old `confidence_threshold: 0.004` defaults fit only the softmax score. The implementer decides the score threshold of the new keypoint path. Run the
+  numeric cases of [`post.keypoint.decode.simcc`](model-sidecar/vectors/post.keypoint.decode.simcc.yaml) through the new module, and add a golden test on one RTMW crop with
+  mmpose scores. Then update the `decode` status and
   the `partial` note of the front matter of the section.
-- **Cast to the input dtype.** Added on 2026-11-09. Each normalization mode casts its result to the
+- **Cast to the input dtype.** Each normalization mode casts its result to the
   `input.dtype` entry of the precision as the last step. A `uint8` input needs the resolved
   normalization `none`, and `input.resize.compute_dtype` absent or `uint8` (`V-pre.normalize-3`).
   `int8` is not an input dtype (`V-common.input-2`). The output dtypes keep it
   ([ADR-XH1J](model-sidecar/decisions/entries/XH1J-normalize-input-dtype.md);
-  [Behaviour](model-sidecar/pre/normalization.md#behaviour)). The package code returns float32 from
-  each mode, and `preprocess_image` casts the tensor to float32 again. In `build_normalization_fn` of
-  `skellytracker/core/detectors/processing/image_preprocessing.py`, get
-  `input_spec.dtype[precision]` and cast the result of each mode to it as the last step. In
-  `preprocess_image`, keep the dtype of the normalization. In
-  `skellytracker/core/sessions/onnx_session.py`, the feed of `OnnxSession.run_batched` and the
-  warm-up tensor of `_warmup` are float32. Make them use the input dtype. In
-  `skellytracker/core/sidecar/model.py`, add a type for the input dtypes (`float32`, `float16`,
-  `uint8`) and use it for `InputSpec.dtype`.
-  `OutputSpec.dtype` keeps `OnnxDtype` with `int8` (`V-common.outputs-2`). Add a validator of the
-  resolved sidecar for `V-pre.normalize-3`. Its `compute_dtype` part needs the field of the item
-  Resize compute dtype. Run the numeric cases of
-  [`pre.normalize`](model-sidecar/vectors/pre.normalize.yaml) through `build_normalization_fn` and
+  [Behaviour](model-sidecar/pre/normalization.md#behaviour)). The old code returns float32 from
+  each mode, and the old `OnnxSession.run_batched` and `_warmup` feed float32. The new normalize module casts the result of each mode to `input.dtype[precision]` as the last step, and the
+  new preprocessing keeps that dtype. The new sessions feed the input dtype. The new model has a type for the input dtypes (`float32`, `float16`,
+  `uint8`) for `input.dtype`. The output dtype keeps `int8` (`V-common.outputs-2`). Add a validator of the
+  resolved sidecar for `V-pre.normalize-3`. Run the numeric cases of
+  [`pre.normalize`](model-sidecar/vectors/pre.normalize.yaml) through the new module, and
   compare the dtype and the values. These cases include the two `custom` default cases of
-  [ADR-1V57](model-sidecar/decisions/entries/1V57-normalize-custom-defaults.md). The package code
-  already gives those defaults. The case `custom-mean-and-std-defaults` also needs the channel
-  order of the item One `imagenet` mode. Add the data-only cases of `pre.normalize.yaml` and
+  [ADR-1V57](model-sidecar/decisions/entries/1V57-normalize-custom-defaults.md). Add the data-only cases of `pre.normalize.yaml` and
   [`common.input.yaml`](model-sidecar/vectors/common.input.yaml) to
-  `skellytracker/tests/sidecar/test_model_validation.py`. Add a golden test: one image of the
-  `yolox-person` parity set through `preprocess_image` with the sidecar, compared with the host
-  tensor, for example in `skellytracker/tests/sidecar/`. Then update the `validate` and `forward`
+  the validation tests. Add a golden test: one image of the
+  `yolox-person` parity set through the new preprocessing, compared with the host
+  tensor. Then update the `validate` and `forward`
   notes of the front matter of `pre.normalize`, and the `validate` and `load` notes of
   `common.input`.
-- **Keypoint detector id.** Added on 2026-11-09. The `model_id` of a keypoint detector is
+- **Keypoint detector id.** The `model_id` of a keypoint detector is
   `{family}-{group}` or `{family}-{group}-{variant}` in `keypoint_detectors/{family}/{group}/`
   ([ADR-52NQ](model-sidecar/decisions/entries/52NQ-model-id-suffix.md);
   [Keypoint detector id](model-sidecar/common/identity.md#keypoint-detector-id)). No code checks
-  `V-common.identity-7` or `V-common.identity-8`. In `load_sidecar` of
-  `skellytracker/core/sidecar/loader.py`, after the basename check, check both rules on the path
+  `V-common.identity-7` or `V-common.identity-8`. In the new loader, after the basename check, check both rules on the path
   under the sidecar root when it starts with `detectors/keypoint_detectors/`. Check
-  `V-common.identity-8` after `resolve_sidecar_composition`, because it needs the resolved
-  `pose.tracked_points`. Raise `SidecarValidationError` with the rule ID. Add a test that writes each
+  `V-common.identity-8` after the composition, because it needs the resolved
+  `keypoint.point_names`. Raise a validation error with the rule ID. Add a test that writes each
   data-only case of [`common.identity`](model-sidecar/vectors/common.identity.yaml) to a temporary
-  sidecar root at `input.path` and checks the failed rules, for example in
-  `skellytracker/tests/sidecar/`. Then update the `validate` note of the front matter of the section.
-- **License block.** Added on 2026-11-09. Each sidecar has the `license` block with the model
+  sidecar root at `input.path` and checks the failed rules. Then update the `validate` note of the front matter of the section.
+- **License block.** Each sidecar has the `license` block with the model
   license and the training data ([ADR-NBG2](model-sidecar/decisions/entries/NBG2-license-and-training-data-without-the-deferred-examples.md);
-  [License and training data](model-sidecar/common/license.md)). `SidecarModel` in
-  `skellytracker/core/sidecar/model.py` forbids the key `license`, so the package rejects each
-  example. Add a model of the block and check `V-common.license-1` to `V-common.license-7`. The SPDX
+  [License and training data](model-sidecar/common/license.md)). The old `SidecarModel` forbids the key `license`. The new model has a model of the block and checks `V-common.license-1` to `V-common.license-7`. The SPDX
   check of `V-common.license-3` needs a copy of the SPDX License List: pin its version (the
   Implementer guidance names 3.29.0). Add the data-only cases of
   [`common.license`](model-sidecar/vectors/common.license.yaml) to
-  `skellytracker/tests/sidecar/test_model_validation.py`. Then update the `validate` and `load`
+  the validation tests. Then update the `validate` and `load`
   notes of the front matter of the section. The section is `draft`, so the `2.0.0` release also
   needs its graduation or its removal from the release.
 
 ### M9 — Source and hash checks
 
 **Status: NOT STARTED.** It changes package code, so it waits for the implementation stage
-([Stages](model-sidecar/model-addition-workflow/README.md#stages)). These checks have no order link to M7 and M8. The last sentence of Reference hash checks in the resolver waits for M12.
+([Stages](model-sidecar/model-addition-workflow/README.md#stages)). Only the new loader gets these
+checks. The old loader does not change. N1 does the reference hash checks. N3 does the artifact hash
+checks with the hash check cache.
 
-- **Reference hash checks in the resolver.** Add the checks of the `$ref` and `base` hashes, and of
-  the bytes of each file, to `skellytracker/core/sidecar/resolution.py`. Then delete the temporary
+- **Reference hash checks in the resolver.** Add the checks of the `$ref` hashes, and of
+  the bytes of each file, to the new resolver in `core/model_spec/`. The spec has no `base` directive, so only the `$ref` hashes remain ([ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md) item 3). Then delete the temporary
   function `resolve` of `tools/sidecar_refs.py`. Move the `--write` and `--check` commands of that
-  tool into the package as a command, and keep a thin wrapper in `tools/`. When the package sidecars
-  move to a release `schema_version`, give them `source` and the hashes
-  ([`format.composition`](model-sidecar/format/composition.md#implementer-guidance); see
-  [ADR-0016](../decisions/entries/0016-sidecar-catalogs.md#tools-and-line-endings)).
+  tool into the package as a command, and keep a thin wrapper in `tools/` ([`format.composition`](model-sidecar/format/composition.md#implementer-guidance)).
 - **Artifact hash checks.** Verify the file that `filename` names against `sha256` when the file is
-  present and after a download. Today `skellytracker/core/sessions/model_registry.py` checks only
+  present and after a download. Use the hash check cache of N3. Today `skellytracker/core/sessions/model_registry.py` checks only
   `url_sha256`, and only during a download
-  ([`common.sizes_and_artifacts`](model-sidecar/common/sizes-and-artifacts.md#implementer-guidance);
-  see [ADR-0016](../decisions/entries/0016-sidecar-catalogs.md#artifact-hashes)).
-- **No `base` hashes.** Added on 2026-11-02. The spec has no `base` directive
-  ([ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md) item 3). Of the hashes in the
-  item Reference hash checks in the resolver, only the `$ref` hashes remain.
+  ([`common.sizes_and_artifacts`](model-sidecar/common/sizes-and-artifacts.md#implementer-guidance)).
 
 ### M10 — Shared runtime and the acceptance gate
 
 **Status: NOT STARTED.** Added on 2026-11-10. It changes package code, tools and the workflow, so it
 waits for the implementation stage
 ([Stages](model-sidecar/model-addition-workflow/README.md#stages)). It carries out
-[ADR-6J8E](../decisions/entries/6J8E-exporters-run-released-skellytracker.md). This stage needs M6,
-the catalog of M7, and the package model and SemVer `schema_version` of M8. It has no order link to
-M10a and M10b.
+[ADR-6J8E](../decisions/entries/6J8E-exporters-run-released-skellytracker.md). Its pre-release is the stage "Pre-release 2.0.0", after N5 and before P and Da ([ADR-EM74](../decisions/entries/EM74-stage-order-and-ci-models.md) item 4). N5 and N6 use its acceptance gate.
 
 - **Pre-release for the exporters.** Publish a skellytracker pre-release of `2.0.0` that loads
   `"2.0.0"` sidecars and runs a sidecar model with no hand-written detector. Record it as
@@ -626,7 +1090,7 @@ M10a and M10b.
      and check its SHA-256. The run on the reference image matches the `parity/` output of the bundle
      within the tolerances of [Parity](model-sidecar/model-addition-workflow/parity.md), for at least
      one size. No reference output gives `needs-contributor`.
-  6. Catalog: put the sidecar in the package sidecar root. Add a test that builds the detector by its
+  6. Catalog: put the sidecar in the package sidecar root `core/model_zoo/`. Add a test that builds the detector by its
      catalog key and runs one frame.
   7. Report: write the response `verified`. The user accepts. Then land the content commit
      (procedure B of `change-sidecar-spec`), the implementation commit and the catalog commit, in
@@ -653,96 +1117,41 @@ M10a and M10b.
 
 ### M10a — YOLOX re-export
 
-**Status: NOT STARTED.** It changes package code, so it waits for the implementation stage
-([Stages](model-sidecar/model-addition-workflow/README.md#stages)). This stage needs M6, the catalog-key claim of M7, and the NMS box area and the batch forms of M8.
-
-- **YOLOX.** Re-export YOLOX to the contract of the reference example
-  [`yolox-person.yaml`](model-sidecar/examples/detectors/object_detectors/yolox-person/yolox-person.yaml):
-  `batching.batch: 3` with `batching.batch_conversion.profile_id: static-batch-v1`
-  (`common.batching`), no NMS in the graph, and host `selection: nms` (`post.det.selection.nms`). Run
-  a parity check on the new export. Then remove the claim of
-  the hand-written YOLOX detector on the catalog key `yolox@skellytracker`
-  ([`format.versioning`](model-sidecar/format/versioning.md#implementer-guidance);
-  [ADR-0016](../decisions/entries/0016-sidecar-catalogs.md#detector-dispatch); see also
-  [ADR-0006](../decisions/entries/0006-yolox-native-contract.md)).
-- **YOLOX sidecar fields.** Added on 2026-11-02. M8 migrates the YOLOX package sidecar (the item
-  Migrate the package sidecars). After the re-export above, make sure that the new YOLOX sidecar
-  has the fields of that item, with the values of the new export.
+Moved to [N5](#n5--the-first-new-models). The old YOLOX is deleted and replaced, not re-exported in
+place ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md)).
 
 ### M10b — RTMW re-export
 
-**Status: NOT STARTED.** It changes package code, so it waits for the implementation stage
-([Stages](model-sidecar/model-addition-workflow/README.md#stages)). This stage needs the catalog, the
-roots and the dispatch of M7, Normalization modes of M8 and both checks of M9. It needs Batch forms
-of M8 when the export has no batch key `"1"`. It has no order link to M10a.
-
-- **RTMW.** Replace the legacy package sidecar
-  `skellytracker/core/detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml` with the
-  latest `vNEXT` RTMW export of OpenMMLab-Exporter. The reference example
-  [`rtmw-wholebody133.yaml`](model-sidecar/examples/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133.yaml)
-  shows its form. Run a parity check on the export. Compare it with the upstream reference output of
-  the exporter, not with the golden fixtures
-  `skellytracker/tests/sidecar/fixtures/golden/rtmw_wholebody_*_detect.json`. The package sidecar
-  declares `imagenet_bgr`, and the code gives it the pre-spec computation: it puts the B, G and R
-  channels of the frame in tensor positions 0, 1 and 2. The export declares `imagenet_rgb`, which
-  puts R, G and B there. Thus the model input changes
-  ([Normalization modes](model-sidecar/pre/normalization.md#behaviour)).
-- **Differences from the package sidecar.** The export of OpenMMLab-Exporter differs in these points
-  (checked on 2026-10-30):
-  - The size keys are `m`, `l-256`, `x-256`, `l-384` and `x-384`. The package `model_name` values
-    `rtmw-l-m_256x192`, `rtmw-x-l_256x192` (the default) and `rtmw-x-l_384x288` are the checkpoints
-    of `m`, `l-256` and `l-384`.
-  - The artifacts have `filename` and `sha256`, but no `url`.
-  - The export has no `pose.canonical_mapping`.
-- **Decisions before the work.** The user decides these points. Record them in a decision entry
-  before the work starts:
-  - the key that the alias `rtmpose` names. Today it names `rtmw-wholebody@skellytracker`
-    ([ADR-0016](../decisions/entries/0016-sidecar-catalogs.md#detector-dispatch));
-  - whether the old `model_name` values stay as aliases. `README.md`, the demos, the examples, the
-    tests and the keys of `RTMPOSE_MODEL_SPECS` use them;
-  - where the host gets the ONNX files;
-  - how the package keeps the canonical mapping;
-  - whether `RTMWWholebodyDetector` stays, or the generic keypoint detector of M6 runs the export.
-- **RTMW sidecar fields.** Added on 2026-11-02. M8 migrates the RTMW package sidecar and inlines
-  the `base` of `rtmw_wholebody_to_canonical_mapping.yaml` (the item Migrate the package sidecars).
-  After the replacement above, make sure that the new RTMW sidecar has the fields of that item, with
-  the values of the new export.
+Moved to [N5](#n5--the-first-new-models). The old RTMW is deleted and replaced, not re-exported in
+place ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md)).
 
 ### M11 — Repository fixes
 
 **Status: NOT STARTED.** It changes package code, so it waits for the implementation stage
-([Stages](model-sidecar/model-addition-workflow/README.md#stages)). Each fix has its own root cause. Fix each one in its own PR. Run-time check IDs is a decision of the user, not a fix.
+([Stages](model-sidecar/model-addition-workflow/README.md#stages)). Each fix has its own root cause. Fix each one in its own PR. Run-time check IDs is a decision of the user, not a fix. The items "Unused module" and "Stale `resolved_size` docstring" are removed: Db deletes `rtmpose_preprocessing.py` and the old `core/sidecar/model.py` ([ADR-EM74](../decisions/entries/EM74-stage-order-and-ci-models.md)).
 
-- **Unused module.** `skellytracker/core/detectors/keypoint_detectors/rtmpose/rtmpose_preprocessing.py`
-  is tracked, but no module imports it ([ADR-0007](../decisions/entries/0007-generic-processing-package.md)). Remove it.
-- **MediaPipe timestamps on Windows.** In video mode, the MediaPipe detectors under
-  `skellytracker/core/detectors/keypoint_detectors/mediapipe/` use `int(time.monotonic() * 1000)` as
-  the timestamp when the caller gives no `timestamp_ms`. On Windows, with Python 3.12,
-  `time.monotonic()` uses `GetTickCount64()`, which has a resolution of 15.6 ms. Two frames in one
-  tick get the same timestamp, and MediaPipe raises "Input timestamp must be monotonically
-  increasing". The fallback timestamp must increase on each call.
-- **MediaPipe landmarkers on Windows.** On Windows, the fast suite (`uv run pytest -m "not video"`)
-  can also hang. A MediaPipe `PoseLandmarker` that an earlier test left open is garbage-collected
-  during the teardown of the `onnx_session` fixture in `skellytracker/tests/test_rtmpose_detectors.py`.
-  Then `PoseLandmarker.__del__` calls `close()`, and `close()` deadlocks in the MediaPipe dispatcher.
-  This occurred on 2026-10-23, two times in sequence. The file alone passes, and Linux CI passes. This
-  is a code defect: the tests or the detectors must close their landmarkers. For example, the tests in
-  `skellytracker/tests/test_mediapipe_detectors.py` create MediaPipe detectors and do not call
-  `close()`. The fix waits for the implementation stage.
+- **MediaPipe timestamps and landmarkers on Windows.** On Windows with Python 3.11 or 3.12, the fast
+  suite can hang. The cause is the Python timer, not MediaPipe: `time.monotonic()` uses
+  `GetTickCount64()` there, with steps of about 16 ms. The MediaPipe detectors use
+  `int(time.monotonic() * 1000)` as the timestamp when the caller gives no `timestamp_ms`. Two
+  frames can then get the same millisecond timestamp, and MediaPipe raises "Input timestamp must be
+  monotonically increasing". A landmarker that the test does not close is then garbage-collected
+  later, and its `close()` can hang. Python 3.13 uses a finer clock
+  ([ADR-MSH0](../decisions/entries/MSH0-supported-platforms-v2.md)). Make the timestamp fallback
+  increase on each call. Make the detectors close their landmarkers safely, also when the garbage
+  collector frees them. Put the same fix in the `mediapipe_tasks` node of P. Do not change the
+  MediaPipe tests to close their detectors or to add teardown. These tests show the defect when it
+  comes back ([ADR-EM74](../decisions/entries/EM74-stage-order-and-ci-models.md) item 6).
 - **Run-time check IDs.** A vector case for a refused tensor or caller argument writes
   `{error: no-rule}`, because no validation rule can check that input
   ([ADR-TA0G](../decisions/entries/TA0G-vector-cases-and-reference-modules.md)). The implementation stage can give these
   run-time checks their own IDs, for example `C-<section-id>-<n>`. A sidecar before `vNEXT` that uses
   a feature that is "Not available." also gives `no-rule`. A rule `V-format.versioning-<n>` can
   replace that use. The user decides both.
-- **Code citations of `sidecar-spec.md`.** Added on 2026-11-02. This item carries out item 3 of
-  [ADR-CN15](../decisions/entries/CN15-spec-readme-is-the-only-entry-point.md). Docstrings and
-  comments of the package cite headings of `specs/model-sidecar/sidecar-spec.md`, for example in
-  `skellytracker/core/sidecar/model.py` and
-  `skellytracker/core/detectors/processing/image_preprocessing.py`. Change each citation to the
-  section ID of its section file, for example `pre.normalize`. A citation of the whole file, for
-  example in `model.py` line 1 and `skellytracker/tests/sidecar/test_model_validation.py` line 2,
-  cites `specs/model-sidecar/README.md`. In `tools/tests/test_traceability.py`, change `CITATION`
+- **Code citations of `sidecar-spec.md`.** This item carries out item 3 of
+  [ADR-CN15](../decisions/entries/CN15-spec-readme-is-the-only-entry-point.md). The docstrings and
+  comments of the old package cite headings of `specs/model-sidecar/sidecar-spec.md`. Db deletes those modules. The new code cites the
+  section ID of each section file, for example `pre.normalize`. A citation of the whole spec cites `specs/model-sidecar/README.md`. In `tools/tests/test_traceability.py`, change `CITATION`
   and `citations()` to read the section-ID form, so that `test_the_code_cites_the_spec` counts the
   new citations. Replace `test_every_spec_citation_in_the_code_names_a_heading_of_the_index` with a
   test that checks that each cited section ID exists (`section_ids()`). Remove `INDEX_PATH`,
@@ -764,15 +1173,6 @@ of M8 when the export has no batch key `"1"`. It has no order link to M10a.
   decided entry stays, because it is history.
   One more change goes with the deletion: the "Single source of truth" bullet of
   `specs/model-sidecar/README.md` names the section files, not "this document".
-- **Stale `resolved_size` docstring.** Added on 2026-11-03. The docstring of
-  `SidecarModel.resolved_size` in `skellytracker/core/sidecar/model.py` has two stale parts. First,
-  it cites the heading "Sizes" of `specs/model-sidecar/sidecar-spec.md`. The spec heading is
-  `sizes`, in the section `common.sizes_and_artifacts`. The item "Code citations of
-  `sidecar-spec.md`" also changes this citation. Second, it says that the method deep-merges the size
-  entry over the top level with the semantics of `base` inheritance. The spec has no `base` directive
-  and no deep merge of a size entry
-  ([ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md) items 3 and 4). Write the new
-  docstring when the M8 item "Sizes are plain fields" replaces the merge.
 
 ### M12 — `vNEXT` release
 
@@ -781,24 +1181,27 @@ of M8 when the export has no batch key `"1"`. It has no order link to M10a.
 - **The first package release.** Added on 2026-11-03. The spec version is the skellytracker
   version. The spec has no `vNEXT`, and the open target is `2.0.0`
   ([ADR-6GE2](../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). Thus M12 becomes
-  the first package release that ships the spec: the skellytracker `2.0.0` release. It is the first
-  release that loads `"2.0.0"`, thus M8 comes before it (the item SemVer `schema_version`). These
-  parts of other stages are moot: the development build of M7 that loads `vNEXT` sidecars, and the
-  parts of M8, M9 and M11 that apply before `vNEXT`. In the other text of M7 to M12, `vNEXT` means the open target `2.0.0`. The V- rule
-  checks of the examples in M7 do not wait for a development build. They wait for the package model
-  of M8.
+  the first package release that ships the spec: the skellytracker `2.0.0` release, after Dc. It is the first
+  release that loads `"2.0.0"`, thus the new loader of N1 comes before it (the item SemVer `schema_version` of M8). The parts of M7, M8, M9 and M11 that apply before `vNEXT` are moot. In the other text of M7 to M12, `vNEXT` means the open target `2.0.0`.
 
 ## Reference examples
 
-Moved to [Reference examples](model-sidecar/model-addition-workflow/reference-examples.md) in the model addition workflow (decision [b9fm](../decisions/entries/b9fm-finished-sidecar-plans.md)). That file gives what the examples are and how to provide or replace an example.
+Moved to [Reference examples](model-sidecar/model-addition-workflow/reference-examples.md) in the model addition workflow ([ADR-B9FM](../decisions/entries/b9fm-finished-sidecar-plans.md)). That file gives what the examples are and how to provide or replace an example.
 
 ## Verification
 
-- `pytest skellytracker/tests` — full suite green, including the new `skellytracker/tests/sidecar/` directory and the existing YOLOX/RTMPose/run_batched tests unmodified.
-- `uv run ruff check skellytracker/ tools/` passes. Do not run `black` or `isort` on the package (`AGENTS.md`, section 1).
-- Manually run `uv run python -m skellytracker.core.detectors.keypoint_detectors.rtmpose.wholebody.run_demo` and the YOLOX demo path against a webcam or test video to visually confirm detections/keypoints look correct post-migration — this is the actual "no functional change" smoke test beyond numeric parity.
-- Parity assertions (golden fixture vs. sidecar-driven output, `np.allclose` within tolerance) are the primary automated gate for "no functional change."
+- `uv run pytest -m "not video"` passes. On Windows with Python 3.11 or 3.12, run the MediaPipe
+  tests apart ([`skellytracker/AGENTS.md`](../skellytracker/AGENTS.md#tests)).
+- The MediaPipe tests pass with no change of their expected values, except in the one commit of the
+  MediaPipe change and in Dc.
+- The vector cases of each new `PACKAGE_RUNNERS` entry agree (`uv run pytest tools/tests`).
+- The detector and pipeline tests on generated ONNX models pass on the three operating systems.
+- The exporter parity tests pass locally: the acceptance gate of M10 for each new model, against the
+  upstream reference output of the exporter.
+- `uv run ruff check skellytracker/ tools/` passes. Do not run `black` or `isort` on the package.
+- After P, run `python -m skellytracker --pipeline <key>` against a webcam or a test video, and look
+  at the drawn outputs.
 
 ## Resuming this plan in a fresh session
 
-M1 to M5 are done. Each milestone above gives its file layout. The four generic processing modules are in `core/detectors/processing/` (decision 0007). Do not create the deleted modules `yolox_preprocessing.py`, `rtmpose_preprocessing.py` and `rtmpose_simcc_decode.py` again. The next work is M6. It starts in the implementation stage ([Stages](model-sidecar/model-addition-workflow/README.md#stages)). Use the skill `implement-sidecar-section`. Before Part A, read decision 0016. No `GenericObjectDetector` or `GenericKeypointDetector` class exists yet.
+M1 to M5 are done. Each milestone above gives its file layout. The four generic processing modules are in `core/detectors/processing/` ([ADR-0007](../decisions/entries/0007-generic-processing-package.md)). `rtmpose_preprocessing.py` is still tracked, but no module imports it. Db deletes it. Do not create the deleted modules `yolox_preprocessing.py` and `rtmpose_simcc_decode.py` again. The next work is stage L. It starts in the implementation stage ([Stages](model-sidecar/model-addition-workflow/README.md#stages)). Use the skill `implement-sidecar-section`. Before you start, read [ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md), [ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md), [ADR-MSH0](../decisions/entries/MSH0-supported-platforms-v2.md) and [ADR-EM74](../decisions/entries/EM74-stage-order-and-ci-models.md). Before P, read the [pipeline spec](pipeline/README.md) and its [decision log](pipeline/decisions/README.md). No `GenericObjectDetector` or `GenericKeypointDetector` class exists yet.
