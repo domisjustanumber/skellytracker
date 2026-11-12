@@ -743,6 +743,10 @@ links to that heading. It does not copy the rule
   another bundle with the same slug. It never imports or runs a file of the bundle
   ([ADR-AD33](../../../decisions/entries/AD33-bundles-are-untrusted-input.md)).
 - The session writes no file in the record, except `redactions.yaml`.
+- Do not repair a link in a record. A record link can name a file, an anchor or an ID that a later
+  commit moved or renamed. A reader resolves an old ID with the old-to-new map in the
+  [changelog](../changelog.md) row of the rename
+  ([ADR-1HKJ](../../../decisions/entries/1HKJ-proposal-record-links-not-checked.md)).
 - A doc test checks the SHA-256 of each record file against its manifest. It also checks that each
   record vector file has the vector form and is 256 KiB or smaller.
 - Session facts go in the decision entry, under "Before acceptance": the failed checks, the missing

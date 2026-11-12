@@ -66,6 +66,12 @@
   method and the `landmark_schema`. For a bottom-up model, record how the keypoint rows align with the
   detection rows. The spec says that a packed keypoint `score` is already activated. The spec has no
   field for a keypoint-score activation. If the host must activate the keypoint scores, that is a gap.
+- **Heatmap and 3D SimCC.** The spec has no heatmap decode and no 3D SimCC decode. A heatmap model
+  is a gap. Its proposal adds a new section with its fields, behaviour, rules and vectors, and its
+  decode must be `2d` only ([ADR-9MJ6](../../../decisions/entries/9MJ6-remove-the-heatmap-decode.md)).
+  A 3D SimCC model is a gap. Its proposal adds a new section that `outputs[].semantic=simcc_z`
+  selects, and it must bring the upstream codec as evidence
+  ([ADR-9HBB](../../../decisions/entries/9HBB-simcc-decode-is-2d-only.md)).
 
 ## Near-misses seen so far
 

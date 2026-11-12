@@ -1075,6 +1075,9 @@ through the model addition workflow. The stages below are the work of skellytrac
   decided entry stays, because it is history.
   One more change goes with the deletion: the "Single source of truth" bullet of
   `specs/model-sidecar/README.md` names the section files, not "this document".
+  After the deletion, a new root entry states that a plain-text path `specs/sidecar-spec.md` or
+  `specs/model-sidecar/sidecar-spec.md` in a decided entry means `specs/model-sidecar/README.md`
+  ([ADR-CN15](../decisions/entries/CN15-spec-readme-is-the-only-entry-point.md)).
 
 ### 2.4 Delete the old run code (was Dc)
 

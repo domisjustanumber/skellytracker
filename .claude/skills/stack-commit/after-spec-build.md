@@ -16,8 +16,11 @@ Do these steps one time, at the gate of phase 0, after the exporter kit and the 
 2. Keep the old history: `git branch dom/spec-build-history dom/sidecar-implementation`.
 3. Make `dom/52-process` on the last commit of #81. Take the process files from the final files of
    the working branch. A root entry that links a spec file goes in `dom/53-spec`. Give
-   `dom/52-process` its own form of `AGENTS.md` and of the index files.
-4. Make `dom/53-spec` on `dom/52-process` with the rest. `git diff dom/spec-build-history
+   `dom/52-process` its own form of `AGENTS.md` and of the index files. `dom/52-process` holds the
+   agent instructions, the process skills, the decision log rules, the process entries, the checks in
+   `tools/` and the repository configuration.
+4. Make `dom/53-spec` on `dom/52-process` with the rest: the model sidecar spec, the pipeline spec,
+   their skills, tools and entries, and the implementation plan. `git diff dom/spec-build-history
    dom/53-spec` must show no change.
 5. Put each kind of change in its own commit. Run `uv run python tools/run_checks.py` on the last
    commit of each branch.
@@ -34,7 +37,8 @@ Do these steps one time, at the gate of phase 0, after the exporter kit and the 
   one out.
 - The stack starts with `dom/52-process` and `dom/53-spec`. Then each stage of phase 1 of the
   implementation plan is one PR, in the stage order: `dom/54-dependencies`, `dom/55-package-layout`
-  and so on. The gate of the stage is the gate of its PR
+  and so on. The gate of the stage is the gate of its PR. A stage that can run in parallel also goes
+  in this one stack
   ([ADR-BH7C](../../../decisions/entries/BH7C-two-spec-build-prs-and-a-pr-for-each-stage.md) item 4).
 
 ## Add a commit

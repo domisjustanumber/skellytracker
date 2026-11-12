@@ -10,7 +10,7 @@ You do not need an exporter repo to follow this workflow.
 The [sidecar spec](../README.md) is normative for the meaning of a sidecar. This workflow is
 normative for the process: it tells how to apply the spec to a new model, and how to request a spec
 change. It does not change the meaning of the spec. If this workflow and the spec do not agree, the
-spec is correct. This workflow is not a section of the spec. It has no section ID and no rule IDs.
+spec is correct. This workflow is not a section of the spec. It has no front matter, no section ID and no rule IDs.
 
 ## Files of the workflow
 
@@ -58,6 +58,9 @@ Read each skill file in the skellytracker checkout. Do its steps in order.
   parity scripts. In an exporter, it is the exporter repo.
 - The templates and the skills say "the exporter" and "the exporter repo". If you are not an
   exporter, read "you" and "your repo".
+- Links between the workflow files are relative.
+- In the workflow and in the draft exporter guide, each file starts with one `#` title. Each file
+  must stay small. A `README.md` lists the files of its folder.
 
 ## Stages
 

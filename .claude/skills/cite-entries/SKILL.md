@@ -12,6 +12,9 @@ This skill uses ASD-STE100 Simplified Technical English.
 heading, an index row and a status line. This skill gives the steps to apply the rule when you write
 ([ADR-VCQ7](../../../decisions/entries/VCQ7-cite-entries-skill.md)).
 
+No hook or test checks the citations of a reply or a commit message. The user decides on a hook
+when this skill is not enough.
+
 ## Forms
 
 | Where | Form |

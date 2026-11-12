@@ -43,7 +43,8 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
 - **Draft exporter guide.** `specs/draft/exporter-guide/` is not complete. A local plan of the user
   owns its creation. When the guide is complete, or when an end-to-end test proves that its first
   version works, a new entry moves it to `specs/exporter-guide/`
-  ([x64y](entries/x64y-draft-exporter-guide-folder.md)).
+  ([x64y](entries/x64y-draft-exporter-guide-folder.md)). Each new part of the guide goes in a new
+  folder beside `sidecars/`.
 - **Exporter coverage note.** Retire `notes/sidecar-exporter-coverage.md` at the end of the
   spec-build stage. First, copy its unique measurements to an evidence entry
   ([ADR-5WKW](entries/5WKW-implementation-work-in-the-plan.md)).

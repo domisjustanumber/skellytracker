@@ -13,6 +13,11 @@ that do not have the line in ``.gitignore``. Then it builds the graph of the cur
 ``uvx`` and the pin of the hook. The hook updates only a checkout that has ``graphify-out/``, so
 this first build opts the checkout in. ``--no-build`` skips the build.
 
+The hook runs ``graphify update . --force`` in the background, with no LLM and one worker. It
+stops the build after 900 s with ``timeout`` or ``gtimeout``. With neither, the build has no limit.
+The hook always exits 0. graphify is not a project dependency. The pre-commit framework and
+``graphify hook install`` do not manage these hooks.
+
 Run ``install`` in each checkout that must have a graph. Run it again after
 ``tools/graphify_hook.sh`` changes. If one of the four hooks exists and is not a graphify hook,
 ``install`` changes nothing and exits 1.

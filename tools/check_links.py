@@ -8,6 +8,9 @@ skipped.
 In each `AGENTS.md`, `notes/`, `.claude/skills/` and folder named `decisions`, a
 GitHub `blob`, `tree` or `commit` link must pin a full 40-character SHA
 (decision 0032).
+
+The check skips the files in the folders of `specs/model-sidecar/proposals/`. A proposal record
+is a frozen byte copy. The check covers `specs/model-sidecar/proposals/README.md` (decision 1HKJ).
 """
 
 from __future__ import annotations
