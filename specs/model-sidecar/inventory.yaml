@@ -41,18 +41,14 @@ examples:
     kind: export
     exporter_layout_path: null
     tracked: false
-    commit: 3e326df00726df8110773ed62cf38d02948a71a5
-    edits:
-      - "spec change 88WQ: the role value, the key of the keypoint block and its keys of the point names and the skeletons are renamed as the old-to-new map of changelog row 46 gives"
-      - "spec change 88WQ: the top-level overlay block moves into the keypoint block, with its groups renamed to parts, the edge list of each part renamed to edges, and the color and thickness keys of each part renamed to edge_color and edge_thickness"
-      - "spec change GKD1: the keypoint key that said whether the model needs a detector is removed"
-      - "spec change G3FA: the resize method value is renamed as changelog row 48 gives"
+    commit: dd8a72d9730aea0cfff088da7f7b034f6d4717d2
+    edits: []
     notes: >-
       A byte copy of the sidecar that the exporter writer code wrote for the hand-over bundle. The
       exporter turns off its sidecar output until the verdict describes, so exporter_path does not
       exist yet. When the exporter turns it on, the same writer writes the same bytes there. The
       sidecar has the real SHA-256 of each b3 ONNX file and no $ref.
-    bundle: model-rtmw-wholebody133@openmmlab-exporter@v2
+    bundle: model-rtmw-wholebody133@openmmlab-exporter@v3
 
   detectors/object_detectors/yolox-person/yolox-person.yaml:
     exporter: OpenMMLab-Exporter
@@ -60,16 +56,14 @@ examples:
     kind: export
     exporter_layout_path: null
     tracked: false
-    commit: 96da6e69eedfe5978f133f29d8b6a76c7bf25392
-    edits:
-      - "spec change 88WQ: the top-level decode block moves into the new object block, and the field object.classes: [person] is added"
-      - "spec change 88WQ: the three class fields of the decode block are removed, and its box space and score threshold keys are renamed as the old-to-new map of changelog row 46 gives"
+    commit: dd8a72d9730aea0cfff088da7f7b034f6d4717d2
+    edits: []
     notes: >-
       A byte copy of the sidecar that the exporter writer code wrote for the hand-over bundle. The
       exporter turns off its sidecar output until the verdict describes, so exporter_path does not
       exist yet. When the exporter turns it on, the same writer writes the same bytes there. The
       sidecar has the real SHA-256 of each b3 ONNX file and no $ref.
-    bundle: model-yolox-person@openmmlab-exporter@v3
+    bundle: model-yolox-person@openmmlab-exporter@v4
 
 fragments: {}
 
