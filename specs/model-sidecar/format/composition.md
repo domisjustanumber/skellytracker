@@ -62,7 +62,6 @@ display_name: RTMW WholeBody
 role: [keypoint_detector]
 keypoint:
   estimator_type: top_down_single_person
-  requires_object_detector: true
   point_names: {$ref: ../../../shared/skeletons/coco133_tracked_points.yaml, sha256: "b59afc21868c1b4b0cac9bf0ae8a6398666d0b8a5da64a13d88079732d60441c"}
   skeletons: {$ref: ../../../shared/skeletons/coco133_skeletons.yaml, sha256: "bdc310c077f571a1a7d73d74f4fe6d1124b360c006512ea0d7ffb2a671f1709a"}
 ```

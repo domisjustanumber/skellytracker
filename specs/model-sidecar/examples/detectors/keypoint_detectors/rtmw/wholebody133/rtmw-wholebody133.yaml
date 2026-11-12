@@ -165,7 +165,6 @@ outputs:
   keypoint_count: 133
 keypoint:
   estimator_type: top_down_single_person
-  requires_object_detector: true
   geometry: 2d
   landmark_schema: COCO_WholeBody
   point_names:

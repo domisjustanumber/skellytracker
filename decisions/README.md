@@ -42,6 +42,7 @@ These entries are `accepted` or `evidence`.
 | [3SF2](entries/3SF2-pipeline-spec-and-node-workflow.md) | Pipeline spec in `specs/pipeline/`: section IDs, reference model and schema, glue vectors, changelog, own module log, node workflow | accepted |
 | [1HKJ](entries/1HKJ-proposal-record-links-not-checked.md) | The link check skips the frozen proposal records; their old links stay; the changelog map resolves old IDs | accepted |
 | [88WQ](entries/88WQ-sidecar-vocabulary.md) | Sidecar vocabulary: `object` and `keypoint` blocks, role `keypoint_detector`, `post/object/` and `post/keypoint/`, classes by name, one name per concept | accepted |
+| [GKD1](entries/GKD1-estimator-type-says-the-crop.md) | `keypoint.estimator_type` says whether a model needs a crop; `keypoint.requires_object_detector` goes | accepted |
 
 ### Proposed
 

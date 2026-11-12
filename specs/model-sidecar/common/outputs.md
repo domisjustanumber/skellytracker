@@ -96,7 +96,6 @@ object:
 
 keypoint:              # keypoint decode — `instance_keypoints` rows follow the surviving detection rows
   estimator_type: bottom_up
-  requires_object_detector: false
   geometry: 2d
   # ... point_names / skeletons ...
   decode:
