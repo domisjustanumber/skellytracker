@@ -1,0 +1,346 @@
+{
+ "rtmw-wholebody133-m_b1_fp32.onnx": {
+  "sha256": "feb2b267340ca5b6c015008d0a72354e6e7cf658b0239c379177576e3c409aa9",
+  "v4_manifest_sha256": "feb2b267340ca5b6c015008d0a72354e6e7cf658b0239c379177576e3c409aa9",
+  "matches_v4": true,
+  "opset_import": {
+   "ai.onnx": 17
+  },
+  "ir_version": 8,
+  "producer": "pytorch 2.0.0",
+  "inputs": [
+   [
+    "input",
+    [
+     1,
+     3,
+     256,
+     192
+    ],
+    1
+   ]
+  ],
+  "outputs": [
+   [
+    "simcc_x",
+    [
+     1,
+     "MatMulsimcc_x_dim_1",
+     384
+    ],
+    1
+   ],
+   [
+    "simcc_y",
+    [
+     1,
+     "MatMulsimcc_x_dim_1",
+     512
+    ],
+    1
+   ]
+  ],
+  "nodes": 414
+ },
+ "rtmw-wholebody133-m_b1_fp16.onnx": {
+  "sha256": "891cafd62195a3855d6770050fbff9265c049ba96bfa4dfa826390364ad41772",
+  "v4_manifest_sha256": "891cafd62195a3855d6770050fbff9265c049ba96bfa4dfa826390364ad41772",
+  "matches_v4": true,
+  "opset_import": {
+   "ai.onnx": 17
+  },
+  "ir_version": 8,
+  "producer": "pytorch 2.0.0",
+  "inputs": [
+   [
+    "input",
+    [
+     1,
+     3,
+     256,
+     192
+    ],
+    1
+   ]
+  ],
+  "outputs": [
+   [
+    "simcc_x",
+    [
+     1,
+     "MatMulsimcc_x_dim_1",
+     384
+    ],
+    1
+   ],
+   [
+    "simcc_y",
+    [
+     1,
+     "MatMulsimcc_x_dim_1",
+     512
+    ],
+    1
+   ]
+  ],
+  "nodes": 423
+ },
+ "rtmw-wholebody133-m_b3_fp32.onnx": {
+  "sha256": "77fb20ae9d7b1bf3021029d482b24c3d5f5994bf0cc895debfc052382c4c14db",
+  "v4_manifest_sha256": "77fb20ae9d7b1bf3021029d482b24c3d5f5994bf0cc895debfc052382c4c14db",
+  "matches_v4": true,
+  "opset_import": {
+   "ai.onnx": 17
+  },
+  "ir_version": 8,
+  "producer": "pytorch 2.0.0",
+  "inputs": [
+   [
+    "input",
+    [
+     3,
+     3,
+     256,
+     192
+    ],
+    1
+   ]
+  ],
+  "outputs": [
+   [
+    "simcc_x",
+    [
+     3,
+     "MatMulsimcc_x_dim_1",
+     384
+    ],
+    1
+   ],
+   [
+    "simcc_y",
+    [
+     3,
+     "MatMulsimcc_x_dim_1",
+     512
+    ],
+    1
+   ]
+  ],
+  "nodes": 414
+ },
+ "rtmw-wholebody133-m_b3_fp16.onnx": {
+  "sha256": "c9e01ef287f2c18e75828153167af21d10f9f4fd5119cbef61e34c15e4a90179",
+  "v4_manifest_sha256": "c9e01ef287f2c18e75828153167af21d10f9f4fd5119cbef61e34c15e4a90179",
+  "matches_v4": true,
+  "opset_import": {
+   "ai.onnx": 17
+  },
+  "ir_version": 8,
+  "producer": "pytorch 2.0.0",
+  "inputs": [
+   [
+    "input",
+    [
+     3,
+     3,
+     256,
+     192
+    ],
+    1
+   ]
+  ],
+  "outputs": [
+   [
+    "simcc_x",
+    [
+     3,
+     "MatMulsimcc_x_dim_1",
+     384
+    ],
+    1
+   ],
+   [
+    "simcc_y",
+    [
+     3,
+     "MatMulsimcc_x_dim_1",
+     512
+    ],
+    1
+   ]
+  ],
+  "nodes": 423
+ },
+ "rtmw-wholebody133-x-384_b1_fp32.onnx": {
+  "sha256": "667805b06325a07837fe23bebdfc39712973bc3ea7d0d5229357ac081d035922",
+  "v4_manifest_sha256": "667805b06325a07837fe23bebdfc39712973bc3ea7d0d5229357ac081d035922",
+  "matches_v4": true,
+  "opset_import": {
+   "ai.onnx": 17
+  },
+  "ir_version": 8,
+  "producer": "pytorch 2.0.0",
+  "inputs": [
+   [
+    "input",
+    [
+     1,
+     3,
+     384,
+     288
+    ],
+    1
+   ]
+  ],
+  "outputs": [
+   [
+    "simcc_x",
+    [
+     1,
+     "MatMulsimcc_x_dim_1",
+     576
+    ],
+    1
+   ],
+   [
+    "simcc_y",
+    [
+     1,
+     "MatMulsimcc_x_dim_1",
+     768
+    ],
+    1
+   ]
+  ],
+  "nodes": 532
+ },
+ "rtmw-wholebody133-x-384_b1_fp16.onnx": {
+  "sha256": "797af29b5ca262713f0ea91d8c5fea3afbe84e81487e0c263a4f317667368ed8",
+  "v4_manifest_sha256": "797af29b5ca262713f0ea91d8c5fea3afbe84e81487e0c263a4f317667368ed8",
+  "matches_v4": true,
+  "opset_import": {
+   "ai.onnx": 17
+  },
+  "ir_version": 8,
+  "producer": "pytorch 2.0.0",
+  "inputs": [
+   [
+    "input",
+    [
+     1,
+     3,
+     384,
+     288
+    ],
+    1
+   ]
+  ],
+  "outputs": [
+   [
+    "simcc_x",
+    [
+     1,
+     "MatMulsimcc_x_dim_1",
+     576
+    ],
+    1
+   ],
+   [
+    "simcc_y",
+    [
+     1,
+     "MatMulsimcc_x_dim_1",
+     768
+    ],
+    1
+   ]
+  ],
+  "nodes": 541
+ },
+ "rtmw-wholebody133-x-384_b3_fp32.onnx": {
+  "sha256": "ed5b7b2b1d82b323ad753979bf67dbff537e2b43cdf5458aeb3d2f8920b2cf73",
+  "v4_manifest_sha256": "ed5b7b2b1d82b323ad753979bf67dbff537e2b43cdf5458aeb3d2f8920b2cf73",
+  "matches_v4": true,
+  "opset_import": {
+   "ai.onnx": 17
+  },
+  "ir_version": 8,
+  "producer": "pytorch 2.0.0",
+  "inputs": [
+   [
+    "input",
+    [
+     3,
+     3,
+     384,
+     288
+    ],
+    1
+   ]
+  ],
+  "outputs": [
+   [
+    "simcc_x",
+    [
+     3,
+     "MatMulsimcc_x_dim_1",
+     576
+    ],
+    1
+   ],
+   [
+    "simcc_y",
+    [
+     3,
+     "MatMulsimcc_x_dim_1",
+     768
+    ],
+    1
+   ]
+  ],
+  "nodes": 532
+ },
+ "rtmw-wholebody133-x-384_b3_fp16.onnx": {
+  "sha256": "322657d54a3a057e674eac8cbc0701329852d958cdc3d6483e28bfa58fd958d1",
+  "v4_manifest_sha256": "322657d54a3a057e674eac8cbc0701329852d958cdc3d6483e28bfa58fd958d1",
+  "matches_v4": true,
+  "opset_import": {
+   "ai.onnx": 17
+  },
+  "ir_version": 8,
+  "producer": "pytorch 2.0.0",
+  "inputs": [
+   [
+    "input",
+    [
+     3,
+     3,
+     384,
+     288
+    ],
+    1
+   ]
+  ],
+  "outputs": [
+   [
+    "simcc_x",
+    [
+     3,
+     "MatMulsimcc_x_dim_1",
+     576
+    ],
+    1
+   ],
+   [
+    "simcc_y",
+    [
+     3,
+     "MatMulsimcc_x_dim_1",
+     768
+    ],
+    1
+   ]
+  ],
+  "nodes": 541
+ }
+}

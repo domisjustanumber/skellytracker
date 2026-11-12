@@ -1,0 +1,5 @@
+Wk__yolox__b1__fp32__tf32-banana.log: 2026-11-12 12:34:12.2896157 [W:onnxruntime:, cuda_ep_factory.cc:559 CudaEpFactory] Failed to parse session config for key 'ep.cuda.use_tf32'. Expected a boolean. Using default value.
+Wk__yolox__b1__fp32__ws-banana.log: 2026-11-12 12:34:10.7304284 [W:onnxruntime:, cuda_ep_factory.cc:559 CudaEpFactory] Failed to parse session config for key 'ep.cuda.cudnn_conv_use_max_workspace'. Expected a boolean. Using default value.
+Wk__yolox__b1__fp32__algo-banana.log: 2026-11-12 12:34:14.0436540 [W:onnxruntime:, cuda_ep_factory.cc:559 CudaEpFactory] Failed to parse session config for key 'ep.cuda.cudnn_conv_algo_search'. Expected an integer or one of EXHAUSTIVE/HEURISTIC/DEFAULT. Using default value.
+T7__yolox__b1__fp32__bogus.log: EP Error N:\_work\1\s\onnxruntime\core\session\plugin_ep\ep_plugin_provider_interfaces.cc:71 onnxruntime::PluginExecutionProviderFactory::CreateProvider Error creating execution provider: [ONNXRuntimeError] : 1 : FAIL : Unknown provider option: "bogus_key".
+T7__yolox__b1__fp32__bogus.log: Falling back to ['CPUExecutionProvider'] and retrying.
