@@ -1,6 +1,6 @@
 # W823 — Absorb each entry in the commit group that states its rules; restate kept rules by link
 
-**Status:** accepted, 2026-11-12 (user).
+**Status:** absorbed into [`README.md#rules`](../README.md#rules), [`template.md#decision-log-entry-template`](../template.md#decision-log-entry-template), [`stack-commit/SKILL.md#commit-groups`](../../.claude/skills/stack-commit/SKILL.md#commit-groups), [`change-sidecar-spec/SKILL.md#procedure-b-land-an-accepted-proposal`](../../.claude/skills/change-sidecar-spec/SKILL.md#procedure-b-land-an-accepted-proposal), [`change-sidecar-spec/SKILL.md#procedure-d-another-spec-edit`](../../.claude/skills/change-sidecar-spec/SKILL.md#procedure-d-another-spec-edit), [`change-pipeline-spec/SKILL.md#procedure-b-land-an-accepted-node-proposal`](../../.claude/skills/change-pipeline-spec/SKILL.md#procedure-b-land-an-accepted-node-proposal), [`change-pipeline-spec/SKILL.md#procedure-d-another-pipeline-spec-edit`](../../.claude/skills/change-pipeline-spec/SKILL.md#procedure-d-another-pipeline-spec-edit), 2026-11-12 (user; PR: pending).
 
 ## Decision
 

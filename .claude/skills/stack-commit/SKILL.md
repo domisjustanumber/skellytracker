@@ -71,6 +71,12 @@ These rules apply until the rebuild at the gate of phase 0
 A commit group is a run of commits in a row on the working branch that do one task. Outside the
 spec-build stage, the commits of one PR are its commit group.
 
+Before the last commit of a group, examine each decision entry that the group wrote or landed, and
+each entry whose rules the group wrote into an absorb document. When the absorb documents state all
+of the rules of the entry, absorb it in the last commit: set `absorbed into` with one link for each
+heading, and move its row to `historical.md`. Do not ask the user. This applies also when you use
+no other skill ([Rules](../../../decisions/README.md#rules); [ADR-W823](../../../decisions/entries/W823-absorb-in-the-commit-group-that-states-the-rules.md)).
+
 ## One worktree and frozen PRs
 
 - Use one worktree only. Do not add a worktree. A rebase does not move a branch that a different

@@ -64,7 +64,9 @@ and its entry is in the pipeline log.
 4. Land the vectors with
    `uv run python tools/make_vectors.py land specs/pipeline/proposals/<slug>/vectors/node.<type>.yaml`.
 5. Apply part 7: change each pipeline file that the change makes invalid.
-6. Run `uv run python tools/run_checks.py`. Put the change in one content commit. Then write the
+6. Run `uv run python tools/run_checks.py`. Put the change in one content commit. Absorb the entry
+   of the pipeline log in that commit when the absorb documents state each of its rules: do step 19
+   of Procedure B of `change-sidecar-spec` with the pipeline log ([ADR-W823](../../../decisions/entries/W823-absorb-in-the-commit-group-that-states-the-rules.md)). Then write the
    response `landed`.
 
 ## Procedure C: update the pinned hashes after a re-export
@@ -84,7 +86,8 @@ version ([ADR-271H](../../../decisions/entries/271H-pipeline-bundles.md) item 5)
 
 Follow the [Rules for each spec edit](../change-sidecar-spec/SKILL.md#rules-for-each-spec-edit) of
 `change-sidecar-spec`, with the pipeline paths. A change of normative meaning needs a decision entry
-and a row in `specs/pipeline/changelog.md`.
+and a row in `specs/pipeline/changelog.md`. Absorb that entry in the last commit of the group when
+the absorb documents state each of its rules ([ADR-W823](../../../decisions/entries/W823-absorb-in-the-commit-group-that-states-the-rules.md)).
 
 ## Stop points
 
