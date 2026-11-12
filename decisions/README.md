@@ -45,6 +45,7 @@ These entries are `accepted` or `evidence`.
 | [JJ7E](entries/JJ7E-no-upstream-case-verified-by-skellytracker.md) | From the pre-release, a vector case with no upstream output is verified when skellytracker agrees and its note names the spec rule | accepted |
 | [271H](entries/271H-pipeline-bundles.md) | A `pipeline` bundle kind with `depends_on`; spec example before stage 1.10; the session updates pinned `sidecar_sha256` after a re-export | accepted |
 | [MWY9](entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md) | Exact pins; `onnxruntime` 1.31 base dependency; GPU EPs only as CUDA 13 plugin packs; Python 3.11 to 3.13; supersedes B4QR | accepted |
+| [9NW0](entries/9NW0-ep-keys-options-and-failures.md) | EP keys from the EP catalog; a run takes `ep_options`; a whole-EP failure raises before frame 0; CPU nodes are reported | accepted |
 
 ### Proposed
 
