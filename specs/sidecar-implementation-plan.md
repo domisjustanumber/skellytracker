@@ -849,7 +849,8 @@ in parallel with 1.3 to 1.7.
   - the batch conversion of each artifact at start, and the padding of a missed frame or crop, with
     its result dropped;
   - the batch rule of a stateful pipeline and its warning `batch_limited_by_state`;
-  - the session sharing.
+  - no session sharing: each node builds its own sessions, and `close()` frees the sessions of the
+    run ([ADR-0WJB](../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 6).
 - **Time.** Each output, timing event and tap row has `frame_index`. In `video` and `live`, each
   frame has `timestamp_ms` (a float). A `video` frame with no `timestamp_ms` uses
   `frame_index × 1000 / fps`, with the run parameter `fps` (default 30.0). A `live` run has no
@@ -915,12 +916,15 @@ in parallel with 1.3 to 1.7.
   ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 9). Stage 1.6 gives
   `detectors` and `describe`. `run` takes `--ep <key>` and `--ep-option <name>=<value>`, and exits
   with 3 when an EP is not available, 4 when a session was not created and 5 when the GPU memory is
-  exhausted ([ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 2 and 6).
+  exhausted ([ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 2 and 6). With no
+  `--ep`, `run` uses `eps.recommend("performance")` and prints the chosen EP and its options
+  ([ADR-0WJB](../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 8).
 - **Node catalog.** `list_node_types()`, the tool that makes the spec table of each node type, and
   its doc test ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 9).
 - **Webcam demo.** `output_schema` gives `edges` for each output, from the sidecar
   `keypoint.overlay` or the MediaPipe YAML files. Port `python -m skellytracker` to `start_pipeline`
-  in `live` mode with `--pipeline <key>`. One generic annotator draws each output
+  in `live` mode with `--pipeline <key>`, and the default EP of [ADR-0WJB](../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 8. One generic
+  annotator draws each output
   ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 8).
 - **Pipeline bundles.** Copy each contributed pipeline of `specs/pipeline/examples/` that has an
   entry in `specs/pipeline/inventory.yaml` to `core/model_zoo/pipelines/`. Add the load checks of
@@ -937,12 +941,12 @@ in parallel with 1.3 to 1.7.
   filter row `i`, which can be another person on the next frame. Thus the v2 pipelines run single
   person (`max_instances` 1). "Later" holds the multi-person work.
 - **Investigations.** Read `SharedSessionPool` and `TrackerLease` in the freemocap development-streaming
-  work: what freemocap needs (a lease for each stream, the lifetime, thread safety), and whether
-  the session sharing covers it. Study frame drops in `live` mode: a latest-frame mailbox, a count of
+  work: what freemocap needs (a lease for each stream, the lifetime, thread safety), and how one run
+  for each stream, with its own sessions, covers it ([ADR-0WJB](../decisions/entries/0WJB-pipeline-outputs-running-no-session-sharing.md) item 6). Study frame drops in `live` mode: a latest-frame mailbox, a count of
   dropped frames, a `drop` timing point and MediaPipe LIVE_STREAM.
 - Gate: tests on generated ONNX models for each node type, the load checks, the empty-input rule,
   the `concat` empty-input fill, the instance rows with `class_index` and `instance_score`, `@prev`,
-  the stateful batch rule and its warning, `ep_partial_placement` and the CLI exit codes, the timing
+  the stateful batch rule and its warning, `ep_partial_placement`, the CLI exit codes and the default EP, the timing
   parents, and record and replay with `row`. The
   glue vectors and the named tests of the glue nodes agree. The aggregator output passes
   `skellybench.schema.validate_timing`. `mediapipe-holistic-tasks` runs and gives the expected point
