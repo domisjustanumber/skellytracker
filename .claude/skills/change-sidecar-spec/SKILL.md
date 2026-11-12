@@ -71,7 +71,10 @@ Do this procedure for step 1 of phase 3.
    write the sidecar.
 4. Follow "How to provide or replace an example" in
    [Reference examples](../../../specs/model-sidecar/model-addition-workflow/reference-examples.md#how-to-provide-or-replace-an-example). Do its
-   steps in order.
+   steps in order. When the new sidecar replaces a sidecar that a landed pipeline names, do
+   [Procedure C](../change-pipeline-spec/SKILL.md#procedure-c-update-the-pinned-hashes-after-a-re-export)
+   of `change-pipeline-spec` in the same commit group
+   ([ADR-271H](../../../decisions/entries/271H-pipeline-bundles.md) item 5).
 5. If the procedure finds that the sidecar breaks a spec rule, stop. Do not correct the example by
    hand. Tell the user that the exporter must change, or that the spec needs a proposal.
 6. Add the new guidance of the intake to the "Authoring guidance" heading of each section that it is

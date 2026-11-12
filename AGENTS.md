@@ -96,6 +96,8 @@ run ([ADR-AD33](decisions/entries/AD33-bundles-are-untrusted-input.md)).
 | [`propose-sidecar-change`](.claude/skills/propose-sidecar-change/SKILL.md) | an exporter repo, or this repository | Write a spec change proposal for a near-miss or a gap, and record it as a `proposed` entry |
 | [`change-sidecar-spec`](.claude/skills/change-sidecar-spec/SKILL.md) | this repository | Land a model, an accepted proposal or a reference implementation in the spec |
 | [`implement-sidecar-section`](.claude/skills/implement-sidecar-section/SKILL.md) | this repository | Implement a spec section in the package code. In the spec-build stage, plan only. |
+| [`change-pipeline-spec`](.claude/skills/change-pipeline-spec/SKILL.md) | this repository | Land a pipeline bundle or an accepted node proposal, or update pinned sidecar hashes after a re-export |
+| [`implement-pipeline-node`](.claude/skills/implement-pipeline-node/SKILL.md) | this repository | Implement a node type of the pipeline spec in the package code. In the spec-build stage, plan only. |
 | [`stack-commit`](.claude/skills/stack-commit/SKILL.md) | this repository | Commit, rebase and push on the working branch, and write a PR body |
 | [`cite-entries`](.claude/skills/cite-entries/SKILL.md) | this repository | Cite decision entries in a reply, a plan, a PR body or a commit message |
 | [`ask-the-user`](.claude/skills/ask-the-user/SKILL.md) | this repository | Ask the user a question or give options, with an example and a source for each |

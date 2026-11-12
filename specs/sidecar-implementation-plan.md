@@ -131,23 +131,18 @@ rules apply from the pre-release of 1.11. Each one stands beside the current rul
 
 ### 0.2 Pipeline contribution and implementation process
 
-**Status: NOT STARTED.** It changes `specs/pipeline/`, the model addition workflow, the skills, the
-templates and `tools/intake_bundle.py`. Record each new design in a decision entry first.
+**Status: DONE (2026-11-12).** It carries out [ADR-3SF2](../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md)
+item 7 and [ADR-271H](../decisions/entries/271H-pipeline-bundles.md).
 
-- **Node workflow.** One workflow file and one node-proposal template in `specs/pipeline/`, the
-  landing skill `change-pipeline-spec`, and the `node.` mapping of `tools/intake_bundle.py`. Today
-  `SECTION_MODULE` refuses `node_*` ([ADR-3SF2](../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md) item 7; the
-  [pipeline open work](pipeline/decisions/open-work.md)).
-- **Pipeline files from the exporters.** No process lets an exporter send a `*.pipeline.yaml`
-  today. The model addition workflow and the bundles carry only sidecars. Define how a bundle
-  carries a pipeline file, how a session checks it, and where it lands. The check uses the reference
-  model and `pipeline.schema.json` of the [pipeline spec](pipeline/README.md), and the load checks
-  ([ADR-99MH](../decisions/entries/99MH-pipeline-outputs-and-running.md) item 7). A pipeline file lands in `core/model_zoo/pipelines/`, with `source:` and the key
-  `<pipeline_id>@<source>` ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 2). It needs each model that it names.
-- **Implementation process.** A skill gives the steps to implement a node type in the package, as
-  `implement-sidecar-section` does for a sidecar section: the plan, the glue vectors or the named
-  tests, and the gate.
-- Gate: `uv run python tools/run_checks.py` passes. The exporter guide of 0.3 links the process.
+- Done: the workflow [Pipeline contributions](pipeline/contributions.md); the templates in
+  `specs/pipeline/templates/`; `specs/pipeline/inventory.yaml`; the kind `pipeline` in
+  [Pipeline bundles](model-sidecar/model-addition-workflow/hand-over.md#pipeline-bundles) and in
+  `tools/intake_bundle.py` (the checks of a pipeline file, with tests); the routing of the
+  `node.<type>` proposals to `specs/pipeline/` in `tools/intake_bundle.py`; the skills
+  `change-pipeline-spec` (with the hash update after a re-export) and `implement-pipeline-node`.
+- Open for stage 1.10: the run gate of a pipeline bundle and its tolerance, and the load checks of
+  [ADR-99MH](../decisions/entries/99MH-pipeline-outputs-and-running.md) item 7 in `verify`. The
+  exporter guide of 0.3 links the workflow.
 
 ### 0.3 Exporter kit
 
@@ -901,6 +896,11 @@ in parallel with 1.3 to 1.7.
   `keypoint.overlay` or the MediaPipe YAML files. Port `python -m skellytracker` to `start_pipeline`
   in `live` mode with `--pipeline <key>`. One generic annotator draws each output
   ([ADR-8NVD](../decisions/entries/8NVD-pipeline-api-warnings-and-catalog.md) item 8).
+- **Pipeline bundles.** Copy each contributed pipeline of `specs/pipeline/examples/` that has an
+  entry in `specs/pipeline/inventory.yaml` to `core/model_zoo/pipelines/`. Add the load checks of
+  [ADR-99MH](../decisions/entries/99MH-pipeline-outputs-and-running.md) item 7 and a run gate on
+  `run/` to `verify` of `tools/intake_bundle.py`, and set the tolerance
+  ([ADR-271H](../decisions/entries/271H-pipeline-bundles.md) item 3).
 - **Built-ins.** Copy `yolox-rtmw-wholebody` and `mediapipe-holistic-tasks` from
   `specs/pipeline/examples/` to `core/model_zoo/pipelines/`
   ([ADR-3SF2](../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md) item 2;

@@ -1,0 +1,15 @@
+# specs/pipeline/inventory.yaml - docs-only. skellytracker does not read it at runtime.
+#
+# pipelines: the provenance of each pipeline file that an exporter contributed, keyed by its path
+# under specs/pipeline/examples/ (before stage 1.10 of specs/sidecar-implementation-plan.md) or
+# under skellytracker/core/model_zoo/pipelines/ (after it). The built-in pipelines of skellytracker
+# have no entry. The bundle rules are in "Pipeline bundles" of
+# specs/model-sidecar/model-addition-workflow/hand-over.md (decisions/entries/271H-pipeline-bundles.md).
+# An entry has these keys:
+#   exporter       the exporter repo
+#   exporter_path  the path of the exporter's copy, relative to the exporter repo
+#   commit         the exporter commit of the pipeline file
+#   bundle         the hand-over bundle of the copy, as <bundle id>@v<k>; provenance text, not a path
+#   edits          the edits that skellytracker made after the landing: "sidecar_sha256 of <key>
+#                  updated after a re-export" (decisions/entries/271H-pipeline-bundles.md, item 5)
+pipelines: {}

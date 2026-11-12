@@ -19,8 +19,9 @@ root log.
 - The glue nodes are a closed set. A pipeline file runs no user code
   ([ADR-AD33](../../decisions/entries/AD33-bundles-are-untrusted-input.md)). A new node type is a
   spec change.
-- Until the node workflow exists, a request for a new node type or a new param goes in the intake
-  row "Notes and questions to the skellytracker session".
+- A pipeline file or a node change comes through [Pipeline contributions](contributions.md). The
+  skill [`change-pipeline-spec`](../../.claude/skills/change-pipeline-spec/SKILL.md) lands it
+  ([ADR-271H](../../decisions/entries/271H-pipeline-bundles.md)).
 - In the spec-build stage, do not change a file under `skellytracker/`.
 - An entry whose files are all in `specs/pipeline/` goes in [`decisions/`](decisions/README.md). An
   entry with files in another module goes in the [root log](../../decisions/README.md).

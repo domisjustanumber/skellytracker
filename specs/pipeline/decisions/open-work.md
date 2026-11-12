@@ -7,10 +7,6 @@ root [open-work.md](../../../decisions/open-work.md).
 
 ## Draft spec
 
-- **Node workflow.** After the draft lands: one workflow file and one node-proposal template in
-  `specs/pipeline/`, the landing skill `change-pipeline-spec`, and the `node.` mapping of
-  `tools/intake_bundle.py` ([ADR-3SF2](../../../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md)
-  item 7).
 - **Crop border.** A detector node crops a rotated ROI with `affine_crop`
   ([ADR-G3FA](../../model-sidecar/decisions/entries/G3FA-affine-crop-rotated-roi.md)). Its border is
   constant. The MediaPipe hand chain fills the border with the edge pixels. That border mode waits

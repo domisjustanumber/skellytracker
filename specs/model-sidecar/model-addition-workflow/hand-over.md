@@ -25,6 +25,7 @@ templates name it ([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-
 intakes/
   model-<model_id>@<contributor>/
   proposal-<slug>@<contributor>/     # also contributions and follow-ups
+  pipeline-<pipeline_id>@<contributor>/
     v1/
       manifest.yaml                  # written last; it marks the version complete
       <payload files>
@@ -35,6 +36,8 @@ intakes/
 
 - The bundle ID is the folder name, for example `proposal-letterbox-floor-rounding@openmmlab-exporter`.
 - `<model_id>` is the `model_id` of the family. Write one `model` bundle for each family.
+- `<pipeline_id>` is the `pipeline_id` of the pipeline file. Write one `pipeline` bundle for each
+  pipeline file ([Pipeline bundles](#pipeline-bundles)).
 - `<slug>` is a short lower-case name of the change, with hyphens, for example
   `letterbox-floor-rounding`.
 - `<contributor>` is the name of the exporter repo in lower case. A contributor with no repo gets a
@@ -49,6 +52,7 @@ intakes/
 | `model` | `intake.md` | `example/detectors/...` and `example/provenance.yaml` (verdict `describes`); `reference/<section_module>.py`; `vector-runs.yaml`; `batch/` (the files of the [batch-conversion check](batch-conversion-check.md#batch-conversion-check)) |
 | `proposal` | `proposal.md` | `reference/<section_module>.py` and `vectors/<section ID>.yaml` for each changed section that has an algorithm; `evidence.md`; `example/`; `skellytracker.patch` (from the 2.0.0 pre-release, [Patches](#patches)) |
 | `proposal` with `contributes_to` | `evidence.md`, one or more `vectors/<section ID>.yaml` | `parity/` |
+| `pipeline` | `pipeline.md`, `<pipeline_id>.pipeline.yaml` | `run/` (a reference run output) |
 
 - Each file name is the name of its target file in skellytracker. When skellytracker lands a
   proposal, it copies `reference/<section_module>.py` to `specs/model-sidecar/reference/`. Then
@@ -135,7 +139,7 @@ gives the mapping to the inventory entry.
 
 ```yaml
 bundle_format: 1
-kind: proposal            # model | proposal
+kind: proposal            # model | proposal | pipeline
 name: <slug or model_id>
 contributor: <repo name, lower case>
 version: 2                # equals the v<k> folder
@@ -145,7 +149,7 @@ spec_version: <X.Y.Z>     # the target version that the contributor read; pack w
 created: YYYY-MM-DD       # the date of version 1; pack keeps it in each later version
 sections: [<section ID>]  # model: each section that the model uses; proposal: each changed section
 base: <bundle id> | null                                # proposal follow-up
-depends_on: [<bundle id>]                               # proposal
+depends_on: [<bundle id>]                               # proposal, pipeline
 contributes_to: <slug> | null                           # proposal contribution
 patch_release: <release tag> | null                     # proposal; optional; from the 2.0.0 pre-release
 related: [<bundle id>]
@@ -164,6 +168,12 @@ external:
 
 - In a proposal, the first item of `sections` is the section of the Section cell of its row in the
   Proposed table of the [spec log](../decisions/README.md).
+- A proposal changes the sections of one spec. A proposal with only `node.<type>` sections belongs
+  to the [pipeline spec](../../pipeline/README.md): its record is `specs/pipeline/proposals/<slug>/`,
+  and its entry is in the [pipeline log](../../pipeline/decisions/README.md)
+  ([ADR-3SF2](../../../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md) item 7). A node
+  change that comes with a sidecar change is two proposals, linked with `depends_on`.
+- In a `pipeline` bundle, `sections` lists each `node.<type>` that the pipeline file uses.
 - `spec_version` is the target version that the contributor read: the newest version heading of
   `changelog.md` in the checkout. `pack` writes it. It is never a pre-release. `spec_commit` names
   the exact text that the contributor read ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)).
@@ -236,6 +246,25 @@ these steps (6J8E item 4):
    the patched code moves out.
 4. Never commit the patch as sent. Rebase it onto `development`, run the acceptance gate of the
    skill `implement-sidecar-section` again and commit the result as its own implementation commit.
+
+## Pipeline bundles
+
+A `pipeline` bundle gives one pipeline file of the [pipeline spec](../../pipeline/README.md)
+([ADR-271H](../../../decisions/entries/271H-pipeline-bundles.md)):
+
+- `depends_on` names each `model` bundle and each node proposal bundle that the pipeline needs. The
+  bundle is `waiting` until they land. A pipeline can use the models of more than one exporter. It
+  needs no consent step.
+- `source.name` of the pipeline file is the contributor. It is never `skellytracker`.
+- Each `detector` node has `sidecar_sha256`: the SHA-256 of the bytes of the sidecar that its `key`
+  names, landed or in a `depends_on` bundle.
+- A pipeline file runs no code. `verify` checks it with the reference model of the pipeline spec
+  and runs no file of the bundle. It refuses a duplicate key.
+- `run/` is optional. It holds the output of a reference run of the pipeline. A run gate uses it
+  after stage 1.10 of the
+  [implementation plan](../../sidecar-implementation-plan.md#110-the-pipeline-api-was-p).
+- A pipeline bundle gets no tracked copy. The landed file and its entry in
+  `specs/pipeline/inventory.yaml` are enough.
 
 ## Pack a version
 
@@ -367,6 +396,7 @@ bundle follow these paths:
 | `model` | `submitted` -> `needs-contributor` or `waiting` (the response names the proposal bundles) -> `landed` (the example is committed); or -> `closed`. A new version of a `closed` model bundle is `submitted` again ([ADR-P8Q0](../../../decisions/entries/P8Q0-closed-for-a-model-with-no-license.md)) |
 | `proposal` | `submitted` -> `needs-contributor` or `recorded` -> `accepted` -> `landed`; or `recorded` -> `landed` when the landing is in the same session and part 7 has no `needs-export` row ([ADR-FM0B](../../../decisions/entries/FM0B-one-response-for-each-commit-group.md)); or -> `rejected`; or -> `resolved-otherwise`; or -> `closed` (withdrawn before `recorded`). `recorded` or `accepted` -> `needs-contributor` (a landing stop; the bundle keeps its owner role) -> `recorded` or `accepted` |
 | contribution | `submitted` -> `needs-contributor` or `recorded` -> `landed` with its base; -> `closed` when the base is `rejected`. `recorded` -> `needs-contributor` -> `recorded` |
+| `pipeline` | `submitted` -> `needs-contributor` or `waiting` (the response names the `depends_on` bundles) -> `landed` (the pipeline file is committed); or -> `closed` |
 | withdrawn | The contributor tells the user. Before `recorded`, the session writes `closed`. After `recorded`, it writes `rejected` with the reason "Withdrawn by contributor". |
 
 - From the 2.0.0 pre-release, a proposal goes from `recorded` to `verified` when it passes the
@@ -536,6 +566,8 @@ it does this safety check ([ADR-AD33](../../../decisions/entries/AD33-bundles-ar
    `pending`, the response is `needs-contributor`. Its findings come from "Missing evidence and runs"
    of the intake. Procedure A of the skill `change-sidecar-spec` turns `vector-runs.yaml` into
    `verified_against`.
+   A `pipeline` bundle: procedure A of the skill `change-pipeline-spec` checks and lands it
+   ([Pipeline bundles](#pipeline-bundles)).
 6. Write the responses in this order
    ([ADR-FM0B](../../../decisions/entries/FM0B-one-response-for-each-commit-group.md)):
    - Before you write a response that asks for a new version or a rebase, land each tool, workflow,

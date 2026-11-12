@@ -21,6 +21,7 @@ The pipeline spec is a draft. Each section is `draft`. The `schema_version` of a
 5. [Running](running.md): the running modes, the batch, the warnings and the start checks.
 6. [Timing](timing.md) and [Taps](taps.md): the instrumentation.
 7. The [examples](examples/).
+8. [Pipeline contributions](contributions.md): how to send a pipeline file or a node change.
 
 ## Conventions
 
