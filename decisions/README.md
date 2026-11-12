@@ -43,6 +43,8 @@ These entries are `accepted` or `evidence`.
 | [0WTV](entries/0WTV-system-metrics-and-pipeline-timing-helper.md) | `core/metrics/` holds only system metrics; the pipeline timing helper is `core/pipelines/timing.py`; supersedes Q59W and keeps its other rules | accepted |
 | [B4QR](entries/B4QR-exact-pins-and-cuda-13.md) | Exact pins for each dependency; ONNX Runtime 1.31 with CUDA 13; Python 3.11 to 3.13, MediaPipe 1.2.2, no Intel Mac; supersedes MSH0 | accepted |
 | [NHM3](entries/NHM3-phases-to-the-exporter-checkpoint.md) | Phase 0 and phase 1 to the exporter checkpoint; pre-release at the checkpoint; new code beside old; supersedes EM74 | accepted |
+| [JJ7E](entries/JJ7E-no-upstream-case-verified-by-skellytracker.md) | From the pre-release, a vector case with no upstream output is verified when skellytracker agrees and its note names the spec rule | accepted |
+| [271H](entries/271H-pipeline-bundles.md) | A `pipeline` bundle kind with `depends_on`; spec example before stage 1.10; the session updates pinned `sidecar_sha256` after a re-export | accepted |
 
 ### Proposed
 
