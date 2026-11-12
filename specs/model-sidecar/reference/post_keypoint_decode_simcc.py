@@ -1,15 +1,15 @@
-"""Reference implementation of the section post.pose.decode.simcc, as the proposal simcc-score-rule changes it.
+"""Reference implementation of the section post.keypoint.decode.simcc, as the proposal simcc-score-rule changes it.
 
-Section ID: post.pose.decode.simcc (section file specs/model-sidecar/post/keypoint/decode-simcc.md).
+Section ID: post.keypoint.decode.simcc (section file specs/model-sidecar/post/keypoint/decode-simcc.md).
 Proposal: simcc-score-rule of OpenMMLab-Exporter, part 3.
-Target file in skellytracker: specs/model-sidecar/reference/post_pose_decode_simcc.py.
+Target file in skellytracker: specs/model-sidecar/reference/post_keypoint_decode_simcc.py.
 Imported sections: none. Fixtures: none.
 
 source commit: none (no host code). OpenMMLab-Exporter has no committed host SimCC decode. The
 functions come from the text of part 2 of the proposal. The parity run of part 5 loaded version 1
 of this file. Versions 2 and 3 change only docstrings: the code is the same.
 
-Vector results: the cases of vectors/post.pose.decode.simcc.yaml of the proposal bundle. They are
+Vector results: the cases of vectors/post.keypoint.decode.simcc.yaml of the proposal bundle. They are
 unverified: no exporter and no skellytracker code implements the proposed rule yet.
 
 The module implements the full section: the argmax bin of each axis, the score, the rule for a
@@ -27,17 +27,17 @@ import numpy as np
 
 
 def peak(simcc: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """post.pose.decode.simcc: the argmax bin and the peak value of each row.
+    """post.keypoint.decode.simcc: the argmax bin and the peak value of each row.
 
-    `simcc` has the shape (N, K, bins), as float32 raw values. No softmax. On a tie, the bin
+    `simcc` has the shape (B, P, bins), as float32 raw values. No softmax. On a tie, the bin
     is the lowest index (np.argmax). In a row that holds a NaN, the bin is the lowest index of a
-    NaN (np.argmax), and the peak is NaN (np.max). Returns (bin, peak), each of shape (N, K).
+    NaN (np.argmax), and the peak is NaN (np.max). Returns (bin, peak), each of shape (B, P).
     """
     return np.argmax(simcc, axis=-1), np.max(simcc, axis=-1)
 
 
 def keypoint_score(peak_x: np.ndarray, peak_y: np.ndarray) -> np.ndarray:
-    """post.pose.decode.simcc: the score is peak_y where peak_x > peak_y, else peak_x.
+    """post.keypoint.decode.simcc: the score is peak_y where peak_x > peak_y, else peak_x.
 
     This is min(peak_x, peak_y) when no peak is NaN. A comparison with a NaN is false. Thus a NaN
     peak_x gives the score NaN, and a NaN peak_y with a number peak_x gives the score peak_x.
@@ -46,9 +46,9 @@ def keypoint_score(peak_x: np.ndarray, peak_y: np.ndarray) -> np.ndarray:
 
 
 def mark_low_scores(bins: np.ndarray, scores: np.ndarray) -> np.ndarray:
-    """post.pose.decode.simcc: where score <= 0, each axis of the keypoint gets the bin -1.
+    """post.keypoint.decode.simcc: where score <= 0, each axis of the keypoint gets the bin -1.
 
-    `bins` has the shape (N, K, 2). The comparison is not strict: a score of exactly 0 gets the
+    `bins` has the shape (B, P, 2). The comparison is not strict: a score of exactly 0 gets the
     bin -1. A NaN score is not <= 0, so its bins stay.
     """
     marked = np.array(bins, dtype=np.int64)
@@ -57,7 +57,7 @@ def mark_low_scores(bins: np.ndarray, scores: np.ndarray) -> np.ndarray:
 
 
 def bin_to_pixel(bins: np.ndarray, extent: int, bin_count: int) -> np.ndarray:
-    """post.pose.decode.simcc: pixel = bin * extent / bin_count, in float64.
+    """post.keypoint.decode.simcc: pixel = bin * extent / bin_count, in float64.
 
     `extent` is the model input width for simcc_x and the height for simcc_y. Bin 0 gives
     pixel 0. The bin -1 gives -extent / bin_count.
@@ -66,14 +66,14 @@ def bin_to_pixel(bins: np.ndarray, extent: int, bin_count: int) -> np.ndarray:
 
 
 def decode(simcc_x: np.ndarray, simcc_y: np.ndarray, target_size: Any) -> dict[str, np.ndarray]:
-    """post.pose.decode.simcc: the 2D decode of one batch of crops.
+    """post.keypoint.decode.simcc: the 2D decode of one batch of crops.
 
-    `target_size` is [height, width] of the model input. Returns the bins (N, K, 2), the
-    keypoints (N, K, 2) and the scores (N, K).
+    `target_size` is [height, width] of the model input. Returns the bins (B, P, 2), the
+    keypoints (B, P, 2) and the scores (B, P).
     """
     height, width = int(target_size[0]), int(target_size[1])
     if simcc_x.ndim != 3 or simcc_y.ndim != 3 or simcc_x.shape[:2] != simcc_y.shape[:2]:
-        raise ValueError("simcc_x and simcc_y must have the shapes (N, K, bins) with the same N and K")
+        raise ValueError("simcc_x and simcc_y must have the shapes (B, P, bins) with the same B and P")
     bin_x, peak_x = peak(simcc_x)
     bin_y, peak_y = peak(simcc_y)
     scores = keypoint_score(peak_x, peak_y)
@@ -89,9 +89,9 @@ def decode(simcc_x: np.ndarray, simcc_y: np.ndarray, target_size: Any) -> dict[s
 
 
 def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
-    """post.pose.decode.simcc, Behaviour: one case.
+    """post.keypoint.decode.simcc, Behaviour: one case.
 
-    params: `target_size` [height, width]. input: `simcc_x` and `simcc_y`, each (N, K, bins).
+    params: `target_size` [height, width]. input: `simcc_x` and `simcc_y`, each (B, P, bins).
     """
     simcc_x = np.asarray(input["simcc_x"], dtype=np.float32)
     simcc_y = np.asarray(input["simcc_y"], dtype=np.float32)

@@ -1,24 +1,26 @@
-"""Reference implementation of section `post.det.decode` (the shared decode steps).
+"""Reference implementation of section `post.object.decode` (the shared decode steps).
 
-Section ID: post.det.decode (specs/model-sidecar/post/object/decode.md, heading
+Section ID: post.object.decode (specs/model-sidecar/post/object/decode.md, heading
 "Selection behaviour": the score order with its tie rule and shared steps 1, 2, 4, 5 and 6;
 ADR-17KN).
 
 Source commit: OpenMMLab-Exporter 5dd5c93ac6555ac907ae2ebfbc27dc6de5e3c278 (ADR-H1EF), unchanged
 at 18320f4e51660fe0cb9c546441eb9be09d53f339. Host functions: OpenMMLab-Exporter
-onnx_runtime/decode_nms.py::convert_boxes, ::_class_mapper, ::NmsDecoder.map_classes,
-::NmsDecoder._candidates (the np.rint of class_field), ::NmsDecoder._no_source_class,
-::NmsDecoder.__init__ (the field defaults and the thresholds), ::NmsDecoder.decode (the sort and
-the size filter) and onnx_runtime/unprojection.py::clamp_boxes.
+onnx_runtime/decode_nms.py::convert_boxes, ::NmsDecoder._candidates (the np.rint of
+class_field), ::NmsDecoder.__init__ (the field defaults and the thresholds), ::NmsDecoder.decode
+(the sort and the size filter) and onnx_runtime/unprojection.py::clamp_boxes. The class filter of
+shared step 1 (`class_names`, `filter_classes` and `no_source_class`) comes from the section text
+(skellytracker ADR-88WQ). It replaces the class map of the host (::_class_mapper,
+::NmsDecoder.map_classes and ::NmsDecoder._no_source_class).
 
-Vector results: vectors/post.det.decode.yaml has 2 cases. Both are data-only validator cases
+Vector results: vectors/post.object.decode.yaml has 4 cases. Each is a data-only validator case
 (`function: none`). No function of this module runs them. `make_vectors.py fill` in a payload
 layout gives no problem and no change of `expect`. The numeric cases of other sections also ran
 through the functions of this module for the steps that they show (score order, class ids, box
 format, clamp, size filter, confidence threshold), with the tolerance of each file. All pass:
-post.det.selection.none 12 of 12 (in float64 and in float32), post.det.selection.top_k 10 of 10
+post.object.selection.none 12 of 12 (in float64 and in float32), post.object.selection.top_k 10 of 10
 (`score_order` on the flattened scores; the unprojection of one case comes from
-post.unprojection), post.det.selection.nms 24 of 24 (through the post.det.selection.nms module,
+post.unprojection), post.object.selection.nms 24 of 24 (through the post.object.selection.nms module,
 which calls this module; `score_order` also gives the output order of the 23 cases with a kept
 row) and the 13 box cases of post.unprojection (`output_xyxy` from `source_xyxy`).
 
@@ -28,16 +30,16 @@ Parity: unchanged. The yolox-person parity check ran with this module in place o
 Imports of other sections: none. Fixtures: none.
 
 Scope. The module has one function for each algorithm of this section. The selection sections
-(post.det.selection.none, post.det.selection.top_k and post.det.selection.nms) set the order of
+(post.object.selection.none, post.object.selection.top_k and post.object.selection.nms) set the order of
 the steps and call these functions. Shared step 3 (the unprojection) and the conversion of
-`box_scale` to model-input pixels are algorithms of post.unprojection. They are not in this
-module. Shared step 2 is `to_xyxy` of this module. The `box_scale` conversion of
+`box_space` to model-input pixels are algorithms of post.unprojection. They are not in this
+module. Shared step 2 is `to_xyxy` of this module. The `box_space` conversion of
 post.unprojection follows it.
 
 Validation. A function refuses a value of a field that it reads with ValueError, when the value
-breaks V-post.det.decode-5, -6, -7, -8 or -9 in the decode block alone. The length rule of
-V-post.det.decode-6 and the cross rule of V-post.det.decode-7 need the model or the full
-sidecar. The validator checks them. These functions do not.
+breaks V-post.object.decode-5, -8, -9, -10 or -11 in the object block alone. The length rule of
+V-post.object.decode-10 (the class count `C`) needs the model or the full sidecar. The validator
+checks it. These functions do not.
 
 Comparisons. Each score comparison and each size comparison is in float64. A float16 or float32
 value converts to float64 exactly. Thus, the result depends only on the values, not on the dtype.
@@ -56,16 +58,6 @@ BOX_FORMATS = ("xyxy", "xywh", "cxcywh")
 DEFAULT_CONFIDENCE = 0.7
 
 
-def integer_value(value: Any, rule: str, name: str) -> int:
-    """Return `value` as an int. Refuse a value that is not a non-negative integer.
-
-    A bool, a float, a string or None is not an integer. The message starts with `rule`.
-    """
-    if isinstance(value, bool) or not isinstance(value, (int, np.integer)) or value < 0:
-        raise ValueError(f"{rule}: {name} must be a non-negative integer, got {value!r}")
-    return int(value)
-
-
 def number_value(value: Any, rule: str, name: str) -> float:
     """Return `value` as a float. Refuse a value that is not a real number.
 
@@ -77,7 +69,7 @@ def number_value(value: Any, rule: str, name: str) -> float:
 
 
 def score_order(scores: Any) -> np.ndarray:
-    """Selection behaviour of post.det.decode: return the indexes of `scores` by descending score.
+    """Selection behaviour of post.object.decode: return the indexes of `scores` by descending score.
 
     A tie goes to the lower index. An input with more than one dimension flattens in row-major
     order. For `top_k`, the caller gives the `[Q, C]` scores, so the index is the flattened index
@@ -94,11 +86,11 @@ def score_order(scores: Any) -> np.ndarray:
 
 
 def to_xyxy(boxes: Any, decode: Mapping[str, Any]) -> np.ndarray:
-    """Shared step 2 of post.det.decode: convert `(..., 4)` boxes from `box_format` to xyxy.
+    """Shared step 2 of post.object.decode: convert `(..., 4)` boxes from `box_format` to xyxy.
 
     `box_format` is `xyxy` (the default), `xywh` (the top-left corner and the size) or `cxcywh`
     (the centre and the size). A float32 or float64 input keeps its dtype. Another input dtype
-    gives float64. The result is a new array. The function does not apply `box_scale`: that
+    gives float64. The result is a new array. The function does not apply `box_space`: that
     conversion is in post.unprojection.
 
     Source: OpenMMLab-Exporter onnx_runtime/decode_nms.py::convert_boxes at
@@ -106,7 +98,7 @@ def to_xyxy(boxes: Any, decode: Mapping[str, Any]) -> np.ndarray:
     """
     box_format = decode.get("box_format", "xyxy")
     if box_format not in BOX_FORMATS:
-        raise ValueError(f"V-post.det.decode-5: unsupported box_format {box_format!r}")
+        raise ValueError(f"V-post.object.decode-5: unsupported box_format {box_format!r}")
     given = np.asarray(boxes)
     dtype = given.dtype if given.dtype in (np.float32, np.float64) else np.float64
     out = np.array(given, dtype=dtype, copy=True)
@@ -126,120 +118,100 @@ def to_xyxy(boxes: Any, decode: Mapping[str, Any]) -> np.ndarray:
     return out
 
 
-def class_id_map(decode: Mapping[str, Any]) -> np.ndarray | None:
-    """Shared step 1 of post.det.decode: return `decode.class_id_map` as int64, or None.
+def class_names(classes: Any) -> list[str | None]:
+    """Shared step 1 of post.object.decode: return `object.classes` as a list of names.
 
-    The map is a list of integers. Each value must be -1 or a non-negative integer. A bool or a
-    float is not an integer. The non-negative values must be unique. A `$ref` must be resolved
-    before the call.
+    Each item is a non-empty string or None (a gap). At least one item is a string, and the
+    strings are unique (V-post.object.decode-10). A `$ref` must be resolved before the call. The
+    length rule needs the model, so the function does not check it.
 
-    Source: OpenMMLab-Exporter onnx_runtime/decode_nms.py::_class_mapper at
-    5dd5c93ac6555ac907ae2ebfbc27dc6de5e3c278.
+    Source: the text of shared step 1 and of V-post.object.decode-10 (skellytracker ADR-88WQ).
     """
-    raw = decode.get("class_id_map")
+    if isinstance(classes, (str, Mapping)) or not isinstance(classes, (list, tuple)) or not classes:
+        raise ValueError(f"V-post.object.decode-10: classes must be a resolved non-empty list of names, got {classes!r}")
+    if not all(name is None or (isinstance(name, str) and name) for name in classes):
+        raise ValueError(f"V-post.object.decode-10: each class must be a non-empty string or null, got {classes!r}")
+    names = [name for name in classes if name is not None]
+    if not names or len(set(names)) != len(names):
+        raise ValueError(f"V-post.object.decode-10: the class names must be unique, with at least one, got {classes!r}")
+    return list(classes)
+
+
+def keep_names(classes: list[str | None], decode: Mapping[str, Any]) -> set[str] | None:
+    """Shared step 1 of post.object.decode: return `object.decode.keep_classes` as a set, or None.
+
+    None means that the host keeps each class that is not a gap. The list must be a non-empty
+    list of unique, non-empty strings with no null, and each name must be in `classes`
+    (V-post.object.decode-11).
+
+    Source: the text of shared step 1 and of V-post.object.decode-11 (skellytracker ADR-88WQ).
+    """
+    raw = decode.get("keep_classes")
     if raw is None:
         return None
-    if isinstance(raw, (str, Mapping)):
-        raise ValueError("class_id_map must be a resolved list of integers, not a $ref")
-    items = np.asarray(raw, dtype=object)
-    if items.ndim != 1:
-        raise ValueError(f"V-post.det.decode-6: class_id_map must be a list, got shape {items.shape}")
-    for item in items:
-        if not (isinstance(item, (int, np.integer)) and not isinstance(item, bool) and item >= -1):
-            raise ValueError(f"V-post.det.decode-6: a class_id_map value must be -1 or a non-negative integer, got {item!r}")
-    values = np.array([int(item) for item in items], dtype=np.int64)
-    kept = values[values >= 0]
-    if np.unique(kept).size != kept.size:
-        raise ValueError("V-post.det.decode-6: the non-negative values of class_id_map must be unique")
-    return values
+    if isinstance(raw, (str, Mapping)) or not isinstance(raw, (list, tuple)) or not raw:
+        raise ValueError(f"V-post.object.decode-11: keep_classes must be a non-empty list of names, got {raw!r}")
+    if not all(isinstance(name, str) and name in classes for name in raw) or len(set(raw)) != len(raw):
+        raise ValueError(f"V-post.object.decode-11: keep_classes must name unique classes of object.classes, got {raw!r}")
+    return set(raw)
 
 
-def person_class_id(decode: Mapping[str, Any]) -> int:
-    """Shared step 1 of post.det.decode: return `decode.person_class_id` (the default is 0).
-
-    Source: OpenMMLab-Exporter onnx_runtime/decode_nms.py::NmsDecoder.__init__ at
-    5dd5c93ac6555ac907ae2ebfbc27dc6de5e3c278.
-    """
-    return integer_value(decode.get("person_class_id", 0), "V-post.det.decode-7", "person_class_id")
-
-
-def map_classes(indexes: Any, decode: Mapping[str, Any]) -> np.ndarray:
-    """Shared step 1 of post.det.decode: map model class indexes to emitted class ids.
+def filter_classes(indexes: Any, classes: Any, decode: Mapping[str, Any]) -> np.ndarray:
+    """Shared step 1 of post.object.decode: return the class index of each candidate, or -1.
 
     The result is int64. The value -1 marks a candidate that the caller must drop.
 
-    - `class_id_map` takes precedence over `class_id_base`. The emitted class id is
-      `class_id_map[index]`, else `class_id_base + index` (the default base is 0).
-    - A map value of -1 gives -1.
-    - When `is_person_only` is true, each class id that is not `person_class_id` (default 0)
-      gives -1.
     - A floating index rounds to the nearest integer, half to even (a `class_field` column of a
       float tensor).
-    - A negative index, or an index outside `class_id_map`, gives -1. The section text does not
-      state this case.
+    - An index outside `[0, C)`, with `C = len(classes)`, gives -1.
+    - An index whose class `classes[index]` is None (a gap) gives -1, also with no `keep_classes`.
+    - When `keep_classes` is present, an index whose name `classes[index]` is not in
+      `keep_classes` gives -1.
 
-    Source: OpenMMLab-Exporter onnx_runtime/decode_nms.py::NmsDecoder.map_classes and the
-    `np.rint` of NmsDecoder._candidates at 5dd5c93ac6555ac907ae2ebfbc27dc6de5e3c278.
+    Source: the text of shared step 1 (skellytracker ADR-88WQ). The rounding is the `np.rint` of
+    OpenMMLab-Exporter onnx_runtime/decode_nms.py::NmsDecoder._candidates at
+    5dd5c93ac6555ac907ae2ebfbc27dc6de5e3c278.
     """
+    names = class_names(classes)
+    keep = keep_names(names, decode)
     given = np.asarray(indexes)
     if np.issubdtype(given.dtype, np.floating):
         given = np.rint(given)
     index = given.astype(np.int64)
-    values = class_id_map(decode)
-    if values is not None:
-        inside = (index >= 0) & (index < values.size)
-        safe = np.clip(index, 0, max(values.size - 1, 0))
-        mapped = np.where(inside, values[safe] if values.size else -1, -1)
-    else:
-        base = integer_value(decode.get("class_id_base", 0), "V-post.det.decode-7", "class_id_base")
-        mapped = np.where(index >= 0, base + index, -1)
-    if is_person_only(decode):
-        mapped = np.where(mapped == person_class_id(decode), mapped, -1)
-    return np.asarray(mapped, np.int64)
+    inside = (index >= 0) & (index < len(names))
+    kept = np.asarray([name is not None and (keep is None or name in keep) for name in names], dtype=bool)
+    inside &= kept[np.clip(index, 0, len(names) - 1)]
+    return np.where(inside, index, -1).astype(np.int64)
 
 
-def is_person_only(decode: Mapping[str, Any]) -> bool:
-    """Shared step 1 of post.det.decode: return `decode.is_person_only` (the default is false).
+def no_source_class(classes: Any) -> int:
+    """Shared step 1 of post.object.decode: the class index of a candidate with no class source.
 
-    Source: OpenMMLab-Exporter onnx_runtime/decode_nms.py::NmsDecoder.__init__ at
-    5dd5c93ac6555ac907ae2ebfbc27dc6de5e3c278.
+    A candidate with no class source has the class index 0. Its sidecar has exactly one name in
+    `object.classes` (V-post.object.decode-9), so the function refuses another count.
+
+    Source: the text of shared step 1 and of V-post.object.decode-9 (skellytracker ADR-88WQ).
     """
-    value = decode.get("is_person_only", False)
-    if not isinstance(value, bool):
-        raise ValueError(f"V-post.det.decode-5: is_person_only must be a boolean, got {value!r}")
-    return value
-
-
-def no_source_class(decode: Mapping[str, Any]) -> int:
-    """Shared step 1 of post.det.decode: the class id of a candidate with no class source.
-
-    A candidate with no class source gets its class only from `is_person_only`: the class id is
-    `person_class_id` (default 0). A decode block without `is_person_only: true` fails
-    V-post.det.decode-9, so the function refuses it.
-
-    Source: OpenMMLab-Exporter onnx_runtime/decode_nms.py::NmsDecoder._no_source_class at
-    5dd5c93ac6555ac907ae2ebfbc27dc6de5e3c278. The host does not refuse: without
-    `is_person_only` it maps the model class index 0.
-    """
-    if not is_person_only(decode):
-        raise ValueError("V-post.det.decode-9: a decode block with no class source must set is_person_only: true")
-    return person_class_id(decode)
+    names = class_names(classes)
+    if len(names) != 1:
+        raise ValueError(f"V-post.object.decode-9: a sidecar with no class source must have one class, got {names!r}")
+    return 0
 
 
 def clamp_enabled(decode: Mapping[str, Any]) -> bool:
-    """Shared step 4 of post.det.decode: return `decode.clamp_boxes` (the default is true).
+    """Shared step 4 of post.object.decode: return `decode.clamp_boxes` (the default is true).
 
     Source: OpenMMLab-Exporter onnx_runtime/decode_nms.py::NmsDecoder.__init__ at
     5dd5c93ac6555ac907ae2ebfbc27dc6de5e3c278.
     """
     value = decode.get("clamp_boxes", True)
     if not isinstance(value, bool):
-        raise ValueError(f"V-post.det.decode-5: clamp_boxes must be a boolean, got {value!r}")
+        raise ValueError(f"V-post.object.decode-5: clamp_boxes must be a boolean, got {value!r}")
     return value
 
 
 def clamp(boxes_xyxy: Any, decode: Mapping[str, Any], src_w: float, src_h: float) -> np.ndarray:
-    """Shared step 4 of post.det.decode: clamp `(..., 4)` xyxy source-image boxes.
+    """Shared step 4 of post.object.decode: clamp `(..., 4)` xyxy source-image boxes.
 
     When `clamp_boxes` is true, each x goes to `[0, src_w]` and each y goes to `[0, src_h]`.
     `src_w` and `src_h` are the width and the height of the source image. When `clamp_boxes` is
@@ -261,7 +233,7 @@ def clamp(boxes_xyxy: Any, decode: Mapping[str, Any], src_w: float, src_h: float
 
 
 def size_mask(boxes_xyxy: Any, decode: Mapping[str, Any]) -> np.ndarray:
-    """Shared step 5 of post.det.decode: return the mask of the boxes that the size filter keeps.
+    """Shared step 5 of post.object.decode: return the mask of the boxes that the size filter keeps.
 
     The boxes are `(..., 4)` xyxy in source-image pixels, after step 4. When `min_box_size` is
     present, a box stays only when `x2 - x1 > min_box_size` and `y2 - y1 > min_box_size`. The
@@ -279,34 +251,32 @@ def size_mask(boxes_xyxy: Any, decode: Mapping[str, Any]) -> np.ndarray:
     raw = decode.get("min_box_size")
     if raw is None:
         return np.ones(boxes.shape[:-1], dtype=bool)
-    size = number_value(raw, "V-post.det.decode-8", "min_box_size")
+    size = number_value(raw, "V-post.object.decode-8", "min_box_size")
     if not size >= 0:
-        raise ValueError(f"V-post.det.decode-8: min_box_size must be a non-negative number, got {raw!r}")
+        raise ValueError(f"V-post.object.decode-8: min_box_size must be a non-negative number, got {raw!r}")
     return ((boxes[..., 2] - boxes[..., 0]) > size) & ((boxes[..., 3] - boxes[..., 1]) > size)
 
 
 def confidence_threshold(decode: Mapping[str, Any], override: float | None = None) -> float:
-    """Shared step 6 of post.det.decode: return the final confidence threshold.
+    """Shared step 6 of post.object.decode: return the final confidence threshold.
 
-    The threshold is `override` when the caller gives it (host policy), else
-    `confidence_threshold_default`, else 0.7. The sidecar value must be a number in `[0, 1]`.
+    The threshold is `override` when the caller gives it (host policy), else `min_score`, else
+    0.7. The sidecar value must be a number in `[0, 1]`.
 
     Source: OpenMMLab-Exporter onnx_runtime/decode_nms.py::NmsDecoder.__init__ (the argument
     `confidence_threshold`) at 5dd5c93ac6555ac907ae2ebfbc27dc6de5e3c278.
     """
-    rule = "V-post.det.decode-8"
-    default = number_value(
-        decode.get("confidence_threshold_default", DEFAULT_CONFIDENCE), rule, "confidence_threshold_default"
-    )
+    rule = "V-post.object.decode-8"
+    default = number_value(decode.get("min_score", DEFAULT_CONFIDENCE), rule, "min_score")
     if not 0.0 <= default <= 1.0:
-        raise ValueError(f"{rule}: confidence_threshold_default must be in [0, 1], got {default!r}")
+        raise ValueError(f"{rule}: min_score must be in [0, 1], got {default!r}")
     if override is None:
         return default
     return number_value(override, "confidence threshold override", "the override")
 
 
 def confidence_mask(scores: Any, threshold: float) -> np.ndarray:
-    """Shared step 6 of post.det.decode: return the mask of the scores that stay.
+    """Shared step 6 of post.object.decode: return the mask of the scores that stay.
 
     The comparison is strict: `score > threshold`. A score equal to the threshold goes. The
     comparison is in float64.

@@ -1,9 +1,9 @@
 ---
-id: post.pose.canonical_mapping
+id: post.keypoint.canonical_mapping
 title: Canonical mapping
 kind: schema
 selectors:
-  - pose.canonical_mapping
+  - keypoint.canonical_mapping
 implemented_by:
   validate: skellytracker/core/sidecar/model.py::PoseSpec._check_pose  # partial: a source may be a derived point; duplicate keys are not detected
   load: skellytracker/core/io/tracker_mapping.py::TrackerMapping  # no skellytracker test covers this class
@@ -21,9 +21,9 @@ status: {spec: stable, validate: partial, load: implemented}
 
 ## Fields
 
-### `pose.canonical_mapping`
+### `keypoint.canonical_mapping`
 
-This field maps the `tracked_points` of the model onto the freemocap **canonical skeleton**. The canonical skeleton is the [VRM 1.0](https://github.com/vrm-c/vrm-specification/tree/master/specification/VRMC_vrm-1.0) humanoid skeleton (see [Canonical skeleton](#canonical-skeleton)). Each entry maps a **canonical** landmark name to its tracker source. The key is the canonical landmark. The value names the tracker keypoint or keypoints that produce it. This field accepts three mapping forms. They mirror `TrackerMapping` in `skellytracker/core/io/tracker_mapping.py`:
+This field maps the `point_names` of the model onto the freemocap **canonical skeleton**. The canonical skeleton is the [VRM 1.0](https://github.com/vrm-c/vrm-specification/tree/master/specification/VRMC_vrm-1.0) humanoid skeleton (see [Canonical skeleton](#canonical-skeleton)). Each entry maps a **canonical** landmark name to its tracker source. The key is the canonical landmark. The value names the tracker keypoint or keypoints that produce it. This field accepts three mapping forms. They mirror `TrackerMapping` in `skellytracker/core/io/tracker_mapping.py`:
 
 | Form | YAML | Meaning |
 |------|------|---------|
@@ -48,7 +48,7 @@ For each `p` in `prefixes`, the entry `[prefix]X: "Y"` expands to canonical `pX`
 
 **Missing-keypoint semantics.** The mapping produces a canonical landmark only when its tracker source is present. If the named keypoint of a passthrough is missing, the mapping omits the landmark. The mean and weighted forms drop the missing keypoints. The mapping normalises a weighted sum by the sum of the weights of the *present* keypoints. It does not use the declared total. This matches `TrackerMapping.apply()`.
 
-Single-part canonical names have no prefix (`wrist`, `thumb_cmc`). Whole-body canonical skeletons with two hands use `prefixes` to produce prefixed names (`right_hand_wrist`, `left_hand_wrist`). `prefixes` apply only here in `canonical_mapping`. The author always writes `tracked_points` as a complete, literal list. Note the distinction: `prefixes` is a convenience for the author of a sidecar. `TrackerMapping` also accepts a runtime `prefix` that strips a prefix from tracker keypoint names before lookup. This lets one hand mapping apply to both `right_hand_*` and `left_hand_*` keypoints.
+Single-part canonical names have no prefix (`wrist`, `thumb_cmc`). Whole-body canonical skeletons with two hands use `prefixes` to produce prefixed names (`right_hand_wrist`, `left_hand_wrist`). `prefixes` apply only here in `canonical_mapping`. The author always writes `point_names` as a complete, literal list. Note the distinction: `prefixes` is a convenience for the author of a sidecar. `TrackerMapping` also accepts a runtime `prefix` that strips a prefix from tracker keypoint names before lookup. This lets one hand mapping apply to both `right_hand_*` and `left_hand_*` keypoints.
 
 ### Canonical skeleton
 
@@ -73,7 +73,7 @@ The existing keypoint detectors are the gold-standard reference for how to write
 
 These are the conventions that the detectors use for canonical landmark names:
 
-| Region | Canonical names |
+| Group | Canonical names |
 |--------|-----------------|
 | body | COCO-WholeBody (`nose`, `left_shoulder`, `left_big_toe`, …) plus computed markers `head_center`, `neck_center`, `trunk_center`, `hips_center` |
 | hand | MediaPipe Hand (`wrist`, `thumb_cmc`, `pinky_tip`, …) |
@@ -84,9 +84,9 @@ These are the conventions that the detectors use for canonical landmark names:
 
 ## Validation rules
 
-### Pose (`pose_estimator`)
+### Keypoint (`keypoint_detector`)
 
-- [ ] `V-post.pose.canonical_mapping-1` If `pose.canonical_mapping` is present, its keys must be unique. Each value must be a string (passthrough), a list of names (mean) or a name→number map (weighted). Every referenced source name must appear in `pose.tracked_points`.
+- [ ] `V-post.keypoint.canonical_mapping-1` If `keypoint.canonical_mapping` is present, its keys must be unique. Each value must be a string (passthrough), a list of names (mean) or a name→number map (weighted). Every referenced source name must appear in `keypoint.point_names`.
 
 ## Implementer guidance
 
@@ -94,6 +94,6 @@ No exporter evidence yet.
 
 ## Authoring guidance
 
-- No exporter writes `pose.canonical_mapping`. The `pose` blocks of OpenMMLab-Exporter and Ultralytics-Exporter hold only `estimator_type`, `requires_object_detector`, `landmark_schema`, `tracked_points`, `connections` and `decode`. Qualcomm-Exporter wrote none. The sidecar author adds the field. (OpenMMLab-Exporter [`rtmw/sidecar.py:154-163`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmw/sidecar.py#L154-L163); Ultralytics-Exporter [`yolo_sidecar.py:515-528`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L515-L528); Qualcomm-Exporter `qai_sidecar.py:287-303`, commit a095041a5e9450df18637596fbaf6409f79e9fc6 on no branch (secondary))
-- The `tracked_points` of the MediaPipe hand model (`wrist`, `thumb_cmc` to `pinky_tip`) equal the canonical hand names, so a passthrough map fits. The hand mapping of skellytracker is an identity map. (Qualcomm-Exporter `qai_sidecar.py:15-37`, commit a095041a5e9450df18637596fbaf6409f79e9fc6 on no branch (secondary); skellytracker `skellytracker/core/detectors/keypoint_detectors/mediapipe/hands/mediapipe_hand_to_canonical_mapping.yaml`)
+- No exporter writes `keypoint.canonical_mapping`. The keypoint blocks of OpenMMLab-Exporter and Ultralytics-Exporter hold only `estimator_type`, `requires_object_detector`, `landmark_schema`, `point_names`, `skeletons` and `decode`. Qualcomm-Exporter wrote none. The sidecar author adds the field. (OpenMMLab-Exporter [`rtmw/sidecar.py:154-163`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmw/sidecar.py#L154-L163); Ultralytics-Exporter [`yolo_sidecar.py:515-528`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L515-L528); Qualcomm-Exporter `qai_sidecar.py:287-303`, commit a095041a5e9450df18637596fbaf6409f79e9fc6 on no branch (secondary))
+- The `point_names` of the MediaPipe hand model (`wrist`, `thumb_cmc` to `pinky_tip`) equal the canonical hand names, so a passthrough map fits. The hand mapping of skellytracker is an identity map. (Qualcomm-Exporter `qai_sidecar.py:15-37`, commit a095041a5e9450df18637596fbaf6409f79e9fc6 on no branch (secondary); skellytracker `skellytracker/core/detectors/keypoint_detectors/mediapipe/hands/mediapipe_hand_to_canonical_mapping.yaml`)
 - The MediaPipe face names `face_0000` to `face_0467` use the same name pattern as the `LaPa_106` face (`face_0000` and up) with different meanings. A `LaPa_106` mapping does not apply to them. (Qualcomm-Exporter [`qai_sidecar.py:15`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_sidecar.py#L15); [canonical names](#reference-mappings-in-skellytracker))

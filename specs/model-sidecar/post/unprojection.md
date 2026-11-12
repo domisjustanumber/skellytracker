@@ -2,9 +2,9 @@
 id: post.unprojection
 title: Unprojection
 kind: postprocessor
-selectors: [role=object_detector, role=pose_estimator]
+selectors: [role=object_detector, role=keypoint_detector]
 implemented_by:
-  validate: skellytracker/core/sidecar/model.py::PoseDecodeSpec._check_decode  # partial. Checks only where coordinate_scale is valid. DetectionDecodeSpec has no box_scale field.
+  validate: skellytracker/core/sidecar/model.py::PoseDecodeSpec._check_decode  # partial. Checks only where coordinate_space is valid. DetectionDecodeSpec has no box_space field.
   decode: skellytracker/core/detectors/processing/object_detection_decode.py::decode_prenms  # partial. No shared unprojection function. Each decoder divides by the letterbox ratio or applies the affine inverse itself (decode_simcc). No normalized_01 or normalized_11 conversion.
 external_impl:
   - OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_points
@@ -22,7 +22,7 @@ status: {spec: stable, validate: partial, decode: partial}
 
 Decoded box and keypoint coordinates are always in the input image of the model, with a **top-left origin**. In this origin, `x` grows to the right and `y` grows down. The host unprojects the coordinates to the source image. A sidecar cannot override the origin. The pixel centres follow the resize method ([Pixel centres](../pre/interpolation.md#pixel-centres)). For `letterbox` and `stretch`, `x = 0` is the left edge of pixel 0. For `fit` and `affine_person_crop`, `x = 0` is the centre of pixel 0. No step of the unprojection adds or removes a `0.5` offset. The source coordinates keep the convention of the method. The host does not convert a box between the two conventions, also when an `affine_person_crop` model gets the box of a detector.
 
-The host first converts the decoded coordinates to **model-input pixels**. The value of `box_scale` or `coordinate_scale` sets the conversion. Packed keypoints use `box_scale` ([`packed_keypoints`](keypoint/bottom-up.md#packed_keypoints-bottom-up-packed-rows); [ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)):
+The host first converts the decoded coordinates to **model-input pixels**. The value of `box_space` or `coordinate_space` sets the conversion. Packed keypoints use `box_space` ([`packed_keypoints`](keypoint/bottom-up.md#packed_keypoints-bottom-up-packed-rows); [ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)):
 
 - `normalized_01`: the host multiplies `x` by the model input width and `y` by the model input height.
 - `normalized_11`: the host maps `[-1, 1]` to `[0, width]` for the horizontal axis and to `[0, height]` for the vertical axis.
@@ -60,7 +60,7 @@ Then the host maps the coordinates back to the source image. This list gives the
   - The Qualcomm-Exporter test (100x50 into 64x64, exact sizes 64x32, pad `(0, 16)`) cannot tell the two formulas apart. (Qualcomm-Exporter [`tests/test_qai_datasets.py:55-64`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/tests/test_qai_datasets.py#L55-L64))
 - No exporter has an inverse for `fit`, `none` or `affine_person_crop`, or a keypoint unprojection.
   - OpenMMLab-Exporter leaves the RTMW and RTMO decode to the consumer of the sidecar. (OpenMMLab-Exporter [`rtmw/README.md:35-37`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/ba0c0876b58650ed472559f1a77780e5da13d370/rtmw/README.md#L35-L37))
-  - Its `NmsDecoder` raises an error for a `box_format` other than `xyxy` and for a `box_scale` other than `pixel`. (OpenMMLab-Exporter [`onnx_runtime/decode_nms.py:108-116`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/d2e68d27d2da0a4f22ddd19449df5601dcac87cc/onnx_runtime/decode_nms.py#L108-L116))
+  - Its `NmsDecoder` raises an error for a `box_format` other than `xyxy` and for a `box_space` other than `pixel`. (OpenMMLab-Exporter [`onnx_runtime/decode_nms.py:108-116`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/d2e68d27d2da0a4f22ddd19449df5601dcac87cc/onnx_runtime/decode_nms.py#L108-L116))
 - The plans for the MediaPipe hand crops use a rotated crop with `cv2.getAffineTransform`, and they invert it with `cv2.invertAffineTransform(M)`.
   - The spec fixes the rotation at 0 and has no inverse for a rotated crop. The [changelog](../changelog.md#considered-and-deliberately-not-added) lists rotated crops as not added. (the untracked hand pipeline plan of MediaPipe-Exporter (secondary))
   - The plan lists a round-trip test (crop, then inverse, below 1e-3 px). MediaPipe-Exporter has only the plan and no code, so the test does not exist yet. (the untracked hand pipeline plan of MediaPipe-Exporter (secondary))

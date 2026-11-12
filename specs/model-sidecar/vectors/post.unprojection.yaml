@@ -4,10 +4,11 @@ section: post.unprojection
 notes:
   - "Normative text: specs/model-sidecar/post/unprojection.md. It uses the Inverse of
     each resize section (specs/model-sidecar/pre/resize-*.md) and, for a box,
-    `clamp_boxes` and `min_box_size` (specs/model-sidecar/post/detection-decode.md)."
-  - "`scale` is `decode.box_scale` for a box and for a packed keypoint, and
-    `pose.decode.coordinate_scale` for another keypoint. `input_size` is [height, width]
-    of the model input. `resize` holds the `input.resize` fields that the Inverse uses."
+    `clamp_boxes` and `min_box_size` (specs/model-sidecar/post/object/decode.md)."
+  - "`scale` is `object.decode.box_space` for a box and for a packed keypoint, and
+    `keypoint.decode.coordinate_space` for another keypoint. `input_size` is [height,
+    width] of the model input. `resize` holds the `input.resize` fields that the Inverse
+    uses."
   - "`decoded_xy` and `decoded_xyxy` are values from the model output, in the given
     `scale`, with a top-left origin. `model_xy` and `model_xyxy` are the same values in
     model-input pixels. `source_xy` and `source_xyxy` are the unprojected values."

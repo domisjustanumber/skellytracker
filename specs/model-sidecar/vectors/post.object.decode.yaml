@@ -1,0 +1,139 @@
+# tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
+# Hosts ignore `checks`. The names are the self-checks of the generator.
+section: post.object.decode
+notes:
+  - "Normative text: specs/model-sidecar/post/object/decode.md. Decision:
+    decisions/entries/17KN-one-selection-pipeline.md and
+    decisions/entries/88WQ-sidecar-vocabulary.md."
+  - "Each case is a data-only validator case (`function: none`): `input.sidecar` is the
+    sidecar, and `expect.failed` lists the rules of this section that it fails. The
+    `post.object.selection.*` files hold the cases of the decode steps."
+tolerance: 0.00001
+unverified: "No validator has run these cases yet. They come from the section text only."
+cases:
+  - id: min-box-size-is-not-negative
+    note: "object.decode.min_box_size is -1. A size must be 0 or more. The sidecar shows only
+      its outputs and object blocks. The case checks only the rules of this section."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        outputs:
+          - {name: boxes, dtype: {fp32: float32}, shape: [-1, -1, 4], semantic: boxes}
+          - {name: scores, dtype: {fp32: float32}, shape: [-1, -1], semantic: scores}
+        object:
+          classes: [person]
+          decode:
+            selection: nms
+            boxes_output: boxes
+            scores_output: scores
+            box_format: xyxy
+            box_space: pixel
+            min_box_size: -1
+            nms: {iou_threshold: 0.6, score_threshold: 0.05}
+    expect: {failed: [V-post.object.decode-8]}
+  - id: no-class-source-needs-one-class
+    note: "the sidecar has no class_field and no class_logits_output, but object.classes has
+      two names. Each candidate has the class index 0, so a sidecar with no class source
+      has one class. The sidecar shows only its outputs and object blocks. The case checks
+      only the rules of this section."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        outputs:
+          - {name: boxes, dtype: {fp32: float32}, shape: [-1, -1, 4], semantic: boxes}
+          - {name: scores, dtype: {fp32: float32}, shape: [-1, -1], semantic: scores}
+        object:
+          classes: [person, car]
+          decode:
+            selection: nms
+            boxes_output: boxes
+            scores_output: scores
+            box_format: xyxy
+            box_space: pixel
+            nms: {iou_threshold: 0.6, score_threshold: 0.05}
+    expect: {failed: [V-post.object.decode-9]}
+  - id: classes-length-is-the-class-count
+    note: "class_logits has 3 classes, but object.classes has 2 names. The sidecar shows only
+      its outputs and object blocks. The case checks only the rules of this section."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        outputs:
+          - {name: dets, dtype: {fp32: float32}, shape: [-1, 300, 4], semantic: boxes}
+          - {name: labels, dtype: {fp32: float32}, shape: [-1, 300, 3], semantic: class_logits}
+        object:
+          classes: [person, car]
+          decode: {selection: top_k, boxes_output: dets, class_logits_output: labels, top_k: 300}
+    expect: {failed: [V-post.object.decode-10]}
+  - id: keep-classes-names-a-class
+    note: "object.decode.keep_classes names dog, which is not in object.classes. The sidecar
+      shows only its outputs and object blocks. The case checks only the rules of this
+      section."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        outputs:
+          - {name: dets, dtype: {fp32: float32}, shape: [-1, 300, 4], semantic: boxes}
+          - {name: labels, dtype: {fp32: float32}, shape: [-1, 300, 2], semantic: class_logits}
+        object:
+          classes: [person, car]
+          decode:
+            selection: top_k
+            boxes_output: dets
+            class_logits_output: labels
+            top_k: 300
+            keep_classes: [dog]
+    expect: {failed: [V-post.object.decode-11]}
+  - id: classes-need-one-name
+    note: "each item of object.classes is null, so the sidecar names no class. The sidecar
+      shows only its outputs and object blocks. The case checks only the rules of this
+      section."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        outputs:
+          - {name: dets, dtype: {fp32: float32}, shape: [-1, 300, 4], semantic: boxes}
+          - {name: labels, dtype: {fp32: float32}, shape: [-1, 300, 3], semantic: class_logits}
+        object:
+          classes: [null, null, null]
+          decode: {selection: top_k, boxes_output: dets, class_logits_output: labels, top_k: 300}
+    expect: {failed: [V-post.object.decode-10]}
+  - id: class-names-are-unique
+    note: "object.classes holds car twice. A null gap can repeat, but a name cannot. The
+      sidecar shows only its outputs and object blocks. The case checks only the rules of
+      this section."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        outputs:
+          - {name: dets, dtype: {fp32: float32}, shape: [-1, 300, 4], semantic: boxes}
+          - {name: labels, dtype: {fp32: float32}, shape: [-1, 300, 3], semantic: class_logits}
+        object:
+          classes: [car, null, car]
+          decode: {selection: top_k, boxes_output: dets, class_logits_output: labels, top_k: 300}
+    expect: {failed: [V-post.object.decode-10]}
+  - id: keep-classes-has-no-null
+    note: "object.decode.keep_classes holds null. A gap cannot be kept. The sidecar shows only
+      its outputs and object blocks. The case checks only the rules of this section."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        outputs:
+          - {name: dets, dtype: {fp32: float32}, shape: [-1, 300, 4], semantic: boxes}
+          - {name: labels, dtype: {fp32: float32}, shape: [-1, 300, 3], semantic: class_logits}
+        object:
+          classes: [person, null, car]
+          decode:
+            selection: top_k
+            boxes_output: dets
+            class_logits_output: labels
+            top_k: 300
+            keep_classes: [null]
+    expect: {failed: [V-post.object.decode-11]}

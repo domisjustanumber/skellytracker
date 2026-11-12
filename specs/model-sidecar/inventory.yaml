@@ -42,7 +42,9 @@ examples:
     exporter_layout_path: null
     tracked: false
     commit: 3e326df00726df8110773ed62cf38d02948a71a5
-    edits: []
+    edits:
+      - "spec change 88WQ: the role value, the key of the keypoint block and its keys of the point names and the skeletons are renamed as the old-to-new map of changelog row 46 gives"
+      - "spec change 88WQ: the top-level overlay block moves into the keypoint block, with its groups renamed to parts, the edge list of each part renamed to edges, and the color and thickness keys of each part renamed to edge_color and edge_thickness"
     notes: >-
       A byte copy of the sidecar that the exporter writer code wrote for the hand-over bundle. The
       exporter turns off its sidecar output until the verdict describes, so exporter_path does not
@@ -57,7 +59,9 @@ examples:
     exporter_layout_path: null
     tracked: false
     commit: 96da6e69eedfe5978f133f29d8b6a76c7bf25392
-    edits: []
+    edits:
+      - "spec change 88WQ: the top-level decode block moves into the new object block, and the field object.classes: [person] is added"
+      - "spec change 88WQ: the three class fields of the decode block are removed, and its box space and score threshold keys are renamed as the old-to-new map of changelog row 46 gives"
     notes: >-
       A byte copy of the sidecar that the exporter writer code wrote for the hand-over bundle. The
       exporter turns off its sidecar output until the verdict describes, so exporter_path does not

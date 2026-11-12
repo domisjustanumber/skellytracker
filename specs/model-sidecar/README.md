@@ -9,9 +9,9 @@ Sidecars support two model **roles**:
 | Role | Purpose |
 |------|---------|
 | `object_detector` | Object detection, for example YOLO26, RF-DETR and RTMDet. The model outputs boxes, scores and class information. |
-| `pose_estimator` | Pose estimation, for example RTMW and RTMPose. The model outputs keypoint coordinates. |
+| `keypoint_detector` | Keypoint detection, for example RTMW and RTMPose. The model outputs keypoint coordinates. |
 
-A sidecar can declare **both** roles. An example is a one-stage model such as RTMO or YOLO26-pose, which outputs boxes and keypoints in the same pass. In that case, `role` lists both values. `outputs` mixes detection and pose tensors, or packs keypoints into the detection rows (see [`packed_keypoints`](post/keypoint/bottom-up.md#packed_keypoints-bottom-up-packed-rows)).
+A sidecar can declare **both** roles. An example is a one-stage model such as RTMO or YOLO26-pose, which outputs boxes and keypoints in the same pass. In that case, `role` lists both values. `outputs` mixes detection and keypoint tensors, or packs keypoints into the detection rows (see [`packed_keypoints`](post/keypoint/bottom-up.md#packed_keypoints-bottom-up-packed-rows)).
 
 ### Core properties
 
@@ -87,30 +87,30 @@ These fields apply to every sidecar, regardless of `role`.
 | `pre.resize.interpolation` | [pre/interpolation.md](pre/interpolation.md) | Interpolation |
 | `pre.normalize` | [pre/normalization.md](pre/normalization.md) | Normalization |
 
-### Detection fields (`object_detector` role)
+### Object fields (`object_detector` role)
 
 These fields apply when `role` includes `object_detector`.
 
 | Section ID | File | Title |
 |------------|------|-------|
-| `post.det.outputs` | [post/object/outputs.md](post/object/outputs.md) | Detection outputs |
-| `post.det.decode` | [post/object/decode.md](post/object/decode.md) | Detection decode |
-| `post.det.selection.none` | [post/object/selection-none.md](post/object/selection-none.md) | Selection: none |
-| `post.det.selection.top_k` | [post/object/selection-top-k.md](post/object/selection-top-k.md) | Selection: top-k |
-| `post.det.selection.nms` | [post/object/selection-nms.md](post/object/selection-nms.md) | Selection: NMS |
+| `post.object.outputs` | [post/object/outputs.md](post/object/outputs.md) | Object outputs |
+| `post.object.decode` | [post/object/decode.md](post/object/decode.md) | Object decode |
+| `post.object.selection.none` | [post/object/selection-none.md](post/object/selection-none.md) | Selection: none |
+| `post.object.selection.top_k` | [post/object/selection-top-k.md](post/object/selection-top-k.md) | Selection: top-k |
+| `post.object.selection.nms` | [post/object/selection-nms.md](post/object/selection-nms.md) | Selection: NMS |
 
-### Pose-estimation fields (`pose_estimator` role)
+### Keypoint fields (`keypoint_detector` role)
 
-These fields apply when `role` includes `pose_estimator`.
+These fields apply when `role` includes `keypoint_detector`.
 
 | Section ID | File | Title |
 |------------|------|-------|
-| `post.pose.schema` | [post/keypoint/schema.md](post/keypoint/schema.md) | Pose schema |
-| `post.pose.canonical_mapping` | [post/keypoint/canonical-mapping.md](post/keypoint/canonical-mapping.md) | Canonical mapping |
-| `post.pose.decode.simcc` | [post/keypoint/decode-simcc.md](post/keypoint/decode-simcc.md) | SimCC decode |
-| `post.pose.decode.coordinate` | [post/keypoint/decode-coordinate.md](post/keypoint/decode-coordinate.md) | Coordinate decode |
-| `post.pose.bottom_up` | [post/keypoint/bottom-up.md](post/keypoint/bottom-up.md) | Bottom-up pose |
-| `post.overlay` | [post/keypoint/overlay.md](post/keypoint/overlay.md) | Overlay |
+| `post.keypoint.schema` | [post/keypoint/schema.md](post/keypoint/schema.md) | Keypoint schema |
+| `post.keypoint.canonical_mapping` | [post/keypoint/canonical-mapping.md](post/keypoint/canonical-mapping.md) | Canonical mapping |
+| `post.keypoint.decode.simcc` | [post/keypoint/decode-simcc.md](post/keypoint/decode-simcc.md) | SimCC decode |
+| `post.keypoint.decode.coordinate` | [post/keypoint/decode-coordinate.md](post/keypoint/decode-coordinate.md) | Coordinate decode |
+| `post.keypoint.bottom_up` | [post/keypoint/bottom-up.md](post/keypoint/bottom-up.md) | Bottom-up keypoints |
+| `post.keypoint.overlay` | [post/keypoint/overlay.md](post/keypoint/overlay.md) | Overlay |
 
 ### Post-processing
 
@@ -138,14 +138,14 @@ A sidecar is valid when all of the following rules hold. Each rule applies to ev
 - [Affine person crop](pre/resize-affine-person-crop.md#validation-rules)
 - [Interpolation](pre/interpolation.md#validation-rules)
 - [Normalization](pre/normalization.md#validation-rules)
-- [Detection outputs](post/object/outputs.md#validation-rules)
-- [Detection decode](post/object/decode.md#validation-rules)
+- [Object outputs](post/object/outputs.md#validation-rules)
+- [Object decode](post/object/decode.md#validation-rules)
 - [Selection: none](post/object/selection-none.md#validation-rules)
 - [Selection: top-k](post/object/selection-top-k.md#validation-rules)
 - [Selection: NMS](post/object/selection-nms.md#validation-rules)
-- [Pose schema](post/keypoint/schema.md#validation-rules)
+- [Keypoint schema](post/keypoint/schema.md#validation-rules)
 - [Canonical mapping](post/keypoint/canonical-mapping.md#validation-rules)
 - [SimCC decode](post/keypoint/decode-simcc.md#validation-rules)
 - [Coordinate decode](post/keypoint/decode-coordinate.md#validation-rules)
-- [Bottom-up pose](post/keypoint/bottom-up.md#validation-rules)
+- [Bottom-up keypoints](post/keypoint/bottom-up.md#validation-rules)
 - [Overlay](post/keypoint/overlay.md#validation-rules)

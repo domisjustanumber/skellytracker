@@ -106,7 +106,7 @@ Moved to [common/outputs.md](common/outputs.md).
 
 ## Detection fields (`object_detector` role)
 
-Moved to [README.md](README.md#detection-fields-object_detector-role).
+Moved to [README.md](README.md#object-fields-object_detector-role).
 
 ### Detection output semantics
 
@@ -118,7 +118,7 @@ Moved to [post/detection-outputs.md](post/object/outputs.md#outputs-detection).
 
 ### `decode` (detection)
 
-Moved to [post/detection-decode.md](post/object/decode.md#decode-detection).
+Moved to [post/detection-decode.md](post/object/decode.md#objectdecode).
 
 ### Selection behaviour
 
@@ -126,11 +126,11 @@ Moved to [post/detection-decode.md](post/object/decode.md#selection-behaviour).
 
 ## Pose-estimation fields (`pose_estimator` role)
 
-Moved to [README.md](README.md#pose-estimation-fields-pose_estimator-role).
+Moved to [README.md](README.md#keypoint-fields-keypoint_detector-role).
 
 ### `outputs` (pose)
 
-Moved to [post/pose-schema.md](post/keypoint/schema.md#outputs-pose).
+Moved to [post/pose-schema.md](post/keypoint/schema.md#outputs-keypoint).
 
 ### `packed_keypoints` (bottom-up packed rows)
 
@@ -142,19 +142,19 @@ Moved to [post/pose-schema.md](post/keypoint/schema.md).
 
 #### `pose.tracked_points`
 
-Moved to [post/pose-schema.md](post/keypoint/schema.md#posetracked_points).
+Moved to [post/pose-schema.md](post/keypoint/schema.md#keypointpoint_names).
 
 #### `pose.connections`
 
-Moved to [post/pose-schema.md](post/keypoint/schema.md#poseconnections).
+Moved to [post/pose-schema.md](post/keypoint/schema.md#keypointskeletons).
 
 #### `pose.derived_points`
 
-Moved to [post/pose-schema.md](post/keypoint/schema.md#posederived_points).
+Moved to [post/pose-schema.md](post/keypoint/schema.md#keypointderived_points).
 
 #### `pose.canonical_mapping`
 
-Moved to [post/canonical-mapping.md](post/keypoint/canonical-mapping.md#posecanonical_mapping).
+Moved to [post/canonical-mapping.md](post/keypoint/canonical-mapping.md#keypointcanonical_mapping).
 
 #### Canonical skeleton
 
@@ -166,7 +166,7 @@ Moved to [post/canonical-mapping.md](post/keypoint/canonical-mapping.md#referenc
 
 #### `pose.decode`
 
-Moved to [post/pose-schema.md](post/keypoint/schema.md#posedecode).
+Moved to [post/pose-schema.md](post/keypoint/schema.md#keypointdecode).
 
 #### Bottom-up decode
 

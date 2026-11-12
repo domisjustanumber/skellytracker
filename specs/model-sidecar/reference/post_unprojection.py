@@ -11,7 +11,7 @@ Note:
   5dd5c93ac6555ac907ae2ebfbc27dc6de5e3c278. The host code is unchanged at
   18320f4e51660fe0cb9c546441eb9be09d53f339.
 - Imported section modules: pre.resize.letterbox (pre_resize_letterbox, the function inverse),
-  post.det.decode (post_det_decode, the functions clamp_enabled, clamp and size_mask) and
+  post.object.decode (post_object_decode, the functions clamp_enabled, clamp and size_mask) and
   pre.resize.affine_person_crop (pre_resize_affine_person_crop, the functions inverse, check_rules
   and case_policy). In skellytracker, the import of pre_resize_affine_person_crop replaced the
   fixture affine_person_crop_inverse of the bundle file (ADR-3S5G).
@@ -23,15 +23,15 @@ Note:
   8351b7f8c20c8db74eb3e547478970e4dceb0308 (SHA-256
   cacfd8c9125777d533d3549e9fcd70cc47b38a4698b324f2cf596c731e09ad82). make_vectors.py fill ran in a
   <payload>/reference folder with only the reference files of this bundle (the staged
-  pre_resize_letterbox, pre_resize_interpolation, pre_normalize, post_det_decode,
-  post_det_selection_nms and this file). It printed no problems, and the filled file has the same
+  pre_resize_letterbox, pre_resize_interpolation, pre_normalize, post_object_decode,
+  post_object_selection_nms and this file). It printed no problems, and the filled file has the same
   expect values as the spec file. All 30 cases pass through run at the tolerance 0.0001.
 - Parity: unchanged. The yolox-person parity check ran with this module in place of the host code
   (OpenMMLab-Exporter ADR-3NNK (decisions/scripts/yolox_person_reference_swap.py at 53a48480d0b715f9b726963bce002ddb503b050b)). That run used this file before this note line changed (SHA-256 85d8a64f66f3cd771d0a381d40e9c721b9859a9674ceaebcd6cc73beac2bfac7).
 
 The unprojection has two steps. to_model_pixels converts a decoded position to model-input pixels.
 resize_inverse then applies the Inverse of the resize method. A box then gets the clamp of
-clamp_boxes and the size filter of min_box_size (section post.det.decode). No step adds or removes a
+clamp_boxes and the size filter of min_box_size (section post.object.decode). No step adds or removes a
 0.5 offset.
 """
 
@@ -39,7 +39,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import post_det_decode
+import post_object_decode
 import pre_resize_affine_person_crop
 import pre_resize_letterbox
 
@@ -77,7 +77,7 @@ def positive_pair(values: Any, name: str) -> tuple[float, float]:
 def to_model_pixels(scale: str, decoded_xy: list[float], input_size: list[int]) -> list[float]:
     """Convert one decoded position to model-input pixels (post.unprojection, Behaviour).
 
-    scale is decode.box_scale or pose.decode.coordinate_scale. input_size is [height, width] of the
+    scale is object.decode.box_space or keypoint.decode.coordinate_space. input_size is [height, width] of the
     model input. normalized_01 multiplies x by the width and y by the height. normalized_11 maps
     [-1, 1] to [0, width] and to [0, height]. Source: OpenMMLab-Exporter
     onnx_runtime/preprocess.py::to_model_pixels at 5dd5c93ac6555ac907ae2ebfbc27dc6de5e3c278.
@@ -177,7 +177,7 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
 
     params holds scale, input_size and resize, and for a box clamp_boxes (default true) and
     min_box_size (optional). The keys clamp_boxes and min_box_size have the names of the decode
-    block, so params goes to post_det_decode as the decode block. input holds decoded_xy or
+    block, so params goes to post_object_decode as the decode block. input holds decoded_xy or
     decoded_xyxy, and src_w and src_h, or bbox_xyxy for affine_person_crop. A point gives model_xy
     and source_xy. A box gives model_xyxy, source_xyxy and output_xyxy. output_xyxy is None for a
     box that the size filter drops. Source: OpenMMLab-Exporter
@@ -204,11 +204,11 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
         *resize_inverse(resize, input, model_box[2:]),
     ]
     output = source_box
-    if post_det_decode.clamp_enabled(params):
+    if post_object_decode.clamp_enabled(params):
         required(input, ("src_w", "src_h"), "the clamp of a box")
-        clamped = post_det_decode.clamp([source_box], params, input["src_w"], input["src_h"])[0]
+        clamped = post_object_decode.clamp([source_box], params, input["src_w"], input["src_h"])[0]
         output = [float(value) for value in clamped]
-    keep = bool(post_det_decode.size_mask([output], params)[0])
+    keep = bool(post_object_decode.size_mask([output], params)[0])
     return {
         "model_xyxy": model_box,
         "source_xyxy": source_box,

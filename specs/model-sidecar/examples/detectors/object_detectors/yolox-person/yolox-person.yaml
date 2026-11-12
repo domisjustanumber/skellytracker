@@ -59,21 +59,21 @@ outputs:
   - -1
   - -1
   semantic: scores
-decode:
-  selection: nms
-  boxes_output: boxes
-  scores_output: scores
-  box_format: xyxy
-  box_scale: pixel
-  class_id_base: 0
-  person_class_id: 0
-  is_person_only: true
-  confidence_threshold_default: 0.7
-  clamp_boxes: false
-  nms:
-    iou_threshold: 0.65
-    score_threshold: 0.01
-    class_agnostic: false
+object:
+  classes:
+  - person
+  decode:
+    selection: nms
+    boxes_output: boxes
+    scores_output: scores
+    box_format: xyxy
+    box_space: pixel
+    min_score: 0.7
+    clamp_boxes: false
+    nms:
+      iou_threshold: 0.65
+      score_threshold: 0.01
+      class_agnostic: false
 sizes:
   n:
     input:

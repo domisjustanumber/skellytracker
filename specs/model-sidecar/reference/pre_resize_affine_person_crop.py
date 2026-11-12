@@ -258,10 +258,10 @@ def is_number(value: Any) -> bool:
 def check_rules(sidecar: Mapping[str, Any]) -> list[str]:
     """pre.resize.affine_person_crop, Validation rules: the sorted IDs of the rules that fail.
 
-    sidecar holds the input, sizes and pose blocks. The resize of a size is the top-level
+    sidecar holds the input, sizes and keypoint blocks. The resize of a size is the top-level
     input.resize with the input.resize of the size on top of it.
     -1: crop_policy.expand_ratio is a positive number; crop_policy.maintain_aspect_ratio is a boolean.
-    -2: pose.requires_object_detector true needs input.resize.method affine_person_crop.
+    -2: keypoint.requires_object_detector true needs input.resize.method affine_person_crop.
     -3: each size declares input.resize.target_size; no pad_value, pad_position or rounding.
     Rules -1 and -3 apply to an affine_person_crop resize. Rule -2 applies to each sidecar.
     """
@@ -287,7 +287,7 @@ def check_rules(sidecar: Mapping[str, Any]) -> list[str]:
                 failed.add(f"V-{SECTION_ID}-3")
             if any(name in resize for name in NOT_ALLOWED_RESIZE_FIELDS):
                 failed.add(f"V-{SECTION_ID}-3")
-        if (sidecar.get("pose") or {}).get("requires_object_detector") is True and resize.get("method") != METHOD:
+        if (sidecar.get("keypoint") or {}).get("requires_object_detector") is True and resize.get("method") != METHOD:
             failed.add(f"V-{SECTION_ID}-2")
     return sorted(failed)
 

@@ -31,7 +31,7 @@ status: {spec: stable, validate: partial, load: partial}
 
 `color_format` is a single top-level value. It covers every precision. A sidecar cannot describe a family whose precisions need different channel orders. The author must split that family.
 
-`input` is required for `object_detector` and `pose_estimator` sidecars. This spec covers **single-input** models only. `input` describes exactly one input tensor. Multi-input models are out of scope.
+`input` is required for `object_detector` and `keypoint_detector` sidecars. This spec covers **single-input** models only. `input` describes exactly one input tensor. Multi-input models are out of scope.
 
 ### `input.resize`
 

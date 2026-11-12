@@ -20,12 +20,14 @@ One directive provides reuse without duplication: `$ref`. It can be at any value
 
 No field has the value `null`. A sidecar omits an optional field that has no value ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 
+A mapping has no duplicate key. This applies to the top-level sidecar and to each file in its tree. The loader refuses a file with a duplicate key. It does not keep the first or the last value ([ADR-88WQ](../../../decisions/entries/88WQ-sidecar-vocabulary.md)).
+
 ### `$ref` — reference another file for any value
 
 A `$ref` directive is a YAML mapping with **exactly two keys**: `$ref` and `sha256` (see [Reference hashes](#reference-hashes)). The key `$ref` holds a file path ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)):
 
 ```yaml
-decode: {$ref: shared/yolo26_decode.yaml, sha256: "<sha256>"}
+object: {$ref: shared/yolo26_object.yaml, sha256: "<sha256>"}
 ```
 
 In the illustrative examples of this section, `<sha256>` stands for the hash of the target file. In an artifact, it stands for the hash of the ONNX file that `filename` names.
@@ -57,12 +59,12 @@ source:
   version: 0.1.0
 model_id: rtmw-wholebody
 display_name: RTMW WholeBody
-role: [pose_estimator]
-pose:
+role: [keypoint_detector]
+keypoint:
   estimator_type: top_down_single_person
   requires_object_detector: true
-  tracked_points: {$ref: ../../../shared/skeletons/coco133_tracked_points.yaml, sha256: "b59afc21868c1b4b0cac9bf0ae8a6398666d0b8a5da64a13d88079732d60441c"}
-  connections: {$ref: ../../../shared/skeletons/coco133_skeletons.yaml, sha256: "bdc310c077f571a1a7d73d74f4fe6d1124b360c006512ea0d7ffb2a671f1709a"}
+  point_names: {$ref: ../../../shared/skeletons/coco133_tracked_points.yaml, sha256: "b59afc21868c1b4b0cac9bf0ae8a6398666d0b8a5da64a13d88079732d60441c"}
+  skeletons: {$ref: ../../../shared/skeletons/coco133_skeletons.yaml, sha256: "bdc310c077f571a1a7d73d74f4fe6d1124b360c006512ea0d7ffb2a671f1709a"}
 ```
 
 Rules:
@@ -98,7 +100,7 @@ parse_sidecar_file(path)            # yaml.safe_load → raw dict
 
 The resolver reads the bytes of the top-level sidecar. A BOM or a CRLF line ending in these bytes is an error. The resolver checks the bytes and the `sha256` of each target file before it parses that file (see [Reference hashes](#reference-hashes)).
 
-Resolution errors are recoverable catalog errors. Each error names the file and the directive that cause it (missing file, parse failure in a fragment, cycle, `$ref` with a sibling key that its form does not allow, a hash that does not match, CRLF line endings, a BOM).
+Resolution errors are recoverable catalog errors. Each error names the file and the directive that cause it (missing file, parse failure in a fragment, duplicate key, cycle, `$ref` with a sibling key that its form does not allow, a hash that does not match, CRLF line endings, a BOM).
 
 ## Validation rules
 
@@ -107,6 +109,7 @@ Resolution errors are recoverable catalog errors. Each error names the file and 
 - [ ] `V-format.composition-3` The top-level sidecar and each file in its tree must be UTF-8 without a BOM. These files must not have CRLF line endings.
 - [ ] `V-format.composition-4` The target of each `$ref` directive must stay inside the `{sidecar_root}` of the file that refers to it ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 - [ ] `V-format.composition-5` Each key of the resolved sidecar must be a key that the spec defines. A key that the spec does not define is invalid. This rule does not apply to the keys of a map whose keys are names, for example the size names of `sizes` ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)).
+- [ ] `V-format.composition-6` A mapping in the top-level sidecar or in a file in its tree must not have a duplicate key ([ADR-88WQ](../../../decisions/entries/88WQ-sidecar-vocabulary.md)).
 
 ## Implementer guidance
 
@@ -130,7 +133,7 @@ skellytracker ([ADR-0016](../../../decisions/entries/0016-sidecar-catalogs.md)):
 ## Authoring guidance
 
 - Do not write `base`. The spec has no `base` directive ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). No exporter writes `base`. The sidecar writers of the four exporters have no `base` key. ([OpenMMLab-Exporter](https://github.com/domisjustanumber/OpenMMLab-Exporter/tree/cce619dcfb8acae4ed66c59db935ac8cc0aa5b5b), [Roboflow-Exporter](https://github.com/domisjustanumber/Roboflow-Exporter/tree/c64fd2a32a51e29cdbf9b1b31473c8e441839d07), [Ultralytics-Exporter](https://github.com/domisjustanumber/Ultralytics-Exporter/tree/2e0280e050fb2bb16bf7f9a1ba89af5f18db67d4), [Qualcomm-Exporter](https://github.com/domisjustanumber/Qualcomm-Exporter/tree/4ca45868431b67350c3c7ed900d5b3ff9f409905); searched the Python sources outside the tests at each of these commits)
-- Roboflow-Exporter is the only exporter that writes `$ref` today. `decode.class_id_map` is `{$ref: ../../shared/class_ids/coco91.yaml}`. The path is relative to the family directory `detectors/object_detectors/rfdetr/`. A test checks that the path resolves to `<root>/detectors/shared/class_ids/coco91.yaml`. (Roboflow-Exporter [`rf_detr/sidecar.py:36-37`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L36-L37) and [`tests/test_sidecar.py:280-284`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/tests/test_sidecar.py#L280-L284))
-- The fragment `coco91.yaml` is a bare YAML sequence of 91 integers. It starts with `---` and has no `schema_version`. Each `-1` slot has a comment ("unused" or "COCO id gap"). (Roboflow-Exporter [`rf_detr/sidecar.py:331-344`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L331-L344); local export `exports/detectors/shared/class_ids/coco91.yaml`, not in git)
-- Qualcomm-Exporter wrote `pose.tracked_points` and `pose.connections` as `$ref` to `../../../shared/skeletons/{name}.yaml`. It removed the landmark models in [a later commit](https://github.com/domisjustanumber/Qualcomm-Exporter/commit/4ca45868431b67350c3c7ed900d5b3ff9f409905). A test resolved each ref with `(path.parent / reference).resolve()` and checked `is_file()`. (Qualcomm-Exporter [`qai_sidecar.py:123-142`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_sidecar.py#L123-L142), [`qai_sidecar.py:233-250`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_sidecar.py#L233-L250) and [`tests/test_qai_sidecar.py:63-91`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/tests/test_qai_sidecar.py#L63-L91))
-- OpenMMLab-Exporter and Ultralytics-Exporter write `tracked_points` and `connections` in the sidecar. RTMW has 133 points and 65 edges. YOLO26 uses the COCO-17 constants. Both write every size in full. (OpenMMLab-Exporter [`rtmw/sidecar.py:154-163`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmw/sidecar.py#L154-L163); Ultralytics-Exporter [`yolo_sidecar.py:38-76`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L38-L76), [`yolo_sidecar.py:515-528`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L515-L528))
+- Roboflow-Exporter is the only exporter that writes `$ref` today. It writes its class list as a `$ref` relative to the family directory `detectors/object_detectors/rfdetr/`, and a test checks that the path resolves. Its folder is `shared/class_ids/`. In the spec layout, the folder is `shared/classes/`: `object.classes` is `{$ref: ../../shared/classes/coco91.yaml, sha256: "<sha256>"}` ([Storage layout](file-layout.md#storage-layout)). (Roboflow-Exporter [`rf_detr/sidecar.py:36-37`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L36-L37) and [`tests/test_sidecar.py:280-284`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/tests/test_sidecar.py#L280-L284))
+- The fragment `coco91.yaml` of the exporter is a bare YAML sequence of 91 integers. It starts with `---` and has no `schema_version`. Each `-1` slot has a comment ("unused" or "COCO id gap"). As `object.classes`, the fragment holds 91 class names, with `null` for each of these slots ([ADR-88WQ](../../../decisions/entries/88WQ-sidecar-vocabulary.md)). (Roboflow-Exporter [`rf_detr/sidecar.py:331-344`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L331-L344); local export `exports/detectors/shared/class_ids/coco91.yaml`, not in git)
+- Qualcomm-Exporter wrote `keypoint.point_names` and `keypoint.skeletons` as `$ref` to `../../../shared/skeletons/{name}.yaml`. It removed the landmark models in [a later commit](https://github.com/domisjustanumber/Qualcomm-Exporter/commit/4ca45868431b67350c3c7ed900d5b3ff9f409905). A test resolved each ref with `(path.parent / reference).resolve()` and checked `is_file()`. (Qualcomm-Exporter [`qai_sidecar.py:123-142`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_sidecar.py#L123-L142), [`qai_sidecar.py:233-250`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_sidecar.py#L233-L250) and [`tests/test_qai_sidecar.py:63-91`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/tests/test_qai_sidecar.py#L63-L91))
+- OpenMMLab-Exporter and Ultralytics-Exporter write `point_names` and `skeletons` in the sidecar. RTMW has 133 points and 65 edges. YOLO26 uses the COCO-17 constants. Both write every size in full. (OpenMMLab-Exporter [`rtmw/sidecar.py:154-163`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmw/sidecar.py#L154-L163); Ultralytics-Exporter [`yolo_sidecar.py:38-76`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L38-L76), [`yolo_sidecar.py:515-528`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L515-L528))

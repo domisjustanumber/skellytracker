@@ -48,7 +48,7 @@ A sidecar and its ONNX files are under a sidecar root (`{sidecar_root}`, see [Si
         {model_id}.yaml
         {model_id}-{size}_b{batch}_{precision}.onnx
     keypoint_detectors/
-      {family}/                     # role: pose_estimator
+      {family}/                     # role: keypoint_detector
         hand/
           {model_id}.yaml
           {model_id}-{size}_b{batch}_{precision}.onnx
@@ -63,15 +63,15 @@ A sidecar and its ONNX files are under a sidecar root (`{sidecar_root}`, see [Si
           {model_id}-{size}_b{batch}_{precision}.onnx
         {keypoint set}/   # for example wholebody133, coco17
     shared/                         # optional $ref fragments (no schema_version)
-      skeletons/                    # tracked-point lists and skeletons
-      class_ids/                    # class_id_map fragments (e.g. coco91.yaml)
+      skeletons/                    # point-name lists and skeletons
+      classes/                      # object.classes fragments
 ```
 
 | Branch | Role | Contents |
 |--------|------|----------|
 | `detectors/calibration_detectors/` | calibration | Calibration detectors, for example Charuco boards. They are hard-coded in skellytracker. Sidecars do **not** specify them. |
 | `detectors/object_detectors/{family}/` | `object_detector` | One sidecar for each family, for example `yolo26/`. |
-| `detectors/keypoint_detectors/{family}/{group}/` | `pose_estimator` | Keypoint models. `{group}` is a body region (`hand`, `face`, `body`, `wholebody`) or a keypoint set with its keypoint count (for example `wholebody133`). Each sidecar in the folder has the `model_id` `{family}-{group}` or `{family}-{group}-{variant}` ([Keypoint detector id](../common/identity.md#keypoint-detector-id) in [Identity](../common/identity.md)). |
+| `detectors/keypoint_detectors/{family}/{group}/` | `keypoint_detector` | Keypoint models. `{group}` is a body region (`hand`, `face`, `body`, `wholebody`) or a keypoint set with its keypoint count (for example `wholebody133`). Each sidecar in the folder has the `model_id` `{family}-{group}` or `{family}-{group}-{variant}` ([Keypoint detector id](../common/identity.md#keypoint-detector-id) in [Identity](../common/identity.md)). |
 | `detectors/shared/` | — | Shared `$ref` fragments. This branch is optional. The fragments carry no `schema_version`. |
 
 ```text
@@ -150,7 +150,7 @@ See [Identity](../common/identity.md#validation-rules) (`V-common.identity-7` an
   - Roboflow-Exporter uses its own dumper. It writes block style for nested values and flow style for a list or a mapping of scalars. (Roboflow-Exporter [`rf_detr/sidecar.py:289-328`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L289-L328))
   - Write `"2.0.0"` in quotes. An unquoted value can load as a number, for example `2.0` loads as a float. `V-format.versioning-1` rejects a number ([Schema versioning](versioning.md#behaviour); [ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). The OpenMMLab-Exporter rtmw writer writes the value in double quotes. (OpenMMLab-Exporter [`pipeline/sidecar.py:451-473`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/3e326df00726df8110773ed62cf38d02948a71a5/pipeline/sidecar.py#L451-L473); [`rtmw-wholebody133.yaml:2`](../examples/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133.yaml))
 - The folder of a sidecar with both roles does not follow the [Storage layout](#storage-layout).
-  - The layout assigns `object_detectors/` to the role `object_detector` and `keypoint_detectors/` to the role `pose_estimator`. It names no folder for a sidecar with both roles. Ultralytics-Exporter writes `yolo26-body.yaml` (both roles) to `keypoint_detectors/yolo26/body/`. OpenMMLab-Exporter writes RTMO (both roles) under `keypoint_detectors/rtmo/`. The [model addition workflow](../model-addition-workflow/sidecar-files.md#path) records the gap. (Ultralytics-Exporter [`yolo_sidecar.py:24-25`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L24-L25), [`yolo_sidecar.py:103-107`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L103-L107); OpenMMLab-Exporter [`rtmo/identity.py:26-27`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmo/identity.py#L26-L27))
+  - The layout assigns `object_detectors/` to the role `object_detector` and `keypoint_detectors/` to the role `keypoint_detector`. It names no folder for a sidecar with both roles. Ultralytics-Exporter writes `yolo26-body.yaml` (both roles) to `keypoint_detectors/yolo26/body/`. OpenMMLab-Exporter writes RTMO (both roles) under `keypoint_detectors/rtmo/`. The [model addition workflow](../model-addition-workflow/sidecar-files.md#path) records the gap. (Ultralytics-Exporter [`yolo_sidecar.py:24-25`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L24-L25), [`yolo_sidecar.py:103-107`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L103-L107); OpenMMLab-Exporter [`rtmo/identity.py:26-27`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmo/identity.py#L26-L27))
 - Write LF line endings. [ADR-0016](../../../decisions/entries/0016-sidecar-catalogs.md) requires LF, and the [model addition workflow](../model-addition-workflow/validation-and-publishing.md#source-and-hashes) says that a CRLF file fails.
   - Ultralytics-Exporter and Qualcomm-Exporter write the sidecar with `Path.write_text`, which writes CRLF on Windows. Their generated sidecars have a CRLF at the end of every line. (Ultralytics-Exporter [`yolo_sidecar.py:632`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L632); Qualcomm-Exporter [`qai_sidecar.py:31-35`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_sidecar.py#L31-L35); local exports `yolo26.yaml` and `mediapipe-person-detector.yaml`, not in git)
   - OpenMMLab-Exporter and Roboflow-Exporter write through `atomic_write_text` with `newline="\n"`. (OpenMMLab-Exporter [`report_core/io.py:31`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/cce619dcfb8acae4ed66c59db935ac8cc0aa5b5b/report_core/io.py#L31); Roboflow-Exporter [`report_core/io.py:29`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/c64fd2a32a51e29cdbf9b1b31473c8e441839d07/report_core/io.py#L29))

@@ -28,7 +28,7 @@ The top-level `sizes` map lists every scale of the model in one sidecar.
 | `sizes.<name>.input` | object | yes per size | The input for one size. It can contain **only** `shape` and `resize.target_size`. The first is required, and its batch axis is always `-1`. The section of the resize `method` tells if the second is present ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). |
 | `sizes.<name>.onnx` | object | yes per size | The artifacts for one size. `precision_artifacts` and `output_shapes` are required ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). |
 
-A size entry can contain only `input.shape`, `input.resize.target_size` and `onnx` (with the sub-fields above). Any other key in a size entry is invalid. This includes `role`, `outputs`, `batching`, `decode`, `pose`, `overlay`, `input.normalization`, `input.color_format`, `input.resize.method` and other keys. The host does not merge a size entry over the top level. It reads the three fields of the size from the size entry, and each other field from the top level ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). Size names are lowercase tokens such as `nano`, `small` and `medium`. A size name can contain hyphens, for example `l-m` and `x-l`.
+A size entry can contain only `input.shape`, `input.resize.target_size` and `onnx` (with the sub-fields above). Any other key in a size entry is invalid. This includes `role`, `outputs`, `batching`, `object`, `keypoint`, `input.normalization`, `input.color_format`, `input.resize.method` and other keys. The host does not merge a size entry over the top level. It reads the three fields of the size from the size entry, and each other field from the top level ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). Size names are lowercase tokens such as `nano`, `small` and `medium`. A size name can contain hyphens, for example `l-m` and `x-l`.
 
 **Family invariant.** A family has exactly one contract for preprocessing and post-processing. If two sizes need a different value for any of these items, they belong to **different families** (different sidecars):
 
@@ -38,7 +38,7 @@ A size entry can contain only `input.shape`, `input.resize.target_size` and `onn
 - output semantics
 - selection mode
 - NMS parameters
-- class mapping
+- classes
 
 For example, an RTMDet person-only family and an 80-class RTMDet family are separate families, because their NMS contracts and class counts differ. Do not add a size-level override. Make a new family instead ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 
@@ -47,8 +47,8 @@ When a size declares `target_size`, the spatial dimensions of its `input.shape` 
 | Contract part | Where it lives |
 |---------------|----------------|
 | `role`, `outputs`, `input` (except `shape` / `resize.target_size`), `batching` | shared at top level |
-| `decode` | top level, when `role` includes `object_detector` |
-| `pose`, `overlay` | top level, when `role` includes `pose_estimator` |
+| `object` | top level, when `role` includes `object_detector` |
+| `keypoint` | top level, when `role` includes `keypoint_detector` |
 | `input.shape`, `input.resize.target_size`, `onnx.precision_artifacts`, `onnx.output_shapes` | per size (`sizes.<size>`) ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)) |
 
 ### `sizes.<size>.onnx`
@@ -102,7 +102,7 @@ Removed. Each size has `onnx.precision_artifacts` and `onnx.output_shapes` ([`si
 
 ### Model sizes within a family
 
-A family ships several sizes of the same model. For example, `yolo26` ships `nano`, `small` and `medium`. A single `yolo26.yaml` declares all of them. All sizes share these parts: `role`, `outputs` semantics, `batching`, the input tensor contract (`name`, `dtype`, `color_format`, `normalization`, `resize` other than `target_size`), `decode` and `pose`. Only these parts are specific to each size: `input.shape`, `input.resize.target_size` and the ONNX artifacts. Some pose output dimensions depend on the spatial size. These dimensions can vary with the input size, and the host reads them at runtime.
+A family ships several sizes of the same model. For example, `yolo26` ships `nano`, `small` and `medium`. A single `yolo26.yaml` declares all of them. All sizes share these parts: `role`, `outputs` semantics, `batching`, the input tensor contract (`name`, `dtype`, `color_format`, `normalization`, `resize` other than `target_size`), `object` and `keypoint`. Only these parts are specific to each size: `input.shape`, `input.resize.target_size` and the ONNX artifacts. Some pose output dimensions depend on the spatial size. These dimensions can vary with the input size, and the host reads them at runtime.
 
 The host reads the fields that are specific to a size from the size entry, and each other field from the top level. It does not merge a size entry over the top level ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). A size entry can set only the fields that are specific to a size (see [Sizes](#sizes)). Sizes that need any other difference are a separate family.
 
@@ -170,7 +170,7 @@ See also [Input](input.md#validation-rules), [Outputs](outputs.md#validation-rul
   - A partial run keeps the sizes, batches and precisions already on disk. `precision_artifacts` lists only the precisions present. (Roboflow-Exporter [`tests/test_sidecar.py:206-212`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/4ae67c0f99a45a81a0e788e6abbda82db7811e32/tests/test_sidecar.py#L206-L212), [`tests/test_sidecar.py:327-359`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/4ae67c0f99a45a81a0e788e6abbda82db7811e32/tests/test_sidecar.py#L327-L359))
   - An interrupted Ultralytics-Exporter run gives a sidecar with only the artifacts present at that moment. (Ultralytics-Exporter [`yolo_sidecar.py:255-277`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L255-L277), [`yolo_sidecar.py:615-633`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L615-L633))
 - Enforce the family invariant in the writer. See [ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md).
-  - Roboflow-Exporter raises an error when two sizes differ in `num_queries`, `num_class_logits`, `num_select`, the decode background or `confidence_threshold_default`. (Roboflow-Exporter [`rf_detr/sidecar.py:95-113`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L95-L113) and [`tests/test_sidecar.py:251-262`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/tests/test_sidecar.py#L251-L262))
+  - Roboflow-Exporter raises an error when two sizes differ in `num_queries`, `num_class_logits`, `num_select`, the decode background or `min_score`. (Roboflow-Exporter [`rf_detr/sidecar.py:95-113`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L95-L113) and [`tests/test_sidecar.py:251-262`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/tests/test_sidecar.py#L251-L262))
   - Roboflow-Exporter raises an error when the artifacts disagree on the input name or on the dtype of a precision. (Roboflow-Exporter [`rf_detr/sidecar.py:154-172`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L154-L172), [`rf_detr/sidecar.py:220-223`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/rf_detr/sidecar.py#L220-L223) and [`tests/test_sidecar.py:239-248`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/b34e351000d325014ec275432082c6a3a9380157/tests/test_sidecar.py#L239-L248))
   - Ultralytics-Exporter checks three things. The input and output batch dims of each artifact equal the batch in the file name. The input has rank 4. All artifacts share the tensor names. It does not compare dtypes or non-batch shapes across sizes. (Ultralytics-Exporter [`yolo_sidecar.py:288-339`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/yolo_sidecar.py#L288-L339) and [`tests/test_yolo_sidecar.py:416-434`](https://github.com/domisjustanumber/Ultralytics-Exporter/blob/f52ef687a7a651447ff289d0e40a7856c2b7d50c/tests/test_yolo_sidecar.py#L416-L434))
   - The channel order is a family property. The RGB ConvNeXt-B and Swin-B RTMDet variants needed their own `rtmdet-rgb` family. OpenMMLab-Exporter dropped them with their weights. (OpenMMLab-Exporter 0004 [`notes/decisions/0004-channel-order-per-family.md:7-9`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/c955162d91998b94fc52d932ab6623a9f2a89a1f/notes/decisions/0004-channel-order-per-family.md#L7-L9), [`notes/decisions/0004-channel-order-per-family.md:18-19`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/c955162d91998b94fc52d932ab6623a9f2a89a1f/notes/decisions/0004-channel-order-per-family.md#L18-L19))

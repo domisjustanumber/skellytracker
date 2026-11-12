@@ -1,9 +1,9 @@
 ---
-id: post.pose.decode.simcc
+id: post.keypoint.decode.simcc
 title: SimCC decode
 kind: postprocessor
 selectors:
-  - pose.decode.method=simcc
+  - keypoint.decode.method=simcc
   - outputs[].semantic=simcc_x
   - outputs[].semantic=simcc_y
 implemented_by:
@@ -16,7 +16,7 @@ tests:
   - skellytracker/tests/sidecar/test_rtmpose_hand_sidecar.py
   - skellytracker/tests/sidecar/test_rtmpose_face_sidecar.py
   - skellytracker/tests/sidecar/test_rtmw_sidecar.py
-vectors: vectors/post.pose.decode.simcc.yaml
+vectors: vectors/post.keypoint.decode.simcc.yaml
 status: {spec: stable, validate: missing, decode: partial}
 ---
 
@@ -24,11 +24,11 @@ status: {spec: stable, validate: missing, decode: partial}
 
 ## Fields
 
-This section has no field of its own. [`pose.decode`](schema.md#posedecode) defines the `pose.decode` fields.
+This section has no field of its own. [`keypoint.decode`](schema.md#keypointdecode) defines the `keypoint.decode` fields.
 
 ## Behaviour
 
-- `simcc` — one `simcc_x` `(N, K, X_bins)` output and one `simcc_y` `(N, K, Y_bins)` output. The
+- `simcc` — one `simcc_x` `(B, P, X_bins)` output and one `simcc_y` `(B, P, Y_bins)` output. The
   host reads the bin counts from the output tensors. For each crop `n` and each keypoint `k`, the
   host does the steps below on the raw values of `simcc_x` and `simcc_y`. The host does not apply a
   softmax.
@@ -46,8 +46,8 @@ x = bin_x * input_width / X_bins
 y = bin_y * input_height / Y_bins
 ```
 
-- The score is a raw output value. It has no fixed range: it can be negative or more than 1.
-- A keypoint with a score `<= 0` keeps its score. Its position is `x = -input_width / X_bins` and
+- Score range: the score is a raw output value. It has no fixed range: it can be negative or more than 1.
+- In the decode output, a keypoint with a score `<= 0` keeps its score. Its position is `x = -input_width / X_bins` and
   `y = -input_height / Y_bins`. The host unprojects it as each other keypoint.
 - Bin `0` gives the position `0`. The decode adds no half-bin offset.
 - NaN raw values. In a row of `simcc_x` or `simcc_y` that holds a NaN, the bin is the lowest `b`
@@ -55,21 +55,23 @@ y = bin_y * input_height / Y_bins
   - A NaN in the row of `simcc_x` gives the score NaN.
   - A NaN only in the row of `simcc_y` gives the score `peak_x`. When `peak_x <= 0`, both axes get
     the bin `-1`.
-  - A NaN score is not `<= 0`. The bins stay, and the position comes from the bins. The position
-    is never NaN.
+  - A NaN score is not `<= 0`. The bins stay, and the position comes from the bins. The decode
+    never gives a NaN position.
 - The decoded keypoints are in the model-input pixels of the crop. The host unprojects them to the
   source image ([Unprojection](../unprojection.md)).
-- The SimCC decode is 2D only. `V-post.pose.schema-7` requires `pose.geometry: 2d` with `method: simcc`. A 3D SimCC model adds a new section with its own contract ([ADR-9HBB](../../../../decisions/entries/9HBB-simcc-decode-is-2d-only.md)).
+- After the unprojection, the [Decoded keypoints](schema.md#decoded-keypoints) rule makes each
+  keypoint with a score `<= 0` or a NaN score missing.
+- The SimCC decode is 2D only. `V-post.keypoint.schema-7` requires `keypoint.geometry: 2d` with `method: simcc`. A 3D SimCC model adds a new section with its own contract ([ADR-9HBB](../../../../decisions/entries/9HBB-simcc-decode-is-2d-only.md)).
 
 [Shape key](schema.md#shape-key)
 
 ## Validation rules
 
-### Pose (`pose_estimator`)
+### Keypoint (`keypoint_detector`)
 
 This section has no rule of its own ([ADR-9HBB](../../../../decisions/entries/9HBB-simcc-decode-is-2d-only.md)).
 
-See also [Pose schema](schema.md#validation-rules).
+See also [Keypoint schema](schema.md#validation-rules).
 
 ## Implementer guidance
 
@@ -122,5 +124,5 @@ See also [Pose schema](schema.md#validation-rules).
 
 ## Authoring guidance
 
-- RTMW: every RTMW config sets the codec `SimCCLabel` with `simcc_split_ratio=2.0`, `normalize=False` and `use_dark=False`. The contract of the exporter requires `simcc_x` to have `2 * W` bins and `simcc_y` to have `2 * H` bins. For a 192 x 256 input, the RTMW-M graph gives `simcc_x` 384 bins and `simcc_y` 512 bins. Thus `input_width / X_bins` is 0.5 px for each bin. The graph declares axis 1 (the keypoint axis) as symbolic (`dim_param`). At run time, axis 1 is 133: onnxruntime 1.31.1 (CPU) gives `(N, 133, 384)` and `(N, 133, 512)`. (the graph read and the V5 step of the batch-conversion check in the intake `model-rtmw-wholebody133@openmmlab-exporter` v2, 2026-11-09 (secondary)) The example writes axis 1 as `-1` in the `output_shapes` of each size. ([`rtmw-wholebody133.yaml`](../../examples/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133.yaml)) `pose.decode` carries only `method: simcc`. (OpenMMLab-Exporter [`rtmw/contract.py:14-15`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/68a6c6d103a63d9df10668990d937abb23de73fb/rtmw/contract.py#L14-L15), [`rtmw/contract.py:30`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/68a6c6d103a63d9df10668990d937abb23de73fb/rtmw/contract.py#L30), [`rtmw/contract.py:79-81`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/68a6c6d103a63d9df10668990d937abb23de73fb/rtmw/contract.py#L79-L81); [`mmdeploy-convert/model_cfgs/rtmw-m_8xb1024-270e_cocktail14-256x192.py:48-53`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/491c17b43c0f2011dfd386ab5c6345ef0f850ada/mmdeploy-convert/model_cfgs/rtmw-m_8xb1024-270e_cocktail14-256x192.py#L48-L53); [`notes/decisions/0019-rtmw-real-export-sidecar-contract.md:27-31`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/c85abf7da34d1e4da7c129f3382173f7153f60fa/notes/decisions/0019-rtmw-real-export-sidecar-contract.md#L27-L31))
+- RTMW: every RTMW config sets the codec `SimCCLabel` with `simcc_split_ratio=2.0`, `normalize=False` and `use_dark=False`. The contract of the exporter requires `simcc_x` to have `2 * W` bins and `simcc_y` to have `2 * H` bins. For a 192 x 256 input, the RTMW-M graph gives `simcc_x` 384 bins and `simcc_y` 512 bins. Thus `input_width / X_bins` is 0.5 px for each bin. The graph declares axis 1 (the keypoint axis) as symbolic (`dim_param`). At run time, axis 1 is 133: onnxruntime 1.31.1 (CPU) gives `(B, 133, 384)` and `(B, 133, 512)`. (the graph read and the V5 step of the batch-conversion check in the intake `model-rtmw-wholebody133@openmmlab-exporter` v2, 2026-11-09 (secondary)) The example writes axis 1 as `-1` in the `output_shapes` of each size. ([`rtmw-wholebody133.yaml`](../../examples/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133.yaml)) `keypoint.decode` carries only `method: simcc`. (OpenMMLab-Exporter [`rtmw/contract.py:14-15`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/68a6c6d103a63d9df10668990d937abb23de73fb/rtmw/contract.py#L14-L15), [`rtmw/contract.py:30`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/68a6c6d103a63d9df10668990d937abb23de73fb/rtmw/contract.py#L30), [`rtmw/contract.py:79-81`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/68a6c6d103a63d9df10668990d937abb23de73fb/rtmw/contract.py#L79-L81); [`mmdeploy-convert/model_cfgs/rtmw-m_8xb1024-270e_cocktail14-256x192.py:48-53`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/491c17b43c0f2011dfd386ab5c6345ef0f850ada/mmdeploy-convert/model_cfgs/rtmw-m_8xb1024-270e_cocktail14-256x192.py#L48-L53); [`notes/decisions/0019-rtmw-real-export-sidecar-contract.md:27-31`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/c85abf7da34d1e4da7c129f3382173f7153f60fa/notes/decisions/0019-rtmw-real-export-sidecar-contract.md#L27-L31))
 - The two 384x288 RTMW configs (l and x) add `decode_visibility=True` to the codec. The sidecar has no field for it. The flag does not change the exported graph. (OpenMMLab-Exporter [`mmdeploy-convert/model_cfgs/rtmw-x_8xb320-270e_cocktail14-384x288.py:55`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/491c17b43c0f2011dfd386ab5c6345ef0f850ada/mmdeploy-convert/model_cfgs/rtmw-x_8xb320-270e_cocktail14-384x288.py#L55); [`notes/decisions/0032-rtmw-l-config-pairing-and-backbones.md:77`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/c85abf7da34d1e4da7c129f3382173f7153f60fa/notes/decisions/0032-rtmw-l-config-pairing-and-backbones.md#L77), [`notes/decisions/0032-rtmw-l-config-pairing-and-backbones.md:93`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/c85abf7da34d1e4da7c129f3382173f7153f60fa/notes/decisions/0032-rtmw-l-config-pairing-and-backbones.md#L93)) With the flag, `SimCCLabel.decode` also returns a softmax visibility. `BaseHead.decode` keeps the first value as `keypoint_scores` and stores the visibility as `keypoints_visible`. Thus the flag changes no keypoint and no `keypoint_scores`. (mmpose [`mmpose/codecs/simcc_label.py:193-198`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/codecs/simcc_label.py#L193-L198) and [`mmpose/models/heads/base_head.py:81-93`](https://github.com/open-mmlab/mmpose/blob/5408bc76f5b848cf925a0d1857899011d8c5b497/mmpose/models/heads/base_head.py#L81-L93) at mmpose `5408bc76f5b848cf925a0d1857899011d8c5b497`, tag `v1.3.2`) The intake verdict of such an undeclared extra decode value is `out of scope` ([ADR-R6J9](../../decisions/entries/R6J9-test-time-steps-and-unreachable-branches.md)). On COCO-WholeBody v1.0 val, the visibility of the 384x288 sizes ranks valid hands worse than the SimCC score. ([OpenMMLab-Exporter ADR-0041](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/3e326df00726df8110773ed62cf38d02948a71a5/decisions/entries/0041-rtmw-wrist-gate.md) (secondary))

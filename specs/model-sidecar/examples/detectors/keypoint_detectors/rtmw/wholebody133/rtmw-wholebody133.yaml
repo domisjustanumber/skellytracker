@@ -6,7 +6,7 @@ source:
 model_id: rtmw-wholebody133
 display_name: RTMW WholeBody
 role:
-- pose_estimator
+- keypoint_detector
 license:
   model:
     id: Apache-2.0
@@ -163,12 +163,12 @@ outputs:
   semantic: simcc_y
   keypoint_axis: 1
   keypoint_count: 133
-pose:
+keypoint:
   estimator_type: top_down_single_person
   requires_object_detector: true
   geometry: 2d
   landmark_schema: COCO_WholeBody
-  tracked_points:
+  point_names:
   - nose
   - left_eye
   - right_eye
@@ -302,7 +302,7 @@ pose:
   - right_pinky_finger2
   - right_pinky_finger3
   - right_pinky_finger4
-  connections:
+  skeletons:
   - name: wholebody
     edges:
     - - left_ankle
@@ -437,161 +437,161 @@ pose:
       - right_pinky_finger4
   decode:
     method: simcc
-overlay:
-  skeleton: wholebody
-  keypoint_color:
-  - 0
-  - 183
-  - 235
-  groups:
-    body:
-      connections:
-      - - left_ankle
-        - left_knee
-      - - left_knee
-        - left_hip
-      - - right_ankle
-        - right_knee
-      - - right_knee
-        - right_hip
-      - - left_hip
-        - right_hip
-      - - left_shoulder
-        - left_hip
-      - - right_shoulder
-        - right_hip
-      - - left_shoulder
-        - right_shoulder
-      - - left_shoulder
-        - left_elbow
-      - - right_shoulder
-        - right_elbow
-      - - left_elbow
-        - left_wrist
-      - - right_elbow
-        - right_wrist
-      - - left_eye
-        - right_eye
-      - - nose
-        - left_eye
-      - - nose
-        - right_eye
-      - - left_eye
-        - left_ear
-      - - right_eye
-        - right_ear
-      - - left_ear
-        - left_shoulder
-      - - right_ear
-        - right_shoulder
-      - - left_ankle
-        - left_big_toe
-      - - left_ankle
-        - left_small_toe
-      - - left_ankle
-        - left_heel
-      - - right_ankle
-        - right_big_toe
-      - - right_ankle
-        - right_small_toe
-      - - right_ankle
-        - right_heel
-      connection_color:
-      - 0
-      - 200
-      - 83
-    left_hand:
-      connections:
-      - - left_hand_root
-        - left_thumb1
-      - - left_thumb1
-        - left_thumb2
-      - - left_thumb2
-        - left_thumb3
-      - - left_thumb3
-        - left_thumb4
-      - - left_hand_root
-        - left_forefinger1
-      - - left_forefinger1
-        - left_forefinger2
-      - - left_forefinger2
-        - left_forefinger3
-      - - left_forefinger3
-        - left_forefinger4
-      - - left_hand_root
-        - left_middle_finger1
-      - - left_middle_finger1
-        - left_middle_finger2
-      - - left_middle_finger2
-        - left_middle_finger3
-      - - left_middle_finger3
-        - left_middle_finger4
-      - - left_hand_root
-        - left_ring_finger1
-      - - left_ring_finger1
-        - left_ring_finger2
-      - - left_ring_finger2
-        - left_ring_finger3
-      - - left_ring_finger3
-        - left_ring_finger4
-      - - left_hand_root
-        - left_pinky_finger1
-      - - left_pinky_finger1
-        - left_pinky_finger2
-      - - left_pinky_finger2
-        - left_pinky_finger3
-      - - left_pinky_finger3
-        - left_pinky_finger4
-      connection_color:
-      - 0
-      - 130
-      - 200
-    right_hand:
-      connections:
-      - - right_hand_root
-        - right_thumb1
-      - - right_thumb1
-        - right_thumb2
-      - - right_thumb2
-        - right_thumb3
-      - - right_thumb3
-        - right_thumb4
-      - - right_hand_root
-        - right_forefinger1
-      - - right_forefinger1
-        - right_forefinger2
-      - - right_forefinger2
-        - right_forefinger3
-      - - right_forefinger3
-        - right_forefinger4
-      - - right_hand_root
-        - right_middle_finger1
-      - - right_middle_finger1
-        - right_middle_finger2
-      - - right_middle_finger2
-        - right_middle_finger3
-      - - right_middle_finger3
-        - right_middle_finger4
-      - - right_hand_root
-        - right_ring_finger1
-      - - right_ring_finger1
-        - right_ring_finger2
-      - - right_ring_finger2
-        - right_ring_finger3
-      - - right_ring_finger3
-        - right_ring_finger4
-      - - right_hand_root
-        - right_pinky_finger1
-      - - right_pinky_finger1
-        - right_pinky_finger2
-      - - right_pinky_finger2
-        - right_pinky_finger3
-      - - right_pinky_finger3
-        - right_pinky_finger4
-      connection_color:
-      - 255
-      - 82
-      - 82
+  overlay:
+    skeleton: wholebody
+    keypoint_color:
+    - 0
+    - 183
+    - 235
+    parts:
+      body:
+        edges:
+        - - left_ankle
+          - left_knee
+        - - left_knee
+          - left_hip
+        - - right_ankle
+          - right_knee
+        - - right_knee
+          - right_hip
+        - - left_hip
+          - right_hip
+        - - left_shoulder
+          - left_hip
+        - - right_shoulder
+          - right_hip
+        - - left_shoulder
+          - right_shoulder
+        - - left_shoulder
+          - left_elbow
+        - - right_shoulder
+          - right_elbow
+        - - left_elbow
+          - left_wrist
+        - - right_elbow
+          - right_wrist
+        - - left_eye
+          - right_eye
+        - - nose
+          - left_eye
+        - - nose
+          - right_eye
+        - - left_eye
+          - left_ear
+        - - right_eye
+          - right_ear
+        - - left_ear
+          - left_shoulder
+        - - right_ear
+          - right_shoulder
+        - - left_ankle
+          - left_big_toe
+        - - left_ankle
+          - left_small_toe
+        - - left_ankle
+          - left_heel
+        - - right_ankle
+          - right_big_toe
+        - - right_ankle
+          - right_small_toe
+        - - right_ankle
+          - right_heel
+        edge_color:
+        - 0
+        - 200
+        - 83
+      left_hand:
+        edges:
+        - - left_hand_root
+          - left_thumb1
+        - - left_thumb1
+          - left_thumb2
+        - - left_thumb2
+          - left_thumb3
+        - - left_thumb3
+          - left_thumb4
+        - - left_hand_root
+          - left_forefinger1
+        - - left_forefinger1
+          - left_forefinger2
+        - - left_forefinger2
+          - left_forefinger3
+        - - left_forefinger3
+          - left_forefinger4
+        - - left_hand_root
+          - left_middle_finger1
+        - - left_middle_finger1
+          - left_middle_finger2
+        - - left_middle_finger2
+          - left_middle_finger3
+        - - left_middle_finger3
+          - left_middle_finger4
+        - - left_hand_root
+          - left_ring_finger1
+        - - left_ring_finger1
+          - left_ring_finger2
+        - - left_ring_finger2
+          - left_ring_finger3
+        - - left_ring_finger3
+          - left_ring_finger4
+        - - left_hand_root
+          - left_pinky_finger1
+        - - left_pinky_finger1
+          - left_pinky_finger2
+        - - left_pinky_finger2
+          - left_pinky_finger3
+        - - left_pinky_finger3
+          - left_pinky_finger4
+        edge_color:
+        - 0
+        - 130
+        - 200
+      right_hand:
+        edges:
+        - - right_hand_root
+          - right_thumb1
+        - - right_thumb1
+          - right_thumb2
+        - - right_thumb2
+          - right_thumb3
+        - - right_thumb3
+          - right_thumb4
+        - - right_hand_root
+          - right_forefinger1
+        - - right_forefinger1
+          - right_forefinger2
+        - - right_forefinger2
+          - right_forefinger3
+        - - right_forefinger3
+          - right_forefinger4
+        - - right_hand_root
+          - right_middle_finger1
+        - - right_middle_finger1
+          - right_middle_finger2
+        - - right_middle_finger2
+          - right_middle_finger3
+        - - right_middle_finger3
+          - right_middle_finger4
+        - - right_hand_root
+          - right_ring_finger1
+        - - right_ring_finger1
+          - right_ring_finger2
+        - - right_ring_finger2
+          - right_ring_finger3
+        - - right_ring_finger3
+          - right_ring_finger4
+        - - right_hand_root
+          - right_pinky_finger1
+        - - right_pinky_finger1
+          - right_pinky_finger2
+        - - right_pinky_finger2
+          - right_pinky_finger3
+        - - right_pinky_finger3
+          - right_pinky_finger4
+        edge_color:
+        - 255
+        - 82
+        - 82
 sizes:
   m:
     input:

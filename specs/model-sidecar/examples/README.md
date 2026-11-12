@@ -32,7 +32,7 @@ Sidecar: [`yolox-person.yaml`](detectors/object_detectors/yolox-person/yolox-per
 
 ## RTMW WholeBody (OpenMMLab-Exporter; top-down pose)
 
-mmpose `input_size` is `(width, height)`: the `256x192` sizes (`m`, `l-256`, `x-256`) take `[N, 3, 256, 192]` input and the `384x288` sizes (`l-384`, `x-384`) `[N, 3, 384, 288]`. The model consumes RGB (`bgr_to_rgb=True`) normalized with ImageNet statistics, so the input is `normalization: imagenet` with `color_format: rgb` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). SimCC bin counts are twice the input width and height (`simcc_split_ratio=2.0`) and come from `onnx.output_shapes`. The sidecar writes the 133 tracked points and the `wholebody` connections inline, with no `$ref`. The id and the folder follow [Keypoint detector id](../common/identity.md#keypoint-detector-id).
+mmpose `input_size` is `(width, height)`: the `256x192` sizes (`m`, `l-256`, `x-256`) take `[N, 3, 256, 192]` input and the `384x288` sizes (`l-384`, `x-384`) `[N, 3, 384, 288]`. The model consumes RGB (`bgr_to_rgb=True`) normalized with ImageNet statistics, so the input is `normalization: imagenet` with `color_format: rgb` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). SimCC bin counts are twice the input width and height (`simcc_split_ratio=2.0`) and come from `onnx.output_shapes`. The sidecar writes the 133 point names and the `wholebody` skeleton inline, with no `$ref`. The id and the folder follow [Keypoint detector id](../common/identity.md#keypoint-detector-id).
 
 Sidecar: [`rtmw-wholebody133.yaml`](detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133.yaml).
 

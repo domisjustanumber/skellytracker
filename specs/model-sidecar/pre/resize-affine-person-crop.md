@@ -85,10 +85,10 @@ The positions are pixel indices of `cv2.warpAffine`. The inverse adds no `0.5` o
 ## Validation rules
 
 - [ ] `V-pre.resize.affine_person_crop-1` If `input.resize.crop_policy.expand_ratio` is present, it must be a positive float. If `crop_policy.maintain_aspect_ratio` is present, it must be a boolean.
-- [ ] `V-pre.resize.affine_person_crop-2` If a sidecar has `pose.requires_object_detector: true`, it must declare `input.resize.method: affine_person_crop`.
+- [ ] `V-pre.resize.affine_person_crop-2` If a sidecar has `keypoint.requires_object_detector: true`, it must declare `input.resize.method: affine_person_crop`.
 - [ ] `V-pre.resize.affine_person_crop-3` Each size must declare `input.resize.target_size`. An `affine_person_crop` resize must not declare `pad_value`, `pad_position` or `rounding` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 
-See also [Input](../common/input.md#validation-rules), [Sizes and artifacts](../common/sizes-and-artifacts.md#validation-rules) and [Pose schema](../post/keypoint/schema.md#validation-rules).
+See also [Input](../common/input.md#validation-rules), [Sizes and artifacts](../common/sizes-and-artifacts.md#validation-rules) and [Keypoint schema](../post/keypoint/schema.md#validation-rules).
 
 ## Implementer guidance
 

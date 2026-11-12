@@ -1,14 +1,14 @@
 # tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
 # Hosts ignore `checks`. The names are the self-checks of the generator.
-section: post.pose.decode.simcc
+section: post.keypoint.decode.simcc
 notes:
-  - "Normative text: specs/model-sidecar/post/pose-decode-simcc.md."
-  - "The cases are `pose.geometry: 2d`. The section is 2D only (skellytracker ADR-9HBB)."
+  - "Normative text: specs/model-sidecar/post/keypoint/decode-simcc.md."
+  - "The cases are `keypoint.geometry: 2d`. The section is 2D only (skellytracker ADR-9HBB)."
   - "`target_size` is [height, width] of the model input. `simcc_x` and `simcc_y` are the
-    raw output values, with the shape (N, K, bins). The host reads them as float32 and
+    raw output values, with the shape (B, P, bins). The host reads them as float32 and
     applies no softmax."
   - "`bins` is the argmax bin of each axis after the rule for a score <= 0. `keypoints`
-    are in the model-input pixels of the crop (x, y). `scores` has the shape (N, K)."
+    are in the model-input pixels of the crop (x, y). `scores` has the shape (B, P)."
   - "The upstream function mmpose v1.3.2 get_simcc_maximum gives the same bins and scores
     for each numeric case. A copy of its function text ran on each numeric case with
     NumPy 2.4.6 (the copy is not committed: secondary)."
@@ -124,7 +124,7 @@ cases:
         - [[.nan, 0, 0.6, 0.1, 0, 0, 0, .nan], [.nan, .nan, .nan, .nan, .nan, .nan, .nan, .nan]]
     expect: {bins: [[[2, 0], [0, 0]]], keypoints: [[[1, 0], [0, 0]]], scores: [[.nan, .nan]]}
   - id: shapes-of-x-and-y-differ
-    note: "simcc_x has N = 1 and simcc_y has N = 2. The input is a tensor, not a sidecar value"
+    note: "simcc_x has B = 1 and simcc_y has B = 2. The input is a tensor, not a sidecar value"
     checks: [refused]
     params: {target_size: [4, 3]}
     input:

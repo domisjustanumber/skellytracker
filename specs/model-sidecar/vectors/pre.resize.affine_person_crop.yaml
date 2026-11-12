@@ -212,13 +212,13 @@ cases:
         sizes: {m: {input: {shape: [-1, 3, 256, 192], resize: {target_size: [256, 192]}}}}
     expect: {failed: [V-pre.resize.affine_person_crop-1]}
   - id: object-detector-needs-affine-crop
-    note: "pose.requires_object_detector is true, but input.resize.method is letterbox. The
+    note: "keypoint.requires_object_detector is true, but input.resize.method is letterbox. The
       selector of this section does not match this sidecar. Rule -2 applies to each
-      sidecar with pose.requires_object_detector: true. The letterbox resize declares
+      sidecar with keypoint.requires_object_detector: true. The letterbox resize declares
       pad_position and rounding, and it has no crop_policy. The size declares target_size.
-      The pose block holds only estimator_type, requires_object_detector and geometry. The
-      sidecar shows only its input, sizes and pose blocks. The case checks only the rules
-      of this section."
+      The keypoint block holds only estimator_type, requires_object_detector and geometry.
+      The sidecar shows only its input, sizes and keypoint blocks. The case checks only
+      the rules of this section."
     function: none
     params: {}
     input:
@@ -232,7 +232,7 @@ cases:
             pad_position: center
             rounding: half_even
         sizes: {m: {input: {shape: [-1, 3, 256, 192], resize: {target_size: [256, 192]}}}}
-        pose:
+        keypoint:
           estimator_type: top_down_single_person
           requires_object_detector: true
           geometry: "2d"
