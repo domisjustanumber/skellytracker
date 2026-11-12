@@ -1,6 +1,6 @@
 # 88WQ — Sidecar vocabulary: `object` and `keypoint` blocks, the role `keypoint_detector`, and one name for each concept
 
-**Status:** accepted, 2026-11-11 (user).
+**Status:** absorbed into [`model-sidecar/README.md#model-sidecar-specification`](../../specs/model-sidecar/README.md#model-sidecar-specification), [`model-sidecar/AGENTS.md#sidecar-rules`](../../specs/model-sidecar/AGENTS.md#sidecar-rules), [`spec-edit-rules.md#impact`](../../.claude/skills/change-sidecar-spec/spec-edit-rules.md#impact), [`pipeline/README.md#terms`](../../specs/pipeline/README.md#terms), [`pipeline/AGENTS.md#pipeline-spec-rules`](../../specs/pipeline/AGENTS.md#pipeline-spec-rules), [`changelog.md#summary-of-changes`](../../specs/pipeline/changelog.md#summary-of-changes), [`file.md#fields`](../../specs/pipeline/file.md#fields), [`file.md#behaviour`](../../specs/pipeline/file.md#behaviour), [`graph.md#fields`](../../specs/pipeline/graph.md#fields), [`taps.md#fields`](../../specs/pipeline/taps.md#fields), [`outputs.md#fields`](../../specs/pipeline/outputs.md#fields), [`detector.md#fields`](../../specs/pipeline/nodes/detector.md#fields), [`mediapipe_tasks.md#fields`](../../specs/pipeline/nodes/mediapipe_tasks.md#fields), [`smooth_roi.md#fields`](../../specs/pipeline/nodes/smooth_roi.md#fields), [`redetect.md#fields`](../../specs/pipeline/nodes/redetect.md#fields), [`roi_from_points.md#fields`](../../specs/pipeline/nodes/roi_from_points.md#fields), 2026-11-12 (absorb sweep, user; PR: pending).
 
 ## Decision
 

@@ -28,7 +28,6 @@ These entries are `accepted` or `evidence`.
 | [7NY2](entries/7NY2-pipeline-form-graph-and-nodes.md) | Pipeline config: one Pydantic model from YAML; flat node graph with `@prev`; detector, `mediapipe_tasks` and closed glue nodes | accepted |
 | [ZYS9](entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) | Pipeline outputs with an instance dimension; running modes; batch k × cameras; session sharing only inside one run; load checks; default EP | accepted |
 | [48PG](entries/48PG-pipeline-api-ep-options-and-warnings.md) | Pipeline API `core.pipelines` with `ep_options`; built-ins; `PipelineWarning` with `ep_partial_placement`; dependency reports; Holistic; node catalog | accepted |
-| [88WQ](entries/88WQ-sidecar-vocabulary.md) | Sidecar vocabulary: `object` and `keypoint` blocks, role `keypoint_detector`, `post/object/` and `post/keypoint/`, classes by name, one name per concept | accepted |
 | [0WTV](entries/0WTV-system-metrics-and-pipeline-timing-helper.md) | `core/metrics/` holds only system metrics; the pipeline timing helper is `core/pipelines/timing.py`; supersedes Q59W and keeps its other rules | accepted |
 | [NHM3](entries/NHM3-phases-to-the-exporter-checkpoint.md) | Phase 0 and phase 1 to the exporter checkpoint; pre-release at the checkpoint; new code beside old; supersedes EM74 | accepted |
 | [9NW0](entries/9NW0-ep-keys-options-and-failures.md) | EP keys from the EP catalog; a run takes `ep_options`; a whole-EP failure raises before frame 0; CPU nodes are reported | accepted |
