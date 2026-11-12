@@ -28,9 +28,9 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   lock. uv cannot resolve the dependency in three of the four. In Qualcomm-Exporter,
   `opencv-contrib-python` next to `opencv-python` puts two `cv2` builds in one folder. A consumer
   does not get the `exclude-dependencies` of this repository.
-  [ADR-B4QR](entries/B4QR-exact-pins-and-cuda-13.md) decides exact pins, ONNX Runtime 1.31 with
-  CUDA 13 and `requires-python = ">=3.11,<3.14"`. The exporters that agents build again use those
-  pins. The OpenCV package (`opencv-contrib-python` or a headless package) is not decided. The
+  [ADR-MWY9](entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md) decides exact pins,
+  `onnxruntime` 1.31 as a base dependency with GPU EPs as CUDA 13 plugin packs, and
+  `requires-python = ">=3.11,<3.14"`. The exporters that agents build again use those pins. The OpenCV package (`opencv-contrib-python` or a headless package) is not decided. The
   dependency stage of the implementation plan writes the pins. Until then, an exporter runs the batch
   tool in the checkout environment.
 - **Exporter guide rewording.** A rewording PR removes each exporter repository name that is only an

@@ -41,10 +41,10 @@ These entries are `accepted` or `evidence`.
 | [88WQ](entries/88WQ-sidecar-vocabulary.md) | Sidecar vocabulary: `object` and `keypoint` blocks, role `keypoint_detector`, `post/object/` and `post/keypoint/`, classes by name, one name per concept | accepted |
 | [GKD1](entries/GKD1-estimator-type-says-the-crop.md) | `keypoint.estimator_type` says whether a model needs a crop; `keypoint.requires_object_detector` goes | accepted |
 | [0WTV](entries/0WTV-system-metrics-and-pipeline-timing-helper.md) | `core/metrics/` holds only system metrics; the pipeline timing helper is `core/pipelines/timing.py`; supersedes Q59W and keeps its other rules | accepted |
-| [B4QR](entries/B4QR-exact-pins-and-cuda-13.md) | Exact pins for each dependency; ONNX Runtime 1.31 with CUDA 13; Python 3.11 to 3.13, MediaPipe 1.2.2, no Intel Mac; supersedes MSH0 | accepted |
 | [NHM3](entries/NHM3-phases-to-the-exporter-checkpoint.md) | Phase 0 and phase 1 to the exporter checkpoint; pre-release at the checkpoint; new code beside old; supersedes EM74 | accepted |
 | [JJ7E](entries/JJ7E-no-upstream-case-verified-by-skellytracker.md) | From the pre-release, a vector case with no upstream output is verified when skellytracker agrees and its note names the spec rule | accepted |
 | [271H](entries/271H-pipeline-bundles.md) | A `pipeline` bundle kind with `depends_on`; spec example before stage 1.10; the session updates pinned `sidecar_sha256` after a re-export | accepted |
+| [MWY9](entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md) | Exact pins; `onnxruntime` 1.31 base dependency; GPU EPs only as CUDA 13 plugin packs; Python 3.11 to 3.13; supersedes B4QR | accepted |
 
 ### Proposed
 

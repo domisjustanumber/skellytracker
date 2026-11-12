@@ -109,3 +109,4 @@ the reason for a decision. The [index](README.md) has the Active and Proposed en
 | [Q59W](entries/Q59W-pipeline-timing-and-taps.md) | Pipeline timing points and JSONL events with a header; record and replay taps; COCO-only CLI run for skellybench | superseded by 0WTV |
 | [MSH0](entries/MSH0-supported-platforms-v2.md) | v2.0.0 supports Python 3.11 to 3.13 and MediaPipe 1.2.2; no Intel Mac | superseded by B4QR |
 | [EM74](entries/EM74-stage-order-and-ci-models.md) | New code beside old; order N5, pre-release, P, Da, N6, Db, Dc; standalone generic detectors; generated ONNX models in CI | superseded by NHM3 |
+| [B4QR](entries/B4QR-exact-pins-and-cuda-13.md) | Exact pins for each dependency; ONNX Runtime 1.31 with CUDA 13; Python 3.11 to 3.13, MediaPipe 1.2.2, no Intel Mac | superseded by MWY9 |

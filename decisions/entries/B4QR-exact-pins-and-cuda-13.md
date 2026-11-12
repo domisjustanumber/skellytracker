@@ -1,6 +1,6 @@
 # B4QR — Exact dependency pins; ONNX Runtime 1.31 with CUDA 13; Python 3.11 to 3.13, MediaPipe 1.2.2, no Intel Mac
 
-**Status:** accepted, 2026-11-12 (user).
+**Status:** superseded by [MWY9](MWY9-one-onnxruntime-core-and-plugin-ep-packs.md), 2026-11-12 (user; PR: pending).
 
 ## Decision
 
