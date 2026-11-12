@@ -30,7 +30,7 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   does not get the `exclude-dependencies` of this repository.
   [ADR-M2C6](entries/M2C6-exact-pins-and-one-python-patch-release.md) decides exact pins,
   `onnxruntime` 1.31 as a base dependency with GPU EPs as CUDA 13 plugin packs, and
-  `requires-python = ">=3.11,<3.14"`. The exporters that agents build again use those pins. The OpenCV package (`opencv-contrib-python` or a headless package) is not decided. The
+  `requires-python = "==3.13.18"`. The exporters that agents build again use those pins. The OpenCV package (`opencv-contrib-python` or a headless package) is not decided. The
   dependency stage of the implementation plan writes the pins. Until then, an exporter runs the batch
   tool in the checkout environment.
 - **Exporter open items.** At the 2.0.0 pre-release, remove the rows of

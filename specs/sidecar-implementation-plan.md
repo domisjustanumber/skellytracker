@@ -153,8 +153,8 @@ changes the draft exporter guide ([ADR-x64y](../decisions/entries/x64y-draft-exp
 - **Exporter runtime.** Each exporter pins the pre-release of 1.11 as its ONNX host. Its host code
   for the spec sections retires ([ADR-6J8E](../decisions/entries/6J8E-exporters-run-released-skellytracker.md) item 1). The kit gives the form of the pin. Stage 1.11
   sets the version.
-- **Dependency pins.** The exporters use the pins of the pre-release ([ADR-M2C6](../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md) item 1): Python 3.11
-  to 3.13 and ONNX Runtime 1.31. A GPU EP comes from the CUDA 13 plugin packs of the EP catalog of
+- **Dependency pins.** The exporters use the pins of the pre-release ([ADR-M2C6](../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md) items 1 and 4): Python
+  3.13.18 and ONNX Runtime 1.31. A GPU EP comes from the CUDA 13 plugin packs of the EP catalog of
   the pre-release ([ADR-M2C6](../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md) item 3).
 - **Patches and pipelines.** The templates and the skills `author-sidecar` and
   `propose-sidecar-change` take the patch of 0.1 and the pipeline file of 0.2.
@@ -228,11 +228,10 @@ changes the draft exporter guide ([ADR-x64y](../decisions/entries/x64y-draft-exp
   [ADR-6JWJ](pipeline/decisions/entries/6JWJ-mediapipe-video-landmarker-does-not-stick.md) again on
   MediaPipe 1.2.2. If a VIDEO-mode landmarker then stays empty while a person is visible, write a new
   entry in the pipeline log with the evidence.
-- **Python 3.13.** This is its own commit group. Set `requires-python = ">=3.11,<3.14"`, add the
-  3.13 classifier, make a new `uv.lock` and add 3.13 to the CI matrix ([ADR-M2C6](../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md) item 4). The gate is
-  the full suite on 3.13, with no hang in the MediaPipe tests. Check that each dependency resolves
-  for 3.13 on each supported platform. The evidence of
-  [ADR-M2C6](../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md) item 4 came from a freeze, not from the lock.
+- **Python 3.13.18.** This is its own commit group. Set `requires-python = "==3.13.18"`, write
+  `3.13.18` to `.python-version`, set the 3.13 classifier, make a new `uv.lock` and make CI run
+  3.13.18 in place of 3.12 ([ADR-M2C6](../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md) item 4). The gate is the full suite on 3.13.18, with no hang in
+  the MediaPipe tests. Check that each dependency has a wheel for 3.13 on each supported platform.
 - **No Intel Mac.** This is its own commit group. The uv environment for macOS becomes
   `sys_platform == 'darwin' and platform_machine == 'arm64'`, with `required-environments`
   ([ADR-M2C6](../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md) item 6). The README says that Intel Mac is not supported. Check that

@@ -107,6 +107,7 @@ These rules are in [ADR-JC4T](../../../../decisions/entries/JC4T-parity-gates-an
   [ADR-M2C6](../../../../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md)):
 
   ```toml
+  requires-python = "==3.13.18"
   dependencies = ["skellytracker==<pre-release>"]
   ```
 
