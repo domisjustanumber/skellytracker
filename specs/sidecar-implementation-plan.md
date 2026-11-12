@@ -849,8 +849,8 @@ in parallel with 1.3 to 1.7.
   - the batch conversion of each artifact at start, and the padding of a missed frame or crop, with
     its result dropped;
   - the batch rule of a stateful pipeline and its warning `batch_limited_by_state`;
-  - no session sharing: each node builds its own sessions, and `close()` frees the sessions of the
-    run ([ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 6).
+  - the session sharing inside one run: the nodes with the same artifact SHA-256, batch, EP key, EP
+    options and device share one session; no session is shared between runs ([ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 6).
 - **Time.** Each output, timing event and tap row has `frame_index`. In `video` and `live`, each
   frame has `timestamp_ms` (a float). A `video` frame with no `timestamp_ms` uses
   `frame_index × 1000 / fps`, with the run parameter `fps` (default 30.0). A `live` run has no
@@ -941,8 +941,10 @@ in parallel with 1.3 to 1.7.
   filter row `i`, which can be another person on the next frame. Thus the v2 pipelines run single
   person (`max_instances` 1). "Later" holds the multi-person work.
 - **Investigations.** Read `SharedSessionPool` and `TrackerLease` in the freemocap development-streaming
-  work: what freemocap needs (a lease for each stream, the lifetime, thread safety), and how one run
-  for each stream, with its own sessions, covers it ([ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 6). Study frame drops in `live` mode: a latest-frame mailbox, a count of
+  work: what freemocap needs (a lease for each stream, the lifetime, thread safety). freemocap
+  realtime already runs one pipeline with all cameras. Runs that overlap in time, for example
+  realtime and posthoc, share no session: measure the VRAM cost and decide with freemocap whether it
+  schedules the runs or accepts the cost ([ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 6). Study frame drops in `live` mode: a latest-frame mailbox, a count of
   dropped frames, a `drop` timing point and MediaPipe LIVE_STREAM.
 - Gate: tests on generated ONNX models for each node type, the load checks, the empty-input rule,
   the `concat` empty-input fill, the instance rows with `class_index` and `instance_score`, `@prev`,
