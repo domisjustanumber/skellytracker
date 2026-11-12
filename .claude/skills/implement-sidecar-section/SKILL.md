@@ -123,8 +123,8 @@ A skellytracker session must land it first, with the skill
 8. List the prerequisites: the work in other sections or in the implementation plan that this section
    needs first. An example is a field of another section that `model.py` does not have yet. Each
    prerequisite is a separate PR before the PR of this section.
-9. The frozen package rejects `schema_version: "2.0.0"`. Stage M8 of the
-   [implementation plan](../../../specs/sidecar-implementation-plan.md) moves the version check to
+9. The frozen package rejects `schema_version: "2.0.0"`. Stage 1.4 of the
+   [implementation plan](../../../specs/sidecar-implementation-plan.md#14-spec-loader-was-n1) moves the version check to
    SemVer ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). If a
    test needs a `"2.0.0"` sidecar and the package cannot load one yet, write that work as the first
    prerequisite. If the implementation plan has no item for it, tell the user. Do not design that
