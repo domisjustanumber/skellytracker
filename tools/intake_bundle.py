@@ -50,6 +50,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ROOT = REPO_ROOT / "intakes"
 SPEC = "specs/model-sidecar"
 SECTION_FOLDERS = ("format", "common", "pre", "post")
+PIPELINE_SPEC = "specs/pipeline"  # node.<type> sections, records and entries (ADR-3SF2, item 7)
+SPECS = (SPEC, PIPELINE_SPEC)
 
 BUNDLE_FORMAT = 1
 TEXT_SUFFIXES = {".md", ".yaml", ".yml", ".py", ".json", ".txt", ".csv", ".toml", ".patch"}
@@ -73,9 +75,9 @@ def link_findings(folder: Path, rels: object, manifest: dict, repo: Path = REPO_
         return []
     contribution = manifest.get("contributes_to")
     record = (
-        f"{SPEC}/proposals/{contribution}/contributions/{manifest.get('contributor')}"
+        f"{spec_folder(manifest)}/proposals/{contribution}/contributions/{manifest.get('contributor')}"
         if contribution
-        else f"{SPEC}/proposals/{manifest.get('name')}"
+        else f"{spec_folder(manifest)}/proposals/{manifest.get('name')}"
     )
     listed = set(rels)
     found: list[str] = []
@@ -267,6 +269,13 @@ def bundle_id(manifest: dict) -> str:
     return f"{manifest['kind']}-{manifest['name']}@{manifest['contributor']}"
 
 
+def spec_folder(manifest: dict) -> str:
+    """Return the spec of a proposal: the pipeline spec when each section is node.<type>, else the sidecar spec."""
+    sections = manifest.get("sections") or []
+    nodes = [s for s in sections if isinstance(s, str) and NODE_SECTION.match(s)]
+    return PIPELINE_SPEC if sections and len(nodes) == len(sections) else SPEC
+
+
 def is_text(path: str) -> bool:
     return Path(path).suffix.lower() in TEXT_SUFFIXES
 
@@ -332,6 +341,9 @@ def manifest_problems(manifest: dict, computed: bool = True) -> list[str]:
     if "related" in manifest and not _is_str_list(get("related")):
         problems.append("related must be a list of bundle IDs")
     if kind == "proposal":
+        sections = get("sections") if _is_str_list(get("sections")) else []
+        if any(NODE_SECTION.match(s) for s in sections) and not all(NODE_SECTION.match(s) for s in sections):
+            problems.append("sections must be all node.<type> sections (pipeline spec) or none (sidecar spec)")
         problems += [
             f"{key} must be a string or null"
             for key in ("base", "contributes_to")
@@ -541,11 +553,22 @@ def record_entries(repo: Path = REPO_ROOT) -> dict[str, list[Path]]:
 
     Each record has exactly one entry (ADR-ZXD7, item 3).
     """
-    proposals = repo / SPEC / "proposals"
-    slugs = sorted(p.name for p in proposals.iterdir() if p.is_dir()) if proposals.is_dir() else []
-    entries = sorted((repo / SPEC / "decisions" / "entries").glob("*.md"))
-    names = {e: ENTRY_FILE.match(e.name) for e in entries}
-    return {s: [e for e in entries if names[e] and names[e]["slug"] == s] for s in slugs}
+    result: dict[str, list[Path]] = {}
+    for slug, folder in record_dirs(repo).items():
+        entries = sorted((folder.parents[1] / "decisions" / "entries").glob("*.md"))
+        result[slug] = [e for e in entries if (m := ENTRY_FILE.match(e.name)) and m["slug"] == slug]
+    return result
+
+
+def record_dirs(repo: Path = REPO_ROOT) -> dict[str, Path]:
+    """Return the record folder `proposals/<slug>/` of each slug, in the sidecar spec and the pipeline spec."""
+    found: dict[str, Path] = {}
+    for spec in SPECS:
+        proposals = repo / spec / "proposals"
+        for folder in sorted(proposals.iterdir()) if proposals.is_dir() else []:
+            if folder.is_dir():
+                found.setdefault(folder.name, folder)
+    return found
 
 
 def entry_statuses(repo: Path = REPO_ROOT) -> dict[str, str]:
@@ -556,7 +579,7 @@ def entry_statuses(repo: Path = REPO_ROOT) -> dict[str, str]:
     """
     result: dict[str, str] = {}
     for slug, paths in record_entries(repo).items():
-        manifest = read_manifest(repo / SPEC / "proposals" / slug) or {}
+        manifest = read_manifest(record_dirs(repo)[slug]) or {}
         status = ENTRY_STATUS.search(paths[0].read_text(encoding="utf-8")) if paths else None
         if status and all(isinstance(manifest.get(k), str) for k in ("kind", "name", "contributor")):
             result[bundle_id(manifest)] = status.group(1)
@@ -644,8 +667,8 @@ def owners(found: dict[str, dict], repo: Path | None = None) -> dict[str, str]:
     candidates = []
     if repo is not None:
         statuses = entry_statuses(repo)
-        for path in sorted((repo / SPEC / "proposals").glob("*/manifest.yaml")):
-            manifest = read_manifest(path.parent) or {}
+        for folder in record_dirs(repo).values():
+            manifest = read_manifest(folder) or {}
             names = all(isinstance(manifest.get(k), str) for k in ("kind", "name", "contributor"))
             if names and statuses.get(bundle_id(manifest)) in OWNING_ENTRY:
                 candidates.append(manifest)
@@ -807,8 +830,8 @@ def record_folder(manifest: dict, repo: Path = REPO_ROOT) -> Path:
     """Return the tracked record folder of a proposal or a contribution ([Tracked records] of hand-over.md)."""
     contribution = manifest.get("contributes_to")
     if contribution:
-        return repo / SPEC / "proposals" / contribution / "contributions" / manifest["contributor"]
-    return repo / SPEC / "proposals" / manifest["name"]
+        return repo / spec_folder(manifest) / "proposals" / contribution / "contributions" / manifest["contributor"]
+    return repo / spec_folder(manifest) / "proposals" / manifest["name"]
 
 
 def record(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> Path:
@@ -975,7 +998,7 @@ CV2_FILE_PREFIX = re.compile(
     r"|rapid_|text(_|$)|wechat_qrcode|barcode|datasets|gapi|ml(_|$)|dpm_|linemod_|mcc_|ppf_match"
     r"|IStreamReader|utils(_|$)|File(Node|Storage)|Video(Capture|Writer)|samples|haveImage)"
 )
-SECTION_MODULE = re.compile(r"^(format|common|pre|post)_[a-z0-9_]*[a-z0-9]$")
+SECTION_MODULE = re.compile(r"^(format|common|pre|post|node)_[a-z0-9_]*[a-z0-9]$")
 SAFE_DUNDERS = frozenset({"__name__", "__doc__", "__init__", "__post_init__", "__all__", "__main__"})
 NOT_CONSTANT = (ast.Call, ast.Lambda, ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp,
                 ast.NamedExpr, ast.Await, ast.Yield, ast.YieldFrom)
@@ -990,7 +1013,8 @@ def _section_id(path: Path) -> str | None:
 
 def section_modules(repo: Path = REPO_ROOT) -> set[str]:
     """Return the module name of each section of the spec, for example `pre_resize_letterbox`."""
-    ids = (_section_id(p) for folder in SECTION_FOLDERS for p in sorted((repo / SPEC / folder).rglob("*.md")))
+    folders = [repo / SPEC / f for f in SECTION_FOLDERS] + [repo / PIPELINE_SPEC / "nodes"]
+    ids = (_section_id(p) for folder in folders for p in sorted(folder.rglob("*.md")))
     return {i.replace(".", "_") for i in ids if i}
 
 
@@ -1170,11 +1194,12 @@ def changed_sections(spec_commit: str, repo: Path = REPO_ROOT) -> list[str] | No
     """Return the IDs of the sections that changed since `spec_commit`, or None when git has no such commit."""
     if _git(repo, "cat-file", "-e", f"{spec_commit}^{{commit}}").returncode != 0:
         return None
-    result = _git(repo, "diff", "--name-only", spec_commit, "HEAD", "--", f"{SPEC}/")
+    result = _git(repo, "diff", "--name-only", spec_commit, "HEAD", "--", f"{SPEC}/", f"{PIPELINE_SPEC}/nodes/")
     ids = set()
     for rel in result.stdout.splitlines():
         parts = rel.split("/")
-        if len(parts) < 4 or parts[2] not in SECTION_FOLDERS or not rel.endswith(".md"):
+        folders = SECTION_FOLDERS if rel.startswith(f"{SPEC}/") else ("nodes",)
+        if len(parts) < 4 or parts[2] not in folders or not rel.endswith(".md"):
             continue
         path = repo / rel
         if not path.is_file():
@@ -1423,7 +1448,6 @@ def _publish_problems(version_dir: Path, listed: dict, manifest: dict, yaml) -> 
     return findings
 
 
-PIPELINE_SPEC = "specs/pipeline"
 SIDECAR_ROOTS = (f"{SPEC}/examples/detectors", "skellytracker/core/model_zoo/detectors")
 
 
@@ -1592,7 +1616,8 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT, overlay
     manifests = [manifest, *(read_manifest(d) or {} for d in owner_dirs)]
     manifests += [found[b]["manifest"] for b in linked if b in found]
     manifests += [
-        read_manifest(repo / SPEC / "proposals" / m["name"]) or {} for m in map(BUNDLE_ID.match, filter(None, linked)) if m
+        read_manifest(record_dirs(repo).get(m["name"], repo / SPEC / "proposals" / m["name"])) or {}
+        for m in map(BUNDLE_ID.match, filter(None, linked)) if m
     ]
     sections = module_names(manifests)
     for folder in [version_dir, *owner_dirs]:
@@ -1657,7 +1682,7 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT, overlay
             for rel, data in vector_data.items():
                 mine = _cases(data)
                 theirs: dict[str, tuple[dict, object]] = {}
-                for source in (s for s in [repo / SPEC / rel, *(d / rel for d in owner_dirs)] if s.is_file()):
+                for source in (s for s in [repo / spec_folder(manifest) / rel, *(d / rel for d in owner_dirs)] if s.is_file()):
                     other, _ = _load_yaml(source.parent, source.name, yaml)
                     tolerance = other.get("tolerance") if isinstance(other, dict) else None
                     theirs.update({i: (case, tolerance) for i, case in _cases(other).items()})

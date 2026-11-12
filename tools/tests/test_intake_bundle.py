@@ -1746,3 +1746,22 @@ def test_a_pipeline_bundle_needs_its_files_and_node_sections(tmp_path: Path, roo
     ib.pack(payload(tmp_path, {"pipeline.md": "x\n"}), pipeline_fields(), root, cwd=tmp_path)
     findings = ib.verify("pipeline-yolox-boxes@openmmlab-exporter", root)
     assert "yolox-boxes.pipeline.yaml: a pipeline bundle needs this file" in findings
+
+
+def test_a_node_proposal_belongs_to_the_pipeline_spec() -> None:
+    node = proposal_fields(name="new-node", sections=["node.gate", "node.merge"])
+    assert ib.spec_folder(node) == "specs/pipeline"
+    assert ib.spec_folder(proposal_fields()) == "specs/model-sidecar"
+    assert ib.record_folder(node) == ib.REPO_ROOT / "specs/pipeline/proposals/new-node"
+    assert {"node_gate", "node_detector", "pre_normalize"} <= ib.section_modules()
+    assert ib.SECTION_MODULE.match("node_gate")
+    assert "sections must be all node.<type> sections (pipeline spec) or none (sidecar spec)" in ib.manifest_problems(
+        proposal_fields(sections=["node.gate", "pre.normalize"]), computed=False
+    )
+
+
+def test_a_node_proposal_link_resolves_from_the_pipeline_record_path(tmp_path: Path, root: Path) -> None:
+    text = "See [the gate](../../nodes/gate.md#behaviour).\n"
+    ib.pack(payload(tmp_path, {"proposal.md": text}), proposal_fields(name="gate-x", sections=["node.gate"]), root, cwd=tmp_path)
+    with pytest.raises(ib.BundleError, match="links that fail"):
+        ib.pack(payload(tmp_path / "s", {"proposal.md": text}), proposal_fields(name="gate-y"), root, cwd=tmp_path)
