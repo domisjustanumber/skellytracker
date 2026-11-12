@@ -34,7 +34,7 @@ These entries are `accepted` or `evidence`.
 | [AMJ8](entries/AMJ8-replace-package-onnx-detectors.md) | Replace the package ONNX detectors with exporter models; no legacy layer; shipped sidecars in `core/model_zoo/`; RTMPose replacements block v2.0.0 | accepted |
 | [AQR4](entries/AQR4-detectors-and-pipelines-entry-points.md) | Entry points `detectors` and `pipelines`; `system/`, `metrics/`, `eps/` under an eager `core`; calibration outside pipelines; user root | accepted |
 | [7NY2](entries/7NY2-pipeline-form-graph-and-nodes.md) | Pipeline config: one Pydantic model from YAML; flat node graph with `@prev`; detector, `mediapipe_tasks` and closed glue nodes | accepted |
-| [0WJB](entries/0WJB-pipeline-outputs-running-no-session-sharing.md) | Pipeline outputs with an instance dimension; running modes; batch k × cameras; no session sharing; load checks; default EP `performance` | accepted |
+| [ZYS9](entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) | Pipeline outputs with an instance dimension; running modes; batch k × cameras; session sharing only inside one run; load checks; default EP | accepted |
 | [48PG](entries/48PG-pipeline-api-ep-options-and-warnings.md) | Pipeline API `core.pipelines` with `ep_options`; built-ins; `PipelineWarning` with `ep_partial_placement`; dependency reports; Holistic; node catalog | accepted |
 | [3SF2](entries/3SF2-pipeline-spec-and-node-workflow.md) | Pipeline spec in `specs/pipeline/`: section IDs, reference model and schema, glue vectors, changelog, own module log, node workflow | accepted |
 | [1HKJ](entries/1HKJ-proposal-record-links-not-checked.md) | The link check skips the frozen proposal records; their old links stay; the changelog map resolves old IDs | accepted |

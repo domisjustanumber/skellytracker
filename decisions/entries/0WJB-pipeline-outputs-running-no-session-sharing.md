@@ -1,6 +1,6 @@
 # 0WJB — Pipeline outputs with an instance dimension; running modes; batch k × cameras; no session sharing; load checks; the default EP
 
-**Status:** accepted, 2026-11-12 (user).
+**Status:** superseded by [ZYS9](ZYS9-pipeline-outputs-running-sharing-inside-one-run.md), 2026-11-12 (user; PR: pending).
 
 ## Decision
 
