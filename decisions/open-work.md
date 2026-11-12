@@ -14,25 +14,14 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
 
 ## Repository state
 
-- **Dependency pins for the exporters.** The target rule is that each exporter takes skellytracker
-  as a dependency from a uv path source to the local checkout
-  ([ADR-JAA4](entries/JAA4-one-batch-field.md), item 4). The pins of
-  `pyproject.toml` stop it now: `requires-python = ">=3.11,<3.13"`, `numpy==2.4.6`,
-  `opencv-contrib-python`, and onnx 1.22.0 and onnxruntime 1.31.1 in `uv.lock`
-  ([ADR-4KW6](entries/4KW6-onnxruntime-1-31-for-the-cpu-check.md)). The exporters have
-  (read 2026-10-28 from the `pyproject.toml` and the lock of each exporter):
-  OpenMMLab-Exporter Python `>=3.14`, `numpy>=2.5.4`, `opencv-python-headless`, onnx 1.23.2,
-  `onnxruntime-gpu` 1.31.0; Roboflow-Exporter Python `>=3.14`, `numpy==2.5.4`, onnx 1.23.2,
-  onnxruntime 1.31.0; Ultralytics-Exporter Python `>=3.13`, `numpy==2.5.3`, onnx 1.22.0,
-  onnxruntime 1.30.0; Qualcomm-Exporter Python `>=3.12,<3.14`, `numpy>=2.0`, `opencv-python` in its
-  lock. uv cannot resolve the dependency in three of the four. In Qualcomm-Exporter,
-  `opencv-contrib-python` next to `opencv-python` puts two `cv2` builds in one folder. A consumer
-  does not get the `exclude-dependencies` of this repository.
-  [ADR-M2C6](entries/M2C6-exact-pins-and-one-python-patch-release.md) decides exact pins,
-  `onnxruntime` 1.31 as a base dependency with GPU EPs as CUDA 13 plugin packs, and
-  `requires-python = "==3.13.18"`. The exporters that agents build again use those pins. The OpenCV package (`opencv-contrib-python` or a headless package) is not decided. The
-  dependency stage of the implementation plan writes the pins. Until then, an exporter runs the batch
-  tool in the checkout environment.
+- **Dependency pins for the exporters.** [ADR-M2C6](entries/M2C6-exact-pins-and-one-python-patch-release.md)
+  decides exact pins, `onnxruntime` 1.31 as a base dependency with GPU EPs as CUDA 13 plugin packs,
+  and `requires-python = "==3.13.18"`. The exporters that agents build again pin the 2.0.0
+  pre-release (the draft exporter guide). On 2026-10-28, two exporters required Python 3.14 or later,
+  and uv could not resolve skellytracker in three of the four exporters. The OpenCV package
+  (`opencv-contrib-python` or a headless package) is not decided. The dependency stage of the
+  implementation plan writes the pins. Until then, an exporter runs the batch tool in the checkout
+  environment.
 - **Exporter open items.** At the 2.0.0 pre-release, remove the rows of
   `specs/draft/exporter-guide/sidecars/known-open-items.md` that name a reference implementation.
   They do not apply to a new exporter, and the skill `implement-sidecar-section` uses them until
