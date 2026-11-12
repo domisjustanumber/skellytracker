@@ -1,6 +1,6 @@
 # 3S5G — Spec change: affine-crop-matrix
 
-**Status:** absorbed into [`pre/resize-affine-person-crop.md#behaviour`](../../pre/resize-affine-person-crop.md#behaviour), 2026-11-09 (user; PR: pending).
+**Status:** absorbed into [`pre/resize-affine-person-crop.md#behaviour`](../../pre/resize-affine-crop.md#behaviour), 2026-11-09 (user; PR: pending).
 
 ## Decision
 
@@ -8,7 +8,7 @@ The user accepted the proposal on 2026-11-09. The record is
 [`proposal.md`](../../proposals/affine-crop-matrix/proposal.md)
 (proposal-affine-crop-matrix@openmmlab-exporter@v2).
 
-- Section: [`pre.resize.affine_person_crop`](../../pre/resize-affine-person-crop.md).
+- Section: [`pre.resize.affine_person_crop`](../../pre/resize-affine-crop.md).
 - Change: the Behaviour gives the warp matrix `M` in float32 steps, as mmpose v1.3.2 computes it.
   The box, the expand ratio, the centre, the crop size and the aspect ratio `a = f32(T_w / T_h)`
   are float32. `cv2.getAffineTransform` solves `M` from three float32 point pairs. With
@@ -89,3 +89,5 @@ The landing session must also do these items:
   (new 2026-11-09)
 - The "Driven by" cell of the changelog row of part 2.6 must give the user decision date and a
   link to this entry, as the recent rows do (editorial). (new 2026-11-09)
+
+_Edited 2026-11-12 (this PR): link repair._

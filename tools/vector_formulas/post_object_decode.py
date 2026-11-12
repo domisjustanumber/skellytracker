@@ -110,7 +110,7 @@ def unproject_clamp_and_filter(
     The `input-size-follows-resize` check of `post.unprojection` stops a bad case.
     A case without `resize` must not give the parameters of steps 3 to 5, and its `box_space` is
     only `pixel`. It still does step 6, the confidence threshold. A case with
-    `resize.method: affine_person_crop` stops, because a selection case gives no `bbox_xyxy`
+    `resize.method: affine_crop` stops, because a selection case gives no `bbox_xyxy`
     (ADR-0PK7).
     """
     if "resize" not in params:
@@ -121,9 +121,9 @@ def unproject_clamp_and_filter(
         if unused:
             defect(f"{', '.join(unused)} need resize: a case without resize stops before step 3")
         return kept
-    if params["resize"]["method"] == "affine_person_crop":
+    if params["resize"]["method"] == "affine_crop":
         # shortcut: no end-to-end selection case uses affine; add bbox_xyxy here when one does.
-        defect("an end-to-end selection case cannot use affine_person_crop: it needs bbox_xyxy")
+        defect("an end-to-end selection case cannot use affine_crop: it needs bbox_xyxy")
     box_params = {
         "scale": params.get("box_space", "pixel"),
         "input_size": params["input_size"],

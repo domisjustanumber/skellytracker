@@ -20,7 +20,7 @@ status: {spec: stable, validate: partial, decode: partial}
 
 ## Behaviour
 
-Decoded box and keypoint coordinates are always in the input image of the model, with a **top-left origin**. In this origin, `x` grows to the right and `y` grows down. The host unprojects the coordinates to the source image. A sidecar cannot override the origin. The pixel centres follow the resize method ([Pixel centres](../pre/interpolation.md#pixel-centres)). For `letterbox` and `stretch`, `x = 0` is the left edge of pixel 0. For `fit` and `affine_person_crop`, `x = 0` is the centre of pixel 0. No step of the unprojection adds or removes a `0.5` offset. The source coordinates keep the convention of the method. The host does not convert a box between the two conventions, also when an `affine_person_crop` model gets the box of a detector.
+Decoded box and keypoint coordinates are always in the input image of the model, with a **top-left origin**. In this origin, `x` grows to the right and `y` grows down. The host unprojects the coordinates to the source image. A sidecar cannot override the origin. The pixel centres follow the resize method ([Pixel centres](../pre/interpolation.md#pixel-centres)). For `letterbox` and `stretch`, `x = 0` is the left edge of pixel 0. For `fit` and `affine_crop`, `x = 0` is the centre of pixel 0. No step of the unprojection adds or removes a `0.5` offset. The source coordinates keep the convention of the method. The host does not convert a box between the two conventions, also when an `affine_crop` model gets the box of a detector.
 
 The host first converts the decoded coordinates to **model-input pixels**. The value of `box_space` or `coordinate_space` sets the conversion. Packed keypoints use `box_space` ([`packed_keypoints`](keypoint/bottom-up.md#packed_keypoints-bottom-up-packed-rows); [ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)):
 
@@ -33,7 +33,7 @@ Then the host maps the coordinates back to the source image. This list gives the
 - `stretch`: [Stretch resize](../pre/resize-stretch.md#inverse)
 - `fit`: [Fit resize](../pre/resize-fit.md#inverse)
 - `none`: [No resize](../pre/resize-none.md#inverse)
-- `affine_person_crop`: [Affine person crop](../pre/resize-affine-person-crop.md#inverse)
+- `affine_crop`: [Affine crop](../pre/resize-affine-crop.md#inverse)
 
 ## Implementer guidance
 
@@ -58,7 +58,7 @@ Then the host maps the coordinates back to the source image. This list gives the
   - The scale is `min(T_w / src_w, T_h / src_h)` without rounding. The pad is `(T - n) // 2`. This mirrors `denormalize_coordinates` of `qai_hub_models`, which also cuts the result to an integer. The letterbox inverse of the spec uses the rounded size. (Qualcomm-Exporter [`qai_datasets.py:152-181`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_datasets.py#L152-L181); `qai_hub_models` 0.64.0 `utils/image_processing.py:499-538`, installed, not in git)
   - Example: a 427x640 source in a 128x128 canvas gives `n_w = 85`, `left = 21` and a content right edge at canvas x 106. The Qualcomm-Exporter formula gives 425. The spec formula gives 427. (hand calculation)
   - The Qualcomm-Exporter test (100x50 into 64x64, exact sizes 64x32, pad `(0, 16)`) cannot tell the two formulas apart. (Qualcomm-Exporter [`tests/test_qai_datasets.py:55-64`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/tests/test_qai_datasets.py#L55-L64))
-- No exporter has an inverse for `fit`, `none` or `affine_person_crop`, or a keypoint unprojection.
+- No exporter has an inverse for `fit`, `none` or `affine_crop`, or a keypoint unprojection.
   - OpenMMLab-Exporter leaves the RTMW and RTMO decode to the consumer of the sidecar. (OpenMMLab-Exporter [`rtmw/README.md:35-37`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/ba0c0876b58650ed472559f1a77780e5da13d370/rtmw/README.md#L35-L37))
   - Its `NmsDecoder` raises an error for a `box_format` other than `xyxy` and for a `box_space` other than `pixel`. (OpenMMLab-Exporter [`onnx_runtime/decode_nms.py:108-116`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/d2e68d27d2da0a4f22ddd19449df5601dcac87cc/onnx_runtime/decode_nms.py#L108-L116))
 - The plans for the MediaPipe hand crops use a rotated crop with `cv2.getAffineTransform`, and they invert it with `cv2.invertAffineTransform(M)`.

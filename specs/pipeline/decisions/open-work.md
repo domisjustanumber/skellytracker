@@ -11,10 +11,12 @@ root [open-work.md](../../../decisions/open-work.md).
   `specs/pipeline/`, the landing skill `change-pipeline-spec`, and the `node.` mapping of
   `tools/intake_bundle.py` ([ADR-3SF2](../../../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md)
   item 7).
-- **Rotated crop.** A detector node crops an axis-aligned box. A crop of a rotated ROI waits for
-  the rotated-crop proposal of OpenMMLab-Exporter, the owner of `pre.resize.affine_person_crop`
-  ([Node: detector](../nodes/detector.md#behaviour)). Record its bundle when it arrives. The
-  decomposed MediaPipe example needs it.
+- **Crop border.** A detector node crops a rotated ROI with `affine_crop`
+  ([ADR-G3FA](../../model-sidecar/decisions/entries/G3FA-affine-crop-rotated-roi.md)). Its border is
+  constant. The MediaPipe hand chain fills the border with the edge pixels. That border mode waits
+  for a sidecar proposal (the spec defects of the
+  [sidecar open work](../../model-sidecar/decisions/open-work.md#spec-defects)). The decomposed
+  MediaPipe example needs it.
 - **Multi-person identity.** I > 1 is allowed everywhere. Without an `associate` node, a row has no
   identity across frames, and each `track_ids` value is -1
   ([Graph](../graph.md#behaviour) item 8;

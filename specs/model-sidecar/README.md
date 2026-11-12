@@ -83,7 +83,7 @@ These fields apply to every sidecar, regardless of `role`.
 | `pre.resize.stretch` | [pre/resize-stretch.md](pre/resize-stretch.md) | Stretch resize |
 | `pre.resize.fit` | [pre/resize-fit.md](pre/resize-fit.md) | Fit resize |
 | `pre.resize.none` | [pre/resize-none.md](pre/resize-none.md) | No resize |
-| `pre.resize.affine_person_crop` | [pre/resize-affine-person-crop.md](pre/resize-affine-person-crop.md) | Affine person crop |
+| `pre.resize.affine_crop` | [pre/resize-affine-crop.md](pre/resize-affine-crop.md) | Affine crop |
 | `pre.resize.interpolation` | [pre/interpolation.md](pre/interpolation.md) | Interpolation |
 | `pre.normalize` | [pre/normalization.md](pre/normalization.md) | Normalization |
 
@@ -135,7 +135,7 @@ A sidecar is valid when all of the following rules hold. Each rule applies to ev
 - [Stretch resize](pre/resize-stretch.md#validation-rules)
 - [Fit resize](pre/resize-fit.md#validation-rules)
 - [No resize](pre/resize-none.md#validation-rules)
-- [Affine person crop](pre/resize-affine-person-crop.md#validation-rules)
+- [Affine crop](pre/resize-affine-crop.md#validation-rules)
 - [Interpolation](pre/interpolation.md#validation-rules)
 - [Normalization](pre/normalization.md#validation-rules)
 - [Object outputs](post/object/outputs.md#validation-rules)

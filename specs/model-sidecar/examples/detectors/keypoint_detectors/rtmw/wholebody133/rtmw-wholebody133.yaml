@@ -138,7 +138,7 @@ input:
   color_format: rgb
   normalization: imagenet
   resize:
-    method: affine_person_crop
+    method: affine_crop
     interpolation: linear
     crop_policy:
       expand_ratio: 1.25

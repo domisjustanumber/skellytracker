@@ -25,12 +25,12 @@ No item is open. The item "Rebuild of each example" closed when the content comm
 Spec defects found during the spec-build stage. Each one needs a content change to the spec:
 
 - `cv2.warpAffine` runs `cv2.INTER_AREA` as `cv2.INTER_LINEAR` (OpenCV 4.13.0). `area` with `fit`
-  or `affine_person_crop` thus gives the pixels of `linear`. The
+  or `affine_crop` thus gives the pixels of `linear`. The
   [interpolation](../pre/interpolation.md#behaviour) table names `cv2.INTER_AREA` for `area`. No
   current model uses this pair ([ADR-G79P](entries/G79P-pixel-centres-per-resize-method.md)).
 - The spec does not state these facts, but a host needs them:
   - the host frame is BGR, and the host converts it to `input.color_format`;
-  - the arithmetic precision of the geometry (except the warp matrix `M` of `affine_person_crop`)
+  - the arithmetic precision of the geometry (except the warp matrix `M` of `affine_crop`)
     and of the pixel math. One case of [ADR-PHJ3](entries/PHJ3-resize-compute-dtype.md) is open: a
     fractional `pad_value` with `compute_dtype: uint8`. The `pre.normalize` reference computes in
     float64 and then casts to `float16`, but a host can compute in float32. Near a `float16`
@@ -53,19 +53,15 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   `qai_hub_models-0.64.0-py3-none-any.whl`, `qai_hub_models/utils/image_processing.py:327-328,
   499-538`; hand calculation)
 - The test vectors found these points that the spec does not define. Each vector file avoids them:
-  - the box format and the coordinate space of the person box that `affine_person_crop` warps;
   - the order of the final rows for `selection: none`. The YOLO26 graph gives its rows in descending
     score order, and ultralytics 8.4.184 keeps that order with no sort (`utils/nms.py:74-77`).
-- No resize method crops a rotated ROI (centre, size and rotation) that the host gives with no
-  detector box. `V-pre.resize.affine_person_crop-2` ties a top-down model to `affine_person_crop`. The `crop_policy` of that method
-  has only `expand_ratio` and `maintain_aspect_ratio`. The MediaPipe Holistic hand chain makes its
-  ROI from the wrist, pinky and index keypoints of a body pose. It moves the ROI along its own axis
-  (`shift_y` -0.1), makes it square (`square_long`), scales it (2.7, 1.0 or 2.0) and fills the
-  border with the edge pixels (MediaPipe-Exporter [`docs/mediapipe-whole-body.md:79-88`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L79-L88), [`docs/mediapipe-whole-body.md:381-399`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L381-L399)).
+- `affine_crop` fills the border with a constant. The MediaPipe Holistic hand chain fills the
+  border with the edge pixels. It makes its ROI from the wrist, pinky and index keypoints of a body
+  pose (MediaPipe-Exporter [`docs/mediapipe-whole-body.md:79-88`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L79-L88), [`docs/mediapipe-whole-body.md:381-399`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L381-L399)).
   Qualcomm-Exporter writes `affine_person_crop` with `expand_ratio: 1.0` as an approximation
   ([`qai_sidecar.py:270-276`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_sidecar.py#L270-L276), [`README.md:129-133`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/README.md#L129-L133)).
-  ([Keypoint schema](../post/keypoint/schema.md#validation-rules),
-  [`affine_person_crop`](../pre/resize-affine-person-crop.md#validation-rules))
+  ([Affine crop](../pre/resize-affine-crop.md#behaviour);
+  [ADR-G3FA](entries/G3FA-affine-crop-rotated-roi.md))
 - The MediaPipe hand landmark model has four outputs: 21 landmarks, a hand flag, a handedness score
   and 21 world landmarks in metres (MediaPipe-Exporter [`docs/mediapipe-whole-body.md:199`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L199), [`docs/mediapipe-whole-body.md:147-151`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L147-L151)). The closed
   `semantic` set of [Outputs](../common/outputs.md#fields) and `V-post.keypoint.schema-7` (one
@@ -91,4 +87,4 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   -90 degrees, then `shift_y` -0.1, `square_long` and scale 1.0. The input ROI of the model comes from
   keypoints of the parent pose model (MediaPipe-Exporter [`docs/mediapipe-whole-body.md:200`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L200), [`docs/mediapipe-whole-body.md:381-394`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L381-L394)).
   A pose estimator with two points describes the tensor, but then a host reads the points as
-  keypoints. This gap depends on the rotated ROI gap above.
+  keypoints. `affine_crop` crops such a rotated ROI. The border item above still applies.

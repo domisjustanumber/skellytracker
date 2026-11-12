@@ -1,14 +1,15 @@
 # G3FA — Spec change: affine-crop-rotated-roi
 
-**Status:** proposed, 2026-11-12 (proposal-affine-crop-rotated-roi@openmmlab-exporter@v1); recorded again 2026-11-12 (proposal-affine-crop-rotated-roi@openmmlab-exporter@v2).
+**Status:** accepted, 2026-11-12 (user; PR: pending); proposed 2026-11-12 (proposal-affine-crop-rotated-roi@openmmlab-exporter@v1); recorded again 2026-11-12 (proposal-affine-crop-rotated-roi@openmmlab-exporter@v2).
 
 ## Decision
 
-**Proposed, not decided.** The record is
-[`proposal.md`](../../proposals/affine-crop-rotated-roi/proposal.md).
+The user accepted the proposal on 2026-11-12: proposal bundle version 2 met the conditional
+acceptance. The record is [`proposal.md`](../../proposals/affine-crop-rotated-roi/proposal.md)
+(proposal-affine-crop-rotated-roi@openmmlab-exporter@v2).
 
-- Section: [`pre.resize.affine_person_crop`](../../pre/resize-affine-person-crop.md), which
-  becomes `pre.resize.affine_crop` in the file `pre/resize-affine-crop.md`.
+- Section: [`pre.resize.affine_crop`](../../pre/resize-affine-crop.md). It was
+  `pre.resize.affine_person_crop` in the file `pre/resize-affine-person-crop.md`.
 - Change: the affine crop takes an ROI `(c_x, c_y, w, h, rotation)` in source-image pixels. A box
   `[x1, y1, x2, y2]` gives the ROI with rotation 0, in float32. `crop_policy` grows the ROI along
   its own axes. The second warp point, and for `maintain_aspect_ratio: false` the third, turn with
@@ -17,6 +18,17 @@
   `affine_crop`. The section ID, the rule IDs, the vector file and the reference module follow,
   with no alias. A non-finite ROI or an empty crop is refused. The box format and the coordinate
   space of the warped box become defined.
+- The user confirmed these plan decisions on 2026-11-12:
+  - the affine crop takes each ROI `(c_x, c_y, w, h, rotation)` in source-image pixels; a box is an
+    ROI with rotation 0;
+  - the rotation convention is that of the pipeline spec: radians in `[-π, π)`, a positive rotation
+    turns the ROI clockwise in the image, the ROI x axis is `(cos r, sin r)` and the ROI y axis is
+    `(-sin r, cos r)`;
+  - the section file becomes `pre/resize-affine-crop.md`;
+  - the pipeline makes the ROI first; then, right before the warp, the detector node applies
+    `crop_policy`, and the two growth factors multiply;
+  - the method value, the section ID and the rule IDs follow the new file name (`affine_crop`,
+    `pre.resize.affine_crop`).
 - Target spec version: `2.0.0`.
 - Models: none of OpenMMLab-Exporter needs a rotation. The pipeline spec needs it for the
   MediaPipe Holistic hand chain. The rtmw example changes by a forced edit of the method value.
@@ -54,29 +66,10 @@ reference of G4 uses the inverse of `M`.
 
 [open-work.md](../open-work.md)
 
-## Before acceptance
+## Notes at acceptance
 
-User decision 2026-11-12: accept when proposal bundle version 2 closes the parity item: the script
-`decisions/scripts/affine_crop_rotated_check.py` of OpenMMLab-Exporter is committed and run, and its
-pass gates G1, G2 and G3 pass. The user confirmed the plan decisions (a) to (d) and the choice of
-the proposal below. The user approved the copy of `reference/pre_resize_affine_crop.py` of version 1
-(SHA-256 `d6a5dc294908963a1ee7486a50b59c656a851ef1d262f12e3ad77da7a30e686a`). A file of version 2
-with another SHA-256 needs a new review and a new approval.
-
-The plan decisions of part 1, which the user confirmed on 2026-11-12:
-
-- (a) the affine crop takes each ROI `(c_x, c_y, w, h, rotation)` in source-image pixels; a box is
-  an ROI with rotation 0;
-- (b) the rotation convention of the pipeline spec: radians in `[-π, π)`, positive turns the ROI
-  clockwise in the image, ROI x axis `(cos r, sin r)`, ROI y axis `(-sin r, cos r)`;
-- (c) the section file becomes `pre/resize-affine-crop.md`;
-- (d) the pipeline makes the ROI first, then the detector node applies `crop_policy` right before
-  the warp, and the two growth factors multiply;
-- the choice of the proposal: the method value, the section ID and the rule IDs follow the new file
-  name (`affine_crop`, `pre.resize.affine_crop`).
-
-Proposal bundle version 2 closes the parity item and meets the condition. Its reference file has the
-approved SHA-256. Open after the landing:
+The user approved the copy of `reference/pre_resize_affine_crop.py` (SHA-256
+`d6a5dc294908963a1ee7486a50b59c656a851ef1d262f12e3ad77da7a30e686a`). Version 2 has the same file.
 
 - [ ] The border mode with edge pixels of the MediaPipe hand chain stays a spec defect. It is not
   in this proposal.

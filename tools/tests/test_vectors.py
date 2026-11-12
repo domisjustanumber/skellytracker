@@ -735,7 +735,7 @@ def test_the_generator_stops_on_a_file_that_breaks_the_form() -> None:
 LETTERBOX = {"target_size": [640, 640], "pad_position": "center", "rounding": "half_even"}
 CENTER = {"method": "letterbox", **LETTERBOX}
 AFFINE = {
-    "method": "affine_person_crop",
+    "method": "affine_crop",
     "target_size": [256, 192],
     "expand_ratio": 1.0,
     "maintain_aspect_ratio": True,
@@ -789,7 +789,7 @@ BROKEN_CLAIMS = [
         {"src_w": 640, "src_h": 640},
     ),
     (
-        "pre.resize.affine_person_crop",
+        "pre.resize.affine_crop",
         "pixel-0-0-outside-source",
         AFFINE,
         {"src_w": 640, "src_h": 480, "bbox_xyxy": [100, 100, 300, 400]},
@@ -905,10 +905,10 @@ def test_an_end_to_end_selection_case_cannot_use_the_affine_crop() -> None:
         "score_threshold": 0.05,
         "classes": ["person"],
         "input_size": [8, 8],
-        "resize": {"method": "affine_person_crop"},
+        "resize": {"method": "affine_crop"},
     }
     inp = {"src_w": 8, "src_h": 8, "boxes": [[0, 0, 8, 8]], "scores": [0.9]}
-    with pytest.raises(CaseDefect, match="affine_person_crop"):
+    with pytest.raises(CaseDefect, match="affine_crop"):
         mv.post_object_selection_nms.run(params, inp)
 
 
@@ -986,7 +986,7 @@ ANCHORS: dict[str, list[tuple[str, tuple[str | int, ...], Any]]] = {
         ("unproject-in-the-padding-inverse", ("expect", "source_xy"), [0, -420]),
         ("one-pixel-wide-source", ("expect", "left"), 316.8),
     ],
-    "pre.resize.affine_person_crop": [
+    "pre.resize.affine_crop": [
         ("tall-box-grows-width", ("expect", "center"), [200, 250]),
         ("tall-box-grows-width", ("expect", "crop_w"), 375),
         ("tall-box-grows-width", ("expect", "crop_h"), 500),
@@ -1368,7 +1368,7 @@ UNPROJECTION_SECTIONS = [
     "pre.resize.letterbox",
     "pre.resize.stretch",
     "pre.resize.fit",
-    "pre.resize.affine_person_crop",
+    "pre.resize.affine_crop",
 ]
 
 
@@ -1379,7 +1379,7 @@ UNPROJECTION_SECTIONS = [
         for section in UNPROJECTION_SECTIONS
         for param in forward_params(section)
         # Some affine crop cases have no `<id>-inverse` case; each other forward case must have one.
-        if section != "pre.resize.affine_person_crop"
+        if section != "pre.resize.affine_crop"
         or any(other["id"] == f"{param.id}-inverse" for other in cases_of(section))
     ],
 )
@@ -1435,7 +1435,7 @@ def forward_matrix(case: dict[str, Any]) -> np.ndarray:
     if method == "none":
         return np.array([[1, 0, 0], [0, 1, 0]], dtype=float)
     t_h, t_w = resize["target_size"]
-    if method == "affine_person_crop":
+    if method == "affine_crop":
         x1, y1, x2, y2 = case["input"]["bbox_xyxy"]
         width = (x2 - x1) * resize["expand_ratio"]
         height = (y2 - y1) * resize["expand_ratio"]
@@ -1571,7 +1571,7 @@ def test_the_unprojection_cases_cover_every_scale_method_and_clamp_setting() -> 
         "stretch",
         "fit",
         "none",
-        "affine_person_crop",
+        "affine_crop",
     }
     boxes = [c for c in cases if "decoded_xyxy" in c["input"]]
     assert {c["params"].get("clamp_boxes") for c in boxes} == {None, True, False}

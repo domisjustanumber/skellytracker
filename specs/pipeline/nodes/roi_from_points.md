@@ -11,8 +11,7 @@ status: {spec: draft}
 > This section is a draft. Its fields and rules can change before the section becomes `stable`.
 
 The node `roi_from_points` makes one ROI from the keypoints of each present instance row. A later
-detector node crops each ROI. A crop of a rotated ROI waits for the rotated-crop proposal of
-OpenMMLab-Exporter ([Node: detector](detector.md#behaviour)). The node uses the MediaPipe rect rules: a rotation from two points, a
+detector node crops each ROI with its rotation ([Node: detector](detector.md#behaviour)). The node uses the MediaPipe rect rules: a rotation from two points, a
 box around the points or a box from the alignment points, and then one rect transformation
 ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6). It takes the
 place of `keypoint_bbox` in a pipeline, but it does not reproduce `keypoint_bbox`

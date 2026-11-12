@@ -10,10 +10,10 @@
 2. **Where the rule goes.** The `pad_value` row of
    [`input.resize`](../../specs/model-sidecar/common/input.md#inputresize) and the
    `crop_policy.pad_value` row of
-   [`affine_person_crop`](../../specs/model-sidecar/pre/resize-affine-person-crop.md#fields) state
+   [`affine_person_crop`](../../specs/model-sidecar/pre/resize-affine-crop.md#fields) state
    item 1.
 3. **The pseudocode.** The [`fit`](../../specs/model-sidecar/pre/resize-fit.md#behaviour) and
-   [`affine_person_crop`](../../specs/model-sidecar/pre/resize-affine-person-crop.md#behaviour)
+   [`affine_person_crop`](../../specs/model-sidecar/pre/resize-affine-crop.md#behaviour)
    pseudocode expands the value to one value for each channel, `border`, before `warpAffine`.
    `borderValue` is `border`, not the raw `pad_value`. The `letterbox` pseudocode stays the same:
    `full((T_h, T_w, 3), pad_value)` already fills each channel.
@@ -85,3 +85,5 @@
 ## Open work
 
 See [open-work.md](../open-work.md).
+
+_Edited 2026-11-12 (this PR): link repair._

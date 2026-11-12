@@ -15,6 +15,7 @@ These entries are `accepted` or `evidence`.
 
 | # | Decision | Status |
 |---|----------|--------|
+| [G3FA](entries/G3FA-affine-crop-rotated-roi.md) | Spec change: the affine crop takes an ROI with a rotation; `affine_person_crop` becomes `affine_crop` | accepted |
 
 ### Proposed
 
@@ -24,7 +25,6 @@ proposals of a section here.
 
 | # | Decision | Section | Status |
 |---|----------|---------|--------|
-| [G3FA](entries/G3FA-affine-crop-rotated-roi.md) | Spec change: the affine crop takes an ROI with a rotation; `affine_person_crop` becomes `affine_crop` | `pre.resize.affine_crop` | proposed |
 
 The entries that are `rejected`, `superseded by XXXX`, `absorbed into <path>#<anchor>`,
 `evidence; used by XXXX` or `done` are in [historical.md](historical.md).

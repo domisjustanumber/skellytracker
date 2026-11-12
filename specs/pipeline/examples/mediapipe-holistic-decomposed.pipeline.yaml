@@ -2,8 +2,7 @@
 # glue nodes: redetect, a pose detector, an ROI from the points of the previous frame (@prev),
 # first_of, smooth_roi, roi_tracking, gate and smooth_keypoints. Both hands run from frame 0: an
 # empty optional input (`previous_keypoints` of roi_tracking on frame 0) does not stop a node.
-# The model keys and sizes wait for the sidecar proposals of MediaPipe-Exporter. A rotated ROI
-# into a detector node waits for the rotated-crop proposal of OpenMMLab-Exporter.
+# The model keys and sizes wait for the sidecar proposals of MediaPipe-Exporter.
 schema_version: "2.0.0"
 pipeline_id: mediapipe-holistic-decomposed
 source: {name: skellytracker, version: "2.0.0"}

@@ -15,7 +15,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-import pre_resize_affine_person_crop
+import pre_resize_affine_crop
 import pre_resize_fit
 import pre_resize_letterbox
 import pre_resize_stretch
@@ -26,7 +26,7 @@ INVERSE = {
     "letterbox": pre_resize_letterbox.inverse,
     "stretch": pre_resize_stretch.inverse,
     "fit": pre_resize_fit.inverse,
-    "affine_person_crop": pre_resize_affine_person_crop.inverse,
+    "affine_crop": pre_resize_affine_crop.inverse,
 }
 
 
@@ -120,7 +120,7 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
 def _input_size_follows_resize(run: Callable[..., Any], params: Any, input: Any, expect: Any) -> None:
     """`input_size` is the target size of the resize, or the source size for method none."""
     resize = params["resize"]
-    if resize["method"] == "affine_person_crop":
+    if resize["method"] == "affine_crop":
         if "bbox_xyxy" not in input or "src_w" in input or "src_h" in input:
             defect("an affine case gives a box only")
         if params["input_size"] != resize["target_size"]:

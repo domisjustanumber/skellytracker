@@ -6,7 +6,7 @@ selectors:
   - input.resize.method=letterbox
   - input.resize.method=stretch
   - input.resize.method=fit
-  - input.resize.method=affine_person_crop
+  - input.resize.method=affine_crop
 implemented_by:
   validate: skellytracker/core/sidecar/model.py::ResizeSpec  # partial. ResizeSpec has no compute_dtype field. Its extra="forbid" rejects each value, also uint8 and float32. It does not check V-pre.resize.interpolation-1.
   forward: skellytracker/core/detectors/processing/image_preprocessing.py::preprocess_image  # partial. The affine_person_crop branch ignores interpolation. top_down_affine always uses cv2.INTER_LINEAR. Each branch resizes the uint8 frame and ignores compute_dtype.
@@ -24,8 +24,8 @@ status: {spec: stable, validate: partial, forward: partial}
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `interpolation` | enum | no | This is the resize filter that the host uses. The default is `linear`. This field applies to `letterbox`, `stretch`, `fit` and `affine_person_crop`. |
-| `compute_dtype` | enum | no | This is the dtype in which the host resizes and pads the image: `uint8` or `float32`. The default is `uint8`. This field applies to `letterbox`, `stretch`, `fit` and `affine_person_crop`. [Compute dtype](#compute-dtype) gives the behaviour ([ADR-PHJ3](../decisions/entries/PHJ3-resize-compute-dtype.md)). |
+| `interpolation` | enum | no | This is the resize filter that the host uses. The default is `linear`. This field applies to `letterbox`, `stretch`, `fit` and `affine_crop`. |
+| `compute_dtype` | enum | no | This is the dtype in which the host resizes and pads the image: `uint8` or `float32`. The default is `uint8`. This field applies to `letterbox`, `stretch`, `fit` and `affine_crop`. [Compute dtype](#compute-dtype) gives the behaviour ([ADR-PHJ3](../decisions/entries/PHJ3-resize-compute-dtype.md)). |
 
 `interpolation` and `compute_dtype` are fields of [`input.resize`](../common/input.md#inputresize).
 
@@ -49,7 +49,7 @@ Each resize method that resizes the image uses the pixel-centre convention of on
 | Method | Call | Coordinate | Centre of pixel `i` |
 |--------|------|------------|---------------------|
 | `letterbox`, `stretch` | `cv2.resize` | A position on the image plane. Pixel `i` covers `[i, i + 1)`. | `i + 0.5` |
-| `fit`, `affine_person_crop` | `cv2.warpAffine` | A pixel index. The destination pixel `(x, y)` samples the source at `M^-1 · (x, y, 1)`. | `i` |
+| `fit`, `affine_crop` | `cv2.warpAffine` | A pixel index. The destination pixel `(x, y)` samples the source at `M^-1 · (x, y, 1)`. | `i` |
 
 `cv2.resize` samples at half-pixel centres for `linear`, `cubic` and `area`. With `cv2.resize`, `nearest` (`cv2.INTER_NEAREST`) gives the destination pixel `x` the source pixel `floor(x * src_n / dst_n)`. This is not a half-pixel rule. The coordinate convention of the table does not change.
 

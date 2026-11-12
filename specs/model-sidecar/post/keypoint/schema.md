@@ -31,7 +31,7 @@ The `keypoint` block is required when `role` includes `keypoint_detector`. It de
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `keypoint.estimator_type` | enum | yes | The value is `top_down_single_person`, `top_down_multi_person` or `bottom_up`. A top-down model sees one person in each crop (single-person outputs). The host makes each crop with `affine_person_crop` from a box or an ROI of an upstream node. A bottom-up model emits all persons in one pass (for example RTMO or YOLO26-pose). |
+| `keypoint.estimator_type` | enum | yes | The value is `top_down_single_person`, `top_down_multi_person` or `bottom_up`. A top-down model sees one person in each crop (single-person outputs). The host makes each crop with `affine_crop` from a box or an ROI of an upstream node. A bottom-up model emits all persons in one pass (for example RTMO or YOLO26-pose). |
 | `keypoint.geometry` | enum | yes | The output kind of the family: `2d` or `3d`. A catalog can filter models by it. With `3d`, the model emits a third coordinate, the root-relative depth in `keypoint.decode.depth_unit`. Its form is one of these: `(B, P, 3)` keypoints (`coordinate`), an `instance_keypoints` tensor `(B, I, P, 4)` or a `z` packed component (bottom-up `coordinate`). |
 | `keypoint.landmark_schema` | string | no | The keypoint convention that the model uses (for example `COCO_WholeBody`, `COCO17`, `MediaPipe_Hand`, `MediaPipe_Pose`, `LaPa_106`). |
 | `keypoint.point_names` | array[string] or `$ref` | yes | The ordered list of keypoint names that the model outputs. The i-th name is the i-th model output index. |
@@ -127,7 +127,7 @@ Each decode method gives a score for each keypoint. Each decode method states th
 - [ ] `V-post.keypoint.schema-8` If the author sets `keypoint_count` on a keypoint output, it must equal `len(keypoint.point_names)`.
 - [ ] `V-post.keypoint.schema-9` `keypoint.geometry` must be `2d` or `3d`. When it is `3d`, `keypoint.decode.depth_unit` must be present and must be one of `m`, `mm` or `pixel`. `depth_unit` must not be present unless `keypoint.geometry: 3d` ([ADR-90CE](../../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 
-See also [Affine person crop](../../pre/resize-affine-person-crop.md#validation-rules), [Canonical mapping](canonical-mapping.md#validation-rules) and [Bottom-up keypoints](bottom-up.md#validation-rules).
+See also [Affine crop](../../pre/resize-affine-crop.md#validation-rules), [Canonical mapping](canonical-mapping.md#validation-rules) and [Bottom-up keypoints](bottom-up.md#validation-rules).
 
 ## Implementer guidance
 
@@ -145,7 +145,7 @@ See also [Affine person crop](../../pre/resize-affine-person-crop.md#validation-
 - MediaPipe landmark models (historical code of Qualcomm-Exporter): `role` is `[keypoint_detector]` and `estimator_type` is `top_down_single_person`. `landmark_schema` is `MediaPipe_FaceMesh` or `MediaPipe_Hand`. The one output is `{name: landmarks, semantic: keypoint_coordinates, keypoint_axis: 1, keypoint_count: 468 or 21, shape [B, P, 3]}`. (Qualcomm-Exporter [`qai_sidecar.py:230-262`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_sidecar.py#L230-L262) (face); `qai_sidecar.py:270-310`, commit a095041a5e9450df18637596fbaf6409f79e9fc6 on no branch (secondary) (hand and face))
 - The `point_names` of the MediaPipe models came from constants of the exporter: 21 hand names from `wrist` to `pinky_tip` in landmark index order, and `face_0000` to `face_0467`. The `skeletons` came from the upstream index pairs (`HAND_LANDMARK_CONNECTIONS`, `FACE_LANDMARK_CONNECTIONS`), converted to name pairs, as one skeleton `<family>_skeleton`. (Qualcomm-Exporter `qai_sidecar.py:15-39, 130-180`, commit a095041a5e9450df18637596fbaf6409f79e9fc6 on no branch (secondary) (hand and face); [`qai_sidecar.py:15`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_sidecar.py#L15), [`qai_sidecar.py:97-137`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_sidecar.py#L97-L137) (face))
 - The landmark wrapper of Qualcomm-Exporter keeps only `out[-1]`, the landmarks tensor. The ONNX file thus has no output for a face flag, a hand flag or a handedness, and a host cannot gate on presence. The output semantics of the spec are a closed set with no presence score and no handedness ([Outputs](../../common/outputs.md#fields)). (Qualcomm-Exporter [`qai_catalog.py:336-361`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_catalog.py#L336-L361))
-- The MediaPipe hand landmark model is top-down, but its crop does not come from a detector box. The pipeline builds a rotated ROI from the wrist, index and pinky keypoints of a body pose. The spec ties `top_down_*` to `affine_person_crop` (V-pre.resize.affine_person_crop-2). (the untracked hand pipeline plan of MediaPipe-Exporter (secondary))
+- The MediaPipe hand landmark model is top-down, but its crop does not come from a detector box. The pipeline builds a rotated ROI from the wrist, index and pinky keypoints of a body pose. `affine_crop` crops that ROI. The border of its crop is constant. (the untracked hand pipeline plan of MediaPipe-Exporter (secondary))
 
 ## Examples
 

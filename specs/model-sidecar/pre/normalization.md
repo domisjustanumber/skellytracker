@@ -49,7 +49,7 @@ with `none` and with an 8-bit resize (`V-pre.normalize-3`), so its cast keeps ea
 
 The `imagenet` statistics are the ImageNet statistics `0.485/0.456/0.406` and `0.229/0.224/0.225` × 255, in R, G, B order. With `color_format: bgr`, the tensor order is B, G, R, and B uses mean `103.53` / std `57.375`. One mode replaces the modes `imagenet_bgr` and `imagenet_rgb` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 
-The host applies normalization after the resize. For `affine_person_crop`, it applies normalization after the affine warp. For `method: none`, it applies normalization directly on the source image.
+The host applies normalization after the resize. For `affine_crop`, it applies normalization after the affine warp. For `method: none`, it applies normalization directly on the source image.
 
 `input.color_format` must be present for each mode. It gives the channel order of the tensor. There is no default ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 

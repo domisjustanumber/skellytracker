@@ -37,19 +37,19 @@ status: {spec: stable, validate: partial, load: partial}
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `method` | enum | yes | The value is one of the following. `letterbox` is a resize that keeps the aspect ratio, plus a pad. `stretch` is an independent x/y resize with no pad. `fit` is a full-frame affine fit that centres the image with fractional padding. `affine_person_crop` is for top-down pose. `none` passes the source image unchanged, with no resize. |
+| `method` | enum | yes | The value is one of the following. `letterbox` is a resize that keeps the aspect ratio, plus a pad. `stretch` is an independent x/y resize with no pad. `fit` is a full-frame affine fit that centres the image with fractional padding. `affine_crop` is the top-down crop of an ROI. `none` passes the source image unchanged, with no resize. |
 | `target_size` | array[2] | conditional | `[height, width]` that the host resizes the input to. A sidecar declares it in `sizes.<size>.input.resize.target_size`. The section of each `method` tells if it is present ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). |
 | `pad_value` | int, float, or array[3] | conditional | It is a raw pixel value (before normalization). An array gives one value for each channel, in the order of `input.color_format`. A scalar `s` gives the same value to each channel: it means `[s, s, s]` ([ADR-BJF9](../../../decisions/entries/BJF9-scalar-pad-value-fills-every-channel.md)). For `letterbox`, the default is `114`. The section of each `method` tells if it is present ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). |
 
-Method-specific fields: [`pad_position`, `rounding`](../pre/resize-letterbox.md#fields), [`interpolation`, `compute_dtype`](../pre/interpolation.md#fields), [`crop_policy`](../pre/resize-affine-person-crop.md#fields).
+Method-specific fields: [`pad_position`, `rounding`](../pre/resize-letterbox.md#fields), [`interpolation`, `compute_dtype`](../pre/interpolation.md#fields), [`crop_policy`](../pre/resize-affine-crop.md#fields).
 
-Each `method` has its own section: [`letterbox`](../pre/resize-letterbox.md), [`stretch`](../pre/resize-stretch.md), [`fit`](../pre/resize-fit.md), [`affine_person_crop`](../pre/resize-affine-person-crop.md), [`none`](../pre/resize-none.md).
+Each `method` has its own section: [`letterbox`](../pre/resize-letterbox.md), [`stretch`](../pre/resize-stretch.md), [`fit`](../pre/resize-fit.md), [`affine_crop`](../pre/resize-affine-crop.md), [`none`](../pre/resize-none.md).
 
 ## Validation rules
 
 - [ ] `V-common.input-1` If `input.resize.target_size` is present, it must be an array `[height, width]` of length 2.
 - [ ] `V-common.input-2` `input.dtype` must be present. Its keys must be precision keys ([V-common.sizes_and_artifacts-6](sizes-and-artifacts.md#validation-rules)). The keys must cover the precisions that `precision_artifacts` declares ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). Its values must be `float32`, `float16` or `uint8` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md); [ADR-XH1J](../decisions/entries/XH1J-normalize-input-dtype.md)).
-- [ ] `V-common.input-3` `input.resize.method` must be `letterbox`, `stretch`, `fit`, `affine_person_crop` or `none` ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)). `input.resize.interpolation` must be `linear`, `area`, `cubic` or `nearest`.
+- [ ] `V-common.input-3` `input.resize.method` must be `letterbox`, `stretch`, `fit`, `affine_crop` or `none` ([ADR-0QKK](../../../decisions/entries/0QKK-no-legacy-layer.md)). `input.resize.interpolation` must be `linear`, `area`, `cubic` or `nearest`.
 - [ ] `V-common.input-4` If `pad_value` or `crop_policy.pad_value` is present, it must be a number or an array of numbers with length 3.
 - [ ] `V-common.input-5` The value of `input.color_format` must be `rgb` or `bgr`. [V-pre.normalize-1](../pre/normalization.md#validation-rules) makes it required ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 

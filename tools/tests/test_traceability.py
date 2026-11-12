@@ -327,13 +327,14 @@ MERGED_IMAGENET_MODES = {"imagenet_bgr", "imagenet_rgb"}
 # model.py drops them.
 REMOVED_VALUES = {"heatmap", "simcc_z"}
 
-# shortcut: the frozen model.py keeps the names from before ADR-88WQ, so the check maps them to the
+# shortcut: the frozen model.py keeps the names from before ADR-88WQ and ADR-G3FA, so the check maps them to the
 # new names; delete this at stage M8 of the implementation plan, when model.py has the new names.
 RENAMED_VALUES = {
     "pose_estimator": "keypoint_detector",
     "detections": "packed_detections",
     "keypoints": "keypoint_coordinates",
     "poses": "instance_keypoints",
+    "affine_person_crop": "affine_crop",
 }
 
 
@@ -346,7 +347,7 @@ def literal_cases() -> list[tuple[str, list[str], set[str]]]:
     return [
         (
             "ResizeSpec.method",
-            field_values(tree, "ResizeSpec", "method"),
+            renamed(field_values(tree, "ResizeSpec", "method")),
             selector_values("input.resize.method"),
         ),
         (
@@ -644,7 +645,7 @@ def test_every_sidecar_matches_a_resize_section() -> None:
         "pre.resize.stretch",
         "pre.resize.fit",
         "pre.resize.none",
-        "pre.resize.affine_person_crop",
+        "pre.resize.affine_crop",
     }
     for sidecar in scan().sidecars:
         hits = {sid for sid in resize if sidecar.key in applicability()[sid]}

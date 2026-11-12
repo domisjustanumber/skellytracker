@@ -67,10 +67,10 @@ A `detector` node runs one ONNX model. It does the preprocessing, the inference 
 - A top-down keypoint model runs once for each present row of its `rois` input. Row `i` of `keypoints` belongs to row `i` of `rois`. A row that is not present gives a keypoint row that is not present ([ADR-99MH](../../../decisions/entries/99MH-pipeline-outputs-and-running.md) item 1).
 - **Crop.** Only the detector node cuts pixels, always from `frame.image` ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 8). The steps are in this order:
   1. The glue nodes make the ROI. The ROI rules of `roi_from_points` apply the shift, then the square, then `expand_ratio` ([ROI from points](roi_from_points.md#behaviour) step 9).
-  2. Right before the warp, the detector node applies the padding and the aspect fix of the crop of its sidecar ([Affine person crop](../../model-sidecar/pre/resize-affine-person-crop.md#behaviour): `crop_policy.expand_ratio` and `crop_policy.maintain_aspect_ratio`).
+  2. Right before the warp, the detector node applies the padding and the aspect fix of the crop of its sidecar ([Affine crop](../../model-sidecar/pre/resize-affine-crop.md#behaviour): `crop_policy.expand_ratio` and `crop_policy.maintain_aspect_ratio`).
 
   Two growth factors multiply. For example, an ROI with `expand_ratio: 1.2` and a sidecar `crop_policy.expand_ratio` of 1.25 give a crop 1.5 times the size of the points box.
-- **Rotated ROI.** The sidecar crop takes an axis-aligned box. A crop of an ROI with a rotation that is not 0 waits for the rotated-crop proposal of OpenMMLab-Exporter ([open work](../decisions/open-work.md)).
+- **Rotated ROI.** The sidecar crop takes the ROI with its rotation ([Affine crop](../../model-sidecar/pre/resize-affine-crop.md#behaviour)). A box is an ROI with rotation 0.
 - **Batch.** A top-down keypoint model batches its crops: k × the camera count × the `I` of the instance source of its `rois` input ([Running](../running.md#behaviour) item 3).
 - NMS is a part of the postprocessing of the model. The sidecar section [`post.object.selection.nms`](../../model-sidecar/post/object/selection-nms.md#behaviour) defines it ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 9).
 - The timing points are `preprocess`, `inference` and `postprocess` ([ADR-Q59W](../../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 1).

@@ -225,7 +225,7 @@ cases:
       scale: pixel
       input_size: [256, 192]
       resize:
-        method: affine_person_crop
+        method: affine_crop
         target_size: [256, 192]
         expand_ratio: 1
         maintain_aspect_ratio: true
@@ -239,7 +239,7 @@ cases:
       scale: normalized_11
       input_size: [256, 192]
       resize:
-        method: affine_person_crop
+        method: affine_crop
         target_size: [256, 192]
         expand_ratio: 1
         maintain_aspect_ratio: true

@@ -46,6 +46,7 @@ examples:
       - "spec change 88WQ: the role value, the key of the keypoint block and its keys of the point names and the skeletons are renamed as the old-to-new map of changelog row 46 gives"
       - "spec change 88WQ: the top-level overlay block moves into the keypoint block, with its groups renamed to parts, the edge list of each part renamed to edges, and the color and thickness keys of each part renamed to edge_color and edge_thickness"
       - "spec change GKD1: the keypoint key that said whether the model needs a detector is removed"
+      - "spec change G3FA: the resize method value is renamed as changelog row 48 gives"
     notes: >-
       A byte copy of the sidecar that the exporter writer code wrote for the hand-over bundle. The
       exporter turns off its sidecar output until the verdict describes, so exporter_path does not

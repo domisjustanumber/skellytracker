@@ -20,7 +20,7 @@ The module has one function for each part of the section:
 - pixel_centre: the pixel-centre convention of the OpenCV call of each resize method.
 - failed_rules: the validation rule V-pre.resize.interpolation-1.
 
-The resize methods (letterbox, stretch, fit, affine_person_crop) make the OpenCV call. Their
+The resize methods (letterbox, stretch, fit, affine_crop) make the OpenCV call. Their
 modules call these functions. This module does not resize an image.
 """
 
@@ -51,7 +51,7 @@ RESIZE_CALLS = {
     "letterbox": "cv2.resize",
     "stretch": "cv2.resize",
     "fit": "cv2.warpAffine",
-    "affine_person_crop": "cv2.warpAffine",
+    "affine_crop": "cv2.warpAffine",
 }
 PIXEL_CENTRE_OFFSETS = {"cv2.resize": 0.5, "cv2.warpAffine": 0.0}
 
@@ -103,7 +103,7 @@ def pixel_centre(method: str, index: float) -> float:
 
     Section pre.resize.interpolation, heading "Pixel centres" (decision G79P). ``letterbox`` and
     ``stretch`` call ``cv2.resize``: pixel i covers [i, i + 1) and its centre is i + 0.5.
-    ``fit`` and ``affine_person_crop`` call ``cv2.warpAffine``: the coordinate is the pixel index
+    ``fit`` and ``affine_crop`` call ``cv2.warpAffine``: the coordinate is the pixel index
     and the centre of pixel i is i. ``none`` makes no resize call, so it gives a ValueError.
     No step adds or removes a 0.5 offset between the forward step and the Inverse.
     Source: the OpenCV calls of OpenMMLab-Exporter onnx_runtime/preprocess.py::letterbox

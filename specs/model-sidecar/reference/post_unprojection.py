@@ -12,9 +12,10 @@ Note:
   18320f4e51660fe0cb9c546441eb9be09d53f339.
 - Imported section modules: pre.resize.letterbox (pre_resize_letterbox, the function inverse),
   post.object.decode (post_object_decode, the functions clamp_enabled, clamp and size_mask) and
-  pre.resize.affine_person_crop (pre_resize_affine_person_crop, the functions inverse, check_rules
-  and case_policy). In skellytracker, the import of pre_resize_affine_person_crop replaced the
-  fixture affine_person_crop_inverse of the bundle file (ADR-3S5G).
+  pre.resize.affine_crop (pre_resize_affine_crop, the functions inverse, check_rules and
+  case_policy). In skellytracker, the import of pre_resize_affine_person_crop replaced the fixture
+  affine_person_crop_inverse of the bundle file (ADR-3S5G). The section and the module were then
+  renamed (ADR-G3FA).
 - Fixtures: pre.resize.stretch (stretch_inverse) and pre.resize.fit (fit_inverse). No place of
   "Imports of other sections" has a module of these sections.
 - The method none has no algorithm (its Inverse is the identity), so no section module exists for
@@ -40,11 +41,11 @@ from __future__ import annotations
 from typing import Any
 
 import post_object_decode
-import pre_resize_affine_person_crop
+import pre_resize_affine_crop
 import pre_resize_letterbox
 
 SCALES = ("pixel", "normalized_01", "normalized_11")
-RESIZE_METHODS = ("letterbox", "stretch", "fit", "none", "affine_person_crop")
+RESIZE_METHODS = ("letterbox", "stretch", "fit", "none", "affine_crop")
 
 
 def required(mapping: dict[str, Any], keys: tuple[str, ...], where: str) -> None:
@@ -134,11 +135,11 @@ def resize_inverse(
 ) -> list[float]:
     """Map one position in model-input pixels to source pixels (post.unprojection, Behaviour).
 
-    resize is the input.resize block. input holds src_w and src_h, or bbox_xyxy for
-    affine_person_crop. letterbox calls pre_resize_letterbox.inverse. affine_person_crop calls
-    pre_resize_affine_person_crop.inverse. resize holds target_size and the optional expand_ratio
+    resize is the input.resize block. input holds src_w and src_h, or bbox_xyxy or roi for
+    affine_crop. letterbox calls pre_resize_letterbox.inverse. affine_crop calls
+    pre_resize_affine_crop.inverse. resize holds target_size and the optional expand_ratio
     and maintain_aspect_ratio. A target_size that is not two positive numbers, and an expand_ratio or
-    a maintain_aspect_ratio that breaks V-pre.resize.affine_person_crop-1, give ValueError. stretch
+    a maintain_aspect_ratio that breaks V-pre.resize.affine_crop-1, give ValueError. stretch
     and fit use the fixtures of this module. none returns the position unchanged.
     Source: OpenMMLab-Exporter onnx_runtime/unprojection.py::inverse_points at
     5dd5c93ac6555ac907ae2ebfbc27dc6de5e3c278.
@@ -150,8 +151,9 @@ def resize_inverse(
     if method == "none":
         x, y = model_xy
         return [x, y]
-    if method == "affine_person_crop":
-        required(input, ("bbox_xyxy",), "the input of an affine_person_crop unprojection")
+    if method == "affine_crop":
+        if "bbox_xyxy" not in input and "roi" not in input:
+            raise ValueError("the input of an affine_crop unprojection needs bbox_xyxy or roi")
     else:
         required(input, ("src_w", "src_h"), f"the input of a {method} unprojection")
     given = {**input, "model_xy": model_xy}
@@ -162,14 +164,14 @@ def resize_inverse(
         return stretch_inverse(resize, given)["source_xy"]
     if method == "fit":
         return fit_inverse(resize, given)["source_xy"]
-    required(resize, ("target_size",), "the affine_person_crop resize")
+    required(resize, ("target_size",), "the affine_crop resize")
     positive_pair(resize["target_size"], "target_size")
-    policy = pre_resize_affine_person_crop.case_policy(resize)
+    policy = pre_resize_affine_crop.case_policy(resize)
     resolved = {"method": method, "target_size": resize["target_size"], "crop_policy": policy}
-    failed = pre_resize_affine_person_crop.check_rules({"sizes": {"case": {"input": {"resize": resolved}}}})
+    failed = pre_resize_affine_crop.check_rules({"sizes": {"case": {"input": {"resize": resolved}}}})
     if failed:
         raise ValueError(f"{failed[0]}: the crop_policy values {policy!r} are not valid")
-    return pre_resize_affine_person_crop.inverse(resize, given)["source_xy"]
+    return pre_resize_affine_crop.inverse(resize, given)["source_xy"]
 
 
 def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
@@ -178,7 +180,7 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
     params holds scale, input_size and resize, and for a box clamp_boxes (default true) and
     min_box_size (optional). The keys clamp_boxes and min_box_size have the names of the decode
     block, so params goes to post_object_decode as the decode block. input holds decoded_xy or
-    decoded_xyxy, and src_w and src_h, or bbox_xyxy for affine_person_crop. A point gives model_xy
+    decoded_xyxy, and src_w and src_h, or bbox_xyxy or roi for affine_crop. A point gives model_xy
     and source_xy. A box gives model_xyxy, source_xyxy and output_xyxy. output_xyxy is None for a
     box that the size filter drops. Source: OpenMMLab-Exporter
     onnx_runtime/unprojection.py::unproject_points and onnx_runtime/unprojection.py::unproject_boxes

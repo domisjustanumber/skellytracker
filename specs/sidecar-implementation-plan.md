@@ -977,13 +977,13 @@ the exporter. N1 and N2 come before N5.
   clamp the result. Add the cases of `pre.resize.interpolation.yaml` and the new case of
   `pre.resize.none.yaml` to the validation tests of the new model.
 - **Affine crop matrix in float32.** The spec gives the warp matrix `M` of
-  `affine_person_crop` in float32 steps, as mmpose v1.3.2 computes it
+  `affine_crop` in float32 steps, as mmpose v1.3.2 computes it
   ([ADR-3S5G](model-sidecar/decisions/entries/3S5G-affine-crop-matrix.md);
-  [Behaviour](model-sidecar/pre/resize-affine-person-crop.md#behaviour)). The old code keeps the
+  [Behaviour](model-sidecar/pre/resize-affine-crop.md#behaviour)). The old code keeps the
   dtype of the box, and its `get_warp_matrix` puts the second warp point above the centre. The new module casts the person box to float32,
   also the full-frame box. It puts the second point left of the centre
   (`src_dir = [src_w * -0.5, 0]`, `dst_dir = [dst_w * -0.5, 0]`). The implementer decides the branch with `maintain_aspect_ratio: false`. Run the numeric cases of
-  [`pre.resize.affine_person_crop`](model-sidecar/vectors/pre.resize.affine_person_crop.yaml)
+  [`pre.resize.affine_crop`](model-sidecar/vectors/pre.resize.affine_crop.yaml)
   through the new module, and add a golden test with its
   three COCO cases. Then update the `forward` note of
   the front matter of the section.
