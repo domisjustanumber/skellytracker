@@ -176,7 +176,10 @@ changes the draft exporter guide ([ADR-x64y](../decisions/entries/x64y-draft-exp
   their content, not a link. Bring that content in line with [ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 3 (`system/`, `metrics/`
   and `eps/` under an eager `core`; the import isolation rules are withdrawn), [ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-helper.md) item 1 and
   [ADR-MWY9](../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md) items 2 and 3 (one ONNX Runtime core; the GPU EPs are CUDA 13 plugin packs:
-  the CUDA 12 floors, the CUDA 12 packs and the Pascal test go).
+  the CUDA 12 floors, the CUDA 12 packs and the Pascal test go), and with [ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) (the EP keys, the EP
+  options, the raise on a whole-EP failure and the report of CPU nodes).
+- The EP option measurements that [ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) cites need an evidence entry with their scripts
+  ([ADR-EY8R](../decisions/entries/EY8R-tools-and-scripts.md)).
 - After the merge, the user removes the worktree of the branch.
 - Gate: `uv run python tools/run_checks.py` passes after the merge. Stage 1.3 has its items and its
   gate.
@@ -259,10 +262,21 @@ The known scope:
 - `core/system/`, `core/metrics/` and `core/eps/` under the eager `core` ([ADR-AQR4](../decisions/entries/AQR4-detectors-and-pipelines-entry-points.md) item 3).
   `core/metrics/` holds only system metrics ([ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-helper.md) item 1).
 - `eps.build_session()`. Stage 1.10 builds each ONNX session with it ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 5).
+- The EP catalog owns the EP keys `trt-rtx`, `cuda`, `coreml` and `cpu`, and refuses each reserved
+  key with its reason. It lists the allowed option names and values of each EP.
+  `eps.build_session()` refuses an option that the catalog does not list, before it calls ONNX
+  Runtime. `eps.recommend(form)` gives the forms `performance` and `accuracy` ([ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 1 to 3).
+- `eps.build_session()` sets `enable_fallback=0` and `session.record_ep_graph_assignment_info=1`. It
+  checks that the requested EP is the first provider and has at least one node. It raises
+  `EpUnavailableError`, `SessionCreationError` or `VRAMExhaustionError` before frame 0. The session
+  report gives the node count of each EP, the CPU node count and the CPU op types ([ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 4
+  and 5).
 - The execution provider information in `detectors` and `pipelines`.
 - The `cuda` and `trt-rtx` plugin EP packs, CUDA 13 only, with the EP catalog and the EP store
   ([ADR-MWY9](../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md) item 3). The gate includes a local run on an NVIDIA host: `eps.build_session()`
-  builds a session on each pack, and the node assignment shows the requested EP
+  builds a session on each pack, and the node assignment shows the requested EP. Tests: an unknown
+  option name or value is refused before ONNX Runtime, a missing pack raises `EpUnavailableError`,
+  and no session is built again on the CPU
   ([ADR-MWY9](../decisions/entries/MWY9-one-onnxruntime-core-and-plugin-ep-packs.md) item 7).
 - Gate: stage 0.4 writes it.
 
@@ -869,9 +883,13 @@ in parallel with 1.3 to 1.7.
   - `smooth_keypoints` refuses a timestamp that does not increase. It has `reset_after_ms` and no
     miss counter.
 - **Sessions.** Build each ONNX session with `eps.build_session()`
-  ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 5).
+  ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 5). `start_pipeline` takes `ep_options`, and a `detector` node takes
+  `execution_provider` and `ep_options` ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 1; [ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 2). The NMS session
+  requests `cpu` ([ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 7). The timing `execution` block gives `cpu_nodes` and
+  `cpu_op_types` ([ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 5).
 - **Warnings.** `PipelineWarning`, `PipelineRun.warnings`, `on_warning` and `MissingDependencyError`
-  ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) items 6 and 7).
+  ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) items 6 and 7). The warning `ep_partial_placement` fires one time for each session
+  with nodes on the CPU EP ([ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 5).
 - **Timing.** The timing events, the header, the derive helpers and the skellybench aggregator in
   `core/pipelines/timing.py` ([ADR-Q59W](../decisions/entries/Q59W-pipeline-timing-and-taps.md)
   items 1 to 4; [ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-helper.md)
@@ -889,7 +907,9 @@ in parallel with 1.3 to 1.7.
 - **CLI.** `run` with the COCO form
   ([ADR-Q59W](../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 6), `validate` and `nodes`
   ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 9). Stage 1.6 gives
-  `detectors` and `describe`.
+  `detectors` and `describe`. `run` takes `--ep <key>` and `--ep-option <name>=<value>`, and exits
+  with 3 when an EP is not available, 4 when a session was not created and 5 when the GPU memory is
+  exhausted ([ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 2 and 6).
 - **Node catalog.** `list_node_types()`, the tool that makes the spec table of each node type, and
   its doc test ([ADR-48PG](../decisions/entries/48PG-pipeline-api-ep-options-and-warnings.md) item 9).
 - **Webcam demo.** `output_schema` gives `edges` for each output, from the sidecar
@@ -916,7 +936,8 @@ in parallel with 1.3 to 1.7.
   dropped frames, a `drop` timing point and MediaPipe LIVE_STREAM.
 - Gate: tests on generated ONNX models for each node type, the load checks, the empty-input rule,
   the `concat` empty-input fill, the instance rows with `class_index` and `instance_score`, `@prev`,
-  the stateful batch rule and its warning, the timing parents, and record and replay with `row`. The
+  the stateful batch rule and its warning, `ep_partial_placement` and the CLI exit codes, the timing
+  parents, and record and replay with `row`. The
   glue vectors and the named tests of the glue nodes agree. The aggregator output passes
   `skellybench.schema.validate_timing`. `mediapipe-holistic-tasks` runs and gives the expected point
   sets.
