@@ -73,7 +73,7 @@ A `detector` node runs one ONNX model. It does the preprocessing, the inference 
 
   Two growth factors multiply. For example, an ROI with `expand_ratio: 1.2` and a sidecar `crop_policy.expand_ratio` of 1.25 give a crop 1.5 times the size of the points box.
 - **Rotated ROI.** The sidecar crop takes the ROI with its rotation ([Affine crop](../../model-sidecar/pre/resize-affine-crop.md#behaviour)). A box is an ROI with rotation 0.
-- **Batch.** A top-down keypoint model batches its crops: k × the camera count × the `I` of the instance source of its `rois` input ([Running](../running.md#behaviour) item 3).
+- **Batch.** A top-down keypoint model batches its crops: k × the camera count × the `I` of the instance source of its `rois` input ([Running](../running.md#behaviour) item 4).
 - NMS is a part of the postprocessing of the model. The sidecar section [`post.object.selection.nms`](../../model-sidecar/post/object/selection-nms.md#behaviour) defines it ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 9).
 - The timing points are `preprocess`, `inference` and `postprocess` ([ADR-Q59W](../../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 1).
 

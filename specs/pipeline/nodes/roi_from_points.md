@@ -83,10 +83,10 @@ place of `keypoint_bbox` in a pipeline, but it does not reproduce `keypoint_bbox
    NormalizeRadians(a) = a - 2π · floor((a + π) / (2π))
    ```
 
-   The result is in `[-π, π)`.
+   The result is in `[-π, π)`. Let `c = cos(rotation)` and `s = sin(rotation)`.
 7. **Size rule `alignment`.** `cx = x0`, `cy = y0` and `w = h = 2 · sqrt((x1 - x0)² + (y1 - y0)²)`.
    The resolved points of `points` do not change the box.
-8. **Size rule `bounds`.** Let `c = cos(rotation)` and `s = sin(rotation)`. For each resolved point
+8. **Size rule `bounds`.** For each resolved point
    `(x, y)` of `points`, compute its position in the ROI frame: `u = x · c + y · s` and
    `v = -x · s + y · c`. Then:
 
@@ -100,7 +100,7 @@ place of `keypoint_bbox` in a pipeline, but it does not reproduce `keypoint_bbox
    ```
 
    With `rotation = 0` this is the axis-aligned box around the points.
-9. **Transform.** Apply these three steps in this order, with `c` and `s` of step 8:
+9. **Transform.** Apply these three steps in this order, with `c` and `s` of step 6:
    1. Shift along the ROI axes: `cx = cx + w · shift_x · c - h · shift_y · s` and
       `cy = cy + w · shift_x · s + h · shift_y · c`.
    2. If `square_long` is true: `w = h = max(w, h)`.
