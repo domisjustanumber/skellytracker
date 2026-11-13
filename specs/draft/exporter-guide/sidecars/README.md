@@ -77,8 +77,6 @@ sections and headings that this guide uses most:
 [`input.resize`](../../../model-sidecar/common/input.md#inputresize), [`sizes`](../../../model-sidecar/common/sizes-and-artifacts.md#sizes),
 [Storage layout](../../../model-sidecar/format/file-layout.md#storage-layout),
 [Schema versioning](../../../model-sidecar/format/versioning.md),
-[Version-aware compatibility](../../../model-sidecar/format/versioning.md#version-aware-compatibility) (the index of the
-"Legacy behaviour" heading of each section),
 [Validation rules](../../../model-sidecar/README.md#validation-rules) (the validation index),
 [Considered and deliberately not added](../../../model-sidecar/changelog.md#considered-and-deliberately-not-added) and
 [Reference examples](../../../model-sidecar/examples/README.md), with the provenance of each example in
@@ -154,8 +152,8 @@ Do not change this section here. Copy it again when the source changes.
   change proposal and stop.
 - Cite primary evidence: an upstream file and line, an upstream config key, or a read of the ONNX
   graph. Mark each secondary source `(secondary)`.
-- Do not publish a `vNEXT` sidecar to a shared or remote folder. Publish a sidecar only after the
-  release step ("Publishing" in
+- Do not publish a sidecar to a shared or remote root before a final skellytracker release loads
+  its `schema_version` ("Publishing" in
   `../freemocap/skellytracker/specs/model-sidecar/model-addition-workflow/validation-and-publishing.md`).
 ```
 
