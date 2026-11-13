@@ -52,22 +52,41 @@ and its entry is in the pipeline log.
    [`propose-sidecar-change`](../propose-sidecar-change/SKILL.md) records a sidecar proposal.
    `tools/intake_bundle.py record` writes the record in `specs/pipeline/proposals/`. The entry goes
    in `specs/pipeline/decisions/entries/`, with its row in the Proposed table of the pipeline log.
-2. Do steps 1 to 6 of
+2. Make the content commit. Do steps 1, 3 to 6, 10 and 11 of
    [Procedure B](../change-sidecar-spec/SKILL.md#procedure-b-land-an-accepted-proposal) of
-   `change-sidecar-spec`, with the pipeline paths: the section files are in
-   `specs/pipeline/nodes/`, the reference modules go to `specs/pipeline/reference/`, and the
-   changelog is `specs/pipeline/changelog.md`. From the 2.0.0 pre-release, the proposal must pass the
+   `change-sidecar-spec`, and steps 3 to 6 below. Use the pipeline paths: the section files are in
+   `specs/pipeline/nodes/`, the reference modules go to `specs/pipeline/reference/`, the changelog
+   is `specs/pipeline/changelog.md`, and the log and the open work are those of the pipeline log.
+   From the 2.0.0 pre-release, the proposal must pass the
    [acceptance gate](../implement-sidecar-section/proposal-gate.md) first.
+   - Step 10 makes the entry `accepted` in the content commit. Its row moves from the Proposed table
+     to the Active table of the pipeline log.
+   - Steps 7, 8, 12 and 13 do not apply. No formula module in `tools/vector_formulas/` is for a node
+     type. `tools/sidecar_trace.py` does not read the pipeline spec. The pipeline reference modules
+     have no fixtures. Step 4 below is step 9.
 3. Apply part 2.2 of the proposal to `specs/pipeline/reference/pipeline_config.py`. Run
    `uv run python tools/make_pipeline_schema.py` to make the JSON Schema and the node tables. Do not
    edit them by hand.
-4. Land the vectors with
-   `uv run python tools/make_vectors.py land specs/pipeline/proposals/<slug>/vectors/node.<type>.yaml`.
+4. Land the vectors with this command. Give `--contribution` and `--replaces` as step 9 of
+   Procedure B of `change-sidecar-spec` gives them.
+
+   ```sh
+   uv run python tools/make_vectors.py land specs/pipeline/proposals/<slug>/vectors/node.<type>.yaml [--contribution <contribution record file>...] --replaces [<id>...]
+   ```
+
 5. Apply part 7: change each pipeline file that the change makes invalid.
-6. Run `uv run python tools/run_checks.py`. Put the change in one content commit. Absorb the entry
-   of the pipeline log in that commit when the absorb documents state each of its rules: do step 19
-   of Procedure B of `change-sidecar-spec` with the pipeline log ([ADR-W823](../../../decisions/entries/W823-absorb-in-the-commit-group-that-states-the-rules.md)). Then write the
-   response `landed`.
+6. Run `uv run python tools/run_checks.py`. Put the change in one content commit.
+7. Make the non-spec commit on top of the content commit. Do steps 14, 15, 18 and 19 of
+   Procedure B of `change-sidecar-spec`, with the pipeline paths. Step 19 absorbs the entry of the
+   pipeline log when the absorb documents state each of its rules
+   ([ADR-W823](../../../decisions/entries/W823-absorb-in-the-commit-group-that-states-the-rules.md)).
+   Steps 16 and 17 do not apply: a node proposal has no intake and names no model. Run
+   `uv run python tools/run_checks.py`.
+8. Do step 20 of Procedure B of `change-sidecar-spec`, without its first sentence. Write the
+   response `landed` for each bundle of the proposal. Procedure E reads the records in
+   `specs/pipeline/proposals/` and the Proposed table of the pipeline log.
+9. In the implementation stage, implement the node type with the skill
+   [`implement-pipeline-node`](../implement-pipeline-node/SKILL.md). This is step 21.
 
 ## Procedure C: update the pinned hashes after a re-export
 
