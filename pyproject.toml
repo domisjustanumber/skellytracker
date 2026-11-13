@@ -72,7 +72,7 @@ dynamic = ["version", "description"]
 # Extras for package consumers: `pip install skellytracker[mediapipe]`
 # Local dev installs each extra: `uv sync --all-extras`
 [project.optional-dependencies]
-mediapipe = ["mediapipe==0.10.33"]
+mediapipe = ["mediapipe==1.2.2"]
 
 # RTMPose + YOLOX detectors (vendored, see skellytracker/core/detectors) need
 # the onnx package for graph surgery.
