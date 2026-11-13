@@ -1,7 +1,9 @@
-"""Named tests of the glue nodes first_of, concat and merge (ADR-3SF2 item 4).
+"""Named tests of the glue node merge (ADR-3SF2 item 4).
 
-These node types have no vector file. Each test runs the reference implementation in
+This node type has no vector file. Each test runs the reference implementation in
 `specs/pipeline/reference/` on a small case of its section in `specs/pipeline/nodes/`.
+The cases of first_of and concat are only in their vector files in `specs/pipeline/vectors/`
+(ADR-Y753 item 4).
 """
 
 from __future__ import annotations
@@ -42,74 +44,6 @@ def keypoints(names: list[str], rows: list[list[list[float]] | None], source: st
 
 def xy(value: dict[str, Any], row: int, name: str) -> list[float]:
     return value["xyz"][row][value["point_names"].index(name)][:2]
-
-
-# ---------------------------------------------------------------------------
-# first_of
-# ---------------------------------------------------------------------------
-
-
-def test_first_of_gives_the_first_input_that_is_not_empty_in_list_order() -> None:
-    detected = keypoints(["body.nose"], [None])  # no present row: empty
-    tracked = keypoints(["body.nose"], [[[1, 2]]])
-    assert node("first_of").run({}, {"values": [None, detected, tracked]}) == {"value": tracked}
-    assert node("first_of").run({}, {"values": ["image", tracked]}) == {"value": "image"}
-
-
-def test_first_of_is_empty_when_each_input_is_empty() -> None:
-    assert node("first_of").run({}, {"values": [None, keypoints(["body.nose"], [None])]}) == {"value": None}
-
-
-# ---------------------------------------------------------------------------
-# concat
-# ---------------------------------------------------------------------------
-
-
-def test_concat_joins_row_i_of_each_input_in_list_order() -> None:
-    body = keypoints(["body.nose", "body.left_wrist"], [[[10, 10], [20, 30]], None])
-    hand = keypoints(["left_hand.wrist"], [[[21, 31]], None])
-    out = run_concat([body, hand])
-    assert out["point_names"] == ["body.nose", "body.left_wrist", "left_hand.wrist"]
-    assert xy(out, 0, "left_hand.wrist") == [21, 31]
-    assert out["present"] == [True, False]
-    assert out["instance_score"] == [0.8, 0.0]
-    assert out["instance_source"] == "person"
-
-
-def run_concat(values: list[dict[str, Any] | None], names: list[list[str]] | None = None) -> dict[str, Any] | None:
-    point_names = names or [value["point_names"] for value in values]
-    return node("concat").run({}, {"values": values, "point_names": point_names})["keypoints"]
-
-
-def test_concat_runs_with_an_empty_input_and_gives_missing_points_in_its_columns() -> None:
-    body = keypoints(["body.nose", "body.left_wrist"], [[[10, 10], [20, 30]]])
-    empty_hand = keypoints(["left_hand.wrist", "left_hand.tip"], [None])  # no present row: empty
-    for hand in (None, empty_hand):
-        out = run_concat([body, hand], [body["point_names"], empty_hand["point_names"]])
-        assert out["point_names"] == ["body.nose", "body.left_wrist", "left_hand.wrist", "left_hand.tip"]
-        assert xy(out, 0, "body.left_wrist") == [20, 30]
-        assert all(math.isnan(v) for v in xy(out, 0, "left_hand.wrist") + xy(out, 0, "left_hand.tip"))
-        assert out["score"][0] == [0.9, 0.9, 0.0, 0.0]
-        assert out["present"] == [True]
-
-
-def test_concat_is_empty_when_each_input_is_empty() -> None:
-    assert run_concat([None, None], [["body.nose"], ["left_hand.wrist"]]) is None
-
-
-@pytest.mark.parametrize(
-    ("second", "rule"),
-    [
-        (keypoints(["hand.wrist"], [[[1, 1]]], source="hands"), "V-node.concat-1"),
-        (keypoints(["body.nose"], [[[1, 1]]]), "V-node.concat-2"),
-        (keypoints(["face.tip"], [[[1, 1]]], geometry="3d"), "V-node.concat-3"),
-    ],
-    ids=["instance-source", "collision", "geometry"],
-)
-def test_concat_refuses_mixed_instance_sources_collisions_and_mixed_geometries(second: dict[str, Any], rule: str) -> None:
-    body = keypoints(["body.nose"], [[[10, 10]]])
-    with pytest.raises(ValueError, match=rule):
-        run_concat([body, second])
 
 
 # ---------------------------------------------------------------------------

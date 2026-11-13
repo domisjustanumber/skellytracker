@@ -468,7 +468,7 @@
         },
         "size": {
           "default": "heavy",
-          "description": "The model size of the pose landmarker. Only for the variant `body`.",
+          "description": "The model size of the pose landmarker. Only the variant `body` takes it (V-node.mediapipe_tasks-2).",
           "enum": [
             "lite",
             "full",

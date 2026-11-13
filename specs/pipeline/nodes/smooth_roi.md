@@ -49,8 +49,8 @@ item 5).
 2. **Empty input.** When `rois` is empty, the node does not run. The output is empty and the state
    does not change ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md)
    item 6).
-3. **State.** Each row `i` has its own state: the last output ROI of the row, `prev`. It is empty at
-   the start.
+3. **State.** The state of one camera has a state for each row `i`: the last output ROI of the row,
+   `prev` ([Running](../running.md#behaviour) item 5). It is empty at the start.
 4. **Row not present.** When row `i` of the input is not present, row `i` of the output is not
    present. The state of the row does not change.
 5. **First ROI of a row.** When row `i` is present and its state is empty, the output is the input

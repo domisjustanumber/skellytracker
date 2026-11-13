@@ -6,8 +6,11 @@ notes:
   - "A case is one sequence. `frames` holds one item for each frame. An item is a list of
     instance rows, and a row is a list of points [x, y]. `.nan` is a missing value. A
     null item is an empty input. `keypoints` holds one output item for each input item.
-    The score and z of a point and the instance_score of a row pass through unchanged,
-    so the cases leave them out."
+    The score and z of a point pass through unchanged, so the cases leave them out. A
+    case can give the row values `present`, `instance_score` and `track_ids`: one item
+    for each frame, null for an empty input, else one value for each row. The result
+    then holds `instance_score` and `track_ids`, one item for each output item (step
+    10)."
   - "`params` holds the params that the file writes. The other params take their defaults."
   - "dt is (timestamp_ms - previous timestamp_ms) / 1000, in seconds. A `video` case
     gives `fps` and no `timestamps_ms`: timestamp_ms = frame_index x 1000 / fps, as the
@@ -104,6 +107,43 @@ cases:
         - [[[8.626974, 0]]]
         - [[[.nan, .nan]]]
         - [[[40, 0]]]
+  - id: held-row-keeps-the-values-of-the-last-present-row
+    note: "input row 0 is not present at 2000 ms and the input is empty at 3000 ms; the held
+      point keeps the output row present, with the values of 1000 ms; at 4000 ms the hold
+      ends, so the row has the padding values. The track ids are not -1 only to show the
+      rule: this version has no `associate` node"
+    params: {max_gap_ms: 2000}
+    input:
+      running_mode: video
+      fps: 1
+      frames: [[[[0, 0]]], [[[10, 0]]], [[[.nan, .nan]]], null, [[[.nan, .nan]]]]
+      present: [[true], [true], [false], null, [false]]
+      instance_score: [[0.8], [0.9], [0], null, [0]]
+      track_ids: [[7], [7], [-1], null, [-1]]
+    expect:
+      keypoints:
+        - [[[0, 0]]]
+        - [[[8.626974, 0]]]
+        - [[[8.626974, 0]]]
+        - [[[8.626974, 0]]]
+        - [[[.nan, .nan]]]
+      instance_score: [[0.8], [0.9], [0.9], [0.9], [0]]
+      track_ids: [[7], [7], [7], [7], [-1]]
+  - id: refused-point-gives-a-padding-row
+    note: "input row 0 is present at 1000 ms, but max_velocity refuses its only point and there
+      is no hold, so the output row is not present and has the padding values (step 10)"
+    params: {max_velocity: 1}
+    input:
+      running_mode: video
+      fps: 1
+      frames: [[[[0, 0]]], [[[100, 0]]]]
+      present: [[true], [true]]
+      instance_score: [[0.8], [0.9]]
+      track_ids: [[7], [7]]
+    expect:
+      keypoints: [[[[0, 0]]], [[[.nan, .nan]]]]
+      instance_score: [[0.8], [0]]
+      track_ids: [[7], [-1]]
   - id: kalman-gap-predicts
     note: "in a gap the output is the prediction est + v dt; a small measurement_noise follows
       the measurements more closely"

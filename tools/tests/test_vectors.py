@@ -232,6 +232,8 @@ FILE_TOLERANCE = {
     "node.smooth_keypoints": 1e-9,
     "node.smooth_roi": 1e-9,
     "node.redetect": 1e-9,
+    "node.first_of": 0,  # the node passes a value through: no arithmetic
+    "node.concat": 0,  # the node copies columns and rows: no arithmetic
 }
 
 

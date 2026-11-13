@@ -51,9 +51,9 @@ stateful ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sh
 - The defaults of the filter `kalman` are the frame-unit defaults of today at 30 fps: 1 px² and
   0.1 (px/frame)² per frame give 30 px²/s and 2700 (px/s)²/s.
 - The output `keypoints` has the names, the rows and the shapes of the input. The node changes only
-  x and y. The score, z, `instance_score` and `track_ids` of each point and row pass through
-  unchanged. An output row
-  is present when it has a point whose x and y are not NaN.
+  x and y. The score and z of each point pass through unchanged. An output row is present when it
+  has a point whose x and y are not NaN. Step 10 gives the `instance_score` and the `track_ids` of
+  each row.
 
 ## Behaviour
 
@@ -74,9 +74,9 @@ stateful ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sh
 
    The previous `t` is that of the last frame that the node ran on. `timestamp_ms` must increase
    from frame to frame, in `video` and in `live` (`V-node.smooth_keypoints-3`).
-4. **State.** Each row `i` has its own state, with one state for each point `j`. A point is valid
-   when its x and its y are not NaN. The state of a row is empty at the start and after a reset
-   (step 9).
+4. **State.** The state of one camera has a state for each row `i`, with one state for each point
+   `j` ([Running](../running.md#behaviour) item 5). A point is valid when its x and its y are not
+   NaN. The state of a row is empty at the start and after a reset (step 9).
 5. **First frame of a row.** When the state of row `i` is empty, row `i` of the output is row `i` of
    the input. The state of each point is then:
    - `est = (x, y)` when the point is valid, else NaN;
@@ -161,11 +161,19 @@ stateful ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sh
 10. **Rows.** Row `i` of the input gives row `i` of the output. Without an `associate` node, the
     rows have no track identity, so row `i` of two frames can be two persons
     ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1).
+    When output row `i` is not present, it has the padding values of
+    [Outputs](../outputs.md#fields). When output row `i` is present and input row `i` is present,
+    the `instance_score` and the `track_ids` of output row `i` come from input row `i`. A held point
+    (step 6.4) can make output row `i` present when input row `i` is not present. The node then
+    holds the row: it keeps the `instance_score` and the `track_ids` of the last frame on which
+    input row `i` was present, or the padding values when input row `i` was never present. The
+    values do not decay
+    ([ADR-97X9](../../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 2).
 
 ## Validation rules
 
 - [ ] `V-node.smooth_keypoints-1` A file must not write a param of the filter that `filter` does not select. With `one_euro`, it must not write `process_noise_pos`, `process_noise_vel` or `measurement_noise`. With `kalman`, it must not write `min_cutoff`, `beta` or `d_cutoff`.
-- [ ] `V-node.smooth_keypoints-3` In the running modes `video` and `live`, the `timestamp_ms` of each frame must be greater than the `timestamp_ms` of the frame before. The host refuses the frame at run time.
+- [ ] `V-node.smooth_keypoints-3` In the running modes `video` and `live`, the `timestamp_ms` of each frame must be greater than the `timestamp_ms` of the frame before. The rule compares the frames of one camera. [Running](../running.md#behaviour) item 2 gives the refusal of a call that breaks it ([ADR-97X9](../../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 9).
 
 ## Implementer guidance
 

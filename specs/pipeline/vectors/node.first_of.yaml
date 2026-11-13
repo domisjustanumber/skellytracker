@@ -1,0 +1,66 @@
+# tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
+# Hosts ignore `checks`. The names are the self-checks of the generator.
+section: node.first_of
+notes:
+  - "Normative text: specs/pipeline/nodes/first_of.md."
+  - "`values` holds one value for each item of the `inputs` list, in list order. A value
+    is null (no value), a `keypoints` value (a mapping with `present`, one flag for each
+    instance row) or a placeholder string for a value of another port type. A
+    `keypoints` value with no present row is empty."
+tolerance: 0
+unverified: "Only the reference implementation ran the cases. No independent implementation
+  exists yet."
+cases:
+  - id: gives-the-first-input-that-is-not-empty
+    note: "input 0 has no value; input 1 has no present row, so it is empty; input 2 is the
+      first input that is not empty"
+    params: {}
+    input:
+      values:
+        - null
+        - point_names: [body.nose]
+          xyz: [[[.nan, .nan, .nan]]]
+          score: [[0]]
+          instance_score: [0]
+          present: [false]
+          track_ids: [-1]
+          instance_source: person
+          geometry: "2d"
+        - point_names: [body.nose]
+          xyz: [[[1, 2, .nan]]]
+          score: [[0.9]]
+          instance_score: [0.8]
+          present: [true]
+          track_ids: [-1]
+          instance_source: person
+          geometry: "2d"
+    expect:
+      value:
+        point_names: [body.nose]
+        xyz: [[[1, 2, .nan]]]
+        score: [[0.9]]
+        instance_score: [0.8]
+        present: [true]
+        track_ids: [-1]
+        instance_source: person
+        geometry: "2d"
+  - id: gives-a-value-of-another-port-type
+    note: "both inputs have the port type `image`; a value that is not of an instance port is
+      empty only when it is null"
+    params: {}
+    input: {values: [null, frame-image]}
+    expect: {value: frame-image}
+  - id: is-empty-when-each-input-is-empty
+    params: {}
+    input:
+      values:
+        - null
+        - point_names: [body.nose]
+          xyz: [[[.nan, .nan, .nan]]]
+          score: [[0]]
+          instance_score: [0]
+          present: [false]
+          track_ids: [-1]
+          instance_source: person
+          geometry: "2d"
+    expect: {value: null}

@@ -116,15 +116,15 @@ The words `cov` and `noise` name the Kalman covariance and the process noise of 
 A pipeline file and its run are valid when all of the following rules hold.
 
 - [Pipeline file](file.md#validation-rules): `V-pipeline.file-1` to `V-pipeline.file-5`
-- [Graph](graph.md#validation-rules): `V-pipeline.graph-1` to `V-pipeline.graph-8`
+- [Graph](graph.md#validation-rules): `V-pipeline.graph-1` to `V-pipeline.graph-9`
 - [Outputs](outputs.md#validation-rules): `V-pipeline.outputs-1`, `V-pipeline.outputs-2`
-- [Running](running.md#validation-rules): `V-pipeline.running-1` to `V-pipeline.running-6`
+- [Running](running.md#validation-rules): `V-pipeline.running-1` to `V-pipeline.running-7`
 - [Timing](timing.md#validation-rules): `V-pipeline.timing-1`
 - [Taps](taps.md#validation-rules): `V-pipeline.taps-1` to `V-pipeline.taps-7`
 - [Detector node](nodes/detector.md#validation-rules): `V-node.detector-1` to `V-node.detector-5`
-- [MediaPipe Tasks node](nodes/mediapipe_tasks.md#validation-rules): `V-node.mediapipe_tasks-1`
+- [MediaPipe Tasks node](nodes/mediapipe_tasks.md#validation-rules): `V-node.mediapipe_tasks-1`, `V-node.mediapipe_tasks-2`
 - [ROI from points node](nodes/roi_from_points.md#validation-rules): `V-node.roi_from_points-1` to `V-node.roi_from_points-5`
-- [ROI tracking node](nodes/roi_tracking.md#validation-rules): `V-node.roi_tracking-1`, `V-node.roi_tracking-2`
+- [ROI tracking node](nodes/roi_tracking.md#validation-rules): `V-node.roi_tracking-1` to `V-node.roi_tracking-3`
 - [Gate node](nodes/gate.md#validation-rules): `V-node.gate-1` to `V-node.gate-3`
 - [First-of node](nodes/first_of.md#validation-rules): `V-node.first_of-1`, `V-node.first_of-2`
 - [Concat node](nodes/concat.md#validation-rules): `V-node.concat-1` to `V-node.concat-3`

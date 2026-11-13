@@ -19,7 +19,7 @@ A `mediapipe_tasks` node wraps one MediaPipe Tasks landmarker: pose, hand, face 
 |---|---|---|---|---|---|---|
 | `variant` | `Literal['body', 'hand', 'face', 'holistic']` |  | required | no | The Tasks landmarker: pose (`body`), hand, face or holistic. | ADR-V7GZ item 4; ADR-88WQ item 4 |
 | `max_instances` | `int` | >= 1 | `1` | no | `num_poses`, `num_hands` or `num_faces`. Holistic is single person: 1. | MediaPipe `num_poses`, `num_hands`, `num_faces` (Tasks default 1); ADR-V7GZ item 4 |
-| `size` | `Literal['lite', 'full', 'heavy']` |  | `"heavy"` | no | The model size of the pose landmarker. Only for the variant `body`. | MediaPipe asset `pose_landmarker_<size>`; MediapipePoseDetectorConfig.model_complexity |
+| `size` | `Literal['lite', 'full', 'heavy']` |  | `"heavy"` | no | The model size of the pose landmarker. Only the variant `body` takes it (V-node.mediapipe_tasks-2). | MediaPipe asset `pose_landmarker_<size>`; MediapipePoseDetectorConfig.model_complexity |
 | `min_detection_score` | `float` | >= 0.0, <= 1.0 | `0.5` | no | The minimum detection score (Holistic: the pose and the face detection). | MediaPipe `min_*_detection_confidence` (Tasks default 0.5) |
 | `min_presence_score` | `float` | >= 0.0, <= 1.0 | `0.5` | no | The minimum presence score (Holistic: the landmark score of each part). | MediaPipe `min_*_presence_confidence`, Holistic `min_*_landmarks_confidence` (Tasks default 0.5) |
 | `min_tracking_score` | `float` | >= 0.0, <= 1.0 | `0.5` | no | The minimum tracking score in VIDEO mode. Holistic has no tracking option. | MediaPipe `min_tracking_confidence` (Tasks default 0.5) |
@@ -44,7 +44,7 @@ The params use the shared names of the pipeline spec, not the MediaPipe option n
 - `max_instances` sets `num_poses`, `num_hands` or `num_faces`. `HolisticLandmarkerOptions` has no such option.
 - `HolisticLandmarkerOptions` has no tracking option. The node ignores `min_tracking_score` for the variant `holistic`.
 - The other options of a landmarker keep their Tasks defaults, for example `min_face_suppression_threshold` and `min_pose_suppression_threshold` of Holistic.
-- `size` selects the asset `pose_landmarker_lite`, `pose_landmarker_full` or `pose_landmarker_heavy` (`skellytracker/core/detectors/keypoint_detectors/mediapipe/mediapipe_model_manager.py`). It applies only to the variant `body`.
+- `size` selects the asset `pose_landmarker_lite`, `pose_landmarker_full` or `pose_landmarker_heavy` (`skellytracker/core/detectors/keypoint_detectors/mediapipe/mediapipe_model_manager.py`). It applies only to the variant `body` (`V-node.mediapipe_tasks-2`).
 
 ## Behaviour
 
@@ -73,6 +73,7 @@ The params use the shared names of the pipeline spec, not the MediaPipe option n
 ## Validation rules
 
 - [ ] `V-node.mediapipe_tasks-1` The variant `holistic` is single person. When `variant` is `holistic`, `max_instances` must be 1.
+- [ ] `V-node.mediapipe_tasks-2` Only the variant `body` takes `size`. When `variant` is not `body`, the params must not write `size`, also not the default value `heavy` ([ADR-97X9](../../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 10).
 
 ## Implementer guidance
 
@@ -80,7 +81,7 @@ The params use the shared names of the pipeline spec, not the MediaPipe option n
 - The node must close its landmarker safely, also when the garbage collector frees the node. The gate of the Python change is the full suite on Python 3.13.18 with no hang in the MediaPipe tests, so a hang at exit is a regression ([ADR-M2C6](../../../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md) item 7; [ADR-EM74](../../../decisions/entries/EM74-stage-order-and-ci-models.md) item 6; [ADR-V7GZ](../../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 4).
 - Today's package closes and builds a VIDEO-mode landmarker again after frames with no keypoints. The node does not do this. The measurement found no stuck landmarker on MediaPipe 0.10.33. Its scripts ran again on MediaPipe 1.2.2 (Windows, CPU), in the commit that pins `mediapipe==1.2.2`, with the same result ([ADR-6JWJ](../decisions/entries/6JWJ-mediapipe-video-landmarker-does-not-stick.md)).
 - In `live` mode, `frame_index` can skip, and a call can hold a subset of the cameras ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) items 2 and 3).
-- The cameras stay separate ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1). In `VIDEO` mode, each camera thus needs its own landmarker state and its own timestamp sequence.
+- The cameras stay separate ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1). In `VIDEO` mode, each camera thus needs its own landmarker state ([Running](../running.md#behaviour) item 5) and its own timestamp sequence.
 - The output edges come from the MediaPipe YAML files ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1).
 
 ## Authoring guidance

@@ -67,9 +67,10 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
 2. **Running mode.** In the running mode `image`, the output is always the image, and the node keeps
    no state ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 2).
    The steps that follow apply to `video` and `live`.
-3. **State.** The node keeps `last`, the `frame_index` of the last frame on which it gave the image.
-   It is empty at the start. Let `n` be the `frame_index` of this frame. In `live`, `frame_index`
-   can skip, and a skip counts. `redetect_interval` stays in frames.
+3. **State.** The state of one camera is `last`, the `frame_index` of the last frame on which the
+   node gave the image ([Running](../running.md#behaviour) item 5). It is empty at the start. Let
+   `n` be the `frame_index` of this frame. In `live`, `frame_index` can skip, and a skip counts.
+   `redetect_interval` stays in frames.
 4. **Decision.** The node gives the image when one of these is true:
    1. `last` is empty;
    2. `n - last >= redetect_interval`;
@@ -77,9 +78,11 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
 
    Then `last = n`. Else the output is empty.
 5. **Rows.** The checks run for each row `i`, with row `i` of `previous_keypoints` and row `i` of
-   `previous_rois`. When an input is empty, each of its rows is missing. A row of `previous_rois`
-   that is not present is missing. When both inputs are empty, the checks run once, with no row. A
-   point is valid when its x and its y are not NaN.
+   `previous_rois`. When an input is empty, each of its rows is missing. A row of
+   `previous_keypoints` or `previous_rois` that is not present is missing
+   ([ADR-97X9](../../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 4).
+   When both inputs are empty, the checks run once, with no row. A point is valid when its x and its
+   y are not NaN.
 6. **Checks.** Each check fails only in the case that it gives:
    - `max_frames_without_redetect`: `n - last >= n_frames`.
    - `min_keypoint_score`: the keypoint row is there and has a valid point, and the mean score of
@@ -94,9 +97,12 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
      inside = |u| <= w / 2  and  |v| <= h / 2
      ```
 
-   - `bbox_area_collapse`: the keypoint row and the ROI are there. The counted points are the valid
-     points, and only those with `score >= min_score` when `min_score > 0`. The check fails when no
-     point is counted, or when the counted points span no width or no height. Else:
+   - `bbox_area_collapse`: `previous_keypoints` is connected and the ROI is there. The check fails
+     when the keypoint row is missing
+     ([ADR-97X9](../../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 4).
+     Else the counted points are the valid points, and only those with `score >= min_score` when
+     `min_score > 0`. The check fails when no point is counted, or when the counted points span no
+     width or no height. Else:
 
      ```text
      width  = max(x) - min(x)          height = max(y) - min(y)
@@ -112,9 +118,9 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
 - The Behaviour follows skellytracker/core/temporal_processing/bbox_policy.py
   (`BBoxPolicy.should_redetect`, `MinKeypointVisibilityCheck.fails`,
   `KeypointsWithinBBoxRatioCheck.fails`, `MaxFramesWithoutRedetectCheck.fails`,
-  `BBoxAreaCollapseCheck.fails` and `predict_bbox_from_keypoints`). With `rotation = 0` and one row,
-  the reference gives the same results as that code. The notes of the vector file give the
-  comparison.
+  `BBoxAreaCollapseCheck.fails` and `predict_bbox_from_keypoints`). With `rotation = 0` and one
+  present keypoint row, the reference gives the same results as that code. The notes of the vector
+  file give the comparison.
 - Today skellytracker/core/tracker/detection_stage.py (`DetectionStage.run`) calls
   `should_redetect` with the smoothed box and the keypoints of the previous frame, and sets
   `last_detection_frame` when the detector runs. In this section, `last` is the frame of the last
@@ -122,8 +128,13 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
 - Today's boxes have no rotation. The test for a point inside a rotated ROI is new in this section.
   With `rotation = 0` it is the box test of today, with the edges inside.
 - `bbox_area_collapse` makes an axis-aligned box around the points also when the ROI has a rotation.
-- A row with no valid point passes `min_keypoint_score` and `keypoints_within_bbox_ratio`, but
-  fails `bbox_area_collapse` when its ROI is there. Today's code does the same: the track is lost.
+- A keypoint row with no valid point passes `min_keypoint_score` and `keypoints_within_bbox_ratio`,
+  but fails `bbox_area_collapse` when its ROI is there. Today's code does the same: the track is
+  lost. A missing row of a connected `previous_keypoints` also fails `bbox_area_collapse` when its
+  ROI is there, so the detector runs on the next frame and not only after `redetect_interval`
+  ([ADR-97X9](../../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 4).
+  Today's code has no present flag. When `previous_keypoints` is not connected,
+  `bbox_area_collapse` does not fail.
 - Today the ONNX-batched path redetects all cameras together when one camera needs it
   (skellytracker/core/tracker/detection_stage.py (`DetectionStage.run_batch`)). This section
   decides for each camera.

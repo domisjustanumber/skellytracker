@@ -128,7 +128,7 @@ class MediapipeTasksParams(Strict):
     )
     size: Literal["lite", "full", "heavy"] = param(
         "heavy",
-        description="The model size of the pose landmarker. Only for the variant `body`.",
+        description="The model size of the pose landmarker. Only the variant `body` takes it (V-node.mediapipe_tasks-2).",
         live=False,
         source="MediaPipe asset `pose_landmarker_<size>`; MediapipePoseDetectorConfig.model_complexity",
     )
@@ -161,6 +161,12 @@ class MediapipeTasksParams(Strict):
     def _single_person_holistic(self) -> MediapipeTasksParams:
         if self.variant == "holistic" and self.max_instances != 1:
             raise ValueError("V-node.mediapipe_tasks-1: the variant holistic is single person; max_instances must be 1")
+        return self
+
+    @model_validator(mode="after")
+    def _size_only_for_body(self) -> MediapipeTasksParams:
+        if self.variant != "body" and "size" in self.model_fields_set:
+            raise ValueError(f"V-node.mediapipe_tasks-2: the variant {self.variant} does not take size")
         return self
 
 
@@ -686,24 +692,28 @@ def _port(ref: str, nodes: dict[str, Any], rule: str, *, graph_input: bool = Tru
     return node_id, port, prev
 
 
-def _ref_type(ref: str, nodes: dict[str, Any], seen: frozenset[str] = frozenset()) -> str:
-    """Return the port type of a valid port reference. An `any` output takes the type of its inputs."""
+def _ref_type(ref: str, nodes: dict[str, Any]) -> str:
+    """Return the port type of a valid port reference. `x@prev` has the type of `x`.
+
+    An `any` output takes the type of its inputs that are not `@prev` (pipeline.graph, Behaviour
+    item 4). Call it only after the cycle check: it follows only same-frame edges.
+    """
     match = PORT_REF.match(ref)
     assert match is not None  # noqa: S101 (`_port` checked the reference)
     node_id, port = match["node"], match["port"]
     if node_id == FRAME:
         return FRAME_PORTS[port]
     kind = BY_TYPE[nodes[node_id].type]
-    if kind.outputs[port] != "any" or node_id in seen:
+    if kind.outputs[port] != "any":
         return kind.outputs[port]
-    types = _input_types(nodes[node_id], nodes, seen | {node_id})
+    types = {_ref_type(ref, nodes) for ref in _type_refs(nodes[node_id])} - {"any"}
     return types.pop() if len(types) == 1 else "any"
 
 
-def _input_types(node: Any, nodes: dict[str, Any], seen: frozenset[str] = frozenset()) -> set[str]:
-    """Return the known types (not `any`) of the inputs that give the type of the `any` output of `node`."""
+def _type_refs(node: Any) -> list[str]:
+    """Return the inputs that give the type of the `any` output of `node`: those that are not `@prev`."""
     names = BY_TYPE[node.type].any_from
-    return {_ref_type(ref, nodes, seen) for name, ref in input_items(node) if name in names} - {"any"}
+    return [ref for name, ref in input_items(node) if name in names and not ref.endswith("@prev")]
 
 
 def check_structure(config: PipelineConfig) -> None:
@@ -737,7 +747,10 @@ def check_structure(config: PipelineConfig) -> None:
             expected, given = kind.inputs[name], _ref_type(ref, nodes)
             if "any" not in (expected, given) and expected != given:
                 raise ValueError(f"V-pipeline.graph-3: {node.id}.{name} takes {expected}, but {ref!r} gives {given}")
-        if node.type == "first_of" and len(types := _input_types(node, nodes)) > 1:
+        if kind.any_from and not _type_refs(node):
+            raise ValueError(f"V-pipeline.graph-9: {node.id}: each input that gives the `any` output its type is `@prev`")
+        # V-node.first_of-1 compares each item, also an `@prev` item.
+        if node.type == "first_of" and len(types := {_ref_type(ref, nodes) for _, ref in input_items(node)} - {"any"}) > 1:
             raise ValueError(f"V-node.first_of-1: {node.id}: the inputs have the port types {sorted(types)}")
     _check_point_names(config, nodes)
     for name, ref in config.outputs.items():

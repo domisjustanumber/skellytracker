@@ -78,10 +78,13 @@ MediaPipe `RoiTrackingCalculator`
 
 Each test uses `>`. A value equal to its limit passes the test.
 
+The output has the instance source of `current` ([Graph](../graph.md#behaviour) item 8; [ADR-97X9](../../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 3).
+
 ## Validation rules
 
 - [ ] `V-node.roi_tracking-1` `keypoint_margin` must be greater than -1.
 - [ ] `V-node.roi_tracking-2` `previous`, `current` and `previous_keypoints` must have the same number of rows `I`. The host checks this at load, from the instance sources of the connected outputs.
+- [ ] `V-node.roi_tracking-3` `previous` and `previous_keypoints` must have the instance source of `current`. The host checks this at load, from the instance sources of the connected outputs ([ADR-97X9](../../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 3).
 
 ## Implementer guidance
 

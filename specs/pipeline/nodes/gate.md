@@ -31,8 +31,8 @@ a gate sends the image to a person detector only when the keypoints of the previ
 | `value` | output | `any` |
 <!-- /node-table:ports -->
 
-- `value` and `condition` take each port type. The output `value` has the port type of the input
-  `value`.
+- `value` and `condition` take each port type. The output `value` gets its port type as
+  [Graph](../graph.md#behaviour) item 4 gives.
 - An instance port is a port of the type `roi`, `keypoints` or `detections`. It has one row for each
   instance ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1). A
   row is present or empty.

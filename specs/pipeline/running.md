@@ -24,13 +24,13 @@ A pipeline file has no field of this section. A run takes these parameters:
 | EP options | no | A mapping of option names to values, all strings. The EP catalog lists the allowed names and values of each EP. Default: empty. |
 | device | no | One GPU key or a list of GPU keys. The run uses exactly those GPUs. Default: each GPU that qualifies ([ADR-P1F3](../../decisions/entries/P1F3-hardware-probe-devices-and-multi-gpu.md)). |
 | VRAM reserve | no | The bytes of VRAM that the run leaves free on each GPU that it uses, for example for a camera app and a player. Default: 1 GiB ([Behaviour](#behaviour) item 4; [ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 1). |
-| `fps` | no | A float. Default: 30.0. Only in `video`, for a frame with no `timestamp_ms` ([Behaviour](#behaviour) item 2). |
+| `fps` | no | A float. Default: 30.0. Only in `video`, for a camera that gives no `timestamp_ms` ([Behaviour](#behaviour) item 2). |
 | timing | no | On or off, and the destination of the events ([Timing](timing.md)). |
 | tap folder | no | The folder of the taps ([Taps](taps.md)). |
 | user root | no | The user root of the model and pipeline files ([Pipeline file](file.md#behaviour)). |
 | warning receiver | no | A receiver that gets each new warning. |
 
-Each call gives, for each camera of the call, one frame with its `frame_index` and, in `video` and `live`, its `timestamp_ms` (a float, in milliseconds).
+Each call gives, for each camera of the call, one frame with its `frame_index`. In `live`, each frame also has its `timestamp_ms` (a float, in milliseconds). In `video`, the frames of a camera have a `timestamp_ms` when the camera gives one ([Behaviour](#behaviour) item 2).
 
 A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 6):
 
@@ -49,9 +49,10 @@ A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api
    - `live`: `frame_index` can skip. The caller drops frames. The run drops no frame.
 2. **Frame time.** The temporal nodes use `timestamp_ms` ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 2):
    - `live`: each frame must have a `timestamp_ms` (`V-pipeline.running-6`). There is no fallback.
-   - `video`: the caller can give `timestamp_ms`. A caller timestamp wins. For a frame with no `timestamp_ms`, the run uses `timestamp_ms = frame_index × 1000 / fps`.
+   - `video`: each camera gives `timestamp_ms` on all its frames or on none (`V-pipeline.running-7`). For a camera that gives none, the run uses `timestamp_ms = frame_index × 1000 / fps` ([ADR-97X9](../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 8).
    - `image`: the run uses no `timestamp_ms`.
    - The `timestamp_ms` of a camera must increase from frame to frame ([`V-node.smooth_keypoints-3`](nodes/smooth_keypoints.md#validation-rules)).
+   - A call that breaks `V-pipeline.running-6`, `V-pipeline.running-7` or [`V-node.smooth_keypoints-3`](nodes/smooth_keypoints.md#validation-rules) raises one typed error. The call changes no state of any of its cameras, also no `@prev` value. The run accepts the next call. Stage 1.10 of the [implementation plan](../sidecar-implementation-plan.md#110-the-pipeline-api-was-p) names the error ([ADR-97X9](../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 9).
 3. **Cameras.** In `video` and `image`, each call gives one frame for each camera id of the run. In `live`, a call can hold a subset of the camera ids of the run ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 3).
 4. **Batch.** The run chooses the batch at start ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 4):
    - In `video` and `image`, the batch is k × camera count. The run chooses k for each GPU that it uses, from the free VRAM of that GPU minus the VRAM reserve, and counts the `I` of each node that takes ROIs. k is 1 until the host can measure the free VRAM ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 1).
@@ -60,7 +61,7 @@ A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api
    - A node that takes ROIs batches to that batch × the `I` of the instance source of its ROI input. The run converts the batch at start.
    - The run converts each artifact with `batching.batch: 3` to its batch at start ([Batch conversion](../model-sidecar/common/batch-conversion.md)).
    - The run pads a missed frame. It gives a blank crop to each empty crop slot, for example the slot of a padding ROI row. It drops the result of each padded item.
-5. **Stateful pipelines.** A pipeline is stateful when it has an `@prev` input, or a temporal node upstream of a detector node. The temporal nodes are `smooth_roi`, `smooth_keypoints`, `redetect`, and `mediapipe_tasks` in the landmarker mode `VIDEO`. A temporal node with no detector node downstream does not make a pipeline stateful. `roi_tracking` keeps no state, so it is not a temporal node. In `video`, a stateful pipeline runs at batch = camera count. There is no switch to turn this off. The run writes one log line that names the stateful nodes, and gives the warning `batch_limited_by_state` ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 5).
+5. **Stateful pipelines.** A pipeline is stateful when it has an `@prev` input, or a temporal node upstream of a detector node. The temporal nodes are `smooth_roi`, `smooth_keypoints`, `redetect`, and `mediapipe_tasks` in the landmarker mode `VIDEO`. A temporal node with no detector node downstream does not make a pipeline stateful. `roi_tracking` keeps no state, so it is not a temporal node. Each temporal node keeps a separate state for each camera. The node section gives the state of one camera. In `live`, a camera that a call does not hold keeps its state ([ADR-97X9](../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 7). In `video`, a stateful pipeline runs at batch = camera count. There is no switch to turn this off. The run writes one log line that names the stateful nodes, and gives the warning `batch_limited_by_state` ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 5).
 6. **Session sharing only inside one run.** A run owns its inference sessions. In one run, the nodes with the same artifact SHA-256, batch, EP key, EP options and device share one inference session. The file does not control this. No session is shared between runs: two runs are two sets of sessions. `close()` frees the sessions of the run ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 6).
 7. **Execution provider.** The EP key and the EP options are parameters of the run. The EP catalog in `core/eps/` owns the EP keys and lists the allowed options of each EP ([ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 1 and 2). A detector node can give its own EP in `execution_provider` and its own options in `ep_options`. There is no EP policy such as `recommended:latency`. The caller resolves a recommended form to an EP key and its options ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 12; [ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 3).
    - A run never uses another EP than the requested EP. An EP that is not available or does not start stops the start of the run before frame 0 ([ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 4).
@@ -81,6 +82,7 @@ A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api
 - [ ] `V-pipeline.running-4` The EP of each node that runs must be a key of the EP catalog that is not reserved and is ready on the host. Its EP options must be names and values that the catalog allows for that EP ([ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 1, 2 and 4).
 - [ ] `V-pipeline.running-5` A node that runs must have no replayed output port.
 - [ ] `V-pipeline.running-6` In the running mode `live`, each frame must have a `timestamp_ms`.
+- [ ] `V-pipeline.running-7` In the running mode `video`, each camera must give a `timestamp_ms` on each of its frames or on none of its frames.
 
 ## Implementer guidance
 

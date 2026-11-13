@@ -13,7 +13,9 @@ Note:
 
 A case is one sequence of frames. Each frame is a list of instance rows, and each row is a list of
 points [x, y]. NaN is a missing value. A frame that is null is an empty input. The node runs on it
-with each point missing, after the first frame that is not null.
+with each point missing, after the first frame that is not null. A case can also give the row
+values `present`, `instance_score` and `track_ids`: one item for each frame, null for an empty
+input, else one value for each row.
 """
 
 from __future__ import annotations
@@ -42,6 +44,8 @@ INITIAL_VELOCITY_VARIANCE = 9000.0
 # The run parameter `fps` (pipeline.running): the timestamps of a `video` run with no timestamps.
 DEFAULT_FPS = 30.0
 RUNNING_MODES = ("image", "video", "live")
+# The row values of a case, and their values on a padding row (pipeline.outputs).
+ROW_PADDING = {"instance_score": 0.0, "track_ids": -1}
 
 
 def resolve(params: dict[str, Any]) -> dict[str, Any]:
@@ -182,37 +186,59 @@ def timestamps(input: dict[str, Any]) -> list[float]:
 def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
     """Smooth a sequence of keypoint frames (node.smooth_keypoints, Behaviour).
 
-    input holds running_mode, frames, and timestamps_ms (live) or timestamps_ms or fps (video).
-    The result holds keypoints, one output frame for each input frame.
+    input holds running_mode, frames, and timestamps_ms (live) or timestamps_ms or fps (video). It
+    can also hold present, instance_score and track_ids. The result holds keypoints, one output
+    frame for each input frame. With present, it also holds instance_score and track_ids (step 10):
+    the values of a present input row, the values of the last present input row for a held row,
+    else the padding values.
     """
     p = resolve(params)
     if input["running_mode"] not in RUNNING_MODES:
         raise ValueError(f"unknown running_mode {input['running_mode']!r}")
+    with_rows = "present" in input
     if input["running_mode"] == "image":
-        return {"keypoints": input["frames"]}
+        return {"keypoints": input["frames"], **({key: input[key] for key in ROW_PADDING} if with_rows else {})}
     rows: dict[int, Any] = {}
+    last_present: dict[int, dict[str, Any]] = {}
     shape: list[int] = []
     last_t: float | None = None
     output = []
-    for frame, t in zip(input["frames"], timestamps(input)):  # noqa: B905 (the lengths are equal)
+    out_rows: dict[str, list[Any]] = {key: [] for key in ROW_PADDING}
+    for k, (frame, t) in enumerate(zip(input["frames"], timestamps(input))):  # noqa: B905 (the lengths are equal)
         if frame is None and not shape:
             output.append(None)
+            for values in out_rows.values():
+                values.append(None)
             continue
+        present = input["present"][k] if with_rows and frame is not None else None
         dt = math.nan if last_t is None else (t - last_t) / 1000.0
         last_t = t
         if frame is None:
             frame = [[[math.nan, math.nan] for _ in range(shape[1])] for _ in range(shape[0])]
         shape = [len(frame), len(frame[0])]
         out_frame = []
+        frame_rows: dict[str, list[Any]] = {key: [] for key in ROW_PADDING}
         for i, row in enumerate(frame):
             if rows.get(i) is None:
                 rows[i] = {"points": [new_point(xy, t, p) for xy in row], "t_valid": t}
                 out_frame.append([list(xy) for xy in row])
             else:
                 out_frame.append([step_point(s, xy, t, dt, p) for s, xy in zip(rows[i]["points"], row)])  # noqa: B905
+            if present is not None and present[i]:
+                last_present[i] = {key: input[key][k][i] for key in ROW_PADDING}
+            if not any(valid(xy) for xy in out_frame[-1]):
+                values = ROW_PADDING  # the output row is not present (step 10)
+            elif present is not None and present[i]:
+                values = last_present[i]
+            else:
+                values = last_present.get(i, ROW_PADDING)  # a held row (step 10)
+            for key in ROW_PADDING:
+                frame_rows[key].append(values[key])
             if any(valid(xy) for xy in row):
                 rows[i]["t_valid"] = t
             elif p["reset_after_ms"] is not None and t - rows[i]["t_valid"] >= p["reset_after_ms"]:
                 rows[i] = None
         output.append(out_frame)
-    return {"keypoints": output}
+        for key in ROW_PADDING:
+            out_rows[key].append(frame_rows[key])
+    return {"keypoints": output, **(out_rows if with_rows else {})}

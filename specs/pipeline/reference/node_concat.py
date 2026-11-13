@@ -5,7 +5,6 @@ Note:
 - Section ID: node.concat.
 - Source: the section text specs/pipeline/nodes/concat.md.
 - Imported section modules: node.first_of (node_first_of, the function is_empty).
-- Test: tools/tests/test_pipeline_glue_nodes.py (a named test, no vector file; ADR-3SF2 item 4).
 
 A keypoints value is None (empty) or a mapping with `point_names` (P names), `xyz` (I rows of P
 points [x, y, z]), `score` (I rows of P scores), `instance_score` (I values), `present` (I flags),
@@ -18,6 +17,9 @@ import math
 from typing import Any
 
 import node_first_of
+
+# The instance_score and the track_ids of a padding row (pipeline.outputs).
+PADDING = {"instance_score": 0.0, "track_ids": -1}
 
 
 def check(values: list[dict[str, Any] | None], point_names: list[list[str]]) -> None:
@@ -56,15 +58,18 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
             return [[math.nan] * 3 for _ in names] if key == "xyz" else [0.0] * len(names)
         return list(value[key][i])
 
+    def first_present(key: str, i: int) -> Any:
+        return next((value[key][i] for value in given if value["present"][i]), PADDING[key])
+
     pairs = list(zip(values, point_names))  # noqa: B905 (one item for each input)
     return {
         "keypoints": {
             "point_names": [name for names in point_names for name in names],
             "xyz": [[point for value, names in pairs for point in columns(value, names, "xyz", i)] for i in rows],
             "score": [[score for value, names in pairs for score in columns(value, names, "score", i)] for i in rows],
-            "instance_score": list(given[0]["instance_score"]),
+            "instance_score": [first_present("instance_score", i) for i in rows],
             "present": [any(value["present"][i] for value in given) for i in rows],
-            "track_ids": list(given[0]["track_ids"]),
+            "track_ids": [first_present("track_ids", i) for i in rows],
             "instance_source": given[0]["instance_source"],
             "geometry": given[0]["geometry"],
         }

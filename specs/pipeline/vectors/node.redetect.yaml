@@ -5,10 +5,11 @@ notes:
   - "Normative text: specs/pipeline/nodes/redetect.md."
   - "A case is one sequence. Each item of `frames` gives the `frame_index` and the
     `@prev` inputs of one frame. `previous_keypoints` is a list of instance rows, and a
-    row is a list of points [x, y, score]. `previous_rois` is a list of instance rows,
-    and a row is an ROI [cx, cy, w, h, rotation] or null (the row is not present). A
-    null input is empty. `rotation` is in radians. `triggered` is true for each frame
-    where the node gives the image."
+    row is a list of points [x, y, score] or null (the row is not present).
+    `previous_rois` is a list of instance rows, and a row is an ROI [cx, cy, w, h,
+    rotation] or null (the row is not present). A null input is empty. A frame with no
+    `previous_keypoints` key has `previous_keypoints` not connected. `rotation` is in
+    radians. `triggered` is true for each frame where the node gives the image."
   - "A throwaway script ran the reference and
     skellytracker/core/temporal_processing/bbox_policy.py (BBoxPolicy.should_redetect,
     with the four checks) on 2700 random `video` sequences with rotation 0, one row,
@@ -127,6 +128,30 @@ cases:
           previous_keypoints: [[[.nan, .nan, 0], [.nan, .nan, 0]]]
           previous_rois: [null]
     expect: {triggered: [true, false, true, true, true, false]}
+  - id: missing-keypoint-row-fails-bbox-area-collapse
+    note: "frame 1: the keypoint row is not present and its ROI is there, so bbox_area_collapse
+      fails; min_keypoint_score passes, because the row is missing; frame 2: the ROI row
+      is not present, so each check passes"
+    params:
+      redetect_interval: 100
+      fitness_checks: [{check: bbox_area_collapse}, {check: min_keypoint_score}]
+    input:
+      running_mode: video
+      frames:
+        - {frame_index: 0, previous_keypoints: null, previous_rois: null}
+        - {frame_index: 1, previous_keypoints: [null], previous_rois: [[100, 100, 100, 100, 0]]}
+        - {frame_index: 2, previous_keypoints: [null], previous_rois: [null]}
+    expect: {triggered: [true, true, false]}
+  - id: keypoints-not-connected-pass-bbox-area-collapse
+    note: "previous_keypoints is not connected, so bbox_area_collapse passes although the ROI
+      is there"
+    params: {redetect_interval: 100, fitness_checks: [{check: bbox_area_collapse}]}
+    input:
+      running_mode: video
+      frames:
+        - {frame_index: 0, previous_rois: null}
+        - {frame_index: 1, previous_rois: [[100, 100, 100, 100, 0]]}
+    expect: {triggered: [true, false]}
   - id: image-mode-each-frame
     params: {redetect_interval: 5}
     input:

@@ -9,10 +9,11 @@ Note:
 - Imported section modules: none.
 
 A case is one sequence of frames. Each frame holds frame_index, previous_keypoints and previous_rois.
-previous_keypoints is a list of instance rows, and each row is a list of points [x, y, score].
-previous_rois is a list of instance rows, and each row is an ROI [cx, cy, w, h, rotation] or null (the
-row is not present). An input that is null is empty. The result is True for each frame where the
-node gives the image (the trigger).
+previous_keypoints is a list of instance rows, and each row is a list of points [x, y, score] or
+null (the row is not present). previous_rois is a list of instance rows, and each row is an ROI
+[cx, cy, w, h, rotation] or null (the row is not present). An input that is null is empty. A frame
+with no previous_keypoints key has previous_keypoints not connected. The result is True for each
+frame where the node gives the image (the trigger).
 """
 
 from __future__ import annotations
@@ -68,13 +69,18 @@ def area_collapsed(row: list[list[float]], roi: list[float], check: dict[str, An
     return expected > 0 and width * grow * height * grow < check["min_area_ratio"] * expected
 
 
-def fails(check: dict[str, Any], frames_since: int, row: list[list[float]] | None, roi: list[float] | None) -> bool:
-    """True when one fitness check fails for one instance row (node.redetect, Behaviour)."""
+def fails(
+    check: dict[str, Any], frames_since: int, row: list[list[float]] | None, roi: list[float] | None, connected: bool
+) -> bool:
+    """True when one fitness check fails for one instance row (node.redetect, Behaviour).
+
+    connected is True when previous_keypoints is connected. A row of None is missing.
+    """
     kind = check["check"]
     if kind == "max_frames_without_redetect":
         return frames_since >= check["n_frames"]
     if row is None:
-        return False
+        return kind == "bbox_area_collapse" and connected and roi is not None
     points = [p for p in row if valid(p)]
     if kind == "min_keypoint_score":
         return bool(points) and sum(p[2] for p in points) / len(points) < check["threshold"]
@@ -104,7 +110,7 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
         if input["running_mode"] == "image" or last is None or n - last >= interval:
             hit = True
         else:
-            keypoints, rois = frame["previous_keypoints"], frame["previous_rois"]
+            keypoints, rois = frame.get("previous_keypoints"), frame["previous_rois"]
             count = max(len(keypoints or []), len(rois or []))
             hit = any(
                 fails(
@@ -112,6 +118,7 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
                     n - last,
                     keypoints[i] if keypoints is not None and i < len(keypoints) else None,
                     rois[i] if rois is not None and i < len(rois) else None,
+                    "previous_keypoints" in frame,
                 )
                 for check in checks
                 for i in range(max(count, 1))

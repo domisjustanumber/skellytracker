@@ -2,7 +2,7 @@
 id: node.concat
 title: Concat node
 kind: node
-vectors: null
+vectors: vectors/node.concat.yaml
 status: {spec: draft}
 ---
 
@@ -30,8 +30,8 @@ This node has no parameters.
 ## Behaviour
 
 - **Empty inputs.** An empty input does not stop the node. This is a rule of the node, as [Graph](../graph.md#behaviour) item 6 allows. The columns of an empty input are missing points in each row: x, y and z are NaN and the score is 0. The output schema of the input gives its point names, so the shapes do not change. When each input is empty, the output is empty. For example, a body row with no left-hand ROI still gives the body points, and the left-hand columns are missing.
-- The `instance_score` of row `i` comes from the first input that is not empty. The inputs have one instance source, so they have the same value.
-- Row `i` of each input joins row `i` of the output ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1). Row `i` of the output is present when row `i` of an input is present. The `track_ids` come from the first input that is not empty.
+- The `instance_score` and the `track_ids` of row `i` come from the first input whose row `i` is present. A row with no present input row is a padding row, with the padding values of [Outputs](../outputs.md#fields) ([ADR-97X9](../../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 1).
+- Row `i` of each input joins row `i` of the output ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1). Row `i` of the output is present when row `i` of an input is present.
 - The output has the points of each input, in the order of the list. A consumer finds a point by its name, not by its column.
 - Each point name keeps its prefix, for example `body.nose`. The node never replaces a point (`V-node.concat-2`).
 - The output has the instance source and the geometry of its inputs.
@@ -45,7 +45,7 @@ This node has no parameters.
 
 ## Implementer guidance
 
-- This node has a named test and no vector file: `tools/tests/test_pipeline_glue_nodes.py` runs the reference implementation `specs/pipeline/reference/node_concat.py` ([ADR-3SF2](../../../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md) item 4).
+- The vector file `specs/pipeline/vectors/node.concat.yaml` holds the cases of this node. `tools/make_vectors.py` runs the reference implementation `specs/pipeline/reference/node_concat.py` on them ([ADR-Y753](../../../decisions/entries/Y753-pipeline-templates-glue-vectors-and-taps-flag.md) item 4).
 - The host does the checks of this section at load, because the instance sources, the point names and the geometries come from the sidecars and the MediaPipe YAML files. The reference model does not do them (`specs/pipeline/reference/pipeline_config.py`).
 
 ## Authoring guidance

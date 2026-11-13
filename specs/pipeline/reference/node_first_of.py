@@ -5,7 +5,6 @@ Note:
 - Section ID: node.first_of.
 - Source: the section text specs/pipeline/nodes/first_of.md.
 - Imported section modules: none. Fixtures: none.
-- Test: tools/tests/test_pipeline_glue_nodes.py (a named test, no vector file; ADR-3SF2 item 4).
 
 A value is None (no value), a value of an instance port (a mapping with `present`, one flag for each
 instance row) or any other value.
