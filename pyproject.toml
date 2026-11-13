@@ -87,7 +87,7 @@ dev = [
     "poethepoet==0.49.0",
     "pre-commit==4.6.2",
     "pytest==9.2.0",
-    "ruff==0.15.17",
+    "ruff==0.17.5",
 ]
 
 [tool.uv]
@@ -125,7 +125,9 @@ push = true
 "skellytracker/__init__.py" = ["{version}"]
 
 [tool.ruff.lint]
-extend-select = ["B", "S", "C4", "ISC", "PERF"]
+# The rule set of ruff 0.15: ruff 0.16 made the default set much larger, and ISC004 left preview.
+select = ["E4", "E7", "E9", "F", "B", "S", "C4", "ISC", "PERF"]
+ignore = ["ISC004"]
 
 [tool.ruff.lint.per-file-ignores]
 "*/tests/*" = ["S101"]

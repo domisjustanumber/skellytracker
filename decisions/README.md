@@ -36,6 +36,7 @@ These entries are `accepted` or `evidence`.
 | [D8DH](entries/D8DH-sessions-errors-and-the-ready-rule.md) | `core/errors.py`; one exit-code table; an EP pack is ready when installed, current, registered and with a device; no EP variables | accepted |
 | [P1F3](entries/P1F3-hardware-probe-devices-and-multi-gpu.md) | Hardware probe fields; `free_vram`; `device_key`; default GPU by VRAM; a run splits its cameras across GPUs; no pre-Turing GPUs | accepted |
 | [W09C](entries/W09C-opencv-contrib-python.md) | `opencv-contrib-python` with an exact pin is the OpenCV package; no headless package | accepted |
+| [D3VP](entries/D3VP-ruff-0-17-with-the-old-rule-set.md) | `ruff==0.17.5` with the rule set of ruff 0.15; a review of the new default rules before the 2.0.0 release | accepted |
 
 ### Proposed
 

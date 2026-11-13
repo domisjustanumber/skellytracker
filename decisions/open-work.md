@@ -19,8 +19,8 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   and `requires-python = "==3.13.18"`. The exporters that agents build again pin the 2.0.0
   pre-release (the draft exporter guide). On 2026-10-28, two exporters required Python 3.14 or later,
   and uv could not resolve skellytracker in three of the four exporters. The dependency stage of the
-  implementation plan writes the pins. Until then, an exporter runs the batch tool in the checkout
-  environment.
+  implementation plan wrote the pins on 2026-11-12. Until the 2.0.0 pre-release, an exporter runs
+  the batch tool in the checkout environment.
 - **Exporter open items.** At the 2.0.0 pre-release, remove the rows of
   `specs/draft/exporter-guide/sidecars/known-open-items.md` that name a reference implementation.
   They do not apply to a new exporter, and the skill `implement-sidecar-section` uses them until

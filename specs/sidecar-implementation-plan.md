@@ -66,7 +66,7 @@ stages give the order of the work and hold their items.
 | 2.2 RTMPose `body17`, `hand21`, `face106` | 1.11, the exporter | the model gate; `rtmpose-body-hands-face` runs | all new, and old RTMPose |
 | 2.3 Delete the old RTMPose, the old loader and the old processing | 2.2 | full suite; vector tests | new ONNX only, old run code |
 | 2.4 Delete the old run code | 2.3 | full suite; each built-in runs as a pipeline config | new only, as pipeline configs |
-| 2.5 Release 2.0.0 | 2.4 | full suite | new only, as pipeline configs |
+| 2.5 Release 2.0.0 | 2.4 | full suite; the ruff rule review; the test coverage review | new only, as pipeline configs |
 
 Stages 1.3 and 1.8 need only 1.1 and 1.2. They can run in parallel with 1.4 to 1.7.
 
@@ -1282,7 +1282,12 @@ through the model addition workflow. The stages below are the work of skellytrac
   `model_name` values, `canonical_mapping_path()`, `Tracker`, `TrackerConfig`,
   `DetectionStageConfig` and the old MediaPipe detector classes. freemocap uses them, so it must not
   move to 2.0.0 before it migrates.
-- Gate: the full suite passes.
+- **Ruff rule review.** Examine the rules that ruff 0.16 added to the default set, and ISC004.
+  Decide which rules to adopt, and fix their findings
+  ([ADR-D3VP](../decisions/entries/D3VP-ruff-0-17-with-the-old-rule-set.md) item 3).
+- **Test coverage review.** Review the test coverage of the package code. Add the tests that the
+  review finds missing.
+- Gate: the full suite passes. The ruff rule review and the test coverage review are done.
 - **The first package release.** Added on 2026-11-03. The spec version is the skellytracker
   version. The spec has no `vNEXT`, and the open target is `2.0.0`
   ([ADR-6GE2](../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). Thus 2.5 is
