@@ -90,25 +90,11 @@ The sidecar paths are under `core/detectors/`.
   detectors download their model files to `~/.freemocap/skellytracker-models` (`CACHE_DIR` in
   `keypoint_detectors/mediapipe/mediapipe_model_manager.py`).
 - `-o faulthandler_timeout=300` prints a stack trace when a test runs for more than 300 s.
-- On Windows, run each video test file alone. These failures are known:
-  - `test_data_store.py` and `test_mediapipe_video.py` fail in setup with "Input timestamp must be
-    monotonically increasing". The cause is in the
-    [implementation plan](../specs/sidecar-implementation-plan.md): "MediaPipe timestamps on Windows".
-  - In a run of all video tests, `test_process_video.py` does not finish:
-    `PoseLandmarker.__del__` runs during `detect_for_video`, and that call does not return. Alone, it
-    passes.
-- On Windows, a run of `uv run pytest -m "not video"` can stop in the MediaPipe tests and not
-  finish. This is a known defect. Report it. Run the tests in two parts:
-
-  ```sh
-  uv run pytest -m "not video" skellytracker/tests/test_mediapipe_detectors.py
-  uv run pytest -m "not video" --deselect skellytracker/tests/test_mediapipe_detectors.py
-  ```
-
-  `tools/run_checks.py` stops the MediaPipe check after 300 s, runs the next checks and then exits
-  with 124. Report the note that it prints. On Python 3.13 or later, the hang is a regression.
-  Do not change the MediaPipe tests to hide the hang, for example with a skip, an xfail or a
-  timeout plugin: they are its regression test
+- On Python 3.13.18, all tests pass in one run, also on Windows and with the video tests.
+- `tools/run_checks.py` stops the MediaPipe check after 300 s, runs the next checks and then exits
+  with 124. A hang in the MediaPipe tests is a regression. Report the note that the tool prints.
+  Do not change the MediaPipe tests to hide a hang, for example with a skip, an xfail or a timeout
+  plugin: they are its regression test
   ([ADR-R3F1](../decisions/entries/R3F1-mediapipe-check-time-limit.md)).
 
 - If a failure shows a code defect, report it.

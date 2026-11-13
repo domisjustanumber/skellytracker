@@ -23,8 +23,7 @@ classifiers = [
     "Natural Language :: English",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Utilities",
     "Topic :: Multimedia :: Video",
@@ -62,10 +61,9 @@ dependencies = [
     "beartype==0.23.1",
     "pyyaml==6.0.3",
     "polars==2.1.0",
-    "scipy==1.17.1; python_full_version < '3.12'",
-    "scipy==1.18.1; python_full_version >= '3.12'",
+    "scipy==1.18.1",
 ]
-requires-python = ">=3.11,<3.13"
+requires-python = "==3.13.18"
 
 dynamic = ["version", "description"]
 
