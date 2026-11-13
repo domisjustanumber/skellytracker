@@ -201,7 +201,8 @@ The hardware and EP work stayed a parallel track on the branch
 **Status: STARTED.** It needs 0.1 to 0.4. Done: the retirement of
 `notes/sidecar-exporter-coverage.md`, with its unique measurements in [ADR-Z0CC](../decisions/entries/Z0CC-exporter-coverage-measurements.md),
 the consolidation entry [ADR-W5QD](../decisions/entries/W5QD-pipeline-entries-consolidation.md) of the pipeline entries, and the
-declaration of the implementation stage, [ADR-V6G2](../decisions/entries/V6G2-implementation-stage.md). Left: the rebuild.
+declaration of the implementation stage, [ADR-V6G2](../decisions/entries/V6G2-implementation-stage.md), and the rebuild
+(2026-11-12). Left: the user opens the two PRs.
 
 - The user declares the implementation stage in a new entry. The entry changes
   [section 1](../AGENTS.md#1-purpose) of `AGENTS.md` and the "Stage" part of the skill
@@ -217,7 +218,7 @@ declaration of the implementation stage, [ADR-V6G2](../decisions/entries/V6G2-im
 
 ### 1.1 Dependencies
 
-**Status: NOT STARTED.** [ADR-M2C6](../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md) gives the rules. Each item below is its own commit group.
+**Status: DONE (2026-11-12).** [ADR-M2C6](../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md) gives the rules. Each item below is its own commit group.
 
 - **Exact pins.** Pin each dependency of `dependencies` and of each extra with `==`, at the version
   of a new `uv.lock`. Use an environment marker where a platform needs it. Today

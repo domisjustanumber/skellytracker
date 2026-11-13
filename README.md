@@ -4,6 +4,9 @@ The tracking backend for freemocap. Collects different pose estimation tools beh
 
 ## Installation
 
+skellytracker needs Python 3.13.18. It supports Windows on x86_64, Linux on x86_64 and macOS on
+Apple Silicon (arm64). macOS on Intel (x86_64) is not supported.
+
 The base package includes ONNX Runtime 1.31 for the CPU and the OpenCV trackers (ArUco, ChArUco):
 
 ```bash
