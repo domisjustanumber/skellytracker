@@ -93,7 +93,7 @@ These rules are in [ADR-JC4T](../../../../decisions/entries/JC4T-parity-gates-an
 - The rule now: run the `batch` sub-command of the hand-over tool from the skellytracker checkout,
   in the skellytracker environment of the checkout
   ([Batch-conversion check](../../../model-sidecar/model-addition-workflow/batch-conversion-check.md#batch-conversion-check)).
-  The user syncs the checkout one time with `uv sync --extra all-cpu`. The command writes no file in
+  The user syncs the checkout one time with `uv sync --all-extras`. The command writes no file in
   the checkout:
 
   ```sh

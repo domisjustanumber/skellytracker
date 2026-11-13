@@ -55,7 +55,7 @@ def build_hand_demo(
 def main() -> None:
     parser = argparse.ArgumentParser(description="RTMPose hand live demo")
     parser.add_argument("--camera", type=int, default=0)
-    parser.add_argument("--provider", choices=["cuda", "trt", "coreml", "directml", "cpu"], default=None)
+    parser.add_argument("--provider", choices=["coreml", "cpu"], default=None)
     args = parser.parse_args()
 
     demo = build_hand_demo(provider=args.provider)

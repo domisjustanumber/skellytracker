@@ -6,4 +6,4 @@ native library into the import graph.
 """
 from typing import Literal
 
-ExecutionProviderName = Literal["trt", "cuda", "coreml", "directml", "cpu"]
+ExecutionProviderName = Literal["coreml", "cpu"]

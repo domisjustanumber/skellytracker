@@ -65,7 +65,7 @@ def main() -> None:
         choices=["rtmpose-m_256x192", "rtmpose-s_256x192"],
         default="rtmpose-m_256x192",
     )
-    parser.add_argument("--provider", choices=["cuda", "trt", "coreml", "directml", "cpu"], default=None)
+    parser.add_argument("--provider", choices=["coreml", "cpu"], default=None)
     parser.add_argument("--no-detector", action="store_true")
     args = parser.parse_args()
 

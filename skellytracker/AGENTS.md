@@ -56,13 +56,12 @@ The sidecar paths are under `core/detectors/`.
 
 ## ONNX Runtime
 
-- `OnnxSessionConfig.execution_provider` (`core/sessions/onnx_session.py`) selects `trt`, `cuda`,
-  `coreml`, `directml` or `cpu`.
-- `None` selects the first available provider in this order: `trt`, `cuda`, `coreml` (macOS only),
-  `cpu` (`auto_detect_provider` in `core/sessions/ort_session_utils.py`).
+- `onnxruntime` is a base dependency. It gives the CPU EP, and the CoreML EP on macOS
+  ([ADR-M2C6](../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md) item 2).
+- `OnnxSessionConfig.execution_provider` (`core/sessions/onnx_session.py`) selects `coreml` or `cpu`.
+- `None` selects the first available provider in this order: `coreml` (macOS only), `cpu`
+  (`auto_detect_provider` in `core/sessions/ort_session_utils.py`).
 - A provider that is not available raises `SessionCreationError`. There is no CPU fallback.
-- On Windows, `cuda` and `trt` load the CUDA and cuDNN DLLs from the `nvidia-*` pip packages
-  (`_load_nvidia_dlls_on_windows`).
 
 ## Code conventions
 

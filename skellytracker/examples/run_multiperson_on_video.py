@@ -3,8 +3,7 @@
 Unlike run_rtmpose_on_folder.py (single subject, cross-camera batching), this
 tracks an arbitrary number of people within one camera's video, assigning
 each a stable track ID across frames. Requires onnxruntime. Install with:
-    uv sync --extra all-cpu       # CPU
-    uv sync --extra all-trt       # NVIDIA GPU with TensorRT
+    uv sync --all-extras
 
 Usage:
     python -m skellytracker.examples.run_multiperson_on_video \\

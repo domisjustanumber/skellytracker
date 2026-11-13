@@ -55,6 +55,7 @@ dependencies = [
     "opencv-contrib-python",
     "pydantic==2.*",
     "numpy==2.4.6",
+    "onnxruntime==1.31.1",
     "tqdm==4.*",
     "numpydantic>=1.6.7",
     "requests>=2.32.3",
@@ -67,78 +68,14 @@ requires-python = ">=3.11,<3.13"
 
 dynamic = ["version", "description"]
 
-# Extras for package consumers: `pip install skellytracker[all-cuda]`
-# Also usable in local dev: `uv sync --extra all-cuda`
+# Extras for package consumers: `pip install skellytracker[mediapipe]`
+# Local dev installs each extra: `uv sync --all-extras`
 [project.optional-dependencies]
-# ── Detector-library extras ───────────────────────────────────────────────────
-# Install the tracker libraries you want to use. These are independent of the
-# ONNX session backend — add one of the onnx-* extras below to run inference.
-
 mediapipe = ["mediapipe==0.10.33"]
 
 # RTMPose + YOLOX detectors (vendored, see skellytracker/core/detectors) need
-# the onnx package for graph surgery. Requires one of the onnx-* session extras.
+# the onnx package for graph surgery.
 onnx = ["onnx"]
-
-# ── ONNX session/backend extras ──────────────────────────────────────────────
-# Pick exactly one that matches your hardware. These provide the ONNX Runtime
-# used by the RTMPose + YOLOX detectors for inference.
-
-# CPU — any platform. Also enables CoreML EP on macOS with Apple Silicon.
-# >=1.31: 1.27 CPU gives run-to-run noise on fp16 graphs (batch-conversion check).
-onnx-cpu = ["onnxruntime>=1.31"]
-
-# NVIDIA GPU via CUDA 12 (Linux / Windows).
-# Bundles the CUDA 12 + cuDNN 9 runtime DLLs as pip packages so users
-# don't need to install the CUDA Toolkit or cuDNN manually.
-# We pin onnxruntime-gpu<1.27: ORT <1.27 on PyPI is built against CUDA 12, but
-# ORT 1.27+ switched to CUDA 13 (links cublasLt64_13.dll etc., needs a newer
-# driver floor, drops Maxwell/Pascal/Volta). Without the cap a fresh resolve grabs
-# 1.27, which fails to load its CUDA EP against these cu12 DLLs and silently falls
-# back to CPU. NVIDIA drivers are backward-compatible, so users with newer drivers
-# still work fine on the cu12 libs.
-# Code must call `onnxruntime.preload_dlls(directory="")` before creating a session
-# so ORT finds these pip-installed DLLs — skellytracker already does this.
-onnx-cuda = [
-    "onnxruntime-gpu<1.27; sys_platform != 'darwin'",
-    "nvidia-cuda-runtime-cu12; sys_platform != 'darwin'",
-    "nvidia-cublas-cu12; sys_platform != 'darwin'",
-    "nvidia-cufft-cu12; sys_platform != 'darwin'",
-    "nvidia-cudnn-cu12; sys_platform != 'darwin'",
-]
-
-# NVIDIA GPU via CUDA 12 + TensorRT (2-5x faster than CUDA EP alone).
-# First run compiles TRT engines (1-5 min); cached thereafter.
-# tensorrt is pinned to the 10.x line: onnxruntime-gpu<1.27's bundled TensorRT EP
-# is built against the TensorRT 10.x ABI (it loads nvinfer_10.dll). Letting this
-# float to TensorRT 11.x (released 2026 Q2) installs nvinfer_11.dll instead, so
-# the EP fails to load with "nvinfer_10.dll is missing" and silently falls back
-# to CUDA/CPU.
-onnx-trt = [
-    "onnxruntime-gpu<1.27; sys_platform != 'darwin'",
-    "nvidia-cuda-runtime-cu12; sys_platform != 'darwin'",
-    "nvidia-cublas-cu12; sys_platform != 'darwin'",
-    "nvidia-cufft-cu12; sys_platform != 'darwin'",
-    "nvidia-cudnn-cu12; sys_platform != 'darwin'",
-    "tensorrt>=10,<11; sys_platform != 'darwin'",
-]
-
-# Any GPU on Windows via DirectML (AMD, Intel, NVIDIA, Qualcomm). No CUDA needed.
-onnx-directml = ["onnxruntime-directml; sys_platform == 'win32'"]
-
-# ── Convenience bundles ───────────────────────────────────────────────────────
-# mediapipe + onnx + the matching ONNX session backend.
-
-all-cpu      = ["skellytracker[mediapipe,onnx,onnx-cpu]"]
-all-cuda     = ["skellytracker[mediapipe,onnx,onnx-cuda]"]
-all-trt      = ["skellytracker[mediapipe,onnx,onnx-trt]"]
-all-directml = ["skellytracker[mediapipe,onnx,onnx-directml]"]
-
-# Recommended installs — sensible defaults for the most common hardware targets.
-# CPU/Mac users (includes CoreML on Apple Silicon): uv sync --extra recommended-cpu
-recommended-cpu  = ["skellytracker[all-cpu]"]
-# NVIDIA GPU users (TensorRT for best performance): uv sync --extra recommended-cuda
-recommended-cuda = ["skellytracker[all-trt]"]
 
 # Dev-only tooling: `uv sync` (installed by default via default-groups)
 [dependency-groups]
@@ -167,15 +104,6 @@ environments = [
 # file-collision error.
 exclude-dependencies = ["opencv-python"]
 
-conflicts = [
-    [
-        { extra = "onnx-cpu" },
-        { extra = "onnx-cuda" },
-        { extra = "onnx-trt" },
-        { extra = "onnx-directml" },
-    ],
-]
-
 [project.urls]
 Homepage = "https://github.com/freemocap/skellytracker"
 
@@ -201,10 +129,6 @@ skellytracker = "skellytracker.__main__:cli_main"
 
 [tool.uv.sources]
 skellytracker-rust = { path = "skellytracker-rust" }
-
-[[tool.uv.index]]
-name = "nvidia"
-url = "https://pypi.nvidia.com"
 
 # =============================================================================
 # Task runner (poethepoet)

@@ -1,8 +1,7 @@
 """Run YOLOX → RTMPose wholebody on a folder of synchronised camera videos.
 
 Requires onnxruntime (CPU or GPU). Install with:
-    uv sync --extra all-cpu       # CPU
-    uv sync --extra all-trt       # NVIDIA GPU with TensorRT
+    uv sync --all-extras
 
 Usage:
     python -m skellytracker.examples.run_rtmpose_on_folder \\

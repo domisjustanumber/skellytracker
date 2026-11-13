@@ -23,7 +23,7 @@ def main() -> None:
         choices=["rtmw-x-l_256x192", "rtmw-x-l_384x288", "rtmw-l-m_256x192"],
         default="rtmw-x-l_256x192",
     )
-    parser.add_argument("--provider", choices=["cuda", "trt", "coreml", "directml", "cpu"], default=None)
+    parser.add_argument("--provider", choices=["coreml", "cpu"], default=None)
     parser.add_argument("--no-detector", action="store_true")
     args = parser.parse_args()
 

@@ -4,7 +4,7 @@ The tracking backend for freemocap. Collects different pose estimation tools beh
 
 ## Installation
 
-The base package includes OpenCV-based trackers (Aruco, Charuco) with no extras needed:
+The base package includes ONNX Runtime 1.31 for the CPU and the OpenCV trackers (ArUco, ChArUco):
 
 ```bash
 pip install skellytracker
@@ -13,46 +13,20 @@ pip install skellytracker
 uv add skellytracker
 ```
 
-Add extras to enable additional tracker backends. Pick the bundle that matches your hardware:
+Add an extra to enable more trackers:
 
-| Extra | Hardware | What's included |
-|---|---|---|
-| `recommended-cpu` | Any platform (CPU / Apple Silicon) | MediaPipe + RTMPose + YOLOX on CPU; enables CoreML EP on macOS |
-| `recommended-cuda` | NVIDIA GPU (Linux / Windows) | MediaPipe + RTMPose + YOLOX with TensorRT (best performance) |
-| `all-cpu` | Same as `recommended-cpu` | — |
-| `all-cuda` | NVIDIA GPU, CUDA 12 only | MediaPipe + RTMPose + YOLOX via CUDA EP (no TensorRT) |
-| `all-trt` | NVIDIA GPU, CUDA 12 + TensorRT | Same as `recommended-cuda` |
-| `all-directml` | Any GPU on Windows | MediaPipe + RTMPose + YOLOX via DirectML |
+| Extra | What it adds |
+|---|---|
+| `mediapipe` | The MediaPipe trackers (pose, hands, face) |
+| `onnx` | The `onnx` package. The RTMPose and YOLOX trackers need it to change the ONNX graph. |
 
 ```bash
-# CPU / Mac
-pip install "skellytracker[recommended-cpu]"
-uv add "skellytracker[recommended-cpu]"
-
-# NVIDIA GPU
-pip install "skellytracker[recommended-cuda]"
-uv add "skellytracker[recommended-cuda]"
-
-# Windows with non-NVIDIA GPU
-pip install "skellytracker[all-directml]"
-uv add "skellytracker[all-directml]"
+pip install "skellytracker[mediapipe,onnx]"
+uv add "skellytracker[mediapipe,onnx]"
 ```
 
-You can also mix extras for more granular control:
-
-```bash
-# RTMPose + YOLOX only (no MediaPipe), CUDA backend
-pip install "skellytracker[onnx,onnx-cuda]"
-uv add "skellytracker[onnx,onnx-cuda]"
-
-# MediaPipe only
-pip install "skellytracker[mediapipe]"
-uv add "skellytracker[mediapipe]"
-```
-
-Available granular extras: `mediapipe`, `onnx`, `onnx-cpu`, `onnx-cuda`, `onnx-trt`, `onnx-directml`.
-
-> **Note:** `onnx-*` backend extras are mutually exclusive — install exactly one.
+The ONNX trackers run on the CPU. On macOS, they can also run on CoreML. This version has no GPU
+support. The [GPU setup guide](GPU_SETUP_GUIDE.md) gives the status.
 
 ## Quick start
 
@@ -185,7 +159,7 @@ Pull requests are welcome. [`AGENTS.md`](AGENTS.md) gives the full rules for hum
 The [sidecar spec](specs/model-sidecar/README.md) gives the contract of the YAML sidecar that an ONNX detector reads.
 
 1. Fork the repo. Create your branch from `development`.
-2. Install the dev tools: `uv sync --extra all-cpu`. Then run `uv run pre-commit install` once.
+2. Install the dev tools: `uv sync --all-extras`. Then run `uv run pre-commit install` once.
 3. If you add a tracker, add tests under `skellytracker/tests/`.
 4. Run the fast tests: `uv run pytest -m "not video"`. To include the slow video tests, run `uv run pytest`.
 5. Lint: `uv run ruff check skellytracker/ tools/`

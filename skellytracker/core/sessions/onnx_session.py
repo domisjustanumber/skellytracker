@@ -1,4 +1,4 @@
-"""Generic ONNX Runtime session for GPU-accelerated detectors.
+"""Generic ONNX Runtime session for the ONNX detectors (CPU, and CoreML on macOS).
 
 One OnnxSession per Tracker holds all ONNX models needed by that tracker
 (YOLOX, RTMPose, or any other ONNX-based detector). Models are identified
@@ -21,12 +21,8 @@ Usage::
 
 from __future__ import annotations
 
-import ctypes
 import gc
-import importlib.util
 import logging
-import os
-import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
@@ -43,16 +39,12 @@ from skellytracker.core.sessions.model_registry import ModelSource, resolve_mode
 from skellytracker.core.sessions.ort_session_utils import (
     auto_detect_provider,
     build_tuned_ort_session,
-    cuda_device_total_bytes,
     require_provider,
-    select_best_cuda_device,
 )
 from skellytracker.core.sessions.session import Session
 from skellytracker.core.sessions.session_errors import SessionCreationError
 
 logger = logging.getLogger(__name__)
-
-_ARENA_VRAM_FRACTION = 0.85
 
 
 @dataclass
@@ -112,16 +104,9 @@ class OnnxSessionConfig(SessionConfig):
         List of models to load. Detectors reference them by name.
     execution_provider:
         Which ONNX Runtime execution provider to use. ``None`` = auto-select
-        (best available: trt → cuda → coreml on macOS → cpu). When explicitly
-        set, ``OnnxSession.create()`` raises ``SessionCreationError`` immediately
-        if that provider is unavailable — there is no silent fallback.
-    device_id:
-        Which GPU to use. ``None`` = auto-select the device with the most free VRAM.
-    fp16:
-        Enable FP16 mode for TRT EP.
-    gpu_mem_limit:
-        CUDA arena ceiling in bytes. ``None`` = auto-size from the selected
-        device's total VRAM.
+        (best available: coreml on macOS → cpu). When explicitly set,
+        ``OnnxSession.create()`` raises ``SessionCreationError`` immediately if
+        that provider is unavailable — there is no silent fallback.
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -130,9 +115,6 @@ class OnnxSessionConfig(SessionConfig):
     batch_size: int
     models: list[OnnxModelSpec] = []
     execution_provider: ExecutionProviderName | None = None
-    device_id: int | None = None
-    fp16: bool = True
-    gpu_mem_limit: int | None = None
 
     @field_validator("batch_size")
     @classmethod
@@ -147,13 +129,11 @@ class OnnxSession(Session):
     """Manages all ONNX Runtime sessions for a Tracker's ONNX-based detectors.
 
     Detectors call ``get_session(model_name)`` to obtain their pre-loaded
-    ``ort.InferenceSession``. This avoids redundant CUDA-context creation when
-    multiple detectors share the same GPU.
+    ``ort.InferenceSession``.
     """
 
     _sessions: dict[str, ort.InferenceSession] = field(default_factory=dict)
     execution_provider: ExecutionProviderName = "cpu"
-    device_id: int = 0
     batch_size: int = 1
 
     @classmethod
@@ -167,29 +147,6 @@ class OnnxSession(Session):
                 config.execution_provider
             )  # raises SessionCreationError if unavailable
             active_provider = config.execution_provider
-
-        if active_provider in ("cuda", "trt") and sys.platform == "win32":
-            _load_nvidia_dlls_on_windows()
-        if active_provider in ("cuda", "trt"):
-            ort.preload_dlls()
-
-        # CoreML does not support fp16 inputs.
-        fp16 = config.fp16 and active_provider != "coreml"
-
-        device_id = config.device_id
-        total_vram_bytes: int | None = None
-        if device_id is None and active_provider in ("cuda", "trt"):
-            device_id, _free, total_vram_bytes = select_best_cuda_device()
-        device_id = device_id if device_id is not None else 0
-
-        gpu_mem_limit = config.gpu_mem_limit
-        if gpu_mem_limit is None and active_provider in ("cuda", "trt"):
-            if total_vram_bytes is None:
-                total_vram_bytes = cuda_device_total_bytes(device_id)
-            if total_vram_bytes and total_vram_bytes > 0:
-                gpu_mem_limit = int(total_vram_bytes * _ARENA_VRAM_FRACTION)
-        if gpu_mem_limit is None:
-            gpu_mem_limit = 2 * 1024 * 1024 * 1024
 
         sessions: dict[str, ort.InferenceSession] = {}
         for spec in config.models:
@@ -205,11 +162,7 @@ class OnnxSession(Session):
                 ort_session = build_tuned_ort_session(
                     onnx_path=str(model_path),
                     provider=active_provider,
-                    fp16=fp16,
                     log_label=spec.name,
-                    max_batch_size=config.batch_size,
-                    gpu_mem_limit=gpu_mem_limit,
-                    device_id=device_id,
                     coreml_options=spec.coreml_options,
                 )
             except Exception as exc:
@@ -218,16 +171,14 @@ class OnnxSession(Session):
                 ) from exc
             sessions[spec.name] = ort_session
             logger.info(
-                "OnnxSession: loaded model %r (provider=%r, device=%d)",
+                "OnnxSession: loaded model %r (provider=%r)",
                 spec.name,
                 active_provider,
-                device_id,
             )
 
         onnx_session = cls(
             _sessions=sessions,
             execution_provider=active_provider,
-            device_id=device_id,
             batch_size=config.batch_size,
         )
         _warmup(
@@ -283,7 +234,7 @@ class OnnxSession(Session):
         except MemoryError as exc:
             raise VRAMExhaustionError(
                 f"Out of GPU memory running model {model_name!r} "
-                f"(provider={self.execution_provider!r}, device={self.device_id})"
+                f"(provider={self.execution_provider!r})"
             ) from exc
         except Exception as exc:
             msg = str(exc).lower()
@@ -293,7 +244,7 @@ class OnnxSession(Session):
             ):
                 raise VRAMExhaustionError(
                     f"Out of GPU memory running model {model_name!r} "
-                    f"(provider={self.execution_provider!r}, device={self.device_id}): {exc}"
+                    f"(provider={self.execution_provider!r}): {exc}"
                 ) from exc
             raise InferencePipelineError(
                 f"ONNX Runtime error running model {model_name!r} "
@@ -365,7 +316,7 @@ def _warmup(
 ) -> None:
     """Run a dummy inference through each model to trigger JIT compilation.
 
-    CoreML (macOS) and TRT compile kernels lazily on the first session.run()
+    CoreML (macOS) compiles kernels lazily on the first session.run()
     call. Without warmup this happens on the first real frame, causing a silent
     hang of 5–30 seconds in the middle of the demo loop. Warming up here lets
     compilation happen during session creation with a clear log message.
@@ -378,7 +329,7 @@ def _warmup(
 
     logger.info(
         "OnnxSession: warming up %d model(s) on provider=%r at batch_size=%d "
-        "(first run may take 5–30 s on CoreML/TRT) ...",
+        "(first run may take 5–30 s on CoreML) ...",
         len(specs),
         provider,
         batch_size,
@@ -408,42 +359,11 @@ def _verify_ort_install() -> None:
         raise RuntimeError(
             "ONNX Runtime install appears broken — "
             "`onnxruntime.get_available_providers()` is missing. "
-            "This usually means CPU `onnxruntime` and GPU `onnxruntime-gpu` "
-            "collided on disk. Reinstall a single build, e.g. "
-            "`pip install --force-reinstall onnxruntime-gpu`."
+            "This usually means two ONNX Runtime builds collided on disk. "
+            "Reinstall it: `pip install --force-reinstall onnxruntime`."
         ) from e
     if not providers:
         raise RuntimeError(
             "ONNX Runtime reports no execution providers. The install is broken."
         )
 
-
-def _load_nvidia_dlls_on_windows() -> None:
-    spec = importlib.util.find_spec("nvidia")
-    if spec is None or not spec.submodule_search_locations:
-        raise RuntimeError(
-            "Could not find `nvidia` pip namespace package. "
-            "Install skellytracker with the `all-cuda` or `all-trt` extra: "
-            "`uv sync --extra all-cuda`."
-        )
-    nvidia_root = Path(spec.submodule_search_locations[0])
-    bin_dirs = sorted(nvidia_root.glob("*/bin"))
-    if not bin_dirs:
-        raise RuntimeError(
-            f"Found `nvidia` package at {nvidia_root} but no `nvidia/*/bin` "
-            f"subdirectories inside it."
-        )
-
-    bin_dir_strs = [str(d) for d in bin_dirs]
-    os.environ["PATH"] = os.pathsep.join([*bin_dir_strs, os.environ.get("PATH", "")])
-
-    for bin_dir in bin_dirs:
-        os.add_dll_directory(str(bin_dir))
-
-    cudnn_bin = nvidia_root / "cudnn" / "bin"
-    if cudnn_bin.is_dir():
-        for dll_path in sorted(cudnn_bin.glob("*.dll")):
-            try:
-                ctypes.WinDLL(str(dll_path))
-            except OSError:
-                logger.debug("Could not preload cuDNN DLL: %s", dll_path)

@@ -97,7 +97,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--provider",
-        choices=["cuda", "trt", "coreml", "directml", "cpu"],
+        choices=["coreml", "cpu"],
         default=None,
         help="ONNX Runtime execution provider (default: auto)",
     )
