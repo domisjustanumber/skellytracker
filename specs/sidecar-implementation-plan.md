@@ -222,8 +222,8 @@ declaration of the implementation stage, [ADR-V6G2](../decisions/entries/V6G2-im
 - **Exact pins.** Pin each dependency of `dependencies` and of each extra with `==`, at the version
   of a new `uv.lock`. Use an environment marker where a platform needs it. Today
   `opencv-contrib-python`, `onnx`, `polars` and `scipy` have no version, and other dependencies have
-  ranges. The OpenCV package (`opencv-contrib-python` or a headless package) is not decided (the
-  [open work](../decisions/open-work.md)). Ask the user before you pin it.
+  ranges. The OpenCV package is `opencv-contrib-python`
+  ([ADR-W09C](../decisions/entries/W09C-opencv-contrib-python.md)).
 - **One ONNX Runtime core.** Make `onnxruntime` with one exact 1.31 release a base dependency.
   Remove the extras `onnx-cpu`, `onnx-cuda`, `onnx-trt` and `onnx-directml`, the `all-*` and
   `recommended-*` extras that name them, and the packages `onnxruntime-gpu`,

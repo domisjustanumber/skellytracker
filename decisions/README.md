@@ -35,6 +35,7 @@ These entries are `accepted` or `evidence`.
 | [246B](entries/246B-ep-catalog-store-and-install.md) | EP catalog and lock in the package; option allow-lists; one EP store; `urllib` download after a user action; no mirror; installer EP page | accepted |
 | [D8DH](entries/D8DH-sessions-errors-and-the-ready-rule.md) | `core/errors.py`; one exit-code table; an EP pack is ready when installed, current, registered and with a device; no EP variables | accepted |
 | [P1F3](entries/P1F3-hardware-probe-devices-and-multi-gpu.md) | Hardware probe fields; `free_vram`; `device_key`; default GPU by VRAM; a run splits its cameras across GPUs; no pre-Turing GPUs | accepted |
+| [W09C](entries/W09C-opencv-contrib-python.md) | `opencv-contrib-python` with an exact pin is the OpenCV package; no headless package | accepted |
 
 ### Proposed
 

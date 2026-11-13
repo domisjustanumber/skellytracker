@@ -52,17 +52,18 @@ keywords = [
 ]
 
 dependencies = [
-    "opencv-contrib-python",
-    "pydantic==2.*",
+    "opencv-contrib-python==5.0.0.93",
+    "pydantic==2.14.3",
     "numpy==2.4.6",
     "onnxruntime==1.31.1",
-    "tqdm==4.*",
-    "numpydantic>=1.6.7",
-    "requests>=2.32.3",
-    "beartype>=0.19",
-    "pyyaml>=6.0",
-    "polars",
-    "scipy",
+    "tqdm==4.70.1",
+    "numpydantic==2.0.0",
+    "requests==2.34.2",
+    "beartype==0.23.1",
+    "pyyaml==6.0.3",
+    "polars==2.1.0",
+    "scipy==1.17.1; python_full_version < '3.12'",
+    "scipy==1.18.1; python_full_version >= '3.12'",
 ]
 requires-python = ">=3.11,<3.13"
 
@@ -75,19 +76,20 @@ mediapipe = ["mediapipe==0.10.33"]
 
 # RTMPose + YOLOX detectors (vendored, see skellytracker/core/detectors) need
 # the onnx package for graph surgery.
-onnx = ["onnx"]
+# onnx 1.23 writes IR version 14; onnxruntime 1.31 reads IR version 13 or lower.
+onnx = ["onnx==1.22.0"]
 
 # Dev-only tooling: `uv sync` (installed by default via default-groups)
 [dependency-groups]
 dev = [
-    "black",
-    "bumpver",
-    "isort",
-    "pip-tools",
-    "poethepoet>=0.32.0",
+    "black==26.10.1",
+    "bumpver==2026.1132",
+    "isort==9.0.2",
+    "pip-tools==7.6.2",
+    "poethepoet==0.49.0",
     "pre-commit==4.6.2",
-    "pytest",
-    "ruff",
+    "pytest==9.2.0",
+    "ruff==0.15.17",
 ]
 
 [tool.uv]
