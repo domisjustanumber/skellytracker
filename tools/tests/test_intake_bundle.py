@@ -1244,6 +1244,13 @@ def test_an_unchanged_template_has_no_plans_path_and_no_broken_link(
     assert [f for f in findings if "plans/" in f or "does not resolve" in f] == []
 
 
+def test_the_unchanged_node_proposal_template_has_no_broken_link(tmp_path: Path) -> None:
+    # A node proposal resolves its links from specs/pipeline/proposals/<slug>/ (ADR-Y753 item 1).
+    text = (REPO_ROOT / "specs" / "pipeline" / "templates" / "node-proposal.md").read_bytes()
+    (tmp_path / "proposal.md").write_bytes(text)
+    assert ib.link_findings(tmp_path, ["proposal.md"], proposal_fields(sections=["node.gate"])) == []
+
+
 # --------------------------------------------------------------------------------------------
 # Bundles are untrusted input (ADR-AD33): the static check of a reference module and the ONNX check
 # --------------------------------------------------------------------------------------------

@@ -4,8 +4,8 @@ This template uses ASD-STE100 Simplified Technical English.
 
 Copy this file to `proposal.md` in the payload of a `proposal` bundle whose `sections` are only
 `node.<type>` sections. Fill in each part. Delete these instructions. The workflow is
-[Pipeline contributions](../contributions.md). The bundle rules are in the hand-over file of the
-model addition workflow (skellytracker ADR-3SF2, item 7).
+"Pipeline contributions" in `specs/pipeline/contributions.md`. The bundle rules are in
+`specs/model-sidecar/model-addition-workflow/hand-over.md` (skellytracker ADR-3SF2, item 7).
 
 A node change never changes model processing. A change of preprocessing, inference or decode is a
 sidecar proposal. A node change that needs a sidecar change is two proposals, linked with
@@ -37,8 +37,8 @@ Each changed or new section file in `specs/pipeline/nodes/`.
 
 The params of the node type, with the type, the range, the default, the description and `live` of
 each param. The input ports and the output ports, with their port types. skellytracker makes the
-node table from the reference model ([Pipeline Spec Rules](../AGENTS.md)). Give the change of
-`specs/pipeline/reference/pipeline_config.py` as text.
+node table from the reference model ("Pipeline Spec Rules" in `specs/pipeline/AGENTS.md`). Give
+the change of `specs/pipeline/reference/pipeline_config.py` as text.
 
 ### 2.3 Behaviour
 

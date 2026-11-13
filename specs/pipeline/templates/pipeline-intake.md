@@ -3,9 +3,9 @@
 This template uses ASD-STE100 Simplified Technical English.
 
 Copy this file to `pipeline.md` in the payload of a `pipeline` bundle. Fill in each part. Delete
-these instructions. The workflow is [Pipeline contributions](../contributions.md). The bundle rules
-are in "Pipeline bundles" of the hand-over file of the model addition workflow (skellytracker
-ADR-271H).
+these instructions. The workflow is "Pipeline contributions" in `specs/pipeline/contributions.md`.
+The bundle rules are in "Pipeline bundles" in
+`specs/model-sidecar/model-addition-workflow/hand-over.md` (skellytracker ADR-271H).
 
 ## Header
 

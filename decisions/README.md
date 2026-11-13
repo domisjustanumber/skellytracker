@@ -37,7 +37,6 @@ These entries are `accepted` or `evidence`.
 | [P1F3](entries/P1F3-hardware-probe-devices-and-multi-gpu.md) | Hardware probe fields; `free_vram`; `device_key`; default GPU by VRAM; a run splits its cameras across GPUs; no pre-Turing GPUs | accepted |
 | [W09C](entries/W09C-opencv-contrib-python.md) | `opencv-contrib-python` with an exact pin is the OpenCV package; no headless package | accepted |
 | [D3VP](entries/D3VP-ruff-0-17-with-the-old-rule-set.md) | `ruff==0.17.5` with the rule set of ruff 0.15; a review of the new default rules before the 2.0.0 release | accepted |
-| [97X9](entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) | Pipeline: row values of `concat` and held rows; `roi_tracking` source; `redetect` lost rows; `any` types; a state for each camera; refused calls | accepted |
 | [Y753](entries/Y753-pipeline-templates-glue-vectors-and-taps-flag.md) | Pipeline templates without links; node work in stage 1.10; skellybench `--taps`; vectors for `first_of` and `concat` | accepted |
 
 ### Proposed

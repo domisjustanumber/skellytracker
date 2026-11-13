@@ -16,7 +16,9 @@ file gives only the differences
 ## Stage
 
 The [Stage](../implement-sidecar-section/SKILL.md#stage) rules of `implement-sidecar-section`
-apply.
+apply. Stage 1.10 of the
+[implementation plan](../../../specs/sidecar-implementation-plan.md#110-the-pipeline-api-was-p)
+implements the node types ([ADR-Y753](../../../decisions/entries/Y753-pipeline-templates-glue-vectors-and-taps-flag.md) item 2).
 
 ## Inputs
 
@@ -29,7 +31,7 @@ apply.
 | Step | For a node type |
 |---|---|
 | 1. Read the section | Also read the params model of the node type in `specs/pipeline/reference/pipeline_config.py`, and [Graph](../../../specs/pipeline/graph.md) for the ports. The front matter of a node section has only `id`, `title`, `kind`, `vectors` and `status.spec`: skip items 1 and 7 for the front matter. In item 6, read the [open work](../../../specs/pipeline/decisions/open-work.md) of the pipeline log, not the spec defects of the spec log. |
-| 2. Find the evidence | The vectors are `specs/pipeline/vectors/node.<type>.yaml`. `first_of` and `concat` have named tests in `tools/tests/`, not vectors. The reference module is `specs/pipeline/reference/node_<type>.py`. An example pipeline that uses the node type is in `specs/pipeline/examples/`. A node type has no `TRACEABILITY.md` row and no `external_impl`. |
+| 2. Find the evidence | The vectors are `specs/pipeline/vectors/node.<type>.yaml`. Only `merge` has named tests in `tools/tests/`, not vectors ([ADR-Y753](../../../decisions/entries/Y753-pipeline-templates-glue-vectors-and-taps-flag.md) item 4). The reference module is `specs/pipeline/reference/node_<type>.py`. An example pipeline that uses the node type is in `specs/pipeline/examples/`. A node type has no `TRACEABILITY.md` row and no `external_impl`. |
 | 3. Find out if the work is blocked | An example pipeline in `specs/pipeline/examples/` is the reference example. Skip item 3: the exporter table does not name node types. |
 | 4. Plan the work | The node code goes in `core/pipelines/_runtime/`. The params model moves into `core/pipelines/config.py` in stage 1.10 of the [implementation plan](../../../specs/sidecar-implementation-plan.md#110-the-pipeline-api-was-p). The dispatch point is the executor of `_runtime/`, not `preprocess_image`. The validator changes go in `core/pipelines/config.py`, not in `core/sidecar/model.py`. Skip item 9. |
 | 5. Port or compare | From the 2.0.0 pre-release, a node proposal gives its code as `skellytracker.patch`. Follow [Patch review](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#patch-review). |

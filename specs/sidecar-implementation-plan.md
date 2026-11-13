@@ -993,12 +993,18 @@ in parallel with 1.3 to 1.7.
 `core/pipelines/_runtime/` beside the old `core/tracker/`. The old run code does not change
 ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 1).
 
+This stage implements the node types of the pipeline spec. Use the skill
+[`implement-pipeline-node`](../.claude/skills/implement-pipeline-node/SKILL.md) for each node type
+([ADR-Y753](../decisions/entries/Y753-pipeline-templates-glue-vectors-and-taps-flag.md) item 2).
+
 - **Config.** Move `PipelineConfig` and the node configs, with the union keyed on `type`, from
   `specs/pipeline/reference/pipeline_config.py` into `core/pipelines/config.py`. Add a doc test that
   checks that the committed `specs/pipeline/pipeline.schema.json` agrees
   ([ADR-3SF2](../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md) item 3). Add load,
   export and the load checks
-  ([ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 7). Each file has the
+  ([ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 7). The export writes only the
+  params that a config sets, so that a written config validates again
+  ([ADR-97X9](../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 10). Each file has the
   required `source:` field, and its key is `<pipeline_id>@<source.name>`
   ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 2). Pipelines use
   the sidecar catalog key rules: the newest version wins, `<key>==<version>` pins, and
@@ -1022,10 +1028,11 @@ in parallel with 1.3 to 1.7.
   - the batch rule of a stateful pipeline and its warning `batch_limited_by_state`;
   - the session sharing inside one run: the nodes with the same artifact SHA-256, batch, EP key, EP
     options and device share one session; no session is shared between runs ([ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 6).
-- **Time.** Each output, timing event and tap row has `frame_index`. In `video` and `live`, each
-  frame has `timestamp_ms` (a float). A `video` frame with no `timestamp_ms` uses
-  `frame_index × 1000 / fps`, with the run parameter `fps` (default 30.0). A `live` run has no
-  fallback ([Running](pipeline/running.md#behaviour)).
+- **Time.** Each output, timing event and tap row has `frame_index`. The `timestamp_ms` of a frame
+  (a float), its `video` fallback with the run parameter `fps` (default 30.0) and the `live` rule
+  are in [Running](pipeline/running.md#behaviour) item 2. Give the typed error of a refused call a name
+  in the API ([Running](pipeline/running.md#behaviour);
+  [ADR-97X9](../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 9).
 - **`detector` node.** It wraps the generic detectors of stage 1.7. A node with a top-down keypoint model
   has a `rois` input. A node with a `bottom_up` model or an object detector has no `rois` input
   ([ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md) item 4). Its decode param
@@ -1085,8 +1092,9 @@ in parallel with 1.3 to 1.7.
 - **CLI.** `run` with the COCO form
   ([ADR-Q59W](../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 6), `validate` and `nodes`
   ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 9). Stage 1.6 gives
-  `detectors` and `describe`. `run` takes `--ep <key>`, `--ep-option <name>=<value>` and the repeatable `--device <key>`
-  ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 1). It uses the exit-code table of
+  `detectors` and `describe`. `run` takes `--ep <key>`, `--ep-option <name>=<value>`, the repeatable `--device <key>`
+  ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 1) and `--taps <dir>`
+  ([ADR-Y753](../decisions/entries/Y753-pipeline-templates-glue-vectors-and-taps-flag.md) item 3). It uses the exit-code table of
   [ADR-D8DH](../decisions/entries/D8DH-sessions-errors-and-the-ready-rule.md) item 2, and exits with 3 when an EP is not available, 4 when a session was not created and 5 when the GPU memory is
   exhausted ([ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 2 and 6). With no
   `--ep`, `run` uses `eps.recommend("performance")` and prints the chosen EP and its options
@@ -1363,7 +1371,7 @@ these parts:
 
 ## Resuming this plan in a fresh session
 
-M1 to M5 are done ([History](#history)). Each milestone gives its file layout. The four generic processing modules are in `core/detectors/processing/` ([ADR-0007](../decisions/entries/0007-generic-processing-package.md)). `rtmpose_preprocessing.py` is still tracked, but no module imports it. Stage 2.3 deletes it. Do not create the deleted modules `yolox_preprocessing.py` and `rtmpose_simcc_decode.py` again. The next work is phase 1, from stage 1.2 ([Stage order](#stage-order)). Before you start, read [ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md), [ADR-M2C6](../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md), [ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) and [ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md). Before 1.10, read the [pipeline spec](pipeline/README.md) and its [decision log](pipeline/decisions/README.md). Use the skill `implement-sidecar-section` for each sidecar section that a stage of phase 1 implements. Use the skill `implement-pipeline-node` for each node type of stage 1.10. No `GenericObjectDetector` or `GenericKeypointDetector` class exists yet.
+M1 to M5 are done ([History](#history)). Each milestone gives its file layout. The four generic processing modules are in `core/detectors/processing/` ([ADR-0007](../decisions/entries/0007-generic-processing-package.md)). `rtmpose_preprocessing.py` is still tracked, but no module imports it. Stage 2.3 deletes it. Do not create the deleted modules `yolox_preprocessing.py` and `rtmpose_simcc_decode.py` again. The next work is phase 1, from stage 1.2 ([Stage order](#stage-order)). Before you start, read [ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md), [ADR-M2C6](../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md), [ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) and [ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md). Before 1.10, read the [pipeline spec](pipeline/README.md) and its [decision log](pipeline/decisions/README.md). Use the skill `implement-sidecar-section` for each sidecar section that a stage of phase 1 implements. [Stage 1.10](#110-the-pipeline-api-was-p) names the skill for its node types. No `GenericObjectDetector` or `GenericKeypointDetector` class exists yet.
 
 ## Reference examples
 
