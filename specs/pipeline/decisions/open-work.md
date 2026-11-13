@@ -29,5 +29,3 @@ root [open-work.md](../../../decisions/open-work.md).
   ([ADR-V7GZ](../../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 4).
 - **Face blendshapes.** The `mediapipe_tasks` node gives no face blendshapes. They are planned
   work after the development-streaming merge.
-- **MediaPipe 1.2.2.** Run the scripts of
-  [ADR-6JWJ](entries/6JWJ-mediapipe-video-landmarker-does-not-stick.md) again on MediaPipe 1.2.2.
