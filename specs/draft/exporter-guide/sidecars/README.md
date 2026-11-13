@@ -6,7 +6,7 @@ that makes ONNX files and writes their sidecars.
 This folder is the sidecar part of the [draft exporter guide](../README.md). The draft guide is not
 complete. The rules in this folder are complete, and they apply now.
 
-The [sidecar spec](../../../model-sidecar/sidecar-spec.md) is normative for the meaning of a sidecar. The
+The [sidecar spec](../../../model-sidecar/README.md) is normative for the meaning of a sidecar. The
 [model addition workflow](../../../model-sidecar/model-addition-workflow/README.md) is normative for the
 process: it tells how to apply the spec to a new model, and how to request a spec change. That
 workflow is the same for each contributor. It also holds the rules for the sidecar files, the
@@ -69,10 +69,10 @@ The decisions behind this guide:
   is in `specs/model-sidecar/model-addition-workflow/`, with the rules for the sidecar files, the
   validation and the publishing. This guide is in the draft folder `specs/draft/exporter-guide/`.
 
-The spec is split into section files under `specs/model-sidecar/`. The entry point is
-[`specs/model-sidecar/sidecar-spec.md`](../../../model-sidecar/sidecar-spec.md): it is the permanent index, and it keeps each old
-heading as an anchor with a link to the section file that holds the text now. The section map is
-[`specs/model-sidecar/README.md`](../../../model-sidecar/README.md#section-map). It lists each section ID and its file. The
+The spec is split into section files under `specs/model-sidecar/`. The only entry point is
+[`specs/model-sidecar/README.md`](../../../model-sidecar/README.md). Its
+[section map](../../../model-sidecar/README.md#section-map) lists each section ID and its file
+([ADR-CN15](../../../../decisions/entries/CN15-spec-readme-is-the-only-entry-point.md)). The
 sections and headings that this guide uses most:
 [`input.resize`](../../../model-sidecar/common/input.md#inputresize), [`sizes`](../../../model-sidecar/common/sizes-and-artifacts.md#sizes),
 [Storage layout](../../../model-sidecar/format/file-layout.md#storage-layout),
