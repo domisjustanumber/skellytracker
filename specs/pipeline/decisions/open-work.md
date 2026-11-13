@@ -20,8 +20,8 @@ root [open-work.md](../../../decisions/open-work.md).
   `associate` node type gives the rows an identity. Until then, the temporal nodes filter row `i`,
   which can be another person on the next frame.
 - **Values of other port types.** The value of an output or a tap of the port type `image` or
-  `tensor` is not fixed ([Outputs](../outputs.md#behaviour) item 6). Fix it in the
-  implementation stage P, before the first output of such a port.
+  `tensor` is not fixed ([Outputs](../outputs.md#behaviour) item 6). Fix it in
+  stage 1.10 of the implementation plan, before the first output of such a port.
 - **Video replay.** A replay refuses a tap with no image list hash, so only the COCO input form can
   be replayed ([Taps](../taps.md#behaviour) item 5). A video replay needs an image list hash for
   video.
