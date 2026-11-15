@@ -624,19 +624,18 @@ An example lands with `batching.batch_conversion` only for `converts` with a b3 
 
 ### Decision questions
 
-The session asks the user each decision about a proposal in this form
+The session asks the user each decision about a proposal with the skill
+[`ask-the-user`](../../../.claude/skills/ask-the-user/SKILL.md). That skill is the one place that
+states the form of a question
+([ADR-C3E5](../../../decisions/entries/C3E5-one-place-for-the-form-of-a-question.md)). A decision
+question about a proposal adds these rules
 ([ADR-3HZ4](../../../decisions/entries/3HZ4-decision-questions-and-rule-defaults.md)):
 
 - Before you ask, find the rule that decides the question. If a rule decides it, apply the rule.
   Do not ask.
 - Ask one question for each proposal. Ask the questions in one batch only when the user asks for it.
-- Each question gives:
-  - the change, in one sentence;
-  - one worked example, with numbers from the record;
-  - the effect on each open bundle;
-  - the plan decisions that acceptance confirms;
-  - each option, with its full extra scope;
-  - the recommended option.
+- The options give the effect on each open bundle, the plan decisions that acceptance confirms
+  and the full extra scope of each option. The example uses numbers from the record.
 - Write "proposal bundle version N". Do not write a bare "vN".
 - When the user asks a question, answer it in text before you continue ([ADR-37CD](../../../decisions/entries/37CD-retro-follow-up-session-rules.md)).
 - In the same message, show the result of the safety review of each reference file that the landing

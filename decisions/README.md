@@ -72,6 +72,10 @@ implementation-stage work is in the [implementation plan](../specs/sidecar-imple
   old path in a decided entry, a script or a vector-file comment stays, and means the same file at
   its new path. A path of an exporter repo stays
   ([ADR-2XW6](entries/2XW6-process-entries-consolidation.md)).
+- An entry in a commit that is not pushed to a remote can change in that commit, in each part. Make
+  the correction and report it to the user. Do not write a new entry for it, and do not ask. The
+  four edits apply from the first push
+  ([ADR-C3E5](entries/C3E5-one-place-for-the-form-of-a-question.md)).
 - A decision that a document or code refers to must be in an entry. "This log" in an older entry or
   in the Rules means all logs ([ADR-2XW6](entries/2XW6-process-entries-consolidation.md)).
 - An absorb document is one of these: the spec (the sidecar spec and the pipeline spec), the root or a nested `AGENTS.md`

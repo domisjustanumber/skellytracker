@@ -100,7 +100,7 @@ run ([ADR-AD33](decisions/entries/AD33-bundles-are-untrusted-input.md)).
 | [`implement-pipeline-node`](.claude/skills/implement-pipeline-node/SKILL.md) | this repository | Implement a node type of the pipeline spec in the package code |
 | [`stack-commit`](.claude/skills/stack-commit/SKILL.md) | this repository | Commit, rebase and push on the working branch, and write a PR body |
 | [`cite-entries`](.claude/skills/cite-entries/SKILL.md) | this repository | Cite decision entries in a reply, a plan, a PR body or a commit message |
-| [`ask-the-user`](.claude/skills/ask-the-user/SKILL.md) | this repository | Ask the user a question or give options, with an example and a source for each |
+| [`ask-the-user`](.claude/skills/ask-the-user/SKILL.md) | this repository | Ask the user a question, give options or report a rule change. It is the one place for the form of a question |
 | [`brief-subagent`](.claude/skills/brief-subagent/SKILL.md) | this repository | Brief a sub-agent, and check its `path:line` claims before you use them |
 
 ## 3. Install and Test
