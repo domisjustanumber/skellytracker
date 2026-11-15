@@ -33,7 +33,7 @@ This node has no parameters.
 - The `instance_score` and the `track_ids` of row `i` come from the first input whose row `i` is present. A row with no present input row is a padding row, with the padding values of [Outputs](../outputs.md#fields) ([ADR-97X9](../../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 1).
 - Row `i` of each input joins row `i` of the output ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1). Row `i` of the output is present when row `i` of an input is present.
 - The output has the points of each input, in the order of the list. A consumer finds a point by its name, not by its column.
-- Each point name keeps its prefix, for example `body.nose`. The node never replaces a point (`V-node.concat-2`).
+- Each point name keeps its group, for example `body/nose`. The output has the groups of each input, in the order of the list ([Graph](../graph.md#behaviour) item 7; [ADR-4MP6](../../../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md)). The node never replaces a point (`V-node.concat-2`).
 - The output has the instance source and the geometry of its inputs.
 - The timing span is `run` ([ADR-Q59W](../../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 1; [ADR-9PDQ](../../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 3).
 

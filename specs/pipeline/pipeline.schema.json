@@ -404,7 +404,7 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "Target point to slot column `<slot>.<point>`. A present slot point replaces the target point.",
+          "description": "Target point to slot column `<slot>/<point>`. A present slot point replaces the target point.",
           "live": false,
           "source": "ADR-7NY2 item 6",
           "title": "Map",
@@ -430,7 +430,7 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "Slot name to the target point that anchors the slot, for example `left_hand: body.left_wrist`.",
+          "description": "Slot name to the target point that anchors the slot, for example `left_hand: body/left_wrist`.",
           "live": false,
           "minProperties": 1,
           "source": "ADR-7NY2 item 6",
@@ -438,7 +438,7 @@
           "type": "object"
         },
         "source_anchor": {
-          "description": "The point of `source` that the node compares with the slot anchors, for example `hand.wrist`.",
+          "description": "The point of `source` that the node compares with the slot anchors, for example `hand/wrist`.",
           "live": false,
           "source": "ADR-7NY2 item 6",
           "title": "Source Anchor",

@@ -28,13 +28,13 @@ def present(point: list[float]) -> bool:
 
 
 def bare(name: str) -> str:
-    """The point name without its prefix: the text after the first dot (pipeline.graph)."""
-    return name.partition(".")[2]
+    """The point name without its group: the text after the first `/` (pipeline.graph)."""
+    return name.partition("/")[2]
 
 
 def slot_columns(params: dict[str, Any], source_names: list[str]) -> list[str]:
-    """The added columns: `<slot>.<point>` for each slot, then for each source point (node.merge, Fields)."""
-    return [f"{slot}.{bare(name)}" for slot in params["slots"] for name in source_names]
+    """The added columns: `<slot>/<point>` for each slot, then for each source point (node.merge, Fields)."""
+    return [f"{slot}/{bare(name)}" for slot in params["slots"] for name in source_names]
 
 
 def check(params: dict[str, Any], target_names: list[str], source_names: list[str]) -> None:

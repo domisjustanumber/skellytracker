@@ -26,31 +26,31 @@ nodes:
     type: roi_from_points
     inputs: {keypoints: body.keypoints}
     params:
-      points: [body.right_wrist, body.right_elbow]
+      points: [body/right_wrist, body/right_elbow]
       derived_points:
-        right_hand_center: {body.right_wrist: 1.5, body.right_elbow: -0.5}
+        right_hand_center: {body/right_wrist: 1.5, body/right_elbow: -0.5}
       size_rule: alignment
       alignment_start: right_hand_center
-      alignment_end: body.right_wrist
+      alignment_end: body/right_wrist
       square_long: true
       expand_ratio: 2.0
   - id: left_hand_roi
     type: roi_from_points
     inputs: {keypoints: body.keypoints}
     params:
-      points: [body.left_wrist, body.left_elbow]
+      points: [body/left_wrist, body/left_elbow]
       derived_points:
-        left_hand_center: {body.left_wrist: 1.5, body.left_elbow: -0.5}
+        left_hand_center: {body/left_wrist: 1.5, body/left_elbow: -0.5}
       size_rule: alignment
       alignment_start: left_hand_center
-      alignment_end: body.left_wrist
+      alignment_end: body/left_wrist
       square_long: true
       expand_ratio: 2.0
   - id: face_roi
     type: roi_from_points
     inputs: {keypoints: body.keypoints}
     params:
-      points: [body.nose, body.left_eye, body.right_eye, body.left_ear, body.right_ear]
+      points: [body/nose, body/left_eye, body/right_eye, body/left_ear, body/right_ear]
       square_long: true
       expand_ratio: 1.5
   - id: right_hand

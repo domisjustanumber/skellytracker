@@ -26,18 +26,17 @@ The `keypoint` block is required when `role` includes `keypoint_detector`. It de
 
 - the keypoints that a model produces
 - the skeleton or skeletons that join the keypoints
-- how the keypoints map onto the canonical (VRM 1.0) skeleton
+- the landmark schema of the keypoints, which gives their groups and their canonical mapping ([Landmark schema](landmark-schema.md#fields))
 - how the host decodes raw outputs into keypoints
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `keypoint.estimator_type` | enum | yes | The value is `top_down_single_person`, `top_down_multi_person` or `bottom_up`. A top-down model sees one person in each crop (single-person outputs). The host makes each crop with `affine_crop` from a box or an ROI of an upstream node. A bottom-up model emits all persons in one pass (for example RTMO or YOLO26-pose). |
 | `keypoint.geometry` | enum | yes | The output kind of the family: `2d` or `3d`. A catalog can filter models by it. With `3d`, the model emits a third coordinate, the root-relative depth in `keypoint.decode.depth_unit`. Its form is one of these: `(B, P, 3)` keypoints (`coordinate`), an `instance_keypoints` tensor `(B, I, P, 4)` or a `z` packed component (bottom-up `coordinate`). |
-| `keypoint.landmark_schema` | string | no | The keypoint convention that the model uses (for example `COCO_WholeBody`, `COCO17`, `MediaPipe_Hand`, `MediaPipe_Pose`, `LaPa_106`). |
+| `keypoint.landmark_schema` | string | yes | The `name` of a registered landmark schema, for example `COCO_WholeBody` (`V-post.keypoint.schema-10`; [Landmark schema](landmark-schema.md#behaviour); [ADR-23F5](../../../../decisions/entries/23F5-landmark-schema-registry.md)). |
 | `keypoint.point_names` | array[string] or `$ref` | yes | The ordered list of keypoint names that the model outputs. The i-th name is the i-th model output index. |
 | `keypoint.skeletons` | array[Skeleton] or `$ref` | yes | The named skeletons. Each skeleton joins `point_names` into a different skeleton. |
 | `keypoint.derived_points` | object | no | An optional map of derived point name → derivation. The skeleton edges can reference these points. |
-| `keypoint.canonical_mapping` | object or `$ref` | no | It maps model keypoint names onto the canonical (VRM 1.0) skeleton (see [Canonical skeleton](canonical-mapping.md#canonical-skeleton)). |
 | `keypoint.decode` | object | yes | It sets how the host decodes raw model outputs into keypoints (see below). Required for all `keypoint_detector` models. |
 | `keypoint.overlay` | object | no | How a host draws the keypoints and a skeleton ([Overlay](overlay.md#fields)). |
 
@@ -56,7 +55,7 @@ Additional fields on keypoint output tensors:
 
 ### `keypoint.point_names`
 
-This is the complete ordered list of the keypoint names that the model produces. The list is **always in the model's output order**. The i-th name corresponds to the i-th row of the keypoint output of the model. Each name must be unique within a sidecar. Write side-specific points literally (for example `right_hand_root`, `left_hand_root`). The keypoint count comes from this list. It is `len(point_names)`.
+This is the complete ordered list of the keypoint names that the model produces. The list is **always in the model's output order**. The i-th name corresponds to the i-th row of the keypoint output of the model. Each name must be unique within a sidecar. Write side-specific points literally (for example `right_hand_root`, `left_hand_root`). The keypoint count comes from this list. It is `len(point_names)`. The list follows `V-post.keypoint.schema-10` and `V-post.keypoint.schema-11`. The pipeline spec writes a point name as `<group>/<point>` ([ADR-4MP6](../../../../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md) item 1).
 
 ### `keypoint.skeletons`
 
@@ -79,9 +78,9 @@ The host computes derived points from `point_names`. The skeleton edges can refe
 | mean | `neck: ["left_shoulder", "right_shoulder"]` | The derived point is the unweighted mean of the listed keypoints. |
 | weighted | `mid_hip: {left_hip: 0.5, right_hip: 0.5}` | The derived point is the weighted sum of the listed keypoints. The host uses the weights as given. The weights must sum to 1, within an absolute tolerance of `1e-6`. A weight can be negative. |
 
-A derived point is missing when one or more of its source keypoints are missing ([Decoded keypoints](#decoded-keypoints)). The mean and the weighted forms do not drop a missing source. The score of a derived point is the minimum of the scores of its sources. This rule is different from the rule of [`canonical_mapping`](canonical-mapping.md#behaviour).
+A derived point is missing when one or more of its source keypoints are missing ([Decoded keypoints](#decoded-keypoints)). The mean and the weighted forms do not drop a missing source. The score of a derived point is the minimum of the scores of its sources.
 
-As in [`canonical_mapping`](canonical-mapping.md#keypointcanonical_mapping), a `prefixes` list expands one entry to both sides. The prefix applies to the derived name and to each source. With `prefixes: [right_hand_, left_hand_]`, `[prefix]palm_center: ["root", "thumb1", "forefinger1"]` produces `right_hand_palm_center = mean(right_hand_root, right_hand_thumb1, right_hand_forefinger1)` and `left_hand_palm_center = mean(left_hand_root, left_hand_thumb1, left_hand_forefinger1)`. An entry without `[prefix]` is literal.
+A `prefixes` list expands one entry to both sides. The prefix applies to the derived name and to each source. With `prefixes: [right_hand_, left_hand_]`, `[prefix]palm_center: ["root", "thumb1", "forefinger1"]` produces `right_hand_palm_center = mean(right_hand_root, right_hand_thumb1, right_hand_forefinger1)` and `left_hand_palm_center = mean(left_hand_root, left_hand_thumb1, left_hand_forefinger1)`. An entry without `[prefix]` is literal. `[prefix]` keys must be YAML-quoted. An unquoted leading `[` opens a flow sequence. A flow sequence is a parse error as a block-mapping key.
 
 ### `keypoint.decode`
 
@@ -118,7 +117,7 @@ Each decode method gives a score for each keypoint. Each decode method states th
 
 ### Keypoint (`keypoint_detector`)
 
-- [ ] `V-post.keypoint.schema-1` The sidecar must declare `keypoint` (with `estimator_type` and `geometry`), `keypoint.decode`, `keypoint.point_names` and `keypoint.skeletons` ([ADR-90CE](../../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
+- [ ] `V-post.keypoint.schema-1` The sidecar must declare `keypoint` (with `estimator_type`, `geometry` and `landmark_schema`), `keypoint.decode`, `keypoint.point_names` and `keypoint.skeletons` ([ADR-90CE](../../../../decisions/entries/90CE-minimal-sidecar-contract.md); [ADR-23F5](../../../../decisions/entries/23F5-landmark-schema-registry.md)).
 - [ ] `V-post.keypoint.schema-3` `keypoint.estimator_type` must be one of `top_down_single_person`, `top_down_multi_person` or `bottom_up`. `keypoint.decode.method` must be `simcc` or `coordinate`.
 - [ ] `V-post.keypoint.schema-4` The names in `keypoint.point_names` must be unique.
 - [ ] `V-post.keypoint.schema-5` Every `keypoint.skeletons[].edges` endpoint must appear in `keypoint.point_names` or `keypoint.derived_points`. The `keypoint.skeletons[].name` values must be unique.
@@ -126,8 +125,10 @@ Each decode method gives a score for each keypoint. Each decode method states th
 - [ ] `V-post.keypoint.schema-7` A `simcc` decoder must declare exactly one `simcc_x` output and exactly one `simcc_y` output. It must have `keypoint.geometry: 2d`: the spec has no 3D SimCC decode ([ADR-9HBB](../../../../decisions/entries/9HBB-simcc-decode-is-2d-only.md)). A `coordinate` decoder must declare exactly one `keypoint_coordinates` output (single-person). For a `bottom_up` model, this decoder must instead declare one primary detection output. It must also declare either one `instance_keypoints` output, or `packed_keypoints` on the `packed_detections` output. It must not declare both ([ADR-90CE](../../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 - [ ] `V-post.keypoint.schema-8` If the author sets `keypoint_count` on a keypoint output, it must equal `len(keypoint.point_names)`.
 - [ ] `V-post.keypoint.schema-9` `keypoint.geometry` must be `2d` or `3d`. When it is `3d`, `keypoint.decode.depth_unit` must be present and must be one of `m`, `mm` or `pixel`. `depth_unit` must not be present unless `keypoint.geometry: 3d` ([ADR-90CE](../../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
+- [ ] `V-post.keypoint.schema-10` `keypoint.landmark_schema` must be the `name` of a schema of the registry ([Landmark schema](landmark-schema.md#behaviour)). `keypoint.point_names` must equal the point names of that schema: the same names, in the same order ([ADR-23F5](../../../../decisions/entries/23F5-landmark-schema-registry.md)).
+- [ ] `V-post.keypoint.schema-11` A name in `keypoint.point_names` must not contain `/` or a whitespace character ([ADR-23F5](../../../../decisions/entries/23F5-landmark-schema-registry.md)).
 
-See also [Affine crop](../../pre/resize-affine-crop.md#validation-rules), [Canonical mapping](canonical-mapping.md#validation-rules) and [Bottom-up keypoints](bottom-up.md#validation-rules).
+See also [Affine crop](../../pre/resize-affine-crop.md#validation-rules), [Landmark schema](landmark-schema.md#validation-rules), [Canonical mapping](canonical-mapping.md#validation-rules) and [Bottom-up keypoints](bottom-up.md#validation-rules).
 
 ## Implementer guidance
 
@@ -153,26 +154,25 @@ See also [Affine crop](../../pre/resize-affine-crop.md#validation-rules), [Canon
 keypoint:
   estimator_type: top_down_single_person
   geometry: 2d
+  landmark_schema: COCO_WholeBody
   point_names:
     - nose
-    - left_shoulder
-    - right_shoulder
+    - left_eye
+    - right_eye
     # ...
   derived_points:
     neck: [left_shoulder, right_shoulder]
   skeletons:
     - name: rtmpose_skeleton
       edges:
-        - [nose, left_shoulder]
-        - [left_shoulder, right_shoulder]
+        - [nose, left_eye]
+        - [left_eye, right_eye]
         # ...
     - name: openpose_skeleton
       edges:
         - [nose, neck]
         - [neck, left_shoulder]
         # ...
-  # $ref paths resolve relative to this sidecar's directory.
-  canonical_mapping: {$ref: ../../rtmpose/body/rtmpose_body_to_canonical_mapping.yaml}
   decode:
     method: simcc
 ```

@@ -36,8 +36,8 @@ NAME = r"^[a-z][a-z0-9_-]*$"
 SOURCE_NAME = r"^[a-z0-9]+(-[a-z0-9]+)*$"
 # `<node>.<port>`, with an optional `@prev`.
 PORT_REF = re.compile(r"^(?P<node>[a-z][a-z0-9_-]*)\.(?P<port>[a-z][a-z0-9_]*)(?P<prev>@prev)?$")
-# A point name in the graph: `<prefix>.<point>` (pipeline.graph, Behaviour item 7).
-POINT_NAME = re.compile(r"^(?P<prefix>[a-z][a-z0-9_-]*)\.(?P<point>[^.\s]+)$")
+# A point name in the graph: `<group>/<point>` (pipeline.graph, Behaviour item 7).
+POINT_NAME = re.compile(r"^(?P<group>[a-z][a-z0-9_-]*)/(?P<point>[^/\s]+)$")
 SEMVER = r"^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$"
 # The reserved node id of the timing span of one frame call.
 RESERVED_NODE_ID = "pipeline"
@@ -46,8 +46,6 @@ FRAME = "frame"
 FRAME_PORTS = {"image": "image"}
 # The input name of a variadic node in the reference model. Its `inputs` is a list.
 VARIADIC = "*"
-# The prefixes of a `mediapipe_tasks` node of the variant `holistic`, in output order.
-HOLISTIC_PREFIXES = ("body", "right_hand", "left_hand", "face")
 # The tolerance of the weight sum of a weighted derived point (sidecar spec, post.keypoint.schema).
 WEIGHT_SUM_TOLERANCE = 1e-6
 
@@ -294,13 +292,13 @@ class NoParams(Strict):
 
 class MergeParams(Strict):
     slots: dict[str, str] = param(
-        description="Slot name to the target point that anchors the slot, for example `left_hand: body.left_wrist`.",
+        description="Slot name to the target point that anchors the slot, for example `left_hand: body/left_wrist`.",
         live=False,
         source="ADR-7NY2 item 6",
         min_length=1,
     )
     source_anchor: str = param(
-        description="The point of `source` that the node compares with the slot anchors, for example `hand.wrist`.",
+        description="The point of `source` that the node compares with the slot anchors, for example `hand/wrist`.",
         live=False,
         source="ADR-7NY2 item 6",
     )
@@ -313,7 +311,7 @@ class MergeParams(Strict):
     )
     map: dict[str, str] = param(
         default_factory=dict,
-        description="Target point to slot column `<slot>.<point>`. A present slot point replaces the target point.",
+        description="Target point to slot column `<slot>/<point>`. A present slot point replaces the target point.",
         live=False,
         source="ADR-7NY2 item 6",
     )
@@ -325,8 +323,8 @@ class MergeParams(Strict):
                 raise ValueError(f"V-node.merge-1: the slot name {slot!r} is not a name")
         for target, column in self.map.items():
             match = POINT_NAME.match(column)
-            if match is None or match["prefix"] not in self.slots:
-                raise ValueError(f"V-node.merge-2: map {target!r}: {column!r} is not a slot column `<slot>.<point>`")
+            if match is None or match["group"] not in self.slots:
+                raise ValueError(f"V-node.merge-2: map {target!r}: {column!r} is not a slot column `<slot>/<point>`")
         return self
 
 
@@ -752,7 +750,7 @@ def check_structure(config: PipelineConfig) -> None:
         # V-node.first_of-1 compares each item, also an `@prev` item.
         if node.type == "first_of" and len(types := {_ref_type(ref, nodes) for _, ref in input_items(node)} - {"any"}) > 1:
             raise ValueError(f"V-node.first_of-1: {node.id}: the inputs have the port types {sorted(types)}")
-    _check_point_names(config, nodes)
+    _check_point_names(config)
     for name, ref in config.outputs.items():
         if re.match(NAME, name) is None:
             raise ValueError(f"V-pipeline.outputs-1: the output name {name!r} is not a name")
@@ -771,18 +769,12 @@ def check_structure(config: PipelineConfig) -> None:
         _port(tap.port, nodes, "V-pipeline.taps-1", graph_input=False)
 
 
-def _check_point_names(config: PipelineConfig, nodes: dict[str, Any]) -> None:
-    """Check that each point name of a param has a known prefix (V-pipeline.graph-8).
+def _check_point_names(config: PipelineConfig) -> None:
+    """Check that each point name of a param is `<group>/<point>` (V-pipeline.graph-8).
 
-    A known prefix is a node id, a prefix of a `holistic` node, or a slot name of a `merge` node.
-    The host checks at load that each name is a point of the input port.
+    The host checks at load that each name is a point of the input port, because the groups come
+    from the sidecars and the registry.
     """
-    prefixes = set(nodes)
-    for node in config.nodes:
-        if node.type == "mediapipe_tasks" and node.params.variant == "holistic":
-            prefixes.update(HOLISTIC_PREFIXES)
-        if node.type == "merge":
-            prefixes.update(node.params.slots)
     for node in config.nodes:
         local: set[str] = set()
         if node.type == "roi_from_points":
@@ -797,9 +789,8 @@ def _check_point_names(config: PipelineConfig, nodes: dict[str, Any]) -> None:
         else:
             continue
         for name in names:
-            match = POINT_NAME.match(name)
-            if match is None or match["prefix"] not in prefixes:
-                raise ValueError(f"V-pipeline.graph-8: {node.id}: the point name {name!r} has no known prefix")
+            if POINT_NAME.match(name) is None:
+                raise ValueError(f"V-pipeline.graph-8: {node.id}: the point name {name!r} is not `<group>/<point>`")
 
 
 def _check_acyclic(edges: dict[str, set[str]]) -> None:

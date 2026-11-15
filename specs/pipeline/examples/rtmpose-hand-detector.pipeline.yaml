@@ -33,8 +33,8 @@ nodes:
     type: merge
     inputs: {target: body.keypoints, source: hand.keypoints}
     params:
-      slots: {right_hand: body.right_wrist, left_hand: body.left_wrist}
-      source_anchor: hand.wrist
-      map: {body.right_wrist: right_hand.wrist, body.left_wrist: left_hand.wrist}
+      slots: {right_hand: body/right_wrist, left_hand: body/left_wrist}
+      source_anchor: hand/wrist
+      map: {body/right_wrist: right_hand/wrist, body/left_wrist: left_hand/wrist}
 outputs:
   body_hands: body_hands.keypoints

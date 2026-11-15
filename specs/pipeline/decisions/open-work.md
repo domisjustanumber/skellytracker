@@ -29,3 +29,8 @@ root [open-work.md](../../../decisions/open-work.md).
   ([ADR-V7GZ](../../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 4).
 - **Face blendshapes.** The `mediapipe_tasks` node gives no face blendshapes. They are planned
   work after the development-streaming merge.
+- **MediaPipe landmark schemas.** The groups of a `mediapipe_tasks` node have a null
+  `landmark_schema`, so they pass through in the canonical form. Stage 2.2 of the
+  [implementation plan](../../sidecar-implementation-plan.md) registers the MediaPipe schemas. Then
+  the spec gives them to these groups
+  ([ADR-4MP6](../../../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md) item 2).

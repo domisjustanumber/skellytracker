@@ -570,6 +570,8 @@ def applicability() -> dict[str, set[str]]:
                 "post.keypoint.bottom_up",
                 "post.keypoint.decode.coordinate",
                 "post.keypoint.schema",
+                "post.keypoint.landmark_schema",
+                "post.keypoint.canonical_mapping",
             },
         ),
     ],

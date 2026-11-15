@@ -41,6 +41,8 @@ A sidecar and its ONNX files are under a sidecar root (`{sidecar_root}`, see [Si
 
 ```text
 {sidecar_root}/
+  landmark_schemas/                 # landmark schema files (package root and user root only)
+    {name}.yaml
   detectors/
     calibration_detectors/          # calibration targets (e.g. Charuco boards) — hard-coded, not sidecar-defined
     object_detectors/
@@ -69,6 +71,7 @@ A sidecar and its ONNX files are under a sidecar root (`{sidecar_root}`, see [Si
 
 | Branch | Role | Contents |
 |--------|------|----------|
+| `landmark_schemas/` | — | The [landmark schema](../post/keypoint/landmark-schema.md#behaviour) files, `{name}.yaml`. Only the package root and the user root have this branch. The registry does not read it in another sidecar root ([ADR-23F5](../../../decisions/entries/23F5-landmark-schema-registry.md)). |
 | `detectors/calibration_detectors/` | calibration | Calibration detectors, for example Charuco boards. They are hard-coded in skellytracker. Sidecars do **not** specify them. |
 | `detectors/object_detectors/{family}/` | `object_detector` | One sidecar for each family, for example `yolo26/`. |
 | `detectors/keypoint_detectors/{family}/{group}/` | `keypoint_detector` | Keypoint models. `{group}` is a body region (`hand`, `face`, `body`, `wholebody`) or a keypoint set with its keypoint count (for example `wholebody133`). Each sidecar in the folder has the `model_id` `{family}-{group}` or `{family}-{group}-{variant}` ([Keypoint detector id](../common/identity.md#keypoint-detector-id) in [Identity](../common/identity.md)). |
@@ -111,7 +114,7 @@ In each sidecar root, a `.yaml` file is a sidecar when its top level has both of
 - `schema_version`;
 - `model_id`, with a value that is equal to the file name without `.yaml`.
 
-Every other YAML file is not a sidecar. Such a file is a fragment, or it is not part of the format. Examples are skeleton fragments, canonical mappings and MediaPipe point lists. A fragment has no `schema_version` (see [File pairing rules](#file-pairing-rules)), so the discovery rule never finds a fragment.
+Every other YAML file is not a sidecar. Such a file is a fragment, or it is not part of the format. Examples are skeleton fragments, landmark schema files, canonical mappings and MediaPipe point lists. A fragment has no `schema_version` (see [File pairing rules](#file-pairing-rules)), so the discovery rule never finds a fragment.
 
 ## Validation rules
 

@@ -47,9 +47,9 @@ place of `keypoint_bbox` in a pipeline, but it does not reproduce `keypoint_bbox
 - The output has one row for each row of the input
   ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1). Row `i` of
   `rois` comes from row `i` of `keypoints`. An empty row has `present` false.
-- A name in `points`, `alignment_start` and `alignment_end` is a point name of the input, with its
-  prefix, for example `body.left_wrist`, or the name of a derived point. A source of a derived point
-  is a point name of the input.
+- A name in `points`, `alignment_start` and `alignment_end` is a point name of the input,
+  `<group>/<point>`, for example `body/left_wrist`, or the name of a derived point
+  ([ADR-4MP6](../../../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md)). A source of a derived point is a point name of the input.
 - `alignment_start` and `alignment_end` are used by the size rule `alignment`, and by the size rule
   `bounds` when `target_rotation_deg` is given. In other cases the node does not use them.
 - `derived_points` has the forms, the missing rule and the score rule of the sidecar
@@ -113,7 +113,7 @@ place of `keypoint_bbox` in a pipeline, but it does not reproduce `keypoint_bbox
 
 - [ ] `V-node.roi_from_points-1` The size rule `alignment` needs `alignment_start` and `alignment_end`.
 - [ ] `V-node.roi_from_points-2` Each name in `points`, `alignment_start` and `alignment_end` must be a point name of the input or a key of `derived_points`. Each source of a derived point must be a point name of the input. The host checks this at load, against the output schema of the input port.
-- [ ] `V-node.roi_from_points-3` Each key of `derived_points` must be a name. A name has no dot, so it is not a point name of the input.
+- [ ] `V-node.roi_from_points-3` Each key of `derived_points` must be a name. A name has no `/`, so it is not a point name of the input ([ADR-4MP6](../../../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md)).
 - [ ] `V-node.roi_from_points-4` The size rule `bounds` with a `target_rotation_deg` needs `alignment_start` and `alignment_end`.
 - [ ] `V-node.roi_from_points-5` A mean derived point must have at least one source. The weights of a weighted derived point must sum to 1, within an absolute tolerance of `1e-6`, as in the sidecar rule `V-post.keypoint.schema-6`.
 
@@ -168,11 +168,11 @@ cases.
   type: roi_from_points
   inputs: {keypoints: body.keypoints}
   params:
-    points: [body.left_wrist]
+    points: [body/left_wrist]
     derived_points:
-      left_middle: {body.left_index: 0.6666666666666666, body.left_pinky: 0.3333333333333333}
+      left_middle: {body/left_index: 0.6666666666666666, body/left_pinky: 0.3333333333333333}
     size_rule: alignment
-    alignment_start: body.left_wrist
+    alignment_start: body/left_wrist
     alignment_end: left_middle
     target_rotation_deg: 90
     score_threshold: 0.1

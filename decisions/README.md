@@ -38,6 +38,8 @@ These entries are `accepted` or `evidence`.
 | [W09C](entries/W09C-opencv-contrib-python.md) | `opencv-contrib-python` with an exact pin is the OpenCV package; no headless package | accepted |
 | [D3VP](entries/D3VP-ruff-0-17-with-the-old-rule-set.md) | `ruff==0.17.5` with the rule set of ruff 0.15; a review of the new default rules before the 2.0.0 release | accepted |
 | [Y753](entries/Y753-pipeline-templates-glue-vectors-and-taps-flag.md) | Pipeline templates without links; node work in stage 1.10; skellybench `--taps`; vectors for `first_of` and `concat` | accepted |
+| [23F5](entries/23F5-landmark-schema-registry.md) | Landmark schema registry with `groups` and `canonical_mapping`; `keypoint.landmark_schema` required; `keypoint.canonical_mapping` goes | accepted |
+| [4MP6](entries/4MP6-pipeline-point-groups-and-canonical-form.md) | Pipeline point names `<group>/<point>`; output `groups` and `canonical_names`; unique group names; `to_canonical` | accepted |
 
 ### Proposed
 

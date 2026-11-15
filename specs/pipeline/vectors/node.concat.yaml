@@ -20,7 +20,7 @@ cases:
     params: {}
     input:
       values:
-        - point_names: [body.nose, body.left_wrist]
+        - point_names: [body/nose, body/left_wrist]
           xyz: [[[10, 10, .nan], [20, 30, .nan]], [[.nan, .nan, .nan], [.nan, .nan, .nan]]]
           score: [[0.9, 0.9], [0, 0]]
           instance_score: [0.8, 0]
@@ -28,7 +28,7 @@ cases:
           track_ids: [-1, -1]
           instance_source: person
           geometry: "2d"
-        - point_names: [left_hand.wrist]
+        - point_names: [left_hand/wrist]
           xyz: [[[21, 31, .nan]], [[.nan, .nan, .nan]]]
           score: [[0.9], [0]]
           instance_score: [0.8, 0]
@@ -36,10 +36,10 @@ cases:
           track_ids: [-1, -1]
           instance_source: person
           geometry: "2d"
-      point_names: [[body.nose, body.left_wrist], [left_hand.wrist]]
+      point_names: [[body/nose, body/left_wrist], [left_hand/wrist]]
     expect:
       keypoints:
-        point_names: [body.nose, body.left_wrist, left_hand.wrist]
+        point_names: [body/nose, body/left_wrist, left_hand/wrist]
         xyz:
           - [[10, 10, .nan], [20, 30, .nan], [21, 31, .nan]]
           - [[.nan, .nan, .nan], [.nan, .nan, .nan], [.nan, .nan, .nan]]
@@ -55,7 +55,7 @@ cases:
     params: {}
     input:
       values:
-        - point_names: [body.nose, body.left_wrist]
+        - point_names: [body/nose, body/left_wrist]
           xyz: [[[10, 10, .nan], [20, 30, .nan]]]
           score: [[0.9, 0.9]]
           instance_score: [0.8]
@@ -64,10 +64,10 @@ cases:
           instance_source: person
           geometry: "2d"
         - null
-      point_names: [[body.nose, body.left_wrist], [left_hand.wrist, left_hand.tip]]
+      point_names: [[body/nose, body/left_wrist], [left_hand/wrist, left_hand/tip]]
     expect:
       keypoints:
-        point_names: [body.nose, body.left_wrist, left_hand.wrist, left_hand.tip]
+        point_names: [body/nose, body/left_wrist, left_hand/wrist, left_hand/tip]
         xyz: [[[10, 10, .nan], [20, 30, .nan], [.nan, .nan, .nan], [.nan, .nan, .nan]]]
         score: [[0.9, 0.9, 0, 0]]
         instance_score: [0.8]
@@ -80,7 +80,7 @@ cases:
     params: {}
     input:
       values:
-        - point_names: [body.nose, body.left_wrist]
+        - point_names: [body/nose, body/left_wrist]
           xyz: [[[10, 10, .nan], [20, 30, .nan]]]
           score: [[0.9, 0.9]]
           instance_score: [0.8]
@@ -88,7 +88,7 @@ cases:
           track_ids: [-1]
           instance_source: person
           geometry: "2d"
-        - point_names: [left_hand.wrist, left_hand.tip]
+        - point_names: [left_hand/wrist, left_hand/tip]
           xyz: [[[.nan, .nan, .nan], [.nan, .nan, .nan]]]
           score: [[0, 0]]
           instance_score: [0]
@@ -96,10 +96,10 @@ cases:
           track_ids: [-1]
           instance_source: person
           geometry: "2d"
-      point_names: [[body.nose, body.left_wrist], [left_hand.wrist, left_hand.tip]]
+      point_names: [[body/nose, body/left_wrist], [left_hand/wrist, left_hand/tip]]
     expect:
       keypoints:
-        point_names: [body.nose, body.left_wrist, left_hand.wrist, left_hand.tip]
+        point_names: [body/nose, body/left_wrist, left_hand/wrist, left_hand/tip]
         xyz: [[[10, 10, .nan], [20, 30, .nan], [.nan, .nan, .nan], [.nan, .nan, .nan]]]
         score: [[0.9, 0.9, 0, 0]]
         instance_score: [0.8]
@@ -109,7 +109,7 @@ cases:
         geometry: "2d"
   - id: is-empty-when-each-input-is-empty
     params: {}
-    input: {values: [null, null], point_names: [[body.nose], [left_hand.wrist]]}
+    input: {values: [null, null], point_names: [[body/nose], [left_hand/wrist]]}
     expect: {keypoints: null}
   - id: row-i-takes-the-instance-score-and-the-track-id-of-the-first-input-whose-row-i-is-present
     note: "row 1 of the left-hand input is a padding row, so row 1 takes the instance score 0.6
@@ -119,7 +119,7 @@ cases:
     params: {}
     input:
       values:
-        - point_names: [left_hand.wrist]
+        - point_names: [left_hand/wrist]
           xyz: [[[21, 31, .nan]], [[.nan, .nan, .nan]]]
           score: [[0.9], [0]]
           instance_score: [0.8, 0]
@@ -127,7 +127,7 @@ cases:
           track_ids: [7, -1]
           instance_source: person
           geometry: "2d"
-        - point_names: [body.nose]
+        - point_names: [body/nose]
           xyz: [[[10, 10, .nan]], [[50, 50, .nan]]]
           score: [[0.9], [0.9]]
           instance_score: [0.8, 0.6]
@@ -135,10 +135,10 @@ cases:
           track_ids: [7, 3]
           instance_source: person
           geometry: "2d"
-      point_names: [[left_hand.wrist], [body.nose]]
+      point_names: [[left_hand/wrist], [body/nose]]
     expect:
       keypoints:
-        point_names: [left_hand.wrist, body.nose]
+        point_names: [left_hand/wrist, body/nose]
         xyz: [[[21, 31, .nan], [10, 10, .nan]], [[.nan, .nan, .nan], [50, 50, .nan]]]
         score: [[0.9, 0.9], [0, 0.9]]
         instance_score: [0.8, 0.6]
@@ -151,7 +151,7 @@ cases:
     params: {}
     input:
       values:
-        - point_names: [body.nose]
+        - point_names: [body/nose]
           xyz: [[[10, 10, .nan]]]
           score: [[0.9]]
           instance_score: [0.8]
@@ -159,7 +159,7 @@ cases:
           track_ids: [-1]
           instance_source: person
           geometry: "2d"
-        - point_names: [hand.wrist]
+        - point_names: [hand/wrist]
           xyz: [[[1, 1, .nan]]]
           score: [[0.9]]
           instance_score: [0.8]
@@ -167,14 +167,14 @@ cases:
           track_ids: [-1]
           instance_source: hands
           geometry: "2d"
-      point_names: [[body.nose], [hand.wrist]]
+      point_names: [[body/nose], [hand/wrist]]
     expect: {error: V-node.concat-1}
   - id: colliding-point-names-are-refused
     checks: [refused]
     params: {}
     input:
       values:
-        - point_names: [body.nose]
+        - point_names: [body/nose]
           xyz: [[[10, 10, .nan]]]
           score: [[0.9]]
           instance_score: [0.8]
@@ -182,7 +182,7 @@ cases:
           track_ids: [-1]
           instance_source: person
           geometry: "2d"
-        - point_names: [body.nose]
+        - point_names: [body/nose]
           xyz: [[[1, 1, .nan]]]
           score: [[0.9]]
           instance_score: [0.8]
@@ -190,14 +190,14 @@ cases:
           track_ids: [-1]
           instance_source: person
           geometry: "2d"
-      point_names: [[body.nose], [body.nose]]
+      point_names: [[body/nose], [body/nose]]
     expect: {error: V-node.concat-2}
   - id: mixed-geometries-are-refused
     checks: [refused]
     params: {}
     input:
       values:
-        - point_names: [body.nose]
+        - point_names: [body/nose]
           xyz: [[[10, 10, .nan]]]
           score: [[0.9]]
           instance_score: [0.8]
@@ -205,7 +205,7 @@ cases:
           track_ids: [-1]
           instance_source: person
           geometry: "2d"
-        - point_names: [face.tip]
+        - point_names: [face/tip]
           xyz: [[[1, 1, 1]]]
           score: [[0.9]]
           instance_score: [0.8]
@@ -213,5 +213,5 @@ cases:
           track_ids: [-1]
           instance_source: person
           geometry: "3d"
-      point_names: [[body.nose], [face.tip]]
+      point_names: [[body/nose], [face/tip]]
     expect: {error: V-node.concat-3}

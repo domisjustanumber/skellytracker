@@ -95,7 +95,8 @@ Do not edit these files by hand. `tools/make_pipeline_schema.py` makes them from
 | ROI | A region of the source image: `(cx, cy, w, h, rotation)` in source-image pixels, with `rotation` in radians, clockwise, in `[-π, π)`. A box is an ROI with rotation 0 ([Graph](graph.md#behaviour) item 3). |
 | instance row | One row of a `roi`, `keypoints` or `detections` value: one instance, present or padding ([Graph](graph.md#behaviour) item 8). |
 | instance source | The node that makes the instance rows of a value: an object detector, a one-stage model or a `mediapipe_tasks` node ([Graph](graph.md#behaviour) item 8). |
-| point name | `<prefix>.<point>`, for example `body.left_wrist` ([Graph](graph.md#behaviour) item 7). |
+| point name | `<group>/<point>`, for example `body/left_wrist` ([Graph](graph.md#behaviour) item 7). |
+| group | A named run of points of a `keypoints` port, with the name of its landmark schema ([Graph](graph.md#behaviour) item 7; [Outputs](outputs.md#fields)). |
 | score | The confidence of a point or a box: the decoded score of the sidecar, or the landmark visibility of MediaPipe. A threshold on a score is `>= 0` and has no upper bound ([ADR-88WQ](../../decisions/entries/88WQ-sidecar-vocabulary.md) item 6). |
 | frame | The reserved source of the graph. Its port `frame.image` is the camera frame of the call. |
 | stateful pipeline | A pipeline with an `@prev` input, or with a temporal node upstream of an `onnx_model` node ([Running](running.md#behaviour) item 5). |
@@ -117,7 +118,7 @@ The words `cov` and `noise` name the Kalman covariance and the process noise of 
 A pipeline file and its run are valid when all of the following rules hold.
 
 - [Pipeline file](file.md#validation-rules): `V-pipeline.file-1` to `V-pipeline.file-5`
-- [Graph](graph.md#validation-rules): `V-pipeline.graph-1` to `V-pipeline.graph-9`
+- [Graph](graph.md#validation-rules): `V-pipeline.graph-1` to `V-pipeline.graph-10`
 - [Outputs](outputs.md#validation-rules): `V-pipeline.outputs-1`, `V-pipeline.outputs-2`
 - [Running](running.md#validation-rules): `V-pipeline.running-1` to `V-pipeline.running-9`
 - [Timing](timing.md#validation-rules): `V-pipeline.timing-1`

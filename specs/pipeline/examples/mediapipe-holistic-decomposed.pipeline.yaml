@@ -23,12 +23,12 @@ nodes:
     type: roi_from_points
     inputs: {keypoints: body.keypoints@prev}
     params:
-      points: [body.left_hip, body.right_hip, body.nose]
+      points: [body/left_hip, body/right_hip, body/nose]
       derived_points:
-        hip_center: [body.left_hip, body.right_hip]
+        hip_center: [body/left_hip, body/right_hip]
       size_rule: alignment
       alignment_start: hip_center
-      alignment_end: body.nose
+      alignment_end: body/nose
       target_rotation_deg: 90
       square_long: true
       expand_ratio: 1.25
@@ -47,10 +47,10 @@ nodes:
     type: roi_from_points
     inputs: {keypoints: body.keypoints}
     params:
-      points: [body.right_wrist, body.right_index, body.right_pinky]
+      points: [body/right_wrist, body/right_index, body/right_pinky]
       size_rule: alignment
-      alignment_start: body.right_wrist
-      alignment_end: body.right_index
+      alignment_start: body/right_wrist
+      alignment_end: body/right_index
       target_rotation_deg: 90
       square_long: true
       expand_ratio: 2.7
@@ -73,10 +73,10 @@ nodes:
     type: roi_from_points
     inputs: {keypoints: body.keypoints}
     params:
-      points: [body.left_wrist, body.left_index, body.left_pinky]
+      points: [body/left_wrist, body/left_index, body/left_pinky]
       size_rule: alignment
-      alignment_start: body.left_wrist
-      alignment_end: body.left_index
+      alignment_start: body/left_wrist
+      alignment_end: body/left_index
       target_rotation_deg: 90
       square_long: true
       expand_ratio: 2.7

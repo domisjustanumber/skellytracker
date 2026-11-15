@@ -10,7 +10,7 @@ status: {spec: draft}
 
 > This section is a draft. Its fields and rules can change before the section becomes `stable`.
 
-The graph of a pipeline is a flat list of nodes. Each node has an id, a type and inputs. An input refers to an output port of another node, or to the camera frame. The suffix `@prev` refers to the value of the previous frame. This section gives the node fields, the port types, the ROI type, the empty values, the point names and the instance rows of a port ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) items 4, 6 and 8; [ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1).
+The graph of a pipeline is a flat list of nodes. Each node has an id, a type and inputs. An input refers to an output port of another node, or to the camera frame. The suffix `@prev` refers to the value of the previous frame. This section gives the node fields, the port types, the ROI type, the empty values, the point names and their groups, and the instance rows of a port ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) items 4, 6 and 8; [ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1; [ADR-4MP6](../../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md)).
 
 ## Fields
 
@@ -53,12 +53,14 @@ The [README](README.md#terms) gives the letter key `I`, `P` and the other letter
    - The optional inputs are `roi_hold.previous_keypoints`, `redetect_trigger.previous_keypoints` and `redetect_trigger.previous_rois`.
    - The `rois` input of a top-down keypoint model is required ([`V-node.onnx_model-2`](nodes/onnx_model.md#validation-rules)).
    - The rule of a node type can also read an empty required input: `gate` reads an empty `condition`, `first_of` skips each empty input, `roi_hold` reads an empty `previous`, `merge` reads an empty `source`, [`concat`](nodes/concat.md#behaviour) runs with an empty input and gives missing points in its columns, and `smooth_keypoints` counts an empty input as a miss after its first input. The node section gives each such input.
-7. **Point names.** Each point name in the graph has a prefix: `<prefix>.<point>` ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6):
-   - The prefix is the id of the node that makes the points, for example `left_hand.wrist` from the node `left_hand`.
-   - A `mediapipe_tasks` node of the variant `holistic` gives the prefixes `body`, `right_hand`, `left_hand` and `face`, in this order ([Node: MediaPipe Tasks](nodes/mediapipe_tasks.md#behaviour)).
-   - A `merge` node gives the prefix of each slot name to the columns of that slot ([Node: merge](nodes/merge.md#behaviour)).
-   - The other glue nodes keep the names. An output adds no prefix.
-   - Each point name in a param has its prefix, for example `body.left_wrist` (`V-pipeline.graph-8`). A derived point of `roi_from_points` is local to its node and has no prefix.
+7. **Point names and groups.** A point name is `<group>/<point>`, for example `body/left_wrist`. `<point>` is a point name of the sidecar or of the MediaPipe assets. A port reference and a timing span keep the dot ([ADR-4MP6](../../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md) item 1):
+   - An `onnx_model` node with the role `keypoint_detector` makes the groups of the landmark schema of its sidecar, in the order of the schema ([Landmark schema](../model-sidecar/post/keypoint/landmark-schema.md#fields)). A schema with two or more groups gives each group its name in the schema, for example `body`, `feet`, `face`, `left_hand` and `right_hand` of `COCO_WholeBody`. A schema with one group gives that group the id of the node.
+   - A `mediapipe_tasks` node makes the groups that [Node: MediaPipe Tasks](nodes/mediapipe_tasks.md#behaviour) gives. The variant `holistic` makes the groups `body`, `right_hand`, `left_hand` and `face`, in this order.
+   - A `merge` node gives the groups of `target`, then one group for each slot ([Node: merge](nodes/merge.md#behaviour) item 6).
+   - A `concat` node gives the groups of its inputs, in the order of the list. A `first_of` node gives the groups of its inputs, which are the same (`V-node.first_of-2`). The other glue nodes keep the point names and the groups of their input. An output adds no group.
+   - The group names that the nodes of a file make are unique (`V-pipeline.graph-10`).
+   - The group name of a schema with one hand gives the side of its canonical points: a node or a slot `left_hand` gives `left_hand/wrist` ([Canonical mapping](../model-sidecar/post/keypoint/canonical-mapping.md#behaviour) item 2).
+   - Each point name in a param is `<group>/<point>` (`V-pipeline.graph-8`). A derived point of `roi_from_points` is local to its node and has no group.
 8. **Instance rows.** Each `roi`, `keypoints` and `detections` value has `I` rows ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1):
    - The **instance source** of a value is the node that makes its instance rows: an object detector, a one-stage model or a `mediapipe_tasks` node. `I` is the `max_instances` of the instance source. `I` is fixed for the run. Each frame has the same shapes. `I` can be more than 1.
    - The present rows come first, in descending order of the instance score: the `score` of the `detections` row of an object detector or a one-stage model. Each present row of a `mediapipe_tasks` node has the instance score 1.0, so its rows keep the order of MediaPipe. A tie goes to the lower row index, as in the sidecar [selection behaviour](../model-sidecar/post/object/decode.md#selection-behaviour). The padding rows come last. A padding row has `present` false.
@@ -81,14 +83,15 @@ The [README](README.md#terms) gives the letter key `I`, `P` and the other letter
 - [ ] `V-pipeline.graph-5` Each input name must be an input port of the node type. The variadic types `first_of` and `concat` must have a list of port references. The other types must have a mapping.
 - [ ] `V-pipeline.graph-6` Each node must have each required input of its type. The list of a `first_of` or `concat` node must have at least one item.
 - [ ] `V-pipeline.graph-7` `type` must be a node type of the [section map](README.md#section-map). `params` must agree with the params table of that type: each param name is a param of the type, each value has the type and the range of the param, and each param with no default is present.
-- [ ] `V-pipeline.graph-8` Each point name in a param must be `<prefix>.<point>`. The prefix must be a node id of the file, a prefix of a `holistic` node of the file, or a slot name of a `merge` node of the file. A derived point name of a `roi_from_points` node is the only exception. The host also checks at load that each name is a point of the input port.
+- [ ] `V-pipeline.graph-8` Each point name in a param must be `<group>/<point>`: `<group>` is a name, and `<point>` has no `/` and no whitespace. A derived point name of a `roi_from_points` node is the only exception. The host also checks at load that each name is a point of the input port, and refuses a point name of a sidecar or of the MediaPipe assets with `/` or whitespace ([ADR-4MP6](../../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md)).
 - [ ] `V-pipeline.graph-9` Each `any` output must get its port type from an input that is not `@prev` ([Behaviour](#behaviour) item 4; [ADR-97X9](../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 5).
+- [ ] `V-pipeline.graph-10` The groups that the nodes of a file make must have unique names: the groups of each inference node and the group of each slot of each `merge` node ([Behaviour](#behaviour) item 7). The host checks this rule at load ([ADR-4MP6](../../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md)).
 
 ## Implementer guidance
 
-- `check_structure` in the reference model checks `V-pipeline.graph-1` to `V-pipeline.graph-6`, `V-pipeline.graph-8` and `V-pipeline.graph-9`. Each check raises a `ValueError` whose message starts with the rule ID. The discriminated union `NodeConfig` and the params models check `V-pipeline.graph-7`. (skellytracker `specs/pipeline/reference/pipeline_config.py`)
+- `check_structure` in the reference model checks `V-pipeline.graph-1` to `V-pipeline.graph-6`, `V-pipeline.graph-8` and `V-pipeline.graph-9`. Each check raises a `ValueError` whose message starts with the rule ID. The discriminated union `NodeConfig` and the params models check `V-pipeline.graph-7`. `V-pipeline.graph-10` needs the sidecars and the registry, so the host checks it at load. (skellytracker `specs/pipeline/reference/pipeline_config.py`)
 - The reference model gives each item of the list of a variadic type the input name `*` (`VARIADIC`). Its cycle check ignores each `@prev` edge and each edge from the frame. `_ref_type` gives an `any` output the type of its inputs that are not `@prev`, and `x@prev` the type of `x`. (skellytracker `specs/pipeline/reference/pipeline_config.py`)
-- The host checks at load the rules that need the point names, the geometries and the instance sources of the ports: these come from the sidecars and the MediaPipe YAML files.
+- The host checks at load the rules that need the point names, the geometries and the instance sources of the ports: these come from the sidecars, the landmark schema registry and the MediaPipe YAML files.
 
 ## Authoring guidance
 
@@ -116,5 +119,5 @@ An ROI from the keypoints of the previous frame:
   - id: hand_roi
     type: roi_from_points
     inputs: {keypoints: body.keypoints@prev}
-    params: {points: [body.left_wrist, body.left_elbow], square_long: true, expand_ratio: 2.0}
+    params: {points: [body/left_wrist, body/left_elbow], square_long: true, expand_ratio: 2.0}
 ```

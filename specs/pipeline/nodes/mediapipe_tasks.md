@@ -52,14 +52,16 @@ The params use the shared names of the pipeline spec, not the MediaPipe option n
 - In `VIDEO` mode the node gives the `timestamp_ms` of each frame to the landmarker ([Running](../running.md#behaviour)).
 - In `VIDEO` mode the node is stateful. In the running mode `video`, a pipeline with this node upstream of an `onnx_model` node thus runs at batch = camera count ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 5).
 - The `instance_score` of each present row is 1.0, because the Tasks results have no instance score ([Graph](../graph.md#behaviour) item 8). The rows keep the order of MediaPipe.
-- The output is one `keypoints` set with `max_instances` rows, in the instance format of [Graph](../graph.md#behaviour) item 8. The node is the instance source of its output. The score of a point is the landmark visibility of MediaPipe ([ADR-88WQ](../../../decisions/entries/88WQ-sidecar-vocabulary.md) item 4). Each point name has a prefix:
+- The output is one `keypoints` set with `max_instances` rows, in the instance format of [Graph](../graph.md#behaviour) item 8. The node is the instance source of its output. The score of a point is the landmark visibility of MediaPipe ([ADR-88WQ](../../../decisions/entries/88WQ-sidecar-vocabulary.md) item 4). The node makes the groups of this table ([Graph](../graph.md#behaviour) item 7; [ADR-4MP6](../../../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md)). Each point name is `<group>/<name>`:
 
-  | `variant` | Point names | Points |
-  |---|---|---|
-  | `body` | `<node id>.<name>` | 33 |
-  | `hand` | `<node id>.<name>` | 21 |
-  | `face` | `<node id>.face_0000` to `<node id>.face_0477` | 478 |
-  | `holistic` | `body.<name>`, then `right_hand.<name>`, then `left_hand.<name>`, then `face.face_0000` to `face.face_0477` | 33 + 21 + 21 + 478 |
+  | `variant` | Groups | Point names | Points |
+  |---|---|---|---|
+  | `body` | `<node id>` | `<node id>/<name>` | 33 |
+  | `hand` | `<node id>` | `<node id>/<name>` | 21 |
+  | `face` | `<node id>` | `<node id>/face_0000` to `<node id>/face_0477` | 478 |
+  | `holistic` | `body`, `right_hand`, `left_hand`, `face` | `body/<name>`, then `right_hand/<name>`, then `left_hand/<name>`, then `face/face_0000` to `face/face_0477` | 33 + 21 + 21 + 478 |
+
+  The `landmark_schema` of each group is null. The registry has no MediaPipe schema yet ([open work](../decisions/open-work.md)).
 
 - The holistic order body, right hand, left hand, face is the order of freemocap.
 - The output schema has `geometry: 3d` and `depth_unit: pixel` ([Outputs](../outputs.md#fields)). The node gives source-image pixels: it multiplies the normalised x and z of a landmark by the image width, and y by the image height. Thus z is the relative depth of MediaPipe, scaled by the image width, as the sidecar spec describes for the MediaPipe landmark models ([Coordinate decode](../../model-sidecar/post/keypoint/decode-coordinate.md#implementer-guidance)).

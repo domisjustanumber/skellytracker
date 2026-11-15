@@ -106,6 +106,7 @@ These fields apply when `role` includes `keypoint_detector`.
 | Section ID | File | Title |
 |------------|------|-------|
 | `post.keypoint.schema` | [post/keypoint/schema.md](post/keypoint/schema.md) | Keypoint schema |
+| `post.keypoint.landmark_schema` | [post/keypoint/landmark-schema.md](post/keypoint/landmark-schema.md) | Landmark schema |
 | `post.keypoint.canonical_mapping` | [post/keypoint/canonical-mapping.md](post/keypoint/canonical-mapping.md) | Canonical mapping |
 | `post.keypoint.decode.simcc` | [post/keypoint/decode-simcc.md](post/keypoint/decode-simcc.md) | SimCC decode |
 | `post.keypoint.decode.coordinate` | [post/keypoint/decode-coordinate.md](post/keypoint/decode-coordinate.md) | Coordinate decode |
@@ -144,8 +145,12 @@ A sidecar is valid when all of the following rules hold. Each rule applies to ev
 - [Selection: top-k](post/object/selection-top-k.md#validation-rules)
 - [Selection: NMS](post/object/selection-nms.md#validation-rules)
 - [Keypoint schema](post/keypoint/schema.md#validation-rules)
-- [Canonical mapping](post/keypoint/canonical-mapping.md#validation-rules)
 - [SimCC decode](post/keypoint/decode-simcc.md#validation-rules)
 - [Coordinate decode](post/keypoint/decode-coordinate.md#validation-rules)
 - [Bottom-up keypoints](post/keypoint/bottom-up.md#validation-rules)
 - [Overlay](post/keypoint/overlay.md#validation-rules)
+
+These rules check the schema files of the landmark schema registry, not a sidecar. A keypoint sidecar refers to them through `V-post.keypoint.schema-10`:
+
+- [Landmark schema](post/keypoint/landmark-schema.md#validation-rules)
+- [Canonical mapping](post/keypoint/canonical-mapping.md#validation-rules)

@@ -149,7 +149,10 @@ NAME_KEYED_MAPS = {
     "parts",
 }
 # These map keypoint names to sources. The check does not read inside them.
-KEYPOINT_MAPS = {"canonical_mapping", "derived_points"}
+KEYPOINT_MAPS = {"derived_points"}
+# The section of the landmark schema files defines the keys of a schema file, not of a sidecar.
+SCHEMA_FILE_SECTION = SPEC_ROOT / "post" / "keypoint" / "landmark-schema.md"
+REMOVED_KEYS = frozenset({"canonical_mapping"})  # ADR-23F5: the field left the sidecar spec
 
 
 @functools.cache
@@ -158,16 +161,19 @@ def defined_keys() -> frozenset[str]:
 
     The field path of each `selectors` item of a section also counts, for example
     `batching.batch_conversion`, which no Field table names. A dotted name such as `keypoint.skeletons[].edges` defines each of its parts. The index gives the
-    top-level keys, for example `batching`.
+    top-level keys, for example `batching`. The check skips `post/keypoint/landmark-schema.md`,
+    because it defines the keys of a schema file. `REMOVED_KEYS` holds a key that a frozen heading
+    or a schema-file heading still names, for example `canonical_mapping`.
     shortcut: a name, not a path. A defined key in the wrong place passes. Check paths when the
     Fields tables give full paths.
-    shortcut: the check does not read inside `canonical_mapping` or `derived_points`, and each word
+    shortcut: the check does not read inside `derived_points`, and each word
     in backticks in a heading counts, also a value such as `none`. Parse the Field column only when
     a misspelt key passes.
     """
     names: set[str] = set()
     paths = [SPEC_ROOT / "sidecar-spec.md"]
     paths += [p for folder in ("format", "common", "pre", "post") for p in (SPEC_ROOT / folder).rglob("*.md")]
+    paths.remove(SCHEMA_FILE_SECTION)
     for path in paths[1:]:
         front, _ = sidecar_trace.parse_front_matter(path.read_text(encoding="utf-8"), str(path))
         for selector in front.get("selectors") or []:
@@ -183,7 +189,7 @@ def defined_keys() -> frozenset[str]:
             text = line if line.startswith("#") else line.split("|")[1] if field_table else ""
             for name in re.findall(r"`([^`]+)`", text):
                 names.update(re.findall(r"[$\w]+", name))
-    return frozenset(names)
+    return frozenset(names) - REMOVED_KEYS
 
 
 def unknown_keys(node: object, parent: object = None) -> list[str]:
@@ -222,6 +228,8 @@ def test_example_has_only_keys_that_the_spec_defines(path: Path) -> None:
         (("outputs", 0), "rank"),
         (("sizes", "m", "onnx", "precision_artifacts", "fp32"), "input_dtype"),
         (("keypoint", "decode"), "is_3d"),
+        (("keypoint",), "canonical_mapping"),
+        (("keypoint",), "groups"),
     ],
 )
 def test_the_key_check_finds_a_deleted_key(where: tuple[str | int, ...], key: str) -> None:

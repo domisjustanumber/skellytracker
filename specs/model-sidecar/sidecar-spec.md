@@ -154,7 +154,7 @@ Moved to [post/pose-schema.md](post/keypoint/schema.md#keypointderived_points).
 
 #### `pose.canonical_mapping`
 
-Moved to [post/canonical-mapping.md](post/keypoint/canonical-mapping.md#keypointcanonical_mapping).
+Moved to [post/canonical-mapping.md](post/keypoint/canonical-mapping.md#canonical_mapping).
 
 #### Canonical skeleton
 
@@ -162,7 +162,7 @@ Moved to [post/canonical-mapping.md](post/keypoint/canonical-mapping.md#canonica
 
 #### Reference implementations
 
-Moved to [post/canonical-mapping.md](post/keypoint/canonical-mapping.md#reference-mappings-in-skellytracker).
+Moved to [post/canonical-mapping.md](post/keypoint/canonical-mapping.md#canonical-names).
 
 #### `pose.decode`
 
