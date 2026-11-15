@@ -49,7 +49,7 @@ intakes/
 
 | Kind | Required files | Optional files |
 |---|---|---|
-| `model` | `intake.md` | `example/detectors/...` and `example/provenance.yaml` (verdict `describes`); `reference/<section_module>.py`; `vector-runs.yaml`; `batch/` (the files of the [batch-conversion check](batch-conversion-check.md#batch-conversion-check)) |
+| `model` | `intake.md` | `example/detectors/...` and `example/provenance.yaml` (verdict `describes`); `reference/<section_module>.py`; `vector-runs.yaml`; `batch/` (the files of the [batch-conversion check](batch-conversion-check.md#batch-conversion-check)); `landmark_schemas/<name>.yaml` (row K11 is `new`) |
 | `proposal` | `proposal.md` | `reference/<section_module>.py` and `vectors/<section ID>.yaml` for each changed section that has an algorithm; `evidence.md`; `example/`; `skellytracker.patch` (from the 2.0.0 pre-release, [Patches](#patches)) |
 | `proposal` with `contributes_to` | `evidence.md`, one or more `vectors/<section ID>.yaml` | `parity/` |
 | `pipeline` | `pipeline.md`, `<pipeline_id>.pipeline.yaml` | `run/` (a reference run output) |
@@ -73,6 +73,11 @@ intakes/
   gives the rule.
 - A `model` bundle can hold `reference/<section_module>.py`: a reference implementation of the
   current spec text. A proposal bundle holds the reference implementation of the proposed text.
+- `landmark_schemas/<name>.yaml` is a new landmark schema file with its canonical mapping
+  ([Landmark schema](../post/keypoint/landmark-schema.md#fields)). Write it only when row K11 of the
+  intake is `new`. A face schema has no `canonical_mapping`. The target is
+  `skellytracker/core/model_zoo/landmark_schemas/<name>.yaml`
+  ([ADR-23F5](../../../decisions/entries/23F5-landmark-schema-registry.md)).
 - `example/` holds a sidecar and its fragments in the storage layout, and `example/provenance.yaml`.
   In a proposal, it is a candidate example. A candidate does not land. After acceptance,
   [Reference examples](reference-examples.md) copies the real export.

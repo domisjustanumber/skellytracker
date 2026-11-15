@@ -1,6 +1,6 @@
 # 23F5 — Landmark schema registry: one schema file for each keypoint convention, with its groups and its canonical mapping
 
-**Status:** accepted, 2026-11-15 (user, design review 2026-11-13).
+**Status:** absorbed into [`landmark-schema.md#landmark-schema`](../../specs/model-sidecar/post/keypoint/landmark-schema.md#landmark-schema), [`file-layout.md#storage-layout`](../../specs/model-sidecar/format/file-layout.md#storage-layout), [`canonical-mapping.md#fields`](../../specs/model-sidecar/post/keypoint/canonical-mapping.md#fields), [`canonical-mapping.md#behaviour`](../../specs/model-sidecar/post/keypoint/canonical-mapping.md#behaviour), [`canonical-mapping.md#validation-rules`](../../specs/model-sidecar/post/keypoint/canonical-mapping.md#validation-rules), [`schema.md#fields`](../../specs/model-sidecar/post/keypoint/schema.md#fields), [`schema.md#validation-rules`](../../specs/model-sidecar/post/keypoint/schema.md#validation-rules), [`hand-over.md#payload`](../../specs/model-sidecar/model-addition-workflow/hand-over.md#payload), [`model-intake.md#model-intake-template`](../../specs/model-sidecar/templates/model-intake.md#model-intake-template), [`author-sidecar/SKILL.md#inputs`](../../.claude/skills/author-sidecar/SKILL.md#inputs), [`test_landmark_schemas.py`](../../tools/tests/test_landmark_schemas.py), 2026-11-15 (user, design review 2026-11-13; PR: pending).
 
 ## Decision
 

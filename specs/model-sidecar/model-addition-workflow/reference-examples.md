@@ -76,7 +76,7 @@ Replace the example when the copy of its exporter obeys each rule
 
    **Fragments.** A fragment is a file that a `$ref` of the sidecar names: a file under
    `detectors/shared/` (a skeleton or a class-id map), or a file next to the sidecar (for example a
-   `canonical_mapping` file). The example uses the same relative path. Copy each fragment of the
+   `point_names` file). The example uses the same relative path. Copy each fragment of the
    exporter unchanged ([ADR-VV8B](../../../decisions/entries/VV8B-fragments-have-an-inventory-entry.md)):
    - Write its provenance in `fragments` of `specs/model-sidecar/inventory.yaml` (step 4). A package
      copy is not a source. The old package sidecars stay outside the spec until they are deleted

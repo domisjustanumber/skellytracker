@@ -55,6 +55,10 @@ Get these inputs before you start
 - the upstream inference config (the test pipeline);
 - the upstream preprocessing code and postprocessing code;
 - one reference output of the upstream library on a known image;
+- the upstream definition of the keypoint convention (its points and their groups), when the
+  convention is not in the registry `skellytracker/core/model_zoo/landmark_schemas/`
+  ([Landmark schema](../../../specs/model-sidecar/post/keypoint/landmark-schema.md#behaviour);
+  [ADR-23F5](../../../decisions/entries/23F5-landmark-schema-registry.md));
 - the license of the weights, the upstream training config, and the config of each checkpoint
   that the training started from (`common.license`).
 
@@ -74,6 +78,7 @@ Write these files in a `model` bundle, or in the exporter repo where the table s
 | The parity script, committed in the exporter repo | When you can run the parity check. |
 | `reference/<section_module>.py` of the bundle | For each section that the exporter implements on its host side and that has no reference implementation. |
 | `example/` of the bundle | When the verdict is `describes`. |
+| `landmark_schemas/<name>.yaml` of the bundle | When row K11 is `new`: the schema file with its canonical mapping ([Landmark schema](../../../specs/model-sidecar/post/keypoint/landmark-schema.md#fields); [ADR-23F5](../../../decisions/entries/23F5-landmark-schema-registry.md)). |
 | `batch/` of the bundle | When you run the batch-conversion check. [Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing) gives when you can skip it. |
 | A `proposal` bundle | The skill `propose-sidecar-change` writes one bundle for each contract unit with a `near-miss` or a `gap`. |
 
@@ -206,7 +211,11 @@ Do this step when no row is blocking (step 5 of
    [Publishing](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing).
 8. Do each item of the [Validation checklist](../../../specs/model-sidecar/templates/model-intake.md#validation-checklist).
    Follow [Validation](../../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#validation). Write the rule ID of each
-   rule that you checked.
+   rule that you checked. When row K11 is `new`, check by hand that `keypoint.point_names` equals
+   the `points` of the groups of the new schema file, in order (`V-post.keypoint.schema-10`). Do not
+   copy the file to the `landmark_schemas/` folder of a user root: when skellytracker lands the same
+   name in the package, `V-post.keypoint.landmark_schema-4` refuses each load
+   ([ADR-23F5](../../../decisions/entries/23F5-landmark-schema-registry.md)).
 9. Run the numeric vector cases of each section that the model uses through the host code. Record
    each section in `vector-runs.yaml` of the bundle
    ([Payload](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#payload)).

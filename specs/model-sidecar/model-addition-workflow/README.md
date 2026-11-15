@@ -96,6 +96,10 @@ Get these inputs before you start:
 - the upstream inference config;
 - the upstream preprocessing code and postprocessing code;
 - one reference output of the upstream library on a known image;
+- the upstream definition of the keypoint convention (its points and their groups), when the
+  convention is not in the registry `skellytracker/core/model_zoo/landmark_schemas/`
+  ([Landmark schema](../post/keypoint/landmark-schema.md#behaviour);
+  [ADR-23F5](../../../decisions/entries/23F5-landmark-schema-registry.md));
 - the license of the weights, the upstream training config, and the config of each checkpoint
   that the training started from (`common.license`).
 

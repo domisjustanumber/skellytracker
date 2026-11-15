@@ -261,7 +261,8 @@ declaration of the implementation stage, [ADR-V6G2](../decisions/entries/V6G2-im
   under `core/`.
 - Move charuco and aruco to `core/detectors/calibration_detectors/`
   ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 4).
-- Create `core/model_zoo/`, the package sidecar root
+- `core/model_zoo/` exists. It holds `landmark_schemas/`
+  ([ADR-23F5](../decisions/entries/23F5-landmark-schema-registry.md)). Make it the package sidecar root
   ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 5). Add
   `skellytracker/core/model_zoo/**/*.onnx` to `.gitignore`. flit puts each file of the package
   folder in a wheel. Thus build each release from a clean checkout. Add a check that fails the build
@@ -586,6 +587,13 @@ the exporter. Stage 1.4 and stage 1.5 come before stage 1.9.
   `keypoint.point_names`. Raise a validation error with the rule ID. Add a test that writes each
   data-only case of [`common.identity`](model-sidecar/vectors/common.identity.yaml) to a temporary
   sidecar root at `input.path` and checks the failed rules. Then update the `validate` note of the front matter of the section.
+- **Landmark schema registry.** The new loader reads the schema files of
+  `core/model_zoo/landmark_schemas/` and of `landmark_schemas/` of the user root that it takes as an
+  argument. It checks `V-post.keypoint.landmark_schema-1` to `-4` and
+  `V-post.keypoint.canonical_mapping-1`, and on each keypoint sidecar `V-post.keypoint.schema-1`,
+  `-10` and `-11` ([Landmark schema](model-sidecar/post/keypoint/landmark-schema.md);
+  [ADR-23F5](../decisions/entries/23F5-landmark-schema-registry.md)). Stage 1.6 gives it the user
+  root. Then update the front matter of both sections.
 - **License block.** Each sidecar has the `license` block with the model
   license and the training data ([ADR-NBG2](model-sidecar/decisions/entries/NBG2-license-and-training-data-without-the-deferred-examples.md);
   [License and training data](model-sidecar/common/license.md)). The old `SidecarModel` forbids the key `license`. The new model has a model of the block and checks `V-common.license-1` to `V-common.license-7`. The SPDX
@@ -831,7 +839,9 @@ the old code. Put each fix in the module of its spec section in `processing/pre/
   are `core/model_zoo/`, the user root and Hugging Face repo snapshots (pin, refresh, cache paths
   without symlink resolution), with discovery in each root
   ([Sidecar roots](model-sidecar/format/file-layout.md#sidecar-roots);
-  [Discovery](model-sidecar/format/file-layout.md#discovery)). The new code calls the root the
+  [Discovery](model-sidecar/format/file-layout.md#discovery)). Give the user root to the landmark
+  schema registry of stage 1.4
+  ([ADR-23F5](../decisions/entries/23F5-landmark-schema-registry.md) item 1). The new code calls the root the
   sidecar root, not `cache_dir`
   ([`format.file_layout`](model-sidecar/format/file-layout.md#implementer-guidance)).
 - **Capability check and dispatch.** Build the capability check for each artifact. Map a catalog entry to
@@ -971,9 +981,9 @@ in parallel with 1.3 to 1.7.
   go, with no alias ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md)
   item 2). The host gets the ONNX files from `core/model_zoo/` (item 5). The generic keypoint
   detector of stage 1.7 runs the RTMW export.
-- Open before the work: the export has no `keypoint.canonical_mapping`. The host-side canonical
-  mappings are skellytracker work. The user decides how the package keeps the canonical mapping of
-  `rtmw-wholebody133`. Record the decision in a decision entry before the work starts.
+- Decided: the canonical mapping of `rtmw-wholebody133` is the `canonical_mapping` of
+  `core/model_zoo/landmark_schemas/COCO_WholeBody.yaml`. The export needs none
+  ([ADR-23F5](../decisions/entries/23F5-landmark-schema-registry.md)).
 - Stage 1.9 writes no Python pipeline builders
   ([ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md) item 6). Stage 1.10 adds the pipeline
   files.
@@ -982,8 +992,11 @@ in parallel with 1.3 to 1.7.
 - Gate: the model gate of 0.1, run locally. The old detectors still pass.
 
 - **Package root in the trace scan.** The trace tool scans only
-  `specs/model-sidecar/examples/`. The old package sidecars stay outside the spec until they are deleted ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md)). When the first spec sidecar is in `core/model_zoo/` (stage 1.9), add `core/model_zoo/` to the scan of
-  `tools/sidecar_trace.py`. Add the derivations that the new sidecars need to
+  `specs/model-sidecar/examples/`. The old package sidecars stay outside the spec until they are deleted ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md)). When the first spec sidecar is in `core/model_zoo/` (stage 1.9), add `core/model_zoo/detectors/` to the scan of
+  `tools/sidecar_trace.py`, as `SIDECAR_ROOTS` of `tools/intake_bundle.py` does. The scan must not
+  read `core/model_zoo/landmark_schemas/`: a schema file is not a sidecar, and
+  `test_the_scan_skips_every_other_yaml_file` refuses a skipped file
+  ([ADR-23F5](../decisions/entries/23F5-landmark-schema-registry.md)). Add the derivations that the new sidecars need to
   the normalization table.
 
 ### 1.10 The pipeline API (was P)
@@ -1017,8 +1030,10 @@ This stage implements the node types of the pipeline spec. Use the skill
   - the DAG order and `@prev`;
   - the empty-input rule: an empty required input stops a node, and an empty optional input does
     not ([Graph](pipeline/graph.md#behaviour));
-  - the instance rows, with point names that have the id of their node as a prefix (for example
-    `body.nose`);
+  - the instance rows, with point names `<group>/<point>`, and the `groups` and `canonical_names`
+    of the output schema ([Graph](pipeline/graph.md#behaviour) item 7;
+    [Outputs](pipeline/outputs.md#fields);
+    [ADR-4MP6](../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md));
   - the running modes `image`, `video` and `live`;
   - the batch: `video` and `image` batch to k × cameras, `live` batches to the camera count, and a
     node that takes ROIs batches to that batch × the `I` of its instance source. `start_pipeline`
@@ -1048,6 +1063,15 @@ This stage implements the node types of the pipeline spec. Use the skill
   input row, and `merge` copies it from its `target` input. A row that a node keeps from `@prev`
   keeps its score. A padding row has 0
   ([ADR-6DKT](pipeline/decisions/entries/6DKT-instance-rows-carry-class-and-score.md) items 1 and 2).
+- **Canonical form.** `to_canonical(keypoints_value, output_schema)` in `core/pipelines/` gives
+  `names` (the `canonical_names` of the output schema), `xyz` `(I, C, 3)`, `score` `(I, C)` and the
+  passthrough groups as `{name, start, count, landmark_schema}` in the canonical columns. It applies
+  [Canonical mapping](model-sidecar/post/keypoint/canonical-mapping.md#behaviour) to the groups of
+  each node or slot. The groups of one schema with two or more groups come from one node. A group of
+  a schema with one group stands alone. No pipeline param selects the form
+  ([ADR-4MP6](../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md) item 7). Test
+  it on `COCO_WholeBody`: 137 names, `feet` gives no column, and a missing `left_hip` makes
+  `hips_center` missing.
 - **`mediapipe_tasks` node.** One node with `variant: body | hand | face | holistic`. It wraps the
   Holistic runner of 1.8, with its timestamp fix and its safe close, and calls the Tasks
   landmarkers directly for the other variants. It uses the MediaPipe assets ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 4). Its
@@ -1055,6 +1079,9 @@ This stage implements the node types of the pipeline spec. Use the skill
   ([ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) item 7). It has no reset and no back-off ([ADR-6JWJ](pipeline/decisions/entries/6JWJ-mediapipe-video-landmarker-does-not-stick.md)).
   Holistic is single person, so its `max_instances` is 1. Its output has `geometry: 3d` and
   `depth_unit: pixel` ([ADR-6DKT](pipeline/decisions/entries/6DKT-instance-rows-carry-class-and-score.md) item 6). In v2 it has no ROI input and no face blendshapes.
+  It makes the groups of [MediaPipe Tasks](pipeline/nodes/mediapipe_tasks.md#behaviour), each with
+  a null `landmark_schema` until stage 2.2
+  ([ADR-4MP6](../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md) item 2).
 - **Glue nodes.** `roi_from_points`, `roi_hold`, `gate`, `first_of`, `concat`, `merge`,
   `smooth_keypoints`, `smooth_roi` and `redetect_trigger`
   ([ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6). The node type
@@ -1180,7 +1207,9 @@ through the model addition workflow. The stages below are the work of skellytrac
   `yolox_decode.py`) and `keypoint_detectors/rtmw/`, with the old wholebody shim in
   `keypoint_detectors/rtmpose/wholebody/`: the modules, the sidecars, the demos and the registry
   entries. Delete their tests and golden fixtures, and each `shared/` fragment that only they use.
-  Check first which `shared/` fragments and canonical mapping files the new sidecars need.
+  Check first which `shared/` fragments the new sidecars need. A new sidecar needs no canonical
+  mapping file: the registry holds the mappings
+  ([ADR-23F5](../decisions/entries/23F5-landmark-schema-registry.md)).
 - Update the README, the examples and the demos.
 - Gate: the full suite passes without the deleted tests. The old RTMPose tests and the MediaPipe
   tests pass with no change of expected values.
@@ -1203,8 +1232,18 @@ through the model addition workflow. The stages below are the work of skellytrac
 - Each model has the contract of the two stage 1.9 models: `schema_version: "2.0.0"`, `batching.batch: 3`
   with `batching.batch_conversion`, and an fp32 and an fp16 artifact for each size, with `filename`
   and `sha256`.
-- The host-side canonical mappings (`rtmpose_body17_to_canonical_mapping.yaml`,
-  `rtmpose_hand_to_canonical_mapping.yaml`) are skellytracker work, not exporter work.
+- Each model names a registered landmark schema. The exporter writes each new schema file, with its
+  canonical mapping, in the `model` bundle: the 17-point COCO body, the 21-point RTMPose hand and
+  `LaPa_106` (no mapping). The body and hand mappings come from
+  `rtmpose_body17_to_canonical_mapping.yaml` and `rtmpose_hand_to_canonical_mapping.yaml`
+  ([ADR-23F5](../decisions/entries/23F5-landmark-schema-registry.md) item 6).
+- Register the MediaPipe schemas: body (33), hand (21) and the 478-point face, with a face name
+  that is not `MediaPipe_FaceMesh` (the 468-point model). Take the body and hand mappings from
+  `mediapipe_body_to_canonical_mapping.yaml` and `mediapipe_hand_to_canonical_mapping.yaml`. The
+  face has none. Then give the schemas to the groups of `mediapipe_tasks`
+  ([ADR-23F5](../decisions/entries/23F5-landmark-schema-registry.md) items 1 and 7;
+  [ADR-4MP6](../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md) item 2; the
+  [pipeline open work](pipeline/decisions/open-work.md)).
 - The built-in pipeline `rtmpose-body-hands-face`
   ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 3). Before it
   ships, measure the body17 hand ROI rule (elbow to wrist) and the face ROI rule. No reference
@@ -1269,9 +1308,11 @@ through the model addition workflow. The stages below are the work of skellytrac
   ([ADR-D8DH](../decisions/entries/D8DH-sessions-errors-and-the-ready-rule.md) item 13), `TrackerConfig`, `DetectionStageConfig`, the
   old detector contract and each old config base, `object_detectors/keypoint_bbox/`,
   `precomputed_object_detector.py`, the three old MediaPipe detector classes and `run_demo.py`, the
-  old annotators and the demo builders
+  old annotators, the demo builders, and the two MediaPipe canonical mapping files, after stage 2.2
+  moved their mappings to the registry
   ([ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md) item 7;
-  [ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 5).
+  [ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 5;
+  [ADR-23F5](../decisions/entries/23F5-landmark-schema-registry.md) item 7).
 - charuco and aruco become plain classes with their own frozen config dataclass and `detect(image)`.
   They subclass no base
   ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 4). The
@@ -1314,10 +1355,11 @@ freemocap moves to `pipelines` itself. skellytracker gives no adapter to the old
 ([ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1). The migration has
 these parts:
 
-- **Point names.** A pipeline point name has the id of its node as a prefix, for example
-  `left_hand.wrist`. freemocap removes the prefix at the first dot, and needs names that carry the
-  side. Its own map gives `left_hand.wrist` → `left_hand_wrist`. The pipeline spec has no rule for
-  this map.
+- **Point names.** A pipeline point name is `<group>/<point>`, for example
+  `left_hand/left_thumb1`. The output schema gives the `groups`. `to_canonical` gives the canonical
+  names, which carry the side in the region, for example `left_hand/wrist` (stage 1.10;
+  [ADR-4MP6](../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md)). freemocap
+  needs no map of its own.
 - **Frame index.** The outputs, the timing events and the taps use `frame_index`, not
   `frame_number`.
 - **Charuco.** charuco runs through `detectors`, beside the pipeline, on the same frames. Pipelines

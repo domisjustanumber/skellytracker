@@ -1,6 +1,6 @@
 # 4MP6 — Pipeline point names `<group>/<point>`, output groups and the canonical form
 
-**Status:** accepted, 2026-11-15 (user, design review 2026-11-13).
+**Status:** absorbed into [`graph.md#behaviour`](../../specs/pipeline/graph.md#behaviour), [`graph.md#validation-rules`](../../specs/pipeline/graph.md#validation-rules), [`outputs.md#fields`](../../specs/pipeline/outputs.md#fields), [`outputs.md#behaviour`](../../specs/pipeline/outputs.md#behaviour), [`mediapipe_tasks.md#behaviour`](../../specs/pipeline/nodes/mediapipe_tasks.md#behaviour), [`merge.md#merge-node`](../../specs/pipeline/nodes/merge.md#merge-node), [`concat.md#behaviour`](../../specs/pipeline/nodes/concat.md#behaviour), [`first_of.md#validation-rules`](../../specs/pipeline/nodes/first_of.md#validation-rules), [`roi_from_points.md#fields`](../../specs/pipeline/nodes/roi_from_points.md#fields), [`roi_from_points.md#validation-rules`](../../specs/pipeline/nodes/roi_from_points.md#validation-rules), [`pipeline/README.md#terms`](../../specs/pipeline/README.md#terms), 2026-11-15 (user, design review 2026-11-13; PR: pending).
 
 ## Decision
 

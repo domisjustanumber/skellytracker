@@ -260,6 +260,7 @@ Source: the upstream postprocessing code and the upstream test config.
 
 - Write `point_names` in the native output order of the model: the i-th name is the i-th keypoint
   that the model gives. Do not reorder the names.
+- `point_names` (row K2) must equal the point names of the landmark schema of row K11.
 - If the model has no `keypoint_detector` role, write `not used` in every row.
 
 | # | Property | Upstream evidence (file and line, or config key) | Section ID (the `id` in the section file's front matter) | Sidecar value | Verdict | What differs or what is missing |
@@ -272,9 +273,8 @@ Source: the upstream postprocessing code and the upstream test config.
 | K6 | Bottom-up row alignment: pose row `q` belongs to detection row `q` | | `post.keypoint.bottom_up` | | | |
 | K7 | Keypoints packed into the detection row (`packed_keypoints`) | | `post.keypoint.bottom_up` | | | |
 | K8 | Keypoint score: its source, and its activation. The spec says that a packed keypoint `score` is already activated. The spec has no field for a keypoint-score activation: if the host must activate the scores, the verdict is `gap`. | | `post.keypoint.decode.<method>` (`simcc`, `coordinate`), `post.keypoint.bottom_up` | | | |
-| K9 | Canonical mapping (optional) | | `post.keypoint.canonical_mapping` | | | |
 | K10 | Overlay (optional) | | `post.keypoint.overlay` | | | |
-| K11 | Landmark schema (`keypoint.landmark_schema`, optional) | | `post.keypoint.schema` | | | |
+| K11 | Landmark schema (`keypoint.landmark_schema`, required): a name of the registry in `../freemocap/skellytracker/skellytracker/core/model_zoo/landmark_schemas/`, or `new` and the source of the convention. For `new`, write `landmark_schemas/<name>.yaml` in the bundle, with its canonical mapping; a face schema has none (skellytracker ADR-23F5). | | `post.keypoint.schema` (`keypoint.landmark_schema`), `post.keypoint.landmark_schema`, `post.keypoint.canonical_mapping` | | | |
 
 ### License
 
