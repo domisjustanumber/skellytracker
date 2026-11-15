@@ -404,50 +404,43 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "Target point to slot column `<slot>/<point>`. A present slot point replaces the target point.",
+          "description": "Target point to slot point `<slot>/<point>`, where `<point>` is a point of `source`. A present slot point replaces the target point.",
           "live": false,
-          "source": "ADR-7NY2 item 6",
+          "source": "ADR-KW76 item 4",
           "title": "Map",
           "type": "object"
         },
         "max_distance": {
-          "anyOf": [
-            {
-              "exclusiveMinimum": 0.0,
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The largest anchor distance, as a part of the diagonal of the box around the present points of the target row. Empty: no limit.",
+          "description": "The largest anchor distance, as a part of the diagonal of the box around the present points of the target row.",
+          "exclusiveMinimum": 0.0,
           "live": true,
-          "source": "ADR-7NY2 item 6",
-          "title": "Max Distance"
+          "source": "ADR-KW76 item 6",
+          "title": "Max Distance",
+          "type": "number"
         },
         "slots": {
           "additionalProperties": {
             "type": "string"
           },
-          "description": "Slot name to the target point that anchors the slot, for example `left_hand: body/left_wrist`.",
+          "description": "Slot name to the target point that anchors the slot, for example `left_hand: body/left_wrist`. A slot with the name of a group of `target` replaces that group. A slot with another name adds a group.",
           "live": false,
           "minProperties": 1,
-          "source": "ADR-7NY2 item 6",
+          "source": "ADR-KW76 items 2 and 3",
           "title": "Slots",
           "type": "object"
         },
         "source_anchor": {
-          "description": "The point of `source` that the node compares with the slot anchors, for example `hand/wrist`.",
+          "description": "The point of `source` that the node compares with the slot anchors, for example `hand/root`.",
           "live": false,
-          "source": "ADR-7NY2 item 6",
+          "source": "ADR-KW76 item 6",
           "title": "Source Anchor",
           "type": "string"
         }
       },
       "required": [
         "slots",
-        "source_anchor"
+        "source_anchor",
+        "max_distance"
       ],
       "title": "MergeParams",
       "type": "object"

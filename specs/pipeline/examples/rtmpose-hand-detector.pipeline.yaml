@@ -1,7 +1,7 @@
 # Spec example, structure only. It shows two chains on one frame: a person detector and a body
 # model, and a hand detector (two hands) and a hand model. The hands have their own instance
-# source, so concat cannot join them to the body. merge puts each hand row in the slot of the
-# nearest body wrist and replaces the body wrists with the hand wrists.
+# source, so concat cannot join them to the body. merge puts each hand row in the slot of a
+# body wrist, with the smallest total distance, and replaces the body wrists with the hand roots.
 schema_version: "2.0.0"
 pipeline_id: rtmpose-hand-detector
 source: {name: skellytracker, version: "2.0.0"}
@@ -34,7 +34,8 @@ nodes:
     inputs: {target: body.keypoints, source: hand.keypoints}
     params:
       slots: {right_hand: body/right_wrist, left_hand: body/left_wrist}
-      source_anchor: hand/wrist
-      map: {body/right_wrist: right_hand/wrist, body/left_wrist: left_hand/wrist}
+      source_anchor: hand/root
+      max_distance: 0.15
+      map: {body/right_wrist: right_hand/root, body/left_wrist: left_hand/root}
 outputs:
   body_hands: body_hands.keypoints

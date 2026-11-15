@@ -218,14 +218,17 @@ ROI = {"id": "roi", "type": "roi_from_points", "inputs": {"keypoints": "body.key
         (_config([], outputs={"image": "frame.image"}), "V-pipeline.outputs-1"),
         (_config([], taps=[{"action": "record", "port": "frame.image", "name": "img"}]), "V-pipeline.taps-1"),
         (_config([{"id": "m", "type": "merge", "inputs": {"target": "body.keypoints", "source": "body.keypoints"},
-                   "params": {"slots": {"hand": "body/wrist"}, "source_anchor": "body/wrist",
+                   "params": {"slots": {"hand": "body/wrist"}, "source_anchor": "body/wrist", "max_distance": 0.15,
                               "map": {"body/wrist": "face/tip"}}}]), "V-node.merge-2"),
+        (_config([{"id": "m", "type": "merge", "inputs": {"target": "body.keypoints", "source": "body.keypoints"},
+                   "params": {"slots": {"hand": "body/wrist"}, "source_anchor": "body/wrist"}}]), "max_distance"),
         (_config([{"id": "hands", "type": "mediapipe_tasks", "inputs": {"image": "frame.image"},
                    "params": {"variant": "hand", "size": "heavy"}}]), "V-node.mediapipe_tasks-2"),
     ],
     ids=["no-prefix", "dot-form", "weight-sum", "first-of-types", "any-type-inferred",
          "gate-value-prev", "first-of-only-prev", "first-of-types-prev",
-         "output-prev", "output-frame", "tap-frame", "merge-map-column", "mediapipe-size-not-body"],
+         "output-prev", "output-frame", "tap-frame", "merge-map-column", "merge-no-max-distance",
+         "mediapipe-size-not-body"],
 )
 def test_the_reference_model_refuses_the_new_structural_cases(config: dict, rule: str) -> None:
     with pytest.raises(ValueError, match=rule):

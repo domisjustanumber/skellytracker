@@ -292,28 +292,28 @@ class NoParams(Strict):
 
 class MergeParams(Strict):
     slots: dict[str, str] = param(
-        description="Slot name to the target point that anchors the slot, for example `left_hand: body/left_wrist`.",
+        description="Slot name to the target point that anchors the slot, for example `left_hand: body/left_wrist`. "
+        "A slot with the name of a group of `target` replaces that group. A slot with another name adds a group.",
         live=False,
-        source="ADR-7NY2 item 6",
+        source="ADR-KW76 items 2 and 3",
         min_length=1,
     )
     source_anchor: str = param(
-        description="The point of `source` that the node compares with the slot anchors, for example `hand/wrist`.",
+        description="The point of `source` that the node compares with the slot anchors, for example `hand/root`.",
         live=False,
-        source="ADR-7NY2 item 6",
+        source="ADR-KW76 item 6",
     )
-    max_distance: float | None = param(
-        None,
-        description="The largest anchor distance, as a part of the diagonal of the box around the present points of the target row. Empty: no limit.",
+    max_distance: float = param(
+        description="The largest anchor distance, as a part of the diagonal of the box around the present points of the target row.",
         live=True,
-        source="ADR-7NY2 item 6",
+        source="ADR-KW76 item 6",
         gt=0.0,
     )
     map: dict[str, str] = param(
         default_factory=dict,
-        description="Target point to slot column `<slot>/<point>`. A present slot point replaces the target point.",
+        description="Target point to slot point `<slot>/<point>`, where `<point>` is a point of `source`. A present slot point replaces the target point.",
         live=False,
-        source="ADR-7NY2 item 6",
+        source="ADR-KW76 item 4",
     )
 
     @model_validator(mode="after")
@@ -324,7 +324,7 @@ class MergeParams(Strict):
         for target, column in self.map.items():
             match = POINT_NAME.match(column)
             if match is None or match["group"] not in self.slots:
-                raise ValueError(f"V-node.merge-2: map {target!r}: {column!r} is not a slot column `<slot>/<point>`")
+                raise ValueError(f"V-node.merge-2: map {target!r}: {column!r} is not a slot point `<slot>/<point>`")
         return self
 
 

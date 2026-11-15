@@ -36,7 +36,7 @@ A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api
 
 | Field | Description |
 |-------|-------------|
-| `code` | `batch_limited_by_state`, `ep_partial_placement` or `missing_dependency`. |
+| `code` | `batch_limited_by_state`, `ep_partial_placement`, `merge_unfilled_points` or `missing_dependency`. |
 | `message` | A text for people. The log line uses the same text. |
 | `node_ids` | The ids of the nodes that the warning is about. |
 | `details` | A mapping with more facts. |
@@ -69,6 +69,7 @@ A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api
 8. **Warnings.** The run gives a warning for each of these conditions ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) items 6 and 7):
    - `batch_limited_by_state`: the pipeline is stateful and the running mode is `video` (Behaviour item 5).
    - `ep_partial_placement`: a session of the node has nodes on the CPU EP. `details` gives the node count of each EP and the CPU op types. The run gives it one time for each session ([ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 5).
+   - `merge_unfilled_points`: a slot of a `merge` node replaces a group, and one or more points of that group are unfilled and no key of `map` names them. A load gives this warning. `details` lists the points ([Node: merge](nodes/merge.md#behaviour) item 5; [ADR-KW76](../../decisions/entries/KW76-merge-replace-add-and-hungarian-match.md) item 2).
    - `missing_dependency`: a node needs an optional extra that is not installed, or an ONNX file that is absent or whose hash does not agree. A load gives this warning. A start fails before frame 0 ([Validation rules](#validation-rules)).
    - The load result holds the warnings that are known before start. The run holds the full list. The run gives each new warning to the warning receiver one time, also during the run, from the thread that makes the call.
 9. **Replayed and unused ports.** A port is used when it is an output, an input of a node that runs, or the port of a `record` tap. A node whose outputs are all replayed or not used does not run. The upstream nodes of a replayed port do not run when nothing else uses them ([Taps](taps.md#behaviour)).

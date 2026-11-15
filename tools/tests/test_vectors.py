@@ -234,6 +234,7 @@ FILE_TOLERANCE = {
     "node.redetect_trigger": 1e-9,
     "node.first_of": 0,  # the node passes a value through: no arithmetic
     "node.concat": 0,  # the node copies columns and rows: no arithmetic
+    "node.merge": 0,  # the node copies points: the distances only select the pairs
 }
 
 

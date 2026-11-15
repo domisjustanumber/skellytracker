@@ -1,0 +1,561 @@
+# tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
+# Hosts ignore `checks`. The names are the self-checks of the generator.
+section: node.merge
+notes:
+  - "Normative text: specs/pipeline/nodes/merge.md."
+  - "`target` and `source` are `keypoints` values: null (empty) or a mapping with
+    `point_names`, `xyz` (I rows of P points [x, y, z]), `score` (I rows of P scores),
+    `instance_score`, `present` and `track_ids` (I values each), and the facts of its
+    output schema `instance_source` and `geometry`. `target_names` and `source_names`
+    are the point names of the two ports from their output schemas, known at load, also
+    for an empty value. `canonical` maps a point name of `target` or `source` to its
+    canonical point name, from the passthrough entries of the canonical mapping of its
+    schema, known at load. A point with no such entry is not a key. An absent
+    `canonical` holds no names. A `2d` point has z NaN."
+tolerance: 0
+unverified: "Only the reference implementation ran the cases. No independent implementation
+  exists yet."
+cases:
+  - id: a-new-slot-name-adds-a-group-and-the-output-keeps-the-target-rows
+    note: "the right hand is nearest to the right wrist and the left hand to the left wrist;
+      map replaces the body left wrist with the left-hand root, and the body right wrist
+      stays; row 1 is a padding row and stays one; the instance scores, the track ids and
+      the instance source are those of target"
+    params:
+      slots: {right_hand: body/right_wrist, left_hand: body/left_wrist}
+      source_anchor: hand/root
+      max_distance: 1
+      map: {body/left_wrist: left_hand/root}
+    input:
+      target:
+        point_names: [body/left_wrist, body/right_wrist, body/nose]
+        xyz:
+          - [[100, 100, .nan], [200, 100, .nan], [150, 50, .nan]]
+          - [[.nan, .nan, .nan], [.nan, .nan, .nan], [.nan, .nan, .nan]]
+        score: [[0.9, 0.9, 0.9], [0, 0, 0]]
+        instance_score: [0.8, 0]
+        present: [true, false]
+        track_ids: [-1, -1]
+        instance_source: person
+        geometry: "2d"
+      source:
+        point_names: [hand/root, hand/tip]
+        xyz: [[[205, 110, .nan], [210, 130, .nan]], [[95, 105, .nan], [90, 125, .nan]]]
+        score: [[0.7, 0.7], [0.6, 0.6]]
+        instance_score: [0.3, 0.4]
+        present: [true, true]
+        track_ids: [-1, -1]
+        instance_source: hands
+        geometry: "2d"
+      target_names: [body/left_wrist, body/right_wrist, body/nose]
+      source_names: [hand/root, hand/tip]
+    expect:
+      keypoints:
+        point_names:
+          - body/left_wrist
+          - body/right_wrist
+          - body/nose
+          - right_hand/root
+          - right_hand/tip
+          - left_hand/root
+          - left_hand/tip
+        xyz:
+          - - [95, 105, .nan]
+            - [200, 100, .nan]
+            - [150, 50, .nan]
+            - [205, 110, .nan]
+            - [210, 130, .nan]
+            - [95, 105, .nan]
+            - [90, 125, .nan]
+          - - [.nan, .nan, .nan]
+            - [.nan, .nan, .nan]
+            - [.nan, .nan, .nan]
+            - [.nan, .nan, .nan]
+            - [.nan, .nan, .nan]
+            - [.nan, .nan, .nan]
+            - [.nan, .nan, .nan]
+        score: [[0.6, 0.9, 0.9, 0.7, 0.7, 0.6, 0.6], [0, 0, 0, 0, 0, 0, 0]]
+        instance_score: [0.8, 0]
+        present: [true, false]
+        track_ids: [-1, -1]
+        instance_source: person
+        geometry: "2d"
+  - id: the-assignment-has-the-smallest-total-distance
+    note: "source row 0 is 12 from the left wrist and 18 from the right wrist; source row 1 is
+      12 from the left wrist and 42 from the right wrist. The smallest total is 18 + 12 =
+      30: row 0 goes to right_hand and row 1 to left_hand. A greedy match would give the
+      left wrist to row 0 (the tie at 12 goes to the lower source row) and a total of 12 +
+      42 = 54"
+    params:
+      slots: {right_hand: body/right_wrist, left_hand: body/left_wrist}
+      source_anchor: hand/root
+      max_distance: 10
+    input:
+      target:
+        point_names: [body/left_wrist, body/right_wrist, body/nose]
+        xyz: [[[100, 100, .nan], [130, 100, .nan], [115, 60, .nan]]]
+        score: [[0.9, 0.9, 0.9]]
+        instance_score: [0.8]
+        present: [true]
+        track_ids: [-1]
+        instance_source: person
+        geometry: "2d"
+      source:
+        point_names: [hand/root, hand/tip]
+        xyz: [[[112, 100, .nan], [0, 0, .nan]], [[88, 100, .nan], [1, 1, .nan]]]
+        score: [[0.7, 0.7], [0.6, 0.6]]
+        instance_score: [0.9, 0.9]
+        present: [true, true]
+        track_ids: [-1, -1]
+        instance_source: hands
+        geometry: "2d"
+      target_names: [body/left_wrist, body/right_wrist, body/nose]
+      source_names: [hand/root, hand/tip]
+    expect:
+      keypoints:
+        point_names:
+          - body/left_wrist
+          - body/right_wrist
+          - body/nose
+          - right_hand/root
+          - right_hand/tip
+          - left_hand/root
+          - left_hand/tip
+        xyz:
+          - - [100, 100, .nan]
+            - [130, 100, .nan]
+            - [115, 60, .nan]
+            - [112, 100, .nan]
+            - [0, 0, .nan]
+            - [88, 100, .nan]
+            - [1, 1, .nan]
+        score: [[0.9, 0.9, 0.9, 0.7, 0.7, 0.6, 0.6]]
+        instance_score: [0.8]
+        present: [true]
+        track_ids: [-1]
+        instance_source: person
+        geometry: "2d"
+  - id: the-assignment-has-the-most-pairs-within-max-distance
+    note: "the diagonal of the target row is 50 and max_distance 0.5 gives a limit of 25.
+      Source row 0 is 10 from the left wrist and 20 from the right wrist; source row 1 is
+      15 from the left wrist and 45 from the right wrist, beyond the limit. Both rows get
+      a slot: row 0 the right hand and row 1 the left hand"
+    params:
+      slots: {right_hand: body/right_wrist, left_hand: body/left_wrist}
+      source_anchor: hand/root
+      max_distance: 0.5
+    input:
+      target:
+        point_names: [body/left_wrist, body/right_wrist, body/nose]
+        xyz: [[[100, 100, .nan], [130, 100, .nan], [115, 60, .nan]]]
+        score: [[0.9, 0.9, 0.9]]
+        instance_score: [0.8]
+        present: [true]
+        track_ids: [-1]
+        instance_source: person
+        geometry: "2d"
+      source:
+        point_names: [hand/root, hand/tip]
+        xyz: [[[110, 100, .nan], [0, 0, .nan]], [[85, 100, .nan], [1, 1, .nan]]]
+        score: [[0.7, 0.7], [0.6, 0.6]]
+        instance_score: [0.9, 0.9]
+        present: [true, true]
+        track_ids: [-1, -1]
+        instance_source: hands
+        geometry: "2d"
+      target_names: [body/left_wrist, body/right_wrist, body/nose]
+      source_names: [hand/root, hand/tip]
+    expect:
+      keypoints:
+        point_names:
+          - body/left_wrist
+          - body/right_wrist
+          - body/nose
+          - right_hand/root
+          - right_hand/tip
+          - left_hand/root
+          - left_hand/tip
+        xyz:
+          - - [100, 100, .nan]
+            - [130, 100, .nan]
+            - [115, 60, .nan]
+            - [110, 100, .nan]
+            - [0, 0, .nan]
+            - [85, 100, .nan]
+            - [1, 1, .nan]
+        score: [[0.9, 0.9, 0.9, 0.7, 0.7, 0.6, 0.6]]
+        instance_score: [0.8]
+        present: [true]
+        track_ids: [-1]
+        instance_source: person
+        geometry: "2d"
+  - id: a-tie-goes-to-the-lower-source-row-then-the-earlier-slot
+    note: "both source rows are 50 from each wrist, so each assignment has the total 100.
+      Source row 0 takes right_hand, the first slot of slots"
+    params:
+      slots: {right_hand: body/right_wrist, left_hand: body/left_wrist}
+      source_anchor: hand/root
+      max_distance: 1
+    input:
+      target:
+        point_names: [body/left_wrist, body/right_wrist, body/nose]
+        xyz: [[[100, 100, .nan], [200, 100, .nan], [150, 50, .nan]]]
+        score: [[0.9, 0.9, 0.9]]
+        instance_score: [0.8]
+        present: [true]
+        track_ids: [-1]
+        instance_source: person
+        geometry: "2d"
+      source:
+        point_names: [hand/root, hand/tip]
+        xyz: [[[150, 100, .nan], [0, 0, .nan]], [[150, 100, .nan], [1, 1, .nan]]]
+        score: [[0.7, 0.7], [0.6, 0.6]]
+        instance_score: [0.9, 0.9]
+        present: [true, true]
+        track_ids: [-1, -1]
+        instance_source: hands
+        geometry: "2d"
+      target_names: [body/left_wrist, body/right_wrist, body/nose]
+      source_names: [hand/root, hand/tip]
+    expect:
+      keypoints:
+        point_names:
+          - body/left_wrist
+          - body/right_wrist
+          - body/nose
+          - right_hand/root
+          - right_hand/tip
+          - left_hand/root
+          - left_hand/tip
+        xyz:
+          - - [100, 100, .nan]
+            - [200, 100, .nan]
+            - [150, 50, .nan]
+            - [150, 100, .nan]
+            - [0, 0, .nan]
+            - [150, 100, .nan]
+            - [1, 1, .nan]
+        score: [[0.9, 0.9, 0.9, 0.7, 0.7, 0.6, 0.6]]
+        instance_score: [0.8]
+        present: [true]
+        track_ids: [-1]
+        instance_source: person
+        geometry: "2d"
+  - id: a-hand-farther-than-max-distance-is-dropped
+    note: "the diagonal of the target row is about 111.8, and max_distance 0.15 gives a limit
+      of about 16.8. Source row 0 is about 7.1 from the left wrist. Source row 1 is a hand
+      of another person, far from each wrist: the node drops it, and right_hand stays
+      missing. With no limit, row 1 would take right_hand, because the assignment has the
+      most pairs"
+    params:
+      slots: {right_hand: body/right_wrist, left_hand: body/left_wrist}
+      source_anchor: hand/root
+      max_distance: 0.15
+    input:
+      target:
+        point_names: [body/left_wrist, body/right_wrist, body/nose]
+        xyz: [[[100, 100, .nan], [200, 100, .nan], [150, 50, .nan]]]
+        score: [[0.9, 0.9, 0.9]]
+        instance_score: [0.8]
+        present: [true]
+        track_ids: [-1]
+        instance_source: person
+        geometry: "2d"
+      source:
+        point_names: [hand/root, hand/tip]
+        xyz: [[[95, 105, .nan], [90, 125, .nan]], [[400, 300, .nan], [410, 320, .nan]]]
+        score: [[0.7, 0.7], [0.6, 0.6]]
+        instance_score: [0.9, 0.9]
+        present: [true, true]
+        track_ids: [-1, -1]
+        instance_source: hands
+        geometry: "2d"
+      target_names: [body/left_wrist, body/right_wrist, body/nose]
+      source_names: [hand/root, hand/tip]
+    expect:
+      keypoints:
+        point_names:
+          - body/left_wrist
+          - body/right_wrist
+          - body/nose
+          - right_hand/root
+          - right_hand/tip
+          - left_hand/root
+          - left_hand/tip
+        xyz:
+          - - [100, 100, .nan]
+            - [200, 100, .nan]
+            - [150, 50, .nan]
+            - [.nan, .nan, .nan]
+            - [.nan, .nan, .nan]
+            - [95, 105, .nan]
+            - [90, 125, .nan]
+        score: [[0.9, 0.9, 0.9, 0, 0, 0.7, 0.7]]
+        instance_score: [0.8]
+        present: [true]
+        track_ids: [-1]
+        instance_source: person
+        geometry: "2d"
+  - id: a-slot-named-like-a-target-group-replaces-it-through-the-canonical-names
+    note: "the slot left_hand replaces the group left_hand of target: no column is added.
+      left_hand_root and left_thumb1 get the source points with the same canonical names
+      (wrist, thumb_cmc). left_forefinger1 has no source point with its canonical name, so
+      it is missing, also though target had a value: the load gives the warning
+      merge_unfilled_points. The group body does not change"
+    params: {slots: {left_hand: body/left_wrist}, source_anchor: hand/root, max_distance: 1}
+    input:
+      target:
+        point_names:
+          - body/left_wrist
+          - body/right_wrist
+          - left_hand/left_hand_root
+          - left_hand/left_thumb1
+          - left_hand/left_forefinger1
+        xyz:
+          - [[100, 100, .nan], [200, 100, .nan], [90, 110, .nan], [85, 120, .nan], [80, 115, .nan]]
+        score: [[0.9, 0.9, 0.5, 0.5, 0.5]]
+        instance_score: [0.8]
+        present: [true]
+        track_ids: [-1]
+        instance_source: person
+        geometry: "2d"
+      source:
+        point_names: [hand/root, hand/thumb1]
+        xyz: [[[95, 105, .nan], [92, 112, .nan]]]
+        score: [[0.7, 0.7]]
+        instance_score: [0.9]
+        present: [true]
+        track_ids: [-1]
+        instance_source: hands
+        geometry: "2d"
+      target_names:
+        - body/left_wrist
+        - body/right_wrist
+        - left_hand/left_hand_root
+        - left_hand/left_thumb1
+        - left_hand/left_forefinger1
+      source_names: [hand/root, hand/thumb1]
+      canonical:
+        left_hand/left_hand_root: wrist
+        left_hand/left_thumb1: thumb_cmc
+        left_hand/left_forefinger1: index_finger_mcp
+        hand/root: wrist
+        hand/thumb1: thumb_cmc
+    expect:
+      keypoints:
+        point_names:
+          - body/left_wrist
+          - body/right_wrist
+          - left_hand/left_hand_root
+          - left_hand/left_thumb1
+          - left_hand/left_forefinger1
+        xyz:
+          - - [100, 100, .nan]
+            - [200, 100, .nan]
+            - [95, 105, .nan]
+            - [92, 112, .nan]
+            - [.nan, .nan, .nan]
+        score: [[0.9, 0.9, 0.7, 0.7, 0]]
+        instance_score: [0.8]
+        present: [true]
+        track_ids: [-1]
+        instance_source: person
+        geometry: "2d"
+  - id: a-replaced-group-with-no-matched-source-row-is-missing
+    note: "source is empty, so each point of the replaced group left_hand is missing; the group
+      body does not change"
+    params: {slots: {left_hand: body/left_wrist}, source_anchor: hand/root, max_distance: 1}
+    input:
+      target:
+        point_names:
+          - body/left_wrist
+          - body/right_wrist
+          - left_hand/left_hand_root
+          - left_hand/left_thumb1
+        xyz: [[[100, 100, .nan], [200, 100, .nan], [90, 110, .nan], [85, 120, .nan]]]
+        score: [[0.9, 0.9, 0.5, 0.5]]
+        instance_score: [0.8]
+        present: [true]
+        track_ids: [-1]
+        instance_source: person
+        geometry: "2d"
+      source: null
+      target_names:
+        - body/left_wrist
+        - body/right_wrist
+        - left_hand/left_hand_root
+        - left_hand/left_thumb1
+      source_names: [hand/root, hand/thumb1]
+      canonical:
+        left_hand/left_hand_root: wrist
+        left_hand/left_thumb1: thumb_cmc
+        hand/root: wrist
+        hand/thumb1: thumb_cmc
+    expect:
+      keypoints:
+        point_names:
+          - body/left_wrist
+          - body/right_wrist
+          - left_hand/left_hand_root
+          - left_hand/left_thumb1
+        xyz: [[[100, 100, .nan], [200, 100, .nan], [.nan, .nan, .nan], [.nan, .nan, .nan]]]
+        score: [[0.9, 0.9, 0, 0]]
+        instance_score: [0.8]
+        present: [true]
+        track_ids: [-1]
+        instance_source: person
+        geometry: "2d"
+  - id: map-fills-a-point-of-a-replaced-group-with-no-canonical-names
+    note: "no canonical names, as for a source schema that the registry does not hold yet. map
+      fills left_hand_root from the source root; left_thumb1 is missing"
+    params:
+      slots: {left_hand: body/left_wrist}
+      source_anchor: hand/root
+      max_distance: 1
+      map: {left_hand/left_hand_root: left_hand/root}
+    input:
+      target:
+        point_names:
+          - body/left_wrist
+          - body/right_wrist
+          - left_hand/left_hand_root
+          - left_hand/left_thumb1
+        xyz: [[[100, 100, .nan], [200, 100, .nan], [90, 110, .nan], [85, 120, .nan]]]
+        score: [[0.9, 0.9, 0.5, 0.5]]
+        instance_score: [0.8]
+        present: [true]
+        track_ids: [-1]
+        instance_source: person
+        geometry: "2d"
+      source:
+        point_names: [hand/root, hand/thumb1]
+        xyz: [[[95, 105, .nan], [92, 112, .nan]]]
+        score: [[0.7, 0.7]]
+        instance_score: [0.9]
+        present: [true]
+        track_ids: [-1]
+        instance_source: hands
+        geometry: "2d"
+      target_names:
+        - body/left_wrist
+        - body/right_wrist
+        - left_hand/left_hand_root
+        - left_hand/left_thumb1
+      source_names: [hand/root, hand/thumb1]
+    expect:
+      keypoints:
+        point_names:
+          - body/left_wrist
+          - body/right_wrist
+          - left_hand/left_hand_root
+          - left_hand/left_thumb1
+        xyz: [[[100, 100, .nan], [200, 100, .nan], [95, 105, .nan], [.nan, .nan, .nan]]]
+        score: [[0.9, 0.9, 0.7, 0]]
+        instance_score: [0.8]
+        present: [true]
+        track_ids: [-1]
+        instance_source: person
+        geometry: "2d"
+  - id: an-empty-source-gives-missing-slot-points
+    params: {slots: {left_hand: body/left_wrist}, source_anchor: hand/root, max_distance: 1}
+    input:
+      target:
+        point_names: [body/left_wrist, body/right_wrist, body/nose]
+        xyz: [[[100, 100, .nan], [200, 100, .nan], [150, 50, .nan]]]
+        score: [[0.9, 0.9, 0.9]]
+        instance_score: [0.8]
+        present: [true]
+        track_ids: [-1]
+        instance_source: person
+        geometry: "2d"
+      source: null
+      target_names: [body/left_wrist, body/right_wrist, body/nose]
+      source_names: [hand/root, hand/tip]
+    expect:
+      keypoints:
+        point_names: [body/left_wrist, body/right_wrist, body/nose, left_hand/root, left_hand/tip]
+        xyz:
+          - - [100, 100, .nan]
+            - [200, 100, .nan]
+            - [150, 50, .nan]
+            - [.nan, .nan, .nan]
+            - [.nan, .nan, .nan]
+        score: [[0.9, 0.9, 0.9, 0, 0]]
+        instance_score: [0.8]
+        present: [true]
+        track_ids: [-1]
+        instance_source: person
+        geometry: "2d"
+  - id: an-empty-target-gives-an-empty-output
+    params: {slots: {left_hand: body/left_wrist}, source_anchor: hand/root, max_distance: 1}
+    input:
+      target: null
+      source: null
+      target_names: [body/left_wrist, body/right_wrist, body/nose]
+      source_names: [hand/root, hand/tip]
+    expect: {keypoints: null}
+  - id: a-face-replace-without-map-is-refused
+    checks: [refused]
+    params: {slots: {face: body/nose}, source_anchor: face_mesh/p1, max_distance: 1}
+    input:
+      target: null
+      source: null
+      target_names: [body/nose, face/face-0, face/face-1]
+      source_names: [face_mesh/p0, face_mesh/p1]
+    expect: {error: V-node.merge-5}
+  - id: a-source-with-two-groups-is-refused
+    checks: [refused]
+    params: {slots: {hand: body/left_wrist}, source_anchor: left_hand/wrist, max_distance: 1}
+    input:
+      target: null
+      source: null
+      target_names: [body/left_wrist, body/right_wrist]
+      source_names: [left_hand/wrist, right_hand/wrist]
+    expect: {error: V-node.merge-4}
+  - id: an-unknown-source-anchor-is-refused
+    checks: [refused]
+    params: {slots: {left_hand: body/left_wrist}, source_anchor: hand/wrist, max_distance: 1}
+    input:
+      target: null
+      source: null
+      target_names: [body/left_wrist, body/right_wrist]
+      source_names: [hand/root, hand/tip]
+    expect: {error: V-node.merge-2}
+  - id: a-map-value-with-an-unknown-source-point-is-refused
+    checks: [refused]
+    params:
+      slots: {left_hand: body/left_wrist}
+      source_anchor: hand/root
+      max_distance: 1
+      map: {body/left_wrist: left_hand/wrist}
+    input:
+      target: null
+      source: null
+      target_names: [body/left_wrist, body/right_wrist]
+      source_names: [hand/root, hand/tip]
+    expect: {error: V-node.merge-2}
+  - id: mixed-geometries-are-refused
+    checks: [refused]
+    params: {slots: {left_hand: body/left_wrist}, source_anchor: hand/root, max_distance: 1}
+    input:
+      target:
+        point_names: [body/left_wrist, body/right_wrist]
+        xyz: [[[100, 100, .nan], [200, 100, .nan]]]
+        score: [[0.9, 0.9]]
+        instance_score: [0.8]
+        present: [true]
+        track_ids: [-1]
+        instance_source: person
+        geometry: "2d"
+      source:
+        point_names: [hand/root, hand/tip]
+        xyz: [[[95, 105, 1], [90, 125, 1]]]
+        score: [[0.7, 0.7]]
+        instance_score: [0.9]
+        present: [true]
+        track_ids: [-1]
+        instance_source: hands
+        geometry: "3d"
+      target_names: [body/left_wrist, body/right_wrist]
+      source_names: [hand/root, hand/tip]
+    expect: {error: V-node.merge-3}
