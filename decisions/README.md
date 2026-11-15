@@ -38,7 +38,6 @@ These entries are `accepted` or `evidence`.
 | [W09C](entries/W09C-opencv-contrib-python.md) | `opencv-contrib-python` with an exact pin is the OpenCV package; no headless package | accepted |
 | [D3VP](entries/D3VP-ruff-0-17-with-the-old-rule-set.md) | `ruff==0.17.5` with the rule set of ruff 0.15; a review of the new default rules before the 2.0.0 release | accepted |
 | [Y753](entries/Y753-pipeline-templates-glue-vectors-and-taps-flag.md) | Pipeline templates without links; node work in stage 1.10; skellybench `--taps`; vectors for `first_of` and `concat` | accepted |
-| [KW76](entries/KW76-merge-replace-add-and-hungarian-match.md) | `merge`: one source group; slots replace or add a group; most pairs, smallest total; required `max_distance` | accepted |
 
 ### Proposed
 

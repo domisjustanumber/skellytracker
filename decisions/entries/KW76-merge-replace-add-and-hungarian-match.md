@@ -1,6 +1,6 @@
 # KW76 — `merge`: one source group, slots that replace or add a group, the smallest total distance and a required `max_distance`
 
-**Status:** accepted, 2026-11-15 (user, design review 2026-11-13).
+**Status:** absorbed into [`merge.md#merge-node`](../../specs/pipeline/nodes/merge.md#merge-node), [`graph.md#behaviour`](../../specs/pipeline/graph.md#behaviour), [`graph.md#validation-rules`](../../specs/pipeline/graph.md#validation-rules), [`outputs.md#fields`](../../specs/pipeline/outputs.md#fields), [`outputs.md#behaviour`](../../specs/pipeline/outputs.md#behaviour), [`running.md#fields`](../../specs/pipeline/running.md#fields), [`running.md#behaviour`](../../specs/pipeline/running.md#behaviour), 2026-11-15 (user, design review 2026-11-13; PR: pending).
 
 ## Decision
 

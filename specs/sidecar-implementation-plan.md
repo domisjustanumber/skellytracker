@@ -1088,9 +1088,11 @@ This stage implements the node types of the pipeline spec. Use the skill
   `roi_hold` was `roi_tracking`, and `redetect_trigger` was `redetect`
   ([ADR-9PDQ](../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 2).
   - [`merge`](pipeline/nodes/merge.md) takes `target` keypoints and `source` keypoints of any
-    instance source. Each source row goes to the slot with the nearest anchor, one row for each
-    slot. The output has the target columns, with the `map` replacements, and one column set for
-    each slot.
+    instance source, with one group. The assignment of the source rows to the slots has the most
+    pairs, then the smallest total anchor distance, within the required `max_distance`. A slot with
+    the name of a target group replaces it through the canonical names; another slot adds a group.
+    `map` then replaces single target points
+    ([ADR-KW76](../decisions/entries/KW76-merge-replace-add-and-hungarian-match.md)).
   - [`concat`](pipeline/nodes/concat.md) never replaces a point. An empty input does not stop it.
     The columns of that input are missing points: x, y and z are NaN, and the score is 0
     ([ADR-6DKT](pipeline/decisions/entries/6DKT-instance-rows-carry-class-and-score.md) item 5).
@@ -1163,7 +1165,7 @@ This stage implements the node types of the pipeline spec. Use the skill
   the `concat` empty-input fill, the instance rows with `class_index` and `instance_score`, `@prev`,
   the stateful batch rule and its warning, `ep_partial_placement`, the CLI exit codes, the default EP, `V-pipeline.running-8`, `V-pipeline.running-9`, the timing
   parents, and record and replay with `row`. The
-  glue vectors and the named tests of the glue nodes agree. The aggregator output passes
+  package glue nodes pass the glue vectors. The aggregator output passes
   `skellybench.schema.validate_timing`. `mediapipe-holistic-tasks` runs and gives the expected point
   sets.
 
