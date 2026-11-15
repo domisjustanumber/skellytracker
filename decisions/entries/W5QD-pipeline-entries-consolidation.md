@@ -14,7 +14,7 @@ rule that no heading states.
 1. **7NY2 (form, graph, nodes).**
    - Headings: [Pipeline file](../../specs/pipeline/file.md#pipeline-file),
      [Graph](../../specs/pipeline/graph.md#graph),
-     [Detector node](../../specs/pipeline/nodes/detector.md#detector-node),
+     [Detector node](../../specs/pipeline/nodes/onnx_model.md#onnx-model-node),
      [MediaPipe Tasks node](../../specs/pipeline/nodes/mediapipe_tasks.md#mediapipe-tasks-node),
      each glue node section of [Nodes](../../specs/pipeline/README.md#nodes),
      [Running: Behaviour](../../specs/pipeline/running.md#behaviour),
@@ -36,7 +36,7 @@ rule that no heading states.
      [Timing: Implementer guidance](../../specs/pipeline/timing.md#implementer-guidance),
      [Pipeline file](../../specs/pipeline/file.md#pipeline-file),
      [MediaPipe Tasks node](../../specs/pipeline/nodes/mediapipe_tasks.md#mediapipe-tasks-node),
-     [Detector node](../../specs/pipeline/nodes/detector.md#detector-node),
+     [Detector node](../../specs/pipeline/nodes/onnx_model.md#onnx-model-node),
      [Pipeline Spec Rules](../../specs/pipeline/AGENTS.md#pipeline-spec-rules) and
      [Generated files](../../specs/pipeline/README.md#generated-files).
    - Text, API: `skellytracker.core.pipelines` has `list_pipelines() -> list[PipelineEntry]`,

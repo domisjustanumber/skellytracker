@@ -1699,7 +1699,7 @@ def pipeline_fields(**extra) -> dict:
         "contributor": "openmmlab-exporter",
         "source_commit": SOURCE,
         "spec_commit": HEAD,
-        "sections": ["node.detector"],
+        "sections": ["node.onnx_model"],
         "depends_on": [],
         "related": [],
         "external": [],
@@ -1712,7 +1712,7 @@ def pipeline_file(sha: str | None = None, name: str = "openmmlab-exporter", key:
     return (
         'schema_version: "2.0.0"\npipeline_id: yolox-boxes\n'
         f'source: {{name: {name}, version: "0.1.0"}}\n'
-        "nodes:\n  - id: person\n    type: detector\n    inputs: {image: frame.image}\n"
+        "nodes:\n  - id: person\n    type: onnx_model\n    inputs: {image: frame.image}\n"
         f"    params:\n      key: {key}\n      size: m{sha_line}\n"
         "outputs:\n  person_box: person.detections\n"
     )
@@ -1760,7 +1760,7 @@ def test_a_node_proposal_belongs_to_the_pipeline_spec() -> None:
     assert ib.spec_folder(node) == "specs/pipeline"
     assert ib.spec_folder(proposal_fields()) == "specs/model-sidecar"
     assert ib.record_folder(node) == ib.REPO_ROOT / "specs/pipeline/proposals/new-node"
-    assert {"node_gate", "node_detector", "pre_normalize"} <= ib.section_modules()
+    assert {"node_gate", "node_onnx_model", "pre_normalize"} <= ib.section_modules()
     assert ib.SECTION_MODULE.match("node_gate")
     assert "sections must be all node.<type> sections (pipeline spec) or none (sidecar spec)" in ib.manifest_problems(
         proposal_fields(sections=["node.gate", "pre.normalize"]), computed=False

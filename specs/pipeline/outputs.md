@@ -75,7 +75,7 @@ The output schema gives these fields for each output:
 | `point_names` | The point names, with the prefix. Only for `keypoints`. |
 | `geometry` | `2d` or `3d`, as the sidecar [`keypoint.geometry`](../model-sidecar/post/keypoint/schema.md#fields). Only for `keypoints`. |
 | `depth_unit` | `m`, `mm` or `pixel`, as the sidecar [`keypoint.decode.depth_unit`](../model-sidecar/post/keypoint/schema.md#keypointdecode). Only for a `3d` output. |
-| `class_names` | The class names of the model, in class index order: [`object.classes`](../model-sidecar/post/object/decode.md#objectclasses) of the sidecar of the detector node that makes the rows. A gap is null. Only for `detections`. |
+| `class_names` | The class names of the model, in class index order: [`object.classes`](../model-sidecar/post/object/decode.md#objectclasses) of the sidecar of the `onnx_model` node that makes the rows. A gap is null. Only for `detections`. |
 | `max_instances` | `I`. |
 | `tracked` | True when the track ids come from an `associate` node. |
 | `instance_source` | The node id of the instance source of the output ([Graph](graph.md#behaviour) item 8). |
@@ -87,7 +87,7 @@ The output schema gives these fields for each output:
 2. The `edges` come from the [overlay](../model-sidecar/post/keypoint/overlay.md#fields) of the sidecar of the node that makes the points: the skeleton that `keypoint.overlay.skeleton` names, else the first of `keypoint.skeletons`. For a `mediapipe_tasks` node, they come from the MediaPipe YAML files in `core/detectors/keypoint_detectors/mediapipe/` ([ADR-0XW9](../../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 5).
 3. Each output has the same shapes on each frame ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1).
 4. The cameras stay separate. No output joins the values of two cameras ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1). In `live`, a call can hold a subset of the cameras of the run. The run then gives a result only for each camera of the call ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 3).
-5. A detector node fills `class_index` in each `detections` row. `gate` and `first_of` pass a `detections` value with its rows unchanged, so they keep `class_index`. No other node type makes or passes a `detections` value.
+5. An `onnx_model` node fills `class_index` in each `detections` row. `gate` and `first_of` pass a `detections` value with its rows unchanged, so they keep `class_index`. No other node type makes or passes a `detections` value.
 6. This draft defines the value of a `keypoints` port, a `detections` port and a `roi` port. The value of an output of the port type `image` or `tensor` is not fixed yet ([open work](decisions/open-work.md)).
 
 ## Validation rules

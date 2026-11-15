@@ -13,7 +13,7 @@ status: {spec: draft}
 The node `smooth_roi` smooths the ROI of each instance row over time with an exponential moving
 average (EMA). A stable crop gives more stable keypoints
 ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6). The smoothed
-ROI is usually the crop of the next frame, so a `smooth_roi` node upstream of a detector makes a
+ROI is usually the crop of the next frame, so a `smooth_roi` node upstream of an `onnx_model` node makes a
 pipeline stateful ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md)
 item 5).
 

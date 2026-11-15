@@ -90,7 +90,7 @@ The fields of `tap.json`:
 
 ## Authoring guidance
 
-- To measure one detector node, replay its upstream outputs ([Timing](timing.md#authoring-guidance); [ADR-Q59W](../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 4).
+- To measure one inference node, replay its upstream outputs ([Timing](timing.md#authoring-guidance); [ADR-Q59W](../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 4).
 
 ## Examples
 

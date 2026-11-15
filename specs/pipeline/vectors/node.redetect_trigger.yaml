@@ -1,8 +1,8 @@
 # tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
 # Hosts ignore `checks`. The names are the self-checks of the generator.
-section: node.redetect
+section: node.redetect_trigger
 notes:
-  - "Normative text: specs/pipeline/nodes/redetect.md."
+  - "Normative text: specs/pipeline/nodes/redetect_trigger.md."
   - "A case is one sequence. Each item of `frames` gives the `frame_index` and the
     `@prev` inputs of one frame. `previous_keypoints` is a list of instance rows, and a
     row is a list of points [x, y, score] or null (the row is not present).
@@ -167,4 +167,4 @@ cases:
     input:
       running_mode: video
       frames: [{frame_index: 0, previous_keypoints: null, previous_rois: null}]
-    expect: {error: V-node.redetect-1}
+    expect: {error: V-node.redetect_trigger-1}

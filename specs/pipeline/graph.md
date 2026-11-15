@@ -17,7 +17,7 @@ The graph of a pipeline is a flat list of nodes. Each node has an id, a type and
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `nodes[].id` | name | yes | The node id. It is unique in the file. `pipeline` and `frame` are reserved. |
-| `nodes[].type` | enum | yes | A node type of the [section map](README.md#section-map): `detector`, `mediapipe_tasks`, `roi_from_points`, `roi_tracking`, `gate`, `first_of`, `concat`, `merge`, `smooth_keypoints`, `smooth_roi` or `redetect`. |
+| `nodes[].type` | enum | yes | A node type of the [section map](README.md#section-map): `onnx_model`, `mediapipe_tasks`, `roi_from_points`, `roi_hold`, `gate`, `first_of`, `concat`, `merge`, `smooth_keypoints`, `smooth_roi` or `redetect_trigger`. |
 | `nodes[].inputs` | mapping or list | see the node section | For most types, a mapping of input name to port reference. For `first_of` and `concat`, a list of port references. The node section gives the input names and the required inputs. |
 | `nodes[].params` | mapping | see the node section | The params of the node type. The params table of the node section gives each param. A node type with a required param needs `params`. |
 
@@ -46,13 +46,13 @@ The [README](README.md#terms) gives the letter key `I`, `P` and the other letter
    - `rotation` is in radians, in `[-π, π)`. A positive rotation turns the ROI clockwise in the image, because the image y axis points down.
    - The ROI x axis is `(cos(rotation), sin(rotation))` and the ROI y axis is `(-sin(rotation), cos(rotation))`, in image pixels.
    - The positions of points, boxes and ROIs are those of the sidecar [unprojection](../model-sidecar/post/unprojection.md#behaviour). Their pixel centres follow the resize method of the model ([Pixel centres](../model-sidecar/pre/interpolation.md#pixel-centres)). A glue node adds no `0.5` offset and removes none.
-   - Only the detector node cuts pixels, always from `frame.image` ([Node: detector](nodes/detector.md#behaviour) gives the crop order).
+   - Only the `onnx_model` node cuts pixels, always from `frame.image` ([Node: ONNX model](nodes/onnx_model.md#behaviour) gives the crop order).
 4. **The type of an `any` output.** The output `value` of a `gate` node has the type of its input `value`. The output `value` of a `first_of` node has the type of its inputs. The load uses this type for `V-pipeline.graph-3`. When an input is also `any`, the load follows it to its own inputs. An `any` output gets its type only from the inputs that are not `@prev`: an `@prev` input gives no type. The load thus follows only same-frame edges, and the search always ends (`V-pipeline.graph-9`; [ADR-97X9](../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 5).
 5. **Empty values.** An `image` value is empty when it holds no image. A `roi`, `keypoints` or `detections` value is empty when it has no present row. A `tensor` value is empty when it holds no array.
 6. **Empty inputs.** A node that gets an empty required input does not run. Each output of that node is then empty. An empty optional input does not stop a node ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6):
-   - The optional inputs are `roi_tracking.previous_keypoints`, `redetect.previous_keypoints` and `redetect.previous_rois`.
-   - The `rois` input of a top-down keypoint model is required ([`V-node.detector-2`](nodes/detector.md#validation-rules)).
-   - The rule of a node type can also read an empty required input: `gate` reads an empty `condition`, `first_of` skips each empty input, `roi_tracking` reads an empty `previous`, `merge` reads an empty `source`, [`concat`](nodes/concat.md#behaviour) runs with an empty input and gives missing points in its columns, and `smooth_keypoints` counts an empty input as a miss after its first input. The node section gives each such input.
+   - The optional inputs are `roi_hold.previous_keypoints`, `redetect_trigger.previous_keypoints` and `redetect_trigger.previous_rois`.
+   - The `rois` input of a top-down keypoint model is required ([`V-node.onnx_model-2`](nodes/onnx_model.md#validation-rules)).
+   - The rule of a node type can also read an empty required input: `gate` reads an empty `condition`, `first_of` skips each empty input, `roi_hold` reads an empty `previous`, `merge` reads an empty `source`, [`concat`](nodes/concat.md#behaviour) runs with an empty input and gives missing points in its columns, and `smooth_keypoints` counts an empty input as a miss after its first input. The node section gives each such input.
 7. **Point names.** Each point name in the graph has a prefix: `<prefix>.<point>` ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6):
    - The prefix is the id of the node that makes the points, for example `left_hand.wrist` from the node `left_hand`.
    - A `mediapipe_tasks` node of the variant `holistic` gives the prefixes `body`, `right_hand`, `left_hand` and `face`, in this order ([Node: MediaPipe Tasks](nodes/mediapipe_tasks.md#behaviour)).
@@ -65,7 +65,7 @@ The [README](README.md#terms) gives the letter key `I`, `P` and the other letter
    - A missing point has NaN coordinates and the score 0 ([Decoded keypoints](../model-sidecar/post/keypoint/schema.md#decoded-keypoints)).
    - No row and no point is dropped.
    - A node that takes ROIs runs once for each present row. Its output row `i` comes from the ROI row `i`. A padding row stays a padding row. The output has the instance source of the ROI input.
-   - Each `roi` and `keypoints` row carries the `instance_score` of its instance source row. No other node changes it. The instance source sets it: an object detector or a one-stage model gives the detection score of the row, the `score` of its `detections` row after the sidecar [object decode](../model-sidecar/post/object/decode.md#selection-behaviour). A `mediapipe_tasks` node gives 1.0 for each present row, because the Tasks results have no instance score. The instance score is not a function of the point scores. Each other node copies the value of the row from its input: a top-down keypoint model from its `rois` row, `roi_from_points` from its keypoints row, `smooth_roi`, `smooth_keypoints`, `gate` and `first_of` from their input row, `concat` from the input row that [Node: concat](nodes/concat.md#behaviour) gives, and `merge` from its `target` row. A row that `roi_tracking` carries over from `@prev` keeps the instance score of the last frame on which the instance source ran. The value does not decay. A row that `smooth_keypoints` holds gets its value from [Node: smooth keypoints](nodes/smooth_keypoints.md#behaviour) step 10 ([ADR-97X9](../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) items 1 and 2).
+   - Each `roi` and `keypoints` row carries the `instance_score` of its instance source row. No other node changes it. The instance source sets it: an object detector or a one-stage model gives the detection score of the row, the `score` of its `detections` row after the sidecar [object decode](../model-sidecar/post/object/decode.md#selection-behaviour). A `mediapipe_tasks` node gives 1.0 for each present row, because the Tasks results have no instance score. The instance score is not a function of the point scores. Each other node copies the value of the row from its input: a top-down keypoint model from its `rois` row, `roi_from_points` from its keypoints row, `smooth_roi`, `smooth_keypoints`, `gate` and `first_of` from their input row, `concat` from the input row that [Node: concat](nodes/concat.md#behaviour) gives, and `merge` from its `target` row. A row that `roi_hold` carries over from `@prev` keeps the instance score of the last frame on which the instance source ran. The value does not decay. A row that `smooth_keypoints` holds gets its value from [Node: smooth keypoints](nodes/smooth_keypoints.md#behaviour) step 10 ([ADR-97X9](../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) items 1 and 2).
    - `concat` joins row `i` of each input to row `i` of the output. All inputs of `concat` have the same instance source. The inputs of `first_of` also have one instance source.
    - `merge` keeps the instance source and the `I` of its `target` input. Its `source` input can have any instance source and any `I`.
    - `x@prev` has the instance source and the `I` of `x` ([ADR-97X9](../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 6).
@@ -101,11 +101,11 @@ A top-down keypoint model takes the image and the ROIs of a person detector:
 ```yaml
 nodes:
   - id: person
-    type: detector
+    type: onnx_model
     inputs: {image: frame.image}
     params: {key: yolox-person@openmmlab-exporter, size: m}
   - id: wholebody
-    type: detector
+    type: onnx_model
     inputs: {image: frame.image, rois: person.rois}
     params: {key: rtmw-wholebody133@openmmlab-exporter, size: m}
 ```

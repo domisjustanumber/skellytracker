@@ -1,21 +1,21 @@
-# Spec example, structure only. It sketches the MediaPipe pose and hand chain with detector and
-# glue nodes: redetect, a pose detector, an ROI from the points of the previous frame (@prev),
-# first_of, smooth_roi, roi_tracking, gate and smooth_keypoints. Both hands run from frame 0: an
-# empty optional input (`previous_keypoints` of roi_tracking on frame 0) does not stop a node.
+# Spec example, structure only. It sketches the MediaPipe pose and hand chain with onnx_model and
+# glue nodes: redetect_trigger, a pose detector, an ROI from the points of the previous frame (@prev),
+# first_of, smooth_roi, roi_hold, gate and smooth_keypoints. Both hands run from frame 0: an
+# empty optional input (`previous_keypoints` of roi_hold on frame 0) does not stop a node.
 # The model keys and sizes wait for the sidecar proposals of MediaPipe-Exporter.
 schema_version: "2.0.0"
 pipeline_id: mediapipe-holistic-decomposed
 source: {name: skellytracker, version: "2.0.0"}
 description: >-
-  Structure only: waits for sidecar proposals. MediaPipe pose and both hands as detector and glue
+  Structure only: waits for sidecar proposals. MediaPipe pose and both hands as onnx_model and glue
   nodes.
 nodes:
   # Ask for a new pose detection when the previous frame has no good pose.
   - id: trigger
-    type: redetect
+    type: redetect_trigger
     inputs: {image: frame.image, previous_keypoints: body.keypoints@prev}
   - id: pose_detector
-    type: detector
+    type: onnx_model
     inputs: {image: trigger.image}
     params: {key: mediapipe-pose-detector@mediapipe-exporter, size: full}
   # The pose ROI from the points of the previous frame.
@@ -39,10 +39,10 @@ nodes:
     type: smooth_roi
     inputs: {rois: pose_roi.value}
   - id: body
-    type: detector
+    type: onnx_model
     inputs: {image: frame.image, rois: pose_roi_smooth.rois}
     params: {key: mediapipe-pose-landmarker@mediapipe-exporter, size: full}
-  # The right hand ROI from the pose points, kept stable with roi_tracking.
+  # The right hand ROI from the pose points, kept stable with roi_hold.
   - id: right_hand_roi
     type: roi_from_points
     inputs: {keypoints: body.keypoints}
@@ -55,7 +55,7 @@ nodes:
       square_long: true
       expand_ratio: 2.7
   - id: right_hand_tracked
-    type: roi_tracking
+    type: roi_hold
     inputs:
       previous: right_hand_tracked.rois@prev
       current: right_hand_roi.rois
@@ -65,7 +65,7 @@ nodes:
     inputs: {value: right_hand_tracked.rois, condition: body.keypoints}
     params: {mode: score_above, threshold: 0.5}
   - id: right_hand
-    type: detector
+    type: onnx_model
     inputs: {image: frame.image, rois: right_hand_gate.value}
     params: {key: mediapipe-hand-landmarker@mediapipe-exporter, size: full}
   # The left hand: the same chain on the left points.
@@ -81,7 +81,7 @@ nodes:
       square_long: true
       expand_ratio: 2.7
   - id: left_hand_tracked
-    type: roi_tracking
+    type: roi_hold
     inputs:
       previous: left_hand_tracked.rois@prev
       current: left_hand_roi.rois
@@ -91,7 +91,7 @@ nodes:
     inputs: {value: left_hand_tracked.rois, condition: body.keypoints}
     params: {mode: score_above, threshold: 0.5}
   - id: left_hand
-    type: detector
+    type: onnx_model
     inputs: {image: frame.image, rois: left_hand_gate.value}
     params: {key: mediapipe-hand-landmarker@mediapipe-exporter, size: full}
   - id: body_smooth

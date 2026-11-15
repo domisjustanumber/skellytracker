@@ -52,7 +52,7 @@ A `merge` node joins the keypoints of a `source` to the keypoints of a `target` 
 4. **Slot columns.** For a kept pair, the columns of slot `k` in row `i` hold the points of source row `j`: x, y, z and score. A slot column with no kept pair is missing: x, y and z are NaN and the score is 0.
 5. **Map.** For each entry `target point: slot column` of `map`, in each row `i`: when the slot column is present, the target point gets its x, y, z and score. Else the target point does not change. The anchors of step 3 are the target points before this step.
 6. **Output.** The output has the columns of `target`, then the slot columns. It has the rows, the `present` flags, the `instance_score`, the `track_ids`, the instance source, the `I` and the geometry of `target`. A target row that is not present stays a padding row.
-7. The timing point is `run` ([ADR-Q59W](../../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 1).
+7. The timing span is `run` ([ADR-Q59W](../../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 1; [ADR-9PDQ](../../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 3).
 
 ## Validation rules
 

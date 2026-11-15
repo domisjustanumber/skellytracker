@@ -1,16 +1,17 @@
 ---
-id: node.roi_tracking
-title: ROI tracking
+id: node.roi_hold
+title: ROI hold
 kind: node
-vectors: vectors/node.roi_tracking.yaml
+vectors: vectors/node.roi_hold.yaml
 status: {spec: draft}
 ---
 
-# ROI tracking
+# ROI hold
 
 > This section is a draft. Its fields and rules can change before the section becomes `stable`.
 
-The node `roi_tracking` chooses, for each instance row, between a previous ROI and a current ROI. It
+The node `roi_hold` chooses, for each instance row, between a previous ROI and a current ROI
+([ADR-9PDQ](../../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 2). It
 keeps the previous ROI when the two ROIs are near and the previous keypoints are inside the current
 ROI. Else it gives the current ROI. A stable crop gives more stable keypoints. The node follows the
 MediaPipe `RoiTrackingCalculator`
@@ -46,7 +47,7 @@ MediaPipe `RoiTrackingCalculator`
 - The output has one row for each row of `current`
   ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1). Row `i` of
   each input goes with row `i` of the other inputs, so the inputs have the same number of rows
-  (`V-node.roi_tracking-2`).
+  (`V-node.roi_hold-2`).
 
 ## Behaviour
 
@@ -82,9 +83,9 @@ The output has the instance source of `current` ([Graph](../graph.md#behaviour) 
 
 ## Validation rules
 
-- [ ] `V-node.roi_tracking-1` `keypoint_margin` must be greater than -1.
-- [ ] `V-node.roi_tracking-2` `previous`, `current` and `previous_keypoints` must have the same number of rows `I`. The host checks this at load, from the instance sources of the connected outputs.
-- [ ] `V-node.roi_tracking-3` `previous` and `previous_keypoints` must have the instance source of `current`. The host checks this at load, from the instance sources of the connected outputs ([ADR-97X9](../../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 3).
+- [ ] `V-node.roi_hold-1` `keypoint_margin` must be greater than -1.
+- [ ] `V-node.roi_hold-2` `previous`, `current` and `previous_keypoints` must have the same number of rows `I`. The host checks this at load, from the instance sources of the connected outputs.
+- [ ] `V-node.roi_hold-3` `previous` and `previous_keypoints` must have the instance source of `current`. The host checks this at load, from the instance sources of the connected outputs ([ADR-97X9](../../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 3).
 
 ## Implementer guidance
 
@@ -110,18 +111,18 @@ The output has the instance source of `current` ([Graph](../graph.md#behaviour) 
 - To follow Holistic, connect `previous` to a `roi_from_points` node that reads the keypoints of
   the previous frame (`<node>.keypoints@prev`), and connect `previous_keypoints` to the same
   keypoints.
-- `roi_tracking` keeps no state, so it is not in the list of stateful nodes. Its `@prev` input makes
+- `roi_hold` keeps no state, so it is not in the list of stateful nodes. Its `@prev` input makes
   the pipeline stateful ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md)
   item 5).
 
 ## Examples
 
-The vector file [`node.roi_tracking.yaml`](../vectors/node.roi_tracking.yaml) holds the worked
+The vector file [`node.roi_hold.yaml`](../vectors/node.roi_hold.yaml) holds the worked
 cases.
 
 ```yaml
 - id: face_roi
-  type: roi_tracking
+  type: roi_hold
   inputs:
     previous: face_prev_roi.rois
     current: face_det_roi.rois

@@ -256,7 +256,7 @@ A `pipeline` bundle gives one pipeline file of the [pipeline spec](../../pipelin
   bundle is `waiting` until they land. A pipeline can use the models of more than one exporter. It
   needs no consent step.
 - `source.name` of the pipeline file is the contributor. It is never `skellytracker`.
-- Each `detector` node has `sidecar_sha256`: the SHA-256 of the bytes of the sidecar that its `key`
+- Each `onnx_model` node has `sidecar_sha256`: the SHA-256 of the bytes of the sidecar that its `key`
   names, landed or in a `depends_on` bundle.
 - A pipeline file runs no code. `verify` checks it with the reference model of the pipeline spec
   and runs no file of the bundle. It refuses a duplicate key.

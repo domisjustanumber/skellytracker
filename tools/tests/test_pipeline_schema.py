@@ -185,8 +185,8 @@ def test_each_example_passes_the_model(path: Path) -> None:
 def _config(nodes: list[dict], outputs: dict | None = None, taps: list[dict] | None = None) -> dict:
     """A small pipeline config with a person detector `person` and a body model `body`."""
     base = [
-        {"id": "person", "type": "detector", "inputs": {"image": "frame.image"}, "params": {"key": "p@x", "size": "m"}},
-        {"id": "body", "type": "detector", "inputs": {"image": "frame.image", "rois": "person.rois"},
+        {"id": "person", "type": "onnx_model", "inputs": {"image": "frame.image"}, "params": {"key": "p@x", "size": "m"}},
+        {"id": "body", "type": "onnx_model", "inputs": {"image": "frame.image", "rois": "person.rois"},
          "params": {"key": "b@x", "size": "m"}},
     ]
     return {

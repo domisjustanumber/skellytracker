@@ -6,7 +6,7 @@ source: {name: skellytracker, version: "2.0.0"}
 description: YOLOX person detector, then RTMW whole-body keypoints (133 points) for one person.
 nodes:
   - id: person
-    type: detector
+    type: onnx_model
     inputs: {image: frame.image}
     params:
       key: yolox-person@openmmlab-exporter
@@ -14,7 +14,7 @@ nodes:
       object_decode:
         nms: {post_nms_top_k: 1}
   - id: wholebody
-    type: detector
+    type: onnx_model
     inputs: {image: frame.image, rois: person.rois}
     params:
       key: rtmw-wholebody133@openmmlab-exporter

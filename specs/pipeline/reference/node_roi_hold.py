@@ -1,9 +1,9 @@
-"""Reference implementation of the pipeline section node.roi_tracking.
+"""Reference implementation of the pipeline section node.roi_hold.
 
 Note:
 
-- Section ID: node.roi_tracking.
-- Source: the section text specs/pipeline/nodes/roi_tracking.md. It follows the MediaPipe
+- Section ID: node.roi_hold.
+- Source: the section text specs/pipeline/nodes/roi_hold.md. It follows the MediaPipe
   RoiTrackingCalculator rules of MediaPipe-Exporter docs/mediapipe-whole-body.md (sections 1.8 and
   4.2) at 8f708a1ddecd8e035de15a5a9a7b652af035a58a.
 - Imported section modules: node.roi_from_points (node_roi_from_points, the function
@@ -17,14 +17,14 @@ from typing import Any
 
 import node_roi_from_points
 
-# The defaults of RoiTrackingParams in specs/pipeline/reference/pipeline_config.py.
+# The defaults of RoiHoldParams in specs/pipeline/reference/pipeline_config.py.
 DEFAULTS = {"max_rotation_deg": 40.0, "max_offset": 0.2, "max_size_change": 0.4, "keypoint_margin": -0.1}
 
 
 def keep_previous(
     params: dict[str, Any], previous: list[float], current: list[float], points: list[list[float]]
 ) -> bool:
-    """True when the previous ROI passes the tests of steps 4 to 7 (node.roi_tracking)."""
+    """True when the previous ROI passes the tests of steps 4 to 7 (node.roi_hold)."""
     pcx, pcy, pw, ph, pr = previous
     cx, cy, w, h, r = current
     if abs(node_roi_from_points.normalize_radians(pr - r)) > math.radians(params["max_rotation_deg"]):
@@ -50,7 +50,7 @@ def keep_previous(
 
 
 def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
-    """Choose the previous or the current ROI of each row (node.roi_tracking).
+    """Choose the previous or the current ROI of each row (node.roi_hold).
 
     params holds the params of the node; a missing param takes its default. input holds previous
     and current (None for an empty input, else one [cx, cy, w, h, rotation] or None for each row)
@@ -62,7 +62,7 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
     """
     params = {**DEFAULTS, **params}
     if not params["keypoint_margin"] > -1:
-        raise ValueError(f"V-node.roi_tracking-1: keypoint_margin must be greater than -1, not {params['keypoint_margin']}")
+        raise ValueError(f"V-node.roi_hold-1: keypoint_margin must be greater than -1, not {params['keypoint_margin']}")
     current = input["current"]
     if current is None:
         return {"rois": None}

@@ -1,8 +1,8 @@
 # tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
 # Hosts ignore `checks`. The names are the self-checks of the generator.
-section: node.roi_tracking
+section: node.roi_hold
 notes:
-  - "Normative text: specs/pipeline/nodes/roi_tracking.md."
+  - "Normative text: specs/pipeline/nodes/roi_hold.md."
   - "`previous` and `current` are null for an empty input. Else each holds one [cx, cy,
     w, h, rotation] or null (an empty row) for each row, in source-image pixels, with
     `rotation` in radians. `previous_keypoints` is absent or null, or holds `xy` (one
@@ -98,7 +98,7 @@ cases:
     checks: [refused]
     params: {keypoint_margin: -1}
     input: {previous: null, current: null}
-    expect: {error: V-node.roi_tracking-1}
+    expect: {error: V-node.roi_hold-1}
   - id: kept-previous-row-keeps-its-instance-score
     note: "row 0 keeps the previous ROI, so it keeps the previous instance score 0.9, from the
       last frame on which the detector ran; row 1 takes the current ROI and its score 0.7"

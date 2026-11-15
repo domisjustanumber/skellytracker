@@ -1509,7 +1509,7 @@ def _pipeline_problems(version_dir: Path, manifest: dict, found: dict, repo: Pat
         problems.append(f"{rel}: source.name must be the contributor {manifest['contributor']}")
     pending = [found[b] for b in manifest["depends_on"] if b in found and found[b]["manifest"].get("kind") == "model"]
     for node in data["nodes"]:
-        if node.get("type") != "detector":
+        if node.get("type") != "onnx_model":
             continue
         params = node.get("params") or {}
         model_id, _, source = str(params.get("key", "")).partition("@")

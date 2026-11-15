@@ -1,8 +1,8 @@
-"""Reference implementation of the pipeline section node.redetect (draft).
+"""Reference implementation of the pipeline section node.redetect_trigger (draft).
 
 Note:
 
-- Section ID: node.redetect.
+- Section ID: node.redetect_trigger.
 - Source: skellytracker/core/temporal_processing/bbox_policy.py (BBoxPolicy.should_redetect, the four
   checks and predict_bbox_from_keypoints) and skellytracker/core/tracker/detection_stage.py
   (DetectionStage.run). Today the boxes have no rotation.
@@ -31,23 +31,23 @@ RUNNING_MODES = ("image", "video", "live")
 
 
 def resolve_check(check: dict[str, Any]) -> dict[str, Any]:
-    """Return one fitness check with its defaults, or refuse it (node.redetect, V-node.redetect-1)."""
+    """Return one fitness check with its defaults, or refuse it (node.redetect_trigger, V-node.redetect_trigger-1)."""
     name = check.get("check")
     if name not in FIELDS:
         raise ValueError(f"unknown fitness check {name!r}")
     foreign = sorted(set(check) - {"check"} - set(FIELDS[name]))
     if foreign:
-        raise ValueError(f"V-node.redetect-1: the check {name} has no field {foreign}")
+        raise ValueError(f"V-node.redetect_trigger-1: the check {name} has no field {foreign}")
     return {**FIELDS[name], **check}
 
 
 def valid(point: list[float]) -> bool:
-    """A point is valid when x and y are not NaN (node.redetect)."""
+    """A point is valid when x and y are not NaN (node.redetect_trigger)."""
     return not (math.isnan(point[0]) or math.isnan(point[1]))
 
 
 def inside(point: list[float], roi: list[float]) -> bool:
-    """True when the point is in the ROI, edges included (node.redetect)."""
+    """True when the point is in the ROI, edges included (node.redetect_trigger)."""
     cx, cy, w, h, rotation = roi
     dx, dy = point[0] - cx, point[1] - cy
     u = math.cos(rotation) * dx + math.sin(rotation) * dy
@@ -56,7 +56,7 @@ def inside(point: list[float], roi: list[float]) -> bool:
 
 
 def area_collapsed(row: list[list[float]], roi: list[float], check: dict[str, Any]) -> bool:
-    """The check bbox_area_collapse for one row with an ROI (node.redetect)."""
+    """The check bbox_area_collapse for one row with an ROI (node.redetect_trigger)."""
     points = [p for p in row if valid(p) and (check["min_score"] <= 0 or p[2] >= check["min_score"])]
     if not points:
         return True
@@ -72,7 +72,7 @@ def area_collapsed(row: list[list[float]], roi: list[float], check: dict[str, An
 def fails(
     check: dict[str, Any], frames_since: int, row: list[list[float]] | None, roi: list[float] | None, connected: bool
 ) -> bool:
-    """True when one fitness check fails for one instance row (node.redetect, Behaviour).
+    """True when one fitness check fails for one instance row (node.redetect_trigger, Behaviour).
 
     connected is True when previous_keypoints is connected. A row of None is missing.
     """
@@ -92,7 +92,7 @@ def fails(
 
 
 def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
-    """Decide for each frame of a sequence if a new detection is needed (node.redetect, Behaviour).
+    """Decide for each frame of a sequence if a new detection is needed (node.redetect_trigger, Behaviour).
 
     input holds running_mode and frames. The result holds triggered, one boolean for each frame.
     """

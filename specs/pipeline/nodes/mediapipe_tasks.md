@@ -50,7 +50,7 @@ The params use the shared names of the pipeline spec, not the MediaPipe option n
 
 - The running mode of the landmarker follows the `running_mode` of the run: `IMAGE` for `image`, and `VIDEO` for `video` and `live` ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) items 2 and 5).
 - In `VIDEO` mode the node gives the `timestamp_ms` of each frame to the landmarker ([Running](../running.md#behaviour)).
-- In `VIDEO` mode the node is stateful. In the running mode `video`, a pipeline with this node upstream of a detector node thus runs at batch = camera count ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 5).
+- In `VIDEO` mode the node is stateful. In the running mode `video`, a pipeline with this node upstream of an `onnx_model` node thus runs at batch = camera count ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 5).
 - The `instance_score` of each present row is 1.0, because the Tasks results have no instance score ([Graph](../graph.md#behaviour) item 8). The rows keep the order of MediaPipe.
 - The output is one `keypoints` set with `max_instances` rows, in the instance format of [Graph](../graph.md#behaviour) item 8. The node is the instance source of its output. The score of a point is the landmark visibility of MediaPipe ([ADR-88WQ](../../../decisions/entries/88WQ-sidecar-vocabulary.md) item 4). Each point name has a prefix:
 
@@ -67,8 +67,8 @@ The params use the shared names of the pipeline spec, not the MediaPipe option n
 - The 478 face points include the 10 iris points. They hold each point of the 136-point face contour subset ([ADR-V7GZ](../../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) Reason).
 - The variant `holistic` is single person ([ADR-V7GZ](../../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 4).
 - The node has no ROI input in v1. An ROI input is open work ([ADR-V7GZ](../../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 4).
-- The node does not use an execution provider. It ignores the EP and the EP options of the run (`MediapipeTasksParams` in `specs/pipeline/reference/pipeline_config.py` has no `execution_provider`).
-- The timing point is `run`. Its time counts as model time in the skellybench timing record ([Timing](../timing.md#implementer-guidance); [ADR-Q59W](../../../decisions/entries/Q59W-pipeline-timing-and-taps.md) items 1 and 4).
+- The node never uses an execution provider. The EP of the run applies only to `onnx_model` nodes ([Running](../running.md#behaviour) item 7; [ADR-9PDQ](../../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 4). `MediapipeTasksParams` in `specs/pipeline/reference/pipeline_config.py` has no `execution_provider`.
+- The timing span is `run`. Its time counts as model time in the skellybench timing record ([Timing](../timing.md#implementer-guidance); [ADR-Q59W](../../../decisions/entries/Q59W-pipeline-timing-and-taps.md) items 1 and 4; [ADR-9PDQ](../../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 3).
 
 ## Validation rules
 

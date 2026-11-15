@@ -624,7 +624,7 @@ the exporter. Stage 1.4 and stage 1.5 come before stage 1.9.
   `roi_from_box`, `crop_size`, `warp_points`, `warp_matrix`, `affine_crop` and `unproject`
   ([ADR-G3FA](model-sidecar/decisions/entries/G3FA-affine-crop-rotated-roi.md);
   [Implementer guidance](model-sidecar/pre/resize-affine-crop.md#implementer-guidance)). The resize
-  dispatcher calls it on `input.resize.method: affine_crop`. The pipeline `detector` node gives each
+  dispatcher calls it on `input.resize.method: affine_crop`. The pipeline `onnx_model` node gives each
   present row of its `rois` input as `(c_x, c_y, w, h, rotation)`. Do not reuse the old
   `get_warp_matrix` for a rotated crop: its `rot` argument turns a point above the centre. Add the
   module to `PACKAGE_RUNNERS` for `pre.resize.affine_crop`, with the `bbox_xyxy` and `roi` cases.
@@ -852,7 +852,7 @@ the old code. Put each fix in the module of its spec section in `processing/pre/
   catalog entry, a size, a precision and a session. It runs the sidecar preprocessing, the inference
   and the postprocessing on a batch of images or crops. It has no old registry key, no
   `detector_type`, no old config base and no link to `DetectionStageConfig` or `DetectionContext`.
-  The `detector` node of stage 1.10 wraps them.
+  The `onnx_model` node of stage 1.10 wraps them.
 - The generic keypoint detector reads `keypoint.estimator_type`. A `top_down_single_person` or
   `top_down_multi_person` model takes crops. A `bottom_up` model takes the full image
   ([ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md) item 2).
@@ -1033,7 +1033,7 @@ This stage implements the node types of the pipeline spec. Use the skill
   are in [Running](pipeline/running.md#behaviour) item 2. Give the typed error of a refused call a name
   in the API ([Running](pipeline/running.md#behaviour);
   [ADR-97X9](../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 9).
-- **`detector` node.** It wraps the generic detectors of stage 1.7. A node with a top-down keypoint model
+- **`onnx_model` node.** The node type `onnx_model` was `detector` ([ADR-9PDQ](../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 1). It wraps the generic detectors of stage 1.7. A node with a top-down keypoint model
   has a `rois` input. A node with a `bottom_up` model or an object detector has no `rois` input
   ([ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md) item 4). Its decode param
   is `object_decode` ([ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) item 7). NMS is an
@@ -1055,9 +1055,11 @@ This stage implements the node types of the pipeline spec. Use the skill
   ([ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) item 7). It has no reset and no back-off ([ADR-6JWJ](pipeline/decisions/entries/6JWJ-mediapipe-video-landmarker-does-not-stick.md)).
   Holistic is single person, so its `max_instances` is 1. Its output has `geometry: 3d` and
   `depth_unit: pixel` ([ADR-6DKT](pipeline/decisions/entries/6DKT-instance-rows-carry-class-and-score.md) item 6). In v2 it has no ROI input and no face blendshapes.
-- **Glue nodes.** `roi_from_points`, `roi_tracking`, `gate`, `first_of`, `concat`, `merge`,
-  `smooth_keypoints`, `smooth_roi` and `redetect`
-  ([ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6).
+- **Glue nodes.** `roi_from_points`, `roi_hold`, `gate`, `first_of`, `concat`, `merge`,
+  `smooth_keypoints`, `smooth_roi` and `redetect_trigger`
+  ([ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6). The node type
+  `roi_hold` was `roi_tracking`, and `redetect_trigger` was `redetect`
+  ([ADR-9PDQ](../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 2).
   - [`merge`](pipeline/nodes/merge.md) takes `target` keypoints and `source` keypoints of any
     instance source. Each source row goes to the slot with the nearest anchor, one row for each
     slot. The output has the target columns, with the `map` replacements, and one column set for
@@ -1068,7 +1070,7 @@ This stage implements the node types of the pipeline spec. Use the skill
   - `smooth_keypoints` refuses a timestamp that does not increase. It has `reset_after_ms` and no
     miss counter.
 - **Sessions.** Build each ONNX session with `eps.build_session()`
-  ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 5). `start_pipeline` takes `ep_options`, `device` and `vram_reserve_bytes`, and a `detector` node takes
+  ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 5). `start_pipeline` takes `execution_provider=None`, `ep_options`, `device` and `vram_reserve_bytes`, and checks `V-pipeline.running-8` and `V-pipeline.running-9` ([ADR-9PDQ](../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 4). An `onnx_model` node takes
   `execution_provider` and `ep_options` ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 1; [ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 2). The NMS session
   requests `cpu` ([ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 7). The timing `execution` block gives `cpu_nodes` and
   `cpu_op_types` ([ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 5).
@@ -1098,12 +1100,13 @@ This stage implements the node types of the pipeline spec. Use the skill
   [ADR-D8DH](../decisions/entries/D8DH-sessions-errors-and-the-ready-rule.md) item 2, and exits with 3 when an EP is not available, 4 when a session was not created and 5 when the GPU memory is
   exhausted ([ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 2 and 6). With no
   `--ep`, `run` uses `eps.recommend("performance")` and prints the chosen EP and its options
-  ([ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 8).
+  ([ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 8). It does this only when the run must give an EP
+  ([Running](pipeline/running.md#behaviour) item 7; [ADR-9PDQ](../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 4).
 - **Node catalog.** `list_node_types()`, the tool that makes the spec table of each node type, and
   its doc test ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 9).
 - **Webcam demo.** `output_schema` gives `edges` for each output, from the sidecar
   `keypoint.overlay` or the MediaPipe YAML files. Port `python -m skellytracker` to `start_pipeline`
-  in `live` mode with `--pipeline <key>`, and the default EP of [ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 8. One generic
+  in `live` mode with `--pipeline <key>`, and the default EP of [ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 8 when the run must give an EP ([ADR-9PDQ](../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 4). One generic
   annotator draws each output
   ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 8).
 - **Pipeline bundles.** Copy each contributed pipeline of `specs/pipeline/examples/` that has an
@@ -1115,7 +1118,7 @@ This stage implements the node types of the pipeline spec. Use the skill
   `specs/pipeline/examples/` to `core/model_zoo/pipelines/`
   ([ADR-3SF2](../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md) item 2;
   [ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 3).
-  The spec examples pin no `sidecar_sha256`. The copy adds the `sidecar_sha256` of each `detector`
+  The spec examples pin no `sidecar_sha256`. The copy adds the `sidecar_sha256` of each `onnx_model`
   node, because a shipped file must have it
   ([ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 10).
 - **Multi-person.** A pipeline can have more than one row (`I > 1`). But a row has no identity
@@ -1128,10 +1131,10 @@ This stage implements the node types of the pipeline spec. Use the skill
   realtime already runs one pipeline with all cameras. Runs that overlap in time, for example
   realtime and posthoc, share no session: measure the VRAM cost and decide with freemocap whether it
   schedules the runs or accepts the cost ([ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 6). Study frame drops in `live` mode: a latest-frame mailbox, a count of
-  dropped frames, a `drop` timing point and MediaPipe LIVE_STREAM.
+  dropped frames, a `drop` timing span and MediaPipe LIVE_STREAM.
 - Gate: tests on generated ONNX models for each node type, the load checks, the empty-input rule,
   the `concat` empty-input fill, the instance rows with `class_index` and `instance_score`, `@prev`,
-  the stateful batch rule and its warning, `ep_partial_placement`, the CLI exit codes and the default EP, the timing
+  the stateful batch rule and its warning, `ep_partial_placement`, the CLI exit codes, the default EP, `V-pipeline.running-8`, `V-pipeline.running-9`, the timing
   parents, and record and replay with `row`. The
   glue vectors and the named tests of the glue nodes agree. The aggregator output passes
   `skellybench.schema.validate_timing`. `mediapipe-holistic-tasks` runs and gives the expected point

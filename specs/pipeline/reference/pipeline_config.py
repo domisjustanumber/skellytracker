@@ -11,7 +11,7 @@ in a package. It holds:
   with ``live`` (the value can change during a run in a later version) and ``source`` (where the
   default comes from);
 - one node class for each node type in ``NODE_TYPES``, with ``type``, ``section``, ``Params``,
-  ``inputs`` and ``outputs`` (port name to port type) and ``timing_points``;
+  ``inputs`` and ``outputs`` (port name to port type) and ``timing_spans``;
 - ``PipelineConfig``, the model of one pipeline file, with the structural load checks of the
   pipeline spec. Each check raises ``ValueError`` with a message that starts with its rule ID.
 
@@ -39,7 +39,7 @@ PORT_REF = re.compile(r"^(?P<node>[a-z][a-z0-9_-]*)\.(?P<port>[a-z][a-z0-9_]*)(?
 # A point name in the graph: `<prefix>.<point>` (pipeline.graph, Behaviour item 7).
 POINT_NAME = re.compile(r"^(?P<prefix>[a-z][a-z0-9_-]*)\.(?P<point>[^.\s]+)$")
 SEMVER = r"^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$"
-# The reserved node id of the timing point of one frame call.
+# The reserved node id of the timing span of one frame call.
 RESERVED_NODE_ID = "pipeline"
 # The reserved source of the graph: the camera frame of the call, as the port `frame.image`.
 FRAME = "frame"
@@ -68,7 +68,7 @@ class Strict(BaseModel):
 # ---------------------------------------------------------------------------------------------
 
 
-class DetectorParams(Strict):
+class OnnxModelParams(Strict):
     key: str = param(
         description="The catalog key of the model, `<model_id>@<source.name>`, with an optional pin `==<version>`.",
         live=False,
@@ -246,7 +246,7 @@ class RoiFromPointsParams(Strict):
         return self
 
 
-class RoiTrackingParams(Strict):
+class RoiHoldParams(Strict):
     max_rotation_deg: float = param(
         40.0, description="Keep the previous ROI only when the rotation differs by this much or less.", live=True,
         source="MediaPipe Holistic hand RoiTrackingCalculator (face: 15)", ge=0.0,
@@ -265,9 +265,9 @@ class RoiTrackingParams(Strict):
     )
 
     @model_validator(mode="after")
-    def _margin(self) -> RoiTrackingParams:
+    def _margin(self) -> RoiHoldParams:
         if self.keypoint_margin <= -1.0:
-            raise ValueError("V-node.roi_tracking-1: keypoint_margin must be greater than -1")
+            raise ValueError("V-node.roi_hold-1: keypoint_margin must be greater than -1")
         return self
 
 
@@ -401,11 +401,11 @@ class FitnessCheck(Strict):
     def _own_fields(self) -> FitnessCheck:
         foreign = sorted((self.model_fields_set - {"check"}) - self.FIELDS[self.check])
         if foreign:
-            raise ValueError(f"V-node.redetect-1: the check {self.check} does not take {', '.join(foreign)}")
+            raise ValueError(f"V-node.redetect_trigger-1: the check {self.check} does not take {', '.join(foreign)}")
         return self
 
 
-class RedetectParams(Strict):
+class RedetectTriggerParams(Strict):
     redetect_interval: int = param(
         1, description="Ask for a new detection at least each this many frames.", live=True,
         source="BBoxPolicyConfig.redetect_interval", ge=1,
@@ -432,18 +432,18 @@ class NodeType:
     required_inputs: ClassVar[tuple[str, ...]] = ()
     # The inputs that give the type of an `any` output (pipeline.graph, Behaviour item 4).
     any_from: ClassVar[tuple[str, ...]] = ()
-    timing_points: ClassVar[tuple[str, ...]] = ("run",)
+    timing_spans: ClassVar[tuple[str, ...]] = ("run",)
 
 
-class Detector(NodeType):
-    type = "detector"
-    section = "node.detector"
-    Params = DetectorParams
+class OnnxModel(NodeType):
+    type = "onnx_model"
+    section = "node.onnx_model"
+    Params = OnnxModelParams
     # `rois` is for a top-down keypoint model only; the role of the sidecar decides the ports that it uses.
     inputs = {"image": "image", "rois": "roi"}
     outputs = {"detections": "detections", "rois": "roi", "keypoints": "keypoints"}
     required_inputs = ("image",)
-    timing_points = ("preprocess", "inference", "postprocess")
+    timing_spans = ("preprocess", "inference", "postprocess")
 
 
 class MediapipeTasks(NodeType):
@@ -464,10 +464,10 @@ class RoiFromPoints(NodeType):
     required_inputs = ("keypoints",)
 
 
-class RoiTracking(NodeType):
-    type = "roi_tracking"
-    section = "node.roi_tracking"
-    Params = RoiTrackingParams
+class RoiHold(NodeType):
+    type = "roi_hold"
+    section = "node.roi_hold"
+    Params = RoiHoldParams
     inputs = {"previous": "roi", "current": "roi", "previous_keypoints": "keypoints"}
     outputs = {"rois": "roi"}
     required_inputs = ("previous", "current")
@@ -527,10 +527,10 @@ class SmoothRoi(NodeType):
     required_inputs = ("rois",)
 
 
-class Redetect(NodeType):
-    type = "redetect"
-    section = "node.redetect"
-    Params = RedetectParams
+class RedetectTrigger(NodeType):
+    type = "redetect_trigger"
+    section = "node.redetect_trigger"
+    Params = RedetectTriggerParams
     # The output is the input image when a new detection is needed, else empty (the trigger).
     inputs = {"image": "image", "previous_keypoints": "keypoints", "previous_rois": "roi"}
     outputs = {"image": "image"}
@@ -538,8 +538,8 @@ class Redetect(NodeType):
 
 
 NODE_TYPES: tuple[type[NodeType], ...] = (
-    Detector, MediapipeTasks, RoiFromPoints, RoiTracking, Gate, FirstOf, Concat, Merge, SmoothKeypoints, SmoothRoi,
-    Redetect,
+    OnnxModel, MediapipeTasks, RoiFromPoints, RoiHold, Gate, FirstOf, Concat, Merge, SmoothKeypoints, SmoothRoi,
+    RedetectTrigger,
 )
 BY_TYPE: dict[str, type[NodeType]] = {node.type: node for node in NODE_TYPES}
 
@@ -564,9 +564,9 @@ class VariadicNodeBase(NodeBase):
     )
 
 
-class DetectorNode(NodeBase):
-    type: Literal["detector"]
-    params: DetectorParams
+class OnnxModelNode(NodeBase):
+    type: Literal["onnx_model"]
+    params: OnnxModelParams
 
 
 class MediapipeTasksNode(NodeBase):
@@ -579,9 +579,9 @@ class RoiFromPointsNode(NodeBase):
     params: RoiFromPointsParams
 
 
-class RoiTrackingNode(NodeBase):
-    type: Literal["roi_tracking"]
-    params: RoiTrackingParams = Field(default_factory=RoiTrackingParams)
+class RoiHoldNode(NodeBase):
+    type: Literal["roi_hold"]
+    params: RoiHoldParams = Field(default_factory=RoiHoldParams)
 
 
 class GateNode(NodeBase):
@@ -614,14 +614,14 @@ class SmoothRoiNode(NodeBase):
     params: SmoothRoiParams = Field(default_factory=SmoothRoiParams)
 
 
-class RedetectNode(NodeBase):
-    type: Literal["redetect"]
-    params: RedetectParams = Field(default_factory=RedetectParams)
+class RedetectTriggerNode(NodeBase):
+    type: Literal["redetect_trigger"]
+    params: RedetectTriggerParams = Field(default_factory=RedetectTriggerParams)
 
 
 NodeConfig = Annotated[
-    DetectorNode | MediapipeTasksNode | RoiFromPointsNode | RoiTrackingNode | GateNode | FirstOfNode
-    | ConcatNode | MergeNode | SmoothKeypointsNode | SmoothRoiNode | RedetectNode,
+    OnnxModelNode | MediapipeTasksNode | RoiFromPointsNode | RoiHoldNode | GateNode | FirstOfNode
+    | ConcatNode | MergeNode | SmoothKeypointsNode | SmoothRoiNode | RedetectTriggerNode,
     Field(discriminator="type"),
 ]
 
@@ -633,8 +633,8 @@ class Tap(Strict):
 
 
 class Instrumentation(Strict):
-    timing_points: list[str] = Field(
-        default_factory=list, description="`<node>.<point>` or `pipeline.run`. Empty: no timing point is on."
+    timing_spans: list[str] = Field(
+        default_factory=list, description="`<node>.<span>` or `pipeline.run`. Empty: no timing span is on."
     )
     taps: list[Tap] = Field(default_factory=list, description="The record and replay taps.")
 
@@ -655,7 +655,7 @@ class PipelineConfig(Strict):
     description: str = Field("", description="A short text for people.")
     nodes: list[NodeConfig] = Field(description="The nodes, in any order.", min_length=1)
     outputs: dict[str, str] = Field(description="Public output name to `<node>.<port>`, with no `@prev`.", min_length=1)
-    instrumentation: Instrumentation = Field(default_factory=Instrumentation, description="Timing points and taps.")
+    instrumentation: Instrumentation = Field(default_factory=Instrumentation, description="Timing spans and taps.")
 
     @model_validator(mode="after")
     def _structure(self) -> PipelineConfig:
@@ -757,12 +757,12 @@ def check_structure(config: PipelineConfig) -> None:
         if re.match(NAME, name) is None:
             raise ValueError(f"V-pipeline.outputs-1: the output name {name!r} is not a name")
         _port(ref, nodes, "V-pipeline.outputs-1", graph_input=False)
-    for point in config.instrumentation.timing_points:
-        node_id, _, point_name = point.partition(".")
-        if node_id == RESERVED_NODE_ID and point_name == "run":
+    for span in config.instrumentation.timing_spans:
+        node_id, _, span_name = span.partition(".")
+        if node_id == RESERVED_NODE_ID and span_name == "run":
             continue
-        if node_id not in nodes or point_name not in BY_TYPE[nodes[node_id].type].timing_points:
-            raise ValueError(f"V-pipeline.timing-1: {point!r} names no timing point")
+        if node_id not in nodes or span_name not in BY_TYPE[nodes[node_id].type].timing_spans:
+            raise ValueError(f"V-pipeline.timing-1: {span!r} names no timing span")
     tap_names: set[str] = set()
     for tap in config.instrumentation.taps:
         if tap.name in tap_names:

@@ -34,142 +34,6 @@
       "title": "ConcatNode",
       "type": "object"
     },
-    "DetectorNode": {
-      "additionalProperties": false,
-      "properties": {
-        "id": {
-          "description": "The node id. `pipeline` and `frame` are reserved.",
-          "pattern": "^[a-z][a-z0-9_-]*$",
-          "title": "Id",
-          "type": "string"
-        },
-        "inputs": {
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "Input name to `<node>.<port>`, with an optional `@prev`.",
-          "title": "Inputs",
-          "type": "object"
-        },
-        "params": {
-          "$ref": "#/$defs/DetectorParams"
-        },
-        "type": {
-          "const": "detector",
-          "title": "Type",
-          "type": "string"
-        }
-      },
-      "required": [
-        "id",
-        "type",
-        "params"
-      ],
-      "title": "DetectorNode",
-      "type": "object"
-    },
-    "DetectorParams": {
-      "additionalProperties": false,
-      "properties": {
-        "ep_options": {
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "EP options for this node: option names and values that the EP catalog allows for its EP. Empty: the EP options of the run when the node uses the EP of the run, else none.",
-          "live": false,
-          "source": "ADR-9NW0 item 2",
-          "title": "Ep Options",
-          "type": "object"
-        },
-        "execution_provider": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "A key of the EP catalog for this node, for example `cuda`, `trt-rtx` or `cpu`. Empty: the EP of the run.",
-          "live": false,
-          "source": "ADR-7NY2 item 12; ADR-9NW0 item 1",
-          "title": "Execution Provider"
-        },
-        "key": {
-          "description": "The catalog key of the model, `<model_id>@<source.name>`, with an optional pin `==<version>`.",
-          "live": false,
-          "source": "ADR-7NY2 item 10; ADR-88WQ item 7",
-          "title": "Key",
-          "type": "string"
-        },
-        "max_instances": {
-          "default": 1,
-          "description": "The number of instance rows `I` that this node makes (object detector or one-stage model).",
-          "live": false,
-          "minimum": 1,
-          "source": "ADR-ZYS9 item 1",
-          "title": "Max Instances",
-          "type": "integer"
-        },
-        "object_decode": {
-          "additionalProperties": true,
-          "description": "Changes of the fields of the `object.decode` block of the sidecar. The load checks each name against the sidecar.",
-          "live": false,
-          "source": "ADR-7NY2 item 11; ADR-88WQ item 7",
-          "title": "Object Decode",
-          "type": "object"
-        },
-        "precision": {
-          "anyOf": [
-            {
-              "enum": [
-                "fp32",
-                "fp16"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The precision of the artifact. Empty: fp16 on a GPU EP and fp32 on CPU; fp32 when the size has no fp16 artifact.",
-          "live": false,
-          "source": "ADR-7NY2 item 10",
-          "title": "Precision"
-        },
-        "sidecar_sha256": {
-          "anyOf": [
-            {
-              "pattern": "^[0-9a-f]{64}$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The SHA-256 of the sidecar file bytes. Required in a shipped or an exported file.",
-          "live": false,
-          "source": "ADR-7NY2 item 10",
-          "title": "Sidecar Sha256"
-        },
-        "size": {
-          "description": "A size key of the `sizes` of the sidecar.",
-          "live": false,
-          "source": "ADR-7NY2 item 10",
-          "title": "Size",
-          "type": "string"
-        }
-      },
-      "required": [
-        "key",
-        "size"
-      ],
-      "title": "DetectorParams",
-      "type": "object"
-    },
     "FirstOfNode": {
       "additionalProperties": false,
       "properties": {
@@ -378,12 +242,12 @@
           "title": "Taps",
           "type": "array"
         },
-        "timing_points": {
-          "description": "`<node>.<point>` or `pipeline.run`. Empty: no timing point is on.",
+        "timing_spans": {
+          "description": "`<node>.<span>` or `pipeline.run`. Empty: no timing span is on.",
           "items": {
             "type": "string"
           },
-          "title": "Timing Points",
+          "title": "Timing Spans",
           "type": "array"
         }
       },
@@ -595,7 +459,7 @@
       "title": "NoParams",
       "type": "object"
     },
-    "RedetectNode": {
+    "OnnxModelNode": {
       "additionalProperties": false,
       "properties": {
         "id": {
@@ -613,10 +477,146 @@
           "type": "object"
         },
         "params": {
-          "$ref": "#/$defs/RedetectParams"
+          "$ref": "#/$defs/OnnxModelParams"
         },
         "type": {
-          "const": "redetect",
+          "const": "onnx_model",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "params"
+      ],
+      "title": "OnnxModelNode",
+      "type": "object"
+    },
+    "OnnxModelParams": {
+      "additionalProperties": false,
+      "properties": {
+        "ep_options": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "EP options for this node: option names and values that the EP catalog allows for its EP. Empty: the EP options of the run when the node uses the EP of the run, else none.",
+          "live": false,
+          "source": "ADR-9NW0 item 2",
+          "title": "Ep Options",
+          "type": "object"
+        },
+        "execution_provider": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A key of the EP catalog for this node, for example `cuda`, `trt-rtx` or `cpu`. Empty: the EP of the run.",
+          "live": false,
+          "source": "ADR-7NY2 item 12; ADR-9NW0 item 1",
+          "title": "Execution Provider"
+        },
+        "key": {
+          "description": "The catalog key of the model, `<model_id>@<source.name>`, with an optional pin `==<version>`.",
+          "live": false,
+          "source": "ADR-7NY2 item 10; ADR-88WQ item 7",
+          "title": "Key",
+          "type": "string"
+        },
+        "max_instances": {
+          "default": 1,
+          "description": "The number of instance rows `I` that this node makes (object detector or one-stage model).",
+          "live": false,
+          "minimum": 1,
+          "source": "ADR-ZYS9 item 1",
+          "title": "Max Instances",
+          "type": "integer"
+        },
+        "object_decode": {
+          "additionalProperties": true,
+          "description": "Changes of the fields of the `object.decode` block of the sidecar. The load checks each name against the sidecar.",
+          "live": false,
+          "source": "ADR-7NY2 item 11; ADR-88WQ item 7",
+          "title": "Object Decode",
+          "type": "object"
+        },
+        "precision": {
+          "anyOf": [
+            {
+              "enum": [
+                "fp32",
+                "fp16"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The precision of the artifact. Empty: fp16 on a GPU EP and fp32 on CPU; fp32 when the size has no fp16 artifact.",
+          "live": false,
+          "source": "ADR-7NY2 item 10",
+          "title": "Precision"
+        },
+        "sidecar_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The SHA-256 of the sidecar file bytes. Required in a shipped or an exported file.",
+          "live": false,
+          "source": "ADR-7NY2 item 10",
+          "title": "Sidecar Sha256"
+        },
+        "size": {
+          "description": "A size key of the `sizes` of the sidecar.",
+          "live": false,
+          "source": "ADR-7NY2 item 10",
+          "title": "Size",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "size"
+      ],
+      "title": "OnnxModelParams",
+      "type": "object"
+    },
+    "RedetectTriggerNode": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "The node id. `pipeline` and `frame` are reserved.",
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "inputs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Input name to `<node>.<port>`, with an optional `@prev`.",
+          "title": "Inputs",
+          "type": "object"
+        },
+        "params": {
+          "$ref": "#/$defs/RedetectTriggerParams"
+        },
+        "type": {
+          "const": "redetect_trigger",
           "title": "Type",
           "type": "string"
         }
@@ -625,10 +625,10 @@
         "id",
         "type"
       ],
-      "title": "RedetectNode",
+      "title": "RedetectTriggerNode",
       "type": "object"
     },
-    "RedetectParams": {
+    "RedetectTriggerParams": {
       "additionalProperties": false,
       "properties": {
         "fitness_checks": {
@@ -651,7 +651,7 @@
           "type": "integer"
         }
       },
-      "title": "RedetectParams",
+      "title": "RedetectTriggerParams",
       "type": "object"
     },
     "RoiFromPointsNode": {
@@ -844,7 +844,7 @@
       "title": "RoiFromPointsParams",
       "type": "object"
     },
-    "RoiTrackingNode": {
+    "RoiHoldNode": {
       "additionalProperties": false,
       "properties": {
         "id": {
@@ -862,10 +862,10 @@
           "type": "object"
         },
         "params": {
-          "$ref": "#/$defs/RoiTrackingParams"
+          "$ref": "#/$defs/RoiHoldParams"
         },
         "type": {
-          "const": "roi_tracking",
+          "const": "roi_hold",
           "title": "Type",
           "type": "string"
         }
@@ -874,10 +874,10 @@
         "id",
         "type"
       ],
-      "title": "RoiTrackingNode",
+      "title": "RoiHoldNode",
       "type": "object"
     },
-    "RoiTrackingParams": {
+    "RoiHoldParams": {
       "additionalProperties": false,
       "properties": {
         "keypoint_margin": {
@@ -916,7 +916,7 @@
           "type": "number"
         }
       },
-      "title": "RoiTrackingParams",
+      "title": "RoiHoldParams",
       "type": "object"
     },
     "SmoothKeypointsNode": {
@@ -1190,7 +1190,7 @@
     },
     "instrumentation": {
       "$ref": "#/$defs/Instrumentation",
-      "description": "Timing points and taps."
+      "description": "Timing spans and taps."
     },
     "nodes": {
       "description": "The nodes, in any order.",
@@ -1198,14 +1198,14 @@
         "discriminator": {
           "mapping": {
             "concat": "#/$defs/ConcatNode",
-            "detector": "#/$defs/DetectorNode",
             "first_of": "#/$defs/FirstOfNode",
             "gate": "#/$defs/GateNode",
             "mediapipe_tasks": "#/$defs/MediapipeTasksNode",
             "merge": "#/$defs/MergeNode",
-            "redetect": "#/$defs/RedetectNode",
+            "onnx_model": "#/$defs/OnnxModelNode",
+            "redetect_trigger": "#/$defs/RedetectTriggerNode",
             "roi_from_points": "#/$defs/RoiFromPointsNode",
-            "roi_tracking": "#/$defs/RoiTrackingNode",
+            "roi_hold": "#/$defs/RoiHoldNode",
             "smooth_keypoints": "#/$defs/SmoothKeypointsNode",
             "smooth_roi": "#/$defs/SmoothRoiNode"
           },
@@ -1213,7 +1213,7 @@
         },
         "oneOf": [
           {
-            "$ref": "#/$defs/DetectorNode"
+            "$ref": "#/$defs/OnnxModelNode"
           },
           {
             "$ref": "#/$defs/MediapipeTasksNode"
@@ -1222,7 +1222,7 @@
             "$ref": "#/$defs/RoiFromPointsNode"
           },
           {
-            "$ref": "#/$defs/RoiTrackingNode"
+            "$ref": "#/$defs/RoiHoldNode"
           },
           {
             "$ref": "#/$defs/GateNode"
@@ -1243,7 +1243,7 @@
             "$ref": "#/$defs/SmoothRoiNode"
           },
           {
-            "$ref": "#/$defs/RedetectNode"
+            "$ref": "#/$defs/RedetectTriggerNode"
           }
         ]
       },

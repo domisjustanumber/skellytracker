@@ -95,7 +95,7 @@ When a re-exported sidecar lands, its bytes change. Each landed pipeline that pi
 version ([ADR-271H](../../../decisions/entries/271H-pipeline-bundles.md) item 5).
 
 1. Find each pipeline file in `specs/pipeline/examples/` and `core/model_zoo/pipelines/` with a
-   `detector` node whose `key` names the sidecar.
+   `onnx_model` node whose `key` names the sidecar.
 2. Set its `sidecar_sha256` to the SHA-256 of the bytes of the new sidecar.
 3. Add the edit `sidecar_sha256 of <key> updated after a re-export` to the entry of the file in
    `specs/pipeline/inventory.yaml`, if the file has an entry.

@@ -15,7 +15,7 @@ filter or a constant-velocity Kalman filter. It can hold a missing point for som
 point that moves too fast, and reset the filter state of a row after a time with no point
 ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6). The node
 uses time units: the time step comes from `timestamp_ms`, a rate is per second and a duration is in
-milliseconds. A `smooth_keypoints` node with no detector node downstream does not make a pipeline
+milliseconds. A `smooth_keypoints` node with no `onnx_model` node downstream does not make a pipeline
 stateful ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 5).
 
 ## Fields
@@ -214,7 +214,7 @@ stateful ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sh
   its last estimate.
 - Use `reset_after_ms` to stop a long hold, and to clear the old derivative or covariance of a row
   after the person leaves the image.
-- To smooth the final keypoints, put the node after the last detector. Then it does not limit the
+- To smooth the final keypoints, put the node after the last inference node. Then it does not limit the
   batch ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 5).
 
 ## Examples

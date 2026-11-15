@@ -35,7 +35,7 @@ This node has no parameters.
 - The output has the points of each input, in the order of the list. A consumer finds a point by its name, not by its column.
 - Each point name keeps its prefix, for example `body.nose`. The node never replaces a point (`V-node.concat-2`).
 - The output has the instance source and the geometry of its inputs.
-- The timing point is `run` ([ADR-Q59W](../../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 1).
+- The timing span is `run` ([ADR-Q59W](../../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 1; [ADR-9PDQ](../../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 3).
 
 ## Validation rules
 

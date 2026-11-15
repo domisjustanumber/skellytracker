@@ -1,16 +1,16 @@
 ---
-id: node.detector
-title: Detector node
+id: node.onnx_model
+title: ONNX model node
 kind: node
 vectors: null
 status: {spec: draft}
 ---
 
-# Detector node
+# ONNX model node
 
 > This section is a draft. Its fields and rules can change before the section becomes `stable`.
 
-A `detector` node runs one ONNX model. It does the preprocessing, the inference and the postprocessing that the sidecar of the model declares, for example the crop, the decode and NMS. A pipeline has no step nodes for these steps ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 5). The [sidecar spec](../../model-sidecar/README.md) defines all model processing. This section defines only how the node refers to a model and how the node connects to the graph.
+An `onnx_model` node runs one ONNX model of the sidecar spec: an object detector, a keypoint model or a model with both roles ([ADR-9PDQ](../../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 1). It does the preprocessing, the inference and the postprocessing that the sidecar of the model declares, for example the crop, the decode and NMS. A pipeline has no step nodes for these steps ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 5). The [sidecar spec](../../model-sidecar/README.md) defines all model processing. This section defines only how the node refers to a model and how the node connects to the graph.
 
 ## Fields
 
@@ -67,23 +67,23 @@ A `detector` node runs one ONNX model. It does the preprocessing, the inference 
 - The `rois` output holds the box of each `detections` row as an ROI with rotation 0 ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 8).
 - An object detector or a one-stage model sets the `instance_score` of each `rois` and `keypoints` row: the `score` of its `detections` row. A top-down keypoint model copies the `instance_score` of its `rois` row ([Graph](../graph.md#behaviour) item 8).
 - A top-down keypoint model runs once for each present row of its `rois` input. Row `i` of `keypoints` belongs to row `i` of `rois`. A row that is not present gives a keypoint row that is not present ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1).
-- **Crop.** Only the detector node cuts pixels, always from `frame.image` ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 8). The steps are in this order:
+- **Crop.** Only the `onnx_model` node cuts pixels, always from `frame.image` ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 8). The steps are in this order:
   1. The glue nodes make the ROI. The ROI rules of `roi_from_points` apply the shift, then the square, then `expand_ratio` ([ROI from points](roi_from_points.md#behaviour) step 9).
-  2. Right before the warp, the detector node applies the padding and the aspect fix of the crop of its sidecar ([Affine crop](../../model-sidecar/pre/resize-affine-crop.md#behaviour): `crop_policy.expand_ratio` and `crop_policy.maintain_aspect_ratio`).
+  2. Right before the warp, the `onnx_model` node applies the padding and the aspect fix of the crop of its sidecar ([Affine crop](../../model-sidecar/pre/resize-affine-crop.md#behaviour): `crop_policy.expand_ratio` and `crop_policy.maintain_aspect_ratio`).
 
   Two growth factors multiply. For example, an ROI with `expand_ratio: 1.2` and a sidecar `crop_policy.expand_ratio` of 1.25 give a crop 1.5 times the size of the points box.
 - **Rotated ROI.** The sidecar crop takes the ROI with its rotation ([Affine crop](../../model-sidecar/pre/resize-affine-crop.md#behaviour)). A box is an ROI with rotation 0.
 - **Batch.** A top-down keypoint model batches its crops: k × the camera count × the `I` of the instance source of its `rois` input ([Running](../running.md#behaviour) item 4).
 - NMS is a part of the postprocessing of the model. The sidecar section [`post.object.selection.nms`](../../model-sidecar/post/object/selection-nms.md#behaviour) defines it ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 9).
-- The timing points are `preprocess`, `inference` and `postprocess` ([ADR-Q59W](../../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 1).
+- The timing spans are `preprocess`, `inference` and `postprocess` ([ADR-Q59W](../../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 1; [ADR-9PDQ](../../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 3).
 
 ## Validation rules
 
-- [ ] `V-node.detector-1` When `sidecar_sha256` is present, it must equal the SHA-256 of the bytes of the sidecar file that `key` resolves. The error message of a mismatch must name both hashes.
-- [ ] `V-node.detector-2` The `role` of the model must match its use. A node with a `rois` input must be a keypoint model with the [`keypoint.estimator_type`](../../model-sidecar/post/keypoint/schema.md#fields) `top_down_single_person` or `top_down_multi_person`. A top-down keypoint model must have a `rois` input. A `bottom_up` keypoint model and an object detector must not have a `rois` input. Each output port of the node that the graph uses must be an output of the role ([Behaviour](#behaviour)).
-- [ ] `V-node.detector-3` Each name in `object_decode` must be a field that the sidecar spec allows in the `object.decode` block of that sidecar. Its value must have the type and the range of that field.
-- [ ] `V-node.detector-4` `size` must be a size key of the `sizes` of the sidecar. When `precision` is present, `sizes.<size>.onnx.precision_artifacts` must have that precision.
-- [ ] `V-node.detector-5` `max_instances` must not be more than the limit of the model ([Fields](#fields)).
+- [ ] `V-node.onnx_model-1` When `sidecar_sha256` is present, it must equal the SHA-256 of the bytes of the sidecar file that `key` resolves. The error message of a mismatch must name both hashes.
+- [ ] `V-node.onnx_model-2` The `role` of the model must match its use. A node with a `rois` input must be a keypoint model with the [`keypoint.estimator_type`](../../model-sidecar/post/keypoint/schema.md#fields) `top_down_single_person` or `top_down_multi_person`. A top-down keypoint model must have a `rois` input. A `bottom_up` keypoint model and an object detector must not have a `rois` input. Each output port of the node that the graph uses must be an output of the role ([Behaviour](#behaviour)).
+- [ ] `V-node.onnx_model-3` Each name in `object_decode` must be a field that the sidecar spec allows in the `object.decode` block of that sidecar. Its value must have the type and the range of that field.
+- [ ] `V-node.onnx_model-4` `size` must be a size key of the `sizes` of the sidecar. When `precision` is present, `sizes.<size>.onnx.precision_artifacts` must have that precision.
+- [ ] `V-node.onnx_model-5` `max_instances` must not be more than the limit of the model ([Fields](#fields)).
 
 ## Implementer guidance
 
@@ -106,14 +106,14 @@ A person detector and a top-down keypoint model, as in the built-in `yolox-rtmw-
 ```yaml
 nodes:
   - id: person
-    type: detector
+    type: onnx_model
     inputs: {image: frame.image}
     params:
       key: yolox-person@openmmlab-exporter
       size: t
       object_decode: {nms: {post_nms_top_k: 1}}
   - id: wholebody
-    type: detector
+    type: onnx_model
     inputs: {image: frame.image, rois: person.rois}
     params:
       key: rtmw-wholebody133@openmmlab-exporter

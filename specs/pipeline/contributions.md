@@ -16,7 +16,7 @@ their headings ([ADR-3SF2](../../decisions/entries/3SF2-pipeline-spec-and-node-w
 | Add a node type, or change the params, the ports or the behaviour of a node type | A `proposal` bundle with `node.<type>` sections | [Node proposal](templates/node-proposal.md) |
 | Change how a model is preprocessed, run or decoded | A sidecar proposal, not a node proposal | [Change proposal](../model-sidecar/templates/change-proposal.md) |
 
-The pipeline spec never defines model processing. A detector node only refers to a sidecar
+The pipeline spec never defines model processing. An `onnx_model` node only refers to a sidecar
 ([Pipeline Spec Rules](AGENTS.md)).
 
 ## Add a pipeline
@@ -24,7 +24,7 @@ The pipeline spec never defines model processing. A detector node only refers to
 1. Read the [pipeline spec](README.md): [Pipeline file](file.md), [Graph](graph.md),
    [Outputs](outputs.md) and the section of each node type that you use.
 2. Write `<pipeline_id>.pipeline.yaml`. Set `source.name` to the name of your repo, in lower case.
-3. Give each `detector` node its `key` and its `sidecar_sha256`: the SHA-256 of the bytes of the
+3. Give each `onnx_model` node its `key` and its `sidecar_sha256`: the SHA-256 of the bytes of the
    sidecar. The model can be landed, or in a `model` bundle that you name in `depends_on`. It can be
    a model of another exporter.
 4. If the pipeline needs a node change, send the node proposal first. Name it in `depends_on`.

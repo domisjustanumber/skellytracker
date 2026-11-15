@@ -1,21 +1,22 @@
 ---
-id: node.redetect
-title: Redetect
+id: node.redetect_trigger
+title: Redetect trigger
 kind: node
-vectors: vectors/node.redetect.yaml
+vectors: vectors/node.redetect_trigger.yaml
 status: {spec: draft}
 ---
 
-# Redetect
+# Redetect trigger
 
 > This section is a draft. Its fields and rules can change before the section becomes `stable`.
 
-The node `redetect` decides on each frame if a detector must run again. When a new detection is
+The node `redetect_trigger` decides on each frame if a detector must run again
+([ADR-9PDQ](../../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 2). When a new detection is
 necessary, the output is the input image. Else the output is empty. This output is the trigger: the
-detector node that takes it runs only when it is not empty
+`onnx_model` node that takes it runs only when it is not empty
 ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6). The node
 asks for a detection at a fixed interval, and when a fitness check on the previous frame fails. A
-`redetect` node upstream of a detector makes a pipeline stateful
+`redetect_trigger` node upstream of an `onnx_model` node makes a pipeline stateful
 ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 5).
 
 ## Fields
@@ -44,7 +45,7 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
 - An ROI is `(cx, cy, w, h, rotation)` in source-image pixels, with `rotation` in radians
   ([Graph](../graph.md#behaviour) item 3).
 - Each item of `fitness_checks` has a `check` and only the fields of that check
-  (`V-node.redetect-1`). A field that the item does not write takes its default:
+  (`V-node.redetect_trigger-1`). A field that the item does not write takes its default:
 
   | `check` | Fields and defaults |
   |---|---|
@@ -111,7 +112,7 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
 
 ## Validation rules
 
-- [ ] `V-node.redetect-1` Each item of `fitness_checks` must write only `check` and the fields of its `check`: `threshold` for `min_keypoint_score` and `keypoints_within_bbox_ratio`, `n_frames` for `max_frames_without_redetect`, and `min_area_ratio`, `expand_ratio` and `min_score` for `bbox_area_collapse`.
+- [ ] `V-node.redetect_trigger-1` Each item of `fitness_checks` must write only `check` and the fields of its `check`: `threshold` for `min_keypoint_score` and `keypoints_within_bbox_ratio`, `n_frames` for `max_frames_without_redetect`, and `min_area_ratio`, `expand_ratio` and `min_score` for `bbox_area_collapse`.
 
 ## Implementer guidance
 
@@ -151,11 +152,11 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
 
 ## Examples
 
-The vector file [`node.redetect.yaml`](../vectors/node.redetect.yaml) holds the worked cases.
+The vector file [`node.redetect_trigger.yaml`](../vectors/node.redetect_trigger.yaml) holds the worked cases.
 
 ```yaml
 - id: need_person
-  type: redetect
+  type: redetect_trigger
   inputs: {image: frame.image, previous_keypoints: smooth.keypoints@prev, previous_rois: crop.rois@prev}
   params:
     redetect_interval: 30

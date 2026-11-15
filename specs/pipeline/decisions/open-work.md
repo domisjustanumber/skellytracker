@@ -7,7 +7,7 @@ root [open-work.md](../../../decisions/open-work.md).
 
 ## Draft spec
 
-- **Crop border.** A detector node crops a rotated ROI with `affine_crop`
+- **Crop border.** An `onnx_model` node crops a rotated ROI with `affine_crop`
   ([ADR-G3FA](../../model-sidecar/decisions/entries/G3FA-affine-crop-rotated-roi.md)). Its border is
   constant. The MediaPipe hand chain fills the border with the edge pixels. That border mode waits
   for a sidecar proposal (the spec defects of the

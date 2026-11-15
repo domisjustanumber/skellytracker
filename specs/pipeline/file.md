@@ -26,7 +26,7 @@ A **name** is a string that matches `^[a-z][a-z0-9_-]*$`.
 | `description` | string | no | A short text for people. Default: empty. |
 | `nodes` | array | yes | The nodes of the graph, in any order. [Graph](graph.md) gives the node fields. |
 | `outputs` | mapping | yes | Public output name to port. [Outputs](outputs.md) gives the fields. |
-| `instrumentation` | mapping | no | The keys `timing_points` ([Timing](timing.md)) and `taps` ([Taps](taps.md)). Default: no timing point and no tap. |
+| `instrumentation` | mapping | no | The keys `timing_spans` ([Timing](timing.md); [ADR-9PDQ](../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 3) and `taps` ([Taps](taps.md)). Default: no timing span and no tap. |
 
 ## Behaviour
 
@@ -34,7 +34,7 @@ A **name** is a string that matches `^[a-z][a-z0-9_-]*$`.
 2. **Input forms.** A host accepts a YAML file, a JSON file or a mapping that holds the same keys. A YAML loader must use a safe load (`yaml.safe_load` or an equivalent loader that makes only plain data). It must refuse a duplicate key, as the sidecar loader does ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 2; [ADR-88WQ](../../decisions/entries/88WQ-sidecar-vocabulary.md) item 6).
 3. **Strict.** An unknown key is an error at each level of the config, also in `params` ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) items 2 and 11).
 4. **No code.** A pipeline file runs no user code. The node types are a closed set. A new node type is a spec change ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6; [ADR-AD33](../../decisions/entries/AD33-bundles-are-untrusted-input.md)).
-5. **Sidecar references.** A detector node refers to its model by `key` and `sidecar_sha256`. A config never copies the content of a sidecar ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 3). The [detector node](nodes/detector.md) section gives these params.
+5. **Sidecar references.** An `onnx_model` node refers to its model by `key` and `sidecar_sha256`. A config never copies the content of a sidecar ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 3). The [`onnx_model` node](nodes/onnx_model.md) section gives these params.
 6. **Key.** The key of a pipeline is `<pipeline_id>@<source.name>`. The catalog key rules of the sidecar spec apply ([Identity](../model-sidecar/common/identity.md#implementer-guidance); [ADR-88WQ](../../decisions/entries/88WQ-sidecar-vocabulary.md) item 7):
    - When the catalog finds more than one version of one key, the newest `source.version` wins, in PEP 440 order.
    - A load can pin a version with `<pipeline_id>@<source.name>==<version>`. A pin wins over the newest version.
@@ -65,8 +65,8 @@ A **name** is a string that matches `^[a-z][a-z0-9_-]*$`.
 
 ## Authoring guidance
 
-- Write only the params that you change. The defaults of a detector node come from the `object.decode` fields of its sidecar. The node sections give the defaults of the other node types ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 11).
-- A shipped or an exported file must give `sidecar_sha256` for each detector node ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 10). The hand-written [examples](examples/) do not give it.
+- Write only the params that you change. The defaults of an `onnx_model` node come from the `object.decode` fields of its sidecar. The node sections give the defaults of the other node types ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 11).
+- A shipped or an exported file must give `sidecar_sha256` for each `onnx_model` node ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 10). The hand-written [examples](examples/) do not give it.
 
 ## Examples
 

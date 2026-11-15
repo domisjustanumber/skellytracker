@@ -227,11 +227,11 @@ FILE_TOLERANCE = {
     "common.license": 0,  # data-only validator cases
     # Pipeline glue nodes (ADR-3SF2 item 4): the ROI geometry, and the filters, which run in float64.
     "node.roi_from_points": 1e-6,
-    "node.roi_tracking": 1e-6,
+    "node.roi_hold": 1e-6,
     "node.gate": 1e-6,
     "node.smooth_keypoints": 1e-9,
     "node.smooth_roi": 1e-9,
-    "node.redetect": 1e-9,
+    "node.redetect_trigger": 1e-9,
     "node.first_of": 0,  # the node passes a value through: no arithmetic
     "node.concat": 0,  # the node copies columns and rows: no arithmetic
 }

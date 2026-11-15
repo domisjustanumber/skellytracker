@@ -23,7 +23,7 @@ One or two sentences: what the pipeline finds, and for which use.
 
 ## 2. Models
 
-One row for each `detector` node.
+One row for each `onnx_model` node.
 
 | Node `id` | `key` | `sidecar_sha256` | `size` | State of the sidecar |
 |---|---|---|---|---|

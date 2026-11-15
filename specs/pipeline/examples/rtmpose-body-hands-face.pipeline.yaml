@@ -11,7 +11,7 @@ description: >-
   The hand and face ROI rules are not measured yet.
 nodes:
   - id: person
-    type: detector
+    type: onnx_model
     inputs: {image: frame.image}
     params:
       key: yolox-person@openmmlab-exporter
@@ -19,7 +19,7 @@ nodes:
       object_decode:
         nms: {post_nms_top_k: 1}
   - id: body
-    type: detector
+    type: onnx_model
     inputs: {image: frame.image, rois: person.rois}
     params: {key: rtmpose-body17@openmmlab-exporter, size: m}
   - id: right_hand_roi
@@ -54,15 +54,15 @@ nodes:
       square_long: true
       expand_ratio: 1.5
   - id: right_hand
-    type: detector
+    type: onnx_model
     inputs: {image: frame.image, rois: right_hand_roi.rois}
     params: {key: rtmpose-hand21@openmmlab-exporter, size: m}
   - id: left_hand
-    type: detector
+    type: onnx_model
     inputs: {image: frame.image, rois: left_hand_roi.rois}
     params: {key: rtmpose-hand21@openmmlab-exporter, size: m}
   - id: face
-    type: detector
+    type: onnx_model
     inputs: {image: frame.image, rois: face_roi.rois}
     params: {key: rtmpose-face106@openmmlab-exporter, size: m}
   - id: joined
