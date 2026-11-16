@@ -1,4 +1,4 @@
-"""The sidecar spec and the pipeline spec do not use a name that a decision retires (88WQ, GKD1, 23F5).
+"""The sidecar spec and the pipeline spec do not use a name that a decision retires (88WQ, GKD1, 23F5, KY2J).
 
 Spec version 2.0.0 keeps no alias for an old name. The frozen texts keep their old names: the
 proposal records, the decision logs, the changelog with its old-to-new ID map and the frozen
@@ -36,6 +36,8 @@ RETIRED = {
     "expansion_ratio": r"\bexpansion_ratio\b",
     "requires_object_detector": r"\brequires_object_detector\b",
     "keypoint.canonical_mapping": r"(?<!post\.)\bkeypoint\.canonical_mapping\b",
+    "top_down_single_person": r"\btop_down_single_person\b",
+    "top_down_multi_person": r"\btop_down_multi_person\b",
 }
 
 

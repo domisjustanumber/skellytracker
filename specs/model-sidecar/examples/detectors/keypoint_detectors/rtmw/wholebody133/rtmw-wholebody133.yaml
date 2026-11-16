@@ -164,7 +164,7 @@ outputs:
   keypoint_axis: 1
   keypoint_count: 133
 keypoint:
-  estimator_type: top_down_single_person
+  estimator_type: top_down
   geometry: 2d
   landmark_schema: COCO_WholeBody
   point_names:

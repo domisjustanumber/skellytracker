@@ -58,7 +58,7 @@ An `onnx_model` node runs one ONNX model of the sidecar spec: an object detector
   | Model | `role` | Inputs | Outputs |
   |---|---|---|---|
   | Object detector | `[object_detector]` | `image` | `detections`, `rois` |
-  | Top-down keypoint model | `[keypoint_detector]`, `keypoint.estimator_type` `top_down_single_person` or `top_down_multi_person` | `image`, `rois` | `keypoints` |
+  | Top-down keypoint model | `[keypoint_detector]`, `keypoint.estimator_type: top_down` | `image`, `rois` | `keypoints` |
   | Bottom-up keypoint model | `[keypoint_detector]`, `keypoint.estimator_type: bottom_up` | `image` | `keypoints` |
   | One-stage model with both roles | `[object_detector, keypoint_detector]` | `image` | `detections`, `rois`, `keypoints` |
 
@@ -80,7 +80,7 @@ An `onnx_model` node runs one ONNX model of the sidecar spec: an object detector
 ## Validation rules
 
 - [ ] `V-node.onnx_model-1` When `sidecar_sha256` is present, it must equal the SHA-256 of the bytes of the sidecar file that `key` resolves. The error message of a mismatch must name both hashes.
-- [ ] `V-node.onnx_model-2` The `role` of the model must match its use. A node with a `rois` input must be a keypoint model with the [`keypoint.estimator_type`](../../model-sidecar/post/keypoint/schema.md#fields) `top_down_single_person` or `top_down_multi_person`. A top-down keypoint model must have a `rois` input. A `bottom_up` keypoint model and an object detector must not have a `rois` input. Each output port of the node that the graph uses must be an output of the role ([Behaviour](#behaviour)).
+- [ ] `V-node.onnx_model-2` The `role` of the model must match its use. A node with a `rois` input must be a keypoint model with the [`keypoint.estimator_type`](../../model-sidecar/post/keypoint/schema.md#fields) `top_down` ([ADR-KY2J](../../../decisions/entries/KY2J-estimator-type-top-down-or-bottom-up.md)). A top-down keypoint model must have a `rois` input. A `bottom_up` keypoint model and an object detector must not have a `rois` input. Each output port of the node that the graph uses must be an output of the role ([Behaviour](#behaviour)).
 - [ ] `V-node.onnx_model-3` Each name in `object_decode` must be a field that the sidecar spec allows in the `object.decode` block of that sidecar. Its value must have the type and the range of that field.
 - [ ] `V-node.onnx_model-4` `size` must be a size key of the `sizes` of the sidecar. When `precision` is present, `sizes.<size>.onnx.precision_artifacts` must have that precision.
 - [ ] `V-node.onnx_model-5` `max_instances` must not be more than the limit of the model ([Fields](#fields)).

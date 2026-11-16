@@ -158,7 +158,7 @@ def simcc_keypoint_detector() -> dict[str, Any]:
             {"name": "simcc_y", "dtype": {"fp32": "float32"}, "semantic": "simcc_y"},
         ],
         "keypoint": {
-            "estimator_type": "top_down_single_person",
+            "estimator_type": "top_down",
             "geometry": "2d",
             "landmark_schema": "Demo3",
             "point_names": list(POINTS_3),

@@ -289,7 +289,7 @@ def is_number(value: Any) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
 
 
-TOP_DOWN = ("top_down_single_person", "top_down_multi_person")
+TOP_DOWN = ("top_down",)
 
 
 def check_rules(sidecar: Mapping[str, Any]) -> list[str]:

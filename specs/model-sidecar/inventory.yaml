@@ -42,7 +42,8 @@ examples:
     exporter_layout_path: null
     tracked: false
     commit: d1b6fb2d0efbafb12c785d96386c1253439b27af
-    edits: []
+    edits:
+      - "spec change KY2J: the value of keypoint.estimator_type renamed to top_down (V-post.keypoint.schema-3)"
     notes: >-
       A byte copy of the sidecar that the exporter writer code wrote for the hand-over bundle. The
       exporter turns off its sidecar output until the verdict describes, so exporter_path does not

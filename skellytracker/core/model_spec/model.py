@@ -258,7 +258,7 @@ class KeypointSpec(SpecModel):
     Implements: post.keypoint.schema
     """
 
-    estimator_type: Literal["top_down_single_person", "top_down_multi_person", "bottom_up"]
+    estimator_type: Literal["top_down", "bottom_up"]
     geometry: Literal["2d", "3d"]
     landmark_schema: str
     point_names: list[str]
