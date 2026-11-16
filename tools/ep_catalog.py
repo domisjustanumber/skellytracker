@@ -21,7 +21,8 @@ Usage::
   ``options.allowed`` map;
 - an allow-list holds ``device_id``, or an allowed value is not a list of strings or ``positive-int``;
 - a hardware class has no ``id``, no ``ranking_evidence`` or a candidate that is not an EP key that a
-  request can name, or two hardware classes have one ``id``.
+  request can name, or two hardware classes have one ``id``;
+- a successor of a key of ``legacy_keys`` is not an EP key that a request can name.
 
 ``--refresh`` uses the network. Only this mode writes ``ep_lock.yaml``. For each pack and each
 platform of the catalog, it reads the PEP 503 page of each wheel, downloads the wheel to the cache
@@ -150,6 +151,8 @@ def check(catalog: dict, lock: dict, catalog_text: str, pyproject_text: str, uv_
         if not row.get("ranking_evidence"):
             problems.append(f"hardware class {row_id}: no ranking_evidence")
         problems += [f"hardware class {row_id}: the candidate {c} is not an EP key" for c in row.get("candidates", ()) if c not in usable]
+    for old, successors in catalog.get("legacy_keys", {}).items():
+        problems += [f"legacy key {old}: the successor {s} is not an EP key" for s in successors if s not in usable]
     return problems
 
 

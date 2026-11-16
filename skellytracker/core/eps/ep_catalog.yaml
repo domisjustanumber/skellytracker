@@ -115,6 +115,16 @@ eps:
   migraphx: {kind: reserved, reason: "MIGraphX is deferred"}
   vitisai: {kind: reserved, reason: "Vitis AI is deferred"}
 
+# The EP keys that a setting of an older release can hold, each with its successors in order.
+# Only `suggest_execution_provider()` reads this table (ADR-4CB1). A request for one of these keys
+# does not change: `cuda` runs on `cuda`, and `trt` and `directml` stay reserved.
+# A key with no successor has an empty list. Each successor is an EP key that is not reserved.
+# When classic TensorRT comes back under the key `trt`, the row of `trt` must leave this table.
+legacy_keys:
+  trt: [trt-rtx, cuda]
+  cuda: [trt-rtx, cuda]
+  directml: []
+
 # The first row that a GPU of the host (or the host) matches gives the candidates, in order.
 # `ranking_evidence` is a decision entry ID, `single-ep`, or `none` (the order is not measured).
 # No benchmark runs on the host.

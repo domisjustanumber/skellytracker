@@ -82,8 +82,17 @@ def break_revision(catalog, lock):
     lock["catalog_revision"] = "0" * 64
 
 
+def break_successor(catalog, lock):
+    catalog["legacy_keys"]["directml"] = ["trt"]  # a reserved key
+
+
+def break_unknown_successor(catalog, lock):
+    catalog["legacy_keys"]["cuda"] = ["trt-rtx", "tensorrt"]
+
+
 @pytest.mark.parametrize("change", [break_pin, break_group, break_darwin, break_reserved, break_evidence, break_candidate,
-                                    break_device_id, break_url, break_sha, break_lock_row, break_revision],
+                                    break_device_id, break_url, break_sha, break_lock_row, break_revision,
+                                    break_successor, break_unknown_successor],
                          ids=lambda change: change.__name__)
 def test_check_finds_each_defect(change):
     catalog, lock = (copy.deepcopy(part) for part in load())

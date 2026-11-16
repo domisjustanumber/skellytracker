@@ -1,4 +1,4 @@
-"""`status()` and `check_start()`: the EP state of this host, with no `onnxruntime` import and no network.
+"""`status()`, `check_start()` and `suggest_execution_provider()`: the EP state of this host, with no `onnxruntime` import and no network.
 
 The entries of the `detectors` list and of the `pipelines` list carry no EP state. `status()` and
 `recommend()` give it. A pack can change after a list call, so a run checks the EP at its start.
@@ -100,3 +100,27 @@ def status() -> EpStatus:
         performance=recommend("performance", host), accuracy=recommend("accuracy", host),
         eps=tuple(row for row in rows if row is not None), warnings=tuple(warnings),
     )
+
+
+def suggest_execution_provider(saved_execution_provider: str) -> str | None:
+    """The EP key to use on this host for an EP key that a setting of an older release holds, or None.
+
+    An application calls it only for a setting that an older release saved. A choice of this release
+    stays as chosen. None means: use the recommendation, `status().performance`.
+
+    1. A key of `legacy_keys` of the EP catalog gives its first successor whose `PackStatus.usable`
+       is true on this host, else None. `trt` and `cuda` have the successors `trt-rtx`, then `cuda`.
+       `directml` has no successor.
+    2. Each other EP key of the catalog on this platform gives that key when it is usable, else None.
+    3. Each other string gives None: a reserved key with no row in `legacy_keys`, an unknown key and
+       the empty string. The function raises for no string. The match is exact and case-sensitive.
+
+    It uses the state of `status()`: it loads no library and uses no network. A request does not
+    change: `check_start("cuda")` starts `cuda`, and `check_start("trt")` raises `EpRequestError`.
+    """
+    catalog, host = load_catalog(), probe_host()
+    for key in catalog.data["legacy_keys"].get(saved_execution_provider, (saved_execution_provider,)):
+        row = _pack_status(catalog, key, host) if key in catalog.keys() else None
+        if row is not None and row.usable:
+            return key
+    return None

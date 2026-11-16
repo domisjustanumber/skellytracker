@@ -15,6 +15,9 @@ and takes its recommended and automatic choices from `recommend()`:
 - `PackStatus.description` is one sentence for a user, from `description` of the EP catalog.
 - `PackStatus.devices` holds the GPUs of this host that the EP can use, as `RunDevice` records, in
   the order of `run_devices(key)`. `status()` still loads no library and uses no network.
+- `suggest_execution_provider(saved_execution_provider)` gives the EP key to use on this host for an
+  EP key that a setting of an older release holds, or None. An application calls it only for such a
+  setting. On None, the application uses the recommendation.
 """
 
 from skellytracker.core.eps.catalog import EpCatalog, load_catalog
@@ -43,7 +46,7 @@ from skellytracker.core.eps.records import (
 from skellytracker.core.eps.registration import ensure_registered
 from skellytracker.core.eps.self_test import selftest
 from skellytracker.core.eps.session import build_session
-from skellytracker.core.eps.state import check_start, status
+from skellytracker.core.eps.state import check_start, status, suggest_execution_provider
 from skellytracker.core.eps.store import store_root
 from skellytracker.core.eps.verification import verify
 
@@ -82,5 +85,6 @@ __all__ = [
     "selftest",
     "status",
     "store_root",
+    "suggest_execution_provider",
     "verify",
 ]

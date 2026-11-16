@@ -46,6 +46,30 @@ def test_start_check(rtx_host):
             eps.check_start(key, device=device_key)
 
 
+@pytest.mark.parametrize(("installed", "saved", "expected"), [
+    (("trt-rtx", "cuda"), "trt", "trt-rtx"), (("trt-rtx", "cuda"), "cuda", "trt-rtx"),
+    (("cuda",), "trt", "cuda"), (("cuda",), "cuda", "cuda"), ((), "trt", None), ((), "cuda", None),
+    (("trt-rtx", "cuda"), "directml", None), ((), "cpu", "cpu"), ((), "coreml", None),  # this platform has no `coreml`
+    (("trt-rtx", "cuda"), "trt-rtx", "trt-rtx"), (("cuda",), "trt-rtx", None),  # a key of this release has no successor
+    (("trt-rtx", "cuda"), "tensorrt", None), (("trt-rtx", "cuda"), "openvino", None), (("trt-rtx", "cuda"), "", None),
+    (("trt-rtx", "cuda"), "CUDA", None),
+])
+def test_suggest_execution_provider_for_a_key_of_an_older_release(rtx_host, installed, saved, expected):
+    for key in installed:
+        hw_fakes.fake_pack(key)
+    assert eps.suggest_execution_provider(saved) == expected
+
+
+def test_the_legacy_keys_do_not_change_a_request(rtx_host):
+    hw_fakes.fake_pack("trt-rtx")
+    hw_fakes.fake_pack("cuda")
+    assert eps.suggest_execution_provider("cuda") == "trt-rtx"
+    assert [device.device_key for device in eps.check_start("cuda")] == ["gpu:10de:2484:0"]  # a request for `cuda` runs on `cuda`
+    for key in ("trt", "directml"):
+        with pytest.raises(EpRequestError, match="reserved"):
+            eps.check_start(key)
+
+
 def test_status_json(rtx_host, capsys):
     hw_fakes.fake_pack("cuda")
     assert cli.main(["status", "--json"]) == 0
