@@ -168,3 +168,58 @@ cases:
       running_mode: video
       frames: [{frame_index: 0, previous_keypoints: null, previous_rois: null}]
     expect: {error: V-node.redetect_trigger-1}
+  - id: roi-missing
+    note: "frame 0: `last` is empty. frame 1: the ROI row is there. frame 2: previous_rois is
+      empty, so the check fails. frame 3: the row is not present, so the check fails.
+      frame 4: the ROI row is there"
+    params: {redetect_interval: 100, fitness_checks: [{check: roi_missing}]}
+    input:
+      running_mode: video
+      frames:
+        - {frame_index: 0, previous_keypoints: null, previous_rois: null}
+        - frame_index: 1
+          previous_keypoints: [[[10, 10, 0.9], [30, 40, 0.9]]]
+          previous_rois: [[20, 25, 40, 60, 0]]
+        - {frame_index: 2, previous_keypoints: null, previous_rois: null}
+        - {frame_index: 3, previous_keypoints: [null], previous_rois: [null]}
+        - frame_index: 4
+          previous_keypoints: [[[10, 10, 0.9], [30, 40, 0.9]]]
+          previous_rois: [[20, 25, 40, 60, 0]]
+    expect: {triggered: [true, false, true, true, false]}
+  - id: lost-person-checks
+    note: "roi_missing with bbox_area_collapse, min_area_ratio 0 and min_score 0.4: the area
+      test never fails. frame 1: a small box of good points passes. frame 2: no point has
+      a score of 0.4 or more. frame 3: the counted points are on one vertical line. frame
+      4: a score equal to 0.4 counts, so the check passes. frame 5: the detector found no
+      box on the frame before"
+    params:
+      redetect_interval: 100
+      fitness_checks:
+        - {check: roi_missing}
+        - {check: bbox_area_collapse, min_area_ratio: 0, min_score: 0.4}
+    input:
+      running_mode: video
+      frames:
+        - {frame_index: 0, previous_keypoints: null, previous_rois: null}
+        - frame_index: 1
+          previous_keypoints: [[[10, 10, 0.9], [11, 12, 0.9]]]
+          previous_rois: [[200, 200, 400, 400, 0]]
+        - frame_index: 2
+          previous_keypoints: [[[10, 10, 0.39], [30, 40, 0.2]]]
+          previous_rois: [[200, 200, 400, 400, 0]]
+        - frame_index: 3
+          previous_keypoints: [[[10, 10, 0.9], [10, 40, 0.9], [90, 90, 0.1]]]
+          previous_rois: [[200, 200, 400, 400, 0]]
+        - frame_index: 4
+          previous_keypoints: [[[10, 10, 0.4], [30, 40, 0.4]]]
+          previous_rois: [[200, 200, 400, 400, 0]]
+        - {frame_index: 5, previous_keypoints: null, previous_rois: null}
+    expect: {triggered: [true, false, true, true, false, true]}
+  - id: refused-field-of-roi-missing
+    note: "roi_missing has no field"
+    checks: [refused]
+    params: {fitness_checks: [{check: roi_missing, threshold: 0.5}]}
+    input:
+      running_mode: video
+      frames: [{frame_index: 0, previous_keypoints: null, previous_rois: null}]
+    expect: {error: V-node.redetect_trigger-1}

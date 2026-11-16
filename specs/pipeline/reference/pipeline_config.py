@@ -182,10 +182,12 @@ def derivation_sources(derivation: Derivation) -> list[str]:
 
 
 class RoiFromPointsParams(Strict):
-    points: list[str | list[str]] = param(
-        description="The points of the ROI. A list of names is one point with aliases: the first present name counts.",
+    points: list[str | list[str]] | None = param(
+        None,
+        description="The points of the ROI. A list of names is one point with aliases: the first present name counts. "
+        "Empty: each present point of the input.",
         set_during_run=False,
-        source="ADR-7NY2 item 6",
+        source="ADR-7NY2 item 6; ADR-RA0E item 2",
         min_length=1,
     )
     derived_points: dict[str, Derivation] = param(
@@ -225,6 +227,18 @@ class RoiFromPointsParams(Strict):
     expand_ratio: float = param(
         1.0, description="Multiply the width and the height by this value.", set_during_run=True,
         source="MediaPipe RectTransformationCalculator scale default; ADR-88WQ item 4", gt=0.0,
+    )
+    min_previous_ratio: float | None = param(
+        None, description="The smallest width and height, as a part of the ROI of `previous_rois`. Empty: no floor.",
+        set_during_run=True, source="BBoxPolicyConfig.min_shrink_ratio_per_frame; ADR-RA0E item 3", ge=0.0, le=1.0,
+    )
+    min_reference_ratio: float | None = param(
+        None, description="The smallest width and height, as a part of the ROI of `reference_rois`. Empty: no floor.",
+        set_during_run=True, source="BBoxPolicyConfig.min_detected_bbox_ratio; ADR-RA0E item 3", ge=0.0,
+    )
+    min_size_px: float = param(
+        0.0, description="The smallest width and height, in source-image pixels.", set_during_run=True,
+        source="BBoxPolicyConfig.min_bbox_size_px; ADR-RA0E item 3", ge=0.0,
     )
 
     @model_validator(mode="after")
@@ -372,14 +386,47 @@ class SmoothKeypointsParams(Strict):
 
 
 class SmoothRoiParams(Strict):
-    previous_weight: float = param(
-        0.5, description="The weight of the previous ROI: new = previous_weight × previous + (1 − previous_weight) × input.", set_during_run=True,
-        source="BBoxSmoothingConfig.alpha (freemocap uses 0.4); ADR-88WQ item 4", ge=0.0, le=1.0,
+    filter: Literal["ema", "one_euro"] = param(
+        "ema", description="The filter.", set_during_run=False, source="ADR-RA0E item 5"
     )
+    previous_weight: float = param(
+        0.5, description="ema: the weight of the previous ROI: new = previous_weight × previous + (1 − previous_weight) × input.", set_during_run=True,
+        source="BBoxSmoothingConfig.alpha; ADR-88WQ item 4", ge=0.0, le=1.0,
+    )
+    min_cutoff: float = param(
+        3.0, description="one_euro: the minimum cutoff frequency, in Hz.", set_during_run=True,
+        source="BBoxSmoothingConfig.min_cutoff of the branch sfn26; ADR-RA0E item 5", gt=0.0,
+    )
+    beta: float = param(
+        0.02, description="one_euro: the speed coefficient, in Hz per px/s.", set_during_run=True,
+        source="BBoxSmoothingConfig.beta of the branch sfn26; ADR-RA0E item 5", ge=0.0,
+    )
+    d_cutoff: float = param(
+        1.0, description="one_euro: the cutoff frequency of the derivative, in Hz.", set_during_run=True,
+        source="BBoxSmoothingConfig.d_cutoff of the branch sfn26; ADR-RA0E item 5", gt=0.0,
+    )
+    reset_after_ms: float = param(
+        500.0,
+        description="one_euro: start the filter again when the time since the last ROI of the row is more than this many milliseconds.",
+        set_during_run=False, source="BBoxSmoothingConfig.reset_after_seconds of the branch sfn26; ADR-RA0E item 5", gt=0.0,
+    )
+
+    EMA: ClassVar[frozenset[str]] = frozenset({"previous_weight"})
+    ONE_EURO: ClassVar[frozenset[str]] = frozenset({"min_cutoff", "beta", "d_cutoff", "reset_after_ms"})
+
+    @model_validator(mode="after")
+    def _filter_params(self) -> SmoothRoiParams:
+        other = self.ONE_EURO if self.filter == "ema" else self.EMA
+        written = sorted(other & self.model_fields_set)
+        if written:
+            raise ValueError(f"V-node.smooth_roi-1: the filter {self.filter} does not take {', '.join(written)}")
+        return self
 
 
 class FitnessCheck(Strict):
-    check: Literal["min_keypoint_score", "keypoints_within_bbox_ratio", "max_frames_without_redetect", "bbox_area_collapse"] = Field(
+    check: Literal[
+        "min_keypoint_score", "keypoints_within_bbox_ratio", "max_frames_without_redetect", "bbox_area_collapse", "roi_missing"
+    ] = Field(
         description="The check. A check that fails asks for a new detection."
     )
     threshold: float | None = Field(
@@ -395,6 +442,7 @@ class FitnessCheck(Strict):
         "keypoints_within_bbox_ratio": frozenset({"threshold"}),
         "max_frames_without_redetect": frozenset({"n_frames"}),
         "bbox_area_collapse": frozenset({"min_area_ratio", "expand_ratio", "min_score"}),
+        "roi_missing": frozenset(),
     }
 
     @model_validator(mode="after")
@@ -459,7 +507,8 @@ class RoiFromPoints(NodeType):
     type = "roi_from_points"
     section = "node.roi_from_points"
     Params = RoiFromPointsParams
-    inputs = {"keypoints": "keypoints"}
+    # `previous_rois` and `reference_rois` are optional: they give the sizes of two size floors.
+    inputs = {"keypoints": "keypoints", "previous_rois": "roi", "reference_rois": "roi"}
     outputs = {"rois": "roi"}
     required_inputs = ("keypoints",)
 
@@ -576,7 +625,7 @@ class MediapipeTasksNode(NodeBase):
 
 class RoiFromPointsNode(NodeBase):
     type: Literal["roi_from_points"]
-    params: RoiFromPointsParams
+    params: RoiFromPointsParams = Field(default_factory=RoiFromPointsParams)
 
 
 class RoiHoldNode(NodeBase):
@@ -753,6 +802,7 @@ def check_structure(config: PipelineConfig) -> None:
         if node.type == "first_of" and len(types := {_ref_type(ref, nodes) for _, ref in input_items(node)} - {"any"}) > 1:
             raise ValueError(f"V-node.first_of-1: {node.id}: the inputs have the port types {sorted(types)}")
     _check_point_names(config)
+    _check_optional_inputs(config)
     for name, ref in config.outputs.items():
         if re.match(NAME, name) is None:
             raise ValueError(f"V-pipeline.outputs-1: the output name {name!r} is not a name")
@@ -784,7 +834,7 @@ def _check_point_names(config: PipelineConfig) -> None:
         if node.type == "roi_from_points":
             params = node.params
             local = set(params.derived_points)
-            names = [name for entry in params.points for name in ([entry] if isinstance(entry, str) else entry)]
+            names = [name for entry in params.points or [] for name in ([entry] if isinstance(entry, str) else entry)]
             names += [name for name in (params.alignment_start, params.alignment_end) if name is not None]
             sources = [name for derivation in params.derived_points.values() for name in derivation_sources(derivation)]
             names = [name for name in names if name not in local] + sources
@@ -795,6 +845,19 @@ def _check_point_names(config: PipelineConfig) -> None:
         for name in names:
             if POINT_NAME.match(name) is None:
                 raise ValueError(f"V-pipeline.graph-8: {node.id}: the point name {name!r} is not `<group>/<point>`")
+
+
+def _check_optional_inputs(config: PipelineConfig) -> None:
+    """Check the optional inputs that a param or a check needs (V-node.roi_from_points-6, V-node.redetect_trigger-2)."""
+    for node in config.nodes:
+        if node.type == "roi_from_points":
+            for name, port in (("min_previous_ratio", "previous_rois"), ("min_reference_ratio", "reference_rois")):
+                if getattr(node.params, name) is not None and port not in node.inputs:
+                    raise ValueError(f"V-node.roi_from_points-6: {node.id}: {name} needs the input {port}")
+        elif node.type == "redetect_trigger":
+            checks = {check.check for check in node.params.fitness_checks}
+            if "roi_missing" in checks and "previous_rois" not in node.inputs:
+                raise ValueError(f"V-node.redetect_trigger-2: {node.id}: the check roi_missing needs the input previous_rois")
 
 
 def _check_acyclic(edges: dict[str, set[str]]) -> None:

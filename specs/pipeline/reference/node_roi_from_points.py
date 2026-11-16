@@ -5,7 +5,8 @@ Note:
 - Section ID: node.roi_from_points.
 - Source: the section text specs/pipeline/nodes/roi_from_points.md. It follows the MediaPipe rect
   rules of MediaPipe-Exporter docs/mediapipe-whole-body.md (sections 1.2 and 1.3) at
-  8f708a1ddecd8e035de15a5a9a7b652af035a58a.
+  8f708a1ddecd8e035de15a5a9a7b652af035a58a. The size floors of step 10 follow
+  skellytracker/core/temporal_processing/bbox_policy.py (BBoxPolicy.predict_bbox).
 - Imported section modules: none. Fixtures: none.
 """
 
@@ -22,6 +23,7 @@ WEIGHT_SUM_TOLERANCE = 1e-6
 
 # The defaults of RoiFromPointsParams in specs/pipeline/reference/pipeline_config.py.
 DEFAULTS = {
+    "points": None,
     "derived_points": {},
     "size_rule": "bounds",
     "alignment_start": None,
@@ -32,7 +34,12 @@ DEFAULTS = {
     "shift_y": 0.0,
     "square_long": False,
     "expand_ratio": 1.0,
+    "min_previous_ratio": None,
+    "min_reference_ratio": None,
+    "min_size_px": 0.0,
 }
+# The param of each size floor that needs an optional input (V-node.roi_from_points-6).
+FLOOR_INPUTS = {"min_previous_ratio": "previous_rois", "min_reference_ratio": "reference_rois"}
 
 
 def sources(derivation: str | list[str] | dict[str, float]) -> list[str]:
@@ -72,7 +79,7 @@ def check_rules(params: dict[str, Any], names: list[str]) -> None:
         weights = weights_of(derivation)
         if not weights or abs(math.fsum(weights.values()) - 1.0) > WEIGHT_SUM_TOLERANCE:
             raise ValueError(f"V-node.roi_from_points-5: the weights of {name!r} do not sum to 1")
-    used = [name for entry in params["points"] for name in ([entry] if isinstance(entry, str) else entry)]
+    used = [name for entry in params["points"] or [] for name in ([entry] if isinstance(entry, str) else entry)]
     used += [name for name in (start, end) if name is not None]
     weighted = [name for derivation in params["derived_points"].values() for name in sources(derivation)]
     unknown = [name for name in used if name not in names and name not in derived]
@@ -82,9 +89,18 @@ def check_rules(params: dict[str, Any], names: list[str]) -> None:
 
 
 def row_roi(
-    params: dict[str, Any], names: list[str], xy: list[list[float]], score: list[float]
+    params: dict[str, Any],
+    names: list[str],
+    xy: list[list[float]],
+    score: list[float],
+    previous: list[float] | None = None,
+    reference: list[float] | None = None,
 ) -> list[float] | None:
-    """Return the ROI of one present row, or None for an empty row (node.roi_from_points, steps 3 to 9)."""
+    """Return the ROI of one present row, or None for an empty row (node.roi_from_points, steps 3 to 10).
+
+    previous and reference are the rows of previous_rois and reference_rois, or None for a row that is
+    not present.
+    """
     found = {
         name: (x, y)
         for name, (x, y), value in zip(names, xy, score)  # noqa: B905 (one row of one input)
@@ -99,7 +115,12 @@ def row_roi(
                 sum(w * found[source][1] for source, w in weights.items()),
             )
     points = []
-    for entry in params["points"]:
+    if params["points"] is None:
+        # Each present point of the input; no point is required (step 5).
+        points = [found[name] for name in names if name in found]
+        if not points:
+            return None
+    for entry in params["points"] or []:
         aliases = [entry] if isinstance(entry, str) else entry
         present = [found[name] for name in aliases if name in found]
         if not present:
@@ -127,7 +148,14 @@ def row_roi(
     cy += w * params["shift_x"] * s + h * params["shift_y"] * c
     if params["square_long"]:
         w = h = max(w, h)
-    return [cx, cy, w * params["expand_ratio"], h * params["expand_ratio"], rotation]
+    w, h = w * params["expand_ratio"], h * params["expand_ratio"]
+    # Step 10: the floors keep the centre and the rotation.
+    if params["min_previous_ratio"] is not None and previous is not None:
+        w, h = max(w, params["min_previous_ratio"] * previous[2]), max(h, params["min_previous_ratio"] * previous[3])
+    if params["min_reference_ratio"] is not None and reference is not None:
+        w, h = max(w, params["min_reference_ratio"] * reference[2]), max(h, params["min_reference_ratio"] * reference[3])
+    w, h = max(w, params["min_size_px"]), max(h, params["min_size_px"])
+    return [cx, cy, w, h, rotation]
 
 
 def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
@@ -139,15 +167,26 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
     value for each row). The result holds rois: None for an empty output, else one
     [cx, cy, w, h, rotation] or None for each row. When the keypoints have instance_score, the result
     also holds instance_score: the value of the keypoints row for each ROI row, 0 for an empty row
-    (pipeline.graph, Behaviour item 8).
+    (pipeline.graph, Behaviour item 8). input can hold previous_rois and reference_rois: None for an
+    empty input, else one [cx, cy, w, h, rotation] or None for each row. An input with no such key has
+    that port not connected.
     """
     params = {**DEFAULTS, **params}
     names, keypoints = input["point_names"], input["keypoints"]
     check_rules(params, names)
+    for name, port in FLOOR_INPUTS.items():
+        if params[name] is not None and port not in input:
+            raise ValueError(f"V-node.roi_from_points-6: {name} needs the input {port}")
     if keypoints is None:
         return {"rois": None}
-    rows = zip(keypoints["xy"], keypoints["score"], keypoints["present"])  # noqa: B905 (one length I)
-    rois = [row_roi(params, names, xy, score) if present else None for xy, score, present in rows]
+    count = len(keypoints["present"])
+    previous = input.get("previous_rois") or [None] * count
+    reference = input.get("reference_rois") or [None] * count
+    rows = zip(keypoints["xy"], keypoints["score"], keypoints["present"], previous, reference)  # noqa: B905 (one length I)
+    rois = [
+        row_roi(params, names, xy, score, before, detected) if present else None
+        for xy, score, present, before, detected in rows
+    ]
     if "instance_score" not in keypoints:
         return {"rois": rois}
     scores = [0.0 if roi is None else value for roi, value in zip(rois, keypoints["instance_score"])]  # noqa: B905

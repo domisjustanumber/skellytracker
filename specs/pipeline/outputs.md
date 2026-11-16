@@ -113,9 +113,11 @@ The output schema gives these fields for each output:
 ## Examples
 
 ```yaml
+# The outputs of `yolox-rtmw-wholebody`. `person_roi` is the smoothed crop ROI of each frame.
 outputs:
   wholebody: wholebody.keypoints
   person_box: person.detections
+  person_roi: crop.rois
 ```
 
 ```yaml

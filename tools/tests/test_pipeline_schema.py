@@ -225,12 +225,44 @@ ROI = {"id": "roi", "type": "roi_from_points", "inputs": {"keypoints": "body.key
                    "params": {"slots": {"hand": "body/wrist"}, "source_anchor": "body/wrist"}}]), "max_distance"),
         (_config([{"id": "hands", "type": "mediapipe_tasks", "inputs": {"image": "frame.image"},
                    "params": {"variant": "hand", "size": "heavy"}}]), "V-node.mediapipe_tasks-2"),
+        (_config([{**ROI, "params": {"min_previous_ratio": 0.995}}]), "V-node.roi_from_points-6"),
+        (_config([{**ROI, "inputs": {"keypoints": "body.keypoints", "previous_rois": "person.rois"},
+                   "params": {"min_reference_ratio": 0.5}}]), "V-node.roi_from_points-6"),
+        (_config([{"id": "need", "type": "redetect_trigger", "inputs": {"image": "frame.image"},
+                   "params": {"fitness_checks": [{"check": "roi_missing", "threshold": 0.5}]}}]), "V-node.redetect_trigger-1"),
+        (_config([{"id": "need", "type": "redetect_trigger", "inputs": {"image": "frame.image"},
+                   "params": {"fitness_checks": [{"check": "roi_missing"}]}}]), "V-node.redetect_trigger-2"),
+        (_config([{"id": "crop", "type": "smooth_roi", "inputs": {"rois": "person.rois"},
+                   "params": {"filter": "one_euro", "previous_weight": 0.4}}]), "V-node.smooth_roi-1"),
+        (_config([{"id": "crop", "type": "smooth_roi", "inputs": {"rois": "person.rois"},
+                   "params": {"min_cutoff": 3.0}}]), "V-node.smooth_roi-1"),
     ],
     ids=["no-prefix", "dot-form", "weight-sum", "first-of-types", "any-type-inferred",
          "gate-value-prev", "first-of-only-prev", "first-of-types-prev",
          "output-prev", "output-frame", "output-result-field", "tap-frame", "merge-map-column", "merge-no-max-distance",
-         "mediapipe-size-not-body"],
+         "mediapipe-size-not-body", "floor-no-previous-rois", "floor-no-reference-rois",
+         "roi-missing-field", "roi-missing-no-previous-rois", "one-euro-with-ema-param", "ema-with-one-euro-param"],
 )
 def test_the_reference_model_refuses_the_new_structural_cases(config: dict, rule: str) -> None:
     with pytest.raises(ValueError, match=rule):
         mps.load_model().PipelineConfig.model_validate(config)
+
+
+@needs_model
+def test_the_reference_model_accepts_the_new_optional_forms() -> None:
+    """`points` can be empty, a floor has its input, `roi_missing` has `previous_rois`, and one_euro has its params."""
+    nodes = [
+        {"id": "need", "type": "redetect_trigger",
+         "inputs": {"image": "frame.image", "previous_rois": "crop.rois@prev"},
+         "params": {"fitness_checks": [{"check": "roi_missing"}]}},
+        {"id": "box", "type": "roi_from_points",
+         "inputs": {"keypoints": "body.keypoints@prev", "previous_rois": "crop.rois@prev", "reference_rois": "person.rois"},
+         "params": {"min_previous_ratio": 0.995, "min_reference_ratio": 0.5, "min_size_px": 80}},
+        {"id": "plain", "type": "roi_from_points", "inputs": {"keypoints": "body.keypoints"}},
+        {"id": "crop", "type": "smooth_roi", "inputs": {"rois": "box.rois"},
+         "params": {"filter": "one_euro", "min_cutoff": 3.0, "reset_after_ms": 500}},
+    ]
+    config = mps.load_model().PipelineConfig.model_validate(_config(nodes))
+    by_id = {node.id: node for node in config.nodes}
+    assert by_id["plain"].params.points is None
+    assert by_id["crop"].params.previous_weight == 0.5

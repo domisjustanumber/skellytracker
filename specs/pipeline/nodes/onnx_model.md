@@ -99,9 +99,16 @@ An `onnx_model` node runs one ONNX model of the sidecar spec: an object detector
 - Write only the params that the file changes ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 11).
 - To keep only the best detection of a single-person pipeline, set `object_decode.nms.post_nms_top_k` to 1. The built-in `yolox-rtmw-wholebody` does this ([ADR-V7GZ](../../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 3).
 
+- The built-in [`yolox-rtmw-wholebody`](../examples/yolox-rtmw-wholebody.pipeline.yaml) follows the box behaviour of the skellytracker branch `sfn26`, with the early redetect of the commit 03b9c1dc ([ADR-RA0E](../../../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md)):
+  - The detector runs on the first frame, then each 150 frames ([Redetect trigger](redetect_trigger.md#behaviour)). It also runs on the frame after a frame with no box (the check `roi_missing`), and after a frame with no point of score 0.4 or more or with such points on one line (the check `bbox_area_collapse` with `min_area_ratio: 0.0` and `min_score: 0.4`). The trigger is separate for each camera: one camera does not make the other cameras redetect.
+  - On each other frame, the box is the box around the points of the previous frame with a score greater than 0.4, multiplied by 1.21, with three size floors: 0.995 of the previous crop, 0.5 of the last box of the detector and 80 pixels ([ROI from points](roi_from_points.md#behaviour) step 10).
+  - A One Euro filter smooths the box on each frame, with `min_cutoff` 3.0, `beta` 0.02, `d_cutoff` 1.0 and `reset_after_ms` 500 ([Smooth ROI](smooth_roi.md#behaviour) step 8). On a frame with no box, the keypoint model does not run.
+  - The output `person_roi` is the smoothed crop ROI. The pipeline does not clip it. A caller that draws it clips it to whole pixels, with the `image_size` of the result ([Outputs](../outputs.md#fields)).
+  - The pipeline sets no low-score point to NaN: the `keypoints` output holds each decoded point with its score. A caller applies its own score threshold. The crop takes its margin from the full frame ([Behaviour](#behaviour), Crop).
+
 ## Examples
 
-A person detector and a top-down keypoint model, as in the built-in `yolox-rtmw-wholebody`. The models are the sidecar examples [`yolox-person.yaml`](../../model-sidecar/examples/detectors/object_detectors/yolox-person/yolox-person.yaml) and [`rtmw-wholebody133.yaml`](../../model-sidecar/examples/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133.yaml).
+A person detector and a top-down keypoint model. The built-in `yolox-rtmw-wholebody` has these two models, and it adds the nodes that carry and smooth the person box ([ADR-RA0E](../../../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md) item 1). The models are the sidecar examples [`yolox-person.yaml`](../../model-sidecar/examples/detectors/object_detectors/yolox-person/yolox-person.yaml) and [`rtmw-wholebody133.yaml`](../../model-sidecar/examples/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133.yaml).
 
 ```yaml
 nodes:

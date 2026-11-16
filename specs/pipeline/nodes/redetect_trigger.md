@@ -53,6 +53,7 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
   | `keypoints_within_bbox_ratio` | `threshold: 0.5` |
   | `max_frames_without_redetect` | `n_frames: 30` |
   | `bbox_area_collapse` | `min_area_ratio: 0.25`, `expand_ratio: 1.10`, `min_score: 0.0` |
+  | `roi_missing` | no field |
 
 - `expand_ratio` multiplies the width and the height of the box around the points. The default
   1.10 is a margin of 0.05 on each side, as today's code: 1 + 2 · 0.05
@@ -110,9 +111,14 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
      fails  = w · h > 0  and  width · expand_ratio · height · expand_ratio < min_area_ratio · w · h
      ```
 
+   - `roi_missing`: row `i` of `previous_rois` is missing. The check thus also fails when
+     `previous_rois` is empty
+     ([ADR-RA0E](../../../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md) item 4).
+
 ## Validation rules
 
-- [ ] `V-node.redetect_trigger-1` Each item of `fitness_checks` must write only `check` and the fields of its `check`: `threshold` for `min_keypoint_score` and `keypoints_within_bbox_ratio`, `n_frames` for `max_frames_without_redetect`, and `min_area_ratio`, `expand_ratio` and `min_score` for `bbox_area_collapse`.
+- [ ] `V-node.redetect_trigger-1` Each item of `fitness_checks` must write only `check` and the fields of its `check`: `threshold` for `min_keypoint_score` and `keypoints_within_bbox_ratio`, `n_frames` for `max_frames_without_redetect`, and `min_area_ratio`, `expand_ratio` and `min_score` for `bbox_area_collapse`. The check `roi_missing` has no field.
+- [ ] `V-node.redetect_trigger-2` The check `roi_missing` needs a connected `previous_rois` input ([ADR-RA0E](../../../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md) item 4).
 
 ## Implementer guidance
 
@@ -149,6 +155,14 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
 - `max_frames_without_redetect` and `redetect_interval` have the same effect. Use one of them.
 - `bbox_area_collapse` finds a person who leaves the image or a track that moves to a smaller
   object. Use it when `redetect_interval` is large.
+- To ask for a detection on the frame after a detector found no instance, gate the carried ROI
+  with `mode: is_empty` on the trigger image, and add the check `roi_missing`. The crop ROI of that
+  frame is then empty, so the check fails on the next frame. The example
+  [`yolox-rtmw-wholebody`](../examples/yolox-rtmw-wholebody.pipeline.yaml) does this
+  ([ADR-RA0E](../../../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md) items 1 and 4).
+- `bbox_area_collapse` with `min_area_ratio: 0.0` never fails on the area. It then fails only for a
+  missing keypoint row, for a row with no counted point and for counted points on one line. With
+  `min_score`, this is a check for a lost person.
 
 ## Examples
 

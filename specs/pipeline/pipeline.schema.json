@@ -77,7 +77,8 @@
             "min_keypoint_score",
             "keypoints_within_bbox_ratio",
             "max_frames_without_redetect",
-            "bbox_area_collapse"
+            "bbox_area_collapse",
+            "roi_missing"
           ],
           "title": "Check",
           "type": "string"
@@ -675,8 +676,7 @@
       },
       "required": [
         "id",
-        "type",
-        "params"
+        "type"
       ],
       "title": "RoiFromPointsNode",
       "type": "object"
@@ -749,26 +749,76 @@
           "title": "Expand Ratio",
           "type": "number"
         },
+        "min_previous_ratio": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The smallest width and height, as a part of the ROI of `previous_rois`. Empty: no floor.",
+          "set_during_run": true,
+          "source": "BBoxPolicyConfig.min_shrink_ratio_per_frame; ADR-RA0E item 3",
+          "title": "Min Previous Ratio"
+        },
+        "min_reference_ratio": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The smallest width and height, as a part of the ROI of `reference_rois`. Empty: no floor.",
+          "set_during_run": true,
+          "source": "BBoxPolicyConfig.min_detected_bbox_ratio; ADR-RA0E item 3",
+          "title": "Min Reference Ratio"
+        },
+        "min_size_px": {
+          "default": 0.0,
+          "description": "The smallest width and height, in source-image pixels.",
+          "minimum": 0.0,
+          "set_during_run": true,
+          "source": "BBoxPolicyConfig.min_bbox_size_px; ADR-RA0E item 3",
+          "title": "Min Size Px",
+          "type": "number"
+        },
         "points": {
-          "description": "The points of the ROI. A list of names is one point with aliases: the first present name counts.",
-          "items": {
-            "anyOf": [
-              {
-                "type": "string"
+          "anyOf": [
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                ]
               },
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
-            ]
-          },
-          "minItems": 1,
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The points of the ROI. A list of names is one point with aliases: the first present name counts. Empty: each present point of the input.",
           "set_during_run": false,
-          "source": "ADR-7NY2 item 6",
-          "title": "Points",
-          "type": "array"
+          "source": "ADR-7NY2 item 6; ADR-RA0E item 2",
+          "title": "Points"
         },
         "score_threshold": {
           "default": 0.0,
@@ -831,9 +881,6 @@
           "title": "Target Rotation Deg"
         }
       },
-      "required": [
-        "points"
-      ],
       "title": "RoiFromPointsParams",
       "type": "object"
     },
@@ -1102,14 +1149,62 @@
     "SmoothRoiParams": {
       "additionalProperties": false,
       "properties": {
+        "beta": {
+          "default": 0.02,
+          "description": "one_euro: the speed coefficient, in Hz per px/s.",
+          "minimum": 0.0,
+          "set_during_run": true,
+          "source": "BBoxSmoothingConfig.beta of the branch sfn26; ADR-RA0E item 5",
+          "title": "Beta",
+          "type": "number"
+        },
+        "d_cutoff": {
+          "default": 1.0,
+          "description": "one_euro: the cutoff frequency of the derivative, in Hz.",
+          "exclusiveMinimum": 0.0,
+          "set_during_run": true,
+          "source": "BBoxSmoothingConfig.d_cutoff of the branch sfn26; ADR-RA0E item 5",
+          "title": "D Cutoff",
+          "type": "number"
+        },
+        "filter": {
+          "default": "ema",
+          "description": "The filter.",
+          "enum": [
+            "ema",
+            "one_euro"
+          ],
+          "set_during_run": false,
+          "source": "ADR-RA0E item 5",
+          "title": "Filter",
+          "type": "string"
+        },
+        "min_cutoff": {
+          "default": 3.0,
+          "description": "one_euro: the minimum cutoff frequency, in Hz.",
+          "exclusiveMinimum": 0.0,
+          "set_during_run": true,
+          "source": "BBoxSmoothingConfig.min_cutoff of the branch sfn26; ADR-RA0E item 5",
+          "title": "Min Cutoff",
+          "type": "number"
+        },
         "previous_weight": {
           "default": 0.5,
-          "description": "The weight of the previous ROI: new = previous_weight \u00d7 previous + (1 \u2212 previous_weight) \u00d7 input.",
+          "description": "ema: the weight of the previous ROI: new = previous_weight \u00d7 previous + (1 \u2212 previous_weight) \u00d7 input.",
           "maximum": 1.0,
           "minimum": 0.0,
           "set_during_run": true,
-          "source": "BBoxSmoothingConfig.alpha (freemocap uses 0.4); ADR-88WQ item 4",
+          "source": "BBoxSmoothingConfig.alpha; ADR-88WQ item 4",
           "title": "Previous Weight",
+          "type": "number"
+        },
+        "reset_after_ms": {
+          "default": 500.0,
+          "description": "one_euro: start the filter again when the time since the last ROI of the row is more than this many milliseconds.",
+          "exclusiveMinimum": 0.0,
+          "set_during_run": false,
+          "source": "BBoxSmoothingConfig.reset_after_seconds of the branch sfn26; ADR-RA0E item 5",
+          "title": "Reset After Ms",
           "type": "number"
         }
       },

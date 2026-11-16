@@ -1035,6 +1035,16 @@ This stage implements the node types of the pipeline spec. Use the skill
     ([ADR-6DKT](pipeline/decisions/entries/6DKT-instance-rows-carry-class-and-score.md) item 5).
   - `smooth_keypoints` refuses a timestamp that does not increase. It has `reset_after_ms` and no
     miss counter.
+  - [`roi_from_points`](pipeline/nodes/roi_from_points.md) takes an empty `points`: it then uses
+    each present point of the input. It has the optional inputs `previous_rois` and
+    `reference_rois`, and the size floors `min_previous_ratio`, `min_reference_ratio` and
+    `min_size_px` of its step 10 ([ADR-RA0E](../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md) items 2 and 3).
+  - [`redetect_trigger`](pipeline/nodes/redetect_trigger.md) has the check `roi_missing`
+    ([ADR-RA0E](../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md) item 4).
+  - [`smooth_roi`](pipeline/nodes/smooth_roi.md) has the filters `ema` and `one_euro`. The filter
+    `one_euro` acts on the two corners, uses `timestamp_ms`, starts again after a gap of more than
+    `reset_after_ms`, and clears the state of a row that is not present
+    ([ADR-RA0E](../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md) item 5).
 - **Sessions.** Build each ONNX session with `eps.build_session()`
   ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 5). `start_pipeline` takes `execution_provider=None`, `ep_options`, `device` and `vram_reserve_bytes`, and checks `V-pipeline.running-8` and `V-pipeline.running-9` ([ADR-9PDQ](../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 4). An `onnx_model` node takes
   `execution_provider` and `ep_options` ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 1; [ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 2). The NMS session
@@ -1087,6 +1097,25 @@ This stage implements the node types of the pipeline spec. Use the skill
   The spec examples pin no `sidecar_sha256`. The copy adds the `sidecar_sha256` of each `onnx_model`
   node, because a shipped file must have it
   ([ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 10).
+  `yolox-rtmw-wholebody` is a stateful pipeline. It follows the box behaviour of the skellytracker
+  branch `sfn26` with the early redetect of 03b9c1dc, and it gives the smoothed crop ROI as the
+  output `person_roi` ([ADR-RA0E](../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md) items 1 and 6;
+  [ONNX model node](pipeline/nodes/onnx_model.md#authoring-guidance)).
+- **Box parity of the built-in.** This stage makes the reference recording for
+  `yolox-rtmw-wholebody` ([ADR-RA0E](../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md)). The
+  working branch has neither the One Euro box filter nor the early redetect, so a script gets the
+  values from the old code:
+  - The script is in `decisions/scripts/`, with a patch file beside it. It makes a temporary clone
+    outside the repository at the skellytracker commit 2d356a6c (branch `sfn26`). It applies the
+    patch: the early redetect of 03b9c1dc, ported by hand (`BBoxPolicy.needs_recovery`,
+    `StageState.needs_redetection`, its use in `should_redetect` and in `DetectionStage`).
+  - It runs `human_tracker_config(preset="rtmpose", video_fps=30.0)` on the test recording with
+    one camera and `timestamp_ms = frame_index × 1000 / 30`. The recording must hold frames with
+    no person. If it holds none, the script blanks a run of frames.
+  - It writes one fixture with, for each frame: `detector_ran`, the YOLOX box when the detector
+    ran, the keypoints with their scores, the smoothed box before the clip, and
+    `bounding_boxes[0]`. The values are float64. The script needs the old models, so it runs in
+    this stage and not before.
 - **Multi-person.** A pipeline can have more than one row (`I > 1`). But a row has no identity
   across frames, and each `track_ids` value is -1, until an `associate` node exists
   ([ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1). The temporal nodes
@@ -1112,7 +1141,19 @@ This stage implements the node types of the pipeline spec. Use the skill
   input, a replayed node and a padded item; present with `timing` off. The
   package glue nodes pass the glue vectors. The aggregator output passes
   `skellybench.schema.validate_timing`. `mediapipe-holistic-tasks` runs and gives the expected point
-  sets.
+  sets. Box parity of `yolox-rtmw-wholebody` ([ADR-RA0E](../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md)):
+  - Parity test A, the box logic. The test runs the graph of `yolox-rtmw-wholebody` on the fixture
+    of "Box parity of the built-in", with the two `onnx_model` nodes replaced by the recorded YOLOX
+    boxes and keypoints, and with the same timestamps. `node_ran` of the node `person` must equal
+    `detector_ran` on each frame. `person_roi` must agree with the smoothed box before the clip
+    within 1e-6 px. The clip of `person_roi` to whole pixels must give the same integers as
+    `bounding_boxes[0]`.
+  - Report B, end to end. A run of the built-in with the real models, in fp32, against the
+    fixture: the count of frames where the flag differs, the IoU of `person_roi` and the distance
+    of the points with a score of 0.4 or more on both sides. It is a report, with no pass limit on
+    the keypoints: the crop pixels, the re-exported models, the points below 0.4 and the confidence
+    of a carried box differ ([ADR-RA0E](../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md),
+    Consequences).
 
 ### 1.11 Checkpoint: the 2.0.0 pre-release
 

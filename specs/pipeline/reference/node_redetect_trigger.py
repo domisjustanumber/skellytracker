@@ -5,7 +5,7 @@ Note:
 - Section ID: node.redetect_trigger.
 - Source: skellytracker/core/temporal_processing/bbox_policy.py (BBoxPolicy.should_redetect, the four
   checks and predict_bbox_from_keypoints) and skellytracker/core/tracker/detection_stage.py
-  (DetectionStage.run). Today the boxes have no rotation.
+  (DetectionStage.run). Today the boxes have no rotation. The check roi_missing is new in the section.
 - Imported section modules: none.
 
 A case is one sequence of frames. Each frame holds frame_index, previous_keypoints and previous_rois.
@@ -26,6 +26,7 @@ FIELDS = {
     "keypoints_within_bbox_ratio": {"threshold": 0.5},
     "max_frames_without_redetect": {"n_frames": 30},
     "bbox_area_collapse": {"min_area_ratio": 0.25, "expand_ratio": 1.10, "min_score": 0.0},
+    "roi_missing": {},
 }
 RUNNING_MODES = ("image", "video", "live")
 
@@ -79,6 +80,8 @@ def fails(
     kind = check["check"]
     if kind == "max_frames_without_redetect":
         return frames_since >= check["n_frames"]
+    if kind == "roi_missing":
+        return roi is None
     if row is None:
         return kind == "bbox_area_collapse" and connected and roi is not None
     points = [p for p in row if valid(p)]

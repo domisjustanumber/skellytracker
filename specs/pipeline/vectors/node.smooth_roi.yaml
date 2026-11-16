@@ -13,6 +13,14 @@ notes:
     skellytracker/core/temporal_processing/bbox_smoothing.py (apply_bbox_ema) on 500
     random `video` sequences with rotation 0 and a random previous_weight (alpha), with
     missing boxes. The results agreed within 1e-9."
+  - "A case of the filter one_euro also has `timestamps_ms`: the `timestamp_ms` of each
+    frame, in milliseconds. The filter follows apply_bbox_one_euro in
+    skellytracker/core/temporal_processing/bbox_smoothing.py of the skellytracker branch
+    sfn26 (commit 2d356a6c). The script decisions/scripts/ra0e_one_euro_compare.py ran
+    the reference and one_euro_step of
+    skellytracker/core/temporal_processing/one_euro_array.py at that commit, with a copy
+    of the steps of apply_bbox_one_euro, on 3000 random `video` sequences with rotation
+    0, gaps, missing boxes and random filter params. The corners agreed within 1e-9."
 tolerance: 0.000000001
 unverified: "Only the reference ran the cases. The comparison with apply_bbox_ema is in the
   notes, but that function has another signature, so it is not a verified_against
@@ -61,3 +69,76 @@ cases:
     params: {}
     input: {running_mode: image, frames: [[[100, 100, 50, 80, 0]], [[120, 100, 50, 80, 0]]]}
     expect: {rois: [[[100, 100, 50, 80, 0]], [[120, 100, 50, 80, 0]]]}
+  - id: one-euro-first-roi-and-next-rois
+    note: "the first ROI passes. Then each of the four corners has its own cutoff, so the box
+      that moves and grows is not the result of a filter on the centre and the size. The
+      rotation is that of the input"
+    params: {filter: one_euro}
+    input:
+      running_mode: video
+      timestamps_ms: [0, 33.333333, 66.666667]
+      frames: [[[100, 100, 50, 80, 0]], [[110, 90, 60, 80, 0.2]], [[120, 90, 60, 100, 0.3]]]
+    expect:
+      rois:
+        - [[100, 100, 50, 80, 0]]
+        - [[104.724008, 95.41732, 55.204655, 80, 0.2]]
+        - [[112.907027, 92.254756, 58.701836, 90.125991, 0.3]]
+  - id: one-euro-reset-after-a-gap
+    note: "reset_after_ms 500. frame 1 comes 500 ms after frame 0: the test is strict, so the
+      filter runs. frame 2 comes 501 ms after frame 1, so the filter starts again and the
+      input passes"
+    params: {filter: one_euro}
+    input:
+      running_mode: live
+      timestamps_ms: [0, 500, 1001]
+      frames: [[[100, 100, 50, 80, 0]], [[200, 100, 50, 80, 0]], [[300, 100, 50, 80, 0]]]
+    expect:
+      rois: [[[100, 100, 50, 80, 0]], [[194.989217, 100, 50, 80, 0]], [[300, 100, 50, 80, 0]]]
+  - id: one-euro-row-not-present-clears-its-state
+    note: "row 1 is not present on frame 1, so its state is clear and its ROI of frame 2
+      passes. Row 0 keeps its state"
+    params: {filter: one_euro, min_cutoff: 1, beta: 0}
+    input:
+      running_mode: video
+      timestamps_ms: [0, 40, 80]
+      frames:
+        - [[100, 100, 50, 80, 0], [300, 200, 40, 40, 0]]
+        - [[110, 100, 50, 80, 0], null]
+        - [[120, 100, 50, 80, 0], [340, 200, 40, 40, 0]]
+    expect:
+      rois:
+        - [[100, 100, 50, 80, 0], [300, 200, 40, 40, 0]]
+        - [[102.008486, 100, 50, 80, 0], null]
+        - [[105.622058, 100, 50, 80, 0], [340, 200, 40, 40, 0]]
+  - id: one-euro-empty-input-clears-the-state
+    note: "the input of frame 1 is empty, so the ROI of frame 2 passes"
+    params: {filter: one_euro}
+    input:
+      running_mode: video
+      timestamps_ms: [0, 40, 80]
+      frames: [[[100, 100, 50, 80, 0]], null, [[120, 100, 50, 80, 0]]]
+    expect: {rois: [[[100, 100, 50, 80, 0]], null, [[120, 100, 50, 80, 0]]]}
+  - id: one-euro-corners-exchange
+    note: "x1 moves fast on frame 1 and keeps a large derivative. On frame 2 its estimate
+      (about 582.2) passes the estimate of x2 (about 571.3), which moves slowly. The node
+      exchanges the two estimates, so the width is not negative"
+    params: {filter: one_euro, min_cutoff: 0.5, beta: 0.02, d_cutoff: 1}
+    input:
+      running_mode: video
+      timestamps_ms: [0, 33.333333, 66.666667]
+      frames: [[[250, 100, 500, 80, 0]], [[450, 100, 100, 80, 0]], [[601, 100, 2, 80, 0]]]
+    expect:
+      rois:
+        - [[250, 100, 500, 80, 0]]
+        - [[429.611039, 100, 140.777923, 80, 0]]
+        - [[576.768374, 100, 10.901762, 80, 0]]
+  - id: one-euro-image-mode-passes-through
+    params: {filter: one_euro}
+    input: {running_mode: image, frames: [[[100, 100, 50, 80, 0]], [[120, 100, 50, 80, 0]]]}
+    expect: {rois: [[[100, 100, 50, 80, 0]], [[120, 100, 50, 80, 0]]]}
+  - id: refused-param-of-the-other-filter
+    note: "previous_weight is a param of the filter ema"
+    checks: [refused]
+    params: {filter: one_euro, previous_weight: 0.4}
+    input: {running_mode: video, timestamps_ms: [0], frames: [[[100, 100, 50, 80, 0]]]}
+    expect: {error: V-node.smooth_roi-1}

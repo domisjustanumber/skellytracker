@@ -16,6 +16,10 @@ notes:
     (test_returns_no_boxes_when_center_points_below_min_visibility and
     test_returns_no_boxes_when_all_center_points_invalid). Decision:
     decisions/entries/3SF2-pipeline-spec-and-node-workflow.md item 4."
+  - "`previous_rois` and `reference_rois` are the optional inputs of the size floors. A
+    case with no such key has that port not connected. Null is an empty input. Else the
+    value holds one [cx, cy, w, h, rotation] or null (a row that is not present) for
+    each row."
 tolerance: 0.000001
 unverified: "Only the reference implementation ran the cases. No independent implementation
   exists yet."
@@ -189,3 +193,90 @@ cases:
         present: [true, true]
         instance_score: [0.8, 0.6]
     expect: {rois: [[100, 200, 0, 0, 0], null], instance_score: [0.8, 0]}
+  - id: empty-points-use-each-present-point
+    note: "`points` is empty, so the box is around each present point: the wrist, the index and
+      the hand wrist. The pinky has the score 0.3, which is not greater than 0.4. The box
+      is x 100 to 140 and y 180 to 260, then expand_ratio 1.21"
+    params: {score_threshold: 0.4, expand_ratio: 1.21}
+    input:
+      point_names: [body/wrist, body/index, body/pinky, hand/wrist]
+      keypoints:
+        xy: [[[100, 200], [140, 180], [20, 300], [120, 260]]]
+        score: [[0.9, 0.8, 0.3, 0.5]]
+        present: [true]
+    expect: {rois: [[120, 220, 48.4, 96.8, 0]]}
+  - id: empty-points-with-no-present-point-give-an-empty-row
+    note: "row 0 has no point with a score greater than 0.4; row 1 has one such point, which
+      gives a box of size 0"
+    params: {score_threshold: 0.4}
+    input:
+      point_names: [body/wrist, body/index, body/pinky, hand/wrist]
+      keypoints:
+        xy:
+          - [[100, 200], [140, 180], [.nan, .nan], [120, 260]]
+          - [[100, 200], [140, 180], [.nan, .nan], [120, 260]]
+        score: [[0.4, 0.2, 0, 0.1], [0.4, 0.2, 0, 0.9]]
+        present: [true, true]
+    expect: {rois: [null, [120, 260, 0, 0, 0]]}
+  - id: size-floors
+    note: "the box of each row before the floors is 40 wide and 60 high at (120, 210). row 0:
+      0.995 of the previous ROI (100, 50) lifts only the width, to 99.5. row 1: 0.5 of the
+      reference ROI (60, 200) lifts only the height, to 100. row 2: each floor is smaller
+      than the box, so the box does not change. row 3: the floors together give the
+      largest floor of each side, 99.5 and 100; the rotation of previous_rois has no
+      effect. The centre does not move"
+    params:
+      points: [body/wrist, body/index, body/pinky]
+      min_previous_ratio: 0.995
+      min_reference_ratio: 0.5
+      min_size_px: 30
+    input:
+      point_names: [body/wrist, body/index, body/pinky, hand/wrist]
+      keypoints:
+        xy:
+          - [[100, 200], [140, 180], [120, 240], [.nan, .nan]]
+          - [[100, 200], [140, 180], [120, 240], [.nan, .nan]]
+          - [[100, 200], [140, 180], [120, 240], [.nan, .nan]]
+          - [[100, 200], [140, 180], [120, 240], [.nan, .nan]]
+        score: [[0.9, 0.8, 0.7, 0], [0.9, 0.8, 0.7, 0], [0.9, 0.8, 0.7, 0], [0.9, 0.8, 0.7, 0]]
+        present: [true, true, true, true]
+      previous_rois: [[500, 500, 100, 50, 0], null, [0, 0, 10, 10, 0], [500, 500, 100, 50, 0.5]]
+      reference_rois: [null, [0, 0, 60, 200, 0], [0, 0, 10, 10, 0], [0, 0, 60, 200, 0]]
+    expect:
+      rois:
+        - [120, 210, 99.5, 60, 0]
+        - [120, 210, 40, 100, 0]
+        - [120, 210, 40, 60, 0]
+        - [120, 210, 99.5, 100, 0]
+  - id: min-size-px-lifts-both-sides
+    note: "the box is 40 wide and 60 high; min_size_px 80 makes it 80 by 80 around the same centre"
+    params: {points: [body/wrist, body/index, body/pinky], min_size_px: 80}
+    input:
+      point_names: [body/wrist, body/index, body/pinky, hand/wrist]
+      keypoints:
+        xy: [[[100, 200], [140, 180], [120, 240], [.nan, .nan]]]
+        score: [[0.9, 0.8, 0.7, 0]]
+        present: [true]
+    expect: {rois: [[120, 210, 80, 80, 0]]}
+  - id: empty-floor-inputs-do-not-stop-the-node
+    note: "previous_rois and reference_rois are connected and empty, so only min_size_px applies"
+    params:
+      points: [body/wrist, body/index, body/pinky]
+      min_previous_ratio: 0.995
+      min_reference_ratio: 0.5
+      min_size_px: 50
+    input:
+      point_names: [body/wrist, body/index, body/pinky, hand/wrist]
+      keypoints:
+        xy: [[[100, 200], [140, 180], [120, 240], [.nan, .nan]]]
+        score: [[0.9, 0.8, 0.7, 0]]
+        present: [true]
+      previous_rois: null
+      reference_rois: null
+    expect: {rois: [[120, 210, 50, 60, 0]]}
+  - id: floor-ratio-needs-its-input
+    note: "min_previous_ratio is given and previous_rois is not connected"
+    checks: [refused]
+    params: {points: [body/wrist], min_previous_ratio: 0.995}
+    input: {point_names: [body/wrist, body/index, body/pinky, hand/wrist], keypoints: null}
+    expect: {error: V-node.roi_from_points-6}

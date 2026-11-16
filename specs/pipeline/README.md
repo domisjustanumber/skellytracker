@@ -125,12 +125,12 @@ A pipeline file and its run are valid when all of the following rules hold.
 - [Taps](taps.md#validation-rules): `V-pipeline.taps-1` to `V-pipeline.taps-7`
 - [ONNX model node](nodes/onnx_model.md#validation-rules): `V-node.onnx_model-1` to `V-node.onnx_model-5`
 - [MediaPipe Tasks node](nodes/mediapipe_tasks.md#validation-rules): `V-node.mediapipe_tasks-1`, `V-node.mediapipe_tasks-2`
-- [ROI from points node](nodes/roi_from_points.md#validation-rules): `V-node.roi_from_points-1` to `V-node.roi_from_points-5`
+- [ROI from points node](nodes/roi_from_points.md#validation-rules): `V-node.roi_from_points-1` to `V-node.roi_from_points-7`
 - [ROI hold node](nodes/roi_hold.md#validation-rules): `V-node.roi_hold-1` to `V-node.roi_hold-3`
 - [Gate node](nodes/gate.md#validation-rules): `V-node.gate-1` to `V-node.gate-3`
 - [First-of node](nodes/first_of.md#validation-rules): `V-node.first_of-1`, `V-node.first_of-2`
 - [Concat node](nodes/concat.md#validation-rules): `V-node.concat-1` to `V-node.concat-3`
 - [Merge node](nodes/merge.md#validation-rules): `V-node.merge-1` to `V-node.merge-5`
 - [Smooth keypoints node](nodes/smooth_keypoints.md#validation-rules): `V-node.smooth_keypoints-1`, `V-node.smooth_keypoints-3`. The rule `V-node.smooth_keypoints-2` is removed, and its ID is not used again.
-- [Smooth ROI node](nodes/smooth_roi.md#validation-rules): no rule yet
-- [Redetect trigger node](nodes/redetect_trigger.md#validation-rules): `V-node.redetect_trigger-1`
+- [Smooth ROI node](nodes/smooth_roi.md#validation-rules): `V-node.smooth_roi-1`
+- [Redetect trigger node](nodes/redetect_trigger.md#validation-rules): `V-node.redetect_trigger-1`, `V-node.redetect_trigger-2`
