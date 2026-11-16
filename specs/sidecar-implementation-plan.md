@@ -2,7 +2,7 @@
 
 > **Decisions.** The decisions behind this plan are recorded in the decision log, [`decisions/`](../decisions/README.md). The phases and their order follow [ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md). The dependency pins and the GPU EP packs follow [ADR-M2C6](../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md). The implementation-stage work follows [ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) (replace the package ONNX detectors) and [ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) (the entry points and the layout). The pipeline design is in [ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md), [ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md), [ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md), [ADR-3SF2](../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md), [ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-helper.md) and the [pipeline log](pipeline/decisions/README.md). The sidecar names follow [ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) and [ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md). Entries 0002 to 0007 record the decisions of M1 to M5 ([History](#history)). This plan stays until the user decides to delete it ([ADR-5WKW](../decisions/entries/5WKW-implementation-work-in-the-plan.md)). Record a new decision as a decision entry, not in this plan.
 
-> Status: **M1 to M5 are done. Phase 0 is done, except the two PRs of stage 0.5 that the user opens. Phase 1 started on 2026-11-12, and stages 1.1, 1.2, 1.4 and 1.8 are done.** Phase 0 is in the spec-build stage, and phase 1 is in the implementation stage ([Stages](model-sidecar/model-addition-workflow/README.md#stages)). The [stage order](#stage-order) gives each stage. The "Status" line of each stage gives its state.
+> Status: **M1 to M5 are done. Phase 0 is done, except the two PRs of stage 0.5 that the user opens. Phase 1 started on 2026-11-12, and stages 1.1, 1.2, 1.4, 1.5 and 1.8 are done.** Phase 0 is in the spec-build stage, and phase 1 is in the implementation stage ([Stages](model-sidecar/model-addition-workflow/README.md#stages)). The [stage order](#stage-order) gives each stage. The "Status" line of each stage gives its state.
 
 ## Context
 
@@ -36,7 +36,7 @@ build the exporters again ([phase 2](#phase-2--after-the-checkpoint)).
 
 ## Stage order
 
-**Status: phase 0 is done, except the two PRs of stage 0.5. Stages 1.1, 1.2, 1.4 and 1.8 are done.**
+**Status: phase 0 is done, except the two PRs of stage 0.5. Stages 1.1, 1.2, 1.4, 1.5 and 1.8 are done.**
 
 Each stage of phase 1 and phase 2 changes package code. The gate of phase 0 is met
 ([ADR-V6G2](../decisions/entries/V6G2-implementation-stage.md)). The stages give the order of the
