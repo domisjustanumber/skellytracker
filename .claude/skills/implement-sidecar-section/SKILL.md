@@ -66,7 +66,7 @@ names (`model_input` or `source`). It does not infer the space from the other ke
 
 | Evidence | Where to look |
 |---|---|
-| A reference example that uses the section | [`TRACEABILITY.md`](../../../specs/model-sidecar/TRACEABILITY.md#models-and-sections), "Models and sections": the row of the section, in the columns of the models with the root `example` (see "Models") |
+| A reference example that uses the section | [`TRACEABILITY.md`](../../../specs/model-sidecar/TRACEABILITY.md#models-and-sections), "Models and sections": the row of the section, in the columns of the models whose root holds `example` (see "Models") |
 | Verified vectors | `specs/model-sidecar/vectors/<section-id>.yaml`: `verified_against` at the top of the file, or for each case. `unverified: <reason>` means that no implementation verified the file. |
 | A reference implementation | `specs/model-sidecar/reference/<section_module>.py` |
 | An exporter implementation | `external_impl` in the front matter, and "External implementations" in `TRACEABILITY.md` |
