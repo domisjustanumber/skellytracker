@@ -107,3 +107,48 @@ def detector_pipeline(**person_params: Any) -> dict[str, Any]:
         ],
         "outputs": {"body": "body.keypoints", "person_box": "person.detections", "person_roi": "person.rois"},
     }
+
+
+def image(value: int, height: int = 32, width: int = 32) -> Any:
+    """Return a BGR frame with one value. The scores of the object model are `onnx_models.SCORES` times `value`: 0 gives no detection."""
+    import numpy as np
+
+    return np.full((height, width, 3), value, np.uint8)
+
+
+def tracking_pipeline() -> dict[str, Any]:
+    """Return a config with the two models and each glue node type, in the form of `yolox-rtmw-wholebody`.
+
+    The detector runs on the first frame and then each 3 frames. `hand` is a second node of the
+    keypoint model, so the two nodes can share one session. The outputs are `body`, `both`
+    (`concat`), `merged` (`merge`), `smooth`, `person_box` and `person_roi` (the crop ROI).
+    """
+    cpu = {"execution_provider": "cpu"}
+    nodes = [
+        {"id": "trigger", "type": "redetect_trigger",
+         "inputs": {"image": "frame.image", "previous_keypoints": "body.keypoints@prev", "previous_rois": "crop.rois@prev"},
+         "params": {"redetect_interval": 3, "fitness_checks": [{"check": "roi_missing"}]}},
+        {"id": "person", "type": "onnx_model", "inputs": {"image": "trigger.image"}, "params": {"key": OBJECT_KEY, "size": "n", **cpu}},
+        {"id": "detected_box", "type": "first_of", "inputs": ["person.rois", "detected_box.value@prev"]},
+        {"id": "points_box", "type": "roi_from_points",
+         "inputs": {"keypoints": "body.keypoints@prev", "previous_rois": "crop.rois@prev", "reference_rois": "detected_box.value"},
+         "params": {"expand_ratio": 1.2}},
+        {"id": "carried_box", "type": "gate", "inputs": {"value": "points_box.rois", "condition": "trigger.image"}, "params": {"mode": "is_empty"}},
+        {"id": "box", "type": "first_of", "inputs": ["person.rois", "carried_box.value"]},
+        {"id": "hold", "type": "roi_hold", "inputs": {"previous": "crop.rois@prev", "current": "box.value"}},
+        {"id": "crop", "type": "smooth_roi", "inputs": {"rois": "hold.rois"}},
+        {"id": "body", "type": "onnx_model", "inputs": {"image": "frame.image", "rois": "crop.rois"}, "params": {"key": KEYPOINT_KEY, "size": "m", **cpu}},
+        {"id": "hand", "type": "onnx_model", "inputs": {"image": "frame.image", "rois": "crop.rois"}, "params": {"key": KEYPOINT_KEY, "size": "m", **cpu}},
+        {"id": "both", "type": "concat", "inputs": ["body.keypoints", "hand.keypoints"]},
+        {"id": "merged", "type": "merge", "inputs": {"target": "body.keypoints", "source": "hand.keypoints"},
+         "params": {"slots": {"extra": "body/a"}, "source_anchor": "hand/a", "max_distance": 10.0}},
+        {"id": "smooth", "type": "smooth_keypoints", "inputs": {"keypoints": "both.keypoints"}},
+    ]
+    outputs = {
+        "body": "body.keypoints", "both": "both.keypoints", "merged": "merged.keypoints", "smooth": "smooth.keypoints",
+        "person_box": "person.detections", "person_roi": "crop.rois",
+    }
+    return {
+        "schema_version": "2.0.0", "pipeline_id": "demo-tracking", "source": {"name": "demo-source", "version": "1.0.0"},
+        "nodes": nodes, "outputs": outputs,
+    }

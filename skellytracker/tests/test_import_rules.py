@@ -59,3 +59,9 @@ def test_freeze_rule_finds_each_bad_form():
     ]
     assert all(freeze_problems(source, "core/x.py") for source in bad)
     assert freeze_problems("import importlib.metadata\nimportlib.metadata.version('mediapipe')", "core/x.py") == []
+
+
+def test_import_of_pipelines_loads_no_onnxruntime_and_no_mediapipe():
+    code = ("import sys, skellytracker.core.pipelines; "
+            "sys.exit(1 if {'onnxruntime', 'mediapipe'} & set(sys.modules) else 0)")
+    assert subprocess.run([sys.executable, "-c", code], check=False).returncode == 0  # noqa: S603

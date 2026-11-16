@@ -1,0 +1,90 @@
+"""The node type `onnx_model` in a run, on ONNX models that `onnx.helper` makes, on the CPU EP."""
+from __future__ import annotations
+
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+pytest.importorskip("onnx", reason="onnx not installed")
+
+from skellytracker.core.detectors.generic import create_detector  # noqa: E402
+from skellytracker.core.pipelines import Frame, load_pipeline, start_pipeline  # noqa: E402
+from skellytracker.core.pipelines._runtime.onnx_model import OnnxModelRunner  # noqa: E402
+from skellytracker.core.pipelines._runtime.resolve import resolve  # noqa: E402
+from skellytracker.core.pipelines.config import PipelineConfig  # noqa: E402
+from skellytracker.core.pipelines.values import InstanceRois  # noqa: E402
+from skellytracker.tests.pipelines.pipeline_models import KEYPOINT_KEY, OBJECT_KEY, detector_pipeline, image, isolate, write_models  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def private_folders(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    isolate(monkeypatch, tmp_path)
+
+
+@pytest.fixture
+def root(tmp_path: Path) -> Path:
+    return write_models(tmp_path / "user", graphs=True)
+
+
+def one_frame(root: Path, value: int = 1, **person_params) -> dict:
+    config = load_pipeline(detector_pipeline(**person_params), user_root=root)
+    with start_pipeline(config, camera_ids=[0], running_mode="image", user_root=root) as run:
+        return run.process(Frame(image(value), 0))
+
+
+def test_an_object_detector_gives_the_present_rows_first_in_score_order_with_class_index_and_padding_rows_last(root: Path) -> None:
+    result = one_frame(root, max_instances=3)
+    boxes, rois = result["person_box"], result["person_roi"]
+    assert boxes.present.tolist() == [True, True, False]
+    np.testing.assert_allclose(boxes.xyxy[:2], [[2, 2, 10, 10], [20, 20, 30, 30]])
+    np.testing.assert_allclose(boxes.score, [0.9, 0.75, 0.0], rtol=1e-6)
+    assert boxes.class_index.tolist() == [0, 0, -1] and boxes.track_ids.tolist() == [-1, -1, -1]
+    assert np.isnan(boxes.xyxy[2]).all()  # the padding values of pipeline.outputs
+    # `rois` holds each box as an ROI with the rotation 0, and the instance score is the score of the row.
+    np.testing.assert_allclose(rois.rois[:2], [[6, 6, 8, 8, 0], [25, 25, 10, 10, 0]])
+    assert np.isnan(rois.rois[2]).all() and rois.present.tolist() == [True, True, False]
+    np.testing.assert_array_equal(rois.instance_score, boxes.score)
+
+
+def test_max_instances_keeps_the_rows_with_the_highest_scores(root: Path) -> None:
+    boxes = one_frame(root, max_instances=1)["person_box"]
+    assert boxes.xyxy.shape == (1, 4) and boxes.present.tolist() == [True]
+    np.testing.assert_allclose(boxes.score, [0.9], rtol=1e-6)
+
+
+def test_a_top_down_model_gives_row_i_from_roi_row_i_with_the_instance_score_of_the_roi_and_no_score_threshold(root: Path) -> None:
+    result = one_frame(root, max_instances=3)
+    body = result["body"]
+    assert body.point_names == ("body/a", "body/b", "body/c")  # the names of the port facts: `<group>/<point>`
+    assert body.present.tolist() == [True, True, False] and body.track_ids.tolist() == [-1, -1, -1]
+    np.testing.assert_array_equal(body.instance_score, result["person_roi"].instance_score)
+    # Point `a` is the centre of each crop. Point `c` is missing: NaN and the score 0. The node sets no low score to NaN.
+    np.testing.assert_allclose(body.xyz[:2, 0, :2], [[6, 6], [25, 25]])
+    np.testing.assert_allclose(body.score, [[3, 2, 0], [3, 2, 0], [0, 0, 0]])
+    assert np.isnan(body.xyz[:2, 2]).all() and np.isnan(body.xyz[2]).all()
+    assert np.isnan(body.xyz[:, :, 2]).all()  # z is NaN for a `2d` model
+
+
+def test_a_roi_value_with_a_padding_row_before_a_present_row_keeps_its_rows_and_a_padded_crop_gives_no_row(root: Path) -> None:
+    resolved = resolve(PipelineConfig.model_validate(detector_pipeline(max_instances=2)), root)
+    detector = create_detector(KEYPOINT_KEY, execution_provider="cpu", user_root=root)  # a batch-3 session: one crop, two padded items
+    runner = OnnxModelRunner(resolved.nodes["body"], "fp32", [detector.session])
+    rois = InstanceRois.empty(2)
+    rois.rois[1], rois.instance_score[1], rois.present[1] = (25, 25, 10, 10, 0), 0.4, True
+    spans: list[str] = []
+    (outputs,) = runner.run(0, [image(1)], [rois], lambda span, start, end: spans.append(span))
+    value = outputs["keypoints"]
+    assert value.present.tolist() == [False, True] and value.instance_score.tolist() == [0.0, 0.4]
+    np.testing.assert_allclose(value.xyz[1, 0, :2], [25, 25])
+    assert np.isnan(value.xyz[0]).all() and spans == ["preprocess", "inference", "postprocess"]
+
+
+def test_the_timer_of_a_generic_detector_gets_three_spans_in_order_and_changes_no_result(root: Path) -> None:
+    detector = create_detector(OBJECT_KEY, execution_provider="cpu", user_root=root)
+    spans: list[tuple[str, int, int]] = []
+    (timed,), (plain,) = detector.detect([image(1)], timer=lambda *span: spans.append(span)), detector.detect([image(1)])
+    np.testing.assert_array_equal(timed.boxes, plain.boxes)
+    assert [span[0] for span in spans] == ["preprocess", "inference", "postprocess"]
+    assert all(start <= end for _, start, end in spans) and spans[0][2] == spans[1][1] and spans[1][2] == spans[2][1]
+    assert detector.detect([], timer=lambda *span: pytest.fail("no model run, no span")) == []
