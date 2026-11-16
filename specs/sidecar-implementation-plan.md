@@ -303,7 +303,13 @@ Not done in this stage:
   lock only.
 - `InstallResult.needs_worker_restart` is always false: no code tracks the packs of other processes.
 - A local run of the Linux and macOS readers, of the Linux pack preloads and of the `coreml` EP.
-  Only the CI jobs run them.
+  Only the CI jobs run them. The IOKit reader of macOS and the `pci.ids` lookup of Linux
+  ([ADR-Q4BF](../decisions/entries/Q4BF-host-probe-without-losses-for-freemocap.md)) ran only on fixtures.
+  At the end of the freemocap migration work, verification scripts for Linux and macOS do this run:
+  the host readers, the EP status and one pipeline run on `cpu` (user, 2026-11-16). A person runs
+  them by hand on a real machine, one or two times. They are scripts in `decisions/scripts/` with
+  an evidence entry, not tools ([ADR-EY8R](../decisions/entries/EY8R-tools-and-scripts.md)). Their
+  report holds no hostname, no user name and no path.
 
 Names: `run_devices()` and `RunDevice` keep their proposed names. The modules of `core/eps/` are
 `recommendation.py`, `installer.py`, `registration.py`, `verification.py`, `self_test.py`, `state.py`
