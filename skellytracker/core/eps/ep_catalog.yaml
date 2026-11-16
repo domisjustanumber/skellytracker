@@ -1,0 +1,136 @@
+# The EP catalog. It is written by hand. `tools/ep_catalog.py --check` checks it.
+# `ep_lock.yaml` holds the wheels of each pack; only `tools/ep_catalog.py --refresh` writes it.
+# The runtime never downloads a catalog (ADR-246B item 1).
+schema: 1
+
+# `version` must equal the `onnxruntime` pin of pyproject.toml and uv.lock.
+ort_core: {package: onnxruntime, version: "1.31.1"}
+
+indexes:
+  pypi: https://pypi.org/simple/
+  # The Azure feed is the only source of the cuda plugin wheel. There is no mirror.
+  ort-cuda-13: https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-13/pypi/simple/
+
+# The platforms that have packs. macOS has no pack.
+platforms: [win_amd64, manylinux_x86_64]
+
+# An option value is a list of the allowed strings, or `positive-int`.
+# Each other option name is refused, also `device_id`: the device comes from the device map.
+eps:
+  trt-rtx:
+    kind: plugin
+    gpu: true
+    display_name: NVIDIA TensorRT for RTX
+    precision_order: [fp16, fp32]
+    l3_atol: 1.5e-2
+    options:
+      allowed: {enable_cuda_graph: ["0", "1"]}
+      defaults: {}
+      # build_session() sets this option to the EP cache folder. A caller cannot set it.
+      cache_path_option: nv_runtime_cache_path
+    packs:
+      - id: trt-rtx-cu13
+        package: onnxruntime-ep-nv-tensorrt-rtx-cu13
+        version: "0.5.0"
+        index: pypi
+        ep_name: NvTensorRTRTXExecutionProvider
+        library: {win_amd64: onnxruntime_providers_nv_tensorrt_rtx.dll, manylinux_x86_64: libonnxruntime_providers_nv_tensorrt_rtx.so}
+        exclusive_group: NvTensorRTRTXExecutionProvider
+        # R580 is the first driver branch with CUDA 13.
+        requires: {vendor: nvidia, cc_min: "8.0", driver_branch_min: 580}
+        # ONNX Runtime 1.31 is outside the range that NVIDIA tested: the pack is `untested-ort` (ADR-246B item 5).
+        ort: {vendor_tested: ["1.25", "1.30"]}
+        licences:
+          - {name: NVIDIA TensorRT for RTX, url: "https://pypi.org/project/onnxruntime-ep-nv-tensorrt-rtx-cu13/"}
+        status: ready
+  cuda:
+    kind: plugin
+    gpu: true
+    display_name: NVIDIA CUDA
+    precision_order: [fp16, fp32]
+    l3_atol: 1.5e-2
+    options:
+      allowed: {prefer_nhwc: ["0", "1"], use_tf32: ["0", "1"], arena.max_mem: positive-int}
+      # `prefer_nhwc=1` is faster for fp16 only (ADR-NZK1 item 3).
+      defaults: {fp16: {prefer_nhwc: "1"}}
+    packs:
+      - id: cuda-cu13
+        package: onnxruntime-ep-cuda13
+        version: "0.3.0"
+        index: ort-cuda-13
+        ep_name: CUDAExecutionProvider
+        library: {win_amd64: onnxruntime_providers_cuda.dll, manylinux_x86_64: libonnxruntime_providers_cuda.so}
+        dependency_wheels:
+          - {package: nvidia-cublas, index: pypi, version: {win_amd64: "13.8.0.4", manylinux_x86_64: "13.8.2.12"}}
+          - {package: nvidia-cudnn-cu13, index: pypi, version: "9.27.0.42"}
+        exclusive_group: CUDAExecutionProvider
+        requires: {vendor: nvidia, cc_min: "7.5", driver_branch_min: 580}
+        ort: {verified_by_us: ["1.31.1"]}
+        licences:
+          - {name: ONNX Runtime CUDA EP, url: "https://github.com/microsoft/onnxruntime/blob/main/LICENSE"}
+          - {name: NVIDIA cuBLAS, url: "https://pypi.org/project/nvidia-cublas/"}
+          - {name: NVIDIA cuDNN, url: "https://pypi.org/project/nvidia-cudnn-cu13/"}
+        status: ready
+  coreml:
+    kind: builtin
+    gpu: true
+    display_name: Apple Core ML
+    ep_name: CoreMLExecutionProvider
+    platforms: [macosx_arm64]
+    precision_order: [fp16, fp32]
+    l3_atol: 1.5e-2
+    options:
+      allowed: {MLComputeUnits: [ALL, CPUAndGPU, CPUAndNeuralEngine, CPUOnly]}
+      defaults: {}
+  cpu:
+    kind: builtin
+    gpu: false
+    display_name: CPU
+    ep_name: CPUExecutionProvider
+    precision_order: [fp32]
+    options: {allowed: {}, defaults: {}}
+  trt: {kind: reserved, reason: "classic TensorRT is a separate EP; it is not in v2"}
+  directml: {kind: reserved, reason: "DirectML needs a second ONNX Runtime core; it is not in v2"}
+  openvino:
+    kind: reserved
+    reason: "OpenVINO is deferred: discrete Intel GPUs only"
+    # A CI-only test vehicle for `selftest`. It is never offered, selected or installed for a user.
+    test_packs:
+      - id: openvino
+        package: onnxruntime-ep-openvino
+        version: "1.8.1"
+        index: pypi
+        ep_name: OpenVINOExecutionProvider
+        library: {win_amd64: onnxruntime_providers_openvino_plugin.dll, manylinux_x86_64: libonnxruntime_providers_openvino_plugin.so}
+        exclusive_group: OpenVINOExecutionProvider
+        licences:
+          - {name: ONNX Runtime OpenVINO EP, url: "https://pypi.org/project/onnxruntime-ep-openvino/"}
+        status: test
+  qnn: {kind: reserved, reason: "QNN is deferred"}
+  migraphx: {kind: reserved, reason: "MIGraphX is deferred"}
+  vitisai: {kind: reserved, reason: "Vitis AI is deferred"}
+
+# The first row that a GPU of the host (or the host) matches gives the candidates, in order.
+# `ranking_evidence` is a decision entry ID, `single-ep`, or `none` (the order is not measured).
+# No benchmark runs on the host.
+hardware_classes:
+  # The NVML brands of data center GPUs are an assumption. No data center host tested this row.
+  - {id: nvidia-datacenter-r580, match: {vendor: nvidia, brand: [tesla, nvidia], os: Linux, cc_min: "7.5", driver_branch_min: 580},
+     candidates: [cuda, cpu], offer: add-pack, ranking_evidence: none}
+  - {id: nvidia-cc80-r580, match: {vendor: nvidia, cc_min: "8.0", driver_branch_min: 580},
+     candidates: [trt-rtx, cuda, cpu], offer: add-pack, ranking_evidence: MWY9}
+  - {id: nvidia-cc80-pre580, match: {vendor: nvidia, cc_min: "8.0"},
+     candidates: [cpu], offer: update-driver, note: "Update the NVIDIA driver to R580 or later. Then install trt-rtx.", ranking_evidence: single-ep}
+  - {id: nvidia-cc75-r580, match: {vendor: nvidia, cc_min: "7.5", driver_branch_min: 580},
+     candidates: [cuda, cpu], offer: add-pack, ranking_evidence: none}
+  - {id: nvidia-cc75-pre580, match: {vendor: nvidia, cc_min: "7.5"},
+     candidates: [cpu], offer: update-driver, note: "Update the NVIDIA driver to R580 or later. Then install cuda.", ranking_evidence: single-ep}
+  - {id: nvidia-pre-turing, match: {vendor: nvidia},
+     candidates: [cpu], offer: none-available, note: "CUDA 13 has no kernels for this GPU.", ranking_evidence: single-ep}
+  - {id: intel-gpu, match: {vendor: intel}, candidates: [cpu], ranking_evidence: single-ep}
+  - {id: amd-deferred, match: {vendor: amd},
+     candidates: [cpu], offer: none-available, note: "AMD EPs are deferred.", ranking_evidence: single-ep}
+  - {id: apple-silicon, match: {host: true, os: Darwin, arch: arm64}, candidates: [coreml, cpu], ranking_evidence: none}
+  - {id: snapdragon-x, match: {host: true, os: Windows, native_arch: ARM64}, candidates: [cpu], ranking_evidence: single-ep}
+  - {id: unknown-gpu, match: {}, candidates: [cpu], ranking_evidence: single-ep}
+  - {id: cpu-only, match: {host: true}, candidates: [cpu], ranking_evidence: single-ep}
