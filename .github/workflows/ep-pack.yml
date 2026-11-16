@@ -19,11 +19,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-    env:
-      SKELLYTRACKER_EP_STORE: ${{ runner.temp }}/eps
-      SKELLYTRACKER_EP_WHEEL_CACHE: ${{ runner.temp }}/ep-wheels
     steps:
       - uses: actions/checkout@v5
+      # The runner context is not available in the env of a job, only in a step.
+      - shell: bash
+        run: |
+          echo "SKELLYTRACKER_EP_STORE=$RUNNER_TEMP/eps" >> "$GITHUB_ENV"
+          echo "SKELLYTRACKER_EP_WHEEL_CACHE=$RUNNER_TEMP/ep-wheels" >> "$GITHUB_ENV"
       - uses: astral-sh/setup-uv@v10.0.0
         with:
           python-version: "3.13.18"
