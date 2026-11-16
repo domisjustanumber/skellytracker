@@ -16,7 +16,7 @@ from typing import Any
 import pytest
 import yaml
 
-import sidecar_normalize as sn
+from skellytracker.core.model_spec import sidecar_normalize as sn
 import sidecar_trace as st
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

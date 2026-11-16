@@ -75,7 +75,7 @@ from typing import Any, ClassVar
 
 import yaml
 
-import sidecar_normalize
+from skellytracker.core.model_spec import sidecar_normalize
 import sidecar_refs
 
 REPO_ROOT = Path(__file__).resolve().parents[1]

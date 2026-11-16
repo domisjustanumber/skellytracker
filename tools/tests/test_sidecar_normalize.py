@@ -1,4 +1,4 @@
-"""The normalization table and the selector matching of `tools/sidecar_normalize.py`."""
+"""The normalization table and the selector matching of `skellytracker/core/model_spec/sidecar_normalize.py`."""
 
 from __future__ import annotations
 
@@ -9,8 +9,9 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from beartype.roar import BeartypeCallHintParamViolation
 
-import sidecar_normalize as sn
+from skellytracker.core.model_spec import sidecar_normalize as sn
 
 MODULE_PATH = Path(sn.__file__)
 
@@ -114,7 +115,7 @@ def test_normalize_is_idempotent() -> None:
 
 
 def test_normalize_needs_a_mapping() -> None:
-    with pytest.raises(TypeError):
+    with pytest.raises(BeartypeCallHintParamViolation):  # the package checks each argument type
         sn.normalize(["not", "a", "mapping"])  # type: ignore[arg-type]
 
 
@@ -300,7 +301,7 @@ def test_a_selector_that_is_not_well_formed_raises(selector: str) -> None:
 
 
 def test_a_selector_must_be_a_string() -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(BeartypeCallHintParamViolation):
         sn.parse_selector(5)  # type: ignore[arg-type]
 
 
@@ -342,7 +343,7 @@ def test_a_section_without_selectors_applies_to_nothing() -> None:
 
 
 # --------------------------------------------------------------------------------------------
-# The module moves into the package unchanged
+# The module has no import of the package or of a tool
 # --------------------------------------------------------------------------------------------
 
 
@@ -362,7 +363,3 @@ def test_the_module_imports_only_the_standard_library() -> None:
     for module in _imported_modules():
         assert module.split(".")[0] in sys.stdlib_module_names, module
 
-
-def test_the_module_imports_nothing_from_tools() -> None:
-    tools = {p.stem for p in MODULE_PATH.parent.glob("*.py")} - {MODULE_PATH.stem}
-    assert not {m.split(".")[0] for m in _imported_modules()} & tools

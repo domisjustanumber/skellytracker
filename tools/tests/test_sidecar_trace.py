@@ -1366,7 +1366,7 @@ def test_main_needs_a_command(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 # --------------------------------------------------------------------------------------------
-# The tool does not import the package
+# The imports of the tool
 # --------------------------------------------------------------------------------------------
 
 
@@ -1380,8 +1380,7 @@ def test_the_tool_imports_only_the_standard_library_yaml_and_its_siblings() -> N
             modules.add((node.module or "").split(".")[0])
     allowed = set(sys.stdlib_module_names) | {
         "yaml",
-        "sidecar_normalize",
         "sidecar_refs",
-        "skellytracker",  # only `resolve_sidecar` imports the package resolver
+        "skellytracker",  # the selector functions and, in `resolve_sidecar`, the package resolver
     }
     assert modules <= allowed, modules - allowed
