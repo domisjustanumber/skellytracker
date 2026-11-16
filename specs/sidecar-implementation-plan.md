@@ -764,9 +764,11 @@ Open:
   characters. Hash the file in all other cases.
 - **Symlink test.** The test of a snapshot of symlinks did not run on the Windows host of this
   stage, because that host cannot make a symlink. Run it on Linux or macOS.
-- **Download.** Stage 1.7 downloads a `url` artifact.
-- **Dispatch.** Stage 1.7 maps a catalog entry to a generic detector by `role` and `sections` of
-  the entry ([`format.versioning`](model-sidecar/format/versioning.md#implementer-guidance)).
+- **Download.** Done in stage 1.7: `ensure_artifact` of `core/detectors/generic/session.py` and
+  `download_artifact` of `core/detectors/generic/download.py`.
+- **Dispatch.** Done in stage 1.7: `create_detector` of `core/detectors/generic/session.py` maps a
+  catalog entry to a generic detector by `role` and `sections` of the entry
+  ([`format.versioning`](model-sidecar/format/versioning.md#implementer-guidance)).
 - **Run metadata.** Stage 1.10 writes `key`, `version` and `sidecar_sha256` of the entry in the
   output metadata of a run.
 - **Static table.** The table names the old MediaPipe classes. The stage that adds the MediaPipe
@@ -774,39 +776,126 @@ Open:
 
 ### 1.7 Standalone generic detectors (was N4)
 
-**Status: NOT STARTED.**
+**Status: DONE (2026-11-16), except the Open items below.** The generic detectors are in
+`core/detectors/generic/`. The heading "Open" gives each item that stays.
 
-- The generic object detector and the generic keypoint detector of Part A below, in `core/detectors/generic/`
-  ([ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md) item 6). Each one takes a
-  catalog entry, a size, a precision and a session. It runs the sidecar preprocessing, the inference
-  and the postprocessing on a batch of images or crops. It has no old registry key, no
-  `detector_type`, no old config base and no link to `DetectionStageConfig` or `DetectionContext`.
-  The `onnx_model` node of stage 1.10 wraps them.
-- The generic keypoint detector reads `keypoint.estimator_type`. A `top_down_single_person` or
-  `top_down_multi_person` model takes crops. A `bottom_up` model takes the full image
-  ([ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md) item 2).
-- The generic keypoint detector groups the edges for drawing from `keypoint.overlay` (`parts`,
-  `edges`) and `keypoint.skeletons`. The old `resolve_overlay_groups` stays until stage 2.3.
-- The batch conversion at session start for each `batching.batch: 3` artifact
-  (`model_batch_convert`), as a function that stage 1.10 calls. Stage 1.7 does not change `core/tracker/` or
-  `DetectionStage.run_batch`. `test_run_batched.py` stays.
-- The session takes the execution provider as `execution_provider`.
-- The download of a `url` artifact, when a session needs a file that is not present (from stage
-  1.6). The file goes to
-  `platformdirs.user_cache_dir("skellytracker")/models/<key>/<version>/<filename>`. The host hashes
-  the bytes while it writes them. It checks `url_sha256` on the downloaded bytes, and `sha256` on
-  the ONNX file that it writes or extracts from an archive
-  ([Sizes and artifacts](model-sidecar/common/sizes-and-artifacts.md#sizessizeonnx)). Then it calls
-  `HashCache.record`, with no second read. Decide here the availability rule of the catalog for a
-  `url` artifact that is not downloaded: today the catalog lists it as unavailable, with the reason
-  "is not downloaded".
+Done:
+
+- `GenericObjectDetector` and `GenericKeypointDetector` of Part A below
+  ([ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md) item 6). Each one
+  takes a loaded spec model, a size, a precision and a session. It runs the sidecar preprocessing,
+  the inference and the postprocessing on a batch of images or crops, with the modules of stage
+  1.5. It has no old registry key, no `detector_type`, no old config base and no link to
+  `DetectionStageConfig` or `DetectionContext`. It keeps no state between calls. The `onnx_model`
+  node of stage 1.10 wraps them.
+- `create_detector(key, execution_provider=...)` of `generic/session.py` maps a catalog entry to a
+  generic detector by the `role` of the entry. The capability check of the catalog refuses a
+  sidecar that uses a section with no processing module (the dispatch item of stage 1.6).
+- `IMPLEMENTED_SECTIONS` of `core/model_spec/sections.py` holds each section, except the four
+  sections of `UNIMPLEMENTED_SECTIONS`: `post.object.selection.none`,
+  `post.object.selection.top_k`, `post.keypoint.decode.coordinate` and `post.keypoint.bottom_up`.
+  Thus an `onnx` entry with `selection: nms` or a `simcc` decode can be available.
+- The batch loop is `run_batches` of `generic/inference.py`. It feeds the tensors in the
+  `input.dtype` of the precision to the input `input.name`, and it reads each output by its name.
+  A session with a fixed batch runs groups of that batch, and zero tensors fill the last group.
+  The detectors select the tensors by `semantic` and `fields` (`read_object_outputs`).
+- The object detector decodes with `object.decode` of the sidecar, or with the changed block that
+  the caller gives. `min_score` of a call replaces `object.decode.min_score`. The detector holds no
+  threshold of its own.
+- The generic keypoint detector reads `keypoint.estimator_type`
+  ([ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md) item 2). A top-down model
+  takes one ROI for each image. A `bottom_up` model takes the full image. It has no score
+  threshold: it applies only the rule of a missing keypoint, and it computes the derived points
+  ([Decoded keypoints](model-sidecar/post/keypoint/schema.md#decoded-keypoints)). The `onnx_model`
+  node has no param for a keypoint threshold
+  ([ONNX model node](pipeline/nodes/onnx_model.md#fields)).
+- `overlay_groups` and `overlay_edges` of `generic/overlay.py` group the edges for drawing from
+  `keypoint.overlay` (`skeleton`, `parts`, the colors and the thickness) and `keypoint.skeletons`.
+  The old `resolve_overlay_groups` stays until stage 2.3.
+- `model_batch_convert` of `generic/batch_conversion.py` makes the generated artifact of
+  `static-batch-v1` in memory. It also refuses external data in the `indices` of a sparse
+  initializer. `open_session(entry, sidecar, size, precision, execution_provider=..., batch=...)`
+  of `generic/session.py` converts at session start when `batch` is not `batching.batch`. Stage
+  1.10 calls it. `core/tracker/`, `DetectionStage.run_batch`, `test_run_batched.py` and the old
+  `core/sessions/batch_conversion.py` did not change.
+- The session comes from `eps.build_session()`, with the execution provider as
+  `execution_provider`.
+- The download of a `url` artifact, when a session needs a file that is not present
+  (`ensure_artifact`, `download_artifact` of `generic/download.py`). The file goes to
+  `platformdirs.user_cache_dir("skellytracker", appauthor=False)/models/<key>/<version>/<filename>`
+  (`download_path` of `core/model_spec/artifacts.py`). `fetch` of `core/eps/_download.py` gets the
+  bytes, with its retries and its resume, and checks `url_sha256`. The host extracts the one ONNX
+  file of a zip archive and hashes it while it writes it. It checks `sha256`, moves the file into
+  place with `os.replace` and calls `HashCache.record`. The catalog reads a downloaded file from
+  that folder.
+- The availability rule of the catalog for a `url` artifact. A `url` artifact that is not
+  downloaded is available, and `ArtifactEntry.downloaded` is false. An artifact with no `url` and
+  no file stays unavailable
+  ([ADR-9E2A](../decisions/entries/9E2A-url-artifact-available-before-download.md)).
+- `close()` of a detector releases the session. A `detect` call that runs on an other thread keeps
+  its own reference to the session and ends normally. A later call raises `RuntimeError`.
 - The detector tests on generated ONNX models
-  ([ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md) item 8): `onnx.helper` makes
-  tiny fixed-batch models at run time, with a sidecar in a temporary root. The tests cover the
-  loader, the catalog, the generic detectors, the batch conversion and the decode. CI runs no real
-  model.
-- Gate: the detector tests pass on the three operating systems. The existing tests pass with no
-  change of expected values.
+  ([ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md) item 8):
+  `test_generic_detectors.py`, `test_generic_batch_conversion.py` and `test_generic_download.py`
+  in `skellytracker/tests/detectors/`. `onnx.helper` makes tiny batch-3 models at run time
+  (`onnx_models.py`), with a sidecar in a temporary root. The tests cover the loader, the catalog,
+  the generic detectors, the batch loop, the batch conversion, the decode, the overlay, the
+  download, calls from more than one thread and a `close()` in a `detect` call. They run no real
+  model, and a fake replaces the network.
+- Three catalog tests of stage 1.6 changed their sidecar: an `nms` sidecar is not unavailable now,
+  so they use the `top_k` sidecar for the capability check.
+- The front matter of `common.batch_conversion`, `common.outputs`, `common.sizes_and_artifacts`,
+  `post.keypoint.overlay`, `post.object.outputs` and `post.object.decode` names the new functions.
+- Gate: the detector tests pass on Windows. The existing tests pass with no change of expected
+  values, also the old tests and the video tests.
+
+Open:
+
+- **`selection: none` and `selection: top_k` (Part B): blocked.** These decodes are not written.
+  Step 3 of the skill
+  [`implement-sidecar-section`](../.claude/skills/implement-sidecar-section/SKILL.md) blocks each
+  one, because the three conditions are true:
+  - no reference example uses the section
+    ([Models and sections](model-sidecar/TRACEABILITY.md#models-and-sections));
+  - [`post.object.selection.none.yaml`](model-sidecar/vectors/post.object.selection.none.yaml) and
+    [`post.object.selection.top_k.yaml`](model-sidecar/vectors/post.object.selection.top_k.yaml)
+    are `unverified`;
+  - `specs/model-sidecar/reference/` has no module for them.
+
+  Part B also asks for a real export for each new decode path. No export that this repository can
+  read uses these modes. An exporter must give a reference implementation or a reference example
+  first, through the model addition workflow. Then a later stage writes the decode and removes the
+  section from `UNIMPLEMENTED_SECTIONS`. Until then, the catalog lists such a sidecar as
+  unavailable, and the reason names the section. The `decode` step of
+  [`post.object.decode`](model-sidecar/post/object/decode.md) stays `partial`.
+- **`post.keypoint.decode.coordinate` and `post.keypoint.bottom_up`: blocked.** The same step
+  blocks them: no reference example, no vector file and no reference module. A model with both
+  roles has no generic detector. An exporter must give a reference implementation or a reference
+  example first, for example with a one-stage pose model or a model with a `keypoint_coordinates`
+  output. The two first models of stage 1.9 and the RTMPose models of stage 2.2 do not use these
+  sections.
+- **Cache of generated artifacts.** The host keeps no generated artifact
+  ([Batch conversion](model-sidecar/common/batch-conversion.md#behaviour) item 6 allows a cache with
+  the key source `sha256`, `profile_id` and `T`). Each session start with an other batch converts
+  again, in memory. freemocap asks for the cache, because a detector change in a realtime run
+  starts a session again. The proposed form is one file
+  `<user cache folder>/converted/<sha256>-<profile_id>-b<T>.onnx`, written with `os.replace`. Stage
+  1.9 measures the conversion time first. The decision follows that number.
+- **`close()` in a pipeline run.** `close()` of a detector does not wait for a `detect` call that
+  runs. `PipelineRun.close()` of stage 1.10 must wait for the calls or stop them, and it decides
+  the lock design.
+- **Two downloads of one artifact.** Two threads or two processes that start a session for the same
+  `url` artifact can download it at the same time. They write the same `.part` file, so one
+  download can fail. Stage 1.10 decides the lock, with the file locks of stage 1.6.
+- **The extra `onnx`.** `model_batch_convert` needs the `onnx` package, which is an extra. A host
+  without it runs a b3 artifact only at batch 3. The tests of the generic detectors skip without
+  it.
+- **Operating systems.** The detector tests ran only on Windows. CI runs them on Linux and macOS.
+- **Real exports.** No test of this stage runs a real export. Stage 1.9 runs `yolox-person` and
+  `rtmw-wholebody133` at the detector level.
+- **Stale guidance.** The implementer guidance of `common.batch_conversion`,
+  `common.sizes_and_artifacts` and `format.versioning` still names the old code. A guidance edit
+  is a spec edit of its own.
 
 **Goal.** The generic detectors are the re-implementation of the package ONNX detectors
 ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md)). A new model needs its
@@ -922,6 +1011,10 @@ and a present row when Holistic finds at least one part
   files.
 - When the first spec sidecar is in `core/model_zoo/`, do the item "Package root in the trace scan"
   below.
+- Measure the time of the batch conversion at session start (`open_session` with a `batch` that
+  is not `batching.batch`) on the real `yolox-person` and `rtmw-wholebody133` exports, and report
+  it. The decision on a cache of generated artifacts follows that number
+  ([stage 1.7](#17-standalone-generic-detectors-was-n4), Open).
 - Gate: the model gate of 0.1, run locally. The old detectors still pass.
 
 - **Package root in the trace scan.** The trace tool scans only
