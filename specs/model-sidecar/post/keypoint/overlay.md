@@ -6,15 +6,16 @@ selectors:
   - keypoint.overlay
 implemented_by:
   validate: skellytracker/core/model_spec/rules.py::check_sidecar
-  load: skellytracker/core/detectors/overlay_groups.py::resolve_overlay_groups  # partial: it groups the edges only; colours, thickness, keypoint_color and keypoint.overlay.skeleton are not read
+  load: skellytracker/core/detectors/generic/overlay.py::overlay_groups
 external_impl: []
 tests:
   - skellytracker/tests/test_overlay_groups.py
   - skellytracker/tests/sidecar/test_model_validation.py
   - skellytracker/tests/sidecar/test_rtmw_sidecar.py
   - skellytracker/tests/model_spec/test_model_validation.py
+  - skellytracker/tests/detectors/test_generic_detectors.py
 vectors: null
-status: {spec: stable, validate: implemented, load: partial}
+status: {spec: stable, validate: implemented, load: implemented}
 ---
 
 # Overlay

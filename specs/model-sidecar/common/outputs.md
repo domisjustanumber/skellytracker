@@ -5,13 +5,14 @@ kind: common
 selectors: []
 implemented_by:
   validate: skellytracker/core/model_spec/rules.py::check_sidecar  # V-common.outputs-4 holds by the form: a size entry has no output (V-common.sizes_and_artifacts-3).
-  load: missing  # No code binds an ONNX output by name or by semantic. Decoders read the tensors by position.
+  load: skellytracker/core/detectors/generic/inference.py::run_batches  # It reads each output by its name. The detectors of skellytracker/core/detectors/generic/ select the tensors by semantic.
 external_impl: []
 tests:
   - skellytracker/tests/sidecar/test_model_validation.py
   - skellytracker/tests/model_spec/test_model_validation.py
+  - skellytracker/tests/detectors/test_generic_detectors.py
 vectors: null
-status: {spec: stable, validate: implemented, load: missing}
+status: {spec: stable, validate: implemented, load: implemented}
 ---
 
 # Outputs

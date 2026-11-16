@@ -9,14 +9,15 @@ selectors:
   - outputs[].semantic=class_logits
 implemented_by:
   validate: skellytracker/core/model_spec/rules.py::check_sidecar
-  decode: skellytracker/core/detectors/object_detectors/yolox/yolox_decode.py::yolox_detection_decode  # partial: it reads the outputs by position and last dimension, not by semantic or fields
+  decode: skellytracker/core/detectors/generic/object_detector.py::read_object_outputs  # packed_keypoints is the work of post.keypoint.bottom_up.
 external_impl: []
 tests:
   - skellytracker/tests/sidecar/test_model_validation.py
   - skellytracker/tests/test_yolox_detector.py
   - skellytracker/tests/model_spec/test_model_validation.py
+  - skellytracker/tests/detectors/test_generic_detectors.py
 vectors: null
-status: {spec: stable, validate: implemented, decode: partial}
+status: {spec: stable, validate: implemented, decode: implemented}
 ---
 
 # Object outputs

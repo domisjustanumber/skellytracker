@@ -5,13 +5,14 @@ kind: common
 selectors: [batching.batch_conversion]
 implemented_by:
   validate: skellytracker/core/model_spec/rules.py::check_sidecar
-  load: skellytracker/core/sessions/batch_conversion.py::model_batch_convert  # partial. model_batch_convert implements the profile conditions (part of Behaviour item 3), except that it does not check the `indices` of a sparse initializer for external data, the steps and the check (item 4). No host code calls it. Items 1, 2, 5, 6, 7 and the rest of item 3 have no code.
+  load: skellytracker/core/detectors/generic/batch_conversion.py::model_batch_convert  # open_session in skellytracker/core/detectors/generic/session.py does items 1, 2, 3 and 7 of Behaviour at the start of a session. The host keeps no cache of generated artifacts (item 6).
 external_impl: []
 tests:
   - skellytracker/tests/test_batch_conversion.py
   - skellytracker/tests/model_spec/test_model_validation.py
+  - skellytracker/tests/detectors/test_generic_detectors.py
 vectors: null
-status: {spec: draft, validate: implemented, load: partial}
+status: {spec: draft, validate: implemented, load: implemented}
 ---
 
 # Batch conversion

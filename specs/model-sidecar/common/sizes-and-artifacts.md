@@ -4,8 +4,8 @@ title: Sizes and artifacts
 kind: common
 selectors: []
 implemented_by:
-  validate: skellytracker/core/model_spec/rules.py::check_sidecar  # partial. check_artifact_hash in skellytracker/core/model_spec/artifacts.py checks V-common.sizes_and_artifacts-10 on a present ONNX file, and the catalog calls it. No check after a download, because no code downloads a file.
-  load: skellytracker/core/model_spec/model.py::SidecarModel.artifact  # partial. Reads a size entry with no merge, by size and precision. The catalog finds the file that filename names and checks its sha256. No download, and nothing checks url_sha256.
+  validate: skellytracker/core/model_spec/rules.py::check_sidecar  # check_artifact_hash in skellytracker/core/model_spec/artifacts.py checks V-common.sizes_and_artifacts-10 on a present ONNX file, and the catalog calls it. download_artifact in skellytracker/core/detectors/generic/download.py checks url_sha256 and V-common.sizes_and_artifacts-10 after a download.
+  load: skellytracker/core/model_spec/model.py::SidecarModel.artifact  # Reads a size entry with no merge, by size and precision. The catalog finds the file that filename names and checks its sha256. ensure_artifact in skellytracker/core/detectors/generic/session.py downloads a url artifact that is not present.
 external_impl: []
 tests:
   - skellytracker/tests/sidecar/test_model_validation.py
@@ -15,8 +15,9 @@ tests:
   - skellytracker/tests/model_spec/test_loader.py
   - skellytracker/tests/model_spec/test_artifacts.py
   - skellytracker/tests/detectors/test_catalog.py
+  - skellytracker/tests/detectors/test_generic_detectors.py
 vectors: null
-status: {spec: stable, validate: partial, load: partial}
+status: {spec: stable, validate: implemented, load: implemented}
 ---
 
 # Sizes and artifacts

@@ -6,7 +6,7 @@ selectors:
   - role=object_detector
 implemented_by:
   validate: skellytracker/core/model_spec/rules.py::check_sidecar
-  decode: skellytracker/core/detectors/processing/post/object_decode.py::unproject_and_filter  # partial. The shared steps of Selection behaviour. Stage 1.7 of the implementation plan adds the dispatch on selection and the modes none and top_k.
+  decode: skellytracker/core/detectors/generic/object_detector.py::decode_objects  # partial. It runs the shared steps (unproject_and_filter in skellytracker/core/detectors/processing/post/object_decode.py) for selection nms. The modes none and top_k have no decode: their sections have no reference example, no verified vector and no reference implementation.
 external_impl:
   - OpenMMLab-Exporter: onnx_runtime/decode_nms.py::NmsDecoder
 tests:
@@ -15,6 +15,7 @@ tests:
   - skellytracker/tests/test_yolox_detector.py
   - skellytracker/tests/model_spec/test_model_validation.py
   - skellytracker/tests/processing/test_postprocess.py
+  - skellytracker/tests/detectors/test_generic_detectors.py
 vectors: vectors/post.object.decode.yaml
 status: {spec: stable, validate: implemented, decode: partial}
 ---
