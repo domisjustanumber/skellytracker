@@ -56,7 +56,7 @@ The `license` block gives the license of the weights and the training data of th
 ## Implementer guidance
 
 - A validator of `V-common.license-3` needs a copy of the SPDX License List. OpenMMLab-Exporter checks the ids against the SPDX License List 3.29.0 (release 2026-09-16). (OpenMMLab-Exporter [`pipeline/spdx/spdx-ids.json`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/3e326df00726df8110773ed62cf38d02948a71a5/pipeline/spdx/spdx-ids.json))
-- The package `SidecarModel` forbids a key that it does not know. Thus the package rejects a sidecar with `license` until stage M8 of the [implementation plan](../../sidecar-implementation-plan.md). (skellytracker `skellytracker/core/sidecar/model.py` (`SidecarModel`)) (implementation stage)
+- The package `SidecarModel` holds the block as `LicenseSpec`. `check_sidecar` checks `V-common.license-1` to `V-common.license-7`. `is_spdx_expression` checks an id against the SPDX License List 3.29.0. No package code shows the block to a user yet. (skellytracker `skellytracker/core/model_spec/model.py` (`SidecarModel`, `LicenseSpec`), `skellytracker/core/model_spec/rules.py` (`check_sidecar`) and `skellytracker/core/model_spec/spdx.py` (`is_spdx_expression`)) (implementation stage)
 
 ## Authoring guidance
 
