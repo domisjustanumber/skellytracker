@@ -1,0 +1,71 @@
+# Built-in pipeline of v2.0.0. A YOLOX person detector keeps the best person (post_nms_top_k: 1),
+# and RTMW finds 133 whole-body points in the person box. The detector runs on the first frame,
+# then each 150 frames, and on the frame after a lost person. On each other frame, the box comes
+# from the points of the previous frame. A One Euro filter smooths the box on each frame.
+schema_version: "2.0.0"
+pipeline_id: yolox-rtmw-wholebody
+source: {name: skellytracker, version: "2.0.0"}
+description: YOLOX person detector, then RTMW whole-body keypoints (133 points) for one person.
+nodes:
+  # Ask for a detection each 150 frames, after a frame with no box, and after a frame with no
+  # point of score 0.4 or more, or with points on one line.
+  - id: trigger
+    type: redetect_trigger
+    inputs:
+      image: frame.image
+      previous_keypoints: wholebody.keypoints@prev
+      previous_rois: crop.rois@prev
+    params:
+      redetect_interval: 150
+      fitness_checks:
+        - {check: roi_missing}
+        - {check: bbox_area_collapse, min_area_ratio: 0.0, min_score: 0.4}
+  - id: person
+    type: onnx_model
+    inputs: {image: trigger.image}
+    params:
+      key: yolox-person@openmmlab-exporter
+      sidecar_sha256: e46f16004703c65151ee6c11a70ea686d5479cfbc90a3cbe35f4e9575721356b
+      size: m
+      object_decode:
+        nms: {post_nms_top_k: 1}
+  # The last box of the detector.
+  - id: detected_box
+    type: first_of
+    inputs: [person.rois, detected_box.value@prev]
+  # The box around the points of the previous frame, with its size floors.
+  - id: points_box
+    type: roi_from_points
+    inputs:
+      keypoints: wholebody.keypoints@prev
+      previous_rois: crop.rois@prev
+      reference_rois: detected_box.value
+    params:
+      score_threshold: 0.4
+      expand_ratio: 1.21
+      min_previous_ratio: 0.995
+      min_reference_ratio: 0.5
+      min_size_px: 80
+  # Use the points box only on a frame with no detection request.
+  - id: carried_box
+    type: gate
+    inputs: {value: points_box.rois, condition: trigger.image}
+    params: {mode: is_empty}
+  - id: box
+    type: first_of
+    inputs: [person.rois, carried_box.value]
+  - id: crop
+    type: smooth_roi
+    inputs: {rois: box.value}
+    params: {filter: one_euro, min_cutoff: 3.0, beta: 0.02, d_cutoff: 1.0, reset_after_ms: 500}
+  - id: wholebody
+    type: onnx_model
+    inputs: {image: frame.image, rois: crop.rois}
+    params:
+      key: rtmw-wholebody133@openmmlab-exporter
+      sidecar_sha256: 5a0919afe02b104de065065c8efb219f168e2f6c20aebc3ab3e433476bf8cd0b
+      size: m
+outputs:
+  wholebody: wholebody.keypoints
+  person_box: person.detections
+  person_roi: crop.rois
