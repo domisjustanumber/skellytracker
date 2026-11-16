@@ -38,6 +38,16 @@ def default_hash_cache_path() -> Path:
     return Path(platformdirs.user_cache_dir("skellytracker", appauthor=False)) / "hash-cache.json"
 
 
+def download_root() -> Path:
+    """Return the folder of the downloaded `url` artifacts. It is not a sidecar root."""
+    return Path(platformdirs.user_cache_dir("skellytracker", appauthor=False)) / "models"
+
+
+def download_path(key: str, version: str, filename: str) -> Path:
+    """Return the file of one downloaded artifact: `<download root>/<key>/<version>/<filename>`."""
+    return download_root() / key / version / filename
+
+
 def file_sha256(path: Path) -> str:
     """Return the SHA-256 of a file in lowercase hex. The function reads the file in chunks."""
     digest = hashlib.sha256()
