@@ -35,6 +35,8 @@ def test_selftest_installs_the_test_pack_from_a_local_index_with_a_resume(server
         server.files[wheel["filename"]] = target.read_bytes()
     server.drop_after = 1_000_000  # one dropped connection, then a resume with a byte range
     result = eps.selftest(server.url)
+    for step in result.steps:  # pytest cuts a long assertion message: a failed run shows each step in full here
+        print(step)
     assert result.ok, result.steps
     assert [name for name, _, _ in result.steps] == ["catalog", "cpu trial session", "test pack"]
     assert any(requested and requested.startswith("bytes=") for requested, _ in server.requests)

@@ -134,7 +134,7 @@ def test_registration_is_done_one_time_by_the_library_path(gpu_host):
 def test_a_pack_that_lists_no_device_and_a_second_pack_of_one_group_are_refused(gpu_host, monkeypatch):
     catalog = eps.load_catalog()
     monkeypatch.setattr(onnxruntime, "get_ep_devices", lambda: [fake_device("OtherExecutionProvider", SMALL)])
-    with pytest.raises(EpUnavailableError, match="lists no device"):
+    with pytest.raises(EpUnavailableError, match="lists no device.*these devices: OtherExecutionProvider on device 10de:2484"):
         eps.ensure_registered("cuda")
     monkeypatch.setattr(onnxruntime, "get_ep_devices", lambda: [fake_device(CUDA, SMALL)])
     eps.ensure_registered("cuda")

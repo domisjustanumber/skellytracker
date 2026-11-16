@@ -41,6 +41,13 @@ def prepare_libraries(folder: Path, manifest: dict, platform: str = sys.platform
             ctypes.CDLL(str(folder / name), mode=ctypes.RTLD_GLOBAL)
 
 
+def describe_device(device) -> str:
+    """One ONNX Runtime EP device as text: the EP name, the device type and the PCI vendor id and device id."""
+    hardware = device.device
+    kind = str(getattr(hardware, "type", "device")).rsplit(".", 1)[-1].lower()
+    return f"{device.ep_name} on {kind} {hardware.vendor_id:04x}:{hardware.device_id:04x}"
+
+
 def register_pack(ep_key: str, pack: dict, hint: str | None = None) -> RegisteredEp:
     """Register one pack row of the catalog. `ensure_registered()` and `selftest()` call it."""
     with _lock:
@@ -71,8 +78,12 @@ def register_pack(ep_key: str, pack: dict, hint: str | None = None) -> Registere
         except Exception as error:  # noqa: BLE001 - ONNX Runtime raises its own error types
             if "already registered" not in str(error).lower():
                 raise EpUnavailableError(f"The EP pack '{pack_id}' does not register: {sanitize_text(str(error))[:500]}") from error
-        if ep_name not in {device.ep_name for device in onnxruntime.get_ep_devices()}:
-            raise EpUnavailableError(f"The EP pack '{pack_id}' registers, but the EP '{ep_name}' lists no device on this host.")
+        devices = list(onnxruntime.get_ep_devices())
+        if ep_name not in {device.ep_name for device in devices}:
+            # An EP gives no reason for an empty list. The devices of the other EPs show the hardware that it refused.
+            listed = "; ".join(sorted({describe_device(device) for device in devices})) or "none"
+            raise EpUnavailableError(f"The EP pack '{pack_id}' registers, but the EP '{ep_name}' lists no device on this host. "
+                                     f"ONNX Runtime lists these devices: {listed}.")
         _groups[group] = pack_id
         _registered[pack_id] = RegisteredEp(ep_key, ep_name, pack_id, pack["version"], Path(manifest["library"]).name)
         try:  # the input of gc(): the last use of the pack, one time for each process
