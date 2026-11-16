@@ -13,12 +13,10 @@ root [open-work.md](../../../decisions/open-work.md).
   for a sidecar proposal (the spec defects of the
   [sidecar open work](../../model-sidecar/decisions/open-work.md#spec-defects)). The decomposed
   MediaPipe example needs it.
-- **Multi-person identity.** I > 1 is allowed everywhere. Without an `associate` node, a row has no
-  identity across frames, and each `track_ids` value is -1
-  ([Graph](../graph.md#behaviour) item 8;
-  [ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1). A later
-  `associate` node type gives the rows an identity. Until then, the temporal nodes filter row `i`,
-  which can be another person on the next frame.
+- **Multi-person identity.** v2.0.0 tracks one person (`V-pipeline.graph-11`;
+  [ADR-TH8E](../../../decisions/entries/TH8E-one-person-in-v2.md)). Each `track_ids` value is -1
+  ([Graph](../graph.md#behaviour) item 8). A later `associate` node type gives the rows an identity
+  and removes the limit.
 - **Values of other port types.** The value of an output or a tap of the port type `image` or
   `tensor` is not fixed ([Outputs](../outputs.md#behaviour) item 6). Fix it in
   stage 1.10 of the implementation plan, before the first output of such a port.

@@ -1153,8 +1153,9 @@ This stage implements the node types of the pipeline spec. Use the skill
 - **Multi-person.** A pipeline can have more than one row (`I > 1`). But a row has no identity
   across frames, and each `track_ids` value is -1, until an `associate` node exists
   ([ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1). The temporal nodes
-  filter row `i`, which can be another person on the next frame. Thus the v2 pipelines run single
-  person (`max_instances` 1). "Later" holds the multi-person work.
+  filter row `i`, which can be another person on the next frame. Thus v2.0.0 tracks one person: the
+  load refuses a temporal node or an `@prev` input with `I` > 1 (`V-pipeline.graph-11`;
+  [ADR-TH8E](../decisions/entries/TH8E-one-person-in-v2.md)). "Later" holds the multi-person work.
 - **Investigations.** Read `SharedSessionPool` and `TrackerLease` in the freemocap development-streaming
   work: what freemocap needs (a lease for each stream, the lifetime, thread safety). freemocap
   realtime already runs one pipeline with all cameras. Runs that overlap in time, for example
@@ -1384,7 +1385,8 @@ these parts:
 - Move the ONNX files of `core/model_zoo/` to a Hugging Face repo
   ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 5).
 - Multi-person tracking with the new pipelines: an `associate` node gives the rows an identity
-  across frames. Until then, each `track_ids` value is -1, and the v2 pipelines run single person.
+  across frames, and removes the limit of `V-pipeline.graph-11`. Until then, each `track_ids` value
+  is -1, and v2.0.0 tracks one person.
 - A better batch strategy than the padding of missed frames and crops, for example no work for a
   padded frame.
 - The ROI input of `mediapipe_tasks`, with `min_size_px` on `roi_from_points` and

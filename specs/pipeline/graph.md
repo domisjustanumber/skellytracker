@@ -72,7 +72,7 @@ The [README](README.md#terms) gives the letter key `I`, `P` and the other letter
    - `merge` keeps the instance source and the `I` of its `target` input. Its `source` input can have any instance source and any `I`.
    - `x@prev` has the instance source and the `I` of `x` ([ADR-97X9](../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 6).
    - A fan-out child adds point columns to the row of its instance. It adds no row. For example, a hand model on the hand ROI of person `i` adds its points to row `i`.
-   - Without an `associate` node, each `track_ids` value is -1, and a row has no identity across frames: row `i` of two frames can be two persons. This version has no `associate` node type.
+   - Each `track_ids` value is -1. This version tracks one person. Each input of `smooth_roi`, `smooth_keypoints` and `redetect_trigger`, and each `@prev` input, must have `I` = 1 (`V-pipeline.graph-11`). When the instance source sees two persons, row 0 can still change from one person to the other between frames. This version has no `associate` node type ([ADR-TH8E](../../decisions/entries/TH8E-one-person-in-v2.md)).
 
 ## Validation rules
 
@@ -86,10 +86,11 @@ The [README](README.md#terms) gives the letter key `I`, `P` and the other letter
 - [ ] `V-pipeline.graph-8` Each point name in a param must be `<group>/<point>`: `<group>` is a name, and `<point>` has no `/` and no whitespace. A derived point name of a `roi_from_points` node is the only exception. The host also checks at load that each name is a point of the input port, and refuses a point name of a sidecar or of the MediaPipe assets with `/` or whitespace ([ADR-4MP6](../../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md)).
 - [ ] `V-pipeline.graph-9` Each `any` output must get its port type from an input that is not `@prev` ([Behaviour](#behaviour) item 4; [ADR-97X9](../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 5).
 - [ ] `V-pipeline.graph-10` The groups that the nodes of a file make must have unique names: the groups of each inference node and the group of each adding slot of each `merge` node ([Behaviour](#behaviour) item 7). A replacing slot of a `merge` node makes no group: it has the name of a group of its `target` on purpose. The host checks this rule at load ([ADR-4MP6](../../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md); [ADR-KW76](../../decisions/entries/KW76-merge-replace-add-and-hungarian-match.md) item 2).
+- [ ] `V-pipeline.graph-11` Each input of `smooth_roi`, `smooth_keypoints` and `redetect_trigger`, and each `@prev` input, must have `I` = 1 ([Behaviour](#behaviour) item 8). The host checks this rule at load ([ADR-TH8E](../../decisions/entries/TH8E-one-person-in-v2.md)).
 
 ## Implementer guidance
 
-- `check_structure` in the reference model checks `V-pipeline.graph-1` to `V-pipeline.graph-6`, `V-pipeline.graph-8` and `V-pipeline.graph-9`. Each check raises a `ValueError` whose message starts with the rule ID. The discriminated union `NodeConfig` and the params models check `V-pipeline.graph-7`. `V-pipeline.graph-10` needs the sidecars and the registry, so the host checks it at load. (skellytracker `specs/pipeline/reference/pipeline_config.py`)
+- `check_structure` in the reference model checks `V-pipeline.graph-1` to `V-pipeline.graph-6`, `V-pipeline.graph-8` and `V-pipeline.graph-9`. Each check raises a `ValueError` whose message starts with the rule ID. The discriminated union `NodeConfig` and the params models check `V-pipeline.graph-7`. `V-pipeline.graph-10` needs the sidecars and the registry, and `V-pipeline.graph-11` needs the `max_instances` of each instance source, so the host checks them at load. (skellytracker `specs/pipeline/reference/pipeline_config.py`)
 - The reference model gives each item of the list of a variadic type the input name `*` (`VARIADIC`). Its cycle check ignores each `@prev` edge and each edge from the frame. `_ref_type` gives an `any` output the type of its inputs that are not `@prev`, and `x@prev` the type of `x`. (skellytracker `specs/pipeline/reference/pipeline_config.py`)
 - The host checks at load the rules that need the point names, the geometries and the instance sources of the ports: these come from the sidecars, the landmark schema registry and the MediaPipe YAML files.
 
