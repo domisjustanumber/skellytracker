@@ -13,19 +13,25 @@ This module does the checks of a pipeline file that the model `PipelineConfig` d
 implemented versions (`V-pipeline.file-1`), the file name of a YAML file (`V-pipeline.file-2`) and
 duplicate keys (`V-pipeline.file-5`). Each of these checks raises `ValueError` with a message that
 starts with its rule ID. A config that the model refuses raises `pydantic.ValidationError`, which
-is also a `ValueError`. This module reads no sidecar.
+is also a `ValueError`.
+
+`load_pipeline` then runs the load checks that need the sidecars (`_runtime/resolve.py`).
+`check_pipeline` gives the load result: the warnings that are known before a start.
 """
 from __future__ import annotations
 
 import json
 from collections.abc import Mapping
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import yaml
 
 from skellytracker.core.model_spec.resolution import _UniqueKeyLoader, lexical_path
+from skellytracker.core.pipelines._runtime.resolve import resolve, sidecar_hashes
 from skellytracker.core.pipelines.config import PipelineConfig
+from skellytracker.core.pipelines.warnings import PipelineWarning
 
 IMPLEMENTED_VERSIONS: tuple[str, ...] = ("2.0.0",)
 """The `schema_version` values of a pipeline file that this release loads.
@@ -98,6 +104,8 @@ def load_pipeline(source: str | Path | Mapping[str, Any], *, user_root: Path | s
 
     Raise `PipelineNotFoundError` or `PipelineUnavailableError` for a key that the catalog cannot
     give, and `ValueError` for a file or a config that is not valid. The message holds the rule ID.
+    The load runs each load check, also the checks that need the sidecars (ADR-ZYS9 item 7). An
+    ONNX file or an extra that is absent is not an error: `check_pipeline` gives the warning.
     """
     if isinstance(source, Mapping):
         config = _validate(source)
@@ -107,23 +115,55 @@ def load_pipeline(source: str | Path | Mapping[str, Any], *, user_root: Path | s
         from skellytracker.core.pipelines.catalog import find_pipeline  # the catalog imports this module
 
         config = load_pipeline_file(find_pipeline(source, user_root).path)
-    # phase 2: the load checks that need the sidecars go here
+    resolve(config, user_root)
     return config
 
 
-def export_pipeline(config: PipelineConfig, resolved: bool = False) -> dict[str, Any]:
+# choice: the name and form of the load result are not fixed by a text
+@dataclass(frozen=True)
+class PipelineCheck:
+    """The load result of a config: the warnings that are known before a start, and the output schema."""
+
+    warnings: tuple[PipelineWarning, ...]
+    needs_execution_provider: bool
+    """True when a run must give an execution provider (`V-pipeline.running-8`)."""
+    output_schema: dict[str, dict[str, Any]]
+
+
+def check_pipeline(config: PipelineConfig, *, user_root: Path | str | None = None) -> PipelineCheck:
+    """Run the load checks of `config` and return the load result (pipeline.running, Behaviour item 8).
+
+    Raise `ValueError` for a config that fails a load rule. Use it for a config that changed after
+    its load, and to read the warnings, for example `missing_dependency`.
+    """
+    resolved = resolve(config, user_root)
+    return PipelineCheck(resolved.warnings, resolved.needs_execution_provider, resolved.output_schema)
+
+
+def export_pipeline(config: PipelineConfig, resolved: bool = False, *, user_root: Path | str | None = None) -> dict[str, Any]:
     """Return the plain mapping of `config`, with only JSON types.
 
     With `resolved=False`, the mapping holds only the keys and the params that the config gives, so
     it loads again (ADR-97X9 item 10). A value that the caller changed after the load is a value
     that the config gives. With `resolved=True`, the mapping holds each key and each param of each
     node, with its default when the config does not give it.
+
+    In the two forms, each `onnx_model` node gets the `sidecar_sha256` of the sidecar file that its
+    `key` resolves, when the config does not give it (ADR-7NY2 item 10). `user_root` is the user
+    root of the catalog. Raise `ValueError` when the catalog does not have the key.
     """
     if resolved:
-        return config.model_dump(mode="json")
-    # pydantic does not mark a change inside a default value, for example in the default `params`
-    # of a node. The second dump holds each value that is not the default.
-    return _union(config.model_dump(mode="json", exclude_unset=True), config.model_dump(mode="json", exclude_defaults=True))
+        data = config.model_dump(mode="json")
+    else:
+        # pydantic does not mark a change inside a default value, for example in the default `params`
+        # of a node. The second dump holds each value that is not the default.
+        data = _union(config.model_dump(mode="json", exclude_unset=True), config.model_dump(mode="json", exclude_defaults=True))
+    if any(node.type == "onnx_model" and node.params.sidecar_sha256 is None for node in config.nodes):
+        hashes = sidecar_hashes(config, user_root)
+        for node, written in zip(config.nodes, data["nodes"], strict=True):
+            if node.id in hashes and node.params.sidecar_sha256 is None:
+                written["params"]["sidecar_sha256"] = hashes[node.id]
+    return data
 
 
 def _union(written: Any, changed: Any) -> Any:
@@ -135,4 +175,12 @@ def _union(written: Any, changed: Any) -> Any:
     return written
 
 
-__all__ = ["IMPLEMENTED_VERSIONS", "export_pipeline", "load_pipeline", "load_pipeline_file", "read_pipeline_file"]
+__all__ = [
+    "IMPLEMENTED_VERSIONS",
+    "PipelineCheck",
+    "check_pipeline",
+    "export_pipeline",
+    "load_pipeline",
+    "load_pipeline_file",
+    "read_pipeline_file",
+]

@@ -30,7 +30,9 @@ def test_the_package_root_holds_the_built_ins() -> None:
 @pytest.mark.parametrize("name", BUILT_INS)
 def test_a_built_in_loads_by_its_key_and_its_export_is_the_file(name: str, tmp_path: Path) -> None:
     (entry,) = [entry for entry in list_pipelines(tmp_path) if entry.key == f"{name}@skellytracker"]
-    assert entry.available and not entry.superseded and entry.version == "2.0.0", entry
+    # The ONNX files of the package root are not in git: a built-in is then unavailable, and it loads.
+    assert entry.available or {warning.code for warning in entry.warnings} == {"missing_dependency"}, entry
+    assert not entry.superseded and entry.version == "2.0.0", entry
     config = load_pipeline(entry.key, user_root=tmp_path)
     assert config == load_pipeline(entry.path)
     written = export_pipeline(config)

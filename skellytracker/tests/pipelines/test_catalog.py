@@ -46,8 +46,8 @@ def test_the_catalog_finds_the_files_of_the_package_root_and_of_the_user_root(pa
     write(user / "pipelines", changed(pipeline_id="plain"), "plain.yaml")  # not `*.pipeline.yaml`
     write(user / "detectors", changed(pipeline_id="other"), "other.pipeline.yaml")  # not in `pipelines/`
     assert list_pipelines(user) == [
-        PipelineEntry("built-in@skellytracker", "2.0.0", built_in, "A text.", True),
-        PipelineEntry(KEY, "1.0.0", mine, "", True),
+        PipelineEntry("built-in@skellytracker", "2.0.0", built_in, "A text.", True, needs_execution_provider=False),
+        PipelineEntry(KEY, "1.0.0", mine, "", True, needs_execution_provider=False),
     ]
     assert find_pipeline(KEY, user).path == mine
     assert find_pipeline(KEY, user).warnings == ()
