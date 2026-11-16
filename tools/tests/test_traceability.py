@@ -496,14 +496,26 @@ def test_the_scan_keys_are_unique() -> None:
     assert len(keys) == len(set(keys))
 
 
-def test_the_scan_finds_no_sidecar_outside_the_examples() -> None:
-    # The old package sidecars are deleted and replaced, not migrated (ADR-AMJ8).
+PACKAGE_DETECTORS = REPO_ROOT / "skellytracker" / "core" / "model_zoo" / "detectors"
+
+
+def test_each_package_sidecar_is_a_byte_copy_of_an_example() -> None:
+    # The old package sidecars are deleted and replaced, not migrated (ADR-AMJ8). A sidecar of
+    # `core/model_zoo/detectors/` is the copy of a reference example, at the same layout path.
     sidecars = scan().sidecars
     assert sidecars
     for sidecar in sidecars:
-        assert sidecar.origin == "example", sidecar.key
+        assert sidecar.origin in ("example", "example, package"), sidecar.key
         assert sidecar.path.startswith("specs/model-sidecar/examples/"), sidecar.key
     assert not any(name.startswith("skellytracker/") for name in scan().skipped)
+    copies = {
+        f"specs/model-sidecar/examples/detectors/{p.relative_to(PACKAGE_DETECTORS).as_posix()}": p
+        for p in PACKAGE_DETECTORS.rglob("*.yaml")
+    }
+    assert copies
+    assert set(copies) == {s.path for s in sidecars if s.origin == "example, package"}
+    for example, copy in copies.items():
+        assert (REPO_ROOT / example).read_bytes() == copy.read_bytes(), example
 
 
 def test_the_example_sidecars_have_schema_version_2_0_0() -> None:
@@ -521,7 +533,7 @@ def test_the_scan_skips_every_other_yaml_file() -> None:
     assert not found & skipped
     assert found | skipped == every_yaml
     assert len(found) == len(scan().sidecars)
-    assert not skipped  # no example uses a fragment since ADR-NBG2
+    assert not skipped  # no example uses a fragment since ADR-NBG2, and no package sidecar has one
 
 
 def test_a_skipped_file_is_not_a_sidecar() -> None:

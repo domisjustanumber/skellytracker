@@ -49,8 +49,8 @@ The `post.keypoint.bottom_up` row shows `packed` when an output packs the keypoi
 
 | Key | Root | File | `schema_version` | `role` |
 |---|---|---|---|---|
-| `rtmw-wholebody133@openmmlab-exporter` | example | `specs/model-sidecar/examples/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133.yaml` | `2.0.0` | `keypoint_detector` |
-| `yolox-person@openmmlab-exporter` | example | `specs/model-sidecar/examples/detectors/object_detectors/yolox-person/yolox-person.yaml` | `2.0.0` | `object_detector` |
+| `rtmw-wholebody133@openmmlab-exporter` | example, package | `specs/model-sidecar/examples/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133.yaml` | `2.0.0` | `keypoint_detector` |
+| `yolox-person@openmmlab-exporter` | example, package | `specs/model-sidecar/examples/detectors/object_detectors/yolox-person/yolox-person.yaml` | `2.0.0` | `object_detector` |
 
 ## Implementation status
 

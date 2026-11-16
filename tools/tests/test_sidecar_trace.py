@@ -472,12 +472,47 @@ def test_the_scan_finds_the_sidecars_and_skips_the_other_yaml(repo: Path) -> Non
     )
 
 
-def test_the_scan_does_not_read_the_package_root(repo: Path) -> None:
+PACKAGE_BAZ = "skellytracker/core/model_zoo/detectors/keypoint_detectors/baz/body/baz.yaml"
+EXAMPLE_BAZ = "specs/model-sidecar/examples/detectors/keypoint_detectors/baz/body/baz.yaml"
+
+
+def test_the_scan_reads_only_the_detectors_folder_of_the_package_root(repo: Path) -> None:
     write(repo, "skellytracker/core/detectors/shared/bad.yaml", "a: [1\n")
+    write(repo, "skellytracker/core/model_zoo/landmark_schemas/bad.yaml", "a: [1\n")
     scan = st.scan_sidecars(repo)
     shown = [s.path for s in scan.sidecars] + list(scan.skipped)
     assert all(p.startswith("specs/model-sidecar/examples/") for p in shown)
     assert {s.origin for s in scan.sidecars} == {"example"}
+
+
+def test_a_package_copy_of_an_example_is_one_model_with_both_roots(repo: Path) -> None:
+    before = st.scan_sidecars(repo)
+    write(repo, PACKAGE_BAZ, BAZ)
+    scan = st.scan_sidecars(repo)
+    assert [s.key for s in scan.sidecars] == [s.key for s in before.sidecars]
+    origins = {s.key: s.origin for s in scan.sidecars}
+    assert origins.pop("baz@declared-lib") == "example, package"
+    assert set(origins.values()) == {"example"}
+    baz = next(s for s in scan.sidecars if s.key == "baz@declared-lib")
+    assert baz.path == EXAMPLE_BAZ
+    assert scan.skipped == before.skipped
+    assert "| `baz@declared-lib` | example, package |" in st.render_traceability(repo)
+
+
+def test_a_package_sidecar_with_one_different_byte_raises_with_both_files(repo: Path) -> None:
+    write(repo, PACKAGE_BAZ, BAZ + "\n")
+    with pytest.raises(st.TraceError) as error:
+        st.scan_sidecars(repo)
+    assert PACKAGE_BAZ in str(error.value)
+    assert EXAMPLE_BAZ in str(error.value)
+
+
+def test_a_package_sidecar_with_no_example_has_the_root_package(repo: Path) -> None:
+    only = "skellytracker/core/model_zoo/detectors/keypoint_detectors/qux/body/qux.yaml"
+    write(repo, only, BAZ.replace("model_id: baz", "model_id: qux"))
+    scan = st.scan_sidecars(repo)
+    qux = next(s for s in scan.sidecars if s.key == "qux@declared-lib")
+    assert (qux.origin, qux.path) == ("package", only)
 
 
 def test_a_declared_source_wins_over_the_inventory(repo: Path) -> None:
