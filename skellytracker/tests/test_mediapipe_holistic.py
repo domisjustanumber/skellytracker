@@ -4,6 +4,7 @@ from __future__ import annotations
 import pathlib
 import subprocess
 import sys
+from types import SimpleNamespace
 
 import cv2
 import numpy as np
@@ -14,6 +15,7 @@ from skellytracker.core.detectors.mediapipe_holistic import (
     POINT_NAMES,
     HolisticKeypoints,
     HolisticRunner,
+    _to_keypoints,
 )
 
 _ALL_GROUPS = {"body", "right_hand", "left_hand", "face"}
@@ -49,6 +51,21 @@ def test_image_gives_each_group(test_image):
     assert (kpts.xyz[0, :, 0] >= 0).all() and (kpts.xyz[0, :, 0] <= w).all()
     assert (kpts.xyz[0, :, 1] >= 0).all() and (kpts.xyz[0, :, 1] <= h).all()
     assert ((kpts.score >= 0) & (kpts.score <= 1)).all()
+    assert (kpts.score[0, 33:] == 1.0).all()  # Holistic gives no visibility for the hand and face points
+
+
+def test_row_with_a_hand_and_no_body_is_present():
+    landmark = SimpleNamespace(x=0.5, y=0.25, z=0.1, visibility=None)
+    result = SimpleNamespace(
+        pose_landmarks=[], right_hand_landmarks=[], face_landmarks=[], left_hand_landmarks=[landmark] * 21,
+    )
+    kpts = _to_keypoints(result, 200, 100)
+    assert kpts.present.tolist() == [True]
+    assert kpts.instance_score.tolist() == [1.0]
+    assert np.isnan(kpts.xyz[0, :54]).all() and (kpts.score[0, :54] == 0).all()
+    assert kpts.xyz[0, 54].tolist() == [100.0, 25.0, 20.0]
+    assert (kpts.score[0, 54:75] == 1.0).all()
+    assert np.isnan(kpts.xyz[0, 75:]).all()
 
 
 def test_empty_image_gives_padding_row():

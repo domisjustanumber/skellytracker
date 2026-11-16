@@ -48,7 +48,7 @@ GROUPS: tuple[tuple[str, int, int], ...] = tuple(
 GEOMETRY = "3d"
 DEPTH_UNIT = "pixel"
 
-# Holistic gives no visibility for the hand and face landmarks (MediaPipe 1.2.2).
+# Holistic gives no visibility for the hand and face landmarks (MediaPipe 1.2.2; ADR-Y7C3).
 _NO_VISIBILITY_SCORE = 1.0
 
 
@@ -64,7 +64,7 @@ class HolisticKeypoints:
     score: NDArray[np.float64]
     """``(1, P)``: the landmark visibility."""
     present: NDArray[np.bool_]
-    """``(1,)``: true when Holistic found at least one part."""
+    """``(1,)``: true when Holistic found at least one part (ADR-Y7C3)."""
     instance_score: NDArray[np.float64]
     """``(1,)``: 1.0 for a present row, 0 for a padding row."""
 
