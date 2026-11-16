@@ -42,6 +42,7 @@ These entries are `accepted` or `evidence`.
 | [0YYY](entries/0YYY-host-reader-costs.md) | Host reader costs: first `probe_host()` about 76 ms on Windows; the D3DKMT query joins a LUID to a bus id and finds the second DXGI adapter | evidence |
 | [73Q4](entries/73Q4-local-gpu-gate-of-the-ep-api.md) | Local GPU gate on an RTX 3070: L3 and sessions pass on `cuda` and `trt-rtx`; fp16 files have 0 CPU nodes, except 5 stale opset 11 RTMW files; frozen install ok | evidence |
 | [GPW6](entries/GPW6-model-gate-of-the-first-models.md) | Model gate of `yolox-person` and `rtmw-wholebody133` at the detector level: parity passes on the CPU EP, `cuda` and `trt-rtx`; batch conversion 0.01 s to 1.02 s | evidence |
+| [7E4Z](entries/7E4Z-box-parity-of-the-built-in-with-sfn26.md) | Box parity of `yolox-rtmw-wholebody` with the tracker of `sfn26`: recording script and fixture; test A passes on 200 frames; report B on the CPU EP and `cuda` | evidence |
 
 ### Proposed
 
