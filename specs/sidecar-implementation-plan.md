@@ -2,7 +2,7 @@
 
 > **Decisions.** The decisions behind this plan are recorded in the decision log, [`decisions/`](../decisions/README.md). The phases and their order follow [ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md). The dependency pins and the GPU EP packs follow [ADR-M2C6](../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md). The implementation-stage work follows [ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) (replace the package ONNX detectors) and [ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) (the entry points and the layout). The pipeline design is in [ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md), [ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md), [ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md), [ADR-3SF2](../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md), [ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-helper.md) and the [pipeline log](pipeline/decisions/README.md). The sidecar names follow [ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) and [ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md). Entries 0002 to 0007 record the decisions of M1 to M5 ([History](#history)). This plan stays until the user decides to delete it ([ADR-5WKW](../decisions/entries/5WKW-implementation-work-in-the-plan.md)). Record a new decision as a decision entry, not in this plan.
 
-> Status: **M1 to M5 are done. Phase 0 is done, except the two PRs of stage 0.5 that the user opens. Phase 1 started on 2026-11-12, and stages 1.1, 1.2, 1.4, 1.5, 1.6, 1.7, 1.8 and 1.9 are done. Stage 1.3 is started, and its gate is open.** Phase 0 is in the spec-build stage, and phase 1 is in the implementation stage ([Stages](model-sidecar/model-addition-workflow/README.md#stages)). The [stage order](#stage-order) gives each stage. The "Status" line of each stage gives its state.
+> Status: **M1 to M5 are done. Phase 0 is done, except the two PRs of stage 0.5 that the user opens. Phase 1 started on 2026-11-12, and stages 1.1, 1.2 and 1.4 to 1.10 are done. Stage 1.3 is started, and its gate is open.** Phase 0 is in the spec-build stage, and phase 1 is in the implementation stage ([Stages](model-sidecar/model-addition-workflow/README.md#stages)). The [stage order](#stage-order) gives each stage. The "Status" line of each stage gives its state.
 
 ## Context
 
@@ -283,11 +283,12 @@ are done (2026-11-16). The gate is open:
 - The default suite passes locally on Windows. The `ep_pack` test and the frozen smoke test pass
   locally on Windows.
 - The job `pyinstaller` of `tests-full.yml` passed in run 43912761747. This gate part is met.
-- The `ep-pack` job (`.github/workflows/ep-pack.yml`) is open. In run 43910358178 the Windows job
-  and the Linux job failed on runners with an AMD CPU: the OpenVINO test pack registers and lists no
-  device. [ADR-FQ9A](../decisions/entries/FQ9A-selftest-test-pack-on-a-host-with-no-intel-device.md)
-  gives the rule for such a host. No run with that rule is read yet. The macOS job passed in run
-  43908364709 (CoreML and CPU trial sessions), and it got no runner in run 43910358178.
+- The `ep-pack` job (`.github/workflows/ep-pack.yml`) passed on Linux, macOS and Windows in run
+  43917772441. This gate part is met. In run 43910358178 the Windows job and the Linux job failed on
+  runners with an AMD CPU: the OpenVINO test pack registers and lists no device.
+  [ADR-FQ9A](../decisions/entries/FQ9A-selftest-test-pack-on-a-host-with-no-intel-device.md) gives
+  the rule for such a host.
+- The default suite did not run with the network off. This gate part is open.
 - The local GPU gate ran on an RTX 3070 ([ADR-73Q4](../decisions/entries/73Q4-local-gpu-gate-of-the-ep-api.md)).
   Each part passes, with one exception: with `cuda`, 5 opset 11 files
   `rtmw-wholebody133-<size>_b4_fp16.onnx` of the local export folder have 3 `Clip` nodes on the CPU
