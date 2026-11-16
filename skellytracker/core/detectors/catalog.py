@@ -193,7 +193,7 @@ def resolve_user_root(user_root: Path | str | None = None) -> Path:
     return Path(platformdirs.user_data_dir("skellytracker", appauthor=False)) / "models"
 
 
-def discover_sidecars(sidecar_root: Path) -> list[tuple[Path, dict[str, Any], bytes]]:
+def discover_sidecars(sidecar_root: Path) -> list[tuple[Path, dict[Any, Any], bytes]]:
     """Return the path, the top-level mapping and the bytes of each sidecar in a root.
 
     Implements: format.file_layout
@@ -234,7 +234,7 @@ def _text(value: Any, default: str) -> str:
     return value if isinstance(value, str) and value else default
 
 
-def _read_sidecar(path: Path, top: dict[str, Any], data: bytes, root: Path, user_root: Path, is_package_root: bool) -> _Sidecar:
+def _read_sidecar(path: Path, top: dict[Any, Any], data: bytes, root: Path, user_root: Path, is_package_root: bool) -> _Sidecar:
     source = top.get("source") if isinstance(top.get("source"), dict) else {}
     source_name = _text(source.get("name"), "unknown")
     found = _Sidecar(

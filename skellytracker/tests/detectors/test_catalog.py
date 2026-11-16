@@ -211,6 +211,9 @@ def test_a_yaml_file_that_is_not_a_sidecar_is_not_in_the_list(root: Path) -> Non
     write_yaml(root / "detectors" / "shared" / "skeletons" / "fragment.yaml", ["a", "b"])
     write_yaml(root / "detectors" / "object_detectors" / "demo" / "other-name.yaml", BASES["nms"]())
     assert onnx_entries(root) == []
+    write_yaml(root / "odd.yaml", {1: "a key that is not a string", "schema_version": "2.0.0", "model_id": "odd"})
+    (entry,) = onnx_entries(root)
+    assert entry.key == "odd@unknown" and not entry.available
 
 
 # ---------------------------------------------------------------------------------------------
