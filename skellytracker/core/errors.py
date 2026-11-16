@@ -60,6 +60,52 @@ class VRAMExhaustionError(RuntimeError, MemoryError):
         return (type(self), (self.message, self.report), self.__dict__)
 
 
+class MissingDependencyError(RuntimeError):
+    """A node that runs needs an optional extra that is not installed, or an ONNX file that is absent (`V-pipeline.running-3`).
+
+    `extra` is the name of the extra, or None for a missing file. `node_ids` are the nodes that
+    need it. `files` are the names of the missing ONNX files.
+    """
+
+    def __init__(self, extra: str | None, node_ids: tuple[str, ...] | list[str], files: tuple[str, ...] | list[str] = (), reason: str | None = None) -> None:
+        self.extra, self.node_ids, self.files, self.reason = extra, tuple(node_ids), tuple(files), reason
+        nodes = ", ".join(self.node_ids)
+        if extra is not None:
+            message = f"V-pipeline.running-3: the nodes {nodes} need the extra `{extra}`, which is not installed (`pip install skellytracker[{extra}]`)."
+        else:
+            message = f"V-pipeline.running-3: the nodes {nodes} need the ONNX files {', '.join(self.files)}: {reason}."
+        super().__init__(message)
+
+    def __reduce__(self):
+        return (type(self), (self.extra, self.node_ids, self.files, self.reason), self.__dict__)
+
+
+# choice: the name is not fixed by a text
+class CallRefused(ValueError):
+    """A `process` or `process_batch` call that the run refuses. The call changes no state. `rule` is the rule ID."""
+
+    exit_code = EXIT_USAGE
+
+    def __init__(self, message: str, rule: str | None = None) -> None:
+        super().__init__(message)
+        self.message = message
+        self.rule = rule
+
+    def __reduce__(self):
+        return (type(self), (self.message, self.rule), self.__dict__)
+
+
+class SetParamsRefused(ValueError):
+    """A `set_params` call that breaks `V-pipeline.running-10`. The call changes no param."""
+
+    exit_code = EXIT_USAGE
+
+
+# choice: the name is not fixed by a text
+class RunClosedError(RuntimeError):
+    """A call on a run after its `close()`."""
+
+
 def exit_code_of(error: BaseException) -> int:
     """The CLI exit code of `error`: its `exit_code`, else `EXIT_FAILURE`."""
     return getattr(error, "exit_code", EXIT_FAILURE)
