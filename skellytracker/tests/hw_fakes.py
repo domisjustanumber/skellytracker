@@ -102,3 +102,13 @@ def gpu(vendor="nvidia", cc: str | None = "8.6", driver="610.88", vram=8 * GIB, 
 def host(*gpus: GpuInfo, os_name="Windows", arch="AMD64", native_arch=None) -> HostInfo:
     return HostInfo(os_name=os_name, os_release="11", os_version="10.0.26300", arch=arch, memory_total_bytes=64 * GIB,
                     native_arch=native_arch or arch, gpus=tuple(sorted(gpus, key=lambda g: g.key)))
+
+
+def fake_pack(key: str, files=()) -> None:
+    """Write the manifest of the pack of an EP key in the store of this test, with no library."""
+    from skellytracker.core.eps import catalog, store
+
+    pack = catalog.load_catalog().pack(key)
+    folder = store.pack_dir(pack["id"], pack["version"])
+    store.write_json(folder / "pack.json", {"format": 1, "pack_id": pack["id"], "version": pack["version"], "ep_key": key,
+                                            "ep_name": pack["ep_name"], "library": "plugin.dll", "files": list(files)})
