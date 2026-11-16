@@ -154,6 +154,7 @@ cython_debug/
 # ML models
 *.pt
 *.task
+skellytracker/core/model_zoo/**/*.onnx
 
 # Data
 *.npy

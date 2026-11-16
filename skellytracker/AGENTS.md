@@ -20,6 +20,7 @@ The paths are under `skellytracker/`.
 | `core/detectors/object_detectors/` | `yolox/`, `keypoint_bbox/`, `precomputed/` |
 | `core/detectors/processing/` | Generic preprocessing, affine crop, detection decode with NMS, SimCC decode (ADR-[0007](../decisions/entries/0007-generic-processing-package.md)) |
 | `core/detectors/shared/skeletons/` | Tracked-point and skeleton fragments that sidecars include with `$ref` |
+| `core/model_zoo/` | The package sidecar root, with the spec layout ([Storage layout](../specs/model-sidecar/format/file-layout.md#storage-layout); [ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 5). It holds data only. Git ignores its `.onnx` files, and no wheel or sdist holds them. |
 | `core/model_zoo/landmark_schemas/` | Landmark schema files of the registry ([Landmark schema](../specs/model-sidecar/post/keypoint/landmark-schema.md); [ADR-23F5](../decisions/entries/23F5-landmark-schema-registry.md)) |
 | `core/sidecar/` | `load_sidecar` (`loader.py`), `$ref` and `base` resolution (`resolution.py`), `SidecarModel` (`model.py`), version checks (`versioning.py`) |
 | `core/data_primitives/` | `BoundingBox`, `Keypoints`, observations, data stores |
