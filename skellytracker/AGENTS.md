@@ -20,6 +20,7 @@ The paths are under `skellytracker/`.
 | `core/detectors/mediapipe_holistic.py` | `HolisticRunner`: the MediaPipe Tasks `HolisticLandmarker` for the variant `holistic` of the node `mediapipe_tasks`. It does not use the old detector contract ([ADR-X6S9](../decisions/entries/X6S9-mediapipe-close-from-the-garbage-collector.md)). |
 | `core/detectors/object_detectors/` | `yolox/`, `keypoint_bbox/`, `precomputed/` |
 | `core/detectors/processing/` | Generic preprocessing, affine crop, detection decode with NMS, SimCC decode (ADR-[0007](../decisions/entries/0007-generic-processing-package.md)) |
+| `core/detectors/processing/pre/`, `core/detectors/processing/post/` | The spec processing modules, one module for each spec section ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 4). They take the spec model of `core/model_spec/`. `pre/preprocess.py` holds the resize dispatcher (`resize_image`, `ResizeGeometry`) and `preprocess_image`. `post/unprojection.py` holds the inverse dispatcher (`resize_inverse`). Do not import the old processing modules in them. |
 | `core/detectors/shared/skeletons/` | Tracked-point and skeleton fragments that sidecars include with `$ref` |
 | `core/model_zoo/` | The package sidecar root, with the spec layout ([Storage layout](../specs/model-sidecar/format/file-layout.md#storage-layout); [ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 5). It holds data only. Git ignores its `.onnx` files, and no wheel or sdist holds them. |
 | `core/model_zoo/landmark_schemas/` | Landmark schema files of the registry ([Landmark schema](../specs/model-sidecar/post/keypoint/landmark-schema.md); [ADR-23F5](../decisions/entries/23F5-landmark-schema-registry.md)) |
@@ -30,7 +31,7 @@ The paths are under `skellytracker/`.
 | `core/temporal_processing/` | Box policy and smoothing, keypoint filters, track association |
 | `core/io/` | `process_video.py`, `demo_manager.py` (webcam runner), tracker mapping, canonical mapping expansion |
 | `examples/` | Example scripts |
-| `tests/` | pytest suite. `tests/sidecar/` holds the tests of the old loader and their golden fixtures. `tests/model_spec/` holds the tests of the spec loader. |
+| `tests/` | pytest suite. `tests/sidecar/` holds the tests of the old loader and their golden fixtures. `tests/model_spec/` holds the tests of the spec loader. `tests/processing/` holds the tests of the spec processing modules. |
 
 ## Detector registries
 
