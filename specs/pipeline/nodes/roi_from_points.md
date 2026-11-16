@@ -20,7 +20,7 @@ place of `keypoint_bbox` in a pipeline, but it does not reproduce `keypoint_bbox
 ## Fields
 
 <!-- node-table:params -->
-| Param | Type | Range | Default | Live | Description | Source |
+| Param | Type | Range | Default | Set during run | Description | Source |
 |---|---|---|---|---|---|---|
 | `points` | `list[str \| list[str]]` | length >= 1 | required | no | The points of the ROI. A list of names is one point with aliases: the first present name counts. | ADR-7NY2 item 6 |
 | `derived_points` | `dict[str, str \| list[str] \| dict[str, float]]` |  | `{}` | no | Derived point name to derivation, in the map form of the sidecar `keypoint.derived_points`: passthrough, mean or weighted. | ADR-7NY2 item 6; ADR-88WQ item 6 |

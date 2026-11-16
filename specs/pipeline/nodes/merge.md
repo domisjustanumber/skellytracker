@@ -15,7 +15,7 @@ A `merge` node joins the keypoints of a `source` to the keypoints of a `target` 
 ## Fields
 
 <!-- node-table:params -->
-| Param | Type | Range | Default | Live | Description | Source |
+| Param | Type | Range | Default | Set during run | Description | Source |
 |---|---|---|---|---|---|---|
 | `slots` | `dict[str, str]` | length >= 1 | required | no | Slot name to the target point that anchors the slot, for example `left_hand: body/left_wrist`. A slot with the name of a group of `target` replaces that group. A slot with another name adds a group. | ADR-KW76 items 2 and 3 |
 | `source_anchor` | `str` |  | required | no | The point of `source` that the node compares with the slot anchors, for example `hand/root`. | ADR-KW76 item 6 |

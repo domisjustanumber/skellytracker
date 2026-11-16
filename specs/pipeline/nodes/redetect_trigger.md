@@ -22,7 +22,7 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
 ## Fields
 
 <!-- node-table:params -->
-| Param | Type | Range | Default | Live | Description | Source |
+| Param | Type | Range | Default | Set during run | Description | Source |
 |---|---|---|---|---|---|---|
 | `redetect_interval` | `int` | >= 1 | `1` | yes | Ask for a new detection at least each this many frames. | BBoxPolicyConfig.redetect_interval |
 | `fitness_checks` | `list[FitnessCheck]` |  | `[]` | no | Checks on the previous frame that ask for a new detection. | BBoxPolicyConfig.fitness_checks |

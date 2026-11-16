@@ -15,7 +15,7 @@ An `onnx_model` node runs one ONNX model of the sidecar spec: an object detector
 ## Fields
 
 <!-- node-table:params -->
-| Param | Type | Range | Default | Live | Description | Source |
+| Param | Type | Range | Default | Set during run | Description | Source |
 |---|---|---|---|---|---|---|
 | `key` | `str` |  | required | no | The catalog key of the model, `<model_id>@<source.name>`, with an optional pin `==<version>`. | ADR-7NY2 item 10; ADR-88WQ item 7 |
 | `sidecar_sha256` | `str \| None` |  | `null` | no | The SHA-256 of the sidecar file bytes. Required in a shipped or an exported file. | ADR-7NY2 item 10 |

@@ -7,7 +7,7 @@ check two things:
 - the tool on small fixtures in `tmp_path`: it writes the files, `--check` then passes, a stale
   table fails, and a node file without markers fails;
 - this repository: the committed schema and tables are current. Each param has a `description`,
-  `live` (a bool) and `source` (a string). The `section` of each node class is `node.<type>`, and
+  `set_during_run` (a bool) and `source` (a string). The `section` of each node class is `node.<type>`, and
   the front matter `id` of `nodes/<type>.md` is that section. Each port type is a known port
   type. Each `specs/pipeline/examples/*.pipeline.yaml` passes `PipelineConfig.model_validate`.
   The structural checks refuse a small config for each newer rule (point-name prefixes, list
@@ -39,10 +39,10 @@ from pydantic import BaseModel, Field
 class GateParams(BaseModel):
     threshold: float = Field(
         0.5, ge=0, le=1, description="The limit | bound.",
-        json_schema_extra={"live": True, "source": "a test"},
+        json_schema_extra={"set_during_run": True, "source": "a test"},
     )
     mode: Literal["a", "b"] = Field(
-        description="The mode.", json_schema_extra={"live": False, "source": "a test"}
+        description="The mode.", json_schema_extra={"set_during_run": False, "source": "a test"}
     )
 
 
@@ -156,7 +156,7 @@ def test_each_param_has_a_description_live_and_source() -> None:
             where = f"{node.type}.{name}"
             assert field.description, f"{where}: no description"
             assert isinstance(extra, dict), f"{where}: no json_schema_extra"
-            assert isinstance(extra.get("live"), bool), f"{where}: live must be a bool"
+            assert isinstance(extra.get("set_during_run"), bool), f"{where}: set_during_run must be a bool"
             assert isinstance(extra.get("source"), str) and extra["source"], f"{where}: no source"
 
 

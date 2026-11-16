@@ -8,7 +8,7 @@ The tool loads it by its path, with `make_vectors.load_reference`. The model mus
   `roi_from_points`), `section` (`node.<type>`), `Params` (a Pydantic model), `inputs` and
   `outputs` (port name -> port type).
 
-Each field of `Params` has a `description`, and a `json_schema_extra` with `live` (a bool) and
+Each field of `Params` has a `description`, and a `json_schema_extra` with `set_during_run` (a bool) and
 `source` (a string). A field with no default is required.
 
 The tool writes these files:
@@ -17,7 +17,7 @@ The tool writes these files:
   line feed, with LF line ends.
 - For each class of `NODE_TYPES`, two tables in `specs/pipeline/nodes/<type>.md`. The params table
   replaces the text between `<!-- node-table:params -->` and `<!-- /node-table:params -->`. Its
-  columns are Param, Type, Range, Default, Live, Description and Source. A required param shows
+  columns are Param, Type, Range, Default, Set during run, Description and Source. A required param shows
   `required` as its default. The ports table replaces the text between `<!-- node-table:ports -->`
   and `<!-- /node-table:ports -->`. Its columns are Port, Direction and Type. The inputs come
   first, then the outputs.
@@ -88,7 +88,7 @@ def params_table(node: type) -> str:
     if not fields:
         return "This node has no parameters."
     lines = [
-        "| Param | Type | Range | Default | Live | Description | Source |",
+        "| Param | Type | Range | Default | Set during run | Description | Source |",
         "|---|---|---|---|---|---|---|",
     ]
     for name, field in fields.items():
@@ -104,13 +104,13 @@ def params_table(node: type) -> str:
         else:
             value = to_jsonable_python(field.get_default(call_default_factory=True))
             default = f"`{json.dumps(value)}`"
-        live = {True: "yes", False: "no"}.get(extra.get("live"), "")
+        set_during_run = {True: "yes", False: "no"}.get(extra.get("set_during_run"), "")
         cells = [
             f"`{name}`",
             f"`{_type_text(field.annotation, node.__module__)}`",
             ", ".join(bounds),
             default,
-            live,
+            set_during_run,
             field.description or "",
             str(extra.get("source", "")),
         ]

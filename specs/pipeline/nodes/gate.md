@@ -17,7 +17,7 @@ a gate sends the image to a person detector only when the keypoints of the previ
 ## Fields
 
 <!-- node-table:params -->
-| Param | Type | Range | Default | Live | Description | Source |
+| Param | Type | Range | Default | Set during run | Description | Source |
 |---|---|---|---|---|---|---|
 | `mode` | `Literal['is_empty', 'is_present', 'score_above']` |  | required | no | Pass `value` when `condition` is empty, is present, or has a score greater than `threshold`. | ADR-7NY2 item 6 |
 | `threshold` | `float \| None` | >= 0.0 | `null` | yes | The score threshold of the mode `score_above`. | ADR-7NY2 item 6; ADR-88WQ item 6 |

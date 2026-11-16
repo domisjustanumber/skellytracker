@@ -35,7 +35,7 @@ Each changed or new section file in `specs/pipeline/nodes/`.
 
 ### 2.2 Params and ports
 
-The params of the node type, with the type, the range, the default, the description and `live` of
+The params of the node type, with the type, the range, the default, the description and `set_during_run` of
 each param. The input ports and the output ports, with their port types. skellytracker makes the
 node table from the reference model ("Pipeline Spec Rules" in `specs/pipeline/AGENTS.md`). Give
 the change of `specs/pipeline/reference/pipeline_config.py` as text.

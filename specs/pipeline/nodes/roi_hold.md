@@ -20,7 +20,7 @@ MediaPipe `RoiTrackingCalculator`
 ## Fields
 
 <!-- node-table:params -->
-| Param | Type | Range | Default | Live | Description | Source |
+| Param | Type | Range | Default | Set during run | Description | Source |
 |---|---|---|---|---|---|---|
 | `max_rotation_deg` | `float` | >= 0.0 | `40.0` | yes | Keep the previous ROI only when the rotation differs by this much or less. | MediaPipe Holistic hand RoiTrackingCalculator (face: 15) |
 | `max_offset` | `float` | >= 0.0 | `0.2` | yes | The largest x and y offset, as a part of the new ROI size. | MediaPipe Holistic hand RoiTrackingCalculator (face: 0.1) |

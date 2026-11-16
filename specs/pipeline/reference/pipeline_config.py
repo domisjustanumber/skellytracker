@@ -8,8 +8,8 @@ The module imports only the standard library and pydantic. It loads by its path,
 in a package. It holds:
 
 - one params model for each node type. Each field has a description, and ``json_schema_extra``
-  with ``live`` (the value can change during a run in a later version) and ``source`` (where the
-  default comes from);
+  with ``set_during_run`` (``PipelineRun.set_params`` can change the value during a run) and
+  ``source`` (where the default comes from);
 - one node class for each node type in ``NODE_TYPES``, with ``type``, ``section``, ``Params``,
   ``inputs`` and ``outputs`` (port name to port type) and ``timing_spans``;
 - ``PipelineConfig``, the model of one pipeline file, with the structural load checks of the
@@ -50,9 +50,9 @@ VARIADIC = "*"
 WEIGHT_SUM_TOLERANCE = 1e-6
 
 
-def param(default: Any = ..., *, description: str, live: bool, source: str, **constraints: Any) -> Any:
-    """Return a pydantic field with the `live` and `source` marks of the pipeline spec."""
-    return Field(default, description=description, json_schema_extra={"live": live, "source": source}, **constraints)
+def param(default: Any = ..., *, description: str, set_during_run: bool, source: str, **constraints: Any) -> Any:
+    """Return a pydantic field with the `set_during_run` and `source` marks of the pipeline spec."""
+    return Field(default, description=description, json_schema_extra={"set_during_run": set_during_run, "source": source}, **constraints)
 
 
 class Strict(BaseModel):
@@ -69,71 +69,71 @@ class Strict(BaseModel):
 class OnnxModelParams(Strict):
     key: str = param(
         description="The catalog key of the model, `<model_id>@<source.name>`, with an optional pin `==<version>`.",
-        live=False,
+        set_during_run=False,
         source="ADR-7NY2 item 10; ADR-88WQ item 7",
     )
     sidecar_sha256: str | None = param(
         None,
         description="The SHA-256 of the sidecar file bytes. Required in a shipped or an exported file.",
-        live=False,
+        set_during_run=False,
         source="ADR-7NY2 item 10",
         pattern=r"^[0-9a-f]{64}$",
     )
-    size: str = param(description="A size key of the `sizes` of the sidecar.", live=False, source="ADR-7NY2 item 10")
+    size: str = param(description="A size key of the `sizes` of the sidecar.", set_during_run=False, source="ADR-7NY2 item 10")
     precision: Literal["fp32", "fp16"] | None = param(
         None,
         description="The precision of the artifact. Empty: fp16 on a GPU EP and fp32 on CPU; fp32 when the size has no fp16 artifact.",
-        live=False,
+        set_during_run=False,
         source="ADR-7NY2 item 10",
     )
     execution_provider: str | None = param(
         None,
         description="A key of the EP catalog for this node, for example `cuda`, `trt-rtx` or `cpu`. Empty: the EP of the run.",
-        live=False,
+        set_during_run=False,
         source="ADR-7NY2 item 12; ADR-9NW0 item 1",
     )
     ep_options: dict[str, str] = param(
         default_factory=dict,
         description="EP options for this node: option names and values that the EP catalog allows for its EP. Empty: the EP options of the run when the node uses the EP of the run, else none.",
-        live=False,
+        set_during_run=False,
         source="ADR-9NW0 item 2",
     )
     max_instances: int = param(
         1,
         description="The number of instance rows `I` that this node makes (object detector or one-stage model).",
-        live=False,
+        set_during_run=False,
         source="ADR-ZYS9 item 1",
         ge=1,
     )
     object_decode: dict[str, Any] = param(
         default_factory=dict,
         description="Changes of the fields of the `object.decode` block of the sidecar. The load checks each name against the sidecar.",
-        live=False,
+        set_during_run=False,
         source="ADR-7NY2 item 11; ADR-88WQ item 7",
     )
 
 
 class MediapipeTasksParams(Strict):
     variant: Literal["body", "hand", "face", "holistic"] = param(
-        description="The Tasks landmarker: pose (`body`), hand, face or holistic.", live=False, source="ADR-V7GZ item 4; ADR-88WQ item 4"
+        description="The Tasks landmarker: pose (`body`), hand, face or holistic.", set_during_run=False, source="ADR-V7GZ item 4; ADR-88WQ item 4"
     )
     max_instances: int = param(
         1,
         description="`num_poses`, `num_hands` or `num_faces`. Holistic is single person: 1.",
-        live=False,
+        set_during_run=False,
         source="MediaPipe `num_poses`, `num_hands`, `num_faces` (Tasks default 1); ADR-V7GZ item 4",
         ge=1,
     )
     size: Literal["lite", "full", "heavy"] = param(
         "heavy",
         description="The model size of the pose landmarker. Only the variant `body` takes it (V-node.mediapipe_tasks-2).",
-        live=False,
+        set_during_run=False,
         source="MediaPipe asset `pose_landmarker_<size>`; MediapipePoseDetectorConfig.model_complexity",
     )
     min_detection_score: float = param(
         0.5,
         description="The minimum detection score (Holistic: the pose and the face detection).",
-        live=False,
+        set_during_run=False,
         source="MediaPipe `min_*_detection_confidence` (Tasks default 0.5)",
         ge=0.0,
         le=1.0,
@@ -141,7 +141,7 @@ class MediapipeTasksParams(Strict):
     min_presence_score: float = param(
         0.5,
         description="The minimum presence score (Holistic: the landmark score of each part).",
-        live=False,
+        set_during_run=False,
         source="MediaPipe `min_*_presence_confidence`, Holistic `min_*_landmarks_confidence` (Tasks default 0.5)",
         ge=0.0,
         le=1.0,
@@ -149,7 +149,7 @@ class MediapipeTasksParams(Strict):
     min_tracking_score: float = param(
         0.5,
         description="The minimum tracking score in VIDEO mode. Holistic has no tracking option.",
-        live=False,
+        set_during_run=False,
         source="MediaPipe `min_tracking_confidence` (Tasks default 0.5)",
         ge=0.0,
         le=1.0,
@@ -182,46 +182,46 @@ def derivation_sources(derivation: Derivation) -> list[str]:
 class RoiFromPointsParams(Strict):
     points: list[str | list[str]] = param(
         description="The points of the ROI. A list of names is one point with aliases: the first present name counts.",
-        live=False,
+        set_during_run=False,
         source="ADR-7NY2 item 6",
         min_length=1,
     )
     derived_points: dict[str, Derivation] = param(
         default_factory=dict,
         description="Derived point name to derivation, in the map form of the sidecar `keypoint.derived_points`: passthrough, mean or weighted.",
-        live=False,
+        set_during_run=False,
         source="ADR-7NY2 item 6; ADR-88WQ item 6",
     )
     size_rule: Literal["bounds", "alignment"] = param(
         "bounds",
         description="`bounds`: the box around the points. `alignment`: centre at the start point, size 2 × the distance from start to end.",
-        live=False,
+        set_during_run=False,
         source="MediaPipe AlignmentPointsRectsCalculator; ADR-7NY2 item 6",
     )
     alignment_start: str | None = param(
-        None, description="The start point of the alignment rule.", live=False, source="ADR-7NY2 item 6"
+        None, description="The start point of the alignment rule.", set_during_run=False, source="ADR-7NY2 item 6"
     )
     alignment_end: str | None = param(
-        None, description="The end point of the alignment rule.", live=False, source="ADR-7NY2 item 6"
+        None, description="The end point of the alignment rule.", set_during_run=False, source="ADR-7NY2 item 6"
     )
     target_rotation_deg: float | None = param(
         None,
         description="The rotation target in degrees. Empty: rotation `none`, an axis-aligned ROI.",
-        live=False,
+        set_during_run=False,
         source="MediaPipe rect rotation; ADR-7NY2 item 6",
     )
     score_threshold: float = param(
         0.0,
         description="A point counts only when its score is greater than this value.",
-        live=True,
+        set_during_run=True,
         source="ADR-7NY2 item 6; ADR-88WQ item 6",
         ge=0.0,
     )
-    shift_x: float = param(0.0, description="Shift along the ROI x axis, in ROI widths.", live=True, source="MediaPipe RectTransformationCalculator default")
-    shift_y: float = param(0.0, description="Shift along the ROI y axis, in ROI heights.", live=True, source="MediaPipe RectTransformationCalculator default")
-    square_long: bool = param(False, description="Make the ROI square with its longer side.", live=True, source="MediaPipe RectTransformationCalculator default")
+    shift_x: float = param(0.0, description="Shift along the ROI x axis, in ROI widths.", set_during_run=True, source="MediaPipe RectTransformationCalculator default")
+    shift_y: float = param(0.0, description="Shift along the ROI y axis, in ROI heights.", set_during_run=True, source="MediaPipe RectTransformationCalculator default")
+    square_long: bool = param(False, description="Make the ROI square with its longer side.", set_during_run=True, source="MediaPipe RectTransformationCalculator default")
     expand_ratio: float = param(
-        1.0, description="Multiply the width and the height by this value.", live=True,
+        1.0, description="Multiply the width and the height by this value.", set_during_run=True,
         source="MediaPipe RectTransformationCalculator scale default; ADR-88WQ item 4", gt=0.0,
     )
 
@@ -246,19 +246,19 @@ class RoiFromPointsParams(Strict):
 
 class RoiHoldParams(Strict):
     max_rotation_deg: float = param(
-        40.0, description="Keep the previous ROI only when the rotation differs by this much or less.", live=True,
+        40.0, description="Keep the previous ROI only when the rotation differs by this much or less.", set_during_run=True,
         source="MediaPipe Holistic hand RoiTrackingCalculator (face: 15)", ge=0.0,
     )
     max_offset: float = param(
-        0.2, description="The largest x and y offset, as a part of the new ROI size.", live=True,
+        0.2, description="The largest x and y offset, as a part of the new ROI size.", set_during_run=True,
         source="MediaPipe Holistic hand RoiTrackingCalculator (face: 0.1)", ge=0.0,
     )
     max_size_change: float = param(
-        0.4, description="The largest width and height difference, as a part of the new ROI size.", live=True,
+        0.4, description="The largest width and height difference, as a part of the new ROI size.", set_during_run=True,
         source="MediaPipe Holistic hand RoiTrackingCalculator (face: 0.3)", ge=0.0,
     )
     keypoint_margin: float = param(
-        -0.1, description="Each previous point must be inside the new ROI grown by this part (negative: shrunk).", live=True,
+        -0.1, description="Each previous point must be inside the new ROI grown by this part (negative: shrunk).", set_during_run=True,
         source="MediaPipe Holistic hand RoiTrackingCalculator (face: -0.2)",
     )
 
@@ -272,10 +272,10 @@ class RoiHoldParams(Strict):
 class GateParams(Strict):
     mode: Literal["is_empty", "is_present", "score_above"] = param(
         description="Pass `value` when `condition` is empty, is present, or has a score greater than `threshold`.",
-        live=False, source="ADR-7NY2 item 6",
+        set_during_run=False, source="ADR-7NY2 item 6",
     )
     threshold: float | None = param(
-        None, description="The score threshold of the mode `score_above`.", live=True, source="ADR-7NY2 item 6; ADR-88WQ item 6",
+        None, description="The score threshold of the mode `score_above`.", set_during_run=True, source="ADR-7NY2 item 6; ADR-88WQ item 6",
         ge=0.0,
     )
 
@@ -294,25 +294,25 @@ class MergeParams(Strict):
     slots: dict[str, str] = param(
         description="Slot name to the target point that anchors the slot, for example `left_hand: body/left_wrist`. "
         "A slot with the name of a group of `target` replaces that group. A slot with another name adds a group.",
-        live=False,
+        set_during_run=False,
         source="ADR-KW76 items 2 and 3",
         min_length=1,
     )
     source_anchor: str = param(
         description="The point of `source` that the node compares with the slot anchors, for example `hand/root`.",
-        live=False,
+        set_during_run=False,
         source="ADR-KW76 item 6",
     )
     max_distance: float = param(
         description="The largest anchor distance, as a part of the diagonal of the box around the present points of the target row.",
-        live=True,
+        set_during_run=True,
         source="ADR-KW76 item 6",
         gt=0.0,
     )
     map: dict[str, str] = param(
         default_factory=dict,
         description="Target point to slot point `<slot>/<point>`, where `<point>` is a point of `source`. A present slot point replaces the target point.",
-        live=False,
+        set_during_run=False,
         source="ADR-KW76 item 4",
     )
 
@@ -330,31 +330,31 @@ class MergeParams(Strict):
 
 class SmoothKeypointsParams(Strict):
     filter: Literal["one_euro", "kalman"] = param(
-        "one_euro", description="The filter.", live=False, source="KeypointSmoothingConfig.kind"
+        "one_euro", description="The filter.", set_during_run=False, source="KeypointSmoothingConfig.kind"
     )
-    min_cutoff: float = param(1.0, description="one_euro: the minimum cutoff frequency, in Hz.", live=True, source="KeypointSmoothingConfig", gt=0.0)
-    beta: float = param(0.0, description="one_euro: the speed coefficient, in Hz per px/s.", live=True, source="KeypointSmoothingConfig", ge=0.0)
-    d_cutoff: float = param(1.0, description="one_euro: the cutoff frequency of the derivative, in Hz.", live=True, source="KeypointSmoothingConfig", gt=0.0)
+    min_cutoff: float = param(1.0, description="one_euro: the minimum cutoff frequency, in Hz.", set_during_run=True, source="KeypointSmoothingConfig", gt=0.0)
+    beta: float = param(0.0, description="one_euro: the speed coefficient, in Hz per px/s.", set_during_run=True, source="KeypointSmoothingConfig", ge=0.0)
+    d_cutoff: float = param(1.0, description="one_euro: the cutoff frequency of the derivative, in Hz.", set_during_run=True, source="KeypointSmoothingConfig", gt=0.0)
     process_noise_pos: float = param(
-        30.0, description="kalman: the process noise of the position, in px² per second.", live=True,
+        30.0, description="kalman: the process noise of the position, in px² per second.", set_during_run=True,
         source="KalmanKeypointSmoothingConfig (1 px² per frame at 30 fps)", gt=0.0,
     )
     process_noise_vel: float = param(
-        2700.0, description="kalman: the process noise of the velocity, in (px/s)² per second.", live=True,
+        2700.0, description="kalman: the process noise of the velocity, in (px/s)² per second.", set_during_run=True,
         source="KalmanKeypointSmoothingConfig (0.1 (px/frame)² per frame at 30 fps)", gt=0.0,
     )
-    measurement_noise: float = param(10.0, description="kalman: the measurement noise, in px².", live=True, source="KalmanKeypointSmoothingConfig", gt=0.0)
+    measurement_noise: float = param(10.0, description="kalman: the measurement noise, in px².", set_during_run=True, source="KalmanKeypointSmoothingConfig", gt=0.0)
     max_gap_ms: float | None = param(
         None, description="Hold the last value of a missing point for this many milliseconds after its last detection. Empty: no hold.",
-        live=False, source="KeypointSmoothingConfig.max_gap_frames", gt=0.0,
+        set_during_run=False, source="KeypointSmoothingConfig.max_gap_frames", gt=0.0,
     )
     max_velocity: float | None = param(
         None, description="Refuse a point that moves faster than this many pixels per second since its last detection. Empty: accept each point.",
-        live=True, source="KeypointSmoothingConfig", gt=0.0,
+        set_during_run=True, source="KeypointSmoothingConfig", gt=0.0,
     )
     reset_after_ms: float | None = param(
         None, description="Clear the filter state of a row after this many milliseconds with no valid point. Empty: no reset.",
-        live=False, source="KeypointResetPolicyConfig", gt=0.0,
+        set_during_run=False, source="KeypointResetPolicyConfig", gt=0.0,
     )
 
     ONE_EURO: ClassVar[frozenset[str]] = frozenset({"min_cutoff", "beta", "d_cutoff"})
@@ -371,7 +371,7 @@ class SmoothKeypointsParams(Strict):
 
 class SmoothRoiParams(Strict):
     previous_weight: float = param(
-        0.5, description="The weight of the previous ROI: new = previous_weight × previous + (1 − previous_weight) × input.", live=True,
+        0.5, description="The weight of the previous ROI: new = previous_weight × previous + (1 − previous_weight) × input.", set_during_run=True,
         source="BBoxSmoothingConfig.alpha (freemocap uses 0.4); ADR-88WQ item 4", ge=0.0, le=1.0,
     )
 
@@ -405,11 +405,11 @@ class FitnessCheck(Strict):
 
 class RedetectTriggerParams(Strict):
     redetect_interval: int = param(
-        1, description="Ask for a new detection at least each this many frames.", live=True,
+        1, description="Ask for a new detection at least each this many frames.", set_during_run=True,
         source="BBoxPolicyConfig.redetect_interval", ge=1,
     )
     fitness_checks: list[FitnessCheck] = param(
-        default_factory=list, description="Checks on the previous frame that ask for a new detection.", live=False,
+        default_factory=list, description="Checks on the previous frame that ask for a new detection.", set_during_run=False,
         source="BBoxPolicyConfig.fitness_checks",
     )
 

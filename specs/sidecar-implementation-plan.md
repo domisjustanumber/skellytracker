@@ -1162,10 +1162,15 @@ This stage implements the node types of the pipeline spec. Use the skill
   realtime and posthoc, share no session: measure the VRAM cost and decide with freemocap whether it
   schedules the runs or accepts the cost ([ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 6). Study frame drops in `live` mode: a latest-frame mailbox, a count of
   dropped frames, a `drop` timing span and MediaPipe LIVE_STREAM.
+- **Params during a run (the last step).** `PipelineRun.set_params(node_id, params)` and the error
+  `SetParamsRefused` ([Running](pipeline/running.md#behaviour) item 11, `V-pipeline.running-10`;
+  [ADR-N5BM](../decisions/entries/N5BM-set-during-run-and-set-params.md)). The run reads the mark
+  `set_during_run` of each param from the reference model. A change applies from the next call and
+  resets no node state.
 - Gate: tests on generated ONNX models for each node type, the load checks, the empty-input rule,
   the `concat` empty-input fill, the instance rows with `class_index` and `instance_score`, `@prev`,
-  the stateful batch rule and its warning, `ep_partial_placement`, the CLI exit codes, the default EP, `V-pipeline.running-8`, `V-pipeline.running-9`, the timing
-  parents, and record and replay with `row`. The
+  the stateful batch rule and its warning, `ep_partial_placement`, the CLI exit codes, the default EP, `V-pipeline.running-8`, `V-pipeline.running-9`, each refusal of
+  `V-pipeline.running-10` and a change that applies from the next call, the timing parents, and record and replay with `row`. The
   package glue nodes pass the glue vectors. The aggregator output passes
   `skellybench.schema.validate_timing`. `mediapipe-holistic-tasks` runs and gives the expected point
   sets.

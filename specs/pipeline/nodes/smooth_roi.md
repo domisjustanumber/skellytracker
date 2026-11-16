@@ -20,7 +20,7 @@ item 5).
 ## Fields
 
 <!-- node-table:params -->
-| Param | Type | Range | Default | Live | Description | Source |
+| Param | Type | Range | Default | Set during run | Description | Source |
 |---|---|---|---|---|---|---|
 | `previous_weight` | `float` | >= 0.0, <= 1.0 | `0.5` | yes | The weight of the previous ROI: new = previous_weight × previous + (1 − previous_weight) × input. | BBoxSmoothingConfig.alpha (freemocap uses 0.4); ADR-88WQ item 4 |
 <!-- /node-table:params -->

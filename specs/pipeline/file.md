@@ -30,7 +30,7 @@ A **name** is a string that matches `^[a-z][a-z0-9_-]*$`.
 
 ## Behaviour
 
-1. **Fixed at start.** A pipeline is fixed when its run starts. A run takes no overrides of the config. To change a pipeline, load the config, change it and give the changed config to the run. Live changes of params wait for a later version ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 1).
+1. **Fixed at start.** A pipeline is fixed when its run starts. A run takes no overrides of the config. To change a pipeline, load the config, change it and give the changed config to the run. During a run, `PipelineRun.set_params` can change only the params marked `yes` in the column "Set during run" ([Running](running.md#behaviour) item 11; [ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 1; [ADR-N5BM](../../decisions/entries/N5BM-set-during-run-and-set-params.md)).
 2. **Input forms.** A host accepts a YAML file, a JSON file or a mapping that holds the same keys. A YAML loader must use a safe load (`yaml.safe_load` or an equivalent loader that makes only plain data). It must refuse a duplicate key, as the sidecar loader does ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 2; [ADR-88WQ](../../decisions/entries/88WQ-sidecar-vocabulary.md) item 6).
 3. **Strict.** An unknown key is an error at each level of the config, also in `params` ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) items 2 and 11).
 4. **No code.** A pipeline file runs no user code. The node types are a closed set. A new node type is a spec change ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6; [ADR-AD33](../../decisions/entries/AD33-bundles-are-untrusted-input.md)).

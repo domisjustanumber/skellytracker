@@ -16,7 +16,7 @@ root log.
   ([ADR-88WQ](../../decisions/entries/88WQ-sidecar-vocabulary.md) item 7).
 - The Pydantic reference model in `reference/` is the source of the JSON Schema and of the node
   tables. Do not edit the schema or a node table by hand. Run the tool that makes them.
-- Each node type has one params model with a type, a range, a default, a description and `live`
+- Each node type has one params model with a type, a range, a default, a description and `set_during_run`
   for each param, and its ports.
 - The glue nodes are a closed set. A pipeline file runs no user code
   ([ADR-AD33](../../decisions/entries/AD33-bundles-are-untrusted-input.md)). A new node type is a

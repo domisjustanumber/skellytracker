@@ -10,7 +10,7 @@ status: {spec: draft}
 
 > This section is a draft. Its fields and rules can change before the section becomes `stable`.
 
-A run starts a pipeline with run parameters. The same file runs in each running mode. This section gives the run parameters, the frame time, the running modes, the batch, the stateful pipelines, the session sharing, the warnings and the start checks ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) items 2 to 7; [ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) items 1, 6 and 7; [ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 2, 4 and 5).
+A run starts a pipeline with run parameters. The same file runs in each running mode. This section gives the run parameters, the frame time, the running modes, the batch, the stateful pipelines, the session sharing, the warnings, the start checks and the param changes during a run ([ADR-N5BM](../../decisions/entries/N5BM-set-during-run-and-set-params.md); [ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) items 2 to 7; [ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) items 1, 6 and 7; [ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) items 2, 4 and 5).
 
 ## Fields
 
@@ -74,6 +74,11 @@ A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api
    - The load result holds the warnings that are known before start. The run holds the full list. The run gives each new warning to the warning receiver one time, also during the run, from the thread that makes the call.
 9. **Replayed and unused ports.** A port is used when it is an output, an input of a node that runs, or the port of a `record` tap. A node whose outputs are all replayed or not used does not run. The upstream nodes of a replayed port do not run when nothing else uses them ([Taps](taps.md#behaviour)).
 10. **Start checks.** The run does these checks before frame 0 ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 7): `V-pipeline.running-3`, `V-pipeline.running-4`, `V-pipeline.running-5`, `V-pipeline.running-8`, `V-pipeline.running-9`, [`V-pipeline.taps-2`](taps.md#validation-rules), [`V-pipeline.taps-3`](taps.md#validation-rules), [`V-pipeline.taps-4`](taps.md#validation-rules), [`V-pipeline.taps-5`](taps.md#validation-rules), [`V-pipeline.taps-6`](taps.md#validation-rules) and [`V-pipeline.taps-7`](taps.md#validation-rules).
+11. **Params during a run.** `PipelineRun.set_params(node_id, params)` sets params of one node ([ADR-N5BM](../../decisions/entries/N5BM-set-during-run-and-set-params.md)):
+    - Only a param that the node table marks `yes` in the column "Set during run" can change. The run checks each value against the type and the range of the param, as the load does.
+    - The run accepts the call in each running mode before the first `process` or `process_batch` call. After that call, it accepts the call only in `live`, and only when the run has no `record` tap ([Taps](taps.md#behaviour)).
+    - A change applies from the next `process` or `process_batch` call, to each camera. It does not reset the state of a node. A param whose change would need a reset is marked `no`.
+    - A call that breaks `V-pipeline.running-10` raises the error `SetParamsRefused`. It changes no param.
 
 ## Validation rules
 
@@ -86,6 +91,7 @@ A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api
 - [ ] `V-pipeline.running-7` In the running mode `video`, each camera must give a `timestamp_ms` on each of its frames or on none of its frames.
 - [ ] `V-pipeline.running-8` When the pipeline has an `onnx_model` node with no `execution_provider`, the run must give an EP ([ADR-9PDQ](../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 4).
 - [ ] `V-pipeline.running-9` When the pipeline has no `onnx_model` node, the run must not give an EP ([ADR-9PDQ](../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 4).
+- [ ] `V-pipeline.running-10` A `set_params` call must name a node of the run. Each param must be a param of that node type, marked `yes` in the column "Set during run", with a value of its type and range. After the first `process` or `process_batch` call, the running mode must be `live` and the run must have no `record` tap ([ADR-N5BM](../../decisions/entries/N5BM-set-during-run-and-set-params.md)).
 
 ## Implementer guidance
 
@@ -98,6 +104,7 @@ A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api
 
 - A previous-frame input lowers the batch in `video`. A `smooth_keypoints` node after the last `onnx_model` node does not, because it runs on the host, frame by frame, after the batched pass ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 5).
 - A live caller must give a `timestamp_ms` that increases, for example from the capture clock of the camera.
+- The pipeline file is the same in each running mode. The caller gives a value for each mode, in the config before the start or with `set_params` before the first frame. For example, a caller sets `redetect_interval` of a `redetect_trigger` node to 10 in `live` and to 1 in `video` ([ADR-N5BM](../../decisions/entries/N5BM-set-during-run-and-set-params.md) item 5).
 
 ## Examples
 

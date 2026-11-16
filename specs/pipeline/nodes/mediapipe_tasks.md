@@ -15,7 +15,7 @@ A `mediapipe_tasks` node wraps one MediaPipe Tasks landmarker: pose, hand, face 
 ## Fields
 
 <!-- node-table:params -->
-| Param | Type | Range | Default | Live | Description | Source |
+| Param | Type | Range | Default | Set during run | Description | Source |
 |---|---|---|---|---|---|---|
 | `variant` | `Literal['body', 'hand', 'face', 'holistic']` |  | required | no | The Tasks landmarker: pose (`body`), hand, face or holistic. | ADR-V7GZ item 4; ADR-88WQ item 4 |
 | `max_instances` | `int` | >= 1 | `1` | no | `num_poses`, `num_hands` or `num_faces`. Holistic is single person: 1. | MediaPipe `num_poses`, `num_hands`, `num_faces` (Tasks default 1); ADR-V7GZ item 4 |

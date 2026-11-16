@@ -21,7 +21,7 @@ stateful ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sh
 ## Fields
 
 <!-- node-table:params -->
-| Param | Type | Range | Default | Live | Description | Source |
+| Param | Type | Range | Default | Set during run | Description | Source |
 |---|---|---|---|---|---|---|
 | `filter` | `Literal['one_euro', 'kalman']` |  | `"one_euro"` | no | The filter. | KeypointSmoothingConfig.kind |
 | `min_cutoff` | `float` | > 0.0 | `1.0` | yes | one_euro: the minimum cutoff frequency, in Hz. | KeypointSmoothingConfig |

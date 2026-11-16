@@ -203,7 +203,7 @@
             "is_present",
             "score_above"
           ],
-          "live": false,
+          "set_during_run": false,
           "source": "ADR-7NY2 item 6",
           "title": "Mode",
           "type": "string"
@@ -220,7 +220,7 @@
           ],
           "default": null,
           "description": "The score threshold of the mode `score_above`.",
-          "live": true,
+          "set_during_run": true,
           "source": "ADR-7NY2 item 6; ADR-88WQ item 6",
           "title": "Threshold"
         }
@@ -294,8 +294,8 @@
         "max_instances": {
           "default": 1,
           "description": "`num_poses`, `num_hands` or `num_faces`. Holistic is single person: 1.",
-          "live": false,
           "minimum": 1,
+          "set_during_run": false,
           "source": "MediaPipe `num_poses`, `num_hands`, `num_faces` (Tasks default 1); ADR-V7GZ item 4",
           "title": "Max Instances",
           "type": "integer"
@@ -303,9 +303,9 @@
         "min_detection_score": {
           "default": 0.5,
           "description": "The minimum detection score (Holistic: the pose and the face detection).",
-          "live": false,
           "maximum": 1.0,
           "minimum": 0.0,
+          "set_during_run": false,
           "source": "MediaPipe `min_*_detection_confidence` (Tasks default 0.5)",
           "title": "Min Detection Score",
           "type": "number"
@@ -313,9 +313,9 @@
         "min_presence_score": {
           "default": 0.5,
           "description": "The minimum presence score (Holistic: the landmark score of each part).",
-          "live": false,
           "maximum": 1.0,
           "minimum": 0.0,
+          "set_during_run": false,
           "source": "MediaPipe `min_*_presence_confidence`, Holistic `min_*_landmarks_confidence` (Tasks default 0.5)",
           "title": "Min Presence Score",
           "type": "number"
@@ -323,9 +323,9 @@
         "min_tracking_score": {
           "default": 0.5,
           "description": "The minimum tracking score in VIDEO mode. Holistic has no tracking option.",
-          "live": false,
           "maximum": 1.0,
           "minimum": 0.0,
+          "set_during_run": false,
           "source": "MediaPipe `min_tracking_confidence` (Tasks default 0.5)",
           "title": "Min Tracking Score",
           "type": "number"
@@ -338,7 +338,7 @@
             "full",
             "heavy"
           ],
-          "live": false,
+          "set_during_run": false,
           "source": "MediaPipe asset `pose_landmarker_<size>`; MediapipePoseDetectorConfig.model_complexity",
           "title": "Size",
           "type": "string"
@@ -351,7 +351,7 @@
             "face",
             "holistic"
           ],
-          "live": false,
+          "set_during_run": false,
           "source": "ADR-V7GZ item 4; ADR-88WQ item 4",
           "title": "Variant",
           "type": "string"
@@ -405,7 +405,7 @@
             "type": "string"
           },
           "description": "Target point to slot point `<slot>/<point>`, where `<point>` is a point of `source`. A present slot point replaces the target point.",
-          "live": false,
+          "set_during_run": false,
           "source": "ADR-KW76 item 4",
           "title": "Map",
           "type": "object"
@@ -413,7 +413,7 @@
         "max_distance": {
           "description": "The largest anchor distance, as a part of the diagonal of the box around the present points of the target row.",
           "exclusiveMinimum": 0.0,
-          "live": true,
+          "set_during_run": true,
           "source": "ADR-KW76 item 6",
           "title": "Max Distance",
           "type": "number"
@@ -423,15 +423,15 @@
             "type": "string"
           },
           "description": "Slot name to the target point that anchors the slot, for example `left_hand: body/left_wrist`. A slot with the name of a group of `target` replaces that group. A slot with another name adds a group.",
-          "live": false,
           "minProperties": 1,
+          "set_during_run": false,
           "source": "ADR-KW76 items 2 and 3",
           "title": "Slots",
           "type": "object"
         },
         "source_anchor": {
           "description": "The point of `source` that the node compares with the slot anchors, for example `hand/root`.",
-          "live": false,
+          "set_during_run": false,
           "source": "ADR-KW76 item 6",
           "title": "Source Anchor",
           "type": "string"
@@ -494,7 +494,7 @@
             "type": "string"
           },
           "description": "EP options for this node: option names and values that the EP catalog allows for its EP. Empty: the EP options of the run when the node uses the EP of the run, else none.",
-          "live": false,
+          "set_during_run": false,
           "source": "ADR-9NW0 item 2",
           "title": "Ep Options",
           "type": "object"
@@ -510,13 +510,13 @@
           ],
           "default": null,
           "description": "A key of the EP catalog for this node, for example `cuda`, `trt-rtx` or `cpu`. Empty: the EP of the run.",
-          "live": false,
+          "set_during_run": false,
           "source": "ADR-7NY2 item 12; ADR-9NW0 item 1",
           "title": "Execution Provider"
         },
         "key": {
           "description": "The catalog key of the model, `<model_id>@<source.name>`, with an optional pin `==<version>`.",
-          "live": false,
+          "set_during_run": false,
           "source": "ADR-7NY2 item 10; ADR-88WQ item 7",
           "title": "Key",
           "type": "string"
@@ -524,8 +524,8 @@
         "max_instances": {
           "default": 1,
           "description": "The number of instance rows `I` that this node makes (object detector or one-stage model).",
-          "live": false,
           "minimum": 1,
+          "set_during_run": false,
           "source": "ADR-ZYS9 item 1",
           "title": "Max Instances",
           "type": "integer"
@@ -533,7 +533,7 @@
         "object_decode": {
           "additionalProperties": true,
           "description": "Changes of the fields of the `object.decode` block of the sidecar. The load checks each name against the sidecar.",
-          "live": false,
+          "set_during_run": false,
           "source": "ADR-7NY2 item 11; ADR-88WQ item 7",
           "title": "Object Decode",
           "type": "object"
@@ -553,7 +553,7 @@
           ],
           "default": null,
           "description": "The precision of the artifact. Empty: fp16 on a GPU EP and fp32 on CPU; fp32 when the size has no fp16 artifact.",
-          "live": false,
+          "set_during_run": false,
           "source": "ADR-7NY2 item 10",
           "title": "Precision"
         },
@@ -569,13 +569,13 @@
           ],
           "default": null,
           "description": "The SHA-256 of the sidecar file bytes. Required in a shipped or an exported file.",
-          "live": false,
+          "set_during_run": false,
           "source": "ADR-7NY2 item 10",
           "title": "Sidecar Sha256"
         },
         "size": {
           "description": "A size key of the `sizes` of the sidecar.",
-          "live": false,
+          "set_during_run": false,
           "source": "ADR-7NY2 item 10",
           "title": "Size",
           "type": "string"
@@ -629,7 +629,7 @@
           "items": {
             "$ref": "#/$defs/FitnessCheck"
           },
-          "live": false,
+          "set_during_run": false,
           "source": "BBoxPolicyConfig.fitness_checks",
           "title": "Fitness Checks",
           "type": "array"
@@ -637,8 +637,8 @@
         "redetect_interval": {
           "default": 1,
           "description": "Ask for a new detection at least each this many frames.",
-          "live": true,
           "minimum": 1,
+          "set_during_run": true,
           "source": "BBoxPolicyConfig.redetect_interval",
           "title": "Redetect Interval",
           "type": "integer"
@@ -695,7 +695,7 @@
           ],
           "default": null,
           "description": "The end point of the alignment rule.",
-          "live": false,
+          "set_during_run": false,
           "source": "ADR-7NY2 item 6",
           "title": "Alignment End"
         },
@@ -710,7 +710,7 @@
           ],
           "default": null,
           "description": "The start point of the alignment rule.",
-          "live": false,
+          "set_during_run": false,
           "source": "ADR-7NY2 item 6",
           "title": "Alignment Start"
         },
@@ -735,7 +735,7 @@
             ]
           },
           "description": "Derived point name to derivation, in the map form of the sidecar `keypoint.derived_points`: passthrough, mean or weighted.",
-          "live": false,
+          "set_during_run": false,
           "source": "ADR-7NY2 item 6; ADR-88WQ item 6",
           "title": "Derived Points",
           "type": "object"
@@ -744,7 +744,7 @@
           "default": 1.0,
           "description": "Multiply the width and the height by this value.",
           "exclusiveMinimum": 0.0,
-          "live": true,
+          "set_during_run": true,
           "source": "MediaPipe RectTransformationCalculator scale default; ADR-88WQ item 4",
           "title": "Expand Ratio",
           "type": "number"
@@ -764,8 +764,8 @@
               }
             ]
           },
-          "live": false,
           "minItems": 1,
+          "set_during_run": false,
           "source": "ADR-7NY2 item 6",
           "title": "Points",
           "type": "array"
@@ -773,8 +773,8 @@
         "score_threshold": {
           "default": 0.0,
           "description": "A point counts only when its score is greater than this value.",
-          "live": true,
           "minimum": 0.0,
+          "set_during_run": true,
           "source": "ADR-7NY2 item 6; ADR-88WQ item 6",
           "title": "Score Threshold",
           "type": "number"
@@ -782,7 +782,7 @@
         "shift_x": {
           "default": 0.0,
           "description": "Shift along the ROI x axis, in ROI widths.",
-          "live": true,
+          "set_during_run": true,
           "source": "MediaPipe RectTransformationCalculator default",
           "title": "Shift X",
           "type": "number"
@@ -790,7 +790,7 @@
         "shift_y": {
           "default": 0.0,
           "description": "Shift along the ROI y axis, in ROI heights.",
-          "live": true,
+          "set_during_run": true,
           "source": "MediaPipe RectTransformationCalculator default",
           "title": "Shift Y",
           "type": "number"
@@ -802,7 +802,7 @@
             "bounds",
             "alignment"
           ],
-          "live": false,
+          "set_during_run": false,
           "source": "MediaPipe AlignmentPointsRectsCalculator; ADR-7NY2 item 6",
           "title": "Size Rule",
           "type": "string"
@@ -810,7 +810,7 @@
         "square_long": {
           "default": false,
           "description": "Make the ROI square with its longer side.",
-          "live": true,
+          "set_during_run": true,
           "source": "MediaPipe RectTransformationCalculator default",
           "title": "Square Long",
           "type": "boolean"
@@ -826,7 +826,7 @@
           ],
           "default": null,
           "description": "The rotation target in degrees. Empty: rotation `none`, an axis-aligned ROI.",
-          "live": false,
+          "set_during_run": false,
           "source": "MediaPipe rect rotation; ADR-7NY2 item 6",
           "title": "Target Rotation Deg"
         }
@@ -876,7 +876,7 @@
         "keypoint_margin": {
           "default": -0.1,
           "description": "Each previous point must be inside the new ROI grown by this part (negative: shrunk).",
-          "live": true,
+          "set_during_run": true,
           "source": "MediaPipe Holistic hand RoiTrackingCalculator (face: -0.2)",
           "title": "Keypoint Margin",
           "type": "number"
@@ -884,8 +884,8 @@
         "max_offset": {
           "default": 0.2,
           "description": "The largest x and y offset, as a part of the new ROI size.",
-          "live": true,
           "minimum": 0.0,
+          "set_during_run": true,
           "source": "MediaPipe Holistic hand RoiTrackingCalculator (face: 0.1)",
           "title": "Max Offset",
           "type": "number"
@@ -893,8 +893,8 @@
         "max_rotation_deg": {
           "default": 40.0,
           "description": "Keep the previous ROI only when the rotation differs by this much or less.",
-          "live": true,
           "minimum": 0.0,
+          "set_during_run": true,
           "source": "MediaPipe Holistic hand RoiTrackingCalculator (face: 15)",
           "title": "Max Rotation Deg",
           "type": "number"
@@ -902,8 +902,8 @@
         "max_size_change": {
           "default": 0.4,
           "description": "The largest width and height difference, as a part of the new ROI size.",
-          "live": true,
           "minimum": 0.0,
+          "set_during_run": true,
           "source": "MediaPipe Holistic hand RoiTrackingCalculator (face: 0.3)",
           "title": "Max Size Change",
           "type": "number"
@@ -951,8 +951,8 @@
         "beta": {
           "default": 0.0,
           "description": "one_euro: the speed coefficient, in Hz per px/s.",
-          "live": true,
           "minimum": 0.0,
+          "set_during_run": true,
           "source": "KeypointSmoothingConfig",
           "title": "Beta",
           "type": "number"
@@ -961,7 +961,7 @@
           "default": 1.0,
           "description": "one_euro: the cutoff frequency of the derivative, in Hz.",
           "exclusiveMinimum": 0.0,
-          "live": true,
+          "set_during_run": true,
           "source": "KeypointSmoothingConfig",
           "title": "D Cutoff",
           "type": "number"
@@ -973,7 +973,7 @@
             "one_euro",
             "kalman"
           ],
-          "live": false,
+          "set_during_run": false,
           "source": "KeypointSmoothingConfig.kind",
           "title": "Filter",
           "type": "string"
@@ -990,7 +990,7 @@
           ],
           "default": null,
           "description": "Hold the last value of a missing point for this many milliseconds after its last detection. Empty: no hold.",
-          "live": false,
+          "set_during_run": false,
           "source": "KeypointSmoothingConfig.max_gap_frames",
           "title": "Max Gap Ms"
         },
@@ -1006,7 +1006,7 @@
           ],
           "default": null,
           "description": "Refuse a point that moves faster than this many pixels per second since its last detection. Empty: accept each point.",
-          "live": true,
+          "set_during_run": true,
           "source": "KeypointSmoothingConfig",
           "title": "Max Velocity"
         },
@@ -1014,7 +1014,7 @@
           "default": 10.0,
           "description": "kalman: the measurement noise, in px\u00b2.",
           "exclusiveMinimum": 0.0,
-          "live": true,
+          "set_during_run": true,
           "source": "KalmanKeypointSmoothingConfig",
           "title": "Measurement Noise",
           "type": "number"
@@ -1023,7 +1023,7 @@
           "default": 1.0,
           "description": "one_euro: the minimum cutoff frequency, in Hz.",
           "exclusiveMinimum": 0.0,
-          "live": true,
+          "set_during_run": true,
           "source": "KeypointSmoothingConfig",
           "title": "Min Cutoff",
           "type": "number"
@@ -1032,7 +1032,7 @@
           "default": 30.0,
           "description": "kalman: the process noise of the position, in px\u00b2 per second.",
           "exclusiveMinimum": 0.0,
-          "live": true,
+          "set_during_run": true,
           "source": "KalmanKeypointSmoothingConfig (1 px\u00b2 per frame at 30 fps)",
           "title": "Process Noise Pos",
           "type": "number"
@@ -1041,7 +1041,7 @@
           "default": 2700.0,
           "description": "kalman: the process noise of the velocity, in (px/s)\u00b2 per second.",
           "exclusiveMinimum": 0.0,
-          "live": true,
+          "set_during_run": true,
           "source": "KalmanKeypointSmoothingConfig (0.1 (px/frame)\u00b2 per frame at 30 fps)",
           "title": "Process Noise Vel",
           "type": "number"
@@ -1058,7 +1058,7 @@
           ],
           "default": null,
           "description": "Clear the filter state of a row after this many milliseconds with no valid point. Empty: no reset.",
-          "live": false,
+          "set_during_run": false,
           "source": "KeypointResetPolicyConfig",
           "title": "Reset After Ms"
         }
@@ -1105,9 +1105,9 @@
         "previous_weight": {
           "default": 0.5,
           "description": "The weight of the previous ROI: new = previous_weight \u00d7 previous + (1 \u2212 previous_weight) \u00d7 input.",
-          "live": true,
           "maximum": 1.0,
           "minimum": 0.0,
+          "set_during_run": true,
           "source": "BBoxSmoothingConfig.alpha (freemocap uses 0.4); ADR-88WQ item 4",
           "title": "Previous Weight",
           "type": "number"
