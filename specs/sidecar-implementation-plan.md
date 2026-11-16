@@ -665,7 +665,7 @@ Not in this stage:
 
 ### 1.6 Catalog and the `detectors` entry point (was N3)
 
-**Status: DONE (2026-11-16), with the open items below.** The catalog is
+**Status: DONE (2026-11-16), except the Open items below.** The catalog is
 `core/detectors/catalog.py`, and `core/detectors/__init__.py` exports its API. The heading "Open"
 gives each item that stays.
 
@@ -701,7 +701,8 @@ Done:
   of the sidecar, the capability check, the installed package (`importlib.util.find_spec` with a
   literal name) and the ONNX files. Each artifact of an entry also has `available` and
   `unavailable_reason`, because a user can copy only some sizes or precisions. An `onnx` entry is
-  available when one artifact or more is available.
+  available when one artifact or more is available. An artifact with a `url` and no file is
+  unavailable, and its reason says that the file is not downloaded.
 - The capability check. `core/model_spec/sections.py` holds the ID, the kind and the selectors of
   each spec section, and `IMPLEMENTED_SECTIONS`: the sections that the package runs. A doc test
   compares the table with the front matter of the section files. `unimplemented_sections` uses
@@ -712,7 +713,8 @@ Done:
   Stage 1.5 and stage 1.7 add each such section in the commit that adds its processing module.
   Until then, each sidecar entry is unavailable, and the reason names the sections.
 - `load_detector_sidecar(key)` raises `DetectorUnavailableError` for a sidecar that is not usable.
-  The message names the section, the version or the rule. An unknown size is an error
+  The message names the section, the version or the rule. `DetectorUnavailableError` and
+  `DetectorNotFoundError` are in `core/detectors/catalog.py`. An unknown size is an error
   (`DetectorEntry.artifact`, `SidecarModel.size`). There are no aliases and no claims
   ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 2).
 - The version order, the pins and the reserved name
@@ -733,7 +735,9 @@ Done:
   `SKELLYTRACKER_FULL_HASH=1` force a full hash. `HashCache.record` writes the record of a file whose
   hash the caller knows, with no read. The docstring of the module names the 2 s limit of FAT32 and
   exFAT. The tests cover a hit, each miss, a corrupt cache file, the atomic write, the record of a
-  download and the forced full hash.
+  download and the forced full hash. The implementer guidance of
+  [`common.sizes_and_artifacts`](model-sidecar/common/sizes-and-artifacts.md#implementer-guidance)
+  has one line about the cache.
 - `describe_detector(key)`, and the CLI commands `detectors` and `describe <key>` of
   `python -m skellytracker`
   ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 9): the sizes,
@@ -745,36 +749,28 @@ Done:
 
 Open:
 
-- **Hugging Face roots.** The pin, the refresh command and the state "not fetched"
-  ([Sidecar roots](model-sidecar/format/file-layout.md#sidecar-roots);
-  [`format.file_layout`](model-sidecar/format/file-layout.md#implementer-guidance)). A config must
-  name the repo id and the revision, and skellytracker keeps no settings file. The public API has no
-  argument for another root. The user decides where the list of roots comes from.
-- **Download.** No new code downloads a `url` artifact. The host must hash the bytes while it
-  writes them, check `url_sha256` on the downloaded bytes and `sha256` on the ONNX file that it
-  writes or extracts, and then call `HashCache.record`. The user decides the folder of the download
-  cache and the stage that owns the download.
+- **Hugging Face roots.** The pin, the refresh command and the state "not fetched" are not built
+  ([Sidecar roots](model-sidecar/format/file-layout.md#sidecar-roots)). The facts:
+  skellytracker keeps no settings file
+  ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 6).
+  The guidance of [`format.file_layout`](model-sidecar/format/file-layout.md#implementer-guidance)
+  says "The config gives the repo id and a commit revision". No text says who holds the pin. The
+  public API has no argument for another root: only `scan_sidecar_roots` takes `other_roots`. The
+  user decides the design.
 - **File locks.** On Windows, a model update or a Hugging Face refresh closes the sessions first, or
-  writes the new revision beside the old one. This item needs the download and the refresh.
-- **Hash in the Hugging Face cache.** Later, optional: in the Hugging Face cache, the `blobs/` file
-  name of an LFS file is its SHA-256. Compare that name with `sha256` only when it is 64 lowercase
-  hex characters. Hash the file in all other cases.
-- **Guidance.** Add one line to the implementer guidance of `common.sizes_and_artifacts` in a
-  non-spec commit. A host can keep the hash of a file with its size, modification time and file id,
-  and hash the file again when one of these changes. The guidance of
-  [`format.versioning`](model-sidecar/format/versioning.md#implementer-guidance),
-  [`format.file_layout`](model-sidecar/format/file-layout.md#implementer-guidance) and
-  [`common.sizes_and_artifacts`](model-sidecar/common/sizes-and-artifacts.md#implementer-guidance)
-  still names `tools/sidecar_normalize.py`, `cache_dir` and "no code checks `sha256`".
+  writes the new revision beside the old one. This item goes with the Hugging Face roots.
+- **Hash in the Hugging Face cache.** Optional: in the Hugging Face cache, the `blobs/` file name of
+  an LFS file is its SHA-256. Compare that name with `sha256` only when it is 64 lowercase hex
+  characters. Hash the file in all other cases.
+- **Symlink test.** The test of a snapshot of symlinks did not run on the Windows host of this
+  stage, because that host cannot make a symlink. Run it on Linux or macOS.
+- **Download.** Stage 1.7 downloads a `url` artifact.
 - **Dispatch.** Stage 1.7 maps a catalog entry to a generic detector by `role` and `sections` of
   the entry ([`format.versioning`](model-sidecar/format/versioning.md#implementer-guidance)).
 - **Run metadata.** Stage 1.10 writes `key`, `version` and `sidecar_sha256` of the entry in the
   output metadata of a run.
 - **Static table.** The table names the old MediaPipe classes. The stage that adds the MediaPipe
   Holistic runner to the list adds its row. Stage 2.4 removes the rows of the deleted classes.
-- **Error classes.** `DetectorNotFoundError` and `DetectorUnavailableError` are in
-  `core/detectors/catalog.py`. The user decides if they move to `core/errors.py`
-  ([ADR-D8DH](../decisions/entries/D8DH-sessions-errors-and-the-ready-rule.md) item 1).
 
 ### 1.7 Standalone generic detectors (was N4)
 
@@ -795,6 +791,15 @@ Open:
   (`model_batch_convert`), as a function that stage 1.10 calls. Stage 1.7 does not change `core/tracker/` or
   `DetectionStage.run_batch`. `test_run_batched.py` stays.
 - The session takes the execution provider as `execution_provider`.
+- The download of a `url` artifact, when a session needs a file that is not present (from stage
+  1.6). The file goes to
+  `platformdirs.user_cache_dir("skellytracker")/models/<key>/<version>/<filename>`. The host hashes
+  the bytes while it writes them. It checks `url_sha256` on the downloaded bytes, and `sha256` on
+  the ONNX file that it writes or extracts from an archive
+  ([Sizes and artifacts](model-sidecar/common/sizes-and-artifacts.md#sizessizeonnx)). Then it calls
+  `HashCache.record`, with no second read. Decide here the availability rule of the catalog for a
+  `url` artifact that is not downloaded: today the catalog lists it as unavailable, with the reason
+  "is not downloaded".
 - The detector tests on generated ONNX models
   ([ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md) item 8): `onnx.helper` makes
   tiny fixed-batch models at run time, with a sidecar in a temporary root. The tests cover the
