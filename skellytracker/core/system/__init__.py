@@ -1,6 +1,8 @@
 """Facts that are fixed while the application runs: the host, the runtime and the environment."""
 
+from skellytracker.core.system.environment import probe_environment
 from skellytracker.core.system.host import gpu_device_keys, probe_host
+from skellytracker.core.system.loaded_libraries import probe_loaded_libraries
 from skellytracker.core.system.records import (
     ContainerInfo,
     EnvironmentInfo,
@@ -19,6 +21,7 @@ from skellytracker.core.system.records import (
     RuntimeInfo,
     VirtualizationInfo,
 )
+from skellytracker.core.system.runtime import probe_runtime
 
 __all__ = [
     "ContainerInfo",
@@ -38,5 +41,8 @@ __all__ = [
     "RuntimeInfo",
     "VirtualizationInfo",
     "gpu_device_keys",
+    "probe_environment",
     "probe_host",
+    "probe_loaded_libraries",
+    "probe_runtime",
 ]
