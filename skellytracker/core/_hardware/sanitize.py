@@ -12,8 +12,10 @@ _PATH_TOKEN = re.compile(r"^(?:[A-Za-z]:[\\/]|\\\\|/)")
 def _replace(text: str, path: str, mark: str) -> str:
     if not path or path in ("/", "\\"):
         return text
+    # A Windows path has no case, also when the text is read on another OS.
+    flags = re.IGNORECASE if os.name == "nt" or ntpath.splitdrive(path)[0] else 0
     for form in {path, path.replace("\\", "/"), path.replace("/", "\\")}:
-        text = re.sub(re.escape(form), lambda _: mark, text, flags=re.IGNORECASE if os.name == "nt" else 0)
+        text = re.sub(re.escape(form), lambda _: mark, text, flags=flags)
     return text
 
 
