@@ -36,6 +36,12 @@ def cpu_name(root: Path = ROOT) -> str | None:
     return match.group(1).strip() if match else None
 
 
+def cpu_max_frequency_hz(root: Path = ROOT) -> int | None:
+    """`cpuinfo_max_freq` of CPU 0, from kHz to Hz; `None` with no `cpufreq` folder. No test ran it on Linux."""
+    text = _read(root / "sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq") or ""
+    return int(text) * 1000 if text.isdigit() and int(text) > 0 else None
+
+
 def cores_and_memory(root: Path = ROOT) -> tuple[int | None, int | None, int]:
     cpuinfo = _read(root / "proc/cpuinfo") or ""
     cores = set()

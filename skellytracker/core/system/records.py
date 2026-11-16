@@ -20,7 +20,13 @@ class NvidiaGpuInfo:
 
 @dataclass(frozen=True)
 class GpuInfo:
-    """One GPU. `key` is the join key: the `pci_bus_id`, else an OS id."""
+    """One GPU. `key` is the join key: the `pci_bus_id`, else an OS id.
+
+    On Linux, `name` of a GPU with no NVML name and no `product_name` file is the device name of
+    the `pci.ids` database: `/usr/share/hwdata/pci.ids`, else `/usr/share/misc/pci.ids`. It is
+    `None` when no file holds the ids. On macOS, `vram_total_bytes` is the IOKit value
+    `VRAM,totalMB`. It is `None` for an Apple Silicon GPU, because that GPU has unified memory.
+    """
 
     key: str
     vendor: GpuVendor
@@ -66,7 +72,13 @@ class ContainerInfo:
 
 @dataclass(frozen=True)
 class HostInfo:
-    """The result of `probe_host()`. It has no hostname field."""
+    """The result of `probe_host()`. It has no hostname field.
+
+    `cpu_max_frequency_hz` is the nominal maximum frequency of the CPU: the registry value `~MHz`
+    on Windows, `cpuinfo_max_freq` of CPU 0 on Linux, and `hw.cpufrequency_max`, else
+    `hw.cpufrequency`, on macOS. It is `None` when the OS gives no value, for example on an Apple
+    Silicon Mac.
+    """
 
     os_name: str
     os_release: str
@@ -79,6 +91,7 @@ class HostInfo:
     cpu_name: str | None = None
     cpu_physical_cores: int | None = None
     cpu_logical_cores: int | None = None
+    cpu_max_frequency_hz: int | None = None
     gpus: tuple[GpuInfo, ...] = ()
     virtualization: VirtualizationInfo = VirtualizationInfo()
     container: ContainerInfo | None = None

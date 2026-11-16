@@ -88,6 +88,7 @@ def test_probe_host_has_no_hostname(monkeypatch):
     info = host_module.probe_host()
     node = platform.node().lower()
     assert info.memory_total_bytes > 0 and info.cpu_logical_cores
+    assert info.cpu_max_frequency_hz is None or 2e8 < info.cpu_max_frequency_hz < 1e10
     assert node and node not in repr(dataclasses.asdict(info)).lower()
     assert [g for g in info.gpus if g.nvidia][0].nvidia.uuid.startswith("GPU-")
 
@@ -141,7 +142,10 @@ def linux_root(tmp_path):
 
 def test_linux_readers_on_fake_files(tmp_path):
     root = linux_root(tmp_path)
-    assert linux.cpu_name(root) == "AMD Ryzen 7 5800X"
+    assert linux.cpu_name(root) == "AMD Ryzen 7 5800X" and linux.cpu_max_frequency_hz(root) is None
+    (root / "sys/devices/system/cpu/cpu0/cpufreq").mkdir(parents=True)
+    (root / "sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq").write_text("4850195\n", encoding="utf-8")
+    assert linux.cpu_max_frequency_hz(root) == 4_850_195_000
     physical, _, memory = linux.cores_and_memory(root)
     assert (physical, memory) == (2, 32768000 * 1024)
     (gpu,) = linux.gpus(root)
@@ -216,6 +220,12 @@ def test_darwin_gpus_from_registry_entries():
     assert (unknown.vendor, unknown.name, unknown.vram_total_bytes) == ("other", None, None)
 
 
+def test_darwin_cpu_max_frequency():
+    assert darwin.cpu_max_frequency_hz({"hw.cpufrequency_max": 2_600_000_000, "hw.cpufrequency": 2_400_000_000}.get) == 2_600_000_000
+    assert darwin.cpu_max_frequency_hz({"hw.cpufrequency": 2_400_000_000}.get) == 2_400_000_000
+    assert darwin.cpu_max_frequency_hz({}.get) is None  # Apple Silicon
+
+
 @pytest.mark.skipif(sys.platform == "darwin", reason="a host with no IOKit")
 def test_darwin_registry_reader_gives_no_entry_with_no_iokit():
     assert darwin.gpu_registry_entries() == [] and darwin.gpus() == []
@@ -228,6 +238,7 @@ def test_windows_registry_readers_on_a_fake_registry():
     class FakeRegistry:
         HKEY_LOCAL_MACHINE = 0
         values = {("HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0", "ProcessorNameString"): "Intel(R) Core(TM) i7 ",
+                  ("HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0", "~MHz"): 3408,
                   ("HARDWARE\\DESCRIPTION\\System\\BIOS", "SystemManufacturer"): "VMware, Inc.",
                   ("HARDWARE\\DESCRIPTION\\System\\BIOS", "SystemProductName"): "VMware Virtual Platform"}
 
@@ -248,5 +259,7 @@ def test_windows_registry_readers_on_a_fake_registry():
             return cls.values[(key, name)], 1
 
     assert windows.cpu_name(FakeRegistry) == "Intel(R) Core(TM) i7"
+    assert windows.cpu_max_frequency_hz(FakeRegistry) == 3_408_000_000
+    assert windows.cpu_max_frequency_hz(type("NoValue", (FakeRegistry,), {"values": {}})) is None
     assert windows.virtualization(FakeRegistry).hypervisor == "vmware"
     assert windows.container(FakeRegistry) is None

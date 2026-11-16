@@ -2,6 +2,7 @@
 
 `probe_host()` makes no CUDA call, loads no EP library and imports no `onnxruntime`. It does not
 raise for missing hardware: the field is `None`, with one line in `probe_errors`.
+On macOS, it runs no external command: `sysctlbyname` and IOKit, through `ctypes`, give the values.
 """
 
 import os
@@ -111,6 +112,7 @@ def _probe() -> HostInfo:
         arch=platform.machine(), memory_total_bytes=memory, os_platform=platform.platform() or None,
         os_build=os_build, native_arch=native_arch, cpu_name=read("cpu name", reader.cpu_name),
         cpu_physical_cores=physical, cpu_logical_cores=logical,
+        cpu_max_frequency_hz=read("cpu frequency", reader.cpu_max_frequency_hz),
         gpus=merge_gpus(nvml_gpus, read("os gpus", reader.gpus, [])),
         virtualization=read("virtualization", reader.virtualization, VirtualizationInfo()),
         container=container, probe_errors=tuple(errors),

@@ -28,6 +28,12 @@ def cpu_name(reg=winreg) -> str | None:
     return value.strip() if isinstance(value, str) else None
 
 
+def cpu_max_frequency_hz(reg=winreg) -> int | None:
+    """The registry value `~MHz` in Hz: the base frequency of the CPU, with no turbo frequency."""
+    value = _registry_value(r"HARDWARE\DESCRIPTION\System\CentralProcessor\0", "~MHz", reg)
+    return value * 1_000_000 if isinstance(value, int) and value > 0 else None
+
+
 def cores_and_memory() -> tuple[int | None, int | None, int]:
     import psutil
 

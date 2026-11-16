@@ -27,6 +27,12 @@ def cpu_name() -> str | None:
     return sysctl("machdep.cpu.brand_string", as_text=True)
 
 
+def cpu_max_frequency_hz(read=sysctl) -> int | None:
+    """`hw.cpufrequency_max`, else `hw.cpufrequency`, in Hz. An Apple Silicon Mac has neither: `None`."""
+    value = read("hw.cpufrequency_max") or read("hw.cpufrequency")  # the names of `sysctl hw`
+    return value if isinstance(value, int) and value > 0 else None
+
+
 def cores_and_memory() -> tuple[int | None, int | None, int]:
     return sysctl("hw.physicalcpu"), sysctl("hw.logicalcpu"), int(sysctl("hw.memsize") or 0)
 
