@@ -72,26 +72,27 @@ def normalize_pixels(
     ):
         raise ValueError("the pixels of an 8-bit resize are integers from 0 to 255")
 
+    f32 = np.float32  # each mode computes in float32, with float32 constants (ADR-XXZ8 item 2)
     out: list[list[float]] = []
     for b, g, r in pixels_bgr:
-        values = [b, g, r] if order == "bgr" else [r, g, b]
+        values = np.array([b, g, r] if order == "bgr" else [r, g, b], f32)
         if isinstance(mode, dict):
             # The custom row: an absent key is scale 1, mean [0, 0, 0] or std [1, 1, 1].
-            scale = mode.get("scale", 1.0)
-            mean = mode.get("mean", (0.0, 0.0, 0.0))
-            std = mode.get("std", (1.0, 1.0, 1.0))
-            result = [(v * scale - m) / sd for v, m, sd in zip(values, mean, std, strict=True)]
+            scale = f32(mode.get("scale", 1.0))
+            mean = np.array(mode.get("mean", (0.0, 0.0, 0.0)), f32)
+            std = np.array(mode.get("std", (1.0, 1.0, 1.0)), f32)
+            result = (values * scale - mean) / std
         elif mode == "none":
-            result = [float(v) for v in values]
+            result = values
         elif mode == "unit_float":
-            result = [v / 255.0 for v in values]
+            result = values / f32(255.0)
         else:
-            mean, std = list(IMAGENET_MEAN_RGB), list(IMAGENET_STD_RGB)
+            mean, std = np.array(IMAGENET_MEAN_RGB, f32), np.array(IMAGENET_STD_RGB, f32)
             if order == "bgr":
                 mean, std = mean[::-1], std[::-1]
-            result = [(v - m) / sd for v, m, sd in zip(values, mean, std, strict=True)]
+            result = (values - mean) / std
         # The cast to input.dtype is the last step of each mode.
-        out.append(result if dtype is None else np.asarray(result).astype(INPUT_DTYPES[dtype]).tolist())
+        out.append((result if dtype is None else result.astype(INPUT_DTYPES[dtype])).tolist())
     return order, out
 
 

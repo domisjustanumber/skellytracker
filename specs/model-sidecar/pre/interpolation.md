@@ -64,11 +64,16 @@ The host resizes and pads the image in `input.resize.compute_dtype` ([ADR-PHJ3](
 | `uint8` | The host resizes and pads the 8-bit image. The result is the 8-bit output of the OpenCV filter. |
 | `float32` | The host casts the 8-bit image to float32 first. Then it resizes and pads in float32. It does not round or clamp the result. The values stay on the 0-255 scale. |
 
-The pad and the border of the warp have the compute dtype. A `none` resize has no `compute_dtype` ([No resize](resize-none.md#validation-rules)).
+The pad and the border of the warp have the compute dtype. With `uint8`, each pad value is an integer from 0 to 255 (`V-pre.resize.interpolation-2`). A `none` resize has no `compute_dtype` ([No resize](resize-none.md#validation-rules)).
+
+### Precision
+
+The host computes the geometry in float64: the scale, the scaled sizes, the offsets, the warp matrix `M` of `fit`, the Inverse of each method, the clamp and the size filter of the [object decode](../post/object/decode.md#selection-behaviour). The ROI and the warp matrix `M` of `affine_crop` are the exception: [Affine crop](resize-affine-crop.md#behaviour) gives their float32 steps. The pixel math of the normalization is in float32 ([Normalization](normalization.md#behaviour); [ADR-XXZ8](../../../decisions/entries/XXZ8-host-frame-precision-and-score-comparisons.md) item 2).
 
 ## Validation rules
 
 - [ ] `V-pre.resize.interpolation-1` If `input.resize.compute_dtype` is present, it must be `uint8` or `float32` ([ADR-PHJ3](../decisions/entries/PHJ3-resize-compute-dtype.md)).
+- [ ] `V-pre.resize.interpolation-2` If `input.resize.compute_dtype` is absent or `uint8`, each value of `input.resize.pad_value` and of `input.resize.crop_policy.pad_value` must be an integer from 0 to 255. A fractional pad has no 8-bit value ([ADR-XXZ8](../../../decisions/entries/XXZ8-host-frame-precision-and-score-comparisons.md) item 2).
 
 See also [Input](../common/input.md#validation-rules).
 

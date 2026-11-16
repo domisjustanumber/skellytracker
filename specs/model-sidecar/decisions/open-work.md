@@ -20,6 +20,16 @@ No item is open. The item "Rebuild of each example" closed when the content comm
 `rtmw-wholebody133` export copy, the last example that stays
 ([ADR-YS4C](../../../decisions/entries/YS4C-example-removal-by-a-user-ruling.md)).
 
+## Choices to revisit
+
+- **The float32 score activation.** The host computes `score_activation` in float32
+  ([Top-k selection](../post/object/selection-top-k.md#behaviour) step 1), as upstream rfdetr does.
+  A float32 `exp` differs by a few ulps between libraries and devices, so two conforming hosts can
+  keep different detections near a threshold: 2 to 3 of 80,008 logits in the probe. The other
+  option is a float64 activation, rounded once to float32: each host then gives the same score.
+  [ADR-XXZ8](../../../decisions/entries/XXZ8-host-frame-precision-and-score-comparisons.md) gives
+  both options, the evidence and the edits of a change.
+
 ## Spec defects
 
 Spec defects found during the spec-build stage. Each one needs a content change to the spec:
@@ -28,16 +38,6 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   or `affine_crop` thus gives the pixels of `linear`. The
   [interpolation](../pre/interpolation.md#behaviour) table names `cv2.INTER_AREA` for `area`. No
   current model uses this pair ([ADR-G79P](entries/G79P-pixel-centres-per-resize-method.md)).
-- The spec does not state these facts, but a host needs them:
-  - the host frame is BGR, and the host converts it to `input.color_format`;
-  - the arithmetic precision of the geometry (except the warp matrix `M` of `affine_crop`)
-    and of the pixel math. One case of [ADR-PHJ3](entries/PHJ3-resize-compute-dtype.md) is open: a
-    fractional `pad_value` with `compute_dtype: uint8`. The `pre.normalize` reference computes in
-    float64 and then casts to `float16`, but a host can compute in float32. Near a `float16`
-    rounding midpoint, the two results differ by one `float16` step. This is more than the
-    tolerance 1e-5 ([ADR-XH1J](entries/XH1J-normalize-input-dtype.md));
-  - the dtype of a score comparison. A float64 score `0.7` passes `>` against a float32 threshold
-    `0.7`, because the float32 value is `0.699999988` (numpy 2.4.6).
 - The [Storage layout](../format/file-layout.md#storage-layout) gives no folder to a sidecar whose
   `role` has both `object_detector` and `keypoint_detector`. Both one-stage pose exporters write such a
   sidecar under `detectors/keypoint_detectors/`. Ultralytics-Exporter uses `yolo26/body/`

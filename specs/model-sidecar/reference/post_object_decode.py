@@ -41,8 +41,9 @@ breaks V-post.object.decode-5, -8, -9, -10 or -11 in the object block alone. The
 V-post.object.decode-10 (the class count `C`) needs the model or the full sidecar. The validator
 checks it. These functions do not.
 
-Comparisons. Each score comparison and each size comparison is in float64. A float16 or float32
-value converts to float64 exactly. Thus, the result depends only on the values, not on the dtype.
+Comparisons. Each score comparison is in float32: the score and the threshold are rounded to
+float32 first (skellytracker ADR-XXZ8 item 3). The score order and each size comparison are in
+float64. A float16 or float32 value converts to float64 exactly.
 
 The module has no `run`: the cases of this section are data only.
 """
@@ -279,12 +280,12 @@ def confidence_mask(scores: Any, threshold: float) -> np.ndarray:
     """Shared step 6 of post.object.decode: return the mask of the scores that stay.
 
     The comparison is strict: `score > threshold`. A score equal to the threshold goes. The
-    comparison is in float64.
+    comparison is in float32: the score and the threshold are rounded to float32 first.
 
     Source: OpenMMLab-Exporter onnx_runtime/decode_nms.py::NmsDecoder.__init__ (the
     `score_threshold` of the NMS graph, which the host sets to `max(nms.score_threshold,
-    confidence threshold)`) at 5dd5c93ac6555ac907ae2ebfbc27dc6de5e3c278. The host compares in
+    confidence threshold)`) at 5dd5c93ac6555ac907ae2ebfbc27dc6de5e3c278. The host also compares in
     float32.
     """
-    limit = number_value(threshold, "confidence threshold", "threshold")
-    return np.asarray(scores, dtype=np.float64) > limit
+    limit = np.float32(number_value(threshold, "confidence threshold", "threshold"))
+    return np.asarray(scores, dtype=np.float64).astype(np.float32) > limit

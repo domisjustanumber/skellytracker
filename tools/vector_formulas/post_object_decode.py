@@ -99,6 +99,11 @@ def confidence_threshold(params: dict[str, Any]) -> float:
     return params.get("min_score", DEFAULT_CONFIDENCE)
 
 
+def above(score: float, threshold: float) -> bool:
+    """Strict `score > threshold` of the two values rounded to float32 (ADR-XXZ8 item 3)."""
+    return bool(np.float32(score) > np.float32(threshold))
+
+
 def unproject_clamp_and_filter(
     kept: list[Kept], params: dict[str, Any], inp: dict[str, Any]
 ) -> list[Kept]:

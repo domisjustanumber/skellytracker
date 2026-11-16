@@ -31,6 +31,8 @@ status: {spec: stable, validate: partial, load: partial}
 
 `color_format` is a single top-level value. It covers every precision. A sidecar cannot describe a family whose precisions need different channel orders. The author must split that family.
 
+**Host frame.** The host gets each frame as an 8-bit, 3-channel BGR image in HWC layout. It puts the channels in the order of `input.color_format`: it reverses them for `rgb` and keeps them for `bgr`. Each resize filter works on each channel separately, so the host can reverse the channels at any step before the [normalization](../pre/normalization.md#behaviour). A host that reverses the channels after the resize also reverses an array `pad_value` that it gives to the resize as the pad or the border, because `pad_value` is in the order of `input.color_format` ([ADR-XXZ8](../../../decisions/entries/XXZ8-host-frame-precision-and-score-comparisons.md) item 1).
+
 `input` is required for `object_detector` and `keypoint_detector` sidecars. This spec covers **single-input** models only. `input` describes exactly one input tensor. Multi-input models are out of scope.
 
 ### `input.resize`
@@ -63,7 +65,6 @@ See also [Identity](identity.md#validation-rules), [Sizes and artifacts](sizes-a
 - Every exporter artifact has static spatial dims equal to the `target_size` of its size, so the host must resize to `target_size`. (OpenMMLab-Exporter [`rtmdet_person/contract.py:8-9`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/f946e5dd10174202330c63a7ddf1e9f5d4b543d7/rtmdet_person/contract.py#L8-L9), [`rtmw/contract.py:8-10`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmw/contract.py#L8-L10) and [`rtmo/contract.py:8-11`](https://github.com/domisjustanumber/OpenMMLab-Exporter/blob/eed3361aa31e02df160c33a18a3db9ba182b5551/rtmo/contract.py#L8-L11); Roboflow-Exporter [`pipeline/artifacts.py:119-124`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/4ae67c0f99a45a81a0e788e6abbda82db7811e32/pipeline/artifacts.py#L119-L124))
 - The reference hosts of the exporters decode an image with PIL `convert("RGB")`. They have no BGR path.
   - A host that holds OpenCV BGR frames must convert them to `input.color_format`. (Roboflow-Exporter [`onnx_runtime/preprocess.py:58-62`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/d0559b9c95a9ba9922045e2bc5aeae9fb596a6b1/onnx_runtime/preprocess.py#L58-L62), [`onnx_runtime/preprocess.py:74-75`](https://github.com/domisjustanumber/Roboflow-Exporter/blob/d0559b9c95a9ba9922045e2bc5aeae9fb596a6b1/onnx_runtime/preprocess.py#L74-L75); Qualcomm-Exporter [`qai_datasets.py:154`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/4ca45868431b67350c3c7ed900d5b3ff9f409905/qai_datasets.py#L154))
-  - The decision log records that the spec does not state that the host frame is BGR. ([decision log](../decisions/README.md#open-work))
 - To check `V-common.input-2`, the package model needs a type for the input dtypes `float32`,
   `float16` and `uint8`. `InputSpec.dtype` must use it. Today `InputSpec.dtype` uses `OnnxDtype`,
   which also has `int8`. `OutputSpec.dtype` keeps `OnnxDtype` with `int8` (`V-common.outputs-2`).

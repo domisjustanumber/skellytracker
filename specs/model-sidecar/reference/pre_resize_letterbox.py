@@ -93,7 +93,9 @@ def letterbox(image, params, interpolation):
 
     ``params`` holds ``target_size``, ``pad_position``, ``rounding`` and the optional
     ``pad_value``. The default ``pad_value`` is 114. An array ``pad_value`` gives one value for each
-    channel in the order of ``input.color_format``. Thus the image must have that channel order.
+    channel in the order of ``input.color_format``. Thus the image must have that channel order. A
+    host that reverses the channels after the resize reverses the pad too (skellytracker ADR-XXZ8
+    item 1).
     ``interpolation`` is the OpenCV flag of section ``pre.resize.interpolation``, for example
     ``cv2.INTER_LINEAR`` for ``linear``. The canvas has the dtype of the image. Section
     ``pre.resize.interpolation`` (``compute_dtype``) sets that dtype before this call.

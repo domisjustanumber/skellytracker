@@ -21,6 +21,6 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
     kept = []
     for row, (box, score, model_class) in enumerate(decode.candidates(params, input)):
         class_id = decode.resolve_class(model_class, params)
-        if class_id is not None and score > threshold:
+        if class_id is not None and decode.above(score, threshold):
             kept.append(decode.Kept(row, box, score, class_id))
     return decode.published(decode.unproject_clamp_and_filter(kept, params, input), params)

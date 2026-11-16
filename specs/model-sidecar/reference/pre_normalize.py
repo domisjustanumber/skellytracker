@@ -57,9 +57,9 @@ axis holds the 3 channels. The pixels have the compute dtype of the resize (uint
 For method none, they are the 8-bit source pixels. The output has the same shape, in the channel
 order of input.color_format, in input.dtype. The NCHW transpose is not part of this section.
 
-The arithmetic is in float64. Then cast_to_input_dtype casts the result to input.dtype. The host
-does the arithmetic in float32, with float32 statistics and scale. On random uint8 pixels, the
-float32 results differ by at most 7.2e-07, which is less than the vector tolerance. The host names
+The arithmetic is in float32, with the float32 value of each constant, in the order of the formula
+(skellytracker ADR-XXZ8 item 2). Then cast_to_input_dtype casts the result to input.dtype. The
+host also does the arithmetic in float32, with float32 statistics and scale. The host names
 imagenet_bgr and imagenet_rgb are not spec modes, so this module does not accept them.
 """
 
@@ -256,12 +256,12 @@ def tensor_order(pixels: np.ndarray, color_format: Any) -> np.ndarray:
 
 def normalize_none(pixels: np.ndarray) -> np.ndarray:
     """Mode none: the pixel values unchanged. cast_to_input_dtype then casts them."""
-    return pixels.astype(np.float64)
+    return pixels.astype(np.float32)
 
 
 def normalize_unit_float(pixels: np.ndarray) -> np.ndarray:
     """Mode unit_float: pixel / 255 for each channel. An 8-bit pixel gives [0, 1]."""
-    return pixels.astype(np.float64) / 255.0
+    return pixels.astype(np.float32) / np.float32(255.0)
 
 
 def normalize_imagenet(pixels: np.ndarray, color_format: str) -> np.ndarray:
@@ -270,11 +270,11 @@ def normalize_imagenet(pixels: np.ndarray, color_format: str) -> np.ndarray:
     Each channel uses the statistics of its colour: R mean 123.675 / std 58.395, G 116.28 /
     57.12, B 103.53 / 57.375. For bgr, the statistics are in B, G, R order.
     """
-    mean = np.array(IMAGENET_MEAN_RGB, np.float64)
-    std = np.array(IMAGENET_STD_RGB, np.float64)
+    mean = np.array(IMAGENET_MEAN_RGB, np.float32)
+    std = np.array(IMAGENET_STD_RGB, np.float32)
     if color_format == "bgr":
         mean, std = mean[::-1], std[::-1]
-    return (pixels.astype(np.float64) - mean) / std
+    return (pixels.astype(np.float32) - mean) / std
 
 
 def normalize_custom(pixels: np.ndarray, scale: float, mean: Sequence[float], std: Sequence[float]) -> np.ndarray:
@@ -282,8 +282,8 @@ def normalize_custom(pixels: np.ndarray, scale: float, mean: Sequence[float], st
 
     mean and std are in the channel order of input.color_format, the order of pixels.
     """
-    values = pixels.astype(np.float64) * float(scale) - np.array(mean, np.float64)
-    return values / np.array(std, np.float64)
+    values = pixels.astype(np.float32) * np.float32(scale) - np.array(mean, np.float32)
+    return values / np.array(std, np.float32)
 
 
 def cast_to_input_dtype(values: np.ndarray, dtype: str) -> np.ndarray:
@@ -315,7 +315,7 @@ def normalize(
     pixels in the compute dtype of resize, put the channels in the order of color_format, apply
     the mode, and cast to dtype. dtype is the input.dtype entry of precision. resize is the
     input.resize block. Only its compute_dtype is used. dtype None gives the values before the
-    cast, in float64.
+    cast, in float32.
 
     Source: OpenMMLab-Exporter onnx_runtime/preprocess.py::make_normalizer at
     7bc72b45137faa4b211d05a38f58812ffae5a109.

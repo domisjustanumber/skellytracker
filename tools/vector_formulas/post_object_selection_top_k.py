@@ -8,9 +8,9 @@ unless the case gives `resize`.
 
 from __future__ import annotations
 
-import math
 from typing import Any
 
+import numpy as np
 import post_object_decode as decode
 
 from vector_form import defect
@@ -23,7 +23,9 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
     logits = input["class_logits"]
     activation = params.get("score_activation", "none")
     if activation == "sigmoid":
-        p = [[1 / (1 + math.exp(-x)) for x in row] for row in logits]
+        # float32 throughout (ADR-XXZ8 item 3); a float32 exp can differ by a few ulps between libraries.
+        one = np.float32(1)
+        p = [[float(one / (one + np.exp(-np.float32(x)))) for x in row] for row in logits]
     elif activation == "none":
         p = logits
     else:
@@ -38,7 +40,7 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
         row, model_class = divmod(index, n_classes)
         score = p[row][model_class]
         class_id = decode.resolve_class(model_class, params)
-        if class_id is not None and score > threshold:
+        if class_id is not None and decode.above(score, threshold):
             box = decode.to_xyxy(input["boxes"][row], params.get("box_format", "xyxy"))
             kept.append(decode.Kept(row, box, score, class_id))
     return decode.published(decode.unproject_clamp_and_filter(kept, params, input), params)

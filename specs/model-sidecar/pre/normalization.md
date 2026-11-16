@@ -40,6 +40,11 @@ status: {spec: stable, validate: partial, forward: partial}
 | `imagenet` | `(pixel - mean) / std` on 0–255 pixels, in the channel order of `input.color_format`. Each channel uses the statistics of its color: R uses mean `123.675` / std `58.395`, G `116.28` / `57.12`, B `103.53` / `57.375`. | RTMDet (`bgr`), RTMW and RF-DETR (`rgb`) |
 | `custom` | `(pixel * scale - mean) / std` on 0–255 channel values. `mean` and `std` are in the channel order of `input.color_format`. Each key other than `mode` is optional. When a key is absent, its value is `scale: 1`, `mean: [0, 0, 0]` or `std: [1, 1, 1]`. | Rare exports that match no named mode |
 
+**Arithmetic.** Each mode computes in float32. Each constant of a formula (`255`, the `imagenet`
+statistics, and `scale`, `mean` and `std` of `custom`) is the float32 value of its decimal. The host
+does the operations in the order of the formula
+([ADR-XXZ8](../../../decisions/entries/XXZ8-host-frame-precision-and-score-comparisons.md) item 2).
+
 **Cast to `input.dtype`.** Each mode casts its result to the `input.dtype` entry of the selected
 precision ([Input](../common/input.md#fields)). The cast is the last step of this section. The
 `pixel` of each formula is the value that the resize gives, in `input.resize.compute_dtype`

@@ -754,11 +754,12 @@ BROKEN_CLAIMS = [
     ("pre.resize.letterbox", "scaled-width-rounds-to-zero", LETTERBOX, FULL_HD),
     ("pre.resize.letterbox", "cut-differs-from-round", LETTERBOX, FULL_HD),
     (
-        "post.object.selection.none",
+        "post.object.selection.nms",
         "float32-stable",
-        {**SCORED, "min_score": 0.7},
-        # 0.70000001 > 0.7 in float64; in float32 both are 0.699999988.
-        {"fields": DETECTION_FIELDS, "rows": [[0, 0, 8, 8, 0.70000001, 0]]},
+        {**SCORED, "score_threshold": 0.1, "iou_threshold": 0.5, "min_score": 0.1},
+        # The score comparisons are float32 (ADR-XXZ8), but the IoU is not: an IoU of 0.50000001
+        # suppresses row 1 in float64, and the float32 box gives an IoU of exactly 0.5.
+        {"fields": DETECTION_FIELDS, "rows": [[0, 0, 10, 10, 0.9, 0], [0, 0, 10, 5.0000001, 0.8, 0]]},
     ),
     (
         "post.unprojection",

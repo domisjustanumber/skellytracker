@@ -57,7 +57,7 @@ The object outputs are the **complete candidate set** for the declared `selectio
 
 ### Selection behaviour
 
-All score comparisons are strict (`>`). For `top_k`, break a tie by ascending flattened index. In any other score ordering, break a tie by ascending row index. For each batch item, do the steps of the selection mode. The steps of each mode tell where the shared steps go:
+All score comparisons are strict (`>`). The host compares in float32: it rounds the score and the threshold to float32 (round to nearest), then it compares the two float32 values. This applies to `min_score`, `nms.score_threshold` and a caller override ([ADR-XXZ8](../../../../decisions/entries/XXZ8-host-frame-precision-and-score-comparisons.md) item 3). For `top_k`, break a tie by ascending flattened index. In any other score ordering, break a tie by ascending row index. For each batch item, do the steps of the selection mode. The steps of each mode tell where the shared steps go:
 
 - [Selection: none](selection-none.md#behaviour)
 - [Selection: top-k](selection-top-k.md#behaviour)

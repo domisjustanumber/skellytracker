@@ -53,13 +53,10 @@ Differences from the host code (each one gives the same result for a valid sidec
   class_logits_output as the name of its scores output and ignores top_k and max_detections.
   This module refuses each of the three fields (V-post.object.selection.nms-1).
 
-Precision: the section text states the steps in exact math. This module computes in float64.
-A float16 or float32 value converts to float64 exactly, so each comparison uses the exact value,
-as post_object_decode does. The host runs the NMS in float32 (ONNX Runtime) with float32 thresholds.
-The two differ only for a value at a boundary: for example a float32 score equal to
-float32(score_threshold) above score_threshold goes in the host and stays in this module. This is
-float32 rounding of the threshold (skellytracker ADR-PHJ3). The section text does not give the
-float width of a comparison.
+Precision: the score filter of step 1 is in float32. The score and score_threshold are rounded to
+float32 first, as the object decode states (skellytracker ADR-XXZ8 item 3). The host runs the NMS in
+float32 (ONNX Runtime) with float32 thresholds, so the two agree on a score at the threshold. The
+IoU and the score order are in float64. A float16 or float32 value converts to float64 exactly.
 """
 
 from __future__ import annotations
@@ -217,7 +214,7 @@ def select_nms(boxes: Any, scores: Any, class_indices: Any, nms: Mapping[str, An
     classes = np.asarray(class_indices, np.int64).reshape(-1)
     if not box.shape[0] == score.size == classes.size:
         raise ValueError(f"boxes, scores and class_indices need the same row count: {box.shape[0]}, {score.size}, {classes.size}")
-    rows = np.flatnonzero((score > nms["score_threshold"]) & (classes >= 0))
+    rows = np.flatnonzero((score.astype(np.float32) > np.float32(nms["score_threshold"])) & (classes >= 0))
     groups = [rows] if nms["class_agnostic"] else [rows[classes[rows] == c] for c in np.unique(classes[rows])]
     survivors = [group[hard_nms(box[group], score[group], nms["iou_threshold"])] for group in groups]
     found = np.concatenate([np.zeros(0, np.int64), *survivors])

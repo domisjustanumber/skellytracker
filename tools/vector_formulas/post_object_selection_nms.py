@@ -19,7 +19,7 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
     """Behaviour. A case with `resize` also does shared steps 3 to 5."""
     pool = []
     for row, (box, score, model_class) in enumerate(decode.candidates(params, input)):
-        if score <= params["score_threshold"]:
+        if not decode.above(score, params["score_threshold"]):
             continue
         class_id = decode.resolve_class(model_class, params)
         if class_id is not None:
@@ -39,4 +39,4 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
         survivors = survivors[: params["post_nms_top_k"]]
     survivors = decode.unproject_clamp_and_filter(survivors, params, input)
     threshold = decode.confidence_threshold(params)
-    return decode.published([c for c in survivors if c.score > threshold], params)
+    return decode.published([c for c in survivors if decode.above(c.score, threshold)], params)
