@@ -140,12 +140,12 @@ def test_a_sidecar_with_its_files_is_available(root: Path, all_sections: None) -
 
 
 def test_a_sidecar_that_uses_a_section_that_the_package_does_not_run_is_unavailable(root: Path) -> None:
-    put(root, BASES["nms"]())
+    put(root, BASES["top_k"]())
     (entry,) = onnx_entries(root)
     assert not entry.available and not entry.artifact("n", "fp32").available
-    assert "pre.resize.letterbox" in entry.unavailable_reason and "post.object.selection.nms" in entry.unavailable_reason
+    assert "post.object.selection.top_k" in entry.unavailable_reason and "pre.resize.stretch" not in entry.unavailable_reason
     assert "common.identity" not in entry.unavailable_reason
-    with pytest.raises(DetectorUnavailableError, match="pre.resize.letterbox"):
+    with pytest.raises(DetectorUnavailableError, match="post.object.selection.top_k"):
         load_detector_sidecar(KEY, root)
 
 
@@ -263,7 +263,7 @@ def test_one_key_in_two_roots_uses_the_first_root_and_logs_it(tmp_path: Path, ro
     put(other, BASES["nms"](), "demo.yaml")  # a folder with one sidecar and its files is also a root
     with caplog.at_level(logging.INFO, logger=catalog.logger.name):
         (found,) = scan_sidecar_roots(root, package_root=package, other_roots=[other])
-    assert found.path == used and found.reason is not None  # the default package runs no pre or post section
+    assert found.path == used and found.reason is None
     assert f"the catalog uses {used}" in caplog.text
 
 

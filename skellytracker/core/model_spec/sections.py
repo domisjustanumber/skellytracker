@@ -3,8 +3,9 @@
 `SECTIONS` holds the ID, the kind and the selectors of each section file of the spec, in the order
 of the section map. A doc test compares it with the front matter of the section files.
 `IMPLEMENTED_SECTIONS` holds the sections that the package runs. The spec loader does the full work
-of a `format`, `common` or `schema` section. A `preprocessor` or `postprocessor` section goes in
-`IMPLEMENTED_SECTIONS` in the commit that adds its processing module.
+of a `format`, `common` or `schema` section. The generic detectors of `core/detectors/generic/` run
+each `preprocessor` and `postprocessor` section that has a processing module. A section leaves
+`UNIMPLEMENTED_SECTIONS` in the commit that adds its processing module.
 """
 from __future__ import annotations
 
@@ -53,9 +54,15 @@ SECTIONS: tuple[Section, ...] = (
     Section("post.unprojection", "postprocessor", ("role=object_detector", "role=keypoint_detector")),
 )
 
-IMPLEMENTED_SECTIONS: frozenset[str] = frozenset(
-    section.id for section in SECTIONS if section.kind in {"format", "common", "schema"}
-)
+UNIMPLEMENTED_SECTIONS: frozenset[str] = frozenset({
+    "post.object.selection.none",
+    "post.object.selection.top_k",
+    "post.keypoint.decode.coordinate",
+    "post.keypoint.bottom_up",
+})
+"""The `postprocessor` sections with no processing module. The generic detectors do not run them."""
+
+IMPLEMENTED_SECTIONS: frozenset[str] = frozenset(section.id for section in SECTIONS) - UNIMPLEMENTED_SECTIONS
 
 
 def applicable_sections(resolved: Mapping[str, Any]) -> tuple[str, ...]:

@@ -29,6 +29,7 @@ import platformdirs
 import yaml
 from packaging.version import InvalidVersion, Version
 
+from skellytracker.core.model_spec import artifacts
 from skellytracker.core.model_spec.artifacts import HashCache, check_artifact_hash
 from skellytracker.core.model_spec.errors import SidecarError
 from skellytracker.core.model_spec.landmark_schemas import PACKAGE_SIDECAR_ROOT
@@ -316,11 +317,19 @@ def scan_sidecar_roots(
 
 
 def _artifacts(found: _Sidecar, cache: HashCache) -> tuple[ArtifactEntry, ...]:
-    """Return the capability of each artifact. A user can copy only some sizes or precisions."""
-    artifacts = []
+    """Return the capability of each artifact. A user can copy only some sizes or precisions.
+
+    The file of an artifact is beside its sidecar. A `url` artifact with no file there can have a
+    downloaded file in the download folder (`artifacts.download_path`).
+    """
+    entries = []
     for size, size_spec in found.model.sizes.items():
         for precision, artifact in size_spec.onnx.precision_artifacts.items():
-            file = found.path.parent / artifact.filename
+            file, root = found.path.parent / artifact.filename, found.root
+            if not file.is_file() and artifact.url is not None:
+                downloaded = artifacts.download_path(found.key, found.version, artifact.filename)
+                if downloaded.is_file():
+                    file, root = downloaded, artifacts.download_root()
             if found.reason is not None:
                 reason = found.reason
             elif not file.is_file() and artifact.url is not None:
@@ -328,10 +337,10 @@ def _artifacts(found: _Sidecar, cache: HashCache) -> tuple[ArtifactEntry, ...]:
             elif not file.is_file():
                 reason = f"the ONNX file {artifact.filename} is not present, and the sidecar gives no `url`"
             else:
-                failure = check_artifact_hash(file, found.root, artifact.sha256, cache)
+                failure = check_artifact_hash(file, root, artifact.sha256, cache)
                 reason = None if failure is None else str(failure)
-            artifacts.append(ArtifactEntry(size, precision, artifact.filename, artifact.sha256, file, reason is None, reason))
-    return tuple(artifacts)
+            entries.append(ArtifactEntry(size, precision, artifact.filename, artifact.sha256, file, reason is None, reason))
+    return tuple(entries)
 
 
 def _entry(found: _Sidecar, cache: HashCache) -> DetectorEntry:

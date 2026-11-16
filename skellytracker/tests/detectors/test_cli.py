@@ -18,7 +18,7 @@ def private_hash_cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_detectors_prints_one_line_for_each_entry(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    put(tmp_path / "user", BASES["nms"]())
+    put(tmp_path / "user", BASES["top_k"]())
     assert main(["detectors", "--user-root", str(tmp_path / "user")]) == 0
     lines = capsys.readouterr().out.splitlines()
     assert lines[0].startswith(f"{KEY}==0.1.0  [onnx]  unavailable: the sidecar uses spec sections")
