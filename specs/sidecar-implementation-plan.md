@@ -973,50 +973,90 @@ and a present row when Holistic finds at least one part
 
 ### 1.9 The first new models (was N5)
 
-**Status: NOT STARTED.** This stage replaces M10a and M10b.
+**Status: DONE (2026-11-16), except the Open items below.** This stage replaces M10a and M10b. The
+two first models are in `core/model_zoo/`, and they pass the model gate at the detector level
+([ADR-GPW6](../decisions/entries/GPW6-model-gate-of-the-first-models.md)).
 
-- `yolox-person` and `rtmw-wholebody133` from OpenMMLab-Exporter go in `core/model_zoo/`, with their
-  ONNX files beside their sidecars. Git does not track the ONNX files
-  ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) items 1 and 5). The keys
-  are `yolox-person@openmmlab-exporter` and `rtmw-wholebody133@openmmlab-exporter`.
-- The reference examples show the form:
-  [`yolox-person.yaml`](model-sidecar/examples/detectors/object_detectors/yolox-person/yolox-person.yaml)
-  (`batching.batch: 3` with `batching.batch_conversion`, no NMS in the graph, host
-  `selection: nms`) and
-  [`rtmw-wholebody133.yaml`](model-sidecar/examples/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133.yaml).
-  OpenMMLab-Exporter re-exports both models with the names of
-  [ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) and without
-  `keypoint.requires_object_detector`
-  ([ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md)).
-- The sizes give at least the coverage of today. `yolox-person` has `t` and `m` (the old `yolox-tiny`
-  and `yolox-m`, the same HumanArt checkpoints). `rtmw-wholebody133` has the three old checkpoints:
-  `rtmw-l-m_256x192`, `rtmw-x-l_256x192` and `rtmw-x-l_384x288`. The example has the size keys `m`,
-  `l-256`, `x-256`, `l-384` and `x-384`. Check which checkpoint each size uses.
-- The models come through the model addition workflow and pass the acceptance gate of 0.1
-  ([ADR-6J8E](../decisions/entries/6J8E-exporters-run-released-skellytracker.md) item 6). Run parity
-  against the upstream reference output of the exporter, at the detector level. Do not compare with
-  the old golden fixtures.
+Done:
+
+- The sidecars `yolox-person` and `rtmw-wholebody133` of OpenMMLab-Exporter are in
+  `core/model_zoo/detectors/`, each as a byte copy of its reference example
+  ([`yolox-person.yaml`](model-sidecar/examples/detectors/object_detectors/yolox-person/yolox-person.yaml),
+  [`rtmw-wholebody133.yaml`](model-sidecar/examples/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133.yaml)).
+  The keys are `yolox-person@openmmlab-exporter` and `rtmw-wholebody133@openmmlab-exporter`
+  ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) items 1, 5 and 6). The
+  old keys `rtmpose` and `yolox_person` and the old `model_name` values have no alias (item 2).
+- The ONNX files go beside the sidecars, by hand: the 22 published b3 files of `exports/` of a
+  checkout of OpenMMLab-Exporter. Git does not track them. Each file has the `sha256` of its
+  sidecar. A checkout with no ONNX file lists the two models as unavailable.
+- `skellytracker/tests/detectors/test_model_zoo.py` loads each package sidecar and builds each
+  detector by its catalog key for one frame, on the CPU EP. It skips a model with no ONNX file, so
+  CI runs only the load test. The catalog tests of stage 1.6 scan no package root now.
+- The sizes. `yolox-person` has `n`, `t`, `s`, `m`, `l` and `x`: the six HumanArt checkpoints
+  `yolox_<size>_8xb8-300e_humanart`. `t` and `m` are the old `yolox-tiny` and `yolox-m`.
+  `rtmw-wholebody133` has five sizes, from the mmpose 1.3.2 `cocktail14` configs:
+
+  | Size key | Checkpoint | Old `model_name` |
+  |---|---|---|
+  | `m` | `rtmw-dw-l-m_simcc-cocktail14_270e-256x192-20231122` | `rtmw-l-m_256x192` |
+  | `l-256` | `rtmw-dw-x-l_simcc-cocktail14_270e-256x192-20231122` | `rtmw-x-l_256x192` |
+  | `x-256` | `rtmw-x_simcc-cocktail14_pt-ucoco_270e-256x192-13a2546d_20231208` | none |
+  | `l-384` | `rtmw-dw-x-l_simcc-cocktail14_270e-384x288-20231122` | `rtmw-x-l_384x288` |
+  | `x-384` | `rtmw-x_simcc-cocktail14_pt-ucoco_270e-384x288-f840f204_20231122` | none |
+
+  The size key names the student model. `rtmw-dw-l-m` is the `m` model with the `l` model as its
+  distillation teacher. The source of the table is `rtmw/identity.py` of OpenMMLab-Exporter and
+  the `url` values of the old package sidecar.
 - The RTMW model input changes. The old package sidecar declares `imagenet_bgr`, and the old code
   puts the B, G and R channels of the frame in tensor positions 0, 1 and 2. The export declares
   `normalization: imagenet` with `color_format: rgb`, which puts R, G and B there
-  ([Normalization modes](model-sidecar/pre/normalization.md#behaviour)).
-- Decided before the work: the old keys `rtmpose` and `yolox_person` and the old `model_name` values
-  go, with no alias ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md)
-  item 2). The host gets the ONNX files from `core/model_zoo/` (item 5). The generic keypoint
-  detector of stage 1.7 runs the RTMW export.
-- Decided: the canonical mapping of `rtmw-wholebody133` is the `canonical_mapping` of
-  `core/model_zoo/landmark_schemas/COCO_WholeBody.yaml`. The export needs none
+  ([Normalization modes](model-sidecar/pre/normalization.md#behaviour)). The canonical mapping of
+  `rtmw-wholebody133` is the `canonical_mapping` of
+  `core/model_zoo/landmark_schemas/COCO_WholeBody.yaml`
   ([ADR-23F5](../decisions/entries/23F5-landmark-schema-registry.md)).
-- Stage 1.9 writes no Python pipeline builders
-  ([ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md) item 6). Stage 1.10 adds the pipeline
-  files.
-- When the first spec sidecar is in `core/model_zoo/`, do the item "Package root in the trace scan"
-  below.
-- Measure the time of the batch conversion at session start (`open_session` with a `batch` that
-  is not `batching.batch`) on the real `yolox-person` and `rtmw-wholebody133` exports, and report
-  it. The decision on a cache of generated artifacts follows that number
-  ([stage 1.7](#17-standalone-generic-detectors-was-n4), Open).
-- Gate: the model gate of 0.1, run locally. The old detectors still pass.
+- The model gate (step 5 of the
+  [acceptance gate](../.claude/skills/implement-sidecar-section/proposal-gate.md)) ran locally, at
+  the detector level, against the upstream reference output of the exporter. It did not use the old
+  golden fixtures. Each gate passes: each size, fp32 and fp16 on the CPU EP, and fp16 on `cuda` and
+  `trt-rtx`, with 0 nodes on the CPU EP for each fp16 file
+  ([ADR-GPW6](../decisions/entries/GPW6-model-gate-of-the-first-models.md) items 2 to 7).
+- The two golden tests of stage 1.5 ran in that gate, on each image and each person of the parity
+  sets: the host tensor of `yolox-person` (difference 0), and the SimCC decode against the mmpose
+  scores (equal bit for bit). They are in the script of the entry, not in the test suite, because
+  the repository does not hold the parity outputs.
+- The batch conversion at session start takes 0.01 s to 1.02 s for a file, about 0.25 s for each
+  100 MB. `create_detector` takes 0.3 s to 2.6 s with the batch of the sidecar, and at most 4.8 s
+  with batch 1 on `trt-rtx`
+  ([ADR-GPW6](../decisions/entries/GPW6-model-gate-of-the-first-models.md) items 9 and 10).
+- Stage 1.9 wrote no Python pipeline builders
+  ([ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md) item 6). Stage 1.10
+  adds the pipeline files.
+- Gate: the model gate passes locally. The old detectors and their tests did not change, and they
+  pass, also the video tests.
+
+Open:
+
+- **Package root in the trace scan: not done.** The item below asks for `core/model_zoo/detectors/`
+  in the scan of `tools/sidecar_trace.py`. Each package sidecar has the key of its reference
+  example, and `scan_sidecars` refuses a key that two files use. The user must decide how the
+  trace shows a package copy of an example. The two package sidecars need no new derivation.
+- **Responses.** No response `verified` is written. The two `model` bundles are `landed` from the
+  spec-build stage, and [States](model-sidecar/model-addition-workflow/hand-over.md#states) has no
+  path from `landed` to `verified`.
+- **Parity output in the bundle.** The gate read the worker files of the exporter in its local
+  hand-over folder, with the SHA-256 that each intake records. No bundle has a `parity/` folder.
+  The acceptance gate names the `parity/` output of the bundle.
+- **Cache of generated artifacts.** The decision of
+  [stage 1.7](#17-standalone-generic-detectors-was-n4) (Open) follows the conversion time above. It
+  is a decision of the user.
+- **Tracked golden tests.** A golden test in the test suite needs a tracked parity fixture. The
+  user decides if a fixture from the exporter output goes in the repository.
+- **Operating systems and CI.** The gate ran only on Windows. CI holds no ONNX file, so no CI job
+  runs a real export.
+- **Export error on `trt-rtx`.** The raw SimCC difference from the upstream output is larger on
+  `trt-rtx` than on `cuda`, up to 1.47 for `x-384` fp16
+  ([ADR-GPW6](../decisions/entries/GPW6-model-gate-of-the-first-models.md) item 8). The measured
+  gate of the exporter still passes.
 
 - **Package root in the trace scan.** The trace tool scans only
   `specs/model-sidecar/examples/`. The old package sidecars stay outside the spec until they are deleted ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md)). When the first spec sidecar is in `core/model_zoo/` (stage 1.9), add `core/model_zoo/detectors/` to the scan of
