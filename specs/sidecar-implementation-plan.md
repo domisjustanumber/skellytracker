@@ -828,8 +828,13 @@ Two rules of this part stay:
 
 ### 1.8 MediaPipe Holistic runner
 
-**Status: NOT STARTED.** This stage is new ([ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md) item 4). It needs only 1.1 and 1.2, so it can run
-in parallel with 1.3 to 1.7.
+**Status: DONE (2026-11-16).** This stage is new ([ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md) item 4). It needs only 1.1 and 1.2, so it can run
+in parallel with 1.3 to 1.7. The runner `HolisticRunner` is in `core/detectors/mediapipe_holistic.py`.
+The runner and the old MediaPipe detectors close their landmarkers from the garbage collector on a
+new thread ([ADR-X6S9](../decisions/entries/X6S9-mediapipe-close-from-the-garbage-collector.md)).
+The runner gives the score 1.0 to a found hand or face point, which has no MediaPipe visibility,
+and a present row when Holistic finds at least one part
+([ADR-Y7C3](pipeline/decisions/entries/Y7C3-mediapipe-score-without-visibility-and-holistic-present-row.md)).
 
 - A standalone module under `core/detectors/` runs the MediaPipe Tasks `HolisticLandmarker`.
   MediaPipe 1.2.2 has `mediapipe/tasks/python/vision/holistic_landmarker.py`. The module does not use
