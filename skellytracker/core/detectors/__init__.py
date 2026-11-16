@@ -9,6 +9,7 @@ from skellytracker.core.detectors.catalog import (
     list_detectors,
     load_detector_sidecar,
 )
+from skellytracker.core.detectors.factory import create_detector
 from skellytracker.core.detectors.detector_base_classes import (
     KEYPOINT_DETECTOR_REGISTRY,
     OBJECT_DETECTOR_REGISTRY,
@@ -40,6 +41,7 @@ __all__ = [
     "DetectorEntry",
     "DetectorNotFoundError",
     "DetectorUnavailableError",
+    "create_detector",
     "describe_detector",
     "get_detector",
     "list_detectors",

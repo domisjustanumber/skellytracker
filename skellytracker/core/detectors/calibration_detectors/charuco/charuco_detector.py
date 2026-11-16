@@ -48,6 +48,11 @@ class CharucoDetector(KeypointDetector):
     _aruco_names: tuple[str, ...] = field(repr=False)
     _all_names: tuple[str, ...] = field(repr=False)
 
+    @property
+    def board(self) -> CharucoBoardDefinition:
+        """The board that this detector finds."""
+        return self.config.board
+
     def preprocess(self, image: NDArray[np.uint8]) -> tuple[NDArray[np.uint8], EmptyMetadata]:
         """Convert image to greyscale for ArUco/Charuco detection."""
         grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image
