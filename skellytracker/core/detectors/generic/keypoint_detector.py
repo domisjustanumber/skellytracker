@@ -1,7 +1,8 @@
 """The generic keypoint detector: one keypoint model of the sidecar spec, on a batch of crops or images."""
 from __future__ import annotations
 
-from collections.abc import Sequence
+import time
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -73,12 +74,18 @@ class GenericKeypointDetector:
         """The edge groups for drawing, from `keypoint.overlay` and `keypoint.skeletons`."""
         return overlay_groups(self.sidecar.keypoint)
 
-    def detect(self, images: Sequence[np.ndarray], rois: Sequence[Sequence[Any]] | None = None) -> KeypointDetections:
+    def detect(
+        self, images: Sequence[np.ndarray], rois: Sequence[Sequence[Any]] | None = None,
+        timer: Callable[[str, int, int], None] | None = None,
+    ) -> KeypointDetections:
         """Return the keypoints of each crop of a top-down model, or of each image of a `bottom_up` model.
 
         An image is a host frame: uint8, BGR, (H, W, 3). For a top-down model, `rois[i]` is the ROI
         `(c_x, c_y, w, h, rotation)` in the pixels of `images[i]`, so an image with two ROIs is in
         `images` two times. A `bottom_up` model takes no `rois`.
+
+        `timer` gets `(span, start_ns, end_ns)` for the spans `preprocess`, `inference` and
+        `postprocess` of a call that runs the model, on the clock `perf_counter_ns`.
         """
         if self.takes_crops != (rois is not None):
             raise ValueError(f"an estimator_type {self.sidecar.keypoint.estimator_type} model {'needs' if self.takes_crops else 'takes no'} rois")
@@ -90,11 +97,15 @@ class GenericKeypointDetector:
         if not images:
             points, scores = np.zeros((0, count, 2)), np.zeros((0, count), np.float32)
         else:
+            clock = time.perf_counter_ns
+            marks = [clock()]
             prepared = [
                 preprocess_image(image, self.sidecar, self.size, self.precision, None if rois is None else rois[index])
                 for index, image in enumerate(images)
             ]
+            marks.append(clock())
             outputs = run_batches(session, self.sidecar, [tensor for tensor, _ in prepared])
+            marks.append(clock())
             simcc = {
                 spec.semantic: np.moveaxis(outputs[spec.name], spec.keypoint_axis, 1)
                 for spec in self.sidecar.outputs if spec.semantic in ("simcc_x", "simcc_y")
@@ -103,6 +114,10 @@ class GenericKeypointDetector:
             source = np.stack([resize_inverse(decoded["keypoints"][index], geometry) for index, (_, geometry) in enumerate(prepared)])
             points, scores = mark_missing(source, decoded["scores"])
         derived, derived_scores = derived_points(points, scores, keypoint.point_names, keypoint.derived_points)
+        if timer is not None and images:
+            marks.append(time.perf_counter_ns())
+            for index, span in enumerate(("preprocess", "inference", "postprocess")):
+                timer(span, marks[index], marks[index + 1])
         return KeypointDetections(points, scores, derived, derived_scores)
 
     def _open_session(self) -> Any:

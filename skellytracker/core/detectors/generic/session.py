@@ -12,11 +12,12 @@ from skellytracker.core.detectors.catalog import (
     load_detector_sidecar,
 )
 from skellytracker.core.detectors.generic.batch_conversion import model_batch_convert
-from skellytracker.core.detectors.generic.download import download_artifact
+from skellytracker.core.detectors.generic.download import download_artifact, download_lock
 from skellytracker.core.detectors.generic.keypoint_detector import GenericKeypointDetector
 from skellytracker.core.detectors.generic.object_detector import GenericObjectDetector
 from skellytracker.core.eps.records import ModelRef, SessionReport
 from skellytracker.core.eps.session import build_session
+from skellytracker.core.model_spec import artifacts
 from skellytracker.core.model_spec.model import ObjectDecodeSpec, SidecarModel
 
 
@@ -26,15 +27,18 @@ def ensure_artifact(entry: DetectorEntry, sidecar: SidecarModel, size: str, prec
     Implements: common.sizes_and_artifacts
 
     The catalog checked the hash of a present file. A file that is not present and has no `url`,
-    and a file beside the sidecar with a wrong hash, raise `DetectorUnavailableError`.
+    and a file beside the sidecar with a wrong hash, raise `DetectorUnavailableError`. One lock
+    for each file holds a download: a second thread or process waits, and then finds the file.
     """
     found = entry.artifact(size, precision)
     if found.downloaded:
         return found.path
     if not found.available:
         raise DetectorUnavailableError(f"{entry.key} {size}/{precision} is unavailable: {found.unavailable_reason}")
-    found.path.parent.mkdir(parents=True, exist_ok=True)
-    return download_artifact(sidecar.artifact(size, precision), found.path)
+    with download_lock(found.path):
+        if found.path.is_file() and artifacts.file_sha256(found.path) == found.sha256:
+            return found.path  # an other thread or process downloaded it
+        return download_artifact(sidecar.artifact(size, precision), found.path)
 
 
 def open_session(

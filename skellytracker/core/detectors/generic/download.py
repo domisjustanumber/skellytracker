@@ -1,9 +1,14 @@
 """The download of a `url` artifact to the download folder (section `common.sizes_and_artifacts`)."""
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import os
+import sys
+import threading
+import time
 import zipfile
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +21,49 @@ _CHUNK = 1 << 20
 
 class ArtifactDownloadError(RuntimeError):
     """The download of an ONNX artifact failed, or its bytes do not have the hash of the sidecar."""
+
+
+_THREAD_LOCKS: dict[str, threading.Lock] = {}
+_THREAD_LOCKS_GUARD = threading.Lock()
+
+
+@contextlib.contextmanager
+def download_lock(destination: Path) -> Iterator[None]:
+    """Hold the lock of one download target: between threads, and between processes on `<download root>/.lock`.
+
+    It waits until the lock is free. The file lock has the form of the lock of the EP store: one
+    file for the root, so the folder of a model holds only its ONNX files.
+    """
+    with _THREAD_LOCKS_GUARD:
+        thread_lock = _THREAD_LOCKS.setdefault(os.path.normcase(os.path.abspath(destination)), threading.Lock())
+    with thread_lock:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        root = artifacts.download_root()
+        root.mkdir(parents=True, exist_ok=True)
+        with open(root / ".lock", "a+b") as handle:
+            if sys.platform == "win32":
+                import msvcrt
+
+                while True:  # LK_LOCK stops after 10 s, and a download can hold the lock for longer
+                    try:
+                        handle.seek(0)
+                        msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+                        break
+                    except OSError:
+                        time.sleep(0.1)
+                try:
+                    yield
+                finally:
+                    handle.seek(0)
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(handle, fcntl.LOCK_EX)
+                try:
+                    yield
+                finally:
+                    fcntl.flock(handle, fcntl.LOCK_UN)
 
 
 def _extract_onnx(archive: Path, target: Path) -> str:

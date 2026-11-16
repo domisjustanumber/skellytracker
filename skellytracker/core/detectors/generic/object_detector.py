@@ -1,7 +1,8 @@
 """The generic object detector: one object model of the sidecar spec, on a batch of images."""
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+import time
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -117,17 +118,32 @@ class GenericObjectDetector:
     def classes(self) -> list[str | None]:
         return self.sidecar.object.classes
 
-    def detect(self, images: Sequence[np.ndarray], min_score: float | int | None = None) -> list[ObjectDetections]:
+    def detect(
+        self, images: Sequence[np.ndarray], min_score: float | int | None = None,
+        timer: Callable[[str, int, int], None] | None = None,
+    ) -> list[ObjectDetections]:
         """Return the detections of each image. An image is a host frame: uint8, BGR, (H, W, 3).
 
         `min_score` replaces `object.decode.min_score` in the last filter.
+
+        `timer` gets `(span, start_ns, end_ns)` for the spans `preprocess`, `inference` and
+        `postprocess` of a call that runs the model, on the clock `perf_counter_ns`.
         """
         session = self._open_session()
         if not images:
             return []
+        clock = time.perf_counter_ns
+        marks = [clock()]
         prepared = [preprocess_image(image, self.sidecar, self.size, self.precision) for image in images]
+        marks.append(clock())
         outputs = run_batches(session, self.sidecar, [tensor for tensor, _ in prepared])
-        return decode_objects(outputs, self.sidecar, self.decode, [geometry for _, geometry in prepared], min_score)
+        marks.append(clock())
+        found = decode_objects(outputs, self.sidecar, self.decode, [geometry for _, geometry in prepared], min_score)
+        marks.append(clock())
+        if timer is not None:
+            for index, span in enumerate(("preprocess", "inference", "postprocess")):
+                timer(span, marks[index], marks[index + 1])
+        return found
 
     def _open_session(self) -> Any:
         # A local reference: a `close` from an other thread does not stop a call that started.
