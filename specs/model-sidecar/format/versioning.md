@@ -11,6 +11,7 @@ tests:
   - skellytracker/tests/sidecar/test_model_validation.py
   - skellytracker/tests/model_spec/test_model_validation.py
   - skellytracker/tests/model_spec/test_loader.py
+  - skellytracker/tests/detectors/test_catalog.py
 vectors: null
 status: {spec: stable, validate: implemented, load: implemented}
 ---

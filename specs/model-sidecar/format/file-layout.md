@@ -5,12 +5,13 @@ kind: format
 selectors: []
 implemented_by:
   validate: skellytracker/core/model_spec/loader.py::load_sidecar  # partial. Checks V-common.identity-1, -7 and -8 on the path under the sidecar root. No check of the folder of an object detector or of a shared fragment.
-  load: skellytracker/core/model_spec/loader.py::load_sidecar  # partial. Takes the sidecar root as an argument and does not follow a symlink. No discovery and no list of roots: stage 1.6 of the implementation plan.
+  load: skellytracker/core/model_spec/loader.py::load_sidecar  # partial. Takes the sidecar root as an argument and does not follow a symlink. discover_sidecars and scan_sidecar_roots in skellytracker/core/detectors/catalog.py do the discovery in the package root, the user root and other root folders. No Hugging Face pin and no refresh.
 external_impl: []
 tests:
   - skellytracker/tests/sidecar/test_yolox_sidecar.py
   - skellytracker/tests/model_spec/test_model_validation.py
   - skellytracker/tests/model_spec/test_loader.py
+  - skellytracker/tests/detectors/test_catalog.py
 vectors: null
 status: {spec: stable, validate: partial, load: partial}
 ---

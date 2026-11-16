@@ -4,8 +4,8 @@ title: Sizes and artifacts
 kind: common
 selectors: []
 implemented_by:
-  validate: skellytracker/core/model_spec/rules.py::check_sidecar  # partial. No check of V-common.sizes_and_artifacts-10: stage 1.6 of the implementation plan checks the bytes of an ONNX file.
-  load: skellytracker/core/model_spec/model.py::SidecarModel.artifact  # partial. Reads a size entry with no merge, by size and precision. No download, and nothing checks sha256 or url_sha256 against a file: stage 1.6.
+  validate: skellytracker/core/model_spec/rules.py::check_sidecar  # partial. check_artifact_hash in skellytracker/core/model_spec/artifacts.py checks V-common.sizes_and_artifacts-10 on a present ONNX file, and the catalog calls it. No check after a download, because no code downloads a file.
+  load: skellytracker/core/model_spec/model.py::SidecarModel.artifact  # partial. Reads a size entry with no merge, by size and precision. The catalog finds the file that filename names and checks its sha256. No download, and nothing checks url_sha256.
 external_impl: []
 tests:
   - skellytracker/tests/sidecar/test_model_validation.py
@@ -13,6 +13,8 @@ tests:
   - skellytracker/tests/sidecar/test_model_registry_sidecar_support.py
   - skellytracker/tests/model_spec/test_model_validation.py
   - skellytracker/tests/model_spec/test_loader.py
+  - skellytracker/tests/model_spec/test_artifacts.py
+  - skellytracker/tests/detectors/test_catalog.py
 vectors: null
 status: {spec: stable, validate: partial, load: partial}
 ---
