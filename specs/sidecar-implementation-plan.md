@@ -36,7 +36,7 @@ build the exporters again ([phase 2](#phase-2--after-the-checkpoint)).
 
 ## Stage order
 
-**Status: phase 0 is done, except the two PRs of stage 0.5. Stages 1.1, 1.2, 1.4, 1.5, 1.6, 1.7, 1.8 and 1.9 are done. Stage 1.3 is started, and its gate is open.**
+**Status: phase 0 is done, except the two PRs of stage 0.5. Stages 1.1, 1.2, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9 and 1.10 are done. Stage 1.3 is started, and its gate is open.**
 
 Each stage of phase 1 and phase 2 changes package code. The gate of phase 0 is met
 ([ADR-V6G2](../decisions/entries/V6G2-implementation-stage.md)). The stages give the order of the
@@ -538,7 +538,7 @@ Done:
 Not in this stage:
 
 - Stage 1.6 does the artifact hash checks (`V-common.sizes_and_artifacts-10`).
-- Stage 1.10 does the host load check of `V-pipeline.graph-11`, because it needs the pipeline
+- Done in stage 1.10 (2026-11-16): Stage 1.10 does the host load check of `V-pipeline.graph-11`, because it needs the pipeline
   loader ([ADR-TH8E](../decisions/entries/TH8E-one-person-in-v2.md)).
 - Stage 1.11 moves the `--write` and `--check` commands of `tools/sidecar_refs.py` into the package.
 - The loader does not apply the rules of a decoded keypoint and of a derived point at run time: a
@@ -778,7 +778,7 @@ Open:
 - **Dispatch.** Done in stage 1.7: `create_detector` of `core/detectors/generic/session.py` maps a
   catalog entry to a generic detector by `role` and `sections` of the entry
   ([`format.versioning`](model-sidecar/format/versioning.md#implementer-guidance)).
-- **Run metadata.** Stage 1.10 writes `key`, `version` and `sidecar_sha256` of the entry in the
+- **Run metadata.** Done in stage 1.10 (2026-11-16), as `PipelineRun.models`. Stage 1.10 writes `key`, `version` and `sidecar_sha256` of the entry in the
   output metadata of a run.
 - **Static table.** The table names the old MediaPipe classes. The stage that adds the MediaPipe
   Holistic runner to the list adds its row. Stage 2.4 removes the rows of the deleted classes.
@@ -895,10 +895,10 @@ Open:
   against a session start of 0.3 s to 4.8 s
   ([ADR-GPW6](../decisions/entries/GPW6-model-gate-of-the-first-models.md) items 9 and 10). Examine
   the cache again only on a new measurement.
-- **`close()` in a pipeline run.** `close()` of a detector does not wait for a `detect` call that
+- **`close()` in a pipeline run.** Done in stage 1.10 (2026-11-16): `PipelineRun.close()` waits for the call that runs. `close()` of a detector does not wait for a `detect` call that
   runs. `PipelineRun.close()` of stage 1.10 must wait for the calls or stop them, and it decides
   the lock design.
-- **Two downloads of one artifact.** Two threads or two processes that start a session for the same
+- **Two downloads of one artifact.** Done in stage 1.10 (2026-11-16): `download_lock` of `core/detectors/generic/download.py`. Two threads or two processes that start a session for the same
   `url` artifact can download it at the same time. They write the same `.part` file, so one
   download can fail. Stage 1.10 decides the lock, with the file locks of stage 1.6.
 - **The extra `onnx`.** `model_batch_convert` needs the `onnx` package, which is an extra. A host
@@ -1077,10 +1077,75 @@ Open:
 
 ### 1.10 The pipeline API (was P)
 
-**Status: NOT STARTED.** It needs 1.3 (`eps.build_session()`), 1.7, 1.8, 1.9 and the pipeline spec
+**Status: DONE (2026-11-16), except the Open items below.** It needs 1.3 (`eps.build_session()`), 1.7, 1.8, 1.9 and the pipeline spec
 ([`specs/pipeline/`](pipeline/README.md)). It builds `core/pipelines/` and
 `core/pipelines/_runtime/` beside the old `core/tracker/`. The old run code does not change
 ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 1).
+
+Done:
+
+- `core/pipelines/` has the config model, the loading, the export, the catalog, the load checks,
+  the executor, the eleven node types, the sessions, the warnings, the timing, the taps,
+  `set_params`, `to_canonical`, the annotator `annotate`, and the commands `run`, `validate` and
+  `nodes`. The two built-ins are in `core/model_zoo/pipelines/`.
+- The gate ran on the Windows test host: `tools/run_checks.py` passes, and the video tests pass.
+  The tests of `tests/pipelines/` cover each part of the gate list, except the timing parents. The
+  package glue nodes pass the glue vectors. The aggregator output passes
+  `skellybench.schema.validate_timing`, in a run with skellybench installed for that run. The
+  built-in `yolox-rtmw-wholebody` runs with the real models on the CPU EP, `cuda` and `trt-rtx`.
+- Parity test A passes on each of the 200 frames of the fixture. Report B ran on the CPU EP and on
+  `cuda` ([ADR-7E4Z](../decisions/entries/7E4Z-box-parity-of-the-built-in-with-sfn26.md)).
+- The typed error of a refused call is `CallRefused`. A call on a closed run raises
+  `RunClosedError`. Each run has one lock: the calls on one run are serial, and `close()` waits for
+  the call that runs. The user must confirm these names and the thread rules.
+
+Open:
+
+- **Batch k.** k is 1 in each mode. No text gives the formula that makes k from the free VRAM. The
+  run keeps `vram_reserve_bytes` and does not use it.
+- **Cameras on two or more GPUs.** Camera `j` uses GPU `j` modulo the GPU count. The weights by the
+  warm-up speed of [ADR-P1F3](../decisions/entries/P1F3-hardware-probe-devices-and-multi-gpu.md)
+  are not built. The timing of a node with a session on each of two GPUs is not defined. No test
+  ran on a host with two GPUs.
+- **NMS.** The decode of stage 1.5 does NMS in NumPy. The node has no ONNX `NonMaxSuppression`
+  session, so the text of the item "`onnx_model` node" and of
+  [ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 7 does not describe
+  the code.
+- **Timing parents.** No text defines the parents of a timing event. They are not built, and the
+  gate part has no test.
+- **Timing names.** [Timing](pipeline/timing.md#fields) does not fix these names and forms: the
+  keys `device` and `ep_options` of `execution`, the forms of `batching`, `inputs` and
+  `stage_providers`, the value of `warmup_passes`, and the rules of the aggregator for
+  `images_per_second`, for the `run` span of a `mediapipe_tasks` node and for two model nodes.
+- **Run gate of a pipeline bundle.** `verify` runs the load checks. The run gate and its tolerance
+  are not built: no text gives the files of `run/`, the comparison or the tolerance, and
+  [ADR-AD33](../decisions/entries/AD33-bundles-are-untrusted-input.md) item 4 lets the session run
+  an ONNX file of a bundle only in `batch`.
+- **Other port types.** A start refuses an output or a tap of the port type `image` or `tensor`,
+  and a tap of a `3d` keypoints port. Their values and file forms are not fixed.
+- **Taps.** `V-pipeline.taps-4` checks only that each line names an image of the run, because a
+  padding row has no line. A replay compares the `used_ep` of the tap with the requested EP of a
+  node that does not run. The COCO fields of a line that no text fixes follow the COCO result form,
+  with the point score as the third number of a keypoint.
+- **Export.** The resolved export does not write the `object.decode` fields of the sidecar. The
+  export as written adds `sidecar_sha256`.
+- **The reference model.** `core/pipelines/config.py` has the code of
+  `specs/pipeline/reference/pipeline_config.py`, and the reference file stays, because the spec
+  text and `tools/make_pipeline_schema.py` name it. A doc test keeps the schema of the package
+  model equal to the committed schema.
+- **Webcam demo.** `python -m skellytracker --pipeline <key>` runs the new path. With no
+  `--pipeline`, the command runs the old demo. The user decides when the default changes.
+- **Load result and EP need.** `check_pipeline` gives the load warnings and
+  `needs_execution_provider`. `PipelineEntry` also has `needs_execution_provider`. The user must
+  confirm these names.
+- **Models that the package does not run.** A load refuses a `bottom_up` model, a model with both
+  roles and a selection mode that is not `nms`.
+- **Investigations.** The VRAM cost of two runs that overlap, the frame drops in `live` and
+  MediaPipe LIVE_STREAM are not measured.
+- **Operating systems and CI.** The gate ran only on Windows. CI holds no ONNX file, so the tests
+  of the built-in with the real models skip in CI. The demo did not run on a camera.
+
+The items of the stage:
 
 This stage implements the node types of the pipeline spec. Use the skill
 [`implement-pipeline-node`](../.claude/skills/implement-pipeline-node/SKILL.md) for each node type
