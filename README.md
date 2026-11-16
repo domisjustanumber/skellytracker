@@ -28,8 +28,10 @@ pip install "skellytracker[mediapipe,onnx]"
 uv add "skellytracker[mediapipe,onnx]"
 ```
 
-The ONNX trackers run on the CPU. On macOS, they can also run on CoreML. This version has no GPU
-support. The [GPU setup guide](GPU_SETUP_GUIDE.md) gives the status.
+The ONNX trackers run on the CPU. On macOS, they can also run on CoreML. A plain install gives the
+CPU core of ONNX Runtime. A GPU EP for an NVIDIA GPU is a plugin EP pack:
+`skellytracker-eps install` puts it in the EP store of the user. The
+[GPU setup guide](GPU_SETUP_GUIDE.md) gives the procedure.
 
 ## Quick start
 
@@ -143,6 +145,24 @@ uv run python -m skellytracker.core.detectors.calibration_detectors.charuco.run_
 - **`Observation`** — per-frame result. `observation.stages["name"].keypoints` returns a `Keypoints` object with `.xyz` `(N, 3)`, `.names`, and `.visibility` arrays.
 - **`TrackerState`** — temporal state (bounding box history, smoothing buffers) passed into and returned from each `process_image` call.
 
+### Hardware and EP API
+
+These modules are for the new code. The trackers above do not use them.
+
+- **`skellytracker.core.system`** gives facts that do not change while the application runs:
+  `probe_host()` (OS, CPU, memory, GPUs), `probe_runtime()`, `probe_environment()` and
+  `probe_loaded_libraries()`. The probes do not raise for missing hardware.
+- **`skellytracker.core.metrics`** gives live system values: `LiveSampler.sample(pids)` (CPU, memory,
+  processes, GPUs) and `free_vram(device)`.
+- **`skellytracker.core.eps`** gives the execution providers: `recommend(form)`, `status()`,
+  `install()`, `verify()`, `run_devices()` and `build_session()`. `build_session()` returns the
+  session and a `SessionReport`. It never runs a session on an other EP than the requested EP.
+- **`skellytracker.core.errors`** has `EpRequestError`, `EpUnavailableError`, `SessionCreationError`
+  and `VRAMExhaustionError`.
+
+To freeze an application with PyInstaller, you need no hook of your own: the package has a
+PyInstaller hook that collects its YAML files.
+
 ## Extending the API
 
 Implement a new keypoint detector by subclassing `KeypointDetector` and registering it:
@@ -174,4 +194,4 @@ CI runs the lint and the fast tests on each push, and on each PR into `main` or 
 
 # GPU setup
 
-For help configuring your GPU for ONNX-based trackers (RTMPose, YOLOX), see the [GPU_SETUP_GUIDE](GPU_SETUP_GUIDE.md).
+The [GPU setup guide](GPU_SETUP_GUIDE.md) gives the EP packs for an NVIDIA GPU and the command `skellytracker-eps`.

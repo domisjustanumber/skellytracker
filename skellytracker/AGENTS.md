@@ -24,6 +24,12 @@ The paths are under `skellytracker/`.
 | `core/detectors/shared/skeletons/` | Tracked-point and skeleton fragments that sidecars include with `$ref` |
 | `core/model_zoo/` | The package sidecar root, with the spec layout ([Storage layout](../specs/model-sidecar/format/file-layout.md#storage-layout); [ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 5). It holds data only. Git ignores its `.onnx` files, and no wheel or sdist holds them. |
 | `core/model_zoo/landmark_schemas/` | Landmark schema files of the registry ([Landmark schema](../specs/model-sidecar/post/keypoint/landmark-schema.md); [ADR-23F5](../decisions/entries/23F5-landmark-schema-registry.md)) |
+| `core/errors.py` | The errors of `eps` and of the pipeline runtime, and the exit-code table of the CLIs ([ADR-D8DH](../decisions/entries/D8DH-sessions-errors-and-the-ready-rule.md) items 1 and 2). The old `core/sessions/session_errors.py` is a different module. |
+| `core/system/` | `probe_host()`, `probe_runtime()`, `probe_environment()`, `probe_loaded_libraries()` and the device keys of the GPUs. Each value is fixed while the application runs. |
+| `core/metrics/` | `LiveSampler` and `free_vram(device)`: system-level live values only |
+| `core/_hardware/` | Private readers: NVML, DXGI with one D3DKMT query, the Windows registry, psutil (Windows only), `/proc` and `/sys`, macOS `sysctl`, Windows PDH ([ADR-P1F3](../decisions/entries/P1F3-hardware-probe-devices-and-multi-gpu.md) items 1 and 2) |
+| `core/eps/` | The EP catalog (`ep_catalog.yaml`, `ep_lock.yaml`), the EP store, `install()`, `ensure_registered()`, `verify()`, `recommend()`, `run_devices()`, `check_start()`, `status()`, `build_session()` and the CLI `skellytracker-eps` (`cli.py`) |
+| `_pyinstaller/` | The PyInstaller entry points and the data-only hook. It is outside `core/`. No package module imports it. |
 | `core/sidecar/` | The old loader of the old package sidecars. Do not change it, and do not import it in new code. `load_sidecar` (`loader.py`), `$ref` and `base` resolution (`resolution.py`), `SidecarModel` (`model.py`), version checks (`versioning.py`) |
 | `core/model_spec/` | The spec loader at spec version 2.0.0 ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 8): `load_sidecar(path, sidecar_root, user_root)` (`loader.py`), `$ref` resolution with hash checks (`resolution.py`), the `V-` rules (`rules.py`, `check_sidecar`), `SidecarModel` (`model.py`), the landmark schema registry (`landmark_schemas.py`), the implemented versions (`versioning.py`) and the SPDX check (`spdx.py`). Stage 2.3 of the implementation plan moves it to `core/sidecar/`. |
 | `core/data_primitives/` | `BoundingBox`, `Keypoints`, observations, data stores |
@@ -69,6 +75,38 @@ The sidecar paths are under `core/detectors/`.
   (`auto_detect_provider` in `core/sessions/ort_session_utils.py`).
 - A provider that is not available raises `SessionCreationError`. There is no CPU fallback.
 
+The four items above are the old session code in `core/sessions/`. Do not change it. Stage 2.4 of
+the implementation plan deletes it. New code builds each session with `eps.build_session()`:
+
+- New code takes the EP as `execution_provider`, a concrete key of the EP catalog: `trt-rtx`, `cuda`,
+  `coreml` or `cpu`. No environment variable selects the EP or the device.
+- `eps.build_session()` serves only new code. Do not connect it to `OnnxSession` or `Tracker.create`.
+- A GPU EP is a plugin EP pack in the EP store. Do not add a GPU package to `pyproject.toml`.
+- `core/eps/ep_catalog.yaml` is written by hand. Only `uv run python tools/ep_catalog.py --refresh`
+  writes `ep_lock.yaml`, and it uses the network. Run it after each change of the catalog.
+  `ort_core.version` must equal the `onnxruntime` pin: change the pin, the catalog, the lock and
+  `uv.lock` in one commit.
+- `eps` reads no sidecar. The caller fills `ModelRef`.
+- A plain `import skellytracker.core.eps` must load no `onnxruntime`. Import `onnxruntime` in the
+  function that uses it. The probes of `core.system` and the sampler of `core.metrics` make no CUDA
+  call and load no EP library.
+- A record of `system`, `metrics` and `eps` is a frozen dataclass with no `dict` field. Memory is
+  `int` bytes, time is `int` ns, and a field that ends in `utilization` is a ratio from 0 to 1. No
+  text holds an absolute path or a hostname.
+
+## Freeze rules
+
+A frozen application must find each module and each data file. `tests/test_import_rules.py` checks
+these rules ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 3).
+
+- Import each module with a plain statement. A lazy import is a plain statement in a function body.
+  Do not use `importlib.import_module`, `__import__`, `exec` or `eval` with a computed name.
+- Read the metadata of a fixed distribution with a literal call in the full form, for example
+  `importlib.metadata.version("mediapipe")`. Do not alias `importlib.metadata`.
+- `_pyinstaller/hook-skellytracker.py` collects `**/*.yaml`. A commit that adds a data file of an
+  other type changes `includes` of the hook in the same commit.
+- Do not add a hook for an other package to `_pyinstaller/`.
+
 ## Code conventions
 
 - `__init__.py` calls `beartype_this_package()`. Runtime type checks apply to the whole package.
@@ -103,4 +141,9 @@ The sidecar paths are under `core/detectors/`.
   plugin: they are its regression test
   ([ADR-R3F1](../decisions/entries/R3F1-mediapipe-check-time-limit.md)).
 
+- The markers `gpu`, `ep_pack` and `pyinstaller` are opt-in. `tests/conftest.py` deselects a test
+  with one of them, unless the `-m` expression names the marker. `-m ep_pack` needs the network.
+  `-m pyinstaller` freezes an application. `-m gpu` is the local GPU gate: it needs an NVIDIA GPU and
+  the installed EP packs.
+- The tests of `system`, `metrics` and `eps` use the fakes of `tests/hw_fakes.py`. They need no GPU.
 - If a failure shows a code defect, report it.
