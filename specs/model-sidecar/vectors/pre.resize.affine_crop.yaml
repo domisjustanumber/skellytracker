@@ -166,6 +166,8 @@ cases:
           resize: {method: affine_crop, interpolation: linear}
         sizes: {m: {input: {shape: [-1, 3, 256, 192]}}}
     expect: {failed: [V-pre.resize.affine_crop-3]}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar
   - id: affine-crop-has-no-pad-position
     note: "an affine_crop resize does not letterbox, so input.resize.pad_position is not
       allowed. The sidecar shows only its input and sizes blocks. The case checks only the
@@ -180,6 +182,8 @@ cases:
           resize: {method: affine_crop, interpolation: linear, pad_position: center}
         sizes: {m: {input: {shape: [-1, 3, 256, 192], resize: {target_size: [256, 192]}}}}
     expect: {failed: [V-pre.resize.affine_crop-3]}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar
   - id: affine-crop-expand-ratio-is-positive
     note: "crop_policy.expand_ratio is -1.25. The value is a float, but it is not positive. The
       sidecar shows only its input and sizes blocks. The case checks only the rules of
@@ -194,6 +198,8 @@ cases:
           resize: {method: affine_crop, interpolation: linear, crop_policy: {expand_ratio: -1.25}}
         sizes: {m: {input: {shape: [-1, 3, 256, 192], resize: {target_size: [256, 192]}}}}
     expect: {failed: [V-pre.resize.affine_crop-1]}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar
   - id: affine-crop-maintain-aspect-ratio-is-boolean
     note: "crop_policy.maintain_aspect_ratio is the quoted string \"yes\". A string is not a
       boolean. The sidecar shows only its input and sizes blocks. The case checks only the
@@ -211,6 +217,8 @@ cases:
             crop_policy: {maintain_aspect_ratio: "yes"}
         sizes: {m: {input: {shape: [-1, 3, 256, 192], resize: {target_size: [256, 192]}}}}
     expect: {failed: [V-pre.resize.affine_crop-1]}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar
   - id: top-down-needs-affine-crop
     note: "keypoint.estimator_type is top_down_single_person, but input.resize.method is
       letterbox. The selector of this section does not match this sidecar. Rule -2 applies
@@ -234,6 +242,8 @@ cases:
         sizes: {m: {input: {shape: [-1, 3, 256, 192], resize: {target_size: [256, 192]}}}}
         keypoint: {estimator_type: top_down_single_person, geometry: "2d"}
     expect: {failed: [V-pre.resize.affine_crop-2]}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar
   - id: scalar-pad-fills-each-channel
     note: "a scalar crop_policy.pad_value s gives [s, s, s]. The box touches the source corner,
       so pixel (0, 0) of the crop maps to (-87.5, -50), outside the source. The source

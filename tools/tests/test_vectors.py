@@ -1666,6 +1666,37 @@ def fit_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
     return {"scale": scale, "left": left, "top": top}
 
 
+@functools.cache
+def validator_sections() -> dict[str, str]:
+    """The section of each data-only validator case, by case id. The ids are unique."""
+    cases = [
+        (case["id"], data["section"])
+        for data in (load(path.name) for path in vector_paths())
+        for case in data["cases"]
+        if case.get("function") == "none"
+    ]
+    assert len(dict(cases)) == len(cases)
+    return dict(cases)
+
+
+def check_sidecar_runner(function: Any, case: dict[str, Any]) -> dict[str, Any] | None:
+    """Run `check_sidecar` on a data-only validator case. It cannot run a case of another kind.
+
+    The result holds the failed rules of the section of the case. A case with `input.path` holds
+    only the rules of the path under the sidecar root: V-common.identity-7 and V-common.identity-8.
+    """
+    if case.get("function") != "none":
+        return None
+    relative_path = case["input"].get("path")
+    failed = {failure.rule for failure in function(case["input"]["sidecar"], relative_path=relative_path)}
+    if relative_path is not None:
+        wanted = failed & {"V-common.identity-7", "V-common.identity-8"}
+    else:
+        prefix = f"V-{validator_sections()[case['id']]}-"
+        wanted = {rule for rule in failed if rule.startswith(prefix)}
+    return {"failed": sorted(wanted)}
+
+
 # The adapter of each skellytracker `verified_against` entry. An adapter runs
 # the function on one case and returns its result in the form of `expect`, or
 # None when the function cannot run the case.
@@ -1674,6 +1705,7 @@ PACKAGE_RUNNERS: dict[str, Callable[[Any, dict[str, Any]], dict[str, Any] | None
         letterbox_runner
     ),
     "skellytracker/core/detectors/processing/image_preprocessing.py::fit_preprocess": fit_runner,
+    "skellytracker/core/model_spec/rules.py::check_sidecar": check_sidecar_runner,
 }
 
 

@@ -395,6 +395,8 @@ cases:
             nms: {iou_threshold: 0.6, score_threshold: 0.05}
             box_space: pixel
     expect: {failed: [V-post.object.selection.nms-1]}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar
   - id: nms-has-no-top-k
     note: "object.decode.top_k is present with selection nms. top_k is the pair count of
       selection top_k. A candidate limit before the NMS (mmdet nms_pre) has no field. The
@@ -418,6 +420,8 @@ cases:
             nms: {iou_threshold: 0.6, score_threshold: 0.05}
             box_space: pixel
     expect: {failed: [V-post.object.selection.nms-1]}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar
   - id: nms-has-no-class-logits-output
     note: "object.decode.class_logits_output is present with selection nms. class_logits_output
       is valid only with selection top_k. The class_logits output is the class source, so
@@ -520,3 +524,5 @@ cases:
             nms: {iou_threshold: 0.6, score_threshold: 0.05}
             box_space: pixel
     expect: {failed: [V-post.object.selection.nms-1]}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar

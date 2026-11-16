@@ -9,7 +9,8 @@ notes:
     sidecar, and `expect.failed` lists the rules of this section that it fails. The
     `post.object.selection.*` files hold the cases of the decode steps."
 tolerance: 0.00001
-unverified: "No validator has run these cases yet. They come from the section text only."
+verified_against:
+  - skellytracker/core/model_spec/rules.py::check_sidecar
 cases:
   - id: min-box-size-is-not-negative
     note: "object.decode.min_box_size is -1. A size must be 0 or more. The sidecar shows only

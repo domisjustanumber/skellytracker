@@ -152,6 +152,8 @@ cases:
     params: {}
     input: {sidecar: {input: {name: input, dtype: {fp32: float32}, normalization: imagenet}}}
     expect: {failed: [V-pre.normalize-1]}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar
   - id: custom-has-no-color-format
     note: "a custom object holds only mode, scale, mean and std. It uses input.color_format.
       The sidecar shows only its input block. The case checks only the rules of this
@@ -166,6 +168,8 @@ cases:
           color_format: rgb
           normalization: {mode: custom, color_format: bgr, mean: [0, 0, 0], std: [1, 1, 1]}
     expect: {failed: [V-pre.normalize-1]}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar
   - id: normalization-is-required
     note: "input.normalization is absent, and there is no default. The sidecar shows only its
       input block. The case checks only the rules of this section."
@@ -173,6 +177,8 @@ cases:
     params: {}
     input: {sidecar: {input: {name: input, dtype: {fp32: float32}, color_format: bgr}}}
     expect: {failed: [V-pre.normalize-1]}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar
   - id: precision-override
     note: "normalization_by_precision wins over the top-level normalization"
     params:
@@ -276,6 +282,8 @@ cases:
           color_format: rgb
           normalization: imagenet
     expect: {failed: [V-pre.normalize-3]}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar
   - id: uint8-with-override-none-is-valid
     note: "the override gives none to the uint8 precision. The fp32 precision keeps unit_float"
     function: none
@@ -289,6 +297,8 @@ cases:
           normalization: unit_float
           normalization_by_precision: {fp16: none}
     expect: {failed: []}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar
   - id: uint8-needs-an-8-bit-resize
     note: "a float32 resize gives fractional values. Their cast to a uint8 input is not
       defined, also with normalization none"
@@ -309,6 +319,8 @@ cases:
             interpolation: linear
             compute_dtype: float32
     expect: {failed: [V-pre.normalize-3]}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar
   - id: top-level-is-required-with-an-override
     note: "the override covers the only precision, but input.normalization is absent. The rule
       requires it with no condition"
@@ -322,6 +334,8 @@ cases:
           color_format: bgr
           normalization_by_precision: {fp32: none}
     expect: {failed: [V-pre.normalize-1]}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar
   - id: top-level-is-checked-with-an-override
     note: "the override covers the only precision, but the top-level custom object has a scale
       that is not positive"
@@ -336,6 +350,8 @@ cases:
           normalization: {mode: custom, scale: -1}
           normalization_by_precision: {fp32: none}
     expect: {failed: [V-pre.normalize-1]}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar
   - id: custom-mean-and-std-defaults
     note: "mean and std are absent: they are [0, 0, 0] and [1, 1, 1]. The result is pixel * scale"
     params: {normalization: {mode: custom, scale: 0.5}, color_format: rgb, dtype: float32}

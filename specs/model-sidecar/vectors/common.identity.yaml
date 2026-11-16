@@ -10,7 +10,8 @@ notes:
     `expect.failed` lists the rules of these two that the sidecar fails."
   - "The family `demo` is not a real model. It gives short keypoint lists."
 tolerance: 0
-unverified: "No validator implements V-common.identity-7 or V-common.identity-8 yet."
+verified_against:
+  - skellytracker/core/model_spec/rules.py::check_sidecar
 cases:
   - id: group-is-a-part
     note: "a body-region group: rtmw-wholebody in rtmw/wholebody/. The sidecar shows only

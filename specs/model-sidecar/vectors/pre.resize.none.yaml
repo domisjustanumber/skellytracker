@@ -6,7 +6,8 @@ notes:
   - "Each case is a data-only validator case (`function: none`): `input.sidecar` is the
     sidecar, and `expect.failed` lists the rules of this section that it fails."
 tolerance: 0.0001
-unverified: "No validator has run these cases yet. They come from the section text only."
+verified_against:
+  - skellytracker/core/model_spec/rules.py::check_sidecar
 cases:
   - id: none-has-no-target-size
     note: "a none resize passes the source image unchanged, so the size must omit

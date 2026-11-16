@@ -7,7 +7,8 @@ notes:
     only the license block, and `expect.failed` lists the rules of this section that it
     fails. Each case checks only the rules of this section."
 tolerance: 0
-unverified: "No validator has run these cases yet. They come from the section text only."
+verified_against:
+  - skellytracker/core/model_spec/rules.py::check_sidecar
 cases:
   - id: complete-block
     note: "a model license and one training dataset with a LicenseRef id and its url."
