@@ -528,132 +528,114 @@ Not in this stage:
 
 ### 1.5 Spec processing (was N2)
 
-**Status: NOT STARTED.**
+**Status: DONE (2026-11-16).** The spec processing modules are in `core/detectors/processing/pre/`
+and `core/detectors/processing/post/`, beside the old processing modules. The heading "Not in this
+stage" gives the stage that owns each item that stays.
 
-- Add new modules in `processing/pre/` and `processing/post/`, one module for each spec section
-  ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 4). Port them from
-  `specs/model-sidecar/reference/`, for example `pre/resize_letterbox.py`, `pre/normalize.py`,
-  `pre/resize_affine_crop.py`, `post/object_selection_nms.py`, `post/object_decode.py`,
-  `post/keypoint_decode_simcc.py` and `post/unprojection.py`.
-- These modules carry the behaviour items below. The dispatchers take the new spec model. The
-  validation rule of each behaviour item goes in the model of 1.4.
-- Port `pre/resize_affine_crop.py` from `specs/model-sidecar/reference/pre_resize_affine_crop.py`:
-  `roi_from_box`, `crop_size`, `warp_points`, `warp_matrix`, `affine_crop` and `unproject`
-  ([ADR-G3FA](model-sidecar/decisions/entries/G3FA-affine-crop-rotated-roi.md);
-  [Implementer guidance](model-sidecar/pre/resize-affine-crop.md#implementer-guidance)). The resize
-  dispatcher calls it on `input.resize.method: affine_crop`. The pipeline `onnx_model` node gives each
-  present row of its `rois` input as `(c_x, c_y, w, h, rotation)`. Do not reuse the old
-  `get_warp_matrix` for a rotated crop: its `rot` argument turns a point above the centre. Add the
-  module to `PACKAGE_RUNNERS` for `pre.resize.affine_crop`, with the `bbox_xyxy` and `roi` cases.
-- Add each new function to `PACKAGE_RUNNERS` in `tools/tests/test_vectors.py` and to
-  `verified_against`. The old entries (for example `letterbox_preprocess` and `fit_preprocess`) stay
-  until stage 2.3, because the test requires that the agreeing entries equal the listed entries. Check
-  whether a change of `verified_against` needs a spec content commit.
-- Gate: the vector cases of the new entries agree. The old entries do not change.
+Done:
 
-Each behaviour item names the gap of the old code against the open target `2.0.0`. Do not change
-the old code. Put each fix in the module of its spec section in `processing/pre/` or
-`processing/post/`.
-
-- **`fit` `pad_value`.** The spec requires `pad_value` on a `fit` resize
-  ([Validation rules](model-sidecar/pre/resize-fit.md#validation-rules)). The old code does not require it: `ResizeSpec._check_method_specific_fields` accepts a `fit`
-  resize without `pad_value`, and `fit_preprocess` has
-  the default `pad_value=0`. The new model requires it, and the new `fit` module has no default. Test the rejection ([ADR-0012](model-sidecar/decisions/entries/0012-fit-resize-for-rtmo.md)).
-- **Scalar and array pad values.** The old `fit_preprocess` passes a scalar `pad_value` to
-  `cv2.warpAffine` as `float(pad_value)`. OpenCV then fills only channel 0 of a 3-channel image: a
-  scalar `114` gives the border `[114, 0, 0]`. The spec requires `[114, 114, 114]`
-  ([ADR-BJF9](../decisions/entries/BJF9-scalar-pad-value-fills-every-channel.md)).
-  The new code expands a scalar to three values before the call. It also accepts an array of int values, for example the YAML array `[114, 114, 114]`. The new model has `crop_policy.pad_value`, and
-  the new affine crop passes its expanded value to `cv2.warpAffine`. The case
-  `scalar-pad-fills-each-channel` of
-  [`pre.resize.fit`](model-sidecar/vectors/pre.resize.fit.yaml) fails for the old `fit_preprocess`. Add the new function to the file-level `verified_against` of that
-  file. At stage 2.3, remove `unverified` and the case-level entries of the old function.
-- **Letterbox rounding.** The old `letterbox_preprocess` cuts the resized size with `int()`.
-  The spec rounds with `half_even` or `half_up`, places the image at `top_left` or `center`,
-  and keeps each side at least 1 pixel. The old function has no `center` position and fails on a source
-  that is 1 pixel wide. It reproduces 8 of the 12 `top_left` cases in
-  [`pre.resize.letterbox`](model-sidecar/vectors/pre.resize.letterbox.yaml). The new module reproduces each case.
-- **Stretch unprojection.** The `stretch` branch of the old `preprocess_image` returns `resize_meta = 1.0`. The
-  host then has no scale factors to unproject with `x * src_w / T_w`. The new module returns the scale factors.
-- **Normalization modes.** The old `build_normalization_fn` applies the `imagenet_rgb`
-  statistics in the channel order of the frame, as it applies `imagenet_bgr`. The `imagenet_bgr` branch applies the RGB-ordered statistics to
-  the B, G and R channels of the frame. That is the pre-spec rtmlib computation, not the spec
-  meaning. The new module obeys [Normalization modes](model-sidecar/pre/normalization.md#behaviour).
-  The old package sidecars keep the pre-spec computation until stage 2.1 and stage 2.3 delete them. No package sidecar moves to a new mode ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md)).
-- **One `imagenet` mode.** The spec has one mode, `imagenet`. It applies the
-  statistics in the channel order of `input.color_format`
-  ([ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md);
-  [Normalization modes](model-sidecar/pre/normalization.md#behaviour)). The new model has `imagenet` in
-  its named modes and `input.color_format` as a required field (`V-common.input-5` and
-  `V-pre.normalize-1`). It has no `CustomNormalization.color_format`. The new module takes the channel order of `imagenet` and of `custom` from
-  `input.color_format`.
-- **NMS box area.** The spec's `selection: nms` uses the box-area convention of the ONNX
-  `NonMaxSuppression` operator, which does not add `1` to pixel widths or heights. The old `nms()`
-  in `object_detection_decode.py` adds `1`. Only the
-  old YOLOX path uses it. It also breaks a tie between equal scores toward the higher row index,
-  but the spec breaks it toward the lower row index. The vectors in
-  [`post.object.selection.nms`](model-sidecar/vectors/post.object.selection.nms.yaml) show both
-  differences. Stage 1.10 uses an ONNX `NonMaxSuppression` graph for the new decode.
-- **Clamp, size filter and class filter.** The new model accepts `object.decode.clamp_boxes` and `object.decode.min_box_size`, and checks them (`V-post.object.decode-5` and
-  `V-post.object.decode-8`). In each selection mode, the decode clamps each unprojected box to
-  `[0, W]` and `[0, H]` only when `clamp_boxes` is `true`. Then it drops each box unless its
-  width and its height are both more than `min_box_size`. The new model requires `object.decode.selection` (`V-post.object.decode-4`) and the fields of each
-  selection mode. It requires `object.classes` (`V-post.object.decode-10`) and checks `object.decode.keep_classes` (`V-post.object.decode-11`). A sidecar with no class source has exactly one name in `object.classes` (`V-post.object.decode-9`). The decode of each mode runs the shared steps of [Selection behaviour](model-sidecar/post/object/decode.md#selection-behaviour), with the class filter first ([ADR-17KN](../decisions/entries/17KN-one-selection-pipeline.md); [ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) item 3). Part B of 1.7 adds the modes that the package does not decode yet.
-- **Resize compute dtype.** The spec has the optional
-  `input.resize.compute_dtype`: `uint8` or `float32`, with the default `uint8`
-  ([ADR-PHJ3](model-sidecar/decisions/entries/PHJ3-resize-compute-dtype.md);
-  [Compute dtype](model-sidecar/pre/interpolation.md#compute-dtype)). The new model has the field and checks `V-pre.resize.interpolation-1`. It rejects the field for
-  `method: none` (`V-pre.resize.none-1`). The new resize modules resize and pad the uint8 frame for `uint8`. For `float32`, they cast the
-  frame to float32 before the resize and the pad, and keep the canvas in float32. They do not round or
-  clamp the result. Add the cases of `pre.resize.interpolation.yaml` and the new case of
-  `pre.resize.none.yaml` to the validation tests of the new model.
-- **Affine crop matrix in float32.** The spec gives the warp matrix `M` of
-  `affine_crop` in float32 steps, as mmpose v1.3.2 computes it
+- Each module holds one spec section
+  ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 4). The old
+  processing modules and their output did not change. No new module imports the old loader, the old
+  processing modules, `core/tracker/` or the old detector contract.
+- `pre/preprocess.py` holds the dispatchers. They take the spec model of stage 1.4. `resize_image`
+  calls the module of `input.resize.method`. It gives the resized image and a `ResizeGeometry`.
+  `preprocess_image` takes a `SidecarModel`, a size and a precision. It gives the CHW tensor of one
+  frame, in the `input.dtype` entry of the precision. `resize_inverse` of `post/unprojection.py`
+  calls the Inverse of the method of a `ResizeGeometry`. For `affine_crop`, the dispatchers take
+  one ROI `(c_x, c_y, w, h, rotation)`.
+- **Letterbox rounding.** `pre/resize_letterbox.py` rounds with `half_even` or `half_up`, places
+  the image at `top_left` or `center`, and keeps each side at least 1 pixel. It agrees with each of
+  the 52 cases of [`pre.resize.letterbox`](model-sidecar/vectors/pre.resize.letterbox.yaml).
+- **Stretch unprojection.** `pre/resize_stretch.py` gives the scale factors. Its Inverse applies
+  `x * src_w / T_w`.
+- **`fit` `pad_value`, and scalar and array pad values.** `fit` of `pre/resize_fit.py` has no
+  default `pad_value`. `border_values` of `pre/resize_interpolation.py` expands a scalar pad to
+  three values, and accepts an array of int values
+  ([ADR-BJF9](../decisions/entries/BJF9-scalar-pad-value-fills-every-channel.md)). The dispatcher
+  gives the expanded `pad_value` or `crop_policy.pad_value` to each resize. The image stays BGR
+  until the normalization. Thus the dispatcher reverses an array pad for `color_format: rgb`
+  ([ADR-XXZ8](../decisions/entries/XXZ8-host-frame-precision-and-score-comparisons.md) item 1).
+- **Resize compute dtype.** `to_compute_dtype` casts the 8-bit frame to float32 for
+  `compute_dtype: float32`, before the resize and the pad. The canvas and the border keep that
+  dtype. No step rounds or clamps the result
+  ([ADR-PHJ3](model-sidecar/decisions/entries/PHJ3-resize-compute-dtype.md)).
+- **Affine crop matrix in float32.** `pre/resize_affine_crop.py` is the port of the reference:
+  `roi_from_box`, `roi_values`, `crop_size`, `warp_points`, `warp_matrix`, `crop_geometry`,
+  `affine_crop` and `unproject`
   ([ADR-3S5G](model-sidecar/decisions/entries/3S5G-affine-crop-matrix.md);
-  [Behaviour](model-sidecar/pre/resize-affine-crop.md#behaviour)). The old code keeps the
-  dtype of the box, and its `get_warp_matrix` puts the second warp point above the centre. The new module casts the person box to float32,
-  also the full-frame box. It puts the second point left of the centre
-  (`src_dir = [src_w * -0.5, 0]`, `dst_dir = [dst_w * -0.5, 0]`). The implementer decides the branch with `maintain_aspect_ratio: false`. Run the numeric cases of
-  [`pre.resize.affine_crop`](model-sidecar/vectors/pre.resize.affine_crop.yaml)
-  through the new module, and add a golden test with its
-  three COCO cases. Then update the `forward` note of
-  the front matter of the section.
-- **SimCC score without softmax.** The spec gives the 2D SimCC decode of
-  mmpose v1.3.2: the argmax of the raw values, the score `min(peak_x, peak_y)` with no softmax, the
-  bin `-1` for a score `<= 0`, the NaN rule and the bin scale from the bin counts
-  ([ADR-03PH](model-sidecar/decisions/entries/03PH-simcc-score-rule.md);
-  [Behaviour](model-sidecar/post/keypoint/decode-simcc.md#behaviour)). The old code takes the mean
-  of the two softmax peaks and a fixed split ratio of 2.0. The new module takes the score
-  `np.where(max_x > max_y, max_y, max_x)`, keeps the `-1` rule, and reads the bin scale
-  from the bin counts (`input_width / X_bins`). The new score has no fixed range. Thus the
-  old `confidence_threshold: 0.004` defaults fit only the softmax score. The implementer decides the score threshold of the new keypoint path. Run the
-  numeric cases of [`post.keypoint.decode.simcc`](model-sidecar/vectors/post.keypoint.decode.simcc.yaml) through the new module, and add a golden test on one RTMW crop with
-  mmpose scores. Then update the `decode` status and
-  the `partial` note of the front matter of the section.
-- **Cast to the input dtype.** Each normalization mode casts its result to the
-  `input.dtype` entry of the precision as the last step. A `uint8` input needs the resolved
-  normalization `none`, and `input.resize.compute_dtype` absent or `uint8` (`V-pre.normalize-3`).
-  `int8` is not an input dtype (`V-common.input-2`). The output dtypes keep it
+  [ADR-G3FA](model-sidecar/decisions/entries/G3FA-affine-crop-rotated-roi.md)). The second warp
+  point is left of the centre. The branch with `maintain_aspect_ratio: false` is the branch of the
+  reference: the third point is half the crop height from the centre, against the ROI y axis. The
+  module does not use the old `get_warp_matrix`. The golden test with the three COCO cases is
+  `test_the_affine_crop_matrix_of_the_three_coco_cases_is_the_mmpose_matrix`.
+- **Normalization modes, one `imagenet` mode and the cast to the input dtype.** `normalize` of
+  `pre/normalize.py` takes the channel order from `input.color_format`, computes each mode in
+  float32 and casts the result to the `input.dtype` entry of the precision as the last step
   ([ADR-XH1J](model-sidecar/decisions/entries/XH1J-normalize-input-dtype.md);
-  [Behaviour](model-sidecar/pre/normalization.md#behaviour)). The old code returns float32 from
-  each mode, and the old `OnnxSession.run_batched` and `_warmup` feed float32. The new normalize module casts the result of each mode to `input.dtype[precision]` as the last step, and the
-  new preprocessing keeps that dtype. The new sessions feed the input dtype. The new model has a type for the input dtypes (`float32`, `float16`,
-  `uint8`) for `input.dtype`. The output dtype keeps `int8` (`V-common.outputs-2`). Add a validator of the
-  resolved sidecar for `V-pre.normalize-3`. Run the numeric cases of
-  [`pre.normalize`](model-sidecar/vectors/pre.normalize.yaml) through the new module, and
-  compare the dtype and the values. These cases include the two `custom` default cases of
-  [ADR-1V57](model-sidecar/decisions/entries/1V57-normalize-custom-defaults.md). Add the data-only cases of `pre.normalize.yaml` and
-  [`common.input.yaml`](model-sidecar/vectors/common.input.yaml) to
-  the validation tests. Add a golden test: one image of the
-  `yolox-person` parity set through the new preprocessing, compared with the host
-  tensor. Then update the `validate` and `forward`
-  notes of the front matter of `pre.normalize`, and the `validate` and `load` notes of
-  `common.input`.
+  [ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md)). It agrees with each numeric
+  case of [`pre.normalize`](model-sidecar/vectors/pre.normalize.yaml) that holds 8-bit or float32
+  pixels, also the two `custom` default cases.
+- **NMS box area, and the clamp, the size filter and the class filter.** `post/object_decode.py`
+  holds the shared steps of
+  [Selection behaviour](model-sidecar/post/object/decode.md#selection-behaviour): the score order,
+  the class filter, the box format, the clamp, the size filter and the confidence filter.
+  `decode_nms` of `post/object_selection_nms.py` runs them in the order of the section. The box
+  area adds no `1`, and a tie goes to the lower row
+  ([ADR-17KN](../decisions/entries/17KN-one-selection-pipeline.md)).
+- **SimCC score without softmax.** `decode_simcc` of `post/keypoint_decode_simcc.py` takes the
+  argmax of the raw values, the score `np.where(max_x > max_y, max_y, max_x)`, the bin `-1` for a
+  score `<= 0`, and the bin scale from the bin counts
+  ([ADR-03PH](model-sidecar/decisions/entries/03PH-simcc-score-rule.md)).
+- **Unprojection.** `post/unprojection.py` converts `normalized_01` and `normalized_11` to
+  model-input pixels, then applies the Inverse of the resize method, for points and for boxes.
+- **Keypoint rules at run time.** `post/keypoint_schema.py` holds the rules that stage 1.4 left.
+  `mark_missing` makes a keypoint with a score `<= 0` or a NaN score missing. `derived_points`
+  computes each derived point, which is missing when a source is missing
+  ([Keypoint schema](model-sidecar/post/keypoint/schema.md#fields)).
+- **Precision.** The geometry is float64. The ROI and the warp points of `affine_crop` keep their
+  float32 steps. The normalization is float32. The score comparisons are float32
+  ([ADR-XXZ8](../decisions/entries/XXZ8-host-frame-precision-and-score-comparisons.md) items 2
+  and 3).
+- `PACKAGE_RUNNERS` of `tools/tests/test_vectors.py` has an adapter for each new function that runs
+  vector cases. Each case that a function agrees with names it in `verified_against`. The old
+  entries (`letterbox_preprocess` and `fit_preprocess`) did not change. A change of
+  `verified_against` needed no spec content commit: the test vectors are a non-spec change.
+- The front matter of each section names the new `forward`, `inverse`, `decode` or `load`
+  function. The test of the line `Implements: <section-id>` also covers the new folders.
+- The tests of the modules are in `skellytracker/tests/processing/`.
+- Gate: the vector cases of the new entries agree. The old entries did not change. The full suite
+  passes with no change of expected values.
+
+Not in this stage:
+
+- Part B of stage 1.7 adds the decode of `selection: none` and `selection: top_k`, and the dispatch
+  on `object.decode.selection`. `unproject_and_filter` of `post/object_decode.py` gives them shared
+  steps 3 to 6. The `decode` step of
+  [`post.object.decode`](model-sidecar/post/object/decode.md) is `partial` until then.
+- Stage 1.7 reads the output tensors by `semantic` and `fields`, feeds the input dtype to the
+  session, and decides the score threshold of the generic keypoint detector. The modules of this
+  stage apply only the rule of a missing keypoint. The raw SimCC score has no fixed range, so the
+  old `confidence_threshold: 0.004` does not apply to it.
+- Two golden tests are not written. They need parity outputs of OpenMMLab-Exporter that this
+  repository does not hold: the host tensor of one image of the `yolox-person` parity set
+  ([Normalization](model-sidecar/pre/normalization.md#implementer-guidance)), and the mmpose
+  scores of one RTMW crop
+  ([SimCC decode](model-sidecar/post/keypoint/decode-simcc.md#implementer-guidance)). The model
+  gate of stage 1.9 runs the real exports.
+- [`pre.resize.stretch.yaml`](model-sidecar/vectors/pre.resize.stretch.yaml) names no package
+  function. Three tests of `tools/tests/test_land_fill.py` use the file as their fixture and expect
+  no entry on its cases. `skellytracker/tests/processing/test_preprocess.py` runs its numeric cases.
+- [`pre.resize.fit.yaml`](model-sidecar/vectors/pre.resize.fit.yaml) keeps `unverified`, and each
+  case names the new functions. A vector file has `verified_against` or `unverified` at the top,
+  not the two. No exporter ran the cases. At stage 2.3, remove the case-level entries of the old
+  functions `fit_preprocess` and `letterbox_preprocess`, with their adapters.
 - **Run-time check IDs.** A vector case for a refused tensor or caller argument writes
   `{error: no-rule}`, because no validation rule can check that input
-  ([ADR-TA0G](../decisions/entries/TA0G-vector-cases-and-reference-modules.md)). The implementation stage can give these
-  run-time checks their own IDs, for example `C-<section-id>-<n>`. A sidecar before `vNEXT` that uses
-  a feature that is "Not available." also gives `no-rule`. A rule `V-format.versioning-<n>` can
+  ([ADR-TA0G](../decisions/entries/TA0G-vector-cases-and-reference-modules.md)). The new modules
+  raise `ValueError` with no ID for these inputs. The implementation stage can give these run-time
+  checks their own IDs, for example `C-<section-id>-<n>`. A sidecar before `vNEXT` that uses a
+  feature that is "Not available." also gives `no-rule`. A rule `V-format.versioning-<n>` can
   replace that use. The user decides both.
 
 ### 1.6 Catalog and the `detectors` entry point (was N3)
