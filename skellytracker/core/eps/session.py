@@ -1,0 +1,164 @@
+"""`build_session()`: build one ONNX Runtime session on the requested EP, with its `SessionReport`.
+
+skellytracker never runs a session on an other EP than the requested EP. A node of the model can
+run on the CPU EP: `SessionReport.cpu_nodes` and `cpu_op_types` report it. `build_session()` serves
+the new code only. The caller fills `ModelRef` from the sidecar: this module reads no sidecar.
+"""
+
+import os
+import time
+from collections.abc import Mapping
+
+import numpy as np
+
+from skellytracker.core._hardware.sanitize import sanitize_text
+from skellytracker.core.eps import registration, store
+from skellytracker.core.eps.catalog import EpCatalog, load_catalog
+from skellytracker.core.eps.recommendation import ep_gpus, install_hint
+from skellytracker.core.eps.records import USABLE_STATES, ModelRef, SessionReport
+from skellytracker.core.errors import EpRequestError, EpUnavailableError, SessionCreationError, VRAMExhaustionError
+from skellytracker.core.system.host import probe_host
+
+CPU_EP = "CPUExecutionProvider"
+OOM_MARKS = ("out of memory", "cudamalloc", "alloc failed", "failed to allocate", "bfcarena", "available memory", " oom")
+DTYPES = {"tensor(float)": np.float32, "tensor(float16)": np.float16, "tensor(double)": np.float64, "tensor(uint8)": np.uint8,
+          "tensor(int8)": np.int8, "tensor(int32)": np.int32, "tensor(int64)": np.int64, "tensor(bool)": np.bool_}
+
+
+def assignment(session) -> tuple[tuple[tuple[str, int], ...], int, tuple[str, ...]]:
+    """The node count of each EP, the CPU node count and the CPU op types of a session."""
+    counts: dict[str, int] = {}
+    cpu_ops: set[str] = set()
+    for subgraph in session.get_provider_graph_assignment_info():
+        nodes = list(subgraph.get_nodes())
+        counts[subgraph.ep_name] = counts.get(subgraph.ep_name, 0) + len(nodes)
+        if subgraph.ep_name == CPU_EP:
+            cpu_ops |= {node.op_type for node in nodes}
+    return tuple(sorted(counts.items())), counts.get(CPU_EP, 0), tuple(sorted(cpu_ops))
+
+
+def zero_inputs(session) -> dict:
+    """One zero tensor for each input of a session. A dimension with no fixed size is 1."""
+    return {item.name: np.zeros([dim if isinstance(dim, int) and dim > 0 else 1 for dim in item.shape],
+                                dtype=DTYPES.get(item.type, np.float32)) for item in session.get_inputs()}
+
+
+def open_session(model, catalog: EpCatalog, key: str, options: Mapping[str, str], gpu=None, device_key: str | None = None,
+                 strict: bool = False):
+    """Register the EP and create the session with no retry on the CPU. `strict` refuses each node on the CPU EP."""
+    import onnxruntime
+
+    row, pack = catalog.ep(key), catalog.pack(key)
+    ep_name = registration.ensure_registered(key).ep_name
+    session_options = onnxruntime.SessionOptions()
+    session_options.log_severity_level = 3
+    session_options.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
+    session_options.add_session_config_entry("session.record_ep_graph_assignment_info", "1")
+    if strict and ep_name != CPU_EP:
+        session_options.add_session_config_entry("session.disable_cpu_ep_fallback", "1")
+    options = dict(options)
+    providers, ep_device_id = None, None
+    if pack is None:
+        providers = [(ep_name, options)]
+    else:
+        session_options.intra_op_num_threads = 1  # attributes: a session config entry has no effect for them
+        session_options.inter_op_num_threads = 1
+        cache_option = row["options"].get("cache_path_option")
+        if cache_option:
+            cache = store.cache_root() / key / pack["version"] / str(gpu.driver_version)
+            cache.mkdir(parents=True, exist_ok=True)
+            options[cache_option] = str(cache)
+        device = registration.ort_device(ep_name, gpu, int(device_key.rsplit(":", 1)[1]))
+        if device is None:
+            raise EpUnavailableError(f"The EP '{key}' lists no device for the GPU {device_key}.", install_hint(key))
+        ep_device_id = dict(device.ep_options).get("device_id")
+        session_options.add_provider_for_devices([device], options)  # never `providers=[name]` for a plugin EP
+    model = model if isinstance(model, bytes) else os.fspath(model)
+    return onnxruntime.InferenceSession(model, sess_options=session_options, providers=providers, enable_fallback=0), ep_name, ep_device_id
+
+
+def _failure(error: Exception, report: SessionReport, what: str) -> Exception:
+    text = sanitize_text(str(error))[:2000]
+    if any(mark in text.lower() for mark in OOM_MARKS):
+        return VRAMExhaustionError(f"The GPU memory is exhausted at the {what} of the session on '{report.requested_ep}': {text}", report)
+    return SessionCreationError(f"The session on the EP '{report.requested_ep}' failed at its {what}: {text}", report)
+
+
+def build_session(model: str | os.PathLike | bytes, *, execution_provider: str, ep_options: Mapping[str, str] | None = None,
+                  device_key: str | None = None, model_ref: ModelRef | None = None):
+    """Build a session on `execution_provider`. It returns `(onnxruntime.InferenceSession, SessionReport)`.
+
+    `model` is the bytes or the path of an ONNX file. `execution_provider` is a concrete key of the
+    EP catalog. `ep_options` maps option names to string values. `device_key` selects the GPU of a
+    GPU EP. With no `device_key`, the session uses the GPU with the most VRAM that the EP can use;
+    on a tie, the GPU with the lowest PCI bus id.
+
+    It raises, before frame 0:
+
+    - `EpRequestError` for a reserved or unknown key and for an option that the catalog does not
+      list, also `device_id`, before a call of ONNX Runtime;
+    - `EpUnavailableError` when the pack is not installed, does not register or lists no device;
+    - `SessionCreationError` when the EP does not start, is not the first provider or has no node;
+    - `VRAMExhaustionError` when the GPU memory is exhausted at the build or at the warm-up run.
+
+    The session is not built again on the CPU. The warm-up is one run on zero inputs.
+    """
+    catalog = load_catalog()
+    key = execution_provider
+    row = catalog.ep(key)
+    options = catalog.check_options(key, ep_options)
+    pack = catalog.pack(key)
+    gpu = None
+    if pack is None:
+        if device_key is not None:
+            raise EpRequestError(f"The EP '{key}' takes no device key.")
+    else:  # only a GPU EP reads the host: an NVML call wakes the GPU of a hybrid laptop
+        host = probe_host()
+        usable = ep_gpus(catalog, key, host)
+        if device_key is None and usable:
+            device_key = usable[0][0]
+        gpu = dict(usable).get(device_key)
+        state, _, reason = store.pack_state(catalog, key, gpu, device_key, host.os_build)
+        if device_key is not None and gpu is None:
+            reason = f"'{device_key}' is not a GPU that the EP can use on this host"
+        if gpu is None or state not in USABLE_STATES:
+            raise EpUnavailableError(f"The EP '{key}' is not available: {reason}.", install_hint(key))
+        if state != "ready":
+            store.warn_once(f"{key}:{state}", f"The EP '{key}' is in the state {state}: {reason}.")
+    precisions = () if model_ref is None else model_ref.precisions
+    report = SessionReport(
+        requested_ep=key, used_ep=None, ep_name=pack["ep_name"] if pack else row["ep_name"], ort_version=catalog.ort_version,
+        catalog_revision=catalog.revision, device_kind="gpu" if row["gpu"] else "cpu",
+        pack_id=pack["id"] if pack else None, pack_version=pack["version"] if pack else None, device_key=device_key,
+        device_name=None if gpu is None else gpu.name,
+        gpu_uuid=None if gpu is None or gpu.nvidia is None else gpu.nvidia.uuid, gpu_key=None if gpu is None else gpu.key,
+        ep_options=options, precision=precisions[0] if len(precisions) == 1 else None,
+        artifact_sha256=None if model_ref is None else model_ref.artifact_sha256,
+    )
+    start = time.perf_counter_ns()
+    try:
+        session, ep_name, ep_device_id = open_session(model, catalog, key, dict(options), gpu, device_key)
+    except (EpRequestError, EpUnavailableError):
+        raise
+    except Exception as error:  # noqa: BLE001 - ONNX Runtime raises its own error types
+        raise _failure(error, report, "build") from error
+    build_ns = time.perf_counter_ns() - start
+    start = time.perf_counter_ns()
+    try:
+        session.run(None, zero_inputs(session))
+    except Exception as error:  # noqa: BLE001
+        raise _failure(error, report, "warm-up") from error
+    warmup_ns = time.perf_counter_ns() - start
+    nodes_by_ep, cpu_nodes, cpu_op_types = assignment(session)
+    import onnxruntime
+
+    first = session.get_providers()[0]
+    used = next((name for name in catalog.keys() if (catalog.pack(name) or catalog.ep(name))["ep_name"] == first), None)
+    fields = dict(vars(report), used_ep=used, ep_device_id=ep_device_id, ort_version=onnxruntime.__version__, nodes_by_ep=nodes_by_ep, cpu_nodes=cpu_nodes,
+                  cpu_op_types=cpu_op_types, build_ns=build_ns, warmup_ns=warmup_ns)
+    report = SessionReport(**fields)
+    if first != ep_name or dict(nodes_by_ep).get(ep_name, 0) < 1:
+        raise SessionCreationError(
+            f"The session did not start on the EP '{key}': its first provider is {first}, and the EP {ep_name} has "
+            f"{dict(nodes_by_ep).get(ep_name, 0)} nodes.", report)
+    return session, report
