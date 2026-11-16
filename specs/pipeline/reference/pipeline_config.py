@@ -44,6 +44,8 @@ RESERVED_NODE_ID = "pipeline"
 # The reserved source of the graph: the camera frame of the call, as the port `frame.image`.
 FRAME = "frame"
 FRAME_PORTS = {"image": "image"}
+# The fixed fields of the result of one camera (pipeline.outputs). An output name must not be one of them.
+RESULT_FIELDS = ("frame_index", "image_size", "timestamp_ms", "node_ran")
 # The input name of a variadic node in the reference model. Its `inputs` is a list.
 VARIADIC = "*"
 # The tolerance of the weight sum of a weighted derived point (sidecar spec, post.keypoint.schema).
@@ -754,6 +756,8 @@ def check_structure(config: PipelineConfig) -> None:
     for name, ref in config.outputs.items():
         if re.match(NAME, name) is None:
             raise ValueError(f"V-pipeline.outputs-1: the output name {name!r} is not a name")
+        if name in RESULT_FIELDS:
+            raise ValueError(f"V-pipeline.outputs-3: the output name {name!r} is a field of the camera result")
         _port(ref, nodes, "V-pipeline.outputs-1", graph_input=False)
     for span in config.instrumentation.timing_spans:
         node_id, _, span_name = span.partition(".")

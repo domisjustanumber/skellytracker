@@ -11,7 +11,7 @@ check two things:
   the front matter `id` of `nodes/<type>.md` is that section. Each port type is a known port
   type. Each `specs/pipeline/examples/*.pipeline.yaml` passes `PipelineConfig.model_validate`.
   The structural checks refuse a small config for each newer rule (point-name prefixes, list
-  inputs, `any` types, outputs and taps with no `@prev` or frame port).
+  inputs, `any` types, outputs and taps with no `@prev` or frame port, an output name that is a field of the camera result).
 
 The repository tests skip when the reference model does not exist. The example test also skips
 when there are no examples.
@@ -216,6 +216,7 @@ ROI = {"id": "roi", "type": "roi_from_points", "inputs": {"keypoints": "body.key
         (_config([{"id": "pick", "type": "first_of", "inputs": ["person.rois", "body.keypoints@prev"]}]), "V-node.first_of-1"),
         (_config([], outputs={"body": "body.keypoints@prev"}), "V-pipeline.outputs-1"),
         (_config([], outputs={"image": "frame.image"}), "V-pipeline.outputs-1"),
+        (_config([], outputs={"node_ran": "body.keypoints"}), "V-pipeline.outputs-3"),
         (_config([], taps=[{"action": "record", "port": "frame.image", "name": "img"}]), "V-pipeline.taps-1"),
         (_config([{"id": "m", "type": "merge", "inputs": {"target": "body.keypoints", "source": "body.keypoints"},
                    "params": {"slots": {"hand": "body/wrist"}, "source_anchor": "body/wrist", "max_distance": 0.15,
@@ -227,7 +228,7 @@ ROI = {"id": "roi", "type": "roi_from_points", "inputs": {"keypoints": "body.key
     ],
     ids=["no-prefix", "dot-form", "weight-sum", "first-of-types", "any-type-inferred",
          "gate-value-prev", "first-of-only-prev", "first-of-types-prev",
-         "output-prev", "output-frame", "tap-frame", "merge-map-column", "merge-no-max-distance",
+         "output-prev", "output-frame", "output-result-field", "tap-frame", "merge-map-column", "merge-no-max-distance",
          "mediapipe-size-not-body"],
 )
 def test_the_reference_model_refuses_the_new_structural_cases(config: dict, rule: str) -> None:

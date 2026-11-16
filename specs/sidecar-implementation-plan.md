@@ -938,7 +938,11 @@ This stage implements the node types of the pipeline spec. Use the skill
     its result dropped;
   - the batch rule of a stateful pipeline and its warning `batch_limited_by_state`;
   - the session sharing inside one run: the nodes with the same artifact SHA-256, batch, EP key, EP
-    options and device share one session; no session is shared between runs ([ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 6).
+    options and device share one session; no session is shared between runs ([ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 6);
+  - `node_ran` in the result of each camera, a `dict[str, bool]` with one key for each inference
+    node: true when the node did an inference on the frame of that camera in this call, also with
+    `timing` off ([Outputs](pipeline/outputs.md#behaviour) item 8, `V-pipeline.outputs-3`;
+    [ADR-Q5BN](../decisions/entries/Q5BN-node-ran-in-the-camera-result.md)).
 - **Time.** Each output, timing event and tap row has `frame_index`. The `timestamp_ms` of a frame
   (a float), its `video` fallback with the run parameter `fps` (default 30.0) and the `live` rule
   are in [Running](pipeline/running.md#behaviour) item 2. Give the typed error of a refused call a name
@@ -1066,7 +1070,9 @@ This stage implements the node types of the pipeline spec. Use the skill
 - Gate: tests on generated ONNX models for each node type, the load checks, the empty-input rule,
   the `concat` empty-input fill, the instance rows with `class_index` and `instance_score`, `@prev`,
   the stateful batch rule and its warning, `ep_partial_placement`, the CLI exit codes, the default EP, `V-pipeline.running-8`, `V-pipeline.running-9`, each refusal of
-  `V-pipeline.running-10` and a change that applies from the next call, the timing parents, and record and replay with `row`. The
+  `V-pipeline.running-10` and a change that applies from the next call, the timing parents, and record and replay with `row`. A
+  test of `node_ran`: true when the detector ran and found nobody; false for an empty required
+  input, a replayed node and a padded item; present with `timing` off. The
   package glue nodes pass the glue vectors. The aggregator output passes
   `skellybench.schema.validate_timing`. `mediapipe-holistic-tasks` runs and gives the expected point
   sets.
