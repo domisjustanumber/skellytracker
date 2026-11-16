@@ -875,13 +875,11 @@ Open:
   example first, for example with a one-stage pose model or a model with a `keypoint_coordinates`
   output. The two first models of stage 1.9 and the RTMPose models of stage 2.2 do not use these
   sections.
-- **Cache of generated artifacts.** The host keeps no generated artifact
-  ([Batch conversion](model-sidecar/common/batch-conversion.md#behaviour) item 6 allows a cache with
-  the key source `sha256`, `profile_id` and `T`). Each session start with an other batch converts
-  again, in memory. freemocap asks for the cache, because a detector change in a realtime run
-  starts a session again. The proposed form is one file
-  `<user cache folder>/converted/<sha256>-<profile_id>-b<T>.onnx`, written with `os.replace`. Stage
-  1.9 measures the conversion time first. The decision follows that number.
+- **Cache of generated artifacts: no cache.** The host keeps no generated artifact. Each session
+  start with an other batch converts again, in memory. The conversion takes at most about 1 s,
+  against a session start of 0.3 s to 4.8 s
+  ([ADR-GPW6](../decisions/entries/GPW6-model-gate-of-the-first-models.md) items 9 and 10). Examine
+  the cache again only on a new measurement.
 - **`close()` in a pipeline run.** `close()` of a detector does not wait for a `detect` call that
   runs. `PipelineRun.close()` of stage 1.10 must wait for the calls or stop them, and it decides
   the lock design.
@@ -1031,40 +1029,36 @@ Done:
 - Stage 1.9 wrote no Python pipeline builders
   ([ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md) item 6). Stage 1.10
   adds the pipeline files.
+- The trace tool scans `core/model_zoo/detectors/`, and not `core/model_zoo/landmark_schemas/`. A
+  package sidecar with the key of a reference example must have the bytes of that example. The two
+  files are one model with the root `example, package` in
+  [`TRACEABILITY.md`](model-sidecar/TRACEABILITY.md#models). Different bytes are an error that names
+  the two files. The two package sidecars need no new derivation in the normalization table.
+- No response is written. [ADR-GPW6](../decisions/entries/GPW6-model-gate-of-the-first-models.md)
+  is the record: the two `model` bundles are `landed`, and the path of a `model` bundle in
+  [States](model-sidecar/model-addition-workflow/hand-over.md#states) ("`submitted` ->
+  `needs-contributor` or `waiting` -> `landed`") has no step from `landed` to `verified`.
+- No cache of generated artifacts
+  ([stage 1.7](#17-standalone-generic-detectors-was-n4), Open).
 - Gate: the model gate passes locally. The old detectors and their tests did not change, and they
   pass, also the video tests.
 
 Open:
 
-- **Package root in the trace scan: not done.** The item below asks for `core/model_zoo/detectors/`
-  in the scan of `tools/sidecar_trace.py`. Each package sidecar has the key of its reference
-  example, and `scan_sidecars` refuses a key that two files use. The user must decide how the
-  trace shows a package copy of an example. The two package sidecars need no new derivation.
-- **Responses.** No response `verified` is written. The two `model` bundles are `landed` from the
-  spec-build stage, and [States](model-sidecar/model-addition-workflow/hand-over.md#states) has no
-  path from `landed` to `verified`.
-- **Parity output in the bundle.** The gate read the worker files of the exporter in its local
-  hand-over folder, with the SHA-256 that each intake records. No bundle has a `parity/` folder.
-  The acceptance gate names the `parity/` output of the bundle.
-- **Cache of generated artifacts.** The decision of
-  [stage 1.7](#17-standalone-generic-detectors-was-n4) (Open) follows the conversion time above. It
-  is a decision of the user.
-- **Tracked golden tests.** A golden test in the test suite needs a tracked parity fixture. The
-  user decides if a fixture from the exporter output goes in the repository.
+- **Golden tests and the `parity/` folder.** The two golden tests ran in
+  `decisions/scripts/gpw6_first_models_gate.py`. They are not in the test suite. A tracked fixture
+  needs a file with a clear license. The user decides. No bundle has a `parity/` folder. The gate
+  used the worker files of the exporter in its local hand-over folder, checked by the SHA-256
+  values of the intake. The
+  [acceptance gate](../.claude/skills/implement-sidecar-section/proposal-gate.md) (step 5) gives
+  `needs-contributor` to a bundle with no reference output. The user decides if the check by the
+  hashes is sufficient.
 - **Operating systems and CI.** The gate ran only on Windows. CI holds no ONNX file, so no CI job
   runs a real export.
 - **Export error on `trt-rtx`.** The raw SimCC difference from the upstream output is larger on
   `trt-rtx` than on `cuda`, up to 1.47 for `x-384` fp16
   ([ADR-GPW6](../decisions/entries/GPW6-model-gate-of-the-first-models.md) item 8). The measured
   gate of the exporter still passes.
-
-- **Package root in the trace scan.** The trace tool scans only
-  `specs/model-sidecar/examples/`. The old package sidecars stay outside the spec until they are deleted ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md)). When the first spec sidecar is in `core/model_zoo/` (stage 1.9), add `core/model_zoo/detectors/` to the scan of
-  `tools/sidecar_trace.py`, as `SIDECAR_ROOTS` of `tools/intake_bundle.py` does. The scan must not
-  read `core/model_zoo/landmark_schemas/`: a schema file is not a sidecar, and
-  `test_the_scan_skips_every_other_yaml_file` refuses a skipped file
-  ([ADR-23F5](../decisions/entries/23F5-landmark-schema-registry.md)). Add the derivations that the new sidecars need to
-  the normalization table.
 
 ### 1.10 The pipeline API (was P)
 
