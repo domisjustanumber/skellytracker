@@ -1,4 +1,4 @@
-"""Linux readers: `/proc`, `/sys`, the container markers and one `systemd-detect-virt --vm` call.
+"""Linux readers: `/proc`, `/sys`, `pci.ids`, the container markers and one `systemd-detect-virt --vm` call.
 
 Each function takes `root`, so a test gives a folder of fake files. psutil is not used on Linux.
 """
@@ -13,6 +13,7 @@ from skellytracker.core._hardware import pci
 from skellytracker.core.system.records import ContainerInfo, GpuInfo, NvidiaContainerInfo, VirtualizationInfo
 
 ROOT = Path("/")
+PCI_IDS = ("usr/share/hwdata/pci.ids", "usr/share/misc/pci.ids")  # the database that `lspci` reads
 
 
 def _read(path: Path) -> str | None:
@@ -47,20 +48,29 @@ def cores_and_memory(root: Path = ROOT) -> tuple[int | None, int | None, int]:
 
 
 def gpus(root: Path = ROOT) -> list[GpuInfo]:
-    result = {}
+    """The GPUs of `/sys/class/drm`. `name` is the amdgpu `product_name`, else the device name of `pci.ids`.
+
+    The function reads the first `pci.ids` file that exists one time. No test ran it on Linux.
+    """
+    result, pci_ids = {}, None
     for card in sorted((root / "sys/class/drm").glob("card*")):
         device = card / "device"
         if "-" in card.name or not (device / "vendor").exists():
             continue  # card0-HDMI-A-1 is a connector, not a GPU
         uevent = dict(line.split("=", 1) for line in (_read(device / "uevent") or "").splitlines() if "=" in line)
         bus = pci.normalize_bus_id(uevent.get("PCI_SLOT_NAME", ""))
-        vendor_id = _hex(device / "vendor")
+        vendor_id, device_id = _hex(device / "vendor"), _hex(device / "device")
+        name = _read(device / "product_name")
+        if not name and vendor_id is not None and device_id is not None:
+            if pci_ids is None:
+                pci_ids = next((text for text in (_read(root / path) for path in PCI_IDS) if text is not None), "")
+            name = pci.device_name(pci_ids, vendor_id, device_id)
         boot_vga = _read(device / "boot_vga")
         driver = uevent.get("DRIVER")
         vram = _read(device / "mem_info_vram_total")  # amdgpu only
         gpu = GpuInfo(
-            key=bus or f"drm:{card.name}", vendor=pci.vendor_of(vendor_id), name=_read(device / "product_name"),
-            pci_bus_id=bus, pci_vendor_id=vendor_id, pci_device_id=_hex(device / "device"),
+            key=bus or f"drm:{card.name}", vendor=pci.vendor_of(vendor_id), name=name or None,
+            pci_bus_id=bus, pci_vendor_id=vendor_id, pci_device_id=device_id,
             pci_subsys_id=_hex(device / "subsystem_device"),
             is_integrated=None if boot_vga is None else boot_vga == "1",  # heuristic: the boot GPU
             driver_version=_read(root / "sys/module" / driver / "version") if driver else None,

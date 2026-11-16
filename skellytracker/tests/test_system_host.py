@@ -161,6 +161,45 @@ def test_linux_wsl_and_no_container(tmp_path):
     assert linux.container(tmp_path, environ={}) is None and linux.gpus(tmp_path) == []
 
 
+PCI_IDS = ("# a comment line\n"
+           "1002  Advanced Micro Devices, Inc. [AMD/ATI]\n"
+           "\t73bf  Navi 21 [Radeon RX 6800/6800 XT / 6900 XT]\n"
+           "\t\t1002 0e3a  Radeon RX 6900 XT\n"
+           "8086  Intel Corporation\n"
+           "\t4680  AlderLake-S GT1\n"
+           "\t\t8086 73bf  A subsystem line\n"
+           "C 03  Display controller\n"
+           "\t00  VGA compatible controller\n"
+           "8086  A line after the start of the class section\n"
+           "\t9999  Not a device\n")
+
+
+def test_pci_ids_device_name():
+    assert pci.device_name(PCI_IDS, 0x8086, 0x4680) == "AlderLake-S GT1"
+    assert pci.device_name(PCI_IDS, 0x1002, 0x73BF) == "Navi 21 [Radeon RX 6800/6800 XT / 6900 XT]"
+    assert pci.device_name(PCI_IDS, 0x8086, 0x73BF) is None  # a device of an other vendor, and a subsystem line
+    assert pci.device_name(PCI_IDS, 0x1002, 0x0E3A) is None  # a subsystem id is not a device id
+    assert pci.device_name(PCI_IDS, 0x8086, 0x9999) is None  # after the start of the class section
+    assert pci.device_name(PCI_IDS, 0x10DE, 0x2484) is None and pci.device_name("", 0x8086, 0x4680) is None
+
+
+def test_linux_gpu_name_from_pci_ids(tmp_path):
+    root = linux_root(tmp_path)
+    assert linux.gpus(root)[0].name is None  # no `pci.ids` file
+    for path, text in {"usr/share/misc/pci.ids": PCI_IDS, "sys/class/drm/card1/device/vendor": "0x8086\n",
+                       "sys/class/drm/card1/device/device": "0x4680\n",
+                       "sys/class/drm/card1/device/uevent": "DRIVER=i915\nPCI_SLOT_NAME=0000:00:02.0\n"}.items():
+        (root / path).parent.mkdir(parents=True, exist_ok=True)
+        (root / path).write_text(text, encoding="utf-8")
+    assert {gpu.key: gpu.name for gpu in linux.gpus(root)} == {
+        "0000:00:02.0": "AlderLake-S GT1", "0000:03:00.0": "Navi 21 [Radeon RX 6800/6800 XT / 6900 XT]"}
+    (root / "usr/share/hwdata").mkdir(parents=True)
+    (root / "usr/share/hwdata/pci.ids").write_text("8086  Intel Corporation\n\t4680  The hwdata name\n", encoding="utf-8")
+    (root / "sys/class/drm/card0/device/product_name").write_text("AMD Radeon RX 6900 XT\n", encoding="utf-8")
+    assert {gpu.key: gpu.name for gpu in linux.gpus(root)} == {  # `hwdata` first; `product_name` before `pci.ids`
+        "0000:00:02.0": "The hwdata name", "0000:03:00.0": "AMD Radeon RX 6900 XT"}
+
+
 def test_darwin_gpus_from_registry_entries():
     # The keys are the IORegistry key names. `ioreg -l -w0 -r -c IOAccelerator` and `-c IOPCIDevice` show them.
     (gpu,) = darwin.gpus_from_registry([{"model": "Apple M2", "vendor-id": bytes.fromhex("6b100000")}])  # Apple Silicon

@@ -27,6 +27,28 @@ def vendor_of(pci_vendor_id: int | None) -> str:
     return _VENDORS.get(pci_vendor_id, "other")
 
 
+def device_name(pci_ids: str, vendor_id: int, device_id: int) -> str | None:
+    """The name of a device in the text of a `pci.ids` file; `None` when the file does not hold the ids.
+
+    A vendor line starts with 4 hex digits. A device line starts with one tab and 4 hex digits. A
+    subsystem line starts with two tabs. A `#` line is a comment. The class section starts at the
+    first `C ` line and ends the read.
+    """
+    vendor, device, in_vendor = f"{vendor_id:04x}", f"{device_id:04x}", False
+    for line in pci_ids.splitlines():
+        if line.startswith("C "):
+            break
+        if not line.strip() or line.startswith(("#", "\t\t")):
+            continue
+        if not line.startswith("\t"):
+            if in_vendor:
+                break  # the next vendor: the device is not in the file
+            in_vendor = line[:4].lower() == vendor
+        elif in_vendor and line[1:5].lower() == device:
+            return line[5:].strip() or None
+    return None
+
+
 def drop_second_adapters(adapters: list) -> list:
     """`adapters` (`GpuInfo` records) without each software adapter and without a second adapter of one device.
 
