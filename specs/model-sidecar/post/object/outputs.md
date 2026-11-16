@@ -8,14 +8,15 @@ selectors:
   - outputs[].semantic=scores
   - outputs[].semantic=class_logits
 implemented_by:
-  validate: skellytracker/core/sidecar/model.py::SidecarModel._check_outputs_semantics  # partial: no boxes, scores, class_logits, class_axis or packed_keypoints; no float dtype check; the fields length is not compared with the shape
+  validate: skellytracker/core/model_spec/rules.py::check_sidecar
   decode: skellytracker/core/detectors/object_detectors/yolox/yolox_decode.py::yolox_detection_decode  # partial: it reads the outputs by position and last dimension, not by semantic or fields
 external_impl: []
 tests:
   - skellytracker/tests/sidecar/test_model_validation.py
   - skellytracker/tests/test_yolox_detector.py
+  - skellytracker/tests/model_spec/test_model_validation.py
 vectors: null
-status: {spec: stable, validate: partial, decode: partial}
+status: {spec: stable, validate: implemented, decode: partial}
 ---
 
 # Object outputs

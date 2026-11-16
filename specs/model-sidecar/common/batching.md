@@ -4,12 +4,15 @@ title: Batching
 kind: common
 selectors: []
 implemented_by:
-  validate: missing  # No code reads batching.batch. BatchingSpec checks the removed key batch_axis (decisions/entries/JAA4-one-batch-field.md).
-  load: skellytracker/core/sidecar/model.py::OnnxSpec.supports_dynamic_batch  # partial. It reads the key dynamic of the removed batch_artifacts map, not batching.batch.
+  validate: skellytracker/core/model_spec/rules.py::check_sidecar
+  load: skellytracker/core/model_spec/model.py::BatchingSpec.supports_dynamic_batch
 external_impl: []
-tests: [skellytracker/tests/sidecar/test_model_validation.py]
+tests:
+  - skellytracker/tests/sidecar/test_model_validation.py
+  - skellytracker/tests/model_spec/test_model_validation.py
+  - skellytracker/tests/model_spec/test_loader.py
 vectors: null
-status: {spec: stable, validate: missing, load: partial}
+status: {spec: stable, validate: implemented, load: implemented}
 ---
 
 # Batching

@@ -5,7 +5,7 @@ kind: postprocessor
 selectors:
   - role=object_detector
 implemented_by:
-  validate: skellytracker/core/sidecar/model.py::DetectionDecodeSpec  # partial: no selection, output bindings, box_space, classes, keep_classes, clamp_boxes or min_box_size; max_detections defaults to 300
+  validate: skellytracker/core/model_spec/rules.py::check_sidecar
   decode: skellytracker/core/detectors/object_detectors/yolox/yolox_decode.py::yolox_detection_decode  # partial: the tensor count picks the path, not selection; no box_space, class filter, clamp or size filter; the caller gives the thresholds
 external_impl:
   - OpenMMLab-Exporter: onnx_runtime/decode_nms.py::NmsDecoder
@@ -13,8 +13,9 @@ tests:
   - skellytracker/tests/sidecar/test_model_validation.py
   - skellytracker/tests/test_object_detection_decode.py
   - skellytracker/tests/test_yolox_detector.py
+  - skellytracker/tests/model_spec/test_model_validation.py
 vectors: vectors/post.object.decode.yaml
-status: {spec: stable, validate: partial, decode: partial}
+status: {spec: stable, validate: implemented, decode: partial}
 ---
 
 # Object decode

@@ -7,7 +7,7 @@ selectors:
   - outputs[].semantic=simcc_x
   - outputs[].semantic=simcc_y
 implemented_by:
-  validate: missing  # PoseDecodeSpec._check_decode (skellytracker/core/sidecar/model.py) keys on the removed key pose.decode.is_3d, and PoseSpec forbids pose.geometry (decisions/entries/90CE-minimal-sidecar-contract.md).
+  validate: skellytracker/core/model_spec/rules.py::check_sidecar
   decode: skellytracker/core/detectors/processing/simcc_decode.py::simcc_pose_decode  # partial: the split ratio is fixed at 2.0, not read from the bin counts; the score is the mean of the two softmax peaks
 external_impl: []
 tests:
@@ -16,8 +16,9 @@ tests:
   - skellytracker/tests/sidecar/test_rtmpose_hand_sidecar.py
   - skellytracker/tests/sidecar/test_rtmpose_face_sidecar.py
   - skellytracker/tests/sidecar/test_rtmw_sidecar.py
+  - skellytracker/tests/model_spec/test_model_validation.py
 vectors: vectors/post.keypoint.decode.simcc.yaml
-status: {spec: stable, validate: missing, decode: partial}
+status: {spec: stable, validate: implemented, decode: partial}
 ---
 
 # SimCC decode

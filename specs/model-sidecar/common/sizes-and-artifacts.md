@@ -4,13 +4,15 @@ title: Sizes and artifacts
 kind: common
 selectors: []
 implemented_by:
-  validate: skellytracker/core/sidecar/model.py::SizeSpec  # partial. The checks run only inside resolved_size. OnnxSpec reads the removed batch_artifacts map, not precision_artifacts and output_shapes (decisions/entries/JAA4-one-batch-field.md). No check for V-common.sizes_and_artifacts-3 (decisions/entries/90CE-minimal-sidecar-contract.md). No check for -8 or -12. No check for -9 to -11: PrecisionArtifact forbids the key sha256.
-  load: skellytracker/core/sidecar/model.py::SidecarModel.resolved_size  # partial. Drops every key of a size entry except input and onnx. resolve_model_path in model_registry.py downloads artifacts and checks url_sha256. Nothing checks sha256 against the file that filename names.
+  validate: skellytracker/core/model_spec/rules.py::check_sidecar  # partial. No check of V-common.sizes_and_artifacts-10: stage 1.6 of the implementation plan checks the bytes of an ONNX file.
+  load: skellytracker/core/model_spec/model.py::SidecarModel.artifact  # partial. Reads a size entry with no merge, by size and precision. No download, and nothing checks sha256 or url_sha256 against a file: stage 1.6.
 external_impl: []
 tests:
   - skellytracker/tests/sidecar/test_model_validation.py
   - skellytracker/tests/sidecar/test_runtime.py
   - skellytracker/tests/sidecar/test_model_registry_sidecar_support.py
+  - skellytracker/tests/model_spec/test_model_validation.py
+  - skellytracker/tests/model_spec/test_loader.py
 vectors: null
 status: {spec: stable, validate: partial, load: partial}
 ---

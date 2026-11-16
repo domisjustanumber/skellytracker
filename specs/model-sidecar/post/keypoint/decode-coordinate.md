@@ -6,11 +6,12 @@ selectors:
   - keypoint.decode.method=coordinate
   - outputs[].semantic=keypoint_coordinates
 implemented_by:
-  validate: skellytracker/core/sidecar/model.py::PoseDecodeSpec._check_decode
+  validate: skellytracker/core/model_spec/rules.py::check_sidecar
   decode: missing
 external_impl: []
 tests:
   - skellytracker/tests/sidecar/test_model_validation.py
+  - skellytracker/tests/model_spec/test_model_validation.py
 vectors: null
 status: {spec: stable, validate: implemented, decode: missing}
 ---

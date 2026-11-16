@@ -238,6 +238,53 @@ def test_implemented_by_names_a_function_that_exists(
     ), f"{section_id} {step}: {path} has no {symbol}"
 
 
+IMPLEMENTS = re.compile(r"^\s*Implements: (\S+)\s*$", re.M)
+# The code that the implementation stage writes. Each implementing function there has the line
+# `Implements: <section-id>` in its docstring (the skill `implement-sidecar-section`).
+NEW_CODE = ("skellytracker/core/model_spec/",)
+
+
+def docstring_of(path: Path, symbol: str) -> str:
+    """Return the docstring of `name` or `Class.name` in a Python file."""
+    nodes: list[ast.AST] = [ast.parse(path.read_text(encoding="utf-8"))]
+    for name in symbol.split("."):
+        nodes = [
+            child
+            for node in nodes
+            for child in ast.iter_child_nodes(node)
+            if isinstance(child, ast.ClassDef | ast.FunctionDef) and child.name == name
+        ]
+    assert len(nodes) == 1, f"{path}: {symbol}"
+    return ast.get_docstring(nodes[0]) or ""  # type: ignore[arg-type]
+
+
+def new_code_pairs() -> list[tuple[str, str, str]]:
+    return [pair for pair in step_pairs() if pair[2].startswith(NEW_CODE)]
+
+
+def test_there_are_implementing_functions_in_the_new_code() -> None:
+    assert new_code_pairs()
+
+
+@pytest.mark.parametrize(
+    ("section_id", "step", "reference"),
+    new_code_pairs(),
+    ids=[f"{section}:{step}" for section, step, _ in new_code_pairs()],
+)
+def test_an_implementing_function_of_the_new_code_names_its_section(
+    section_id: str, step: str, reference: str
+) -> None:
+    path, symbol = st.split_reference(reference)
+    assert section_id in IMPLEMENTS.findall(docstring_of(REPO_ROOT / path, symbol)), reference
+
+
+def test_each_implements_line_names_a_section() -> None:
+    known = set(section_ids())
+    for path in sorted((REPO_ROOT / "skellytracker").rglob("*.py")):
+        named = set(IMPLEMENTS.findall(path.read_text(encoding="utf-8")))
+        assert named <= known, f"{relative(path)}: {sorted(named - known)}"
+
+
 @pytest.mark.parametrize("section", all_sections(), ids=lambda s: s.id)
 def test_the_test_files_exist(section: st.Section) -> None:
     for test_path in section.tests:

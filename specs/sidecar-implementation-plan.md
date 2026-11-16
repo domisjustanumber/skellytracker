@@ -461,162 +461,74 @@ Gate:
 
 ### 1.4 Spec loader (was N1)
 
-**Status: NOT STARTED.**
+**Status: IN PROGRESS. One item is open: the move of the `--write` and `--check` commands (below).**
 
-- A new package `core/model_spec/` holds the spec loader and the spec model
+Done:
+
+- The package `core/model_spec/` holds the spec loader and the spec model
   ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 8). The old
-  `core/sidecar/` does not change. Stage 2.3 moves the new package to `core/sidecar/`.
-- The loader takes its sidecar root as an argument. It does not take the nearest folder named
-  `core`.
-- The model items below, and the validation rules that the behaviour items of 1.5 name.
-- The reference hash checks and the V- rule checks of the examples, below. Stage 1.6 does the
-  artifact hash checks.
+  `core/sidecar/` did not change. Stage 2.3 moves the new package to `core/sidecar/`.
+- `load_sidecar(path, sidecar_root, user_root)` takes its sidecar root as an argument. It does not
+  take the nearest folder named `core`, and it does not follow a symlink.
+- `resolve_sidecar_composition` accepts only the `$ref` directive form `{$ref, sha256}`. It checks
+  each `$ref` hash before the parse, the bytes of each file and each duplicate key
+  (`V-format.composition-1` to `-4` and `-6`).
+- `check_schema_version` accepts the SemVer `schema_version` values of
+  `IMPLEMENTED_SCHEMA_VERSIONS`: `"2.0.0"`. The error for each other value names the version
+  (`V-format.versioning-1` and `V-format.versioning-2`).
+- `check_sidecar` checks each other `V-` rule of a sidecar, with the rule ID in each failure. It
+  refuses each key that the spec does not define (`V-format.composition-5`). `load_sidecar` gives it
+  the path under the sidecar root for `V-common.identity-1`, `-7` and `-8`.
+- `SidecarModel` is the typed model at spec version 2.0.0: one `batching.batch` with
+  `batching.batch_conversion`, the sidecar vocabulary, no `heatmap` decode, no 3D SimCC decode, typed
+  size entries with no merge, `output_shapes`, the `license` block and `keypoint.landmark_schema`.
+  The code finds an artifact by its size and its precision.
+- The landmark schema registry reads `core/model_zoo/landmark_schemas/` and `landmark_schemas/` of
+  the user root. It checks `V-post.keypoint.landmark_schema-1` to `-4` and
+  `V-post.keypoint.canonical_mapping-1`. `check_sidecar` checks `V-post.keypoint.schema-10` with it.
+  Stage 1.6 gives the user root to `load_sidecar`.
+- The check of `V-common.license-3` uses a pinned copy of the SPDX License List 3.29.0
+  (`core/model_spec/spdx_license_list.json`).
+- The tests are in `skellytracker/tests/model_spec/`. They hold one case or more for each rule ID
+  that the loader checks, and each data-only case of the vector files. The cases of
+  [`common.identity`](model-sidecar/vectors/common.identity.yaml) go to a temporary sidecar root at
+  `input.path`.
+- `tools/tests/test_examples.py` validates each reference example with `load_sidecar`. The
+  temporary function `resolve` of `tools/sidecar_refs.py` is deleted. The trace tool resolves with
+  the package resolver.
+- The front matter of each section names the new `validate` function, and the new `load` function
+  where the loader does that step. A test checks the line `Implements: <section-id>` of each such
+  function.
 - Gate: the new validation tests pass, and each reference example validates.
 
-Each model item names the gap of the old code against the open target `2.0.0`. Do not change the old
-code ([ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md)). Put each fix in `core/model_spec/`. The new code has no legacy parameter. The tests go beside the new code. The old golden fixtures go
-with their detectors. A golden test of the new code compares with the upstream reference output of
-the exporter. Stage 1.4 and stage 1.5 come before stage 1.9.
+Not in this stage:
 
-- **Batch forms.** A sidecar uses one batch form: `batching.batch: 3` with
-  `batching.batch_conversion`, `1`, or `dynamic`
-  ([Batch forms](model-sidecar/common/sizes-and-artifacts.md#batch-forms);
-  [ADR-JB5J](../decisions/entries/JB5J-one-batch-form-for-each-sidecar.md)). The item "Flattened
-  batch form" gives the fields and the rules.
-- **Package model at spec version 2.0.0.** The spec cleanup removed the legacy
-  layer, gave each sidecar one batch field, reduced the contract to the fields that carry
-  information and made the spec version the skellytracker version
-  ([ADR-0QKK](../decisions/entries/0QKK-no-legacy-layer.md);
-  [ADR-JAA4](../decisions/entries/JAA4-one-batch-field.md);
-  [ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md);
-  [ADR-6GE2](../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). The new model:
-  - has no key that the spec does not define, for example `preserve_aspect_ratio`, `requires_nms` and
-    `may_include_non_person_classes`. A key
-    that the spec does not define is invalid
-    (`V-format.composition-5`; [Validation rules](model-sidecar/format/composition.md#validation-rules));
-  - has no `input_dtype`, `rank`, `batching.batch_axis`, `layout`, `supports_dynamic_size` or
-    `is_3d` ([ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md));
-  - has `keypoint.geometry`. A `simcc` decoder needs `keypoint.geometry: 2d`;
-  - requires `input.normalization`, with no default
-    ([ADR-0QKK](../decisions/entries/0QKK-no-legacy-layer.md));
-  - requires the top-level `source` (`V-common.identity-4` to `V-common.identity-6`) and the
-    `sha256` of each artifact (`V-common.sizes_and_artifacts-9`), with no default. Stages 1.4 and 1.6 add the hash checks of the file
-    bytes;
-  - gives `object.decode.max_detections` no default. The field is valid only with `selection: none` (`V-post.object.selection.none-1`);
-  - accepts only the `$ref` directive form `{$ref, sha256}` (`V-format.composition-1`). The new
-    resolver has no `base` directive.
-- **Sidecar vocabulary.** Added on 2026-11-12. The spec uses one name for each concept, with no
-  alias ([ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md);
-  [ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md);
-  [ADR-G3FA](model-sidecar/decisions/entries/G3FA-affine-crop-rotated-roi.md); rows 46, 47 and 48 of
-  the [changelog](model-sidecar/changelog.md#summary-of-changes) give the full map). The new model:
-  - takes the role `keypoint_detector`, not `pose_estimator`;
-  - has the blocks `object:` (`object.decode`, `object.classes`) and `keypoint:`
-    (`keypoint.decode`, `keypoint.geometry`, `keypoint.estimator_type`, `keypoint.point_names`,
-    `keypoint.skeletons`, `keypoint.overlay` with `parts` and `edges`);
-  - takes `min_score`, `box_space`, `coordinate_space`, the `fields` column `class_index`, and the
-    semantics `packed_detections`, `keypoint_coordinates` and `instance_keypoints`;
-  - has no `keypoint.requires_object_detector`. `V-pre.resize.affine_crop-2` reads
-    `keypoint.estimator_type`: a top-down model must declare
-    `input.resize.method: affine_crop`;
-  - refuses a duplicate YAML key (`V-format.composition-6`);
-  - applies the rules of a decoded keypoint and of a derived point: a keypoint with a score `<= 0`
-    or NaN is missing, a derived point is missing when a source is missing, and the weights of a
-    derived point sum to 1 within `1e-6`
-    ([Keypoint schema](model-sidecar/post/keypoint/schema.md#fields)).
-- **Heatmap decode removed.** The spec has no `heatmap` decode method and no `heatmap` output
-  semantic ([ADR-9MJ6](../decisions/entries/9MJ6-remove-the-heatmap-decode.md)). The new model has
-  neither. The old `core/sidecar/model.py` still accepts them. `REMOVED_VALUES` in
-  `tools/tests/test_traceability.py` goes at stage 2.3.
-- **3D SimCC decode removed.** The SimCC decode is 2D only: the spec has no
-  `simcc_z` output semantic and no `keypoint.decode.depth_range` ([ADR-9HBB](../decisions/entries/9HBB-simcc-decode-is-2d-only.md)).
-  The new model has neither. It refuses `method: simcc` with `keypoint.geometry: 3d` (`V-post.keypoint.schema-7`).
-- **Sizes are plain fields.** A size entry holds only `input.shape`,
-  `input.resize.target_size` and `onnx`. The host does not merge a size entry over the top level
-  ([ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md) item 4). The new model types the size entry, so that it checks `V-common.sizes_and_artifacts-3`. It reads the
-  three size fields and the other fields from the top level. It has no deep merge.
-- **SemVer `schema_version`.** Each sidecar has `schema_version: "2.0.0"`, a
-  quoted SemVer string ([ADR-6GE2](../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). The old loader reads the CalVer
-  pattern `vYYYY.0M.BUILD[-TAG]` and rejects
-  `"2.0.0"`. The new loader checks the SemVer pattern `MAJOR.MINOR.PATCH` with
-  an optional pre-release tag
-  (item 2). The host
-  must accept the SemVer `schema_version` values that it implements. Each release lists these
-  values. It is not necessary for a release to implement an older version. A host lists an older version
-  only while its current text reads it the same way: there is no legacy reading
-  ([ADR-0QKK](../decisions/entries/0QKK-no-legacy-layer.md)). A pre-release host also
-  lists its own pre-release value and the open target, for example `"2.0.0-rc.1"` and `"2.0.0"`.
-  No other host accepts a pre-release value. The host must reject a `schema_version` that it does
-  not implement, with an error that names that version (`V-format.versioning-1` and
-  `V-format.versioning-2` of
-  [Validation rules](model-sidecar/format/versioning.md#validation-rules);
-  [Behaviour](model-sidecar/format/versioning.md#behaviour)). The capability check of 1.6 lists such
-  a sidecar as unavailable. This loader is a requirement of the `2.0.0` release (item 4). The bump of skellytracker to `2.0.0` and the SemVer pattern of
-  `bumpver` in `pyproject.toml` are the work of the user. They are not items of this plan.
-- **Flattened batch form.** Each sidecar has one field `batching.batch`. Each size has
-  `onnx.precision_artifacts` and `onnx.output_shapes`
-  ([ADR-JAA4](../decisions/entries/JAA4-one-batch-field.md);
-  [Batch forms](model-sidecar/common/sizes-and-artifacts.md#batch-forms)). The new model has
-  `batching.batch` and `batching.batch_conversion`, and checks `V-common.sizes_and_artifacts-12`,
-  `V-common.sizes_and_artifacts-13` and `V-common.batch_conversion-1` to
-  `V-common.batch_conversion-4`. The new code finds an artifact by its size and its precision, not
-  by a batch key. The batch conversion of stage 1.7 takes the batch of the source artifact from
-  `batching.batch`. A sidecar with `batching.batch: 3` has no batch-1 or batch-2 artifact. To run it
-  at another batch, the host makes the artifact with `model_batch_convert` (Behaviour 3 of
-  [`common.batch_conversion`](model-sidecar/common/batch-conversion.md#behaviour)).
-- **The `output_shapes` rule.** This item is the package item of
-  [ADR-CRV0](model-sidecar/decisions/entries/CRV0-output-shapes-in-each-batch-group.md) (commit
-  0881564), in the flattened batch form. The new model checks `V-common.sizes_and_artifacts-8`. Each size declares `output_shapes`, with one entry for each
-  output, in the order of `outputs`. When `outputs[i].shape` is present, entry `i` has its rank, and
-  each fixed dim of that shape is equal in the entry or `-1`. Dim 0 equals `batching.batch`, or is
-  `-1` for `dynamic`
-  ([Validation rules](model-sidecar/common/sizes-and-artifacts.md#validation-rules)). An artifact that
-  `model_batch_convert` makes takes the `output_shapes` of its size, with dim 0 changed by step 2 of
-  the profile ([ADR-JAA4](../decisions/entries/JAA4-one-batch-field.md) item 2).
+- Stage 1.6 does the artifact hash checks (`V-common.sizes_and_artifacts-10`).
+- The loader does not apply the rules of a decoded keypoint and of a derived point at run time: a
+  keypoint with a score `<= 0` or NaN is missing, and a derived point is missing when a source is
+  missing ([Keypoint schema](model-sidecar/post/keypoint/schema.md#fields)). The loader checks only
+  that the weights of a derived point sum to 1 within `1e-6`. The processing code must apply these
+  rules.
+- `REMOVED_VALUES` in `tools/tests/test_traceability.py` goes at stage 2.3
+  ([ADR-9MJ6](../decisions/entries/9MJ6-remove-the-heatmap-decode.md)).
+- The section [License and training data](model-sidecar/common/license.md) is `draft`, so the
+  `2.0.0` release also needs its graduation or its removal from the release.
+- The bump of skellytracker to `2.0.0` and the SemVer pattern of `bumpver` in `pyproject.toml` are
+  the work of the user. They are not items of this plan.
+
+Open:
+
+- **The `--write` and `--check` commands.** Move the `--write` and `--check` commands of
+  `tools/sidecar_refs.py` into the package as a command, and keep a thin wrapper in `tools/`
+  ([`format.composition`](model-sidecar/format/composition.md#implementer-guidance)). The tool must
+  not import `skellytracker` today, because an exporter runs it with its own Python
+  ([Source and hashes](model-sidecar/model-addition-workflow/validation-and-publishing.md#source-and-hashes)).
+  The user decides how the wrapper keeps this property.
 - **Package sidecars deleted and replaced.** The old package sidecars `yolox`, `rtmw-wholebody`,
   `rtmpose-body`, `rtmpose-hand` and `rtmpose-face` do not migrate to the spec. They are deleted and
   replaced: stage 1.9 and stage 2.2 add the exporter models, and stage 2.1 and stage 2.3 delete the old sidecars
   ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 1). The old
   `base` of `rtmw_wholebody_to_canonical_mapping.yaml` goes with its sidecar.
-- **Keypoint detector id.** The `model_id` of a keypoint detector is
-  `{family}-{group}` or `{family}-{group}-{variant}` in `keypoint_detectors/{family}/{group}/`
-  ([ADR-52NQ](model-sidecar/decisions/entries/52NQ-model-id-suffix.md);
-  [Keypoint detector id](model-sidecar/common/identity.md#keypoint-detector-id)). No code checks
-  `V-common.identity-7` or `V-common.identity-8`. In the new loader, after the basename check, check both rules on the path
-  under the sidecar root when it starts with `detectors/keypoint_detectors/`. Check
-  `V-common.identity-8` after the composition, because it needs the resolved
-  `keypoint.point_names`. Raise a validation error with the rule ID. Add a test that writes each
-  data-only case of [`common.identity`](model-sidecar/vectors/common.identity.yaml) to a temporary
-  sidecar root at `input.path` and checks the failed rules. Then update the `validate` note of the front matter of the section.
-- **Landmark schema registry.** The new loader reads the schema files of
-  `core/model_zoo/landmark_schemas/` and of `landmark_schemas/` of the user root that it takes as an
-  argument. It checks `V-post.keypoint.landmark_schema-1` to `-4` and
-  `V-post.keypoint.canonical_mapping-1`, and on each keypoint sidecar `V-post.keypoint.schema-1`,
-  `-10` and `-11` ([Landmark schema](model-sidecar/post/keypoint/landmark-schema.md);
-  [ADR-23F5](../decisions/entries/23F5-landmark-schema-registry.md)). Stage 1.6 gives it the user
-  root. Then update the front matter of both sections.
-- **License block.** Each sidecar has the `license` block with the model
-  license and the training data ([ADR-NBG2](model-sidecar/decisions/entries/NBG2-license-and-training-data-without-the-deferred-examples.md);
-  [License and training data](model-sidecar/common/license.md)). The old `SidecarModel` forbids the key `license`. The new model has a model of the block and checks `V-common.license-1` to `V-common.license-7`. The SPDX
-  check of `V-common.license-3` needs a copy of the SPDX License List: pin its version (the
-  Implementer guidance names 3.29.0). Add the data-only cases of
-  [`common.license`](model-sidecar/vectors/common.license.yaml) to
-  the validation tests. Then update the `validate` and `load`
-  notes of the front matter of the section. The section is `draft`, so the `2.0.0` release also
-  needs its graduation or its removal from the release.
-- **Reference hash checks in the resolver.** Add the checks of the `$ref` hashes, and of
-  the bytes of each file, to the new resolver in `core/model_spec/`. The spec has no `base` directive, so only the `$ref` hashes remain ([ADR-90CE](../decisions/entries/90CE-minimal-sidecar-contract.md) item 3). Then delete the temporary
-  function `resolve` of `tools/sidecar_refs.py`. Move the `--write` and `--check` commands of that
-  tool into the package as a command, and keep a thin wrapper in `tools/` ([`format.composition`](model-sidecar/format/composition.md#implementer-guidance)).
-- **V- rule checks of the examples.** The doc tests parse and resolve each reference example, and
-  check its provenance (`tools/tests/test_examples.py`). They also check that it has only keys that
-  the spec defines (`V-format.composition-5`;
-  [ADR-0QKK](../decisions/entries/0QKK-no-legacy-layer.md) item 11). They do not run the other
-  `V-` rules on it, because the old `load_sidecar` rejects `"2.0.0"`
-  ([ADR-6GE2](../decisions/entries/6GE2-spec-version-follows-skellytracker.md)). Thus no test checks the other rules after a spec-forced
-  edit of an example ([ADR-KDBD](../decisions/entries/KDBD-change-classes-and-spec-forced-edits.md), item 5). In stage 1.4, validate each
-  example with the new model in `tools/tests/test_examples.py`. Until then, part 7 of the proposal
-  and `uv run python tools/sidecar_trace.py impact <range>` at landing are the check.
 
 ### 1.5 Spec processing (was N2)
 

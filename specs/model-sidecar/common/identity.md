@@ -4,14 +4,16 @@ title: Identity
 kind: common
 selectors: []
 implemented_by:
-  validate: skellytracker/core/sidecar/loader.py::load_sidecar  # partial. load_sidecar checks V-common.identity-1. SidecarModel checks V-common.identity-2 and V-common.identity-3. No code checks V-common.identity-4 to V-common.identity-6: SidecarModel forbids the key source. No code checks V-common.identity-7 or V-common.identity-8.
-  load: skellytracker/core/sidecar/model.py::SidecarModel  # partial. SidecarModel has no source field.
+  validate: skellytracker/core/model_spec/rules.py::check_sidecar  # load_sidecar gives it the path under the sidecar root for V-common.identity-1, -7 and -8.
+  load: skellytracker/core/model_spec/model.py::SidecarModel
 external_impl: []
 tests:
   - skellytracker/tests/sidecar/test_model_validation.py
   - skellytracker/tests/sidecar/test_yolox_sidecar.py
+  - skellytracker/tests/model_spec/test_model_validation.py
+  - skellytracker/tests/model_spec/test_loader.py
 vectors: vectors/common.identity.yaml
-status: {spec: stable, validate: partial, load: partial}
+status: {spec: stable, validate: implemented, load: implemented}
 ---
 
 # Identity

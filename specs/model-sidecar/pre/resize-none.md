@@ -4,11 +4,11 @@ title: No resize
 kind: preprocessor
 selectors: [input.resize.method=none]
 implemented_by:
-  validate: skellytracker/core/sidecar/model.py::ResizeSpec._check_method_specific_fields
+  validate: skellytracker/core/model_spec/rules.py::check_sidecar
   forward: missing  # preprocess_image raises NotImplementedError for method none.
   inverse: missing  # The identity inverse has no code.
 external_impl: []
-tests: []
+tests: [skellytracker/tests/model_spec/test_model_validation.py]
 vectors: vectors/pre.resize.none.yaml
 status: {spec: stable, validate: implemented, forward: missing, inverse: missing}
 ---

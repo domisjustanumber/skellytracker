@@ -5,12 +5,12 @@ kind: postprocessor
 selectors:
   - object.decode.selection=top_k
 implemented_by:
-  validate: missing
+  validate: skellytracker/core/model_spec/rules.py::check_sidecar
   decode: missing
 external_impl: []
-tests: []
+tests: [skellytracker/tests/model_spec/test_model_validation.py]
 vectors: vectors/post.object.selection.top_k.yaml
-status: {spec: stable, validate: missing, decode: missing}
+status: {spec: stable, validate: implemented, decode: missing}
 ---
 
 # Selection: top-k

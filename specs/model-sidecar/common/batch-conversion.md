@@ -4,12 +4,14 @@ title: Batch conversion
 kind: common
 selectors: [batching.batch_conversion]
 implemented_by:
-  validate: missing  # BatchingSpec forbids the key batch_conversion (skellytracker/core/sidecar/model.py::BatchingSpec). No code checks V-common.batch_conversion-1 to V-common.batch_conversion-3.
+  validate: skellytracker/core/model_spec/rules.py::check_sidecar
   load: skellytracker/core/sessions/batch_conversion.py::model_batch_convert  # partial. model_batch_convert implements the profile conditions (part of Behaviour item 3), except that it does not check the `indices` of a sparse initializer for external data, the steps and the check (item 4). No host code calls it. Items 1, 2, 5, 6, 7 and the rest of item 3 have no code.
 external_impl: []
-tests: [skellytracker/tests/test_batch_conversion.py]
+tests:
+  - skellytracker/tests/test_batch_conversion.py
+  - skellytracker/tests/model_spec/test_model_validation.py
 vectors: null
-status: {spec: draft, validate: missing, load: partial}
+status: {spec: draft, validate: implemented, load: partial}
 ---
 
 # Batch conversion

@@ -4,12 +4,14 @@ title: Outputs
 kind: common
 selectors: []
 implemented_by:
-  validate: skellytracker/core/sidecar/model.py::OutputSpec  # partial. No check for unique names (V-common.outputs-1) or for equal outputs in all sizes (V-common.outputs-4). OutputSemantic lacks boxes, scores and class_logits.
+  validate: skellytracker/core/model_spec/rules.py::check_sidecar  # V-common.outputs-4 holds by the form: a size entry has no output (V-common.sizes_and_artifacts-3).
   load: missing  # No code binds an ONNX output by name or by semantic. Decoders read the tensors by position.
 external_impl: []
-tests: [skellytracker/tests/sidecar/test_model_validation.py]
+tests:
+  - skellytracker/tests/sidecar/test_model_validation.py
+  - skellytracker/tests/model_spec/test_model_validation.py
 vectors: null
-status: {spec: stable, validate: partial, load: missing}
+status: {spec: stable, validate: implemented, load: missing}
 ---
 
 # Outputs

@@ -4,7 +4,7 @@ title: Letterbox resize
 kind: preprocessor
 selectors: [input.resize.method=letterbox]
 implemented_by:
-  validate: skellytracker/core/sidecar/model.py::ResizeSpec._check_method_specific_fields  # partial. pad_position and rounding are not required. The model accepts preserve_aspect_ratio, a key that the spec does not define.
+  validate: skellytracker/core/model_spec/rules.py::check_sidecar
   forward: skellytracker/core/detectors/processing/image_preprocessing.py::letterbox_preprocess  # partial. Puts the image at the top left, truncates the size, and nothing reads pad_position or rounding. preprocess_image raises for preserve_aspect_ratio false, a key that the spec does not define.
   inverse: skellytracker/core/detectors/processing/object_detection_decode.py::decode_prenms  # partial. Divides by one ratio. Does not use the rounded n_w and n_h or the pad offsets.
 external_impl:
@@ -14,8 +14,9 @@ tests:
   - skellytracker/tests/test_image_preprocessing.py
   - skellytracker/tests/test_object_detection_decode.py
   - skellytracker/tests/sidecar/test_model_validation.py
+  - skellytracker/tests/model_spec/test_model_validation.py
 vectors: vectors/pre.resize.letterbox.yaml
-status: {spec: stable, validate: partial, forward: partial, inverse: partial}
+status: {spec: stable, validate: implemented, forward: partial, inverse: partial}
 ---
 
 # Letterbox resize

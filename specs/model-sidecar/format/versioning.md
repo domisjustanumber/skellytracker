@@ -4,12 +4,15 @@ title: Schema versioning
 kind: format
 selectors: []
 implemented_by:
-  validate: missing  # SidecarModel._check_schema_version_pattern (skellytracker/core/sidecar/model.py) requires a CalVer release string vYYYY.0M.BUILD and rejects "2.0.0" (decisions/entries/6GE2-spec-version-follows-skellytracker.md).
-  load: missing  # load_sidecar compares CalVer release versions with parse_skellytracker_version (skellytracker/core/sidecar/versioning.py) and rejects "2.0.0" (decisions/entries/6GE2-spec-version-follows-skellytracker.md).
+  validate: skellytracker/core/model_spec/versioning.py::check_schema_version
+  load: skellytracker/core/model_spec/loader.py::load_sidecar
 external_impl: []
-tests: [skellytracker/tests/sidecar/test_model_validation.py]
+tests:
+  - skellytracker/tests/sidecar/test_model_validation.py
+  - skellytracker/tests/model_spec/test_model_validation.py
+  - skellytracker/tests/model_spec/test_loader.py
 vectors: null
-status: {spec: stable, validate: missing, load: missing}
+status: {spec: stable, validate: implemented, load: implemented}
 ---
 
 # Schema versioning

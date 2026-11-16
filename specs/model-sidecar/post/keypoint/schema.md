@@ -5,8 +5,8 @@ kind: schema
 selectors:
   - role=keypoint_detector
 implemented_by:
-  validate: skellytracker/core/sidecar/model.py::PoseSpec  # partial: the output check in SidecarModel._check_pose_output_shapes has no packed_keypoints case; keypoint_count is not checked on poses outputs; it forbids the key pose.geometry and reads the removed key pose.decode.is_3d (decisions/entries/90CE-minimal-sidecar-contract.md)
-  load: skellytracker/core/sidecar/loader.py::load_sidecar  # partial: the detectors read the point names and the first skeleton only; the derived points are never computed
+  validate: skellytracker/core/model_spec/rules.py::check_sidecar  # load_sidecar gives it the landmark schema registry for V-post.keypoint.schema-10.
+  load: skellytracker/core/model_spec/model.py::KeypointSpec  # partial. The model holds the point names, the skeletons and each derived point. No code computes a derived point: stage 1.5.
 external_impl: []
 tests:
   - skellytracker/tests/sidecar/test_model_validation.py
@@ -14,8 +14,10 @@ tests:
   - skellytracker/tests/sidecar/test_rtmpose_hand_sidecar.py
   - skellytracker/tests/sidecar/test_rtmpose_face_sidecar.py
   - skellytracker/tests/sidecar/test_rtmw_sidecar.py
+  - skellytracker/tests/model_spec/test_model_validation.py
+  - skellytracker/tests/model_spec/test_loader.py
 vectors: null
-status: {spec: stable, validate: partial, load: partial}
+status: {spec: stable, validate: implemented, load: partial}
 ---
 
 # Keypoint schema

@@ -7,13 +7,14 @@ selectors:
   - outputs[].semantic=instance_keypoints
   - outputs[].packed_keypoints
 implemented_by:
-  validate: skellytracker/core/sidecar/model.py::OutputSpec._check_output  # partial: it requires keypoint_axis 2 on poses; no packed_keypoints; the instance axis is not compared with the row axis
+  validate: skellytracker/core/model_spec/rules.py::check_sidecar
   decode: missing
 external_impl: []
 tests:
   - skellytracker/tests/sidecar/test_model_validation.py
+  - skellytracker/tests/model_spec/test_model_validation.py
 vectors: null
-status: {spec: stable, validate: partial, decode: missing}
+status: {spec: stable, validate: implemented, decode: missing}
 ---
 
 # Bottom-up keypoints

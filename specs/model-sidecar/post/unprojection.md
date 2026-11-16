@@ -4,7 +4,7 @@ title: Unprojection
 kind: postprocessor
 selectors: [role=object_detector, role=keypoint_detector]
 implemented_by:
-  validate: skellytracker/core/sidecar/model.py::PoseDecodeSpec._check_decode  # partial. Checks only where coordinate_space is valid. DetectionDecodeSpec has no box_space field.
+  validate: skellytracker/core/model_spec/rules.py::check_sidecar
   decode: skellytracker/core/detectors/processing/object_detection_decode.py::decode_prenms  # partial. No shared unprojection function. Each decoder divides by the letterbox ratio or applies the affine inverse itself (decode_simcc). No normalized_01 or normalized_11 conversion.
 external_impl:
   - OpenMMLab-Exporter: onnx_runtime/unprojection.py::unproject_points
@@ -12,8 +12,9 @@ external_impl:
 tests:
   - skellytracker/tests/test_object_detection_decode.py
   - skellytracker/tests/sidecar/test_rtmpose_body_sidecar.py
+  - skellytracker/tests/model_spec/test_model_validation.py
 vectors: vectors/post.unprojection.yaml
-status: {spec: stable, validate: partial, decode: partial}
+status: {spec: stable, validate: implemented, decode: partial}
 ---
 
 # Unprojection

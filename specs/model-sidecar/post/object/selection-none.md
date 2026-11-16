@@ -5,15 +5,16 @@ kind: postprocessor
 selectors:
   - object.decode.selection=none
 implemented_by:
-  validate: skellytracker/core/sidecar/model.py::DetectionDecodeSpec._check_ranges  # partial: it checks only max_detections > 0; no rule for forbidden fields or the row count
+  validate: skellytracker/core/model_spec/rules.py::check_sidecar
   decode: skellytracker/core/detectors/processing/object_detection_decode.py::decode_nms_baked_in  # partial: the score is column 4; no class filter, clamp or size filter; the caller gives the threshold
 external_impl: []
 tests:
   - skellytracker/tests/sidecar/test_model_validation.py
   - skellytracker/tests/test_object_detection_decode.py
   - skellytracker/tests/test_yolox_detector.py
+  - skellytracker/tests/model_spec/test_model_validation.py
 vectors: vectors/post.object.selection.none.yaml
-status: {spec: stable, validate: partial, decode: partial}
+status: {spec: stable, validate: implemented, decode: partial}
 ---
 
 # Selection: none

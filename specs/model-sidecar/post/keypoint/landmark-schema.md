@@ -5,12 +5,12 @@ kind: schema
 selectors:
   - role=keypoint_detector
 implemented_by:
-  validate: missing
-  load: missing
+  validate: skellytracker/core/model_spec/landmark_schemas.py::check_landmark_schema  # load_landmark_schema_registry checks V-post.keypoint.landmark_schema-4.
+  load: skellytracker/core/model_spec/landmark_schemas.py::load_landmark_schema_registry  # load_sidecar takes the user root as an argument. Stage 1.6 gives it the user root of the catalog.
 external_impl: []
-tests: []
+tests: [skellytracker/tests/model_spec/test_loader.py]
 vectors: null
-status: {spec: draft, validate: missing, load: missing}
+status: {spec: draft, validate: implemented, load: implemented}
 ---
 
 # Landmark schema

@@ -4,10 +4,13 @@ title: File layout
 kind: format
 selectors: []
 implemented_by:
-  validate: skellytracker/core/sidecar/loader.py::load_sidecar  # partial. Checks that model_id matches the file name. No check for sidecar discovery, folder layout or shared fragments.
-  load: skellytracker/core/sidecar/loader.py::_default_cache_dir  # partial. Finds the ancestor folder named core, not the package root core/model_zoo. No other sidecar root and no discovery. Does not read the folder layout.
+  validate: skellytracker/core/model_spec/loader.py::load_sidecar  # partial. Checks V-common.identity-1, -7 and -8 on the path under the sidecar root. No check of the folder of an object detector or of a shared fragment.
+  load: skellytracker/core/model_spec/loader.py::load_sidecar  # partial. Takes the sidecar root as an argument and does not follow a symlink. No discovery and no list of roots: stage 1.6 of the implementation plan.
 external_impl: []
-tests: [skellytracker/tests/sidecar/test_yolox_sidecar.py]
+tests:
+  - skellytracker/tests/sidecar/test_yolox_sidecar.py
+  - skellytracker/tests/model_spec/test_model_validation.py
+  - skellytracker/tests/model_spec/test_loader.py
 vectors: null
 status: {spec: stable, validate: partial, load: partial}
 ---

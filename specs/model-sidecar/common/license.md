@@ -4,12 +4,14 @@ title: License and training data
 kind: common
 selectors: []
 implemented_by:
-  validate: missing  # SidecarModel forbids the key license (skellytracker/core/sidecar/model.py::SidecarModel). No code checks V-common.license-1 to V-common.license-7.
-  load: missing  # No code reads license.
+  validate: skellytracker/core/model_spec/rules.py::check_sidecar  # is_spdx_expression (spdx.py) checks an id against the SPDX License List 3.29.0.
+  load: skellytracker/core/model_spec/model.py::LicenseSpec  # partial. The model holds the block. No code shows it to a user: stage 1.6.
 external_impl: []
-tests: []
+tests:
+  - skellytracker/tests/model_spec/test_model_validation.py
+  - skellytracker/tests/model_spec/test_loader.py
 vectors: vectors/common.license.yaml
-status: {spec: draft, validate: missing, load: missing}
+status: {spec: draft, validate: implemented, load: partial}
 ---
 
 # License and training data

@@ -5,12 +5,12 @@ kind: schema
 selectors:
   - role=keypoint_detector
 implemented_by:
-  validate: missing
+  validate: skellytracker/core/model_spec/landmark_schemas.py::check_landmark_schema
   load: missing
 external_impl: []
-tests: []
+tests: [skellytracker/tests/model_spec/test_loader.py]
 vectors: null
-status: {spec: stable, validate: missing, load: missing}
+status: {spec: stable, validate: implemented, load: missing}
 ---
 
 # Canonical mapping

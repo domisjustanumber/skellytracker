@@ -4,14 +4,15 @@ title: Input
 kind: common
 selectors: []
 implemented_by:
-  validate: skellytracker/core/sidecar/model.py::InputSpec  # partial. No color_format field (V-common.input-5) and no crop_policy.pad_value. Nothing checks that dtype covers the declared precisions. pad_value is not required for fit. OnnxDtype of InputSpec.dtype allows int8 (V-common.input-2).
+  validate: skellytracker/core/model_spec/rules.py::check_sidecar
   load: skellytracker/core/detectors/processing/image_preprocessing.py::preprocess_image  # partial. Ignores input.dtype. Raises for method none and for letterbox with preserve_aspect_ratio false. The spec does not define preserve_aspect_ratio.
 external_impl: []
 tests:
   - skellytracker/tests/sidecar/test_model_validation.py
   - skellytracker/tests/test_image_preprocessing.py
+  - skellytracker/tests/model_spec/test_model_validation.py
 vectors: vectors/common.input.yaml
-status: {spec: stable, validate: partial, load: partial}
+status: {spec: stable, validate: implemented, load: partial}
 ---
 
 # Input

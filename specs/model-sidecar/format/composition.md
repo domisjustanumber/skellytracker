@@ -4,12 +4,15 @@ title: File composition
 kind: format
 selectors: []
 implemented_by:
-  validate: skellytracker/core/sidecar/resolution.py::_resolve_refs  # partial. The module checks the one-key $ref form, missing targets, cycles and paths outside the root (cache_dir in the code). It refuses the form {$ref, sha256}. Nothing checks a hash, the encoding or the line endings (V-format.composition-2 and V-format.composition-3). Nothing checks V-format.composition-5: SidecarModel forbids undeclared keys, but it declares preserve_aspect_ratio, requires_nms and may_include_non_person_classes.
-  load: skellytracker/core/sidecar/resolution.py::resolve_sidecar_composition  # partial. Resolves only the one-key $ref form and the string base form. It refuses sha256 next to $ref and a base that is not a string.
+  validate: skellytracker/core/model_spec/resolution.py::resolve_sidecar_composition  # check_sidecar (rules.py) checks V-format.composition-5.
+  load: skellytracker/core/model_spec/resolution.py::resolve_sidecar_composition
 external_impl: []
-tests: [skellytracker/tests/sidecar/test_resolution.py]
+tests:
+  - skellytracker/tests/sidecar/test_resolution.py
+  - skellytracker/tests/model_spec/test_resolution.py
+  - skellytracker/tests/model_spec/test_model_validation.py
 vectors: null
-status: {spec: stable, validate: partial, load: partial}
+status: {spec: stable, validate: implemented, load: implemented}
 ---
 
 # File composition
