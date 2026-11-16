@@ -1,9 +1,9 @@
 """Run a live charuco board detection demo from a webcam.
 
 Usage:
-    uv run python -m skellytracker.core.detectors.keypoint_detectors.charuco.run_demo
-    uv run python -m skellytracker.core.detectors.keypoint_detectors.charuco.run_demo --camera 1
-    uv run python -m skellytracker.core.detectors.keypoint_detectors.charuco.run_demo --squares-x 7 --squares-y 5 --square-mm 58
+    uv run python -m skellytracker.core.detectors.calibration_detectors.charuco.run_demo
+    uv run python -m skellytracker.core.detectors.calibration_detectors.charuco.run_demo --camera 1
+    uv run python -m skellytracker.core.detectors.calibration_detectors.charuco.run_demo --squares-x 7 --squares-y 5 --square-mm 58
 """
 from __future__ import annotations
 
@@ -12,16 +12,16 @@ import argparse
 from skellytracker.core.config.detection_stage_config import DetectionStageConfig
 from skellytracker.core.config.tracker_config import TrackerConfig
 from skellytracker.core.io.demo_manager import DemoManager
-from skellytracker.core.detectors.keypoint_detectors.charuco.charuco_annotator import (
+from skellytracker.core.detectors.calibration_detectors.charuco.charuco_annotator import (
     CharucoAnnotatorConfig,
 )
-from skellytracker.core.detectors.keypoint_detectors.charuco.charuco_board_definition import (
+from skellytracker.core.detectors.calibration_detectors.charuco.charuco_board_definition import (
     CharucoBoardDefinition,
 )
-from skellytracker.core.detectors.keypoint_detectors.charuco.charuco_detector_config import (
+from skellytracker.core.detectors.calibration_detectors.charuco.charuco_detector_config import (
     CharucoDetectorConfig,
 )
-from skellytracker.core.detectors.keypoint_detectors.charuco.charuco_observation_annotator import (
+from skellytracker.core.detectors.calibration_detectors.charuco.charuco_observation_annotator import (
     CharucoObservationAnnotator,
     _CharucoObservationAnnotatorConfig,
 )

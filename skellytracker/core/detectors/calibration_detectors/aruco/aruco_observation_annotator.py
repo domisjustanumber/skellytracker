@@ -6,7 +6,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from skellytracker.core.annotation.annotator import Annotator
-from skellytracker.core.detectors.keypoint_detectors.aruco.aruco_annotator import (
+from skellytracker.core.detectors.calibration_detectors.aruco.aruco_annotator import (
     ArucoAnnotator,
     ArucoAnnotatorConfig,
 )

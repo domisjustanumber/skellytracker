@@ -14,7 +14,7 @@ from skellytracker.core.detectors.detector_base_classes import (
     KEYPOINT_DETECTOR_REGISTRY,
     KeypointDetector,
 )
-from skellytracker.core.detectors.keypoint_detectors.aruco.aruco_detector_config import (
+from skellytracker.core.detectors.calibration_detectors.aruco.aruco_detector_config import (
     ArucoDetectorConfig,
 )
 from skellytracker.core.detectors.metadata import EmptyMetadata

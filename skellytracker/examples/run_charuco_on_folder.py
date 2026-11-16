@@ -15,9 +15,9 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import skellytracker.core.detectors.keypoint_detectors.charuco  # noqa: F401
+import skellytracker.core.detectors.calibration_detectors.charuco  # noqa: F401
 from skellytracker.core import DetectionStageConfig, Tracker, TrackerConfig, process_folder
-from skellytracker.core.detectors.keypoint_detectors.charuco import (
+from skellytracker.core.detectors.calibration_detectors.charuco import (
     CharucoBoardDefinition,
     CharucoDetectorConfig,
 )

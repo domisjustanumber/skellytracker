@@ -1,9 +1,9 @@
 """Run a live ArUco marker detection demo from a webcam.
 
 Usage:
-    uv run python -m skellytracker.core.detectors.keypoint_detectors.aruco.run_demo
-    uv run python -m skellytracker.core.detectors.keypoint_detectors.aruco.run_demo --camera 1
-    uv run python -m skellytracker.core.detectors.keypoint_detectors.aruco.run_demo --ids 0 1 2 3
+    uv run python -m skellytracker.core.detectors.calibration_detectors.aruco.run_demo
+    uv run python -m skellytracker.core.detectors.calibration_detectors.aruco.run_demo --camera 1
+    uv run python -m skellytracker.core.detectors.calibration_detectors.aruco.run_demo --ids 0 1 2 3
 """
 from __future__ import annotations
 
@@ -14,13 +14,13 @@ import cv2
 from skellytracker.core.config.detection_stage_config import DetectionStageConfig
 from skellytracker.core.config.tracker_config import TrackerConfig
 from skellytracker.core.io.demo_manager import DemoManager
-from skellytracker.core.detectors.keypoint_detectors.aruco.aruco_annotator import (
+from skellytracker.core.detectors.calibration_detectors.aruco.aruco_annotator import (
     ArucoAnnotatorConfig,
 )
-from skellytracker.core.detectors.keypoint_detectors.aruco.aruco_detector_config import (
+from skellytracker.core.detectors.calibration_detectors.aruco.aruco_detector_config import (
     ArucoDetectorConfig,
 )
-from skellytracker.core.detectors.keypoint_detectors.aruco.aruco_observation_annotator import (
+from skellytracker.core.detectors.calibration_detectors.aruco.aruco_observation_annotator import (
     ArucoObservationAnnotator,
     _ArucoObservationAnnotatorConfig,
 )

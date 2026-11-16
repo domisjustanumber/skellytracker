@@ -15,7 +15,8 @@ The paths are under `skellytracker/`.
 | `core/config/` | Pydantic configs: `TrackerConfig`, `DetectionStageConfig`, `ObjectDetectorConfig`, `KeypointDetectorConfig`, `SessionConfig` |
 | `core/sessions/` | ONNX Runtime, CPU and MediaPipe sessions. `model_registry.py` downloads `url` ONNX files to `~/.cache/skellytracker/models`. `hf_repo` files go to the Hugging Face cache. `batch_conversion.py` makes a fixed-batch ONNX file from a static-batch source (`static-batch-v1`). |
 | `core/detectors/detector_base_classes.py` | Detector base classes, `OBJECT_DETECTOR_REGISTRY` and `KEYPOINT_DETECTOR_REGISTRY` |
-| `core/detectors/keypoint_detectors/` | `aruco/`, `charuco/`, `mediapipe/`, `rtmpose/` (body, hand, face), `rtmw/wholebody/` |
+| `core/detectors/keypoint_detectors/` | `mediapipe/`, `rtmpose/` (body, hand, face), `rtmw/wholebody/` |
+| `core/detectors/calibration_detectors/` | `aruco/`, `charuco/` ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 4). Import `calibration_detectors` to register them. |
 | `core/detectors/object_detectors/` | `yolox/`, `keypoint_bbox/`, `precomputed/` |
 | `core/detectors/processing/` | Generic preprocessing, affine crop, detection decode with NMS, SimCC decode (ADR-[0007](../decisions/entries/0007-generic-processing-package.md)) |
 | `core/detectors/shared/skeletons/` | Tracked-point and skeleton fragments that sidecars include with `$ref` |

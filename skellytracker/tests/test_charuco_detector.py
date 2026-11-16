@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from skellytracker.core.detectors.keypoint_detectors.charuco import (
+from skellytracker.core.detectors.calibration_detectors.charuco import (
     CharucoAnnotator,
     CharucoAnnotatorConfig,
     CharucoBoardDefinition,
@@ -12,7 +12,7 @@ from skellytracker.core.detectors.keypoint_detectors.charuco import (
     compute_board_pose,
     to_anipose_camera_row,
 )
-from skellytracker.core.detectors.keypoint_detectors.charuco.charuco_detector import (
+from skellytracker.core.detectors.calibration_detectors.charuco.charuco_detector import (
     _squeeze_aruco,
     _squeeze_charuco,
 )

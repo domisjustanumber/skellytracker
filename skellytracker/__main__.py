@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import argparse
 
-from skellytracker.core.detectors.keypoint_detectors.aruco.run_demo import build_aruco_demo
-from skellytracker.core.detectors.keypoint_detectors.charuco.run_demo import build_charuco_demo
+from skellytracker.core.detectors.calibration_detectors.aruco.run_demo import build_aruco_demo
+from skellytracker.core.detectors.calibration_detectors.charuco.run_demo import build_charuco_demo
 from skellytracker.core.detectors.keypoint_detectors.mediapipe.run_demo import build_mediapipe_demo
 from skellytracker.core.detectors.keypoint_detectors.rtmpose.run_demo import build_rtmpose_demo
 

@@ -20,7 +20,7 @@ Multi-camera calibration estimates the 3D pose of each camera relative to a shar
 All cameras must use the **same board definition**.
 
 ```python
-from skellytracker.core.detectors.keypoint_detectors.charuco import (
+from skellytracker.core.detectors.calibration_detectors.charuco import (
     CharucoBoardDefinition,
     CharucoDetector,
     CharucoDetectorConfig,
@@ -68,7 +68,7 @@ kpts.xy_by_name("CharucoCorner-3")  # (2,) array
 Once you have initial camera intrinsics (from a prior intrinsic calibration step), use `compute_board_pose()` to find where the board was in each camera's coordinate frame for each frame. This is the key output used for extrinsic calibration.
 
 ```python
-from skellytracker.core.detectors.keypoint_detectors.charuco import compute_board_pose
+from skellytracker.core.detectors.calibration_detectors.charuco import compute_board_pose
 
 # camera_matrix: (3, 3) intrinsic matrix
 # dist_coeffs: (4,) or (5,) distortion coefficients
@@ -87,7 +87,7 @@ Returns `None` when fewer than 6 corners were detected (not enough for a stable 
 If you need the 3D position of each detected corner in the camera's coordinate frame (e.g. to verify reprojection or pass to a solver):
 
 ```python
-from skellytracker.core.detectors.keypoint_detectors.charuco import transform_to_camera_coordinates
+from skellytracker.core.detectors.calibration_detectors.charuco import transform_to_camera_coordinates
 
 # board_frame_points: (N, 3) — from board_def.corner_positions_board_frame
 corners_camera = transform_to_camera_coordinates(
@@ -100,7 +100,7 @@ corners_camera = transform_to_camera_coordinates(
 If your calibration solver uses the [anipose](https://anipose.readthedocs.io/) calibration pipeline, convert each observation to its expected dict format:
 
 ```python
-from skellytracker.core.detectors.keypoint_detectors.charuco import to_anipose_camera_row
+from skellytracker.core.detectors.calibration_detectors.charuco import to_anipose_camera_row
 
 row = to_anipose_camera_row(kpts, board_def, frame_number=42)
 # {

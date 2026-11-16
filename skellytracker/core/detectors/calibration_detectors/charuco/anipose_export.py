@@ -6,7 +6,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from skellytracker.core.data_primitives import Keypoints
-from skellytracker.core.detectors.keypoint_detectors.charuco.charuco_board_definition import (
+from skellytracker.core.detectors.calibration_detectors.charuco.charuco_board_definition import (
     CharucoBoardDefinition,
 )
 

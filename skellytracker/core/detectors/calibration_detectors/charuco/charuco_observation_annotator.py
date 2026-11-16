@@ -6,11 +6,11 @@ import numpy as np
 from numpy.typing import NDArray
 
 from skellytracker.core.annotation.annotator import Annotator
-from skellytracker.core.detectors.keypoint_detectors.charuco.charuco_annotator import (
+from skellytracker.core.detectors.calibration_detectors.charuco.charuco_annotator import (
     CharucoAnnotator,
     CharucoAnnotatorConfig,
 )
-from skellytracker.core.detectors.keypoint_detectors.charuco.charuco_board_definition import (
+from skellytracker.core.detectors.calibration_detectors.charuco.charuco_board_definition import (
     CharucoBoardDefinition,
 )
 from skellytracker.core.data_primitives.observation import Observation

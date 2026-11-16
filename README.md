@@ -129,10 +129,10 @@ uv run python -m skellytracker.core.detectors.keypoint_detectors.rtmpose.run_dem
 uv run python -m skellytracker.core.detectors.keypoint_detectors.rtmpose.run_demo --no-detector
 
 # Aruco: choose which marker IDs to look for
-uv run python -m skellytracker.core.detectors.keypoint_detectors.aruco.run_demo --ids 0 1 2 3
+uv run python -m skellytracker.core.detectors.calibration_detectors.aruco.run_demo --ids 0 1 2 3
 
 # Charuco: set board geometry
-uv run python -m skellytracker.core.detectors.keypoint_detectors.charuco.run_demo --squares-x 7 --squares-y 5 --square-mm 58
+uv run python -m skellytracker.core.detectors.calibration_detectors.charuco.run_demo --squares-x 7 --squares-y 5 --square-mm 58
 ```
 
 ## API overview

@@ -5,7 +5,7 @@ from typing import Literal
 from pydantic import Field
 
 from skellytracker.core.config.detector_configs import KeypointDetectorConfig
-from skellytracker.core.detectors.keypoint_detectors.charuco.charuco_board_definition import (
+from skellytracker.core.detectors.calibration_detectors.charuco.charuco_board_definition import (
     CharucoBoardDefinition,
 )
 

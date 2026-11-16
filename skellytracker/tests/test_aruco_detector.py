@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 import pytest
 
-from skellytracker.core.detectors.keypoint_detectors.aruco import (
+from skellytracker.core.detectors.calibration_detectors.aruco import (
     ArucoAnnotator,
     ArucoAnnotatorConfig,
     ArucoDetector,
