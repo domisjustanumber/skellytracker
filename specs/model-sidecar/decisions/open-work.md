@@ -78,6 +78,11 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   [`docs/mediapipe-whole-body.md:141-143`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L141-L143), [`docs/mediapipe-whole-body.md:147-149`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L147-L149)). Qualcomm-Exporter multiplies `z` by the
   input width and writes `depth_unit: pixel` ([`qai_catalog.py:346`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_catalog.py#L346),
   [`qai_sidecar.py:255`](https://github.com/domisjustanumber/Qualcomm-Exporter/blob/c7b91329e70963b38e14c8429bc2cb26d449478e/qai_sidecar.py#L255)). Thus two hosts can give depths that differ by a factor of 2.5.
+- [`keypoint.derived_points`](../post/keypoint/schema.md#keypointderived_points) does not say where
+  the `prefixes` list is. The text gives only `prefixes: [right_hand_, left_hand_]` and a
+  `[prefix]` entry. The spec loader reads `prefixes` as a key of the `derived_points` map, beside
+  the entries. Thus a derived point cannot have the name `prefixes`. No reference example has
+  `derived_points`. (skellytracker `skellytracker/core/model_spec/rules.py` (`expand_derived_points`))
 - The spec has no role for an ROI refiner model. `V-common.identity-2` allows only `object_detector`
   and `keypoint_detector` ([Identity](../common/identity.md#validation-rules)). The closed `semantic` set
   has no value for ROI points ([Outputs](../common/outputs.md#fields)). The

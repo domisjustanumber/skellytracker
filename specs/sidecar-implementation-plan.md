@@ -461,7 +461,8 @@ Gate:
 
 ### 1.4 Spec loader (was N1)
 
-**Status: IN PROGRESS. One item is open: the move of the `--write` and `--check` commands (below).**
+**Status: DONE (2026-11-16).** The spec loader `core/model_spec/` is beside the old `core/sidecar/`.
+The heading "Not in this stage" gives the stage that owns each item that stays.
 
 Done:
 
@@ -504,26 +505,21 @@ Done:
 Not in this stage:
 
 - Stage 1.6 does the artifact hash checks (`V-common.sizes_and_artifacts-10`).
+- Stage 1.10 does the host load check of `V-pipeline.graph-11`, because it needs the pipeline
+  loader ([ADR-TH8E](../decisions/entries/TH8E-one-person-in-v2.md)).
+- Stage 1.11 moves the `--write` and `--check` commands of `tools/sidecar_refs.py` into the package.
 - The loader does not apply the rules of a decoded keypoint and of a derived point at run time: a
   keypoint with a score `<= 0` or NaN is missing, and a derived point is missing when a source is
   missing ([Keypoint schema](model-sidecar/post/keypoint/schema.md#fields)). The loader checks only
-  that the weights of a derived point sum to 1 within `1e-6`. The processing code must apply these
-  rules.
+  that the weights of a derived point sum to 1 within `1e-6`. The processing code of stage 1.5 must
+  apply these rules.
 - `REMOVED_VALUES` in `tools/tests/test_traceability.py` goes at stage 2.3
   ([ADR-9MJ6](../decisions/entries/9MJ6-remove-the-heatmap-decode.md)).
 - The section [License and training data](model-sidecar/common/license.md) is `draft`, so the
-  `2.0.0` release also needs its graduation or its removal from the release.
+  `2.0.0` release (stage 2.5) also needs its graduation or its removal from the release.
 - The bump of skellytracker to `2.0.0` and the SemVer pattern of `bumpver` in `pyproject.toml` are
   the work of the user. They are not items of this plan.
 
-Open:
-
-- **The `--write` and `--check` commands.** Move the `--write` and `--check` commands of
-  `tools/sidecar_refs.py` into the package as a command, and keep a thin wrapper in `tools/`
-  ([`format.composition`](model-sidecar/format/composition.md#implementer-guidance)). The tool must
-  not import `skellytracker` today, because an exporter runs it with its own Python
-  ([Source and hashes](model-sidecar/model-addition-workflow/validation-and-publishing.md#source-and-hashes)).
-  The user decides how the wrapper keeps this property.
 - **Package sidecars deleted and replaced.** The old package sidecars `yolox`, `rtmw-wholebody`,
   `rtmpose-body`, `rtmpose-hand` and `rtmpose-face` do not migrate to the spec. They are deleted and
   replaced: stage 1.9 and stage 2.2 add the exporter models, and stage 2.1 and stage 2.3 delete the old sidecars
@@ -1101,6 +1097,14 @@ This stage implements the node types of the pipeline spec. Use the skill
   the pin in the exporter kit (0.3).
 - In the workflow and the skills, delete each current rule that a rule with the marker "From the
   2.0.0 pre-release" replaces, and remove the markers (0.1).
+- Move the `--write` and `--check` commands of `tools/sidecar_refs.py` into the package as a
+  command, and keep a thin wrapper in `tools/`
+  ([`format.composition`](model-sidecar/format/composition.md#implementer-guidance)). In the same
+  step, change the commands of
+  [`source` and hashes](model-sidecar/model-addition-workflow/validation-and-publishing.md#source-and-hashes).
+  The move waits for this stage, because the tool must run without `skellytracker` until the
+  exporters pin the pre-release
+  ([ADR-6J8E](../decisions/entries/6J8E-exporters-run-released-skellytracker.md) item 1).
 - Its release note says these things:
   - The new spec loader, the catalog, the generic detectors, the pipeline API and the hardware and
     EP API are in.
