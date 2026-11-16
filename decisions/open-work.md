@@ -41,7 +41,7 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   `unverified`, which `fill` prints and writes
   ([ADR-8DSW](entries/8DSW-vector-files-are-the-case-source.md)). An excused drift finding still
   blocks the session run of `batch` ([ADR-AD33](entries/AD33-bundles-are-untrusted-input.md)
-  item 4). The user decides if a new entry changes that gate.
+  item 4).
 - **Kit PR in freemocap/project.** The kit is on the branch `dom/agents-and-adr-kit` of
   freemocap/project, in a PR for its owner
   ([ADR-P3NK](entries/P3NK-bootstrap-kit-in-freemocap-project.md)). The link repairs in 0031, NB91,
