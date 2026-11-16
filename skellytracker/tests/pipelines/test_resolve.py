@@ -135,7 +135,7 @@ def test_the_output_schema_of_yolox_rtmw_wholebody_with_the_package_sidecars(tmp
     assert "depth_unit" not in schema["wholebody"]
     assert schema["wholebody"]["edges"] and all(a in names and b in names for a, b in schema["wholebody"]["edges"])
     canonical_edges = schema["wholebody"]["canonical_edges"]
-    assert len(canonical_edges) == len(schema["wholebody"]["edges"]) == 65
+    assert len(canonical_edges) == len(schema["wholebody"]["edges"]) == 130
     assert all(point in schema["wholebody"]["canonical_names"] for edge in canonical_edges for point in edge)
     assert ["body/left_ankle", "body/left_big_toe"] in canonical_edges and ["left_hand/wrist", "left_hand/thumb_cmc"] in canonical_edges
     assert schema["person_box"]["class_names"] == ["person"] and schema["person_roi"]["port_type"] == "roi"

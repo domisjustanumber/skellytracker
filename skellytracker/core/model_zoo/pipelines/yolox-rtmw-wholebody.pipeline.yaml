@@ -63,7 +63,7 @@ nodes:
     inputs: {image: frame.image, rois: crop.rois}
     params:
       key: rtmw-wholebody133@openmmlab-exporter
-      sidecar_sha256: 7d69257ab3a026712ae799cdbc89378adb8e7c1a3cfcaad5cecdf6170a390cab
+      sidecar_sha256: 6a8aa709be13b481645921650f6c969502a57d6954a100cc2c9167ba7349d79b
       size: m
 outputs:
   wholebody: wholebody.keypoints

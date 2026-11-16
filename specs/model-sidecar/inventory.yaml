@@ -41,17 +41,19 @@ examples:
     kind: export
     exporter_layout_path: null
     tracked: false
-    commit: d1b6fb2d0efbafb12c785d96386c1253439b27af
-    edits:
-      - "spec change KY2J: the value of keypoint.estimator_type renamed to top_down (V-post.keypoint.schema-3)"
+    commit: efbe0273a6095eac0393824ea0267089c6513a08
+    edits: []
     notes: >-
       A byte copy of the sidecar that the exporter writer code wrote for the hand-over bundle. The
       exporter turns off its sidecar output until the verdict describes, so exporter_path does not
       exist yet. When the exporter turns it on, the same writer writes the same bytes there. The
-      sidecar has the real SHA-256 of each b3 ONNX file and no $ref. Version 4 is the opset 17
-      re-export (OpenMMLab-Exporter ADR-69KK): source.version 0.2.0 and new b3 hashes, with no
-      CPU node on the cuda or the trt-rtx plugin EP (OpenMMLab-Exporter ADR-DG2G).
-    bundle: model-rtmw-wholebody133@openmmlab-exporter@v4
+      sidecar has the real SHA-256 of each b3 ONNX file and no $ref. Version 5 has source.version
+      0.3.0, the 65 face edges after the 65 links in the skeleton wholebody, the part face in the
+      overlay and the value top_down of keypoint.estimator_type (spec change KY2J), which the
+      exporter now writes. The ONNX files and the b3 hashes of version 4 do not change. Version 4 was
+      the opset 17 re-export (OpenMMLab-Exporter ADR-69KK) with no CPU node on the cuda or the
+      trt-rtx plugin EP (OpenMMLab-Exporter ADR-DG2G).
+    bundle: model-rtmw-wholebody133@openmmlab-exporter@v5
 
   detectors/object_detectors/yolox-person/yolox-person.yaml:
     exporter: OpenMMLab-Exporter

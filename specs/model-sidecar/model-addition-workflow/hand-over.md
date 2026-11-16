@@ -784,7 +784,8 @@ The response asks the contributor for a new version without the private data.
 
 ## Re-export requests
 
-For a `needs-export` example of an accepted proposal, the part 7 row is the request: follow
+No re-export item is open. For a `needs-export` example of an accepted proposal, the part 7 row is
+the request: follow
 [When a spec change makes an example invalid](reference-examples.md#when-a-spec-change-makes-an-example-invalid).
 Do not rebuild an example that a user ruling removed.
 

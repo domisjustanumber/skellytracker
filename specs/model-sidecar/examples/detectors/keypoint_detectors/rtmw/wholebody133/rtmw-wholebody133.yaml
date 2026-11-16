@@ -2,7 +2,7 @@
 schema_version: "2.0.0"
 source:
   name: openmmlab-exporter
-  version: 0.2.0
+  version: 0.3.0
 model_id: rtmw-wholebody133
 display_name: RTMW WholeBody
 role:
@@ -434,6 +434,136 @@ keypoint:
       - right_pinky_finger3
     - - right_pinky_finger3
       - right_pinky_finger4
+    - - face-0
+      - face-1
+    - - face-1
+      - face-2
+    - - face-2
+      - face-3
+    - - face-3
+      - face-4
+    - - face-4
+      - face-5
+    - - face-5
+      - face-6
+    - - face-6
+      - face-7
+    - - face-7
+      - face-8
+    - - face-8
+      - face-9
+    - - face-9
+      - face-10
+    - - face-10
+      - face-11
+    - - face-11
+      - face-12
+    - - face-12
+      - face-13
+    - - face-13
+      - face-14
+    - - face-14
+      - face-15
+    - - face-15
+      - face-16
+    - - face-17
+      - face-18
+    - - face-18
+      - face-19
+    - - face-19
+      - face-20
+    - - face-20
+      - face-21
+    - - face-22
+      - face-23
+    - - face-23
+      - face-24
+    - - face-24
+      - face-25
+    - - face-25
+      - face-26
+    - - face-27
+      - face-28
+    - - face-28
+      - face-29
+    - - face-29
+      - face-30
+    - - face-30
+      - face-31
+    - - face-31
+      - face-32
+    - - face-32
+      - face-33
+    - - face-33
+      - face-34
+    - - face-34
+      - face-35
+    - - face-35
+      - face-30
+    - - face-36
+      - face-37
+    - - face-37
+      - face-38
+    - - face-38
+      - face-39
+    - - face-39
+      - face-40
+    - - face-40
+      - face-41
+    - - face-41
+      - face-36
+    - - face-42
+      - face-43
+    - - face-43
+      - face-44
+    - - face-44
+      - face-45
+    - - face-45
+      - face-46
+    - - face-46
+      - face-47
+    - - face-47
+      - face-42
+    - - face-48
+      - face-49
+    - - face-49
+      - face-50
+    - - face-50
+      - face-51
+    - - face-51
+      - face-52
+    - - face-52
+      - face-53
+    - - face-53
+      - face-54
+    - - face-54
+      - face-55
+    - - face-55
+      - face-56
+    - - face-56
+      - face-57
+    - - face-57
+      - face-58
+    - - face-58
+      - face-59
+    - - face-59
+      - face-48
+    - - face-60
+      - face-61
+    - - face-61
+      - face-62
+    - - face-62
+      - face-63
+    - - face-63
+      - face-64
+    - - face-64
+      - face-65
+    - - face-65
+      - face-66
+    - - face-66
+      - face-67
+    - - face-67
+      - face-60
   decode:
     method: simcc
   overlay:
@@ -499,6 +629,142 @@ keypoint:
         - 0
         - 200
         - 83
+      face:
+        edges:
+        - - face-0
+          - face-1
+        - - face-1
+          - face-2
+        - - face-2
+          - face-3
+        - - face-3
+          - face-4
+        - - face-4
+          - face-5
+        - - face-5
+          - face-6
+        - - face-6
+          - face-7
+        - - face-7
+          - face-8
+        - - face-8
+          - face-9
+        - - face-9
+          - face-10
+        - - face-10
+          - face-11
+        - - face-11
+          - face-12
+        - - face-12
+          - face-13
+        - - face-13
+          - face-14
+        - - face-14
+          - face-15
+        - - face-15
+          - face-16
+        - - face-17
+          - face-18
+        - - face-18
+          - face-19
+        - - face-19
+          - face-20
+        - - face-20
+          - face-21
+        - - face-22
+          - face-23
+        - - face-23
+          - face-24
+        - - face-24
+          - face-25
+        - - face-25
+          - face-26
+        - - face-27
+          - face-28
+        - - face-28
+          - face-29
+        - - face-29
+          - face-30
+        - - face-30
+          - face-31
+        - - face-31
+          - face-32
+        - - face-32
+          - face-33
+        - - face-33
+          - face-34
+        - - face-34
+          - face-35
+        - - face-35
+          - face-30
+        - - face-36
+          - face-37
+        - - face-37
+          - face-38
+        - - face-38
+          - face-39
+        - - face-39
+          - face-40
+        - - face-40
+          - face-41
+        - - face-41
+          - face-36
+        - - face-42
+          - face-43
+        - - face-43
+          - face-44
+        - - face-44
+          - face-45
+        - - face-45
+          - face-46
+        - - face-46
+          - face-47
+        - - face-47
+          - face-42
+        - - face-48
+          - face-49
+        - - face-49
+          - face-50
+        - - face-50
+          - face-51
+        - - face-51
+          - face-52
+        - - face-52
+          - face-53
+        - - face-53
+          - face-54
+        - - face-54
+          - face-55
+        - - face-55
+          - face-56
+        - - face-56
+          - face-57
+        - - face-57
+          - face-58
+        - - face-58
+          - face-59
+        - - face-59
+          - face-48
+        - - face-60
+          - face-61
+        - - face-61
+          - face-62
+        - - face-62
+          - face-63
+        - - face-63
+          - face-64
+        - - face-64
+          - face-65
+        - - face-65
+          - face-66
+        - - face-66
+          - face-67
+        - - face-67
+          - face-60
+        edge_color:
+        - 255
+        - 255
+        - 255
       left_hand:
         edges:
         - - left_hand_root
