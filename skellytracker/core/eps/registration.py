@@ -20,6 +20,7 @@ from skellytracker.core.eps.recommendation import install_hint
 from skellytracker.core.eps.records import RegisteredEp
 from skellytracker.core.errors import EpUnavailableError
 
+NO_DEVICE = "lists no device on this host"  # `selftest()` reads this text in the reason of a child process
 _lock = threading.Lock()
 _registered: dict[str, RegisteredEp] = {}  # pack id: the result
 _groups: dict[str, str] = {}  # exclusive group: pack id
@@ -39,6 +40,20 @@ def prepare_libraries(folder: Path, manifest: dict, platform: str = sys.platform
     elif platform == "linux":
         for name in manifest.get("preload", ()):
             ctypes.CDLL(str(folder / name), mode=ctypes.RTLD_GLOBAL)
+
+
+def hardware_vendor_ids() -> tuple[int, ...] | None:
+    """The PCI vendor id of each hardware device that ONNX Runtime lists. An EP makes its device list from these devices.
+
+    The value is `None` when the list cannot be read: the function is not a part of the public
+    Python API of ONNX Runtime.
+    """
+    try:
+        from onnxruntime.capi import _pybind_state
+
+        return tuple(int(device.vendor_id) for device in _pybind_state.get_hardware_devices())
+    except Exception:  # noqa: BLE001 - a different ONNX Runtime build can have no such function
+        return None
 
 
 def describe_device(device) -> str:
@@ -82,7 +97,7 @@ def register_pack(ep_key: str, pack: dict, hint: str | None = None) -> Registere
         if ep_name not in {device.ep_name for device in devices}:
             # An EP gives no reason for an empty list. The devices of the other EPs show the hardware that it refused.
             listed = "; ".join(sorted({describe_device(device) for device in devices})) or "none"
-            raise EpUnavailableError(f"The EP pack '{pack_id}' registers, but the EP '{ep_name}' lists no device on this host. "
+            raise EpUnavailableError(f"The EP pack '{pack_id}' registers, but the EP '{ep_name}' {NO_DEVICE}. "
                                      f"ONNX Runtime lists these devices: {listed}.")
         _groups[group] = pack_id
         _registered[pack_id] = RegisteredEp(ep_key, ep_name, pack_id, pack["version"], Path(manifest["library"]).name)

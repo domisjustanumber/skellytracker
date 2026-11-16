@@ -1,16 +1,30 @@
 """`selftest()`: the EP pack test of the `ep_pack` CI job. It runs no real model.
 
 On Windows and Linux it installs the test pack of the EP catalog (an OpenVINO pack) into the EP
-store, and checks that the pack registers and lists a device in a child process. No session runs
-on the test pack. The test pack is never offered, selected or installed for a user. On macOS it
+store, and checks that the pack registers and lists a device in a child process. The OpenVINO EP
+lists a device only for a hardware device with the PCI vendor id of Intel (`8086`). A host has an
+Intel device when one or more of the hardware devices that ONNX Runtime lists has that vendor id.
+On a host with no Intel device the step passes when the pack registers, and its detail says that
+the device list is not checked. When the hardware device list cannot be read, the step needs a
+device of the EP. No session runs on the test pack. The test pack is never offered, selected or installed for a user. On macOS it
 runs a trial session on the CoreML EP. On each platform it runs a trial session on the CPU EP.
 """
+
+from collections.abc import Sequence
 
 from skellytracker.core._hardware.sanitize import sanitize_text
 from skellytracker.core.eps import catalog as catalog_module
 from skellytracker.core.eps import installer, verification
 from skellytracker.core.eps.catalog import load_catalog
 from skellytracker.core.eps.records import InstallPlan, SelftestResult
+from skellytracker.core.eps.registration import NO_DEVICE
+
+INTEL = 0x8086
+
+
+def has_intel_device(hardware_vendor_ids: Sequence[int]) -> bool:
+    """True when a hardware device that ONNX Runtime lists has the PCI vendor id of Intel. The OpenVINO EP uses the same test."""
+    return INTEL in hardware_vendor_ids
 
 
 def _trial(key: str) -> str:
@@ -28,9 +42,16 @@ def _test_pack(index_url: str | None) -> str:
     if result.failed:
         raise RuntimeError(f"{result.failed[0][1]}: {result.failed[0][2]}")
     record = verification.run_child({"key": key, "pack": pack, "gpu": None, "device_key": None, "level": "L2", "atol": 0.0})
-    if not record["ok"]:
-        raise RuntimeError(record["reason"])
-    return f"{pack['id']} {pack['version']} registers and lists a device"
+    if record["ok"]:
+        return f"{pack['id']} {pack['version']} registers and lists a device"
+    vendor_ids = record.get("hardware_vendor_ids")
+    if NO_DEVICE in (record["reason"] or ""):
+        if vendor_ids is None:
+            raise RuntimeError(f"{record['reason']} The hardware device list of ONNX Runtime could not be read, "
+                               "so the step needs a device of the EP.")
+        if not has_intel_device(vendor_ids):
+            return f"{pack['id']} {pack['version']} registers; this host has no Intel device, so the device list is not checked"
+    raise RuntimeError(record["reason"])
 
 
 def selftest(index_url: str | None = None) -> SelftestResult:

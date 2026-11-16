@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from skellytracker.core import eps
-from skellytracker.core.eps import _download, cli, store
+from skellytracker.core.eps import _download, cli, registration, self_test, store
 from skellytracker.core.eps import catalog as catalog_module
 from skellytracker.tests.test_eps_store import server  # noqa: F401 - fixture
 
@@ -39,6 +39,9 @@ def test_selftest_installs_the_test_pack_from_a_local_index_with_a_resume(server
         print(step)
     assert result.ok, result.steps
     assert [name for name, _, _ in result.steps] == ["catalog", "cpu trial session", "test pack"]
+    intel = self_test.has_intel_device(registration.hardware_vendor_ids())  # the OpenVINO EP lists a device only for Intel hardware
+    assert result.steps[-1][2] == ("openvino 1.8.1 registers and lists a device" if intel else
+                                   "openvino 1.8.1 registers; this host has no Intel device, so the device list is not checked")
     assert any(requested and requested.startswith("bytes=") for requested, _ in server.requests)
     assert store.read_manifest("openvino", "1.8.1")["ep_name"] == "OpenVINOExecutionProvider"
     assert "openvino" not in [row.key for row in eps.status().eps]  # the test pack is not an EP of a user

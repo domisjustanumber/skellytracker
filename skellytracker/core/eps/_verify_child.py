@@ -31,6 +31,7 @@ def run(job: dict) -> dict:
         from skellytracker.core.eps.catalog import load_catalog
 
         key, pack, gpu, device_key = job["key"], job["pack"], job["gpu"], job["device_key"]
+        result["hardware_vendor_ids"] = registration.hardware_vendor_ids()
         if pack is None:
             ep_name = registration.ensure_registered(key).ep_name
         else:
