@@ -283,10 +283,17 @@ def test_an_implementing_function_of_the_new_code_names_its_section(
 
 
 def test_each_implements_line_names_a_section() -> None:
-    known = set(section_ids())
+    # The pipeline sections have no traceability matrix: their IDs come from the front matter.
+    pipeline = REPO_ROOT / "specs" / "pipeline"
+    front = re.compile(r"^id: (\S+)$", re.M)
+    known = set(section_ids()) | {
+        found.group(1)
+        for file in [*pipeline.glob("*.md"), *(pipeline / "nodes").glob("*.md")]
+        if (found := front.search(file.read_text(encoding="utf-8")))
+    }
     for path in sorted((REPO_ROOT / "skellytracker").rglob("*.py")):
         named = set(IMPLEMENTS.findall(path.read_text(encoding="utf-8")))
-        assert named <= known, f"{relative(path)}: {sorted(named - known)}"
+        assert named <= known, f"{path.relative_to(REPO_ROOT).as_posix()}: {sorted(named - known)}"
 
 
 @pytest.mark.parametrize("section", all_sections(), ids=lambda s: s.id)
