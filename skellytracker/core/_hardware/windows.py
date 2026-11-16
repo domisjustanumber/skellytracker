@@ -160,3 +160,35 @@ def dxgi_adapters() -> list[GpuInfo]:
 def gpus(adapters: list[GpuInfo] | None = None) -> list[GpuInfo]:
     """The DXGI adapters without each software adapter and without a second adapter of one device."""
     return pci.drop_second_adapters(dxgi_adapters() if adapters is None else adapters)
+
+
+def memory() -> tuple[int, int]:
+    """The total and the available memory in bytes."""
+    import psutil
+
+    values = psutil.virtual_memory()
+    return int(values.total), int(values.available)
+
+
+def cpu_times() -> tuple[float, float]:
+    """The busy and the total CPU seconds of all logical CPUs since the start of the system."""
+    import psutil
+
+    times = psutil.cpu_times()
+    busy = float(times.user + times.system)
+    return busy, busy + float(times.idle)
+
+
+def process(pid: int) -> tuple[float, float, int]:
+    """The identity, the CPU seconds and the RSS bytes of a process. A process that ended raises `ProcessLookupError`."""
+    import psutil
+
+    try:
+        handle = psutil.Process(pid)
+        with handle.oneshot():
+            times = handle.cpu_times()
+            return float(handle.create_time()), float(times.user + times.system), int(handle.memory_info().rss)
+    except psutil.NoSuchProcess as error:
+        raise ProcessLookupError(pid) from error
+    except psutil.AccessDenied as error:
+        raise PermissionError(pid) from error

@@ -115,3 +115,29 @@ def container(root: Path = ROOT, environ=os.environ) -> ContainerInfo | None:
     return ContainerInfo(runtime=runtime, base_os=release.group(1) if release else None,
                          cpuset=_read(root / "sys/fs/cgroup/cpuset.cpus.effective"), cpu_quota_cores=quota,
                          memory_limit_bytes=limit, nvidia=nvidia)
+
+
+def memory(root: Path = ROOT) -> tuple[int, int]:
+    """The total and the available memory in bytes: `MemAvailable`, else `MemFree`."""
+    values = dict(re.findall(r"^(\w+):\s*(\d+) kB$", (root / "proc/meminfo").read_text(encoding="utf-8"), re.MULTILINE))
+    return int(values["MemTotal"]) * 1024, int(values.get("MemAvailable", values["MemFree"])) * 1024
+
+
+def cpu_times(root: Path = ROOT) -> tuple[float, float]:
+    """The busy and the total CPU seconds of all logical CPUs since the start of the system."""
+    ticks = [int(value) for value in (root / "proc/stat").read_text(encoding="utf-8").splitlines()[0].split()[1:9]]
+    total = sum(ticks) / os.sysconf("SC_CLK_TCK")
+    return total - (ticks[3] + ticks[4]) / os.sysconf("SC_CLK_TCK"), total  # idle and iowait are not busy
+
+
+def process(pid: int, root: Path = ROOT) -> tuple[float, float, int]:
+    """The identity, the CPU seconds and the RSS bytes of a process. A process that ended or a zombie raises `ProcessLookupError`."""
+    try:
+        fields = (root / f"proc/{pid}/stat").read_text(encoding="utf-8").rsplit(")", 1)[1].split()
+        pages = int((root / f"proc/{pid}/statm").read_text(encoding="utf-8").split()[1])
+    except FileNotFoundError as error:
+        raise ProcessLookupError(pid) from error
+    if fields[0] == "Z":
+        raise ProcessLookupError(pid)
+    tick = os.sysconf("SC_CLK_TCK")  # fields[11] and [12] are utime and stime; fields[19] is starttime
+    return float(fields[19]), (int(fields[11]) + int(fields[12])) / tick, pages * os.sysconf("SC_PAGE_SIZE")

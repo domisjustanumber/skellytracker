@@ -137,3 +137,25 @@ def driver_supported_cuda_version() -> str | None:
         return f"{value // 1000}.{value % 1000 // 10}"
     except Exception:  # noqa: BLE001 - no NVML value gives None
         return None
+
+
+def sample(pids: frozenset[int] = frozenset()) -> list[tuple]:
+    """The live values of each GPU: `(bus id, utilization ratio, used bytes, free bytes, processes)`.
+
+    `processes` is a list of `(pid, used bytes or None)` for the asked pids, or `None` when NVML does
+    not give the process list. It raises `NvmlUnavailableError` with no NVML.
+    """
+    with _lock:
+        nvml_lib = lib()
+        result = []
+        for bus, handle in handles(nvml_lib):
+            rates = attempt(nvml_lib.nvmlDeviceGetUtilizationRates, handle)
+            memory = attempt(nvml_lib.nvmlDeviceGetMemoryInfo, handle)
+            running = attempt(nvml_lib.nvmlDeviceGetComputeRunningProcesses, handle)
+            processes = None if running is None else [
+                (int(p.pid), None if p.usedGpuMemory is None else int(p.usedGpuMemory)) for p in running if int(p.pid) in pids]
+            result.append((
+                bus, None if rates is None else min(1.0, max(0.0, rates.gpu / 100)),  # NVML gives percent
+                None if memory is None else int(memory.used), None if memory is None else int(memory.free), processes,
+            ))
+        return result
