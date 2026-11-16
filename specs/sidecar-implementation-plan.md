@@ -277,7 +277,32 @@ The release workflow runs the check `tools/check_dist_onnx.py` after `flit build
 
 ### 1.3 Hardware and EP API
 
-**Status: NOT STARTED.** Stage 0.4 (Merge `hw-and-ep-work`) wrote this stage on 2026-11-12.
+**Status: STARTED.** Stage 0.4 (Merge `hw-and-ep-work`) wrote this stage on 2026-11-12. Steps 1 to 18
+are done (2026-11-16). The gate is open:
+
+- The default suite passes locally on Windows. The `ep_pack` test and the frozen smoke test pass
+  locally on Windows. No CI run of the two jobs is read yet (`.github/workflows/ep-pack.yml`, and the
+  job `pyinstaller` of `tests-full.yml`).
+- The local GPU gate ran on an RTX 3070 ([ADR-73Q4](../decisions/entries/73Q4-local-gpu-gate-of-the-ep-api.md)).
+  Each part passes, with one exception: with `cuda`, 5 opset 11 files
+  `rtmw-wholebody133-<size>_b4_fp16.onnx` of the local export folder have 3 `Clip` nodes on the CPU
+  EP. The opset 17 files have 0.
+- [ADR-0YYY](../decisions/entries/0YYY-host-reader-costs.md) has the costs of the host readers.
+
+Not done in this stage:
+
+- The device match of the verification by the GPU load. It needs a measurement on a host with two
+  GPUs.
+- `install(plan, from_dir=...)` from an unpacked pack folder. It installs from the wheels of the
+  lock only.
+- `InstallResult.needs_worker_restart` is always false: no code tracks the packs of other processes.
+- A run of the Linux and macOS readers, of the Linux pack preloads and of the `coreml` EP. Only the
+  CI jobs run them.
+
+Names: `run_devices()` and `RunDevice` keep their proposed names. The modules of `core/eps/` are
+`recommendation.py`, `installer.py`, `registration.py`, `verification.py`, `self_test.py`, `state.py`
+(`status()`, `check_start()`), `session.py` and `cli.py`. A consumer of the EP store is `environment`
+or `frozen`.
 
 It needs 1.1 and 1.2. It can run in parallel with 1.4 to 1.7. Stage 1.10 (The pipeline API) needs
 it. It builds `core/system/`, `core/metrics/` and `core/eps/` under the eager `core`
