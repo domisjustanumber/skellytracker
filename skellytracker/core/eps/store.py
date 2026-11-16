@@ -18,6 +18,7 @@ import json
 import logging
 import os
 import sys
+import time
 from pathlib import Path
 
 import platformdirs
@@ -83,8 +84,13 @@ def store_lock():
         if sys.platform == "win32":
             import msvcrt
 
-            handle.seek(0)
-            msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)  # it tries again for 10 s, then raises OSError
+            while True:  # LK_LOCK stops after 10 s, and an install can hold the lock for longer
+                try:
+                    handle.seek(0)
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+                    break
+                except OSError:
+                    time.sleep(0.1)
             try:
                 yield
             finally:
@@ -154,10 +160,10 @@ def pack_state(catalog: EpCatalog, key: str, gpu=None, device_key: str | None = 
             return "stale", "stale", f"the store has an other version of the pack {pack['id']}, not {pack['version']}"
         return "not_installed", None, f"the pack {pack['id']} is not installed"
     files = manifest.get("files", [])
-    guard = path_guard(folder, [name for name, _ in files])
+    guard = path_guard(folder, [entry[0] for entry in files])
     if guard is not None:
         return "not_ready", "path-guard", guard
-    for name, size in files:
+    for name, size, *_ in files:
         try:
             if (folder / name).stat().st_size != size:
                 raise OSError

@@ -5,6 +5,7 @@ the EP or the device: the caller passes a concrete EP key as `execution_provider
 """
 
 from skellytracker.core.eps.catalog import EpCatalog, load_catalog
+from skellytracker.core.eps.installer import download, gc, install, plan_install, remove
 from skellytracker.core.eps.recommendation import recommend, run_devices, select_precision
 from skellytracker.core.eps.records import (
     EpCandidate,
@@ -26,6 +27,7 @@ from skellytracker.core.eps.records import (
     Verdict,
     WheelRef,
 )
+from skellytracker.core.eps.store import store_root
 
 __all__ = [
     "EpCandidate",
@@ -47,8 +49,14 @@ __all__ = [
     "SessionReport",
     "Verdict",
     "WheelRef",
+    "download",
+    "gc",
+    "install",
     "load_catalog",
+    "plan_install",
     "recommend",
+    "remove",
     "run_devices",
     "select_precision",
+    "store_root",
 ]
