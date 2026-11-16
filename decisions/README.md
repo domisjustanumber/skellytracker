@@ -39,6 +39,7 @@ These entries are `accepted` or `evidence`.
 | [D3VP](entries/D3VP-ruff-0-17-with-the-old-rule-set.md) | `ruff==0.17.5` with the rule set of ruff 0.15; a review of the new default rules before the 2.0.0 release | accepted |
 | [Y753](entries/Y753-pipeline-templates-glue-vectors-and-taps-flag.md) | Pipeline templates without links; node work in stage 1.10; skellybench `--taps`; vectors for `first_of` and `concat` | accepted |
 | [X6S9](entries/X6S9-mediapipe-close-from-the-garbage-collector.md) | A MediaPipe landmarker closed by the garbage collector on its own worker thread hangs; the runner and the old detectors close on a new thread | evidence |
+| [0YYY](entries/0YYY-host-reader-costs.md) | Host reader costs: first `probe_host()` about 76 ms on Windows; the D3DKMT query joins a LUID to a bus id and finds the second DXGI adapter | evidence |
 
 ### Proposed
 
