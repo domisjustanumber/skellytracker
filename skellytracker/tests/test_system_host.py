@@ -161,10 +161,25 @@ def test_linux_wsl_and_no_container(tmp_path):
     assert linux.container(tmp_path, environ={}) is None and linux.gpus(tmp_path) == []
 
 
-def test_darwin_gpus_from_a_profiler_report():
-    report = {"SPDisplaysDataType": [{"_name": "Apple M2", "sppci_model": "Apple M2", "spdisplays_vendor": "sppci_vendor_Apple"}]}
-    (gpu,) = darwin.gpus_from_profiler(report)
+def test_darwin_gpus_from_registry_entries():
+    # The keys are the IORegistry key names. `ioreg -l -w0 -r -c IOAccelerator` and `-c IOPCIDevice` show them.
+    (gpu,) = darwin.gpus_from_registry([{"model": "Apple M2", "vendor-id": bytes.fromhex("6b100000")}])  # Apple Silicon
     assert (gpu.key, gpu.vendor, gpu.name, gpu.pci_bus_id) == ("apple:0:Apple M2", "apple", "Apple M2", None)
+    assert gpu.vram_total_bytes is None  # unified memory: no VRAM property
+    assert darwin.gpus_from_registry([{"model": "Apple M1 Pro"}])[0].vendor == "apple"
+    integrated, discrete = darwin.gpus_from_registry([  # an Intel Mac with a discrete GPU
+        {"model": b"Intel UHD Graphics 630\x00", "vendor-id": bytes.fromhex("86800000"), "VRAM,totalMB": bytes.fromhex("00060000")},
+        {"model": b"AMD Radeon Pro 5500M\x00", "vendor-id": bytes.fromhex("02100000"), "VRAM,totalMB": 8192},
+    ])
+    assert (integrated.vendor, integrated.name, integrated.vram_total_bytes) == ("intel", "Intel UHD Graphics 630", 1536 * 2**20)
+    assert (discrete.key, discrete.vendor, discrete.vram_total_bytes) == ("apple:1:AMD Radeon Pro 5500M", "amd", 8 * 2**30)
+    (unknown,) = darwin.gpus_from_registry([{"model": None, "vendor-id": "wrong type", "VRAM,totalMB": None}])
+    assert (unknown.vendor, unknown.name, unknown.vram_total_bytes) == ("other", None, None)
+
+
+@pytest.mark.skipif(sys.platform == "darwin", reason="a host with no IOKit")
+def test_darwin_registry_reader_gives_no_entry_with_no_iokit():
+    assert darwin.gpu_registry_entries() == [] and darwin.gpus() == []
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="the Windows readers")

@@ -1,9 +1,11 @@
-"""macOS readers: `sysctlbyname` of `libSystem` and `system_profiler`. No test ran them on a Mac."""
+"""macOS readers: `sysctlbyname` of `libSystem`, and IOKit with CoreFoundation for the GPUs.
+
+The readers use `ctypes` only and run no external command. No test ran them on a Mac.
+"""
 
 import ctypes
-import json
-import subprocess
 
+from skellytracker.core._hardware import pci
 from skellytracker.core.system.records import GpuInfo, VirtualizationInfo
 
 
@@ -39,20 +41,118 @@ def virtualization() -> VirtualizationInfo:
                               hypervisor="unknown" if present == 1 else None)
 
 
-def gpus_from_profiler(report: dict) -> list[GpuInfo]:
-    """The GPUs of a `system_profiler SPDisplaysDataType -json` report."""
+def _number(value) -> int | None:
+    """An `int` from a CFNumber (`int`) or from little-endian CFData (`bytes`); `None` for other types."""
+    if isinstance(value, bytes):
+        return int.from_bytes(value, "little") if value else None
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def gpus_from_registry(entries: list) -> list[GpuInfo]:
+    """The GPUs of the IORegistry property dicts that `gpu_registry_entries()` gives.
+
+    Each dict has the IORegistry key names. A value is a `str` (CFString), `bytes` (CFData) or an
+    `int` (CFNumber). An Apple Silicon GPU has unified memory and no VRAM property: its
+    `vram_total_bytes` is `None`.
+    """
     result = []
-    for slot, item in enumerate(report.get("SPDisplaysDataType", [])):
-        name = item.get("sppci_model") or item.get("_name")
-        vendor = "apple" if "apple" in str(item.get("spdisplays_vendor", "")).lower() else "other"
-        result.append(GpuInfo(key=f"apple:{slot}:{name}", vendor=vendor, name=name))
+    for slot, entry in enumerate(entries):
+        name = entry.get("model")  # IORegistry key `model`: CFData on an IOPCIDevice, CFString on an AGXAccelerator
+        if isinstance(name, bytes):
+            name = name.split(b"\x00", 1)[0].decode("utf-8", "replace")
+        name = name.strip() or None if isinstance(name, str) else None
+        vendor = pci.vendor_of(_number(entry.get("vendor-id")))  # IORegistry key `vendor-id`: 4 bytes, little-endian
+        if vendor == "other" and name and "apple" in name.lower():
+            vendor = "apple"
+        megabytes = _number(entry.get("VRAM,totalMB"))  # IORegistry key `VRAM,totalMB` of the IOPCIDevice of a GPU
+        result.append(GpuInfo(key=f"apple:{slot}:{name}", vendor=vendor, name=name,
+                              vram_total_bytes=megabytes * 2**20 if megabytes else None))
     return result
 
 
+_GPU_KEYS = ("model", "vendor-id", "VRAM,totalMB")
+
+
+def gpu_registry_entries() -> list[dict]:
+    """One property dict for each `IOAccelerator` service of the IORegistry; `[]` on each failure.
+
+    This function was written from the IOKit and CoreFoundation documentation. No test ran it on a
+    Mac. Compare its keys with the output of `ioreg -l -w0 -r -c IOAccelerator` and
+    `ioreg -l -w0 -r -c IOPCIDevice`. The search goes from the accelerator to its parents, because
+    the `IOPCIDevice` parent holds the keys of a PCI GPU.
+    """
+    try:
+        iokit = ctypes.CDLL("/System/Library/Frameworks/IOKit.framework/IOKit")
+        cf = ctypes.CDLL("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")
+        pointer, u32 = ctypes.c_void_p, ctypes.c_uint32
+        for library, name, restype, argtypes in (
+            (iokit, "IOServiceMatching", pointer, [ctypes.c_char_p]),
+            (iokit, "IOServiceGetMatchingServices", ctypes.c_int, [u32, pointer, ctypes.POINTER(u32)]),
+            (iokit, "IOIteratorNext", u32, [u32]),
+            (iokit, "IOObjectRelease", ctypes.c_int, [u32]),
+            (iokit, "IORegistryEntrySearchCFProperty", pointer, [u32, ctypes.c_char_p, pointer, pointer, u32]),
+            (cf, "CFStringCreateWithCString", pointer, [pointer, ctypes.c_char_p, u32]),
+            (cf, "CFStringGetCString", ctypes.c_bool, [pointer, ctypes.c_char_p, ctypes.c_long, u32]),
+            (cf, "CFGetTypeID", ctypes.c_ulong, [pointer]),
+            (cf, "CFStringGetTypeID", ctypes.c_ulong, []),
+            (cf, "CFDataGetTypeID", ctypes.c_ulong, []),
+            (cf, "CFNumberGetTypeID", ctypes.c_ulong, []),
+            (cf, "CFDataGetLength", ctypes.c_long, [pointer]),
+            (cf, "CFDataGetBytePtr", pointer, [pointer]),
+            (cf, "CFNumberGetValue", ctypes.c_bool, [pointer, ctypes.c_long, pointer]),
+            (cf, "CFRelease", None, [pointer]),
+        ):
+            function = getattr(library, name)
+            function.restype, function.argtypes = restype, argtypes
+        utf8 = 0x08000100  # kCFStringEncodingUTF8
+
+        def to_python(value):
+            kind = cf.CFGetTypeID(value)
+            if kind == cf.CFStringGetTypeID():
+                buffer = ctypes.create_string_buffer(1024)
+                return buffer.value.decode("utf-8", "replace") if cf.CFStringGetCString(value, buffer, 1024, utf8) else None
+            if kind == cf.CFDataGetTypeID():
+                return ctypes.string_at(cf.CFDataGetBytePtr(value), cf.CFDataGetLength(value))
+            if kind == cf.CFNumberGetTypeID():
+                number = ctypes.c_int64()
+                return number.value if cf.CFNumberGetValue(value, 4, ctypes.byref(number)) else None  # 4: kCFNumberSInt64Type
+            return None
+
+        matching = iokit.IOServiceMatching(b"IOAccelerator")  # kIOAcceleratorClassName of IOKit/graphics/IOAccelTypes.h
+        iterator = u32()
+        # 0: kIOMainPortDefault. The call releases `matching`.
+        if not matching or iokit.IOServiceGetMatchingServices(0, matching, ctypes.byref(iterator)) != 0:
+            return []
+        entries = []
+        try:
+            while service := iokit.IOIteratorNext(iterator):
+                try:
+                    entry = {}
+                    for key in _GPU_KEYS:
+                        cf_key = cf.CFStringCreateWithCString(None, key.encode(), utf8)
+                        if not cf_key:
+                            continue
+                        try:  # 3: kIORegistryIterateRecursively | kIORegistryIterateParents
+                            value = iokit.IORegistryEntrySearchCFProperty(service, b"IOService", cf_key, None, 3)
+                        finally:
+                            cf.CFRelease(cf_key)
+                        if value:
+                            try:
+                                entry[key] = to_python(value)
+                            finally:
+                                cf.CFRelease(value)
+                    entries.append(entry)
+                finally:
+                    iokit.IOObjectRelease(service)
+        finally:
+            iokit.IOObjectRelease(iterator.value)
+        return entries
+    except Exception:  # noqa: BLE001 - a missing framework or symbol gives no GPU, not a raise into the probe
+        return []
+
+
 def gpus() -> list[GpuInfo]:
-    run = subprocess.run(["/usr/sbin/system_profiler", "SPDisplaysDataType", "-json"],  # noqa: S603
-                         capture_output=True, text=True, timeout=10, check=True)
-    return gpus_from_profiler(json.loads(run.stdout))
+    return gpus_from_registry(gpu_registry_entries())
 
 
 def _libc():
