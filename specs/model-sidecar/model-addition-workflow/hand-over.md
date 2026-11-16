@@ -265,6 +265,11 @@ A `pipeline` bundle gives one pipeline file of the [pipeline spec](../../pipelin
   names, landed or in a `depends_on` bundle.
 - A pipeline file runs no code. `verify` checks it with the reference model of the pipeline spec
   and runs no file of the bundle. It refuses a duplicate key.
+- `verify` then runs the load checks of the package on the pipeline file
+  ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md)
+  item 7). These checks read only the package sidecars. They open no session and run no ONNX file.
+  A failed check gives a finding with the rule ID. When a key has no package sidecar, `verify`
+  prints a note, and the checks that need the sidecars do not run.
 - `run/` is optional. It holds the output of a reference run of the pipeline. A run gate uses it
   after stage 1.10 of the
   [implementation plan](../../sidecar-implementation-plan.md#110-the-pipeline-api-was-p).

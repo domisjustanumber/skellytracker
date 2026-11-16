@@ -15,7 +15,8 @@ Usage::
 
 `pack` and `list` use only the standard library, so Python 3.9 or later runs them. `verify`
 reads YAML and the producers of this checkout, so it runs in the environment of this repository.
-It reads each Python file of a bundle as text and never runs it (ADR-AD33). `pack` and `verify` read
+It reads each Python file of a bundle as text and never runs it (ADR-AD33). It runs the load checks
+of the package on the pipeline file of a `pipeline` bundle, and it runs no ONNX file (ADR-271H). `pack` and `verify` read
 a proposal patch `skellytracker.patch` as text, never apply it, and check its scope (ADR-6J8E). `pack --dry-run` packs
 in a temporary folder, takes the external files from the real `--root`, runs `verify` on the result
 and writes nothing, so it runs where `verify` runs. `record` copies the bytes of the current version
@@ -1525,7 +1526,47 @@ def _pipeline_problems(version_dir: Path, manifest: dict, found: dict, repo: Pat
             problems.append(f"{where}: a shipped pipeline file needs sidecar_sha256 ({digest})")
         elif params["sidecar_sha256"] != digest:
             problems.append(f"{where}: sidecar_sha256 {params['sidecar_sha256']} is not the sidecar hash {digest}")
+    if not problems:
+        problems += _pipeline_load_problems(path, rel, data, repo, yaml)
     return problems
+
+
+def _pipeline_load_problems(path: Path, rel: str, data: dict, repo: Path, yaml) -> list[str]:  # noqa: ANN001
+    """Return the findings of the load checks of the package for a pipeline file (ADR-ZYS9, item 7; ADR-271H, item 3).
+
+    Safety boundary (ADR-AD33): the pipeline file is data. The loader of the package reads it with a
+    safe YAML load. The node types are a closed set. The checks read only the package sidecars of
+    this checkout, with an empty user root. They open no session and run no ONNX file and no file
+    of a bundle. An ONNX file that is absent is a start check, not a load check: it gives no finding.
+    """
+    from skellytracker.core.pipelines._runtime.resolve import resolve
+    from skellytracker.core.pipelines.loading import load_pipeline_file
+
+    try:
+        config = load_pipeline_file(path)
+    except ValueError as exc:
+        return [f"{rel}: the load checks refuse it: {' '.join(str(exc).split())[:400]}"]
+    keys = [str(node["params"]["key"]) for node in data["nodes"] if node.get("type") == "onnx_model"]
+    package = _package_keys(repo, yaml)
+    if absent := sorted(set(keys) - package):
+        # No text tells what `verify` does for a sidecar that is only in a `depends_on` bundle or in
+        # the spec examples. The tool prints the fact and gives no finding.
+        print(f"note: {rel}: the load checks that need the sidecars did not run: no package sidecar has the key {absent}", file=sys.stderr)
+        return []
+    with tempfile.TemporaryDirectory() as empty:
+        try:
+            resolve(config, Path(empty))
+        except ValueError as exc:
+            return [f"{rel}: the load checks refuse it: {' '.join(str(exc).split())[:400]}"]
+    return []
+
+
+def _package_keys(repo: Path, yaml) -> set[str]:  # noqa: ANN001
+    """Return the key `<model_id>@<source.name>` of each sidecar in the package sidecar root."""
+    keys = set()
+    for path in sorted((repo / SIDECAR_ROOTS[1]).rglob("*.yaml")):
+        keys |= {f"{path.stem}@{name}" for name in _sidecars(path.stem, [path.parent], yaml)}
+    return keys
 
 
 def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT, overlay: Path | None = None) -> list[str]:

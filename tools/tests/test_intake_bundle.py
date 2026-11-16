@@ -1746,6 +1746,39 @@ def test_verify_checks_the_pipeline_file(tmp_path: Path, root: Path, text: str, 
     assert any(message in f for f in findings), findings
 
 
+def test_a_valid_pipeline_file_passes_the_load_checks(tmp_path: Path, root: Path, capsys: pytest.CaptureFixture) -> None:
+    pack_pipeline(tmp_path, root, pipeline_file(ib.sha256(YOLOX_SIDECAR.read_bytes())))
+    findings = ib.verify("pipeline-yolox-boxes@openmmlab-exporter", root)
+    assert not [f for f in findings if "load checks" in f], findings
+    assert "load checks" not in capsys.readouterr().err  # the checks that need the sidecars did run
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "rule"),
+    [
+        ('schema_version: "2.0.0"', 'schema_version: "9.9.9"', "V-pipeline.file-1"),  # a structural rule of the loader
+        ("size: m", "size: zz", "V-node.onnx_model-4"),  # a rule that needs the sidecar
+        ("person_box: person.detections", "person_box: person.keypoints", "V-node.onnx_model-2"),
+    ],
+)
+def test_verify_runs_the_load_checks_of_the_package(tmp_path: Path, root: Path, old: str, new: str, rule: str) -> None:
+    text = pipeline_file(ib.sha256(YOLOX_SIDECAR.read_bytes()))
+    assert old in text
+    pack_pipeline(tmp_path, root, text.replace(old, new))
+    findings = ib.verify("pipeline-yolox-boxes@openmmlab-exporter", root)
+    assert any(f.startswith(f"yolox-boxes.pipeline.yaml: the load checks refuse it: {rule}") for f in findings), findings
+
+
+def test_the_sidecar_load_checks_do_not_run_for_a_key_with_no_package_sidecar(
+    tmp_path: Path, root: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    monkeypatch.setattr(ib, "_package_keys", lambda repo, yaml: set())
+    pack_pipeline(tmp_path, root, pipeline_file(ib.sha256(YOLOX_SIDECAR.read_bytes())).replace("size: m", "size: zz"))
+    findings = ib.verify("pipeline-yolox-boxes@openmmlab-exporter", root)
+    assert not [f for f in findings if "load checks" in f], findings
+    assert "the load checks that need the sidecars did not run" in capsys.readouterr().err
+
+
 def test_a_pipeline_bundle_needs_its_files_and_node_sections(tmp_path: Path, root: Path) -> None:
     assert "sections of a pipeline must be the node sections node.<type> that it uses" in ib.manifest_problems(
         pipeline_fields(sections=["post.object.selection.nms"]), computed=False
