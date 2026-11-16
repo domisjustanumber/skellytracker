@@ -137,6 +137,7 @@ ignore = ["ISC004"]
 
 [project.scripts]
 skellytracker = "skellytracker.__main__:cli_main"
+skellytracker-eps = "skellytracker.core.eps.cli:main"
 
 [tool.uv.sources]
 skellytracker-rust = { path = "skellytracker-rust" }
@@ -168,3 +169,4 @@ lint      = { cmd = "ruff check skellytracker/", help = "Run all ruff lint rules
 lint-fix  = { cmd = "ruff check --fix skellytracker/", help = "Auto-fix all ruff lint violations" }
 test      = { cmd = "pytest", help = "Run full test suite" }
 test-fast = { cmd = "pytest -m 'not video'", help = "Run tests excluding slow video tests" }
+setup-eps = { cmd = "skellytracker-eps install", help = "Install EP packs; takes the flags of skellytracker-eps install" }

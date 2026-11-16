@@ -28,7 +28,9 @@ from skellytracker.core.eps.records import (
     WheelRef,
 )
 from skellytracker.core.eps.registration import ensure_registered
+from skellytracker.core.eps.self_test import selftest
 from skellytracker.core.eps.session import build_session
+from skellytracker.core.eps.state import check_start, status
 from skellytracker.core.eps.store import store_root
 from skellytracker.core.eps.verification import verify
 
@@ -53,6 +55,7 @@ __all__ = [
     "Verdict",
     "WheelRef",
     "build_session",
+    "check_start",
     "download",
     "ensure_registered",
     "gc",
@@ -63,6 +66,8 @@ __all__ = [
     "remove",
     "run_devices",
     "select_precision",
+    "selftest",
+    "status",
     "store_root",
     "verify",
 ]
