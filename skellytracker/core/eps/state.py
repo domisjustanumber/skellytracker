@@ -108,12 +108,24 @@ def suggest_execution_provider(saved_execution_provider: str) -> str | None:
     An application calls it only for a setting that an older release saved. A choice of this release
     stays as chosen. None means: use the recommendation, `status().performance`.
 
-    1. A key of `legacy_keys` of the EP catalog gives its first successor whose `PackStatus.usable`
-       is true on this host, else None. `trt` and `cuda` have the successors `trt-rtx`, then `cuda`.
-       `directml` has no successor.
-    2. Each other EP key of the catalog on this platform gives that key when it is usable, else None.
+    This host supports an EP key when `status().eps` has a row for the key and the `state` of that
+    row is not `unsupported`. Thus a built-in EP on its platform is supported. A plugin EP is
+    supported when a GPU of this host passes the floors of its pack: the vendor, the compute
+    capability and the driver branch. The pack does not need to be installed. A driver that is too
+    old fails a floor: `status().performance` then holds the `update-driver` offer.
+
+    1. A key of `legacy_keys` of the EP catalog gives its first successor that this host supports,
+       else None. `trt` and `cuda` have the successors `trt-rtx`, then `cuda`. `directml` has no
+       successor.
+    2. Each other EP key of the catalog on this platform gives that key when this host supports it,
+       else None.
     3. Each other string gives None: a reserved key with no row in `legacy_keys`, an unknown key and
        the empty string. The function raises for no string. The match is exact and case-sensitive.
+
+    The returned EP can be not usable yet, for example when its pack is not installed. The
+    application reads `PackStatus.usable` and `PackStatus.install_hint` of the returned key in
+    `status().eps`. Until the install, `check_start()` of the key raises `EpUnavailableError` with
+    the install hint.
 
     It uses the state of `status()`: it loads no library and uses no network. A request does not
     change: `check_start("cuda")` starts `cuda`, and `check_start("trt")` raises `EpRequestError`.
@@ -121,6 +133,6 @@ def suggest_execution_provider(saved_execution_provider: str) -> str | None:
     catalog, host = load_catalog(), probe_host()
     for key in catalog.data["legacy_keys"].get(saved_execution_provider, (saved_execution_provider,)):
         row = _pack_status(catalog, key, host) if key in catalog.keys() else None
-        if row is not None and row.usable:
+        if row is not None and row.state != "unsupported":
             return key
     return None

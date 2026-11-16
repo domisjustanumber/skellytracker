@@ -16,8 +16,10 @@ and takes its recommended and automatic choices from `recommend()`:
 - `PackStatus.devices` holds the GPUs of this host that the EP can use, as `RunDevice` records, in
   the order of `run_devices(key)`. `status()` still loads no library and uses no network.
 - `suggest_execution_provider(saved_execution_provider)` gives the EP key to use on this host for an
-  EP key that a setting of an older release holds, or None. An application calls it only for such a
-  setting. On None, the application uses the recommendation.
+  EP key that a setting of an older release holds, or None. The key is an EP that this host
+  supports. It can need an install first: `PackStatus.usable` and `PackStatus.install_hint` of the
+  key tell the application. An application calls it only for such a setting. On None, the
+  application uses the recommendation.
 """
 
 from skellytracker.core.eps.catalog import EpCatalog, load_catalog

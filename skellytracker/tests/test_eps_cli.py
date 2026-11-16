@@ -46,18 +46,38 @@ def test_start_check(rtx_host):
             eps.check_start(key, device=device_key)
 
 
-@pytest.mark.parametrize(("installed", "saved", "expected"), [
-    (("trt-rtx", "cuda"), "trt", "trt-rtx"), (("trt-rtx", "cuda"), "cuda", "trt-rtx"),
-    (("cuda",), "trt", "cuda"), (("cuda",), "cuda", "cuda"), ((), "trt", None), ((), "cuda", None),
-    (("trt-rtx", "cuda"), "directml", None), ((), "cpu", "cpu"), ((), "coreml", None),  # this platform has no `coreml`
-    (("trt-rtx", "cuda"), "trt-rtx", "trt-rtx"), (("cuda",), "trt-rtx", None),  # a key of this release has no successor
-    (("trt-rtx", "cuda"), "tensorrt", None), (("trt-rtx", "cuda"), "openvino", None), (("trt-rtx", "cuda"), "", None),
-    (("trt-rtx", "cuda"), "CUDA", None),
+TURING = gpu(cc="7.5", vram=6 * GIB, device_id=0x2184, name="GTX 1660")  # passes the `cuda` floors, not the `trt-rtx` floors
+INTEL = gpu(vendor="intel", cc=None, device_id=0x9A49, name="Intel Iris Xe")
+OLD_DRIVER = gpu(driver="566.36")  # an RTX 3070 with a driver before R580
+
+
+@pytest.mark.parametrize(("gpus", "installed", "saved", "expected"), [
+    ((RTX, OLD), (), "trt", "trt-rtx"), ((RTX, OLD), (), "cuda", "trt-rtx"),  # supported, not installed
+    ((RTX, OLD), ("trt-rtx", "cuda"), "trt", "trt-rtx"), ((RTX, OLD), ("cuda",), "cuda", "trt-rtx"),
+    ((TURING,), (), "trt", "cuda"), ((TURING,), (), "cuda", "cuda"),
+    ((INTEL,), (), "trt", None), ((INTEL,), (), "cuda", None), ((), (), "cuda", None),
+    ((OLD_DRIVER,), (), "trt", None), ((OLD_DRIVER,), (), "cuda", None),  # `status().performance` offers the driver update
+    ((RTX, OLD), ("trt-rtx", "cuda"), "directml", None), ((RTX, OLD), (), "cpu", "cpu"),
+    ((RTX, OLD), (), "coreml", None),  # this platform has no `coreml`
+    ((RTX, OLD), (), "trt-rtx", "trt-rtx"), ((TURING,), (), "trt-rtx", None),  # a key of this release has no successor
+    ((RTX, OLD), ("trt-rtx", "cuda"), "tensorrt", None), ((RTX, OLD), ("trt-rtx", "cuda"), "openvino", None),
+    ((RTX, OLD), ("trt-rtx", "cuda"), "", None), ((RTX, OLD), ("trt-rtx", "cuda"), "CUDA", None),
 ])
-def test_suggest_execution_provider_for_a_key_of_an_older_release(rtx_host, installed, saved, expected):
+def test_suggest_execution_provider_for_a_key_of_an_older_release(monkeypatch, ep_store, gpus, installed, saved,  # noqa: F811
+                                                                   expected):
+    set_host(monkeypatch, host(*gpus))
     for key in installed:
         hw_fakes.fake_pack(key)
     assert eps.suggest_execution_provider(saved) == expected
+
+
+def test_a_suggested_ep_that_is_not_installed_gives_the_install_hint(rtx_host):
+    assert eps.suggest_execution_provider("cuda") == "trt-rtx"
+    (row,) = [row for row in eps.status().eps if row.key == "trt-rtx"]
+    assert not row.usable and row.install_hint == "Run `skellytracker-eps install trt-rtx`."
+    with pytest.raises(EpUnavailableError) as raised:
+        eps.check_start("trt-rtx")
+    assert raised.value.hint == row.install_hint
 
 
 def test_the_legacy_keys_do_not_change_a_request(rtx_host):
