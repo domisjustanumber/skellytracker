@@ -1,6 +1,7 @@
 """The catalog of the `detectors` entry point, on temporary sidecar roots."""
 from __future__ import annotations
 
+import functools
 import hashlib
 import importlib
 import logging
@@ -37,6 +38,9 @@ ONNX = b"not a real graph"
 def private_hash_cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(artifacts, "default_hash_cache_path", lambda: tmp_path / "cache" / "hash-cache.json")
     monkeypatch.delenv(catalog.USER_ROOT_VARIABLE, raising=False)
+    # The catalog of these tests has no sidecar of `core/model_zoo/`: a test names each root.
+    without_package = functools.partial(scan_sidecar_roots, package_root=tmp_path / "no-package-root")
+    monkeypatch.setattr(catalog, "scan_sidecar_roots", without_package)
 
 
 @pytest.fixture
