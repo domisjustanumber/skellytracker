@@ -32,12 +32,11 @@ def roi_to_xyxy(roi: np.ndarray) -> np.ndarray:
     return np.array([cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2])
 
 
-def clip_to_pixels(xyxy: np.ndarray, image_size: tuple[int, int]) -> list[int]:
+def clip_to_pixels(xyxy: np.ndarray, width: int, height: int) -> list[int]:
     """Clip a box to whole pixels with the rule of the old code: a clamp to the image, then `int()` (toward zero).
 
-    `image_size` is `(width, height)`, as in the result of a camera.
+    `width` and `height` are `image_width` and `image_height` of the result of a camera.
     """
-    width, height = image_size
     return [int(min(max(0.0, float(value)), float(limit))) for value, limit in zip(xyxy, (width, height, width, height), strict=True)]
 
 
@@ -94,7 +93,7 @@ def test_the_box_logic_of_the_built_in_agrees_with_the_recording_of_sfn26(record
         for k in range(len(data["frame_index"])):
             frame["k"] = k
             result = run.process(Frame(image, int(data["frame_index"][k]), float(data["timestamp_ms"][k])))
-            assert result["image_size"] == (width, height)
+            assert (result["image_width"], result["image_height"]) == (width, height)
             roi = result["person_roi"]
             if result["node_ran"]["person"] != data["detector_ran"][k]:
                 differences.append(f"frame {k}: node_ran.person is {result['node_ran']['person']}, detector_ran is {data['detector_ran'][k]}")
@@ -108,6 +107,7 @@ def test_the_box_logic_of_the_built_in_agrees_with_the_recording_of_sfn26(record
                 error = float(np.abs(xyxy - data["smoothed_box"][k]).max())
                 if not error <= 1e-6:
                     differences.append(f"frame {k}: person_roi {xyxy.tolist()} differs from smoothed_box {data['smoothed_box'][k].tolist()} by {error} px")
-                if clip_to_pixels(xyxy, result["image_size"]) != data["bounding_box"][k].tolist():
-                    differences.append(f"frame {k}: the clip {clip_to_pixels(xyxy, result['image_size'])} is not {data['bounding_box'][k].tolist()}")
+                clip = clip_to_pixels(xyxy, result["image_width"], result["image_height"])
+                if clip != data["bounding_box"][k].tolist():
+                    differences.append(f"frame {k}: the clip {clip} is not {data['bounding_box'][k].tolist()}")
     assert not differences, f"{len(differences)} differences, the first 10:\n" + "\n".join(differences[:10])

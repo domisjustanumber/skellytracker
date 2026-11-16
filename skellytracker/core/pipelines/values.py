@@ -5,6 +5,10 @@ Implements: pipeline.outputs
 A value of an instance port has ``I`` rows on each frame. A padding row has NaN coordinates, the
 score 0, ``present`` false, and -1 for ``track_ids`` and ``class_index``. A value with no present
 row is empty. An empty ``image`` or ``tensor`` value is ``None``.
+
+A ``keypoints`` value holds ``xy`` for each output, and ``z`` only for a ``3d`` output. A ``2d``
+output has no ``z``: ``z is None``. This version tracks one person:
+read row 0, and check ``present[0]`` first.
 """
 from __future__ import annotations
 
@@ -21,8 +25,8 @@ class InstanceKeypoints:
 
     point_names: tuple[str, ...]
     """``(P,)``: the point names ``<group>/<point>``."""
-    xyz: NDArray[np.float64]
-    """``(I, P, 3)`` in source-image pixels. z is NaN for a ``2d`` output. A missing point is NaN."""
+    xy: NDArray[np.float64]
+    """``(I, P, 2)``: x and y of each point, in source-image pixels. A missing point is NaN."""
     score: NDArray[np.float64]
     """``(I, P)``. A missing point has 0."""
     instance_score: NDArray[np.float64]
@@ -31,20 +35,30 @@ class InstanceKeypoints:
     """``(I,)``: true for a present row."""
     track_ids: NDArray[np.int64]
     """``(I,)``: -1 without an ``associate`` node."""
+    z: NDArray[np.float64] | None = None
+    """``(I, P)``, only for a ``3d`` output: the root-relative depth of each point in ``depth_unit``.
+    A missing point is NaN. ``None`` for a ``2d`` output."""
+
+    @property
+    def geometry(self) -> str:
+        """``"3d"`` when the value has ``z``, else ``"2d"``."""
+        return "2d" if self.z is None else "3d"
 
     @staticmethod
-    def empty(point_names: tuple[str, ...], rows: int) -> InstanceKeypoints:
-        """Return a value with ``rows`` padding rows."""
+    def empty(point_names: tuple[str, ...], rows: int, geometry: str | None = "2d") -> InstanceKeypoints:
+        """Return a value with ``rows`` padding rows. It has ``z`` only when ``geometry`` is ``"3d"``."""
         count = len(point_names)
         return InstanceKeypoints(
-            point_names, np.full((rows, count, 3), np.nan), np.zeros((rows, count)), np.zeros(rows),
+            point_names, np.full((rows, count, 2), np.nan), np.zeros((rows, count)), np.zeros(rows),
             np.zeros(rows, dtype=bool), np.full(rows, -1, dtype=np.int64),
+            np.full((rows, count), np.nan) if geometry == "3d" else None,
         )
 
     def instance(self, row: int) -> dict[str, Any]:
-        """Return the fields of one row: ``xyz`` ``(P, 3)``, ``score`` ``(P,)``, ``instance_score``, ``present`` and ``track_id``."""
+        """Return the fields of one row: ``xy`` ``(P, 2)``, ``z`` ``(P,)`` or ``None``, ``score`` ``(P,)``, ``instance_score``, ``present`` and ``track_id``."""
         return {
-            "xyz": self.xyz[row], "score": self.score[row], "instance_score": float(self.instance_score[row]),
+            "xy": self.xy[row], "z": None if self.z is None else self.z[row], "score": self.score[row],
+            "instance_score": float(self.instance_score[row]),
             "present": bool(self.present[row]), "track_id": int(self.track_ids[row]),
         }
 
@@ -53,10 +67,6 @@ class InstanceKeypoints:
         if len(self.present) != 1:
             raise ValueError(f"single() needs I = 1; this value has I = {len(self.present)}")
         return self.instance(0)
-
-    def by_track(self) -> dict[int, dict[str, Any]]:
-        """Return the present rows with a track id, by track id. It is empty without an ``associate`` node."""
-        return {int(track): self.instance(row) for row, track in enumerate(self.track_ids) if track >= 0 and self.present[row]}
 
 
 @dataclass(frozen=True)
@@ -134,7 +144,7 @@ class PortInfo:
     def empty(self) -> Any:
         """Return the empty value of the port."""
         if self.port_type == "keypoints":
-            return InstanceKeypoints.empty(self.point_names, self.max_instances or 0)
+            return InstanceKeypoints.empty(self.point_names, self.max_instances or 0, self.geometry)
         if self.port_type == "detections":
             return InstanceBoxes.empty(self.max_instances or 0)
         if self.port_type == "roi":

@@ -332,7 +332,7 @@ class Executor:
         for camera_id in cameras:
             frame = frames[camera_id]
             height, width = frame.image.shape[:2]
-            contexts[camera_id] = FrameContext(frame.frame_index, timestamps[camera_id], (int(width), int(height)), self.running_mode)
+            contexts[camera_id] = FrameContext(frame.frame_index, timestamps[camera_id], int(width), int(height), self.running_mode)
             values[camera_id] = {(FRAME, "image"): frame.image}
             for port, replay in self.replays.items():
                 values[camera_id][port] = replay.value(frame.frame_index, camera_id)
@@ -374,7 +374,7 @@ class Executor:
         for camera_id in cameras:
             frame, context = frames[camera_id], contexts[camera_id]
             result = {name: values[camera_id][_port(ref)] for name, ref in self.config.outputs.items()}
-            result.update(frame_index=frame.frame_index, image_size=context.image_size, timestamp_ms=timestamps[camera_id], node_ran=node_ran[camera_id])
+            result.update(frame_index=frame.frame_index, image_width=context.image_width, image_height=context.image_height, timestamp_ms=timestamps[camera_id], node_ran=node_ran[camera_id])
             results[camera_id] = result
             for record, _ in self.records:
                 image_id = (

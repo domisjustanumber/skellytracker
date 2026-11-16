@@ -113,7 +113,7 @@ def run(
         for i in range(max(count, 1)):
             row = roi = None
             if keypoints is not None and i < len(keypoints.present) and keypoints.present[i]:
-                row = [[x, y, score] for (x, y), score in zip(keypoints.xyz[i, :, :2].tolist(), keypoints.score[i].tolist(), strict=True)]
+                row = [[x, y, score] for (x, y), score in zip(keypoints.xy[i].tolist(), keypoints.score[i].tolist(), strict=True)]
             if rois is not None and i < len(rois.present) and rois.present[i]:
                 roi = rois.rois[i].tolist()
             if any(_fails(check, n - last, row, roi, "previous_keypoints" in inputs) for check in params.fitness_checks):

@@ -43,7 +43,7 @@ IMAGE = np.zeros((4, 4, 3), dtype=np.uint8)
 
 
 def frame(index: int = 0, mode: str = "video") -> FrameContext:
-    return FrameContext(index, None if mode == "image" else index * 40.0, (640, 480), mode)
+    return FrameContext(index, None if mode == "image" else index * 40.0, 640, 480, mode)
 
 
 def kp_info(names: tuple[str, ...], rows: int = 2, source: str = "person", geometry: str = "2d", **facts: Any) -> PortInfo:
@@ -68,7 +68,7 @@ def kp(names: tuple[str, ...], rows: list[Any], scores: list[float] | None = Non
     out = InstanceKeypoints.empty(names, len(rows))
     for i, row in enumerate(rows):
         if row is not None:
-            out.xyz[i, :, :2], out.score[i], out.present[i] = row, 0.9, True
+            out.xy[i], out.score[i], out.present[i] = row, 0.9, True
             out.instance_score[i] = 0.8 if scores is None else scores[i]
     return out
 
@@ -101,7 +101,7 @@ def is_padding(value: Any, row: int) -> bool:
         return False
     if isinstance(value, InstanceKeypoints):
         return bool(
-            np.isnan(value.xyz[row]).all() and (value.score[row] == 0).all()
+            np.isnan(value.xy[row]).all() and (value.z is None or np.isnan(value.z[row]).all()) and (value.score[row] == 0).all()
             and value.instance_score[row] == 0 and value.track_ids[row] == -1
         )
     if isinstance(value, InstanceRois):
@@ -214,7 +214,7 @@ def test_each_frame_has_the_rows_of_the_output_port_and_padding_rows(name: str) 
         assert value.present[0] and is_padding(value, 1)
         if isinstance(value, InstanceKeypoints):
             assert value.point_names == info.point_names
-            assert value.xyz.shape == (2, len(info.point_names), 3) and value.score.shape == (2, len(info.point_names))
+            assert value.xy.shape == (2, len(info.point_names), 2) and value.z is None and value.score.shape == (2, len(info.point_names))
         elif isinstance(value, InstanceRois):
             assert value.rois.shape == (2, 5)
 
@@ -435,15 +435,15 @@ def test_concat_gives_the_points_the_groups_and_the_edges_of_each_input_in_list_
 
 
 def test_concat_fills_the_columns_of_an_empty_input_with_missing_points() -> None:
-    """ADR-6DKT item 5: x, y and z are NaN and the score is 0."""
+    """ADR-6DKT item 5: x and y are NaN and the score is 0."""
     infos = [kp_info(BODY), kp_info(HAND)]
     outputs, _ = node_concat.output_info("n", NoParams(), infos)
     plan = node_concat.prepare("n", NoParams(), infos, outputs)
     # An empty value can hold old numbers in its arrays: the node must not copy them.
-    stale = InstanceKeypoints(HAND, np.ones((2, 2, 3)), np.ones((2, 2)), np.ones(2), np.zeros(2, dtype=bool), np.full(2, -1))
+    stale = InstanceKeypoints(HAND, np.ones((2, 2, 2)), np.ones((2, 2)), np.ones(2), np.zeros(2, dtype=bool), np.full(2, -1))
     out = node_concat.run(NoParams(), [body(), stale], None, frame(), plan)[0]["keypoints"]
-    assert np.isnan(out.xyz[:, 3:]).all() and (out.score[:, 3:] == 0).all()
-    assert out.xyz[0, :3, :2].tolist() == [[100, 100], [200, 100], [150, 50]] and np.isnan(out.xyz[0, :3, 2]).all()
+    assert np.isnan(out.xy[:, 3:]).all() and (out.score[:, 3:] == 0).all()
+    assert out.xy[0, :3].tolist() == [[100, 100], [200, 100], [150, 50]] and out.z is None
     assert out.present.tolist() == [True, False] and is_padding(out, 1)
     each_empty = node_concat.run(NoParams(), [kp(BODY, [None, None]), stale], None, frame(), plan)[0]["keypoints"]
     assert same(each_empty, InstanceKeypoints.empty(BODY + HAND, 2))
@@ -456,7 +456,7 @@ def test_concat_takes_the_instance_score_of_the_first_input_whose_row_is_present
     full = kp(BODY, [[[1, 1], [2, 2], [3, 3]], [[4, 4], [5, 5], [6, 6]]], [0.7, 0.6])
     out = node_concat.run(NoParams(), [hand, full], None, frame(), node_concat.prepare("n", NoParams(), infos, outputs))[0]["keypoints"]
     assert out.instance_score.tolist() == [0.8, 0.6] and out.present.tolist() == [True, True]
-    assert np.isnan(out.xyz[1, :2]).all() and out.xyz[1, 2:, :2].tolist() == [[4, 4], [5, 5], [6, 6]]
+    assert np.isnan(out.xy[1, :2]).all() and out.xy[1, 2:].tolist() == [[4, 4], [5, 5], [6, 6]]
 
 
 # ---------------------------------------------------------------------------------------------
@@ -541,11 +541,31 @@ def test_merge_copies_the_instance_score_of_the_target_row_and_reads_max_distanc
     inputs = scenario.frames[1]
     out = node_merge.run(scenario.params, inputs, None, frame(), plan)[0]["keypoints"]
     assert out.instance_score.tolist() == [0.8, 0.0] and out.track_ids.tolist() == [-1, -1]
-    assert out.xyz[0, 3:, :2].tolist() == [[205, 110], [210, 130], [95, 105], [90, 125]]
+    assert out.xy[0, 3:].tolist() == [[205, 110], [210, 130], [95, 105], [90, 125]]
     assert out.score[0].tolist() == [0.9] * 7
     near = scenario.params.model_copy(update={"max_distance": 0.01})
     out = node_merge.run(near, inputs, None, frame(), plan)[0]["keypoints"]
-    assert np.isnan(out.xyz[0, 3:]).all() and (out.score[0, 3:] == 0).all() and out.present.tolist() == [True, False]
+    assert np.isnan(out.xy[0, 3:]).all() and (out.score[0, 3:] == 0).all() and out.present.tolist() == [True, False]
+
+
+def with_z(value: InstanceKeypoints, depth: float) -> InstanceKeypoints:
+    """The value as a `3d` value: each point of a present row has the depth `depth`."""
+    return dataclasses.replace(value, z=np.where(value.present[:, None], np.full(value.score.shape, depth), np.nan))
+
+
+def test_concat_and_merge_keep_z_of_a_3d_value_and_a_missing_point_has_z_nan() -> None:
+    infos = [kp_info(BODY, geometry="3d", depth_unit="mm"), kp_info(HAND, geometry="3d", depth_unit="mm")]
+    outputs, _ = node_concat.output_info("n", NoParams(), infos)
+    plan = node_concat.prepare("n", NoParams(), infos, outputs)
+    out = node_concat.run(NoParams(), [with_z(body(), 5.0), with_z(kp(HAND, [None, None]), 0.0)], None, frame(), plan)[0]["keypoints"]
+    assert out.geometry == "3d" and out.z[0].tolist()[:3] == [5.0] * 3 and np.isnan(out.z[0, 3:]).all() and is_padding(out, 1)
+
+    scenario = scenarios()["merge"]
+    scenario.infos = {name: dataclasses.replace(info, geometry="3d", depth_unit="mm") for name, info in scenario.infos.items()}
+    _, plan = scenario.plan()
+    inputs = {"target": with_z(scenario.frames[1]["target"], 5.0), "source": with_z(scenario.frames[1]["source"], 7.0)}
+    out = node_merge.run(scenario.params, inputs, None, frame(), plan)[0]["keypoints"]
+    assert out.z[0].tolist() == [5.0] * 3 + [7.0] * 4 and is_padding(out, 1)
 
 
 # ---------------------------------------------------------------------------------------------
@@ -554,7 +574,7 @@ def test_merge_copies_the_instance_score_of_the_target_row_and_reads_max_distanc
 
 
 def stamped(t: float, mode: str = "video") -> FrameContext:
-    return FrameContext(0, t, (640, 480), mode)
+    return FrameContext(0, t, 640, 480, mode)
 
 
 @pytest.mark.parametrize("t", [40.0, 30.0])
@@ -574,13 +594,12 @@ def test_v_node_smooth_keypoints_3_a_timestamp_that_does_not_increase_is_refused
 def test_smooth_keypoints_gives_the_facts_of_its_input_and_passes_z_and_the_score() -> None:
     info = kp_info(BODY, geometry="3d", depth_unit="mm")
     assert node_smooth_keypoints.output_info("n", SmoothKeypointsParams(), {"keypoints": info}) == ({"keypoints": info}, [])
-    first, second = body(), body(10)
-    first.xyz[0, :, 2], second.xyz[0, :, 2] = 1.0, 2.0
+    first, second = with_z(body(), 1.0), with_z(body(10), 2.0)
     second.score[0] = [0.1, 0.2, 0.3]
     _, state = node_smooth_keypoints.run(SmoothKeypointsParams(), {"keypoints": first}, None, stamped(0.0))
     out = node_smooth_keypoints.run(SmoothKeypointsParams(), {"keypoints": second}, state, stamped(40.0))[0]["keypoints"]
-    assert out.xyz[0, :, 2].tolist() == [2.0, 2.0, 2.0] and out.score[0].tolist() == [0.1, 0.2, 0.3]
-    assert 100 < out.xyz[0, 0, 0] < 110 and out.xyz[0, 0, 1] == 100
+    assert out.z[0].tolist() == [2.0, 2.0, 2.0] and np.isnan(out.z[1]).all() and out.score[0].tolist() == [0.1, 0.2, 0.3]
+    assert 100 < out.xy[0, 0, 0] < 110 and out.xy[0, 0, 1] == 100
 
 
 def test_smooth_keypoints_does_not_run_before_its_first_input_and_holds_the_instance_score() -> None:
@@ -590,7 +609,7 @@ def test_smooth_keypoints_does_not_run_before_its_first_input_and_holds_the_inst
     _, state = node_smooth_keypoints.run(params, {"keypoints": body(scores=[0.9, 0.0])}, state, stamped(40.0))
     held, state = node_smooth_keypoints.run(params, {"keypoints": empty}, state, stamped(80.0))
     assert held["keypoints"].present.tolist() == [True, False] and held["keypoints"].instance_score.tolist() == [0.9, 0.0]
-    assert held["keypoints"].xyz[0, :, :2].tolist() == [[100, 100], [200, 100], [150, 50]] and is_padding(held["keypoints"], 1)
+    assert held["keypoints"].xy[0].tolist() == [[100, 100], [200, 100], [150, 50]] and is_padding(held["keypoints"], 1)
     gone, _ = node_smooth_keypoints.run(params, {"keypoints": empty}, state, stamped(120.0))
     assert same(gone["keypoints"], empty)
 

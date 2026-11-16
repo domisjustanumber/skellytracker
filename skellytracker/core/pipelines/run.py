@@ -98,7 +98,7 @@ class PipelineRun:
 
         In `video` and `image`, `frames` must hold one frame for each camera id of the run. In
         `live`, it holds a frame for one or more camera ids. The result of a camera holds one value
-        for each output name, and `frame_index`, `image_size` `(width, height)`, `timestamp_ms` and
+        for each output name, and `frame_index`, `image_width` and `image_height` (ints, in pixels), `timestamp_ms` and
         `node_ran`. A call that breaks a rule of the call raises `CallRefused`: it changes no
         state, and the run accepts the next call.
         """

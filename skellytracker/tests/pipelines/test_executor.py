@@ -49,7 +49,7 @@ def start(root: Path, data: dict[str, Any], **parameters: Any):
 
 def points_box(keypoints: Any) -> list[float]:
     """Return `(cx, cy, w, h)` of the box around the present points of row 0: the ROI of `roi_from_points` with its defaults."""
-    points = keypoints.xyz[0, :, :2]
+    points = keypoints.xy[0]
     points = points[~np.isnan(points).any(axis=1)]
     low, high = points.min(axis=0), points.max(axis=0)
     return [*((low + high) / 2), *(high - low)]
@@ -77,11 +77,11 @@ def test_each_node_type_runs_in_one_pipeline_on_generated_models(root: Path) -> 
     for index, result in enumerate(results):
         assert result["body"].present.tolist() == [True] and result["frame_index"] == index
         assert result["both"].point_names == ("body/a", "body/b", "body/c", "hand/a", "hand/b", "hand/c")  # `concat`
-        np.testing.assert_array_equal(result["both"].xyz[:, :3], result["body"].xyz)
+        np.testing.assert_array_equal(result["both"].xy[:, :3], result["body"].xy)
         assert result["merged"].point_names == ("body/a", "body/b", "body/c", "extra/a", "extra/b", "extra/c")  # `merge` adds a group
-        np.testing.assert_array_equal(result["merged"].xyz[0, 3, :2], result["body"].xyz[0, 0, :2])
-        assert result["smooth"].present.tolist() == [True] and result["smooth"].xyz.shape == (1, 6, 3)  # `smooth_keypoints`
-        assert result["image_size"] == (32, 32)
+        np.testing.assert_array_equal(result["merged"].xy[0, 3], result["body"].xy[0, 0])
+        assert result["smooth"].present.tolist() == [True] and result["smooth"].xy.shape == (1, 6, 2)  # `smooth_keypoints`
+        assert (result["image_width"], result["image_height"]) == (32, 32)
 
 
 # ---------------------------------------------------------------------------------------------
@@ -130,7 +130,7 @@ def test_a_node_that_an_empty_input_stops_gives_empty_outputs_and_the_nodes_that
     for name in ("person_box", "person_roi", "body", "merged", "smooth"):
         assert is_empty(dark[name]) and len(dark[name].present) == 1, name  # an empty value still has its I rows
     # `concat` runs with its empty inputs: each column is a missing point.
-    assert is_empty(dark["both"]) and dark["both"].xyz.shape == (1, 6, 3) and (dark["both"].score == 0).all()
+    assert is_empty(dark["both"]) and dark["both"].xy.shape == (1, 6, 2) and (dark["both"].score == 0).all()
     # The check `roi_missing` asks for a detection on the frame after a frame with no box.
     assert again["node_ran"] == {"person": True, "body": True, "hand": True} and again["body"].present.tolist() == [True]
 
@@ -278,7 +278,7 @@ def test_a_node_that_refuses_a_timestamp_after_other_nodes_ran_refuses_the_call_
     real, refuse = node_smooth_keypoints.run, []
 
     def run_node(params, inputs, state, frame, infos):
-        if refuse and frame.image_size == (64, 64):  # the last node of the order, for the second camera
+        if refuse and (frame.image_width, frame.image_height) == (64, 64):  # the last node of the order, for the second camera
             raise ValueError("V-node.smooth_keypoints-3: timestamp_ms must increase")
         return real(params, inputs, state, frame, infos)
 

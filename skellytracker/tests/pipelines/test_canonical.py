@@ -29,7 +29,9 @@ def wholebody() -> tuple[InstanceKeypoints, dict]:
         start += len(group.points)
     xyz = np.arange(2 * 133 * 3, dtype=np.float64).reshape(2, 133, 3)
     score = np.linspace(0.1, 1.0, 2 * 133).reshape(2, 133)
-    value = InstanceKeypoints(tuple(names), xyz, score, np.ones(2), np.ones(2, dtype=bool), np.full(2, -1, dtype=np.int64))
+    value = InstanceKeypoints(
+        tuple(names), xyz[..., :2].copy(), score, np.ones(2), np.ones(2, dtype=bool), np.full(2, -1, dtype=np.int64), xyz[..., 2].copy(),
+    )
     return value, {"port_type": "keypoints", "point_names": names, "groups": groups, "canonical_names": canonical_names(groups, names)}
 
 
@@ -46,31 +48,35 @@ def test_coco_wholebody_has_137_canonical_names_and_no_feet_column():
 
     result = to_canonical(value, output_schema)
     assert result.names == names
-    assert result.xyz.shape == (2, 137, 3) and result.score.shape == (2, 137)
+    assert result.xy.shape == (2, 137, 2) and result.z.shape == (2, 137) and result.score.shape == (2, 137)
+    assert result.geometry == value.geometry == "3d"
     # The face group passes through, in the canonical columns.
     assert result.groups == (Group("face", 27, 68, "COCO_WholeBody"),)
-    np.testing.assert_array_equal(result.xyz[:, 27:95], value.xyz[:, 23:91])
+    np.testing.assert_array_equal(result.xy[:, 27:95], value.xy[:, 23:91])
+    np.testing.assert_array_equal(result.z[:, 27:95], value.z[:, 23:91])
     # A passthrough keeps the point and its score.
     toe = value.point_names.index("feet/left_big_toe")
-    np.testing.assert_array_equal(result.xyz[:, 17], value.xyz[:, toe])
+    np.testing.assert_array_equal(result.xy[:, 17], value.xy[:, toe])
     np.testing.assert_array_equal(result.score[:, 95], value.score[:, value.point_names.index("left_hand/left_hand_root")])
     # A mean point: the mean of its sources, with the minimum of their scores.
     hips = [value.point_names.index("body/left_hip"), value.point_names.index("body/right_hip")]
-    np.testing.assert_allclose(result.xyz[:, 26], value.xyz[:, hips].mean(axis=1))
+    np.testing.assert_allclose(result.xy[:, 26], value.xy[:, hips].mean(axis=1))
+    np.testing.assert_allclose(result.z[:, 26], value.z[:, hips].mean(axis=1))
     np.testing.assert_array_equal(result.score[:, 26], value.score[:, hips].min(axis=1))
 
 
 def test_a_missing_left_hip_makes_hips_center_missing():
     value, output_schema = wholebody()
     hip = value.point_names.index("body/left_hip")
-    value.xyz[0, hip] = np.nan
+    value.xy[0, hip] = value.z[0, hip] = np.nan
     value.score[0, hip] = 0.0
     result = to_canonical(value, output_schema)
     names = result.names
     for name in ("body/left_hip", "body/hips_center", "body/trunk_center"):
-        assert np.isnan(result.xyz[0, names.index(name)]).all() and result.score[0, names.index(name)] == 0
-        assert np.isfinite(result.xyz[1, names.index(name)]).all()
-    assert np.isfinite(result.xyz[0, names.index("body/neck_center")]).all()
+        assert np.isnan(result.xy[0, names.index(name)]).all() and result.score[0, names.index(name)] == 0
+        assert np.isnan(result.z[0, names.index(name)])  # z of a missing point of a `3d` value is NaN
+        assert np.isfinite(result.xy[1, names.index(name)]).all()
+    assert np.isfinite(result.xy[0, names.index("body/neck_center")]).all()
 
 
 def test_a_group_with_a_null_schema_passes_through():
@@ -78,10 +84,11 @@ def test_a_group_with_a_null_schema_passes_through():
     groups = [Group("face", 0, 2, None), Group("left_hand", 2, 1, None)]
     assert canonical_names(groups, names) == names
     value = InstanceKeypoints.empty(names, 1)
-    value.xyz[0, 2] = (1.0, 2.0, 3.0)
+    value.xy[0, 2] = (1.0, 2.0)
     result = to_canonical(value, {"groups": groups, "canonical_names": names})
     assert result.names == names and result.groups == tuple(groups)
-    np.testing.assert_array_equal(result.xyz, value.xyz)
+    np.testing.assert_array_equal(result.xy, value.xy)
+    assert result.z is None and result.geometry == "2d"  # a `2d` value has no z
     np.testing.assert_array_equal(result.score, value.score)
 
 
@@ -92,14 +99,14 @@ def test_the_group_name_gives_the_side_of_a_one_hand_schema(tmp_path):
     groups = [Group("left_hand", 0, 2, "Test_Hand"), Group("right_hand", 2, 2, "Test_Hand")]
     canonical = canonical_names(groups, names, tmp_path)
     assert canonical == ("left_hand/wrist", "left_hand/middle", "right_hand/wrist", "right_hand/middle")
-    xyz = np.array([[[0.0, 0.0, 0.0], [4.0, 8.0, 0.0], [10.0, 10.0, 0.0], [np.nan, np.nan, np.nan]]])
+    xy = np.array([[[0.0, 0.0], [4.0, 8.0], [10.0, 10.0], [np.nan, np.nan]]])
     score = np.array([[0.9, 0.5, 0.8, 0.0]])
-    value = InstanceKeypoints(names, xyz, score, np.ones(1), np.ones(1, dtype=bool), np.full(1, -1, dtype=np.int64))
+    value = InstanceKeypoints(names, xy, score, np.ones(1), np.ones(1, dtype=bool), np.full(1, -1, dtype=np.int64))
     result = to_canonical(value, {"groups": groups, "canonical_names": canonical}, user_root=tmp_path)
     assert result.groups == ()
-    np.testing.assert_allclose(result.xyz[0, :3], [[0.0, 0.0, 0.0], [3.0, 6.0, 0.0], [10.0, 10.0, 0.0]])
+    np.testing.assert_allclose(result.xy[0, :3], [[0.0, 0.0], [3.0, 6.0], [10.0, 10.0]])
     np.testing.assert_allclose(result.score[0], [0.9, 0.5, 0.8, 0.0])
-    assert np.isnan(result.xyz[0, 3]).all()  # each group stands alone: the right tip is missing
+    assert np.isnan(result.xy[0, 3]).all()  # each group stands alone: the right tip is missing
 
 
 def test_refusals():

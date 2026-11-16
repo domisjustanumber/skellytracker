@@ -58,7 +58,7 @@ class OnnxModelRunner:
         values = [self.outputs_info["keypoints"].empty() for _ in images]
         for position, (index, row) in enumerate(pairs):
             value = values[index]
-            value.xyz[row, :, :2] = found.keypoints[position]  # z stays NaN: the decode of this release gives x and y
+            value.xy[row] = found.keypoints[position]  # z of a `3d` model stays NaN: the decode of this release gives x and y
             value.score[row] = found.scores[position]
             value.instance_score[row] = rois[index].instance_score[row]
             value.present[row] = True

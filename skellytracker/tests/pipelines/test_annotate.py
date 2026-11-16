@@ -9,7 +9,7 @@ SCHEMA = {
     "boxes": {"port_type": "detections", "class_names": ["person", None]},
     "crop": {"port_type": "roi"},
 }
-FIXED = {"frame_index": 0, "image_size": (64, 48), "timestamp_ms": None, "node_ran": {"model": True}}
+FIXED = {"frame_index": 0, "image_width": 64, "image_height": 48, "timestamp_ms": None, "node_ran": {"model": True}}
 
 
 def image() -> np.ndarray:
@@ -18,7 +18,7 @@ def image() -> np.ndarray:
 
 def keypoints() -> InstanceKeypoints:
     value = InstanceKeypoints.empty(("body/a", "body/b", "body/c"), 2)
-    value.xyz[0, :2] = [[10.0, 10.0, np.nan], [40.0, 30.0, np.nan]]  # `body/c` is missing
+    value.xy[0, :2] = [[10.0, 10.0], [40.0, 30.0]]  # `body/c` is missing
     value.score[0, :2] = [0.9, 0.2]
     value.present[0] = True
     return value

@@ -60,10 +60,10 @@ def test_a_top_down_model_gives_row_i_from_roi_row_i_with_the_instance_score_of_
     assert body.present.tolist() == [True, True, False] and body.track_ids.tolist() == [-1, -1, -1]
     np.testing.assert_array_equal(body.instance_score, result["person_roi"].instance_score)
     # Point `a` is the centre of each crop. Point `c` is missing: NaN and the score 0. The node sets no low score to NaN.
-    np.testing.assert_allclose(body.xyz[:2, 0, :2], [[6, 6], [25, 25]])
+    np.testing.assert_allclose(body.xy[:2, 0], [[6, 6], [25, 25]])
     np.testing.assert_allclose(body.score, [[3, 2, 0], [3, 2, 0], [0, 0, 0]])
-    assert np.isnan(body.xyz[:2, 2]).all() and np.isnan(body.xyz[2]).all()
-    assert np.isnan(body.xyz[:, :, 2]).all()  # z is NaN for a `2d` model
+    assert np.isnan(body.xy[:2, 2]).all() and np.isnan(body.xy[2]).all()
+    assert body.z is None and body.geometry == "2d"  # a `2d` model gives no z
 
 
 def test_a_roi_value_with_a_padding_row_before_a_present_row_keeps_its_rows_and_a_padded_crop_gives_no_row(root: Path) -> None:
@@ -76,8 +76,8 @@ def test_a_roi_value_with_a_padding_row_before_a_present_row_keeps_its_rows_and_
     (outputs,) = runner.run(0, [image(1)], [rois], lambda span, start, end: spans.append(span))
     value = outputs["keypoints"]
     assert value.present.tolist() == [False, True] and value.instance_score.tolist() == [0.0, 0.4]
-    np.testing.assert_allclose(value.xyz[1, 0, :2], [25, 25])
-    assert np.isnan(value.xyz[0]).all() and spans == ["preprocess", "inference", "postprocess"]
+    np.testing.assert_allclose(value.xy[1, 0], [25, 25])
+    assert np.isnan(value.xy[0]).all() and spans == ["preprocess", "inference", "postprocess"]
 
 
 def test_the_timer_of_a_generic_detector_gets_three_spans_in_order_and_changes_no_result(root: Path) -> None:

@@ -6,9 +6,10 @@ Note:
 - Source: the section text specs/pipeline/nodes/concat.md.
 - Imported section modules: node.first_of (node_first_of, the function is_empty).
 
-A keypoints value is None (empty) or a mapping with `point_names` (P names), `xyz` (I rows of P
-points [x, y, z]), `score` (I rows of P scores), `instance_score` (I values), `present` (I flags),
-`track_ids` (I ids), and the facts of its output schema `instance_source` and `geometry`.
+A keypoints value is None (empty) or a mapping with `point_names` (P names), `xy` (I rows of P
+points [x, y]), `score` (I rows of P scores), `instance_score` (I values), `present` (I flags),
+`track_ids` (I ids), and the facts of its output schema `instance_source` and `geometry`. Only a
+`3d` value has `z` (I rows of P depths).
 """
 
 from __future__ import annotations
@@ -55,18 +56,23 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
 
     def columns(value: dict[str, Any] | None, names: list[str], key: str, i: int) -> list[Any]:
         if node_first_of.is_empty(value):
-            return [[math.nan] * 3 for _ in names] if key == "xyz" else [0.0] * len(names)
+            return {"xy": [[math.nan] * 2 for _ in names], "z": [math.nan] * len(names), "score": [0.0] * len(names)}[key]
         return list(value[key][i])
 
     def first_present(key: str, i: int) -> Any:
         return next((value[key][i] for value in given if value["present"][i]), PADDING[key])
 
     pairs = list(zip(values, point_names))  # noqa: B905 (one item for each input)
+
+    def joined(key: str) -> list[list[Any]]:
+        return [[item for value, names in pairs for item in columns(value, names, key, i)] for i in rows]
+
     return {
         "keypoints": {
             "point_names": [name for names in point_names for name in names],
-            "xyz": [[point for value, names in pairs for point in columns(value, names, "xyz", i)] for i in rows],
-            "score": [[score for value, names in pairs for score in columns(value, names, "score", i)] for i in rows],
+            "xy": joined("xy"),
+            **({"z": joined("z")} if given[0]["geometry"] == "3d" else {}),  # a `2d` value has no z
+            "score": joined("score"),
             "instance_score": [first_present("instance_score", i) for i in rows],
             "present": [any(value["present"][i] for value in given) for i in rows],
             "track_ids": [first_present("track_ids", i) for i in rows],

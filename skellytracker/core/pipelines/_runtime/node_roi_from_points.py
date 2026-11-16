@@ -153,7 +153,7 @@ def run(
         if not keypoints.present[i]:
             continue
         roi = _row_roi(
-            params, keypoints.point_names, keypoints.xyz[i, :, :2].tolist(), keypoints.score[i].tolist(),
+            params, keypoints.point_names, keypoints.xy[i].tolist(), keypoints.score[i].tolist(),
             _row(previous, i), _row(reference, i),
         )
         if roi is not None:

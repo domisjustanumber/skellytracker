@@ -19,7 +19,7 @@ cases:
       values:
         - null
         - point_names: [body/nose]
-          xyz: [[[.nan, .nan, .nan]]]
+          xy: [[[.nan, .nan]]]
           score: [[0]]
           instance_score: [0]
           present: [false]
@@ -27,7 +27,7 @@ cases:
           instance_source: person
           geometry: "2d"
         - point_names: [body/nose]
-          xyz: [[[1, 2, .nan]]]
+          xy: [[[1, 2]]]
           score: [[0.9]]
           instance_score: [0.8]
           present: [true]
@@ -37,7 +37,7 @@ cases:
     expect:
       value:
         point_names: [body/nose]
-        xyz: [[[1, 2, .nan]]]
+        xy: [[[1, 2]]]
         score: [[0.9]]
         instance_score: [0.8]
         present: [true]
@@ -56,7 +56,7 @@ cases:
       values:
         - null
         - point_names: [body/nose]
-          xyz: [[[.nan, .nan, .nan]]]
+          xy: [[[.nan, .nan]]]
           score: [[0]]
           instance_score: [0]
           present: [false]

@@ -1935,7 +1935,7 @@ def node_frame(index: int = 0, timestamp_ms: float | None = 0.0, running_mode: s
     from skellytracker.core.pipelines._runtime.context import FrameContext
 
     stamp = None if running_mode == "image" or timestamp_ms is None else float(timestamp_ms)
-    return FrameContext(index, stamp, (640, 480), running_mode)
+    return FrameContext(index, stamp, 640, 480, running_mode)
 
 
 def keypoints_info(names: list[str], rows: int, source: str | None = "person", geometry: str | None = "2d") -> Any:
@@ -1969,11 +1969,12 @@ def keypoints_value(value: dict[str, Any] | None, info: Any) -> Any:
     rows, points = len(value["present"]), len(info.point_names)
     return InstanceKeypoints(
         info.point_names,
-        np.array(value["xyz"], dtype=np.float64).reshape(rows, points, 3),
+        np.array(value["xy"], dtype=np.float64).reshape(rows, points, 2),
         np.array(value["score"], dtype=np.float64).reshape(rows, points),
         np.array(value["instance_score"], dtype=np.float64),
         np.array(value["present"], dtype=bool),
         np.array(value["track_ids"], dtype=np.int64),
+        np.array(value["z"], dtype=np.float64).reshape(rows, points) if "z" in value else None,
     )
 
 
@@ -1983,7 +1984,8 @@ def keypoints_mapping(value: Any, info: Any) -> dict[str, Any] | None:
         return None
     return {
         "point_names": list(value.point_names),
-        "xyz": value.xyz.tolist(),
+        "xy": value.xy.tolist(),
+        **({} if value.z is None else {"z": value.z.tolist()}),
         "score": value.score.tolist(),
         "instance_score": value.instance_score.tolist(),
         "present": value.present.tolist(),
@@ -2001,7 +2003,7 @@ def xy_keypoints(rows: list[Any], present: list[bool], info: Any, scores: list[A
     for i, row in enumerate(rows):
         if row is None or not present[i]:
             continue
-        out.xyz[i, : len(row), :2] = [point[:2] for point in row]
+        out.xy[i, : len(row)] = [point[:2] for point in row]
         out.score[i, : len(row)] = [1.0] * len(row) if scores is None else scores[i]
         out.present[i] = True
         out.instance_score[i] = row_values["instance_score"][i] if "instance_score" in row_values else 0.0
@@ -2260,7 +2262,7 @@ def smooth_keypoints_runner(function: Any, case: dict[str, Any]) -> dict[str, An
             result, state = function(params, {"keypoints": value}, state, node_frame(index, stamps[index], mode))
             ran = not (frame is None and state is None)  # before its first input, the node does not run
             result = result["keypoints"]
-            out["keypoints"].append(result.xyz[..., :2].tolist() if ran else None)
+            out["keypoints"].append(result.xy.tolist() if ran else None)
             out["instance_score"].append(result.instance_score.tolist() if ran else None)
             out["track_ids"].append(result.track_ids.tolist() if ran else None)
         # `expect` has 6 decimals, and the tolerance of the file is smaller.

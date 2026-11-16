@@ -61,8 +61,8 @@ def test_a_run_gives_the_output_schema_before_frame_0_the_run_metadata_and_the_r
         assert (models["person"]["key"], models["body"]["key"], models["person"]["version"]) == (OBJECT_KEY, KEYPOINT_KEY, "0.1.0")
         assert len(models["person"]["sidecar_sha256"]) == 64
         result = run.process(Frame(image(1, 24, 40), 4))
-    assert set(result) == {"body", "person_box", "person_roi", "frame_index", "image_size", "timestamp_ms", "node_ran"}
-    assert (result["frame_index"], result["image_size"], result["node_ran"]) == (4, (40, 24), {"person": True, "body": True})
+    assert set(result) == {"body", "person_box", "person_roi", "frame_index", "image_width", "image_height", "timestamp_ms", "node_ran"}
+    assert (result["frame_index"], result["image_width"], result["image_height"], result["node_ran"]) == (4, 40, 24, {"person": True, "body": True})
     assert result["timestamp_ms"] == pytest.approx(4 * 1000 / 30)  # the `video` fallback with the default fps
 
 
@@ -302,9 +302,9 @@ def test_the_built_in_mediapipe_holistic_tasks_runs_through_start_pipeline_and_g
     value = result["holistic"]
     height, width = test_image.shape[:2]
     assert len(value.point_names) == 553 and list(value.point_names) == schema["point_names"]
-    assert value.xyz.shape == (1, 553, 3) and value.score.shape == (1, 553)
-    assert value.present.tolist() == [True] and value.instance_score.tolist() == [1.0] and np.isfinite(value.xyz[0, :33]).all()
-    assert (result["node_ran"], result["image_size"], result["timestamp_ms"]) == ({"holistic": True}, (width, height), None)
+    assert value.xy.shape == (1, 553, 2) and value.z.shape == (1, 553) and value.geometry == "3d" and value.score.shape == (1, 553)
+    assert value.present.tolist() == [True] and value.instance_score.tolist() == [1.0] and np.isfinite(value.xy[0, :33]).all() and np.isfinite(value.z[0, :33]).all()
+    assert (result["node_ran"], result["image_width"], result["image_height"], result["timestamp_ms"]) == ({"holistic": True}, width, height, None)
 
 
 def test_two_runs_with_mediapipe_call_at_the_same_time_on_two_threads(test_image: np.ndarray) -> None:

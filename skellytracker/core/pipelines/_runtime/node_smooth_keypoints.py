@@ -132,7 +132,7 @@ def run(
         )
     dt = (t - state.last_t) / 1000.0
     # A row that is not present has only missing points.
-    z = np.where(keypoints.present[:, None, None], keypoints.xyz[..., :2], np.nan)
+    z = np.where(keypoints.present[:, None, None], keypoints.xy, np.nan)
     valid = ~np.isnan(z).any(axis=2)
     with np.errstate(invalid="ignore", divide="ignore"):
         # Step 6: the rows with a state.
@@ -165,12 +165,10 @@ def run(
     last_score = np.where(keypoints.present, keypoints.instance_score, state.last_score)
     last_track = np.where(keypoints.present, keypoints.track_ids, state.last_track)
     present = ~np.isnan(xy).any(axis=2).all(axis=1)
-    xyz = keypoints.xyz.copy()
-    xyz[..., :2] = xy
-    xyz[~present] = np.nan
     out = InstanceKeypoints(
-        keypoints.point_names, xyz, np.where(present[:, None], keypoints.score, 0.0), np.where(present, last_score, 0.0),
+        keypoints.point_names, np.where(present[:, None, None], xy, np.nan), np.where(present[:, None], keypoints.score, 0.0), np.where(present, last_score, 0.0),
         present, np.where(present, last_track, -1),
+        None if keypoints.z is None else np.where(present[:, None], keypoints.z, np.nan),  # z passes through
     )
     new_state = SmoothKeypointsState(
         last_t=float(t), has_state=~reset, est=est, d=d, v=v, cov=cov, t_detected=t_detected, t_valid=t_valid,

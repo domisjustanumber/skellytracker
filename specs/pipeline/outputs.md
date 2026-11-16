@@ -25,7 +25,9 @@ The value of a `keypoints` port (`InstanceKeypoints`):
 | Field | Shape | Description |
 |-------|-------|-------------|
 | `point_names` | `(P,)` | The point names `<group>/<point>` ([Graph](graph.md#behaviour) item 7), for example `body/nose`. |
-| `xyz` | `(I, P, 3)` | The coordinates of each point, in source-image pixels. z is NaN for a `2d` output. For a `3d` output, z is the root-relative depth in `depth_unit`, as the sidecar [`keypoint.geometry`](../model-sidecar/post/keypoint/schema.md#fields) gives it. A missing point is NaN. |
+| `xy` | `(I, P, 2)` | x and y of each point, in source-image pixels. A missing point is NaN. |
+| `z` | `(I, P)` | Only for a `3d` output: the root-relative depth of each point in `depth_unit`, as the sidecar [`keypoint.geometry`](../model-sidecar/post/keypoint/schema.md#fields) gives it. A missing point is NaN. A `2d` output has no `z`. |
+| `geometry` | none | `2d` or `3d`: the `geometry` of the output schema. A consumer needs no schema to know if the value has `z` ([ADR-JHB3](../../decisions/entries/JHB3-keypoints-xy-and-z-and-image-width-and-height.md)). |
 | `score` | `(I, P)` | The score of each point: the decoded score of the sidecar, with no mapping, or the landmark visibility of MediaPipe. A missing point has 0 ([Decoded keypoints](../model-sidecar/post/keypoint/schema.md#decoded-keypoints)). |
 | `instance_score` | `(I,)` | The instance score of each row, from its instance source row ([Graph](graph.md#behaviour) item 8). |
 | `present` | `(I,)` | True for a present row, false for a padding row. |
@@ -53,7 +55,7 @@ The values of a padding row:
 
 | Field | Padding value |
 |-------|---------------|
-| `xyz`, `xyxy`, `rois` | NaN |
+| `xy`, `z` (only for a `3d` output), `xyxy`, `rois` | NaN |
 | `score`, `instance_score` | 0 |
 | `present` | false |
 | `track_ids`, `class_index` | -1 |
@@ -64,7 +66,8 @@ The result of one camera for one call:
 |-------|-------------|
 | `<output name>` | The value of the output. |
 | `frame_index` | The frame index of the call. |
-| `image_size` | The size of the source image, `(width, height)` in pixels. |
+| `image_width` | The width of the source image, in pixels. |
+| `image_height` | The height of the source image, in pixels. |
 | `timestamp_ms` | The timestamp of the frame, in milliseconds, as a float ([Running](running.md#behaviour)). |
 | `node_ran` | A mapping of node id to a boolean, with one key for each inference node of the file ([README](README.md#terms)). The value is true when the node ran for this camera on this frame ([Behaviour](#behaviour) item 8). |
 
@@ -92,14 +95,14 @@ The output schema gives these fields for each output:
 4. The cameras stay separate. No output joins the values of two cameras ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1). In `live`, a call can hold a subset of the cameras of the run. The run then gives a result only for each camera of the call ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 3).
 5. An `onnx_model` node fills `class_index` in each `detections` row. `gate` and `first_of` pass a `detections` value with its rows unchanged, so they keep `class_index`. No other node type makes or passes a `detections` value.
 6. This draft defines the value of a `keypoints` port, a `detections` port and a `roi` port. The value of an output of the port type `image` or `tensor` is not fixed yet ([open work](decisions/open-work.md)).
-7. **Canonical form.** The canonical form maps the groups that one node or one `merge` slot made together, with the canonical mapping of their schema ([Canonical mapping](../model-sidecar/post/keypoint/canonical-mapping.md#behaviour)). These are the groups with one `landmark_schema`. A schema with two or more groups comes from one node, because group names are unique in a file (`V-pipeline.graph-10`). A group of a schema with one group stands alone. For example, the region `body` of `COCO_WholeBody` reads the toes of the group `feet` of the same node. Each canonical region comes from at most one group: the group with its name. A group with a null `landmark_schema` passes through. `canonical_names` gives the names in the order of that section. The run gives `canonical_names` before frame 0. No param selects the canonical form ([ADR-4MP6](../../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md) items 6 and 7).
+7. **Canonical form.** The canonical form maps the groups that one node or one `merge` slot made together, with the canonical mapping of their schema ([Canonical mapping](../model-sidecar/post/keypoint/canonical-mapping.md#behaviour)). These are the groups with one `landmark_schema`. A schema with two or more groups comes from one node, because group names are unique in a file (`V-pipeline.graph-10`). A group of a schema with one group stands alone. For example, the region `body` of `COCO_WholeBody` reads the toes of the group `feet` of the same node. Each canonical region comes from at most one group: the group with its name. A group with a null `landmark_schema` passes through. `canonical_names` gives the names in the order of that section. The run gives `canonical_names` before frame 0. No param selects the canonical form ([ADR-4MP6](../../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md) items 6 and 7). The canonical form has `xy`, and it has `z` only for a `3d` output ([ADR-JHB3](../../decisions/entries/JHB3-keypoints-xy-and-z-and-image-width-and-height.md)).
 8. **`node_ran`.** An inference node ran for a camera when it did an inference on the frame of that camera in this call. A node that got an empty required input did not run ([Graph](graph.md#behaviour) item 6). A node that the run does not use, or whose outputs are all replayed, did not run ([Running](running.md#behaviour) item 9). A padded batch item is not a run ([Running](running.md#behaviour) item 4). A node that ran and found no instance has the value true, and its outputs are empty. A node that did not run has the value false. The run gives `node_ran` also when the timing is off ([ADR-Q5BN](../../decisions/entries/Q5BN-node-ran-in-the-camera-result.md)).
 
 ## Validation rules
 
 - [ ] `V-pipeline.outputs-1` Each output name must be a name. Its port reference must name an existing node and an output port of the type of that node. It must not have `@prev`, and it must not be the frame port `frame.image`.
 - [ ] `V-pipeline.outputs-2` Each point name of an output must be unique in that output. The host checks this rule at load, with the sidecars.
-- [ ] `V-pipeline.outputs-3` An output name must not be `frame_index`, `image_size`, `timestamp_ms` or `node_ran`. The result of a camera holds these fields next to the outputs ([ADR-Q5BN](../../decisions/entries/Q5BN-node-ran-in-the-camera-result.md)).
+- [ ] `V-pipeline.outputs-3` An output name must not be `frame_index`, `image_width`, `image_height`, `timestamp_ms` or `node_ran`. The result of a camera holds these fields next to the outputs ([ADR-Q5BN](../../decisions/entries/Q5BN-node-ran-in-the-camera-result.md); [ADR-JHB3](../../decisions/entries/JHB3-keypoints-xy-and-z-and-image-width-and-height.md)).
 
 ## Implementer guidance
 
@@ -109,6 +112,14 @@ The output schema gives these fields for each output:
 ## Authoring guidance
 
 - `I` can be more than 1, also for an output. Without an `associate` node, a row has no identity across frames: row `i` of two frames can be two persons ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1).
+
+- This version tracks one person ([ADR-TH8E](../../decisions/entries/TH8E-one-person-in-v2.md)). To read that person, read row 0. Check `present[0]` first, because a padding row has NaN in `xy` ([ADR-JHB3](../../decisions/entries/JHB3-keypoints-xy-and-z-and-image-width-and-height.md)):
+
+  ```python
+  body = result["wholebody"]
+  if body.present[0]:
+      nose_x, nose_y = body.xy[0, body.point_names.index("body/nose")]
+  ```
 
 ## Examples
 

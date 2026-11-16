@@ -92,7 +92,7 @@ def row_record(value: Any, row: int, info: PortInfo) -> dict[str, Any]:
         return {"class": (info.class_names or ())[index], "bbox": [x1, y1, x2 - x1, y2 - y1], "score": float(value.score[row])}
     if info.port_type == "roi":
         return {"roi": [float(item) for item in value.rois[row]], "score": float(value.instance_score[row])}
-    points = [number for (x, y), score in zip(value.xyz[row, :, :2].tolist(), value.score[row].tolist(), strict=True) for number in (_number(x), _number(y), score)]
+    points = [number for (x, y), score in zip(value.xy[row].tolist(), value.score[row].tolist(), strict=True) for number in (_number(x), _number(y), score)]
     return {"keypoints": points, "score": float(value.instance_score[row])}
 
 
@@ -212,7 +212,7 @@ class ReplayTap:
             if points.size != 3 * len(info.point_names):
                 raise ValueError(f"{where}: `keypoints` has {points.size} numbers; the port has {len(info.point_names)} points")
             points = points.reshape(-1, 3)
-            value.xyz[row, :, :2] = points[:, :2]
+            value.xy[row] = points[:, :2]
             value.score[row] = points[:, 2]
             value.instance_score[row] = line["score"]
         value.present[row] = True

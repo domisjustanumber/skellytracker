@@ -47,7 +47,7 @@ def _row_score(condition: Any, i: int) -> float:
     """Return the score of one present row of ``condition`` (Fields, "Score of a row")."""
     if isinstance(condition, InstanceBoxes):
         return float(condition.score[i])
-    valid = ~np.isnan(condition.xyz[i, :, :2]).any(axis=1)
+    valid = ~np.isnan(condition.xy[i]).any(axis=1)
     seen = condition.score[i][valid].tolist()
     return sum(seen) / len(seen) if seen else 0.0
 

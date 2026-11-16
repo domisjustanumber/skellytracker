@@ -92,7 +92,7 @@ def test_image_mode(test_image, variant: str, max_instances: int, must_find: boo
     h, w = test_image.shape[:2]
     assert same is state
     assert value.point_names == info.point_names
-    assert value.xyz.shape == (max_instances, count, 3) and value.score.shape == (max_instances, count)
+    assert value.xy.shape == (max_instances, count, 2) and value.z.shape == (max_instances, count) and value.score.shape == (max_instances, count)
     assert value.present.shape == value.instance_score.shape == value.track_ids.shape == (max_instances,)
     assert (value.track_ids == -1).all()
     assert value.instance_score.tolist() == [1.0 if p else 0.0 for p in value.present]
@@ -100,12 +100,12 @@ def test_image_mode(test_image, variant: str, max_instances: int, must_find: boo
     assert ((value.score >= 0) & (value.score <= 1)).all()
     for row, present in enumerate(value.present):
         if not present:
-            assert np.isnan(value.xyz[row]).all() and (value.score[row] == 0).all()
+            assert np.isnan(value.xy[row]).all() and np.isnan(value.z[row]).all() and (value.score[row] == 0).all()
         elif variant != "holistic":
-            assert np.isfinite(value.xyz[row]).all()
-            assert -w < np.median(value.xyz[row, :, 0]) < 2 * w and -h < np.median(value.xyz[row, :, 1]) < 2 * h
+            assert np.isfinite(value.xy[row]).all() and np.isfinite(value.z[row]).all()
+            assert -w < np.median(value.xy[row, :, 0]) < 2 * w and -h < np.median(value.xy[row, :, 1]) < 2 * h
     if must_find:
-        assert value.present[0] and np.isfinite(value.xyz[0, :33]).all()
+        assert value.present[0] and np.isfinite(value.xy[0, :33]).all() and np.isfinite(value.z[0, :33]).all()
 
 
 def test_runner_without_node_id_names_the_group_by_the_variant():
@@ -115,7 +115,7 @@ def test_runner_without_node_id_names_the_group_by_the_variant():
         value = runner.run(np.zeros((120, 160, 3), np.uint8))
     finally:
         runner.close()
-    assert not value.present.any() and np.isnan(value.xyz).all() and (value.instance_score == 0).all()
+    assert not value.present.any() and np.isnan(value.xy).all() and np.isnan(value.z).all() and (value.instance_score == 0).all()
 
 
 @pytest.mark.parametrize(("variant", "running_mode"), [("body", "video"), ("holistic", "live")])

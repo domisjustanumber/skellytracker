@@ -50,16 +50,16 @@ def check_result(run: Any, result: dict[str, Any], image: np.ndarray) -> None:
     height, width = image.shape[:2]
     schema = run.output_schema["wholebody"]
     points, box, roi = result["wholebody"], result["person_box"], result["person_roi"]
-    assert result["image_size"] == (width, height)
-    assert points.xyz.shape == (1, 133, 3) and points.score.shape == (1, 133) and list(points.point_names) == schema["point_names"]
-    assert points.present.tolist() == [True] and np.isfinite(points.xyz[0, :, :2]).all() and (points.score[0] > 0.4).sum() > 60
+    assert (result["image_width"], result["image_height"]) == (width, height)
+    assert points.xy.shape == (1, 133, 2) and points.z is None and points.geometry == "2d" and points.score.shape == (1, 133) and list(points.point_names) == schema["point_names"]
+    assert points.present.tolist() == [True] and np.isfinite(points.xy[0]).all() and (points.score[0] > 0.4).sum() > 60
     assert box.xyxy.shape == (1, 4) and roi.rois.shape == (1, 5) and roi.present.tolist() == [True]
     cx, cy, w, h, rotation = roi.rois[0]
     assert 0 < cx < width and 0 < cy < height and 40 < w <= 2 * width and 40 < h <= 2 * height and rotation == 0
-    good = points.xyz[0, points.score[0] > 0.4, :2]  # the crop ROI holds the points of the person
+    good = points.xy[0, points.score[0] > 0.4]  # the crop ROI holds the points of the person
     assert (np.abs(good - [cx, cy]) <= [w / 2, h / 2]).all(axis=1).mean() > 0.9
     canonical = to_canonical(points, schema)
-    assert len(canonical.names) == 137 and canonical.xyz.shape == (1, 137, 3) and list(canonical.names) == schema["canonical_names"]
+    assert len(canonical.names) == 137 and canonical.xy.shape == (1, 137, 2) and canonical.z is None and list(canonical.names) == schema["canonical_names"]
     drawn = annotate(image, result, run.output_schema)
     assert drawn.shape == image.shape and drawn.dtype == np.uint8 and (drawn != image).any()
 
@@ -101,7 +101,7 @@ def test_the_built_in_runs_one_image_on_the_cpu_ep(test_image: np.ndarray) -> No
         assert result["node_ran"] == {"person": True, "wholebody": True} and result["timestamp_ms"] is None
         assert result["person_box"].present.tolist() == [True] and result["person_box"].class_index.tolist() == [0]
         check_result(run, result, test_image)
-    np.testing.assert_array_equal(first["wholebody"].xyz, second["wholebody"].xyz)  # no state in `image`
+    np.testing.assert_array_equal(first["wholebody"].xy, second["wholebody"].xy)  # no state in `image`
 
 
 def test_the_built_in_runs_a_video_on_the_cpu_ep(test_video_path: Path) -> None:

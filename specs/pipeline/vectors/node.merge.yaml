@@ -4,14 +4,15 @@ section: node.merge
 notes:
   - "Normative text: specs/pipeline/nodes/merge.md."
   - "`target` and `source` are `keypoints` values: null (empty) or a mapping with
-    `point_names`, `xyz` (I rows of P points [x, y, z]), `score` (I rows of P scores),
+    `point_names`, `xy` (I rows of P points [x, y]), `score` (I rows of P scores),
     `instance_score`, `present` and `track_ids` (I values each), and the facts of its
     output schema `instance_source` and `geometry`. `target_names` and `source_names`
     are the point names of the two ports from their output schemas, known at load, also
     for an empty value. `canonical` maps a point name of `target` or `source` to its
     canonical point name, from the passthrough entries of the canonical mapping of its
     schema, known at load. A point with no such entry is not a key. An absent
-    `canonical` holds no names. A `2d` point has z NaN."
+    `canonical` holds no names. Only a `3d` value has `z` (I rows of P depths). A `2d`
+    value has no `z`."
 tolerance: 0
 verified_against:
   - skellytracker/core/pipelines/_runtime/node_merge.py::run
@@ -29,9 +30,7 @@ cases:
     input:
       target:
         point_names: [body/left_wrist, body/right_wrist, body/nose]
-        xyz:
-          - [[100, 100, .nan], [200, 100, .nan], [150, 50, .nan]]
-          - [[.nan, .nan, .nan], [.nan, .nan, .nan], [.nan, .nan, .nan]]
+        xy: [[[100, 100], [200, 100], [150, 50]], [[.nan, .nan], [.nan, .nan], [.nan, .nan]]]
         score: [[0.9, 0.9, 0.9], [0, 0, 0]]
         instance_score: [0.8, 0]
         present: [true, false]
@@ -40,7 +39,7 @@ cases:
         geometry: "2d"
       source:
         point_names: [hand/root, hand/tip]
-        xyz: [[[205, 110, .nan], [210, 130, .nan]], [[95, 105, .nan], [90, 125, .nan]]]
+        xy: [[[205, 110], [210, 130]], [[95, 105], [90, 125]]]
         score: [[0.7, 0.7], [0.6, 0.6]]
         instance_score: [0.3, 0.4]
         present: [true, true]
@@ -59,21 +58,15 @@ cases:
           - right_hand/tip
           - left_hand/root
           - left_hand/tip
-        xyz:
-          - - [95, 105, .nan]
-            - [200, 100, .nan]
-            - [150, 50, .nan]
-            - [205, 110, .nan]
-            - [210, 130, .nan]
-            - [95, 105, .nan]
-            - [90, 125, .nan]
-          - - [.nan, .nan, .nan]
-            - [.nan, .nan, .nan]
-            - [.nan, .nan, .nan]
-            - [.nan, .nan, .nan]
-            - [.nan, .nan, .nan]
-            - [.nan, .nan, .nan]
-            - [.nan, .nan, .nan]
+        xy:
+          - [[95, 105], [200, 100], [150, 50], [205, 110], [210, 130], [95, 105], [90, 125]]
+          - - [.nan, .nan]
+            - [.nan, .nan]
+            - [.nan, .nan]
+            - [.nan, .nan]
+            - [.nan, .nan]
+            - [.nan, .nan]
+            - [.nan, .nan]
         score: [[0.6, 0.9, 0.9, 0.7, 0.7, 0.6, 0.6], [0, 0, 0, 0, 0, 0, 0]]
         instance_score: [0.8, 0]
         present: [true, false]
@@ -93,7 +86,7 @@ cases:
     input:
       target:
         point_names: [body/left_wrist, body/right_wrist, body/nose]
-        xyz: [[[100, 100, .nan], [130, 100, .nan], [115, 60, .nan]]]
+        xy: [[[100, 100], [130, 100], [115, 60]]]
         score: [[0.9, 0.9, 0.9]]
         instance_score: [0.8]
         present: [true]
@@ -102,7 +95,7 @@ cases:
         geometry: "2d"
       source:
         point_names: [hand/root, hand/tip]
-        xyz: [[[112, 100, .nan], [0, 0, .nan]], [[88, 100, .nan], [1, 1, .nan]]]
+        xy: [[[112, 100], [0, 0]], [[88, 100], [1, 1]]]
         score: [[0.7, 0.7], [0.6, 0.6]]
         instance_score: [0.9, 0.9]
         present: [true, true]
@@ -121,14 +114,7 @@ cases:
           - right_hand/tip
           - left_hand/root
           - left_hand/tip
-        xyz:
-          - - [100, 100, .nan]
-            - [130, 100, .nan]
-            - [115, 60, .nan]
-            - [112, 100, .nan]
-            - [0, 0, .nan]
-            - [88, 100, .nan]
-            - [1, 1, .nan]
+        xy: [[[100, 100], [130, 100], [115, 60], [112, 100], [0, 0], [88, 100], [1, 1]]]
         score: [[0.9, 0.9, 0.9, 0.7, 0.7, 0.6, 0.6]]
         instance_score: [0.8]
         present: [true]
@@ -147,7 +133,7 @@ cases:
     input:
       target:
         point_names: [body/left_wrist, body/right_wrist, body/nose]
-        xyz: [[[100, 100, .nan], [130, 100, .nan], [115, 60, .nan]]]
+        xy: [[[100, 100], [130, 100], [115, 60]]]
         score: [[0.9, 0.9, 0.9]]
         instance_score: [0.8]
         present: [true]
@@ -156,7 +142,7 @@ cases:
         geometry: "2d"
       source:
         point_names: [hand/root, hand/tip]
-        xyz: [[[110, 100, .nan], [0, 0, .nan]], [[85, 100, .nan], [1, 1, .nan]]]
+        xy: [[[110, 100], [0, 0]], [[85, 100], [1, 1]]]
         score: [[0.7, 0.7], [0.6, 0.6]]
         instance_score: [0.9, 0.9]
         present: [true, true]
@@ -175,14 +161,7 @@ cases:
           - right_hand/tip
           - left_hand/root
           - left_hand/tip
-        xyz:
-          - - [100, 100, .nan]
-            - [130, 100, .nan]
-            - [115, 60, .nan]
-            - [110, 100, .nan]
-            - [0, 0, .nan]
-            - [85, 100, .nan]
-            - [1, 1, .nan]
+        xy: [[[100, 100], [130, 100], [115, 60], [110, 100], [0, 0], [85, 100], [1, 1]]]
         score: [[0.9, 0.9, 0.9, 0.7, 0.7, 0.6, 0.6]]
         instance_score: [0.8]
         present: [true]
@@ -199,7 +178,7 @@ cases:
     input:
       target:
         point_names: [body/left_wrist, body/right_wrist, body/nose]
-        xyz: [[[100, 100, .nan], [200, 100, .nan], [150, 50, .nan]]]
+        xy: [[[100, 100], [200, 100], [150, 50]]]
         score: [[0.9, 0.9, 0.9]]
         instance_score: [0.8]
         present: [true]
@@ -208,7 +187,7 @@ cases:
         geometry: "2d"
       source:
         point_names: [hand/root, hand/tip]
-        xyz: [[[150, 100, .nan], [0, 0, .nan]], [[150, 100, .nan], [1, 1, .nan]]]
+        xy: [[[150, 100], [0, 0]], [[150, 100], [1, 1]]]
         score: [[0.7, 0.7], [0.6, 0.6]]
         instance_score: [0.9, 0.9]
         present: [true, true]
@@ -227,14 +206,7 @@ cases:
           - right_hand/tip
           - left_hand/root
           - left_hand/tip
-        xyz:
-          - - [100, 100, .nan]
-            - [200, 100, .nan]
-            - [150, 50, .nan]
-            - [150, 100, .nan]
-            - [0, 0, .nan]
-            - [150, 100, .nan]
-            - [1, 1, .nan]
+        xy: [[[100, 100], [200, 100], [150, 50], [150, 100], [0, 0], [150, 100], [1, 1]]]
         score: [[0.9, 0.9, 0.9, 0.7, 0.7, 0.6, 0.6]]
         instance_score: [0.8]
         present: [true]
@@ -254,7 +226,7 @@ cases:
     input:
       target:
         point_names: [body/left_wrist, body/right_wrist, body/nose]
-        xyz: [[[100, 100, .nan], [200, 100, .nan], [150, 50, .nan]]]
+        xy: [[[100, 100], [200, 100], [150, 50]]]
         score: [[0.9, 0.9, 0.9]]
         instance_score: [0.8]
         present: [true]
@@ -263,7 +235,7 @@ cases:
         geometry: "2d"
       source:
         point_names: [hand/root, hand/tip]
-        xyz: [[[95, 105, .nan], [90, 125, .nan]], [[400, 300, .nan], [410, 320, .nan]]]
+        xy: [[[95, 105], [90, 125]], [[400, 300], [410, 320]]]
         score: [[0.7, 0.7], [0.6, 0.6]]
         instance_score: [0.9, 0.9]
         present: [true, true]
@@ -282,14 +254,7 @@ cases:
           - right_hand/tip
           - left_hand/root
           - left_hand/tip
-        xyz:
-          - - [100, 100, .nan]
-            - [200, 100, .nan]
-            - [150, 50, .nan]
-            - [.nan, .nan, .nan]
-            - [.nan, .nan, .nan]
-            - [95, 105, .nan]
-            - [90, 125, .nan]
+        xy: [[[100, 100], [200, 100], [150, 50], [.nan, .nan], [.nan, .nan], [95, 105], [90, 125]]]
         score: [[0.9, 0.9, 0.9, 0, 0, 0.7, 0.7]]
         instance_score: [0.8]
         present: [true]
@@ -311,8 +276,7 @@ cases:
           - left_hand/left_hand_root
           - left_hand/left_thumb1
           - left_hand/left_forefinger1
-        xyz:
-          - [[100, 100, .nan], [200, 100, .nan], [90, 110, .nan], [85, 120, .nan], [80, 115, .nan]]
+        xy: [[[100, 100], [200, 100], [90, 110], [85, 120], [80, 115]]]
         score: [[0.9, 0.9, 0.5, 0.5, 0.5]]
         instance_score: [0.8]
         present: [true]
@@ -321,7 +285,7 @@ cases:
         geometry: "2d"
       source:
         point_names: [hand/root, hand/thumb1]
-        xyz: [[[95, 105, .nan], [92, 112, .nan]]]
+        xy: [[[95, 105], [92, 112]]]
         score: [[0.7, 0.7]]
         instance_score: [0.9]
         present: [true]
@@ -349,12 +313,7 @@ cases:
           - left_hand/left_hand_root
           - left_hand/left_thumb1
           - left_hand/left_forefinger1
-        xyz:
-          - - [100, 100, .nan]
-            - [200, 100, .nan]
-            - [95, 105, .nan]
-            - [92, 112, .nan]
-            - [.nan, .nan, .nan]
+        xy: [[[100, 100], [200, 100], [95, 105], [92, 112], [.nan, .nan]]]
         score: [[0.9, 0.9, 0.7, 0.7, 0]]
         instance_score: [0.8]
         present: [true]
@@ -372,7 +331,7 @@ cases:
           - body/right_wrist
           - left_hand/left_hand_root
           - left_hand/left_thumb1
-        xyz: [[[100, 100, .nan], [200, 100, .nan], [90, 110, .nan], [85, 120, .nan]]]
+        xy: [[[100, 100], [200, 100], [90, 110], [85, 120]]]
         score: [[0.9, 0.9, 0.5, 0.5]]
         instance_score: [0.8]
         present: [true]
@@ -398,7 +357,7 @@ cases:
           - body/right_wrist
           - left_hand/left_hand_root
           - left_hand/left_thumb1
-        xyz: [[[100, 100, .nan], [200, 100, .nan], [.nan, .nan, .nan], [.nan, .nan, .nan]]]
+        xy: [[[100, 100], [200, 100], [.nan, .nan], [.nan, .nan]]]
         score: [[0.9, 0.9, 0, 0]]
         instance_score: [0.8]
         present: [true]
@@ -420,7 +379,7 @@ cases:
           - body/right_wrist
           - left_hand/left_hand_root
           - left_hand/left_thumb1
-        xyz: [[[100, 100, .nan], [200, 100, .nan], [90, 110, .nan], [85, 120, .nan]]]
+        xy: [[[100, 100], [200, 100], [90, 110], [85, 120]]]
         score: [[0.9, 0.9, 0.5, 0.5]]
         instance_score: [0.8]
         present: [true]
@@ -429,7 +388,7 @@ cases:
         geometry: "2d"
       source:
         point_names: [hand/root, hand/thumb1]
-        xyz: [[[95, 105, .nan], [92, 112, .nan]]]
+        xy: [[[95, 105], [92, 112]]]
         score: [[0.7, 0.7]]
         instance_score: [0.9]
         present: [true]
@@ -449,7 +408,7 @@ cases:
           - body/right_wrist
           - left_hand/left_hand_root
           - left_hand/left_thumb1
-        xyz: [[[100, 100, .nan], [200, 100, .nan], [95, 105, .nan], [.nan, .nan, .nan]]]
+        xy: [[[100, 100], [200, 100], [95, 105], [.nan, .nan]]]
         score: [[0.9, 0.9, 0.7, 0]]
         instance_score: [0.8]
         present: [true]
@@ -461,7 +420,7 @@ cases:
     input:
       target:
         point_names: [body/left_wrist, body/right_wrist, body/nose]
-        xyz: [[[100, 100, .nan], [200, 100, .nan], [150, 50, .nan]]]
+        xy: [[[100, 100], [200, 100], [150, 50]]]
         score: [[0.9, 0.9, 0.9]]
         instance_score: [0.8]
         present: [true]
@@ -474,12 +433,7 @@ cases:
     expect:
       keypoints:
         point_names: [body/left_wrist, body/right_wrist, body/nose, left_hand/root, left_hand/tip]
-        xyz:
-          - - [100, 100, .nan]
-            - [200, 100, .nan]
-            - [150, 50, .nan]
-            - [.nan, .nan, .nan]
-            - [.nan, .nan, .nan]
+        xy: [[[100, 100], [200, 100], [150, 50], [.nan, .nan], [.nan, .nan]]]
         score: [[0.9, 0.9, 0.9, 0, 0]]
         instance_score: [0.8]
         present: [true]
@@ -540,7 +494,7 @@ cases:
     input:
       target:
         point_names: [body/left_wrist, body/right_wrist]
-        xyz: [[[100, 100, .nan], [200, 100, .nan]]]
+        xy: [[[100, 100], [200, 100]]]
         score: [[0.9, 0.9]]
         instance_score: [0.8]
         present: [true]
@@ -549,7 +503,8 @@ cases:
         geometry: "2d"
       source:
         point_names: [hand/root, hand/tip]
-        xyz: [[[95, 105, 1], [90, 125, 1]]]
+        xy: [[[95, 105], [90, 125]]]
+        z: [[1, 1]]
         score: [[0.7, 0.7]]
         instance_score: [0.9]
         present: [true]

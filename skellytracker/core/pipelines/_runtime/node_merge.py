@@ -171,12 +171,12 @@ def _assignment(rows: list[int], columns: list[Any], cost: dict[tuple[int, Any],
 
 def _matches(max_distance: float, plan: MergePlan, target: InstanceKeypoints, source: InstanceKeypoints) -> dict[tuple[int, int], int]:
     """Return (target row, slot index) -> source row (Behaviour step 3)."""
-    anchors = source.xyz[:, plan.source_anchor, :2].tolist()
+    anchors = source.xy[:, plan.source_anchor].tolist()
     rows = [j for j, point in enumerate(anchors) if source.present[j] and _present(point)]
     columns: list[Any] = []
     cost: dict[tuple[int, Any], float] = {}
     for i in np.flatnonzero(target.present).tolist():
-        row = target.xyz[i, :, :2].tolist()
+        row = target.xy[i].tolist()
         limit = max_distance * _diagonal(row)
         for k, column in enumerate(plan.slot_anchors):
             slot_point = row[column]
@@ -206,6 +206,14 @@ def _matches(max_distance: float, plan: MergePlan, target: InstanceKeypoints, so
     return {column: j for j, column in found}
 
 
+def _copy(out: InstanceKeypoints, i: int, column: Any, source: InstanceKeypoints, j: int, point: Any) -> None:
+    """Copy x, y, z and the score of the source points to the columns of row ``i``."""
+    out.xy[i, column] = source.xy[j, point]
+    out.score[i, column] = source.score[j, point]
+    if out.z is not None and source.z is not None:
+        out.z[i, column] = source.z[j, point]
+
+
 def run(
     params: MergeParams, inputs: dict[str, Any], state: Any, frame: FrameContext, infos: MergePlan
 ) -> tuple[dict[str, InstanceKeypoints], None]:
@@ -220,32 +228,35 @@ def run(
         return {"keypoints": out}, None
     found = {} if is_empty(source) else _matches(params.max_distance, infos, target, source)
     width = len(target.point_names)
-    out.xyz[:, :width] = target.xyz
+    out.xy[:, :width] = target.xy
+    if out.z is not None:  # V-node.merge-3: target and source then have z
+        out.z[:, :width] = target.z
     out.score[:, :width] = target.score
     # Step 5: a point of a replaced group is missing until a slot point fills it.
     replaced = list(infos.replaced)
-    out.xyz[:, replaced] = np.nan
+    out.xy[:, replaced] = np.nan
+    if out.z is not None:
+        out.z[:, replaced] = np.nan
     out.score[:, replaced] = 0.0
     count = len(source.point_names)
     for (i, k), j in found.items():
         for column, slot, point in infos.fills:
-            if slot == k and _present(source.xyz[j, point]):
-                out.xyz[i, column] = source.xyz[j, point]
-                out.score[i, column] = source.score[j, point]
+            if slot == k and _present(source.xy[j, point]):
+                _copy(out, i, column, source, j, point)
         for slot, start in infos.adding:
             if slot == k:
-                out.xyz[i, start:start + count] = source.xyz[j]
-                out.score[i, start:start + count] = source.score[j]
+                _copy(out, i, slice(start, start + count), source, j, slice(None))
     # Step 6: a present slot point replaces the target point, in the order of `map`.
     for column, slot, point in infos.map:
         for (i, k), j in found.items():
-            if slot == k and _present(source.xyz[j, point]):
-                out.xyz[i, column] = source.xyz[j, point]
-                out.score[i, column] = source.score[j, point]
+            if slot == k and _present(source.xy[j, point]):
+                _copy(out, i, column, source, j, point)
     out.instance_score[:] = target.instance_score
     out.present[:] = target.present
     out.track_ids[:] = target.track_ids
     # A target row that is not present stays a padding row.
-    out.xyz[~out.present] = np.nan
+    out.xy[~out.present] = np.nan
+    if out.z is not None:
+        out.z[~out.present] = np.nan
     out.score[~out.present] = 0.0
     return {"keypoints": out}, None

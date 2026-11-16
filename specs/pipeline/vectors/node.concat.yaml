@@ -4,12 +4,12 @@ section: node.concat
 notes:
   - "Normative text: specs/pipeline/nodes/concat.md."
   - "`values` holds one `keypoints` value for each item of the `inputs` list, in list
-    order. A value is null (empty) or a mapping with `point_names`, `xyz` (I rows of P
-    points [x, y, z]), `score` (I rows of P scores), `instance_score`, `present` and
+    order. A value is null (empty) or a mapping with `point_names`, `xy` (I rows of P
+    points [x, y]), `score` (I rows of P scores), `instance_score`, `present` and
     `track_ids` (I values each), and the facts of its output schema `instance_source`
     and `geometry`. A value with no present row is empty. `point_names` holds the point
     names of each input from its output schema, known at load, also for an empty input.
-    A `2d` point has z NaN."
+    Only a `3d` value has `z` (I rows of P depths). A `2d` value has no `z`."
 tolerance: 0
 verified_against:
   - skellytracker/core/pipelines/_runtime/node_concat.py::run
@@ -21,7 +21,7 @@ cases:
     input:
       values:
         - point_names: [body/nose, body/left_wrist]
-          xyz: [[[10, 10, .nan], [20, 30, .nan]], [[.nan, .nan, .nan], [.nan, .nan, .nan]]]
+          xy: [[[10, 10], [20, 30]], [[.nan, .nan], [.nan, .nan]]]
           score: [[0.9, 0.9], [0, 0]]
           instance_score: [0.8, 0]
           present: [true, false]
@@ -29,7 +29,7 @@ cases:
           instance_source: person
           geometry: "2d"
         - point_names: [left_hand/wrist]
-          xyz: [[[21, 31, .nan]], [[.nan, .nan, .nan]]]
+          xy: [[[21, 31]], [[.nan, .nan]]]
           score: [[0.9], [0]]
           instance_score: [0.8, 0]
           present: [true, false]
@@ -40,9 +40,7 @@ cases:
     expect:
       keypoints:
         point_names: [body/nose, body/left_wrist, left_hand/wrist]
-        xyz:
-          - [[10, 10, .nan], [20, 30, .nan], [21, 31, .nan]]
-          - [[.nan, .nan, .nan], [.nan, .nan, .nan], [.nan, .nan, .nan]]
+        xy: [[[10, 10], [20, 30], [21, 31]], [[.nan, .nan], [.nan, .nan], [.nan, .nan]]]
         score: [[0.9, 0.9, 0.9], [0, 0, 0]]
         instance_score: [0.8, 0]
         present: [true, false]
@@ -50,13 +48,13 @@ cases:
         instance_source: person
         geometry: "2d"
   - id: a-null-input-gives-missing-points-in-its-columns
-    note: "the left-hand input has no value; its columns are missing points: x, y and z NaN and
+    note: "the left-hand input has no value; its columns are missing points: x and y NaN and
       the score 0"
     params: {}
     input:
       values:
         - point_names: [body/nose, body/left_wrist]
-          xyz: [[[10, 10, .nan], [20, 30, .nan]]]
+          xy: [[[10, 10], [20, 30]]]
           score: [[0.9, 0.9]]
           instance_score: [0.8]
           present: [true]
@@ -68,7 +66,7 @@ cases:
     expect:
       keypoints:
         point_names: [body/nose, body/left_wrist, left_hand/wrist, left_hand/tip]
-        xyz: [[[10, 10, .nan], [20, 30, .nan], [.nan, .nan, .nan], [.nan, .nan, .nan]]]
+        xy: [[[10, 10], [20, 30], [.nan, .nan], [.nan, .nan]]]
         score: [[0.9, 0.9, 0, 0]]
         instance_score: [0.8]
         present: [true]
@@ -81,7 +79,7 @@ cases:
     input:
       values:
         - point_names: [body/nose, body/left_wrist]
-          xyz: [[[10, 10, .nan], [20, 30, .nan]]]
+          xy: [[[10, 10], [20, 30]]]
           score: [[0.9, 0.9]]
           instance_score: [0.8]
           present: [true]
@@ -89,7 +87,7 @@ cases:
           instance_source: person
           geometry: "2d"
         - point_names: [left_hand/wrist, left_hand/tip]
-          xyz: [[[.nan, .nan, .nan], [.nan, .nan, .nan]]]
+          xy: [[[.nan, .nan], [.nan, .nan]]]
           score: [[0, 0]]
           instance_score: [0]
           present: [false]
@@ -100,7 +98,7 @@ cases:
     expect:
       keypoints:
         point_names: [body/nose, body/left_wrist, left_hand/wrist, left_hand/tip]
-        xyz: [[[10, 10, .nan], [20, 30, .nan], [.nan, .nan, .nan], [.nan, .nan, .nan]]]
+        xy: [[[10, 10], [20, 30], [.nan, .nan], [.nan, .nan]]]
         score: [[0.9, 0.9, 0, 0]]
         instance_score: [0.8]
         present: [true]
@@ -120,7 +118,7 @@ cases:
     input:
       values:
         - point_names: [left_hand/wrist]
-          xyz: [[[21, 31, .nan]], [[.nan, .nan, .nan]]]
+          xy: [[[21, 31]], [[.nan, .nan]]]
           score: [[0.9], [0]]
           instance_score: [0.8, 0]
           present: [true, false]
@@ -128,7 +126,7 @@ cases:
           instance_source: person
           geometry: "2d"
         - point_names: [body/nose]
-          xyz: [[[10, 10, .nan]], [[50, 50, .nan]]]
+          xy: [[[10, 10]], [[50, 50]]]
           score: [[0.9], [0.9]]
           instance_score: [0.8, 0.6]
           present: [true, true]
@@ -139,7 +137,7 @@ cases:
     expect:
       keypoints:
         point_names: [left_hand/wrist, body/nose]
-        xyz: [[[21, 31, .nan], [10, 10, .nan]], [[.nan, .nan, .nan], [50, 50, .nan]]]
+        xy: [[[21, 31], [10, 10]], [[.nan, .nan], [50, 50]]]
         score: [[0.9, 0.9], [0, 0.9]]
         instance_score: [0.8, 0.6]
         present: [true, true]
@@ -152,7 +150,7 @@ cases:
     input:
       values:
         - point_names: [body/nose]
-          xyz: [[[10, 10, .nan]]]
+          xy: [[[10, 10]]]
           score: [[0.9]]
           instance_score: [0.8]
           present: [true]
@@ -160,7 +158,7 @@ cases:
           instance_source: person
           geometry: "2d"
         - point_names: [hand/wrist]
-          xyz: [[[1, 1, .nan]]]
+          xy: [[[1, 1]]]
           score: [[0.9]]
           instance_score: [0.8]
           present: [true]
@@ -175,7 +173,7 @@ cases:
     input:
       values:
         - point_names: [body/nose]
-          xyz: [[[10, 10, .nan]]]
+          xy: [[[10, 10]]]
           score: [[0.9]]
           instance_score: [0.8]
           present: [true]
@@ -183,7 +181,7 @@ cases:
           instance_source: person
           geometry: "2d"
         - point_names: [body/nose]
-          xyz: [[[1, 1, .nan]]]
+          xy: [[[1, 1]]]
           score: [[0.9]]
           instance_score: [0.8]
           present: [true]
@@ -198,7 +196,7 @@ cases:
     input:
       values:
         - point_names: [body/nose]
-          xyz: [[[10, 10, .nan]]]
+          xy: [[[10, 10]]]
           score: [[0.9]]
           instance_score: [0.8]
           present: [true]
@@ -206,7 +204,8 @@ cases:
           instance_source: person
           geometry: "2d"
         - point_names: [face/tip]
-          xyz: [[[1, 1, 1]]]
+          xy: [[[1, 1]]]
+          z: [[1]]
           score: [[0.9]]
           instance_score: [0.8]
           present: [true]

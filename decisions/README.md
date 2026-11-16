@@ -43,6 +43,7 @@ These entries are `accepted` or `evidence`.
 | [73Q4](entries/73Q4-local-gpu-gate-of-the-ep-api.md) | Local GPU gate on an RTX 3070: L3 and sessions pass on `cuda` and `trt-rtx`; fp16 files have 0 CPU nodes, except 5 stale opset 11 RTMW files; frozen install ok | evidence |
 | [GPW6](entries/GPW6-model-gate-of-the-first-models.md) | Model gate of `yolox-person` and `rtmw-wholebody133` at the detector level: parity passes on the CPU EP, `cuda` and `trt-rtx`; batch conversion 0.01 s to 1.02 s | evidence |
 | [7E4Z](entries/7E4Z-box-parity-of-the-built-in-with-sfn26.md) | Box parity of `yolox-rtmw-wholebody` with the tracker of `sfn26`: recording script and fixture; test A passes on 200 frames; report B on the CPU EP and `cuda` | evidence |
+| [JHB3](entries/JHB3-keypoints-xy-and-z-and-image-width-and-height.md) | A `keypoints` value has `xy` and `z` only for `3d`, no `xyz`; no `by_track()`; the camera result has `image_width` and `image_height`, no `image_size` | accepted |
 
 ### Proposed
 

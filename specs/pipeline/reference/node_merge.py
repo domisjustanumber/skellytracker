@@ -7,8 +7,9 @@ Note:
 - Imported section modules: node.first_of (node_first_of, the function is_empty), node.concat
   (the keypoints value form).
 
-A keypoints value has the form of node_concat: None (empty) or a mapping with `point_names`, `xyz`,
-`score`, `instance_score`, `present`, `track_ids`, `instance_source` and `geometry`.
+A keypoints value has the form of node_concat: None (empty) or a mapping with `point_names`, `xy`,
+`score`, `instance_score`, `present`, `track_ids`, `instance_source` and `geometry`, and `z` only
+for a `3d` value.
 """
 
 from __future__ import annotations
@@ -86,9 +87,9 @@ def assignment(rows: list[int], columns: list[Any], cost: dict[tuple[int, Any], 
 def matches(params: dict[str, Any], target: dict[str, Any], source: dict[str, Any]) -> dict[tuple[int, int], int]:
     """Return (target row, slot index) -> source row (node.merge, step 3)."""
     anchor = source["point_names"].index(params["source_anchor"])
-    rows = [j for j, row in enumerate(source["xyz"]) if source["present"][j] and present(row[anchor])]
+    rows = [j for j, row in enumerate(source["xy"]) if source["present"][j] and present(row[anchor])]
     columns, cost = [], {}
-    for i, row in enumerate(target["xyz"]):
+    for i, row in enumerate(target["xy"]):
         if not target["present"][i]:
             continue
         limit = params["max_distance"] * diagonal(row)
@@ -98,7 +99,7 @@ def matches(params: dict[str, Any], target: dict[str, Any], source: dict[str, An
                 continue
             columns.append((i, k))  # in the tie order: target row, then slot
             for j in rows:
-                point = source["xyz"][j][anchor]
+                point = source["xy"][j][anchor]
                 distance = math.hypot(point[0] - slot_point[0], point[1] - slot_point[1])
                 if distance <= limit:
                     cost[j, (i, k)] = distance
@@ -143,14 +144,23 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
     adding = [slot for slot in params["slots"] if slot not in target_groups]
     names = target_names + [f"{slot}/{bare(name)}" for slot in adding for name in source_names]
     filled = fills(params, target_names, source_names, input.get("canonical", {}))
-    missing = ([math.nan] * 3, 0.0)
+    # A point is [x, y], or [x, y, z] for a `3d` value, so that x, y and z move together.
+    depth = target["geometry"] == "3d"
+
+    def joined(value: dict[str, Any]) -> list[list[list[float]]]:
+        if not depth:
+            return value["xy"]
+        return [[[*point, z] for point, z in zip(xy, zs, strict=True)] for xy, zs in zip(value["xy"], value["z"], strict=True)]
+
+    source_points = None if source is None else joined(source)
+    missing = ([math.nan] * (3 if depth else 2), 0.0)
     xyz, score = [], []
-    for i, row in enumerate(target["xyz"]):
+    for i, row in enumerate(joined(target)):
         slot_points = {}
         for k, slot in enumerate(params["slots"]):
             j = found.get((i, k))
             for p, name in enumerate(source_names):
-                slot_points[f"{slot}/{bare(name)}"] = missing if j is None else (source["xyz"][j][p], source["score"][j][p])
+                slot_points[f"{slot}/{bare(name)}"] = missing if j is None else (source_points[j][p], source["score"][j][p])
         points = []
         for t, name in enumerate(target_names):
             if group(name) in params["slots"]:  # a replaced group
@@ -167,7 +177,8 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
     return {
         "keypoints": {
             "point_names": names,
-            "xyz": xyz,
+            "xy": [[point[:2] for point in row] for row in xyz],
+            **({"z": [[point[2] for point in row] for row in xyz]} if depth else {}),  # a `2d` value has no z
             "score": score,
             "instance_score": list(target["instance_score"]),
             "present": list(target["present"]),

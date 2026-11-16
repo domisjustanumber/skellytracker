@@ -142,7 +142,8 @@ class MediapipeTasksRunner:
         if self._holistic is not None:
             found = self._holistic.run(image, timestamp_ms)
             value = InstanceKeypoints(
-                self.point_names, found.xyz, found.score, found.instance_score, found.present, np.full(1, -1, dtype=np.int64),
+                self.point_names, found.xyz[..., :2].copy(), found.score, found.instance_score, found.present, np.full(1, -1, dtype=np.int64),
+                found.xyz[..., 2].copy(),
             )
         else:
             import mediapipe as mp
@@ -156,9 +157,10 @@ class MediapipeTasksRunner:
             else:
                 result = self._landmarker.detect(mp_image)
             h, w = image.shape[:2]
-            value = InstanceKeypoints.empty(self.point_names, self.max_instances)
+            value = InstanceKeypoints.empty(self.point_names, self.max_instances, "3d")
             for row, landmarks in enumerate(getattr(result, self._field)[: self.max_instances]):
-                value.xyz[row] = [(lm.x * w, lm.y * h, lm.z * w) for lm in landmarks]
+                value.xy[row] = [(lm.x * w, lm.y * h) for lm in landmarks]
+                value.z[row] = [lm.z * w for lm in landmarks]  # type: ignore[index]
                 value.score[row] = [1.0 if lm.visibility is None else lm.visibility for lm in landmarks]
                 value.instance_score[row] = 1.0
                 value.present[row] = True

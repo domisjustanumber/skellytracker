@@ -11,7 +11,9 @@ class FrameContext:
     frame_index: int
     timestamp_ms: float | None
     """The timestamp of the frame, in milliseconds. ``None`` in the running mode ``image``."""
-    image_size: tuple[int, int]
-    """``(width, height)`` of the source image, in pixels."""
+    image_width: int
+    """The width of the source image, in pixels."""
+    image_height: int
+    """The height of the source image, in pixels."""
     running_mode: str
     """``image``, ``video`` or ``live``."""

@@ -80,7 +80,7 @@ def run(
         out.present[i] = True
         kept = False
         if previous.present[i]:
-            points = keypoints.xyz[i, :, :2].tolist() if keypoints is not None and keypoints.present[i] else []
+            points = keypoints.xy[i].tolist() if keypoints is not None and keypoints.present[i] else []
             kept = _keep_previous(params, previous.rois[i].tolist(), current.rois[i].tolist(), points)
         chosen = previous if kept else current
         out.rois[i] = chosen.rois[i]

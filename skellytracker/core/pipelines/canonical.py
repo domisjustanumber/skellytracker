@@ -28,12 +28,19 @@ class CanonicalKeypoints:
 
     names: tuple[str, ...]
     """``(C,)``: the `canonical_names` of the output schema."""
-    xyz: NDArray[np.float64]
-    """``(I, C, 3)``. A missing point is NaN."""
+    xy: NDArray[np.float64]
+    """``(I, C, 2)``: x and y of each point, in source-image pixels. A missing point is NaN."""
     score: NDArray[np.float64]
     """``(I, C)``. A missing point has 0."""
     groups: tuple[Group, ...]
     """The passthrough groups, with `start` and `count` in the canonical columns."""
+    z: NDArray[np.float64] | None = None
+    """``(I, C)``, only for a `3d` output: the depth of each point. A missing point is NaN. `None` for a `2d` output."""
+
+    @property
+    def geometry(self) -> str:
+        """`"3d"` when the value has `z`, else `"2d"`."""
+        return "2d" if self.z is None else "3d"
 
 
 @dataclass(frozen=True)
@@ -118,21 +125,25 @@ def to_canonical(keypoints_value: InstanceKeypoints, output_schema: Mapping[str,
     `output_schema` is the schema of that output: it gives `groups` and `canonical_names`. A
     passthrough point keeps its position and its score. A mean or a weighted point is missing when
     one or more of its sources are missing, and its score is the minimum of the scores of its sources.
+    The result has `z` only when the value has `z`.
     """
     plan = _plan(_groups(output_schema["groups"]), tuple(keypoints_value.point_names), user_root)
     if plan.names != tuple(output_schema["canonical_names"]):
         raise ValueError("canonical_names of the output schema does not agree with its groups and the point names of the value")
-    rows = keypoints_value.xyz.shape[0]
-    xyz = np.full((rows, len(plan.names), 3), np.nan)
+    # One array of the coordinates, (I, P, 2) or (I, P, 3), so that x, y and z get the same mapping.
+    z = keypoints_value.z
+    points = keypoints_value.xy if z is None else np.concatenate([keypoints_value.xy, z[..., None]], axis=2)
+    rows = points.shape[0]
+    xyz = np.full((rows, len(plan.names), points.shape[2]), np.nan)
     score = np.zeros((rows, len(plan.names)))
     if plan.copies:
         target, source = (list(columns) for columns in zip(*plan.copies, strict=True))
-        xyz[:, target] = keypoints_value.xyz[:, source]
+        xyz[:, target] = points[:, source]
         score[:, target] = keypoints_value.score[:, source]
     if plan.derived:
         target = [column for column, _ in plan.derived]
         xyz[:, target], score[:, target] = derived_points(
-            keypoints_value.xyz, keypoints_value.score, keypoints_value.point_names,
+            points, keypoints_value.score, keypoints_value.point_names,
             {str(column): derivation for column, derivation in plan.derived},
         )
-    return CanonicalKeypoints(plan.names, xyz, score, tuple(plan.groups))
+    return CanonicalKeypoints(plan.names, xyz[..., :2], score, tuple(plan.groups), None if z is None else xyz[..., 2])

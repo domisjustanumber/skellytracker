@@ -51,7 +51,7 @@ stateful ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sh
 - The defaults of the filter `kalman` are the frame-unit defaults of today at 30 fps: 1 px² and
   0.1 (px/frame)² per frame give 30 px²/s and 2700 (px/s)²/s.
 - The output `keypoints` has the names, the rows and the shapes of the input. The node changes only
-  x and y. The score and z of each point pass through unchanged. An output row is present when it
+  x and y. The score of each point passes through unchanged. For a `3d` input, z also passes through unchanged. An output row is present when it
   has a point whose x and y are not NaN. Step 10 gives the `instance_score` and the `track_ids` of
   each row.
 

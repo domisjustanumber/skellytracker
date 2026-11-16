@@ -1210,7 +1210,7 @@ This stage implements the node types of the pipeline spec. Use the skill
   keeps its score. A padding row has 0
   ([ADR-6DKT](pipeline/decisions/entries/6DKT-instance-rows-carry-class-and-score.md) items 1 and 2).
 - **Canonical form.** `to_canonical(keypoints_value, output_schema)` in `core/pipelines/` gives
-  `names` (the `canonical_names` of the output schema), `xyz` `(I, C, 3)`, `score` `(I, C)` and the
+  `names` (the `canonical_names` of the output schema), `xy` `(I, C, 2)`, `z` `(I, C)` only for a `3d` output, `score` `(I, C)` and the
   passthrough groups as `{name, start, count, landmark_schema}` in the canonical columns. It applies
   [Canonical mapping](model-sidecar/post/keypoint/canonical-mapping.md#behaviour) to the groups of
   each node or slot. The groups of one schema with two or more groups come from one node. A group of

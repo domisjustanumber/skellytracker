@@ -61,7 +61,9 @@ def run(params: NoParams, inputs: list[Any], state: Any, frame: FrameContext, in
     for value in inputs:
         count = len(value.point_names)
         if not is_empty(value):  # the columns of an empty input stay missing points
-            out.xyz[:, column:column + count] = value.xyz
+            out.xy[:, column:column + count] = value.xy
+            if out.z is not None:  # V-node.concat-3: each input then has z
+                out.z[:, column:column + count] = value.z
             out.score[:, column:column + count] = value.score
         column += count
     # The last input first: the first input whose row is present then gives the row values.
@@ -71,6 +73,8 @@ def run(params: NoParams, inputs: list[Any], state: Any, frame: FrameContext, in
         out.track_ids[rows] = value.track_ids[rows]
         out.present[rows] = True
     # A row with no present input row is a padding row.
-    out.xyz[~out.present] = np.nan
+    out.xy[~out.present] = np.nan
+    if out.z is not None:
+        out.z[~out.present] = np.nan
     out.score[~out.present] = 0.0
     return {"keypoints": out}, None

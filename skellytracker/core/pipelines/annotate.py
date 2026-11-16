@@ -29,7 +29,7 @@ def annotate(image: np.ndarray, result: Mapping[str, Any], output_schema: Mappin
         for row in np.flatnonzero(value.present):
             colour = _COLOURS[int(row) % len(_COLOURS)]
             if schema["port_type"] == "keypoints":
-                xy = value.xyz[row, :, :2]
+                xy = value.xy[row]
                 shown = np.isfinite(xy).all(axis=1) & (value.score[row] >= min_score)
                 points = {point: tuple(int(v) for v in np.round(xy[column])) for column, point in enumerate(value.point_names) if shown[column]}
                 for start, end in schema.get("edges", ()):

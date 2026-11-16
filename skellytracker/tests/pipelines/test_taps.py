@@ -169,7 +169,7 @@ def test_a_replay_puts_each_line_in_its_row_and_the_replayed_node_does_not_run(r
         np.testing.assert_array_equal(after["person_roi"].rois, before["person_roi"].rois)
         np.testing.assert_array_equal(after["person_roi"].instance_score, before["person_roi"].instance_score)
         np.testing.assert_array_equal(after["person_roi"].present, before["person_roi"].present)
-        np.testing.assert_array_equal(after["body"].xyz, before["body"].xyz)
+        np.testing.assert_array_equal(after["body"].xy, before["body"].xy)
         np.testing.assert_array_equal(after["body"].instance_score, before["body"].instance_score)
     assert [result["node_ran"]["body"] for result in replayed] == [True, False, True]
 
@@ -186,8 +186,8 @@ def test_a_replay_of_detections_gets_the_class_index_from_the_class_name_and_a_k
     run = start(root, data, image_ids=IMAGE_IDS, tap_dir=taps)
     assert run._executor.sessions.opened == {}  # the upstream nodes of the replayed port do not run
     (points, _, _) = run_frames(run)
-    np.testing.assert_allclose(points["body"].xyz[:, 0, :2], [[6, 6], [25, 25]])
-    assert np.isnan(points["body"].xyz[:, 2]).all() and points["body"].score.tolist() == [[3, 2, 0], [3, 2, 0]]
+    np.testing.assert_allclose(points["body"].xy[:, 0], [[6, 6], [25, 25]])
+    assert np.isnan(points["body"].xy[:, 2]).all() and points["body"].score.tolist() == [[3, 2, 0], [3, 2, 0]]
     assert points["node_ran"] == {"person": False, "body": False}
 
 

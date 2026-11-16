@@ -45,7 +45,7 @@ RESERVED_NODE_ID = "pipeline"
 FRAME = "frame"
 FRAME_PORTS = {"image": "image"}
 # The fixed fields of the result of one camera (pipeline.outputs). An output name must not be one of them.
-RESULT_FIELDS = ("frame_index", "image_size", "timestamp_ms", "node_ran")
+RESULT_FIELDS = ("frame_index", "image_width", "image_height", "timestamp_ms", "node_ran")
 # The input name of a variadic node in the reference model. Its `inputs` is a list.
 VARIADIC = "*"
 # The tolerance of the weight sum of a weighted derived point (sidecar spec, post.keypoint.schema).
