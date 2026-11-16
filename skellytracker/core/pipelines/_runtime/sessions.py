@@ -16,9 +16,10 @@ from typing import Any
 
 from skellytracker.core.eps.catalog import load_catalog
 from skellytracker.core.eps.recommendation import select_precision
-from skellytracker.core.eps.records import SessionReport
+from skellytracker.core.eps.records import RunDevice, SessionReport
 from skellytracker.core.eps.state import check_start
 from skellytracker.core.errors import EpRequestError, EpUnavailableError, MissingDependencyError
+from skellytracker.core.metrics import free_vram
 from skellytracker.core.pipelines._runtime import mediapipe_tasks
 from skellytracker.core.pipelines._runtime.resolve import ResolvedNode, ResolvedPipeline
 from skellytracker.core.pipelines.warnings import PipelineWarning
@@ -98,25 +99,67 @@ def check_dependencies(resolved: ResolvedPipeline, running: Sequence[str], plans
         )
 
 
-def run_device_keys(plans: Sequence[NodePlan], device: str | Sequence[str] | None) -> tuple[str | None, ...]:
-    """Check `V-pipeline.running-4` and return the device keys of the run. A run with no GPU EP has the one key None.
+def run_gpus(plans: Sequence[NodePlan], device: str | Sequence[str] | None) -> tuple[RunDevice, ...]:
+    """Check `V-pipeline.running-4` and return the GPUs of the run. A run with no GPU EP has no GPU.
 
     `eps.check_start` checks each EP key, its options and its state. The GPU set of the run is the
-    GPUs that each GPU EP of the plans lists (ADR-P1F3 item 8), in the order of the first GPU EP.
+    GPUs that each GPU EP of the plans lists (ADR-P1F3 item 8), in the order of the first GPU EP:
+    the GPU with the most VRAM first.
     """
-    keys: list[str] | None = None
+    gpus: list[RunDevice] | None = None
     for ep, options in dict.fromkeys((plan.execution_provider, plan.ep_options) for plan in plans):
         gpu = next(plan.gpu for plan in plans if plan.execution_provider == ep)
-        found = [item.device_key for item in check_start(ep, dict(options), device if gpu else None)]
+        found = list(check_start(ep, dict(options), device if gpu else None))
         if gpu:
-            keys = found if keys is None else [key for key in keys if key in found]
-    if keys is None:
+            keys = {item.device_key for item in found}
+            gpus = found if gpus is None else [item for item in gpus if item.device_key in keys]
+    if gpus is None:
         if device is not None:
             raise EpRequestError(f"no node of the run uses a GPU, so the run takes no device; it got {device!r}")
-        return (None,)
-    if not keys:
+        return ()
+    if not gpus:
         raise EpUnavailableError("no GPU of this host can run each GPU execution provider of the run")
-    return tuple(keys)
+    return tuple(gpus)
+
+
+def gpu_weights(gpus: Sequence[RunDevice], vram_reserve_bytes: int) -> list[int | None]:
+    """Return the VRAM bytes that the run can use on each GPU, read one time at start (ADR-AMF7 item 2).
+
+    The value is the free VRAM minus the reserve, with a floor of 0, when NVML gives the free VRAM
+    of each GPU. Else it is the total VRAM minus the reserve, and None for a GPU with no total.
+    The batch k of each GPU can use the same values (pipeline.running, Behaviour item 4).
+    """
+    free = [free_vram(gpu.device_key) for gpu in gpus]
+    found = free if None not in free else [gpu.vram_total_bytes for gpu in gpus]
+    return [None if value is None else max(0, value - vram_reserve_bytes) for value in found]
+
+
+def split_cameras(camera_ids: Sequence[Any], weights: Sequence[int | None]) -> dict[Any, int]:
+    """Return the GPU index of each camera (pipeline.running, Behaviour item 3; ADR-AMF7 item 1).
+
+    `weights` has one value for each GPU, in the order of the GPUs of the run. The count of a GPU
+    comes from the largest-remainder method on `weight × camera count / sum of the weights`. A tie
+    goes to the earlier GPU. A None weight or all zero weights make the weights equal. A GPU with
+    the count 0 takes one camera from the GPU with the largest count (on a tie, the earlier GPU).
+    With fewer cameras than GPUs, camera `j` uses GPU `j`. GPU 0 gets the first cameras, GPU 1 the
+    next cameras, and so on.
+    """
+    cameras, count = len(camera_ids), len(weights)
+    if cameras <= count:
+        return {camera_id: index for index, camera_id in enumerate(camera_ids)}
+    if None in weights or not any(weights):
+        weights = [1] * count
+    total = sum(weights)
+    counts = [weight * cameras // total for weight in weights]
+    by_remainder = sorted(range(count), key=lambda index: (-(weights[index] * cameras % total), index))
+    for index in by_remainder[: cameras - sum(counts)]:
+        counts[index] += 1
+    for index in range(count):
+        if counts[index] == 0:
+            counts[max(range(count), key=lambda other: (counts[other], -other))] -= 1
+            counts[index] = 1
+    slots = [index for index, size in enumerate(counts) for _ in range(size)]
+    return dict(zip(camera_ids, slots, strict=True))
 
 
 class RunSessions:

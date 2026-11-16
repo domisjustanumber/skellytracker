@@ -85,7 +85,7 @@ class Executor:
         self.camera_ids = list(camera_ids)
         self.fps = float(fps)
         self.vram_reserve_bytes = vram_reserve_bytes
-        # open: no text gives the formula of k (pipeline.running, Behaviour item 4), so k is 1 and the reserve is only stored
+        # open: no text gives the formula of k (pipeline.running, Behaviour item 4), so k is 1 and the reserve is only in the camera split
         self.batch_k = 1
         self.on_warning = on_warning
         self.warnings: list[PipelineWarning] = []
@@ -141,10 +141,10 @@ class Executor:
         self.plans = {node.id: sessions.node_plan(node, execution_provider, ep_options) for node in models}
         sessions.check_dependencies(resolved, self.order, self.plans)
         running_plans = [self.plans[node_id] for node_id in self.order if node_id in self.plans]
-        devices = sessions.run_device_keys(running_plans, device) if running_plans else (None,)
-        # open: ADR-P1F3 item 10 weights the split by the warm-up speed of each GPU, and no text gives the formula; each device gets the same count
-        self.devices = devices[: len(self.camera_ids)]
-        self.device_of = {camera_id: index % len(self.devices) for index, camera_id in enumerate(self.camera_ids)}
+        gpus = (sessions.run_gpus(running_plans, device) if running_plans else ())[: len(self.camera_ids)]
+        self.devices = tuple(gpu.device_key for gpu in gpus) or (None,)
+        weights = sessions.gpu_weights(gpus, vram_reserve_bytes) if len(gpus) > 1 else [None] * len(self.devices)
+        self.device_of = sessions.split_cameras(self.camera_ids, weights)
 
         image_list = None if self.image_ids is None else timing_module.image_list_sha256(self.image_ids)
         self.sessions = sessions.RunSessions()

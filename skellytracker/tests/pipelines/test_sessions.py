@@ -285,11 +285,12 @@ def test_the_cameras_split_across_two_gpus_and_each_gpu_has_its_own_sessions_at_
     gpus = (RunDevice("gpu:0", "0000:01:00.0"), RunDevice("gpu:1", "0000:02:00.0"))
     asked = []
     monkeypatch.setattr(sessions, "check_start", lambda ep, options, device: (asked.append((ep, device)), gpus)[1])
+    monkeypatch.setattr(sessions, "free_vram", lambda key: None)
     calls = spy_open_session(monkeypatch)
     cameras = ["a", "b", "c"]
     with start(root, pipeline(max_instances=2), execution_provider="cuda", camera_ids=cameras) as run:
         assert asked == [("cuda", None)]
-        assert run._executor.device_of == {"a": 0, "b": 1, "c": 0}  # camera j uses the device j % 2
+        assert run._executor.device_of == {"a": 0, "b": 0, "c": 1}  # no VRAM value: equal weights, in blocks of camera order
         # `person`: batch = the cameras of the device. `body`: that batch x I, with I = 2.
         assert [(call["key"].split("@")[0], call["device_key"], call["batch"], call["execution_provider"]) for call in calls] == [
             ("demo", "gpu:0", 2, "cuda"), ("demo", "gpu:1", 1, "cuda"), ("demo-body", "gpu:0", 4, "cuda"), ("demo-body", "gpu:1", 2, "cuda"),
@@ -309,6 +310,55 @@ def test_a_run_with_more_gpus_than_cameras_uses_one_gpu_for_each_camera(root: Pa
     with start(root, pipeline(), execution_provider="cuda", vram_reserve_bytes=2**20) as run:
         assert run._executor.devices == ("gpu:0",) and {call["device_key"] for call in calls} == {"gpu:0"}
         assert run._executor.vram_reserve_bytes == 2**20 and run._executor.batch_k == 1  # k is 1: no text gives its formula
+
+
+GIB = 2**30
+
+
+@pytest.mark.parametrize(("weights", "cameras", "counts"), [
+    ([8 * GIB, 8 * GIB], 6, [3, 3]),
+    ([8 * GIB, 8 * GIB], 5, [3, 2]),  # equal weights: the extra camera goes to the first GPU
+    ([24 * GIB, 8 * GIB], 6, [5, 1]),  # quotas 4.5 and 1.5: the tie of the remainders goes to the earlier GPU
+    ([24 * GIB, 8 * GIB], 4, [3, 1]),
+    ([24 * GIB, 8 * GIB], 3, [2, 1]),  # quotas 2.25 and 0.75
+    ([24 * GIB, 8 * GIB], 2, [1, 1]),  # quotas 1.5 and 0.5: the second GPU takes one camera from the first
+    ([24 * GIB, 8 * GIB], 1, [1, 0]),  # fewer cameras than GPUs: only the first GPU
+    ([24 * GIB, 12 * GIB, 12 * GIB], 8, [4, 2, 2]),
+    ([24 * GIB, 1 * GIB], 6, [5, 1]),  # quotas 5.76 and 0.24 round to 6 and 0: the small GPU takes one camera
+    ([24 * GIB, 1 * GIB, 1 * GIB], 4, [2, 1, 1]),
+    ([None, 8 * GIB], 5, [3, 2]),  # an unknown weight: equal weights
+    ([0, 0], 5, [3, 2]),  # all zero: equal weights
+    ([24 * GIB], 3, [3]),
+    ([24 * GIB, 8 * GIB], 0, [0, 0]),
+])
+def test_the_cameras_split_over_the_gpus_in_proportion_to_the_weights_in_blocks_of_camera_order(weights, cameras, counts) -> None:
+    camera_ids = [f"cam{index}" for index in range(cameras)]
+    split = sessions.split_cameras(camera_ids, weights)
+    assert list(split) == camera_ids
+    assert list(split.values()) == [index for index, count in enumerate(counts) for _ in range(count)]
+
+
+def test_the_weight_of_a_gpu_is_its_free_vram_minus_the_reserve_else_its_total_vram_minus_the_reserve(monkeypatch: pytest.MonkeyPatch) -> None:
+    gpus = (RunDevice("gpu:0", "0000:01:00.0", vram_total_bytes=24 * GIB), RunDevice("gpu:1", "0000:02:00.0", vram_total_bytes=8 * GIB))
+    free = {"gpu:0": 10 * GIB, "gpu:1": GIB // 2}
+    monkeypatch.setattr(sessions, "free_vram", lambda key: free[key])
+    assert sessions.gpu_weights(gpus, GIB) == [9 * GIB, 0]  # the floor is 0
+    free["gpu:1"] = None  # one GPU with no free value: each GPU uses its total
+    assert sessions.gpu_weights(gpus, GIB) == [23 * GIB, 7 * GIB]
+    assert sessions.gpu_weights((gpus[0], RunDevice("gpu:1", "0000:02:00.0")), GIB) == [23 * GIB, None]
+
+
+def test_a_run_on_two_gpus_gives_the_gpu_with_more_free_vram_more_cameras(root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    gpus = (RunDevice("gpu:0", "0000:01:00.0", vram_total_bytes=24 * GIB), RunDevice("gpu:1", "0000:02:00.0", vram_total_bytes=8 * GIB))
+    monkeypatch.setattr(sessions, "check_start", lambda ep, options, device: gpus)
+    monkeypatch.setattr(sessions, "free_vram", lambda key: {"gpu:0": 7 * GIB, "gpu:1": 3 * GIB}[key])
+    spy_open_session(monkeypatch)
+    cameras = ["a", "b", "c", "d"]
+    with start(root, pipeline(max_instances=2), execution_provider="cuda", camera_ids=cameras, vram_reserve_bytes=GIB) as run:
+        assert run._executor.device_of == {"a": 0, "b": 0, "c": 0, "d": 1}  # weights 6 GiB and 2 GiB
+        # The sharing key holds the batch and the device: `person` at the cameras of each GPU, `body` at that count x I, with I = 2.
+        assert [(key[4], key[1]) for key in run._executor.sessions.opened] == [("gpu:0", 3), ("gpu:1", 1), ("gpu:0", 6), ("gpu:1", 2)]
+        assert list(run.process_batch({camera: Frame(image(1), 0) for camera in cameras})) == cameras
 
 
 # ---------------------------------------------------------------------------------------------

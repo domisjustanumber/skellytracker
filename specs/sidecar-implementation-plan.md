@@ -1103,11 +1103,11 @@ Done:
 Open:
 
 - **Batch k.** k is 1 in each mode. No text gives the formula that makes k from the free VRAM. The
-  run keeps `vram_reserve_bytes` and does not use it.
-- **Cameras on two or more GPUs.** Camera `j` uses GPU `j` modulo the GPU count. The weights by the
-  warm-up speed of [ADR-P1F3](../decisions/entries/P1F3-hardware-probe-devices-and-multi-gpu.md)
-  are not built. The timing of a node with a session on each of two GPUs is not defined. No test
-  ran on a host with two GPUs.
+  run uses `vram_reserve_bytes` only in the weights of the camera split.
+- **Cameras on two or more GPUs.** The split by VRAM of
+  [ADR-AMF7](../decisions/entries/AMF7-camera-split-by-vram.md) is built and has tests on fake
+  GPUs. No run on a host with two GPUs verified it. The timing of a node with a session on each of
+  two GPUs is not defined. The timing header does not record the cameras of each GPU.
 - **NMS.** The decode of stage 1.5 does NMS in NumPy. The node has no ONNX `NonMaxSuppression`
   session, so the text of the item "`onnx_model` node" and of
   [ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 7 does not describe
