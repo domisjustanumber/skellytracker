@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import hashlib
 import re
 import shutil
 import subprocess
@@ -1213,7 +1214,9 @@ def test_compare_examples_reports_an_exporter_copy_that_is_not_yaml(
 
 EXAMPLE_BAR = "specs/model-sidecar/examples/detectors/object_detectors/bar/bar.yaml"
 EXAMPLE_POINTS = "specs/model-sidecar/examples/detectors/shared/points.yaml"
-POINTS_REF = "keypoint:\n  point_names: {$ref: ../../shared/points.yaml}\n"
+POINTS = "- a\n- b\n"
+POINTS_SHA256 = hashlib.sha256(POINTS.encode()).hexdigest()
+POINTS_REF = f'keypoint:\n  point_names: {{$ref: ../../shared/points.yaml, sha256: "{POINTS_SHA256}"}}\n'
 POINTS_INLINE = "keypoint:\n  point_names: [a, b]\n"
 
 
@@ -1221,7 +1224,7 @@ def test_compare_examples_resolves_a_fragment_of_the_example(
     repo: Path, tmp_path_factory: Any
 ) -> None:
     """The example refers to a fragment; the exporter copy lists the same values inline."""
-    write(repo, EXAMPLE_POINTS, "- a\n- b\n")
+    write(repo, EXAMPLE_POINTS, POINTS)
     write(repo, EXAMPLE_BAR, BAR + POINTS_REF)
     exporters = tmp_path_factory.mktemp("exporters")
     write(exporters, "Other-Exporter/exports/bar.yaml", BAR + POINTS_INLINE)
@@ -1243,11 +1246,11 @@ def test_compare_examples_resolves_a_fragment_of_the_exporter_copy(
 ) -> None:
     write(repo, EXAMPLE_BAR, BAR + POINTS_INLINE)
     exporters = tmp_path_factory.mktemp("exporters")
-    write(exporters, "Other-Exporter/exports/points.yaml", "- a\n- b\n")
+    write(exporters, "Other-Exporter/exports/points.yaml", POINTS)
     write(
         exporters,
         "Other-Exporter/exports/bar.yaml",
-        BAR + "keypoint:\n  point_names: {$ref: points.yaml}\n",
+        BAR + f'keypoint:\n  point_names: {{$ref: points.yaml, sha256: "{POINTS_SHA256}"}}\n',
     )
     _, bar = st.compare_examples(repo, exporters)
     assert (bar.status, bar.lines, bar.notes) == ("same", (), ())
@@ -1379,5 +1382,6 @@ def test_the_tool_imports_only_the_standard_library_yaml_and_its_siblings() -> N
         "yaml",
         "sidecar_normalize",
         "sidecar_refs",
+        "skellytracker",  # only `resolve_sidecar` imports the package resolver
     }
     assert modules <= allowed, modules - allowed

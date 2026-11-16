@@ -1,10 +1,9 @@
 """The spec's reference examples parse, resolve, hold correct hashes and have provenance.
 
 The examples under `specs/model-sidecar/examples/` follow the package's `detectors/`
-layout, so their `$ref` paths resolve with that folder as the sidecar root. They
-are not validated against `SidecarModel`: it does not load `schema_version: "2.0.0"` yet.
-They resolve with `sidecar_refs.resolve`, because the package resolver refuses
-`sha256` next to `$ref`.
+layout, so their `$ref` paths resolve with that folder as the sidecar root. The
+spec loader `skellytracker/core/model_spec/` resolves and validates each example:
+`load_sidecar` checks each V- rule of the spec, except the bytes of the ONNX files.
 
 Every other YAML file under the examples is a fragment, in `shared/` or next to
 a sidecar. Each fragment has a `fragments` entry in `inventory.yaml`. A package
@@ -21,6 +20,8 @@ import sidecar_refs
 import sidecar_trace
 import yaml
 from intake_bundle import FRAGMENT_KEYS, INVENTORY_KEYS
+
+from skellytracker.core.model_spec import load_sidecar, resolve_sidecar_composition
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES_ROOT = REPO_ROOT / "specs" / "model-sidecar" / "examples"
@@ -61,9 +62,19 @@ def test_there_are_examples() -> None:
 
 @pytest.mark.parametrize("path", example_paths(), ids=example_key)
 def test_example_resolves(path: Path) -> None:
-    resolved = sidecar_refs.resolve(path, EXAMPLES_ROOT)
+    resolved = resolve_sidecar_composition(path, EXAMPLES_ROOT)
     assert resolved["model_id"] == path.stem
     assert resolved["schema_version"] == "2.0.0"
+
+
+@pytest.mark.parametrize("path", example_paths(), ids=example_key)
+def test_example_passes_the_rules_of_the_spec(path: Path) -> None:
+    """The spec loader validates the example: each V- rule, except the bytes of the ONNX files.
+
+    The landmark schema registry is the package registry (V-post.keypoint.schema-10).
+    """
+    sidecar = load_sidecar(path, EXAMPLES_ROOT)
+    assert sidecar.model_id == path.stem
 
 
 @pytest.mark.parametrize("path", example_paths(), ids=example_key)
@@ -91,7 +102,7 @@ def test_example_has_one_batch_field(path: Path) -> None:
 
     The key check does not find `batch_artifacts`: its Removed stub heading still names it.
     """
-    resolved = sidecar_refs.resolve(path, EXAMPLES_ROOT)
+    resolved = resolve_sidecar_composition(path, EXAMPLES_ROOT)
     batching = resolved["batching"]
     batch = batching["batch"]
     assert not isinstance(batch, bool) and batch in (3, 1, "dynamic"), batching
@@ -110,7 +121,7 @@ def test_example_gives_output_shapes_in_each_size(path: Path) -> None:
     An entry has the dims of `outputs[i].shape`. Each fixed dim of that shape is equal or -1 in the
     entry. Dim 0 is `batching.batch`, or -1 for `dynamic`.
     """
-    resolved = sidecar_refs.resolve(path, EXAMPLES_ROOT)
+    resolved = resolve_sidecar_composition(path, EXAMPLES_ROOT)
     outputs, batch = resolved["outputs"], resolved["batching"]["batch"]
     for size, entry in resolved["sizes"].items():
         shapes = entry["onnx"].get("output_shapes")
@@ -134,7 +145,7 @@ def test_the_hash_tool_finds_the_artifacts_of_each_size(path: Path) -> None:
         for file in sidecar_refs.files(path, EXAMPLES_ROOT)
         for artifact in sidecar_refs._scan(file.read_text(encoding="utf-8")).artifacts
     }
-    for size, entry in sidecar_refs.resolve(path, EXAMPLES_ROOT)["sizes"].items():
+    for size, entry in resolve_sidecar_composition(path, EXAMPLES_ROOT)["sizes"].items():
         names = {artifact["filename"] for artifact in entry["onnx"]["precision_artifacts"].values()}
         assert names and names <= scanned, (size, sorted(names - scanned))
 
@@ -214,7 +225,7 @@ def test_a_selector_path_is_a_defined_key() -> None:
 @pytest.mark.parametrize("path", example_paths(), ids=example_key)
 def test_example_has_only_keys_that_the_spec_defines(path: Path) -> None:
     """A key that the spec does not define is invalid (V-format.composition-5, ADR-0QKK)."""
-    assert not unknown_keys(sidecar_refs.resolve(path, EXAMPLES_ROOT))
+    assert not unknown_keys(resolve_sidecar_composition(path, EXAMPLES_ROOT))
 
 
 @pytest.mark.parametrize(
@@ -233,7 +244,7 @@ def test_example_has_only_keys_that_the_spec_defines(path: Path) -> None:
     ],
 )
 def test_the_key_check_finds_a_deleted_key(where: tuple[str | int, ...], key: str) -> None:
-    sidecar = sidecar_refs.resolve(example_paths()[0], EXAMPLES_ROOT)
+    sidecar = resolve_sidecar_composition(example_paths()[0], EXAMPLES_ROOT)
 
     def step(node: Any, name: str | int) -> Any:
         return node[name] if isinstance(name, int) else node.setdefault(name, {})
@@ -245,13 +256,13 @@ def test_the_key_check_finds_a_deleted_key(where: tuple[str | int, ...], key: st
 @pytest.mark.parametrize("path", example_paths(), ids=example_key)
 def test_example_declares_its_normalization(path: Path) -> None:
     """`input.normalization` is required (ADR-0QKK)."""
-    assert "normalization" in sidecar_refs.resolve(path, EXAMPLES_ROOT)["input"]
+    assert "normalization" in resolve_sidecar_composition(path, EXAMPLES_ROOT)["input"]
 
 
 @pytest.mark.parametrize("path", example_paths(), ids=example_key)
 def test_keypoint_example_declares_its_geometry(path: Path) -> None:
     """`keypoint.geometry` is required at the keypoint level (ADR-90CE)."""
-    keypoint = sidecar_refs.resolve(path, EXAMPLES_ROOT).get("keypoint")
+    keypoint = resolve_sidecar_composition(path, EXAMPLES_ROOT).get("keypoint")
     assert keypoint is None or keypoint.get("geometry") in {"2d", "3d"}
 
 
@@ -300,7 +311,7 @@ def test_example_follows_the_storage_layout(path: Path) -> None:
     assert parts[0] == "keypoint_detectors"
     assert len(parts) == 4, parts
     family, group = parts[1], parts[2]
-    model_id = sidecar_refs.resolve(path, EXAMPLES_ROOT)["model_id"]
+    model_id = resolve_sidecar_composition(path, EXAMPLES_ROOT)["model_id"]
     assert re.fullmatch(TOKENS, family), parts
     assert model_id == f"{family}-{group}" or (
         model_id.startswith(f"{family}-{group}-")
@@ -309,7 +320,7 @@ def test_example_follows_the_storage_layout(path: Path) -> None:
     keypoint_set = re.fullmatch(r"[a-z]+([1-9][0-9]*)", group)
     assert group in {"hand", "face", "body", "wholebody"} or keypoint_set, parts
     if keypoint_set:
-        points = sidecar_refs.resolve(path, EXAMPLES_ROOT)["keypoint"]["point_names"]
+        points = resolve_sidecar_composition(path, EXAMPLES_ROOT)["keypoint"]["point_names"]
         assert int(keypoint_set.group(1)) == len(points), (group, len(points))
 
 

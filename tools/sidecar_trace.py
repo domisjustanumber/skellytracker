@@ -29,7 +29,7 @@ The tool reads the models from the working tree. It changes no file.
 
 ``examples`` compares each reference example with the exporter's copy
 (``DIR/<exporter>/<exporter_path>``, from ``specs/model-sidecar/inventory.yaml``). It resolves ``$ref``
-on both sides with ``sidecar_refs.resolve`` and compares the parsed YAML, so comments
+on both sides with the package resolver and compares the parsed YAML, so comments
 and ``$ref`` fragments do not count. When the exporter's copy does not resolve, the tool compares
 it as written and says so. It prints to stdout only. CI does not run it: CI has no exporter
 checkouts.
@@ -46,7 +46,8 @@ as the cache dir). The tool does not scan the old package sidecars. They are del
 not migrated (ADR-AMJ8). The package root ``skellytracker/core/model_zoo`` holds no spec sidecar
 yet. A YAML file is a sidecar when its top level has ``schema_version`` and
 a ``model_id`` equal to its file name without the extension. The tool skips every other YAML file.
-It resolves each sidecar with ``sidecar_refs.resolve``, which accepts files without hashes. The key
+It resolves each sidecar with the package resolver
+(``skellytracker/core/model_spec/resolution.py``), which checks each ``$ref`` hash. The key
 of a sidecar is ``<model_id>@<source>``: ``source.name`` when the sidecar has it, else the
 ``source`` of the example in ``inventory.yaml``. Every example holds
 ``source.name`` now, and no inventory entry has a ``source``, so the examples of this repo do not
@@ -505,16 +506,17 @@ def _is_sidecar(data: Any, path: Path) -> bool:
     )
 
 
+def resolve_sidecar(path: Path, root: Path) -> Any:
+    """Resolve a sidecar with the package resolver. Only this function imports the package."""
+    from skellytracker.core.model_spec.resolution import resolve_sidecar_composition
+
+    return resolve_sidecar_composition(path, root)
+
+
 def _resolve(path: Path, cache_dir: Path, shown: str) -> dict[str, Any]:
     try:
-        return sidecar_refs.resolve(path, cache_dir)
-    except sidecar_refs.SidecarRefsError as exc:
-        raise TraceError(
-            f"{shown}: cannot resolve the sidecar:\n" + "\n".join(exc.errors)
-        ) from exc
-    except (
-        Exception
-    ) as exc:  # the resolver raises its own error types; importing them needs the package
+        return resolve_sidecar(path, cache_dir)
+    except Exception as exc:  # the resolver raises its own error types
         raise TraceError(
             f"{shown}: cannot resolve the sidecar: {type(exc).__name__}: {exc}"
         ) from exc
@@ -1411,9 +1413,7 @@ class ExampleReport:
 
 
 def _problem(exc: Exception) -> str:
-    """Return the first line of the problems that `sidecar_refs.resolve` found, or the error."""
-    if isinstance(exc, sidecar_refs.SidecarRefsError) and exc.errors:
-        return exc.errors[0]
+    """Return the error of the resolver in one line."""
     return f"{type(exc).__name__}: {exc}"
 
 
@@ -1425,7 +1425,7 @@ def _resolved_or_plain(path: Path) -> tuple[Any, str | None]:
     else its own folder.
     """
     try:
-        return sidecar_refs.resolve(path, sidecar_refs.default_root(path)), None
+        return resolve_sidecar(path, sidecar_refs.default_root(path)), None
     except Exception as exc:  # the resolver raises its own error types
         reason = _problem(exc)
     return yaml.safe_load(path.read_text(encoding="utf-8")), reason
@@ -1451,7 +1451,7 @@ def compare_examples(repo_root: Path, exporters_root: Path) -> list[ExampleRepor
             )
             continue
         try:
-            ours_data = sidecar_refs.resolve(examples_root / relative, examples_root)
+            ours_data = resolve_sidecar(examples_root / relative, examples_root)
         except Exception as exc:  # the resolver raises its own error types
             reports.append(
                 ExampleReport(

@@ -1,7 +1,7 @@
 """Tests for `tools/sidecar_refs.py`, the reference hash tool.
 
 The trees in these tests are small copies of the layout in `specs/model-sidecar/format/file-layout.md`.
-`--write` and `--check` must work without `skellytracker`. Only `resolve` imports it.
+`--write` and `--check` must work without `skellytracker`. The tool does not import it.
 """
 
 import ast
@@ -15,7 +15,7 @@ import pytest
 import yaml
 
 import sidecar_refs
-from sidecar_refs import PLACEHOLDER, SidecarRefsError, check, resolve, write
+from sidecar_refs import PLACEHOLDER, SidecarRefsError, check, write
 
 TOOLS_DIR = Path(sidecar_refs.__file__).resolve().parent
 SIDECAR_REL = "detectors/object_detectors/m/m.yaml"
@@ -782,72 +782,6 @@ def test_source_works_with_the_hashes_in_one_write(root_with_onnx: Path) -> None
 
 
 # --------------------------------------------------------------------------------------------
-# resolve (temporary helper)
-# --------------------------------------------------------------------------------------------
-
-
-def package_resolve(path: Path, root: Path) -> object:
-    from skellytracker.core.sidecar.resolution import resolve_sidecar_composition
-
-    return resolve_sidecar_composition(path, root)
-
-
-def test_resolve_accepts_an_unhashed_tree_and_matches_the_package_resolver(
-    root: Path,
-) -> None:
-    result = resolve(sidecar_of(root), root)
-    assert result == package_resolve(sidecar_of(root), root)
-    assert result["keypoint"]["skeletons"]["names"] == ["nose", "left_eye"]
-
-
-def test_resolve_accepts_a_hashed_tree_and_gives_the_same_data(
-    root_with_onnx: Path,
-) -> None:
-    root = root_with_onnx
-    unhashed = resolve(sidecar_of(root), root)
-    write(sidecar_of(root), root)
-    assert "sha256" in read(root, "detectors/shared/outer.yaml")
-    hashed = resolve(sidecar_of(root), root)
-    assert hashed["keypoint"] == unhashed["keypoint"]
-    # The artifact hashes stay in the data: they are valid fields.
-    fp32 = hashed["sizes"]["nano"]["onnx"]["precision_artifacts"]["fp32"]
-    assert fp32 == {
-        "filename": "m-nano_b1_fp32.onnx",
-        "sha256": sha(ONNX_FILES["m-nano_b1_fp32.onnx"]),
-    }
-
-
-def test_resolve_rejects_a_tampered_fragment(root_with_onnx: Path) -> None:
-    root = root_with_onnx
-    write(sidecar_of(root), root)
-    (root / "detectors/shared/outer.yaml").write_bytes(b"names: []\n")
-    with pytest.raises(SidecarRefsError, match="does not match"):
-        resolve(sidecar_of(root), root)
-
-
-def test_resolve_rejects_a_bad_hash_in_a_nested_fragment(root: Path) -> None:
-    write(sidecar_of(root), root)
-    (root / "detectors/shared/points.yaml").write_bytes(b"- other\n")
-    with pytest.raises(SidecarRefsError) as info:
-        resolve(sidecar_of(root), root)
-    assert any(e.startswith("detectors/shared/outer.yaml:") for e in info.value.errors)
-
-
-def test_resolve_rejects_the_placeholder_outside_the_examples(root: Path) -> None:
-    write(sidecar_of(root), root, placeholder=True)
-    with pytest.raises(SidecarRefsError, match="placeholder"):
-        resolve(sidecar_of(root), root)
-
-
-def test_resolve_does_not_change_the_tree(root_with_onnx: Path) -> None:
-    root = root_with_onnx
-    write(sidecar_of(root), root)
-    before = snapshot(root)
-    resolve(sidecar_of(root), root)
-    assert snapshot(root) == before
-
-
-# --------------------------------------------------------------------------------------------
 # --write and --check do not import skellytracker
 # --------------------------------------------------------------------------------------------
 
@@ -869,7 +803,7 @@ def test_write_and_check_do_not_import_skellytracker(root_with_onnx: Path) -> No
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-def test_only_resolve_imports_skellytracker() -> None:
+def test_the_tool_does_not_import_skellytracker() -> None:
     tree = ast.parse((TOOLS_DIR / "sidecar_refs.py").read_text(encoding="utf-8"))
     parents = {
         child: parent
@@ -891,7 +825,7 @@ def test_only_resolve_imports_skellytracker() -> None:
                 while not isinstance(scope, ast.FunctionDef | ast.Module):
                     scope = parents[scope]
                 found.append(getattr(scope, "name", "<module>"))
-    assert found == ["resolve"]
+    assert found == []
 
 
 # --------------------------------------------------------------------------------------------

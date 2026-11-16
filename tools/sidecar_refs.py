@@ -37,9 +37,8 @@ valid only in a file under ``specs/model-sidecar/examples/``. The exit status is
 ``--root`` is the sidecar root. Every target must stay inside it. The default is the parent of the
 nearest ``detectors`` folder above SIDECAR, or the folder of SIDECAR when there is none.
 
-``resolve(path, root)`` is a temporary helper. The resolver in
-``skellytracker/core/sidecar/resolution.py`` does not know the hashed forms yet. Delete ``resolve``
-when that resolver checks hashes.
+The tool does not resolve a sidecar. The package resolver
+``skellytracker/core/model_spec/resolution.py`` resolves a tree and checks its ``$ref`` hashes.
 """
 
 from __future__ import annotations
@@ -49,10 +48,8 @@ import hashlib
 import json
 import re
 import sys
-import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 import yaml
 
@@ -312,7 +309,7 @@ def _apply(text: str, edits: list[_Edit]) -> str:
 
 
 # --------------------------------------------------------------------------------------------
-# The run: one depth-first walk for --write, --check and resolve
+# The run: one depth-first walk for --write and --check
 # --------------------------------------------------------------------------------------------
 
 
@@ -627,54 +624,8 @@ def write(
     return changed
 
 
-def resolve(path: Path, root: Path) -> Any:
-    """Resolve a sidecar tree that can hold reference hashes. TEMPORARY.
-
-    Verify every hash that the tree holds (a missing hash is accepted). Copy the files that the
-    sidecar reaches to a temporary folder. Remove the hashes from `$ref` mappings. Call the unchanged
-    `resolve_sidecar_composition` on the copy. Raise `SidecarRefsError` on a bad hash.
-
-    This function is the only place that imports `skellytracker`. Delete it when
-    `skellytracker/core/sidecar/resolution.py` checks the hashes itself.
-    """
-    path = Path(path).resolve()
-    root = Path(root).resolve()
-    run = _Run(root=root, top=path, strict=False)
-    run.start()
-    if run.errors:
-        raise SidecarRefsError(run.errors)
-    from skellytracker.core.sidecar.resolution import resolve_sidecar_composition
-
-    with tempfile.TemporaryDirectory() as folder:
-        copy_root = Path(folder).resolve()
-        for source in run.order:
-            data = yaml.safe_load(run.original[source].decode("utf-8"))
-            copy = copy_root / source.relative_to(root)
-            copy.parent.mkdir(parents=True, exist_ok=True)
-            dumped = yaml.safe_dump(
-                _without_reference_hashes(data), sort_keys=False, width=1_000_000
-            )
-            copy.write_text(dumped, encoding="utf-8", newline="\n")
-        return resolve_sidecar_composition(
-            copy_root / path.relative_to(root), copy_root
-        )
-
-
 def _root(path: Path, root: Path | None) -> Path:
     return Path(root).resolve() if root is not None else default_root(path)
-
-
-def _without_reference_hashes(data: Any) -> Any:
-    def strip(node: Any) -> Any:
-        if isinstance(node, dict):
-            if "$ref" in node and set(node) == {"$ref", "sha256"}:
-                return {"$ref": node["$ref"]}
-            return {key: strip(value) for key, value in node.items()}
-        if isinstance(node, list):
-            return [strip(item) for item in node]
-        return node
-
-    return strip(data)
 
 
 # --------------------------------------------------------------------------------------------

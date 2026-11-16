@@ -7,7 +7,7 @@ The test checks these rules of the sidecar spec:
 - `V-post.keypoint.schema-10` and `-11` on each keypoint example.
 
 `V-post.keypoint.landmark_schema-4` (no two files with one `name`) needs the user root. The host
-checks it at load (stage 1.4 of the implementation plan).
+checks it at load (`load_landmark_schema_registry` in `skellytracker/core/model_spec/`).
 """
 
 import math
@@ -15,10 +15,11 @@ import re
 from pathlib import Path
 
 import pytest
-import sidecar_refs
 import yaml
 from intake_bundle import _unique_yaml
 from test_examples import EXAMPLES_ROOT, example_key, example_paths
+
+from skellytracker.core.model_spec import resolve_sidecar_composition
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_DIR = REPO_ROOT / "skellytracker" / "core" / "model_zoo" / "landmark_schemas"
@@ -114,7 +115,7 @@ def keypoint_examples() -> list[Path]:
     return [
         path
         for path in example_paths()
-        if "keypoint_detector" in sidecar_refs.resolve(path, EXAMPLES_ROOT)["role"]
+        if "keypoint_detector" in resolve_sidecar_composition(path, EXAMPLES_ROOT)["role"]
     ]
 
 
@@ -125,7 +126,7 @@ def test_there_are_keypoint_examples() -> None:
 @pytest.mark.parametrize("path", keypoint_examples(), ids=example_key)
 def test_keypoint_example_names_a_registered_schema(path: Path) -> None:
     """V-post.keypoint.schema-10 and V-post.keypoint.schema-11."""
-    keypoint = sidecar_refs.resolve(path, EXAMPLES_ROOT)["keypoint"]
+    keypoint = resolve_sidecar_composition(path, EXAMPLES_ROOT)["keypoint"]
     schema_path = SCHEMA_DIR / f"{keypoint['landmark_schema']}.yaml"
     assert schema_path.is_file(), keypoint["landmark_schema"]
     assert keypoint["point_names"] == point_names(load(schema_path))
