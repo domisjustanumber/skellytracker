@@ -56,14 +56,21 @@ class NodeParam:
 
 @dataclass(frozen=True)
 class NodeTypeInfo:
-    """One node type: its section ID, its ports (the inputs, then the outputs), its timing spans and its params."""
+    """One node type: its section ID, its ports (the inputs, then the outputs), its timing spans and its params.
+
+    `any_from` names the inputs that give an `any` output its port type (pipeline.graph, Behaviour
+    item 4). `params_schema` is the JSON Schema of the params model of the node type. An editor makes
+    its param fields from it (ADR-4WR9).
+    """
 
     type: str
     section: str
     inputs: tuple[NodePort, ...]
     outputs: tuple[NodePort, ...]
+    any_from: tuple[str, ...]
     timing_spans: tuple[str, ...]
     params: tuple[NodeParam, ...]
+    params_schema: dict[str, Any]
 
 
 def _type_text(annotation: Any, module: str) -> str:
@@ -101,8 +108,10 @@ def list_node_types() -> list[NodeTypeInfo]:
                 NodePort(name, "input", kind, name == VARIADIC or name in node.required_inputs) for name, kind in node.inputs.items()
             ),
             outputs=tuple(NodePort(name, "output", kind, False) for name, kind in node.outputs.items()),
+            any_from=tuple(node.any_from),
             timing_spans=tuple(node.timing_spans),
             params=tuple(_param(name, field, node.__module__) for name, field in node.Params.model_fields.items()),
+            params_schema=node.Params.model_json_schema(),
         )
         for node in NODE_TYPES
     ]

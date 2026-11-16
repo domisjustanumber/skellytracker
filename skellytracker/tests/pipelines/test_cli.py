@@ -326,7 +326,13 @@ def test_nodes_lists_the_11_node_types_as_text_and_as_json(capsys: pytest.Captur
     assert cli.main(["nodes", "--json"]) == 0
     nodes = json.loads(capsys.readouterr().out)
     assert [node["type"] for node in nodes] == names
-    assert set(nodes[0]) == {"type", "section", "inputs", "outputs", "timing_spans", "params"}
+    assert set(nodes[0]) == {"type", "section", "inputs", "outputs", "any_from", "timing_spans", "params", "params_schema"}
+    for node in nodes:
+        assert list(node["params_schema"]["properties"]) == [param["name"] for param in node["params"]]
+        assert node["params_schema"]["additionalProperties"] is False
+    assert {node["type"]: node["any_from"] for node in nodes if node["any_from"]} == {"gate": ["value"], "first_of": ["*"]}
+    smooth_roi = next(node for node in nodes if node["type"] == "smooth_roi")
+    assert smooth_roi["params_schema"]["properties"]["filter"]["enum"] == ["ema", "one_euro"]
 
 
 # ---------------------------------------------------------------------------------------------
