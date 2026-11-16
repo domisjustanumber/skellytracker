@@ -40,6 +40,7 @@ These entries are `accepted` or `evidence`.
 | [Y753](entries/Y753-pipeline-templates-glue-vectors-and-taps-flag.md) | Pipeline templates without links; node work in stage 1.10; skellybench `--taps`; vectors for `first_of` and `concat` | accepted |
 | [X6S9](entries/X6S9-mediapipe-close-from-the-garbage-collector.md) | A MediaPipe landmarker closed by the garbage collector on its own worker thread hangs; the runner and the old detectors close on a new thread | evidence |
 | [0YYY](entries/0YYY-host-reader-costs.md) | Host reader costs: first `probe_host()` about 76 ms on Windows; the D3DKMT query joins a LUID to a bus id and finds the second DXGI adapter | evidence |
+| [73Q4](entries/73Q4-local-gpu-gate-of-the-ep-api.md) | Local GPU gate on an RTX 3070: L3 and sessions pass on `cuda` and `trt-rtx`; fp16 files have 0 CPU nodes, except 5 stale opset 11 RTMW files; frozen install ok | evidence |
 
 ### Proposed
 
