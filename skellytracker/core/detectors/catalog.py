@@ -323,8 +323,10 @@ def _artifacts(found: _Sidecar, cache: HashCache) -> tuple[ArtifactEntry, ...]:
             file = found.path.parent / artifact.filename
             if found.reason is not None:
                 reason = found.reason
+            elif not file.is_file() and artifact.url is not None:
+                reason = f"the ONNX file {artifact.filename} is not downloaded; the sidecar gives its `url`"
             elif not file.is_file():
-                reason = f"the ONNX file {artifact.filename} is not present"
+                reason = f"the ONNX file {artifact.filename} is not present, and the sidecar gives no `url`"
             else:
                 failure = check_artifact_hash(file, found.root, artifact.sha256, cache)
                 reason = None if failure is None else str(failure)

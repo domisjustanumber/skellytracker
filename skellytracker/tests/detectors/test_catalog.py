@@ -171,6 +171,14 @@ def test_a_model_with_no_onnx_file_is_unavailable(root: Path, all_sections: None
     assert load_detector_sidecar(KEY, root).model_id == "demo"  # the sidecar itself loads
 
 
+def test_the_reason_tells_a_file_that_is_not_downloaded_from_a_missing_file(root: Path, all_sections: None) -> None:
+    sidecar = BASES["nms"]()
+    sidecar["sizes"]["n"]["onnx"]["precision_artifacts"]["fp32"].update(url="https://example.org/demo.onnx", url_sha256="e" * 64)
+    put(root, sidecar, files=False)
+    (entry,) = onnx_entries(root)
+    assert not entry.available and "is not downloaded" in entry.artifact("n", "fp32").unavailable_reason
+
+
 def test_an_onnx_file_with_a_different_hash_is_unavailable(root: Path, all_sections: None) -> None:
     path = put(root, BASES["nms"]())
     (path.parent / "demo-n_b3_fp32.onnx").write_bytes(b"a partial download")
