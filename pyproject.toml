@@ -79,6 +79,8 @@ mediapipe = ["mediapipe==1.2.2"]
 # the onnx package for graph surgery.
 # onnx 1.23 writes IR version 14; onnxruntime 1.31 reads IR version 13 or lower.
 onnx = ["onnx==1.22.0"]
+# The test extra of the PyInstaller hook in skellytracker/_pyinstaller/.
+pyinstaller = ["pyinstaller==6.22.3"]
 
 # Dev-only tooling: `uv sync` (installed by default via default-groups)
 [dependency-groups]
@@ -134,6 +136,10 @@ ignore = ["ISC004"]
 
 [tool.ruff.lint.per-file-ignores]
 "*/tests/*" = ["S101"]
+
+[project.entry-points.pyinstaller40]
+hook-dirs = "skellytracker._pyinstaller:get_hook_dirs"
+tests = "skellytracker._pyinstaller:get_PyInstaller_tests"
 
 [project.scripts]
 skellytracker = "skellytracker.__main__:cli_main"

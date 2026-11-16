@@ -26,3 +26,18 @@ jobs:
             ~/.freemocap/skellytracker-models
           key: test-assets-full-${{ runner.os }}-v1
       - run: xvfb-run -a uv run pytest -o faulthandler_timeout=300
+
+  # The slow PyInstaller job: freeze the smoke app of skellytracker/_pyinstaller/tests/ and run it.
+  # It builds no session and downloads no model.
+  pyinstaller:
+    name: PyInstaller frozen smoke app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v10.0.0
+        with:
+          python-version: "3.13.18"
+          enable-cache: true
+      - run: uv sync --all-extras
+      - run: sudo apt-get update && sudo apt-get install -y libgl1 libegl1 libgles2 binutils
+      - run: uv run pytest -m pyinstaller skellytracker/tests/test_pyinstaller.py -o faulthandler_timeout=900
