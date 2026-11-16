@@ -1,3 +1,14 @@
+from skellytracker.core.detectors.catalog import (
+    ArtifactEntry,
+    DetectorDescription,
+    DetectorEntry,
+    DetectorNotFoundError,
+    DetectorUnavailableError,
+    describe_detector,
+    get_detector,
+    list_detectors,
+    load_detector_sidecar,
+)
 from skellytracker.core.detectors.detector_base_classes import (
     KEYPOINT_DETECTOR_REGISTRY,
     OBJECT_DETECTOR_REGISTRY,
@@ -24,6 +35,15 @@ from skellytracker.core.detectors.object_detectors.keypoint_bbox import (
 #   KEYPOINT_DETECTOR_REGISTRY["rtmpose"] = RTMPoseKeypointDetector
 
 __all__ = [
+    "ArtifactEntry",
+    "DetectorDescription",
+    "DetectorEntry",
+    "DetectorNotFoundError",
+    "DetectorUnavailableError",
+    "describe_detector",
+    "get_detector",
+    "list_detectors",
+    "load_detector_sidecar",
     "build_keypoint_detector",
     "build_object_detector",
     "KeypointDetector",
