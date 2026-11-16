@@ -9,14 +9,15 @@ selectors:
   - input.normalization.mode=custom
 implemented_by:
   validate: skellytracker/core/model_spec/rules.py::check_sidecar
-  forward: skellytracker/core/detectors/processing/image_preprocessing.py::build_normalization_fn  # partial. The code has no imagenet mode. imagenet_bgr applies the RGB-ordered statistics to the B, G, R channels (specs/model-sidecar/decisions/entries/0009-imagenet-bgr-meaning.md). The spec does not define that computation. No code reads color_format. No mode casts to input.dtype: build_normalization_fn returns float32, and preprocess_image casts the tensor to float32.
+  forward: skellytracker/core/detectors/processing/pre/normalize.py::normalize
 external_impl: []
 tests:
   - skellytracker/tests/test_image_preprocessing.py
   - skellytracker/tests/sidecar/test_model_validation.py
   - skellytracker/tests/model_spec/test_model_validation.py
+  - skellytracker/tests/processing/test_preprocess.py
 vectors: vectors/pre.normalize.yaml
-status: {spec: stable, validate: implemented, forward: partial}
+status: {spec: stable, validate: implemented, forward: implemented}
 ---
 
 # Normalization

@@ -5,16 +5,18 @@ kind: preprocessor
 selectors: [input.resize.method=affine_crop]
 implemented_by:
   validate: skellytracker/core/model_spec/rules.py::check_sidecar
-  forward: skellytracker/core/detectors/processing/affine_crop.py::top_down_affine  # partial. Always uses cv2.INTER_LINEAR and no pad_value. preprocess_image raises when maintain_aspect_ratio is false. The arithmetic of `M` is not met: the box keeps the dtype of the caller, and the second warp point is above the centre (the rtmlib form). No rotation: `top_down_affine` takes a box only, and `get_warp_matrix` turns the second point above the centre.
-  inverse: skellytracker/core/detectors/processing/simcc_decode.py::decode_simcc  # partial. Applies the inverse to SimCC keypoints only. get_warp_matrix(inv=True) has no caller.
+  forward: skellytracker/core/detectors/processing/pre/resize_affine_crop.py::affine_crop
+  inverse: skellytracker/core/detectors/processing/pre/resize_affine_crop.py::unproject
 external_impl: []
 tests:
   - skellytracker/tests/test_image_preprocessing.py
   - skellytracker/tests/sidecar/test_model_validation.py
   - skellytracker/tests/sidecar/test_rtmpose_body_sidecar.py
   - skellytracker/tests/model_spec/test_model_validation.py
+  - skellytracker/tests/processing/test_preprocess.py
+  - skellytracker/tests/processing/test_postprocess.py
 vectors: vectors/pre.resize.affine_crop.yaml
-status: {spec: stable, validate: implemented, forward: partial, inverse: partial}
+status: {spec: stable, validate: implemented, forward: implemented, inverse: implemented}
 ---
 
 # Affine crop

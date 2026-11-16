@@ -9,13 +9,15 @@ selectors:
   - input.resize.method=affine_crop
 implemented_by:
   validate: skellytracker/core/model_spec/rules.py::check_sidecar
-  forward: skellytracker/core/detectors/processing/image_preprocessing.py::preprocess_image  # partial. The affine_person_crop branch ignores interpolation. top_down_affine always uses cv2.INTER_LINEAR. Each branch resizes the uint8 frame and ignores compute_dtype.
+  forward: skellytracker/core/detectors/processing/pre/resize_interpolation.py::to_compute_dtype
 external_impl:
   - OpenMMLab-Exporter: onnx_runtime/preprocess.py::letterbox
   - OpenMMLab-Exporter: onnx_runtime/preprocess.py::affine_person_crop
-tests: [skellytracker/tests/model_spec/test_model_validation.py]
+tests:
+  - skellytracker/tests/model_spec/test_model_validation.py
+  - skellytracker/tests/processing/test_preprocess.py
 vectors: vectors/pre.resize.interpolation.yaml
-status: {spec: stable, validate: implemented, forward: partial}
+status: {spec: stable, validate: implemented, forward: implemented}
 ---
 
 # Interpolation

@@ -5,14 +5,15 @@ kind: common
 selectors: []
 implemented_by:
   validate: skellytracker/core/model_spec/rules.py::check_sidecar
-  load: skellytracker/core/detectors/processing/image_preprocessing.py::preprocess_image  # partial. Ignores input.dtype. Raises for method none and for letterbox with preserve_aspect_ratio false. The spec does not define preserve_aspect_ratio.
+  load: skellytracker/core/detectors/processing/pre/preprocess.py::preprocess_image
 external_impl: []
 tests:
   - skellytracker/tests/sidecar/test_model_validation.py
   - skellytracker/tests/test_image_preprocessing.py
   - skellytracker/tests/model_spec/test_model_validation.py
+  - skellytracker/tests/processing/test_preprocess.py
 vectors: vectors/common.input.yaml
-status: {spec: stable, validate: implemented, load: partial}
+status: {spec: stable, validate: implemented, load: implemented}
 ---
 
 # Input

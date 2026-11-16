@@ -6,7 +6,7 @@ selectors:
   - role=keypoint_detector
 implemented_by:
   validate: skellytracker/core/model_spec/rules.py::check_sidecar  # load_sidecar gives it the landmark schema registry for V-post.keypoint.schema-10.
-  load: skellytracker/core/model_spec/model.py::KeypointSpec  # partial. The model holds the point names, the skeletons and each derived point. No code computes a derived point: stage 1.5.
+  load: skellytracker/core/model_spec/model.py::KeypointSpec  # skellytracker/core/detectors/processing/post/keypoint_schema.py applies the run-time rules: mark_missing and derived_points.
 external_impl: []
 tests:
   - skellytracker/tests/sidecar/test_model_validation.py
@@ -16,8 +16,9 @@ tests:
   - skellytracker/tests/sidecar/test_rtmw_sidecar.py
   - skellytracker/tests/model_spec/test_model_validation.py
   - skellytracker/tests/model_spec/test_loader.py
+  - skellytracker/tests/processing/test_postprocess.py
 vectors: null
-status: {spec: stable, validate: implemented, load: partial}
+status: {spec: stable, validate: implemented, load: implemented}
 ---
 
 # Keypoint schema

@@ -1697,6 +1697,220 @@ def check_sidecar_runner(function: Any, case: dict[str, Any]) -> dict[str, Any] 
     return {"failed": sorted(wanted)}
 
 
+# ---------------------------------------------------------------------------
+# The adapters of the spec processing modules (`processing/pre/` and `processing/post/`)
+# ---------------------------------------------------------------------------
+
+PRE = "skellytracker/core/detectors/processing/pre"
+POST = "skellytracker/core/detectors/processing/post"
+NMS_KEYS = ("iou_threshold", "score_threshold", "class_agnostic", "post_nms_top_k")
+
+
+def sibling(function: Any, name: str) -> Any:
+    """Return another function of the module of `function`."""
+    return getattr(sys.modules[function.__module__], name)
+
+
+def flat_image(case: dict[str, Any], value: int = SOURCE_VALUE) -> np.ndarray:
+    return np.full((case["input"]["src_h"], case["input"]["src_w"], 3), value, dtype=np.uint8)
+
+
+def case_geometry(resize: dict[str, Any], inp: dict[str, Any]) -> Any:
+    """The `ResizeGeometry` of the flat `resize` keys of a case, from the resize dispatcher."""
+    from skellytracker.core.detectors.processing.pre.preprocess import resize_geometry
+    from skellytracker.core.detectors.processing.pre.resize_affine_crop import roi_from_box
+    from skellytracker.core.model_spec.model import ResizeSpec
+
+    fields = {key: resize[key] for key in ("method", "pad_position", "rounding") if key in resize}
+    roi = None
+    if resize["method"] == "affine_crop":
+        policy = {key: resize[key] for key in ("expand_ratio", "maintain_aspect_ratio") if key in resize}
+        fields["crop_policy"] = policy
+        roi = inp["roi"] if "roi" in inp else roi_from_box(inp["bbox_xyxy"])
+    return resize_geometry(
+        ResizeSpec(**fields), resize.get("target_size"), inp.get("src_w", 0), inp.get("src_h", 0), roi
+    )
+
+
+def letterbox_geometry_runner(function: Any, case: dict[str, Any]) -> dict[str, Any] | None:
+    if "function" in case:
+        return None
+    params, inp = case["params"], case["input"]
+    return function(inp["src_w"], inp["src_h"], params["target_size"], params["pad_position"], params["rounding"])
+
+
+def letterbox_inverse_runner(function: Any, case: dict[str, Any]) -> dict[str, Any] | None:
+    if case.get("function") != "inverse":
+        return None
+    params, inp = case["params"], case["input"]
+    geometry = sibling(function, "letterbox_geometry")(
+        inp["src_w"], inp["src_h"], params["target_size"], params["pad_position"], params["rounding"]
+    )
+    return {"source_xy": function(inp["model_xy"], geometry, inp["src_w"], inp["src_h"]).tolist()}
+
+
+def new_fit_runner(function: Any, case: dict[str, Any]) -> dict[str, Any] | None:
+    """Run `fit` on a flat image: the geometry of a forward case, or pixel (0, 0) of a `border` case."""
+    from skellytracker.core.detectors.processing.pre.resize_interpolation import border_values
+
+    if case.get("function") == "inverse":
+        return None
+    target = case["params"]["target_size"]
+    if case.get("function") == "border":
+        canvas, _ = function(flat_image(case), target, border_values(case["params"]["pad_value"]), cv2.INTER_LINEAR)
+        return {"border": canvas[0, 0].tolist()}
+    return function(flat_image(case), target, (0.0, 0.0, 0.0), cv2.INTER_LINEAR)[1]
+
+
+def fit_inverse_runner(function: Any, case: dict[str, Any]) -> dict[str, Any] | None:
+    if case.get("function") != "inverse":
+        return None
+    inp = case["input"]
+    geometry = sibling(function, "fit_geometry")(inp["src_w"], inp["src_h"], case["params"]["target_size"])
+    return {"source_xy": function(inp["model_xy"], geometry).tolist()}
+
+
+def _crop_geometry(crop_geometry: Any, case: dict[str, Any]) -> dict[str, Any]:
+    params, inp = case["params"], case["input"]
+    roi = inp["roi"] if "roi" in inp else sibling(crop_geometry, "roi_from_box")(inp["bbox_xyxy"])
+    return crop_geometry(
+        roi, params["target_size"], float(params.get("expand_ratio", 1.25)), params.get("maintain_aspect_ratio", True)
+    )
+
+
+def crop_geometry_runner(function: Any, case: dict[str, Any]) -> dict[str, Any] | None:
+    if "function" in case:
+        return None
+
+    def run() -> dict[str, Any]:
+        geometry = _crop_geometry(function, case)
+        return {**geometry, "matrix": geometry["matrix"].tolist()}
+
+    return mv.outcome(run)
+
+
+def crop_unproject_runner(function: Any, case: dict[str, Any]) -> dict[str, Any] | None:
+    if case.get("function") != "inverse":
+        return None
+    matrix = _crop_geometry(sibling(function, "crop_geometry"), case)["matrix"]
+    # The form of `expect` has 6 decimals: the inverse of M gives 134.99999999999997 for 135.
+    return mv.clean({"source_xy": function(case["input"]["model_xy"], matrix).tolist()}, digits=6)
+
+
+def affine_crop_runner(function: Any, case: dict[str, Any]) -> dict[str, Any] | None:
+    """Run `affine_crop` on a black image: pixel (0, 0) of a `border` case."""
+    from skellytracker.core.detectors.processing.pre.resize_interpolation import border_values
+
+    if case.get("function") != "border":
+        return None
+    params, inp = case["params"], case["input"]
+    roi = inp["roi"] if "roi" in inp else sibling(function, "roi_from_box")(inp["bbox_xyxy"])
+    crop, _ = function(
+        flat_image(case, 0),
+        roi,
+        params["target_size"],
+        float(params.get("expand_ratio", 1.25)),
+        params.get("maintain_aspect_ratio", True),
+        border_values(params.get("pad_value", 0)),
+        cv2.INTER_LINEAR,
+    )
+    return {"border": crop[0, 0].tolist()}
+
+
+def normalize_runner(function: Any, case: dict[str, Any]) -> dict[str, Any] | None:
+    """Run `normalize` on the pixels of a numeric case, with the resolved mode of the spec model."""
+    from skellytracker.core.model_spec.model import InputSpec
+
+    if case.get("function") == "none":
+        return None
+    params = case["params"]
+    precision, dtype = params.get("precision", "fp32"), params.get("dtype")
+    compute = (params.get("resize") or {}).get("compute_dtype", "uint8")
+    pixels = np.asarray(case["input"]["pixels_bgr"], dtype=np.float64)
+    if compute == "uint8" and not np.array_equal(pixels, pixels.astype(np.uint8)):
+        return None  # these pixels are not an 8-bit image
+    spec = InputSpec(
+        name="input",
+        dtype={precision: dtype or "float32"},
+        color_format=params["color_format"],
+        normalization=params["normalization"],
+        normalization_by_precision=params.get("normalization_by_precision", {}),
+    )
+    mode = spec.normalization_for(precision)
+    values = function(pixels.astype(compute), mode, spec.color_format, dtype)
+    return {
+        "resolved_mode": mode if isinstance(mode, str) else "custom",
+        "channel_order": spec.color_format,
+        "values": values.tolist(),
+    }
+
+
+def simcc_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
+    def run() -> dict[str, Any]:
+        x, y = (np.asarray(case["input"][key], dtype=np.float32) for key in ("simcc_x", "simcc_y"))
+        result = function(x, y, case["params"]["target_size"])
+        return {
+            "bins": result["bins"].tolist(),
+            "keypoints": result["keypoints"].tolist(),
+            "scores": result["scores"].astype(np.float64).tolist(),
+        }
+
+    return mv.outcome(run)
+
+
+def nms_runner(function: Any, case: dict[str, Any]) -> dict[str, Any] | None:
+    """Run `decode_nms` on a numeric case. The box space comes from `resize` of the case (ADR-0PK7)."""
+    from skellytracker.core.model_spec.model import ObjectDecodeSpec
+
+    if case.get("function") == "none":
+        return None
+    params, inp = case["params"], case["input"]
+    other = {key: value for key, value in params.items() if key not in (*NMS_KEYS, "classes", "input_size", "resize")}
+    decode = ObjectDecodeSpec(selection="nms", nms={key: params[key] for key in NMS_KEYS if key in params}, **other)
+    class_indexes = None
+    if "rows" in inp:
+        table = np.asarray(inp["rows"], dtype=np.float64).reshape(-1, len(inp["fields"]))
+        boxes, scores = table[:, 0:4], table[:, inp["fields"].index(params["score_field"])]
+        if params.get("class_field") is not None:
+            class_indexes = table[:, inp["fields"].index(params["class_field"])]
+    else:
+        boxes, scores = inp["boxes"], inp["scores"]
+    geometry = case_geometry(params["resize"], inp) if "resize" in params else None
+    found = function(boxes, scores, class_indexes, decode, params["classes"], params.get("input_size", [1, 1]), geometry)
+    return {
+        "kept_rows": found["rows"].tolist(),
+        "scores": found["scores"].tolist(),
+        "class_indices": found["class_indices"].tolist(),
+        "boxes_xyxy": found["boxes"].tolist(),
+        "boxes_space": "model_input" if geometry is None else "source",
+    }
+
+
+def unproject_points_runner(function: Any, case: dict[str, Any]) -> dict[str, Any] | None:
+    params, inp = case["params"], case["input"]
+    if "decoded_xy" not in inp:
+        return None
+    geometry = case_geometry(params["resize"], inp)
+    model = sibling(function, "to_model_pixels")(inp["decoded_xy"], params["scale"], geometry.input_size)
+    return {"model_xy": model.tolist(), "source_xy": function(inp["decoded_xy"], params["scale"], geometry).tolist()}
+
+
+def unproject_boxes_runner(function: Any, case: dict[str, Any]) -> dict[str, Any] | None:
+    """Run `unproject_boxes`, then the clamp and the size filter of the object decode, on a box case."""
+    from skellytracker.core.detectors.processing.post.object_decode import clamp, size_mask
+
+    params, inp = case["params"], case["input"]
+    if "decoded_xyxy" not in inp:
+        return None
+    geometry = case_geometry(params["resize"], inp)
+    corners = np.asarray(inp["decoded_xyxy"], dtype=np.float64).reshape(2, 2)
+    model = sibling(function, "to_model_pixels")(corners, params["scale"], geometry.input_size).reshape(4)
+    source = function(inp["decoded_xyxy"], params["scale"], geometry)
+    output = clamp(source, inp["src_w"], inp["src_h"]) if params.get("clamp_boxes", True) else source
+    keep = bool(size_mask(output, params.get("min_box_size")))
+    return {"model_xyxy": model.tolist(), "source_xyxy": source.tolist(), "output_xyxy": output.tolist() if keep else None}
+
+
 # The adapter of each skellytracker `verified_against` entry. An adapter runs
 # the function on one case and returns its result in the form of `expect`, or
 # None when the function cannot run the case.
@@ -1706,6 +1920,18 @@ PACKAGE_RUNNERS: dict[str, Callable[[Any, dict[str, Any]], dict[str, Any] | None
     ),
     "skellytracker/core/detectors/processing/image_preprocessing.py::fit_preprocess": fit_runner,
     "skellytracker/core/model_spec/rules.py::check_sidecar": check_sidecar_runner,
+    f"{PRE}/resize_letterbox.py::letterbox_geometry": letterbox_geometry_runner,
+    f"{PRE}/resize_letterbox.py::inverse_points": letterbox_inverse_runner,
+    f"{PRE}/resize_fit.py::fit": new_fit_runner,
+    f"{PRE}/resize_fit.py::inverse_points": fit_inverse_runner,
+    f"{PRE}/resize_affine_crop.py::crop_geometry": crop_geometry_runner,
+    f"{PRE}/resize_affine_crop.py::unproject": crop_unproject_runner,
+    f"{PRE}/resize_affine_crop.py::affine_crop": affine_crop_runner,
+    f"{PRE}/normalize.py::normalize": normalize_runner,
+    f"{POST}/keypoint_decode_simcc.py::decode_simcc": simcc_runner,
+    f"{POST}/object_selection_nms.py::decode_nms": nms_runner,
+    f"{POST}/unprojection.py::unproject_points": unproject_points_runner,
+    f"{POST}/unprojection.py::unproject_boxes": unproject_boxes_runner,
 }
 
 

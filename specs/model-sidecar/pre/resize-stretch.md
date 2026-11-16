@@ -5,12 +5,15 @@ kind: preprocessor
 selectors: [input.resize.method=stretch]
 implemented_by:
   validate: skellytracker/core/model_spec/rules.py::check_sidecar
-  forward: skellytracker/core/detectors/processing/image_preprocessing.py::preprocess_image  # partial. No implementation has run the vectors yet.
-  inverse: missing  # The stretch branch of preprocess_image sets resize_meta to 1.0. No code applies x * src_w / T_w.
+  forward: skellytracker/core/detectors/processing/pre/resize_stretch.py::stretch
+  inverse: skellytracker/core/detectors/processing/pre/resize_stretch.py::inverse_points
 external_impl: []
-tests: [skellytracker/tests/model_spec/test_model_validation.py]
+tests:
+  - skellytracker/tests/model_spec/test_model_validation.py
+  - skellytracker/tests/processing/test_preprocess.py
+  - skellytracker/tests/processing/test_postprocess.py
 vectors: vectors/pre.resize.stretch.yaml
-status: {spec: stable, validate: implemented, forward: partial, inverse: missing}
+status: {spec: stable, validate: implemented, forward: implemented, inverse: implemented}
 ---
 
 # Stretch resize

@@ -5,15 +5,17 @@ kind: preprocessor
 selectors: [input.resize.method=fit]
 implemented_by:
   validate: skellytracker/core/model_spec/rules.py::check_sidecar
-  forward: skellytracker/core/detectors/processing/image_preprocessing.py::fit_preprocess  # partial. A scalar pad_value fills only channel 0, and an array of int values raises.
-  inverse: missing  # fit_preprocess returns scale, left and top. No code applies (x - left) / s.
+  forward: skellytracker/core/detectors/processing/pre/resize_fit.py::fit
+  inverse: skellytracker/core/detectors/processing/pre/resize_fit.py::inverse_points
 external_impl: []
 tests:
   - skellytracker/tests/test_image_preprocessing.py
   - skellytracker/tests/sidecar/test_model_validation.py
   - skellytracker/tests/model_spec/test_model_validation.py
+  - skellytracker/tests/processing/test_preprocess.py
+  - skellytracker/tests/processing/test_postprocess.py
 vectors: vectors/pre.resize.fit.yaml
-status: {spec: stable, validate: implemented, forward: partial, inverse: missing}
+status: {spec: stable, validate: implemented, forward: implemented, inverse: implemented}
 ---
 
 # Fit resize

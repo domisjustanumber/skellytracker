@@ -18,7 +18,9 @@ notes:
     checks only the rules of this section."
 tolerance: 0.00001
 unverified: "The independent implementations ran only some cases. Each of these cases lists them
-  in verified_against."
+  in verified_against. The skellytracker functions in verified_against are a port of
+  the reference implementation of OpenMMLab-Exporter. They are not independent of that
+  exporter."
 cases:
   - id: none-rgb
     note: "the values stay 0..255; color_format rgb swaps the BGR source channels"
@@ -30,6 +32,7 @@ cases:
       values: [[0, 0, 0], [255, 255, 255], [250, 128, 10], [50, 100, 200]]
     verified_against:
       - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::make_normalizer}
+      - skellytracker/core/detectors/processing/pre/normalize.py::normalize
   - id: none-bgr
     params: {normalization: none, color_format: bgr, dtype: float32}
     input: {pixels_bgr: [[0, 0, 0], [255, 255, 255], [10, 128, 250], [200, 100, 50]]}
@@ -39,6 +42,7 @@ cases:
       values: [[0, 0, 0], [255, 255, 255], [10, 128, 250], [200, 100, 50]]
     verified_against:
       - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::make_normalizer}
+      - skellytracker/core/detectors/processing/pre/normalize.py::normalize
   - id: none-uint8
     note: "the cast to the input dtype keeps the 0..255 values"
     params: {normalization: none, color_format: rgb, dtype: uint8}
@@ -49,6 +53,7 @@ cases:
       values: [[0, 0, 0], [255, 255, 255], [250, 128, 10], [50, 100, 200]]
     verified_against:
       - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::make_normalizer}
+      - skellytracker/core/detectors/processing/pre/normalize.py::normalize
   - id: unit-float-rgb
     params: {normalization: unit_float, color_format: rgb}
     input: {pixels_bgr: [[0, 0, 0], [255, 255, 255], [10, 128, 250], [200, 100, 50]]}
@@ -58,6 +63,7 @@ cases:
       values: [[0, 0, 0], [1, 1, 1], [0.980392, 0.501961, 0.039216], [0.196078, 0.392157, 0.784314]]
     verified_against:
       - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::make_normalizer}
+      - skellytracker/core/detectors/processing/pre/normalize.py::normalize
   - id: unit-float-bgr
     params: {normalization: unit_float, color_format: bgr}
     input: {pixels_bgr: [[0, 0, 0], [255, 255, 255], [10, 128, 250], [200, 100, 50]]}
@@ -67,6 +73,7 @@ cases:
       values: [[0, 0, 0], [1, 1, 1], [0.039216, 0.501961, 0.980392], [0.784314, 0.392157, 0.196078]]
     verified_against:
       - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::make_normalizer}
+      - skellytracker/core/detectors/processing/pre/normalize.py::normalize
   - id: imagenet-bgr
     note: "color_format bgr: the tensor order is B, G, R, and B uses mean 103.53 and std 57.375"
     params: {normalization: imagenet, color_format: bgr}
@@ -81,6 +88,7 @@ cases:
         - [1.681394, -0.285014, -1.261666]
     verified_against:
       - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::make_normalizer}
+      - skellytracker/core/detectors/processing/pre/normalize.py::normalize
   - id: imagenet-rgb
     note: "color_format rgb: the tensor order is R, G, B, and R uses mean 123.675 and std 58.395"
     params: {normalization: imagenet, color_format: rgb}
@@ -95,6 +103,7 @@ cases:
         - [-1.261666, -0.285014, 1.681394]
     verified_against:
       - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::make_normalizer}
+      - skellytracker/core/detectors/processing/pre/normalize.py::normalize
   - id: custom-rgb
     note: "(pixel * scale - mean) / std; mean and std are in the rgb order of input.color_format"
     params:
@@ -115,6 +124,7 @@ cases:
         - [-1.261666, -0.285014, 1.681395]
     verified_against:
       - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::make_normalizer}
+      - skellytracker/core/detectors/processing/pre/normalize.py::normalize
   - id: custom-bgr
     note: "the same statistics in bgr order give the custom-rgb values in reverse order"
     params:
@@ -135,6 +145,7 @@ cases:
         - [1.681395, -0.285014, -1.261666]
     verified_against:
       - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::make_normalizer}
+      - skellytracker/core/detectors/processing/pre/normalize.py::normalize
   - id: custom-scale-defaults-to-one
     note: "scale is absent: it is 1. The order is the bgr of input.color_format"
     params: {normalization: {mode: custom, mean: [1, 2, 3], std: [2, 2, 2]}, color_format: bgr}
@@ -145,6 +156,7 @@ cases:
       values: [[-0.5, -1, -1.5], [127, 126.5, 126], [4.5, 63, 123.5], [99.5, 49, 23.5]]
     verified_against:
       - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::make_normalizer}
+      - skellytracker/core/detectors/processing/pre/normalize.py::normalize
   - id: color-format-is-required
     note: "input.color_format is absent, and there is no default. The sidecar shows only its
       input block. The case checks only the rules of this section."
@@ -194,6 +206,7 @@ cases:
       values: [[0, 0, 0], [255, 255, 255], [250, 128, 10], [50, 100, 200]]
     verified_against:
       - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::make_normalizer}
+      - skellytracker/core/detectors/processing/pre/normalize.py::normalize
   - id: precision-without-override
     note: "no entry for fp32: the top-level normalization applies"
     params:
@@ -208,6 +221,7 @@ cases:
       values: [[0, 0, 0], [1, 1, 1], [0.980392, 0.501961, 0.039216], [0.196078, 0.392157, 0.784314]]
     verified_against:
       - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::make_normalizer}
+      - skellytracker/core/detectors/processing/pre/normalize.py::normalize
   - id: unit-float-float16
     note: "the cast to a float16 input rounds each value to float16: 250 / 255 gives 0.980469,
       not 0.980392. Without the cast, the largest difference is 1.3e-4, more than the
@@ -220,6 +234,7 @@ cases:
       values: [[0, 0, 0], [1, 1, 1], [0.980469, 0.501953, 0.039215], [0.196045, 0.39209, 0.78418]]
     verified_against:
       - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::make_normalizer}
+      - skellytracker/core/detectors/processing/pre/normalize.py::normalize
   - id: imagenet-float16
     note: "the cast to a float16 input rounds each value to float16. Without the cast, the
       largest difference is 8.6e-4"
@@ -235,6 +250,7 @@ cases:
         - [1.681641, -0.284912, -1.261719]
     verified_against:
       - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::make_normalizer}
+      - skellytracker/core/detectors/processing/pre/normalize.py::normalize
   - id: float32-resize-pixels
     note: "a float32 resize gives fractional pixels, also below 0 and above 255 (a cubic filter
       has no clamp). The mode takes them unchanged"
@@ -248,6 +264,8 @@ cases:
       resolved_mode: unit_float
       channel_order: bgr
       values: [[0.5, 0.00098, 0.99902], [-0.013725, 1.019608, 0.501961]]
+    verified_against:
+      - skellytracker/core/detectors/processing/pre/normalize.py::normalize
   - id: float32-arithmetic-before-the-float16-cast
     note: "the mode computes in float32. For the R pixel 111.09, (111.09 - 123.675) / 58.395 in
       float32 rounds to the float16 value -0.215576. The same formula in float64 gives
@@ -262,6 +280,8 @@ cases:
       resolved_mode: imagenet
       channel_order: rgb
       values: [[-0.215576, -2.035156, -1.804688]]
+    verified_against:
+      - skellytracker/core/detectors/processing/pre/normalize.py::normalize
   - id: uint8-resize-pixels-are-integers
     note: "the pixels are a tensor of the resize, not a sidecar value. An 8-bit resize gives
       integers from 0 to 255"
@@ -362,6 +382,7 @@ cases:
       values: [[0, 0, 0], [127.5, 127.5, 127.5], [125, 64, 5], [25, 50, 100]]
     verified_against:
       - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::make_normalizer}
+      - skellytracker/core/detectors/processing/pre/normalize.py::normalize
   - id: custom-all-defaults
     note: "only mode is present: scale 1, mean [0, 0, 0] and std [1, 1, 1] give the pixels
       unchanged, as none"
@@ -373,3 +394,4 @@ cases:
       values: [[0, 0, 0], [255, 255, 255], [10, 128, 250], [200, 100, 50]]
     verified_against:
       - {OpenMMLab-Exporter: onnx_runtime/preprocess.py::make_normalizer}
+      - skellytracker/core/detectors/processing/pre/normalize.py::normalize

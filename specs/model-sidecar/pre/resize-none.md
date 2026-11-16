@@ -5,12 +5,15 @@ kind: preprocessor
 selectors: [input.resize.method=none]
 implemented_by:
   validate: skellytracker/core/model_spec/rules.py::check_sidecar
-  forward: missing  # preprocess_image raises NotImplementedError for method none.
-  inverse: missing  # The identity inverse has no code.
+  forward: skellytracker/core/detectors/processing/pre/preprocess.py::resize_image
+  inverse: skellytracker/core/detectors/processing/post/unprojection.py::resize_inverse
 external_impl: []
-tests: [skellytracker/tests/model_spec/test_model_validation.py]
+tests:
+  - skellytracker/tests/model_spec/test_model_validation.py
+  - skellytracker/tests/processing/test_preprocess.py
+  - skellytracker/tests/processing/test_postprocess.py
 vectors: vectors/pre.resize.none.yaml
-status: {spec: stable, validate: implemented, forward: missing, inverse: missing}
+status: {spec: stable, validate: implemented, forward: implemented, inverse: implemented}
 ---
 
 # No resize

@@ -6,15 +6,16 @@ selectors:
   - object.decode.selection=nms
 implemented_by:
   validate: skellytracker/core/model_spec/rules.py::check_sidecar
-  decode: skellytracker/core/detectors/processing/object_detection_decode.py::decode_prenms  # partial: the box area adds 1 to each side; ties are not ordered by row index; one class only; no nms block, post_nms_top_k, clamp or size filter; the caller gives the thresholds
+  decode: skellytracker/core/detectors/processing/post/object_selection_nms.py::decode_nms
 external_impl:
   - OpenMMLab-Exporter: onnx_runtime/decode_nms.py::NmsDecoder
 tests:
   - skellytracker/tests/test_object_detection_decode.py
   - skellytracker/tests/test_yolox_detector.py
   - skellytracker/tests/model_spec/test_model_validation.py
+  - skellytracker/tests/processing/test_postprocess.py
 vectors: vectors/post.object.selection.nms.yaml
-status: {spec: stable, validate: implemented, decode: partial}
+status: {spec: stable, validate: implemented, decode: implemented}
 ---
 
 # Selection: NMS

@@ -6,7 +6,7 @@ selectors:
   - role=object_detector
 implemented_by:
   validate: skellytracker/core/model_spec/rules.py::check_sidecar
-  decode: skellytracker/core/detectors/object_detectors/yolox/yolox_decode.py::yolox_detection_decode  # partial: the tensor count picks the path, not selection; no box_space, class filter, clamp or size filter; the caller gives the thresholds
+  decode: skellytracker/core/detectors/processing/post/object_decode.py::unproject_and_filter  # partial. The shared steps of Selection behaviour. Stage 1.7 of the implementation plan adds the dispatch on selection and the modes none and top_k.
 external_impl:
   - OpenMMLab-Exporter: onnx_runtime/decode_nms.py::NmsDecoder
 tests:
@@ -14,6 +14,7 @@ tests:
   - skellytracker/tests/test_object_detection_decode.py
   - skellytracker/tests/test_yolox_detector.py
   - skellytracker/tests/model_spec/test_model_validation.py
+  - skellytracker/tests/processing/test_postprocess.py
 vectors: vectors/post.object.decode.yaml
 status: {spec: stable, validate: implemented, decode: partial}
 ---

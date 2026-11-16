@@ -241,7 +241,11 @@ def test_implemented_by_names_a_function_that_exists(
 IMPLEMENTS = re.compile(r"^\s*Implements: (\S+)\s*$", re.M)
 # The code that the implementation stage writes. Each implementing function there has the line
 # `Implements: <section-id>` in its docstring (the skill `implement-sidecar-section`).
-NEW_CODE = ("skellytracker/core/model_spec/",)
+NEW_CODE = (
+    "skellytracker/core/model_spec/",
+    "skellytracker/core/detectors/processing/pre/",
+    "skellytracker/core/detectors/processing/post/",
+)
 
 
 def docstring_of(path: Path, symbol: str) -> str:

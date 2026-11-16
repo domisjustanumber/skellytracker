@@ -8,7 +8,7 @@ selectors:
   - outputs[].semantic=simcc_y
 implemented_by:
   validate: skellytracker/core/model_spec/rules.py::check_sidecar
-  decode: skellytracker/core/detectors/processing/simcc_decode.py::simcc_pose_decode  # partial: the split ratio is fixed at 2.0, not read from the bin counts; the score is the mean of the two softmax peaks
+  decode: skellytracker/core/detectors/processing/post/keypoint_decode_simcc.py::decode_simcc
 external_impl: []
 tests:
   - skellytracker/tests/sidecar/test_model_validation.py
@@ -17,8 +17,9 @@ tests:
   - skellytracker/tests/sidecar/test_rtmpose_face_sidecar.py
   - skellytracker/tests/sidecar/test_rtmw_sidecar.py
   - skellytracker/tests/model_spec/test_model_validation.py
+  - skellytracker/tests/processing/test_postprocess.py
 vectors: vectors/post.keypoint.decode.simcc.yaml
-status: {spec: stable, validate: implemented, decode: partial}
+status: {spec: stable, validate: implemented, decode: implemented}
 ---
 
 # SimCC decode
