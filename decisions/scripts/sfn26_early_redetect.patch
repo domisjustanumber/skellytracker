@@ -1,0 +1,108 @@
+diff --git a/skellytracker/core/temporal_processing/bbox_policy.py b/skellytracker/core/temporal_processing/bbox_policy.py
+index 0223dd0f..fb03dfd5 100644
+--- a/skellytracker/core/temporal_processing/bbox_policy.py
++++ b/skellytracker/core/temporal_processing/bbox_policy.py
+@@ -150,9 +150,32 @@ class BBoxPolicy:
+     min_detected_bbox_ratio: float | None = 0.5
+     min_bbox_size_px: float = 80.0
+ 
++    def needs_recovery(self, bboxes: list[BoundingBox], raw_keypoints: list[Keypoints]) -> bool:
++        """Decide whether this frame can support crop reuse on the next frame.
++
++        Use measurements before smoothing or reset bookkeeping can hide loss.
++        Object-only stages need a box; keypoint-tracked crops additionally need
++        visible finite points spanning a nondegenerate region.
++        """
++        if not bboxes:
++            return True
++        if not raw_keypoints:
++            return False
++        points = Keypoints.concatenate(raw_keypoints)
++        mask = (
++            np.isfinite(points.xyz).all(axis=1)
++            & (points.visibility > 0)
++            & (points.visibility >= self.keypoint_bbox_min_visibility)
++        )
++        if not mask.any():
++            return True
++        if self.keypoint_bbox_expansion is not None:
++            return bool(np.any(np.ptp(points.xy[mask], axis=0) <= 0))
++        return False
++
+     def should_redetect(self, frame_number: int, stage_state: StageState) -> bool:
+         last = stage_state.bbox_state.last_detection_frame
+-        if last is None:
++        if last is None or stage_state.needs_redetection:
+             return True
+         if (frame_number - last) >= self.redetect_interval:
+             return True
+diff --git a/skellytracker/core/tracker/detection_stage.py b/skellytracker/core/tracker/detection_stage.py
+index bab7668e..ba033fae 100644
+--- a/skellytracker/core/tracker/detection_stage.py
++++ b/skellytracker/core/tracker/detection_stage.py
+@@ -183,6 +183,7 @@ class DetectionStage:
+             last_keypoints=merged,
+             consecutive_misses=updated_misses,
+             consecutive_resets=updated_resets,
++            needs_redetection=self.bbox_policy.needs_recovery(bboxes, raw_keypoints),
+         )
+         return obs, updated_state
+ 
+@@ -386,6 +387,9 @@ class DetectionStage:
+             last_keypoints=merged,
+             consecutive_misses=updated_misses,
+             consecutive_resets=updated_resets,
++            needs_redetection=self.bbox_policy.needs_recovery(
++                [raw_detection.bbox], raw_detection.keypoints
++            ),
+         )
+         return obs, updated_state
+ 
+@@ -555,6 +559,7 @@ class DetectionStage:
+         # Collect per-detector results: list indexed by detector index, each a
+         # dict from cam_id → (Keypoints, KeypointSmoothingState)
+         all_detector_results: list[dict[str, tuple[Keypoints, KeypointSmoothingState]]] = []
++        raw_keypoints_per_cam: dict[str, list[Keypoints]] = {c: [] for c in cam_ids}
+         # Per-camera consecutive-miss/-reset counters, appended to in detector order
+         # (index i) so misses_per_cam[cam_id][i] lines up with keypoint_detectors[i].
+         misses_per_cam: dict[str, list[int]] = {cam_id: [] for cam_id in cam_ids}
+@@ -631,6 +636,7 @@ class DetectionStage:
+                     cb = crop_bboxes[cam_id]
+                     if cb is not None:
+                         kpts = kpts.translated(cb.x1, cb.y1)
++                    raw_keypoints_per_cam[cam_id].append(kpts)
+                     _update_misses(cam_id, detector, kpts, i)
+                     state = states.get(cam_id, StageState())
+                     kp_state = (
+@@ -659,6 +665,7 @@ class DetectionStage:
+                     cb = crop_bboxes[cam_id]
+                     if cb is not None:
+                         kpts = kpts.translated(cb.x1, cb.y1)
++                    raw_keypoints_per_cam[cam_id].append(kpts)
+                     _update_misses(cam_id, cam_detector, kpts, i)
+                     state = states.get(cam_id, StageState())
+                     kp_state = (
+@@ -747,6 +754,9 @@ class DetectionStage:
+                 last_keypoints=merged_per_cam[cam_id],
+                 consecutive_misses=misses_per_cam[cam_id],
+                 consecutive_resets=resets_per_cam[cam_id],
++                needs_redetection=self.bbox_policy.needs_recovery(
++                    bboxes_per_cam[cam_id], raw_keypoints_per_cam[cam_id]
++                ),
+             )
+ 
+         return obs_out, states_out
+diff --git a/skellytracker/core/tracker/tracker_state.py b/skellytracker/core/tracker/tracker_state.py
+index 9afc08db..2887fdcc 100644
+--- a/skellytracker/core/tracker/tracker_state.py
++++ b/skellytracker/core/tracker/tracker_state.py
+@@ -82,6 +82,9 @@ class StageState:
+     # effective miss threshold instead of re-firing at a fixed cadence forever
+     # while the subject stays out of frame. Cleared back to 0 on any real detection.
+     consecutive_resets: list[int] = field(default_factory=list)
++    # The latest frame had no object box or no usable raw tracking measurement.
++    # Separate from smoothed keypoints and reset counters, which can hide misses.
++    needs_redetection: bool = False
+ 
+ 
+ @dataclass
