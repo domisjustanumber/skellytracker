@@ -783,3 +783,16 @@ def test_no_tool_imports_the_tests() -> None:
             assert (
                 not names & test_modules
             ), f"{path.name} imports {names & test_modules}"
+
+
+# --------------------------------------------------------------------------------------------
+# The section table of the package: the capability check of the catalog reads it
+# --------------------------------------------------------------------------------------------
+
+
+def test_the_package_section_table_equals_the_front_matter_of_the_spec() -> None:
+    from skellytracker.core.model_spec.sections import IMPLEMENTED_SECTIONS, SECTIONS
+
+    spec = [(section.id, section.kind, tuple(section.front.selectors)) for section in st.load_sections(REPO_ROOT)]
+    assert [tuple(section) for section in SECTIONS] == spec
+    assert IMPLEMENTED_SECTIONS <= {section.id for section in SECTIONS}
