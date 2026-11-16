@@ -131,6 +131,23 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
 
 
+OPT_IN_MARKERS = ("gpu", "ep_pack", "pyinstaller")
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    """Deselect each test with an opt-in marker, unless the `-m` expression names that marker.
+
+    These tests need an NVIDIA GPU with the EP packs, the network or a long build. `-m "not video"`
+    does not select them.
+    """
+    expression = config.getoption("-m", default="") or ""
+    removed = [item for item in items
+               if any(item.get_closest_marker(name) and name not in expression for name in OPT_IN_MARKERS)]
+    if removed:
+        items[:] = [item for item in items if item not in removed]
+        config.hook.pytest_deselected(items=removed)
+
+
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(
     item: pytest.Item, call: pytest.CallInfo

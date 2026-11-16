@@ -1,0 +1,40 @@
+name: EP pack tests
+
+# The ep_pack job of the hardware and EP API. It runs no real model.
+# Windows and Linux: `selftest` installs the OpenVINO test pack from a local index, with one
+# dropped connection and a resume, and checks that the pack registers and lists a device.
+# macOS: trial sessions on the CoreML EP and the CPU EP, and the macOS host readers.
+
+on:
+  push:
+  pull_request:
+    branches: [main, development]
+  workflow_dispatch:
+
+jobs:
+  ep-pack:
+    name: EP pack (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    env:
+      SKELLYTRACKER_EP_STORE: ${{ runner.temp }}/eps
+      SKELLYTRACKER_EP_WHEEL_CACHE: ${{ runner.temp }}/ep-wheels
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v10.0.0
+        with:
+          python-version: "3.13.18"
+          enable-cache: true
+      - run: uv sync --all-extras
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libgl1 libegl1 libgles2
+      - uses: actions/cache@v6.1.0
+        with:
+          path: ${{ runner.temp }}/ep-wheels
+          key: ep-wheels-${{ runner.os }}-${{ hashFiles('skellytracker/core/eps/ep_lock.yaml') }}
+      - run: uv run pytest -m ep_pack skellytracker/tests/test_eps_selftest.py -o faulthandler_timeout=300
+      - if: runner.os != 'Linux'
+        run: uv run pytest skellytracker/tests/test_system_host.py skellytracker/tests/test_system_runtime.py skellytracker/tests/test_metrics_live.py skellytracker/tests/test_eps_session.py skellytracker/tests/test_eps_store.py skellytracker/tests/test_eps_cli.py
