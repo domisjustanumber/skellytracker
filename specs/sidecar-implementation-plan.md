@@ -281,8 +281,13 @@ The release workflow runs the check `tools/check_dist_onnx.py` after `flit build
 are done (2026-11-16). The gate is open:
 
 - The default suite passes locally on Windows. The `ep_pack` test and the frozen smoke test pass
-  locally on Windows. No CI run of the two jobs is read yet (`.github/workflows/ep-pack.yml`, and the
-  job `pyinstaller` of `tests-full.yml`).
+  locally on Windows.
+- The job `pyinstaller` of `tests-full.yml` passed in run 43912761747. This gate part is met.
+- The `ep-pack` job (`.github/workflows/ep-pack.yml`) is open. In run 43910358178 the Windows job
+  and the Linux job failed on runners with an AMD CPU: the OpenVINO test pack registers and lists no
+  device. [ADR-FQ9A](../decisions/entries/FQ9A-selftest-test-pack-on-a-host-with-no-intel-device.md)
+  gives the rule for such a host. No run with that rule is read yet. The macOS job passed in run
+  43908364709 (CoreML and CPU trial sessions), and it got no runner in run 43910358178.
 - The local GPU gate ran on an RTX 3070 ([ADR-73Q4](../decisions/entries/73Q4-local-gpu-gate-of-the-ep-api.md)).
   Each part passes, with one exception: with `cuda`, 5 opset 11 files
   `rtmw-wholebody133-<size>_b4_fp16.onnx` of the local export folder have 3 `Clip` nodes on the CPU
@@ -296,8 +301,8 @@ Not done in this stage:
 - `install(plan, from_dir=...)` from an unpacked pack folder. It installs from the wheels of the
   lock only.
 - `InstallResult.needs_worker_restart` is always false: no code tracks the packs of other processes.
-- A run of the Linux and macOS readers, of the Linux pack preloads and of the `coreml` EP. Only the
-  CI jobs run them.
+- A local run of the Linux and macOS readers, of the Linux pack preloads and of the `coreml` EP.
+  Only the CI jobs run them.
 
 Names: `run_devices()` and `RunDevice` keep their proposed names. The modules of `core/eps/` are
 `recommendation.py`, `installer.py`, `registration.py`, `verification.py`, `self_test.py`, `state.py`
@@ -384,8 +389,11 @@ Items ([ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-h
 - **CLI `skellytracker-eps`** (and the poe task `setup-eps`): `status`, `recommend`, `install`, `verify`, `remove`, `gc`, `download`, `selftest` and `doctor`.
   `status` imports no `onnxruntime` and uses no network; `--json` has the schema
   `skellytracker.eps.status/1`, and `--format ini` is UTF-16LE with a BOM. `install` takes
-  `--progress jsonl` and `--cancel-file` for the freemocap installer page. No environment variable
-  picks the EP or the device. Both CLIs use one exit-code table
+  `--progress jsonl` and `--cancel-file` for the freemocap installer page. The test pack step of
+  `selftest` passes on a host with no Intel device when the pack registers, and its detail says that
+  the device list is not checked
+  ([ADR-FQ9A](../decisions/entries/FQ9A-selftest-test-pack-on-a-host-with-no-intel-device.md)).
+  No environment variable picks the EP or the device. Both CLIs use one exit-code table
   ([ADR-D8DH](../decisions/entries/D8DH-sessions-errors-and-the-ready-rule.md)):
 
   | Code | 0 | 1 | 2 | 3 | 4 | 5 | 6 |
