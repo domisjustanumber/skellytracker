@@ -1,5 +1,9 @@
 """`build_session()`: build one ONNX Runtime session on the requested EP, with its `SessionReport`.
 
+`run_session()` runs one call of a session. An out-of-memory error of ONNX Runtime at the build, at
+the warm-up run or during a call is a `VRAMExhaustionError`. No code retries the call or changes the
+batch.
+
 skellytracker never runs a session on an other EP than the requested EP. A node of the model can
 run on the CPU EP: `SessionReport.cpu_nodes` and `cpu_op_types` report it. `build_session()` serves
 the new code only. The caller fills `ModelRef` from the sidecar: this module reads no sidecar.
@@ -77,9 +81,28 @@ def open_session(model, catalog: EpCatalog, key: str, options: Mapping[str, str]
     return onnxruntime.InferenceSession(model, sess_options=session_options, providers=providers, enable_fallback=0), ep_name, ep_device_id
 
 
+def _is_out_of_memory(text: str) -> bool:
+    return any(mark in text.lower() for mark in OOM_MARKS)
+
+
+def run_session(session, output_names, inputs: Mapping) -> list:
+    """Run one call of a session. Each call of the generic detectors and of a pipeline run uses this function.
+
+    An error of ONNX Runtime with an out-of-memory text raises `VRAMExhaustionError`, with no
+    retry. Each other error passes through with no change.
+    """
+    try:
+        return session.run(output_names, inputs)
+    except Exception as error:  # noqa: BLE001 - ONNX Runtime raises its own error types
+        text = sanitize_text(str(error))[:2000]
+        if _is_out_of_memory(text):
+            raise VRAMExhaustionError(f"The GPU memory is exhausted during a call of the session: {text}") from error
+        raise
+
+
 def _failure(error: Exception, report: SessionReport, what: str) -> Exception:
     text = sanitize_text(str(error))[:2000]
-    if any(mark in text.lower() for mark in OOM_MARKS):
+    if _is_out_of_memory(text):
         return VRAMExhaustionError(f"The GPU memory is exhausted at the {what} of the session on '{report.requested_ep}': {text}", report)
     return SessionCreationError(f"The session on the EP '{report.requested_ep}' failed at its {what}: {text}", report)
 

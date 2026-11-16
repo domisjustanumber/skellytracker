@@ -24,6 +24,7 @@ from skellytracker.core.detectors.generic import (  # noqa: E402
     overlay_groups,
 )
 from skellytracker.core.detectors.generic.inference import session_batch  # noqa: E402
+from skellytracker.core.errors import VRAMExhaustionError  # noqa: E402
 from skellytracker.core.model_spec import artifacts  # noqa: E402
 from skellytracker.core.model_spec.model import BatchingSpec, ResizeSpec  # noqa: E402
 from skellytracker.tests.detectors.onnx_models import keypoint_model, object_model  # noqa: E402
@@ -272,6 +273,33 @@ def test_a_detector_made_on_one_thread_runs_on_other_threads_and_closes_from_an_
             np.testing.assert_allclose([item.scores[0] for item in found], [0.9 * value] * 4, rtol=1e-6)
         pool.submit(detector.close).result()  # after each run ended
     assert detector.session is None
+
+
+class FailingSession:
+    """A session whose `run` raises `error`. Each other attribute is the attribute of `session`."""
+
+    def __init__(self, session: Any, error: Exception) -> None:
+        self.session, self.error = session, error
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.session, name)
+
+    def run(self, *args: Any, **kwargs: Any) -> Any:
+        raise self.error
+
+
+def test_a_detect_call_raises_vram_exhaustion_error_for_an_out_of_memory_error_and_passes_each_other_error_through(root: Path) -> None:
+    put(root, object_sidecar(), object_model())
+    detector = create_detector(OBJECT_KEY, execution_provider="cpu", user_root=root)
+    real = detector.session
+    detector.session = FailingSession(real, RuntimeError("Failed to allocate memory for requested buffer of size 1073741824"))
+    with pytest.raises(VRAMExhaustionError, match="during a call"):
+        detector.detect([frame(1)])
+    other = RuntimeError("Invalid rank for input: images")
+    detector.session = FailingSession(real, other)
+    with pytest.raises(RuntimeError) as raised:
+        detector.detect([frame(1)])
+    assert raised.value is other
 
 
 def test_a_close_during_a_detect_call_lets_the_call_end_and_a_later_call_raises_one_clear_error(root: Path) -> None:

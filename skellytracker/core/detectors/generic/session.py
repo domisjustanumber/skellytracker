@@ -102,7 +102,8 @@ def create_detector(
     sidecar that uses a spec section that the package does not run: `DetectorUnavailableError`
     names the sections. With no `size`, the size is the first size of the sidecar. `batch`,
     `ep_options` and `device_key` are the arguments of `open_session`. `object_decode` replaces
-    `object.decode` of an object detector.
+    `object.decode` of an object detector. A `detect` call raises `VRAMExhaustionError` when the
+    session runs out of memory. The detector does not retry the call.
     """
     sidecar = load_detector_sidecar(key, user_root)
     entry = get_detector(key, user_root)

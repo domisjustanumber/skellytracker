@@ -252,6 +252,23 @@ def test_exhausted_gpu_memory_raises_a_memory_error_and_no_other_ep_is_tried(gpu
     assert len(FakeSession.created) == 1
 
 
+def test_run_session_maps_an_out_of_memory_error_and_passes_each_other_error_through():
+    class Failing:
+        def __init__(self, error):
+            self.error = error
+
+        def run(self, output_names, inputs):
+            raise self.error
+
+    with pytest.raises(VRAMExhaustionError, match="during a call") as raised:
+        session.run_session(Failing(RuntimeError("CUDA failure 2: out of memory ; BFCArena::AllocateRawInternal")), None, {})
+    assert isinstance(raised.value, MemoryError) and raised.value.report is None and raised.value.exit_code == 5
+    other = RuntimeError("Invalid rank for input: images")
+    with pytest.raises(RuntimeError) as raised:
+        session.run_session(Failing(other), None, {})
+    assert raised.value is other
+
+
 def test_judge_of_the_trial_session():
     assert _verify_child.judge({CUDA: {"Conv", "Relu"}}, CUDA, 1e-6, 1e-3) is None
     assert _verify_child.judge({CUDA: {"FusedConv"}}, CUDA, 1e-6, 1e-3) is None

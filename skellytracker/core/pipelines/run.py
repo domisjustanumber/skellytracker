@@ -29,7 +29,7 @@ from typing import Any
 
 import numpy as np
 
-from skellytracker.core.errors import RunClosedError
+from skellytracker.core.errors import RunClosedError, VRAMExhaustionError
 from skellytracker.core.pipelines._runtime.executor import Executor
 from skellytracker.core.pipelines._runtime.resolve import ResolvedPipeline, resolve
 from skellytracker.core.pipelines.config import PipelineConfig
@@ -128,11 +128,13 @@ class PipelineRun:
         `live`, it holds a frame for one or more camera ids. The result of a camera holds one value
         for each output name, and `frame_index`, `image_width` and `image_height` (ints, in pixels), `timestamp_ms` and
         `node_ran`. A call that breaks a rule of the call raises `CallRefused`: it changes no
-        state, and the run accepts the next call.
+        state, and the run accepts the next call. A session that runs out of memory raises
+        `VRAMExhaustionError`: the run does not retry the call and does not change the batch. It
+        closes the run, so each later call raises `RunClosedError`.
         """
         with self._lock:
             self._check_open()
-            return self._executor.process(frames)
+            return self._process(frames)
 
     def process(self, frame: Frame) -> dict[str, Any]:
         """Run one call of a run with one camera. Return the result of that camera."""
@@ -141,7 +143,7 @@ class PipelineRun:
             if len(self._executor.camera_ids) != 1:
                 raise ValueError(f"process() is for a run with one camera; this run has {len(self._executor.camera_ids)}. Use process_batch().")
             camera_id = self._executor.camera_ids[0]
-            return self._executor.process({camera_id: frame})[camera_id]
+            return self._process({camera_id: frame})[camera_id]
 
     def set_params(self, node_id: str, params: Mapping[str, Any]) -> None:
         """Set params of one node. Only a param with the mark `set_during_run` can change.
@@ -159,6 +161,13 @@ class PipelineRun:
         """Wait for the call that runs, then free the sessions and the MediaPipe runners. A second call does nothing."""
         with self._lock:
             self._executor.close()
+
+    def _process(self, frames: Mapping[CameraId, Frame]) -> dict[CameraId, dict[str, Any]]:
+        try:
+            return self._executor.process(frames)
+        except VRAMExhaustionError:
+            self._executor.close()  # no retry and no smaller batch: the run is closed
+            raise
 
     def _check_open(self) -> None:
         if self._executor.closed:
@@ -212,7 +221,8 @@ def start_pipeline(
     Raise `ValueError` for a config or a parameter that fails a rule, with the rule ID in the
     message. Raise `MissingDependencyError` for an extra or an ONNX file that is absent. The errors
     of `eps` pass through: `EpRequestError`, `EpUnavailableError`, `SessionCreationError` and
-    `VRAMExhaustionError`.
+    `VRAMExhaustionError`. A call of the run can also raise `VRAMExhaustionError`: the run is then
+    closed.
     """
     return _start(
         config, user_root=user_root, camera_ids=camera_ids, running_mode=running_mode, execution_provider=execution_provider,

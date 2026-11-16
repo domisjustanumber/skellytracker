@@ -11,7 +11,7 @@ import pytest
 pytest.importorskip("onnx", reason="onnx not installed")
 
 import skellytracker.core.pipelines as pipelines  # noqa: E402
-from skellytracker.core.errors import CallRefused, RunClosedError, SetParamsRefused  # noqa: E402
+from skellytracker.core.errors import CallRefused, RunClosedError, SetParamsRefused, VRAMExhaustionError  # noqa: E402
 from skellytracker.core.pipelines import Frame, PipelineRun, load_pipeline, start_pipeline  # noqa: E402
 from skellytracker.tests.pipelines.pipeline_models import KEYPOINT_KEY, OBJECT_KEY, detector_pipeline, image, isolate, write_models  # noqa: E402
 
@@ -124,6 +124,44 @@ def test_a_run_is_a_context_manager_a_second_close_does_nothing_and_a_later_call
         with pytest.raises(RunClosedError):
             call()
     assert run._executor.sessions.opened == {} and run._executor.models == {}
+
+
+def fail_session(run: PipelineRun, error: Exception) -> None:
+    """Make the session of the node `person` raise `error` on its next run."""
+    detector = run._executor.models["person"].detectors[0]
+    real = detector.session
+
+    class Failing:
+        def __getattr__(self, name: str) -> Any:
+            return getattr(real, name)
+
+        def run(self, *args: Any, **kwargs: Any) -> Any:
+            raise error
+
+    detector.session = Failing()
+
+
+def test_an_out_of_memory_error_during_a_call_raises_vram_exhaustion_error_and_closes_the_run(root: Path) -> None:
+    run = start(root)
+    run.process(Frame(image(1), 0))
+    fail_session(run, RuntimeError("CUDA failure 2: out of memory ; BFCArena::AllocateRawInternal"))
+    with pytest.raises(VRAMExhaustionError, match="during a call") as raised:
+        run.process(Frame(image(1), 1))
+    assert isinstance(raised.value, MemoryError)
+    assert run._executor.closed and run._executor.sessions.opened == {}  # no retry: the run is closed and its sessions are free
+    for call in (lambda: run.process(Frame(image(1), 2)), lambda: run.process_batch({0: Frame(image(1), 2)}), lambda: run.set_params("person", {})):
+        with pytest.raises(RunClosedError):
+            call()
+    run.close()  # a `close()` after the error does nothing
+
+
+def test_an_other_session_error_during_a_call_passes_through_and_the_run_stays_open(root: Path) -> None:
+    other = RuntimeError("Invalid rank for input: images")
+    with start(root) as run:
+        fail_session(run, other)
+        with pytest.raises(RuntimeError) as raised:
+            run.process(Frame(image(1), 0))
+        assert raised.value is other and not run._executor.closed
 
 
 # ---------------------------------------------------------------------------------------------

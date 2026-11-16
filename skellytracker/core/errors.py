@@ -47,7 +47,11 @@ class SessionCreationError(RuntimeError):
 
 
 class VRAMExhaustionError(RuntimeError, MemoryError):
-    """The GPU memory is exhausted at the build or the warm-up of a session. It is also a `MemoryError`."""
+    """The GPU memory is exhausted at the build or the warm-up of a session, or during a call. It is also a `MemoryError`.
+
+    `report` is the `SessionReport` of a build, or None for a call. A pipeline run that raises it
+    during a call is closed: each later call raises `RunClosedError`.
+    """
 
     exit_code = EXIT_VRAM_EXHAUSTED
 

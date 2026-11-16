@@ -6,6 +6,7 @@ from typing import Any
 
 import numpy as np
 
+from skellytracker.core.eps.session import run_session
 from skellytracker.core.model_spec.model import SidecarModel
 
 
@@ -24,7 +25,8 @@ def run_batches(session: Any, sidecar: SidecarModel, tensors: Sequence[np.ndarra
     gives the `input.dtype` of the precision. It reads each output by its `outputs[].name`. A
     session with a fixed batch runs groups of that batch. Zero tensors fill the last group, and
     their output rows go. A session with a dynamic batch runs the N tensors in one call. A float16
-    output becomes float32, which changes no value. `tensors` must hold one tensor or more.
+    output becomes float32, which changes no value. `tensors` must hold one tensor or more. An
+    out-of-memory error of the session raises `VRAMExhaustionError`, with no retry.
     """
     names = [output.name for output in sidecar.outputs]
     stacked = np.stack(tensors)
@@ -35,7 +37,7 @@ def run_batches(session: Any, sidecar: SidecarModel, tensors: Sequence[np.ndarra
         count = len(group)
         if count < batch:
             group = np.concatenate([group, np.zeros((batch - count, *group.shape[1:]), dtype=group.dtype)])
-        parts.append([output[:count] for output in session.run(names, {sidecar.input.name: group})])
+        parts.append([output[:count] for output in run_session(session, names, {sidecar.input.name: group})])
     # shortcut: the groups of one output must have one shape after dim 0, which each implemented
     # decode gives; a decode with a row count for each image must return the groups apart.
     joined = [np.concatenate(group_outputs) for group_outputs in zip(*parts, strict=True)]
