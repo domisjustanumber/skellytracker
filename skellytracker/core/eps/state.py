@@ -48,13 +48,16 @@ def check_start(execution_provider: str, ep_options: Mapping[str, str] | None = 
     return devices
 
 
+REPAIRABLE_STATES = ("not_installed", "stale", "not_ready")  # the states that `skellytracker-eps install` repairs
+
+
 def _pack_status(catalog, key: str, host) -> PackStatus | None:
     row, pack = catalog.ep(key), catalog.pack(key)
     tag = catalog_module.platform_tag()
     if pack is None:
         if "platforms" in row and tag not in row["platforms"]:
             return None  # for example `coreml` off macOS
-        return PackStatus(key, row["display_name"], "builtin")
+        return PackStatus(key, row["display_name"], "builtin", usable=True, uses_gpu=row["gpu"], description=row["description"])
     lock = catalog.pack_lock(pack["id"])
     if lock is None:
         return None  # a platform with no pack, for example macOS
@@ -63,14 +66,21 @@ def _pack_status(catalog, key: str, host) -> PackStatus | None:
     if gpu is None and host.gpus:  # give the floor that the best GPU of the vendor does not pass
         floors = [catalog.floors_reason(pack, g) for g in host.gpus]
         code, reason = min(floors, key=lambda floor: floor[0] == "no-device")
+    usable = state in USABLE_STATES
     return PackStatus(
         key, row["display_name"], state, "azure" if pack["index"] != "pypi" else "pypi", pack.get("status", "ready"), code, reason,
         lock["download_bytes"], lock["unpacked_bytes"], pack["id"], pack["version"], pack["exclusive_group"],
-        tuple((licence["name"], licence["url"]) for licence in pack.get("licences", ())))
+        tuple((licence["name"], licence["url"]) for licence in pack.get("licences", ())),
+        usable=usable, install_hint=install_hint(key) if state in REPAIRABLE_STATES else None, uses_gpu=row["gpu"],
+        description=row["description"], devices=run_devices(key) if usable else ())  # `run_devices` reads only the cached host probe
 
 
 def status() -> EpStatus:
-    """The state of each EP key of this platform, the recommendations and the store. It loads no library."""
+    """The state of each EP key of this platform, the recommendations and the store. It loads no library.
+
+    `eps` of the result is in the order of the EP catalog: `trt-rtx`, `cuda`, `coreml`, `cpu`
+    (`EpStatus`). An application shows the EPs from this result and holds no EP fact of its own.
+    """
     catalog, host = load_catalog(), probe_host()
     try:
         ort_version = importlib.metadata.version("onnxruntime")

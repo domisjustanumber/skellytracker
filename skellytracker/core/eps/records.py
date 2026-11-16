@@ -195,7 +195,16 @@ class SessionReport:
 
 @dataclass(frozen=True)
 class PackStatus:
-    """The state of one EP key on this host, for `status()`."""
+    """The state of one EP key on this host, for `status()`. An application shows an EP from these fields only.
+
+    - `usable`: true when a run can use the EP now. An application does not compare `state`.
+    - `install_hint`: the text with the command that installs or repairs the pack. It is None when
+      the EP is usable, and when an install does not help: `reason` then gives the cause.
+    - `uses_gpu`: true when the EP runs a model on a GPU.
+    - `description`: one sentence for a user: what the EP runs on and what it needs.
+    - `devices`: the GPUs of this host that the EP can use, in the order of `run_devices(key)`: the
+      most VRAM first. It is empty for a built-in EP and for an EP that is not usable.
+    """
 
     key: str
     label: str
@@ -210,11 +219,22 @@ class PackStatus:
     pack_version: str | None = None
     exclusive_group: str | None = None
     licences: tuple[tuple[str, str], ...] = ()
+    usable: bool = False
+    install_hint: str | None = None
+    uses_gpu: bool = False
+    description: str = ""
+    devices: tuple[RunDevice, ...] = ()
 
 
 @dataclass(frozen=True)
 class EpStatus:
-    """The result of `status()`. It needs no `onnxruntime` import and no network."""
+    """The result of `status()`. It needs no `onnxruntime` import and no network.
+
+    `eps` has one row for each EP key of this platform, in the order of the EP catalog: `trt-rtx`,
+    `cuda`, `coreml`, `cpu`. This order is a contract. It is the order of preference: each hardware
+    class of the catalog lists its candidates in this order. It is not the recommendation:
+    `performance.chosen` and `accuracy.chosen` give the recommended EP of this host.
+    """
 
     ort_version: str | None
     catalog_revision: str

@@ -8,6 +8,14 @@ Implements: pipeline.running
         result = run.process(Frame(image, frame_index=0))
         result["wholebody"]                         # an `InstanceKeypoints` value
         result["node_ran"]                          # node id -> bool, for each inference node
+        run.models                                  # node id -> the model and what it runs on
+
+`run.models` has one item for each `onnx_model` node, with `key`, `version`, `sidecar_sha256`,
+`size`, `precision`, `execution_provider` and `device`. `execution_provider` is the EP key that the
+session uses. `device` is the device key of its GPU, or None. For a node with a session on each of
+two or more GPUs, `device` is the list of the device keys in the order of the GPUs of the run. A
+node that does not run has `execution_provider` None and `device` None. An application reads what
+a model runs on from these items.
 
 A plain import of this module loads no `onnxruntime` and no `mediapipe`.
 """
@@ -86,12 +94,32 @@ class PipelineRun:
 
     # choice: the name is not fixed by a text
     @property
-    def models(self) -> dict[str, dict[str, str | None]]:
-        """The run metadata of each `onnx_model` node: node id -> `key`, `version` and `sidecar_sha256` of its catalog entry."""
-        return {
-            node.id: {"key": node.model.key, "version": node.model.version, "sidecar_sha256": node.model.sidecar_sha256}
-            for node in self._executor.resolved.nodes.values() if node.model is not None
-        }
+    def models(self) -> dict[str, dict[str, Any]]:
+        """The run metadata of each `onnx_model` node: node id -> what the node runs, and what it runs on.
+
+        - `key`, `version`, `sidecar_sha256`: the catalog entry of the model.
+        - `size`, `precision`: the size and the precision of the artifact that runs.
+        - `execution_provider`: the EP key that the session of the node uses.
+        - `device`: the device key of the GPU of the session, or None for an EP with no device key.
+          For a node with a session on each of two or more GPUs, it is the list of the device keys,
+          in the order of the GPUs of the run.
+
+        A node that does not run, because a `replay` tap gives its ports, has no session: its
+        `execution_provider` and its `device` are None. The values do not change during the run.
+        """
+        executor, found = self._executor, {}
+        for node in executor.resolved.nodes.values():
+            if node.model is None:
+                continue
+            reports = executor.reports.get(node.id, [])
+            devices = [report.device_key for report in reports]
+            found[node.id] = {
+                "key": node.model.key, "version": node.model.version, "sidecar_sha256": node.model.sidecar_sha256,
+                "size": node.model.size, "precision": executor.plans[node.id].precision,
+                "execution_provider": reports[0].used_ep if reports else None,
+                "device": devices if len(devices) > 1 else next(iter(devices), None),
+            }
+        return found
 
     def process_batch(self, frames: Mapping[CameraId, Frame]) -> dict[CameraId, dict[str, Any]]:
         """Run one call. Return the result of each camera of the call.

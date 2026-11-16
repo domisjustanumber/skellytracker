@@ -57,7 +57,12 @@ def test_a_run_gives_the_output_schema_before_frame_0_the_run_metadata_and_the_r
         assert run.output_schema["body"]["point_names"] == ["body/a", "body/b", "body/c"] and run.output_schema["person_box"]["class_names"] == ["person"]
         assert (run.camera_ids, run.running_mode, run.warnings) == (("cam",), "video", ())
         models = run.models
-        assert set(models) == {"person", "body"} and set(models["person"]) == {"key", "version", "sidecar_sha256"}
+        assert set(models) == {"person", "body"} and set(models["person"]) == {
+            "key", "version", "sidecar_sha256", "size", "precision", "execution_provider", "device",
+        }
+        assert [(item["size"], item["precision"], item["execution_provider"], item["device"]) for item in models.values()] == [
+            ("n", "fp32", "cpu", None), ("m", "fp32", "cpu", None),
+        ]
         assert (models["person"]["key"], models["body"]["key"], models["person"]["version"]) == (OBJECT_KEY, KEYPOINT_KEY, "0.1.0")
         assert len(models["person"]["sidecar_sha256"]) == 64
         result = run.process(Frame(image(1, 24, 40), 4))

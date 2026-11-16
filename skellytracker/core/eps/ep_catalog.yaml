@@ -16,11 +16,13 @@ platforms: [win_amd64, manylinux_x86_64]
 
 # An option value is a list of the allowed strings, or `positive-int`.
 # Each other option name is refused, also `device_id`: the device comes from the device map.
+# `description` is one sentence for a user, at most 120 characters: what the EP runs on and what it needs.
 eps:
   trt-rtx:
     kind: plugin
     gpu: true
     display_name: NVIDIA TensorRT for RTX
+    description: "Runs on NVIDIA RTX GPUs from the RTX 30 series, and needs a pack download and an NVIDIA driver of R580 or later."
     precision_order: [fp16, fp32]
     l3_atol: 1.5e-2
     options:
@@ -47,6 +49,7 @@ eps:
     kind: plugin
     gpu: true
     display_name: NVIDIA CUDA
+    description: "Runs on NVIDIA GPUs from the GTX 16 and RTX 20 series, and needs a pack download and an NVIDIA driver of R580 or later."
     precision_order: [fp16, fp32]
     l3_atol: 1.5e-2
     options:
@@ -75,6 +78,7 @@ eps:
     kind: builtin
     gpu: true
     display_name: Apple Core ML
+    description: "Runs on Apple silicon with Core ML, is a part of skellytracker on macOS and needs no download."
     ep_name: CoreMLExecutionProvider
     platforms: [macosx_arm64]
     precision_order: [fp16, fp32]
@@ -86,6 +90,7 @@ eps:
     kind: builtin
     gpu: false
     display_name: CPU
+    description: "Runs on the processor of each computer, is a part of skellytracker and needs no download."
     ep_name: CPUExecutionProvider
     precision_order: [fp32]
     options: {allowed: {}, defaults: {}}

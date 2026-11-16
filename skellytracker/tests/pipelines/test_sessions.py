@@ -286,7 +286,8 @@ def test_the_cameras_split_across_two_gpus_and_each_gpu_has_its_own_sessions_at_
     asked = []
     monkeypatch.setattr(sessions, "check_start", lambda ep, options, device: (asked.append((ep, device)), gpus)[1])
     monkeypatch.setattr(sessions, "free_vram", lambda key: None)
-    calls = spy_open_session(monkeypatch)
+    # The spy builds each session on the CPU EP. The report gets the device key of the call, as on a GPU EP.
+    calls = spy_open_session(monkeypatch, lambda call, session, report: (session, dataclasses.replace(report, device_key=calls[call - 1]["device_key"])))
     cameras = ["a", "b", "c"]
     with start(root, pipeline(max_instances=2), execution_provider="cuda", camera_ids=cameras) as run:
         assert asked == [("cuda", None)]
@@ -296,6 +297,7 @@ def test_the_cameras_split_across_two_gpus_and_each_gpu_has_its_own_sessions_at_
             ("demo", "gpu:0", 2, "cuda"), ("demo", "gpu:1", 1, "cuda"), ("demo-body", "gpu:0", 4, "cuda"), ("demo-body", "gpu:1", 2, "cuda"),
         ]
         assert len(run._executor.sessions.opened) == 4  # the sharing key holds the device
+        assert run.models["person"]["device"] == ["gpu:0", "gpu:1"]  # a node with a session on each GPU: the device keys in GPU order
         results = run.process_batch({camera: Frame(image(1 + index), 0) for index, camera in enumerate(cameras)})
         assert list(results) == cameras
         for index, camera in enumerate(cameras):  # the scores of the test model follow the image of the camera

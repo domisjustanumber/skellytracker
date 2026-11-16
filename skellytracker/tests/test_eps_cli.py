@@ -54,6 +54,12 @@ def test_status_json(rtx_host, capsys):
     assert data["core"]["ort_version"] == importlib.metadata.version("onnxruntime") and data["core"]["core_matches_pin"] is True
     assert [row["key"] for row in data["eps"]] == ["trt-rtx", "cuda", "cpu"]
     assert [(row["state"], row["reason_code"]) for row in data["eps"]] == [("not_installed", None), ("installed_unverified", None), ("builtin", None)]
+    assert [(row["usable"], row["install_hint"], row["uses_gpu"]) for row in data["eps"]] == [
+        (False, "Run `skellytracker-eps install trt-rtx`.", True), (True, None, True), (True, None, False)]
+    assert [[device["device_key"] for device in row["devices"]] for row in data["eps"]] == [[], ["gpu:10de:2484:0"], []]
+    assert data["eps"][1]["devices"][0] == {"device_key": "gpu:10de:2484:0", "gpu_key": "0000:01:00.0", "name": "NVIDIA GeForce RTX 3070",
+                                            "pci_bus_id": "0000:01:00.0", "vram_total_bytes": 8 * GIB}
+    assert all(row["description"].startswith("Runs on ") and len(row["description"]) <= 120 for row in data["eps"])
     assert data["eps"][0]["download_bytes"] > 100_000_000 and data["eps"][1]["source"] == "azure" and data["eps"][0]["licences"][0]["url"]
     performance = data["recommended"]["performance"]
     assert (performance["key"], performance["device_key"], performance["skipped"][0]["key"]) == ("cuda", "gpu:10de:2484:0", "trt-rtx")
@@ -63,10 +69,24 @@ def test_status_json(rtx_host, capsys):
     assert "decision" not in json.dumps(data) and "accept" not in json.dumps(data)
 
 
+def test_the_order_of_status_eps_is_the_catalog_order_and_each_hardware_class_keeps_it(rtx_host, monkeypatch):
+    catalog = catalog_module.load_catalog()
+    assert catalog.keys() == ("trt-rtx", "cuda", "coreml", "cpu")
+    assert [row.key for row in eps.status().eps] == ["trt-rtx", "cuda", "cpu"]  # this platform has no `coreml`
+    for row in catalog.data["hardware_classes"]:
+        assert row["candidates"] == sorted(row["candidates"], key=catalog.keys().index), row["id"]
+    large = gpu(vram=24 * GIB, bus="0000:02:00.0", device_id=0x2684, name="RTX 4090")
+    set_host(monkeypatch, host(RTX, large, OLD))
+    hw_fakes.fake_pack("cuda")
+    cuda = eps.status().eps[1]
+    assert cuda.devices == eps.run_devices("cuda") and [d.device_key for d in cuda.devices] == ["gpu:10de:2684:0", "gpu:10de:2484:0"]
+
+
 def test_status_reasons_and_no_gpu(monkeypatch, ep_store, capsys):  # noqa: F811
     set_host(monkeypatch, host(OLD))
     rows = {row.key: row for row in eps.status().eps}
     assert (rows["cuda"].state, rows["cuda"].reason_code) == ("unsupported", "cc-too-low")
+    assert (rows["cuda"].usable, rows["cuda"].install_hint, rows["cuda"].devices) == (False, None, ())  # an install does not help
     set_host(monkeypatch, host(gpu(driver="576.88")))
     assert eps.status().eps[0].reason_code == "driver-too-old"
     set_host(monkeypatch, host())

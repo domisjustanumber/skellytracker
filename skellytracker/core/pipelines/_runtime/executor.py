@@ -148,6 +148,7 @@ class Executor:
 
         image_list = None if self.image_ids is None else timing_module.image_list_sha256(self.image_ids)
         self.sessions = sessions.RunSessions()
+        self.reports: dict[str, list[Any]] = {}  # node id -> the `SessionReport` of its session on each device
         self.models: dict[str, onnx_model.OnnxModelRunner] = {}
         self.states: dict[tuple[Any, str], Any] = {}
         self.prev: dict[Any, dict[Port, Any]] = {camera_id: {} for camera_id in self.camera_ids}
@@ -159,6 +160,7 @@ class Executor:
         self.spans_on: frozenset[str] = frozenset()
         try:
             opened = self._open_sessions()
+            self.reports = {node_id: [item.report for item in items] for node_id, items in opened.items()}
             for node_id in self.order:
                 if resolved.nodes[node_id].type == "mediapipe_tasks":
                     for camera_id in self.camera_ids:
