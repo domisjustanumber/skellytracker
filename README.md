@@ -120,6 +120,26 @@ uv run skellytracker --list
 
 `--tracker` chooses among `mediapipe`, `rtmpose`, `aruco`, and `charuco`. Each demo opens a live OpenCV window; press `q` (or close the window) to quit.
 
+The option `--pipeline` runs a pipeline of the pipeline API on the camera, in place of `--tracker`. Its value is a key of the pipeline catalog or a pipeline file. Press `q` or `Esc` to stop. The options `--ep <key>`, `--ep-option <name>=<value>` and `--device <key>` select the execution provider. With no `--ep`, the demo uses the recommended execution provider and prints it.
+
+```bash
+# Run a built-in pipeline on the camera
+uv run skellytracker --pipeline mediapipe-holistic-tasks@skellytracker
+uv run skellytracker --pipeline yolox-rtmw-wholebody@skellytracker --ep cpu
+
+# List the node types of a pipeline file
+uv run skellytracker nodes
+uv run skellytracker nodes --json
+
+# Run the load checks of a pipeline file or a pipeline key, and print the warnings
+uv run skellytracker validate my.pipeline.yaml
+
+# Run a pipeline on the images of a COCO file, and write the timing file and the tap files
+uv run skellytracker run --pipeline yolox-rtmw-wholebody@skellytracker --coco annotations.json --images images/ --out out/ --ep cpu
+```
+
+`run` writes `timing.jsonl` in the `--out` folder. The option `--taps <dir>` gives the tap folder. The exit code is 0 for a good run, 2 for a usage error or a pipeline that is not valid, 3 when the execution provider is not available, 4 when a session was not created and 5 when the GPU memory is exhausted.
+
 For tracker-specific options beyond `--camera` (model choice, execution provider, which body parts to detect, board geometry, etc.), run that tracker's `run_demo` module directly with `--help`:
 
 ```bash

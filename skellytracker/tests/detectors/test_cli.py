@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -38,3 +40,19 @@ def test_describe_prints_one_entry_and_exits_with_1_for_an_unknown_key(tmp_path:
     assert description["sizes"] == {"n": ["fp32"]} and description["params"]["object_decode"]["selection"] == "nms"
     assert main(["describe", "nothing@nowhere", "--user-root", str(tmp_path / "user")]) == 1
     assert "no entry 'nothing@nowhere'" in capsys.readouterr().out
+
+
+def test_python_m_skellytracker_detectors_loads_no_onnxruntime_no_mediapipe_and_no_pipeline_module(tmp_path: Path) -> None:
+    code = (
+        "import runpy, sys\n"
+        f"sys.argv = ['skellytracker', 'detectors', '--user-root', {str(tmp_path)!r}]\n"
+        "try:\n"
+        "    runpy.run_module('skellytracker', run_name='__main__')\n"
+        "except SystemExit as stop:\n"
+        "    assert stop.code == 0, stop.code\n"
+        "loaded = [name for name in sys.modules if name in ('onnxruntime', 'mediapipe') or name.startswith('skellytracker.core.pipelines')]\n"
+        "sys.exit(1 if loaded else 0)\n"
+    )
+    result = subprocess.run([sys.executable, "-c", code], check=False, capture_output=True, text=True)  # noqa: S603
+    assert result.returncode == 0, result.stderr
+    assert "charuco@skellytracker  [calibration]  available" in result.stdout
