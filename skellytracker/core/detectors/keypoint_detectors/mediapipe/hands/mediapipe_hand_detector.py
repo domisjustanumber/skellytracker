@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
@@ -19,6 +18,10 @@ from skellytracker.core.detectors.detector_base_classes import (
 from skellytracker.core.detectors.metadata import EmptyMetadata
 from skellytracker.core.sessions.session import Session
 from skellytracker.core.detectors.keypoint_detectors._schema_loader import load_point_names
+from skellytracker.core.detectors.keypoint_detectors.mediapipe.landmarker_lifetime import (
+    close_on_collect,
+    next_timestamp_ms,
+)
 from skellytracker.core.detectors.keypoint_detectors.mediapipe.mediapipe_model_manager import get_hand_model_path
 from skellytracker.core.sessions.mediapipe_session import MediaPipeSession
 
@@ -66,6 +69,8 @@ class MediapipeHandKeypointDetector(KeypointDetector):
     config: MediapipeHandDetectorConfig
     session: MediaPipeSession
     landmarker: Any = field(repr=False)
+    _finalizer: Any = field(default=None, init=False, repr=False)
+    _last_timestamp_ms: int = field(default=-1, init=False, repr=False)
     _point_names: tuple[str, ...] = field(default_factory=lambda: _BOTH_HAND_NAMES, init=False, repr=False)
 
     def preprocess(self, image: NDArray[np.uint8]) -> tuple[NDArray[np.uint8], EmptyMetadata]:
@@ -103,9 +108,10 @@ class MediapipeHandKeypointDetector(KeypointDetector):
             ts = (
                 context.timestamp_ms
                 if (context is not None and context.timestamp_ms is not None)
-                else int(time.monotonic() * 1000)
+                else next_timestamp_ms(self._last_timestamp_ms)
             )
             result = self.landmarker.detect_for_video(mp_image, ts)
+            self._last_timestamp_ms = ts
         else:
             result = self.landmarker.detect(mp_image)
 
@@ -161,12 +167,19 @@ class MediapipeHandKeypointDetector(KeypointDetector):
         visibility = np.concatenate([right_vis, left_vis], axis=0)
         return xyz, visibility
 
+    def __post_init__(self) -> None:
+        self._finalizer = close_on_collect(self, self.landmarker)
+
     def close(self) -> None:
+        self._finalizer.detach()
         self.landmarker.close()
 
     def reset_temporal_state(self) -> None:
-        self.landmarker.close()
-        self.landmarker = type(self).create(self.config, self.session).landmarker
+        self.close()
+        fresh = type(self).create(self.config, self.session)
+        fresh._finalizer.detach()
+        self.landmarker = fresh.landmarker
+        self._finalizer = close_on_collect(self, self.landmarker)
 
     @classmethod
     def connections(cls) -> tuple[tuple[str, str], ...]:

@@ -7,8 +7,6 @@ output has one row. In ``video`` mode, one runner keeps the state of one camera.
 from __future__ import annotations
 
 import math
-import threading
-import weakref
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -21,6 +19,7 @@ from mediapipe.tasks.python.vision import HolisticLandmarker, HolisticLandmarker
 from numpy.typing import NDArray
 
 from skellytracker.core.detectors.keypoint_detectors._schema_loader import load_point_names
+from skellytracker.core.detectors.keypoint_detectors.mediapipe.landmarker_lifetime import close_on_collect
 from skellytracker.core.detectors.keypoint_detectors.mediapipe.mediapipe_model_manager import (
     get_holistic_model_path,
 )
@@ -70,14 +69,6 @@ class HolisticKeypoints:
     """``(1,)``: 1.0 for a present row, 0 for a padding row."""
 
 
-def _close_off_thread(landmarker: HolisticLandmarker) -> None:
-    # The garbage collector can run on the landmarker's own worker thread; close() waits on that thread.
-    try:
-        threading.Thread(target=landmarker.close, daemon=True).start()
-    except RuntimeError:
-        pass  # Interpreter shutdown: MediaPipe ignores its calls from then on.
-
-
 class HolisticRunner:
     """One MediaPipe ``HolisticLandmarker`` in the running mode ``image`` or ``video``.
 
@@ -103,8 +94,7 @@ class HolisticRunner:
             min_hand_landmarks_confidence=min_presence_score,
         )
         self._landmarker = HolisticLandmarker.create_from_options(options)
-        self._finalizer = weakref.finalize(self, _close_off_thread, self._landmarker)
-        self._finalizer.atexit = False
+        self._finalizer = close_on_collect(self, self._landmarker)
         self._last_timestamp_ms = -math.inf
         self._last_mediapipe_ms = -1
 
