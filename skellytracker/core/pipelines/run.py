@@ -55,7 +55,7 @@ class Frame:
 class PipelineRun:
     """One run of a pipeline. `start_pipeline` makes it. Call `close()`, or use the run in a `with` statement.
 
-    Thread rules:
+    Thread rules (pipeline.running, Behaviour item 12):
 
     - Each run has one lock. `process`, `process_batch`, `set_params` and `close` take it. The
       calls on one run are thus serial: a second call waits for the first call.
@@ -70,7 +70,6 @@ class PipelineRun:
 
     def __init__(self, executor: Executor) -> None:
         self._executor = executor
-        # choice: the thread guarantees are not fixed by a text
         self._lock = threading.RLock()
 
     @property
@@ -91,7 +90,6 @@ class PipelineRun:
     def running_mode(self) -> str:
         return self._executor.running_mode
 
-    # choice: the name is not fixed by a text
     @property
     def models(self) -> dict[str, dict[str, Any]]:
         """The run metadata of each `onnx_model` node: node id -> what the node runs, and what it runs on.

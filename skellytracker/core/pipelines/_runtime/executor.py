@@ -85,8 +85,7 @@ class Executor:
         self.camera_ids = list(camera_ids)
         self.fps = float(fps)
         self.vram_reserve_bytes = vram_reserve_bytes
-        # open: no text gives the formula of k (pipeline.running, Behaviour item 4), so k is 1 and the reserve is only in the camera split
-        self.batch_k = 1
+        self.batch_k = 1  # k is 1 on each GPU in this version (pipeline.running, Behaviour item 4)
         self.on_warning = on_warning
         self.warnings: list[PipelineWarning] = []
         self.run_id = uuid.uuid4().hex
@@ -189,7 +188,7 @@ class Executor:
                 self.spans_on = frozenset(config.instrumentation.timing_spans)
                 self.writer.write_header(timing_module.make_header(
                     config, run_id=self.run_id, running_mode=running_mode,
-                    # choice: the count is 1 when the run has an ONNX session, because `eps.build_session` does one warm-up run for each session
+                    # `eps.build_session` does one warm-up run for each session (pipeline.timing, Fields)
                     warmup_passes=1 if opened else 0,
                     camera_ids=self.camera_ids, nodes=list(items.values()), image_list_sha256=image_list,
                 ))
@@ -240,7 +239,7 @@ class Executor:
             if plan is not None:
                 facts = {"sidecar_sha256": model.sidecar_sha256, "artifact_sha256": plan.artifact_sha256, "precision": plan.precision}
             if node.id in opened:
-                # open: no text gives the item of a node with a session on each of two or more GPUs (ADR-P1F3 item 11); the item has the first
+                # the item of a node with a session on each of two or more GPUs is that of the first GPU (pipeline.timing, Fields)
                 first = opened[node.id][0]
                 report = first.report
                 facts.update(
@@ -250,7 +249,7 @@ class Executor:
                         "gpu_uuid": report.gpu_uuid, "ep_device_id": report.ep_device_id, "ep_options": dict(report.ep_options),
                         "cpu_nodes": report.cpu_nodes, "cpu_op_types": list(report.cpu_op_types),
                     },
-                    # choice: the preprocessing and the postprocessing run on the host with no EP, so their provider is null
+                    # the preprocessing and the postprocessing run on the host, so their provider is null (pipeline.timing, Fields)
                     stage_providers={"preprocess": None, "inference": report.ep_name, "postprocess": None},
                     shared_with=[other for other in first.node_ids if other != node.id],
                 )

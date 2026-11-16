@@ -1090,7 +1090,7 @@ Done:
   `set_params`, `to_canonical`, the annotator `annotate`, and the commands `run`, `validate` and
   `nodes`. The two built-ins are in `core/model_zoo/pipelines/`.
 - The gate ran on the Windows test host: `tools/run_checks.py` passes, and the video tests pass.
-  The tests of `tests/pipelines/` cover each part of the gate list, except the timing parents. The
+  The tests of `tests/pipelines/` cover each part of the gate list. The
   package glue nodes pass the glue vectors. The aggregator output passes
   `skellybench.schema.validate_timing`, in a run with skellybench installed for that run. The
   built-in `yolox-rtmw-wholebody` runs with the real models on the CPU EP, `cuda` and `trt-rtx`.
@@ -1099,30 +1099,32 @@ Done:
 - The typed error of a refused call is `CallRefusedError`. A call on a closed run raises
   `RunClosedError`. Each run has one lock: the calls on one run are serial, and `close()` waits for
   the call that runs. The user confirmed the names on 2026-11-16
-  ([ADR-0YNA](../decisions/entries/0YNA-public-names-standard-and-four-renames.md)). The user must
-  confirm the thread rules.
+  ([ADR-0YNA](../decisions/entries/0YNA-public-names-standard-and-four-renames.md)). The thread
+  rules are in [Running](pipeline/running.md#behaviour) item 12 ([ADR-75K2](../decisions/entries/75K2-unclear-places-of-the-pipeline-spec.md) item 5).
 - `check_pipeline` gives the load warnings and `needs_execution_provider`, in a `PipelineCheck`.
   `PipelineEntry` also has `needs_execution_provider`. The user confirmed these names on 2026-11-16
   ([ADR-0YNA](../decisions/entries/0YNA-public-names-standard-and-four-renames.md)).
 
 Open:
 
-- **Batch k.** k is 1 in each mode. No text gives the formula that makes k from the free VRAM. The
-  run uses `vram_reserve_bytes` only in the weights of the camera split.
+- **Batch k.** In 2.0.0, k is 1 on each GPU, and the run uses `vram_reserve_bytes` only in the
+  weights of the camera split ([Running](pipeline/running.md#behaviour) item 4; [ADR-75K2](../decisions/entries/75K2-unclear-places-of-the-pipeline-spec.md) item 1). A
+  later version lets a `video` or `image` call carry k frames for each camera (user, question K2 of
+  2026-11-16: agreed, after 2.0.0). k for each GPU then comes from
+  `k = min(k_max, floor((F − R − Q) / P))`. `F` is the free VRAM at start. `R` is the VRAM reserve.
+  `P` is the VRAM of the sessions whose batch grows with k. `Q` is the VRAM of the other sessions.
+  A build at k = 1 measures `P` and `Q`. This work first needs a VRAM measurement on `cuda` and on
+  `trt-rtx` at several batches.
 - **Cameras on two or more GPUs.** The split by VRAM of
   [ADR-AMF7](../decisions/entries/AMF7-camera-split-by-vram.md) is built and has tests on fake
-  GPUs. No run on a host with two GPUs verified it. The timing of a node with a session on each of
-  two GPUs is not defined. The timing header does not record the cameras of each GPU.
+  GPUs. No run on a host with two GPUs verified it. The timing header does not record the cameras
+  of each GPU.
 - **NMS.** The decode of stage 1.5 does NMS in NumPy. The node has no ONNX `NonMaxSuppression`
   session, so the text of the item "`onnx_model` node" and of
   [ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 7 does not describe
   the code.
-- **Timing parents.** No text defines the parents of a timing event. They are not built, and the
-  gate part has no test.
-- **Timing names.** [Timing](pipeline/timing.md#fields) does not fix these names and forms: the
-  keys `device` and `ep_options` of `execution`, the forms of `batching`, `inputs` and
-  `stage_providers`, the value of `warmup_passes`, and the rules of the aggregator for
-  `images_per_second`, for the `run` span of a `mediapipe_tasks` node and for two model nodes.
+- **Timing names.** [Timing](pipeline/timing.md#fields) does not fix the form of `batching`, and
+  the rules of the aggregator for `images_per_second` and for two model nodes.
 - **Run gate of a pipeline bundle.** `verify` runs the load checks. The run gate and its tolerance
   are not built: no text gives the files of `run/`, the comparison or the tolerance, and
   [ADR-AD33](../decisions/entries/AD33-bundles-are-untrusted-input.md) item 4 lets the session run
@@ -1347,7 +1349,7 @@ This stage implements the node types of the pipeline spec. Use the skill
 - Gate: tests on generated ONNX models for each node type, the load checks, the empty-input rule,
   the `concat` empty-input fill, the instance rows with `class_index` and `instance_score`, `@prev`,
   the stateful batch rule and its warning, `ep_partial_placement`, the CLI exit codes, the default EP, `V-pipeline.running-8`, `V-pipeline.running-9`, each refusal of
-  `V-pipeline.running-10` and a change that applies from the next call, the timing parents, and record and replay with `row`. A
+  `V-pipeline.running-10` and a change that applies from the next call, and record and replay with `row`. A
   test of `node_ran`: true when the detector ran and found nobody; false for an empty required
   input, a replayed node and a padded item; present with `timing` off. The
   package glue nodes pass the glue vectors. The aggregator output passes

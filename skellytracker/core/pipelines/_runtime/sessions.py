@@ -127,7 +127,6 @@ def gpu_weights(gpus: Sequence[RunDevice], vram_reserve_bytes: int) -> list[int 
 
     The value is the free VRAM minus the reserve, with a floor of 0, when NVML gives the free VRAM
     of each GPU. Else it is the total VRAM minus the reserve, and None for a GPU with no total.
-    The batch k of each GPU can use the same values (pipeline.running, Behaviour item 4).
     """
     free = [free_vram(gpu.device_key) for gpu in gpus]
     found = free if None not in free else [gpu.vram_total_bytes for gpu in gpus]

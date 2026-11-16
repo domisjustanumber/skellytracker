@@ -311,7 +311,7 @@ def test_a_run_with_more_gpus_than_cameras_uses_one_gpu_for_each_camera(root: Pa
     calls = spy_open_session(monkeypatch)
     with start(root, pipeline(), execution_provider="cuda", vram_reserve_bytes=2**20) as run:
         assert run._executor.devices == ("gpu:0",) and {call["device_key"] for call in calls} == {"gpu:0"}
-        assert run._executor.vram_reserve_bytes == 2**20 and run._executor.batch_k == 1  # k is 1: no text gives its formula
+        assert run._executor.vram_reserve_bytes == 2**20 and run._executor.batch_k == 1  # k is 1 on each GPU in this version
 
 
 GIB = 2**30

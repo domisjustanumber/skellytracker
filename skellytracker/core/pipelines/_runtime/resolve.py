@@ -325,7 +325,7 @@ class _Resolver:
         cache = HashCache()
         entry = _entry(found, cache)
         cache.save()
-        # choice: with no `precision`, the load warns only when no precision of the size has a usable file
+        # with no `precision`, the load warns only when no artifact of the size is usable (pipeline.running, Behaviour item 8)
         wanted = [entry.artifact(params.size, precision) for precision in ([params.precision] if params.precision else precisions)]
         if not any(artifact.available for artifact in wanted):
             files = [artifact.filename for artifact in wanted]

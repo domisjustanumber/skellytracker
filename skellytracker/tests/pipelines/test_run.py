@@ -384,4 +384,5 @@ def test_the_package_exports_the_public_api() -> None:
         "RunClosedError",
     }
     assert names <= set(pipelines.__all__) and all(hasattr(pipelines, name) for name in pipelines.__all__)
+    assert not hasattr(PipelineRun, "cancel")  # there is no cancel (pipeline.running, Behaviour item 12)
     assert not any(hasattr(pipelines, old) for old in ("find_pipeline", "CallRefused", "SetParamsRefused"))  # no alias for an old name

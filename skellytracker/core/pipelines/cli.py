@@ -40,7 +40,7 @@ from skellytracker.core.pipelines.nodes import list_node_types
 from skellytracker.core.pipelines.run import Frame, _start, start_pipeline
 
 COMMANDS = ("run", "validate", "nodes")
-TIMING_FILE = "timing.jsonl"  # choice: no text gives the name of the timing file
+TIMING_FILE = "timing.jsonl"  # the timing file of a folder `--out` (pipeline.timing, Implementer guidance)
 WINDOW_TITLE = "skellytracker pipeline demo"
 _QUIT_KEYS = (ord("q"), 27)
 _ROTATIONS = {90: 0, 180: 1, 270: 2}  # degrees clockwise -> the cv2 rotate code

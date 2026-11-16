@@ -72,9 +72,13 @@ class PipelineEntry:
     unavailable_reason: str | None = None
     superseded: bool = False
     warnings: tuple[PipelineWarning, ...] = ()
-    # choice: this field is not fixed by a text
     needs_execution_provider: bool | None = None
-    """True when a run must give an execution provider. None when the file does not pass the load checks."""
+    """True when a run must give `execution_provider` (`V-pipeline.running-8`): an `onnx_model` node of the file has none.
+
+    False when a run needs no `execution_provider`: each `onnx_model` node has its own, or the file
+    has no `onnx_model` node. None when the file does not pass the load checks. `check_pipeline`
+    gives the same flag in `PipelineCheck.needs_execution_provider`.
+    """
 
 
 def _version_order(entry: PipelineEntry) -> tuple[int, Version]:

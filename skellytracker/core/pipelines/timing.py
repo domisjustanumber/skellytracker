@@ -36,11 +36,10 @@ NODE_ITEM_FIELDS = (
     "id", "type", "batching", "inputs", "key", "sidecar_sha256", "artifact_sha256", "size", "precision",
     "execution", "stage_providers", "shared_with",
 )
-# open: name not fixed by the spec (`device`: "the device"; `ep_options`: "the EP options that change the numbers")
 EXECUTION_FIELDS = ("requested_ep", "used_ep", "device", "gpu_uuid", "ep_device_id", "ep_options", "cpu_nodes", "cpu_op_types")
 # The stages of the skellybench timing record.
 STAGES = ("preprocess", "inference", "postprocess")
-# open: name not fixed by the spec (the key of the glue time in `excluded_ms_per_image`)
+# The key of the glue time in `excluded_ms_per_image`.
 GLUE_STAGE = "glue"
 # The node types whose spans are model spans. Each other node type is a glue node.
 MODEL_NODE_TYPES = ("onnx_model", "mediapipe_tasks")
@@ -131,7 +130,6 @@ def make_node_item(
     if stage_providers is not None and set(stage_providers) != set(STAGES):
         raise ValueError(f"stage_providers must have exactly the keys {list(STAGES)}")
     params = node.params.model_dump(mode="json")
-    # open: name not fixed by the spec (the keys `name` and `port` of an item of `inputs`)
     inputs = [
         {"name": None if isinstance(node.inputs, list) else name, "port": ref.removesuffix("@prev"), "prev": PORT_REF.match(ref)["prev"] is not None}
         for name, ref in input_items(node)
@@ -272,7 +270,7 @@ def skellybench_timing(records: str | Path | Iterable[Mapping[str, Any]]) -> dic
         if node_type not in MODEL_NODE_TYPES:
             glue_ms += duration_ms(record)
             continue
-        # open: the spec does not give the stage of the `run` span of a `mediapipe_tasks` node
+        # the `run` span of a `mediapipe_tasks` node counts as the stage `inference` (pipeline.timing, Implementer guidance)
         stage = record["span"] if node_type == "onnx_model" else "inference"
         time_ms[stage] += duration_ms(record)
         count[stage] += record["batch_size"]

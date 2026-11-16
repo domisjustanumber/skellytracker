@@ -184,6 +184,16 @@ def test_skellybench_timing_divides_by_the_sum_of_batch_size():
         timing.skellybench_timing([header])
 
 
+def test_the_times_of_a_node_with_a_session_on_each_of_two_gpus_are_the_times_of_all_its_sessions_together():
+    cfg = config()
+    header = timing.make_header(cfg, run_id="r", running_mode="video", warmup_passes=1, camera_ids=[0, 1, 2], nodes=node_items(cfg))
+    # One call: the session of the first GPU runs two cameras, and the session of the second GPU runs one camera.
+    first = timing.make_event([(0, 0), (0, 1)], "wholebody", "inference", 0, 8_000_000)
+    second = timing.make_event([(0, 2)], "wholebody", "inference", 8_000_000, 12_000_000)
+    record = timing.skellybench_timing([header, first, second])
+    assert record["stages_ms_per_image"]["inference"] == 4.0  # (8 ms + 4 ms) / 3 images: no part for each GPU
+
+
 def test_skellybench_timing_passes_the_skellybench_schema():
     schema = pytest.importorskip("skellybench.schema")
     record = timing.skellybench_timing(run_records())

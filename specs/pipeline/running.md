@@ -23,7 +23,7 @@ A pipeline file has no field of this section. A run takes these parameters:
 | execution provider | only when an `onnx_model` node has no `execution_provider` ([Behaviour](#behaviour) item 7) | A key of the EP catalog, for example `cuda`, `trt-rtx` or `cpu`. |
 | EP options | no | A mapping of option names to values, all strings. The EP catalog lists the allowed names and values of each EP. Default: empty. |
 | device | no | One GPU key or a list of GPU keys. The run uses exactly those GPUs. Default: each GPU that qualifies ([ADR-P1F3](../../decisions/entries/P1F3-hardware-probe-devices-and-multi-gpu.md)). |
-| VRAM reserve | no | The bytes of VRAM that the run leaves free on each GPU that it uses, for example for a camera app and a player. Default: 1 GiB ([Behaviour](#behaviour) item 4; [ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 1). |
+| VRAM reserve | no | The bytes of VRAM that the run leaves free on each GPU that it uses, for example for a camera app and a player. In this version, the run uses it only for the camera split. Default: 1 GiB ([Behaviour](#behaviour) items 3 and 4; [ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 1). |
 | `fps` | no | A float. Default: 30.0. Only in `video`, for a camera that gives no `timestamp_ms` ([Behaviour](#behaviour) item 2). |
 | timing | no | On or off, and the destination of the events ([Timing](timing.md)). |
 | tap folder | no | The folder of the taps ([Taps](taps.md)). |
@@ -31,6 +31,8 @@ A pipeline file has no field of this section. A run takes these parameters:
 | warning receiver | no | A receiver that gets each new warning. |
 
 Each call gives, for each camera of the call, one frame with its `frame_index`. In `live`, each frame also has its `timestamp_ms` (a float, in milliseconds). In `video`, the frames of a camera have a `timestamp_ms` when the camera gives one ([Behaviour](#behaviour) item 2).
+
+The image of a frame is the host frame: BGR, `uint8`, shape `(H, W, 3)` ([ADR-75K2](../../decisions/entries/75K2-unclear-places-of-the-pipeline-spec.md)).
 
 A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 6):
 
@@ -52,7 +54,7 @@ A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api
    - `video`: each camera gives `timestamp_ms` on all its frames or on none (`V-pipeline.running-7`). For a camera that gives none, the run uses `timestamp_ms = frame_index × 1000 / fps` ([ADR-97X9](../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 8).
    - `image`: the run uses no `timestamp_ms`.
    - The `timestamp_ms` of a camera must increase from frame to frame ([`V-node.smooth_keypoints-3`](nodes/smooth_keypoints.md#validation-rules)).
-   - A call that breaks `V-pipeline.running-6`, `V-pipeline.running-7` or [`V-node.smooth_keypoints-3`](nodes/smooth_keypoints.md#validation-rules) raises one typed error. The call changes no state of any of its cameras, also no `@prev` value. The run accepts the next call. Stage 1.10 of the [implementation plan](../sidecar-implementation-plan.md#110-the-pipeline-api-was-p) names the error ([ADR-97X9](../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 9).
+   - A call that breaks `V-pipeline.running-6`, `V-pipeline.running-7` or [`V-node.smooth_keypoints-3`](nodes/smooth_keypoints.md#validation-rules) raises the typed error `CallRefusedError`. The call changes no state of any of its cameras, also no `@prev` value. The run accepts the next call ([ADR-97X9](../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 9; [ADR-0YNA](../../decisions/entries/0YNA-public-names-standard-and-four-renames.md)).
 3. **Cameras.** In `video` and `image`, each call gives one frame for each camera id of the run. In `live`, a call can hold a subset of the camera ids of the run ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 3). A run with two or more GPUs splits its cameras over the GPUs. Each GPU runs the whole pipeline for its cameras ([ADR-P1F3](../../decisions/entries/P1F3-hardware-probe-devices-and-multi-gpu.md) item 7). The split is fixed at start ([ADR-AMF7](../../decisions/entries/AMF7-camera-split-by-vram.md)):
    - The GPUs are in the order of the GPUs of the run: the GPU with the most VRAM first. On a tie, the GPU with the lowest PCI bus id is first.
    - The weight of a GPU is the VRAM that the run can use on it: the free VRAM at start minus the VRAM reserve, with a floor of 0. When the host cannot read the free VRAM of each GPU of the run, the weight is the total VRAM minus the VRAM reserve, with a floor of 0. When the host cannot read the total VRAM of each GPU of the run, or each weight is 0, all weights are equal.
@@ -61,7 +63,7 @@ A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api
    - A run with fewer cameras than GPUs uses only the first GPUs, with one camera each.
    - The run gives the cameras to the GPUs in the order of the camera ids: the first cameras to the first GPU, the next cameras to the second GPU, and so on.
 4. **Batch.** The run chooses the batch at start ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 4):
-   - In `video` and `image`, the batch is k × camera count. The run chooses k for each GPU that it uses, from the free VRAM of that GPU minus the VRAM reserve, and counts the `I` of each node that takes ROIs. k is 1 until the host can measure the free VRAM ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 1).
+   - The batch on a GPU is k × the camera count of that GPU. In this version, k is 1 on each GPU. The run uses the VRAM reserve only for the camera split (Behaviour item 3) ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 1; [ADR-75K2](../../decisions/entries/75K2-unclear-places-of-the-pipeline-spec.md) item 1).
    - In `live`, the batch is the camera count.
    - In `video`, the batch of a stateful pipeline is the camera count (Behaviour item 5).
    - A node that takes ROIs batches to that batch × the `I` of the instance source of its ROI input. The run converts the batch at start.
@@ -77,8 +79,8 @@ A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api
    - `batch_limited_by_state`: the pipeline is stateful and the running mode is `video` (Behaviour item 5).
    - `ep_partial_placement`: a session of the node has nodes on the CPU EP. `details` gives the node count of each EP and the CPU op types. The run gives it one time for each session ([ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 5).
    - `merge_unfilled_points`: a slot of a `merge` node replaces a group, and one or more points of that group are unfilled and no key of `map` names them. A load gives this warning. `details` lists the points ([Node: merge](nodes/merge.md#behaviour) item 5; [ADR-KW76](../../decisions/entries/KW76-merge-replace-add-and-hungarian-match.md) item 2).
-   - `missing_dependency`: a node needs an optional extra that is not installed, or an ONNX file that is absent or whose hash does not agree. A load gives this warning. A start fails before frame 0 ([Validation rules](#validation-rules)).
-   - The load result holds the warnings that are known before start. The run holds the full list. The run gives each new warning to the warning receiver one time, also during the run, from the thread that makes the call.
+   - `missing_dependency`: a node needs an optional extra that is not installed, or an ONNX file that is absent or whose hash does not agree. A load gives this warning. A start fails before frame 0 ([Validation rules](#validation-rules)). For a node with no `precision`, a load gives the warning only when no artifact of the size is usable. A start checks the artifact of the EP (`V-pipeline.running-3`) ([ADR-75K2](../../decisions/entries/75K2-unclear-places-of-the-pipeline-spec.md) item 3).
+   - The load result holds the warnings that are known before start, the output schema, and a flag that is true when a run must give an EP (`V-pipeline.running-8`) ([ADR-75K2](../../decisions/entries/75K2-unclear-places-of-the-pipeline-spec.md)). The run holds the full list. The run gives each new warning to the warning receiver one time, also during the run, from the thread that makes the call.
 9. **Replayed and unused ports.** A port is used when it is an output, an input of a node that runs, or the port of a `record` tap. A node whose outputs are all replayed or not used does not run. The upstream nodes of a replayed port do not run when nothing else uses them ([Taps](taps.md#behaviour)).
 10. **Start checks.** The run does these checks before frame 0 ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 7): `V-pipeline.running-3`, `V-pipeline.running-4`, `V-pipeline.running-5`, `V-pipeline.running-8`, `V-pipeline.running-9`, [`V-pipeline.taps-2`](taps.md#validation-rules), [`V-pipeline.taps-3`](taps.md#validation-rules), [`V-pipeline.taps-4`](taps.md#validation-rules), [`V-pipeline.taps-5`](taps.md#validation-rules), [`V-pipeline.taps-6`](taps.md#validation-rules) and [`V-pipeline.taps-7`](taps.md#validation-rules).
 11. **Params during a run.** `PipelineRun.set_params(node_id, params)` sets params of one node ([ADR-N5BM](../../decisions/entries/N5BM-set-during-run-and-set-params.md)):
@@ -86,6 +88,7 @@ A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api
     - The run accepts the call in each running mode before the first `process` or `process_batch` call. After that call, it accepts the call only in `live`, and only when the run has no `record` tap ([Taps](taps.md#behaviour)).
     - A change applies from the next `process` or `process_batch` call, to each camera. It does not reset the state of a node. A param whose change would need a reset is marked `no`.
     - A call that breaks `V-pipeline.running-10` raises the error `SetParamsRefusedError`. It changes no param.
+12. **Threads.** The calls on one run are serial: a second call waits for the first call. `close()` waits for the call that runs. A call after `close()` raises an error. A second `close()` does nothing. Two runs share no state. There is no cancel ([ADR-75K2](../../decisions/entries/75K2-unclear-places-of-the-pipeline-spec.md) item 5).
 
 ## Validation rules
 
