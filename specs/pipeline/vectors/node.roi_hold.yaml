@@ -10,8 +10,8 @@ notes:
     Holistic hand values)."
   - "`rois` is null for an empty output. Else it holds one ROI or null for each row."
 tolerance: 0.000001
-unverified: "Only the reference implementation ran the cases. No independent implementation
-  exists yet."
+verified_against:
+  - skellytracker/core/pipelines/_runtime/node_roi_hold.py::run
 cases:
   - id: near-previous-roi-is-kept
     note: "row 0: offsets 4 and 2 are at most 0.2 x 50 and the size changes 5 and 3 are at most

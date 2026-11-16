@@ -26,9 +26,8 @@ notes:
     1400 random `video` sequences. The results agreed within 1e-9. The time-unit
     reference was not compared again."
 tolerance: 0.000000001
-unverified: "Only the reference ran the cases. The comparison with the skellytracker filters is
-  in the notes, but that code has another signature, so it is not a verified_against
-  entry."
+verified_against:
+  - skellytracker/core/pipelines/_runtime/node_smooth_keypoints.py::run
 cases:
   - id: one-euro-defaults
     note: "the first frame passes through; then alpha = 1 / (1 + 1 / (2 pi)) for each axis"

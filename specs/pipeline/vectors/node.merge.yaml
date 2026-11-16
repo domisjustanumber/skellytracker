@@ -13,8 +13,8 @@ notes:
     schema, known at load. A point with no such entry is not a key. An absent
     `canonical` holds no names. A `2d` point has z NaN."
 tolerance: 0
-unverified: "Only the reference implementation ran the cases. No independent implementation
-  exists yet."
+verified_against:
+  - skellytracker/core/pipelines/_runtime/node_merge.py::run
 cases:
   - id: a-new-slot-name-adds-a-group-and-the-output-keeps-the-target-rows
     note: "the right hand is nearest to the right wrist and the left hand to the left wrist;

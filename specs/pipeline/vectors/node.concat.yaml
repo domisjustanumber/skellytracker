@@ -11,8 +11,8 @@ notes:
     names of each input from its output schema, known at load, also for an empty input.
     A `2d` point has z NaN."
 tolerance: 0
-unverified: "Only the reference implementation ran the cases. No independent implementation
-  exists yet."
+verified_against:
+  - skellytracker/core/pipelines/_runtime/node_concat.py::run
 cases:
   - id: joins-row-i-of-each-input-in-list-order
     note: "row 0 is present in both inputs; row 1 is a padding row in both, so it stays a

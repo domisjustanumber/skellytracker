@@ -9,8 +9,8 @@ notes:
     placeholder string. A `keypoints` row of `condition` holds `xy` and `score`; a
     `detections` row holds `score` and `class_index`; the test uses only `score`."
 tolerance: 0.000001
-unverified: "Only the reference implementation ran the cases. No independent implementation
-  exists yet."
+verified_against:
+  - skellytracker/core/pipelines/_runtime/node_gate.py::run
 cases:
   - id: is-empty-passes-on-an-empty-condition
     note: "the previous keypoints are empty on the first frame, so the image goes to the detector"

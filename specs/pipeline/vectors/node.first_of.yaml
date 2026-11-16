@@ -8,8 +8,8 @@ notes:
     instance row) or a placeholder string for a value of another port type. A
     `keypoints` value with no present row is empty."
 tolerance: 0
-unverified: "Only the reference implementation ran the cases. No independent implementation
-  exists yet."
+verified_against:
+  - skellytracker/core/pipelines/_runtime/node_first_of.py::run
 cases:
   - id: gives-the-first-input-that-is-not-empty
     note: "input 0 has no value; input 1 has no present row, so it is empty; input 2 is the

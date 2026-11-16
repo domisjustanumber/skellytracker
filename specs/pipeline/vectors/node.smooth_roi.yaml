@@ -22,9 +22,8 @@ notes:
     of the steps of apply_bbox_one_euro, on 3000 random `video` sequences with rotation
     0, gaps, missing boxes and random filter params. The corners agreed within 1e-9."
 tolerance: 0.000000001
-unverified: "Only the reference ran the cases. The comparison with apply_bbox_ema is in the
-  notes, but that function has another signature, so it is not a verified_against
-  entry."
+verified_against:
+  - skellytracker/core/pipelines/_runtime/node_smooth_roi.py::run
 cases:
   - id: defaults
     note: "previous_weight 0.5: the mean of the previous output and the input"

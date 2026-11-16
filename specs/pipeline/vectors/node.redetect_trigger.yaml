@@ -15,9 +15,8 @@ notes:
     with the four checks) on 2700 random `video` sequences with rotation 0, one row,
     random intervals and the checks of these cases. The results were equal."
 tolerance: 0.000000001
-unverified: "Only the reference ran the cases. The comparison with BBoxPolicy.should_redetect is
-  in the notes, but that method has another signature, so it is not a verified_against
-  entry."
+verified_against:
+  - skellytracker/core/pipelines/_runtime/node_redetect_trigger.py::run
 cases:
   - id: defaults-each-frame
     params: {}

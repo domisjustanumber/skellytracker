@@ -21,8 +21,8 @@ notes:
     value holds one [cx, cy, w, h, rotation] or null (a row that is not present) for
     each row."
 tolerance: 0.000001
-unverified: "Only the reference implementation ran the cases. No independent implementation
-  exists yet."
+verified_against:
+  - skellytracker/core/pipelines/_runtime/node_roi_from_points.py::run
 cases:
   - id: bounds-default
     note: "the axis-aligned box around the three points: x 100 to 140, y 180 to 240"
