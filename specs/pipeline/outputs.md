@@ -122,6 +122,17 @@ The output schema gives these fields for each output:
       nose_x, nose_y = body.xy[0, body.point_names.index("body/nose")]
   ```
 
+- A consumer must take a point by its name or by `groups`. It must not use a fixed column index. `point_names` has the names of the exporter, which can differ between two models of one body region. `canonical_names` has names that do not depend on the model. Use the canonical form to map points to an application skeleton. The canonical form can have a different point count and order from `point_names`. For example, the output `wholebody` of `yolox-rtmw-wholebody` has 133 point names in 5 groups and 137 canonical names:
+
+  | `point_names` | Group in `groups` | `canonical_names` |
+  |---------------|-------------------|-------------------|
+  | `left_hand/left_thumb1` | `left_hand` | `left_hand/thumb_cmc` |
+  | `left_hand/left_hand_root` | `left_hand` | `left_hand/wrist` |
+  | `feet/left_big_toe` | `feet` | `body/left_big_toe` |
+  | `face/face-0` | `face` | `face/face-0` |
+
+  The canonical form has no group `feet`: the region `body` holds the toes and the heels. It adds four computed points, for example `body/neck_center`. (skellytracker `skellytracker/core/model_zoo/landmark_schemas/COCO_WholeBody.yaml`, `canonical_mapping`; `skellytracker/core/pipelines/canonical.py`, `to_canonical`)
+
 ## Examples
 
 ```yaml
