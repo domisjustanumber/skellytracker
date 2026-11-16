@@ -20,7 +20,13 @@ def loaded_module_paths() -> list[str]:
         libc._dyld_get_image_name.restype = ctypes.c_char_p
         return [libc._dyld_get_image_name(index).decode("utf-8", "replace") for index in range(libc._dyld_image_count())]
     with open("/proc/self/maps", encoding="utf-8", errors="replace") as maps:
-        return sorted({line.split(None, 5)[5].strip() for line in maps if line.count(" ") >= 5 and "/" in line})
+        return maps_paths(maps)
+
+
+def maps_paths(lines) -> list[str]:
+    """The file paths of the lines of `/proc/self/maps`. A line of an anonymous mapping has no path."""
+    fields = (line.split(None, 5) for line in lines)
+    return sorted({parts[5].strip() for parts in fields if len(parts) == 6 and parts[5].startswith("/")})
 
 
 def file_version(path: str) -> str | None:

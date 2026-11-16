@@ -85,6 +85,12 @@ def test_loaded_libraries_from_a_fake_module_list(monkeypatch):
     assert "/opt/app" not in repr(info)
 
 
+def test_proc_maps_lines():
+    lines = ["7f00-7f01 r-xp 00000000 08:01 123    /usr/lib/libc.so.6\n", "7f02-7f03 rw-p 00000000 00:00 0 \n",
+             "7f04-7f05 rw-p 00000000 00:00 0          [heap]\n", "7f06-7f07 r--p 00000000 08:01 9  /opt/a b/libcudnn.so.9\n"]
+    assert libraries.maps_paths(lines) == ["/opt/a b/libcudnn.so.9", "/usr/lib/libc.so.6"]
+
+
 def test_loaded_libraries_reads_this_process():
     info = system.probe_loaded_libraries()
     assert info.probe_errors == () and all("/" not in row.source and "\\" not in row.source for row in info.libraries)
