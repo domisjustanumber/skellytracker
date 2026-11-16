@@ -10,10 +10,11 @@ The paths are under `skellytracker/`.
 
 | Path | Role |
 |---|---|
-| `__main__.py` | Webcam demo CLI (`cli_main`) |
+| `__main__.py` | Webcam demo CLI (`cli_main`), and the commands `detectors` and `describe <key>` (`core/detectors/cli.py`) |
 | `core/tracker/` | `Tracker`, `MultiPersonTracker`, `DetectionStage`, `TrackerState` |
 | `core/config/` | Pydantic configs: `TrackerConfig`, `DetectionStageConfig`, `ObjectDetectorConfig`, `KeypointDetectorConfig`, `SessionConfig` |
 | `core/sessions/` | ONNX Runtime, CPU and MediaPipe sessions. `model_registry.py` downloads `url` ONNX files to `~/.cache/skellytracker/models`. `hf_repo` files go to the Hugging Face cache. `batch_conversion.py` makes a fixed-batch ONNX file from a static-batch source (`static-batch-v1`). |
+| `core/detectors/catalog.py` | The catalog of the `detectors` entry point ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) items 1, 2 and 6): `list_detectors`, `get_detector`, `describe_detector`, `load_detector_sidecar`, the sidecar roots and `STATIC_DETECTORS`, the table of the entries with no sidecar. It imports no detector module. `core/detectors/__init__.py` exports the API. |
 | `core/detectors/detector_base_classes.py` | Detector base classes, `OBJECT_DETECTOR_REGISTRY` and `KEYPOINT_DETECTOR_REGISTRY` |
 | `core/detectors/keypoint_detectors/` | `mediapipe/`, `rtmpose/` (body, hand, face), `rtmw/wholebody/` |
 | `core/detectors/calibration_detectors/` | `aruco/`, `charuco/` ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 4). Import `calibration_detectors` to register them. |
@@ -31,13 +32,13 @@ The paths are under `skellytracker/`.
 | `core/eps/` | The EP catalog (`ep_catalog.yaml`, `ep_lock.yaml`), the EP store, `install()`, `ensure_registered()`, `verify()`, `recommend()`, `run_devices()`, `check_start()`, `status()`, `build_session()` and the CLI `skellytracker-eps` (`cli.py`) |
 | `_pyinstaller/` | The PyInstaller entry points and the data-only hook. It is outside `core/`. No package module imports it. |
 | `core/sidecar/` | The old loader of the old package sidecars. Do not change it, and do not import it in new code. `load_sidecar` (`loader.py`), `$ref` and `base` resolution (`resolution.py`), `SidecarModel` (`model.py`), version checks (`versioning.py`) |
-| `core/model_spec/` | The spec loader at spec version 2.0.0 ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 8): `load_sidecar(path, sidecar_root, user_root)` (`loader.py`), `$ref` resolution with hash checks (`resolution.py`), the `V-` rules (`rules.py`, `check_sidecar`), `SidecarModel` (`model.py`), the landmark schema registry (`landmark_schemas.py`), the implemented versions (`versioning.py`) and the SPDX check (`spdx.py`). Stage 2.3 of the implementation plan moves it to `core/sidecar/`. |
+| `core/model_spec/` | The spec loader at spec version 2.0.0 ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 8): `load_sidecar(path, sidecar_root, user_root)` (`loader.py`), `$ref` resolution with hash checks (`resolution.py`), the `V-` rules (`rules.py`, `check_sidecar`), `SidecarModel` (`model.py`), the landmark schema registry (`landmark_schemas.py`), the implemented versions (`versioning.py`), the SPDX check (`spdx.py`), the artifact hash check with its cache (`artifacts.py`), the selector matching (`sidecar_normalize.py`) and the section table with the capability check (`sections.py`). Add a `preprocessor` or `postprocessor` section to `IMPLEMENTED_SECTIONS` of `sections.py` in the commit that adds its processing module. Stage 2.3 of the implementation plan moves it to `core/sidecar/`. |
 | `core/data_primitives/` | `BoundingBox`, `Keypoints`, observations, data stores |
 | `core/annotation/` | Overlay drawing (`Annotator`, `KeypointAnnotator`) |
 | `core/temporal_processing/` | Box policy and smoothing, keypoint filters, track association |
 | `core/io/` | `process_video.py`, `demo_manager.py` (webcam runner), tracker mapping, canonical mapping expansion |
 | `examples/` | Example scripts |
-| `tests/` | pytest suite. `tests/sidecar/` holds the tests of the old loader and their golden fixtures. `tests/model_spec/` holds the tests of the spec loader. `tests/processing/` holds the tests of the spec processing modules. |
+| `tests/` | pytest suite. `tests/sidecar/` holds the tests of the old loader and their golden fixtures. `tests/model_spec/` holds the tests of the spec loader. `tests/processing/` holds the tests of the spec processing modules. `tests/detectors/` holds the tests of the catalog, on temporary sidecar roots. |
 
 ## Detector registries
 
@@ -59,8 +60,8 @@ The sidecar paths are under `core/detectors/`.
 - The key `rtmpose` runs RTMW (ADR-[0004](../decisions/entries/0004-detectors-migrated-in-place.md),
   ADR-[0005](../decisions/entries/0005-rtmw-moved-to-rtmw-family.md)).
 - Do not change a `detector_type` string. Configs and callers select a detector with it.
-- A `detector_type` key is not a catalog key. The catalog keeps each key as an alias of
-  `<model_id>@skellytracker` ([Versioning](../specs/model-sidecar/format/versioning.md#implementer-guidance)).
+- A `detector_type` key is not a catalog key. The catalog has no alias for it: the old keys go with
+  their detectors ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 2).
 - Shim modules under `keypoint_detectors/rtmpose/` give the RTMW detector its old names
   `RTMPoseDetectorConfig`, `RTMPoseKeypointDetector` and `RTMPOSE_MODEL_SPECS`. Do not remove a shim
   while a file imports its path.
