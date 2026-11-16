@@ -27,7 +27,10 @@ from skellytracker.core.eps.records import (
     Verdict,
     WheelRef,
 )
+from skellytracker.core.eps.registration import ensure_registered
+from skellytracker.core.eps.session import build_session
 from skellytracker.core.eps.store import store_root
+from skellytracker.core.eps.verification import verify
 
 __all__ = [
     "EpCandidate",
@@ -49,7 +52,9 @@ __all__ = [
     "SessionReport",
     "Verdict",
     "WheelRef",
+    "build_session",
     "download",
+    "ensure_registered",
     "gc",
     "install",
     "load_catalog",
@@ -59,4 +64,5 @@ __all__ = [
     "run_devices",
     "select_precision",
     "store_root",
+    "verify",
 ]

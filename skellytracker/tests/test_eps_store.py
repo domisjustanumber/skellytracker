@@ -207,7 +207,7 @@ def test_install_from_a_local_index(fake_pack, ep_store):
     assert (len(plan.packs), plan.download_bytes, plan.disk_bytes) == (1, plan.packs[0].download_bytes, 40)
     assert plan.packs[0].licence_url.startswith("https://")
     events = []
-    result = installer.install(plan, progress=events.append)
+    result = installer.install(plan, progress=events.append, verify=False)
     assert (result.ok, result.failed, result.cancelled) == (("cuda",), (), ())
     folder = ep_store / "cuda-cu13" / "0.3.0"
     manifest = store.read_manifest("cuda-cu13", "0.3.0")
@@ -221,7 +221,7 @@ def test_install_from_a_local_index(fake_pack, ep_store):
     assert store.pack_state(catalog, "cuda", gpu(), "gpu:10de:2484:0")[0] == "installed_unverified"
     (folder / manifest["library"]).write_bytes(b"changed size")
     assert store.pack_state(catalog, "cuda", gpu(), "gpu:10de:2484:0")[:2] == ("not_ready", "files")
-    assert installer.install(plan).ok == ("cuda",)  # an installed pack folder is not written again
+    assert installer.install(plan, verify=False).ok == ("cuda",)  # an installed pack folder is not written again
     assert (folder / manifest["library"]).read_bytes() == b"changed size"
 
 
@@ -230,13 +230,13 @@ def test_install_from_a_folder_with_no_network(fake_pack, server, ep_store, tmp_
     for name in ("plugin-1.0-py3-none-win_amd64.whl", "dep-2.0-py3-none-win_amd64.whl"):
         (tmp_path / name).write_bytes(server.files[name])
     server.files.clear()
-    assert installer.install(plan, from_dir=tmp_path).ok == ("cuda",)
+    assert installer.install(plan, from_dir=tmp_path, verify=False).ok == ("cuda",)
     assert (tmp_path / "dep-2.0-py3-none-win_amd64.whl").exists()  # the folder of the user keeps its files
     installer.remove("cuda-cu13")
     assert not (ep_store / "cuda-cu13").exists()
     (tmp_path / "dep-2.0-py3-none-win_amd64.whl").write_bytes(b"not the wheel")
-    assert installer.install(plan, from_dir=tmp_path).failed[0][:2] == ("cuda", "hash-mismatch")
-    assert installer.install(plan, from_dir=tmp_path / "none").failed[0][:2] == ("cuda", "offline")
+    assert installer.install(plan, from_dir=tmp_path, verify=False).failed[0][:2] == ("cuda", "hash-mismatch")
+    assert installer.install(plan, from_dir=tmp_path / "none", verify=False).failed[0][:2] == ("cuda", "offline")
 
 
 def test_a_wheel_member_that_leaves_the_folder_is_refused(fake_pack, server, ep_store, monkeypatch):
@@ -245,7 +245,7 @@ def test_a_wheel_member_that_leaves_the_folder_is_refused(fake_pack, server, ep_
     server.files[name] = bad
     row = catalog_module.load_catalog().lock["packs"]["cuda-cu13"]["win_amd64"]["wheels"][1]
     monkeypatch.setitem(row, "sha256", hashlib.sha256(bad).hexdigest())
-    result = installer.install(fake_pack())
+    result = installer.install(fake_pack(), verify=False)
     assert result.failed[0][1] == "failed" and "unsafe member" in result.failed[0][2]
     assert not (ep_store / "cuda-cu13").exists() and not (ep_store.parent / "evil.dll").exists()
     assert not list((ep_store / ".staging").glob("*"))
@@ -254,17 +254,17 @@ def test_a_wheel_member_that_leaves_the_folder_is_refused(fake_pack, server, ep_
 def test_a_long_store_path_is_refused_with_the_reason(fake_pack, tmp_path, monkeypatch):
     root = tmp_path / ("s" * (store.PATH_LIMIT - len(str(tmp_path)) - 40))
     monkeypatch.setenv(store.STORE_VARIABLE, str(root))
-    (code, message), = [failure[1:] for failure in installer.install(fake_pack()).failed]
+    (code, message), = [failure[1:] for failure in installer.install(fake_pack(), verify=False).failed]
     assert code == "path-guard" and store.STORE_VARIABLE in message and not (root / "cuda-cu13").exists()
 
 
 def test_cancel_and_core_mismatch(fake_pack, monkeypatch):
     cancel = threading.Event()
     cancel.set()
-    assert installer.install(fake_pack(), cancel=cancel).cancelled == ("cuda",)
+    assert installer.install(fake_pack(), cancel=cancel, verify=False).cancelled == ("cuda",)
     monkeypatch.setattr(installer, "core_mismatch", lambda catalog: "onnxruntime 1.30.0 is installed. Run `uv sync`.")
     plan = fake_pack()
-    assert "uv sync" in plan.warnings[-1] and installer.install(plan).failed[0][1] == "core-mismatch"
+    assert "uv sync" in plan.warnings[-1] and installer.install(plan, verify=False).failed[0][1] == "core-mismatch"
 
 
 def test_plan_selections(fake_pack, monkeypatch):
@@ -288,11 +288,11 @@ def test_download_writes_the_wheels_and_a_manifest(fake_pack, server, tmp_path, 
     manifest = store.read_json(dest / "manifest.json")
     assert sorted(path.name for path in dest.iterdir()) == ["README.txt", "dep-2.0-py3-none-win_amd64.whl", "manifest.json", "plugin-1.0-py3-none-win_amd64.whl"]
     assert len(manifest["wheels"]) == 2 and manifest["licences"]
-    assert installer.install(fake_pack(), from_dir=dest).ok == ("cuda",)
+    assert installer.install(fake_pack(), from_dir=dest, verify=False).ok == ("cuda",)
 
 
 def test_gc_and_remove(fake_pack, ep_store, monkeypatch):
-    installer.install(fake_pack())
+    installer.install(fake_pack(), verify=False)
     old = ep_store / "old-pack" / "0.1"
     old.mkdir(parents=True)
     (old / "pack.json").write_text("{}", encoding="utf-8")

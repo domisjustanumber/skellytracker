@@ -175,14 +175,33 @@ def _install_pack(catalog: EpCatalog, planned: PlannedPack, progress, cancel, fr
             path.unlink(missing_ok=True)
 
 
+def _verify(key: str, progress) -> str | None:
+    """The reason when the verification of a new pack fails; `None` for a pass or for a test pack."""
+    from skellytracker.core.eps import verification
+    from skellytracker.core.errors import EpRequestError, EpUnavailableError
+
+    if progress is not None:
+        progress(InstallProgress(key, "verify"))
+    try:
+        (verdict,) = verification.verify([key])
+    except EpRequestError:
+        return None  # a test pack of a reserved key: selftest() checks it
+    except EpUnavailableError as error:
+        return str(error)
+    return None if verdict.ok else verdict.reason
+
+
 def install(plan: InstallPlan, *, progress: Callable[[InstallProgress], None] | None = None,
-            cancel: threading.Event | None = None, from_dir: Path | None = None) -> InstallResult:
+            cancel: threading.Event | None = None, from_dir: Path | None = None, verify: bool = True) -> InstallResult:
     """Install each pack of a plan into the EP store. It does not raise for a pack that fails.
+
+    After the install of a pack, `verify` runs the verification levels L2 and L3 in a child process.
+    A pack that fails the verification stays in the store, with the error code `verify-failed`.
 
     `from_dir` installs from a folder that holds the wheels of the lock, with no network. The sha256
     of each wheel must be the sha256 of the lock. `InstallResult.failed` holds `(key, error code,
     message)`, with the error code `offline`, `http-error`, `hash-mismatch`, `disk-full`,
-    `path-guard`, `core-mismatch` or `failed`.
+    `path-guard`, `core-mismatch`, `verify-failed` or `failed`.
     """
     catalog = load_catalog()
     ok, failed, cancelled = [], [], []
@@ -197,7 +216,11 @@ def install(plan: InstallPlan, *, progress: Callable[[InstallProgress], None] | 
             try:
                 with store.store_lock():
                     _install_pack(catalog, planned, progress, cancel, from_dir)
-                ok.append(key)
+                reason = _verify(key, progress) if verify else None
+                if reason is None:
+                    ok.append(key)
+                else:
+                    failed.append((key, "verify-failed", reason))
             except _download.CancelledError:
                 cancelled.append(key)
             except _download.DownloadError as error:
