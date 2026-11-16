@@ -33,6 +33,10 @@ from skellytracker.core.detectors.object_detectors.yolox.yolox_person_detector i
     YoloxPersonDetectorConfig,
 )
 from skellytracker.core.sessions.onnx_session import OnnxSession, OnnxSessionConfig
+from skellytracker.core.temporal_processing.temporal_processing_config import (
+    BBoxPolicyConfig,
+    BBoxSmoothingConfig,
+)
 from skellytracker.core.tracker.tracker import Tracker
 from skellytracker.core.sessions.execution_provider_name import ExecutionProviderName
 
@@ -77,6 +81,16 @@ def build_rtmpose_demo(
         name="wholebody",
         object_detector=object_detector_config,
         keypoint_detectors=[RTMPoseDetectorConfig(model_name=model_name)],
+        # The box values of freemocap: a detection each 150 frames, else the box
+        # around the keypoints of the previous frame, with the size floors.
+        bbox_policy=BBoxPolicyConfig(
+            redetect_interval=150,
+            keypoint_bbox_expansion=0.05,
+            fitness_checks=[],
+            min_shrink_ratio_per_frame=0.995,
+            min_bbox_size_px=80.0,
+        ),
+        bbox_smoothing=BBoxSmoothingConfig(alpha=0.4),
     )
 
     tracker = Tracker.create(
