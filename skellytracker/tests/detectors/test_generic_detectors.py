@@ -243,7 +243,7 @@ def test_a_session_downloads_a_url_artifact_that_is_not_present(root: Path, tmp_
     calls: list[str] = []
     monkeypatch.setattr(download, "fetch", fake_fetch(served, calls))
     before = get_detector(OBJECT_KEY, root)
-    assert not before.available and "is not downloaded" in before.unavailable_reason
+    assert before.available and not before.artifact("n", "fp32").downloaded
 
     detector = create_detector(OBJECT_KEY, execution_provider="cpu", user_root=root)
     file = tmp_path / "cache" / "models" / OBJECT_KEY / "0.1.0" / "demo-n_b3_fp32.onnx"
@@ -253,7 +253,7 @@ def test_a_session_downloads_a_url_artifact_that_is_not_present(root: Path, tmp_
     # The download wrote the record of the hash check cache: the catalog does not read the file again.
     monkeypatch.setattr(artifacts, "file_sha256", lambda path: pytest.fail(f"hashed {path} again"))
     after = get_detector(OBJECT_KEY, root)
-    assert after.available and after.artifact("n", "fp32").path == file
+    assert after.available and after.artifact("n", "fp32").downloaded and after.artifact("n", "fp32").path == file
     create_detector(OBJECT_KEY, execution_provider="cpu", user_root=root)
     assert calls == ["https://example.org/demo.bin"]
 

@@ -59,7 +59,9 @@ def main(arguments: list[str]) -> int:
         print(f"  sidecar: {entry.sidecar_path}")
         print(f"  sidecar_sha256: {entry.sidecar_sha256}")
     for artifact in entry.artifacts:
-        state = "available" if artifact.available else f"unavailable: {artifact.unavailable_reason}"
+        state = f"unavailable: {artifact.unavailable_reason}"
+        if artifact.available:
+            state = "available" if artifact.downloaded else "available, not downloaded"
         print(f"  size {artifact.size}, {artifact.precision}: {artifact.filename}  {state}")
     for port in description.ports:
         print(f"  port {port.name}: {port.direction}, {port.port_type}")

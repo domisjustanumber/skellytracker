@@ -12,6 +12,11 @@ The key of a sidecar is `<model_id>@<source.name>`. A model with no sidecar has 
 `<detector_type>@skellytracker`. When a key has more than one `source.version`, the newest version
 in PEP 440 order wins, and the other versions are superseded. `<key>==<version>` pins a version.
 
+An artifact of a sidecar is available when its ONNX file is present with the `sha256` of the
+sidecar, and also when it has a `url` and no file: the host downloads it when a session needs it.
+`ArtifactEntry.downloaded` tells the two cases apart. An artifact with no `url` and no file is
+unavailable. An `onnx` entry is available when one artifact or more is available.
+
 This module imports no detector module. A static table names the classes with no sidecar.
 """
 from __future__ import annotations
@@ -57,7 +62,14 @@ class DetectorUnavailableError(RuntimeError):
 
 @dataclass(frozen=True)
 class ArtifactEntry:
-    """One ONNX file of a model: one size and one precision."""
+    """One ONNX file of a model: one size and one precision.
+
+    `downloaded` is true when the file is present with the `sha256` of the sidecar, beside the
+    sidecar or in the download folder. An artifact is available when it is downloaded, and also
+    when it has a `url` and no file: the host downloads it when a session needs it. `path` is then
+    the file in the download folder that the download writes. An artifact with no `url` and no
+    file is unavailable. A file beside the sidecar with a different hash is unavailable.
+    """
 
     size: str
     precision: str
@@ -66,6 +78,7 @@ class ArtifactEntry:
     path: Path
     available: bool
     unavailable_reason: str | None = None
+    downloaded: bool = False
 
 
 @dataclass(frozen=True)
@@ -73,7 +86,7 @@ class DetectorEntry:
     """One entry of the `detectors` list.
 
     An `onnx` entry is available when its sidecar loads, the package runs each spec section that it
-    uses, and one or more of its ONNX files are present with the hash of the sidecar. `key`,
+    uses, and one or more of its artifacts are available (`ArtifactEntry`). `key`,
     `version` and `sidecar_sha256` are the three values that a run records in its output metadata.
     `role` and `sections` select the generic detector of the entry.
     """
@@ -319,27 +332,27 @@ def scan_sidecar_roots(
 def _artifacts(found: _Sidecar, cache: HashCache) -> tuple[ArtifactEntry, ...]:
     """Return the capability of each artifact. A user can copy only some sizes or precisions.
 
-    The file of an artifact is beside its sidecar. A `url` artifact with no file there can have a
-    downloaded file in the download folder (`artifacts.download_path`).
+    The file of an artifact is beside its sidecar. The file of a `url` artifact with no file there
+    is in the download folder (`artifacts.download_path`).
     """
     entries = []
     for size, size_spec in found.model.sizes.items():
         for precision, artifact in size_spec.onnx.precision_artifacts.items():
             file, root = found.path.parent / artifact.filename, found.root
-            if not file.is_file() and artifact.url is not None:
-                downloaded = artifacts.download_path(found.key, found.version, artifact.filename)
-                if downloaded.is_file():
-                    file, root = downloaded, artifacts.download_root()
-            if found.reason is not None:
-                reason = found.reason
-            elif not file.is_file() and artifact.url is not None:
-                reason = f"the ONNX file {artifact.filename} is not downloaded; the sidecar gives its `url`"
-            elif not file.is_file():
-                reason = f"the ONNX file {artifact.filename} is not present, and the sidecar gives no `url`"
-            else:
+            beside = file.is_file()
+            if not beside and artifact.url is not None:
+                file, root = artifacts.download_path(found.key, found.version, artifact.filename), artifacts.download_root()
+            reason, downloaded = found.reason, False
+            if reason is not None:
+                pass
+            elif file.is_file():
                 failure = check_artifact_hash(file, root, artifact.sha256, cache)
-                reason = None if failure is None else str(failure)
-            entries.append(ArtifactEntry(size, precision, artifact.filename, artifact.sha256, file, reason is None, reason))
+                downloaded = failure is None
+                if beside and failure is not None:  # the host downloads a bad file of the download folder again
+                    reason = str(failure)
+            elif artifact.url is None:
+                reason = f"the ONNX file {artifact.filename} is not present, and the sidecar gives no `url`"
+            entries.append(ArtifactEntry(size, precision, artifact.filename, artifact.sha256, file, reason is None, reason, downloaded))
     return tuple(entries)
 
 

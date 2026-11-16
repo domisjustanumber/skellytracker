@@ -168,15 +168,31 @@ def test_a_model_with_no_onnx_file_is_unavailable(root: Path, all_sections: None
     put(root, BASES["nms"](), files=False)
     (entry,) = onnx_entries(root)
     assert not entry.available and "is not present" in entry.unavailable_reason
+    assert not entry.artifact("n", "fp32").downloaded
     assert load_detector_sidecar(KEY, root).model_id == "demo"  # the sidecar itself loads
 
 
-def test_the_reason_tells_a_file_that_is_not_downloaded_from_a_missing_file(root: Path, all_sections: None) -> None:
+def test_a_url_artifact_that_is_not_downloaded_is_available_and_not_downloaded(root: Path, tmp_path: Path, all_sections: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(artifacts, "download_root", lambda: tmp_path / "cache" / "models")
     sidecar = BASES["nms"]()
     sidecar["sizes"]["n"]["onnx"]["precision_artifacts"]["fp32"].update(url="https://example.org/demo.onnx", url_sha256="e" * 64)
-    put(root, sidecar, files=False)
-    (entry,) = onnx_entries(root)
-    assert not entry.available and "is not downloaded" in entry.artifact("n", "fp32").unavailable_reason
+    path = put(root, sidecar, files=False)
+    file = tmp_path / "cache" / "models" / KEY / "0.1.0" / "demo-n_b3_fp32.onnx"
+
+    def state() -> tuple[bool, bool, bool, str | None, Path]:
+        (entry,) = onnx_entries(root)
+        artifact = entry.artifact("n", "fp32")
+        return entry.available, artifact.available, artifact.downloaded, artifact.unavailable_reason, artifact.path
+
+    assert state() == (True, True, False, None, file)
+    file.parent.mkdir(parents=True)
+    file.write_bytes(b"a partial download")  # the host downloads a bad file of the download folder again
+    assert state() == (True, True, False, None, file)
+    file.write_bytes(ONNX)
+    assert state() == (True, True, True, None, file)
+    beside = path.parent / "demo-n_b3_fp32.onnx"
+    beside.write_bytes(ONNX)  # the file beside the sidecar comes first
+    assert state() == (True, True, True, None, beside)
 
 
 def test_an_onnx_file_with_a_different_hash_is_unavailable(root: Path, all_sections: None) -> None:

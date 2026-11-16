@@ -17,7 +17,6 @@ from skellytracker.core.detectors.generic.keypoint_detector import GenericKeypoi
 from skellytracker.core.detectors.generic.object_detector import GenericObjectDetector
 from skellytracker.core.eps.records import ModelRef, SessionReport
 from skellytracker.core.eps.session import build_session
-from skellytracker.core.model_spec import artifacts
 from skellytracker.core.model_spec.model import ObjectDecodeSpec, SidecarModel
 
 
@@ -30,14 +29,12 @@ def ensure_artifact(entry: DetectorEntry, sidecar: SidecarModel, size: str, prec
     and a file beside the sidecar with a wrong hash, raise `DetectorUnavailableError`.
     """
     found = entry.artifact(size, precision)
-    if found.available:
+    if found.downloaded:
         return found.path
-    spec = sidecar.artifact(size, precision)
-    downloaded = artifacts.download_path(entry.key, str(entry.version), spec.filename)
-    if spec.url is None or (found.path.is_file() and found.path != downloaded):
+    if not found.available:
         raise DetectorUnavailableError(f"{entry.key} {size}/{precision} is unavailable: {found.unavailable_reason}")
-    downloaded.parent.mkdir(parents=True, exist_ok=True)
-    return download_artifact(spec, downloaded)
+    found.path.parent.mkdir(parents=True, exist_ok=True)
+    return download_artifact(sidecar.artifact(size, precision), found.path)
 
 
 def open_session(
