@@ -792,6 +792,13 @@ Done:
 - `create_detector(key, execution_provider=...)` of `generic/session.py` maps a catalog entry to a
   generic detector by the `role` of the entry. The capability check of the catalog refuses a
   sidecar that uses a section with no processing module (the dispatch item of stage 1.6).
+- **The public factory.** Added on 2026-11-16. `create_detector(key, **options)` of
+  `core/detectors/factory.py` is the one public factory, and `skellytracker.core.detectors`
+  exports it. An `onnx` key goes to `create_detector` of `generic/session.py`, with the same
+  arguments. `charuco@skellytracker` and `aruco@skellytracker` give the calibration class, with
+  `detect(image)` and `close()`. The charuco option `board` is a `CharucoBoardDefinition` or a
+  mapping of its fields. `core/detectors/calibration.py` holds the board model and the public
+  calibration helpers that are not detectors ([ADR-KE1C](../decisions/entries/KE1C-one-public-detector-factory.md)).
 - `IMPLEMENTED_SECTIONS` of `core/model_spec/sections.py` holds each section, except the four
   sections of `UNIMPLEMENTED_SECTIONS`: `post.object.selection.none`,
   `post.object.selection.top_k`, `post.keypoint.decode.coordinate` and `post.keypoint.bottom_up`.
@@ -1440,7 +1447,11 @@ through the model addition workflow. The stages below are the work of skellytrac
 - charuco and aruco become plain classes with their own frozen config dataclass and `detect(image)`.
   They subclass no base
   ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 4). The
-  calibration demos call these classes.
+  calibration demos call these classes. The public factory `create_detector` keeps its signature
+  and its options, and the result keeps `detect(image)` and `close()`. This stage defines the
+  result type of `detect` of the plain classes. `core/detectors/calibration.py` keeps its names,
+  and `CharucoBoardDefinition` stays a Pydantic model that is not frozen
+  ([ADR-KE1C](../decisions/entries/KE1C-one-public-detector-factory.md)).
 - Move the tests that still apply to the new runtime. The cases of `test_keypoint_bbox_detector.py`
   and `test_detection_stage_hierarchy.py` seed `roi_from_points` vector cases only when their meaning
   is the same ([ADR-3SF2](../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md) item 4). The
@@ -1489,7 +1500,14 @@ these parts:
 - **Charuco.** charuco runs through `detectors`, beside the pipeline, on the same frames. Pipelines
   have no calibration node
   ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 4). Remove the
-  link between charuco and the tracker in the typed recording graph.
+  link between charuco and the tracker in the typed recording graph. freemocap makes the detector
+  with `create_detector("charuco@skellytracker", board=...)` of `skellytracker.core.detectors`,
+  and it imports the board model `CharucoBoardDefinition` and each calibration helper from
+  `skellytracker.core.detectors.calibration`. It imports no module of `calibration_detectors`, no
+  detector class and no config class of a detector. The `TrackerMapping` of this package does not
+  read `CHARUCO_BOARD_MAPPING`: `from_yaml` has no `known_tracker_keypoints` argument, and it
+  does not know the key `passthrough_keypoints_as_landmarks`. The port did not take that
+  `TrackerMapping` change of `sfn26`. The user decides how freemocap reads the mapping ([ADR-KE1C](../decisions/entries/KE1C-one-public-detector-factory.md)).
 - **Resets.** Remove `max_consecutive_misses=10`. `smooth_keypoints` has only `reset_after_ms`, and
   `mediapipe_tasks` has no reset
   ([ADR-6JWJ](pipeline/decisions/entries/6JWJ-mediapipe-video-landmarker-does-not-stick.md)).
