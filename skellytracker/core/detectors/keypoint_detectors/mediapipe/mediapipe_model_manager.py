@@ -26,6 +26,7 @@ POSE_MODEL_URLS: dict[MediapipePoseModelComplexity, str] = {
 
 HAND_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
 FACE_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
+HOLISTIC_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/holistic_landmarker/holistic_landmarker/float16/1/holistic_landmarker.task"
 
 
 def _download_model(url: str, target_path: Path) -> None:
@@ -74,3 +75,7 @@ def get_hand_model_path() -> Path:
 
 def get_face_model_path() -> Path:
     return get_model_path(url=FACE_MODEL_URL)
+
+
+def get_holistic_model_path() -> Path:
+    return get_model_path(url=HOLISTIC_MODEL_URL)
