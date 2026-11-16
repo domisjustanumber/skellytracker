@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 
 from skellytracker.core.model_spec.landmark_schemas import load_landmark_schema_registry
-from skellytracker.core.pipelines.canonical import canonical_names, to_canonical
+from skellytracker.core.pipelines.canonical import canonical_edges, canonical_names, to_canonical
 from skellytracker.core.pipelines.values import Group, InstanceKeypoints
 
 HAND_SCHEMA = """\
@@ -107,6 +107,30 @@ def test_the_group_name_gives_the_side_of_a_one_hand_schema(tmp_path):
     np.testing.assert_allclose(result.xy[0, :3], [[0.0, 0.0], [3.0, 6.0], [10.0, 10.0]])
     np.testing.assert_allclose(result.score[0], [0.9, 0.5, 0.8, 0.0])
     assert np.isnan(result.xy[0, 3]).all()  # each group stands alone: the right tip is missing
+
+
+def test_canonical_edges_rename_each_point_and_leave_out_what_has_no_pair(tmp_path):
+    schema = [
+        "name: Test_Edges", "source: test", "groups:", "  - name: hand", "    points: [root, tip, mid]",
+        "canonical_mapping:", "  hand:", "    wrist: root", "    end: tip", "    centre: [root, tip]", "",
+    ]
+    (tmp_path / "landmark_schemas").mkdir()
+    (tmp_path / "landmark_schemas" / "Test_Edges.yaml").write_bytes(chr(10).join(schema).encode())  # LF line endings
+    names = ("hand/root", "hand/tip", "hand/mid", "face/a", "face/b")
+    groups = [Group("hand", 0, 3, "Test_Edges"), Group("face", 3, 2, None)]
+    assert canonical_names(groups, names, tmp_path) == ("hand/wrist", "hand/end", "hand/centre", "face/a", "face/b")
+    edges = [
+        ("hand/root", "hand/tip"),  # the two points get their canonical names
+        ("hand/tip", "hand/mid"),  # `mid` has no canonical name
+        ("face/a", "face/b"),  # a passthrough group keeps its names
+        ("hand/tip", "hand/root"),  # the pair of the first edge, in the other direction
+        ("hand/root", "hand/root"),  # the two points get one canonical name
+        ("face/b", "hand/root"),
+        ("hand/root", "hand/tip"),  # the pair of the first edge again
+    ]
+    # The result keeps the order of `edges`. The mean point `hand/centre` is in no edge.
+    assert canonical_edges(groups, names, edges, tmp_path) == (("hand/wrist", "hand/end"), ("face/a", "face/b"), ("face/b", "hand/wrist"))
+    assert canonical_edges(groups, names, [], tmp_path) == ()
 
 
 def test_refusals():

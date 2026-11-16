@@ -521,6 +521,9 @@ class _Resolver:
                 entry.update(max_instances=info.max_instances, tracked=info.tracked, instance_source=info.instance_source)
             if info.port_type == "keypoints":
                 entry["edges"] = [list(edge) for edge in info.edges]
+                entry["canonical_edges"] = [
+                    list(edge) for edge in canonical.canonical_edges(info.groups, info.point_names, info.edges, self.user_root)
+                ]
             schema[name] = entry
         return schema
 

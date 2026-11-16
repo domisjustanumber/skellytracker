@@ -119,6 +119,30 @@ def canonical_names(
     return _plan(_groups(groups), tuple(point_names), user_root).names
 
 
+def canonical_edges(
+    groups: Sequence[Group | Mapping[str, Any]],
+    point_names: Sequence[str],
+    edges: Sequence[Sequence[str]],
+    user_root: Path | None = None,
+) -> tuple[tuple[str, str], ...]:
+    """Return the `canonical_edges` of an output with these `groups`, `point_names` and `edges`.
+
+    Each point that the canonical form copies or renames gets its canonical name. The result keeps
+    the order of `edges`. It leaves out an edge with a point that has no canonical name, an edge
+    whose two points get one canonical name, and a pair that an earlier edge gave, in either
+    direction. A mean or a weighted canonical point is in no edge.
+    """
+    plan = _plan(_groups(groups), tuple(point_names), user_root)
+    renamed: dict[str, str] = {}
+    for target, source in plan.copies:
+        renamed.setdefault(point_names[source], plan.names[target])
+    kept: dict[frozenset[str], tuple[str, str]] = {}
+    for start, end in edges:
+        if start in renamed and end in renamed and renamed[start] != renamed[end]:
+            kept.setdefault(frozenset((renamed[start], renamed[end])), (renamed[start], renamed[end]))
+    return tuple(kept.values())
+
+
 def to_canonical(keypoints_value: InstanceKeypoints, output_schema: Mapping[str, Any], *, user_root: Path | None = None) -> CanonicalKeypoints:
     """Return the canonical form of the value of one `keypoints` output.
 

@@ -80,6 +80,7 @@ def test_the_output_schema_of_two_models_comes_from_the_sidecars(root: Path) -> 
             "tracked": False,
             "instance_source": "person",
             "edges": [["body/a", "body/b"], ["body/b", "body/c"]],
+            "canonical_edges": [["body/a", "body/b"], ["body/b", "body/c"]],
         },
         "person_box": {"port_type": "detections", "class_names": ["person"], "max_instances": 2, "tracked": False, "instance_source": "person"},
         "person_roi": {"port_type": "roi", "max_instances": 2, "tracked": False, "instance_source": "person"},
@@ -105,6 +106,9 @@ def test_the_output_schema_of_mediapipe_holistic_tasks(tmp_path: Path) -> None:
     resolved = resolve(load_pipeline_file(PACKAGE_PIPELINE_ROOT / "mediapipe-holistic-tasks.pipeline.yaml"), tmp_path)
     schema = resolved.output_schema["holistic"]
     assert len(schema["point_names"]) == 553 and schema["canonical_names"] == schema["point_names"]
+    # Each group passes through, so each edge keeps its names.
+    assert schema["canonical_edges"] == schema["edges"] and len(schema["edges"]) == 213
+    assert all(point in schema["canonical_names"] for edge in schema["canonical_edges"] for point in edge)
     assert [(group["name"], group["count"], group["landmark_schema"]) for group in schema["groups"]] == [
         ("body", 33, None), ("right_hand", 21, None), ("left_hand", 21, None), ("face", 478, None),
     ]
@@ -130,6 +134,10 @@ def test_the_output_schema_of_yolox_rtmw_wholebody_with_the_package_sidecars(tmp
     assert len(schema["wholebody"]["canonical_names"]) == 137 and schema["wholebody"]["geometry"] == "2d"
     assert "depth_unit" not in schema["wholebody"]
     assert schema["wholebody"]["edges"] and all(a in names and b in names for a, b in schema["wholebody"]["edges"])
+    canonical_edges = schema["wholebody"]["canonical_edges"]
+    assert len(canonical_edges) == len(schema["wholebody"]["edges"]) == 65
+    assert all(point in schema["wholebody"]["canonical_names"] for edge in canonical_edges for point in edge)
+    assert ["body/left_ankle", "body/left_big_toe"] in canonical_edges and ["left_hand/wrist", "left_hand/thumb_cmc"] in canonical_edges
     assert schema["person_box"]["class_names"] == ["person"] and schema["person_roi"]["port_type"] == "roi"
     assert [(schema[name]["instance_source"], schema[name]["max_instances"]) for name in ("wholebody", "person_box", "person_roi")] == [("person", 1)] * 3
     assert resolved.nodes["person"].model.decode.nms.post_nms_top_k == 1
