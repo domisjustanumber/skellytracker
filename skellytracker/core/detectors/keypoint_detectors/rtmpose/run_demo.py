@@ -80,7 +80,7 @@ def build_rtmpose_demo(
     stage = DetectionStageConfig(
         name="wholebody",
         object_detector=object_detector_config,
-        keypoint_detectors=[RTMPoseDetectorConfig(model_name=model_name)],
+        keypoint_detectors=[RTMPoseDetectorConfig(model_name=model_name, confidence_threshold=0.4)],
         # The box values of freemocap: a detection each 150 frames, else the box
         # around the keypoints of the previous frame, with the size floors.
         bbox_policy=BBoxPolicyConfig(
