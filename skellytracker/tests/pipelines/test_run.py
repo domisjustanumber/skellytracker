@@ -11,7 +11,7 @@ import pytest
 pytest.importorskip("onnx", reason="onnx not installed")
 
 import skellytracker.core.pipelines as pipelines  # noqa: E402
-from skellytracker.core.errors import CallRefused, RunClosedError, SetParamsRefused, VRAMExhaustionError  # noqa: E402
+from skellytracker.core.errors import CallRefusedError, RunClosedError, SetParamsRefusedError, VRAMExhaustionError  # noqa: E402
 from skellytracker.core.pipelines import Frame, PipelineRun, load_pipeline, start_pipeline  # noqa: E402
 from skellytracker.tests.pipelines.pipeline_models import KEYPOINT_KEY, OBJECT_KEY, detector_pipeline, image, isolate, write_models  # noqa: E402
 
@@ -90,7 +90,7 @@ def test_v_pipeline_running_2_a_video_or_image_call_gives_a_frame_for_each_camer
     good = {camera: Frame(image(1), 0) for camera in cameras}
     with start(root, camera_ids=cameras, running_mode=mode) as run:
         for bad in ({}, {**good, "x": Frame(image(1), 0)}, {"x": Frame(image(1), 0)}, *([{"a": Frame(image(1), 0)}] if mode == "video" else [])):
-            with pytest.raises(CallRefused, match="V-pipeline.running-2") as error:
+            with pytest.raises(CallRefusedError, match="V-pipeline.running-2") as error:
                 run.process_batch(bad)
             assert error.value.rule == "V-pipeline.running-2"
         assert list(run.process_batch(good)) == cameras  # the run accepts the next call
@@ -100,7 +100,7 @@ def test_v_pipeline_running_2_a_video_or_image_call_gives_a_frame_for_each_camer
 def test_v_pipeline_running_2_a_live_call_gives_a_frame_for_one_or_more_cameras_of_the_run(root: Path) -> None:
     with start(root, camera_ids=["a", "b"], running_mode="live") as run:
         for bad in ({}, {"x": Frame(image(1), 0, 0.0)}, {"a": Frame(image(1), 0, 0.0), "x": Frame(image(1), 0, 0.0)}):
-            with pytest.raises(CallRefused, match="V-pipeline.running-2"):
+            with pytest.raises(CallRefusedError, match="V-pipeline.running-2"):
                 run.process_batch(bad)
         assert list(run.process_batch({"b": Frame(image(1), 0, 0.0)})) == ["b"]
 
@@ -197,7 +197,7 @@ def test_v_pipeline_running_10_set_params_refuses_a_bad_node_a_bad_param_and_a_b
 ) -> None:
     with start(root, params_pipeline()) as run:
         before = dict(run._executor.params)
-        with pytest.raises(SetParamsRefused, match="(?s)V-pipeline.running-10: .*" + match):
+        with pytest.raises(SetParamsRefusedError, match="(?s)V-pipeline.running-10: .*" + match):
             run.set_params(node_id, params)
         assert all(run._executor.params[key] is value for key, value in before.items())
         np.testing.assert_allclose(run.process(Frame(image(1), 0))["box"].rois[0, 2:4], [5, 20 / 3])  # the box with expand_ratio 1.0
@@ -208,7 +208,7 @@ def test_v_pipeline_running_10_set_params_is_refused_after_the_first_call_in_vid
         with start(root, params_pipeline(), running_mode=mode) as run:
             run.set_params("box", {"expand_ratio": 2.0})  # before the first call: each mode takes it
             run.process(Frame(image(1), 0))
-            with pytest.raises(SetParamsRefused, match=f"V-pipeline.running-10: after the first call.*`{mode}`"):
+            with pytest.raises(SetParamsRefusedError, match=f"V-pipeline.running-10: after the first call.*`{mode}`"):
                 run.set_params("box", {"expand_ratio": 3.0})
             assert run._executor.params["box"].expand_ratio == 2.0
 
@@ -217,7 +217,7 @@ def test_v_pipeline_running_10_set_params_is_refused_after_the_first_call_in_liv
     with start(root, params_pipeline(tap=True), running_mode="live", tap_dir=tmp_path / "taps") as run:
         run.set_params("box", {"expand_ratio": 2.0})  # before the first frame, also with a record tap
         run.process(Frame(image(1), 0, 0.0))
-        with pytest.raises(SetParamsRefused, match="V-pipeline.running-10: after the first call.*1 record taps"):
+        with pytest.raises(SetParamsRefusedError, match="V-pipeline.running-10: after the first call.*1 record taps"):
             run.set_params("box", {"expand_ratio": 3.0})
         assert run._executor.params["box"].expand_ratio == 2.0
 
@@ -378,9 +378,10 @@ def test_two_runs_with_mediapipe_call_at_the_same_time_on_two_threads(test_image
 
 def test_the_package_exports_the_public_api() -> None:
     names = {
-        "list_pipelines", "find_pipeline", "load_pipeline", "check_pipeline", "export_pipeline", "list_node_types", "start_pipeline",
+        "list_pipelines", "get_pipeline", "load_pipeline", "check_pipeline", "export_pipeline", "list_node_types", "start_pipeline",
         "PipelineRun", "Frame", "PipelineEntry", "PipelineWarning", "PipelineCheck", "PipelineConfig", "InstanceKeypoints", "InstanceBoxes",
-        "InstanceRois", "to_canonical", "CanonicalKeypoints", "annotate", "MissingDependencyError", "CallRefused", "SetParamsRefused",
+        "InstanceRois", "to_canonical", "CanonicalKeypoints", "annotate", "MissingDependencyError", "CallRefusedError", "SetParamsRefusedError",
         "RunClosedError",
     }
     assert names <= set(pipelines.__all__) and all(hasattr(pipelines, name) for name in pipelines.__all__)
+    assert not any(hasattr(pipelines, old) for old in ("find_pipeline", "CallRefused", "SetParamsRefused"))  # no alias for an old name

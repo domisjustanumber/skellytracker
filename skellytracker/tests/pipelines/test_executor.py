@@ -10,7 +10,7 @@ import pytest
 
 pytest.importorskip("onnx", reason="onnx not installed")
 
-from skellytracker.core.errors import CallRefused  # noqa: E402
+from skellytracker.core.errors import CallRefusedError  # noqa: E402
 from skellytracker.core.pipelines import Frame, load_pipeline, start_pipeline, timing  # noqa: E402
 from skellytracker.core.pipelines._runtime import node_smooth_keypoints  # noqa: E402
 from skellytracker.core.pipelines._runtime.executor import Executor  # noqa: E402
@@ -225,7 +225,7 @@ def test_v_pipeline_running_6_a_live_frame_with_no_timestamp_refuses_the_call_an
         first = run.process_batch(frames_of(0, sizes, timestamp_ms=0.0))
         before = snapshot(run)
         bad = {"a": Frame(image(1), 1, 1000.0), "b": Frame(image(1, 64, 64), 1)}  # `a` is good, `b` has no timestamp_ms
-        with pytest.raises(CallRefused, match="V-pipeline.running-6") as error:
+        with pytest.raises(CallRefusedError, match="V-pipeline.running-6") as error:
             run.process_batch(bad)
         assert error.value.rule == "V-pipeline.running-6" and same(before, snapshot(run))
         # The run accepts the next call. 10 is after 0 and before 1000: the refused call did not move the time of `a`.
@@ -240,7 +240,7 @@ def test_v_pipeline_running_7_a_video_camera_that_stops_to_give_timestamps_refus
         run.process_batch({"a": Frame(image(1), 0, 5.0), "b": Frame(image(1, 64, 64), 0)})  # `a` gives timestamps, `b` gives none
         before = snapshot(run)
         for bad in ({"a": Frame(image(1), 1), "b": Frame(image(1), 1)}, {"a": Frame(image(1), 1, 9.0), "b": Frame(image(1), 1, 9.0)}):
-            with pytest.raises(CallRefused, match="V-pipeline.running-7") as error:
+            with pytest.raises(CallRefusedError, match="V-pipeline.running-7") as error:
                 run.process_batch(bad)
             assert error.value.rule == "V-pipeline.running-7" and same(before, snapshot(run))
         after = run.process_batch({"a": Frame(image(1), 1, 6.0), "b": Frame(image(1, 64, 64), 1)})
@@ -256,7 +256,7 @@ def test_v_node_smooth_keypoints_3_a_timestamp_that_does_not_increase_refuses_th
         run.process_batch(frames_of(0, sizes, timestamp_ms=100.0))
         before = snapshot(run)
         for late in (100.0, 50.0):  # `a` is good, `b` does not increase
-            with pytest.raises(CallRefused, match="V-node.smooth_keypoints-3") as error:
+            with pytest.raises(CallRefusedError, match="V-node.smooth_keypoints-3") as error:
                 run.process_batch({"a": Frame(image(1), 1, 5000.0), "b": Frame(image(1, 64, 64), 1, late)})
             assert error.value.rule == "V-node.smooth_keypoints-3" and same(before, snapshot(run))
         after = run.process_batch(frames_of(1, sizes, timestamp_ms=101.0))
@@ -266,7 +266,7 @@ def test_v_node_smooth_keypoints_3_a_timestamp_that_does_not_increase_refuses_th
 def test_a_video_camera_with_no_timestamps_must_give_a_frame_index_that_increases(root: Path) -> None:
     with start(root, prev_pipeline()) as run:
         run.process(Frame(image(1), 3))
-        with pytest.raises(CallRefused, match="V-node.smooth_keypoints-3"):
+        with pytest.raises(CallRefusedError, match="V-node.smooth_keypoints-3"):
             run.process(Frame(image(1), 3))  # frame_index x 1000 / fps does not increase
         assert run.process(Frame(image(1), 4))["timestamp_ms"] == pytest.approx(4000 / 30)
 
@@ -287,7 +287,7 @@ def test_a_node_that_refuses_a_timestamp_after_other_nodes_ran_refuses_the_call_
         first = run.process_batch(frames_of(0, sizes, timestamp_ms=0.0))
         before = snapshot(run)
         refuse.append(True)
-        with pytest.raises(CallRefused, match="smooth: camera 'b': V-node.smooth_keypoints-3") as error:
+        with pytest.raises(CallRefusedError, match="smooth: camera 'b': V-node.smooth_keypoints-3") as error:
             run.process_batch(frames_of(1, {"a": 48, "b": 64}, timestamp_ms=1000.0))  # each model ran before the refusal
         assert error.value.rule == "V-node.smooth_keypoints-3" and same(before, snapshot(run))
         refuse.clear()

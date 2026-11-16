@@ -29,7 +29,7 @@ The paths are under `skellytracker/`.
 | `core/model_zoo/` | The package sidecar root, with the spec layout ([Storage layout](../specs/model-sidecar/format/file-layout.md#storage-layout); [ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 5). It holds data only. Git ignores its `.onnx` files, and no wheel or sdist holds them. |
 | `core/model_zoo/detectors/` | The package sidecars `yolox-person` and `rtmw-wholebody133` of OpenMMLab-Exporter, each a byte copy of its [reference example](../specs/model-sidecar/examples/README.md). Their keys are `yolox-person@openmmlab-exporter` and `rtmw-wholebody133@openmmlab-exporter`. Put each ONNX file beside its sidecar by hand. A file with a different SHA-256 is unavailable. |
 | `core/model_zoo/landmark_schemas/` | Landmark schema files of the registry ([Landmark schema](../specs/model-sidecar/post/keypoint/landmark-schema.md); [ADR-23F5](../decisions/entries/23F5-landmark-schema-registry.md)) |
-| `core/pipelines/` | The pipeline API ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 1). `__init__.py` exports it. `config.py` holds `PipelineConfig` and the node configs. Its JSON Schema is the shipped `pipeline.schema.json`. `values.py` holds the values of the ports. `loading.py` holds `load_pipeline`, `check_pipeline` and `export_pipeline`. `catalog.py` holds `list_pipelines` and `find_pipeline`. `nodes.py` holds `list_node_types`. `run.py` holds `start_pipeline`, `PipelineRun` and `Frame`. `canonical.py` holds `to_canonical`. `timing.py` holds the timing events, the header, the hashes and the skellybench aggregator ([ADR-Q59W](../decisions/entries/Q59W-pipeline-timing-and-taps.md)). `annotate.py` holds the generic annotator. `warnings.py` holds `PipelineWarning`. `cli.py` holds the commands `run`, `validate` and `nodes`, and the webcam demo of a pipeline. A plain `import skellytracker.core.pipelines` must load no `onnxruntime` and no `mediapipe`. |
+| `core/pipelines/` | The pipeline API ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 1). `__init__.py` exports it. `config.py` holds `PipelineConfig` and the node configs. Its JSON Schema is the shipped `pipeline.schema.json`. `values.py` holds the values of the ports. `loading.py` holds `load_pipeline`, `check_pipeline` and `export_pipeline`. `catalog.py` holds `list_pipelines` and `get_pipeline`. `nodes.py` holds `list_node_types`. `run.py` holds `start_pipeline`, `PipelineRun` and `Frame`. `canonical.py` holds `to_canonical`. `timing.py` holds the timing events, the header, the hashes and the skellybench aggregator ([ADR-Q59W](../decisions/entries/Q59W-pipeline-timing-and-taps.md)). `annotate.py` holds the generic annotator. `warnings.py` holds `PipelineWarning`. `cli.py` holds the commands `run`, `validate` and `nodes`, and the webcam demo of a pipeline. A plain `import skellytracker.core.pipelines` must load no `onnxruntime` and no `mediapipe`. |
 | `core/pipelines/_runtime/` | The private runtime of the pipeline API: the load checks that need the sidecars (`resolve.py`), the executor (`executor.py`), the sessions (`sessions.py`), the taps (`taps.py`), and one module for each node type (`onnx_model.py`, `mediapipe_tasks.py`, `node_<type>.py`). Import nothing from it outside `core/pipelines/`. Do not import the old loader, the old processing modules, `core/tracker/`, `core/sessions/`, `core/annotation/` or the old detector contract in them. |
 | `core/model_zoo/pipelines/` | The built-in pipeline files `yolox-rtmw-wholebody` and `mediapipe-holistic-tasks` ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 3). A shipped file must pin the `sidecar_sha256` of each `onnx_model` node ([ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 10). |
 | `core/errors.py` | The errors of `eps` and of the pipeline runtime, and the exit-code table of the CLIs ([ADR-D8DH](../decisions/entries/D8DH-sessions-errors-and-the-ready-rule.md) items 1 and 2). The old `core/sessions/session_errors.py` is a different module. |
@@ -135,6 +135,45 @@ these rules ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test
 - Keep only the code that parses and resolves sidecars in `core/sidecar/`. `runtime.py` holds only
   `sidecar_model_spec`.
 - Do not write migration history in a docstring. Write it in a decision entry or a commit message.
+
+Public names. These rules apply to each name of the public surface: the entry points `detectors`,
+`pipelines` and `eps`, their records and their errors
+([ADR-0YNA](../decisions/entries/0YNA-public-names-standard-and-four-renames.md)).
+
+1. Use the case of PEP 8: `snake_case` for a function, a method and a field, `CapWords` for a
+   class, and `UPPER_CASE` for a constant.
+2. The name of each exception class must end in `Error`, for example `CallRefusedError` and
+   `SetParamsRefusedError`.
+3. An exception name is `<Subject><State>Error`. Its base is the built-in class that a caller
+   catches: `KeyError` for a thing that is not found, `ValueError` for a refused input and
+   `RuntimeError` for a state.
+4. A module function is `verb_subject`. A bare verb is allowed only when the namespace names the
+   object (`eps.install`) or the first argument is the object (`annotate(image, ...)`).
+5. Use one verb for one act in each entry point:
+   - `list_`: all entries.
+   - `get_`: one entry by its key or its pin. It raises `<Subject>NotFoundError`
+     (`get_detector`, `get_pipeline`).
+   - `describe_`: the details of one entry.
+   - `load_`: parse into a config or a model.
+   - `check_`: run the rules and return the result.
+   - `create_`: make an object.
+   - `start_`: make an object that holds resources and has `close()`.
+   - `export_` and `to_`: write or convert.
+6. A catalog row is `<Subject>Entry`. It has `key`, `version`, `available`, `unavailable_reason`
+   and `superseded`.
+7. A function result in an entry point is `<Subject><Act-noun>` (`DetectorDescription`,
+   `PipelineCheck`). In `eps`, where the act has no subject, it is `<Act>Result`.
+8. A boolean is an adjective or a participle with no prefix (`available`, `downloaded`, `usable`).
+   Use `is_<noun>` only when the bare word is a noun. Use `needs_<noun>` or `uses_<noun>` for a
+   relation (`needs_execution_provider`, `uses_gpu`).
+9. A collection has a plural name, and one item has a singular name. An array with one value for
+   each element keeps the name of the spec.
+10. One concept has one field name in each type, for example `point_names` in a `keypoints` value
+    and in `CanonicalKeypoints`.
+11. For an EP: a public parameter that takes the EP key is `execution_provider`. A compound name
+    takes the prefix `ep_`. A CLI flag can be shorter (`--ep`).
+12. To rename a name that a spec or a decision entry fixes, write an entry and change the spec text
+    in the same commit. Add no alias for the old name.
 
 ## Tests
 

@@ -38,7 +38,6 @@ from skellytracker.core.pipelines.warnings import PipelineWarning
 CameraId = str | int
 
 
-# choice: the name and form are not fixed by a text
 @dataclass(frozen=True)
 class Frame:
     """One frame of one camera for one call.
@@ -127,7 +126,7 @@ class PipelineRun:
         In `video` and `image`, `frames` must hold one frame for each camera id of the run. In
         `live`, it holds a frame for one or more camera ids. The result of a camera holds one value
         for each output name, and `frame_index`, `image_width` and `image_height` (ints, in pixels), `timestamp_ms` and
-        `node_ran`. A call that breaks a rule of the call raises `CallRefused`: it changes no
+        `node_ran`. A call that breaks a rule of the call raises `CallRefusedError`: it changes no
         state, and the run accepts the next call. A session that runs out of memory raises
         `VRAMExhaustionError`: the run does not retry the call and does not change the batch. It
         closes the run, so each later call raises `RunClosedError`.
@@ -151,7 +150,7 @@ class PipelineRun:
         The run takes the call in each running mode before the first `process` or `process_batch`
         call. After that call, it takes it only in `live`, and only with no `record` tap. A change
         applies from the next call, to each camera. It resets no node state. A refused call raises
-        `SetParamsRefused` and changes no param.
+        `SetParamsRefusedError` and changes no param.
         """
         with self._lock:
             self._check_open()

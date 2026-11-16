@@ -1,7 +1,7 @@
 """The catalog of the pipeline files (pipeline.file, Behaviour items 6 and 7).
 
     list_pipelines()      # each pipeline file of the two roots
-    find_pipeline(key)    # the entry of `<key>` or of the pin `<key>==<version>`
+    get_pipeline(key)    # the entry of `<key>` or of the pin `<key>==<version>`
 
 The roots are the package root `core/model_zoo/pipelines/` and `<user root>/pipelines/`. The user
 root is the user root of the detector catalog. The catalog takes each file `*.pipeline.yaml`
@@ -14,7 +14,7 @@ plain parse or with no `pipeline_id`: it writes one log line for that file.
 The key rules are the rules of the detector catalog, with its helpers: the newest `source.version`
 of a key wins in PEP 440 order, `<key>==<version>` pins a version, and the source name
 `skellytracker` is reserved for the package root. When two files have the same key and the same
-version, the list shows both files, and `find_pipeline` raises an error that names both paths.
+version, the list shows both files, and `get_pipeline` raises an error that names both paths.
 """
 from __future__ import annotations
 
@@ -135,7 +135,7 @@ def list_pipelines(user_root: Path | str | None = None) -> list[PipelineEntry]:
     return result
 
 
-def find_pipeline(key: str, user_root: Path | str | None = None) -> PipelineEntry:
+def get_pipeline(key: str, user_root: Path | str | None = None) -> PipelineEntry:
     """Return the entry of `<key>` (the newest version) or of the pin `<key>==<version>`.
 
     Raise `PipelineNotFoundError` when the catalog does not have it. Raise
@@ -163,6 +163,6 @@ __all__ = [
     "PipelineEntry",
     "PipelineNotFoundError",
     "PipelineUnavailableError",
-    "find_pipeline",
+    "get_pipeline",
     "list_pipelines",
 ]

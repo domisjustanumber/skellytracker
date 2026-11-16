@@ -84,8 +84,7 @@ class MissingDependencyError(RuntimeError):
         return (type(self), (self.extra, self.node_ids, self.files, self.reason), self.__dict__)
 
 
-# choice: the name is not fixed by a text
-class CallRefused(ValueError):
+class CallRefusedError(ValueError):
     """A `process` or `process_batch` call that the run refuses. The call changes no state. `rule` is the rule ID."""
 
     exit_code = EXIT_USAGE
@@ -99,13 +98,12 @@ class CallRefused(ValueError):
         return (type(self), (self.message, self.rule), self.__dict__)
 
 
-class SetParamsRefused(ValueError):
+class SetParamsRefusedError(ValueError):
     """A `set_params` call that breaks `V-pipeline.running-10`. The call changes no param."""
 
     exit_code = EXIT_USAGE
 
 
-# choice: the name is not fixed by a text
 class RunClosedError(RuntimeError):
     """A call on a run after its `close()`."""
 

@@ -14,7 +14,7 @@ from skellytracker.core.detectors.catalog import load_detector_sidecar
 from skellytracker.core.model_spec.landmark_schemas import load_landmark_schema_registry
 from skellytracker.core.pipelines._runtime import mediapipe_tasks, resolve as resolve_module
 from skellytracker.core.pipelines._runtime.resolve import keypoint_port_info, resolve
-from skellytracker.core.pipelines.catalog import PACKAGE_PIPELINE_ROOT, find_pipeline, list_pipelines
+from skellytracker.core.pipelines.catalog import PACKAGE_PIPELINE_ROOT, get_pipeline, list_pipelines
 from skellytracker.core.pipelines.config import PipelineConfig
 from skellytracker.core.pipelines.loading import check_pipeline, export_pipeline, load_pipeline, load_pipeline_file
 from skellytracker.core.pipelines.values import PortInfo
@@ -438,7 +438,7 @@ def test_an_onnx_file_that_is_absent_gives_the_warning_missing_dependency_and_th
     assert "is not present" in check.warnings[0].message and check.output_schema["body"]["max_instances"] == 1
     (entry,) = [entry for entry in list_pipelines(root) if entry.key == "demo-models@demo-source"]
     assert not entry.available and "demo-n_b3_fp32.onnx" in entry.unavailable_reason and entry.warnings == check.warnings
-    assert find_pipeline("demo-models@demo-source", root) == entry and entry.needs_execution_provider is False
+    assert get_pipeline("demo-models@demo-source", root) == entry and entry.needs_execution_provider is False
 
 
 def test_an_onnx_file_with_a_different_hash_gives_the_warning_missing_dependency(tmp_path: Path) -> None:

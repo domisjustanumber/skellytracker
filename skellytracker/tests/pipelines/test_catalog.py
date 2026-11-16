@@ -13,7 +13,7 @@ from skellytracker.core.pipelines.catalog import (
     PipelineEntry,
     PipelineNotFoundError,
     PipelineUnavailableError,
-    find_pipeline,
+    get_pipeline,
     list_pipelines,
 )
 from skellytracker.core.pipelines.loading import load_pipeline
@@ -49,8 +49,8 @@ def test_the_catalog_finds_the_files_of_the_package_root_and_of_the_user_root(pa
         PipelineEntry("built-in@skellytracker", "2.0.0", built_in, "A text.", True, needs_execution_provider=False),
         PipelineEntry(KEY, "1.0.0", mine, "", True, needs_execution_provider=False),
     ]
-    assert find_pipeline(KEY, user).path == mine
-    assert find_pipeline(KEY, user).warnings == ()
+    assert get_pipeline(KEY, user).path == mine
+    assert get_pipeline(KEY, user).warnings == ()
 
 
 def test_the_user_root_comes_from_the_environment_variable(package: Path, user: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -67,31 +67,31 @@ def test_the_newest_version_of_a_key_wins_in_pep_440_order(package: Path, user: 
     entries = list_pipelines(user)
     assert [(entry.version, entry.path, entry.superseded) for entry in entries] == [("1.10.0rc1", new, False), ("1.9.0", old, True)]
     assert all(entry.available for entry in entries)
-    assert find_pipeline(KEY, user).path == new
+    assert get_pipeline(KEY, user).path == new
     assert load_pipeline(KEY, user_root=user).source.version == "1.10.0rc1"
 
 
 def test_a_pin_wins_over_the_newest_version(package: Path, user: Path) -> None:
     old = write(package, version("1.9.0"))
     write(user / "pipelines", version("1.10.0"))
-    assert find_pipeline(f"{KEY}==1.9.0", user).path == old
-    assert find_pipeline(f"{KEY}==1.9", user).path == old  # the same PEP 440 version
+    assert get_pipeline(f"{KEY}==1.9.0", user).path == old
+    assert get_pipeline(f"{KEY}==1.9", user).path == old  # the same PEP 440 version
     assert load_pipeline(f"{KEY}==1.9.0", user_root=user).source.version == "1.9.0"
     with pytest.raises(PipelineNotFoundError, match="no version '3.0.0'"):
-        find_pipeline(f"{KEY}==3.0.0", user)
+        get_pipeline(f"{KEY}==3.0.0", user)
 
 
 def test_a_key_that_the_catalog_does_not_have_is_not_found(package: Path, user: Path) -> None:
     write(user / "pipelines", BASE)
     with pytest.raises(PipelineNotFoundError, match="no entry 'other@demo-source'"):
-        find_pipeline("other@demo-source", user)
+        get_pipeline("other@demo-source", user)
     with pytest.raises(KeyError):
         load_pipeline("other@demo-source", user_root=user)
 
 
 def test_the_source_name_skellytracker_is_reserved_for_the_package_root(package: Path, user: Path) -> None:
     write(package, version("2.0.0", "skellytracker"))
-    assert find_pipeline("demo@skellytracker", user).available
+    assert get_pipeline("demo@skellytracker", user).available
     (package / "demo.pipeline.yaml").unlink()
     path = write(user / "pipelines", version("2.0.0", "skellytracker"))
     (entry,) = list_pipelines(user)
@@ -111,8 +111,8 @@ def test_the_same_key_and_version_in_two_files_is_an_error_that_names_both_paths
     assert str(first) in str(error.value) and str(second) in str(error.value)
     assert load_pipeline(second) == load_pipeline(BASE)  # a load by path always works
     write(user / "pipelines", version("1.0.1"))
-    assert find_pipeline(KEY, user).path == second
-    assert find_pipeline(f"{KEY}==1.0.0", user).path == first
+    assert get_pipeline(KEY, user).path == second
+    assert get_pipeline(f"{KEY}==1.0.0", user).path == first
 
 
 def test_a_file_that_does_not_load_is_in_the_list_with_the_reason(package: Path, user: Path) -> None:

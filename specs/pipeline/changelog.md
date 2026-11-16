@@ -29,6 +29,7 @@ the lines is the form of the [sidecar changelog](../model-sidecar/changelog.md#r
 | 19 | Outputs | The output schema of a `keypoints` output has the new field `canonical_edges`: the pairs of `edges` in canonical names, in the order of `edges`. A point with two or more canonical names takes the first. A computed canonical point is in no edge. An edge with a point that has no canonical name, an edge whose two points get the same canonical name and a repeated pair are left out. | [ADR-QD6G](../../decisions/entries/QD6G-canonical-edges-in-the-output-schema.md) | [Outputs](outputs.md#behaviour) |
 | 20 | Running | A run with two or more GPUs splits its cameras by the VRAM that it can use on each GPU: the free VRAM at start minus the VRAM reserve, else the total VRAM minus the reserve, else equal weights. The counts come from the largest-remainder method, with a tie to the earlier GPU. Each GPU that the run uses gets one camera or more. The cameras go to the GPUs in blocks, in the order of the camera ids. The weights by the warm-up speed of each GPU go. | [ADR-AMF7](../../decisions/entries/AMF7-camera-split-by-vram.md) | [Running](running.md#behaviour) |
 | 21 | Running | An out-of-memory error of a session during a call raises `VRAMExhaustionError`. The run does not do the call again and does not change the batch. The run is then closed, and each later call raises an error. | [ADR-2V7Q](../../decisions/entries/2V7Q-out-of-memory-during-a-call.md) | [Running](running.md#behaviour) |
+| 22 | Running | The error of a refused `set_params` call is now `SetParamsRefusedError`. The name `SetParamsRefused` goes, with no alias. | [ADR-0YNA](../../decisions/entries/0YNA-public-names-standard-and-four-renames.md) | [Running](running.md#behaviour) |
 
 ## Revisions
 
@@ -71,3 +72,4 @@ Each version heading has these lines:
 - Row 19: `6349a06d81b97eede570ab82efa456fcd258d2b7fae172f10a8be0e166ab7d44`.
 - Row 20: `6349a06d81b97eede570ab82efa456fcd258d2b7fae172f10a8be0e166ab7d44`.
 - Row 21: `6349a06d81b97eede570ab82efa456fcd258d2b7fae172f10a8be0e166ab7d44`.
+- Row 22: `6349a06d81b97eede570ab82efa456fcd258d2b7fae172f10a8be0e166ab7d44`.

@@ -40,9 +40,9 @@ def test_the_errors_of_the_pipeline_runtime():
     assert "V-pipeline.running-3" in str(missing) and "holistic" in str(missing) and "`mediapipe`" in str(missing)
     file = errors.MissingDependencyError(None, ("person", "body"), ("a.onnx",), "the file is absent")
     assert "person, body" in str(file) and "a.onnx" in str(file) and "the file is absent" in str(file)
-    refused = errors.CallRefused("V-pipeline.running-6: no timestamp_ms", "V-pipeline.running-6")
+    refused = errors.CallRefusedError("V-pipeline.running-6: no timestamp_ms", "V-pipeline.running-6")
     assert isinstance(refused, ValueError) and refused.rule == "V-pipeline.running-6" and errors.exit_code_of(refused) == 2
-    assert issubclass(errors.SetParamsRefused, ValueError) and errors.exit_code_of(errors.SetParamsRefused("x")) == 2
+    assert issubclass(errors.SetParamsRefusedError, ValueError) and errors.exit_code_of(errors.SetParamsRefusedError("x")) == 2
     assert issubclass(errors.RunClosedError, RuntimeError) and errors.exit_code_of(errors.RunClosedError("x")) == 1
     assert errors.exit_code_of(missing) == 1
 
@@ -52,8 +52,8 @@ def test_the_errors_of_the_pipeline_runtime():
     [
         errors.MissingDependencyError("mediapipe", ["holistic"]),
         errors.MissingDependencyError(None, ("person",), ("a.onnx",), "the file is absent"),
-        errors.CallRefused("V-pipeline.running-7: mixed", "V-pipeline.running-7"),
-        errors.SetParamsRefused("V-pipeline.running-10: no"),
+        errors.CallRefusedError("V-pipeline.running-7: mixed", "V-pipeline.running-7"),
+        errors.SetParamsRefusedError("V-pipeline.running-10: no"),
         errors.RunClosedError("the pipeline run is closed"),
     ],
 )

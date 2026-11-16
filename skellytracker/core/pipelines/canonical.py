@@ -26,8 +26,8 @@ from skellytracker.core.pipelines.values import Group, InstanceKeypoints
 class CanonicalKeypoints:
     """The canonical form of one `keypoints` value: `I` rows, each with `C` canonical points."""
 
-    names: tuple[str, ...]
-    """``(C,)``: the `canonical_names` of the output schema."""
+    point_names: tuple[str, ...]
+    """``(C,)``: the `canonical_names` of the output schema. The field has the name of the field of a `keypoints` value."""
     xy: NDArray[np.float64]
     """``(I, C, 2)``: x and y of each point, in source-image pixels. A missing point is NaN."""
     score: NDArray[np.float64]

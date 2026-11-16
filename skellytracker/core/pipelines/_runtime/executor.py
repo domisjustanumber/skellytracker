@@ -20,7 +20,7 @@ from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from skellytracker.core.errors import CallRefused, SetParamsRefused
+from skellytracker.core.errors import CallRefusedError, SetParamsRefusedError
 from skellytracker.core.pipelines import timing as timing_module
 from skellytracker.core.pipelines._runtime import mediapipe_tasks, onnx_model, sessions, taps
 from skellytracker.core.pipelines._runtime.context import FrameContext
@@ -265,7 +265,7 @@ class Executor:
         unknown = [camera_id for camera_id in frames if camera_id not in self.prev]
         missing = [camera_id for camera_id in self.camera_ids if camera_id not in frames]
         if unknown or not frames or (missing and mode != "live"):
-            raise CallRefused(
+            raise CallRefusedError(
                 f"V-pipeline.running-2: a call in `{mode}` must give a frame for "
                 f"{'one or more camera ids' if mode == 'live' else 'each camera id'} of the run {self.camera_ids}, and for no other id; "
                 f"it got {list(frames)}", "V-pipeline.running-2",
@@ -277,22 +277,22 @@ class Executor:
             frame = frames[camera_id]
             given = frame.timestamp_ms
             if self.image_ids is not None and not 0 <= frame.frame_index < len(self.image_ids):
-                raise CallRefused(f"the frame_index {frame.frame_index} is not an image of the image list of the run")
+                raise CallRefusedError(f"the frame_index {frame.frame_index} is not an image of the image list of the run")
             if mode == "image":
                 found[camera_id] = None
                 continue
             if mode == "live" and given is None:
-                raise CallRefused(f"V-pipeline.running-6: camera {camera_id!r}: each frame must have a timestamp_ms in `live`", "V-pipeline.running-6")
+                raise CallRefusedError(f"V-pipeline.running-6: camera {camera_id!r}: each frame must have a timestamp_ms in `live`", "V-pipeline.running-6")
             before = self.gives_timestamp[camera_id]
             if mode == "video" and before is not None and before != (given is not None):
-                raise CallRefused(
+                raise CallRefusedError(
                     f"V-pipeline.running-7: camera {camera_id!r}: a camera must give a timestamp_ms on each of its frames or on none; "
                     f"this frame {'has one' if given is not None else 'has none'}", "V-pipeline.running-7",
                 )
             timestamp = float(given) if given is not None else frame.frame_index * 1000.0 / self.fps
             last = self.last_timestamp[camera_id]
             if last is not None and not timestamp > last:
-                raise CallRefused(f"{TIMESTAMP_RULE}: camera {camera_id!r}: timestamp_ms must increase: got {timestamp} after {last}", TIMESTAMP_RULE)
+                raise CallRefusedError(f"{TIMESTAMP_RULE}: camera {camera_id!r}: timestamp_ms must increase: got {timestamp} after {last}", TIMESTAMP_RULE)
             found[camera_id] = timestamp
         return found
 
@@ -323,7 +323,7 @@ class Executor:
         """Run one call: one frame for each camera of the call. Return the result of each camera.
 
         A frame has `image`, `frame_index` and `timestamp_ms`. A call that breaks a rule of the
-        call raises `CallRefused` before a node runs.
+        call raises `CallRefusedError` before a node runs.
         """
         clock = time.perf_counter_ns
         start = clock()
@@ -362,7 +362,7 @@ class Executor:
                         )
                     except ValueError as exc:
                         if str(exc).startswith(TIMESTAMP_RULE):
-                            raise CallRefused(f"{node_id}: camera {camera_id!r}: {exc}", TIMESTAMP_RULE) from exc
+                            raise CallRefusedError(f"{node_id}: camera {camera_id!r}: {exc}", TIMESTAMP_RULE) from exc
                         raise
                     new_states[(camera_id, node_id)] = state
                     values[camera_id].update({(node_id, port): value for port, value in outputs.items()})
@@ -424,18 +424,18 @@ class Executor:
     # ---- params during a run --------------------------------------------------------------
 
     def set_params(self, node_id: str, params: Mapping[str, Any]) -> None:
-        """Set params of one node (pipeline.running, Behaviour item 11). A refused call raises `SetParamsRefused` and changes no param."""
+        """Set params of one node (pipeline.running, Behaviour item 11). A refused call raises `SetParamsRefusedError` and changes no param."""
         rule = "V-pipeline.running-10"
         if node_id not in self.resolved.nodes:
-            raise SetParamsRefused(f"{rule}: {node_id!r} is not a node of the run")
+            raise SetParamsRefusedError(f"{rule}: {node_id!r} is not a node of the run")
         fields = type(self.params[node_id]).model_fields
         for name in params:
             if name not in fields:
-                raise SetParamsRefused(f"{rule}: {name!r} is not a param of the node {node_id} ({self.resolved.nodes[node_id].type})")
+                raise SetParamsRefusedError(f"{rule}: {name!r} is not a param of the node {node_id} ({self.resolved.nodes[node_id].type})")
             if not (fields[name].json_schema_extra or {}).get("set_during_run"):
-                raise SetParamsRefused(f"{rule}: the param {name!r} of the node {node_id} cannot change during a run")
+                raise SetParamsRefusedError(f"{rule}: the param {name!r} of the node {node_id} cannot change during a run")
         if self.calls and (self.running_mode != "live" or self.records):
-            raise SetParamsRefused(
+            raise SetParamsRefusedError(
                 f"{rule}: after the first call, a run takes set_params only in `live` and with no record tap; "
                 f"this run is in `{self.running_mode}` and has {len(self.records)} record taps"
             )
@@ -445,9 +445,9 @@ class Executor:
         try:  # the whole config, as the load checks it: the type, the range and the rules of the params
             changed = resolve(PipelineConfig.model_validate(data), self.resolved.user_root)
         except ValueError as exc:
-            raise SetParamsRefused(f"{rule}: {node_id}: {exc}") from exc
+            raise SetParamsRefusedError(f"{rule}: {node_id}: {exc}") from exc
         if changed.nodes[node_id].outputs_info != self.resolved.nodes[node_id].outputs_info:
-            raise SetParamsRefused(f"{rule}: {node_id}: the change would change the facts of the ports of the node")
+            raise SetParamsRefusedError(f"{rule}: {node_id}: the change would change the facts of the ports of the node")
         self.config = changed.config
         self.params[node_id] = changed.nodes[node_id].node.params
         self.infos[node_id] = changed.nodes[node_id].infos

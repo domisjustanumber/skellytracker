@@ -59,7 +59,7 @@ def check_result(run: Any, result: dict[str, Any], image: np.ndarray) -> None:
     good = points.xy[0, points.score[0] > 0.4]  # the crop ROI holds the points of the person
     assert (np.abs(good - [cx, cy]) <= [w / 2, h / 2]).all(axis=1).mean() > 0.9
     canonical = to_canonical(points, schema)
-    assert len(canonical.names) == 137 and canonical.xy.shape == (1, 137, 2) and canonical.z is None and list(canonical.names) == schema["canonical_names"]
+    assert len(canonical.point_names) == 137 and canonical.xy.shape == (1, 137, 2) and canonical.z is None and list(canonical.point_names) == schema["canonical_names"]
     drawn = annotate(image, result, run.output_schema)
     assert drawn.shape == image.shape and drawn.dtype == np.uint8 and (drawn != image).any()
 

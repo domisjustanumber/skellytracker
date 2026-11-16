@@ -112,14 +112,13 @@ def load_pipeline(source: str | Path | Mapping[str, Any], *, user_root: Path | s
     elif isinstance(source, Path) or source.lower().endswith(FILE_SUFFIXES):
         config = load_pipeline_file(source)
     else:
-        from skellytracker.core.pipelines.catalog import find_pipeline  # the catalog imports this module
+        from skellytracker.core.pipelines.catalog import get_pipeline  # the catalog imports this module
 
-        config = load_pipeline_file(find_pipeline(source, user_root).path)
+        config = load_pipeline_file(get_pipeline(source, user_root).path)
     resolve(config, user_root)
     return config
 
 
-# choice: the name and form of the load result are not fixed by a text
 @dataclass(frozen=True)
 class PipelineCheck:
     """The load result of a config: the warnings that are known before a start, and the output schema."""

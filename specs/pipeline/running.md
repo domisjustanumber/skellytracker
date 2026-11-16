@@ -85,7 +85,7 @@ A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api
     - Only a param that the node table marks `yes` in the column "Set during run" can change. The run checks each value against the type and the range of the param, as the load does.
     - The run accepts the call in each running mode before the first `process` or `process_batch` call. After that call, it accepts the call only in `live`, and only when the run has no `record` tap ([Taps](taps.md#behaviour)).
     - A change applies from the next `process` or `process_batch` call, to each camera. It does not reset the state of a node. A param whose change would need a reset is marked `no`.
-    - A call that breaks `V-pipeline.running-10` raises the error `SetParamsRefused`. It changes no param.
+    - A call that breaks `V-pipeline.running-10` raises the error `SetParamsRefusedError`. It changes no param.
 
 ## Validation rules
 

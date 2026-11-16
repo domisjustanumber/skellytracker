@@ -47,7 +47,7 @@ def test_coco_wholebody_has_137_canonical_names_and_no_feet_column():
     assert canonical_names([Group(**group) for group in output_schema["groups"]], value.point_names) == names
 
     result = to_canonical(value, output_schema)
-    assert result.names == names
+    assert result.point_names == names
     assert result.xy.shape == (2, 137, 2) and result.z.shape == (2, 137) and result.score.shape == (2, 137)
     assert result.geometry == value.geometry == "3d"
     # The face group passes through, in the canonical columns.
@@ -71,7 +71,7 @@ def test_a_missing_left_hip_makes_hips_center_missing():
     value.xy[0, hip] = value.z[0, hip] = np.nan
     value.score[0, hip] = 0.0
     result = to_canonical(value, output_schema)
-    names = result.names
+    names = result.point_names
     for name in ("body/left_hip", "body/hips_center", "body/trunk_center"):
         assert np.isnan(result.xy[0, names.index(name)]).all() and result.score[0, names.index(name)] == 0
         assert np.isnan(result.z[0, names.index(name)])  # z of a missing point of a `3d` value is NaN
@@ -86,7 +86,7 @@ def test_a_group_with_a_null_schema_passes_through():
     value = InstanceKeypoints.empty(names, 1)
     value.xy[0, 2] = (1.0, 2.0)
     result = to_canonical(value, {"groups": groups, "canonical_names": names})
-    assert result.names == names and result.groups == tuple(groups)
+    assert result.point_names == names and result.groups == tuple(groups)
     np.testing.assert_array_equal(result.xy, value.xy)
     assert result.z is None and result.geometry == "2d"  # a `2d` value has no z
     np.testing.assert_array_equal(result.score, value.score)

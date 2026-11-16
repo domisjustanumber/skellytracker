@@ -1096,9 +1096,14 @@ Done:
   built-in `yolox-rtmw-wholebody` runs with the real models on the CPU EP, `cuda` and `trt-rtx`.
 - Parity test A passes on each of the 200 frames of the fixture. Report B ran on the CPU EP and on
   `cuda` ([ADR-7E4Z](../decisions/entries/7E4Z-box-parity-of-the-built-in-with-sfn26.md)).
-- The typed error of a refused call is `CallRefused`. A call on a closed run raises
+- The typed error of a refused call is `CallRefusedError`. A call on a closed run raises
   `RunClosedError`. Each run has one lock: the calls on one run are serial, and `close()` waits for
-  the call that runs. The user must confirm these names and the thread rules.
+  the call that runs. The user confirmed the names on 2026-11-16
+  ([ADR-0YNA](../decisions/entries/0YNA-public-names-standard-and-four-renames.md)). The user must
+  confirm the thread rules.
+- `check_pipeline` gives the load warnings and `needs_execution_provider`, in a `PipelineCheck`.
+  `PipelineEntry` also has `needs_execution_provider`. The user confirmed these names on 2026-11-16
+  ([ADR-0YNA](../decisions/entries/0YNA-public-names-standard-and-four-renames.md)).
 
 Open:
 
@@ -1136,9 +1141,6 @@ Open:
   model equal to the committed schema.
 - **Webcam demo.** `python -m skellytracker --pipeline <key>` runs the new path. With no
   `--pipeline`, the command runs the old demo. The user decides when the default changes.
-- **Load result and EP need.** `check_pipeline` gives the load warnings and
-  `needs_execution_provider`. `PipelineEntry` also has `needs_execution_provider`. The user must
-  confirm these names.
 - **Models that the package does not run.** A load refuses a `bottom_up` model, a model with both
   roles and a selection mode that is not `nms`.
 - **Investigations.** The VRAM cost of two runs that overlap, the frame drops in `live` and
@@ -1338,7 +1340,7 @@ This stage implements the node types of the pipeline spec. Use the skill
   schedules the runs or accepts the cost ([ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 6). Study frame drops in `live` mode: a latest-frame mailbox, a count of
   dropped frames, a `drop` timing span and MediaPipe LIVE_STREAM.
 - **Params during a run (the last step).** `PipelineRun.set_params(node_id, params)` and the error
-  `SetParamsRefused` ([Running](pipeline/running.md#behaviour) item 11, `V-pipeline.running-10`;
+  `SetParamsRefusedError` ([Running](pipeline/running.md#behaviour) item 11, `V-pipeline.running-10`;
   [ADR-N5BM](../decisions/entries/N5BM-set-during-run-and-set-params.md)). The run reads the mark
   `set_during_run` of each param from the reference model. A change applies from the next call and
   resets no node state.
