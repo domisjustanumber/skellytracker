@@ -665,109 +665,116 @@ Not in this stage:
 
 ### 1.6 Catalog and the `detectors` entry point (was N3)
 
-**Status: NOT STARTED.**
+**Status: DONE (2026-11-16), with the open items below.** The catalog is
+`core/detectors/catalog.py`, and `core/detectors/__init__.py` exports its API. The heading "Open"
+gives each item that stays.
 
-- The roots (the item "Catalog and roots" below): `core/model_zoo/`, the user root and Hugging Face snapshots. The user root is
-  `platformdirs.user_data_dir("skellytracker", appauthor=False)` + `/models`, with the layout of
-  `core/model_zoo/`. `platformdirs` becomes a direct dependency. skellytracker keeps no settings
-  file. `list_detectors`, `list_pipelines`, `load_pipeline` and `start_pipeline` take
-  `user_root: Path | None`. The order is the argument, then `SKELLYTRACKER_USER_ROOT`, then the
-  default ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 6).
-- The cross-platform tasks:
-  - CRLF: the spec rejects CRLF (`V-format.composition-3`). The error names CRLF.
-  - Symlinks: Hugging Face snapshot files are symlinks into `blobs/`. The new loader does not call
-    `Path.resolve()` on a path in a root, because it follows a symlink out of the root.
-  - Case: each folder name is lower case, as in the layout. The docs say it.
-  - File locks: on Windows, a model update or a Hugging Face refresh closes the sessions first, or
-    writes the new revision beside the old one.
-  - Path length: test a long user name and a non-ASCII user name with ONNX Runtime.
-- The capability check, for each artifact. A user can copy only some sizes or precisions. The
-  item "Capability check and dispatch" below gives the rules.
-- The artifact hash checks below, with the hash check cache.
-- **Hash check cache.** No decision entry records this design. It is plan work.
-  - Reason: `V-common.sizes_and_artifacts-10` requires that each present or downloaded ONNX file
-    has the SHA-256 of its `sha256` field. An ONNX file can have several hundred MB, and the
-    capability check looks at each artifact at each start. A full hash of each file at each start
-    is too slow. Thus the host hashes a file only when it first sees the file and after the file
-    changes.
-  - Record: one record for each hashed file. The key is the sidecar root and the path of the file
-    relative to that root. The fields are `size` (`st_size`), `mtime_ns` (`st_mtime_ns`), `file_id`
-    (`st_dev` and `st_ino`; on Windows, NTFS gives the file index in `st_ino`), `sha256` (lowercase
-    hex) and `checked_at`. The record holds the hash, not a pass or a fail. Thus a changed sidecar
-    `sha256` needs no new hash.
-  - Hit: `size`, `mtime_ns` and `file_id` are equal to the values of the file. The host compares the
-    stored `sha256` with the sidecar `sha256`.
-  - Miss: a field is different, or no record exists. The host reads the file in chunks (for example
-    1 MiB) with `hashlib`, and writes a new record.
-  - Download: the host hashes the bytes while it writes them. It checks `url_sha256` on the
-    downloaded bytes, and `sha256` on the ONNX file that it writes or extracts. Then it writes the
-    record, with no second read.
-  - Location: one file, for example `hash-cache.json`, in the user cache folder of `platformdirs`,
-    beside the download cache. The cache is not in a sidecar root: the package root is read-only,
-    and the Hugging Face hub manages its own cache. A deleted cache file costs only a new hash of
-    each file.
-  - Writes: write the cache to a temporary file in the same folder, then call `os.replace`. Thus a
-    reader never sees a partial file. When several processes write, the last write wins. A cache
-    file that does not parse is an empty cache: log one warning, then write a new cache. An argument
-    and an environment variable force a full hash of each file, for tests and for support.
-  - Limits: the cache finds a corrupt file, a partial download and a wrong file. It does not protect
-    against a local user with write access. FAT32 and exFAT store the modification time in steps of
-    2 s. A file that changes within 2 s, with the same size and the same file id, can hit an old
-    record. Accept this case, and name it in the docstring.
-  - Later, optional: in the Hugging Face cache, the `blobs/` file name of an LFS file is its
-    SHA-256. Compare that name with `sha256` only when it is 64 lowercase hex characters. Hash the
-    file in all other cases.
-  - Spec: add one line to the implementer guidance of `common.sizes_and_artifacts` in a non-spec
-    commit. A host can keep the hash of a file with its size, modification time and file id, and
-    hash the file again when one of these changes.
-  - Tests: a hit; a miss after a change of the size, of the modification time and of the file id; a
-    corrupt cache file; the atomic write; the record that a download writes; the forced full hash.
-- The `detectors` list in `core/detectors`: the catalog entries and a static table of the entries
-  with no sidecar (MediaPipe, charuco, aruco). Each entry has the category `onnx`, `mediapipe` or
-  `calibration` ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md)
-  item 2). An exporter model has the key `<model_id>@<source.name>`. A model of skellytracker has
-  the key `<detector_type>@skellytracker`
-  ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 6). The list does
-  not import a detector module. `keypoint_bbox` and `precomputed` are not in the list
-  ([ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 13).
-- Each entry has `available` and `unavailable_reason`: the extra (`importlib.util.find_spec` with a
-  literal name), the ONNX file and its hash
-  ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 7).
-- `describe_detector(key)` and the CLI `detectors` and `describe`
-  ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 9): the sizes,
-  the precisions, the `sidecar_sha256`, the ports, the params with their sidecar defaults, and the
-  point names.
-- Gate: the catalog tests on temporary roots pass. A test checks that each entry of the static
-  table has a known class.
-- **Trace-tool functions.** Move `tools/sidecar_normalize.py` (the normalization table and the
-  selector matching that the sidecar trace tool uses) into `skellytracker/core/model_spec/` without
-  changes. The trace tool then imports them from the package. The capability check uses the
-  same functions ([ADR-0013](../decisions/entries/0013-spec-structure.md);
-  [`format.versioning`](model-sidecar/format/versioning.md#implementer-guidance)).
-- **Catalog and roots.** The catalog is the `detectors` entry point (stage 1.6). Each entry has the
-  category `onnx`, `mediapipe` or `calibration`
-  ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 2). An
-  exporter model has the key `<model_id>@<source.name>`, and a model of skellytracker has the key
+Done:
+
+- `list_detectors(user_root)` reads the package root `core/model_zoo/` and the user root. The user
+  root is the argument, then `SKELLYTRACKER_USER_ROOT`, then
+  `platformdirs.user_data_dir("skellytracker", appauthor=False)` + `/models`
+  (`resolve_user_root`; [ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 6).
+  `platformdirs` is a direct dependency. `packaging` is also a direct dependency, for the PEP 440
+  order. skellytracker keeps no settings file.
+- `scan_sidecar_roots` finds the sidecars of each root with the discovery rule
+  ([Discovery](model-sidecar/format/file-layout.md#discovery)). It also takes other root folders
+  (`other_roots`): a local folder, a folder with one sidecar and its ONNX files, or the top folder of
+  a Hugging Face snapshot. It gives the user root to the landmark schema registry
+  ([ADR-23F5](../decisions/entries/23F5-landmark-schema-registry.md) item 1). The code calls each
+  root a sidecar root.
+- The cross-platform tasks. The list holds a CRLF sidecar as unavailable, and the reason names CRLF
+  (`V-format.composition-3`). The catalog does not call `Path.resolve()`. A test reads a snapshot of
+  symlinks into `blobs/`, and it skips on a host that cannot make a symlink. The docstring of the
+  catalog says that each folder name is lower case. A test opens an ONNX file under a long folder
+  name with non-ASCII characters with ONNX Runtime.
+- Each entry has the category `onnx`, `mediapipe` or `calibration`
+  ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 2).
+  A sidecar has the key `<model_id>@<source.name>`. An entry with no sidecar has the key
   `<detector_type>@skellytracker`
-  ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 6). Build the
-  version order, the version pins, the reserved name `skellytracker`, the root log and the run
-  metadata ([`common.identity`](model-sidecar/common/identity.md#implementer-guidance)). The roots
-  are `core/model_zoo/`, the user root and Hugging Face repo snapshots (pin, refresh, cache paths
-  without symlink resolution), with discovery in each root
+  ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 6). The static
+  table `STATIC_DETECTORS` holds `mediapipe_pose`, `mediapipe_hand`, `mediapipe_face`, `charuco` and
+  `aruco`. The catalog imports no detector module. `keypoint_bbox` and `precomputed` are not in the
+  list ([ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 13).
+- Each entry has `available` and `unavailable_reason`
+  ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 7): the load
+  of the sidecar, the capability check, the installed package (`importlib.util.find_spec` with a
+  literal name) and the ONNX files. Each artifact of an entry also has `available` and
+  `unavailable_reason`, because a user can copy only some sizes or precisions. An `onnx` entry is
+  available when one artifact or more is available.
+- The capability check. `core/model_spec/sections.py` holds the ID, the kind and the selectors of
+  each spec section, and `IMPLEMENTED_SECTIONS`: the sections that the package runs. A doc test
+  compares the table with the front matter of the section files. `unimplemented_sections` uses
+  `normalize` and `applies` of `core/model_spec/sidecar_normalize.py`, which moved from `tools/`
+  with no change. The trace tool imports it from the package
+  ([ADR-0013](../decisions/entries/0013-spec-structure.md)). `IMPLEMENTED_SECTIONS` holds each
+  `format`, `common` and `schema` section. It holds no `preprocessor` or `postprocessor` section.
+  Stage 1.5 and stage 1.7 add each such section in the commit that adds its processing module.
+  Until then, each sidecar entry is unavailable, and the reason names the sections.
+- `load_detector_sidecar(key)` raises `DetectorUnavailableError` for a sidecar that is not usable.
+  The message names the section, the version or the rule. An unknown size is an error
+  (`DetectorEntry.artifact`, `SidecarModel.size`). There are no aliases and no claims
+  ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 2).
+- The version order, the pins and the reserved name
+  ([`common.identity`](model-sidecar/common/identity.md#implementer-guidance)). The newest
+  `source.version` of a key wins in PEP 440 order, and the other versions have `superseded`.
+  `<key>==<version>` pins a version. Two files with one key and one version but different bytes make
+  the entry unavailable, and the reason names both paths. A sidecar with `source.name: skellytracker`
+  outside the package root is unavailable. The catalog logs the file that it uses when a key is in
+  more than one root. An entry has `key`, `version` and `sidecar_sha256`: the three values of the
+  run metadata.
+- The artifact hash checks. `check_artifact_hash` in `core/model_spec/artifacts.py` checks a present
+  ONNX file against `sha256` (`V-common.sizes_and_artifacts-10`).
+- The hash check cache `HashCache`, in the same module. One record for each hashed file: the key is
+  the sidecar root and the path relative to that root, and the fields are `size`, `mtime_ns`,
+  `file_id`, `sha256` and `checked_at`. The cache file is `hash-cache.json` in the user cache folder
+  of `platformdirs`. The write goes to a temporary file, then `os.replace`. A cache file that does
+  not parse is an empty cache, with one warning. The argument `full_hash` and the variable
+  `SKELLYTRACKER_FULL_HASH=1` force a full hash. `HashCache.record` writes the record of a file whose
+  hash the caller knows, with no read. The docstring of the module names the 2 s limit of FAT32 and
+  exFAT. The tests cover a hit, each miss, a corrupt cache file, the atomic write, the record of a
+  download and the forced full hash.
+- `describe_detector(key)`, and the CLI commands `detectors` and `describe <key>` of
+  `python -m skellytracker`
+  ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 9): the sizes,
+  the precisions, the `sidecar_sha256`, the ports, the params with their sidecar defaults (`size`
+  and `object_decode`) and the point names.
+- Gate: the catalog tests on temporary roots pass (`skellytracker/tests/detectors/`). A test checks
+  that each entry of the static table has a known class. The full suite passes with no change of
+  expected values.
+
+Open:
+
+- **Hugging Face roots.** The pin, the refresh command and the state "not fetched"
   ([Sidecar roots](model-sidecar/format/file-layout.md#sidecar-roots);
-  [Discovery](model-sidecar/format/file-layout.md#discovery)). Give the user root to the landmark
-  schema registry of stage 1.4
-  ([ADR-23F5](../decisions/entries/23F5-landmark-schema-registry.md) item 1). The new code calls the root the
-  sidecar root, not `cache_dir`
-  ([`format.file_layout`](model-sidecar/format/file-layout.md#implementer-guidance)).
-- **Capability check and dispatch.** Build the capability check for each artifact. Map a catalog entry to
-  a generic detector by its role (`object_detector` or `keypoint_detector`) and its spec sections. There are no aliases and no claims: the old `detector_type` keys go with the old detectors ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 2). An unknown size
-  is an error, not a silent fallback
-  ([`format.versioning`](model-sidecar/format/versioning.md#implementer-guidance)).
-- **Artifact hash checks.** Verify the file that `filename` names against `sha256` when the file is
-  present and after a download. Use the hash check cache of stage 1.6. Today `skellytracker/core/sessions/model_registry.py` checks only
-  `url_sha256`, and only during a download
-  ([`common.sizes_and_artifacts`](model-sidecar/common/sizes-and-artifacts.md#implementer-guidance)).
+  [`format.file_layout`](model-sidecar/format/file-layout.md#implementer-guidance)). A config must
+  name the repo id and the revision, and skellytracker keeps no settings file. The public API has no
+  argument for another root. The user decides where the list of roots comes from.
+- **Download.** No new code downloads a `url` artifact. The host must hash the bytes while it
+  writes them, check `url_sha256` on the downloaded bytes and `sha256` on the ONNX file that it
+  writes or extracts, and then call `HashCache.record`. The user decides the folder of the download
+  cache and the stage that owns the download.
+- **File locks.** On Windows, a model update or a Hugging Face refresh closes the sessions first, or
+  writes the new revision beside the old one. This item needs the download and the refresh.
+- **Hash in the Hugging Face cache.** Later, optional: in the Hugging Face cache, the `blobs/` file
+  name of an LFS file is its SHA-256. Compare that name with `sha256` only when it is 64 lowercase
+  hex characters. Hash the file in all other cases.
+- **Guidance.** Add one line to the implementer guidance of `common.sizes_and_artifacts` in a
+  non-spec commit. A host can keep the hash of a file with its size, modification time and file id,
+  and hash the file again when one of these changes. The guidance of
+  [`format.versioning`](model-sidecar/format/versioning.md#implementer-guidance),
+  [`format.file_layout`](model-sidecar/format/file-layout.md#implementer-guidance) and
+  [`common.sizes_and_artifacts`](model-sidecar/common/sizes-and-artifacts.md#implementer-guidance)
+  still names `tools/sidecar_normalize.py`, `cache_dir` and "no code checks `sha256`".
+- **Dispatch.** Stage 1.7 maps a catalog entry to a generic detector by `role` and `sections` of
+  the entry ([`format.versioning`](model-sidecar/format/versioning.md#implementer-guidance)).
+- **Run metadata.** Stage 1.10 writes `key`, `version` and `sidecar_sha256` of the entry in the
+  output metadata of a run.
+- **Static table.** The table names the old MediaPipe classes. The stage that adds the MediaPipe
+  Holistic runner to the list adds its row. Stage 2.4 removes the rows of the deleted classes.
+- **Error classes.** `DetectorNotFoundError` and `DetectorUnavailableError` are in
+  `core/detectors/catalog.py`. The user decides if they move to `core/errors.py`
+  ([ADR-D8DH](../decisions/entries/D8DH-sessions-errors-and-the-ready-rule.md) item 1).
 
 ### 1.7 Standalone generic detectors (was N4)
 
