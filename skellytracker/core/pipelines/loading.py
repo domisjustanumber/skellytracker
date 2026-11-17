@@ -17,6 +17,9 @@ is also a `ValueError`.
 
 `load_pipeline` then runs the load checks that need the sidecars (`_runtime/resolve.py`).
 `check_pipeline` gives the load result: the warnings that are known before a start.
+
+`describe_port` is temporary. It serves only the legacy path of the freemocap metrics stage, and
+stage 2.4 of the implementation plan deletes it with that path (ADR-C3A4).
 """
 from __future__ import annotations
 
@@ -31,6 +34,7 @@ import yaml
 from skellytracker.core.model_spec.resolution import _UniqueKeyLoader, lexical_path
 from skellytracker.core.pipelines._runtime.resolve import resolve, sidecar_hashes
 from skellytracker.core.pipelines.config import PipelineConfig
+from skellytracker.core.pipelines.values import PortInfo
 from skellytracker.core.pipelines.warnings import PipelineWarning
 
 IMPLEMENTED_VERSIONS: tuple[str, ...] = ("2.0.0",)
@@ -139,6 +143,18 @@ def check_pipeline(config: PipelineConfig, *, user_root: Path | str | None = Non
     return PipelineCheck(resolved.warnings, resolved.needs_execution_provider, resolved.output_schema)
 
 
+def describe_port(config: PipelineConfig, port: str, *, user_root: Path | str | None = None) -> PortInfo:
+    """Return the facts of one port of `config`, for example `"wholebody.keypoints"`: its raw `point_names` and `groups`.
+
+    Temporary: it serves only the legacy path of the freemocap metrics stage (ADR-C3A4, ADR-92BE).
+    That path puts the 133 points of the old tracker in the raw names of the port, then calls
+    `to_canonical(value, port_info.groups)`. Stage 2.4 of the implementation plan deletes this
+    function with the legacy path. Raise `KeyError` for a port that the config does not have.
+    """
+    node_id, _, name = port.partition(".")
+    return resolve(config, user_root).port_info(node_id, name)
+
+
 def export_pipeline(config: PipelineConfig, resolved: bool = False, *, user_root: Path | str | None = None) -> dict[str, Any]:
     """Return the plain mapping of `config`, with only JSON types.
 
@@ -178,6 +194,7 @@ __all__ = [
     "IMPLEMENTED_VERSIONS",
     "PipelineCheck",
     "check_pipeline",
+    "describe_port",
     "export_pipeline",
     "load_pipeline",
     "load_pipeline_file",

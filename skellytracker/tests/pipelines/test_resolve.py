@@ -123,6 +123,23 @@ def test_the_output_schema_of_mediapipe_holistic_tasks(tmp_path: Path) -> None:
     assert [resolved.stateful_nodes(mode) for mode in MODES] == [(), (), ()]
 
 
+def test_describe_port_gives_the_raw_layout_that_to_canonical_needs_for_the_legacy_path(tmp_path: Path) -> None:
+    """ADR-C3A4: a value in the raw names of `wholebody.keypoints` converts to the delivered names of the output `wholebody`."""
+    import numpy as np
+
+    from skellytracker.core.pipelines import InstanceKeypoints, describe_port, to_canonical
+
+    config = load_pipeline_file(PACKAGE_PIPELINE_ROOT / "yolox-rtmw-wholebody.pipeline.yaml")
+    port = describe_port(config, "wholebody.keypoints", user_root=tmp_path)
+    assert len(port.point_names) == 133 and [group.name for group in port.groups] == ["body", "feet", "face", "left_hand", "right_hand"]
+    score = np.ones((1, 133))
+    value = InstanceKeypoints(port.point_names, np.zeros((1, 133, 2)), score, score.copy(), np.ones(1), np.ones(1, dtype=bool), np.full(1, -1, dtype=np.int64))
+    canonical = to_canonical(value, port.groups, user_root=tmp_path)
+    assert list(canonical.point_names) == check_pipeline(config, user_root=tmp_path).output_schema["wholebody"]["point_names"]
+    with pytest.raises(KeyError):
+        describe_port(config, "wholebody.nothing", user_root=tmp_path)
+
+
 def test_the_output_schema_of_yolox_rtmw_wholebody_with_the_package_sidecars(tmp_path: Path) -> None:
     """The graph has `@prev` loops, also the self loop of `detected_box`. The ONNX files can be absent."""
     resolved = resolve(load_pipeline_file(PACKAGE_PIPELINE_ROOT / "yolox-rtmw-wholebody.pipeline.yaml"), tmp_path)

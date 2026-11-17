@@ -22,6 +22,9 @@ are fixed: `list_pipelines`, `get_pipeline`, `load_pipeline`, `check_pipeline` w
 `annotate`, `to_canonical` with `CanonicalKeypoints.point_names`, `OutputBoxes` with `xyxy` and `detector_ran`,
 `PipelineEntry.needs_execution_provider`, and the errors `CallRefusedError`,
 `SetParamsRefusedError` and `RunClosedError`. No name has an alias.
+
+`describe_port` is temporary: it serves only the legacy path of the freemocap metrics stage, and
+stage 2.4 of the implementation plan deletes it (ADR-C3A4).
 """
 from skellytracker.core.errors import CallRefusedError, MissingDependencyError, RunClosedError, SetParamsRefusedError
 from skellytracker.core.pipelines.annotate import annotate
@@ -34,7 +37,7 @@ from skellytracker.core.pipelines.catalog import (
     list_pipelines,
 )
 from skellytracker.core.pipelines.config import PipelineConfig
-from skellytracker.core.pipelines.loading import PipelineCheck, check_pipeline, export_pipeline, load_pipeline
+from skellytracker.core.pipelines.loading import PipelineCheck, check_pipeline, describe_port, export_pipeline, load_pipeline
 from skellytracker.core.pipelines.nodes import list_node_types
 from skellytracker.core.pipelines.run import Frame, PipelineRun, start_pipeline
 from skellytracker.core.pipelines.values import InstanceBoxes, InstanceKeypoints, OutputBoxes
@@ -59,6 +62,7 @@ __all__ = [
     "SetParamsRefusedError",
     "annotate",
     "check_pipeline",
+    "describe_port",
     "export_pipeline",
     "get_pipeline",
     "list_node_types",

@@ -91,6 +91,11 @@ Exception: the legacy path of the freemocap metrics stage. `OnnxSessionConfig.ex
 also takes `cuda`, and `OnnxSession.create` then builds each model with `eps.build_session()` on the
 `cuda` pack, with no fallback. The old session code has no other GPU key, and stage 2.4 deletes this
 bridge ([ADR-92BE](../decisions/entries/92BE-legacy-path-for-the-freemocap-metrics-stage.md)).
+The same legacy path is the only caller of `describe_port(config, port)` of
+`skellytracker.core.pipelines`. It gives the raw `point_names` and `groups` of one port, so that the
+legacy path puts the old points in the raw names of `wholebody.keypoints` and calls
+`to_canonical(value, groups)`. Do not use it in other code. Stage 2.4 deletes it with the legacy path
+([ADR-C3A4](../decisions/entries/C3A4-describe-port-for-the-legacy-path.md)).
 
 - New code takes the EP as `execution_provider`, a concrete key of the EP catalog: `trt-rtx`, `cuda`,
   `coreml` or `cpu`. No environment variable selects the EP or the device.
