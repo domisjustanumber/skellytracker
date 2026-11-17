@@ -8,7 +8,10 @@ row is empty. The only ``image`` value is the frame of the call: the run passes 
 never copies it. A ``flag`` value is ``True`` or ``False``, never empty.
 
 A ``keypoints`` value holds ``xy`` for each output, and ``z`` only for a ``3d`` output. A ``2d``
-output has no ``z``: ``z is None``. This version tracks one person:
+output has no ``z``: ``z is None``. ``xy`` and ``z`` are float64. ``geometry`` is ``"2d"`` or ``"3d"``.
+No value has an ``xyz`` field, and the package has no alias for it. ``instance(i)`` and ``single()``
+give a dict with the keys ``xy`` and ``z``. ``InstanceKeypoints`` has no accessor by track id: the
+``associate`` node type adds one. This version tracks one person:
 read row 0, and check ``present[0]`` first.
 """
 from __future__ import annotations

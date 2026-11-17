@@ -18,6 +18,9 @@ GPUs of the run. `cpu_threads` is the intra-op thread count of a session on the 
 None. A node that does not run has `execution_provider`, `device` and `cpu_threads` None. An
 application reads what a model runs on from these items.
 
+The result of a camera holds `image_width` and `image_height`, ints in pixels. It has no
+`image_size`, and no alias for it.
+
 A plain import of this module loads no `onnxruntime` and no `mediapipe`.
 """
 from __future__ import annotations

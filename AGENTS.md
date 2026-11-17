@@ -61,6 +61,7 @@ The project is in its implementation stage from the rebuild at the gate of phase
 [ADR-V6G2](decisions/entries/V6G2-implementation-stage.md)).
 The stages of phase 1 of the implementation plan implement the spec in the package code.
 The spec can still change through a proposal.
+A spec change must land before the stage of phase 1 that implements it. There is no spec freeze.
 
 - The root [decision log](decisions/README.md) is in `decisions/`. The sidecar spec has its own
   [log](specs/model-sidecar/decisions/README.md) in `specs/model-sidecar/decisions/`

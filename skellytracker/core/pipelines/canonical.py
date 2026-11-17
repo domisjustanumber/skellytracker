@@ -5,6 +5,7 @@ Implements: post.keypoint.canonical_mapping
 
 The canonical form maps the groups that one node or one `merge` slot made together, with the
 canonical mapping of their landmark schema. A group with a null `landmark_schema` passes through.
+A `CanonicalKeypoints` value has the fields `xy`, `z` and `geometry` of a `keypoints` value.
 """
 from __future__ import annotations
 

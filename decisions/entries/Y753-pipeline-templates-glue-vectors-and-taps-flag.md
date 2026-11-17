@@ -1,6 +1,6 @@
 # Y753 — Pipeline templates without links, vectors for `first_of` and `concat`, and the skellybench tap flag
 
-**Status:** accepted, 2026-11-13 (user).
+**Status:** absorbed into [`AGENTS.md#5-decision-log`](../../AGENTS.md#5-decision-log), [`implement-pipeline-node/SKILL.md#stage`](../../.claude/skills/implement-pipeline-node/SKILL.md#stage), [`timing.md#implementer-guidance`](../../specs/pipeline/timing.md#implementer-guidance), [`first_of.md#implementer-guidance`](../../specs/pipeline/nodes/first_of.md#implementer-guidance), [`concat.md#implementer-guidance`](../../specs/pipeline/nodes/concat.md#implementer-guidance), [`README.md#section-status`](../../specs/pipeline/README.md#section-status), 2026-11-17 (absorb pass, user; PR: pending).
 
 ## Decision
 

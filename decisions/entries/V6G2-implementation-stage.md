@@ -1,6 +1,6 @@
 # V6G2 — The implementation stage starts at the rebuild at the gate of phase 0
 
-**Status:** accepted, 2026-11-12 (user).
+**Status:** absorbed into [`AGENTS.md#1-purpose`](../../AGENTS.md#1-purpose), [`stack-commit/SKILL.md#spec-build-stage`](../../.claude/skills/stack-commit/SKILL.md#spec-build-stage), [`after-spec-build.md#the-working-branch-and-the-pr-branches`](../../.claude/skills/stack-commit/after-spec-build.md#the-working-branch-and-the-pr-branches), [`sidecar-files.md#independence`](../../specs/model-sidecar/model-addition-workflow/sidecar-files.md#independence), [`hand-over.md#patches`](../../specs/model-sidecar/model-addition-workflow/hand-over.md#patches), [`validation-and-publishing.md#publishing`](../../specs/model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing), 2026-11-17 (absorb pass, user; PR: pending).
 
 ## Decision
 
