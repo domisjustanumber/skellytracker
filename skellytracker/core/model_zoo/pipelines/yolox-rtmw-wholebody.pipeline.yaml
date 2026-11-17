@@ -58,6 +58,7 @@ nodes:
     type: first_of
     inputs: [person.boxes, carried_box.value]
   - id: crop
+    description: Smooth the box with a One Euro filter on each frame. RTMW crops the person with this box.
     type: smooth_boxes
     inputs: {boxes: box.value}
     params: {filter: one_euro, min_cutoff: 3.0, beta: 0.02, d_cutoff: 1.0, reset_after_ms: 500}
