@@ -585,6 +585,24 @@ def test_the_output_wholebody_needs_a_group_body_and_holistic_the_four_holistic_
         load_pipeline(data, user_root=root)
 
 
+def test_flag_when_on_the_previous_keypoints_runs_the_detector_only_when_the_person_is_lost(root: Path) -> None:
+    """The form "detect when lost" of node.flag_when: on frame 0 the `@prev` value is empty, so the detector runs."""
+    data = detector_pipeline()
+    data["nodes"].insert(0, {"id": "lost", "type": "flag_when", "inputs": {"value": "body.keypoints@prev"}, "params": {"mode": "is_empty"}})
+    data["nodes"][1]["inputs"]["run_if"] = "lost.flag"
+    flags = []
+    with start(root, data) as run:
+        results = []
+        for index in range(4):
+            results.append(run.process(Frame(image(1), index)))
+            flags.append(port_values(run)["lost.flag"])
+    # Frame 1 has the keypoints of frame 0, so the detector does not run, the body model gets no box and the person is lost again.
+    assert flags == [True, False, True, False]
+    assert [result["node_ran"] for result in results] == [{"person": ran, "body": ran} for ran in (True, False, True, False)]
+    with start(root, data, running_mode="image") as run:  # each `@prev` value is empty: the detector runs on each image
+        assert [run.process(Frame(image(1), index))["node_ran"]["person"] for index in range(2)] == [True, True]
+
+
 def test_detector_ran_is_the_node_ran_of_the_instance_source_of_the_output_boxes(root: Path) -> None:
     with start(root, tracking_pipeline()) as run:
         assert run.output_schema["boxes"]["instance_source"] == "person"

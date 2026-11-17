@@ -1,0 +1,57 @@
+# tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
+# Hosts ignore `checks`. The names are the self-checks of the generator.
+section: node.flag_when
+notes:
+  - "Normative text: specs/pipeline/nodes/flag_when.md."
+  - "`value_type` is the port type of `value`, known at load. `value` is null (empty) or
+    one row or null (an empty row) for each instance, in the form of node.gate: a
+    `keypoints` row holds `xy` and `score`; a `boxes` row holds `instance_score`. The
+    output `flag` is true or false."
+tolerance: 0
+verified_against:
+  - skellytracker/core/pipelines/_runtime/node_flag_when.py::run
+cases:
+  - id: is-empty-is-true-for-an-empty-value
+    note: "the previous keypoints are empty on frame 0, so the detector runs"
+    params: {mode: is_empty}
+    input: {value_type: keypoints, value: null}
+    expect: {flag: true}
+  - id: is-empty-is-false-for-a-present-row
+    params: {mode: is_empty}
+    input: {value_type: keypoints, value: [{xy: [[10, 20]], score: [0.9]}]}
+    expect: {flag: false}
+  - id: is-present-tests-all-rows-and-a-padding-row-is-not-present
+    note: "row 0 is a padding row and row 1 is present: one test on all present rows"
+    params: {mode: is_present}
+    input: {value_type: boxes, value: [null, {instance_score: 0.4}]}
+    expect: {flag: true}
+  - id: is-present-is-false-for-an-empty-value
+    params: {mode: is_present}
+    input: {value_type: boxes, value: [null, null]}
+    expect: {flag: false}
+  - id: score-above-is-strict-on-a-box-score
+    note: "the score 0.5 is not greater than the threshold 0.5"
+    params: {mode: score_above, threshold: 0.5}
+    input: {value_type: boxes, value: [{instance_score: 0.5}]}
+    expect: {flag: false}
+  - id: score-above-passes-when-one-row-is-above
+    params: {mode: score_above, threshold: 0.5}
+    input: {value_type: boxes, value: [{instance_score: 0.2}, {instance_score: 0.75}]}
+    expect: {flag: true}
+  - id: score-above-uses-the-mean-score-of-the-present-points
+    note: "the NaN point is not in the mean: (0.6 + 0.8) / 2 = 0.7"
+    params: {mode: score_above, threshold: 0.65}
+    input:
+      value_type: keypoints
+      value: [{xy: [[1, 2], [.nan, .nan], [3, 4]], score: [0.6, 0, 0.8]}]
+    expect: {flag: true}
+  - id: v-node-flag-when-1-score-above-needs-a-threshold
+    checks: [refused]
+    params: {mode: score_above}
+    input: {value_type: boxes, value: null}
+    expect: {error: V-node.flag_when-1}
+  - id: v-node-flag-when-1-is-empty-has-no-threshold
+    checks: [refused]
+    params: {mode: is_empty, threshold: 0.5}
+    input: {value_type: boxes, value: null}
+    expect: {error: V-node.flag_when-1}

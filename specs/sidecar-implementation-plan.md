@@ -1264,7 +1264,7 @@ This stage implements the node types of the pipeline spec. Use the skill
   a null `landmark_schema` until stage 2.2
   ([ADR-4MP6](../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md) item 2).
 - **Glue nodes.** `boxes_from_points`, `hold_boxes`, `gate`, `first_of`, `assign_keypoints`,
-  `merge`, `smooth_keypoints`, `smooth_boxes` and `redetect_trigger`
+  `merge`, `flag_when`, `smooth_keypoints`, `smooth_boxes` and `redetect_trigger`
   ([ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6). The node type
   `hold_boxes` was `roi_hold` and before that `roi_tracking`, and `redetect_trigger` was `redetect`
   ([ADR-9PDQ](../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 2). The port

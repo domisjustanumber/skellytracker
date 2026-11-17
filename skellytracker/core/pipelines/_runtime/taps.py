@@ -10,6 +10,9 @@ The forms of a JSONL line. Each line is one present row and has `image_id`, `fra
   null when the row has no class).
 - `keypoints.jsonl`: `keypoints` `[x, y, score, ...]`, three numbers for each point, and `score`,
   the instance score. A missing point has null for x and y.
+
+A `flag` port has no rows: `flag.jsonl` has one line for each frame and camera, with `image_id`,
+`frame_index`, `camera_id` and `flag` (true or false), and no `row`.
 """
 from __future__ import annotations
 
@@ -30,7 +33,7 @@ from skellytracker.core.pipelines.values import PortInfo
 TAP_SCHEMA = "skellytracker.tap/1"
 MANIFEST = "tap.json"
 MATCH_FIELDS = ("schema", "port", "port_type", "upstream_sha256", "image_list_sha256", "camera_ids", "running_mode")
-JSONL_TYPES = ("boxes", "keypoints")
+JSONL_TYPES = ("boxes", "keypoints", "flag")
 
 
 def upstream_nodes(config: PipelineConfig, node_id: str) -> list[str]:
@@ -47,12 +50,9 @@ def upstream_nodes(config: PipelineConfig, node_id: str) -> list[str]:
 
 
 def check_tap_port(tap: Tap, info: PortInfo) -> None:
-    """Refuse a tap whose file form no text fixes: a `flag` port and a `3d` keypoints port. The frame image has no tap (V-pipeline.taps-1)."""
+    """Refuse a tap whose file form no text fixes: a `3d` keypoints port. The frame image has no tap (V-pipeline.taps-1)."""
     if info.port_type not in JSONL_TYPES:
-        raise ValueError(
-            f"the tap {tap.name!r} names the port {tap.port} of the type {info.port_type}: "
-            "the pipeline spec does not fix the tap file of a `flag` port yet (pipeline.taps, Fields)"
-        )
+        raise ValueError(f"V-pipeline.taps-1: the tap {tap.name!r} names the port {tap.port} of the type {info.port_type}; a tap port is boxes, keypoints or flag")
     if info.port_type == "keypoints" and info.geometry == "3d":
         raise ValueError(f"the tap {tap.name!r} names the 3d keypoints port {tap.port}: the pipeline spec gives no place for z in a keypoints.jsonl line")
 
@@ -113,7 +113,12 @@ class RecordTap:
         self._file: Any = open(self.folder / f"{info.port_type}.jsonl", "w", encoding="utf-8", newline="\n")  # noqa: SIM115 (`close` closes it)
 
     def write(self, value: Any, frame_index: int, camera_id: int | str, image_id: int) -> None:
-        """Write one line for each present row of the value of one image, in ascending row order."""
+        """Write one line for each present row of the value of one image, in ascending row order. A flag gives one line."""
+        if self.info.port_type == "flag":
+            record = {"image_id": image_id, "frame_index": frame_index, "camera_id": camera_id, "flag": bool(value)}
+            self._file.write(json.dumps(record, separators=(",", ":"), ensure_ascii=False) + "\n")
+            self.count += 1
+            return
         for row in np.flatnonzero(value.present):
             record = {"image_id": image_id, "frame_index": frame_index, "camera_id": camera_id, "row": int(row), **row_record(value, int(row), self.info)}
             self._file.write(json.dumps(record, separators=(",", ":"), ensure_ascii=False) + "\n")
@@ -182,12 +187,21 @@ class ReplayTap:
                 known = isinstance(frame_index, int) and 0 <= frame_index < len(image_ids) and image_ids[frame_index] == line.get("image_id")
                 if not known or camera_id not in camera_ids:
                     raise ValueError(f"V-pipeline.taps-4: {where}: the image {line.get('image_id')!r} (frame {frame_index!r}, camera {camera_id!r}) is not an image of the run")
+                if info.port_type == "flag":
+                    if not isinstance(line.get("flag"), bool) or (frame_index, camera_id) in values:
+                        raise ValueError(f"V-pipeline.taps-4: {where}: a flag line has `flag` true or false, one time for each frame and camera")
+                    values[frame_index, camera_id] = line["flag"]
+                    continue
                 if isinstance(row, bool) or not isinstance(row, int) or not 0 <= row < rows:
                     raise ValueError(f"V-pipeline.taps-6: {where}: `row` is {row!r}; it must be an integer in [0, {rows})")
                 value = values.setdefault((frame_index, camera_id), info.empty())
                 if value.present[row]:
                     raise ValueError(f"V-pipeline.taps-6: {where}: the row {row} occurs twice for one image")
                 self._fill(value, row, line, where)
+        if info.port_type == "flag":  # a flag is never empty: each frame and camera has its line
+            missing = [(frame, camera) for frame in range(len(image_ids)) for camera in camera_ids if (frame, camera) not in values]
+            if missing:
+                raise ValueError(f"V-pipeline.taps-4: the replay tap {name!r} has no flag line for the frame {missing[0][0]} of the camera {missing[0][1]!r}")
         if info.instance_source == node_id:
             for (frame_index, camera_id), value in values.items():
                 count = int(value.present.sum())

@@ -51,7 +51,11 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
 - **Pipeline redesign.** The build stages of the redesign of the node and port types, and its
   points that are still open, are in
   [`node-and-port-redesign.md`](../specs/pipeline/proposals/node-and-port-redesign.md), sections 10
-  and 11 ([ADR-9HTX](entries/9HTX-pipeline-node-and-port-redesign.md)). Two items are later work.
+  and 11 ([ADR-9HTX](entries/9HTX-pipeline-node-and-port-redesign.md)). Stages 1 to 7 are built in
+  skellytracker. Stage 8, the pipeline editor, is freemocap work that the user does in another
+  session. Item 20 of the entry gives the old timing of stages 6 to 8, which the user changed on
+  2026-11-17, so the entry stays `accepted` until the user decides how it records the change. Two
+  items are later work.
   Look into one canonical output keypoint set that becomes the only output format of a pipeline.
   Make one BGR to RGB conversion for each camera and frame for the decomposed MediaPipe pipeline.
 - **Cost of the detector preprocess.** Measured on 2026-11-17 with `time.perf_counter_ns` on one

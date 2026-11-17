@@ -16,6 +16,7 @@ import pytest
 from skellytracker.core.pipelines._runtime import (
     node_assign_keypoints,
     node_first_of,
+    node_flag_when,
     node_gate,
     node_merge,
     node_redetect_trigger,
@@ -27,6 +28,7 @@ from skellytracker.core.pipelines._runtime import (
 from skellytracker.core.pipelines._runtime.context import FrameContext
 from skellytracker.core.pipelines.config import (
     AssignKeypointsParams,
+    FlagWhenParams,
     GateParams,
     MergeParams,
     NoParams,
@@ -253,6 +255,7 @@ def test_each_module_names_the_empty_inputs_that_it_reads() -> None:
     assert node_hold_boxes.READS_EMPTY == {"previous"}
     assert node_assign_keypoints.READS_EMPTY == {"source"}
     assert node_merge.READS_EMPTY == frozenset()
+    assert node_flag_when.READS_EMPTY == {"value"}
     assert node_smooth_keypoints.READS_EMPTY == {"keypoints"}
     assert node_smooth_boxes.READS_EMPTY == {"boxes"}
     assert node_boxes_from_points.READS_EMPTY == frozenset() == node_redetect_trigger.READS_EMPTY
@@ -414,6 +417,26 @@ def test_first_of_gives_the_first_value_that_is_not_empty_with_its_instance_scor
     assert node_first_of.run(NoParams(), values, None, frame(), boxes_info())[0]["value"] is kept
     assert same(node_first_of.run(NoParams(), values[:1], None, frame(), boxes_info())[0]["value"], InstanceBoxes.empty(2))
     assert node_first_of.run(NoParams(), [None, kept], None, frame(), boxes_info())[0]["value"] is kept
+
+
+# ---------------------------------------------------------------------------------------------
+# flag_when
+# ---------------------------------------------------------------------------------------------
+
+
+def test_flag_when_gives_true_or_false_from_one_test_on_all_present_rows() -> None:
+    assert node_flag_when.output_info("n", FlagWhenParams(mode="is_empty"), {"value": kp_info(BODY)}) == ({"flag": PortInfo("flag")}, [])
+    for mode, expect in (("is_empty", [True, False]), ("is_present", [False, True])):
+        flags = [node_flag_when.run(FlagWhenParams(mode=mode), {"value": value}, None, frame(), None)[0]["flag"] for value in (kp(BODY, [None, None]), body())]
+        assert flags == expect, mode
+    scored = boxes([None, [1, 1, 2, 2, 0.0]], [0.0, 0.6])  # one test on all present rows: row 1 is present
+    above = [node_flag_when.run(FlagWhenParams(mode="score_above", threshold=t), {"value": scored}, None, frame(), None)[0]["flag"] for t in (0.5, 0.6)]
+    assert above == [True, False]  # the test is strict
+    assert type(above[0]) is bool
+    with pytest.raises(ValueError, match="V-node.flag_when-1"):
+        FlagWhenParams(mode="score_above")
+    with pytest.raises(ValueError, match="V-node.flag_when-1"):
+        FlagWhenParams(mode="is_empty", threshold=0.5)
 
 
 # ---------------------------------------------------------------------------------------------

@@ -236,6 +236,7 @@ FILE_TOLERANCE = {
     "node.first_of": 0,  # the node passes a value through: no arithmetic
     "node.assign_keypoints": 0,  # the node copies points: the distances only select the pairs
     "node.merge": 0,  # the node copies columns and rows: no arithmetic
+    "node.flag_when": 0,  # one comparison of a score with the threshold
 }
 
 
@@ -2136,6 +2137,33 @@ def merge_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
     return node_outcome(run)
 
 
+def flag_when_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
+    """The node `flag_when`: the rows of `value` in the form of node.gate."""
+    from skellytracker.core.pipelines.config import FlagWhenParams
+    from skellytracker.core.pipelines.values import InstanceBoxes, PortInfo
+
+    def run() -> dict[str, Any]:
+        inp = case["input"]
+        params, kind, given = FlagWhenParams(**case["params"]), inp["value_type"], inp["value"]
+        rows = len(given) if given else 1
+        if kind == "keypoints":
+            points = max((len(row["xy"]) for row in given or [] if row), default=1)
+            info = keypoints_info([f"g/p{column}" for column in range(points)], rows)
+            value = xy_keypoints([row and row["xy"] for row in given or [None] * rows], [row is not None for row in given or [None] * rows], info,
+                                 [row and row["score"] for row in given or [None] * rows])
+        else:
+            info = PortInfo("boxes", max_instances=rows, instance_source="person")
+            value = InstanceBoxes.empty(rows)
+            for i, row in enumerate(given or []):
+                if row is not None:
+                    value.boxes[i], value.instance_score[i], value.present[i] = [10, 10, 4, 4, 0], row["instance_score"], True
+        outputs, _ = sibling(function, "output_info")("node", params, {"value": info})
+        assert outputs == {"flag": PortInfo("flag")}
+        return {"flag": function(params, {"value": value}, None, node_frame(), None)[0]["flag"]}
+
+    return node_outcome(run)
+
+
 def gate_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
     from skellytracker.core.pipelines.config import GateParams
     from skellytracker.core.pipelines.values import InstanceBoxes, PortInfo
@@ -2353,6 +2381,7 @@ PACKAGE_RUNNERS: dict[str, Callable[[Any, dict[str, Any]], dict[str, Any] | None
     f"{NODES}/node_first_of.py::run": first_of_runner,
     f"{NODES}/node_assign_keypoints.py::run": assign_keypoints_runner,
     f"{NODES}/node_merge.py::run": merge_runner,
+    f"{NODES}/node_flag_when.py::run": flag_when_runner,
     f"{NODES}/node_smooth_keypoints.py::run": smooth_keypoints_runner,
     f"{NODES}/node_smooth_boxes.py::run": smooth_boxes_runner,
     f"{NODES}/node_redetect_trigger.py::run": redetect_trigger_runner,

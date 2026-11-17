@@ -93,7 +93,9 @@ a gate passes the box from the points of the previous frame only when the flag o
 ## Authoring guidance
 
 - A gate does not stop a detector. To run a detector only on some frames, connect a flag to its
-  `run_if` input ([Node: ONNX model](onnx_model.md#fields)).
+  `run_if` input ([Node: ONNX model](onnx_model.md#fields)). To make a flag from a `boxes` or a
+  `keypoints` value, for example to detect when the person is lost, use
+  [`flag_when`](flag_when.md#examples).
 - To use the box from the points of the previous frame only on a frame with no new detection, gate
   it with `mode: is_false` on the flag `redetect` of a `redetect_trigger` node. Join the two box
   paths with `first_of`. The built-in `yolox-rtmw-wholebody` does this.

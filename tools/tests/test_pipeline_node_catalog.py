@@ -62,7 +62,13 @@ def test_the_node_catalog_gives_the_committed_tables(node: NodeTypeInfo) -> None
 
 def test_the_node_catalog_gives_the_sections_the_required_inputs_and_the_timing_spans() -> None:
     by_type = {node.type: node for node in list_node_types()}
-    assert len(by_type) == 11 and all(node.section == f"node.{name}" for name, node in by_type.items())
+    assert len(by_type) == 12 and all(node.section == f"node.{name}" for name, node in by_type.items())
+    # The node set of ADR-9HTX items 8, 11 and 12: `concat` goes, `assign_keypoints` and `flag_when` come.
+    assert "concat" not in by_type
+    assert [(port.name, port.required) for port in by_type["merge"].inputs] == [("body", True), ("left_hand", False), ("right_hand", False), ("face", False)]
+    assert [(port.name, port.required) for port in by_type["assign_keypoints"].inputs] == [("target", True), ("source", True)]
+    assert [(port.name, port.required, port.port_types) for port in by_type["flag_when"].inputs] == [("value", True, ("boxes", "keypoints"))]
+    assert [(port.name, port.port_types) for port in by_type["flag_when"].outputs] == [("flag", ("flag",))]
     onnx = by_type["onnx_model"]
     assert [(port.name, port.required) for port in onnx.inputs] == [("image", True), ("boxes", False), ("run_if", False)]
     assert onnx.timing_spans == ("preprocess", "inference", "postprocess")

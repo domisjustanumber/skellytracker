@@ -155,8 +155,31 @@ def test_v_pipeline_taps_5_a_record_tap_refuses_a_folder_that_is_not_empty(root:
     start(root, record_config(), image_ids=IMAGE_IDS, tap_dir=taps / "empty").close()
 
 
+def test_a_flag_tap_has_one_line_for_each_frame_and_camera_and_a_replay_gives_the_flag(root: Path, tmp_path: Path) -> None:
+    """A flag port has no rows: `flag.jsonl` has `true` or `false` for each frame and camera (ADR-9HTX item 19)."""
+    folder = tmp_path / "taps"
+    data = {**tracking_pipeline(), "instrumentation": {"taps": [{"action": "record", "port": "trigger.redetect", "name": "need"}]}}
+    recorded = run_frames(start(root, data, image_ids=IMAGE_IDS, tap_dir=folder))
+    lines = lines_of(folder / "need" / "flag.jsonl")
+    assert [(line["image_id"], line["frame_index"], line["camera_id"], line["flag"]) for line in lines] == [
+        (image_id, index, 0, result["trigger.redetect"]) for index, (image_id, result) in enumerate(zip(IMAGE_IDS, recorded, strict=True))
+    ]
+    assert all(set(line) == {"image_id", "frame_index", "camera_id", "flag"} for line in lines) and lines[0]["flag"] is True
+    manifest = json.loads((folder / "need" / "tap.json").read_text(encoding="utf-8"))
+    assert (manifest["port_type"], manifest["record_count"], manifest["point_names"]) == ("flag", 3, None)
+    data["instrumentation"]["taps"][0]["action"] = "replay"
+    replayed = run_frames(start(root, data, image_ids=IMAGE_IDS, tap_dir=folder))
+    assert [result["trigger.redetect"] for result in replayed] == [result["trigger.redetect"] for result in recorded]
+    assert [result["node_ran"] for result in replayed] == [result["node_ran"] for result in recorded]
+    write_lines(folder / "need" / "flag.jsonl", lines[:2])  # a flag is never empty, so a replay needs each frame
+    with pytest.raises(ValueError, match="V-pipeline.taps-4: the replay tap 'need' has no flag line for the frame 2"):
+        start(root, data, image_ids=IMAGE_IDS, tap_dir=folder)
+    write_lines(folder / "need" / "flag.jsonl", [*lines, lines[0]])
+    with pytest.raises(ValueError, match="V-pipeline.taps-4: .*one time for each frame and camera"):
+        start(root, data, image_ids=IMAGE_IDS, tap_dir=folder)
+
+
 @pytest.mark.parametrize(("data", "port", "match"), [
-    (tracking_pipeline(), "trigger.redetect", "of the type flag"),
     (MEDIAPIPE, "holistic.keypoints", "3d keypoints port"),
 ])
 def test_a_start_refuses_a_tap_of_a_port_whose_file_form_no_text_fixes(root: Path, tmp_path: Path, data: dict, port: str, match: str) -> None:

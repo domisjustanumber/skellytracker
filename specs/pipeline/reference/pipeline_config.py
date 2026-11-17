@@ -309,6 +309,23 @@ class GateParams(Strict):
         return self
 
 
+class FlagWhenParams(Strict):
+    mode: Literal["is_present", "is_empty", "score_above"] = param(
+        description="The test on all present rows of `value`, as step 2 of `gate`: `is_empty`, `is_present` or `score_above`.",
+        set_during_run=False,
+        source="ADR-9HTX item 8",
+    )
+    threshold: float | None = param(
+        None, description="The score threshold of the mode `score_above`.", set_during_run=True, source="ADR-9HTX item 8", ge=0.0,
+    )
+
+    @model_validator(mode="after")
+    def _threshold(self) -> FlagWhenParams:
+        if (self.mode == "score_above") != (self.threshold is not None):
+            raise ValueError("V-node.flag_when-1: the mode score_above needs a threshold, and the other modes have none")
+        return self
+
+
 class NoParams(Strict):
     """A node type with no params."""
 
@@ -594,6 +611,16 @@ class Merge(NodeType):
     required_inputs = ("body",)
 
 
+class FlagWhen(NodeType):
+    type = "flag_when"
+    section = "node.flag_when"
+    Params = FlagWhenParams
+    # The node runs on each frame: an empty `value` does not stop it. The output is true or false.
+    inputs = {"value": INSTANCE_TYPES}
+    outputs = {"flag": ("flag",)}
+    required_inputs = ("value",)
+
+
 class SmoothKeypoints(NodeType):
     type = "smooth_keypoints"
     section = "node.smooth_keypoints"
@@ -622,7 +649,7 @@ class RedetectTrigger(NodeType):
 
 
 NODE_TYPES: tuple[type[NodeType], ...] = (
-    OnnxModel, MediapipeTasks, BoxesFromPoints, HoldBoxes, Gate, FirstOf, AssignKeypoints, Merge, SmoothKeypoints, SmoothBoxes,
+    OnnxModel, MediapipeTasks, BoxesFromPoints, HoldBoxes, Gate, FirstOf, AssignKeypoints, Merge, FlagWhen, SmoothKeypoints, SmoothBoxes,
     RedetectTrigger,
 )
 BY_TYPE: dict[str, type[NodeType]] = {node.type: node for node in NODE_TYPES}
@@ -689,6 +716,11 @@ class MergeNode(NodeBase):
     params: MergeParams
 
 
+class FlagWhenNode(NodeBase):
+    type: Literal["flag_when"]
+    params: FlagWhenParams
+
+
 class SmoothKeypointsNode(NodeBase):
     type: Literal["smooth_keypoints"]
     params: SmoothKeypointsParams = Field(default_factory=SmoothKeypointsParams)
@@ -706,7 +738,7 @@ class RedetectTriggerNode(NodeBase):
 
 NodeConfig = Annotated[
     OnnxModelNode | MediapipeTasksNode | BoxesFromPointsNode | HoldBoxesNode | GateNode | FirstOfNode
-    | AssignKeypointsNode | MergeNode | SmoothKeypointsNode | SmoothBoxesNode | RedetectTriggerNode,
+    | AssignKeypointsNode | MergeNode | FlagWhenNode | SmoothKeypointsNode | SmoothBoxesNode | RedetectTriggerNode,
     Field(discriminator="type"),
 ]
 

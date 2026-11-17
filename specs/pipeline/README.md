@@ -73,6 +73,7 @@ The node types are a closed set. A new node type is a spec change ([ADR-7NY2](..
 | `node.first_of` | [nodes/first_of.md](nodes/first_of.md) | node |
 | `node.assign_keypoints` | [nodes/assign_keypoints.md](nodes/assign_keypoints.md) | node |
 | `node.merge` | [nodes/merge.md](nodes/merge.md) | node |
+| `node.flag_when` | [nodes/flag_when.md](nodes/flag_when.md) | node |
 | `node.smooth_keypoints` | [nodes/smooth_keypoints.md](nodes/smooth_keypoints.md) | node |
 | `node.smooth_boxes` | [nodes/smooth_boxes.md](nodes/smooth_boxes.md) | node |
 | `node.redetect_trigger` | [nodes/redetect_trigger.md](nodes/redetect_trigger.md) | node |
@@ -91,7 +92,7 @@ Do not edit these files by hand. `tools/make_pipeline_schema.py` makes them from
 | node | One step of the graph, with an `id`, a `type`, named `inputs` and `params`. |
 | port | A named input or output of a node, with a port type. A reference to an output port is `<node>.<port>`. |
 | inference node | A node of the type `onnx_model` or `mediapipe_tasks` ([ADR-9PDQ](../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 1). |
-| glue node | A node of a type that the pipeline spec defines and that runs no model: `boxes_from_points`, `hold_boxes`, `gate`, `first_of`, `assign_keypoints`, `merge`, `smooth_keypoints`, `smooth_boxes` and `redetect_trigger`. |
+| glue node | A node of a type that the pipeline spec defines and that runs no model: `boxes_from_points`, `hold_boxes`, `gate`, `first_of`, `assign_keypoints`, `merge`, `flag_when`, `smooth_keypoints`, `smooth_boxes` and `redetect_trigger`. |
 | box | A region of the source image: `(cx, cy, w, h, rotation)` in source-image pixels, with `rotation` in radians, clockwise, in `[-π, π)`. A detector box has rotation 0. The sidecar crop takes a box as its ROI ([Graph](graph.md#behaviour) item 3). |
 | instance row | One row of a `boxes` or `keypoints` value: one instance, present or padding ([Graph](graph.md#behaviour) item 8). |
 | instance source | The node that makes the instance rows of a value: an object detector, a one-stage model or a `mediapipe_tasks` node ([Graph](graph.md#behaviour) item 8). |
@@ -131,6 +132,7 @@ A pipeline file and its run are valid when all of the following rules hold.
 - [First-of node](nodes/first_of.md#validation-rules): `V-node.first_of-1`, `V-node.first_of-2`
 - [Assign keypoints node](nodes/assign_keypoints.md#validation-rules): `V-node.assign_keypoints-1` to `V-node.assign_keypoints-5`. They are the rules `V-node.merge-1` to `V-node.merge-5` of the first form, with no change.
 - [Merge node](nodes/merge.md#validation-rules): `V-node.merge-6` to `V-node.merge-9`. The IDs `V-node.merge-1` to `V-node.merge-5` are not used again.
+- [Flag-when node](nodes/flag_when.md#validation-rules): `V-node.flag_when-1`
 - The node type `concat` and its rules `V-node.concat-1` to `V-node.concat-3` are removed. The IDs are not used again.
 - [Smooth keypoints node](nodes/smooth_keypoints.md#validation-rules): `V-node.smooth_keypoints-1`, `V-node.smooth_keypoints-3`. The rule `V-node.smooth_keypoints-2` is removed, and its ID is not used again.
 - [Smooth boxes node](nodes/smooth_boxes.md#validation-rules): `V-node.smooth_boxes-1`

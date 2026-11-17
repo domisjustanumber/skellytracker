@@ -314,14 +314,16 @@ def test_validate_takes_a_key_of_the_catalog(capsys: pytest.CaptureFixture[str])
     assert capsys.readouterr().out.splitlines()[-1] == "mediapipe-holistic-tasks@skellytracker: valid"
 
 
-def test_nodes_lists_the_11_node_types_as_text_and_as_json(capsys: pytest.CaptureFixture[str]) -> None:
+def test_nodes_lists_the_12_node_types_as_text_and_as_json(capsys: pytest.CaptureFixture[str]) -> None:
     names = [node.type for node in NODE_TYPES]
-    assert len(names) == 11
+    assert len(names) == 12
     assert cli.main(["nodes"]) == 0
     lines = capsys.readouterr().out.splitlines()
     assert [line.split()[0] for line in lines if not line.startswith(" ")] == names
     assert "onnx_model  (image: image, boxes: boxes (optional), run_if: flag (optional)) -> (boxes: boxes, keypoints: keypoints)  spans: preprocess, inference, postprocess" in lines
     assert "redetect_trigger  (previous_keypoints: keypoints (optional), previous_boxes: boxes (optional)) -> (redetect: flag)  spans: run" in lines
+    assert "flag_when  (value: boxes|keypoints) -> (flag: flag)  spans: run" in lines
+    assert "merge  (body: keypoints, left_hand: keypoints (optional), right_hand: keypoints (optional), face: keypoints (optional)) -> (keypoints: keypoints)  spans: run" in lines
     assert "  param max_instances: int, default 1" in lines
     assert cli.main(["nodes", "--json"]) == 0
     nodes = json.loads(capsys.readouterr().out)

@@ -462,6 +462,84 @@
       "title": "FitnessCheck",
       "type": "object"
     },
+    "FlagWhenNode": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "default": "",
+          "description": "Text for people about the node. It can have more than one line.",
+          "title": "Description",
+          "type": "string"
+        },
+        "id": {
+          "description": "The node id. `pipeline` and `frame` are reserved.",
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "inputs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Input name to `<node>.<port>`, with an optional `@prev`.",
+          "title": "Inputs",
+          "type": "object"
+        },
+        "params": {
+          "$ref": "#/$defs/FlagWhenParams"
+        },
+        "type": {
+          "const": "flag_when",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "params"
+      ],
+      "title": "FlagWhenNode",
+      "type": "object"
+    },
+    "FlagWhenParams": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "description": "The test on all present rows of `value`, as step 2 of `gate`: `is_empty`, `is_present` or `score_above`.",
+          "enum": [
+            "is_present",
+            "is_empty",
+            "score_above"
+          ],
+          "set_during_run": false,
+          "source": "ADR-9HTX item 8",
+          "title": "Mode",
+          "type": "string"
+        },
+        "threshold": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The score threshold of the mode `score_above`.",
+          "set_during_run": true,
+          "source": "ADR-9HTX item 8",
+          "title": "Threshold"
+        }
+      },
+      "required": [
+        "mode"
+      ],
+      "title": "FlagWhenParams",
+      "type": "object"
+    },
     "GateNode": {
       "additionalProperties": false,
       "properties": {
@@ -1387,6 +1465,7 @@
             "assign_keypoints": "#/$defs/AssignKeypointsNode",
             "boxes_from_points": "#/$defs/BoxesFromPointsNode",
             "first_of": "#/$defs/FirstOfNode",
+            "flag_when": "#/$defs/FlagWhenNode",
             "gate": "#/$defs/GateNode",
             "hold_boxes": "#/$defs/HoldBoxesNode",
             "mediapipe_tasks": "#/$defs/MediapipeTasksNode",
@@ -1422,6 +1501,9 @@
           },
           {
             "$ref": "#/$defs/MergeNode"
+          },
+          {
+            "$ref": "#/$defs/FlagWhenNode"
           },
           {
             "$ref": "#/$defs/SmoothKeypointsNode"
