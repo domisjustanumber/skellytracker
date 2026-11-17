@@ -4,6 +4,7 @@ Implements: node.hold_boxes
 """
 from __future__ import annotations
 
+import functools
 import math
 from typing import Any
 
@@ -36,6 +37,11 @@ def output_info(
     return {"boxes": current}, []
 
 
+# At module level: beartype decorates a nested function again on each call of its outer function.
+def _in_box_frame(cx: float, cy: float, c: float, s: float, x: float, y: float) -> tuple[float, float]:
+    return (x - cx) * c + (y - cy) * s, -(x - cx) * s + (y - cy) * c
+
+
 def _keep_previous(params: HoldBoxesParams, previous: list[float], current: list[float], points: list[list[float]]) -> bool:
     """Return true when the previous box passes the tests of Behaviour steps 4 to 7."""
     pcx, pcy, pw, ph, pr = previous
@@ -43,10 +49,7 @@ def _keep_previous(params: HoldBoxesParams, previous: list[float], current: list
     if abs(normalize_radians(pr - r)) > math.radians(params.max_rotation_deg):
         return False
     c, s = math.cos(r), math.sin(r)
-
-    def frame(x: float, y: float) -> tuple[float, float]:
-        return (x - cx) * c + (y - cy) * s, -(x - cx) * s + (y - cy) * c
-
+    frame = functools.partial(_in_box_frame, cx, cy, c, s)
     u, v = frame(pcx, pcy)
     if abs(u) > params.max_offset * w or abs(v) > params.max_offset * h:
         return False

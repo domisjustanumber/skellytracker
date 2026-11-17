@@ -104,24 +104,26 @@ def resize_image(
     pixels = to_compute_dtype(image, str(resize.compute_dtype))
     flag = interpolation_flag(str(resize.interpolation))
 
-    def bgr(pad_value: Any) -> tuple[float, ...]:
-        border = border_values(pad_value)
-        return border[::-1] if color_format == "rgb" else border
-
     if resize.method == "letterbox":
         resized, _ = resize_letterbox.letterbox(
-            pixels, target_size, str(resize.pad_position), str(resize.rounding), bgr(resize.pad_value), flag
+            pixels, target_size, str(resize.pad_position), str(resize.rounding), _bgr_border(resize.pad_value, color_format), flag
         )
     elif resize.method == "stretch":
         resized, _ = resize_stretch.stretch(pixels, target_size, flag)
     elif resize.method == "fit":
-        resized, _ = resize_fit.fit(pixels, target_size, bgr(resize.pad_value), flag)
+        resized, _ = resize_fit.fit(pixels, target_size, _bgr_border(resize.pad_value, color_format), flag)
     else:
         policy = resize.crop_policy
         resized, _ = resize_affine_crop.affine_crop(
-            pixels, roi, target_size, policy.expand_ratio, policy.maintain_aspect_ratio, bgr(policy.pad_value), flag
+            pixels, roi, target_size, policy.expand_ratio, policy.maintain_aspect_ratio, _bgr_border(policy.pad_value, color_format), flag
         )
     return resized, geometry
+
+
+# At module level: beartype decorates a nested function again on each call of its outer function.
+def _bgr_border(pad_value: Any, color_format: str) -> tuple[float, ...]:
+    border = border_values(pad_value)
+    return border[::-1] if color_format == "rgb" else border
 
 
 def preprocess_image(
