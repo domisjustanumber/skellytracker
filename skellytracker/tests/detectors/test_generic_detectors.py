@@ -29,7 +29,7 @@ from skellytracker.core.model_spec import artifacts  # noqa: E402
 from skellytracker.core.model_spec.model import BatchingSpec, ResizeSpec  # noqa: E402
 from skellytracker.tests.detectors.onnx_models import keypoint_model, object_model  # noqa: E402
 from skellytracker.tests.detectors.test_generic_download import fake_fetch, zipped  # noqa: E402
-from skellytracker.tests.model_spec.sidecars import BASES, _size, write_yaml  # noqa: E402
+from skellytracker.tests.model_spec.sidecars import BASES, SCORE_MAP, _size, write_yaml  # noqa: E402
 
 OBJECT_KEY = "demo@demo-exporter"
 KEYPOINT_KEY = "demo-body@demo-exporter"
@@ -57,7 +57,7 @@ def object_sidecar() -> dict[str, Any]:
 def keypoint_sidecar() -> dict[str, Any]:
     sidecar = BASES["simcc"]()
     sidecar["keypoint"]["derived_points"] = {"mid": ["a", "b"]}
-    sidecar["sizes"] = {"m": _size("demo-body", "m", 16, 12, [[3, 3, 24], [3, 3, 32]])}
+    sidecar["sizes"] = {"m": {**_size("demo-body", "m", 16, 12, [[3, 3, 24], [3, 3, 32]]), "score_map": dict(SCORE_MAP)}}
     return sidecar
 
 
@@ -157,8 +157,12 @@ def test_the_keypoint_detector_runs_a_top_down_model_on_a_batch_of_crops(root: P
         np.testing.assert_allclose(found.keypoints[index, 1], [c_x - 18.75, c_y - 25], atol=1e-4)
         assert np.isnan(found.keypoints[index, 2]).all()
         np.testing.assert_allclose(found.derived_keypoints[index, 0], [c_x - 9.375, c_y - 12.5], atol=1e-4)
-    np.testing.assert_allclose(found.scores, [[3, 2, 0]] * 4)
-    np.testing.assert_allclose(found.derived_scores, [[2]] * 4)
+    np.testing.assert_allclose(found.raw_scores, [[3, 2, 0]] * 4)
+    # SCORE_MAP is a = 1, b = 0: the mapped score is 1 / (1 + exp(-raw)); a missing point keeps 0.
+    mapped = [1 / (1 + np.exp(-3.0)), 1 / (1 + np.exp(-2.0)), 0]
+    assert found.scores.dtype == np.float32
+    np.testing.assert_allclose(found.scores, [mapped] * 4, rtol=1e-6)
+    np.testing.assert_allclose(found.derived_scores, [[mapped[1]]] * 4, rtol=1e-6)
     with pytest.raises(ValueError, match="needs rois"):
         detector.detect([image])
     empty = detector.detect([], [])

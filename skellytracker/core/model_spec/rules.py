@@ -220,6 +220,7 @@ def check_sidecar(
     Implements: post.object.selection.nms
     Implements: post.keypoint.schema
     Implements: post.keypoint.decode.simcc
+    Implements: post.keypoint.score_map
     Implements: post.keypoint.decode.coordinate
     Implements: post.keypoint.bottom_up
     Implements: post.keypoint.overlay
@@ -227,7 +228,8 @@ def check_sidecar(
 
     `relative_path` is the path of the sidecar under its sidecar root, with `/`. With it, the
     function checks V-common.identity-1, -7 and -8. `landmark_schemas` is the registry. With it, the
-    function checks V-post.keypoint.schema-10. `in_examples` is True for a file under
+    function checks V-post.keypoint.schema-10 and the group names of V-post.keypoint.score_map-4.
+    `in_examples` is True for a file under
     `specs/model-sidecar/examples/`, where the placeholder `sha256` is valid.
     """
     checker = _Checker(sidecar, relative_path, landmark_schemas, in_examples)
@@ -382,7 +384,8 @@ class _Checker:
             if not isinstance(entry, dict):
                 self.fail(rule + "3", f"{where} must be a mapping")
                 continue
-            self.only(entry, {"input", "onnx"}, where, rule + "3")
+            self.only(entry, {"input", "onnx", "score_map"}, where, rule + "3")
+            self.score_map(where, entry)
             size_input = _dict(entry.get("input"))
             self.only(size_input, {"shape", "resize"}, f"{where}.input", rule + "3")
             shape = _shape(size_input.get("shape"))
@@ -402,6 +405,58 @@ class _Checker:
                     elif shape and shape[2:4] != target:
                         self.fail(rule + "4", f"{where}: input.shape[2:4] {shape[2:4]} is not target_size {target}")
             self.onnx(where, _dict(entry.get("onnx")))
+
+    def score_map(self, where: str, entry: dict[Any, Any]) -> None:
+        """V-post.keypoint.score_map-1 to -6: the score map of one size."""
+        rule = "V-post.keypoint.score_map-"
+        simcc = self.keypoint_decode.get("method") == "simcc"
+        if "score_map" not in entry:
+            if simcc:
+                self.fail(rule + "1", f"{where}: a size of a simcc model must have score_map")
+            return
+        if not simcc:
+            self.fail(rule + "6", f"{where}.score_map is valid only with keypoint.decode.method: simcc")
+        block, at = entry["score_map"], f"{where}.score_map"
+        if not isinstance(block, dict):
+            self.fail(rule + "2", f"{at} must be a mapping")
+            return
+        if missing := [key for key in ("method", "a", "b") if key not in block]:
+            self.fail(rule + "2", f"{at} must have {missing}")
+        self.only(block, {"method", "a", "b", "groups", "fit"}, at, rule + "2")
+        if "method" in block and block["method"] != "logistic":
+            self.fail(rule + "2", f"{at}.method must be logistic")
+        self.score_pair(at, block)
+        if "groups" in block:
+            self.score_groups(f"{at}.groups", block["groups"])
+        if "fit" in block:
+            fit = block["fit"]
+            if not (isinstance(fit, dict) and set(fit) == {"dataset", "split", "recipe"} and all(_is_text(v) for v in fit.values())):
+                self.fail(rule + "5", f"{at}.fit must have exactly dataset, split and recipe, each a non-empty string")
+
+    def score_pair(self, at: str, pair: dict[Any, Any]) -> None:
+        """V-post.keypoint.score_map-3: `a` is a finite number > 0, and `b` is a finite number."""
+        a, b = pair.get("a"), pair.get("b")
+        if "a" in pair and not (_is_number(a) and a > 0):
+            self.fail("V-post.keypoint.score_map-3", f"{at}.a must be a finite number > 0")
+        if "b" in pair and not _is_number(b):
+            self.fail("V-post.keypoint.score_map-3", f"{at}.b must be a finite number")
+
+    def score_groups(self, at: str, groups: Any) -> None:
+        """V-post.keypoint.score_map-4, and -3 on each pair: the pairs of the landmark-schema groups."""
+        rule = "V-post.keypoint.score_map-4"
+        if not (isinstance(groups, dict) and groups):
+            self.fail(rule, f"{at} must be a non-empty mapping")
+            return
+        name = self.keypoint.get("landmark_schema")
+        schema = self.landmark_schemas.get(name) if self.landmark_schemas is not None and isinstance(name, str) else None
+        known = None if schema is None else {group.name for group in schema.groups}
+        for group, pair in groups.items():
+            if known is not None and group not in known:
+                self.fail(rule, f"{at}.{group} is not a group of the landmark schema {name!r}")
+            if not (isinstance(pair, dict) and set(pair) == {"a", "b"}):
+                self.fail(rule, f"{at}.{group} must have exactly the keys a and b")
+            if isinstance(pair, dict):
+                self.score_pair(f"{at}.{group}", pair)
 
     def onnx(self, where: str, onnx: dict[Any, Any]) -> None:
         rule = "V-common.sizes_and_artifacts-"

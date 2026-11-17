@@ -1,6 +1,6 @@
 # F067 — Spec change: simcc-score-map
 
-**Status:** proposed, 2026-11-16 (OpenMMLab-Exporter proposal; user decisions of 2026-11-16).
+**Status:** accepted, 2026-11-16 (user; OpenMMLab-Exporter proposal; PR: pending).
 
 ## Decision
 
@@ -29,8 +29,10 @@ The record is [`proposal.md`](../../proposals/simcc-score-map/proposal.md)
   - The pair is a new permitted key of each size, `sizes.<size>.score_map`. A key at the top level
     that is keyed by size name is rejected.
   - A threshold in a sidecar that reads a keypoint score reads the mapped score, for example
-    `score_gate`. This is a recommendation. The user confirms it at the landing.
+    `score_gate`. The user confirmed it at the landing on 2026-11-16.
   - The `license` block does not change: the model is a re-export of an existing model.
+  - `score_map` is required in each size of a `simcc` model. The rule `V-post.keypoint.score_map-1`
+    applies in full: the example `rtmw-wholebody133` lands with the export of bundle version 6.
 
 This entry changes two rules of [ADR-90CE](../../../../decisions/entries/90CE-minimal-sidecar-contract.md)
 that the spec states under [`sizes`](../../common/sizes-and-artifacts.md#sizes): a size entry also
@@ -54,16 +56,13 @@ check-split ECE with one pair for each size and the group rule is 0.0063 to 0.02
 sizes gives 0.126 to 0.184. Each size passes the fp16 check. The ONNX files are byte-identical to
 bundle version 5 of `model-rtmw-wholebody133`, so no parity run is repeated.
 
-## Before acceptance
+## Notes at acceptance
 
 - Known limit: at l-384, the logistic map in `raw` does not fit the group `body` well (check ECE
   0.048 with its own pair). The map in `ln(raw)` is better at 384x288 and worse at 256x192. The user
   keeps the logistic map in `raw`.
 - The reference module reads only `numpy` and `math`. The safety review found no file, network,
   process, environment or dynamic-code access.
-- Landing blocker: the part 7 row of `rtmw-wholebody133` has the impact `needs-export`. The
-  exporter packs version 6 of its `model` bundle after this change lands. Until then, the example
-  has no `score_map`.
 - The pipeline result API (`score` is the mapped score, and a new `raw_score` field) is a follow-up
   of the pipeline spec.
 

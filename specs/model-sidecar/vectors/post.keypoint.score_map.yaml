@@ -1,0 +1,248 @@
+# tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
+# Hosts ignore `checks`. The names are the self-checks of the generator.
+section: post.keypoint.score_map
+notes:
+  - "Normative text: specs/model-sidecar/post/keypoint/score-map.md."
+  - "`raw` is the raw decode score of post.keypoint.decode.simcc, with the shape (B, P).
+    The host reads it as float32. The map computes in float64. `scores` is float32."
+  - "`score_map` is the block of one size (sizes.<size>.score_map). `point_groups` gives
+    the landmark-schema group of each keypoint. A case without `groups` has no
+    `point_groups`."
+  - "A missing keypoint (raw NaN or raw <= 0) gets the score 0."
+tolerance: 0.000001
+unverified: "The OpenMMLab-Exporter host function map_scores gives the same scores for each
+  numeric case. It is not an independent implementation: the same exporter wrote the
+  host function and this reference module. The skellytracker function map_scores in
+  verified_against is a port of this reference module. No independent implementation
+  exists yet."
+cases:
+  - id: size-pair
+    note: "no groups: each keypoint uses the size pair; raw 0.5 gives z = 0 and the score 0.5"
+    params: {score_map: {method: logistic, a: 8, b: -4}}
+    input: {raw: [[0.5, 1, 0.25]]}
+    expect: {scores: [[0.5, 0.982014, 0.119203]]}
+    verified_against:
+      - skellytracker/core/detectors/processing/post/keypoint_score_map.py::map_scores
+  - id: group-pair
+    note: "the face points use the face pair; the body point uses the size pair"
+    params:
+      score_map: {method: logistic, a: 8, b: -4, groups: {face: {a: 2, b: -1}}}
+      point_groups: [body, face, face]
+    input: {raw: [[0.5, 0.5, 1.5]]}
+    expect: {scores: [[0.5, 0.5, 0.880797]]}
+    verified_against:
+      - skellytracker/core/detectors/processing/post/keypoint_score_map.py::map_scores
+  - id: two-groups
+    note: "feet and face have their own pairs; body and left_hand use the size pair"
+    params:
+      score_map:
+        method: logistic
+        a: 8
+        b: -4
+        groups: {feet: {a: 4, b: -2}, face: {a: 1, b: 0.5}}
+      point_groups: [body, feet, face, left_hand]
+    input: {raw: [[0.75, 0.75, 0.75, 0.75]]}
+    expect: {scores: [[0.880797, 0.731059, 0.7773, 0.880797]]}
+    verified_against:
+      - skellytracker/core/detectors/processing/post/keypoint_score_map.py::map_scores
+  - id: raw-zero-is-missing
+    note: "the comparison raw > 0 is strict: raw 0 is missing and gets 0; a small positive raw
+      is mapped"
+    params: {score_map: {method: logistic, a: 8, b: -4}}
+    input: {raw: [[0, 0.000001]]}
+    expect: {scores: [[0, 0.017986]]}
+    verified_against:
+      - skellytracker/core/detectors/processing/post/keypoint_score_map.py::map_scores
+  - id: negative-raw-is-missing
+    note: "a raw score < 0 is missing and gets 0, not logistic(a * raw + b)"
+    params: {score_map: {method: logistic, a: 1, b: 3}}
+    input: {raw: [[-0.2, -5]]}
+    expect: {scores: [[0, 0]]}
+    verified_against:
+      - skellytracker/core/detectors/processing/post/keypoint_score_map.py::map_scores
+  - id: nan-raw-is-missing
+    note: "a NaN raw score is missing (the missing rule of post.keypoint.schema) and gets 0"
+    params: {score_map: {method: logistic, a: 8, b: -4}}
+    input: {raw: [[.nan, 0.5]]}
+    expect: {scores: [[0, 0.5]]}
+    verified_against:
+      - skellytracker/core/detectors/processing/post/keypoint_score_map.py::map_scores
+  - id: infinite-raw
+    note: "raw +inf gives 1; raw -inf is <= 0, so it is missing and gets 0"
+    params: {score_map: {method: logistic, a: 8, b: -4}}
+    input: {raw: [[.inf, -.inf]]}
+    expect: {scores: [[1, 0]]}
+    verified_against:
+      - skellytracker/core/detectors/processing/post/keypoint_score_map.py::map_scores
+  - id: large-z-saturates
+    note: "z = 5000 gives 1 and z = -999 gives 0, with no overflow"
+    params: {score_map: {method: logistic, a: 1000, b: -1000}}
+    input: {raw: [[6, 0.001]]}
+    expect: {scores: [[1, 0]]}
+    verified_against:
+      - skellytracker/core/detectors/processing/post/keypoint_score_map.py::map_scores
+  - id: raw-is-float32
+    note: "raw 0.1 is float32 0.10000000149011612 before the map, so z = 1.4901161 and not 0"
+    params: {score_map: {method: logistic, a: 1000000, b: -100000}}
+    input: {raw: [[0.1]]}
+    expect: {scores: [[0.500373]]}
+    verified_against:
+      - skellytracker/core/detectors/processing/post/keypoint_score_map.py::map_scores
+  - id: two-crops
+    note: "B = 2, P = 2: the map applies to each crop in the same way"
+    params:
+      score_map: {method: logistic, a: 1.1, b: -3.2, groups: {face: {a: 0.9, b: -4.6}}}
+      point_groups: [body, face]
+    input: {raw: [[2.84, 5.2], [0, 7]]}
+    expect: {scores: [[0.481009, 0.519989], [0, 0.845535]]}
+    verified_against:
+      - skellytracker/core/detectors/processing/post/keypoint_score_map.py::map_scores
+  - id: point-groups-missing-refused
+    note: "the input is a caller argument (point_groups from the landmark schema), not a
+      sidecar value"
+    checks: [refused]
+    params: {score_map: {method: logistic, a: 2, b: 1, groups: {face: {a: 1, b: 0}}}}
+    input: {raw: [[0.5, 0.5]]}
+    expect: {error: no-rule}
+    verified_against:
+      - skellytracker/core/detectors/processing/post/keypoint_score_map.py::map_scores
+  - id: validator-valid-map
+    note: "a data-only validator case with a partial sidecar (only keypoint or role, and
+      sizes). It checks only the rules V-post.keypoint.score_map-1 to -6. The sidecar
+      shows only keypoint and sizes. A valid map with a face pair and fit."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        keypoint: {landmark_schema: COCO_WholeBody, decode: {method: simcc}}
+        sizes:
+          m:
+            score_map:
+              method: logistic
+              a: 8.12
+              b: -4.12
+              groups: {face: {a: 11.7, b: -7.6}}
+              fit: {dataset: "COCO-WholeBody v1.0", split: val, recipe: score-map-fit-v1}
+    expect: {failed: []}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar
+  - id: validator-size-without-map
+    note: "a data-only validator case with a partial sidecar (only keypoint or role, and
+      sizes). It checks only the rules V-post.keypoint.score_map-1 to -6. The size l has
+      no score_map."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        keypoint: {landmark_schema: COCO_WholeBody, decode: {method: simcc}}
+        sizes: {m: {score_map: {method: logistic, a: 8, b: -4}}, l: {}}
+    expect: {failed: [V-post.keypoint.score_map-1]}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar
+  - id: validator-method-not-logistic
+    note: "a data-only validator case with a partial sidecar (only keypoint or role, and
+      sizes). It checks only the rules V-post.keypoint.score_map-1 to -6. method linear is
+      not an allowed value."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        keypoint: {landmark_schema: COCO_WholeBody, decode: {method: simcc}}
+        sizes: {m: {score_map: {method: linear, a: 2, b: 1}}}
+    expect: {failed: [V-post.keypoint.score_map-2]}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar
+  - id: validator-extra-key
+    note: "a data-only validator case with a partial sidecar (only keypoint or role, and
+      sizes). It checks only the rules V-post.keypoint.score_map-1 to -6. The key c is not
+      allowed."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        keypoint: {landmark_schema: COCO_WholeBody, decode: {method: simcc}}
+        sizes: {m: {score_map: {method: logistic, a: 2, b: 1, c: 0}}}
+    expect: {failed: [V-post.keypoint.score_map-2]}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar
+  - id: validator-a-zero
+    note: "a data-only validator case with a partial sidecar (only keypoint or role, and
+      sizes). It checks only the rules V-post.keypoint.score_map-1 to -6. a = 0 is not >
+      0."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        keypoint: {landmark_schema: COCO_WholeBody, decode: {method: simcc}}
+        sizes: {m: {score_map: {method: logistic, a: 0, b: 1}}}
+    expect: {failed: [V-post.keypoint.score_map-3]}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar
+  - id: validator-b-nan
+    note: "a data-only validator case with a partial sidecar (only keypoint or role, and
+      sizes). It checks only the rules V-post.keypoint.score_map-1 to -6. b is NaN."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        keypoint: {landmark_schema: COCO_WholeBody, decode: {method: simcc}}
+        sizes: {m: {score_map: {method: logistic, a: 2, b: .nan}}}
+    expect: {failed: [V-post.keypoint.score_map-3]}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar
+  - id: validator-group-a-negative
+    note: "a data-only validator case with a partial sidecar (only keypoint or role, and
+      sizes). It checks only the rules V-post.keypoint.score_map-1 to -6. The face pair
+      has a < 0."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        keypoint: {landmark_schema: COCO_WholeBody, decode: {method: simcc}}
+        sizes: {m: {score_map: {method: logistic, a: 2, b: 1, groups: {face: {a: -1, b: 0}}}}}
+    expect: {failed: [V-post.keypoint.score_map-3]}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar
+  - id: validator-unknown-group
+    note: "a data-only validator case with a partial sidecar (only keypoint or role, and
+      sizes). It checks only the rules V-post.keypoint.score_map-1 to -6. tail is not a
+      group of the schema COCO_WholeBody."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        keypoint: {landmark_schema: COCO_WholeBody, decode: {method: simcc}}
+        sizes: {m: {score_map: {method: logistic, a: 2, b: 1, groups: {tail: {a: 1, b: 0}}}}}
+    expect: {failed: [V-post.keypoint.score_map-4]}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar
+  - id: validator-fit-without-recipe
+    note: "a data-only validator case with a partial sidecar (only keypoint or role, and
+      sizes). It checks only the rules V-post.keypoint.score_map-1 to -6. fit has no
+      recipe."
+    function: none
+    params: {}
+    input:
+      sidecar:
+        keypoint: {landmark_schema: COCO_WholeBody, decode: {method: simcc}}
+        sizes:
+          m:
+            score_map:
+              method: logistic
+              a: 2
+              b: 1
+              fit: {dataset: "COCO-WholeBody v1.0", split: val}
+    expect: {failed: [V-post.keypoint.score_map-5]}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar
+  - id: validator-map-without-simcc
+    note: "a data-only validator case with a partial sidecar (only keypoint or role, and
+      sizes). It checks only the rules V-post.keypoint.score_map-1 to -6. An object
+      detector with a score_map in a size."
+    function: none
+    params: {}
+    input:
+      sidecar: {role: [object_detector], sizes: {m: {score_map: {method: logistic, a: 2, b: 1}}}}
+    expect: {failed: [V-post.keypoint.score_map-6]}
+    verified_against:
+      - skellytracker/core/model_spec/rules.py::check_sidecar

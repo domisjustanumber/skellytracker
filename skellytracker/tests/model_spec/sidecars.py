@@ -19,6 +19,10 @@ SCHEMAS = {
 SHA = "a" * 64
 
 
+SCORE_MAP = {"method": "logistic", "a": 1.0, "b": 0.0}
+"""The score map of a `simcc` size in the test sidecars: the mapped score is `1 / (1 + exp(-raw))`."""
+
+
 def _common(model_id: str, role: list[str]) -> dict[str, Any]:
     return {
         "schema_version": "2.0.0",
@@ -166,7 +170,7 @@ def simcc_keypoint_detector() -> dict[str, Any]:
             "decode": {"method": "simcc"},
             "overlay": {"skeleton": "chain", "parts": {"body": {"edge_color": [0, 255, 0]}}},
         },
-        "sizes": {"m": _size("demo-body", "m", 256, 192, [[3, 3, 384], [3, 3, 512]])},
+        "sizes": {"m": {**_size("demo-body", "m", 256, 192, [[3, 3, 384], [3, 3, 512]]), "score_map": dict(SCORE_MAP)}},
     }
 
 

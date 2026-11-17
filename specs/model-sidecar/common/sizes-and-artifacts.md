@@ -32,8 +32,9 @@ The top-level `sizes` map lists every scale of the model in one sidecar.
 |-------|------|----------|-------------|
 | `sizes.<name>.input` | object | yes per size | The input for one size. It can contain **only** `shape` and `resize.target_size`. The first is required, and its batch axis is always `-1`. The section of the resize `method` tells if the second is present ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). |
 | `sizes.<name>.onnx` | object | yes per size | The artifacts for one size. `precision_artifacts` and `output_shapes` are required ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)). |
+| `sizes.<name>.score_map` | object | required by `V-post.keypoint.score_map-1` | The keypoint score map of one size ([Keypoint score map](../post/keypoint/score-map.md#fields)). It is a calibration of the weights of the size, not a contract item ([ADR-F067](../decisions/entries/F067-simcc-score-map.md)). |
 
-A size entry can contain only `input.shape`, `input.resize.target_size` and `onnx` (with the sub-fields above). Any other key in a size entry is invalid. This includes `role`, `outputs`, `batching`, `object`, `keypoint`, `input.normalization`, `input.color_format`, `input.resize.method` and other keys. The host does not merge a size entry over the top level. It reads the three fields of the size from the size entry, and each other field from the top level ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). Size names are lowercase tokens such as `nano`, `small` and `medium`. A size name can contain hyphens, for example `l-m` and `x-l`.
+A size entry can contain only `input.shape`, `input.resize.target_size`, `onnx` (with the sub-fields above) and `score_map` ([Keypoint score map](../post/keypoint/score-map.md#fields); [ADR-F067](../decisions/entries/F067-simcc-score-map.md)). Any other key in a size entry is invalid. This includes `role`, `outputs`, `batching`, `object`, `keypoint`, `input.normalization`, `input.color_format`, `input.resize.method` and other keys. The host does not merge a size entry over the top level. It reads the fields of the size from the size entry, and each other field from the top level ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). Size names are lowercase tokens such as `nano`, `small` and `medium`. A size name can contain hyphens, for example `l-m` and `x-l`.
 
 **Family invariant.** A family has exactly one contract for preprocessing and post-processing. If two sizes need a different value for any of these items, they belong to **different families** (different sidecars):
 
@@ -45,7 +46,7 @@ A size entry can contain only `input.shape`, `input.resize.target_size` and `onn
 - NMS parameters
 - classes
 
-For example, an RTMDet person-only family and an 80-class RTMDet family are separate families, because their NMS contracts and class counts differ. Do not add a size-level override. Make a new family instead ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
+For example, an RTMDet person-only family and an 80-class RTMDet family are separate families, because their NMS contracts and class counts differ. Do not add a size-level override. Make a new family instead ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). The score map of a size (`sizes.<size>.score_map`) is not an override and not a contract item. It is a calibration of the weights of that size, like its artifacts, so it can differ between the sizes of one family ([Keypoint score map](../post/keypoint/score-map.md#behaviour); [ADR-F067](../decisions/entries/F067-simcc-score-map.md)).
 
 When a size declares `target_size`, the spatial dimensions of its `input.shape` must equal it: `shape[2:4] == target_size` ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)). When no request names a size, the first size in the list is the default. Apart from this default, how a host selects a size or a precision at runtime is out of scope. This spec only declares what is available.
 
@@ -54,7 +55,7 @@ When a size declares `target_size`, the spatial dimensions of its `input.shape` 
 | `role`, `outputs`, `input` (except `shape` / `resize.target_size`), `batching` | shared at top level |
 | `object` | top level, when `role` includes `object_detector` |
 | `keypoint` | top level, when `role` includes `keypoint_detector` |
-| `input.shape`, `input.resize.target_size`, `onnx.precision_artifacts`, `onnx.output_shapes` | per size (`sizes.<size>`) ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)) |
+| `input.shape`, `input.resize.target_size`, `onnx.precision_artifacts`, `onnx.output_shapes`, `score_map` | per size (`sizes.<size>`) ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md); [ADR-F067](../decisions/entries/F067-simcc-score-map.md)) |
 
 ### `sizes.<size>.onnx`
 
@@ -115,7 +116,7 @@ The host reads the fields that are specific to a size from the size entry, and e
 
 - [ ] `V-common.sizes_and_artifacts-1` `sizes` must be present, with at least one size.
 - [ ] `V-common.sizes_and_artifacts-2` Each size must declare `input.shape` with `-1` as its batch axis (first dimension).
-- [ ] `V-common.sizes_and_artifacts-3` A size entry must contain only `input.shape`, `input.resize.target_size` and `onnx`.
+- [ ] `V-common.sizes_and_artifacts-3` A size entry must contain only `input.shape`, `input.resize.target_size`, `onnx` and `score_map` ([ADR-F067](../decisions/entries/F067-simcc-score-map.md)).
 - [ ] `V-common.sizes_and_artifacts-4` When a size declares `input.resize.target_size`, the spatial dimensions of its `input.shape` (`shape[2:4]`) must equal it ([ADR-90CE](../../../decisions/entries/90CE-minimal-sidecar-contract.md)).
 - [ ] `V-common.sizes_and_artifacts-5` Each size must have a non-empty `onnx.precision_artifacts` ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md)).
 - [ ] `V-common.sizes_and_artifacts-6` The precision keys must be the closed enum `fp32`/`fp16`.

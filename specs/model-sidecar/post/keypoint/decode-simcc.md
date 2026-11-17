@@ -48,7 +48,7 @@ x = bin_x * input_width / X_bins
 y = bin_y * input_height / Y_bins
 ```
 
-- Score range: the score is a raw output value. It has no fixed range: it can be negative or more than 1.
+- Score range: the score is a raw output value. It has no fixed range: it can be negative or more than 1. The host maps the raw score to `[0, 1]` with the score map of the size ([Keypoint score map](score-map.md#behaviour); [ADR-F067](../../decisions/entries/F067-simcc-score-map.md)). The decode output keeps the raw score.
 - In the decode output, a keypoint with a score `<= 0` keeps its score. Its position is `x = -input_width / X_bins` and
   `y = -input_height / Y_bins`. The host unprojects it as each other keypoint.
 - Bin `0` gives the position `0`. The decode adds no half-bin offset.

@@ -12,6 +12,7 @@ import pytest
 import yaml
 
 from skellytracker.core.model_spec.errors import SidecarValidationError
+from skellytracker.core.model_spec.landmark_schemas import load_landmark_schema_registry
 from skellytracker.core.model_spec.loader import load_sidecar
 from skellytracker.core.model_spec.model import SidecarModel
 from skellytracker.core.model_spec.resolution import resolve_sidecar_composition
@@ -52,6 +53,7 @@ CASES: list[tuple[str, str, dict[str, Any]]] = [
     ("V-format.composition-5", "nms", {"sizes.n.onnx.precision_artifacts.fp32.input_dtype": "float32"}),
     ("V-format.composition-5", "simcc", {"keypoint.requires_object_detector": True}),
     ("V-format.composition-5", "simcc", {"keypoint.decode.is_3d": False}),
+    ("V-format.composition-5", "simcc", {"keypoint.groups": []}),  # the groups are in the schema file (ADR-23F5)
     ("V-format.composition-5", "nms", {"batching.batch_axis": 0}),
     (NULL_VALUE, "nms", {"input.resize.pad_value": None}),
     ("V-format.versioning-1", "nms", {"schema_version": 2.0}),
@@ -232,6 +234,22 @@ CASES: list[tuple[str, str, dict[str, Any]]] = [
     ("V-post.keypoint.schema-11", "simcc", {"keypoint.point_names": ["a", "b c", "body/c"]}),
     ("V-post.keypoint.decode.coordinate-1", "simcc", {"keypoint.decode.coordinate_space": "pixel"}),
     ("V-post.keypoint.decode.coordinate-1", "instance", {"keypoint.decode.coordinate_space": "source"}),
+    # post.keypoint.score_map
+    ("V-post.keypoint.score_map-1", "simcc", {"sizes.m.score_map": MISSING}),
+    ("V-post.keypoint.score_map-2", "simcc", {"sizes.m.score_map": "logistic"}),
+    ("V-post.keypoint.score_map-2", "simcc", {"sizes.m.score_map.method": "linear"}),
+    ("V-post.keypoint.score_map-2", "simcc", {"sizes.m.score_map.b": MISSING}),
+    ("V-post.keypoint.score_map-2", "simcc", {"sizes.m.score_map.c": 0.0}),
+    ("V-post.keypoint.score_map-3", "simcc", {"sizes.m.score_map.a": 0.0}),
+    ("V-post.keypoint.score_map-3", "simcc", {"sizes.m.score_map.a": float("inf")}),
+    ("V-post.keypoint.score_map-3", "simcc", {"sizes.m.score_map.b": True}),
+    ("V-post.keypoint.score_map-3", "simcc", {"sizes.m.score_map.groups": {"body": {"a": -1.0, "b": 0.0}}}),
+    ("V-post.keypoint.score_map-4", "simcc", {"sizes.m.score_map.groups": {}}),
+    ("V-post.keypoint.score_map-4", "simcc", {"sizes.m.score_map.groups": {"tail": {"a": 1.0, "b": 0.0}}}),
+    ("V-post.keypoint.score_map-4", "simcc", {"sizes.m.score_map.groups": {"body": {"a": 1.0}}}),
+    ("V-post.keypoint.score_map-5", "simcc", {"sizes.m.score_map.fit": {"dataset": "d", "split": "", "recipe": "r"}}),
+    ("V-post.keypoint.score_map-5", "simcc", {"sizes.m.score_map.fit": {"dataset": "d", "split": "s"}}),
+    ("V-post.keypoint.score_map-6", "nms", {"sizes.n.score_map": {"method": "logistic", "a": 1.0, "b": 0.0}}),
     ("V-post.keypoint.bottom_up-1", "instance", {"outputs.1.keypoint_axis": 1}),
     ("V-post.keypoint.bottom_up-1", "instance", {"outputs.1.shape": [-1, 100, 17, 3]}),
     ("V-post.keypoint.bottom_up-2", "packed", {"outputs.0.packed_keypoints.offset": 5}),
@@ -278,6 +296,7 @@ VALID_CASES: list[tuple[str, dict[str, Any]]] = [
     ("simcc", {"keypoint.derived_points": {"mid": ["a", "b"], "copy": "c", "lean": {"a": 1.5, "b": -0.5}}, "keypoint.skeletons.0.edges": [["mid", "copy"]]}),
     ("simcc", {"keypoint.overlay.parts.body.edges": [["b", "a"]], "keypoint.overlay.parts.rest": {"edge_color": [1, 2, 3]}}),
     ("simcc", {"keypoint.overlay.skeleton": [["a", "c"]], "keypoint.overlay.parts.body.edges": [["a", "c"]]}),
+    ("simcc", {"sizes.m.score_map.groups": {"body": {"a": 2, "b": -1.5}}, "sizes.m.score_map.fit": {"dataset": "d", "split": "val", "recipe": "score-map-fit-v1"}}),
 ]
 
 
@@ -350,7 +369,8 @@ def test_a_data_only_vector_case_fails_the_rules_that_it_names(section: str, cas
         write_yaml(tmp_path / relative_path, sidecar)
         sidecar = resolve_sidecar_composition(tmp_path / relative_path, tmp_path)
         in_section = PATH_RULES.__contains__
-    rules = {failure.rule for failure in check_sidecar(sidecar, relative_path=relative_path)}
+    # The package registry: V-post.keypoint.score_map-4 checks the group names of COCO_WholeBody.
+    rules = {failure.rule for failure in check_sidecar(sidecar, relative_path=relative_path, landmark_schemas=load_landmark_schema_registry())}
     assert sorted(filter(in_section, rules)) == case["expect"]["failed"]
 
 

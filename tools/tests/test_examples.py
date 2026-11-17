@@ -158,6 +158,7 @@ NAME_KEYED_MAPS = {
     "dtype",
     "normalization_by_precision",
     "parts",
+    "groups",  # sizes.<size>.score_map.groups: the keys are landmark-schema group names
 }
 # These map keypoint names to sources. The check does not read inside them.
 KEYPOINT_MAPS = {"derived_points"}
@@ -240,7 +241,8 @@ def test_example_has_only_keys_that_the_spec_defines(path: Path) -> None:
         (("sizes", "m", "onnx", "precision_artifacts", "fp32"), "input_dtype"),
         (("keypoint", "decode"), "is_3d"),
         (("keypoint",), "canonical_mapping"),
-        (("keypoint",), "groups"),
+        # keypoint.groups (ADR-23F5) is now a name of score_map.groups. The path-aware validator
+        # checks it: V-format.composition-5 in skellytracker/tests/model_spec/test_model_validation.py.
     ],
 )
 def test_the_key_check_finds_a_deleted_key(where: tuple[str | int, ...], key: str) -> None:

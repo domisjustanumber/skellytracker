@@ -109,6 +109,7 @@ These fields apply when `role` includes `keypoint_detector`.
 | `post.keypoint.landmark_schema` | [post/keypoint/landmark-schema.md](post/keypoint/landmark-schema.md) | Landmark schema |
 | `post.keypoint.canonical_mapping` | [post/keypoint/canonical-mapping.md](post/keypoint/canonical-mapping.md) | Canonical mapping |
 | `post.keypoint.decode.simcc` | [post/keypoint/decode-simcc.md](post/keypoint/decode-simcc.md) | SimCC decode |
+| `post.keypoint.score_map` | [post/keypoint/score-map.md](post/keypoint/score-map.md) | Keypoint score map |
 | `post.keypoint.decode.coordinate` | [post/keypoint/decode-coordinate.md](post/keypoint/decode-coordinate.md) | Coordinate decode |
 | `post.keypoint.bottom_up` | [post/keypoint/bottom-up.md](post/keypoint/bottom-up.md) | Bottom-up keypoints |
 | `post.keypoint.overlay` | [post/keypoint/overlay.md](post/keypoint/overlay.md) | Overlay |
@@ -146,6 +147,7 @@ A sidecar is valid when all of the following rules hold. Each rule applies to ev
 - [Selection: NMS](post/object/selection-nms.md#validation-rules)
 - [Keypoint schema](post/keypoint/schema.md#validation-rules)
 - [SimCC decode](post/keypoint/decode-simcc.md#validation-rules)
+- [Keypoint score map](post/keypoint/score-map.md#validation-rules)
 - [Coordinate decode](post/keypoint/decode-coordinate.md#validation-rules)
 - [Bottom-up keypoints](post/keypoint/bottom-up.md#validation-rules)
 - [Overlay](post/keypoint/overlay.md#validation-rules)

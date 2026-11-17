@@ -15,6 +15,7 @@ These entries are `accepted` or `evidence`.
 
 | # | Decision | Status |
 |---|----------|--------|
+| [F067](entries/F067-simcc-score-map.md) | Spec change: the SimCC keypoint score is a logistic map of the raw score to `[0, 1]`, with a pair in each size | accepted |
 
 ### Proposed
 
@@ -24,7 +25,6 @@ proposals of a section here.
 
 | # | Decision | Section | Status |
 |---|----------|---------|--------|
-| [F067](entries/F067-simcc-score-map.md) | Spec change: the SimCC keypoint score is a logistic map of the raw score to `[0, 1]`, with a pair in each size | `post.keypoint.score_map` | proposed |
 
 The entries that are `rejected`, `superseded by XXXX`, `absorbed into <path>#<anchor>`,
 `evidence; used by XXXX` or `done` are in [historical.md](historical.md).

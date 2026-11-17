@@ -2,7 +2,7 @@
 schema_version: "2.0.0"
 source:
   name: openmmlab-exporter
-  version: 0.3.0
+  version: 0.4.0
 model_id: rtmw-wholebody133
 display_name: RTMW WholeBody
 role:
@@ -884,6 +884,21 @@ sizes:
       - - 3
         - -1
         - 512
+    score_map:
+      method: logistic
+      a: 8.1176
+      b: -4.1208
+      groups:
+        body:
+          a: 8.6158
+          b: -4.3577
+        feet:
+          a: 8.7918
+          b: -3.9831
+      fit:
+        dataset: COCO-WholeBody v1.0
+        split: val
+        recipe: score-map-fit-v1
   l-256:
     input:
       shape:
@@ -910,6 +925,21 @@ sizes:
       - - 3
         - -1
         - 512
+    score_map:
+      method: logistic
+      a: 8.2948
+      b: -4.3772
+      groups:
+        body:
+          a: 8.6926
+          b: -4.5592
+        feet:
+          a: 9.1933
+          b: -4.3199
+      fit:
+        dataset: COCO-WholeBody v1.0
+        split: val
+        recipe: score-map-fit-v1
   x-256:
     input:
       shape:
@@ -936,6 +966,21 @@ sizes:
       - - 3
         - -1
         - 512
+    score_map:
+      method: logistic
+      a: 8.0613
+      b: -4.2109
+      groups:
+        body:
+          a: 7.9494
+          b: -4.0804
+        feet:
+          a: 7.857
+          b: -3.8762
+      fit:
+        dataset: COCO-WholeBody v1.0
+        split: val
+        recipe: score-map-fit-v1
   l-384:
     input:
       shape:
@@ -962,6 +1007,21 @@ sizes:
       - - 3
         - -1
         - 768
+    score_map:
+      method: logistic
+      a: 1.111
+      b: -3.161
+      groups:
+        body:
+          a: 1.4181
+          b: -4.0784
+        feet:
+          a: 1.3327
+          b: -3.8127
+      fit:
+        dataset: COCO-WholeBody v1.0
+        split: val
+        recipe: score-map-fit-v1
   x-384:
     input:
       shape:
@@ -988,3 +1048,24 @@ sizes:
       - - 3
         - -1
         - 768
+    score_map:
+      method: logistic
+      a: 0.8944
+      b: -4.653
+      groups:
+        body:
+          a: 0.8629
+          b: -4.4277
+        feet:
+          a: 1.0674
+          b: -5.2791
+        left_hand:
+          a: 1.0031
+          b: -5.623
+        right_hand:
+          a: 1.0031
+          b: -5.623
+      fit:
+        dataset: COCO-WholeBody v1.0
+        split: val
+        recipe: score-map-fit-v1

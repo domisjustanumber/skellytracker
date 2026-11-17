@@ -114,7 +114,7 @@ Decode methods:
 
 ### Decoded keypoints
 
-Each decode method gives a score for each keypoint. Each decode method states the range of its score. A keypoint output with no score (`keypoint_coordinates`) gives the score `1.0` to each keypoint whose coordinates are all finite, and the score NaN to a keypoint with a NaN coordinate. After the decode and the unprojection, a keypoint with a score `<= 0` or a NaN score is missing. The host sets `x`, `y` and, for 3D, `z` of a missing keypoint to NaN and its score to `0`. A host compares the keypoint scores with its thresholds after this rule ([ADR-88WQ](../../../../decisions/entries/88WQ-sidecar-vocabulary.md)).
+Each decode method gives a score for each keypoint. Each decode method states the range of its score. A keypoint output with no score (`keypoint_coordinates`) gives the score `1.0` to each keypoint whose coordinates are all finite, and the score NaN to a keypoint with a NaN coordinate. After the decode and the unprojection, a keypoint with a score `<= 0` or a NaN score is missing. The host sets `x`, `y` and, for 3D, `z` of a missing keypoint to NaN and its score to `0`. A host compares the keypoint scores with its thresholds after this rule ([ADR-88WQ](../../../../decisions/entries/88WQ-sidecar-vocabulary.md)). When the size has a `score_map`, the host maps the score of each keypoint that is not missing after this rule ([Keypoint score map](score-map.md#behaviour); [ADR-F067](../../decisions/entries/F067-simcc-score-map.md)). A missing keypoint keeps the score `0`. The host compares the mapped score with its thresholds. The raw score stays available. The score of a derived point is the minimum of the mapped scores of its sources.
 
 ## Validation rules
 

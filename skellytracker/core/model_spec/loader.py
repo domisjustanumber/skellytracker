@@ -57,18 +57,24 @@ def load_sidecar(path: Path | str, sidecar_root: Path | str, user_root: Path | s
         raise SidecarParseError("the top level of a sidecar must be a mapping", path)
     if failure := check_schema_version(resolved.get("schema_version")):
         raise SidecarSchemaVersionError(str(failure), path, (failure.rule,))
+    registry = load_landmark_schema_registry(None if user_root is None else Path(user_root))
     failures = check_sidecar(
         resolved,
         relative_path=path.relative_to(root).as_posix(),
-        landmark_schemas=load_landmark_schema_registry(None if user_root is None else Path(user_root)),
+        landmark_schemas=registry,
         in_examples=is_in_examples(path),
     )
     if failures:
         raise SidecarValidationError(failures, file_path=path)
     try:
-        return SidecarModel.model_validate(resolved)
+        model = SidecarModel.model_validate(resolved)
     except ValidationError as exc:
         failures = [
             Failure(FIELD_TYPE, f"{'.'.join(map(str, error['loc']))}: {error['msg']}") for error in exc.errors()
         ]
         raise SidecarValidationError(failures, file_path=path) from exc
+    if model.keypoint is not None:
+        # V-post.keypoint.schema-10 passed, so the schema exists and has the point names in order.
+        schema = registry[model.keypoint.landmark_schema]
+        model._point_groups = tuple(group.name for group in schema.groups for _ in group.points)
+    return model

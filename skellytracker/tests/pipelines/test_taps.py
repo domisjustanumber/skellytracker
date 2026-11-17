@@ -12,7 +12,7 @@ pytest.importorskip("onnx", reason="onnx not installed")
 
 from skellytracker.core.pipelines import Frame, load_pipeline, timing  # noqa: E402
 from skellytracker.core.pipelines.run import _start  # noqa: E402
-from skellytracker.tests.pipelines.pipeline_models import detector_pipeline, image, isolate, tracking_pipeline, write_models  # noqa: E402
+from skellytracker.tests.pipelines.pipeline_models import KEYPOINT_SCORES, detector_pipeline, image, isolate, tracking_pipeline, write_models  # noqa: E402
 from skellytracker.tests.pipelines.test_sessions import MEDIAPIPE  # noqa: E402
 
 IMAGE_IDS = [11, 5, 7]
@@ -94,7 +94,7 @@ def test_a_record_tap_writes_one_line_for_each_present_row_with_image_id_frame_i
     assert [line["score"] for line in boxes] == pytest.approx([0.9, 0.75, 1.8, 1.5])
     points = lines_of(taps / "points" / "keypoints.jsonl")
     assert len(points) == 4 and points[1]["score"] == pytest.approx(0.75)  # the instance score of the row, with no rescoring
-    assert points[0]["keypoints"][:3] == pytest.approx([6.0, 6.0, 3.0]) and points[0]["keypoints"][6:] == [None, None, 0.0]  # a missing point
+    assert points[0]["keypoints"][:3] == pytest.approx([6.0, 6.0, KEYPOINT_SCORES[0]]) and points[0]["keypoints"][6:] == [None, None, 0.0]  # a missing point
 
 
 def test_tap_json_has_each_field_of_the_spec_and_is_written_last_through_a_rename(root: Path, tmp_path: Path) -> None:
@@ -187,7 +187,8 @@ def test_a_replay_of_detections_gets_the_class_index_from_the_class_name_and_a_k
     assert run._executor.sessions.opened == {}  # the upstream nodes of the replayed port do not run
     (points, _, _) = run_frames(run)
     np.testing.assert_allclose(points["body"].xy[:, 0], [[6, 6], [25, 25]])
-    assert np.isnan(points["body"].xy[:, 2]).all() and points["body"].score.tolist() == [[3, 2, 0], [3, 2, 0]]
+    assert np.isnan(points["body"].xy[:, 2]).all()
+    np.testing.assert_allclose(points["body"].score, [KEYPOINT_SCORES] * 2, rtol=1e-6)
     assert points["node_ran"] == {"person": False, "body": False}
 
 

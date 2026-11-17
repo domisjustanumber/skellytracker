@@ -11,11 +11,13 @@ The object detector `demo@demo-exporter` (size `n`, 32 x 32) gives three rows fo
 `onnx_models.BOXES` with the scores `onnx_models.SCORES` times the mean of the image. Row 1
 overlaps row 0, so the sidecar NMS (IoU 0.5) keeps the rows 0 and 2. The keypoint model
 `demo-body@demo-exporter` (size `m`, 16 x 12, schema `Demo3`, points `a`, `b`, `c`) gives `a` at the
-centre of the crop with the score 3, `b` at the top-left corner with the score 2, and no `c`.
+centre of the crop with the raw score 3, `b` at the top-left corner with the raw score 2, and no `c`.
+The score map `SCORE_MAP` gives the scores `KEYPOINT_SCORES`.
 """
 from __future__ import annotations
 
 import hashlib
+import math
 from pathlib import Path
 from typing import Any
 
@@ -23,10 +25,12 @@ import pytest
 
 from skellytracker.core.detectors import catalog
 from skellytracker.core.model_spec import artifacts
-from skellytracker.tests.model_spec.sidecars import BASES, _size, write_yaml
+from skellytracker.tests.model_spec.sidecars import BASES, SCORE_MAP, _size, write_yaml
 
 OBJECT_KEY = "demo@demo-exporter"
 KEYPOINT_KEY = "demo-body@demo-exporter"
+KEYPOINT_SCORES = [1 / (1 + math.exp(-3.0)), 1 / (1 + math.exp(-2.0)), 0.0]
+"""The mapped scores of `a`, `b` and `c`: `1 / (1 + exp(-raw))` of the raw scores 3 and 2, and 0 for a missing point."""
 SCHEMA = {"name": "Demo3", "source": "test", "groups": [{"name": "body", "points": ["a", "b", "c"]}]}
 """The landmark schema of the keypoint model: one group, so its group in a pipeline has the id of the node."""
 
@@ -50,7 +54,7 @@ def keypoint_sidecar() -> dict[str, Any]:
     """The sidecar of the top-down keypoint model: SimCC, the schema `Demo3`, the edges a-b and b-c."""
     sidecar = BASES["simcc"]()
     sidecar["keypoint"]["derived_points"] = {"mid": ["a", "b"]}
-    sidecar["sizes"] = {"m": _size("demo-body", "m", 16, 12, [[3, 3, 24], [3, 3, 32]])}
+    sidecar["sizes"] = {"m": {**_size("demo-body", "m", 16, 12, [[3, 3, 24], [3, 3, 32]]), "score_map": dict(SCORE_MAP)}}
     return sidecar
 
 

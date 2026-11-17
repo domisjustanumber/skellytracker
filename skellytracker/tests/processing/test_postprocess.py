@@ -10,6 +10,7 @@ import pytest
 
 from skellytracker.core.detectors.processing.post.keypoint_decode_simcc import decode_simcc
 from skellytracker.core.detectors.processing.post.keypoint_schema import derived_points, mark_missing
+from skellytracker.core.detectors.processing.post.keypoint_score_map import map_scores
 from skellytracker.core.detectors.processing.post.object_decode import (
     confidence_mask,
     filter_classes,
@@ -20,7 +21,7 @@ from skellytracker.core.detectors.processing.post.object_decode import (
 from skellytracker.core.detectors.processing.post.object_selection_nms import decode_nms
 from skellytracker.core.detectors.processing.post.unprojection import resize_inverse, unproject_boxes, unproject_points
 from skellytracker.core.detectors.processing.pre.preprocess import resize_geometry
-from skellytracker.core.model_spec.model import KeypointSpec, ObjectDecodeSpec, ResizeSpec
+from skellytracker.core.model_spec.model import KeypointSpec, ObjectDecodeSpec, ResizeSpec, ScoreMapSpec
 
 RESIZES = [
     (ResizeSpec(method="letterbox", pad_position="center", rounding="half_even"), [64, 64], None),
@@ -162,3 +163,25 @@ def test_the_derived_points_of_a_loaded_keypoint_block() -> None:
     # In the second instance, r_hip is missing: each point with that source is missing.
     assert derived_scores[1].tolist() == [0.9, 0.0, 0.0, 0.2]
     assert np.isnan(points[1, 1:3]).all() and points[1, [0, 3]].tolist() == [[1.0, 2.0], [2.5, 2.5]]
+
+
+def test_the_score_map_saturates_with_no_floating_point_warning() -> None:
+    """post.keypoint.score_map: an extreme z gives 0 or 1, never NaN, and raises no warning."""
+    score_map = ScoreMapSpec(method="logistic", a=1e30, b=-1e30)
+    raw = np.array([[3.4e38, 1e-30, np.inf, np.nan, -np.inf, 0.0]], dtype=np.float32)
+    with np.errstate(all="raise"):
+        scores = map_scores(raw, score_map, None)
+    assert scores.dtype == np.float32 and scores.tolist() == [[1.0, 0.0, 1.0, 0.0, 0.0, 0.0]]
+    assert map_scores(np.zeros((0, 6), np.float32), score_map, None).shape == (0, 6)
+    with np.errstate(all="raise"):  # a * raw overflows float64 here
+        assert map_scores(raw[:, :1], ScoreMapSpec(method="logistic", a=1e300, b=0.0), None).tolist() == [[1.0]]
+
+
+def test_a_mapped_score_of_zero_keeps_a_derived_point_when_its_sources_are_present() -> None:
+    """A present keypoint can map to 0.0 in float32. `present` keeps its derived point."""
+    points = np.array([[[0.0, 0.0], [2.0, 2.0]]])
+    mapped = np.array([[0.0, 0.5]], dtype=np.float32)
+    derived, scores = derived_points(points, mapped, ["a", "b"], {"mid": ["a", "b"]}, present=np.array([[True, True]]))
+    assert derived.tolist() == [[[1.0, 1.0]]] and scores.tolist() == [[0.0]]
+    missing, _ = derived_points(points, mapped, ["a", "b"], {"mid": ["a", "b"]})
+    assert np.isnan(missing).all()  # with no `present`, a score 0 is a missing source

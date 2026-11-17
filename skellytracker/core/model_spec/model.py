@@ -5,14 +5,14 @@ model has one reading of a sidecar: the current text of the spec. It has no key 
 not define, and it refuses each other key. A field that the sidecar omits has the default of the
 spec, when the spec gives one. If not, it is `None`.
 
-The host reads `input.shape`, `input.resize.target_size` and `onnx` of a size from the size entry
-(`SidecarModel.sizes`), and each other field from the top level. There is no merge.
+The host reads `input.shape`, `input.resize.target_size`, `onnx` and `score_map` of a size from
+the size entry (`SidecarModel.sizes`), and each other field from the top level. There is no merge.
 """
 from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 
 from skellytracker.core.model_spec.rules import expand_derived_points
 
@@ -298,11 +298,39 @@ class SizeInputSpec(SpecModel):
     resize: SizeResizeSpec = SizeResizeSpec()
 
 
+class ScorePairSpec(SpecModel):
+    a: float
+    b: float
+
+
+class ScoreFitSpec(SpecModel):
+    dataset: str
+    split: str
+    recipe: str
+
+
+class ScoreMapSpec(SpecModel):
+    """`sizes.<size>.score_map`: the logistic map of the raw keypoint score of one size to `[0, 1]`.
+
+    Implements: post.keypoint.score_map
+
+    `groups` holds the pair of some groups of the landmark schema. Each other keypoint uses `a` and
+    `b`. The host does not read `fit`.
+    """
+
+    method: Literal["logistic"]
+    a: float
+    b: float
+    groups: dict[str, ScorePairSpec] = {}
+    fit: ScoreFitSpec | None = None
+
+
 class SizeSpec(SpecModel):
-    """One size entry: `input.shape`, `input.resize.target_size` and `onnx`, and no other field."""
+    """One size entry: `input.shape`, `input.resize.target_size`, `onnx` and `score_map`, and no other field."""
 
     input: SizeInputSpec
     onnx: OnnxSpec
+    score_map: ScoreMapSpec | None = None
 
     @property
     def target_size(self) -> list[int] | None:
@@ -334,6 +362,17 @@ class SidecarModel(SpecModel):
     object: ObjectSpec | None = None
     keypoint: KeypointSpec | None = None
     sizes: dict[str, SizeSpec]
+    # Not a sidecar key: `load_sidecar` sets it from the landmark schema registry.
+    _point_groups: tuple[str, ...] | None = PrivateAttr(default=None)
+
+    @property
+    def point_groups(self) -> tuple[str, ...] | None:
+        """The landmark-schema group of each keypoint, in the order of `keypoint.point_names`.
+
+        `load_sidecar` sets it for a keypoint detector. A model that does not come from
+        `load_sidecar` has None.
+        """
+        return self._point_groups
 
     @property
     def default_size(self) -> str:

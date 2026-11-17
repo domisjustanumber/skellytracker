@@ -12,6 +12,7 @@ from skellytracker.core.detectors.generic.inference import run_batches
 from skellytracker.core.detectors.generic.overlay import OverlayGroup, overlay_groups
 from skellytracker.core.detectors.processing.post.keypoint_decode_simcc import decode_simcc
 from skellytracker.core.detectors.processing.post.keypoint_schema import derived_points, mark_missing
+from skellytracker.core.detectors.processing.post.keypoint_score_map import map_scores
 from skellytracker.core.detectors.processing.post.unprojection import resize_inverse
 from skellytracker.core.detectors.processing.pre.preprocess import preprocess_image
 from skellytracker.core.model_spec.model import SidecarModel
@@ -21,15 +22,19 @@ from skellytracker.core.model_spec.model import SidecarModel
 class KeypointDetections:
     """The keypoints of N crops or images, in source pixels.
 
-    `keypoints` are (N, P, 2) float64 in the order of `keypoint.point_names`, and `scores` are
-    (N, P). `derived_keypoints` (N, D, 2) and `derived_scores` (N, D) are in the order of
-    `keypoint.derived_points`. A missing point has NaN coordinates and the score 0.
+    `keypoints` are (N, P, 2) float64 in the order of `keypoint.point_names`. `scores` (N, P) are
+    the mapped scores in `[0, 1]` of the score map of the size (`post.keypoint.score_map`), and
+    `raw_scores` (N, P) are the decode scores before the map. `derived_keypoints` (N, D, 2) and
+    `derived_scores` (N, D) are in the order of `keypoint.derived_points`; a derived score is the
+    minimum of the mapped scores of its sources. A missing point has NaN coordinates, the score 0
+    and the raw score 0.
     """
 
     keypoints: np.ndarray
     scores: np.ndarray
     derived_keypoints: np.ndarray
     derived_scores: np.ndarray
+    raw_scores: np.ndarray
 
 
 @dataclass
@@ -55,6 +60,11 @@ class GenericKeypointDetector:
         if keypoint.decode.method != "simcc":
             raise ValueError(f"this release has no decode for keypoint.decode.method: {keypoint.decode.method}")
         self.sidecar.artifact(self.size, self.precision)  # an unknown size or precision is an error
+        score_map = self.sidecar.sizes[self.size].score_map
+        if score_map is None:
+            raise ValueError(f"the size {self.size!r} of {self.sidecar.model_id} has no score_map (V-post.keypoint.score_map-1)")
+        if score_map.groups and self.sidecar.point_groups is None:
+            raise ValueError(f"{self.sidecar.model_id}: the score map has groups, but the sidecar has no point groups; load it with load_sidecar")
 
     @property
     def takes_crops(self) -> bool:
@@ -113,12 +123,14 @@ class GenericKeypointDetector:
             decoded = decode_simcc(simcc["simcc_x"], simcc["simcc_y"], prepared[0][1].input_size)
             source = np.stack([resize_inverse(decoded["keypoints"][index], geometry) for index, (_, geometry) in enumerate(prepared)])
             points, scores = mark_missing(source, decoded["scores"])
-        derived, derived_scores = derived_points(points, scores, keypoint.point_names, keypoint.derived_points)
+        raw_scores = scores
+        scores = map_scores(raw_scores, self.sidecar.sizes[self.size].score_map, self.sidecar.point_groups)
+        derived, derived_scores = derived_points(points, scores, keypoint.point_names, keypoint.derived_points, present=raw_scores > 0)
         if timer is not None and images:
             marks.append(time.perf_counter_ns())
             for index, span in enumerate(("preprocess", "inference", "postprocess")):
                 timer(span, marks[index], marks[index + 1])
-        return KeypointDetections(points, scores, derived, derived_scores)
+        return KeypointDetections(points, scores, derived, derived_scores, raw_scores)
 
     def _open_session(self) -> Any:
         # A local reference: a `close` from an other thread does not stop a call that started.

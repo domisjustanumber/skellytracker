@@ -217,6 +217,7 @@ def test_file_parses_to_the_generator_data(path: Path) -> None:
 # The tolerance of the files of each group of sections.
 FILE_TOLERANCE = {
     "simcc": 1e-6,
+    "score_map": 1e-6,
     "resize": 1e-4,
     "unprojection": 1e-4,
     "normalize": 1e-5,
@@ -1684,11 +1685,15 @@ def check_sidecar_runner(function: Any, case: dict[str, Any]) -> dict[str, Any] 
 
     The result holds the failed rules of the section of the case. A case with `input.path` holds
     only the rules of the path under the sidecar root: V-common.identity-7 and V-common.identity-8.
+    The function gets the landmark schema registry of the package, for V-post.keypoint.score_map-4.
     """
+    from skellytracker.core.model_spec.landmark_schemas import load_landmark_schema_registry
+
     if case.get("function") != "none":
         return None
     relative_path = case["input"].get("path")
-    failed = {failure.rule for failure in function(case["input"]["sidecar"], relative_path=relative_path)}
+    registry = load_landmark_schema_registry()
+    failed = {failure.rule for failure in function(case["input"]["sidecar"], relative_path=relative_path, landmark_schemas=registry)}
     if relative_path is not None:
         wanted = failed & {"V-common.identity-7", "V-common.identity-8"}
     else:
@@ -1854,6 +1859,22 @@ def simcc_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
             "keypoints": result["keypoints"].tolist(),
             "scores": result["scores"].astype(np.float64).tolist(),
         }
+
+    return mv.outcome(run)
+
+
+def score_map_runner(function: Any, case: dict[str, Any]) -> dict[str, Any] | None:
+    """Run `map_scores` on a numeric case of `post.keypoint.score_map`, with the block as a `ScoreMapSpec`."""
+    from skellytracker.core.model_spec.model import ScoreMapSpec
+
+    if case.get("function") == "none":
+        return None
+    params = case["params"]
+
+    def run() -> dict[str, Any]:
+        raw = np.asarray(case["input"]["raw"], dtype=np.float32)
+        scores = function(raw, ScoreMapSpec.model_validate(params["score_map"]), params.get("point_groups"))
+        return {"scores": scores.astype(np.float64).tolist()}
 
     return mv.outcome(run)
 
@@ -2320,6 +2341,7 @@ PACKAGE_RUNNERS: dict[str, Callable[[Any, dict[str, Any]], dict[str, Any] | None
     f"{PRE}/resize_affine_crop.py::affine_crop": affine_crop_runner,
     f"{PRE}/normalize.py::normalize": normalize_runner,
     f"{POST}/keypoint_decode_simcc.py::decode_simcc": simcc_runner,
+    f"{POST}/keypoint_score_map.py::map_scores": score_map_runner,
     f"{POST}/object_selection_nms.py::decode_nms": nms_runner,
     f"{POST}/unprojection.py::unproject_points": unproject_points_runner,
     f"{POST}/unprojection.py::unproject_boxes": unproject_boxes_runner,

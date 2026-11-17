@@ -30,6 +30,7 @@ def derived_points(
     scores: np.ndarray,
     point_names: Sequence[str],
     derived: Mapping[str, Any],
+    present: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Compute the derived points of `keypoint.derived_points`, in the order of the map.
 
@@ -41,7 +42,13 @@ def derived_points(
     weights as given. A derived point is missing when a source is missing: its coordinates are NaN
     and its score is 0. If not, its score is the minimum of the scores of its sources. Returns the
     coordinates (..., N, D) and the scores (..., N).
+
+    `present` (..., P) tells which keypoints are not missing. With None, a keypoint is present when
+    its score is `> 0`. Give it when `scores` are mapped scores: a mapped score of a present
+    keypoint can be exactly 0 in float32 (`post.keypoint.score_map`).
     """
+    if present is None:
+        present = scores > 0
     index = {name: position for position, name in enumerate(point_names)}
     out_points = np.empty((*keypoints.shape[:-2], len(derived), keypoints.shape[-1]), dtype=keypoints.dtype)
     out_scores = np.empty((*scores.shape[:-1], len(derived)), dtype=scores.dtype)
@@ -54,7 +61,7 @@ def derived_points(
             weights = {name: 1.0 / len(derivation) for name in derivation}
         sources = [index[name] for name in weights]
         source_scores = scores[..., sources]
-        missing = ~(source_scores > 0).all(axis=-1)
+        missing = ~present[..., sources].all(axis=-1)
         if isinstance(derivation, str):
             point = keypoints[..., sources[0], :].copy()
         elif isinstance(derivation, Mapping):

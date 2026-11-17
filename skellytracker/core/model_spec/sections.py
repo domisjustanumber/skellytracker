@@ -48,6 +48,7 @@ SECTIONS: tuple[Section, ...] = (
     Section("post.keypoint.landmark_schema", "schema", ("role=keypoint_detector",)),
     Section("post.keypoint.canonical_mapping", "schema", ("role=keypoint_detector",)),
     Section("post.keypoint.decode.simcc", "postprocessor", ("keypoint.decode.method=simcc", "outputs[].semantic=simcc_x", "outputs[].semantic=simcc_y")),
+    Section("post.keypoint.score_map", "postprocessor", ("keypoint.decode.method=simcc",)),
     Section("post.keypoint.decode.coordinate", "postprocessor", ("keypoint.decode.method=coordinate", "outputs[].semantic=keypoint_coordinates")),
     Section("post.keypoint.bottom_up", "postprocessor", ("keypoint.estimator_type=bottom_up", "outputs[].semantic=instance_keypoints", "outputs[].packed_keypoints")),
     Section("post.keypoint.overlay", "schema", ("keypoint.overlay",)),
