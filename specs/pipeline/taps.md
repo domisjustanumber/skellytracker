@@ -27,7 +27,6 @@ The layout of one tap:
 <tap folder>/<name>/
   tap.json                 # the manifest, written last
   <port_type>.jsonl        # boxes or keypoints: one line for each present row
-  <image_id>.npy           # image: one file for each image
 ```
 
 The file form of each port type:
@@ -36,7 +35,6 @@ The file form of each port type:
 |-----------|-----------|
 | `keypoints` | `keypoints.jsonl`: COCO keypoint records. `score` is the `instance_score` of the row. `raw_score` is the list of the `raw_score` of each point, in the order of `point_names` ([ADR-PX6Z](../../decisions/entries/PX6Z-keypoint-raw-score-in-the-pipeline-result.md)). The tap applies no rescoring. A consumer applies its own rule, for example the `score_mode` of mmpose, from `instance_score` and the point scores. |
 | `boxes` | `boxes.jsonl`: COCO result records with `box: [cx, cy, w, h, rotation]`. `bbox` is `[x, y, width, height]`: the axis-aligned bounds of the box. `score` is the `instance_score` of the row. `class` is the class name from the `class_names` of the output schema, in place of `category_id`, or null for a row with the `class_index` -1. The consumer maps the name to the category id of its data set. A class index plus 1 is not a COCO category id ([Object decode](../model-sidecar/post/object/decode.md#authoring-guidance); [ADR-2RWC](../../decisions/entries/2RWC-one-boxes-port-type-and-node-descriptions.md)). |
-| `image` | One `<image_id>.npy` file for each image. |
 
 Each JSONL line is one present row. Each line has the keys `image_id`, `frame_index`, `camera_id` and `row`. `row` is the row index of the line, in `[0, I)`. The lines of one image are in ascending `row` order. The images are in the order of the image list. A padding row has no line.
 
@@ -58,7 +56,7 @@ The fields of `tap.json`:
 | `camera_ids` | The camera ids of the run. |
 | `running_mode` | The running mode of the run. |
 | `pipeline_sha256` | The `pipeline_sha256` of the run ([Timing](timing.md#behaviour) item 5). It is information only. |
-| `record_count` | The number of JSONL lines, or the number of `.npy` files. |
+| `record_count` | The number of JSONL lines. |
 
 ## Behaviour
 
@@ -68,11 +66,11 @@ The fields of `tap.json`:
 4. **Match.** A replay compares `tap.json` with the run. These fields must agree: `schema`, `port`, `port_type`, `upstream_sha256`, `image_list_sha256`, `camera_ids`, `running_mode`, and the `sidecar_sha256`, the `artifact_sha256` and the `used_ep` of each node item (`V-pipeline.taps-3`). The device is information only. The pipeline file can differ, so `pipeline_sha256` is information only. The tap has no hash of its data files.
 5. **No video replay yet.** A replay refuses a tap with `image_list_sha256: null`. Thus only a tap of the COCO input form can be replayed in this version.
 6. In the COCO input form, `image_id` comes from the COCO file ([Timing](timing.md#behaviour) item 6). For video, `image_id` is `frame_index × n_cameras + camera_index`. `camera_index` is the position of the camera id in the camera ids of the run.
-7. Crops and tensors of dataset images must not be committed to a repository ([ADR-Q59W](../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 5).
+7. The tap files of dataset images must not be committed to a repository ([ADR-Q59W](../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 5).
 
 ## Validation rules
 
-- [ ] `V-pipeline.taps-1` Each tap must name an existing node and an output port of the type of that node, with no `@prev`. The frame port `frame.image` must not be a tap port. Each tap name must be a name and must be unique in the file.
+- [ ] `V-pipeline.taps-1` Each tap must name an existing node and an output port of the type of that node, with no `@prev`. The frame port `frame.image` must not be a tap port. Each tap name must be a name and must be unique in the file. No tap reads an image, because `frame.image` is the only image port ([ADR-9HTX](../../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) item 4).
 - [ ] `V-pipeline.taps-2` A run of a file with a tap must have a tap folder.
 - [ ] `V-pipeline.taps-3` A replay must refuse a tap with no `tap.json`, a tap with `image_list_sha256: null`, and a tap whose `tap.json` does not agree with the run in a field of [Behaviour](#behaviour) item 4.
 - [ ] `V-pipeline.taps-4` The files of a replay tap must cover each frame and each camera of the run.

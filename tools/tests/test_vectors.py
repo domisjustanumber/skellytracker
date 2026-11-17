@@ -2054,33 +2054,21 @@ def boxes_rows(value: Any) -> list[Any]:
 
 def first_of_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
     from skellytracker.core.pipelines.config import NoParams
-    from skellytracker.core.pipelines.values import PortInfo
 
     def run() -> dict[str, Any]:
         given = case["input"]["values"]
-        infos, values, images = [], [], {}
+        infos, values = [], []
         for item in given:
-            if isinstance(item, dict):
-                info = keypoints_info(item["point_names"], len(item["present"]), item["instance_source"], item["geometry"])
-                infos.append(info)
-                values.append(keypoints_value(item, info))
-            else:
-                infos.append(None)
-                values.append(item)
-        typed = next((info for info in infos if info is not None), PortInfo("image"))
+            info = None if item is None else keypoints_info(item["point_names"], len(item["present"]), item["instance_source"], item["geometry"])
+            infos.append(info)
+            values.append(None if item is None else keypoints_value(item, info))
+        typed = next(info for info in infos if info is not None)  # each case has a `keypoints` value
         infos = [typed if info is None else info for info in infos]
-        for index, item in enumerate(values):
-            if item is None:
-                values[index] = typed.empty()
-            elif isinstance(item, str):
-                values[index] = np.zeros((1, 1, 3), dtype=np.uint8)
-                images[id(values[index])] = item
+        values = [typed.empty() if value is None else value for value in values]
         params = NoParams(**case["params"])
         outputs, _ = sibling(function, "output_info")("node", params, infos)
         plan = sibling(function, "prepare")("node", params, infos, outputs)
         value = function(params, values, None, node_frame(), plan)[0]["value"]
-        if value is None or id(value) in images:
-            return {"value": images.get(id(value))}
         if not value.present.any():
             return {"value": None}
         return {"value": keypoints_mapping(value, infos[next(i for i, item in enumerate(values) if item is value)])}
@@ -2155,7 +2143,6 @@ def gate_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
         outputs, _ = sibling(function, "output_info")("node", params, infos)
         if value is None:
             return {"value": None}  # an empty required input: the executor does not call the node
-        image = np.zeros((1, 1, 3), dtype=np.uint8)
         rows = infos["condition"].max_instances or 0
         if inp["condition_type"] == "keypoints":
             given = condition or [None] * rows
@@ -2168,15 +2155,10 @@ def gate_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
             for i, row in enumerate(condition or []):
                 if row is not None:
                     sent.boxes[i], sent.instance_score[i], sent.present[i] = 0.0, row["instance_score"], True
-        elif inp["condition_type"] == "flag":
-            sent = condition
         else:
-            sent = None if condition is None else image
-        by_value = boxes_value(value, len(value)) if inp["value_type"] == "boxes" else image
+            sent = condition  # a flag
         plan = sibling(function, "prepare")("node", params, infos, outputs)
-        result = function(params, {"value": by_value, "condition": sent}, None, node_frame(), plan)[0]["value"]
-        if inp["value_type"] != "boxes":
-            return {"value": value if result is image else None}
+        result = function(params, {"value": boxes_value(value, len(value)), "condition": sent}, None, node_frame(), plan)[0]["value"]
         if inp["condition_type"] in instance or result.present.any():
             return {"value": boxes_rows(result)}
         return {"value": None}

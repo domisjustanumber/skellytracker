@@ -24,13 +24,13 @@ The graph of a pipeline is a flat list of nodes. Each node has an id, a type and
 
 A **port reference** is a string `<node>.<port>`, with an optional suffix `@prev`. It matches `^[a-z][a-z0-9_-]*\.[a-z][a-z0-9_]*(@prev)?$`.
 
-The **frame** is the reserved source of the graph. Its one port `frame.image` is the camera frame of the call. It has the type `image`.
+The **frame** is the reserved source of the graph. Its one port `frame.image` is the camera frame of the call. It has the type `image`. It is the only image of the graph: no node type has an output of the type `image`, so each `image` input names `frame.image` ([ADR-9HTX](../../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) item 4).
 
 The port types:
 
 | Type | Value |
 |------|-------|
-| `image` | One image of one camera. |
+| `image` | The camera frame of one camera: only the port `frame.image` ([Behaviour](#behaviour) item 9). |
 | `boxes` | `I` box rows, each with one box, an instance score and a class index ([Behaviour](#behaviour) item 3; [Outputs](outputs.md#fields); [ADR-2RWC](../../decisions/entries/2RWC-one-boxes-port-type-and-node-descriptions.md)). |
 | `keypoints` | `I` keypoint rows, each with `P` points ([Outputs](outputs.md#fields)). |
 | `flag` | One boolean for one camera on one frame: true or false. A flag has no instance rows and no empty state ([ADR-9HTX](../../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) items 1 and 2). |
@@ -48,8 +48,9 @@ The [README](README.md#terms) gives the letter key `I`, `P` and the other letter
    - The box x axis is `(cos(rotation), sin(rotation))` and the box y axis is `(-sin(rotation), cos(rotation))`, in image pixels.
    - The positions of points and boxes are those of the sidecar [unprojection](../model-sidecar/post/unprojection.md#behaviour). Their pixel centres follow the resize method of the model ([Pixel centres](../model-sidecar/pre/interpolation.md#pixel-centres)). A glue node adds no `0.5` offset and removes none.
    - Only the `onnx_model` node cuts pixels, always from `frame.image` ([Node: ONNX model](nodes/onnx_model.md#behaviour) gives the crop order).
+   - **Source-image pixels.** Each `boxes` output and each `keypoints` output of each node is in source-image pixels. No node gives a box or a point in the space of a crop or of a model input. The sidecar `crop_policy` makes the crop larger than the box right before the warp, and no port shows that larger area ([ADR-9HTX](../../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) item 3).
 4. **The type of an output with two or more types.** The output `value` of a `gate` node has the type of its input `value`. The output `value` of a `first_of` node has the type of its inputs. The load uses this type for `V-pipeline.graph-3`. When an input is also such an output, the load follows it to its own inputs. Such an output gets its type only from the inputs that are not `@prev`: an `@prev` input gives no type. The load thus follows only same-frame edges, and the search always ends (`V-pipeline.graph-9`; [ADR-97X9](../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 5; [ADR-9HTX](../../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) item 1).
-5. **Empty values.** An `image` value is empty when it holds no image. A `boxes` or `keypoints` value is empty when it has no present row. A `flag` value is never empty: it is true or false.
+5. **Empty values.** The frame image is never empty. A `boxes` or `keypoints` value is empty when it has no present row. A `flag` value is never empty: it is true or false.
 6. **Empty inputs.** A node that gets an empty required input does not run. Each output of that node is then empty. An empty optional input does not stop a node ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6):
    - The optional inputs are `hold_boxes.previous_keypoints`, `redetect_trigger.previous_keypoints`, `redetect_trigger.previous_boxes`, `boxes_from_points.previous_boxes` and `boxes_from_points.reference_boxes` ([ADR-RA0E](../../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md) item 3). `redetect_trigger` has no required input, so it runs on each frame.
    - The `boxes` input of a top-down keypoint model is required ([`V-node.onnx_model-2`](nodes/onnx_model.md#validation-rules)).
@@ -76,6 +77,7 @@ The [README](README.md#terms) gives the letter key `I`, `P` and the other letter
    - `x@prev` has the instance source and the `I` of `x` ([ADR-97X9](../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 6).
    - A fan-out child adds point columns to the row of its instance. It adds no row. For example, a hand model on the hand box of person `i` adds its points to row `i`.
    - Each `track_ids` value is -1. This version tracks one person. Each input of `smooth_boxes`, `smooth_keypoints` and `redetect_trigger`, and each `@prev` input, must have `I` = 1 (`V-pipeline.graph-11`). When the instance source sees two persons, row 0 can still change from one person to the other between frames. This version has no `associate` node type ([ADR-TH8E](../../decisions/entries/TH8E-one-person-in-v2.md)).
+9. **Image.** The only image is the camera frame `frame.image`. No node gives an image, and `gate` and `first_of` do not take one. The run gives the frame to each node that takes it by reference: the plumbing of the run never copies the image. A node can convert the image for its model. Each `mediapipe_tasks` node makes one BGR to RGB copy for the landmarker ([Node: MediaPipe Tasks](nodes/mediapipe_tasks.md#implementer-guidance)). No `@prev` input, no tap and no output reads the image (`V-pipeline.graph-2`, `V-pipeline.graph-12`; [Taps](taps.md#validation-rules); [Outputs](outputs.md#validation-rules); [ADR-9HTX](../../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) item 4).
 
 ## Validation rules
 

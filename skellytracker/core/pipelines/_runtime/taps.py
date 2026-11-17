@@ -47,11 +47,11 @@ def upstream_nodes(config: PipelineConfig, node_id: str) -> list[str]:
 
 
 def check_tap_port(tap: Tap, info: PortInfo) -> None:
-    """Refuse a tap whose file form no text fixes: an `image` or a `flag` port, and a `3d` keypoints port."""
+    """Refuse a tap whose file form no text fixes: a `flag` port and a `3d` keypoints port. The frame image has no tap (V-pipeline.taps-1)."""
     if info.port_type not in JSONL_TYPES:
         raise ValueError(
             f"the tap {tap.name!r} names the port {tap.port} of the type {info.port_type}: "
-            "the pipeline spec does not fix the value of an `image` or a `flag` port yet (pipeline.outputs, Behaviour item 6)"
+            "the pipeline spec does not fix the tap file of a `flag` port yet (pipeline.taps, Fields)"
         )
     if info.port_type == "keypoints" and info.geometry == "3d":
         raise ValueError(f"the tap {tap.name!r} names the 3d keypoints port {tap.port}: the pipeline spec gives no place for z in a keypoints.jsonl line")

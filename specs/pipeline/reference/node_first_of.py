@@ -6,8 +6,8 @@ Note:
 - Source: the section text specs/pipeline/nodes/first_of.md.
 - Imported section modules: none. Fixtures: none.
 
-A value is None (no value), a value of an instance port (a mapping with `present`, one flag for each
-instance row) or any other value.
+A value is None (no value) or a value of an instance port (a mapping with `present`, one flag for
+each instance row).
 """
 
 from __future__ import annotations

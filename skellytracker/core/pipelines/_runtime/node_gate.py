@@ -16,8 +16,7 @@ from skellytracker.core.pipelines.values import InstanceBoxes, InstanceKeypoints
 # The mode `is_empty` tests for an empty `condition`, so the node gets it (Behaviour step 1).
 READS_EMPTY: frozenset[str] = frozenset({"condition"})
 INSTANCE_TYPES = ("boxes", "keypoints")
-SCORED_TYPES = INSTANCE_TYPES
-# The modes of a `flag` condition (V-node.gate-4).
+# The modes of a `flag` condition (V-node.gate-4). The other modes need a boxes or keypoints condition (V-node.gate-2).
 FLAG_MODES = ("is_true", "is_false")
 
 
@@ -34,12 +33,9 @@ def output_info(
     value, condition = inputs["value"], inputs["condition"]
     if params.mode in FLAG_MODES and condition.port_type != "flag":
         raise ValueError(f"V-node.gate-4: {node_id}: {params.mode} needs a flag condition, not {condition.port_type}")
-    if params.mode not in FLAG_MODES and condition.port_type == "flag":
-        raise ValueError(f"V-node.gate-2: {node_id}: {params.mode} needs a condition that is not a flag")
-    if params.mode == "score_above" and condition.port_type not in SCORED_TYPES:
-        raise ValueError(f"V-node.gate-2: {node_id}: score_above needs a boxes or keypoints condition, not {condition.port_type}")
-    by_row = value.port_type in INSTANCE_TYPES and condition.port_type in INSTANCE_TYPES
-    if by_row and value.max_instances != condition.max_instances:
+    if params.mode not in FLAG_MODES and condition.port_type not in INSTANCE_TYPES:
+        raise ValueError(f"V-node.gate-2: {node_id}: {params.mode} needs a boxes or keypoints condition, not {condition.port_type}")
+    if condition.port_type in INSTANCE_TYPES and value.max_instances != condition.max_instances:
         raise ValueError(f"V-node.gate-3: {node_id}: value has {value.max_instances} rows and condition has {condition.max_instances}")
     return {"value": value}, []
 
@@ -91,21 +87,11 @@ def run(
     value_info, condition_type = infos["value"], infos["condition"].port_type
     if is_empty(value):
         return {"value": value_info.empty()}, None
-    if condition_type == "flag":  # one test for the frame (step 5)
+    if condition_type == "flag":  # one test for the frame (step 4)
         return {"value": value if bool(condition) == (params.mode == "is_true") else value_info.empty()}, None
-    condition_rows = condition_type in INSTANCE_TYPES
-    if value_info.port_type in INSTANCE_TYPES and condition_rows:
-        # Row by row (step 3).
-        present = np.zeros(len(value.present), dtype=bool) if condition is None else condition.present
-        keep = np.array([
-            bool(value.present[i]) and _passes(params, condition, [i] if present[i] else []) for i in range(len(value.present))
-        ], dtype=bool)
-        return {"value": keep_rows(value, keep)}, None
-    # One test (step 4).
-    if condition is None:
-        rows: list[int] = []
-    elif condition_rows:
-        rows = [int(i) for i in np.flatnonzero(condition.present)]
-    else:
-        rows = [0]
-    return {"value": value if _passes(params, condition, rows) else value_info.empty()}, None
+    # Row by row (step 3): `value` and `condition` are both instance ports.
+    present = np.zeros(len(value.present), dtype=bool) if condition is None else condition.present
+    keep = np.array([
+        bool(value.present[i]) and _passes(params, condition, [i] if present[i] else []) for i in range(len(value.present))
+    ], dtype=bool)
+    return {"value": keep_rows(value, keep)}, None

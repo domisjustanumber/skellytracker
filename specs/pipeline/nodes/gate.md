@@ -27,13 +27,14 @@ a gate passes the box from the points of the previous frame only when the flag o
 <!-- node-table:ports -->
 | Port | Direction | Type |
 |---|---|---|
-| `value` | input | `image`, `boxes`, `keypoints` |
-| `condition` | input | `image`, `boxes`, `keypoints`, `flag` |
-| `value` | output | `image`, `boxes`, `keypoints` |
+| `value` | input | `boxes`, `keypoints` |
+| `condition` | input | `boxes`, `keypoints`, `flag` |
+| `value` | output | `boxes`, `keypoints` |
 <!-- /node-table:ports -->
 
-- `value` and `condition` take each port type of the ports table. The output `value` gets its port
-  type as [Graph](../graph.md#behaviour) item 4 gives.
+- `value` takes a `boxes` or a `keypoints` port. `condition` takes a `boxes`, a `keypoints` or a
+  `flag` port. The output `value` gets its port type as [Graph](../graph.md#behaviour) item 4
+  gives. A gate never passes an image or a flag ([ADR-9HTX](../../../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) items 4 and 9).
 - An instance port is a port of the type `boxes` or `keypoints`. It has one row for each
   instance ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1). A
   row is present or empty.
@@ -45,7 +46,6 @@ a gate passes the box from the points of the previous frame only when the flag o
   - `keypoints`: the mean `score` of the points of the row whose x and y are not NaN. If each point
     of the row is NaN, the score is 0. A score has no upper bound
     ([ADR-88WQ](../../../decisions/entries/88WQ-sidecar-vocabulary.md) item 6).
-  - Other port types have no score (`V-node.gate-2`).
 - **Flag condition.** A `condition` of the port type `flag` takes only the modes `is_true` and
   `is_false` (`V-node.gate-4`). The modes `is_empty`, `is_present` and `score_above` need a
   `condition` that is not a flag (`V-node.gate-2`; [ADR-9HTX](../../../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) item 9).
@@ -63,16 +63,12 @@ a gate passes the box from the points of the previous frame only when the flag o
    - `score_above`: the list has a row whose score is greater than `threshold`. The test is strict,
      as each score comparison of the sidecar spec
      ([Selection behaviour](../../model-sidecar/post/object/decode.md#selection-behaviour)).
-3. **Row by row.** If `value` and `condition` are both instance ports, the node tests each row `i`
-   alone. The list of step 2 holds row `i` of `condition` when that row is present, else it is
+3. **Row by row.** When `condition` is not a flag, `value` and `condition` are both instance ports.
+   The node then tests each row `i` alone. The list of step 2 holds row `i` of `condition` when that row is present, else it is
    empty. When `condition` has no value, each row of `condition` is empty. Row `i` of the output is
    row `i` of `value` when row `i` of `value` is present and the test passes. Else row `i` of the
    output is empty. The output has one row for each row of `value`.
-4. **One test.** Else, when `condition` is not a flag, the node does one test. The list of step 2 holds each present row of
-   `condition` when `condition` is an instance port. It holds one row when `condition` is a value of
-   another port type, and no row when `condition` has no value. If the test passes, the output is
-   `value`, unchanged, also its `instance_score`. Else the output is empty.
-5. **Flag.** When `condition` is a flag, the node does one test for the frame. The mode `is_true`
+4. **Flag.** When `condition` is a flag, the node does one test for the frame. The mode `is_true`
    passes when the flag is true. The mode `is_false` passes when the flag is false. If the test
    passes, the output is `value`, unchanged. Else the output is empty. A flag is never empty
    ([Graph](../graph.md#behaviour) item 5; [ADR-9HTX](../../../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) item 9).
@@ -80,7 +76,7 @@ a gate passes the box from the points of the previous frame only when the flag o
 ## Validation rules
 
 - [ ] `V-node.gate-1` The mode `score_above` needs `threshold`, and the other modes have none.
-- [ ] `V-node.gate-2` The modes `is_empty`, `is_present` and `score_above` need a `condition` that is not of the port type `flag`. The mode `score_above` needs a `condition` of the port type `boxes` or `keypoints`. The host checks this at load, from the port type of the connected output.
+- [ ] `V-node.gate-2` The modes `is_empty`, `is_present` and `score_above` need a `condition` of the port type `boxes` or `keypoints`. The host checks this at load, from the port type of the connected output.
 - [ ] `V-node.gate-3` When `value` and `condition` are both instance ports, they must have the same number of rows (`max_instances`). The host checks this at load.
 - [ ] `V-node.gate-4` The modes `is_true` and `is_false` need a `condition` of the port type `flag`. The host checks this at load, from the port type of the connected output.
 
@@ -96,7 +92,7 @@ a gate passes the box from the points of the previous frame only when the flag o
 
 ## Authoring guidance
 
-- Do not gate the image of a detector. To run a detector only on some frames, connect a flag to its
+- A gate does not stop a detector. To run a detector only on some frames, connect a flag to its
   `run_if` input ([Node: ONNX model](onnx_model.md#fields)).
 - To use the box from the points of the previous frame only on a frame with no new detection, gate
   it with `mode: is_false` on the flag `redetect` of a `redetect_trigger` node. Join the two box

@@ -12,7 +12,6 @@ from skellytracker.core.pipelines.values import PortInfo, is_empty
 
 # The node skips each empty input, so no empty input stops it (Behaviour).
 READS_EMPTY: frozenset[str] = frozenset({"*"})
-INSTANCE_TYPES = ("boxes", "keypoints")
 
 
 def output_info(node_id: str, params: NoParams, inputs: list[PortInfo]) -> tuple[dict[str, PortInfo], list[dict[str, Any]]]:
@@ -24,12 +23,11 @@ def output_info(node_id: str, params: NoParams, inputs: list[PortInfo]) -> tuple
     first input.
     """
     first = inputs[0]
-    if first.port_type in INSTANCE_TYPES:
-        sources = {info.instance_source for info in inputs}
-        if len(sources) > 1:
-            raise ValueError(f"V-node.first_of-2: {node_id}: the inputs have more than one instance source: {sorted(map(str, sources))}")
-        if any(info.groups != first.groups for info in inputs):
-            raise ValueError(f"V-node.first_of-2: {node_id}: the inputs do not have the same groups")
+    sources = {info.instance_source for info in inputs}
+    if len(sources) > 1:
+        raise ValueError(f"V-node.first_of-2: {node_id}: the inputs have more than one instance source: {sorted(map(str, sources))}")
+    if any(info.groups != first.groups for info in inputs):
+        raise ValueError(f"V-node.first_of-2: {node_id}: the inputs do not have the same groups")
     return {"value": first}, []
 
 

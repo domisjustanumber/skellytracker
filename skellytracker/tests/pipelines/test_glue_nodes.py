@@ -39,7 +39,6 @@ from skellytracker.core.pipelines.values import Group, InstanceBoxes, InstanceKe
 
 BODY = ("body/left_wrist", "body/right_wrist", "body/nose")
 HAND = ("hand/root", "hand/tip")
-IMAGE = np.zeros((4, 4, 3), dtype=np.uint8)
 
 
 def frame(index: int = 0, mode: str = "video") -> FrameContext:
@@ -331,30 +330,22 @@ def test_hold_boxes_keeps_the_instance_score_of_a_kept_previous_row() -> None:
 
 def test_v_node_gate_2_score_above_needs_a_condition_with_a_score() -> None:
     params = GateParams(mode="score_above", threshold=0.5)
-    refuses("V-node.gate-2", node_gate.output_info, "n", params, {"value": PortInfo("image"), "condition": PortInfo("image")})
+    refuses("V-node.gate-2", node_gate.output_info, "n", params, {"value": boxes_info(), "condition": PortInfo("flag")})
     for scored in (kp_info(BODY), boxes_info()):
-        outputs, _ = node_gate.output_info("n", params, {"value": PortInfo("image"), "condition": scored})
-        assert outputs["value"] == PortInfo("image")
+        outputs, _ = node_gate.output_info("n", params, {"value": boxes_info(), "condition": scored})
+        assert outputs["value"] == boxes_info()
 
 
 def test_v_node_gate_3_two_instance_ports_have_the_same_number_of_rows() -> None:
     params = GateParams(mode="is_present")
     refuses("V-node.gate-3", node_gate.output_info, "n", params, {"value": boxes_info(rows=2), "condition": kp_info(BODY, rows=1)})
-    node_gate.output_info("n", params, {"value": PortInfo("image"), "condition": kp_info(BODY, rows=1)})
+    node_gate.output_info("n", params, {"value": boxes_info(rows=1), "condition": kp_info(BODY, rows=1)})
 
 
 def gate(params: GateParams, value: Any, condition: Any, value_info: PortInfo, condition_info: PortInfo) -> Any:
     infos = {"value": value_info, "condition": condition_info}
     outputs, _ = node_gate.output_info("n", params, infos)
     return node_gate.run(params, {"value": value, "condition": condition}, None, frame(), node_gate.prepare("n", params, infos, outputs))[0]["value"]
-
-
-def test_gate_passes_an_image_unchanged_or_gives_none() -> None:
-    empty = kp(BODY, [None, None])
-    assert gate(GateParams(mode="is_empty"), IMAGE, empty, PortInfo("image"), kp_info(BODY)) is IMAGE
-    assert gate(GateParams(mode="is_empty"), IMAGE, body(), PortInfo("image"), kp_info(BODY)) is None
-    assert gate(GateParams(mode="is_present"), IMAGE, IMAGE, PortInfo("image"), PortInfo("image")) is IMAGE
-    assert gate(GateParams(mode="is_present"), IMAGE, None, PortInfo("image"), PortInfo("image")) is None
 
 
 def test_v_node_gate_2_and_4_a_flag_condition_takes_only_is_true_and_is_false() -> None:
@@ -379,16 +370,16 @@ def test_gate_keeps_the_rows_of_a_boxes_value_with_their_class_index_and_tests_t
     )
     out = gate(GateParams(mode="score_above", threshold=0.5), boxes, boxes, boxes_info(), boxes_info())
     assert out.class_index.tolist() == [3, -1] and out.instance_score.tolist() == [0.9, 0.0] and is_padding(out, 1)
-    assert gate(GateParams(mode="is_present"), boxes, IMAGE, boxes_info(), PortInfo("image")) is boxes
+    assert gate(GateParams(mode="is_true"), boxes, True, boxes_info(), PortInfo("flag")) is boxes
 
 
 def test_gate_copies_the_instance_score_of_the_value_row() -> None:
     value = boxes([[1, 2, 3, 4, 0.0], [5, 6, 7, 8, 0.0]], [0.6, 0.5])
     out = gate(GateParams(mode="is_present"), value, body(), boxes_info(), kp_info(BODY))
     assert out.instance_score.tolist() == [0.6, 0.0]
-    one_test = gate(GateParams(mode="is_present"), value, IMAGE, boxes_info(), PortInfo("image"))
+    one_test = gate(GateParams(mode="is_false"), value, False, boxes_info(rows=2), PortInfo("flag"))
     assert one_test is value
-    blocked = gate(GateParams(mode="is_empty"), value, IMAGE, boxes_info(), PortInfo("image"))
+    blocked = gate(GateParams(mode="is_true"), value, False, boxes_info(rows=2), PortInfo("flag"))
     assert same(blocked, InstanceBoxes.empty(2))
 
 
@@ -406,8 +397,6 @@ def test_gate_reads_the_threshold_at_each_call() -> None:
 def test_v_node_first_of_2_instance_inputs_have_one_instance_source_and_the_same_groups() -> None:
     refuses("V-node.first_of-2", node_first_of.output_info, "n", NoParams(), [boxes_info(), boxes_info(source="hands")])
     refuses("V-node.first_of-2", node_first_of.output_info, "n", NoParams(), [kp_info(BODY), kp_info(HAND)])
-    outputs, _ = node_first_of.output_info("n", NoParams(), [PortInfo("image"), PortInfo("image")])
-    assert outputs["value"] == PortInfo("image")
     outputs, _ = node_first_of.output_info("n", NoParams(), [kp_info(BODY), kp_info(BODY)])
     assert outputs["value"] == kp_info(BODY)
 
@@ -417,8 +406,7 @@ def test_first_of_gives_the_first_value_that_is_not_empty_with_its_instance_scor
     values = [boxes([None, None]), kept, boxes([[9, 9, 9, 9, 0.0], None])]
     assert node_first_of.run(NoParams(), values, None, frame(), boxes_info())[0]["value"] is kept
     assert same(node_first_of.run(NoParams(), values[:1], None, frame(), boxes_info())[0]["value"], InstanceBoxes.empty(2))
-    assert node_first_of.run(NoParams(), [None, IMAGE], None, frame(), PortInfo("image"))[0]["value"] is IMAGE
-    assert node_first_of.run(NoParams(), [None, None], None, frame(), PortInfo("image"))[0]["value"] is None
+    assert node_first_of.run(NoParams(), [None, kept], None, frame(), boxes_info())[0]["value"] is kept
 
 
 # ---------------------------------------------------------------------------------------------

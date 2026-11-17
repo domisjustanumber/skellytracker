@@ -47,6 +47,12 @@ def ports_table(node: NodeTypeInfo) -> str:
     return "\n".join(lines)
 
 
+def test_no_node_type_has_an_image_output() -> None:
+    """The only image is the frame: no output of the catalog can give an image, so no gate or `@prev` passes one (ADR-9HTX item 4)."""
+    found = [(node.type, port.name) for node in list_node_types() for port in node.outputs if "image" in port.port_types]
+    assert not found
+
+
 @pytest.mark.parametrize("node", list_node_types(), ids=lambda node: node.type)
 def test_the_node_catalog_gives_the_committed_tables(node: NodeTypeInfo) -> None:
     path = NODES_DIR / f"{node.type}.md"
@@ -63,6 +69,7 @@ def test_the_node_catalog_gives_the_sections_the_required_inputs_and_the_timing_
     assert [(port.name, port.required) for port in by_type["first_of"].inputs] == [("*", True)]
     # Each input lists the port types that it accepts (ADR-9HTX item 1).
     assert [port.port_types for port in onnx.inputs] == [("image",), ("boxes",), ("flag",)]
-    assert [port.port_types for port in by_type["gate"].inputs] == [("image", "boxes", "keypoints"), ("image", "boxes", "keypoints", "flag")]
+    assert [port.port_types for port in by_type["gate"].inputs] == [("boxes", "keypoints"), ("boxes", "keypoints", "flag")]
+    assert [port.port_types for port in by_type["first_of"].inputs] == [("boxes", "keypoints")]
     assert [(port.name, port.port_types) for port in by_type["redetect_trigger"].outputs] == [("redetect", ("flag",))]
     assert by_type["gate"].timing_spans == ("run",)

@@ -111,7 +111,7 @@ class Executor:
             if (port_type := resolved.port_info(*_port(ref)).port_type) not in taps.JSONL_TYPES:
                 raise ValueError(
                     f"the output {name!r} names the port {ref} of the type {port_type}: "
-                    "the pipeline spec does not fix the value of an `image` or a `flag` output yet (pipeline.outputs, Behaviour item 6)"
+                    "the pipeline spec does not fix the value of a `flag` output yet (pipeline.outputs, Behaviour item 6)"
                 )
 
         # The taps, and the nodes that run.

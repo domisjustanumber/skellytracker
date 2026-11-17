@@ -43,7 +43,7 @@ POINT_NAME = re.compile(r"^(?P<group>[a-z][a-z0-9_-]*)/(?P<point>[^/\s]+)$")
 SEMVER = r"^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$"
 # The reserved node id of the timing span of one frame call.
 RESERVED_NODE_ID = "pipeline"
-# The reserved source of the graph: the camera frame of the call, as the port `frame.image`.
+# The reserved source of the graph: the camera frame of the call, as the port `frame.image`. It is the only image port.
 FRAME = "frame"
 FRAME_PORTS = {"image": "image"}
 # The fixed fields of the result of one camera (pipeline.outputs). An output name must not be one of them.
@@ -532,8 +532,8 @@ class Gate(NodeType):
     type = "gate"
     section = "node.gate"
     Params = GateParams
-    inputs = {"value": ("image", "boxes", "keypoints"), "condition": ("image", "boxes", "keypoints", "flag")}
-    outputs = {"value": ("image", "boxes", "keypoints")}
+    inputs = {"value": INSTANCE_TYPES, "condition": (*INSTANCE_TYPES, "flag")}
+    outputs = {"value": INSTANCE_TYPES}
     required_inputs = ("value", "condition")
     any_from = ("value",)
 
@@ -542,8 +542,8 @@ class FirstOf(NodeType):
     type = "first_of"
     section = "node.first_of"
     Params = NoParams
-    inputs = {VARIADIC: ("image", "boxes", "keypoints")}
-    outputs = {"value": ("image", "boxes", "keypoints")}
+    inputs = {VARIADIC: INSTANCE_TYPES}
+    outputs = {"value": INSTANCE_TYPES}
     any_from = (VARIADIC,)
 
 

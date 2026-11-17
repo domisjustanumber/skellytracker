@@ -21,12 +21,12 @@ This node has no parameters.
 <!-- node-table:ports -->
 | Port | Direction | Type |
 |---|---|---|
-| `*` | input | `image`, `boxes`, `keypoints` |
-| `value` | output | `image`, `boxes`, `keypoints` |
+| `*` | input | `boxes`, `keypoints` |
+| `value` | output | `boxes`, `keypoints` |
 <!-- /node-table:ports -->
 
 - `inputs` is a list of one or more port references. The input name `*` in the ports table stands for each item of the list. The items have no labels.
-- Each item takes a port type of the ports table. The output `value` has the port type of the inputs ([Graph](../graph.md#behaviour) item 4).
+- Each item takes a `boxes` or a `keypoints` port. The output `value` has the port type of the inputs ([Graph](../graph.md#behaviour) item 4). A `first_of` node never selects an image or a flag ([ADR-9HTX](../../../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) items 4 and 10).
 
 ## Behaviour
 
@@ -40,7 +40,7 @@ This node has no parameters.
 ## Validation rules
 
 - [ ] `V-node.first_of-1` All inputs must have the same port type. An input from an output with two or more port types takes the type of its own inputs ([Graph](../graph.md#behaviour) item 4). An `@prev` input `x@prev` has the port type of `x`, and the rule also compares it ([ADR-97X9](../../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 5).
-- [ ] `V-node.first_of-2` When the inputs are instance ports (`boxes` or `keypoints`), they must have one instance source. When they are `keypoints` ports, they must also have the same groups ([Graph](../graph.md#behaviour) item 7; [ADR-4MP6](../../../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md)). The host checks this at load.
+- [ ] `V-node.first_of-2` The inputs must have one instance source. When they are `keypoints` ports, they must also have the same groups ([Graph](../graph.md#behaviour) item 7; [ADR-4MP6](../../../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md)). The host checks this at load.
 
 ## Implementer guidance
 

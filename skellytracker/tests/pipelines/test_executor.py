@@ -84,6 +84,62 @@ def test_each_node_type_runs_in_one_pipeline_on_generated_models(root: Path) -> 
         assert (result["image_width"], result["image_height"]) == (32, 32)
 
 
+class FrameSpy:
+    """The `run` of one `OnnxModelRunner`: it keeps each image that the node gets, then calls the real `run`."""
+
+    def __init__(self, run: Any) -> None:
+        self.run, self.images = run, []
+
+    def __call__(self, index: int, images: list[Any], boxes: Any, timer: Any) -> Any:
+        self.images += images
+        return self.run(index, images, boxes, timer)
+
+
+def test_each_model_node_gets_the_frame_object_of_the_host_with_no_copy(root: Path) -> None:
+    """The plumbing passes the frame by reference: each model node gets the object that the host gave (ADR-9HTX item 4)."""
+    given = image(1)
+    with start(root, tracking_pipeline()) as run:
+        spies = {}
+        for node_id, runner in run._executor.models.items():  # noqa: SLF001
+            spies[node_id] = runner.run = FrameSpy(runner.run)
+        for index in range(4):
+            run.process(Frame(given, index))
+    assert {node_id: len(spy.images) for node_id, spy in spies.items()} == {"person": 2, "body": 4, "hand": 4}
+    assert all(item is given for spy in spies.values() for item in spy.images)
+
+
+# Each boxes and keypoints port of each node type of `tracking_pipeline`, as an output.
+EACH_PORT = (
+    "person.boxes", "detected_box.value", "points_box.boxes", "carried_box.value", "box.value", "hold.boxes", "crop.boxes",
+    "body.keypoints", "hand.keypoints", "both.keypoints", "merged.keypoints", "smooth.keypoints",
+)
+
+
+def test_each_boxes_and_keypoints_output_of_each_node_is_in_source_image_pixels(root: Path) -> None:
+    """A frame of twice the size gives each box and each point at twice the place (pipeline.graph, Behaviour item 3).
+
+    The model inputs have fixed sizes (32 x 32 and 16 x 12), and the frames are plain, so the models
+    give the same values for both frames. A node that gave a box or a point in the space of a model
+    input or of a crop would not scale with the frame.
+    """
+    data = tracking_pipeline()
+    data["outputs"] = {ref.replace(".", "_"): ref for ref in EACH_PORT}
+    results = {}
+    for size in (32, 64):
+        with start(root, data) as run:
+            results[size] = [run.process(Frame(image(1, size, size), index)) for index in range(4)]
+    for small, large in zip(results[32], results[64], strict=True):
+        for name in data["outputs"]:
+            a, b = small[name], large[name]
+            np.testing.assert_array_equal(a.present, b.present, err_msg=name)
+            if hasattr(a, "boxes"):
+                np.testing.assert_allclose(b.boxes[:, :4], 2 * a.boxes[:, :4], rtol=1e-6, atol=1e-5, err_msg=name)
+                np.testing.assert_array_equal(b.boxes[:, 4], a.boxes[:, 4], err_msg=name)
+            else:
+                np.testing.assert_allclose(b.xy, 2 * a.xy, rtol=1e-6, atol=1e-5, err_msg=name)
+    assert all(results[64][0][name].present.any() for name in data["outputs"] if not name.startswith(("points_box", "carried_box")))
+
+
 # ---------------------------------------------------------------------------------------------
 # The empty-input rule
 # ---------------------------------------------------------------------------------------------
@@ -432,7 +488,7 @@ def test_one_model_node_gives_its_stage_providers_to_the_aggregator(root: Path) 
 # ---------------------------------------------------------------------------------------------
 
 
-def test_a_start_refuses_an_output_of_the_port_type_image(root: Path) -> None:
+def test_a_start_refuses_an_output_of_the_port_type_flag(root: Path) -> None:
     data = tracking_pipeline()
     data["outputs"]["trigger_flag"] = "trigger.redetect"
     with pytest.raises(ValueError, match="trigger.redetect of the type flag.*does not fix"):

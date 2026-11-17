@@ -5,8 +5,7 @@ notes:
   - "Normative text: specs/pipeline/nodes/gate.md."
   - "`value_type` and `condition_type` are the port types, known at load. A value of an
     instance port (`boxes`, `keypoints`) is null (empty) or one row or null (an empty
-    row) for each instance. A value of another port type is null (empty) or a
-    placeholder string. A `flag` condition is true or false. A `keypoints` row of
+    row) for each instance. A `flag` condition is true or false. A `keypoints` row of
     `condition` holds `xy` and `score`; a `boxes` row of `condition` holds
     `instance_score`."
 tolerance: 0.000001
@@ -14,27 +13,31 @@ verified_against:
   - skellytracker/core/pipelines/_runtime/node_gate.py::run
 cases:
   - id: is-empty-passes-on-an-empty-condition
-    note: "the previous keypoints are empty on the first frame, so the image goes to the detector"
+    note: "the previous keypoints are empty on the first frame, so the box passes"
     params: {mode: is_empty}
-    input: {value_type: image, condition_type: keypoints, value: frame-image, condition: null}
-    expect: {value: frame-image}
+    input:
+      value_type: boxes
+      condition_type: keypoints
+      value: [[100, 100, 50, 50, 0]]
+      condition: null
+    expect: {value: [[100, 100, 50, 50, 0]]}
   - id: is-empty-blocks-on-a-present-row
     params: {mode: is_empty}
     input:
-      value_type: image
+      value_type: boxes
       condition_type: keypoints
-      value: frame-image
+      value: [[100, 100, 50, 50, 0]]
       condition: [{xy: [[10, 20]], score: [0.9]}]
-    expect: {value: null}
+    expect: {value: [null]}
   - id: is-empty-passes-when-no-row-is-present
     note: "a value with no present row is empty"
     params: {mode: is_empty}
     input:
-      value_type: image
+      value_type: boxes
       condition_type: keypoints
-      value: frame-image
+      value: [[100, 100, 50, 50, 0], [200, 200, 40, 40, 0]]
       condition: [null, null]
-    expect: {value: frame-image}
+    expect: {value: [[100, 100, 50, 50, 0], [200, 200, 40, 40, 0]]}
   - id: is-present-row-by-row
     note: "row 0 passes; row 1 has an empty condition row; row 2 has an empty value row"
     params: {mode: is_present}
@@ -58,11 +61,11 @@ cases:
       NaN point, the mean of the three would be 0.4667"
     params: {mode: score_above, threshold: 0.6}
     input:
-      value_type: image
+      value_type: boxes
       condition_type: keypoints
-      value: frame-image
+      value: [[100, 100, 50, 50, 0]]
       condition: [{xy: [[10, 10], [.nan, .nan], [20, 20]], score: [0.9, 0, 0.5]}]
-    expect: {value: frame-image}
+    expect: {value: [[100, 100, 50, 50, 0]]}
   - id: score-of-an-all-nan-row-is-0
     note: "row 0: each point is NaN, so the score is 0, not greater than 0; row 1 passes"
     params: {mode: score_above, threshold: 0}
@@ -77,7 +80,7 @@ cases:
   - id: empty-value-gives-empty-output
     params: {mode: is_present}
     input:
-      value_type: image
+      value_type: boxes
       condition_type: keypoints
       value: null
       condition: [{xy: [[10, 20]], score: [0.9]}]
@@ -85,17 +88,29 @@ cases:
   - id: score-above-needs-a-threshold
     checks: [refused]
     params: {mode: score_above}
-    input: {value_type: image, condition_type: keypoints, value: frame-image, condition: null}
+    input:
+      value_type: boxes
+      condition_type: keypoints
+      value: [[100, 100, 50, 50, 0]]
+      condition: null
     expect: {error: V-node.gate-1}
   - id: is-empty-has-no-threshold
     checks: [refused]
     params: {mode: is_empty, threshold: 0.5}
-    input: {value_type: image, condition_type: keypoints, value: frame-image, condition: null}
+    input:
+      value_type: boxes
+      condition_type: keypoints
+      value: [[100, 100, 50, 50, 0]]
+      condition: null
     expect: {error: V-node.gate-1}
-  - id: score-above-on-an-image-condition-is-refused
+  - id: score-above-on-a-flag-condition-is-refused
     checks: [refused]
     params: {mode: score_above, threshold: 0.5}
-    input: {value_type: image, condition_type: image, value: frame-image, condition: null}
+    input:
+      value_type: boxes
+      condition_type: flag
+      value: [[100, 100, 50, 50, 0]]
+      condition: true
     expect: {error: V-node.gate-2}
   - id: row-counts-must-match
     checks: [refused]

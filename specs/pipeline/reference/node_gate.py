@@ -13,7 +13,6 @@ import math
 from typing import Any
 
 INSTANCE_TYPES = ("boxes", "keypoints")
-SCORED_TYPES = INSTANCE_TYPES
 FLAG_MODES = ("is_true", "is_false")
 
 
@@ -43,39 +42,29 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
 
     params holds mode and, for score_above, threshold. input holds value_type and condition_type
     (the port types, known at load), and value and condition. A value of an instance port is None
-    (empty) or one row or None (an empty row) for each instance. A flag is True or False. A value of
-    another port type is None (empty) or any other value. The result holds value in the same form.
+    (empty) or one row or None (an empty row) for each instance. A flag is True or False. The result
+    holds value in the same form.
     """
     mode, threshold = params["mode"], params.get("threshold")
     if (mode == "score_above") != (threshold is not None):
         raise ValueError("V-node.gate-1: the mode score_above needs a threshold, and the other modes have none")
-    value_type, condition_type = input["value_type"], input["condition_type"]
+    condition_type = input["condition_type"]  # value_type is boxes or keypoints, so it does not change the result
     if mode in FLAG_MODES and condition_type != "flag":
         raise ValueError(f"V-node.gate-4: {mode} needs a flag condition, not {condition_type}")
-    if mode not in FLAG_MODES and condition_type == "flag":
-        raise ValueError(f"V-node.gate-2: {mode} needs a condition that is not a flag")
-    if mode == "score_above" and condition_type not in SCORED_TYPES:
-        raise ValueError(f"V-node.gate-2: score_above needs a boxes or keypoints condition, not {condition_type}")
+    if mode not in FLAG_MODES and condition_type not in INSTANCE_TYPES:
+        raise ValueError(f"V-node.gate-2: {mode} needs a boxes or keypoints condition, not {condition_type}")
     value, condition = input["value"], input["condition"]
-    by_row = value_type in INSTANCE_TYPES and condition_type in INSTANCE_TYPES
+    by_row = condition_type in INSTANCE_TYPES
     if by_row and condition is not None and value is not None and len(condition) != len(value):
         raise ValueError(f"V-node.gate-3: value has {len(value)} rows and condition has {len(condition)}")
     if value is None:
         return {"value": None}
     if condition_type == "flag":
         return {"value": value if condition is (mode == "is_true") else None}
-    if by_row:
-        conditions = condition or [None] * len(value)
-        return {
-            "value": [
-                row if row is not None and passes(params, condition_type, [] if test is None else [test]) else None
-                for row, test in zip(value, conditions)  # noqa: B905 (V-node.gate-3)
-            ]
-        }
-    if condition is None:
-        rows = []
-    elif condition_type in INSTANCE_TYPES:
-        rows = [row for row in condition if row is not None]
-    else:
-        rows = [condition]
-    return {"value": value if passes(params, condition_type, rows) else None}
+    conditions = condition or [None] * len(value)
+    return {
+        "value": [
+            row if row is not None and passes(params, condition_type, [] if test is None else [test]) else None
+            for row, test in zip(value, conditions)  # noqa: B905 (V-node.gate-3)
+        ]
+    }
