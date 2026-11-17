@@ -310,6 +310,26 @@ Not done in this stage:
   them by hand on a real machine, one or two times. They are scripts in `decisions/scripts/` with
   an evidence entry, not tools ([ADR-EY8R](../decisions/entries/EY8R-tools-and-scripts.md)). Their
   report holds no hostname, no user name and no path.
+  The same work adds a verification script for a host with a GTX 1650 (CC 7.5, 4 GB of VRAM; user,
+  2026-11-17). This host can start Windows and Linux. All GPU evidence of the package code is from
+  one RTX 3070 with CC 8.6 and 8 GB
+  ([ADR-73Q4](../decisions/entries/73Q4-local-gpu-gate-of-the-ep-api.md)).
+  [ADR-V9NK](../decisions/entries/V9NK-ep-device-checks-evidence.md) has the GTX 1650 facts so far,
+  from separate scripts with no real model. On Windows, the script does these checks:
+  1. `cuda` on CC 7.5: install, verify, `status()` and `recommend()`. The class must be
+     `nvidia-cc75-r580`. `cuda` must be the first candidate. `trt-rtx` must be unusable, with a
+     reason. The local GPU gate needs CC 8.0, thus the script runs only its `cuda` part.
+  2. One run of the built-in `yolox-rtmw-wholebody` on `cuda` with fp16, for 1, 3 and 6 cameras,
+     with the peak VRAM from `LiveSampler`. The run must complete or raise `VRAMExhaustionError`.
+     On one GPU, the run does not use `vram_reserve_bytes`, and no code checks that the models fit.
+  3. The same run with fp32 for 3 cameras. CC 7.5 has no TF32, and the fp32 YOLOX used 5073 MB with
+     `use_tf32=0` on the RTX 3070
+     ([ADR-NZK1](../decisions/entries/NZK1-ep-options-evidence.md)).
+  4. Optional: `prefer_nhwc` 0 and 1 with fp16. The default `prefer_nhwc=1` has a measurement only
+     on the RTX 3070.
+  The Linux script gets a GPU part. When `status()` lists `cuda`, it does checks 1 and 2. This part
+  proves the pack preloads, the driver branch rule and the `pci.ids` lookup on Linux. freemocap
+  adds one realtime run on `cuda` on this host.
 
 Names: `run_devices()` and `RunDevice` keep their proposed names. The modules of `core/eps/` are
 `recommendation.py`, `installer.py`, `registration.py`, `verification.py`, `self_test.py`, `state.py`
