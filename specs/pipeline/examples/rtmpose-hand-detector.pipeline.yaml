@@ -1,13 +1,14 @@
-# Spec example, structure only. It shows two chains on one frame: a person detector and a body
-# model, and a hand detector (two hands) and a hand model. The hands have their own instance
-# source, so concat cannot join them to the body. merge puts each hand row in the slot of a
-# body wrist, with the smallest total distance, and replaces the body wrists with the hand roots.
 schema_version: "2.0.0"
 pipeline_id: rtmpose-hand-detector
 source: {name: skellytracker, version: "2.0.0"}
-description: >-
+description: |-
   Structure only. YOLOX person then RTMPose body, and an RTMDet hand detector then RTMPose hand;
   merge joins the hands to the body.
+
+  Spec example, structure only. It shows two chains on one frame: a person detector and a body
+  model, and a hand detector (two hands) and a hand model. The hands have their own instance source,
+  so concat cannot join them to the body. merge puts each hand row in the slot of a body wrist, with
+  the smallest total distance, and replaces the body wrists with the hand roots.
 nodes:
   - id: person
     type: onnx_model

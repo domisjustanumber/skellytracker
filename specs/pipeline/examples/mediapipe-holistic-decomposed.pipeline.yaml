@@ -1,25 +1,26 @@
-# Spec example, structure only. It sketches the MediaPipe pose and hand chain with onnx_model and
-# glue nodes: redetect_trigger, a pose detector, a box from the points of the previous frame (@prev),
-# first_of, smooth_boxes, hold_boxes, gate and smooth_keypoints. Both hands run from frame 0: an
-# empty optional input (`previous_keypoints` of hold_boxes on frame 0) does not stop a node.
-# The model keys and sizes wait for the sidecar proposals of MediaPipe-Exporter.
 schema_version: "2.0.0"
 pipeline_id: mediapipe-holistic-decomposed
 source: {name: skellytracker, version: "2.0.0"}
-description: >-
+description: |-
   Structure only: waits for sidecar proposals. MediaPipe pose and both hands as onnx_model and glue
   nodes.
+
+  Spec example, structure only. It sketches the MediaPipe pose and hand chain with onnx_model and
+  glue nodes: redetect_trigger, a pose detector, a box from the points of the previous frame
+  (@prev), first_of, smooth_boxes, hold_boxes, gate and smooth_keypoints. Both hands run from frame
+  0: an empty optional input (`previous_keypoints` of hold_boxes on frame 0) does not stop a node.
+  The model keys and sizes wait for the sidecar proposals of MediaPipe-Exporter.
 nodes:
-  # Ask for a new pose detection when the previous frame has no good pose.
   - id: trigger
+    description: Ask for a new pose detection when the previous frame has no good pose.
     type: redetect_trigger
     inputs: {image: frame.image, previous_keypoints: body.keypoints@prev}
   - id: pose_detector
     type: onnx_model
     inputs: {image: trigger.image}
     params: {key: mediapipe-pose-detector@mediapipe-exporter, size: full}
-  # The pose box from the points of the previous frame.
   - id: pose_box_prev
+    description: The pose box from the points of the previous frame.
     type: boxes_from_points
     inputs: {keypoints: body.keypoints@prev}
     params:
@@ -42,8 +43,8 @@ nodes:
     type: onnx_model
     inputs: {image: frame.image, boxes: pose_box_smooth.boxes}
     params: {key: mediapipe-pose-landmarker@mediapipe-exporter, size: full}
-  # The right hand box from the pose points, kept stable with hold_boxes.
   - id: right_hand_box
+    description: The right hand box from the pose points, kept stable with hold_boxes.
     type: boxes_from_points
     inputs: {keypoints: body.keypoints}
     params:
@@ -68,8 +69,9 @@ nodes:
     type: onnx_model
     inputs: {image: frame.image, boxes: right_hand_gate.value}
     params: {key: mediapipe-hand-landmarker@mediapipe-exporter, size: full}
-  # The left hand: the same chain on the left points.
   - id: left_hand_box
+    description: >-
+      The left hand: the same chain on the left points.
     type: boxes_from_points
     inputs: {keypoints: body.keypoints}
     params:

@@ -67,6 +67,7 @@ A **name** is a string that matches `^[a-z][a-z0-9_-]*$`.
 
 - Write only the params that you change. The defaults of an `onnx_model` node come from the `object.decode` fields of its sidecar. The node sections give the defaults of the other node types ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 11).
 - A shipped or an exported file must give `sidecar_sha256` for each `onnx_model` node ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 10). The hand-written [examples](examples/) do not give it.
+- Write the text for people in the `description` of the pipeline and of each node, not in a YAML comment. An editor that saves the file drops the comments. The built-ins and the examples have no comment ([ADR-2RWC](../../decisions/entries/2RWC-one-boxes-port-type-and-node-descriptions.md)).
 
 ## Examples
 

@@ -1,14 +1,15 @@
-# Planned built-in pipeline. It shows a fan-out: a body model gives the points of two hand boxes
-# and one face box (boxes_from_points), a model runs on each box, and concat joins the points of
-# the person into one keypoints output, in the order body, right_hand, left_hand, face. When a
-# hand or the face has no box, concat still gives the body points, and the columns of that part
-# are missing points (NaN, score 0). The hand and face box rules are not measured yet.
 schema_version: "2.0.0"
 pipeline_id: rtmpose-body-hands-face
 source: {name: skellytracker, version: "2.0.0"}
-description: >-
-  YOLOX person, RTMPose body, then RTMPose hands and face on boxes from the body points.
-  The hand and face box rules are not measured yet.
+description: |-
+  YOLOX person, RTMPose body, then RTMPose hands and face on boxes from the body points. The hand
+  and face box rules are not measured yet.
+
+  Planned built-in pipeline. It shows a fan-out: a body model gives the points of two hand boxes and
+  one face box (boxes_from_points), a model runs on each box, and concat joins the points of the
+  person into one keypoints output, in the order body, right_hand, left_hand, face. When a hand or
+  the face has no box, concat still gives the body points, and the columns of that part are missing
+  points (NaN, score 0). The hand and face box rules are not measured yet.
 nodes:
   - id: person
     type: onnx_model

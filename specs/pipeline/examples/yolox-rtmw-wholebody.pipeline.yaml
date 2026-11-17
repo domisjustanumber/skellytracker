@@ -1,15 +1,18 @@
-# Built-in pipeline of v2.0.0. A YOLOX person detector keeps the best person (post_nms_top_k: 1),
-# and RTMW finds 133 whole-body points in the person box. The detector runs on the first frame,
-# then each 150 frames, and on the frame after a lost person. On each other frame, the box comes
-# from the points of the previous frame. A One Euro filter smooths the box on each frame.
 schema_version: "2.0.0"
 pipeline_id: yolox-rtmw-wholebody
 source: {name: skellytracker, version: "2.0.0"}
-description: YOLOX person detector, then RTMW whole-body keypoints (133 points) for one person.
+description: |-
+  YOLOX person detector, then RTMW whole-body keypoints (133 points) for one person.
+
+  Built-in pipeline of v2.0.0. A YOLOX person detector keeps the best person (post_nms_top_k: 1),
+  and RTMW finds 133 whole-body points in the person box. The detector runs on the first frame, then
+  each 150 frames, and on the frame after a lost person. On each other frame, the box comes from the
+  points of the previous frame. A One Euro filter smooths the box on each frame.
 nodes:
-  # Ask for a detection each 150 frames, after a frame with no box, and after a frame with no
-  # point of score 0.4 or more, or with points on one line.
   - id: trigger
+    description: >-
+      Ask for a detection each 150 frames, after a frame with no box, and after a frame with no
+      point of score 0.4 or more, or with points on one line.
     type: redetect_trigger
     inputs:
       image: frame.image
@@ -28,12 +31,12 @@ nodes:
       size: m
       object_decode:
         nms: {post_nms_top_k: 1}
-  # The last box of the detector.
   - id: detected_box
+    description: The last box of the detector.
     type: first_of
     inputs: [person.boxes, detected_box.value@prev]
-  # The box around the points of the previous frame, with its size floors.
   - id: points_box
+    description: The box around the points of the previous frame, with its size floors.
     type: boxes_from_points
     inputs:
       keypoints: wholebody.keypoints@prev
@@ -45,8 +48,8 @@ nodes:
       min_previous_ratio: 0.995
       min_reference_ratio: 0.5
       min_size_px: 80
-  # Use the points box only on a frame with no detection request.
   - id: carried_box
+    description: Use the points box only on a frame with no detection request.
     type: gate
     inputs: {value: points_box.boxes, condition: trigger.image}
     params: {mode: is_empty}
