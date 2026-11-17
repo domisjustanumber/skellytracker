@@ -1,0 +1,17 @@
+examples:
+  detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133.yaml:
+    exporter: OpenMMLab-Exporter
+    exporter_path: exports/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133.yaml
+    kind: export
+    exporter_layout_path: null
+    tracked: false
+    commit: 3ca1a596ea71c0969fc8ea960f4c2a41a27777d6
+    notes: >-
+      A candidate example of the proposal simcc-score-map, not a spec example. The exporter writer code
+      wrote it (pipeline.sidecar.render_family_sidecar with rtmw.sidecar.build_sidecar and
+      rtmw.score_map.score_map_block, at the commit above), from the same b3 ONNX files as
+      model-rtmw-wholebody133 version 5. Against the example of version 5, the five
+      sizes.<size>.score_map blocks are new and source.version is 0.4.0 (OpenMMLab-Exporter ADR-C102);
+      each other line is the same. No edit by hand. The sidecar has
+      no $ref, so it has no fragment.
+fragments: {}

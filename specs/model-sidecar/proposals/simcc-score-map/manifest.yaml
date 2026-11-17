@@ -1,0 +1,56 @@
+{
+  "bundle_format": 1,
+  "kind": "proposal",
+  "name": "simcc-score-map",
+  "contributor": "openmmlab-exporter",
+  "source_commit": "3ca1a596ea71c0969fc8ea960f4c2a41a27777d6",
+  "spec_commit": "afd4813040f2b3de3d3345393493918d7e4840f6",
+  "sections": [
+    "post.keypoint.score_map",
+    "common.sizes_and_artifacts",
+    "post.keypoint.decode.simcc",
+    "post.keypoint.schema"
+  ],
+  "base": null,
+  "depends_on": [],
+  "contributes_to": null,
+  "related": [
+    "model-rtmw-wholebody133@openmmlab-exporter"
+  ],
+  "external": [],
+  "spec_version": "2.0.0",
+  "version": 1,
+  "created": "2026-11-16",
+  "files": [
+    {
+      "path": "evidence.md",
+      "sha256": "a03f72dd059defb7b7f61676b2d137e34e32e1e722c8ab109b106b9255c6d2ce",
+      "bytes": 7789
+    },
+    {
+      "path": "example/detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133.yaml",
+      "sha256": "cd62463de40f6f6fa20606eaff9f87f22bc5b86cd2b2f982f15eaa09477c2964",
+      "bytes": 25537
+    },
+    {
+      "path": "example/provenance.yaml",
+      "sha256": "4669d811632ef75d07561d10193d3caedd0bda0fbcc7e4ab86737c61ad544aaa",
+      "bytes": 940
+    },
+    {
+      "path": "proposal.md",
+      "sha256": "b9d204c4d25251293433c7a555d73330c3a04b9c04ec9df9ab5b5505dd7a23c1",
+      "bytes": 32331
+    },
+    {
+      "path": "reference/post_keypoint_score_map.py",
+      "sha256": "4a4a7c98c188b1516fae23aaab89144f807f4da54113f13b3c04fffdca987f0a",
+      "bytes": 3972
+    },
+    {
+      "path": "vectors/post.keypoint.score_map.yaml",
+      "sha256": "434b495f7301ed670df2b70ca36cd6a21b56a3d4adede8e18701a558f9c32a61",
+      "bytes": 9162
+    }
+  ]
+}
