@@ -33,13 +33,16 @@ A pipeline file has no field of this section. A run takes these parameters:
 
 Each call gives, for each camera of the call, one frame with its `frame_index`. In `live`, each frame also has its `timestamp_ms` (a float, in milliseconds). In `video`, the frames of a camera have a `timestamp_ms` when the camera gives one ([Behaviour](#behaviour) item 2).
 
-The image of a frame is the host frame: BGR, `uint8`, shape `(H, W, 3)` ([ADR-75K2](../../decisions/entries/75K2-unclear-places-of-the-pipeline-spec.md)).
+The image of a frame has one of these two forms. Each frame of a call can have either form ([ADR-75K2](../../decisions/entries/75K2-unclear-places-of-the-pipeline-spec.md); [ADR-P245](decisions/entries/P245-jpeg-frame-input.md)):
+
+- a decoded array: the host frame, BGR, `uint8`, shape `(H, W, 3)`, in CPU memory;
+- a JPEG buffer: the bytes of one JPEG image. The run decodes it to `frame.image` before the first node ([Behaviour](#behaviour) item 13).
 
 A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 6):
 
 | Field | Description |
 |-------|-------------|
-| `code` | `batch_limited_by_state`, `ep_partial_placement`, `merge_part_without_landmark_schema`, `merge_unfilled_points`, `missing_dependency` or `output_group_without_landmark_schema`. |
+| `code` | `batch_limited_by_state`, `ep_partial_placement`, `jpeg_decoded_on_cpu`, `merge_part_without_landmark_schema`, `merge_unfilled_points`, `missing_dependency` or `output_group_without_landmark_schema`. |
 | `message` | A text for people. The log line uses the same text. |
 | `node_ids` | The ids of the nodes that the warning is about. |
 | `details` | A mapping with more facts. |
@@ -80,6 +83,7 @@ A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api
 8. **Warnings.** The run gives a warning for each of these conditions ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) items 6 and 7):
    - `batch_limited_by_state`: the pipeline is stateful and the running mode is `video` (Behaviour item 5).
    - `ep_partial_placement`: a session of the node has nodes on the CPU EP. `details` gives the node count of each EP and the CPU op types. The run gives it one time for each session ([ADR-9NW0](../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 5).
+   - `jpeg_decoded_on_cpu`: the run decodes JPEG buffers on the CPU in place of the GPU decoder (Behaviour item 13). The run gives it one time for each camera with a JPEG buffer that the GPU decoder refuses, and `details` gives the camera id. The run also gives it one time, at the first call with a JPEG buffer, when the package of the GPU decoder is not installed, and `details` gives the name of that package. A run that gets only decoded arrays gets no such warning. `node_ids` is empty ([ADR-P245](decisions/entries/P245-jpeg-frame-input.md)).
    - `merge_part_without_landmark_schema`: a part of a `merge` node has a null `landmark_schema`, so the load cannot check its region (`V-node.merge-8`). A load gives this warning. `details` gives the part ([Node: merge](nodes/merge.md#validation-rules); [ADR-9HTX](../../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) item 11).
    - `merge_unfilled_points`: a slot of an `assign_keypoints` node or a part of a `merge` node replaces a group, and one or more points of that group are unfilled and no key of `map` names them. A load gives this warning. `details` lists the points ([Node: assign keypoints](nodes/assign_keypoints.md#behaviour) item 5; [Node: merge](nodes/merge.md#behaviour) item 3; [ADR-KW76](../../decisions/entries/KW76-merge-replace-add-and-hungarian-match.md) item 2).
    - `missing_dependency`: a node needs an optional extra that is not installed, or an ONNX file that is absent or whose hash does not agree. A load gives this warning. A start fails before frame 0 ([Validation rules](#validation-rules)). For a node with no `precision`, a load gives the warning only when no artifact of the size is usable. A start checks the artifact of the EP (`V-pipeline.running-3`) ([ADR-75K2](../../decisions/entries/75K2-unclear-places-of-the-pipeline-spec.md) item 3).
@@ -93,6 +97,15 @@ A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api
     - A change applies from the next `process` or `process_batch` call, to each camera. It does not reset the state of a node. A param whose change would need a reset is marked `no`.
     - A call that breaks `V-pipeline.running-10` raises the error `SetParamsRefusedError`. It changes no param.
 12. **Threads.** The calls on one run are serial: a second call waits for the first call. `close()` waits for the call that runs. A call after `close()` raises an error. A second `close()` does nothing. Two runs share no state. There is no cancel ([ADR-75K2](../../decisions/entries/75K2-unclear-places-of-the-pipeline-spec.md) item 5).
+13. **JPEG frames.** The caller gives the image of each frame as a decoded array or as a JPEG buffer ([Fields](#fields)). The pipeline file is the same for both forms ([ADR-P245](decisions/entries/P245-jpeg-frame-input.md)):
+    - The run decodes each JPEG buffer to `frame.image` before the first node of the call. Each node reads `frame.image` as for a decoded array.
+    - The run decodes each JPEG buffer one time. Each reader of `frame.image` gets the same decoded frame.
+    - The decoded frame is an 8-bit image with 3 channels in BGR order. Its width and height are the stored width and height of the JPEG. The run does not apply the EXIF orientation of the JPEG.
+    - When an `onnx_model` node that runs uses the EP `cuda` or `trt-rtx`, the decoded frame can be in GPU memory. Else the decoded frame is in CPU memory.
+    - The spec does not give the pixel values of the decode. Two decoders can give different pixel values for one JPEG. The spec requires only the width, the height, the channel count, the channel order and the bit depth.
+    - When the GPU decoder refuses a JPEG buffer, for example a progressive JPEG or a chroma format that it does not support, the run decodes that frame on the CPU. The call continues. The run gives the warning `jpeg_decoded_on_cpu` (Behaviour item 8).
+    - When an `onnx_model` node that runs uses the EP `cuda` or `trt-rtx` and the package of the GPU decoder is not installed, the run decodes each JPEG buffer on the CPU. The start does not fail. The run gives the warning `jpeg_decoded_on_cpu` at the first call with a JPEG buffer (Behaviour item 8).
+    - A call with a JPEG buffer that no decoder can read breaks `V-pipeline.running-12`. It raises `CallRefusedError`, with the same effect as in Behaviour item 2: the call changes no state of any of its cameras, and the run accepts the next call.
 
 ## Validation rules
 
@@ -107,6 +120,7 @@ A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api
 - [ ] `V-pipeline.running-9` When the pipeline has no `onnx_model` node, the run must not give an EP ([ADR-9PDQ](../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 4).
 - [ ] `V-pipeline.running-10` A `set_params` call must name a node of the run. Each param must be a param of that node type, marked `yes` in the column "Set during run", with a value of its type and range. After the first `process` or `process_batch` call, the running mode must be `live` and the run must have no `record` tap ([ADR-N5BM](../../decisions/entries/N5BM-set-during-run-and-set-params.md)).
 - [ ] `V-pipeline.running-11` When the run gives CPU threads, the value must be a positive integer. A boolean is not a valid value. Else the start must fail before frame 0 ([ADR-HB8Z](../../decisions/entries/HB8Z-cpu-threads-run-parameter.md)).
+- [ ] `V-pipeline.running-12` Each JPEG buffer of a call must be a JPEG image that a decoder of the run can read. Else the call must raise `CallRefusedError` ([ADR-P245](decisions/entries/P245-jpeg-frame-input.md)).
 
 ## Implementer guidance
 
@@ -114,11 +128,20 @@ A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api
 - The availability of an extra comes from `importlib.util.find_spec` with a literal name, the presence of each ONNX file and its hash ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 7).
 - The warnings do not use the Python `warnings` module ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 6).
 - The run parameter "frame interval" of the first draft is removed. The temporal nodes use `timestamp_ms` in each mode that keeps state.
+- JPEG frames ([ADR-P245](decisions/entries/P245-jpeg-frame-input.md)):
+  - The package can give the decoded frame its own type, for example `DecodedFrame`. The type name is not a part of the spec.
+  - The decoders are an implementation choice: `cv2.imdecode` on the CPU, and nvJPEG through nvImageCodec on `cuda` and `trt-rtx`. On the CPU, the flag `cv2.IMREAD_IGNORE_ORIENTATION` keeps the stored width and height.
+  - nvJPEG and `cv2.imdecode` differ by at most 3 `uint8` steps, with a mean of 0.024, on 148 frame variants at JPEG quality 90 with 4:2:2 and 4:2:0 chroma.
+  - The cameras of a call whose JPEG frames have the same width and height share one decode batch.
+  - The GPU decoder returns before the frame is complete. The run waits for the decode before a reader uses the frame.
+  - The run uploads a frame from CPU memory to GPU memory at most one time for each call, before the first reader that needs the frame in GPU memory. When the run uploads a decoded array is an implementation choice of the GPU preprocess of a model ([Timing](timing.md#fields), the span `frame.upload`).
+  - A node that needs the pixels in CPU memory, for example `mediapipe_tasks`, copies a frame in GPU memory to the host as a part of the conversion for its model ([Graph](graph.md#behaviour) item 9).
 
 ## Authoring guidance
 
 - A previous-frame input lowers the batch in `video`. A `smooth_keypoints` node after the last `onnx_model` node does not, because it runs on the host, frame by frame, after the batched pass ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 5).
 - A live caller must give a `timestamp_ms` that increases, for example from the capture clock of the camera.
+- Risk: a USB camera can give a cut-off MJPEG frame. When no decoder can read it, `V-pipeline.running-12` refuses the call, and a caller that does not catch `CallRefusedError` stops on that frame ([ADR-P245](decisions/entries/P245-jpeg-frame-input.md)).
 - The pipeline file is the same in each running mode. The caller gives a value for each mode, in the config before the start or with `set_params` before the first frame. For example, a caller sets `redetect_interval` of a `redetect_trigger` node to 10 in `live` and to 1 in `video` ([ADR-N5BM](../../decisions/entries/N5BM-set-during-run-and-set-params.md) item 5).
 
 ## Examples

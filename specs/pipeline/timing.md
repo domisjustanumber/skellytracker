@@ -16,7 +16,7 @@ A run can measure the time of fixed spans of each node. Each measured span gives
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `instrumentation.timing_spans` | array of strings | no | The timing spans that are on: `<node>.<span>` or `pipeline.run`. Default: empty, no span is on ([ADR-9PDQ](../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 3). |
+| `instrumentation.timing_spans` | array of strings | no | The timing spans that are on: `<node>.<span>`, `pipeline.run`, `frame.decode` or `frame.upload`. Default: empty, no span is on ([ADR-9PDQ](../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 3). |
 
 The timing spans of each node type ([ADR-Q59W](../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 1; [ADR-9PDQ](../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 3):
 
@@ -25,13 +25,20 @@ The timing spans of each node type ([ADR-Q59W](../../decisions/entries/Q59W-pipe
 | `onnx_model` | `preprocess`, `inference`, `postprocess`, with the boundaries of OpenMMLab-Exporter ADR-W9RE |
 | each other type | `run` |
 | the reserved id `pipeline` | `run`: one span for each frame call |
+| the reserved source `frame` | `decode`: the decode of the JPEG buffers of a call, inside the span `pipeline.run`. `images` gives the frames that the event decodes. A call with no JPEG buffer gives no `decode` event. `upload`: the copy of frames from CPU memory to GPU memory in a call, inside the span `pipeline.run`. `images` gives the frames that the event copies. A call in which no frame goes to GPU memory gives no `upload` event ([Running](running.md#behaviour) item 13; [ADR-P245](decisions/entries/P245-jpeg-frame-input.md)) |
+
+The events of the reserved source `frame` for each frame that goes to GPU memory ([ADR-P245](decisions/entries/P245-jpeg-frame-input.md)):
+
+- A decoded array gives an `upload` event and no `decode` event.
+- A JPEG buffer that the run decodes on the CPU, in each fallback of [Running](running.md#behaviour) item 13, gives a `decode` event and then an `upload` event.
+- A JPEG buffer that the GPU decoder decodes gives a `decode` event and no `upload` event. The GPU decoder copies the data to GPU memory itself, so that copy is a part of the `decode` span.
 
 The fields of an event ([ADR-Q59W](../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 2; [ADR-9PDQ](../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 3):
 
 | Field | Description |
 |-------|-------------|
 | `images` | One item `{frame_index, camera_id}` for each image of the call. A field of an item is never null. |
-| `node_id` | The node id, or `pipeline`. |
+| `node_id` | The node id, `pipeline` or `frame`. |
 | `span` | The span name. |
 | `batch_size` | The length of `images`. |
 | `start_ns` | The start, in nanoseconds of a monotonic clock (`perf_counter_ns`). |
@@ -77,7 +84,7 @@ When a node has a session on each of two or more GPUs, the times of the node are
 
 ## Validation rules
 
-- [ ] `V-pipeline.timing-1` Each timing span must name a node of the file and a span of the type of that node, or be `pipeline.run` ([ADR-9PDQ](../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 3).
+- [ ] `V-pipeline.timing-1` Each timing span must name a node of the file and a span of the type of that node, or be `pipeline.run`, `frame.decode` or `frame.upload` ([ADR-9PDQ](../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 3; [ADR-P245](decisions/entries/P245-jpeg-frame-input.md)).
 
 ## Implementer guidance
 

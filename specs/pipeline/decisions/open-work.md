@@ -35,6 +35,9 @@ root [open-work.md](../../../decisions/open-work.md).
   example to put a left hand only
   in the slot `left_hand`
   ([ADR-KW76](../../../decisions/entries/KW76-merge-replace-add-and-hungarian-match.md) item 8).
+- **Form of the JPEG buffer.** A caller gives a JPEG frame as "the bytes of one JPEG image"
+  ([Running](../running.md#fields)). The concrete type of the buffer from the camera ring buffer
+  is not decided ([ADR-P245](entries/P245-jpeg-frame-input.md)).
 
 ## Ideas
 

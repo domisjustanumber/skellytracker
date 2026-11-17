@@ -16,7 +16,6 @@ These entries are `accepted`.
 
 | # | Decision | Status |
 |---|----------|--------|
-
 ### Evidence
 
 These entries are `evidence`: measurements. They are not in the read path. Scan these rows before
