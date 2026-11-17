@@ -172,10 +172,14 @@ def cmd_install(args) -> int:
     if args.dry_run or not plan.packs:
         return errors.EXIT_OK
     if not args.yes:
-        if not sys.stdin.isatty():
+        try:  # a stdin can report a terminal and still have no input
+            answer = input(f"Download {megabytes(plan.download_bytes)} MB? [y/N] ") if sys.stdin.isatty() else None  # noqa: S322
+        except EOFError:
+            answer = None
+        if answer is None:
             print("The install needs a confirmation: use --yes.", file=sys.stderr)
             return errors.EXIT_USAGE
-        if input(f"Download {megabytes(plan.download_bytes)} MB? [y/N] ").strip().lower() not in ("y", "yes"):  # noqa: S322
+        if answer.strip().lower() not in ("y", "yes"):
             return errors.EXIT_USAGE
     cancel = threading.Event()
     done = threading.Event()

@@ -204,6 +204,14 @@ def test_install_with_progress_events(fake_pack, server, monkeypatch, capsys):  
     assert progress[0]["key"] == "cuda" and events[0]["download_bytes"] > 0
 
 
+def test_install_with_no_answer_at_the_prompt_asks_for_yes(fake_pack, server, monkeypatch, capsys):  # noqa: F811
+    lock_urls_to(server, monkeypatch)
+    monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: True, raising=False)  # a stdin that reports a terminal and gives EOF
+    monkeypatch.setattr("builtins.input", lambda prompt: (_ for _ in ()).throw(EOFError()))
+    assert cli.main(["install", "cuda"]) == errors.EXIT_USAGE
+    assert "use --yes" in capsys.readouterr().err
+
+
 def test_install_failure_exits_1_and_cancel_exits_6(fake_pack, server, monkeypatch, tmp_path, capsys):  # noqa: F811
     lock_urls_to(server, monkeypatch)
     monkeypatch.setattr(installer, "_verify", lambda key, progress: "the EP lists no device")
