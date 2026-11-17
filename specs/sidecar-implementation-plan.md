@@ -1398,17 +1398,12 @@ This stage implements the node types of the pipeline spec. Use the skill
 - The keypoint score map
   ([Keypoint score map](model-sidecar/post/keypoint/score-map.md#implementer-guidance);
   [ADR-F067](model-sidecar/decisions/entries/F067-simcc-score-map.md)). The generic keypoint
-  detector gives the mapped score as `scores` and the decode score as `raw_scores`. Two items are
-  open:
-  - The pipeline result. `specs/pipeline/outputs.md` says that the keypoint `score` is the decoded
-    score of the sidecar, with no mapping. Change it: `score` is the mapped score, and a new field
-    (proposed name `raw_score`, `(I, P)`) keeps the raw decode score. The `onnx_model` node then
-    fills that field from `raw_scores`. `to_canonical` takes the presence of a derived point from
-    the score `> 0`, so it must take it from the coordinates or the raw score, because a mapped
-    score of a present keypoint can be `0.0`.
-  - A golden test of the mapped score of one RTMW crop in
-    `skellytracker/tests/sidecar/test_rtmw_sidecar.py` (part 6 of the proposal). It needs the
-    mmpose scores of one crop, which this repository does not hold.
+  detector gives the mapped score as `scores` and the decode score as `raw_scores`. The pipeline
+  result gives them as `score` and `raw_score`
+  ([ADR-PX6Z](../decisions/entries/PX6Z-keypoint-raw-score-in-the-pipeline-result.md)). One item is
+  open: a golden test of the mapped score of one RTMW crop in
+  `skellytracker/tests/sidecar/test_rtmw_sidecar.py` (part 6 of the proposal). It needs the mmpose
+  scores of one crop, which this repository does not hold.
 - Its release note says these things:
   - The new spec loader, the catalog, the generic detectors, the pipeline API and the hardware and
     EP API are in.

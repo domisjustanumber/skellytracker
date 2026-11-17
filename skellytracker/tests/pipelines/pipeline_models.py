@@ -31,6 +31,8 @@ OBJECT_KEY = "demo@demo-exporter"
 KEYPOINT_KEY = "demo-body@demo-exporter"
 KEYPOINT_SCORES = [1 / (1 + math.exp(-3.0)), 1 / (1 + math.exp(-2.0)), 0.0]
 """The mapped scores of `a`, `b` and `c`: `1 / (1 + exp(-raw))` of the raw scores 3 and 2, and 0 for a missing point."""
+KEYPOINT_RAW_SCORES = [3.0, 2.0, 0.0]
+"""The raw scores of `a`, `b` and `c`: the decode scores before the map, and 0 for a missing point."""
 SCHEMA = {"name": "Demo3", "source": "test", "groups": [{"name": "body", "points": ["a", "b", "c"]}]}
 """The landmark schema of the keypoint model: one group, so its group in a pipeline has the id of the node."""
 

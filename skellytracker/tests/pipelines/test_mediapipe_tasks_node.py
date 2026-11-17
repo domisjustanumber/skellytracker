@@ -98,6 +98,7 @@ def test_image_mode(test_image, variant: str, max_instances: int, must_find: boo
     assert value.instance_score.tolist() == [1.0 if p else 0.0 for p in value.present]
     assert value.present.tolist() == sorted(value.present.tolist(), reverse=True)  # the padding rows are last
     assert ((value.score >= 0) & (value.score <= 1)).all()
+    assert value.raw_score.dtype == np.float64 and np.array_equal(value.raw_score, value.score)  # MediaPipe has no score map
     for row, present in enumerate(value.present):
         if not present:
             assert np.isnan(value.xy[row]).all() and np.isnan(value.z[row]).all() and (value.score[row] == 0).all()

@@ -207,9 +207,10 @@ def _matches(max_distance: float, plan: MergePlan, target: InstanceKeypoints, so
 
 
 def _copy(out: InstanceKeypoints, i: int, column: Any, source: InstanceKeypoints, j: int, point: Any) -> None:
-    """Copy x, y, z and the score of the source points to the columns of row ``i``."""
+    """Copy x, y, z, the score and the raw score of the source points to the columns of row ``i``."""
     out.xy[i, column] = source.xy[j, point]
     out.score[i, column] = source.score[j, point]
+    out.raw_score[i, column] = source.raw_score[j, point]
     if out.z is not None and source.z is not None:
         out.z[i, column] = source.z[j, point]
 
@@ -232,12 +233,14 @@ def run(
     if out.z is not None:  # V-node.merge-3: target and source then have z
         out.z[:, :width] = target.z
     out.score[:, :width] = target.score
+    out.raw_score[:, :width] = target.raw_score
     # Step 5: a point of a replaced group is missing until a slot point fills it.
     replaced = list(infos.replaced)
     out.xy[:, replaced] = np.nan
     if out.z is not None:
         out.z[:, replaced] = np.nan
     out.score[:, replaced] = 0.0
+    out.raw_score[:, replaced] = 0.0
     count = len(source.point_names)
     for (i, k), j in found.items():
         for column, slot, point in infos.fills:
@@ -259,4 +262,5 @@ def run(
     if out.z is not None:
         out.z[~out.present] = np.nan
     out.score[~out.present] = 0.0
+    out.raw_score[~out.present] = 0.0
     return {"keypoints": out}, None

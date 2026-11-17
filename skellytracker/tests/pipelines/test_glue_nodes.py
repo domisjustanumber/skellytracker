@@ -68,7 +68,7 @@ def kp(names: tuple[str, ...], rows: list[Any], scores: list[float] | None = Non
     out = InstanceKeypoints.empty(names, len(rows))
     for i, row in enumerate(rows):
         if row is not None:
-            out.xy[i], out.score[i], out.present[i] = row, 0.9, True
+            out.xy[i], out.score[i], out.raw_score[i], out.present[i] = row, 0.9, 0.9, True
             out.instance_score[i] = 0.8 if scores is None else scores[i]
     return out
 
@@ -102,6 +102,7 @@ def is_padding(value: Any, row: int) -> bool:
     if isinstance(value, InstanceKeypoints):
         return bool(
             np.isnan(value.xy[row]).all() and (value.z is None or np.isnan(value.z[row]).all()) and (value.score[row] == 0).all()
+            and (value.raw_score[row] == 0).all()
             and value.instance_score[row] == 0 and value.track_ids[row] == -1
         )
     if isinstance(value, InstanceRois):
@@ -440,9 +441,9 @@ def test_concat_fills_the_columns_of_an_empty_input_with_missing_points() -> Non
     outputs, _ = node_concat.output_info("n", NoParams(), infos)
     plan = node_concat.prepare("n", NoParams(), infos, outputs)
     # An empty value can hold old numbers in its arrays: the node must not copy them.
-    stale = InstanceKeypoints(HAND, np.ones((2, 2, 2)), np.ones((2, 2)), np.ones(2), np.zeros(2, dtype=bool), np.full(2, -1))
+    stale = InstanceKeypoints(HAND, np.ones((2, 2, 2)), np.ones((2, 2)), np.ones((2, 2)), np.ones(2), np.zeros(2, dtype=bool), np.full(2, -1))
     out = node_concat.run(NoParams(), [body(), stale], None, frame(), plan)[0]["keypoints"]
-    assert np.isnan(out.xy[:, 3:]).all() and (out.score[:, 3:] == 0).all()
+    assert np.isnan(out.xy[:, 3:]).all() and (out.score[:, 3:] == 0).all() and (out.raw_score[:, 3:] == 0).all()
     assert out.xy[0, :3].tolist() == [[100, 100], [200, 100], [150, 50]] and out.z is None
     assert out.present.tolist() == [True, False] and is_padding(out, 1)
     each_empty = node_concat.run(NoParams(), [kp(BODY, [None, None]), stale], None, frame(), plan)[0]["keypoints"]
@@ -595,10 +596,11 @@ def test_smooth_keypoints_gives_the_facts_of_its_input_and_passes_z_and_the_scor
     info = kp_info(BODY, geometry="3d", depth_unit="mm")
     assert node_smooth_keypoints.output_info("n", SmoothKeypointsParams(), {"keypoints": info}) == ({"keypoints": info}, [])
     first, second = with_z(body(), 1.0), with_z(body(10), 2.0)
-    second.score[0] = [0.1, 0.2, 0.3]
+    second.score[0], second.raw_score[0] = [0.1, 0.2, 0.3], [1.5, 2.5, 3.5]
     _, state = node_smooth_keypoints.run(SmoothKeypointsParams(), {"keypoints": first}, None, stamped(0.0))
     out = node_smooth_keypoints.run(SmoothKeypointsParams(), {"keypoints": second}, state, stamped(40.0))[0]["keypoints"]
     assert out.z[0].tolist() == [2.0, 2.0, 2.0] and np.isnan(out.z[1]).all() and out.score[0].tolist() == [0.1, 0.2, 0.3]
+    assert out.raw_score[0].tolist() == [1.5, 2.5, 3.5] and (out.raw_score[1] == 0).all()  # pipeline.outputs item 9
     assert 100 < out.xy[0, 0, 0] < 110 and out.xy[0, 0, 1] == 100
 
 

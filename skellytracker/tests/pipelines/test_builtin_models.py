@@ -53,6 +53,8 @@ def check_result(run: Any, result: dict[str, Any], image: np.ndarray) -> None:
     assert (result["image_width"], result["image_height"]) == (width, height)
     assert points.xy.shape == (1, 133, 2) and points.z is None and points.geometry == "2d" and points.score.shape == (1, 133) and list(points.point_names) == schema["point_names"]
     assert points.present.tolist() == [True] and np.isfinite(points.xy[0]).all() and (points.score[0] > 0.4).sum() > 60
+    assert points.raw_score.shape == (1, 133) and points.raw_score.dtype == np.float64 and (points.raw_score[0] > 0).all()  # the decode scores before the map
+    assert ((points.score >= 0) & (points.score <= 1)).all()  # the mapped scores
     assert box.xyxy.shape == (1, 4) and roi.rois.shape == (1, 5) and roi.present.tolist() == [True]
     cx, cy, w, h, rotation = roi.rois[0]
     assert 0 < cx < width and 0 < cy < height and 40 < w <= 2 * width and 40 < h <= 2 * height and rotation == 0

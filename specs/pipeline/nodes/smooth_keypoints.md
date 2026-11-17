@@ -51,7 +51,7 @@ stateful ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sh
 - The defaults of the filter `kalman` are the frame-unit defaults of today at 30 fps: 1 px² and
   0.1 (px/frame)² per frame give 30 px²/s and 2700 (px/s)²/s.
 - The output `keypoints` has the names, the rows and the shapes of the input. The node changes only
-  x and y. The score of each point passes through unchanged. For a `3d` input, z also passes through unchanged. An output row is present when it
+  x and y. The score and the `raw_score` of each point pass through unchanged ([ADR-PX6Z](../../../decisions/entries/PX6Z-keypoint-raw-score-in-the-pipeline-result.md)). For a `3d` input, z also passes through unchanged. An output row is present when it
   has a point whose x and y are not NaN. Step 10 gives the `instance_score` and the `track_ids` of
   each row.
 
@@ -196,7 +196,7 @@ stateful ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sh
   ([ADR-6JWJ](../decisions/entries/6JWJ-mediapipe-video-landmarker-does-not-stick.md)).
 - The one-euro derivative `d` keeps its value while a point is missing, and also when the point
   starts again without a reset. Today's code does the same.
-- A held point keeps the score of the input, which is 0 for a missing point
+- A held point keeps the score and the `raw_score` of the input, which are 0 for a missing point
   ([Decoded keypoints](../../model-sidecar/post/keypoint/schema.md#decoded-keypoints)). Today's code
   does the same. A node that filters on the score drops a held point.
 - On the first frame of a row, the output is the input. The velocity test does not apply.

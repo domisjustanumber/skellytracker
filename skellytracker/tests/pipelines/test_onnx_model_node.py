@@ -14,7 +14,7 @@ from skellytracker.core.pipelines._runtime.onnx_model import OnnxModelRunner  # 
 from skellytracker.core.pipelines._runtime.resolve import resolve  # noqa: E402
 from skellytracker.core.pipelines.config import PipelineConfig  # noqa: E402
 from skellytracker.core.pipelines.values import InstanceRois  # noqa: E402
-from skellytracker.tests.pipelines.pipeline_models import KEYPOINT_KEY, KEYPOINT_SCORES, OBJECT_KEY, detector_pipeline, image, isolate, write_models  # noqa: E402
+from skellytracker.tests.pipelines.pipeline_models import KEYPOINT_KEY, KEYPOINT_RAW_SCORES, KEYPOINT_SCORES, OBJECT_KEY, detector_pipeline, image, isolate, write_models  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -62,6 +62,9 @@ def test_a_top_down_model_gives_row_i_from_roi_row_i_with_the_instance_score_of_
     # Point `a` is the centre of each crop. Point `c` is missing: NaN and the score 0. The node sets no low score to NaN.
     np.testing.assert_allclose(body.xy[:2, 0], [[6, 6], [25, 25]])
     np.testing.assert_allclose(body.score, [KEYPOINT_SCORES, KEYPOINT_SCORES, [0, 0, 0]], rtol=1e-6)  # the mapped scores
+    # raw_score: the decode scores before the map. The missing point `c` and the padding row have 0 (pipeline.outputs item 9).
+    assert body.raw_score.shape == (3, 3) and body.raw_score.dtype == np.float64
+    np.testing.assert_allclose(body.raw_score, [KEYPOINT_RAW_SCORES, KEYPOINT_RAW_SCORES, [0, 0, 0]], rtol=1e-6)
     assert np.isnan(body.xy[:2, 2]).all() and np.isnan(body.xy[2]).all()
     assert body.z is None and body.geometry == "2d"  # a `2d` model gives no z
 

@@ -1988,10 +1988,12 @@ def keypoints_value(value: dict[str, Any] | None, info: Any) -> Any:
     if value is None:
         return info.empty()
     rows, points = len(value["present"]), len(info.point_names)
+    score = np.array(value["score"], dtype=np.float64).reshape(rows, points)
     return InstanceKeypoints(
         info.point_names,
         np.array(value["xy"], dtype=np.float64).reshape(rows, points, 2),
-        np.array(value["score"], dtype=np.float64).reshape(rows, points),
+        score,
+        score.copy(),  # a case gives no raw score: raw_score equals score, as for a model with no score map
         np.array(value["instance_score"], dtype=np.float64),
         np.array(value["present"], dtype=bool),
         np.array(value["track_ids"], dtype=np.int64),
@@ -2003,6 +2005,8 @@ def keypoints_mapping(value: Any, info: Any) -> dict[str, Any] | None:
     """The mapping form of a `keypoints` value, or None for an empty value."""
     if not value.present.any():
         return None
+    # Each input has raw_score = score, so each node that treats raw_score as score keeps them equal (pipeline.outputs item 9).
+    np.testing.assert_array_equal(value.raw_score, value.score)
     return {
         "point_names": list(value.point_names),
         "xy": value.xy.tolist(),
@@ -2025,7 +2029,7 @@ def xy_keypoints(rows: list[Any], present: list[bool], info: Any, scores: list[A
         if row is None or not present[i]:
             continue
         out.xy[i, : len(row)] = [point[:2] for point in row]
-        out.score[i, : len(row)] = [1.0] * len(row) if scores is None else scores[i]
+        out.score[i, : len(row)] = out.raw_score[i, : len(row)] = [1.0] * len(row) if scores is None else scores[i]
         out.present[i] = True
         out.instance_score[i] = row_values["instance_score"][i] if "instance_score" in row_values else 0.0
         out.track_ids[i] = row_values["track_ids"][i] if "track_ids" in row_values else -1

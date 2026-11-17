@@ -166,7 +166,8 @@ def run(
     last_track = np.where(keypoints.present, keypoints.track_ids, state.last_track)
     present = ~np.isnan(xy).any(axis=2).all(axis=1)
     out = InstanceKeypoints(
-        keypoints.point_names, np.where(present[:, None, None], xy, np.nan), np.where(present[:, None], keypoints.score, 0.0), np.where(present, last_score, 0.0),
+        keypoints.point_names, np.where(present[:, None, None], xy, np.nan), np.where(present[:, None], keypoints.score, 0.0),
+        np.where(present[:, None], keypoints.raw_score, 0.0), np.where(present, last_score, 0.0),
         present, np.where(present, last_track, -1),
         None if keypoints.z is None else np.where(present[:, None], keypoints.z, np.nan),  # z passes through
     )

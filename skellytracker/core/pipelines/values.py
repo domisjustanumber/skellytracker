@@ -3,7 +3,7 @@
 Implements: pipeline.outputs
 
 A value of an instance port has ``I`` rows on each frame. A padding row has NaN coordinates, the
-score 0, ``present`` false, and -1 for ``track_ids`` and ``class_index``. A value with no present
+score 0, the raw score 0, ``present`` false, and -1 for ``track_ids`` and ``class_index``. A value with no present
 row is empty. An empty ``image`` or ``tensor`` value is ``None``.
 
 A ``keypoints`` value holds ``xy`` for each output, and ``z`` only for a ``3d`` output. A ``2d``
@@ -28,7 +28,12 @@ class InstanceKeypoints:
     xy: NDArray[np.float64]
     """``(I, P, 2)``: x and y of each point, in source-image pixels. A missing point is NaN."""
     score: NDArray[np.float64]
-    """``(I, P)``. A missing point has 0."""
+    """``(I, P)``: the score of each point, after the score map of the sidecar when its size has one
+    (a value in ``[0, 1]``). A missing point has 0."""
+    raw_score: NDArray[np.float64]
+    """``(I, P)``: the decode score of each point, before the score map. Equal to ``score`` for a
+    model with no score map and for MediaPipe. A missing point has 0. A point with ``raw_score > 0``
+    is present, also when its mapped ``score`` rounds to 0."""
     instance_score: NDArray[np.float64]
     """``(I,)``: the instance score of each row, from its instance source row."""
     present: NDArray[np.bool_]
@@ -49,16 +54,16 @@ class InstanceKeypoints:
         """Return a value with ``rows`` padding rows. It has ``z`` only when ``geometry`` is ``"3d"``."""
         count = len(point_names)
         return InstanceKeypoints(
-            point_names, np.full((rows, count, 2), np.nan), np.zeros((rows, count)), np.zeros(rows),
+            point_names, np.full((rows, count, 2), np.nan), np.zeros((rows, count)), np.zeros((rows, count)), np.zeros(rows),
             np.zeros(rows, dtype=bool), np.full(rows, -1, dtype=np.int64),
             np.full((rows, count), np.nan) if geometry == "3d" else None,
         )
 
     def instance(self, row: int) -> dict[str, Any]:
-        """Return the fields of one row: ``xy`` ``(P, 2)``, ``z`` ``(P,)`` or ``None``, ``score`` ``(P,)``, ``instance_score``, ``present`` and ``track_id``."""
+        """Return the fields of one row: ``xy`` ``(P, 2)``, ``z`` ``(P,)`` or ``None``, ``score`` ``(P,)``, ``raw_score`` ``(P,)``, ``instance_score``, ``present`` and ``track_id``."""
         return {
             "xy": self.xy[row], "z": None if self.z is None else self.z[row], "score": self.score[row],
-            "instance_score": float(self.instance_score[row]),
+            "raw_score": self.raw_score[row], "instance_score": float(self.instance_score[row]),
             "present": bool(self.present[row]), "track_id": int(self.track_ids[row]),
         }
 

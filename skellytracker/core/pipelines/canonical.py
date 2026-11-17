@@ -149,7 +149,8 @@ def to_canonical(keypoints_value: InstanceKeypoints, output_schema: Mapping[str,
     `output_schema` is the schema of that output: it gives `groups` and `canonical_names`. A
     passthrough point keeps its position and its score. A mean or a weighted point is missing when
     one or more of its sources are missing, and its score is the minimum of the scores of its sources.
-    The result has `z` only when the value has `z`.
+    A source is missing when its `raw_score` is 0 or less: a mapped score of a present point can be
+    0.0 in float32. The result has `z` only when the value has `z`, and it has no `raw_score`.
     """
     plan = _plan(_groups(output_schema["groups"]), tuple(keypoints_value.point_names), user_root)
     if plan.names != tuple(output_schema["canonical_names"]):
@@ -168,6 +169,6 @@ def to_canonical(keypoints_value: InstanceKeypoints, output_schema: Mapping[str,
         target = [column for column, _ in plan.derived]
         xyz[:, target], score[:, target] = derived_points(
             points, keypoints_value.score, keypoints_value.point_names,
-            {str(column): derivation for column, derivation in plan.derived},
+            {str(column): derivation for column, derivation in plan.derived}, present=keypoints_value.raw_score > 0,
         )
     return CanonicalKeypoints(plan.names, xyz[..., :2], score, tuple(plan.groups), None if z is None else xyz[..., 2])

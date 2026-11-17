@@ -30,7 +30,7 @@ def wholebody() -> tuple[InstanceKeypoints, dict]:
     xyz = np.arange(2 * 133 * 3, dtype=np.float64).reshape(2, 133, 3)
     score = np.linspace(0.1, 1.0, 2 * 133).reshape(2, 133)
     value = InstanceKeypoints(
-        tuple(names), xyz[..., :2].copy(), score, np.ones(2), np.ones(2, dtype=bool), np.full(2, -1, dtype=np.int64), xyz[..., 2].copy(),
+        tuple(names), xyz[..., :2].copy(), score, score.copy(), np.ones(2), np.ones(2, dtype=bool), np.full(2, -1, dtype=np.int64), xyz[..., 2].copy(),
     )
     return value, {"port_type": "keypoints", "point_names": names, "groups": groups, "canonical_names": canonical_names(groups, names)}
 
@@ -69,7 +69,7 @@ def test_a_missing_left_hip_makes_hips_center_missing():
     value, output_schema = wholebody()
     hip = value.point_names.index("body/left_hip")
     value.xy[0, hip] = value.z[0, hip] = np.nan
-    value.score[0, hip] = 0.0
+    value.score[0, hip] = value.raw_score[0, hip] = 0.0  # a missing point: score 0 and raw_score 0 (pipeline.outputs item 9)
     result = to_canonical(value, output_schema)
     names = result.point_names
     for name in ("body/left_hip", "body/hips_center", "body/trunk_center"):
@@ -77,6 +77,22 @@ def test_a_missing_left_hip_makes_hips_center_missing():
         assert np.isnan(result.z[0, names.index(name)])  # z of a missing point of a `3d` value is NaN
         assert np.isfinite(result.xy[1, names.index(name)]).all()
     assert np.isfinite(result.xy[0, names.index("body/neck_center")]).all()
+
+
+
+def test_a_present_point_with_the_mapped_score_0_stays_present():
+    """A mapped score can round to 0.0 in float32: presence comes from the raw score (pipeline.outputs item 9)."""
+    value, output_schema = wholebody()
+    hip = value.point_names.index("body/left_hip")
+    value.score[0, hip] = 0.0  # the mapped score rounds to 0.0; the raw score stays > 0
+    assert value.raw_score[0, hip] > 0
+    result = to_canonical(value, output_schema)
+    names = result.point_names
+    assert not hasattr(result, "raw_score")  # the canonical form has no raw score
+    np.testing.assert_array_equal(result.xy[0, names.index("body/left_hip")], value.xy[0, hip])
+    for name in ("body/hips_center", "body/trunk_center"):
+        assert np.isfinite(result.xy[0, names.index(name)]).all() and np.isfinite(result.z[0, names.index(name)])
+        assert result.score[0, names.index(name)] == 0.0  # the minimum of the mapped scores of the sources
 
 
 def test_a_group_with_a_null_schema_passes_through():
@@ -101,7 +117,7 @@ def test_the_group_name_gives_the_side_of_a_one_hand_schema(tmp_path):
     assert canonical == ("left_hand/wrist", "left_hand/middle", "right_hand/wrist", "right_hand/middle")
     xy = np.array([[[0.0, 0.0], [4.0, 8.0], [10.0, 10.0], [np.nan, np.nan]]])
     score = np.array([[0.9, 0.5, 0.8, 0.0]])
-    value = InstanceKeypoints(names, xy, score, np.ones(1), np.ones(1, dtype=bool), np.full(1, -1, dtype=np.int64))
+    value = InstanceKeypoints(names, xy, score, score.copy(), np.ones(1), np.ones(1, dtype=bool), np.full(1, -1, dtype=np.int64))
     result = to_canonical(value, {"groups": groups, "canonical_names": canonical}, user_root=tmp_path)
     assert result.groups == ()
     np.testing.assert_allclose(result.xy[0, :3], [[0.0, 0.0], [3.0, 6.0], [10.0, 10.0]])

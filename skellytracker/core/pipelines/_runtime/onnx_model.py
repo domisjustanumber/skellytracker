@@ -60,6 +60,7 @@ class OnnxModelRunner:
             value = values[index]
             value.xy[row] = found.keypoints[position]  # z of a `3d` model stays NaN: the decode of this release gives x and y
             value.score[row] = found.scores[position]
+            value.raw_score[row] = found.raw_scores[position]
             value.instance_score[row] = rois[index].instance_score[row]
             value.present[row] = True
         return [{"keypoints": value} for value in values]

@@ -55,7 +55,8 @@ class RecordedDetector:
                 class_indices=np.zeros(int(found), dtype=np.int64),
             )]
         assert len(rois) == 1  # one camera, one person
-        return SimpleNamespace(keypoints=self.data["keypoints_xy"][k : k + 1], scores=self.data["keypoints_score"][k : k + 1])
+        scores = self.data["keypoints_score"][k : k + 1]  # the recording has one score: it serves as the raw score too
+        return SimpleNamespace(keypoints=self.data["keypoints_xy"][k : k + 1], scores=scores, raw_scores=scores)
 
     def close(self) -> None:
         pass

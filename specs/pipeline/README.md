@@ -97,7 +97,7 @@ Do not edit these files by hand. `tools/make_pipeline_schema.py` makes them from
 | instance source | The node that makes the instance rows of a value: an object detector, a one-stage model or a `mediapipe_tasks` node ([Graph](graph.md#behaviour) item 8). |
 | point name | `<group>/<point>`, for example `body/left_wrist` ([Graph](graph.md#behaviour) item 7). |
 | group | A named run of points of a `keypoints` port, with the name of its landmark schema ([Graph](graph.md#behaviour) item 7; [Outputs](outputs.md#fields)). |
-| score | The confidence of a point or a box: the decoded score of the sidecar, or the landmark visibility of MediaPipe. A threshold on a score is `>= 0` and has no upper bound ([ADR-88WQ](../../decisions/entries/88WQ-sidecar-vocabulary.md) item 6). |
+| score | The confidence of a point or a box: for a point, the score of the sidecar after its [score map](../model-sidecar/post/keypoint/score-map.md#behaviour) when the sidecar has one, else the decoded score of the sidecar, or the landmark visibility of MediaPipe; for a box, the decoded score of the sidecar. The `raw_score` of a point is its score before the score map ([Outputs](outputs.md#fields); [ADR-PX6Z](../../decisions/entries/PX6Z-keypoint-raw-score-in-the-pipeline-result.md)). A threshold on a score is `>= 0` and has no upper bound ([ADR-88WQ](../../decisions/entries/88WQ-sidecar-vocabulary.md) item 6). |
 | frame | The reserved source of the graph. Its port `frame.image` is the camera frame of the call. |
 | stateful pipeline | A pipeline with an `@prev` input, or with a temporal node upstream of an `onnx_model` node ([Running](running.md#behaviour) item 5). |
 

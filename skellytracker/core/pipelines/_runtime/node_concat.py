@@ -65,6 +65,7 @@ def run(params: NoParams, inputs: list[Any], state: Any, frame: FrameContext, in
             if out.z is not None:  # V-node.concat-3: each input then has z
                 out.z[:, column:column + count] = value.z
             out.score[:, column:column + count] = value.score
+            out.raw_score[:, column:column + count] = value.raw_score
         column += count
     # The last input first: the first input whose row is present then gives the row values.
     for value in reversed(inputs):
@@ -77,4 +78,5 @@ def run(params: NoParams, inputs: list[Any], state: Any, frame: FrameContext, in
     if out.z is not None:
         out.z[~out.present] = np.nan
     out.score[~out.present] = 0.0
+    out.raw_score[~out.present] = 0.0
     return {"keypoints": out}, None
