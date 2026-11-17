@@ -117,6 +117,50 @@ def test_an_affine_crop_round_trip_through_unproject() -> None:
     assert back == pytest.approx(corners)
 
 
+def exact_bilinear(image: np.ndarray, matrix: Any, shape: tuple[int, ...]) -> tuple[np.ndarray, np.ndarray]:
+    """Round the float64 bilinear sample of each output pixel. Also give the mask of the pixels with four source pixels."""
+    inverse = np.linalg.inv(np.vstack([np.asarray(matrix, np.float64), [0.0, 0.0, 1.0]]))
+    ys, xs = np.mgrid[0 : shape[0], 0 : shape[1]].astype(np.float64)
+    sx = inverse[0, 0] * xs + inverse[0, 1] * ys + inverse[0, 2]
+    sy = inverse[1, 0] * xs + inverse[1, 1] * ys + inverse[1, 2]
+    h, w = image.shape[:2]
+    inside = (sx >= 0) & (sy >= 0) & (sx <= w - 1.001) & (sy <= h - 1.001)
+    x0 = np.clip(np.floor(sx).astype(int), 0, w - 2)
+    y0 = np.clip(np.floor(sy).astype(int), 0, h - 2)
+    fx, fy = (sx - x0)[..., None], (sy - y0)[..., None]
+    src = image.astype(np.float64)
+    out = (
+        src[y0, x0] * (1 - fx) * (1 - fy)
+        + src[y0, x0 + 1] * fx * (1 - fy)
+        + src[y0 + 1, x0] * (1 - fx) * fy
+        + src[y0 + 1, x0 + 1] * fx * fy
+    )
+    return np.round(out), inside
+
+
+@pytest.mark.parametrize(
+    "method, roi",
+    [
+        ("affine_crop", (65.3, 48.7, 110.4, 143.0, 0.0)),
+        ("affine_crop", (60.5, 40.25, 70.0, 50.0, np.radians(23.7))),
+        ("fit", None),
+    ],
+    ids=["crop", "rotated-crop", "fit"],
+)
+def test_the_linear_warp_samples_the_exact_bilinear_value(method: str, roi: Any) -> None:
+    image = np.random.default_rng(1234).integers(0, 256, (97, 131, 3), dtype=np.uint8)
+    if method == "fit":
+        out, geometry = resize_fit.fit(image, [640, 640], border_values(114), cv2.INTER_LINEAR)
+        matrix = [[geometry["scale"], 0.0, geometry["left"]], [0.0, geometry["scale"], geometry["top"]]]
+    else:
+        out, geometry = resize_affine_crop.affine_crop(image, roi, [256, 192], 1.0, True, border_values(114), cv2.INTER_LINEAR)
+        matrix = geometry["matrix"]
+    expected, inside = exact_bilinear(image, matrix, out.shape)
+    error = np.abs(out.astype(np.float64) - expected)[inside]
+    # OpenCV 5.0 samples at near-exact positions; OpenCV 4.12 used fixed-point positions and gave 5 to 7 grey levels here.
+    assert error.max() <= 1 and error.mean() < 0.05
+
+
 # ---------------------------------------------------------------------------
 # The compute dtype and the normalization
 # ---------------------------------------------------------------------------
