@@ -54,6 +54,23 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   and 11 ([ADR-9HTX](entries/9HTX-pipeline-node-and-port-redesign.md)). Two items are later work.
   Look into one canonical output keypoint set that becomes the only output format of a pipeline.
   Make one BGR to RGB conversion for each camera and frame for the decomposed MediaPipe pipeline.
+- **Cost of the detector preprocess.** Measured on 2026-11-17 with `time.perf_counter_ns` on one
+  desktop CPU, with OpenCV 5.0.0.93 and no other load. `preprocess_image` of
+  `core/detectors/processing/pre/preprocess.py` needs about 5.2 ms for one 1280x720 frame with the
+  `yolox-person` sidecar at size `m` (640x640). The time is almost the same for a 1920x1080 and a
+  3840x2160 frame. It needs about 1.2 ms with the `rtmw-wholebody133` sidecar at size `m`
+  (256x192). Three causes are known:
+  - The `letterbox` function of `pre/resize_letterbox.py` needs about 1.8 ms, and its `cv2.resize`
+    call needs 0.2 to 0.4 ms. The canvas fill from a `float64` array uses most of the difference.
+  - The `normalize` function of `pre/normalize.py` makes a cast and two or three float passes
+    over each pixel of the model input.
+  - A detector prepares the images of one frame one after the other, in one `preprocess` span. The
+    span thus grows with the number of cameras. freemocap showed more than 22 ms for the span
+    `person.preprocess` with four cameras at 1280x720.
+
+  In the built-in pipeline, the detector runs one time in 150 frames. The mean cost is small, but
+  the frame with a detection has a delay of this size. No fix is decided. A change of this code
+  must keep each output tensor equal.
 - **Kit PR in freemocap/project.** The kit is on the branch `dom/agents-and-adr-kit` of
   freemocap/project, in a PR for its owner
   ([ADR-P3NK](entries/P3NK-bootstrap-kit-in-freemocap-project.md)). The link repairs in 0031, NB91,
