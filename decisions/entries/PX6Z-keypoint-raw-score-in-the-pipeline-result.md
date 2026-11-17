@@ -1,6 +1,6 @@
 # PX6Z — The keypoint `score` of the pipeline result is the mapped score, and `raw_score` keeps the decode score
 
-**Status:** absorbed into [`outputs.md#fields`](../../specs/pipeline/outputs.md#fields), [`outputs.md#behaviour`](../../specs/pipeline/outputs.md#behaviour), [`README.md#terms`](../../specs/pipeline/README.md#terms), [`taps.md#fields`](../../specs/pipeline/taps.md#fields), [`taps.md#behaviour`](../../specs/pipeline/taps.md#behaviour), [`concat.md#behaviour`](../../specs/pipeline/nodes/concat.md#behaviour), [`merge.md#behaviour`](../../specs/pipeline/nodes/merge.md#behaviour), [`smooth_keypoints.md#fields`](../../specs/pipeline/nodes/smooth_keypoints.md#fields), [`smooth_keypoints.md#implementer-guidance`](../../specs/pipeline/nodes/smooth_keypoints.md#implementer-guidance), [`values.py`](../../skellytracker/core/pipelines/values.py), 2026-11-16 (user, question C1 of 2026-11-16; PR: pending).
+**Status:** absorbed into [`outputs.md#fields`](../../specs/pipeline/outputs.md#fields), [`outputs.md#behaviour`](../../specs/pipeline/outputs.md#behaviour), [`README.md#terms`](../../specs/pipeline/README.md#terms), [`taps.md#fields`](../../specs/pipeline/taps.md#fields), [`taps.md#behaviour`](../../specs/pipeline/taps.md#behaviour), [`merge.md#behaviour`](../../specs/pipeline/nodes/merge.md#behaviour), [`assign_keypoints.md#behaviour`](../../specs/pipeline/nodes/assign_keypoints.md#behaviour), [`smooth_keypoints.md#fields`](../../specs/pipeline/nodes/smooth_keypoints.md#fields), [`smooth_keypoints.md#implementer-guidance`](../../specs/pipeline/nodes/smooth_keypoints.md#implementer-guidance), [`values.py`](../../skellytracker/core/pipelines/values.py), 2026-11-16 (user, question C1 of 2026-11-16; PR: pending).
 
 ## Decision
 
@@ -33,8 +33,8 @@
 The spec text is in [Outputs](../../specs/pipeline/outputs.md#fields) and its
 [Behaviour](../../specs/pipeline/outputs.md#behaviour) item 9, the score term of the
 [README](../../specs/pipeline/README.md#terms), [Taps](../../specs/pipeline/taps.md#fields), and the
-nodes [concat](../../specs/pipeline/nodes/concat.md#behaviour),
-[merge](../../specs/pipeline/nodes/merge.md#behaviour) and
+nodes [concat](../../specs/pipeline/nodes/merge.md#behaviour),
+[merge](../../specs/pipeline/nodes/assign_keypoints.md#behaviour) and
 [smooth_keypoints](../../specs/pipeline/nodes/smooth_keypoints.md#fields).
 
 ## Reason

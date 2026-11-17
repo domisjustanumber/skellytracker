@@ -52,6 +52,8 @@ FRAME_PORTS = {"image": "image"}
 OUTPUT_TYPES = {"wholebody": "keypoints", "holistic": "keypoints", "boxes": "boxes"}
 # The input name of a variadic node in the reference model. Its `inputs` is a list.
 VARIADIC = "*"
+# The optional inputs of `merge`: each part joins `body` and gives the group of its name (ADR-9HTX item 11).
+MERGE_PARTS = ("left_hand", "right_hand", "face")
 # The inputs whose box a node passes to its output with its rotation (V-pipeline.outputs-5).
 PASSES_BOXES = {"gate": ("value",), "first_of": (VARIADIC,), "hold_boxes": ("previous", "current"), "smooth_boxes": ("boxes",)}
 # The tolerance of the weight sum of a weighted derived point (sidecar spec, post.keypoint.schema).
@@ -313,7 +315,7 @@ class NoParams(Strict):
     """A node type with no params."""
 
 
-class MergeParams(Strict):
+class AssignKeypointsParams(Strict):
     slots: dict[str, str] = param(
         description="Slot name to the target point that anchors the slot, for example `left_hand: body/left_wrist`. "
         "A slot with the name of a group of `target` replaces that group. A slot with another name adds a group.",
@@ -340,14 +342,38 @@ class MergeParams(Strict):
     )
 
     @model_validator(mode="after")
-    def _slots(self) -> MergeParams:
+    def _slots(self) -> AssignKeypointsParams:
         for slot in self.slots:
             if re.match(NAME, slot) is None:
-                raise ValueError(f"V-node.merge-1: the slot name {slot!r} is not a name")
+                raise ValueError(f"V-node.assign_keypoints-1: the slot name {slot!r} is not a name")
         for target, column in self.map.items():
             match = POINT_NAME.match(column)
             if match is None or match["group"] not in self.slots:
-                raise ValueError(f"V-node.merge-2: map {target!r}: {column!r} is not a slot point `<slot>/<point>`")
+                raise ValueError(f"V-node.assign_keypoints-2: map {target!r}: {column!r} is not a slot point `<slot>/<point>`")
+        return self
+
+
+class MergeParams(Strict):
+    format: Literal["wholebody", "holistic"] = param(
+        description="The layout of groups of the output. `wholebody`: `body`, `feet`, `face`, `left_hand`, `right_hand`, as "
+        "`COCO_WholeBody`. `holistic`: `body`, `right_hand`, `left_hand`, `face`, as MediaPipe Holistic.",
+        set_during_run=False,
+        source="ADR-9HTX item 11",
+    )
+    map: dict[str, str] = param(
+        default_factory=dict,
+        description="Output point to part point `<part>/<point>`, for example `body/left_wrist: left_hand/root`. "
+        "A present part point replaces the output point.",
+        set_during_run=False,
+        source="ADR-9HTX item 11",
+    )
+
+    @model_validator(mode="after")
+    def _map(self) -> MergeParams:
+        for point, part in self.map.items():
+            match = POINT_NAME.match(part)
+            if match is None or match["group"] not in MERGE_PARTS:
+                raise ValueError(f"V-node.merge-9: map {point!r}: {part!r} is not a part point `<part>/<point>` of {', '.join(MERGE_PARTS)}")
         return self
 
 
@@ -551,21 +577,23 @@ class FirstOf(NodeType):
     any_from = (VARIADIC,)
 
 
-class Concat(NodeType):
-    type = "concat"
-    section = "node.concat"
-    Params = NoParams
-    inputs = {VARIADIC: ("keypoints",)}
+class AssignKeypoints(NodeType):
+    type = "assign_keypoints"
+    section = "node.assign_keypoints"
+    Params = AssignKeypointsParams
+    inputs = {"target": ("keypoints",), "source": ("keypoints",)}
     outputs = {"keypoints": ("keypoints",)}
+    required_inputs = ("target", "source")
 
 
 class Merge(NodeType):
     type = "merge"
     section = "node.merge"
     Params = MergeParams
-    inputs = {"target": ("keypoints",), "source": ("keypoints",)}
+    # `body` is required. Each part is optional and joins `body` row for row (ADR-9HTX item 11).
+    inputs = {"body": ("keypoints",), **dict.fromkeys(MERGE_PARTS, ("keypoints",))}
     outputs = {"keypoints": ("keypoints",)}
-    required_inputs = ("target", "source")
+    required_inputs = ("body",)
 
 
 class SmoothKeypoints(NodeType):
@@ -596,7 +624,7 @@ class RedetectTrigger(NodeType):
 
 
 NODE_TYPES: tuple[type[NodeType], ...] = (
-    OnnxModel, MediapipeTasks, BoxesFromPoints, HoldBoxes, Gate, FirstOf, Concat, Merge, SmoothKeypoints, SmoothBoxes,
+    OnnxModel, MediapipeTasks, BoxesFromPoints, HoldBoxes, Gate, FirstOf, AssignKeypoints, Merge, SmoothKeypoints, SmoothBoxes,
     RedetectTrigger,
 )
 BY_TYPE: dict[str, type[NodeType]] = {node.type: node for node in NODE_TYPES}
@@ -653,9 +681,9 @@ class FirstOfNode(VariadicNodeBase):
     params: NoParams = Field(default_factory=NoParams)
 
 
-class ConcatNode(VariadicNodeBase):
-    type: Literal["concat"]
-    params: NoParams = Field(default_factory=NoParams)
+class AssignKeypointsNode(NodeBase):
+    type: Literal["assign_keypoints"]
+    params: AssignKeypointsParams
 
 
 class MergeNode(NodeBase):
@@ -680,7 +708,7 @@ class RedetectTriggerNode(NodeBase):
 
 NodeConfig = Annotated[
     OnnxModelNode | MediapipeTasksNode | BoxesFromPointsNode | HoldBoxesNode | GateNode | FirstOfNode
-    | ConcatNode | MergeNode | SmoothKeypointsNode | SmoothBoxesNode | RedetectTriggerNode,
+    | AssignKeypointsNode | MergeNode | SmoothKeypointsNode | SmoothBoxesNode | RedetectTriggerNode,
     Field(discriminator="type"),
 ]
 
@@ -897,8 +925,10 @@ def _check_point_names(config: PipelineConfig) -> None:
             names += [name for name in (params.alignment_start, params.alignment_end) if name is not None]
             sources = [name for derivation in params.derived_points.values() for name in derivation_sources(derivation)]
             names = [name for name in names if name not in local] + sources
-        elif node.type == "merge":
+        elif node.type == "assign_keypoints":
             names = [*node.params.slots.values(), node.params.source_anchor, *node.params.map]
+        elif node.type == "merge":
+            names = list(node.params.map)
         else:
             continue
         for name in names:

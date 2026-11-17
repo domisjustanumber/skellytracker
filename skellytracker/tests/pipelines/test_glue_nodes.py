@@ -1,4 +1,4 @@
-"""Tests for the nine glue node types of the pipeline spec (stage 1.10 of the implementation plan).
+"""Tests for the glue node types of the pipeline spec (stage 1.10 of the implementation plan).
 
 The vector cases of each node run in ``tools/tests/test_vectors.py``. These tests check the load
 rules of ``output_info``, the fixed shapes and the padding rows, the ``instance_score`` copy rules
@@ -14,7 +14,7 @@ import numpy as np
 import pytest
 
 from skellytracker.core.pipelines._runtime import (
-    node_concat,
+    node_assign_keypoints,
     node_first_of,
     node_gate,
     node_merge,
@@ -26,6 +26,7 @@ from skellytracker.core.pipelines._runtime import (
 )
 from skellytracker.core.pipelines._runtime.context import FrameContext
 from skellytracker.core.pipelines.config import (
+    AssignKeypointsParams,
     GateParams,
     MergeParams,
     NoParams,
@@ -39,6 +40,11 @@ from skellytracker.core.pipelines.values import Group, InstanceBoxes, InstanceKe
 
 BODY = ("body/left_wrist", "body/right_wrist", "body/nose")
 HAND = ("hand/root", "hand/tip")
+# A small layout of `merge`: the groups body, left_hand and face.
+LAYOUT = PortInfo(
+    "keypoints", point_names=("body/left_wrist", "body/right_wrist", "body/nose", "left_hand/wrist", "face/chin"),
+    groups=(Group("body", 0, 3, "Layout"), Group("left_hand", 3, 1, "Layout"), Group("face", 4, 1, "Layout")),
+)
 
 
 def frame(index: int = 0, mode: str = "video") -> FrameContext:
@@ -128,11 +134,13 @@ class Scenario:
     """The inputs of each frame."""
     output: str
     extra: tuple[Any, ...] = ()
+    """More arguments of `output_info`. `prepare` takes the first `prepare_extra` of them."""
+    prepare_extra: int = 99
 
     def plan(self) -> tuple[Any, Any]:
         outputs, _ = self.module.output_info("node", self.params, self.infos, *self.extra)
         prepare = getattr(self.module, "prepare", None)
-        return outputs, None if prepare is None else prepare("node", self.params, self.infos, outputs, *self.extra)
+        return outputs, None if prepare is None else prepare("node", self.params, self.infos, outputs, *self.extra[: self.prepare_extra])
 
     def run(self) -> list[Any]:
         _, plan = self.plan()
@@ -173,16 +181,14 @@ def scenarios() -> dict[str, Scenario]:
             node_first_of, NoParams(), [boxes_info(), boxes_info()],
             [[boxes([None, None]), boxes([box, None])], [boxes([moved, None]), boxes([box, None])]], "value",
         ),
-        "concat": Scenario(
-            node_concat, NoParams(), [kp_info(BODY), kp_info(("left_hand/wrist", "left_hand/tip"))],
-            [
-                [body(), kp(("left_hand/wrist", "left_hand/tip"), [None, None])],
-                [body(5), kp(("left_hand/wrist", "left_hand/tip"), [[[95, 105], [90, 125]], None])],
-            ],
-            "keypoints",
-        ),
         "merge": Scenario(
-            node_merge, MergeParams(slots={"right_hand": "body/right_wrist", "left_hand": "body/left_wrist"}, source_anchor="hand/root", max_distance=1.0),
+            node_merge, MergeParams(format="wholebody"), {"body": kp_info(BODY), "left_hand": kp_info(HAND)},
+            [{"body": body(), "left_hand": kp(HAND, [None, None])}, {"body": body(5), "left_hand": kp(HAND, [[[95, 105], [90, 125]], None])}],
+            "keypoints", (None, LAYOUT, {}), prepare_extra=1,
+        ),
+        "assign_keypoints": Scenario(
+            node_assign_keypoints,
+            AssignKeypointsParams(slots={"right_hand": "body/right_wrist", "left_hand": "body/left_wrist"}, source_anchor="hand/root", max_distance=1.0),
             {"target": kp_info(BODY), "source": kp_info(HAND, source="hands")},
             [{"target": body(), "source": kp(HAND, [None, None])}, {"target": body(), "source": hands}], "keypoints",
         ),
@@ -243,9 +249,10 @@ def test_a_temporal_node_keeps_a_state_and_none_in_the_running_mode_image(name: 
 
 def test_each_module_names_the_empty_inputs_that_it_reads() -> None:
     assert node_gate.READS_EMPTY == {"condition"}
-    assert node_first_of.READS_EMPTY == {"*"} == node_concat.READS_EMPTY
+    assert node_first_of.READS_EMPTY == {"*"}
     assert node_hold_boxes.READS_EMPTY == {"previous"}
-    assert node_merge.READS_EMPTY == {"source"}
+    assert node_assign_keypoints.READS_EMPTY == {"source"}
+    assert node_merge.READS_EMPTY == frozenset()
     assert node_smooth_keypoints.READS_EMPTY == {"keypoints"}
     assert node_smooth_boxes.READS_EMPTY == {"boxes"}
     assert node_boxes_from_points.READS_EMPTY == frozenset() == node_redetect_trigger.READS_EMPTY
@@ -410,106 +417,128 @@ def test_first_of_gives_the_first_value_that_is_not_empty_with_its_instance_scor
 
 
 # ---------------------------------------------------------------------------------------------
-# concat
-# ---------------------------------------------------------------------------------------------
-
-
-def test_v_node_concat_1_each_input_has_the_same_instance_source() -> None:
-    refuses("V-node.concat-1", node_concat.output_info, "n", NoParams(), [kp_info(BODY), kp_info(HAND, source="hands")])
-
-
-def test_v_node_concat_2_the_point_names_do_not_collide() -> None:
-    refuses("V-node.concat-2", node_concat.output_info, "n", NoParams(), [kp_info(BODY), kp_info(BODY)])
-
-
-def test_v_node_concat_3_each_input_has_the_same_geometry() -> None:
-    refuses("V-node.concat-3", node_concat.output_info, "n", NoParams(), [kp_info(BODY), kp_info(HAND, geometry="3d")])
-
-
-def test_concat_gives_the_points_the_groups_and_the_edges_of_each_input_in_list_order() -> None:
-    hand = kp_info(HAND, edges=(("hand/root", "hand/tip"),))
-    outputs, warnings = node_concat.output_info("n", NoParams(), [hand, kp_info(BODY, edges=(("body/nose", "body/left_wrist"),))])
-    out = outputs["keypoints"]
-    assert warnings == [] and out.point_names == HAND + BODY
-    assert out.groups == (Group("hand", 0, 2, None), Group("body", 2, 3, None))
-    assert out.edges == (("hand/root", "hand/tip"), ("body/nose", "body/left_wrist"))
-    assert (out.max_instances, out.instance_source, out.geometry) == (2, "person", "2d")
-
-
-def test_concat_fills_the_columns_of_an_empty_input_with_missing_points() -> None:
-    """ADR-6DKT item 5: x and y are NaN and the score is 0."""
-    infos = [kp_info(BODY), kp_info(HAND)]
-    outputs, _ = node_concat.output_info("n", NoParams(), infos)
-    plan = node_concat.prepare("n", NoParams(), infos, outputs)
-    # An empty value can hold old numbers in its arrays: the node must not copy them.
-    stale = InstanceKeypoints(HAND, np.ones((2, 2, 2)), np.ones((2, 2)), np.ones((2, 2)), np.ones(2), np.zeros(2, dtype=bool), np.full(2, -1))
-    out = node_concat.run(NoParams(), [body(), stale], None, frame(), plan)[0]["keypoints"]
-    assert np.isnan(out.xy[:, 3:]).all() and (out.score[:, 3:] == 0).all() and (out.raw_score[:, 3:] == 0).all()
-    assert out.xy[0, :3].tolist() == [[100, 100], [200, 100], [150, 50]] and out.z is None
-    assert out.present.tolist() == [True, False] and is_padding(out, 1)
-    each_empty = node_concat.run(NoParams(), [kp(BODY, [None, None]), stale], None, frame(), plan)[0]["keypoints"]
-    assert same(each_empty, InstanceKeypoints.empty(BODY + HAND, 2))
-
-
-def test_concat_takes_the_instance_score_of_the_first_input_whose_row_is_present() -> None:
-    infos = [kp_info(HAND), kp_info(BODY)]
-    outputs, _ = node_concat.output_info("n", NoParams(), infos)
-    hand = kp(HAND, [[[1, 1], [2, 2]], None], [0.8, 0.0])
-    full = kp(BODY, [[[1, 1], [2, 2], [3, 3]], [[4, 4], [5, 5], [6, 6]]], [0.7, 0.6])
-    out = node_concat.run(NoParams(), [hand, full], None, frame(), node_concat.prepare("n", NoParams(), infos, outputs))[0]["keypoints"]
-    assert out.instance_score.tolist() == [0.8, 0.6] and out.present.tolist() == [True, True]
-    assert np.isnan(out.xy[1, :2]).all() and out.xy[1, 2:].tolist() == [[4, 4], [5, 5], [6, 6]]
-
-
-# ---------------------------------------------------------------------------------------------
 # merge
 # ---------------------------------------------------------------------------------------------
 
+
+def test_merge_gives_the_layout_of_format_with_the_groups_of_body_and_of_each_part() -> None:
+    """Steps 2 and 4: body keeps its group, the part adds `left_hand` with its input name, `face` has the layout points."""
+    infos = {"body": kp_info(BODY, edges=(("body/nose", "body/left_wrist"),)), "left_hand": kp_info(HAND, edges=(("hand/root", "hand/tip"),))}
+    outputs, warnings = node_merge.output_info("n", MergeParams(format="wholebody"), infos, None, LAYOUT, {})
+    out = outputs["keypoints"]
+    assert out.point_names == (*BODY, "left_hand/root", "left_hand/tip", "face/chin")
+    assert out.groups == (Group("body", 0, 3, None), Group("left_hand", 3, 2, None), Group("face", 5, 1, "Layout"))
+    assert out.edges == (("body/nose", "body/left_wrist"), ("left_hand/root", "left_hand/tip"))
+    assert (out.max_instances, out.instance_source, out.geometry) == (2, "person", "2d")
+    assert [w["code"] for w in warnings] == ["merge_part_without_landmark_schema"]  # the part has a null landmark_schema
+
+
+def test_merge_takes_the_rows_of_body_and_a_part_with_no_present_row_leaves_its_group() -> None:
+    scenario = scenarios()["merge"]
+    first, second = scenario.run()
+    assert np.isnan(first.xy[0, 3:]).all() and (first.score[0, 3:] == 0).all()  # no part row: the added group is missing
+    assert second.xy[0, 3:5].tolist() == [[95, 105], [90, 125]] and np.isnan(second.xy[0, 5]).all()
+    assert second.instance_score.tolist() == [0.8, 0.0] and second.present.tolist() == [True, False]
+
+
+def test_merge_replaces_a_group_of_body_by_canonical_name_and_keeps_it_on_a_row_with_no_part_row() -> None:
+    whole = ("body/nose", "left_hand/left_hand_root", "left_hand/left_thumb1")
+    infos = {"body": kp_info(whole), "left_hand": kp_info(HAND)}
+    canonical = {"left_hand/left_hand_root": "wrist", "hand/root": "wrist"}
+    outputs, warnings = node_merge.output_info("n", MergeParams(format="wholebody"), infos, canonical, LAYOUT, {})
+    assert outputs["keypoints"].point_names == (*whole, "face/chin")
+    assert ("merge_unfilled_points", {"points": ["left_hand/left_thumb1"]}) in [(w["code"], w["details"]) for w in warnings]
+    plan = node_merge.prepare("n", MergeParams(format="wholebody"), infos, outputs, canonical)
+    given = kp(whole, [[[1, 1], [2, 2], [3, 3]], [[4, 4], [5, 5], [6, 6]]], [0.7, 0.6])
+    part = kp(HAND, [[[9, 9], [8, 8]], None])
+    out = node_merge.run(MergeParams(format="wholebody"), {"body": given, "left_hand": part}, None, frame(), plan)[0]["keypoints"]
+    assert out.xy[0, :2].tolist() == [[1, 1], [9, 9]] and np.isnan(out.xy[0, 2]).all()  # left_thumb1 is unfilled
+    assert out.xy[1, :3].tolist() == [[4, 4], [5, 5], [6, 6]]  # no part row: the points of body stay
+
+
+def test_merge_map_replaces_an_output_point_with_a_present_part_point() -> None:
+    infos = {"body": kp_info(BODY), "left_hand": kp_info(HAND)}
+    params = MergeParams(format="wholebody", map={"body/left_wrist": "left_hand/root"})
+    outputs, _ = node_merge.output_info("n", params, infos, None, LAYOUT, {})
+    plan = node_merge.prepare("n", params, infos, outputs, None)
+    out = node_merge.run(params, {"body": body(), "left_hand": kp(HAND, [[[95, 105], [90, 125]], None])}, None, frame(), plan)[0]["keypoints"]
+    assert out.xy[0, 0].tolist() == [95, 105] and out.xy[0, 1].tolist() == [200, 100]
+
+
+def test_v_node_merge_6_7_8_and_9_refuse_a_part_that_does_not_fit() -> None:
+    params, hand = MergeParams(format="wholebody"), kp_info(HAND)
+    refuses("V-node.merge-6", node_merge.output_info, "n", params, {"body": kp_info(BODY), "face": kp_info(("hand/root", "arm/tip"))}, None, LAYOUT, {})
+    refuses("V-node.merge-7", node_merge.output_info, "n", params, {"body": kp_info(BODY), "left_hand": kp_info(HAND, source="hands")}, None, LAYOUT, {})
+    refuses("V-node.merge-7", node_merge.output_info, "n", params, {"body": kp_info(BODY), "left_hand": kp_info(HAND, geometry="3d")}, None, LAYOUT, {})
+    faced = dataclasses.replace(hand, groups=(Group("hand", 0, 2, "Test_Hand"),))
+    refuses("V-node.merge-8", node_merge.output_info, "n", params, {"body": kp_info(BODY), "face": faced}, None, LAYOUT, {"Test_Hand": ("hand",)})
+    _, warnings = node_merge.output_info("n", params, {"body": kp_info(BODY), "left_hand": faced}, None, LAYOUT, {"Test_Hand": ("hand",)})
+    assert warnings == []  # a hand schema for left_hand: no warning
+    for changes in ({"body/elbow": "left_hand/root"}, {"body/nose": "left_hand/wrist"}, {"body/nose": "face/chin"}):
+        refuses("V-node.merge-9", node_merge.output_info, "n", MergeParams(format="wholebody", map=changes), {"body": kp_info(BODY), "left_hand": hand}, None, LAYOUT, {})
+
+
+def test_the_layouts_are_coco_wholebody_and_mediapipe_holistic() -> None:
+    from skellytracker.core.model_spec.landmark_schemas import load_landmark_schema_registry
+
+    registry = load_landmark_schema_registry()
+    whole, holistic = node_merge.layout("wholebody", registry), node_merge.layout("holistic", registry)
+    assert [(g.name, g.count, g.landmark_schema) for g in whole.groups] == [
+        ("body", 17, "COCO_WholeBody"), ("feet", 6, "COCO_WholeBody"), ("face", 68, "COCO_WholeBody"),
+        ("left_hand", 21, "COCO_WholeBody"), ("right_hand", 21, "COCO_WholeBody"),
+    ]
+    assert [(g.name, g.count, g.landmark_schema) for g in holistic.groups] == [("body", 33, None), ("right_hand", 21, None), ("left_hand", 21, None), ("face", 478, None)]
+
+
+# ---------------------------------------------------------------------------------------------
+# assign_keypoints
+# ---------------------------------------------------------------------------------------------
+
 WHOLE = ("body/left_wrist", "body/nose", "left_hand/left_hand_root", "left_hand/left_thumb1")
-MERGE_INFOS = {"target": kp_info(BODY), "source": kp_info(HAND, source="hands", rows=3)}
+ASSIGN_INFOS = {"target": kp_info(BODY), "source": kp_info(HAND, source="hands", rows=3)}
 
 
-def merge_params(**changes: Any) -> MergeParams:
+def assign_params(**changes: Any) -> AssignKeypointsParams:
     values = {"slots": {"left_hand": "body/left_wrist"}, "source_anchor": "hand/root", "max_distance": 1.0, **changes}
-    return MergeParams(**values)
+    return AssignKeypointsParams(**values)
 
 
-def test_v_node_merge_2_each_name_is_a_point_of_its_port() -> None:
+def test_v_node_assign_keypoints_2_each_name_is_a_point_of_its_port() -> None:
     for changes in (
         {"slots": {"left_hand": "body/elbow"}},
         {"source_anchor": "hand/wrist"},
         {"map": {"body/elbow": "left_hand/root"}},
         {"map": {"body/nose": "left_hand/wrist"}},
     ):
-        refuses("V-node.merge-2", node_merge.output_info, "n", merge_params(**changes), MERGE_INFOS)
+        refuses("V-node.assign_keypoints-2", node_assign_keypoints.output_info, "n", assign_params(**changes), ASSIGN_INFOS)
 
 
-def test_v_node_merge_3_target_and_source_have_the_same_geometry() -> None:
+def test_v_node_assign_keypoints_3_target_and_source_have_the_same_geometry() -> None:
     infos = {"target": kp_info(BODY), "source": kp_info(HAND, source="hands", geometry="3d")}
-    refuses("V-node.merge-3", node_merge.output_info, "n", merge_params(), infos)
+    refuses("V-node.assign_keypoints-3", node_assign_keypoints.output_info, "n", assign_params(), infos)
 
 
-def test_v_node_merge_4_source_has_exactly_one_group() -> None:
+def test_v_node_assign_keypoints_4_source_has_exactly_one_group() -> None:
     infos = {"target": kp_info(BODY), "source": kp_info(("hand/root", "arm/tip"), source="hands")}
-    refuses("V-node.merge-4", node_merge.output_info, "n", merge_params(), infos)
+    refuses("V-node.assign_keypoints-4", node_assign_keypoints.output_info, "n", assign_params(), infos)
 
 
-def test_v_node_merge_5_a_face_replace_needs_a_map_key_in_the_group_face() -> None:
+def test_v_node_assign_keypoints_5_a_face_replace_needs_a_map_key_in_the_group_face() -> None:
     infos = {"target": kp_info(("body/nose", "face/chin")), "source": kp_info(("mesh/p1",), source="faces")}
     params = {"slots": {"face": "body/nose"}, "source_anchor": "mesh/p1"}
-    refuses("V-node.merge-5", node_merge.output_info, "n", merge_params(**params), infos)
-    refuses("V-node.merge-5", node_merge.output_info, "n", merge_params(**params, map={"body/nose": "face/p1"}), infos)
-    node_merge.output_info("n", merge_params(**params, map={"face/chin": "face/p1"}), infos)
+    refuses("V-node.assign_keypoints-5", node_assign_keypoints.output_info, "n", assign_params(**params), infos)
+    refuses("V-node.assign_keypoints-5", node_assign_keypoints.output_info, "n", assign_params(**params, map={"body/nose": "face/p1"}), infos)
+    node_assign_keypoints.output_info("n", assign_params(**params, map={"face/chin": "face/p1"}), infos)
 
 
-def test_merge_keeps_the_facts_of_target_and_adds_the_group_and_the_edges_of_an_adding_slot() -> None:
+def test_assign_keypoints_keeps_the_facts_of_target_and_adds_the_group_and_the_edges_of_an_adding_slot() -> None:
     target = kp_info(BODY, edges=(("body/nose", "body/left_wrist"),), depth_unit=None)
     source = PortInfo(
         "keypoints", max_instances=3, instance_source="hands", point_names=HAND, groups=(Group("hand", 0, 2, "Hand21"),),
         geometry="2d", edges=(("hand/root", "hand/tip"),),
     )
-    params = merge_params(slots={"right_hand": "body/right_wrist", "left_hand": "body/left_wrist"})
-    outputs, warnings = node_merge.output_info("n", params, {"target": target, "source": source})
+    params = assign_params(slots={"right_hand": "body/right_wrist", "left_hand": "body/left_wrist"})
+    outputs, warnings = node_assign_keypoints.output_info("n", params, {"target": target, "source": source})
     out = outputs["keypoints"]
     assert warnings == []
     assert out.point_names == (*BODY, "right_hand/root", "right_hand/tip", "left_hand/root", "left_hand/tip")
@@ -522,31 +551,31 @@ def test_merge_keeps_the_facts_of_target_and_adds_the_group_and_the_edges_of_an_
     assert (out.max_instances, out.instance_source, out.geometry) == (2, "person", "2d")
 
 
-def test_merge_gives_the_warning_merge_unfilled_points_for_a_replaced_group() -> None:
+def test_assign_keypoints_gives_the_warning_merge_unfilled_points_for_a_replaced_group() -> None:
     infos = {"target": kp_info(WHOLE, edges=(("body/nose", "left_hand/left_thumb1"),)), "source": kp_info(HAND, source="hands")}
-    outputs, warnings = node_merge.output_info("n", merge_params(), infos)
+    outputs, warnings = node_assign_keypoints.output_info("n", assign_params(), infos)
     assert outputs["keypoints"].point_names == WHOLE and outputs["keypoints"].groups == infos["target"].groups
     assert outputs["keypoints"].edges == infos["target"].edges  # a replacing slot adds no edge
     assert [(w["code"], w["node_ids"], w["details"]) for w in warnings] == [
         ("merge_unfilled_points", ("n",), {"points": ["left_hand/left_hand_root", "left_hand/left_thumb1"]})
     ]
     canonical = {"left_hand/left_hand_root": "wrist", "hand/root": "wrist"}
-    _, warnings = node_merge.output_info("n", merge_params(), infos, canonical)
+    _, warnings = node_assign_keypoints.output_info("n", assign_params(), infos, canonical)
     assert warnings[0]["details"] == {"points": ["left_hand/left_thumb1"]}
-    _, warnings = node_merge.output_info("n", merge_params(map={"left_hand/left_thumb1": "left_hand/tip"}), infos, canonical)
+    _, warnings = node_assign_keypoints.output_info("n", assign_params(map={"left_hand/left_thumb1": "left_hand/tip"}), infos, canonical)
     assert warnings == []
 
 
-def test_merge_copies_the_instance_score_of_the_target_row_and_reads_max_distance_at_each_call() -> None:
-    scenario = scenarios()["merge"]
+def test_assign_keypoints_copies_the_instance_score_of_the_target_row_and_reads_max_distance_at_each_call() -> None:
+    scenario = scenarios()["assign_keypoints"]
     _, plan = scenario.plan()
     inputs = scenario.frames[1]
-    out = node_merge.run(scenario.params, inputs, None, frame(), plan)[0]["keypoints"]
+    out = node_assign_keypoints.run(scenario.params, inputs, None, frame(), plan)[0]["keypoints"]
     assert out.instance_score.tolist() == [0.8, 0.0] and out.track_ids.tolist() == [-1, -1]
     assert out.xy[0, 3:].tolist() == [[205, 110], [210, 130], [95, 105], [90, 125]]
     assert out.score[0].tolist() == [0.9] * 7
     near = scenario.params.model_copy(update={"max_distance": 0.01})
-    out = node_merge.run(near, inputs, None, frame(), plan)[0]["keypoints"]
+    out = node_assign_keypoints.run(near, inputs, None, frame(), plan)[0]["keypoints"]
     assert np.isnan(out.xy[0, 3:]).all() and (out.score[0, 3:] == 0).all() and out.present.tolist() == [True, False]
 
 
@@ -555,19 +584,20 @@ def with_z(value: InstanceKeypoints, depth: float) -> InstanceKeypoints:
     return dataclasses.replace(value, z=np.where(value.present[:, None], np.full(value.score.shape, depth), np.nan))
 
 
-def test_concat_and_merge_keep_z_of_a_3d_value_and_a_missing_point_has_z_nan() -> None:
-    infos = [kp_info(BODY, geometry="3d", depth_unit="mm"), kp_info(HAND, geometry="3d", depth_unit="mm")]
-    outputs, _ = node_concat.output_info("n", NoParams(), infos)
-    plan = node_concat.prepare("n", NoParams(), infos, outputs)
-    out = node_concat.run(NoParams(), [with_z(body(), 5.0), with_z(kp(HAND, [None, None]), 0.0)], None, frame(), plan)[0]["keypoints"]
-    assert out.geometry == "3d" and out.z[0].tolist()[:3] == [5.0] * 3 and np.isnan(out.z[0, 3:]).all() and is_padding(out, 1)
+def test_assign_keypoints_and_merge_keep_z_of_a_3d_value_and_a_missing_point_has_z_nan() -> None:
+    scenario = scenarios()["assign_keypoints"]
+    scenario.infos = {name: dataclasses.replace(info, geometry="3d", depth_unit="mm") for name, info in scenario.infos.items()}
+    _, plan = scenario.plan()
+    inputs = {"target": with_z(scenario.frames[1]["target"], 5.0), "source": with_z(scenario.frames[1]["source"], 7.0)}
+    out = node_assign_keypoints.run(scenario.params, inputs, None, frame(), plan)[0]["keypoints"]
+    assert out.z[0].tolist() == [5.0] * 3 + [7.0] * 4 and is_padding(out, 1)
 
     scenario = scenarios()["merge"]
     scenario.infos = {name: dataclasses.replace(info, geometry="3d", depth_unit="mm") for name, info in scenario.infos.items()}
     _, plan = scenario.plan()
-    inputs = {"target": with_z(scenario.frames[1]["target"], 5.0), "source": with_z(scenario.frames[1]["source"], 7.0)}
+    inputs = {"body": with_z(scenario.frames[1]["body"], 5.0), "left_hand": with_z(scenario.frames[1]["left_hand"], 7.0)}
     out = node_merge.run(scenario.params, inputs, None, frame(), plan)[0]["keypoints"]
-    assert out.z[0].tolist() == [5.0] * 3 + [7.0] * 4 and is_padding(out, 1)
+    assert out.geometry == "3d" and out.z[0, :5].tolist() == [5.0] * 3 + [7.0] * 2 and np.isnan(out.z[0, 5:]).all() and is_padding(out, 1)
 
 
 # ---------------------------------------------------------------------------------------------

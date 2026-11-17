@@ -329,7 +329,7 @@ class Executor:
     def _stops(node: ResolvedNode, inputs: Any) -> bool:
         """Return true when an empty required input or a false `run_if` stops the node (pipeline.graph, Behaviour item 6)."""
         if isinstance(inputs, list):
-            return False  # `first_of` and `concat` read each empty item of their list
+            return False  # `first_of` reads each empty item of its list
         if inputs.get("run_if") is False:
             return True
         required = BY_TYPE[node.type].required_inputs + (("boxes",) if node.model is not None and node.model.kind == "top_down" else ())

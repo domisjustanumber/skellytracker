@@ -132,8 +132,9 @@ def tracking_pipeline() -> dict[str, Any]:
     """Return a config with the two models and each glue node type, in the form of `yolox-rtmw-wholebody`.
 
     The detector runs on the first frame and then each 3 frames. `hand` is a second node of the
-    keypoint model, so the two nodes can share one session. `merged` (`merge`) adds the group
-    `extra` to `body`, `both` (`concat`) joins `merged` and `hand`, and `smooth` filters `both`.
+    keypoint model, so the two nodes can share one session. `merged` (`assign_keypoints`) adds the
+    group `left_hand` to `body` from `hand`, `both` (`merge`, `format: wholebody`) puts `merged` in
+    the wholebody layout, and `smooth` filters `both`.
     The outputs are `wholebody` (the port `smooth.keypoints`) and `boxes` (the crop box
     `crop.boxes`), so each node runs. `port_values` gives the internal ports.
     """
@@ -153,9 +154,9 @@ def tracking_pipeline() -> dict[str, Any]:
         {"id": "crop", "type": "smooth_boxes", "inputs": {"boxes": "hold.boxes"}},
         {"id": "body", "type": "onnx_model", "inputs": {"image": "frame.image", "boxes": "crop.boxes"}, "params": {"key": KEYPOINT_KEY, "size": "m", **cpu}},
         {"id": "hand", "type": "onnx_model", "inputs": {"image": "frame.image", "boxes": "crop.boxes"}, "params": {"key": KEYPOINT_KEY, "size": "m", **cpu}},
-        {"id": "both", "type": "concat", "inputs": ["merged.keypoints", "hand.keypoints"]},
-        {"id": "merged", "type": "merge", "inputs": {"target": "body.keypoints", "source": "hand.keypoints"},
-         "params": {"slots": {"extra": "body/a"}, "source_anchor": "hand/a", "max_distance": 10.0}},
+        {"id": "both", "type": "merge", "inputs": {"body": "merged.keypoints"}, "params": {"format": "wholebody"}},
+        {"id": "merged", "type": "assign_keypoints", "inputs": {"target": "body.keypoints", "source": "hand.keypoints"},
+         "params": {"slots": {"left_hand": "body/a"}, "source_anchor": "hand/a", "max_distance": 10.0}},
         {"id": "smooth", "type": "smooth_keypoints", "inputs": {"keypoints": "both.keypoints"}},
     ]
     outputs = {"wholebody": "smooth.keypoints", "boxes": "crop.boxes"}

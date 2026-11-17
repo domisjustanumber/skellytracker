@@ -33,9 +33,10 @@ root [open-work.md](../../../decisions/open-work.md).
   [implementation plan](../../sidecar-implementation-plan.md) registers the MediaPipe schemas. Then
   the spec gives them to these groups
   ([ADR-4MP6](../../../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md) item 2).
-- **Side label in `merge`.** MediaPipe gives a handedness label for each hand: the side of the hand
-  of the subject. A mirrored input image inverts the label. `merge` uses only the anchor distance.
-  A later change can use a side label of the source in `merge`, for example to put a left hand only
+- **Side label in `assign_keypoints`.** MediaPipe gives a handedness label for each hand: the side
+  of the hand of the subject. A mirrored input image inverts the label. `assign_keypoints` uses only
+  the anchor distance. A later change can use a side label of the source in `assign_keypoints`, for
+  example to put a left hand only
   in the slot `left_hand`
   ([ADR-KW76](../../../decisions/entries/KW76-merge-replace-add-and-hungarian-match.md) item 8).
 

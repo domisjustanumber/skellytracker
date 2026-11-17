@@ -3,12 +3,13 @@ pipeline_id: rtmpose-hand-detector
 source: {name: skellytracker, version: "2.0.0"}
 description: |-
   Structure only. YOLOX person then RTMPose body, and an RTMDet hand detector then RTMPose hand;
-  merge joins the hands to the body.
+  assign_keypoints joins the hands to the body.
 
   Spec example, structure only. It shows two chains on one frame: a person detector and a body
   model, and a hand detector (two hands) and a hand model. The hands have their own instance source,
-  so concat cannot join them to the body. merge puts each hand row in the slot of a body wrist, with
-  the smallest total distance, and replaces the body wrists with the hand roots.
+  so merge cannot join them to the body row for row. assign_keypoints puts each hand row in the slot
+  of a body wrist, with the smallest total distance, and replaces the body wrists with the hand
+  roots.
 nodes:
   - id: person
     type: onnx_model
@@ -31,7 +32,7 @@ nodes:
     inputs: {image: frame.image, boxes: hands.boxes}
     params: {key: rtmpose-hand21@openmmlab-exporter, size: m}
   - id: body_hands
-    type: merge
+    type: assign_keypoints
     inputs: {target: body.keypoints, source: hand.keypoints}
     params:
       slots: {right_hand: body/right_wrist, left_hand: body/left_wrist}

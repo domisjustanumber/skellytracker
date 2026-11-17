@@ -4,12 +4,11 @@ Note:
 
 - Section ID: node.merge.
 - Source: the section text specs/pipeline/nodes/merge.md.
-- Imported section modules: node.first_of (node_first_of, the function is_empty), node.concat
-  (the keypoints value form).
+- Imported section modules: node.first_of (node_first_of, the function is_empty).
 
-A keypoints value has the form of node_concat: None (empty) or a mapping with `point_names`, `xy`,
-`score`, `instance_score`, `present`, `track_ids`, `instance_source` and `geometry`, and `z` only
-for a `3d` value.
+A keypoints value is None (empty) or a mapping with `point_names`, `xy`, `score`,
+`instance_score`, `present`, `track_ids`, `instance_source` and `geometry`, and `z` only for a
+`3d` value.
 """
 
 from __future__ import annotations
@@ -17,16 +16,11 @@ from __future__ import annotations
 import math
 from typing import Any
 
-from scipy.optimize import linear_sum_assignment
-
 import node_first_of
 
 DEFAULTS = {"map": {}}
-
-
-def present(point: list[float]) -> bool:
-    """A point is present when its x and its y are not NaN (node.merge)."""
-    return not (math.isnan(point[0]) or math.isnan(point[1]))
+PARTS = ("left_hand", "right_hand", "face")
+REGION = {"left_hand": "hand", "right_hand": "hand", "face": "face"}
 
 
 def group(name: str) -> str:
@@ -39,151 +33,118 @@ def bare(name: str) -> str:
     return name.partition("/")[2]
 
 
-def check(params: dict[str, Any], target_names: list[str], source_names: list[str]) -> None:
-    """Refuse params and inputs that break V-node.merge-2, -4 and -5 (node.merge, Validation rules)."""
-    if len({group(name) for name in source_names}) != 1:
-        raise ValueError("V-node.merge-4: source does not have exactly one group")
-    points = {bare(name) for name in source_names}
-    unknown = [name for name in params["slots"].values() if name not in target_names]
-    unknown += [params["source_anchor"]] if params["source_anchor"] not in source_names else []
-    unknown += [name for name in params["map"] if name not in target_names]
-    unknown += [v for v in params["map"].values() if group(v) not in params["slots"] or bare(v) not in points]
+def present(point: list[float]) -> bool:
+    """A point is present when its x and its y are not NaN."""
+    return not (math.isnan(point[0]) or math.isnan(point[1]))
+
+
+def output_names(params: dict[str, Any], input: dict[str, Any], parts: dict[str, list[str]]) -> list[str]:
+    """The point names of the output in the layout of `format` (node.merge, step 2), after the load checks."""
+    for name, names in parts.items():
+        if len({group(point) for point in names}) != 1:
+            raise ValueError(f"V-node.merge-6: the part {name} does not have exactly one group")
+    given = [value for value in (input.get("body"), *(input.get(name) for name in parts)) if value is not None]
+    if len({value["instance_source"] for value in given}) > 1 or len({value["geometry"] for value in given}) > 1:
+        raise ValueError("V-node.merge-7: the inputs must have one instance source and one geometry")
+    schemas, regions = input.get("schemas", {}), input.get("regions", {})
+    for name in parts:
+        schema = schemas.get(name)
+        if schema is not None and list(regions.get(schema, [])) != [REGION[name]]:
+            raise ValueError(f"V-node.merge-8: the landmark schema {schema} of the part {name} is not a {REGION[name]} schema")
+    body_groups: dict[str, list[str]] = {}
+    for point in input["body_names"]:
+        body_groups.setdefault(group(point), []).append(point)
+    names: list[str] = []
+    for item in input["layout"]:
+        if item["name"] in body_groups:
+            names += body_groups[item["name"]]
+        elif item["name"] in parts:
+            names += [f"{item['name']}/{bare(point)}" for point in parts[item["name"]]]
+        else:
+            names += [f"{item['name']}/{point}" for point in item["points"]]
+    unknown = [point for point in params["map"] if point not in names]
+    unknown += [
+        point for point in params["map"].values()
+        if group(point) not in parts or bare(point) not in {bare(name) for name in parts[group(point)]}
+    ]
     if unknown:
-        raise ValueError(f"V-node.merge-2: unknown point names {unknown!r}")
-    if "face" in params["slots"] and "face" in map(group, target_names):
-        if not any(group(name) == "face" for name in params["map"]):
-            raise ValueError("V-node.merge-5: the slot face replaces the group face and map fills no point of it")
-
-
-def fills(params: dict[str, Any], target_names: list[str], source_names: list[str], canonical: dict[str, str]) -> dict[str, str]:
-    """Target point of a replaced group -> the slot point with the same canonical name (step 5)."""
-    by_canonical = {canonical[name]: bare(name) for name in source_names if name in canonical}
-    return {
-        name: f"{group(name)}/{by_canonical[canonical[name]]}"
-        for name in target_names
-        if group(name) in params["slots"] and canonical.get(name) in by_canonical
-    }
-
-
-def diagonal(row: list[list[float]]) -> float:
-    """The diagonal of the axis-aligned box around the present points of one row (node.merge)."""
-    points = [point for point in row if present(point)]
-    if not points:
-        return 0.0
-    xs, ys = [point[0] for point in points], [point[1] for point in points]
-    return math.hypot(max(xs) - min(xs), max(ys) - min(ys))
-
-
-def assignment(rows: list[int], columns: list[Any], cost: dict[tuple[int, Any], float]) -> list[tuple[int, Any]]:
-    """The pairs of one assignment with the most pairs, then the smallest total (Hungarian method)."""
-    if not rows or not columns:
-        return []
-    # A forbidden pair costs more than any assignment of allowed pairs, so the most pairs come first.
-    big = (len(cost) + 1) * (max(cost.values(), default=0.0) + 1.0)
-    r, c = linear_sum_assignment([[cost.get((j, col), big) for col in columns] for j in rows])
-    return [(rows[a], columns[b]) for a, b in zip(r, c, strict=True) if (rows[a], columns[b]) in cost]
-
-
-def matches(params: dict[str, Any], target: dict[str, Any], source: dict[str, Any]) -> dict[tuple[int, int], int]:
-    """Return (target row, slot index) -> source row (node.merge, step 3)."""
-    anchor = source["point_names"].index(params["source_anchor"])
-    rows = [j for j, row in enumerate(source["xy"]) if source["present"][j] and present(row[anchor])]
-    columns, cost = [], {}
-    for i, row in enumerate(target["xy"]):
-        if not target["present"][i]:
-            continue
-        limit = params["max_distance"] * diagonal(row)
-        for k, name in enumerate(params["slots"].values()):
-            slot_point = row[target["point_names"].index(name)]
-            if not present(slot_point):
-                continue
-            columns.append((i, k))  # in the tie order: target row, then slot
-            for j in rows:
-                point = source["xy"][j][anchor]
-                distance = math.hypot(point[0] - slot_point[0], point[1] - slot_point[1])
-                if distance <= limit:
-                    cost[j, (i, k)] = distance
-    best = assignment(rows, columns, cost)
-    count, total = len(best), math.fsum(cost[pair] for pair in best)
-    # The tie order: give each source row, from the lowest, its first slot that keeps the optimum.
-    found: list[tuple[int, Any]] = []
-    for n, j in enumerate(rows):
-        used = {column for _, column in found}
-        for column in columns:
-            if (j, column) not in cost or column in used:
-                continue
-            free = [c for c in columns if c != column and c not in used]
-            pairs = [*found, (j, column), *assignment(rows[n + 1 :], free, cost)]
-            pair_total = math.fsum(cost[pair] for pair in pairs)
-            # Equal totals: at most 1e-9 of the larger total apart (step 3); total stays the optimum.
-            if len(pairs) == count and pair_total - total <= 1e-9 * max(pair_total, total):
-                found.append((j, column))
-                break
-    return {column: j for j, column in found}
+        raise ValueError(f"V-node.merge-9: unknown point names {unknown!r}")
+    return names
 
 
 def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
-    """Join the source rows to the slots of the target rows (node.merge, Behaviour).
+    """Join the parts to `body`, row for row (node.merge, Behaviour).
 
-    input holds `target`, `source` (keypoints values), `target_names`, `source_names` and the
-    optional `canonical` (known at load). The result holds `keypoints`, None when `target` is empty.
+    input holds `body` (a keypoints value) and `body_names`, and for each connected part
+    `<part>` (a keypoints value) and `<part>_names`. It also holds `layout` (the groups of
+    `format`: a list of `{name, points}`) and the optional `canonical`, `schemas` (part ->
+    landmark schema or null) and `regions` (schema -> its group names), known at load. The result
+    holds `keypoints`, None when `body` is empty.
     """
-    unknown = sorted(set(params) - {"slots", "source_anchor", "max_distance", *DEFAULTS})
-    if unknown:
-        raise ValueError(f"unknown params {unknown}")
+    unknown = sorted(set(params) - {"format", *DEFAULTS})
+    if unknown or "format" not in params:
+        raise ValueError(f"the params must have format and no unknown key: {unknown}")
     params = {**DEFAULTS, **params}
-    target, source = input["target"], input["source"]
-    target_names, source_names = input["target_names"], input["source_names"]
-    check(params, target_names, source_names)
-    if node_first_of.is_empty(target):
+    parts = {name: input[f"{name}_names"] for name in PARTS if f"{name}_names" in input}
+    names = output_names(params, input, parts)
+    body = input["body"]
+    if node_first_of.is_empty(body):
         return {"keypoints": None}
-    if source is not None and source["geometry"] != target["geometry"]:
-        raise ValueError("V-node.merge-3: target and source have different geometries")
-    found = {} if node_first_of.is_empty(source) else matches(params, target, source)
-    target_groups = {group(name) for name in target_names}
-    adding = [slot for slot in params["slots"] if slot not in target_groups]
-    names = target_names + [f"{slot}/{bare(name)}" for slot in adding for name in source_names]
-    filled = fills(params, target_names, source_names, input.get("canonical", {}))
-    # A point is [x, y], or [x, y, z] for a `3d` value, so that x, y and z move together.
-    depth = target["geometry"] == "3d"
-
-    def joined(value: dict[str, Any]) -> list[list[list[float]]]:
-        if not depth:
-            return value["xy"]
-        return [[[*point, z] for point, z in zip(xy, zs, strict=True)] for xy, zs in zip(value["xy"], value["z"], strict=True)]
-
-    source_points = None if source is None else joined(source)
+    depth = body["geometry"] == "3d"
     missing = ([math.nan] * (3 if depth else 2), 0.0)
+    canonical = input.get("canonical", {})
+    body_groups = {group(point) for point in input["body_names"]}
+
+    def point_of(value: dict[str, Any], i: int, column: int) -> tuple[list[float], float]:
+        xy = list(value["xy"][i][column])
+        return ([*xy, value["z"][i][column]] if depth else xy), value["score"][i][column]
+
     xyz, score = [], []
-    for i, row in enumerate(joined(target)):
-        slot_points = {}
-        for k, slot in enumerate(params["slots"]):
-            j = found.get((i, k))
-            for p, name in enumerate(source_names):
-                slot_points[f"{slot}/{bare(name)}"] = missing if j is None else (source_points[j][p], source["score"][j][p])
-        points = []
-        for t, name in enumerate(target_names):
-            if group(name) in params["slots"]:  # a replaced group
-                point = slot_points[filled[name]] if name in filled else missing
-                points.append(point if present(point[0]) else missing)
-            else:
-                points.append((row[t], target["score"][i][t]))
-        points += [slot_points[name] for name in names[len(target_names) :]]
-        for target_name, slot_point in params["map"].items():
-            if present(slot_points[slot_point][0]):
-                points[names.index(target_name)] = slot_points[slot_point]
-        xyz.append([list(point) for point, _ in points])
-        score.append([value for _, value in points])
+    for i in range(len(body["present"])):
+        if not body["present"][i]:  # a padding row stays a padding row
+            xyz.append([missing[0]] * len(names))
+            score.append([0.0] * len(names))
+            continue
+        points = dict.fromkeys(names, missing)
+        for column, name in enumerate(input["body_names"]):
+            if name in points:
+                points[name] = point_of(body, i, column)
+        for name in PARTS:
+            value = input.get(name)
+            if name not in parts or value is None or not value["present"][i]:
+                continue  # no part row: the points of step 2 stay (step 5)
+            part_names = parts[name]
+            if name in body_groups:  # step 3: replace by canonical name
+                by_canonical = {canonical[point]: column for column, point in enumerate(part_names) if point in canonical}
+                for point in input["body_names"]:
+                    if group(point) != name:
+                        continue
+                    column = by_canonical.get(canonical[point]) if point in canonical else None
+                    found = missing if column is None else point_of(value, i, column)
+                    points[point] = found if present(found[0]) else missing
+            else:  # step 4: add the group
+                for column, point in enumerate(part_names):
+                    found = point_of(value, i, column)
+                    points[f"{name}/{bare(point)}"] = found if present(found[0]) else missing
+        for target, source in params["map"].items():  # step 6
+            value = input.get(group(source))
+            if value is not None and value["present"][i]:
+                column = [bare(point) for point in parts[group(source)]].index(bare(source))
+                found = point_of(value, i, column)
+                if present(found[0]):
+                    points[target] = found
+        xyz.append([list(points[name][0]) for name in names])
+        score.append([points[name][1] for name in names])
     return {
         "keypoints": {
             "point_names": names,
             "xy": [[point[:2] for point in row] for row in xyz],
             **({"z": [[point[2] for point in row] for row in xyz]} if depth else {}),  # a `2d` value has no z
             "score": score,
-            "instance_score": list(target["instance_score"]),
-            "present": list(target["present"]),
-            "track_ids": list(target["track_ids"]),
-            "instance_source": target["instance_source"],
-            "geometry": target["geometry"],
+            "instance_score": list(body["instance_score"]),
+            "present": list(body["present"]),
+            "track_ids": list(body["track_ids"]),
+            "instance_source": body["instance_source"],
+            "geometry": body["geometry"],
         }
     }

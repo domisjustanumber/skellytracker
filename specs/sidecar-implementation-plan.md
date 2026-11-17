@@ -1263,22 +1263,24 @@ This stage implements the node types of the pipeline spec. Use the skill
   It makes the groups of [MediaPipe Tasks](pipeline/nodes/mediapipe_tasks.md#behaviour), each with
   a null `landmark_schema` until stage 2.2
   ([ADR-4MP6](../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md) item 2).
-- **Glue nodes.** `boxes_from_points`, `hold_boxes`, `gate`, `first_of`, `concat`, `merge`,
-  `smooth_keypoints`, `smooth_boxes` and `redetect_trigger`
+- **Glue nodes.** `boxes_from_points`, `hold_boxes`, `gate`, `first_of`, `assign_keypoints`,
+  `merge`, `smooth_keypoints`, `smooth_boxes` and `redetect_trigger`
   ([ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6). The node type
   `hold_boxes` was `roi_hold` and before that `roi_tracking`, and `redetect_trigger` was `redetect`
   ([ADR-9PDQ](../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 2). The port
   types `roi` and `detections` are now one port type `boxes`; `boxes_from_points` was
   `roi_from_points`, and `smooth_boxes` was `smooth_roi` ([ADR-2RWC](../decisions/entries/2RWC-one-boxes-port-type-and-node-descriptions.md)).
-  - [`merge`](pipeline/nodes/merge.md) takes `target` keypoints and `source` keypoints of any
-    instance source, with one group. The assignment of the source rows to the slots has the most
+  - [`assign_keypoints`](pipeline/nodes/assign_keypoints.md) is the `merge` node of the first
+    form, with a new name ([ADR-9HTX](../decisions/entries/9HTX-pipeline-node-and-port-redesign.md)
+    item 12). It takes `target` keypoints and `source` keypoints of any instance source, with one
+    group. The assignment of the source rows to the slots has the most
     pairs, then the smallest total anchor distance, within the required `max_distance`. A slot with
     the name of a target group replaces it through the canonical names; another slot adds a group.
     `map` then replaces single target points
     ([ADR-KW76](../decisions/entries/KW76-merge-replace-add-and-hungarian-match.md)).
-  - [`concat`](pipeline/nodes/concat.md) never replaces a point. An empty input does not stop it.
-    The columns of that input are missing points: x, y and z are NaN, and the score is 0
-    ([ADR-6DKT](pipeline/decisions/entries/6DKT-instance-rows-carry-class-and-score.md) item 5).
+  - [`merge`](pipeline/nodes/merge.md) joins the parts `left_hand`, `right_hand` and `face` to
+    `body`, row for row, in the layout of `format`. The node type `concat` is removed
+    ([ADR-9HTX](../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) items 11 and 12).
   - `smooth_keypoints` refuses a timestamp that does not increase. It has `reset_after_ms` and no
     miss counter.
   - [`boxes_from_points`](pipeline/nodes/boxes_from_points.md) takes an empty `points`: it then uses
@@ -1381,7 +1383,7 @@ This stage implements the node types of the pipeline spec. Use the skill
   `set_during_run` of each param from the reference model. A change applies from the next call and
   resets no node state.
 - Gate: tests on generated ONNX models for each node type, the load checks, the empty-input rule,
-  the `concat` empty-input fill, the instance rows with `class_index` and `instance_score`, `@prev`,
+  the empty-input rules, the instance rows with `class_index` and `instance_score`, `@prev`,
   the stateful batch rule and its warning, `ep_partial_placement`, the CLI exit codes, the default EP, `V-pipeline.running-8`, `V-pipeline.running-9`, each refusal of
   `V-pipeline.running-10` and a change that applies from the next call, and record and replay with `row`. A
   test of `node_ran`: true when the detector ran and found nobody; false for an empty required

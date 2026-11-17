@@ -19,7 +19,8 @@ CONFIG = {
         {"id": "crop", "type": "smooth_boxes", "inputs": {"boxes": "person.boxes"}},
         {"id": "wholebody", "type": "onnx_model", "inputs": {"image": "frame.image", "boxes": "crop.boxes"}, "params": {"key": "rtmw@x", "size": "m"}},
         {"id": "hands", "type": "mediapipe_tasks", "inputs": {"image": "frame.image"}, "params": {"variant": "hand"}},
-        {"id": "both", "type": "concat", "inputs": ["wholebody.keypoints", "hands.keypoints"]},
+        {"id": "both", "type": "merge", "inputs": {"body": "wholebody.keypoints", "left_hand": "hands.keypoints"}, "params": {"format": "wholebody"}},
+        {"id": "pick", "type": "first_of", "inputs": ["person.boxes"]},
     ],
     "outputs": {"wholebody": "wholebody.keypoints", "boxes": "crop.boxes"},
     "instrumentation": {"timing_spans": ["pipeline.run", "wholebody.inference"]},
@@ -106,7 +107,8 @@ def test_node_item_fields():
     trigger = timing.make_node_item(cfg.nodes[0])
     assert trigger["inputs"][0] == {"name": "previous_keypoints", "port": "wholebody.keypoints", "prev": True}
     assert (trigger["key"], trigger["execution"], trigger["shared_with"]) == (None, None, [])
-    assert timing.make_node_item(cfg.nodes[5])["inputs"][0] == {"name": None, "port": "wholebody.keypoints", "prev": False}
+    assert timing.make_node_item(cfg.nodes[5])["inputs"][0] == {"name": "body", "port": "wholebody.keypoints", "prev": False}
+    assert timing.make_node_item(cfg.nodes[6])["inputs"][0] == {"name": None, "port": "person.boxes", "prev": False}  # a variadic item
     with pytest.raises(ValueError, match="execution"):
         timing.make_node_item(cfg.nodes[3], execution={"used_ep": "cuda"})
 

@@ -6,10 +6,11 @@ description: |-
   and face box rules are not measured yet.
 
   Planned built-in pipeline. It shows a fan-out: a body model gives the points of two hand boxes and
-  one face box (boxes_from_points), a model runs on each box, and concat joins the points of the
-  person into one keypoints output, in the order body, right_hand, left_hand, face. When a hand or
-  the face has no box, concat still gives the body points, and the columns of that part are missing
-  points (NaN, score 0). The hand and face box rules are not measured yet.
+  one face box (boxes_from_points), a model runs on each box, and merge joins the points of the
+  person into one keypoints output in the layout wholebody. The body model has no hand group and no
+  face group, so each part adds its group. When a hand or the face has no point on a frame, the
+  columns of that part are missing points (NaN, score 0). The hand and face box rules are not
+  measured yet.
 nodes:
   - id: person
     type: onnx_model
@@ -67,7 +68,12 @@ nodes:
     inputs: {image: frame.image, boxes: face_box.boxes}
     params: {key: rtmpose-face106@openmmlab-exporter, size: m}
   - id: joined
-    type: concat
-    inputs: [body.keypoints, right_hand.keypoints, left_hand.keypoints, face.keypoints]
+    type: merge
+    inputs:
+      body: body.keypoints
+      right_hand: right_hand.keypoints
+      left_hand: left_hand.keypoints
+      face: face.keypoints
+    params: {format: wholebody}
 outputs:
   wholebody: joined.keypoints

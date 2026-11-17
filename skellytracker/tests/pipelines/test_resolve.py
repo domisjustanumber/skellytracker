@@ -188,14 +188,14 @@ def test_a_node_whose_facts_depend_only_on_prev_values_does_not_resolve(root: Pa
 
 def test_a_load_check_of_a_glue_node_keeps_its_rule_id_and_a_load_warning_is_a_pipeline_warning(tmp_path: Path) -> None:
     hand = {"id": "hand", "type": "mediapipe_tasks", "inputs": {"image": "frame.image"}, "params": {"variant": "hand"}}
-    merge = {"id": "both", "type": "merge", "inputs": {"target": "mp.keypoints", "source": "hand.keypoints"},
+    merge = {"id": "both", "type": "assign_keypoints", "inputs": {"target": "mp.keypoints", "source": "hand.keypoints"},
              "params": {"slots": {"mp": "mp/left_wrist"}, "source_anchor": "hand/wrist", "max_distance": 0.2}}
     resolved = resolve(config_of(mediapipe_pipeline(hand, merge)), tmp_path)
     (warning,) = resolved.warnings
     assert (warning.code, warning.node_ids) == ("merge_unfilled_points", ("both",)) and len(warning.details["points"]) == 33
     assert resolved.nodes["both"].infos is not None  # the `prepare` result of the node module
     merge["params"]["source_anchor"] = "hand/no_point"
-    with pytest.raises(ValueError, match="^V-node.merge-2: both"):
+    with pytest.raises(ValueError, match="^V-node.assign_keypoints-2: both"):
         resolve(config_of(mediapipe_pipeline(hand, merge)), tmp_path)
 
 
@@ -351,7 +351,7 @@ def test_v_pipeline_graph_10_the_groups_that_the_nodes_make_must_have_unique_nam
     resolve(config_of(mediapipe_pipeline(other)), tmp_path)
     # An adding slot of a `merge` node makes a group. A replacing slot makes none.
     hand = {"id": "hand", "type": "mediapipe_tasks", "inputs": {"image": "frame.image"}, "params": {"variant": "hand"}}
-    merge = {"id": "both", "type": "merge", "inputs": {"target": "mp.keypoints", "source": "hand.keypoints"},
+    merge = {"id": "both", "type": "assign_keypoints", "inputs": {"target": "mp.keypoints", "source": "hand.keypoints"},
              "params": {"slots": {"hand": "mp/left_wrist"}, "source_anchor": "hand/wrist", "max_distance": 0.2}}
     with pytest.raises(ValueError, match="^V-pipeline.graph-10: the nodes hand and both both make the group 'hand'"):
         resolve(config_of(mediapipe_pipeline(hand, merge)), tmp_path)

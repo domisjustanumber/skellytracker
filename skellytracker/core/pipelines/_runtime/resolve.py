@@ -44,7 +44,7 @@ from skellytracker.core.model_spec.rules import check_sidecar
 from skellytracker.core.pipelines import canonical
 from skellytracker.core.pipelines._runtime import (
     mediapipe_tasks,
-    node_concat,
+    node_assign_keypoints,
     node_first_of,
     node_gate,
     node_merge,
@@ -66,7 +66,7 @@ MODULES: dict[str, Any] = {
     "hold_boxes": node_hold_boxes,
     "gate": node_gate,
     "first_of": node_first_of,
-    "concat": node_concat,
+    "assign_keypoints": node_assign_keypoints,
     "merge": node_merge,
     "smooth_keypoints": node_smooth_keypoints,
     "smooth_boxes": node_smooth_boxes,
@@ -203,7 +203,7 @@ def keypoint_port_info(node_id: str, keypoint: KeypointSpec, schema: LandmarkSch
 
 
 def canonical_point_names(infos: list[PortInfo], registry: dict[str, LandmarkSchema]) -> dict[str, str]:
-    """Return point name -> canonical point name of the points of `infos` (node.merge, Behaviour step 5).
+    """Return point name -> canonical point name of the points of `infos` (node.assign_keypoints step 5, node.merge step 3).
 
     The canonical name of a point is the name of the first passthrough entry whose source is that
     point, in the region of the group of the point in its schema file.
@@ -385,8 +385,14 @@ class _Resolver:
 
     def node_facts(self, node: Any, inputs: Any) -> tuple[dict[str, PortInfo], list[dict[str, Any]]]:
         """Return the facts of the output ports of a node and its load warnings. It does the load checks of the node."""
+        if node.type == "assign_keypoints":
+            return node_assign_keypoints.output_info(node.id, node.params, inputs, canonical=canonical_point_names(list(inputs.values()), self.registry))
         if node.type == "merge":
-            return node_merge.output_info(node.id, node.params, inputs, canonical=canonical_point_names(list(inputs.values()), self.registry))
+            regions = {name: tuple(group.name for group in schema.groups) for name, schema in self.registry.items()}
+            return node_merge.output_info(
+                node.id, node.params, inputs, canonical=canonical_point_names(list(inputs.values()), self.registry),
+                layout_info=node_merge.layout(node.params.format, self.registry), regions=regions,
+            )
         if node.type != "onnx_model":
             return MODULES[node.type].output_info(node.id, node.params, inputs)
         model, rows = self.models[node.id], node.params.max_instances
@@ -449,8 +455,8 @@ class _Resolver:
                 for item in found
             ]
             infos, module = None, MODULES.get(node.type)
-            if node.type == "merge":
-                infos = node_merge.prepare(node_id, node.params, inputs, outputs, canonical=canonical_point_names(list(inputs.values()), self.registry))
+            if node.type in ("assign_keypoints", "merge"):
+                infos = module.prepare(node_id, node.params, inputs, outputs, canonical=canonical_point_names(list(inputs.values()), self.registry))
             elif hasattr(module, "prepare"):
                 infos = module.prepare(node_id, node.params, inputs, outputs)
             nodes[node_id] = ResolvedNode(node_id, node.type, node, self.inputs[node_id], inputs, outputs, infos, self.models.get(node_id))
@@ -490,7 +496,7 @@ class _Resolver:
             names: list[str] = []
             if node.type in ("onnx_model", "mediapipe_tasks"):
                 names = [group.name for info in node.outputs_info.values() for group in info.groups]
-            elif node.type == "merge":
+            elif node.type == "assign_keypoints":  # `merge` makes no group: it gives each part the group of its input name
                 target = {group.name for group in node.inputs_info["target"].groups}
                 names = [slot for slot in node.node.params.slots if slot not in target]
             for name in names:

@@ -100,18 +100,24 @@ def test_each_node_type_runs_in_one_pipeline_on_generated_models(root: Path) -> 
     # Frame 1: `boxes_from_points` and `gate` carry the box of the points of frame 0, and `smooth_boxes` (ema, 0.5) blends it.
     carried = np.array(points_box(first["body.keypoints"])) * [1, 1, 1.2, 1.2]
     np.testing.assert_allclose(second["crop.boxes"].boxes[0, :4], (carried + [6, 6, 8, 8]) / 2)
-    merged = ("body/a", "body/b", "body/c", "extra/a", "extra/b", "extra/c")
+    merged = ("body/a", "body/b", "body/c", "left_hand/a", "left_hand/b", "left_hand/c")
+    # `merge` with `format: wholebody`: body and left_hand of `merged`, then feet, face and right_hand of COCO_WholeBody, all missing.
+    layout = [group.name for group in run._executor.resolved.port_info("both", "keypoints").groups]
+    assert layout == ["body", "feet", "face", "left_hand", "right_hand"]
     for index, (result, port) in enumerate(zip(results, ports, strict=True)):
         assert port["body.keypoints"].present.tolist() == [True] and result["frame_index"] == index
-        assert port["merged.keypoints"].point_names == merged  # `merge` adds a group
+        assert port["merged.keypoints"].point_names == merged  # `assign_keypoints` adds a group
         np.testing.assert_array_equal(port["merged.keypoints"].xy[0, 3], port["body.keypoints"].xy[0, 0])
-        assert port["both.keypoints"].point_names == (*merged, "hand/a", "hand/b", "hand/c")  # `concat`
-        np.testing.assert_array_equal(port["both.keypoints"].xy[:, :3], port["body.keypoints"].xy)
-        assert port["smooth.keypoints"].present.tolist() == [True] and port["smooth.keypoints"].xy.shape == (1, 9, 2)  # `smooth_keypoints`
+        both = port["both.keypoints"]
+        assert both.point_names[:3] == merged[:3] and both.point_names[77:80] == merged[3:] and both.xy.shape == (1, 101, 2)
+        np.testing.assert_array_equal(both.xy[:, :3], port["body.keypoints"].xy)
+        np.testing.assert_array_equal(both.xy[:, 77:80], port["merged.keypoints"].xy[:, 3:])
+        assert np.isnan(both.xy[0, 3:77]).all() and np.isnan(both.xy[0, 80:]).all()  # the groups of the layout with no source
+        assert port["smooth.keypoints"].present.tolist() == [True] and port["smooth.keypoints"].xy.shape == (1, 101, 2)  # `smooth_keypoints`
         assert (result["image_width"], result["image_height"]) == (32, 32)
-        # The delivered values: the canonical form of `smooth` (each group passes through) and the upright crop box.
-        np.testing.assert_array_equal(result["wholebody"].xy, port["smooth.keypoints"].xy)
-        assert result["wholebody"].point_names == port["smooth.keypoints"].point_names
+        # The delivered values: the canonical form of `smooth` and the upright crop box.
+        np.testing.assert_array_equal(result["wholebody"].xy[:, :3], port["smooth.keypoints"].xy[:, :3])
+        assert result["wholebody"].point_names[:3] == merged[:3]
         np.testing.assert_allclose(result["boxes"].xyxy[0], xyxy(port["crop.boxes"].boxes[0, :4]))
         assert result["boxes"].detector_ran.tolist() == [result["node_ran"]["person"]]
 
@@ -183,7 +189,8 @@ STOPS = {  # (node, the one input that is empty): the node stops
     ("points_box", "keypoints"): True, ("points_box", "previous_boxes"): False, ("points_box", "reference_boxes"): False,
     ("carried_box", "value"): True, ("carried_box", "condition"): False,  # `gate` reads a false flag `condition`
     ("hold", "current"): True, ("hold", "previous"): False,  # `hold_boxes` reads an empty `previous`
-    ("merged", "target"): True, ("merged", "source"): False,  # `merge` reads an empty `source`
+    ("merged", "target"): True, ("merged", "source"): False,  # `assign_keypoints` reads an empty `source`
+    ("both", "body"): True,  # an empty `body` stops `merge`
     ("crop", "boxes"): False, ("smooth", "keypoints"): False,  # the filters read their empty input
 }
 
@@ -206,7 +213,7 @@ def test_an_empty_required_input_stops_a_node_and_an_empty_optional_or_read_inpu
         node = resolved.nodes[node_id]
         assert not Executor._stops(node, inputs_of(node, None)), node_id
         assert Executor._stops(node, inputs_of(node, name)) is stops, (node_id, name)
-    for node_id in ("both", "box", "detected_box"):  # `concat` and `first_of` run with each input empty
+    for node_id in ("box", "detected_box"):  # `first_of` runs with each input empty
         assert all(is_empty(value) for value in inputs_of(resolved.nodes[node_id], "*"))
         assert not Executor._stops(resolved.nodes[node_id], inputs_of(resolved.nodes[node_id], "*"))
 
@@ -221,9 +228,9 @@ def test_a_node_that_an_empty_input_stops_gives_empty_outputs_and_the_nodes_that
     for name in ("person.boxes", "crop.boxes", "body.keypoints", "merged.keypoints", "smooth.keypoints"):
         assert is_empty(dark_ports[name]) and len(dark_ports[name].present) == 1, name  # an empty value still has its I rows
     assert is_empty(dark["wholebody"]) and is_empty(dark["boxes"]) and np.isnan(dark["boxes"].xyxy).all()
-    # `concat` runs with its empty inputs: each column is a missing point.
+    # An empty `body` stops `merge`: its output is empty, with the columns of its layout.
     both = dark_ports["both.keypoints"]
-    assert is_empty(both) and both.xy.shape == (1, 9, 2) and (both.score == 0).all()
+    assert is_empty(both) and both.xy.shape == (1, 101, 2) and (both.score == 0).all()
     # The check `box_missing` asks for a detection on the frame after a frame with no box.
     assert again["node_ran"] == {"person": True, "body": True, "hand": True} and again_ports["body.keypoints"].present.tolist() == [True]
 

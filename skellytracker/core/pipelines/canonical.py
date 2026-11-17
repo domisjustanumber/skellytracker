@@ -3,7 +3,7 @@
 Implements: pipeline.outputs
 Implements: post.keypoint.canonical_mapping
 
-The canonical form maps the groups that one node or one `merge` slot made together, with the
+The canonical form maps the groups that one node or one `assign_keypoints` slot made together, with the
 canonical mapping of their landmark schema. A group with a null `landmark_schema` passes through.
 A `CanonicalKeypoints` value has the fields `xy`, `z`, `geometry`, `present` and `instance_score`
 of a `keypoints` value. It has no `raw_score` and no `track_ids`. The run converts each `wholebody`

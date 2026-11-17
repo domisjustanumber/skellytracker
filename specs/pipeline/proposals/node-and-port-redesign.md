@@ -77,6 +77,10 @@ session on that day. This file does not have the words of the user for it.
 | 20 | Before the 2.0.0 pre-release: the flag type and the accepted-type lists; the trigger flag and `run_if`; the image rule; the `outputs` block with the delivered forms; the reader of Core. After it: the new `merge`, `flag_when`, `assign_keypoints` and the editor. | | |
 | 21 | Build order now: the first three parts are built in parallel with other work. The `outputs` change and the reader of Core wait until the pipeline-metrics stage of freemocap is in the hands of the user. | | |
 
+**A later change of ruling 20.** On 2026-11-17, after stage 5, the user said: "redesign stages 6 to
+8 can come now". Thus stages 6 to 8 do not wait for the 2.0.0 pre-release. The text of ruling 20
+stays as the user gave it. Section 10 gives the new timing.
+
 Two standing constraints apply. v2.0.0 tracks one person
 ([ADR-TH8E](../../../decisions/entries/TH8E-one-person-in-v2.md)). The decomposed MediaPipe pipeline
 is later work. The drawing of the outputs in the editor is not in the scope of this file: the user
@@ -799,8 +803,7 @@ the `outputs` block has no span (point S5 of [section 11](#112-still-open)). The
 and the reader of Core wait until the pipeline-metrics stage is in the hands of the user
 (ruling 21).
 
-**The editor.** The user handles the editor with another session, after the 2.0.0 pre-release
-(ruling 20). This file decides nothing for it. These facts of the catalog and the file change for
+**The editor.** The user handles the editor with another session (stage 8). This file decides nothing for it. These facts of the catalog and the file change for
 it: the type `flag` comes, and `tensor` and `any` go; each input has a list of accepted types;
 `any_from` stays as "the inputs that give an output its type"; the `outputs` block stays a block,
 with three fixed keys; `merge` gets named inputs; `concat` goes; `flag_when` and `assign_keypoints`
@@ -818,8 +821,8 @@ come; `onnx_model.boxes` is "required for a top-down model".
 - The `wholebody` deliverable is canonical only for a registered schema. Today the registry has one
   schema, `COCO_WholeBody`. The MediaPipe landmark schemas stay open work, so `holistic` passes its
   names through until then.
-- The rename of `merge` to `assign_keypoints` and the end of `concat` come after the pre-release
-  (ruling 20). A file of the pre-release with `concat` or with today's `merge` must change then.
+- The rename of `merge` to `assign_keypoints` and the end of `concat` come in stage 6. A file with
+  `concat` or with today's `merge` must change then.
 
 ## 10. Build order
 
@@ -835,9 +838,9 @@ parallel with other work.
 | 3 | The image rule: `gate` and `first_of` refuse an image; the catalog test for "no `image` output"; the test with `is`; the tap form `<image_id>.npy` goes; the spec text; the "source-image pixels" rule with its test. | M | Now. Before the pre-release. |
 | 4 | The `outputs` block: the three keys; the delivered values; `detector_ran`; the rotation rule; the output schema; each example, each built-in, the templates, `annotate.py` and `cli.py`. | L | After the metrics stage. Before the pre-release. |
 | 5 | freemocap Core: `pipeline_runs.py` and its tests. It lands with stage 4. | S to M | After the metrics stage. Before the pre-release. |
-| 6 | `merge` with four inputs and `format`; `assign_keypoints`; `concat` goes; the three examples. | L | After the pre-release. |
-| 7 | `flag_when`: the section, the reference module, the vectors, the runtime. The tap form `flag.jsonl` (point S4). | M | After the pre-release. |
-| 8 | The editor. | M | After the pre-release. The user handles it with another session. |
+| 6 | `merge` with four inputs and `format`; `assign_keypoints`; `concat` goes; the three examples. | L | Now (the change of ruling 20). |
+| 7 | `flag_when`: the section, the reference module, the vectors, the runtime. The tap form `flag.jsonl` (point S4). | M | Now (the change of ruling 20). |
+| 8 | The editor. | M | Now (the change of ruling 20). The user handles it with another session. |
 | 9 | Later work: one RGB conversion for each camera and frame for the decomposed MediaPipe pipeline; the look into one canonical output keypoint set (ruling 18). | not sized | Later. |
 
 Stages 1 to 3 need no change in freemocap: the result of a camera keeps its form until stage 4.
@@ -869,7 +872,7 @@ The first form of this file had 19 questions. Each has a ruling now.
 | Q15, flag taps | Allowed: one line for each frame and camera with `true` or `false` (ruling 19). |
 | Q16, "never copy" | It covers the plumbing. One conversion for each `mediapipe_tasks` node is allowed. A shared conversion is later work (ruling 4). |
 | Q17, a replaced group with no present part row | The group keeps the points of `body` (ruling 11). |
-| Q18, stages before the pre-release | Stages 1 to 5 before, stages 6 to 8 after (ruling 20). Stages 1 to 3 now, stages 4 and 5 after the metrics stage (ruling 21). |
+| Q18, stages before the pre-release | Stages 1 to 5 before, stages 6 to 8 after (ruling 20). Stages 1 to 3 now, stages 4 and 5 after the metrics stage (ruling 21). On 2026-11-17 the user changed it: stages 6 to 8 can come now ([section 2](#2-the-rulings)). |
 | Q19, the editor | Not in the scope of this file. The user handles the editor with another session. |
 
 The "points with no question" of the first form: no port gets a new name except `redetect`
@@ -897,7 +900,7 @@ exactly that layout of groups, and a group with no source is missing."
   then refuses a `merge` with a part that is not connected.
 - With the default, `outputs.wholebody` and `outputs.holistic` check only their own group rule. A
   `format` that does not agree with the key fails that rule, or passes it. No extra rule.
-- Blocks: only stage 6, after the pre-release.
+- Blocks: only stage 6.
 
 **S2 — `detector_ran` when the instance source of the output box is not a detector.** For example
 boxes from `boxes_from_points` on the keypoints of a `mediapipe_tasks` node. Default: `detector_ran`
@@ -912,7 +915,7 @@ examples use `concat` and today's `merge` until stage 6. Other option: the examp
 `mediapipe-holistic-decomposed` delivers only its body until stage 6. Blocks: nothing.
 
 **S4 — The stage of the flag tap.** Ruling 20 does not name the taps. Default: the form
-`flag.jsonl` lands in stage 7, after the pre-release. Until then the load refuses a tap on a `flag`
+`flag.jsonl` lands in stage 7. Until then the load refuses a tap on a `flag`
 port, as the code of today does for each type that is not `boxes` or `keypoints`. The later change
 only allows more. Other option: stage 2, with the first flag port. Blocks: nothing.
 

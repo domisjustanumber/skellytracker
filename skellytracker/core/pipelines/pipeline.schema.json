@@ -1,5 +1,93 @@
 {
   "$defs": {
+    "AssignKeypointsNode": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "default": "",
+          "description": "Text for people about the node. It can have more than one line.",
+          "title": "Description",
+          "type": "string"
+        },
+        "id": {
+          "description": "The node id. `pipeline` and `frame` are reserved.",
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "inputs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Input name to `<node>.<port>`, with an optional `@prev`.",
+          "title": "Inputs",
+          "type": "object"
+        },
+        "params": {
+          "$ref": "#/$defs/AssignKeypointsParams"
+        },
+        "type": {
+          "const": "assign_keypoints",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "params"
+      ],
+      "title": "AssignKeypointsNode",
+      "type": "object"
+    },
+    "AssignKeypointsParams": {
+      "additionalProperties": false,
+      "properties": {
+        "map": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Target point to slot point `<slot>/<point>`, where `<point>` is a point of `source`. A present slot point replaces the target point.",
+          "set_during_run": false,
+          "source": "ADR-KW76 item 4",
+          "title": "Map",
+          "type": "object"
+        },
+        "max_distance": {
+          "description": "The largest anchor distance, as a part of the diagonal of the box around the present points of the target row.",
+          "exclusiveMinimum": 0.0,
+          "set_during_run": true,
+          "source": "ADR-KW76 item 6",
+          "title": "Max Distance",
+          "type": "number"
+        },
+        "slots": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Slot name to the target point that anchors the slot, for example `left_hand: body/left_wrist`. A slot with the name of a group of `target` replaces that group. A slot with another name adds a group.",
+          "minProperties": 1,
+          "set_during_run": false,
+          "source": "ADR-KW76 items 2 and 3",
+          "title": "Slots",
+          "type": "object"
+        },
+        "source_anchor": {
+          "description": "The point of `source` that the node compares with the slot anchors, for example `hand/root`.",
+          "set_during_run": false,
+          "source": "ADR-KW76 item 6",
+          "title": "Source Anchor",
+          "type": "string"
+        }
+      },
+      "required": [
+        "slots",
+        "source_anchor",
+        "max_distance"
+      ],
+      "title": "AssignKeypointsParams",
+      "type": "object"
+    },
     "BoxesFromPointsNode": {
       "additionalProperties": false,
       "properties": {
@@ -240,46 +328,6 @@
         }
       },
       "title": "BoxesFromPointsParams",
-      "type": "object"
-    },
-    "ConcatNode": {
-      "additionalProperties": false,
-      "properties": {
-        "description": {
-          "default": "",
-          "description": "Text for people about the node. It can have more than one line.",
-          "title": "Description",
-          "type": "string"
-        },
-        "id": {
-          "description": "The node id. `pipeline` and `frame` are reserved.",
-          "pattern": "^[a-z][a-z0-9_-]*$",
-          "title": "Id",
-          "type": "string"
-        },
-        "inputs": {
-          "description": "A list of `<node>.<port>`, each with an optional `@prev`. At least one item.",
-          "items": {
-            "type": "string"
-          },
-          "minItems": 1,
-          "title": "Inputs",
-          "type": "array"
-        },
-        "params": {
-          "$ref": "#/$defs/NoParams"
-        },
-        "type": {
-          "const": "concat",
-          "title": "Type",
-          "type": "string"
-        }
-      },
-      "required": [
-        "id",
-        "type"
-      ],
-      "title": "ConcatNode",
       "type": "object"
     },
     "FirstOfNode": {
@@ -756,47 +804,30 @@
     "MergeParams": {
       "additionalProperties": false,
       "properties": {
+        "format": {
+          "description": "The layout of groups of the output. `wholebody`: `body`, `feet`, `face`, `left_hand`, `right_hand`, as `COCO_WholeBody`. `holistic`: `body`, `right_hand`, `left_hand`, `face`, as MediaPipe Holistic.",
+          "enum": [
+            "wholebody",
+            "holistic"
+          ],
+          "set_during_run": false,
+          "source": "ADR-9HTX item 11",
+          "title": "Format",
+          "type": "string"
+        },
         "map": {
           "additionalProperties": {
             "type": "string"
           },
-          "description": "Target point to slot point `<slot>/<point>`, where `<point>` is a point of `source`. A present slot point replaces the target point.",
+          "description": "Output point to part point `<part>/<point>`, for example `body/left_wrist: left_hand/root`. A present part point replaces the output point.",
           "set_during_run": false,
-          "source": "ADR-KW76 item 4",
+          "source": "ADR-9HTX item 11",
           "title": "Map",
           "type": "object"
-        },
-        "max_distance": {
-          "description": "The largest anchor distance, as a part of the diagonal of the box around the present points of the target row.",
-          "exclusiveMinimum": 0.0,
-          "set_during_run": true,
-          "source": "ADR-KW76 item 6",
-          "title": "Max Distance",
-          "type": "number"
-        },
-        "slots": {
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "Slot name to the target point that anchors the slot, for example `left_hand: body/left_wrist`. A slot with the name of a group of `target` replaces that group. A slot with another name adds a group.",
-          "minProperties": 1,
-          "set_during_run": false,
-          "source": "ADR-KW76 items 2 and 3",
-          "title": "Slots",
-          "type": "object"
-        },
-        "source_anchor": {
-          "description": "The point of `source` that the node compares with the slot anchors, for example `hand/root`.",
-          "set_during_run": false,
-          "source": "ADR-KW76 item 6",
-          "title": "Source Anchor",
-          "type": "string"
         }
       },
       "required": [
-        "slots",
-        "source_anchor",
-        "max_distance"
+        "format"
       ],
       "title": "MergeParams",
       "type": "object"
@@ -1353,8 +1384,8 @@
       "items": {
         "discriminator": {
           "mapping": {
+            "assign_keypoints": "#/$defs/AssignKeypointsNode",
             "boxes_from_points": "#/$defs/BoxesFromPointsNode",
-            "concat": "#/$defs/ConcatNode",
             "first_of": "#/$defs/FirstOfNode",
             "gate": "#/$defs/GateNode",
             "hold_boxes": "#/$defs/HoldBoxesNode",
@@ -1387,7 +1418,7 @@
             "$ref": "#/$defs/FirstOfNode"
           },
           {
-            "$ref": "#/$defs/ConcatNode"
+            "$ref": "#/$defs/AssignKeypointsNode"
           },
           {
             "$ref": "#/$defs/MergeNode"

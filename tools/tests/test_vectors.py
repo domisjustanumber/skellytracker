@@ -234,8 +234,8 @@ FILE_TOLERANCE = {
     "node.smooth_boxes": 1e-9,
     "node.redetect_trigger": 1e-9,
     "node.first_of": 0,  # the node passes a value through: no arithmetic
-    "node.concat": 0,  # the node copies columns and rows: no arithmetic
-    "node.merge": 0,  # the node copies points: the distances only select the pairs
+    "node.assign_keypoints": 0,  # the node copies points: the distances only select the pairs
+    "node.merge": 0,  # the node copies columns and rows: no arithmetic
 }
 
 
@@ -2076,29 +2076,8 @@ def first_of_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
     return node_outcome(run)
 
 
-def concat_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
-    from skellytracker.core.pipelines.config import NoParams
-
-    def run() -> dict[str, Any]:
-        given, names = case["input"]["values"], case["input"]["point_names"]
-        first = next((item for item in given if item is not None), None)
-        rows = 1 if first is None else len(first["present"])
-        infos = [
-            keypoints_info(names[i], rows, (item or first or {}).get("instance_source"), (item or first or {}).get("geometry"))
-            for i, item in enumerate(given)
-        ]
-        params = NoParams(**case["params"])
-        outputs, _ = sibling(function, "output_info")("node", params, infos)
-        plan = sibling(function, "prepare")("node", params, infos, outputs)
-        values = [keypoints_value(item, info) for item, info in zip(given, infos, strict=True)]
-        result = function(params, values, None, node_frame(), plan)[0]["keypoints"]
-        return {"keypoints": keypoints_mapping(result, outputs["keypoints"])}
-
-    return node_outcome(run)
-
-
-def merge_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
-    from skellytracker.core.pipelines.config import MergeParams
+def assign_keypoints_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
+    from skellytracker.core.pipelines.config import AssignKeypointsParams
 
     def run() -> dict[str, Any]:
         inp = case["input"]
@@ -2108,9 +2087,47 @@ def merge_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
             rows = len(item["present"]) if item else 1
             infos[name] = keypoints_info(inp[f"{name}_names"], rows, item.get("instance_source", name), item.get("geometry", "2d"))
             values[name] = keypoints_value(inp[name], infos[name])
-        params, canonical = MergeParams(**case["params"]), inp.get("canonical")
+        params, canonical = AssignKeypointsParams(**case["params"]), inp.get("canonical")
         outputs, _ = sibling(function, "output_info")("node", params, infos, canonical)
         if not values["target"].present.any():
+            return {"keypoints": None}  # an empty required input: the executor does not call the node
+        plan = sibling(function, "prepare")("node", params, infos, outputs, canonical)
+        result = function(params, values, None, node_frame(), plan)[0]["keypoints"]
+        return {"keypoints": keypoints_mapping(result, outputs["keypoints"])}
+
+    return node_outcome(run)
+
+
+def merge_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
+    """The node `merge`: the layout, the canonical names, the schemas and the regions of a case are the facts that the load gives."""
+    import dataclasses
+
+    from skellytracker.core.pipelines.config import MERGE_PARTS, MergeParams
+    from skellytracker.core.pipelines.values import Group, PortInfo
+
+    def run() -> dict[str, Any]:
+        inp = case["input"]
+        given = [inp.get(name) for name in ("body", *MERGE_PARTS) if inp.get(name)]
+        rows = len(given[0]["present"]) if given else 1
+        schemas = inp.get("schemas", {})
+        infos, values = {}, {}
+        for name in ("body", *MERGE_PARTS):
+            if f"{name}_names" not in inp:
+                continue
+            item = inp.get(name) or {}
+            info = keypoints_info(inp[f"{name}_names"], rows, item.get("instance_source", "person"), item.get("geometry", (given[0] if given else {}).get("geometry", "2d")))
+            if name in schemas:
+                info = dataclasses.replace(info, groups=tuple(dataclasses.replace(group, landmark_schema=schemas[name]) for group in info.groups))
+            infos[name], values[name] = info, keypoints_value(inp.get(name), info)
+        names, groups = [], []
+        for item in inp["layout"]:
+            groups.append(Group(item["name"], len(names), len(item["points"]), None))
+            names += [f"{item['name']}/{point}" for point in item["points"]]
+        layout = PortInfo("keypoints", point_names=tuple(names), groups=tuple(groups))
+        regions = {name: tuple(value) for name, value in inp.get("regions", {}).items()}
+        params, canonical = MergeParams(**case["params"]), inp.get("canonical")
+        outputs, _ = sibling(function, "output_info")("node", params, infos, canonical, layout, regions)
+        if not values["body"].present.any():
             return {"keypoints": None}  # an empty required input: the executor does not call the node
         plan = sibling(function, "prepare")("node", params, infos, outputs, canonical)
         result = function(params, values, None, node_frame(), plan)[0]["keypoints"]
@@ -2334,7 +2351,7 @@ PACKAGE_RUNNERS: dict[str, Callable[[Any, dict[str, Any]], dict[str, Any] | None
     f"{NODES}/node_hold_boxes.py::run": hold_boxes_runner,
     f"{NODES}/node_gate.py::run": gate_runner,
     f"{NODES}/node_first_of.py::run": first_of_runner,
-    f"{NODES}/node_concat.py::run": concat_runner,
+    f"{NODES}/node_assign_keypoints.py::run": assign_keypoints_runner,
     f"{NODES}/node_merge.py::run": merge_runner,
     f"{NODES}/node_smooth_keypoints.py::run": smooth_keypoints_runner,
     f"{NODES}/node_smooth_boxes.py::run": smooth_boxes_runner,
