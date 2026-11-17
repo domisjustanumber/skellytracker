@@ -13,6 +13,7 @@ of the call. A glue node runs for each camera. A call commits the new node state
 """
 from __future__ import annotations
 
+import functools
 import logging
 import time
 import uuid
@@ -409,16 +410,19 @@ class Executor:
             cameras = [camera_id for camera_id in ready if self.device_of[camera_id] == index]
             if not cameras:
                 continue
-            images = [(frames[camera_id].frame_index, camera_id) for camera_id in cameras]
-
-            def timer(span: str, start_ns: int, end_ns: int, images: list[tuple[int, Any]] = images) -> None:
-                if f"{node.id}.{span}" in self.spans_on:
-                    events.append(timing_module.make_event(images, node.id, span, start_ns, end_ns))
-
+            # A partial, not a nested def: `beartype_this_package` decorates a nested def again on each call.
+            timer = None if self.writer is None else functools.partial(
+                self._add_span, events, node.id, [(frames[camera_id].frame_index, camera_id) for camera_id in cameras],
+            )
             boxes = [ready[camera_id]["boxes"] for camera_id in cameras] if runner.kind == "top_down" else None
             found = runner.run(index, [ready[camera_id]["image"] for camera_id in cameras], boxes, timer)
             for camera_id, outputs in zip(cameras, found, strict=True):
                 values[camera_id].update({(node.id, port): value for port, value in outputs.items()})
+
+    def _add_span(self, events: list[dict[str, Any]], node_id: str, images: list[tuple[int, Any]], span: str, start_ns: int, end_ns: int) -> None:
+        """Add the event of one span of an `onnx_model` node when the span is on."""
+        if f"{node_id}.{span}" in self.spans_on:
+            events.append(timing_module.make_event(images, node_id, span, start_ns, end_ns))
 
     # ---- params during a run --------------------------------------------------------------
 
