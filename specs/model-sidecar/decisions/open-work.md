@@ -8,6 +8,10 @@ repository state is in the root [open-work.md](../../../decisions/open-work.md).
 
 - `specs/model-sidecar/post/keypoint/canonical-mapping.md` links to the VRM specification by the branch `master`. A
   rewording PR must pin the two links to a commit.
+- The pipeline result of the keypoint score map: `score` becomes the mapped score, and a new field
+  (proposed name `raw_score`) keeps the raw decode score. Stage 1.11 of the
+  [implementation plan](../../sidecar-implementation-plan.md#111-checkpoint-the-200-pre-release)
+  holds the item ([ADR-F067](entries/F067-simcc-score-map.md)).
 
 ## Re-export requests
 

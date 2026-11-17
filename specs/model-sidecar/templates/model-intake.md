@@ -180,7 +180,7 @@ field that is not a per-size field, they are two families. Write one intake for 
 |---|---|---|---|---|---|---|
 | F1 | `model_id`. An object detector uses the family (`yolo26`). A keypoint detector uses `{family}-{group}` or `{family}-{group}-{variant}` (`rtmw-wholebody133`, `rtmo-coco17-body7`; `common.identity`, heading "Keypoint detector id"). Write that id: the verdict is `exact`. If the exporter writes another id, write that id in the last column. A name is never a `near-miss`. A new role with no `model_id` rule is a `gap`. | | `common.identity` | | | |
 | F2 | `role`: `object_detector`, `keypoint_detector`, or both | | `common.identity` | | | |
-| F3 | Sizes, and what differs between them. A size sets only `input.shape`, `input.resize.target_size` and `onnx`. Use the upstream size name, also for a family with one size. If the upstream has no size name, choose a lowercase token and give the reason. | | `common.sizes_and_artifacts` | | | |
+| F3 | Sizes, and what differs between them. A size sets only `input.shape`, `input.resize.target_size`, `onnx` and, for a `simcc` model, `score_map` (skellytracker ADR-F067). Use the upstream size name, also for a family with one size. If the upstream has no size name, choose a lowercase token and give the reason. | | `common.sizes_and_artifacts` | | | |
 | F4 | One contract for all sizes: channel order, normalization, resize method, output semantics, selection mode, NMS parameters, classes | | `common.sizes_and_artifacts` (family invariant) | | | |
 | F5 | ONNX file names: `{model_id}-{size}_b{batch}_{precision}.onnx`, where `{batch}` is `batching.batch`, or `{model_id}-{size}_{precision}.onnx` for the batch `dynamic` | | `format.file_layout` | | | |
 | F6 | `display_name` (required) | | `common.identity` | | | |
@@ -275,6 +275,7 @@ Source: the upstream postprocessing code and the upstream test config.
 | K8 | Keypoint score: its source, and its activation. The spec says that a packed keypoint `score` is already activated. The spec has no field for a keypoint-score activation: if the host must activate the scores, the verdict is `gap`. | | `post.keypoint.decode.<method>` (`simcc`, `coordinate`), `post.keypoint.bottom_up` | | | |
 | K10 | Overlay (optional) | | `post.keypoint.overlay` | | | |
 | K11 | Landmark schema (`keypoint.landmark_schema`, required): a name of the registry in `../freemocap/skellytracker/skellytracker/core/model_zoo/landmark_schemas/`, or `new` and the source of the convention. For `new`, write `landmark_schemas/<name>.yaml` in the bundle, with its canonical mapping; a face schema has none (skellytracker ADR-23F5). | | `post.keypoint.schema` (`keypoint.landmark_schema`), `post.keypoint.landmark_schema`, `post.keypoint.canonical_mapping` | | | |
+| K12 | Score map of a `simcc` model (`sizes.<size>.score_map`, required in each size): the pair `a`, `b` of each size, the group pairs and `fit`, from the fit procedure `score-map-fit-v1` on a labelled validation set of the landmark schema that the weights did not train on. Give the check-split ECE of each size and the fp16 check (skellytracker ADR-F067). | | `post.keypoint.score_map` | | | |
 
 ### License
 
@@ -309,7 +310,7 @@ chooses" in [Verdicts](#verdicts).
 |---|---|---|---|---|---|---|
 | Y1 | `batching.batch` is the int `3`, the int `1` or the string `dynamic`, once for the sidecar (`V-common.sizes_and_artifacts-12`). Each size has `onnx.precision_artifacts` and `onnx.output_shapes`. | | `common.batching` (`batching.batch`), `common.sizes_and_artifacts` (`sizes.<size>.onnx`) | | | |
 | Y2 | `schema_version` is the open target as a quoted string, for example `"2.0.0"` (`V-format.versioning-1`). Without the quotes, YAML can read the value as a number. | | `format.versioning` | | | |
-| Y3 | Each size contains only `input.shape`, `input.resize.target_size` and `onnx` | | `common.sizes_and_artifacts` | | | |
+| Y3 | Each size contains only `input.shape`, `input.resize.target_size`, `onnx` and `score_map` | | `common.sizes_and_artifacts` | | | |
 | Y4 | No `null` values. A sidecar omits an optional field that has no value (heading "Behaviour" of `format.composition`). | | `format.composition` | | | |
 | Y5 | Each `$ref` path resolves and stays inside `{sidecar_root}`. The sidecar has no `base`. | | `format.composition` | | | |
 | Y6 | Each key is a key that the spec defines (`V-format.composition-5`). A key that the spec does not define is invalid, for example the removed keys `requires_nms`, `preserve_aspect_ratio`, `may_include_non_person_classes`, `input.layout`, `base` and `batch_artifacts`. | | `format.composition` | | | |

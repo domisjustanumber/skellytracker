@@ -106,9 +106,13 @@ A writer must make the numbers with this procedure. `fit.recipe` names its versi
 - The landmark schema gives the group of each keypoint: the group `k` holds the points from the sum of the counts of groups 0 to `k - 1` ([Landmark schema](landmark-schema.md#fields)).
 - Compute `1 / (1 + exp(-z))` in a form that does not overflow, for example `0.5 * (1 + tanh(z / 2))`.
 - The names of the mapped score and of the raw score in the result of a pipeline are a matter of the pipeline spec ([Outputs](../../../pipeline/outputs.md)).
-
+- skellytracker: `map_scores` of `skellytracker/core/detectors/processing/post/keypoint_score_map.py` is a port of the reference module. The generic keypoint detector maps the scores after `mark_missing` and before `derived_points`. `KeypointDetections.scores` holds the mapped scores, and `KeypointDetections.raw_scores` holds the decode scores, so that a parity test with mmpose reads `raw_scores`. `load_sidecar` gives the group of each keypoint from the landmark schema registry (`SidecarModel.point_groups`). A derived point takes its presence from the raw scores, because the mapped score of a present keypoint can be `0.0` in float32. ([`proposal.md`](../../proposals/simcc-score-map/proposal.md#6-skellytracker-implementation-proposal) of the proposal `simcc-score-map`, part 6 (secondary))
 
 ## Authoring guidance
+
+- On COCO-WholeBody v1.0 val (6352 persons, ground-truth boxes, no flip test), the raw score with a 50 % chance to be a correct point is 0.51 to 0.53 at 256x192, 2.85 at l-384 and 5.20 at x-384. The check-split ECE of the RTMW sizes is 0.0063 to 0.0230 with one pair for each size and the group rule, and 0.126 to 0.184 with one pair for all five sizes. Each size passes the fp16 check. ([`evidence.md`](../../proposals/simcc-score-map/evidence.md) of the proposal `simcc-score-map` (secondary); OpenMMLab-Exporter `decisions/scripts/simcc_score_map_fit.py` at `3ca1a596ea71c0969fc8ea960f4c2a41a27777d6`)
+- At l-384, the logistic map in `raw` does not fit the group `body` well: the check ECE is 0.048 with its own pair. A map in `ln(raw)` gives 0.029 there, and it is worse at 256x192. The spec keeps the logistic map in `raw`. ([`evidence.md`](../../proposals/simcc-score-map/evidence.md) (secondary))
+- The fit uses ground-truth boxes. The crops of a person detector can give a score that is less well calibrated. ([`proposal.md`](../../proposals/simcc-score-map/proposal.md#27-known-limits-and-items-for-the-user) of the proposal `simcc-score-map`, part 2.7 (secondary))
 
 ## Examples
 

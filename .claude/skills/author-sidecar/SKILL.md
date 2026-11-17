@@ -60,7 +60,11 @@ Get these inputs before you start
   ([Landmark schema](../../../specs/model-sidecar/post/keypoint/landmark-schema.md#behaviour);
   [ADR-23F5](../../../decisions/entries/23F5-landmark-schema-registry.md));
 - the license of the weights, the upstream training config, and the config of each checkpoint
-  that the training started from (`common.license`).
+  that the training started from (`common.license`);
+- for a `simcc` model, a labelled validation set of the landmark schema that the weights did not
+  train on, for the fit of `sizes.<size>.score_map`
+  ([Fit procedure](../../../specs/model-sidecar/post/keypoint/score-map.md#fit-procedure);
+  [ADR-F067](../../../specs/model-sidecar/decisions/entries/F067-simcc-score-map.md)).
 
 If an input is missing, do not stop. Write `missing` for it in the intake.
 

@@ -42,6 +42,12 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   ([ADR-8DSW](entries/8DSW-vector-files-are-the-case-source.md)). An excused drift finding still
   blocks the session run of `batch` ([ADR-AD33](entries/AD33-bundles-are-untrusted-input.md)
   item 4).
+- **Vector runs of a bundle that follows a proposal.** A `model` bundle that follows an accepted
+  proposal cannot record a vector run on the vectors of that proposal. `verify` accepts only a
+  vector file that is landed (`_payload_problems` in `tools/intake_bundle.py`). Thus the bundle
+  records the run as `no vectors`. An example is version 6 of `model-rtmw-wholebody133` for
+  `post.keypoint.score_map`
+  ([ADR-F067](../specs/model-sidecar/decisions/entries/F067-simcc-score-map.md)).
 - **Kit PR in freemocap/project.** The kit is on the branch `dom/agents-and-adr-kit` of
   freemocap/project, in a PR for its owner
   ([ADR-P3NK](entries/P3NK-bootstrap-kit-in-freemocap-project.md)). The link repairs in 0031, NB91,

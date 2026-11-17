@@ -1,6 +1,6 @@
 # F067 — Spec change: simcc-score-map
 
-**Status:** accepted, 2026-11-16 (user; OpenMMLab-Exporter proposal; PR: pending).
+**Status:** absorbed into [`score-map.md#fields`](../../post/keypoint/score-map.md#fields), [`score-map.md#behaviour`](../../post/keypoint/score-map.md#behaviour), [`score-map.md#validation-rules`](../../post/keypoint/score-map.md#validation-rules), [`sizes-and-artifacts.md#sizes`](../../common/sizes-and-artifacts.md#sizes), [`sizes-and-artifacts.md#validation-rules`](../../common/sizes-and-artifacts.md#validation-rules), [`decode-simcc.md#behaviour`](../../post/keypoint/decode-simcc.md#behaviour), [`schema.md#decoded-keypoints`](../../post/keypoint/schema.md#decoded-keypoints), 2026-11-16 (user; PR: pending).
 
 ## Decision
 

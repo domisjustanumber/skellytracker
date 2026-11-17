@@ -43,7 +43,7 @@ From the 2.0.0 pre-release, these rules replace the rules above
   (`V-format.versioning-1`; [ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
   Write a pre-release value only in a test sidecar (see
   [Publishing](validation-and-publishing.md#publishing)).
-- A size entry contains only `input.shape`, `input.resize.target_size` and `onnx`. All other fields
+- A size entry contains only `input.shape`, `input.resize.target_size`, `onnx` and `score_map`. All other fields
   are shared at the top level (the family invariant under the `sizes` heading in
   `../freemocap/skellytracker/specs/model-sidecar/common/sizes-and-artifacts.md`, rule
   `V-common.sizes_and_artifacts-3`).
