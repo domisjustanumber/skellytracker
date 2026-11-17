@@ -127,7 +127,8 @@ legacy_keys:
 
 # The first row that a GPU of the host (or the host) matches gives the candidates, in order.
 # `ranking_evidence` is a decision entry ID, `single-ep`, or `none` (the order is not measured).
-# No benchmark runs on the host.
+# No benchmark runs on the host. A row with `offer: update-driver` or `offer: none-available` must have
+# `note`: the text that an application shows for the offer. An `add-pack` offer gets the install command.
 hardware_classes:
   # The NVML brands of data center GPUs are an assumption. No data center host tested this row.
   - {id: nvidia-datacenter-r580, match: {vendor: nvidia, brand: [tesla, nvidia], os: Linux, cc_min: "7.5", driver_branch_min: 580},
@@ -135,16 +136,16 @@ hardware_classes:
   - {id: nvidia-cc80-r580, match: {vendor: nvidia, cc_min: "8.0", driver_branch_min: 580},
      candidates: [trt-rtx, cuda, cpu], offer: add-pack, ranking_evidence: MWY9}
   - {id: nvidia-cc80-pre580, match: {vendor: nvidia, cc_min: "8.0"},
-     candidates: [cpu], offer: update-driver, note: "Update the NVIDIA driver to R580 or later. Then install trt-rtx.", ranking_evidence: single-ep}
+     candidates: [cpu], offer: update-driver, note: "Update the NVIDIA driver to R580 or later. Then run `skellytracker-eps install trt-rtx`.", ranking_evidence: single-ep}
   - {id: nvidia-cc75-r580, match: {vendor: nvidia, cc_min: "7.5", driver_branch_min: 580},
      candidates: [cuda, cpu], offer: add-pack, ranking_evidence: none}
   - {id: nvidia-cc75-pre580, match: {vendor: nvidia, cc_min: "7.5"},
-     candidates: [cpu], offer: update-driver, note: "Update the NVIDIA driver to R580 or later. Then install cuda.", ranking_evidence: single-ep}
+     candidates: [cpu], offer: update-driver, note: "Update the NVIDIA driver to R580 or later. Then run `skellytracker-eps install cuda`.", ranking_evidence: single-ep}
   - {id: nvidia-pre-turing, match: {vendor: nvidia},
-     candidates: [cpu], offer: none-available, note: "CUDA 13 has no kernels for this GPU.", ranking_evidence: single-ep}
+     candidates: [cpu], offer: none-available, note: "Use the CPU EP. CUDA 13 has no kernels for this GPU.", ranking_evidence: single-ep}
   - {id: intel-gpu, match: {vendor: intel}, candidates: [cpu], ranking_evidence: single-ep}
   - {id: amd-deferred, match: {vendor: amd},
-     candidates: [cpu], offer: none-available, note: "AMD EPs are deferred.", ranking_evidence: single-ep}
+     candidates: [cpu], offer: none-available, note: "Use the CPU EP. This release has no GPU EP for AMD GPUs.", ranking_evidence: single-ep}
   - {id: apple-silicon, match: {host: true, os: Darwin, arch: arm64}, candidates: [coreml, cpu], ranking_evidence: none}
   - {id: snapdragon-x, match: {host: true, os: Windows, native_arch: ARM64}, candidates: [cpu], ranking_evidence: single-ep}
   - {id: unknown-gpu, match: {}, candidates: [cpu], ranking_evidence: single-ep}

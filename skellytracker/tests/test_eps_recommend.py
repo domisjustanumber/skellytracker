@@ -111,9 +111,19 @@ def test_recommend_details():
         json.dumps(dataclasses.asdict(record))
     offer = eps.recommend("performance", host(gpu(driver="576.88"))).offers[0]
     assert "R580" in offer.note
-    assert eps.recommend("performance", host(gpu(cc="6.1"))).offers[0].note == "CUDA 13 has no kernels for this GPU."
+    assert eps.recommend("performance", host(gpu(cc="6.1"))).offers[0].note == "Use the CPU EP. CUDA 13 has no kernels for this GPU."
     with pytest.raises(ValueError, match="form"):
         eps.recommend("fastest", host())
+
+
+def test_each_offer_has_a_note():
+    """An application shows `InstallOffer.note` for each offer: no offer kind may give None."""
+    rows = eps.load_catalog().data["hardware_classes"]
+    assert {row["offer"] for row in rows if "offer" in row} <= {"add-pack", "update-driver", "none-available"}
+    for row in rows:
+        if row.get("offer") in ("update-driver", "none-available"):
+            assert isinstance(row.get("note"), str) and row["note"].strip(), row["id"]
+    assert recommendation.install_hint("cuda") == "Run `skellytracker-eps install cuda`."  # the note of an add-pack offer
 
 
 def test_recommended_device_is_the_gpu_with_the_most_vram_then_the_lowest_bus_id():

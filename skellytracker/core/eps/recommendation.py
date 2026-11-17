@@ -114,7 +114,7 @@ def recommend(form: str, host: HostInfo | None = None) -> EpRecommendation:
             offers.append(InstallOffer("add-pack", candidate.ep_key, candidate.pack_id, lock["download_bytes"],
                                        lock["unpacked_bytes"], licences[0].get("url"), install_hint(candidate.ep_key)))
     if row.get("offer") in ("update-driver", "none-available"):
-        offers.append(InstallOffer(row["offer"], note=row.get("note")))
+        offers.append(InstallOffer(row["offer"], note=row["note"]))  # each such row has a note (test_each_offer_has_a_note)
     precision = chosen.precision_order[0]
     return EpRecommendation(form, row["id"], chosen, precision, source, catalog.default_options(chosen.ep_key, precision),
                             skipped, tuple(offers))
