@@ -1,0 +1,36 @@
+{
+  "bundle_format": 1,
+  "kind": "proposal",
+  "name": "resize-pixel-tolerance",
+  "contributor": "skellytracker",
+  "source_commit": "a50c759177a5bff5c5bc5b3a6ed16e40bdab133b",
+  "spec_commit": "93d7c9e0840a231abe844325a42d4fb7440c77e4",
+  "sections": [
+    "pre.resize.interpolation"
+  ],
+  "base": null,
+  "depends_on": [],
+  "contributes_to": null,
+  "related": [],
+  "external": [],
+  "spec_version": "2.0.0",
+  "version": 1,
+  "created": "2026-11-17",
+  "files": [
+    {
+      "path": "proposal.md",
+      "sha256": "e82cf6570397c505e577b8b2b0f166980a172852f58b20e45934ab4bc7b8a2cc",
+      "bytes": 33001
+    },
+    {
+      "path": "reference/pre_resize_interpolation.py",
+      "sha256": "0eef7bb4a717e3469a9c511fca37aff2c05397a1fbc2e5cdc0ede4a345882e9b",
+      "bytes": 10707
+    },
+    {
+      "path": "vectors/pre.resize.interpolation.yaml",
+      "sha256": "4afef7ae4d4b3cb826ed6be09aa53d6826d7afbeb8fd70d30f4712ba19158875",
+      "bytes": 5808
+    }
+  ]
+}
