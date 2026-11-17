@@ -270,6 +270,10 @@ Behaviour:
    missing. Point S1 of [section 11](#112-still-open) gives the exact layouts and the form of a
    missing group.
 6. `map` replaces single points after step 3.
+   The output has the edges of each group. `merge` adds no edge between two groups, for example
+   from a body wrist to a hand. On 2026-11-17 the user first asked for such edges, then, after the
+   finding that no edge set of the repository links a wrist to a hand, said: "Edges - ok, drop
+   that idea".
 7. `body` is required: an empty `body` stops the node. The output has the rows, the `present`
    flags, the `instance_score` and the instance source of `body`.
 

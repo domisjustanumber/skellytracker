@@ -34,7 +34,6 @@ These entries are `accepted`.
 | [P1F3](entries/P1F3-hardware-probe-devices-and-multi-gpu.md) | Hardware probe fields; `free_vram`; `device_key`; default GPU by VRAM; a run splits its cameras across GPUs; no pre-Turing GPUs | accepted |
 | [4WR9](entries/4WR9-params-schema-in-the-node-catalog.md) | `NodeTypeInfo.params_schema` and `NodeTypeInfo.any_from`: the JSON Schema of the params and the inputs that type an `any` output, for an editor | accepted |
 | [92BE](entries/92BE-legacy-path-for-the-freemocap-metrics-stage.md) | Temporary legacy path for the freemocap metrics: old tracker task events; `cuda` bridge of `OnnxSession` to `eps.build_session()`; no TensorRT; deleted in 2.4 | accepted |
-| [9HTX](entries/9HTX-pipeline-node-and-port-redesign.md) | Pipeline redesign: a boolean `flag`, `run_if`, one image, an `outputs` block with three fixed keys, a `merge` with named inputs; design in the proposal | accepted |
 
 ### Evidence
 

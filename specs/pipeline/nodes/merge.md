@@ -56,7 +56,7 @@ A `merge` node joins the parts `left_hand`, `right_hand` and `face` to `body`, r
 5. **No part row.** A part with no present row `i` leaves row `i` of its group as step 2 gives it before steps 3 and 4: the points of `body` for a replaced group, and missing points for an added group. An empty part does not stop the node.
 6. **Map.** For each entry `output point: part point` of `map`, in each row `i`: when the part row `i` and the part point are present, the output point gets its x, y, score and `raw_score`, and its z for a `3d` output. Else the output point keeps its value after steps 3 to 5.
 7. **Missing point.** A missing point has x and y NaN, z NaN for a `3d` output, and the score and the `raw_score` 0 ([ADR-PX6Z](../../../decisions/entries/PX6Z-keypoint-raw-score-in-the-pipeline-result.md)).
-8. **Edges.** The output keeps each edge of `body` whose two points are in the output. An added group adds the edges of its part, with the group of the input name. A replaced group and a group of the layout add no edge. The edges are only drawing data ([Outputs](../outputs.md#behaviour) item 2).
+8. **Edges.** The output keeps each edge of `body` whose two points are in the output. An added group adds the edges of its part, with the group of the input name. A replaced group and a group of the layout add no edge. Thus the output has the edges of each group, and `merge` adds no edge between two groups, for example from a body wrist to a hand. The edges are only drawing data ([Outputs](../outputs.md#behaviour) item 2).
 9. **Empty `body`.** An empty `body` stops the node ([Graph](../graph.md#behaviour) item 6). The output is then empty.
 10. The timing span is `run`.
 

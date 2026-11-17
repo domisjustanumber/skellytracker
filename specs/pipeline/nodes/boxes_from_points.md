@@ -170,6 +170,10 @@ place of `keypoint_bbox` in a pipeline, but it does not reproduce `keypoint_bbox
 
 ## Authoring guidance
 
+- The pipeline spec has no hand box node. To give each hand a box from the body points, use two
+  `boxes_from_points` nodes, one for each hand, as the example
+  [`mediapipe-holistic-decomposed`](../examples/mediapipe-holistic-decomposed.pipeline.yaml) does
+  ([ADR-9HTX](../../../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) item 13).
 - To make the Holistic hand box from the pose, add the derived point
   `middle = (2 · index + pinky) / 3`, use the size rule `alignment` from the wrist to `middle` with
   `target_rotation_deg: 90`, then `shift_y: -0.1`, `square_long: true` and `expand_ratio: 2.7`.

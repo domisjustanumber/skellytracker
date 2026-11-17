@@ -48,18 +48,16 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   records the run as `no vectors`. An example is version 6 of `model-rtmw-wholebody133` for
   `post.keypoint.score_map`
   ([ADR-F067](../specs/model-sidecar/decisions/entries/F067-simcc-score-map.md)).
-- **Pipeline redesign.** The build stages of the redesign of the node and port types, and its
-  points that are still open, are in
-  [`node-and-port-redesign.md`](../specs/pipeline/proposals/node-and-port-redesign.md), sections 10
-  and 11 ([ADR-9HTX](entries/9HTX-pipeline-node-and-port-redesign.md)). Stages 1 to 7 are built in
-  skellytracker. Stage 8, the pipeline editor, is freemocap work that the user does in another
-  session. [ADR-8TQT](entries/8TQT-redesign-stages-6-and-7-before-the-pre-release.md) records the
-  new timing of stages 6 to 8. ADR-9HTX stays `accepted`: no absorb document states its item 13
-  (no hand box node; two `boxes_from_points` nodes give the hand boxes), and the user ruled on
-  2026-11-17 that the edges of a `merge` output must link the body and each part, which is not
-  built yet. Two items are later work.
-  Look into one canonical output keypoint set that becomes the only output format of a pipeline.
-  Make one BGR to RGB conversion for each camera and frame for the decomposed MediaPipe pipeline.
+- **Pipeline redesign.** Stages 1 to 7 of the redesign of the node and port types are built in
+  skellytracker, and the absorb documents state the rules of
+  [ADR-9HTX](entries/9HTX-pipeline-node-and-port-redesign.md).
+  [ADR-8TQT](entries/8TQT-redesign-stages-6-and-7-before-the-pre-release.md) records the new timing
+  of stages 6 to 8. Three items stay open:
+  - Stage 8, the pipeline editor, is freemocap work that the user does in another session.
+  - Later work: look into one canonical output keypoint set that becomes the only output format of
+    a pipeline.
+  - Later work: make one BGR to RGB conversion for each camera and frame for the decomposed
+    MediaPipe pipeline.
 - **Cost of the detector preprocess.** Measured on 2026-11-17 with `time.perf_counter_ns` on one
   desktop CPU, with OpenCV 5.0.0.93 and no other load. `preprocess_image` of
   `core/detectors/processing/pre/preprocess.py` needs about 5.2 ms for one 1280x720 frame with the
