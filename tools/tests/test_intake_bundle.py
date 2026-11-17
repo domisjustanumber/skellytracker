@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 import subprocess
+import types
 from pathlib import Path
 
 import intake_bundle as ib
@@ -1375,11 +1376,82 @@ def test_the_static_check_passes_a_clean_module_and_finds_its_functions(tmp_path
         ("import cv2\n\ndef run(p, i):\n    cv2.CascadeClassifier_convert('a', 'b')\n", "uses the attribute CascadeClassifier_convert"),
         ("import cv2\n\ndef run(p, i):\n    cv2.data.haarcascades\n", "uses the attribute haarcascades"),
         ("import cv2\n\ndef run(p, i):\n    cv2.FileStorage('x', 0)\n", "uses the attribute FileStorage"),
+        # OpenCV 5 adds model loaders. Other names open a device, a window, a thread or a native library.
+        ("import cv2\n\ndef run(p, i):\n    return cv2.DISK_create('m.onnx')\n", "uses the attribute DISK_create"),
+        ("import cv2\n\ndef run(p, i):\n    return cv2.DISK.create('m.onnx')\n", "uses the attribute DISK"),
+        ("import cv2\n\ndef run(p, i):\n    return cv2.DISK_createFromMemory(b'')\n", "uses the attribute DISK_createFromMemory"),
+        ("import cv2\n\ndef run(p, i):\n    return cv2.ALIKED_create('m.onnx')\n", "uses the attribute ALIKED_create"),
+        ("import cv2\n\ndef run(p, i):\n    return cv2.LightGlueMatcher_create('m')\n", "uses the attribute LightGlueMatcher_create"),
+        ("import cv2\n\ndef run(p, i):\n    return cv2.LightGlueMatcher_createFromMemory(b'')\n",
+         "uses the attribute LightGlueMatcher_createFromMemory"),
+        ("import cv2\n\ndef run(p, i):\n    return cv2.dpm.DPMDetector.create(['m.xml'])\n", "uses the attribute DPMDetector"),
+        ("import cv2\n\ndef run(p, i):\n    return cv2.face.getFacesHAAR(i['x'], 'c.xml')\n", "uses the attribute getFacesHAAR"),
+        ("import cv2\n\ndef run(p, i):\n    return cv2.quality.QualityBRISQUE_create('m', 'r')\n",
+         "uses the attribute QualityBRISQUE_create"),
+        ("import cv2\n\ndef run(p, i):\n    return cv2.stereo_QuasiDenseStereo.create((1, 1), 'p')\n",
+         "uses the attribute stereo_QuasiDenseStereo"),
+        ("import cv2\n\ndef run(p, i):\n    return cv2.xphoto.createLearningBasedWB('m')\n", "uses the attribute createLearningBasedWB"),
+        ("import cv2\n\ndef run(p, i):\n    return cv2.ximgproc.createStructuredEdgeDetection('m')\n",
+         "uses the attribute createStructuredEdgeDetection"),
+        ("import cv2\n\ndef run(p, i):\n    cv2.ANNIndex_create(2).setOnDiskBuild('f')\n", "uses the attribute setOnDiskBuild"),
+        ("import cv2\n\ndef run(p, i):\n    cv2.saliency.ObjectnessBING_create().setTrainingPath('d')\n",
+         "uses the attribute setTrainingPath"),
+        ("import cv2\n\ndef run(p, i):\n    return cv2.FontFace('f.ttf')\n", "uses the attribute FontFace"),
+        ("import cv2\n\ndef run(p, i):\n    return cv2.imdecode(i['b'], 1)\n", "uses the attribute imdecode"),
+        ("import cv2\n\ndef run(p, i):\n    cv2.bootstrap()\n", "uses the attribute bootstrap"),
+        ("import cv2\n\ndef run(p, i):\n    cv2.cuda.createGpuMatFromCudaMemory(1, 1, 0, 0)\n", "uses the attribute cuda"),
+        ("import cv2\n\ndef run(p, i):\n    cv2.ocl.setUseOpenCL(True)\n", "uses the attribute ocl"),
+        ("import cv2\n\ndef run(p, i):\n    cv2.parallel.setParallelForBackend('x')\n", "uses the attribute setParallelForBackend"),
+        ("import cv2\n\ndef run(p, i):\n    return cv2.videoio_registry.getBackends()\n", "uses the attribute videoio_registry"),
+        ("import cv2\n\ndef run(p, i):\n    return cv2.bioinspired.Retina_create((1, 1))\n", "uses the attribute bioinspired"),
+        ("import cv2\n\ndef run(p, i):\n    cv2.imshow('w', i['x'])\n", "uses the attribute imshow"),
+        ("import cv2\n\ndef run(p, i):\n    cv2.waitKey(0)\n", "uses the attribute waitKey"),
     ],
 )
 def test_the_static_check_finds_each_kind_of_finding(tmp_path: Path, text: str, finding: str) -> None:
     findings = reference_findings(tmp_path, text)
     assert any(finding in f for f in findings), findings
+
+
+# The cv2 names that the static check allows and that have a parameter name of RISKY_PARAMETER.
+# Each one was reviewed on opencv-contrib-python 5.0.0.93: it only computes.
+REVIEWED_CV2_NAMES = frozenset({
+    "applyImageFeatures", "blendLinear", "calibrateMultiview", "calibrateMultiviewExtended", "drawContours",
+    "getFontScaleFromHeight", "getTextSize", "grabCut", "matchesGraphAsString", "putText", "registerCameras",
+    "registerCamerasExtended", "setMaxBufferSize", "setModelIter", "setWeightCoeff", "setWeights", "setWeightsList",
+})
+RISKY_PARAMETER = re.compile(
+    r"(?i)file|path|dir|model|url|uri|xml|onnx|proto|weights|config|buffer|memory|address|cascade|font"
+)
+
+
+def test_no_unreviewed_cv2_name_takes_a_path_or_a_model() -> None:
+    """Walk each cv2 module and class that the check allows. A new name with a risky parameter fails.
+
+    Review each new name at an OpenCV release: refuse it in `CV2_FILE_PREFIX`, or add it to
+    `REVIEWED_CV2_NAMES`. The walk reads only the signature lines of the docstrings.
+    """
+    cv2 = pytest.importorskip("cv2")
+    found, seen, queue = set(), set(), [cv2]
+    while queue:
+        owner = queue.pop()
+        if id(owner) in seen:
+            continue
+        seen.add(id(owner))
+        for name in dir(owner):
+            if name.startswith("__") or ib._bad_name(name):
+                continue
+            try:
+                value = getattr(owner, name)
+            except Exception:  # noqa: BLE001, S112 - a property of the class itself can raise
+                continue
+            doc = (getattr(value, "__doc__", None) or "") if callable(value) else ""
+            if any(RISKY_PARAMETER.search(s) for s in re.findall(r"^\s*[\w.]+\((.*?)\)\s*->", doc, re.MULTILINE)):
+                found.add(name)
+            module = getattr(value, "__name__", "") if isinstance(value, types.ModuleType) else None
+            if (module or "").startswith("cv2") or (isinstance(value, type) and (value.__module__ or "").startswith("cv2")):
+                queue.append(value)
+    assert sorted(found - REVIEWED_CV2_NAMES) == []
 
 
 def test_the_static_check_allows_onnx_only_in_the_profile_module(tmp_path: Path) -> None:

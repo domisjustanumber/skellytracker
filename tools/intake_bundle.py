@@ -993,11 +993,20 @@ FILE_NAMES = frozenset({
 })
 FILE_PREFIX = re.compile(r"^(load|save|read|write(?!able$)|dump|imread|imwrite)|_(load|save)", re.IGNORECASE)
 # The OpenCV modules, classes and factories that load a model or a data file, also as the flat
-# `dnn_*` and `<module>_*` aliases of opencv-contrib.
+# `dnn_*` and `<module>_*` aliases of opencv-contrib. The names after `haveImage` also decode bytes
+# with an image codec, or open a device, a window, a thread or a native library. At each OpenCV
+# release, `test_no_unreviewed_cv2_name_takes_a_path_or_a_model` names the new names to review.
 CV2_FILE_PREFIX = re.compile(
     r"^(dnn|Face(Detector|Recognizer)|face_|(Base)?CascadeClassifier|haarcascade|HOGDescriptor|Tracker|legacy_"
     r"|rapid_|text(_|$)|wechat_qrcode|barcode|datasets|gapi|ml(_|$)|dpm_|linemod_|mcc_|ppf_match"
-    r"|IStreamReader|utils(_|$)|File(Node|Storage)|Video(Capture|Writer)|samples|haveImage)"
+    r"|IStreamReader|utils(_|$)|File(Node|Storage)|Video(Capture|Writer)|samples|haveImage"
+    r"|DISK|ALIKED|LightGlueMatcher|createFromMemory|DPMDetector|getFacesHAAR|(quality_)?QualityBRISQUE"
+    r"|(stereo_)?QuasiDenseStereo|createLearningBasedWB|createStructuredEdgeDetection|setOnDiskBuild|setBBResDir"
+    r"|setTrainingPath|setParallelForBackend|FontFace|im(de|en)code|bootstrap$"
+    r"|(bioinspired|cuda|ocl|ogl|videoio_registry)(_|$)"
+    r"|imshow|namedWindow|waitKey|pollKey|selectROI|startWindowThread|setMouseCallback|create(Trackbar|Button)"
+    r"|destroy(All)?Window|moveWindow|resizeWindow|(get|set)WindowProperty|setWindowTitle|getWindowImageRect"
+    r"|display(Overlay|StatusBar)|addText|(get|set)Trackbar|currentUIFramework)"
 )
 SECTION_MODULE = re.compile(r"^(format|common|pre|post|node)_[a-z0-9_]*[a-z0-9]$")
 SAFE_DUNDERS = frozenset({"__name__", "__doc__", "__init__", "__post_init__", "__all__", "__main__"})
