@@ -3,6 +3,12 @@
     "BoxesFromPointsNode": {
       "additionalProperties": false,
       "properties": {
+        "description": {
+          "default": "",
+          "description": "Text for people about the node. It can have more than one line.",
+          "title": "Description",
+          "type": "string"
+        },
         "id": {
           "description": "The node id. `pipeline` and `frame` are reserved.",
           "pattern": "^[a-z][a-z0-9_-]*$",
@@ -239,6 +245,12 @@
     "ConcatNode": {
       "additionalProperties": false,
       "properties": {
+        "description": {
+          "default": "",
+          "description": "Text for people about the node. It can have more than one line.",
+          "title": "Description",
+          "type": "string"
+        },
         "id": {
           "description": "The node id. `pipeline` and `frame` are reserved.",
           "pattern": "^[a-z][a-z0-9_-]*$",
@@ -273,6 +285,12 @@
     "FirstOfNode": {
       "additionalProperties": false,
       "properties": {
+        "description": {
+          "default": "",
+          "description": "Text for people about the node. It can have more than one line.",
+          "title": "Description",
+          "type": "string"
+        },
         "id": {
           "description": "The node id. `pipeline` and `frame` are reserved.",
           "pattern": "^[a-z][a-z0-9_-]*$",
@@ -399,6 +417,12 @@
     "GateNode": {
       "additionalProperties": false,
       "properties": {
+        "description": {
+          "default": "",
+          "description": "Text for people about the node. It can have more than one line.",
+          "title": "Description",
+          "type": "string"
+        },
         "id": {
           "description": "The node id. `pipeline` and `frame` are reserved.",
           "pattern": "^[a-z][a-z0-9_-]*$",
@@ -471,6 +495,12 @@
     "HoldBoxesNode": {
       "additionalProperties": false,
       "properties": {
+        "description": {
+          "default": "",
+          "description": "Text for people about the node. It can have more than one line.",
+          "title": "Description",
+          "type": "string"
+        },
         "id": {
           "description": "The node id. `pipeline` and `frame` are reserved.",
           "pattern": "^[a-z][a-z0-9_-]*$",
@@ -569,6 +599,12 @@
     "MediapipeTasksNode": {
       "additionalProperties": false,
       "properties": {
+        "description": {
+          "default": "",
+          "description": "Text for people about the node. It can have more than one line.",
+          "title": "Description",
+          "type": "string"
+        },
         "id": {
           "description": "The node id. `pipeline` and `frame` are reserved.",
           "pattern": "^[a-z][a-z0-9_-]*$",
@@ -678,6 +714,12 @@
     "MergeNode": {
       "additionalProperties": false,
       "properties": {
+        "description": {
+          "default": "",
+          "description": "Text for people about the node. It can have more than one line.",
+          "title": "Description",
+          "type": "string"
+        },
         "id": {
           "description": "The node id. `pipeline` and `frame` are reserved.",
           "pattern": "^[a-z][a-z0-9_-]*$",
@@ -767,6 +809,12 @@
     "OnnxModelNode": {
       "additionalProperties": false,
       "properties": {
+        "description": {
+          "default": "",
+          "description": "Text for people about the node. It can have more than one line.",
+          "title": "Description",
+          "type": "string"
+        },
         "id": {
           "description": "The node id. `pipeline` and `frame` are reserved.",
           "pattern": "^[a-z][a-z0-9_-]*$",
@@ -903,6 +951,12 @@
     "RedetectTriggerNode": {
       "additionalProperties": false,
       "properties": {
+        "description": {
+          "default": "",
+          "description": "Text for people about the node. It can have more than one line.",
+          "title": "Description",
+          "type": "string"
+        },
         "id": {
           "description": "The node id. `pipeline` and `frame` are reserved.",
           "pattern": "^[a-z][a-z0-9_-]*$",
@@ -962,6 +1016,12 @@
     "SmoothBoxesNode": {
       "additionalProperties": false,
       "properties": {
+        "description": {
+          "default": "",
+          "description": "Text for people about the node. It can have more than one line.",
+          "title": "Description",
+          "type": "string"
+        },
         "id": {
           "description": "The node id. `pipeline` and `frame` are reserved.",
           "pattern": "^[a-z][a-z0-9_-]*$",
@@ -1060,6 +1120,12 @@
     "SmoothKeypointsNode": {
       "additionalProperties": false,
       "properties": {
+        "description": {
+          "default": "",
+          "description": "Text for people about the node. It can have more than one line.",
+          "title": "Description",
+          "type": "string"
+        },
         "id": {
           "description": "The node id. `pipeline` and `frame` are reserved.",
           "pattern": "^[a-z][a-z0-9_-]*$",
@@ -1272,7 +1338,7 @@
   "properties": {
     "description": {
       "default": "",
-      "description": "A short text for people.",
+      "description": "Text for people about the pipeline. It can have more than one line.",
       "title": "Description",
       "type": "string"
     },

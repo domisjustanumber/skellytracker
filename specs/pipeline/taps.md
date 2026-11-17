@@ -53,7 +53,7 @@ The fields of `tap.json`:
 | `point_names` | The point names of a `keypoints` port, else null. |
 | `class_names` | The class names of a `boxes` port, as the output schema gives them, else null. |
 | `geometry` | The geometry of a `keypoints` port, else null. |
-| `upstream_sha256` | The SHA-256 of the canonical JSON ([Timing](timing.md#behaviour) item 5) of the list of the resolved configs of the tapped node and of each node upstream of it, also through `@prev` inputs, sorted by node id. A resolved config is the item of the node in `PipelineConfig.model_dump(mode="json")`. |
+| `upstream_sha256` | The SHA-256 of the canonical JSON ([Timing](timing.md#behaviour) item 5) of the list of the resolved configs of the tapped node and of each node upstream of it, also through `@prev` inputs, sorted by node id. A resolved config is the item of the node in `PipelineConfig.model_dump(mode="json")`, without its `description` ([ADR-2RWC](../../decisions/entries/2RWC-one-boxes-port-type-and-node-descriptions.md)). |
 | `nodes` | The node items of the timing header ([Timing](timing.md#fields)) of the tapped node and its upstream nodes, each with `artifact_sha256`. |
 | `image_list_sha256` | The hash of the image list ([Timing](timing.md#behaviour) item 6), or null. |
 | `camera_ids` | The camera ids of the run. |

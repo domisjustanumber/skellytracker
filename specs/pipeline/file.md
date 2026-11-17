@@ -23,7 +23,7 @@ A **name** is a string that matches `^[a-z][a-z0-9_-]*$`.
 | `source` | mapping | yes | Who made the file, as the sidecar [`source`](../model-sidecar/common/identity.md#fields): `{name, version}`, for example `{name: skellytracker, version: "2.0.0"}`. The key of the pipeline is `<pipeline_id>@<source.name>`. |
 | `source.name` | string | yes | The name of the source. It matches `^[a-z0-9]+(-[a-z0-9]+)*$`, as `source.name` of a sidecar. |
 | `source.version` | string | yes | The version of the file. The catalog compares versions in PEP 440 order. |
-| `description` | string | no | A short text for people. Default: empty. |
+| `description` | string | no | Text for people about the pipeline. It can have more than one line. Default: empty ([ADR-2RWC](../../decisions/entries/2RWC-one-boxes-port-type-and-node-descriptions.md)). |
 | `nodes` | array | yes | The nodes of the graph, in any order. [Graph](graph.md) gives the node fields. |
 | `outputs` | mapping | yes | Public output name to port. [Outputs](outputs.md) gives the fields. |
 | `instrumentation` | mapping | no | The keys `timing_spans` ([Timing](timing.md); [ADR-9PDQ](../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 3) and `taps` ([Taps](taps.md)). Default: no timing span and no tap. |

@@ -17,6 +17,7 @@ The graph of a pipeline is a flat list of nodes. Each node has an id, a type and
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `nodes[].id` | name | yes | The node id. It is unique in the file. `pipeline` and `frame` are reserved. |
+| `nodes[].description` | string | no | Text for people about the node. It can have more than one line. Default: empty. The run does not read it ([ADR-2RWC](../../decisions/entries/2RWC-one-boxes-port-type-and-node-descriptions.md)). |
 | `nodes[].type` | enum | yes | A node type of the [section map](README.md#section-map): `onnx_model`, `mediapipe_tasks`, `boxes_from_points`, `hold_boxes`, `gate`, `first_of`, `concat`, `merge`, `smooth_keypoints`, `smooth_boxes` or `redetect_trigger`. |
 | `nodes[].inputs` | mapping or list | see the node section | For most types, a mapping of input name to port reference. For `first_of` and `concat`, a list of port references. The node section gives the input names and the required inputs. |
 | `nodes[].params` | mapping | see the node section | The params of the node type. The params table of the node section gives each param. A node type with a required param needs `params`. |

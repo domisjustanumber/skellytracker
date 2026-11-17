@@ -46,12 +46,15 @@ def test_canonical_json_bytes():
 
 def test_pipeline_sha256_hashes_only_schema_version_nodes_and_outputs():
     cfg = config()
-    dump = cfg.model_dump(mode="json")
+    dump = cfg.model_dump(mode="json", exclude={"nodes": {"__all__": {"description"}}})
     expected = hashlib.sha256(timing.canonical_json({key: dump[key] for key in ("schema_version", "nodes", "outputs")})).hexdigest()
     assert timing.pipeline_sha256(cfg) == expected
     same = config(pipeline_id="other", description="text", source={"name": "other", "version": "2"}, instrumentation={})
     assert timing.pipeline_sha256(same) == expected
     assert timing.pipeline_sha256(config(outputs={"wholebody": "wholebody.keypoints"})) != expected
+    described = copy.deepcopy(CONFIG)
+    described["nodes"][0]["description"] = "Text for people.\nThe run does not read it."
+    assert timing.pipeline_sha256(PipelineConfig.model_validate(described)) == expected  # a node description is not in a hash
 
 
 def test_pipeline_sha256_uses_the_defaults_of_the_spec():
@@ -62,7 +65,7 @@ def test_pipeline_sha256_uses_the_defaults_of_the_spec():
 
 def test_upstream_sha256_holds_the_upstream_nodes_also_through_prev():
     cfg = config()
-    nodes = {node["id"]: node for node in cfg.model_dump(mode="json")["nodes"]}
+    nodes = {node["id"]: node for node in cfg.model_dump(mode="json", exclude={"nodes": {"__all__": {"description"}}})["nodes"]}
     upstream = [nodes[node_id] for node_id in ("crop", "person", "trigger", "wholebody")]  # sorted by node id
     expected = hashlib.sha256(timing.canonical_json(upstream)).hexdigest()
     # `person` reads `trigger`, and `trigger` reads `wholebody` through `@prev`.
@@ -70,6 +73,8 @@ def test_upstream_sha256_holds_the_upstream_nodes_also_through_prev():
     assert timing.upstream_sha256(cfg, "hands") == hashlib.sha256(timing.canonical_json([nodes["hands"]])).hexdigest()
     changed = copy.deepcopy(CONFIG)
     changed["nodes"][4]["params"]["max_instances"] = 2  # `hands` is not upstream of `person`
+    assert timing.upstream_sha256(PipelineConfig.model_validate(changed), "person") == expected
+    changed["nodes"][0]["description"] = "a new text"
     assert timing.upstream_sha256(PipelineConfig.model_validate(changed), "person") == expected
     with pytest.raises(ValueError, match="names no node"):
         timing.upstream_sha256(cfg, "frame")

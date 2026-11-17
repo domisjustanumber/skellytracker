@@ -602,6 +602,7 @@ BY_TYPE: dict[str, type[NodeType]] = {node.type: node for node in NODE_TYPES}
 
 class NodeBase(Strict):
     id: str = Field(description="The node id. `pipeline` and `frame` are reserved.", pattern=NAME)
+    description: str = Field("", description="Text for people about the node. It can have more than one line.")
     inputs: dict[str, str] = Field(
         default_factory=dict, description="Input name to `<node>.<port>`, with an optional `@prev`."
     )
@@ -703,7 +704,7 @@ class PipelineConfig(Strict):
     schema_version: str = Field(description="The pipeline spec version, in SemVer, in quotes.", pattern=SEMVER)
     pipeline_id: str = Field(description="The id of the pipeline. The file name is `<pipeline_id>.pipeline.yaml`.", pattern=NAME)
     source: Source = Field(description="The source of the file, as the sidecar `source`: `{name, version}`.")
-    description: str = Field("", description="A short text for people.")
+    description: str = Field("", description="Text for people about the pipeline. It can have more than one line.")
     nodes: list[NodeConfig] = Field(description="The nodes, in any order.", min_length=1)
     outputs: dict[str, str] = Field(description="Public output name to `<node>.<port>`, with no `@prev`.", min_length=1)
     instrumentation: Instrumentation = Field(default_factory=Instrumentation, description="Timing spans and taps.")

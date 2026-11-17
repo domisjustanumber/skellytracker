@@ -172,6 +172,14 @@ def test_the_export_as_written_holds_only_what_the_config_gives_and_loads_again(
     assert json.loads(json.dumps(written)) == written  # only JSON types
 
 
+def test_the_export_as_written_keeps_a_description_of_the_pipeline_and_of_a_node() -> None:
+    data = {**BASE, "description": "Two lines\nfor people.", "nodes": [{**BASE["nodes"][0], "description": "The landmarker."}, *BASE["nodes"][1:]]}
+    written = export_pipeline(load_pipeline(data))
+    assert written == data and written["nodes"][0]["description"] == "The landmarker."
+    assert "description" not in written["nodes"][1]  # an empty default is not written
+    assert export_pipeline(load_pipeline(BASE), resolved=True)["nodes"][1]["description"] == ""
+
+
 def test_the_resolved_export_holds_each_param_with_its_default() -> None:
     resolved = export_pipeline(load_pipeline(BASE), resolved=True)
     assert resolved["description"] == "" and resolved["instrumentation"] == {"timing_spans": [], "taps": []}

@@ -57,17 +57,17 @@ def _sha256(value: Any) -> str:
 
 
 def pipeline_sha256(config: PipelineConfig) -> str:
-    """Return the hash of `schema_version`, `nodes` and `outputs` of the config, with the defaults."""
-    dump = config.model_dump(mode="json")
+    """Return the hash of `schema_version`, `nodes` and `outputs` of the config, with the defaults and with no node `description`."""
+    dump = config.model_dump(mode="json", exclude={"nodes": {"__all__": {"description"}}})
     return _sha256({key: dump[key] for key in ("schema_version", "nodes", "outputs")})
 
 
 def upstream_sha256(config: PipelineConfig, node_id: str) -> str:
     """Return the hash of the configs of `node_id` and of each node upstream of it, sorted by node id.
 
-    An `@prev` input also counts as upstream.
+    An `@prev` input also counts as upstream. A node `description` is not in the hash.
     """
-    nodes = {node["id"]: node for node in config.model_dump(mode="json")["nodes"]}
+    nodes = {node["id"]: node for node in config.model_dump(mode="json", exclude={"nodes": {"__all__": {"description"}}})["nodes"]}
     if node_id not in nodes:
         raise ValueError(f"{node_id!r} names no node")
     found: set[str] = set()

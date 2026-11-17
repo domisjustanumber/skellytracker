@@ -31,8 +31,9 @@
    box as its ROI.
 8. **Descriptions.** The pipeline `description` is optional text, with one or more lines. Each node
    has an optional `description`, beside `id`, `type`, `inputs` and `params`. The default is empty.
-   `export_pipeline(resolved=False)` keeps it. The built-ins and the examples put the text of their
-   YAML comments in these fields.
+   `export_pipeline(resolved=False)` keeps it. No hash holds a node `description`, because the run
+   does not read it. The built-ins and the examples put the text of their YAML comments in these
+   fields.
 
 ## Reason
 
