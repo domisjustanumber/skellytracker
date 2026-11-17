@@ -184,6 +184,11 @@ A skellytracker session must land it first, with the skill
 5. If the change completes an item of the [implementation plan](../../../specs/sidecar-implementation-plan.md), delete its bullet
    and add one line to the status of its stage, in the same PR
    ([ADR-5WKW](../../../decisions/entries/5WKW-implementation-work-in-the-plan.md)).
+6. Examine each decision entry that the work implements. Write each rule of the entry that no absorb
+   document states: a rule of the API in the docstring of the public module, and a spec rule in its
+   spec section. Then absorb the entry in the last commit of the commit group
+   ([Rules](../../../decisions/README.md#rules);
+   [ADR-W823](../../../decisions/entries/W823-absorb-in-the-commit-group-that-states-the-rules.md)).
 
 ### Step 8: Check and stop
 
