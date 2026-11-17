@@ -6,4 +6,5 @@ native library into the import graph.
 """
 from typing import Literal
 
-ExecutionProviderName = Literal["coreml", "cpu"]
+# "cuda": stage 2.4 of the implementation plan deletes this bridge with the old run code (ADR-92BE).
+ExecutionProviderName = Literal["coreml", "cpu", "cuda"]

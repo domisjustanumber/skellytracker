@@ -1564,6 +1564,9 @@ through the model addition workflow. The stages below are the work of skellytrac
   ([ADR-NHM3](../decisions/entries/NHM3-phases-to-the-exporter-checkpoint.md) item 7;
   [ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 5;
   [ADR-23F5](../decisions/entries/23F5-landmark-schema-registry.md) item 7).
+- Also delete `core/tracker/task_events.py`, the `event_collector` argument of `Tracker.process_batch`
+  and the `cuda` bridge of the old session code
+  ([ADR-92BE](../decisions/entries/92BE-legacy-path-for-the-freemocap-metrics-stage.md)).
 - charuco and aruco become plain classes with their own frozen config dataclass and `detect(image)`.
   They subclass no base
   ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test-and-session-code.md) item 4). The

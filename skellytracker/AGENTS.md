@@ -86,11 +86,16 @@ The sidecar paths are under `core/detectors/`.
 - A provider that is not available raises `SessionCreationError`. There is no CPU fallback.
 
 The four items above are the old session code in `core/sessions/`. Do not change it. Stage 2.4 of
-the implementation plan deletes it. New code builds each session with `eps.build_session()`:
+the implementation plan deletes it. New code builds each session with `eps.build_session()`.
+Exception: the legacy path of the freemocap metrics stage. `OnnxSessionConfig.execution_provider`
+also takes `cuda`, and `OnnxSession.create` then builds each model with `eps.build_session()` on the
+`cuda` pack, with no fallback. The old session code has no other GPU key, and stage 2.4 deletes this
+bridge ([ADR-92BE](../decisions/entries/92BE-legacy-path-for-the-freemocap-metrics-stage.md)).
 
 - New code takes the EP as `execution_provider`, a concrete key of the EP catalog: `trt-rtx`, `cuda`,
   `coreml` or `cpu`. No environment variable selects the EP or the device.
 - `eps.build_session()` serves only new code. Do not connect it to `OnnxSession` or `Tracker.create`.
+  The `cuda` bridge of the exception above is the only connection.
 - A GPU EP is a plugin EP pack in the EP store. Do not add a GPU package to `pyproject.toml`.
 - `core/eps/ep_catalog.yaml` is written by hand. Only `uv run python tools/ep_catalog.py --refresh`
   writes `ep_lock.yaml`, and it uses the network. Run it after each change of the catalog.

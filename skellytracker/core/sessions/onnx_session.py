@@ -107,6 +107,8 @@ class OnnxSessionConfig(SessionConfig):
         (best available: coreml on macOS → cpu). When explicitly set,
         ``OnnxSession.create()`` raises ``SessionCreationError`` immediately if
         that provider is unavailable — there is no silent fallback.
+        ``"cuda"`` builds each model with ``eps.build_session()`` on the ``cuda``
+        pack, and its errors reach the caller (ADR-92BE; stage 2.4 deletes it).
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -142,6 +144,8 @@ class OnnxSession(Session):
 
         if config.execution_provider is None:
             active_provider = auto_detect_provider()
+        elif config.execution_provider == "cuda":  # stage 2.4 of the implementation plan deletes this bridge with the old run code (ADR-92BE)
+            active_provider = "cuda"
         else:
             require_provider(
                 config.execution_provider
@@ -158,17 +162,23 @@ class OnnxSession(Session):
             if spec.prepare is not None:
                 model_path = spec.prepare(model_path)
 
-            try:
-                ort_session = build_tuned_ort_session(
-                    onnx_path=str(model_path),
-                    provider=active_provider,
-                    log_label=spec.name,
-                    coreml_options=spec.coreml_options,
-                )
-            except Exception as exc:
-                raise SessionCreationError(
-                    f"Failed to load model {spec.name!r} with provider={active_provider!r}: {exc}"
-                ) from exc
+            if active_provider == "cuda":
+                # Stage 2.4 of the implementation plan deletes this bridge with the old run code (ADR-92BE).
+                from skellytracker.core.eps import build_session
+
+                ort_session, _ = build_session(model_path, execution_provider="cuda")  # its errors reach the caller
+            else:
+                try:
+                    ort_session = build_tuned_ort_session(
+                        onnx_path=str(model_path),
+                        provider=active_provider,
+                        log_label=spec.name,
+                        coreml_options=spec.coreml_options,
+                    )
+                except Exception as exc:
+                    raise SessionCreationError(
+                        f"Failed to load model {spec.name!r} with provider={active_provider!r}: {exc}"
+                    ) from exc
             sessions[spec.name] = ort_session
             logger.info(
                 "OnnxSession: loaded model %r (provider=%r)",
