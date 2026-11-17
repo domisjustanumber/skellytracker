@@ -1,6 +1,6 @@
 # RH69 — The rebuild puts the repository infrastructure in `dom/52-process`
 
-**Status:** accepted, 2026-11-12 (user).
+**Status:** done, 2026-11-17 (absorb pass, user; PR: pending).
 
 ## Decision
 
