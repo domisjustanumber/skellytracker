@@ -18,6 +18,7 @@ from skellytracker.core.detectors.calibration_detectors.charuco.charuco_detector
     _squeeze_aruco,
     _squeeze_charuco,
 )
+from skellytracker.core.detectors.metadata import EmptyMetadata
 from skellytracker.core.sessions.cpu_session import CpuSession, CpuSessionConfig
 
 
@@ -221,3 +222,19 @@ class TestSqueezeHelpers:
         assert squeezed_ids.ndim == 1
         assert list(squeezed_ids) == [7]
         assert squeezed_corners.shape == (1, 4, 2)
+
+
+@pytest.mark.parametrize("n", [1, 3])
+def test_postprocess_gives_the_same_keypoints_for_the_opencv_4_and_5_shapes(detector, n):
+    """OpenCV 4 gives ids (N, 1) and charuco corners (N, 1, 2). OpenCV 5 gives ids (N,) and corners (N, 2)."""
+    rng = np.random.default_rng(7)
+    corner_ids = np.array([0, 4, 9][:n], dtype=np.int32)
+    corners = rng.uniform(0, 640, (n, 2)).astype(np.float32)
+    marker_ids = np.array(detector._aruco_ids[:n], dtype=np.int32)
+    markers = tuple(rng.uniform(0, 640, (1, 4, 2)).astype(np.float32) for _ in range(n))
+    old = detector.postprocess((corners[:, None, :], corner_ids[:, None], markers, marker_ids[:, None]), EmptyMetadata())
+    new = detector.postprocess((corners, corner_ids, markers, marker_ids), EmptyMetadata())
+    np.testing.assert_array_equal(old.xyz, new.xyz)
+    np.testing.assert_array_equal(old.visibility, new.visibility)
+    assert np.count_nonzero(new.visibility) == n + 4 * n
+    assert new.xyz[corner_ids, :2] == pytest.approx(corners)
