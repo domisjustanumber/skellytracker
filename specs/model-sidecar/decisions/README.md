@@ -11,7 +11,15 @@ entry, use the root [template.md](../../../decisions/template.md). Read this fil
 
 ### Active
 
-These entries are `accepted` or `evidence`.
+These entries are `accepted`.
+
+| # | Decision | Status |
+|---|----------|--------|
+
+### Evidence
+
+These entries are `evidence`: measurements. They are not in the read path. Scan these rows before
+you make a measurement ([Rules](../../../decisions/README.md#rules)).
 
 | # | Decision | Status |
 |---|----------|--------|

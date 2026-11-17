@@ -74,6 +74,7 @@ COPIES = (
         (
             ("(decisions z934 and gtwq).", f"{DECISION_0001}."),
             ("(decision QPS7).", f"{DECISION_0001}."),
+            ("(decision J9QT).", f"{DECISION_0001}."),
             ("(decision NB91).", f"{DECISION_0001}."),
             ("(decisions Z05A and QPS7).", f"{DECISION_0001}."),
             ("random IDs (decision\ngtwq).", "random IDs (decision\n0001)."),
@@ -98,7 +99,11 @@ COPIES = (
     Copy(
         "tools/tests/test_decision_log.py",
         "tools/tests/test_decision_log.py",
-        (("(decision z934).", f"{DECISION_0001}."), ("(decision Z05A).", f"{DECISION_0001}.")),
+        (
+            ("(decision z934).", f"{DECISION_0001}."),
+            ("(decision Z05A).", f"{DECISION_0001}."),
+            ("(decision J9QT).", f"{DECISION_0001}."),
+        ),
     ),
     Copy(
         "tools/check_private_data.py",

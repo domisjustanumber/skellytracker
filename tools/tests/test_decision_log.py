@@ -34,6 +34,12 @@ INDEX = """# Decision log
 |---|----------|---------|--------|
 {proposed}
 
+### Evidence
+
+| # | Decision | Status |
+|---|----------|--------|
+{evidence}
+
 ## Open work
 """
 
@@ -54,11 +60,12 @@ def make_log(
     entries: dict[str, str] | None = None,
     proposed: str = "",
     log: Path = cdl.LOG_DIR,
+    evidence: str = "",
 ) -> Path:
     log_dir = tmp_path / log
     log_dir.mkdir(parents=True)
     (log_dir / "README.md").write_text(
-        INDEX.format(active=active, proposed=proposed), encoding="utf-8"
+        INDEX.format(active=active, proposed=proposed, evidence=evidence), encoding="utf-8"
     )
     (log_dir / cdl.HISTORICAL).write_text(HISTORY.format(historical=historical), encoding="utf-8")
     (log_dir / cdl.ENTRIES).mkdir()
@@ -190,6 +197,28 @@ def test_used_evidence_is_historical(tmp_path: Path) -> None:
     )
     assert cdl.check(root) == [
         "README.md:10: status 'evidence; used by 0001' must not be in the Active table"
+    ]
+
+
+def test_evidence_entries_are_in_the_evidence_table_and_not_in_the_read_path(tmp_path: Path) -> None:
+    """An `evidence` entry has its row in the Evidence table, off the read path (decision J9QT)."""
+    root = make_log(
+        tmp_path,
+        active=row(1, "accepted"),
+        evidence=row(2, "evidence", "y"),
+        entries={"0001-x.md": "a" * 100, "0002-y.md": "b" * 1000},
+    )
+    assert cdl.check(root) == []
+    assert cdl.read_path_size(root) == cdl.size(root / cdl.LOG_DIR / "README.md") + 100
+    root = make_log(
+        tmp_path / "wrong",
+        active=row(1, "evidence"),
+        evidence=row(2, "accepted", "y"),
+        entries={"0001-x.md": "", "0002-y.md": ""},
+    )
+    assert cdl.check(root) == [
+        "README.md:9: status 'evidence' must not be in the Active table",
+        "README.md:21: status 'accepted' must not be in the Evidence table",
     ]
 
 

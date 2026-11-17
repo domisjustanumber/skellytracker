@@ -19,7 +19,7 @@ decided entry changes only by the edits that the [Rules](#rules) allow. To write
 
 ### Active
 
-These entries are `accepted` or `evidence`.
+These entries are `accepted`.
 
 | # | Decision | Status |
 |---|----------|--------|
@@ -30,23 +30,31 @@ These entries are `accepted` or `evidence`.
 | [M2C6](entries/M2C6-exact-pins-and-one-python-patch-release.md) | Exact pins, no ranges; Python `==3.13.18`; `onnxruntime` 1.31 base dependency; GPU EPs only as CUDA 13 plugin packs; supersedes MWY9 | accepted |
 | [W5QD](entries/W5QD-pipeline-entries-consolidation.md) | Consolidation of the pipeline entries 7NY2, ZYS9, V7GZ and 0WTV: links to the pipeline spec, and the Python API names that it does not state | accepted |
 | [V6G2](entries/V6G2-implementation-stage.md) | The implementation stage starts at the rebuild of phase 0; the spec-build code and git rules end; the spec can still change through proposals | accepted |
-| [Z0CC](entries/Z0CC-exporter-coverage-measurements.md) | Exporter coverage measurements of 2026-10: RF-DETR graph checks, RTMDet AP of resize and NMS, COCO id and in-graph cap defects | evidence |
 | [246B](entries/246B-ep-catalog-store-and-install.md) | EP catalog and lock in the package; option allow-lists; one EP store; `urllib` download after a user action; no mirror; installer EP page | accepted |
 | [D8DH](entries/D8DH-sessions-errors-and-the-ready-rule.md) | `core/errors.py`; one exit-code table; an EP pack is ready when installed, current, registered and with a device; no EP variables | accepted |
 | [P1F3](entries/P1F3-hardware-probe-devices-and-multi-gpu.md) | Hardware probe fields; `free_vram`; `device_key`; default GPU by VRAM; a run splits its cameras across GPUs; no pre-Turing GPUs | accepted |
 | [W09C](entries/W09C-opencv-contrib-python.md) | `opencv-contrib-python` with an exact pin is the OpenCV package; no headless package | accepted |
 | [D3VP](entries/D3VP-ruff-0-17-with-the-old-rule-set.md) | `ruff==0.17.5` with the rule set of ruff 0.15; a review of the new default rules before the 2.0.0 release | accepted |
 | [Y753](entries/Y753-pipeline-templates-glue-vectors-and-taps-flag.md) | Pipeline templates without links; node work in stage 1.10; skellybench `--taps`; vectors for `first_of` and `concat` | accepted |
-| [X6S9](entries/X6S9-mediapipe-close-from-the-garbage-collector.md) | A MediaPipe landmarker closed by the garbage collector on its own worker thread hangs; the runner and the old detectors close on a new thread | evidence |
-| [0YYY](entries/0YYY-host-reader-costs.md) | Host reader costs: first `probe_host()` about 76 ms on Windows; the D3DKMT query joins a LUID to a bus id and finds the second DXGI adapter | evidence |
-| [73Q4](entries/73Q4-local-gpu-gate-of-the-ep-api.md) | Local GPU gate on an RTX 3070: L3 and sessions pass on `cuda` and `trt-rtx`; fp16 files have 0 CPU nodes, except 5 stale opset 11 RTMW files; frozen install ok | evidence |
-| [GPW6](entries/GPW6-model-gate-of-the-first-models.md) | Model gate of `yolox-person` and `rtmw-wholebody133` at the detector level: parity passes on the CPU EP, `cuda` and `trt-rtx`; batch conversion 0.01 s to 1.02 s | evidence |
-| [7E4Z](entries/7E4Z-box-parity-of-the-built-in-with-sfn26.md) | Box parity of `yolox-rtmw-wholebody` with the tracker of `sfn26`: recording script and fixture; test A passes on 200 frames; report B on the CPU EP and `cuda` | evidence |
 | [JHB3](entries/JHB3-keypoints-xy-and-z-and-image-width-and-height.md) | A `keypoints` value has `xy` and `z` only for `3d`, no `xyz`; no `by_track()`; the camera result has `image_width` and `image_height`, no `image_size` | accepted |
 | [8YXH](entries/8YXH-aruco-marker-threshold-and-charuco-corner-position.md) | The calibration detectors set `validBitIdThreshold` 0.5; no offset on the ChArUco corners of OpenCV 5; a test pins the corner position | accepted |
 | [4WR9](entries/4WR9-params-schema-in-the-node-catalog.md) | `NodeTypeInfo.params_schema` and `NodeTypeInfo.any_from`: the JSON Schema of the params and the inputs that type an `any` output, for an editor | accepted |
 | [92BE](entries/92BE-legacy-path-for-the-freemocap-metrics-stage.md) | Temporary legacy path for the freemocap metrics: old tracker task events; `cuda` bridge of `OnnxSession` to `eps.build_session()`; no TensorRT; deleted in 2.4 | accepted |
 | [9HTX](entries/9HTX-pipeline-node-and-port-redesign.md) | Pipeline redesign: a boolean `flag`, `run_if`, one image, an `outputs` block with three fixed keys, a `merge` with named inputs; design in the proposal | accepted |
+
+### Evidence
+
+These entries are `evidence`: measurements. They are not in the read path. Scan these rows before
+you make a measurement ([Rules](#rules)).
+
+| # | Decision | Status |
+|---|----------|--------|
+| [Z0CC](entries/Z0CC-exporter-coverage-measurements.md) | Exporter coverage measurements of 2026-10: RF-DETR graph checks, RTMDet AP of resize and NMS, COCO id and in-graph cap defects | evidence |
+| [X6S9](entries/X6S9-mediapipe-close-from-the-garbage-collector.md) | A MediaPipe landmarker closed by the garbage collector on its own worker thread hangs; the runner and the old detectors close on a new thread | evidence |
+| [0YYY](entries/0YYY-host-reader-costs.md) | Host reader costs: first `probe_host()` about 76 ms on Windows; the D3DKMT query joins a LUID to a bus id and finds the second DXGI adapter | evidence |
+| [73Q4](entries/73Q4-local-gpu-gate-of-the-ep-api.md) | Local GPU gate on an RTX 3070: L3 and sessions pass on `cuda` and `trt-rtx`; fp16 files have 0 CPU nodes, except 5 stale opset 11 RTMW files; frozen install ok | evidence |
+| [GPW6](entries/GPW6-model-gate-of-the-first-models.md) | Model gate of `yolox-person` and `rtmw-wholebody133` at the detector level: parity passes on the CPU EP, `cuda` and `trt-rtx`; batch conversion 0.01 s to 1.02 s | evidence |
+| [7E4Z](entries/7E4Z-box-parity-of-the-built-in-with-sfn26.md) | Box parity of `yolox-rtmw-wholebody` with the tracker of `sfn26`: recording script and fixture; test A passes on 200 frames; report B on the CPU EP and `cuda` | evidence |
 
 ### Proposed
 
@@ -68,8 +76,10 @@ implementation-stage work is in the [implementation plan](../specs/sidecar-imple
 
 ## Rules
 
-- Read the Active entries that apply to your task. Then you do not repeat a settled question or a
-  completed measurement. Read a Proposed entry only for spec work in its section, or when a skill
+- Read the Active entries that apply to your task. Then you do not repeat a settled question. Before
+  you make a measurement, scan the rows of the Evidence table of each log, and read the entries that
+  apply. Then you do not repeat a completed measurement. The Evidence entries are not in the read
+  path ([ADR-J9QT](entries/J9QT-evidence-table-off-the-read-path.md)). Read a Proposed entry only for spec work in its section, or when a skill
   tells you to. Read an entry of [historical.md](historical.md) only to find the reason for a
   decision ([ADR-Z05A](entries/Z05A-essential-decision-log-rules.md)).
 - The body of an entry that is not `proposed` changes only by four edits: a link or anchor repair, a

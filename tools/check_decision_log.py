@@ -9,8 +9,10 @@ Usage::
 
 The tool reads each decision log in ``LOG_DIRS`` under ROOT (default: the current directory). The
 first log, ``LOG_DIR``, is the root log. A module log is a folder of a module, for example
-``server/decisions``. Each log has the Active and Proposed tables in its ``README.md``, the
-Historical table in its ``historical.md`` and its entry files in ``ENTRIES`` (decision QPS7).
+``server/decisions``. Each log has the Active, Evidence and Proposed tables in its ``README.md``,
+the Historical table in its ``historical.md`` and its entry files in ``ENTRIES`` (decision QPS7). The
+Active table holds the ``accepted`` entries, and the Evidence table holds the ``evidence`` entries
+(decision J9QT).
 The labels of the root log have no prefix. The labels of a module log start with its folder. It reports:
 
 - a log folder with no ``README.md``;
@@ -33,7 +35,7 @@ The labels of the root log have no prefix. The labels of a module log start with
 
 It prints a warning, but does not fail, when the index, the open work or the read path is at 80% of
 its limit or more. The read path is ``README.md``, ``open-work.md`` and the Active entries of each
-log, with one limit for the total. The Proposed and Historical entries are not in it. The check
+log, with one limit for the total. The Evidence, Proposed and Historical entries are not in it. The check
 reads only the files. It does not run git.
 
 All logs share one ID space. An ID has 4 characters from ``ALPHABET``, Crockford base32 in upper
@@ -121,7 +123,8 @@ ID = "(?:[" + ALPHABET + "]{4}|[" + LETTERS.lower() + "][" + ALPHABET.lower() + 
 ABSORBED_TARGET = r"(?:\[[^\]]+\]\([^)\s]+\)|`[^`]+`)"
 ABSORBED = rf"absorbed into {ABSORBED_TARGET}(?:, {ABSORBED_TARGET})*"
 STATUS_FORMS = {
-    "Active": ("accepted", "evidence"),
+    "Active": ("accepted",),
+    "Evidence": ("evidence",),
     "Proposed": ("proposed",),
     "Historical": (
         rf"evidence; used by ({ID})",
@@ -131,7 +134,7 @@ STATUS_FORMS = {
         "done",
     ),
 }
-TABLE_FILES = {"Active": "README.md", "Proposed": "README.md", "Historical": HISTORICAL}
+TABLE_FILES = {"Active": "README.md", "Evidence": "README.md", "Proposed": "README.md", "Historical": HISTORICAL}
 SECTION = re.compile(r"`[a-z][a-z0-9_]*(?:\.[a-z0-9_]+)*`|none")
 NOT_DECIDED = ("proposed", "rejected")
 
