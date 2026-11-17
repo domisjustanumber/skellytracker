@@ -25,8 +25,12 @@ def compute_board_pose(
     """Estimate board pose from detected charuco corners via solvePnP.
 
     Returns (rotation_vector, translation_vector) or None if pose cannot be estimated.
-    Requires at least MINIMUM_CHARUCO_CORNERS_FOR_POSE detected corners.
+    Requires at least MINIMUM_CHARUCO_CORNERS_FOR_POSE detected corners with finite x and y.
     """
+    # OpenCV 5 solvePnP gives success and a zero pose for input that is not finite.
+    if not (np.isfinite(camera_matrix).all() and np.isfinite(distortion_coefficients).all()):
+        logger.warning("Cannot estimate board pose: the camera matrix or the distortion is not finite")
+        return None
     object_points, image_points = _collect_detected_charuco_points(keypoints, board_def)
 
     if object_points is None or len(object_points) < MINIMUM_CHARUCO_CORNERS_FOR_POSE:
@@ -76,7 +80,7 @@ def _collect_detected_charuco_points(
         if not keypoints.has_name(name):
             continue
         idx = keypoints.index_of(name)
-        if keypoints.visibility[idx] == 0.0 or np.isnan(keypoints.xyz[idx, 0]):
+        if keypoints.visibility[idx] == 0.0 or not np.isfinite(keypoints.xyz[idx, :2]).all():
             continue
         object_points_list.append(board_frame[corner_id])
         image_points_list.append(keypoints.xyz[idx, :2])

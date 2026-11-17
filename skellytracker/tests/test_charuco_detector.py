@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import cv2
 import numpy as np
 import pytest
 
+from skellytracker.core.data_primitives import Keypoints
 from skellytracker.core.detectors.calibration_detectors.charuco import (
     CharucoAnnotator,
     CharucoAnnotatorConfig,
@@ -105,6 +107,54 @@ class TestComputeBoardPose:
             rvec, tvec = result
             assert rvec.shape == (3,)
             assert tvec.shape == (3,)
+
+
+CAMERA = np.array([[1000.0, 0.0, 320.0], [0.0, 1000.0, 240.0], [0.0, 0.0, 1.0]])
+RVEC = np.array([0.1, -0.2, 0.05])
+TVEC = np.array([-100.0, -60.0, 1000.0])
+SIX_CORNERS = [0, 5, 7, 12, 18, 23]  # not on one line
+
+
+def projected_keypoints(board_def: CharucoBoardDefinition, corners: list[int]) -> Keypoints:
+    """The board corners in `corners` at the known pose `RVEC`, `TVEC`. The other points are not detected."""
+    image, _ = cv2.projectPoints(board_def.corner_positions_board_frame.astype(np.float64), RVEC, TVEC, CAMERA, np.zeros(5))
+    names = tuple(board_def.all_point_names)
+    xyz = np.full((len(names), 3), np.nan)
+    visibility = np.zeros(len(names))
+    xyz[corners, :2] = image.reshape(-1, 2)[corners]
+    xyz[corners, 2] = 0.0
+    visibility[corners] = 1.0
+    return Keypoints(names=names, xyz=xyz, visibility=visibility)
+
+
+def test_compute_board_pose_gives_the_known_pose(board_def):
+    for corners in (list(range(board_def.n_corners)), SIX_CORNERS):
+        rvec, tvec = compute_board_pose(projected_keypoints(board_def, corners), board_def, CAMERA, np.zeros(5))
+        assert rvec == pytest.approx(RVEC, rel=1e-4, abs=1e-4)
+        assert tvec == pytest.approx(TVEC, rel=1e-4, abs=1e-4)
+
+
+@pytest.mark.parametrize(("column", "value"), [(0, np.inf), (1, np.nan)], ids=["inf-x", "nan-y"])
+def test_compute_board_pose_drops_a_point_that_is_not_finite(board_def, column, value):
+    # OpenCV 5 solvePnP returns success with a zero pose for such input; OpenCV 4.12 returned NaN.
+    keypoints = projected_keypoints(board_def, SIX_CORNERS)
+    keypoints.xyz[SIX_CORNERS[0], column] = value
+    assert compute_board_pose(keypoints, board_def, CAMERA, np.zeros(5)) is None
+    keypoints = projected_keypoints(board_def, list(range(board_def.n_corners)))
+    keypoints.xyz[0, column] = value
+    rvec, tvec = compute_board_pose(keypoints, board_def, CAMERA, np.zeros(5))
+    assert rvec == pytest.approx(RVEC, rel=1e-4, abs=1e-4)
+    assert tvec == pytest.approx(TVEC, rel=1e-4, abs=1e-4)
+
+
+@pytest.mark.parametrize(
+    ("camera", "distortion"),
+    [(np.where(np.eye(3) > 0, np.nan, CAMERA), np.zeros(5)), (CAMERA, np.array([np.nan, 0.0, 0.0, 0.0, 0.0]))],
+    ids=["nan-camera-matrix", "nan-distortion"],
+)
+def test_compute_board_pose_refuses_camera_values_that_are_not_finite(board_def, camera, distortion):
+    keypoints = projected_keypoints(board_def, list(range(board_def.n_corners)))
+    assert compute_board_pose(keypoints, board_def, camera, distortion) is None
 
 
 class TestCharucoAnnotator:
