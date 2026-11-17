@@ -120,6 +120,7 @@ def test_the_output_schema_of_mediapipe_holistic_tasks(tmp_path: Path) -> None:
     ]
     assert (schema["geometry"], schema["depth_unit"], schema["max_instances"], schema["instance_source"]) == ("3d", "pixel", 1, "holistic")
     assert not resolved.has_onnx_model and not resolved.needs_execution_provider
+    assert "output_group_without_landmark_schema" not in [warning.code for warning in resolved.warnings]  # `holistic` gives no such warning
     assert [resolved.stateful_nodes(mode) for mode in MODES] == [(), (), ()]
 
 
@@ -161,6 +162,19 @@ def test_the_output_schema_of_yolox_rtmw_wholebody_with_the_package_sidecars(tmp
     assert resolved.needs_execution_provider and resolved.has_onnx_model
     # The `@prev` consumers, and the temporal nodes upstream of a model. The mode does not change them.
     assert [resolved.stateful_nodes(mode) for mode in MODES] == [("trigger", "detected_box", "points_box", "crop")] * 3
+    # Each group of `COCO_WholeBody` has a schema: the built-in gives no `output_group_without_landmark_schema`.
+    assert "output_group_without_landmark_schema" not in [warning.code for warning in resolved.warnings]
+
+
+def test_a_wholebody_group_with_no_landmark_schema_gives_one_load_warning(tmp_path: Path) -> None:
+    """A `mediapipe_tasks` group has a null `landmark_schema`: under `wholebody` it passes through, with a warning."""
+    body = {"id": "body", "type": "mediapipe_tasks", "inputs": {"image": "frame.image"}, "params": {"variant": "body"}}
+    data = {**detector_pipeline(), "nodes": [body], "outputs": {"wholebody": "body.keypoints"}}
+    check = check_pipeline(config_of(data), user_root=tmp_path)
+    (warning,) = [warning for warning in check.warnings if warning.code == "output_group_without_landmark_schema"]
+    assert warning.node_ids == ("body",) and warning.details == {"output": "wholebody", "port": "body.keypoints", "group": "body"}
+    assert "the output wholebody (body.keypoints): the group 'body'" in warning.message
+    assert check.output_schema["wholebody"]["groups"] == [{"name": "body", "start": 0, "count": 33, "landmark_schema": None}]
 
 
 def test_a_node_whose_facts_depend_only_on_prev_values_does_not_resolve(root: Path) -> None:

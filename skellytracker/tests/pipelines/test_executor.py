@@ -561,6 +561,10 @@ def test_a_rotated_box_that_is_not_an_output_and_the_upright_input_of_boxes_from
                           "params": {"key": "demo-body@demo-exporter", "size": "m", "execution_provider": "cpu"}})
     next(node for node in data["nodes"] if node["id"] == "points_box")["inputs"]["keypoints"] = "turned_points.keypoints@prev"
     load_pipeline(data, user_root=root)
+    # The condition of `gate` does not reach its output: an upright value with a rotated-box condition loads.
+    data["nodes"].append({"id": "keep", "type": "gate", "inputs": {"value": "person.boxes", "condition": "turned.boxes"}, "params": {"mode": "is_present"}})
+    data["outputs"]["boxes"] = "keep.value"
+    load_pipeline(data, user_root=root)
 
 
 def test_the_output_wholebody_needs_a_group_body_and_holistic_the_four_holistic_groups(root: Path) -> None:

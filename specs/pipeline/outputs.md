@@ -22,7 +22,7 @@ The keys of the block:
 
 | Key | Port type | Checked at load | Delivered value |
 |-----|-----------|-----------------|-----------------|
-| `wholebody` | `keypoints` | The port has a group `body`. | `CanonicalKeypoints`: the canonical form of the value, with the canonical point names ([Behaviour](#behaviour) item 7). |
+| `wholebody` | `keypoints` | The port has a group `body`. A group with a null `landmark_schema` gives the load warning `output_group_without_landmark_schema`. | `CanonicalKeypoints`: the canonical form of the value, with the canonical point names ([Behaviour](#behaviour) item 7). A group with a null `landmark_schema` passes through with its names. |
 | `holistic` | `keypoints` | The groups of the port are exactly `body`, `right_hand`, `left_hand` and `face`, in this order. | `CanonicalKeypoints`: the canonical form of the value. The groups of a `mediapipe_tasks` node have a null `landmark_schema`, so each name passes through. |
 | `boxes` | `boxes` | The port cannot hold a rotated box (`V-pipeline.outputs-5`). | `OutputBoxes`: the upright corners of each box, with `detector_ran` ([Behaviour](#behaviour) item 6). |
 
@@ -124,7 +124,7 @@ The output schema gives these fields for each key of the block. They describe th
 4. The cameras stay separate. No output joins the values of two cameras ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1). In `live`, a call can hold a subset of the cameras of the run. The run then gives a result only for each camera of the call ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 3).
 5. An `onnx_model` node gives the `class_names` of its sidecar to its `boxes` output. `boxes_from_points` gives null. Each other node that passes a `boxes` value keeps the `class_names` of its input. `first_of` keeps those of its first input ([ADR-2RWC](../../decisions/entries/2RWC-one-boxes-port-type-and-node-descriptions.md)).
 6. **Delivered values.** The run converts the value of each key after each node ran ([ADR-9HTX](../../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) items 14 to 17):
-   - `wholebody` and `holistic` give the canonical form of the `keypoints` value (item 7), with the `present` and the `instance_score` of each row.
+   - `wholebody` and `holistic` give the canonical form of the `keypoints` value (item 7), with the `present` and the `instance_score` of each row. For `wholebody`, the load gives the warning `output_group_without_landmark_schema` for each group of the port with a null `landmark_schema` ([Running](running.md#behaviour) item 8). `holistic` gives no such warning.
    - `boxes` gives the corners `xyxy = (cx - w/2, cy - h/2, cx + w/2, cy + h/2)` of each row. The conversion changes nothing else: the load proved that the box has no rotation (`V-pipeline.outputs-5`). A padding row stays NaN. The pipeline does not clip a box ([ADR-RA0E](../../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md) item 6).
    - The block has no key for a `flag` port and no key for an image. A flag and an image are not outputs.
    - The conversion has no timing span. Its time is in the time of the call, not in a node span.

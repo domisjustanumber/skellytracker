@@ -390,11 +390,13 @@ box. The output never changes a box. The load finds it in this way:
    not 0 ([`boxes_from_points`](../nodes/boxes_from_points.md#behaviour) step 6). `target_rotation_deg: 0`
    also gives a rotation, from the two alignment points. An object detector gives the rotation 0
    ([ADR-2RWC](../../../decisions/entries/2RWC-one-boxes-port-type-and-node-descriptions.md) item 2).
-2. A node that passes a box keeps its rotation: `gate`, `first_of`, `hold_boxes` and `smooth_boxes`.
-3. The load starts at the port of `outputs.boxes`. It follows each `boxes` input of each node that
-   passes a box, also an `@prev` input, until it finds a detector or a `boxes_from_points` node. It
-   refuses the file when it finds a `boxes_from_points` node with `target_rotation_deg`. The error
-   names that node.
+2. A node that passes a box keeps its rotation: `gate` (the input `value`), `first_of` (each item),
+   `hold_boxes` (the inputs `previous` and `current`) and `smooth_boxes` (the input `boxes`).
+3. The load starts at the port of `outputs.boxes`. It follows only the inputs of step 2, whose
+   value can reach the output, also an `@prev` input, until it finds a detector or a
+   `boxes_from_points` node. It does not follow the `condition` of `gate`, also when it is a
+   `boxes` port: the condition does not reach the output. It refuses the file when it finds a
+   `boxes_from_points` node with `target_rotation_deg`. The error names that node.
 4. The load does not follow the `keypoints` input, the `previous_boxes` input or the
    `reference_boxes` input of a `boxes_from_points` node. The rotation of its output comes only from
    its own params (step 6 of the node; step 10 states that the floors do not use the rotation of

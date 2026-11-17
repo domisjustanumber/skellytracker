@@ -1202,8 +1202,8 @@ This stage implements the node types of the pipeline spec. Use the skill
   - the DAG order and `@prev`;
   - the empty-input rule: an empty required input stops a node, and an empty optional input does
     not ([Graph](pipeline/graph.md#behaviour));
-  - the instance rows, with point names `<group>/<point>`, and the `groups` and `canonical_names`
-    of the output schema ([Graph](pipeline/graph.md#behaviour) item 7;
+  - the instance rows, with point names `<group>/<point>`, and the canonical `point_names`, `groups`
+    and `edges` of the output schema ([Graph](pipeline/graph.md#behaviour) item 7;
     [Outputs](pipeline/outputs.md#fields);
     [ADR-4MP6](../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md));
   - the running modes `image`, `video` and `live`;
@@ -1217,8 +1217,10 @@ This stage implements the node types of the pipeline spec. Use the skill
     options and device share one session; no session is shared between runs ([ADR-ZYS9](../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 6);
   - `node_ran` in the result of each camera, a `dict[str, bool]` with one key for each inference
     node: true when the node did an inference on the frame of that camera in this call, also with
-    `timing` off ([Outputs](pipeline/outputs.md#behaviour) item 8, `V-pipeline.outputs-3`;
-    [ADR-Q5BN](../decisions/entries/Q5BN-node-ran-in-the-camera-result.md)).
+    `timing` off ([Outputs](pipeline/outputs.md#behaviour) item 8;
+    [ADR-Q5BN](../decisions/entries/Q5BN-node-ran-in-the-camera-result.md)). The delivered `boxes`
+    carry it as `detector_ran` ([Outputs](pipeline/outputs.md#behaviour) item 10;
+    [ADR-9HTX](../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) item 16).
 - **Time.** Each output, timing event and tap row has `frame_index`. The `timestamp_ms` of a frame
   (a float), its `video` fallback with the run parameter `fps` (default 30.0) and the `live` rule
   are in [Running](pipeline/running.md#behaviour) item 2. Give the typed error of a refused call a name
@@ -1239,9 +1241,12 @@ This stage implements the node types of the pipeline spec. Use the skill
   input row, and `merge` copies it from its `target` input. A row that a node keeps from `@prev`
   keeps its score. A padding row has 0
   ([ADR-6DKT](pipeline/decisions/entries/6DKT-instance-rows-carry-class-and-score.md) items 1 and 2).
-- **Canonical form.** `to_canonical(keypoints_value, output_schema)` in `core/pipelines/` gives
-  `names` (the `canonical_names` of the output schema), `xy` `(I, C, 2)`, `z` `(I, C)` only for a `3d` output, `score` `(I, C)` and the
-  passthrough groups as `{name, start, count, landmark_schema}` in the canonical columns. It applies
+- **Canonical form.** `to_canonical(keypoints_value, groups)` in `core/pipelines/` takes the groups
+  of the port and gives `point_names` (the `point_names` of the output schema), `xy` `(I, C, 2)`,
+  `z` `(I, C)` only for a `3d` output, `score` `(I, C)`, `present` and `instance_score` `(I,)`, and
+  the passthrough groups as `{name, start, count, landmark_schema}` in the canonical columns. The
+  run calls it for the outputs `wholebody` and `holistic`
+  ([ADR-9HTX](../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) items 14 and 15). It applies
   [Canonical mapping](model-sidecar/post/keypoint/canonical-mapping.md#behaviour) to the groups of
   each node or slot. The groups of one schema with two or more groups come from one node. A group of
   a schema with one group stands alone. No pipeline param selects the form
@@ -1340,7 +1345,8 @@ This stage implements the node types of the pipeline spec. Use the skill
   ([ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 10).
   `yolox-rtmw-wholebody` is a stateful pipeline. It follows the box behaviour of the skellytracker
   branch `sfn26` with the early redetect of 03b9c1dc, and it gives the smoothed crop box as the
-  output `crop_box` ([ADR-RA0E](../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md) items 1 and 6;
+  output `boxes`, with `xyxy` and `detector_ran` ([ADR-RA0E](../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md) items 1 and 6;
+  [ADR-9HTX](../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) item 16;
   [ONNX model node](pipeline/nodes/onnx_model.md#authoring-guidance)).
 - **Box parity of the built-in.** This stage makes the reference recording for
   `yolox-rtmw-wholebody` ([ADR-RA0E](../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md)). The
@@ -1385,12 +1391,12 @@ This stage implements the node types of the pipeline spec. Use the skill
   sets. Box parity of `yolox-rtmw-wholebody` ([ADR-RA0E](../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md)):
   - Parity test A, the box logic. The test runs the graph of `yolox-rtmw-wholebody` on the fixture
     of "Box parity of the built-in", with the two `onnx_model` nodes replaced by the recorded YOLOX
-    boxes and keypoints, and with the same timestamps. `node_ran` of the node `person` must equal
-    `detector_ran` on each frame. `crop_box` must agree with the smoothed box before the clip
-    within 1e-6 px. The clip of `crop_box` to whole pixels must give the same integers as
-    `bounding_boxes[0]`.
+    boxes and keypoints, and with the same timestamps. `node_ran` of the node `person` and
+    `detector_ran` of the output `boxes` must equal the recorded `detector_ran` on each frame.
+    `boxes.xyxy` must agree with the smoothed box before the clip within 1e-6 px. The clip of
+    `boxes.xyxy` to whole pixels must give the same integers as `bounding_boxes[0]`.
   - Report B, end to end. A run of the built-in with the real models, in fp32, against the
-    fixture: the count of frames where the flag differs, the IoU of `crop_box` and the distance
+    fixture: the count of frames where the flag differs, the IoU of `boxes.xyxy` and the distance
     of the points with a score of 0.4 or more on both sides. It is a report, with no pass limit on
     the keypoints: the crop pixels, the re-exported models, the points below 0.4 and the confidence
     of a carried box differ ([ADR-RA0E](../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md),
@@ -1617,10 +1623,12 @@ freemocap moves to `pipelines` itself. skellytracker gives no adapter to the old
 these parts:
 
 - **Point names.** A pipeline point name is `<group>/<point>`, for example
-  `left_hand/left_thumb1`. The output schema gives the `groups`. `to_canonical` gives the canonical
-  names, which carry the side in the region, for example `left_hand/wrist` (stage 1.10;
-  [ADR-4MP6](../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md)). freemocap
-  needs no map of its own.
+  `left_hand/left_thumb1`. The outputs `wholebody` and `holistic` deliver the canonical names, which
+  carry the side in the region, for example `left_hand/wrist`, and the output schema gives them as
+  `point_names` (stage 1.10;
+  [ADR-4MP6](../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md);
+  [ADR-9HTX](../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) item 14). freemocap
+  needs no map of its own and does not call `to_canonical`.
 - **Frame index.** The outputs, the timing events and the taps use `frame_index`, not
   `frame_number`.
 - **Charuco.** charuco runs through `detectors`, beside the pipeline, on the same frames. Pipelines

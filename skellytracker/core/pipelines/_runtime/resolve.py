@@ -78,6 +78,7 @@ INSTANCE_TYPES = ("boxes", "keypoints")
 HOLISTIC_GROUPS = ("body", "right_hand", "left_hand", "face")
 """The groups of the output `holistic`, in column order (V-pipeline.outputs-4)."""
 MISSING_DEPENDENCY = "missing_dependency"
+OUTPUT_GROUP_WITHOUT_SCHEMA = "output_group_without_landmark_schema"
 _FRAME_INFO = PortInfo("image")
 
 
@@ -457,8 +458,9 @@ class _Resolver:
         self.check_rows(nodes)
         self.check_groups(nodes)
         models = [node for node in config.nodes if node.type == "onnx_model"]
+        schema = self.output_schema(nodes)  # before `warnings`: it adds the warnings of the outputs
         return ResolvedPipeline(
-            config=config, user_root=self.user_root, nodes=nodes, order=tuple(self.order), output_schema=self.output_schema(nodes),
+            config=config, user_root=self.user_root, nodes=nodes, order=tuple(self.order), output_schema=schema,
             warnings=tuple(self.warnings), needs_execution_provider=any(node.params.execution_provider is None for node in models),
             has_onnx_model=bool(models),
         )
@@ -499,6 +501,9 @@ class _Resolver:
     def output_schema(self, nodes: dict[str, ResolvedNode]) -> dict[str, dict[str, Any]]:
         """Return the output schema of the delivered values, and check V-pipeline.outputs-2 and the groups of V-pipeline.outputs-4.
 
+        Each group with a null `landmark_schema` of the output `wholebody` adds the warning
+        `output_group_without_landmark_schema`.
+
         For `wholebody` and `holistic`, `point_names`, `groups` and `edges` are those of the canonical form.
         """
         schema: dict[str, dict[str, Any]] = {}
@@ -514,6 +519,15 @@ class _Resolver:
                 if (name == "wholebody" and "body" not in names) or (name == "holistic" and names != list(HOLISTIC_GROUPS)):
                     wanted = "a group body" if name == "wholebody" else f"exactly the groups {list(HOLISTIC_GROUPS)}"
                     raise ValueError(f"V-pipeline.outputs-4: the output {name} ({ref}) must have {wanted}; it has the groups {names}")
+                if name == "wholebody":  # `holistic` is the home of the MediaPipe groups, which have no schema yet
+                    self.warnings += [
+                        PipelineWarning(
+                            OUTPUT_GROUP_WITHOUT_SCHEMA,
+                            f"the output wholebody ({ref}): the group {group.name!r} has no landmark_schema, so it passes through with its names",
+                            (node_id,), {"output": name, "port": ref, "group": group.name},
+                        )
+                        for group in info.groups if group.landmark_schema is None
+                    ]
                 plan = canonical._plan(info.groups, info.point_names, self.user_root)
                 entry["point_names"] = list(plan.names)
                 entry["groups"] = [
