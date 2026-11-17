@@ -10,6 +10,7 @@ import pytest
 
 pytest.importorskip("onnx", reason="onnx not installed")
 
+from skellytracker.core.eps.session import cpu_thread_count  # noqa: E402
 from skellytracker.core.errors import CallRefusedError  # noqa: E402
 from skellytracker.core.pipelines import Frame, load_pipeline, start_pipeline, timing  # noqa: E402
 from skellytracker.core.pipelines._runtime import node_smooth_keypoints  # noqa: E402
@@ -422,6 +423,7 @@ def test_the_timing_file_starts_with_the_header_and_holds_one_event_for_each_spa
     assert tuple(person["execution"]) == timing.EXECUTION_FIELDS
     assert (person["execution"]["requested_ep"], person["execution"]["used_ep"]) == ("cpu", "cpu")
     assert person["execution"]["cpu_nodes"] > 0 and person["execution"]["cpu_op_types"]
+    assert person["execution"]["cpu_threads"] == cpu_thread_count() >= 1  # the applied count of the CPU session: the default
     assert (nodes["body"]["shared_with"], nodes["hand"]["shared_with"], person["shared_with"]) == (["hand"], ["body"], [])
     assert nodes["crop"]["execution"] is None and nodes["crop"]["artifact_sha256"] is None
 

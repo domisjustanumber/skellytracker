@@ -162,10 +162,11 @@ def split_cameras(camera_ids: Sequence[Any], weights: Sequence[int | None]) -> d
 
 
 class RunSessions:
-    """The sessions of one run. `close()` frees them."""
+    """The sessions of one run. `close()` frees them. `cpu_threads` is the thread count of each session on the CPU EP."""
 
-    def __init__(self) -> None:
+    def __init__(self, cpu_threads: int | None = None) -> None:
         self.opened: dict[tuple[Any, ...], OpenedSession] = {}
+        self.cpu_threads = cpu_threads
 
     def open(self, node: ResolvedNode, plan: NodePlan, device_key: str | None, batch: int) -> OpenedSession:
         """Return the session of one node on one device at `batch`. Build it when no node of the run has it.
@@ -186,6 +187,7 @@ class RunSessions:
             session, report = open_session(
                 model.entry, model.sidecar, model.size, plan.precision, execution_provider=plan.execution_provider,
                 batch=None if used in ("dynamic", batching.batch) else batch, ep_options=dict(plan.ep_options), device_key=device_key,
+                cpu_threads=self.cpu_threads,
             )
             self.opened[key] = OpenedSession(session, report, used)
         opened = self.opened[key]

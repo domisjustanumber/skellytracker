@@ -185,6 +185,36 @@ def test_cpu_session_from_bytes_and_from_a_path(tmp_path, monkeypatch):
         eps.build_session(model_bytes(), execution_provider="cpu", device_key="gpu:10de:2484:0")
 
 
+@pytest.mark.parametrize(("physical", "logical", "expected"), [(8, 16, 4), (1, 2, 1), (None, 6, 3), (None, None, 1)])
+def test_the_default_cpu_threads_is_half_of_the_physical_cores_at_least_1(monkeypatch, physical, logical, expected):
+    monkeypatch.setattr(session, "physical_cores", lambda: physical)
+    monkeypatch.setattr(session.os, "cpu_count", lambda: logical)  # used only when the OS gives no physical cores
+    assert session.cpu_thread_count() == session.cpu_thread_count(None) == expected
+    assert session.cpu_thread_count(5) == 5
+
+
+def test_a_cpu_session_gets_the_cpu_threads_as_intra_op_threads_and_reports_them(monkeypatch):
+    real, seen = onnxruntime.InferenceSession, []
+
+    def recording(model, sess_options=None, **kwargs):
+        seen.append((sess_options.intra_op_num_threads, sess_options.inter_op_num_threads))
+        return real(model, sess_options=sess_options, **kwargs)
+
+    monkeypatch.setattr(onnxruntime, "InferenceSession", recording)
+    monkeypatch.setattr(session, "physical_cores", lambda: 8)
+    _, given = eps.build_session(model_bytes(), execution_provider="cpu", cpu_threads=3)
+    _, default = eps.build_session(model_bytes(), execution_provider="cpu")
+    assert seen == [(3, 1), (4, 1)] and (given.cpu_threads, default.cpu_threads) == (3, 4)
+
+
+@pytest.mark.parametrize("value", [0, -1, True])
+def test_a_cpu_threads_that_is_not_a_positive_integer_raises_before_onnxruntime(monkeypatch, value):
+    monkeypatch.setattr(onnxruntime, "InferenceSession", lambda *args, **kwargs: pytest.fail("the request reached ONNX Runtime"))
+    for key in ("cpu", "cuda"):  # the same check for each EP
+        with pytest.raises(EpRequestError, match="cpu_threads must be a positive integer"):
+            eps.build_session(b"model", execution_provider=key, cpu_threads=value)
+
+
 def test_a_model_that_does_not_load_raises_session_creation_error():
     with pytest.raises(SessionCreationError) as caught:
         eps.build_session(b"not a model", execution_provider="cpu")
@@ -194,11 +224,12 @@ def test_a_model_that_does_not_load_raises_session_creation_error():
 
 def test_gpu_session_settings_and_report(gpu_host, tmp_path, caplog):
     with caplog.at_level(logging.WARNING):
-        _, report = eps.build_session(b"model", execution_provider="cuda", ep_options={"prefer_nhwc": "1"})
+        _, report = eps.build_session(b"model", execution_provider="cuda", ep_options={"prefer_nhwc": "1"}, cpu_threads=6)
         eps.build_session(b"model", execution_provider="cuda")
     assert [record.message for record in caplog.records] == ["The EP 'cuda' is in the state installed_unverified: no trial session ran yet."]
     (options, providers, kwargs), _ = FakeSession.created
-    assert (options.intra_op_num_threads, options.inter_op_num_threads) == (1, 1)  # attributes, not config entries
+    assert (options.intra_op_num_threads, options.inter_op_num_threads) == (1, 1)  # attributes, not config entries; `cpu_threads` 6 is ignored
+    assert report.cpu_threads is None
     assert options.entries == {"session.record_ep_graph_assignment_info": "1"}
     assert providers is None and kwargs == {"enable_fallback": 0}
     assert options.provider_options == {"prefer_nhwc": "1"} and len(options.devices) == 1

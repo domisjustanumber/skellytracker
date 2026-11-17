@@ -36,7 +36,7 @@ NODE_ITEM_FIELDS = (
     "id", "type", "batching", "inputs", "key", "sidecar_sha256", "artifact_sha256", "size", "precision",
     "execution", "stage_providers", "shared_with",
 )
-EXECUTION_FIELDS = ("requested_ep", "used_ep", "device", "gpu_uuid", "ep_device_id", "ep_options", "cpu_nodes", "cpu_op_types")
+EXECUTION_FIELDS = ("requested_ep", "used_ep", "device", "gpu_uuid", "ep_device_id", "ep_options", "cpu_nodes", "cpu_op_types", "cpu_threads")
 # The stages of the skellybench timing record.
 STAGES = ("preprocess", "inference", "postprocess")
 # The key of the glue time in `excluded_ms_per_image`.

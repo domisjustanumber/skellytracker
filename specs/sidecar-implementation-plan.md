@@ -394,7 +394,7 @@ Items ([ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-h
   | `cuda` | `prefer_nhwc` 0/1, `use_tf32` 0/1, `arena.max_mem` (positive bytes) | `prefer_nhwc=1` for fp16 only |
   | `trt-rtx` | `enable_cuda_graph` 0/1 | EP defaults and a catalog `nv_runtime_cache_path` |
   | `coreml` | `MLComputeUnits` `ALL`, `CPUAndGPU`, `CPUAndNeuralEngine`, `CPUOnly` | EP defaults |
-  | `cpu` | none | `ORT_ENABLE_ALL`, default threads |
+  | `cpu` | none | `ORT_ENABLE_ALL`; intra-op threads `cpu_threads`, default half of the physical cores, at least 1 ([ADR-HB8Z](../decisions/entries/HB8Z-cpu-threads-run-parameter.md)) |
 
   `device_id` is refused for each EP: the device comes from the device map. `build_session()` sets
   threads and the graph optimization level as `SessionOptions` attributes, never as session config

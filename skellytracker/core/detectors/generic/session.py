@@ -51,6 +51,7 @@ def open_session(
     batch: int | None = None,
     ep_options: Mapping[str, str] | None = None,
     device_key: str | None = None,
+    cpu_threads: int | None = None,
 ) -> tuple[Any, SessionReport]:
     """Build the session of one artifact on `execution_provider`. Return it with its `SessionReport`.
 
@@ -60,7 +61,8 @@ def open_session(
     session runs the artifact of the sidecar. For any other `T`, a sidecar with
     `batching.batch_conversion` gets a generated artifact from `model_batch_convert`, in memory,
     and a sidecar with no conversion profile raises `ValueError`. A `dynamic` artifact runs each
-    batch, so `batch` does not change its session. The errors of `eps.build_session` apply.
+    batch, so `batch` does not change its session. `cpu_threads` is the argument of
+    `eps.build_session`. The errors of `eps.build_session` apply.
     """
     path = ensure_artifact(entry, sidecar, size, precision)
     native = sidecar.batching.batch
@@ -78,7 +80,8 @@ def open_session(
         batch=batch if batch is not None else (None if native == "dynamic" else native),
     )
     return build_session(
-        model, execution_provider=execution_provider, ep_options=ep_options, device_key=device_key, model_ref=reference
+        model, execution_provider=execution_provider, ep_options=ep_options, device_key=device_key, model_ref=reference,
+        cpu_threads=cpu_threads,
     )
 
 
@@ -93,6 +96,7 @@ def create_detector(
     device_key: str | None = None,
     object_decode: ObjectDecodeSpec | None = None,
     user_root: Path | str | None = None,
+    cpu_threads: int | None = None,
 ) -> GenericObjectDetector | GenericKeypointDetector:
     """Return the generic detector of the catalog entry `<key>` or `<key>==<version>`, with its session.
 
@@ -101,7 +105,9 @@ def create_detector(
     The `role` of the entry selects the detector. The capability check of the catalog refuses a
     sidecar that uses a spec section that the package does not run: `DetectorUnavailableError`
     names the sections. With no `size`, the size is the first size of the sidecar. `batch`,
-    `ep_options` and `device_key` are the arguments of `open_session`. `object_decode` replaces
+    `ep_options` and `device_key` are the arguments of `open_session`. `cpu_threads` is the
+    intra-op thread count of a session on the CPU EP `cpu`, with the default and the checks of
+    `eps.build_session`: with None, half of the physical cores, at least 1. `object_decode` replaces
     `object.decode` of an object detector. A `detect` call raises `VRAMExhaustionError` when the
     session runs out of memory. The detector does not retry the call.
     """
@@ -117,6 +123,6 @@ def create_detector(
     make(None)  # the checks of the detector, before the download and the session
     session, _ = open_session(
         entry, sidecar, size, precision,
-        execution_provider=execution_provider, batch=batch, ep_options=ep_options, device_key=device_key,
+        execution_provider=execution_provider, batch=batch, ep_options=ep_options, device_key=device_key, cpu_threads=cpu_threads,
     )
     return make(session)

@@ -16,6 +16,7 @@ pytest.importorskip("onnx", reason="onnx not installed")
 from skellytracker.core.detectors.catalog import get_detector, load_detector_sidecar  # noqa: E402
 from skellytracker.core.detectors.generic import download, ensure_artifact  # noqa: E402
 from skellytracker.core.detectors.generic import session as generic_session  # noqa: E402
+from skellytracker.core.eps import session as eps_session  # noqa: E402
 from skellytracker.core.eps.records import RunDevice  # noqa: E402
 from skellytracker.core.errors import EpRequestError, EpUnavailableError, MissingDependencyError, VRAMExhaustionError  # noqa: E402
 from skellytracker.core.pipelines import Frame, check_pipeline, load_pipeline, start_pipeline  # noqa: E402
@@ -274,6 +275,32 @@ def test_vram_exhaustion_error_passes_through_start_pipeline_and_the_sessions_ma
     assert isinstance(error.value, MemoryError) and error.value.exit_code == 5
     ((run_sessions, held),) = freed
     assert held == 1 and run_sessions.opened == {}  # the session of `person` existed, and the start freed it
+
+
+# ---------------------------------------------------------------------------------------------
+# V-pipeline.running-11: the CPU threads of a run
+# ---------------------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("value", [0, -2, True, False])
+def test_v_pipeline_running_11_a_cpu_threads_that_is_not_a_positive_integer_fails_the_start_before_a_session(
+    root: Path, monkeypatch: pytest.MonkeyPatch, value: Any,
+) -> None:
+    calls = spy_open_session(monkeypatch)
+    with pytest.raises(ValueError, match="V-pipeline.running-11: cpu_threads must be a positive integer"):
+        start(root, detector_pipeline(), cpu_threads=value)
+    assert calls == []
+
+
+def test_the_cpu_threads_of_the_run_reach_each_cpu_session_and_run_models_gives_the_applied_count(root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = spy_open_session(monkeypatch)
+    with start(root, detector_pipeline(), cpu_threads=3) as run:
+        assert [call["cpu_threads"] for call in calls] == [3, 3]
+        assert {item.report.cpu_threads for item in run._executor.sessions.opened.values()} == {3}
+        assert [item["cpu_threads"] for item in run.models.values()] == [3, 3]
+    monkeypatch.setattr(eps_session, "physical_cores", lambda: 8)  # a host with 8 physical cores: the default is 4
+    with start(root, detector_pipeline()) as run:
+        assert [item["cpu_threads"] for item in run.models.values()] == [4, 4]
 
 
 # ---------------------------------------------------------------------------------------------

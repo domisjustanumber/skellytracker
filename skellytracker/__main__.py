@@ -86,6 +86,7 @@ def cli_main() -> None:
     parser.add_argument("--ep", default=None, help="with --pipeline: a key of the EP catalog (default: the recommended EP)")
     parser.add_argument("--ep-option", action="append", metavar="NAME=VALUE", help="with --pipeline: one EP option; repeatable")
     parser.add_argument("--device", action="append", metavar="KEY", help="with --pipeline: one GPU key; repeatable")
+    parser.add_argument("--cpu-threads", type=int, default=None, metavar="N", help="with --pipeline: the threads of each session on the CPU EP")
     args = parser.parse_args()
 
     if args.list:
@@ -96,9 +97,10 @@ def cli_main() -> None:
     if args.pipeline is not None:
         from skellytracker.core.pipelines.cli import demo_main
 
-        sys.exit(demo_main(args.pipeline, camera=args.camera, rotation=args.rotate, ep=args.ep, ep_option=args.ep_option, device=args.device))
-    if args.ep is not None or args.ep_option or args.device:
-        parser.error("--ep, --ep-option and --device need --pipeline")
+        sys.exit(demo_main(args.pipeline, camera=args.camera, rotation=args.rotate, ep=args.ep, ep_option=args.ep_option, device=args.device,
+                           cpu_threads=args.cpu_threads))
+    if args.ep is not None or args.ep_option or args.device or args.cpu_threads is not None:
+        parser.error("--ep, --ep-option, --device and --cpu-threads need --pipeline")
 
     demo = _build_demo(args.tracker)
     demo.run_webcam(camera_index=args.camera, rotation=args.rotate)

@@ -26,7 +26,7 @@ CONFIG = {
 }
 EXECUTION = {
     "requested_ep": "cuda", "used_ep": "cuda", "device": "gpu0", "gpu_uuid": "GPU-1", "ep_device_id": "0",
-    "ep_options": {}, "cpu_nodes": 2, "cpu_op_types": ["Resize"],
+    "ep_options": {}, "cpu_nodes": 2, "cpu_op_types": ["Resize"], "cpu_threads": None,
 }
 
 

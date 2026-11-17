@@ -11,11 +11,12 @@ Implements: pipeline.running
         run.models                                  # node id -> the model and what it runs on
 
 `run.models` has one item for each `onnx_model` node, with `key`, `version`, `sidecar_sha256`,
-`size`, `precision`, `execution_provider` and `device`. `execution_provider` is the EP key that the
-session uses. `device` is the device key of its GPU, or None. For a node with a session on each of
-two or more GPUs, `device` is the list of the device keys in the order of the GPUs of the run. A
-node that does not run has `execution_provider` None and `device` None. An application reads what
-a model runs on from these items.
+`size`, `precision`, `execution_provider`, `device` and `cpu_threads`. `execution_provider` is the
+EP key that the session uses. `device` is the device key of its GPU, or None. For a node with a
+session on each of two or more GPUs, `device` is the list of the device keys in the order of the
+GPUs of the run. `cpu_threads` is the intra-op thread count of a session on the CPU EP `cpu`, else
+None. A node that does not run has `execution_provider`, `device` and `cpu_threads` None. An
+application reads what a model runs on from these items.
 
 A plain import of this module loads no `onnxruntime` and no `mediapipe`.
 """
@@ -100,9 +101,12 @@ class PipelineRun:
         - `device`: the device key of the GPU of the session, or None for an EP with no device key.
           For a node with a session on each of two or more GPUs, it is the list of the device keys,
           in the order of the GPUs of the run.
+        - `cpu_threads`: the intra-op thread count of the session on the CPU EP `cpu`, or None for
+          an other EP.
 
         A node that does not run, because a `replay` tap gives its ports, has no session: its
-        `execution_provider` and its `device` are None. The values do not change during the run.
+        `execution_provider`, its `device` and its `cpu_threads` are None. The values do not change
+        during the run.
         """
         executor, found = self._executor, {}
         for node in executor.resolved.nodes.values():
@@ -115,6 +119,7 @@ class PipelineRun:
                 "size": node.model.size, "precision": executor.plans[node.id].precision,
                 "execution_provider": reports[0].used_ep if reports else None,
                 "device": devices if len(devices) > 1 else next(iter(devices), None),
+                "cpu_threads": reports[0].cpu_threads if reports else None,
             }
         return found
 
@@ -195,6 +200,7 @@ def start_pipeline(
     device: str | Sequence[str] | None = None,
     vram_reserve_bytes: int = 2**30,
     fps: float | int = 30.0,
+    cpu_threads: int | None = None,
     timing_sink: Any = None,
     timing: str = "on",
     tap_dir: str | Path | None = None,
@@ -210,6 +216,10 @@ def start_pipeline(
     - `device`: one GPU key or a list of GPU keys. With None, the run uses each GPU that the EP can use.
     - `vram_reserve_bytes`: the VRAM that the run leaves free on each GPU.
     - `fps`: only in `video`, for a camera that gives no `timestamp_ms`.
+    - `cpu_threads`: the intra-op thread count of each session on the CPU EP `cpu`. With None, it
+      is half of the physical cores of the host, at least 1, so that the run leaves cores free for
+      the camera capture and the application. A session of a GPU pack uses one thread and ignores
+      it. A `mediapipe_tasks` node does not use it. `run.models` gives the applied count.
     - `timing_sink`, `timing`: a path, an open text file or a callable for the timing lines, and `on` or `off`.
     - `tap_dir`: the folder of the taps.
     - `on_warning`: a callable that gets each `PipelineWarning` one time.
@@ -223,7 +233,7 @@ def start_pipeline(
     """
     return _start(
         config, user_root=user_root, camera_ids=camera_ids, running_mode=running_mode, execution_provider=execution_provider,
-        ep_options=ep_options, device=device, vram_reserve_bytes=vram_reserve_bytes, fps=fps, timing_sink=timing_sink, timing=timing,
+        ep_options=ep_options, device=device, vram_reserve_bytes=vram_reserve_bytes, fps=fps, cpu_threads=cpu_threads, timing_sink=timing_sink, timing=timing,
         tap_dir=tap_dir, on_warning=on_warning,
     )
 

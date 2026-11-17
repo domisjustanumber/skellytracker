@@ -21,7 +21,7 @@ from skellytracker.core.eps.catalog import EpCatalog, load_catalog
 from skellytracker.core.eps.recommendation import ep_gpus, install_hint
 from skellytracker.core.eps.records import USABLE_STATES, ModelRef, SessionReport
 from skellytracker.core.errors import EpRequestError, EpUnavailableError, SessionCreationError, VRAMExhaustionError
-from skellytracker.core.system.host import probe_host
+from skellytracker.core.system.host import physical_cores, probe_host
 
 CPU_EP = "CPUExecutionProvider"
 OOM_MARKS = ("out of memory", "cudamalloc", "alloc failed", "failed to allocate", "bfcarena", "available memory", " oom")
@@ -47,9 +47,28 @@ def zero_inputs(session) -> dict:
                                 dtype=DTYPES.get(item.type, np.float32)) for item in session.get_inputs()}
 
 
+def cpu_thread_count(cpu_threads: int | None = None) -> int:
+    """The intra-op thread count of a session on the built-in CPU EP: `cpu_threads`, or the default for None.
+
+    The default is half of the physical cores of the host, at least 1. The sessions thus leave cores
+    free for the camera capture and the application (ADR-HB8Z). When the OS gives no physical core
+    count, the default is half of the logical CPUs of `os.cpu_count()`, at least 1. Raise
+    `EpRequestError` for 0, a negative value, a bool or a value that is not an integer.
+    """
+    if cpu_threads is None:
+        return max(1, (physical_cores() or os.cpu_count() or 1) // 2)
+    if isinstance(cpu_threads, bool) or not isinstance(cpu_threads, int) or cpu_threads < 1:
+        raise EpRequestError(f"cpu_threads must be a positive integer or None, not {cpu_threads!r}")
+    return cpu_threads
+
+
 def open_session(model, catalog: EpCatalog, key: str, options: Mapping[str, str], gpu=None, device_key: str | None = None,
-                 strict: bool = False):
-    """Register the EP and create the session with no retry on the CPU. `strict` refuses each node on the CPU EP."""
+                 strict: bool = False, cpu_threads: int | None = None):
+    """Register the EP and create the session with no retry on the CPU. `strict` refuses each node on the CPU EP.
+
+    `cpu_threads` sets the intra-op threads of a session with no pack. With None, ONNX Runtime
+    uses its default. A session of a GPU pack uses one intra-op thread.
+    """
     import onnxruntime
 
     row, pack = catalog.ep(key), catalog.pack(key)
@@ -64,6 +83,9 @@ def open_session(model, catalog: EpCatalog, key: str, options: Mapping[str, str]
     providers, ep_device_id = None, None
     if pack is None:
         providers = [(ep_name, options)]
+        if cpu_threads is not None:
+            session_options.intra_op_num_threads = cpu_threads
+            session_options.inter_op_num_threads = 1
     else:
         session_options.intra_op_num_threads = 1  # attributes: a session config entry has no effect for them
         session_options.inter_op_num_threads = 1
@@ -108,7 +130,7 @@ def _failure(error: Exception, report: SessionReport, what: str) -> Exception:
 
 
 def build_session(model: str | os.PathLike | bytes, *, execution_provider: str, ep_options: Mapping[str, str] | None = None,
-                  device_key: str | None = None, model_ref: ModelRef | None = None):
+                  device_key: str | None = None, model_ref: ModelRef | None = None, cpu_threads: int | None = None):
     """Build a session on `execution_provider`. It returns `(onnxruntime.InferenceSession, SessionReport)`.
 
     `model` is the bytes or the path of an ONNX file. `execution_provider` is a concrete key of the
@@ -116,10 +138,18 @@ def build_session(model: str | os.PathLike | bytes, *, execution_provider: str, 
     GPU EP. With no `device_key`, the session uses the GPU with the most VRAM that the EP can use;
     on a tie, the GPU with the lowest PCI bus id.
 
+    `cpu_threads` is the intra-op thread count of a session on the built-in CPU EP `cpu`. With
+    None, it is the default of `cpu_thread_count()`: half of the physical cores, at least 1. The
+    inter-op thread count of that session is 1. `SessionReport.cpu_threads` gives the applied
+    count. A session of a GPU pack uses one intra-op thread and one inter-op thread, and ignores
+    `cpu_threads`. A session on an other built-in EP, for example `coreml`, ignores it and keeps
+    the default of ONNX Runtime.
+
     It raises, before frame 0:
 
-    - `EpRequestError` for a reserved or unknown key and for an option that the catalog does not
-      list, also `device_id`, before a call of ONNX Runtime;
+    - `EpRequestError` for a reserved or unknown key, for an option that the catalog does not
+      list, also `device_id`, and for a `cpu_threads` that is not a positive integer, before a
+      call of ONNX Runtime;
     - `EpUnavailableError` when the pack is not installed, does not register or lists no device;
     - `SessionCreationError` when the EP does not start, is not the first provider or has no node;
     - `VRAMExhaustionError` when the GPU memory is exhausted at the build or at the warm-up run.
@@ -131,6 +161,9 @@ def build_session(model: str | os.PathLike | bytes, *, execution_provider: str, 
     row = catalog.ep(key)
     options = catalog.check_options(key, ep_options)
     pack = catalog.pack(key)
+    threads = cpu_thread_count(cpu_threads)  # the same check for each EP
+    if pack is not None or row["ep_name"] != CPU_EP:
+        threads = None  # only a session on the built-in CPU EP uses it
     gpu = None
     if pack is None:
         if device_key is not None:
@@ -156,11 +189,11 @@ def build_session(model: str | os.PathLike | bytes, *, execution_provider: str, 
         device_name=None if gpu is None else gpu.name,
         gpu_uuid=None if gpu is None or gpu.nvidia is None else gpu.nvidia.uuid, gpu_key=None if gpu is None else gpu.key,
         ep_options=options, precision=precisions[0] if len(precisions) == 1 else None,
-        artifact_sha256=None if model_ref is None else model_ref.artifact_sha256,
+        artifact_sha256=None if model_ref is None else model_ref.artifact_sha256, cpu_threads=threads,
     )
     start = time.perf_counter_ns()
     try:
-        session, ep_name, ep_device_id = open_session(model, catalog, key, dict(options), gpu, device_key)
+        session, ep_name, ep_device_id = open_session(model, catalog, key, dict(options), gpu, device_key, cpu_threads=threads)
     except (EpRequestError, EpUnavailableError):
         raise
     except Exception as error:  # noqa: BLE001 - ONNX Runtime raises its own error types

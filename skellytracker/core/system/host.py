@@ -36,6 +36,26 @@ def probe_host() -> HostInfo:
         return _cached
 
 
+def physical_cores() -> int | None:
+    """The physical CPU cores of the host, or None when the OS does not give them.
+
+    It reads the value as `probe_host()` does, but it makes no NVML call, so it does not wake the
+    GPU of a hybrid laptop. After a `probe_host()` call, it gives the value of that record.
+    """
+    if _cached is not None:
+        return _cached.cpu_physical_cores
+    if sys.platform == "win32":
+        from skellytracker.core._hardware import windows as reader
+    elif sys.platform == "darwin":
+        from skellytracker.core._hardware import darwin as reader
+    else:
+        from skellytracker.core._hardware import linux as reader
+    try:
+        return reader.cores_and_memory()[0]
+    except Exception:  # noqa: BLE001 - a missing source gives None, as in `probe_host()`
+        return None
+
+
 def merge_gpus(nvml_gpus: list, os_gpus: list[GpuInfo]) -> tuple[GpuInfo, ...]:
     """The NVML GPUs first, each with the OS facts of its PCI bus id, then each other OS GPU."""
     by_bus = {gpu.pci_bus_id: gpu for gpu in os_gpus if gpu.pci_bus_id is not None}

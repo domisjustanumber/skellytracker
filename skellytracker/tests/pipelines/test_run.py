@@ -58,7 +58,7 @@ def test_a_run_gives_the_output_schema_before_frame_0_the_run_metadata_and_the_r
         assert (run.camera_ids, run.running_mode, run.warnings) == (("cam",), "video", ())
         models = run.models
         assert set(models) == {"person", "body"} and set(models["person"]) == {
-            "key", "version", "sidecar_sha256", "size", "precision", "execution_provider", "device",
+            "key", "version", "sidecar_sha256", "size", "precision", "execution_provider", "device", "cpu_threads",
         }
         assert [(item["size"], item["precision"], item["execution_provider"], item["device"]) for item in models.values()] == [
             ("n", "fp32", "cpu", None), ("m", "fp32", "cpu", None),

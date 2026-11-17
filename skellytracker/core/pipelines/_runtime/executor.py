@@ -21,7 +21,8 @@ from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from skellytracker.core.errors import CallRefusedError, SetParamsRefusedError
+from skellytracker.core.eps.session import cpu_thread_count
+from skellytracker.core.errors import CallRefusedError, EpRequestError, SetParamsRefusedError
 from skellytracker.core.pipelines import timing as timing_module
 from skellytracker.core.pipelines._runtime import mediapipe_tasks, onnx_model, sessions, taps
 from skellytracker.core.pipelines._runtime.context import FrameContext
@@ -75,6 +76,7 @@ class Executor:
         device: str | Sequence[str] | None = None,
         vram_reserve_bytes: int = 2**30,
         fps: float | int = 30.0,
+        cpu_threads: int | None = None,
         timing_sink: Any = None,
         timing: str = "on",
         tap_dir: str | Path | None = None,
@@ -100,6 +102,10 @@ class Executor:
             raise ValueError(f"timing must be 'on' or 'off', not {timing!r}")
         if not self.fps > 0:
             raise ValueError(f"fps must be more than 0, not {fps!r}")
+        try:
+            self.cpu_threads = cpu_thread_count(cpu_threads)
+        except EpRequestError as error:
+            raise ValueError(f"V-pipeline.running-11: {error}") from None
         if not self.camera_ids or len(set(self.camera_ids)) != len(self.camera_ids):
             raise ValueError(f"V-pipeline.running-1: camera_ids must be a non-empty list of unique ids, not {self.camera_ids!r}")
         if running_mode == "image" and len(self.camera_ids) != 1:
@@ -147,7 +153,7 @@ class Executor:
         self.device_of = sessions.split_cameras(self.camera_ids, weights)
 
         image_list = None if self.image_ids is None else timing_module.image_list_sha256(self.image_ids)
-        self.sessions = sessions.RunSessions()
+        self.sessions = sessions.RunSessions(self.cpu_threads)
         self.reports: dict[str, list[Any]] = {}  # node id -> the `SessionReport` of its session on each device
         self.models: dict[str, onnx_model.OnnxModelRunner] = {}
         self.states: dict[tuple[Any, str], Any] = {}
@@ -248,7 +254,7 @@ class Executor:
                     execution={
                         "requested_ep": report.requested_ep, "used_ep": report.used_ep, "device": report.device_key,
                         "gpu_uuid": report.gpu_uuid, "ep_device_id": report.ep_device_id, "ep_options": dict(report.ep_options),
-                        "cpu_nodes": report.cpu_nodes, "cpu_op_types": list(report.cpu_op_types),
+                        "cpu_nodes": report.cpu_nodes, "cpu_op_types": list(report.cpu_op_types), "cpu_threads": report.cpu_threads,
                     },
                     # the preprocessing and the postprocessing run on the host, so their provider is null (pipeline.timing, Fields)
                     stage_providers={"preprocess": None, "inference": report.ep_name, "postprocess": None},

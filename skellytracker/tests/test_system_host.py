@@ -12,6 +12,7 @@ from skellytracker.core._hardware import darwin, linux, nvml, pci
 from skellytracker.core.system import host as host_module
 from skellytracker.core.system.records import GpuInfo
 from skellytracker.tests.hw_fakes import FakeNvml, install_nvml, nvml_gpu
+from skellytracker.tests.hw_fakes import host as fake_host
 
 
 @pytest.mark.parametrize(
@@ -263,3 +264,12 @@ def test_windows_registry_readers_on_a_fake_registry():
     assert windows.cpu_max_frequency_hz(type("NoValue", (FakeRegistry,), {"values": {}})) is None
     assert windows.virtualization(FakeRegistry).hypervisor == "vmware"
     assert windows.container(FakeRegistry) is None
+
+
+def test_physical_cores_reads_no_gpu_and_gives_the_value_of_a_probed_host(monkeypatch):
+    monkeypatch.setattr(host_module, "_cached", None)
+    monkeypatch.setattr(nvml, "read_gpus", lambda: pytest.fail("physical_cores() must make no NVML call"))
+    found = host_module.physical_cores()
+    assert found is None or found >= 1
+    monkeypatch.setattr(host_module, "_cached", dataclasses.replace(fake_host(), cpu_physical_cores=8))
+    assert host_module.physical_cores() == 8

@@ -258,8 +258,9 @@ def test_the_start_gets_the_recommended_ep_with_its_options_and_an_ep_option_of_
     # `V-pipeline.running-8` cannot occur through the CLI: a pipeline that needs an EP always gets the recommended EP.
     recommend_cpu(monkeypatch, options=(("a", "1"), ("b", "2")))
     seen = spy_start(monkeypatch)
-    assert cli.main([*run_args(tmp_path, root, coco), "--ep-option", "b=3", "--device", "gpu:0", "--device", "gpu:1"]) == 0
+    assert cli.main([*run_args(tmp_path, root, coco), "--ep-option", "b=3", "--device", "gpu:0", "--device", "gpu:1", "--cpu-threads", "2"]) == 0
     assert (seen["execution_provider"], seen["ep_options"], seen["device"]) == ("cpu", {"a": "1", "b": "3"}, ["gpu:0", "gpu:1"])
+    assert seen["cpu_threads"] == 2
     assert (seen["camera_ids"], seen["running_mode"], seen["image_ids"]) == ([0], "image", [5, 7, 11])
     assert [frame.frame_index for frame in seen["run"].frames] == [0, 1, 2] and seen["run"].closed
     assert [frame.image.shape for frame in seen["run"].frames] == [(29, 40, 3), (31, 40, 3), (35, 40, 3)]  # ascending `image_id`
@@ -353,11 +354,12 @@ def test_main_gives_run_validate_and_nodes_to_the_pipeline_cli(monkeypatch: pyte
 def test_main_with_pipeline_runs_the_pipeline_demo_and_without_it_keeps_the_old_demo(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
     seen: dict[str, Any] = {}
     monkeypatch.setattr(cli, "demo_main", lambda pipeline, **options: seen.update(options, pipeline=pipeline) or 0)
-    monkeypatch.setattr(sys, "argv", ["skellytracker", "--pipeline", "a@b", "--camera", "2", "--rotate", "90", "--ep", "cpu", "--ep-option", "x=y", "--device", "gpu:0"])
+    monkeypatch.setattr(sys, "argv", ["skellytracker", "--pipeline", "a@b", "--camera", "2", "--rotate", "90", "--ep", "cpu", "--ep-option", "x=y", "--device", "gpu:0",
+                                      "--cpu-threads", "3"])
     with pytest.raises(SystemExit) as stop:
         entry.cli_main()
     assert stop.value.code == 0
-    assert seen == {"pipeline": "a@b", "camera": 2, "rotation": 90, "ep": "cpu", "ep_option": ["x=y"], "device": ["gpu:0"]}
+    assert seen == {"pipeline": "a@b", "camera": 2, "rotation": 90, "ep": "cpu", "ep_option": ["x=y"], "device": ["gpu:0"], "cpu_threads": 3}
 
     built: list[tuple] = []
     old_demo = SimpleNamespace(run_webcam=lambda **options: built.append(("webcam", options)))

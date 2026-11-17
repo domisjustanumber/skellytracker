@@ -168,7 +168,11 @@ class Verdict:
 
 @dataclass(frozen=True)
 class SessionReport:
-    """What a session of `build_session()` runs on. `cpu_nodes` and `cpu_op_types` are a stable contract."""
+    """What a session of `build_session()` runs on. `cpu_nodes` and `cpu_op_types` are a stable contract.
+
+    `cpu_threads` is the intra-op thread count of a session on the built-in CPU EP `cpu`, and None
+    for each other EP.
+    """
 
     requested_ep: str
     used_ep: str | None
@@ -191,6 +195,7 @@ class SessionReport:
     cpu_op_types: tuple[str, ...] = ()
     build_ns: int = 0
     warmup_ns: int = 0
+    cpu_threads: int | None = None
 
 
 @dataclass(frozen=True)
