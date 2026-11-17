@@ -17,6 +17,11 @@ Before you write a commit message or a PR body that names a decision entry, load
 
 - Run `git add <path>` for each file of the commit, also for a new file. `git commit -- <path>`
   refuses a file that git does not track yet.
+- Examine each path of `git diff --cached --name-only`. Then run
+  `uv run python tools/check_camera_media.py`. It must print no refusal line. For each reminder
+  line, open the image and make sure that it shows no camera image
+  ([Private Data](../../../AGENTS.md#8-private-data);
+  [ADR-9VN4](../../../decisions/entries/9VN4-no-camera-recordings-or-frames-in-git.md)).
 - Then run `git commit -- <path>` with the same paths. The commit then holds only these files, also
   when the index holds staged files of other work.
 - After each commit, run `git show --stat HEAD`. Make sure that it shows only the files of this
@@ -24,6 +29,10 @@ Before you write a commit message or a PR body that names a decision entry, load
 - Run each `git commit` in its own tool call. Read its result before the next commit. A failed
   commit then stops the group
   ([ADR-9K2M](../../../decisions/entries/9K2M-agent-session-rules.md)).
+- If a camera recording or a camera frame is already committed, stop. Tell the user the path and the
+  commit. `uv run python tools/check_camera_media.py --all` lists each tracked file that the rule
+  refuses. Do not delete the file, rewrite the history or force-push without the approval of the
+  user.
 
 ## Spec-build stage
 

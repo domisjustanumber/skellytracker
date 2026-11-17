@@ -114,7 +114,7 @@ uv run pre-commit install                   # hooks; once per clone, and again a
 uv run python tools/run_checks.py           # the checks before each commit; stops at the first failure
 uv run python tools/graphify_hooks.py install  # optional code graph; in each checkout, and again after tools/graphify_hook.sh changes
 uv run pytest -m "not video"                # package tests and doc tests; must pass
-uv run pytest tools/tests                   # doc tests only: links, examples, decision log, private data
+uv run pytest tools/tests                   # doc tests only: links, examples, decision log, private data, camera media
 uv run pytest -o faulthandler_timeout=300   # all tests, with the video tests
 uv run ruff check skellytracker/ tools/ decisions/scripts/ specs/model-sidecar/decisions/scripts/ specs/model-sidecar/reference/ specs/pipeline/reference/  # lint
 ```
@@ -261,6 +261,19 @@ Do not write these in a tracked file, a commit message or a PR body:
 - a private URL or a private IP address;
 - a raw dump of `env`, `pip list`, `nvidia-smi` or `docker inspect`.
 
+Do not commit a camera recording (video or audio) or a camera frame (a still image or a raw frame
+from a camera). These files are large, and they can contain private information. The one exception
+is a golden reference file: its path starts with an item of `GOLDEN_PATHS` in
+`tools/check_camera_media.py`. Load the [`stack-commit`](.claude/skills/stack-commit/SKILL.md)
+skill before each commit
+([ADR-9VN4](decisions/entries/9VN4-no-camera-recordings-or-frames-in-git.md)).
+
+- A screenshot that shows a camera image is a camera frame. A chart, a diagram or a UI screenshot
+  that shows no camera image is not a camera frame.
+- A results folder can hold summaries, for example JSON, CSV and Markdown files. It must not hold
+  the media. Keep large media outside the repository.
+- To show a camera frame to the user, give its local path. Do not commit the frame.
+
 - A GitHub permalink to a repo of a freemocap exporter is not a private URL. This is also true when
   the repo is private. The permalink can contain the user name of the account that owns the repo. Do
   not write that user name in prose
@@ -274,8 +287,8 @@ Do not write these in a tracked file, a commit message or a PR body:
   ignores that file. Do not commit it.
 - If you find private data in a tracked file, remove it with a redaction edit. Then tell the user,
   because git history keeps the data. Also revoke a leaked credential.
-- The pre-commit hook runs `gitleaks` and `tools/check_private_data.py`. CI runs `gitleaks` on each
-  push and PR. `.gitleaks.toml` holds the reviewed false positives.
+- The pre-commit hook runs `gitleaks`, `tools/check_private_data.py` and
+  `tools/check_camera_media.py`. CI runs `gitleaks` on each push and PR. `.gitleaks.toml` holds the reviewed false positives.
 - The commit-msg hook warns about AI attribution
   (ADR-[p3n3](decisions/entries/p3n3-ai-attribution-warning.md)). If you are an AI agent and you see
   this warning, tell the user.

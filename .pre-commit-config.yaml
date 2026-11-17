@@ -15,6 +15,13 @@ repos:
         entry: uv run python tools/check_private_data.py
         language: system
         pass_filenames: false
+      # A camera recording or a camera frame in the files of the commit. Golden reference files pass.
+      # The hook also prints a reminder for an image. The reminder does not stop the commit.
+      - id: camera-media
+        name: camera recordings and frames
+        entry: uv run python tools/check_camera_media.py
+        language: system
+        verbose: true
       # Decision gtwq: an entry ID that a different file has on another branch or worktree.
       - id: decision-log-ids
         name: decision log IDs

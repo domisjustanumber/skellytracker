@@ -26,8 +26,9 @@ and 8 of ``AGENTS.md``, and the marker blocks ``writing-rules``, ``skills``, ``p
 ``push-and-attribution`` in the other sections of ``AGENTS.md``. The copies are
 ``decisions/template.md``, ``.pre-commit-config.yaml``, ``.gitleaks.toml``,
 ``.github/workflows/secrets.yml`` and ``tools/tests/conftest.py``. The copies also include the
-tools ``check_decision_log.py``, ``check_links.py``, ``check_private_data.py`` and
-``check_ai_attribution.py``, each with its test.
+tools ``check_decision_log.py``, ``check_links.py``, ``check_private_data.py``,
+``check_ai_attribution.py`` and ``check_camera_media.py``, each with its test. The kit skill
+``commit-files`` is not a copy: the skill ``stack-commit`` states its steps here.
 """
 
 from __future__ import annotations
@@ -143,6 +144,23 @@ COPIES = (
         "tools/tests/test_check_ai_attribution.py",
         "tools/tests/test_check_ai_attribution.py",
         (("(decision p3n3).", f"{DECISION_0001}."),),
+    ),
+    Copy(
+        "tools/check_camera_media.py",
+        "tools/check_camera_media.py",
+        (
+            ("(decision 9VN4).", f"{DECISION_0001}."),
+            (
+                "  Set this list for the repo. This repo has no golden reference file: the list is empty.\n",
+                "  Set this list for the repo. The default is ``golden/``.\n",
+            ),
+            ("GOLDEN_PATHS: tuple[str, ...] = ()\n", 'GOLDEN_PATHS: tuple[str, ...] = ("golden/",)\n'),
+        ),
+    ),
+    Copy(
+        "tools/tests/test_camera_media.py",
+        "tools/tests/test_camera_media.py",
+        (("(decision 9VN4).", f"{DECISION_0001}."),),
     ),
     Copy("tools/tests/conftest.py", "tools/tests/conftest.py"),
     Copy(
@@ -289,6 +307,11 @@ BLOCKS = (
                 "",
             ),
             ("`../OpenMMLab-Exporter/notes/`", "`../{{SIBLING_REPO}}/notes/`"),
+            # The kit has a commit-files skill. This repo states its steps in stack-commit.
+            (
+                "Load the [`stack-commit`](.claude/skills/stack-commit/SKILL.md)\nskill before each commit.",
+                "Load the [`commit-files`](.claude/skills/commit-files/SKILL.md)\nskill before each commit.",
+            ),
         ),
     ),
     Block(

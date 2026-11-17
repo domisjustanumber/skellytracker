@@ -13,7 +13,7 @@ The tool runs these checks in this order, with the Python of the environment tha
 4. ``tools/make_vectors.py --check``
 5. ``tools/make_pipeline_schema.py --check``
 6. ``tools/sidecar_trace.py matrix --check``
-7. ``pytest tools/tests -q``. It also runs the private-data check.
+7. ``pytest tools/tests -q``. It also runs the private-data check and the camera-media check.
 8. ``pytest -m "not video" skellytracker/tests/test_mediapipe_detectors.py``
 9. ``pytest -m "not video"`` without the MediaPipe file and without ``tools/tests``
 
