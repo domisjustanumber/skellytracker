@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 from numpy.typing import NDArray
 
+from skellytracker.core.detectors.calibration_detectors.aruco_parameters import create_aruco_detector_parameters
 from skellytracker.core.detectors.calibration_detectors.charuco.charuco_board_definition import CharucoBoardDefinition
 
 
@@ -47,9 +48,12 @@ class CharucoBoardSelector:
             raise ValueError("Maximum skipped frames must be positive")
         self._marker_detector = cv2.aruco.ArucoDetector(
             StandardCharucoBoard.LETTER_5X3.board_definition().aruco_dictionary,
+            create_aruco_detector_parameters(),
         )
         self._board_detectors = {
-            preset: cv2.aruco.CharucoDetector(preset.board_definition().cv2_board)
+            preset: cv2.aruco.CharucoDetector(
+                preset.board_definition().cv2_board, cv2.aruco.CharucoParameters(), create_aruco_detector_parameters(),
+            )
             for preset in StandardCharucoBoard
         }
 

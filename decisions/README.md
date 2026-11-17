@@ -44,6 +44,7 @@ These entries are `accepted` or `evidence`.
 | [GPW6](entries/GPW6-model-gate-of-the-first-models.md) | Model gate of `yolox-person` and `rtmw-wholebody133` at the detector level: parity passes on the CPU EP, `cuda` and `trt-rtx`; batch conversion 0.01 s to 1.02 s | evidence |
 | [7E4Z](entries/7E4Z-box-parity-of-the-built-in-with-sfn26.md) | Box parity of `yolox-rtmw-wholebody` with the tracker of `sfn26`: recording script and fixture; test A passes on 200 frames; report B on the CPU EP and `cuda` | evidence |
 | [JHB3](entries/JHB3-keypoints-xy-and-z-and-image-width-and-height.md) | A `keypoints` value has `xy` and `z` only for `3d`, no `xyz`; no `by_track()`; the camera result has `image_width` and `image_height`, no `image_size` | accepted |
+| [8YXH](entries/8YXH-aruco-marker-threshold-and-charuco-corner-position.md) | The calibration detectors set `validBitIdThreshold` 0.5; no offset on the ChArUco corners of OpenCV 5; a test pins the corner position | accepted |
 
 ### Proposed
 

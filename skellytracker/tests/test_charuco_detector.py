@@ -158,6 +158,60 @@ def test_compute_board_pose_refuses_camera_values_that_are_not_finite(board_def,
     assert compute_board_pose(keypoints, board_def, camera, distortion) is None
 
 
+def render_board(board_def: CharucoBoardDefinition, px_per_square: int, affine: np.ndarray, margin: int = 60):
+    """The board under `affine`, and the true corner positions through the same map.
+
+    `affine` (2x3) maps the board image at `px_per_square` to the output image. Both use
+    pixel-centre coordinates: the centre of pixel (0, 0) is (0.0, 0.0). OpenCV renders the board at
+    8 times the size; the warp and an area resize give sub-pixel edges.
+    """
+    s = 8
+    source = board_def.cv2_board.generateImage(
+        (board_def.squares_x * px_per_square * s, board_def.squares_y * px_per_square * s), marginSize=0
+    )
+    size = (board_def.squares_x * px_per_square + 2 * margin, board_def.squares_y * px_per_square + 2 * margin)
+    full = np.vstack([affine, [0.0, 0.0, 1.0]])
+    shrink = np.array([[1 / s, 0, 0.5 / s - 0.5], [0, 1 / s, 0.5 / s - 0.5], [0, 0, 1]])
+    grow = np.array([[s, 0, 0.5 * s - 0.5], [0, s, 0.5 * s - 0.5], [0, 0, 1]])
+    large = cv2.warpAffine(source, (grow @ full @ shrink)[:2], (size[0] * s, size[1] * s), borderValue=255)
+    image = cv2.resize(large, size, interpolation=cv2.INTER_AREA)
+    # A square edge of the rendered board is on a pixel edge, 0.5 px before a pixel centre.
+    board_px = np.asarray(board_def.cv2_board.getChessboardCorners())[:, :2] * (px_per_square / board_def.square_length_mm) - 0.5
+    return image, board_px @ affine[:, :2].T + affine[:, 2]
+
+
+ANGLE = np.deg2rad(7.0)
+ROTATED = np.array([[np.cos(ANGLE), -np.sin(ANGLE), 60.25], [np.sin(ANGLE), np.cos(ANGLE), 30.6]])
+SHEARED = np.array([[0.93, 0.12, 50.35], [-0.08, 1.04, 45.55]])
+
+
+@pytest.mark.parametrize("px_per_square", [30, 40])
+@pytest.mark.parametrize("affine", [ROTATED, SHEARED], ids=["rotated", "sheared"])
+def test_charuco_corners_have_no_position_bias(detector, board_def, px_per_square, affine):
+    # Pins the corrected corner position of OpenCV 4.14 and 5.0. OpenCV 4.13 or earlier gives about +0.5 px.
+    image, truth = render_board(board_def, px_per_square, affine)
+    keypoints = detector.detect(image)
+    found = keypoints.visibility[: board_def.n_corners] > 0
+    assert found.all()
+    error = keypoints.xyz[: board_def.n_corners, :2] - truth
+    assert np.abs(error.mean(axis=0)).max() < 0.05
+    assert np.sqrt((error**2).sum(axis=1).mean()) < 0.2
+
+
+def test_detector_uses_the_marker_threshold_0_5(detector):
+    assert detector._cv2_detector.getDetectorParameters().validBitIdThreshold == 0.5
+
+
+def test_a_blurred_small_board_keeps_each_corner(detector, board_def):
+    # At 16 px per square with a blur of 0.8 px, the OpenCV default 0.49 rejects markers with cells that are half white.
+    image = cv2.GaussianBlur(render_board(board_def, 16, np.array([[1.0, 0, 20], [0, 1.0, 20]]), margin=20)[0], (0, 0), 0.8)
+    assert np.count_nonzero(detector.detect(image).visibility[: board_def.n_corners]) == board_def.n_corners
+    parameters = cv2.aruco.DetectorParameters()
+    parameters.validBitIdThreshold = 0.49
+    _, corner_ids, _, _ = cv2.aruco.CharucoDetector(board_def.cv2_board, cv2.aruco.CharucoParameters(), parameters).detectBoard(image)
+    assert corner_ids is None or len(corner_ids) < board_def.n_corners
+
+
 class TestCharucoAnnotator:
     def test_annotate_returns_different_image(self, detector, board_def, charuco_test_image):
         kpts = detector.detect(charuco_test_image)

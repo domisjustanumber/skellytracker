@@ -15,6 +15,7 @@ from skellytracker.core.detectors.detector_base_classes import (
     KEYPOINT_DETECTOR_REGISTRY,
     KeypointDetector,
 )
+from skellytracker.core.detectors.calibration_detectors.aruco_parameters import create_aruco_detector_parameters
 from skellytracker.core.detectors.calibration_detectors.charuco.charuco_board_definition import (
     CharucoBoardDefinition,
 )
@@ -173,7 +174,9 @@ class CharucoDetector(KeypointDetector):
             markerLength=board_def.aruco_marker_length_mm,
             dictionary=board_def.aruco_dictionary,
         )
-        cv2_detector = cv2.aruco.CharucoDetector(board)
+        cv2_detector = cv2.aruco.CharucoDetector(
+            board, cv2.aruco.CharucoParameters(), create_aruco_detector_parameters()
+        )
 
         charuco_names = tuple(f"CharucoCorner-{i}" for i in range(board_def.n_corners))
         aruco_ids = tuple(int(i) for i in board.getIds())

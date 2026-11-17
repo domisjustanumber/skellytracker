@@ -58,6 +58,11 @@ class CharucoBoardSelectionTests(unittest.TestCase):
         self.assertEqual(selected, StandardCharucoBoard.LETTER_5X3.board_definition())
         second_detector.detectBoard.assert_not_called()
 
+    def test_detectors_use_the_marker_threshold_0_5(self) -> None:
+        selector = CharucoBoardSelector()
+        for detector in (selector._marker_detector, *selector._board_detectors.values()):
+            self.assertEqual(detector.getDetectorParameters().validBitIdThreshold, 0.5)
+
     def test_no_board_produces_explicit_error(self) -> None:
         images = [np.full((480, 640), 255, dtype=np.uint8)]
         with self.assertRaisesRegex(CharucoBoardSelectionError, "could not detect"):

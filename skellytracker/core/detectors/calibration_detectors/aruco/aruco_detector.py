@@ -14,6 +14,7 @@ from skellytracker.core.detectors.detector_base_classes import (
     KEYPOINT_DETECTOR_REGISTRY,
     KeypointDetector,
 )
+from skellytracker.core.detectors.calibration_detectors.aruco_parameters import create_aruco_detector_parameters
 from skellytracker.core.detectors.calibration_detectors.aruco.aruco_detector_config import (
     ArucoDetectorConfig,
 )
@@ -116,8 +117,7 @@ class ArucoDetector(KeypointDetector):
             raise TypeError(f"Expected CpuSession, got {type(session)}")
 
         dictionary = cv2.aruco.getPredefinedDictionary(config.aruco_dictionary_enum)
-        params = cv2.aruco.DetectorParameters()
-        cv2_detector = cv2.aruco.ArucoDetector(dictionary, params)
+        cv2_detector = cv2.aruco.ArucoDetector(dictionary, create_aruco_detector_parameters())
 
         aruco_ids = config.aruco_ids
         all_names = tuple(

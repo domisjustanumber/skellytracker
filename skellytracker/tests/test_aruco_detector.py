@@ -99,6 +99,10 @@ class TestArucoDetector:
             assert kpts.visibility[idx] == 0.0
 
 
+def test_detector_uses_the_marker_threshold_0_5(detector):
+    assert detector._cv2_detector.getDetectorParameters().validBitIdThreshold == 0.5
+
+
 class TestArucoAnnotator:
     def test_annotate_preserves_shape(self, detector, aruco_ids, aruco_test_image):
         kpts = detector.detect(aruco_test_image)

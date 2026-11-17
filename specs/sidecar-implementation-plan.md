@@ -1413,6 +1413,11 @@ This stage implements the node types of the pipeline spec. Use the skill
     `skellytracker-eps install` as a CUDA 13 plugin pack. The old ONNX detectors run on the CPU only
     ([ADR-M2C6](../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md)).
   - freemocap must not move to 2.0.0 before it migrates.
+  - The calibration detectors use OpenCV 5.0, which removed a bias of +0.5 px from the ChArUco
+    corners. A calibration made with OpenCV 4.13 or earlier that optimises the principal point has
+    `cx` and `cy` about 0.5 px too large. freemocap holds the principal point fixed: there the
+    difference goes into the extrinsics, the focal length and the distortion
+    ([ADR-8YXH](../decisions/entries/8YXH-aruco-marker-threshold-and-charuco-corner-position.md)).
 - Gate: each part of the [checkpoint](#checkpoint) is done. An exporter environment pins the
   pre-release and runs one model and one pipeline. The full suite passes.
 
