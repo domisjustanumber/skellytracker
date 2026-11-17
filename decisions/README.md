@@ -56,6 +56,7 @@ when the change has no one section. The spec change proposals of the sidecar spe
 
 | # | Decision | Section | Status |
 |---|----------|---------|--------|
+| [9HTX](entries/9HTX-pipeline-node-and-port-redesign.md) | Pipeline redesign: internal and external types, an `output` node, a three-state `flag`, named inputs for `merge`, `run_if`; design in the proposal | none | proposed |
 
 The entries that are `rejected`, `superseded by XXXX`, `absorbed into <path>#<anchor>`,
 `evidence; used by XXXX` or `done` are in [historical.md](historical.md).
