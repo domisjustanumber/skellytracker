@@ -118,7 +118,7 @@ The words `cov` and `noise` name the Kalman covariance and the process noise of 
 A pipeline file and its run are valid when all of the following rules hold.
 
 - [Pipeline file](file.md#validation-rules): `V-pipeline.file-1` to `V-pipeline.file-5`
-- [Graph](graph.md#validation-rules): `V-pipeline.graph-1` to `V-pipeline.graph-11`
+- [Graph](graph.md#validation-rules): `V-pipeline.graph-1` to `V-pipeline.graph-12`
 - [Outputs](outputs.md#validation-rules): `V-pipeline.outputs-1` to `V-pipeline.outputs-3`
 - [Running](running.md#validation-rules): `V-pipeline.running-1` to `V-pipeline.running-10`
 - [Timing](timing.md#validation-rules): `V-pipeline.timing-1`

@@ -4,7 +4,7 @@ Implements: pipeline.outputs
 
 A value of an instance port has ``I`` rows on each frame. A padding row has NaN coordinates, the
 score 0, the raw score 0, ``present`` false, and -1 for ``track_ids`` and ``class_index``. A value with no present
-row is empty. An empty ``image`` or ``tensor`` value is ``None``.
+row is empty. An empty ``image`` value is ``None``. A ``flag`` value is ``True`` or ``False``, never empty.
 
 A ``keypoints`` value holds ``xy`` for each output, and ``z`` only for a ``3d`` output. A ``2d``
 output has no ``z``: ``z is None``. This version tracks one person:

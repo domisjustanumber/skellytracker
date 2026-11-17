@@ -120,8 +120,8 @@ def cmd_nodes(options: argparse.Namespace) -> int:
         print(json.dumps([dataclasses.asdict(node) for node in nodes], indent=2))
         return errors.EXIT_OK
     for node in nodes:
-        inputs = ", ".join(f"{port.name}: {port.port_type}" + ("" if port.required else " (optional)") for port in node.inputs)
-        outputs = ", ".join(f"{port.name}: {port.port_type}" for port in node.outputs)
+        inputs = ", ".join(f"{port.name}: {'|'.join(port.port_types)}" + ("" if port.required else " (optional)") for port in node.inputs)
+        outputs = ", ".join(f"{port.name}: {'|'.join(port.port_types)}" for port in node.outputs)
         print(f"{node.type}  ({inputs}) -> ({outputs})  spans: {', '.join(node.timing_spans)}")
         for param in node.params:
             default = "required" if param.required else f"default {json.dumps(param.default)}"

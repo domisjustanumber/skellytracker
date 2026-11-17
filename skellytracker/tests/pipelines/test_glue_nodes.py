@@ -329,10 +329,9 @@ def test_hold_boxes_keeps_the_instance_score_of_a_kept_previous_row() -> None:
 # ---------------------------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("condition", [PortInfo("image"), PortInfo("tensor")])
-def test_v_node_gate_2_score_above_needs_a_condition_with_a_score(condition: PortInfo) -> None:
+def test_v_node_gate_2_score_above_needs_a_condition_with_a_score() -> None:
     params = GateParams(mode="score_above", threshold=0.5)
-    refuses("V-node.gate-2", node_gate.output_info, "n", params, {"value": PortInfo("image"), "condition": condition})
+    refuses("V-node.gate-2", node_gate.output_info, "n", params, {"value": PortInfo("image"), "condition": PortInfo("image")})
     for scored in (kp_info(BODY), boxes_info()):
         outputs, _ = node_gate.output_info("n", params, {"value": PortInfo("image"), "condition": scored})
         assert outputs["value"] == PortInfo("image")
@@ -350,13 +349,12 @@ def gate(params: GateParams, value: Any, condition: Any, value_info: PortInfo, c
     return node_gate.run(params, {"value": value, "condition": condition}, None, frame(), node_gate.prepare("n", params, infos, outputs))[0]["value"]
 
 
-def test_gate_passes_an_image_and_a_tensor_unchanged_or_gives_none() -> None:
+def test_gate_passes_an_image_unchanged_or_gives_none() -> None:
     empty = kp(BODY, [None, None])
     assert gate(GateParams(mode="is_empty"), IMAGE, empty, PortInfo("image"), kp_info(BODY)) is IMAGE
     assert gate(GateParams(mode="is_empty"), IMAGE, body(), PortInfo("image"), kp_info(BODY)) is None
-    tensor = np.ones((1, 3), dtype=np.float32)
-    assert gate(GateParams(mode="is_present"), tensor, IMAGE, PortInfo("tensor"), PortInfo("image")) is tensor
-    assert gate(GateParams(mode="is_present"), tensor, None, PortInfo("tensor"), PortInfo("image")) is None
+    assert gate(GateParams(mode="is_present"), IMAGE, IMAGE, PortInfo("image"), PortInfo("image")) is IMAGE
+    assert gate(GateParams(mode="is_present"), IMAGE, None, PortInfo("image"), PortInfo("image")) is None
 
 
 def test_gate_keeps_the_rows_of_a_boxes_value_with_their_class_index_and_tests_their_instance_score() -> None:

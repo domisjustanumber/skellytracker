@@ -28,7 +28,7 @@ import yaml
 import make_pipeline_schema as mps
 import sidecar_trace as st
 
-PORT_TYPES = {"image", "boxes", "keypoints", "tensor", "trigger", "any"}
+PORT_TYPES = {"image", "boxes", "keypoints", "flag"}
 
 FIXTURE_MODEL = '''
 from typing import Literal
@@ -50,8 +50,8 @@ class Gate:
     type = "gate"
     section = "node.gate"
     Params = GateParams
-    inputs = {"value": "any"}
-    outputs = {"value": "any"}
+    inputs = {"value": ("boxes", "keypoints")}
+    outputs = {"value": ("boxes", "keypoints")}
 
 
 class PipelineConfig(BaseModel):
@@ -91,7 +91,7 @@ def test_the_tool_writes_the_files_and_then_the_check_passes(spec: tuple[Path, P
         "| `threshold` | `float` | >= 0, <= 1 | `0.5` | yes | The limit \\| bound. | a test |" in node
     )
     assert "| `mode` | `Literal['a', 'b']` |  | required | no | The mode. | a test |" in node
-    assert "| `value` | input | `any` |\n| `value` | output | `any` |\n" in node
+    assert "| `value` | input | `boxes`, `keypoints` |\n| `value` | output | `boxes`, `keypoints` |\n" in node
     assert "\nold\n" not in node
     assert mps.run(model, base, check=True) == 0
 
@@ -168,7 +168,7 @@ def test_each_node_class_names_its_section_file_and_known_port_types() -> None:
         assert path.is_file(), f"no node file {path.name}"
         front, _ = st.parse_front_matter(path.read_text(encoding="utf-8"), path.name)
         assert front.get("id") == node.section, f"{path.name}: the id must be {node.section}"
-        assert set(node.inputs.values()) | set(node.outputs.values()) <= PORT_TYPES, node.type
+        assert {kind for kinds in (*node.inputs.values(), *node.outputs.values()) for kind in kinds} <= PORT_TYPES, node.type
 
 
 EXAMPLES = sorted((mps.PIPELINE_DIR / "examples").glob("*.pipeline.yaml"))
@@ -214,6 +214,10 @@ BOX = {"id": "box", "type": "boxes_from_points", "inputs": {"keypoints": "body.k
                    "params": {"mode": "is_present"}}]), "V-pipeline.graph-9"),
         (_config([{"id": "pick", "type": "first_of", "inputs": ["body.keypoints@prev"]}]), "V-pipeline.graph-9"),
         (_config([{"id": "pick", "type": "first_of", "inputs": ["person.boxes", "body.keypoints@prev"]}]), "V-node.first_of-1"),
+        (_config([{"id": "need", "type": "redetect_trigger", "inputs": {"image": "frame.image"}},
+                  {"id": "pick", "type": "first_of", "inputs": ["need.image", "need.image@prev"]}]), "V-pipeline.graph-12"),
+        (_config([{"id": "other", "type": "onnx_model", "inputs": {"image": "person.boxes"}, "params": {"key": "p@x", "size": "m"}}]),
+         "V-pipeline.graph-3: other.image takes image, but 'person.boxes' gives boxes"),
         (_config([], outputs={"body": "body.keypoints@prev"}), "V-pipeline.outputs-1"),
         (_config([], outputs={"image": "frame.image"}), "V-pipeline.outputs-1"),
         (_config([], outputs={"node_ran": "body.keypoints"}), "V-pipeline.outputs-3"),
@@ -238,7 +242,7 @@ BOX = {"id": "box", "type": "boxes_from_points", "inputs": {"keypoints": "body.k
                    "params": {"min_cutoff": 3.0}}]), "V-node.smooth_boxes-1"),
     ],
     ids=["no-prefix", "dot-form", "weight-sum", "first-of-types", "any-type-inferred",
-         "gate-value-prev", "first-of-only-prev", "first-of-types-prev",
+         "gate-value-prev", "first-of-only-prev", "first-of-types-prev", "prev-of-an-image", "image-input-gets-boxes",
          "output-prev", "output-frame", "output-result-field", "tap-frame", "merge-map-column", "merge-no-max-distance",
          "mediapipe-size-not-body", "floor-no-previous-boxes", "floor-no-reference-boxes",
          "box-missing-field", "box-missing-no-previous-boxes", "one-euro-with-ema-param", "ema-with-one-euro-param"],

@@ -28,11 +28,15 @@ _BOUNDS = (
 
 @dataclass(frozen=True)
 class NodePort:
-    """One port of a node type. The input `*` is the list of a variadic node. `required` is false for an output."""
+    """One port of a node type. The input `*` is the list of a variadic node. `required` is false for an output.
+
+    `port_types` are the port types that an input accepts, or that an output can give. An output
+    with two or more port types takes the type of the inputs that `any_from` of its node type names.
+    """
 
     name: str
     direction: str
-    port_type: str
+    port_types: tuple[str, ...]
     required: bool
 
 
@@ -58,8 +62,8 @@ class NodeParam:
 class NodeTypeInfo:
     """One node type: its section ID, its ports (the inputs, then the outputs), its timing spans and its params.
 
-    `any_from` names the inputs that give an `any` output its port type (pipeline.graph, Behaviour
-    item 4). `params_schema` is the JSON Schema of the params model of the node type. An editor makes
+    `any_from` names the inputs that give an output with two or more port types its type
+    (pipeline.graph, Behaviour item 4). `params_schema` is the JSON Schema of the params model of the node type. An editor makes
     its param fields from it (ADR-4WR9).
     """
 

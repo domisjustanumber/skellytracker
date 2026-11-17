@@ -6,7 +6,7 @@ The tool loads it by its path, with `make_vectors.load_reference`. The model mus
 - `PipelineConfig`, a Pydantic model. `PipelineConfig.model_json_schema()` is the schema.
 - `NODE_TYPES`, a tuple of classes. Each class has the class attributes `type` (for example
   `boxes_from_points`), `section` (`node.<type>`), `Params` (a Pydantic model), `inputs` and
-  `outputs` (port name -> port type).
+  `outputs` (port name -> the tuple of the port types that the port accepts or gives).
 
 Each field of `Params` has a `description`, and a `json_schema_extra` with `set_during_run` (a bool) and
 `source` (a string). A field with no default is required.
@@ -20,7 +20,7 @@ The tool writes these files:
   columns are Param, Type, Range, Default, Set during run, Description and Source. A required param shows
   `required` as its default. The ports table replaces the text between `<!-- node-table:ports -->`
   and `<!-- /node-table:ports -->`. Its columns are Port, Direction and Type. The inputs come
-  first, then the outputs.
+  first, then the outputs. The Type cell lists each port type of the port, separated by commas.
 
 A node file that does not exist, or that does not have the two marker pairs, is an error that
 names the file. The tool then writes nothing. With `--check`, the tool writes nothing and exits 1
@@ -122,7 +122,7 @@ def ports_table(node: type) -> str:
     """Return the ports table of a node class: the inputs, then the outputs."""
     lines = ["| Port | Direction | Type |", "|---|---|---|"]
     for direction, ports in (("input", node.inputs), ("output", node.outputs)):
-        lines += [f"| `{port}` | {direction} | `{kind}` |" for port, kind in ports.items()]
+        lines += [f"| `{port}` | {direction} | {', '.join(f'`{kind}`' for kind in kinds)} |" for port, kinds in ports.items()]
     return "\n".join(lines)
 
 

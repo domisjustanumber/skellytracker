@@ -30,8 +30,10 @@ from typing import Annotated, Any, ClassVar, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-# The port types. A port of type `any` takes a value of each type.
-PORT_TYPES = ("image", "boxes", "keypoints", "tensor", "any")
+# The port types (pipeline.graph, Fields). A `flag` is one boolean for one camera on one frame.
+PORT_TYPES = ("image", "boxes", "keypoints", "flag")
+# The port types of an instance port. An `@prev` input names only such a port (V-pipeline.graph-12).
+INSTANCE_TYPES = ("boxes", "keypoints")
 # A name of a node, a pipeline, an output, a tap, a slot or a derived point.
 NAME = r"^[a-z][a-z0-9_-]*$"
 # The name of a source, as `source.name` of a sidecar (V-common.identity-6 of the sidecar spec).
@@ -477,10 +479,11 @@ class NodeType:
     type: ClassVar[str]
     section: ClassVar[str]
     Params: ClassVar[type[BaseModel]]
-    inputs: ClassVar[dict[str, str]]
-    outputs: ClassVar[dict[str, str]]
+    # Port name -> the port types that an input accepts, or that an output can give.
+    inputs: ClassVar[dict[str, tuple[str, ...]]]
+    outputs: ClassVar[dict[str, tuple[str, ...]]]
     required_inputs: ClassVar[tuple[str, ...]] = ()
-    # The inputs that give the type of an `any` output (pipeline.graph, Behaviour item 4).
+    # The inputs that give an output with more than one port type its type (pipeline.graph, Behaviour item 4).
     any_from: ClassVar[tuple[str, ...]] = ()
     timing_spans: ClassVar[tuple[str, ...]] = ("run",)
 
@@ -490,8 +493,8 @@ class OnnxModel(NodeType):
     section = "node.onnx_model"
     Params = OnnxModelParams
     # `boxes` is for a top-down keypoint model only; the role of the sidecar decides the ports that it uses.
-    inputs = {"image": "image", "boxes": "boxes"}
-    outputs = {"boxes": "boxes", "keypoints": "keypoints"}
+    inputs = {"image": ("image",), "boxes": ("boxes",)}
+    outputs = {"boxes": ("boxes",), "keypoints": ("keypoints",)}
     required_inputs = ("image",)
     timing_spans = ("preprocess", "inference", "postprocess")
 
@@ -500,8 +503,8 @@ class MediapipeTasks(NodeType):
     type = "mediapipe_tasks"
     section = "node.mediapipe_tasks"
     Params = MediapipeTasksParams
-    inputs = {"image": "image"}
-    outputs = {"keypoints": "keypoints"}
+    inputs = {"image": ("image",)}
+    outputs = {"keypoints": ("keypoints",)}
     required_inputs = ("image",)
 
 
@@ -510,8 +513,8 @@ class BoxesFromPoints(NodeType):
     section = "node.boxes_from_points"
     Params = BoxesFromPointsParams
     # `previous_boxes` and `reference_boxes` are optional: they give the sizes of two size floors.
-    inputs = {"keypoints": "keypoints", "previous_boxes": "boxes", "reference_boxes": "boxes"}
-    outputs = {"boxes": "boxes"}
+    inputs = {"keypoints": ("keypoints",), "previous_boxes": ("boxes",), "reference_boxes": ("boxes",)}
+    outputs = {"boxes": ("boxes",)}
     required_inputs = ("keypoints",)
 
 
@@ -519,8 +522,8 @@ class HoldBoxes(NodeType):
     type = "hold_boxes"
     section = "node.hold_boxes"
     Params = HoldBoxesParams
-    inputs = {"previous": "boxes", "current": "boxes", "previous_keypoints": "keypoints"}
-    outputs = {"boxes": "boxes"}
+    inputs = {"previous": ("boxes",), "current": ("boxes",), "previous_keypoints": ("keypoints",)}
+    outputs = {"boxes": ("boxes",)}
     required_inputs = ("previous", "current")
 
 
@@ -528,8 +531,8 @@ class Gate(NodeType):
     type = "gate"
     section = "node.gate"
     Params = GateParams
-    inputs = {"value": "any", "condition": "any"}
-    outputs = {"value": "any"}
+    inputs = {"value": ("image", "boxes", "keypoints"), "condition": ("image", "boxes", "keypoints")}
+    outputs = {"value": ("image", "boxes", "keypoints")}
     required_inputs = ("value", "condition")
     any_from = ("value",)
 
@@ -538,8 +541,8 @@ class FirstOf(NodeType):
     type = "first_of"
     section = "node.first_of"
     Params = NoParams
-    inputs = {VARIADIC: "any"}
-    outputs = {"value": "any"}
+    inputs = {VARIADIC: ("image", "boxes", "keypoints")}
+    outputs = {"value": ("image", "boxes", "keypoints")}
     any_from = (VARIADIC,)
 
 
@@ -547,16 +550,16 @@ class Concat(NodeType):
     type = "concat"
     section = "node.concat"
     Params = NoParams
-    inputs = {VARIADIC: "keypoints"}
-    outputs = {"keypoints": "keypoints"}
+    inputs = {VARIADIC: ("keypoints",)}
+    outputs = {"keypoints": ("keypoints",)}
 
 
 class Merge(NodeType):
     type = "merge"
     section = "node.merge"
     Params = MergeParams
-    inputs = {"target": "keypoints", "source": "keypoints"}
-    outputs = {"keypoints": "keypoints"}
+    inputs = {"target": ("keypoints",), "source": ("keypoints",)}
+    outputs = {"keypoints": ("keypoints",)}
     required_inputs = ("target", "source")
 
 
@@ -564,8 +567,8 @@ class SmoothKeypoints(NodeType):
     type = "smooth_keypoints"
     section = "node.smooth_keypoints"
     Params = SmoothKeypointsParams
-    inputs = {"keypoints": "keypoints"}
-    outputs = {"keypoints": "keypoints"}
+    inputs = {"keypoints": ("keypoints",)}
+    outputs = {"keypoints": ("keypoints",)}
     required_inputs = ("keypoints",)
 
 
@@ -573,8 +576,8 @@ class SmoothBoxes(NodeType):
     type = "smooth_boxes"
     section = "node.smooth_boxes"
     Params = SmoothBoxesParams
-    inputs = {"boxes": "boxes"}
-    outputs = {"boxes": "boxes"}
+    inputs = {"boxes": ("boxes",)}
+    outputs = {"boxes": ("boxes",)}
     required_inputs = ("boxes",)
 
 
@@ -583,8 +586,8 @@ class RedetectTrigger(NodeType):
     section = "node.redetect_trigger"
     Params = RedetectTriggerParams
     # The output is the input image when a new detection is needed, else empty (the trigger).
-    inputs = {"image": "image", "previous_keypoints": "keypoints", "previous_boxes": "boxes"}
-    outputs = {"image": "image"}
+    inputs = {"image": ("image",), "previous_keypoints": ("keypoints",), "previous_boxes": ("boxes",)}
+    outputs = {"image": ("image",)}
     required_inputs = ("image",)
 
 
@@ -744,26 +747,28 @@ def _port(ref: str, nodes: dict[str, Any], rule: str, *, graph_input: bool = Tru
     return node_id, port, prev
 
 
-def _ref_type(ref: str, nodes: dict[str, Any]) -> str:
+def _ref_type(ref: str, nodes: dict[str, Any]) -> str | None:
     """Return the port type of a valid port reference. `x@prev` has the type of `x`.
 
-    An `any` output takes the type of its inputs that are not `@prev` (pipeline.graph, Behaviour
-    item 4). Call it only after the cycle check: it follows only same-frame edges.
+    An output with more than one port type takes the type of its `any_from` inputs that are not
+    `@prev` (pipeline.graph, Behaviour item 4). The result is None when these inputs give no type
+    or more than one: the load then refuses the file with V-pipeline.graph-9 or V-node.first_of-1.
+    Call it only after the cycle check: it follows only same-frame edges.
     """
     match = PORT_REF.match(ref)
     assert match is not None  # noqa: S101 (`_port` checked the reference)
     node_id, port = match["node"], match["port"]
     if node_id == FRAME:
         return FRAME_PORTS[port]
-    kind = BY_TYPE[nodes[node_id].type]
-    if kind.outputs[port] != "any":
-        return kind.outputs[port]
-    types = {_ref_type(ref, nodes) for ref in _type_refs(nodes[node_id])} - {"any"}
-    return types.pop() if len(types) == 1 else "any"
+    kinds = BY_TYPE[nodes[node_id].type].outputs[port]
+    if len(kinds) == 1:
+        return kinds[0]
+    types = {_ref_type(ref, nodes) for ref in _type_refs(nodes[node_id])} - {None}
+    return types.pop() if len(types) == 1 else None
 
 
 def _type_refs(node: Any) -> list[str]:
-    """Return the inputs that give the type of the `any` output of `node`: those that are not `@prev`."""
+    """Return the inputs that give the output of `node` its type: the `any_from` inputs that are not `@prev`."""
     names = BY_TYPE[node.type].any_from
     return [ref for name, ref in input_items(node) if name in names and not ref.endswith("@prev")]
 
@@ -796,13 +801,17 @@ def check_structure(config: PipelineConfig) -> None:
     for node in config.nodes:
         kind = BY_TYPE[node.type]
         for name, ref in input_items(node):
-            expected, given = kind.inputs[name], _ref_type(ref, nodes)
-            if "any" not in (expected, given) and expected != given:
-                raise ValueError(f"V-pipeline.graph-3: {node.id}.{name} takes {expected}, but {ref!r} gives {given}")
+            accepted, given = kind.inputs[name], _ref_type(ref, nodes)
+            if given is None:
+                continue  # V-pipeline.graph-9 or V-node.first_of-1 refuses the node that gives this port
+            if ref.endswith("@prev") and given not in INSTANCE_TYPES:
+                raise ValueError(f"V-pipeline.graph-12: {node.id}.{name}: {ref!r} has the type {given}; `@prev` names only a boxes or a keypoints port")
+            if given not in accepted:
+                raise ValueError(f"V-pipeline.graph-3: {node.id}.{name} takes {' or '.join(accepted)}, but {ref!r} gives {given}")
         if kind.any_from and not _type_refs(node):
-            raise ValueError(f"V-pipeline.graph-9: {node.id}: each input that gives the `any` output its type is `@prev`")
+            raise ValueError(f"V-pipeline.graph-9: {node.id}: each input that gives the output its type is `@prev`")
         # V-node.first_of-1 compares each item, also an `@prev` item.
-        if node.type == "first_of" and len(types := {_ref_type(ref, nodes) for _, ref in input_items(node)} - {"any"}) > 1:
+        if node.type == "first_of" and len(types := {_ref_type(ref, nodes) for _, ref in input_items(node)} - {None}) > 1:
             raise ValueError(f"V-node.first_of-1: {node.id}: the inputs have the port types {sorted(types)}")
     _check_point_names(config)
     _check_optional_inputs(config)

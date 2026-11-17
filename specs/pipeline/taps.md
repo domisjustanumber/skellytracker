@@ -27,7 +27,7 @@ The layout of one tap:
 <tap folder>/<name>/
   tap.json                 # the manifest, written last
   <port_type>.jsonl        # boxes or keypoints: one line for each present row
-  <image_id>.npy           # image or tensor: one file for each image
+  <image_id>.npy           # image: one file for each image
 ```
 
 The file form of each port type:
@@ -37,7 +37,6 @@ The file form of each port type:
 | `keypoints` | `keypoints.jsonl`: COCO keypoint records. `score` is the `instance_score` of the row. `raw_score` is the list of the `raw_score` of each point, in the order of `point_names` ([ADR-PX6Z](../../decisions/entries/PX6Z-keypoint-raw-score-in-the-pipeline-result.md)). The tap applies no rescoring. A consumer applies its own rule, for example the `score_mode` of mmpose, from `instance_score` and the point scores. |
 | `boxes` | `boxes.jsonl`: COCO result records with `box: [cx, cy, w, h, rotation]`. `bbox` is `[x, y, width, height]`: the axis-aligned bounds of the box. `score` is the `instance_score` of the row. `class` is the class name from the `class_names` of the output schema, in place of `category_id`, or null for a row with the `class_index` -1. The consumer maps the name to the category id of its data set. A class index plus 1 is not a COCO category id ([Object decode](../model-sidecar/post/object/decode.md#authoring-guidance); [ADR-2RWC](../../decisions/entries/2RWC-one-boxes-port-type-and-node-descriptions.md)). |
 | `image` | One `<image_id>.npy` file for each image. |
-| `tensor` | One `<image_id>.npy` file for each image. |
 
 Each JSONL line is one present row. Each line has the keys `image_id`, `frame_index`, `camera_id` and `row`. `row` is the row index of the line, in `[0, I)`. The lines of one image are in ascending `row` order. The images are in the order of the image list. A padding row has no line.
 
