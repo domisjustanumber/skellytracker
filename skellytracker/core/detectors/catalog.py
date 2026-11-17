@@ -444,9 +444,8 @@ def load_detector_sidecar(key: str, user_root: Path | str | None = None) -> Side
 # ---------------------------------------------------------------------------------------------
 
 _IMAGE = Port("image", "input", "image")
-_ROIS_IN = Port("rois", "input", "roi")
-_DETECTIONS = Port("detections", "output", "detections")
-_ROIS_OUT = Port("rois", "output", "roi")
+_BOXES_IN = Port("boxes", "input", "boxes")
+_BOXES_OUT = Port("boxes", "output", "boxes")
 _KEYPOINTS = Port("keypoints", "output", "keypoints")
 
 
@@ -454,10 +453,10 @@ def model_ports(model: SidecarModel) -> tuple[Port, ...]:
     """Return the ports that an `onnx_model` node of this model uses, from its `role`."""
     if "object_detector" in model.role:
         keypoints = (_KEYPOINTS,) if "keypoint_detector" in model.role else ()
-        return (_IMAGE, _DETECTIONS, _ROIS_OUT, *keypoints)
+        return (_IMAGE, _BOXES_OUT, *keypoints)
     if model.keypoint.estimator_type == "bottom_up":
         return (_IMAGE, _KEYPOINTS)
-    return (_IMAGE, _ROIS_IN, _KEYPOINTS)
+    return (_IMAGE, _BOXES_IN, _KEYPOINTS)
 
 
 def describe_detector(key: str, user_root: Path | str | None = None, *, full_hash: bool = False) -> DetectorDescription:

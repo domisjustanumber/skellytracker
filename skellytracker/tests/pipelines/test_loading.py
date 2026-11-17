@@ -10,7 +10,7 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from skellytracker.core.pipelines.config import PipelineConfig, SmoothRoiParams
+from skellytracker.core.pipelines.config import PipelineConfig, SmoothBoxesParams
 from skellytracker.core.pipelines.loading import IMPLEMENTED_VERSIONS, export_pipeline, load_pipeline
 
 BASE: dict[str, Any] = {
@@ -198,5 +198,5 @@ def test_the_export_as_written_holds_a_param_that_the_caller_changes() -> None:
     assert written["nodes"][1] == {**BASE["nodes"][1], "params": {"min_cutoff": 2.0}}
     assert written == {**BASE, "nodes": written["nodes"], "instrumentation": {"timing_spans": ["pipeline.run"]}}
     assert export_pipeline(load_pipeline(written)) == written
-    built = SmoothRoiParams(filter="one_euro", beta=0.1)
+    built = SmoothBoxesParams(filter="one_euro", beta=0.1)
     assert built.model_dump(exclude_unset=True) == {"filter": "one_euro", "beta": 0.1}

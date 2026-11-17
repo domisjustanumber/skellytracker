@@ -1,27 +1,27 @@
-"""The node ``roi_from_points``: one ROI from the keypoints of each present instance row.
+"""The node ``boxes_from_points``: one box from the keypoints of each present instance row.
 
-Implements: node.roi_from_points
+Implements: node.boxes_from_points
 """
 from __future__ import annotations
 
 import math
 from typing import Any
 
-from skellytracker.core.pipelines.config import RoiFromPointsParams, derivation_sources
-from skellytracker.core.pipelines.values import InstanceKeypoints, InstanceRois, PortInfo
+from skellytracker.core.pipelines.config import BoxesFromPointsParams, derivation_sources
+from skellytracker.core.pipelines.values import InstanceKeypoints, InstanceBoxes, PortInfo
 
 from skellytracker.core.pipelines._runtime.context import FrameContext
 
 # No required input is read when it is empty: an empty `keypoints` stops the node (Behaviour step 1).
 READS_EMPTY: frozenset[str] = frozenset()
-# The param of each size floor and the optional input that it needs (V-node.roi_from_points-6).
-FLOOR_INPUTS = {"min_previous_ratio": "previous_rois", "min_reference_ratio": "reference_rois"}
+# The param of each size floor and the optional input that it needs (V-node.boxes_from_points-6).
+FLOOR_INPUTS = {"min_previous_ratio": "previous_boxes", "min_reference_ratio": "reference_boxes"}
 
 
 def normalize_radians(angle: float) -> float:
     """Return the angle in [-pi, pi): ``a - 2 pi floor((a + pi) / (2 pi))`` (Behaviour step 6).
 
-    Implements: node.roi_from_points
+    Implements: node.boxes_from_points
     """
     return angle - 2 * math.pi * math.floor((angle + math.pi) / (2 * math.pi))
 
@@ -35,13 +35,13 @@ def _weights(derivation: Any) -> dict[str, float]:
 
 
 def output_info(
-    node_id: str, params: RoiFromPointsParams, inputs: dict[str, PortInfo]
+    node_id: str, params: BoxesFromPointsParams, inputs: dict[str, PortInfo]
 ) -> tuple[dict[str, PortInfo], list[dict[str, Any]]]:
-    """Check the load rules that need the ports, and return the facts of the output ``rois``.
+    """Check the load rules that need the ports, and return the facts of the output ``boxes``.
 
-    Implements: node.roi_from_points
+    Implements: node.boxes_from_points
 
-    It checks V-node.roi_from_points-2, -6 and -7. The params model checks -1, -3, -4 and -5.
+    It checks V-node.boxes_from_points-2, -6 and -7. The params model checks -1, -3, -4 and -5.
     """
     keypoints = inputs["keypoints"]
     names, derived = set(keypoints.point_names), set(params.derived_points)
@@ -52,29 +52,29 @@ def output_info(
         name for derivation in params.derived_points.values() for name in derivation_sources(derivation) if name not in names
     ]
     if unknown:
-        raise ValueError(f"V-node.roi_from_points-2: {node_id}: unknown point names {unknown!r}")
+        raise ValueError(f"V-node.boxes_from_points-2: {node_id}: unknown point names {unknown!r}")
     for name, port in FLOOR_INPUTS.items():
         if getattr(params, name) is not None and port not in inputs:
-            raise ValueError(f"V-node.roi_from_points-6: {node_id}: {name} needs the input {port}")
+            raise ValueError(f"V-node.boxes_from_points-6: {node_id}: {name} needs the input {port}")
     for port in FLOOR_INPUTS.values():
         info = inputs.get(port)
         if info is not None and (info.instance_source, info.max_instances) != (keypoints.instance_source, keypoints.max_instances):
             raise ValueError(
-                f"V-node.roi_from_points-7: {node_id}: {port} does not have the instance source and the rows of keypoints"
+                f"V-node.boxes_from_points-7: {node_id}: {port} does not have the instance source and the rows of keypoints"
             )
-    out = PortInfo("roi", max_instances=keypoints.max_instances, instance_source=keypoints.instance_source, tracked=keypoints.tracked)
-    return {"rois": out}, []
+    out = PortInfo("boxes", max_instances=keypoints.max_instances, instance_source=keypoints.instance_source, tracked=keypoints.tracked)
+    return {"boxes": out}, []
 
 
-def _row_roi(
-    params: RoiFromPointsParams,
+def _row_box(
+    params: BoxesFromPointsParams,
     names: tuple[str, ...],
     xy: list[list[float]],
     score: list[float],
     previous: list[float] | None,
     reference: list[float] | None,
 ) -> list[float] | None:
-    """Return the ROI of one present row, or None for an empty row (Behaviour steps 3 to 10)."""
+    """Return the box of one present row, or None for an empty row (Behaviour steps 3 to 10)."""
     found = {
         name: (x, y)
         for name, (x, y), value in zip(names, xy, score, strict=True)
@@ -131,35 +131,35 @@ def _row_roi(
     return [cx, cy, w, h, rotation]
 
 
-def _row(rois: InstanceRois | None, i: int) -> list[float] | None:
-    """Return row ``i`` of an optional ROI input, or None when the row is not there."""
-    if rois is None or not rois.present[i]:
+def _row(boxes: InstanceBoxes | None, i: int) -> list[float] | None:
+    """Return row ``i`` of an optional box input, or None when the row is not there."""
+    if boxes is None or not boxes.present[i]:
         return None
-    return rois.rois[i].tolist()
+    return boxes.boxes[i].tolist()
 
 
 def run(
-    params: RoiFromPointsParams, inputs: dict[str, Any], state: Any, frame: FrameContext, infos: Any = None
-) -> tuple[dict[str, InstanceRois], None]:
-    """Make one ROI for each present row of ``keypoints``. The node keeps no state.
+    params: BoxesFromPointsParams, inputs: dict[str, Any], state: Any, frame: FrameContext, infos: Any = None
+) -> tuple[dict[str, InstanceBoxes], None]:
+    """Make one box for each present row of ``keypoints``. The node keeps no state.
 
-    Implements: node.roi_from_points
+    Implements: node.boxes_from_points
     """
     keypoints: InstanceKeypoints = inputs["keypoints"]
-    previous, reference = inputs.get("previous_rois"), inputs.get("reference_rois")
+    previous, reference = inputs.get("previous_boxes"), inputs.get("reference_boxes")
     count = len(keypoints.present)
-    out = InstanceRois.empty(count)
+    out = InstanceBoxes.empty(count)
     for i in range(count):
         if not keypoints.present[i]:
             continue
-        roi = _row_roi(
+        roi = _row_box(
             params, keypoints.point_names, keypoints.xy[i].tolist(), keypoints.score[i].tolist(),
             _row(previous, i), _row(reference, i),
         )
         if roi is not None:
-            out.rois[i] = roi
+            out.boxes[i] = roi
             out.instance_score[i] = keypoints.instance_score[i]
             out.present[i] = True
-    return {"rois": out}, None
+    return {"boxes": out}, None
 
 

@@ -15,8 +15,8 @@ from skellytracker.core.pipelines.values import InstanceBoxes, InstanceKeypoints
 
 # The mode `is_empty` tests for an empty `condition`, so the node gets it (Behaviour step 1).
 READS_EMPTY: frozenset[str] = frozenset({"condition"})
-INSTANCE_TYPES = ("roi", "keypoints", "detections")
-SCORED_TYPES = ("detections", "keypoints")
+INSTANCE_TYPES = ("boxes", "keypoints")
+SCORED_TYPES = INSTANCE_TYPES
 
 
 def output_info(
@@ -31,7 +31,7 @@ def output_info(
     """
     value, condition = inputs["value"], inputs["condition"]
     if params.mode == "score_above" and condition.port_type not in SCORED_TYPES:
-        raise ValueError(f"V-node.gate-2: {node_id}: score_above needs a detections or keypoints condition, not {condition.port_type}")
+        raise ValueError(f"V-node.gate-2: {node_id}: score_above needs a boxes or keypoints condition, not {condition.port_type}")
     by_row = value.port_type in INSTANCE_TYPES and condition.port_type in INSTANCE_TYPES
     if by_row and value.max_instances != condition.max_instances:
         raise ValueError(f"V-node.gate-3: {node_id}: value has {value.max_instances} rows and condition has {condition.max_instances}")
@@ -46,7 +46,7 @@ def prepare(node_id: str, params: GateParams, inputs_info: dict[str, PortInfo], 
 def _row_score(condition: Any, i: int) -> float:
     """Return the score of one present row of ``condition`` (Fields, "Score of a row")."""
     if isinstance(condition, InstanceBoxes):
-        return float(condition.score[i])
+        return float(condition.instance_score[i])
     valid = ~np.isnan(condition.xy[i]).any(axis=1)
     seen = condition.score[i][valid].tolist()
     return sum(seen) / len(seen) if seen else 0.0

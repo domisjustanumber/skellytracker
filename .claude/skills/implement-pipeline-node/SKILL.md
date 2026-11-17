@@ -22,9 +22,9 @@ implements the node types ([ADR-Y753](../../../decisions/entries/Y753-pipeline-t
 
 ## Inputs
 
-- The section ID, for example `node.roi_from_points`. The section file is
+- The section ID, for example `node.boxes_from_points`. The section file is
   `specs/pipeline/nodes/<type>.md`.
-- `<section_module>` is `node_<type>`, for example `node_roi_from_points`.
+- `<section_module>` is `node_<type>`, for example `node_boxes_from_points`.
 
 ## Differences from `implement-sidecar-section`
 

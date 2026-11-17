@@ -34,7 +34,7 @@ def test_describe_prints_one_entry_and_exits_with_1_for_an_unknown_key(tmp_path:
     put(tmp_path / "user", BASES["nms"]())
     assert main(["describe", KEY, "--user-root", str(tmp_path / "user")]) == 0
     text = capsys.readouterr().out
-    assert "sidecar_sha256: " in text and "port detections: output, detections" in text and "param size: \"n\"" in text
+    assert "sidecar_sha256: " in text and "port boxes: output, boxes" in text and "param size: \"n\"" in text
     assert main(["describe", KEY, "--json", "--user-root", str(tmp_path / "user")]) == 0
     description = json.loads(capsys.readouterr().out)
     assert description["sizes"] == {"n": ["fp32"]} and description["params"]["object_decode"]["selection"] == "nms"

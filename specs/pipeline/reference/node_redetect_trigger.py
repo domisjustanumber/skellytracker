@@ -5,12 +5,12 @@ Note:
 - Section ID: node.redetect_trigger.
 - Source: skellytracker/core/temporal_processing/bbox_policy.py (BBoxPolicy.should_redetect, the four
   checks and predict_bbox_from_keypoints) and skellytracker/core/tracker/detection_stage.py
-  (DetectionStage.run). Today the boxes have no rotation. The check roi_missing is new in the section.
+  (DetectionStage.run). Today the boxes have no rotation. The check box_missing is new in the section.
 - Imported section modules: none.
 
-A case is one sequence of frames. Each frame holds frame_index, previous_keypoints and previous_rois.
+A case is one sequence of frames. Each frame holds frame_index, previous_keypoints and previous_boxes.
 previous_keypoints is a list of instance rows, and each row is a list of points [x, y, score] or
-null (the row is not present). previous_rois is a list of instance rows, and each row is an ROI
+null (the row is not present). previous_boxes is a list of instance rows, and each row is a box
 [cx, cy, w, h, rotation] or null (the row is not present). An input that is null is empty. A frame
 with no previous_keypoints key has previous_keypoints not connected. The result is True for each
 frame where the node gives the image (the trigger).
@@ -26,7 +26,7 @@ FIELDS = {
     "keypoints_within_bbox_ratio": {"threshold": 0.5},
     "max_frames_without_redetect": {"n_frames": 30},
     "bbox_area_collapse": {"min_area_ratio": 0.25, "expand_ratio": 1.10, "min_score": 0.0},
-    "roi_missing": {},
+    "box_missing": {},
 }
 RUNNING_MODES = ("image", "video", "live")
 
@@ -48,7 +48,7 @@ def valid(point: list[float]) -> bool:
 
 
 def inside(point: list[float], roi: list[float]) -> bool:
-    """True when the point is in the ROI, edges included (node.redetect_trigger)."""
+    """True when the point is in the box, edges included (node.redetect_trigger)."""
     cx, cy, w, h, rotation = roi
     dx, dy = point[0] - cx, point[1] - cy
     u = math.cos(rotation) * dx + math.sin(rotation) * dy
@@ -57,7 +57,7 @@ def inside(point: list[float], roi: list[float]) -> bool:
 
 
 def area_collapsed(row: list[list[float]], roi: list[float], check: dict[str, Any]) -> bool:
-    """The check bbox_area_collapse for one row with an ROI (node.redetect_trigger)."""
+    """The check bbox_area_collapse for one row with a box (node.redetect_trigger)."""
     points = [p for p in row if valid(p) and (check["min_score"] <= 0 or p[2] >= check["min_score"])]
     if not points:
         return True
@@ -80,7 +80,7 @@ def fails(
     kind = check["check"]
     if kind == "max_frames_without_redetect":
         return frames_since >= check["n_frames"]
-    if kind == "roi_missing":
+    if kind == "box_missing":
         return roi is None
     if row is None:
         return kind == "bbox_area_collapse" and connected and roi is not None
@@ -113,14 +113,14 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
         if input["running_mode"] == "image" or last is None or n - last >= interval:
             hit = True
         else:
-            keypoints, rois = frame.get("previous_keypoints"), frame["previous_rois"]
-            count = max(len(keypoints or []), len(rois or []))
+            keypoints, boxes = frame.get("previous_keypoints"), frame["previous_boxes"]
+            count = max(len(keypoints or []), len(boxes or []))
             hit = any(
                 fails(
                     check,
                     n - last,
                     keypoints[i] if keypoints is not None and i < len(keypoints) else None,
-                    rois[i] if rois is not None and i < len(rois) else None,
+                    boxes[i] if boxes is not None and i < len(boxes) else None,
                     "previous_keypoints" in frame,
                 )
                 for check in checks

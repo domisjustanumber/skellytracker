@@ -1,6 +1,6 @@
-"""The node ``roi_hold``: the previous ROI or the current ROI of each instance row.
+"""The node ``hold_boxes``: the previous box or the current box of each instance row.
 
-Implements: node.roi_hold
+Implements: node.hold_boxes
 """
 from __future__ import annotations
 
@@ -8,36 +8,36 @@ import math
 from typing import Any
 
 from skellytracker.core.pipelines._runtime.context import FrameContext
-from skellytracker.core.pipelines._runtime.node_roi_from_points import normalize_radians
-from skellytracker.core.pipelines.config import RoiHoldParams
-from skellytracker.core.pipelines.values import InstanceRois, PortInfo
+from skellytracker.core.pipelines._runtime.node_boxes_from_points import normalize_radians
+from skellytracker.core.pipelines.config import HoldBoxesParams
+from skellytracker.core.pipelines.values import InstanceBoxes, PortInfo
 
 # The node reads an empty `previous`: it is empty on the first frame (Behaviour step 2).
 READS_EMPTY: frozenset[str] = frozenset({"previous"})
 
 
 def output_info(
-    node_id: str, params: RoiHoldParams, inputs: dict[str, PortInfo]
+    node_id: str, params: HoldBoxesParams, inputs: dict[str, PortInfo]
 ) -> tuple[dict[str, PortInfo], list[dict[str, Any]]]:
-    """Check the load rules that need the ports, and return the facts of the output ``rois``.
+    """Check the load rules that need the ports, and return the facts of the output ``boxes``.
 
-    Implements: node.roi_hold
+    Implements: node.hold_boxes
 
-    It checks V-node.roi_hold-2 and -3. The params model checks -1.
+    It checks V-node.hold_boxes-2 and -3. The params model checks -1.
     """
     current = inputs["current"]
     others = {name: inputs[name] for name in ("previous", "previous_keypoints") if name in inputs}
     for name, info in others.items():
         if info.max_instances != current.max_instances:
-            raise ValueError(f"V-node.roi_hold-2: {node_id}: {name} has {info.max_instances} rows and current has {current.max_instances}")
+            raise ValueError(f"V-node.hold_boxes-2: {node_id}: {name} has {info.max_instances} rows and current has {current.max_instances}")
     for name, info in others.items():
         if info.instance_source != current.instance_source:
-            raise ValueError(f"V-node.roi_hold-3: {node_id}: {name} does not have the instance source of current")
-    return {"rois": current}, []
+            raise ValueError(f"V-node.hold_boxes-3: {node_id}: {name} does not have the instance source of current")
+    return {"boxes": current}, []
 
 
-def _keep_previous(params: RoiHoldParams, previous: list[float], current: list[float], points: list[list[float]]) -> bool:
-    """Return true when the previous ROI passes the tests of Behaviour steps 4 to 7."""
+def _keep_previous(params: HoldBoxesParams, previous: list[float], current: list[float], points: list[list[float]]) -> bool:
+    """Return true when the previous box passes the tests of Behaviour steps 4 to 7."""
     pcx, pcy, pw, ph, pr = previous
     cx, cy, w, h, r = current
     if abs(normalize_radians(pr - r)) > math.radians(params.max_rotation_deg):
@@ -63,17 +63,17 @@ def _keep_previous(params: RoiHoldParams, previous: list[float], current: list[f
 
 
 def run(
-    params: RoiHoldParams, inputs: dict[str, Any], state: Any, frame: FrameContext, infos: Any = None
-) -> tuple[dict[str, InstanceRois], None]:
-    """Choose the previous or the current ROI of each row. The node keeps no state.
+    params: HoldBoxesParams, inputs: dict[str, Any], state: Any, frame: FrameContext, infos: Any = None
+) -> tuple[dict[str, InstanceBoxes], None]:
+    """Choose the previous or the current box of each row. The node keeps no state.
 
-    Implements: node.roi_hold
+    Implements: node.hold_boxes
     """
-    current: InstanceRois = inputs["current"]
-    previous: InstanceRois = inputs["previous"]
+    current: InstanceBoxes = inputs["current"]
+    previous: InstanceBoxes = inputs["previous"]
     keypoints = inputs.get("previous_keypoints")
     count = len(current.present)
-    out = InstanceRois.empty(count)
+    out = InstanceBoxes.empty(count)
     for i in range(count):
         if not current.present[i]:
             continue
@@ -81,8 +81,8 @@ def run(
         kept = False
         if previous.present[i]:
             points = keypoints.xy[i].tolist() if keypoints is not None and keypoints.present[i] else []
-            kept = _keep_previous(params, previous.rois[i].tolist(), current.rois[i].tolist(), points)
+            kept = _keep_previous(params, previous.boxes[i].tolist(), current.boxes[i].tolist(), points)
         chosen = previous if kept else current
-        out.rois[i] = chosen.rois[i]
-        out.instance_score[i] = chosen.instance_score[i]
-    return {"rois": out}, None
+        out.boxes[i] = chosen.boxes[i]
+        out.instance_score[i], out.class_index[i] = chosen.instance_score[i], chosen.class_index[i]
+    return {"boxes": out}, None

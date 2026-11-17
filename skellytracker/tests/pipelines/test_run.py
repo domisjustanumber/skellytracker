@@ -54,7 +54,7 @@ def in_thread(target: Any) -> tuple[threading.Thread, list]:
 
 def test_a_run_gives_the_output_schema_before_frame_0_the_run_metadata_and_the_result_fields(root: Path) -> None:
     with start(root, camera_ids=["cam"]) as run:
-        assert run.output_schema["body"]["point_names"] == ["body/a", "body/b", "body/c"] and run.output_schema["person_box"]["class_names"] == ["person"]
+        assert run.output_schema["body"]["point_names"] == ["body/a", "body/b", "body/c"] and run.output_schema["detector_box"]["class_names"] == ["person"]
         assert (run.camera_ids, run.running_mode, run.warnings) == (("cam",), "video", ())
         models = run.models
         assert set(models) == {"person", "body"} and set(models["person"]) == {
@@ -66,7 +66,7 @@ def test_a_run_gives_the_output_schema_before_frame_0_the_run_metadata_and_the_r
         assert (models["person"]["key"], models["body"]["key"], models["person"]["version"]) == (OBJECT_KEY, KEYPOINT_KEY, "0.1.0")
         assert len(models["person"]["sidecar_sha256"]) == 64
         result = run.process(Frame(image(1, 24, 40), 4))
-    assert set(result) == {"body", "person_box", "person_roi", "frame_index", "image_width", "image_height", "timestamp_ms", "node_ran"}
+    assert set(result) == {"body", "detector_box", "frame_index", "image_width", "image_height", "timestamp_ms", "node_ran"}
     assert (result["frame_index"], result["image_width"], result["image_height"], result["node_ran"]) == (4, 40, 24, {"person": True, "body": True})
     assert result["timestamp_ms"] == pytest.approx(4 * 1000 / 30)  # the `video` fallback with the default fps
 
@@ -170,15 +170,15 @@ def test_an_other_session_error_during_a_call_passes_through_and_the_run_stays_o
 
 
 def params_pipeline(tap: bool = False) -> dict[str, Any]:
-    """`detector_pipeline` with an ROI from the keypoints (`expand_ratio` can change) and an `ema` filter with a state."""
+    """`detector_pipeline` with a box from the keypoints (`expand_ratio` can change) and an `ema` filter with a state."""
     data = detector_pipeline()
     data["nodes"] += [
-        {"id": "box", "type": "roi_from_points", "inputs": {"keypoints": "body.keypoints"}},
-        {"id": "crop", "type": "smooth_roi", "inputs": {"rois": "box.rois"}},
+        {"id": "box", "type": "boxes_from_points", "inputs": {"keypoints": "body.keypoints"}},
+        {"id": "crop", "type": "smooth_boxes", "inputs": {"boxes": "box.boxes"}},
     ]
-    data["outputs"].update(box="box.rois", crop="crop.rois")
+    data["outputs"].update(box="box.boxes", crop="crop.boxes")
     if tap:
-        data["instrumentation"] = {"taps": [{"action": "record", "port": "box.rois", "name": "box"}]}
+        data["instrumentation"] = {"taps": [{"action": "record", "port": "box.boxes", "name": "box"}]}
     return data
 
 
@@ -200,7 +200,7 @@ def test_v_pipeline_running_10_set_params_refuses_a_bad_node_a_bad_param_and_a_b
         with pytest.raises(SetParamsRefusedError, match="(?s)V-pipeline.running-10: .*" + match):
             run.set_params(node_id, params)
         assert all(run._executor.params[key] is value for key, value in before.items())
-        np.testing.assert_allclose(run.process(Frame(image(1), 0))["box"].rois[0, 2:4], [5, 20 / 3])  # the box with expand_ratio 1.0
+        np.testing.assert_allclose(run.process(Frame(image(1), 0))["box"].boxes[0, 2:4], [5, 20 / 3])  # the box with expand_ratio 1.0
 
 
 def test_v_pipeline_running_10_set_params_is_refused_after_the_first_call_in_video_and_image(root: Path) -> None:
@@ -233,12 +233,12 @@ def test_a_param_change_applies_from_the_next_call_to_each_camera_and_resets_no_
         run.set_params("crop", {"previous_weight": 0.0})  # a second change keeps the first change
         third = run.process_batch({camera: Frame(image(1), 2, 66.0) for camera in cameras})
     for camera in cameras:
-        size = first[camera]["box"].rois[0, 2:4]
-        np.testing.assert_allclose(second[camera]["box"].rois[0, 2:4], 2 * size)
-        # The `ema` filter still has the ROI of the first frame: new = 0.5 x previous + 0.5 x input.
-        np.testing.assert_allclose(second[camera]["crop"].rois[0, 2:4], 1.5 * size)
-        np.testing.assert_allclose(third[camera]["crop"].rois[0, 2:4], 2 * size)
-        np.testing.assert_allclose(third[camera]["box"].rois[0, 2:4], 2 * size)
+        size = first[camera]["box"].boxes[0, 2:4]
+        np.testing.assert_allclose(second[camera]["box"].boxes[0, 2:4], 2 * size)
+        # The `ema` filter still has the box of the first frame: new = 0.5 x previous + 0.5 x input.
+        np.testing.assert_allclose(second[camera]["crop"].boxes[0, 2:4], 1.5 * size)
+        np.testing.assert_allclose(third[camera]["crop"].boxes[0, 2:4], 2 * size)
+        np.testing.assert_allclose(third[camera]["box"].boxes[0, 2:4], 2 * size)
 
 
 # ---------------------------------------------------------------------------------------------
@@ -264,7 +264,7 @@ def test_two_runs_in_one_process_call_at_the_same_time_on_two_threads(root: Path
 
     def work(run: PipelineRun, value: int) -> list[list[float]]:
         barrier.wait(30)
-        return [run.process(Frame(image(value), index))["person_box"].score.tolist() for index in range(25)]
+        return [run.process(Frame(image(value), index))["detector_box"].instance_score.tolist() for index in range(25)]
 
     threads = [in_thread(lambda run=run, value=value: work(run, value)) for run, value in zip(runs, (1, 2), strict=True)]
     for thread, _ in threads:
@@ -380,9 +380,9 @@ def test_the_package_exports_the_public_api() -> None:
     names = {
         "list_pipelines", "get_pipeline", "load_pipeline", "check_pipeline", "export_pipeline", "list_node_types", "start_pipeline",
         "PipelineRun", "Frame", "PipelineEntry", "PipelineWarning", "PipelineCheck", "PipelineConfig", "InstanceKeypoints", "InstanceBoxes",
-        "InstanceRois", "to_canonical", "CanonicalKeypoints", "annotate", "MissingDependencyError", "CallRefusedError", "SetParamsRefusedError",
+        "to_canonical", "CanonicalKeypoints", "annotate", "MissingDependencyError", "CallRefusedError", "SetParamsRefusedError",
         "RunClosedError",
     }
     assert names <= set(pipelines.__all__) and all(hasattr(pipelines, name) for name in pipelines.__all__)
     assert not hasattr(PipelineRun, "cancel")  # there is no cancel (pipeline.running, Behaviour item 12)
-    assert not any(hasattr(pipelines, old) for old in ("find_pipeline", "CallRefused", "SetParamsRefused"))  # no alias for an old name
+    assert not any(hasattr(pipelines, old) for old in ("find_pipeline", "CallRefused", "SetParamsRefused", "InstanceRois"))  # no alias for an old name

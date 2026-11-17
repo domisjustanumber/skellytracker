@@ -33,14 +33,14 @@ a gate sends the image to a person detector only when the keypoints of the previ
 
 - `value` and `condition` take each port type. The output `value` gets its port type as
   [Graph](../graph.md#behaviour) item 4 gives.
-- An instance port is a port of the type `roi`, `keypoints` or `detections`. It has one row for each
+- An instance port is a port of the type `boxes` or `keypoints`. It has one row for each
   instance ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1). A
   row is present or empty.
 - A port value is empty when it has no value, for example an `@prev` value on the first frame or
   the output of a node that did not run. A value of an instance port with no present row is also
   empty.
 - **Score of a row.** The mode `score_above` uses the score of a present row of `condition`:
-  - `detections`: the `score` of the row.
+  - `boxes`: the `instance_score` of the row ([ADR-2RWC](../../../decisions/entries/2RWC-one-boxes-port-type-and-node-descriptions.md)).
   - `keypoints`: the mean `score` of the points of the row whose x and y are not NaN. If each point
     of the row is NaN, the score is 0. A score has no upper bound
     ([ADR-88WQ](../../../decisions/entries/88WQ-sidecar-vocabulary.md) item 6).
@@ -72,7 +72,7 @@ a gate sends the image to a person detector only when the keypoints of the previ
 ## Validation rules
 
 - [ ] `V-node.gate-1` The mode `score_above` needs `threshold`, and the other modes have none.
-- [ ] `V-node.gate-2` The mode `score_above` needs a `condition` of the port type `detections` or `keypoints`. The host checks this at load, from the port type of the connected output.
+- [ ] `V-node.gate-2` The mode `score_above` needs a `condition` of the port type `boxes` or `keypoints`. The host checks this at load, from the port type of the connected output.
 - [ ] `V-node.gate-3` When `value` and `condition` are both instance ports, they must have the same number of rows (`max_instances`). The host checks this at load.
 
 ## Implementer guidance
@@ -88,12 +88,12 @@ a gate sends the image to a person detector only when the keypoints of the previ
 ## Authoring guidance
 
 - To run a detector only when tracking stops, gate the image with `mode: is_empty` on the keypoints
-  of the previous frame (`<node>.keypoints@prev`). Join the two ROI paths with `first_of`.
+  of the previous frame (`<node>.keypoints@prev`). Join the two box paths with `first_of`.
 - The keypoint score is a mean over all points of the row. A row with many low-score points
   can fail `score_above` when its important points are visible. Gate on a smaller keypoint set when
   this matters.
-- The mode `score_above` on a `roi` condition is a load error (`V-node.gate-2`). Gate on the
-  keypoints or the detections that made the ROI.
+- The mode `score_above` on a `boxes` condition tests the instance score of each box: for a
+  detector box, the detection score.
 
 ## Examples
 

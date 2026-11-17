@@ -49,10 +49,10 @@ from skellytracker.core.pipelines._runtime import (
     node_gate,
     node_merge,
     node_redetect_trigger,
-    node_roi_from_points,
-    node_roi_hold,
+    node_boxes_from_points,
+    node_hold_boxes,
     node_smooth_keypoints,
-    node_smooth_roi,
+    node_smooth_boxes,
 )
 from skellytracker.core.pipelines.config import FRAME, PORT_REF, VARIADIC, PipelineConfig, _ref_type, input_items
 from skellytracker.core.pipelines.values import Group, PortInfo
@@ -62,19 +62,19 @@ logger = logging.getLogger(__name__)
 
 MODULES: dict[str, Any] = {
     "mediapipe_tasks": mediapipe_tasks,
-    "roi_from_points": node_roi_from_points,
-    "roi_hold": node_roi_hold,
+    "boxes_from_points": node_boxes_from_points,
+    "hold_boxes": node_hold_boxes,
     "gate": node_gate,
     "first_of": node_first_of,
     "concat": node_concat,
     "merge": node_merge,
     "smooth_keypoints": node_smooth_keypoints,
-    "smooth_roi": node_smooth_roi,
+    "smooth_boxes": node_smooth_boxes,
     "redetect_trigger": node_redetect_trigger,
 }
 """The module of each node type that is not `onnx_model`."""
-TEMPORAL_TYPES = ("smooth_roi", "smooth_keypoints", "redetect_trigger")
-INSTANCE_TYPES = ("roi", "keypoints", "detections")
+TEMPORAL_TYPES = ("smooth_boxes", "smooth_keypoints", "redetect_trigger")
+INSTANCE_TYPES = ("boxes", "keypoints")
 MISSING_DEPENDENCY = "missing_dependency"
 _FRAME_INFO = PortInfo("image")
 
@@ -168,11 +168,11 @@ def _merge(base: Any, changes: Any) -> Any:
     return copy.deepcopy(changes)
 
 
-def keypoint_port_info(node_id: str, keypoint: KeypointSpec, schema: LandmarkSchema, rois: PortInfo) -> PortInfo:
+def keypoint_port_info(node_id: str, keypoint: KeypointSpec, schema: LandmarkSchema, boxes: PortInfo) -> PortInfo:
     """Return the facts of the port `keypoints` of a top-down keypoint model (pipeline.graph, Behaviour items 7 and 8).
 
     A schema with one group gives the group the id of the node. The rows and the instance source
-    come from the `rois` input. An edge with a derived point name is not in `edges`.
+    come from the `boxes` input. An edge with a derived point name is not in `edges`.
     """
     from skellytracker.core.detectors.generic.overlay import overlay_edges  # the package `generic` imports the detectors
 
@@ -193,9 +193,9 @@ def keypoint_port_info(node_id: str, keypoint: KeypointSpec, schema: LandmarkSch
         (f"{group_of[a]}/{a}", f"{group_of[b]}/{b}") for a, b in overlay_edges(keypoint) if a in group_of and b in group_of
     )
     return PortInfo(
-        "keypoints", max_instances=rois.max_instances, instance_source=rois.instance_source, point_names=tuple(names),
+        "keypoints", max_instances=boxes.max_instances, instance_source=boxes.instance_source, point_names=tuple(names),
         groups=tuple(groups), geometry=keypoint.geometry, depth_unit=keypoint.decode.depth_unit if keypoint.geometry == "3d" else None,
-        edges=edges, tracked=rois.tracked,
+        edges=edges, tracked=boxes.tracked,
     )
 
 
@@ -295,10 +295,10 @@ class _Resolver:
 
         ports = model_ports(sidecar)
         outputs = {port.name for port in ports if port.direction == "output"}
-        takes_rois = any(port.name == "rois" and port.direction == "input" for port in ports)
-        if takes_rois != ("rois" in node.inputs):
+        takes_boxes = any(port.name == "boxes" and port.direction == "input" for port in ports)
+        if takes_boxes != ("boxes" in node.inputs):
             raise ValueError(
-                f"{rule}2: {node.id}: {params.key} is {'a top-down keypoint model and needs' if takes_rois else 'not a top-down keypoint model and takes no'} `rois` input"
+                f"{rule}2: {node.id}: {params.key} is {'a top-down keypoint model and needs' if takes_boxes else 'not a top-down keypoint model and takes no'} `boxes` input"
             )
         if unused := sorted(self.used_ports(node.id) - outputs):
             raise ValueError(f"{rule}2: {node.id}: the graph uses the ports {unused}, but the role of {params.key} gives {sorted(outputs)}")
@@ -388,12 +388,11 @@ class _Resolver:
             return MODULES[node.type].output_info(node.id, node.params, inputs)
         model, rows = self.models[node.id], node.params.max_instances
         if model.kind == "object":
-            detections = PortInfo("detections", max_instances=rows, instance_source=node.id, class_names=tuple(model.sidecar.object.classes))
-            return {"detections": detections, "rois": PortInfo("roi", max_instances=rows, instance_source=node.id)}, []
+            return {"boxes": PortInfo("boxes", max_instances=rows, instance_source=node.id, class_names=tuple(model.sidecar.object.classes))}, []
         keypoint = model.sidecar.keypoint
         if keypoint.landmark_schema not in self.registry:
             raise ValueError(f"{node.id}: the landmark schema {keypoint.landmark_schema!r} is not in the registry")
-        return {"keypoints": keypoint_port_info(node.id, keypoint, self.registry[keypoint.landmark_schema], inputs["rois"])}, []
+        return {"keypoints": keypoint_port_info(node.id, keypoint, self.registry[keypoint.landmark_schema], inputs["boxes"])}, []
 
     def port_facts(self) -> dict[str, dict[str, PortInfo]]:
         """Return the facts of the output ports of each node, before the last pass checks them.
@@ -515,7 +514,7 @@ class _Resolver:
                 entry["geometry"] = info.geometry
                 if info.geometry == "3d":
                     entry["depth_unit"] = info.depth_unit
-            if info.port_type == "detections":
+            if info.port_type == "boxes":
                 entry["class_names"] = None if info.class_names is None else list(info.class_names)
             if info.port_type in INSTANCE_TYPES:
                 entry.update(max_instances=info.max_instances, tracked=info.tracked, instance_source=info.instance_source)

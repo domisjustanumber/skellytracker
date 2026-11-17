@@ -96,10 +96,10 @@ def write_models(root: Path, *, graphs: bool = False, files: bool = True) -> Pat
 
 
 def detector_pipeline(**person_params: Any) -> dict[str, Any]:
-    """Return the config of the two models: `person` gives the ROIs of `body`.
+    """Return the config of the two models: `person` gives the boxes of `body`.
 
     `person_params` are more params of the node `person`, for example `max_instances=2`. The
-    outputs are `body` (keypoints, the group `body`), `person_box` and `person_roi`.
+    outputs are `body` (keypoints, the group `body`) and `detector_box`.
     """
     return {
         "schema_version": "2.0.0",
@@ -108,10 +108,10 @@ def detector_pipeline(**person_params: Any) -> dict[str, Any]:
         "nodes": [
             {"id": "person", "type": "onnx_model", "inputs": {"image": "frame.image"},
              "params": {"key": OBJECT_KEY, "size": "n", "execution_provider": "cpu", **person_params}},
-            {"id": "body", "type": "onnx_model", "inputs": {"image": "frame.image", "rois": "person.rois"},
+            {"id": "body", "type": "onnx_model", "inputs": {"image": "frame.image", "boxes": "person.boxes"},
              "params": {"key": KEYPOINT_KEY, "size": "m", "execution_provider": "cpu"}},
         ],
-        "outputs": {"body": "body.keypoints", "person_box": "person.detections", "person_roi": "person.rois"},
+        "outputs": {"body": "body.keypoints", "detector_box": "person.boxes"},
     }
 
 
@@ -127,24 +127,24 @@ def tracking_pipeline() -> dict[str, Any]:
 
     The detector runs on the first frame and then each 3 frames. `hand` is a second node of the
     keypoint model, so the two nodes can share one session. The outputs are `body`, `both`
-    (`concat`), `merged` (`merge`), `smooth`, `person_box` and `person_roi` (the crop ROI).
+    (`concat`), `merged` (`merge`), `smooth`, `detector_box` and `crop_box` (the crop box).
     """
     cpu = {"execution_provider": "cpu"}
     nodes = [
         {"id": "trigger", "type": "redetect_trigger",
-         "inputs": {"image": "frame.image", "previous_keypoints": "body.keypoints@prev", "previous_rois": "crop.rois@prev"},
-         "params": {"redetect_interval": 3, "fitness_checks": [{"check": "roi_missing"}]}},
+         "inputs": {"image": "frame.image", "previous_keypoints": "body.keypoints@prev", "previous_boxes": "crop.boxes@prev"},
+         "params": {"redetect_interval": 3, "fitness_checks": [{"check": "box_missing"}]}},
         {"id": "person", "type": "onnx_model", "inputs": {"image": "trigger.image"}, "params": {"key": OBJECT_KEY, "size": "n", **cpu}},
-        {"id": "detected_box", "type": "first_of", "inputs": ["person.rois", "detected_box.value@prev"]},
-        {"id": "points_box", "type": "roi_from_points",
-         "inputs": {"keypoints": "body.keypoints@prev", "previous_rois": "crop.rois@prev", "reference_rois": "detected_box.value"},
+        {"id": "detected_box", "type": "first_of", "inputs": ["person.boxes", "detected_box.value@prev"]},
+        {"id": "points_box", "type": "boxes_from_points",
+         "inputs": {"keypoints": "body.keypoints@prev", "previous_boxes": "crop.boxes@prev", "reference_boxes": "detected_box.value"},
          "params": {"expand_ratio": 1.2}},
-        {"id": "carried_box", "type": "gate", "inputs": {"value": "points_box.rois", "condition": "trigger.image"}, "params": {"mode": "is_empty"}},
-        {"id": "box", "type": "first_of", "inputs": ["person.rois", "carried_box.value"]},
-        {"id": "hold", "type": "roi_hold", "inputs": {"previous": "crop.rois@prev", "current": "box.value"}},
-        {"id": "crop", "type": "smooth_roi", "inputs": {"rois": "hold.rois"}},
-        {"id": "body", "type": "onnx_model", "inputs": {"image": "frame.image", "rois": "crop.rois"}, "params": {"key": KEYPOINT_KEY, "size": "m", **cpu}},
-        {"id": "hand", "type": "onnx_model", "inputs": {"image": "frame.image", "rois": "crop.rois"}, "params": {"key": KEYPOINT_KEY, "size": "m", **cpu}},
+        {"id": "carried_box", "type": "gate", "inputs": {"value": "points_box.boxes", "condition": "trigger.image"}, "params": {"mode": "is_empty"}},
+        {"id": "box", "type": "first_of", "inputs": ["person.boxes", "carried_box.value"]},
+        {"id": "hold", "type": "hold_boxes", "inputs": {"previous": "crop.boxes@prev", "current": "box.value"}},
+        {"id": "crop", "type": "smooth_boxes", "inputs": {"boxes": "hold.boxes"}},
+        {"id": "body", "type": "onnx_model", "inputs": {"image": "frame.image", "boxes": "crop.boxes"}, "params": {"key": KEYPOINT_KEY, "size": "m", **cpu}},
+        {"id": "hand", "type": "onnx_model", "inputs": {"image": "frame.image", "boxes": "crop.boxes"}, "params": {"key": KEYPOINT_KEY, "size": "m", **cpu}},
         {"id": "both", "type": "concat", "inputs": ["body.keypoints", "hand.keypoints"]},
         {"id": "merged", "type": "merge", "inputs": {"target": "body.keypoints", "source": "hand.keypoints"},
          "params": {"slots": {"extra": "body/a"}, "source_anchor": "hand/a", "max_distance": 10.0}},
@@ -152,7 +152,7 @@ def tracking_pipeline() -> dict[str, Any]:
     ]
     outputs = {
         "body": "body.keypoints", "both": "both.keypoints", "merged": "merged.keypoints", "smooth": "smooth.keypoints",
-        "person_box": "person.detections", "person_roi": "crop.rois",
+        "detector_box": "person.boxes", "crop_box": "crop.boxes",
     }
     return {
         "schema_version": "2.0.0", "pipeline_id": "demo-tracking", "source": {"name": "demo-source", "version": "1.0.0"},

@@ -1,7 +1,7 @@
 # Spec example, structure only. It sketches the MediaPipe pose and hand chain with onnx_model and
-# glue nodes: redetect_trigger, a pose detector, an ROI from the points of the previous frame (@prev),
-# first_of, smooth_roi, roi_hold, gate and smooth_keypoints. Both hands run from frame 0: an
-# empty optional input (`previous_keypoints` of roi_hold on frame 0) does not stop a node.
+# glue nodes: redetect_trigger, a pose detector, a box from the points of the previous frame (@prev),
+# first_of, smooth_boxes, hold_boxes, gate and smooth_keypoints. Both hands run from frame 0: an
+# empty optional input (`previous_keypoints` of hold_boxes on frame 0) does not stop a node.
 # The model keys and sizes wait for the sidecar proposals of MediaPipe-Exporter.
 schema_version: "2.0.0"
 pipeline_id: mediapipe-holistic-decomposed
@@ -18,9 +18,9 @@ nodes:
     type: onnx_model
     inputs: {image: trigger.image}
     params: {key: mediapipe-pose-detector@mediapipe-exporter, size: full}
-  # The pose ROI from the points of the previous frame.
-  - id: pose_roi_prev
-    type: roi_from_points
+  # The pose box from the points of the previous frame.
+  - id: pose_box_prev
+    type: boxes_from_points
     inputs: {keypoints: body.keypoints@prev}
     params:
       points: [body/left_hip, body/right_hip, body/nose]
@@ -32,19 +32,19 @@ nodes:
       target_rotation_deg: 90
       square_long: true
       expand_ratio: 1.25
-  - id: pose_roi
+  - id: pose_box
     type: first_of
-    inputs: [pose_detector.rois, pose_roi_prev.rois]
-  - id: pose_roi_smooth
-    type: smooth_roi
-    inputs: {rois: pose_roi.value}
+    inputs: [pose_detector.boxes, pose_box_prev.boxes]
+  - id: pose_box_smooth
+    type: smooth_boxes
+    inputs: {boxes: pose_box.value}
   - id: body
     type: onnx_model
-    inputs: {image: frame.image, rois: pose_roi_smooth.rois}
+    inputs: {image: frame.image, boxes: pose_box_smooth.boxes}
     params: {key: mediapipe-pose-landmarker@mediapipe-exporter, size: full}
-  # The right hand ROI from the pose points, kept stable with roi_hold.
-  - id: right_hand_roi
-    type: roi_from_points
+  # The right hand box from the pose points, kept stable with hold_boxes.
+  - id: right_hand_box
+    type: boxes_from_points
     inputs: {keypoints: body.keypoints}
     params:
       points: [body/right_wrist, body/right_index, body/right_pinky]
@@ -55,22 +55,22 @@ nodes:
       square_long: true
       expand_ratio: 2.7
   - id: right_hand_tracked
-    type: roi_hold
+    type: hold_boxes
     inputs:
-      previous: right_hand_tracked.rois@prev
-      current: right_hand_roi.rois
+      previous: right_hand_tracked.boxes@prev
+      current: right_hand_box.boxes
       previous_keypoints: right_hand.keypoints@prev
   - id: right_hand_gate
     type: gate
-    inputs: {value: right_hand_tracked.rois, condition: body.keypoints}
+    inputs: {value: right_hand_tracked.boxes, condition: body.keypoints}
     params: {mode: score_above, threshold: 0.5}
   - id: right_hand
     type: onnx_model
-    inputs: {image: frame.image, rois: right_hand_gate.value}
+    inputs: {image: frame.image, boxes: right_hand_gate.value}
     params: {key: mediapipe-hand-landmarker@mediapipe-exporter, size: full}
   # The left hand: the same chain on the left points.
-  - id: left_hand_roi
-    type: roi_from_points
+  - id: left_hand_box
+    type: boxes_from_points
     inputs: {keypoints: body.keypoints}
     params:
       points: [body/left_wrist, body/left_index, body/left_pinky]
@@ -81,18 +81,18 @@ nodes:
       square_long: true
       expand_ratio: 2.7
   - id: left_hand_tracked
-    type: roi_hold
+    type: hold_boxes
     inputs:
-      previous: left_hand_tracked.rois@prev
-      current: left_hand_roi.rois
+      previous: left_hand_tracked.boxes@prev
+      current: left_hand_box.boxes
       previous_keypoints: left_hand.keypoints@prev
   - id: left_hand_gate
     type: gate
-    inputs: {value: left_hand_tracked.rois, condition: body.keypoints}
+    inputs: {value: left_hand_tracked.boxes, condition: body.keypoints}
     params: {mode: score_above, threshold: 0.5}
   - id: left_hand
     type: onnx_model
-    inputs: {image: frame.image, rois: left_hand_gate.value}
+    inputs: {image: frame.image, boxes: left_hand_gate.value}
     params: {key: mediapipe-hand-landmarker@mediapipe-exporter, size: full}
   - id: body_smooth
     type: smooth_keypoints

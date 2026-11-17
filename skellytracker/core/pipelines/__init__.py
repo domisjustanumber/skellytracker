@@ -27,7 +27,7 @@ from skellytracker.core.pipelines.config import PipelineConfig
 from skellytracker.core.pipelines.loading import PipelineCheck, check_pipeline, export_pipeline, load_pipeline
 from skellytracker.core.pipelines.nodes import list_node_types
 from skellytracker.core.pipelines.run import Frame, PipelineRun, start_pipeline
-from skellytracker.core.pipelines.values import InstanceBoxes, InstanceKeypoints, InstanceRois
+from skellytracker.core.pipelines.values import InstanceBoxes, InstanceKeypoints
 from skellytracker.core.pipelines.warnings import PipelineWarning
 
 __all__ = [
@@ -36,7 +36,6 @@ __all__ = [
     "Frame",
     "InstanceBoxes",
     "InstanceKeypoints",
-    "InstanceRois",
     "MissingDependencyError",
     "PipelineCheck",
     "PipelineConfig",

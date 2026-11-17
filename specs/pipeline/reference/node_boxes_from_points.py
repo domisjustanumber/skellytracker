@@ -1,9 +1,9 @@
-"""Reference implementation of the pipeline section node.roi_from_points.
+"""Reference implementation of the pipeline section node.boxes_from_points.
 
 Note:
 
-- Section ID: node.roi_from_points.
-- Source: the section text specs/pipeline/nodes/roi_from_points.md. It follows the MediaPipe rect
+- Section ID: node.boxes_from_points.
+- Source: the section text specs/pipeline/nodes/boxes_from_points.md. It follows the MediaPipe rect
   rules of MediaPipe-Exporter docs/mediapipe-whole-body.md (sections 1.2 and 1.3) at
   8f708a1ddecd8e035de15a5a9a7b652af035a58a. The size floors of step 10 follow
   skellytracker/core/temporal_processing/bbox_policy.py (BBoxPolicy.predict_bbox).
@@ -21,7 +21,7 @@ from typing import Any
 NAME = r"^[a-z][a-z0-9_-]*$"
 WEIGHT_SUM_TOLERANCE = 1e-6
 
-# The defaults of RoiFromPointsParams in specs/pipeline/reference/pipeline_config.py.
+# The defaults of BoxesFromPointsParams in specs/pipeline/reference/pipeline_config.py.
 DEFAULTS = {
     "points": None,
     "derived_points": {},
@@ -38,12 +38,12 @@ DEFAULTS = {
     "min_reference_ratio": None,
     "min_size_px": 0.0,
 }
-# The param of each size floor that needs an optional input (V-node.roi_from_points-6).
-FLOOR_INPUTS = {"min_previous_ratio": "previous_rois", "min_reference_ratio": "reference_rois"}
+# The param of each size floor that needs an optional input (V-node.boxes_from_points-6).
+FLOOR_INPUTS = {"min_previous_ratio": "previous_boxes", "min_reference_ratio": "reference_boxes"}
 
 
 def sources(derivation: str | list[str] | dict[str, float]) -> list[str]:
-    """The source names of a derived point: passthrough, mean or weighted (node.roi_from_points, step 4)."""
+    """The source names of a derived point: passthrough, mean or weighted (node.boxes_from_points, step 4)."""
     return [derivation] if isinstance(derivation, str) else list(derivation)
 
 
@@ -56,39 +56,39 @@ def weights_of(derivation: str | list[str] | dict[str, float]) -> dict[str, floa
 
 
 def normalize_radians(angle: float) -> float:
-    """Return the angle in [-π, π): a - 2π · floor((a + π) / (2π)) (node.roi_from_points, step 6)."""
+    """Return the angle in [-π, π): a - 2π · floor((a + π) / (2π)) (node.boxes_from_points, step 6)."""
     return angle - 2 * math.pi * math.floor((angle + math.pi) / (2 * math.pi))
 
 
 def uses_alignment(params: dict[str, Any]) -> bool:
-    """True when the node uses alignment_start and alignment_end (node.roi_from_points, Fields)."""
+    """True when the node uses alignment_start and alignment_end (node.boxes_from_points, Fields)."""
     return params["size_rule"] == "alignment" or params["target_rotation_deg"] is not None
 
 
 def check_rules(params: dict[str, Any], names: list[str]) -> None:
-    """Refuse params that break V-node.roi_from_points-1 to -4, with ValueError (node.roi_from_points)."""
+    """Refuse params that break V-node.boxes_from_points-1 to -4, with ValueError (node.boxes_from_points)."""
     start, end = params["alignment_start"], params["alignment_end"]
     if params["size_rule"] == "alignment" and (start is None or end is None):
-        raise ValueError("V-node.roi_from_points-1: the size rule alignment needs alignment_start and alignment_end")
+        raise ValueError("V-node.boxes_from_points-1: the size rule alignment needs alignment_start and alignment_end")
     if params["size_rule"] == "bounds" and params["target_rotation_deg"] is not None and (start is None or end is None):
-        raise ValueError("V-node.roi_from_points-4: bounds with a target rotation needs alignment_start and alignment_end")
+        raise ValueError("V-node.boxes_from_points-4: bounds with a target rotation needs alignment_start and alignment_end")
     derived = list(params["derived_points"])
     if any(re.match(NAME, name) is None or name in names for name in derived):
-        raise ValueError(f"V-node.roi_from_points-3: a derived point name is not a name: {derived!r}")
+        raise ValueError(f"V-node.boxes_from_points-3: a derived point name is not a name: {derived!r}")
     for name, derivation in params["derived_points"].items():
         weights = weights_of(derivation)
         if not weights or abs(math.fsum(weights.values()) - 1.0) > WEIGHT_SUM_TOLERANCE:
-            raise ValueError(f"V-node.roi_from_points-5: the weights of {name!r} do not sum to 1")
+            raise ValueError(f"V-node.boxes_from_points-5: the weights of {name!r} do not sum to 1")
     used = [name for entry in params["points"] or [] for name in ([entry] if isinstance(entry, str) else entry)]
     used += [name for name in (start, end) if name is not None]
     weighted = [name for derivation in params["derived_points"].values() for name in sources(derivation)]
     unknown = [name for name in used if name not in names and name not in derived]
     unknown += [name for name in weighted if name not in names]
     if unknown:
-        raise ValueError(f"V-node.roi_from_points-2: unknown point names {unknown!r}")
+        raise ValueError(f"V-node.boxes_from_points-2: unknown point names {unknown!r}")
 
 
-def row_roi(
+def row_box(
     params: dict[str, Any],
     names: list[str],
     xy: list[list[float]],
@@ -96,9 +96,9 @@ def row_roi(
     previous: list[float] | None = None,
     reference: list[float] | None = None,
 ) -> list[float] | None:
-    """Return the ROI of one present row, or None for an empty row (node.roi_from_points, steps 3 to 10).
+    """Return the box of one present row, or None for an empty row (node.boxes_from_points, steps 3 to 10).
 
-    previous and reference are the rows of previous_rois and reference_rois, or None for a row that is
+    previous and reference are the rows of previous_boxes and reference_boxes, or None for a row that is
     not present.
     """
     found = {
@@ -159,15 +159,15 @@ def row_roi(
 
 
 def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
-    """Make one ROI for each present row of the keypoints (node.roi_from_points).
+    """Make one box for each present row of the keypoints (node.boxes_from_points).
 
     params holds the params of the node; a missing param takes its default. input holds point_names
     (the point names of the input port, known at load) and keypoints: None for an empty input, else
     xy (one list of [x, y] for each row), score and present, and optionally instance_score (one
-    value for each row). The result holds rois: None for an empty output, else one
+    value for each row). The result holds boxes: None for an empty output, else one
     [cx, cy, w, h, rotation] or None for each row. When the keypoints have instance_score, the result
-    also holds instance_score: the value of the keypoints row for each ROI row, 0 for an empty row
-    (pipeline.graph, Behaviour item 8). input can hold previous_rois and reference_rois: None for an
+    also holds instance_score: the value of the keypoints row for each box row, 0 for an empty row
+    (pipeline.graph, Behaviour item 8). input can hold previous_boxes and reference_boxes: None for an
     empty input, else one [cx, cy, w, h, rotation] or None for each row. An input with no such key has
     that port not connected.
     """
@@ -176,18 +176,18 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
     check_rules(params, names)
     for name, port in FLOOR_INPUTS.items():
         if params[name] is not None and port not in input:
-            raise ValueError(f"V-node.roi_from_points-6: {name} needs the input {port}")
+            raise ValueError(f"V-node.boxes_from_points-6: {name} needs the input {port}")
     if keypoints is None:
-        return {"rois": None}
+        return {"boxes": None}
     count = len(keypoints["present"])
-    previous = input.get("previous_rois") or [None] * count
-    reference = input.get("reference_rois") or [None] * count
+    previous = input.get("previous_boxes") or [None] * count
+    reference = input.get("reference_boxes") or [None] * count
     rows = zip(keypoints["xy"], keypoints["score"], keypoints["present"], previous, reference)  # noqa: B905 (one length I)
-    rois = [
-        row_roi(params, names, xy, score, before, detected) if present else None
+    boxes = [
+        row_box(params, names, xy, score, before, detected) if present else None
         for xy, score, present, before, detected in rows
     ]
     if "instance_score" not in keypoints:
-        return {"rois": rois}
-    scores = [0.0 if roi is None else value for roi, value in zip(rois, keypoints["instance_score"])]  # noqa: B905
-    return {"rois": rois, "instance_score": scores}
+        return {"boxes": boxes}
+    scores = [0.0 if roi is None else value for roi, value in zip(boxes, keypoints["instance_score"])]  # noqa: B905
+    return {"boxes": boxes, "instance_score": scores}

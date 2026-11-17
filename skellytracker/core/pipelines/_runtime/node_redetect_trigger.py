@@ -30,8 +30,8 @@ def output_info(
 
     The params model checks V-node.redetect_trigger-1.
     """
-    if any(check.check == "roi_missing" for check in params.fitness_checks) and "previous_rois" not in inputs:
-        raise ValueError(f"V-node.redetect_trigger-2: {node_id}: the check roi_missing needs the input previous_rois")
+    if any(check.check == "box_missing" for check in params.fitness_checks) and "previous_boxes" not in inputs:
+        raise ValueError(f"V-node.redetect_trigger-2: {node_id}: the check box_missing needs the input previous_boxes")
     return {"image": inputs["image"]}, []
 
 
@@ -50,7 +50,7 @@ def _valid(point: list[float]) -> bool:
 
 
 def _inside(point: list[float], roi: list[float]) -> bool:
-    """Return true when the point is in the ROI, edges included."""
+    """Return true when the point is in the box, edges included."""
     cx, cy, w, h, rotation = roi
     dx, dy = point[0] - cx, point[1] - cy
     u = math.cos(rotation) * dx + math.sin(rotation) * dy
@@ -59,7 +59,7 @@ def _inside(point: list[float], roi: list[float]) -> bool:
 
 
 def _area_collapsed(row: list[list[float]], roi: list[float], check: FitnessCheck) -> bool:
-    """The check ``bbox_area_collapse`` for one row with an ROI. A point is ``[x, y, score]``."""
+    """The check ``bbox_area_collapse`` for one row with a box. A point is ``[x, y, score]``."""
     min_score = _field(check, "min_score")
     points = [p for p in row if _valid(p) and (min_score <= 0 or p[2] >= min_score)]
     if not points:
@@ -81,7 +81,7 @@ def _fails(check: FitnessCheck, frames_since: int, row: list[list[float]] | None
     kind = check.check
     if kind == "max_frames_without_redetect":
         return frames_since >= _field(check, "n_frames")
-    if kind == "roi_missing":
+    if kind == "box_missing":
         return roi is None
     if row is None:
         return kind == "bbox_area_collapse" and connected and roi is not None
@@ -108,14 +108,14 @@ def run(
     n, last = frame.frame_index, state
     hit = last is None or n - last >= params.redetect_interval
     if not hit:
-        keypoints, rois = inputs.get("previous_keypoints"), inputs.get("previous_rois")
-        count = max(0 if keypoints is None else len(keypoints.present), 0 if rois is None else len(rois.present))
+        keypoints, boxes = inputs.get("previous_keypoints"), inputs.get("previous_boxes")
+        count = max(0 if keypoints is None else len(keypoints.present), 0 if boxes is None else len(boxes.present))
         for i in range(max(count, 1)):
             row = roi = None
             if keypoints is not None and i < len(keypoints.present) and keypoints.present[i]:
                 row = [[x, y, score] for (x, y), score in zip(keypoints.xy[i].tolist(), keypoints.score[i].tolist(), strict=True)]
-            if rois is not None and i < len(rois.present) and rois.present[i]:
-                roi = rois.rois[i].tolist()
+            if boxes is not None and i < len(boxes.present) and boxes.present[i]:
+                roi = boxes.boxes[i].tolist()
             if any(_fails(check, n - last, row, roi, "previous_keypoints" in inputs) for check in params.fitness_checks):
                 hit = True
                 break

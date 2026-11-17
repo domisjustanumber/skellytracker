@@ -15,7 +15,7 @@ The pipeline spec is a draft. Each section is `draft`. The `schema_version` of a
 ## Reading order
 
 1. [Pipeline file](file.md): the top-level keys, the input forms, the key and the discovery.
-2. [Graph](graph.md): the nodes, the ports, the ROI type, the empty values, the point names and the instance rows.
+2. [Graph](graph.md): the nodes, the ports, the box type, the empty values, the point names and the instance rows.
 3. [Outputs](outputs.md): the public outputs, the result of each camera and the output schema.
 4. The node sections in [`nodes/`](#section-map): the params and the ports of each node type.
 5. [Running](running.md): the running modes, the batch, the warnings and the start checks.
@@ -67,14 +67,14 @@ The node types are a closed set. A new node type is a spec change ([ADR-7NY2](..
 |------------|------|------|
 | `node.onnx_model` | [nodes/onnx_model.md](nodes/onnx_model.md) | node |
 | `node.mediapipe_tasks` | [nodes/mediapipe_tasks.md](nodes/mediapipe_tasks.md) | node |
-| `node.roi_from_points` | [nodes/roi_from_points.md](nodes/roi_from_points.md) | node |
-| `node.roi_hold` | [nodes/roi_hold.md](nodes/roi_hold.md) | node |
+| `node.boxes_from_points` | [nodes/boxes_from_points.md](nodes/boxes_from_points.md) | node |
+| `node.hold_boxes` | [nodes/hold_boxes.md](nodes/hold_boxes.md) | node |
 | `node.gate` | [nodes/gate.md](nodes/gate.md) | node |
 | `node.first_of` | [nodes/first_of.md](nodes/first_of.md) | node |
 | `node.concat` | [nodes/concat.md](nodes/concat.md) | node |
 | `node.merge` | [nodes/merge.md](nodes/merge.md) | node |
 | `node.smooth_keypoints` | [nodes/smooth_keypoints.md](nodes/smooth_keypoints.md) | node |
-| `node.smooth_roi` | [nodes/smooth_roi.md](nodes/smooth_roi.md) | node |
+| `node.smooth_boxes` | [nodes/smooth_boxes.md](nodes/smooth_boxes.md) | node |
 | `node.redetect_trigger` | [nodes/redetect_trigger.md](nodes/redetect_trigger.md) | node |
 
 ## Generated files
@@ -91,9 +91,9 @@ Do not edit these files by hand. `tools/make_pipeline_schema.py` makes them from
 | node | One step of the graph, with an `id`, a `type`, named `inputs` and `params`. |
 | port | A named input or output of a node, with a port type. A reference to an output port is `<node>.<port>`. |
 | inference node | A node of the type `onnx_model` or `mediapipe_tasks` ([ADR-9PDQ](../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 1). |
-| glue node | A node of a type that the pipeline spec defines and that runs no model: `roi_from_points`, `roi_hold`, `gate`, `first_of`, `concat`, `merge`, `smooth_keypoints`, `smooth_roi` and `redetect_trigger`. |
-| ROI | A region of the source image: `(cx, cy, w, h, rotation)` in source-image pixels, with `rotation` in radians, clockwise, in `[-π, π)`. A box is an ROI with rotation 0 ([Graph](graph.md#behaviour) item 3). |
-| instance row | One row of a `roi`, `keypoints` or `detections` value: one instance, present or padding ([Graph](graph.md#behaviour) item 8). |
+| glue node | A node of a type that the pipeline spec defines and that runs no model: `boxes_from_points`, `hold_boxes`, `gate`, `first_of`, `concat`, `merge`, `smooth_keypoints`, `smooth_boxes` and `redetect_trigger`. |
+| box | A region of the source image: `(cx, cy, w, h, rotation)` in source-image pixels, with `rotation` in radians, clockwise, in `[-π, π)`. A detector box has rotation 0. The sidecar crop takes a box as its ROI ([Graph](graph.md#behaviour) item 3). |
+| instance row | One row of a `boxes` or `keypoints` value: one instance, present or padding ([Graph](graph.md#behaviour) item 8). |
 | instance source | The node that makes the instance rows of a value: an object detector, a one-stage model or a `mediapipe_tasks` node ([Graph](graph.md#behaviour) item 8). |
 | point name | `<group>/<point>`, for example `body/left_wrist` ([Graph](graph.md#behaviour) item 7). |
 | group | A named run of points of a `keypoints` port, with the name of its landmark schema ([Graph](graph.md#behaviour) item 7; [Outputs](outputs.md#fields)). |
@@ -125,12 +125,12 @@ A pipeline file and its run are valid when all of the following rules hold.
 - [Taps](taps.md#validation-rules): `V-pipeline.taps-1` to `V-pipeline.taps-7`
 - [ONNX model node](nodes/onnx_model.md#validation-rules): `V-node.onnx_model-1` to `V-node.onnx_model-5`
 - [MediaPipe Tasks node](nodes/mediapipe_tasks.md#validation-rules): `V-node.mediapipe_tasks-1`, `V-node.mediapipe_tasks-2`
-- [ROI from points node](nodes/roi_from_points.md#validation-rules): `V-node.roi_from_points-1` to `V-node.roi_from_points-7`
-- [ROI hold node](nodes/roi_hold.md#validation-rules): `V-node.roi_hold-1` to `V-node.roi_hold-3`
+- [Boxes from points node](nodes/boxes_from_points.md#validation-rules): `V-node.boxes_from_points-1` to `V-node.boxes_from_points-7`
+- [Hold boxes node](nodes/hold_boxes.md#validation-rules): `V-node.hold_boxes-1` to `V-node.hold_boxes-3`
 - [Gate node](nodes/gate.md#validation-rules): `V-node.gate-1` to `V-node.gate-3`
 - [First-of node](nodes/first_of.md#validation-rules): `V-node.first_of-1`, `V-node.first_of-2`
 - [Concat node](nodes/concat.md#validation-rules): `V-node.concat-1` to `V-node.concat-3`
 - [Merge node](nodes/merge.md#validation-rules): `V-node.merge-1` to `V-node.merge-5`
 - [Smooth keypoints node](nodes/smooth_keypoints.md#validation-rules): `V-node.smooth_keypoints-1`, `V-node.smooth_keypoints-3`. The rule `V-node.smooth_keypoints-2` is removed, and its ID is not used again.
-- [Smooth ROI node](nodes/smooth_roi.md#validation-rules): `V-node.smooth_roi-1`
+- [Smooth boxes node](nodes/smooth_boxes.md#validation-rules): `V-node.smooth_boxes-1`
 - [Redetect trigger node](nodes/redetect_trigger.md#validation-rules): `V-node.redetect_trigger-1`, `V-node.redetect_trigger-2`

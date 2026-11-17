@@ -22,8 +22,8 @@ from skellytracker.tests.pipelines.pipeline_models import detector_pipeline, ima
 from skellytracker.tests.pipelines.test_sessions import MEDIAPIPE  # noqa: E402
 
 IMAGES = {11: 1, 5: 3, 7: 2}  # image id -> the value of the image
-RECORD = {"action": "record", "port": "person.rois", "name": "rois"}
-REPLAY = {"action": "replay", "port": "person.rois", "name": "rois"}
+RECORD = {"action": "record", "port": "person.boxes", "name": "boxes"}
+REPLAY = {"action": "replay", "port": "person.boxes", "name": "boxes"}
 
 
 @pytest.fixture(autouse=True)
@@ -53,7 +53,7 @@ def pipeline_file(tmp_path: Path, name: str = "pipeline", *, node_ep: bool = Fal
     if data is not MEDIAPIPE:
         data["instrumentation"] = {"timing_spans": ["pipeline.run", "person.inference"], "taps": taps or []}
         if taps == [REPLAY]:
-            data["outputs"] = {"body": "body.keypoints", "person_roi": "person.rois"}  # no port of `person` that is not replayed
+            data["outputs"] = {"body": "body.keypoints", "detector_box": "person.boxes"}  # no port of `person` that is not replayed
     path = tmp_path / f"{name}.json"
     path.write_text(json.dumps(data), encoding="utf-8")
     return str(path)
@@ -146,9 +146,9 @@ def test_run_takes_a_jsonl_file_for_out_and_writes_no_file_with_timing_off(tmp_p
 def test_run_records_a_tap_in_ascending_image_id_order_and_a_second_run_replays_it(tmp_path: Path, root: Path, coco: list[str]) -> None:
     taps = ["--ep", "cpu", "--taps", str(tmp_path / "taps")]
     assert cli.main([*run_args(tmp_path, root, coco, pipeline_file(tmp_path, taps=[RECORD])), *taps]) == 0
-    manifest = json.loads((tmp_path / "taps" / "rois" / "tap.json").read_text(encoding="utf-8"))
+    manifest = json.loads((tmp_path / "taps" / "boxes" / "tap.json").read_text(encoding="utf-8"))
     assert (manifest["image_list_sha256"], manifest["running_mode"]) == (timing.image_list_sha256(list(IMAGES)), "image")
-    rows = lines_of(tmp_path / "taps" / "rois" / "roi.jsonl")
+    rows = lines_of(tmp_path / "taps" / "boxes" / "boxes.jsonl")
     assert [(row["image_id"], row["frame_index"], row["row"]) for row in rows] == [(5, 0, 0), (5, 0, 1), (7, 1, 0), (7, 1, 1), (11, 2, 0), (11, 2, 1)]
     assert cli.main([*run_args(tmp_path, root, coco, pipeline_file(tmp_path, "replay", taps=[REPLAY]), out="replay"), *taps]) == 0
     header, *events = lines_of(tmp_path / "replay" / "timing.jsonl")
@@ -321,7 +321,7 @@ def test_nodes_lists_the_11_node_types_as_text_and_as_json(capsys: pytest.Captur
     assert cli.main(["nodes"]) == 0
     lines = capsys.readouterr().out.splitlines()
     assert [line.split()[0] for line in lines if not line.startswith(" ")] == names
-    assert "onnx_model  (image: image, rois: roi (optional)) -> (detections: detections, rois: roi, keypoints: keypoints)  spans: preprocess, inference, postprocess" in lines
+    assert "onnx_model  (image: image, boxes: boxes (optional)) -> (boxes: boxes, keypoints: keypoints)  spans: preprocess, inference, postprocess" in lines
     assert "  param max_instances: int, default 1" in lines
     assert cli.main(["nodes", "--json"]) == 0
     nodes = json.loads(capsys.readouterr().out)
@@ -331,8 +331,8 @@ def test_nodes_lists_the_11_node_types_as_text_and_as_json(capsys: pytest.Captur
         assert list(node["params_schema"]["properties"]) == [param["name"] for param in node["params"]]
         assert node["params_schema"]["additionalProperties"] is False
     assert {node["type"]: node["any_from"] for node in nodes if node["any_from"]} == {"gate": ["value"], "first_of": ["*"]}
-    smooth_roi = next(node for node in nodes if node["type"] == "smooth_roi")
-    assert smooth_roi["params_schema"]["properties"]["filter"]["enum"] == ["ema", "one_euro"]
+    smooth_boxes = next(node for node in nodes if node["type"] == "smooth_boxes")
+    assert smooth_boxes["params_schema"]["properties"]["filter"]["enum"] == ["ema", "one_euro"]
 
 
 # ---------------------------------------------------------------------------------------------

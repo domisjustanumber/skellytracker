@@ -348,8 +348,7 @@ def test_describe_gives_the_sizes_the_ports_and_the_params_of_an_object_detector
     assert description.sizes == {"n": ("fp32",)} and description.point_names == ()
     assert [(port.name, port.direction, port.port_type) for port in description.ports] == [
         ("image", "input", "image"),
-        ("detections", "output", "detections"),
-        ("rois", "output", "roi"),
+        ("boxes", "output", "boxes"),
     ]
     assert description.params["size"] == "n"
     decode = description.params["object_decode"]
@@ -362,12 +361,12 @@ def test_describe_gives_the_point_names_and_the_ports_of_a_keypoint_model(root: 
     put(root, BASES["simcc"](), "detectors/keypoint_detectors/demo/body/demo-body.yaml")
     top_down = describe_detector("demo-body@demo-exporter", root)
     assert top_down.point_names == ("a", "b", "c") and top_down.params == {"size": "m"}
-    assert [(port.name, port.direction) for port in top_down.ports] == [("image", "input"), ("rois", "input"), ("keypoints", "output")]
+    assert [(port.name, port.direction) for port in top_down.ports] == [("image", "input"), ("boxes", "input"), ("keypoints", "output")]
     second = root.with_name("second")
     write_yaml(second / "landmark_schemas" / "Demo17.yaml", {"name": "Demo17", "source": "test", "groups": [{"name": "body", "points": points_17}]})
     put(second, BASES["packed"](), "detectors/keypoint_detectors/demo/body/demo-body.yaml")
     one_stage = describe_detector("demo-body@demo-exporter", second)
-    assert [port.name for port in one_stage.ports] == ["image", "detections", "rois", "keypoints"], one_stage.entry.unavailable_reason
+    assert [port.name for port in one_stage.ports] == ["image", "boxes", "keypoints"], one_stage.entry.unavailable_reason
     assert len(one_stage.point_names) == 17
 
 

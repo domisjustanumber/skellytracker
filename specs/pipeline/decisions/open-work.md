@@ -7,7 +7,7 @@ root [open-work.md](../../../decisions/open-work.md).
 
 ## Draft spec
 
-- **Crop border.** An `onnx_model` node crops a rotated ROI with `affine_crop`
+- **Crop border.** An `onnx_model` node crops a rotated box with `affine_crop`
   ([ADR-G3FA](../../model-sidecar/decisions/entries/G3FA-affine-crop-rotated-roi.md)). Its border is
   constant. The MediaPipe hand chain fills the border with the edge pixels. That border mode waits
   for a sidecar proposal (the spec defects of the
@@ -23,7 +23,7 @@ root [open-work.md](../../../decisions/open-work.md).
 - **Video replay.** A replay refuses a tap with no image list hash, so only the COCO input form can
   be replayed ([Taps](../taps.md#behaviour) item 5). A video replay needs an image list hash for
   video.
-- **ROI input of `mediapipe_tasks`.** The node has no ROI input in v1
+- **Box input of `mediapipe_tasks`.** The node has no `boxes` input in v1
   ([ADR-V7GZ](../../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 4).
 - **Face blendshapes.** The `mediapipe_tasks` node gives no face blendshapes. They are planned
   work after the development-streaming merge.

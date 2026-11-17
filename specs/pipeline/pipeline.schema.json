@@ -1,5 +1,241 @@
 {
   "$defs": {
+    "BoxesFromPointsNode": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "The node id. `pipeline` and `frame` are reserved.",
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "inputs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Input name to `<node>.<port>`, with an optional `@prev`.",
+          "title": "Inputs",
+          "type": "object"
+        },
+        "params": {
+          "$ref": "#/$defs/BoxesFromPointsParams"
+        },
+        "type": {
+          "const": "boxes_from_points",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "title": "BoxesFromPointsNode",
+      "type": "object"
+    },
+    "BoxesFromPointsParams": {
+      "additionalProperties": false,
+      "properties": {
+        "alignment_end": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The end point of the alignment rule.",
+          "set_during_run": false,
+          "source": "ADR-7NY2 item 6",
+          "title": "Alignment End"
+        },
+        "alignment_start": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The start point of the alignment rule.",
+          "set_during_run": false,
+          "source": "ADR-7NY2 item 6",
+          "title": "Alignment Start"
+        },
+        "derived_points": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              }
+            ]
+          },
+          "description": "Derived point name to derivation, in the map form of the sidecar `keypoint.derived_points`: passthrough, mean or weighted.",
+          "set_during_run": false,
+          "source": "ADR-7NY2 item 6; ADR-88WQ item 6",
+          "title": "Derived Points",
+          "type": "object"
+        },
+        "expand_ratio": {
+          "default": 1.0,
+          "description": "Multiply the width and the height by this value.",
+          "exclusiveMinimum": 0.0,
+          "set_during_run": true,
+          "source": "MediaPipe RectTransformationCalculator scale default; ADR-88WQ item 4",
+          "title": "Expand Ratio",
+          "type": "number"
+        },
+        "min_previous_ratio": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The smallest width and height, as a part of the box of `previous_boxes`. Empty: no floor.",
+          "set_during_run": true,
+          "source": "BBoxPolicyConfig.min_shrink_ratio_per_frame; ADR-RA0E item 3",
+          "title": "Min Previous Ratio"
+        },
+        "min_reference_ratio": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The smallest width and height, as a part of the box of `reference_boxes`. Empty: no floor.",
+          "set_during_run": true,
+          "source": "BBoxPolicyConfig.min_detected_bbox_ratio; ADR-RA0E item 3",
+          "title": "Min Reference Ratio"
+        },
+        "min_size_px": {
+          "default": 0.0,
+          "description": "The smallest width and height, in source-image pixels.",
+          "minimum": 0.0,
+          "set_during_run": true,
+          "source": "BBoxPolicyConfig.min_bbox_size_px; ADR-RA0E item 3",
+          "title": "Min Size Px",
+          "type": "number"
+        },
+        "points": {
+          "anyOf": [
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                ]
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The points of the box. A list of names is one point with aliases: the first present name counts. Empty: each present point of the input.",
+          "set_during_run": false,
+          "source": "ADR-7NY2 item 6; ADR-RA0E item 2",
+          "title": "Points"
+        },
+        "score_threshold": {
+          "default": 0.0,
+          "description": "A point counts only when its score is greater than this value.",
+          "minimum": 0.0,
+          "set_during_run": true,
+          "source": "ADR-7NY2 item 6; ADR-88WQ item 6",
+          "title": "Score Threshold",
+          "type": "number"
+        },
+        "shift_x": {
+          "default": 0.0,
+          "description": "Shift along the box x axis, in box widths.",
+          "set_during_run": true,
+          "source": "MediaPipe RectTransformationCalculator default",
+          "title": "Shift X",
+          "type": "number"
+        },
+        "shift_y": {
+          "default": 0.0,
+          "description": "Shift along the box y axis, in box heights.",
+          "set_during_run": true,
+          "source": "MediaPipe RectTransformationCalculator default",
+          "title": "Shift Y",
+          "type": "number"
+        },
+        "size_rule": {
+          "default": "bounds",
+          "description": "`bounds`: the box around the points. `alignment`: centre at the start point, size 2 \u00d7 the distance from start to end.",
+          "enum": [
+            "bounds",
+            "alignment"
+          ],
+          "set_during_run": false,
+          "source": "MediaPipe AlignmentPointsRectsCalculator; ADR-7NY2 item 6",
+          "title": "Size Rule",
+          "type": "string"
+        },
+        "square_long": {
+          "default": false,
+          "description": "Make the box square with its longer side.",
+          "set_during_run": true,
+          "source": "MediaPipe RectTransformationCalculator default",
+          "title": "Square Long",
+          "type": "boolean"
+        },
+        "target_rotation_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The rotation target in degrees. Empty: rotation `none`, an axis-aligned box.",
+          "set_during_run": false,
+          "source": "MediaPipe rect rotation; ADR-7NY2 item 6",
+          "title": "Target Rotation Deg"
+        }
+      },
+      "title": "BoxesFromPointsParams",
+      "type": "object"
+    },
     "ConcatNode": {
       "additionalProperties": false,
       "properties": {
@@ -78,7 +314,7 @@
             "keypoints_within_bbox_ratio",
             "max_frames_without_redetect",
             "bbox_area_collapse",
-            "roi_missing"
+            "box_missing"
           ],
           "title": "Check",
           "type": "string"
@@ -230,6 +466,81 @@
         "mode"
       ],
       "title": "GateParams",
+      "type": "object"
+    },
+    "HoldBoxesNode": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "The node id. `pipeline` and `frame` are reserved.",
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "inputs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Input name to `<node>.<port>`, with an optional `@prev`.",
+          "title": "Inputs",
+          "type": "object"
+        },
+        "params": {
+          "$ref": "#/$defs/HoldBoxesParams"
+        },
+        "type": {
+          "const": "hold_boxes",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "title": "HoldBoxesNode",
+      "type": "object"
+    },
+    "HoldBoxesParams": {
+      "additionalProperties": false,
+      "properties": {
+        "keypoint_margin": {
+          "default": -0.1,
+          "description": "Each previous point must be inside the new box grown by this part (negative: shrunk).",
+          "set_during_run": true,
+          "source": "MediaPipe Holistic hand RoiTrackingCalculator (face: -0.2)",
+          "title": "Keypoint Margin",
+          "type": "number"
+        },
+        "max_offset": {
+          "default": 0.2,
+          "description": "The largest x and y offset, as a part of the new box size.",
+          "minimum": 0.0,
+          "set_during_run": true,
+          "source": "MediaPipe Holistic hand RoiTrackingCalculator (face: 0.1)",
+          "title": "Max Offset",
+          "type": "number"
+        },
+        "max_rotation_deg": {
+          "default": 40.0,
+          "description": "Keep the previous box only when the rotation differs by this much or less.",
+          "minimum": 0.0,
+          "set_during_run": true,
+          "source": "MediaPipe Holistic hand RoiTrackingCalculator (face: 15)",
+          "title": "Max Rotation Deg",
+          "type": "number"
+        },
+        "max_size_change": {
+          "default": 0.4,
+          "description": "The largest width and height difference, as a part of the new box size.",
+          "minimum": 0.0,
+          "set_during_run": true,
+          "source": "MediaPipe Holistic hand RoiTrackingCalculator (face: 0.3)",
+          "title": "Max Size Change",
+          "type": "number"
+        }
+      },
+      "title": "HoldBoxesParams",
       "type": "object"
     },
     "Instrumentation": {
@@ -648,7 +959,7 @@
       "title": "RedetectTriggerParams",
       "type": "object"
     },
-    "RoiFromPointsNode": {
+    "SmoothBoxesNode": {
       "additionalProperties": false,
       "properties": {
         "id": {
@@ -666,10 +977,10 @@
           "type": "object"
         },
         "params": {
-          "$ref": "#/$defs/RoiFromPointsParams"
+          "$ref": "#/$defs/SmoothBoxesParams"
         },
         "type": {
-          "const": "roi_from_points",
+          "const": "smooth_boxes",
           "title": "Type",
           "type": "string"
         }
@@ -678,285 +989,72 @@
         "id",
         "type"
       ],
-      "title": "RoiFromPointsNode",
+      "title": "SmoothBoxesNode",
       "type": "object"
     },
-    "RoiFromPointsParams": {
+    "SmoothBoxesParams": {
       "additionalProperties": false,
       "properties": {
-        "alignment_end": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The end point of the alignment rule.",
-          "set_during_run": false,
-          "source": "ADR-7NY2 item 6",
-          "title": "Alignment End"
+        "beta": {
+          "default": 0.02,
+          "description": "one_euro: the speed coefficient, in Hz per px/s.",
+          "minimum": 0.0,
+          "set_during_run": true,
+          "source": "BBoxSmoothingConfig.beta of the branch sfn26; ADR-RA0E item 5",
+          "title": "Beta",
+          "type": "number"
         },
-        "alignment_start": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The start point of the alignment rule.",
-          "set_during_run": false,
-          "source": "ADR-7NY2 item 6",
-          "title": "Alignment Start"
-        },
-        "derived_points": {
-          "additionalProperties": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "additionalProperties": {
-                  "type": "number"
-                },
-                "type": "object"
-              }
-            ]
-          },
-          "description": "Derived point name to derivation, in the map form of the sidecar `keypoint.derived_points`: passthrough, mean or weighted.",
-          "set_during_run": false,
-          "source": "ADR-7NY2 item 6; ADR-88WQ item 6",
-          "title": "Derived Points",
-          "type": "object"
-        },
-        "expand_ratio": {
+        "d_cutoff": {
           "default": 1.0,
-          "description": "Multiply the width and the height by this value.",
+          "description": "one_euro: the cutoff frequency of the derivative, in Hz.",
           "exclusiveMinimum": 0.0,
           "set_during_run": true,
-          "source": "MediaPipe RectTransformationCalculator scale default; ADR-88WQ item 4",
-          "title": "Expand Ratio",
+          "source": "BBoxSmoothingConfig.d_cutoff of the branch sfn26; ADR-RA0E item 5",
+          "title": "D Cutoff",
           "type": "number"
         },
-        "min_previous_ratio": {
-          "anyOf": [
-            {
-              "maximum": 1.0,
-              "minimum": 0.0,
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The smallest width and height, as a part of the ROI of `previous_rois`. Empty: no floor.",
-          "set_during_run": true,
-          "source": "BBoxPolicyConfig.min_shrink_ratio_per_frame; ADR-RA0E item 3",
-          "title": "Min Previous Ratio"
-        },
-        "min_reference_ratio": {
-          "anyOf": [
-            {
-              "minimum": 0.0,
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The smallest width and height, as a part of the ROI of `reference_rois`. Empty: no floor.",
-          "set_during_run": true,
-          "source": "BBoxPolicyConfig.min_detected_bbox_ratio; ADR-RA0E item 3",
-          "title": "Min Reference Ratio"
-        },
-        "min_size_px": {
-          "default": 0.0,
-          "description": "The smallest width and height, in source-image pixels.",
-          "minimum": 0.0,
-          "set_during_run": true,
-          "source": "BBoxPolicyConfig.min_bbox_size_px; ADR-RA0E item 3",
-          "title": "Min Size Px",
-          "type": "number"
-        },
-        "points": {
-          "anyOf": [
-            {
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": "array"
-                  }
-                ]
-              },
-              "minItems": 1,
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The points of the ROI. A list of names is one point with aliases: the first present name counts. Empty: each present point of the input.",
-          "set_during_run": false,
-          "source": "ADR-7NY2 item 6; ADR-RA0E item 2",
-          "title": "Points"
-        },
-        "score_threshold": {
-          "default": 0.0,
-          "description": "A point counts only when its score is greater than this value.",
-          "minimum": 0.0,
-          "set_during_run": true,
-          "source": "ADR-7NY2 item 6; ADR-88WQ item 6",
-          "title": "Score Threshold",
-          "type": "number"
-        },
-        "shift_x": {
-          "default": 0.0,
-          "description": "Shift along the ROI x axis, in ROI widths.",
-          "set_during_run": true,
-          "source": "MediaPipe RectTransformationCalculator default",
-          "title": "Shift X",
-          "type": "number"
-        },
-        "shift_y": {
-          "default": 0.0,
-          "description": "Shift along the ROI y axis, in ROI heights.",
-          "set_during_run": true,
-          "source": "MediaPipe RectTransformationCalculator default",
-          "title": "Shift Y",
-          "type": "number"
-        },
-        "size_rule": {
-          "default": "bounds",
-          "description": "`bounds`: the box around the points. `alignment`: centre at the start point, size 2 \u00d7 the distance from start to end.",
+        "filter": {
+          "default": "ema",
+          "description": "The filter.",
           "enum": [
-            "bounds",
-            "alignment"
+            "ema",
+            "one_euro"
           ],
           "set_during_run": false,
-          "source": "MediaPipe AlignmentPointsRectsCalculator; ADR-7NY2 item 6",
-          "title": "Size Rule",
+          "source": "ADR-RA0E item 5",
+          "title": "Filter",
           "type": "string"
         },
-        "square_long": {
-          "default": false,
-          "description": "Make the ROI square with its longer side.",
+        "min_cutoff": {
+          "default": 3.0,
+          "description": "one_euro: the minimum cutoff frequency, in Hz.",
+          "exclusiveMinimum": 0.0,
           "set_during_run": true,
-          "source": "MediaPipe RectTransformationCalculator default",
-          "title": "Square Long",
-          "type": "boolean"
+          "source": "BBoxSmoothingConfig.min_cutoff of the branch sfn26; ADR-RA0E item 5",
+          "title": "Min Cutoff",
+          "type": "number"
         },
-        "target_rotation_deg": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The rotation target in degrees. Empty: rotation `none`, an axis-aligned ROI.",
+        "previous_weight": {
+          "default": 0.5,
+          "description": "ema: the weight of the previous box: new = previous_weight \u00d7 previous + (1 \u2212 previous_weight) \u00d7 input.",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "set_during_run": true,
+          "source": "BBoxSmoothingConfig.alpha; ADR-88WQ item 4",
+          "title": "Previous Weight",
+          "type": "number"
+        },
+        "reset_after_ms": {
+          "default": 500.0,
+          "description": "one_euro: start the filter again when the time since the last box of the row is more than this many milliseconds.",
+          "exclusiveMinimum": 0.0,
           "set_during_run": false,
-          "source": "MediaPipe rect rotation; ADR-7NY2 item 6",
-          "title": "Target Rotation Deg"
-        }
-      },
-      "title": "RoiFromPointsParams",
-      "type": "object"
-    },
-    "RoiHoldNode": {
-      "additionalProperties": false,
-      "properties": {
-        "id": {
-          "description": "The node id. `pipeline` and `frame` are reserved.",
-          "pattern": "^[a-z][a-z0-9_-]*$",
-          "title": "Id",
-          "type": "string"
-        },
-        "inputs": {
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "Input name to `<node>.<port>`, with an optional `@prev`.",
-          "title": "Inputs",
-          "type": "object"
-        },
-        "params": {
-          "$ref": "#/$defs/RoiHoldParams"
-        },
-        "type": {
-          "const": "roi_hold",
-          "title": "Type",
-          "type": "string"
-        }
-      },
-      "required": [
-        "id",
-        "type"
-      ],
-      "title": "RoiHoldNode",
-      "type": "object"
-    },
-    "RoiHoldParams": {
-      "additionalProperties": false,
-      "properties": {
-        "keypoint_margin": {
-          "default": -0.1,
-          "description": "Each previous point must be inside the new ROI grown by this part (negative: shrunk).",
-          "set_during_run": true,
-          "source": "MediaPipe Holistic hand RoiTrackingCalculator (face: -0.2)",
-          "title": "Keypoint Margin",
-          "type": "number"
-        },
-        "max_offset": {
-          "default": 0.2,
-          "description": "The largest x and y offset, as a part of the new ROI size.",
-          "minimum": 0.0,
-          "set_during_run": true,
-          "source": "MediaPipe Holistic hand RoiTrackingCalculator (face: 0.1)",
-          "title": "Max Offset",
-          "type": "number"
-        },
-        "max_rotation_deg": {
-          "default": 40.0,
-          "description": "Keep the previous ROI only when the rotation differs by this much or less.",
-          "minimum": 0.0,
-          "set_during_run": true,
-          "source": "MediaPipe Holistic hand RoiTrackingCalculator (face: 15)",
-          "title": "Max Rotation Deg",
-          "type": "number"
-        },
-        "max_size_change": {
-          "default": 0.4,
-          "description": "The largest width and height difference, as a part of the new ROI size.",
-          "minimum": 0.0,
-          "set_during_run": true,
-          "source": "MediaPipe Holistic hand RoiTrackingCalculator (face: 0.3)",
-          "title": "Max Size Change",
+          "source": "BBoxSmoothingConfig.reset_after_seconds of the branch sfn26; ADR-RA0E item 5",
+          "title": "Reset After Ms",
           "type": "number"
         }
       },
-      "title": "RoiHoldParams",
+      "title": "SmoothBoxesParams",
       "type": "object"
     },
     "SmoothKeypointsNode": {
@@ -1113,104 +1211,6 @@
       "title": "SmoothKeypointsParams",
       "type": "object"
     },
-    "SmoothRoiNode": {
-      "additionalProperties": false,
-      "properties": {
-        "id": {
-          "description": "The node id. `pipeline` and `frame` are reserved.",
-          "pattern": "^[a-z][a-z0-9_-]*$",
-          "title": "Id",
-          "type": "string"
-        },
-        "inputs": {
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "Input name to `<node>.<port>`, with an optional `@prev`.",
-          "title": "Inputs",
-          "type": "object"
-        },
-        "params": {
-          "$ref": "#/$defs/SmoothRoiParams"
-        },
-        "type": {
-          "const": "smooth_roi",
-          "title": "Type",
-          "type": "string"
-        }
-      },
-      "required": [
-        "id",
-        "type"
-      ],
-      "title": "SmoothRoiNode",
-      "type": "object"
-    },
-    "SmoothRoiParams": {
-      "additionalProperties": false,
-      "properties": {
-        "beta": {
-          "default": 0.02,
-          "description": "one_euro: the speed coefficient, in Hz per px/s.",
-          "minimum": 0.0,
-          "set_during_run": true,
-          "source": "BBoxSmoothingConfig.beta of the branch sfn26; ADR-RA0E item 5",
-          "title": "Beta",
-          "type": "number"
-        },
-        "d_cutoff": {
-          "default": 1.0,
-          "description": "one_euro: the cutoff frequency of the derivative, in Hz.",
-          "exclusiveMinimum": 0.0,
-          "set_during_run": true,
-          "source": "BBoxSmoothingConfig.d_cutoff of the branch sfn26; ADR-RA0E item 5",
-          "title": "D Cutoff",
-          "type": "number"
-        },
-        "filter": {
-          "default": "ema",
-          "description": "The filter.",
-          "enum": [
-            "ema",
-            "one_euro"
-          ],
-          "set_during_run": false,
-          "source": "ADR-RA0E item 5",
-          "title": "Filter",
-          "type": "string"
-        },
-        "min_cutoff": {
-          "default": 3.0,
-          "description": "one_euro: the minimum cutoff frequency, in Hz.",
-          "exclusiveMinimum": 0.0,
-          "set_during_run": true,
-          "source": "BBoxSmoothingConfig.min_cutoff of the branch sfn26; ADR-RA0E item 5",
-          "title": "Min Cutoff",
-          "type": "number"
-        },
-        "previous_weight": {
-          "default": 0.5,
-          "description": "ema: the weight of the previous ROI: new = previous_weight \u00d7 previous + (1 \u2212 previous_weight) \u00d7 input.",
-          "maximum": 1.0,
-          "minimum": 0.0,
-          "set_during_run": true,
-          "source": "BBoxSmoothingConfig.alpha; ADR-88WQ item 4",
-          "title": "Previous Weight",
-          "type": "number"
-        },
-        "reset_after_ms": {
-          "default": 500.0,
-          "description": "one_euro: start the filter again when the time since the last ROI of the row is more than this many milliseconds.",
-          "exclusiveMinimum": 0.0,
-          "set_during_run": false,
-          "source": "BBoxSmoothingConfig.reset_after_seconds of the branch sfn26; ADR-RA0E item 5",
-          "title": "Reset After Ms",
-          "type": "number"
-        }
-      },
-      "title": "SmoothRoiParams",
-      "type": "object"
-    },
     "Source": {
       "additionalProperties": false,
       "properties": {
@@ -1285,17 +1285,17 @@
       "items": {
         "discriminator": {
           "mapping": {
+            "boxes_from_points": "#/$defs/BoxesFromPointsNode",
             "concat": "#/$defs/ConcatNode",
             "first_of": "#/$defs/FirstOfNode",
             "gate": "#/$defs/GateNode",
+            "hold_boxes": "#/$defs/HoldBoxesNode",
             "mediapipe_tasks": "#/$defs/MediapipeTasksNode",
             "merge": "#/$defs/MergeNode",
             "onnx_model": "#/$defs/OnnxModelNode",
             "redetect_trigger": "#/$defs/RedetectTriggerNode",
-            "roi_from_points": "#/$defs/RoiFromPointsNode",
-            "roi_hold": "#/$defs/RoiHoldNode",
-            "smooth_keypoints": "#/$defs/SmoothKeypointsNode",
-            "smooth_roi": "#/$defs/SmoothRoiNode"
+            "smooth_boxes": "#/$defs/SmoothBoxesNode",
+            "smooth_keypoints": "#/$defs/SmoothKeypointsNode"
           },
           "propertyName": "type"
         },
@@ -1307,10 +1307,10 @@
             "$ref": "#/$defs/MediapipeTasksNode"
           },
           {
-            "$ref": "#/$defs/RoiFromPointsNode"
+            "$ref": "#/$defs/BoxesFromPointsNode"
           },
           {
-            "$ref": "#/$defs/RoiHoldNode"
+            "$ref": "#/$defs/HoldBoxesNode"
           },
           {
             "$ref": "#/$defs/GateNode"
@@ -1328,7 +1328,7 @@
             "$ref": "#/$defs/SmoothKeypointsNode"
           },
           {
-            "$ref": "#/$defs/SmoothRoiNode"
+            "$ref": "#/$defs/SmoothBoxesNode"
           },
           {
             "$ref": "#/$defs/RedetectTriggerNode"

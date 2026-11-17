@@ -1,13 +1,13 @@
 # tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
 # Hosts ignore `checks`. The names are the self-checks of the generator.
-section: node.roi_from_points
+section: node.boxes_from_points
 notes:
-  - "Normative text: specs/pipeline/nodes/roi_from_points.md."
+  - "Normative text: specs/pipeline/nodes/boxes_from_points.md."
   - "`point_names` are the point names of the input port, known at load. `keypoints` is
     null for an empty input. Else `xy` holds one list of [x, y] for each row, in
     source-image pixels, with `score` and `present` for each row. A missing param takes
     its default."
-  - "`rois` is null for an empty output. Else it holds one [cx, cy, w, h, rotation] or
+  - "`boxes` is null for an empty output. Else it holds one [cx, cy, w, h, rotation] or
     null (an empty row) for each row. `rotation` is in radians."
   - "Three cases mean the same as cases of
     skellytracker/tests/test_keypoint_bbox_detector.py: empty-input-gives-empty-output
@@ -16,13 +16,13 @@ notes:
     (test_returns_no_boxes_when_center_points_below_min_visibility and
     test_returns_no_boxes_when_all_center_points_invalid). Decision:
     decisions/entries/3SF2-pipeline-spec-and-node-workflow.md item 4."
-  - "`previous_rois` and `reference_rois` are the optional inputs of the size floors. A
+  - "`previous_boxes` and `reference_boxes` are the optional inputs of the size floors. A
     case with no such key has that port not connected. Null is an empty input. Else the
     value holds one [cx, cy, w, h, rotation] or null (a row that is not present) for
     each row."
 tolerance: 0.000001
 verified_against:
-  - skellytracker/core/pipelines/_runtime/node_roi_from_points.py::run
+  - skellytracker/core/pipelines/_runtime/node_boxes_from_points.py::run
 cases:
   - id: bounds-default
     note: "the axis-aligned box around the three points: x 100 to 140, y 180 to 240"
@@ -33,7 +33,7 @@ cases:
         xy: [[[100, 200], [140, 180], [120, 240], [.nan, .nan]]]
         score: [[0.9, 0.8, 0.7, 0]]
         present: [true]
-    expect: {rois: [[120, 210, 40, 60, 0]]}
+    expect: {boxes: [[120, 210, 40, 60, 0]]}
   - id: bounds-rotated-frame-with-extrapolated-end-and-transform
     note: "tip = -0.5 wrist + 1.5 index = (160, 170); the box is in the frame rotated from the
       wrist to tip with the target 90 degrees; then shift, square_long and expand_ratio"
@@ -53,7 +53,7 @@ cases:
         xy: [[[100, 200], [140, 180], [120, 240], [.nan, .nan]]]
         score: [[0.9, 0.8, 0.7, 0]]
         present: [true]
-    expect: {rois: [[140, 210, 67.082039, 67.082039, 1.107149]]}
+    expect: {boxes: [[140, 210, 67.082039, 67.082039, 1.107149]]}
   - id: alignment-holistic-hand
     note: "middle = (2 index + pinky) / 3; centre at the wrist, size 2 |middle - wrist|, target
       90 degrees, then shift_y -0.1, square_long and expand_ratio 2.7"
@@ -73,7 +73,7 @@ cases:
         xy: [[[300, 400], [330, 340], [300, 350], [.nan, .nan]]]
         score: [[0.9, 0.8, 0.7, 0]]
         present: [true]
-    expect: {rois: [[304, 388.666667, 324.499615, 324.499615, 0.339293]]}
+    expect: {boxes: [[304, 388.666667, 324.499615, 324.499615, 0.339293]]}
   - id: alignment-without-target-has-rotation-0
     note: "|index - wrist| = 50, so w = h = 100; shift_y -0.5 moves the centre up by 50 pixels"
     params:
@@ -88,10 +88,10 @@ cases:
         xy: [[[100, 200], [130, 160], [120, 240], [.nan, .nan]]]
         score: [[0.9, 0.8, 0.7, 0]]
         present: [true]
-    expect: {rois: [[100, 150, 100, 100, 0]]}
+    expect: {boxes: [[100, 150, 100, 100, 0]]}
   - id: rotation-pi-normalises-to-minus-pi
     note: "the vector points down: 90 - (-90) = 180 degrees, and NormalizeRadians(\u03c0) =
-      -\u03c0; the shift along the ROI y axis then moves the centre up in the image"
+      -\u03c0; the shift along the box y axis then moves the centre up in the image"
     params:
       points: [body/wrist]
       size_rule: alignment
@@ -105,7 +105,7 @@ cases:
         xy: [[[200, 100], [200, 160], [120, 240], [.nan, .nan]]]
         score: [[0.9, 0.8, 0.7, 0]]
         present: [true]
-    expect: {rois: [[200, 70, 120, 120, -3.141593]]}
+    expect: {boxes: [[200, 70, 120, 120, -3.141593]]}
   - id: alias-takes-the-first-present-name
     note: "row 0 has no hand wrist, so body/wrist counts; row 1 has the hand wrist, so it
       counts; row 2 is not present"
@@ -119,7 +119,7 @@ cases:
           - [[.nan, .nan], [.nan, .nan], [.nan, .nan], [.nan, .nan]]
         score: [[0.9, 0.8, 0.7, 0], [0.9, 0.8, 0.7, 0.9], [0, 0, 0, 0]]
         present: [true, true, false]
-    expect: {rois: [[120, 190, 40, 20, 0], [125, 195, 30, 30, 0], null]}
+    expect: {boxes: [[120, 190, 40, 20, 0], [125, 195, 30, 30, 0], null]}
   - id: missing-points-give-empty-rows
     note: "row 0: score 0.1 is not greater than 0.5; row 1: the test is strict; row 2: a NaN
       point is not present; row 3: one point gives a box of size 0"
@@ -134,37 +134,37 @@ cases:
           - [[10, 10], [.nan, .nan], [.nan, .nan], [.nan, .nan]]
         score: [[0.1, 0, 0, 0], [0.5, 0, 0, 0], [0.9, 0, 0, 0], [0.9, 0, 0, 0]]
         present: [true, true, true, true]
-    expect: {rois: [null, null, null, [10, 10, 0, 0, 0]]}
+    expect: {boxes: [null, null, null, [10, 10, 0, 0, 0]]}
   - id: empty-input-gives-empty-output
     params: {points: [body/wrist]}
     input: {point_names: [body/wrist, body/index, body/pinky, hand/wrist], keypoints: null}
-    expect: {rois: null}
+    expect: {boxes: null}
   - id: alignment-needs-start-and-end
     checks: [refused]
     params: {points: [body/wrist], size_rule: alignment, alignment_start: body/wrist}
     input: {point_names: [body/wrist, body/index, body/pinky, hand/wrist], keypoints: null}
-    expect: {error: V-node.roi_from_points-1}
+    expect: {error: V-node.boxes_from_points-1}
   - id: unknown-point-name
     checks: [refused]
     params: {points: [body/wrist, body/nose]}
     input: {point_names: [body/wrist, body/index, body/pinky, hand/wrist], keypoints: null}
-    expect: {error: V-node.roi_from_points-2}
+    expect: {error: V-node.boxes_from_points-2}
   - id: derived-point-name-must-be-a-name
     note: "a derived point name has no `/`, so it is never a point name of the input"
     checks: [refused]
     params: {points: [body/mid], derived_points: {body/mid: [body/index, body/pinky]}}
     input: {point_names: [body/wrist, body/index, body/pinky, hand/wrist], keypoints: null}
-    expect: {error: V-node.roi_from_points-3}
+    expect: {error: V-node.boxes_from_points-3}
   - id: bounds-target-needs-start-and-end
     checks: [refused]
     params: {points: [body/wrist, body/index], target_rotation_deg: 0}
     input: {point_names: [body/wrist, body/index, body/pinky, hand/wrist], keypoints: null}
-    expect: {error: V-node.roi_from_points-4}
+    expect: {error: V-node.boxes_from_points-4}
   - id: weights-must-sum-to-1
     checks: [refused]
     params: {points: [mid], derived_points: {mid: {body/index: 0.5, body/pinky: 0.4}}}
     input: {point_names: [body/wrist, body/index, body/pinky, hand/wrist], keypoints: null}
-    expect: {error: V-node.roi_from_points-5}
+    expect: {error: V-node.boxes_from_points-5}
   - id: mean-and-passthrough-derived-points
     note: "mid = the mean of index and pinky = (130, 210); wrist2 = the wrist; the box is
       around the wrist and mid"
@@ -177,11 +177,10 @@ cases:
         xy: [[[100, 200], [140, 180], [120, 240], [.nan, .nan]]]
         score: [[0.9, 0.8, 0.7, 0]]
         present: [true]
-    expect: {rois: [[115, 205, 30, 10, 0]]}
+    expect: {boxes: [[115, 205, 30, 10, 0]]}
   - id: instance-score-is-copied-from-the-keypoints-row
-    note: "row 0 makes an ROI and keeps the instance score 0.8 of its keypoints row; row 1 has
-      a missing point, so its ROI row is empty and its instance score is the padding value
-      0"
+    note: "row 0 makes a box and keeps the instance score 0.8 of its keypoints row; row 1 has a
+      missing point, so its box row is empty and its instance score is the padding value 0"
     params: {points: [body/wrist]}
     input:
       point_names: [body/wrist, body/index, body/pinky, hand/wrist]
@@ -192,7 +191,7 @@ cases:
         score: [[0.9, 0.8, 0.7, 0], [0, 0.8, 0.7, 0]]
         present: [true, true]
         instance_score: [0.8, 0.6]
-    expect: {rois: [[100, 200, 0, 0, 0], null], instance_score: [0.8, 0]}
+    expect: {boxes: [[100, 200, 0, 0, 0], null], instance_score: [0.8, 0]}
   - id: empty-points-use-each-present-point
     note: "`points` is empty, so the box is around each present point: the wrist, the index and
       the hand wrist. The pinky has the score 0.3, which is not greater than 0.4. The box
@@ -204,7 +203,7 @@ cases:
         xy: [[[100, 200], [140, 180], [20, 300], [120, 260]]]
         score: [[0.9, 0.8, 0.3, 0.5]]
         present: [true]
-    expect: {rois: [[120, 220, 48.4, 96.8, 0]]}
+    expect: {boxes: [[120, 220, 48.4, 96.8, 0]]}
   - id: empty-points-with-no-present-point-give-an-empty-row
     note: "row 0 has no point with a score greater than 0.4; row 1 has one such point, which
       gives a box of size 0"
@@ -217,13 +216,13 @@ cases:
           - [[100, 200], [140, 180], [.nan, .nan], [120, 260]]
         score: [[0.4, 0.2, 0, 0.1], [0.4, 0.2, 0, 0.9]]
         present: [true, true]
-    expect: {rois: [null, [120, 260, 0, 0, 0]]}
+    expect: {boxes: [null, [120, 260, 0, 0, 0]]}
   - id: size-floors
     note: "the box of each row before the floors is 40 wide and 60 high at (120, 210). row 0:
-      0.995 of the previous ROI (100, 50) lifts only the width, to 99.5. row 1: 0.5 of the
-      reference ROI (60, 200) lifts only the height, to 100. row 2: each floor is smaller
+      0.995 of the previous box (100, 50) lifts only the width, to 99.5. row 1: 0.5 of the
+      reference box (60, 200) lifts only the height, to 100. row 2: each floor is smaller
       than the box, so the box does not change. row 3: the floors together give the
-      largest floor of each side, 99.5 and 100; the rotation of previous_rois has no
+      largest floor of each side, 99.5 and 100; the rotation of previous_boxes has no
       effect. The centre does not move"
     params:
       points: [body/wrist, body/index, body/pinky]
@@ -240,10 +239,10 @@ cases:
           - [[100, 200], [140, 180], [120, 240], [.nan, .nan]]
         score: [[0.9, 0.8, 0.7, 0], [0.9, 0.8, 0.7, 0], [0.9, 0.8, 0.7, 0], [0.9, 0.8, 0.7, 0]]
         present: [true, true, true, true]
-      previous_rois: [[500, 500, 100, 50, 0], null, [0, 0, 10, 10, 0], [500, 500, 100, 50, 0.5]]
-      reference_rois: [null, [0, 0, 60, 200, 0], [0, 0, 10, 10, 0], [0, 0, 60, 200, 0]]
+      previous_boxes: [[500, 500, 100, 50, 0], null, [0, 0, 10, 10, 0], [500, 500, 100, 50, 0.5]]
+      reference_boxes: [null, [0, 0, 60, 200, 0], [0, 0, 10, 10, 0], [0, 0, 60, 200, 0]]
     expect:
-      rois:
+      boxes:
         - [120, 210, 99.5, 60, 0]
         - [120, 210, 40, 100, 0]
         - [120, 210, 40, 60, 0]
@@ -257,9 +256,9 @@ cases:
         xy: [[[100, 200], [140, 180], [120, 240], [.nan, .nan]]]
         score: [[0.9, 0.8, 0.7, 0]]
         present: [true]
-    expect: {rois: [[120, 210, 80, 80, 0]]}
+    expect: {boxes: [[120, 210, 80, 80, 0]]}
   - id: empty-floor-inputs-do-not-stop-the-node
-    note: "previous_rois and reference_rois are connected and empty, so only min_size_px applies"
+    note: "previous_boxes and reference_boxes are connected and empty, so only min_size_px applies"
     params:
       points: [body/wrist, body/index, body/pinky]
       min_previous_ratio: 0.995
@@ -271,12 +270,12 @@ cases:
         xy: [[[100, 200], [140, 180], [120, 240], [.nan, .nan]]]
         score: [[0.9, 0.8, 0.7, 0]]
         present: [true]
-      previous_rois: null
-      reference_rois: null
-    expect: {rois: [[120, 210, 50, 60, 0]]}
+      previous_boxes: null
+      reference_boxes: null
+    expect: {boxes: [[120, 210, 50, 60, 0]]}
   - id: floor-ratio-needs-its-input
-    note: "min_previous_ratio is given and previous_rois is not connected"
+    note: "min_previous_ratio is given and previous_boxes is not connected"
     checks: [refused]
     params: {points: [body/wrist], min_previous_ratio: 0.995}
     input: {point_names: [body/wrist, body/index, body/pinky, hand/wrist], keypoints: null}
-    expect: {error: V-node.roi_from_points-6}
+    expect: {error: V-node.boxes_from_points-6}

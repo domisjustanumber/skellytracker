@@ -26,9 +26,9 @@ FIXTURE = Path(__file__).parent / "data" / "sfn26_box_parity.npz"
 BUILT_IN = "yolox-rtmw-wholebody@skellytracker"
 
 
-def roi_to_xyxy(roi: np.ndarray) -> np.ndarray:
-    """Return `x1, y1, x2, y2` of one ROI row `(cx, cy, w, h, rotation)` with no rotation."""
-    cx, cy, w, h = (float(value) for value in roi[:4])
+def box_to_xyxy(crop: np.ndarray) -> np.ndarray:
+    """Return `x1, y1, x2, y2` of one box row `(cx, cy, w, h, rotation)` with no rotation."""
+    cx, cy, w, h = (float(value) for value in crop[:4])
     return np.array([cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2])
 
 
@@ -46,15 +46,15 @@ class RecordedDetector:
     def __init__(self, data: Any, frame: dict[str, int]) -> None:
         self.data, self.frame = data, frame
 
-    def detect(self, images: Any, rois: Any = None, timer: Any = None) -> Any:
+    def detect(self, images: Any, boxes: Any = None, timer: Any = None) -> Any:
         k = self.frame["k"]
-        if rois is None:  # the object detector: one result for each image
+        if boxes is None:  # the object detector: one result for each image
             found = bool(self.data["yolox_found"][k])
             return [SimpleNamespace(
                 boxes=self.data["yolox_box"][k : k + 1][:found], scores=self.data["yolox_score"][k : k + 1][:found],
                 class_indices=np.zeros(int(found), dtype=np.int64),
             )]
-        assert len(rois) == 1  # one camera, one person
+        assert len(boxes) == 1  # one camera, one person
         scores = self.data["keypoints_score"][k : k + 1]  # the recording has one score: it serves as the raw score too
         return SimpleNamespace(keypoints=self.data["keypoints_xy"][k : k + 1], scores=scores, raw_scores=scores)
 
@@ -95,19 +95,19 @@ def test_the_box_logic_of_the_built_in_agrees_with_the_recording_of_sfn26(record
             frame["k"] = k
             result = run.process(Frame(image, int(data["frame_index"][k]), float(data["timestamp_ms"][k])))
             assert (result["image_width"], result["image_height"]) == (width, height)
-            roi = result["person_roi"]
+            crop = result["crop_box"]
             if result["node_ran"]["person"] != data["detector_ran"][k]:
                 differences.append(f"frame {k}: node_ran.person is {result['node_ran']['person']}, detector_ran is {data['detector_ran'][k]}")
-            # The old tracker runs RTMW exactly on the frames with a box, and the node `wholebody` stops on an empty ROI.
+            # The old tracker runs RTMW exactly on the frames with a box, and the node `wholebody` stops on an empty box.
             if result["node_ran"]["wholebody"] != data["keypoints_ran"][k]:
                 differences.append(f"frame {k}: node_ran.wholebody is {result['node_ran']['wholebody']}, keypoints_ran is {data['keypoints_ran'][k]}")
-            if bool(roi.present[0]) != data["box_present"][k]:
-                differences.append(f"frame {k}: person_roi present is {bool(roi.present[0])}, box_present is {data['box_present'][k]}")
-            elif roi.present[0]:
-                xyxy = roi_to_xyxy(roi.rois[0])
+            if bool(crop.present[0]) != data["box_present"][k]:
+                differences.append(f"frame {k}: crop_box present is {bool(crop.present[0])}, box_present is {data['box_present'][k]}")
+            elif crop.present[0]:
+                xyxy = box_to_xyxy(crop.boxes[0])
                 error = float(np.abs(xyxy - data["smoothed_box"][k]).max())
                 if not error <= 1e-6:
-                    differences.append(f"frame {k}: person_roi {xyxy.tolist()} differs from smoothed_box {data['smoothed_box'][k].tolist()} by {error} px")
+                    differences.append(f"frame {k}: crop_box {xyxy.tolist()} differs from smoothed_box {data['smoothed_box'][k].tolist()} by {error} px")
                 clip = clip_to_pixels(xyxy, result["image_width"], result["image_height"])
                 if clip != data["bounding_box"][k].tolist():
                     differences.append(f"frame {k}: the clip {clip} is not {data['bounding_box'][k].tolist()}")

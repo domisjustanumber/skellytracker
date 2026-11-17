@@ -1,13 +1,13 @@
 # tools/make_vectors.py writes `expect`. Edit the other keys, then run it.
 # Hosts ignore `checks`. The names are the self-checks of the generator.
-section: node.smooth_roi
+section: node.smooth_boxes
 notes:
-  - "Normative text: specs/pipeline/nodes/smooth_roi.md. The rotation uses
-    NormalizeRadians of specs/pipeline/nodes/roi_from_points.md."
+  - "Normative text: specs/pipeline/nodes/smooth_boxes.md. The rotation uses
+    NormalizeRadians of specs/pipeline/nodes/boxes_from_points.md."
   - "A case is one sequence. `frames` holds one item for each frame. An item is a list of
-    instance rows, and a row is an ROI [cx, cy, w, h, rotation] or null (the row is not
-    present). A null item is an empty input. `rois` holds one output item for each input
-    item. `rotation` is in radians. The instance_score of a row passes through
+    instance rows, and a row is a box [cx, cy, w, h, rotation] or null (the row is not
+    present). A null item is an empty input. `boxes` holds one output item for each
+    input item. `rotation` is in radians. The instance_score of a row passes through
     unchanged, so the cases leave it out."
   - "A throwaway script ran the reference and
     skellytracker/core/temporal_processing/bbox_smoothing.py (apply_bbox_ema) on 500
@@ -23,7 +23,7 @@ notes:
     0, gaps, missing boxes and random filter params. The corners agreed within 1e-9."
 tolerance: 0.000000001
 verified_against:
-  - skellytracker/core/pipelines/_runtime/node_smooth_roi.py::run
+  - skellytracker/core/pipelines/_runtime/node_smooth_boxes.py::run
 cases:
   - id: defaults
     note: "previous_weight 0.5: the mean of the previous output and the input"
@@ -31,21 +31,21 @@ cases:
     input:
       running_mode: video
       frames: [[[100, 100, 50, 80, 0]], [[110, 90, 60, 80, 0]], [[120, 90, 60, 100, 0]]]
-    expect: {rois: [[[100, 100, 50, 80, 0]], [[105, 95, 55, 80, 0]], [[112.5, 92.5, 57.5, 90, 0]]]}
+    expect: {boxes: [[[100, 100, 50, 80, 0]], [[105, 95, 55, 80, 0]], [[112.5, 92.5, 57.5, 90, 0]]]}
   - id: previous-weight-zero-passes-the-input
     params: {previous_weight: 0}
     input: {running_mode: video, frames: [[[100, 100, 50, 80, 0]], [[110, 90, 60, 80, 0]]]}
-    expect: {rois: [[[100, 100, 50, 80, 0]], [[110, 90, 60, 80, 0]]]}
-  - id: previous-weight-one-keeps-the-first-roi
+    expect: {boxes: [[[100, 100, 50, 80, 0]], [[110, 90, 60, 80, 0]]]}
+  - id: previous-weight-one-keeps-the-first-box
     params: {previous_weight: 1}
     input: {running_mode: video, frames: [[[100, 100, 50, 80, 0]], [[110, 90, 60, 80, 0]]]}
-    expect: {rois: [[[100, 100, 50, 80, 0]], [[100, 100, 50, 80, 0]]]}
+    expect: {boxes: [[[100, 100, 50, 80, 0]], [[100, 100, 50, 80, 0]]]}
   - id: rotation-on-the-short-arc
     note: "the turn from -2.9 to 3.0 is NormalizeRadians(5.9) = 5.9 - 2 pi; the result stays
       near pi, not near 0"
     params: {previous_weight: 0.5}
     input: {running_mode: video, frames: [[[100, 100, 50, 50, 3]], [[100, 100, 50, 50, -2.9]]]}
-    expect: {rois: [[[100, 100, 50, 50, 3]], [[100, 100, 50, 50, -3.091593]]]}
+    expect: {boxes: [[[100, 100, 50, 50, 3]], [[100, 100, 50, 50, -3.091593]]]}
   - id: row-not-present-keeps-its-state
     note: "row 1 is not present on frame 1, so frame 2 blends with the output of frame 0"
     params: {previous_weight: 0.4}
@@ -56,20 +56,20 @@ cases:
         - [[110, 100, 50, 80, 0], null]
         - [[120, 100, 50, 80, 0], [310, 200, 40, 40, 0.3]]
     expect:
-      rois:
+      boxes:
         - [[100, 100, 50, 80, 0], [300, 200, 40, 40, 0.5]]
         - [[106, 100, 50, 80, 0], null]
         - [[114.4, 100, 50, 80, 0], [306, 200, 40, 40, 0.38]]
   - id: empty-input-does-not-run
     params: {}
     input: {running_mode: video, frames: [[[100, 100, 50, 80, 0]], null, [[120, 100, 50, 80, 0]]]}
-    expect: {rois: [[[100, 100, 50, 80, 0]], null, [[110, 100, 50, 80, 0]]]}
+    expect: {boxes: [[[100, 100, 50, 80, 0]], null, [[110, 100, 50, 80, 0]]]}
   - id: image-mode-passes-through
     params: {}
     input: {running_mode: image, frames: [[[100, 100, 50, 80, 0]], [[120, 100, 50, 80, 0]]]}
-    expect: {rois: [[[100, 100, 50, 80, 0]], [[120, 100, 50, 80, 0]]]}
-  - id: one-euro-first-roi-and-next-rois
-    note: "the first ROI passes. Then each of the four corners has its own cutoff, so the box
+    expect: {boxes: [[[100, 100, 50, 80, 0]], [[120, 100, 50, 80, 0]]]}
+  - id: one-euro-first-box-and-next-boxes
+    note: "the first box passes. Then each of the four corners has its own cutoff, so the box
       that moves and grows is not the result of a filter on the centre and the size. The
       rotation is that of the input"
     params: {filter: one_euro}
@@ -78,7 +78,7 @@ cases:
       timestamps_ms: [0, 33.333333, 66.666667]
       frames: [[[100, 100, 50, 80, 0]], [[110, 90, 60, 80, 0.2]], [[120, 90, 60, 100, 0.3]]]
     expect:
-      rois:
+      boxes:
         - [[100, 100, 50, 80, 0]]
         - [[104.724008, 95.41732, 55.204655, 80, 0.2]]
         - [[112.907027, 92.254756, 58.701836, 90.125991, 0.3]]
@@ -92,9 +92,9 @@ cases:
       timestamps_ms: [0, 500, 1001]
       frames: [[[100, 100, 50, 80, 0]], [[200, 100, 50, 80, 0]], [[300, 100, 50, 80, 0]]]
     expect:
-      rois: [[[100, 100, 50, 80, 0]], [[194.989217, 100, 50, 80, 0]], [[300, 100, 50, 80, 0]]]
+      boxes: [[[100, 100, 50, 80, 0]], [[194.989217, 100, 50, 80, 0]], [[300, 100, 50, 80, 0]]]
   - id: one-euro-row-not-present-clears-its-state
-    note: "row 1 is not present on frame 1, so its state is clear and its ROI of frame 2
+    note: "row 1 is not present on frame 1, so its state is clear and its box of frame 2
       passes. Row 0 keeps its state"
     params: {filter: one_euro, min_cutoff: 1, beta: 0}
     input:
@@ -105,18 +105,18 @@ cases:
         - [[110, 100, 50, 80, 0], null]
         - [[120, 100, 50, 80, 0], [340, 200, 40, 40, 0]]
     expect:
-      rois:
+      boxes:
         - [[100, 100, 50, 80, 0], [300, 200, 40, 40, 0]]
         - [[102.008486, 100, 50, 80, 0], null]
         - [[105.622058, 100, 50, 80, 0], [340, 200, 40, 40, 0]]
   - id: one-euro-empty-input-clears-the-state
-    note: "the input of frame 1 is empty, so the ROI of frame 2 passes"
+    note: "the input of frame 1 is empty, so the box of frame 2 passes"
     params: {filter: one_euro}
     input:
       running_mode: video
       timestamps_ms: [0, 40, 80]
       frames: [[[100, 100, 50, 80, 0]], null, [[120, 100, 50, 80, 0]]]
-    expect: {rois: [[[100, 100, 50, 80, 0]], null, [[120, 100, 50, 80, 0]]]}
+    expect: {boxes: [[[100, 100, 50, 80, 0]], null, [[120, 100, 50, 80, 0]]]}
   - id: one-euro-corners-exchange
     note: "x1 moves fast on frame 1 and keeps a large derivative. On frame 2 its estimate
       (about 582.2) passes the estimate of x2 (about 571.3), which moves slowly. The node
@@ -127,17 +127,17 @@ cases:
       timestamps_ms: [0, 33.333333, 66.666667]
       frames: [[[250, 100, 500, 80, 0]], [[450, 100, 100, 80, 0]], [[601, 100, 2, 80, 0]]]
     expect:
-      rois:
+      boxes:
         - [[250, 100, 500, 80, 0]]
         - [[429.611039, 100, 140.777923, 80, 0]]
         - [[576.768374, 100, 10.901762, 80, 0]]
   - id: one-euro-image-mode-passes-through
     params: {filter: one_euro}
     input: {running_mode: image, frames: [[[100, 100, 50, 80, 0]], [[120, 100, 50, 80, 0]]]}
-    expect: {rois: [[[100, 100, 50, 80, 0]], [[120, 100, 50, 80, 0]]]}
+    expect: {boxes: [[[100, 100, 50, 80, 0]], [[120, 100, 50, 80, 0]]]}
   - id: refused-param-of-the-other-filter
     note: "previous_weight is a param of the filter ema"
     checks: [refused]
     params: {filter: one_euro, previous_weight: 0.4}
     input: {running_mode: video, timestamps_ms: [0], frames: [[[100, 100, 50, 80, 0]]]}
-    expect: {error: V-node.smooth_roi-1}
+    expect: {error: V-node.smooth_boxes-1}

@@ -33,16 +33,16 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
 |---|---|---|
 | `image` | input | `image` |
 | `previous_keypoints` | input | `keypoints` |
-| `previous_rois` | input | `roi` |
+| `previous_boxes` | input | `boxes` |
 | `image` | output | `image` |
 <!-- /node-table:ports -->
 
-- `previous_keypoints` and `previous_rois` are usually `@prev` values: the keypoints and the crop
-  ROIs of the previous frame. Each `@prev` value is empty on the first frame
+- `previous_keypoints` and `previous_boxes` are usually `@prev` values: the keypoints and the crop
+  boxes of the previous frame. Each `@prev` value is empty on the first frame
   ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 4).
-- `previous_keypoints` and `previous_rois` are optional inputs. An empty optional input does not
+- `previous_keypoints` and `previous_boxes` are optional inputs. An empty optional input does not
   stop the node ([Graph](../graph.md#behaviour) item 6).
-- An ROI is `(cx, cy, w, h, rotation)` in source-image pixels, with `rotation` in radians
+- A box is `(cx, cy, w, h, rotation)` in source-image pixels, with `rotation` in radians
   ([Graph](../graph.md#behaviour) item 3).
 - Each item of `fitness_checks` has a `check` and only the fields of that check
   (`V-node.redetect_trigger-1`). A field that the item does not write takes its default:
@@ -53,7 +53,7 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
   | `keypoints_within_bbox_ratio` | `threshold: 0.5` |
   | `max_frames_without_redetect` | `n_frames: 30` |
   | `bbox_area_collapse` | `min_area_ratio: 0.25`, `expand_ratio: 1.10`, `min_score: 0.0` |
-  | `roi_missing` | no field |
+  | `box_missing` | no field |
 
 - `expand_ratio` multiplies the width and the height of the box around the points. The default
   1.10 is a margin of 0.05 on each side, as today's code: 1 + 2 · 0.05
@@ -64,7 +64,7 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
 
 1. **Empty image.** When `image` is empty, the node does not run. The output is empty and the state
    does not change ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md)
-   item 6). Empty `previous_keypoints` and `previous_rois` do not stop the node, because they are
+   item 6). Empty `previous_keypoints` and `previous_boxes` do not stop the node, because they are
    optional inputs.
 2. **Running mode.** In the running mode `image`, the output is always the image, and the node keeps
    no state ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 2).
@@ -80,8 +80,8 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
 
    Then `last = n`. Else the output is empty.
 5. **Rows.** The checks run for each row `i`, with row `i` of `previous_keypoints` and row `i` of
-   `previous_rois`. When an input is empty, each of its rows is missing. A row of
-   `previous_keypoints` or `previous_rois` that is not present is missing
+   `previous_boxes`. When an input is empty, each of its rows is missing. A row of
+   `previous_keypoints` or `previous_boxes` that is not present is missing
    ([ADR-97X9](../../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 4).
    When both inputs are empty, the checks run once, with no row. A point is valid when its x and its
    y are not NaN.
@@ -89,8 +89,8 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
    - `max_frames_without_redetect`: `n - last >= n_frames`.
    - `min_keypoint_score`: the keypoint row is there and has a valid point, and the mean score of
      its valid points is less than `threshold`.
-   - `keypoints_within_bbox_ratio`: the keypoint row and the ROI are there, the keypoint row has a
-     valid point, and the part of its valid points inside the ROI is less than `threshold`. A point
+   - `keypoints_within_bbox_ratio`: the keypoint row and the box are there, the keypoint row has a
+     valid point, and the part of its valid points inside the box is less than `threshold`. A point
      `(x, y)` is inside when:
 
      ```text
@@ -99,7 +99,7 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
      inside = |u| <= w / 2  and  |v| <= h / 2
      ```
 
-   - `bbox_area_collapse`: `previous_keypoints` is connected and the ROI is there. The check fails
+   - `bbox_area_collapse`: `previous_keypoints` is connected and the box is there. The check fails
      when the keypoint row is missing
      ([ADR-97X9](../../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 4).
      Else the counted points are the valid points, and only those with `score >= min_score` when
@@ -111,14 +111,14 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
      fails  = w · h > 0  and  width · expand_ratio · height · expand_ratio < min_area_ratio · w · h
      ```
 
-   - `roi_missing`: row `i` of `previous_rois` is missing. The check thus also fails when
-     `previous_rois` is empty
+   - `box_missing`: row `i` of `previous_boxes` is missing. The check thus also fails when
+     `previous_boxes` is empty
      ([ADR-RA0E](../../../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md) item 4).
 
 ## Validation rules
 
-- [ ] `V-node.redetect_trigger-1` Each item of `fitness_checks` must write only `check` and the fields of its `check`: `threshold` for `min_keypoint_score` and `keypoints_within_bbox_ratio`, `n_frames` for `max_frames_without_redetect`, and `min_area_ratio`, `expand_ratio` and `min_score` for `bbox_area_collapse`. The check `roi_missing` has no field.
-- [ ] `V-node.redetect_trigger-2` The check `roi_missing` needs a connected `previous_rois` input ([ADR-RA0E](../../../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md) item 4).
+- [ ] `V-node.redetect_trigger-1` Each item of `fitness_checks` must write only `check` and the fields of its `check`: `threshold` for `min_keypoint_score` and `keypoints_within_bbox_ratio`, `n_frames` for `max_frames_without_redetect`, and `min_area_ratio`, `expand_ratio` and `min_score` for `bbox_area_collapse`. The check `box_missing` has no field.
+- [ ] `V-node.redetect_trigger-2` The check `box_missing` needs a connected `previous_boxes` input ([ADR-RA0E](../../../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md) item 4).
 
 ## Implementer guidance
 
@@ -132,13 +132,13 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
   `should_redetect` with the smoothed box and the keypoints of the previous frame, and sets
   `last_detection_frame` when the detector runs. In this section, `last` is the frame of the last
   trigger. The node cannot see if the detector ran.
-- Today's boxes have no rotation. The test for a point inside a rotated ROI is new in this section.
+- Today's boxes have no rotation. The test for a point inside a rotated box is new in this section.
   With `rotation = 0` it is the box test of today, with the edges inside.
-- `bbox_area_collapse` makes an axis-aligned box around the points also when the ROI has a rotation.
+- `bbox_area_collapse` makes an axis-aligned box around the points also when the box has a rotation.
 - A keypoint row with no valid point passes `min_keypoint_score` and `keypoints_within_bbox_ratio`,
-  but fails `bbox_area_collapse` when its ROI is there. Today's code does the same: the track is
+  but fails `bbox_area_collapse` when its box is there. Today's code does the same: the track is
   lost. A missing row of a connected `previous_keypoints` also fails `bbox_area_collapse` when its
-  ROI is there, so the detector runs on the next frame and not only after `redetect_interval`
+  box is there, so the detector runs on the next frame and not only after `redetect_interval`
   ([ADR-97X9](../../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 4).
   Today's code has no present flag. When `previous_keypoints` is not connected,
   `bbox_area_collapse` does not fail.
@@ -149,14 +149,14 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
 ## Authoring guidance
 
 - Connect `previous_keypoints` to the keypoints of the previous frame (`<node>.keypoints@prev`) and
-  `previous_rois` to the crop ROIs of the previous frame, for example `<smooth_roi node>.rois@prev`.
+  `previous_boxes` to the crop boxes of the previous frame, for example `<smooth_boxes node>.boxes@prev`.
 - The default `redetect_interval: 1` asks for a detection on each frame. Without fitness checks and
   with a larger interval, the node gives the image each `redetect_interval` frames.
 - `max_frames_without_redetect` and `redetect_interval` have the same effect. Use one of them.
 - `bbox_area_collapse` finds a person who leaves the image or a track that moves to a smaller
   object. Use it when `redetect_interval` is large.
-- To ask for a detection on the frame after a detector found no instance, gate the carried ROI
-  with `mode: is_empty` on the trigger image, and add the check `roi_missing`. The crop ROI of that
+- To ask for a detection on the frame after a detector found no instance, gate the carried box
+  with `mode: is_empty` on the trigger image, and add the check `box_missing`. The crop box of that
   frame is then empty, so the check fails on the next frame. The example
   [`yolox-rtmw-wholebody`](../examples/yolox-rtmw-wholebody.pipeline.yaml) does this
   ([ADR-RA0E](../../../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md) items 1 and 4).
@@ -171,7 +171,7 @@ The vector file [`node.redetect_trigger.yaml`](../vectors/node.redetect_trigger.
 ```yaml
 - id: need_person
   type: redetect_trigger
-  inputs: {image: frame.image, previous_keypoints: smooth.keypoints@prev, previous_rois: crop.rois@prev}
+  inputs: {image: frame.image, previous_keypoints: smooth.keypoints@prev, previous_boxes: crop.boxes@prev}
   params:
     redetect_interval: 30
     fitness_checks:

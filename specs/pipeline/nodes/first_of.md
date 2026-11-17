@@ -10,7 +10,7 @@ status: {spec: draft}
 
 > This section is a draft. Its fields and rules can change before the section becomes `stable`.
 
-A `first_of` node gives the first of its inputs that is not empty ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6). It is a glue node. A pipeline uses it to select one of two or more sources of the same value, for example a new detection or the ROI of the previous frame.
+A `first_of` node gives the first of its inputs that is not empty ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6). It is a glue node. A pipeline uses it to select one of two or more sources of the same value, for example a new detection or the box of the previous frame.
 
 ## Fields
 
@@ -40,7 +40,7 @@ This node has no parameters.
 ## Validation rules
 
 - [ ] `V-node.first_of-1` All inputs must have the same port type. An input of the port type `any` takes the type of its own inputs ([Graph](../graph.md#behaviour) item 4). An `@prev` input `x@prev` has the port type of `x`, and the rule also compares it ([ADR-97X9](../../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 5).
-- [ ] `V-node.first_of-2` When the inputs are instance ports (`roi`, `keypoints` or `detections`), they must have one instance source. When they are `keypoints` ports, they must also have the same groups ([Graph](../graph.md#behaviour) item 7; [ADR-4MP6](../../../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md)). The host checks this at load.
+- [ ] `V-node.first_of-2` When the inputs are instance ports (`boxes` or `keypoints`), they must have one instance source. When they are `keypoints` ports, they must also have the same groups ([Graph](../graph.md#behaviour) item 7; [ADR-4MP6](../../../decisions/entries/4MP6-pipeline-point-groups-and-canonical-form.md)). The host checks this at load.
 
 ## Implementer guidance
 
@@ -53,10 +53,10 @@ This node has no parameters.
 
 ## Examples
 
-The ROIs of the current frame come from a new detection. When the detector did not run, they come from the keypoints of the previous frame.
+The boxes of the current frame come from a new detection. When the detector did not run, they come from the keypoints of the previous frame.
 
 ```yaml
-  - id: rois
+  - id: boxes
     type: first_of
-    inputs: [person.rois, from_points.rois@prev]
+    inputs: [person.boxes, from_points.boxes@prev]
 ```

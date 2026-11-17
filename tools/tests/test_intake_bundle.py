@@ -1786,7 +1786,7 @@ def pipeline_file(sha: str | None = None, name: str = "openmmlab-exporter", key:
         f'source: {{name: {name}, version: "0.1.0"}}\n'
         "nodes:\n  - id: person\n    type: onnx_model\n    inputs: {image: frame.image}\n"
         f"    params:\n      key: {key}\n      size: m{sha_line}\n"
-        "outputs:\n  person_box: person.detections\n"
+        "outputs:\n  detector_box: person.boxes\n"
     )
 
 
@@ -1830,7 +1830,7 @@ def test_a_valid_pipeline_file_passes_the_load_checks(tmp_path: Path, root: Path
     [
         ('schema_version: "2.0.0"', 'schema_version: "9.9.9"', "V-pipeline.file-1"),  # a structural rule of the loader
         ("size: m", "size: zz", "V-node.onnx_model-4"),  # a rule that needs the sidecar
-        ("person_box: person.detections", "person_box: person.keypoints", "V-node.onnx_model-2"),
+        ("detector_box: person.boxes", "detector_box: person.keypoints", "V-node.onnx_model-2"),
     ],
 )
 def test_verify_runs_the_load_checks_of_the_package(tmp_path: Path, root: Path, old: str, new: str, rule: str) -> None:

@@ -12,7 +12,7 @@ from skellytracker.core.pipelines.values import PortInfo, is_empty
 
 # The node skips each empty input, so no empty input stops it (Behaviour).
 READS_EMPTY: frozenset[str] = frozenset({"*"})
-INSTANCE_TYPES = ("roi", "keypoints", "detections")
+INSTANCE_TYPES = ("boxes", "keypoints")
 
 
 def output_info(node_id: str, params: NoParams, inputs: list[PortInfo]) -> tuple[dict[str, PortInfo], list[dict[str, Any]]]:

@@ -226,12 +226,12 @@ FILE_TOLERANCE = {
     "common.input": 1e-4,
     "common.identity": 0,  # data-only validator cases
     "common.license": 0,  # data-only validator cases
-    # Pipeline glue nodes (ADR-3SF2 item 4): the ROI geometry, and the filters, which run in float64.
-    "node.roi_from_points": 1e-6,
-    "node.roi_hold": 1e-6,
+    # Pipeline glue nodes (ADR-3SF2 item 4): the box geometry, and the filters, which run in float64.
+    "node.boxes_from_points": 1e-6,
+    "node.hold_boxes": 1e-6,
     "node.gate": 1e-6,
     "node.smooth_keypoints": 1e-9,
-    "node.smooth_roi": 1e-9,
+    "node.smooth_boxes": 1e-9,
     "node.redetect_trigger": 1e-9,
     "node.first_of": 0,  # the node passes a value through: no arithmetic
     "node.concat": 0,  # the node copies columns and rows: no arithmetic
@@ -1975,10 +1975,10 @@ def keypoints_info(names: list[str], rows: int, source: str | None = "person", g
     )
 
 
-def roi_info(rows: int, source: str | None = "person") -> Any:
+def boxes_info(rows: int, source: str | None = "person") -> Any:
     from skellytracker.core.pipelines.values import PortInfo
 
-    return PortInfo("roi", max_instances=rows, instance_source=source)
+    return PortInfo("boxes", max_instances=rows, instance_source=source)
 
 
 def keypoints_value(value: dict[str, Any] | None, info: Any) -> Any:
@@ -2036,20 +2036,20 @@ def xy_keypoints(rows: list[Any], present: list[bool], info: Any, scores: list[A
     return out
 
 
-def rois_value(rows: list[Any] | None, count: int, scores: list[float] | None = None) -> Any:
-    """A `roi` value from rows of [cx, cy, w, h, rotation] or None. None gives the empty value."""
-    from skellytracker.core.pipelines.values import InstanceRois
+def boxes_value(rows: list[Any] | None, count: int, scores: list[float] | None = None) -> Any:
+    """A `boxes` value from rows of [cx, cy, w, h, rotation] or None. None gives the empty value."""
+    from skellytracker.core.pipelines.values import InstanceBoxes
 
-    out = InstanceRois.empty(count)
+    out = InstanceBoxes.empty(count)
     for i, row in enumerate(rows or []):
         if row is not None:
-            out.rois[i], out.present[i] = row, True
+            out.boxes[i], out.present[i] = row, True
             out.instance_score[i] = 0.0 if scores is None else scores[i]
     return out
 
 
-def rois_rows(value: Any) -> list[Any]:
-    return [row.tolist() if present else None for row, present in zip(value.rois, value.present, strict=True)]
+def boxes_rows(value: Any) -> list[Any]:
+    return [row.tolist() if present else None for row, present in zip(value.boxes, value.present, strict=True)]
 
 
 def first_of_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
@@ -2135,7 +2135,7 @@ def gate_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
     from skellytracker.core.pipelines.config import GateParams
     from skellytracker.core.pipelines.values import InstanceBoxes, PortInfo
 
-    instance = ("roi", "keypoints", "detections")
+    instance = ("boxes", "keypoints")
 
     def run() -> dict[str, Any]:
         inp = case["input"]
@@ -2163,50 +2163,48 @@ def gate_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
                 [row and row["xy"] for row in given], [row is not None for row in given], infos["condition"],
                 [row and row["score"] for row in given],
             )
-        elif inp["condition_type"] == "detections":
+        elif inp["condition_type"] == "boxes":
             sent = InstanceBoxes.empty(rows)
             for i, row in enumerate(condition or []):
                 if row is not None:
-                    sent.xyxy[i], sent.score[i], sent.class_index[i], sent.present[i] = 0.0, row["score"], row["class_index"], True
-        elif inp["condition_type"] == "roi":
-            sent = rois_value(condition, rows)
+                    sent.boxes[i], sent.instance_score[i], sent.present[i] = 0.0, row["instance_score"], True
         else:
             sent = None if condition is None else image
-        by_value = rois_value(value, len(value)) if inp["value_type"] == "roi" else image
+        by_value = boxes_value(value, len(value)) if inp["value_type"] == "boxes" else image
         plan = sibling(function, "prepare")("node", params, infos, outputs)
         result = function(params, {"value": by_value, "condition": sent}, None, node_frame(), plan)[0]["value"]
-        if inp["value_type"] != "roi":
+        if inp["value_type"] != "boxes":
             return {"value": value if result is image else None}
         if inp["condition_type"] in instance or result.present.any():
-            return {"value": rois_rows(result)}
+            return {"value": boxes_rows(result)}
         return {"value": None}
 
     return node_outcome(run)
 
 
-def roi_from_points_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
-    from skellytracker.core.pipelines.config import RoiFromPointsParams
+def boxes_from_points_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
+    from skellytracker.core.pipelines.config import BoxesFromPointsParams
 
     def run() -> dict[str, Any]:
         inp = case["input"]
         keypoints = inp["keypoints"]
-        params = RoiFromPointsParams(**case["params"])
+        params = BoxesFromPointsParams(**case["params"])
         rows = 1 if keypoints is None else len(keypoints["present"])
         infos = {"keypoints": keypoints_info(inp["point_names"], rows)}
-        floors = [name for name in ("previous_rois", "reference_rois") if name in inp]
-        infos.update({name: roi_info(rows) for name in floors})
+        floors = [name for name in ("previous_boxes", "reference_boxes") if name in inp]
+        infos.update({name: boxes_info(rows) for name in floors})
         sibling(function, "output_info")("node", params, infos)
         if keypoints is None:
-            return {"rois": None}  # an empty required input: the executor does not call the node
+            return {"boxes": None}  # an empty required input: the executor does not call the node
         values = {
             "keypoints": xy_keypoints(
                 keypoints["xy"], keypoints["present"], infos["keypoints"], keypoints["score"],
                 **({"instance_score": keypoints["instance_score"]} if "instance_score" in keypoints else {}),
             ),
-            **{name: rois_value(inp[name], rows) for name in floors},
+            **{name: boxes_value(inp[name], rows) for name in floors},
         }
-        result = function(params, values, None, node_frame())[0]["rois"]
-        out = {"rois": rois_rows(result)}
+        result = function(params, values, None, node_frame())[0]["boxes"]
+        out = {"boxes": boxes_rows(result)}
         if "instance_score" in keypoints:
             out["instance_score"] = result.instance_score.tolist()
         return out
@@ -2214,18 +2212,18 @@ def roi_from_points_runner(function: Any, case: dict[str, Any]) -> dict[str, Any
     return node_outcome(run)
 
 
-def roi_hold_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
-    from skellytracker.core.pipelines.config import RoiHoldParams
+def hold_boxes_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
+    from skellytracker.core.pipelines.config import HoldBoxesParams
 
     def run() -> dict[str, Any]:
         inp = case["input"]
         previous, current, keypoints = inp["previous"], inp["current"], inp.get("previous_keypoints")
-        params = RoiHoldParams(**case["params"])
+        params = HoldBoxesParams(**case["params"])
         rows = len(current or previous or [None])
-        infos = {"previous": roi_info(rows), "current": roi_info(rows)}
+        infos = {"previous": boxes_info(rows), "current": boxes_info(rows)}
         values = {
-            "previous": rois_value(previous, rows, inp.get("previous_instance_score")),
-            "current": rois_value(current, rows, inp.get("current_instance_score")),
+            "previous": boxes_value(previous, rows, inp.get("previous_instance_score")),
+            "current": boxes_value(current, rows, inp.get("current_instance_score")),
         }
         if keypoints is not None:
             points = max(len(row) for row in keypoints["xy"])
@@ -2233,9 +2231,9 @@ def roi_hold_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
             values["previous_keypoints"] = xy_keypoints(keypoints["xy"], keypoints["present"], infos["previous_keypoints"])
         sibling(function, "output_info")("node", params, infos)
         if current is None:
-            return {"rois": None}  # an empty required input: the executor does not call the node
-        result = function(params, values, None, node_frame())[0]["rois"]
-        out = {"rois": rois_rows(result)}
+            return {"boxes": None}  # an empty required input: the executor does not call the node
+        result = function(params, values, None, node_frame())[0]["boxes"]
+        out = {"boxes": boxes_rows(result)}
         if "current_instance_score" in inp:
             out["instance_score"] = result.instance_score.tolist()
         return out
@@ -2243,22 +2241,22 @@ def roi_hold_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
     return node_outcome(run)
 
 
-def smooth_roi_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
-    from skellytracker.core.pipelines.config import SmoothRoiParams
+def smooth_boxes_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
+    from skellytracker.core.pipelines.config import SmoothBoxesParams
 
     def run() -> dict[str, Any]:
         inp = case["input"]
-        params = SmoothRoiParams(**case["params"])
+        params = SmoothBoxesParams(**case["params"])
         frames = inp["frames"]
         rows = max(len(frame) for frame in frames if frame is not None)
         stamps = inp.get("timestamps_ms") or [index * 1000.0 / 30.0 for index in range(len(frames))]
-        sibling(function, "output_info")("node", params, {"rois": roi_info(rows)})
+        sibling(function, "output_info")("node", params, {"boxes": boxes_info(rows)})
         state, output = None, []
         for index, frame in enumerate(frames):
             context = node_frame(index, stamps[index], inp["running_mode"])
-            result, state = function(params, {"rois": rois_value(frame, rows)}, state, context)
-            output.append(None if frame is None else rois_rows(result["rois"]))
-        return mv.clean({"rois": output}, digits=mv.ROUND_DIGITS)  # `expect` has 6 decimals
+            result, state = function(params, {"boxes": boxes_value(frame, rows)}, state, context)
+            output.append(None if frame is None else boxes_rows(result["boxes"]))
+        return mv.clean({"boxes": output}, digits=mv.ROUND_DIGITS)  # `expect` has 6 decimals
 
     return node_outcome(run)
 
@@ -2305,15 +2303,15 @@ def redetect_trigger_runner(function: Any, case: dict[str, Any]) -> dict[str, An
         params = RedetectTriggerParams(**case["params"])
         frames = inp["frames"]
         connected = any("previous_keypoints" in frame for frame in frames)
-        given = [(frame.get("previous_keypoints") or [], frame["previous_rois"] or []) for frame in frames]
-        rows = max([1, *(max(len(keypoints), len(rois)) for keypoints, rois in given)])
+        given = [(frame.get("previous_keypoints") or [], frame["previous_boxes"] or []) for frame in frames]
+        rows = max([1, *(max(len(keypoints), len(boxes)) for keypoints, boxes in given)])
         points = max([1, *(len(row) for keypoints, _ in given for row in keypoints if row is not None)])
         info = keypoints_info([f"g/p{column}" for column in range(points)], rows)
-        infos = {"image": PortInfo("image"), "previous_rois": roi_info(rows), **({"previous_keypoints": info} if connected else {})}
+        infos = {"image": PortInfo("image"), "previous_boxes": boxes_info(rows), **({"previous_keypoints": info} if connected else {})}
         sibling(function, "output_info")("node", params, infos)
         image, state, triggered = np.zeros((2, 2, 3), dtype=np.uint8), None, []
-        for frame, (keypoints, rois) in zip(frames, given, strict=True):
-            values = {"image": image, "previous_rois": rois_value(rois, rows)}
+        for frame, (keypoints, boxes) in zip(frames, given, strict=True):
+            values = {"image": image, "previous_boxes": boxes_value(boxes, rows)}
             if connected:
                 values["previous_keypoints"] = xy_keypoints(
                     keypoints, [row is not None for row in keypoints], info,
@@ -2349,14 +2347,14 @@ PACKAGE_RUNNERS: dict[str, Callable[[Any, dict[str, Any]], dict[str, Any] | None
     f"{POST}/object_selection_nms.py::decode_nms": nms_runner,
     f"{POST}/unprojection.py::unproject_points": unproject_points_runner,
     f"{POST}/unprojection.py::unproject_boxes": unproject_boxes_runner,
-    f"{NODES}/node_roi_from_points.py::run": roi_from_points_runner,
-    f"{NODES}/node_roi_hold.py::run": roi_hold_runner,
+    f"{NODES}/node_boxes_from_points.py::run": boxes_from_points_runner,
+    f"{NODES}/node_hold_boxes.py::run": hold_boxes_runner,
     f"{NODES}/node_gate.py::run": gate_runner,
     f"{NODES}/node_first_of.py::run": first_of_runner,
     f"{NODES}/node_concat.py::run": concat_runner,
     f"{NODES}/node_merge.py::run": merge_runner,
     f"{NODES}/node_smooth_keypoints.py::run": smooth_keypoints_runner,
-    f"{NODES}/node_smooth_roi.py::run": smooth_roi_runner,
+    f"{NODES}/node_smooth_boxes.py::run": smooth_boxes_runner,
     f"{NODES}/node_redetect_trigger.py::run": redetect_trigger_runner,
 }
 

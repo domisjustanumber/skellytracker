@@ -13,7 +13,7 @@ from typing import Any
 import numpy as np
 
 from skellytracker.core.pipelines._runtime.resolve import ResolvedNode
-from skellytracker.core.pipelines.values import InstanceBoxes, InstanceRois
+from skellytracker.core.pipelines.values import InstanceBoxes
 
 READS_EMPTY: frozenset[str] = frozenset()
 Timer = Callable[[str, int, int], None]
@@ -42,43 +42,42 @@ class OnnxModelRunner:
             self.detectors = [GenericKeypointDetector(model.sidecar, model.size, precision, session) for session in sessions]
 
     def run(
-        self, device: int, images: Sequence[np.ndarray], rois: Sequence[InstanceRois] | None = None, timer: Timer | None = None,
+        self, device: int, images: Sequence[np.ndarray], boxes: Sequence[InstanceBoxes] | None = None, timer: Timer | None = None,
     ) -> list[dict[str, Any]]:
         """Run the model on the images of one call, in one inference call. Return the outputs of each image.
 
-        `device` is the index of the session. `rois` holds the `rois` value of each image of a
+        `device` is the index of the session. `boxes` holds the `boxes` value of each image of a
         top-down model: the model runs once for each present row. `timer` gets the spans
         `preprocess`, `inference` and `postprocess`.
         """
         detector = self.detectors[device]
         if self.kind == "object":
             return [self._object_rows(found) for found in detector.detect(images, timer=timer)]
-        pairs = [(index, int(row)) for index, value in enumerate(rois or ()) for row in np.flatnonzero(value.present)]
-        found = detector.detect([images[index] for index, _ in pairs], [rois[index].rois[row].tolist() for index, row in pairs], timer=timer)
+        pairs = [(index, int(row)) for index, value in enumerate(boxes or ()) for row in np.flatnonzero(value.present)]
+        found = detector.detect([images[index] for index, _ in pairs], [boxes[index].boxes[row].tolist() for index, row in pairs], timer=timer)
         values = [self.outputs_info["keypoints"].empty() for _ in images]
         for position, (index, row) in enumerate(pairs):
             value = values[index]
             value.xy[row] = found.keypoints[position]  # z of a `3d` model stays NaN: the decode of this release gives x and y
             value.score[row] = found.scores[position]
             value.raw_score[row] = found.raw_scores[position]
-            value.instance_score[row] = rois[index].instance_score[row]
+            value.instance_score[row] = boxes[index].instance_score[row]
             value.present[row] = True
         return [{"keypoints": value} for value in values]
 
     def _object_rows(self, found: Any) -> dict[str, Any]:
-        """Return `detections` and `rois` of one image: the first `I` rows of the decode, which are in descending score order."""
-        rows = self.outputs_info["detections"].max_instances
+        """Return `boxes` of one image: the first `I` rows of the decode, which are in descending score order."""
+        rows = self.outputs_info["boxes"].max_instances
         count = min(len(found.scores), rows)
-        boxes, rois = InstanceBoxes.empty(rows), InstanceRois.empty(rows)
+        boxes = InstanceBoxes.empty(rows)
         xyxy = np.asarray(found.boxes[:count], dtype=np.float64).reshape(count, 4)
-        boxes.xyxy[:count] = xyxy
-        boxes.score[:count] = rois.instance_score[:count] = found.scores[:count]
-        boxes.class_index[:count] = found.class_indices[:count]
-        boxes.present[:count] = rois.present[:count] = True
-        rois.rois[:count] = np.stack(
+        boxes.boxes[:count] = np.stack(
             [(xyxy[:, 0] + xyxy[:, 2]) / 2, (xyxy[:, 1] + xyxy[:, 3]) / 2, xyxy[:, 2] - xyxy[:, 0], xyxy[:, 3] - xyxy[:, 1], np.zeros(count)], axis=1,
         )
-        return {"detections": boxes, "rois": rois}
+        boxes.instance_score[:count] = found.scores[:count]
+        boxes.class_index[:count] = found.class_indices[:count]
+        boxes.present[:count] = True
+        return {"boxes": boxes}
 
     def close(self) -> None:
         """Release the sessions of the detectors."""

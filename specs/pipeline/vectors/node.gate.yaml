@@ -4,10 +4,10 @@ section: node.gate
 notes:
   - "Normative text: specs/pipeline/nodes/gate.md."
   - "`value_type` and `condition_type` are the port types, known at load. A value of an
-    instance port (`roi`, `keypoints`, `detections`) is null (empty) or one row or null
-    (an empty row) for each instance. A value of another port type is null (empty) or a
+    instance port (`boxes`, `keypoints`) is null (empty) or one row or null (an empty
+    row) for each instance. A value of another port type is null (empty) or a
     placeholder string. A `keypoints` row of `condition` holds `xy` and `score`; a
-    `detections` row holds `score` and `class_index`; the test uses only `score`."
+    `boxes` row of `condition` holds `instance_score`."
 tolerance: 0.000001
 verified_against:
   - skellytracker/core/pipelines/_runtime/node_gate.py::run
@@ -38,19 +38,19 @@ cases:
     note: "row 0 passes; row 1 has an empty condition row; row 2 has an empty value row"
     params: {mode: is_present}
     input:
-      value_type: roi
+      value_type: boxes
       condition_type: keypoints
       value: [[100, 100, 50, 50, 0], [200, 200, 40, 40, 0], null]
       condition: [{xy: [[10, 20]], score: [0.9]}, null, {xy: [[10, 20]], score: [0.9]}]
     expect: {value: [[100, 100, 50, 50, 0], null, null]}
-  - id: score-above-detections-is-strict
+  - id: score-above-boxes-is-strict
     note: "row 0: 0.8 is greater than 0.5; row 1: 0.5 is not; row 2: an empty row has no score"
     params: {mode: score_above, threshold: 0.5}
     input:
-      value_type: roi
-      condition_type: detections
+      value_type: boxes
+      condition_type: boxes
       value: [[100, 100, 50, 50, 0], [200, 200, 40, 40, 0], [300, 300, 30, 30, 0]]
-      condition: [{score: 0.8, class_index: 0}, {score: 0.5, class_index: 0}, null]
+      condition: [{instance_score: 0.8}, {instance_score: 0.5}, null]
     expect: {value: [[100, 100, 50, 50, 0], null, null]}
   - id: score-above-keypoints-skips-nan-points
     note: "the mean score of the two points that are not NaN is 0.7, greater than 0.6; with the
@@ -66,7 +66,7 @@ cases:
     note: "row 0: each point is NaN, so the score is 0, not greater than 0; row 1 passes"
     params: {mode: score_above, threshold: 0}
     input:
-      value_type: roi
+      value_type: boxes
       condition_type: keypoints
       value: [[100, 100, 50, 50, 0], [200, 200, 40, 40, 0]]
       condition:
@@ -91,17 +91,17 @@ cases:
     params: {mode: is_empty, threshold: 0.5}
     input: {value_type: image, condition_type: keypoints, value: frame-image, condition: null}
     expect: {error: V-node.gate-1}
-  - id: score-above-on-a-roi-condition-is-refused
+  - id: score-above-on-an-image-condition-is-refused
     checks: [refused]
     params: {mode: score_above, threshold: 0.5}
-    input: {value_type: image, condition_type: roi, value: frame-image, condition: null}
+    input: {value_type: image, condition_type: image, value: frame-image, condition: null}
     expect: {error: V-node.gate-2}
   - id: row-counts-must-match
     checks: [refused]
     params: {mode: is_present}
     input:
-      value_type: roi
-      condition_type: detections
+      value_type: boxes
+      condition_type: boxes
       value: [[100, 100, 50, 50, 0], [200, 200, 40, 40, 0]]
-      condition: [{score: 0.8, class_index: 0}]
+      condition: [{instance_score: 0.8}]
     expect: {error: V-node.gate-3}

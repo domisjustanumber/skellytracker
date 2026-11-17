@@ -28,7 +28,7 @@ import yaml
 import make_pipeline_schema as mps
 import sidecar_trace as st
 
-PORT_TYPES = {"image", "roi", "keypoints", "detections", "tensor", "trigger", "any"}
+PORT_TYPES = {"image", "boxes", "keypoints", "tensor", "trigger", "any"}
 
 FIXTURE_MODEL = '''
 from typing import Literal
@@ -186,7 +186,7 @@ def _config(nodes: list[dict], outputs: dict | None = None, taps: list[dict] | N
     """A small pipeline config with a person detector `person` and a body model `body`."""
     base = [
         {"id": "person", "type": "onnx_model", "inputs": {"image": "frame.image"}, "params": {"key": "p@x", "size": "m"}},
-        {"id": "body", "type": "onnx_model", "inputs": {"image": "frame.image", "rois": "person.rois"},
+        {"id": "body", "type": "onnx_model", "inputs": {"image": "frame.image", "boxes": "person.boxes"},
          "params": {"key": "b@x", "size": "m"}},
     ]
     return {
@@ -196,24 +196,24 @@ def _config(nodes: list[dict], outputs: dict | None = None, taps: list[dict] | N
     }
 
 
-ROI = {"id": "roi", "type": "roi_from_points", "inputs": {"keypoints": "body.keypoints"}}
+BOX = {"id": "box", "type": "boxes_from_points", "inputs": {"keypoints": "body.keypoints"}}
 
 
 @needs_model
 @pytest.mark.parametrize(
     ("config", "rule"),
     [
-        (_config([{**ROI, "params": {"points": ["left_wrist"]}}]), "V-pipeline.graph-8"),
-        (_config([{**ROI, "params": {"points": ["hand.wrist"]}}]), "V-pipeline.graph-8"),
-        (_config([{**ROI, "params": {"points": ["body/a"], "derived_points": {"m": {"body/a": 0.5, "body/b": 0.4}}}}]),
-         "V-node.roi_from_points-5"),
-        (_config([{"id": "pick", "type": "first_of", "inputs": ["person.rois", "body.keypoints"]}]), "V-node.first_of-1"),
+        (_config([{**BOX, "params": {"points": ["left_wrist"]}}]), "V-pipeline.graph-8"),
+        (_config([{**BOX, "params": {"points": ["hand.wrist"]}}]), "V-pipeline.graph-8"),
+        (_config([{**BOX, "params": {"points": ["body/a"], "derived_points": {"m": {"body/a": 0.5, "body/b": 0.4}}}}]),
+         "V-node.boxes_from_points-5"),
+        (_config([{"id": "pick", "type": "first_of", "inputs": ["person.boxes", "body.keypoints"]}]), "V-node.first_of-1"),
         (_config([{"id": "pick", "type": "first_of", "inputs": ["body.keypoints"]},
-                  {"id": "crop", "type": "smooth_roi", "inputs": {"rois": "pick.value"}}]), "V-pipeline.graph-3"),
-        (_config([{"id": "pass", "type": "gate", "inputs": {"value": "body.keypoints@prev", "condition": "person.rois"},
+                  {"id": "crop", "type": "smooth_boxes", "inputs": {"boxes": "pick.value"}}]), "V-pipeline.graph-3"),
+        (_config([{"id": "pass", "type": "gate", "inputs": {"value": "body.keypoints@prev", "condition": "person.boxes"},
                    "params": {"mode": "is_present"}}]), "V-pipeline.graph-9"),
         (_config([{"id": "pick", "type": "first_of", "inputs": ["body.keypoints@prev"]}]), "V-pipeline.graph-9"),
-        (_config([{"id": "pick", "type": "first_of", "inputs": ["person.rois", "body.keypoints@prev"]}]), "V-node.first_of-1"),
+        (_config([{"id": "pick", "type": "first_of", "inputs": ["person.boxes", "body.keypoints@prev"]}]), "V-node.first_of-1"),
         (_config([], outputs={"body": "body.keypoints@prev"}), "V-pipeline.outputs-1"),
         (_config([], outputs={"image": "frame.image"}), "V-pipeline.outputs-1"),
         (_config([], outputs={"node_ran": "body.keypoints"}), "V-pipeline.outputs-3"),
@@ -225,23 +225,23 @@ ROI = {"id": "roi", "type": "roi_from_points", "inputs": {"keypoints": "body.key
                    "params": {"slots": {"hand": "body/wrist"}, "source_anchor": "body/wrist"}}]), "max_distance"),
         (_config([{"id": "hands", "type": "mediapipe_tasks", "inputs": {"image": "frame.image"},
                    "params": {"variant": "hand", "size": "heavy"}}]), "V-node.mediapipe_tasks-2"),
-        (_config([{**ROI, "params": {"min_previous_ratio": 0.995}}]), "V-node.roi_from_points-6"),
-        (_config([{**ROI, "inputs": {"keypoints": "body.keypoints", "previous_rois": "person.rois"},
-                   "params": {"min_reference_ratio": 0.5}}]), "V-node.roi_from_points-6"),
+        (_config([{**BOX, "params": {"min_previous_ratio": 0.995}}]), "V-node.boxes_from_points-6"),
+        (_config([{**BOX, "inputs": {"keypoints": "body.keypoints", "previous_boxes": "person.boxes"},
+                   "params": {"min_reference_ratio": 0.5}}]), "V-node.boxes_from_points-6"),
         (_config([{"id": "need", "type": "redetect_trigger", "inputs": {"image": "frame.image"},
-                   "params": {"fitness_checks": [{"check": "roi_missing", "threshold": 0.5}]}}]), "V-node.redetect_trigger-1"),
+                   "params": {"fitness_checks": [{"check": "box_missing", "threshold": 0.5}]}}]), "V-node.redetect_trigger-1"),
         (_config([{"id": "need", "type": "redetect_trigger", "inputs": {"image": "frame.image"},
-                   "params": {"fitness_checks": [{"check": "roi_missing"}]}}]), "V-node.redetect_trigger-2"),
-        (_config([{"id": "crop", "type": "smooth_roi", "inputs": {"rois": "person.rois"},
-                   "params": {"filter": "one_euro", "previous_weight": 0.4}}]), "V-node.smooth_roi-1"),
-        (_config([{"id": "crop", "type": "smooth_roi", "inputs": {"rois": "person.rois"},
-                   "params": {"min_cutoff": 3.0}}]), "V-node.smooth_roi-1"),
+                   "params": {"fitness_checks": [{"check": "box_missing"}]}}]), "V-node.redetect_trigger-2"),
+        (_config([{"id": "crop", "type": "smooth_boxes", "inputs": {"boxes": "person.boxes"},
+                   "params": {"filter": "one_euro", "previous_weight": 0.4}}]), "V-node.smooth_boxes-1"),
+        (_config([{"id": "crop", "type": "smooth_boxes", "inputs": {"boxes": "person.boxes"},
+                   "params": {"min_cutoff": 3.0}}]), "V-node.smooth_boxes-1"),
     ],
     ids=["no-prefix", "dot-form", "weight-sum", "first-of-types", "any-type-inferred",
          "gate-value-prev", "first-of-only-prev", "first-of-types-prev",
          "output-prev", "output-frame", "output-result-field", "tap-frame", "merge-map-column", "merge-no-max-distance",
-         "mediapipe-size-not-body", "floor-no-previous-rois", "floor-no-reference-rois",
-         "roi-missing-field", "roi-missing-no-previous-rois", "one-euro-with-ema-param", "ema-with-one-euro-param"],
+         "mediapipe-size-not-body", "floor-no-previous-boxes", "floor-no-reference-boxes",
+         "box-missing-field", "box-missing-no-previous-boxes", "one-euro-with-ema-param", "ema-with-one-euro-param"],
 )
 def test_the_reference_model_refuses_the_new_structural_cases(config: dict, rule: str) -> None:
     with pytest.raises(ValueError, match=rule):
@@ -250,16 +250,16 @@ def test_the_reference_model_refuses_the_new_structural_cases(config: dict, rule
 
 @needs_model
 def test_the_reference_model_accepts_the_new_optional_forms() -> None:
-    """`points` can be empty, a floor has its input, `roi_missing` has `previous_rois`, and one_euro has its params."""
+    """`points` can be empty, a floor has its input, `box_missing` has `previous_boxes`, and one_euro has its params."""
     nodes = [
         {"id": "need", "type": "redetect_trigger",
-         "inputs": {"image": "frame.image", "previous_rois": "crop.rois@prev"},
-         "params": {"fitness_checks": [{"check": "roi_missing"}]}},
-        {"id": "box", "type": "roi_from_points",
-         "inputs": {"keypoints": "body.keypoints@prev", "previous_rois": "crop.rois@prev", "reference_rois": "person.rois"},
+         "inputs": {"image": "frame.image", "previous_boxes": "crop.boxes@prev"},
+         "params": {"fitness_checks": [{"check": "box_missing"}]}},
+        {"id": "box", "type": "boxes_from_points",
+         "inputs": {"keypoints": "body.keypoints@prev", "previous_boxes": "crop.boxes@prev", "reference_boxes": "person.boxes"},
          "params": {"min_previous_ratio": 0.995, "min_reference_ratio": 0.5, "min_size_px": 80}},
-        {"id": "plain", "type": "roi_from_points", "inputs": {"keypoints": "body.keypoints"}},
-        {"id": "crop", "type": "smooth_roi", "inputs": {"rois": "box.rois"},
+        {"id": "plain", "type": "boxes_from_points", "inputs": {"keypoints": "body.keypoints"}},
+        {"id": "crop", "type": "smooth_boxes", "inputs": {"boxes": "box.boxes"},
          "params": {"filter": "one_euro", "min_cutoff": 3.0, "reset_after_ms": 500}},
     ]
     config = mps.load_model().PipelineConfig.model_validate(_config(nodes))

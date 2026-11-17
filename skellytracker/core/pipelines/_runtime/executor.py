@@ -219,7 +219,7 @@ class Executor:
             node = self.resolved.nodes[node_id]
             if node.type != "onnx_model":
                 continue
-            rows = node.inputs_info["rois"].max_instances if node.model.kind == "top_down" else 1
+            rows = node.inputs_info["boxes"].max_instances if node.model.kind == "top_down" else 1
             opened[node_id] = []
             for index, device_key in enumerate(self.devices):
                 cameras = sum(1 for slot in self.device_of.values() if slot == index)
@@ -314,7 +314,7 @@ class Executor:
         """Return true when an empty required input stops the node (pipeline.graph, Behaviour item 6)."""
         if isinstance(inputs, list):
             return False  # `first_of` and `concat` read each empty item of their list
-        required = BY_TYPE[node.type].required_inputs + (("rois",) if node.model is not None and node.model.kind == "top_down" else ())
+        required = BY_TYPE[node.type].required_inputs + (("boxes",) if node.model is not None and node.model.kind == "top_down" else ())
         reads = onnx_model.READS_EMPTY if node.type == "onnx_model" else MODULES[node.type].READS_EMPTY
         return any(name in inputs and name not in reads and is_empty(inputs[name]) for name in required)
 
@@ -415,8 +415,8 @@ class Executor:
                 if f"{node.id}.{span}" in self.spans_on:
                     events.append(timing_module.make_event(images, node.id, span, start_ns, end_ns))
 
-            rois = [ready[camera_id]["rois"] for camera_id in cameras] if runner.kind == "top_down" else None
-            found = runner.run(index, [ready[camera_id]["image"] for camera_id in cameras], rois, timer)
+            boxes = [ready[camera_id]["boxes"] for camera_id in cameras] if runner.kind == "top_down" else None
+            found = runner.run(index, [ready[camera_id]["image"] for camera_id in cameras], boxes, timer)
             for camera_id, outputs in zip(cameras, found, strict=True):
                 values[camera_id].update({(node.id, port): value for port, value in outputs.items()})
 

@@ -2,12 +2,12 @@
 import numpy as np
 
 from skellytracker.core.pipelines.annotate import annotate
-from skellytracker.core.pipelines.values import InstanceBoxes, InstanceKeypoints, InstanceRois
+from skellytracker.core.pipelines.values import InstanceBoxes, InstanceKeypoints
 
 SCHEMA = {
     "points": {"port_type": "keypoints", "point_names": ["body/a", "body/b", "body/c"], "edges": [["body/a", "body/b"], ["body/b", "body/c"]]},
-    "boxes": {"port_type": "detections", "class_names": ["person", None]},
-    "crop": {"port_type": "roi"},
+    "boxes": {"port_type": "boxes", "class_names": ["person", None]},
+    "crop": {"port_type": "boxes"},
 }
 FIXED = {"frame_index": 0, "image_width": 64, "image_height": 48, "timestamp_ms": None, "node_ran": {"model": True}}
 
@@ -25,25 +25,27 @@ def keypoints() -> InstanceKeypoints:
 
 
 def boxes() -> InstanceBoxes:
+    """A detector box with a class: the annotator writes its label."""
     value = InstanceBoxes.empty(2)
-    value.xyxy[0], value.score[0], value.class_index[0], value.present[0] = [5.0, 15.0, 30.0, 40.0], 0.8, 1, True
+    value.boxes[0], value.instance_score[0], value.class_index[0], value.present[0] = [17.5, 27.5, 25.0, 25.0, 0.0], 0.8, 1, True
     return value
 
 
-def rois() -> InstanceRois:
-    value = InstanceRois.empty(2)
-    value.rois[0], value.present[0] = [32.0, 24.0, 20.0, 10.0, 0.5], True
+def crop() -> InstanceBoxes:
+    """A rotated box with no class."""
+    value = InstanceBoxes.empty(2)
+    value.boxes[0], value.present[0] = [32.0, 24.0, 20.0, 10.0, 0.5], True
     return value
 
 
 def test_it_draws_each_port_type_and_keeps_the_input_image():
     source = image()
-    for name, value in (("points", keypoints()), ("boxes", boxes()), ("crop", rois())):
+    for name, value in (("points", keypoints()), ("boxes", boxes()), ("crop", crop())):
         drawn = annotate(source, {**FIXED, name: value}, SCHEMA)
         assert drawn.shape == source.shape and drawn.dtype == np.uint8
         assert drawn.any(), name
     assert not source.any()
-    drawn = annotate(source, {**FIXED, "points": keypoints(), "boxes": boxes(), "crop": rois()}, SCHEMA)
+    drawn = annotate(source, {**FIXED, "points": keypoints(), "boxes": boxes(), "crop": crop()}, SCHEMA)
     assert drawn.any()
 
 
@@ -57,12 +59,12 @@ def test_min_score_hides_a_point_and_its_edges():
 def test_empty_values_and_nan_points_draw_nothing():
     present_nan = InstanceKeypoints.empty(("body/a", "body/b", "body/c"), 1)
     present_nan.present[0] = True
-    nan_box, nan_roi = InstanceBoxes.empty(1), InstanceRois.empty(1)
-    nan_box.present[0] = nan_roi.present[0] = True
+    nan_box, nan_crop = InstanceBoxes.empty(1), InstanceBoxes.empty(1)
+    nan_box.present[0] = nan_crop.present[0] = True
     for result in (
         FIXED,
-        {**FIXED, "points": InstanceKeypoints.empty(("body/a", "body/b", "body/c"), 2), "boxes": InstanceBoxes.empty(2), "crop": InstanceRois.empty(2)},
-        {**FIXED, "points": present_nan, "boxes": nan_box, "crop": nan_roi},
+        {**FIXED, "points": InstanceKeypoints.empty(("body/a", "body/b", "body/c"), 2), "boxes": InstanceBoxes.empty(2), "crop": InstanceBoxes.empty(2)},
+        {**FIXED, "points": present_nan, "boxes": nan_box, "crop": nan_crop},
         {**FIXED, "points": None, "other": keypoints()},  # an empty image value, and a key with no schema
     ):
         assert not annotate(image(), result, SCHEMA).any()

@@ -31,9 +31,8 @@ An `onnx_model` node runs one ONNX model of the sidecar spec: an object detector
 | Port | Direction | Type |
 |---|---|---|
 | `image` | input | `image` |
-| `rois` | input | `roi` |
-| `detections` | output | `detections` |
-| `rois` | output | `roi` |
+| `boxes` | input | `boxes` |
+| `boxes` | output | `boxes` |
 | `keypoints` | output | `keypoints` |
 <!-- /node-table:ports -->
 
@@ -44,7 +43,7 @@ An `onnx_model` node runs one ONNX model of the sidecar spec: an object detector
 - `execution_provider` is a key of the EP catalog, for example `cuda`, `trt-rtx` or `cpu`. When it is empty, the node uses the EP of the run. There is no EP policy ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 12; [ADR-9NW0](../../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 1).
 - `ep_options` holds the EP options of the node. The EP catalog lists the allowed names and values of its EP. When it is empty and the node uses the EP of the run, the node uses the EP options of the run ([ADR-9NW0](../../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 2).
 - `object_decode` holds only the fields of the sidecar block [`object.decode`](../../model-sidecar/post/object/decode.md#objectdecode) that the file changes. The mapping nests as the sidecar block nests, for example `object_decode: {nms: {post_nms_top_k: 1}}`. Each other field keeps the value of the sidecar. The defaults come from the sidecar, because a threshold is tuned to one model and one size ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 11). In v1, no value changes during a run (item 1). There is no param for the fields of `keypoint.decode` until a keypoint field can be tuned ([ADR-88WQ](../../../decisions/entries/88WQ-sidecar-vocabulary.md) item 7).
-- `max_instances` is the row count `I` of the outputs of a node that makes instances: an object detector or a model with both roles. A top-down keypoint model takes its rows from its `rois` input ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1).
+- `max_instances` is the row count `I` of the outputs of a node that makes instances: an object detector or a model with both roles. A top-down keypoint model takes its rows from its `boxes` input ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1).
 - The limit of `max_instances` comes from the selection mode of the sidecar, after the changes of `object_decode` ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 7):
   - `selection: nms` with `nms.post_nms_top_k`: `post_nms_top_k`. A change of `post_nms_top_k` in `object_decode` sets the limit.
   - `selection: top_k`: `top_k`.
@@ -57,30 +56,30 @@ An `onnx_model` node runs one ONNX model of the sidecar spec: an object detector
 
   | Model | `role` | Inputs | Outputs |
   |---|---|---|---|
-  | Object detector | `[object_detector]` | `image` | `detections`, `rois` |
-  | Top-down keypoint model | `[keypoint_detector]`, `keypoint.estimator_type: top_down` | `image`, `rois` | `keypoints` |
+  | Object detector | `[object_detector]` | `image` | `boxes` |
+  | Top-down keypoint model | `[keypoint_detector]`, `keypoint.estimator_type: top_down` | `image`, `boxes` | `keypoints` |
   | Bottom-up keypoint model | `[keypoint_detector]`, `keypoint.estimator_type: bottom_up` | `image` | `keypoints` |
-  | One-stage model with both roles | `[object_detector, keypoint_detector]` | `image` | `detections`, `rois`, `keypoints` |
+  | One-stage model with both roles | `[object_detector, keypoint_detector]` | `image` | `boxes`, `keypoints` |
 
 - An object detector or a one-stage model gives `max_instances` rows ([Graph](../graph.md#behaviour) item 8). The present rows come first, in descending score order. Padding rows come last. A missing point is NaN with the score 0 ([Decoded keypoints](../../model-sidecar/post/keypoint/schema.md#decoded-keypoints)).
-- Each `detections` row has a `class_index`: the class index that the sidecar decode keeps ([Selection behaviour](../../model-sidecar/post/object/decode.md#selection-behaviour) shared step 1). The output schema gives the `class_names` from [`object.classes`](../../model-sidecar/post/object/decode.md#objectclasses) of the sidecar ([Outputs](../outputs.md#fields)).
-- The `rois` output holds the box of each `detections` row as an ROI with rotation 0 ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 8).
-- An object detector or a one-stage model sets the `instance_score` of each `rois` and `keypoints` row: the `score` of its `detections` row. A top-down keypoint model copies the `instance_score` of its `rois` row ([Graph](../graph.md#behaviour) item 8).
-- A top-down keypoint model runs once for each present row of its `rois` input. Row `i` of `keypoints` belongs to row `i` of `rois`. A row that is not present gives a keypoint row that is not present ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1).
+- Each `boxes` row of an object detector or a one-stage model has a `class_index`: the class index that the sidecar decode keeps ([Selection behaviour](../../model-sidecar/post/object/decode.md#selection-behaviour) shared step 1). The output schema gives the `class_names` from [`object.classes`](../../model-sidecar/post/object/decode.md#objectclasses) of the sidecar ([Outputs](../outputs.md#fields)).
+- The `boxes` output holds each decoded box with rotation 0 ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 8). A top-down keypoint model takes a `boxes` input. One port type thus carries a box from a detector to a keypoint model ([ADR-2RWC](../../../decisions/entries/2RWC-one-boxes-port-type-and-node-descriptions.md)).
+- An object detector or a one-stage model sets the `instance_score` of each `boxes` and `keypoints` row: the detection score of the row. A top-down keypoint model copies the `instance_score` of its `boxes` row ([Graph](../graph.md#behaviour) item 8).
+- A top-down keypoint model runs once for each present row of its `boxes` input. Row `i` of `keypoints` belongs to row `i` of `boxes`. A row that is not present gives a keypoint row that is not present ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1).
 - **Crop.** Only the `onnx_model` node cuts pixels, always from `frame.image` ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 8). The steps are in this order:
-  1. The glue nodes make the ROI. The ROI rules of `roi_from_points` apply the shift, then the square, then `expand_ratio` ([ROI from points](roi_from_points.md#behaviour) step 9).
+  1. The glue nodes make the box. The box rules of `boxes_from_points` apply the shift, then the square, then `expand_ratio` ([Boxes from points](boxes_from_points.md#behaviour) step 9).
   2. Right before the warp, the `onnx_model` node applies the padding and the aspect fix of the crop of its sidecar ([Affine crop](../../model-sidecar/pre/resize-affine-crop.md#behaviour): `crop_policy.expand_ratio` and `crop_policy.maintain_aspect_ratio`).
 
-  Two growth factors multiply. For example, an ROI with `expand_ratio: 1.2` and a sidecar `crop_policy.expand_ratio` of 1.25 give a crop 1.5 times the size of the points box.
-- **Rotated ROI.** The sidecar crop takes the ROI with its rotation ([Affine crop](../../model-sidecar/pre/resize-affine-crop.md#behaviour)). A box is an ROI with rotation 0.
-- **Batch.** A top-down keypoint model batches its crops: k × the camera count × the `I` of the instance source of its `rois` input ([Running](../running.md#behaviour) item 4).
+  Two growth factors multiply. For example, a box with `expand_ratio: 1.2` and a sidecar `crop_policy.expand_ratio` of 1.25 give a crop 1.5 times the size of the points box.
+- **Rotated box.** The sidecar crop takes each box as its ROI, with its rotation ([Affine crop](../../model-sidecar/pre/resize-affine-crop.md#behaviour)). A detector box has rotation 0.
+- **Batch.** A top-down keypoint model batches its crops: k × the camera count × the `I` of the instance source of its `boxes` input ([Running](../running.md#behaviour) item 4).
 - NMS is a part of the postprocessing of the model. The sidecar section [`post.object.selection.nms`](../../model-sidecar/post/object/selection-nms.md#behaviour) defines it ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 9).
 - The timing spans are `preprocess`, `inference` and `postprocess` ([ADR-Q59W](../../../decisions/entries/Q59W-pipeline-timing-and-taps.md) item 1; [ADR-9PDQ](../../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 3).
 
 ## Validation rules
 
 - [ ] `V-node.onnx_model-1` When `sidecar_sha256` is present, it must equal the SHA-256 of the bytes of the sidecar file that `key` resolves. The error message of a mismatch must name both hashes.
-- [ ] `V-node.onnx_model-2` The `role` of the model must match its use. A node with a `rois` input must be a keypoint model with the [`keypoint.estimator_type`](../../model-sidecar/post/keypoint/schema.md#fields) `top_down` ([ADR-KY2J](../../../decisions/entries/KY2J-estimator-type-top-down-or-bottom-up.md)). A top-down keypoint model must have a `rois` input. A `bottom_up` keypoint model and an object detector must not have a `rois` input. Each output port of the node that the graph uses must be an output of the role ([Behaviour](#behaviour)).
+- [ ] `V-node.onnx_model-2` The `role` of the model must match its use. A node with a `boxes` input must be a keypoint model with the [`keypoint.estimator_type`](../../model-sidecar/post/keypoint/schema.md#fields) `top_down` ([ADR-KY2J](../../../decisions/entries/KY2J-estimator-type-top-down-or-bottom-up.md)). A top-down keypoint model must have a `boxes` input. A `bottom_up` keypoint model and an object detector must not have a `boxes` input. Each output port of the node that the graph uses must be an output of the role ([Behaviour](#behaviour)).
 - [ ] `V-node.onnx_model-3` Each name in `object_decode` must be a field that the sidecar spec allows in the `object.decode` block of that sidecar. Its value must have the type and the range of that field.
 - [ ] `V-node.onnx_model-4` `size` must be a size key of the `sizes` of the sidecar. When `precision` is present, `sizes.<size>.onnx.precision_artifacts` must have that precision.
 - [ ] `V-node.onnx_model-5` `max_instances` must not be more than the limit of the model ([Fields](#fields)).
@@ -100,10 +99,10 @@ An `onnx_model` node runs one ONNX model of the sidecar spec: an object detector
 - To keep only the best detection of a single-person pipeline, set `object_decode.nms.post_nms_top_k` to 1. The built-in `yolox-rtmw-wholebody` does this ([ADR-V7GZ](../../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 3).
 
 - The built-in [`yolox-rtmw-wholebody`](../examples/yolox-rtmw-wholebody.pipeline.yaml) follows the box behaviour of the skellytracker branch `sfn26`, with the early redetect of the commit 03b9c1dc ([ADR-RA0E](../../../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md)):
-  - The detector runs on the first frame, then each 150 frames ([Redetect trigger](redetect_trigger.md#behaviour)). It also runs on the frame after a frame with no box (the check `roi_missing`), and after a frame with no point of score 0.4 or more or with such points on one line (the check `bbox_area_collapse` with `min_area_ratio: 0.0` and `min_score: 0.4`). The trigger is separate for each camera: one camera does not make the other cameras redetect.
-  - On each other frame, the box is the box around the points of the previous frame with a score greater than 0.4, multiplied by 1.21, with three size floors: 0.995 of the previous crop, 0.5 of the last box of the detector and 80 pixels ([ROI from points](roi_from_points.md#behaviour) step 10).
-  - A One Euro filter smooths the box on each frame, with `min_cutoff` 3.0, `beta` 0.02, `d_cutoff` 1.0 and `reset_after_ms` 500 ([Smooth ROI](smooth_roi.md#behaviour) step 8). On a frame with no box, the keypoint model does not run.
-  - The output `person_roi` is the smoothed crop ROI. The pipeline does not clip it. A caller that draws it clips it to whole pixels, with `image_width` and `image_height` of the result ([Outputs](../outputs.md#fields)).
+  - The detector runs on the first frame, then each 150 frames ([Redetect trigger](redetect_trigger.md#behaviour)). It also runs on the frame after a frame with no box (the check `box_missing`), and after a frame with no point of score 0.4 or more or with such points on one line (the check `bbox_area_collapse` with `min_area_ratio: 0.0` and `min_score: 0.4`). The trigger is separate for each camera: one camera does not make the other cameras redetect.
+  - On each other frame, the box is the box around the points of the previous frame with a score greater than 0.4, multiplied by 1.21, with three size floors: 0.995 of the previous crop, 0.5 of the last box of the detector and 80 pixels ([Boxes from points](boxes_from_points.md#behaviour) step 10).
+  - A One Euro filter smooths the box on each frame, with `min_cutoff` 3.0, `beta` 0.02, `d_cutoff` 1.0 and `reset_after_ms` 500 ([Smooth boxes](smooth_boxes.md#behaviour) step 8). On a frame with no box, the keypoint model does not run.
+  - The output `crop_box` is the smoothed crop box. The pipeline does not clip it. A caller that draws it clips it to whole pixels, with `image_width` and `image_height` of the result ([Outputs](../outputs.md#fields)).
   - The pipeline sets no low-score point to NaN: the `keypoints` output holds each decoded point with its score. A caller applies its own score threshold. The crop takes its margin from the full frame ([Behaviour](#behaviour), Crop).
 
 ## Examples
@@ -121,7 +120,7 @@ nodes:
       object_decode: {nms: {post_nms_top_k: 1}}
   - id: wholebody
     type: onnx_model
-    inputs: {image: frame.image, rois: person.rois}
+    inputs: {image: frame.image, boxes: person.boxes}
     params:
       key: rtmw-wholebody133@openmmlab-exporter
       size: m

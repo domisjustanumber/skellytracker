@@ -1,9 +1,9 @@
-"""The node ``smooth_roi``: an EMA or a One Euro filter on the ROI of each instance row.
+"""The node ``smooth_boxes``: an EMA or a One Euro filter on the box of each instance row.
 
-Implements: node.smooth_roi
+Implements: node.smooth_boxes
 
 The state of one camera is a tuple with one item for each row, or ``None`` at the start. An item is
-``None`` (the row has no state), the last output ROI as a tuple (filter ``ema``), or
+``None`` (the row has no state), the last output box as a tuple (filter ``ema``), or
 ``(est, d, t_prev)`` with the corner estimates and their derivatives (filter ``one_euro``).
 """
 from __future__ import annotations
@@ -12,22 +12,22 @@ import math
 from typing import Any
 
 from skellytracker.core.pipelines._runtime.context import FrameContext
-from skellytracker.core.pipelines._runtime.node_roi_from_points import normalize_radians
-from skellytracker.core.pipelines.config import SmoothRoiParams
-from skellytracker.core.pipelines.values import InstanceRois, PortInfo
+from skellytracker.core.pipelines._runtime.node_boxes_from_points import normalize_radians
+from skellytracker.core.pipelines.config import SmoothBoxesParams
+from skellytracker.core.pipelines.values import InstanceBoxes, PortInfo
 
 # The filter `one_euro` clears its state on an empty input, so the node gets it (Behaviour step 2).
-READS_EMPTY: frozenset[str] = frozenset({"rois"})
+READS_EMPTY: frozenset[str] = frozenset({"boxes"})
 
 
 def output_info(
-    node_id: str, params: SmoothRoiParams, inputs: dict[str, PortInfo]
+    node_id: str, params: SmoothBoxesParams, inputs: dict[str, PortInfo]
 ) -> tuple[dict[str, PortInfo], list[dict[str, Any]]]:
-    """Return the facts of the output ``rois``: those of the input. The params model checks V-node.smooth_roi-1.
+    """Return the facts of the output ``boxes``: those of the input. The params model checks V-node.smooth_boxes-1.
 
-    Implements: node.smooth_roi
+    Implements: node.smooth_boxes
     """
-    return {"rois": inputs["rois"]}, []
+    return {"boxes": inputs["boxes"]}, []
 
 
 def _blend(previous: tuple[float, ...], given: list[float], weight: float) -> tuple[float, ...]:
@@ -42,8 +42,8 @@ def _alpha(cutoff: float, dt: float) -> float:
     return 1.0 / (1.0 + 1.0 / (2.0 * math.pi * cutoff * dt))
 
 
-def _one_euro_row(state: Any, roi: list[float], t: float, params: SmoothRoiParams) -> tuple[Any, ...]:
-    """Return the new state ``(est, d, t_prev)`` of one row for a present ROI (step 8)."""
+def _one_euro_row(state: Any, roi: list[float], t: float, params: SmoothBoxesParams) -> tuple[Any, ...]:
+    """Return the new state ``(est, d, t_prev)`` of one row for a present box (step 8)."""
     cx, cy, w, h = roi[:4]
     corners = (cx - w / 2.0, cy - h / 2.0, cx + w / 2.0, cy + h / 2.0)
     if state is None or t - state[2] > params.reset_after_ms:
@@ -67,37 +67,37 @@ def _one_euro_row(state: Any, roi: list[float], t: float, params: SmoothRoiParam
 
 
 def run(
-    params: SmoothRoiParams, inputs: dict[str, Any], state: Any, frame: FrameContext, infos: Any = None
-) -> tuple[dict[str, InstanceRois], Any]:
-    """Smooth the ROI of each row of one frame. Return the output and the new state.
+    params: SmoothBoxesParams, inputs: dict[str, Any], state: Any, frame: FrameContext, infos: Any = None
+) -> tuple[dict[str, InstanceBoxes], Any]:
+    """Smooth the box of each row of one frame. Return the output and the new state.
 
-    Implements: node.smooth_roi
+    Implements: node.smooth_boxes
     """
-    rois: InstanceRois = inputs["rois"]
+    boxes: InstanceBoxes = inputs["boxes"]
     if frame.running_mode == "image":
-        return {"rois": rois}, None
-    count = len(rois.present)
+        return {"boxes": boxes}, None
+    count = len(boxes.present)
     one_euro = params.filter == "one_euro"
-    if not rois.present.any():
+    if not boxes.present.any():
         # Step 2: the node does not run. The filter `one_euro` also clears the state of each row.
-        return {"rois": InstanceRois.empty(count)}, None if one_euro else state
+        return {"boxes": InstanceBoxes.empty(count)}, None if one_euro else state
     rows = list(state) if state is not None else [None] * count
-    out = InstanceRois.empty(count)
+    out = InstanceBoxes.empty(count)
     for i in range(count):
-        if not rois.present[i]:
+        if not boxes.present[i]:
             if one_euro:
                 rows[i] = None  # step 4: a row that is not present clears its state
             continue
-        roi = rois.rois[i].tolist()
+        roi = boxes.boxes[i].tolist()
         if one_euro:
             if frame.timestamp_ms is None:
                 raise ValueError("the filter one_euro needs the timestamp_ms of the frame")
             rows[i] = _one_euro_row(rows[i], roi, frame.timestamp_ms, params)
             x1, y1, x2, y2 = rows[i][0]
-            out.rois[i] = ((x1 + x2) / 2.0, (y1 + y2) / 2.0, x2 - x1, y2 - y1, roi[4])
+            out.boxes[i] = ((x1 + x2) / 2.0, (y1 + y2) / 2.0, x2 - x1, y2 - y1, roi[4])
         else:
             rows[i] = tuple(roi) if rows[i] is None else _blend(rows[i], roi, params.previous_weight)
-            out.rois[i] = rows[i]
-        out.instance_score[i] = rois.instance_score[i]
+            out.boxes[i] = rows[i]
+        out.instance_score[i], out.class_index[i] = boxes.instance_score[i], boxes.class_index[i]
         out.present[i] = True
-    return {"rois": out}, tuple(rows)
+    return {"boxes": out}, tuple(rows)

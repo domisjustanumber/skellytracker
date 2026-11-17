@@ -19,10 +19,10 @@ from skellytracker.core.pipelines._runtime import (
     node_gate,
     node_merge,
     node_redetect_trigger,
-    node_roi_from_points,
-    node_roi_hold,
+    node_boxes_from_points,
+    node_hold_boxes,
     node_smooth_keypoints,
-    node_smooth_roi,
+    node_smooth_boxes,
 )
 from skellytracker.core.pipelines._runtime.context import FrameContext
 from skellytracker.core.pipelines.config import (
@@ -30,12 +30,12 @@ from skellytracker.core.pipelines.config import (
     MergeParams,
     NoParams,
     RedetectTriggerParams,
-    RoiFromPointsParams,
-    RoiHoldParams,
+    BoxesFromPointsParams,
+    HoldBoxesParams,
     SmoothKeypointsParams,
-    SmoothRoiParams,
+    SmoothBoxesParams,
 )
-from skellytracker.core.pipelines.values import Group, InstanceBoxes, InstanceKeypoints, InstanceRois, PortInfo
+from skellytracker.core.pipelines.values import Group, InstanceBoxes, InstanceKeypoints, PortInfo
 
 BODY = ("body/left_wrist", "body/right_wrist", "body/nose")
 HAND = ("hand/root", "hand/tip")
@@ -59,8 +59,8 @@ def kp_info(names: tuple[str, ...], rows: int = 2, source: str = "person", geome
     )
 
 
-def roi_info(rows: int = 2, source: str = "person") -> PortInfo:
-    return PortInfo("roi", max_instances=rows, instance_source=source)
+def boxes_info(rows: int = 2, source: str = "person") -> PortInfo:
+    return PortInfo("boxes", max_instances=rows, instance_source=source)
 
 
 def kp(names: tuple[str, ...], rows: list[Any], scores: list[float] | None = None) -> InstanceKeypoints:
@@ -73,11 +73,11 @@ def kp(names: tuple[str, ...], rows: list[Any], scores: list[float] | None = Non
     return out
 
 
-def rois(rows: list[Any], scores: list[float] | None = None) -> InstanceRois:
-    out = InstanceRois.empty(len(rows))
+def boxes(rows: list[Any], scores: list[float] | None = None) -> InstanceBoxes:
+    out = InstanceBoxes.empty(len(rows))
     for i, row in enumerate(rows):
         if row is not None:
-            out.rois[i], out.present[i] = row, True
+            out.boxes[i], out.present[i] = row, True
             out.instance_score[i] = 0.7 if scores is None else scores[i]
     return out
 
@@ -105,9 +105,9 @@ def is_padding(value: Any, row: int) -> bool:
             and (value.raw_score[row] == 0).all()
             and value.instance_score[row] == 0 and value.track_ids[row] == -1
         )
-    if isinstance(value, InstanceRois):
-        return bool(np.isnan(value.rois[row]).all() and value.instance_score[row] == 0)
-    return bool(np.isnan(value.xyxy[row]).all() and value.score[row] == 0 and value.class_index[row] == -1 and value.track_ids[row] == -1)
+    return bool(
+        np.isnan(value.boxes[row]).all() and value.instance_score[row] == 0 and value.class_index[row] == -1 and value.track_ids[row] == -1
+    )
 
 
 def refuses(rule: str, call: Any, *args: Any, **kwargs: Any) -> None:
@@ -152,27 +152,27 @@ def scenarios() -> dict[str, Scenario]:
     box, moved = [100, 100, 50, 80, 0.0], [104, 98, 55, 77, 0.0]
     hands = kp(HAND, [[[205, 110], [210, 130]], [[95, 105], [90, 125]]], [0.3, 0.4])
     return {
-        "roi_from_points": Scenario(
-            node_roi_from_points, RoiFromPointsParams(min_previous_ratio=0.5), {"keypoints": kp_info(BODY), "previous_rois": roi_info()},
-            [{"keypoints": body(), "previous_rois": rois([None, None])}, {"keypoints": body(5), "previous_rois": rois([box, None])}],
-            "rois",
+        "boxes_from_points": Scenario(
+            node_boxes_from_points, BoxesFromPointsParams(min_previous_ratio=0.5), {"keypoints": kp_info(BODY), "previous_boxes": boxes_info()},
+            [{"keypoints": body(), "previous_boxes": boxes([None, None])}, {"keypoints": body(5), "previous_boxes": boxes([box, None])}],
+            "boxes",
         ),
-        "roi_hold": Scenario(
-            node_roi_hold, RoiHoldParams(),
-            {"previous": roi_info(), "current": roi_info(), "previous_keypoints": kp_info(BODY)},
+        "hold_boxes": Scenario(
+            node_hold_boxes, HoldBoxesParams(),
+            {"previous": boxes_info(), "current": boxes_info(), "previous_keypoints": kp_info(BODY)},
             [
-                {"previous": rois([None, None]), "current": rois([box, None]), "previous_keypoints": kp(BODY, [None, None])},
-                {"previous": rois([moved, moved], [0.9, 0.9]), "current": rois([box, None]), "previous_keypoints": kp(BODY, [None, None])},
+                {"previous": boxes([None, None]), "current": boxes([box, None]), "previous_keypoints": kp(BODY, [None, None])},
+                {"previous": boxes([moved, moved], [0.9, 0.9]), "current": boxes([box, None]), "previous_keypoints": kp(BODY, [None, None])},
             ],
-            "rois",
+            "boxes",
         ),
         "gate": Scenario(
-            node_gate, GateParams(mode="is_present"), {"value": roi_info(), "condition": kp_info(BODY)},
-            [{"value": rois([box, moved]), "condition": body()}, {"value": rois([box, None]), "condition": body(5)}], "value",
+            node_gate, GateParams(mode="is_present"), {"value": boxes_info(), "condition": kp_info(BODY)},
+            [{"value": boxes([box, moved]), "condition": body()}, {"value": boxes([box, None]), "condition": body(5)}], "value",
         ),
         "first_of": Scenario(
-            node_first_of, NoParams(), [roi_info(), roi_info()],
-            [[rois([None, None]), rois([box, None])], [rois([moved, None]), rois([box, None])]], "value",
+            node_first_of, NoParams(), [boxes_info(), boxes_info()],
+            [[boxes([None, None]), boxes([box, None])], [boxes([moved, None]), boxes([box, None])]], "value",
         ),
         "concat": Scenario(
             node_concat, NoParams(), [kp_info(BODY), kp_info(("left_hand/wrist", "left_hand/tip"))],
@@ -191,13 +191,13 @@ def scenarios() -> dict[str, Scenario]:
             node_smooth_keypoints, SmoothKeypointsParams(max_gap_ms=100.0), {"keypoints": kp_info(BODY)},
             [{"keypoints": body()}, {"keypoints": body(5)}, {"keypoints": kp(BODY, [None, None])}], "keypoints",
         ),
-        "smooth_roi": Scenario(
-            node_smooth_roi, SmoothRoiParams(), {"rois": roi_info()},
-            [{"rois": rois([box, None])}, {"rois": rois([moved, None])}], "rois",
+        "smooth_boxes": Scenario(
+            node_smooth_boxes, SmoothBoxesParams(), {"boxes": boxes_info()},
+            [{"boxes": boxes([box, None])}, {"boxes": boxes([moved, None])}], "boxes",
         ),
-        "smooth_roi_one_euro": Scenario(
-            node_smooth_roi, SmoothRoiParams(filter="one_euro"), {"rois": roi_info()},
-            [{"rois": rois([box, None])}, {"rois": rois([moved, None])}], "rois",
+        "smooth_boxes_one_euro": Scenario(
+            node_smooth_boxes, SmoothBoxesParams(filter="one_euro"), {"boxes": boxes_info()},
+            [{"boxes": boxes([box, None])}, {"boxes": boxes([moved, None])}], "boxes",
         ),
     }
 
@@ -216,8 +216,8 @@ def test_each_frame_has_the_rows_of_the_output_port_and_padding_rows(name: str) 
         if isinstance(value, InstanceKeypoints):
             assert value.point_names == info.point_names
             assert value.xy.shape == (2, len(info.point_names), 2) and value.z is None and value.score.shape == (2, len(info.point_names))
-        elif isinstance(value, InstanceRois):
-            assert value.rois.shape == (2, 5)
+        elif isinstance(value, InstanceBoxes):
+            assert value.boxes.shape == (2, 5)
 
 
 @pytest.mark.parametrize("name", NAMES)
@@ -233,7 +233,7 @@ def test_a_call_changes_no_input_and_no_state_in_place(name: str) -> None:
         state = new_state
 
 
-@pytest.mark.parametrize("name", ["smooth_keypoints", "smooth_roi", "smooth_roi_one_euro"])
+@pytest.mark.parametrize("name", ["smooth_keypoints", "smooth_boxes", "smooth_boxes_one_euro"])
 def test_a_temporal_node_keeps_a_state_and_none_in_the_running_mode_image(name: str) -> None:
     scenario = scenarios()[name]
     result, state = scenario.module.run(scenario.params, scenario.frames[0], None, frame(), None)
@@ -245,83 +245,83 @@ def test_a_temporal_node_keeps_a_state_and_none_in_the_running_mode_image(name: 
 def test_each_module_names_the_empty_inputs_that_it_reads() -> None:
     assert node_gate.READS_EMPTY == {"condition"}
     assert node_first_of.READS_EMPTY == {"*"} == node_concat.READS_EMPTY
-    assert node_roi_hold.READS_EMPTY == {"previous"}
+    assert node_hold_boxes.READS_EMPTY == {"previous"}
     assert node_merge.READS_EMPTY == {"source"}
     assert node_smooth_keypoints.READS_EMPTY == {"keypoints"}
-    assert node_smooth_roi.READS_EMPTY == {"rois"}
-    assert node_roi_from_points.READS_EMPTY == frozenset() == node_redetect_trigger.READS_EMPTY
+    assert node_smooth_boxes.READS_EMPTY == {"boxes"}
+    assert node_boxes_from_points.READS_EMPTY == frozenset() == node_redetect_trigger.READS_EMPTY
 
 
 # ---------------------------------------------------------------------------------------------
-# roi_from_points
+# boxes_from_points
 # ---------------------------------------------------------------------------------------------
 
 
-def test_v_node_roi_from_points_2_a_name_must_be_a_point_of_the_input_or_a_derived_point() -> None:
+def test_v_node_boxes_from_points_2_a_name_must_be_a_point_of_the_input_or_a_derived_point() -> None:
     infos = {"keypoints": kp_info(BODY)}
-    refuses("V-node.roi_from_points-2", node_roi_from_points.output_info, "n", RoiFromPointsParams(points=["body/elbow"]), infos)
+    refuses("V-node.boxes_from_points-2", node_boxes_from_points.output_info, "n", BoxesFromPointsParams(points=["body/elbow"]), infos)
     refuses(
-        "V-node.roi_from_points-2", node_roi_from_points.output_info, "n",
-        RoiFromPointsParams(points=["mid"], derived_points={"mid": ["body/nose", "body/elbow"]}), infos,
+        "V-node.boxes_from_points-2", node_boxes_from_points.output_info, "n",
+        BoxesFromPointsParams(points=["mid"], derived_points={"mid": ["body/nose", "body/elbow"]}), infos,
     )
-    params = RoiFromPointsParams(
+    params = BoxesFromPointsParams(
         points=["mid", ["body/right_wrist", "body/nose"]], derived_points={"mid": ["body/nose", "body/left_wrist"]},
         size_rule="alignment", alignment_start="body/nose", alignment_end="mid",
     )
-    outputs, warnings = node_roi_from_points.output_info("n", params, infos)
-    assert warnings == [] and outputs["rois"] == PortInfo("roi", max_instances=2, instance_source="person")
+    outputs, warnings = node_boxes_from_points.output_info("n", params, infos)
+    assert warnings == [] and outputs["boxes"] == PortInfo("boxes", max_instances=2, instance_source="person")
 
 
-def test_v_node_roi_from_points_6_a_floor_ratio_needs_its_input() -> None:
+def test_v_node_boxes_from_points_6_a_floor_ratio_needs_its_input() -> None:
     infos = {"keypoints": kp_info(BODY)}
-    refuses("V-node.roi_from_points-6", node_roi_from_points.output_info, "n", RoiFromPointsParams(min_previous_ratio=0.5), infos)
-    refuses("V-node.roi_from_points-6", node_roi_from_points.output_info, "n", RoiFromPointsParams(min_reference_ratio=0.5), infos)
+    refuses("V-node.boxes_from_points-6", node_boxes_from_points.output_info, "n", BoxesFromPointsParams(min_previous_ratio=0.5), infos)
+    refuses("V-node.boxes_from_points-6", node_boxes_from_points.output_info, "n", BoxesFromPointsParams(min_reference_ratio=0.5), infos)
 
 
-@pytest.mark.parametrize("port", ["previous_rois", "reference_rois"])
-@pytest.mark.parametrize("other", [roi_info(rows=1), roi_info(source="hands")])
-def test_v_node_roi_from_points_7_a_floor_input_has_the_source_and_the_rows_of_keypoints(port: str, other: PortInfo) -> None:
-    refuses("V-node.roi_from_points-7", node_roi_from_points.output_info, "n", RoiFromPointsParams(), {"keypoints": kp_info(BODY), port: other})
+@pytest.mark.parametrize("port", ["previous_boxes", "reference_boxes"])
+@pytest.mark.parametrize("other", [boxes_info(rows=1), boxes_info(source="hands")])
+def test_v_node_boxes_from_points_7_a_floor_input_has_the_source_and_the_rows_of_keypoints(port: str, other: PortInfo) -> None:
+    refuses("V-node.boxes_from_points-7", node_boxes_from_points.output_info, "n", BoxesFromPointsParams(), {"keypoints": kp_info(BODY), port: other})
 
 
-def test_roi_from_points_copies_the_instance_score_of_the_keypoints_row() -> None:
+def test_boxes_from_points_copies_the_instance_score_of_the_keypoints_row() -> None:
     keypoints = kp(BODY, [[[1, 2], [3, 4], [5, 6]], [[1, 2], [np.nan, np.nan], [5, 6]]], [0.8, 0.6])
-    params = RoiFromPointsParams(points=["body/right_wrist"])
-    out = node_roi_from_points.run(params, {"keypoints": keypoints}, None, frame())[0]["rois"]
+    params = BoxesFromPointsParams(points=["body/right_wrist"])
+    out = node_boxes_from_points.run(params, {"keypoints": keypoints}, None, frame())[0]["boxes"]
     assert out.instance_score.tolist() == [0.8, 0.0] and out.present.tolist() == [True, False] and is_padding(out, 1)
 
 
-def test_roi_from_points_reads_a_param_that_a_run_can_set_at_each_call() -> None:
+def test_boxes_from_points_reads_a_param_that_a_run_can_set_at_each_call() -> None:
     inputs = {"keypoints": body()}
-    wide = node_roi_from_points.run(RoiFromPointsParams(expand_ratio=2.0), inputs, None, frame())[0]["rois"]
-    assert wide.rois[0].tolist() == [150.0, 75.0, 200.0, 100.0, 0.0]
+    wide = node_boxes_from_points.run(BoxesFromPointsParams(expand_ratio=2.0), inputs, None, frame())[0]["boxes"]
+    assert wide.boxes[0].tolist() == [150.0, 75.0, 200.0, 100.0, 0.0]
 
 
 # ---------------------------------------------------------------------------------------------
-# roi_hold
+# hold_boxes
 # ---------------------------------------------------------------------------------------------
 
 
-def test_v_node_roi_hold_2_the_inputs_have_the_same_number_of_rows() -> None:
-    refuses("V-node.roi_hold-2", node_roi_hold.output_info, "n", RoiHoldParams(), {"previous": roi_info(rows=1), "current": roi_info()})
-    infos = {"previous": roi_info(), "current": roi_info(), "previous_keypoints": kp_info(BODY, rows=3)}
-    refuses("V-node.roi_hold-2", node_roi_hold.output_info, "n", RoiHoldParams(), infos)
+def test_v_node_hold_boxes_2_the_inputs_have_the_same_number_of_rows() -> None:
+    refuses("V-node.hold_boxes-2", node_hold_boxes.output_info, "n", HoldBoxesParams(), {"previous": boxes_info(rows=1), "current": boxes_info()})
+    infos = {"previous": boxes_info(), "current": boxes_info(), "previous_keypoints": kp_info(BODY, rows=3)}
+    refuses("V-node.hold_boxes-2", node_hold_boxes.output_info, "n", HoldBoxesParams(), infos)
 
 
-def test_v_node_roi_hold_3_the_inputs_have_the_instance_source_of_current() -> None:
-    refuses("V-node.roi_hold-3", node_roi_hold.output_info, "n", RoiHoldParams(), {"previous": roi_info(source="hands"), "current": roi_info()})
-    infos = {"previous": roi_info(), "current": roi_info(), "previous_keypoints": kp_info(BODY, source="hands")}
-    refuses("V-node.roi_hold-3", node_roi_hold.output_info, "n", RoiHoldParams(), infos)
-    outputs, _ = node_roi_hold.output_info("n", RoiHoldParams(), {"previous": roi_info(), "current": roi_info()})
-    assert outputs["rois"] == roi_info()
+def test_v_node_hold_boxes_3_the_inputs_have_the_instance_source_of_current() -> None:
+    refuses("V-node.hold_boxes-3", node_hold_boxes.output_info, "n", HoldBoxesParams(), {"previous": boxes_info(source="hands"), "current": boxes_info()})
+    infos = {"previous": boxes_info(), "current": boxes_info(), "previous_keypoints": kp_info(BODY, source="hands")}
+    refuses("V-node.hold_boxes-3", node_hold_boxes.output_info, "n", HoldBoxesParams(), infos)
+    outputs, _ = node_hold_boxes.output_info("n", HoldBoxesParams(), {"previous": boxes_info(), "current": boxes_info()})
+    assert outputs["boxes"] == boxes_info()
 
 
-def test_roi_hold_keeps_the_instance_score_of_a_kept_previous_row() -> None:
-    previous = rois([[104, 98, 55, 47, 0.0], [300, 300, 50, 50, 0.0]], [0.9, 0.9])
-    current = rois([[100, 100, 50, 50, 0.0], [100, 100, 50, 50, 0.0]], [0.6, 0.7])
-    out = node_roi_hold.run(RoiHoldParams(), {"previous": previous, "current": current}, None, frame())[0]["rois"]
+def test_hold_boxes_keeps_the_instance_score_of_a_kept_previous_row() -> None:
+    previous = boxes([[104, 98, 55, 47, 0.0], [300, 300, 50, 50, 0.0]], [0.9, 0.9])
+    current = boxes([[100, 100, 50, 50, 0.0], [100, 100, 50, 50, 0.0]], [0.6, 0.7])
+    out = node_hold_boxes.run(HoldBoxesParams(), {"previous": previous, "current": current}, None, frame())[0]["boxes"]
     assert out.instance_score.tolist() == [0.9, 0.7]
-    assert out.rois.tolist() == [[104, 98, 55, 47, 0], [100, 100, 50, 50, 0]]
+    assert out.boxes.tolist() == [[104, 98, 55, 47, 0], [100, 100, 50, 50, 0]]
 
 
 # ---------------------------------------------------------------------------------------------
@@ -329,18 +329,18 @@ def test_roi_hold_keeps_the_instance_score_of_a_kept_previous_row() -> None:
 # ---------------------------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("condition", [roi_info(), PortInfo("image"), PortInfo("tensor")])
+@pytest.mark.parametrize("condition", [PortInfo("image"), PortInfo("tensor")])
 def test_v_node_gate_2_score_above_needs_a_condition_with_a_score(condition: PortInfo) -> None:
     params = GateParams(mode="score_above", threshold=0.5)
     refuses("V-node.gate-2", node_gate.output_info, "n", params, {"value": PortInfo("image"), "condition": condition})
-    for scored in (kp_info(BODY), PortInfo("detections", max_instances=2, instance_source="person")):
+    for scored in (kp_info(BODY), boxes_info()):
         outputs, _ = node_gate.output_info("n", params, {"value": PortInfo("image"), "condition": scored})
         assert outputs["value"] == PortInfo("image")
 
 
 def test_v_node_gate_3_two_instance_ports_have_the_same_number_of_rows() -> None:
     params = GateParams(mode="is_present")
-    refuses("V-node.gate-3", node_gate.output_info, "n", params, {"value": roi_info(rows=2), "condition": kp_info(BODY, rows=1)})
+    refuses("V-node.gate-3", node_gate.output_info, "n", params, {"value": boxes_info(rows=2), "condition": kp_info(BODY, rows=1)})
     node_gate.output_info("n", params, {"value": PortInfo("image"), "condition": kp_info(BODY, rows=1)})
 
 
@@ -359,30 +359,29 @@ def test_gate_passes_an_image_and_a_tensor_unchanged_or_gives_none() -> None:
     assert gate(GateParams(mode="is_present"), tensor, None, PortInfo("tensor"), PortInfo("image")) is None
 
 
-def test_gate_keeps_the_rows_of_a_detections_value_and_their_class_index() -> None:
+def test_gate_keeps_the_rows_of_a_boxes_value_with_their_class_index_and_tests_their_instance_score() -> None:
     boxes = InstanceBoxes(
-        np.array([[0.0, 0, 10, 10], [5, 5, 20, 20]]), np.array([0.9, 0.4]), np.array([3, 1]), np.array([True, True]), np.array([-1, -1])
+        np.array([[5.0, 5, 10, 10, 0], [12.5, 12.5, 15, 15, 0]]), np.array([0.9, 0.4]), np.array([3, 1]), np.array([True, True]), np.array([-1, -1])
     )
-    info = PortInfo("detections", max_instances=2, instance_source="person")
-    out = gate(GateParams(mode="score_above", threshold=0.5), boxes, boxes, info, info)
-    assert out.class_index.tolist() == [3, -1] and out.score.tolist() == [0.9, 0.0] and is_padding(out, 1)
-    assert gate(GateParams(mode="is_present"), boxes, IMAGE, info, PortInfo("image")) is boxes
+    out = gate(GateParams(mode="score_above", threshold=0.5), boxes, boxes, boxes_info(), boxes_info())
+    assert out.class_index.tolist() == [3, -1] and out.instance_score.tolist() == [0.9, 0.0] and is_padding(out, 1)
+    assert gate(GateParams(mode="is_present"), boxes, IMAGE, boxes_info(), PortInfo("image")) is boxes
 
 
 def test_gate_copies_the_instance_score_of_the_value_row() -> None:
-    value = rois([[1, 2, 3, 4, 0.0], [5, 6, 7, 8, 0.0]], [0.6, 0.5])
-    out = gate(GateParams(mode="is_present"), value, body(), roi_info(), kp_info(BODY))
+    value = boxes([[1, 2, 3, 4, 0.0], [5, 6, 7, 8, 0.0]], [0.6, 0.5])
+    out = gate(GateParams(mode="is_present"), value, body(), boxes_info(), kp_info(BODY))
     assert out.instance_score.tolist() == [0.6, 0.0]
-    one_test = gate(GateParams(mode="is_present"), value, IMAGE, roi_info(), PortInfo("image"))
+    one_test = gate(GateParams(mode="is_present"), value, IMAGE, boxes_info(), PortInfo("image"))
     assert one_test is value
-    blocked = gate(GateParams(mode="is_empty"), value, IMAGE, roi_info(), PortInfo("image"))
-    assert same(blocked, InstanceRois.empty(2))
+    blocked = gate(GateParams(mode="is_empty"), value, IMAGE, boxes_info(), PortInfo("image"))
+    assert same(blocked, InstanceBoxes.empty(2))
 
 
 def test_gate_reads_the_threshold_at_each_call() -> None:
-    value, condition = rois([[1, 2, 3, 4, 0.0], None]), body()
-    assert gate(GateParams(mode="score_above", threshold=0.5), value, condition, roi_info(), kp_info(BODY)).present.tolist() == [True, False]
-    assert gate(GateParams(mode="score_above", threshold=0.95), value, condition, roi_info(), kp_info(BODY)).present.tolist() == [False, False]
+    value, condition = boxes([[1, 2, 3, 4, 0.0], None]), body()
+    assert gate(GateParams(mode="score_above", threshold=0.5), value, condition, boxes_info(), kp_info(BODY)).present.tolist() == [True, False]
+    assert gate(GateParams(mode="score_above", threshold=0.95), value, condition, boxes_info(), kp_info(BODY)).present.tolist() == [False, False]
 
 
 # ---------------------------------------------------------------------------------------------
@@ -391,7 +390,7 @@ def test_gate_reads_the_threshold_at_each_call() -> None:
 
 
 def test_v_node_first_of_2_instance_inputs_have_one_instance_source_and_the_same_groups() -> None:
-    refuses("V-node.first_of-2", node_first_of.output_info, "n", NoParams(), [roi_info(), roi_info(source="hands")])
+    refuses("V-node.first_of-2", node_first_of.output_info, "n", NoParams(), [boxes_info(), boxes_info(source="hands")])
     refuses("V-node.first_of-2", node_first_of.output_info, "n", NoParams(), [kp_info(BODY), kp_info(HAND)])
     outputs, _ = node_first_of.output_info("n", NoParams(), [PortInfo("image"), PortInfo("image")])
     assert outputs["value"] == PortInfo("image")
@@ -400,10 +399,10 @@ def test_v_node_first_of_2_instance_inputs_have_one_instance_source_and_the_same
 
 
 def test_first_of_gives_the_first_value_that_is_not_empty_with_its_instance_score() -> None:
-    kept = rois([[1, 2, 3, 4, 0.0], None], [0.6, 0.0])
-    values = [rois([None, None]), kept, rois([[9, 9, 9, 9, 0.0], None])]
-    assert node_first_of.run(NoParams(), values, None, frame(), roi_info())[0]["value"] is kept
-    assert same(node_first_of.run(NoParams(), values[:1], None, frame(), roi_info())[0]["value"], InstanceRois.empty(2))
+    kept = boxes([[1, 2, 3, 4, 0.0], None], [0.6, 0.0])
+    values = [boxes([None, None]), kept, boxes([[9, 9, 9, 9, 0.0], None])]
+    assert node_first_of.run(NoParams(), values, None, frame(), boxes_info())[0]["value"] is kept
+    assert same(node_first_of.run(NoParams(), values[:1], None, frame(), boxes_info())[0]["value"], InstanceBoxes.empty(2))
     assert node_first_of.run(NoParams(), [None, IMAGE], None, frame(), PortInfo("image"))[0]["value"] is IMAGE
     assert node_first_of.run(NoParams(), [None, None], None, frame(), PortInfo("image"))[0]["value"] is None
 
@@ -570,7 +569,7 @@ def test_concat_and_merge_keep_z_of_a_3d_value_and_a_missing_point_has_z_nan() -
 
 
 # ---------------------------------------------------------------------------------------------
-# smooth_keypoints, smooth_roi and redetect_trigger
+# smooth_keypoints, smooth_boxes and redetect_trigger
 # ---------------------------------------------------------------------------------------------
 
 
@@ -585,10 +584,10 @@ def test_v_node_smooth_keypoints_3_a_timestamp_that_does_not_increase_is_refused
     before = copy.deepcopy(state)
     refuses("V-node.smooth_keypoints-3", node_smooth_keypoints.run, params, inputs, state, stamped(t))
     assert same(state, before)
-    roi_state = (((1.0, 2.0, 3.0, 4.0), (0.0,) * 4, 40.0),)
+    box_state = (((1.0, 2.0, 3.0, 4.0), (0.0,) * 4, 40.0),)
     refuses(
-        "V-node.smooth_keypoints-3", node_smooth_roi.run, SmoothRoiParams(filter="one_euro"), {"rois": rois([[1, 2, 3, 4, 0.0]])},
-        roi_state, stamped(t),
+        "V-node.smooth_keypoints-3", node_smooth_boxes.run, SmoothBoxesParams(filter="one_euro"), {"boxes": boxes([[1, 2, 3, 4, 0.0]])},
+        box_state, stamped(t),
     )
 
 
@@ -616,20 +615,30 @@ def test_smooth_keypoints_does_not_run_before_its_first_input_and_holds_the_inst
     assert same(gone["keypoints"], empty)
 
 
-def test_smooth_roi_passes_the_instance_score_and_keeps_or_clears_its_state_on_an_empty_input() -> None:
-    box, empty = rois([[100, 100, 50, 80, 0.0], None], [0.6, 0.0]), rois([None, None])
-    for params, kept in ((SmoothRoiParams(), True), (SmoothRoiParams(filter="one_euro"), False)):
-        out, state = node_smooth_roi.run(params, {"rois": box}, None, stamped(0.0))
-        assert out["rois"].instance_score.tolist() == [0.6, 0.0] and state is not None
-        out, after = node_smooth_roi.run(params, {"rois": empty}, state, stamped(40.0))
-        assert same(out["rois"], empty) and (after is state if kept else after is None)
-    assert node_smooth_roi.output_info("n", SmoothRoiParams(), {"rois": roi_info()}) == ({"rois": roi_info()}, [])
+def test_smooth_boxes_passes_the_instance_score_and_keeps_or_clears_its_state_on_an_empty_input() -> None:
+    box, empty = boxes([[100, 100, 50, 80, 0.0], None], [0.6, 0.0]), boxes([None, None])
+    for params, kept in ((SmoothBoxesParams(), True), (SmoothBoxesParams(filter="one_euro"), False)):
+        out, state = node_smooth_boxes.run(params, {"boxes": box}, None, stamped(0.0))
+        assert out["boxes"].instance_score.tolist() == [0.6, 0.0] and state is not None
+        out, after = node_smooth_boxes.run(params, {"boxes": empty}, state, stamped(40.0))
+        assert same(out["boxes"], empty) and (after is state if kept else after is None)
+    assert node_smooth_boxes.output_info("n", SmoothBoxesParams(), {"boxes": boxes_info()}) == ({"boxes": boxes_info()}, [])
 
 
-def test_v_node_redetect_trigger_2_roi_missing_needs_the_input_previous_rois() -> None:
-    params = RedetectTriggerParams(fitness_checks=[{"check": "roi_missing"}])
+def test_smooth_boxes_and_hold_boxes_copy_the_class_index_and_boxes_from_points_gives_none() -> None:
+    box = boxes([[100, 100, 50, 80, 0.0], None])
+    box.class_index[0] = 2
+    smoothed = node_smooth_boxes.run(SmoothBoxesParams(), {"boxes": box}, None, stamped(0.0))[0]["boxes"]
+    held = node_hold_boxes.run(HoldBoxesParams(), {"previous": boxes([None, None]), "current": box}, None, frame())[0]["boxes"]
+    assert smoothed.class_index.tolist() == held.class_index.tolist() == [2, -1]
+    made = node_boxes_from_points.run(BoxesFromPointsParams(), {"keypoints": body()}, None, frame())[0]["boxes"]
+    assert made.present[0] and made.class_index[0] == -1  # a keypoints row has no class
+
+
+def test_v_node_redetect_trigger_2_box_missing_needs_the_input_previous_boxes() -> None:
+    params = RedetectTriggerParams(fitness_checks=[{"check": "box_missing"}])
     refuses("V-node.redetect_trigger-2", node_redetect_trigger.output_info, "n", params, {"image": PortInfo("image")})
-    outputs, warnings = node_redetect_trigger.output_info("n", params, {"image": PortInfo("image"), "previous_rois": roi_info(rows=1)})
+    outputs, warnings = node_redetect_trigger.output_info("n", params, {"image": PortInfo("image"), "previous_boxes": boxes_info(rows=1)})
     assert (outputs, warnings) == ({"image": PortInfo("image")}, [])
 
 

@@ -29,7 +29,7 @@ from typing import Annotated, Any, ClassVar, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 # The port types. A port of type `any` takes a value of each type.
-PORT_TYPES = ("image", "roi", "keypoints", "detections", "tensor", "any")
+PORT_TYPES = ("image", "boxes", "keypoints", "tensor", "any")
 # A name of a node, a pipeline, an output, a tap, a slot or a derived point.
 NAME = r"^[a-z][a-z0-9_-]*$"
 # The name of a source, as `source.name` of a sidecar (V-common.identity-6 of the sidecar spec).
@@ -181,10 +181,10 @@ def derivation_sources(derivation: Derivation) -> list[str]:
     return list(derivation)
 
 
-class RoiFromPointsParams(Strict):
+class BoxesFromPointsParams(Strict):
     points: list[str | list[str]] | None = param(
         None,
-        description="The points of the ROI. A list of names is one point with aliases: the first present name counts. "
+        description="The points of the box. A list of names is one point with aliases: the first present name counts. "
         "Empty: each present point of the input.",
         set_during_run=False,
         source="ADR-7NY2 item 6; ADR-RA0E item 2",
@@ -210,7 +210,7 @@ class RoiFromPointsParams(Strict):
     )
     target_rotation_deg: float | None = param(
         None,
-        description="The rotation target in degrees. Empty: rotation `none`, an axis-aligned ROI.",
+        description="The rotation target in degrees. Empty: rotation `none`, an axis-aligned box.",
         set_during_run=False,
         source="MediaPipe rect rotation; ADR-7NY2 item 6",
     )
@@ -221,19 +221,19 @@ class RoiFromPointsParams(Strict):
         source="ADR-7NY2 item 6; ADR-88WQ item 6",
         ge=0.0,
     )
-    shift_x: float = param(0.0, description="Shift along the ROI x axis, in ROI widths.", set_during_run=True, source="MediaPipe RectTransformationCalculator default")
-    shift_y: float = param(0.0, description="Shift along the ROI y axis, in ROI heights.", set_during_run=True, source="MediaPipe RectTransformationCalculator default")
-    square_long: bool = param(False, description="Make the ROI square with its longer side.", set_during_run=True, source="MediaPipe RectTransformationCalculator default")
+    shift_x: float = param(0.0, description="Shift along the box x axis, in box widths.", set_during_run=True, source="MediaPipe RectTransformationCalculator default")
+    shift_y: float = param(0.0, description="Shift along the box y axis, in box heights.", set_during_run=True, source="MediaPipe RectTransformationCalculator default")
+    square_long: bool = param(False, description="Make the box square with its longer side.", set_during_run=True, source="MediaPipe RectTransformationCalculator default")
     expand_ratio: float = param(
         1.0, description="Multiply the width and the height by this value.", set_during_run=True,
         source="MediaPipe RectTransformationCalculator scale default; ADR-88WQ item 4", gt=0.0,
     )
     min_previous_ratio: float | None = param(
-        None, description="The smallest width and height, as a part of the ROI of `previous_rois`. Empty: no floor.",
+        None, description="The smallest width and height, as a part of the box of `previous_boxes`. Empty: no floor.",
         set_during_run=True, source="BBoxPolicyConfig.min_shrink_ratio_per_frame; ADR-RA0E item 3", ge=0.0, le=1.0,
     )
     min_reference_ratio: float | None = param(
-        None, description="The smallest width and height, as a part of the ROI of `reference_rois`. Empty: no floor.",
+        None, description="The smallest width and height, as a part of the box of `reference_boxes`. Empty: no floor.",
         set_during_run=True, source="BBoxPolicyConfig.min_detected_bbox_ratio; ADR-RA0E item 3", ge=0.0,
     )
     min_size_px: float = param(
@@ -242,46 +242,46 @@ class RoiFromPointsParams(Strict):
     )
 
     @model_validator(mode="after")
-    def _rules(self) -> RoiFromPointsParams:
+    def _rules(self) -> BoxesFromPointsParams:
         no_alignment = self.alignment_start is None or self.alignment_end is None
         if self.size_rule == "alignment" and no_alignment:
-            raise ValueError("V-node.roi_from_points-1: the size rule alignment needs alignment_start and alignment_end")
+            raise ValueError("V-node.boxes_from_points-1: the size rule alignment needs alignment_start and alignment_end")
         for name, derivation in self.derived_points.items():
             if re.match(NAME, name) is None:
-                raise ValueError(f"V-node.roi_from_points-3: the derived point name {name!r} is not a name")
+                raise ValueError(f"V-node.boxes_from_points-3: the derived point name {name!r} is not a name")
             if not derivation_sources(derivation):
-                raise ValueError(f"V-node.roi_from_points-5: the derived point {name!r} has no source")
+                raise ValueError(f"V-node.boxes_from_points-5: the derived point {name!r} has no source")
             if isinstance(derivation, dict) and abs(math.fsum(derivation.values()) - 1.0) > WEIGHT_SUM_TOLERANCE:
-                raise ValueError(f"V-node.roi_from_points-5: the weights of {name!r} do not sum to 1")
+                raise ValueError(f"V-node.boxes_from_points-5: the weights of {name!r} do not sum to 1")
         if self.size_rule == "bounds" and self.target_rotation_deg is not None and no_alignment:
             raise ValueError(
-                "V-node.roi_from_points-4: the size rule bounds with a target rotation needs alignment_start and alignment_end"
+                "V-node.boxes_from_points-4: the size rule bounds with a target rotation needs alignment_start and alignment_end"
             )
         return self
 
 
-class RoiHoldParams(Strict):
+class HoldBoxesParams(Strict):
     max_rotation_deg: float = param(
-        40.0, description="Keep the previous ROI only when the rotation differs by this much or less.", set_during_run=True,
+        40.0, description="Keep the previous box only when the rotation differs by this much or less.", set_during_run=True,
         source="MediaPipe Holistic hand RoiTrackingCalculator (face: 15)", ge=0.0,
     )
     max_offset: float = param(
-        0.2, description="The largest x and y offset, as a part of the new ROI size.", set_during_run=True,
+        0.2, description="The largest x and y offset, as a part of the new box size.", set_during_run=True,
         source="MediaPipe Holistic hand RoiTrackingCalculator (face: 0.1)", ge=0.0,
     )
     max_size_change: float = param(
-        0.4, description="The largest width and height difference, as a part of the new ROI size.", set_during_run=True,
+        0.4, description="The largest width and height difference, as a part of the new box size.", set_during_run=True,
         source="MediaPipe Holistic hand RoiTrackingCalculator (face: 0.3)", ge=0.0,
     )
     keypoint_margin: float = param(
-        -0.1, description="Each previous point must be inside the new ROI grown by this part (negative: shrunk).", set_during_run=True,
+        -0.1, description="Each previous point must be inside the new box grown by this part (negative: shrunk).", set_during_run=True,
         source="MediaPipe Holistic hand RoiTrackingCalculator (face: -0.2)",
     )
 
     @model_validator(mode="after")
-    def _margin(self) -> RoiHoldParams:
+    def _margin(self) -> HoldBoxesParams:
         if self.keypoint_margin <= -1.0:
-            raise ValueError("V-node.roi_hold-1: keypoint_margin must be greater than -1")
+            raise ValueError("V-node.hold_boxes-1: keypoint_margin must be greater than -1")
         return self
 
 
@@ -385,12 +385,12 @@ class SmoothKeypointsParams(Strict):
         return self
 
 
-class SmoothRoiParams(Strict):
+class SmoothBoxesParams(Strict):
     filter: Literal["ema", "one_euro"] = param(
         "ema", description="The filter.", set_during_run=False, source="ADR-RA0E item 5"
     )
     previous_weight: float = param(
-        0.5, description="ema: the weight of the previous ROI: new = previous_weight × previous + (1 − previous_weight) × input.", set_during_run=True,
+        0.5, description="ema: the weight of the previous box: new = previous_weight × previous + (1 − previous_weight) × input.", set_during_run=True,
         source="BBoxSmoothingConfig.alpha; ADR-88WQ item 4", ge=0.0, le=1.0,
     )
     min_cutoff: float = param(
@@ -407,7 +407,7 @@ class SmoothRoiParams(Strict):
     )
     reset_after_ms: float = param(
         500.0,
-        description="one_euro: start the filter again when the time since the last ROI of the row is more than this many milliseconds.",
+        description="one_euro: start the filter again when the time since the last box of the row is more than this many milliseconds.",
         set_during_run=False, source="BBoxSmoothingConfig.reset_after_seconds of the branch sfn26; ADR-RA0E item 5", gt=0.0,
     )
 
@@ -415,17 +415,17 @@ class SmoothRoiParams(Strict):
     ONE_EURO: ClassVar[frozenset[str]] = frozenset({"min_cutoff", "beta", "d_cutoff", "reset_after_ms"})
 
     @model_validator(mode="after")
-    def _filter_params(self) -> SmoothRoiParams:
+    def _filter_params(self) -> SmoothBoxesParams:
         other = self.ONE_EURO if self.filter == "ema" else self.EMA
         written = sorted(other & self.model_fields_set)
         if written:
-            raise ValueError(f"V-node.smooth_roi-1: the filter {self.filter} does not take {', '.join(written)}")
+            raise ValueError(f"V-node.smooth_boxes-1: the filter {self.filter} does not take {', '.join(written)}")
         return self
 
 
 class FitnessCheck(Strict):
     check: Literal[
-        "min_keypoint_score", "keypoints_within_bbox_ratio", "max_frames_without_redetect", "bbox_area_collapse", "roi_missing"
+        "min_keypoint_score", "keypoints_within_bbox_ratio", "max_frames_without_redetect", "bbox_area_collapse", "box_missing"
     ] = Field(
         description="The check. A check that fails asks for a new detection."
     )
@@ -442,7 +442,7 @@ class FitnessCheck(Strict):
         "keypoints_within_bbox_ratio": frozenset({"threshold"}),
         "max_frames_without_redetect": frozenset({"n_frames"}),
         "bbox_area_collapse": frozenset({"min_area_ratio", "expand_ratio", "min_score"}),
-        "roi_missing": frozenset(),
+        "box_missing": frozenset(),
     }
 
     @model_validator(mode="after")
@@ -487,9 +487,9 @@ class OnnxModel(NodeType):
     type = "onnx_model"
     section = "node.onnx_model"
     Params = OnnxModelParams
-    # `rois` is for a top-down keypoint model only; the role of the sidecar decides the ports that it uses.
-    inputs = {"image": "image", "rois": "roi"}
-    outputs = {"detections": "detections", "rois": "roi", "keypoints": "keypoints"}
+    # `boxes` is for a top-down keypoint model only; the role of the sidecar decides the ports that it uses.
+    inputs = {"image": "image", "boxes": "boxes"}
+    outputs = {"boxes": "boxes", "keypoints": "keypoints"}
     required_inputs = ("image",)
     timing_spans = ("preprocess", "inference", "postprocess")
 
@@ -503,22 +503,22 @@ class MediapipeTasks(NodeType):
     required_inputs = ("image",)
 
 
-class RoiFromPoints(NodeType):
-    type = "roi_from_points"
-    section = "node.roi_from_points"
-    Params = RoiFromPointsParams
-    # `previous_rois` and `reference_rois` are optional: they give the sizes of two size floors.
-    inputs = {"keypoints": "keypoints", "previous_rois": "roi", "reference_rois": "roi"}
-    outputs = {"rois": "roi"}
+class BoxesFromPoints(NodeType):
+    type = "boxes_from_points"
+    section = "node.boxes_from_points"
+    Params = BoxesFromPointsParams
+    # `previous_boxes` and `reference_boxes` are optional: they give the sizes of two size floors.
+    inputs = {"keypoints": "keypoints", "previous_boxes": "boxes", "reference_boxes": "boxes"}
+    outputs = {"boxes": "boxes"}
     required_inputs = ("keypoints",)
 
 
-class RoiHold(NodeType):
-    type = "roi_hold"
-    section = "node.roi_hold"
-    Params = RoiHoldParams
-    inputs = {"previous": "roi", "current": "roi", "previous_keypoints": "keypoints"}
-    outputs = {"rois": "roi"}
+class HoldBoxes(NodeType):
+    type = "hold_boxes"
+    section = "node.hold_boxes"
+    Params = HoldBoxesParams
+    inputs = {"previous": "boxes", "current": "boxes", "previous_keypoints": "keypoints"}
+    outputs = {"boxes": "boxes"}
     required_inputs = ("previous", "current")
 
 
@@ -567,13 +567,13 @@ class SmoothKeypoints(NodeType):
     required_inputs = ("keypoints",)
 
 
-class SmoothRoi(NodeType):
-    type = "smooth_roi"
-    section = "node.smooth_roi"
-    Params = SmoothRoiParams
-    inputs = {"rois": "roi"}
-    outputs = {"rois": "roi"}
-    required_inputs = ("rois",)
+class SmoothBoxes(NodeType):
+    type = "smooth_boxes"
+    section = "node.smooth_boxes"
+    Params = SmoothBoxesParams
+    inputs = {"boxes": "boxes"}
+    outputs = {"boxes": "boxes"}
+    required_inputs = ("boxes",)
 
 
 class RedetectTrigger(NodeType):
@@ -581,13 +581,13 @@ class RedetectTrigger(NodeType):
     section = "node.redetect_trigger"
     Params = RedetectTriggerParams
     # The output is the input image when a new detection is needed, else empty (the trigger).
-    inputs = {"image": "image", "previous_keypoints": "keypoints", "previous_rois": "roi"}
+    inputs = {"image": "image", "previous_keypoints": "keypoints", "previous_boxes": "boxes"}
     outputs = {"image": "image"}
     required_inputs = ("image",)
 
 
 NODE_TYPES: tuple[type[NodeType], ...] = (
-    OnnxModel, MediapipeTasks, RoiFromPoints, RoiHold, Gate, FirstOf, Concat, Merge, SmoothKeypoints, SmoothRoi,
+    OnnxModel, MediapipeTasks, BoxesFromPoints, HoldBoxes, Gate, FirstOf, Concat, Merge, SmoothKeypoints, SmoothBoxes,
     RedetectTrigger,
 )
 BY_TYPE: dict[str, type[NodeType]] = {node.type: node for node in NODE_TYPES}
@@ -623,14 +623,14 @@ class MediapipeTasksNode(NodeBase):
     params: MediapipeTasksParams
 
 
-class RoiFromPointsNode(NodeBase):
-    type: Literal["roi_from_points"]
-    params: RoiFromPointsParams = Field(default_factory=RoiFromPointsParams)
+class BoxesFromPointsNode(NodeBase):
+    type: Literal["boxes_from_points"]
+    params: BoxesFromPointsParams = Field(default_factory=BoxesFromPointsParams)
 
 
-class RoiHoldNode(NodeBase):
-    type: Literal["roi_hold"]
-    params: RoiHoldParams = Field(default_factory=RoiHoldParams)
+class HoldBoxesNode(NodeBase):
+    type: Literal["hold_boxes"]
+    params: HoldBoxesParams = Field(default_factory=HoldBoxesParams)
 
 
 class GateNode(NodeBase):
@@ -658,9 +658,9 @@ class SmoothKeypointsNode(NodeBase):
     params: SmoothKeypointsParams = Field(default_factory=SmoothKeypointsParams)
 
 
-class SmoothRoiNode(NodeBase):
-    type: Literal["smooth_roi"]
-    params: SmoothRoiParams = Field(default_factory=SmoothRoiParams)
+class SmoothBoxesNode(NodeBase):
+    type: Literal["smooth_boxes"]
+    params: SmoothBoxesParams = Field(default_factory=SmoothBoxesParams)
 
 
 class RedetectTriggerNode(NodeBase):
@@ -669,8 +669,8 @@ class RedetectTriggerNode(NodeBase):
 
 
 NodeConfig = Annotated[
-    OnnxModelNode | MediapipeTasksNode | RoiFromPointsNode | RoiHoldNode | GateNode | FirstOfNode
-    | ConcatNode | MergeNode | SmoothKeypointsNode | SmoothRoiNode | RedetectTriggerNode,
+    OnnxModelNode | MediapipeTasksNode | BoxesFromPointsNode | HoldBoxesNode | GateNode | FirstOfNode
+    | ConcatNode | MergeNode | SmoothKeypointsNode | SmoothBoxesNode | RedetectTriggerNode,
     Field(discriminator="type"),
 ]
 
@@ -831,7 +831,7 @@ def _check_point_names(config: PipelineConfig) -> None:
     """
     for node in config.nodes:
         local: set[str] = set()
-        if node.type == "roi_from_points":
+        if node.type == "boxes_from_points":
             params = node.params
             local = set(params.derived_points)
             names = [name for entry in params.points or [] for name in ([entry] if isinstance(entry, str) else entry)]
@@ -848,16 +848,16 @@ def _check_point_names(config: PipelineConfig) -> None:
 
 
 def _check_optional_inputs(config: PipelineConfig) -> None:
-    """Check the optional inputs that a param or a check needs (V-node.roi_from_points-6, V-node.redetect_trigger-2)."""
+    """Check the optional inputs that a param or a check needs (V-node.boxes_from_points-6, V-node.redetect_trigger-2)."""
     for node in config.nodes:
-        if node.type == "roi_from_points":
-            for name, port in (("min_previous_ratio", "previous_rois"), ("min_reference_ratio", "reference_rois")):
+        if node.type == "boxes_from_points":
+            for name, port in (("min_previous_ratio", "previous_boxes"), ("min_reference_ratio", "reference_boxes")):
                 if getattr(node.params, name) is not None and port not in node.inputs:
-                    raise ValueError(f"V-node.roi_from_points-6: {node.id}: {name} needs the input {port}")
+                    raise ValueError(f"V-node.boxes_from_points-6: {node.id}: {name} needs the input {port}")
         elif node.type == "redetect_trigger":
             checks = {check.check for check in node.params.fitness_checks}
-            if "roi_missing" in checks and "previous_rois" not in node.inputs:
-                raise ValueError(f"V-node.redetect_trigger-2: {node.id}: the check roi_missing needs the input previous_rois")
+            if "box_missing" in checks and "previous_boxes" not in node.inputs:
+                raise ValueError(f"V-node.redetect_trigger-2: {node.id}: the check box_missing needs the input previous_boxes")
 
 
 def _check_acyclic(edges: dict[str, set[str]]) -> None:

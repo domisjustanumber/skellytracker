@@ -14,11 +14,11 @@ nodes:
     inputs:
       image: frame.image
       previous_keypoints: wholebody.keypoints@prev
-      previous_rois: crop.rois@prev
+      previous_boxes: crop.boxes@prev
     params:
       redetect_interval: 150
       fitness_checks:
-        - {check: roi_missing}
+        - {check: box_missing}
         - {check: bbox_area_collapse, min_area_ratio: 0.0, min_score: 0.4}
   - id: person
     type: onnx_model
@@ -31,14 +31,14 @@ nodes:
   # The last box of the detector.
   - id: detected_box
     type: first_of
-    inputs: [person.rois, detected_box.value@prev]
+    inputs: [person.boxes, detected_box.value@prev]
   # The box around the points of the previous frame, with its size floors.
   - id: points_box
-    type: roi_from_points
+    type: boxes_from_points
     inputs:
       keypoints: wholebody.keypoints@prev
-      previous_rois: crop.rois@prev
-      reference_rois: detected_box.value
+      previous_boxes: crop.boxes@prev
+      reference_boxes: detected_box.value
     params:
       score_threshold: 0.4
       expand_ratio: 1.21
@@ -48,22 +48,22 @@ nodes:
   # Use the points box only on a frame with no detection request.
   - id: carried_box
     type: gate
-    inputs: {value: points_box.rois, condition: trigger.image}
+    inputs: {value: points_box.boxes, condition: trigger.image}
     params: {mode: is_empty}
   - id: box
     type: first_of
-    inputs: [person.rois, carried_box.value]
+    inputs: [person.boxes, carried_box.value]
   - id: crop
-    type: smooth_roi
-    inputs: {rois: box.value}
+    type: smooth_boxes
+    inputs: {boxes: box.value}
     params: {filter: one_euro, min_cutoff: 3.0, beta: 0.02, d_cutoff: 1.0, reset_after_ms: 500}
   - id: wholebody
     type: onnx_model
-    inputs: {image: frame.image, rois: crop.rois}
+    inputs: {image: frame.image, boxes: crop.boxes}
     params:
       key: rtmw-wholebody133@openmmlab-exporter
       size: m
 outputs:
   wholebody: wholebody.keypoints
-  person_box: person.detections
-  person_roi: crop.rois
+  detector_box: person.boxes
+  crop_box: crop.boxes

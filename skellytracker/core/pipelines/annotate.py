@@ -15,9 +15,8 @@ def annotate(image: np.ndarray, result: Mapping[str, Any], output_schema: Mappin
     """Return a copy of the BGR `image` with each output of `result` drawn.
 
     `result` is the result of one camera. `output_schema` is the output schema of the run. A
-    `keypoints` output gives its points and its `edges`, a `detections` output gives its boxes with
-    the class name and the score, and a `roi` output gives its ROIs as rotated rectangles. The
-    function skips a padding row, a missing point and a point with a score below `min_score`.
+    `keypoints` output gives its points and its `edges`. A `boxes` output gives its boxes as rotated
+    rectangles, with the class name and the instance score of a row that has a class. The function skips a padding row, a missing point and a point with a score below `min_score`.
     """
     import cv2
 
@@ -37,17 +36,16 @@ def annotate(image: np.ndarray, result: Mapping[str, Any], output_schema: Mappin
                         cv2.line(canvas, points[start], points[end], colour, 1, cv2.LINE_AA)
                 for point in points.values():
                     cv2.circle(canvas, point, 2, colour, -1, cv2.LINE_AA)
-            elif schema["port_type"] == "detections" and np.isfinite(value.xyxy[row]).all():
-                x1, y1, x2, y2 = (int(v) for v in np.round(value.xyxy[row]))
-                cv2.rectangle(canvas, (x1, y1), (x2, y2), colour, 2)
-                class_names = schema.get("class_names") or ()
-                index = int(value.class_index[row])
-                label = class_names[index] if 0 <= index < len(class_names) and class_names[index] else str(index)
-                cv2.putText(canvas, f"{label} {value.score[row]:.2f}", (x1, max(y1 - 4, 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.4, colour, 1, cv2.LINE_AA)
-            elif schema["port_type"] == "roi" and np.isfinite(value.rois[row]).all():
-                cx, cy, width, height, rotation = value.rois[row]
+            elif schema["port_type"] == "boxes" and np.isfinite(value.boxes[row]).all():
+                cx, cy, width, height, rotation = value.boxes[row]
                 x_axis = np.array([np.cos(rotation), np.sin(rotation)]) * width / 2
                 y_axis = np.array([-np.sin(rotation), np.cos(rotation)]) * height / 2
-                corners = np.array([cx, cy]) + [-x_axis - y_axis, x_axis - y_axis, x_axis + y_axis, -x_axis + y_axis]
-                cv2.polylines(canvas, [np.round(corners).astype(np.int32)], True, colour, 1, cv2.LINE_AA)
+                corners = np.round(np.array([cx, cy]) + [-x_axis - y_axis, x_axis - y_axis, x_axis + y_axis, -x_axis + y_axis]).astype(np.int32)
+                cv2.polylines(canvas, [corners], True, colour, 1, cv2.LINE_AA)
+                index = int(value.class_index[row])
+                if index >= 0:
+                    class_names = schema.get("class_names") or ()
+                    label = class_names[index] if index < len(class_names) and class_names[index] else str(index)
+                    x, y = (int(v) for v in corners.min(axis=0))
+                    cv2.putText(canvas, f"{label} {value.instance_score[row]:.2f}", (x, max(y - 4, 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.4, colour, 1, cv2.LINE_AA)
     return canvas

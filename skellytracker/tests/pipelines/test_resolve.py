@@ -82,15 +82,14 @@ def test_the_output_schema_of_two_models_comes_from_the_sidecars(root: Path) -> 
             "edges": [["body/a", "body/b"], ["body/b", "body/c"]],
             "canonical_edges": [["body/a", "body/b"], ["body/b", "body/c"]],
         },
-        "person_box": {"port_type": "detections", "class_names": ["person"], "max_instances": 2, "tracked": False, "instance_source": "person"},
-        "person_roi": {"port_type": "roi", "max_instances": 2, "tracked": False, "instance_source": "person"},
+        "detector_box": {"port_type": "boxes", "class_names": ["person"], "max_instances": 2, "tracked": False, "instance_source": "person"},
     }
     person, body = resolved.nodes["person"], resolved.nodes["body"]
     assert (person.model.kind, person.model.key, person.model.version, person.model.precisions) == ("object", OBJECT_KEY, "0.1.0", ("fp32",))
     assert person.model.decode.nms.iou_threshold == 0.5 and person.model.entry.artifact("n", "fp32").available
     assert (body.model.kind, body.model.decode, body.model.size) == ("top_down", None, "m")
-    assert [(item.name, item.node, item.port, item.prev) for item in body.inputs] == [("image", "frame", "image", False), ("rois", "person", "rois", False)]
-    assert body.inputs_info["rois"] == resolved.port_info("person", "rois") and resolved.port_info("frame", "image") == PortInfo("image")
+    assert [(item.name, item.node, item.port, item.prev) for item in body.inputs] == [("image", "frame", "image", False), ("boxes", "person", "boxes", False)]
+    assert body.inputs_info["boxes"] == resolved.port_info("person", "boxes") and resolved.port_info("frame", "image") == PortInfo("image")
     assert resolved.warnings == () and resolved.has_onnx_model and not resolved.needs_execution_provider
 
 
@@ -138,8 +137,8 @@ def test_the_output_schema_of_yolox_rtmw_wholebody_with_the_package_sidecars(tmp
     assert len(canonical_edges) == len(schema["wholebody"]["edges"]) == 130
     assert all(point in schema["wholebody"]["canonical_names"] for edge in canonical_edges for point in edge)
     assert ["body/left_ankle", "body/left_big_toe"] in canonical_edges and ["left_hand/wrist", "left_hand/thumb_cmc"] in canonical_edges
-    assert schema["person_box"]["class_names"] == ["person"] and schema["person_roi"]["port_type"] == "roi"
-    assert [(schema[name]["instance_source"], schema[name]["max_instances"]) for name in ("wholebody", "person_box", "person_roi")] == [("person", 1)] * 3
+    assert schema["detector_box"]["class_names"] == schema["crop_box"]["class_names"] == ["person"] and schema["crop_box"]["port_type"] == "boxes"
+    assert [(schema[name]["instance_source"], schema[name]["max_instances"]) for name in ("wholebody", "detector_box", "crop_box")] == [("person", 1)] * 3
     assert resolved.nodes["person"].model.decode.nms.post_nms_top_k == 1
     assert resolved.needs_execution_provider and resolved.has_onnx_model
     # The `@prev` consumers, and the temporal nodes upstream of a model. The mode does not change them.
@@ -148,8 +147,8 @@ def test_the_output_schema_of_yolox_rtmw_wholebody_with_the_package_sidecars(tmp
 
 def test_a_node_whose_facts_depend_only_on_prev_values_does_not_resolve(root: Path) -> None:
     loop = [
-        {"id": "one", "type": "smooth_roi", "inputs": {"rois": "two.rois@prev"}},
-        {"id": "two", "type": "smooth_roi", "inputs": {"rois": "one.rois@prev"}},
+        {"id": "one", "type": "smooth_boxes", "inputs": {"boxes": "two.boxes@prev"}},
+        {"id": "two", "type": "smooth_boxes", "inputs": {"boxes": "one.boxes@prev"}},
     ]
     with pytest.raises(ValueError, match="cannot find the port facts"):
         resolve(config_of(with_nodes(*loop)), root)
@@ -182,24 +181,24 @@ def test_v_node_onnx_model_1_the_sidecar_hash_must_be_the_hash_of_the_file(root:
         resolve(config_of(detector_pipeline(sidecar_sha256="0" * 64)), root)
 
 
-def test_v_node_onnx_model_2_the_role_must_match_the_rois_input_and_the_used_ports(root: Path) -> None:
-    no_rois = detector_pipeline()
-    del no_rois["nodes"][1]["inputs"]["rois"]
-    with pytest.raises(ValueError, match="^V-node.onnx_model-2: body: .*needs `rois` input"):
-        resolve(config_of(no_rois), root)
-    second = {"id": "second", "type": "onnx_model", "inputs": {"image": "frame.image", "rois": "person.rois"},
+def test_v_node_onnx_model_2_the_role_must_match_the_boxes_input_and_the_used_ports(root: Path) -> None:
+    no_boxes = detector_pipeline()
+    del no_boxes["nodes"][1]["inputs"]["boxes"]
+    with pytest.raises(ValueError, match="^V-node.onnx_model-2: body: .*needs `boxes` input"):
+        resolve(config_of(no_boxes), root)
+    second = {"id": "second", "type": "onnx_model", "inputs": {"image": "frame.image", "boxes": "person.boxes"},
               "params": {"key": OBJECT_KEY, "size": "n"}}
-    with pytest.raises(ValueError, match="^V-node.onnx_model-2: second: .*takes no `rois` input"):
+    with pytest.raises(ValueError, match="^V-node.onnx_model-2: second: .*takes no `boxes` input"):
         resolve(config_of(with_nodes(second)), root)
     # An output, an input of a node and a tap use a port.
     with pytest.raises(ValueError, match=r"^V-node.onnx_model-2: person: .*\['keypoints'\]"):
         resolve(config_of(with_nodes(outputs={"points": "person.keypoints"})), root)
-    smooth = {"id": "smooth", "type": "smooth_roi", "inputs": {"rois": "body.rois"}}
-    with pytest.raises(ValueError, match=r"^V-node.onnx_model-2: body: .*\['rois'\]"):
+    smooth = {"id": "smooth", "type": "smooth_boxes", "inputs": {"boxes": "body.boxes"}}
+    with pytest.raises(ValueError, match=r"^V-node.onnx_model-2: body: .*\['boxes'\]"):
         resolve(config_of(with_nodes(smooth)), root)
     tapped = detector_pipeline()
-    tapped["instrumentation"] = {"taps": [{"action": "record", "port": "body.detections", "name": "boxes"}]}
-    with pytest.raises(ValueError, match=r"^V-node.onnx_model-2: body: .*\['detections'\]"):
+    tapped["instrumentation"] = {"taps": [{"action": "record", "port": "body.boxes", "name": "boxes"}]}
+    with pytest.raises(ValueError, match=r"^V-node.onnx_model-2: body: .*\['boxes'\]"):
         resolve(config_of(tapped), root)
 
 
@@ -303,11 +302,11 @@ def test_v_pipeline_graph_8_a_point_name_of_a_sidecar_must_have_no_slash_and_no_
     """The sidecar loader refuses such a name in a schema file, so the test changes the loaded model."""
     keypoint = load_detector_sidecar(KEYPOINT_KEY, root).keypoint
     schema = load_landmark_schema_registry(root)["Demo3"]
-    rois = PortInfo("roi", max_instances=1, instance_source="person")
-    assert keypoint_port_info("body", keypoint, schema, rois).point_names == ("body/a", "body/b", "body/c")
+    boxes = PortInfo("boxes", max_instances=1, instance_source="person")
+    assert keypoint_port_info("body", keypoint, schema, boxes).point_names == ("body/a", "body/b", "body/c")
     for bad in ("a/b", "a b", "a\tb"):
         with pytest.raises(ValueError, match="^V-pipeline.graph-8: body: "):
-            keypoint_port_info("body", keypoint.model_copy(update={"point_names": [bad, "b", "c"]}), schema, rois)
+            keypoint_port_info("body", keypoint.model_copy(update={"point_names": [bad, "b", "c"]}), schema, boxes)
 
 
 def test_v_pipeline_graph_10_the_groups_that_the_nodes_make_must_have_unique_names(tmp_path: Path) -> None:
@@ -332,9 +331,9 @@ def test_v_pipeline_graph_10_the_groups_that_the_nodes_make_must_have_unique_nam
 @pytest.mark.parametrize(
     "node",
     [
-        {"id": "temporal", "type": "smooth_roi", "inputs": {"rois": "person.rois"}},
+        {"id": "temporal", "type": "smooth_boxes", "inputs": {"boxes": "person.boxes"}},
         {"id": "temporal", "type": "smooth_keypoints", "inputs": {"keypoints": "body.keypoints"}},
-        {"id": "temporal", "type": "redetect_trigger", "inputs": {"image": "frame.image", "previous_rois": "person.rois@prev"}},
+        {"id": "temporal", "type": "redetect_trigger", "inputs": {"image": "frame.image", "previous_boxes": "person.boxes@prev"}},
     ],
 )
 def test_v_pipeline_graph_11_each_input_of_a_temporal_node_must_have_one_row(root: Path, node: dict[str, Any]) -> None:
@@ -344,17 +343,17 @@ def test_v_pipeline_graph_11_each_input_of_a_temporal_node_must_have_one_row(roo
 
 
 def test_v_pipeline_graph_11_each_prev_input_must_have_one_row(root: Path, tmp_path: Path) -> None:
-    hold = {"id": "hold", "type": "roi_hold", "inputs": {"previous": "hold.rois@prev", "current": "person.rois"}}
+    hold = {"id": "hold", "type": "hold_boxes", "inputs": {"previous": "hold.boxes@prev", "current": "person.boxes"}}
     resolve(config_of(with_nodes(hold)), root)
-    with pytest.raises(ValueError, match="^V-pipeline.graph-11: hold: the input hold.rois@prev has I = 2"):
+    with pytest.raises(ValueError, match="^V-pipeline.graph-11: hold: the input hold.boxes@prev has I = 2"):
         resolve(config_of(with_nodes(hold, max_instances=2)), root)
     # The same input with no `@prev` is not an input of a temporal node: I can be more than 1.
-    hold["inputs"]["previous"] = "person.rois"
+    hold["inputs"]["previous"] = "person.boxes"
     resolve(config_of(with_nodes(hold, max_instances=2)), root)
-    box = {"id": "box", "type": "roi_from_points", "inputs": {"keypoints": "mp.keypoints@prev"}}
-    resolve(config_of(mediapipe_pipeline(box, outputs={"box": "box.rois"})), tmp_path)
+    box = {"id": "box", "type": "boxes_from_points", "inputs": {"keypoints": "mp.keypoints@prev"}}
+    resolve(config_of(mediapipe_pipeline(box, outputs={"box": "box.boxes"})), tmp_path)
     with pytest.raises(ValueError, match="^V-pipeline.graph-11: box: the input mp.keypoints@prev has I = 2"):
-        resolve(config_of(mediapipe_pipeline(box, outputs={"box": "box.rois"}, max_instances=2)), tmp_path)
+        resolve(config_of(mediapipe_pipeline(box, outputs={"box": "box.boxes"}, max_instances=2)), tmp_path)
 
 
 def test_v_pipeline_outputs_2_each_point_name_of_an_output_must_be_unique(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -383,17 +382,17 @@ def test_a_smooth_keypoints_node_after_the_last_model_does_not_make_a_pipeline_s
     resolved = resolve(config_of(with_nodes(smooth, outputs={"body": "smooth.keypoints"})), root)
     assert [resolved.stateful_nodes(mode) for mode in MODES] == [(), (), ()]
     # A temporal node upstream of a model, and a node with an `@prev` input, make it stateful.
-    data = with_nodes({"id": "crop", "type": "smooth_roi", "inputs": {"rois": "person.rois"}}, smooth)
-    data["nodes"][1]["inputs"]["rois"] = "crop.rois"
+    data = with_nodes({"id": "crop", "type": "smooth_boxes", "inputs": {"boxes": "person.boxes"}}, smooth)
+    data["nodes"][1]["inputs"]["boxes"] = "crop.boxes"
     assert resolve(config_of(data), root).stateful_nodes("video") == ("crop",)
-    hold = {"id": "hold", "type": "roi_hold", "inputs": {"previous": "hold.rois@prev", "current": "person.rois"}}
+    hold = {"id": "hold", "type": "hold_boxes", "inputs": {"previous": "hold.boxes@prev", "current": "person.boxes"}}
     assert resolve(config_of(with_nodes(hold)), root).stateful_nodes("image") == ("hold",)
 
 
 def test_a_mediapipe_tasks_node_upstream_of_a_model_is_temporal_only_in_video_and_live(root: Path) -> None:
     data = mediapipe_pipeline(
-        {"id": "box", "type": "roi_from_points", "inputs": {"keypoints": "mp.keypoints"}},
-        {"id": "body", "type": "onnx_model", "inputs": {"image": "frame.image", "rois": "box.rois"}, "params": {"key": KEYPOINT_KEY, "size": "m"}},
+        {"id": "box", "type": "boxes_from_points", "inputs": {"keypoints": "mp.keypoints"}},
+        {"id": "body", "type": "onnx_model", "inputs": {"image": "frame.image", "boxes": "box.boxes"}, "params": {"key": KEYPOINT_KEY, "size": "m"}},
         outputs={"body": "body.keypoints"},
     )
     resolved = resolve(config_of(data), root)

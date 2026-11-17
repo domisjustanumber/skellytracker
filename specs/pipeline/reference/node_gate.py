@@ -12,18 +12,18 @@ from __future__ import annotations
 import math
 from typing import Any
 
-INSTANCE_TYPES = ("roi", "keypoints", "detections")
-SCORED_TYPES = ("detections", "keypoints")
+INSTANCE_TYPES = ("boxes", "keypoints")
+SCORED_TYPES = INSTANCE_TYPES
 
 
 def score(condition_type: str, row: dict[str, Any]) -> float:
     """Return the score of one present row of condition (node.gate, Fields).
 
-    A detections row holds score and class_index; the test uses only score. A keypoints row holds xy and score: the score of the row is the
+    A boxes row holds instance_score: the score of the row. A keypoints row holds xy and score: the score of the row is the
     mean score of the points whose x and y are not NaN, or 0 when each point is NaN.
     """
-    if condition_type == "detections":
-        return row["score"]
+    if condition_type == "boxes":
+        return row["instance_score"]
     seen = [v for (x, y), v in zip(row["xy"], row["score"]) if not (math.isnan(x) or math.isnan(y))]  # noqa: B905 (one row)
     return sum(seen) / len(seen) if seen else 0.0
 
@@ -50,7 +50,7 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("V-node.gate-1: the mode score_above needs a threshold, and the other modes have none")
     value_type, condition_type = input["value_type"], input["condition_type"]
     if mode == "score_above" and condition_type not in SCORED_TYPES:
-        raise ValueError(f"V-node.gate-2: score_above needs a detections or keypoints condition, not {condition_type}")
+        raise ValueError(f"V-node.gate-2: score_above needs a boxes or keypoints condition, not {condition_type}")
     value, condition = input["value"], input["condition"]
     by_row = value_type in INSTANCE_TYPES and condition_type in INSTANCE_TYPES
     if by_row and condition is not None and value is not None and len(condition) != len(value):

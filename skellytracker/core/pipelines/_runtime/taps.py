@@ -5,10 +5,11 @@ Implements: pipeline.taps
 The forms of a JSONL line. Each line is one present row and has `image_id`, `frame_index`,
 `camera_id` and `row`:
 
-- `detections.jsonl`: `class` (the class name), `bbox` `[x, y, width, height]` and `score`.
+- `boxes.jsonl`: `box` `[cx, cy, w, h, rotation]`, `bbox` `[x, y, width, height]` (the
+  axis-aligned bounds of the box), `score` (the instance score) and `class` (the class name, or
+  null when the row has no class).
 - `keypoints.jsonl`: `keypoints` `[x, y, score, ...]`, three numbers for each point, and `score`,
   the instance score. A missing point has null for x and y.
-- `roi.jsonl`: `roi` `[cx, cy, w, h, rotation]` and `score`, the instance score.
 """
 from __future__ import annotations
 
@@ -29,7 +30,7 @@ from skellytracker.core.pipelines.values import PortInfo
 TAP_SCHEMA = "skellytracker.tap/1"
 MANIFEST = "tap.json"
 MATCH_FIELDS = ("schema", "port", "port_type", "upstream_sha256", "image_list_sha256", "camera_ids", "running_mode")
-JSONL_TYPES = ("detections", "keypoints", "roi")
+JSONL_TYPES = ("boxes", "keypoints")
 
 
 def upstream_nodes(config: PipelineConfig, node_id: str) -> list[str]:
@@ -69,7 +70,7 @@ def make_manifest(
         "port": tap.port,
         "port_type": info.port_type,
         "point_names": list(info.point_names) if info.port_type == "keypoints" else None,
-        "class_names": list(info.class_names or ()) if info.port_type == "detections" else None,
+        "class_names": list(info.class_names or ()) if info.port_type == "boxes" else None,
         "geometry": info.geometry if info.port_type == "keypoints" else None,
         "upstream_sha256": timing.upstream_sha256(config, node_id),
         "nodes": [dict(node_items[item]) for item in upstream_nodes(config, node_id)],
@@ -86,12 +87,15 @@ def _number(value: float) -> float | None:
 
 def row_record(value: Any, row: int, info: PortInfo) -> dict[str, Any]:
     """Return the fields of one present row for its JSONL line."""
-    if info.port_type == "detections":
-        x1, y1, x2, y2 = (float(item) for item in value.xyxy[row])
+    if info.port_type == "boxes":
+        cx, cy, w, h, rotation = (float(item) for item in value.boxes[row])
+        half_x = (abs(w * math.cos(rotation)) + abs(h * math.sin(rotation))) / 2
+        half_y = (abs(w * math.sin(rotation)) + abs(h * math.cos(rotation))) / 2
         index = int(value.class_index[row])
-        return {"class": (info.class_names or ())[index], "bbox": [x1, y1, x2 - x1, y2 - y1], "score": float(value.score[row])}
-    if info.port_type == "roi":
-        return {"roi": [float(item) for item in value.rois[row]], "score": float(value.instance_score[row])}
+        return {
+            "box": [cx, cy, w, h, rotation], "bbox": [cx - half_x, cy - half_y, 2 * half_x, 2 * half_y],
+            "score": float(value.instance_score[row]), "class": (info.class_names or ())[index] if index >= 0 else None,
+        }
     points = [number for (x, y), score in zip(value.xy[row].tolist(), value.score[row].tolist(), strict=True) for number in (_number(x), _number(y), score)]
     return {"keypoints": points, "raw_score": value.raw_score[row].tolist(), "score": float(value.instance_score[row])}
 
@@ -196,17 +200,13 @@ class ReplayTap:
 
     def _fill(self, value: Any, row: int, line: Mapping[str, Any], where: str) -> None:
         info = self.info
-        if info.port_type == "detections":
+        if info.port_type == "boxes":
             names = list(info.class_names or ())
-            if line.get("class") is None or line["class"] not in names:
-                raise ValueError(f"V-pipeline.taps-7: {where}: the class {line.get('class')!r} is not a name of the class names {names}")
-            x, y, width, height = line["bbox"]
-            value.xyxy[row] = (x, y, x + width, y + height)
-            value.score[row] = line["score"]
-            value.class_index[row] = names.index(line["class"])
-        elif info.port_type == "roi":
-            value.rois[row] = line["roi"]
+            if line.get("class") is not None and line["class"] not in names:
+                raise ValueError(f"V-pipeline.taps-7: {where}: the class {line['class']!r} is not a name of the class names {names}")
+            value.boxes[row] = line["box"]
             value.instance_score[row] = line["score"]
+            value.class_index[row] = -1 if line.get("class") is None else names.index(line["class"])
         else:
             points = np.array([np.nan if item is None else item for item in line["keypoints"]], dtype=np.float64)
             if points.size != 3 * len(info.point_names):

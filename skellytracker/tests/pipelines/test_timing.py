@@ -16,8 +16,8 @@ CONFIG = {
     "nodes": [
         {"id": "trigger", "type": "redetect_trigger", "inputs": {"image": "frame.image", "previous_keypoints": "wholebody.keypoints@prev"}},
         {"id": "person", "type": "onnx_model", "inputs": {"image": "trigger.image"}, "params": {"key": "yolox-person@x", "size": "m"}},
-        {"id": "crop", "type": "smooth_roi", "inputs": {"rois": "person.rois"}},
-        {"id": "wholebody", "type": "onnx_model", "inputs": {"image": "frame.image", "rois": "crop.rois"}, "params": {"key": "rtmw@x", "size": "m"}},
+        {"id": "crop", "type": "smooth_boxes", "inputs": {"boxes": "person.boxes"}},
+        {"id": "wholebody", "type": "onnx_model", "inputs": {"image": "frame.image", "boxes": "crop.boxes"}, "params": {"key": "rtmw@x", "size": "m"}},
         {"id": "hands", "type": "mediapipe_tasks", "inputs": {"image": "frame.image"}, "params": {"variant": "hand"}},
         {"id": "both", "type": "concat", "inputs": ["wholebody.keypoints", "hands.keypoints"]},
     ],
@@ -96,7 +96,7 @@ def test_node_item_fields():
     )
     assert tuple(item) == timing.NODE_ITEM_FIELDS
     assert (item["id"], item["type"], item["key"], item["size"], item["precision"]) == ("wholebody", "onnx_model", "rtmw@x", "m", "fp16")
-    assert item["inputs"] == [{"name": "image", "port": "frame.image", "prev": False}, {"name": "rois", "port": "crop.rois", "prev": False}]
+    assert item["inputs"] == [{"name": "image", "port": "frame.image", "prev": False}, {"name": "boxes", "port": "crop.boxes", "prev": False}]
     assert tuple(item["execution"]) == timing.EXECUTION_FIELDS
     trigger = timing.make_node_item(cfg.nodes[0])
     assert trigger["inputs"][1] == {"name": "previous_keypoints", "port": "wholebody.keypoints", "prev": True}

@@ -31,13 +31,13 @@ def root(tmp_path: Path) -> Path:
 
 
 def prev_pipeline() -> dict[str, Any]:
-    """`detector_pipeline` with an ROI from the keypoints of the previous frame, and a keypoint filter: an `@prev` value and a node state."""
+    """`detector_pipeline` with a box from the keypoints of the previous frame, and a keypoint filter: an `@prev` value and a node state."""
     data = detector_pipeline()
     data["nodes"] += [
-        {"id": "prev_box", "type": "roi_from_points", "inputs": {"keypoints": "body.keypoints@prev"}},
+        {"id": "prev_box", "type": "boxes_from_points", "inputs": {"keypoints": "body.keypoints@prev"}},
         {"id": "smooth", "type": "smooth_keypoints", "inputs": {"keypoints": "body.keypoints"}},
     ]
-    data["outputs"].update(prev_box="prev_box.rois", smooth="smooth.keypoints")
+    data["outputs"].update(prev_box="prev_box.boxes", smooth="smooth.keypoints")
     return data
 
 
@@ -48,7 +48,7 @@ def start(root: Path, data: dict[str, Any], **parameters: Any):
 
 
 def points_box(keypoints: Any) -> list[float]:
-    """Return `(cx, cy, w, h)` of the box around the present points of row 0: the ROI of `roi_from_points` with its defaults."""
+    """Return `(cx, cy, w, h)` of the box around the present points of row 0: the box of `boxes_from_points` with its defaults."""
     points = keypoints.xy[0]
     points = points[~np.isnan(points).any(axis=1)]
     low, high = points.min(axis=0), points.max(axis=0)
@@ -62,18 +62,18 @@ def points_box(keypoints: Any) -> list[float]:
 
 def test_each_node_type_runs_in_one_pipeline_on_generated_models(root: Path) -> None:
     with start(root, tracking_pipeline()) as run:
-        assert set(run.output_schema) == {"body", "both", "merged", "smooth", "person_box", "person_roi"}
+        assert set(run.output_schema) == {"body", "both", "merged", "smooth", "detector_box", "crop_box"}
         results = [run.process(Frame(image(1), index)) for index in range(4)]
     # `redetect_trigger`: the detector runs on the first frame, then each 3 frames. The keypoint models run on each frame.
     assert [result["node_ran"] for result in results] == [
         {"person": ran, "body": True, "hand": True} for ran in (True, False, False, True)
     ]
     first, second = results[0], results[1]
-    np.testing.assert_allclose(first["person_roi"].rois, [[6, 6, 8, 8, 0]])  # `first_of`, `roi_hold` and `smooth_roi` pass the detector box
-    assert first["person_box"].present.tolist() == [True] and second["person_box"].present.tolist() == [False]
-    # Frame 1: `roi_from_points` and `gate` carry the box of the points of frame 0, and `smooth_roi` (ema, 0.5) blends it.
+    np.testing.assert_allclose(first["crop_box"].boxes, [[6, 6, 8, 8, 0]])  # `first_of`, `hold_boxes` and `smooth_boxes` pass the detector box
+    assert first["detector_box"].present.tolist() == [True] and second["detector_box"].present.tolist() == [False]
+    # Frame 1: `boxes_from_points` and `gate` carry the box of the points of frame 0, and `smooth_boxes` (ema, 0.5) blends it.
     carried = np.array(points_box(first["body"])) * [1, 1, 1.2, 1.2]
-    np.testing.assert_allclose(second["person_roi"].rois[0, :4], (carried + [6, 6, 8, 8]) / 2)
+    np.testing.assert_allclose(second["crop_box"].boxes[0, :4], (carried + [6, 6, 8, 8]) / 2)
     for index, result in enumerate(results):
         assert result["body"].present.tolist() == [True] and result["frame_index"] == index
         assert result["both"].point_names == ("body/a", "body/b", "body/c", "hand/a", "hand/b", "hand/c")  # `concat`
@@ -89,13 +89,13 @@ def test_each_node_type_runs_in_one_pipeline_on_generated_models(root: Path) -> 
 # ---------------------------------------------------------------------------------------------
 
 STOPS = {  # (node, the one input that is empty): the node stops
-    ("body", "rois"): True, ("body", "image"): True,  # the `rois` input of a top-down model is required
-    ("trigger", "image"): True, ("trigger", "previous_keypoints"): False, ("trigger", "previous_rois"): False,  # optional inputs
-    ("points_box", "keypoints"): True, ("points_box", "previous_rois"): False, ("points_box", "reference_rois"): False,
+    ("body", "boxes"): True, ("body", "image"): True,  # the `boxes` input of a top-down model is required
+    ("trigger", "image"): True, ("trigger", "previous_keypoints"): False, ("trigger", "previous_boxes"): False,  # optional inputs
+    ("points_box", "keypoints"): True, ("points_box", "previous_boxes"): False, ("points_box", "reference_boxes"): False,
     ("carried_box", "value"): True, ("carried_box", "condition"): False,  # `gate` reads an empty `condition`
-    ("hold", "current"): True, ("hold", "previous"): False,  # `roi_hold` reads an empty `previous`
+    ("hold", "current"): True, ("hold", "previous"): False,  # `hold_boxes` reads an empty `previous`
     ("merged", "target"): True, ("merged", "source"): False,  # `merge` reads an empty `source`
-    ("crop", "rois"): False, ("smooth", "keypoints"): False,  # the filters read their empty input
+    ("crop", "boxes"): False, ("smooth", "keypoints"): False,  # the filters read their empty input
 }
 
 
@@ -127,11 +127,11 @@ def test_a_node_that_an_empty_input_stops_gives_empty_outputs_and_the_nodes_that
         dark = run.process(Frame(image(0), 0))  # the detector runs and finds nobody
         again = run.process(Frame(image(1), 1))
     assert dark["node_ran"] == {"person": True, "body": False, "hand": False}
-    for name in ("person_box", "person_roi", "body", "merged", "smooth"):
+    for name in ("detector_box", "crop_box", "body", "merged", "smooth"):
         assert is_empty(dark[name]) and len(dark[name].present) == 1, name  # an empty value still has its I rows
     # `concat` runs with its empty inputs: each column is a missing point.
     assert is_empty(dark["both"]) and dark["both"].xy.shape == (1, 6, 2) and (dark["both"].score == 0).all()
-    # The check `roi_missing` asks for a detection on the frame after a frame with no box.
+    # The check `box_missing` asks for a detection on the frame after a frame with no box.
     assert again["node_ran"] == {"person": True, "body": True, "hand": True} and again["body"].present.tolist() == [True]
 
 
@@ -152,7 +152,7 @@ def test_prev_is_empty_on_the_first_frame_and_then_gives_the_value_of_the_previo
     assert is_empty(first["a"]["prev_box"]) and is_empty(first["b"]["prev_box"])
     assert not np.allclose(points_box(first["a"]["body"]), points_box(first["b"]["body"]))
     for camera in sizes:
-        np.testing.assert_allclose(second[camera]["prev_box"].rois[0, :4], points_box(first[camera]["body"]))
+        np.testing.assert_allclose(second[camera]["prev_box"].boxes[0, :4], points_box(first[camera]["body"]))
         np.testing.assert_array_equal(second[camera]["prev_box"].instance_score, first[camera]["body"].instance_score)
 
 
@@ -170,9 +170,9 @@ def test_in_live_a_camera_that_a_call_does_not_hold_keeps_its_prev_value_and_its
         only_a = run.process_batch(frames_of(1, {"a": 48}, timestamp_ms=10.0))
         assert list(only_a) == ["a"] and run._executor.states[("b", "smooth")] is state
         only_b = run.process_batch(frames_of(5, {"b": 64}, timestamp_ms=20.0))
-    np.testing.assert_allclose(only_a["a"]["prev_box"].rois[0, :4], points_box(first["a"]["body"]))
+    np.testing.assert_allclose(only_a["a"]["prev_box"].boxes[0, :4], points_box(first["a"]["body"]))
     # The previous frame of `b` is its frame of the first call, not the frame of `a` of the second call.
-    np.testing.assert_allclose(only_b["b"]["prev_box"].rois[0, :4], points_box(first["b"]["body"]))
+    np.testing.assert_allclose(only_b["b"]["prev_box"].boxes[0, :4], points_box(first["b"]["body"]))
     assert not np.allclose(points_box(first["b"]["body"]), points_box(only_a["a"]["body"]))
 
 
@@ -231,7 +231,7 @@ def test_v_pipeline_running_6_a_live_frame_with_no_timestamp_refuses_the_call_an
         # The run accepts the next call. 10 is after 0 and before 1000: the refused call did not move the time of `a`.
         after = run.process_batch(frames_of(1, sizes, timestamp_ms=10.0))
     for camera in sizes:
-        np.testing.assert_allclose(after[camera]["prev_box"].rois[0, :4], points_box(first[camera]["body"]))
+        np.testing.assert_allclose(after[camera]["prev_box"].boxes[0, :4], points_box(first[camera]["body"]))
 
 
 def test_v_pipeline_running_7_a_video_camera_that_stops_to_give_timestamps_refuses_the_call_and_changes_no_state(root: Path) -> None:
@@ -293,7 +293,7 @@ def test_a_node_that_refuses_a_timestamp_after_other_nodes_ran_refuses_the_call_
         refuse.clear()
         after = run.process_batch(frames_of(1, sizes, timestamp_ms=10.0))
     for camera in sizes:  # `@prev` is still the value of the first call, also for camera `a`, whose nodes all ran in the refused call
-        np.testing.assert_allclose(after[camera]["prev_box"].rois[0, :4], points_box(first[camera]["body"]))
+        np.testing.assert_allclose(after[camera]["prev_box"].boxes[0, :4], points_box(first[camera]["body"]))
 
 
 # ---------------------------------------------------------------------------------------------
@@ -305,7 +305,7 @@ def test_node_ran_is_true_when_the_detector_ran_and_found_nobody_and_false_for_a
     with start(root, detector_pipeline()) as run:
         result = run.process(Frame(image(0), 0))
     assert result["node_ran"] == {"person": True, "body": False}
-    assert is_empty(result["person_box"]) and is_empty(result["body"])
+    assert is_empty(result["detector_box"]) and is_empty(result["body"])
 
 
 def test_node_ran_is_present_with_timing_off_and_the_sink_gets_no_line(root: Path, tmp_path: Path) -> None:
@@ -328,7 +328,7 @@ def test_a_padded_batch_item_is_not_a_run_a_live_call_gives_a_result_and_event_i
         assert sorted(item.batch for item in run._executor.sessions.opened.values()) == [2, 6]
         results = run.process_batch({"a": Frame(image(1), 7, 1.5)})
     assert list(results) == ["a"] and results["a"]["node_ran"] == {"person": True, "body": True}
-    assert results["a"]["body"].present.tolist() == [True, True, False]  # the padding ROI row is not a run
+    assert results["a"]["body"].present.tolist() == [True, True, False]  # the padding box row is not a run
     for event in lines[1:]:
         assert event["images"] == [{"frame_index": 7, "camera_id": "a"}] and event["batch_size"] == 1
 
@@ -390,7 +390,7 @@ def test_a_node_that_an_empty_input_stops_gives_no_timing_event(root: Path) -> N
     lines: list[dict] = []
     timed_run(root, lines.append, values=(0,))
     assert "schema" in lines[0]
-    # The detector ran and found nobody. `smooth_roi` reads its empty input, so it ran. The keypoint model did not run.
+    # The detector ran and found nobody. `smooth_boxes` reads its empty input, so it ran. The keypoint model did not run.
     assert [f"{event['node_id']}.{event['span']}" for event in lines[1:]] == [
         "trigger.run", "person.preprocess", "person.inference", "person.postprocess", "crop.run", "pipeline.run",
     ]
@@ -417,7 +417,7 @@ def test_the_aggregator_output_of_a_run_passes_the_skellybench_schema(root: Path
 def test_one_model_node_gives_its_stage_providers_to_the_aggregator(root: Path) -> None:
     lines: list[dict] = []
     data = detector_pipeline()
-    data["outputs"] = {"person_box": "person.detections"}  # `body` is not used, so it does not run
+    data["outputs"] = {"detector_box": "person.boxes"}  # `body` is not used, so it does not run
     data["instrumentation"] = {"timing_spans": ["person.preprocess", "person.inference", "person.postprocess"]}
     with start(root, data, timing_sink=lines.append) as run:
         assert run.process(Frame(image(1), 0))["node_ran"] == {"person": True, "body": False}

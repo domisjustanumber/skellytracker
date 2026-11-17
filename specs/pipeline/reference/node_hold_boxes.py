@@ -1,12 +1,12 @@
-"""Reference implementation of the pipeline section node.roi_hold.
+"""Reference implementation of the pipeline section node.hold_boxes.
 
 Note:
 
-- Section ID: node.roi_hold.
-- Source: the section text specs/pipeline/nodes/roi_hold.md. It follows the MediaPipe
+- Section ID: node.hold_boxes.
+- Source: the section text specs/pipeline/nodes/hold_boxes.md. It follows the MediaPipe
   RoiTrackingCalculator rules of MediaPipe-Exporter docs/mediapipe-whole-body.md (sections 1.8 and
   4.2) at 8f708a1ddecd8e035de15a5a9a7b652af035a58a.
-- Imported section modules: node.roi_from_points (node_roi_from_points, the function
+- Imported section modules: node.boxes_from_points (node_boxes_from_points, the function
   normalize_radians). Fixtures: none.
 """
 
@@ -15,19 +15,19 @@ from __future__ import annotations
 import math
 from typing import Any
 
-import node_roi_from_points
+import node_boxes_from_points
 
-# The defaults of RoiHoldParams in specs/pipeline/reference/pipeline_config.py.
+# The defaults of HoldBoxesParams in specs/pipeline/reference/pipeline_config.py.
 DEFAULTS = {"max_rotation_deg": 40.0, "max_offset": 0.2, "max_size_change": 0.4, "keypoint_margin": -0.1}
 
 
 def keep_previous(
     params: dict[str, Any], previous: list[float], current: list[float], points: list[list[float]]
 ) -> bool:
-    """True when the previous ROI passes the tests of steps 4 to 7 (node.roi_hold)."""
+    """True when the previous box passes the tests of steps 4 to 7 (node.hold_boxes)."""
     pcx, pcy, pw, ph, pr = previous
     cx, cy, w, h, r = current
-    if abs(node_roi_from_points.normalize_radians(pr - r)) > math.radians(params["max_rotation_deg"]):
+    if abs(node_boxes_from_points.normalize_radians(pr - r)) > math.radians(params["max_rotation_deg"]):
         return False
     c, s = math.cos(r), math.sin(r)
 
@@ -50,22 +50,22 @@ def keep_previous(
 
 
 def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
-    """Choose the previous or the current ROI of each row (node.roi_hold).
+    """Choose the previous or the current box of each row (node.hold_boxes).
 
     params holds the params of the node; a missing param takes its default. input holds previous
     and current (None for an empty input, else one [cx, cy, w, h, rotation] or None for each row)
     and the optional previous_keypoints (None or absent, else xy and present). It can also hold
     previous_instance_score and current_instance_score (one value for each row). The result holds
-    rois: None for an empty output, else one ROI or None for each row. With current_instance_score,
+    boxes: None for an empty output, else one box or None for each row. With current_instance_score,
     it also holds instance_score: a kept previous row keeps its previous value, from the last frame
     on which the instance source ran (pipeline.graph, Behaviour item 8); an empty row has 0.
     """
     params = {**DEFAULTS, **params}
     if not params["keypoint_margin"] > -1:
-        raise ValueError(f"V-node.roi_hold-1: keypoint_margin must be greater than -1, not {params['keypoint_margin']}")
+        raise ValueError(f"V-node.hold_boxes-1: keypoint_margin must be greater than -1, not {params['keypoint_margin']}")
     current = input["current"]
     if current is None:
-        return {"rois": None}
+        return {"boxes": None}
     previous = input["previous"] or [None] * len(current)
     keypoints = input.get("previous_keypoints")
     rows, kept = [], []
@@ -78,10 +78,10 @@ def run(params: dict[str, Any], input: dict[str, Any]) -> dict[str, Any]:
         kept.append(keep_previous(params, previous[i], roi, points))
         rows.append(previous[i] if kept[-1] else roi)
     if "current_instance_score" not in input:
-        return {"rois": rows}
+        return {"boxes": rows}
     previous_scores = input.get("previous_instance_score") or [0.0] * len(current)
     scores = [
         0.0 if row is None else (previous_scores[i] if kept[i] else input["current_instance_score"][i])
         for i, row in enumerate(rows)
     ]
-    return {"rois": rows, "instance_score": scores}
+    return {"boxes": rows, "instance_score": scores}

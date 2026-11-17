@@ -19,7 +19,7 @@ nodes:
         nms: {post_nms_top_k: 1}
   - id: body
     type: onnx_model
-    inputs: {image: frame.image, rois: person.rois}
+    inputs: {image: frame.image, boxes: person.boxes}
     params: {key: rtmpose-body17@openmmlab-exporter, size: m}
   - id: hands
     type: onnx_model
@@ -27,7 +27,7 @@ nodes:
     params: {key: rtmdet-hand@openmmlab-exporter, size: m, max_instances: 2}
   - id: hand
     type: onnx_model
-    inputs: {image: frame.image, rois: hands.rois}
+    inputs: {image: frame.image, boxes: hands.boxes}
     params: {key: rtmpose-hand21@openmmlab-exporter, size: m}
   - id: body_hands
     type: merge

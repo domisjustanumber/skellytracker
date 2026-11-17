@@ -76,39 +76,26 @@ class InstanceKeypoints:
 
 @dataclass(frozen=True)
 class InstanceBoxes:
-    """The value of a ``detections`` port: ``I`` rows, each with one box."""
+    """The value of a ``boxes`` port: ``I`` rows, each with one box ``(cx, cy, w, h, rotation)`` in source-image pixels."""
 
-    xyxy: NDArray[np.float64]
-    """``(I, 4)`` in source-image pixels."""
-    score: NDArray[np.float64]
-    """``(I,)``."""
+    boxes: NDArray[np.float64]
+    """``(I, 5)``: the centre, the width, the height and the rotation. ``rotation`` is in radians, clockwise, in ``[-pi, pi)``."""
+    instance_score: NDArray[np.float64]
+    """``(I,)``: the instance score of each row, from its instance source row."""
     class_index: NDArray[np.int64]
-    """``(I,)``: the class index of each row. -1 for a padding row."""
+    """``(I,)``: the class index of a detector row. -1 for a padding row and for a box that no detector made."""
     present: NDArray[np.bool_]
+    """``(I,)``: true for a present row."""
     track_ids: NDArray[np.int64]
+    """``(I,)``: -1 without an ``associate`` node."""
 
     @staticmethod
     def empty(rows: int) -> InstanceBoxes:
         """Return a value with ``rows`` padding rows."""
         return InstanceBoxes(
-            np.full((rows, 4), np.nan), np.zeros(rows), np.full(rows, -1, dtype=np.int64),
+            np.full((rows, 5), np.nan), np.zeros(rows), np.full(rows, -1, dtype=np.int64),
             np.zeros(rows, dtype=bool), np.full(rows, -1, dtype=np.int64),
         )
-
-
-@dataclass(frozen=True)
-class InstanceRois:
-    """The value of a ``roi`` port: ``I`` rows, each ``(cx, cy, w, h, rotation)`` in source-image pixels."""
-
-    rois: NDArray[np.float64]
-    """``(I, 5)``. ``rotation`` is in radians, clockwise, in ``[-pi, pi)``."""
-    instance_score: NDArray[np.float64]
-    present: NDArray[np.bool_]
-
-    @staticmethod
-    def empty(rows: int) -> InstanceRois:
-        """Return a value with ``rows`` padding rows."""
-        return InstanceRois(np.full((rows, 5), np.nan), np.zeros(rows), np.zeros(rows, dtype=bool))
 
 
 def is_empty(value: Any) -> bool:
@@ -131,7 +118,7 @@ class PortInfo:
     """The facts of one port that are fixed at load. The output schema gives them for each output.
 
     ``point_names``, ``groups``, ``geometry``, ``depth_unit`` and ``edges`` are only for a
-    ``keypoints`` port. ``class_names`` is only for a ``detections`` port. ``max_instances`` and
+    ``keypoints`` port. ``class_names`` is only for a ``boxes`` port whose instance source is a detector. ``max_instances`` and
     ``instance_source`` are for each instance port.
     """
 
@@ -150,8 +137,6 @@ class PortInfo:
         """Return the empty value of the port."""
         if self.port_type == "keypoints":
             return InstanceKeypoints.empty(self.point_names, self.max_instances or 0, self.geometry)
-        if self.port_type == "detections":
+        if self.port_type == "boxes":
             return InstanceBoxes.empty(self.max_instances or 0)
-        if self.port_type == "roi":
-            return InstanceRois.empty(self.max_instances or 0)
         return None

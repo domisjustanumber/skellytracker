@@ -5,7 +5,7 @@ The tool loads it by its path, with `make_vectors.load_reference`. The model mus
 
 - `PipelineConfig`, a Pydantic model. `PipelineConfig.model_json_schema()` is the schema.
 - `NODE_TYPES`, a tuple of classes. Each class has the class attributes `type` (for example
-  `roi_from_points`), `section` (`node.<type>`), `Params` (a Pydantic model), `inputs` and
+  `boxes_from_points`), `section` (`node.<type>`), `Params` (a Pydantic model), `inputs` and
   `outputs` (port name -> port type).
 
 Each field of `Params` has a `description`, and a `json_schema_extra` with `set_during_run` (a bool) and
