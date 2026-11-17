@@ -194,7 +194,7 @@ def test_the_default_precision_is_fp16_on_a_gpu_ep_and_fp32_on_cpu_and_fp32_when
 def two_detectors() -> dict[str, Any]:
     data = detector_pipeline()
     data["nodes"].append({**data["nodes"][0], "id": "again"})
-    data["outputs"]["again_box"] = "again.boxes"
+    data["outputs"]["boxes"] = "again.boxes"  # `body.keypoints` uses `person`: each detector runs
     return data
 
 
@@ -218,7 +218,7 @@ def test_two_nodes_with_the_same_artifact_share_one_session_in_a_run_and_two_run
     first.close()
     assert opened == {}  # `close()` frees the sessions of the run
     result = second.process_batch({"a": Frame(image(1), 0), "b": Frame(image(1), 0)})  # the other run still runs
-    assert result["a"]["again_box"].present.tolist() == [True]
+    assert result["a"]["boxes"].present.tolist() == [True]
     second.close()
 
 
@@ -231,7 +231,7 @@ def test_a_host_with_no_onnx_extra_runs_the_artifact_at_its_own_batch_and_the_ru
         assert [call["batch"] for call in calls] == [None, None]  # no batch conversion: the sessions of the artifacts, batch 3
         assert [item.batch for item in run._executor.sessions.opened.values()] == [3, 3]
         result = run.process(Frame(image(1), 0))  # one image in a batch-3 session: `run_batches` pads and drops
-        assert result["detector_box"].present.tolist() == [True] and result["node_ran"] == {"person": True, "body": True}
+        assert result["boxes"].present.tolist() == [True] and result["node_ran"] == {"person": True, "body": True}
 
 
 def test_ep_partial_placement_gives_one_warning_for_each_session_with_nodes_on_the_cpu_ep(root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -328,8 +328,8 @@ def test_the_cameras_split_across_two_gpus_and_each_gpu_has_its_own_sessions_at_
         results = run.process_batch({camera: Frame(image(1 + index), 0) for index, camera in enumerate(cameras)})
         assert list(results) == cameras
         for index, camera in enumerate(cameras):  # the scores of the test model follow the image of the camera
-            np.testing.assert_allclose(results[camera]["detector_box"].instance_score, np.array([0.9, 0.75]) * (1 + index), rtol=1e-6)
-            assert results[camera]["body"].present.tolist() == [True, True]
+            np.testing.assert_allclose(results[camera]["boxes"].score, np.array([0.9, 0.75]) * (1 + index), rtol=1e-6)
+            assert results[camera]["wholebody"].present.tolist() == [True, True]
 
 
 def test_a_run_with_more_gpus_than_cameras_uses_one_gpu_for_each_camera(root: Path, monkeypatch: pytest.MonkeyPatch) -> None:

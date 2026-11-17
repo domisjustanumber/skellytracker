@@ -17,11 +17,10 @@ root [open-work.md](../../../decisions/open-work.md).
   [ADR-TH8E](../../../decisions/entries/TH8E-one-person-in-v2.md)). Each `track_ids` value is -1
   ([Graph](../graph.md#behaviour) item 8). A later `associate` node type gives the rows an identity
   and removes the limit.
-- **Values of the port type `flag`.** The value of an output of the port type `flag` is not fixed
-  ([Outputs](../outputs.md#behaviour) item 6). Stage 4 of the
-  [build order](../proposals/node-and-port-redesign.md#10-build-order) of the redesign gives the
-  delivered values. Stage 7 gives the tap form of a flag. No node gives an image, so an image has no
-  output value.
+- **Tap form of the port type `flag`.** A flag is not an output: the `outputs` block has no key for
+  it ([Outputs](../outputs.md#behaviour) item 6). Stage 7 of the
+  [build order](../proposals/node-and-port-redesign.md#10-build-order) of the redesign gives the tap
+  form of a flag. Until then the start of a run refuses a tap on a `flag` port.
 - **Video replay.** A replay refuses a tap with no image list hash, so only the COCO input form can
   be replayed ([Taps](../taps.md#behaviour) item 5). A video replay needs an image list hash for
   video.

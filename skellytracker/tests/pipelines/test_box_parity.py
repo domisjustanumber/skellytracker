@@ -5,6 +5,9 @@ The fixture `data/sfn26_box_parity.npz` holds the values of the old tracker for 
 through `start_pipeline`. Only the model call of the two `onnx_model` nodes is replaced: the
 detectors give the recorded YOLOX box and the recorded keypoints of the frame. The executor runs
 each node under its normal rules. The test needs no ONNX file and no session.
+
+The test reads the delivered output `boxes`: `xyxy` must be the corners of the port value
+`crop.boxes`, and `detector_ran` must be the recorded detector run (ADR-9HTX items 16 and 17).
 """
 from __future__ import annotations
 
@@ -95,19 +98,22 @@ def test_the_box_logic_of_the_built_in_agrees_with_the_recording_of_sfn26(record
             frame["k"] = k
             result = run.process(Frame(image, int(data["frame_index"][k]), float(data["timestamp_ms"][k])))
             assert (result["image_width"], result["image_height"]) == (width, height)
-            crop = result["crop_box"]
+            crop = result["boxes"]  # the delivered crop box: upright `xyxy`, with `detector_ran`
             if result["node_ran"]["person"] != data["detector_ran"][k]:
                 differences.append(f"frame {k}: node_ran.person is {result['node_ran']['person']}, detector_ran is {data['detector_ran'][k]}")
+            if crop.detector_ran.tolist() != [data["detector_ran"][k]]:
+                differences.append(f"frame {k}: boxes.detector_ran is {crop.detector_ran.tolist()}, detector_ran is {data['detector_ran'][k]}")
             # The old tracker runs RTMW exactly on the frames with a box, and the node `wholebody` stops on an empty box.
             if result["node_ran"]["wholebody"] != data["keypoints_ran"][k]:
                 differences.append(f"frame {k}: node_ran.wholebody is {result['node_ran']['wholebody']}, keypoints_ran is {data['keypoints_ran'][k]}")
             if bool(crop.present[0]) != data["box_present"][k]:
-                differences.append(f"frame {k}: crop_box present is {bool(crop.present[0])}, box_present is {data['box_present'][k]}")
+                differences.append(f"frame {k}: boxes present is {bool(crop.present[0])}, box_present is {data['box_present'][k]}")
             elif crop.present[0]:
-                xyxy = box_to_xyxy(crop.boxes[0])
+                xyxy = crop.xyxy[0]
+                np.testing.assert_array_equal(xyxy, box_to_xyxy(run._executor.port_values[0][("crop", "boxes")].boxes[0]))  # noqa: SLF001
                 error = float(np.abs(xyxy - data["smoothed_box"][k]).max())
                 if not error <= 1e-6:
-                    differences.append(f"frame {k}: crop_box {xyxy.tolist()} differs from smoothed_box {data['smoothed_box'][k].tolist()} by {error} px")
+                    differences.append(f"frame {k}: boxes {xyxy.tolist()} differs from smoothed_box {data['smoothed_box'][k].tolist()} by {error} px")
                 clip = clip_to_pixels(xyxy, result["image_width"], result["image_height"])
                 if clip != data["bounding_box"][k].tolist():
                     differences.append(f"frame {k}: the clip {clip} is not {data['bounding_box'][k].tolist()}")

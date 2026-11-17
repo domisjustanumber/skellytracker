@@ -21,7 +21,7 @@ CONFIG = {
         {"id": "hands", "type": "mediapipe_tasks", "inputs": {"image": "frame.image"}, "params": {"variant": "hand"}},
         {"id": "both", "type": "concat", "inputs": ["wholebody.keypoints", "hands.keypoints"]},
     ],
-    "outputs": {"wholebody": "wholebody.keypoints", "hands": "hands.keypoints"},
+    "outputs": {"wholebody": "wholebody.keypoints", "boxes": "crop.boxes"},
     "instrumentation": {"timing_spans": ["pipeline.run", "wholebody.inference"]},
 }
 EXECUTION = {

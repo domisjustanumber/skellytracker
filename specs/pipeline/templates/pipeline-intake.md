@@ -21,6 +21,9 @@ The bundle rules are in "Pipeline bundles" in
 
 One or two sentences: what the pipeline finds, and for which use.
 
+Name each key of the `outputs` block of the file: `wholebody`, `holistic` or `boxes`, with its port.
+A file has one key or more, and no other key (skellytracker ADR-9HTX).
+
 ## 2. Models
 
 One row for each `onnx_model` node.

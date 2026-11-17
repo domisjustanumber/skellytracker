@@ -55,9 +55,17 @@ def with_nodes(*nodes: dict[str, Any], outputs: dict[str, str] | None = None, **
     return data
 
 
-def mediapipe_pipeline(*nodes: dict[str, Any], outputs: dict[str, str], **params: Any) -> dict[str, Any]:
+def mediapipe_pipeline(*nodes: dict[str, Any], outputs: dict[str, str] | None = None, **params: Any) -> dict[str, Any]:
+    """Return a config with the `mediapipe_tasks` node `mp` (the group `mp`) and `nodes`.
+
+    With no `outputs`, the config gets the node `mp_box` (a box around the points of `mp`) and the output `boxes`.
+    """
     first = {"id": "mp", "type": "mediapipe_tasks", "inputs": {"image": "frame.image"}, "params": {"variant": "body", **params}}
-    return {**detector_pipeline(), "nodes": [first, *copy.deepcopy(list(nodes))], "outputs": outputs}
+    nodes = [first, *copy.deepcopy(list(nodes))]
+    if outputs is None:
+        nodes.append({"id": "mp_box", "type": "boxes_from_points", "inputs": {"keypoints": "mp.keypoints"}})
+        outputs = {"boxes": "mp_box.boxes"}
+    return {**detector_pipeline(), "nodes": nodes, "outputs": outputs}
 
 
 # ---------------------------------------------------------------------------------------------
@@ -69,20 +77,19 @@ def test_the_output_schema_of_two_models_comes_from_the_sidecars(root: Path) -> 
     resolved = resolve(config_of(detector_pipeline(max_instances=2)), root)
     assert resolved.order == ("person", "body")
     assert resolved.output_schema == {
-        "body": {
+        "wholebody": {
             "port_type": "keypoints",
+            # The canonical form: the schema `Demo3` has no canonical mapping, so its group passes through.
             "point_names": ["body/a", "body/b", "body/c"],
             # A schema with one group gives the group the id of the node.
             "groups": [{"name": "body", "start": 0, "count": 3, "landmark_schema": "Demo3"}],
-            "canonical_names": ["body/a", "body/b", "body/c"],
             "geometry": "2d",
             "max_instances": 2,
             "tracked": False,
             "instance_source": "person",
             "edges": [["body/a", "body/b"], ["body/b", "body/c"]],
-            "canonical_edges": [["body/a", "body/b"], ["body/b", "body/c"]],
         },
-        "detector_box": {"port_type": "boxes", "class_names": ["person"], "max_instances": 2, "tracked": False, "instance_source": "person"},
+        "boxes": {"port_type": "boxes", "class_names": ["person"], "max_instances": 2, "tracked": False, "instance_source": "person"},
     }
     person, body = resolved.nodes["person"], resolved.nodes["body"]
     assert (person.model.kind, person.model.key, person.model.version, person.model.precisions) == ("object", OBJECT_KEY, "0.1.0", ("fp32",))
@@ -98,16 +105,16 @@ def test_an_edge_with_a_derived_point_is_not_in_the_edges(tmp_path: Path) -> Non
     sidecar["keypoint"]["skeletons"][0]["edges"].append(["mid", "c"])
     root = write_models(tmp_path / "user")
     write_sidecar(root, sidecar)
-    assert resolve(config_of(detector_pipeline()), root).output_schema["body"]["edges"] == [["body/a", "body/b"], ["body/b", "body/c"]]
+    assert resolve(config_of(detector_pipeline()), root).output_schema["wholebody"]["edges"] == [["body/a", "body/b"], ["body/b", "body/c"]]
 
 
 def test_the_output_schema_of_mediapipe_holistic_tasks(tmp_path: Path) -> None:
     resolved = resolve(load_pipeline_file(PACKAGE_PIPELINE_ROOT / "mediapipe-holistic-tasks.pipeline.yaml"), tmp_path)
     schema = resolved.output_schema["holistic"]
-    assert len(schema["point_names"]) == 553 and schema["canonical_names"] == schema["point_names"]
-    # Each group passes through, so each edge keeps its names.
-    assert schema["canonical_edges"] == schema["edges"] and len(schema["edges"]) == 213
-    assert all(point in schema["canonical_names"] for edge in schema["canonical_edges"] for point in edge)
+    # Each group passes through, so each point and each edge keeps its names.
+    assert len(schema["point_names"]) == 553 and schema["point_names"] == list(resolved.port_info("holistic", "keypoints").point_names)
+    assert len(schema["edges"]) == 213 and all(point in schema["point_names"] for edge in schema["edges"] for point in edge)
+    assert "canonical_names" not in schema and "canonical_edges" not in schema
     assert [(group["name"], group["count"], group["landmark_schema"]) for group in schema["groups"]] == [
         ("body", 33, None), ("right_hand", 21, None), ("left_hand", 21, None), ("face", 478, None),
     ]
@@ -121,24 +128,18 @@ def test_the_output_schema_of_yolox_rtmw_wholebody_with_the_package_sidecars(tmp
     resolved = resolve(load_pipeline_file(PACKAGE_PIPELINE_ROOT / "yolox-rtmw-wholebody.pipeline.yaml"), tmp_path)
     assert resolved.order == ("trigger", "person", "detected_box", "points_box", "carried_box", "box", "crop", "wholebody")
     schema = resolved.output_schema
-    assert schema["wholebody"]["groups"] == [  # the example of `specs/pipeline/outputs.md`
-        {"name": "body", "start": 0, "count": 17, "landmark_schema": "COCO_WholeBody"},
-        {"name": "feet", "start": 17, "count": 6, "landmark_schema": "COCO_WholeBody"},
-        {"name": "face", "start": 23, "count": 68, "landmark_schema": "COCO_WholeBody"},
-        {"name": "left_hand", "start": 91, "count": 21, "landmark_schema": "COCO_WholeBody"},
-        {"name": "right_hand", "start": 112, "count": 21, "landmark_schema": "COCO_WholeBody"},
-    ]
+    assert [group.name for group in resolved.port_info("wholebody", "keypoints").groups] == ["body", "feet", "face", "left_hand", "right_hand"]
+    assert len(resolved.port_info("wholebody", "keypoints").point_names) == 133
+    # The output schema describes the delivered canonical form: 137 names, and only the group `face` passes through.
     names = schema["wholebody"]["point_names"]
-    assert len(names) == len(set(names)) == 133 and names[0].startswith("body/") and names[-1].startswith("right_hand/")
-    assert len(schema["wholebody"]["canonical_names"]) == 137 and schema["wholebody"]["geometry"] == "2d"
-    assert "depth_unit" not in schema["wholebody"]
-    assert schema["wholebody"]["edges"] and all(a in names and b in names for a, b in schema["wholebody"]["edges"])
-    canonical_edges = schema["wholebody"]["canonical_edges"]
-    assert len(canonical_edges) == len(schema["wholebody"]["edges"]) == 130
-    assert all(point in schema["wholebody"]["canonical_names"] for edge in canonical_edges for point in edge)
-    assert ["body/left_ankle", "body/left_big_toe"] in canonical_edges and ["left_hand/wrist", "left_hand/thumb_cmc"] in canonical_edges
-    assert schema["detector_box"]["class_names"] == schema["crop_box"]["class_names"] == ["person"] and schema["crop_box"]["port_type"] == "boxes"
-    assert [(schema[name]["instance_source"], schema[name]["max_instances"]) for name in ("wholebody", "detector_box", "crop_box")] == [("person", 1)] * 3
+    assert len(names) == len(set(names)) == 137 and names[0] == "body/nose" and "canonical_names" not in schema["wholebody"]
+    assert schema["wholebody"]["groups"] == [{"name": "face", "start": 27, "count": 68, "landmark_schema": "COCO_WholeBody"}]
+    assert schema["wholebody"]["geometry"] == "2d" and "depth_unit" not in schema["wholebody"]
+    edges = schema["wholebody"]["edges"]
+    assert len(edges) == 130 and all(point in names for edge in edges for point in edge) and "canonical_edges" not in schema["wholebody"]
+    assert ["body/left_ankle", "body/left_big_toe"] in edges and ["left_hand/wrist", "left_hand/thumb_cmc"] in edges
+    assert set(schema) == {"wholebody", "boxes"} and schema["boxes"]["class_names"] == ["person"] and schema["boxes"]["port_type"] == "boxes"
+    assert [(schema[name]["instance_source"], schema[name]["max_instances"]) for name in ("wholebody", "boxes")] == [("person", 1)] * 2
     assert resolved.nodes["person"].model.decode.nms.post_nms_top_k == 1
     assert resolved.needs_execution_provider and resolved.has_onnx_model
     # The `@prev` consumers, and the temporal nodes upstream of a model. The mode does not change them.
@@ -158,13 +159,13 @@ def test_a_load_check_of_a_glue_node_keeps_its_rule_id_and_a_load_warning_is_a_p
     hand = {"id": "hand", "type": "mediapipe_tasks", "inputs": {"image": "frame.image"}, "params": {"variant": "hand"}}
     merge = {"id": "both", "type": "merge", "inputs": {"target": "mp.keypoints", "source": "hand.keypoints"},
              "params": {"slots": {"mp": "mp/left_wrist"}, "source_anchor": "hand/wrist", "max_distance": 0.2}}
-    resolved = resolve(config_of(mediapipe_pipeline(hand, merge, outputs={"both": "both.keypoints"})), tmp_path)
+    resolved = resolve(config_of(mediapipe_pipeline(hand, merge)), tmp_path)
     (warning,) = resolved.warnings
     assert (warning.code, warning.node_ids) == ("merge_unfilled_points", ("both",)) and len(warning.details["points"]) == 33
     assert resolved.nodes["both"].infos is not None  # the `prepare` result of the node module
     merge["params"]["source_anchor"] = "hand/no_point"
     with pytest.raises(ValueError, match="^V-node.merge-2: both"):
-        resolve(config_of(mediapipe_pipeline(hand, merge, outputs={"both": "both.keypoints"})), tmp_path)
+        resolve(config_of(mediapipe_pipeline(hand, merge)), tmp_path)
 
 
 # ---------------------------------------------------------------------------------------------
@@ -192,7 +193,7 @@ def test_v_node_onnx_model_2_the_role_must_match_the_boxes_input_and_the_used_po
         resolve(config_of(with_nodes(second)), root)
     # An output, an input of a node and a tap use a port.
     with pytest.raises(ValueError, match=r"^V-node.onnx_model-2: person: .*\['keypoints'\]"):
-        resolve(config_of(with_nodes(outputs={"points": "person.keypoints"})), root)
+        resolve(config_of(with_nodes(outputs={"wholebody": "person.keypoints"})), root)
     smooth = {"id": "smooth", "type": "smooth_boxes", "inputs": {"boxes": "body.boxes"}}
     with pytest.raises(ValueError, match=r"^V-node.onnx_model-2: body: .*\['boxes'\]"):
         resolve(config_of(with_nodes(smooth)), root)
@@ -312,20 +313,19 @@ def test_v_pipeline_graph_8_a_point_name_of_a_sidecar_must_have_no_slash_and_no_
 def test_v_pipeline_graph_10_the_groups_that_the_nodes_make_must_have_unique_names(tmp_path: Path) -> None:
     holistic = {"variant": "holistic"}
     other = {"id": "other", "type": "mediapipe_tasks", "inputs": {"image": "frame.image"}, "params": holistic}
-    outputs = {"one": "mp.keypoints", "two": "other.keypoints"}
     with pytest.raises(ValueError, match="^V-pipeline.graph-10: the nodes mp and other both make the group 'body'"):
-        resolve(config_of(mediapipe_pipeline(other, outputs=outputs, **holistic)), tmp_path)
+        resolve(config_of(mediapipe_pipeline(other, **holistic)), tmp_path)
     # A variant with one group gives the group the id of its node.
     other["params"] = {"variant": "body"}
-    resolve(config_of(mediapipe_pipeline(other, outputs=outputs)), tmp_path)
+    resolve(config_of(mediapipe_pipeline(other)), tmp_path)
     # An adding slot of a `merge` node makes a group. A replacing slot makes none.
     hand = {"id": "hand", "type": "mediapipe_tasks", "inputs": {"image": "frame.image"}, "params": {"variant": "hand"}}
     merge = {"id": "both", "type": "merge", "inputs": {"target": "mp.keypoints", "source": "hand.keypoints"},
              "params": {"slots": {"hand": "mp/left_wrist"}, "source_anchor": "hand/wrist", "max_distance": 0.2}}
     with pytest.raises(ValueError, match="^V-pipeline.graph-10: the nodes hand and both both make the group 'hand'"):
-        resolve(config_of(mediapipe_pipeline(hand, merge, outputs={"both": "both.keypoints"})), tmp_path)
+        resolve(config_of(mediapipe_pipeline(hand, merge)), tmp_path)
     merge["params"]["slots"] = {"left": "mp/left_wrist", "mp": "mp/right_wrist"}
-    resolve(config_of(mediapipe_pipeline(hand, merge, outputs={"both": "both.keypoints"})), tmp_path)
+    resolve(config_of(mediapipe_pipeline(hand, merge)), tmp_path)
 
 
 @pytest.mark.parametrize(
@@ -351,14 +351,14 @@ def test_v_pipeline_graph_11_each_prev_input_must_have_one_row(root: Path, tmp_p
     hold["inputs"]["previous"] = "person.boxes"
     resolve(config_of(with_nodes(hold, max_instances=2)), root)
     box = {"id": "box", "type": "boxes_from_points", "inputs": {"keypoints": "mp.keypoints@prev"}}
-    resolve(config_of(mediapipe_pipeline(box, outputs={"box": "box.boxes"})), tmp_path)
+    resolve(config_of(mediapipe_pipeline(box, outputs={"boxes": "box.boxes"})), tmp_path)
     with pytest.raises(ValueError, match="^V-pipeline.graph-11: box: the input mp.keypoints@prev has I = 2"):
-        resolve(config_of(mediapipe_pipeline(box, outputs={"box": "box.boxes"}, max_instances=2)), tmp_path)
+        resolve(config_of(mediapipe_pipeline(box, outputs={"boxes": "box.boxes"}, max_instances=2)), tmp_path)
 
 
 def test_v_pipeline_outputs_2_each_point_name_of_an_output_must_be_unique(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """The nodes of the package give no repeated name, so the test changes the facts of a node."""
-    config = config_of(mediapipe_pipeline(outputs={"points": "mp.keypoints"}))
+    config = config_of(mediapipe_pipeline(outputs={"holistic": "mp.keypoints"}, variant="holistic"))
     resolve(config, tmp_path)
     output_info = mediapipe_tasks.output_info
 
@@ -368,7 +368,7 @@ def test_v_pipeline_outputs_2_each_point_name_of_an_output_must_be_unique(tmp_pa
         return {"keypoints": PortInfo(**{**vars(ports["keypoints"]), "point_names": (names[1], *names[1:])})}, warnings
 
     monkeypatch.setattr(mediapipe_tasks, "output_info", repeated)
-    with pytest.raises(ValueError, match="^V-pipeline.outputs-2: the output 'points' .*mp/left_eye_inner"):
+    with pytest.raises(ValueError, match="^V-pipeline.outputs-2: the output 'holistic' .*body/left_eye_inner"):
         resolve(config, tmp_path)
 
 
@@ -379,7 +379,7 @@ def test_v_pipeline_outputs_2_each_point_name_of_an_output_must_be_unique(tmp_pa
 
 def test_a_smooth_keypoints_node_after_the_last_model_does_not_make_a_pipeline_stateful(root: Path) -> None:
     smooth = {"id": "smooth", "type": "smooth_keypoints", "inputs": {"keypoints": "body.keypoints"}}
-    resolved = resolve(config_of(with_nodes(smooth, outputs={"body": "smooth.keypoints"})), root)
+    resolved = resolve(config_of(with_nodes(smooth, outputs={"wholebody": "smooth.keypoints"})), root)
     assert [resolved.stateful_nodes(mode) for mode in MODES] == [(), (), ()]
     # A temporal node upstream of a model, and a node with an `@prev` input, make it stateful.
     data = with_nodes({"id": "crop", "type": "smooth_boxes", "inputs": {"boxes": "person.boxes"}}, smooth)
@@ -393,11 +393,11 @@ def test_a_mediapipe_tasks_node_upstream_of_a_model_is_temporal_only_in_video_an
     data = mediapipe_pipeline(
         {"id": "box", "type": "boxes_from_points", "inputs": {"keypoints": "mp.keypoints"}},
         {"id": "body", "type": "onnx_model", "inputs": {"image": "frame.image", "boxes": "box.boxes"}, "params": {"key": KEYPOINT_KEY, "size": "m"}},
-        outputs={"body": "body.keypoints"},
+        outputs={"wholebody": "body.keypoints"},
     )
     resolved = resolve(config_of(data), root)
     assert [resolved.stateful_nodes(mode) for mode in MODES] == [(), ("mp",), ("mp",)]
-    assert resolved.output_schema["body"]["instance_source"] == "mp"
+    assert resolved.output_schema["wholebody"]["instance_source"] == "mp"
 
 
 def test_needs_execution_provider_is_true_when_an_onnx_model_node_has_no_execution_provider(root: Path, tmp_path: Path) -> None:
@@ -407,7 +407,7 @@ def test_needs_execution_provider_is_true_when_an_onnx_model_node_has_no_executi
     resolved = resolve(config_of(data), root)
     assert resolved.needs_execution_provider and resolved.has_onnx_model
     assert check_pipeline(config_of(data), user_root=root).needs_execution_provider
-    no_model = resolve(config_of(mediapipe_pipeline(outputs={"points": "mp.keypoints"})), tmp_path)
+    no_model = resolve(config_of(mediapipe_pipeline()), tmp_path)
     assert not no_model.needs_execution_provider and not no_model.has_onnx_model
 
 
@@ -434,7 +434,7 @@ def test_an_onnx_file_that_is_absent_gives_the_warning_missing_dependency_and_th
         ("missing_dependency", ("person",), ["demo-n_b3_fp32.onnx"]),
         ("missing_dependency", ("body",), ["demo-body-m_b3_fp32.onnx"]),
     ]
-    assert "is not present" in check.warnings[0].message and check.output_schema["body"]["max_instances"] == 1
+    assert "is not present" in check.warnings[0].message and check.output_schema["wholebody"]["max_instances"] == 1
     (entry,) = [entry for entry in list_pipelines(root) if entry.key == "demo-models@demo-source"]
     assert not entry.available and "demo-n_b3_fp32.onnx" in entry.unavailable_reason and entry.warnings == check.warnings
     assert get_pipeline("demo-models@demo-source", root) == entry and entry.needs_execution_provider is False
@@ -448,7 +448,7 @@ def test_an_onnx_file_with_a_different_hash_gives_the_warning_missing_dependency
 
 
 def test_an_extra_that_is_not_installed_gives_the_warning_missing_dependency(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    data = mediapipe_pipeline(outputs={"points": "mp.keypoints"})
+    data = mediapipe_pipeline()
     write_pipeline(tmp_path, data)
     assert resolve(config_of(data), tmp_path).warnings == () or mediapipe_tasks.missing_extra() is not None
     monkeypatch.setattr(mediapipe_tasks, "missing_extra", lambda: "mediapipe")

@@ -102,6 +102,33 @@ class InstanceBoxes:
         )
 
 
+@dataclass(frozen=True)
+class OutputBoxes:
+    """The delivered value of the output ``boxes``: ``I`` upright boxes ``(x1, y1, x2, y2)`` in source-image pixels.
+
+    The run makes it from a ``boxes`` value that the load proved upright (``V-pipeline.outputs-5``).
+    It has no rotation and no ``track_ids``. The pipeline does not clip a box to the image.
+    """
+
+    xyxy: NDArray[np.float64]
+    """``(I, 4)``: ``(cx - w/2, cy - h/2, cx + w/2, cy + h/2)`` of each row. A padding row is NaN."""
+    score: NDArray[np.float64]
+    """``(I,)``: the ``instance_score`` of each row."""
+    class_index: NDArray[np.int64]
+    """``(I,)``: the class index of each row, -1 when no detector made the row."""
+    present: NDArray[np.bool_]
+    """``(I,)``: true for a present row."""
+    detector_ran: NDArray[np.bool_]
+    """``(I,)``: true when the instance source node of the boxes ran for this camera on this frame. Each row has the same value."""
+
+
+def to_output_boxes(boxes: InstanceBoxes, detector_ran: bool) -> OutputBoxes:
+    """Return the delivered form of an upright ``boxes`` value. ``detector_ran`` is the ``node_ran`` of its instance source."""
+    cx, cy, w, h = boxes.boxes[:, :4].T
+    xyxy = np.stack([cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2], axis=1)
+    return OutputBoxes(xyxy, boxes.instance_score, boxes.class_index, boxes.present, np.full(len(boxes.present), detector_ran))
+
+
 def is_empty(value: Any) -> bool:
     """Return true for an empty value: ``None``, or an instance value with no present row."""
     return value is None or (hasattr(value, "present") and not bool(np.any(value.present)))

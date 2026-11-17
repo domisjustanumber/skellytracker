@@ -2,7 +2,7 @@
 
 ## Overview
 
-A **pipeline** is one YAML file that connects models and glue steps into a graph. Each node of the graph is one ONNX model, one MediaPipe Tasks landmarker or one glue node. The edges are the ports. The file names the public outputs, the timing spans and the taps. A run takes the file and frames of one or more cameras, and gives the outputs of each camera. The pipeline spec never defines model processing. The preprocessing, the inference and the postprocessing of a model are in the [sidecar spec](../model-sidecar/README.md). A change of model processing is a sidecar proposal ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md); [ADR-3SF2](../../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md)).
+A **pipeline** is one YAML file that connects models and glue steps into a graph. Each node of the graph is one ONNX model, one MediaPipe Tasks landmarker or one glue node. The edges are the ports. The file names the delivered outputs, the timing spans and the taps. A run takes the file and frames of one or more cameras, and gives the outputs of each camera. The pipeline spec never defines model processing. The preprocessing, the inference and the postprocessing of a model are in the [sidecar spec](../model-sidecar/README.md). A change of model processing is a sidecar proposal ([ADR-7NY2](../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md); [ADR-3SF2](../../decisions/entries/3SF2-pipeline-spec-and-node-workflow.md)).
 
 This document is the one entry point of the pipeline spec.
 
@@ -16,7 +16,7 @@ The pipeline spec is a draft. Each section is `draft`. The `schema_version` of a
 
 1. [Pipeline file](file.md): the top-level keys, the input forms, the key and the discovery.
 2. [Graph](graph.md): the nodes, the ports, the box type, the empty values, the point names and the instance rows.
-3. [Outputs](outputs.md): the public outputs, the result of each camera and the output schema.
+3. [Outputs](outputs.md): the `outputs` block with its keys `wholebody`, `holistic` and `boxes`, the delivered values, the result of each camera and the output schema.
 4. The node sections in [`nodes/`](#section-map): the params and the ports of each node type.
 5. [Running](running.md): the running modes, the batch, the warnings and the start checks.
 6. [Timing](timing.md) and [Taps](taps.md): the instrumentation.
@@ -119,7 +119,7 @@ A pipeline file and its run are valid when all of the following rules hold.
 
 - [Pipeline file](file.md#validation-rules): `V-pipeline.file-1` to `V-pipeline.file-5`
 - [Graph](graph.md#validation-rules): `V-pipeline.graph-1` to `V-pipeline.graph-12`
-- [Outputs](outputs.md#validation-rules): `V-pipeline.outputs-1` to `V-pipeline.outputs-3`
+- [Outputs](outputs.md#validation-rules): `V-pipeline.outputs-1`, `V-pipeline.outputs-2`, `V-pipeline.outputs-4`, `V-pipeline.outputs-5`. The rule `V-pipeline.outputs-3` is removed, and its ID is not used again.
 - [Running](running.md#validation-rules): `V-pipeline.running-1` to `V-pipeline.running-10`
 - [Timing](timing.md#validation-rules): `V-pipeline.timing-1`
 - [Taps](taps.md#validation-rules): `V-pipeline.taps-1` to `V-pipeline.taps-7`

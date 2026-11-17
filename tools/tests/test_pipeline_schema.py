@@ -11,7 +11,9 @@ check two things:
   the front matter `id` of `nodes/<type>.md` is that section. Each port type is a known port
   type. Each `specs/pipeline/examples/*.pipeline.yaml` passes `PipelineConfig.model_validate`.
   The structural checks refuse a small config for each newer rule (point-name prefixes, list
-  inputs, `any` types, outputs and taps with no `@prev` or frame port, an output name that is a field of the camera result).
+  inputs, `any` types, outputs and taps with no `@prev` or frame port, an output key that is not
+  `wholebody`, `holistic` or `boxes`, an output port of the wrong type, and an output `boxes` that
+  can hold a rotated box).
 
 The repository tests skip when the reference model does not exist. The example test also skips
 when there are no examples.
@@ -191,12 +193,13 @@ def _config(nodes: list[dict], outputs: dict | None = None, taps: list[dict] | N
     ]
     return {
         "schema_version": "2.0.0", "pipeline_id": "t", "source": {"name": "skellytracker", "version": "2.0.0"},
-        "nodes": base + nodes, "outputs": outputs or {"body": "body.keypoints"},
+        "nodes": base + nodes, "outputs": outputs or {"wholebody": "body.keypoints"},
         "instrumentation": {"taps": taps or []},
     }
 
 
 BOX = {"id": "box", "type": "boxes_from_points", "inputs": {"keypoints": "body.keypoints"}}
+TURNED = {**BOX, "params": {"size_rule": "alignment", "alignment_start": "body/a", "alignment_end": "body/b", "target_rotation_deg": 90}}
 
 
 @needs_model
@@ -230,9 +233,14 @@ BOX = {"id": "box", "type": "boxes_from_points", "inputs": {"keypoints": "body.k
         (_config([{"id": "need", "type": "redetect_trigger", "inputs": {"image": "frame.image"}}]), "V-pipeline.graph-5"),
         (_config([{"id": "other", "type": "onnx_model", "inputs": {"image": "person.boxes"}, "params": {"key": "p@x", "size": "m"}}]),
          "V-pipeline.graph-3: other.image takes image, but 'person.boxes' gives boxes"),
-        (_config([], outputs={"body": "body.keypoints@prev"}), "V-pipeline.outputs-1"),
-        (_config([], outputs={"image": "frame.image"}), "V-pipeline.outputs-1"),
-        (_config([], outputs={"node_ran": "body.keypoints"}), "V-pipeline.outputs-3"),
+        (_config([], outputs={"wholebody": "body.keypoints@prev"}), "V-pipeline.outputs-1"),
+        (_config([], outputs={"wholebody": "frame.image"}), "V-pipeline.outputs-1"),
+        (_config([], outputs={"node_ran": "body.keypoints"}), "V-pipeline.outputs-1: the output key 'node_ran'"),
+        (_config([], outputs={"boxes": "body.keypoints"}), "V-pipeline.outputs-4: the output boxes must name a boxes port"),
+        (_config([{"id": "need", "type": "redetect_trigger"}], outputs={"holistic": "need.redetect"}), "V-pipeline.outputs-4"),
+        (_config([TURNED], outputs={"boxes": "box.boxes"}), "V-pipeline.outputs-5: .* box"),
+        (_config([TURNED, {"id": "pass", "type": "gate", "inputs": {"value": "box.boxes", "condition": "person.boxes"},
+                           "params": {"mode": "is_present"}}], outputs={"boxes": "pass.value"}), "V-pipeline.outputs-5: .* box"),
         (_config([], taps=[{"action": "record", "port": "frame.image", "name": "img"}]), "V-pipeline.taps-1"),
         (_config([{"id": "m", "type": "merge", "inputs": {"target": "body.keypoints", "source": "body.keypoints"},
                    "params": {"slots": {"hand": "body/wrist"}, "source_anchor": "body/wrist", "max_distance": 0.15,
@@ -256,13 +264,21 @@ BOX = {"id": "box", "type": "boxes_from_points", "inputs": {"keypoints": "body.k
     ids=["no-prefix", "dot-form", "weight-sum", "first-of-types", "any-type-inferred",
          "gate-value-prev", "first-of-only-prev", "first-of-types-prev", "gate-takes-no-image", "first-of-takes-no-image", "prev-of-a-flag",
          "run-if-not-a-flag", "run-if-on-holistic", "run-if-of-a-hand-not-a-flag", "trigger-has-no-image", "image-input-gets-boxes",
-         "output-prev", "output-frame", "output-result-field", "tap-frame", "merge-map-column", "merge-no-max-distance",
+         "output-prev", "output-frame", "output-unknown-key", "output-wrong-type", "output-flag", "output-rotated",
+         "output-rotated-through-gate", "tap-frame", "merge-map-column", "merge-no-max-distance",
          "mediapipe-size-not-body", "floor-no-previous-boxes", "floor-no-reference-boxes",
          "box-missing-field", "box-missing-no-previous-boxes", "one-euro-with-ema-param", "ema-with-one-euro-param"],
 )
 def test_the_reference_model_refuses_the_new_structural_cases(config: dict, rule: str) -> None:
     with pytest.raises(ValueError, match=rule):
         mps.load_model().PipelineConfig.model_validate(config)
+
+
+@needs_model
+def test_the_schema_of_outputs_has_the_three_keys_and_no_other_key() -> None:
+    outputs = mps.load_model().PipelineConfig.model_json_schema()["properties"]["outputs"]
+    assert set(outputs["properties"]) == {"wholebody", "holistic", "boxes"}
+    assert outputs["additionalProperties"] is False and outputs["minProperties"] == 1
 
 
 @needs_model

@@ -25,7 +25,7 @@ A **name** is a string that matches `^[a-z][a-z0-9_-]*$`.
 | `source.version` | string | yes | The version of the file. The catalog compares versions in PEP 440 order. |
 | `description` | string | no | Text for people about the pipeline. It can have more than one line. Default: empty ([ADR-2RWC](../../decisions/entries/2RWC-one-boxes-port-type-and-node-descriptions.md)). |
 | `nodes` | array | yes | The nodes of the graph, in any order. [Graph](graph.md) gives the node fields. |
-| `outputs` | mapping | yes | Public output name to port. [Outputs](outputs.md) gives the fields. |
+| `outputs` | mapping | yes | The delivered outputs: one key or more of `wholebody`, `holistic` and `boxes`, each to a port. [Outputs](outputs.md) gives the fields ([ADR-9HTX](../../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) item 14). |
 | `instrumentation` | mapping | no | The keys `timing_spans` ([Timing](timing.md); [ADR-9PDQ](../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 3) and `taps` ([Taps](taps.md)). Default: no timing span and no tap. |
 
 ## Behaviour

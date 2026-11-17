@@ -28,8 +28,9 @@ from skellytracker.core.pipelines._runtime import mediapipe_tasks, onnx_model, s
 from skellytracker.core.pipelines._runtime.context import FrameContext
 from skellytracker.core.pipelines._runtime.resolve import MODULES, ResolvedNode, ResolvedPipeline, resolve
 from skellytracker.core.pipelines.config import BY_TYPE, FRAME, RESERVED_NODE_ID, PipelineConfig
+from skellytracker.core.pipelines.canonical import to_canonical
 from skellytracker.core.pipelines.loading import _union
-from skellytracker.core.pipelines.values import is_empty
+from skellytracker.core.pipelines.values import PortInfo, is_empty, to_output_boxes
 from skellytracker.core.pipelines.warnings import PipelineWarning
 
 logger = logging.getLogger(__name__)
@@ -60,6 +61,17 @@ def running_nodes(resolved: ResolvedPipeline, replayed: set[Port], recorded: Seq
             runs.add(node_id)
             todo += [(item.node, item.port) for item in resolved.nodes[node_id].inputs]
     return runs
+
+
+def deliver(info: PortInfo, value: Any, node_ran: Mapping[str, bool], user_root: Path) -> Any:
+    """Return the delivered form of the value of an output port (pipeline.outputs, Behaviour item 6).
+
+    A `keypoints` value gives its canonical form. A `boxes` value gives `OutputBoxes`, with the
+    `node_ran` of its instance source as `detector_ran`.
+    """
+    if info.port_type == "keypoints":
+        return to_canonical(value, info.groups, user_root=user_root)
+    return to_output_boxes(value, node_ran[info.instance_source])
 
 
 class Executor:
@@ -94,6 +106,7 @@ class Executor:
         self.run_id = uuid.uuid4().hex
         self.image_ids = None if image_ids is None else [int(item) for item in image_ids]
         self.calls = 0
+        self.port_values: dict[Any, dict[Port, Any]] = {}
         self.closed = False
 
         if running_mode not in RUNNING_MODES:
@@ -113,12 +126,8 @@ class Executor:
         if self.image_ids is not None and len(self.camera_ids) != 1:
             raise ValueError("the COCO input form has one camera")
         sessions.check_run_ep(resolved, execution_provider)
-        for name, ref in config.outputs.items():
-            if (port_type := resolved.port_info(*_port(ref)).port_type) not in taps.JSONL_TYPES:
-                raise ValueError(
-                    f"the output {name!r} names the port {ref} of the type {port_type}: "
-                    "the pipeline spec does not fix the value of a `flag` output yet (pipeline.outputs, Behaviour item 6)"
-                )
+        # (key, port, port facts) of each output: the result holds the delivered form of the port value.
+        self.outputs = [(name, _port(ref), resolved.port_info(*_port(ref))) for name, ref in config.outputs.items()]
 
         # The taps, and the nodes that run.
         tap_list = list(config.instrumentation.taps)
@@ -383,7 +392,7 @@ class Executor:
         results: dict[Any, dict[str, Any]] = {}
         for camera_id in cameras:
             frame, context = frames[camera_id], contexts[camera_id]
-            result = {name: values[camera_id][_port(ref)] for name, ref in self.config.outputs.items()}
+            result = {name: deliver(info, values[camera_id][port], node_ran[camera_id], self.resolved.user_root) for name, port, info in self.outputs}
             result.update(frame_index=frame.frame_index, image_width=context.image_width, image_height=context.image_height, timestamp_ms=timestamps[camera_id], node_ran=node_ran[camera_id])
             results[camera_id] = result
             for record, _ in self.records:
@@ -401,6 +410,7 @@ class Executor:
             self.last_timestamp[camera_id] = timestamps[camera_id]
             self.gives_timestamp[camera_id] = frames[camera_id].timestamp_ms is not None
         self.calls += 1
+        self.port_values = values  # camera id -> port -> the value of the last call: the tests read the internal ports here
         if self.writer is not None:
             for event in events:
                 self.writer.write_event(event)

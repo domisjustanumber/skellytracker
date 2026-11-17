@@ -52,8 +52,6 @@ def pipeline_file(tmp_path: Path, name: str = "pipeline", *, node_ep: bool = Fal
             node.get("params", {}).pop("execution_provider", None)
     if data is not MEDIAPIPE:
         data["instrumentation"] = {"timing_spans": ["pipeline.run", "person.inference"], "taps": taps or []}
-        if taps == [REPLAY]:
-            data["outputs"] = {"body": "body.keypoints", "detector_box": "person.boxes"}  # no port of `person` that is not replayed
     path = tmp_path / f"{name}.json"
     path.write_text(json.dumps(data), encoding="utf-8")
     return str(path)
@@ -306,7 +304,7 @@ def test_validate_prints_the_rule_id_of_a_file_that_is_not_valid_and_exits_with_
     captured = capsys.readouterr()
     assert captured.err.startswith("ValueError: V-node.onnx_model-1: person: sidecar_sha256 is") and captured.out == ""
     data = detector_pipeline()
-    data["outputs"]["other"] = "nobody.keypoints"
+    data["outputs"]["holistic"] = "nobody.keypoints"
     assert cli.main(["validate", pipeline_file(tmp_path, data=data), "--user-root", str(root)]) == 2
     assert "V-pipeline." in capsys.readouterr().err
 

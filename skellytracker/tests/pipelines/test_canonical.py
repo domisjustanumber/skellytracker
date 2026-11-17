@@ -20,7 +20,7 @@ canonical_mapping:
 
 
 def wholebody() -> tuple[InstanceKeypoints, dict]:
-    """A value with 2 rows of the 133 points of `COCO_WholeBody`, and its output schema."""
+    """A value with 2 rows of the 133 points of `COCO_WholeBody`, and the facts of its port with its canonical names."""
     schema = load_landmark_schema_registry()["COCO_WholeBody"]
     groups, names, start = [], [], 0
     for group in schema.groups:
@@ -46,10 +46,11 @@ def test_coco_wholebody_has_137_canonical_names_and_no_feet_column():
     assert names[27] == "face/face-0" and names[95] == "left_hand/wrist" and names[116] == "right_hand/wrist"
     assert canonical_names([Group(**group) for group in output_schema["groups"]], value.point_names) == names
 
-    result = to_canonical(value, output_schema)
+    result = to_canonical(value, output_schema["groups"])
     assert result.point_names == names
     assert result.xy.shape == (2, 137, 2) and result.z.shape == (2, 137) and result.score.shape == (2, 137)
     assert result.geometry == value.geometry == "3d"
+    assert result.present is value.present and result.instance_score is value.instance_score  # the rows of the input value
     # The face group passes through, in the canonical columns.
     assert result.groups == (Group("face", 27, 68, "COCO_WholeBody"),)
     np.testing.assert_array_equal(result.xy[:, 27:95], value.xy[:, 23:91])
@@ -70,7 +71,7 @@ def test_a_missing_left_hip_makes_hips_center_missing():
     hip = value.point_names.index("body/left_hip")
     value.xy[0, hip] = value.z[0, hip] = np.nan
     value.score[0, hip] = value.raw_score[0, hip] = 0.0  # a missing point: score 0 and raw_score 0 (pipeline.outputs item 9)
-    result = to_canonical(value, output_schema)
+    result = to_canonical(value, output_schema["groups"])
     names = result.point_names
     for name in ("body/left_hip", "body/hips_center", "body/trunk_center"):
         assert np.isnan(result.xy[0, names.index(name)]).all() and result.score[0, names.index(name)] == 0
@@ -86,7 +87,7 @@ def test_a_present_point_with_the_mapped_score_0_stays_present():
     hip = value.point_names.index("body/left_hip")
     value.score[0, hip] = 0.0  # the mapped score rounds to 0.0; the raw score stays > 0
     assert value.raw_score[0, hip] > 0
-    result = to_canonical(value, output_schema)
+    result = to_canonical(value, output_schema["groups"])
     names = result.point_names
     assert not hasattr(result, "raw_score")  # the canonical form has no raw score
     np.testing.assert_array_equal(result.xy[0, names.index("body/left_hip")], value.xy[0, hip])
@@ -101,7 +102,7 @@ def test_a_group_with_a_null_schema_passes_through():
     assert canonical_names(groups, names) == names
     value = InstanceKeypoints.empty(names, 1)
     value.xy[0, 2] = (1.0, 2.0)
-    result = to_canonical(value, {"groups": groups, "canonical_names": names})
+    result = to_canonical(value, groups)
     assert result.point_names == names and result.groups == tuple(groups)
     np.testing.assert_array_equal(result.xy, value.xy)
     assert result.z is None and result.geometry == "2d"  # a `2d` value has no z
@@ -118,7 +119,7 @@ def test_the_group_name_gives_the_side_of_a_one_hand_schema(tmp_path):
     xy = np.array([[[0.0, 0.0], [4.0, 8.0], [10.0, 10.0], [np.nan, np.nan]]])
     score = np.array([[0.9, 0.5, 0.8, 0.0]])
     value = InstanceKeypoints(names, xy, score, score.copy(), np.ones(1), np.ones(1, dtype=bool), np.full(1, -1, dtype=np.int64))
-    result = to_canonical(value, {"groups": groups, "canonical_names": canonical}, user_root=tmp_path)
+    result = to_canonical(value, groups, user_root=tmp_path)
     assert result.groups == ()
     np.testing.assert_allclose(result.xy[0, :3], [[0.0, 0.0], [3.0, 6.0], [10.0, 10.0]])
     np.testing.assert_allclose(result.score[0], [0.9, 0.5, 0.8, 0.0])
@@ -151,8 +152,6 @@ def test_canonical_edges_rename_each_point_and_leave_out_what_has_no_pair(tmp_pa
 
 def test_refusals():
     value, output_schema = wholebody()
-    with pytest.raises(ValueError, match="canonical_names"):
-        to_canonical(value, {**output_schema, "canonical_names": output_schema["canonical_names"][:-1]})
     with pytest.raises(ValueError, match="not in the registry"):
         canonical_names([Group("body", 0, 1, "No_Such_Schema")], ("body/a",))
     with pytest.raises(ValueError, match="no column"):

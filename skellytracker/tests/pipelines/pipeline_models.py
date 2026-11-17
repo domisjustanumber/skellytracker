@@ -99,7 +99,8 @@ def detector_pipeline(**person_params: Any) -> dict[str, Any]:
     """Return the config of the two models: `person` gives the boxes of `body`.
 
     `person_params` are more params of the node `person`, for example `max_instances=2`. The
-    outputs are `body` (keypoints, the group `body`) and `detector_box`.
+    outputs are `wholebody` (the port `body.keypoints`, the group `body`) and `boxes` (the port
+    `person.boxes`).
     """
     return {
         "schema_version": "2.0.0",
@@ -111,8 +112,13 @@ def detector_pipeline(**person_params: Any) -> dict[str, Any]:
             {"id": "body", "type": "onnx_model", "inputs": {"image": "frame.image", "boxes": "person.boxes"},
              "params": {"key": KEYPOINT_KEY, "size": "m", "execution_provider": "cpu"}},
         ],
-        "outputs": {"body": "body.keypoints", "detector_box": "person.boxes"},
+        "outputs": {"wholebody": "body.keypoints", "boxes": "person.boxes"},
     }
+
+
+def port_values(run: Any, camera_id: Any = 0) -> dict[str, Any]:
+    """Return `<node>.<port>` -> the port value of the last call of `run` for one camera: the internal ports, not the delivered outputs."""
+    return {f"{node}.{port}": value for (node, port), value in run._executor.port_values[camera_id].items()}  # noqa: SLF001
 
 
 def image(value: int, height: int = 32, width: int = 32) -> Any:
@@ -126,8 +132,10 @@ def tracking_pipeline() -> dict[str, Any]:
     """Return a config with the two models and each glue node type, in the form of `yolox-rtmw-wholebody`.
 
     The detector runs on the first frame and then each 3 frames. `hand` is a second node of the
-    keypoint model, so the two nodes can share one session. The outputs are `body`, `both`
-    (`concat`), `merged` (`merge`), `smooth`, `detector_box` and `crop_box` (the crop box).
+    keypoint model, so the two nodes can share one session. `merged` (`merge`) adds the group
+    `extra` to `body`, `both` (`concat`) joins `merged` and `hand`, and `smooth` filters `both`.
+    The outputs are `wholebody` (the port `smooth.keypoints`) and `boxes` (the crop box
+    `crop.boxes`), so each node runs. `port_values` gives the internal ports.
     """
     cpu = {"execution_provider": "cpu"}
     nodes = [
@@ -145,15 +153,12 @@ def tracking_pipeline() -> dict[str, Any]:
         {"id": "crop", "type": "smooth_boxes", "inputs": {"boxes": "hold.boxes"}},
         {"id": "body", "type": "onnx_model", "inputs": {"image": "frame.image", "boxes": "crop.boxes"}, "params": {"key": KEYPOINT_KEY, "size": "m", **cpu}},
         {"id": "hand", "type": "onnx_model", "inputs": {"image": "frame.image", "boxes": "crop.boxes"}, "params": {"key": KEYPOINT_KEY, "size": "m", **cpu}},
-        {"id": "both", "type": "concat", "inputs": ["body.keypoints", "hand.keypoints"]},
+        {"id": "both", "type": "concat", "inputs": ["merged.keypoints", "hand.keypoints"]},
         {"id": "merged", "type": "merge", "inputs": {"target": "body.keypoints", "source": "hand.keypoints"},
          "params": {"slots": {"extra": "body/a"}, "source_anchor": "hand/a", "max_distance": 10.0}},
         {"id": "smooth", "type": "smooth_keypoints", "inputs": {"keypoints": "both.keypoints"}},
     ]
-    outputs = {
-        "body": "body.keypoints", "both": "both.keypoints", "merged": "merged.keypoints", "smooth": "smooth.keypoints",
-        "detector_box": "person.boxes", "crop_box": "crop.boxes",
-    }
+    outputs = {"wholebody": "smooth.keypoints", "boxes": "crop.boxes"}
     return {
         "schema_version": "2.0.0", "pipeline_id": "demo-tracking", "source": {"name": "demo-source", "version": "1.0.0"},
         "nodes": nodes, "outputs": outputs,

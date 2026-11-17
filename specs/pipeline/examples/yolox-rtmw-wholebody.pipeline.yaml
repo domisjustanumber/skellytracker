@@ -68,5 +68,4 @@ nodes:
       size: m
 outputs:
   wholebody: wholebody.keypoints
-  detector_box: person.boxes
-  crop_box: crop.boxes
+  boxes: crop.boxes

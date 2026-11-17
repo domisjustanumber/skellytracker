@@ -13,7 +13,15 @@ pytest.importorskip("onnx", reason="onnx not installed")
 import skellytracker.core.pipelines as pipelines  # noqa: E402
 from skellytracker.core.errors import CallRefusedError, RunClosedError, SetParamsRefusedError, VRAMExhaustionError  # noqa: E402
 from skellytracker.core.pipelines import Frame, PipelineRun, load_pipeline, start_pipeline  # noqa: E402
-from skellytracker.tests.pipelines.pipeline_models import KEYPOINT_KEY, OBJECT_KEY, detector_pipeline, image, isolate, write_models  # noqa: E402
+from skellytracker.tests.pipelines.pipeline_models import (  # noqa: E402
+    KEYPOINT_KEY,
+    OBJECT_KEY,
+    detector_pipeline,
+    image,
+    isolate,
+    port_values,
+    write_models,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -54,7 +62,7 @@ def in_thread(target: Any) -> tuple[threading.Thread, list]:
 
 def test_a_run_gives_the_output_schema_before_frame_0_the_run_metadata_and_the_result_fields(root: Path) -> None:
     with start(root, camera_ids=["cam"]) as run:
-        assert run.output_schema["body"]["point_names"] == ["body/a", "body/b", "body/c"] and run.output_schema["detector_box"]["class_names"] == ["person"]
+        assert run.output_schema["wholebody"]["point_names"] == ["body/a", "body/b", "body/c"] and run.output_schema["boxes"]["class_names"] == ["person"]
         assert (run.camera_ids, run.running_mode, run.warnings) == (("cam",), "video", ())
         models = run.models
         assert set(models) == {"person", "body"} and set(models["person"]) == {
@@ -66,7 +74,7 @@ def test_a_run_gives_the_output_schema_before_frame_0_the_run_metadata_and_the_r
         assert (models["person"]["key"], models["body"]["key"], models["person"]["version"]) == (OBJECT_KEY, KEYPOINT_KEY, "0.1.0")
         assert len(models["person"]["sidecar_sha256"]) == 64
         result = run.process(Frame(image(1, 24, 40), 4))
-    assert set(result) == {"body", "detector_box", "frame_index", "image_width", "image_height", "timestamp_ms", "node_ran"}
+    assert set(result) == {"wholebody", "boxes", "frame_index", "image_width", "image_height", "timestamp_ms", "node_ran"}
     assert (result["frame_index"], result["image_width"], result["image_height"], result["node_ran"]) == (4, 40, 24, {"person": True, "body": True})
     assert result["timestamp_ms"] == pytest.approx(4 * 1000 / 30)  # the `video` fallback with the default fps
 
@@ -113,7 +121,7 @@ def test_live_takes_a_subset_of_the_cameras_one_float_timestamp_for_each_camera_
     assert {camera: result["timestamp_ms"] for camera, result in first.items()} == {"a": 1000.25, "b": 7.5, "c": 99.0}
     assert list(second) == ["a", "c"] and (second["a"]["frame_index"], second["c"]["frame_index"]) == (9, 41)
     assert (second["a"]["timestamp_ms"], second["c"]["timestamp_ms"]) == (1033.6, 99.5)
-    assert list(third) == ["b"] and third["b"]["frame_index"] == 3 and third["b"]["body"].present.tolist() == [True]
+    assert list(third) == ["b"] and third["b"]["frame_index"] == 3 and third["b"]["wholebody"].present.tolist() == [True]
 
 
 def test_a_run_is_a_context_manager_a_second_close_does_nothing_and_a_later_call_raises_run_closed_error(root: Path) -> None:
@@ -176,7 +184,7 @@ def params_pipeline(tap: bool = False) -> dict[str, Any]:
         {"id": "box", "type": "boxes_from_points", "inputs": {"keypoints": "body.keypoints"}},
         {"id": "crop", "type": "smooth_boxes", "inputs": {"boxes": "box.boxes"}},
     ]
-    data["outputs"].update(box="box.boxes", crop="crop.boxes")
+    data["outputs"]["boxes"] = "crop.boxes"  # `port_values` gives the port `box.boxes`
     if tap:
         data["instrumentation"] = {"taps": [{"action": "record", "port": "box.boxes", "name": "box"}]}
     return data
@@ -200,7 +208,14 @@ def test_v_pipeline_running_10_set_params_refuses_a_bad_node_a_bad_param_and_a_b
         with pytest.raises(SetParamsRefusedError, match="(?s)V-pipeline.running-10: .*" + match):
             run.set_params(node_id, params)
         assert all(run._executor.params[key] is value for key, value in before.items())
-        np.testing.assert_allclose(run.process(Frame(image(1), 0))["box"].boxes[0, 2:4], [5, 20 / 3])  # the box with expand_ratio 1.0
+        run.process(Frame(image(1), 0))
+        np.testing.assert_allclose(port_values(run)["box.boxes"].boxes[0, 2:4], [5, 20 / 3])  # the box with expand_ratio 1.0
+
+
+def call(run: PipelineRun, frames: dict[str, Frame]) -> dict[str, dict[str, Any]]:
+    """Run one call. Return the port values of each camera of the call."""
+    run.process_batch(frames)
+    return {camera: port_values(run, camera) for camera in frames}
 
 
 def test_v_pipeline_running_10_set_params_is_refused_after_the_first_call_in_video_and_image(root: Path) -> None:
@@ -225,20 +240,20 @@ def test_v_pipeline_running_10_set_params_is_refused_after_the_first_call_in_liv
 def test_a_param_change_applies_from_the_next_call_to_each_camera_and_resets_no_node_state(root: Path) -> None:
     cameras = ["a", "b"]
     with start(root, params_pipeline(), camera_ids=cameras, running_mode="live") as run:
-        first = run.process_batch({camera: Frame(image(1), 0, 0.0) for camera in cameras})
+        first = call(run, {camera: Frame(image(1), 0, 0.0) for camera in cameras})
         states = {camera: run._executor.states[(camera, "crop")] for camera in cameras}
         run.set_params("box", {"expand_ratio": 2.0, "shift_x": 0.0})
         assert all(run._executor.states[(camera, "crop")] is states[camera] for camera in cameras)
-        second = run.process_batch({camera: Frame(image(1), 1, 33.0) for camera in cameras})
+        second = call(run, {camera: Frame(image(1), 1, 33.0) for camera in cameras})
         run.set_params("crop", {"previous_weight": 0.0})  # a second change keeps the first change
-        third = run.process_batch({camera: Frame(image(1), 2, 66.0) for camera in cameras})
+        third = call(run, {camera: Frame(image(1), 2, 66.0) for camera in cameras})
     for camera in cameras:
-        size = first[camera]["box"].boxes[0, 2:4]
-        np.testing.assert_allclose(second[camera]["box"].boxes[0, 2:4], 2 * size)
+        size = first[camera]["box.boxes"].boxes[0, 2:4]
+        np.testing.assert_allclose(second[camera]["box.boxes"].boxes[0, 2:4], 2 * size)
         # The `ema` filter still has the box of the first frame: new = 0.5 x previous + 0.5 x input.
-        np.testing.assert_allclose(second[camera]["crop"].boxes[0, 2:4], 1.5 * size)
-        np.testing.assert_allclose(third[camera]["crop"].boxes[0, 2:4], 2 * size)
-        np.testing.assert_allclose(third[camera]["box"].boxes[0, 2:4], 2 * size)
+        np.testing.assert_allclose(second[camera]["crop.boxes"].boxes[0, 2:4], 1.5 * size)
+        np.testing.assert_allclose(third[camera]["crop.boxes"].boxes[0, 2:4], 2 * size)
+        np.testing.assert_allclose(third[camera]["box.boxes"].boxes[0, 2:4], 2 * size)
 
 
 # ---------------------------------------------------------------------------------------------
@@ -251,7 +266,7 @@ def test_a_run_that_start_pipeline_made_on_one_thread_processes_on_another_threa
     thread.join(60)
     (run,) = started
     assert isinstance(run, PipelineRun)
-    worker, found = in_thread(lambda: [run.process(Frame(image(1), index))["body"].present.tolist() for index in range(3)])
+    worker, found = in_thread(lambda: [run.process(Frame(image(1), index))["wholebody"].present.tolist() for index in range(3)])
     worker.join(60)
     assert found == [[[True]] * 3]
     assert run.process(Frame(image(1), 3))["node_ran"] == {"person": True, "body": True}  # and again on the main thread
@@ -264,7 +279,7 @@ def test_two_runs_in_one_process_call_at_the_same_time_on_two_threads(root: Path
 
     def work(run: PipelineRun, value: int) -> list[list[float]]:
         barrier.wait(30)
-        return [run.process(Frame(image(value), index))["detector_box"].instance_score.tolist() for index in range(25)]
+        return [run.process(Frame(image(value), index))["boxes"].score.tolist() for index in range(25)]
 
     threads = [in_thread(lambda run=run, value=value: work(run, value)) for run, value in zip(runs, (1, 2), strict=True)]
     for thread, _ in threads:
@@ -380,7 +395,7 @@ def test_the_package_exports_the_public_api() -> None:
     names = {
         "list_pipelines", "get_pipeline", "load_pipeline", "check_pipeline", "export_pipeline", "list_node_types", "start_pipeline",
         "PipelineRun", "Frame", "PipelineEntry", "PipelineWarning", "PipelineCheck", "PipelineConfig", "InstanceKeypoints", "InstanceBoxes",
-        "to_canonical", "CanonicalKeypoints", "annotate", "MissingDependencyError", "CallRefusedError", "SetParamsRefusedError",
+        "to_canonical", "CanonicalKeypoints", "OutputBoxes", "annotate", "MissingDependencyError", "CallRefusedError", "SetParamsRefusedError",
         "RunClosedError",
     }
     assert names <= set(pipelines.__all__) and all(hasattr(pipelines, name) for name in pipelines.__all__)

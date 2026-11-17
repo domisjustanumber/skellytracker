@@ -46,31 +46,45 @@ def read_frames(path: Path, count: int) -> list[np.ndarray]:
 
 
 def check_result(run: Any, result: dict[str, Any], image: np.ndarray) -> None:
-    """Check one result with a person: the shapes, the finite points, the box, the canonical form and the annotator."""
+    """Check one result with a person: the port values, the delivered values and the annotator.
+
+    The delivered `wholebody` is `to_canonical` of the port `wholebody.keypoints`, and the delivered
+    `boxes` holds the corners of the port `crop.boxes` (ADR-9HTX items 14 to 17).
+    """
     height, width = image.shape[:2]
     schema = run.output_schema["wholebody"]
-    points, box, crop = result["wholebody"], result["detector_box"], result["crop_box"]
+    ports = run._executor.port_values[0]  # noqa: SLF001
+    points, crop = ports[("wholebody", "keypoints")], ports[("crop", "boxes")]
     assert (result["image_width"], result["image_height"]) == (width, height)
-    assert points.xy.shape == (1, 133, 2) and points.z is None and points.geometry == "2d" and points.score.shape == (1, 133) and list(points.point_names) == schema["point_names"]
+    assert points.xy.shape == (1, 133, 2) and points.z is None and points.geometry == "2d" and points.score.shape == (1, 133)
     assert points.present.tolist() == [True] and np.isfinite(points.xy[0]).all() and (points.score[0] > 0.4).sum() > 60
     assert points.raw_score.shape == (1, 133) and points.raw_score.dtype == np.float64 and (points.raw_score[0] > 0).all()  # the decode scores before the map
     assert ((points.score >= 0) & (points.score <= 1)).all()  # the mapped scores
-    assert box.boxes.shape == (1, 5) and crop.boxes.shape == (1, 5) and crop.present.tolist() == [True]
+    assert crop.boxes.shape == (1, 5) and crop.present.tolist() == [True]
     cx, cy, w, h, rotation = crop.boxes[0]
     assert 0 < cx < width and 0 < cy < height and 40 < w <= 2 * width and 40 < h <= 2 * height and rotation == 0
     good = points.xy[0, points.score[0] > 0.4]  # the crop box holds the points of the person
     assert (np.abs(good - [cx, cy]) <= [w / 2, h / 2]).all(axis=1).mean() > 0.9
-    canonical = to_canonical(points, schema)
-    assert len(canonical.point_names) == 137 and canonical.xy.shape == (1, 137, 2) and canonical.z is None and list(canonical.point_names) == schema["canonical_names"]
+    delivered, boxes = result["wholebody"], result["boxes"]
+    canonical = to_canonical(points, run._executor.resolved.port_info("wholebody", "keypoints").groups)  # noqa: SLF001
+    assert delivered.xy.shape == (1, 137, 2) and delivered.z is None and list(delivered.point_names) == schema["point_names"]
+    np.testing.assert_array_equal(delivered.xy, canonical.xy)
+    np.testing.assert_array_equal(delivered.score, canonical.score)
+    assert delivered.present.tolist() == [True] and delivered.instance_score.tolist() == points.instance_score.tolist()
+    assert not hasattr(delivered, "raw_score") and not hasattr(delivered, "track_ids")
+    np.testing.assert_array_equal(boxes.xyxy[0], [cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2])
+    assert boxes.present.tolist() == [True] and boxes.class_index.tolist() == crop.class_index.tolist() and boxes.score.tolist() == crop.instance_score.tolist()
+    assert boxes.detector_ran.tolist() == [result["node_ran"]["person"]]
     drawn = annotate(image, result, run.output_schema)
     assert drawn.shape == image.shape and drawn.dtype == np.uint8 and (drawn != image).any()
 
 
 def check_schema(run: Any) -> None:
     schema = run.output_schema
-    assert set(schema) == {"wholebody", "detector_box", "crop_box"}
-    assert [schema[name]["port_type"] for name in ("wholebody", "detector_box", "crop_box")] == ["keypoints", "boxes", "boxes"]
-    assert len(schema["wholebody"]["point_names"]) == 133 and len(schema["wholebody"]["canonical_names"]) == 137
+    assert set(schema) == {"wholebody", "boxes"}
+    assert [schema[name]["port_type"] for name in ("wholebody", "boxes")] == ["keypoints", "boxes"]
+    assert len(schema["wholebody"]["point_names"]) == 137 and "canonical_names" not in schema["wholebody"]
+    assert schema["boxes"]["instance_source"] == "person" and schema["boxes"]["class_names"] == ["person"]
     assert all(item["max_instances"] == 1 for item in schema.values())
     assert set(run.models) == {"person", "wholebody"}
 
@@ -86,24 +100,27 @@ def video_run(test_video_path: Path, execution_provider: str, precision: str) ->
             print(f"  {warning.code}: {warning.message}")
         assert {plan.precision for plan in plans.values()} == {precision}
         assert "batch_limited_by_state" in codes  # the built-in is stateful
-        results = [run.process(Frame(frame, index)) for index, frame in enumerate(frames)]
+        results = []
+        for index, frame in enumerate(frames):
+            results.append(run.process(Frame(frame, index)))
+            check_result(run, results[-1], frame)
     # The detector runs on the first frame. Then the box comes from the points of the previous frame.
     assert [result["node_ran"] for result in results] == [{"person": index == 0, "wholebody": True} for index in range(FRAMES)]
-    assert results[0]["detector_box"].present.tolist() == [True] and results[1]["detector_box"].present.tolist() == [False]
+    assert [result["boxes"].detector_ran.tolist() for result in results] == [[index == 0] for index in range(FRAMES)]
     assert [result["timestamp_ms"] for result in results] == [index * 1000.0 / 30.0 for index in range(FRAMES)]
-    for frame, result in zip(frames, results, strict=True):
-        check_result(run, result, frame)
 
 
 def test_the_built_in_runs_one_image_on_the_cpu_ep(test_image: np.ndarray) -> None:
+    results = []
     with start_or_skip("image", "cpu") as run:
         check_schema(run)
-        first, second = run.process(Frame(test_image, 0)), run.process(Frame(test_image, 1))
-    for result in (first, second):  # `image` has no `@prev` value: the detector runs on each image
+        for index in range(2):
+            results.append(run.process(Frame(test_image, index)))
+            check_result(run, results[-1], test_image)
+    for result in results:  # `image` has no `@prev` value: the detector runs on each image
         assert result["node_ran"] == {"person": True, "wholebody": True} and result["timestamp_ms"] is None
-        assert result["detector_box"].present.tolist() == [True] and result["detector_box"].class_index.tolist() == [0]
-        check_result(run, result, test_image)
-    np.testing.assert_array_equal(first["wholebody"].xy, second["wholebody"].xy)  # no state in `image`
+        assert result["boxes"].detector_ran.tolist() == [True]
+    np.testing.assert_array_equal(results[0]["wholebody"].xy, results[1]["wholebody"].xy)  # no state in `image`
 
 
 def test_the_built_in_runs_a_video_on_the_cpu_ep(test_video_path: Path) -> None:

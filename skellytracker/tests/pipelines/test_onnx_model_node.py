@@ -14,7 +14,17 @@ from skellytracker.core.pipelines._runtime.onnx_model import OnnxModelRunner  # 
 from skellytracker.core.pipelines._runtime.resolve import resolve  # noqa: E402
 from skellytracker.core.pipelines.config import PipelineConfig  # noqa: E402
 from skellytracker.core.pipelines.values import InstanceBoxes  # noqa: E402
-from skellytracker.tests.pipelines.pipeline_models import KEYPOINT_KEY, KEYPOINT_RAW_SCORES, KEYPOINT_SCORES, OBJECT_KEY, detector_pipeline, image, isolate, write_models  # noqa: E402
+from skellytracker.tests.pipelines.pipeline_models import (  # noqa: E402
+    KEYPOINT_KEY,
+    KEYPOINT_RAW_SCORES,
+    KEYPOINT_SCORES,
+    OBJECT_KEY,
+    detector_pipeline,
+    image,
+    isolate,
+    port_values,
+    write_models,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -28,14 +38,16 @@ def root(tmp_path: Path) -> Path:
 
 
 def one_frame(root: Path, value: int = 1, **person_params) -> dict:
+    """Run one frame of `detector_pipeline`. Return the port values: `person.boxes` and `body.keypoints`."""
     config = load_pipeline(detector_pipeline(**person_params), user_root=root)
     with start_pipeline(config, camera_ids=[0], running_mode="image", user_root=root) as run:
-        return run.process(Frame(image(value), 0))
+        run.process(Frame(image(value), 0))
+        return port_values(run)
 
 
 def test_an_object_detector_gives_the_present_rows_first_in_score_order_with_class_index_and_padding_rows_last(root: Path) -> None:
     result = one_frame(root, max_instances=3)
-    boxes = result["detector_box"]
+    boxes = result["person.boxes"]
     assert boxes.present.tolist() == [True, True, False]
     # Each box is `(cx, cy, w, h, rotation)` with the rotation 0, and the instance score is the detection score of the row.
     np.testing.assert_allclose(boxes.boxes[:2], [[6, 6, 8, 8, 0], [25, 25, 10, 10, 0]])
@@ -45,17 +57,17 @@ def test_an_object_detector_gives_the_present_rows_first_in_score_order_with_cla
 
 
 def test_max_instances_keeps_the_rows_with_the_highest_scores(root: Path) -> None:
-    boxes = one_frame(root, max_instances=1)["detector_box"]
+    boxes = one_frame(root, max_instances=1)["person.boxes"]
     assert boxes.boxes.shape == (1, 5) and boxes.present.tolist() == [True]
     np.testing.assert_allclose(boxes.instance_score, [0.9], rtol=1e-6)
 
 
 def test_a_top_down_model_gives_row_i_from_box_row_i_with_the_instance_score_of_the_box_and_no_score_threshold(root: Path) -> None:
     result = one_frame(root, max_instances=3)
-    body = result["body"]
+    body = result["body.keypoints"]
     assert body.point_names == ("body/a", "body/b", "body/c")  # the names of the port facts: `<group>/<point>`
     assert body.present.tolist() == [True, True, False] and body.track_ids.tolist() == [-1, -1, -1]
-    np.testing.assert_array_equal(body.instance_score, result["detector_box"].instance_score)
+    np.testing.assert_array_equal(body.instance_score, result["person.boxes"].instance_score)
     # Point `a` is the centre of each crop. Point `c` is missing: NaN and the score 0. The node sets no low score to NaN.
     np.testing.assert_allclose(body.xy[:2, 0], [[6, 6], [25, 25]])
     np.testing.assert_allclose(body.score, [KEYPOINT_SCORES, KEYPOINT_SCORES, [0, 0, 0]], rtol=1e-6)  # the mapped scores

@@ -7,9 +7,10 @@ description: |-
 
   Spec example, structure only. It sketches the MediaPipe pose and hand chain with onnx_model and
   glue nodes: redetect_trigger, a pose detector, a box from the points of the previous frame
-  (@prev), first_of, smooth_boxes, hold_boxes, gate and smooth_keypoints. Both hands run from frame
-  0: an empty optional input (`previous_keypoints` of hold_boxes on frame 0) does not stop a node.
-  The model keys and sizes wait for the sidecar proposals of MediaPipe-Exporter.
+  (@prev), first_of, smooth_boxes, hold_boxes, gate, smooth_keypoints and concat. Both hands run from
+  frame 0: an empty optional input (`previous_keypoints` of hold_boxes on frame 0) does not stop a
+  node. concat joins the body and the two hands into the output wholebody. The model keys and sizes
+  wait for the sidecar proposals of MediaPipe-Exporter.
 nodes:
   - id: trigger
     description: Ask for a new pose detection when the previous frame has no good pose.
@@ -99,7 +100,8 @@ nodes:
   - id: body_smooth
     type: smooth_keypoints
     inputs: {keypoints: body.keypoints}
+  - id: joined
+    type: concat
+    inputs: [body_smooth.keypoints, right_hand.keypoints, left_hand.keypoints]
 outputs:
-  body: body_smooth.keypoints
-  right_hand: right_hand.keypoints
-  left_hand: left_hand.keypoints
+  wholebody: joined.keypoints

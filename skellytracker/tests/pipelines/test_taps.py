@@ -13,7 +13,16 @@ pytest.importorskip("onnx", reason="onnx not installed")
 from skellytracker.core.pipelines import Frame, load_pipeline, timing  # noqa: E402
 from skellytracker.core.pipelines._runtime import executor  # noqa: E402
 from skellytracker.core.pipelines.run import _start  # noqa: E402
-from skellytracker.tests.pipelines.pipeline_models import KEYPOINT_RAW_SCORES, KEYPOINT_SCORES, detector_pipeline, image, isolate, tracking_pipeline, write_models  # noqa: E402
+from skellytracker.tests.pipelines.pipeline_models import (  # noqa: E402
+    KEYPOINT_RAW_SCORES,
+    KEYPOINT_SCORES,
+    detector_pipeline,
+    image,
+    isolate,
+    port_values,
+    tracking_pipeline,
+    write_models,
+)
 from skellytracker.tests.pipelines.test_sessions import MEDIAPIPE  # noqa: E402
 
 IMAGE_IDS = [11, 5, 7]
@@ -41,8 +50,12 @@ def start(root: Path, data: dict[str, Any], **parameters: Any):
 
 
 def run_frames(run: Any) -> list[dict]:
+    """Run the frames of `VALUES`. Each item is the result of the camera with the port values (`<node>.<port>`) of the call."""
+    found = []
     with run:
-        return [run.process(Frame(image(value), index)) for index, value in enumerate(VALUES)]
+        for index, value in enumerate(VALUES):
+            found.append({**run.process(Frame(image(value), index)), **port_values(run)})
+    return found
 
 
 def record_config(**person_params: Any) -> dict[str, Any]:
@@ -52,7 +65,6 @@ def record_config(**person_params: Any) -> dict[str, Any]:
 def replay_config(port: str = "person.boxes", name: str = "boxes", **person_params: Any) -> dict[str, Any]:
     """Return a config that replays one port of `person`. Its outputs need no port of `person` that is not replayed."""
     data = detector_pipeline(max_instances=2, **person_params)
-    data["outputs"] = {"body": "body.keypoints", "detector_box": "person.boxes"}
     data["instrumentation"] = {"taps": [{"action": "replay", "port": port, "name": name}]}
     return data
 
@@ -167,9 +179,11 @@ def test_a_replay_puts_each_line_in_its_row_and_the_replayed_node_does_not_run(r
         # `node_ran` is false for the replayed node. `body` runs on the replayed boxes, and not on the image with no row.
         assert after["node_ran"] == {"person": False, "body": before["node_ran"]["body"]}
         for field in ("boxes", "instance_score", "class_index", "present"):
-            np.testing.assert_array_equal(getattr(after["detector_box"], field), getattr(before["detector_box"], field))
-        np.testing.assert_array_equal(after["body"].xy, before["body"].xy)
-        np.testing.assert_array_equal(after["body"].instance_score, before["body"].instance_score)
+            np.testing.assert_array_equal(getattr(after["person.boxes"], field), getattr(before["person.boxes"], field))
+        np.testing.assert_array_equal(after["body.keypoints"].xy, before["body.keypoints"].xy)
+        np.testing.assert_array_equal(after["body.keypoints"].instance_score, before["body.keypoints"].instance_score)
+        # A node whose outputs are all replayed did not run, so the delivered boxes have `detector_ran` false.
+        assert before["boxes"].detector_ran.tolist() == [True, True] and after["boxes"].detector_ran.tolist() == [False, False]
     assert [result["node_ran"]["body"] for result in replayed] == [True, False, True]
 
 
@@ -178,20 +192,20 @@ def test_a_replay_of_boxes_gets_the_class_index_from_the_class_name_and_a_keypoi
     lines[1]["class"] = None  # a row with no class
     write_lines(taps / "boxes" / "boxes.jsonl", lines)
     (first, dark, _) = run_frames(start(root, replay_config(), image_ids=IMAGE_IDS, tap_dir=taps))
-    assert first["detector_box"].class_index.tolist() == [0, -1] and first["detector_box"].present.tolist() == [True, True]
-    np.testing.assert_allclose(first["detector_box"].boxes, [[6, 6, 8, 8, 0], [25, 25, 10, 10, 0]])
-    np.testing.assert_allclose(first["detector_box"].instance_score, [0.9, 0.75], rtol=1e-6)
-    assert first["node_ran"]["person"] is False and not dark["detector_box"].present.any()
+    assert first["person.boxes"].class_index.tolist() == [0, -1] and first["person.boxes"].present.tolist() == [True, True]
+    np.testing.assert_allclose(first["person.boxes"].boxes, [[6, 6, 8, 8, 0], [25, 25, 10, 10, 0]])
+    np.testing.assert_allclose(first["person.boxes"].instance_score, [0.9, 0.75], rtol=1e-6)
+    assert first["node_ran"]["person"] is False and not dark["person.boxes"].present.any()
     data = detector_pipeline(max_instances=2)
-    data["outputs"] = {"body": "body.keypoints"}
+    data["outputs"] = {"wholebody": "body.keypoints"}
     data["instrumentation"] = {"taps": [{"action": "replay", "port": "body.keypoints", "name": "points"}]}
     run = start(root, data, image_ids=IMAGE_IDS, tap_dir=taps)
     assert run._executor.sessions.opened == {}  # the upstream nodes of the replayed port do not run
     (points, _, _) = run_frames(run)
-    np.testing.assert_allclose(points["body"].xy[:, 0], [[6, 6], [25, 25]])
-    assert np.isnan(points["body"].xy[:, 2]).all()
-    np.testing.assert_allclose(points["body"].score, [KEYPOINT_SCORES] * 2, rtol=1e-6)
-    np.testing.assert_allclose(points["body"].raw_score, [KEYPOINT_RAW_SCORES] * 2, rtol=1e-6)
+    np.testing.assert_allclose(points["body.keypoints"].xy[:, 0], [[6, 6], [25, 25]])
+    assert np.isnan(points["body.keypoints"].xy[:, 2]).all()
+    np.testing.assert_allclose(points["body.keypoints"].score, [KEYPOINT_SCORES] * 2, rtol=1e-6)
+    np.testing.assert_allclose(points["body.keypoints"].raw_score, [KEYPOINT_RAW_SCORES] * 2, rtol=1e-6)
     assert points["node_ran"] == {"person": False, "body": False}
 
 
@@ -283,10 +297,10 @@ def test_v_pipeline_taps_6_a_port_of_a_fan_out_child_can_have_a_padding_row_befo
     lines = lines_of(taps / "points" / "keypoints.jsonl")
     write_lines(taps / "points" / "keypoints.jsonl", lines[1:])  # image 11 keeps only its row 1; `body` is not an instance source
     data = detector_pipeline(max_instances=2)
-    data["outputs"] = {"body": "body.keypoints"}
+    data["outputs"] = {"wholebody": "body.keypoints"}
     data["instrumentation"] = {"taps": [{"action": "replay", "port": "body.keypoints", "name": "points"}]}
     (first, _, _) = run_frames(start(root, data, image_ids=IMAGE_IDS, tap_dir=taps))
-    assert first["body"].present.tolist() == [False, True] and first["body"].instance_score.tolist() == pytest.approx([0.0, 0.75])
+    assert first["body.keypoints"].present.tolist() == [False, True] and first["body.keypoints"].instance_score.tolist() == pytest.approx([0.0, 0.75])
 
 
 def test_v_pipeline_taps_7_a_replay_refuses_a_boxes_line_with_an_unknown_class(root: Path, taps: Path) -> None:

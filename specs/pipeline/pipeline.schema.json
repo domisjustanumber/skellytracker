@@ -1408,11 +1408,23 @@
       "type": "array"
     },
     "outputs": {
-      "additionalProperties": {
-        "type": "string"
-      },
-      "description": "Public output name to `<node>.<port>`, with no `@prev`.",
+      "additionalProperties": false,
+      "description": "The delivered outputs: `wholebody`, `holistic` or `boxes` to `<node>.<port>`, with no `@prev`. One key or more.",
       "minProperties": 1,
+      "properties": {
+        "boxes": {
+          "description": "A `boxes` port.",
+          "type": "string"
+        },
+        "holistic": {
+          "description": "A `keypoints` port.",
+          "type": "string"
+        },
+        "wholebody": {
+          "description": "A `keypoints` port.",
+          "type": "string"
+        }
+      },
       "title": "Outputs",
       "type": "object"
     },

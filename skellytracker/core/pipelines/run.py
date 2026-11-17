@@ -6,7 +6,8 @@ Implements: pipeline.running
     with start_pipeline(config, camera_ids=[0], running_mode="video", execution_provider="cpu") as run:
         run.output_schema                           # the schema of each output, before frame 0
         result = run.process(Frame(image, frame_index=0))
-        result["wholebody"]                         # an `InstanceKeypoints` value
+        result["wholebody"]                         # a `CanonicalKeypoints` value
+        result["boxes"]                             # an `OutputBoxes` value, with `xyxy` and `detector_ran`
         result["node_ran"]                          # node id -> bool, for each inference node
         run.models                                  # node id -> the model and what it runs on
 

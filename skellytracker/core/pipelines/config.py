@@ -48,10 +48,12 @@ RESERVED_NODE_ID = "pipeline"
 # The reserved source of the graph: the camera frame of the call, as the port `frame.image`. It is the only image port.
 FRAME = "frame"
 FRAME_PORTS = {"image": "image"}
-# The fixed fields of the result of one camera (pipeline.outputs). An output name must not be one of them.
-RESULT_FIELDS = ("frame_index", "image_width", "image_height", "timestamp_ms", "node_ran")
+# The keys of the `outputs` block and the port type of each (pipeline.outputs, V-pipeline.outputs-1 and -4).
+OUTPUT_TYPES = {"wholebody": "keypoints", "holistic": "keypoints", "boxes": "boxes"}
 # The input name of a variadic node in the reference model. Its `inputs` is a list.
 VARIADIC = "*"
+# The inputs whose box a node passes to its output with its rotation (V-pipeline.outputs-5).
+PASSES_BOXES = {"gate": ("value",), "first_of": (VARIADIC,), "hold_boxes": ("previous", "current"), "smooth_boxes": ("boxes",)}
 # The tolerance of the weight sum of a weighted derived point (sidecar spec, post.keypoint.schema).
 WEIGHT_SUM_TOLERANCE = 1e-6
 
@@ -711,7 +713,14 @@ class PipelineConfig(Strict):
     source: Source = Field(description="The source of the file, as the sidecar `source`: `{name, version}`.")
     description: str = Field("", description="Text for people about the pipeline. It can have more than one line.")
     nodes: list[NodeConfig] = Field(description="The nodes, in any order.", min_length=1)
-    outputs: dict[str, str] = Field(description="Public output name to `<node>.<port>`, with no `@prev`.", min_length=1)
+    outputs: dict[str, str] = Field(
+        description="The delivered outputs: `wholebody`, `holistic` or `boxes` to `<node>.<port>`, with no `@prev`. One key or more.",
+        min_length=1,
+        json_schema_extra={
+            "properties": {key: {"type": "string", "description": f"A `{kind}` port."} for key, kind in OUTPUT_TYPES.items()},
+            "additionalProperties": False,
+        },
+    )
     instrumentation: Instrumentation = Field(default_factory=Instrumentation, description="Timing spans and taps.")
 
     @model_validator(mode="after")
@@ -820,11 +829,14 @@ def check_structure(config: PipelineConfig) -> None:
     _check_point_names(config)
     _check_optional_inputs(config)
     for name, ref in config.outputs.items():
-        if re.match(NAME, name) is None:
-            raise ValueError(f"V-pipeline.outputs-1: the output name {name!r} is not a name")
-        if name in RESULT_FIELDS:
-            raise ValueError(f"V-pipeline.outputs-3: the output name {name!r} is a field of the camera result")
+        if name not in OUTPUT_TYPES:
+            raise ValueError(f"V-pipeline.outputs-1: the output key {name!r} is not one of {list(OUTPUT_TYPES)}")
         _port(ref, nodes, "V-pipeline.outputs-1", graph_input=False)
+        given = _ref_type(ref, nodes)
+        if given is not None and given != OUTPUT_TYPES[name]:
+            raise ValueError(f"V-pipeline.outputs-4: the output {name} must name a {OUTPUT_TYPES[name]} port, but {ref!r} gives {given}")
+    if "boxes" in config.outputs:
+        _check_upright(config.outputs["boxes"], nodes)
     for span in config.instrumentation.timing_spans:
         node_id, _, span_name = span.partition(".")
         if node_id == RESERVED_NODE_ID and span_name == "run":
@@ -850,6 +862,24 @@ def _check_run_if(node: Any, nodes: dict[str, Any]) -> None:
     given = _ref_type(ref, nodes)
     if given is not None and given != "flag":
         raise ValueError(f"{rule}: {node.id}: run_if must name a flag port, but {ref!r} gives {given}")
+
+
+def _check_upright(ref: str, nodes: dict[str, Any]) -> None:
+    """Refuse an output `boxes` that can hold a rotated box (V-pipeline.outputs-5).
+
+    The walk follows each box that a node passes, also through `@prev`, to the node that makes
+    the box. Only `boxes_from_points` with `target_rotation_deg` makes a rotated box.
+    """
+    todo, seen = [ref], set()
+    while todo:
+        node_id = PORT_REF.match(todo.pop())["node"]
+        if node_id in seen:
+            continue
+        seen.add(node_id)
+        node = nodes[node_id]
+        if node.type == "boxes_from_points" and node.params.target_rotation_deg is not None:
+            raise ValueError(f"V-pipeline.outputs-5: the output boxes can hold a rotated box of the node {node_id} (target_rotation_deg)")
+        todo += [item for name, item in input_items(node) if name in PASSES_BOXES.get(node.type, ())]
 
 
 def _check_point_names(config: PipelineConfig) -> None:

@@ -75,6 +75,8 @@ MODULES: dict[str, Any] = {
 """The module of each node type that is not `onnx_model`."""
 TEMPORAL_TYPES = ("smooth_boxes", "smooth_keypoints", "redetect_trigger")
 INSTANCE_TYPES = ("boxes", "keypoints")
+HOLISTIC_GROUPS = ("body", "right_hand", "left_hand", "face")
+"""The groups of the output `holistic`, in column order (V-pipeline.outputs-4)."""
 MISSING_DEPENDENCY = "missing_dependency"
 _FRAME_INFO = PortInfo("image")
 
@@ -495,7 +497,10 @@ class _Resolver:
                 made[name] = node.id
 
     def output_schema(self, nodes: dict[str, ResolvedNode]) -> dict[str, dict[str, Any]]:
-        """Return the output schema, and check V-pipeline.outputs-2."""
+        """Return the output schema of the delivered values, and check V-pipeline.outputs-2 and the groups of V-pipeline.outputs-4.
+
+        For `wholebody` and `holistic`, `point_names`, `groups` and `edges` are those of the canonical form.
+        """
         schema: dict[str, dict[str, Any]] = {}
         for name, ref in self.config.outputs.items():
             node_id, _, port = ref.partition(".")
@@ -505,24 +510,24 @@ class _Resolver:
                 repeated = sorted({point for point in info.point_names if info.point_names.count(point) > 1})
                 if repeated:
                     raise ValueError(f"V-pipeline.outputs-2: the output {name!r} has the point names {repeated} more than one time")
-                entry["point_names"] = list(info.point_names)
+                names = [group.name for group in info.groups]
+                if (name == "wholebody" and "body" not in names) or (name == "holistic" and names != list(HOLISTIC_GROUPS)):
+                    wanted = "a group body" if name == "wholebody" else f"exactly the groups {list(HOLISTIC_GROUPS)}"
+                    raise ValueError(f"V-pipeline.outputs-4: the output {name} ({ref}) must have {wanted}; it has the groups {names}")
+                plan = canonical._plan(info.groups, info.point_names, self.user_root)
+                entry["point_names"] = list(plan.names)
                 entry["groups"] = [
                     {"name": group.name, "start": group.start, "count": group.count, "landmark_schema": group.landmark_schema}
-                    for group in info.groups
+                    for group in plan.groups
                 ]
-                entry["canonical_names"] = list(canonical.canonical_names(info.groups, info.point_names, self.user_root))
                 entry["geometry"] = info.geometry
                 if info.geometry == "3d":
                     entry["depth_unit"] = info.depth_unit
             if info.port_type == "boxes":
                 entry["class_names"] = None if info.class_names is None else list(info.class_names)
-            if info.port_type in INSTANCE_TYPES:
-                entry.update(max_instances=info.max_instances, tracked=info.tracked, instance_source=info.instance_source)
+            entry.update(max_instances=info.max_instances, tracked=info.tracked, instance_source=info.instance_source)
             if info.port_type == "keypoints":
-                entry["edges"] = [list(edge) for edge in info.edges]
-                entry["canonical_edges"] = [
-                    list(edge) for edge in canonical.canonical_edges(info.groups, info.point_names, info.edges, self.user_root)
-                ]
+                entry["edges"] = [list(edge) for edge in canonical.canonical_edges(info.groups, info.point_names, info.edges, self.user_root)]
             schema[name] = entry
         return schema
 

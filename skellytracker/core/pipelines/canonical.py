@@ -1,11 +1,13 @@
-"""The canonical form of a `keypoints` output.
+"""The canonical form of a `keypoints` value: the delivered form of the outputs `wholebody` and `holistic`.
 
 Implements: pipeline.outputs
 Implements: post.keypoint.canonical_mapping
 
 The canonical form maps the groups that one node or one `merge` slot made together, with the
 canonical mapping of their landmark schema. A group with a null `landmark_schema` passes through.
-A `CanonicalKeypoints` value has the fields `xy`, `z` and `geometry` of a `keypoints` value.
+A `CanonicalKeypoints` value has the fields `xy`, `z`, `geometry`, `present` and `instance_score`
+of a `keypoints` value. It has no `raw_score` and no `track_ids`. The run converts each `wholebody`
+and `holistic` output with `to_canonical`.
 """
 from __future__ import annotations
 
@@ -28,13 +30,17 @@ class CanonicalKeypoints:
     """The canonical form of one `keypoints` value: `I` rows, each with `C` canonical points."""
 
     point_names: tuple[str, ...]
-    """``(C,)``: the `canonical_names` of the output schema. The field has the name of the field of a `keypoints` value."""
+    """``(C,)``: the canonical point names, the `point_names` of the output schema."""
     xy: NDArray[np.float64]
     """``(I, C, 2)``: x and y of each point, in source-image pixels. A missing point is NaN."""
     score: NDArray[np.float64]
     """``(I, C)``. A missing point has 0."""
     groups: tuple[Group, ...]
     """The passthrough groups, with `start` and `count` in the canonical columns."""
+    present: NDArray[np.bool_]
+    """``(I,)``: the `present` of each row of the input value."""
+    instance_score: NDArray[np.float64]
+    """``(I,)``: the `instance_score` of each row of the input value."""
     z: NDArray[np.float64] | None = None
     """``(I, C)``, only for a `3d` output: the depth of each point. A missing point is NaN. `None` for a `2d` output."""
 
@@ -144,18 +150,19 @@ def canonical_edges(
     return tuple(kept.values())
 
 
-def to_canonical(keypoints_value: InstanceKeypoints, output_schema: Mapping[str, Any], *, user_root: Path | None = None) -> CanonicalKeypoints:
-    """Return the canonical form of the value of one `keypoints` output.
+def to_canonical(
+    keypoints_value: InstanceKeypoints, groups: Sequence[Group | Mapping[str, Any]], *, user_root: Path | None = None
+) -> CanonicalKeypoints:
+    """Return the canonical form of one `keypoints` value.
 
-    `output_schema` is the schema of that output: it gives `groups` and `canonical_names`. A
-    passthrough point keeps its position and its score. A mean or a weighted point is missing when
-    one or more of its sources are missing, and its score is the minimum of the scores of its sources.
-    A source is missing when its `raw_score` is 0 or less: a mapped score of a present point can be
-    0.0 in float32. The result has `z` only when the value has `z`, and it has no `raw_score`.
+    `groups` are the groups of the port of the value, in column order: `Group` items or
+    `{name, start, count, landmark_schema}` mappings. A passthrough point keeps its position and its score. A mean or a weighted point
+    is missing when one or more of its sources are missing, and its score is the minimum of the
+    scores of its sources. A source is missing when its `raw_score` is 0 or less: a mapped score of
+    a present point can be 0.0 in float32. The result has `z` only when the value has `z`. It keeps
+    `present` and `instance_score` of each row, and it has no `raw_score` and no `track_ids`.
     """
-    plan = _plan(_groups(output_schema["groups"]), tuple(keypoints_value.point_names), user_root)
-    if plan.names != tuple(output_schema["canonical_names"]):
-        raise ValueError("canonical_names of the output schema does not agree with its groups and the point names of the value")
+    plan = _plan(_groups(groups), tuple(keypoints_value.point_names), user_root)
     # One array of the coordinates, (I, P, 2) or (I, P, 3), so that x, y and z get the same mapping.
     z = keypoints_value.z
     points = keypoints_value.xy if z is None else np.concatenate([keypoints_value.xy, z[..., None]], axis=2)
@@ -172,4 +179,7 @@ def to_canonical(keypoints_value: InstanceKeypoints, output_schema: Mapping[str,
             points, keypoints_value.score, keypoints_value.point_names,
             {str(column): derivation for column, derivation in plan.derived}, present=keypoints_value.raw_score > 0,
         )
-    return CanonicalKeypoints(plan.names, xyz[..., :2], score, tuple(plan.groups), None if z is None else xyz[..., 2])
+    return CanonicalKeypoints(
+        plan.names, xyz[..., :2], score, tuple(plan.groups), keypoints_value.present, keypoints_value.instance_score,
+        None if z is None else xyz[..., 2],
+    )

@@ -39,4 +39,4 @@ nodes:
       max_distance: 0.15
       map: {body/right_wrist: right_hand/root, body/left_wrist: left_hand/root}
 outputs:
-  body_hands: body_hands.keypoints
+  wholebody: body_hands.keypoints

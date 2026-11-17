@@ -18,7 +18,14 @@ from skellytracker.core.pipelines._runtime.executor import Executor  # noqa: E40
 from skellytracker.core.pipelines._runtime.resolve import resolve  # noqa: E402
 from skellytracker.core.pipelines.config import PipelineConfig  # noqa: E402
 from skellytracker.core.pipelines.values import is_empty  # noqa: E402
-from skellytracker.tests.pipelines.pipeline_models import detector_pipeline, image, isolate, tracking_pipeline, write_models  # noqa: E402
+from skellytracker.tests.pipelines.pipeline_models import (  # noqa: E402
+    detector_pipeline,
+    image,
+    isolate,
+    port_values,
+    tracking_pipeline,
+    write_models,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -32,14 +39,29 @@ def root(tmp_path: Path) -> Path:
 
 
 def prev_pipeline() -> dict[str, Any]:
-    """`detector_pipeline` with a box from the keypoints of the previous frame, and a keypoint filter: an `@prev` value and a node state."""
+    """`detector_pipeline` with a box from the keypoints of the previous frame, and a keypoint filter: an `@prev` value and a node state.
+
+    The outputs are `wholebody` (the port `smooth.keypoints`) and `boxes` (the port `prev_box.boxes`).
+    """
     data = detector_pipeline()
     data["nodes"] += [
         {"id": "prev_box", "type": "boxes_from_points", "inputs": {"keypoints": "body.keypoints@prev"}},
         {"id": "smooth", "type": "smooth_keypoints", "inputs": {"keypoints": "body.keypoints"}},
     ]
-    data["outputs"].update(prev_box="prev_box.boxes", smooth="smooth.keypoints")
+    data["outputs"] = {"wholebody": "smooth.keypoints", "boxes": "prev_box.boxes"}
     return data
+
+
+def batch(run: Any, frames: dict[str, Frame]) -> tuple[dict, dict]:
+    """Run one call. Return the result and the port values of each camera of the call."""
+    results = run.process_batch(frames)
+    return results, {camera: port_values(run, camera) for camera in results}
+
+
+def xyxy(box: list[float]) -> list[float]:
+    """Return `(x1, y1, x2, y2)` of a box `(cx, cy, w, h)`."""
+    cx, cy, w, h = box
+    return [cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2]
 
 
 def start(root: Path, data: dict[str, Any], **parameters: Any):
@@ -62,27 +84,36 @@ def points_box(keypoints: Any) -> list[float]:
 
 
 def test_each_node_type_runs_in_one_pipeline_on_generated_models(root: Path) -> None:
+    results, ports = [], []
     with start(root, tracking_pipeline()) as run:
-        assert set(run.output_schema) == {"body", "both", "merged", "smooth", "detector_box", "crop_box"}
-        results = [run.process(Frame(image(1), index)) for index in range(4)]
+        assert set(run.output_schema) == {"wholebody", "boxes"}
+        for index in range(4):
+            results.append(run.process(Frame(image(1), index)))
+            ports.append(port_values(run))
     # `redetect_trigger`: the detector runs on the first frame, then each 3 frames. The keypoint models run on each frame.
     assert [result["node_ran"] for result in results] == [
         {"person": ran, "body": True, "hand": True} for ran in (True, False, False, True)
     ]
-    first, second = results[0], results[1]
-    np.testing.assert_allclose(first["crop_box"].boxes, [[6, 6, 8, 8, 0]])  # `first_of`, `hold_boxes` and `smooth_boxes` pass the detector box
-    assert first["detector_box"].present.tolist() == [True] and second["detector_box"].present.tolist() == [False]
+    first, second = ports[0], ports[1]
+    np.testing.assert_allclose(first["crop.boxes"].boxes, [[6, 6, 8, 8, 0]])  # `first_of`, `hold_boxes` and `smooth_boxes` pass the detector box
+    assert first["person.boxes"].present.tolist() == [True] and second["person.boxes"].present.tolist() == [False]
     # Frame 1: `boxes_from_points` and `gate` carry the box of the points of frame 0, and `smooth_boxes` (ema, 0.5) blends it.
-    carried = np.array(points_box(first["body"])) * [1, 1, 1.2, 1.2]
-    np.testing.assert_allclose(second["crop_box"].boxes[0, :4], (carried + [6, 6, 8, 8]) / 2)
-    for index, result in enumerate(results):
-        assert result["body"].present.tolist() == [True] and result["frame_index"] == index
-        assert result["both"].point_names == ("body/a", "body/b", "body/c", "hand/a", "hand/b", "hand/c")  # `concat`
-        np.testing.assert_array_equal(result["both"].xy[:, :3], result["body"].xy)
-        assert result["merged"].point_names == ("body/a", "body/b", "body/c", "extra/a", "extra/b", "extra/c")  # `merge` adds a group
-        np.testing.assert_array_equal(result["merged"].xy[0, 3], result["body"].xy[0, 0])
-        assert result["smooth"].present.tolist() == [True] and result["smooth"].xy.shape == (1, 6, 2)  # `smooth_keypoints`
+    carried = np.array(points_box(first["body.keypoints"])) * [1, 1, 1.2, 1.2]
+    np.testing.assert_allclose(second["crop.boxes"].boxes[0, :4], (carried + [6, 6, 8, 8]) / 2)
+    merged = ("body/a", "body/b", "body/c", "extra/a", "extra/b", "extra/c")
+    for index, (result, port) in enumerate(zip(results, ports, strict=True)):
+        assert port["body.keypoints"].present.tolist() == [True] and result["frame_index"] == index
+        assert port["merged.keypoints"].point_names == merged  # `merge` adds a group
+        np.testing.assert_array_equal(port["merged.keypoints"].xy[0, 3], port["body.keypoints"].xy[0, 0])
+        assert port["both.keypoints"].point_names == (*merged, "hand/a", "hand/b", "hand/c")  # `concat`
+        np.testing.assert_array_equal(port["both.keypoints"].xy[:, :3], port["body.keypoints"].xy)
+        assert port["smooth.keypoints"].present.tolist() == [True] and port["smooth.keypoints"].xy.shape == (1, 9, 2)  # `smooth_keypoints`
         assert (result["image_width"], result["image_height"]) == (32, 32)
+        # The delivered values: the canonical form of `smooth` (each group passes through) and the upright crop box.
+        np.testing.assert_array_equal(result["wholebody"].xy, port["smooth.keypoints"].xy)
+        assert result["wholebody"].point_names == port["smooth.keypoints"].point_names
+        np.testing.assert_allclose(result["boxes"].xyxy[0], xyxy(port["crop.boxes"].boxes[0, :4]))
+        assert result["boxes"].detector_ran.tolist() == [result["node_ran"]["person"]]
 
 
 class FrameSpy:
@@ -109,7 +140,7 @@ def test_each_model_node_gets_the_frame_object_of_the_host_with_no_copy(root: Pa
     assert all(item is given for spy in spies.values() for item in spy.images)
 
 
-# Each boxes and keypoints port of each node type of `tracking_pipeline`, as an output.
+# Each boxes and keypoints port of each node type of `tracking_pipeline`.
 EACH_PORT = (
     "person.boxes", "detected_box.value", "points_box.boxes", "carried_box.value", "box.value", "hold.boxes", "crop.boxes",
     "body.keypoints", "hand.keypoints", "both.keypoints", "merged.keypoints", "smooth.keypoints",
@@ -123,14 +154,14 @@ def test_each_boxes_and_keypoints_output_of_each_node_is_in_source_image_pixels(
     give the same values for both frames. A node that gave a box or a point in the space of a model
     input or of a crop would not scale with the frame.
     """
-    data = tracking_pipeline()
-    data["outputs"] = {ref.replace(".", "_"): ref for ref in EACH_PORT}
-    results = {}
+    results: dict[int, list[dict]] = {32: [], 64: []}
     for size in (32, 64):
-        with start(root, data) as run:
-            results[size] = [run.process(Frame(image(1, size, size), index)) for index in range(4)]
+        with start(root, tracking_pipeline()) as run:
+            for index in range(4):
+                run.process(Frame(image(1, size, size), index))
+                results[size].append(port_values(run))
     for small, large in zip(results[32], results[64], strict=True):
-        for name in data["outputs"]:
+        for name in EACH_PORT:
             a, b = small[name], large[name]
             np.testing.assert_array_equal(a.present, b.present, err_msg=name)
             if hasattr(a, "boxes"):
@@ -138,7 +169,7 @@ def test_each_boxes_and_keypoints_output_of_each_node_is_in_source_image_pixels(
                 np.testing.assert_array_equal(b.boxes[:, 4], a.boxes[:, 4], err_msg=name)
             else:
                 np.testing.assert_allclose(b.xy, 2 * a.xy, rtol=1e-6, atol=1e-5, err_msg=name)
-    assert all(results[64][0][name].present.any() for name in data["outputs"] if not name.startswith(("points_box", "carried_box")))
+    assert all(results[64][0][name].present.any() for name in EACH_PORT if not name.startswith(("points_box", "carried_box")))
 
 
 # ---------------------------------------------------------------------------------------------
@@ -183,14 +214,18 @@ def test_an_empty_required_input_stops_a_node_and_an_empty_optional_or_read_inpu
 def test_a_node_that_an_empty_input_stops_gives_empty_outputs_and_the_nodes_that_read_an_empty_input_run(root: Path) -> None:
     with start(root, tracking_pipeline()) as run:
         dark = run.process(Frame(image(0), 0))  # the detector runs and finds nobody
+        dark_ports = port_values(run)
         again = run.process(Frame(image(1), 1))
+        again_ports = port_values(run)
     assert dark["node_ran"] == {"person": True, "body": False, "hand": False}
-    for name in ("detector_box", "crop_box", "body", "merged", "smooth"):
-        assert is_empty(dark[name]) and len(dark[name].present) == 1, name  # an empty value still has its I rows
+    for name in ("person.boxes", "crop.boxes", "body.keypoints", "merged.keypoints", "smooth.keypoints"):
+        assert is_empty(dark_ports[name]) and len(dark_ports[name].present) == 1, name  # an empty value still has its I rows
+    assert is_empty(dark["wholebody"]) and is_empty(dark["boxes"]) and np.isnan(dark["boxes"].xyxy).all()
     # `concat` runs with its empty inputs: each column is a missing point.
-    assert is_empty(dark["both"]) and dark["both"].xy.shape == (1, 6, 2) and (dark["both"].score == 0).all()
+    both = dark_ports["both.keypoints"]
+    assert is_empty(both) and both.xy.shape == (1, 9, 2) and (both.score == 0).all()
     # The check `box_missing` asks for a detection on the frame after a frame with no box.
-    assert again["node_ran"] == {"person": True, "body": True, "hand": True} and again["body"].present.tolist() == [True]
+    assert again["node_ran"] == {"person": True, "body": True, "hand": True} and again_ports["body.keypoints"].present.tolist() == [True]
 
 
 # ---------------------------------------------------------------------------------------------
@@ -205,33 +240,34 @@ def frames_of(index: int, sizes: dict[str, int], **more: Any) -> dict[str, Frame
 def test_prev_is_empty_on_the_first_frame_and_then_gives_the_value_of_the_previous_frame_of_the_same_camera(root: Path) -> None:
     sizes = {"a": 32, "b": 64}  # the points of the two cameras differ, because the test models follow the image size
     with start(root, prev_pipeline(), camera_ids=["a", "b"]) as run:
-        first = run.process_batch(frames_of(0, sizes))
+        first, first_ports = batch(run, frames_of(0, sizes))
         second = run.process_batch(frames_of(1, sizes))
-    assert is_empty(first["a"]["prev_box"]) and is_empty(first["b"]["prev_box"])
-    assert not np.allclose(points_box(first["a"]["body"]), points_box(first["b"]["body"]))
+    assert is_empty(first["a"]["boxes"]) and is_empty(first["b"]["boxes"])
+    body = {camera: first_ports[camera]["body.keypoints"] for camera in sizes}
+    assert not np.allclose(points_box(body["a"]), points_box(body["b"]))
     for camera in sizes:
-        np.testing.assert_allclose(second[camera]["prev_box"].boxes[0, :4], points_box(first[camera]["body"]))
-        np.testing.assert_array_equal(second[camera]["prev_box"].instance_score, first[camera]["body"].instance_score)
+        np.testing.assert_allclose(second[camera]["boxes"].xyxy[0], xyxy(points_box(body[camera])))
+        np.testing.assert_array_equal(second[camera]["boxes"].score, body[camera].instance_score)
 
 
 def test_each_prev_value_is_empty_in_the_running_mode_image(root: Path) -> None:
     with start(root, prev_pipeline(), running_mode="image") as run:
         results = [run.process(Frame(image(1), index)) for index in range(3)]
-    assert all(is_empty(result["prev_box"]) and result["body"].present[0] for result in results)
+    assert all(is_empty(result["boxes"]) and result["wholebody"].present[0] for result in results)
     assert [result["timestamp_ms"] for result in results] == [None, None, None]
 
 
 def test_in_live_a_camera_that_a_call_does_not_hold_keeps_its_prev_value_and_its_state(root: Path) -> None:
     with start(root, prev_pipeline(), camera_ids=["a", "b"], running_mode="live") as run:
-        first = run.process_batch(frames_of(0, {"a": 32, "b": 64}, timestamp_ms=0.0))
+        _, first = batch(run, frames_of(0, {"a": 32, "b": 64}, timestamp_ms=0.0))
         state = run._executor.states[("b", "smooth")]
-        only_a = run.process_batch(frames_of(1, {"a": 48}, timestamp_ms=10.0))
+        only_a, only_a_ports = batch(run, frames_of(1, {"a": 48}, timestamp_ms=10.0))
         assert list(only_a) == ["a"] and run._executor.states[("b", "smooth")] is state
         only_b = run.process_batch(frames_of(5, {"b": 64}, timestamp_ms=20.0))
-    np.testing.assert_allclose(only_a["a"]["prev_box"].boxes[0, :4], points_box(first["a"]["body"]))
+    np.testing.assert_allclose(only_a["a"]["boxes"].xyxy[0], xyxy(points_box(first["a"]["body.keypoints"])))
     # The previous frame of `b` is its frame of the first call, not the frame of `a` of the second call.
-    np.testing.assert_allclose(only_b["b"]["prev_box"].boxes[0, :4], points_box(first["b"]["body"]))
-    assert not np.allclose(points_box(first["b"]["body"]), points_box(only_a["a"]["body"]))
+    np.testing.assert_allclose(only_b["b"]["boxes"].xyxy[0], xyxy(points_box(first["b"]["body.keypoints"])))
+    assert not np.allclose(points_box(first["b"]["body.keypoints"]), points_box(only_a_ports["a"]["body.keypoints"]))
 
 
 # ---------------------------------------------------------------------------------------------
@@ -280,7 +316,7 @@ def same(before: tuple, after: tuple) -> bool:
 def test_v_pipeline_running_6_a_live_frame_with_no_timestamp_refuses_the_call_and_changes_no_state_of_any_camera(root: Path) -> None:
     sizes = {"a": 32, "b": 64}
     with start(root, prev_pipeline(), camera_ids=["a", "b"], running_mode="live") as run:
-        first = run.process_batch(frames_of(0, sizes, timestamp_ms=0.0))
+        _, first = batch(run, frames_of(0, sizes, timestamp_ms=0.0))
         before = snapshot(run)
         bad = {"a": Frame(image(1), 1, 1000.0), "b": Frame(image(1, 64, 64), 1)}  # `a` is good, `b` has no timestamp_ms
         with pytest.raises(CallRefusedError, match="V-pipeline.running-6") as error:
@@ -289,7 +325,7 @@ def test_v_pipeline_running_6_a_live_frame_with_no_timestamp_refuses_the_call_an
         # The run accepts the next call. 10 is after 0 and before 1000: the refused call did not move the time of `a`.
         after = run.process_batch(frames_of(1, sizes, timestamp_ms=10.0))
     for camera in sizes:
-        np.testing.assert_allclose(after[camera]["prev_box"].boxes[0, :4], points_box(first[camera]["body"]))
+        np.testing.assert_allclose(after[camera]["boxes"].xyxy[0], xyxy(points_box(first[camera]["body.keypoints"])))
 
 
 def test_v_pipeline_running_7_a_video_camera_that_stops_to_give_timestamps_refuses_the_call_and_changes_no_state(root: Path) -> None:
@@ -318,7 +354,7 @@ def test_v_node_smooth_keypoints_3_a_timestamp_that_does_not_increase_refuses_th
                 run.process_batch({"a": Frame(image(1), 1, 5000.0), "b": Frame(image(1, 64, 64), 1, late)})
             assert error.value.rule == "V-node.smooth_keypoints-3" and same(before, snapshot(run))
         after = run.process_batch(frames_of(1, sizes, timestamp_ms=101.0))
-    assert after["a"]["timestamp_ms"] == 101.0 and not is_empty(after["b"]["prev_box"])
+    assert after["a"]["timestamp_ms"] == 101.0 and not is_empty(after["b"]["boxes"])
 
 
 def test_a_video_camera_with_no_timestamps_must_give_a_frame_index_that_increases(root: Path) -> None:
@@ -342,7 +378,7 @@ def test_a_node_that_refuses_a_timestamp_after_other_nodes_ran_refuses_the_call_
 
     monkeypatch.setattr(node_smooth_keypoints, "run", run_node)
     with start(root, prev_pipeline(), camera_ids=["a", "b"], running_mode="live") as run:
-        first = run.process_batch(frames_of(0, sizes, timestamp_ms=0.0))
+        _, first = batch(run, frames_of(0, sizes, timestamp_ms=0.0))
         before = snapshot(run)
         refuse.append(True)
         with pytest.raises(CallRefusedError, match="smooth: camera 'b': V-node.smooth_keypoints-3") as error:
@@ -351,7 +387,7 @@ def test_a_node_that_refuses_a_timestamp_after_other_nodes_ran_refuses_the_call_
         refuse.clear()
         after = run.process_batch(frames_of(1, sizes, timestamp_ms=10.0))
     for camera in sizes:  # `@prev` is still the value of the first call, also for camera `a`, whose nodes all ran in the refused call
-        np.testing.assert_allclose(after[camera]["prev_box"].boxes[0, :4], points_box(first[camera]["body"]))
+        np.testing.assert_allclose(after[camera]["boxes"].xyxy[0], xyxy(points_box(first[camera]["body.keypoints"])))
 
 
 # ---------------------------------------------------------------------------------------------
@@ -363,7 +399,8 @@ def test_node_ran_is_true_when_the_detector_ran_and_found_nobody_and_false_for_a
     with start(root, detector_pipeline()) as run:
         result = run.process(Frame(image(0), 0))
     assert result["node_ran"] == {"person": True, "body": False}
-    assert is_empty(result["detector_box"]) and is_empty(result["body"])
+    assert is_empty(result["boxes"]) and is_empty(result["wholebody"])
+    assert result["boxes"].detector_ran.tolist() == [True]  # the detector ran and found nobody
 
 
 def test_node_ran_is_present_with_timing_off_and_the_sink_gets_no_line(root: Path, tmp_path: Path) -> None:
@@ -386,7 +423,7 @@ def test_a_padded_batch_item_is_not_a_run_a_live_call_gives_a_result_and_event_i
         assert sorted(item.batch for item in run._executor.sessions.opened.values()) == [2, 6]
         results = run.process_batch({"a": Frame(image(1), 7, 1.5)})
     assert list(results) == ["a"] and results["a"]["node_ran"] == {"person": True, "body": True}
-    assert results["a"]["body"].present.tolist() == [True, True, False]  # the padding box row is not a run
+    assert results["a"]["wholebody"].present.tolist() == [True, True, False]  # the padding box row is not a run
     for event in lines[1:]:
         assert event["images"] == [{"frame_index": 7, "camera_id": "a"}] and event["batch_size"] == 1
 
@@ -476,7 +513,7 @@ def test_the_aggregator_output_of_a_run_passes_the_skellybench_schema(root: Path
 def test_one_model_node_gives_its_stage_providers_to_the_aggregator(root: Path) -> None:
     lines: list[dict] = []
     data = detector_pipeline()
-    data["outputs"] = {"detector_box": "person.boxes"}  # `body` is not used, so it does not run
+    data["outputs"] = {"boxes": "person.boxes"}  # `body` is not used, so it does not run
     data["instrumentation"] = {"timing_spans": ["person.preprocess", "person.inference", "person.postprocess"]}
     with start(root, data, timing_sink=lines.append) as run:
         assert run.process(Frame(image(1), 0))["node_ran"] == {"person": True, "body": False}
@@ -486,12 +523,60 @@ def test_one_model_node_gives_its_stage_providers_to_the_aggregator(root: Path) 
 
 
 # ---------------------------------------------------------------------------------------------
-# Ports with a value that the spec does not fix
+# The outputs block
 # ---------------------------------------------------------------------------------------------
 
+ROTATED = {"id": "turned", "type": "boxes_from_points", "inputs": {"keypoints": "body.keypoints@prev"},
+           "params": {"size_rule": "alignment", "alignment_start": "body/a", "alignment_end": "body/b", "target_rotation_deg": 90}}
 
-def test_a_start_refuses_an_output_of_the_port_type_flag(root: Path) -> None:
+
+@pytest.mark.parametrize(
+    ("outputs", "nodes", "rule"),
+    [
+        ({"wholebody": "trigger.redetect"}, [], "V-pipeline.outputs-4: the output wholebody must name a keypoints port"),
+        ({"boxes": "body.keypoints"}, [], "V-pipeline.outputs-4: the output boxes must name a boxes port"),
+        ({"crop_box": "crop.boxes"}, [], "V-pipeline.outputs-1: the output key 'crop_box'"),
+        ({"boxes": "turned.boxes"}, [ROTATED], "V-pipeline.outputs-5: .* turned"),
+        # A rotated box that a node passes, also through `@prev`, is refused.
+        ({"boxes": "pick.value"}, [ROTATED, {"id": "pick", "type": "first_of", "inputs": ["person.boxes", "late.boxes@prev"]},
+                                   {"id": "late", "type": "smooth_boxes", "inputs": {"boxes": "turned.boxes"}}], "V-pipeline.outputs-5: .* turned"),
+    ],
+    ids=["flag", "keypoints-as-boxes", "unknown-key", "rotated", "rotated-through-prev"],
+)
+def test_the_load_refuses_an_output_that_is_not_a_delivered_form(root: Path, outputs: dict, nodes: list, rule: str) -> None:
     data = tracking_pipeline()
-    data["outputs"]["trigger_flag"] = "trigger.redetect"
-    with pytest.raises(ValueError, match="trigger.redetect of the type flag.*does not fix"):
-        start(root, data)
+    data["nodes"] += nodes
+    data["outputs"] = outputs
+    with pytest.raises(ValueError, match=rule):
+        load_pipeline(data, user_root=root)
+
+
+def test_a_rotated_box_that_is_not_an_output_and_the_upright_input_of_boxes_from_points_load(root: Path) -> None:
+    data = tracking_pipeline()
+    data["nodes"].append(ROTATED)  # `turned` feeds no output
+    data["outputs"]["wholebody"] = "body.keypoints"
+    load_pipeline(data, user_root=root)
+    # The keypoints of `points_box` come from a node that reads a rotated box: only the params of `boxes_from_points` rotate its box.
+    data["nodes"].append({"id": "turned_points", "type": "onnx_model", "inputs": {"image": "frame.image", "boxes": "turned.boxes"},
+                          "params": {"key": "demo-body@demo-exporter", "size": "m", "execution_provider": "cpu"}})
+    next(node for node in data["nodes"] if node["id"] == "points_box")["inputs"]["keypoints"] = "turned_points.keypoints@prev"
+    load_pipeline(data, user_root=root)
+
+
+def test_the_output_wholebody_needs_a_group_body_and_holistic_the_four_holistic_groups(root: Path) -> None:
+    data = detector_pipeline()
+    data["outputs"] = {"wholebody": "body.keypoints", "holistic": "body.keypoints"}
+    with pytest.raises(ValueError, match=r"V-pipeline.outputs-4: the output holistic \(body.keypoints\) must have exactly the groups"):
+        load_pipeline(data, user_root=root)
+    data["nodes"][1]["id"] = "torso"  # a schema with one group gives the group the id of the node
+    data["outputs"] = {"wholebody": "torso.keypoints"}
+    with pytest.raises(ValueError, match=r"V-pipeline.outputs-4: the output wholebody \(torso.keypoints\) must have a group body; it has the groups \['torso'\]"):
+        load_pipeline(data, user_root=root)
+
+
+def test_detector_ran_is_the_node_ran_of_the_instance_source_of_the_output_boxes(root: Path) -> None:
+    with start(root, tracking_pipeline()) as run:
+        assert run.output_schema["boxes"]["instance_source"] == "person"
+        results = [run.process(Frame(image(1), index)) for index in range(4)]
+    assert [result["boxes"].detector_ran.tolist() for result in results] == [[True], [False], [False], [True]]
+    assert [result["node_ran"]["person"] for result in results] == [True, False, False, True]
