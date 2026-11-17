@@ -3,6 +3,7 @@
 import os
 import subprocess
 import sys
+import time
 
 import pytest
 
@@ -101,7 +102,9 @@ def test_real_sampler_reads_this_process_and_a_dead_process():
     child.wait()
     sampler = metrics.LiveSampler()
     sampler.sample([os.getpid()])
-    sum(range(200_000))
+    deadline = time.perf_counter() + 0.1  # the host CPU counter has ticks of 10 ms or more; a shorter window can have none
+    while time.perf_counter() < deadline:
+        pass
     sample = sampler.sample([os.getpid(), child.pid])
     (row,) = sample.processes
     assert row.pid == os.getpid() and row.rss_bytes > 0 and 0.0 <= row.cpu_utilization <= 1.0
