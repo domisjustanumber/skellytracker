@@ -48,6 +48,12 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   records the run as `no vectors`. An example is version 6 of `model-rtmw-wholebody133` for
   `post.keypoint.score_map`
   ([ADR-F067](../specs/model-sidecar/decisions/entries/F067-simcc-score-map.md)).
+- **Pipeline redesign.** The build stages of the redesign of the node and port types, and its
+  points that are still open, are in
+  [`node-and-port-redesign.md`](../specs/pipeline/proposals/node-and-port-redesign.md), sections 10
+  and 11 ([ADR-9HTX](entries/9HTX-pipeline-node-and-port-redesign.md)). Two items are later work.
+  Look into one canonical output keypoint set that becomes the only output format of a pipeline.
+  Make one BGR to RGB conversion for each camera and frame for the decomposed MediaPipe pipeline.
 - **Kit PR in freemocap/project.** The kit is on the branch `dom/agents-and-adr-kit` of
   freemocap/project, in a PR for its owner
   ([ADR-P3NK](entries/P3NK-bootstrap-kit-in-freemocap-project.md)). The link repairs in 0031, NB91,

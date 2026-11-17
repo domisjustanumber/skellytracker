@@ -47,6 +47,7 @@ These entries are `accepted` or `evidence`.
 | [8YXH](entries/8YXH-aruco-marker-threshold-and-charuco-corner-position.md) | The calibration detectors set `validBitIdThreshold` 0.5; no offset on the ChArUco corners of OpenCV 5; a test pins the corner position | accepted |
 | [4WR9](entries/4WR9-params-schema-in-the-node-catalog.md) | `NodeTypeInfo.params_schema` and `NodeTypeInfo.any_from`: the JSON Schema of the params and the inputs that type an `any` output, for an editor | accepted |
 | [92BE](entries/92BE-legacy-path-for-the-freemocap-metrics-stage.md) | Temporary legacy path for the freemocap metrics: old tracker task events; `cuda` bridge of `OnnxSession` to `eps.build_session()`; no TensorRT; deleted in 2.4 | accepted |
+| [9HTX](entries/9HTX-pipeline-node-and-port-redesign.md) | Pipeline redesign: a boolean `flag`, `run_if`, one image, an `outputs` block with three fixed keys, a `merge` with named inputs; design in the proposal | accepted |
 
 ### Proposed
 
@@ -56,7 +57,6 @@ when the change has no one section. The spec change proposals of the sidecar spe
 
 | # | Decision | Section | Status |
 |---|----------|---------|--------|
-| [9HTX](entries/9HTX-pipeline-node-and-port-redesign.md) | Pipeline redesign: internal and external types, an `output` node, a three-state `flag`, named inputs for `merge`, `run_if`; design in the proposal | none | proposed |
 
 The entries that are `rejected`, `superseded by XXXX`, `absorbed into <path>#<anchor>`,
 `evidence; used by XXXX` or `done` are in [historical.md](historical.md).
