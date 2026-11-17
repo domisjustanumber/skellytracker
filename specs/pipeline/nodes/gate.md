@@ -11,15 +11,16 @@ status: {spec: draft}
 > This section is a draft. Its fields and rules can change before the section becomes `stable`.
 
 The node `gate` passes `value` or gives an empty output. A test on `condition` decides. For example,
-a gate sends the image to a person detector only when the keypoints of the previous frame are empty
-([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6).
+a gate passes the box from the points of the previous frame only when the flag of a
+`redetect_trigger` node is false
+([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6; [ADR-9HTX](../../../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) item 9).
 
 ## Fields
 
 <!-- node-table:params -->
 | Param | Type | Range | Default | Set during run | Description | Source |
 |---|---|---|---|---|---|---|
-| `mode` | `Literal['is_empty', 'is_present', 'score_above']` |  | required | no | Pass `value` when `condition` is empty, is present, or has a score greater than `threshold`. | ADR-7NY2 item 6 |
+| `mode` | `Literal['is_empty', 'is_present', 'score_above', 'is_true', 'is_false']` |  | required | no | Pass `value` when `condition` is empty, is present, or has a score greater than `threshold` (a boxes or keypoints condition), or when the flag `condition` is true or false. | ADR-7NY2 item 6; ADR-9HTX item 9 |
 | `threshold` | `float \| None` | >= 0.0 | `null` | yes | The score threshold of the mode `score_above`. | ADR-7NY2 item 6; ADR-88WQ item 6 |
 <!-- /node-table:params -->
 
@@ -27,7 +28,7 @@ a gate sends the image to a person detector only when the keypoints of the previ
 | Port | Direction | Type |
 |---|---|---|
 | `value` | input | `image`, `boxes`, `keypoints` |
-| `condition` | input | `image`, `boxes`, `keypoints` |
+| `condition` | input | `image`, `boxes`, `keypoints`, `flag` |
 | `value` | output | `image`, `boxes`, `keypoints` |
 <!-- /node-table:ports -->
 
@@ -45,6 +46,9 @@ a gate sends the image to a person detector only when the keypoints of the previ
     of the row is NaN, the score is 0. A score has no upper bound
     ([ADR-88WQ](../../../decisions/entries/88WQ-sidecar-vocabulary.md) item 6).
   - Other port types have no score (`V-node.gate-2`).
+- **Flag condition.** A `condition` of the port type `flag` takes only the modes `is_true` and
+  `is_false` (`V-node.gate-4`). The modes `is_empty`, `is_present` and `score_above` need a
+  `condition` that is not a flag (`V-node.gate-2`; [ADR-9HTX](../../../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) item 9).
 
 ## Behaviour
 
@@ -64,16 +68,21 @@ a gate sends the image to a person detector only when the keypoints of the previ
    empty. When `condition` has no value, each row of `condition` is empty. Row `i` of the output is
    row `i` of `value` when row `i` of `value` is present and the test passes. Else row `i` of the
    output is empty. The output has one row for each row of `value`.
-4. **One test.** Else the node does one test. The list of step 2 holds each present row of
+4. **One test.** Else, when `condition` is not a flag, the node does one test. The list of step 2 holds each present row of
    `condition` when `condition` is an instance port. It holds one row when `condition` is a value of
    another port type, and no row when `condition` has no value. If the test passes, the output is
    `value`, unchanged, also its `instance_score`. Else the output is empty.
+5. **Flag.** When `condition` is a flag, the node does one test for the frame. The mode `is_true`
+   passes when the flag is true. The mode `is_false` passes when the flag is false. If the test
+   passes, the output is `value`, unchanged. Else the output is empty. A flag is never empty
+   ([Graph](../graph.md#behaviour) item 5; [ADR-9HTX](../../../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) item 9).
 
 ## Validation rules
 
 - [ ] `V-node.gate-1` The mode `score_above` needs `threshold`, and the other modes have none.
-- [ ] `V-node.gate-2` The mode `score_above` needs a `condition` of the port type `boxes` or `keypoints`. The host checks this at load, from the port type of the connected output.
+- [ ] `V-node.gate-2` The modes `is_empty`, `is_present` and `score_above` need a `condition` that is not of the port type `flag`. The mode `score_above` needs a `condition` of the port type `boxes` or `keypoints`. The host checks this at load, from the port type of the connected output.
 - [ ] `V-node.gate-3` When `value` and `condition` are both instance ports, they must have the same number of rows (`max_instances`). The host checks this at load.
+- [ ] `V-node.gate-4` The modes `is_true` and `is_false` need a `condition` of the port type `flag`. The host checks this at load, from the port type of the connected output.
 
 ## Implementer guidance
 
@@ -87,8 +96,11 @@ a gate sends the image to a person detector only when the keypoints of the previ
 
 ## Authoring guidance
 
-- To run a detector only when tracking stops, gate the image with `mode: is_empty` on the keypoints
-  of the previous frame (`<node>.keypoints@prev`). Join the two box paths with `first_of`.
+- Do not gate the image of a detector. To run a detector only on some frames, connect a flag to its
+  `run_if` input ([Node: ONNX model](onnx_model.md#fields)).
+- To use the box from the points of the previous frame only on a frame with no new detection, gate
+  it with `mode: is_false` on the flag `redetect` of a `redetect_trigger` node. Join the two box
+  paths with `first_of`. The built-in `yolox-rtmw-wholebody` does this.
 - The keypoint score is a mean over all points of the row. A row with many low-score points
   can fail `score_above` when its important points are visible. Gate on a smaller keypoint set when
   this matters.
@@ -100,8 +112,8 @@ a gate sends the image to a person detector only when the keypoints of the previ
 The vector file [`node.gate.yaml`](../vectors/node.gate.yaml) holds the worked cases.
 
 ```yaml
-- id: detect_when_lost
+- id: carried_box
   type: gate
-  inputs: {value: frame.image, condition: body.keypoints@prev}
-  params: {mode: is_empty}
+  inputs: {value: points_box.boxes, condition: trigger.redetect}
+  params: {mode: is_false}
 ```

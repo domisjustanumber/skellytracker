@@ -6,8 +6,9 @@ notes:
   - "`value_type` and `condition_type` are the port types, known at load. A value of an
     instance port (`boxes`, `keypoints`) is null (empty) or one row or null (an empty
     row) for each instance. A value of another port type is null (empty) or a
-    placeholder string. A `keypoints` row of `condition` holds `xy` and `score`; a
-    `boxes` row of `condition` holds `instance_score`."
+    placeholder string. A `flag` condition is true or false. A `keypoints` row of
+    `condition` holds `xy` and `score`; a `boxes` row of `condition` holds
+    `instance_score`."
 tolerance: 0.000001
 verified_against:
   - skellytracker/core/pipelines/_runtime/node_gate.py::run
@@ -105,3 +106,56 @@ cases:
       value: [[100, 100, 50, 50, 0], [200, 200, 40, 40, 0]]
       condition: [{instance_score: 0.8}]
     expect: {error: V-node.gate-3}
+  - id: is-true-passes-on-a-true-flag
+    note: "the trigger asks for a detection, so the value passes; the node does one test for
+      the frame"
+    params: {mode: is_true}
+    input:
+      value_type: boxes
+      condition_type: flag
+      value: [[100, 100, 50, 50, 0]]
+      condition: true
+    expect: {value: [[100, 100, 50, 50, 0]]}
+  - id: is-true-blocks-on-a-false-flag
+    params: {mode: is_true}
+    input:
+      value_type: boxes
+      condition_type: flag
+      value: [[100, 100, 50, 50, 0]]
+      condition: false
+    expect: {value: null}
+  - id: is-false-passes-on-a-false-flag
+    note: "no detection on this frame, so the box from the points of the previous frame passes"
+    params: {mode: is_false}
+    input:
+      value_type: boxes
+      condition_type: flag
+      value: [[100, 100, 50, 50, 0]]
+      condition: false
+    expect: {value: [[100, 100, 50, 50, 0]]}
+  - id: is-false-blocks-on-a-true-flag
+    params: {mode: is_false}
+    input:
+      value_type: boxes
+      condition_type: flag
+      value: [[100, 100, 50, 50, 0]]
+      condition: true
+    expect: {value: null}
+  - id: is-true-on-a-keypoints-condition-is-refused
+    checks: [refused]
+    params: {mode: is_true}
+    input:
+      value_type: boxes
+      condition_type: keypoints
+      value: [[100, 100, 50, 50, 0]]
+      condition: null
+    expect: {error: V-node.gate-4}
+  - id: is-empty-on-a-flag-condition-is-refused
+    checks: [refused]
+    params: {mode: is_empty}
+    input:
+      value_type: boxes
+      condition_type: flag
+      value: [[100, 100, 50, 50, 0]]
+      condition: false
+    expect: {error: V-node.gate-2}

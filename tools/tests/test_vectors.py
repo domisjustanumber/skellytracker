@@ -2141,7 +2141,7 @@ def gate_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
         inp = case["input"]
         value, condition = inp["value"], inp["condition"]
         params = GateParams(**case["params"])
-        points = max((len(row["xy"]) for row in condition or [] if row and "xy" in row), default=1)
+        points = max((len(row["xy"]) for row in (condition if isinstance(condition, list) else []) if row and "xy" in row), default=1)
         infos = {}
         for name, item, other in (("value", value, condition), ("condition", condition, value)):
             kind = inp[f"{name}_type"]
@@ -2168,6 +2168,8 @@ def gate_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
             for i, row in enumerate(condition or []):
                 if row is not None:
                     sent.boxes[i], sent.instance_score[i], sent.present[i] = 0.0, row["instance_score"], True
+        elif inp["condition_type"] == "flag":
+            sent = condition
         else:
             sent = None if condition is None else image
         by_value = boxes_value(value, len(value)) if inp["value_type"] == "boxes" else image
@@ -2296,7 +2298,6 @@ def smooth_keypoints_runner(function: Any, case: dict[str, Any]) -> dict[str, An
 
 def redetect_trigger_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
     from skellytracker.core.pipelines.config import RedetectTriggerParams
-    from skellytracker.core.pipelines.values import PortInfo
 
     def run() -> dict[str, Any]:
         inp = case["input"]
@@ -2307,11 +2308,11 @@ def redetect_trigger_runner(function: Any, case: dict[str, Any]) -> dict[str, An
         rows = max([1, *(max(len(keypoints), len(boxes)) for keypoints, boxes in given)])
         points = max([1, *(len(row) for keypoints, _ in given for row in keypoints if row is not None)])
         info = keypoints_info([f"g/p{column}" for column in range(points)], rows)
-        infos = {"image": PortInfo("image"), "previous_boxes": boxes_info(rows), **({"previous_keypoints": info} if connected else {})}
+        infos = {"previous_boxes": boxes_info(rows), **({"previous_keypoints": info} if connected else {})}
         sibling(function, "output_info")("node", params, infos)
-        image, state, triggered = np.zeros((2, 2, 3), dtype=np.uint8), None, []
+        state, triggered = None, []
         for frame, (keypoints, boxes) in zip(frames, given, strict=True):
-            values = {"image": image, "previous_boxes": boxes_value(boxes, rows)}
+            values = {"previous_boxes": boxes_value(boxes, rows)}
             if connected:
                 values["previous_keypoints"] = xy_keypoints(
                     keypoints, [row is not None for row in keypoints], info,
@@ -2319,7 +2320,7 @@ def redetect_trigger_runner(function: Any, case: dict[str, Any]) -> dict[str, An
                 )
             context = node_frame(frame["frame_index"], frame["frame_index"] * 1000.0 / 30.0, inp["running_mode"])
             result, state = function(params, values, state, context)
-            triggered.append(result["image"] is not None)
+            triggered.append(result["redetect"])
         return {"triggered": triggered}
 
     return node_outcome(run)

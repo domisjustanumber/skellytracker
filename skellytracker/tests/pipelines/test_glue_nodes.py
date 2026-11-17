@@ -357,6 +357,22 @@ def test_gate_passes_an_image_unchanged_or_gives_none() -> None:
     assert gate(GateParams(mode="is_present"), IMAGE, None, PortInfo("image"), PortInfo("image")) is None
 
 
+def test_v_node_gate_2_and_4_a_flag_condition_takes_only_is_true_and_is_false() -> None:
+    for mode in ("is_true", "is_false"):
+        refuses("V-node.gate-4", node_gate.output_info, "n", GateParams(mode=mode), {"value": boxes_info(), "condition": kp_info(BODY)})
+        node_gate.output_info("n", GateParams(mode=mode), {"value": boxes_info(), "condition": PortInfo("flag")})
+    for mode in ("is_empty", "is_present"):
+        refuses("V-node.gate-2", node_gate.output_info, "n", GateParams(mode=mode), {"value": boxes_info(), "condition": PortInfo("flag")})
+    refuses("V-node.gate-2", node_gate.output_info, "n", GateParams(mode="score_above", threshold=0.5), {"value": boxes_info(), "condition": PortInfo("flag")})
+
+
+def test_gate_on_a_flag_passes_the_value_unchanged_or_gives_the_empty_value() -> None:
+    value = boxes([[5.0, 5, 10, 10, 0]], [0.9])
+    for mode, flag, passes in (("is_true", True, True), ("is_true", False, False), ("is_false", False, True), ("is_false", True, False)):
+        out = gate(GateParams(mode=mode), value, flag, boxes_info(), PortInfo("flag"))
+        assert (out is value) if passes else not out.present.any(), (mode, flag)
+
+
 def test_gate_keeps_the_rows_of_a_boxes_value_with_their_class_index_and_tests_their_instance_score() -> None:
     boxes = InstanceBoxes(
         np.array([[5.0, 5, 10, 10, 0], [12.5, 12.5, 15, 15, 0]]), np.array([0.9, 0.4]), np.array([3, 1]), np.array([True, True]), np.array([-1, -1])
@@ -635,18 +651,18 @@ def test_smooth_boxes_and_hold_boxes_copy_the_class_index_and_boxes_from_points_
 
 def test_v_node_redetect_trigger_2_box_missing_needs_the_input_previous_boxes() -> None:
     params = RedetectTriggerParams(fitness_checks=[{"check": "box_missing"}])
-    refuses("V-node.redetect_trigger-2", node_redetect_trigger.output_info, "n", params, {"image": PortInfo("image")})
-    outputs, warnings = node_redetect_trigger.output_info("n", params, {"image": PortInfo("image"), "previous_boxes": boxes_info(rows=1)})
-    assert (outputs, warnings) == ({"image": PortInfo("image")}, [])
+    refuses("V-node.redetect_trigger-2", node_redetect_trigger.output_info, "n", params, {})
+    outputs, warnings = node_redetect_trigger.output_info("n", params, {"previous_boxes": boxes_info(rows=1)})
+    assert (outputs, warnings) == ({"redetect": PortInfo("flag")}, [])
 
 
-def test_redetect_trigger_gives_the_input_image_or_none_and_reads_the_interval_at_each_call() -> None:
-    inputs = {"image": IMAGE}
+def test_redetect_trigger_gives_true_or_false_and_reads_the_interval_at_each_call() -> None:
+    inputs: dict[str, Any] = {}  # no required input: the node runs on each frame
     out, last = node_redetect_trigger.run(RedetectTriggerParams(redetect_interval=3), inputs, None, frame(0))
-    assert out["image"] is IMAGE and last == 0
+    assert out["redetect"] is True and last == 0
     out, last = node_redetect_trigger.run(RedetectTriggerParams(redetect_interval=3), inputs, last, frame(2))
-    assert out["image"] is None and last == 0
+    assert out["redetect"] is False and last == 0
     out, last = node_redetect_trigger.run(RedetectTriggerParams(redetect_interval=2), inputs, last, frame(2))
-    assert out["image"] is IMAGE and last == 2
+    assert out["redetect"] is True and last == 2
     out, last = node_redetect_trigger.run(RedetectTriggerParams(redetect_interval=9), inputs, last, frame(3, mode="image"))
-    assert out["image"] is IMAGE and last is None
+    assert out["redetect"] is True and last is None

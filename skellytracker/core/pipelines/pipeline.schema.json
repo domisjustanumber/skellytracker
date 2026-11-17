@@ -458,14 +458,16 @@
       "additionalProperties": false,
       "properties": {
         "mode": {
-          "description": "Pass `value` when `condition` is empty, is present, or has a score greater than `threshold`.",
+          "description": "Pass `value` when `condition` is empty, is present, or has a score greater than `threshold` (a boxes or keypoints condition), or when the flag `condition` is true or false.",
           "enum": [
             "is_empty",
             "is_present",
-            "score_above"
+            "score_above",
+            "is_true",
+            "is_false"
           ],
           "set_during_run": false,
-          "source": "ADR-7NY2 item 6",
+          "source": "ADR-7NY2 item 6; ADR-9HTX item 9",
           "title": "Mode",
           "type": "string"
         },

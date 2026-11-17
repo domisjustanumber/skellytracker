@@ -144,7 +144,7 @@ def test_v_pipeline_taps_5_a_record_tap_refuses_a_folder_that_is_not_empty(root:
 
 
 @pytest.mark.parametrize(("data", "port", "match"), [
-    (tracking_pipeline(), "trigger.image", "of the type image"),
+    (tracking_pipeline(), "trigger.redetect", "of the type flag"),
     (MEDIAPIPE, "holistic.keypoints", "3d keypoints port"),
 ])
 def test_a_start_refuses_a_tap_of_a_port_whose_file_form_no_text_fixes(root: Path, tmp_path: Path, data: dict, port: str, match: str) -> None:

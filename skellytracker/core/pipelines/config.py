@@ -290,9 +290,10 @@ class HoldBoxesParams(Strict):
 
 
 class GateParams(Strict):
-    mode: Literal["is_empty", "is_present", "score_above"] = param(
-        description="Pass `value` when `condition` is empty, is present, or has a score greater than `threshold`.",
-        set_during_run=False, source="ADR-7NY2 item 6",
+    mode: Literal["is_empty", "is_present", "score_above", "is_true", "is_false"] = param(
+        description="Pass `value` when `condition` is empty, is present, or has a score greater than `threshold` (a boxes or keypoints "
+        "condition), or when the flag `condition` is true or false.",
+        set_during_run=False, source="ADR-7NY2 item 6; ADR-9HTX item 9",
     )
     threshold: float | None = param(
         None, description="The score threshold of the mode `score_above`.", set_during_run=True, source="ADR-7NY2 item 6; ADR-88WQ item 6",
@@ -493,7 +494,8 @@ class OnnxModel(NodeType):
     section = "node.onnx_model"
     Params = OnnxModelParams
     # `boxes` is for a top-down keypoint model only; the role of the sidecar decides the ports that it uses.
-    inputs = {"image": ("image",), "boxes": ("boxes",)}
+    # `run_if` is optional: when it is false, the node does not run (V-node.onnx_model-6).
+    inputs = {"image": ("image",), "boxes": ("boxes",), "run_if": ("flag",)}
     outputs = {"boxes": ("boxes",), "keypoints": ("keypoints",)}
     required_inputs = ("image",)
     timing_spans = ("preprocess", "inference", "postprocess")
@@ -503,7 +505,8 @@ class MediapipeTasks(NodeType):
     type = "mediapipe_tasks"
     section = "node.mediapipe_tasks"
     Params = MediapipeTasksParams
-    inputs = {"image": ("image",)}
+    # `run_if` is optional, and not for the variant `holistic` (V-node.mediapipe_tasks-3).
+    inputs = {"image": ("image",), "run_if": ("flag",)}
     outputs = {"keypoints": ("keypoints",)}
     required_inputs = ("image",)
 
@@ -531,7 +534,7 @@ class Gate(NodeType):
     type = "gate"
     section = "node.gate"
     Params = GateParams
-    inputs = {"value": ("image", "boxes", "keypoints"), "condition": ("image", "boxes", "keypoints")}
+    inputs = {"value": ("image", "boxes", "keypoints"), "condition": ("image", "boxes", "keypoints", "flag")}
     outputs = {"value": ("image", "boxes", "keypoints")}
     required_inputs = ("value", "condition")
     any_from = ("value",)
@@ -585,10 +588,9 @@ class RedetectTrigger(NodeType):
     type = "redetect_trigger"
     section = "node.redetect_trigger"
     Params = RedetectTriggerParams
-    # The output is the input image when a new detection is needed, else empty (the trigger).
-    inputs = {"image": ("image",), "previous_keypoints": ("keypoints",), "previous_boxes": ("boxes",)}
-    outputs = {"image": ("image",)}
-    required_inputs = ("image",)
+    # The output is true when a new detection is needed, else false. Both inputs are optional, so the node runs on each frame.
+    inputs = {"previous_keypoints": ("keypoints",), "previous_boxes": ("boxes",)}
+    outputs = {"redetect": ("flag",)}
 
 
 NODE_TYPES: tuple[type[NodeType], ...] = (
@@ -800,6 +802,8 @@ def check_structure(config: PipelineConfig) -> None:
     _check_acyclic(edges)
     for node in config.nodes:
         kind = BY_TYPE[node.type]
+        if "run_if" in kind.inputs:
+            _check_run_if(node, nodes)
         for name, ref in input_items(node):
             accepted, given = kind.inputs[name], _ref_type(ref, nodes)
             if given is None:
@@ -833,6 +837,19 @@ def check_structure(config: PipelineConfig) -> None:
             raise ValueError(f"V-pipeline.taps-1: the tap name {tap.name!r} is not unique")
         tap_names.add(tap.name)
         _port(tap.port, nodes, "V-pipeline.taps-1", graph_input=False)
+
+
+def _check_run_if(node: Any, nodes: dict[str, Any]) -> None:
+    """Check the input `run_if` of an inference node (V-node.onnx_model-6, V-node.mediapipe_tasks-3)."""
+    ref = node.inputs.get("run_if")
+    if ref is None:
+        return
+    rule = "V-node.onnx_model-6" if node.type == "onnx_model" else "V-node.mediapipe_tasks-3"
+    if node.type == "mediapipe_tasks" and node.params.variant == "holistic":
+        raise ValueError(f"{rule}: {node.id}: the variant holistic takes no run_if")
+    given = _ref_type(ref, nodes)
+    if given is not None and given != "flag":
+        raise ValueError(f"{rule}: {node.id}: run_if must name a flag port, but {ref!r} gives {given}")
 
 
 def _check_point_names(config: PipelineConfig) -> None:

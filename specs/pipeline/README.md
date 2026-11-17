@@ -123,11 +123,11 @@ A pipeline file and its run are valid when all of the following rules hold.
 - [Running](running.md#validation-rules): `V-pipeline.running-1` to `V-pipeline.running-10`
 - [Timing](timing.md#validation-rules): `V-pipeline.timing-1`
 - [Taps](taps.md#validation-rules): `V-pipeline.taps-1` to `V-pipeline.taps-7`
-- [ONNX model node](nodes/onnx_model.md#validation-rules): `V-node.onnx_model-1` to `V-node.onnx_model-5`
-- [MediaPipe Tasks node](nodes/mediapipe_tasks.md#validation-rules): `V-node.mediapipe_tasks-1`, `V-node.mediapipe_tasks-2`
+- [ONNX model node](nodes/onnx_model.md#validation-rules): `V-node.onnx_model-1` to `V-node.onnx_model-6`
+- [MediaPipe Tasks node](nodes/mediapipe_tasks.md#validation-rules): `V-node.mediapipe_tasks-1` to `V-node.mediapipe_tasks-3`
 - [Boxes from points node](nodes/boxes_from_points.md#validation-rules): `V-node.boxes_from_points-1` to `V-node.boxes_from_points-7`
 - [Hold boxes node](nodes/hold_boxes.md#validation-rules): `V-node.hold_boxes-1` to `V-node.hold_boxes-3`
-- [Gate node](nodes/gate.md#validation-rules): `V-node.gate-1` to `V-node.gate-3`
+- [Gate node](nodes/gate.md#validation-rules): `V-node.gate-1` to `V-node.gate-4`
 - [First-of node](nodes/first_of.md#validation-rules): `V-node.first_of-1`, `V-node.first_of-2`
 - [Concat node](nodes/concat.md#validation-rules): `V-node.concat-1` to `V-node.concat-3`
 - [Merge node](nodes/merge.md#validation-rules): `V-node.merge-1` to `V-node.merge-5`

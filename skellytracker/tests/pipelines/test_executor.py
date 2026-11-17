@@ -90,9 +90,10 @@ def test_each_node_type_runs_in_one_pipeline_on_generated_models(root: Path) -> 
 
 STOPS = {  # (node, the one input that is empty): the node stops
     ("body", "boxes"): True, ("body", "image"): True,  # the `boxes` input of a top-down model is required
-    ("trigger", "image"): True, ("trigger", "previous_keypoints"): False, ("trigger", "previous_boxes"): False,  # optional inputs
+    ("person", "run_if"): True,  # a false `run_if` stops the node
+    ("trigger", "previous_keypoints"): False, ("trigger", "previous_boxes"): False,  # optional inputs
     ("points_box", "keypoints"): True, ("points_box", "previous_boxes"): False, ("points_box", "reference_boxes"): False,
-    ("carried_box", "value"): True, ("carried_box", "condition"): False,  # `gate` reads an empty `condition`
+    ("carried_box", "value"): True, ("carried_box", "condition"): False,  # `gate` reads a false flag `condition`
     ("hold", "current"): True, ("hold", "previous"): False,  # `hold_boxes` reads an empty `previous`
     ("merged", "target"): True, ("merged", "source"): False,  # `merge` reads an empty `source`
     ("crop", "boxes"): False, ("smooth", "keypoints"): False,  # the filters read their empty input
@@ -105,9 +106,9 @@ def test_an_empty_required_input_stops_a_node_and_an_empty_optional_or_read_inpu
     def inputs_of(node, empty: str | None) -> Any:
         found = []
         for item in node.inputs:
-            value = image(1) if item.node in ("frame", "trigger") else resolved.port_info(item.node, item.port).empty()
+            value = image(1) if item.node == "frame" else True if item.node == "trigger" else resolved.port_info(item.node, item.port).empty()
             if item.name == empty or empty == "*":
-                value = None if item.node in ("frame", "trigger") else value
+                value = None if item.node == "frame" else False if item.node == "trigger" else value
             elif hasattr(value, "present"):
                 value.present[0] = True
             found.append((item.name, value))
@@ -433,6 +434,6 @@ def test_one_model_node_gives_its_stage_providers_to_the_aggregator(root: Path) 
 
 def test_a_start_refuses_an_output_of_the_port_type_image(root: Path) -> None:
     data = tracking_pipeline()
-    data["outputs"]["trigger_image"] = "trigger.image"
-    with pytest.raises(ValueError, match="trigger.image of the type image.*does not fix"):
+    data["outputs"]["trigger_flag"] = "trigger.redetect"
+    with pytest.raises(ValueError, match="trigger.redetect of the type flag.*does not fix"):
         start(root, data)

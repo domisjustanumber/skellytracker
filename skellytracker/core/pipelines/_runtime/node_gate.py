@@ -17,6 +17,8 @@ from skellytracker.core.pipelines.values import InstanceBoxes, InstanceKeypoints
 READS_EMPTY: frozenset[str] = frozenset({"condition"})
 INSTANCE_TYPES = ("boxes", "keypoints")
 SCORED_TYPES = INSTANCE_TYPES
+# The modes of a `flag` condition (V-node.gate-4).
+FLAG_MODES = ("is_true", "is_false")
 
 
 def output_info(
@@ -26,10 +28,14 @@ def output_info(
 
     Implements: node.gate
 
-    It checks V-node.gate-2 and -3. The params model checks -1. The output has the facts of the
+    It checks V-node.gate-2, -3 and -4. The params model checks -1. The output has the facts of the
     input ``value``.
     """
     value, condition = inputs["value"], inputs["condition"]
+    if params.mode in FLAG_MODES and condition.port_type != "flag":
+        raise ValueError(f"V-node.gate-4: {node_id}: {params.mode} needs a flag condition, not {condition.port_type}")
+    if params.mode not in FLAG_MODES and condition.port_type == "flag":
+        raise ValueError(f"V-node.gate-2: {node_id}: {params.mode} needs a condition that is not a flag")
     if params.mode == "score_above" and condition.port_type not in SCORED_TYPES:
         raise ValueError(f"V-node.gate-2: {node_id}: score_above needs a boxes or keypoints condition, not {condition.port_type}")
     by_row = value.port_type in INSTANCE_TYPES and condition.port_type in INSTANCE_TYPES
@@ -85,6 +91,8 @@ def run(
     value_info, condition_type = infos["value"], infos["condition"].port_type
     if is_empty(value):
         return {"value": value_info.empty()}, None
+    if condition_type == "flag":  # one test for the frame (step 5)
+        return {"value": value if bool(condition) == (params.mode == "is_true") else value_info.empty()}, None
     condition_rows = condition_type in INSTANCE_TYPES
     if value_info.port_type in INSTANCE_TYPES and condition_rows:
         # Row by row (step 3).

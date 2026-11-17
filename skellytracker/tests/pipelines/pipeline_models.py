@@ -132,14 +132,14 @@ def tracking_pipeline() -> dict[str, Any]:
     cpu = {"execution_provider": "cpu"}
     nodes = [
         {"id": "trigger", "type": "redetect_trigger",
-         "inputs": {"image": "frame.image", "previous_keypoints": "body.keypoints@prev", "previous_boxes": "crop.boxes@prev"},
+         "inputs": {"previous_keypoints": "body.keypoints@prev", "previous_boxes": "crop.boxes@prev"},
          "params": {"redetect_interval": 3, "fitness_checks": [{"check": "box_missing"}]}},
-        {"id": "person", "type": "onnx_model", "inputs": {"image": "trigger.image"}, "params": {"key": OBJECT_KEY, "size": "n", **cpu}},
+        {"id": "person", "type": "onnx_model", "inputs": {"image": "frame.image", "run_if": "trigger.redetect"}, "params": {"key": OBJECT_KEY, "size": "n", **cpu}},
         {"id": "detected_box", "type": "first_of", "inputs": ["person.boxes", "detected_box.value@prev"]},
         {"id": "points_box", "type": "boxes_from_points",
          "inputs": {"keypoints": "body.keypoints@prev", "previous_boxes": "crop.boxes@prev", "reference_boxes": "detected_box.value"},
          "params": {"expand_ratio": 1.2}},
-        {"id": "carried_box", "type": "gate", "inputs": {"value": "points_box.boxes", "condition": "trigger.image"}, "params": {"mode": "is_empty"}},
+        {"id": "carried_box", "type": "gate", "inputs": {"value": "points_box.boxes", "condition": "trigger.redetect"}, "params": {"mode": "is_false"}},
         {"id": "box", "type": "first_of", "inputs": ["person.boxes", "carried_box.value"]},
         {"id": "hold", "type": "hold_boxes", "inputs": {"previous": "crop.boxes@prev", "current": "box.value"}},
         {"id": "crop", "type": "smooth_boxes", "inputs": {"boxes": "hold.boxes"}},

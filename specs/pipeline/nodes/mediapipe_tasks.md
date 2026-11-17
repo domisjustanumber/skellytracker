@@ -29,6 +29,7 @@ A `mediapipe_tasks` node wraps one MediaPipe Tasks landmarker: pose, hand, face 
 | Port | Direction | Type |
 |---|---|---|
 | `image` | input | `image` |
+| `run_if` | input | `flag` |
 | `keypoints` | output | `keypoints` |
 <!-- /node-table:ports -->
 
@@ -41,6 +42,7 @@ The params use the shared names of the pipeline spec, not the MediaPipe option n
 | `face` | `FaceLandmarker` | `min_face_detection_confidence` | `min_face_presence_confidence` | `min_tracking_confidence` |
 | `holistic` | `HolisticLandmarker` | `min_face_detection_confidence`, `min_pose_detection_confidence` | `min_face_landmarks_confidence`, `min_pose_landmarks_confidence`, `min_hand_landmarks_confidence` | none |
 
+- `run_if` is an optional `flag` input for the variants `body`, `hand` and `face`. When it is connected and false, the node does not run, and the output is empty. The variant `holistic` takes no `run_if` (`V-node.mediapipe_tasks-3`; [ADR-9HTX](../../../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) item 7).
 - `max_instances` sets `num_poses`, `num_hands` or `num_faces`. `HolisticLandmarkerOptions` has no such option.
 - `HolisticLandmarkerOptions` has no tracking option. The node ignores `min_tracking_score` for the variant `holistic`.
 - The other options of a landmarker keep their Tasks defaults, for example `min_face_suppression_threshold` and `min_pose_suppression_threshold` of Holistic.
@@ -76,11 +78,13 @@ The params use the shared names of the pipeline spec, not the MediaPipe option n
 
 - [ ] `V-node.mediapipe_tasks-1` The variant `holistic` is single person. When `variant` is `holistic`, `max_instances` must be 1.
 - [ ] `V-node.mediapipe_tasks-2` Only the variant `body` takes `size`. When `variant` is not `body`, the params must not write `size`, also not the default value `heavy` ([ADR-97X9](../../../decisions/entries/97X9-pipeline-instance-rows-prev-types-and-refused-calls.md) item 10).
+- [ ] `V-node.mediapipe_tasks-3` The variant `holistic` must have no `run_if` input. The `run_if` input of another variant must name a port of the type `flag` ([ADR-9HTX](../../../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) item 7).
 
 ## Implementer guidance
 
 - In `VIDEO` mode, the landmarker needs strictly increasing integer timestamps. The node gives the `timestamp_ms` of the frame, which increases ([`V-node.smooth_keypoints-3`](smooth_keypoints.md#validation-rules) gives the same rule for the smoother). Today's code makes the timestamp from `int(time.monotonic() * 1000)`. Two frames less than 1 ms apart can get the same value, and MediaPipe then raises `ValueError: Input timestamp must be monotonically increasing`. No supported Python has the coarse Windows clock of Python 3.11 and 3.12, so the timestamp of the frame is a guard ([ADR-M2C6](../../../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md) item 8; [ADR-EM74](../../../decisions/entries/EM74-stage-order-and-ci-models.md) item 6).
 - The node must close its landmarker safely, also when the garbage collector frees the node. The gate of the Python change is the full suite on Python 3.13.18 with no hang in the MediaPipe tests, so a hang at exit is a regression ([ADR-M2C6](../../../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md) item 7; [ADR-EM74](../../../decisions/entries/EM74-stage-order-and-ci-models.md) item 6; [ADR-V7GZ](../../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 4).
+- When `run_if` stops the node in `VIDEO` mode, the landmarker gets no frame and no timestamp for that frame. The measurement of [ADR-6JWJ](../decisions/entries/6JWJ-mediapipe-video-landmarker-does-not-stick.md) did not measure a landmarker that gets no frame for a time.
 - Today's package closes and builds a VIDEO-mode landmarker again after frames with no keypoints. The node does not do this. The measurement found no stuck landmarker on MediaPipe 0.10.33. Its scripts ran again on MediaPipe 1.2.2 (Windows, CPU), in the commit that pins `mediapipe==1.2.2`, with the same result ([ADR-6JWJ](../decisions/entries/6JWJ-mediapipe-video-landmarker-does-not-stick.md)).
 - In `live` mode, `frame_index` can skip, and a call can hold a subset of the cameras ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) items 2 and 3).
 - The cameras stay separate ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 1). In `VIDEO` mode, each camera thus needs its own landmarker state ([Running](../running.md#behaviour) item 5) and its own timestamp sequence.

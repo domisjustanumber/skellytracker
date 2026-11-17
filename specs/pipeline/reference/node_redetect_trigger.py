@@ -13,7 +13,7 @@ previous_keypoints is a list of instance rows, and each row is a list of points 
 null (the row is not present). previous_boxes is a list of instance rows, and each row is a box
 [cx, cy, w, h, rotation] or null (the row is not present). An input that is null is empty. A frame
 with no previous_keypoints key has previous_keypoints not connected. The result is True for each
-frame where the node gives the image (the trigger).
+frame where the node gives true (the flag redetect).
 """
 
 from __future__ import annotations

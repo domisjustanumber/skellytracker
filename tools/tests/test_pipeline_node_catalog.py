@@ -58,10 +58,11 @@ def test_the_node_catalog_gives_the_sections_the_required_inputs_and_the_timing_
     by_type = {node.type: node for node in list_node_types()}
     assert len(by_type) == 11 and all(node.section == f"node.{name}" for name, node in by_type.items())
     onnx = by_type["onnx_model"]
-    assert [(port.name, port.required) for port in onnx.inputs] == [("image", True), ("boxes", False)]
+    assert [(port.name, port.required) for port in onnx.inputs] == [("image", True), ("boxes", False), ("run_if", False)]
     assert onnx.timing_spans == ("preprocess", "inference", "postprocess")
     assert [(port.name, port.required) for port in by_type["first_of"].inputs] == [("*", True)]
     # Each input lists the port types that it accepts (ADR-9HTX item 1).
-    assert [port.port_types for port in onnx.inputs] == [("image",), ("boxes",)]
-    assert [port.port_types for port in by_type["gate"].inputs] == [("image", "boxes", "keypoints")] * 2
+    assert [port.port_types for port in onnx.inputs] == [("image",), ("boxes",), ("flag",)]
+    assert [port.port_types for port in by_type["gate"].inputs] == [("image", "boxes", "keypoints"), ("image", "boxes", "keypoints", "flag")]
+    assert [(port.name, port.port_types) for port in by_type["redetect_trigger"].outputs] == [("redetect", ("flag",))]
     assert by_type["gate"].timing_spans == ("run",)

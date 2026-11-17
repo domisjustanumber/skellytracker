@@ -321,7 +321,8 @@ def test_nodes_lists_the_11_node_types_as_text_and_as_json(capsys: pytest.Captur
     assert cli.main(["nodes"]) == 0
     lines = capsys.readouterr().out.splitlines()
     assert [line.split()[0] for line in lines if not line.startswith(" ")] == names
-    assert "onnx_model  (image: image, boxes: boxes (optional)) -> (boxes: boxes, keypoints: keypoints)  spans: preprocess, inference, postprocess" in lines
+    assert "onnx_model  (image: image, boxes: boxes (optional), run_if: flag (optional)) -> (boxes: boxes, keypoints: keypoints)  spans: preprocess, inference, postprocess" in lines
+    assert "redetect_trigger  (previous_keypoints: keypoints (optional), previous_boxes: boxes (optional)) -> (redetect: flag)  spans: run" in lines
     assert "  param max_instances: int, default 1" in lines
     assert cli.main(["nodes", "--json"]) == 0
     nodes = json.loads(capsys.readouterr().out)

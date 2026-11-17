@@ -333,7 +333,7 @@ def test_v_pipeline_graph_10_the_groups_that_the_nodes_make_must_have_unique_nam
     [
         {"id": "temporal", "type": "smooth_boxes", "inputs": {"boxes": "person.boxes"}},
         {"id": "temporal", "type": "smooth_keypoints", "inputs": {"keypoints": "body.keypoints"}},
-        {"id": "temporal", "type": "redetect_trigger", "inputs": {"image": "frame.image", "previous_boxes": "person.boxes@prev"}},
+        {"id": "temporal", "type": "redetect_trigger", "inputs": {"previous_boxes": "person.boxes@prev"}},
     ],
 )
 def test_v_pipeline_graph_11_each_input_of_a_temporal_node_must_have_one_row(root: Path, node: dict[str, Any]) -> None:

@@ -32,10 +32,12 @@ An `onnx_model` node runs one ONNX model of the sidecar spec: an object detector
 |---|---|---|
 | `image` | input | `image` |
 | `boxes` | input | `boxes` |
+| `run_if` | input | `flag` |
 | `boxes` | output | `boxes` |
 | `keypoints` | output | `keypoints` |
 <!-- /node-table:ports -->
 
+- `run_if` is an optional `flag` input for each role. When it is connected and false, the node does not run, and each output is empty. When it is not connected, the node runs as the other rules give. `run_if` is the only way to stop a detector, because the frame is never empty. The node has no output that tells if it ran: the result of a camera gives `node_ran` ([Outputs](../outputs.md#behaviour) item 8; [ADR-9HTX](../../../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) item 7).
 - `key`, `sidecar_sha256`, `size` and `precision` are the model reference. A config refers to a sidecar and does not copy its content ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) items 3 and 10).
 - `key` is the catalog key `<model_id>@<source.name>` of the sidecar. It can pin a version: `<model_id>@<source.name>==<version>`. The catalog key rules of the sidecar spec apply: without a pin, the newest `source.version` wins, and `skellytracker` is reserved for the package root ([Identity](../../model-sidecar/common/identity.md#implementer-guidance); [ADR-88WQ](../../../decisions/entries/88WQ-sidecar-vocabulary.md) item 7).
 - `size` is required in a pipeline file, also when the sidecar has one size. The first-size default of the sidecar is for the `detectors` API. A pipeline file names its size, so a run can be repeated.
@@ -83,12 +85,13 @@ An `onnx_model` node runs one ONNX model of the sidecar spec: an object detector
 - [ ] `V-node.onnx_model-3` Each name in `object_decode` must be a field that the sidecar spec allows in the `object.decode` block of that sidecar. Its value must have the type and the range of that field.
 - [ ] `V-node.onnx_model-4` `size` must be a size key of the `sizes` of the sidecar. When `precision` is present, `sizes.<size>.onnx.precision_artifacts` must have that precision.
 - [ ] `V-node.onnx_model-5` `max_instances` must not be more than the limit of the model ([Fields](#fields)).
+- [ ] `V-node.onnx_model-6` The input `run_if` must name a port of the type `flag` ([ADR-9HTX](../../../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) item 7).
 
 ## Implementer guidance
 
 - The host runs one NMS implementation ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 9). The sidecar section [`post.object.selection.nms`](../../model-sidecar/post/object/selection-nms.md#behaviour) gives its steps.
 - A shipped or an exported pipeline file must have `sidecar_sha256` ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 10). For a hand-written file with no `sidecar_sha256`, the loader logs the hash that it resolves.
-- The host does the checks of this section at load, because they need the sidecar. The reference model does not do them (`specs/pipeline/reference/pipeline_config.py`).
+- The host does the checks of this section at load, because they need the sidecar. The reference model does not do them, except `V-node.onnx_model-6` (`specs/pipeline/reference/pipeline_config.py`).
 - The runtime builds each ONNX session with `eps.build_session()` ([ADR-V7GZ](../../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 5). The session runs on the requested EP, or the start of the run fails before frame 0 ([ADR-9NW0](../../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 4). When a session has nodes on the CPU EP, the run gives the warning `ep_partial_placement` ([ADR-V7GZ](../../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 6; [ADR-9NW0](../../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 5).
 - In one run, nodes with the same artifact `sha256`, batch, EP key, EP options and device share one inference session. No session is shared between runs. The file says nothing about it ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 6).
 - The ONNX `NonMaxSuppression` session of the node requests `cpu` ([ADR-9NW0](../../../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 7).

@@ -312,9 +312,11 @@ class Executor:
 
     @staticmethod
     def _stops(node: ResolvedNode, inputs: Any) -> bool:
-        """Return true when an empty required input stops the node (pipeline.graph, Behaviour item 6)."""
+        """Return true when an empty required input or a false `run_if` stops the node (pipeline.graph, Behaviour item 6)."""
         if isinstance(inputs, list):
             return False  # `first_of` and `concat` read each empty item of their list
+        if inputs.get("run_if") is False:
+            return True
         required = BY_TYPE[node.type].required_inputs + (("boxes",) if node.model is not None and node.model.kind == "top_down" else ())
         reads = onnx_model.READS_EMPTY if node.type == "onnx_model" else MODULES[node.type].READS_EMPTY
         return any(name in inputs and name not in reads and is_empty(inputs[name]) for name in required)

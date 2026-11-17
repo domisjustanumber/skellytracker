@@ -15,7 +15,6 @@ nodes:
       point of score 0.4 or more, or with points on one line.
     type: redetect_trigger
     inputs:
-      image: frame.image
       previous_keypoints: wholebody.keypoints@prev
       previous_boxes: crop.boxes@prev
     params:
@@ -25,7 +24,7 @@ nodes:
         - {check: bbox_area_collapse, min_area_ratio: 0.0, min_score: 0.4}
   - id: person
     type: onnx_model
-    inputs: {image: trigger.image}
+    inputs: {image: frame.image, run_if: trigger.redetect}
     params:
       key: yolox-person@openmmlab-exporter
       size: m
@@ -51,8 +50,8 @@ nodes:
   - id: carried_box
     description: Use the points box only on a frame with no detection request.
     type: gate
-    inputs: {value: points_box.boxes, condition: trigger.image}
-    params: {mode: is_empty}
+    inputs: {value: points_box.boxes, condition: trigger.redetect}
+    params: {mode: is_false}
   - id: box
     type: first_of
     inputs: [person.boxes, carried_box.value]

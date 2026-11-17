@@ -9,7 +9,8 @@ notes:
     `previous_boxes` is a list of instance rows, and a row is a box [cx, cy, w, h,
     rotation] or null (the row is not present). A null input is empty. A frame with no
     `previous_keypoints` key has `previous_keypoints` not connected. `rotation` is in
-    radians. `triggered` is true for each frame where the node gives the image."
+    radians. `triggered` is true for each frame where the node gives true (the flag
+    `redetect`)."
   - "A throwaway script ran the reference and
     skellytracker/core/temporal_processing/bbox_policy.py (BBoxPolicy.should_redetect,
     with the four checks) on 2700 random `video` sequences with rotation 0, one row,

@@ -11,10 +11,11 @@ status: {spec: draft}
 > This section is a draft. Its fields and rules can change before the section becomes `stable`.
 
 The node `redetect_trigger` decides on each frame if a detector must run again
-([ADR-9PDQ](../../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 2). When a new detection is
-necessary, the output is the input image. Else the output is empty. This output is the trigger: the
-`onnx_model` node that takes it runs only when it is not empty
-([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6). The node
+([ADR-9PDQ](../../../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 2). Its output
+is the flag `redetect`: true when a new detection is necessary, else false. An `onnx_model` node
+with `run_if: <trigger>.redetect` runs only when the flag is true
+([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 6; [ADR-9HTX](../../../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) items 6
+and 7). The node
 asks for a detection at a fixed interval, and when a fitness check on the previous frame fails. A
 `redetect_trigger` node upstream of an `onnx_model` node makes a pipeline stateful
 ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 5).
@@ -31,10 +32,9 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
 <!-- node-table:ports -->
 | Port | Direction | Type |
 |---|---|---|
-| `image` | input | `image` |
 | `previous_keypoints` | input | `keypoints` |
 | `previous_boxes` | input | `boxes` |
-| `image` | output | `image` |
+| `redetect` | output | `flag` |
 <!-- /node-table:ports -->
 
 - `previous_keypoints` and `previous_boxes` are usually `@prev` values: the keypoints and the crop
@@ -62,23 +62,23 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
 
 ## Behaviour
 
-1. **Empty image.** When `image` is empty, the node does not run. The output is empty and the state
-   does not change ([ADR-7NY2](../../../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md)
-   item 6). Empty `previous_keypoints` and `previous_boxes` do not stop the node, because they are
-   optional inputs.
-2. **Running mode.** In the running mode `image`, the output is always the image, and the node keeps
+1. **Inputs.** The node has no required input, so it runs on each frame
+   ([Graph](../graph.md#behaviour) item 6). Empty `previous_keypoints` and `previous_boxes` do not
+   stop the node, because they are optional inputs. The node always gives true or false ([ADR-9HTX](../../../decisions/entries/9HTX-pipeline-node-and-port-redesign.md)
+   item 2).
+2. **Running mode.** In the running mode `image`, the output is always true, and the node keeps
    no state ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 2).
    The steps that follow apply to `video` and `live`.
 3. **State.** The state of one camera is `last`, the `frame_index` of the last frame on which the
-   node gave the image ([Running](../running.md#behaviour) item 5). It is empty at the start. Let
+   node gave true ([Running](../running.md#behaviour) item 5). It is empty at the start. Let
    `n` be the `frame_index` of this frame. In `live`, `frame_index` can skip, and a skip counts.
    `redetect_interval` stays in frames.
-4. **Decision.** The node gives the image when one of these is true:
+4. **Decision.** The node gives true when one of these is true:
    1. `last` is empty;
    2. `n - last >= redetect_interval`;
    3. a check of `fitness_checks` fails for an instance row (step 5).
 
-   Then `last = n`. Else the output is empty.
+   Then `last = n`. Else the output is false.
 5. **Rows.** The checks run for each row `i`, with row `i` of `previous_keypoints` and row `i` of
    `previous_boxes`. When an input is empty, each of its rows is missing. A row of
    `previous_keypoints` or `previous_boxes` that is not present is missing
@@ -130,8 +130,8 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
   file give the comparison.
 - Today skellytracker/core/tracker/detection_stage.py (`DetectionStage.run`) calls
   `should_redetect` with the smoothed box and the keypoints of the previous frame, and sets
-  `last_detection_frame` when the detector runs. In this section, `last` is the frame of the last
-  trigger. The node cannot see if the detector ran.
+  `last_detection_frame` when the detector runs. In this section, `last` is the last frame on
+  which the node gave true. The node cannot see if the detector ran.
 - Today's boxes have no rotation. The test for a point inside a rotated box is new in this section.
   With `rotation = 0` it is the box test of today, with the edges inside.
 - `bbox_area_collapse` makes an axis-aligned box around the points also when the box has a rotation.
@@ -150,13 +150,14 @@ asks for a detection at a fixed interval, and when a fitness check on the previo
 
 - Connect `previous_keypoints` to the keypoints of the previous frame (`<node>.keypoints@prev`) and
   `previous_boxes` to the crop boxes of the previous frame, for example `<smooth_boxes node>.boxes@prev`.
+- Connect `redetect` to the `run_if` input of the detector ([Node: ONNX model](onnx_model.md#fields)).
 - The default `redetect_interval: 1` asks for a detection on each frame. Without fitness checks and
-  with a larger interval, the node gives the image each `redetect_interval` frames.
+  with a larger interval, the node gives true each `redetect_interval` frames.
 - `max_frames_without_redetect` and `redetect_interval` have the same effect. Use one of them.
 - `bbox_area_collapse` finds a person who leaves the image or a track that moves to a smaller
   object. Use it when `redetect_interval` is large.
 - To ask for a detection on the frame after a detector found no instance, gate the carried box
-  with `mode: is_empty` on the trigger image, and add the check `box_missing`. The crop box of that
+  with `mode: is_false` on the flag `redetect`, and add the check `box_missing`. The crop box of that
   frame is then empty, so the check fails on the next frame. The example
   [`yolox-rtmw-wholebody`](../examples/yolox-rtmw-wholebody.pipeline.yaml) does this
   ([ADR-RA0E](../../../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md) items 1 and 4).
@@ -171,7 +172,7 @@ The vector file [`node.redetect_trigger.yaml`](../vectors/node.redetect_trigger.
 ```yaml
 - id: need_person
   type: redetect_trigger
-  inputs: {image: frame.image, previous_keypoints: smooth.keypoints@prev, previous_boxes: crop.boxes@prev}
+  inputs: {previous_keypoints: smooth.keypoints@prev, previous_boxes: crop.boxes@prev}
   params:
     redetect_interval: 30
     fitness_checks:

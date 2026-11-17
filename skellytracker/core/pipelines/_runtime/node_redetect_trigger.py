@@ -1,9 +1,9 @@
-"""The node ``redetect_trigger``: give the image when a detector must run again.
+"""The node ``redetect_trigger``: give the flag ``redetect``, true when a detector must run again.
 
 Implements: node.redetect_trigger
 
 The state of one camera is ``last``: the ``frame_index`` of the last frame on which the node gave
-the image, or ``None`` at the start.
+true, or ``None`` at the start.
 """
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from skellytracker.core.pipelines._runtime.context import FrameContext
 from skellytracker.core.pipelines.config import FitnessCheck, RedetectTriggerParams
 from skellytracker.core.pipelines.values import PortInfo
 
-# An empty `image` stops the node. The other inputs are optional (Behaviour step 1).
+# The node has no required input, so it runs on each frame (Behaviour step 1).
 READS_EMPTY: frozenset[str] = frozenset()
 # The default of each field of each check (Fields).
 DEFAULTS = {"threshold": {"min_keypoint_score": 0.3, "keypoints_within_bbox_ratio": 0.5}, "n_frames": 30,
@@ -24,7 +24,7 @@ DEFAULTS = {"threshold": {"min_keypoint_score": 0.3, "keypoints_within_bbox_rati
 def output_info(
     node_id: str, params: RedetectTriggerParams, inputs: dict[str, PortInfo]
 ) -> tuple[dict[str, PortInfo], list[dict[str, Any]]]:
-    """Check V-node.redetect_trigger-2, and return the facts of the output ``image``.
+    """Check V-node.redetect_trigger-2, and return the facts of the output ``redetect``.
 
     Implements: node.redetect_trigger
 
@@ -32,7 +32,7 @@ def output_info(
     """
     if any(check.check == "box_missing" for check in params.fitness_checks) and "previous_boxes" not in inputs:
         raise ValueError(f"V-node.redetect_trigger-2: {node_id}: the check box_missing needs the input previous_boxes")
-    return {"image": inputs["image"]}, []
+    return {"redetect": PortInfo("flag")}, []
 
 
 def _field(check: FitnessCheck, name: str) -> Any:
@@ -98,13 +98,12 @@ def _fails(check: FitnessCheck, frames_since: int, row: list[list[float]] | None
 def run(
     params: RedetectTriggerParams, inputs: dict[str, Any], state: int | None, frame: FrameContext, infos: Any = None
 ) -> tuple[dict[str, Any], int | None]:
-    """Give the image or an empty output for one frame. Return the output and the new ``last``.
+    """Give true or false for one frame. Return the output and the new ``last``.
 
     Implements: node.redetect_trigger
     """
-    image = inputs["image"]
     if frame.running_mode == "image":
-        return {"image": image}, None
+        return {"redetect": True}, None
     n, last = frame.frame_index, state
     hit = last is None or n - last >= params.redetect_interval
     if not hit:
@@ -119,4 +118,4 @@ def run(
             if any(_fails(check, n - last, row, roi, "previous_keypoints" in inputs) for check in params.fitness_checks):
                 hit = True
                 break
-    return {"image": image if hit else None}, n if hit else last
+    return {"redetect": hit}, n if hit else last

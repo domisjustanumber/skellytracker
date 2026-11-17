@@ -14,10 +14,10 @@ nodes:
   - id: trigger
     description: Ask for a new pose detection when the previous frame has no good pose.
     type: redetect_trigger
-    inputs: {image: frame.image, previous_keypoints: body.keypoints@prev}
+    inputs: {previous_keypoints: body.keypoints@prev}
   - id: pose_detector
     type: onnx_model
-    inputs: {image: trigger.image}
+    inputs: {image: frame.image, run_if: trigger.redetect}
     params: {key: mediapipe-pose-detector@mediapipe-exporter, size: full}
   - id: pose_box_prev
     description: The pose box from the points of the previous frame.

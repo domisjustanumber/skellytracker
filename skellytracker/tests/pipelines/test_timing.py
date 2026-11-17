@@ -14,8 +14,8 @@ CONFIG = {
     "pipeline_id": "test",
     "source": {"name": "test", "version": "1"},
     "nodes": [
-        {"id": "trigger", "type": "redetect_trigger", "inputs": {"image": "frame.image", "previous_keypoints": "wholebody.keypoints@prev"}},
-        {"id": "person", "type": "onnx_model", "inputs": {"image": "trigger.image"}, "params": {"key": "yolox-person@x", "size": "m"}},
+        {"id": "trigger", "type": "redetect_trigger", "inputs": {"previous_keypoints": "wholebody.keypoints@prev"}},
+        {"id": "person", "type": "onnx_model", "inputs": {"image": "frame.image", "run_if": "trigger.redetect"}, "params": {"key": "yolox-person@x", "size": "m"}},
         {"id": "crop", "type": "smooth_boxes", "inputs": {"boxes": "person.boxes"}},
         {"id": "wholebody", "type": "onnx_model", "inputs": {"image": "frame.image", "boxes": "crop.boxes"}, "params": {"key": "rtmw@x", "size": "m"}},
         {"id": "hands", "type": "mediapipe_tasks", "inputs": {"image": "frame.image"}, "params": {"variant": "hand"}},
@@ -104,7 +104,7 @@ def test_node_item_fields():
     assert item["inputs"] == [{"name": "image", "port": "frame.image", "prev": False}, {"name": "boxes", "port": "crop.boxes", "prev": False}]
     assert tuple(item["execution"]) == timing.EXECUTION_FIELDS
     trigger = timing.make_node_item(cfg.nodes[0])
-    assert trigger["inputs"][1] == {"name": "previous_keypoints", "port": "wholebody.keypoints", "prev": True}
+    assert trigger["inputs"][0] == {"name": "previous_keypoints", "port": "wholebody.keypoints", "prev": True}
     assert (trigger["key"], trigger["execution"], trigger["shared_with"]) == (None, None, [])
     assert timing.make_node_item(cfg.nodes[5])["inputs"][0] == {"name": None, "port": "wholebody.keypoints", "prev": False}
     with pytest.raises(ValueError, match="execution"):
