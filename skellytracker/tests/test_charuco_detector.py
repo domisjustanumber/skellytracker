@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import inspect
+
 import cv2
 import numpy as np
 import pytest
@@ -13,6 +15,10 @@ from skellytracker.core.detectors.calibration_detectors.charuco import (
     CharucoDetectorConfig,
     compute_board_pose,
     to_anipose_camera_row,
+)
+from skellytracker.core.detectors.calibration_detectors.aruco_parameters import (
+    VALID_BIT_ID_THRESHOLD,
+    create_aruco_detector_parameters,
 )
 from skellytracker.core.detectors.calibration_detectors.charuco.charuco_detector import (
     _squeeze_aruco,
@@ -188,7 +194,14 @@ SHEARED = np.array([[0.93, 0.12, 50.35], [-0.08, 1.04, 45.55]])
 @pytest.mark.parametrize("px_per_square", [30, 40])
 @pytest.mark.parametrize("affine", [ROTATED, SHEARED], ids=["rotated", "sheared"])
 def test_charuco_corners_have_no_position_bias(detector, board_def, px_per_square, affine):
-    # Pins the corrected corner position of OpenCV 4.14 and 5.0. OpenCV 4.13 or earlier gives about +0.5 px.
+    """skellytracker adds no offset to a ChArUco corner or an ArUco marker corner (ADR-8YXH items 3 and 4).
+
+    The corner positions are those of OpenCV 5.0: the centre of pixel (0, 0) is (0.0, 0.0). The test
+    renders a synthetic board, moves it with a known sub-pixel affine map, at 30 px and 40 px for each
+    square, and detects it with the package detector. The mean error of the corners must be less
+    than 0.05 px in x and in y, and the RMS error less than 0.2 px. OpenCV 4.13 or earlier gives
+    about +0.5 px, so a pin of OpenCV that changes the corner convention fails the test.
+    """
     image, truth = render_board(board_def, px_per_square, affine)
     keypoints = detector.detect(image)
     found = keypoints.visibility[: board_def.n_corners] > 0
@@ -199,7 +212,31 @@ def test_charuco_corners_have_no_position_bias(detector, board_def, px_per_squar
 
 
 def test_detector_uses_the_marker_threshold_0_5(detector):
-    assert detector._cv2_detector.getDetectorParameters().validBitIdThreshold == 0.5
+    """Each calibration detector sets the ArUco marker parameter `validBitIdThreshold` to 0.5 (ADR-8YXH item 1).
+
+    One helper builds the `DetectorParameters`: `create_aruco_detector_parameters()` of
+    `calibration_detectors/aruco_parameters.py`, with the constant `VALID_BIT_ID_THRESHOLD`. The
+    tests of the aruco detector and of `CharucoBoardSelector` check the same value.
+    """
+    assert VALID_BIT_ID_THRESHOLD == 0.5
+    assert create_aruco_detector_parameters().validBitIdThreshold == VALID_BIT_ID_THRESHOLD
+    assert detector._cv2_detector.getDetectorParameters().validBitIdThreshold == VALID_BIT_ID_THRESHOLD
+
+
+def test_no_option_sets_the_marker_threshold():
+    """No config field and no option sets the marker threshold (ADR-8YXH item 2)."""
+    from skellytracker.core.detectors.calibration_detectors.aruco import ArucoDetectorConfig
+    from skellytracker.core.detectors.calibration_detectors.charuco.charuco_board_selection import (
+        CharucoBoardSelector,
+    )
+
+    assert not inspect.signature(create_aruco_detector_parameters).parameters
+    names = {
+        *ArucoDetectorConfig.model_fields,
+        *CharucoDetectorConfig.model_fields,
+        *inspect.signature(CharucoBoardSelector).parameters,
+    }
+    assert sorted(n for n in names if "threshold" in n.lower() or "bit" in n.lower()) == []
 
 
 def test_a_blurred_small_board_keeps_each_corner(detector, board_def):

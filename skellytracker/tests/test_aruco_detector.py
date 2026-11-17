@@ -100,6 +100,7 @@ class TestArucoDetector:
 
 
 def test_detector_uses_the_marker_threshold_0_5(detector):
+    """The aruco detector sets the ArUco marker parameter `validBitIdThreshold` to 0.5 (ADR-8YXH item 1)."""
     assert detector._cv2_detector.getDetectorParameters().validBitIdThreshold == 0.5
 
 

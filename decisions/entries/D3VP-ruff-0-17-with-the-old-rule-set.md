@@ -1,6 +1,6 @@
 # D3VP — Ruff 0.17.5 with the rule set of ruff 0.15
 
-**Status:** accepted, 2026-11-13 (user).
+**Status:** absorbed into [`pyproject.toml`](../../pyproject.toml), [`test_dependency_pins.py`](../../tools/tests/test_dependency_pins.py), 2026-11-17 (absorb pass, user; PR: pending).
 
 ## Decision
 

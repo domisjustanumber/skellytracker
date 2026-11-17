@@ -33,11 +33,8 @@ These entries are `accepted`.
 | [246B](entries/246B-ep-catalog-store-and-install.md) | EP catalog and lock in the package; option allow-lists; one EP store; `urllib` download after a user action; no mirror; installer EP page | accepted |
 | [D8DH](entries/D8DH-sessions-errors-and-the-ready-rule.md) | `core/errors.py`; one exit-code table; an EP pack is ready when installed, current, registered and with a device; no EP variables | accepted |
 | [P1F3](entries/P1F3-hardware-probe-devices-and-multi-gpu.md) | Hardware probe fields; `free_vram`; `device_key`; default GPU by VRAM; a run splits its cameras across GPUs; no pre-Turing GPUs | accepted |
-| [W09C](entries/W09C-opencv-contrib-python.md) | `opencv-contrib-python` with an exact pin is the OpenCV package; no headless package | accepted |
-| [D3VP](entries/D3VP-ruff-0-17-with-the-old-rule-set.md) | `ruff==0.17.5` with the rule set of ruff 0.15; a review of the new default rules before the 2.0.0 release | accepted |
 | [Y753](entries/Y753-pipeline-templates-glue-vectors-and-taps-flag.md) | Pipeline templates without links; node work in stage 1.10; skellybench `--taps`; vectors for `first_of` and `concat` | accepted |
 | [JHB3](entries/JHB3-keypoints-xy-and-z-and-image-width-and-height.md) | A `keypoints` value has `xy` and `z` only for `3d`, no `xyz`; no `by_track()`; the camera result has `image_width` and `image_height`, no `image_size` | accepted |
-| [8YXH](entries/8YXH-aruco-marker-threshold-and-charuco-corner-position.md) | The calibration detectors set `validBitIdThreshold` 0.5; no offset on the ChArUco corners of OpenCV 5; a test pins the corner position | accepted |
 | [4WR9](entries/4WR9-params-schema-in-the-node-catalog.md) | `NodeTypeInfo.params_schema` and `NodeTypeInfo.any_from`: the JSON Schema of the params and the inputs that type an `any` output, for an editor | accepted |
 | [92BE](entries/92BE-legacy-path-for-the-freemocap-metrics-stage.md) | Temporary legacy path for the freemocap metrics: old tracker task events; `cuda` bridge of `OnnxSession` to `eps.build_session()`; no TensorRT; deleted in 2.4 | accepted |
 | [9HTX](entries/9HTX-pipeline-node-and-port-redesign.md) | Pipeline redesign: a boolean `flag`, `run_if`, one image, an `outputs` block with three fixed keys, a `merge` with named inputs; design in the proposal | accepted |
@@ -101,7 +98,10 @@ implementation-stage work is in the [implementation plan](../specs/sidecar-imple
   ([ADR-GN3D](entries/GN3D-module-decision-logs.md)), the skills, the model addition workflow, the exporter
   guide, the templates of `specs/model-sidecar/templates/`, the Rules of this file with
   [template.md](template.md), and the docstring of a tool in `tools/` for the rules that it checks
-  ([ADR-Z05A](entries/Z05A-essential-decision-log-rules.md)). A test in `tools/tests/` is a tool here.
+  ([ADR-Z05A](entries/Z05A-essential-decision-log-rules.md)). A test in `tools/tests/` or in
+  `skellytracker/tests/` is a tool here: its docstring states the rules that it checks.
+  `pyproject.toml` is an absorb document for a rule that a test checks. Its `absorbed into` link
+  stands beside the link of that test ([ADR-99FH](entries/99FH-tests-and-pyproject-as-absorb-documents.md)).
   From the implementation stage, the docstring of a public module of the package is an absorb
   document for the rules of the API of that module ([ADR-W823](entries/W823-absorb-in-the-commit-group-that-states-the-rules.md)).
   The spec includes the `notes` of its vector files. An accepted entry is absorbed when the absorb

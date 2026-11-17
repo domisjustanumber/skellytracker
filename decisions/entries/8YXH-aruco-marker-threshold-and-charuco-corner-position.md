@@ -1,6 +1,6 @@
 # 8YXH — ArUco marker threshold 0.5 and the ChArUco corner position of OpenCV 5
 
-**Status:** accepted, 2026-11-16 (user, question X4 of 2026-11-16).
+**Status:** absorbed into [`test_charuco_detector.py`](../../skellytracker/tests/test_charuco_detector.py), [`test_aruco_detector.py`](../../skellytracker/tests/test_aruco_detector.py), [`test_charuco_board_selection.py`](../../skellytracker/tests/test_charuco_board_selection.py), 2026-11-17 (absorb pass, user; PR: pending).
 
 ## Decision
 

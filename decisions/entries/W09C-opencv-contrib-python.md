@@ -1,6 +1,6 @@
 # W09C — `opencv-contrib-python` is the OpenCV package
 
-**Status:** accepted, 2026-11-12 (user).
+**Status:** absorbed into [`pyproject.toml`](../../pyproject.toml), [`test_dependency_pins.py`](../../tools/tests/test_dependency_pins.py), 2026-11-17 (absorb pass, user; PR: pending).
 
 ## Decision
 

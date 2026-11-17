@@ -59,6 +59,7 @@ class CharucoBoardSelectionTests(unittest.TestCase):
         second_detector.detectBoard.assert_not_called()
 
     def test_detectors_use_the_marker_threshold_0_5(self) -> None:
+        """Each detector of `CharucoBoardSelector` sets `validBitIdThreshold` to 0.5 (ADR-8YXH item 1)."""
         selector = CharucoBoardSelector()
         for detector in (selector._marker_detector, *selector._board_detectors.values()):
             self.assertEqual(detector.getDetectorParameters().validBitIdThreshold, 0.5)

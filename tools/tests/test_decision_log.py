@@ -154,6 +154,27 @@ def test_an_absorbed_status_links_a_heading_of_each_markdown_file(tmp_path: Path
     assert not any("tools/x.py" in e for e in errors)
 
 
+def test_an_absorbed_status_links_pyproject_only_beside_a_test(tmp_path: Path) -> None:
+    """`pyproject.toml` is an absorb document only for a rule that a test checks (decision 99FH)."""
+    root = make_log(
+        tmp_path,
+        historical="\n".join(
+            [
+                row(1, "absorbed into [`pyproject.toml`](../pyproject.toml)"),
+                row(2, "absorbed into `pyproject.toml`, `tools/x.py`", "y"),
+                row(3, "absorbed into [`pyproject.toml`](../pyproject.toml), [`t`](../tools/tests/test_pins.py)", "z"),
+                row(4, "absorbed into `pyproject.toml`, `skellytracker/tests/sub/test_a.py`", "w"),
+            ]
+        ),
+        entries={"0001-x.md": "", "0002-y.md": "", "0003-z.md": "", "0004-w.md": ""},
+    )
+    errors = cdl.check(root)
+    assert errors == [
+        f"historical.md:{line}: status links pyproject.toml with no test file: link the test that checks the rule"
+        for line in (7, 8)
+    ]
+
+
 def test_unknown_status_is_reported(tmp_path: Path) -> None:
     root = make_log(tmp_path, active=row(1, "maybe"), entries={"0001-x.md": ""})
     assert any("unknown status 'maybe'" in e for e in cdl.check(root))
