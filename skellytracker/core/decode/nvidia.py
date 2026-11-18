@@ -22,6 +22,8 @@ from skellytracker.core.eps.session import build_session
 NON_BLOCKING = 1  # cudaStreamNonBlocking: the stream does not wait for the legacy default stream
 TURN_OPSET = 17
 CUDART_SYMBOLS = ("cudaGetDevice", "cudaSetDevice", "cudaStreamCreateWithFlags", "cudaStreamSynchronize", "cudaStreamDestroy")
+# Huffman on the GPU above 500000 pixels (default 1000000): 1280x720 decodes faster, 640x480 and smaller stay faster on the CPU
+HUFFMAN_GPU_THRESHOLD = "nvjpeg_cuda_decoder:hybrid_huffman_threshold=500000"
 
 
 def cuda_threads() -> int:
@@ -83,7 +85,7 @@ class NvJpegDecoder:
         threads = cuda_threads()  # the same count for the threads and the streams
         try:
             self._decoder = nvimgcodec.Decoder(
-                device_id=device_id, max_num_cpu_threads=threads, options=f":num_cuda_streams={threads}",
+                device_id=device_id, max_num_cpu_threads=threads, options=f":num_cuda_streams={threads} {HUFFMAN_GPU_THRESHOLD}",
                 backends=[nvimgcodec.Backend(nvimgcodec.BackendKind.GPU_ONLY), nvimgcodec.Backend(nvimgcodec.BackendKind.HYBRID_CPU_GPU)])
         except Exception:
             self._on_device(lambda: cudart.cudaStreamDestroy(self._stream), "cudaStreamDestroy")

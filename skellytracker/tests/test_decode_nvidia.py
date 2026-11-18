@@ -118,8 +118,12 @@ def test_open_gives_none_and_a_warning_when_the_cuda_runtime_lacks_a_function(mo
 def test_the_decoder_allows_only_the_nvjpeg_backends_and_sets_the_stream_count_to_the_thread_count() -> None:
     kwargs = fake_decoder()._decoder.kwargs
     assert kwargs["backends"] == ["gpu", "hybrid"]
-    assert kwargs["options"] == f":num_cuda_streams={kwargs['max_num_cpu_threads']}"
+    assert kwargs["options"].split(" ")[0] == f":num_cuda_streams={kwargs['max_num_cpu_threads']}"
     assert 1 <= kwargs["max_num_cpu_threads"] == nvidia.cuda_threads() <= 8
+
+
+def test_the_decoder_does_the_huffman_step_on_the_gpu_above_500000_pixels() -> None:
+    assert fake_decoder()._decoder.kwargs["options"].split(" ")[1:] == ["nvjpeg_cuda_decoder:hybrid_huffman_threshold=500000"]
 
 
 def test_the_stream_is_made_and_destroyed_on_the_device_of_the_decoder_and_the_current_device_comes_back() -> None:

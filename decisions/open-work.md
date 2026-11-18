@@ -237,9 +237,28 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
     566 runs. The cause is not established.
   - Open: the keypoint preprocess with several boxes for each frame was not measured. The frames
     give at most one box.
-  - Open: the decoder option `nvjpeg_cuda_decoder:hybrid_huffman_threshold=0` (the Huffman decode
-    on the GPU) lowered `frame.decode` of 3 frames at 1280x720 on `cuda` from 2.30 to 1.33 ms. It is
-    not enabled.
+  - Enabled: the decoder option `nvjpeg_cuda_decoder:hybrid_huffman_threshold=500000`. nvJPEG
+    does the Huffman decode on the GPU for an image with more than 500000 pixels. The library
+    default is 1000000. Conditions: one RTX 3070, nvImageCodec 0.10.0.9, measured on 2026-11-18.
+    - The pipeline `yolox-rtmw-wholebody`, JPEG input with the GPU decode and the GPU preprocess,
+      3 cameras at 1280x720, mean of the medians of 2 runs, threshold 0: `frame.decode` went from
+      2.38 to 1.39 ms on `trt-rtx`, and from 2.74 to 1.48 ms on `cuda`. The process GPU memory did
+      not change. At 1280x720 the thresholds 0 and 500000 have the same effect. With 500000 in the
+      code, the median was 1.30 to 1.35 ms in 3 runs.
+    - The decoder alone, on the `cuda` device, 2 runs of 1000 batches. Wall median in ms, for the
+      default / 500000 / 0: 320x240 x6 0.55 / 0.55 / 1.20; 640x480 x6 1.10 / 1.10 / 1.45;
+      1280x720 x3 2.29 / 1.27 / 1.28; 1280x720 x6 2.50 / 1.80 / 1.78; 1920x1080 x3
+      2.12 / 2.11 / 2.13. The CPU time of a batch of 1280x720 x3 went from 4.6 to 2.6 ms.
+    - The pixels are identical to the default (maximum absolute difference 0) at each size, and for
+      a grayscale JPEG and a progressive JPEG.
+    - The threshold is not 0, because 0 makes small frames slower: 320x240 x6 goes from 0.55 to
+      1.20 ms, and 640x480 x6 from 1.10 to 1.45 ms. At 1920x1080 the default already does the
+      Huffman decode on the GPU.
+    - Exit text: with the threshold 0, each `trt-rtx` pipeline process printed
+      `cuDevicePrimaryCtxRelease failed: 4` five times at its exit, with the exit code 0 and no
+      hang. With 500000, 2 `trt-rtx` runs and 1 `cuda` run of the pipeline did not print it. A
+      process that opens only the decoder, with no model session, prints it on `cuda` and `trt-rtx`
+      also with the default threshold.
   - Open: a model session with a dynamic batch pads the batch on the GPU path.
   - Open: the run now decodes the CPU JPEG frames of a call in a thread pool, with at most
     `cpu_threads` threads ([ADR-S1TG](../specs/pipeline/decisions/entries/S1TG-cpu-jpeg-decode-threads.md)).
