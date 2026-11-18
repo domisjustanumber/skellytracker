@@ -171,6 +171,11 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   must keep each output tensor equal. A second implementation on the GPU must agree with this code
   within the resize limit of `pre.resize.interpolation`
   ([ADR-J1HK](../specs/model-sidecar/decisions/entries/J1HK-resize-pixel-tolerance.md)).
+- **Repair of a damaged store folder.** A damaged pack folder or component folder of the EP store
+  reports a state whose hint is to run the install command. The install does not repair the folder,
+  because the folder exists. The remedy today is to remove the pack or the component, then to install
+  it again. Packs had this gap before the component
+  ([ADR-88ZB](entries/88ZB-gpu-jpeg-decoder-component-of-the-ep-catalog.md)).
 - **Kit PR in freemocap/project.** The kit is on the branch `dom/agents-and-adr-kit` of
   freemocap/project, in a PR for its owner
   ([ADR-P3NK](entries/P3NK-bootstrap-kit-in-freemocap-project.md)). The link repairs in 0031, NB91,

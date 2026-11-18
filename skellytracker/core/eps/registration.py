@@ -11,6 +11,7 @@ import sys
 import threading
 import time
 from pathlib import Path
+from types import ModuleType
 
 from skellytracker.core._hardware.sanitize import sanitize_text
 from skellytracker.core.eps import store
@@ -47,6 +48,64 @@ def prepare_libraries(folder: Path, manifest: dict, platform: str = sys.platform
                 ctypes.CDLL(str(core), mode=ctypes.RTLD_GLOBAL)
         for name in manifest.get("preload", ()):
             ctypes.CDLL(str(folder / name), mode=ctypes.RTLD_GLOBAL)
+
+
+# The CUDA runtime in the wheel nvidia-cuda-runtime 13.4.92 of the component `gpu-jpeg-cu13`.
+# shortcut: the Linux name comes from the wheel listing and no Linux host loaded it; load it on a Linux host before Linux is supported.
+CUDART = {"win32": "nvidia/cu13/bin/x86_64/cudart64_13.dll", "linux": "nvidia/cu13/lib/libcudart.so.13"}
+_decoders: dict[str, tuple[ModuleType, Path] | None] = {}  # component id: the result of the first call
+
+
+def prepare_jpeg_decoder(ep_key: str) -> tuple[ModuleType, Path] | None:
+    """Make the GPU JPEG decoder of the pack of an EP key importable, and import it (ADR-88ZB).
+
+    It returns `(nvidia.nvimgcodec, the path of the CUDA runtime library of the component)`. The
+    caller loads the CUDA runtime with `ctypes.CDLL` for `cudaStreamSynchronize`: no EP pack loads a
+    CUDA runtime that exports it. The component folder goes first on `sys.path` and in
+    `nvidia.__path__`, so a copy of nvImageCodec in the environment is not used.
+
+    It returns None, and the run decodes on the CPU, when the pack has no decoder, when
+    `store.component_state()` is not `installed`, when the import fails, or when an other copy of
+    `nvidia.nvimgcodec` is imported already. The last two log one warning line with the reason, and
+    undo the changes of `sys.path`, `nvidia.__path__` and `sys.modules`. The `PATH` entries and the
+    Linux preload of the component libraries stay. The first result of a process stays for each call.
+    """
+    catalog = load_catalog()
+    component = catalog.component(ep_key)
+    if component is None or store.component_state(catalog, ep_key) != "installed":
+        return None
+    with _lock:
+        if component["id"] in _decoders:
+            return _decoders[component["id"]]
+        folder = store.pack_dir(component["id"], component["version"])
+        prepare_libraries(folder, store.read_json(folder / "pack.json") or {})
+        saved_path, saved_modules = list(sys.path), set(sys.modules)
+        package = sys.modules.get("nvidia")  # an `nvidia` package that is imported before does not read `sys.path` again
+        saved_portions = list(package.__path__) if package is not None and isinstance(package.__path__, list) else None
+        if str(folder) not in sys.path:
+            sys.path.insert(0, str(folder))
+        if saved_portions is not None and str(folder / "nvidia") not in saved_portions:
+            package.__path__.insert(0, str(folder / "nvidia"))
+        reason = None
+        try:
+            import nvidia.nvimgcodec
+
+            if not Path(nvidia.nvimgcodec.__file__ or "").resolve().is_relative_to(folder.resolve()):
+                reason = "an other copy of nvidia.nvimgcodec is imported already"
+        except (ImportError, OSError) as error:
+            reason = f"the import failed: {sanitize_text(str(error))[:300]}"
+        if reason is None:
+            _decoders[component["id"]] = (nvidia.nvimgcodec, folder / CUDART[sys.platform])
+            return _decoders[component["id"]]
+        sys.path[:] = saved_path
+        if saved_portions is not None:
+            package.__path__[:] = saved_portions
+        for name in set(sys.modules) - saved_modules:
+            if name == "nvidia" or name.startswith("nvidia."):
+                del sys.modules[name]
+        store.warn_once(f"jpeg-decoder:{component['id']}", f"The GPU JPEG decoder {component['id']} is not used: {reason}.")
+        _decoders[component["id"]] = None
+        return None
 
 
 def hardware_vendor_ids() -> tuple[int, ...] | None:

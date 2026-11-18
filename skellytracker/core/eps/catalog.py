@@ -1,7 +1,8 @@
 """The loader of the EP catalog (`ep_catalog.yaml`) and of its lock (`ep_lock.yaml`).
 
-The catalog owns the EP keys, the allowed EP options, the packs and the hardware classes. The lock
-holds the URL, the sha256 and the sizes of each wheel of each pack. Both files are package data.
+The catalog owns the EP keys, the allowed EP options, the packs, the components and the hardware
+classes. The lock holds the URL, the sha256 and the sizes of each wheel of each pack and each
+component. Both files are package data.
 """
 
 import functools
@@ -108,12 +109,18 @@ class EpCatalog:
         return self.pack(key) or (row if row.get("selects_gpu") or self.windows_ml(key) else None)
 
     def pack_by_id(self, pack_id: str) -> tuple[str, dict] | None:
-        """The EP key and the row of a pack id, also for a test pack."""
+        """The EP key and the row of a pack id, also for a test pack. A component gives its own id as the key."""
         for key, row in self.data["eps"].items():
             for pack in [*row.get("packs", ()), *row.get("test_packs", ())]:
                 if pack["id"] == pack_id:
                     return key, pack
-        return None
+        return next(((pack_id, row) for row in self.data.get("components", ()) if row["id"] == pack_id), None)
+
+    def component(self, key: str) -> dict | None:
+        """The component row of the pack of a plugin EP key, for example the GPU JPEG decoder; `None` when the pack has none."""
+        pack = self.pack(key)
+        wanted = None if pack is None else pack.get("component")
+        return next((row for row in self.data.get("components", ()) if row["id"] == wanted), None)
 
     def pack_lock(self, pack_id: str, tag: str | None = None) -> dict | None:
         """The lock row of a pack for a platform tag; `None` when the platform has no such pack."""

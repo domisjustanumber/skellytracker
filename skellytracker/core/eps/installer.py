@@ -77,7 +77,9 @@ def plan_install(selection: str | Sequence[str], index_url: str | None = None, *
     """The packs to install for a selection, with the download bytes and the disk bytes.
 
     `selection` is `all-compatible` (each pack EP key that a GPU of this host can run), `recommended`
-    (the pack of the performance recommendation), `cpu-only` (no pack) or a list of EP keys. A
+    (the pack of the performance recommendation), `cpu-only` (no pack) or a list of EP keys. The
+    component of a pack, for example the GPU JPEG decoder, follows the pack, one time for each plan.
+    Its `PlannedPack.ep_key` is the component id. A
     reserved key or an unknown key raises `EpRequestError`. `index_url` replaces the URL of each
     wheel with `<index_url><file name>`, for a local index.
 
@@ -117,6 +119,10 @@ def plan_install(selection: str | Sequence[str], index_url: str | None = None, *
             if state == "unsupported":
                 warnings.append(f"The EP '{key}' cannot run on this host: {reason}.")
             packs.append(planned)
+            component = catalog.component(key)
+            extra = None if component is None else planned_pack(catalog, component["id"], index_url=index_url)
+            if extra is not None and extra.pack_id not in {p.pack_id for p in packs}:
+                packs.append(extra)  # once for each plan; an install of the key also repairs an old store
     mismatch = core_mismatch(catalog)
     if mismatch:
         warnings.append(mismatch)
@@ -190,7 +196,7 @@ def _install_pack(catalog: EpCatalog, planned: PlannedPack, progress, cancel, fr
             _unpack(path, planned.wheels[position].filename, staging, files)
         _, pack = catalog.pack_by_id(planned.pack_id)
         store.write_json(staging / "pack.json", {
-            "format": 1, "source": "wheel", "pack_id": planned.pack_id, "ep_key": planned.ep_key, "ep_name": pack["ep_name"],
+            "format": 1, "source": "wheel", "pack_id": planned.pack_id, "ep_key": planned.ep_key, "ep_name": pack.get("ep_name"),
             "package": pack["package"], "version": planned.version, "platform_tag": platform_tag(),
             "catalog_revision": catalog.revision, "library": lock.get("library"), "path_dirs": lock.get("path_dirs", []),
             "preload": lock.get("preload", []), "preload_ort_core": bool(pack.get("preload_ort_core")), "wheels": [[w.filename, w.sha256] for w in planned.wheels], "files": files,
@@ -231,9 +237,11 @@ def install(plan: InstallPlan, *, progress: Callable[[InstallProgress], None] | 
     `from_dir` installs from a folder that holds the wheels of the lock, with no network. The sha256
     of each wheel must be the sha256 of the lock. `InstallResult.failed` holds `(key, error code,
     message)`, with the error code `offline`, `http-error`, `hash-mismatch`, `disk-full`,
-    `path-guard`, `core-mismatch`, `verify-failed` or `failed`.
+    `path-guard`, `core-mismatch`, `verify-failed` or `failed`. The failure of a component goes to
+    `InstallResult.warnings`, not to `failed`: the EP stays usable (ADR-88ZB).
     """
     catalog = load_catalog()
+    components = {row["id"] for row in catalog.data.get("components", ())}
     ok, failed, cancelled = [], [], []
     mismatch = core_mismatch(catalog)
     for planned in plan.packs:
@@ -246,7 +254,7 @@ def install(plan: InstallPlan, *, progress: Callable[[InstallProgress], None] | 
             try:
                 with store.store_lock():
                     _install_pack(catalog, planned, progress, cancel, from_dir)
-                reason = _verify(key, progress) if verify else None
+                reason = _verify(key, progress) if verify and key not in components else None  # a component has no EP
                 if reason is None:
                     ok.append(key)
                 else:
@@ -259,7 +267,8 @@ def install(plan: InstallPlan, *, progress: Callable[[InstallProgress], None] | 
                 text = str(error)
                 code = "disk-full" if "disk-full" in text or getattr(error, "errno", None) == 28 else "path-guard" if text.startswith("path-guard") else "failed"
                 failed.append((key, code, text))
-    return InstallResult(tuple(ok), tuple(failed), tuple(cancelled))
+    return InstallResult(tuple(ok), tuple(f for f in failed if f[0] not in components), tuple(cancelled),
+                         warnings=tuple(f for f in failed if f[0] in components))
 
 
 def download(keys: Sequence[str], platform: str, dest: Path) -> Path:
@@ -268,17 +277,24 @@ def download(keys: Sequence[str], platform: str, dest: Path) -> Path:
     dest = Path(dest)
     dest.mkdir(parents=True, exist_ok=True)
     manifest = {"platform": platform, "wheels": [], "licences": []}
+    rows = []
     for key in keys:
         pack = catalog.pack(key)
         planned = None if pack is None else planned_pack(catalog, pack["id"], platform)
         if planned is None:
             raise ValueError(f"the EP '{key}' has no pack for the platform {platform}")
+        rows.append((pack, planned))
+        component = catalog.component(key)
+        extra = None if component is None else planned_pack(catalog, component["id"], platform)
+        if extra is not None and extra.pack_id not in {p.pack_id for _, p in rows}:
+            rows.append((component, extra))  # `install --from-dir` installs the component with the pack
+    for row, planned in rows:
         for wheel in planned.wheels:
             target = dest / wheel.filename
             if not (target.is_file() and _download.sha256_of(target) == wheel.sha256):
                 os.replace(_download.fetch(wheel.url, wheel.sha256, dest / f"{wheel.sha256}.part"), target)
             manifest["wheels"].append({"filename": wheel.filename, "sha256": wheel.sha256})
-        manifest["licences"] += pack.get("licences", [])
+        manifest["licences"] += row.get("licences", [])
     store.write_json(dest / "manifest.json", manifest)
     (dest / "README.txt").write_text(
         "EP pack wheels for skellytracker.\nInstall them with: skellytracker-eps install <key> --from-dir <this folder>\n"
@@ -317,6 +333,7 @@ def consumer_ref(catalog: EpCatalog) -> tuple[str, dict]:
     frozen = bool(getattr(sys, "frozen", False))
     prefix = os.path.dirname(sys.executable) if frozen else sys.prefix
     packs = [[pack["id"], pack["version"]] for key in catalog.keys() for pack in catalog.ep(key).get("packs", ())]
+    packs += [[row["id"], row["version"]] for row in catalog.data.get("components", ())]  # gc keeps the components too
     return hashlib.sha256(prefix.encode("utf-8")).hexdigest()[:16], {
         "kind": "frozen" if frozen else "environment", "prefix": prefix, "catalog_revision": catalog.revision,
         "ort_version": catalog.ort_version, "packs": packs, "last_seen": int(time.time())}

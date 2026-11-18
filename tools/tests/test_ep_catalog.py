@@ -158,6 +158,14 @@ def test_a_linux_only_pack_needs_no_windows_lock_row_and_a_local_version_is_exac
     assert ep_catalog.pack_platforms(pack, catalog["platforms"]) == ["manylinux_x86_64"] and problems(catalog, lock) == []
 
 
+def break_component(catalog, lock):
+    catalog["eps"]["cuda"]["packs"][0]["component"] = "no-such-component"
+
+
+def break_component_lock(catalog, lock):
+    del lock["packs"]["gpu-jpeg-cu13"]["manylinux_x86_64"]
+
+
 def test_a_newer_versions_row_with_a_claim_passes():
     catalog, lock = load()
     catalog["eps"]["cuda"]["packs"][0]["newer_versions"] = [{"version": "0.10.0", "ort": {"verified_by_us": ["1.31.1"]},
@@ -169,12 +177,30 @@ def test_a_newer_versions_row_with_a_claim_passes():
                                     break_device_id, break_url, break_sha, break_lock_row, break_revision,
                                     break_successor, break_unknown_successor, break_status, break_newer_version, break_newer_dependency,
                                     break_model_path, break_model_url, break_model_sha, break_model_bytes, break_windows_ml_name,
-                                    break_plugin_without_route, break_linux_lock_row, break_fallback_sha, break_fallback_backend],
+                                    break_plugin_without_route, break_linux_lock_row, break_fallback_sha, break_fallback_backend,
+                                    break_component, break_component_lock],
                          ids=lambda change: change.__name__)
 def test_check_finds_each_defect(change):
     catalog, lock = (copy.deepcopy(part) for part in load())
     change(catalog, lock)
     assert len(problems(catalog, lock)) >= 1
+
+
+def unname_component(catalog):
+    for key in ("cuda", "trt-rtx"):
+        del catalog["eps"][key]["packs"][0]["component"]
+
+
+@pytest.mark.parametrize(("change", "text"), [
+    (unname_component, "gpu-jpeg-cu13: no pack names it"),
+    (lambda catalog: catalog["components"].append(dict(catalog["components"][0])), "gpu-jpeg-cu13: the id is used two times"),
+    (lambda catalog: catalog["components"].append(dict(catalog["components"][0], id="cuda-cu13")), "cuda-cu13: the id is also a pack id"),
+    (lambda catalog: catalog["components"].append(dict(catalog["components"][0], id="cuda")), "cuda: the id is also a pack id or an EP key"),
+], ids=["not-named", "duplicate", "pack-id", "ep-key"])
+def test_check_finds_each_component_defect(change, text):
+    catalog, lock = (copy.deepcopy(part) for part in load())
+    change(catalog)
+    assert any(text in problem for problem in problems(catalog, lock)), problems(catalog, lock)
 
 
 def wheel_bytes(members: dict[str, bytes]) -> bytes:
@@ -254,6 +280,31 @@ def test_refresh_takes_the_cp313_wheel_and_the_explicit_dependency_preload(tmp_p
     assert row["wheels"][0]["index_hash"] == "none" and row["wheels"][0]["url"].endswith("%2Brocm10.0.0-cp313-cp313-manylinux_2_28_x86_64.whl")
     catalog["eps"]["m"]["packs"][0]["preload_dependencies"] = []
     assert next(iter(ep_catalog.refresh(catalog, "text", tmp_path, site.__getitem__)["packs"]["m-10.0"].values()))["preload"] == []
+
+
+def test_refresh_writes_a_component_and_reads_a_dotted_linux_tag(tmp_path):
+    catalog = dict(FAKE_CATALOG, components=[{
+        "id": "fake-component", "package": "fake-codec", "version": "3.0", "index": "test",
+        "library": {"win_amd64": "codec.dll", "manylinux_x86_64": "libcodec.so.0"},
+        "dependency_wheels": [{"package": "fake-crt", "index": "test", "version": "4.0"}]}])
+    files = {
+        "fake_codec-3.0-py3-none-win_amd64.whl": wheel_bytes({"nv/codec/codec.dll": b"1", "nv/codec/impl.cp313-win_amd64.pyd": b"2"}),
+        "fake_codec-3.0-py3-none-manylinux_2_28_x86_64.whl": wheel_bytes({"nv/codec/libcodec.so.0": b"1", "nv/codec/impl.cpython-313.so": b"2"}),
+        "fake_crt-4.0-py3-none-win_amd64.whl": wheel_bytes({"nv/cu13/bin/x86_64/rt64_13.dll": b"3"}),
+        "fake_crt-4.0-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl": wheel_bytes({"nv/cu13/lib/librt.so.13": b"3"}),
+    }
+    site = fake_index()
+    for package in ("fake-codec", "fake-crt"):
+        site[f"https://index.test/simple/{package}/"] = "".join(
+            f'<a href="https://files.test/{name}#sha256={hashlib.sha256(data).hexdigest()}">{name}</a>\n'
+            for name, data in files.items() if name.startswith(package.replace("-", "_"))).encode()
+    site.update({f"https://files.test/{name}": data for name, data in files.items()})
+    lock = ep_catalog.refresh(catalog, "text", tmp_path, site.__getitem__)["packs"]["fake-component"]
+    assert lock["win_amd64"]["library"] == "nv/codec/codec.dll" and lock["win_amd64"]["path_dirs"] == ["nv/cu13/bin/x86_64"]
+    # only the dependency wheels give the preload list: no extension module of the primary wheel
+    assert lock["manylinux_x86_64"]["library"] == "nv/codec/libcodec.so.0" and lock["manylinux_x86_64"]["preload"] == ["nv/cu13/lib/librt.so.13"]
+    checked = dict(catalog, ort_core={"version": "1.0"})
+    assert not [p for p in ep_catalog.check(checked, {}, "text", "", "") if "fake-component" in p and "exclusive_group" in p]
 
 
 def test_refresh_refuses_a_sha_mismatch_and_an_http_url(tmp_path):

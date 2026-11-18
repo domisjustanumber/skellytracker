@@ -20,6 +20,8 @@ Usage::
 - a wheel of the lock has no ``https`` URL, no sha256 of 64 hex characters or no sizes, or a lock row
   has no library path;
 - two packs with one ``ep_name`` have different ``exclusive_group`` values, or a pack has none;
+- a pack names a ``component`` that is not a row of ``components``; no pack names a component; two
+  components have one id; or a component id is also a pack id or an EP key;
 - a platform of the catalog is a macOS platform: macOS has no pack;
 - a reserved EP key has a user pack row (``packs``), or an EP key that is not reserved has no
   ``options.allowed`` map;
@@ -35,8 +37,8 @@ Usage::
 - ``certification.ort_fallback`` or its ``build_backend`` has no package, no version or no sha256 of 64 hex
   characters (ADR-XSE7).
 
-``--refresh`` uses the network. Only this mode writes ``ep_lock.yaml``. For each pack and each
-platform of the catalog that the ``library`` map of the pack names, it reads the PEP 503 page of each
+``--refresh`` uses the network. Only this mode writes ``ep_lock.yaml``. For each pack, each component
+and each platform of the catalog that the ``library`` map of the pack names, it reads the PEP 503 page of each
 wheel (the ``cp313`` wheel when the page has one for each Python), downloads the wheel to the cache
 folder (default: a temporary folder), and writes the URL, the sha256 and the sizes to the lock. It
 refuses a URL that is not ``https`` and a file whose sha256 is not the sha256 of the index page.
@@ -95,8 +97,9 @@ def revision_of(catalog_text: str) -> str:
 
 
 def pack_rows(catalog: dict) -> list[tuple[str, dict]]:
-    """Each pack row with its EP key: the user packs and the test packs."""
-    return [(key, pack) for key, row in catalog["eps"].items() for pack in [*row.get("packs", ()), *row.get("test_packs", ())]]
+    """Each pack row with its EP key: the user packs and the test packs, then each component with the key `components`."""
+    packs = [(key, pack) for key, row in catalog["eps"].items() for pack in [*row.get("packs", ()), *row.get("test_packs", ())]]
+    return packs + [("components", row) for row in catalog.get("components", ())]
 
 
 def pack_platforms(pack: dict, platforms: list[str]) -> list[str]:
@@ -129,6 +132,17 @@ def check(catalog: dict, lock: dict, catalog_text: str, pyproject_text: str, uv_
     platforms = catalog.get("platforms", [])
     problems += [f"platform {name}: macOS has no pack" for name in platforms if "mac" in name or "darwin" in name]
     groups: dict[str, str] = {}
+    components = {row["id"] for row in catalog.get("components", ())}
+    ids = [row["id"] for row in catalog.get("components", ())]
+    named = {pack.get("component") for _, pack in pack_rows(catalog)}
+    taken = {*catalog["eps"], *(pack["id"] for key, pack in pack_rows(catalog) if key != "components")}
+    for component in components:
+        if ids.count(component) > 1:
+            problems.append(f"component {component}: the id is used two times")
+        if component not in named:
+            problems.append(f"component {component}: no pack names it")
+        if component in taken:
+            problems.append(f"component {component}: the id is also a pack id or an EP key")
     for key, row in catalog["eps"].items():
         statuses = {item.get("status", "ready") for item in [row, *row.get("packs", ()), *row.get("test_packs", ())]}
         if not statuses <= {"ready", "test", "field-test"}:  # a typo must not turn off the opt-in of a field-test EP
@@ -164,8 +178,10 @@ def check(catalog: dict, lock: dict, catalog_text: str, pyproject_text: str, uv_
                 problems.append(f"{name}: the newer_versions row {claim.get('version')} needs an exact version above {pack.get('version')}, "
                                 "an ort claim, and only dependency_wheels of the pack")
         group = pack.get("exclusive_group")
-        if not group or groups.setdefault(pack["ep_name"], group) != group:
+        if key != "components" and (not group or groups.setdefault(pack["ep_name"], group) != group):
             problems.append(f"{name}: no exclusive_group, or a group that differs for the EP name {pack['ep_name']}")
+        if "component" in pack and pack["component"] not in components:
+            problems.append(f"{name}: the component {pack['component']} is not a row of components")
         for platform in pack_platforms(pack, platforms):
             row = lock.get("packs", {}).get(pack["id"], {}).get(platform)
             if row is None:

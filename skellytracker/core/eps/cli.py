@@ -130,7 +130,8 @@ def status_ini(status: EpStatus) -> bytes:
     for number, row in enumerate(status.eps):
         fields = [("key", row.key), ("label", row.label), ("supported", int(row.state != "unsupported")),
                   ("builtin", int(row.state == "builtin")), ("recommended", int(row.key == best.ep_key)), ("state", row.state),
-                  ("reason", row.reason or ""), ("download_mb", megabytes(row.download_bytes)), ("licence_count", len(row.licences))]
+                  ("reason", row.reason or ""), ("download_mb", megabytes(row.download_bytes)), ("jpeg_decoder", row.jpeg_decoder or ""),
+                  ("licence_count", len(row.licences))]
         for index, (name, url) in enumerate(row.licences):
             fields += [(f"licence.{index}.name", name), (f"licence.{index}.url", url)]
         lines += [f"[ep.{number}]", *(_ini(name, value) for name, value in fields)]
@@ -155,7 +156,9 @@ def cmd_status(args) -> int:
         _write(json.dumps(status_json(status), indent=1), args.out)
     else:
         lines = [recommendation_block(status.performance, status.accuracy), ""]
-        lines += [f"{row.key}: {row.state}" + (f" ({row.reason})" if row.reason else "") for row in status.eps]
+        lines += [f"{row.key}: {row.state}" + (f" ({row.reason})" if row.reason else "")
+                  + (f"; GPU JPEG decoder: {row.jpeg_decoder}" if row.jpeg_decoder else "")
+                  + (f". {row.jpeg_decoder_hint}" if row.jpeg_decoder_hint else "") for row in status.eps]
         lines += [f"Warning: {text}" for text in status.warnings]
         _write("\n".join(lines), args.out)
         if not args.out:
@@ -249,13 +252,15 @@ def cmd_install(args) -> int:
         done.set()
     outcomes = [(key, "ok", None, "") for key in result.ok] + [(key, "failed", code, message) for key, code, message in result.failed]
     outcomes += [(key, "cancelled", None, "") for key in result.cancelled]
+    outcomes += [(key, "warning", code, message) for key, code, message in result.warnings]  # a component: the EP stays usable
     for key, outcome, code, message in outcomes:
         if jsonl:
             print(json.dumps({"event": "done", "key": key, "result": outcome, "error_code": code, "message": message}), flush=True)
         print(f"{key}: {outcome}" + (f" ({code}): {message}" if code else ""), file=text)
     if jsonl:
         print(json.dumps({"event": "summary", "ok": list(result.ok), "failed": [key for key, _, _ in result.failed],
-                          "cancelled": list(result.cancelled), "needs_worker_restart": result.needs_worker_restart}), flush=True)
+                          "cancelled": list(result.cancelled), "warnings": [key for key, _, _ in result.warnings],
+                          "needs_worker_restart": result.needs_worker_restart}), flush=True)
     if not (jsonl or args.yes or result.cancelled or result.failed):
         try:  # the install result decides the exit code
             certify_prompt(state.status())

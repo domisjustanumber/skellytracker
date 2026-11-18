@@ -5,6 +5,8 @@ import hashlib
 import io
 import multiprocessing
 import os
+import subprocess
+import sys
 import threading
 import time
 import urllib.request
@@ -206,23 +208,34 @@ def wheel(members: dict[str, bytes]) -> bytes:
     return buffer.getvalue()
 
 
+def fake_lock_row(server, wheels: dict[str, bytes], library: str, path_dirs: list[str]) -> dict:
+    """A lock row of small wheels on the local server. Each wheel unpacks to 20 bytes."""
+    server.files.update(wheels)
+    rows = [{"package": name.split("-")[0], "version": "1", "filename": name, "url": "https://example.com/" + name,
+             "sha256": hashlib.sha256(data).hexdigest(), "download_bytes": len(data), "unpacked_bytes": 20}
+            for name, data in wheels.items()]
+    return {"library": library, "path_dirs": path_dirs, "download_bytes": sum(len(data) for data in wheels.values()),
+            "unpacked_bytes": 20 * len(wheels), "wheels": rows}
+
+
+DECODER_WHEEL = "decoder-1.0-py3-none-win_amd64.whl"
+
+
 @pytest.fixture
 def fake_pack(server, monkeypatch):
-    """Make the `cuda` pack of the lock two small wheels on the local server. It returns the plan function."""
+    """Make the `cuda` pack of the lock two small wheels, and its component one, on the local server. It returns the plan function."""
     wheels = {
         "plugin-1.0-py3-none-win_amd64.whl": wheel({"onnxruntime_ep_cuda/onnxruntime_providers_cuda.dll": b"plugin",
                                                     "plugin-1.0.dist-info/LICENSE.txt": b"licence text"}),
         "dep-2.0-py3-none-win_amd64.whl": wheel({"nvidia/cudnn/bin/cudnn64_9.dll": b"dependency",
                                                  "dep-2.0.dist-info/licenses/NOTICE": b"notice"}),
     }
-    server.files.update(wheels)
-    rows = [{"package": name.split("-")[0], "version": "1", "filename": name, "url": "https://example.com/" + name,
-             "sha256": hashlib.sha256(data).hexdigest(), "download_bytes": len(data), "unpacked_bytes": 20}
-            for name, data in wheels.items()]
-    row = {"library": "onnxruntime_ep_cuda/onnxruntime_providers_cuda.dll", "path_dirs": ["nvidia/cudnn/bin"],
-           "download_bytes": sum(len(data) for data in wheels.values()), "unpacked_bytes": 40, "wheels": rows}
+    decoder = {DECODER_WHEEL: wheel({"nvidia/nvimgcodec/nvimgcodec_0.dll": b"decoder", "nvidia/cu13/bin/x86_64/cudart64_13.dll": b"cudart"})}
     catalog = catalog_module.load_catalog()
-    monkeypatch.setitem(catalog.lock["packs"]["cuda-cu13"], "win_amd64", row)
+    monkeypatch.setitem(catalog.lock["packs"]["cuda-cu13"], "win_amd64", fake_lock_row(
+        server, wheels, "onnxruntime_ep_cuda/onnxruntime_providers_cuda.dll", ["nvidia/cudnn/bin"]))
+    monkeypatch.setitem(catalog.lock["packs"]["gpu-jpeg-cu13"], "win_amd64", fake_lock_row(
+        server, decoder, "nvidia/nvimgcodec/nvimgcodec_0.dll", ["nvidia/cu13/bin/x86_64"]))
     monkeypatch.setattr(installer, "probe_host", lambda: host(gpu()))
     monkeypatch.setattr(installer, "core_mismatch", lambda catalog: None)
     return lambda: installer.plan_install(["cuda"], index_url=server.url)
@@ -230,11 +243,16 @@ def fake_pack(server, monkeypatch):
 
 def test_install_from_a_local_index(fake_pack, ep_store):
     plan = fake_pack()
-    assert (len(plan.packs), plan.download_bytes, plan.disk_bytes) == (1, plan.packs[0].download_bytes, 40)
+    assert [(pack.ep_key, pack.pack_id) for pack in plan.packs] == [("cuda", "cuda-cu13"), ("gpu-jpeg-cu13", "gpu-jpeg-cu13")]
+    assert (plan.download_bytes, plan.disk_bytes) == (sum(pack.download_bytes for pack in plan.packs), 60)
     assert plan.packs[0].licence_url.startswith("https://")
+    catalog = catalog_module.load_catalog()
+    assert store.component_state(catalog, "cuda") == "missing" and store.component_state(catalog, "cpu") is None
     events = []
     result = installer.install(plan, progress=events.append, verify=False)
-    assert (result.ok, result.failed, result.cancelled) == (("cuda",), (), ())
+    assert (result.ok, result.failed, result.cancelled) == (("cuda", "gpu-jpeg-cu13"), (), ())
+    assert store.component_state(catalog, "cuda") == store.component_state(catalog, "trt-rtx") == "installed"
+    assert store.read_manifest("gpu-jpeg-cu13", "0.10.0.9")["path_dirs"] == ["nvidia/cu13/bin/x86_64"]
     folder = ep_store / "cuda-cu13" / "0.2.0"
     manifest = store.read_manifest("cuda-cu13", "0.2.0")
     assert (folder / manifest["library"]).read_bytes() == b"plugin" and manifest["path_dirs"] == ["nvidia/cudnn/bin"]
@@ -242,21 +260,80 @@ def test_install_from_a_local_index(fake_pack, ep_store):
     assert (folder / "licenses" / "dep" / "NOTICE").read_bytes() == b"notice"
     assert ["nvidia/cudnn/bin/cudnn64_9.dll", 10, hashlib.sha256(b"dependency").hexdigest()] in manifest["files"]
     assert not list((ep_store / ".partial").glob("*")) and not list((ep_store / ".staging").glob("*"))
-    assert {event.phase for event in events} == {"download", "unpack"} and events[-1].key == "cuda"
-    catalog = catalog_module.load_catalog()
+    assert {event.phase for event in events} == {"download", "unpack"} and events[-1].key == "gpu-jpeg-cu13"
     assert store.pack_state(catalog, "cuda", gpu(), "gpu:10de:2484:0")[0] == "installed_unverified"
     (folder / manifest["library"]).write_bytes(b"changed size")
     assert store.pack_state(catalog, "cuda", gpu(), "gpu:10de:2484:0")[:2] == ("not_ready", "files")
-    assert installer.install(plan, verify=False).ok == ("cuda",)  # an installed pack folder is not written again
+    assert installer.install(plan, verify=False).ok == ("cuda", "gpu-jpeg-cu13")  # an installed pack folder is not written again
     assert (folder / manifest["library"]).read_bytes() == b"changed size"
+
+
+def test_an_install_of_the_ep_repairs_a_store_of_an_older_catalog(fake_pack, ep_store):
+    plan = fake_pack()
+    installer.install(plan, verify=False)
+    catalog = catalog_module.load_catalog()
+    os.replace(ep_store / "gpu-jpeg-cu13" / "0.10.0.9", ep_store / "gpu-jpeg-cu13" / "0.9.0")  # a component of an older catalog
+    assert store.component_state(catalog, "cuda") == "other_version"
+    assert store.pack_state(catalog, "cuda", gpu(), "gpu:10de:2484:0")[0] == "installed_unverified"  # the EP is not blocked
+    installer.remove("gpu-jpeg-cu13")
+    assert store.component_state(catalog, "cuda") == "missing"
+    pack_file = ep_store / "cuda-cu13" / "0.2.0" / "pack.json"
+    before = pack_file.stat().st_mtime_ns
+    assert installer.install(plan, verify=False).ok == ("cuda", "gpu-jpeg-cu13")
+    assert store.component_state(catalog, "cuda") == "installed" and pack_file.stat().st_mtime_ns == before
+    (ep_store / "gpu-jpeg-cu13" / "0.10.0.9" / "nvidia" / "nvimgcodec" / "nvimgcodec_0.dll").write_bytes(b"changed size")
+    assert store.component_state(catalog, "cuda") == "missing"
+
+
+PREPARE = """
+import sys
+from pathlib import Path
+from skellytracker.core.eps import catalog, registration, store
+catalog.platform_tag = lambda: "win_amd64"
+case = sys.argv[2]
+assert registration.prepare_jpeg_decoder("cuda") is None and registration.prepare_jpeg_decoder("cpu") is None
+EXTEND = "__path__ = __import__('pkgutil').extend_path(__path__, __name__)"
+env = Path(sys.argv[1]) / "env" / "nvidia"
+(env / "nvimgcodec").mkdir(parents=True)
+(env / "__init__.py").write_text(EXTEND)
+(env / "nvimgcodec" / "__init__.py").write_text("FAKE = 'environment'")
+sys.path.insert(0, str(env.parent))
+import nvidia  # an `nvidia` package of the environment, imported before the call
+if case == "earlier copy":
+    import nvidia.nvimgcodec
+folder = store.pack_dir("gpu-jpeg-cu13", "0.10.0.9")
+(folder / "nvidia" / "nvimgcodec").mkdir(parents=True)
+(folder / "nvidia" / "__init__.py").write_text(EXTEND)
+code = "raise ImportError('a DLL is missing')" if case == "failed import" else "FAKE = 'store'"
+(folder / "nvidia" / "nvimgcodec" / "__init__.py").write_text(code)
+store.write_json(folder / "pack.json", {"files": []})
+path, portions = list(sys.path), list(nvidia.__path__)
+result = registration.prepare_jpeg_decoder("trt-rtx")
+if case == "store copy":
+    module, cudart = result
+    assert module.FAKE == "store" and cudart.is_relative_to(folder), (module, cudart)
+    assert registration.prepare_jpeg_decoder("cuda")[0] is module
+else:  # the run decodes on the CPU, and the import changes are undone
+    assert result is None and registration.prepare_jpeg_decoder("cuda") is None
+    assert sys.path == path and list(nvidia.__path__) == portions
+    assert ("nvidia.nvimgcodec" in sys.modules) == (case == "earlier copy")
+"""
+
+
+@pytest.mark.parametrize("case", ["store copy", "earlier copy", "failed import"])
+def test_prepare_jpeg_decoder_imports_only_the_copy_of_the_store(tmp_path, case):
+    run = subprocess.run([sys.executable, "-c", PREPARE, str(tmp_path), case], capture_output=True, text=True,  # noqa: S603
+                         check=False, env=dict(os.environ, **{store.STORE_VARIABLE: str(tmp_path / "eps")}))
+    assert run.returncode == 0, run.stderr[-2000:]
+    assert ("is not used" in run.stderr) == (case != "store copy")  # one warning line with the reason
 
 
 def test_install_from_a_folder_with_no_network(fake_pack, server, ep_store, tmp_path):
     plan = fake_pack()
-    for name in ("plugin-1.0-py3-none-win_amd64.whl", "dep-2.0-py3-none-win_amd64.whl"):
+    for name in ("plugin-1.0-py3-none-win_amd64.whl", "dep-2.0-py3-none-win_amd64.whl", DECODER_WHEEL):
         (tmp_path / name).write_bytes(server.files[name])
     server.files.clear()
-    assert installer.install(plan, from_dir=tmp_path, verify=False).ok == ("cuda",)
+    assert installer.install(plan, from_dir=tmp_path, verify=False).ok == ("cuda", "gpu-jpeg-cu13")
     assert (tmp_path / "dep-2.0-py3-none-win_amd64.whl").exists()  # the folder of the user keeps its files
     installer.remove("cuda-cu13")
     assert not (ep_store / "cuda-cu13").exists()
@@ -280,14 +357,15 @@ def test_a_wheel_member_that_leaves_the_folder_is_refused(fake_pack, server, ep_
 def test_a_long_store_path_is_refused_with_the_reason(fake_pack, tmp_path, monkeypatch):
     root = tmp_path / ("s" * (store.PATH_LIMIT - len(str(tmp_path)) - 40))
     monkeypatch.setenv(store.STORE_VARIABLE, str(root))
-    (code, message), = [failure[1:] for failure in installer.install(fake_pack(), verify=False).failed]
+    failures = {key: failure for key, *failure in installer.install(fake_pack(), verify=False).failed}
+    code, message = failures["cuda"]
     assert code == "path-guard" and store.STORE_VARIABLE in message and not (root / "cuda-cu13").exists()
 
 
 def test_cancel_and_core_mismatch(fake_pack, monkeypatch):
     cancel = threading.Event()
     cancel.set()
-    assert installer.install(fake_pack(), cancel=cancel, verify=False).cancelled == ("cuda",)
+    assert installer.install(fake_pack(), cancel=cancel, verify=False).cancelled == ("cuda", "gpu-jpeg-cu13")
     monkeypatch.setattr(installer, "core_mismatch", lambda catalog: "onnxruntime 1.30.0 is installed. Run `uv sync`.")
     plan = fake_pack()
     assert "uv sync" in plan.warnings[-1] and installer.install(plan, verify=False).failed[0][1] == "core-mismatch"
@@ -295,11 +373,12 @@ def test_cancel_and_core_mismatch(fake_pack, monkeypatch):
 
 def test_plan_selections(fake_pack, monkeypatch):
     assert installer.plan_install("cpu-only") == InstallPlan()
-    assert [pack.ep_key for pack in installer.plan_install("all-compatible").packs] == ["trt-rtx", "cuda"]
-    assert [pack.ep_key for pack in installer.plan_install("recommended").packs] == ["trt-rtx"]
+    # the component of both packs is planned one time, after the first pack that needs it
+    assert [pack.ep_key for pack in installer.plan_install("all-compatible").packs] == ["trt-rtx", "gpu-jpeg-cu13", "cuda"]
+    assert [pack.ep_key for pack in installer.plan_install("recommended").packs] == ["trt-rtx", "gpu-jpeg-cu13"]
     assert installer.plan_install(["cpu"]).packs == () and "needs no pack" in installer.plan_install(["cpu"]).warnings[0]
     monkeypatch.setattr(installer, "probe_host", lambda: host(gpu(cc="7.5")))
-    assert [pack.ep_key for pack in installer.plan_install("all-compatible").packs] == ["cuda"]
+    assert [pack.ep_key for pack in installer.plan_install("all-compatible").packs] == ["cuda", "gpu-jpeg-cu13"]
     assert "cannot run on this host" in installer.plan_install(["trt-rtx"]).warnings[0]
     for key in ("openvino", "qnn", "tensorrt"):
         with pytest.raises(EpRequestError):
@@ -319,14 +398,20 @@ def test_a_field_test_ep_needs_the_opt_in_for_a_plan(ep_store):
 
 
 def test_download_writes_the_wheels_and_a_manifest(fake_pack, server, tmp_path, monkeypatch):
-    catalog = catalog_module.load_catalog()
-    for row in catalog.lock["packs"]["cuda-cu13"]["win_amd64"]["wheels"]:
-        monkeypatch.setitem(row, "url", server.url + row["filename"])
+    lock_urls_to(server, monkeypatch)
     dest = installer.download(["cuda"], "win_amd64", tmp_path / "wheels")
     manifest = store.read_json(dest / "manifest.json")
-    assert sorted(path.name for path in dest.iterdir()) == ["README.txt", "dep-2.0-py3-none-win_amd64.whl", "manifest.json", "plugin-1.0-py3-none-win_amd64.whl"]
-    assert len(manifest["wheels"]) == 2 and manifest["licences"]
-    assert installer.install(fake_pack(), from_dir=dest, verify=False).ok == ("cuda",)
+    assert sorted(path.name for path in dest.iterdir()) == ["README.txt", DECODER_WHEEL, "dep-2.0-py3-none-win_amd64.whl", "manifest.json",
+                                                           "plugin-1.0-py3-none-win_amd64.whl"]
+    assert len(manifest["wheels"]) == 3 and "NVIDIA nvJPEG" in {licence["name"] for licence in manifest["licences"]}
+    assert installer.install(fake_pack(), from_dir=dest, verify=False).ok == ("cuda", "gpu-jpeg-cu13")
+
+
+def lock_urls_to(server, monkeypatch):
+    """Point the wheels of the `cuda` pack and of its component at the local server, for a call with no `index_url`."""
+    for pack_id in ("cuda-cu13", "gpu-jpeg-cu13"):
+        for row in catalog_module.load_catalog().lock["packs"][pack_id]["win_amd64"]["wheels"]:
+            monkeypatch.setitem(row, "url", server.url + row["filename"])
 
 
 def test_gc_and_remove(fake_pack, ep_store, monkeypatch):
@@ -345,6 +430,7 @@ def test_gc_and_remove(fake_pack, ep_store, monkeypatch):
     result = installer.gc(now=later)
     assert result.removed_packs == ("old-pack/0.1",) and result.removed_partials == 1 and not old.exists()
     assert (ep_store / "cuda-cu13" / "0.2.0" / "pack.json").exists()  # the ref of this consumer names it
+    assert (ep_store / "gpu-jpeg-cu13" / "0.10.0.9" / "pack.json").exists()  # and its component
     installer.remove(consumer="environment")
     assert not list((ep_store / "refs").glob("*.json"))
     old.mkdir(parents=True)

@@ -42,6 +42,7 @@ These entries are `accepted`.
 | [P0JZ](entries/P0JZ-certify-contract-in-each-package.md) | `certify(level)` in each package; reports to `skellycertify`; any recorded build is evidence; OS and EP layers | accepted |
 | [21BK](entries/21BK-quick-check-local-pass-and-hand-in.md) | Quick check in a child process on the user's pipeline; local pass; hard failures; passive record; hand-in | accepted |
 | [K8Q0](entries/K8Q0-platform-rulings-of-2026-11-19.md) | Host facts only in `core/system`, `core/metrics`; ONNX Runtime and its hook through this package; EP page from `status()` | accepted |
+| [88ZB](entries/88ZB-gpu-jpeg-decoder-component-of-the-ep-catalog.md) | GPU JPEG decoder as the catalog component `gpu-jpeg-cu13` of `cuda` and `trt-rtx`; `PackStatus.jpeg_decoder`; never blocks the EP; its own cudart | accepted |
 
 ### Evidence
 

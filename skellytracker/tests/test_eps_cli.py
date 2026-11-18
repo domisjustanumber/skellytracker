@@ -9,13 +9,13 @@ import sys
 import pytest
 
 from skellytracker.core import eps, errors
-from skellytracker.core.eps import cli, installer, recommendation, state
+from skellytracker.core.eps import cli, installer, recommendation, state, store
 from skellytracker.core.eps import catalog as catalog_module
 from skellytracker.core.eps.records import InstallResult
 from skellytracker.core.errors import EpRequestError, EpUnavailableError, SessionCreationError, VRAMExhaustionError
 from skellytracker.tests import hw_fakes
 from skellytracker.tests.hw_fakes import GIB, gpu, host
-from skellytracker.tests.test_eps_store import ep_store, fake_pack, server  # noqa: F401 - fixtures
+from skellytracker.tests.test_eps_store import DECODER_WHEEL, ep_store, fake_pack, lock_urls_to, server  # noqa: F401 - fixtures
 
 RTX = gpu()
 OLD = gpu(cc="6.1", vram=11 * GIB, bus="0000:03:00.0", device_id=0x1B06, name="GTX 1080 Ti")
@@ -107,6 +107,18 @@ def test_status_json(rtx_host, capsys):
         (False, None, True), (True, None, False)]
     assert [row["catalog_status"] for row in data["eps"]] == ["ready", "ready", "field-test", "field-test", "field-test", "ready"]
     assert [row["source"] for row in data["eps"]] == ["pypi", "azure", "windows-ml", "windows-ml", "builtin", "builtin"]
+    assert [(row["jpeg_decoder"], row["jpeg_decoder_hint"]) for row in data["eps"]] == [
+        ("missing", "Run `skellytracker-eps install trt-rtx`."), ("missing", "Run `skellytracker-eps install cuda`."), (None, None),
+        (None, None), (None, None), (None, None)]
+    catalog = catalog_module.load_catalog()
+    component = catalog.pack_lock("gpu-jpeg-cu13")
+    assert data["eps"][0]["download_bytes"] == catalog.pack_lock("trt-rtx-cu13")["download_bytes"] + component["download_bytes"]
+    store.write_json(store.pack_dir("gpu-jpeg-cu13", "0.10.0.9") / "pack.json", {"files": []})
+    assert [row.jpeg_decoder for row in eps.status().eps] == ["installed", "installed", None, None, None, None]  # one component of both packs
+    trt = eps.status().eps[0]  # an installed component is not downloaded again; it stays in the disk size
+    assert trt.download_bytes == catalog.pack_lock("trt-rtx-cu13")["download_bytes"]
+    assert trt.disk_bytes == catalog.pack_lock("trt-rtx-cu13")["unpacked_bytes"] + component["unpacked_bytes"]
+    assert eps.status().eps[1].jpeg_decoder_hint is None and eps.status().eps[1].usable
     assert [[device["device_key"] for device in row["devices"]] for row in data["eps"]] == [[], ["gpu:10de:2484:0"], [], [], [], []]
     assert data["eps"][1]["devices"][0] == {"device_key": "gpu:10de:2484:0", "gpu_key": "0000:01:00.0", "name": "NVIDIA GeForce RTX 3070",
                                             "pci_bus_id": "0000:01:00.0", "vram_total_bytes": 8 * GIB}
@@ -144,6 +156,7 @@ def test_status_reasons_and_no_gpu(monkeypatch, ep_store, capsys):  # noqa: F811
     assert cli.main(["status"]) == 0
     out = capsys.readouterr().out
     assert "Performance EP: cpu" in out and "trt-rtx: unsupported" in out and "single-ep" in out
+    assert "GPU JPEG decoder: missing" in out and "install" not in out  # an install does not help an unsupported EP
     set_host(monkeypatch, host(gpu(cc="7.5")))
     assert cli.main(["recommend"]) == 0 and "none: order not measured" in capsys.readouterr().out
     assert cli.main(["recommend", "--form", "accuracy", "--json"]) == 0 and json.loads(capsys.readouterr().out)["key"] == "cpu"
@@ -156,7 +169,9 @@ def test_status_ini_is_utf16_with_a_bom(rtx_host, tmp_path):
     assert raw[:2] == b"\xff\xfe"
     lines = raw[2:].decode("utf-16-le").split("\r\n")
     assert lines[0] == "[status]" and "schema=skellytracker.eps.status/1" in lines and "count=6" in lines
-    assert "recommended=trt-rtx" in lines and "recommended_download_mb=106" in lines and "recommended_row=nvidia-cc80-r580" in lines
+    # the pack and its GPU JPEG decoder: an install downloads both
+    assert "recommended=trt-rtx" in lines and "recommended_download_mb=124" in lines and "recommended_row=nvidia-cc80-r580" in lines
+    assert lines.count("jpeg_decoder=missing") == 2 and lines[lines.index("[ep.2]"):].count("jpeg_decoder=") == 4
     assert [line for line in lines if line.startswith("[ep.")] == [f"[ep.{n}]" for n in range(6)]
     assert lines[lines.index("[ep.5]") + 1] == "key=cpu" and "builtin=1" in lines[lines.index("[ep.5]"):]
     assert "state=field_test" in lines[lines.index("[ep.4]"):lines.index("[ep.5]")]  # `directml`
@@ -194,22 +209,29 @@ def test_each_error_class_has_its_exit_code_and_one_stderr_line(monkeypatch, cap
     assert capsys.readouterr().err.count("\n") == 1
 
 
-def lock_urls_to(server, monkeypatch):  # noqa: F811
-    for row in catalog_module.load_catalog().lock["packs"]["cuda-cu13"]["win_amd64"]["wheels"]:
-        monkeypatch.setitem(row, "url", server.url + row["filename"])
-
-
 def test_install_with_progress_events(fake_pack, server, monkeypatch, capsys):  # noqa: F811
     lock_urls_to(server, monkeypatch)
     monkeypatch.setattr(installer, "_verify", lambda key, progress: None)
     assert cli.main(["install", "cuda", "--yes", "--progress", "jsonl"]) == 0
     events = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
-    assert [event["event"] for event in events][0] == "plan" and events[-1] == {
-        "event": "summary", "ok": ["cuda"], "failed": [], "cancelled": [], "needs_worker_restart": False}
-    assert events[-2] == {"event": "done", "key": "cuda", "result": "ok", "error_code": None, "message": ""}
+    assert events[0]["event"] == "plan" and events[0]["keys"] == ["cuda", "gpu-jpeg-cu13"] and events[-1] == {
+        "event": "summary", "ok": ["cuda", "gpu-jpeg-cu13"], "failed": [], "cancelled": [], "warnings": [], "needs_worker_restart": False}
+    assert events[-3] == {"event": "done", "key": "cuda", "result": "ok", "error_code": None, "message": ""}
     progress = [event for event in events if event["event"] == "progress"]
     assert {event["phase"] for event in progress} == {"download", "unpack"} and set(progress[0]) == {"event", "key", "phase", "bytes_done", "bytes_total", "fraction"}
     assert progress[0]["key"] == "cuda" and events[0]["download_bytes"] > 0
+
+
+def test_a_failed_download_of_the_component_does_not_fail_the_install_of_the_ep(fake_pack, server, monkeypatch, capsys):  # noqa: F811
+    set_host(monkeypatch, host(RTX, OLD))
+    lock_urls_to(server, monkeypatch)
+    monkeypatch.setattr(installer, "_verify", lambda key, progress: None)
+    del server.files[DECODER_WHEEL]  # the server gives 404
+    assert cli.main(["install", "cuda", "--yes", "--progress", "jsonl"]) == errors.EXIT_OK
+    summary = json.loads(capsys.readouterr().out.splitlines()[-1])
+    assert (summary["ok"], summary["failed"], summary["warnings"]) == (["cuda"], [], ["gpu-jpeg-cu13"])
+    cuda = eps.status().eps[1]
+    assert cuda.usable and (cuda.jpeg_decoder, cuda.jpeg_decoder_hint) == ("missing", "Run `skellytracker-eps install cuda`.")
 
 
 def test_install_with_no_answer_at_the_prompt_asks_for_yes(fake_pack, server, monkeypatch, capsys):  # noqa: F811

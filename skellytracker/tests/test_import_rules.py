@@ -10,7 +10,8 @@ COMPUTED_METADATA = {"core/system/runtime.py", "core/system/environment.py"}  # 
 
 
 def test_import_of_eps_loads_no_onnxruntime():
-    code = "import sys, skellytracker.core.eps; sys.exit(1 if {'onnxruntime', 'windowsml'} & set(sys.modules) else 0)"
+    # `nvidia`: the GPU JPEG decoder loads only in `prepare_jpeg_decoder()` (ADR-88ZB)
+    code = "import sys, skellytracker.core.eps; sys.exit(1 if {'onnxruntime', 'windowsml', 'nvidia'} & set(sys.modules) else 0)"
     assert subprocess.run([sys.executable, "-c", code], check=False).returncode == 0  # noqa: S603
 
 

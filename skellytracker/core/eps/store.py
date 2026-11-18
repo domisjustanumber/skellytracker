@@ -3,7 +3,8 @@
 The store is `platformdirs.user_data_dir("skellytracker", appauthor=False)/eps`, or the folder of
 `SKELLYTRACKER_EP_STORE`. The EP caches (`cache_root()`) are in the user cache folder, or in the
 folder of `SKELLYTRACKER_EP_CACHE`. One store serves each checkout and each application of the user. A pack
-folder `<pack_id>/<pack_ver>/` does not change after its install.
+folder `<pack_id>/<pack_ver>/` does not change after its install. A component of the catalog has
+a folder of the same form.
 
     <root>/<pack_id>/<pack_ver>/pack.json   the manifest
     <root>/<pack_id>/<pack_ver>/...         the unpacked wheels, and licenses/
@@ -32,7 +33,7 @@ import platformdirs
 
 from skellytracker.core.eps import catalog as catalog_module
 from skellytracker.core.eps.catalog import EpCatalog
-from skellytracker.core.eps.records import PackState
+from skellytracker.core.eps.records import ComponentState, PackState
 
 PATH_LIMIT = 240  # a longer DLL path fails registration on Windows, also with long paths enabled
 STORE_VARIABLE = "SKELLYTRACKER_EP_STORE"
@@ -216,6 +217,39 @@ def warn_once(key: str, text: str) -> None:
         logger.warning(text)
 
 
+def files_reason(folder: Path, manifest: dict, pack_id: str) -> tuple[str, str] | None:
+    """`(reason code, reason)` when a file of an installed pack or component is too long, missing or changed; else `None`."""
+    files = manifest.get("files", [])
+    guard = path_guard(folder, [entry[0] for entry in files])
+    if guard is not None:
+        return "path-guard", guard
+    for name, size, *_ in files:
+        try:
+            if (folder / name).stat().st_size != size:
+                raise OSError
+        except OSError:
+            return "files", f"the file {name} of the pack {pack_id} is missing or changed; install the pack again"
+    return None
+
+
+def component_state(catalog: EpCatalog, key: str) -> ComponentState | None:
+    """The state of the component of an EP key, for example the GPU JPEG decoder. It loads no library.
+
+    `None` when the pack of the key has no component on this platform. `other_version`: the store
+    has an other version of the component, from an older catalog. A damaged component is `missing`.
+    No state blocks the EP (ADR-88ZB).
+    """
+    component = catalog.component(key)
+    if component is None or catalog.pack_lock(component["id"]) is None:
+        return None
+    folder = pack_dir(component["id"], component["version"])
+    manifest = read_json(folder / "pack.json")
+    if manifest is None:
+        other = folder.parent.is_dir() and any(child.is_dir() for child in folder.parent.iterdir())
+        return "other_version" if other else "missing"
+    return "missing" if files_reason(folder, manifest, component["id"]) else "installed"
+
+
 def pack_state(catalog: EpCatalog, key: str, gpu=None, device_key: str | None = None,
                os_build=None) -> tuple[PackState, str | None, str | None]:
     """The state of an EP key for one GPU of this host: `(state, reason code, reason)`.
@@ -259,14 +293,7 @@ def pack_state(catalog: EpCatalog, key: str, gpu=None, device_key: str | None = 
         if other:
             return "stale", "stale", f"the store has an other version of the pack {pack['id']}, not {pack['version']}"
         return "not_installed", None, f"the pack {pack['id']} is not installed"
-    files = manifest.get("files", [])
-    guard = path_guard(folder, [entry[0] for entry in files])
-    if guard is not None:
-        return "not_ready", "path-guard", guard
-    for name, size, *_ in files:
-        try:
-            if (folder / name).stat().st_size != size:
-                raise OSError
-        except OSError:
-            return "not_ready", "files", f"the file {name} of the pack {pack['id']} is missing or changed; install the pack again"
+    damage = files_reason(folder, manifest, pack["id"])
+    if damage is not None:
+        return "not_ready", *damage
     return _verdict_state(catalog, pack, gpu, device_key, os_build)

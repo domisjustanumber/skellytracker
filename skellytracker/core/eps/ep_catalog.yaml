@@ -58,6 +58,7 @@ eps:
         # The Linux wheel has no RUNPATH, and it holds these libraries only under their full version names.
         preload_own: [libcudart.so, libtensorrt_rtx.so, libtensorrt_onnxparser_rtx.so]
         exclusive_group: NvTensorRTRTXExecutionProvider
+        component: gpu-jpeg-cu13
         # NVIDIA gives these driver floors for this pack: 580.88 on Windows and 590.48.01 on Linux.
         requires: {vendor: nvidia, cc_min: "8.0", driver_branch_min: {win_amd64: 580, manylinux_x86_64: 590}}
         ort: {vendor_tested: ["1.25", "1.30"]}
@@ -88,6 +89,7 @@ eps:
           - {package: nvidia-cublas, index: pypi, version: "13.8.0.4"}
           - {package: nvidia-cudnn-cu13, index: pypi, version: "9.27.0.42"}
         exclusive_group: CUDAExecutionProvider
+        component: gpu-jpeg-cu13
         requires: {vendor: nvidia, cc_min: "7.5", driver_branch_min: 580}
         ort: {verified_by_us: ["1.30.0"]}
         licences:
@@ -227,6 +229,25 @@ eps:
         status: test
   qnn: {kind: reserved, reason: "QNN is deferred"}
   vitisai: {kind: reserved, reason: "Vitis AI is deferred"}
+
+# A component is a set of wheels that packs share, in its own store folder `<id>/<version>/`. An install
+# of a pack also installs its `component`. A missing component never blocks the EP (ADR-88ZB).
+# `gpu-jpeg-cu13` is the GPU JPEG decoder: nvImageCodec with nvJPEG, and the CUDA runtime for the
+# wait on the decode stream. On Windows, no EP pack loads a `cudart` library of its own. On Linux,
+# `cuda-cu13` preloads the same `nvidia-cuda-runtime` 13.4.92, and `trt-rtx-cu13` the `libcudart` of its wheel.
+components:
+  - id: gpu-jpeg-cu13
+    package: nvidia-nvimgcodec-cu13
+    version: "0.10.0.9"
+    index: pypi
+    library: {win_amd64: nvimgcodec_0.dll, manylinux_x86_64: libnvimgcodec.so.0}
+    dependency_wheels:
+      - {package: nvidia-nvjpeg, index: pypi, version: "13.3.2.43"}
+      - {package: nvidia-cuda-runtime, index: pypi, version: "13.4.92"}
+    licences:
+      - {name: NVIDIA nvImageCodec, url: "https://pypi.org/project/nvidia-nvimgcodec-cu13/"}
+      - {name: NVIDIA nvJPEG, url: "https://pypi.org/project/nvidia-nvjpeg/"}
+      - {name: NVIDIA CUDA Runtime, url: "https://pypi.org/project/nvidia-cuda-runtime/"}
 
 # The EP keys that a setting of an older release can hold, each with its successors in order.
 # Only `suggest_execution_provider()` reads this table (ADR-4CB1). A request for one of these keys

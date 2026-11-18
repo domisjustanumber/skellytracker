@@ -78,13 +78,19 @@ def _pack_status(catalog, key: str, host) -> PackStatus | None:
         floors = [catalog.floors_reason(pack, g) for g in host.gpus]
         code, reason = min(floors, key=lambda floor: floor[0] == "no-device")
     usable = state in USABLE_STATES
+    component = catalog.component(key)
+    component_lock = {} if component is None else catalog.pack_lock(component["id"]) or {}
+    decoder = store.component_state(catalog, key)  # it never blocks the EP (ADR-88ZB)
+    component_download = 0 if decoder == "installed" else component_lock.get("download_bytes", 0)
     return PackStatus(
         key, row["display_name"], state, SOURCES[pack["index"]], pack.get("status", "ready"), code, reason,
-        lock["download_bytes"], lock["unpacked_bytes"], pack["id"], pack["version"], pack["exclusive_group"],
-        tuple((licence["name"], licence["url"]) for licence in pack.get("licences", ())),
+        lock["download_bytes"] + component_download, lock["unpacked_bytes"] + component_lock.get("unpacked_bytes", 0),
+        pack["id"], pack["version"], pack["exclusive_group"],
+        tuple((licence["name"], licence["url"]) for licence in [*pack.get("licences", ()), *(component or {}).get("licences", ())]),
         usable=usable, install_hint=install_hint(key) if state in REPAIRABLE_STATES else None, uses_gpu=row["gpu"],
         description=row["description"], devices=run_devices(key) if usable else (),  # `run_devices` reads only the cached host probe
-        certified=None if gpu is None else evidence.certified(key, gpu, host.os_name))
+        certified=None if gpu is None else evidence.certified(key, gpu, host.os_name), jpeg_decoder=decoder,
+        jpeg_decoder_hint=install_hint(key) if decoder in ("missing", "other_version") and state != "unsupported" else None)
 
 
 def status() -> EpStatus:

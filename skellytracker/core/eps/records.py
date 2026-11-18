@@ -14,6 +14,7 @@ Options = tuple[tuple[str, str], ...]
 PackState = Literal["builtin", "ready", "installed_unverified", "untested-ort", "not_ready", "stale", "not_installed", "unsupported",
                     "field_test"]  # `field_test`: a `field-test` EP with no opt-in in the EP store (ADR-Z5X7)
 USABLE_STATES = ("builtin", "ready", "installed_unverified", "untested-ort")
+ComponentState = Literal["installed", "missing", "other_version"]  # no state blocks the EP (ADR-88ZB)
 
 
 @dataclass(frozen=True)
@@ -128,12 +129,17 @@ class InstallProgress:
 
 @dataclass(frozen=True)
 class InstallResult:
-    """The result of `install()`. `failed` holds `(key, error_code, message)`."""
+    """The result of `install()`. `failed` holds `(key, error_code, message)`.
+
+    `warnings` holds the failures of components in the same form. A component failure does not fail
+    the install: the EP stays usable, and `PackStatus.jpeg_decoder` shows the missing component.
+    """
 
     ok: tuple[str, ...] = ()
     failed: tuple[tuple[str, str, str], ...] = ()
     cancelled: tuple[str, ...] = ()
     needs_worker_restart: bool = False
+    warnings: tuple[tuple[str, str, str], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -259,6 +265,15 @@ class PackStatus:
       It is None for a built-in EP and when no GPU of this host can use the EP.
     - `source`: where the EP comes from: the index of the pack (`pypi`, `azure` or `amd`),
       `windows-ml` for an EP of the Windows ML catalog, or `builtin` (ADR-XSE7).
+    - `jpeg_decoder`: the state of the GPU JPEG decoder of the pack: `installed`, `missing` or
+      `other_version` (from an older catalog). It is None for an EP with no GPU JPEG decoder. A
+      decoder that is not installed does not block the EP: a run decodes on the CPU.
+    - `jpeg_decoder_hint`: the text with the command that installs the decoder. It is None when
+      `jpeg_decoder` is `installed` or None.
+    - `download_bytes`: the download of the pack, plus the download of its component when the
+      component is not installed. `disk_bytes`: the unpacked size of the pack and its component.
+      `licences`: the licences of the pack and its component. Each EP that names a component
+      counts it in its own row, so a sum over the EPs counts a shared component one time for each EP.
     """
 
     key: str
@@ -280,6 +295,8 @@ class PackStatus:
     description: str = ""
     devices: tuple[RunDevice, ...] = ()
     certified: bool | None = None
+    jpeg_decoder: ComponentState | None = None
+    jpeg_decoder_hint: str | None = None
 
 
 @dataclass(frozen=True)
