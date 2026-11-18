@@ -12,7 +12,28 @@ repository state is in the root [open-work.md](../../../decisions/open-work.md).
   - The evidence commits of the GPU preprocess path have no permalink, because the branch is not
     pushed. They are secondary sources until then.
   - No session opened the ONNX and OpenCV permalinks of part 1 of the record.
-  - `nearest` with `fit` is exact only at the 1/2 and 1/3 scales of the sample.
+  - A `float32` resize or warp on the GPU needs a sampler that keeps its position accuracy on a
+    large frame. Until then, the package graph refuses `compute_dtype: float32` with `linear` or
+    `cubic`. The table gives the max difference against the CPU path (0-255 scale, limit 0.05):
+
+    | Method, interpolation | 1280x720 | 1920x1080 | 3840x2160 |
+    |---|---|---|---|
+    | `fit`, `linear` | 0.040 | 0.063 | 0.132 |
+    | `fit`, `cubic` | 0.052 | 0.077 | 0.200 |
+    | `affine_crop`, `linear` | not measured | 0.041 | 0.134 |
+    | `affine_crop`, `cubic` | not measured | 0.049 | 0.153 |
+    | `letterbox`, `linear` | not measured | 0.021 | 0.056 |
+    | `letterbox`, `cubic` | not measured | 0.025 | 0.045 |
+    | `stretch`, `linear` | not measured | 0.021 | 0.047 |
+    | `stretch`, `cubic` | not measured | 0.027 | 0.053 |
+
+    The target is 416x416 for `fit`, `letterbox` and `stretch`, and 256x192 for `affine_crop` (three
+    ROIs, one of them turned). The frames are noise images. The runs used the CPU EP, onnxruntime
+    1.31.1 and OpenCV 5.0.0. Nobody measured the GPU EPs at these sizes. For `GridSample`, the
+    cause is the float32 normalized coordinates: a grid computed in float64 and cast once to
+    float32 still gave 0.072 (`linear`) and 0.106 (`cubic`) for `fit` at 3840x2160. OpenCV itself
+    differs from an exact float64 `linear` warp by 0.022 at 1920x1080. The cause for `Resize` is
+    not established. (`test_preprocess_graph.py` and scripts outside the repository)
   - The `trt-rtx` pack is outside the ONNX Runtime range that NVIDIA tested.
   - One run of the race script hung at the process exit after it printed all results. One rerun
     did not hang.

@@ -1442,13 +1442,14 @@ This stage implements the node types of the pipeline spec. Use the skill
   `core/detectors/processing/pre/` builds the resize step and the normalization as ONNX nodes for
   one sidecar, one size and one precision, from `gpu_preprocess_graphs.py`. `preprocess_image`
   stays the CPU reference path. The package uses the graph on `cuda` and `trt-rtx` only where it
-  meets the resize limit of `pre.resize.interpolation`. `interpolation: area`, and `nearest` with
-  `affine_crop`, run on the CPU reference path with one warning when the session opens. A check
+  meets the resize limit of `pre.resize.interpolation`. `interpolation: area`, `nearest` with
+  `affine_crop`, and `compute_dtype: float32` with `linear` or `cubic`, run on the CPU reference
+  path with one warning when the session opens. A check
   `within_resize_limit` in `pre/resize_interpolation.py` implements `resize_difference` of the
   reference module, and the 13 `check_resize` cases run through it. A test without a GPU compares
   the graph on the CPU EP with `resize_image` within the limit. A test with the marker `gpu` does
-  the same on each installed NVIDIA EP pack. A test checks each warning. Measure `nearest` with
-  `fit` at scales other than 1/2 and 1/3 before the package uses the graph for it.
+  the same on each installed NVIDIA EP pack. A test checks each warning. `nearest` with `fit`
+  uses index tables from `cv2.warpAffine`, and it gave a difference of 0 at each measured scale.
 - The JPEG frame input
   ([JPEG frames](pipeline/running.md#implementer-guidance);
   [ADR-P245](pipeline/decisions/entries/P245-jpeg-frame-input.md)). The steps, in this order:
