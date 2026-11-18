@@ -8,9 +8,9 @@ The host constants are _INTERPOLATION and COMPUTE_DTYPES of the same file.
 Source commit of resize_limit, resize_difference and check_resize (proposal
 resize-pixel-tolerance, heading "Resize limit"): none (no host code).
 Imported section modules: none. Fixtures: none.
-Vector results: the vector file has 2 cases. Both are validator cases (function: none).
-make_vectors.py fill kept both expect values. run gives the same failed list for both cases.
-The file has no numeric case.
+Vector results: the landed vector file has 4 validator cases (function: none). The proposal
+resize-pixel-tolerance adds 13 cases of check_resize, so the file then has 17 cases.
+make_vectors.py fill wrote the expect values of the 13 new cases with this file.
 Parity: yolox-person: unchanged. Its parity check ran with this module in place of the host code
 (OpenMMLab-Exporter ADR-3NNK (decisions/scripts/yolox_person_reference_swap.py at 53a48480d0b715f9b726963bce002ddb503b050b)). That run used this file before this note changed (SHA-256 5c3efe96de6aeaf1494a34f3780cb8f7cd924d0d899ca851080ba54c1fa70dc4). rtmw-wholebody133: to run. Its intake has blocking rows, so it has no parity run of the model.
 
@@ -141,7 +141,10 @@ def resize_difference(reference: Any, result: Any, resize: Mapping[str, Any]) ->
 
     Section pre.resize.interpolation, heading "Resize limit" (proposal resize-pixel-tolerance).
     ``reference`` is the output of the OpenCV call of the method, in the compute dtype.
-    ``result`` is the result of the host for the same host frame and the same geometry.
+    ``result`` is the result of the host for the same host frame and the same geometry. The
+    whole result counts, also the pad and the border. The check converts both results to
+    float64. Then it compares the absolute difference of each value with the limit, so a
+    float32 result is measured on its float64 value (float32(0.05) against 0 is over 0.05).
     ``max_difference`` is the largest absolute difference of one value. ``within_limit`` is
     True when the result has the shape of the reference result and each value is in the limit:
     with ``uint8``, each value is an integer from 0 to 255 and differs by at most 1; with
