@@ -30,7 +30,8 @@ uv add "skellytracker[mediapipe,onnx]"
 
 The ONNX trackers run on the CPU. On macOS, they can also run on CoreML. A plain install gives the
 CPU core of ONNX Runtime. A GPU EP for an NVIDIA GPU is a plugin EP pack:
-`skellytracker-eps install` puts it in the EP store of the user. The
+`skellytracker-eps install` puts it in the EP store of the user. On Windows, the DirectML EP is a
+part of ONNX Runtime. It is in a field test and needs an opt-in. The
 [GPU setup guide](GPU_SETUP_GUIDE.md) gives the procedure.
 
 ## Quick start

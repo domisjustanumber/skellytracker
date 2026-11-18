@@ -160,3 +160,9 @@ def test_the_forced_full_hash_reads_each_file_again(
 def test_the_default_cache_file_is_in_the_user_cache_folder() -> None:
     path = artifacts.default_hash_cache_path()
     assert path.name == "hash-cache.json" and "skellytracker" in path.parts
+
+
+def test_the_cache_variable_moves_the_hash_cache_and_the_download_root(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv(artifacts.CACHE_VARIABLE, str(tmp_path))
+    assert artifacts.default_hash_cache_path() == tmp_path / "hash-cache.json"
+    assert artifacts.download_root() == tmp_path / "models"

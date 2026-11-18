@@ -53,6 +53,8 @@ def test_compare_results_applies_the_pixel_rule():
     assert same["ok"] and same["box_iou_min"] == 1.0 and same["keypoint_px_max"] == 0.0 and same["points_compared"] == 2
     moved = certification.compare_results(result(), result(shift=3.0), THRESHOLDS)
     assert not moved["ok"] and moved["reason_code"] == "keypoints-differ" and moved["keypoint_px_max"] == 3.0
+    assert moved["keypoint_box_fraction_median"] == pytest.approx(1.5 / np.hypot(100, 200))  # one point moved, one did not
+    assert moved["keypoint_box_fraction_p99"] == pytest.approx(0.99 * 3.0 / np.hypot(100, 200))
     assert certification.compare_results(result(), result(people=0), THRESHOLDS)["reason_code"] == "people-differ"
     assert certification.compare_results(result(people=0), result(people=0), THRESHOLDS)["reason_code"] == "no-person-on-cpu"
     other = result()
@@ -64,7 +66,7 @@ def test_an_uncertified_usable_ep_has_an_offer_until_evidence_or_an_answer(rtx_h
     status = eps.status()
     (offer,) = status.certify_offers
     assert (offer.ep_key, offer.device_key, offer.prompt, offer.seconds) == ("trt-rtx", "gpu:10de:2484:0", True, 60)
-    assert {row.key: row.certified for row in status.eps} == {"trt-rtx": False, "cuda": False, "cpu": None}
+    assert {row.key: row.certified for row in status.eps} == {"trt-rtx": False, "cuda": False, "directml": None, "cpu": None}
     eps.dismiss_certification("trt-rtx")
     assert [o.prompt for o in eps.status().certify_offers] == [False]
     row = {"ep": "trt-rtx", "os": "Windows", "gpu": "10de:2484", "set": "s", "source": "maintainer", "result": "pass"}
@@ -214,10 +216,14 @@ def test_wide_run_with_fakes(rtx_host, monkeypatch, tmp_path):
     steps = []
     found = certification._wide_run("trt-rtx", settings, steps.append)
     assert found["ok"] and found["ran"] and steps == ["download", "cpu", "ep"] and found["warnings"] == []
-    assert found["models"] == [{"key": "rtmw", "version": "1", "size": "m", "precision": "fp16", "execution_provider": "trt-rtx"}]
+    assert found["models"] == [{"key": "rtmw", "version": "1", "size": "m", "precision": "fp16", "execution_provider": "trt-rtx", "device": None}]
     codes.append(certification.PARTIAL_PLACEMENT)
     found = certification._wide_run("trt-rtx", settings, steps.append)
     assert not found["ok"] and found["reason_code"] == "partial-placement" and found["warnings"] == ["ep_partial_placement"]
+    devices = []  # the device key goes to the EP run only, not to the CPU EP run (ADR-Z5X7)
+    monkeypatch.setattr(pipelines, "start_pipeline",
+                        lambda config, execution_provider, device=None, **k: devices.append(device) or FakeRun(execution_provider, []))
+    assert certification._wide_run("directml", settings, steps.append, "gpu:8086:a780:0")["ok"] and devices == [None, "gpu:8086:a780:0"]
     monkeypatch.setattr(pipelines, "get_pipeline", lambda key: types.SimpleNamespace(available=False))
     assert certification._wide_run("trt-rtx", settings, steps.append) == {"ran": False, "reason_code": "models-missing"}
 
@@ -255,7 +261,7 @@ def test_ask_needs_a_terminal_on_stdin_and_on_stdout(rtx_host, monkeypatch, tmp_
 
 def test_a_failed_certification_prompt_keeps_the_install_exit_code(rtx_host, monkeypatch, capsys):
     plan = InstallPlan(packs=(PlannedPack("trt-rtx", "p", "1", (), 1, 1),), download_bytes=1, disk_bytes=1)
-    monkeypatch.setattr(installer, "plan_install", lambda selection: plan)
+    monkeypatch.setattr(installer, "plan_install", lambda selection, **kwargs: plan)
     monkeypatch.setattr(installer, "install", lambda plan, **kwargs: InstallResult(ok=("trt-rtx",)))
     monkeypatch.setattr(cli, "ask", lambda question: "y")
     for error in (KeyboardInterrupt(), RuntimeError("the folder secretdir")):

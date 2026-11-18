@@ -15,9 +15,33 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
 ## Repository state
 
 - **Linux gate of ONNX Runtime 1.30.0.** [ADR-N6E8](entries/N6E8-onnxruntime-1-30-on-each-os.md) item 9: run
-  `decisions/scripts/n6e8_ort_1_30/linux_ep_gate.sh` on bare-metal Ubuntu 24.04 with an NVIDIA driver of
-  590.48.01 or later. The change of its items 2 and 3 lands only after this run passes. Then write the
-  result in the Evidence section of the entry.
+  the certify suite `tools/certify_platform.py` on bare-metal Ubuntu 24.04 with an NVIDIA driver of
+  590.48.01 or later. It replaces `decisions/scripts/n6e8_ort_1_30/linux_ep_gate.sh`
+  ([ADR-Y14H](entries/Y14H-certify-suite.md) item 16). The change of the items 2 and 3 of N6E8 lands
+  only after this run passes. Then write the result in the Evidence section of N6E8.
+- **Certify suite.** [ADR-Y14H](entries/Y14H-certify-suite.md): the frame and sections 1 to 4 are
+  built. Sections 3 and 4 are in `tools/certify_eps.py`. These items stay open:
+  - Sections 5 to 7. Each is a placeholder with `not-run` and `not-built` in `SECTIONS` of
+    `tools/certify_platform.py`.
+  - Sections 3 and 4 ran on one Windows host with an NVIDIA GPU and an Intel iGPU only. No run on
+    Linux, on macOS (`coreml`), on a host with an AMD GPU or on a laptop with two GPUs.
+  - The AMD EPs (item 11): the Windows AMD EP package and its removal, the MIGraphX builds for ROCm
+    10.0, 10.1 and 10.2, and the second environment on ONNX Runtime 1.29. Until then, section 3
+    records the check `amd-eps` as `not-run` with `not-built`. The field-test state and DirectML are
+    built ([ADR-Z5X7](entries/Z5X7-field-test-state-and-directml.md)). DirectML has no result on an
+    AMD GPU yet. A reviewed passing report on Windows moves it to `ready`, and changes the note of
+    the hardware class `amd-windows`.
+  - Section 4 does not measure the VRAM of an integrated GPU: the PDH counter of `LiveSampler` reads
+    dedicated memory only.
+  - The public Hugging Face model repository of the freemocap organisation (not created yet), and
+    the model list `models` (path, URL, sha256, bytes) in the `certification` block of
+    `ep_catalog.yaml` (item 12). Section 4 reads the list, and is `not-run` with `models-missing`
+    when a model file is absent.
+  - A leak that the suite cannot stop: the cache of `uv`. It belongs to the tool of the volunteer.
+  - The instructions page `CERTIFY.md`, the issue template and the contact email (item 14).
+  - The entry points that the JPEG branch owes for sections 5 and 7, and that skellycam owes for
+    section 6: a pinned public commit and its runner (item 10).
+  - The name pattern of a certification tag. Section 1 now accepts each tag at HEAD.
 - **EP certification.** Five items of [ADR-MF2R](entries/MF2R-ep-store-install-and-certification.md)
   stay open:
   - Check the `thresholds` of the `certification` block of `ep_catalog.yaml` on more hosts and images.
@@ -26,9 +50,11 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
     Linux. Until then, `tools/onnx_stack.py check` fails for each NVIDIA pack (item 18).
   - Later stage: send a report. The user decided a relay that opens an issue in a public intake
     repository of the freemocap organisation, with no login. Until then, nothing leaves the host.
-  - Later stage: a `field-test` catalog state for an EP with no evidence, for example MIGraphX.
-    Before such an EP is offered, move the wider run to a child process: an EP that ends the
-    process writes no report (`_wide_run` in `core/eps/certification.py`).
+  - Before a field-test EP ([ADR-Z5X7](entries/Z5X7-field-test-state-and-directml.md)) moves to
+    `ready`, move the wider run of `certify()` to a child process: an EP that ends the process
+    writes no report (`_wide_run` in `core/eps/certification.py`).
+- **Field-test opt-in.** [ADR-Z5X7](entries/Z5X7-field-test-state-and-directml.md): there is no
+  command that removes an opt-in. A user deletes `field-test.json` of the EP store.
   - freemocap work: the dialog of the prompt (item 14) and of the download prompt (item 9).
 - **Dependency pins for the exporters.** [ADR-N6E8](entries/N6E8-onnxruntime-1-30-on-each-os.md)
   decides exact pins, ONNX Runtime 1.30.0 as a base dependency with GPU EPs as CUDA 13 plugin packs,

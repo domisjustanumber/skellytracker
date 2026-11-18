@@ -15,7 +15,7 @@ import pytest
 from skellytracker.core.eps import _download, installer, store
 from skellytracker.core.eps import catalog as catalog_module
 from skellytracker.core.eps.records import InstallPlan
-from skellytracker.core.errors import EpRequestError
+from skellytracker.core.errors import EpRequestError, EpUnavailableError
 from skellytracker.tests.hw_fakes import gpu, host
 
 DATA = bytes(range(256)) * 2000  # 512 000 bytes
@@ -77,6 +77,13 @@ def ep_store(tmp_path, monkeypatch):
     monkeypatch.setenv(store.STORE_VARIABLE, str(tmp_path / "eps"))
     monkeypatch.setattr(catalog_module, "platform_tag", lambda: "win_amd64")
     return tmp_path / "eps"
+
+
+def test_the_store_and_the_cache_follow_their_variables(ep_store, tmp_path, monkeypatch):
+    monkeypatch.delenv(store.CACHE_VARIABLE, raising=False)
+    assert store.store_root() == ep_store and store.cache_root().name == "ep-cache" and tmp_path not in store.cache_root().parents
+    monkeypatch.setenv(store.CACHE_VARIABLE, str(tmp_path / "cache"))
+    assert store.cache_root() == tmp_path / "cache"
 
 
 def fetch(server, part, **kwargs):
@@ -275,9 +282,21 @@ def test_plan_selections(fake_pack, monkeypatch):
     monkeypatch.setattr(installer, "probe_host", lambda: host(gpu(cc="7.5")))
     assert [pack.ep_key for pack in installer.plan_install("all-compatible").packs] == ["cuda"]
     assert "cannot run on this host" in installer.plan_install(["trt-rtx"]).warnings[0]
-    for key in ("openvino", "directml", "tensorrt"):
+    for key in ("openvino", "migraphx", "tensorrt"):
         with pytest.raises(EpRequestError):
             installer.plan_install([key])
+
+
+def test_a_field_test_ep_needs_the_opt_in_for_a_plan(ep_store):
+    """ADR-Z5X7: `directml` (built-in) is refused with no opt-in and never in `all-compatible`; `--field-test` plans it."""
+    with pytest.raises(EpUnavailableError, match="field test") as caught:
+        installer.plan_install(["directml"])
+    assert caught.value.hint == "Run `skellytracker-eps install directml --field-test`."
+    assert "directml" not in [pack.ep_key for pack in installer.plan_install("all-compatible").packs]
+    plan = installer.plan_install(["directml"], field_test=True)
+    assert plan.packs == () and "needs no pack" in plan.warnings[0] and not (ep_store / "field-test.json").exists()
+    store.opt_in_field_test("directml")
+    assert installer.plan_install(["directml"]).packs == () and set(store.field_test_opt_ins()) == {"directml"}
 
 
 def test_download_writes_the_wheels_and_a_manifest(fake_pack, server, tmp_path, monkeypatch):

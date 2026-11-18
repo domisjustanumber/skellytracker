@@ -26,12 +26,13 @@ def check_start(execution_provider: str, ep_options: Mapping[str, str] | None = 
     It raises `EpRequestError` for a reserved or unknown key and for a refused option, and
     `EpUnavailableError` with the install command for an EP that is not ready or a `device` that the
     EP cannot use. It returns the GPUs of the run: `run_devices(execution_provider, device)`.
-    A pack with no trial session yet, or with an ONNX Runtime that is not tested, is ready.
+    A pack with no trial session yet, or with an ONNX Runtime that is not tested, is ready. A
+    `field-test` EP with no opt-in raises `EpUnavailableError` with the opt-in command (ADR-Z5X7).
     """
     catalog = load_catalog()
     catalog.check_options(execution_provider, ep_options)
     devices = run_devices(execution_provider, device)
-    if catalog.pack(execution_provider) is None:
+    if catalog.device_row(execution_provider) is None:
         state, _, reason = store.pack_state(catalog, execution_provider)
         if state not in USABLE_STATES:
             raise EpUnavailableError(f"The EP '{execution_provider}' is not available: {reason}.")
@@ -56,7 +57,12 @@ def _pack_status(catalog, key: str, host) -> PackStatus | None:
     if pack is None:
         if "platforms" in row and tag not in row["platforms"]:
             return None  # for example `coreml` off macOS
-        return PackStatus(key, row["display_name"], "builtin", usable=True, uses_gpu=row["gpu"], description=row["description"])
+        device_key, gpu = next(iter(ep_gpus(catalog, key, host)), (None, None))  # only `directml` has GPUs here
+        state, code, reason = store.pack_state(catalog, key, gpu, device_key, host.os_build)
+        usable = state in USABLE_STATES
+        return PackStatus(key, row["display_name"], state, catalog_status=row.get("status", "ready"), reason_code=code,
+                          reason=reason, usable=usable, uses_gpu=row["gpu"], description=row["description"],
+                          devices=run_devices(key) if usable else ())
     lock = catalog.pack_lock(pack["id"])
     if lock is None:
         return None  # a platform with no pack, for example macOS
@@ -78,7 +84,7 @@ def _pack_status(catalog, key: str, host) -> PackStatus | None:
 def status() -> EpStatus:
     """The state of each EP key of this platform, the recommendations and the store. It loads no library.
 
-    `eps` of the result is in the order of the EP catalog: `trt-rtx`, `cuda`, `coreml`, `cpu`
+    `eps` of the result is in the order of the EP catalog: `trt-rtx`, `cuda`, `coreml`, `directml`, `cpu`
     (`EpStatus`). An application shows the EPs from this result and holds no EP fact of its own.
     """
     catalog, host = load_catalog(), probe_host()

@@ -11,7 +11,8 @@ from typing import Literal
 from skellytracker.core.system.records import HostInfo
 
 Options = tuple[tuple[str, str], ...]
-PackState = Literal["builtin", "ready", "installed_unverified", "untested-ort", "not_ready", "stale", "not_installed", "unsupported"]
+PackState = Literal["builtin", "ready", "installed_unverified", "untested-ort", "not_ready", "stale", "not_installed", "unsupported",
+                    "field_test"]  # `field_test`: a `field-test` EP with no opt-in in the EP store (ADR-Z5X7)
 USABLE_STATES = ("builtin", "ready", "installed_unverified", "untested-ort")
 
 
@@ -242,7 +243,10 @@ class PackStatus:
     - `uses_gpu`: true when the EP runs a model on a GPU.
     - `description`: one sentence for a user: what the EP runs on and what it needs.
     - `devices`: the GPUs of this host that the EP can use, in the order of `run_devices(key)`: the
-      most VRAM first. It is empty for a built-in EP and for an EP that is not usable.
+      most VRAM first. It is empty for a built-in EP that runs on no GPU and for an EP that is not usable.
+    - `catalog_status`: `ready`, or `field-test` for an EP in a field test (ADR-Z5X7). With no opt-in
+      in the EP store, the `state` of a `field-test` EP is `field_test`, and `install_hint` is None:
+      an application can show the EP as "available for a field test", but it never offers it.
     - `certified`: true when the project has a reviewed pass of the EP on this GPU model on this OS.
       It is None for a built-in EP and when no GPU of this host can use the EP.
     """
@@ -273,7 +277,7 @@ class EpStatus:
     """The result of `status()`. It needs no `onnxruntime` import and no network.
 
     `eps` has one row for each EP key of this platform, in the order of the EP catalog: `trt-rtx`,
-    `cuda`, `coreml`, `cpu`. This order is a contract. It is the order of preference: each hardware
+    `cuda`, `coreml`, `directml`, `cpu`. This order is a contract. It is the order of preference: each hardware
     class of the catalog lists its candidates in this order. It is not the recommendation:
     `performance.chosen` and `accuracy.chosen` give the recommended EP of this host.
     """

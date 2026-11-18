@@ -36,9 +36,9 @@ def run(job: dict) -> dict:
             ep_name = registration.ensure_registered(key).ep_name
         else:
             ep_name = registration.register_pack(key, pack).ep_name
-            if gpu is not None and registration.ort_device(ep_name, gpu, int(device_key.rsplit(":", 1)[1])) is None:
-                result["reason"] = f"the EP {ep_name} registers, but it lists no device for the GPU {device_key}"
-                return result
+        if gpu is not None and registration.ort_device(ep_name, gpu, int(device_key.rsplit(":", 1)[1])) is None:
+            result["reason"] = f"the EP {ep_name} registers, but it lists no device for the GPU {device_key}"
+            return result
         result["ok"] = True
         if job["level"] == "L2":
             return result

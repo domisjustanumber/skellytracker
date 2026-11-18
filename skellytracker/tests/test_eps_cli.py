@@ -85,9 +85,11 @@ def test_the_legacy_keys_do_not_change_a_request(rtx_host):
     hw_fakes.fake_pack("cuda")
     assert eps.suggest_execution_provider("cuda") == "trt-rtx"
     assert [device.device_key for device in eps.check_start("cuda")] == ["gpu:10de:2484:0"]  # a request for `cuda` runs on `cuda`
-    for key in ("trt", "directml"):
-        with pytest.raises(EpRequestError, match="reserved"):
-            eps.check_start(key)
+    with pytest.raises(EpRequestError, match="reserved"):
+        eps.check_start("trt")
+    with pytest.raises(EpUnavailableError, match="field test") as raised:  # no silent fallback to an other EP (ADR-Z5X7)
+        eps.check_start("directml")
+    assert raised.value.hint == "Run `skellytracker-eps install directml --field-test`."
 
 
 def test_status_json(rtx_host, capsys):
@@ -96,11 +98,13 @@ def test_status_json(rtx_host, capsys):
     data = json.loads(capsys.readouterr().out)
     assert data["schema"] == "skellytracker.eps.status/1" and set(data) == {"schema", "core", "host", "recommended", "eps", "warnings", "certify_offers"}
     assert data["core"]["ort_version"] == installer.installed_ort()[1] and data["core"]["core_matches_pin"] is True
-    assert [row["key"] for row in data["eps"]] == ["trt-rtx", "cuda", "cpu"]
-    assert [(row["state"], row["reason_code"]) for row in data["eps"]] == [("not_installed", None), ("installed_unverified", None), ("builtin", None)]
+    assert [row["key"] for row in data["eps"]] == ["trt-rtx", "cuda", "directml", "cpu"]
+    assert [(row["state"], row["reason_code"]) for row in data["eps"]] == [
+        ("not_installed", None), ("installed_unverified", None), ("field_test", "field-test"), ("builtin", None)]
     assert [(row["usable"], row["install_hint"], row["uses_gpu"]) for row in data["eps"]] == [
-        (False, "Run `skellytracker-eps install trt-rtx`.", True), (True, None, True), (True, None, False)]
-    assert [[device["device_key"] for device in row["devices"]] for row in data["eps"]] == [[], ["gpu:10de:2484:0"], []]
+        (False, "Run `skellytracker-eps install trt-rtx`.", True), (True, None, True), (False, None, True), (True, None, False)]
+    assert [row["catalog_status"] for row in data["eps"]] == ["ready", "ready", "field-test", "ready"]
+    assert [[device["device_key"] for device in row["devices"]] for row in data["eps"]] == [[], ["gpu:10de:2484:0"], [], []]
     assert data["eps"][1]["devices"][0] == {"device_key": "gpu:10de:2484:0", "gpu_key": "0000:01:00.0", "name": "NVIDIA GeForce RTX 3070",
                                             "pci_bus_id": "0000:01:00.0", "vram_total_bytes": 8 * GIB}
     assert all(row["description"].startswith("Runs on ") and len(row["description"]) <= 120 for row in data["eps"])
@@ -115,8 +119,8 @@ def test_status_json(rtx_host, capsys):
 
 def test_the_order_of_status_eps_is_the_catalog_order_and_each_hardware_class_keeps_it(rtx_host, monkeypatch):
     catalog = catalog_module.load_catalog()
-    assert catalog.keys() == ("trt-rtx", "cuda", "coreml", "cpu")
-    assert [row.key for row in eps.status().eps] == ["trt-rtx", "cuda", "cpu"]  # this platform has no `coreml`
+    assert catalog.keys() == ("trt-rtx", "cuda", "coreml", "directml", "cpu")
+    assert [row.key for row in eps.status().eps] == ["trt-rtx", "cuda", "directml", "cpu"]  # this platform has no `coreml`
     for row in catalog.data["hardware_classes"]:
         assert row["candidates"] == sorted(row["candidates"], key=catalog.keys().index), row["id"]
     large = gpu(vram=24 * GIB, bus="0000:02:00.0", device_id=0x2684, name="RTX 4090")
@@ -148,10 +152,11 @@ def test_status_ini_is_utf16_with_a_bom(rtx_host, tmp_path):
     raw = out.read_bytes()
     assert raw[:2] == b"\xff\xfe"
     lines = raw[2:].decode("utf-16-le").split("\r\n")
-    assert lines[0] == "[status]" and "schema=skellytracker.eps.status/1" in lines and "count=3" in lines
+    assert lines[0] == "[status]" and "schema=skellytracker.eps.status/1" in lines and "count=4" in lines
     assert "recommended=trt-rtx" in lines and "recommended_download_mb=106" in lines and "recommended_row=nvidia-cc80-r580" in lines
-    assert [line for line in lines if line.startswith("[ep.")] == ["[ep.0]", "[ep.1]", "[ep.2]"]
-    assert lines[lines.index("[ep.2]") + 1] == "key=cpu" and "builtin=1" in lines[lines.index("[ep.2]"):]
+    assert [line for line in lines if line.startswith("[ep.")] == ["[ep.0]", "[ep.1]", "[ep.2]", "[ep.3]"]
+    assert lines[lines.index("[ep.3]") + 1] == "key=cpu" and "builtin=1" in lines[lines.index("[ep.3]"):]
+    assert "state=field_test" in lines[lines.index("[ep.2]"):lines.index("[ep.3]")]
     assert all(len(line.partition("=")[2]) < 1024 for line in lines)
 
 
@@ -233,3 +238,17 @@ def test_gc_remove_and_the_console_script(rtx_host, ep_store, capsys):  # noqa: 
     assert cli.main(["remove", "--consumer", "environment"]) == 0 and not list((ep_store / "refs").glob("*.json"))
     scripts = importlib.metadata.entry_points(group="console_scripts")
     assert scripts["skellytracker-eps"].value == "skellytracker.core.eps.cli:main"
+
+
+def test_install_field_test_is_the_opt_in_of_directml(rtx_host, ep_store, capsys):  # noqa: F811
+    """ADR-Z5X7: `install directml` is refused (exit 3); `--field-test` records the opt-in; the option needs field-test keys."""
+    assert cli.main(["install", "directml", "--yes"]) == errors.EXIT_EP_UNAVAILABLE
+    assert "field test" in capsys.readouterr().err and not (ep_store / "field-test.json").exists()
+    assert cli.main(["install", "directml", "--field-test", "--dry-run"]) == 0 and not (ep_store / "field-test.json").exists()
+    for argv in (["install", "--field-test"], ["install", "cuda", "--field-test"], ["install", "cuda", "directml", "--field-test"]):
+        assert cli.main(argv) == errors.EXIT_USAGE
+    assert cli.main(["install", "directml", "--field-test"]) == 0 and "opted in" in capsys.readouterr().out
+    rows = {row.key: row for row in eps.status().eps}
+    assert (rows["directml"].state, rows["directml"].usable, rows["directml"].catalog_status) == ("builtin", True, "field-test")
+    assert [d.device_key for d in rows["directml"].devices] == ["gpu:10de:1b06:0", "gpu:10de:2484:0"]
+    assert eps.recommend("performance").chosen.ep_key != "directml"

@@ -82,6 +82,15 @@ class EpCatalog:
         packs = self.ep(key).get("packs")
         return packs[0] if packs else None
 
+    def ep_status(self, key: str) -> str:
+        """The catalog status of an EP key: `ready`, `test` or `field-test`, from its pack row or its built-in row."""
+        return (self.pack(key) or self.ep(key)).get("status", "ready")
+
+    def device_row(self, key: str) -> dict | None:
+        """The row with the GPU floors of an EP that runs on one GPU: the pack row, or a built-in row with `selects_gpu`."""
+        row = self.ep(key)
+        return self.pack(key) or (row if row.get("selects_gpu") else None)
+
     def pack_by_id(self, pack_id: str) -> tuple[str, dict] | None:
         """The EP key and the row of a pack id, also for a test pack."""
         for key, row in self.data["eps"].items():

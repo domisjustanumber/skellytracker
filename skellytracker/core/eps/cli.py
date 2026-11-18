@@ -3,7 +3,7 @@
     skellytracker-eps status [--json | --format ini] [--out FILE]
     skellytracker-eps recommend [--form performance|accuracy] [--json]
     skellytracker-eps install [KEY ...] [--cuda] [--trt-rtx] [--recommended | --all-compatible | --cpu-only]
-                              [--from-dir DIR] [--dry-run] [--yes] [--progress jsonl] [--cancel-file PATH]
+                              [--from-dir DIR] [--dry-run] [--yes] [--progress jsonl] [--cancel-file PATH] [--field-test]
     skellytracker-eps verify [KEY ... | --all] [--level L2|L3] [--force]
     skellytracker-eps certify KEY [--wide | --probe-only] [--out FILE] [--json]
     skellytracker-eps remove PACK_ID | --all | --consumer KIND
@@ -15,6 +15,10 @@
 `status` and `recommend` import no `onnxruntime` and use no network. `status --json` has the schema
 `skellytracker.eps.status/1`. `status --format ini` is UTF-16LE with a BOM, for an installer that has
 no JSON parser. No environment variable selects the EP or the device.
+
+`install KEY --field-test` is the opt-in to a field-test EP, for example `directml` on Windows. The
+EP store keeps the opt-in. Without it, a request for such an EP fails with the state `field_test`
+(exit 3), and no recommendation gives it (ADR-Z5X7).
 
 `certify` tests one EP on this host and writes a report file in the folder `reports` of the EP
 store. It sends nothing. It always runs the probe. `--wide` also runs the project models on a
@@ -171,7 +175,12 @@ def plan_text(plan: InstallPlan) -> str:
 def cmd_install(args) -> int:
     keys = [*args.keys, *(["cuda"] if args.cuda else []), *(["trt-rtx"] if args.trt_rtx else [])]
     selection = "cpu-only" if args.cpu_only else "recommended" if args.recommended else keys or "all-compatible"
-    plan = installer.plan_install(selection)
+    catalog = load_catalog()
+    field_keys = [key for key in keys if catalog.ep_status(key) == "field-test"]  # raises for a reserved or unknown key
+    if args.field_test and (not field_keys or field_keys != keys):
+        print("--field-test needs EP keys, and each key must be a field-test EP.", file=sys.stderr)
+        return errors.EXIT_USAGE
+    plan = installer.plan_install(selection, field_test=args.field_test)
     jsonl = args.progress == "jsonl"
     if jsonl and not (args.yes or args.dry_run):
         print("--progress jsonl needs --yes.", file=sys.stderr)
@@ -182,7 +191,13 @@ def cmd_install(args) -> int:
     if jsonl:
         print(json.dumps({"event": "plan", "keys": [p.ep_key for p in plan.packs], "download_bytes": plan.download_bytes,
                           "disk_bytes": plan.disk_bytes, "warnings": list(plan.warnings)}), flush=True)
-    if args.dry_run or not plan.packs:
+    if args.dry_run:
+        return errors.EXIT_OK
+    for key in field_keys if args.field_test else ():  # the opt-in of a built-in EP needs no download
+        if catalog.pack(key) is None:
+            store.opt_in_field_test(key)
+            print(f"{key}: opted in to the field test", file=text)
+    if not plan.packs:
         return errors.EXIT_OK
     if not args.yes:
         answer = ask(f"Download {megabytes(plan.download_bytes)} MB? [y/N] ")
@@ -191,6 +206,9 @@ def cmd_install(args) -> int:
             return errors.EXIT_USAGE
         if answer not in ("y", "yes"):
             return errors.EXIT_USAGE
+    for key in field_keys if args.field_test else ():  # the opt-in of a pack, after the confirmation of its download
+        if catalog.pack(key) is not None:
+            store.opt_in_field_test(key)
     cancel = threading.Event()
     done = threading.Event()
     if args.cancel_file:
@@ -393,6 +411,7 @@ def parser() -> argparse.ArgumentParser:
     install.add_argument("--yes", action="store_true")
     install.add_argument("--progress", choices=["jsonl"])
     install.add_argument("--cancel-file")
+    install.add_argument("--field-test", action="store_true", help="opt in to each named field-test EP key, for example directml")
     install.set_defaults(run=cmd_install)
     verify = commands.add_parser("verify", help="verify EPs in a child process")
     verify.add_argument("keys", nargs="*", metavar="KEY")

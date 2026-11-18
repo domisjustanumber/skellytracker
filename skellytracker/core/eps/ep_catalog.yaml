@@ -22,6 +22,9 @@ platforms: [win_amd64, manylinux_x86_64]
 # An option value is a list of the allowed strings, or `positive-int`.
 # Each other option name is refused, also `device_id`: the device comes from the device map.
 # `description` is one sentence for a user, at most 120 characters: what the EP runs on and what it needs.
+# `status` of a pack or of a built-in EP is `ready` (the default), `test` (a test pack) or `field-test`. A
+# `field-test` EP is usable only after an opt-in in the EP store, and `recommend()` never gives it (ADR-Z5X7).
+# A built-in EP with `selects_gpu: true` runs on one GPU: the session takes the ONNX Runtime device of that GPU.
 eps:
   trt-rtx:
     kind: plugin
@@ -95,6 +98,19 @@ eps:
     options:
       allowed: {MLComputeUnits: [ALL, CPUAndGPU, CPUAndNeuralEngine, CPUOnly]}
       defaults: {}
+  directml:
+    kind: builtin
+    gpu: true
+    selects_gpu: true
+    display_name: DirectML
+    description: "Runs on DirectX 12 GPUs on Windows, is a part of skellytracker and needs no download. It is in a field test."
+    ep_name: DmlExecutionProvider
+    platforms: [win_amd64]
+    precision_order: [fp16, fp32]
+    l3_atol: 1.5e-2
+    options: {allowed: {}, defaults: {}}
+    # The app offers DirectML for AMD GPUs only. A reviewed passing report of the certify suite moves it to `ready`.
+    status: field-test
   cpu:
     kind: builtin
     gpu: false
@@ -104,7 +120,6 @@ eps:
     precision_order: [fp32]
     options: {allowed: {}, defaults: {}}
   trt: {kind: reserved, reason: "classic TensorRT is a separate EP; it is not in v2"}
-  directml: {kind: reserved, reason: "DirectML is deferred"}
   openvino:
     kind: reserved
     reason: "OpenVINO is deferred: discrete Intel GPUs only"
@@ -126,7 +141,8 @@ eps:
 
 # The EP keys that a setting of an older release can hold, each with its successors in order.
 # Only `suggest_execution_provider()` reads this table (ADR-4CB1). A request for one of these keys
-# does not change: `cuda` runs on `cuda`, and `trt` and `directml` stay reserved.
+# does not change: `cuda` runs on `cuda`, `trt` stays reserved, and `directml` stays in its field test.
+# `directml` has no successor, so an older setting never gives a field-test EP.
 # A key with no successor has an empty list. Each successor is an EP key that is not reserved.
 # When classic TensorRT comes back under the key `trt`, the row of `trt` must leave this table.
 legacy_keys:
@@ -153,6 +169,9 @@ hardware_classes:
   - {id: nvidia-pre-turing, match: {vendor: nvidia},
      candidates: [cpu], offer: none-available, note: "Use the CPU EP. CUDA 13 has no kernels for this GPU.", ranking_evidence: single-ep}
   - {id: intel-gpu, match: {vendor: intel}, candidates: [cpu], ranking_evidence: single-ep}
+  # `recommend()` skips `directml` while it is a `field-test` EP.
+  - {id: amd-windows, match: {vendor: amd, os: Windows},
+     candidates: [directml, cpu], offer: none-available, note: "Use the CPU EP. This release has no tested GPU EP for AMD GPUs.", ranking_evidence: none}
   - {id: amd-deferred, match: {vendor: amd},
      candidates: [cpu], offer: none-available, note: "Use the CPU EP. This release has no GPU EP for AMD GPUs.", ranking_evidence: single-ep}
   - {id: apple-silicon, match: {host: true, os: Darwin, arch: arm64}, candidates: [coreml, cpu], ranking_evidence: none}

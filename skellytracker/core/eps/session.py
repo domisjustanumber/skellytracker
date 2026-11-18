@@ -66,8 +66,9 @@ def open_session(model, catalog: EpCatalog, key: str, options: Mapping[str, str]
                  strict: bool = False, cpu_threads: int | None = None):
     """Register the EP and create the session with no retry on the CPU. `strict` refuses each node on the CPU EP.
 
-    `cpu_threads` sets the intra-op threads of a session with no pack. With None, ONNX Runtime
-    uses its default. A session of a GPU pack uses one intra-op thread.
+    `cpu_threads` sets the intra-op threads of a session with no GPU. With None, ONNX Runtime
+    uses its default. A session on a GPU (a GPU pack or `directml`) uses one intra-op thread and
+    takes the ONNX Runtime device of the GPU `gpu`, never a `device_id` option.
     """
     import onnxruntime
 
@@ -81,7 +82,7 @@ def open_session(model, catalog: EpCatalog, key: str, options: Mapping[str, str]
         session_options.add_session_config_entry("session.disable_cpu_ep_fallback", "1")
     options = dict(options)
     providers, ep_device_id = None, None
-    if pack is None:
+    if gpu is None:
         providers = [(ep_name, options)]
         if cpu_threads is not None:
             session_options.intra_op_num_threads = cpu_threads
@@ -136,13 +137,15 @@ def build_session(model: str | os.PathLike | bytes, *, execution_provider: str, 
     `model` is the bytes or the path of an ONNX file. `execution_provider` is a concrete key of the
     EP catalog. `ep_options` maps option names to string values. `device_key` selects the GPU of a
     GPU EP. With no `device_key`, the session uses the GPU with the most VRAM that the EP can use;
-    on a tie, the GPU with the lowest PCI bus id.
+    on a tie, the GPU with the lowest PCI bus id. The session takes the ONNX Runtime EP device of
+    that GPU (the PCI ids, then the LUID on Windows), never the `device_id` option: for `directml`,
+    `device_id` is the DXGI adapter index, which can name an other GPU (ADR-Z5X7).
 
     `cpu_threads` is the intra-op thread count of a session on the built-in CPU EP `cpu`. With
     None, it is the default of `cpu_thread_count()`: half of the physical cores, at least 1. The
     inter-op thread count of that session is 1. `SessionReport.cpu_threads` gives the applied
-    count. A session of a GPU pack uses one intra-op thread and one inter-op thread, and ignores
-    `cpu_threads`. A session on an other built-in EP, for example `coreml`, ignores it and keeps
+    count. A session on a GPU (a GPU pack or `directml`) uses one intra-op thread and one inter-op
+    thread, and ignores `cpu_threads`. A session on an other built-in EP, for example `coreml`, ignores it and keeps
     the default of ONNX Runtime.
 
     It raises, before frame 0:
@@ -150,7 +153,8 @@ def build_session(model: str | os.PathLike | bytes, *, execution_provider: str, 
     - `EpRequestError` for a reserved or unknown key, for an option that the catalog does not
       list, also `device_id`, and for a `cpu_threads` that is not a positive integer, before a
       call of ONNX Runtime;
-    - `EpUnavailableError` when the pack is not installed, does not register or lists no device;
+    - `EpUnavailableError` when the pack is not installed, does not register or lists no device,
+      and for a `field-test` EP with no opt-in in the EP store;
     - `SessionCreationError` when the EP does not start, is not the first provider or has no node;
     - `VRAMExhaustionError` when the GPU memory is exhausted at the build or at the warm-up run.
 
@@ -165,9 +169,12 @@ def build_session(model: str | os.PathLike | bytes, *, execution_provider: str, 
     if pack is not None or row["ep_name"] != CPU_EP:
         threads = None  # only a session on the built-in CPU EP uses it
     gpu = None
-    if pack is None:
+    if catalog.device_row(key) is None:
         if device_key is not None:
             raise EpRequestError(f"The EP '{key}' takes no device key.")
+        state, _, reason = store.pack_state(catalog, key)
+        if state not in USABLE_STATES:  # for example a `field-test` EP with no opt-in (ADR-Z5X7)
+            raise EpUnavailableError(f"The EP '{key}' is not available: {reason}.", install_hint(key))
     else:  # only a GPU EP reads the host: an NVML call wakes the GPU of a hybrid laptop
         host = probe_host()
         usable = ep_gpus(catalog, key, host)
@@ -179,7 +186,7 @@ def build_session(model: str | os.PathLike | bytes, *, execution_provider: str, 
             reason = f"'{device_key}' is not a GPU that the EP can use on this host"
         if gpu is None or state not in USABLE_STATES:
             raise EpUnavailableError(f"The EP '{key}' is not available: {reason}.", install_hint(key))
-        if state != "ready":
+        if state not in ("ready", "builtin"):
             store.warn_once(f"{key}:{state}", f"The EP '{key}' is in the state {state}: {reason}.")
     precisions = () if model_ref is None else model_ref.precisions
     report = SessionReport(

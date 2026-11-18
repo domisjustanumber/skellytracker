@@ -26,7 +26,8 @@ reasons and the evidence of the items that stay.
      Windows ML catalog. On Linux the EP store loads `libcudart`, `libtensorrt_rtx` and
      `libtensorrt_onnxparser_rtx` of the wheel before the EP library. The driver floor is R580 on
      Windows and R590 on Linux.
-   - No pack holds NVRTC. Classic TensorRT, DirectML and MIGraphX are reserved keys.
+   - No pack holds NVRTC. Classic TensorRT and MIGraphX are reserved keys. `directml` is not a
+     pack: it is built in on Windows ([ADR-Z5X7](Z5X7-field-test-state-and-directml.md)).
 4. **Python.** One release: 3.13.18, in `requires-python`, `.python-version` and CI.
 5. **MediaPipe.** The `mediapipe` extra is `mediapipe==1.2.2`.
 6. **Intel Mac.** macOS on x86_64 is not supported. `required-environments` fails the lock when a

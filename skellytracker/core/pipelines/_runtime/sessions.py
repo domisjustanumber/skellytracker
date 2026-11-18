@@ -72,7 +72,7 @@ def node_plan(node: ResolvedNode, execution_provider: str | None, ep_options: Ma
     params, model = node.node.params, node.model
     key = params.execution_provider or execution_provider
     options = dict(params.ep_options) or ({} if params.execution_provider else dict(ep_options or {}))
-    gpu = load_catalog().pack(key) is not None
+    gpu = load_catalog().device_row(key) is not None
     precision = params.precision or select_precision(key, model.precisions)
     artifact = model.entry.artifact(model.size, precision)
     return NodePlan(node.id, key, tuple(sorted(options.items())), gpu, precision, artifact.sha256, artifact.filename)

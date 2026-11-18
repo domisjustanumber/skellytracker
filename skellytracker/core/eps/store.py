@@ -1,13 +1,15 @@
 """The EP store: its root, its layout, its lock, the verdict file and the state of each pack.
 
 The store is `platformdirs.user_data_dir("skellytracker", appauthor=False)/eps`, or the folder of
-`SKELLYTRACKER_EP_STORE`. One store serves each checkout and each application of the user. A pack
+`SKELLYTRACKER_EP_STORE`. The EP caches (`cache_root()`) are in the user cache folder, or in the
+folder of `SKELLYTRACKER_EP_CACHE`. One store serves each checkout and each application of the user. A pack
 folder `<pack_id>/<pack_ver>/` does not change after its install.
 
     <root>/<pack_id>/<pack_ver>/pack.json   the manifest
     <root>/<pack_id>/<pack_ver>/...         the unpacked wheels, and licenses/
     <root>/refs/<consumer_id>.json          one file for each consumer; the input of gc()
     <root>/verdicts.json                    the verification results
+    <root>/field-test.json                  the opt-in to each `field-test` EP key (ADR-Z5X7)
     <root>/.lock                            the lock between processes
     <root>/.partial/                        downloads that are not complete, kept for a resume
     <root>/.staging/, <root>/.trash/        an install in progress, and deletes that wait
@@ -29,6 +31,7 @@ from skellytracker.core.eps.records import PackState
 
 PATH_LIMIT = 240  # a longer DLL path fails registration on Windows, also with long paths enabled
 STORE_VARIABLE = "SKELLYTRACKER_EP_STORE"
+CACHE_VARIABLE = "SKELLYTRACKER_EP_CACHE"
 logger = logging.getLogger(__name__)
 _warned: set[str] = set()
 
@@ -39,8 +42,13 @@ def store_root() -> Path:
 
 
 def cache_root() -> Path:
-    """The folder of the EP caches, for example the TensorRT RTX runtime cache."""
-    return Path(platformdirs.user_cache_dir("skellytracker", appauthor=False)) / "ep-cache"
+    """The folder of the EP caches, for example the TensorRT RTX runtime cache, or the folder of `SKELLYTRACKER_EP_CACHE`.
+
+    The certify suite sets the two variables to folders of its work folder, so that a run uses and
+    changes nothing of the user (decision Y14H).
+    """
+    override = os.environ.get(CACHE_VARIABLE)
+    return Path(override) if override else Path(platformdirs.user_cache_dir("skellytracker", appauthor=False)) / "ep-cache"
 
 
 def pack_dir(pack_id: str, version: str) -> Path:
@@ -125,6 +133,24 @@ def write_verdict(key: str, record: dict) -> None:
         write_json(store_root() / "verdicts.json", verdicts)
 
 
+def field_test_opt_ins() -> dict:
+    """The opt-in of each `field-test` EP key of this store: EP key -> `{"opted_in_at": <Unix time>}`."""
+    return read_json(store_root() / "field-test.json") or {}
+
+
+def opt_in_field_test(key: str) -> None:
+    """Record the opt-in to a `field-test` EP key in this store. Only an explicit user action and the certify suite call it."""
+    with store_lock():
+        write_json(store_root() / "field-test.json", {**field_test_opt_ins(), key: {"opted_in_at": int(time.time())}})
+
+
+def field_test_reason(catalog: EpCatalog, key: str) -> str | None:
+    """The reason when an EP key is a `field-test` EP with no opt-in in this store; else `None`."""
+    if catalog.ep_status(key) != "field-test" or key in field_test_opt_ins():
+        return None
+    return f"the EP '{key}' is in a field test, and this EP store has no opt-in for it"
+
+
 def warn_once(key: str, text: str) -> None:
     """Log one warning line for each process and each key."""
     if key not in _warned:
@@ -138,12 +164,17 @@ def pack_state(catalog: EpCatalog, key: str, gpu=None, device_key: str | None = 
 
     It loads no library and uses no network. `gpu` is the `GpuInfo` of the device, or `None` when
     no GPU of the host passes the floors of the pack. A state in `USABLE_STATES` is ready.
+    A built-in EP with `selects_gpu` takes `gpu` as a pack does. A `field-test` EP with no opt-in
+    in this store is `field_test` (ADR-Z5X7).
     """
     row = catalog.ep(key)
     if row["kind"] == "builtin":
         if "platforms" in row and catalog_module.platform_tag() not in row["platforms"]:
             return "unsupported", "os", f"the EP '{key}' is only for {', '.join(row['platforms'])}"
-        return "builtin", None, None
+        if row.get("selects_gpu") and gpu is None:
+            return "unsupported", "no-device", f"no GPU of this host can run the EP '{key}'"
+        field_test = field_test_reason(catalog, key)
+        return ("field_test", "field-test", field_test) if field_test else ("builtin", None, None)
     pack = catalog.pack(key)
     if catalog.pack_lock(pack["id"]) is None:
         return "unsupported", "os", f"the EP '{key}' has no pack for this platform"
@@ -152,6 +183,9 @@ def pack_state(catalog: EpCatalog, key: str, gpu=None, device_key: str | None = 
     floors = catalog.floors_reason(pack, gpu)
     if floors is not None:
         return "unsupported", floors[0], floors[1]
+    field_test = field_test_reason(catalog, key)
+    if field_test:
+        return "field_test", "field-test", field_test
     folder = pack_dir(pack["id"], pack["version"])
     manifest = read_json(folder / "pack.json")
     if manifest is None:

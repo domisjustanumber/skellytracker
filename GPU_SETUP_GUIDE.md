@@ -1,6 +1,7 @@
 # GPU setup
 
-The base dependency `onnxruntime` gives the CPU EP, and the CoreML EP on macOS. A GPU EP for an
+The base dependency `onnxruntime` gives the CPU EP, the CoreML EP on macOS and the DirectML EP on
+Windows. The DirectML EP is in a field test (see [Field test](#field-test)). A GPU EP for an
 NVIDIA GPU comes as a plugin EP pack. The command `skellytracker-eps install` puts a pack in the EP
 store of the user. A pack is not a dependency of the package
 ([ADR-N6E8](decisions/entries/N6E8-onnxruntime-1-30-on-each-os.md) items 2 and 3).
@@ -16,12 +17,13 @@ The pipelines of a later version use it.
 | `trt-rtx` | NVIDIA TensorRT for RTX, pack `onnxruntime-ep-nv-tensorrt-rtx-cu13` | An NVIDIA GPU with compute capability 8.0 or higher, and a driver of R580 or later on Windows, or R590 or later on Linux |
 | `cuda` | NVIDIA CUDA, pack `onnxruntime-ep-cuda13` with cuBLAS and cuDNN | An NVIDIA GPU of the Turing generation or newer (compute capability 7.5), and a driver of R580 or later |
 | `coreml` | Apple Core ML, a part of ONNX Runtime | macOS on Apple Silicon |
+| `directml` | Microsoft DirectML, a part of the Windows ML build of ONNX Runtime | Windows and a DirectX 12 GPU, and the field-test opt-in |
 | `cpu` | The CPU EP, a part of ONNX Runtime | – |
 
 - The packs use CUDA 13. R580 is the first driver branch with CUDA 13.
 - An NVIDIA GPU older than Turing runs on the CPU only. No driver gives it CUDA 13.
-- Classic TensorRT (`trt`), DirectML, OpenVINO, QNN, MIGraphX and Vitis AI are reserved keys. A
-  request for one fails with the reason.
+- Classic TensorRT (`trt`), OpenVINO, QNN, MIGraphX and Vitis AI are reserved keys. A request for
+  one fails with the reason.
 - You do not need a CUDA toolkit. The packs hold their libraries.
 
 ## Install a pack
@@ -40,6 +42,23 @@ uv run poe setup-eps --recommended           # the same command as a poe task
 - The `trt-rtx` pack is about 106 MB. The `cuda` pack is about 966 MB.
 - After the install, a child process registers the pack and runs a trial session on a small model.
 - A plain `uv sync` gives the CPU core. It does not change the EP store.
+
+## Field test
+
+An EP in a field test has no reviewed certification report for the OS yet. Today this is `directml`
+on Windows ([ADR-Z5X7](decisions/entries/Z5X7-field-test-state-and-directml.md)).
+
+```sh
+uv run skellytracker-eps install directml --field-test   # the opt-in; DirectML needs no download
+```
+
+- The EP store keeps the opt-in. Without it, a request for the EP fails with exit code 3 and the
+  state `field_test`. No other EP runs in its place.
+- `status()` shows the EP with the state `field_test` and the `catalog_status` `field-test`.
+  `recommend()` never gives the EP, also after the opt-in.
+- The app offers DirectML for AMD GPUs only. You can opt in on each GPU, for example to test it.
+- The certify suite (`tools/certify_platform.py`) opts in to each field-test EP in its own store, and
+  tests DirectML on each GPU of the host.
 
 ## The EP store
 
@@ -89,7 +108,10 @@ print(report.used_ep, report.cpu_nodes, report.cpu_op_types)
   `EpUnavailableError` with the install command when the pack is not ready.
 - A node of a model can run on the CPU EP. `report.cpu_nodes` and `report.cpu_op_types` report it.
 - With no `device_key`, a session uses the GPU with the most VRAM. `eps.run_devices("cuda")` lists
-  the GPUs with their device keys.
+  the GPUs with their device keys. `directml` can use each GPU of the host.
+- The session takes the ONNX Runtime device of the GPU of `device_key`: the PCI ids, then the LUID
+  on Windows. For DirectML, the ONNX Runtime option `device_id` is the DXGI adapter index. On a host
+  with two GPUs, that index can name the other GPU.
 
 ## EP options
 
@@ -100,6 +122,7 @@ print(report.used_ep, report.cpu_nodes, report.cpu_op_types)
 | `cuda` | `prefer_nhwc` (`0`, `1`), `use_tf32` (`0`, `1`), `arena.max_mem` (positive bytes) |
 | `trt-rtx` | `enable_cuda_graph` (`0`, `1`) |
 | `coreml` | `MLComputeUnits` (`ALL`, `CPUAndGPU`, `CPUAndNeuralEngine`, `CPUOnly`) |
+| `directml` | none |
 | `cpu` | none |
 
 `device_id` is refused for each EP. Use `device_key`.

@@ -22,6 +22,7 @@ Usage::
 - a platform of the catalog is a macOS platform: macOS has no pack;
 - a reserved EP key has a user pack row (``packs``), or an EP key that is not reserved has no
   ``options.allowed`` map;
+- a ``status`` of an EP row or a pack row is not ``ready``, ``test`` or ``field-test`` (ADR-Z5X7);
 - an allow-list holds ``device_id``, or an allowed value is not a list of strings or ``positive-int``;
 - a hardware class has no ``id``, no ``ranking_evidence`` or a candidate that is not an EP key that a
   request can name, or two hardware classes have one ``id``;
@@ -112,6 +113,9 @@ def check(catalog: dict, lock: dict, catalog_text: str, pyproject_text: str, uv_
     problems += [f"platform {name}: macOS has no pack" for name in platforms if "mac" in name or "darwin" in name]
     groups: dict[str, str] = {}
     for key, row in catalog["eps"].items():
+        statuses = {item.get("status", "ready") for item in [row, *row.get("packs", ()), *row.get("test_packs", ())]}
+        if not statuses <= {"ready", "test", "field-test"}:  # a typo must not turn off the opt-in of a field-test EP
+            problems.append(f"{key}: a status is not ready, test or field-test")
         if row["kind"] == "reserved" and row.get("packs"):
             problems.append(f"{key}: a reserved key has a user pack row")
         if row["kind"] == "reserved":

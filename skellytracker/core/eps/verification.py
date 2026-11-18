@@ -17,7 +17,7 @@ from collections.abc import Sequence
 
 from skellytracker.core.eps import _verify_child, store
 from skellytracker.core.eps.catalog import load_catalog
-from skellytracker.core.eps.recommendation import ep_gpus
+from skellytracker.core.eps.recommendation import ep_gpus, install_hint
 from skellytracker.core.eps.records import USABLE_STATES, Verdict
 from skellytracker.core.errors import EpUnavailableError
 from skellytracker.core.system.host import probe_host
@@ -75,7 +75,7 @@ def verify(keys: Sequence[str] | None = None, *, level: str = "L3", device_key: 
         if state not in USABLE_STATES and not (state == "not_ready" and force):
             if keys is None:
                 continue
-            raise EpUnavailableError(f"The EP '{key}' is not available: {reason}.")
+            raise EpUnavailableError(f"The EP '{key}' is not available: {reason}.", install_hint(key))
         stored_key = store.verdict_key(catalog, pack or {"id": key, "version": "builtin"}, gpu, target, host.os_build)
         record = None if force else store.read_verdicts().get(stored_key)
         if record is None or (level == "L3" and record["level"] == "L2" and record["ok"]):

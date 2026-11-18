@@ -93,7 +93,8 @@ def compare_results(cpu: dict, ep: dict, thresholds: dict) -> dict:
     import numpy as np
 
     found = {"people_cpu": int(cpu["boxes"].present.sum()), "people_ep": int(ep["boxes"].present.sum()),
-             "box_iou_min": None, "keypoint_px_max": None, "keypoint_box_fraction_max": None, "points_compared": 0,
+             "box_iou_min": None, "keypoint_px_max": None, "keypoint_box_fraction_max": None,
+             "keypoint_box_fraction_median": None, "keypoint_box_fraction_p99": None, "points_compared": 0,
              "ok": False, "reason_code": None}
     present = cpu["boxes"].present
     if found["people_cpu"] == 0:
@@ -115,6 +116,8 @@ def compare_results(cpu: dict, ep: dict, thresholds: dict) -> dict:
     found["points_compared"] = int(both.sum())
     found["keypoint_px_max"] = float(distance.max()) if distance.size else None
     found["keypoint_box_fraction_max"] = float(fraction.max()) if distance.size else None
+    found["keypoint_box_fraction_median"] = float(np.median(fraction)) if distance.size else None
+    found["keypoint_box_fraction_p99"] = float(np.percentile(fraction, 99)) if distance.size else None
     if lost or not np.isfinite(found["box_iou_min"]) or (distance.size and not np.isfinite(distance).all()):
         return {**found, "reason_code": "not-finite"}
     if found["box_iou_min"] < thresholds["box_iou_min"]:
@@ -128,8 +131,10 @@ def compare_results(cpu: dict, ep: dict, thresholds: dict) -> dict:
     return {**found, "ok": True}
 
 
-def _wide_run(key: str, settings: dict, progress: Callable[[str], None]) -> dict:
+def _wide_run(key: str, settings: dict, progress: Callable[[str], None], device_key: str | None = None) -> dict:
     """Run the certification pipeline on the test image on the CPU EP and on the EP `key`, and compare.
+
+    `device_key` selects the GPU of the EP run; with None, the run uses the default GPU of the EP.
 
     shortcut: the run is in this process, so an EP that ends the process writes no report; move it to a child
     process before an EP with no evidence on any host is offered.
@@ -151,14 +156,15 @@ def _wide_run(key: str, settings: dict, progress: Callable[[str], None]) -> dict
     results, models, warnings = {}, {}, []
     for name, ep_key in (("cpu", "cpu"), ("ep", key)):
         progress(name)
-        with pipelines.start_pipeline(config, camera_ids=[0], running_mode="image", execution_provider=ep_key, timing="off") as run:
+        with pipelines.start_pipeline(config, camera_ids=[0], running_mode="image", execution_provider=ep_key, timing="off",
+                                      device=device_key if name == "ep" else None) as run:
             results[name] = run.process(pipelines.Frame(frame, frame_index=0))
             models, warnings = run.models, sorted({warning.code for warning in run.warnings})
     found = compare_results(results["cpu"], results["ep"], settings["thresholds"])
     if found["ok"] and PARTIAL_PLACEMENT in warnings:  # the warnings of the EP run: some nodes ran on the CPU EP
         found = {**found, "ok": False, "reason_code": "partial-placement"}
     return {**found, "ran": True, "pipeline": settings["pipeline"], "image_sha256": image["sha256"], "warnings": warnings,
-            "models": [{field: model[field] for field in ("key", "version", "size", "precision", "execution_provider")}
+            "models": [{field: model[field] for field in ("key", "version", "size", "precision", "execution_provider", "device")}
                        for _, model in sorted(models.items())],
             "thresholds": settings["thresholds"], "seconds": round(time.monotonic() - started, 1)}
 

@@ -33,14 +33,23 @@ _CHUNK = 1 << 20
 _RULE = "V-common.sizes_and_artifacts-10"
 
 
+CACHE_VARIABLE = "SKELLYTRACKER_MODEL_CACHE"
+"""The folder of the hash check cache and of the downloaded `url` artifacts. The certify suite sets it (decision Y14H)."""
+
+
+def _cache_folder() -> Path:
+    override = os.environ.get(CACHE_VARIABLE)
+    return Path(override) if override else Path(platformdirs.user_cache_dir("skellytracker", appauthor=False))
+
+
 def default_hash_cache_path() -> Path:
-    """Return the cache file in the user cache folder. The cache is not in a sidecar root."""
-    return Path(platformdirs.user_cache_dir("skellytracker", appauthor=False)) / "hash-cache.json"
+    """Return the cache file in the user cache folder, or in the folder of `SKELLYTRACKER_MODEL_CACHE`. The cache is not in a sidecar root."""
+    return _cache_folder() / "hash-cache.json"
 
 
 def download_root() -> Path:
-    """Return the folder of the downloaded `url` artifacts. It is not a sidecar root."""
-    return Path(platformdirs.user_cache_dir("skellytracker", appauthor=False)) / "models"
+    """Return the folder of the downloaded `url` artifacts. It is not a sidecar root. `SKELLYTRACKER_MODEL_CACHE` moves it."""
+    return _cache_folder() / "models"
 
 
 def download_path(key: str, version: str, filename: str) -> Path:

@@ -79,8 +79,9 @@ The sidecar paths are under `core/detectors/`.
 ## ONNX Runtime
 
 - ONNX Runtime 1.30.0 is a base dependency. The distribution is `onnxruntime` on Linux and macOS, and
-  `onnxruntime-windowsml` on Windows. It gives the CPU EP, and the CoreML EP on macOS
-  ([ADR-N6E8](../decisions/entries/N6E8-onnxruntime-1-30-on-each-os.md) item 2).
+  `onnxruntime-windowsml` on Windows. It gives the CPU EP, the CoreML EP on macOS and the DirectML
+  EP on Windows ([ADR-N6E8](../decisions/entries/N6E8-onnxruntime-1-30-on-each-os.md) item 2;
+  [ADR-Z5X7](../decisions/entries/Z5X7-field-test-state-and-directml.md)).
 - `OnnxSessionConfig.execution_provider` (`core/sessions/onnx_session.py`) selects `coreml` or `cpu`.
 - `None` selects the first available provider in this order: `coreml` (macOS only), `cpu`
   (`auto_detect_provider` in `core/sessions/ort_session_utils.py`).
@@ -99,10 +100,17 @@ legacy path puts the old points in the raw names of `wholebody.keypoints` and ca
 ([ADR-C3A4](../decisions/entries/C3A4-describe-port-for-the-legacy-path.md)).
 
 - New code takes the EP as `execution_provider`, a concrete key of the EP catalog: `trt-rtx`, `cuda`,
-  `coreml` or `cpu`. No environment variable selects the EP or the device.
+  `coreml`, `directml` or `cpu`. No environment variable selects the EP or the device.
+- A session on a GPU takes the ONNX Runtime EP device of the GPU (`registration.ort_device()`).
+  Never select a GPU with the option `device_id`.
+- A `field-test` EP of the EP catalog (today `directml`) is usable only after an opt-in in the EP
+  store (`store.opt_in_field_test()`). Only `skellytracker-eps install KEY --field-test` and the
+  certify suite record it. `recommend()` never gives such an EP
+  ([ADR-Z5X7](../decisions/entries/Z5X7-field-test-state-and-directml.md)).
 - `eps.build_session()` serves only new code. Do not connect it to `OnnxSession` or `Tracker.create`.
   The `cuda` bridge of the exception above is the only connection.
-- A GPU EP is a plugin EP pack in the EP store. Do not add a GPU package to `pyproject.toml`.
+- A GPU EP is a plugin EP pack in the EP store, or `directml`, which is a part of the Windows ML
+  build of ONNX Runtime. Do not add a GPU package to `pyproject.toml`.
 - `core/eps/ep_catalog.yaml` is written by hand. Only `uv run python tools/ep_catalog.py --refresh`
   writes `ep_lock.yaml`, and it uses the network. Run it after each change of the catalog.
   `ort_core` must equal the `onnxruntime` pin and the `onnxruntime-windowsml` pin: change the pins, the catalog, the lock and

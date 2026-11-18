@@ -181,3 +181,7 @@ intakes/
 
 # Local graphify code graph of each checkout (decision 87B2). Never commit it.
 graphify-out/
+
+# Work folder and default report files of tools/certify_platform.py (decision Y14H). Never commit them.
+.certify-work/
+/certify-report-*.md

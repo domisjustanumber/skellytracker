@@ -1,5 +1,6 @@
 """`ensure_registered()`, `build_session()` and `verify()`: fakes for the GPU EPs, and real CPU sessions on generated models."""
 
+import dataclasses
 import logging
 import pickle
 import types
@@ -9,7 +10,7 @@ import onnxruntime
 import pytest
 
 from skellytracker.core import eps
-from skellytracker.core.eps import _verify_child, registration, session, store, verification
+from skellytracker.core.eps import _verify_child, recommendation, registration, session, store, verification
 from skellytracker.core.eps import catalog as catalog_module
 from skellytracker.core.errors import EpRequestError, EpUnavailableError, SessionCreationError, VRAMExhaustionError
 from skellytracker.tests.hw_fakes import GIB, fake_pack, gpu, host
@@ -153,7 +154,7 @@ def test_windows_dll_folders_go_first_in_path(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize(("key", "options"), [
     ("cuda", {"device_id": "0"}), ("cuda", {"use_tf32": "banana"}), ("cuda", {"enable_cuda_graph": "1"}), ("trt-rtx", {"bogus_key": "1"}),
-    ("cpu", {"device_id": "0"}), ("directml", None), ("openvino", None), ("tensorrt", None),
+    ("cpu", {"device_id": "0"}), ("directml", {"device_id": "1"}), ("migraphx", None), ("openvino", None), ("tensorrt", None),
 ])
 def test_a_bad_request_raises_before_onnxruntime(monkeypatch, key, options):
     def not_reached(*args, **kwargs):
@@ -330,7 +331,7 @@ def test_verify_stores_the_result_and_a_new_driver_runs_it_again(gpu_host, monke
     monkeypatch.setattr(verification, "probe_host", lambda: host(newer))
     (second,) = eps.verify(["cuda"])
     assert len(jobs) == 3 and second.key != first.key
-    assert [verdict.ep_key for verdict in eps.verify()] == ["trt-rtx", "cuda", "cpu"]
+    assert [verdict.ep_key for verdict in eps.verify()] == ["trt-rtx", "cuda", "cpu"]  # `directml` has no opt-in: skipped
 
 
 def test_verify_refuses_a_pack_that_is_not_installed(monkeypatch):
@@ -338,6 +339,8 @@ def test_verify_refuses_a_pack_that_is_not_installed(monkeypatch):
     with pytest.raises(EpUnavailableError, match="not installed"):
         eps.verify(["cuda"])
     with pytest.raises(EpRequestError):
+        eps.verify(["migraphx"])
+    with pytest.raises(EpUnavailableError, match="field test.*--field-test"):  # ADR-Z5X7: no opt-in in the store
         eps.verify(["directml"])
     with pytest.raises(ValueError, match="level"):
         eps.verify(["cpu"], level="L4")
@@ -359,3 +362,63 @@ def exit_with_127(job, connection):
     import os
 
     os._exit(127)
+
+
+DML = "DmlExecutionProvider"
+RTX_DXGI = dataclasses.replace(SMALL, luid=78921)
+INTEL_DXGI = dataclasses.replace(gpu("intel", cc=None, driver="32.0.101.7088", vram=128 * 2**20, bus="0000:00:02.0", device_id=0xA780,
+                                     name="UHD 770"), luid=86127)
+
+
+def dml_device(info, luid: int, adapter: str):
+    """A DirectML EP device: `device_id` is the DXGI adapter index, which is not the order of the GPUs."""
+    hardware = types.SimpleNamespace(vendor_id=info.pci_vendor_id, device_id=info.pci_device_id, metadata={"LUID": str(luid)})
+    return types.SimpleNamespace(ep_name=DML, device=hardware, ep_options={"device_id": adapter})
+
+
+@pytest.fixture
+def dml_host(monkeypatch):
+    """ADR-Z5X7: a Windows host with an NVIDIA GPU and an Intel GPU. DirectML lists the NVIDIA GPU two times, under two LUIDs."""
+    for module in (session, verification):
+        monkeypatch.setattr(module, "probe_host", lambda: host(RTX_DXGI, INTEL_DXGI))
+    devices = [dml_device(RTX_DXGI, 126958, "2"), dml_device(RTX_DXGI, 78921, "0"), dml_device(INTEL_DXGI, 86127, "1")]
+    monkeypatch.setattr(onnxruntime, "get_ep_devices", lambda: devices)
+    monkeypatch.setattr(onnxruntime, "get_available_providers", lambda: [DML, CPU])
+    monkeypatch.setattr(onnxruntime, "SessionOptions", FakeOptions)
+    monkeypatch.setattr(onnxruntime, "InferenceSession", FakeSession)
+    for name, value in {"created": [], "build_error": None, "run_error": None, "providers": [DML, CPU], "nodes": {DML: ["Conv", "Relu"]}}.items():
+        monkeypatch.setattr(FakeSession, name, value)
+
+
+def test_directml_needs_the_field_test_opt_in(dml_host):
+    with pytest.raises(EpUnavailableError, match="field test") as caught:
+        eps.build_session(b"model", execution_provider="directml")
+    assert caught.value.hint == "Run `skellytracker-eps install directml --field-test`." and FakeSession.created == []
+    with pytest.raises(EpUnavailableError, match="field test"):
+        eps.check_start("directml")
+
+
+def test_directml_selects_the_ort_device_of_the_requested_gpu(dml_host, monkeypatch):
+    """The session takes the EP device of the GPU (PCI ids, then LUID), never `device_id`: here index 2 is the NVIDIA GPU again."""
+    store.opt_in_field_test("directml")
+    monkeypatch.setattr(recommendation, "probe_host", lambda: host(RTX_DXGI, INTEL_DXGI))
+    assert [d.device_key for d in eps.check_start("directml")] == ["gpu:10de:2484:0", "gpu:8086:a780:0"]  # the most VRAM first
+    _, report = eps.build_session(b"model", execution_provider="directml", cpu_threads=6)
+    options = FakeSession.created[-1][0]
+    assert dict(options.devices[0].device.metadata)["LUID"] == "78921" and options.provider_options == {}
+    assert (options.intra_op_num_threads, options.inter_op_num_threads) == (1, 1) and FakeSession.created[-1][1] is None
+    assert (report.used_ep, report.pack_id, report.device_key, report.ep_device_id, report.cpu_threads) == (
+        "directml", None, "gpu:10de:2484:0", "0", None)
+    _, intel = eps.build_session(b"model", execution_provider="directml", device_key="gpu:8086:a780:0")
+    assert FakeSession.created[-1][0].devices[0].device.vendor_id == 0x8086 and (intel.device_key, intel.ep_device_id) == ("gpu:8086:a780:0", "1")
+    with pytest.raises(EpUnavailableError, match="not a GPU"):
+        eps.build_session(b"model", execution_provider="directml", device_key="gpu:10de:ffff:0")
+
+
+def test_verify_of_directml_runs_on_the_chosen_gpu(dml_host, monkeypatch):
+    jobs = []
+    monkeypatch.setattr(verification, "run_child", lambda job: jobs.append(job) or {"level": job["level"], "ok": True, "max_abs_diff": 0.0})
+    store.opt_in_field_test("directml")
+    (verdict,) = eps.verify(["directml"], level="L2", device_key="gpu:8086:a780:0")
+    assert verdict.ok and verdict.pack_id is None and jobs[0]["gpu"] == INTEL_DXGI and jobs[0]["pack"] is None
+    assert jobs[0]["device_key"] == "gpu:8086:a780:0" and jobs[0]["atol"] == 1.5e-2

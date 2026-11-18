@@ -94,6 +94,10 @@ def break_unknown_successor(catalog, lock):
     catalog["legacy_keys"]["cuda"] = ["trt-rtx", "tensorrt"]
 
 
+def break_status(catalog, lock):
+    catalog["eps"]["directml"]["status"] = "field_test"  # a typo: the opt-in would not apply
+
+
 def break_newer_version(catalog, lock):
     catalog["eps"]["cuda"]["packs"][0]["newer_versions"] = [{"version": "0.1.0", "ort": {"verified_by_us": ["1.30.0"]}}]
 
@@ -111,7 +115,7 @@ def test_a_newer_versions_row_with_a_claim_passes():
 
 @pytest.mark.parametrize("change", [break_pin, break_windows_pin, break_group, break_darwin, break_reserved, break_evidence, break_candidate,
                                     break_device_id, break_url, break_sha, break_lock_row, break_revision,
-                                    break_successor, break_unknown_successor, break_newer_version, break_newer_dependency],
+                                    break_successor, break_unknown_successor, break_status, break_newer_version, break_newer_dependency],
                          ids=lambda change: change.__name__)
 def test_check_finds_each_defect(change):
     catalog, lock = (copy.deepcopy(part) for part in load())

@@ -20,8 +20,9 @@ from pathlib import Path, PurePosixPath
 
 from skellytracker.core.eps import _download, store
 from skellytracker.core.eps.catalog import EpCatalog, load_catalog, platform_tag
-from skellytracker.core.eps.recommendation import ep_gpus, recommend
+from skellytracker.core.eps.recommendation import ep_gpus, install_hint, recommend
 from skellytracker.core.eps.records import GcResult, InstallPlan, InstallProgress, InstallResult, PlannedPack, WheelRef
+from skellytracker.core.errors import EpUnavailableError
 from skellytracker.core.system.host import probe_host
 
 REF_DAYS, UNUSED_DAYS, PARTIAL_DAYS = 90, 30, 7
@@ -65,19 +66,24 @@ def planned_pack(catalog: EpCatalog, pack_id: str, tag: str | None = None, index
                        licence.get("name"), licence.get("url"))
 
 
-def plan_install(selection: str | Sequence[str], index_url: str | None = None) -> InstallPlan:
+def plan_install(selection: str | Sequence[str], index_url: str | None = None, *, field_test: bool = False) -> InstallPlan:
     """The packs to install for a selection, with the download bytes and the disk bytes.
 
-    `selection` is `all-compatible` (each EP key that a GPU of this host can run), `recommended`
+    `selection` is `all-compatible` (each pack EP key that a GPU of this host can run), `recommended`
     (the pack of the performance recommendation), `cpu-only` (no pack) or a list of EP keys. A
     reserved key or an unknown key raises `EpRequestError`. `index_url` replaces the URL of each
     wheel with `<index_url><file name>`, for a local index.
+
+    A `field-test` EP key of the list with no opt-in in the EP store raises `EpUnavailableError`,
+    unless `field_test` is true: the caller then records the opt-in with the user action
+    (`skellytracker-eps install KEY --field-test`). `all-compatible` holds no such key (ADR-Z5X7).
     """
     catalog, host, warnings = load_catalog(), probe_host(), []
     if selection == "cpu-only":
         keys = []
     elif selection == "all-compatible":
-        keys = [key for key in catalog.keys() if ep_gpus(catalog, key, host)]
+        keys = [key for key in catalog.keys() if catalog.pack(key) and ep_gpus(catalog, key, host)
+                and not store.field_test_reason(catalog, key)]
     elif selection == "recommended":
         result = recommend("performance", host)
         keys = [c.ep_key for c in (*result.skipped, result.chosen) if c.pack_id is not None][:1]
@@ -88,6 +94,9 @@ def plan_install(selection: str | Sequence[str], index_url: str | None = None) -
     packs = []
     for key in keys:
         pack = catalog.pack(key)  # raises EpRequestError for a reserved or unknown key
+        refused = None if field_test else store.field_test_reason(catalog, key)
+        if refused:
+            raise EpUnavailableError(f"The EP '{key}' is not available: {refused}.", install_hint(key))
         planned = None if pack is None else planned_pack(catalog, pack["id"], index_url=index_url)
         if pack is None:
             warnings.append(f"The EP '{key}' is a part of ONNX Runtime. It needs no pack.")
