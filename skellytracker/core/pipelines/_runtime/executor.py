@@ -13,6 +13,7 @@ of the call. A glue node runs for each camera. A call commits the new node state
 """
 from __future__ import annotations
 
+import concurrent.futures
 import functools
 import logging
 import time
@@ -223,6 +224,7 @@ class Executor:
         self.decoders: dict[int, Any] = {}
         self.open_errors: dict[int, str] = {}
         self.jpeg_warned: set[Any] = set()
+        self.decode_pool: concurrent.futures.ThreadPoolExecutor | None = None  # the CPU JPEG decode, opened at the first call that uses it
         try:
             opened = self._open_sessions()
             self.reports = {node_id: [item.report for item in items] for node_id, items in opened.items()}
@@ -387,7 +389,10 @@ class Executor:
         `V-pipeline.running-13` and the SOI check of each JPEG buffer come before any decode. On a
         device of `decoder_places`, the JPEG buffers of the call go to the GPU decoder in one batch.
         The decoder opens at the first call with a JPEG buffer on its device. A buffer that the GPU
-        decoder refuses, and each buffer of a device with no GPU decoder, decodes on the CPU. A refused
+        decoder refuses, and each buffer of a device with no GPU decoder, decodes on the CPU. Two or
+        more such buffers decode in the thread pool of the run, with at most `cpu_threads` threads,
+        when `cpu_threads` is more than 1. The call waits for each decode, then reads the results in
+        camera order: a refused call names the first bad camera, as a decode in a row does. A refused
         call gives no warning: the warnings of the decode go out only when each buffer decoded.
         """
         rotations = {}
@@ -430,12 +435,20 @@ class Executor:
                         JPEG_DECODED_ON_CPU, f"camera {camera_id!r}: the GPU JPEG decoder refuses the JPEG buffer: the run decodes it on the CPU", (),
                         {"reason": "decoder_refused", "camera_id": camera_id},
                     )
-        for camera_id in jpegs:
-            if camera_id not in found:
-                try:
-                    found[camera_id] = DecodedFrame.from_host(cpu.decode_jpeg(frames[camera_id].image, rotations[camera_id]))
-                except ValueError as exc:
-                    raise CallRefusedError(f"V-pipeline.running-12: camera {camera_id!r}: {exc}", "V-pipeline.running-12") from exc
+        on_cpu = [camera_id for camera_id in jpegs if camera_id not in found]
+        if len(on_cpu) > 1 and self.cpu_threads > 1:
+            if self.decode_pool is None:
+                self.decode_pool = concurrent.futures.ThreadPoolExecutor(min(self.cpu_threads, len(self.camera_ids)), thread_name_prefix="skellytracker-jpeg")
+            futures = [self.decode_pool.submit(cpu.decode_jpeg, frames[camera_id].image, rotations[camera_id]) for camera_id in on_cpu]
+            concurrent.futures.wait(futures)  # no decode still runs when the call returns or raises
+            decodes = [future.result for future in futures]
+        else:
+            decodes = [functools.partial(cpu.decode_jpeg, frames[camera_id].image, rotations[camera_id]) for camera_id in on_cpu]
+        for camera_id, decode in zip(on_cpu, decodes, strict=True):  # camera order: the error is that of the first bad camera
+            try:
+                found[camera_id] = DecodedFrame.from_host(decode())
+            except ValueError as exc:
+                raise CallRefusedError(f"V-pipeline.running-12: camera {camera_id!r}: {exc}", "V-pipeline.running-12") from exc
         if f"{FRAME}.decode" in self.spans_on:
             events.append(timing_module.make_event([(frames[camera_id].frame_index, camera_id) for camera_id in jpegs], FRAME, "decode", begin, time.perf_counter_ns()))
         for key, warning in pending.items():
@@ -661,8 +674,9 @@ class Executor:
 
         The order of pipeline.running, Implementer guidance: the IO bindings (the run keeps none),
         the decoded frames, the sessions, then each decoder, which closes its turn sessions and then
-        its CUDA stream. When a close of a session or a decoder raises, the other closes still run,
-        and then the first error raises.
+        its CUDA stream. Before the sessions, the thread pool of the CPU JPEG decode stops after its
+        last decode. When a close of the pool, a session or a decoder raises, the other closes still
+        run, and then the first error raises.
         """
         if self.closed:
             return
@@ -682,7 +696,8 @@ class Executor:
         self.port_values, self.call_slots = {}, {}
         self.zero_frames.clear()
         # Each close runs also when an earlier one raises; the first error goes to the caller after the last close.
-        closes = [*(runner.close for runner in self.models.values()), self.sessions.close,
+        pool = [] if self.decode_pool is None else [functools.partial(self.decode_pool.shutdown, wait=True, cancel_futures=True)]
+        closes = [*pool, *(runner.close for runner in self.models.values()), self.sessions.close,
                   *(decoder.close for decoder in self.decoders.values() if decoder is not None)]
         self.models.clear()
         self.decoders.clear()

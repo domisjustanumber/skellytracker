@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -743,6 +744,92 @@ def test_a_memoryview_is_not_a_frame_image() -> None:
     """The type check of `Frame` refuses a `memoryview` before the call: only `bytes` and `bytearray` are JPEG buffers."""
     with pytest.raises(BeartypeCallHintParamViolation):
         Frame(memoryview(jpeg(image(1))), 0)
+
+
+# The CPU decode of two or more JPEG buffers of a call in the thread pool of the run (pipeline.running, Fields: CPU threads).
+
+SIZES = [(32, 48), (64, 64), (48, 32), (40, 56), (32, 32), (56, 40)]
+
+
+def jpeg_batch(count: int, bad: tuple[int, ...] = (), index: int = 0, timestamp_ms: float | None = None) -> dict[str, Frame]:
+    """`count` JPEG cameras `c0`, `c1`, ... of mixed sizes with rotation_deg 0, 90, 180 and 270 in turn. The cameras of `bad` give junk after the SOI marker."""
+    def data(i: int) -> bytes:
+        return b"\xff\xd8" + b"junk" * 16 if i in bad else jpeg(np.random.default_rng(i).integers(0, 256, (*SIZES[i % 6], 3), np.uint8))
+    return {f"c{i}": Frame(data(i), index, timestamp_ms, (0, 90, 180, 270)[i % 4]) for i in range(count)}
+
+
+def decode_threads(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """Patch `cpu.decode_jpeg` to record the name of the thread of each decode. Return the list of names."""
+    from skellytracker.core.decode import cpu
+
+    names: list[str] = []
+    real = cpu.decode_jpeg
+    monkeypatch.setattr(cpu, "decode_jpeg", lambda *args: (names.append(threading.current_thread().name), real(*args))[1])
+    return names
+
+
+def pool_threads() -> list[str]:
+    return [thread.name for thread in threading.enumerate() if thread.name.startswith("skellytracker-jpeg")]
+
+
+@pytest.mark.parametrize("count", [3, 6])
+def test_the_cpu_decode_in_the_thread_pool_gives_the_frames_of_the_decode_in_a_row_bit_for_bit(root: Path, monkeypatch: pytest.MonkeyPatch, count: int) -> None:
+    names = decode_threads(monkeypatch)
+    frames, found = jpeg_batch(count), {}
+    for threads in (1, 4):
+        names.clear()
+        with start(root, detector_pipeline(), camera_ids=list(frames), cpu_threads=threads) as run:
+            run.process_batch(frames)
+            found[threads] = {camera: port_values(run, camera)["frame.image"].host for camera in frames}
+            assert (run._executor.decode_pool is None) == (threads == 1)  # noqa: SLF001
+        assert len(names) == count and all(name.startswith("skellytracker-jpeg") == (threads > 1) for name in names)
+    for camera in frames:
+        np.testing.assert_array_equal(found[1][camera], found[4][camera])
+
+
+def test_v_pipeline_running_12_two_bad_buffers_in_the_thread_pool_refuse_the_call_with_the_first_bad_camera_each_time(root: Path) -> None:
+    good = jpeg_batch(5, timestamp_ms=0.0)
+    with start(root, prev_pipeline(), camera_ids=list(good), running_mode="live", cpu_threads=4) as run:
+        run.process_batch(good)
+        before = snapshot(run)
+        for _ in range(20):
+            with pytest.raises(CallRefusedError, match="V-pipeline.running-12: camera 'c2': OpenCV cannot read") as error:
+                run.process_batch(jpeg_batch(5, bad=(2, 4), index=1, timestamp_ms=1000.0))
+            assert error.value.rule == "V-pipeline.running-12" and same(before, snapshot(run))
+        assert set(run.process_batch(jpeg_batch(5, index=1, timestamp_ms=10.0))) == set(good)  # 10 < 1000: no time moved
+
+
+def test_one_jpeg_buffer_in_a_call_or_no_jpeg_in_the_run_decodes_in_a_row_with_no_pool(root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    names = decode_threads(monkeypatch)
+    with start(root, detector_pipeline(), camera_ids=["a", "b"], cpu_threads=4) as run:
+        run.process_batch({"a": Frame(image(1), 0), "b": Frame(image(1), 0)})
+        assert run._executor.decode_pool is None and names == []  # noqa: SLF001
+        run.process_batch({"a": Frame(jpeg_batch(1)["c0"].image, 1), "b": Frame(image(1), 1)})
+        assert run._executor.decode_pool is None and names == [threading.current_thread().name]  # noqa: SLF001
+
+
+def test_close_stops_each_decode_thread_and_a_second_close_does_nothing(root: Path) -> None:
+    frames = jpeg_batch(3)
+    run = start(root, detector_pipeline(), camera_ids=list(frames), cpu_threads=2)
+    run.process_batch(frames)
+    assert 1 <= len(pool_threads()) <= 2  # at most min(cpu_threads, cameras of the run); the pool starts a thread only when none is idle
+    run.close()
+    run.close()
+    assert pool_threads() == []
+
+
+def test_a_decode_error_that_is_not_a_value_error_raises_from_the_thread_pool_as_it_is(root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from skellytracker.core.decode import cpu
+
+    def fail(buffer: bytes, rotation_deg: int) -> np.ndarray:
+        raise MemoryError("no memory for the frame")
+
+    monkeypatch.setattr(cpu, "decode_jpeg", fail)
+    frames = jpeg_batch(3)
+    with start(root, detector_pipeline(), camera_ids=list(frames), cpu_threads=4) as run:
+        with pytest.raises(MemoryError, match="no memory for the frame"):
+            run.process_batch(frames)
+        assert run._executor.decode_pool is not None  # noqa: SLF001
 
 
 # The GPU JPEG decoder in the frame stage, with a fake decoder on the CPU EP: the graph path runs on `cpu`
