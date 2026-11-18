@@ -11,6 +11,11 @@ import numpy as np
 ROTATIONS = {0: None, 90: cv2.ROTATE_90_CLOCKWISE, 180: cv2.ROTATE_180, 270: cv2.ROTATE_90_COUNTERCLOCKWISE}
 
 
+def starts_as_jpeg(buffer: bytes | bytearray) -> bool:
+    """True when the buffer starts with the JPEG SOI marker. An empty buffer gives False."""
+    return buffer.startswith(b"\xff\xd8")
+
+
 def turn(image: np.ndarray, rotation_deg: int) -> np.ndarray:
     """Turn a frame clockwise by `rotation_deg`, a key of `ROTATIONS`. Return the same array for 0, else a new array."""
     code = ROTATIONS[rotation_deg]
@@ -26,7 +31,7 @@ def decode_jpeg(buffer: bytes | bytearray, rotation_deg: int = 0) -> np.ndarray:
     `ValueError` for a buffer that is not a JPEG image that OpenCV can read.
     """
     # The SOI check also refuses an empty buffer, for which `cv2.imdecode` raises an assertion error.
-    if not buffer.startswith(b"\xff\xd8"):
+    if not starts_as_jpeg(buffer):
         raise ValueError("the buffer is not a JPEG image: it does not start with the JPEG SOI marker")
     try:
         image = cv2.imdecode(np.frombuffer(buffer, np.uint8), cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
