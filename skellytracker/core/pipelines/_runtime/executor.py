@@ -23,6 +23,7 @@ from typing import Any
 
 import numpy as np
 
+from skellytracker.core._hardware.sanitize import sanitize_text
 from skellytracker.core.decode import cpu
 from skellytracker.core.decode.frame import DecodedFrame
 from skellytracker.core.eps import session as eps_session
@@ -44,7 +45,37 @@ RUNNING_MODES = ("image", "video", "live")
 INFERENCE_TYPES = ("onnx_model", "mediapipe_tasks")
 TIMESTAMP_RULE = "V-node.smooth_keypoints-3"
 BATCH_LIMITED_BY_STATE = "batch_limited_by_state"
+JPEG_DECODED_ON_CPU = "jpeg_decoded_on_cpu"
+JPEG_DECODER_EPS = frozenset({"cuda", "trt-rtx"})
+"""The EPs of the GPU JPEG decoder. A test adds `cpu` and patches `open_jpeg_decoder` to run that path on the CPU EP."""
 Port = tuple[str, str]
+
+
+def open_jpeg_decoder(execution_provider: str, device_key: str | None, ep_device_id: Any) -> Any:
+    """Open the GPU JPEG decoder of one device, or return None when the run must decode on the CPU. A test patches this seam."""
+    from skellytracker.core.decode.nvidia import NvJpegDecoder
+
+    return NvJpegDecoder.open(execution_provider, device_key, ep_device_id)
+
+
+def decoder_missing_warning(execution_provider: str, cause: str | None = None) -> PipelineWarning:
+    """The warning `jpeg_decoded_on_cpu` of a GPU JPEG decoder that does not open (pipeline.running, Behaviour item 8).
+
+    `cause` is the text of the error of the open, or None when the open gave None (its log line gives the reason).
+    """
+    from skellytracker.core.eps import store
+    from skellytracker.core.eps.catalog import load_catalog
+    from skellytracker.core.eps.recommendation import install_hint
+
+    catalog = load_catalog()
+    component, state = catalog.component(execution_provider), store.component_state(catalog, execution_provider)
+    package = None if component is None else component["id"]
+    hint = install_hint(execution_provider) if state in ("missing", "other_version") else None
+    why = f"did not open: {cause or 'see the log'}" if state == "installed" else f"is {state or 'not available'}"
+    message = f"the GPU JPEG decoder {package} of '{execution_provider}' {why}; the run decodes each JPEG buffer on the CPU"
+    return PipelineWarning(JPEG_DECODED_ON_CPU, message + (f". {hint}" if hint else ""), (), {
+        "reason": "decoder_unavailable", "package": package, "jpeg_decoder": state, "install_hint": hint, "cause": cause,
+    })
 
 
 def _port(ref: str) -> Port:
@@ -185,6 +216,13 @@ class Executor:
         self.slot_sizes: dict[Any, tuple[int, int]] = {}
         self.zero_frames: dict[tuple[int, tuple[int, int]], Any] = {}
         self.call_slots: dict[int, onnx_model.CallSlots] = {}
+        # The GPU JPEG decode: (EP, device key, CUDA device id) of each device index with a graph-on node on an EP of
+        # `JPEG_DECODER_EPS`, the decoder of each device index after its first JPEG call (None: decode on the CPU), the
+        # error text of an open that raised, and the keys of the `jpeg_decoded_on_cpu` warnings that the run gave.
+        self.decoder_places: dict[int, tuple[str, str | None, Any]] = {}
+        self.decoders: dict[int, Any] = {}
+        self.open_errors: dict[int, str] = {}
+        self.jpeg_warned: set[Any] = set()
         try:
             opened = self._open_sessions()
             self.reports = {node_id: [item.report for item in items] for node_id, items in opened.items()}
@@ -264,9 +302,11 @@ class Executor:
                     onnx_model.graph_refusal(node.model, plan.precision, slots),
                 )
             runner = self.models[node_id] = onnx_model.OnnxModelRunner(node, plan.precision, [item.session for item in opened[node_id]], graph)
-            if runner.graph_on_at_start:  # the frame stage uploads the frames of these devices
+            if runner.graph_on_at_start:  # the frame stage uploads or GPU-decodes the frames of these devices
                 for index, place in enumerate(places):
                     self.upload_devices.setdefault(index, (place.ep_device_id, graph.device_type))
+                    if plan.execution_provider in JPEG_DECODER_EPS:
+                        self.decoder_places.setdefault(index, (plan.execution_provider, place.device_key, place.ep_device_id))
         return opened
 
     def _node_items(self, opened: Mapping[str, list[sessions.OpenedSession]]) -> dict[str, dict[str, Any]]:
@@ -341,20 +381,72 @@ class Executor:
             found[camera_id] = timestamp
         return found
 
-    @staticmethod
-    def _frame_image(camera_id: Any, frame: Any) -> DecodedFrame:
-        """Return `frame.image` of one frame: a decoded array, or a JPEG buffer decoded on the CPU, turned by `rotation_deg` (pipeline.running, Behaviour item 13)."""
-        rotation = 0 if frame.rotation_deg is None else frame.rotation_deg
-        if type(rotation) is not int or rotation not in cpu.ROTATIONS:  # `type` refuses a bool and a float such as 90.0
-            raise CallRefusedError(f"V-pipeline.running-13: camera {camera_id!r}: rotation_deg must be 0, 90, 180 or 270; got {rotation!r}", "V-pipeline.running-13")
-        if not isinstance(frame.image, bytes | bytearray):
-            return DecodedFrame.from_host(cpu.turn(frame.image, rotation))  # the array of the caller as given for 0, else a new array
-        try:
-            return DecodedFrame.from_host(cpu.decode_jpeg(frame.image, rotation))
-        except ValueError as exc:
-            raise CallRefusedError(f"V-pipeline.running-12: camera {camera_id!r}: {exc}", "V-pipeline.running-12") from exc
+    def _frame_images(self, frames: Mapping[Any, Any], cameras: Sequence[Any], events: list[dict[str, Any]]) -> dict[Any, DecodedFrame]:
+        """Return `frame.image` of each camera of the call: decoded and turned by `rotation_deg` (pipeline.running, Behaviour item 13).
 
-    def _frame_stage(self, pixels: Mapping[Any, DecodedFrame]) -> tuple[dict[int, onnx_model.CallSlots], dict[Any, tuple[int, int]]]:
+        `V-pipeline.running-13` and the SOI check of each JPEG buffer come before any decode. On a
+        device of `decoder_places`, the JPEG buffers of the call go to the GPU decoder in one batch.
+        The decoder opens at the first call with a JPEG buffer on its device. A buffer that the GPU
+        decoder refuses, and each buffer of a device with no GPU decoder, decodes on the CPU. A refused
+        call gives no warning: the warnings of the decode go out only when each buffer decoded.
+        """
+        rotations = {}
+        for camera_id in cameras:
+            frame = frames[camera_id]
+            rotation = rotations[camera_id] = 0 if frame.rotation_deg is None else frame.rotation_deg
+            if type(rotation) is not int or rotation not in cpu.ROTATIONS:  # `type` refuses a bool and a float such as 90.0
+                raise CallRefusedError(f"V-pipeline.running-13: camera {camera_id!r}: rotation_deg must be 0, 90, 180 or 270; got {rotation!r}", "V-pipeline.running-13")
+            if isinstance(frame.image, bytes | bytearray) and not cpu.starts_as_jpeg(frame.image):  # also an empty buffer
+                raise CallRefusedError(
+                    f"V-pipeline.running-12: camera {camera_id!r}: the buffer is not a JPEG image: it does not start with the JPEG SOI marker", "V-pipeline.running-12",
+                )
+        jpegs = [camera_id for camera_id in cameras if isinstance(frames[camera_id].image, bytes | bytearray)]
+        # the array of the caller as given for 0, else a new array; this turn is in no `frame` span (pipeline.timing)
+        found = {camera_id: DecodedFrame.from_host(cpu.turn(frames[camera_id].image, rotations[camera_id])) for camera_id in cameras if camera_id not in jpegs}
+        if not jpegs:
+            return found
+        begin = time.perf_counter_ns()
+        pending: dict[Any, PipelineWarning] = {}
+        for index, place in self.decoder_places.items():
+            group = [camera_id for camera_id in jpegs if self.device_of[camera_id] == index]
+            if not group:
+                continue
+            if index not in self.decoders:  # one open for each device and run, also when it gives None or raises
+                try:
+                    self.decoders[index] = open_jpeg_decoder(*place)
+                except Exception as exc:  # the CPU decode is correct: an open error must not stop each JPEG call
+                    logger.warning("the GPU JPEG decoder of '%s' did not open", place[0], exc_info=True)
+                    self.decoders[index], self.open_errors[index] = None, sanitize_text(f"{type(exc).__name__}: {exc}")[:300]
+            if self.decoders[index] is None:
+                if "decoder_unavailable" not in self.jpeg_warned and "decoder_unavailable" not in pending:  # the catalog read only until the warning
+                    pending["decoder_unavailable"] = decoder_missing_warning(place[0], self.open_errors.get(index))
+                continue
+            decoded = self.decoders[index].decode([frames[camera_id].image for camera_id in group], [rotations[camera_id] for camera_id in group])
+            for camera_id, frame in zip(group, decoded, strict=True):
+                if frame is not None:
+                    found[camera_id] = frame
+                else:
+                    pending[("decoder_refused", camera_id)] = PipelineWarning(
+                        JPEG_DECODED_ON_CPU, f"camera {camera_id!r}: the GPU JPEG decoder refuses the JPEG buffer: the run decodes it on the CPU", (),
+                        {"reason": "decoder_refused", "camera_id": camera_id},
+                    )
+        for camera_id in jpegs:
+            if camera_id not in found:
+                try:
+                    found[camera_id] = DecodedFrame.from_host(cpu.decode_jpeg(frames[camera_id].image, rotations[camera_id]))
+                except ValueError as exc:
+                    raise CallRefusedError(f"V-pipeline.running-12: camera {camera_id!r}: {exc}", "V-pipeline.running-12") from exc
+        if f"{FRAME}.decode" in self.spans_on:
+            events.append(timing_module.make_event([(frames[camera_id].frame_index, camera_id) for camera_id in jpegs], FRAME, "decode", begin, time.perf_counter_ns()))
+        for key, warning in pending.items():
+            if key not in self.jpeg_warned:
+                self.jpeg_warned.add(key)
+                self._warn(warning)
+        return {camera_id: found[camera_id] for camera_id in cameras}
+
+    def _frame_stage(
+        self, pixels: Mapping[Any, DecodedFrame], frames: Mapping[Any, Any], events: list[dict[str, Any]],
+    ) -> tuple[dict[int, onnx_model.CallSlots], dict[Any, tuple[int, int]]]:
         """The frame stage of one call, after the decode and the turn and before the first node. Return the slots and the slot sizes.
 
         On each device with a node that starts on the graph path, each camera of the device has a
@@ -363,9 +455,12 @@ class Executor:
         in the call gets a zero frame of the last size of the camera, one upload for each device and
         size, kept until the close. Before its first frame, a camera takes the size of the first
         frame of the call on its device. The set of frame sizes thus changes only when a camera
-        changes its frame size. The slot sizes are committed with the call.
+        changes its frame size. The slot sizes are committed with the call. A frame of the GPU
+        decoder is in GPU memory already: it does not upload. The event `frame.upload` gives the
+        cameras whose frame uploads; its time also holds the upload of a new zero frame.
         """
-        # The later GPU JPEG decode and the timing events `frame.decode` and `frame.upload` go in this function.
+        begin = time.perf_counter_ns()
+        uploaded = []
         sizes = {camera_id: (frame.width, frame.height) for camera_id, frame in pixels.items()}
         found = {}
         for index, (device_id, device_type) in self.upload_devices.items():
@@ -379,6 +474,8 @@ class Executor:
                 size = sizes.setdefault(camera_id, self.slot_sizes.get(camera_id, sizes[present[0]]))
                 sources.append(size)
                 if camera_id in pixels:
+                    if pixels[camera_id].device is None:
+                        uploaded.append(camera_id)
                     values.append(pixels[camera_id].on_device(device_id, upload))
                     continue
                 if (index, size) not in self.zero_frames:
@@ -386,6 +483,8 @@ class Executor:
                 values.append(self.zero_frames[(index, size)])
             slot_of = {id(pixels[camera_id]): slot for slot, camera_id in enumerate(slot_cameras) if camera_id in pixels}
             found[index] = onnx_model.CallSlots(tuple(values), tuple(sources), slot_of)
+        if uploaded and f"{FRAME}.upload" in self.spans_on:
+            events.append(timing_module.make_event([(frames[camera_id].frame_index, camera_id) for camera_id in uploaded], FRAME, "upload", begin, time.perf_counter_ns()))
         return found, sizes
 
     def _inputs(self, node: ResolvedNode, camera_id: Any, values: Mapping[Port, Any]) -> Any:
@@ -424,8 +523,9 @@ class Executor:
         timestamps = self._check_call(frames)
         cameras = list(timestamps)
         images = [(frames[camera_id].frame_index, camera_id) for camera_id in cameras]
-        pixels = {camera_id: self._frame_image(camera_id, frames[camera_id]) for camera_id in cameras}  # each JPEG decode before a node runs
-        self.call_slots, slot_sizes = self._frame_stage(pixels)
+        events: list[dict[str, Any]] = []
+        pixels = self._frame_images(frames, cameras, events)  # each JPEG decode before a node runs
+        self.call_slots, slot_sizes = self._frame_stage(pixels, frames, events)
         contexts, values = {}, {}
         for camera_id in cameras:
             frame = frames[camera_id]
@@ -435,7 +535,6 @@ class Executor:
                 values[camera_id][port] = replay.value(frame.frame_index, camera_id)
         node_ran = {camera_id: dict.fromkeys(self.inference_nodes, False) for camera_id in cameras}
         new_states: dict[tuple[Any, str], Any] = {}
-        events: list[dict[str, Any]] = []
 
         for node_id in self.order:
             node = self.resolved.nodes[node_id]
@@ -558,7 +657,13 @@ class Executor:
     # ---- close ----------------------------------------------------------------------------
 
     def close(self, write_taps: bool = True) -> None:
-        """Write `tap.json` of each record tap, close the timing file, and free the MediaPipe runners and the sessions."""
+        """Write `tap.json` of each record tap, close the timing file, and free the MediaPipe runners, the sessions and the GPU JPEG decoders.
+
+        The order of pipeline.running, Implementer guidance: the IO bindings (the run keeps none),
+        the decoded frames, the sessions, then each decoder, which closes its turn sessions and then
+        its CUDA stream. When a close of a session or a decoder raises, the other closes still run,
+        and then the first error raises.
+        """
         if self.closed:
             return
         self.closed = True
@@ -576,7 +681,16 @@ class Executor:
         # The decoded frames and the zero frames first: no frame in device memory outlives the sessions.
         self.port_values, self.call_slots = {}, {}
         self.zero_frames.clear()
-        for runner in self.models.values():
-            runner.close()
+        # Each close runs also when an earlier one raises; the first error goes to the caller after the last close.
+        closes = [*(runner.close for runner in self.models.values()), self.sessions.close,
+                  *(decoder.close for decoder in self.decoders.values() if decoder is not None)]
         self.models.clear()
-        self.sessions.close()
+        self.decoders.clear()
+        errors = []
+        for close in closes:
+            try:
+                close()
+            except Exception as exc:
+                errors.append(exc)
+        if errors:
+            raise errors[0]

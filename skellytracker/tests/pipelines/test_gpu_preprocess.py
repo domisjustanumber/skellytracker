@@ -109,7 +109,7 @@ def two_camera_calls(sizes: dict[str, tuple[int, int]], count: int = 2) -> list[
     return [{camera: Frame(noise(*size, seed=10 * index + n), index) for n, (camera, size) in enumerate(sizes.items())} for index in range(count)]
 
 
-def assert_agree(graph: list[dict], cpu: list[dict]) -> None:
+def assert_agree(graph: list[dict], cpu: list[dict], score_tolerance: float = SCORE_TOLERANCE) -> None:
     """The results of the graph path and of the CPU path agree within the tolerance of the module docstring."""
     assert len(graph) == len(cpu)
     for graph_call, cpu_call in zip(graph, cpu, strict=True):
@@ -118,7 +118,7 @@ def assert_agree(graph: list[dict], cpu: list[dict]) -> None:
             found = graph_call[camera]
             np.testing.assert_array_equal(found["boxes"].present, expected["boxes"].present)
             np.testing.assert_allclose(found["boxes"].xyxy, expected["boxes"].xyxy, rtol=0, atol=1e-9)
-            np.testing.assert_allclose(found["boxes"].score, expected["boxes"].score, rtol=0, atol=SCORE_TOLERANCE)
+            np.testing.assert_allclose(found["boxes"].score, expected["boxes"].score, rtol=0, atol=score_tolerance)
             np.testing.assert_array_equal(found["wholebody"].present, expected["wholebody"].present)
             np.testing.assert_allclose(found["wholebody"].xy, expected["wholebody"].xy, rtol=0, atol=1e-9)
             assert found["node_ran"] == expected["node_ran"]
@@ -552,3 +552,87 @@ def test_the_model_input_on_a_gpu_ep_is_the_graph_output_in_gpu_memory(root: Pat
         run.process_batch(two_camera_calls({"a": (720, 1280), "b": (480, 640)}, count=1)[0])
     assert len(bound) == 2 and all(value.device_name() == "cuda" for value in bound)
     assert not {id(value) for value in bound} & read
+
+
+# The GPU JPEG decoder in the frame stage. Tolerance: nvJPEG and `cv2.imdecode` differ by at most 3 `uint8`
+# steps on each pixel (pipeline.running, Implementer guidance), and the graph preprocess by at most 1 more, so
+# a score moves by at most 4 x `SCORE_TOLERANCE`. The boxes and the keypoints are constants of the models.
+
+JPEG_SCORE_TOLERANCE = 4 * SCORE_TOLERANCE
+JPEG_SPANS = ["frame.decode", "frame.upload", "pipeline.run"]
+
+
+def without_huffman_tables(data: bytes) -> bytes:
+    """Remove each DHT segment of a baseline JPEG: OpenCV then uses the standard tables (as for MJPEG), and nvJPEG refuses it."""
+    out, i = bytearray(data[:2]), 2
+    while data[i + 1] != 0xDA:  # the segments before the start of scan
+        end = i + 2 + int.from_bytes(data[i + 2 : i + 4], "big")
+        if data[i + 1] != 0xC4:
+            out += data[i:end]
+        i = end
+    return bytes(out + data[i:])
+
+
+def jpeg_camera_calls(count: int, refused: bool = False) -> list[dict[str, Frame]]:
+    """Two JPEG cameras of two sizes with rotation_deg 0 and 90, and an array camera. `refused`: camera `b` has no Huffman tables."""
+    from skellytracker.tests.test_decode_nvidia import jpeg, picture
+
+    calls = []
+    for index in range(count):
+        b = jpeg(picture(640, 480, 10 * index + 2), "422")
+        calls.append({
+            "a": Frame(jpeg(picture(1280, 720, 10 * index + 1)), index),
+            "b": Frame(without_huffman_tables(b) if refused else b, index, rotation_deg=90),
+            "c": Frame(noise(360, 480, 10 * index + 3), index),
+        })
+    return calls
+
+
+def gpu_decoder_or_skip(execution_provider: str) -> None:
+    from skellytracker.core.eps import registration
+
+    if registration.prepare_jpeg_decoder(execution_provider) is None:
+        pytest.skip(f"{execution_provider} has no usable GPU JPEG decoder component")
+
+
+@pytest.mark.parametrize("execution_provider", GPU_EPS)
+def test_jpeg_frames_on_a_gpu_ep_decode_on_the_gpu_with_no_upload_and_give_the_results_of_the_cpu_path(
+    root: Path, execution_provider: str, uploads: list[Any],
+) -> None:
+    gpu_decoder_or_skip(execution_provider)
+    calls = jpeg_camera_calls(3)
+    cpu, _ = run_calls(root, calls, camera_ids=["a", "b", "c"])
+    data = on_ep(detector_pipeline(), execution_provider)
+    data["instrumentation"] = {"timing_spans": JPEG_SPANS}
+    lines: list[dict] = []
+    uploads.clear()
+    with start(root, data, camera_ids=["a", "b", "c"], timing_sink=lines.append) as run:
+        gpu = []
+        for frames in calls:
+            gpu.append(run.process_batch(frames))
+            for camera in "ab":
+                frame = port_values(run, camera)["frame.image"]
+                assert frame.pixels is None and frame.device.device_name() == "cuda"
+        warnings = [warning for warning in run.warnings if warning.code == "jpeg_decoded_on_cpu"]
+    assert warnings == [] and [id(image) for image in uploads] == [id(frames["c"].image) for frames in calls]  # only the array camera uploads
+    assert [(event["span"], [image["camera_id"] for image in event["images"]]) for event in lines[1:] if event["node_id"] == "frame"] == [
+        ("decode", ["a", "b"]), ("upload", ["c"])] * len(calls)
+    assert_agree(gpu, cpu, JPEG_SCORE_TOLERANCE)
+
+
+@pytest.mark.parametrize("execution_provider", GPU_EPS)
+def test_a_jpeg_that_the_gpu_decoder_refuses_decodes_on_the_cpu_with_one_warning_on_a_gpu_ep(root: Path, execution_provider: str) -> None:
+    gpu_decoder_or_skip(execution_provider)
+    calls = jpeg_camera_calls(2, refused=True)
+    cpu, _ = run_calls(root, calls, camera_ids=["a", "b", "c"])
+    data = on_ep(detector_pipeline(), execution_provider)
+    data["instrumentation"] = {"timing_spans": JPEG_SPANS}
+    lines: list[dict] = []
+    with start(root, data, camera_ids=["a", "b", "c"], timing_sink=lines.append) as run:
+        gpu = [run.process_batch(frames) for frames in calls]
+        assert port_values(run, "a")["frame.image"].pixels is None and port_values(run, "b")["frame.image"].pixels is not None
+        warnings = [warning for warning in run.warnings if warning.code == "jpeg_decoded_on_cpu"]
+    assert [dict(warning.details) for warning in warnings] == [{"reason": "decoder_refused", "camera_id": "b"}]
+    assert [(event["span"], [image["camera_id"] for image in event["images"]]) for event in lines[1:] if event["node_id"] == "frame"] == [
+        ("decode", ["a", "b"]), ("upload", ["b", "c"])] * len(calls)
+    assert_agree(gpu, cpu, JPEG_SCORE_TOLERANCE)

@@ -899,7 +899,7 @@ def check_structure(config: PipelineConfig) -> None:
         _check_upright(config.outputs["boxes"], nodes)
     for span in config.instrumentation.timing_spans:
         node_id, _, span_name = span.partition(".")
-        if node_id == RESERVED_NODE_ID and span_name == "run":
+        if (node_id, span_name) in ((RESERVED_NODE_ID, "run"), (FRAME, "decode"), (FRAME, "upload")):
             continue
         if node_id not in nodes or span_name not in BY_TYPE[nodes[node_id].type].timing_spans:
             raise ValueError(f"V-pipeline.timing-1: {span!r} names no timing span")

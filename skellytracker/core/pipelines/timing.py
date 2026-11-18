@@ -241,6 +241,8 @@ def skellybench_timing(records: str | Path | Iterable[Mapping[str, Any]]) -> dic
       `batch_size` of those events, or null when no event has the stage. The model spans are the
       spans of each `onnx_model` node and the `run` span of each `mediapipe_tasks` node.
     - `excluded_ms_per_image`: the `run` time of the glue nodes for each image, under `GLUE_STAGE`.
+    - The events of the reserved source `frame` (`decode`, `upload`) are in no stage and not in
+      `excluded_ms_per_image`: their time is a part of `pipeline.run`.
     - `ms_per_image`: the time of the span `pipeline.run` for each image, when that span is on.
     - `images_per_second`: from `ms_per_image`, else from the sum of the stages.
     - `stage_providers`: from the node item, when the run has one model node that gives it.
@@ -263,6 +265,8 @@ def skellybench_timing(records: str | Path | Iterable[Mapping[str, Any]]) -> dic
         if record["node_id"] == RESERVED_NODE_ID:
             run_ms += duration_ms(record)
             run_images += record["batch_size"]
+            continue
+        if record["node_id"] == FRAME:  # `frame.decode` and `frame.upload` are a part of `pipeline.run`, not of a stage
             continue
         if record["node_id"] not in nodes:
             raise ValueError(f"no header before the event gives the node {record['node_id']!r}")

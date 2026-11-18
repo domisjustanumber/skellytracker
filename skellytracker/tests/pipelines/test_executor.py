@@ -743,3 +743,331 @@ def test_a_memoryview_is_not_a_frame_image() -> None:
     """The type check of `Frame` refuses a `memoryview` before the call: only `bytes` and `bytearray` are JPEG buffers."""
     with pytest.raises(BeartypeCallHintParamViolation):
         Frame(memoryview(jpeg(image(1))), 0)
+
+
+# The GPU JPEG decoder in the frame stage, with a fake decoder on the CPU EP: the graph path runs on `cpu`
+# (`onnx_model.GRAPH_EPS`), and the fake gives each frame as an `OrtValue` in host memory, as the real
+# decoder gives it in GPU memory.
+
+
+class HostReads:
+    """A device value that counts its copies to the host (`numpy()`). The graph path cannot bind it."""
+
+    def __init__(self, value: Any, reads: list[int]) -> None:
+        self.value, self.reads = value, reads
+
+    def numpy(self) -> np.ndarray:
+        self.reads.append(1)
+        return self.value.numpy()
+
+
+class FakeJpegDecoder:
+    """Decode with OpenCV and give device frames, with the settings of the fixture `gpu_decode`. `log` gets each decode and the close."""
+
+    def __init__(self, found: dict[str, Any]) -> None:
+        self.found, self.log = found, found["log"]
+
+    def decode(self, buffers: list[bytes], rotations: list[int]) -> list[Any]:
+        import onnxruntime
+
+        from skellytracker.core.decode import cpu
+        from skellytracker.core.decode.frame import DecodedFrame
+
+        self.log.append(("decode", len(buffers), list(rotations)))
+        if self.found["fail"] is not None:
+            raise self.found["fail"]
+        frames = []
+        for buffer, rotation in zip(buffers, rotations, strict=True):
+            pixels = None if buffer in self.found["refused"] else cv2.imdecode(np.frombuffer(buffer, np.uint8), cv2.IMREAD_COLOR)
+            if pixels is None:
+                frames.append(None)
+                continue
+            value = onnxruntime.OrtValue.ortvalue_from_numpy(np.ascontiguousarray(cpu.turn(pixels, rotation)))
+            height, width = value.shape()[:2]
+            frames.append(DecodedFrame(width, height, device=value if self.found["host_reads"] is None else HostReads(value, self.found["host_reads"])))
+        return frames
+
+    def close(self) -> None:
+        self.log.append("close")
+
+
+@pytest.fixture
+def gpu_decode(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
+    """Run the graph path and the GPU JPEG decode on the CPU EP. `found["log"]` records the opens, the decodes and the closes; `found["uploads"]` the uploads.
+
+    Set `found["decoder"]` to False for a decoder that does not open, or to an error that the open raises.
+    `found["refused"]` holds the buffers that the decoder refuses, `found["fail"]` an error that `decode` raises,
+    and `found["host_reads"]` a list that counts the host copies of each frame of the decoder.
+    """
+    from skellytracker.core.eps import session as eps_session
+    from skellytracker.core.pipelines._runtime import executor, onnx_model
+
+    found: dict[str, Any] = {"log": [], "uploads": [], "refused": (), "decoder": True, "fail": None, "host_reads": None}
+    monkeypatch.setattr(onnx_model, "GRAPH_EPS", onnx_model.GRAPH_EPS | {"cpu"})
+    monkeypatch.setattr(executor, "JPEG_DECODER_EPS", executor.JPEG_DECODER_EPS | {"cpu"})
+
+    def opened(execution_provider: str, device_key: Any, ep_device_id: Any) -> Any:
+        found["log"].append(("open", execution_provider))
+        if isinstance(found["decoder"], Exception):
+            raise found["decoder"]
+        return FakeJpegDecoder(found) if found["decoder"] else None
+
+    monkeypatch.setattr(executor, "open_jpeg_decoder", opened)
+    real = eps_session.upload_frame
+    monkeypatch.setattr(eps_session, "upload_frame", lambda pixels, device_id, **kw: (found["uploads"].append(pixels), real(pixels, device_id, **kw))[1])
+    return found
+
+
+def jpeg_calls(count: int = 2) -> list[dict[str, Frame]]:
+    """Two JPEG cameras of two sizes with rotation_deg 0 and 90, and an array camera."""
+    return [{
+        "a": Frame(jpeg(image(1 + index, 40, 48)), index),
+        "b": Frame(jpeg(image(2, 36, 64)), index, rotation_deg=90),
+        "c": Frame(image(1, 32, 32), index),
+    } for index in range(count)]
+
+
+def jpeg_warnings(run: Any) -> list[Any]:
+    return [warning for warning in run.warnings if warning.code == "jpeg_decoded_on_cpu"]
+
+
+def frame_spans(lines: list[dict]) -> list[tuple[str, list]]:
+    return [(event["span"], [image["camera_id"] for image in event["images"]]) for event in lines[1:] if event["node_id"] == "frame"]
+
+
+def test_gpu_decoded_frames_go_to_the_graph_path_with_no_upload_and_one_batch_for_each_call(root: Path, gpu_decode: dict[str, Any]) -> None:
+    with start(root, detector_pipeline(), camera_ids=["a", "b", "c"]) as run:
+        results = []
+        for frames in jpeg_calls():
+            before = len(gpu_decode["uploads"])
+            results.append(run.process_batch(frames))
+            assert len(gpu_decode["uploads"]) - before == 1 and gpu_decode["uploads"][-1] is frames["c"].image  # only the array camera uploads
+            assert port_values(run, "a")["frame.image"].pixels is None and port_values(run, "b")["frame.image"].pixels is None
+            assert (port_values(run, "b")["frame.image"].width, port_values(run, "b")["frame.image"].height) == (36, 64)
+        assert jpeg_warnings(run) == []
+    assert gpu_decode["log"] == [("open", "cpu"), ("decode", 2, [0, 90]), ("decode", 2, [0, 90]), "close"]
+    gpu_decode["decoder"] = False  # the same calls with the CPU decode: OpenCV in both, so the results are equal
+    with start(root, detector_pipeline(), camera_ids=["a", "b", "c"]) as run:
+        expected = [run.process_batch(frames) for frames in jpeg_calls()]
+    for found, wanted in zip(results, expected, strict=True):
+        for camera in wanted:
+            np.testing.assert_array_equal(found[camera]["wholebody"].xy, wanted[camera]["wholebody"].xy)
+            np.testing.assert_array_equal(found[camera]["boxes"].xyxy, wanted[camera]["boxes"].xyxy)
+
+
+def test_a_buffer_that_the_gpu_decoder_refuses_decodes_on_the_cpu_with_one_warning_for_each_camera(root: Path, gpu_decode: dict[str, Any]) -> None:
+    calls = jpeg_calls(3)
+    gpu_decode["refused"] = tuple(frames["b"].image for frames in calls)
+    with start(root, detector_pipeline(), camera_ids=["a", "b", "c"]) as run:
+        for frames in calls:
+            before = len(gpu_decode["uploads"])
+            result = run.process_batch(frames)
+            assert port_values(run, "a")["frame.image"].pixels is None  # the other camera keeps its GPU frame
+            turned = port_values(run, "b")["frame.image"]
+            np.testing.assert_array_equal(turned.pixels, cv2.rotate(decoded(frames["b"].image), cv2.ROTATE_90_CLOCKWISE))
+            assert len(gpu_decode["uploads"]) - before == 2 and (result["b"]["image_width"], result["b"]["image_height"]) == (36, 64)
+        (warning,) = jpeg_warnings(run)
+    assert (warning.node_ids, dict(warning.details)) == ((), {"reason": "decoder_refused", "camera_id": "b"})
+
+
+def test_a_decoder_that_does_not_open_gives_the_cpu_decode_and_one_warning_at_the_first_jpeg_call(root: Path, gpu_decode: dict[str, Any]) -> None:
+    gpu_decode["decoder"] = False
+    with start(root, detector_pipeline(), camera_ids=["a", "b", "c"]) as run:
+        run.process_batch({camera: Frame(image(1, 32, 32), 0) for camera in "abc"})
+        assert gpu_decode["log"] == [] and jpeg_warnings(run) == []  # only decoded arrays: no open and no warning
+        for frames in jpeg_calls(3)[1:]:
+            run.process_batch(frames)
+            assert port_values(run, "a")["frame.image"].pixels is not None
+        (warning,) = jpeg_warnings(run)
+    assert gpu_decode["log"] == [("open", "cpu")]  # no second open
+    assert warning.node_ids == () and dict(warning.details) == {
+        "reason": "decoder_unavailable", "package": None, "jpeg_decoder": None, "install_hint": None, "cause": None,
+    }
+
+
+def test_the_warning_of_a_decoder_that_does_not_open_names_the_package_and_the_install_hint_or_the_cause(monkeypatch: pytest.MonkeyPatch) -> None:
+    from skellytracker.core.eps import store
+    from skellytracker.core.pipelines._runtime import executor
+
+    monkeypatch.setattr(store, "component_state", lambda catalog, key: "missing")
+    warning = executor.decoder_missing_warning("cuda")
+    assert warning.code == "jpeg_decoded_on_cpu" and warning.node_ids == ()
+    assert dict(warning.details) == {
+        "reason": "decoder_unavailable", "package": "gpu-jpeg-cu13", "jpeg_decoder": "missing", "install_hint": "Run `skellytracker-eps install cuda`.",
+        "cause": None,
+    }
+    assert warning.message.startswith("the GPU JPEG decoder gpu-jpeg-cu13 of 'cuda' is missing; the run decodes")
+    monkeypatch.setattr(store, "component_state", lambda catalog, key: "installed")
+    warning = executor.decoder_missing_warning("cuda", "RuntimeError: boom")
+    assert warning.message == "the GPU JPEG decoder gpu-jpeg-cu13 of 'cuda' did not open: RuntimeError: boom; the run decodes each JPEG buffer on the CPU"
+    assert (warning.details["install_hint"], warning.details["cause"]) == (None, "RuntimeError: boom")
+
+
+def test_an_open_that_raises_gives_the_cpu_decode_one_warning_with_the_cause_and_no_second_open(root: Path, gpu_decode: dict[str, Any]) -> None:
+    gpu_decode["decoder"] = RuntimeError("cudaStreamCreateWithFlags returned the CUDA error 2")
+    with start(root, detector_pipeline(), camera_ids=["a", "b", "c"]) as run:
+        for frames in jpeg_calls(3):
+            run.process_batch(frames)
+            assert port_values(run, "a")["frame.image"].pixels is not None
+        (warning,) = jpeg_warnings(run)
+    assert gpu_decode["log"] == [("open", "cpu")]
+    assert warning.details["reason"] == "decoder_unavailable"
+    assert warning.details["cause"] == "RuntimeError: cudaStreamCreateWithFlags returned the CUDA error 2"
+
+
+def test_an_error_of_a_decode_raises_and_changes_no_state_and_gives_no_warning(root: Path, gpu_decode: dict[str, Any]) -> None:
+    with start(root, prev_pipeline(), camera_ids=["a", "b"], running_mode="live") as run:
+        run.process_batch({"a": Frame(image(1), 0, 0.0), "b": Frame(image(1), 0, 0.0)})
+        before = snapshot(run)
+        gpu_decode["fail"] = RuntimeError("cudaStreamSynchronize returned the CUDA error 700")
+        with pytest.raises(RuntimeError, match="error 700") as error:
+            run.process_batch({"a": Frame(jpeg(image(1)), 1, 1000.0), "b": Frame(jpeg(image(2)), 1, 1000.0)})
+        assert not isinstance(error.value, CallRefusedError) and same(before, snapshot(run)) and jpeg_warnings(run) == []
+        gpu_decode["fail"] = None
+        run.process_batch({"a": Frame(jpeg(image(1)), 1, 10.0), "b": Frame(image(1), 1, 10.0)})
+
+
+@pytest.mark.parametrize("kind", ["decoder_unavailable", "decoder_refused"])
+def test_a_warning_held_back_in_a_refused_call_comes_at_the_next_good_call(root: Path, gpu_decode: dict[str, Any], kind: str) -> None:
+    good = jpeg(image(2))
+    if kind == "decoder_unavailable":
+        gpu_decode["decoder"] = False
+    else:
+        gpu_decode["refused"] = (good,)
+    with start(root, detector_pipeline(), camera_ids=["a", "b", "c"], running_mode="live") as run:
+        with pytest.raises(CallRefusedError, match="V-pipeline.running-12: camera 'c'"):
+            run.process_batch({"a": Frame(jpeg(image(1)), 0, 0.0), "b": Frame(good, 0, 0.0), "c": Frame(b"\xff\xd8junk", 0, 0.0)})
+        assert jpeg_warnings(run) == []
+        run.process_batch({"a": Frame(jpeg(image(1)), 1, 10.0), "b": Frame(good, 1, 10.0)})
+        assert [warning.details["reason"] for warning in jpeg_warnings(run)] == [kind]
+        if kind == "decoder_refused":
+            assert jpeg_warnings(run)[0].details["camera_id"] == "b"
+
+
+def test_two_host_readers_of_a_gpu_decoded_frame_get_one_host_copy_for_each_call_and_the_same_pixels(
+    root: Path, gpu_decode: dict[str, Any], monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """With no graph session allowed, both model nodes use the CPU preprocess and read the host pixels of the GPU frame."""
+    from skellytracker.core.pipelines._runtime import onnx_model
+
+    monkeypatch.setattr(onnx_model, "SIZE_SETS", 0)
+    gpu_decode["host_reads"] = reads = []
+    calls = jpeg_calls(2)
+    with start(root, detector_pipeline(), camera_ids=["a", "b", "c"]) as run:
+        seen: dict[str, list[Any]] = {}
+        for node_id, runner in run._executor.models.items():  # noqa: SLF001
+            seen[node_id] = []
+            runner.run = lambda *args, real=runner.run, images=seen[node_id]: (images.extend(args[1]), real(*args))[1]
+        found = []
+        for frames in calls:
+            before = len(reads)
+            found.append(run.process_batch(frames))
+            assert len(reads) - before == 2  # one host copy for each GPU-decoded camera (a, b), for both nodes
+            frame = port_values(run, "a")["frame.image"]
+            assert frame.pixels is None and seen["person"][-3] is seen["body"][-3] is frame  # each reader gets the one frame
+        assert {warning.code for warning in run.warnings} >= {"preprocessed_on_cpu"} and jpeg_warnings(run) == []
+    gpu_decode["decoder"], gpu_decode["host_reads"] = False, None
+    monkeypatch.setattr(onnx_model, "SIZE_SETS", 4)
+    with start(root, detector_pipeline(), camera_ids=["a", "b", "c"]) as run:
+        expected = [run.process_batch(frames) for frames in calls]
+    for result, wanted in zip(found, expected, strict=True):
+        for camera in wanted:
+            np.testing.assert_array_equal(result[camera]["wholebody"].xy, wanted[camera]["wholebody"].xy)
+            np.testing.assert_array_equal(result[camera]["boxes"].xyxy, wanted[camera]["boxes"].xyxy)
+
+
+def test_close_runs_each_close_when_one_raises_and_then_raises_the_first_error(root: Path, gpu_decode: dict[str, Any]) -> None:
+    log = gpu_decode["log"]
+
+    class Closing:
+        def __init__(self, name: str, fails: bool) -> None:
+            self.name, self.fails = name, fails
+
+        def close(self) -> None:
+            log.append(self.name)
+            if self.fails:
+                raise RuntimeError(self.name)
+
+    run = start(root, detector_pipeline(), camera_ids=["a", "b", "c"])
+    run.process_batch(jpeg_calls(1)[0])
+    executor = run._executor  # noqa: SLF001
+    real_sessions = executor.sessions.close
+
+    def sessions_close() -> None:
+        log.append("sessions")
+        real_sessions()
+        raise RuntimeError("sessions")
+
+    executor.sessions.close = sessions_close
+    executor.decoders = {0: Closing("decoder 0", True), 1: Closing("decoder 1", False)}
+    with pytest.raises(RuntimeError, match="^sessions$"):
+        run.close()
+    assert log[-3:] == ["sessions", "decoder 0", "decoder 1"] and executor.sessions.opened == {}
+
+
+def test_v_pipeline_running_12_a_buffer_that_no_decoder_reads_refuses_the_call_with_no_warning_and_the_decoder_stays(root: Path, gpu_decode: dict[str, Any]) -> None:
+    with start(root, prev_pipeline(), camera_ids=["a", "b"], running_mode="live") as run:
+        run.process_batch({"a": Frame(jpeg(image(1)), 0, 0.0), "b": Frame(jpeg(image(1, 64, 64)), 0, 0.0)})
+        before = snapshot(run)
+        with pytest.raises(CallRefusedError, match="V-pipeline.running-12: camera 'b'"):
+            run.process_batch({"a": Frame(jpeg(image(1)), 1, 1000.0), "b": Frame(b"\xff\xd8" + b"junk" * 16, 1, 1000.0)})
+        assert same(before, snapshot(run)) and jpeg_warnings(run) == []  # the refused buffer of `b` gives no warning
+        run.process_batch({"a": Frame(jpeg(image(1)), 1, 10.0), "b": Frame(jpeg(image(1, 64, 64)), 1, 10.0)})
+        assert port_values(run, "b")["frame.image"].pixels is None
+    assert gpu_decode["log"] == [("open", "cpu"), *[("decode", 2, [0, 0])] * 3, "close"]
+
+
+def test_the_frame_events_of_each_frame_form_are_inside_pipeline_run_and_the_aggregator_leaves_them_out(root: Path, gpu_decode: dict[str, Any]) -> None:
+    data = detector_pipeline()
+    data["instrumentation"] = {"timing_spans": ["frame.decode", "frame.upload", "pipeline.run", "person.inference"]}
+    calls = jpeg_calls(1)
+    gpu_decode["refused"] = (calls[0]["b"].image,)
+    lines: list[dict] = []
+    with start(root, data, camera_ids=["a", "b", "c"], timing_sink=lines.append) as run:
+        run.process_batch(calls[0])
+    # `a` GPU-decoded: decode, no upload. `b` refused, CPU-decoded: decode, then upload. `c` an array: upload only.
+    assert frame_spans(lines) == [("decode", ["a", "b"]), ("upload", ["b", "c"])]
+    events = lines[1:]
+    call = next(event for event in events if event["node_id"] == "pipeline")
+    decode, upload = (event for event in events if event["node_id"] == "frame")
+    assert call["start_ns"] <= decode["start_ns"] <= decode["end_ns"] <= upload["start_ns"] <= upload["end_ns"] <= call["end_ns"]
+    assert all(tuple(event) == timing.EVENT_FIELDS and event["batch_size"] == len(event["images"]) for event in events)
+    without = [line for line in lines if line.get("node_id") != "frame"]
+    assert timing.skellybench_timing(lines) == timing.skellybench_timing(without)
+
+
+def test_the_frame_spans_off_give_no_frame_event(root: Path, gpu_decode: dict[str, Any]) -> None:
+    data = detector_pipeline()
+    data["instrumentation"] = {"timing_spans": ["pipeline.run"]}
+    lines: list[dict] = []
+    with start(root, data, camera_ids=["a", "b", "c"], timing_sink=lines.append) as run:
+        run.process_batch(jpeg_calls(1)[0])
+    assert [event["node_id"] for event in lines[1:]] == ["pipeline"]
+
+
+def test_close_frees_the_decoded_frames_then_the_sessions_then_the_decoder_and_a_second_close_does_nothing(root: Path, gpu_decode: dict[str, Any]) -> None:
+    log = gpu_decode["log"]
+    run = start(root, detector_pipeline(), camera_ids=["a", "b", "c"])
+    run.process_batch(jpeg_calls(1)[0])
+    executor = run._executor  # noqa: SLF001
+    for node_id, runner in executor.models.items():
+        runner.close = lambda node_id=node_id, real=runner.close: (log.append((node_id, executor.port_values, executor.call_slots)), real())[1]
+    real_sessions = executor.sessions.close
+    executor.sessions.close = lambda: (log.append("sessions"), real_sessions())[1]
+    run.close()
+    run.close()
+    assert log[-4:] == [("person", {}, {}), ("body", {}, {}), "sessions", "close"]  # the frames are gone before the sessions
+    assert executor.decoders == {}
+
+
+def test_a_run_on_the_cpu_ep_opens_no_decoder_gives_no_jpeg_warning_and_a_jpeg_frame_gives_only_a_decode_event(root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from skellytracker.core.pipelines._runtime import executor
+
+    monkeypatch.setattr(executor, "open_jpeg_decoder", lambda *args: pytest.fail("no decoder on the CPU EP"))
+    data = detector_pipeline()
+    data["instrumentation"] = {"timing_spans": ["frame.decode", "frame.upload"]}
+    lines: list[dict] = []
+    with start(root, data, camera_ids=["a", "b", "c"], timing_sink=lines.append) as run:
+        run.process_batch(jpeg_calls(1)[0])
+        assert jpeg_warnings(run) == [] and port_values(run, "a")["frame.image"].pixels is not None
+    assert frame_spans(lines) == [("decode", ["a", "b"])]  # no frame goes to GPU memory: no upload event
