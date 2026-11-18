@@ -220,9 +220,9 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
     on the GPU) lowered `frame.decode` of 3 frames at 1280x720 on `cuda` from 2.30 to 1.33 ms. It is
     not enabled.
   - Open: a model session with a dynamic batch pads the batch on the GPU path.
-  - Open: the CPU decodes of a call run one after the other. In the decode comparison, a thread pool
-    took 3 frames at 1280x720 from 8.25 to 3.56 ms (2.3 times faster) and 6 frames from 16.38 to
-    4.20 ms (3.9 times faster).
+  - Open: the run now decodes the CPU JPEG frames of a call in a thread pool, with at most
+    `cpu_threads` threads ([ADR-S1TG](../specs/pipeline/decisions/entries/S1TG-cpu-jpeg-decode-threads.md)).
+    The gain of a full call is not measured yet.
 - **Repair of a damaged store folder.** A damaged pack folder or component folder of the EP store
   reports a state whose hint is to run the install command. The install does not repair the folder,
   because the folder exists. The remedy today is to remove the pack or the component, then to install
