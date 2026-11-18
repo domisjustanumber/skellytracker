@@ -168,7 +168,9 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
 
   In the built-in pipeline, the detector runs one time in 150 frames. The mean cost is small, but
   the frame with a detection has a delay of this size. No fix is decided. A change of this code
-  must keep each output tensor equal.
+  must keep each output tensor equal. A second implementation on the GPU must agree with this code
+  within the resize limit of `pre.resize.interpolation`
+  ([ADR-J1HK](../specs/model-sidecar/decisions/entries/J1HK-resize-pixel-tolerance.md)).
 - **Kit PR in freemocap/project.** The kit is on the branch `dom/agents-and-adr-kit` of
   freemocap/project, in a PR for its owner
   ([ADR-P3NK](entries/P3NK-bootstrap-kit-in-freemocap-project.md)). The link repairs in 0031, NB91,

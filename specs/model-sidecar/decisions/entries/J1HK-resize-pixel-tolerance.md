@@ -1,6 +1,6 @@
 # J1HK — Spec change: resize-pixel-tolerance
 
-**Status:** accepted, 2026-11-17 (user; PR: pending).
+**Status:** absorbed into [`interpolation.md#behaviour`](../../pre/interpolation.md#behaviour), [`interpolation.md#resize-limit`](../../pre/interpolation.md#resize-limit), [`interpolation.md#implementer-guidance`](../../pre/interpolation.md#implementer-guidance), [`parity.md#parity`](../../model-addition-workflow/parity.md#parity), 2026-11-17 (user; PR: pending).
 
 ## Decision
 

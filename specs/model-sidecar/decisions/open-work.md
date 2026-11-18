@@ -8,6 +8,14 @@ repository state is in the root [open-work.md](../../../decisions/open-work.md).
 
 - `specs/model-sidecar/post/keypoint/canonical-mapping.md` links to the VRM specification by the branch `master`. A
   rewording PR must pin the two links to a commit.
+- Open items of the resize limit ([ADR-J1HK](entries/J1HK-resize-pixel-tolerance.md)):
+  - The evidence commits of the GPU preprocess path have no permalink, because the branch is not
+    pushed. They are secondary sources until then.
+  - No session opened the ONNX and OpenCV permalinks of part 1 of the record.
+  - `nearest` with `fit` is exact only at the 1/2 and 1/3 scales of the sample.
+  - The `trt-rtx` pack is outside the ONNX Runtime range that NVIDIA tested.
+  - One run of the race script hung at the process exit after it printed all results. One rerun
+    did not hang.
 
 ## Re-export requests
 
@@ -95,3 +103,8 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   keypoints of the parent pose model (MediaPipe-Exporter [`docs/mediapipe-whole-body.md:200`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L200), [`docs/mediapipe-whole-body.md:381-394`](https://github.com/domisjustanumber/MediaPipe-Exporter/blob/8f708a1ddecd8e035de15a5a9a7b652af035a58a/docs/mediapipe-whole-body.md#L381-L394)).
   A pose estimator with two points describes the tensor, but then a host reads the points as
   keypoints. `affine_crop` crops such a rotated ROI. The border item above still applies.
+- A pixel case cannot state a limit on integer values. `agrees` of `tools/vector_form.py` makes two
+  integers match exactly, also with `compare.atol`. Part 4 of the change proposal template says that
+  a pixel case states its tolerance in `compare`. The vector cases of `pre.resize.interpolation`
+  test the check of the resize limit, not two images
+  ([ADR-J1HK](entries/J1HK-resize-pixel-tolerance.md)).

@@ -15,7 +15,6 @@ These entries are `accepted`.
 
 | # | Decision | Status |
 |---|----------|--------|
-| [J1HK](entries/J1HK-resize-pixel-tolerance.md) | Spec change: resize limit, before the normalization: at most 1 step with `uint8`, at most 0.05 with `float32` | accepted |
 
 ### Evidence
 
