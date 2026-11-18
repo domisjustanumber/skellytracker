@@ -29,7 +29,7 @@ The timing spans of each node type ([ADR-Q59W](../../decisions/entries/Q59W-pipe
 
 The events of the reserved source `frame` for each frame that goes to GPU memory ([ADR-P245](decisions/entries/P245-jpeg-frame-input.md)):
 
-- A decoded array gives an `upload` event and no `decode` event.
+- A decoded array gives an `upload` event and no `decode` event. The turn of a decoded array by its `rotation_deg` is in no `frame` span: it is inside the span `pipeline.run` only.
 - A JPEG buffer that the run decodes on the CPU, in each fallback of [Running](running.md#behaviour) item 13, gives a `decode` event and then an `upload` event.
 - A JPEG buffer that the GPU decoder decodes gives a `decode` event and no `upload` event. The GPU decoder copies the data to GPU memory itself, so that copy is a part of the `decode` span.
 

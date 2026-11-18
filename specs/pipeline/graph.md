@@ -24,7 +24,7 @@ The graph of a pipeline is a flat list of nodes. Each node has an id, a type and
 
 A **port reference** is a string `<node>.<port>`, with an optional suffix `@prev`. It matches `^[a-z][a-z0-9_-]*\.[a-z][a-z0-9_]*(@prev)?$`.
 
-The **frame** is the reserved source of the graph. Its one port `frame.image` is the camera frame of the call. When the caller gives a JPEG buffer, `frame.image` is the decoded and turned frame ([Running](running.md#behaviour) item 13; [ADR-P245](decisions/entries/P245-jpeg-frame-input.md)). It has the type `image`. It is the only image of the graph: no node type has an output of the type `image`, so each `image` input names `frame.image` ([ADR-9HTX](../../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) item 4).
+The **frame** is the reserved source of the graph. Its one port `frame.image` is the camera frame of the call. `frame.image` is the decoded frame, or the decoded array, turned by its `rotation_deg` ([Running](running.md#behaviour) item 13; [ADR-P245](decisions/entries/P245-jpeg-frame-input.md)). It has the type `image`. It is the only image of the graph: no node type has an output of the type `image`, so each `image` input names `frame.image` ([ADR-9HTX](../../decisions/entries/9HTX-pipeline-node-and-port-redesign.md) item 4).
 
 The port types:
 

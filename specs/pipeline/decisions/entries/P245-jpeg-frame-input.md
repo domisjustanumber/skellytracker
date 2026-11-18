@@ -24,12 +24,13 @@
 6. **Pixels.** The decoder is an implementation choice. The spec does not require equal pixels
    across decoders. It requires the width, the height, the channel count, the channel order and the
    bit depth.
-7. **Rotation.** A JPEG frame can have `rotation_deg`: `0`, `90`, `180` or `270` degrees
-   clockwise, default `0`. The run decodes, then turns the frame one time, before the first node.
-   For `90` and `270`, the width and the height swap. The turn is exact. The run does not apply the
-   EXIF orientation. A decoded array has no `rotation_deg`: the caller turns its pixels. Another
-   value, or a `rotation_deg` on a decoded array, breaks the new rule `V-pipeline.running-13`, and
-   the call raises `CallRefusedError`.
+7. **Rotation.** A frame of either form can have `rotation_deg`: `0`, `90`, `180` or `270`
+   degrees clockwise, default `0`. The run decodes a JPEG buffer, then turns the frame one time,
+   before the first node. It turns a decoded array in the same way. For `90` and `270`, the width
+   and the height swap. The turn is exact. The run does not apply the EXIF orientation. The turn of
+   a decoded array is in no `frame` span. Another value breaks the new rule
+   `V-pipeline.running-13`, and the call raises `CallRefusedError`. The camera ring can give
+   unturned BGR frames with the same rotation value as JPEG frames.
 8. **Fallbacks.** Each gives the warning `jpeg_decoded_on_cpu`
    ([Running](../../running.md#behaviour) item 8):
    - a JPEG that the GPU decoder refuses is decoded on the CPU for that frame. The call continues.
@@ -49,9 +50,8 @@
 
 - No change to the sidecar spec or the camera layer. The proposal `resize-pixel-tolerance` covers
   a pixel limit of the resize.
-- Before the push, the user changed the turn two times: from no turn, to the EXIF orientation in
-  the decode, to `rotation_deg` after the decode. The last change follows the turn cost in the
-  Evidence.
+- Before the push, the user changed the turn three times: no turn, the EXIF orientation, then
+  `rotation_deg` after the decode, for a decoded array too. The turn cost is in the Evidence.
 
 ## Reason
 
@@ -67,8 +67,7 @@
   changes no state.
 - On the GPU, a turn after the decode costs less than a decode that applies an EXIF tag. On the CPU,
   the costs are equal. The camera layer gives the rotation as a value in its frame header.
-- The run can check `rotation_deg`, so a `V-` rule refuses a wrong value. A `rotation_deg` on a
-  decoded array is a caller mistake that the run can see.
+- The run can check `rotation_deg`, so a `V-` rule refuses a wrong value.
 
 ## Evidence
 
