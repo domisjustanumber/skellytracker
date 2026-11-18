@@ -23,7 +23,7 @@ LARGE = gpu(vram=24 * GIB, bus="0000:02:00.0", device_id=0x2684, name="RTX 4090"
 
 def model_bytes() -> bytes:
     """A generated model: `y = Relu(x + 1)` on a 2x3 float input."""
-    onnx = pytest.importorskip("onnx")
+    import onnx
     from onnx import TensorProto, helper, numpy_helper
 
     graph = helper.make_graph(

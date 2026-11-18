@@ -6,8 +6,6 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-pytest.importorskip("onnx", reason="onnx not installed")
-
 from skellytracker.core.detectors.generic import create_detector  # noqa: E402
 from skellytracker.core.pipelines import Frame, load_pipeline, start_pipeline  # noqa: E402
 from skellytracker.core.pipelines._runtime.onnx_model import OnnxModelRunner  # noqa: E402

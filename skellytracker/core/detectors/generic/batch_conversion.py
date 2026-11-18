@@ -1,7 +1,7 @@
 """The batch conversion of a static-batch ONNX artifact (section `common.batch_conversion`).
 
 `model_batch_convert` makes the generated artifact of the profile `static-batch-v1` in memory. It
-needs the `onnx` package, which is the extra `onnx` of skellytracker.
+needs the `onnx` package, a base dependency of skellytracker.
 """
 from __future__ import annotations
 

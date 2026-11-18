@@ -895,6 +895,7 @@ dependencies = [
     { name = "numpy" },
     { name = "numpydantic" },
     { name = "nvidia-ml-py" },
+    { name = "onnx" },
     { name = "onnxruntime", marker = "sys_platform != 'win32'" },
     { name = "onnxruntime-windowsml", marker = "sys_platform == 'win32'" },
     { name = "opencv-contrib-python" },
@@ -913,9 +914,6 @@ dependencies = [
 [package.optional-dependencies]
 mediapipe = [
     { name = "mediapipe" },
-]
-onnx = [
-    { name = "onnx" },
 ]
 pyinstaller = [
     { name = "pyinstaller" },
@@ -940,7 +938,7 @@ requires-dist = [
     { name = "numpy", specifier = "==2.4.6" },
     { name = "numpydantic", specifier = "==2.0.0" },
     { name = "nvidia-ml-py", specifier = "==13.615.71" },
-    { name = "onnx", marker = "extra == 'onnx'", specifier = "==1.22.0" },
+    { name = "onnx", specifier = "==1.22.0" },
     { name = "onnxruntime", marker = "sys_platform != 'win32'", specifier = "==1.30.0" },
     { name = "onnxruntime-windowsml", marker = "sys_platform == 'win32'", specifier = "==1.30.0.202609102321" },
     { name = "opencv-contrib-python", specifier = "==5.0.0.93" },
@@ -956,7 +954,7 @@ requires-dist = [
     { name = "tqdm", specifier = "==4.70.1" },
     { name = "windowsml", extras = ["with-ort"], marker = "sys_platform == 'win32'", specifier = "==2.6.74rc0" },
 ]
-provides-extras = ["mediapipe", "onnx", "pyinstaller"]
+provides-extras = ["mediapipe", "pyinstaller"]
 
 [package.metadata.requires-dev]
 dev = [

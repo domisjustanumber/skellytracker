@@ -797,7 +797,7 @@ def onnx_file(
     path: Path, batch: int | str, *, bias: float = 0.0, empty: bool = False, ir_version: int | None = None
 ) -> Path:
     """x[N, 3] -> Reshape([N, 3]) -> Add(bias) -> y[N, 3], or y[N, 0] with `empty`."""
-    onnx = pytest.importorskip("onnx")
+    import onnx
     from onnx import TensorProto, helper, numpy_helper
 
     dim0 = "N" if batch == "dynamic" else batch
@@ -906,7 +906,7 @@ def test_batch_skips_the_check_of_a_forced_fallback(family) -> None:  # noqa: AN
 
 
 def test_batch_gives_to_run_when_the_runtime_cannot_load_a_file(family) -> None:  # noqa: ANN001
-    onnx = pytest.importorskip("onnx")
+    import onnx
     root, fields, out = family({1: {}, 2: {"ir_version": onnx.IR_VERSION + 1}, 3: {}, 6: {}})
     report = ib.batch_check(fields, out, root=root)
     assert (report["batch_conversion"], report["batch_conversion_reason"]) == ("to run", "host-runtime-cannot-load")
@@ -920,7 +920,7 @@ def test_batch_gives_no_signal_when_every_output_is_empty(family) -> None:  # no
 
 
 def test_batch_fails_v6_on_a_dynamic_file_with_other_output_names(family, tmp_path: Path) -> None:  # noqa: ANN001
-    onnx = pytest.importorskip("onnx")
+    import onnx
     root, fields, out = family({1: {}, 2: {}, 3: {}, 6: {}, "dynamic": {}})
     path = tmp_path / "Exporter" / "m_bdynamic_fp32.onnx"
     model = onnx.load(str(path))
@@ -939,7 +939,7 @@ def test_batch_gives_no_signal_when_v6_compares_nothing(family) -> None:  # noqa
 
 def reshape_by_constant(path: Path, batch: int | str) -> Path:
     """x[B, 3] -> Reshape([3B]) -> Sin -> Reshape([B, 3]): the [3B] constant hides the batch."""
-    onnx = pytest.importorskip("onnx")
+    import onnx
     from onnx import TensorProto, helper, numpy_helper
 
     dim0 = "N" if batch == "dynamic" else batch
@@ -976,7 +976,7 @@ def test_batch_gives_does_not_convert_when_the_converted_graph_does_not_run(fami
 
 
 def test_batch_takes_a_dynamic_non_batch_dim_from_input_b(family, tmp_path: Path) -> None:  # noqa: ANN001
-    onnx = pytest.importorskip("onnx")
+    import onnx
     root, fields, out = family({1: {}, 2: {}, 3: {}, 6: {}, "dynamic": {}})
     path = tmp_path / "Exporter" / "m_bdynamic_fp32.onnx"
     model = onnx.load(str(path))
@@ -1580,7 +1580,7 @@ def test_a_section_name_that_is_a_path_never_loads_a_file(tmp_path: Path, marker
 
 def tiny_model(path: Path, domain: str = "", location: str | None = None) -> Path:
     """y = Relu(x), or y = x + w with the external data of w at `location`."""
-    onnx = pytest.importorskip("onnx")
+    import onnx
     from onnx import TensorProto, helper
 
     nodes = [helper.make_node("Relu", ["x"], ["y"], domain=domain)]
@@ -1638,7 +1638,7 @@ def external(tensor, location: str):  # noqa: ANN001, ANN201
 
 @pytest.mark.parametrize("kind", ["function domain", "function external", "sparse attribute"])
 def test_the_onnx_check_refuses_a_local_function_and_a_sparse_attribute(tmp_path: Path, kind: str) -> None:
-    onnx = pytest.importorskip("onnx")
+    import onnx
     from onnx import TensorProto, helper
 
     value = external(helper.make_tensor("c", TensorProto.FLOAT, [1], [1.0]), "../secret.bin")
@@ -1666,7 +1666,6 @@ def test_the_onnx_check_refuses_a_local_function_and_a_sparse_attribute(tmp_path
 
 
 def test_the_onnx_check_refuses_a_file_that_onnx_cannot_read(tmp_path: Path) -> None:
-    pytest.importorskip("onnx")
     (tmp_path / "m.onnx").write_bytes(b"\xff not a model")
     assert ib.onnx_problems(tmp_path / "m.onnx")[0].startswith("onnx cannot read the file")
 

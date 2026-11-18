@@ -21,11 +21,10 @@ Add an extra to enable more trackers:
 | Extra | What it adds |
 |---|---|
 | `mediapipe` | The MediaPipe trackers (pose, hands, face) |
-| `onnx` | The `onnx` package. The RTMPose and YOLOX trackers need it to change the ONNX graph. |
 
 ```bash
-pip install "skellytracker[mediapipe,onnx]"
-uv add "skellytracker[mediapipe,onnx]"
+pip install "skellytracker[mediapipe]"
+uv add "skellytracker[mediapipe]"
 ```
 
 The ONNX trackers run on the CPU. On macOS, they can also run on CoreML. A plain install gives the

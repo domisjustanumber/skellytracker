@@ -11,8 +11,6 @@ import cv2
 import numpy as np
 import pytest
 
-pytest.importorskip("onnx", reason="onnx not installed")
-
 import skellytracker.__main__ as entry  # noqa: E402
 from skellytracker.core import eps, errors  # noqa: E402
 from skellytracker.core.detectors import catalog  # noqa: E402

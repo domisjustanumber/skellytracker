@@ -1,4 +1,4 @@
-"""The dependency rules of ``pyproject.toml`` (decisions N6E8, W09C and D3VP).
+"""The dependency rules of ``pyproject.toml`` (decisions N6E8, W09C, D3VP and 8Z5Q).
 
 This test checks these rules, and ``pyproject.toml`` holds them:
 
@@ -10,6 +10,9 @@ This test checks these rules, and ``pyproject.toml`` holds them:
   ``onnxruntime-directml``, ``tensorrt``, an ``nvidia-*-cu12`` package or a plugin EP pack
   ``onnxruntime-ep-*``: a GPU EP comes only as a plugin EP pack. No extra is ``onnx-cpu``,
   ``onnx-cuda``, ``onnx-trt``, ``onnx-directml``, ``all-*`` or ``recommended-*``.
+- ``onnx`` is a base dependency with an exact 1.22 pin, because the package builds the preprocess
+  graph at run time. No extra is ``onnx``. onnx 1.23 writes IR version 14, and onnxruntime 1.31
+  reads IR version 13 or lower.
 - ``requires-python`` is ``==3.13.18``, and ``.python-version`` holds ``3.13.18``. Each CI workflow
   that tests or lints the package sets up Python 3.13.18.
 - The ``mediapipe`` extra is ``mediapipe==1.2.2``.
@@ -85,6 +88,11 @@ def test_onnxruntime_is_a_base_dependency_and_no_gpu_package_is_a_dependency() -
     extras = set(PROJECT.get("optional-dependencies", {}))
     old = {"onnx-cpu", "onnx-cuda", "onnx-trt", "onnx-directml"}
     assert sorted(e for e in extras if e in old or e.startswith(("all-", "recommended-"))) == []
+
+
+def test_onnx_is_a_base_dependency() -> None:
+    assert pins("dependencies")["onnx"].startswith("1.22.")
+    assert "onnx" not in PROJECT.get("optional-dependencies", {})
 
 
 def test_one_python_patch_release() -> None:

@@ -87,7 +87,6 @@ def test_an_entry_that_is_not_available_gives_its_reason(monkeypatch: pytest.Mon
 
 
 def test_an_onnx_key_goes_to_the_generic_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    pytest.importorskip("onnx", reason="onnx not installed")
     from skellytracker.core.detectors.generic import GenericObjectDetector
     from skellytracker.tests.detectors.onnx_models import object_model
     from skellytracker.tests.detectors.test_generic_detectors import OBJECT_KEY, frame, object_sidecar, put

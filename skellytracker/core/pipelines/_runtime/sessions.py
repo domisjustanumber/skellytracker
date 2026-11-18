@@ -9,7 +9,6 @@ builds each session with `eps.build_session()`.
 """
 from __future__ import annotations
 
-import importlib.util
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
@@ -172,14 +171,14 @@ class RunSessions:
         """Return the session of one node on one device at `batch`. Build it when no node of the run has it.
 
         A sidecar with a fixed batch that is not `batch` gets the batch conversion. When the
-        sidecar has no conversion profile, or the extra `onnx` is not installed, the session runs
-        the artifact at its own batch, and `run_batches` pads each group.
+        sidecar has no conversion profile, the session runs the artifact at its own batch, and
+        `run_batches` pads each group.
         """
         from skellytracker.core.detectors.generic.session import open_session
 
         model = node.model
         batching = model.sidecar.batching
-        can_convert = batching.batch_conversion is not None and importlib.util.find_spec("onnx") is not None
+        can_convert = batching.batch_conversion is not None
         used: int | str = batching.batch if batching.batch == "dynamic" or not can_convert else batch
         device_key = device_key if plan.gpu else None
         key = (plan.artifact_sha256, used, plan.execution_provider, plan.ep_options, device_key)

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-onnx = pytest.importorskip("onnx", reason="onnx not installed")
+import onnx
 
 from skellytracker.core.detectors.generic.batch_conversion import model_batch_convert  # noqa: E402
 from skellytracker.tests.detectors.onnx_models import object_model  # noqa: E402

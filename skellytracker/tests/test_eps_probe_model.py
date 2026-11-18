@@ -1,14 +1,13 @@
 """The probe model of the EP verification is the model that this test makes."""
 
 import numpy as np
-import pytest
 
 from skellytracker.core.eps import _probe_model
 
 
 def make_probe_model() -> bytes:
     """Conv (3 to 8 channels, 3x3) and Relu on a 1x3x64x64 float input `x`, opset 17, weights of standard deviation 0.25 from seed 0."""
-    onnx = pytest.importorskip("onnx")
+    import onnx
     from onnx import TensorProto, helper, numpy_helper
 
     rng = np.random.default_rng(0)

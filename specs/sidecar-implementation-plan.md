@@ -930,9 +930,9 @@ Open:
 - **Two downloads of one artifact.** Done in stage 1.10 (2026-11-16): `download_lock` of `core/detectors/generic/download.py`. Two threads or two processes that start a session for the same
   `url` artifact can download it at the same time. They write the same `.part` file, so one
   download can fail. Stage 1.10 decides the lock, with the file locks of stage 1.6.
-- **The extra `onnx`.** `model_batch_convert` needs the `onnx` package, which is an extra. A host
-  without it runs a b3 artifact only at batch 3. The tests of the generic detectors skip without
-  it.
+- **The extra `onnx`.** Done with the item "The GPU preprocess graph" of stage 1.11 (2026-11-18):
+  `onnx` is a base dependency, and the extra is gone
+  ([ADR-8Z5Q](../decisions/entries/8Z5Q-onnx-is-a-base-dependency.md)).
 - **Operating systems.** The detector tests ran only on Windows. CI runs them on Linux and macOS.
 - **Real exports.** No test of this stage runs a real export. Stage 1.9 runs `yolox-person` and
   `rtmw-wholebody133` at the detector level.

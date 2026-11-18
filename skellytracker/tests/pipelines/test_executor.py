@@ -10,8 +10,6 @@ import numpy as np
 import pytest
 from beartype.roar import BeartypeCallHintParamViolation
 
-pytest.importorskip("onnx", reason="onnx not installed")
-
 from skellytracker.core.eps.session import cpu_thread_count  # noqa: E402
 from skellytracker.core.errors import CallRefusedError  # noqa: E402
 from skellytracker.core.pipelines import Frame, load_pipeline, start_pipeline, timing  # noqa: E402

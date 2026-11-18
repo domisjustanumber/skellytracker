@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-onnx = pytest.importorskip("onnx", reason="onnx not installed")
+import onnx
 
 from onnx import TensorProto, helper, numpy_helper  # noqa: E402
 

@@ -317,7 +317,7 @@ def test_a_snapshot_of_symlinks_is_a_root(tmp_path: Path, root: Path, all_sectio
 
 
 def test_a_long_path_with_non_ascii_characters_works_with_onnx_runtime(tmp_path: Path, all_sections: None) -> None:
-    onnx = pytest.importorskip("onnx")
+    import onnx
     import onnxruntime
 
     value = onnx.helper.make_tensor_value_info

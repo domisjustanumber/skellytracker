@@ -58,6 +58,9 @@ dependencies = [
     "onnxruntime==1.30.0 ; sys_platform != 'win32'",
     "onnxruntime-windowsml==1.30.0.202609102321 ; sys_platform == 'win32'",
     "windowsml[with-ort]==2.6.74rc0 ; sys_platform == 'win32'",
+    # The package builds the preprocess graph at run time (ADR-8Z5Q).
+    # onnx 1.23 writes IR version 14; onnxruntime 1.31 reads IR version 13 or lower.
+    "onnx==1.22.0",
     "tqdm==4.70.1",
     "numpydantic==2.0.0",
     "requests==2.34.2",
@@ -78,11 +81,6 @@ dynamic = ["version", "description"]
 # Local dev installs each extra: `uv sync --all-extras`
 [project.optional-dependencies]
 mediapipe = ["mediapipe==1.2.2"]
-
-# RTMPose + YOLOX detectors (vendored, see skellytracker/core/detectors) need
-# the onnx package for graph surgery.
-# onnx 1.23 writes IR version 14; onnxruntime 1.31 reads IR version 13 or lower.
-onnx = ["onnx==1.22.0"]
 # The test extra of the PyInstaller hook in skellytracker/_pyinstaller/.
 pyinstaller = ["pyinstaller==6.22.3"]
 

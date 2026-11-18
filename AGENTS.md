@@ -109,7 +109,7 @@ run ([ADR-AD33](decisions/entries/AD33-bundles-are-untrusted-input.md)).
 Use `uv run` for project commands. Do not depend on an activated virtual environment.
 
 ```sh
-uv sync --all-extras                        # dev tools, MediaPipe, onnx; ONNX Runtime is a base dependency
+uv sync --all-extras                        # dev tools, MediaPipe; ONNX Runtime and onnx are base dependencies
 uv run pre-commit install                   # hooks; once per clone, and again after .pre-commit-config.yaml changes
 uv run python tools/run_checks.py           # the checks before each commit; stops at the first failure
 uv run python tools/graphify_hooks.py install  # optional code graph; in each checkout, and again after tools/graphify_hook.sh changes

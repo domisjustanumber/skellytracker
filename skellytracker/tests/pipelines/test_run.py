@@ -8,8 +8,6 @@ from typing import Any
 import numpy as np
 import pytest
 
-pytest.importorskip("onnx", reason="onnx not installed")
-
 import skellytracker.core.pipelines as pipelines  # noqa: E402
 from skellytracker.core.errors import CallRefusedError, RunClosedError, SetParamsRefusedError, VRAMExhaustionError  # noqa: E402
 from skellytracker.core.pipelines import Frame, PipelineRun, load_pipeline, start_pipeline  # noqa: E402

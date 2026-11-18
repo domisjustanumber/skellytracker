@@ -9,8 +9,6 @@ from typing import Any
 import numpy as np
 import pytest
 
-onnx = pytest.importorskip("onnx", reason="onnx not installed")
-
 from skellytracker.core.detectors import catalog  # noqa: E402
 from skellytracker.core.detectors.catalog import DetectorUnavailableError, get_detector, load_detector_sidecar  # noqa: E402
 from skellytracker.core.detectors.generic import (  # noqa: E402

@@ -11,8 +11,6 @@ from typing import Any
 import numpy as np
 import pytest
 
-pytest.importorskip("onnx", reason="onnx not installed")
-
 from skellytracker.core.detectors.catalog import get_detector, load_detector_sidecar  # noqa: E402
 from skellytracker.core.detectors.generic import download, ensure_artifact  # noqa: E402
 from skellytracker.core.detectors.generic import session as generic_session  # noqa: E402
@@ -220,18 +218,6 @@ def test_two_nodes_with_the_same_artifact_share_one_session_in_a_run_and_two_run
     result = second.process_batch({"a": Frame(image(1), 0), "b": Frame(image(1), 0)})  # the other run still runs
     assert result["a"]["boxes"].present.tolist() == [True]
     second.close()
-
-
-def test_a_host_with_no_onnx_extra_runs_the_artifact_at_its_own_batch_and_the_run_pads(root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    from types import SimpleNamespace
-
-    monkeypatch.setattr(sessions, "importlib", SimpleNamespace(util=SimpleNamespace(find_spec=lambda name: None)))
-    calls = spy_open_session(monkeypatch)
-    with start(root, detector_pipeline()) as run:
-        assert [call["batch"] for call in calls] == [None, None]  # no batch conversion: the sessions of the artifacts, batch 3
-        assert [item.batch for item in run._executor.sessions.opened.values()] == [3, 3]
-        result = run.process(Frame(image(1), 0))  # one image in a batch-3 session: `run_batches` pads and drops
-        assert result["boxes"].present.tolist() == [True] and result["node_ran"] == {"person": True, "body": True}
 
 
 def test_ep_partial_placement_gives_one_warning_for_each_session_with_nodes_on_the_cpu_ep(root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
