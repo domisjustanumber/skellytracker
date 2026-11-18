@@ -35,8 +35,8 @@ Each call gives, for each camera of the call, one frame with its `frame_index`. 
 
 The image of a frame has one of these two forms. Each frame of a call can have either form ([ADR-75K2](../../decisions/entries/75K2-unclear-places-of-the-pipeline-spec.md); [ADR-P245](decisions/entries/P245-jpeg-frame-input.md)):
 
-- a decoded array: the host frame, BGR, `uint8`, shape `(H, W, 3)`, in CPU memory;
-- a JPEG buffer: the bytes of one JPEG image. The run decodes it to `frame.image` before the first node ([Behaviour](#behaviour) item 13).
+- a decoded array: the host frame, BGR, `uint8`, shape `(H, W, 3)`, in CPU memory, with no orientation;
+- a JPEG buffer: the bytes of one JPEG image, with an optional EXIF orientation. The run decodes it to `frame.image` before the first node, and applies the orientation ([Behaviour](#behaviour) item 13).
 
 A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 6):
 
@@ -100,7 +100,15 @@ A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api
 13. **JPEG frames.** The caller gives the image of each frame as a decoded array or as a JPEG buffer ([Fields](#fields)). The pipeline file is the same for both forms ([ADR-P245](decisions/entries/P245-jpeg-frame-input.md)):
     - The run decodes each JPEG buffer to `frame.image` before the first node of the call. Each node reads `frame.image` as for a decoded array.
     - The run decodes each JPEG buffer one time. Each reader of `frame.image` gets the same decoded frame.
-    - The decoded frame is an 8-bit image with 3 channels in BGR order. Its width and height are the stored width and height of the JPEG. The run does not apply the EXIF orientation of the JPEG.
+    - The decoded frame is an 8-bit image with 3 channels in BGR order.
+    - The run applies the EXIF orientation of each JPEG buffer in the decode. The caller turns a frame with the EXIF Orientation tag in the JPEG bytes. The run has no rotation input of its own. The decoded frame is the stored image, turned by the orientation:
+      - `1`, or no Exif segment: no turn. The width and the height are the stored width and height.
+      - `3`: 180 degrees. The width and the height are the stored width and height.
+      - `6`: 90 degrees clockwise. The width and the height are the stored height and width.
+      - `8`: 270 degrees clockwise (90 degrees counter-clockwise). The width and the height are the stored height and width.
+    - The turn is exact. The decoded frame has the pixel values of the decode in the stored orientation by the same decoder, at their turned positions.
+    - The run does not examine the Exif segments of a JPEG buffer. The caller must not give a JPEG buffer with two or more Exif APP1 segments. The caller must not give the orientation `2`, `4`, `5` or `7`. The result of such a buffer is not defined.
+    - A decoded array has no orientation. The caller turns its pixels before the call.
     - When an `onnx_model` node that runs uses the EP `cuda` or `trt-rtx`, the decoded frame can be in GPU memory. Else the decoded frame is in CPU memory.
     - The spec does not give the pixel values of the decode. Two decoders can give different pixel values for one JPEG. The spec requires only the width, the height, the channel count, the channel order and the bit depth.
     - When the GPU decoder refuses a JPEG buffer, for example a progressive JPEG or a chroma format that it does not support, the run decodes that frame on the CPU. The call continues. The run gives the warning `jpeg_decoded_on_cpu` (Behaviour item 8).
@@ -130,9 +138,16 @@ A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api
 - The run parameter "frame interval" of the first draft is removed. The temporal nodes use `timestamp_ms` in each mode that keeps state.
 - JPEG frames ([ADR-P245](decisions/entries/P245-jpeg-frame-input.md)):
   - The package can give the decoded frame its own type, for example `DecodedFrame`. The type name is not a part of the spec.
-  - The decoders are an implementation choice: `cv2.imdecode` on the CPU, and nvJPEG through nvImageCodec on `cuda` and `trt-rtx`. On the CPU, the flag `cv2.IMREAD_IGNORE_ORIENTATION` keeps the stored width and height.
+  - The decoders are an implementation choice: `cv2.imdecode` on the CPU, and nvJPEG through nvImageCodec on `cuda` and `trt-rtx`.
+  - nvImageCodec applies the EXIF orientation by default (`apply_exif_orientation` defaults to True), and `cv2.imdecode` applies it unless `cv2.IMREAD_IGNORE_ORIENTATION` is set, so the run uses the defaults.
+  - With two Exif APP1 segments, `cv2.imdecode` applies the first segment and nvImageCodec applies the last segment, so the two decoders give different frames.
+  - For the orientations `1`, `3`, `6` and `8`, the turned decode of `cv2.imdecode` and of nvJPEG has a maximum difference of 0 against the turn of the decode in the stored orientation by the same decoder, with 4:2:2 and 4:2:0 chroma and several sizes.
   - nvJPEG and `cv2.imdecode` differ by at most 3 `uint8` steps, with a mean of 0.024, on 148 frame variants at JPEG quality 90 with 4:2:2 and 4:2:0 chroma.
-  - The cameras of a call whose JPEG frames have the same width and height share one decode batch.
+  - nvImageCodec falls back to a CPU decoder by itself and gives no signal of it, so the run uses a decoder that is limited to the nvJPEG backend and does its own CPU fallback to give the warning `jpeg_decoded_on_cpu`.
+  - nvImageCodec accepts `bytes`, `bytearray` and a 1-D `uint8` array, and refuses a `memoryview`.
+  - `cv2.imdecode` raises an assertion error for an empty buffer, so the run checks for an empty buffer first: an empty buffer is not a JPEG image (`V-pipeline.running-12`).
+  - The cameras of a call whose JPEG frames have the same stored width and height share one decode batch, also when their orientations are different: one decode call with the orientations `1`, `6` and `8` gives correct frames.
+  - The lossless turn of the JPEG data is not a way to turn a frame: it cannot turn each size, because of a partial block at the edge, and it is slower than the decode with the tag.
   - The GPU decoder returns before the frame is complete. The run waits for the decode before a reader uses the frame.
   - The run uploads a frame from CPU memory to GPU memory at most one time for each call, before the first reader that needs the frame in GPU memory. When the run uploads a decoded array is an implementation choice of the GPU preprocess of a model ([Timing](timing.md#fields), the span `frame.upload`).
   - A node that needs the pixels in CPU memory, for example `mediapipe_tasks`, copies a frame in GPU memory to the host as a part of the conversion for its model ([Graph](graph.md#behaviour) item 9).
@@ -141,7 +156,7 @@ A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api
 
 - A previous-frame input lowers the batch in `video`. A `smooth_keypoints` node after the last `onnx_model` node does not, because it runs on the host, frame by frame, after the batched pass ([ADR-ZYS9](../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md) item 5).
 - A live caller must give a `timestamp_ms` that increases, for example from the capture clock of the camera.
-- Risk: a USB camera can give a cut-off MJPEG frame. When no decoder can read it, `V-pipeline.running-12` refuses the call, and a caller that does not catch `CallRefusedError` stops on that frame ([ADR-P245](decisions/entries/P245-jpeg-frame-input.md)).
+- Risk: a USB camera can give a cut-off MJPEG frame. When no decoder can read it, `V-pipeline.running-12` refuses the call, and a caller that does not catch `CallRefusedError` stops on that frame. A decoder does not always refuse a cut-off JPEG: nvJPEG can give a full-size frame with wrong pixels and no error, as seen with a 4:2:0 frame. Thus `V-pipeline.running-12` does not catch each damaged frame. The capture side must not give a frame that it knows is damaged ([ADR-P245](decisions/entries/P245-jpeg-frame-input.md)).
 - The pipeline file is the same in each running mode. The caller gives a value for each mode, in the config before the start or with `set_params` before the first frame. For example, a caller sets `redetect_interval` of a `redetect_trigger` node to 10 in `live` and to 1 in `video` ([ADR-N5BM](../../decisions/entries/N5BM-set-during-run-and-set-params.md) item 5).
 
 ## Examples
