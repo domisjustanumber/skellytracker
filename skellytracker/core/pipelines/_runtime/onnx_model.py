@@ -5,7 +5,7 @@ Implements: node.onnx_model
 The node does no model processing of its own. The generic detectors do the preprocessing, the
 inference and the decode of the sidecar. The node makes the instance rows of the pipeline.
 
-On the EPs of `GRAPH_EPS`, the node runs the preprocess as a graph in its own session and binds the
+On the EPs of `GRAPH_DEFAULT_EPS` (or of `GRAPH_EPS` with `preprocess="gpu"`), the node runs the preprocess as a graph in its own session and binds the
 graph output to the model input in device memory (pipeline.running, Implementer guidance). The
 frame stage of the executor uploads the frames (`CallSlots`). The geometry of the inverse comes
 from `resize_geometry`, as on the CPU path.
@@ -29,7 +29,10 @@ from skellytracker.core.pipelines.warnings import PipelineWarning
 READS_EMPTY: frozenset[str] = frozenset()
 Timer = Callable[[str, int, int], None]
 GRAPH_EPS = frozenset({"cuda", "trt-rtx"})
-"""The EPs of the GPU preprocess. A test adds `cpu` to run the graph path on the CPU EP."""
+"""The EPs with the wiring of the GPU preprocess: the run parameter `preprocess="gpu"` uses it on them."""
+# a reviewed certification report moves an EP of GRAPH_EPS into GRAPH_DEFAULT_EPS
+GRAPH_DEFAULT_EPS = frozenset({"cuda", "trt-rtx"})
+"""The EPs where `preprocess="auto"` uses the GPU preprocess. A test adds `cpu` to run the graph path on the CPU EP."""
 SIZE_SETS = 4
 """The most sets of frame sizes with a preprocess session, for each node and device."""
 PREPROCESSED_ON_CPU = "preprocessed_on_cpu"

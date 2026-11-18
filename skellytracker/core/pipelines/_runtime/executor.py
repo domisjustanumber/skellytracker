@@ -126,7 +126,7 @@ class Executor:
         vram_reserve_bytes: int = 2**30,
         fps: float | int = 30.0,
         cpu_threads: int | None = None,
-        cpu_preprocess: bool = False,
+        preprocess: str = "auto",
         timing_sink: Any = None,
         timing: str = "on",
         tap_dir: str | Path | None = None,
@@ -138,7 +138,7 @@ class Executor:
         self.camera_ids = list(camera_ids)
         self.fps = float(fps)
         self.vram_reserve_bytes = vram_reserve_bytes
-        self.cpu_preprocess = cpu_preprocess
+        self.preprocess = preprocess
         self.batch_k = 1  # k is 1 on each GPU in this version (pipeline.running, Behaviour item 4)
         self.on_warning = on_warning
         self.warnings: list[PipelineWarning] = []
@@ -152,6 +152,8 @@ class Executor:
             raise ValueError(f"running_mode must be one of {list(RUNNING_MODES)}, not {running_mode!r}")
         if timing not in ("on", "off"):
             raise ValueError(f"timing must be 'on' or 'off', not {timing!r}")
+        if preprocess not in ("auto", "cpu", "gpu"):
+            raise ValueError(f"preprocess must be 'auto', 'cpu' or 'gpu', not {preprocess!r}")
         if not self.fps > 0:
             raise ValueError(f"fps must be more than 0, not {fps!r}")
         try:
@@ -266,7 +268,7 @@ class Executor:
             self.close(write_taps=False)
             raise
 
-        for warning in (*resolved.warnings, *self.sessions.partial_placement()):
+        for warning in (*resolved.warnings, *self.sessions.partial_placement(), *self._not_wired()):
             self._warn(warning)
         stateful = resolved.stateful_nodes(running_mode)
         if stateful and running_mode == "video":
@@ -298,9 +300,10 @@ class Executor:
                 opened[node_id].append(self.sessions.open(node, plan, device_key, self.batch_k * cameras * rows))
                 places.append(onnx_model.GraphDevice(device_key, opened[node_id][-1].report.ep_device_id, self.batch_k * cameras * rows))
             graph = None
-            # the GPU preprocess (pipeline.running, Implementer guidance); with `cpu_preprocess` no node has a graph, so no
+            # the GPU preprocess (pipeline.running, Implementer guidance); with `preprocess="cpu"` no node has a graph, so no
             # frame uploads and no GPU JPEG decoder opens, and the run gives no warning of the CPU path (Behaviour item 14)
-            if plan.execution_provider in onnx_model.GRAPH_EPS and not self.cpu_preprocess:
+            graph_eps = {"auto": onnx_model.GRAPH_DEFAULT_EPS, "gpu": onnx_model.GRAPH_EPS, "cpu": frozenset()}[self.preprocess]
+            if plan.execution_provider in graph_eps:
                 # the device memory of the bound values is that of the provider of the model session
                 device_type = "cpu" if opened[node_id][0].report.ep_name == sessions.CPU_EP_NAME else "cuda"
                 graph = onnx_model.GraphPath(
@@ -314,6 +317,21 @@ class Executor:
                     if plan.execution_provider in JPEG_DECODER_EPS:
                         self.decoder_places.setdefault(index, (plan.execution_provider, place.device_key, place.ep_device_id))
         return opened
+
+    def _not_wired(self) -> list[PipelineWarning]:
+        """With `preprocess="gpu"`, the warning `preprocessed_on_cpu` of each node that runs on an EP with no GPU preprocess (Behaviour item 14)."""
+        if self.preprocess != "gpu":
+            return []
+        found = []
+        for node_id in self.models:
+            ep = self.plans[node_id].execution_provider
+            if ep not in onnx_model.GRAPH_EPS:
+                cause = f"the EP {ep} has no GPU preprocess"
+                found.append(PipelineWarning(
+                    onnx_model.PREPROCESSED_ON_CPU, f"{node_id}: the preprocess runs on the CPU ({sessions.EP_NOT_WIRED}): {cause}", (node_id,),
+                    {"node": node_id, "reason": sessions.EP_NOT_WIRED, "frame_sizes": None, "cause": cause},
+                ))
+        return found
 
     def _node_items(self, opened: Mapping[str, list[sessions.OpenedSession]]) -> dict[str, dict[str, Any]]:
         """Return the node item of each node of the file, for the timing header and for `tap.json`.

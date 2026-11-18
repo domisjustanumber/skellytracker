@@ -87,7 +87,7 @@ def cli_main() -> None:
     parser.add_argument("--ep-option", action="append", metavar="NAME=VALUE", help="with --pipeline: one EP option; repeatable")
     parser.add_argument("--device", action="append", metavar="KEY", help="with --pipeline: one GPU key; repeatable")
     parser.add_argument("--cpu-threads", type=int, default=None, metavar="N", help="with --pipeline: the threads of each session on the CPU EP")
-    parser.add_argument("--cpu-preprocess", action="store_true", help="with --pipeline: decode and preprocess the frames on the CPU on each EP")
+    parser.add_argument("--preprocess", choices=["auto", "cpu", "gpu"], default="auto", help="with --pipeline: the place of the preprocess")
     args = parser.parse_args()
 
     if args.list:
@@ -99,9 +99,9 @@ def cli_main() -> None:
         from skellytracker.core.pipelines.cli import demo_main
 
         sys.exit(demo_main(args.pipeline, camera=args.camera, rotation=args.rotate, ep=args.ep, ep_option=args.ep_option, device=args.device,
-                           cpu_threads=args.cpu_threads, cpu_preprocess=args.cpu_preprocess))
-    if args.ep is not None or args.ep_option or args.device or args.cpu_threads is not None or args.cpu_preprocess:
-        parser.error("--ep, --ep-option, --device, --cpu-threads and --cpu-preprocess need --pipeline")
+                           cpu_threads=args.cpu_threads, preprocess=args.preprocess))
+    if args.ep is not None or args.ep_option or args.device or args.cpu_threads is not None or args.preprocess != "auto":
+        parser.error("--ep, --ep-option, --device, --cpu-threads and --preprocess need --pipeline")
 
     demo = _build_demo(args.tracker)
     demo.run_webcam(camera_index=args.camera, rotation=args.rotate)

@@ -35,6 +35,7 @@ EP_PARTIAL_PLACEMENT = "ep_partial_placement"
 GRAPH_REFUSED = "graph_refused"
 SESSION_NOT_BUILT = "session_not_built"
 FRAME_SIZE_CAP = "frame_size_cap"
+EP_NOT_WIRED = "ep_not_wired"
 
 
 @dataclass(frozen=True)

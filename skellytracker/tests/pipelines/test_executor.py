@@ -833,7 +833,7 @@ def test_a_decode_error_that_is_not_a_value_error_raises_from_the_thread_pool_as
 
 
 # The GPU JPEG decoder in the frame stage, with a fake decoder on the CPU EP: the graph path runs on `cpu`
-# (`onnx_model.GRAPH_EPS`), and the fake gives each frame as an `OrtValue` in host memory, as the real
+# (`onnx_model.GRAPH_DEFAULT_EPS`), and the fake gives each frame as an `OrtValue` in host memory, as the real
 # decoder gives it in GPU memory.
 
 
@@ -890,7 +890,7 @@ def gpu_decode(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     from skellytracker.core.pipelines._runtime import executor, onnx_model
 
     found: dict[str, Any] = {"log": [], "uploads": [], "refused": (), "decoder": True, "fail": None, "host_reads": None}
-    monkeypatch.setattr(onnx_model, "GRAPH_EPS", onnx_model.GRAPH_EPS | {"cpu"})
+    monkeypatch.setattr(onnx_model, "GRAPH_DEFAULT_EPS", onnx_model.GRAPH_DEFAULT_EPS | {"cpu"})
     monkeypatch.setattr(executor, "JPEG_DECODER_EPS", executor.JPEG_DECODER_EPS | {"cpu"})
 
     def opened(execution_provider: str, device_key: Any, ep_device_id: Any) -> Any:
@@ -1160,12 +1160,12 @@ def test_a_run_on_the_cpu_ep_opens_no_decoder_gives_no_jpeg_warning_and_a_jpeg_f
     assert frame_spans(lines) == [("decode", ["a", "b"])]  # no frame goes to GPU memory: no upload event
 
 
-def test_cpu_preprocess_decodes_each_jpeg_in_the_cpu_pool_opens_no_decoder_and_gives_no_jpeg_warning(
+def test_preprocess_cpu_decodes_each_jpeg_in_the_cpu_pool_opens_no_decoder_and_gives_no_jpeg_warning(
     root: Path, gpu_decode: dict[str, Any], monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     names = decode_threads(monkeypatch)
-    gpu_decode["decoder"] = False  # without the parameter, a decoder that does not open warns
-    with start(root, detector_pipeline(), camera_ids=["a", "b", "c"], cpu_threads=4, cpu_preprocess=True) as run:
+    gpu_decode["decoder"] = False  # with `auto`, a decoder that does not open warns
+    with start(root, detector_pipeline(), camera_ids=["a", "b", "c"], cpu_threads=4, preprocess="cpu") as run:
         for frames in jpeg_calls():
             run.process_batch(frames)
             assert all(port_values(run, camera)["frame.image"].device is None for camera in frames)  # each frame stays in CPU memory

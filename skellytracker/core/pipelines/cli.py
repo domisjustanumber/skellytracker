@@ -2,12 +2,12 @@
 
     python -m skellytracker run --pipeline <key or file> --coco <annotations.json> --images <dir> --out <dir or file.jsonl>
                                 [--ep <key>] [--ep-option <name>=<value> ...] [--device <key> ...] [--cpu-threads <n>]
-                                [--cpu-preprocess] [--timing on|off] [--taps <dir>] [--user-root <dir>]
+                                [--preprocess auto|cpu|gpu] [--timing on|off] [--taps <dir>] [--user-root <dir>]
     python -m skellytracker validate <key or file> [--user-root <dir>]
     python -m skellytracker nodes [--json]
     python -m skellytracker --pipeline <key or file> [--camera <index>] [--rotate <degrees>]
                             [--ep <key>] [--ep-option <name>=<value> ...] [--device <key> ...] [--cpu-threads <n>]
-                            [--cpu-preprocess]
+                            [--preprocess auto|cpu|gpu]
 
 `run` is the COCO input form (pipeline.timing, Behaviour item 6): one camera with the id 0, the
 running mode `image`, and the images in ascending `image_id` order. `--out` gets the timing file: a
@@ -96,7 +96,7 @@ def cmd_run(options: argparse.Namespace) -> int:
     run = _start(
         resolved, image_ids=[image_id for image_id, _ in images], camera_ids=[0], running_mode="image",
         execution_provider=execution_provider, ep_options=ep_options, device=options.device, cpu_threads=options.cpu_threads,
-        cpu_preprocess=options.cpu_preprocess, timing_sink=sink,
+        preprocess=options.preprocess, timing_sink=sink,
         timing=options.timing,
         tap_dir=options.taps,
     )
@@ -133,14 +133,15 @@ def cmd_nodes(options: argparse.Namespace) -> int:
 
 
 def add_ep_arguments(parser: argparse.ArgumentParser) -> None:
-    """Add `--ep`, `--ep-option`, `--device`, `--cpu-threads` and `--cpu-preprocess`: the same flags for `run` and for the demo."""
+    """Add `--ep`, `--ep-option`, `--device`, `--cpu-threads` and `--preprocess`: the same flags for `run` and for the demo."""
     parser.add_argument("--ep", default=None, help="a key of the EP catalog, for example cpu (default: the recommended EP, when the pipeline needs one)")
     parser.add_argument("--ep-option", action="append", metavar="NAME=VALUE", help="one EP option; repeatable")
     parser.add_argument("--device", action="append", metavar="KEY", help="one GPU key; repeatable (default: each GPU that the EP can use)")
     parser.add_argument("--cpu-threads", type=int, default=None, metavar="N",
                         help="the threads of each session on the CPU EP (default: half of the physical cores, at least 1)")
-    parser.add_argument("--cpu-preprocess", action="store_true",
-                        help="decode and preprocess the frames on the CPU on each EP; only the model runs on the EP (a benchmark of the CPU path)")
+    parser.add_argument("--preprocess", choices=["auto", "cpu", "gpu"], default="auto",
+                        help="the place of the preprocess: auto (the GPU on the confirmed EPs), cpu (the CPU on each EP; only the model runs "
+                             "on the EP) or gpu (the GPU on each EP that has it, for a certification run)")
 
 
 def parser() -> argparse.ArgumentParser:
@@ -196,7 +197,7 @@ def main(arguments: list[str]) -> int:
 def run_demo(
     pipeline: str | Path, *, camera: int = 0, rotation: int = 0, execution_provider: str | None = None,
     ep_options: Mapping[str, str] | None = None, device: Sequence[str] | None = None, cpu_threads: int | None = None,
-    cpu_preprocess: bool = False,
+    preprocess: str = "auto",
 ) -> None:
     """Run a pipeline on a webcam in the running mode `live` and show each output, until the key q or Esc.
 
@@ -211,7 +212,7 @@ def run_demo(
     run, capture = None, None
     try:
         run = start_pipeline(config, camera_ids=[camera], running_mode="live", execution_provider=execution_provider, ep_options=options, device=device,
-                             cpu_threads=cpu_threads, cpu_preprocess=cpu_preprocess)
+                             cpu_threads=cpu_threads, preprocess=preprocess)
         capture = cv2.VideoCapture(camera)
         if not capture.isOpened():
             raise RuntimeError(f"Could not open camera at index {camera}.")
@@ -240,13 +241,13 @@ def run_demo(
 
 def demo_main(
     pipeline: str, *, camera: int, rotation: int, ep: str | None, ep_option: Sequence[str] | None, device: Sequence[str] | None,
-    cpu_threads: int | None = None, cpu_preprocess: bool = False,
+    cpu_threads: int | None = None, preprocess: str = "auto",
 ) -> int:
     """Run the webcam demo of a pipeline from the demo CLI. Return the exit code."""
 
     def call() -> int:
         run_demo(pipeline, camera=camera, rotation=rotation, execution_provider=ep, ep_options=parse_ep_options(ep_option), device=device,
-                 cpu_threads=cpu_threads, cpu_preprocess=cpu_preprocess)
+                 cpu_threads=cpu_threads, preprocess=preprocess)
         return errors.EXIT_OK
 
     return _guarded(call)

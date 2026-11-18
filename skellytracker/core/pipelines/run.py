@@ -211,7 +211,7 @@ def start_pipeline(
     vram_reserve_bytes: int = 2**30,
     fps: float | int = 30.0,
     cpu_threads: int | None = None,
-    cpu_preprocess: bool = False,
+    preprocess: str = "auto",
     timing_sink: Any = None,
     timing: str = "on",
     tap_dir: str | Path | None = None,
@@ -231,10 +231,15 @@ def start_pipeline(
       is half of the physical cores of the host, at least 1, so that the run leaves cores free for
       the camera capture and the application. A session of a GPU pack uses one thread and ignores
       it. A `mediapipe_tasks` node does not use it. `run.models` gives the applied count.
-    - `cpu_preprocess`: True does the frame work on the CPU on each EP, for a benchmark of the CPU
-      path against the GPU path: each JPEG buffer decodes on the CPU, no frame uploads, and each
-      `onnx_model` node uses the CPU preprocess. Only the model runs on the EP. The run then gives
-      no warning `preprocessed_on_cpu` and no warning `jpeg_decoded_on_cpu`.
+    - `preprocess`: the place of the preprocess, `auto`, `cpu` or `gpu`. `auto` uses the GPU
+      preprocess on the confirmed EPs `cuda` and `trt-rtx`, and the CPU preprocess on each other EP.
+      `cpu` does the frame work on the CPU on each EP, for a benchmark of the CPU path against the
+      GPU path: each JPEG buffer decodes on the CPU, no frame uploads, and each `onnx_model` node
+      uses the CPU preprocess. Only the model runs on the EP. The run then gives no warning
+      `preprocessed_on_cpu` and no warning `jpeg_decoded_on_cpu`. `gpu` uses the GPU preprocess on
+      each EP that has it, also an EP that is not confirmed yet, for a certification run. On an EP
+      with no GPU preprocess, the node uses the CPU preprocess and the run gives the warning
+      `preprocessed_on_cpu` with the reason `ep_not_wired` at the start.
     - `timing_sink`, `timing`: a path, an open text file or a callable for the timing lines, and `on` or `off`.
     - `tap_dir`: the folder of the taps.
     - `on_warning`: a callable that gets each `PipelineWarning` one time.
@@ -248,7 +253,7 @@ def start_pipeline(
     """
     return _start(
         config, user_root=user_root, camera_ids=camera_ids, running_mode=running_mode, execution_provider=execution_provider,
-        ep_options=ep_options, device=device, vram_reserve_bytes=vram_reserve_bytes, fps=fps, cpu_threads=cpu_threads, cpu_preprocess=cpu_preprocess, timing_sink=timing_sink,
+        ep_options=ep_options, device=device, vram_reserve_bytes=vram_reserve_bytes, fps=fps, cpu_threads=cpu_threads, preprocess=preprocess, timing_sink=timing_sink,
         timing=timing, tap_dir=tap_dir, on_warning=on_warning,
     )
 
