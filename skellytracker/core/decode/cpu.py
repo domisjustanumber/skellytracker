@@ -11,6 +11,12 @@ import numpy as np
 ROTATIONS = {0: None, 90: cv2.ROTATE_90_CLOCKWISE, 180: cv2.ROTATE_180, 270: cv2.ROTATE_90_COUNTERCLOCKWISE}
 
 
+def turn(image: np.ndarray, rotation_deg: int) -> np.ndarray:
+    """Turn a frame clockwise by `rotation_deg`, a key of `ROTATIONS`. Return the same array for 0, else a new array."""
+    code = ROTATIONS[rotation_deg]
+    return image if code is None else cv2.rotate(image, code)
+
+
 def decode_jpeg(buffer: bytes | bytearray, rotation_deg: int = 0) -> np.ndarray:
     """Decode one JPEG buffer to a BGR `uint8` frame `(H, W, 3)`, then turn it clockwise by `rotation_deg`.
 
@@ -28,5 +34,4 @@ def decode_jpeg(buffer: bytes | bytearray, rotation_deg: int = 0) -> np.ndarray:
         raise ValueError(f"OpenCV cannot read the JPEG buffer: {exc}") from exc
     if image is None:
         raise ValueError("OpenCV cannot read the JPEG buffer")
-    turn = ROTATIONS[rotation_deg]
-    return image if turn is None else cv2.rotate(image, turn)
+    return turn(image, rotation_deg)

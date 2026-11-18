@@ -49,9 +49,9 @@ class Frame:
 
     `image` is the host frame (BGR, uint8, `(H, W, 3)`) or the bytes of one JPEG image (`bytes` or
     `bytearray`). The run decodes a JPEG buffer on the CPU before the first node, with no EXIF
-    orientation, and turns it clockwise by `rotation_deg`: 0, 90, 180 or 270, and None means 0.
-    A decoded array takes no `rotation_deg`: the caller turns its pixels. A `rotation_deg` that
-    breaks these rules refuses the call (`V-pipeline.running-13`), and so does a JPEG buffer that
+    orientation. It turns the decoded frame, or a decoded array, clockwise by `rotation_deg`: 0, 90,
+    180 or 270, and None means 0. It does not change the array of the caller. A `rotation_deg` that
+    is not one of these refuses the call (`V-pipeline.running-13`), and so does a JPEG buffer that
     the run cannot decode (`V-pipeline.running-12`). `timestamp_ms` is the time of the frame in
     milliseconds. The running mode `live` needs it. In `video`, a camera gives it on each frame or
     on none. The running mode `image` does not use it.

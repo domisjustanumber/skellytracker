@@ -663,6 +663,29 @@ def test_rotation_deg_turns_the_decoded_jpeg_frame_and_90_and_270_swap_the_frame
     np.testing.assert_array_equal(spy.images[0], expected)
 
 
+@pytest.mark.parametrize("rotation_deg", [None, 0, 90, 180, 270])
+def test_rotation_deg_turns_a_decoded_array_like_a_jpeg_frame_and_the_array_of_the_caller_does_not_change(root: Path, rotation_deg: int | None) -> None:
+    frame = image(1, 32, 48)
+    frame[:, :8] = 200
+    given = frame.copy()
+    codes = {90: cv2.ROTATE_90_CLOCKWISE, 180: cv2.ROTATE_180, 270: cv2.ROTATE_90_COUNTERCLOCKWISE}
+    expected = frame if not rotation_deg else np.rot90(frame, k=-(rotation_deg // 90))  # np.rot90 turns counterclockwise
+    assert not rotation_deg or np.array_equal(expected, cv2.rotate(frame, codes[rotation_deg]))
+    with start(root, detector_pipeline()) as run:
+        spy = run._executor.models["person"].run = FrameSpy(run._executor.models["person"].run)  # noqa: SLF001
+        result = run.process(Frame(frame, 0, rotation_deg=rotation_deg))
+    assert (result["image_width"], result["image_height"]) == ((32, 48) if rotation_deg in (90, 270) else (48, 32))
+    np.testing.assert_array_equal(spy.images[0], expected)
+    np.testing.assert_array_equal(frame, given)
+    assert (spy.images[0] is frame) == (not rotation_deg)  # no copy for 0 or None
+
+
+def test_a_call_takes_an_array_camera_and_a_jpeg_camera_with_a_rotation_deg_each(root: Path) -> None:
+    with start(root, detector_pipeline(), camera_ids=["a", "b"]) as run:
+        results = run.process_batch({"a": Frame(image(1, 32, 48), 0, rotation_deg=90), "b": Frame(jpeg(image(1, 32, 48)), 0, rotation_deg=270)})
+    assert {camera: (result["image_width"], result["image_height"]) for camera, result in results.items()} == {"a": (32, 48), "b": (32, 48)}
+
+
 BAD_FRAMES = {  # the frame of camera `b`: (image, rotation_deg) -> the rule that it breaks
     "an empty buffer": ("empty", None, "V-pipeline.running-12"),
     "junk bytes": ("junk", None, "V-pipeline.running-12"),
@@ -670,8 +693,9 @@ BAD_FRAMES = {  # the frame of camera `b`: (image, rotation_deg) -> the rule tha
     "rotation_deg 45": ("jpeg", 45, "V-pipeline.running-13"),
     "rotation_deg 90.0": ("jpeg", 90.0, "V-pipeline.running-13"),
     "rotation_deg True": ("jpeg", True, "V-pipeline.running-13"),
-    "a decoded array with rotation_deg 0": ("array", 0, "V-pipeline.running-13"),
-    "a decoded array with rotation_deg 90": ("array", 90, "V-pipeline.running-13"),
+    "a decoded array with rotation_deg 45": ("array", 45, "V-pipeline.running-13"),
+    "a decoded array with rotation_deg 90.0": ("array", 90.0, "V-pipeline.running-13"),
+    "a decoded array with rotation_deg True": ("array", True, "V-pipeline.running-13"),
 }
 
 

@@ -314,18 +314,12 @@ class Executor:
 
     @staticmethod
     def _frame_image(camera_id: Any, frame: Any) -> Any:
-        """Return `frame.image` of one frame: a decoded array as given, or a JPEG buffer decoded on the CPU and turned (pipeline.running, Behaviour item 13)."""
-        rotation = frame.rotation_deg
-        if not isinstance(frame.image, bytes | bytearray):
-            if rotation is not None:
-                raise CallRefusedError(
-                    f"V-pipeline.running-13: camera {camera_id!r}: a decoded array takes no rotation_deg; got {rotation!r}", "V-pipeline.running-13",
-                )
-            return frame.image
-        if rotation is None:
-            rotation = 0
+        """Return `frame.image` of one frame: a decoded array, or a JPEG buffer decoded on the CPU, turned by `rotation_deg` (pipeline.running, Behaviour item 13)."""
+        rotation = 0 if frame.rotation_deg is None else frame.rotation_deg
         if type(rotation) is not int or rotation not in cpu.ROTATIONS:  # `type` refuses a bool and a float such as 90.0
             raise CallRefusedError(f"V-pipeline.running-13: camera {camera_id!r}: rotation_deg must be 0, 90, 180 or 270; got {rotation!r}", "V-pipeline.running-13")
+        if not isinstance(frame.image, bytes | bytearray):
+            return cpu.turn(frame.image, rotation)  # the array of the caller as given for 0, else a new array
         try:
             return cpu.decode_jpeg(frame.image, rotation)
         except ValueError as exc:
