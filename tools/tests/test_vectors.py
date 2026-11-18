@@ -1851,6 +1851,19 @@ def normalize_runner(function: Any, case: dict[str, Any]) -> dict[str, Any] | No
     }
 
 
+def resize_limit_runner(function: Any, case: dict[str, Any]) -> dict[str, Any] | None:
+    """Run `within_resize_limit` on the two images of a `check_resize` case."""
+    if case.get("function") != "check_resize":
+        return None
+    inp, compute = case["input"], case["params"]["resize"].get("compute_dtype", "uint8")
+
+    def run() -> dict[str, Any]:
+        difference, within = function(np.asarray(inp["reference"]), np.asarray(inp["result"]), compute)
+        return {"max_difference": difference, "within_limit": within}
+
+    return node_outcome(run)
+
+
 def simcc_runner(function: Any, case: dict[str, Any]) -> dict[str, Any]:
     def run() -> dict[str, Any]:
         x, y = (np.asarray(case["input"][key], dtype=np.float32) for key in ("simcc_x", "simcc_y"))
@@ -2370,6 +2383,7 @@ PACKAGE_RUNNERS: dict[str, Callable[[Any, dict[str, Any]], dict[str, Any] | None
     f"{PRE}/resize_affine_crop.py::unproject": crop_unproject_runner,
     f"{PRE}/resize_affine_crop.py::affine_crop": affine_crop_runner,
     f"{PRE}/normalize.py::normalize": normalize_runner,
+    f"{PRE}/resize_interpolation.py::within_resize_limit": resize_limit_runner,
     f"{POST}/keypoint_decode_simcc.py::decode_simcc": simcc_runner,
     f"{POST}/keypoint_score_map.py::map_scores": score_map_runner,
     f"{POST}/object_selection_nms.py::decode_nms": nms_runner,

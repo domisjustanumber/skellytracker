@@ -88,6 +88,8 @@ cases:
     params: {resize: {}}
     input: {reference: [[[0, 114, 255], [7, 8, 9]]], result: [[[0, 114, 255], [7, 8, 9]]]}
     expect: {max_difference: 0, within_limit: true}
+    verified_against:
+      - skellytracker/core/detectors/processing/pre/resize_interpolation.py::within_resize_limit
   - id: limit-uint8-tie-rounded-half-to-even
     note: "the filter gives 0.5 at the first value. OpenCV rounds the tie up to 1. A Round node
       rounds it half to even, to 0. The difference is 1, so the result is in the limit.
@@ -96,6 +98,8 @@ cases:
     params: {resize: {compute_dtype: uint8}}
     input: {reference: [[[1, 2, 3], [4, 5, 6]]], result: [[[0, 2, 3], [4, 5, 6]]]}
     expect: {max_difference: 1, within_limit: true}
+    verified_against:
+      - skellytracker/core/detectors/processing/pre/resize_interpolation.py::within_resize_limit
   - id: limit-uint8-two-steps
     note: "a difference of 2 steps is not in the limit. The case checks only the resize limit.
       It checks no V- rule."
@@ -103,6 +107,8 @@ cases:
     params: {resize: {compute_dtype: uint8}}
     input: {reference: [[[100, 100, 100]]], result: [[[102, 100, 99]]]}
     expect: {max_difference: 2, within_limit: false}
+    verified_against:
+      - skellytracker/core/detectors/processing/pre/resize_interpolation.py::within_resize_limit
   - id: limit-uint8-fractional-value
     note: "a uint8 result has only integer values. The value 0.5 differs by less than 1, but it
       is not an 8-bit value. The case checks only the resize limit. It checks no V- rule."
@@ -110,6 +116,8 @@ cases:
     params: {resize: {compute_dtype: uint8}}
     input: {reference: [[[0, 0, 0]]], result: [[[0.5, 0, 0]]]}
     expect: {max_difference: 0.5, within_limit: false}
+    verified_against:
+      - skellytracker/core/detectors/processing/pre/resize_interpolation.py::within_resize_limit
   - id: limit-uint8-value-above-255
     note: "a uint8 result has values from 0 to 255. The value 256 differs by 1, but it is not
       an 8-bit value. The case checks only the resize limit. It checks no V- rule."
@@ -117,6 +125,8 @@ cases:
     params: {resize: {compute_dtype: uint8}}
     input: {reference: [[[255, 255, 255]]], result: [[[256, 255, 255]]]}
     expect: {max_difference: 1, within_limit: false}
+    verified_against:
+      - skellytracker/core/detectors/processing/pre/resize_interpolation.py::within_resize_limit
   - id: limit-float32-in-limit
     note: "with float32, the limit is 0.05 on the 0-255 scale. A difference of 0.046875 is in
       the limit. The case checks only the resize limit. It checks no V- rule."
@@ -124,6 +134,8 @@ cases:
     params: {resize: {compute_dtype: float32}}
     input: {reference: [[[0.5, 114, 254.25]]], result: [[[0.546875, 114, 254.21875]]]}
     expect: {max_difference: 0.046875, within_limit: true}
+    verified_against:
+      - skellytracker/core/detectors/processing/pre/resize_interpolation.py::within_resize_limit
   - id: limit-float32-over-the-limit
     note: "a difference of 0.0625 is not in the limit 0.05. The case checks only the resize
       limit. It checks no V- rule."
@@ -131,6 +143,8 @@ cases:
     params: {resize: {compute_dtype: float32}}
     input: {reference: [[[10, 20, 30]]], result: [[[10.0625, 20, 30]]]}
     expect: {max_difference: 0.0625, within_limit: false}
+    verified_against:
+      - skellytracker/core/detectors/processing/pre/resize_interpolation.py::within_resize_limit
   - id: limit-float32-float32-of-0.05-is-over-the-limit
     note: "the check converts both results to float64. float32(0.05) is 0.05000000074505806 in
       float64, so it is over the limit 0.05 against 0. expect writes the difference with 6
@@ -139,6 +153,8 @@ cases:
     params: {resize: {compute_dtype: float32}}
     input: {reference: [[[0, 20, 30]]], result: [[[0.05, 20, 30]]]}
     expect: {max_difference: 0.05, within_limit: false}
+    verified_against:
+      - skellytracker/core/detectors/processing/pre/resize_interpolation.py::within_resize_limit
   - id: limit-float32-one-uint8-step-is-over-the-limit
     note: "a difference of 1 is in the uint8 limit, but not in the float32 limit. The case
       checks only the resize limit. It checks no V- rule."
@@ -146,6 +162,8 @@ cases:
     params: {resize: {compute_dtype: float32}}
     input: {reference: [[[10.5, 20, 30]]], result: [[[11.5, 20, 30]]]}
     expect: {max_difference: 1, within_limit: false}
+    verified_against:
+      - skellytracker/core/detectors/processing/pre/resize_interpolation.py::within_resize_limit
   - id: limit-float32-cubic-values-outside-0-255
     note: "a float32 cubic resize is not clamped, so values below 0 and above 255 are valid.
       The case checks only the resize limit. It checks no V- rule."
@@ -153,6 +171,8 @@ cases:
     params: {resize: {interpolation: cubic, compute_dtype: float32}}
     input: {reference: [[[-3.5, 260.25, 128]]], result: [[[-3.46875, 260.25, 128]]]}
     expect: {max_difference: 0.03125, within_limit: true}
+    verified_against:
+      - skellytracker/core/detectors/processing/pre/resize_interpolation.py::within_resize_limit
   - id: limit-float32-nan-value
     note: "a NaN value is not in the limit. The case checks only the resize limit. It checks no
       V- rule."
@@ -160,6 +180,8 @@ cases:
     params: {resize: {compute_dtype: float32}}
     input: {reference: [[[10, 20, 30]]], result: [[[.nan, 20, 30]]]}
     expect: {max_difference: .nan, within_limit: false}
+    verified_against:
+      - skellytracker/core/detectors/processing/pre/resize_interpolation.py::within_resize_limit
   - id: limit-float32-infinite-value
     note: "an infinite value is not in the limit. The case checks only the resize limit. It
       checks no V- rule."
@@ -167,6 +189,8 @@ cases:
     params: {resize: {compute_dtype: float32}}
     input: {reference: [[[10, 20, 30]]], result: [[[.inf, 20, 30]]]}
     expect: {max_difference: .inf, within_limit: false}
+    verified_against:
+      - skellytracker/core/detectors/processing/pre/resize_interpolation.py::within_resize_limit
   - id: limit-shape-is-not-the-reference-shape
     note: "the input is an image, not a sidecar value. A result with 2 pixels cannot agree with
       a reference result with 1 pixel."
@@ -175,3 +199,5 @@ cases:
     params: {resize: {compute_dtype: uint8}}
     input: {reference: [[[1, 2, 3]]], result: [[[1, 2, 3], [1, 2, 3]]]}
     expect: {error: no-rule}
+    verified_against:
+      - skellytracker/core/detectors/processing/pre/resize_interpolation.py::within_resize_limit

@@ -16,6 +16,9 @@ repository state is in the root [open-work.md](../../../decisions/open-work.md).
   - The `trt-rtx` pack is outside the ONNX Runtime range that NVIDIA tested.
   - One run of the race script hung at the process exit after it printed all results. One rerun
     did not hang.
+  - Try `area` as ONNX nodes after the measurement step of the GPU preprocess path:
+    `AveragePool` for integer factors, and two `MatMul` nodes with weight tables for fractional
+    factors. This is an inferred idea. No test or measurement supports it.
 
 ## Re-export requests
 
@@ -48,6 +51,12 @@ Spec defects found during the spec-build stage. Each one needs a content change 
   or `affine_crop` thus gives the pixels of `linear`. The
   [interpolation](../pre/interpolation.md#behaviour) table names `cv2.INTER_AREA` for `area`. No
   current model uses this pair ([ADR-G79P](entries/G79P-pixel-centres-per-resize-method.md)).
+- The `nearest` sentence of [Pixel centres](../pre/interpolation.md#pixel-centres) gives the source
+  pixel `floor(x * src_n / dst_n)`. `cv2.INTER_NEAREST` does not take this pixel at each size. A
+  resize of an index ramp with OpenCV 5.0.0 gives a different pixel at 16 of 416 columns for
+  640 to 416, at 24 of 416 for 1920 to 416, and at 0 of 640 for 1280 to 640. The reference call is
+  normative. A proposal must correct the sentence
+  ([ADR-J1HK](entries/J1HK-resize-pixel-tolerance.md)).
 - The [Storage layout](../format/file-layout.md#storage-layout) gives no folder to a sidecar whose
   `role` has both `object_detector` and `keypoint_detector`. Both one-stage pose exporters write such a
   sidecar under `detectors/keypoint_detectors/`. Ultralytics-Exporter uses `yolo26/body/`
