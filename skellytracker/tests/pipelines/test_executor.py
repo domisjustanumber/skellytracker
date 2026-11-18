@@ -5,8 +5,10 @@ import logging
 from pathlib import Path
 from typing import Any
 
+import cv2
 import numpy as np
 import pytest
+from beartype.roar import BeartypeCallHintParamViolation
 
 pytest.importorskip("onnx", reason="onnx not installed")
 
@@ -609,3 +611,95 @@ def test_detector_ran_is_the_node_ran_of_the_instance_source_of_the_output_boxes
         results = [run.process(Frame(image(1), index)) for index in range(4)]
     assert [result["boxes"].detector_ran.tolist() for result in results] == [[True], [False], [False], [True]]
     assert [result["node_ran"]["person"] for result in results] == [True, False, False, True]
+
+
+# ---------------------------------------------------------------------------------------------
+# JPEG frames (pipeline.running, Behaviour item 13)
+# ---------------------------------------------------------------------------------------------
+
+
+def jpeg(frame: np.ndarray) -> bytes:
+    ok, encoded = cv2.imencode(".jpg", frame)
+    assert ok
+    return encoded.tobytes()
+
+
+def decoded(data: bytes) -> np.ndarray:
+    return cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
+
+
+def test_a_jpeg_frame_gives_the_result_of_its_decoded_array_and_each_reader_gets_the_one_decoded_frame(root: Path) -> None:
+    data = [jpeg(image(1)) for _ in range(4)]
+    results: dict[str, list[dict]] = {"jpeg": [], "array": []}
+    for form in results:
+        with start(root, tracking_pipeline()) as run:
+            spies = {node_id: FrameSpy(runner.run) for node_id, runner in run._executor.models.items()}  # noqa: SLF001
+            for node_id, spy in spies.items():
+                run._executor.models[node_id].run = spy  # noqa: SLF001
+            for index, buffer in enumerate(data):
+                results[form].append(run.process(Frame(buffer if form == "jpeg" else decoded(buffer), index)))
+                frames = [item for spy in spies.values() for item in spy.images]
+                assert all(item is frames[0] for item in frames)  # one decode for each call: each node gets the same object
+                for spy in spies.values():
+                    spy.images.clear()
+    for a, b in zip(results["jpeg"], results["array"], strict=True):
+        np.testing.assert_array_equal(a["wholebody"].xy, b["wholebody"].xy)
+        np.testing.assert_array_equal(a["boxes"].xyxy, b["boxes"].xyxy)
+        assert (a["node_ran"], a["image_width"], a["image_height"]) == (b["node_ran"], 32, 32)
+    assert results["jpeg"][0]["node_ran"]["person"] and results["jpeg"][0]["boxes"].xyxy.shape == (1, 4)
+
+
+@pytest.mark.parametrize(("rotation_deg", "code"), [
+    (None, None), (0, None), (90, cv2.ROTATE_90_CLOCKWISE), (180, cv2.ROTATE_180), (270, cv2.ROTATE_90_COUNTERCLOCKWISE),
+])
+def test_rotation_deg_turns_the_decoded_jpeg_frame_and_90_and_270_swap_the_frame_size(root: Path, rotation_deg: int | None, code: int | None) -> None:
+    frame = image(1, 32, 48)
+    frame[:, :8] = 200  # a bright band at the left edge shows the turn
+    data = jpeg(frame)
+    expected = decoded(data) if code is None else cv2.rotate(decoded(data), code)
+    with start(root, detector_pipeline()) as run:
+        spy = run._executor.models["person"].run = FrameSpy(run._executor.models["person"].run)  # noqa: SLF001
+        result = run.process(Frame(data, 0, rotation_deg=rotation_deg))
+    turned = rotation_deg in (90, 270)
+    assert (result["image_width"], result["image_height"]) == ((32, 48) if turned else (48, 32))
+    np.testing.assert_array_equal(spy.images[0], expected)
+
+
+BAD_FRAMES = {  # the frame of camera `b`: (image, rotation_deg) -> the rule that it breaks
+    "an empty buffer": ("empty", None, "V-pipeline.running-12"),
+    "junk bytes": ("junk", None, "V-pipeline.running-12"),
+    "a JPEG start with junk bytes": ("soi-junk", None, "V-pipeline.running-12"),
+    "rotation_deg 45": ("jpeg", 45, "V-pipeline.running-13"),
+    "rotation_deg 90.0": ("jpeg", 90.0, "V-pipeline.running-13"),
+    "rotation_deg True": ("jpeg", True, "V-pipeline.running-13"),
+    "a decoded array with rotation_deg 0": ("array", 0, "V-pipeline.running-13"),
+    "a decoded array with rotation_deg 90": ("array", 90, "V-pipeline.running-13"),
+}
+
+
+@pytest.mark.parametrize(("form", "rotation_deg", "rule"), BAD_FRAMES.values(), ids=BAD_FRAMES.keys())
+def test_v_pipeline_running_12_and_13_a_bad_frame_of_one_camera_refuses_the_call_and_changes_no_state_of_any_camera(
+    root: Path, form: str, rotation_deg: Any, rule: str,
+) -> None:
+    sizes = {"a": 32, "b": 64}
+    given = {
+        "empty": b"", "junk": bytes(range(256)), "soi-junk": b"\xff\xd8" + b"junk" * 16,
+        "jpeg": jpeg(image(1, 64, 64)), "array": image(1, 64, 64),
+    }[form]
+    with start(root, prev_pipeline(), camera_ids=["a", "b"], running_mode="live") as run:
+        _, first = batch(run, frames_of(0, sizes, timestamp_ms=0.0))
+        before = snapshot(run)
+        bad = {"a": Frame(jpeg(image(1)), 1, 1000.0), "b": Frame(given, 1, 1000.0, rotation_deg)}  # `a` is a good JPEG frame
+        with pytest.raises(CallRefusedError, match=f"{rule}: camera 'b'") as error:
+            run.process_batch(bad)
+        assert error.value.rule == rule and same(before, snapshot(run))
+        # The run accepts the next call. 10 is after 0 and before 1000: the refused call did not move the time of `a`.
+        after = run.process_batch(frames_of(1, sizes, timestamp_ms=10.0))
+    for camera in sizes:
+        np.testing.assert_allclose(after[camera]["boxes"].xyxy[0], xyxy(points_box(first[camera]["body.keypoints"])))
+
+
+def test_a_memoryview_is_not_a_frame_image() -> None:
+    """The type check of `Frame` refuses a `memoryview` before the call: only `bytes` and `bytearray` are JPEG buffers."""
+    with pytest.raises(BeartypeCallHintParamViolation):
+        Frame(memoryview(jpeg(image(1))), 0)

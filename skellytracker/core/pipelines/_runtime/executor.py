@@ -21,6 +21,7 @@ from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from skellytracker.core.decode import cpu
 from skellytracker.core.eps.session import cpu_thread_count
 from skellytracker.core.errors import CallRefusedError, EpRequestError, SetParamsRefusedError
 from skellytracker.core.pipelines import timing as timing_module
@@ -311,6 +312,25 @@ class Executor:
             found[camera_id] = timestamp
         return found
 
+    @staticmethod
+    def _frame_image(camera_id: Any, frame: Any) -> Any:
+        """Return `frame.image` of one frame: a decoded array as given, or a JPEG buffer decoded on the CPU and turned (pipeline.running, Behaviour item 13)."""
+        rotation = frame.rotation_deg
+        if not isinstance(frame.image, bytes | bytearray):
+            if rotation is not None:
+                raise CallRefusedError(
+                    f"V-pipeline.running-13: camera {camera_id!r}: a decoded array takes no rotation_deg; got {rotation!r}", "V-pipeline.running-13",
+                )
+            return frame.image
+        if rotation is None:
+            rotation = 0
+        if type(rotation) is not int or rotation not in cpu.ROTATIONS:  # `type` refuses a bool and a float such as 90.0
+            raise CallRefusedError(f"V-pipeline.running-13: camera {camera_id!r}: rotation_deg must be 0, 90, 180 or 270; got {rotation!r}", "V-pipeline.running-13")
+        try:
+            return cpu.decode_jpeg(frame.image, rotation)
+        except ValueError as exc:
+            raise CallRefusedError(f"V-pipeline.running-12: camera {camera_id!r}: {exc}", "V-pipeline.running-12") from exc
+
     def _inputs(self, node: ResolvedNode, camera_id: Any, values: Mapping[Port, Any]) -> Any:
         """Return the inputs of a node for one camera: a list for a variadic node, else a mapping by input name."""
         found = []
@@ -339,20 +359,21 @@ class Executor:
     def process(self, frames: Mapping[Any, Any]) -> dict[Any, dict[str, Any]]:
         """Run one call: one frame for each camera of the call. Return the result of each camera.
 
-        A frame has `image`, `frame_index` and `timestamp_ms`. A call that breaks a rule of the
-        call raises `CallRefusedError` before a node runs.
+        A frame has `image`, `frame_index`, `timestamp_ms` and `rotation_deg`. A call that breaks a
+        rule of the call raises `CallRefusedError` before a node runs.
         """
         clock = time.perf_counter_ns
         start = clock()
         timestamps = self._check_call(frames)
         cameras = list(timestamps)
         images = [(frames[camera_id].frame_index, camera_id) for camera_id in cameras]
+        pixels = {camera_id: self._frame_image(camera_id, frames[camera_id]) for camera_id in cameras}  # each JPEG decode before a node runs
         contexts, values = {}, {}
         for camera_id in cameras:
             frame = frames[camera_id]
-            height, width = frame.image.shape[:2]
+            height, width = pixels[camera_id].shape[:2]
             contexts[camera_id] = FrameContext(frame.frame_index, timestamps[camera_id], int(width), int(height), self.running_mode)
-            values[camera_id] = {(FRAME, "image"): frame.image}
+            values[camera_id] = {(FRAME, "image"): pixels[camera_id]}
             for port, replay in self.replays.items():
                 values[camera_id][port] = replay.value(frame.frame_index, camera_id)
         node_ran = {camera_id: dict.fromkeys(self.inference_nodes, False) for camera_id in cameras}
