@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from skellytracker.core.decode import cpu
+from skellytracker.core.decode.frame import DecodedFrame
 from skellytracker.core.eps.session import cpu_thread_count
 from skellytracker.core.errors import CallRefusedError, EpRequestError, SetParamsRefusedError
 from skellytracker.core.pipelines import timing as timing_module
@@ -313,15 +314,15 @@ class Executor:
         return found
 
     @staticmethod
-    def _frame_image(camera_id: Any, frame: Any) -> Any:
+    def _frame_image(camera_id: Any, frame: Any) -> DecodedFrame:
         """Return `frame.image` of one frame: a decoded array, or a JPEG buffer decoded on the CPU, turned by `rotation_deg` (pipeline.running, Behaviour item 13)."""
         rotation = 0 if frame.rotation_deg is None else frame.rotation_deg
         if type(rotation) is not int or rotation not in cpu.ROTATIONS:  # `type` refuses a bool and a float such as 90.0
             raise CallRefusedError(f"V-pipeline.running-13: camera {camera_id!r}: rotation_deg must be 0, 90, 180 or 270; got {rotation!r}", "V-pipeline.running-13")
         if not isinstance(frame.image, bytes | bytearray):
-            return cpu.turn(frame.image, rotation)  # the array of the caller as given for 0, else a new array
+            return DecodedFrame.from_host(cpu.turn(frame.image, rotation))  # the array of the caller as given for 0, else a new array
         try:
-            return cpu.decode_jpeg(frame.image, rotation)
+            return DecodedFrame.from_host(cpu.decode_jpeg(frame.image, rotation))
         except ValueError as exc:
             raise CallRefusedError(f"V-pipeline.running-12: camera {camera_id!r}: {exc}", "V-pipeline.running-12") from exc
 
@@ -365,8 +366,7 @@ class Executor:
         contexts, values = {}, {}
         for camera_id in cameras:
             frame = frames[camera_id]
-            height, width = pixels[camera_id].shape[:2]
-            contexts[camera_id] = FrameContext(frame.frame_index, timestamps[camera_id], int(width), int(height), self.running_mode)
+            contexts[camera_id] = FrameContext(frame.frame_index, timestamps[camera_id], pixels[camera_id].width, pixels[camera_id].height, self.running_mode)
             values[camera_id] = {(FRAME, "image"): pixels[camera_id]}
             for port, replay in self.replays.items():
                 values[camera_id][port] = replay.value(frame.frame_index, camera_id)
@@ -448,7 +448,7 @@ class Executor:
                 self._add_span, events, node.id, [(frames[camera_id].frame_index, camera_id) for camera_id in cameras],
             )
             boxes = [ready[camera_id]["boxes"] for camera_id in cameras] if runner.kind == "top_down" else None
-            found = runner.run(index, [ready[camera_id]["image"] for camera_id in cameras], boxes, timer)
+            found = runner.run(index, [ready[camera_id]["image"].host for camera_id in cameras], boxes, timer)
             for camera_id, outputs in zip(cameras, found, strict=True):
                 values[camera_id].update({(node.id, port): value for port, value in outputs.items()})
 

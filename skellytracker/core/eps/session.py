@@ -123,6 +123,17 @@ def run_session(session, output_names, inputs: Mapping) -> list:
         raise
 
 
+def upload_frame(image: np.ndarray, ep_device_id: str | int | None):
+    """Copy a host frame (BGR `uint8` `(H, W, 3)`) to GPU memory. Return an `onnxruntime.OrtValue`.
+
+    `ep_device_id` is the `SessionReport.ep_device_id` of a session on `cuda` or `trt-rtx`: the
+    CUDA device id. None is device 0.
+    """
+    import onnxruntime
+
+    return onnxruntime.OrtValue.ortvalue_from_numpy(np.ascontiguousarray(image), "cuda", int(ep_device_id or 0))
+
+
 def _failure(error: Exception, report: SessionReport, what: str) -> Exception:
     text = sanitize_text(str(error))[:2000]
     if _is_out_of_memory(text):

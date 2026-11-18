@@ -9,6 +9,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
+from skellytracker.core.decode.frame import DecodedFrame
 from skellytracker.core.pipelines._runtime import mediapipe_tasks as node
 from skellytracker.core.pipelines.config import MediapipeTasksParams
 
@@ -84,7 +85,7 @@ def test_image_mode(test_image, variant: str, max_instances: int, must_find: boo
     info = node.output_info("mp", params, {})[0]["keypoints"]
     state = node.make_state(params, "image", "mp")
     try:
-        outputs, same = node.run(params, {"image": test_image}, state, SimpleNamespace(timestamp_ms=None), None)
+        outputs, same = node.run(params, {"image": DecodedFrame.from_host(test_image)}, state, SimpleNamespace(timestamp_ms=None), None)
     finally:
         node.close_state(state)
     value = outputs["keypoints"]

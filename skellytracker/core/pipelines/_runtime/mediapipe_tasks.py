@@ -192,8 +192,9 @@ def run(
     ``state`` is the runner of the camera. It is a native object, so it is mutable, and the same
     object comes back. A refused timestamp raises ``ValueError`` before the landmarker call and
     changes nothing. ``params`` and ``infos`` are not read: no param can change during a run.
+    ``inputs["image"]`` is a ``DecodedFrame``: the node reads its host pixels.
     """
-    return {"keypoints": state.run(inputs["image"], frame.timestamp_ms)}, state
+    return {"keypoints": state.run(inputs["image"].host, frame.timestamp_ms)}, state
 
 
 def close_state(state: MediapipeTasksRunner) -> None:

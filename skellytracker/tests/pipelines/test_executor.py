@@ -721,6 +721,24 @@ def test_v_pipeline_running_12_and_13_a_bad_frame_of_one_camera_refuses_the_call
         np.testing.assert_allclose(after[camera]["boxes"].xyxy[0], xyxy(points_box(first[camera]["body.keypoints"])))
 
 
+def test_frame_image_is_a_decoded_frame_that_uploads_at_most_one_time_for_each_call(root: Path) -> None:
+    """The seam of the GPU preprocess: no node asks for the device frame yet, so the test asks for it, with a fake upload."""
+    uploads: list[Any] = []
+
+    def upload(pixels: np.ndarray, device_id: Any) -> int:
+        uploads.append(pixels)
+        return len(uploads)
+
+    with start(root, detector_pipeline()) as run:
+        spy = run._executor.models["person"].run = FrameSpy(run._executor.models["person"].run)  # noqa: SLF001
+        for call in range(2):  # a new call makes a new frame, so it uploads again
+            run.process(Frame(jpeg(image(1, 32, 48)), call))
+            frame = port_values(run)["frame.image"]
+            assert (frame.width, frame.height) == (48, 32) and frame.host is spy.images[-1]  # the model node got the host pixels
+            assert frame.on_device(0, upload) == frame.on_device(0, upload) == call + 1 and uploads[-1] is frame.host
+    assert len(uploads) == 2
+
+
 def test_a_memoryview_is_not_a_frame_image() -> None:
     """The type check of `Frame` refuses a `memoryview` before the call: only `bytes` and `bytearray` are JPEG buffers."""
     with pytest.raises(BeartypeCallHintParamViolation):
