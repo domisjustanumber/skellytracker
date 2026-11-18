@@ -123,8 +123,10 @@ legacy path puts the old points in the raw names of `wholebody.keypoints` and ca
 - A GPU package that two packs share is a component of the catalog (`components`), in its own store
   folder ([ADR-88ZB](../decisions/entries/88ZB-gpu-jpeg-decoder-component-of-the-ep-catalog.md)).
   An install of a pack also installs its component. A failed install of a component is a warning
-  of the install (`InstallResult.warnings`), not a failure. A missing component never blocks the
-  EP: it shows in a field of `PackStatus`, not in `PackState`. The GPU JPEG decoder `gpu-jpeg-cu13` of
+  of the install (`InstallResult.warnings`), not a failure. `install <key>` on a store of an older
+  catalog installs only the component, `download()` includes its wheels, and `gc()` keeps each
+  component of the catalog. A missing component never blocks the
+  EP: it shows in `PackStatus.jpeg_decoder` (`installed`, `missing` or `other_version`), not in `PackState`. The GPU JPEG decoder `gpu-jpeg-cu13` of
   `cuda` and `trt-rtx` loads only in `prepare_jpeg_decoder()`, which gives the module and the CUDA
   runtime of the component for `cudaStreamSynchronize`. A plain `import skellytracker` loads no
   `nvidia` module.

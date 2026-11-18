@@ -1,6 +1,6 @@
 # 88ZB — The GPU JPEG decoder is a component of the EP catalog that the packs share
 
-**Status:** accepted, 2026-11-18 (user, decisions on the step S4 of the native JPEG input; PR: pending).
+**Status:** absorbed into [ONNX Runtime](../../skellytracker/AGENTS.md#onnx-runtime), [`ep_catalog.yaml`](../../skellytracker/core/eps/ep_catalog.yaml), [`ep_catalog.py`](../../tools/ep_catalog.py), [Running: Implementer guidance](../../specs/pipeline/running.md#implementer-guidance), 2026-11-18 (user, decisions on the step S4 of the native JPEG input; PR: pending).
 
 ## Decision
 

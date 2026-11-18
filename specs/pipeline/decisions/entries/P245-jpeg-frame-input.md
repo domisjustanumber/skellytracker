@@ -35,9 +35,10 @@
    ([Running](../../running.md#behaviour) item 8):
    - a JPEG that the GPU decoder refuses is decoded on the CPU for that frame. The call continues.
      One warning for each camera.
-   - on `cuda` or `trt-rtx` with no GPU decoder package, the run decodes on the CPU. One warning,
-     at the first call with a JPEG buffer, that names the package. A run that gets only decoded
-     arrays gets no such warning.
+   - a device with a node that uses the GPU preprocess on `cuda` or `trt-rtx`, when its GPU decoder
+     does not open: the run decodes on the CPU. One warning, at the first call with a JPEG buffer,
+     that names the package. A run that gets only decoded
+     arrays, and a device with no such node, get no such warning.
 9. **Error.** A JPEG buffer that no decoder can read breaks the new rule `V-pipeline.running-12`.
    The call raises `CallRefusedError`. A cut-off MJPEG frame of a USB camera is a noted risk, not a
    rule: nvJPEG can give a full-size frame with wrong pixels and no error, so the capture side must
@@ -50,8 +51,7 @@
 
 - No change to the sidecar spec or the camera layer. The proposal `resize-pixel-tolerance` covers
   a pixel limit of the resize.
-- Before the push, the user changed the turn three times: no turn, the EXIF orientation, then
-  `rotation_deg` after the decode, for a decoded array too. The turn cost is in the Evidence.
+- The user changed the turn three times before the push. The Evidence gives the turn cost.
 
 ## Reason
 

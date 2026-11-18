@@ -1436,15 +1436,16 @@ This stage implements the node types of the pipeline spec. Use the skill
   open: a golden test of the mapped score of one RTMW crop in
   `skellytracker/tests/sidecar/test_rtmw_sidecar.py` (part 6 of the proposal). It needs the mmpose
   scores of one crop, which this repository does not hold.
-- The GPU preprocess graph
+- The GPU preprocess graph. Done (2026-11-18)
   ([Interpolation](model-sidecar/pre/interpolation.md#implementer-guidance);
-  [ADR-J1HK](model-sidecar/decisions/entries/J1HK-resize-pixel-tolerance.md)). A new module under
+  [ADR-J1HK](model-sidecar/decisions/entries/J1HK-resize-pixel-tolerance.md);
+  [ADR-W4NW](../decisions/entries/W4NW-gpu-preprocess-of-a-model-node-and-its-cpu-warning.md)). A new module under
   `core/detectors/processing/pre/` builds the resize step and the normalization as ONNX nodes for
   one sidecar, one size and one precision, from `gpu_preprocess_graphs.py`. `preprocess_image`
   stays the CPU reference path. The package uses the graph on `cuda` and `trt-rtx` only where it
   meets the resize limit of `pre.resize.interpolation`. `interpolation: area`, `nearest` with
   `affine_crop`, and `compute_dtype: float32` with `linear` or `cubic`, run on the CPU reference
-  path with one warning when the session opens. A check
+  path with the warning `preprocessed_on_cpu`, one time when the session opens. A check
   `within_resize_limit` in `pre/resize_interpolation.py` implements `resize_difference` of the
   reference module, and the 13 `check_resize` cases run through it. A test without a GPU compares
   the graph on the CPU EP with `resize_image` within the limit. A test with the marker `gpu` does
@@ -1452,18 +1453,23 @@ This stage implements the node types of the pipeline spec. Use the skill
   uses index tables from `cv2.warpAffine`, and it gave a difference of 0 at each measured scale.
 - The JPEG frame input
   ([JPEG frames](pipeline/running.md#implementer-guidance);
-  [ADR-P245](pipeline/decisions/entries/P245-jpeg-frame-input.md)). The steps, in this order:
-  - S1: the JPEG input on the CPU, for each EP. A `DecodedFrame` type, `core/decode/cpu.py`, the
-    frame field `rotation_deg`, and the rules `V-pipeline.running-12` and `V-pipeline.running-13`.
-  - S4: the GPU decoder package through the EP catalog.
-  - S5: the GPU decode in `core/decode/nvidia.py`: a decoder limited to nvJPEG with the CPU
-    fallback of the run, the EXIF orientation off, a private CUDA stream and the wait for the
-    decode, and the turn.
-  - S6: the wiring: the frame stage of the run, the IO binding of the preprocess output to the
-    model session, and the close order: bindings, sessions, decoded frames, decoder, stream.
-  - S7: the spans `frame.decode` and `frame.upload`.
-  - S8: measure the result against "Cost of the detector preprocess" in the root
-    [open-work.md](../decisions/open-work.md).
+  [ADR-P245](pipeline/decisions/entries/P245-jpeg-frame-input.md);
+  [ADR-88ZB](../decisions/entries/88ZB-gpu-jpeg-decoder-component-of-the-ep-catalog.md)). The steps,
+  in this order:
+  - S1: Done (2026-11-18). The JPEG input on the CPU, for each EP: `core/decode/cpu.py`, the frame
+    field `rotation_deg`, and the rules `V-pipeline.running-12` and `V-pipeline.running-13`.
+  - S4: Done (2026-11-18). The GPU decoder as the catalog component `gpu-jpeg-cu13` of `cuda` and
+    `trt-rtx`, with `PackStatus.jpeg_decoder`.
+  - S5: Done (2026-11-18). The GPU decode in `core/decode/nvidia.py`: a decoder limited to nvJPEG,
+    the EXIF orientation off, a private CUDA stream and the wait for the decode, and the turn.
+  - S6: Done (2026-11-18). The wiring: the `DecodedFrame` type of `core/decode/frame.py` for
+    `frame.image`, the frame stage of the run, the CPU fallback of the run with the warning
+    `jpeg_decoded_on_cpu`, the IO binding of the preprocess output to the model session, and the
+    close order: bindings, decoded frames, sessions, decoder, stream.
+  - S7: Done (2026-11-18). The spans `frame.decode` and `frame.upload`.
+  - S8: Measured (2026-11-18). The result against "Cost of the detector preprocess" is in the root
+    [open-work.md](../decisions/open-work.md), with three findings that are not gains and four open
+    items.
 - Its release note says these things:
   - The new spec loader, the catalog, the generic detectors, the pipeline API and the hardware and
     EP API are in.
