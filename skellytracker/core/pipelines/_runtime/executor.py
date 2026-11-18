@@ -21,8 +21,11 @@ from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 from skellytracker.core.decode import cpu
 from skellytracker.core.decode.frame import DecodedFrame
+from skellytracker.core.eps import session as eps_session
 from skellytracker.core.eps.session import cpu_thread_count
 from skellytracker.core.errors import CallRefusedError, EpRequestError, SetParamsRefusedError
 from skellytracker.core.pipelines import timing as timing_module
@@ -175,6 +178,13 @@ class Executor:
         self.replays: dict[Port, taps.ReplayTap] = {}
         self.writer: timing_module.TimingWriter | None = None
         self.spans_on: frozenset[str] = frozenset()
+        # The frame stage of the graph path: the upload device of each device index with a graph-on node, the
+        # last frame size of each camera (its fixed slot), the zero frame of each (device index, size), and the
+        # slots of the call.
+        self.upload_devices: dict[int, tuple[Any, str]] = {}
+        self.slot_sizes: dict[Any, tuple[int, int]] = {}
+        self.zero_frames: dict[tuple[int, tuple[int, int]], Any] = {}
+        self.call_slots: dict[int, onnx_model.CallSlots] = {}
         try:
             opened = self._open_sessions()
             self.reports = {node_id: [item.report for item in items] for node_id, items in opened.items()}
@@ -237,12 +247,26 @@ class Executor:
             node = self.resolved.nodes[node_id]
             if node.type != "onnx_model":
                 continue
+            plan = self.plans[node_id]
             rows = node.inputs_info["boxes"].max_instances if node.model.kind == "top_down" else 1
-            opened[node_id] = []
+            opened[node_id], places, slots = [], [], 0
             for index, device_key in enumerate(self.devices):
                 cameras = sum(1 for slot in self.device_of.values() if slot == index)
-                opened[node_id].append(self.sessions.open(node, self.plans[node_id], device_key, self.batch_k * cameras * rows))
-            self.models[node_id] = onnx_model.OnnxModelRunner(node, self.plans[node_id].precision, [item.session for item in opened[node_id]])
+                slots = max(slots, cameras)
+                opened[node_id].append(self.sessions.open(node, plan, device_key, self.batch_k * cameras * rows))
+                places.append(onnx_model.GraphDevice(device_key, opened[node_id][-1].report.ep_device_id, self.batch_k * cameras * rows))
+            graph = None
+            if plan.execution_provider in onnx_model.GRAPH_EPS:  # the GPU preprocess (pipeline.running, Implementer guidance)
+                # the device memory of the bound values is that of the provider of the model session
+                device_type = "cpu" if opened[node_id][0].report.ep_name == sessions.CPU_EP_NAME else "cuda"
+                graph = onnx_model.GraphPath(
+                    functools.partial(self.sessions.open_preprocess, node, plan), places, device_type, self._warn,
+                    onnx_model.graph_refusal(node.model, plan.precision, slots),
+                )
+            runner = self.models[node_id] = onnx_model.OnnxModelRunner(node, plan.precision, [item.session for item in opened[node_id]], graph)
+            if runner.graph_on_at_start:  # the frame stage uploads the frames of these devices
+                for index, place in enumerate(places):
+                    self.upload_devices.setdefault(index, (place.ep_device_id, graph.device_type))
         return opened
 
     def _node_items(self, opened: Mapping[str, list[sessions.OpenedSession]]) -> dict[str, dict[str, Any]]:
@@ -267,8 +291,12 @@ class Executor:
                         "gpu_uuid": report.gpu_uuid, "ep_device_id": report.ep_device_id, "ep_options": dict(report.ep_options),
                         "cpu_nodes": report.cpu_nodes, "cpu_op_types": list(report.cpu_op_types), "cpu_threads": report.cpu_threads,
                     },
-                    # the preprocessing and the postprocessing run on the host, so their provider is null (pipeline.timing, Fields)
-                    stage_providers={"preprocess": None, "inference": report.ep_name, "postprocess": None},
+                    # the preprocess graph at the start has the provider of the session, else the preprocessing runs on
+                    # the host; the postprocessing runs on the host, so its provider is null (pipeline.timing, Fields)
+                    stage_providers={
+                        "preprocess": report.ep_name if self.models[node.id].graph_on_at_start else None,
+                        "inference": report.ep_name, "postprocess": None,
+                    },
                     shared_with=[other for other in first.node_ids if other != node.id],
                 )
             items[node.id] = timing_module.make_node_item(node, **facts)
@@ -326,6 +354,40 @@ class Executor:
         except ValueError as exc:
             raise CallRefusedError(f"V-pipeline.running-12: camera {camera_id!r}: {exc}", "V-pipeline.running-12") from exc
 
+    def _frame_stage(self, pixels: Mapping[Any, DecodedFrame]) -> tuple[dict[int, onnx_model.CallSlots], dict[Any, tuple[int, int]]]:
+        """The frame stage of one call, after the decode and the turn and before the first node. Return the slots and the slot sizes.
+
+        On each device with a node that starts on the graph path, each camera of the device has a
+        fixed slot. The frame of a camera of the call goes to GPU memory one time
+        (`DecodedFrame.on_device`), and each node of the call reads that copy. A camera that is not
+        in the call gets a zero frame of the last size of the camera, one upload for each device and
+        size, kept until the close. Before its first frame, a camera takes the size of the first
+        frame of the call on its device. The set of frame sizes thus changes only when a camera
+        changes its frame size. The slot sizes are committed with the call.
+        """
+        # The later GPU JPEG decode and the timing events `frame.decode` and `frame.upload` go in this function.
+        sizes = {camera_id: (frame.width, frame.height) for camera_id, frame in pixels.items()}
+        found = {}
+        for index, (device_id, device_type) in self.upload_devices.items():
+            slot_cameras = [camera_id for camera_id in self.camera_ids if self.device_of[camera_id] == index]
+            present = [camera_id for camera_id in slot_cameras if camera_id in pixels]
+            if not present:
+                continue
+            upload = functools.partial(eps_session.upload_frame, device_type=device_type)
+            values, sources = [], []
+            for camera_id in slot_cameras:
+                size = sizes.setdefault(camera_id, self.slot_sizes.get(camera_id, sizes[present[0]]))
+                sources.append(size)
+                if camera_id in pixels:
+                    values.append(pixels[camera_id].on_device(device_id, upload))
+                    continue
+                if (index, size) not in self.zero_frames:
+                    self.zero_frames[(index, size)] = upload(np.zeros((size[1], size[0], 3), np.uint8), device_id)
+                values.append(self.zero_frames[(index, size)])
+            slot_of = {id(pixels[camera_id]): slot for slot, camera_id in enumerate(slot_cameras) if camera_id in pixels}
+            found[index] = onnx_model.CallSlots(tuple(values), tuple(sources), slot_of)
+        return found, sizes
+
     def _inputs(self, node: ResolvedNode, camera_id: Any, values: Mapping[Port, Any]) -> Any:
         """Return the inputs of a node for one camera: a list for a variadic node, else a mapping by input name."""
         found = []
@@ -363,6 +425,7 @@ class Executor:
         cameras = list(timestamps)
         images = [(frames[camera_id].frame_index, camera_id) for camera_id in cameras]
         pixels = {camera_id: self._frame_image(camera_id, frames[camera_id]) for camera_id in cameras}  # each JPEG decode before a node runs
+        self.call_slots, slot_sizes = self._frame_stage(pixels)
         contexts, values = {}, {}
         for camera_id in cameras:
             frame = frames[camera_id]
@@ -417,8 +480,9 @@ class Executor:
                 )
                 record.write(values[camera_id][_port(record.tap.port)], frame.frame_index, camera_id, image_id)
 
-        # The call ran: commit the states, the `@prev` values and the frame times of its cameras.
+        # The call ran: commit the states, the `@prev` values, the frame times and the slot sizes of its cameras.
         self.states.update(new_states)
+        self.slot_sizes.update(slot_sizes)
         for camera_id in cameras:
             if self.running_mode != "image":
                 self.prev[camera_id].update({port: values[camera_id][port] for port in self.prev_ports})
@@ -448,7 +512,10 @@ class Executor:
                 self._add_span, events, node.id, [(frames[camera_id].frame_index, camera_id) for camera_id in cameras],
             )
             boxes = [ready[camera_id]["boxes"] for camera_id in cameras] if runner.kind == "top_down" else None
-            found = runner.run(index, [ready[camera_id]["image"].host for camera_id in cameras], boxes, timer)
+            if runner.graph is None:
+                found = runner.run(index, [ready[camera_id]["image"].host for camera_id in cameras], boxes, timer)
+            else:  # the graph path reads the device frames of the frame stage
+                found = runner.run(index, [ready[camera_id]["image"] for camera_id in cameras], boxes, timer, self.call_slots.get(index))
             for camera_id, outputs in zip(cameras, found, strict=True):
                 values[camera_id].update({(node.id, port): value for port, value in outputs.items()})
 
@@ -506,6 +573,9 @@ class Executor:
             if self.resolved.nodes[node_id].type == "mediapipe_tasks":
                 mediapipe_tasks.close_state(state)
         self.states.clear()
+        # The decoded frames and the zero frames first: no frame in device memory outlives the sessions.
+        self.port_values, self.call_slots = {}, {}
+        self.zero_frames.clear()
         for runner in self.models.values():
             runner.close()
         self.models.clear()

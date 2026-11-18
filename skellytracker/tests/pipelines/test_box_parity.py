@@ -79,7 +79,7 @@ def recorded(monkeypatch: pytest.MonkeyPatch, tmp_path_factory: pytest.TempPathF
             node = self.resolved.nodes[node_id]
             if node.type == "onnx_model":
                 runner = object.__new__(OnnxModelRunner)  # the real rows of the node, with no detector of a session
-                runner.kind, runner.outputs_info, runner.detectors = node.model.kind, node.outputs_info, [RecordedDetector(data, frame)]
+                runner.kind, runner.outputs_info, runner.detectors, runner.graph = node.model.kind, node.outputs_info, [RecordedDetector(data, frame)], None
                 self.models[node_id] = runner
         return {}
 

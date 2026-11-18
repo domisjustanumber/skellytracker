@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -14,7 +14,7 @@ from skellytracker.core.detectors.processing.post.keypoint_decode_simcc import d
 from skellytracker.core.detectors.processing.post.keypoint_schema import derived_points, mark_missing
 from skellytracker.core.detectors.processing.post.keypoint_score_map import map_scores
 from skellytracker.core.detectors.processing.post.unprojection import resize_inverse
-from skellytracker.core.detectors.processing.pre.preprocess import preprocess_image
+from skellytracker.core.detectors.processing.pre.preprocess import ResizeGeometry, preprocess_image
 from skellytracker.core.model_spec.model import SidecarModel
 
 
@@ -101,35 +101,45 @@ class GenericKeypointDetector:
             raise ValueError(f"an estimator_type {self.sidecar.keypoint.estimator_type} model {'needs' if self.takes_crops else 'takes no'} rois")
         if rois is not None and len(rois) != len(images):
             raise ValueError(f"images and rois need one length: {len(images)} and {len(rois)}")
-        keypoint = self.sidecar.keypoint
-        count = len(keypoint.point_names)
         session = self._open_session()
         if not images:
+            return self.decode_outputs(None, [])
+        clock = time.perf_counter_ns
+        marks = [clock()]
+        prepared = [
+            preprocess_image(image, self.sidecar, self.size, self.precision, None if rois is None else rois[index])
+            for index, image in enumerate(images)
+        ]
+        marks.append(clock())
+        outputs = run_batches(session, self.sidecar, [tensor for tensor, _ in prepared])
+        marks.append(clock())
+        found = self.decode_outputs(outputs, [geometry for _, geometry in prepared])
+        if timer is not None:
+            marks.append(clock())
+            for index, span in enumerate(("preprocess", "inference", "postprocess")):
+                timer(span, marks[index], marks[index + 1])
+        return found
+
+    def decode_outputs(self, outputs: Mapping[str, np.ndarray] | None, geometries: Sequence[ResizeGeometry]) -> KeypointDetections:
+        """Decode the model outputs of N crops or images. `geometries` holds the resize geometry of each, from `resize_geometry`.
+
+        `outputs` maps each output name to its N rows, as `run_batches` gives them. It is None for no item.
+        """
+        keypoint = self.sidecar.keypoint
+        count = len(keypoint.point_names)
+        if not geometries:
             points, scores = np.zeros((0, count, 2)), np.zeros((0, count), np.float32)
         else:
-            clock = time.perf_counter_ns
-            marks = [clock()]
-            prepared = [
-                preprocess_image(image, self.sidecar, self.size, self.precision, None if rois is None else rois[index])
-                for index, image in enumerate(images)
-            ]
-            marks.append(clock())
-            outputs = run_batches(session, self.sidecar, [tensor for tensor, _ in prepared])
-            marks.append(clock())
             simcc = {
                 spec.semantic: np.moveaxis(outputs[spec.name], spec.keypoint_axis, 1)
                 for spec in self.sidecar.outputs if spec.semantic in ("simcc_x", "simcc_y")
             }
-            decoded = decode_simcc(simcc["simcc_x"], simcc["simcc_y"], prepared[0][1].input_size)
-            source = np.stack([resize_inverse(decoded["keypoints"][index], geometry) for index, (_, geometry) in enumerate(prepared)])
+            decoded = decode_simcc(simcc["simcc_x"], simcc["simcc_y"], geometries[0].input_size)
+            source = np.stack([resize_inverse(decoded["keypoints"][index], geometry) for index, geometry in enumerate(geometries)])
             points, scores = mark_missing(source, decoded["scores"])
         raw_scores = scores
         scores = map_scores(raw_scores, self.sidecar.sizes[self.size].score_map, self.sidecar.point_groups)
         derived, derived_scores = derived_points(points, scores, keypoint.point_names, keypoint.derived_points, present=raw_scores > 0)
-        if timer is not None and images:
-            marks.append(time.perf_counter_ns())
-            for index, span in enumerate(("preprocess", "inference", "postprocess")):
-                timer(span, marks[index], marks[index + 1])
         return KeypointDetections(points, scores, derived, derived_scores, raw_scores)
 
     def _open_session(self) -> Any:

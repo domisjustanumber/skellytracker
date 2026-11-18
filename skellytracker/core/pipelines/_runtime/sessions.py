@@ -17,7 +17,13 @@ from skellytracker.core.eps.catalog import load_catalog
 from skellytracker.core.eps.recommendation import select_precision
 from skellytracker.core.eps.records import RunDevice, SessionReport
 from skellytracker.core.eps.state import check_start
-from skellytracker.core.errors import EpRequestError, EpUnavailableError, MissingDependencyError
+from skellytracker.core.errors import (
+    EpRequestError,
+    EpUnavailableError,
+    MissingDependencyError,
+    SessionCreationError,
+    VRAMExhaustionError,
+)
 from skellytracker.core.metrics import free_vram
 from skellytracker.core.pipelines._runtime import mediapipe_tasks
 from skellytracker.core.pipelines._runtime.resolve import ResolvedNode, ResolvedPipeline
@@ -25,6 +31,10 @@ from skellytracker.core.pipelines.warnings import PipelineWarning
 
 CPU_EP_NAME = "CPUExecutionProvider"
 EP_PARTIAL_PLACEMENT = "ep_partial_placement"
+# The reasons of the warning `preprocessed_on_cpu` (pipeline.running, Behaviour item 8)
+GRAPH_REFUSED = "graph_refused"
+SESSION_NOT_BUILT = "session_not_built"
+FRAME_SIZE_CAP = "frame_size_cap"
 
 
 @dataclass(frozen=True)
@@ -165,6 +175,8 @@ class RunSessions:
 
     def __init__(self, cpu_threads: int | None = None) -> None:
         self.opened: dict[tuple[Any, ...], OpenedSession] = {}
+        self.preprocess: dict[tuple[Any, ...], tuple[Any, str | None, str | None]] = {}
+        """The preprocess sessions: key -> (session, None, None), or (None, the reason of the CPU preprocess, its text)."""
         self.cpu_threads = cpu_threads
 
     def open(self, node: ResolvedNode, plan: NodePlan, device_key: str | None, batch: int) -> OpenedSession:
@@ -194,6 +206,44 @@ class RunSessions:
             opened.node_ids.append(node.id)
         return opened
 
+    def open_preprocess(
+        self, node: ResolvedNode, plan: NodePlan, device_key: str | None, sources: tuple[tuple[int, int], ...], batch: int,
+    ) -> tuple[Any, str | None, str | None]:
+        """Return `(session, None, None)`: the preprocess graph session of one node for the frame sizes `sources` at `batch`.
+
+        Implements: pipeline.running
+
+        The nodes with the same sidecar, size, precision, frame sizes, batch, EP, EP options and
+        device share one session. The session has the one output `tensor`: the run removes the
+        output `pixels`, so ONNX Runtime does not compute it. A combination that the graph refuses
+        gives `(None, GRAPH_REFUSED, the text of the refusal)`. A session that does not build, or
+        that has a node on the CPU EP on an EP that is not the CPU EP, gives `(None,
+        SESSION_NOT_BUILT, the text)`. The result is kept, so a failed build does not run again.
+        """
+        from skellytracker.core.detectors.processing.pre.graph import PreprocessGraphRefusedError, build_preprocess_graph
+        from skellytracker.core.eps.session import build_session
+
+        model = node.model
+        device_key = device_key if plan.gpu else None
+        key = (model.sidecar_sha256, model.size, plan.precision, sources, batch, plan.execution_provider, plan.ep_options, device_key)
+        if key not in self.preprocess:
+            try:
+                graph = build_preprocess_graph(model.sidecar, model.size, plan.precision, sources, batch)
+                graph.graph.output.remove(next(output for output in graph.graph.output if output.name == "pixels"))
+                session, report = build_session(
+                    graph.SerializeToString(), execution_provider=plan.execution_provider, ep_options=dict(plan.ep_options),
+                    device_key=device_key, cpu_threads=self.cpu_threads,
+                )
+                placed = report.cpu_nodes == 0 or report.ep_name == CPU_EP_NAME
+                self.preprocess[key] = (session, None, None) if placed else (
+                    None, SESSION_NOT_BUILT, f"{report.cpu_nodes} nodes of the graph run on the CPU EP ({', '.join(report.cpu_op_types)})",
+                )
+            except PreprocessGraphRefusedError as error:
+                self.preprocess[key] = (None, GRAPH_REFUSED, str(error))
+            except (EpUnavailableError, SessionCreationError, VRAMExhaustionError) as error:
+                self.preprocess[key] = (None, SESSION_NOT_BUILT, str(error))
+        return self.preprocess[key]
+
     def partial_placement(self) -> list[PipelineWarning]:
         """Return one warning `ep_partial_placement` for each session with nodes on the CPU EP, on an EP that is not the CPU EP."""
         found = []
@@ -210,5 +260,6 @@ class RunSessions:
         return found
 
     def close(self) -> None:
-        """Free each session. A second call does nothing."""
+        """Free each session: the preprocess sessions first, then the model sessions. A second call does nothing."""
+        self.preprocess.clear()
         self.opened.clear()

@@ -1,6 +1,7 @@
 """`build_session()`: build one ONNX Runtime session on the requested EP, with its `SessionReport`.
 
-`run_session()` runs one call of a session. An out-of-memory error of ONNX Runtime at the build, at
+`run_session()` runs one call of a session. `run_preprocess()` runs one call of a preprocess graph,
+and `run_bound()` runs the model session on its output in device memory. An out-of-memory error of ONNX Runtime at the build, at
 the warm-up run or during a call is a `VRAMExhaustionError`. No code retries the call or changes the
 batch.
 
@@ -117,21 +118,69 @@ def run_session(session, output_names, inputs: Mapping) -> list:
     try:
         return session.run(output_names, inputs)
     except Exception as error:  # noqa: BLE001 - ONNX Runtime raises its own error types
-        text = sanitize_text(str(error))[:2000]
-        if _is_out_of_memory(text):
-            raise VRAMExhaustionError(f"The GPU memory is exhausted during a call of the session: {text}") from error
+        _raise_out_of_memory(error)
         raise
 
 
-def upload_frame(image: np.ndarray, ep_device_id: str | int | None):
+def _raise_out_of_memory(error: Exception) -> None:
+    text = sanitize_text(str(error))[:2000]
+    if _is_out_of_memory(text):
+        raise VRAMExhaustionError(f"The GPU memory is exhausted during a call of the session: {text}") from error
+
+
+def run_preprocess(preprocess, frames, index: np.ndarray, theta: np.ndarray | None = None, device_type: str = "cuda", device_id: int = 0):
+    """Run one call of a preprocess graph with IO bindings. Return its output `tensor`: an `OrtValue` in device memory.
+
+    `preprocess` is a session of `build_preprocess_graph`. `frames` holds the `OrtValue` of each
+    input `frame_<i>` (from `upload_frame`). `index` (int64) and `theta` (float32, for
+    `affine_crop` only) are host arrays. `tensor` stays in the memory of `device_type` and
+    `device_id`. The call waits for the outputs, so its time is the time of the graph. The binding
+    lives for this call only. An out-of-memory error raises `VRAMExhaustionError`, as in `run_session`.
+    """
+    try:
+        bound = preprocess.io_binding()
+        for slot, frame in enumerate(frames):
+            bound.bind_ortvalue_input(f"frame_{slot}", frame)
+        bound.bind_cpu_input("index", np.ascontiguousarray(index, np.int64))
+        if theta is not None:
+            bound.bind_cpu_input("theta", np.ascontiguousarray(theta, np.float32))
+        bound.bind_output("tensor", device_type, device_id)
+        preprocess.run_with_iobinding(bound)
+        bound.synchronize_outputs()
+        return bound.get_outputs()[0]
+    except Exception as error:  # noqa: BLE001 - ONNX Runtime raises its own error types
+        _raise_out_of_memory(error)
+        raise
+
+
+def run_bound(session, input_name: str, output_names, tensor) -> list:
+    """Run one call of a model session on the `OrtValue` `tensor` of `run_preprocess`, with no host copy of it.
+
+    The model outputs come back as host arrays, as `run_session` gives them, with the same
+    out-of-memory mapping. The binding lives for this call only.
+    """
+    try:
+        bound = session.io_binding()
+        bound.bind_ortvalue_input(input_name, tensor)
+        for name in output_names:
+            bound.bind_output(name)  # host memory
+        session.run_with_iobinding(bound)
+        return bound.copy_outputs_to_cpu()
+    except Exception as error:  # noqa: BLE001 - ONNX Runtime raises its own error types
+        _raise_out_of_memory(error)
+        raise
+
+
+def upload_frame(image: np.ndarray, ep_device_id: str | int | None, device_type: str = "cuda"):
     """Copy a host frame (BGR `uint8` `(H, W, 3)`) to GPU memory. Return an `onnxruntime.OrtValue`.
 
     `ep_device_id` is the `SessionReport.ep_device_id` of a session on `cuda` or `trt-rtx`: the
-    CUDA device id. None is device 0.
+    CUDA device id. None is device 0. `device_type` `cpu` gives an `OrtValue` in host memory: the
+    tests run the GPU preprocess on the CPU EP with it.
     """
     import onnxruntime
 
-    return onnxruntime.OrtValue.ortvalue_from_numpy(np.ascontiguousarray(image), "cuda", int(ep_device_id or 0))
+    return onnxruntime.OrtValue.ortvalue_from_numpy(np.ascontiguousarray(image), device_type, int(ep_device_id or 0))
 
 
 def _failure(error: Exception, report: SessionReport, what: str) -> Exception:
