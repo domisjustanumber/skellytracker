@@ -4,7 +4,7 @@ Run from a checkout with the nvImageCodec wheels (`nvidia-nvimgcodec-cu13`, `nvi
 the EP packs installed:
 
     uv run --no-sync python -B specs/model-sidecar/decisions/scripts/gpu_preprocess_parity.py \
-        --frames <videos folder> <photo> [--configs uint8:linear float32:linear uint8:cubic ...] \
+        --frames <videos folder> <photo> [--configs fit:uint8:linear:default ...] \
         [--ep cuda trt-rtx] [--model-root <checkout>/skellytracker/core/model_zoo/detectors]
 
 The sample of the proposal: 12 frames spread over each of the 3 camera videos of the freemocap test
@@ -12,18 +12,26 @@ recording (`synchronized_videos` of the package test data cache), and one photo 
 images, all 720x1280 (W x H). Each frame is also upscaled with `INTER_CUBIC` to 1080x1920. Each size
 is encoded at JPEG quality 90 with 4:2:2 and with 4:2:0 chroma.
 
-The models are yolox-person (letterbox) and rtmw-wholebody133 (affine_crop), size m, fp32, b3.
-A config `<compute_dtype>:<interpolation>` overrides `input.resize` of both sidecars in memory.
-The three paths of each frame:
+A config `<method>:<compute_dtype>:<interpolation>:<pad>` overrides `input.resize` of a landed
+sidecar in memory (size m, fp32, b3). `letterbox`, `stretch` and `fit` go in front of yolox-person,
+and `affine_crop` in front of rtmw-wholebody133 on the ROIs of the ref-path yolox boxes. `<pad>` is
+`default` (letterbox 114, fit 114, affine_crop 0) or three values, for example `10,128,240`. The
+default list is every method, compute_dtype and interpolation with the default pad, and letterbox,
+fit and affine_crop with the pad `10,128,240`. The three paths of each frame:
 
-    ref  cv2.imdecode -> package CPU preprocess -> model session -> package decode
-    dec  nvJPEG pixels copied to the host -> package CPU preprocess -> same session -> package decode
-    gpu  nvJPEG in VRAM -> preprocess graph -> same session (IO binding) -> package decode
+    ref  cv2.imdecode -> package CPU resize
+    dec  nvJPEG pixels copied to the host -> package CPU resize
+    gpu  nvJPEG in VRAM -> preprocess graph (output `pixels`)
 
 decode only = dec - ref; graph only = gpu - dec (the same decoded pixels); end to end = gpu - ref.
-The tensor differences are in uint8 steps (the 0-255 scale before the normalization). The package
-decode runs on the GPU-path outputs through `Canned`, so the postprocess is the package code. The
-rtmw ROIs are the boxes of the ref path, on all three paths. It writes no file.
+The values are the resize result before the normalization, on the 0-255 scale, with the pad and the
+border. The gates G1 and G2 apply to the graph only differences, over the whole result. The script
+prints one `IMAGE` line with the graph-only maximum of each image (the maximum over its crops for
+affine_crop), and one `GATE` line with PASS or FAIL for each config.
+
+The model results are only a control: the model runs on the graph output `tensor`, and the package
+decode runs on its outputs through `Canned`. They compare yolox boxes (letterbox, stretch, fit) or
+rtmw keypoints (affine_crop) of the gpu path with the dec path. It writes no file.
 """
 
 from __future__ import annotations
@@ -41,12 +49,11 @@ from gpu_preprocess_graphs import (
     YOLOX,
     DeviceDecoder,
     add_common_arguments,
-    affine_crop_graph,
     bind_run,
     frame_inputs,
-    letterbox_graph,
     load_cudart,
     model_file,
+    preprocess_graph,
     session,
     thetas,
     versions,
@@ -57,19 +64,25 @@ from skellytracker.core.detectors.catalog import load_detector_sidecar
 from skellytracker.core.detectors.generic.keypoint_detector import GenericKeypointDetector
 from skellytracker.core.detectors.generic.object_detector import GenericObjectDetector
 from skellytracker.core.detectors.processing.pre import resize_affine_crop
-from skellytracker.core.detectors.processing.pre.normalize import IMAGENET_STD_RGB
-from skellytracker.core.detectors.processing.pre.preprocess import preprocess_image
+from skellytracker.core.detectors.processing.pre.preprocess import resize_image
 
+# The gates, set before the run. They cover the graph-only difference of the whole resize result.
+G1_MAX_ABS_UINT8 = 1.0  # compute_dtype uint8: each value an integer from 0 to 255, and max |d| <= 1
+G2_MAX_ABS_FLOAT32 = 0.05  # compute_dtype float32: each value finite, and max |d| <= 0.05 (0-255 scale, float64)
+METHODS = ("letterbox", "stretch", "fit", "affine_crop")
+PAD_ARRAY = "10,128,240"
+DEFAULT_CONFIGS = [f"{m}:{d}:{i}:{p}" for p in ("default", PAD_ARRAY) for m in METHODS
+                   for d in ("uint8", "float32") for i in ("linear", "cubic", "nearest")
+                   if p == "default" or m != "stretch"]
 VIDEO_SUFFIXES = {".mp4", ".avi", ".mov", ".mkv"}
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp"}
 CHROMA = {"422": cv2.IMWRITE_JPEG_SAMPLING_FACTOR_422, "420": cv2.IMWRITE_JPEG_SAMPLING_FACTOR_420}
-STEPS = {"letterbox": 1.0, "affine_crop": np.array(IMAGENET_STD_RGB, np.float64).reshape(1, 3, 1, 1)}
 
 
-def load_frames(paths: list[Path], per_video: int) -> list[np.ndarray]:
+def load_frames(paths: list[Path], per_video: int) -> tuple[list[np.ndarray], list[str]]:
     """`per_video` frames spread over each video, and each image, of the given files and folders."""
     files = [f for p in paths for f in (sorted(p.iterdir()) if p.is_dir() else [p])]
-    frames = []
+    frames, names = [], []
     for path in files:
         if path.suffix.lower() in VIDEO_SUFFIXES:
             capture = cv2.VideoCapture(str(path))
@@ -80,11 +93,31 @@ def load_frames(paths: list[Path], per_video: int) -> list[np.ndarray]:
                 if not ok:
                     raise SystemExit(f"cannot read frame {index} of {path.name}")
                 frames.append(frame)
+                names.append(f"{path.stem[-4:]}#{index}")
         elif path.suffix.lower() in IMAGE_SUFFIXES:
             frames.append(cv2.imread(str(path)))
+            names.append(path.stem)
     if not frames:
         raise SystemExit("no frames in --frames")
-    return frames
+    return frames, names
+
+
+def configure(config: str, yolox, rtmw):
+    """The sidecar of a config, with its resize overridden in memory."""
+    method, compute_dtype, interpolation, pad = config.split(":")
+    if method not in METHODS:
+        raise SystemExit(f"unknown method in the config {config!r}")
+    pad_value = None if pad == "default" else [float(v) for v in pad.split(",")]
+    common = {"compute_dtype": compute_dtype, "interpolation": interpolation}
+    if method == "affine_crop":
+        if pad_value is not None:
+            common["crop_policy"] = rtmw.input.resize.crop_policy.model_copy(update={"pad_value": pad_value})
+        return with_resize(rtmw, **common)
+    if method != "letterbox":  # fit has no default pad_value: 114, as letterbox; stretch has no pad
+        common |= {"pad_position": None, "rounding": None, "pad_value": None if method == "stretch" else 114}
+    if pad_value is not None:
+        common["pad_value"] = pad_value
+    return with_resize(yolox, method=method, **common)
 
 
 class Steps:
@@ -99,12 +132,13 @@ class Steps:
 
     def add(self, d) -> None:
         d = np.abs(np.asarray(d, np.float64)).ravel()
-        self.max = max(self.max, float(d.max()))
-        self.sum += float(d.sum())
+        self.max = max(self.max, float(np.nanmax(d)))
+        self.sum += float(np.nansum(d))
         self.n += d.size
         self.over_small += int((d > 0.01).sum())
         self.over_half += int((d > 0.5).sum())
-        self.h += np.bincount(np.minimum((d / self.BIN).astype(np.int64), len(self.h) - 1), minlength=len(self.h))
+        self.h += np.bincount(np.minimum(np.nan_to_num(d / self.BIN, nan=1e9).astype(np.int64), len(self.h) - 1),
+                              minlength=len(self.h))
 
     def merge(self, other: Steps) -> None:
         self.h += other.h
@@ -118,12 +152,6 @@ class Steps:
         q = np.searchsorted(np.cumsum(self.h), 0.999 * self.n)
         return (f"max {self.max:.3f}  p99.9 <= {(q + 1) * self.BIN:.3f}  mean {self.sum / self.n:.5f}  "
                 f">0.01 {self.over_small / self.n * 100:.4f}%  >0.5 {self.over_half / self.n * 100:.4f}%  of {self.n}")
-
-
-def add(stats: dict, graph: str, gpu, dec, ref) -> None:
-    stats[(graph, "decode")].add((dec - ref) * STEPS[graph])
-    stats[(graph, "graph")].add((gpu - dec) * STEPS[graph])
-    stats[(graph, "e2e")].add((gpu - ref) * STEPS[graph])
 
 
 class Canned:
@@ -144,6 +172,12 @@ def groups(items: list):
     for start in range(0, len(items), BATCH):
         part = list(items[start:start + BATCH])
         yield part + [part[-1]] * (BATCH - len(part)), len(part)
+
+
+def reference(image, sidecar, roi) -> np.ndarray:
+    """The package CPU resize of one host frame, as float64 CHW in the channel order of the model."""
+    resized, _ = resize_image(image, sidecar.input.resize, sidecar.size(SIZE).target_size, sidecar.input.color_format, roi)
+    return (resized[..., ::-1] if sidecar.input.color_format == "rgb" else resized).transpose(2, 0, 1).astype(np.float64)
 
 
 def match(ref_boxes, got_boxes, threshold=0.5):
@@ -187,83 +221,94 @@ def keypoint_lines(ref, got) -> list[str]:
     return lines
 
 
-def measure(ep, config, yolox, rtmw, models, frames, sizes, decoder) -> None:
-    compute_dtype, interpolation = config.split(":")
-    yolox = with_resize(yolox, compute_dtype=compute_dtype, interpolation=interpolation)
-    rtmw = with_resize(rtmw, compute_dtype=compute_dtype, interpolation=interpolation)
-    y_model, r_model = models
-    detector = GenericObjectDetector(yolox, SIZE, PRECISION, y_model)
-    keypointer = GenericKeypointDetector(rtmw, SIZE, PRECISION, r_model)
-    y_in, y_names = y_model.get_inputs()[0].name, [o.name for o in y_model.get_outputs()]
-    r_in, r_names = r_model.get_inputs()[0].name, [o.name for o in r_model.get_outputs()]
+def encode(frames, w, h, flag) -> list[bytes]:
+    sized = [f if f.shape[:2] == (h, w) else cv2.resize(f, (w, h), interpolation=cv2.INTER_CUBIC) for f in frames]
+    return [cv2.imencode(".jpg", f, [cv2.IMWRITE_JPEG_QUALITY, 90, cv2.IMWRITE_JPEG_SAMPLING_FACTOR, flag])[1].tobytes()
+            for f in sized]
+
+
+def measure(ep, config, landed, models, frames, names, sizes, decoder, roi_cache) -> str:
+    """Measure one config on all variants. Return its GATE line."""
+    yolox, rtmw = landed
+    sidecar = configure(config, yolox, rtmw)
+    crops = sidecar.input.resize.method == "affine_crop"
+    model = models[1] if crops else models[0]
+    m_in, m_names = model.get_inputs()[0].name, [o.name for o in model.get_outputs()]
+    compute_dtype = sidecar.input.resize.compute_dtype
     print(f"\n=== {ep} {config} ===", flush=True)
-    tensors, results, redecode_diff = {}, [], 0
+    stats, per_image, bad_values, cpu_nodes, control = {}, {}, 0, 0, []
     for w, h in sizes:
-        pre = {"letterbox": session(letterbox_graph(yolox, w, h), ep, f"letterbox {w}x{h}"),
-               "affine_crop": session(affine_crop_graph(rtmw, w, h), ep, f"affine_crop {w}x{h}")}
-        sized = [f if f.shape[:2] == (h, w) else cv2.resize(f, (w, h), interpolation=cv2.INTER_CUBIC) for f in frames]
+        pre, nodes = session(preprocess_graph(sidecar, w, h), ep, f"{config} {w}x{h}")
+        cpu_nodes += nodes
         for chroma, flag in CHROMA.items():
             variant = f"{w}x{h} {chroma}"
-            jpegs = [cv2.imencode(".jpg", f, [cv2.IMWRITE_JPEG_QUALITY, 90, cv2.IMWRITE_JPEG_SAMPLING_FACTOR, flag])[1].tobytes()
-                     for f in sized]
+            jpegs = encode(frames, w, h, flag)
             ref_pix = [cv2.imdecode(np.frombuffer(j, np.uint8), cv2.IMREAD_COLOR) for j in jpegs]
             nv_pix = [decoder.host_bgr(j) for j in jpegs]
-            stats = {(g, c): Steps() for g in STEPS for c in ("decode", "graph", "e2e")}
-
-            # yolox: letterbox graph, BATCH frames for each call
-            gpu_det = []
-            for idx, count in groups(list(range(len(jpegs)))):
-                (tensor,) = bind_run(pre["letterbox"], frame_inputs(decoder.decode([jpegs[i] for i in idx])))
-                outs = {n: v.numpy() for n, v in zip(y_names, bind_run(y_model, {y_in: tensor}), strict=True)}
-                ref = np.stack([preprocess_image(ref_pix[i], yolox, SIZE, PRECISION)[0] for i in idx[:count]])
-                dec = np.stack([preprocess_image(nv_pix[i], yolox, SIZE, PRECISION)[0] for i in idx[:count]])
-                add(stats, "letterbox", tensor.numpy()[:count], dec, ref)
-                canned = GenericObjectDetector(yolox, SIZE, PRECISION, Canned(y_model, outs))
-                gpu_det += canned.detect([ref_pix[i] for i in idx])[:count]
-            ref_det, dec_det = detector.detect(ref_pix), detector.detect(nv_pix)
-
-            # rtmw: affine_crop graph on the ROIs of the ref-path boxes
-            crops = [(i, resize_affine_crop.roi_from_box(box.tolist())) for i in range(len(jpegs)) for box in ref_det[i].boxes]
-            gpu_kp, gpu_s = [], []
-            for part, count in groups(crops):
-                images = decoder.decode([jpegs[i] for i, _ in part])
-                redecode_diff += sum(int(np.any(np.asarray(images[k].cpu())[..., ::-1] != nv_pix[part[k][0]])) for k in range(count))
-                inputs = frame_inputs(images) | {"theta": thetas(rtmw, [roi for _, roi in part], w, h)}
-                (tensor,) = bind_run(pre["affine_crop"], inputs)
-                outs = {n: v.numpy() for n, v in zip(r_names, bind_run(r_model, {r_in: tensor}), strict=True)}
-                ref = np.stack([preprocess_image(ref_pix[i], rtmw, SIZE, PRECISION, roi)[0] for i, roi in part[:count]])
-                dec = np.stack([preprocess_image(nv_pix[i], rtmw, SIZE, PRECISION, roi)[0] for i, roi in part[:count]])
-                add(stats, "affine_crop", tensor.numpy()[:count], dec, ref)
-                found = GenericKeypointDetector(rtmw, SIZE, PRECISION, Canned(r_model, outs)).detect(
-                    [ref_pix[i] for i, _ in part], [roi for _, roi in part])
-                gpu_kp.append(found.keypoints[:count])
-                gpu_s.append(found.scores[:count])
-            rois = [roi for _, roi in crops]
-            ref_k, dec_k = (keypointer.detect([pix[i] for i, _ in crops], rois) for pix in (ref_pix, nv_pix))
-            kp = {"ref": (ref_k.keypoints, ref_k.scores), "dec": (dec_k.keypoints, dec_k.scores),
-                  "gpu": (np.concatenate(gpu_kp), np.concatenate(gpu_s))}
-            tensors[variant] = stats
-            results.append((variant, {"ref": ref_det, "dec": dec_det, "gpu": gpu_det}, kp))
-    print(f"  nvJPEG re-decode differs from the first decode: {redecode_diff} crops")
-    for graph in STEPS:
-        print(f"[{ep} {config}] {graph} input tensor |d| in uint8 steps")
-        for comp in ("decode", "graph", "e2e"):
-            total = Steps()
-            for variant, stats in tensors.items():
-                total.merge(stats[(graph, comp)])
-                print(f"    {comp:6s} {variant:14s} {stats[(graph, comp)].line()}")
-            print(f"    {comp:6s} {'ALL':14s} {total.line()}")
-    comparisons = (("decode", "ref", "dec"), ("graph", "dec", "gpu"), ("e2e", "ref", "gpu"))
-    print(f"[{ep} {config}] yolox final detections (after the package filter, min_score {yolox.object.decode.min_score})")
-    for comp, a, b in comparisons:
-        for variant, boxes, _ in results:
-            print(f"    {comp:6s} {variant:14s} {box_line(boxes[a], boxes[b])}")
-        every = [(x, y) for _, boxes, _ in results for x, y in zip(boxes[a], boxes[b], strict=True)]
-        print(f"    {comp:6s} {'ALL':14s} {box_line([x for x, _ in every], [y for _, y in every])}")
-    print(f"[{ep} {config}] rtmw keypoints, the same ROIs (the ref-path boxes)")
-    for comp, a, b in comparisons:
-        joined = {k: tuple(np.concatenate([kp[k][i] for _, _, kp in results]) for i in (0, 1)) for k in (a, b)}
-        print(f"    {comp:6s} ALL " + "\n                ".join(keypoint_lines(joined[a], joined[b])))
+            if crops and variant not in roi_cache:  # the ROIs of the ref-path boxes of the landed yolox
+                found = GenericObjectDetector(yolox, SIZE, PRECISION, models[0]).detect(ref_pix)
+                roi_cache[variant] = [(i, resize_affine_crop.roi_from_box(b.tolist())) for i in range(len(jpegs))
+                                      for b in found[i].boxes]
+            items = roi_cache[variant] if crops else [(i, None) for i in range(len(jpegs))]
+            stats[variant] = {c: Steps() for c in ("decode", "graph", "e2e")}
+            gpu_results = []
+            for part, count in groups(items):
+                inputs = frame_inputs(decoder.decode([jpegs[i] for i, _ in part]))
+                if crops:
+                    inputs["theta"] = thetas(sidecar, [roi for _, roi in part], w, h)
+                tensor, pixels = bind_run(pre, inputs)
+                gpu = pixels.numpy()[:count].astype(np.float64)
+                ref = np.stack([reference(ref_pix[i], sidecar, roi) for i, roi in part[:count]])
+                dec = np.stack([reference(nv_pix[i], sidecar, roi) for i, roi in part[:count]])
+                for comp, d in (("decode", dec - ref), ("graph", gpu - dec), ("e2e", gpu - ref)):
+                    stats[variant][comp].add(d)
+                bad_values += int((~np.isfinite(gpu)).sum())
+                if compute_dtype == "uint8":
+                    bad_values += int(((gpu != np.round(gpu)) | (gpu < 0) | (gpu > 255)).sum())
+                for k, (i, _) in enumerate(part[:count]):
+                    key = (variant, names[i])
+                    per_image[key] = max(per_image.get(key, 0.0), float(np.nanmax(np.abs(gpu[k] - dec[k]))))
+                outs = {n: v.numpy() for n, v in zip(m_names, bind_run(model, {m_in: tensor}), strict=True)}
+                if crops:
+                    found = GenericKeypointDetector(sidecar, SIZE, PRECISION, Canned(model, outs)).detect(
+                        [ref_pix[i] for i, _ in part], [roi for _, roi in part])
+                    gpu_results.append((found.keypoints[:count], found.scores[:count]))
+                else:
+                    gpu_results += GenericObjectDetector(sidecar, SIZE, PRECISION, Canned(model, outs)).detect(
+                        [ref_pix[i] for i, _ in part])[:count]
+            if crops:
+                dec_k = GenericKeypointDetector(sidecar, SIZE, PRECISION, model).detect(
+                    [nv_pix[i] for i, _ in items], [roi for _, roi in items])
+                got = tuple(np.concatenate([r[j] for r in gpu_results]) for j in (0, 1))
+                control.append(((dec_k.keypoints, dec_k.scores), got))
+            else:
+                control.append((GenericObjectDetector(sidecar, SIZE, PRECISION, model).detect(nv_pix), gpu_results))
+    for comp in ("decode", "graph", "e2e"):
+        total = Steps()
+        for variant, by_comp in stats.items():
+            total.merge(by_comp[comp])
+            if comp == "graph":
+                print(f"    {comp:6s} {variant:14s} {by_comp[comp].line()}")
+        print(f"    {comp:6s} {'ALL':14s} {total.line()}")
+        if comp == "graph":
+            graph_total = total
+    if crops:
+        joined = [tuple(np.concatenate([c[side][j] for c in control]) for j in (0, 1)) for side in (0, 1)]
+        print("    control rtmw keypoints, graph only: " + "\n        ".join(keypoint_lines(*joined)))
+    else:
+        dec_all = [d for c in control for d in c[0]]
+        gpu_all = [d for c in control for d in c[1]]
+        print(f"    control yolox boxes, graph only: {box_line(dec_all, gpu_all)}")
+    for (variant, name), value in per_image.items():
+        print(f"IMAGE {ep} {config} {variant} {name} {value:.4f}")
+    limit = G1_MAX_ABS_UINT8 if compute_dtype == "uint8" else G2_MAX_ABS_FLOAT32
+    verdict = "PASS" if graph_total.max <= limit and bad_values == 0 else "FAIL"
+    worst = max(per_image.items(), key=lambda kv: kv[1])
+    nonzero = sum(v > 0 for v in per_image.values())
+    return (f"GATE {ep} {config}: {verdict} ({'G1' if compute_dtype == 'uint8' else 'G2'} <= {limit}) max {graph_total.max:.4f} "
+            f">0.5 {graph_total.over_half / graph_total.n * 100:.4f}% >0.01 {graph_total.over_small / graph_total.n * 100:.4f}% "
+            f"bad values {bad_values}; images with max > 0: {nonzero}/{len(per_image)}; worst {worst[0][1]} {worst[0][0]} "
+            f"{worst[1]:.4f}; CPU nodes {cpu_nodes}")
 
 
 def main() -> None:
@@ -272,19 +317,21 @@ def main() -> None:
     parser.add_argument("--frames", type=Path, nargs="+", required=True, help="videos, images or folders of them")
     parser.add_argument("--per-video", type=int, default=12)
     parser.add_argument("--sizes", nargs="+", default=["720x1280", "1080x1920"], help="W x H of the encoded frames")
-    parser.add_argument("--configs", nargs="+", default=["uint8:linear"], help="<compute_dtype>:<interpolation>")
+    parser.add_argument("--configs", nargs="+", default=DEFAULT_CONFIGS, help="<method>:<compute_dtype>:<interpolation>:<pad>")
     args = parser.parse_args()
     sizes = [tuple(int(v) for v in s.split("x")) for s in args.sizes]
-    frames = load_frames(args.frames, args.per_video)
+    frames, names = load_frames(args.frames, args.per_video)
     print(versions())
     print(f"sample: {len(frames)} frames, sizes {args.sizes}, chroma {list(CHROMA)}, JPEG quality 90")
-    yolox, rtmw = load_detector_sidecar(YOLOX, None), load_detector_sidecar(RTMW, None)
+    print(f"gates: G1 uint8 integer 0-255 and max |d| <= {G1_MAX_ABS_UINT8}; G2 float32 finite and max |d| <= {G2_MAX_ABS_FLOAT32}")
+    landed = load_detector_sidecar(YOLOX, None), load_detector_sidecar(RTMW, None)
     decoder = DeviceDecoder(load_cudart(args.cudart))
     for ep in args.ep:
-        models = (session(model_file(yolox, args.model_root), ep, "yolox"),
-                  session(model_file(rtmw, args.model_root), ep, "rtmw"))  # model sessions first: the order that raced
-        for config in args.configs:
-            measure(ep, config, yolox, rtmw, models, frames, sizes, decoder)
+        models = tuple(session(model_file(s, args.model_root), ep, s.model_id)[0] for s in landed)  # models first
+        roi_cache: dict = {}
+        gates = [measure(ep, config, landed, models, frames, names, sizes, decoder, roi_cache) for config in args.configs]
+        print(f"\n[{ep}] gates")
+        print("\n".join(gates), flush=True)
 
 
 if __name__ == "__main__":

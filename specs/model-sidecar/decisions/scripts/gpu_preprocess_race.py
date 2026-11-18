@@ -25,6 +25,7 @@ It writes no file.
 from __future__ import annotations
 
 import argparse
+import faulthandler
 from pathlib import Path
 
 import cv2
@@ -37,12 +38,11 @@ from gpu_preprocess_graphs import (
     YOLOX,
     DeviceDecoder,
     add_common_arguments,
-    affine_crop_graph,
     bind_run,
     frame_inputs,
-    letterbox_graph,
     load_cudart,
     model_file,
+    preprocess_graph,
     session,
     thetas,
     versions,
@@ -66,7 +66,7 @@ def race(decoder, pre, model, jpegs, refs, steps, theta, iterations, wait) -> st
         content = [(i + k) % 2 for k in range(BATCH)]
         images = decoder.decode([jpegs[c] for c in content], wait=wait)
         inputs = frame_inputs(images) | ({} if theta is None else {"theta": theta})
-        (tensor,) = bind_run(pre, inputs)
+        tensor = bind_run(pre, inputs)[0]
         device_out = [v.numpy() for v in bind_run(model, {m_in: tensor})]
         host_in = tensor.numpy()  # the host copy for the check, after the device runs
         wrong = False
@@ -99,7 +99,10 @@ def main() -> None:
     parser.add_argument("--photo", type=Path, required=True)
     parser.add_argument("--wait", type=int, default=1000, help="iterations with the wait")
     parser.add_argument("--no-wait", type=int, default=300, help="iterations without the wait")
+    parser.add_argument("--watchdog", type=float, help="after this many seconds, print the stack of each thread and exit")
     args = parser.parse_args()
+    if args.watchdog:
+        faulthandler.dump_traceback_later(args.watchdog, exit=True)
     print(versions())
     photo = cv2.imread(str(args.photo))
     h, w = photo.shape[:2]
@@ -110,20 +113,21 @@ def main() -> None:
     yolox, rtmw = load_detector_sidecar(YOLOX, None), load_detector_sidecar(RTMW, None)
     roi = resize_affine_crop.roi_from_box(ROI_BOX)
     paths = {
-        "letterbox": (yolox, letterbox_graph, None, 1.0),
-        "affine_crop": (rtmw, affine_crop_graph, roi, np.array(IMAGENET_STD_RGB).reshape(3, 1, 1)),
+        "letterbox": (yolox, None, 1.0),
+        "affine_crop": (rtmw, roi, np.array(IMAGENET_STD_RGB).reshape(3, 1, 1)),
     }
     print(f"photo {w}x{h}, JPEG quality 90, 4:2:2, batch {BATCH}, A and its vertical flip B")
     for ep in args.ep:
-        for name, (sidecar, graph, crop_roi, steps) in paths.items():
-            model = session(model_file(sidecar, args.model_root), ep, sidecar.model_id)  # model first
-            pre = session(graph(sidecar, w, h), ep, f"{name} graph")
+        for name, (sidecar, crop_roi, steps) in paths.items():
+            model, _ = session(model_file(sidecar, args.model_root), ep, sidecar.model_id)  # model first
+            pre, _ = session(preprocess_graph(sidecar, w, h), ep, f"{name} graph")
             refs = [preprocess_image(p, sidecar, SIZE, PRECISION, crop_roi)[0] for p in pictures]
             theta = None if crop_roi is None else thetas(sidecar, [crop_roi] * BATCH, w, h)
             print(f"  A vs B reference: tensor max {np.abs((refs[0] - refs[1]) * steps).max():.0f} steps")
             for wait, iterations in ((True, args.wait), (False, args.no_wait)):
                 result = race(decoder, pre, model, jpegs, refs, steps, theta, iterations, wait)
                 print(f"RESULT {ep} {name} {'wait' if wait else 'no wait'}: {result}", flush=True)
+    print("main returned; the process exits next", flush=True)
 
 
 if __name__ == "__main__":
