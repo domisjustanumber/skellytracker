@@ -207,9 +207,30 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
     (`cuda`) and 2.807 / 0.152 (`trt-rtx`) at 1280x720, and 15.433 / 0.385 and 19.208 / 1.311 at
     1920x1080. JPEG input with the GPU decode and the GPU preprocess: 4.859 / 0.330 and
     3.537 / 0.372 at 1280x720, and 117.472 / 7.780 and 185.772 / 6.914 at 1920x1080. In the runs
-    with the built-in cadence, the maximum of these keypoints is 411.817 to 1082.356 pixels. A
-    measurement on a recording with people is still open. It must come before a release that turns
-    the GPU path on by default.
+    with the built-in cadence, the maximum of these keypoints is 411.817 to 1082.356 pixels.
+  - Agreement on a recording with people, measured on 2026-11-18. Conditions: the freemocap sample
+    data, 3 cameras at 720x1280, 1108 frames, one person; each video frame encoded again as JPEG
+    with `cv2.imencode` at quality 90; the built-in pipeline with no config change; the 133 model
+    points with a score above 0.4, about 424 000 points for each pair; the same hardware and
+    versions as above. The numbers are the difference of a keypoint in source pixels, median / p99.
+    - Two runs of one path on one EP are equal bit for bit.
+    - JPEG input with the GPU decode and the GPU preprocess against JPEG input with the CPU decode
+      and the CPU preprocess: 1.18 / 7.55 on `cuda`, and 1.33 / 7.92 on `trt-rtx`.
+    - The yardstick, the CPU path on two EPs: 1.26 / 7.87 for `cuda` against `cpu`, and 1.29 / 7.78
+      for `cuda` against `trt-rtx`. The GPU path thus differs from the CPU path as much as one EP
+      differs from an other EP.
+    - The GPU decode adds no difference that the measurement can show: with the GPU preprocess, array
+      input and JPEG input with the CPU decode are equal bit for bit, and JPEG input with the GPU
+      decode gives 1.18 / 7.55 against 1.14 / 7.47 (`cuda`).
+    - The difference does not grow with time. With a detector call at each frame, the median is 0.11
+      (`cuda`, GPU path against CPU path) and 0.18 (`cuda` against `cpu`). The feedback from the
+      keypoints to the crop box raises it to about 1.2, and it stays there.
+    - 0.25 to 0.28 % of the points cross the score 0.4 in each pair, also in the yardstick.
+    - The maximum is 320 to 326 pixels in each pair, and 281 to 323 in the yardstick. It comes from
+      a few frames in which the model moves a whole hand. The same frames are the worst frames of
+      the yardstick.
+    - Limits: one recording, JPEG made from decoded video and not from a camera, rotation 0 only, no
+      ground truth. These are agreement numbers, not accuracy numbers.
   - Not a gain, c: one measurement process (`cuda`, array input with the GPU preprocess, 1920x1080,
     6 cameras) did not end at its exit after it saved its results. It ran into the timeout of
     1200 s. This was 1 of the runs. An earlier study on this work did not reproduce an exit hang in
