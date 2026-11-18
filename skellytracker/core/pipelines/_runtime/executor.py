@@ -126,6 +126,7 @@ class Executor:
         vram_reserve_bytes: int = 2**30,
         fps: float | int = 30.0,
         cpu_threads: int | None = None,
+        cpu_preprocess: bool = False,
         timing_sink: Any = None,
         timing: str = "on",
         tap_dir: str | Path | None = None,
@@ -137,6 +138,7 @@ class Executor:
         self.camera_ids = list(camera_ids)
         self.fps = float(fps)
         self.vram_reserve_bytes = vram_reserve_bytes
+        self.cpu_preprocess = cpu_preprocess
         self.batch_k = 1  # k is 1 on each GPU in this version (pipeline.running, Behaviour item 4)
         self.on_warning = on_warning
         self.warnings: list[PipelineWarning] = []
@@ -296,7 +298,9 @@ class Executor:
                 opened[node_id].append(self.sessions.open(node, plan, device_key, self.batch_k * cameras * rows))
                 places.append(onnx_model.GraphDevice(device_key, opened[node_id][-1].report.ep_device_id, self.batch_k * cameras * rows))
             graph = None
-            if plan.execution_provider in onnx_model.GRAPH_EPS:  # the GPU preprocess (pipeline.running, Implementer guidance)
+            # the GPU preprocess (pipeline.running, Implementer guidance); with `cpu_preprocess` no node has a graph, so no
+            # frame uploads and no GPU JPEG decoder opens, and the run gives no warning of the CPU path (Behaviour item 14)
+            if plan.execution_provider in onnx_model.GRAPH_EPS and not self.cpu_preprocess:
                 # the device memory of the bound values is that of the provider of the model session
                 device_type = "cpu" if opened[node_id][0].report.ep_name == sessions.CPU_EP_NAME else "cuda"
                 graph = onnx_model.GraphPath(

@@ -1158,3 +1158,17 @@ def test_a_run_on_the_cpu_ep_opens_no_decoder_gives_no_jpeg_warning_and_a_jpeg_f
         run.process_batch(jpeg_calls(1)[0])
         assert jpeg_warnings(run) == [] and port_values(run, "a")["frame.image"].pixels is not None
     assert frame_spans(lines) == [("decode", ["a", "b"])]  # no frame goes to GPU memory: no upload event
+
+
+def test_cpu_preprocess_decodes_each_jpeg_in_the_cpu_pool_opens_no_decoder_and_gives_no_jpeg_warning(
+    root: Path, gpu_decode: dict[str, Any], monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    names = decode_threads(monkeypatch)
+    gpu_decode["decoder"] = False  # without the parameter, a decoder that does not open warns
+    with start(root, detector_pipeline(), camera_ids=["a", "b", "c"], cpu_threads=4, cpu_preprocess=True) as run:
+        for frames in jpeg_calls():
+            run.process_batch(frames)
+            assert all(port_values(run, camera)["frame.image"].device is None for camera in frames)  # each frame stays in CPU memory
+        assert run._executor.decoder_places == {}  # noqa: SLF001
+    assert gpu_decode["log"] == [] and gpu_decode["uploads"] == [] and run.warnings == ()
+    assert len(names) == 4 and all(name.startswith("skellytracker-jpeg") for name in names)  # 2 JPEG cameras in each of 2 calls

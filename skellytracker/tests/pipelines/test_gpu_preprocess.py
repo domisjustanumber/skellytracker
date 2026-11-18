@@ -394,6 +394,19 @@ def test_a_run_on_the_cpu_ep_gives_no_warning_preprocessed_on_cpu(root: Path, bo
     assert run.warnings == () and bound_runs == []
 
 
+def test_cpu_preprocess_on_a_graph_ep_builds_no_graph_uploads_no_frame_and_gives_no_warning(
+    tmp_path: Path, graph_on: None, bound_runs: list[int], uploads: list[Any],
+) -> None:
+    root = area_models(tmp_path / "area")  # without the parameter, the graph refuses the detector and warns
+    lines: list[dict] = []
+    with start(root, cpu_preprocess=True, timing_sink=lines.append) as run:
+        for frames in three_calls():
+            run.process_batch(frames)
+        assert run._executor.sessions.preprocess == {} and run._executor.upload_devices == {}  # noqa: SLF001
+    assert run.warnings == () and bound_runs == [] and uploads == []
+    assert {item["id"]: item["stage_providers"]["preprocess"] for item in lines[0]["nodes"]} == {"person": None, "body": None}
+
+
 # ---------------------------------------------------------------------------------------------
 # The timing header and the close
 # ---------------------------------------------------------------------------------------------
