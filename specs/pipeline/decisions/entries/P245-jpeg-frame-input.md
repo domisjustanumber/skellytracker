@@ -17,7 +17,7 @@
 4. **Timing spans.** The reserved source `frame` has the spans `decode` (`frame.decode`) and
    `upload` (`frame.upload`, the copy of frames from CPU memory to GPU memory), both inside
    `pipeline.run`. The copy of the GPU decoder and the turn are in `decode`.
-   [Timing](../../timing.md#fields) gives the events of each frame form.
+   [Timing](../../timing.md#fields) gives the events and `stage_providers`.
 5. **Decoded frame.** 8-bit, 3 channels, BGR, turned by `rotation_deg` (item 7). It can
    be in GPU memory when an `onnx_model` node that runs uses `cuda` or `trt-rtx`. Else it is in CPU
    memory.

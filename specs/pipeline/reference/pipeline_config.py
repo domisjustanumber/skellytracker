@@ -751,7 +751,7 @@ class Tap(Strict):
 
 class Instrumentation(Strict):
     timing_spans: list[str] = Field(
-        default_factory=list, description="`<node>.<span>` or `pipeline.run`. Empty: no timing span is on."
+        default_factory=list, description="`<node>.<span>`, `pipeline.run`, `frame.decode` or `frame.upload`. Empty: no timing span is on."
     )
     taps: list[Tap] = Field(default_factory=list, description="The record and replay taps.")
 

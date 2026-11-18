@@ -147,6 +147,8 @@ A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api
   - The cameras of a call whose JPEG frames have the same stored width and height share one decode batch, also when their `rotation_deg` values are different.
   - The lossless turn of the JPEG data is not a way to turn a frame: it cannot turn each size, because of a partial block at the edge, and it is slower than the decode and a turn.
   - The GPU decoder returns before the frame is complete. The run waits for the decode before a reader uses the frame.
+  - With nvImageCodec 0.10.0, a decode of exactly one image never returns when the decoder has fewer CUDA streams than worker threads. The option `num_cuda_streams` and the environment variable `NVIMGCODEC_DEFAULT_NUM_CUDA_STREAMS` set the stream count. The run must keep the stream count equal to the thread count, or use the defaults. The run must not let that environment variable lower the stream count.
+  - The run closes in this order: the IO bindings, the sessions, the decoded frames, the decoder, the CUDA stream. The run does not rely on the end of the process to close them.
   - The run uploads a frame from CPU memory to GPU memory at most one time for each call, before the first reader that needs the frame in GPU memory. When the run uploads a decoded array is an implementation choice of the GPU preprocess of a model ([Timing](timing.md#fields), the span `frame.upload`).
   - A node that needs the pixels in CPU memory, for example `mediapipe_tasks`, copies a frame in GPU memory to the host as a part of the conversion for its model ([Graph](graph.md#behaviour) item 9).
 
