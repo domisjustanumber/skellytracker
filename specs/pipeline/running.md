@@ -31,12 +31,12 @@ A pipeline file has no field of this section. A run takes these parameters:
 | user root | no | The user root of the model and pipeline files ([Pipeline file](file.md#behaviour)). |
 | warning receiver | no | A receiver that gets each new warning. |
 
-Each call gives, for each camera of the call, one frame with its `frame_index`. In `live`, each frame also has its `timestamp_ms` (a float, in milliseconds). In `video`, the frames of a camera have a `timestamp_ms` when the camera gives one ([Behaviour](#behaviour) item 2).
+Each call gives, for each camera of the call, one frame with its `frame_index`. In `live`, each frame also has its `timestamp_ms` (a float, in milliseconds). In `video`, the frames of a camera have a `timestamp_ms` when the camera gives one ([Behaviour](#behaviour) item 2). A frame with a JPEG buffer can have a `rotation_deg`: the degrees clockwise that the stored image must turn to be upright, `0`, `90`, `180` or `270`. Default: `0` ([Behaviour](#behaviour) item 13; `V-pipeline.running-13`).
 
 The image of a frame has one of these two forms. Each frame of a call can have either form ([ADR-75K2](../../decisions/entries/75K2-unclear-places-of-the-pipeline-spec.md); [ADR-P245](decisions/entries/P245-jpeg-frame-input.md)):
 
-- a decoded array: the host frame, BGR, `uint8`, shape `(H, W, 3)`, in CPU memory, with no orientation;
-- a JPEG buffer: the bytes of one JPEG image, with an optional EXIF orientation. The run decodes it to `frame.image` before the first node, and applies the orientation ([Behaviour](#behaviour) item 13).
+- a decoded array: the host frame, BGR, `uint8`, shape `(H, W, 3)`, in CPU memory, with no `rotation_deg`;
+- a JPEG buffer: the bytes of one JPEG image. The run decodes it and turns it by its `rotation_deg` to `frame.image` before the first node ([Behaviour](#behaviour) item 13).
 
 A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 6):
 
@@ -98,17 +98,13 @@ A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api
     - A call that breaks `V-pipeline.running-10` raises the error `SetParamsRefusedError`. It changes no param.
 12. **Threads.** The calls on one run are serial: a second call waits for the first call. `close()` waits for the call that runs. A call after `close()` raises an error. A second `close()` does nothing. Two runs share no state. There is no cancel ([ADR-75K2](../../decisions/entries/75K2-unclear-places-of-the-pipeline-spec.md) item 5).
 13. **JPEG frames.** The caller gives the image of each frame as a decoded array or as a JPEG buffer ([Fields](#fields)). The pipeline file is the same for both forms ([ADR-P245](decisions/entries/P245-jpeg-frame-input.md)):
-    - The run decodes each JPEG buffer to `frame.image` before the first node of the call. Each node reads `frame.image` as for a decoded array.
-    - The run decodes each JPEG buffer one time. Each reader of `frame.image` gets the same decoded frame.
-    - The decoded frame is an 8-bit image with 3 channels in BGR order.
-    - The run applies the EXIF orientation of each JPEG buffer in the decode. The caller turns a frame with the EXIF Orientation tag in the JPEG bytes. The run has no rotation input of its own. The decoded frame is the stored image, turned by the orientation:
-      - `1`, or no Exif segment: no turn. The width and the height are the stored width and height.
-      - `3`: 180 degrees. The width and the height are the stored width and height.
-      - `6`: 90 degrees clockwise. The width and the height are the stored height and width.
-      - `8`: 270 degrees clockwise (90 degrees counter-clockwise). The width and the height are the stored height and width.
-    - The turn is exact. The decoded frame has the pixel values of the decode in the stored orientation by the same decoder, at their turned positions.
-    - The run does not examine the Exif segments of a JPEG buffer. The caller must not give a JPEG buffer with two or more Exif APP1 segments. The caller must not give the orientation `2`, `4`, `5` or `7`. The result of such a buffer is not defined.
-    - A decoded array has no orientation. The caller turns its pixels before the call.
+    - The run decodes each JPEG buffer, then turns the decoded frame clockwise by the `rotation_deg` of the frame. Both steps occur before the first node of the call. `frame.image` is the turned frame for each reader. Each node reads `frame.image` as for a decoded array.
+    - The run decodes and turns each JPEG buffer one time. Each reader of `frame.image` gets the same frame.
+    - The run does not apply the EXIF orientation of a JPEG.
+    - The turned frame is an 8-bit image with 3 channels in BGR order. For `rotation_deg` `0` and `180`, its width and height are the stored width and height of the JPEG. For `90` and `270`, its width and height are the stored height and width.
+    - The turn is exact. It moves the pixel values and changes none.
+    - A decoded array has no `rotation_deg`. The caller turns its pixels before the call.
+    - A call with a `rotation_deg` that is not `0`, `90`, `180` or `270`, or with a `rotation_deg` on a decoded array, breaks `V-pipeline.running-13`. It raises `CallRefusedError`, with the same effect as in Behaviour item 2.
     - When an `onnx_model` node that runs uses the EP `cuda` or `trt-rtx`, the decoded frame can be in GPU memory. Else the decoded frame is in CPU memory.
     - The spec does not give the pixel values of the decode. Two decoders can give different pixel values for one JPEG. The spec requires only the width, the height, the channel count, the channel order and the bit depth.
     - When the GPU decoder refuses a JPEG buffer, for example a progressive JPEG or a chroma format that it does not support, the run decodes that frame on the CPU. The call continues. The run gives the warning `jpeg_decoded_on_cpu` (Behaviour item 8).
@@ -129,6 +125,7 @@ A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api
 - [ ] `V-pipeline.running-10` A `set_params` call must name a node of the run. Each param must be a param of that node type, marked `yes` in the column "Set during run", with a value of its type and range. After the first `process` or `process_batch` call, the running mode must be `live` and the run must have no `record` tap ([ADR-N5BM](../../decisions/entries/N5BM-set-during-run-and-set-params.md)).
 - [ ] `V-pipeline.running-11` When the run gives CPU threads, the value must be a positive integer. A boolean is not a valid value. Else the start must fail before frame 0 ([ADR-HB8Z](../../decisions/entries/HB8Z-cpu-threads-run-parameter.md)).
 - [ ] `V-pipeline.running-12` Each JPEG buffer of a call must be a JPEG image that a decoder of the run can read. Else the call must raise `CallRefusedError` ([ADR-P245](decisions/entries/P245-jpeg-frame-input.md)).
+- [ ] `V-pipeline.running-13` The `rotation_deg` of a frame must be `0`, `90`, `180` or `270`. A frame with a decoded array must have no `rotation_deg`. Else the call must raise `CallRefusedError` ([ADR-P245](decisions/entries/P245-jpeg-frame-input.md)).
 
 ## Implementer guidance
 
@@ -139,15 +136,16 @@ A warning has these fields ([ADR-V7GZ](../../decisions/entries/V7GZ-pipeline-api
 - JPEG frames ([ADR-P245](decisions/entries/P245-jpeg-frame-input.md)):
   - The package can give the decoded frame its own type, for example `DecodedFrame`. The type name is not a part of the spec.
   - The decoders are an implementation choice: `cv2.imdecode` on the CPU, and nvJPEG through nvImageCodec on `cuda` and `trt-rtx`.
-  - nvImageCodec applies the EXIF orientation by default (`apply_exif_orientation` defaults to True), and `cv2.imdecode` applies it unless `cv2.IMREAD_IGNORE_ORIENTATION` is set, so the run uses the defaults.
-  - With two Exif APP1 segments, `cv2.imdecode` applies the first segment and nvImageCodec applies the last segment, so the two decoders give different frames.
-  - For the orientations `1`, `3`, `6` and `8`, the turned decode of `cv2.imdecode` and of nvJPEG has a maximum difference of 0 against the turn of the decode in the stored orientation by the same decoder, with 4:2:2 and 4:2:0 chroma and several sizes.
+  - nvImageCodec applies the EXIF orientation by default (`apply_exif_orientation` defaults to True), and `cv2.imdecode` applies it unless `cv2.IMREAD_IGNORE_ORIENTATION` is set, so the run turns both off.
+  - The turn: `rotation_deg` `90` is `cv2.ROTATE_90_CLOCKWISE`, `180` is `cv2.ROTATE_180`, and `270` is `cv2.ROTATE_90_COUNTERCLOCKWISE`. On the CPU, the run uses `cv2.rotate`. On the GPU, the run uses a small graph of exact pixel moves. TensorRT takes a `uint8` tensor only as the input of a `Cast`, so the graph casts, moves and casts back, and the result is still exact. A turn inside each resize graph was measured and not chosen.
+  - On the GPU, a turn after the decode costs 0.06 to 0.15 ms for each frame. A decode that applies an EXIF tag costs about 0.1 to 0.3 ms more for 90 and 270 degrees. On the CPU, the two costs are equal.
+  - The decoder option `nvjpeg_cuda_decoder:hybrid_huffman_threshold=0` moves the Huffman step to the GPU for frames below 1000x1000 pixels. On one RTX 3070, it cut the decode and the preprocess of 3 frames at 1280x720 from about 3.5 to 2.7 ms on `cuda`, and from 2.7 to 1.9 ms on `trt-rtx`, with identical pixels. It is tested on one GPU and one picture only, so it is a candidate, not a rule.
   - nvJPEG and `cv2.imdecode` differ by at most 3 `uint8` steps, with a mean of 0.024, on 148 frame variants at JPEG quality 90 with 4:2:2 and 4:2:0 chroma.
   - nvImageCodec falls back to a CPU decoder by itself and gives no signal of it, so the run uses a decoder that is limited to the nvJPEG backend and does its own CPU fallback to give the warning `jpeg_decoded_on_cpu`.
   - nvImageCodec accepts `bytes`, `bytearray` and a 1-D `uint8` array, and refuses a `memoryview`.
   - `cv2.imdecode` raises an assertion error for an empty buffer, so the run checks for an empty buffer first: an empty buffer is not a JPEG image (`V-pipeline.running-12`).
-  - The cameras of a call whose JPEG frames have the same stored width and height share one decode batch, also when their orientations are different: one decode call with the orientations `1`, `6` and `8` gives correct frames.
-  - The lossless turn of the JPEG data is not a way to turn a frame: it cannot turn each size, because of a partial block at the edge, and it is slower than the decode with the tag.
+  - The cameras of a call whose JPEG frames have the same stored width and height share one decode batch, also when their `rotation_deg` values are different.
+  - The lossless turn of the JPEG data is not a way to turn a frame: it cannot turn each size, because of a partial block at the edge, and it is slower than the decode and a turn.
   - The GPU decoder returns before the frame is complete. The run waits for the decode before a reader uses the frame.
   - The run uploads a frame from CPU memory to GPU memory at most one time for each call, before the first reader that needs the frame in GPU memory. When the run uploads a decoded array is an implementation choice of the GPU preprocess of a model ([Timing](timing.md#fields), the span `frame.upload`).
   - A node that needs the pixels in CPU memory, for example `mediapipe_tasks`, copies a frame in GPU memory to the host as a part of the conversion for its model ([Graph](graph.md#behaviour) item 9).

@@ -37,7 +37,8 @@ root [open-work.md](../../../decisions/open-work.md).
   ([ADR-KW76](../../../decisions/entries/KW76-merge-replace-add-and-hungarian-match.md) item 8).
 - **Form of the JPEG buffer.** A caller gives a JPEG frame as "the bytes of one JPEG image"
   ([Running](../running.md#fields)). The concrete type of the buffer from the camera ring buffer
-  is not decided. The camera layer proposes `bytes` ([ADR-P245](entries/P245-jpeg-frame-input.md)).
+  is not decided. The camera layer proposes `bytes`. The name of the rotation field
+  `rotation_deg` is also not decided ([ADR-P245](entries/P245-jpeg-frame-input.md)).
 
 ## Ideas
 

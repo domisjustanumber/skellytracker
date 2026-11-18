@@ -25,7 +25,7 @@ The timing spans of each node type ([ADR-Q59W](../../decisions/entries/Q59W-pipe
 | `onnx_model` | `preprocess`, `inference`, `postprocess`, with the boundaries of OpenMMLab-Exporter ADR-W9RE |
 | each other type | `run` |
 | the reserved id `pipeline` | `run`: one span for each frame call |
-| the reserved source `frame` | `decode`: the decode of the JPEG buffers of a call, inside the span `pipeline.run`. `images` gives the frames that the event decodes. A call with no JPEG buffer gives no `decode` event. `upload`: the copy of frames from CPU memory to GPU memory in a call, inside the span `pipeline.run`. `images` gives the frames that the event copies. A call in which no frame goes to GPU memory gives no `upload` event ([Running](running.md#behaviour) item 13; [ADR-P245](decisions/entries/P245-jpeg-frame-input.md)) |
+| the reserved source `frame` | `decode`: the decode of the JPEG buffers of a call, inside the span `pipeline.run`. The turn of each decoded frame by its `rotation_deg` is a part of the `decode` span. `images` gives the frames that the event decodes. A call with no JPEG buffer gives no `decode` event. `upload`: the copy of frames from CPU memory to GPU memory in a call, inside the span `pipeline.run`. `images` gives the frames that the event copies. A call in which no frame goes to GPU memory gives no `upload` event ([Running](running.md#behaviour) item 13; [ADR-P245](decisions/entries/P245-jpeg-frame-input.md)) |
 
 The events of the reserved source `frame` for each frame that goes to GPU memory ([ADR-P245](decisions/entries/P245-jpeg-frame-input.md)):
 

@@ -16,21 +16,20 @@
    frame.
 4. **Timing spans.** The reserved source `frame` has the spans `decode` (`frame.decode`) and
    `upload` (`frame.upload`, the copy of frames from CPU memory to GPU memory), both inside
-   `pipeline.run`. The copy of the GPU decoder is in `decode`. [Timing](../../timing.md#fields)
-   gives the events of each frame form.
-5. **Decoded frame.** 8-bit, 3 channels, BGR, turned by the EXIF orientation (item 7). It can
+   `pipeline.run`. The copy of the GPU decoder and the turn are in `decode`.
+   [Timing](../../timing.md#fields) gives the events of each frame form.
+5. **Decoded frame.** 8-bit, 3 channels, BGR, turned by `rotation_deg` (item 7). It can
    be in GPU memory when an `onnx_model` node that runs uses `cuda` or `trt-rtx`. Else it is in CPU
    memory.
 6. **Pixels.** The decoder is an implementation choice. The spec does not require equal pixels
    across decoders. It requires the width, the height, the channel count, the channel order and the
    bit depth.
-7. **EXIF orientation.** The caller turns a frame with the EXIF Orientation tag in the JPEG bytes.
-   The run applies it in the decode, and has no rotation input of its own. `1` or no Exif segment:
-   no turn; `3`: 180 degrees; `6`: 90 degrees clockwise; `8`: 270 degrees clockwise. For `6` and
-   `8`, the width and the height swap. The turn is exact for the same decoder.
-   The caller must not give two or more Exif APP1 segments, or the orientation `2`, `4`, `5` or
-   `7`. The run does not examine the segments, so the result of such a buffer is not defined. A
-   decoded array has no orientation: the caller turns its pixels.
+7. **Rotation.** A JPEG frame can have `rotation_deg`: `0`, `90`, `180` or `270` degrees
+   clockwise, default `0`. The run decodes, then turns the frame one time, before the first node.
+   For `90` and `270`, the width and the height swap. The turn is exact. The run does not apply the
+   EXIF orientation. A decoded array has no `rotation_deg`: the caller turns its pixels. Another
+   value, or a `rotation_deg` on a decoded array, breaks the new rule `V-pipeline.running-13`, and
+   the call raises `CallRefusedError`.
 8. **Fallbacks.** Each gives the warning `jpeg_decoded_on_cpu`
    ([Running](../../running.md#behaviour) item 8):
    - a JPEG that the GPU decoder refuses is decoded on the CPU for that frame. The call continues.
@@ -43,15 +42,16 @@
    rule: nvJPEG can give a full-size frame with wrong pixels and no error, so the capture side must
    not give a frame that it knows is damaged.
 10. **Implementer guidance only.** The decoders, the type name, the CPU fallback, the buffer types,
-    the decode batch, the wait for the GPU decode and the upload
+    the turn graph, the decode batch, the wait for the GPU decode and the upload
     ([Running](../../running.md#implementer-guidance)).
 
 ## Consequences
 
 - No change to the sidecar spec or the camera layer. The proposal `resize-pixel-tolerance` covers
   a pixel limit of the resize.
-- The user reversed "the decode ignores the EXIF orientation" before the push, after the
-  measurement in the Evidence.
+- Before the push, the user changed the turn two times: from no turn, to the EXIF orientation in
+  the decode, to `rotation_deg` after the decode. The last change follows the turn cost in the
+  Evidence.
 
 ## Reason
 
@@ -65,19 +65,19 @@
 - `CallRefusedError` is the error of a call that breaks a rule of the call
   ([Running](../../running.md#behaviour) item 2). The decode is before the first node, so the call
   changes no state.
-- freemocap turns a frame with the EXIF tag, and both decoders apply it by default, exactly.
-- With two Exif APP1 segments, the decoders apply different segments. A check needs a scan of the
-  markers of each buffer, so the caller owns the rule. The mirrored values are not tested.
+- On the GPU, a turn after the decode costs less than a decode that applies an EXIF tag. On the CPU,
+  the costs are equal. The camera layer gives the rotation as a value in its frame header.
+- The run can check `rotation_deg`, so a `V-` rule refuses a wrong value. A `rotation_deg` on a
+  decoded array is a caller mistake that the run can see.
 
 ## Evidence
 
 - nvJPEG through nvImageCodec against `cv2.imdecode`: at most 3 `uint8` steps, mean 0.024, on 148
   frame variants, JPEG quality 90, 4:2:2 and 4:2:0 chroma. Measured by the user.
-- The turn with the orientations `1`, `3`, `6` and `8` against the turn of the decode in the stored
-  orientation by the same decoder: maximum difference 0, for `cv2.imdecode` and for nvJPEG, 4:2:2
-  and 4:2:0 chroma, several sizes. One decode call with the orientations `1`, `6` and `8` gives
-  correct frames. With two Exif APP1 segments, `cv2.imdecode` applies the first and nvImageCodec
-  applies the last. Measured by the user.
+- On the GPU, a turn after the decode costs 0.06 to 0.15 ms for each frame. A decode that applies
+  an EXIF tag costs about 0.1 to 0.3 ms more for 90 and 270 degrees. On the CPU, the costs are
+  equal. With two Exif APP1 segments, `cv2.imdecode` and nvImageCodec apply different segments.
+  Measured by the user.
 
 ## Alternatives rejected
 
@@ -86,7 +86,9 @@
 - Equal pixels across decoders: see the evidence.
 - A start failure when the GPU decoder package is missing: the CPU decoder gives a correct frame.
 - The missing-package warning at start: a run that gets only decoded arrays does not need it.
-- A `V-` rule for one Exif segment: see the Reason.
+- The EXIF orientation in the decode: it costs more on the GPU, and two Exif segments give two
+  different frames.
+- A turn inside each resize graph: measured and not chosen.
 - A lossless turn of the JPEG data: it cannot turn each size, and it is slower.
 
 ## Open work
