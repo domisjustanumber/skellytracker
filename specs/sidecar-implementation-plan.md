@@ -1449,6 +1449,20 @@ This stage implements the node types of the pipeline spec. Use the skill
   the graph on the CPU EP with `resize_image` within the limit. A test with the marker `gpu` does
   the same on each installed NVIDIA EP pack. A test checks each warning. Measure `nearest` with
   `fit` at scales other than 1/2 and 1/3 before the package uses the graph for it.
+- The JPEG frame input
+  ([JPEG frames](pipeline/running.md#implementer-guidance);
+  [ADR-P245](pipeline/decisions/entries/P245-jpeg-frame-input.md)). The steps, in this order:
+  - S1: the JPEG input on the CPU, for each EP. A `DecodedFrame` type, `core/decode/cpu.py`, the
+    frame field `rotation_deg`, and the rules `V-pipeline.running-12` and `V-pipeline.running-13`.
+  - S4: the GPU decoder package through the EP catalog.
+  - S5: the GPU decode in `core/decode/nvidia.py`: a decoder limited to nvJPEG with the CPU
+    fallback of the run, the EXIF orientation off, a private CUDA stream and the wait for the
+    decode, and the turn.
+  - S6: the wiring: the frame stage of the run, the IO binding of the preprocess output to the
+    model session, and the close order: bindings, sessions, decoded frames, decoder, stream.
+  - S7: the spans `frame.decode` and `frame.upload`.
+  - S8: measure the result against "Cost of the detector preprocess" in the root
+    [open-work.md](../decisions/open-work.md).
 - Its release note says these things:
   - The new spec loader, the catalog, the generic detectors, the pipeline API and the hardware and
     EP API are in.

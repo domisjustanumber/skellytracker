@@ -713,7 +713,7 @@
           "type": "array"
         },
         "timing_spans": {
-          "description": "`<node>.<span>` or `pipeline.run`. Empty: no timing span is on.",
+          "description": "`<node>.<span>`, `pipeline.run`, `frame.decode` or `frame.upload`. Empty: no timing span is on.",
           "items": {
             "type": "string"
           },
