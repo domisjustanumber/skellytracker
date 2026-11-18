@@ -46,7 +46,7 @@ left, top = (floor((T_w - n_w) / 2), floor((T_h - n_h) / 2))  # pad_position: ce
 dst[top:top+n_h, left:left+n_w] = resize(src, (n_w, n_h), <interpolation>)
 ```
 
-`resize` is `cv2.resize` ([Pixel centres](interpolation.md#pixel-centres)). If the position is `center`, any odd remainder goes to the right and the bottom. The pair `half_even` and `center` matches Ultralytics `LetterBox`. The pair `half_up` and `top_left` matches mmdet `Resize(keep_ratio=True)` + `Pad(size=…)`.
+`resize` is `cv2.resize` ([Pixel centres](interpolation.md#pixel-centres); [Resize limit](interpolation.md#resize-limit)). If the position is `center`, any odd remainder goes to the right and the bottom. The pair `half_even` and `center` matches Ultralytics `LetterBox`. The pair `half_up` and `top_left` matches mmdet `Resize(keep_ratio=True)` + `Pad(size=…)`.
 
 ### Inverse
 

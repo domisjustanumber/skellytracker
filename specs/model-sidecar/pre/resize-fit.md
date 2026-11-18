@@ -40,7 +40,7 @@ dst  = warpAffine(src, M, (T_w, T_h), <interpolation>, borderMode=constant, bord
 
 `border` has one value for each channel. A scalar `pad_value` fills each channel ([ADR-BJF9](../../../decisions/entries/BJF9-scalar-pad-value-fills-every-channel.md)).
 
-`warpAffine` is `cv2.warpAffine`. Its pixel centres are at integer coordinates ([Pixel centres](interpolation.md#pixel-centres)). This resize matches mmpose `BottomupResize` (RTMO). A `letterbox` is not equivalent to this resize at any scale other than `1`. A letterbox resize rounds the resized size. Also, `resize` + pad gives different pixels from `warpAffine`, even when the resized size has integer values.
+`warpAffine` is `cv2.warpAffine` ([Resize limit](interpolation.md#resize-limit)). Its pixel centres are at integer coordinates ([Pixel centres](interpolation.md#pixel-centres)). This resize matches mmpose `BottomupResize` (RTMO). A `letterbox` is not equivalent to this resize at any scale other than `1`. A letterbox resize rounds the resized size. Also, `resize` + pad gives different pixels from `warpAffine`, even when the resized size has integer values.
 
 ### Inverse
 

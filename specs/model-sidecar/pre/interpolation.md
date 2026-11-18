@@ -33,7 +33,7 @@ status: {spec: stable, validate: implemented, forward: implemented}
 
 ## Behaviour
 
-**The host does not antialias resizes.** Every interpolation value below names the plain OpenCV filter of `cv2.resize` or `cv2.warpAffine`. [Pixel centres](#pixel-centres) gives the call of each method. These filters have no support that adapts when the host downscales an image. If a host uses another library, it must reproduce that behaviour and the pixel centres of the call. For example, torchvision with `antialias=False` reproduces `cv2.resize`. PIL `BILINEAR` does not.
+**The host does not antialias resizes.** Every interpolation value below names the plain OpenCV filter of `cv2.resize` or `cv2.warpAffine`. [Pixel centres](#pixel-centres) gives the call of each method. These filters have no support that adapts when the host downscales an image. If a host uses another library, it must reproduce that behaviour and the pixel centres of the call, within the [resize limit](#resize-limit). For example, torchvision with `antialias=False` reproduces `cv2.resize`. PIL `BILINEAR` does not.
 
 **Interpolation values:**
 
@@ -71,6 +71,24 @@ The pad and the border of the warp have the compute dtype. With `uint8`, each pa
 ### Precision
 
 The host computes the geometry in float64: the scale, the scaled sizes, the offsets, the warp matrix `M` of `fit`, the Inverse of each method, the clamp and the size filter of the [object decode](../post/object/decode.md#selection-behaviour). The ROI and the warp matrix `M` of `affine_crop` are the exception: [Affine crop](resize-affine-crop.md#behaviour) gives their float32 steps. The pixel math of the normalization is in float32 ([Normalization](normalization.md#behaviour); [ADR-XXZ8](../../../decisions/entries/XXZ8-host-frame-precision-and-score-comparisons.md) item 2).
+
+### Resize limit
+
+A host can implement the resize step with code other than the OpenCV call of [Pixel centres](#pixel-centres), for example with ONNX nodes on a GPU. The reference result is the output of that OpenCV call. The call gets the same host frame, the same `interpolation`, the same `compute_dtype`, the same geometry and the same pad value or border value as the host. The result of the resize step is the image that the [normalization](normalization.md#behaviour) takes: the canvas with its pad for `letterbox`, the resized image for `stretch`, and the output of the warp with its border for `fit` and `affine_crop`.
+
+Each implementation of the resize step must agree with the reference result within the resize limit:
+
+- The result must have the shape and the channel order of the reference result.
+- The limit applies to each value of the whole result, also to the pad of `letterbox` and to the border of the warp.
+- With `compute_dtype: uint8`, each value of the result must be an integer from 0 to 255. It can differ from the value at the same position of the reference result by at most 1. This is 1 step of `uint8`.
+- With `compute_dtype: float32`, each value of the result must be finite. The check converts both results to float64. Then it compares the absolute difference of each value with `0.05`, on the 0-255 scale.
+- A difference that is equal to the limit is in the limit.
+
+The limit applies only to the values of the image. It does not apply to the geometry. The host computes the scaled size, the offsets and the warp matrix `M` as [Precision](#precision) and the section of the method give. The host must use the filter of the [Behaviour](#behaviour) table and the pixel centres of the call of the method.
+
+A `none` resize has no resize step. The host gives the host frame unchanged.
+
+The spec starts at the host frame of [Input](../common/input.md#fields). The decode of an encoded image, for example a JPEG file, to the host frame is not a part of the spec. The limit compares two results of the same host frame ([ADR-J1HK](../decisions/entries/J1HK-resize-pixel-tolerance.md)).
 
 ## Validation rules
 

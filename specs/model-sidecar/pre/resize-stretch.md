@@ -30,7 +30,7 @@ The host resizes the whole source image directly to `target_size`. The x and y s
 dst = resize(src, (T_w, T_h), <interpolation>)
 ```
 
-`resize` is `cv2.resize` ([Pixel centres](interpolation.md#pixel-centres)).
+`resize` is `cv2.resize` ([Pixel centres](interpolation.md#pixel-centres); [Resize limit](interpolation.md#resize-limit)).
 
 ### Inverse
 

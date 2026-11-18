@@ -1,10 +1,10 @@
 # J1HK — Spec change: resize-pixel-tolerance
 
-**Status:** proposed, 2026-11-17 (proposal-resize-pixel-tolerance@skellytracker@v1); recorded again 2026-11-17 (proposal-resize-pixel-tolerance@skellytracker@v2).
+**Status:** accepted, 2026-11-17 (user; PR: pending).
 
 ## Decision
 
-**Proposed, not decided.** The record is
+The user accepted the proposal on 2026-11-17. The record is
 [`proposal.md`](../../proposals/resize-pixel-tolerance/proposal.md)
 (proposal-resize-pixel-tolerance@skellytracker@v2).
 
@@ -23,8 +23,25 @@
 - Supersedes: none.
 - Related: none. The contributor is skellytracker. The source is the GPU preprocess graph of the
   package for the EPs `cuda` and `trt-rtx`.
-- While this entry is `proposed`, the contributor `skellytracker` owns `pre.resize.interpolation`
-  ([Section owner](../../model-addition-workflow/hand-over.md#section-owner)).
+- The user confirmed these plan decisions on 2026-11-17:
+  - The package gets a second implementation of the resize step as ONNX nodes for the NVIDIA
+    execution providers. The CPU code stays the normative reference.
+  - The limit is 1 `uint8` step with `compute_dtype: uint8` and `0.05` with `float32`, on the
+    0-255 scale, before the normalization.
+  - The spec gets no list of excluded methods or filters. The package uses the GPU graph only where
+    the graph meets the limit. `interpolation: area`, and `nearest` with `affine_crop`, run on the
+    CPU reference path with one warning when the session opens.
+  - The decode of an encoded image to the host frame is not a part of the spec.
+- The user also decided these items at the acceptance on 2026-11-17:
+  - The final outputs of the models on the graph output stay a control with no gate. Step 4
+    ("Expect 0") of [Parity](../../model-addition-workflow/parity.md#parity) does not change.
+  - Each section `pre.resize.<method>` that resizes (`letterbox`, `stretch`, `fit`, `affine_crop`)
+    gets one link to "Resize limit". The rule stays in one place.
+  - `tools/vector_form.py` does not change. Its integer match goes on the spec-defect list of the
+    spec [open-work.md](../open-work.md#spec-defects).
+  - The item "Cost of the detector preprocess" of the root
+    [open-work.md](../../../../decisions/open-work.md) gets one sentence for a second
+    implementation on the GPU.
 
 ## Reason
 
@@ -57,36 +74,18 @@ vector cases are `unverified`: the package has no check of the limit.
 
 See [open-work.md](../open-work.md).
 
-## Before acceptance
+## Notes at acceptance
 
-- [ ] Not in the graphs: `area` and the normalizations other than `none` and `imagenet`. The
-  normalization is outside the limit. (changed 2026-11-17)
-- [x] The `float32` gate. Version 2 ran with the gate 0.05 set first. The gate before the first run
-  was 1.0.
-- [ ] The evidence commits have no permalink, because the branch is not pushed. They are secondary
-  sources until then. (changed 2026-11-17)
-- [ ] `tools/vector_form.py` stays unchanged (user decision 2026-11-17). Its integer match goes on
-  the spec-defect list of the spec `open-work.md` at the landing (part 2.1). (changed 2026-11-17)
-- [x] Primary evidence for the causes. Version 2 cites pinned lines. The `cv2.resize` cause stays
-  probable, because nobody checked the IPP path. The two `imgwarp.cpp` lines explain only `cubic`.
-- [x] The integer rule for `uint8`. The user confirmed it on 2026-11-17.
-- [x] The pad and the border. The user decided on 2026-11-17 that the limit covers the whole result.
-- [x] The precision of the `float32` comparison. The user decided float64. Version 2 states it.
-- [x] The plan decisions of part 1. The user decided each one on 2026-11-17.
-- [ ] The two `open-work.md` edits of part 2.1 are non-spec edits. They go in a non-spec commit.
-  (changed 2026-11-17)
-- [x] The exporter hosts. Part 7 now gives only cited facts.
-- [ ] G4 is a control with no gate. Decide if the box and keypoint moves need a gate.
-  (changed 2026-11-17)
-- [ ] [Parity](../../model-addition-workflow/parity.md#parity) step 4 says "Expect 0". Decide if it
-  needs a note for a second implementation.
-- [ ] The sections `pre.resize.<method>` get no link to "Resize limit". Decide if the landing adds one.
-- [x] The two stale texts. Version 2 corrects them.
-- [ ] The contributor and the session are the same project. The user decides as for each proposal.
-- [ ] `nearest` with `fit` is exact only at the 1/2 and 1/3 scales of the sample. (new 2026-11-17)
-- [ ] The `trt-rtx` pack is outside the ONNX Runtime range that NVIDIA tested. (new 2026-11-17)
-- [ ] One run of the race script hung at the process exit after it printed all results. One rerun
-  did not hang. (new 2026-11-17)
-- [ ] The session did not open the ONNX and OpenCV permalinks of part 1. (new 2026-11-17)
-- [ ] The `spec_commit` of version 2 is on `dom/sidecar-implementation`, not on `dom/native-jpeg`.
-  The text of the section is the same on both. (new 2026-11-17)
+- Not in the graphs: `area` and the normalizations other than `none` and `imagenet`. The
+  normalization is outside the limit.
+- The evidence commits have no permalink, because the branch is not pushed. They are secondary
+  sources until then.
+- `nearest` with `fit` is exact only at the 1/2 and 1/3 scales of the sample.
+- The `trt-rtx` pack is outside the ONNX Runtime range that NVIDIA tested.
+- One run of the race script hung at the process exit after it printed all results. One rerun did
+  not hang.
+- No session opened the ONNX and OpenCV permalinks of part 1.
+- The `spec_commit` of version 2 is on `dom/sidecar-implementation`, not on `dom/native-jpeg`. The
+  landing checked that the section files of `pre/` are the same on both.
+- The reference module reads only `collections.abc`, `typing`, `cv2` and `numpy`. The safety review
+  found no file, network, process, environment or dynamic-code access.

@@ -15,6 +15,7 @@ These entries are `accepted`.
 
 | # | Decision | Status |
 |---|----------|--------|
+| [J1HK](entries/J1HK-resize-pixel-tolerance.md) | Spec change: resize limit, before the normalization: at most 1 step with `uint8`, at most 0.05 with `float32` | accepted |
 
 ### Evidence
 
@@ -32,7 +33,6 @@ proposals of a section here.
 
 | # | Decision | Section | Status |
 |---|----------|---------|--------|
-| [J1HK](entries/J1HK-resize-pixel-tolerance.md) | Spec change: resize limit, before the normalization: at most 1 step with `uint8`, at most 0.05 with `float32` | `pre.resize.interpolation` | proposed |
 
 The entries that are `rejected`, `superseded by XXXX`, `absorbed into <path>#<anchor>`,
 `evidence; used by XXXX` or `done` are in [historical.md](historical.md).

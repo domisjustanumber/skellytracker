@@ -112,8 +112,8 @@ dst      = warpAffine(src, M, (T_w, T_h), <interpolation>, borderMode=constant, 
 - `cv2.getAffineTransform(src, dst)` with the float32 arrays `src = [P0, P1, P2]` and
   `dst = [Q0, Q1, Q2]` gives `M`.
 
-`warpAffine` is `cv2.warpAffine`. Its pixel centres are at integer coordinates
-([Pixel centres](interpolation.md#pixel-centres)). For a float32 box and
+`warpAffine` is `cv2.warpAffine` ([Resize limit](interpolation.md#resize-limit)). Its pixel
+centres are at integer coordinates ([Pixel centres](interpolation.md#pixel-centres)). For a float32 box and
 `maintain_aspect_ratio: true`, `M` is the matrix of mmpose `GetBBoxCenterScale(padding=expand_ratio)`
 + `TopdownAffine`. For an ROI with rotation `r`, the points have the form of mmpose
 `get_warp_matrix` with `rot` = `r` in degrees (`TopdownAffine` with `bbox_rotation`).

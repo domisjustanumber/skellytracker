@@ -5,10 +5,12 @@ Source commit: OpenMMLab-Exporter onnx_runtime/preprocess.py::letterbox and
 onnx_runtime/preprocess.py::affine_person_crop at 5dd5c93ac6555ac907ae2ebfbc27dc6de5e3c278.
 The code is unchanged at 18320f4e51660fe0cb9c546441eb9be09d53f339.
 The host constants are _INTERPOLATION and COMPUTE_DTYPES of the same file.
+Source commit of resize_limit, resize_difference and check_resize (proposal
+resize-pixel-tolerance, heading "Resize limit"): none (no host code).
 Imported section modules: none. Fixtures: none.
-Vector results: the vector file has 2 cases. Both are validator cases (function: none).
-make_vectors.py fill kept both expect values. run gives the same failed list for both cases.
-The file has no numeric case.
+Vector results: the landed vector file has 4 validator cases (function: none). The proposal
+resize-pixel-tolerance adds 13 cases of check_resize, so the file then has 17 cases.
+make_vectors.py fill wrote the expect values of the 13 new cases with this file.
 Parity: yolox-person: unchanged. Its parity check ran with this module in place of the host code
 (OpenMMLab-Exporter ADR-3NNK (decisions/scripts/yolox_person_reference_swap.py at 53a48480d0b715f9b726963bce002ddb503b050b)). That run used this file before this note changed (SHA-256 5c3efe96de6aeaf1494a34f3780cb8f7cd924d0d899ca851080ba54c1fa70dc4). rtmw-wholebody133: to run. Its intake has blocking rows, so it has no parity run of the model.
 
@@ -19,6 +21,9 @@ The module has one function for each part of the section:
 - to_compute_dtype: the cast of the 8-bit image before the resize and the pad.
 - pixel_centre: the pixel-centre convention of the OpenCV call of each resize method.
 - failed_rules: the validation rule V-pre.resize.interpolation-1.
+- resize_limit: the resize limit of input.resize.compute_dtype.
+- resize_difference: the check of a resize result of a host against the reference result.
+- check_resize: the case function of resize_difference.
 
 The resize methods (letterbox, stretch, fit, affine_crop) make the OpenCV call. Their
 modules call these functions. This module does not resize an image.
@@ -54,6 +59,9 @@ RESIZE_CALLS = {
     "affine_crop": "cv2.warpAffine",
 }
 PIXEL_CENTRE_OFFSETS = {"cv2.resize": 0.5, "cv2.warpAffine": 0.0}
+
+# The resize limit of each compute dtype: the largest absolute difference of one value, 0-255 scale.
+RESIZE_LIMITS = {"uint8": 1, "float32": 0.05}
 
 
 def interpolation_flag(resize: Mapping[str, Any]) -> int:
@@ -114,6 +122,65 @@ def pixel_centre(method: str, index: float) -> float:
     if method not in RESIZE_CALLS:
         raise ValueError(f"the resize method {method!r} has no resize call")
     return index + PIXEL_CENTRE_OFFSETS[RESIZE_CALLS[method]]
+
+
+def resize_limit(resize: Mapping[str, Any]) -> float:
+    """Return the resize limit of ``input.resize.compute_dtype``, on the 0-255 scale.
+
+    Section pre.resize.interpolation, heading "Resize limit" (proposal resize-pixel-tolerance).
+    The limit is 1 for ``uint8`` (1 step of uint8) and 0.05 for ``float32``. A compute dtype that
+    V-pre.resize.interpolation-1 refuses gives a ValueError with that rule ID.
+    Source: none (no host code).
+    """
+    compute_dtype(resize)
+    return RESIZE_LIMITS[resize.get("compute_dtype", DEFAULT_COMPUTE_DTYPE)]
+
+
+def resize_difference(reference: Any, result: Any, resize: Mapping[str, Any]) -> tuple[float, bool]:
+    """Return ``(max_difference, within_limit)`` of the resize result of a host.
+
+    Section pre.resize.interpolation, heading "Resize limit" (proposal resize-pixel-tolerance).
+    ``reference`` is the output of the OpenCV call of the method, in the compute dtype.
+    ``result`` is the result of the host for the same host frame and the same geometry. The
+    whole result counts, also the pad and the border. The check converts both results to
+    float64. Then it compares the absolute difference of each value with the limit, so a
+    float32 result is measured on its float64 value (float32(0.05) against 0 is over 0.05).
+    ``max_difference`` is the largest absolute difference of one value. ``within_limit`` is
+    True when the result has the shape of the reference result and each value is in the limit:
+    with ``uint8``, each value is an integer from 0 to 255 and differs by at most 1; with
+    ``float32``, each value is finite and differs by at most 0.05. A difference equal to the
+    limit is in the limit. A NaN or an infinite value is not in the limit. A shape that is not
+    the shape of the reference result, and an empty result, give a ValueError (no rule: the
+    inputs are images, not sidecar values).
+    Source: none (no host code).
+    """
+    limit = resize_limit(resize)
+    dtype = compute_dtype(resize)
+    expected = np.asarray(reference, dtype=dtype).astype(np.float64)
+    # A uint8 result of a host can be a float tensor, so its values are checked before a cast.
+    given = np.asarray(result, dtype=np.float64 if dtype is np.uint8 else np.float32).astype(np.float64)
+    if given.shape != expected.shape:
+        raise ValueError(f"the result has the shape {given.shape}, not {expected.shape}")
+    if given.size == 0:
+        raise ValueError("an empty image has no resize result")
+    difference = float(np.max(np.abs(given - expected)))
+    if dtype is np.uint8:
+        in_range = bool(np.all((given == np.floor(given)) & (given >= 0) & (given <= 255)))
+    else:
+        in_range = bool(np.all(np.isfinite(given)))
+    return difference, in_range and difference <= limit
+
+
+def check_resize(params: Mapping[str, Any], input: Mapping[str, Any]) -> dict[str, Any]:
+    """Return ``{"max_difference": ..., "within_limit": ...}`` for one resize result of a host.
+
+    Section pre.resize.interpolation, heading "Resize limit" (proposal resize-pixel-tolerance).
+    ``params["resize"]`` is the ``input.resize`` block. Only its ``compute_dtype`` is read.
+    ``input`` holds ``reference`` and ``result``, two HWC images as nested lists.
+    Source: none (no host code).
+    """
+    difference, within = resize_difference(input["reference"], input["result"], params["resize"])
+    return {"max_difference": difference, "within_limit": within}
 
 
 def failed_rules(resize: Mapping[str, Any]) -> list[str]:
