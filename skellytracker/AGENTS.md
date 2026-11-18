@@ -36,7 +36,7 @@ The paths are under `skellytracker/`.
 | `core/system/` | `probe_host()`, `probe_runtime()`, `probe_environment()`, `probe_loaded_libraries()` and the device keys of the GPUs. Each value is fixed while the application runs. |
 | `core/metrics/` | `LiveSampler` and `free_vram(device)`: system-level live values only |
 | `core/_hardware/` | Private readers: NVML, DXGI with one D3DKMT query, the Windows registry, psutil (Windows only), `/proc` and `/sys`, macOS `sysctl` and IOKit, Windows PDH ([ADR-P1F3](../decisions/entries/P1F3-hardware-probe-devices-and-multi-gpu.md) items 1 and 2) |
-| `core/eps/` | The EP catalog (`ep_catalog.yaml`, `ep_lock.yaml`), the EP store, `install()`, `ensure_registered()`, `verify()`, `recommend()`, `run_devices()`, `check_start()`, `status()`, `suggest_execution_provider()`, `build_session()` and the CLI `skellytracker-eps` (`cli.py`). An application, for example freemocap, shows the EPs from `status()` and `recommend()`. It holds no EP fact of its own. A fact that an application needs gets a field of `PackStatus` or of `PipelineRun.models`. |
+| `core/eps/` | The EP catalog (`ep_catalog.yaml`, `ep_lock.yaml`), the certification evidence (`ep_evidence.yaml`), the EP store, `install()`, `ensure_registered()`, `verify()`, `recommend()`, `run_devices()`, `check_start()`, `status()`, `suggest_execution_provider()`, `build_session()`, `certify()`, `dismiss_certification()` and the CLI `skellytracker-eps` (`cli.py`). An application, for example freemocap, shows the EPs from `status()` and `recommend()`. It holds no EP fact of its own. A fact that an application needs gets a field of `PackStatus` or of `PipelineRun.models`. |
 | `_pyinstaller/` | The PyInstaller entry points and the data-only hook. It is outside `core/`. No package module imports it. |
 | `core/sidecar/` | The old loader of the old package sidecars. Do not change it, and do not import it in new code. `load_sidecar` (`loader.py`), `$ref` and `base` resolution (`resolution.py`), `SidecarModel` (`model.py`), version checks (`versioning.py`) |
 | `core/model_spec/` | The spec loader at spec version 2.0.0 ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 8): `load_sidecar(path, sidecar_root, user_root)` (`loader.py`), `$ref` resolution with hash checks (`resolution.py`), the `V-` rules (`rules.py`, `check_sidecar`), `SidecarModel` (`model.py`), the landmark schema registry (`landmark_schemas.py`), the implemented versions (`versioning.py`), the SPDX check (`spdx.py`), the artifact hash check with its cache (`artifacts.py`), the selector matching (`sidecar_normalize.py`) and the section table with the capability check (`sections.py`). Remove a `postprocessor` section from `UNIMPLEMENTED_SECTIONS` of `sections.py` in the commit that adds its processing module. Stage 2.3 of the implementation plan moves it to `core/sidecar/`. |
@@ -78,8 +78,9 @@ The sidecar paths are under `core/detectors/`.
 
 ## ONNX Runtime
 
-- `onnxruntime` is a base dependency. It gives the CPU EP, and the CoreML EP on macOS
-  ([ADR-M2C6](../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md) item 2).
+- ONNX Runtime 1.30.0 is a base dependency. The distribution is `onnxruntime` on Linux and macOS, and
+  `onnxruntime-windowsml` on Windows. It gives the CPU EP, and the CoreML EP on macOS
+  ([ADR-N6E8](../decisions/entries/N6E8-onnxruntime-1-30-on-each-os.md) item 2).
 - `OnnxSessionConfig.execution_provider` (`core/sessions/onnx_session.py`) selects `coreml` or `cpu`.
 - `None` selects the first available provider in this order: `coreml` (macOS only), `cpu`
   (`auto_detect_provider` in `core/sessions/ort_session_utils.py`).
@@ -104,7 +105,7 @@ legacy path puts the old points in the raw names of `wholebody.keypoints` and ca
 - A GPU EP is a plugin EP pack in the EP store. Do not add a GPU package to `pyproject.toml`.
 - `core/eps/ep_catalog.yaml` is written by hand. Only `uv run python tools/ep_catalog.py --refresh`
   writes `ep_lock.yaml`, and it uses the network. Run it after each change of the catalog.
-  `ort_core.version` must equal the `onnxruntime` pin: change the pin, the catalog, the lock and
+  `ort_core` must equal the `onnxruntime` pin and the `onnxruntime-windowsml` pin: change the pins, the catalog, the lock and
   `uv.lock` in one commit.
 - `eps` reads no sidecar. The caller fills `ModelRef`.
 - A plain `import skellytracker.core.eps` must load no `onnxruntime`. Import `onnxruntime` in the
@@ -113,6 +114,13 @@ legacy path puts the old points in the raw names of `wholebody.keypoints` and ca
 - A record of `system`, `metrics` and `eps` is a frozen dataclass with no `dict` field. Memory is
   `int` bytes, time is `int` ns, and a field that ends in `utilization` is a ratio from 0 to 1. No
   text holds an absolute path or a hostname.
+- A person writes each row of `core/eps/ep_evidence.yaml` after a review. No code writes it, and
+  the runtime never downloads it
+  ([ADR-MF2R](../decisions/entries/MF2R-ep-store-install-and-certification.md) item 12).
+- A certification report must hold no path, no hostname, no serial number, no bus address and no
+  user id. A failure is a fixed reason code, never an error text. `certify()` sends nothing: the
+  report stays in the folder `reports` of the EP store
+  ([ADR-MF2R](../decisions/entries/MF2R-ep-store-install-and-certification.md) item 17).
 
 ## Freeze rules
 

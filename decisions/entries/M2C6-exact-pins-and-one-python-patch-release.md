@@ -1,6 +1,6 @@
 # M2C6 — Exact pins, also for Python; one ONNX Runtime core and plugin EP packs
 
-**Status:** accepted, 2026-11-12 (user).
+**Status:** superseded by [N6E8](N6E8-onnxruntime-1-30-on-each-os.md), 2026-11-18 (user; PR: pending).
 
 ## Decision
 

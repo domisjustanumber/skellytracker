@@ -87,6 +87,7 @@ class HostInfo:
     memory_total_bytes: int
     os_platform: str | None = None
     os_build: int | str | None = None
+    os_label: str | None = None
     native_arch: str | None = None
     cpu_name: str | None = None
     cpu_physical_cores: int | None = None
@@ -113,6 +114,8 @@ class RuntimeInfo:
     skellytracker_commit: str | None = None
     mediapipe_version: str | None = None
     ort_packages: tuple[str, ...] = ()
+    ort_package_versions: tuple[str, ...] = ()  # the distribution version of each item of `ort_packages`, in the same order
+    windowsml_version: str | None = None
     ort_version: str | None = None
     ep_names: tuple[str, ...] = ()
     probe_errors: tuple[str, ...] = ()

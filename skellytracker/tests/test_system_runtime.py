@@ -58,7 +58,11 @@ def test_runtime_facts(monkeypatch):
     monkeypatch.setenv("CUDA_DEVICE_ORDER", "PCI_BUS_ID")
     info = system.probe_runtime()
     assert info.ort_version == onnxruntime.__version__ and "CPUExecutionProvider" in info.ep_names
-    assert info.ort_packages == ("onnxruntime",) and info.python_version.count(".") == 2
+    assert info.ort_packages == ("onnxruntime-windowsml" if sys.platform == "win32" else "onnxruntime",)
+    assert len(info.ort_package_versions) == len(info.ort_packages) == 1
+    assert info.ort_package_versions[0].startswith(onnxruntime.__version__)  # the Windows distribution adds a build suffix
+    assert (info.windowsml_version is not None) == (sys.platform == "win32")
+    assert info.python_version.count(".") == 2
     assert info.nvidia.cuda_device_order == "PCI_BUS_ID" and info.nvidia.driver_supported_cuda_version == "13.3"
     assert system.probe_runtime() is info
 

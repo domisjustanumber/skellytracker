@@ -199,6 +199,40 @@ class SessionReport:
 
 
 @dataclass(frozen=True)
+class CertifyOffer:
+    """One usable EP of this host that the project has not certified on this GPU model and this OS.
+
+    `seconds` is the time of the wider run, for the question to the user. `prompt` is true when an
+    application asks the user now: no certification ran here for the pair, and the user did not
+    answer "do not ask again".
+    """
+
+    ep_key: str
+    label: str
+    device_key: str
+    gpu_name: str | None = None
+    seconds: int = 0
+    prompt: bool = True
+
+
+@dataclass(frozen=True)
+class CertifyResult:
+    """The result of `certify()`. `report_path` is an absolute path, for local output only.
+
+    `ok` is true when the probe passes and the wider run, if it ran, passes. `wide_ok` is None when
+    the wider run did not run. `reason_code` is a fixed code, never a free text.
+    """
+
+    ep_key: str
+    ok: bool
+    probe_ok: bool
+    wide_ok: bool | None = None
+    reason_code: str | None = None
+    report_path: str = ""
+    report_json: str = ""
+
+
+@dataclass(frozen=True)
 class PackStatus:
     """The state of one EP key on this host, for `status()`. An application shows an EP from these fields only.
 
@@ -209,6 +243,8 @@ class PackStatus:
     - `description`: one sentence for a user: what the EP runs on and what it needs.
     - `devices`: the GPUs of this host that the EP can use, in the order of `run_devices(key)`: the
       most VRAM first. It is empty for a built-in EP and for an EP that is not usable.
+    - `certified`: true when the project has a reviewed pass of the EP on this GPU model on this OS.
+      It is None for a built-in EP and when no GPU of this host can use the EP.
     """
 
     key: str
@@ -229,6 +265,7 @@ class PackStatus:
     uses_gpu: bool = False
     description: str = ""
     devices: tuple[RunDevice, ...] = ()
+    certified: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -252,6 +289,7 @@ class EpStatus:
     accuracy: EpRecommendation
     eps: tuple[PackStatus, ...] = ()
     warnings: tuple[str, ...] = ()
+    certify_offers: tuple[CertifyOffer, ...] = ()
 
 
 @dataclass(frozen=True)

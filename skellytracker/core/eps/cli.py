@@ -5,6 +5,7 @@
     skellytracker-eps install [KEY ...] [--cuda] [--trt-rtx] [--recommended | --all-compatible | --cpu-only]
                               [--from-dir DIR] [--dry-run] [--yes] [--progress jsonl] [--cancel-file PATH]
     skellytracker-eps verify [KEY ... | --all] [--level L2|L3] [--force]
+    skellytracker-eps certify KEY [--wide | --probe-only] [--out FILE] [--json]
     skellytracker-eps remove PACK_ID | --all | --consumer KIND
     skellytracker-eps gc [--force] [--cache]
     skellytracker-eps download KEY ... --platform TAG --dest DIR
@@ -15,6 +16,14 @@
 `skellytracker.eps.status/1`. `status --format ini` is UTF-16LE with a BOM, for an installer that has
 no JSON parser. No environment variable selects the EP or the device.
 
+`certify` tests one EP on this host and writes a report file in the folder `reports` of the EP
+store. It sends nothing. It always runs the probe. `--wide` also runs the project models on a
+test image; with no flag and no `--json` or `--out`, it asks a person at a terminal. The result
+is `pass`, `fail` or `not-run` (a setup step failed, and the EP did not run); `not-run` exits 3
+when the pack is not usable, else 1. For a person at a terminal, a plain
+`status` and an `install` also ask about each EP of this host that the project has not
+certified: certify now, later, or do not ask again.
+
 Exit codes, the same as the pipeline CLI: 0 ok; 1 failure; 2 usage error, no confirmation, a
 reserved or unknown EP key, or a refused option; 3 an EP is not available; 4 a session was not
 created; 5 the GPU memory is exhausted; 6 cancelled. Each error prints one line on stderr.
@@ -24,13 +33,14 @@ import argparse
 import dataclasses
 import json
 import os
+import subprocess
 import sys
 import threading
 import urllib.request
 from pathlib import Path
 
 from skellytracker.core import errors
-from skellytracker.core.eps import _download, installer, self_test, state, store, verification
+from skellytracker.core.eps import _download, certification, installer, recommendation, self_test, state, store, verification
 from skellytracker.core.eps.catalog import load_catalog
 from skellytracker.core.eps.recommendation import recommend
 from skellytracker.core.eps.records import EpRecommendation, EpStatus, InstallPlan
@@ -79,11 +89,12 @@ def status_json(status: EpStatus) -> dict:
     return {
         "schema": STATUS_SCHEMA,
         "core": {"ort_version": status.ort_version, "catalog_revision": status.catalog_revision, "core_matches_pin": status.core_matches_pin},
-        "host": {"os": host.os_name, "os_build": host.os_build, "arch": host.arch, "platform_tag": status.platform_tag, "gpus": gpus,
+        "host": {"os": host.os_name, "os_build": host.os_build, "os_label": host.os_label, "arch": host.arch, "platform_tag": status.platform_tag, "gpus": gpus,
                  "store_root": status.store_root, "store_free_bytes": status.store_free_bytes},
         "recommended": {"performance": recommendation_json(status.performance), "accuracy": recommendation_json(status.accuracy)},
         "eps": [dict(dataclasses.asdict(row), licences=[{"name": name, "url": url} for name, url in row.licences]) for row in status.eps],
         "warnings": list(status.warnings),
+        "certify_offers": [dataclasses.asdict(offer) for offer in status.certify_offers],
     }
 
 
@@ -135,6 +146,8 @@ def cmd_status(args) -> int:
         lines += [f"{row.key}: {row.state}" + (f" ({row.reason})" if row.reason else "") for row in status.eps]
         lines += [f"Warning: {text}" for text in status.warnings]
         _write("\n".join(lines), args.out)
+        if not args.out:
+            certify_prompt(status)
     return errors.EXIT_OK
 
 
@@ -172,14 +185,11 @@ def cmd_install(args) -> int:
     if args.dry_run or not plan.packs:
         return errors.EXIT_OK
     if not args.yes:
-        try:  # a stdin can report a terminal and still have no input
-            answer = input(f"Download {megabytes(plan.download_bytes)} MB? [y/N] ") if sys.stdin.isatty() else None  # noqa: S322
-        except EOFError:
-            answer = None
+        answer = ask(f"Download {megabytes(plan.download_bytes)} MB? [y/N] ")
         if answer is None:
             print("The install needs a confirmation: use --yes.", file=sys.stderr)
             return errors.EXIT_USAGE
-        if answer.strip().lower() not in ("y", "yes"):
+        if answer not in ("y", "yes"):
             return errors.EXIT_USAGE
     cancel = threading.Event()
     done = threading.Event()
@@ -210,7 +220,84 @@ def cmd_install(args) -> int:
     if jsonl:
         print(json.dumps({"event": "summary", "ok": list(result.ok), "failed": [key for key, _, _ in result.failed],
                           "cancelled": list(result.cancelled), "needs_worker_restart": result.needs_worker_restart}), flush=True)
+    if not (jsonl or args.yes or result.cancelled or result.failed):
+        try:  # the install result decides the exit code
+            certify_prompt(state.status())
+        except (Exception, KeyboardInterrupt) as error:  # noqa: BLE001
+            print(f"The certification prompt stopped ({type(error).__name__}). Run `skellytracker-eps certify KEY` later.",
+                  file=sys.stderr)
     return errors.EXIT_CANCELLED if result.cancelled else errors.EXIT_FAILURE if result.failed else errors.EXIT_OK
+
+
+def ask(question: str) -> str | None:
+    """The answer of a person at a terminal, in lower case; None when no person can answer.
+
+    stdout must also be a terminal: else the question goes into the output of the command.
+    """
+    if not (sys.stdin.isatty() and sys.stdout.isatty()):
+        return None
+    try:  # a stdin can report a terminal and still have no input
+        return input(question).strip().lower()  # noqa: S322
+    except EOFError:
+        return None
+
+
+def show_folder(folder: Path) -> None:
+    """Open a folder in the file manager of the OS. A failure prints nothing: the caller prints the path."""
+    try:
+        if sys.platform == "win32":
+            os.startfile(folder)  # noqa: S606 - a folder of the EP store
+        else:
+            subprocess.Popen(["open" if sys.platform == "darwin" else "xdg-open", str(folder)],  # noqa: S603
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except OSError:
+        pass
+
+
+def run_certify(key: str, wide: bool, out: str | None = None, as_json: bool = False) -> int:
+    """Run `certify()`, print the whole report and the path of its file, and open its folder for a person."""
+    result = certification.certify(key, wide=wide, out=out, progress=lambda step: print(f"certify {key}: {step}", file=sys.stderr))
+    print(result.report_json)
+    text = sys.stderr if as_json else sys.stdout
+    outcome = json.loads(result.report_json)["result"]
+    print(f"{key}: {outcome}" + (f" ({result.reason_code})" if result.reason_code else ""), file=text)
+    print(f"Report saved to {result.report_path}. Nothing was sent.", file=text)
+    if outcome == "not-run":  # a setup step failed: the EP did not run, and the prompt stays
+        print(recommendation.install_hint(key) if result.reason_code == "EpUnavailableError"
+              else "Correct the setup problem of the reason code, then run the command again.", file=text)
+    if not (out or as_json) and sys.stdin.isatty():
+        show_folder(Path(result.report_path).parent)
+    if outcome == "not-run" and result.reason_code == "EpUnavailableError":
+        return errors.EXIT_EP_UNAVAILABLE
+    return errors.EXIT_OK if result.ok else errors.EXIT_FAILURE
+
+
+def wide_question(key: str) -> str:
+    settings = load_catalog().data["certification"]
+    minutes = max(1, -(-settings["seconds"].get(key, 0) // 60))
+    return (f"Also run the project models on the EP '{key}' and on the CPU? About {minutes} min, "
+            f"and a download of {-(-settings['image']['bytes'] // 1024)} kB. [y/N] ")
+
+
+def cmd_certify(args) -> int:
+    asked = not (args.wide or args.probe_only or args.json or args.out)
+    wide = args.wide or (asked and (ask(wide_question(args.key)) or "") in ("y", "yes"))
+    return run_certify(args.key, wide, args.out, args.json)
+
+
+def certify_prompt(status: EpStatus) -> None:
+    """Ask a person at a terminal about each certification offer of the status. With no person, it asks nothing."""
+    for offer in status.certify_offers:
+        if not offer.prompt:
+            continue
+        answer = ask(f"The EP '{offer.ep_key}' is not tested yet on {offer.gpu_name or 'this GPU'}. "
+                     "Test it now? [c]ertify now / [l]ater / [d]o not ask again: ")
+        if answer is None:
+            return
+        if answer.startswith("c"):
+            run_certify(offer.ep_key, (ask(wide_question(offer.ep_key)) or "") in ("y", "yes"))
+        elif answer.startswith("d"):
+            certification.dismiss_certification(offer.ep_key)
 
 
 def cmd_verify(args) -> int:
@@ -313,6 +400,14 @@ def parser() -> argparse.ArgumentParser:
     verify.add_argument("--level", choices=["L2", "L3"], default="L3")
     verify.add_argument("--force", action="store_true")
     verify.set_defaults(run=cmd_verify)
+    certify = commands.add_parser("certify", help="test one EP on this host and write a report file; it sends nothing")
+    certify.add_argument("key", metavar="KEY")
+    scope = certify.add_mutually_exclusive_group()
+    scope.add_argument("--wide", action="store_true")
+    scope.add_argument("--probe-only", action="store_true")
+    certify.add_argument("--out")
+    certify.add_argument("--json", action="store_true")
+    certify.set_defaults(run=cmd_certify)
     remove = commands.add_parser("remove", help="remove packs or consumer refs from the store")
     remove.add_argument("pack_id", nargs="?")
     remove.add_argument("--all", action="store_true")

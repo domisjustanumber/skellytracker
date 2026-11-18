@@ -126,9 +126,9 @@ def test_registration_is_done_one_time_by_the_library_path(gpu_host):
     first = eps.ensure_registered("cuda")
     assert eps.ensure_registered("cuda") is first and len(gpu_host) == 1
     name, path = gpu_host[0]
-    assert name == CUDA and path == str(store.pack_dir("cuda-cu13", "0.3.0") / "plugin.dll")
-    assert first == eps.RegisteredEp("cuda", CUDA, "cuda-cu13", "0.3.0", "plugin.dll")
-    assert "cuda-cu13/0.3.0" in store.read_verdicts()["last_used"]
+    assert name == CUDA and path == str(store.pack_dir("cuda-cu13", "0.2.0") / "plugin.dll")
+    assert first == eps.RegisteredEp("cuda", CUDA, "cuda-cu13", "0.2.0", "plugin.dll")
+    assert "cuda-cu13/0.2.0" in store.read_verdicts()["last_used"]
 
 
 def test_a_pack_that_lists_no_device_and_a_second_pack_of_one_group_are_refused(gpu_host, monkeypatch):
@@ -139,7 +139,7 @@ def test_a_pack_that_lists_no_device_and_a_second_pack_of_one_group_are_refused(
     monkeypatch.setattr(onnxruntime, "get_ep_devices", lambda: [fake_device(CUDA, SMALL)])
     eps.ensure_registered("cuda")
     second = dict(catalog.pack("cuda"), id="cuda-other")
-    store.write_json(store.pack_dir("cuda-other", "0.3.0") / "pack.json", {"library": "plugin.dll", "files": []})
+    store.write_json(store.pack_dir("cuda-other", "0.2.0") / "pack.json", {"library": "plugin.dll", "files": []})
     with pytest.raises(EpUnavailableError, match="of the same EP"):
         registration.register_pack("cuda", second)
 
@@ -235,7 +235,7 @@ def test_gpu_session_settings_and_report(gpu_host, tmp_path, caplog):
     assert options.provider_options == {"prefer_nhwc": "1"} and len(options.devices) == 1
     assert options.devices[0].device.device_id == LARGE.pci_device_id  # no device key: the GPU with the most VRAM
     assert (report.device_key, report.gpu_key, report.device_name, report.gpu_uuid) == ("gpu:10de:2684:0", "0000:02:00.0", "RTX 4090", "GPU-0000:02:00.0")
-    assert (report.used_ep, report.pack_id, report.pack_version, report.ep_device_id) == ("cuda", "cuda-cu13", "0.3.0", "0")
+    assert (report.used_ep, report.pack_id, report.pack_version, report.ep_device_id) == ("cuda", "cuda-cu13", "0.2.0", "0")
     assert report.nodes_by_ep == ((CPU, 3), (CUDA, 5)) and report.cpu_nodes == 3 and report.cpu_op_types == ("Clip", "Slice")
     assert report.ep_options == (("prefer_nhwc", "1"),) and report.device_kind == "gpu"
     _, small = eps.build_session(b"model", execution_provider="cuda", device_key="gpu:10de:2484:0")
@@ -247,6 +247,7 @@ def test_gpu_session_settings_and_report(gpu_host, tmp_path, caplog):
 def test_trt_rtx_gets_the_catalog_cache_path_and_the_report_holds_no_path(gpu_host, tmp_path, monkeypatch, caplog):
     monkeypatch.setattr(FakeSession, "providers", [TRT, CPU])
     monkeypatch.setattr(FakeSession, "nodes", {TRT: ["Conv"]})
+    monkeypatch.setattr(type(eps.load_catalog()), "ort_untested", lambda self, pack, ort_version=None: True)
     with caplog.at_level(logging.WARNING):
         _, report = eps.build_session(b"model", execution_provider="trt-rtx", ep_options={"enable_cuda_graph": "0"})
     assert "untested-ort" in caplog.text

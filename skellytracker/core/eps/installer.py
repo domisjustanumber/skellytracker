@@ -29,15 +29,27 @@ DAY = 86400
 LICENCE_MARKS = ("LICENSE", "LICENCE", "NOTICE", "THIRD_PARTY", "EULA")
 
 
-def core_mismatch(catalog: EpCatalog) -> str | None:
-    """The reason when the installed `onnxruntime` is not the ONNX Runtime of the catalog; else `None`."""
+def installed_ort() -> tuple[str, str] | None:
+    """The name and the version of the installed ONNX Runtime distribution; `None` when no metadata gives one."""
     try:
-        installed = importlib.metadata.version("onnxruntime")
+        return "onnxruntime-windowsml", importlib.metadata.version("onnxruntime-windowsml")
     except importlib.metadata.PackageNotFoundError:
-        return None  # a frozen application can have no metadata: the verification child reads the version
-    if installed == catalog.ort_version:
+        pass
+    try:
+        return "onnxruntime", importlib.metadata.version("onnxruntime")
+    except importlib.metadata.PackageNotFoundError:
         return None
-    return f"onnxruntime {installed} is installed, and the EP catalog needs {catalog.ort_version}. Run `uv sync`."
+
+
+def core_mismatch(catalog: EpCatalog) -> str | None:
+    """The reason when the installed ONNX Runtime is not the ONNX Runtime of the catalog; else `None`."""
+    installed = installed_ort()
+    if installed is None:
+        return None  # a frozen application can have no metadata: the verification child reads the version
+    if installed == catalog.ort_distribution:
+        return None
+    return (f"{' '.join(installed)} is installed, and the EP catalog needs {' '.join(catalog.ort_distribution)}. "
+            "Run `uv sync`.")
 
 
 def planned_pack(catalog: EpCatalog, pack_id: str, tag: str | None = None, index_url: str | None = None) -> PlannedPack | None:

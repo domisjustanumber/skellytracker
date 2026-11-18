@@ -1,10 +1,11 @@
 # The EP catalog. It is written by hand. `tools/ep_catalog.py --check` checks it.
 # `ep_lock.yaml` holds the wheels of each pack; only `tools/ep_catalog.py --refresh` writes it.
-# The runtime never downloads a catalog (ADR-246B item 1).
+# The runtime never downloads a catalog (ADR-MF2R item 1).
 schema: 1
 
-# `version` must equal the `onnxruntime` pin of pyproject.toml and uv.lock.
-ort_core: {package: onnxruntime, version: "1.31.1"}
+# `version` must equal the `onnxruntime` pin of pyproject.toml and uv.lock. `windows` is the distribution
+# of the same ONNX Runtime release on Windows, with its own pin.
+ort_core: {package: onnxruntime, version: "1.30.0", windows: {package: onnxruntime-windowsml, version: "1.30.0.202609102321"}}
 
 indexes:
   pypi: https://pypi.org/simple/
@@ -14,6 +15,10 @@ indexes:
 # The platforms that have packs. macOS has no pack.
 platforms: [win_amd64, manylinux_x86_64]
 
+# A `dependency_wheels` version can be a map from a platform to a version: a platform that the map does not
+# name has no such wheel. `preload_own` gives the libraries of the plugin wheel that Linux loads before the
+# EP library, in order, each as the file name up to `.so`. A `driver_branch_min` can be a map from a
+# platform to a branch.
 # An option value is a list of the allowed strings, or `positive-int`.
 # Each other option name is refused, also `device_id`: the device comes from the device map.
 # `description` is one sentence for a user, at most 120 characters: what the EP runs on and what it needs.
@@ -22,7 +27,7 @@ eps:
     kind: plugin
     gpu: true
     display_name: NVIDIA TensorRT for RTX
-    description: "Runs on NVIDIA RTX GPUs from the RTX 30 series, and needs a pack download and an NVIDIA driver of R580 or later."
+    description: "Runs on NVIDIA RTX GPUs from the RTX 30 series, and needs a pack download and an NVIDIA driver R580 (Linux: R590)."
     precision_order: [fp16, fp32]
     l3_atol: 1.5e-2
     options:
@@ -37,10 +42,11 @@ eps:
         index: pypi
         ep_name: NvTensorRTRTXExecutionProvider
         library: {win_amd64: onnxruntime_providers_nv_tensorrt_rtx.dll, manylinux_x86_64: libonnxruntime_providers_nv_tensorrt_rtx.so}
+        # The Linux wheel has no RUNPATH, and it holds these libraries only under their full version names.
+        preload_own: [libcudart.so, libtensorrt_rtx.so, libtensorrt_onnxparser_rtx.so]
         exclusive_group: NvTensorRTRTXExecutionProvider
-        # R580 is the first driver branch with CUDA 13.
-        requires: {vendor: nvidia, cc_min: "8.0", driver_branch_min: 580}
-        # ONNX Runtime 1.31 is outside the range that NVIDIA tested: the pack is `untested-ort` (ADR-246B item 5).
+        # NVIDIA gives these driver floors for this pack: 580.88 on Windows and 590.48.01 on Linux.
+        requires: {vendor: nvidia, cc_min: "8.0", driver_branch_min: {win_amd64: 580, manylinux_x86_64: 590}}
         ort: {vendor_tested: ["1.25", "1.30"]}
         licences:
           - {name: NVIDIA TensorRT for RTX, url: "https://pypi.org/project/onnxruntime-ep-nv-tensorrt-rtx-cu13/"}
@@ -59,18 +65,21 @@ eps:
     packs:
       - id: cuda-cu13
         package: onnxruntime-ep-cuda13
-        version: "0.3.0"
+        version: "0.2.0"
         index: ort-cuda-13
         ep_name: CUDAExecutionProvider
         library: {win_amd64: onnxruntime_providers_cuda.dll, manylinux_x86_64: libonnxruntime_providers_cuda.so}
         dependency_wheels:
-          - {package: nvidia-cublas, index: pypi, version: {win_amd64: "13.8.0.4", manylinux_x86_64: "13.8.2.12"}}
+          # Linux only: `libcudart.so.13`. On Windows the NVIDIA driver gives the CUDA runtime.
+          - {package: nvidia-cuda-runtime, index: pypi, version: {manylinux_x86_64: "13.4.92"}}
+          - {package: nvidia-cublas, index: pypi, version: "13.8.0.4"}
           - {package: nvidia-cudnn-cu13, index: pypi, version: "9.27.0.42"}
         exclusive_group: CUDAExecutionProvider
         requires: {vendor: nvidia, cc_min: "7.5", driver_branch_min: 580}
-        ort: {verified_by_us: ["1.31.1"]}
+        ort: {verified_by_us: ["1.30.0"]}
         licences:
           - {name: ONNX Runtime CUDA EP, url: "https://github.com/microsoft/onnxruntime/blob/main/LICENSE"}
+          - {name: NVIDIA CUDA Runtime, url: "https://pypi.org/project/nvidia-cuda-runtime/"}
           - {name: NVIDIA cuBLAS, url: "https://pypi.org/project/nvidia-cublas/"}
           - {name: NVIDIA cuDNN, url: "https://pypi.org/project/nvidia-cudnn-cu13/"}
         status: ready
@@ -95,7 +104,7 @@ eps:
     precision_order: [fp32]
     options: {allowed: {}, defaults: {}}
   trt: {kind: reserved, reason: "classic TensorRT is a separate EP; it is not in v2"}
-  directml: {kind: reserved, reason: "DirectML needs a second ONNX Runtime core; it is not in v2"}
+  directml: {kind: reserved, reason: "DirectML is deferred"}
   openvino:
     kind: reserved
     reason: "OpenVINO is deferred: discrete Intel GPUs only"
@@ -150,3 +159,18 @@ hardware_classes:
   - {id: snapdragon-x, match: {host: true, os: Windows, native_arch: ARM64}, candidates: [cpu], ranking_evidence: single-ep}
   - {id: unknown-gpu, match: {}, candidates: [cpu], ranking_evidence: single-ep}
   - {id: cpu-only, match: {host: true}, candidates: [cpu], ranking_evidence: single-ep}
+
+# The certification run of `skellytracker-eps certify` (ADR-MF2R).
+# `image` is a public test image. No camera frame is in this repository. `seconds` is the time of the
+# wider run for each EP key, for the question to the user. `thresholds` compares the EP with the CPU EP.
+certification:
+  pipeline: yolox-rtmw-wholebody@skellytracker
+  image:
+    url: https://github.com/freemocap/skellysamples/releases/download/single_images_v07_12_26/sample_recording_a_pose_image.jpg
+    sha256: 5ec5b9e3a587ba06c8f9d0dfbc9749dda31c3380ab7f67d2395f267db79a580d
+    bytes: 212902
+  seconds: {trt-rtx: 60, cuda: 30}
+  # `keypoint_box_fraction_max` is a part of the diagonal of the person box. On 2026-11-18, one RTX 3070 gave
+  # 0.0047 for `trt-rtx` and 0.0056 for `cuda` (5.2 px and 6.1 px on a box of 519 x 958 px), and a box IoU of
+  # 0.999 and 0.989 (ADR-MF2R). One step of the keypoint decode is about 2.3 px on that box.
+  thresholds: {box_iou_min: 0.9, keypoint_box_fraction_max: 0.01, score_min: 0.4}

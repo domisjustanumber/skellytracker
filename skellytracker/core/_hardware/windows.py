@@ -4,6 +4,7 @@ Import this module only on Windows. No function here makes a CUDA call or loads 
 """
 
 import ctypes
+import re
 import winreg
 from ctypes import wintypes
 
@@ -47,6 +48,15 @@ def os_build() -> int | None:
 
     info = OsVersionInfo(size=ctypes.sizeof(OsVersionInfo))
     return int(info.build) if ctypes.WinDLL("ntdll").RtlGetVersion(ctypes.byref(info)) == 0 else None
+
+
+def os_label(release: str, reg=winreg) -> str | None:
+    """`Windows 11 Home 26H2`. `ProductName` keeps the number 10 on Windows 11, so `release` gives the number."""
+    key = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+    product, version = (_registry_value(key, name, reg) for name in ("ProductName", "DisplayVersion"))
+    edition = re.sub(r"^Windows \d+ ", "", product) if isinstance(product, str) else None
+    parts = ["Windows", release, edition, version if isinstance(version, str) else None]
+    return " ".join(p for p in parts if p) if edition or version else None
 
 
 def native_arch() -> str | None:

@@ -1,11 +1,12 @@
-"""The dependency rules of ``pyproject.toml`` (decisions M2C6, W09C and D3VP).
+"""The dependency rules of ``pyproject.toml`` (decisions N6E8, W09C and D3VP).
 
 This test checks these rules, and ``pyproject.toml`` holds them:
 
 - Each dependency of ``pyproject.toml``, in ``dependencies``, in each extra and in each dependency
   group, has an exact pin (``==``), with no range. An environment marker can limit a pin to a
   platform.
-- ``onnxruntime`` is a base dependency with an exact 1.31 pin. No dependency is ``onnxruntime-gpu``,
+- ``onnxruntime`` is a base dependency with an exact 1.30 pin. On Windows the distribution is
+  ``onnxruntime-windowsml``, with the same release. No dependency is ``onnxruntime-gpu``,
   ``onnxruntime-directml``, ``tensorrt``, an ``nvidia-*-cu12`` package or a plugin EP pack
   ``onnxruntime-ep-*``: a GPU EP comes only as a plugin EP pack. No extra is ``onnx-cpu``,
   ``onnx-cuda``, ``onnx-trt``, ``onnx-directml``, ``all-*`` or ``recommended-*``.
@@ -69,7 +70,10 @@ def test_each_dependency_has_an_exact_pin() -> None:
 
 
 def test_onnxruntime_is_a_base_dependency_and_no_gpu_package_is_a_dependency() -> None:
-    assert pins("dependencies")["onnxruntime"].startswith("1.31.")
+    base = {canonicalize_name(r.name): r for r in requirements()["dependencies"]}
+    assert pins("dependencies")["onnxruntime"] == "1.30.0" and '!= "win32"' in str(base["onnxruntime"].marker)
+    assert pins("dependencies")["onnxruntime-windowsml"].startswith("1.30.0.")
+    assert '== "win32"' in str(base["onnxruntime-windowsml"].marker)
     gpu = sorted(
         n
         for n in all_names()

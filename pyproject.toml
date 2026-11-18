@@ -54,7 +54,10 @@ dependencies = [
     "opencv-contrib-python==5.0.0.93",
     "pydantic==2.14.3",
     "numpy==2.4.6",
-    "onnxruntime==1.31.1",
+    # One ONNX Runtime release on each OS. Windows takes the Windows ML build of the same release.
+    "onnxruntime==1.30.0 ; sys_platform != 'win32'",
+    "onnxruntime-windowsml==1.30.0.202609102321 ; sys_platform == 'win32'",
+    "windowsml[with-ort]==2.6.74rc0 ; sys_platform == 'win32'",
     "tqdm==4.70.1",
     "numpydantic==2.0.0",
     "requests==2.34.2",

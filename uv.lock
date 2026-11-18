@@ -457,7 +457,7 @@ wheels = [
 
 [[package]]
 name = "onnxruntime"
-version = "1.31.1"
+version = "1.30.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "flatbuffers" },
@@ -466,10 +466,23 @@ dependencies = [
     { name = "protobuf" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b2/93/d2b855793302ef57d55cc0583b72a00a8dcb01d9bdb3adac380f09b050e8/onnxruntime-1.31.1-cp313-cp313-macosx_14_0_arm64.whl", hash = "sha256:e4ad067d36e2220218e085d7223283b2ee1bc73d887e811fd14d21cf901a11ee", size = 20881825, upload-time = "2026-10-26T19:26:31.51Z" },
-    { url = "https://files.pythonhosted.org/packages/fc/0a/c887bcb84a9455b2723825381a77af38611a80f996f804e20fde5f671b63/onnxruntime-1.31.1-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:74a6a52994616c4d18b33db1e13c226333a70a6ba07480a5cab9c2a50dff1430", size = 23760717, upload-time = "2026-10-26T19:26:37.721Z" },
-    { url = "https://files.pythonhosted.org/packages/59/bf/a1d282b4c753ba3e9b31f4c11abd2bc2390513dc5e3792ca3b78e42401c3/onnxruntime-1.31.1-cp313-cp313-win_amd64.whl", hash = "sha256:0558f29d5f6ac09957390c9c5495931485ee8ae7f0ce781ccee86a0ae5c2348b", size = 14888304, upload-time = "2026-10-26T19:26:41.032Z" },
-    { url = "https://files.pythonhosted.org/packages/05/10/e37d9f06dae61cecaad344aef213a19643b66761a06667bdfe5282c1fb37/onnxruntime-1.31.1-cp313-cp313t-manylinux_2_28_x86_64.whl", hash = "sha256:6711108bcddf8b401145fb31ac93776b8ca6e7e7e56acdfa9d478575b8df9a2f", size = 23773876, upload-time = "2026-10-26T19:26:50.371Z" },
+    { url = "https://files.pythonhosted.org/packages/f0/75/508454c5d01f31641dabc597fe559594c931a520a2673031179319d0afd8/onnxruntime-1.30.0-cp313-cp313-macosx_14_0_arm64.whl", hash = "sha256:05e4fc41711d1f4abd19a9124b5be7a65a506cb2670a7f14b16162ef13c58134", size = 21544990, upload-time = "2026-09-10T16:31:37.685Z" },
+    { url = "https://files.pythonhosted.org/packages/f1/a1/ede48ab5dc54907a2999362777f541e132639fb06628ded1932058aa8a36/onnxruntime-1.30.0-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:86f940afc801ea9681a4da8af84fbe95e1d9ea7d80903952cc1bfad54faad38f", size = 23585560, upload-time = "2026-09-10T16:31:44.941Z" },
+    { url = "https://files.pythonhosted.org/packages/d6/72/4f4466f8fa1ec267a9ef5e2f3bd175c203d3da0facbdf4049dc93abbe91c/onnxruntime-1.30.0-cp313-cp313t-manylinux_2_28_x86_64.whl", hash = "sha256:3f9e002417f1e3bbb31ed43dafa4f22ca1b2b68832244fdee192fcaa1ae19bca", size = 23579837, upload-time = "2026-09-10T16:31:56.82Z" },
+]
+
+[[package]]
+name = "onnxruntime-windowsml"
+version = "1.30.0.202609102321"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "flatbuffers" },
+    { name = "numpy" },
+    { name = "packaging" },
+    { name = "protobuf" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2d/ac/3b46aa9d28f78726e282c325b5cc06758a3893609e98232e98d760ae313b/onnxruntime_windowsml-1.30.0.202609102321-cp313-cp313-win_amd64.whl", hash = "sha256:e5f8d44ece4872ffaa30d9d13bbd808c59a3f3891e1aeb8f46346ae7c56ed86a", size = 27378133, upload-time = "2026-09-17T22:19:02.762Z" },
 ]
 
 [[package]]
@@ -882,7 +895,8 @@ dependencies = [
     { name = "numpy" },
     { name = "numpydantic" },
     { name = "nvidia-ml-py" },
-    { name = "onnxruntime" },
+    { name = "onnxruntime", marker = "sys_platform != 'win32'" },
+    { name = "onnxruntime-windowsml", marker = "sys_platform == 'win32'" },
     { name = "opencv-contrib-python" },
     { name = "packaging" },
     { name = "platformdirs" },
@@ -893,6 +907,7 @@ dependencies = [
     { name = "requests" },
     { name = "scipy" },
     { name = "tqdm" },
+    { name = "windowsml", extra = ["with-ort"], marker = "sys_platform == 'win32'" },
 ]
 
 [package.optional-dependencies]
@@ -926,7 +941,8 @@ requires-dist = [
     { name = "numpydantic", specifier = "==2.0.0" },
     { name = "nvidia-ml-py", specifier = "==13.615.71" },
     { name = "onnx", marker = "extra == 'onnx'", specifier = "==1.22.0" },
-    { name = "onnxruntime", specifier = "==1.31.1" },
+    { name = "onnxruntime", marker = "sys_platform != 'win32'", specifier = "==1.30.0" },
+    { name = "onnxruntime-windowsml", marker = "sys_platform == 'win32'", specifier = "==1.30.0.202609102321" },
     { name = "opencv-contrib-python", specifier = "==5.0.0.93" },
     { name = "packaging", specifier = "==26.3" },
     { name = "platformdirs", specifier = "==4.14.5" },
@@ -938,6 +954,7 @@ requires-dist = [
     { name = "requests", specifier = "==2.34.2" },
     { name = "scipy", specifier = "==1.18.1" },
     { name = "tqdm", specifier = "==4.70.1" },
+    { name = "windowsml", extras = ["with-ort"], marker = "sys_platform == 'win32'", specifier = "==2.6.74rc0" },
 ]
 provides-extras = ["mediapipe", "onnx", "pyinstaller"]
 
@@ -1053,4 +1070,17 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/d0/20/50ed6bdf27dec98b568a8ae25dc599f35baa3d9709f9e83fd1edb56b9a90/wheel-0.48.0.tar.gz", hash = "sha256:94800765601e9171bf5d58d066e640662842bcedcbab982b2c90787a2c987322", size = 66471, upload-time = "2026-08-11T22:02:27.327Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2e/29/69cfbb602cd91690c55d38ba9fe53e6a7e76a6fa647bf38f19c138d25449/wheel-0.48.0-py3-none-any.whl", hash = "sha256:3217dcc807155e45db462d7ef2431f5ddda0d7273b700d05a67b271ceb1287ab", size = 33320, upload-time = "2026-08-11T22:02:26.1Z" },
+]
+
+[[package]]
+name = "windowsml"
+version = "2.6.74rc0"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4c/76/50774308ae1b0850a694d19a4de8e705f9ca0e5384049b81fb3cfc1a0600/windowsml-2.6.74rc0-py3-none-win_amd64.whl", hash = "sha256:6a2743241b409dbf29ac187abb1fce34644839ae64d7b98d13096b92be7bfaa4", size = 469255, upload-time = "2026-09-17T22:19:14.972Z" },
+]
+
+[package.optional-dependencies]
+with-ort = [
+    { name = "onnxruntime-windowsml" },
 ]

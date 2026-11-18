@@ -57,6 +57,13 @@ class EpCatalog:
     def ort_version(self) -> str:
         return self.data["ort_core"]["version"]
 
+    @property
+    def ort_distribution(self) -> tuple[str, str]:
+        """The name and the version of the ONNX Runtime distribution of this platform."""
+        core = self.data["ort_core"]
+        row = core["windows"] if sys.platform == "win32" else core
+        return row["package"], row["version"]
+
     def keys(self) -> tuple[str, ...]:
         """The EP keys that a request can name, in catalog order. A reserved key is not one of them."""
         return tuple(key for key, row in self.data["eps"].items() if row["kind"] != "reserved")
@@ -123,9 +130,11 @@ class EpCatalog:
         capability = None if gpu.nvidia is None else gpu.nvidia.compute_capability
         if "cc_min" in requires and (capability is None or version_tuple(capability) < version_tuple(requires["cc_min"])):
             return "cc-too-low", f"the pack needs compute capability {requires['cc_min']} or higher, the GPU has {capability}"
-        branch = driver_branch(gpu.driver_version)
-        if "driver_branch_min" in requires and (branch is None or branch < requires["driver_branch_min"]):
-            return "driver-too-old", (f"the pack needs an NVIDIA driver of R{requires['driver_branch_min']} or later, "
+        branch, floor = driver_branch(gpu.driver_version), requires.get("driver_branch_min")
+        if isinstance(floor, dict):
+            floor = floor.get(platform_tag())
+        if floor is not None and (branch is None or branch < floor):
+            return "driver-too-old", (f"the pack needs an NVIDIA driver of R{floor} or later, "
                                       f"the driver is {gpu.driver_version}")
         return None
 

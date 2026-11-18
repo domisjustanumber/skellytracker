@@ -264,6 +264,12 @@ def test_windows_registry_readers_on_a_fake_registry():
     assert windows.cpu_max_frequency_hz(type("NoValue", (FakeRegistry,), {"values": {}})) is None
     assert windows.virtualization(FakeRegistry).hypervisor == "vmware"
     assert windows.container(FakeRegistry) is None
+    key = "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"
+    full = type("Full", (FakeRegistry,), {"values": {(key, "ProductName"): "Windows 10 Home", (key, "DisplayVersion"): "26H2"}})
+    assert windows.os_label("11", full) == "Windows 11 Home 26H2"
+    only_name = type("Name", (FakeRegistry,), {"values": {(key, "ProductName"): "Windows 10 Pro"}})
+    assert windows.os_label("11", only_name) == "Windows 11 Pro"
+    assert windows.os_label("11", type("NoValue", (FakeRegistry,), {"values": {}})) is None
 
 
 def test_physical_cores_reads_no_gpu_and_gives_the_value_of_a_probed_host(monkeypatch):

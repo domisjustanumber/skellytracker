@@ -38,7 +38,11 @@ def test_the_revision_does_not_depend_on_the_line_ends():
 
 
 def break_pin(catalog, lock):
-    catalog["ort_core"]["version"] = "1.30.0"
+    catalog["ort_core"]["version"] = "1.29.0"
+
+
+def break_windows_pin(catalog, lock):
+    catalog["ort_core"]["windows"]["version"] = "1.30.0"
 
 
 def break_group(catalog, lock):
@@ -90,9 +94,24 @@ def break_unknown_successor(catalog, lock):
     catalog["legacy_keys"]["cuda"] = ["trt-rtx", "tensorrt"]
 
 
-@pytest.mark.parametrize("change", [break_pin, break_group, break_darwin, break_reserved, break_evidence, break_candidate,
+def break_newer_version(catalog, lock):
+    catalog["eps"]["cuda"]["packs"][0]["newer_versions"] = [{"version": "0.1.0", "ort": {"verified_by_us": ["1.30.0"]}}]
+
+
+def break_newer_dependency(catalog, lock):
+    catalog["eps"]["cuda"]["packs"][0]["newer_versions"] = [{"version": "0.3.0", "ort": {}, "dependency_wheels": {"other": "1.0"}}]
+
+
+def test_a_newer_versions_row_with_a_claim_passes():
+    catalog, lock = load()
+    catalog["eps"]["cuda"]["packs"][0]["newer_versions"] = [{"version": "0.10.0", "ort": {"verified_by_us": ["1.31.1"]},
+                                                              "dependency_wheels": {"nvidia-cublas": "13.9.0.1"}}]
+    assert problems(catalog, lock) == []
+
+
+@pytest.mark.parametrize("change", [break_pin, break_windows_pin, break_group, break_darwin, break_reserved, break_evidence, break_candidate,
                                     break_device_id, break_url, break_sha, break_lock_row, break_revision,
-                                    break_successor, break_unknown_successor],
+                                    break_successor, break_unknown_successor, break_newer_version, break_newer_dependency],
                          ids=lambda change: change.__name__)
 def test_check_finds_each_defect(change):
     catalog, lock = (copy.deepcopy(part) for part in load())
@@ -113,8 +132,9 @@ FAKE_CATALOG = {
     "platforms": ["win_amd64", "manylinux_x86_64"],
     "eps": {"fake": {"kind": "plugin", "packs": [{
         "id": "fake-pack", "package": "fake-ep", "version": "1.0", "index": "test", "ep_name": "FakeExecutionProvider",
-        "library": {"win_amd64": "fake.dll", "manylinux_x86_64": "libfake.so"},
-        "dependency_wheels": [{"package": "fake-dep", "index": "test", "version": "2.0"}]}]}},
+        "library": {"win_amd64": "fake.dll", "manylinux_x86_64": "libfake.so"}, "preload_own": ["libown.so"],
+        "dependency_wheels": [{"package": "fake-dep", "index": "test", "version": "2.0"},
+                              {"package": "fake-rt", "index": "test", "version": {"manylinux_x86_64": "3.0"}}]}]}},
 }
 
 
@@ -122,12 +142,13 @@ def fake_index(tamper: str | None = None, scheme: str = "https") -> dict[str, by
     """The pages and the files of a fake index. `tamper` names a file whose bytes change after the page is made."""
     files = {
         "fake_ep-1.0-py3-none-win_amd64.whl": wheel_bytes({"fake_ep/fake.dll": b"dll", "fake_ep-1.0.dist-info/LICENSE": b"l"}),
-        "fake_ep-1.0-py3-none-manylinux_2_28_x86_64.whl": wheel_bytes({"fake_ep/libfake.so": b"so"}),
+        "fake_ep-1.0-py3-none-manylinux_2_28_x86_64.whl": wheel_bytes({"fake_ep/libfake.so": b"so", "fake_ep/libown.so.1.2.3": b"o"}),
         "fake_dep-2.0-py3-none-win_amd64.whl": wheel_bytes({"dep/bin/dep.dll": b"12345"}),
         "fake_dep-2.0-py3-none-manylinux_2_27_x86_64.whl": wheel_bytes({"dep/lib/libdep.so.2": b"1", "dep/lib/libcublasLt.so.13": b"2"}),
+        "fake_rt-3.0-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl": wheel_bytes({"rt/lib/libcudart.so.13": b"3"}),
     }
     site: dict[str, bytes] = {}
-    for package in ("fake-ep", "fake-dep"):
+    for package in ("fake-ep", "fake-dep", "fake-rt"):
         links = "".join(f'<a href="{scheme}://files.test/{name}#sha256={hashlib.sha256(data).hexdigest()}" data-requires-python=">=3.11">{name}</a>\n'
                         for name, data in files.items() if name.startswith(package.replace("-", "_")))
         site[f"https://index.test/simple/{package}/"] = links.encode()
@@ -144,7 +165,9 @@ def test_refresh_is_reproducible_on_a_recorded_index(tmp_path):
     assert ep_catalog.refresh(FAKE_CATALOG, "text", tmp_path / "b", site.__getitem__) == first
     windows, linux = first["packs"]["fake-pack"]["win_amd64"], first["packs"]["fake-pack"]["manylinux_x86_64"]
     assert windows["library"] == "fake_ep/fake.dll" and windows["path_dirs"] == ["dep/bin"]
-    assert linux["library"] == "fake_ep/libfake.so" and linux["preload"] == ["dep/lib/libcublasLt.so.13", "dep/lib/libdep.so.2"]
+    assert linux["library"] == "fake_ep/libfake.so" and linux["preload"] == [
+        "fake_ep/libown.so.1.2.3", "rt/lib/libcudart.so.13", "dep/lib/libcublasLt.so.13", "dep/lib/libdep.so.2"]
+    assert len(linux["wheels"]) == 3  # the wheel of the version map is a Linux wheel only
     assert [wheel["unpacked_bytes"] for wheel in windows["wheels"]] == [4, 5]
     assert windows["download_bytes"] == sum(len(site[wheel["url"]]) for wheel in windows["wheels"])
     assert first["catalog_revision"] == ep_catalog.revision_of("text")

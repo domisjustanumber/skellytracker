@@ -27,9 +27,9 @@ These entries are `accepted`.
 | [0XW9](entries/0XW9-entry-points-layout-guard-test-and-session-code.md) | Entry points `detectors` and `pipelines`; `system/`, `metrics/`, `eps/` under an eager `core`; one `eps` guard test; new session code in `core/eps/` | accepted |
 | [NHM3](entries/NHM3-phases-to-the-exporter-checkpoint.md) | Phase 0 and phase 1 to the exporter checkpoint; pre-release at the checkpoint; new code beside old; supersedes EM74 | accepted |
 | [9NW0](entries/9NW0-ep-keys-options-and-failures.md) | EP keys from the EP catalog; a run takes `ep_options`; a whole-EP failure raises before frame 0; CPU nodes are reported | accepted |
-| [M2C6](entries/M2C6-exact-pins-and-one-python-patch-release.md) | Exact pins, no ranges; Python `==3.13.18`; `onnxruntime` 1.31 base dependency; GPU EPs only as CUDA 13 plugin packs; supersedes MWY9 | accepted |
+| [N6E8](entries/N6E8-onnxruntime-1-30-on-each-os.md) | Exact pins; Python `==3.13.18`; ONNX Runtime 1.30.0 on each OS, Windows ML build on Windows; same CUDA 13 plugin packs on each OS; supersedes M2C6 | accepted |
 | [W5QD](entries/W5QD-pipeline-entries-consolidation.md) | Consolidation of the pipeline entries 7NY2, ZYS9, V7GZ and 0WTV: links to the pipeline spec, and the Python API names that it does not state | accepted |
-| [246B](entries/246B-ep-catalog-store-and-install.md) | EP catalog and lock in the package; option allow-lists; one EP store; `urllib` download after a user action; no mirror; installer EP page | accepted |
+| [MF2R](entries/MF2R-ep-store-install-and-certification.md) | EP catalog, lock and store; download after the user accepts; the app prompts; `certify()` with a local report; `ep_evidence.yaml`; supersedes 246B | accepted |
 | [D8DH](entries/D8DH-sessions-errors-and-the-ready-rule.md) | `core/errors.py`; one exit-code table; an EP pack is ready when installed, current, registered and with a device; no EP variables | accepted |
 | [P1F3](entries/P1F3-hardware-probe-devices-and-multi-gpu.md) | Hardware probe fields; `free_vram`; `device_key`; default GPU by VRAM; a run splits its cameras across GPUs; no pre-Turing GPUs | accepted |
 | [4WR9](entries/4WR9-params-schema-in-the-node-catalog.md) | `NodeTypeInfo.params_schema` and `NodeTypeInfo.any_from`: the JSON Schema of the params and the inputs that type an `any` output, for an editor | accepted |

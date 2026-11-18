@@ -14,8 +14,24 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
 
 ## Repository state
 
-- **Dependency pins for the exporters.** [ADR-M2C6](entries/M2C6-exact-pins-and-one-python-patch-release.md)
-  decides exact pins, `onnxruntime` 1.31 as a base dependency with GPU EPs as CUDA 13 plugin packs,
+- **Linux gate of ONNX Runtime 1.30.0.** [ADR-N6E8](entries/N6E8-onnxruntime-1-30-on-each-os.md) item 9: run
+  `decisions/scripts/n6e8_ort_1_30/linux_ep_gate.sh` on bare-metal Ubuntu 24.04 with an NVIDIA driver of
+  590.48.01 or later. The change of its items 2 and 3 lands only after this run passes. Then write the
+  result in the Evidence section of the entry.
+- **EP certification.** Five items of [ADR-MF2R](entries/MF2R-ep-store-install-and-certification.md)
+  stay open:
+  - Check the `thresholds` of the `certification` block of `ep_catalog.yaml` on more hosts and images.
+    One RTX 3070 with `cuda` and `trt-rtx` on one image gave the values of 2026-11-18 (item 16).
+  - Write the `maintainer` rows of `ep_evidence.yaml` for the current set hash on Windows and on
+    Linux. Until then, `tools/onnx_stack.py check` fails for each NVIDIA pack (item 18).
+  - Later stage: send a report. The user decided a relay that opens an issue in a public intake
+    repository of the freemocap organisation, with no login. Until then, nothing leaves the host.
+  - Later stage: a `field-test` catalog state for an EP with no evidence, for example MIGraphX.
+    Before such an EP is offered, move the wider run to a child process: an EP that ends the
+    process writes no report (`_wide_run` in `core/eps/certification.py`).
+  - freemocap work: the dialog of the prompt (item 14) and of the download prompt (item 9).
+- **Dependency pins for the exporters.** [ADR-N6E8](entries/N6E8-onnxruntime-1-30-on-each-os.md)
+  decides exact pins, ONNX Runtime 1.30.0 as a base dependency with GPU EPs as CUDA 13 plugin packs,
   and `requires-python = "==3.13.18"`. The exporters that agents build again pin the 2.0.0
   pre-release (the draft exporter guide). On 2026-10-28, two exporters required Python 3.14 or later,
   and uv could not resolve skellytracker in three of the four exporters. The dependency stage of the

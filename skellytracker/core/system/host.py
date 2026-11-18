@@ -108,29 +108,32 @@ def _probe() -> HostInfo:
             errors.append(error_line(source, error))
             return default
 
-    os_build, native_arch, container = None, platform.machine(), None
+    os_build, native_arch, container, os_label = None, platform.machine(), None, None
     if sys.platform == "win32":
         from skellytracker.core._hardware import windows as reader
 
         os_build = read("RtlGetVersion", reader.os_build)
+        os_label = read("registry", lambda: reader.os_label(platform.release()))
         native_arch = read("IsWow64Process2", reader.native_arch)
         container = read("registry", reader.container)
     elif sys.platform == "darwin":
         from skellytracker.core._hardware import darwin as reader
 
         os_build = platform.mac_ver()[0] or None
+        os_label = f"macOS {os_build}" if os_build else None
         native_arch = read("sysctl", lambda: reader.native_arch(platform.machine()), platform.machine())
     else:
         from skellytracker.core._hardware import linux as reader
 
         os_build = platform.release() or None
+        os_label = read("os-release", lambda: platform.freedesktop_os_release().get("PRETTY_NAME"))
         container = read("container", reader.container)
     physical, logical, memory = read("cpu and memory", reader.cores_and_memory, (None, os.cpu_count(), 0))
     nvml_gpus = read("nvml", nvml.read_gpus, [])
     return HostInfo(
         os_name=platform.system(), os_release=platform.release(), os_version=platform.version(),
         arch=platform.machine(), memory_total_bytes=memory, os_platform=platform.platform() or None,
-        os_build=os_build, native_arch=native_arch, cpu_name=read("cpu name", reader.cpu_name),
+        os_build=os_build, os_label=os_label, native_arch=native_arch, cpu_name=read("cpu name", reader.cpu_name),
         cpu_physical_cores=physical, cpu_logical_cores=logical,
         cpu_max_frequency_hz=read("cpu frequency", reader.cpu_max_frequency_hz),
         gpus=merge_gpus(nvml_gpus, read("os gpus", reader.gpus, [])),

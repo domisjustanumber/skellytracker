@@ -20,12 +20,21 @@ and takes its recommended and automatic choices from `recommend()`:
   supports. It can need an install first: `PackStatus.usable` and `PackStatus.install_hint` of the
   key tell the application. An application calls it only for such a setting. On None, the
   application uses the recommendation.
+- `PackStatus.certified` is true when the project has a reviewed pass of the EP on this GPU model
+  on this OS. `EpStatus.certify_offers` has one `CertifyOffer` for each usable EP that is not
+  certified. When `CertifyOffer.prompt` is true, an application asks the user: certify now, later,
+  or do not ask again. `certify(key, wide=...)` runs the test and writes the report file, and
+  `dismiss_certification(key)` stores "do not ask again". An application asks before `wide=True`,
+  with `CertifyOffer.seconds`. Nothing leaves the host.
 """
 
 from skellytracker.core.eps.catalog import EpCatalog, load_catalog
+from skellytracker.core.eps.certification import certify, dismiss_certification
 from skellytracker.core.eps.installer import download, gc, install, plan_install, remove
 from skellytracker.core.eps.recommendation import recommend, run_devices, select_precision
 from skellytracker.core.eps.records import (
+    CertifyOffer,
+    CertifyResult,
     EpCandidate,
     EpRecommendation,
     EpStatus,
@@ -53,6 +62,8 @@ from skellytracker.core.eps.store import store_root
 from skellytracker.core.eps.verification import verify
 
 __all__ = [
+    "CertifyOffer",
+    "CertifyResult",
     "EpCandidate",
     "EpCatalog",
     "EpRecommendation",
@@ -73,7 +84,9 @@ __all__ = [
     "Verdict",
     "WheelRef",
     "build_session",
+    "certify",
     "check_start",
+    "dismiss_certification",
     "download",
     "ensure_registered",
     "gc",

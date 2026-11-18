@@ -1,0 +1,27 @@
+# The certification evidence of the EP packs. A person writes a row after a review (ADR-MF2R).
+# The runtime never downloads this file.
+# Each row has these fields. `tools/onnx_stack.py check` refuses a row with a field that is missing or not valid.
+# - `ep`: the EP key, for example `trt-rtx`.
+# - `os`: the OS name of the report, for example `Windows` or `Linux`.
+# - `gpu`: the PCI vendor id and device id of the GPU model, in lower-case hex, for example `10de:2484`.
+# - `set`: the set hash of the row, 64 lower-case hex digits. `tools/onnx_stack.py check` prints the set hash of this checkout.
+# - `source`: `maintainer` or `field`.
+# - `result`: `pass` or `fail`.
+# - `catalog_package` (optional): the package version of the Windows ML catalog, as a string, when the EP comes from
+#   that catalog. It is not in the set hash.
+# A row can also have these readable versions. They are a record only. The key of a row is `ep`, `os`, `gpu` and `set`.
+# No code reads these fields to match a row.
+# - `pack`: the version of the EP pack.
+# - `ort`: the version of the ONNX Runtime distribution, for example `1.30.0.202609102321` for `onnxruntime-windowsml`.
+# - `windowsml`: the version of the `windowsml` package. Write `null` when the host has none.
+# - `driver`: the GPU driver version.
+# - `os_build`: the build number of the OS.
+# - `os_label`: the OS as a person reads it, for example `Windows 11 Home 26H2` or `Ubuntu 24.04.1 LTS`.
+schema: 1
+rows:
+  - {ep: trt-rtx, os: Windows, gpu: "10de:2484", set: 4abfaa7678817ed4a8ccb5f3e355ba28672589e8a3468bb6805e491dfe03a302,
+     source: maintainer, result: pass, pack: 0.5.0, ort: 1.30.0.202609102321, windowsml: 2.6.74rc0, driver: "610.88", os_build: 26300,
+     os_label: Windows 11 Home 26H2}
+  - {ep: cuda, os: Windows, gpu: "10de:2484", set: 4abfaa7678817ed4a8ccb5f3e355ba28672589e8a3468bb6805e491dfe03a302,
+     source: maintainer, result: pass, pack: 0.2.0, ort: 1.30.0.202609102321, windowsml: 2.6.74rc0, driver: "610.88", os_build: 26300,
+     os_label: Windows 11 Home 26H2}

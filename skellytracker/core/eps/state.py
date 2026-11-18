@@ -4,16 +4,15 @@ The entries of the `detectors` list and of the `pipelines` list carry no EP stat
 `recommend()` give it. A pack can change after a list call, so a run checks the EP at its start.
 """
 
-import importlib.metadata
 import os
 import shutil
 import sys
 from collections.abc import Mapping, Sequence
 
 from skellytracker.core.eps import catalog as catalog_module
-from skellytracker.core.eps import store
+from skellytracker.core.eps import certification, evidence, store
 from skellytracker.core.eps.catalog import load_catalog
-from skellytracker.core.eps.installer import core_mismatch
+from skellytracker.core.eps.installer import core_mismatch, installed_ort
 from skellytracker.core.eps.recommendation import ep_gpus, install_hint, recommend, run_devices
 from skellytracker.core.eps.records import USABLE_STATES, EpStatus, PackStatus, RunDevice
 from skellytracker.core.errors import EpUnavailableError
@@ -72,7 +71,8 @@ def _pack_status(catalog, key: str, host) -> PackStatus | None:
         lock["download_bytes"], lock["unpacked_bytes"], pack["id"], pack["version"], pack["exclusive_group"],
         tuple((licence["name"], licence["url"]) for licence in pack.get("licences", ())),
         usable=usable, install_hint=install_hint(key) if state in REPAIRABLE_STATES else None, uses_gpu=row["gpu"],
-        description=row["description"], devices=run_devices(key) if usable else ())  # `run_devices` reads only the cached host probe
+        description=row["description"], devices=run_devices(key) if usable else (),  # `run_devices` reads only the cached host probe
+        certified=None if gpu is None else evidence.certified(key, gpu, host.os_name))
 
 
 def status() -> EpStatus:
@@ -82,10 +82,7 @@ def status() -> EpStatus:
     (`EpStatus`). An application shows the EPs from this result and holds no EP fact of its own.
     """
     catalog, host = load_catalog(), probe_host()
-    try:
-        ort_version = importlib.metadata.version("onnxruntime")
-    except importlib.metadata.PackageNotFoundError:
-        ort_version = None
+    installed = installed_ort()
     root = store.store_root()
     existing = next((path for path in (root, *root.parents) if path.exists()), None)
     warnings = [text for text in (core_mismatch(catalog),) if text]
@@ -94,11 +91,13 @@ def status() -> EpStatus:
         warnings.append("VIRTUAL_ENV is not the environment of this Python. The EP store serves the environment of this Python.")
     rows = [_pack_status(catalog, key, host) for key in catalog.keys()]
     return EpStatus(
-        ort_version=ort_version, catalog_revision=catalog.revision, core_matches_pin=ort_version == catalog.ort_version,
+        ort_version=None if installed is None else installed[1], catalog_revision=catalog.revision,
+        core_matches_pin=installed == catalog.ort_distribution,
         platform_tag=catalog_module.platform_tag(), store_root=str(root),
         store_free_bytes=None if existing is None else shutil.disk_usage(existing).free, host=host,
         performance=recommend("performance", host), accuracy=recommend("accuracy", host),
         eps=tuple(row for row in rows if row is not None), warnings=tuple(warnings),
+        certify_offers=certification.certify_offers(catalog, host),
     )
 
 

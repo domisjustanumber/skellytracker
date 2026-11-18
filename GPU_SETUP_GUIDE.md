@@ -3,7 +3,7 @@
 The base dependency `onnxruntime` gives the CPU EP, and the CoreML EP on macOS. A GPU EP for an
 NVIDIA GPU comes as a plugin EP pack. The command `skellytracker-eps install` puts a pack in the EP
 store of the user. A pack is not a dependency of the package
-([ADR-M2C6](decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md) items 2 and 3).
+([ADR-N6E8](decisions/entries/N6E8-onnxruntime-1-30-on-each-os.md) items 2 and 3).
 
 The ONNX trackers of this version (RTMPose, YOLOX) run on the CPU. On macOS, they can also run on
 CoreML. They do not use the EP packs. The new code calls `skellytracker.core.eps.build_session()`.
@@ -13,7 +13,7 @@ The pipelines of a later version use it.
 
 | Key | EP | Needs |
 |---|---|---|
-| `trt-rtx` | NVIDIA TensorRT for RTX, pack `onnxruntime-ep-nv-tensorrt-rtx-cu13` | An NVIDIA GPU with compute capability 8.0 or higher, and a driver of R580 or later |
+| `trt-rtx` | NVIDIA TensorRT for RTX, pack `onnxruntime-ep-nv-tensorrt-rtx-cu13` | An NVIDIA GPU with compute capability 8.0 or higher, and a driver of R580 or later on Windows, or R590 or later on Linux |
 | `cuda` | NVIDIA CUDA, pack `onnxruntime-ep-cuda13` with cuBLAS and cuDNN | An NVIDIA GPU of the Turing generation or newer (compute capability 7.5), and a driver of R580 or later |
 | `coreml` | Apple Core ML, a part of ONNX Runtime | macOS on Apple Silicon |
 | `cpu` | The CPU EP, a part of ONNX Runtime | – |

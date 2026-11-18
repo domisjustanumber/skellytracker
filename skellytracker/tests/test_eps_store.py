@@ -209,8 +209,8 @@ def test_install_from_a_local_index(fake_pack, ep_store):
     events = []
     result = installer.install(plan, progress=events.append, verify=False)
     assert (result.ok, result.failed, result.cancelled) == (("cuda",), (), ())
-    folder = ep_store / "cuda-cu13" / "0.3.0"
-    manifest = store.read_manifest("cuda-cu13", "0.3.0")
+    folder = ep_store / "cuda-cu13" / "0.2.0"
+    manifest = store.read_manifest("cuda-cu13", "0.2.0")
     assert (folder / manifest["library"]).read_bytes() == b"plugin" and manifest["path_dirs"] == ["nvidia/cudnn/bin"]
     assert (folder / "licenses" / "plugin" / "LICENSE.txt").read_bytes() == b"licence text"
     assert (folder / "licenses" / "dep" / "NOTICE").read_bytes() == b"notice"
@@ -306,7 +306,7 @@ def test_gc_and_remove(fake_pack, ep_store, monkeypatch):
     later = time.time() + 40 * 86400
     result = installer.gc(now=later)
     assert result.removed_packs == ("old-pack/0.1",) and result.removed_partials == 1 and not old.exists()
-    assert (ep_store / "cuda-cu13" / "0.3.0" / "pack.json").exists()  # the ref of this consumer names it
+    assert (ep_store / "cuda-cu13" / "0.2.0" / "pack.json").exists()  # the ref of this consumer names it
     installer.remove(consumer="environment")
     assert not list((ep_store / "refs").glob("*.json"))
     old.mkdir(parents=True)

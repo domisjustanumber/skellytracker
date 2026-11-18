@@ -33,7 +33,8 @@ def test_catalog_keys_and_reserved_keys():
             catalog.ep(key)
     with pytest.raises(EpRequestError, match="not an EP key"):
         catalog.ep("tensorrt")
-    assert catalog.ort_untested(catalog.pack("trt-rtx")) and not catalog.ort_untested(catalog.pack("cuda"))
+    assert catalog.ort_untested(catalog.pack("trt-rtx"), "1.31.1") and not catalog.ort_untested(catalog.pack("trt-rtx"))
+    assert not catalog.ort_untested(catalog.pack("cuda"))
 
 
 @pytest.mark.parametrize(("key", "options"), [
@@ -101,7 +102,7 @@ def test_recommend_details():
     fake_pack("trt-rtx")
     fake_pack("cuda")
     best = eps.recommend("performance", host(RTX))
-    assert best.chosen.status == "untested-ort" and best.chosen.device_key == "gpu:10de:2484:0"
+    assert best.chosen.status == "installed_unverified" and best.chosen.device_key == "gpu:10de:2484:0"
     assert best.source.ranking_evidence == "MWY9" and best.options == ()
     turing = eps.recommend("performance", host(GTX_1650))
     assert turing.chosen.status == "installed_unverified" and turing.options == (("prefer_nhwc", "1"),)

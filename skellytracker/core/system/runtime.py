@@ -15,7 +15,7 @@ from skellytracker.core._hardware.sanitize import error_line
 from skellytracker.core.system.environment import package_source
 from skellytracker.core.system.records import NvidiaRuntimeInfo, RuntimeInfo
 
-ORT_DISTRIBUTIONS = ("onnxruntime", "onnxruntime-gpu", "onnxruntime-directml", "onnxruntime-openvino")
+ORT_DISTRIBUTIONS = ("onnxruntime", "onnxruntime-windowsml", "onnxruntime-gpu", "onnxruntime-directml", "onnxruntime-openvino")
 
 _lock = threading.Lock()
 _cached: RuntimeInfo | None = None
@@ -47,12 +47,17 @@ def _probe() -> RuntimeInfo:
         ort_version, ep_names = onnxruntime.__version__, tuple(onnxruntime.get_available_providers())
     except Exception as error:  # noqa: BLE001 - a missing or broken ONNX Runtime is a `probe_errors` line
         errors.append(error_line("onnxruntime", error))
+    try:
+        windowsml_version = importlib.metadata.version("windowsml")
+    except importlib.metadata.PackageNotFoundError:
+        windowsml_version = None
     order, cuda = os.environ.get("CUDA_DEVICE_ORDER"), nvml.driver_supported_cuda_version()
+    found = [(name, version) for name in ORT_DISTRIBUTIONS if (version := _version(name)) is not None]
     return RuntimeInfo(
         skellytracker_version=skellytracker.__version__, python_version=platform.python_version(),
         skellytracker_commit=commit, mediapipe_version=mediapipe_version,
-        ort_packages=tuple(name for name in ORT_DISTRIBUTIONS if _version(name) is not None),
-        ort_version=ort_version, ep_names=ep_names, probe_errors=tuple(errors),
+        ort_packages=tuple(name for name, _ in found), ort_package_versions=tuple(version for _, version in found),
+        windowsml_version=windowsml_version, ort_version=ort_version, ep_names=ep_names, probe_errors=tuple(errors),
         nvidia=None if order is None and cuda is None else NvidiaRuntimeInfo(order, cuda),
     )
 

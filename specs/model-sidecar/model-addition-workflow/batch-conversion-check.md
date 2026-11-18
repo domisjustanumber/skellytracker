@@ -15,9 +15,10 @@ Run `batch` from your repo root, in the skellytracker environment of the checkou
 uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/skellytracker/tools/intake_bundle.py batch --fields <fields file> --out <payload folder>/batch
 ```
 
-- skellytracker pins `onnxruntime` 1.31 as a base dependency. On onnxruntime 1.27 for CPU, two runs of one fp16
-  file can give different outputs, and V5 fails
-  ([ADR-4KW6](../../../decisions/entries/4KW6-onnxruntime-1-31-for-the-cpu-check.md)).
+- skellytracker pins `onnxruntime` 1.30 as a base dependency. On onnxruntime 1.27 for CPU, two runs of one fp16
+  file gave different outputs in one environment, and V5 failed
+  ([ADR-4KW6](../../../decisions/entries/4KW6-onnxruntime-1-31-for-the-cpu-check.md)). A later test on a new 1.27
+  environment did not repeat this ([ADR-N6E8](../../../decisions/entries/N6E8-onnxruntime-1-30-on-each-os.md)).
 
 - The user syncs the checkout one time: `uv sync --all-extras` in `../freemocap/skellytracker`.
   If the import of skellytracker fails, stop. Ask the user to sync the checkout.

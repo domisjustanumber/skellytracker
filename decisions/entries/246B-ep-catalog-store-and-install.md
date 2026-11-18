@@ -1,6 +1,6 @@
 # 246B — The EP catalog data, the EP store and the pack install
 
-**Status:** accepted, 2026-11-12 (user).
+**Status:** superseded by [MF2R](MF2R-ep-store-install-and-certification.md), 2026-11-18 (user; PR: pending).
 
 ## Decision
 
