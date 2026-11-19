@@ -46,12 +46,14 @@ IMAGE_NUMBERS = ("people_cpu", "people_ep", "box_iou_min", "keypoint_px_max", "k
                  "speed_against_cpu")
 
 
-def certify_plan(level: str, *, execution_providers: Sequence[str] | None = None, pipeline=None) -> dict:
+def certify_plan(level: str, *, execution_providers: Sequence[str] | None = None, device: str | Sequence[str] | None = None,
+                 pipeline=None) -> dict:
     """The plan of a `certify()` call with the same arguments. It loads no GPU library and downloads nothing.
 
-    `downloads` names the test image of the quick level when it is not on this host. The quick level installs
-    nothing: `details.not_run` gives each selected EP that will not run, with its reason code, for example
-    `ep-not-installed`. `system_changes` and `questions` are empty. `pipeline` does not change the plan.
+    `downloads` names the test image of the quick level when it is not on this host. `details.checks` gives the
+    name of each EP check, one for each EP and GPU. The quick level installs nothing: `details.not_run` gives each
+    of them that will not run, with its reason code, for example `ep-not-installed`. `system_changes` and
+    `questions` are empty. `pipeline` does not change the plan.
     """
     _check_level(level)
     plan = {"package": PACKAGE, "kind": level, "seconds_estimate": 0, "downloads": [], "system_changes": [], "questions": []}
@@ -63,18 +65,19 @@ def certify_plan(level: str, *, execution_providers: Sequence[str] | None = None
 
     catalog, host = load_catalog(), probe_host()
     settings = catalog.data["certification"]
-    selected = _selection(catalog, host, execution_providers)
-    runnable = [key for key, _, _, reason in selected if reason is None]
+    selected = _selection(catalog, host, execution_providers, device)
+    runnable = [key for _, key, _, _, reason in selected if reason is None]
     plan["seconds_estimate"] = sum(PROBE_SECONDS + settings["seconds"].get(key, IMAGE_SECONDS) for key in runnable)
     if runnable and not _image_path(store, settings).is_file():
         plan["downloads"].append({"name": settings["image"]["url"].rsplit("/", 1)[1], "bytes": settings["image"]["bytes"]})
-    plan["details"] = {"execution_providers": [key for key, *_ in selected],
-                       "not_run": {key: reason for key, _, _, reason in selected if reason}}
+    plan["details"] = {"execution_providers": list(dict.fromkeys(key for _, key, *_ in selected)),
+                       "checks": [label for label, *_ in selected],
+                       "not_run": {label: reason for label, _, _, _, reason in selected if reason}}
     return plan
 
 
 def certify(level: str, progress: Callable[[dict], object] | None = None, cancel=None, *,
-            execution_providers: Sequence[str] | None = None, pipeline=None) -> dict:
+            execution_providers: Sequence[str] | None = None, device: str | Sequence[str] | None = None, pipeline=None) -> dict:
     """Run the certification checks of this package at `level`, and return the module report.
 
     - `level`: `quick` or `full`. Each other value raises `ValueError`. The level `full` is not built
@@ -84,26 +87,33 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
       10 times a second. If it raises, it gets no other message, and the run continues.
     - `cancel`: an object with `is_set()`. A set cancel stops the running child process within about a
       second. Each check that did not end is `not-run` with `cancelled`.
-    - `execution_providers`: the EP keys to check. The default is each usable plugin EP of this host
-      with no reviewed row in `ep_evidence.yaml` for this GPU model and OS: the EPs of
-      `status().certify_offers`. A `field-test` EP is checked only when the caller names it. An unknown
-      or reserved key raises `EpRequestError` (a `ValueError`).
+    - `execution_providers`: the EP keys to check. The default is each GPU EP of this host with no
+      reviewed row in `ep_evidence.yaml` for the GPU model and OS: each usable plugin EP, and also
+      `directml` and each EP of the Windows ML catalog (the `field-test` EPs with no pack). An unknown or
+      reserved key raises `EpRequestError` (a `ValueError`).
+    - `device`: one device key or a list of device keys, as in `run_devices()`: the GPUs to check on. The
+      default is each GPU that the EP can use. In the default selection, a GPU with a reviewed row is not
+      checked. A key that is not a GPU of this host raises `EpRequestError`. A named EP that cannot use
+      a named GPU is `not-run` with `gpu-not-usable`.
     - `pipeline`: the pipeline of the user, as a `PipelineConfig`, a key of the pipeline catalog or a
       path. The default is `certification.pipeline` of the EP catalog. A config that does not load
       raises, as `load_pipeline()` does.
 
     The quick check of one EP runs the L3 probe (`verify()`) and then the pipeline on one test image
     on the EP and on the CPU EP, each in a `spawn` child, and compares the two results with the
-    thresholds of `certification` of the EP catalog. It runs on the first GPU of `run_devices(key)`.
+    thresholds of `certification` of the EP catalog. It runs one time for each GPU of the selection.
     It downloads no model: with a model file that is not on this host, the image check is `not-run`
     with `models-missing`. The `numbers` of `<key>:image` also hold `ep_ms`, `cpu_ms` and
     `speed_against_cpu` (`faster`, `slower` or `similar`): a rough figure from one image, a record only
-    that never changes the result. Each EP gives three checks: `<key>:probe`, `<key>:image` and `<key>`. The
-    check `<key>` passes only when the two others pass (ADR-21BK item 2). An EP that cannot run, for
+    that never changes the result. Each EP on each GPU gives three checks: `<ep>:probe`, `<ep>:image` and
+    `<ep>`. `<ep>` is `<key>@<device>`, for example `cuda@10de-2484-0`: the EP key and the device key of
+    the GPU with no `gpu:` and with `-` for `:`. It is `<key>` alone for an EP with no GPU to run on.
+    Thus the name of an EP check has no `:`. `details.eps.<ep>.device` gives the device key. The
+    check `<ep>` passes only when the two others pass (ADR-21BK item 2). An EP that cannot run, for
     example a pack that is not installed, gives `not-run` with `ep-<state code>`. Each EP runs, also
     when an other EP fails.
 
-    Evidence: the item of the quick level is one EP on this host. Thus a run of a part of the EPs is
+    Evidence: the item of the quick level is one EP on one GPU of this host. Thus a run of a part of the EPs is
     complete for each EP that it checks, and is not `partial-run`. A run with no EP to check has no
     check and is not valid as evidence (`no-check`). A `quick` report never gives a reviewed row.
 
@@ -113,7 +123,8 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
     It writes in the EP store of the user: the report in the folder `reports`, the verdict of the
     probe, the answer in `certify.json` and the local result of each EP that ran to `pass` or `fail`
     in `quick-checks.json`. A `field-test` EP gets the opt-in during its check. The opt-in stays only
-    when the check passes (ADR-21BK item 2). The test image is deleted at the end when this run
+    when the check passes on a GPU (ADR-21BK item 2). The stored result is for the GPU model: two GPUs of one
+    model share it, and the last check wins. The test image is deleted at the end when this run
     downloaded it.
     """
     _check_level(level)
@@ -132,11 +143,11 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
         report["checks"][0].update(result="not-run", reason="not-built")
         reasons.append("not-built")
     else:
-        selected = _selection(catalog, host, execution_providers)
+        selected = _selection(catalog, host, execution_providers, device)
         report["checks"] = [{"name": name, "result": None, "reason": None}
-                            for key, *_ in selected for name in (f"{key}:probe", f"{key}:image", key)]
-        estimates = {f"{key}:probe": PROBE_SECONDS for key, *_ in selected}
-        estimates |= {f"{key}:image": catalog.data["certification"]["seconds"].get(key, IMAGE_SECONDS) for key, *_ in selected}
+                            for label, *_ in selected for name in (f"{label}:probe", f"{label}:image", label)]
+        estimates = {f"{label}:probe": PROBE_SECONDS for label, *_ in selected}
+        estimates |= {f"{label}:image": catalog.data["certification"]["seconds"].get(key, IMAGE_SECONDS) for label, key, *_ in selected}
         sender.estimates = estimates
         resolved = _pipeline(catalog, pipeline) if selected else None  # a config that does not load raises before the start
         sender.send("starting", None, report["checks"], None)
@@ -188,25 +199,44 @@ class _Progress:
             self.callback = None
 
 
-def _selection(catalog, host, execution_providers) -> list[tuple]:
-    """`(key, device_key, gpu, reason)` for each EP to check; `reason` is the code of an EP that cannot run, else None."""
-    from skellytracker.core.eps import certification, store
+def _label(key: str, device_key: str | None) -> str:
+    """The name of the check of an EP on a GPU: `cuda@10de-2484-0`. It has no `:`, so each name with `:` is a part of it."""
+    return key if device_key is None else f"{key}@{device_key.removeprefix('gpu:').replace(':', '-')}"
+
+
+def _selection(catalog, host, execution_providers, device=None) -> list[tuple]:
+    """`(label, key, device_key, gpu, reason)` for each EP and GPU to check; `reason` is the code of one that cannot run."""
+    from skellytracker.core import errors
+    from skellytracker.core.eps import evidence, store
     from skellytracker.core.eps.recommendation import ep_gpus
+    from skellytracker.core.eps.records import USABLE_STATES
+    from skellytracker.core.system.host import gpu_device_keys
 
     if isinstance(execution_providers, str):
         raise ValueError("execution_providers is a list of EP keys, for example ['cuda']")
-    if execution_providers is None:
-        keys = [offer.ep_key for offer in certification.certify_offers(catalog, host)]
-    else:
-        keys = list(dict.fromkeys(execution_providers))
+    wanted = None if device is None else [device] if isinstance(device, str) else list(device)
+    for item in wanted or ():
+        if item not in dict(gpu_device_keys(host)):
+            raise errors.EpRequestError(f"{item!r} is not the device key of a GPU of this host")
+    default = execution_providers is None
+    keys = [key for key in catalog.keys() if catalog.device_row(key) is not None] if default else list(dict.fromkeys(execution_providers))
     found = []
     for key in keys:
         catalog.ep(key)  # an unknown or reserved key raises `EpRequestError`
-        device_key, gpu = next(iter(ep_gpus(catalog, key, host)), (None, None))
         if catalog.device_row(key) is None:
-            found.append((key, None, None, "not-gpu-ep"))
+            found.append((key, key, None, None, "not-gpu-ep"))
             continue
-        found.append((key, device_key, gpu, _setup_reason(store.pack_state(catalog, key, gpu, device_key, host.os_build))))
+        usable = ep_gpus(catalog, key, host)
+        pairs = [(device_key, gpu) for device_key, gpu in usable if wanted is None or device_key in wanted]
+        for device_key, gpu in pairs:
+            state = store.pack_state(catalog, key, gpu, device_key, host.os_build)
+            # the default: no reviewed row; a plugin EP must be usable; `directml` and a Windows ML EP are always in it
+            if default and (evidence.certified(key, gpu, host.os_name) or (catalog.pack(key) is not None and state[0] not in USABLE_STATES)):
+                continue
+            found.append((_label(key, device_key), key, device_key, gpu, _setup_reason(state)))
+        if not pairs and not default:
+            reason = "gpu-not-usable" if usable else _setup_reason(store.pack_state(catalog, key, None, None, host.os_build))
+            found.append((key, key, None, None, reason))
     return found
 
 
@@ -240,11 +270,11 @@ def _quick(report: dict, selected: list[tuple], catalog, host, sender: _Progress
     image = _image_path(store, settings)
     image_was_here = image.is_file()
     details = {"pipeline": pipeline_key, "eps": {}}
-    for key, device_key, gpu, setup in selected:
+    for label, key, device_key, gpu, setup in selected:
         if cancel is not None and cancel.is_set():
             break
-        names = (f"{key}:probe", f"{key}:image", key)
-        details["eps"][key] = {"gpu": None if gpu is None else evidence.gpu_id(gpu)}
+        names = (f"{label}:probe", f"{label}:image", label)
+        details["eps"][label] = {"gpu": None if gpu is None else evidence.gpu_id(gpu), "device": device_key}
         if setup is not None:
             for name in names:
                 rows[name].update(result="not-run", reason=setup)
@@ -256,8 +286,8 @@ def _quick(report: dict, selected: list[tuple], catalog, host, sender: _Progress
         try:
             setup = _setup_reason(store.pack_state(catalog, key, gpu, device_key, host.os_build)) if temporary else None
             if setup is None:
-                _probe(report, key, device_key, sender, cancel)
-                _image(report, key, device_key, settings, image_reason, sender, cancel, details["eps"][key])
+                _probe(report, label, key, device_key, sender, cancel)
+                _image(report, label, key, device_key, settings, image_reason, sender, cancel, details["eps"][label])
             else:
                 for name in names[:2]:
                     rows[name].update(result="not-run", reason=setup)
@@ -265,15 +295,15 @@ def _quick(report: dict, selected: list[tuple], catalog, host, sender: _Progress
             failed = next((row for row in parts if row["result"] == "fail"), None)
             not_run = next((row for row in parts if row["result"] == "not-run"), None)
             if failed is None and not_run is None:
-                rows[key].update(result="pass", reason=None)
+                rows[label].update(result="pass", reason=None)
             else:
-                rows[key].update(result="fail" if failed else "not-run", reason=(failed or not_run)["reason"])
-            if rows[key]["result"] in ("pass", "fail"):
-                _record(certification, store, evidence, catalog, host, key, gpu, rows[key]["result"], pipeline_key,
-                        details["eps"][key].get("models", ()), report["created_utc"])
+                rows[label].update(result="fail" if failed else "not-run", reason=(failed or not_run)["reason"])
+            if rows[label]["result"] in ("pass", "fail"):
+                _record(certification, store, evidence, catalog, host, key, gpu, rows[label]["result"], pipeline_key,
+                        details["eps"][label].get("models", ()), report["created_utc"])
             sender.send("running", None, report["checks"])
         finally:
-            if temporary and rows[key]["result"] != "pass":
+            if temporary and rows[label]["result"] != "pass":
                 _cleanup(report, "field-test-opt-in", lambda key=key: store.drop_field_test_opt_in(key))
     if not image_was_here and image.exists():
         _cleanup(report, "test-image", image.unlink)
@@ -285,10 +315,10 @@ def _quick(report: dict, selected: list[tuple], catalog, host, sender: _Progress
     report["details"] = details
 
 
-def _probe(report: dict, key: str, device_key: str | None, sender: _Progress, cancel) -> None:
+def _probe(report: dict, label: str, key: str, device_key: str | None, sender: _Progress, cancel) -> None:
     from skellytracker.core.eps import verification
 
-    row = next(row for row in report["checks"] if row["name"] == f"{key}:probe")
+    row = next(row for row in report["checks"] if row["name"] == f"{label}:probe")
     sender.send("running", row["name"], report["checks"])
     started = time.monotonic()
     try:
@@ -311,12 +341,12 @@ def _probe(report: dict, key: str, device_key: str | None, sender: _Progress, ca
         _add_exit(report, row["name"], verdict.exit_reason_code)
 
 
-def _image(report: dict, key: str, device_key: str | None, settings: dict, image_reason: str | None, sender: _Progress,
-           cancel, details: dict) -> None:
+def _image(report: dict, label: str, key: str, device_key: str | None, settings: dict, image_reason: str | None,
+           sender: _Progress, cancel, details: dict) -> None:
     from skellytracker.core.eps import certification
 
-    row = next(row for row in report["checks"] if row["name"] == f"{key}:image")
-    probe = next(row for row in report["checks"] if row["name"] == f"{key}:probe")
+    row = next(row for row in report["checks"] if row["name"] == f"{label}:image")
+    probe = next(row for row in report["checks"] if row["name"] == f"{label}:probe")
     if probe["result"] != "pass" or (cancel is not None and cancel.is_set()):
         row.update(result="not-run", reason="probe-not-passed" if probe["result"] != "pass" and probe["reason"] != "cancelled"
                    else "cancelled")

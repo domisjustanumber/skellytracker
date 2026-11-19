@@ -33,8 +33,8 @@ certified: certify now, later, or do not ask again.
 `certify KEY --quick` runs the quick level of `skellytracker.certify()` on the EP: the probe and the
 image run of the pipeline of `certification` of the EP catalog. It prints each check, or the module
 report with `--json`. It ignores `--out`: the report file is in the folder `reports` of the EP store.
-It exits 0 when the EP passes, 3 when the EP cannot run on this host (`ep-<code>`), 6 when cancelled,
-else 1.
+It checks each GPU that the EP can use. It exits 0 when the EP passes on each of them, 1 when it fails
+on one, 6 when cancelled, 3 when the EP cannot run on this host (`ep-<code>`), else 1.
 
 Exit codes, the same as the pipeline CLI: 0 ok; 1 failure; 2 usage error, no confirmation, a
 reserved or unknown EP key, or a refused option; 3 an EP is not available; 4 a session was not
@@ -332,12 +332,14 @@ def run_quick(key: str, as_json: bool) -> int:
         print(f"{check['name']}: {check['result']}" + (f" ({check['reason']})" if check["reason"] else ""), file=text)
     evidence = report["evidence"]
     print("Valid as evidence." if evidence["valid"] else f"Not valid as evidence: {', '.join(evidence['reasons'])}.", file=text)
-    (row,) = [check for check in report["checks"] if check["name"] == key]
-    if row["result"] == "pass":
+    rows = [check for check in report["checks"] if ":" not in check["name"]]  # one row for each GPU of the EP
+    if all(row["result"] == "pass" for row in rows):
         return errors.EXIT_OK
-    if row["reason"] == "cancelled":
+    if any(row["result"] == "fail" for row in rows):
+        return errors.EXIT_FAILURE
+    if any(row["reason"] == "cancelled" for row in rows):
         return errors.EXIT_CANCELLED
-    return errors.EXIT_EP_UNAVAILABLE if row["result"] == "not-run" and (row["reason"] or "").startswith("ep-") else errors.EXIT_FAILURE
+    return errors.EXIT_EP_UNAVAILABLE if any((row["reason"] or "").startswith("ep-") for row in rows) else errors.EXIT_FAILURE
 
 
 def cmd_certify(args) -> int:

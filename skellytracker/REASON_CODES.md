@@ -30,20 +30,21 @@ an application. A quick check of a part of the EPs is complete for each EP that 
 |---|---|---|
 | `no-check` | `evidence.reasons` | The run had no EP to check. For example, each GPU EP of this host has a reviewed row. |
 | `not-gpu-ep` | check | The EP runs no model on a GPU, for example `cpu`. The quick check compares a GPU EP with the CPU EP. |
+| `gpu-not-usable` | check | The caller named the EP and a GPU with the option `device`, and the EP cannot use that GPU. |
 | `ep-<code>` | check | The EP cannot run on this host. `<code>` is the reason code of the EP state, or the state: `ep-os`, `ep-no-device`, `ep-cc-too-low`, `ep-driver-too-old`, `ep-rocm-missing`, `ep-rocm-version`, `ep-not-installed`, `ep-stale`. The quick check installs nothing. |
-| `probe-l2-failed` | check `<key>:probe` | The EP did not register, or it lists no device for the GPU. |
-| `probe-l3-failed` | check `<key>:probe` | The trial session on the probe model failed: a node is not on the EP, or the output differs from the CPU EP. |
-| `probe-not-passed` | check `<key>:image` | The image run did not start, because the probe did not pass. |
-| `models-missing` | check `<key>:image` | A model file or an extra of the pipeline is not on this host. The quick check downloads no model. |
-| `outputs-not-comparable` | check `<key>:image` | The pipeline has no output `boxes` or no output `wholebody`. The comparison needs the two. |
-| `no-person-on-cpu` | check `<key>:image` | The CPU EP found no person on the test image. |
-| `people-differ` | check `<key>:image` | The EP and the CPU EP found a different set of persons. |
-| `box-differs` | check `<key>:image` | A box IoU is less than `box_iou_min`. |
-| `scores-differ` | check `<key>:image` | A keypoint score on the EP is much lower than on the CPU EP. |
-| `no-point-to-compare` | check `<key>:image` | No keypoint has a score of `score_min` or more in the two results. |
-| `keypoints-differ` | check `<key>:image` | A keypoint is farther than `keypoint_box_fraction_max` of the box diagonal from the CPU EP result. |
-| `not-finite` | check `<key>:image` | A value of the EP result is not finite where the CPU EP result is finite. |
-| `partial-placement` | check `<key>:image` | Some nodes of the pipeline ran on the CPU EP, not on the EP. |
+| `probe-l2-failed` | check `<ep>:probe` | The EP did not register, or it lists no device for the GPU. |
+| `probe-l3-failed` | check `<ep>:probe` | The trial session on the probe model failed: a node is not on the EP, or the output differs from the CPU EP. |
+| `probe-not-passed` | check `<ep>:image` | The image run did not start, because the probe did not pass. |
+| `models-missing` | check `<ep>:image` | A model file or an extra of the pipeline is not on this host. The quick check downloads no model. |
+| `outputs-not-comparable` | check `<ep>:image` | The pipeline has no output `boxes` or no output `wholebody`. The comparison needs the two. |
+| `no-person-on-cpu` | check `<ep>:image` | The CPU EP found no person on the test image. |
+| `people-differ` | check `<ep>:image` | The EP and the CPU EP found a different set of persons. |
+| `box-differs` | check `<ep>:image` | A box IoU is less than `box_iou_min`. |
+| `scores-differ` | check `<ep>:image` | A keypoint score on the EP is much lower than on the CPU EP. |
+| `no-point-to-compare` | check `<ep>:image` | No keypoint has a score of `score_min` or more in the two results. |
+| `keypoints-differ` | check `<ep>:image` | A keypoint is farther than `keypoint_box_fraction_max` of the box diagonal from the CPU EP result. |
+| `not-finite` | check `<ep>:image` | A value of the EP result is not finite where the CPU EP result is finite. |
+| `partial-placement` | check `<ep>:image` | Some nodes of the pipeline ran on the CPU EP, not on the EP. |
 | `<ExceptionClass>` | check, `cleanup` | A setup step or a cleanup step raised this exception class, for example `EpUnavailableError` or `DownloadError`. The report never holds the message. |
 
 ## Fixed values in `numbers`
@@ -54,11 +55,15 @@ an application. A quick check of a part of the EPs is complete for each EP that 
 
 ## Check names
 
+`<ep>` is `<key>@<device>`, for example `cuda@10de-2484-0`: the EP key, and the device key of the GPU
+with no `gpu:` and with `-` for `:`. It is `<key>` alone for an EP with no GPU to run on. The name of
+an EP check has no `:`. `details.eps.<ep>.device` gives the device key.
+
 | Check | Meaning |
 |---|---|
-| `<key>:probe` | The L3 probe of the EP `<key>` (`verify()`), in a child process. |
-| `<key>:image` | The pipeline on one test image on the EP and on the CPU EP, in a child process, and the comparison. |
-| `<key>` | The quick check of the EP. It passes only when `<key>:probe` and `<key>:image` pass. |
-| `<key>:probe:exit`, `<key>:image:exit` | The check `exit` of the contract for a child that gave its result and did not end cleanly. |
+| `<ep>:probe` | The L3 probe of the EP (`verify()`) on the GPU, in a child process. |
+| `<ep>:image` | The pipeline on one test image on the EP and on the CPU EP, in a child process, and the comparison. |
+| `<ep>` | The quick check of the EP on one GPU. It passes only when `<ep>:probe` and `<ep>:image` pass. |
+| `<ep>:probe:exit`, `<ep>:image:exit` | The check `exit` of the contract for a child that gave its result and did not end cleanly. |
 | `full` | The level `full`. It is `not-run` with `not-built`. |
 | cleanup `test-image`, `field-test-opt-in` | The delete of the test image that the run downloaded, and the removal of the opt-in that a check that did not pass wrote. |
