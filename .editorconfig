@@ -1,0 +1,5 @@
+# Each file has LF line endings. .gitattributes sets the same rule for git.
+root = true
+
+[*]
+end_of_line = lf
