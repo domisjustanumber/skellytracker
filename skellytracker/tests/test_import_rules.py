@@ -14,6 +14,13 @@ def test_import_of_eps_loads_no_onnxruntime():
     assert subprocess.run([sys.executable, "-c", code], check=False).returncode == 0  # noqa: S603
 
 
+def test_import_of_skellytracker_gives_certify_and_loads_no_runtime():
+    code = ("import sys, skellytracker; assert callable(skellytracker.certify) and callable(skellytracker.certify_plan); "
+            "heavy = {'onnxruntime', 'mediapipe', 'numpy', 'skellytracker.core', 'skellytracker.core.eps', 'skellytracker.core.pipelines'}; "
+            "sys.exit(1 if heavy & set(sys.modules) else 0)")
+    assert subprocess.run([sys.executable, "-c", code], check=False).returncode == 0  # noqa: S603
+
+
 def freeze_problems(source: str, name: str) -> list[str]:
     problems = []
     for node in ast.walk(ast.parse(source)):

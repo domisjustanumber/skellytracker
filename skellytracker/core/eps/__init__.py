@@ -10,8 +10,8 @@ and takes its recommended and automatic choices from `recommend()`:
   catalog: `trt-rtx`, `cuda`, `coreml`, `amdgpu`, `migraphx`, `directml`, `cpu`. The order is a
   contract. A platform shows only its own EPs.
 - A `field-test` EP (`PackStatus.catalog_status`, today `directml`, `amdgpu` and `migraphx`) is
-  usable only after an explicit opt-in: `skellytracker-eps install KEY --field-test` or the certify
-  suite. Without the opt-in its `state` is `field_test`. `recommend()` never gives it (ADR-Z5X7).
+  usable only after an explicit opt-in: `skellytracker-eps install KEY --field-test`, the certify
+  suite or a passed quick check of `skellytracker.certify()` (ADR-21BK). Without the opt-in its `state` is `field_test`. `recommend()` never gives it (ADR-Z5X7).
 - `migraphx` is a pack for the ROCm release of the host on Linux, and an EP of the Windows ML
   catalog on Windows. `amdgpu` is an EP of the Windows ML catalog on Windows only. Windows installs
   the package of a Windows ML EP: `PackStatus.source` is `windows-ml` (ADR-XSE7).

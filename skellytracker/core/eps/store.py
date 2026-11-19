@@ -10,6 +10,9 @@ folder `<pack_id>/<pack_ver>/` does not change after its install.
     <root>/refs/<consumer_id>.json          one file for each consumer; the input of gc()
     <root>/verdicts.json                    the verification results
     <root>/field-test.json                  the opt-in to each `field-test` EP key (ADR-Z5X7)
+    <root>/certify.json                     the answer or the result of each certification pair
+    <root>/quick-checks.json                the last local result of the quick check of each pair (ADR-21BK item 2)
+    <root>/reports/                         the certification reports; nothing sends them
     <root>/windows-ml.json                  each EP key that this store installed from the Windows ML catalog (ADR-XSE7)
     <root>/.lock                            the lock between processes
     <root>/.partial/                        downloads that are not complete, kept for a resume
@@ -160,9 +163,16 @@ def field_test_opt_ins() -> dict:
 
 
 def opt_in_field_test(key: str) -> None:
-    """Record the opt-in to a `field-test` EP key in this store. Only an explicit user action and the certify suite call it."""
+    """Record the opt-in to a `field-test` EP key in this store. An explicit user action, the certify suite and a quick
+    check of `skellytracker.certify()` call it (ADR-21BK item 2)."""
     with store_lock():
         write_json(store_root() / "field-test.json", {**field_test_opt_ins(), key: {"opted_in_at": int(time.time())}})
+
+
+def drop_field_test_opt_in(key: str) -> None:
+    """Remove the opt-in of `key`. Only a quick check calls it: for the opt-in that it wrote and that its result did not keep."""
+    with store_lock():
+        write_json(store_root() / "field-test.json", {name: value for name, value in field_test_opt_ins().items() if name != key})
 
 
 def field_test_reason(catalog: EpCatalog, key: str) -> str | None:

@@ -5,14 +5,15 @@
 ## Decision
 
 [ADR-P0JZ](P0JZ-certify-contract-in-each-package.md) holds the contract, the validity and the two
-layers. Built today: `verify()` at L3 and the image run `_wide_run` of `core/eps/certification.py`,
-each in a child process, on `yolox-rtmw-wholebody`. A child that hangs after its result keeps the
-result, with `hung-at-exit`. The other parts are not built.
+layers. Built today: the quick level of `skellytracker.certify()` (`skellytracker/certification.py`)
+with items 1 and 2, but not the flags of `PackStatus` and `recommend()`. A child that hangs after its
+result keeps the result, with `hung-at-exit`. The other parts are not built.
 
 1. **Quick check of an EP.** The app asks the user first. Then a child process runs the L3 probe
    and one test image through the pipeline that the user selected, on the EP and on the CPU EP. It
    compares the two results with the thresholds of the `certification` block of `ep_catalog.yaml`.
-   It downloads no model. A recording waits for a check that runs. The app shows a cancel button
+   It downloads no model. The item of the quick level is one EP on one host: a run of a part of the
+   EPs is not `partial-run`. A recording waits for a check that runs. The app shows a cancel button
    and a note that the EP is not usable until a check completes. This changes item 15 of
    [ADR-MF2R](MF2R-ep-store-install-and-certification.md) ("**`certify(key)`.** It always runs the
    probe: `verify()` at level L3. ..."): the image run uses the pipeline of the user, not

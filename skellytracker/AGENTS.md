@@ -37,6 +37,7 @@ The paths are under `skellytracker/`.
 | `core/metrics/` | `LiveSampler` and `free_vram(device)`: system-level live values only |
 | `core/_hardware/` | Private readers: NVML, DXGI with one D3DKMT query, the Windows registry, psutil (Windows only), `/proc` and `/sys`, macOS `sysctl` and IOKit, Windows PDH ([ADR-P1F3](../decisions/entries/P1F3-hardware-probe-devices-and-multi-gpu.md) items 1 and 2) |
 | `core/eps/` | The EP catalog (`ep_catalog.yaml`, `ep_lock.yaml`), the certification evidence (`ep_evidence.yaml`), the EP store, `install()`, `ensure_registered()`, `verify()`, `recommend()`, `run_devices()`, `check_start()`, `status()`, `suggest_execution_provider()`, `build_session()`, `certify()`, `dismiss_certification()` and the CLI `skellytracker-eps` (`cli.py`). An application, for example freemocap, shows the EPs from `status()` and `recommend()`. It holds no EP fact of its own. A fact that an application needs gets a field of `PackStatus` or of `PipelineRun.models`. |
+| `certification.py` | `certify()` and `certify_plan()`, the two functions of the contract of the repository `skellycertify` ([ADR-P0JZ](../decisions/entries/P0JZ-certify-contract-in-each-package.md)). `__init__.py` exports them as `skellytracker.certify` and `skellytracker.certify_plan`. The module imports only the standard library at module level: a plain `import skellytracker` loads no module of `core/`. `REASON_CODES.md` lists the reason codes of the report. A build can write `_build_info.py` with `COMMIT` and `TREE_MODIFIED`. Git ignores that file. |
 | `_pyinstaller/` | The PyInstaller entry points and the data-only hook. It is outside `core/`. No package module imports it. |
 | `core/sidecar/` | The old loader of the old package sidecars. Do not change it, and do not import it in new code. `load_sidecar` (`loader.py`), `$ref` and `base` resolution (`resolution.py`), `SidecarModel` (`model.py`), version checks (`versioning.py`) |
 | `core/model_spec/` | The spec loader at spec version 2.0.0 ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 8): `load_sidecar(path, sidecar_root, user_root)` (`loader.py`), `$ref` resolution with hash checks (`resolution.py`), the `V-` rules (`rules.py`, `check_sidecar`), `SidecarModel` (`model.py`), the landmark schema registry (`landmark_schemas.py`), the implemented versions (`versioning.py`), the SPDX check (`spdx.py`), the artifact hash check with its cache (`artifacts.py`), the selector matching (`sidecar_normalize.py`) and the section table with the capability check (`sections.py`). Remove a `postprocessor` section from `UNIMPLEMENTED_SECTIONS` of `sections.py` in the commit that adds its processing module. Stage 2.3 of the implementation plan moves it to `core/sidecar/`. |
@@ -107,8 +108,9 @@ legacy path puts the old points in the raw names of `wholebody.keypoints` and ca
 - A session on a GPU takes the ONNX Runtime EP device of the GPU (`registration.ort_device()`).
   Never select a GPU with the option `device_id`.
 - A `field-test` EP of the EP catalog (today `directml`, `amdgpu` and `migraphx`) is usable only
-  after an opt-in in the EP store (`store.opt_in_field_test()`). Only `skellytracker-eps install KEY --field-test` and the
-  certify suite record it. `recommend()` never gives such an EP
+  after an opt-in in the EP store (`store.opt_in_field_test()`). Only `skellytracker-eps install KEY --field-test`, the
+  certify suite and a passed quick check of `skellytracker.certify()` record it
+  ([ADR-21BK](../decisions/entries/21BK-quick-check-local-pass-and-hand-in.md) item 2). `recommend()` never gives such an EP
   ([ADR-Z5X7](../decisions/entries/Z5X7-field-test-state-and-directml.md)).
 - `eps.build_session()` serves only new code. Do not connect it to `OnnxSession` or `Tracker.create`.
   The `cuda` bridge of the exception above is the only connection.

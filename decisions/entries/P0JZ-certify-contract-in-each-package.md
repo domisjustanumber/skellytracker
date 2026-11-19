@@ -5,8 +5,10 @@
 ## Decision
 
 [ADR-21BK](21BK-quick-check-local-pass-and-hand-in.md) holds the quick check, the failures and the
-hand-in. Built today: sections 1 to 5 of the certify suite, `ep_evidence.yaml` and
-`PackStatus.certified`. The other parts are not built.
+hand-in. Built today: sections 1 to 5 of the certify suite, `ep_evidence.yaml`,
+`PackStatus.certified`, and the quick level of `skellytracker.certify()` and
+`skellytracker.certify_plan()` with the reason codes in `skellytracker/REASON_CODES.md`. The other
+parts are not built.
 
 1. **Contract.** Each skelly package owns its checks behind two functions:
    `certify(level, progress=None, cancel=None) -> dict` and `certify_plan(level) -> dict`. `level` is

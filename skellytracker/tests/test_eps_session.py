@@ -316,7 +316,7 @@ def test_judge_of_the_trial_session():
 def test_verify_stores_the_result_and_a_new_driver_runs_it_again(gpu_host, monkeypatch):
     jobs = []
 
-    def run_child(job):
+    def run_child(job, cancel=None):
         jobs.append(job)
         return {"level": job["level"], "ok": True, "reason": None, "max_abs_diff": 1e-6}
 
@@ -426,7 +426,7 @@ def test_directml_selects_the_ort_device_of_the_requested_gpu(dml_host):
 
 def test_verify_of_directml_runs_on_the_chosen_gpu(dml_host, monkeypatch):
     jobs = []
-    monkeypatch.setattr(verification, "run_child", lambda job: jobs.append(job) or {"level": job["level"], "ok": True, "max_abs_diff": 0.0})
+    monkeypatch.setattr(verification, "run_child", lambda job, cancel=None: jobs.append(job) or {"level": job["level"], "ok": True, "max_abs_diff": 0.0})
     store.opt_in_field_test("directml")
     (verdict,) = eps.verify(["directml"], level="L2", device_key="gpu:8086:a780:0")
     assert verdict.ok and verdict.pack_id is None and jobs[0]["gpu"] == INTEL_DXGI and jobs[0]["pack"] is None

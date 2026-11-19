@@ -21,6 +21,9 @@ __repo_issues_url__ = f"{__repo_url__}/issues"
 from beartype.claw import beartype_this_package
 beartype_this_package()
 
+# The certification contract of `skellycertify` (ADR-P0JZ). The module imports `eps`, `pipelines` and ONNX Runtime only in its functions.
+from skellytracker.certification import certify, certify_plan
+
 
 
 #

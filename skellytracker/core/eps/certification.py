@@ -42,9 +42,11 @@ def reports_dir() -> Path:
 def pair_key(catalog: EpCatalog, key: str, gpu, os_name: str) -> str:
     """The pair of an answer. The pack version is in it, so a pack upgrade asks again.
 
-    `gpu` comes from `ep_gpus()`, which gives only GPUs with PCI ids, so `gpu_id` is never None here.
+    `gpu` comes from `ep_gpus()`, which gives only GPUs with PCI ids, so `gpu_id` is never None here. An EP of
+    the Windows ML catalog takes the package version of its record, and a built-in EP takes `builtin`.
     """
-    return f"{key}|{catalog.pack(key)['version']}|{os_name}|{evidence.gpu_id(gpu)}"
+    pack = catalog.pack(key) or (store.windows_ml_pack(catalog, key) if catalog.windows_ml(key) else {"version": "builtin"})
+    return f"{key}|{pack['version']}|{os_name}|{evidence.gpu_id(gpu)}"
 
 
 def read_answers() -> dict:
@@ -52,7 +54,7 @@ def read_answers() -> dict:
     return store.read_json(store.store_root() / "certify.json") or {}
 
 
-def _write_answer(pair: str, answer: str) -> None:
+def write_answer(pair: str, answer: str) -> None:
     with store.store_lock():
         store.write_json(store.store_root() / "certify.json", {**read_answers(), pair: answer})
 
@@ -79,7 +81,7 @@ def dismiss_certification(key: str) -> None:
     catalog, host = load_catalog(), probe_host()
     _, gpu = next(iter(ep_gpus(catalog, key, host)), (None, None))
     if gpu is not None:
-        _write_answer(pair_key(catalog, key, gpu, host.os_name), "dismissed")
+        write_answer(pair_key(catalog, key, gpu, host.os_name), "dismissed")
 
 
 def compare_results(cpu: dict, ep: dict, thresholds: dict) -> dict:
@@ -175,23 +177,24 @@ def _wide_child(key: str, settings: dict, device_key: str | None, connection) ->
 def _image_run(key: str, settings: dict, progress: Callable[[str], None], device_key: str | None = None) -> dict:
     """Run the certification pipeline on the test image on the CPU EP and on the EP `key`, and compare.
 
-    `device_key` selects the GPU of the EP run; with None, the run uses the default GPU of the EP. It runs in
-    the child of `_wide_run()`.
+    `settings["pipeline"]` is a key of the pipeline catalog, or the mapping of a config (`export_pipeline()`):
+    the caller checks the model files of a mapping. `device_key` selects the GPU of the EP run; with None, the
+    run uses the default GPU of the EP. It runs in the child of `_wide_run()`.
     """
     import cv2
     import numpy as np
 
     from skellytracker.core import pipelines
 
-    started, image = time.monotonic(), settings["image"]
-    if not pipelines.get_pipeline(settings["pipeline"]).available:  # no wheel holds the ONNX files
+    started, image, source = time.monotonic(), settings["image"], settings["pipeline"]
+    if isinstance(source, str) and not pipelines.get_pipeline(source).available:  # no wheel holds the ONNX files
         return {"ran": False, "reason_code": "models-missing"}
     progress("download")
     path = store.cache_root() / "certify" / f"{image['sha256']}.jpg"
     if not (path.is_file() and _download.sha256_of(path) == image["sha256"]):
         path = _download.fetch(image["url"], image["sha256"], path)
     frame = cv2.imdecode(np.frombuffer(path.read_bytes(), np.uint8), cv2.IMREAD_COLOR)
-    config = pipelines.load_pipeline(settings["pipeline"])
+    config = pipelines.load_pipeline(source)
     results, models, warnings = {}, {}, []
     for name, ep_key in (("cpu", "cpu"), ("ep", key)):
         progress(name)
@@ -202,7 +205,8 @@ def _image_run(key: str, settings: dict, progress: Callable[[str], None], device
     found = compare_results(results["cpu"], results["ep"], settings["thresholds"])
     if found["ok"] and PARTIAL_PLACEMENT in warnings:  # the warnings of the EP run: some nodes ran on the CPU EP
         found = {**found, "ok": False, "reason_code": "partial-placement"}
-    return {**found, "ran": True, "pipeline": settings["pipeline"], "image_sha256": image["sha256"], "warnings": warnings,
+    return {**found, "ran": True, "pipeline": source if isinstance(source, str) else f"{config.pipeline_id}@{config.source.name}",
+            "image_sha256": image["sha256"], "warnings": warnings,
             "models": [{field: model[field] for field in ("key", "version", "size", "precision", "execution_provider", "device")}
                        for _, model in sorted(models.items())],
             "thresholds": settings["thresholds"], "seconds": round(time.monotonic() - started, 1)}
@@ -219,8 +223,9 @@ def certify(key: str, *, wide: bool = False, out: Path | str | None = None,
       the user before a call with `wide`: `CertifyOffer.seconds` gives the time.
     - `out`: the report file. With None, the file is in the folder `reports` of the EP store.
     - `progress`: a callable that gets the name of each step: `probe`, `download`, `cpu`, `ep`, `report`.
-    - `cancel`: a `threading.Event`. When it is set, the run of the wider child stops within
-      about a second. The probe runs to its end. A cancelled run gives `not-run` with `cancelled`.
+    - `cancel`: an object with `is_set()`, for example a `threading.Event`. When it is set, the
+      child of the probe or of the wider run stops within about a second. A cancelled run gives
+      `not-run` with `cancelled`.
 
     It does not raise for an EP that fails: the report then holds the result `fail` or `not-run`
     and the reason code. `exit_reason_code` of `probe` and of `wide` is `hung-at-exit` or `crashed`
@@ -243,11 +248,11 @@ def certify(key: str, *, wide: bool = False, out: Path | str | None = None,
     probe = {"ok": False, "level": None, "max_abs_diff": None, "reason_code": None, "exit_reason_code": None}
     outcome = "not-run"
     try:
-        (verdict,) = verification.verify([key], force=True)
+        (verdict,) = verification.verify([key], force=True, cancel=cancel)
         probe.update(ok=verdict.ok, level=verdict.level, max_abs_diff=verdict.max_abs_diff,
-                     reason_code=None if verdict.ok else f"probe-{verdict.level.lower()}-failed",
+                     reason_code=None if verdict.ok else verdict.reason_code or f"probe-{verdict.level.lower()}-failed",
                      exit_reason_code=verdict.exit_reason_code)
-        outcome = "pass" if verdict.ok else "fail"
+        outcome = "pass" if verdict.ok else "not-run" if verdict.reason_code == "cancelled" else "fail"
     except Exception as error:  # noqa: BLE001 - a setup failure, for example a pack that is not installed or stale
         probe["reason_code"] = type(error).__name__
     wide_result = {"ran": False}
@@ -285,6 +290,6 @@ def certify(key: str, *, wide: bool = False, out: Path | str | None = None,
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text + "\n", encoding="utf-8")
     if outcome != "not-run":  # a setup failure keeps the prompt
-        _write_answer(pair_key(catalog, key, gpu, host.os_name), "passed" if outcome == "pass" else "failed")
+        write_answer(pair_key(catalog, key, gpu, host.os_name), "passed" if outcome == "pass" else "failed")
     return CertifyResult(key, outcome == "pass", probe["ok"], wide_result.get("ok") if wide_result["ran"] else None, reason, str(path), text)
 

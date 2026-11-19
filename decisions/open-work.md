@@ -179,20 +179,21 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
 
 [ADR-P0JZ](entries/P0JZ-certify-contract-in-each-package.md),
 [ADR-21BK](entries/21BK-quick-check-local-pass-and-hand-in.md) and
-[ADR-K8Q0](entries/K8Q0-platform-rulings-of-2026-11-19.md) are decided and not built. The
-one-image comparison already runs in a child process. Build in this order:
+[ADR-K8Q0](entries/K8Q0-platform-rulings-of-2026-11-19.md) are decided. The quick level of
+`skellytracker.certify()` and `skellytracker.certify_plan()` is built (`skellytracker/certification.py`).
+It writes the local result in `quick-checks.json` of the EP store, and a passed quick check keeps the
+field-test opt-in. Build in this order:
 
-1. The package-wide `certify(level, progress, cancel)` and `certify_plan(level)`. The quick level
-   runs on the pipeline config of the caller. `cancel` must also stop the child of the L3 probe:
-   today only the child of the one-image comparison stops.
-2. The report in the format `skellycertify.report/1.0.0`, with the version and the commit of the
-   package and no git at run time, and the list of the reason codes of this package. Cut the suite
-   to sections 1 to 5.
-3. The flags of `PackStatus` (not certified, passed on this PC, failed on this PC), and
-   `recommend()` skips an EP that failed on this PC. An EP with no reviewed row is usable only after
-   a whole quick check passes ([ADR-21BK](entries/21BK-quick-check-local-pass-and-hand-in.md)
-   item 2). A local pass writes the field-test opt-in: then change the sentence of
-   `skellytracker/AGENTS.md` that names the writers of the opt-in.
+1. The level `full` in `certify()`. Today it returns the check `full` as `not-run` with `not-built`,
+   and the level `full` is `tools/certify_platform.py`.
+2. The report of `tools/certify_platform.py` in the format `skellycertify.report/1.0.0`, with the
+   block `package` by the rules of `skellytracker/certification.py`. Add its reason codes to
+   `skellytracker/REASON_CODES.md`. Cut the suite to sections 1 to 5. A build must write
+   `skellytracker/_build_info.py`: the reader exists, the build step does not.
+3. The flags of `PackStatus` (not certified, passed on this PC, failed on this PC) from
+   `quick-checks.json`, and `recommend()` skips an EP that failed on this PC. An EP with no reviewed
+   row is usable only after a whole quick check passes
+   ([ADR-21BK](entries/21BK-quick-check-local-pass-and-hand-in.md) item 2).
 4. The hand-in list in the EP store and the exit notice.
 5. Progress and cancel for an install from the Windows ML catalog, and a remove call with a command
    of `skellytracker-eps` for a catalog package that this package installed. It never removes a

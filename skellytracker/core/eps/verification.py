@@ -133,27 +133,32 @@ def spawn_child(target, args: tuple, *, timeout: float, grace: float = EXIT_GRAC
     return result, problem, exit_code
 
 
-def run_child(job: dict, *, timeout: float = TIMEOUT_SECONDS, grace: float = EXIT_GRACE_SECONDS) -> dict:
+def run_child(job: dict, *, timeout: float = TIMEOUT_SECONDS, grace: float = EXIT_GRACE_SECONDS, cancel=None) -> dict:
     """Run one verification job in a `spawn` child. A child that ends with no result gives a failed result.
 
+    That failed result has `reason_code` (`timed-out`, `cancelled`, `crashed` or `no-result`) and `exit_code`.
     A child that gave its result and then did not exit cleanly keeps the result, and `exit_reason_code` is
-    `hung-at-exit` or `crashed`. Else `exit_reason_code` is None.
+    `hung-at-exit` or `crashed`. Else `exit_reason_code` is None. `cancel` is as for `spawn_child()`.
     """
-    result, problem, exit_code = spawn_child(_verify_child.main, (job,), timeout=timeout, grace=grace)
+    result, problem, exit_code = spawn_child(_verify_child.main, (job,), timeout=timeout, grace=grace, cancel=cancel)
     if result is None:
-        reason = child_failure_reason(None if problem == "timed-out" else exit_code, timeout)
-        return {"level": job["level"], "ok": False, "reason": reason, "max_abs_diff": None, "exit_reason_code": None}
+        reason = "the verification was cancelled" if problem == "cancelled" else child_failure_reason(
+            None if problem == "timed-out" else exit_code, timeout)
+        return {"level": job["level"], "ok": False, "reason": reason, "max_abs_diff": None, "exit_reason_code": None,
+                "reason_code": problem, "exit_code": exit_code}
     return {**result, "exit_reason_code": problem}
 
 
 def verify(keys: Sequence[str] | None = None, *, level: str = "L3", device_key: str | None = None,
-           force: bool = False) -> tuple[Verdict, ...]:
+           force: bool = False, cancel=None) -> tuple[Verdict, ...]:
     """Verify each EP key at level `L2` or `L3`. With no keys: each EP that is usable on this host.
 
     A stored result with the same key is returned with no new check, unless `force` is true. The
     key holds the ONNX Runtime distribution version, the pack, the driver version, the device, the OS
     build and the sha256 of the catalog entry of the pack (`store.entry_digest()`). A change elsewhere
     in the catalog keeps the stored result. A pack that is not installed raises `EpUnavailableError`.
+    `cancel` is an object with `is_set()`: when it is set, the child of the running check stops within about
+    0.1 s, its verdict has `reason_code` `cancelled` and is not stored, and no other key is checked.
     """
     if level not in ("L2", "L3"):
         raise ValueError(f"the level must be 'L2' or 'L3', not {level!r}")
@@ -174,9 +179,12 @@ def verify(keys: Sequence[str] | None = None, *, level: str = "L3", device_key: 
         record = None if force else store.read_verdicts().get(stored_key)
         if record is None or (level == "L3" and record["level"] == "L2" and record["ok"]):
             record = run_child({"key": key, "pack": pack, "gpu": gpu, "device_key": target, "level": level,
-                                "atol": float(row.get("l3_atol", 1e-4))})
-            store.write_verdict(stored_key, record)
+                                "atol": float(row.get("l3_atol", 1e-4))}, cancel=cancel)
+            if record.get("reason_code") != "cancelled":
+                store.write_verdict(stored_key, record)
         verdicts.append(Verdict(key, record["level"], record["ok"], stored_key, pack["id"] if pack else None,
                                 pack["version"] if pack else None, record.get("reason"), record.get("max_abs_diff"),
-                                record.get("exit_reason_code")))
+                                record.get("exit_reason_code"), record.get("reason_code"), record.get("exit_code")))
+        if record.get("reason_code") == "cancelled":
+            break
     return tuple(verdicts)

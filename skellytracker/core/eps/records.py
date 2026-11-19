@@ -158,7 +158,8 @@ class Verdict:
     """The result of one verification of one EP. `level` is the highest level that ran.
 
     `exit_reason_code` is `hung-at-exit` or `crashed` when the child process gave its result and then did
-    not exit cleanly. The result stays. Else it is None.
+    not exit cleanly. The result stays. Else it is None. `reason_code` is `timed-out`, `cancelled`,
+    `crashed` or `no-result` when the child gave no result, with `exit_code` of the child; else both are None.
     """
 
     ep_key: str
@@ -170,6 +171,8 @@ class Verdict:
     reason: str | None = None
     max_abs_diff: float | None = None
     exit_reason_code: str | None = None
+    reason_code: str | None = None
+    exit_code: int | None = None
 
 
 @dataclass(frozen=True)

@@ -5,7 +5,7 @@
     skellytracker-eps install [KEY ...] [--cuda] [--trt-rtx] [--recommended | --all-compatible | --cpu-only]
                               [--from-dir DIR] [--dry-run] [--yes] [--progress jsonl] [--cancel-file PATH] [--field-test]
     skellytracker-eps verify [KEY ... | --all] [--level L2|L3] [--force]
-    skellytracker-eps certify KEY [--wide | --probe-only] [--out FILE] [--json]
+    skellytracker-eps certify KEY [--wide | --probe-only | --quick] [--out FILE] [--json]
     skellytracker-eps remove PACK_ID | --all | --consumer KIND
     skellytracker-eps gc [--force] [--cache]
     skellytracker-eps download KEY ... --platform TAG --dest DIR
@@ -29,6 +29,12 @@ is `pass`, `fail` or `not-run` (a setup step failed, and the EP did not run); `n
 when the pack is not usable, else 1. For a person at a terminal, a plain
 `status` and an `install` also ask about each EP of this host that the project has not
 certified: certify now, later, or do not ask again.
+
+`certify KEY --quick` runs the quick level of `skellytracker.certify()` on the EP: the probe and the
+image run of the pipeline of `certification` of the EP catalog. It prints each check, or the module
+report with `--json`. It ignores `--out`: the report file is in the folder `reports` of the EP store.
+It exits 0 when the EP passes, 3 when the EP cannot run on this host (`ep-<code>`), 6 when cancelled,
+else 1.
 
 Exit codes, the same as the pipeline CLI: 0 ok; 1 failure; 2 usage error, no confirmation, a
 reserved or unknown EP key, or a refused option; 3 an EP is not available; 4 a session was not
@@ -309,7 +315,29 @@ def wide_question(key: str) -> str:
             f"and a download of {-(-settings['image']['bytes'] // 1024)} kB. [y/N] ")
 
 
+def run_quick(key: str, as_json: bool) -> int:
+    """Run the quick level of `skellytracker.certify()` on one EP, and print the checks or the module report."""
+    import skellytracker
+
+    report = skellytracker.certify("quick", execution_providers=[key])
+    text = sys.stderr if as_json else sys.stdout
+    if as_json:
+        print(json.dumps(report, indent=1))
+    for check in report["checks"]:
+        print(f"{check['name']}: {check['result']}" + (f" ({check['reason']})" if check["reason"] else ""), file=text)
+    evidence = report["evidence"]
+    print("Valid as evidence." if evidence["valid"] else f"Not valid as evidence: {', '.join(evidence['reasons'])}.", file=text)
+    (row,) = [check for check in report["checks"] if check["name"] == key]
+    if row["result"] == "pass":
+        return errors.EXIT_OK
+    if row["reason"] == "cancelled":
+        return errors.EXIT_CANCELLED
+    return errors.EXIT_EP_UNAVAILABLE if row["result"] == "not-run" and (row["reason"] or "").startswith("ep-") else errors.EXIT_FAILURE
+
+
 def cmd_certify(args) -> int:
+    if args.quick:
+        return run_quick(args.key, args.json)
     asked = not (args.wide or args.probe_only or args.json or args.out)
     wide = args.wide or (asked and (ask(wide_question(args.key)) or "") in ("y", "yes"))
     return run_certify(args.key, wide, args.out, args.json)
@@ -438,6 +466,7 @@ def parser() -> argparse.ArgumentParser:
     scope = certify.add_mutually_exclusive_group()
     scope.add_argument("--wide", action="store_true")
     scope.add_argument("--probe-only", action="store_true")
+    scope.add_argument("--quick", action="store_true", help="the quick level of skellytracker.certify() on this EP")
     certify.add_argument("--out")
     certify.add_argument("--json", action="store_true")
     certify.set_defaults(run=cmd_certify)

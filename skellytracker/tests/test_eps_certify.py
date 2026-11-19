@@ -35,7 +35,7 @@ def rtx_host(monkeypatch, ep_store):  # noqa: F811
 
 
 def probe(monkeypatch, ok=True, error=None):
-    def verify(keys, force=False):
+    def verify(keys, force=False, cancel=None):
         if error is not None:
             raise error
         return (Verdict(keys[0], "L3", ok, "k", reason=None if ok else "the folder secretdir failed", max_abs_diff=0.001),)
