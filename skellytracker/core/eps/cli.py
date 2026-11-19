@@ -6,7 +6,7 @@
                               [--from-dir DIR] [--dry-run] [--yes] [--progress jsonl] [--cancel-file PATH] [--field-test]
     skellytracker-eps verify [KEY ... | --all] [--level L2|L3] [--force]
     skellytracker-eps certify KEY [--wide | --probe-only | --quick] [--out FILE] [--json]
-    skellytracker-eps remove PACK_ID | --all | --consumer KIND
+    skellytracker-eps remove PACK_ID | --all | --consumer KIND | --windows-ml KEY
     skellytracker-eps gc [--force] [--cache]
     skellytracker-eps download KEY ... --platform TAG --dest DIR
     skellytracker-eps selftest [--json] [--index-url URL]
@@ -19,8 +19,11 @@ no JSON parser. No environment variable selects the EP or the device.
 `install KEY --field-test` is the opt-in to a field-test EP, for example `directml` on Windows. The
 EP store keeps the opt-in. Without it, a request for such an EP fails with the state `field_test`
 (exit 3), and no recommendation gives it (ADR-Z5X7). For an EP of the Windows ML catalog (`amdgpu`,
-and `migraphx` on Windows), `install` asks, then Windows downloads and installs its package. No
-command removes that package (ADR-XSE7).
+and `migraphx` on Windows), `install` asks, then Windows downloads and installs its package. Its
+progress events have `fraction` from Windows ML and no bytes, and `--cancel-file` asks Windows ML to
+stop the install. `remove --windows-ml KEY` removes that package only when the install of this EP
+store added it. It never removes a package that was on the PC before. It exits 1 when a package
+does not go (ADR-XSE7).
 
 `certify` tests one EP on this host and writes a report file in the folder `reports` of the EP
 store. It sends nothing. It always runs the probe. `--wide` also runs the project models on a
@@ -52,7 +55,7 @@ import urllib.request
 from pathlib import Path
 
 from skellytracker.core import errors
-from skellytracker.core.eps import _download, certification, installer, recommendation, self_test, state, store, verification, windows_ml
+from skellytracker.core.eps import _download, certification, installer, recommendation, self_test, state, store, verification
 from skellytracker.core.eps.catalog import load_catalog
 from skellytracker.core.eps.recommendation import recommend
 from skellytracker.core.eps.records import EpRecommendation, EpStatus, InstallPlan
@@ -208,19 +211,16 @@ def cmd_install(args) -> int:
         if catalog.pack(key) is None and not catalog.windows_ml(key):
             store.opt_in_field_test(key)
             print(f"{key}: opted in to the field test", file=text)
-    for key in [key for key in keys if catalog.windows_ml(key)]:  # plan_install refused it with no opt-in or --field-test
+    for key in plan.windows_ml_keys:  # plan_install refused it with no opt-in or --field-test
         answer = "yes" if args.yes else ask(f"Windows downloads and installs the Windows ML package of the EP '{key}'. "
-                                            "No command removes it. Continue? [y/N] ")
+                                            f"`skellytracker-eps remove --windows-ml {key}` removes it, only when this install "
+                                            "adds it. Continue? [y/N] ")
         if answer not in ("y", "yes"):
             print("The install needs a confirmation: use --yes." if answer is None else "Nothing installed.", file=sys.stderr)
             return errors.EXIT_USAGE
-        store.opt_in_field_test(key)
-        record = windows_ml.install(key)
-        print(f"{key}: ok (Windows ML package {record['version'] or 'of an unknown version'}"
-              f"{', already on this PC' if record['was_present'] else ''})", file=text)
-    if not plan.packs:
+    if not (plan.packs or plan.windows_ml_keys):
         return errors.EXIT_OK
-    if not args.yes:
+    if plan.packs and not args.yes:
         answer = ask(f"Download {megabytes(plan.download_bytes)} MB? [y/N] ")
         if answer is None:
             print("The install needs a confirmation: use --yes.", file=sys.stderr)
@@ -230,6 +230,8 @@ def cmd_install(args) -> int:
     for key in field_keys if args.field_test else ():  # the opt-in of a pack, after the confirmation of its download
         if catalog.pack(key) is not None:
             store.opt_in_field_test(key)
+    for key in plan.windows_ml_keys:
+        store.opt_in_field_test(key)
     cancel = threading.Event()
     done = threading.Event()
     if args.cancel_file:
@@ -242,7 +244,7 @@ def cmd_install(args) -> int:
 
     def progress(event) -> None:
         if jsonl:
-            fraction = event.bytes_done / event.bytes_total if event.bytes_total else None
+            fraction = event.fraction if event.fraction is not None else event.bytes_done / event.bytes_total if event.bytes_total else None
             print(json.dumps({"event": "progress", "key": event.key, "phase": event.phase, "bytes_done": event.bytes_done,
                               "bytes_total": event.bytes_total, "fraction": fraction}), flush=True)
 
@@ -250,7 +252,11 @@ def cmd_install(args) -> int:
         result = installer.install(plan, progress=progress, cancel=cancel, from_dir=Path(args.from_dir) if args.from_dir else None)
     finally:
         done.set()
-    outcomes = [(key, "ok", None, "") for key in result.ok] + [(key, "failed", code, message) for key, code, message in result.failed]
+    for key in (key for key in result.ok if key in plan.windows_ml_keys):
+        record = store.windows_ml_installs()[key]
+        print(f"{key}: Windows ML package {record['version'] or 'of an unknown version'}"
+              f"{', already on this PC' if record['was_present'] else ''}", file=text)
+    outcomes =[(key, "ok", None, "") for key in result.ok] + [(key, "failed", code, message) for key, code, message in result.failed]
     outcomes += [(key, "cancelled", None, "") for key in result.cancelled]
     outcomes += [(key, "warning", code, message) for key, code, message in result.warnings]  # a component: the EP stays usable
     for key, outcome, code, message in outcomes:
@@ -374,11 +380,17 @@ def cmd_verify(args) -> int:
 
 
 def cmd_remove(args) -> int:
-    if not (args.pack_id or args.all or args.consumer):
-        print("remove needs a pack id, --all or --consumer KIND.", file=sys.stderr)
+    if not (args.pack_id or args.all or args.consumer or args.windows_ml):
+        print("remove needs a pack id, --all, --consumer KIND or --windows-ml KEY.", file=sys.stderr)
         return errors.EXIT_USAGE
-    installer.remove("all" if args.all else args.pack_id, consumer=args.consumer)
-    return errors.EXIT_OK
+    result = installer.remove("all" if args.all else args.pack_id, consumer=args.consumer, execution_provider=args.windows_ml)
+    for package in result.removed:
+        print(f"{args.windows_ml}: removed {package}")
+    for package, code in result.failed:
+        print(f"{args.windows_ml}: not removed" + (f" {package}" if package else "") + f" ({code})", file=sys.stderr)
+    if result.was_present:
+        print(f"{args.windows_ml}: the Windows ML package was on this PC before the install, so it stays.")
+    return errors.EXIT_FAILURE if result.failed else errors.EXIT_OK
 
 
 def cmd_gc(args) -> int:
@@ -481,6 +493,7 @@ def parser() -> argparse.ArgumentParser:
     remove.add_argument("pack_id", nargs="?")
     remove.add_argument("--all", action="store_true")
     remove.add_argument("--consumer", metavar="KIND")
+    remove.add_argument("--windows-ml", metavar="KEY", help="remove the Windows ML package of this EP key that an install of this store added")
     remove.set_defaults(run=cmd_remove)
     collect = commands.add_parser("gc", help="delete the packs that no consumer needs")
     collect.add_argument("--force", action="store_true")

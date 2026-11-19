@@ -15,6 +15,11 @@ and takes its recommended and automatic choices from `recommend()`:
 - `migraphx` is a pack for the ROCm release of the host on Linux, and an EP of the Windows ML
   catalog on Windows. `amdgpu` is an EP of the Windows ML catalog on Windows only. Windows installs
   the package of a Windows ML EP: `PackStatus.source` is `windows-ml` (ADR-XSE7).
+- `install(plan_install([key]), progress=..., cancel=...)` is the one install call for a pack EP
+  and for a Windows ML EP (`InstallPlan.windows_ml_keys`). For a Windows ML EP, `InstallProgress`
+  has `fraction` from Windows ML and no bytes, and a cancel asks Windows ML to stop the install.
+  `remove(execution_provider=key)` removes the Windows ML package of the key only when this EP
+  store installed it, and never a package that was on the PC before. It returns `RemoveResult`.
 - `PackStatus.usable` is true when a run can use the EP now. An application does not compare
   `PackStatus.state` with a list of states.
 - `PackStatus.install_hint` is the text with the command that installs or repairs the pack, or None.
@@ -66,6 +71,7 @@ from skellytracker.core.eps.records import (
     PlannedPack,
     RecommendationSource,
     RegisteredEp,
+    RemoveResult,
     RunDevice,
     SelftestResult,
     SessionReport,
@@ -97,6 +103,7 @@ __all__ = [
     "PlannedPack",
     "RecommendationSource",
     "RegisteredEp",
+    "RemoveResult",
     "RunDevice",
     "SelftestResult",
     "SessionReport",

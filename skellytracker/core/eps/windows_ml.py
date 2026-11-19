@@ -6,9 +6,9 @@ store keeps one record for each such key in `windows-ml.json`.
 
 - `find_eps()` lists the EPs that the catalog offers for this PC, with their ready state. It
   downloads nothing.
-- `install(key)` makes the package of the EP ready (`ensure_ready`). For a package that is not on
-  the PC, Windows downloads and installs it. Call it only after the opt-in and the consent of the
-  user. The record holds `was_present` (the catalog state before the call, or a package of the
+- `install(key, progress=..., cancel=...)` makes the package of the EP ready (`ensure_ready_async`).
+  For a package that is not on the PC, Windows downloads and installs it. Call it only after the
+  opt-in and the consent of the user. The API gives a fraction from 0 to 1, with no bytes. The record holds `was_present` (the catalog state before the call, or a package of the
   family in the list before the call), the package family that the catalog reports, and
   `packages_installed`: the full name of each package of that family that the call added for the
   current user (`Get-AppxPackage` before and after the call). With `was_present`, the list is empty,
@@ -19,8 +19,10 @@ store keeps one record for each such key in `windows-ml.json`.
 - `remove_installed(record)` removes each package of `packages_installed` of a record for the current
   user (`Remove-AppxPackage <PackageFullName>`, no administrator rights), and never an other package.
   For a `pending` record it removes each package of the family that the catalog gives now and that
-  is not in `packages_before`. The certify suite calls it at the end of a run. No
-  `skellytracker-eps` command calls it.
+  is not in `packages_before`. The certify suite calls it at the end of a run.
+- `remove(key)` calls `remove_installed()` with the record of the key in this EP store, and deletes
+  the record when no row fails. `eps.remove(execution_provider=key)` and
+  `skellytracker-eps remove --windows-ml KEY` call it.
 
 The catalog gives the package family and the version only after `ensure_ready`, and only on a new
 enumeration: the provider object of the call keeps the empty values.
@@ -31,11 +33,12 @@ import re
 import subprocess
 import threading
 import time
+from collections.abc import Callable
 
 from skellytracker.core._hardware.sanitize import sanitize_text
-from skellytracker.core.eps import store
+from skellytracker.core.eps import _download, store
 from skellytracker.core.eps.catalog import load_catalog
-from skellytracker.core.eps.records import RegisteredEp
+from skellytracker.core.eps.records import InstallProgress, RegisteredEp, RemoveResult
 from skellytracker.core.errors import EpUnavailableError
 
 NOT_PRESENT = "NotPresent"
@@ -157,6 +160,26 @@ def remove_installed(record: dict) -> list[dict]:
     return rows
 
 
+def remove(key: str) -> RemoveResult:
+    """Remove the Windows ML package of the EP `key` that `install()` of this EP store added, and never an other package.
+
+    It calls `remove_installed()` with the record of the key in `windows-ml.json`. With no record, `failed`
+    holds `(None, "no-record")`. When no row fails, it deletes the record, and the EP is then `not_installed`.
+    With `was_present`, it removes no package: the package was on the PC before the install, and it stays.
+    An unknown or reserved key raises `EpRequestError`.
+    """
+    load_catalog().ep(key)
+    record = store.windows_ml_installs().get(key)
+    if record is None:
+        return RemoveResult(failed=((None, "no-record"),))
+    rows = remove_installed(record)
+    failed = tuple((row["package"], row["reason_code"]) for row in rows if row["result"] == "fail")
+    if not failed:
+        with store.store_lock():
+            store.write_json(store.store_root() / "windows-ml.json", {k: v for k, v in store.windows_ml_installs().items() if k != key})
+    return RemoveResult(tuple(row["package"] for row in rows if row["result"] == "pass"), failed, bool(record.get("was_present")))
+
+
 def find_eps() -> dict[str, str]:
     """The ready state (`Ready`, `NotReady` or `NotPresent`) of each EP name that the catalog offers for this PC."""
     with _lock:
@@ -168,13 +191,53 @@ def _write_record(key: str, record: dict) -> None:
         store.write_json(store.store_root() / "windows-ml.json", {**store.windows_ml_installs(), key: record})
 
 
-def install(key: str) -> dict:
+def _ensure_ready(provider, key: str, progress, cancel) -> bool:
+    """Run `ensure_ready_async` of the provider and wait for its end. False when it ended with an error after a cancel request.
+
+    The callbacks of `windowsml` run on a native thread. This function only keeps their values, and calls
+    `progress` on the thread of the caller. It raises `OSError` when the operation fails.
+    """
+    done, latest = threading.Event(), [None]
+    operation = provider.ensure_ready_async(on_complete=done.set, on_progress=lambda value: latest.__setitem__(0, value))
+    shown, asked = None, False
+    try:
+        while not done.wait(0.2):
+            if progress is not None and latest[0] != shown:
+                shown = latest[0]
+                progress(InstallProgress(key, "download", fraction=shown))
+            if cancel is not None and cancel.is_set():
+                operation.cancel()
+                asked = True
+                break
+        try:
+            operation.wait()
+        except OSError:
+            if asked:
+                return False
+            raise
+        if progress is not None and latest[0] != shown:
+            progress(InstallProgress(key, "download", fraction=latest[0]))
+        return True
+    finally:
+        operation.close()
+
+
+def install(key: str, *, progress: Callable[[InstallProgress], None] | None = None,
+            cancel: threading.Event | None = None) -> dict:
     """Make the package of the EP `key` ready. It can make Windows download and install the package.
 
     Before the call it writes a `pending` record, so that a crash leaves a trace. After the call it
     records the EP name, the package version, the package family, `was_present`, `packages_installed`
     and the time in the EP store, and returns the record. It raises `EpUnavailableError` when the
     catalog does not offer the EP for this PC, `Get-AppxPackage` fails, or the install fails.
+
+    `progress` gets `InstallProgress` with the phase `download`, no bytes, and `fraction`, the value
+    from 0 to 1 that Windows ML gives, or None before the first value. Windows ML can give no value.
+    `cancel` set before the start of the install raises `CancelledError` of `_download`, and changes
+    nothing. `cancel` set during the install asks Windows ML to stop it (`AsyncOperation.cancel`).
+    When the install then ends with an error, the `pending` record stays and it raises `CancelledError`:
+    `remove(key)` removes each package that the install added. When the install ends without an error,
+    the cancel came too late: it records the install and returns the record.
     """
     ep_name = load_catalog().ep(key)["ep_name"]
     with _lock:
@@ -187,10 +250,15 @@ def install(key: str) -> dict:
         except (OSError, subprocess.SubprocessError) as error:
             raise EpUnavailableError(f"The packages of this PC are not known, so the suite cannot remove the package later: "
                                      f"{sanitize_text(str(error))[:200]}") from error
+        if cancel is not None and cancel.is_set():
+            raise _download.CancelledError(key)
         _write_record(key, {"ep_name": ep_name, "was_present": was_present, "pending": True, "packages_before": sorted(before),
                             "installed_at": int(time.time())})
+        if progress is not None:
+            progress(InstallProgress(key, "download"))
         try:
-            provider.ensure_ready()
+            if not _ensure_ready(provider, key, progress, cancel):
+                raise _download.CancelledError(key)
         except OSError as error:
             raise EpUnavailableError(f"The Windows ML package of the EP '{key}' did not install: "
                                      f"{sanitize_text(str(error))[:500]}") from error

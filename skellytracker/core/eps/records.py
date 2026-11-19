@@ -47,6 +47,8 @@ class DeviceCheck:
       this GPU model on this PC, for the pack version of today. It is None with no such check.
     - `usable`: a run can use the EP on this GPU now: the EP is ready, no quick check failed here, and
       the EP is certified or passed a quick check here. An application offers the GPU from this field.
+    - `local_cause`: `unclean-exits` when `local_result` is `failed` because the process that used the EP
+      ended two times in a row with no clean exit (ADR-ER5X item 5). Else None: a quick check gave the result.
     """
 
     device_key: str
@@ -54,6 +56,7 @@ class DeviceCheck:
     certified: bool = False
     local_result: Literal["passed", "failed"] | None = None
     usable: bool = False
+    local_cause: Literal["unclean-exits"] | None = None
 
 
 @dataclass(frozen=True)
@@ -136,20 +139,29 @@ class PlannedPack:
 
 @dataclass(frozen=True)
 class InstallPlan:
-    """The result of `plan_install()`. Each pack shows a plain licence link. There is no accept step."""
+    """The result of `plan_install()`. Each pack shows a plain licence link. There is no accept step.
+
+    `windows_ml_keys` holds each EP key of the plan that comes from the Windows ML catalog. Windows downloads
+    and installs its package, so the plan gives no bytes for it.
+    """
 
     packs: tuple[PlannedPack, ...] = ()
     download_bytes: int = 0
     disk_bytes: int = 0
     warnings: tuple[str, ...] = ()
+    windows_ml_keys: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
 class InstallProgress:
+    """One progress event of `install()`. `fraction` is the value from 0 to 1 that Windows ML gives for the install of
+    an EP of its catalog, with no bytes. It is None for a pack, and before the first value of Windows ML."""
+
     key: str
     phase: Literal["download", "hash", "unpack", "register", "verify"]
     bytes_done: int = 0
     bytes_total: int = 0
+    fraction: float | None = None
 
 
 @dataclass(frozen=True)
@@ -361,3 +373,17 @@ class SelftestResult:
 
     ok: bool
     steps: tuple[tuple[str, bool, str], ...] = ()
+
+
+@dataclass(frozen=True)
+class RemoveResult:
+    """The result of `remove(execution_provider=KEY)` for an EP of the Windows ML catalog. It is empty for a pack.
+
+    `removed` holds the full name of each package that the call removed. `failed` holds `(package full
+    name or None, reason code)`. `was_present` is true when the package was on the PC before the install of
+    this EP store: the call never removes such a package.
+    """
+
+    removed: tuple[str, ...] = ()
+    failed: tuple[tuple[str | None, str], ...] = ()
+    was_present: bool = False

@@ -18,10 +18,10 @@ import zipfile
 from collections.abc import Callable, Sequence
 from pathlib import Path, PurePosixPath
 
-from skellytracker.core.eps import _download, store
+from skellytracker.core.eps import _download, store, windows_ml
 from skellytracker.core.eps.catalog import EpCatalog, load_catalog, platform_tag
 from skellytracker.core.eps.recommendation import ep_gpus, install_hint, recommend
-from skellytracker.core.eps.records import GcResult, InstallPlan, InstallProgress, InstallResult, PlannedPack, WheelRef
+from skellytracker.core.eps.records import GcResult, InstallPlan, InstallProgress, InstallResult, PlannedPack, RemoveResult, WheelRef
 from skellytracker.core.errors import EpUnavailableError
 from skellytracker.core.system.host import probe_host
 
@@ -87,7 +87,7 @@ def plan_install(selection: str | Sequence[str], index_url: str | None = None, *
     unless `field_test` is true: the caller then records the opt-in with the user action
     (`skellytracker-eps install KEY --field-test`). `all-compatible` holds no such key (ADR-Z5X7).
     """
-    catalog, host, warnings = load_catalog(), probe_host(), []
+    catalog, host, warnings, windows_ml_keys = load_catalog(), probe_host(), [], []
     if selection == "cpu-only":
         keys = []
     elif selection == "all-compatible":
@@ -108,6 +108,7 @@ def plan_install(selection: str | Sequence[str], index_url: str | None = None, *
             raise EpUnavailableError(f"The EP '{key}' is not available: {refused}.", install_hint(key))
         planned = None if pack is None else planned_pack(catalog, pack["id"], index_url=index_url)
         if catalog.windows_ml(key):
+            windows_ml_keys.append(key)
             warnings.append(f"The EP '{key}' comes from the Windows ML catalog: Windows downloads and installs its package.")
         elif pack is None:
             warnings.append(f"The EP '{key}' is a part of ONNX Runtime. It needs no pack.")
@@ -126,7 +127,8 @@ def plan_install(selection: str | Sequence[str], index_url: str | None = None, *
     mismatch = core_mismatch(catalog)
     if mismatch:
         warnings.append(mismatch)
-    return InstallPlan(tuple(packs), sum(p.download_bytes for p in packs), sum(p.disk_bytes for p in packs), tuple(warnings))
+    return InstallPlan(tuple(packs), sum(p.download_bytes for p in packs), sum(p.disk_bytes for p in packs), tuple(warnings),
+                       tuple(windows_ml_keys))
 
 
 def _unpack(wheel: Path, filename: str, staging: Path, files: list) -> None:
@@ -239,10 +241,25 @@ def install(plan: InstallPlan, *, progress: Callable[[InstallProgress], None] | 
     message)`, with the error code `offline`, `http-error`, `hash-mismatch`, `disk-full`,
     `path-guard`, `core-mismatch`, `verify-failed` or `failed`. The failure of a component goes to
     `InstallResult.warnings`, not to `failed`: the EP stays usable (ADR-88ZB).
+
+    Before the packs, it installs each key of `plan.windows_ml_keys` with `windows_ml.install()`, with the
+    same `progress` and `cancel`. A failure has the error code `failed`. `verify` and `from_dir` do not apply
+    to such a key. A cancel during its install takes effect only when Windows ML stops the install.
     """
     catalog = load_catalog()
     components = {row["id"] for row in catalog.data.get("components", ())}
     ok, failed, cancelled = [], [], []
+    for key in plan.windows_ml_keys:
+        if cancelled or (cancel is not None and cancel.is_set()):
+            cancelled.append(key)
+            continue
+        try:
+            windows_ml.install(key, progress=progress, cancel=cancel)
+            ok.append(key)
+        except _download.CancelledError:
+            cancelled.append(key)
+        except EpUnavailableError as error:
+            failed.append((key, "failed", str(error)))
     mismatch = core_mismatch(catalog)
     for planned in plan.packs:
         key = planned.ep_key
@@ -314,8 +331,13 @@ def _trash(path: Path, deferred: list[str]) -> None:
         deferred.append(path.name)
 
 
-def remove(pack_id: str | None = None, *, consumer: str | None = None) -> None:
-    """Remove one pack, or each pack (`all`), from the store. `consumer` removes the ref files of that consumer kind."""
+def remove(pack_id: str | None = None, *, consumer: str | None = None, execution_provider: str | None = None) -> RemoveResult:
+    """Remove one pack, or each pack (`all`), from the store. `consumer` removes the ref files of that consumer kind.
+
+    `execution_provider` removes the Windows ML package of that EP key that this EP store installed
+    (`windows_ml.remove()`), and never a package that was on the PC before. The result holds only its rows.
+    """
+    result = RemoveResult() if execution_provider is None else windows_ml.remove(execution_provider)
     root = store.store_root()
     with store.store_lock():
         if consumer is not None:
@@ -326,6 +348,7 @@ def remove(pack_id: str | None = None, *, consumer: str | None = None) -> None:
         for folder in folders if pack_id == "all" else [root / pack_id] if pack_id else []:
             if folder.is_dir() and folder.parent == root:
                 _trash(folder, [])
+    return result
 
 
 def consumer_ref(catalog: EpCatalog) -> tuple[str, dict]:

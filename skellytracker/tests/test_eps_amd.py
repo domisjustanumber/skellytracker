@@ -3,13 +3,15 @@
 Fakes only: no GPU, no network, no `windowsml` call and no ONNX Runtime session.
 """
 
+import json
 import sys
+import threading
 import types
 
 import pytest
 
 from skellytracker.core import eps
-from skellytracker.core.eps import cli, evidence, registration, store, windows_ml
+from skellytracker.core.eps import _download, cli, evidence, registration, store, windows_ml
 from skellytracker.core.eps import catalog as catalog_module
 from skellytracker.core.errors import EpUnavailableError
 from skellytracker.core.system import host as host_module
@@ -104,6 +106,40 @@ class FakeProvider:
         self.ready_state = types.SimpleNamespace(name="Ready")
         PACKAGES[self.full_name] = self.family
         self.version, self.package_family_name = self._version, self.family
+
+    def ensure_ready_async(self, on_complete=None, on_progress=None):
+        return FakeOperation(self.ensure_ready, on_complete, on_progress)
+
+
+class FakeOperation:
+    """`windowsml.AsyncOperation`: it runs `work` on a native thread, then calls `on_complete`. `wait()` raises its `OSError`."""
+
+    def __init__(self, work, on_complete, on_progress, values=(0.5, 1.0)):
+        self.error, self.cancelled, self.closed = None, False, False
+
+        def run():
+            try:
+                for value in values:
+                    on_progress(value)
+                work()
+            except OSError as error:
+                self.error = error
+            on_complete()
+
+        self.thread = threading.Thread(target=run)
+        self.thread.start()
+
+    def cancel(self):
+        self.cancelled = True
+
+    def wait(self):
+        self.thread.join()
+        if self.error is not None:
+            raise self.error
+
+    def close(self):
+        self.thread.join()
+        self.closed = True
 
 
 @pytest.fixture
@@ -233,14 +269,100 @@ def test_windows_ml_register_never_downloads(monkeypatch, ep_store, fake_windows
     assert len(registered) == 1  # one time for each process
 
 
-def test_cli_install_of_a_windows_ml_ep_opts_in_and_installs(monkeypatch, ep_store, capsys):  # noqa: F811
+def test_cli_install_of_a_windows_ml_ep_opts_in_and_installs(monkeypatch, ep_store, fake_windowsml, capsys):  # noqa: F811
     on(monkeypatch, "win_amd64", host(RADEON))
-    installed = []
-    monkeypatch.setattr(windows_ml, "install", lambda key: installed.append(key) or {"version": "1.8.65.0", "was_present": True})
+    provider = fake_windowsml["m"] = FakeProvider("MIGraphXExecutionProvider", "NotReady")
     assert cli.main(["install", "migraphx"]) == 3  # no opt-in, no --field-test: refused before any change
+    assert provider.ensured == 0 and "migraphx" not in store.field_test_opt_ins()
     assert cli.main(["install", "migraphx", "--field-test", "--yes"]) == 0
-    assert installed == ["migraphx"] and "migraphx" in store.field_test_opt_ins()
+    assert provider.ensured == 1 and "migraphx" in store.field_test_opt_ins()
     assert "Windows ML package 1.8.65.0, already on this PC" in capsys.readouterr().out
+    assert cli.main(["install", "migraphx", "--yes", "--progress", "jsonl"]) == 0
+    events = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    progress = [event for event in events if event["event"] == "progress"]
+    assert progress[0]["fraction"] is None and progress[-1]["fraction"] == 1.0  # Windows ML gives a fraction and no bytes
+    assert {event["key"]: event["result"] for event in events if event["event"] == "done"} == {"migraphx": "ok"}
+
+
+def test_eps_install_of_a_windows_ml_ep_reports_the_fraction_and_cancels_before_the_start(monkeypatch, ep_store,  # noqa: F811
+                                                                                          fake_windowsml):
+    on(monkeypatch, "win_amd64", host(RADEON))
+    store.opt_in_field_test("amdgpu")
+    provider = fake_windowsml["a"] = FakeProvider("AMDGPUExecutionProvider", "NotPresent")
+    plan = eps.plan_install(["amdgpu"])
+    assert (plan.windows_ml_keys, plan.packs) == (("amdgpu",), ())
+    cancel = threading.Event()
+    cancel.set()
+    assert eps.install(plan, cancel=cancel) == eps.InstallResult(cancelled=("amdgpu",))
+    with pytest.raises(_download.CancelledError):
+        windows_ml.install("amdgpu", cancel=cancel)
+    assert provider.ensured == 0 and store.windows_ml_installs() == {}  # no start, no record
+    events = []
+    assert eps.install(plan, progress=events.append) == eps.InstallResult(ok=("amdgpu",))
+    assert provider.ensured == 1 and store.windows_ml_installs()["amdgpu"]["packages_installed"] == [provider.full_name]
+    assert {event.phase for event in events} == {"download"} and {(event.bytes_done, event.bytes_total) for event in events} == {(0, 0)}
+    assert events[0].fraction is None and events[-1].fraction == 1.0
+
+
+def test_a_cancel_during_a_windows_ml_install_asks_windows_ml_to_stop(monkeypatch, ep_store, fake_windowsml):  # noqa: F811
+    on(monkeypatch, "win_amd64", host(RADEON))
+    provider = fake_windowsml["a"] = FakeProvider("AMDGPUExecutionProvider", "NotPresent")
+    operations = []
+
+    def stop_on_cancel(on_complete=None, on_progress=None):
+        gate = threading.Event()
+
+        def work():
+            PACKAGES[provider.full_name] = provider.family  # a part of the deployment is on the PC
+            gate.wait(10)
+            raise OSError("the operation was cancelled")
+
+        operation = FakeOperation(work, on_complete, on_progress, values=(0.25,))
+        operation.cancel = lambda: (setattr(operation, "cancelled", True), gate.set())
+        operations.append(operation)
+        return operation
+
+    provider.ensure_ready_async = stop_on_cancel
+    cancel = threading.Event()
+
+    def progress(event):
+        if event.fraction == 0.25:
+            cancel.set()
+
+    plan = eps.plan_install(["amdgpu"], field_test=True)
+    assert eps.install(plan, progress=progress, cancel=cancel) == eps.InstallResult(cancelled=("amdgpu",))
+    assert operations[0].cancelled and operations[0].closed
+    assert store.windows_ml_installs()["amdgpu"]["pending"] is True  # the trace for the removal
+    provider.package_family_name = provider.family  # Windows ended the deployment: a new enumeration gives the family
+    assert eps.remove(execution_provider="amdgpu") == eps.RemoveResult(removed=(provider.full_name,))
+    assert REMOVED == [provider.full_name] and store.windows_ml_installs() == {}
+
+
+def test_cli_remove_of_a_windows_ml_ep_removes_only_the_package_that_the_install_added(monkeypatch, ep_store,  # noqa: F811
+                                                                                       fake_windowsml, capsys):
+    on(monkeypatch, "win_amd64", host(RADEON))
+    present = fake_windowsml["m"] = FakeProvider("MIGraphXExecutionProvider", "NotReady")
+    added = fake_windowsml["a"] = FakeProvider("AMDGPUExecutionProvider", "NotPresent")
+    windows_ml.install("migraphx")
+    windows_ml.install("amdgpu")
+    monkeypatch.setattr(windows_ml, "_remove_appx", lambda name: REMOVED.append(name) or False)  # for example a package in use
+    assert cli.main(["remove", "--windows-ml", "amdgpu"]) == 1
+    assert f"amdgpu: not removed {added.full_name} (package-not-removed)" in capsys.readouterr().err
+    assert "amdgpu" in store.windows_ml_installs()  # the record stays for a later try
+    monkeypatch.setattr(windows_ml, "_remove_appx", lambda name: REMOVED.append(name) or PACKAGES.pop(name, None) is not None)
+    assert cli.main(["remove", "--windows-ml", "amdgpu"]) == 0
+    assert cli.main(["remove", "--windows-ml", "migraphx"]) == 0
+    out = capsys.readouterr().out
+    assert f"amdgpu: removed {added.full_name}" in out and "migraphx: the Windows ML package was on this PC before" in out
+    assert REMOVED == [added.full_name] * 2 and present.full_name in PACKAGES and "Other.App_1.0.0.0_x64__" + PUBLISHER in PACKAGES
+    assert store.windows_ml_installs() == {}
+    assert cli.main(["remove", "--windows-ml", "amdgpu"]) == 1
+    assert "amdgpu: not removed (no-record)" in capsys.readouterr().err
+    other = "Other.App_1.0.0.0_x64__" + PUBLISHER
+    store.write_json(store.store_root() / "windows-ml.json", {"amdgpu": {
+        "ep_name": "CUDAExecutionProvider", "was_present": False, "packages_installed": [other]}})
+    assert eps.remove(execution_provider="amdgpu") == eps.RemoveResult(failed=((None, "record-refused"),))
+    assert other in PACKAGES and "amdgpu" in store.windows_ml_installs()
 
 
 def test_doctor_checks_each_index_also_an_index_of_dependency_wheels_only(monkeypatch, ep_store, capsys):  # noqa: F811
