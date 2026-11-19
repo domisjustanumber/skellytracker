@@ -30,7 +30,7 @@
    name or contact field.
 7. **Work folder.** The suite keeps each download and its own EP store in `.certify-work/` of the
    clone. It deletes that folder at the end, also after a failure, Ctrl+C, SIGTERM or SIGHUP. An old
-   folder that does not delete stops the run. It keeps the report. It installs or changes no system
+   folder that does not delete stops the run. It keeps the report. It changes no system
    software and needs no administrator rights. Items 11 and 12 are the exceptions.
 8. **Privacy.** The report holds no hostname, no user name, no absolute path, no serial number, no bus
    address and no camera frame. It holds hardware and software facts only. Text from an OS tool goes
@@ -53,7 +53,8 @@
     change of the suite ([ADR-XSE7](XSE7-amd-eps-in-the-field-test.md)).
 12. **Model files.** The suite downloads them into the git-ignored model folder from a list (file, URL,
     sha256) in the `certification` block of the EP catalog. It deletes its downloads at the end. The
-    sidecars do not change. The files go in a public Hugging Face repository of freemocap.
+    sidecars do not change. They are in the public model repository of the certify suite. The term
+    check of `tools/check_private_data.py` allows its address (user, 2026-11-18).
 13. **Evidence.** A report is evidence only from a clean checkout of a certification tag with all
     sections run, and the Python and the packages of `uv.lock`. Else a top-level field and a line say
     so. No tag before each section exists.
@@ -74,8 +75,7 @@
 
 ## Evidence
 
-Code facts: `tools/certify_platform.py` and `tools/certify_hardware.py`. `.gitignore` ignores
-`.certify-work/` and `/certify-report-*.md`. One run on Windows 11, 2026-11-18: section 2 flagged
+`.gitignore` ignores `.certify-work/` and `/certify-report-*.md`. One run on Windows 11, 2026-11-18: section 2 flagged
 the VRAM of an Intel UHD Graphics 770: 128 MiB in `probe_host()`, 2047 MiB in `AdapterRAM`.
 
 ## Alternatives rejected

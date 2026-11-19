@@ -32,8 +32,7 @@ You do not need to know the project. You need about 10 minutes and a terminal.
   runs.
   - The EP packs that a GPU of your machine can use: about 106 MB for `trt-rtx` and about
     966 MB for `cuda`. DirectML and CoreML need no download.
-  - The model files of the test pipeline: about 330 MB. These files are not published yet (see
-    [Not in this version](#not-in-this-version)).
+  - The model files of the test pipeline: about 330 MB.
   - One public test image: about 0.2 MB.
 - The suite deletes the model files and the test image at the end.
 - The first `uv run` also makes a Python environment in `.venv/` in your clone. It downloads
@@ -197,5 +196,3 @@ Your notes line is the one place where you write free text.
 - No result on an AMD GPU exists yet. The AMD EPs (MIGraphX on Linux, and the AMD EPs of the
   Windows ML catalog on Windows) are tested only with fakes. Your report is the first test.
 - Hosts with two GPUs on a laptop are not a tested case.
-- The model files are not published yet. Until the project publishes them, section 4 has the result
-  `not-run` with the reason `models-missing`, unless the model files are in your clone.

@@ -119,6 +119,23 @@ COPIES = (
                 "# Add the public contact address of the project here, for example the one in pyproject.toml.\n"
                 'ALLOWED_EMAILS = {"noreply@anthropic.com"}\n',
             ),
+            # The reviewed address of ADR-Y14H item 12 belongs only to this repository.
+            (
+                "The term check takes the exact text of ``ALLOWED_TERM_URL``, a reviewed address, out of each line\n"
+                "first. The term check still reads the rest of the line, and the other checks read the whole line.\n\n",
+                "",
+            ),
+            (
+                "# The user allowed the address of the public model repository of the certify suite, 2026-11-18"
+                " (ADR-Y14H item 12).\n"
+                'ALLOWED_TERM_URL = "https://huggingface.co/domscott/skellytracker-certify-models/"\n',
+                "",
+            ),
+            (
+                '        # A space, not "", so that the text on the two sides of the address does not join.\n'
+                '        lowered = line.replace(ALLOWED_TERM_URL, " ").lower()\n',
+                "        lowered = line.lower()\n",
+            ),
         ),
     ),
     Copy(

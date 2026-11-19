@@ -283,7 +283,12 @@ certification:
   # 0.999 and 0.989 (ADR-MF2R). One step of the keypoint decode is about 2.3 px on that box.
   thresholds: {box_iou_min: 0.9, keypoint_box_fraction_max: 0.01, score_min: 0.4}
   # The model files of the pipeline (ADR-Y14H item 12). A path is relative to `skellytracker/core/model_zoo/`. Each URL is
-  # pinned to one commit of the repository. The list `models` is not here yet: its address waits for a decision of the user.
+  # pinned to one commit of the repository.
+  models:
+    - {path: detectors/object_detectors/yolox-person/yolox-person-m_b3_fp32.onnx, url: "https://huggingface.co/domscott/skellytracker-certify-models/resolve/1fccfaab7d1da3777faf08dbefce4b160ecc9efa/yolox-person-m_b3_fp32.onnx", sha256: 957ee80507633b2cf7f72fea1730a78a22767808f1b1989da637eb61d050e1c3, bytes: 101334831}
+    - {path: detectors/object_detectors/yolox-person/yolox-person-m_b3_fp16.onnx, url: "https://huggingface.co/domscott/skellytracker-certify-models/resolve/1fccfaab7d1da3777faf08dbefce4b160ecc9efa/yolox-person-m_b3_fp16.onnx", sha256: 1852e6d014c4183973dd575b094a597e97a2b2f50c980597abc4e97185eebf41, bytes: 50726485}
+    - {path: detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-m_b3_fp32.onnx, url: "https://huggingface.co/domscott/skellytracker-certify-models/resolve/1fccfaab7d1da3777faf08dbefce4b160ecc9efa/rtmw-wholebody133-m_b3_fp32.onnx", sha256: 77fb20ae9d7b1bf3021029d482b24c3d5f5994bf0cc895debfc052382c4c14db, bytes: 129051749}
+    - {path: detectors/keypoint_detectors/rtmw/wholebody133/rtmw-wholebody133-m_b3_fp16.onnx, url: "https://huggingface.co/domscott/skellytracker-certify-models/resolve/1fccfaab7d1da3777faf08dbefce4b160ecc9efa/rtmw-wholebody133-m_b3_fp16.onnx", sha256: c9e01ef287f2c18e75828153167af21d10f9f4fd5119cbef61e34c15e4a90179, bytes: 64580211}
   # The second environment of the suite, in its work folder, for an EP of `eps` that does not load on `ort_core`. Only that
   # environment sets `SKELLYTRACKER_EP_ORT_FALLBACK` to this version, and the EP store then accepts it. A pass there is
   # evidence that the EP works. It does not certify the EP for `ort_core` (ADR-XSE7). `bytes` and `sha256` are the size and

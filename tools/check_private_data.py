@@ -17,6 +17,9 @@ generated lock files. It reports:
   comment). Use it for a hostname or a user name. Git must ignore it: a tracked list publishes
   the terms.
 
+The term check takes the exact text of ``ALLOWED_TERM_URL``, a reviewed address, out of each line
+first. The term check still reads the rest of the line, and the other checks read the whole line.
+
 A placeholder such as ``C:\\Users\\<you>`` or ``/home/$USER`` is not reported. Standard library only.
 """
 
@@ -39,6 +42,8 @@ ALLOWED_EMAIL_DOMAINS = re.compile(
     re.IGNORECASE,
 )
 ALLOWED_EMAILS = {"info@freemocap.org", "noreply@anthropic.com"}
+# The user allowed the address of the public model repository of the certify suite, 2026-11-18 (ADR-Y14H item 12).
+ALLOWED_TERM_URL = "https://huggingface.co/domscott/skellytracker-certify-models/"
 
 PLACEHOLDER = r"(?![<{%$])"
 PATTERNS = {
@@ -116,7 +121,8 @@ def scan_text(rel: str, text: str, terms: list[str]) -> list[Finding]:
                 if kind == "email address" and is_allowed_email(match.group(0)):
                     continue
                 findings.append(Finding(rel, number, kind, match.group(0)))
-        lowered = line.lower()
+        # A space, not "", so that the text on the two sides of the address does not join.
+        lowered = line.replace(ALLOWED_TERM_URL, " ").lower()
         findings.extend(
             Finding(rel, number, "private term", "<from .private-terms>")
             for _, term in lowered_terms

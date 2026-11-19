@@ -50,13 +50,12 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
       device of the GPU, and the removal at the end.
   - Section 4 does not measure the VRAM of an integrated GPU: the PDH counter of `LiveSampler` reads
     dedicated memory only.
-  - The model list `models` (path, URL, sha256, bytes) of the `certification` block of
-    `ep_catalog.yaml` (item 12) waits for a decision of the user. The files are in a Hugging Face
-    repository of a personal account, not of the freemocap organisation, and
-    `tools/check_private_data.py` refuses that address. Thus the catalog has no list, and section 4
-    finds the model files only when they are already in the model folder. The validation of the
-    list in `tools/ep_catalog.py` and its tests stay. On 2026-11-18, `fetch_models` of section 4
-    downloaded the four files of the parked list into an empty folder: sizes and sha256 right.
+  - The model list `models` (path, URL, sha256, bytes) is in the `certification` block of
+    `ep_catalog.yaml` (item 12). The files are in the public model repository of the certify suite,
+    on a personal Hugging Face account, not of the freemocap organisation. The term check of
+    `tools/check_private_data.py` allows that one address (user, 2026-11-18). On 2026-11-18,
+    `fetch_models` of section 4 downloaded the four files of the list into an empty folder: 4 files,
+    sizes and sha256 right.
   - A leak that the suite cannot stop: the cache of `uv`. It belongs to the tool of the volunteer.
   - The instructions page `CERTIFY.md` and the issue template are drafts. They name the fork of the
     user: change the clone address when the suite moves to the freemocap repository (item 14).
