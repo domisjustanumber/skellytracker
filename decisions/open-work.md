@@ -24,10 +24,10 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   These items stay open:
   - Sections 6 and 7. Each is a placeholder with `not-run` and `not-built` in `SECTIONS` of
     `tools/certify_platform.py`.
-  - Run the Windows ML rehearsal `decisions/scripts/xse7_windows_ml_rehearsal.py` again on the
-    current code. The recorded run used the code before the removal rewrite of commit 1bd2417f
-    ([ADR-ZGF5](entries/ZGF5-certify-measurements-of-2026-11-18.md) item 5). Its registration and
-    L3 probe step needs the GPU.
+  - The `cleanup` step of `decisions/scripts/xse7_windows_ml_rehearsal.py` fails with
+    `record-refused` without the catalog hook. It needs the wrapper
+    `decisions/scripts/zgf5_session_measurements/hooked_cleanup.py`
+    ([ADR-ZGF5](entries/ZGF5-certify-measurements-of-2026-11-18.md) item 5).
   - Sections 3 and 4 ran on one Windows host with an NVIDIA GPU and an Intel iGPU only. No run on
     Linux, on macOS (`coreml`), on a host with an AMD GPU or on a laptop with two GPUs.
   - The AMD EPs (item 11) are built ([ADR-XSE7](entries/XSE7-amd-eps-in-the-field-test.md)), and

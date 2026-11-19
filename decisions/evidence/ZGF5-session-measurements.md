@@ -13,6 +13,8 @@ This file is the evidence of
 | [`evidence/ZGF5/rehearsal-certify-report.md`](ZGF5/rehearsal-certify-report.md) | One suite report of a clean clone. It is a **rehearsal** record, not evidence for a platform. See below. |
 | `scripts/zgf5_session_measurements/dml_measure.py` | The DirectML device-memory measurement of [ADR-Z5X7](../entries/Z5X7-field-test-state-and-directml.md) ("A scratch run (not in git)"). |
 | `scripts/zgf5_session_measurements/snap.py` | The listing of the user data and cache folders of skellytracker (name, size, integer mtime) before and after a suite run: the leak check of ADR-Z5X7. |
+| [`evidence/ZGF5/rehearsal-2026-11-19/`](ZGF5/rehearsal-2026-11-19/) | The JSON outputs of the Windows ML rehearsal on 2026-11-19 (item 5 of the entry). Folder `A`: package on the PC before. Folder `B`: package removed first. Files `state`, `run`, `remove` and `cleanup`. The `cleanup.json` files hold the `record-refused` rows. |
+| `scripts/zgf5_session_measurements/hooked_cleanup.py` | A wrapper that calls `hook()` of the rehearsal script, then its `cleanup()`. |
 
 The committed `dml_measure.py` has one lint edit: a `# noqa: B023` comment on the line of the
 `lambda`. Its docstring still says "Not in git". It is otherwise the copy that ran. `snap.py` has no

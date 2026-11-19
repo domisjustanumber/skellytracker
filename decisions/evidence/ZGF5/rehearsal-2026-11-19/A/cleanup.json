@@ -1,0 +1,1 @@
+{"step": "cleanup", "before": ["Microsoft.WinML.NVIDIA.TRT-RTX.EP.Framework.2_2.30.51.0_x64__8wekyb3d8bbwe"], "rows": [{"key": "amdgpu", "package": null, "result": "fail", "reason_code": "record-refused"}], "after": ["Microsoft.WinML.NVIDIA.TRT-RTX.EP.Framework.2_2.30.51.0_x64__8wekyb3d8bbwe"]}
