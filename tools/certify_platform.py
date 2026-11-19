@@ -25,8 +25,9 @@ A volunteer runs this command in a clone at a certification tag (decision Y14H).
 5. deletes its work folder ``.certify-work/`` (git ignores it), also after a failure, Ctrl+C,
    SIGTERM or SIGHUP, and writes the report. Each cleanup step that fails is a row of ``cleanup``
    in the report, and the report is still written. The default report is
-   ``certify-report-<UTC time>.md`` in the current folder. The tool prints its path. At the start,
-   the suite first acts on the records of a work folder that an earlier run left, then deletes it.
+   ``certify-report-<UTC start time>.md`` in the current folder, and ``created_utc`` of the report is
+   the same instant. The tool prints its path. At the start, the suite first acts on the records of a
+   work folder that an earlier run left, then deletes it.
    If it cannot delete it, the suite stops with exit code 1 and runs nothing.
 
 The report has a summary table (section, result, one-line reason), the details of each section and,
@@ -241,14 +242,13 @@ def section_checkout(work: Path, root: Path = REPO_ROOT) -> dict:
 def onnx_stack_facts() -> dict:
     sys.path.insert(0, str(REPO_ROOT))
     import certify_hardware  # the directory of this script is on sys.path
-    import skellytracker
     from skellytracker.core.eps import evidence
     from skellytracker.core.eps.catalog import load_catalog
     from skellytracker.core.system.runtime import probe_runtime
 
+    # no package version: `skellytracker.__version__` is the same in each checkout; the tag and the commit identify the code
     runtime, catalog = probe_runtime(), load_catalog()  # probe_runtime imports onnxruntime; it makes no session
-    return {"skellytracker": skellytracker.__version__,
-            "ort_distributions": dict(zip(runtime.ort_packages, runtime.ort_package_versions, strict=True)),
+    return {"ort_distributions": dict(zip(runtime.ort_packages, runtime.ort_package_versions, strict=True)),
             "ort_version": runtime.ort_version, "windowsml": runtime.windowsml_version, "ep_names": list(runtime.ep_names),
             "catalog_revision": catalog.revision, "set_hash": evidence.set_hash(catalog),
             "probe_errors": certify_hardware.error_sources(runtime.probe_errors)}  # the source tags only: no error text
@@ -658,6 +658,11 @@ def windows_ml_offer() -> list[str]:
         return []
 
 
+def megabytes(size: int) -> str:
+    """A size in decimal MB (10**6 bytes): one decimal under 10 MB, else a whole number. `CERTIFY.md` uses the same form."""
+    return f"{size / 1e6:.1f}" if size < 10**7 else f"{size / 1e6:.0f}"
+
+
 def plan_text(sections: tuple[Section, ...], selected: set[int], out: Path, options: dict | None = None,
               os_platform: str = sys.platform, windows_eps: Callable[[], list[str]] | None = None) -> str:
     chosen = [s for s in sections if s.number in selected]
@@ -666,7 +671,7 @@ def plan_text(sections: tuple[Section, ...], selected: set[int], out: Path, opti
     lines.append(f"Total: about {sum(s.estimate_seconds for s in chosen)} s.")
     downloads = [item for s in chosen for item in section_downloads(s, options or {})]
     lines.append("Downloads: " + ("none." if not downloads else
-                                  ", ".join(f"{name} ({-(-size // 2**20)} MB)" for name, size in downloads) + "."))
+                                  ", ".join(f"{name} ({megabytes(size)} MB)" for name, size in downloads) + "."))
     # ADR-XSE7: the catalog gives the package name only after the install, so the text names the EP
     packages = (windows_eps or windows_ml_offer)() if os_platform == "win32" and 3 in selected else []
     lines += [f"Windows downloads and installs the Windows ML package of the AMD execution provider {name}, if Windows does not "
@@ -681,12 +686,14 @@ def plan_text(sections: tuple[Section, ...], selected: set[int], out: Path, opti
 
 def run_suite(sections: tuple[Section, ...], selected: set[int], out: Path, *, yes: bool, work: Path = WORK_DIR,
               command: Callable[[Section, Path], list[str]] = default_command, interactive: bool | None = None,
-              ask: Callable[[str], str] = input, options: dict | None = None) -> int:
+              ask: Callable[[str], str] = input, options: dict | None = None, started: time.struct_time | None = None) -> int:
     """Ask for consent, run the selected sections, ask the end questions, delete the work folder and write the report.
 
     The sections read `options` from `options.json` of the work folder, and the result of an earlier
-    section from `section-<N>.json` there.
+    section from `section-<N>.json` there. `created_utc` of the report is `started` (default: now), the start of the
+    run: `main()` also puts it in the default file name.
     """
+    started = started or time.gmtime()
     interactive = sys.stdin.isatty() and sys.stdout.isatty() if interactive is None else interactive
     print(plan_text(sections, selected, out, options), flush=True)
     if not yes:
@@ -745,7 +752,7 @@ def run_suite(sections: tuple[Section, ...], selected: set[int], out: Path, *, y
         if work.exists():
             cleanup.append(check("delete-work-folder", "fail", "not-deleted"))
             print(f"Could not delete {work.name}/ completely: delete it by hand.", file=sys.stderr)
-    data = {"schema": REPORT_SCHEMA, "suite_version": SUITE_VERSION, "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    data = {"schema": REPORT_SCHEMA, "suite_version": SUITE_VERSION, "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", started),
             "selected": sorted(selected), "evidence": evidence_state(results, selected, sections), "sections": results,
             "cleanup": cleanup, "answers": answers, "notes": None}
     paths, words = private_terms()
@@ -778,6 +785,9 @@ def stop_on_signals() -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # before each import of the checkout, so that a run without `-B` leaves no `__pycache__` in the clone; the children
+    # get `PYTHONDONTWRITEBYTECODE=1` (`child_env`), and the imports above this function are of the standard library only
+    sys.dont_write_bytecode = True
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--only", help="run only these section numbers, for example 1,2")
     parser.add_argument("--yes", action="store_true", help="do not ask for consent")
@@ -796,12 +806,13 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--only takes section numbers, for example 1,2")
     if not selected <= numbers:
         parser.error(f"--only takes the section numbers {min(numbers)} to {max(numbers)}")
-    out = args.out or Path.cwd() / time.strftime("certify-report-%Y%m%dT%H%M%SZ.md", time.gmtime())
+    started = time.gmtime()
+    out = args.out or Path.cwd() / time.strftime("certify-report-%Y%m%dT%H%M%SZ.md", started)
     if args.wheel_dir is not None and not args.wheel_dir.is_dir():
         parser.error("--wheel-dir takes a folder")
     options = {"wheel_dir": str(args.wheel_dir.resolve())} if args.wheel_dir else {}
     stop_on_signals()
-    return run_suite(SECTIONS, selected, out, yes=args.yes, options=options)
+    return run_suite(SECTIONS, selected, out, yes=args.yes, options=options, started=started)
 
 
 if __name__ == "__main__":

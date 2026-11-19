@@ -28,11 +28,12 @@ You do not need to know the project. You need about 10 minutes and a terminal.
   runs anything. Delete the folder by hand, then run the suite again.
 - The suite uses its own EP store. It does not read or change the EP store, the EP cache or the
   model cache of your user account.
-- The suite downloads these files. The plan on the screen shows the exact sizes before anything
-  runs.
-  - The EP packs that a GPU of your machine can use: about 106 MB for `trt-rtx` and about
-    966 MB for `cuda`. DirectML and CoreML need no download.
-  - The model files of the test pipeline: about 330 MB.
+- The suite downloads these files. The plan on the screen shows the size of each file before
+  anything runs. 1 MB is 1,000,000 bytes.
+  - The EP packs that a GPU of your machine can use: on Windows, about 111 MB for `trt-rtx` and
+    about 1009 MB for `cuda`; on Linux, about 146 MB and about 1213 MB. DirectML and CoreML need
+    no download.
+  - The model files of the test pipeline: about 346 MB.
   - One public test image: about 0.2 MB.
 - The suite deletes the model files and the test image at the end.
 - The first `uv run` also makes a Python environment in `.venv/` in your clone. It downloads
@@ -108,7 +109,7 @@ write your name, contact details or other personal details. Press Enter to skip.
 |---|---|
 | `--only N[,N...]` | Runs only these sections, for example `--only 1,2`. The report is then not valid as evidence. |
 | `--yes` | Skips the consent question. |
-| `--out FILE` | Writes the report to `FILE`. The default is `certify-report-<UTC time>.md` in the current folder. |
+| `--out FILE` | Writes the report to `FILE`. The default is `certify-report-<UTC start time>.md` in the current folder. |
 | `--wheel-dir DIR` | Installs the EP packs from the wheel files in `DIR` and uses no network for them. |
 
 ## The sections

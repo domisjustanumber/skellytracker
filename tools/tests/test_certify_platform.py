@@ -364,3 +364,40 @@ def test_the_package_comparison_lists_mismatches_and_missing_packages():
     found = cp.compare_packages(*cp.lock_packages(LOCK), installed.get)
     assert found["mismatched"] == [{"name": "c", "locked": "2.0", "installed": "2.1"}]
     assert found["missing"] == ["g"] and found["extras_not_installed"] == ["d"]
+
+
+def test_the_plan_prints_decimal_megabytes_with_one_decimal_under_10():
+    downloads = lambda options: (("cuda.whl", 1_009_139_129), ("image.jpg", 212_902), ("small.whl", 9_940_000))  # noqa: E731
+    text = cp.plan_text((cp.Section(3, "s", 1, 60, cp.not_built, downloads),), {3}, Path("r.md"))
+    assert "cuda.whl (1009 MB), image.jpg (0.2 MB), small.whl (9.9 MB)." in text
+
+
+def test_main_stops_bytecode_before_any_import_of_the_checkout(monkeypatch):
+    """A run without `-B` must leave no `__pycache__` in the clone: the flag goes on first, and the module imports only the
+    standard library at its top level."""
+    import ast
+
+    monkeypatch.setattr(sys, "dont_write_bytecode", False)
+    with pytest.raises(SystemExit):
+        cp.main(["--only", "99"])
+    assert sys.dont_write_bytecode is True
+    tree = ast.parse(Path(cp.__file__).read_text(encoding="utf-8"))
+    roots = {(node.module if isinstance(node, ast.ImportFrom) else alias.name).split(".")[0]
+             for node in tree.body if isinstance(node, ast.Import | ast.ImportFrom) for alias in node.names}
+    assert roots - {"__future__"} <= sys.stdlib_module_names
+
+
+def test_the_report_file_name_and_created_utc_are_the_start_of_the_run(tmp_path, monkeypatch):
+    _, out, _ = run(tmp_path, {1: emit(PASSING)}, selected={1}, started=time.gmtime(0))
+    assert cp.report_data(out.read_text(encoding="utf-8"))["created_utc"] == "1970-01-01T00:00:00Z"
+    captured = {}
+    monkeypatch.setattr(cp, "stop_on_signals", lambda: None)
+    monkeypatch.setattr(cp, "run_suite", lambda sections, selected, out, **options: captured.update(out=out, **options) or 0)
+    monkeypatch.chdir(tmp_path)
+    assert cp.main(["--only", "1", "--yes"]) == 0
+    assert captured["out"].name == time.strftime("certify-report-%Y%m%dT%H%M%SZ.md", captured["started"])
+
+
+def test_section_1_records_no_package_version():
+    """The tag and the commit identify the code; `skellytracker.__version__` is the same in each checkout."""
+    assert "skellytracker" not in cp.onnx_stack_facts()

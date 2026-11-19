@@ -69,7 +69,7 @@ def fake_eps(monkeypatch, rows, vendor="nvidia", probe_result="pass", gpus=None,
         report = {"result": probe_result, "reason_code": probe_reason if failed else None,
                   "probe": {"ok": not failed, "level": "L3", "max_abs_diff": 0.004, "reason_code": None},
                   "gpu": {"vendor": "nvidia", "name": "Fake RTX", "id": "10de:2484", "driver_version": "610.88"},
-                  "versions": {"ort_version": "1.30.0"}}
+                  "versions": {"skellytracker": "2.0.0", "ort_version": "1.30.0"}}
         return SimpleNamespace(report_json=json.dumps(report))
 
     monkeypatch.setattr(eps, "install", install)
@@ -99,6 +99,7 @@ def test_section_3_tests_each_usable_ep_and_lists_the_others(work, monkeypatch):
     trt = found["details"]["eps"]["trt-rtx"]
     assert trt["probe"]["max_abs_diff"] == 0.004 and trt["wheels"] == [{"filename": "a.whl", "sha256": "ab" * 32}]
     assert trt["gpu"]["id"] == "10de:2484" and trt["install"] == "ok"
+    assert trt["versions"] == {"ort_version": "1.30.0"}  # no package version: section 1 has the tag and the commit
 
 
 def test_section_3_fails_on_a_failed_probe(work, monkeypatch):

@@ -143,7 +143,8 @@ def test_pack(key: str, wheel_dir: str | None, work: Path) -> dict:
         report = json.loads(eps.certify(key, out=work / f"certify-{key}.json").report_json)
     except Exception as error:  # noqa: BLE001
         return {**facts, "result": "fail", "reason_code": type(error).__name__}
-    facts.update(certify_result=report["result"], probe=report["probe"], gpu=report["gpu"], versions=report["versions"])
+    versions = {name: value for name, value in report["versions"].items() if name != "skellytracker"}  # section 1 has the tag and commit
+    facts.update(certify_result=report["result"], probe=report["probe"], gpu=report["gpu"], versions=versions)
     passed = report["result"] == "pass"
     return {**facts, "result": "pass" if passed else "fail",
             "reason_code": None if passed else report["reason_code"] or f"certify-{report['result']}"}
