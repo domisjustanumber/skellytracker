@@ -43,8 +43,9 @@
   the last check wins.
 - An EP of the Windows ML catalog whose package is not installed is `not-run`. The quick level
   installs nothing.
-- No code reads `jpeg` of `quick-checks.json` yet: the pipeline run does not switch off the GPU frame
-  path from it.
+- With the preprocess place `auto`, the pipeline run reads `jpeg` of `quick-checks.json`, and a
+  stored `fail` stops a part of the GPU frame path
+  ([ADR-0Q19](0Q19-stored-jpeg-quick-check-stops-the-gpu-frame-path.md)).
 - `status().certify_offers` does not change: it lists the plugin EPs only, on the first GPU.
 
 ## Alternatives rejected
