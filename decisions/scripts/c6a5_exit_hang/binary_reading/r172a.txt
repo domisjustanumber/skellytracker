@@ -1,0 +1,5 @@
+0x1729e00-0x172a018: str:Liphlpapi.dll | icall:KERNEL32.dll!GetModuleHandleW | str:GetNetworkConnectivityHint | icall:KERNEL32.dll!GetProcAddress | str:NotifyNetworkConnectivityHintChange
+0x172a1f0-0x172a361: icall:api-ms-win-crt-runtime-l1-1-0.dll!terminate
+0x172a400-0x172a5e8: icall:KERNEL32.dll!GetCurrentThreadId | icall:ole32.dll!CoInitializeEx | icall:ole32.dll!CoCreateInstance | icall:ole32.dll!CoUninitialize
+0x172a7b0-0x172aa0c: icall:KERNEL32.dll!GetModuleHandleExW | icall:KERNEL32.dll!GetModuleHandleW | icall:KERNEL32.dll!FreeLibraryWhenCallbackReturns
+0x172aa20-0x172acd9: icall:KERNEL32.dll!GetCurrentThreadId

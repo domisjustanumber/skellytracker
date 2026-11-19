@@ -1,0 +1,138 @@
+pair | T | cnt_mis | det_mis | box mean/p95/p99/max | box det-frames max | box score max | kp px mean/med/p95/p99/max | %diag med/p95/p99/max | flips (pct) | pts>2% | pts>5% | score abs med/p99
+cuda_R vs cuda_R2 | 1108 | 0 | 0 | 0.00/0.00/0.00/0.00 | 0.00 | 0.00 | 0.00/0.00/0.00/0.00/0.00 | 0.00/0.00/0.00/0.00 | 0 (0.000) | 0 | 0 | 0.00/0.00
+cuda_R vs cuda_A1 | 1108 | 0 | 0 | 1.42/3.92/12.53/60.44 | 1.18 | 0.00 | 1.51/1.14/3.89/7.47/323.11 | 0.12/0.39/0.75/31.11 | 1141 (0.264) | 447 | 118 | 0.00/0.05
+cuda_R vs cuda_J2 | 1108 | 0 | 0 | 1.42/3.92/12.53/60.44 | 1.18 | 0.00 | 1.51/1.14/3.89/7.47/323.11 | 0.12/0.39/0.75/31.11 | 1141 (0.264) | 447 | 118 | 0.00/0.05
+cuda_R vs cuda_J3 | 1108 | 2 | 2 | 1.37/3.58/6.55/129.12 | 1.50 | 0.00 | 1.54/1.18/3.90/7.55/325.79 | 0.12/0.39/0.76/31.37 | 1107 (0.256) | 405 | 136 | 0.00/0.05
+cuda_A1 vs cuda_J2 | 1108 | 0 | 0 | 0.00/0.00/0.00/0.00 | 0.00 | 0.00 | 0.00/0.00/0.00/0.00/0.00 | 0.00/0.00/0.00/0.00 | 0 (0.000) | 0 | 0 | 0.00/0.00
+trt-rtx_R vs trt-rtx_R2 | 1108 | 0 | 0 | 0.00/0.00/0.00/0.00 | 0.00 | 0.00 | 0.00/0.00/0.00/0.00/0.00 | 0.00/0.00/0.00/0.00 | 0 (0.000) | 0 | 0 | 0.00/0.00
+trt-rtx_R vs trt-rtx_A1 | 1108 | 0 | 0 | 1.45/3.38/6.75/262.36 | 1.90 | 0.00 | 1.62/1.26/4.10/8.14/320.48 | 0.13/0.41/0.84/30.89 | 1089 (0.252) | 474 | 117 | 0.00/0.05
+trt-rtx_R vs trt-rtx_J2 | 1108 | 0 | 0 | 1.45/3.38/6.75/262.36 | 1.90 | 0.00 | 1.62/1.26/4.10/8.14/320.48 | 0.13/0.41/0.84/30.89 | 1089 (0.252) | 474 | 117 | 0.00/0.05
+trt-rtx_R vs trt-rtx_J3 | 1108 | 0 | 0 | 1.36/3.42/6.83/52.38 | 1.59 | 0.00 | 1.66/1.33/4.15/7.92/325.76 | 0.14/0.42/0.81/31.31 | 1144 (0.265) | 509 | 112 | 0.00/0.05
+trt-rtx_A1 vs trt-rtx_J2 | 1108 | 0 | 0 | 0.00/0.00/0.00/0.00 | 0.00 | 0.00 | 0.00/0.00/0.00/0.00/0.00 | 0.00/0.00/0.00/0.00 | 0 (0.000) | 0 | 0 | 0.00/0.00
+cuda_R vs cpu_R | 1108 | 1 | 1 | 1.60/4.10/8.40/259.26 | 2.42 | 0.00 | 1.59/1.26/4.07/7.87/280.77 | 0.13/0.40/0.79/28.94 | 1188 (0.275) | 426 | 96 | 0.00/0.06
+cuda_R vs trt-rtx_R | 1108 | 0 | 0 | 1.37/3.67/7.52/66.44 | 1.55 | 0.00 | 1.62/1.29/4.07/7.78/323.25 | 0.13/0.41/0.78/31.12 | 1179 (0.273) | 485 | 103 | 0.00/0.05
+cuda_R_q75 vs cuda_J3_q75 | 300 | 0 | 0 | 1.28/3.50/8.32/19.44 | 1.56 | 0.00 | 1.83/1.23/5.41/10.87/269.51 | 0.14/0.59/1.18/28.64 | 714 (0.596) | 223 | 81 | 0.00/0.08
+cuda_R vs cuda_J3 | 300 | 0 | 0 | 1.54/4.07/9.60/20.27 | 1.16 | 0.00 | 1.84/1.30/4.81/9.13/325.79 | 0.15/0.53/1.01/31.37 | 684 (0.571) | 221 | 91 | 0.00/0.08
+cuda_R_i1 vs cuda_J3_i1 | 1108 | 0 | 0 | 0.31/1.12/3.01/17.66 | 17.66 | 0.02 | 0.54/0.11/2.26/3.63/273.59 | 0.01/0.23/0.40/28.26 | 416 (0.097) | 47 | 13 | 0.00/0.02
+cuda_R_i1 vs cpu_R_i1 | 1108 | 0 | 0 | 0.34/0.73/2.28/18.11 | 18.11 | 0.00 | 0.65/0.18/2.27/3.82/238.17 | 0.02/0.24/0.44/31.86 | 477 (0.111) | 63 | 24 | 0.00/0.02
+cuda_R_i1 vs cuda_R2_i1 | 1108 | 0 | 0 | 0.00/0.00/0.00/0.00 | 0.00 | 0.00 | 0.00/0.00/0.00/0.00/0.00 | 0.00/0.00/0.00/0.00 | 0 (0.000) | 0 | 0 | 0.00/0.00
+
+## cuda_R vs cuda_J3
+groups: {'body': ('1.22', '6.58', '105.02', '0.64', 78, 54553), 'feet': ('1.58', '10.05', '159.33', '0.94', 59, 18745), 'face': ('0.94', '4.60', '15.35', '0.44', 17, 219772), 'left_hand': ('1.60', '10.13', '289.83', '1.05', 595, 65168), 'right_hand': ('1.65', '10.89', '325.79', '1.05', 358, 65577)}
+since_det: [('0-0', 3123, 1.26, 0.62), ('1-4', 12550, 1.36, 1.01), ('5-14', 31024, 1.51, 1.22), ('15-29', 45136, 1.61, 1.27), ('30-59', 84737, 1.43, 1.11), ('60-89', 82287, 1.48, 1.18), ('90-119', 82415, 1.76, 1.2), ('120-149', 82543, 1.53, 1.18), ('150+', 0, 0, 0)]
+per100 median: [1.3, 1.42, 1.21, 0.94, 0.9, 0.55, 1.23, 1.24, 1.64, 1.18, 1.24, nan]
+flip margin: {'n': 1107, 'mean': 0.032, 'median': 0.021, 'p95': 0.102, 'p99': 0.15, 'max': 0.209}
+   {'cam': 1, 'frame': 100, 'group': 'right_hand', 'max_px': 325.8, 'n_points': 21, 'mean_px': 307.9, 'score_ref_mean': 0.582, 'score_other_mean': 0.528, 'since_det': 100, 'min_border_px': 33.3, 'box_diag': 1038.7, 'box_corner_diff': 1.17, 'other_centroid_to_ref_opposite_hand_px': 290.8}
+   {'cam': 1, 'frame': 142, 'group': 'left_hand', 'max_px': 289.8, 'n_points': 12, 'mean_px': 275.7, 'score_ref_mean': 0.536, 'score_other_mean': 0.442, 'since_det': 142, 'min_border_px': 263.5, 'box_diag': 1009.3, 'box_corner_diff': 1.0, 'other_centroid_to_ref_opposite_hand_px': 12.0}
+   {'cam': 1, 'frame': 143, 'group': 'left_hand', 'max_px': 273.7, 'n_points': 12, 'mean_px': 46.2, 'score_ref_mean': 0.433, 'score_other_mean': 0.428, 'since_det': 143, 'min_border_px': 260.5, 'box_diag': 1009.5, 'box_corner_diff': 1.0, 'other_centroid_to_ref_opposite_hand_px': 90.4}
+   {'cam': 2, 'frame': 113, 'group': 'left_hand', 'max_px': 264.0, 'n_points': 20, 'mean_px': 244.7, 'score_ref_mean': 0.481, 'score_other_mean': 0.492, 'since_det': 113, 'min_border_px': 230.2, 'box_diag': 967.8, 'box_corner_diff': 4.66, 'other_centroid_to_ref_opposite_hand_px': 239.6}
+   {'cam': 2, 'frame': 112, 'group': 'left_hand', 'max_px': 261.3, 'n_points': 12, 'mean_px': 232.9, 'score_ref_mean': 0.465, 'score_other_mean': 0.451, 'since_det': 112, 'min_border_px': 244.0, 'box_diag': 965.4, 'box_corner_diff': 9.11, 'other_centroid_to_ref_opposite_hand_px': 8.4}
+   {'cam': 2, 'frame': 108, 'group': 'left_hand', 'max_px': 245.2, 'n_points': 7, 'mean_px': 37.6, 'score_ref_mean': 0.51, 'score_other_mean': 0.427, 'since_det': 108, 'min_border_px': 243.2, 'box_diag': 956.7, 'box_corner_diff': 13.68, 'other_centroid_to_ref_opposite_hand_px': 263.8}
+   {'cam': 0, 'frame': 75, 'group': 'left_hand', 'max_px': 217.8, 'n_points': 14, 'mean_px': 16.8, 'score_ref_mean': 0.449, 'score_other_mean': 0.453, 'since_det': 75, 'min_border_px': 257.0, 'box_diag': 839.5, 'box_corner_diff': 3.48, 'other_centroid_to_ref_opposite_hand_px': 185.7}
+   {'cam': 1, 'frame': 887, 'group': 'feet', 'max_px': 159.3, 'n_points': 6, 'mean_px': 56.4, 'score_ref_mean': 0.756, 'score_other_mean': 0.76, 'since_det': 137, 'min_border_px': 209.4, 'box_diag': 1377.4, 'box_corner_diff': 2.76}
+   {'cam': 2, 'frame': 905, 'group': 'feet', 'max_px': 114.0, 'n_points': 6, 'mean_px': 39.0, 'score_ref_mean': 0.7, 'score_other_mean': 0.736, 'since_det': 5, 'min_border_px': 99.2, 'box_diag': 1094.8, 'box_corner_diff': 1.83}
+   {'cam': 1, 'frame': 887, 'group': 'body', 'max_px': 105.0, 'n_points': 17, 'mean_px': 7.9, 'score_ref_mean': 0.942, 'score_other_mean': 0.935, 'since_det': 137, 'min_border_px': 43.8, 'box_diag': 1377.4, 'box_corner_diff': 2.76}
+
+## trt-rtx_R vs trt-rtx_J3
+groups: {'body': ('1.41', '6.96', '205.82', '0.69', 64, 54559), 'feet': ('1.72', '9.55', '202.31', '0.90', 52, 18750), 'face': ('1.05', '4.79', '52.78', '0.48', 50, 219732), 'left_hand': ('1.74', '11.02', '285.95', '1.14', 453, 65283), 'right_hand': ('1.77', '10.62', '325.76', '1.11', 525, 65530)}
+since_det: [('0-0', 3118, 1.11, 0.63), ('1-4', 12558, 1.57, 1.26), ('5-14', 31045, 1.7, 1.34), ('15-29', 45125, 1.76, 1.42), ('30-59', 84696, 1.53, 1.28), ('60-89', 82274, 1.68, 1.37), ('90-119', 82441, 1.83, 1.38), ('120-149', 82597, 1.55, 1.23), ('150+', 0, 0, 0)]
+per100 median: [1.54, 1.49, 1.28, 1.16, 1.06, 1.13, 1.32, 1.29, 1.41, 1.28, 1.43, nan]
+flip margin: {'n': 1144, 'mean': 0.038, 'median': 0.023, 'p95': 0.131, 'p99': 0.19, 'max': 0.217}
+   {'cam': 1, 'frame': 100, 'group': 'right_hand', 'max_px': 325.8, 'n_points': 11, 'mean_px': 316.2, 'score_ref_mean': 0.456, 'score_other_mean': 0.688, 'since_det': 100, 'min_border_px': 32.9, 'box_diag': 1040.4, 'box_corner_diff': 1.88, 'other_centroid_to_ref_opposite_hand_px': 37.4}
+   {'cam': 1, 'frame': 143, 'group': 'left_hand', 'max_px': 285.9, 'n_points': 11, 'mean_px': 244.0, 'score_ref_mean': 0.423, 'score_other_mean': 0.461, 'since_det': 143, 'min_border_px': 258.0, 'box_diag': 1010.0, 'box_corner_diff': 0.73, 'other_centroid_to_ref_opposite_hand_px': 266.9}
+   {'cam': 2, 'frame': 112, 'group': 'left_hand', 'max_px': 265.3, 'n_points': 11, 'mean_px': 235.5, 'score_ref_mean': 0.499, 'score_other_mean': 0.425, 'since_det': 112, 'min_border_px': 231.2, 'box_diag': 970.1, 'box_corner_diff': 7.0, 'other_centroid_to_ref_opposite_hand_px': 232.2}
+   {'cam': 2, 'frame': 113, 'group': 'left_hand', 'max_px': 254.3, 'n_points': 15, 'mean_px': 107.6, 'score_ref_mean': 0.437, 'score_other_mean': 0.641, 'since_det': 113, 'min_border_px': 237.6, 'box_diag': 972.1, 'box_corner_diff': 3.02, 'other_centroid_to_ref_opposite_hand_px': 249.1}
+   {'cam': 2, 'frame': 114, 'group': 'left_hand', 'max_px': 249.3, 'n_points': 18, 'mean_px': 51.7, 'score_ref_mean': 0.541, 'score_other_mean': 0.442, 'since_det': 114, 'min_border_px': 256.4, 'box_diag': 973.1, 'box_corner_diff': 1.74, 'other_centroid_to_ref_opposite_hand_px': 209.2}
+   {'cam': 2, 'frame': 108, 'group': 'left_hand', 'max_px': 249.2, 'n_points': 5, 'mean_px': 53.0, 'score_ref_mean': 0.416, 'score_other_mean': 0.548, 'since_det': 108, 'min_border_px': 238.9, 'box_diag': 963.1, 'box_corner_diff': 13.03, 'other_centroid_to_ref_opposite_hand_px': 263.0}
+   {'cam': 0, 'frame': 89, 'group': 'left_hand', 'max_px': 213.9, 'n_points': 9, 'mean_px': 210.0, 'score_ref_mean': 0.432, 'score_other_mean': 0.463, 'since_det': 89, 'min_border_px': 324.1, 'box_diag': 832.2, 'box_corner_diff': 3.69, 'other_centroid_to_ref_opposite_hand_px': 203.8}
+   {'cam': 2, 'frame': 113, 'group': 'body', 'max_px': 205.8, 'n_points': 17, 'mean_px': 15.7, 'score_ref_mean': 0.875, 'score_other_mean': 0.892, 'since_det': 113, 'min_border_px': 114.9, 'box_diag': 972.1, 'box_corner_diff': 3.02}
+   {'cam': 2, 'frame': 905, 'group': 'feet', 'max_px': 202.3, 'n_points': 6, 'mean_px': 35.3, 'score_ref_mean': 0.722, 'score_other_mean': 0.705, 'since_det': 5, 'min_border_px': 100.9, 'box_diag': 1094.1, 'box_corner_diff': 1.0}
+   {'cam': 1, 'frame': 143, 'group': 'body', 'max_px': 202.3, 'n_points': 17, 'mean_px': 12.6, 'score_ref_mean': 0.901, 'score_other_mean': 0.901, 'since_det': 143, 'min_border_px': 100.1, 'box_diag': 1010.0, 'box_corner_diff': 0.73}
+
+## cuda_R vs cpu_R
+groups: {'body': ('1.32', '6.78', '213.48', '0.66', 85, 54549), 'feet': ('1.63', '9.67', '189.26', '0.88', 63, 18741), 'face': ('1.03', '4.81', '18.98', '0.47', 25, 219772), 'left_hand': ('1.65', '10.89', '280.77', '1.14', 556, 65176), 'right_hand': ('1.70', '11.25', '91.07', '1.14', 459, 65523)}
+since_det: [('0-0', 3124, 1.11, 0.58), ('1-4', 12563, 1.53, 1.18), ('5-14', 31044, 1.6, 1.25), ('15-29', 45131, 1.62, 1.32), ('30-59', 84720, 1.49, 1.2), ('60-89', 82213, 1.61, 1.27), ('90-119', 82378, 1.78, 1.39), ('120-149', 82588, 1.49, 1.21), ('150+', 0, 0, 0)]
+per100 median: [1.47, 1.35, 1.22, 1.17, 0.9, 0.69, 1.08, 1.3, 1.61, 1.36, 1.49, nan]
+flip margin: {'n': 1188, 'mean': 0.038, 'median': 0.023, 'p95': 0.127, 'p99': 0.21, 'max': 0.255}
+   {'cam': 1, 'frame': 142, 'group': 'left_hand', 'max_px': 280.8, 'n_points': 13, 'mean_px': 63.2, 'score_ref_mean': 0.531, 'score_other_mean': 0.448, 'since_det': 142, 'min_border_px': 263.5, 'box_diag': 1009.3, 'box_corner_diff': 0.86, 'other_centroid_to_ref_opposite_hand_px': 225.1}
+   {'cam': 2, 'frame': 101, 'group': 'left_hand', 'max_px': 269.5, 'n_points': 6, 'mean_px': 54.1, 'score_ref_mean': 0.481, 'score_other_mean': 0.437, 'since_det': 101, 'min_border_px': 215.2, 'box_diag': 931.2, 'box_corner_diff': 1.08, 'other_centroid_to_ref_opposite_hand_px': 39.6}
+   {'cam': 2, 'frame': 111, 'group': 'left_hand', 'max_px': 265.3, 'n_points': 21, 'mean_px': 19.4, 'score_ref_mean': 0.498, 'score_other_mean': 0.473, 'since_det': 111, 'min_border_px': 227.1, 'box_diag': 965.8, 'box_corner_diff': 2.0, 'other_centroid_to_ref_opposite_hand_px': 14.7}
+   {'cam': 2, 'frame': 113, 'group': 'left_hand', 'max_px': 264.8, 'n_points': 20, 'mean_px': 245.3, 'score_ref_mean': 0.481, 'score_other_mean': 0.456, 'since_det': 113, 'min_border_px': 230.2, 'box_diag': 967.8, 'box_corner_diff': 3.65, 'other_centroid_to_ref_opposite_hand_px': 240.1}
+   {'cam': 1, 'frame': 143, 'group': 'left_hand', 'max_px': 262.4, 'n_points': 13, 'mean_px': 20.2, 'score_ref_mean': 0.432, 'score_other_mean': 0.435, 'since_det': 143, 'min_border_px': 260.5, 'box_diag': 1009.5, 'box_corner_diff': 0.32, 'other_centroid_to_ref_opposite_hand_px': 168.5}
+   {'cam': 2, 'frame': 112, 'group': 'left_hand', 'max_px': 254.3, 'n_points': 13, 'mean_px': 138.3, 'score_ref_mean': 0.468, 'score_other_mean': 0.427, 'since_det': 112, 'min_border_px': 244.0, 'box_diag': 965.4, 'box_corner_diff': 2.91, 'other_centroid_to_ref_opposite_hand_px': 101.6}
+   {'cam': 2, 'frame': 114, 'group': 'left_hand', 'max_px': 253.6, 'n_points': 19, 'mean_px': 34.5, 'score_ref_mean': 0.522, 'score_other_mean': 0.439, 'since_det': 114, 'min_border_px': 256.9, 'box_diag': 972.8, 'box_corner_diff': 1.12, 'other_centroid_to_ref_opposite_hand_px': 226.3}
+   {'cam': 0, 'frame': 75, 'group': 'left_hand', 'max_px': 222.0, 'n_points': 9, 'mean_px': 96.9, 'score_ref_mean': 0.461, 'score_other_mean': 0.418, 'since_det': 75, 'min_border_px': 257.0, 'box_diag': 839.5, 'box_corner_diff': 4.15, 'other_centroid_to_ref_opposite_hand_px': 94.6}
+   {'cam': 0, 'frame': 89, 'group': 'left_hand', 'max_px': 217.4, 'n_points': 1, 'mean_px': 217.4, 'score_ref_mean': 0.444, 'score_other_mean': 0.407, 'since_det': 89, 'min_border_px': 339.6, 'box_diag': 834.7, 'box_corner_diff': 4.31, 'other_centroid_to_ref_opposite_hand_px': 205.6}
+   {'cam': 1, 'frame': 142, 'group': 'body', 'max_px': 213.5, 'n_points': 17, 'mean_px': 14.2, 'score_ref_mean': 0.897, 'score_other_mean': 0.892, 'since_det': 142, 'min_border_px': 101.1, 'box_diag': 1009.3, 'box_corner_diff': 0.86}
+
+## cuda_R vs trt-rtx_R
+groups: {'body': ('1.36', '6.87', '149.06', '0.67', 79, 54547), 'feet': ('1.65', '9.66', '154.45', '0.91', 55, 18744), 'face': ('1.04', '4.76', '53.61', '0.47', 50, 219732), 'left_hand': ('1.68', '11.14', '271.73', '1.17', 501, 65250), 'right_hand': ('1.76', '10.47', '323.25', '1.06', 494, 65531)}
+since_det: [('0-0', 3124, 1.06, 0.45), ('1-4', 12572, 1.47, 1.15), ('5-14', 31042, 1.61, 1.27), ('15-29', 45129, 1.66, 1.27), ('30-59', 84710, 1.5, 1.25), ('60-89', 82253, 1.66, 1.33), ('90-119', 82422, 1.82, 1.39), ('120-149', 82552, 1.54, 1.25), ('150+', 0, 0, 0)]
+per100 median: [1.47, 1.52, 1.27, 1.19, 0.7, 1.06, 1.15, 1.27, 1.63, 1.31, 1.45, nan]
+flip margin: {'n': 1179, 'mean': 0.039, 'median': 0.025, 'p95': 0.131, 'p99': 0.178, 'max': 0.238}
+   {'cam': 1, 'frame': 100, 'group': 'right_hand', 'max_px': 323.3, 'n_points': 11, 'mean_px': 313.9, 'score_ref_mean': 0.634, 'score_other_mean': 0.456, 'since_det': 100, 'min_border_px': 33.3, 'box_diag': 1038.7, 'box_corner_diff': 0.82, 'other_centroid_to_ref_opposite_hand_px': 292.1}
+   {'cam': 1, 'frame': 143, 'group': 'left_hand', 'max_px': 271.7, 'n_points': 10, 'mean_px': 132.5, 'score_ref_mean': 0.438, 'score_other_mean': 0.425, 'since_det': 143, 'min_border_px': 260.5, 'box_diag': 1009.5, 'box_corner_diff': 0.69, 'other_centroid_to_ref_opposite_hand_px': 24.0}
+   {'cam': 2, 'frame': 112, 'group': 'left_hand', 'max_px': 265.1, 'n_points': 19, 'mean_px': 243.9, 'score_ref_mean': 0.463, 'score_other_mean': 0.482, 'since_det': 112, 'min_border_px': 244.0, 'box_diag': 965.4, 'box_corner_diff': 11.1, 'other_centroid_to_ref_opposite_hand_px': 13.9}
+   {'cam': 2, 'frame': 113, 'group': 'left_hand', 'max_px': 264.1, 'n_points': 15, 'mean_px': 158.5, 'score_ref_mean': 0.489, 'score_other_mean': 0.437, 'since_det': 113, 'min_border_px': 231.5, 'box_diag': 967.8, 'box_corner_diff': 7.74, 'other_centroid_to_ref_opposite_hand_px': 152.0}
+   {'cam': 1, 'frame': 887, 'group': 'feet', 'max_px': 154.5, 'n_points': 6, 'mean_px': 52.1, 'score_ref_mean': 0.756, 'score_other_mean': 0.76, 'since_det': 137, 'min_border_px': 209.4, 'box_diag': 1377.4, 'box_corner_diff': 0.35}
+   {'cam': 0, 'frame': 248, 'group': 'feet', 'max_px': 154.3, 'n_points': 1, 'mean_px': 154.3, 'score_ref_mean': 0.498, 'score_other_mean': 0.404, 'since_det': 98, 'min_border_px': 122.8, 'box_diag': 722.6, 'box_corner_diff': 15.49}
+   {'cam': 0, 'frame': 62, 'group': 'body', 'max_px': 149.1, 'n_points': 17, 'mean_px': 11.3, 'score_ref_mean': 0.9, 'score_other_mean': 0.906, 'since_det': 62, 'min_border_px': 102.7, 'box_diag': 845.8, 'box_corner_diff': 5.21}
+   {'cam': 1, 'frame': 719, 'group': 'feet', 'max_px': 141.2, 'n_points': 6, 'mean_px': 63.9, 'score_ref_mean': 0.74, 'score_other_mean': 0.736, 'since_det': 119, 'min_border_px': 252.1, 'box_diag': 1230.4, 'box_corner_diff': 2.44}
+   {'cam': 1, 'frame': 118, 'group': 'body', 'max_px': 98.0, 'n_points': 17, 'mean_px': 7.3, 'score_ref_mean': 0.884, 'score_other_mean': 0.888, 'since_det': 118, 'min_border_px': 95.1, 'box_diag': 1023.8, 'box_corner_diff': 1.04}
+   {'cam': 1, 'frame': 826, 'group': 'feet', 'max_px': 97.3, 'n_points': 6, 'mean_px': 29.1, 'score_ref_mean': 0.676, 'score_other_mean': 0.759, 'since_det': 76, 'min_border_px': 212.6, 'box_diag': 1249.3, 'box_corner_diff': 4.31}
+
+## cuda_R_i1 vs cuda_J3_i1
+groups: {'body': ('0.11', '3.62', '46.93', '0.39', 33, 54493), 'feet': ('0.13', '4.48', '79.95', '0.46', 21, 18653), 'face': ('0.10', '2.59', '14.54', '0.27', 44, 219515), 'left_hand': ('0.12', '5.25', '273.59', '0.58', 209, 64774), 'right_hand': ('0.12', '4.56', '81.46', '0.50', 109, 65425)}
+since_det: [('0-0', 422860, 0.54, 0.11), ('1-4', 0, 0, 0), ('5-14', 0, 0, 0), ('15-29', 0, 0, 0), ('30-59', 0, 0, 0), ('60-89', 0, 0, 0), ('90-119', 0, 0, 0), ('120-149', 0, 0, 0), ('150+', 0, 0, 0)]
+per100 median: [0.08, 0.12, 0.05, 0.06, 0.14, 0.19, 0.12, 0.07, 0.13, 0.13, 0.07, nan]
+flip margin: {'n': 416, 'mean': 0.02, 'median': 0.009, 'p95': 0.071, 'p99': 0.146, 'max': 0.175}
+   {'cam': 2, 'frame': 111, 'group': 'left_hand', 'max_px': 273.6, 'n_points': 17, 'mean_px': 67.1, 'score_ref_mean': 0.522, 'score_other_mean': 0.475, 'since_det': 0, 'min_border_px': 228.1, 'box_diag': 968.2, 'box_corner_diff': 5.64, 'other_centroid_to_ref_opposite_hand_px': 62.4}
+   {'cam': 2, 'frame': 142, 'group': 'left_hand', 'max_px': 235.8, 'n_points': 2, 'mean_px': 235.8, 'score_ref_mean': 0.405, 'score_other_mean': 0.409, 'since_det': 0, 'min_border_px': 268.4, 'box_diag': 948.0, 'box_corner_diff': 4.04, 'other_centroid_to_ref_opposite_hand_px': 228.9}
+   {'cam': 1, 'frame': 196, 'group': 'right_hand', 'max_px': 81.5, 'n_points': 19, 'mean_px': 11.9, 'score_ref_mean': 0.553, 'score_other_mean': 0.478, 'since_det': 0, 'min_border_px': 1.1, 'box_diag': 897.2, 'box_corner_diff': 0.74, 'other_centroid_to_ref_opposite_hand_px': 70.9}
+   {'cam': 1, 'frame': 287, 'group': 'feet', 'max_px': 79.9, 'n_points': 3, 'mean_px': 27.1, 'score_ref_mean': 0.569, 'score_other_mean': 0.568, 'since_det': 0, 'min_border_px': 135.3, 'box_diag': 603.0, 'box_corner_diff': 0.14}
+   {'cam': 2, 'frame': 902, 'group': 'feet', 'max_px': 71.6, 'n_points': 6, 'mean_px': 14.7, 'score_ref_mean': 0.796, 'score_other_mean': 0.777, 'since_det': 0, 'min_border_px': 138.2, 'box_diag': 1136.9, 'box_corner_diff': 1.29}
+   {'cam': 0, 'frame': 967, 'group': 'right_hand', 'max_px': 61.9, 'n_points': 7, 'mean_px': 27.4, 'score_ref_mean': 0.431, 'score_other_mean': 0.45, 'since_det': 0, 'min_border_px': 291.2, 'box_diag': 623.6, 'box_corner_diff': 0.36, 'other_centroid_to_ref_opposite_hand_px': 124.2}
+   {'cam': 1, 'frame': 194, 'group': 'right_hand', 'max_px': 54.3, 'n_points': 21, 'mean_px': 17.2, 'score_ref_mean': 0.615, 'score_other_mean': 0.591, 'since_det': 0, 'min_border_px': 7.8, 'box_diag': 939.7, 'box_corner_diff': 0.51, 'other_centroid_to_ref_opposite_hand_px': 58.3}
+   {'cam': 2, 'frame': 904, 'group': 'feet', 'max_px': 49.7, 'n_points': 4, 'mean_px': 13.5, 'score_ref_mean': 0.834, 'score_other_mean': 0.829, 'since_det': 0, 'min_border_px': 110.1, 'box_diag': 1079.7, 'box_corner_diff': 1.0}
+   {'cam': 1, 'frame': 292, 'group': 'body', 'max_px': 46.9, 'n_points': 17, 'mean_px': 3.4, 'score_ref_mean': 0.835, 'score_other_mean': 0.833, 'since_det': 0, 'min_border_px': 152.4, 'box_diag': 646.1, 'box_corner_diff': 0.25}
+   {'cam': 1, 'frame': 428, 'group': 'left_hand', 'max_px': 44.7, 'n_points': 21, 'mean_px': 3.0, 'score_ref_mean': 0.763, 'score_other_mean': 0.759, 'since_det': 0, 'min_border_px': 295.3, 'box_diag': 932.5, 'box_corner_diff': 0.17, 'other_centroid_to_ref_opposite_hand_px': 358.0}
+
+## cuda_R_i1 vs cpu_R_i1
+groups: {'body': ('0.18', '3.63', '178.23', '0.41', 31, 54491), 'feet': ('0.25', '4.35', '123.79', '0.46', 22, 18649), 'face': ('0.18', '2.65', '18.95', '0.29', 42, 219495), 'left_hand': ('0.19', '6.05', '238.17', '0.67', 237, 64702), 'right_hand': ('0.19', '4.91', '81.47', '0.55', 145, 65424)}
+since_det: [('0-0', 422761, 0.65, 0.18), ('1-4', 0, 0, 0), ('5-14', 0, 0, 0), ('15-29', 0, 0, 0), ('30-59', 0, 0, 0), ('60-89', 0, 0, 0), ('90-119', 0, 0, 0), ('120-149', 0, 0, 0), ('150+', 0, 0, 0)]
+per100 median: [0.18, 0.19, 0.15, 0.16, 0.18, 0.16, 0.15, 0.23, 0.17, 0.19, 0.2, nan]
+flip margin: {'n': 477, 'mean': 0.015, 'median': 0.008, 'p95': 0.052, 'p99': 0.093, 'max': 0.159}
+   {'cam': 2, 'frame': 110, 'group': 'left_hand', 'max_px': 238.2, 'n_points': 18, 'mean_px': 17.1, 'score_ref_mean': 0.563, 'score_other_mean': 0.465, 'since_det': 0, 'min_border_px': 301.7, 'box_diag': 925.0, 'box_corner_diff': 1.68, 'other_centroid_to_ref_opposite_hand_px': 247.7}
+   {'cam': 0, 'frame': 84, 'group': 'left_hand', 'max_px': 234.4, 'n_points': 15, 'mean_px': 191.9, 'score_ref_mean': 0.452, 'score_other_mean': 0.434, 'since_det': 0, 'min_border_px': 295.4, 'box_diag': 735.8, 'box_corner_diff': 0.26, 'other_centroid_to_ref_opposite_hand_px': 182.8}
+   {'cam': 0, 'frame': 86, 'group': 'body', 'max_px': 178.2, 'n_points': 17, 'mean_px': 11.4, 'score_ref_mean': 0.873, 'score_other_mean': 0.874, 'since_det': 0, 'min_border_px': 135.2, 'box_diag': 738.8, 'box_corner_diff': 0.48}
+   {'cam': 1, 'frame': 741, 'group': 'feet', 'max_px': 123.8, 'n_points': 6, 'mean_px': 22.2, 'score_ref_mean': 0.683, 'score_other_mean': 0.642, 'since_det': 0, 'min_border_px': 254.5, 'box_diag': 1018.2, 'box_corner_diff': 0.55}
+   {'cam': 1, 'frame': 196, 'group': 'right_hand', 'max_px': 81.5, 'n_points': 19, 'mean_px': 12.2, 'score_ref_mean': 0.553, 'score_other_mean': 0.479, 'since_det': 0, 'min_border_px': 1.1, 'box_diag': 897.2, 'box_corner_diff': 0.58, 'other_centroid_to_ref_opposite_hand_px': 70.8}
+   {'cam': 1, 'frame': 285, 'group': 'feet', 'max_px': 66.7, 'n_points': 2, 'mean_px': 34.1, 'score_ref_mean': 0.603, 'score_other_mean': 0.631, 'since_det': 0, 'min_border_px': 136.4, 'box_diag': 589.0, 'box_corner_diff': 0.2}
+   {'cam': 1, 'frame': 291, 'group': 'feet', 'max_px': 65.8, 'n_points': 3, 'mean_px': 22.0, 'score_ref_mean': 0.514, 'score_other_mean': 0.496, 'since_det': 0, 'min_border_px': 132.4, 'box_diag': 627.2, 'box_corner_diff': 0.21}
+   {'cam': 0, 'frame': 967, 'group': 'right_hand', 'max_px': 61.2, 'n_points': 7, 'mean_px': 21.1, 'score_ref_mean': 0.431, 'score_other_mean': 0.434, 'since_det': 0, 'min_border_px': 291.2, 'box_diag': 623.6, 'box_corner_diff': 0.31, 'other_centroid_to_ref_opposite_hand_px': 129.7}
+   {'cam': 1, 'frame': 754, 'group': 'left_hand', 'max_px': 60.5, 'n_points': 21, 'mean_px': 6.8, 'score_ref_mean': 0.807, 'score_other_mean': 0.81, 'since_det': 0, 'min_border_px': 195.3, 'box_diag': 922.0, 'box_corner_diff': 0.31, 'other_centroid_to_ref_opposite_hand_px': 394.8}
+   {'cam': 2, 'frame': 903, 'group': 'feet', 'max_px': 52.4, 'n_points': 6, 'mean_px': 11.0, 'score_ref_mean': 0.76, 'score_other_mean': 0.762, 'since_det': 0, 'min_border_px': 124.7, 'box_diag': 1043.4, 'box_corner_diff': 0.22}
+
+## cuda_DEC_q90 (decode only: package NvJpegDecoder against cv2.imdecode, first 50 frames of each camera)
+{
+ "tag": "cuda_DEC_q90",
+ "ep": "cuda",
+ "quality": 90,
+ "frames": 50,
+ "cams": [
+  "Cam1",
+  "Cam2",
+  "Cam3"
+ ],
+ "channel_values": 414720000,
+ "max_abs": 3,
+ "mean_abs": 0.018378269675925926,
+ "pct_values_differ": 1.6430164930555555,
+ "hist_abs": {
+  "0": 407906082,
+  "1": 6011570,
+  "2": 796778,
+  "3": 5570
+ },
+ "per_image_mean_abs_max": 0.02231155960648148
+}

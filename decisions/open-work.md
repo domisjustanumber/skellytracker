@@ -175,105 +175,44 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   Result of 2026-11-18. The pipeline run now has the GPU preprocess graph
   ([ADR-W4NW](entries/W4NW-gpu-preprocess-of-a-model-node-and-its-cpu-warning.md)) and the GPU JPEG
   decode ([ADR-P245](../specs/pipeline/decisions/entries/P245-jpeg-frame-input.md);
-  [ADR-88ZB](entries/88ZB-gpu-jpeg-decoder-component-of-the-ep-catalog.md)). Conditions: one RTX 3070;
-  an i7-class CPU with 28 logical cores; ONNX Runtime 1.31.1; the packs `cuda-cu13` 0.3.0 and
-  `trt-rtx-cu13` 0.5.0; nvImageCodec 0.10.0.9; OpenCV 5.0.0; the built-in pipeline
-  `yolox-rtmw-wholebody`; real camera frames at 1280x720 and 1920x1080, still frames in a cycle;
-  3 and 6 cameras; 30 warm-up calls and 300 measured calls for each configuration; one run for each
-  configuration. The frames hold no person. A call with the built-in config thus ran the detector and
-  never the keypoint model. The calls with the keypoint model used a config variant with a detector
-  score floor. The numbers are medians of the wall time of one call.
-  - Detector call with the built-in config (the detector only), 3 cameras, array input with the
-    CPU preprocess against JPEG input with the GPU decode and the GPU preprocess. `cuda`: 35.34 to 22.49 ms (-36%) at 1280x720, and 38.15 to
-    24.90 ms (-35%) at 1920x1080. `trt-rtx`: 27.27 to 12.10 ms (-56%) at 1280x720, and 28.67 to
-    13.32 ms (-54%) at 1920x1080.
-  - The span `person.preprocess` of that call, in the same order. `cuda`: 12.71 to 1.60 ms at
-    1280x720, and 13.67 to 2.64 ms at 1920x1080. `trt-rtx`: 12.64 to 0.50 ms and 12.76 to 0.61 ms.
-    The JPEG input adds the span `frame.decode` of 2.19 to 2.33 ms for 3 frames. Array input has none.
-  - Not a gain, a: a keypoint-only call is slower on `cuda` with the GPU path. Median of 3 cameras,
-    array input with the CPU preprocess against JPEG input with the GPU decode and the GPU
-    preprocess: 9.62 to 11.13 ms (+16%) at 1280x720, and 9.48 to 13.54 ms (+43%) at 1920x1080.
-    At 1920x1080 the span `wholebody.preprocess` is 2.04 ms on the CPU and 3.79 ms with the GPU
-    graph (array input), and the array upload adds 1.58 ms: the `affine_crop` graph of the keypoint
-    node is slower than the CPU code on `cuda`. On `trt-rtx` the call is about equal or faster:
-    6.25 to 6.71 ms (+7%) at 1280x720, and 6.03 to 5.79 ms (-4%) at 1920x1080. The baseline "array
-    input" does not count the JPEG decode that a caller with JPEG frames must do. Against JPEG input
-    with the CPU decode and the CPU preprocess (measured at 1280x720 only), the GPU path takes
-    19.19 to 11.13 ms (-42%) on `cuda` and 14.90 to 6.71 ms (-55%) on `trt-rtx`.
-  - Not a gain, b: the agreement of the keypoints with the CPU path could not be judged. The frames
-    hold no person, and keypoints on such content move far for a small change of the input. Keypoints
-    with a score above 0.4, 3 cameras, 330 calls, difference from array input with the CPU
-    preprocess in source pixels, maximum / mean. Array input with the GPU preprocess: 2.789 / 0.046
-    (`cuda`) and 2.807 / 0.152 (`trt-rtx`) at 1280x720, and 15.433 / 0.385 and 19.208 / 1.311 at
-    1920x1080. JPEG input with the GPU decode and the GPU preprocess: 4.859 / 0.330 and
-    3.537 / 0.372 at 1280x720, and 117.472 / 7.780 and 185.772 / 6.914 at 1920x1080. In the runs
-    with the built-in cadence, the maximum of these keypoints is 411.817 to 1082.356 pixels.
-  - Agreement on a recording with people, measured on 2026-11-18. Conditions: the freemocap sample
-    data, 3 cameras at 720x1280, 1108 frames, one person; each video frame encoded again as JPEG
-    with `cv2.imencode` at quality 90; the built-in pipeline with no config change; the 133 model
-    points with a score above 0.4, about 424 000 points for each pair; the same hardware and
-    versions as above. The numbers are the difference of a keypoint in source pixels, median / p99.
-    - Two runs of one path on one EP are equal bit for bit.
-    - JPEG input with the GPU decode and the GPU preprocess against JPEG input with the CPU decode
-      and the CPU preprocess: 1.18 / 7.55 on `cuda`, and 1.33 / 7.92 on `trt-rtx`.
-    - The yardstick, the CPU path on two EPs: 1.26 / 7.87 for `cuda` against `cpu`, and 1.29 / 7.78
-      for `cuda` against `trt-rtx`. The GPU path thus differs from the CPU path as much as one EP
-      differs from an other EP.
-    - The GPU decode adds no difference that the measurement can show: with the GPU preprocess, array
-      input and JPEG input with the CPU decode are equal bit for bit, and JPEG input with the GPU
-      decode gives 1.18 / 7.55 against 1.14 / 7.47 (`cuda`).
-    - The difference does not grow with time. With a detector call at each frame, the median is 0.11
-      (`cuda`, GPU path against CPU path) and 0.18 (`cuda` against `cpu`). The feedback from the
-      keypoints to the crop box raises it to about 1.2, and it stays there.
-    - 0.25 to 0.28 % of the points cross the score 0.4 in each pair, also in the yardstick.
-    - The maximum is 320 to 326 pixels in each pair, and 281 to 323 in the yardstick. It comes from
-      a few frames in which the model moves a whole hand. The same frames are the worst frames of
-      the yardstick.
-    - Limits: one recording, JPEG made from decoded video and not from a camera, rotation 0 only, no
-      ground truth. These are agreement numbers, not accuracy numbers.
-  - Not a gain, c: one measurement process (`cuda`, array input with the GPU preprocess, 1920x1080,
-    6 cameras) did not end at its exit after it saved its results. It ran into the timeout of
-    1200 s. This was 1 of the runs. An earlier study on this work did not reproduce an exit hang in
-    566 runs. The cause is not established.
-  - Open: the keypoint preprocess with several boxes for each frame was not measured. The frames
-    give at most one box.
-  - Enabled: the decoder option `nvjpeg_cuda_decoder:hybrid_huffman_threshold=500000`. nvJPEG
-    does the Huffman decode on the GPU for an image with more than 500000 pixels. The library
-    default is 1000000. Conditions: one RTX 3070, nvImageCodec 0.10.0.9, measured on 2026-11-18.
-    - The pipeline `yolox-rtmw-wholebody`, JPEG input with the GPU decode and the GPU preprocess,
-      3 cameras at 1280x720, mean of the medians of 2 runs, threshold 0: `frame.decode` went from
-      2.38 to 1.39 ms on `trt-rtx`, and from 2.74 to 1.48 ms on `cuda`. The process GPU memory did
-      not change. At 1280x720 the thresholds 0 and 500000 have the same effect. With 500000 in the
-      code, the median was 1.30 to 1.35 ms in 3 runs.
-    - The decoder alone, on the `cuda` device, 2 runs of 1000 batches. Wall median in ms, for the
-      default / 500000 / 0: 320x240 x6 0.55 / 0.55 / 1.20; 640x480 x6 1.10 / 1.10 / 1.45;
-      1280x720 x3 2.29 / 1.27 / 1.28; 1280x720 x6 2.50 / 1.80 / 1.78; 1920x1080 x3
-      2.12 / 2.11 / 2.13. The CPU time of a batch of 1280x720 x3 went from 4.6 to 2.6 ms.
-    - The pixels are identical to the default (maximum absolute difference 0) at each size, and for
-      a grayscale JPEG and a progressive JPEG.
-    - The threshold is not 0, because 0 makes small frames slower: 320x240 x6 goes from 0.55 to
-      1.20 ms, and 640x480 x6 from 1.10 to 1.45 ms. At 1920x1080 the default already does the
-      Huffman decode on the GPU.
-    - Exit text: with the threshold 0, each `trt-rtx` pipeline process printed
-      `cuDevicePrimaryCtxRelease failed: 4` five times at its exit, with the exit code 0 and no
-      hang. With 500000, 2 `trt-rtx` runs and 1 `cuda` run of the pipeline did not print it. A
-      process that opens only the decoder, with no model session, prints it on `cuda` and `trt-rtx`
-      also with the default threshold.
-  - Open: a model session with a dynamic batch pads the batch on the GPU path.
-  - Open: the run now decodes the CPU JPEG frames of a call in a thread pool, with at most
-    `cpu_threads` threads ([ADR-S1TG](../specs/pipeline/decisions/entries/S1TG-cpu-jpeg-decode-threads.md)).
-    The gain of a full call is not measured yet.
-- **nvImageCodec hang of a one-image decode.** nvImageCodec never returns from a decode of one image
-  when the decoder has fewer CUDA streams than worker threads: the threads that share a stream wait
-  at a barrier, and one image wakes only one thread. A batch of 2 or more images returns. A source
-  reading finds the same code in 0.8.0 to 0.10.1.12. The runs of 2026-11-19 used 0.10.0.9 only, on
-  Windows 11 with one RTX 3070: 62 cells of threads, streams and images, and 9 runs with
-  `NVIMGCODEC_DEFAULT_NUM_CUDA_STREAMS`, after batches of 2 and with no DHT segment, agree with this
-  cause. No Linux run. The decoder sets equal counts, removes that variable, and decodes one test
-  JPEG at the open with a 10 s limit
-  ([ADR-88ZB](entries/88ZB-gpu-jpeg-decoder-component-of-the-ep-catalog.md)). A process with an
-  abandoned decoder exits with code 0 (6 of 6 runs). A minimal reproducer for an upstream report is
-  prepared. The report is not sent.
+  [ADR-88ZB](entries/88ZB-gpu-jpeg-decoder-component-of-the-ep-catalog.md)). The measurements are
+  in [ADR-1SZ9](entries/1SZ9-gpu-preprocess-and-gpu-jpeg-decode-in-the-pipeline-run.md) (the calls
+  and spans end to end), [ADR-FBV5](entries/FBV5-gpu-path-agreement-on-the-freemocap-sample-data.md)
+  (the agreement on a recording with people) and
+  [ADR-BP5Y](entries/BP5Y-gpu-huffman-decode-threshold.md) (the GPU Huffman option, 500000 in the
+  package). These items stay open:
+  - The keypoint preprocess with several boxes for each frame was not measured. The frames give at
+    most one box.
+  - A model session with a dynamic batch pads the batch on the GPU path.
+  - The run decodes the CPU JPEG frames of a call in a thread pool
+    ([ADR-S1TG](../specs/pipeline/decisions/entries/S1TG-cpu-jpeg-decode-threads.md)). The gain of
+    a full call is not measured yet.
+- **Repeat the measurements on the pinned versions (ONNX Runtime 1.30.0, `cuda-cu13` 0.2.0) with at
+  least 3 repeats and the spread.** The numbers of these records come from ONNX Runtime 1.31.1 and
+  `cuda-cu13` 0.3.0, before the move: [ADR-1SZ9](entries/1SZ9-gpu-preprocess-and-gpu-jpeg-decode-in-the-pipeline-run.md),
+  [ADR-FBV5](entries/FBV5-gpu-path-agreement-on-the-freemocap-sample-data.md),
+  [ADR-BP5Y](entries/BP5Y-gpu-huffman-decode-threshold.md),
+  [ADR-S1TG](../specs/pipeline/decisions/entries/S1TG-cpu-jpeg-decode-threads.md) (the decode
+  timing), the Evidence of [ADR-88ZB](entries/88ZB-gpu-jpeg-decoder-component-of-the-ep-catalog.md)
+  and of [ADR-J1HK](../specs/model-sidecar/decisions/entries/J1HK-resize-pixel-tolerance.md), and
+  the resize-limit runs of the GPU preprocess in the
+  [spec open work](../specs/model-sidecar/decisions/open-work.md).
+- **Results with no saved output.** Measure these again and record them. After the move to ONNX
+  Runtime 1.30.0, with `gpu-jpeg-cu13` beside `cuda-cu13` 0.2.0: the count of the GPU tests that
+  pass, and the counts of `run_jpeg_certification` (52 checks) on `cuda` and `trt-rtx`.
+- **nvImageCodec hang of a one-image decode.**
+  [ADR-975Z](entries/975Z-nvimagecodec-one-image-decode-hang.md) gives the cause, the runs and the
+  workaround. Open: the report to NVIDIA is not sent (a minimal reproducer is ready). No run on Linux
+  and no run on a host with few CPU cores.
+- **Exit hang of the CUDA EP plugin.** [ADR-C6A5](entries/C6A5-exit-hang-of-the-cuda-ep-plugin.md)
+  gives the runs and the findings. Open:
+  - A run of the hang rate with `ORT_DISABLE_TELEMETRY=1` on `cuda-cu13` 0.3.0 is planned. No run
+    has tested it.
+  - More full runs on ONNX Runtime 1.30.0 with `cuda-cu13` 0.2.0 (0 of 43 is not enough), a full
+    run on `trt-rtx` and a longer run of the minimal reproducer.
+  - The setting `ORT_DISABLE_TELEMETRY=1` and the check of the upgrade checker are planned on
+    `dom/sidecar-implementation` (user, 2026-11-19). This branch has no code for them.
+  - The report to ONNX Runtime is not sent.
 - **Repair of a damaged store folder.** A damaged pack folder or component folder of the EP store
   reports a state whose hint is to run the install command. The install does not repair the folder,
   because the folder exists. The remedy today is to remove the pack or the component, then to install

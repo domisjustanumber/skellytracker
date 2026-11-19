@@ -1,0 +1,240 @@
+0x1b00570-0x1b0068a: str:onnxruntime::common::Status::Status | str:N:\_work\1\s\onnxruntime\core\common\status.cc | str:code != static_cast<int>(common::OK)
+0x1b00690-0x1b00798: str:onnxruntime::common::Status::Status | str:N:\_work\1\s\onnxruntime\core\common\status.cc | str:code != static_cast<int>(common::OK)
+0x1b007a0-0x1b008c5: str:onnxruntime::common::Status::Status | str:N:\_work\1\s\onnxruntime\core\common\status.cc | str:code != static_cast<int>(common::OK)
+0x1b00970-0x1b00f7c: icall:api-ms-win-crt-runtime-l1-1-0.dll!_errno | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | str:[ONNXRuntimeError] | str:FAIL | str:INVALID_ARGUMENT | str:NO_SUCHFILE | str:NO_MODEL | str:ENGINE_ERROR | str:RUNTIME_EXCEPTION | str:INVALID_PROTOBUF | str:MODEL_LOADED | str:NOT_IMPLEMENTED | str:INVALID_GRAPH | str:EP_FAIL | str:MODEL_LOAD_CANCELED | str:MODEL_REQUIRES_COMPILATION | str:NOT_FOUND | str:DEVICE_RESET | str:GENERAL ERROR | str:SUCCESS
+0x1b010f0-0x1b01224: icall:KERNEL32.dll!WideCharToMultiByte | str:length overflow | str:onnxruntime::ToUTF8String | str:N:\_work\1\s\onnxruntime\core\common\helper.cc
+0x1b01230-0x1b0133c: icall:KERNEL32.dll!MultiByteToWideChar | str:length overflow | str:onnxruntime::ToWideString | str:N:\_work\1\s\onnxruntime\core\common\helper.cc
+0x1b01340-0x1b015d4: icall:MSVCP140.dll!?width@ios_base@std@@QEBA_JXZ | icall:MSVCP140.dll!?rdbuf@?$basic_ios@_WU?$char_traits@_W@std@@@std@@QEBAPEAV?$basic_streambuf@_WU?$char_traits@_W@std@@@2@XZ | icall:MSVCP140.dll!?good@ios_base@std@@QEBA_NXZ | icall:MSVCP140.dll!?tie@?$basic_ios@_WU?$char_traits@_W@std@@@std@@QEBAPEAV?$basic_ostream@_WU?$char_traits@_W@std@@@2@XZ | icall:MSVCP140.dll!?flush@?$basic_ostream@_WU?$char_traits@_W@std@@@std@@QEAAAEAV12@XZ | icall:MSVCP140.dll!?flags@ios_base@std@@QEBAHXZ | icall:MSVCP140.dll!?fill@?$basic_ios@_WU?$char_traits@_W@std@@@std@@QEBA_WXZ | icall:MSVCP140.dll!?sputc@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@QEAAG_W@Z | icall:MSVCP140.dll!?width@ios_base@std@@QEAA_J_J@Z | icall:MSVCP140.dll!?sputn@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@QEAA_JPEB_W_J@Z | icall:MSVCP140.dll!?setstate@?$basic_ios@_WU?$char_traits@_W@std@@@std@@QEAAXH_N@Z | icall:MSVCP140.dll!?_Osfx@?$basic_ostream@_WU?$char_traits@_W@std@@@std@@QEAAXXZ
+0x1b015e0-0x1b016bf: icall:MSVCP140.dll!?pptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?epptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?egptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?eback@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?setg@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEAAXPEA_W00@Z | icall:MSVCP140.dll!?setp@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEAAXPEA_W0@Z | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b016c0-0x1b016f5: icall:MSVCP140.dll!?rdbuf@?$basic_ios@_WU?$char_traits@_W@std@@@std@@QEBAPEAV?$basic_streambuf@_WU?$char_traits@_W@std@@@2@XZ
+0x1b01700-0x1b0174e: icall:MSVCP140.dll!?_Osfx@?$basic_ostream@_WU?$char_traits@_W@std@@@std@@QEAAXXZ | icall:MSVCP140.dll!?rdbuf@?$basic_ios@_WU?$char_traits@_W@std@@@std@@QEBAPEAV?$basic_streambuf@_WU?$char_traits@_W@std@@@2@XZ
+0x1b01750-0x1b017ab: icall:MSVCP140.dll!??1?$basic_ostream@_WU?$char_traits@_W@std@@@std@@UEAA@XZ
+0x1b017c0-0x1b01849: icall:MSVCP140.dll!??1?$basic_ostream@_WU?$char_traits@_W@std@@@std@@UEAA@XZ | icall:MSVCP140.dll!??1?$basic_ios@_WU?$char_traits@_W@std@@@std@@UEAA@XZ
+0x1b0198a-0x1b01a86: icall:api-ms-win-crt-time-l1-1-0.dll!_localtime64_s | icall:api-ms-win-crt-time-l1-1-0.dll!_gmtime64_s | icall:api-ms-win-crt-time-l1-1-0.dll!_mktime64 | icall:api-ms-win-crt-time-l1-1-0.dll!_difftime64
+0x1b01bb0-0x1b01d50: icall:MSVCP140.dll!?pptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?epptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?_Pninc@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEAAPEA_WXZ | icall:MSVCP140.dll!?eback@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?setp@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEAAXPEA_W00@Z | icall:MSVCP140.dll!?gptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?setg@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEAAXPEA_W00@Z
+0x1b01d50-0x1b01de7: icall:MSVCP140.dll!?gptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?eback@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?gbump@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEAAXH@Z
+0x1b01f10-0x1b020ca: icall:MSVCP140.dll!?gptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?pptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?eback@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?setg@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEAAXPEA_W00@Z | icall:MSVCP140.dll!?epptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?setp@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEAAXPEA_W00@Z
+0x1b020d0-0x1b02196: icall:MSVCP140.dll!?gptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?pptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?eback@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ
+0x1b02196-0x1b021ef: icall:MSVCP140.dll!?setg@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEAAXPEA_W00@Z | icall:MSVCP140.dll!?epptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?setp@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEAAXPEA_W00@Z
+0x1b02220-0x1b022eb: icall:MSVCP140.dll!?gptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?egptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?pptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?eback@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?setg@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEAAXPEA_W00@Z
+0x1b022f0-0x1b023f1: icall:KERNEL32.dll!WideCharToMultiByte | str:WIL Exception
+0x1b02400-0x1b024c3: icall:KERNEL32.dll!GetProcessHeap | icall:KERNEL32.dll!HeapFree
+0x1b025e6-0x1b026b2: icall:KERNEL32.dll!GetProcessHeap | icall:KERNEL32.dll!HeapFree
+0x1b02810-0x1b02b27: icall:MSVCP140.dll!?width@ios_base@std@@QEBA_JXZ | icall:MSVCP140.dll!?rdbuf@?$basic_ios@_WU?$char_traits@_W@std@@@std@@QEBAPEAV?$basic_streambuf@_WU?$char_traits@_W@std@@@2@XZ | icall:MSVCP140.dll!?good@ios_base@std@@QEBA_NXZ | icall:MSVCP140.dll!?tie@?$basic_ios@_WU?$char_traits@_W@std@@@std@@QEBAPEAV?$basic_ostream@_WU?$char_traits@_W@std@@@2@XZ | icall:MSVCP140.dll!?flush@?$basic_ostream@_WU?$char_traits@_W@std@@@std@@QEAAAEAV12@XZ | icall:MSVCP140.dll!?getloc@ios_base@std@@QEBA?AVlocale@2@XZ | icall:MSVCP140.dll!?flags@ios_base@std@@QEBAHXZ | icall:MSVCP140.dll!?fill@?$basic_ios@_WU?$char_traits@_W@std@@@std@@QEBA_WXZ | icall:MSVCP140.dll!?sputc@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@QEAAG_W@Z | icall:MSVCP140.dll!?widen@?$ctype@_W@std@@QEBA_WD@Z | icall:MSVCP140.dll!?width@ios_base@std@@QEAA_J_J@Z | icall:MSVCP140.dll!?setstate@?$basic_ios@_WU?$char_traits@_W@std@@@std@@QEAAXH_N@Z | icall:MSVCP140.dll!?_Osfx@?$basic_ostream@_WU?$char_traits@_W@std@@@std@@QEAAXXZ
+0x1b02b30-0x1b02db3: icall:MSVCP140.dll!?width@ios_base@std@@QEBA_JXZ | icall:MSVCP140.dll!?rdbuf@?$basic_ios@_WU?$char_traits@_W@std@@@std@@QEBAPEAV?$basic_streambuf@_WU?$char_traits@_W@std@@@2@XZ | icall:MSVCP140.dll!?good@ios_base@std@@QEBA_NXZ | icall:MSVCP140.dll!?tie@?$basic_ios@_WU?$char_traits@_W@std@@@std@@QEBAPEAV?$basic_ostream@_WU?$char_traits@_W@std@@@2@XZ | icall:MSVCP140.dll!?flush@?$basic_ostream@_WU?$char_traits@_W@std@@@std@@QEAAAEAV12@XZ | icall:MSVCP140.dll!?flags@ios_base@std@@QEBAHXZ | icall:MSVCP140.dll!?fill@?$basic_ios@_WU?$char_traits@_W@std@@@std@@QEBA_WXZ | icall:MSVCP140.dll!?sputc@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@QEAAG_W@Z | icall:MSVCP140.dll!?sputn@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@QEAA_JPEB_W_J@Z | icall:MSVCP140.dll!?width@ios_base@std@@QEAA_J_J@Z | icall:MSVCP140.dll!?setstate@?$basic_ios@_WU?$char_traits@_W@std@@@std@@QEAAXH_N@Z | icall:MSVCP140.dll!?_Osfx@?$basic_ostream@_WU?$char_traits@_W@std@@@std@@QEAAXXZ
+0x1b02dc0-0x1b0328d: icall:KERNEL32.dll!FindFirstFileW | icall:KERNEL32.dll!FindNextFileW | icall:KERNEL32.dll!GetLastError | icall:KERNEL32.dll!FindClose | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | str:onnxruntime::LoopDir | str:N:\_work\1\s\onnxruntime\core/platform/path_lib.h
+0x1b03290-0x1b03463: icall:MSVCP140.dll!??0?$basic_ios@DU?$char_traits@D@std@@@std@@IEAA@XZ | icall:MSVCP140.dll!??0?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAA@PEAV?$basic_streambuf@DU?$char_traits@D@std@@@1@_N@Z | icall:MSVCP140.dll!??0?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAA@XZ | icall:MSVCP140.dll!??1?$basic_ostream@DU?$char_traits@D@std@@@std@@UEAA@XZ | icall:MSVCP140.dll!??1?$basic_ios@DU?$char_traits@D@std@@@std@@UEAA@XZ
+0x1b03470-0x1b035f9: icall:MSVCP140.dll!??0?$basic_ios@DU?$char_traits@D@std@@@std@@IEAA@XZ | icall:MSVCP140.dll!??0?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAA@PEAV?$basic_streambuf@DU?$char_traits@D@std@@@1@_N@Z | icall:MSVCP140.dll!??0?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAA@XZ | icall:MSVCP140.dll!??1?$basic_ostream@DU?$char_traits@D@std@@@std@@UEAA@XZ | icall:MSVCP140.dll!??1?$basic_ios@DU?$char_traits@D@std@@@std@@UEAA@XZ
+0x1b03660-0x1b03848: icall:MSVCP140.dll!??0?$basic_ios@DU?$char_traits@D@std@@@std@@IEAA@XZ | icall:MSVCP140.dll!??0?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAA@PEAV?$basic_streambuf@DU?$char_traits@D@std@@@1@_N@Z | icall:MSVCP140.dll!??0?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAA@XZ | icall:MSVCP140.dll!??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@H@Z | icall:MSVCP140.dll!??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@K@Z | icall:MSVCP140.dll!??1?$basic_ostream@DU?$char_traits@D@std@@@std@@UEAA@XZ | icall:MSVCP140.dll!??1?$basic_ios@DU?$char_traits@D@std@@@std@@UEAA@XZ
+0x1b03850-0x1b03a00: icall:MSVCP140.dll!??0?$basic_ios@DU?$char_traits@D@std@@@std@@IEAA@XZ | icall:MSVCP140.dll!??0?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAA@PEAV?$basic_streambuf@DU?$char_traits@D@std@@@1@_N@Z | icall:MSVCP140.dll!??0?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAA@XZ | icall:MSVCP140.dll!??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@K@Z | icall:MSVCP140.dll!??1?$basic_ostream@DU?$char_traits@D@std@@@std@@UEAA@XZ | icall:MSVCP140.dll!??1?$basic_ios@DU?$char_traits@D@std@@@std@@UEAA@XZ
+0x1b03a00-0x1b03bea: icall:MSVCP140.dll!??0?$basic_ios@DU?$char_traits@D@std@@@std@@IEAA@XZ | icall:MSVCP140.dll!??0?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAA@PEAV?$basic_streambuf@DU?$char_traits@D@std@@@1@_N@Z | icall:MSVCP140.dll!??0?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAA@XZ | icall:MSVCP140.dll!??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@K@Z | icall:MSVCP140.dll!??1?$basic_ostream@DU?$char_traits@D@std@@@std@@UEAA@XZ | icall:MSVCP140.dll!??1?$basic_ios@DU?$char_traits@D@std@@@std@@UEAA@XZ
+0x1b03bf0-0x1b03de4: icall:MSVCP140.dll!??0?$basic_ios@DU?$char_traits@D@std@@@std@@IEAA@XZ | icall:MSVCP140.dll!??0?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAA@PEAV?$basic_streambuf@DU?$char_traits@D@std@@@1@_N@Z | icall:MSVCP140.dll!??0?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAA@XZ | icall:MSVCP140.dll!??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@K@Z | icall:MSVCP140.dll!??1?$basic_ostream@DU?$char_traits@D@std@@@std@@UEAA@XZ | icall:MSVCP140.dll!??1?$basic_ios@DU?$char_traits@D@std@@@std@@UEAA@XZ
+0x1b03df0-0x1b03f9d: icall:MSVCP140.dll!??0?$basic_ios@DU?$char_traits@D@std@@@std@@IEAA@XZ | icall:MSVCP140.dll!??0?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAA@PEAV?$basic_streambuf@DU?$char_traits@D@std@@@1@_N@Z | icall:MSVCP140.dll!??0?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAA@XZ | icall:MSVCP140.dll!??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@K@Z | icall:MSVCP140.dll!??1?$basic_ostream@DU?$char_traits@D@std@@@std@@UEAA@XZ | icall:MSVCP140.dll!??1?$basic_ios@DU?$char_traits@D@std@@@std@@UEAA@XZ
+0x1b04140-0x1b043d7: icall:KERNEL32.dll!GetCurrentThreadId | icall:KERNEL32.dll!IsDebuggerPresent | icall:KERNEL32.dll!OutputDebugStringW
+0x1b043e0-0x1b046de: icall:KERNEL32.dll!GetCurrentThreadId | icall:KERNEL32.dll!IsDebuggerPresent | icall:KERNEL32.dll!OutputDebugStringW
+0x1b0485a-0x1b04874: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b04a88-0x1b04aa2: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b04bc5-0x1b04bdf: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b05130-0x1b051fd: icall:MSVCP140.dll!??0_Lockit@std@@QEAA@H@Z | icall:MSVCP140.dll!?_Getcat@?$ctype@_W@std@@SA_KPEAPEBVfacet@locale@2@PEBV42@@Z | icall:MSVCP140.dll!??1_Lockit@std@@QEAA@XZ
+0x1b05350-0x1b056f6: icall:api-ms-win-crt-runtime-l1-1-0.dll!_set_errno | icall:api-ms-win-crt-runtime-l1-1-0.dll!_set_doserrno | icall:api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex | icall:KERNEL32.dll!GetLastError | icall:KERNEL32.dll!CloseHandle | icall:KERNEL32.dll!SetLastError | icall:api-ms-win-crt-runtime-l1-1-0.dll!__doserrno | str: doserrno: | str: message: | str:WindowThread:_beginthreadex failed with errno: | str:onnxruntime::WindowsThread::WindowsThread | str:N:\_work\1\s\onnxruntime\core\platform\windows\env.cc | str:custom_create_thread_fn returned invalid handle. | str:Negative thread index is not allowed | str:index >= 0
+0x1b05950-0x1b05f57: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | icall:KERNEL32.dll!DeleteFileW | icall:KERNEL32.dll!GetLastError | str:, error code:  | str:DeleteFile() failed - path: 
+0x1b05f60-0x1b06127: icall:KERNEL32.dll!GetFinalPathNameByHandleW | icall:KERNEL32.dll!GetLastError | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b06170-0x1b061b5: icall:KERNEL32.dll!CloseHandle
+0x1b061c0-0x1b0626d: icall:KERNEL32.dll!CloseHandle | icall:KERNEL32.dll!WaitForSingleObject | str:N:\_work\1\s\onnxruntime\core\platform\windows\env.cc
+0x1b06420-0x1b0678e: icall:KERNEL32.dll!CreateDirectoryA | icall:api-ms-win-crt-runtime-l1-1-0.dll!_errno | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b06790-0x1b06b8c: icall:KERNEL32.dll!CreateDirectoryW | icall:api-ms-win-crt-runtime-l1-1-0.dll!_errno | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b06c90-0x1b07066: str:onnxruntime::WindowsEnv::DeleteFolder | str:N:\_work\1\s\onnxruntime\core\platform\windows\env.cc | icall:KERNEL32.dll!RemoveDirectoryW | icall:KERNEL32.dll!GetLastError | str:, error code:  | str:RemoveDirectory() failed - path:  | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b07070-0x1b070b3: icall:api-ms-win-crt-stdio-l1-1-0.dll!_close | icall:api-ms-win-crt-runtime-l1-1-0.dll!_errno
+0x1b070c0-0x1b07262: str: failed, errcode =  | str:RandomAccessFile:  | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b07270-0x1b0729e: icall:KERNEL32.dll!GetFileAttributesA
+0x1b072a0-0x1b072ce: icall:KERNEL32.dll!GetFileAttributesW
+0x1b072d0-0x1b07349: icall:api-ms-win-crt-stdio-l1-1-0.dll!_sopen_s | icall:api-ms-win-crt-runtime-l1-1-0.dll!_errno
+0x1b07350-0x1b073c9: icall:api-ms-win-crt-stdio-l1-1-0.dll!_wsopen_s | icall:api-ms-win-crt-runtime-l1-1-0.dll!_errno
+0x1b073d0-0x1b07449: icall:api-ms-win-crt-stdio-l1-1-0.dll!_sopen_s | icall:api-ms-win-crt-runtime-l1-1-0.dll!_errno
+0x1b07450-0x1b074c9: icall:api-ms-win-crt-stdio-l1-1-0.dll!_wsopen_s | icall:api-ms-win-crt-runtime-l1-1-0.dll!_errno
+0x1b074d0-0x1b074fe: icall:KERNEL32.dll!GetFileAttributesA
+0x1b07500-0x1b0752e: icall:KERNEL32.dll!GetFileAttributesW
+0x1b07530-0x1b07593: icall:KERNEL32.dll!FormatMessageA
+0x1b075a0-0x1b075dc: str: is not implemented | str:onnxruntime::WindowsEnv::FormatLibraryFileName
+0x1b07610-0x1b07d59: icall:KERNEL32.dll!CreateFile2 | icall:KERNEL32.dll!GetLastError | str: fail, errcode =  | str:open file  | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | icall:KERNEL32.dll!GetFinalPathNameByHandleW | str:N:\_work\1\s\onnxruntime\core\platform\windows\env.cc | str:onnxruntime::WindowsEnv::GetCanonicalPath | str:GetFinalPathNameByHandle() failed:  | str:L\\?\ | str:LUNC\ | icall:KERNEL32.dll!CloseHandle
+0x1b07d60-0x1b07ff0: str:L\\?\GLOBALROOT | str:N:\_work\1\s\onnxruntime\core\platform\windows\env.cc | str:onnxruntime::`anonymous-namespace'::WindowsRandomAccessFile::GetCanonicalPath | str:GetFinalPathNameByHandleW failed:  | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | str:L\\?\ | str:LUNC\
+0x1b08040-0x1b081cf: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b081f0-0x1b084b0: str:FailFast | str:LogHr | str:LogNt | str:ReturnHr | str:ReturnNt | str:Exception | icall:KERNEL32.dll!FormatMessageW | str:L%hs(%u)\%hs!%p:  | str:L%hs!%p:  | str:L(caller: %p)  | icall:KERNEL32.dll!GetCurrentThreadId | str:L%hs(%d) tid(%x) %08X %ws | str:L     | str:LMsg:[%ws]  | str:LCallContext:[%hs] 
+0x1b084b0-0x1b087b5: icall:MSVCP140.dll!??0?$basic_ios@DU?$char_traits@D@std@@@std@@IEAA@XZ | icall:MSVCP140.dll!??0?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAA@PEAV?$basic_streambuf@DU?$char_traits@D@std@@@1@_N@Z | icall:MSVCP140.dll!??0?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAA@XZ | str:Invalid fd was supplied:  | icall:MSVCP140.dll!??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@H@Z | icall:MSVCP140.dll!??1?$basic_ostream@DU?$char_traits@D@std@@@std@@UEAA@XZ | icall:MSVCP140.dll!??1?$basic_ios@DU?$char_traits@D@std@@@std@@UEAA@XZ | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | icall:api-ms-win-crt-filesystem-l1-1-0.dll!_fstat64i32 | icall:api-ms-win-crt-runtime-l1-1-0.dll!_errno
+0x1b087c0-0x1b08e5c: icall:KERNEL32.dll!CreateFile2 | icall:KERNEL32.dll!GetLastError | str: fail, errcode =  | str:open file  | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | icall:KERNEL32.dll!GetFileSizeEx | str:GetFileSizeEx  | icall:KERNEL32.dll!CloseHandle
+0x1b08e70-0x1b08ee3: icall:KERNEL32.dll!GetLastError
+0x1b08ef0-0x1b0911a: icall:KERNEL32.dll!GetFileSizeEx | icall:KERNEL32.dll!GetLastError | str:GetFileSizeEx | str:N:\_work\1\s\onnxruntime\core\platform\windows\env.cc | str:onnxruntime::`anonymous-namespace'::WindowsRandomAccessFile::GetLength | str:RandomAccessFile: received negative file length. | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b09120-0x1b0924d: icall:KERNEL32.dll!GetModuleHandleExW | icall:KERNEL32.dll!GetModuleFileNameA
+0x1b09330-0x1b0965d: icall:KERNEL32.dll!GetModuleFileNameW | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b09670-0x1b09bfe: icall:KERNEL32.dll!GetCurrentProcess | icall:KERNEL32.dll!GetProcAddress | icall:KERNEL32.dll!GetLastError | icall:KERNEL32.dll!FormatMessageW | icall:MSVCP140.dll!??0?$basic_ios@_WU?$char_traits@_W@std@@@std@@IEAA@XZ | icall:MSVCP140.dll!??0?$basic_ostream@_WU?$char_traits@_W@std@@@std@@QEAA@PEAV?$basic_streambuf@_WU?$char_traits@_W@std@@@1@_N@Z | icall:MSVCP140.dll!??0?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEAA@XZ | str:LFailed to find symbol  | str:L in library, error code:  | icall:MSVCP140.dll!??6?$basic_ostream@_WU?$char_traits@_W@std@@@std@@QEAAAEAV01@K@Z | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | icall:MSVCP140.dll!??1?$basic_ostream@_WU?$char_traits@_W@std@@@std@@UEAA@XZ | icall:MSVCP140.dll!??1?$basic_ios@_WU?$char_traits@_W@std@@@std@@UEAA@XZ
+0x1b09c10-0x1b09f20: str:Failed to get the weakly canonical path:  | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b0a1c0-0x1b0b304: icall:KERNEL32.dll!GetLogicalProcessorInformationEx | icall:KERNEL32.dll!GetLastError | str:N:\_work\1\s\onnxruntime\core\platform\windows\env.cc | str:onnxruntime::WindowsEnv::InitializeCpuInfo | str:Failed to calculate byte size for saving cpu info on windows | str:, error code:  | icall:MSVCP140.dll!??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@K@Z | str:, error msg:  | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | str:Failed to fetch cpu info on windows | icall:MSVCP140.dll!??0?$basic_ios@DU?$char_traits@D@std@@@std@@IEAA@XZ | icall:MSVCP140.dll!??0?$basic_iostream@DU?$char_traits@D@std@@@std@@QEAA@PEAV?$basic_streambuf@DU?$char_traits@D@std@@@1@@Z | icall:MSVCP140.dll!??0?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAA@XZ | icall:MSVCP140.dll!??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@P6AAEAV01@AEAV01@@Z@Z | str:core  | icall:MSVCP140.dll!??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@H@Z | str: consist of logical processors:  | str:Found total  | icall:MSVCP140.dll!??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@_K@Z | str: core(s) from windows system: | str: bytes | icall:MSVCP140.dll!??1?$basic_iostream@DU?$char_traits@D@std@@@std@@UEAA@XZ | icall:MSVCP140.dll!??1?$basic_ios@DU?$char_traits@D@std@@@std@@UEAA@XZ
+0x1b0b410-0x1b0b9a8: icall:KERNEL32.dll!LoadLibraryExW | icall:KERNEL32.dll!GetLastError | icall:KERNEL32.dll!FormatMessageW | icall:MSVCP140.dll!??0?$basic_ios@_WU?$char_traits@_W@std@@@std@@IEAA@XZ | icall:MSVCP140.dll!??0?$basic_ostream@_WU?$char_traits@_W@std@@@std@@QEAA@PEAV?$basic_streambuf@_WU?$char_traits@_W@std@@@1@_N@Z | icall:MSVCP140.dll!??0?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEAA@XZ | str:L (Error  | icall:MSVCP140.dll!??6?$basic_ostream@_WU?$char_traits@_W@std@@@std@@QEAAAEAV01@K@Z | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | icall:MSVCP140.dll!??1?$basic_ostream@_WU?$char_traits@_W@std@@@std@@UEAA@XZ | icall:MSVCP140.dll!??1?$basic_ios@_WU?$char_traits@_W@std@@@std@@UEAA@XZ
+0x1b0ba20-0x1b0c47e: str:N:\_work\1\s\onnxruntime\core\platform\windows\env.cc | str:onnxruntime::`anonymous-namespace'::WindowsRandomAccessFile::Map | str:RandomAccessFile::Map: offset < 0 | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | icall:KERNEL32.dll!GetFileSizeEx | icall:KERNEL32.dll!GetLastError | str:GetFileSizeEx | str:onnxruntime::`anonymous-namespace'::WindowsRandomAccessFile::GetLength | str:RandomAccessFile: received negative file length. | str:RandomAccessFile::Map: requested range exceeds file size. | icall:KERNEL32.dll!CreateFileMappingW | str:CreateFileMappingW failed:  | icall:KERNEL32.dll!GetSystemInfo | icall:KERNEL32.dll!MapViewOfFile | str:MapViewOfFile failed:  | icall:KERNEL32.dll!CloseHandle
+0x1b0c480-0x1b0d74e: str:N:\_work\1\s\onnxruntime\core\platform\windows\env.cc | str:onnxruntime::WindowsEnv::MapFileIntoMemory | str:file_path == nullptr | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | str:offset < 0 | icall:KERNEL32.dll!CreateFile2 | icall:KERNEL32.dll!GetLastError | str: fail, errcode =  | str:open file  | icall:KERNEL32.dll!GetFileSizeEx | str:GetFileSizeEx  | icall:MSVCP140.dll!??0?$basic_ios@DU?$char_traits@D@std@@@std@@IEAA@XZ | icall:MSVCP140.dll!??0?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAA@PEAV?$basic_streambuf@DU?$char_traits@D@std@@@1@_N@Z | icall:MSVCP140.dll!??0?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAA@XZ | str:File  | str: is too small for the requested mapping (file size:  | icall:MSVCP140.dll!??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@_J@Z | str: bytes, requested offset + length:  | icall:MSVCP140.dll!??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@_K@Z | str: bytes). | icall:MSVCP140.dll!??1?$basic_ostream@DU?$char_traits@D@std@@@std@@UEAA@XZ | icall:MSVCP140.dll!??1?$basic_ios@DU?$char_traits@D@std@@@std@@UEAA@XZ | icall:KERNEL32.dll!CreateFileMappingW | str:open file mapping  | icall:KERNEL32.dll!GetSystemInfo | icall:KERNEL32.dll!MapViewOfFile | str:MapViewOfFile  | icall:KERNEL32.dll!CloseHandle
+0x1b0d7e8-0x1b0d82b: str:Kernel32.dll | icall:KERNEL32.dll!GetModuleHandleA | str:K32EnumProcessModules | icall:KERNEL32.dll!GetProcAddress
+0x1b0d870-0x1b0e08f: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | icall:KERNEL32.dll!CreateFile2 | icall:KERNEL32.dll!GetLastError | str: fail, errcode =  | str:open file  | icall:KERNEL32.dll!GetFileType | icall:KERNEL32.dll!GetFileInformationByHandle | str:GetFileInformationByHandle failed, errcode =  | icall:KERNEL32.dll!CloseHandle
+0x1b0e090-0x1b0e4fc: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | icall:KERNEL32.dll!CreateEventExW | icall:KERNEL32.dll!ReadFile | icall:KERNEL32.dll!GetLastError | icall:KERNEL32.dll!GetOverlappedResult | str:ReadFile | icall:KERNEL32.dll!CancelIoEx | str:GetOverlappedResult | str:CreateEventExW | icall:KERNEL32.dll!CloseHandle
+0x1b0e500-0x1b0f642: str:N:\_work\1\s\onnxruntime\core\platform\windows\env.cc | str:onnxruntime::WindowsEnv::ReadFileIntoBuffer | str:file_path == nullptr | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | str:offset < 0 | str:length > buffer.size() | icall:KERNEL32.dll!CreateFile2 | icall:KERNEL32.dll!GetLastError | str: fail, errcode =  | str:open file  | icall:KERNEL32.dll!SetFilePointerEx | str:SetFilePointerEx  | icall:KERNEL32.dll!ReadFile | icall:KERNEL32.dll!CloseHandle | icall:MSVCP140.dll!??0?$basic_ios@DU?$char_traits@D@std@@@std@@IEAA@XZ | icall:MSVCP140.dll!??0?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAA@PEAV?$basic_streambuf@DU?$char_traits@D@std@@@1@_N@Z | icall:MSVCP140.dll!??0?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAA@XZ | str:ReadFile  | str: fail: unexpected end | icall:MSVCP140.dll!??1?$basic_ostream@DU?$char_traits@D@std@@@std@@UEAA@XZ | icall:MSVCP140.dll!??1?$basic_ios@DU?$char_traits@D@std@@@std@@UEAA@XZ
+0x1b0f800-0x1b1002c: icall:KERNEL32.dll!GetProcessHeap | icall:KERNEL32.dll!HeapFree | icall:KERNEL32.dll!HeapAlloc | icall:api-ms-win-crt-runtime-l1-1-0.dll!_errno | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invalid_parameter_noinfo
+0x1b100a0-0x1b10145: icall:api-ms-win-crt-stdio-l1-1-0.dll!__stdio_common_vswprintf
+0x1b10150-0x1b10cce: str:kernel32.dll | icall:KERNEL32.dll!GetModuleHandleA | str:SetThreadDescription | icall:KERNEL32.dll!GetProcAddress | str:Lonnxruntime | icall:MSVCP140.dll!??0?$basic_ios@_WU?$char_traits@_W@std@@@std@@IEAA@XZ | icall:MSVCP140.dll!??0?$basic_ostream@_WU?$char_traits@_W@std@@@std@@QEAA@PEAV?$basic_streambuf@_WU?$char_traits@_W@std@@@1@_N@Z | icall:MSVCP140.dll!??0?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEAA@XZ | icall:MSVCP140.dll!??6?$basic_ostream@_WU?$char_traits@_W@std@@@std@@QEAAAEAV01@H@Z | icall:KERNEL32.dll!GetCurrentThread | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | icall:MSVCP140.dll!??1?$basic_ostream@_WU?$char_traits@_W@std@@@std@@UEAA@XZ | icall:MSVCP140.dll!??1?$basic_ios@_WU?$char_traits@_W@std@@@std@@UEAA@XZ | str:N:\_work\1\s\onnxruntime\core\platform\windows\env.cc | str:onnxruntime::WindowsThread::ThreadMain | str:Cannot set cross-group affinity for thread  | icall:KERNEL32.dll!GetCurrentThreadId | icall:MSVCP140.dll!??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@K@Z | str:, first on group  | icall:MSVCP140.dll!??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@H@Z | str:, then on  | str:Cannot set affinity for thread  | str:, processor  | str: does not exist | icall:KERNEL32.dll!SetThreadGroupAffinity | str:SetThreadAffinityMask done for thread:  | str:, group_id:  | icall:MSVCP140.dll!??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@G@Z | str:, mask:  | icall:MSVCP140.dll!??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@_K@Z | icall:KERNEL32.dll!GetLastError | str:SetThreadAffinityMask failed for thread:  | str:, index:  | str:, error code:  | str:, error msg:  | str:. Specify the number of threads explicitly so the affinity is not set. | str:absl::container_internal::raw_hash_map<>::at
+0x1b10d00-0x1b110ec: icall:KERNEL32.dll!CreateFile2 | icall:KERNEL32.dll!GetFinalPathNameByHandleW | str:L\\?\GLOBALROOT | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | icall:KERNEL32.dll!CloseHandle
+0x1b11750-0x1b118c6: icall:KERNEL32.dll!FreeLibrary | icall:KERNEL32.dll!GetLastError | str:FreeLibrary failed with error  | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b118d0-0x1b11aed: icall:KERNEL32.dll!UnmapViewOfFile | icall:KERNEL32.dll!GetLastError | str:N:\_work\1\s\onnxruntime\core\platform\windows\env.cc | str:onnxruntime::UnmapFile | str:unmap view of file failed. error code:  | icall:MSVCP140.dll!??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@K@Z | str: error msg:  | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b11af0-0x1b11b49: str:Lkernelbase.dll | icall:KERNEL32.dll!GetModuleHandleW | str:RaiseFailFastException | icall:KERNEL32.dll!GetProcAddress
+0x1b11d20-0x1b11d92: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b11da0-0x1b11db1: str:vector too long
+0x1b11dc0-0x1b11ea7: icall:KERNEL32.dll!GetProcessHeap | icall:KERNEL32.dll!HeapFree | icall:KERNEL32.dll!HeapAlloc
+0x1b11f60-0x1b12050: icall:MSVCP140.dll!?pptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?pbase@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?epptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?gptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?eback@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ | icall:MSVCP140.dll!?egptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ
+0x1b12410-0x1b124b3: icall:MSVCP140.dll!??1?$basic_ostream@DU?$char_traits@D@std@@@std@@UEAA@XZ | icall:MSVCP140.dll!??1?$basic_ios@DU?$char_traits@D@std@@@std@@UEAA@XZ
+0x1b126d0-0x1b12731: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b12870-0x1b12b40: icall:api-ms-win-crt-math-l1-1-0.dll!llroundl
+0x1b12ed0-0x1b13002: icall:api-ms-win-crt-math-l1-1-0.dll!llroundl
+0x1b130e0-0x1b1317d: str:Failed to initialize PyTorch cpuinfo library. May cause CPU EP performance degradation due to undete
+0x1b131c0-0x1b13367: str:N:\_work\1\s\onnxruntime\core\common\cpuid_info.cc | str:onnxruntime::CPUIDInfo::LogEarlyWarning | str:onnxruntime cpuid_info warning: 
+0x1b135a9-0x1b135fe: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b136a9-0x1b136fe: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b139c0-0x1b13bb7: icall:api-ms-win-crt-string-l1-1-0.dll!isalpha | icall:api-ms-win-crt-string-l1-1-0.dll!isspace
+0x1b13bc0-0x1b13e24: icall:api-ms-win-crt-string-l1-1-0.dll!isspace | str:[path]
+0x1b13fd5-0x1b13fef: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b14000-0x1b14011: str:deque<T> too long
+0x1b14060-0x1b140d1: icall:MSVCP140.dll!??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@H@Z
+0x1b14110-0x1b142cd: icall:api-ms-win-crt-runtime-l1-1-0.dll!_errno | icall:api-ms-win-crt-runtime-l1-1-0.dll!strerror_s | str:Failed to get error message | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b142d0-0x1b143bf: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b14660-0x1b15413: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b15fc0-0x1b16c91: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b1a5e0-0x1b1a793: str:ORT_RUNNING_UNIT_TESTS | icall:ADVAPI32.dll!EventRegister | icall:ADVAPI32.dll!EventSetInformation
+0x1b1a7a0-0x1b1a87d: icall:ADVAPI32.dll!EventUnregister
+0x1b1a880-0x1b1b008: icall:ADVAPI32.dll!OpenSCManagerW | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | icall:ADVAPI32.dll!EnumServicesStatusExW | icall:KERNEL32.dll!GetLastError | icall:ADVAPI32.dll!CloseServiceHandle | icall:KERNEL32.dll!GetCurrentProcessId
+0x1b1b010-0x1b1b116: icall:ADVAPI32.dll!EventUnregister
+0x1b1b1a5-0x1b1b2bf: icall:KERNEL32.dll!WideCharToMultiByte | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b1b310-0x1b1b631: str:HARDWARE\DESCRIPTION\System\CentralProcessor\0 | icall:ADVAPI32.dll!RegOpenKeyExA | str:ProcessorNameString | icall:ADVAPI32.dll!RegQueryValueExA | icall:ADVAPI32.dll!RegCloseKey | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | str:unknown
+0x1b1b640-0x1b1b744: icall:KERNEL32.dll!InitOnceBeginInitialize | icall:api-ms-win-crt-runtime-l1-1-0.dll!abort | icall:KERNEL32.dll!InitOnceComplete
+0x1b1b750-0x1b1babf: icall:KERNEL32.dll!GetModuleFileNameW | str:Lsvchost.exe | icall:api-ms-win-crt-string-l1-1-0.dll!_wcsicmp | icall:KERNEL32.dll!GetCommandLineW | icall:SHELL32.dll!CommandLineToArgvW | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | icall:KERNEL32.dll!LocalFree
+0x1b1bb61-0x1b1bd65: icall:api-ms-win-crt-string-l1-1-0.dll!isspace | str:false | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b1be50-0x1b1c11e: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b1c120-0x1b1c394: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b1c3a0-0x1b1c66b: str:1.32.0 | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b1c670-0x1b1ca1d: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | icall:ADVAPI32.dll!EventWriteTransfer
+0x1b1ca20-0x1b1cd05: str:1.32.0
+0x1b1cd10-0x1b1ce06: icall:ADVAPI32.dll!EventWriteTransfer
+0x1b1ce10-0x1b1cf06: icall:ADVAPI32.dll!EventWriteTransfer
+0x1b1cf10-0x1b1d074: icall:ADVAPI32.dll!EventWriteTransfer
+0x1b1d080-0x1b1d422: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b1d430-0x1b1d6c1: str:1.32.0 | icall:ADVAPI32.dll!EventWriteTransfer
+0x1b1d6d0-0x1b1d9f2: icall:KERNEL32.dll!GetSystemInfo | icall:KERNEL32.dll!GlobalMemoryStatusEx | icall:KERNEL32.dll!IsDebuggerPresent | str:1.32.0 | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b1dc70-0x1b1e157: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | icall:ADVAPI32.dll!EventWriteTransfer
+0x1b1e160-0x1b1e31d: str:1.32.0
+0x1b1e4f0-0x1b1e958: str:1.32.0 | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b1e960-0x1b1ec2d: str:1.32.0 | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b1ec30-0x1b1eff6: str:1.32.0 | icall:ADVAPI32.dll!EventWriteTransfer | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b1f000-0x1b1fa98: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b1faa0-0x1b1fe42: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b1fe50-0x1b200cb: str:1.32.0 | icall:ADVAPI32.dll!EventWriteTransfer
+0x1b202d0-0x1b2082d: icall:KERNEL32.dll!SetLastError | icall:KERNEL32.dll!GetEnvironmentVariableW | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | icall:KERNEL32.dll!GetLastError
+0x1b20930-0x1b20a16: icall:api-ms-win-crt-string-l1-1-0.dll!tolower
+0x1b20a20-0x1b20b83: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b20e45-0x1b20e5f: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b20e70-0x1b20e81: str:deque<T> too long
+0x1b20f70-0x1b210eb: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b21530-0x1b2170d: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b21710-0x1b218b7: str:DeviceInfo.NetworkCost | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b218c0-0x1b21a67: str:AppInfo.Language | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b21a70-0x1b21bab: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b21e40-0x1b21f64: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b21ff0-0x1b220b1: str:Initialize
+0x1b22700-0x1b229ca: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b229d0-0x1b22bec: str:EpAutoSelection | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | str:selectionPolicy | str:requestedExecutionProviderIds | str:availableExecutionProviderIds
+0x1b22bf0-0x1b2309e: str:CompileModelComplete | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | str:errorMessage
+0x1b230a0-0x1b235e4: str:CompileModelStart | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | str:inputSource | str:outputTarget | str:executionProviderIds
+0x1b235f0-0x1b23c6c: str:EpDeviceUsage | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | str:executionProviderType | str:hardwareDeviceType | str:hardwareVendor | str:epVendor | str:epVersion
+0x1b23c70-0x1b241b4: str:ModelLoadEnd | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | str:errorMessage
+0x1b241c0-0x1b24d97: str:N:\_work\1\s\onnxruntime\core\platform\telemetry_1ds.cc | str:onnxruntime::OneDsTelemetry::LogProcessInfo::<lambda_1>::operator () | str:Failed to persist telemetry device ID; using an in-memory identifier | str:ProcessInfo | str:1.32.0 | str:runtimeVersion | str:DeviceInfo.Status | str:osDescription | str:architecture | str:cpuModel | str:deviceClass | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | str:containerType | str:virtualizationType | str:hostEnvironment | str:environmentDetectionConfidence | str:deviceIdScope
+0x1b24da0-0x1b2527c: str:RegisterEpLibraryEnd | str:registrationName | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | str:errorMessage
+0x1b25280-0x1b2547c: str:RegisterEpLibraryWithLibPath | str:registrationName | str:libPath | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b25480-0x1b25a30: str:RuntimeError | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | str:errorMessage | str:file | str:function
+0x1b25a30-0x1b25ea0: str:RuntimeInferenceError | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | str:errorMessage | str:executionProviderVersions | str:executionProviderDeviceTypes | str:1.32.0 | str:runtimeVersion
+0x1b25ea0-0x1b261e5: str:RuntimePerf | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b261f0-0x1b2696e: str:SessionCreation | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | str:modelProducerName | str:modelProducerVersion | str:modelDomain | str:domainToVersionMap | str:modelFileName | str:modelGraphName | str:modelWeightType | str:modelGraphHash | str:modelWeightHash | str:loadedFrom | str:executionProviderIds | str:hardwareDeviceTypes | str:hardwareVendorIds | str:executionProviderVersions
+0x1b26970-0x1b26eb4: str:SessionCreationEnd | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | str:errorMessage
+0x1b26fb0-0x1b27145: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b27150-0x1b272ed: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b272f0-0x1b27421: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b27430-0x1b27685: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b276d0-0x1b278df: str:%08x-%04x-%04x-%04x-%012llx
+0x1b278e0-0x1b28ca4: str:ORT_RUNNING_UNIT_TESTS | str:eventCollectorUri | str:https://mobile.events.data.microsoft.com/OneCollector/1.0 | str:enableTrace | str:traceLevelMask | str:sdkmode | str:enableNetworkDetector | str:maxTeardownUploadTimeInSec | str:cacheMemorySizeLimitInBytes | str:N:\_work\1\s\onnxruntime\core\platform\telemetry_1ds.cc | str:onnxruntime::OneDsTelemetry::Initialize | str:Telemetry is unavailable because the cache path exceeds the byte limit | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | str:cacheFilePath | str:name | str:OnnxRuntime | str:sdkVersion | str:config | str:host | str:Failed to get telemetry logger | str:LibraryVersion | str:1.32.0 | str:frameworkName | str:Failed to create telemetry LogManager, status:  | icall:MSVCP140.dll!??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@H@Z
+0x1b28cd0-0x1b28f55: str:ORT_DISABLE_TELEMETRY | icall:api-ms-win-crt-string-l1-1-0.dll!isspace | str:true | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b28f80-0x1b28fc8: str:LogAutoEpSelection
+0x1b28fd0-0x1b29030: str:LogCompileModelComplete
+0x1b29030-0x1b29098: str:LogCompileModelStart
+0x1b290a0-0x1b2912e: str:LogEpDeviceUsage
+0x1b292a0-0x1b292e4: str:LogModelLoadEnd
+0x1b29300-0x1b29329: str:LogProcessInfo
+0x1b29330-0x1b2936c: str:LogProviderOptions
+0x1b29370-0x1b293ac: str:LogRegisterEpLibraryEnd
+0x1b293c0-0x1b293f3: str:LogRegisterEpLibraryWithLibPath
+0x1b29400-0x1b29454: str:LogRuntimeError
+0x1b29460-0x1b294a8: str:LogRuntimeInferenceError
+0x1b294b0-0x1b29508: str:LogRuntimePerf
+0x1b29510-0x1b295f6: str:LogSessionCreation
+0x1b29600-0x1b29644: str:LogSessionCreationEnd
+0x1b29660-0x1b29a26: str:N:\_work\1\s\onnxruntime\core\platform\telemetry_1ds.cc | str:onnxruntime::OneDsTelemetry::ReportFailure | str:[Telemetry]  | str: failed:  | str: failed with an unknown exception | str:Attempt to use DefaultLogger but none has been registered. | str:onnxruntime::logging::LoggingManager::DefaultLogger | str:N:\_work\1\s\include\onnxruntime\core/common/logging/logging.h
+0x1b29a30-0x1b29a67: str:SetLanguageProjection
+0x1b29e45-0x1b29e98: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b2a060-0x1b2a199: icall:KERNEL32.dll!GetLogicalProcessorInformationEx
+0x1b2a1b0-0x1b2ac18: str:LError loading | icall:KERNEL32.dll!LoadLibraryExW | icall:dbghelp.dll!ImageDirectoryEntryToData | icall:KERNEL32.dll!MultiByteToWideChar | icall:KERNEL32.dll!LoadLibraryW | icall:KERNEL32.dll!FreeLibrary | str:L which depends on | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | str:L No import directory found. | str:L which is missing. | str:L But no dependency issue could be determined.
+0x1b2ac20-0x1b2ae53: icall:MSVCP140.dll!??0?$basic_ios@DU?$char_traits@D@std@@@std@@IEAA@XZ | icall:MSVCP140.dll!??0?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAA@PEAV?$basic_streambuf@DU?$char_traits@D@std@@@1@_N@Z | icall:MSVCP140.dll!??0?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAA@XZ | str:Unknown CPU vendor. cpuinfo_vendor value:  | icall:MSVCP140.dll!??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@H@Z | icall:MSVCP140.dll!??1?$basic_ostream@DU?$char_traits@D@std@@@std@@UEAA@XZ | icall:MSVCP140.dll!??1?$basic_ios@DU?$char_traits@D@std@@@std@@UEAA@XZ | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b2b140-0x1b2b862: str:DriverInfo | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b2b870-0x1b2bac8: str:ExecutionProviderEvent | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b2bad0-0x1b2c93a: icall:api-ms-win-crt-string-l1-1-0.dll!isspace | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | str:none | str:kubepods | str:amazonECS | str:podman | str:libpod | str:docker | str:containerd | str:other | str:kubernetes | str:androidEmulator | str:appleVirtualMachine | str:microsoft | str:undetected | str:container | str:virtualMachine | str:containerOnVirtualMachine | str:vmware | str:virtualbox | str:innotek | str:virtualBox | str:microsoft corporation | str:virtual machine | str:hyperV | str:amazon ec2 | str:amazonEC2 | str:google compute engine | str:googleComputeEngine | str:openstack | str:openStack | str:qemu | str:parallels | str:bhyve | str:hypervisor | str:emulator | str:high | str:medium | str:installation
+0x1b2c940-0x1b2caab: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b2cab0-0x1b2cae4: str:x86_64
+0x1b2caf0-0x1b2cb0e: str:\onnxruntime.db
+0x1b2cb10-0x1b2cb6f: str:HARDWARE\DESCRIPTION\System\CentralProcessor\0 | icall:ADVAPI32.dll!RegOpenKeyExA
+0x1b2cb6f-0x1b2cbde: str:ProcessorNameString | icall:ADVAPI32.dll!RegQueryValueExA | icall:ADVAPI32.dll!RegCloseKey
+0x1b2cc70-0x1b2cca7: str:Desktop
+0x1b2cdb0-0x1b2cefd: str:Lntdll.dll | icall:KERNEL32.dll!GetModuleHandleW | str:RtlGetVersion | icall:KERNEL32.dll!GetProcAddress | str:Windows %lu.%lu (Build %lu) | str:Windows
+0x1b2cf00-0x1b2d4ef: icall:KERNEL32.dll!GetModuleFileNameW | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | str:.exe | icall:api-ms-win-crt-string-l1-1-0.dll!tolower
+0x1b2d4f0-0x1b2d50e: icall:KERNEL32.dll!GetActiveProcessorCount
+0x1b2d510-0x1b2d580: icall:KERNEL32.dll!GlobalMemoryStatusEx
+0x1b2d580-0x1b2d5c3: str:Lntdll.dll | icall:KERNEL32.dll!GetModuleHandleW | str:RtlDllShutdownInProgress | icall:KERNEL32.dll!GetProcAddress
+0x1b2d5d0-0x1b2d604: str:LogDriverInfoEvent
+0x1b2d610-0x1b2d644: str:LogExecutionProviderEvent
+0x1b2d650-0x1b2d798: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b2d850-0x1b2dad9: icall:KERNEL32.dll!GetCurrentProcess | icall:ADVAPI32.dll!OpenProcessToken | icall:ADVAPI32.dll!GetTokenInformation | icall:ADVAPI32.dll!IsValidSid | icall:ADVAPI32.dll!GetLengthSid | str:LGlobal\Microsoft.DeveloperTools.OnnxRuntime.DeviceId.%016llx | icall:KERNEL32.dll!CreateMutexW | icall:KERNEL32.dll!WaitForSingleObject | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | icall:KERNEL32.dll!CloseHandle
+0x1b2daf0-0x1b2db22: icall:KERNEL32.dll!ReleaseMutex
+0x1b2db50-0x1b2dd4f: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b2dd50-0x1b2df07: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b2df10-0x1b2e026: str:%08x-%04x-%04x-%04x-%012llx
+0x1b2e030-0x1b2e23c: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b2e240-0x1b2e467: str:N:\_work\1\s\onnxruntime\core\platform\windows\device_id.cc | str:onnxruntime::`anonymous-namespace'::GetEnvironmentValue | str:Ignoring oversized or unreadable telemetry storage environment variable 
+0x1b2e4e0-0x1b2e5dc: str:Unknown | str:Failed | str:Corrupted | str:Existing
+0x1b2e5e0-0x1b2edc4: str:LOCALAPPDATA | str:APPDATA | str:HOME | str:USERPROFILE | str:HOMEDRIVE | str:HOMEPATH | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | str:LMicrosoft\DeveloperTools\.onnxruntime
+0x1b2ee50-0x1b2f1c1: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson | icall:KERNEL32.dll!ReleaseMutex | icall:KERNEL32.dll!CloseHandle | str:SOFTWARE\Microsoft\DeveloperTools\.onnxruntime | icall:ADVAPI32.dll!RegCreateKeyExA | str:deviceid | icall:ADVAPI32.dll!RegSetValueExA | icall:ADVAPI32.dll!RegCloseKey
+0x1b2f240-0x1b2f584: str:SOFTWARE\Microsoft\DeveloperTools\.onnxruntime | icall:ADVAPI32.dll!RegOpenKeyExA | str:deviceid | icall:ADVAPI32.dll!RegQueryValueExA | icall:ADVAPI32.dll!RegCloseKey | icall:api-ms-win-crt-string-l1-1-0.dll!isspace
+0x1b2f590-0x1b2f8a1: icall:KERNEL32.dll!MultiByteToWideChar | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b2f8b0-0x1b2fe73: str:N:\_work\1\s\onnxruntime\core\platform\windows\device_id.cc | str:onnxruntime::`anonymous-namespace'::WideToUtf8 | str:Ignoring oversized telemetry storage path | icall:KERNEL32.dll!WideCharToMultiByte | icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1b2fe80-0x1b2fee2: icall:api-ms-win-crt-stdio-l1-1-0.dll!__stdio_common_vsnwprintf_s
+0x1b2fef0-0x1b302a5: str:0123456789ABCDEF
+0x1e5b400-0x1e5b4b8: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1e5b4c0-0x1e5b4f9: icall:api-ms-win-crt-runtime-l1-1-0.dll!terminate
+0x1e5b8f0-0x1e5b96c: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1e5bb50-0x1e5bbcc: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1e5bbd0-0x1e5bc4c: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1e5bc50-0x1e5bccc: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1e5bcd0-0x1e5bd4c: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1e5bd50-0x1e5bdcc: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1e5c5b7-0x1e5c5ea: icall:api-ms-win-crt-heap-l1-1-0.dll!free
+0x1e5c660-0x1e5c6da: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1e5c780-0x1e5c7fc: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1e5c800-0x1e5c87a: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1e5c8a0-0x1e5c91a: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1e5cc60-0x1e5ccda: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1e5cce0-0x1e5cd5a: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1e5cd60-0x1e5cdda: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1e5cde0-0x1e5ce5a: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1e5ce60-0x1e5ceda: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1e5cee0-0x1e5cf5a: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1e5cf60-0x1e5cfda: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+0x1e5cfe0-0x1e5d05a: icall:api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson

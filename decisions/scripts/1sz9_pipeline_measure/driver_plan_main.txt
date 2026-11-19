@@ -1,0 +1,221 @@
+gpu quiet: util,mem=7, 2525
+cold1_trt_M3_720x3: exit 0 in 11s
+gpu quiet: util,mem=1, 2526
+cold2warm_trt_M3_720x3: exit 0 in 5s
+gpu busy: pythons=[] util,mem=42, 2531
+gpu quiet: util,mem=7, 2523
+prefill_trt_720x3: exit 0 in 10s
+gpu quiet: util,mem=1, 2516
+prefill_trt_720x6: exit 0 in 10s
+gpu quiet: util,mem=2, 2535
+prefill_trt_1080x3: exit 0 in 5s
+gpu quiet: util,mem=2, 2519
+prefill_trt_1080x6: exit 0 in 5s
+gpu quiet: util,mem=1, 2529
+A_cuda_M0_720x3: exit 0 in 7s
+gpu quiet: util,mem=1, 2524
+A_cuda_M1_720x3: exit 0 in 7s
+gpu busy: pythons=[] util,mem=53, 2527
+gpu quiet: util,mem=13, 2523
+A_cuda_M2_720x3: exit 0 in 10s
+gpu quiet: util,mem=2, 2523
+A_cuda_M3_720x3: exit 0 in 8s
+gpu quiet: util,mem=3, 2529
+A_cuda_M0_720x6: exit 0 in 11s
+gpu quiet: util,mem=2, 2540
+A_cuda_M1_720x6: exit 0 in 11s
+gpu busy: pythons=[] util,mem=70, 2527
+gpu quiet: util,mem=10, 2520
+A_cuda_M2_720x6: exit 0 in 17s
+gpu busy: pythons=[] util,mem=59, 2520
+gpu quiet: util,mem=7, 2525
+A_cuda_M3_720x6: exit 0 in 11s
+gpu quiet: util,mem=1, 2534
+A_cuda_M0_1080x3: exit 0 in 7s
+gpu quiet: util,mem=1, 2531
+A_cuda_M1_1080x3: exit 0 in 8s
+gpu quiet: util,mem=2, 2533
+A_cuda_M2_1080x3: exit 0 in 14s
+gpu quiet: util,mem=1, 2529
+A_cuda_M3_1080x3: exit 0 in 9s
+gpu quiet: util,mem=2, 2533
+A_cuda_M0_1080x6: exit 0 in 10s
+gpu quiet: util,mem=3, 2543
+A_cuda_M1_1080x6: exit timeout in 1200s
+gpu quiet: util,mem=7, 2501
+A_cuda_M2_1080x6: exit 0 in 26s
+gpu quiet: util,mem=2, 2502
+A_cuda_M3_1080x6: exit 0 in 12s
+gpu quiet: util,mem=1, 2508
+D_cuda_M0_720x3: exit 0 in 19s
+gpu quiet: util,mem=1, 2501
+D_cuda_M1_720x3: exit 0 in 14s
+gpu busy: pythons=[] util,mem=84, 2501
+gpu quiet: util,mem=11, 2506
+D_cuda_M2_720x3: exit 0 in 17s
+gpu quiet: util,mem=1, 2502
+D_cuda_M3_720x3: exit 0 in 14s
+gpu quiet: util,mem=1, 2500
+D_cuda_M0_1080x3: exit 0 in 20s
+gpu quiet: util,mem=1, 2501
+D_cuda_M1_1080x3: exit 0 in 16s
+gpu quiet: util,mem=1, 2502
+D_cuda_M2_1080x3: exit 0 in 21s
+gpu quiet: util,mem=1, 2504
+D_cuda_M3_1080x3: exit 0 in 16s
+gpu busy: pythons=[] util,mem=82, 2502
+gpu quiet: util,mem=7, 2500
+A_cuda_M2b_720x3: exit 0 in 11s
+gpu quiet: util,mem=1, 2503
+D_cuda_M2b_720x3: exit 0 in 22s
+gpu quiet: util,mem=1, 2500
+B_cuda_M0_720x3: exit 0 in 15s
+gpu quiet: util,mem=2, 2501
+B_cuda_M1_720x3: exit 0 in 11s
+gpu quiet: util,mem=22, 2501
+B_cuda_M2_720x3: exit 0 in 13s
+gpu quiet: util,mem=1, 2500
+B_cuda_M3_720x3: exit 0 in 11s
+gpu busy: pythons=[] util,mem=78, 2512
+gpu quiet: util,mem=20, 2512
+B_cuda_M0_720x6: exit 0 in 27s
+gpu quiet: util,mem=3, 2507
+B_cuda_M1_720x6: exit 0 in 17s
+gpu quiet: util,mem=3, 2507
+B_cuda_M2_720x6: exit 0 in 22s
+gpu quiet: util,mem=1, 2507
+B_cuda_M3_720x6: exit 0 in 18s
+gpu quiet: util,mem=3, 2520
+B_cuda_M0_1080x3: exit 0 in 16s
+gpu quiet: util,mem=3, 2510
+B_cuda_M1_1080x3: exit 0 in 12s
+gpu quiet: util,mem=3, 2509
+B_cuda_M2_1080x3: exit 0 in 17s
+gpu busy: pythons=[] util,mem=59, 2509
+gpu quiet: util,mem=5, 2510
+B_cuda_M3_1080x3: exit 0 in 12s
+gpu quiet: util,mem=1, 2510
+B_cuda_M0_1080x6: exit 0 in 28s
+gpu busy: pythons=[] util,mem=32, 2509
+gpu quiet: util,mem=6, 2509
+B_cuda_M1_1080x6: exit 0 in 19s
+gpu busy: pythons=[] util,mem=87, 2509
+gpu quiet: util,mem=5, 2509
+B_cuda_M2_1080x6: exit 0 in 30s
+gpu quiet: util,mem=0, 2510
+B_cuda_M3_1080x6: exit 0 in 19s
+gpu busy: pythons=[] util,mem=71, 2510
+gpu quiet: util,mem=5, 2510
+A_trt-rtx_M0_720x3: exit 0 in 7s
+gpu busy: pythons=[] util,mem=35, 2505
+gpu quiet: util,mem=5, 2509
+A_trt-rtx_M1_720x3: exit 0 in 6s
+gpu busy: pythons=[] util,mem=39, 2509
+gpu quiet: util,mem=6, 2514
+A_trt-rtx_M2_720x3: exit 0 in 10s
+gpu quiet: util,mem=19, 2510
+A_trt-rtx_M3_720x3: exit 0 in 7s
+gpu quiet: util,mem=0, 2510
+A_trt-rtx_M0_720x6: exit 0 in 10s
+gpu quiet: util,mem=0, 2524
+A_trt-rtx_M1_720x6: exit 0 in 9s
+gpu quiet: util,mem=0, 2521
+A_trt-rtx_M2_720x6: exit 0 in 14s
+gpu quiet: util,mem=0, 2507
+A_trt-rtx_M3_720x6: exit 0 in 9s
+gpu busy: pythons=[] util,mem=57, 2507
+gpu quiet: util,mem=3, 2507
+A_trt-rtx_M0_1080x3: exit 0 in 7s
+gpu quiet: util,mem=1, 2507
+A_trt-rtx_M1_1080x3: exit 0 in 7s
+gpu quiet: util,mem=0, 2507
+A_trt-rtx_M2_1080x3: exit 0 in 13s
+gpu quiet: util,mem=23, 2507
+A_trt-rtx_M3_1080x3: exit 0 in 7s
+gpu busy: pythons=[] util,mem=47, 2507
+gpu quiet: util,mem=3, 2507
+A_trt-rtx_M0_1080x6: exit 0 in 9s
+gpu quiet: util,mem=0, 2507
+A_trt-rtx_M1_1080x6: exit 0 in 9s
+gpu quiet: util,mem=3, 2512
+A_trt-rtx_M2_1080x6: exit 0 in 21s
+gpu quiet: util,mem=0, 2507
+A_trt-rtx_M3_1080x6: exit 0 in 8s
+gpu quiet: util,mem=0, 2507
+D_trt-rtx_M0_720x3: exit 0 in 16s
+gpu busy: pythons=[] util,mem=36, 2507
+gpu quiet: util,mem=3, 2507
+D_trt-rtx_M1_720x3: exit 0 in 9s
+gpu busy: pythons=[] util,mem=72, 2507
+gpu quiet: util,mem=3, 2507
+D_trt-rtx_M2_720x3: exit 0 in 12s
+gpu busy: pythons=[] util,mem=46, 2507
+gpu quiet: util,mem=3, 2507
+D_trt-rtx_M3_720x3: exit 0 in 10s
+gpu busy: pythons=[] util,mem=64, 2507
+gpu quiet: util,mem=4, 2507
+D_trt-rtx_M0_1080x3: exit 0 in 17s
+gpu quiet: util,mem=0, 2507
+D_trt-rtx_M1_1080x3: exit 0 in 10s
+gpu busy: pythons=[] util,mem=67, 2507
+gpu quiet: util,mem=2, 2512
+D_trt-rtx_M2_1080x3: exit 0 in 16s
+gpu busy: pythons=[] util,mem=31, 2507
+gpu quiet: util,mem=3, 2507
+D_trt-rtx_M3_1080x3: exit 0 in 11s
+gpu quiet: util,mem=0, 2507
+A_trt-rtx_M2b_720x3: exit 0 in 10s
+gpu quiet: util,mem=0, 2507
+D_trt-rtx_M2b_720x3: exit 0 in 19s
+gpu quiet: util,mem=19, 2507
+B_trt-rtx_M0_720x3: exit 0 in 13s
+gpu quiet: util,mem=1, 2507
+B_trt-rtx_M1_720x3: exit 0 in 8s
+gpu busy: pythons=[] util,mem=80, 2507
+gpu quiet: util,mem=3, 2507
+B_trt-rtx_M2_720x3: exit 0 in 11s
+gpu busy: pythons=[] util,mem=43, 2507
+gpu quiet: util,mem=5, 2507
+B_trt-rtx_M3_720x3: exit 0 in 8s
+gpu busy: pythons=[] util,mem=72, 2507
+gpu quiet: util,mem=3, 2507
+B_trt-rtx_M0_720x6: exit 0 in 22s
+gpu quiet: util,mem=20, 2507
+B_trt-rtx_M1_720x6: exit 0 in 11s
+gpu quiet: util,mem=0, 2507
+B_trt-rtx_M2_720x6: exit 0 in 17s
+gpu busy: pythons=[] util,mem=37, 2507
+gpu quiet: util,mem=3, 2507
+B_trt-rtx_M3_720x6: exit 0 in 12s
+gpu busy: pythons=[] util,mem=79, 2507
+gpu quiet: util,mem=4, 2507
+B_trt-rtx_M0_1080x3: exit 0 in 14s
+gpu busy: pythons=[] util,mem=43, 2507
+gpu quiet: util,mem=3, 2507
+B_trt-rtx_M1_1080x3: exit 0 in 9s
+gpu quiet: util,mem=1, 2507
+B_trt-rtx_M2_1080x3: exit 0 in 14s
+gpu busy: pythons=[] util,mem=40, 2507
+gpu quiet: util,mem=3, 2507
+B_trt-rtx_M3_1080x3: exit 0 in 9s
+gpu busy: pythons=[] util,mem=73, 2507
+gpu quiet: util,mem=4, 2507
+B_trt-rtx_M0_1080x6: exit 0 in 23s
+gpu quiet: util,mem=0, 2511
+B_trt-rtx_M1_1080x6: exit 0 in 13s
+gpu quiet: util,mem=21, 2511
+B_trt-rtx_M2_1080x6: exit 0 in 24s
+gpu busy: pythons=[] util,mem=40, 2507
+gpu quiet: util,mem=4, 2507
+B_trt-rtx_M3_1080x6: exit 0 in 13s
+gpu quiet: util,mem=16, 2507
+X_rot90_M3: exit 0 in 8s
+gpu quiet: util,mem=1, 2507
+X_rot90_M1: exit 0 in 8s
+gpu quiet: util,mem=1, 2507
+X_huff_M3: exit 0 in 7s
+gpu busy: pythons=[] util,mem=64, 2507
+gpu quiet: util,mem=3, 2507
+X_refuse_M3: exit 0 in 9s
+gpu quiet: util,mem=0, 2507
+X_repeat_M3: exit 0 in 8s

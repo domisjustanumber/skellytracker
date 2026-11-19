@@ -1,0 +1,71 @@
+decoder_alone_500k.py, cuda device, rows of the runs dec_1 and dec_2 (2026-11-18). Then the pipeline runs with 500000 in the package code (measure.py, M3, 3 cameras at 1280x720, 300 calls).
+== dec_1
+PIXELS 320x240: {'n': 8, 'max_abs_diff_off_vs_500k': [0, 0, 0, 0, 0, 0, 0, 0], 'none_off_500k': [(False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False)], 'max_abs_diff_off_vs_0': [0, 0, 0, 0, 0, 0, 0, 0], 'none_off_0': [(False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False)], 'off_vs_cv2_mean_abs': [0.031, 0.031, 0.023, 0.027, 0.023, 0.036, 0.03, 0.033], 'shapes': [[240, 320, 3], [240, 320, 3], [240, 320, 3], [240, 320, 3], [240, 320, 3], [240, 320, 3], [240, 320, 3], [240, 320, 3]]}
+PIXELS 640x480: {'n': 8, 'max_abs_diff_off_vs_500k': [0, 0, 0, 0, 0, 0, 0, 0], 'none_off_500k': [(False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False)], 'max_abs_diff_off_vs_0': [0, 0, 0, 0, 0, 0, 0, 0], 'none_off_0': [(False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False)], 'off_vs_cv2_mean_abs': [0.027, 0.029, 0.019, 0.023, 0.023, 0.034, 0.028, 0.034], 'shapes': [[480, 640, 3], [480, 640, 3], [480, 640, 3], [480, 640, 3], [480, 640, 3], [480, 640, 3], [480, 640, 3], [480, 640, 3]]}
+PIXELS 1280x720: {'n': 8, 'max_abs_diff_off_vs_500k': [0, 0, 0, 0, 0, 0, 0, 0], 'none_off_500k': [(False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False)], 'max_abs_diff_off_vs_0': [0, 0, 0, 0, 0, 0, 0, 0], 'none_off_0': [(False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False)], 'off_vs_cv2_mean_abs': [0.023, 0.026, 0.017, 0.021, 0.026, 0.034, 0.016, 0.024], 'shapes': [[720, 1280, 3], [720, 1280, 3], [720, 1280, 3], [720, 1280, 3], [720, 1280, 3], [720, 1280, 3], [720, 1280, 3], [720, 1280, 3]]}
+PIXELS 1920x1080: {'n': 8, 'max_abs_diff_off_vs_500k': [0, 0, 0, 0, 0, 0, 0, 0], 'none_off_500k': [(False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False)], 'max_abs_diff_off_vs_0': [0, 0, 0, 0, 0, 0, 0, 0], 'none_off_0': [(False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False)], 'off_vs_cv2_mean_abs': [0.019, 0.019, 0.011, 0.011, 0.027, 0.029, 0.001, 0.012], 'shapes': [[1080, 1920, 3], [1080, 1920, 3], [1080, 1920, 3], [1080, 1920, 3], [1080, 1920, 3], [1080, 1920, 3], [1080, 1920, 3], [1080, 1920, 3]]}
+PIXELS gray_1280x720: {'n': 1, 'max_abs_diff_off_vs_500k': [0], 'none_off_500k': [(False, False)], 'max_abs_diff_off_vs_0': [0], 'none_off_0': [(False, False)], 'off_vs_cv2_mean_abs': [0.012], 'shapes': [[720, 1280, 3]]}
+PIXELS gray_640x480: {'n': 1, 'max_abs_diff_off_vs_500k': [0], 'none_off_500k': [(False, False)], 'max_abs_diff_off_vs_0': [0], 'none_off_0': [(False, False)], 'off_vs_cv2_mean_abs': [0.014], 'shapes': [[480, 640, 3]]}
+PIXELS progressive_1280x720: {'n': 1, 'max_abs_diff_off_vs_500k': [0], 'none_off_500k': [(False, False)], 'max_abs_diff_off_vs_0': [0], 'none_off_0': [(False, False)], 'off_vs_cv2_mean_abs': [0.021], 'shapes': [[720, 1280, 3]]}
+PIXELS progressive_640x480: {'n': 1, 'max_abs_diff_off_vs_500k': [0], 'none_off_500k': [(False, False)], 'max_abs_diff_off_vs_0': [0], 'none_off_0': [(False, False)], 'off_vs_cv2_mean_abs': [0.027], 'shapes': [[480, 640, 3]]}
+ROW size=320x240 n=3 huff=off batches=1000 wall_median=0.444 wall_p95=0.541 wall_max=1.569 cpu_median=0.859 cpu_p95=1.328 cpu_max=1.328
+ROW size=320x240 n=3 huff=500k batches=1000 wall_median=0.451 wall_p95=0.559 wall_max=1.476 cpu_median=0.859 cpu_p95=1.172 cpu_max=1.172
+ROW size=320x240 n=3 huff=0 batches=1000 wall_median=0.652 wall_p95=0.874 wall_max=2.272 cpu_median=1.172 cpu_p95=1.719 cpu_max=1.719
+ROW size=320x240 n=6 huff=off batches=1000 wall_median=0.560 wall_p95=0.687 wall_max=1.558 cpu_median=1.953 cpu_p95=2.969 cpu_max=2.969
+ROW size=320x240 n=6 huff=500k batches=1000 wall_median=0.556 wall_p95=0.658 wall_max=1.686 cpu_median=1.719 cpu_p95=2.188 cpu_max=2.188
+ROW size=320x240 n=6 huff=0 batches=1000 wall_median=1.200 wall_p95=1.385 wall_max=2.302 cpu_median=2.812 cpu_p95=3.125 cpu_max=3.125
+ROW size=640x480 n=3 huff=off batches=1000 wall_median=0.983 wall_p95=1.253 wall_max=3.195 cpu_median=2.422 cpu_p95=2.656 cpu_max=2.656
+ROW size=640x480 n=3 huff=500k batches=1000 wall_median=0.966 wall_p95=1.236 wall_max=1.786 cpu_median=2.266 cpu_p95=2.969 cpu_max=2.969
+ROW size=640x480 n=3 huff=0 batches=1000 wall_median=0.859 wall_p95=1.109 wall_max=2.022 cpu_median=1.719 cpu_p95=2.109 cpu_max=2.109
+ROW size=640x480 n=6 huff=off batches=1000 wall_median=1.103 wall_p95=1.340 wall_max=2.056 cpu_median=4.297 cpu_p95=5.547 cpu_max=5.547
+ROW size=640x480 n=6 huff=500k batches=1000 wall_median=1.110 wall_p95=1.338 wall_max=2.124 cpu_median=4.297 cpu_p95=4.453 cpu_max=4.453
+ROW size=640x480 n=6 huff=0 batches=1000 wall_median=1.481 wall_p95=1.749 wall_max=2.659 cpu_median=3.672 cpu_p95=4.609 cpu_max=4.609
+ROW size=1280x720 n=3 huff=off batches=1000 wall_median=2.294 wall_p95=2.564 wall_max=3.444 cpu_median=5.078 cpu_p95=5.391 cpu_max=5.391
+ROW size=1280x720 n=3 huff=500k batches=1000 wall_median=1.280 wall_p95=1.673 wall_max=2.374 cpu_median=2.500 cpu_p95=2.969 cpu_max=2.969
+ROW size=1280x720 n=3 huff=0 batches=1000 wall_median=1.281 wall_p95=1.653 wall_max=2.031 cpu_median=2.969 cpu_p95=3.828 cpu_max=3.828
+ROW size=1280x720 n=6 huff=off batches=1000 wall_median=2.526 wall_p95=2.970 wall_max=3.571 cpu_median=9.922 cpu_p95=10.312 cpu_max=10.312
+ROW size=1280x720 n=6 huff=500k batches=1000 wall_median=1.823 wall_p95=2.214 wall_max=2.777 cpu_median=5.703 cpu_p95=6.484 cpu_max=6.484
+ROW size=1280x720 n=6 huff=0 batches=1000 wall_median=1.794 wall_p95=2.200 wall_max=3.106 cpu_median=5.469 cpu_p95=6.562 cpu_max=6.562
+ROW size=1920x1080 n=3 huff=off batches=1000 wall_median=2.127 wall_p95=2.470 wall_max=7.115 cpu_median=3.359 cpu_p95=4.141 cpu_max=4.141
+ROW size=1920x1080 n=3 huff=500k batches=1000 wall_median=2.107 wall_p95=2.446 wall_max=3.220 cpu_median=4.141 cpu_p95=4.375 cpu_max=4.375
+ROW size=1920x1080 n=3 huff=0 batches=1000 wall_median=2.107 wall_p95=2.424 wall_max=4.239 cpu_median=4.141 cpu_p95=4.766 cpu_max=4.766
+ROW size=1920x1080 n=6 huff=off batches=1000 wall_median=3.064 wall_p95=3.568 wall_max=5.167 cpu_median=8.125 cpu_p95=8.828 cpu_max=8.828
+ROW size=1920x1080 n=6 huff=500k batches=1000 wall_median=3.099 wall_p95=3.536 wall_max=6.359 cpu_median=9.219 cpu_p95=10.234 cpu_max=10.234
+ROW size=1920x1080 n=6 huff=0 batches=1000 wall_median=3.075 wall_p95=3.485 wall_max=7.286 cpu_median=8.281 cpu_p95=9.141 cpu_max=9.141
+== dec_2
+PIXELS 320x240: {'n': 8, 'max_abs_diff_off_vs_500k': [0, 0, 0, 0, 0, 0, 0, 0], 'none_off_500k': [(False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False)], 'max_abs_diff_off_vs_0': [0, 0, 0, 0, 0, 0, 0, 0], 'none_off_0': [(False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False)], 'off_vs_cv2_mean_abs': [0.031, 0.031, 0.023, 0.027, 0.023, 0.036, 0.03, 0.033], 'shapes': [[240, 320, 3], [240, 320, 3], [240, 320, 3], [240, 320, 3], [240, 320, 3], [240, 320, 3], [240, 320, 3], [240, 320, 3]]}
+PIXELS 640x480: {'n': 8, 'max_abs_diff_off_vs_500k': [0, 0, 0, 0, 0, 0, 0, 0], 'none_off_500k': [(False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False)], 'max_abs_diff_off_vs_0': [0, 0, 0, 0, 0, 0, 0, 0], 'none_off_0': [(False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False)], 'off_vs_cv2_mean_abs': [0.027, 0.029, 0.019, 0.023, 0.023, 0.034, 0.028, 0.034], 'shapes': [[480, 640, 3], [480, 640, 3], [480, 640, 3], [480, 640, 3], [480, 640, 3], [480, 640, 3], [480, 640, 3], [480, 640, 3]]}
+PIXELS 1280x720: {'n': 8, 'max_abs_diff_off_vs_500k': [0, 0, 0, 0, 0, 0, 0, 0], 'none_off_500k': [(False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False)], 'max_abs_diff_off_vs_0': [0, 0, 0, 0, 0, 0, 0, 0], 'none_off_0': [(False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False)], 'off_vs_cv2_mean_abs': [0.023, 0.026, 0.017, 0.021, 0.026, 0.034, 0.016, 0.024], 'shapes': [[720, 1280, 3], [720, 1280, 3], [720, 1280, 3], [720, 1280, 3], [720, 1280, 3], [720, 1280, 3], [720, 1280, 3], [720, 1280, 3]]}
+PIXELS 1920x1080: {'n': 8, 'max_abs_diff_off_vs_500k': [0, 0, 0, 0, 0, 0, 0, 0], 'none_off_500k': [(False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False)], 'max_abs_diff_off_vs_0': [0, 0, 0, 0, 0, 0, 0, 0], 'none_off_0': [(False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False), (False, False)], 'off_vs_cv2_mean_abs': [0.019, 0.019, 0.011, 0.011, 0.027, 0.029, 0.001, 0.012], 'shapes': [[1080, 1920, 3], [1080, 1920, 3], [1080, 1920, 3], [1080, 1920, 3], [1080, 1920, 3], [1080, 1920, 3], [1080, 1920, 3], [1080, 1920, 3]]}
+PIXELS gray_1280x720: {'n': 1, 'max_abs_diff_off_vs_500k': [0], 'none_off_500k': [(False, False)], 'max_abs_diff_off_vs_0': [0], 'none_off_0': [(False, False)], 'off_vs_cv2_mean_abs': [0.012], 'shapes': [[720, 1280, 3]]}
+PIXELS gray_640x480: {'n': 1, 'max_abs_diff_off_vs_500k': [0], 'none_off_500k': [(False, False)], 'max_abs_diff_off_vs_0': [0], 'none_off_0': [(False, False)], 'off_vs_cv2_mean_abs': [0.014], 'shapes': [[480, 640, 3]]}
+PIXELS progressive_1280x720: {'n': 1, 'max_abs_diff_off_vs_500k': [0], 'none_off_500k': [(False, False)], 'max_abs_diff_off_vs_0': [0], 'none_off_0': [(False, False)], 'off_vs_cv2_mean_abs': [0.021], 'shapes': [[720, 1280, 3]]}
+PIXELS progressive_640x480: {'n': 1, 'max_abs_diff_off_vs_500k': [0], 'none_off_500k': [(False, False)], 'max_abs_diff_off_vs_0': [0], 'none_off_0': [(False, False)], 'off_vs_cv2_mean_abs': [0.027], 'shapes': [[480, 640, 3]]}
+ROW size=320x240 n=3 huff=off batches=1000 wall_median=0.448 wall_p95=0.550 wall_max=1.502 cpu_median=1.016 cpu_p95=1.406 cpu_max=1.406
+ROW size=320x240 n=3 huff=500k batches=1000 wall_median=0.430 wall_p95=0.536 wall_max=1.550 cpu_median=0.938 cpu_p95=1.406 cpu_max=1.406
+ROW size=320x240 n=3 huff=0 batches=1000 wall_median=0.644 wall_p95=0.823 wall_max=2.145 cpu_median=1.016 cpu_p95=1.562 cpu_max=1.562
+ROW size=320x240 n=6 huff=off batches=1000 wall_median=0.538 wall_p95=0.639 wall_max=1.522 cpu_median=2.422 cpu_p95=2.656 cpu_max=2.656
+ROW size=320x240 n=6 huff=500k batches=1000 wall_median=0.534 wall_p95=0.653 wall_max=1.946 cpu_median=1.250 cpu_p95=1.641 cpu_max=1.641
+ROW size=320x240 n=6 huff=0 batches=1000 wall_median=1.194 wall_p95=1.387 wall_max=2.827 cpu_median=2.891 cpu_p95=3.438 cpu_max=3.438
+ROW size=640x480 n=3 huff=off batches=1000 wall_median=0.975 wall_p95=1.244 wall_max=1.849 cpu_median=2.656 cpu_p95=3.594 cpu_max=3.594
+ROW size=640x480 n=3 huff=500k batches=1000 wall_median=0.965 wall_p95=1.223 wall_max=1.895 cpu_median=2.578 cpu_p95=2.812 cpu_max=2.812
+ROW size=640x480 n=3 huff=0 batches=1000 wall_median=0.879 wall_p95=1.109 wall_max=2.278 cpu_median=1.797 cpu_p95=1.953 cpu_max=1.953
+ROW size=640x480 n=6 huff=off batches=1000 wall_median=1.092 wall_p95=1.304 wall_max=2.194 cpu_median=3.828 cpu_p95=4.688 cpu_max=4.688
+ROW size=640x480 n=6 huff=500k batches=1000 wall_median=1.080 wall_p95=1.308 wall_max=1.938 cpu_median=4.375 cpu_p95=5.312 cpu_max=5.312
+ROW size=640x480 n=6 huff=0 batches=1000 wall_median=1.426 wall_p95=1.633 wall_max=2.763 cpu_median=3.672 cpu_p95=4.453 cpu_max=4.453
+ROW size=1280x720 n=3 huff=off batches=1000 wall_median=2.289 wall_p95=2.673 wall_max=3.096 cpu_median=4.062 cpu_p95=5.234 cpu_max=5.234
+ROW size=1280x720 n=3 huff=500k batches=1000 wall_median=1.259 wall_p95=1.612 wall_max=2.539 cpu_median=2.656 cpu_p95=2.891 cpu_max=2.891
+ROW size=1280x720 n=3 huff=0 batches=1000 wall_median=1.277 wall_p95=1.670 wall_max=2.399 cpu_median=2.578 cpu_p95=2.969 cpu_max=2.969
+ROW size=1280x720 n=6 huff=off batches=1000 wall_median=2.474 wall_p95=2.849 wall_max=3.662 cpu_median=8.438 cpu_p95=9.297 cpu_max=9.297
+ROW size=1280x720 n=6 huff=500k batches=1000 wall_median=1.768 wall_p95=2.195 wall_max=3.032 cpu_median=5.469 cpu_p95=6.484 cpu_max=6.484
+ROW size=1280x720 n=6 huff=0 batches=1000 wall_median=1.774 wall_p95=2.265 wall_max=2.951 cpu_median=5.547 cpu_p95=7.891 cpu_max=7.891
+ROW size=1920x1080 n=3 huff=off batches=1000 wall_median=2.104 wall_p95=2.437 wall_max=2.846 cpu_median=3.828 cpu_p95=3.828 cpu_max=3.828
+ROW size=1920x1080 n=3 huff=500k batches=1000 wall_median=2.116 wall_p95=2.428 wall_max=6.480 cpu_median=3.594 cpu_p95=4.531 cpu_max=4.531
+ROW size=1920x1080 n=3 huff=0 batches=1000 wall_median=2.150 wall_p95=2.516 wall_max=6.375 cpu_median=4.219 cpu_p95=4.297 cpu_max=4.297
+ROW size=1920x1080 n=6 huff=off batches=1000 wall_median=3.058 wall_p95=3.424 wall_max=7.590 cpu_median=7.344 cpu_p95=9.141 cpu_max=9.141
+ROW size=1920x1080 n=6 huff=500k batches=1000 wall_median=3.051 wall_p95=3.447 wall_max=7.449 cpu_median=7.969 cpu_p95=9.297 cpu_max=9.297
+ROW size=1920x1080 n=6 huff=0 batches=1000 wall_median=3.067 wall_p95=3.542 wall_max=7.030 cpu_median=7.344 cpu_p95=9.688 cpu_max=9.688
+== pipeline runs: frame.decode median ms, wall median ms
+cuda_720x3_500k frame.decode 1.35 wall 10.21
+trt-rtx_720x3_500k frame.decode 1.32 wall 5.3
+trt-rtx_720x3_500k_r2 frame.decode 1.3 wall 5.25

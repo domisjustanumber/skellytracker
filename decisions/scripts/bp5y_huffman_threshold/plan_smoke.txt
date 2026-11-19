@@ -1,0 +1,2 @@
+decoder_alone.py --iters 5 --rounds 1 --tag smoke_dec
+measure.py --ep cuda --mode M3 --res 720 --cams 3 --calls 30 --warmup 5 --huff --tag smoke_pipe_on

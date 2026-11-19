@@ -57,6 +57,11 @@ you make a measurement ([Rules](#rules)).
 | [GPW6](entries/GPW6-model-gate-of-the-first-models.md) | Model gate of `yolox-person` and `rtmw-wholebody133` at the detector level: parity passes on the CPU EP, `cuda` and `trt-rtx`; batch conversion 0.01 s to 1.02 s | evidence |
 | [7E4Z](entries/7E4Z-box-parity-of-the-built-in-with-sfn26.md) | Box parity of `yolox-rtmw-wholebody` with the tracker of `sfn26`: recording script and fixture; test A passes on 200 frames; report B on the CPU EP and `cuda` | evidence |
 | [ZGF5](entries/ZGF5-certify-measurements-of-2026-11-18.md) | Certify reports of 2026-11-18/19: source reports, 2 px failure, spread of 10 suite reports, rehearsal clone; XSE7 rehearsal stale | evidence |
+| [1SZ9](entries/1SZ9-gpu-preprocess-and-gpu-jpeg-decode-in-the-pipeline-run.md) | GPU preprocess and GPU JPEG decode end to end on an RTX 3070: detector call -35 to -56 %; keypoint-only call on `cuda` slower at 1080p; one exit hang | evidence |
+| [FBV5](entries/FBV5-gpu-path-agreement-on-the-freemocap-sample-data.md) | GPU path against CPU path on the freemocap sample data: keypoint median / p99 1.18 / 7.55 px, as large as the difference between two EPs | evidence |
+| [BP5Y](entries/BP5Y-gpu-huffman-decode-threshold.md) | nvJPEG GPU Huffman threshold: 500000 halves `frame.decode` at 1280x720 with equal pixels; 0 slows small frames; the exit text | evidence |
+| [975Z](entries/975Z-nvimagecodec-one-image-decode-hang.md) | nvImageCodec 0.10.0.9 hangs on a decode of one image with fewer CUDA streams than threads: 19 of 62 cells; the workaround and its self-test | evidence |
+| [C6A5](entries/C6A5-exit-hang-of-the-cuda-ep-plugin.md) | Exit hang of `cuda-cu13` 0.3.0 on Windows: 9 of 192 long runs; hard end 0 of 60; 1DS telemetry client in the DLL; hang rate with the switch not tested | evidence |
 
 ### Proposed
 

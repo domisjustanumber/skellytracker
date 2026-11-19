@@ -1,0 +1,1 @@
+measure.py --ep trt-rtx --mode M3 --res 720 --cams 3 --calls 300 --warmup 30 --tag trt-rtx_720x3_500k_r2

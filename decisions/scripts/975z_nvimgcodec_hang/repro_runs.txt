@@ -1,0 +1,6 @@
+single run 1: HANG exit=killed 20.3s :: decoding single
+single run 2: HANG exit=killed 20.3s :: decoding single
+single run 3: HANG exit=killed 20.4s :: decoding single
+batch run 1: returned exit=0 0.3s :: decoding batch | returned 2
+batch run 2: returned exit=0 0.3s :: decoding batch | returned 2
+batch run 3: returned exit=0 0.3s :: decoding batch | returned 2

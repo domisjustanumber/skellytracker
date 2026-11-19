@@ -1,0 +1,14 @@
+--ep cuda --mode R --tag cuda_R
+--ep cuda --mode R --tag cuda_R2
+--ep cuda --mode A1 --tag cuda_A1
+--ep cuda --mode J2 --tag cuda_J2
+--ep cuda --mode J3 --tag cuda_J3
+--ep trt-rtx --mode R --tag trt-rtx_R
+--ep trt-rtx --mode R --tag trt-rtx_R2
+--ep trt-rtx --mode A1 --tag trt-rtx_A1
+--ep trt-rtx --mode J2 --tag trt-rtx_J2
+--ep trt-rtx --mode J3 --tag trt-rtx_J3
+--ep cuda --mode DEC --frames 50 --tag cuda_DEC_q90
+--ep cuda --mode R --quality 75 --frames 300 --tag cuda_R_q75
+--ep cuda --mode J3 --quality 75 --frames 300 --tag cuda_J3_q75
+--ep cpu --mode R --tag cpu_R

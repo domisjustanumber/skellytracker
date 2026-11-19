@@ -1,0 +1,26 @@
+HANG exit=1 ms=12247 :: --opts :num_cuda_streams=1 --n 1 --stream private
+HANG exit=1 ms=12242 :: --opts :num_cuda_streams=1 --n 1 --stream legacy0
+HANG exit=1 ms=12238 :: --opts :num_cuda_streams=1 --n 0
+ok exit=0 ms=369 :: --opts :num_cuda_streams=1 --n 2
+ok exit=0 ms=1178 :: --opts :num_cuda_streams=1 --n 3 --stream private
+ok exit=0 ms=341 :: --opts :num_cuda_streams=1 --n 1 --threads 1
+ok exit=0 ms=340 :: --opts :num_cuda_streams=2 --n 1 --threads 2
+HANG exit=1 ms=12240 :: --opts :num_cuda_streams=1 --n 1 --threads 2
+HANG exit=1 ms=12238 :: --opts :num_cuda_streams=14 --n 1
+ok exit=0 ms=361 :: --opts :num_cuda_streams=27 --n 1
+HANG exit=1 ms=12274 :: --opts :num_cuda_streams=26 --n 1
+HANG exit=1 ms=12245 :: --opts :num_cuda_streams=1 --n 1 --warm
+ok exit=0 ms=369 :: --opts :num_cuda_streams=1 --n 2 --repeat 3
+ok exit=0 ms=352 :: --opts nvjpeg_cuda_decoder:hybrid_huffman_threshold=0 --n 1
+ok exit=0 ms=1161 :: --n 1 --threads 4 --stream private --repeat 3
+HANG exit=1 ms=12232 :: --n 1
+HANG exit=1 ms=12315 :: --opts :num_cuda_streams=1 --n 1 --session cuda
+v130 HANG exit=1 ms=26250 ctxrel=0 :: --opts :num_cuda_streams=1 --n 1 --session cuda
+v130 HANG exit=1 ms=26109 ctxrel=4 :: --opts :num_cuda_streams=1 --n 1 --session trt-rtx
+v130 HANG exit=1 ms=26118 ctxrel=4 :: --opts :num_cuda_streams=1 --n 1
+v130 ok exit=0 ms=2603 ctxrel=0 :: --opts :num_cuda_streams=1 --n 2 --session cuda
+v130 ok exit=0 ms=3041 ctxrel=4 :: --n 1 --session trt-rtx
+v131 HANG exit=1 ms=25268 ctxrel=4 :: --opts :num_cuda_streams=1 --n 1 --session trt-rtx
+v131 ok exit=0 ms=2564 ctxrel=4 :: --n 1 --session trt-rtx
+v131 ok exit=0 ms=337 ctxrel=4 :: --n 1
+v131 ok exit=0 ms=1087 ctxrel=4 :: --n 1 --stream private

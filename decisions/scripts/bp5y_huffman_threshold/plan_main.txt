@@ -1,0 +1,26 @@
+decoder_alone.py --ep cuda --tag dec_1
+measure.py --ep trt-rtx --mode M3 --res 720 --cams 3 --calls 300 --warmup 30  --tag trt-rtx_720x3_off_r1
+measure.py --ep trt-rtx --mode M3 --res 720 --cams 3 --calls 300 --warmup 30 --huff --tag trt-rtx_720x3_on_r1
+measure.py --ep cuda --mode M3 --res 720 --cams 3 --calls 300 --warmup 30  --tag cuda_720x3_off_r1
+measure.py --ep cuda --mode M3 --res 720 --cams 3 --calls 300 --warmup 30 --huff --tag cuda_720x3_on_r1
+measure.py --ep trt-rtx --mode M3 --res 720 --cams 6 --calls 300 --warmup 30  --tag trt-rtx_720x6_off_r1
+measure.py --ep trt-rtx --mode M3 --res 720 --cams 6 --calls 300 --warmup 30 --huff --tag trt-rtx_720x6_on_r1
+measure.py --ep cuda --mode M3 --res 720 --cams 6 --calls 300 --warmup 30  --tag cuda_720x6_off_r1
+measure.py --ep cuda --mode M3 --res 720 --cams 6 --calls 300 --warmup 30 --huff --tag cuda_720x6_on_r1
+measure.py --ep trt-rtx --mode M3 --res 1080 --cams 3 --calls 300 --warmup 30  --tag trt-rtx_1080x3_off_r1
+measure.py --ep trt-rtx --mode M3 --res 1080 --cams 3 --calls 300 --warmup 30 --huff --tag trt-rtx_1080x3_on_r1
+measure.py --ep cuda --mode M3 --res 1080 --cams 3 --calls 300 --warmup 30  --tag cuda_1080x3_off_r1
+measure.py --ep cuda --mode M3 --res 1080 --cams 3 --calls 300 --warmup 30 --huff --tag cuda_1080x3_on_r1
+measure.py --ep trt-rtx --mode M3 --res 720 --cams 3 --calls 300 --warmup 30 --huff --tag trt-rtx_720x3_on_r2
+measure.py --ep trt-rtx --mode M3 --res 720 --cams 3 --calls 300 --warmup 30  --tag trt-rtx_720x3_off_r2
+measure.py --ep cuda --mode M3 --res 720 --cams 3 --calls 300 --warmup 30 --huff --tag cuda_720x3_on_r2
+measure.py --ep cuda --mode M3 --res 720 --cams 3 --calls 300 --warmup 30  --tag cuda_720x3_off_r2
+measure.py --ep trt-rtx --mode M3 --res 720 --cams 6 --calls 300 --warmup 30 --huff --tag trt-rtx_720x6_on_r2
+measure.py --ep trt-rtx --mode M3 --res 720 --cams 6 --calls 300 --warmup 30  --tag trt-rtx_720x6_off_r2
+measure.py --ep cuda --mode M3 --res 720 --cams 6 --calls 300 --warmup 30 --huff --tag cuda_720x6_on_r2
+measure.py --ep cuda --mode M3 --res 720 --cams 6 --calls 300 --warmup 30  --tag cuda_720x6_off_r2
+measure.py --ep trt-rtx --mode M3 --res 1080 --cams 3 --calls 300 --warmup 30 --huff --tag trt-rtx_1080x3_on_r2
+measure.py --ep trt-rtx --mode M3 --res 1080 --cams 3 --calls 300 --warmup 30  --tag trt-rtx_1080x3_off_r2
+measure.py --ep cuda --mode M3 --res 1080 --cams 3 --calls 300 --warmup 30 --huff --tag cuda_1080x3_on_r2
+measure.py --ep cuda --mode M3 --res 1080 --cams 3 --calls 300 --warmup 30  --tag cuda_1080x3_off_r2
+decoder_alone.py --ep cuda --tag dec_2

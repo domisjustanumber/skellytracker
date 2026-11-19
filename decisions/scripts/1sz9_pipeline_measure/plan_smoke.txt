@@ -1,0 +1,3 @@
+--ep cuda --mode M3 --res 720 --cams 3 --calls 100 --warmup 5 --tag smoke_P1_720
+--ep cuda --mode M3 --res 1080 --cams 6 --calls 60 --warmup 5 --tag smoke_P1_1080x6
+--ep cuda --mode M0 --res 720 --cams 3 --calls 60 --warmup 5 --variant P0 --tag smoke_P0_M0

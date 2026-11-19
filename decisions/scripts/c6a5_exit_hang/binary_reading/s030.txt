@@ -1,0 +1,58 @@
+.?AV?$RouteHandlerT@V?$IRouteSink@$$V@Events@Applications@Microsoft@@VTelemetrySystem@234@$$V@Events@Applications@Microsoft@@
+.?AV?$RouteHandlerT@V?$IRouteSink@AEBQEAVIncomingEventContext@Events@Applications@Microsoft@@@Events@Applications@Microsoft@@VTelemetrySystem@234@AEBQEAVIncomingEventContext@234@@Events@Applications@Microsoft@@
+.?AV?$_Ref_count_obj2@UWinHttpClientState@Events@Applications@Microsoft@@@std@@
+.?AV?$_Ref_count_obj2@VHttpClient_WinHttp@Events@Applications@Microsoft@@@std@@
+.?AV?$_Ref_count_obj2@VWinHttpRequestWrapper@Events@Applications@Microsoft@@@std@@
+.?AVHttpClient_WinHttp@Events@Applications@Microsoft@@
+.?AVILogManager@Events@Applications@Microsoft@@
+.?AVILogManagerInternal@Events@Applications@Microsoft@@
+.?AVITelemetrySystem@Events@Applications@Microsoft@@
+.?AVLogManagerFactory@Events@Applications@Microsoft@@
+.?AVLogManagerImpl@Events@Applications@Microsoft@@
+.?AVNullLogManager@Events@Applications@Microsoft@@
+.?AVOneDsTelemetry@onnxruntime@@
+.?AVTelemetry@onnxruntime@@
+.?AVTelemetrySystem@Events@Applications@Microsoft@@
+.?AVTelemetrySystemBase@Events@Applications@Microsoft@@
+.?AVWindowsTelemetry@onnxruntime@@
+.?AVWorkerThreadShutdownItem@PlatformAbstraction@Events@Applications@Microsoft@@
+Failed to create telemetry LogManager, status: 
+Failed to end telemetry activity
+Failed to end telemetry activity: %s
+Failed to get telemetry logger
+Failed to persist telemetry device ID; using an in-memory identifier
+FlushFileBuffers
+FlushViewOfFile
+Ignoring oversized or unreadable telemetry storage environment variable 
+Ignoring oversized telemetry storage path
+Log manager teardown failed with an unknown exception
+Log manager teardown failed: %s
+N:\_work\1\s\onnxruntime\core\platform\telemetry_1ds.cc
+Telemetry is unavailable because the cache path exceeds the byte limit
+WinHttpAddRequestHeaders
+WinHttpCloseHandle
+WinHttpConnect
+WinHttpCrackUrl
+WinHttpOpen
+WinHttpOpenRequest
+WinHttpQueryDataAvailable
+WinHttpQueryHeaders
+WinHttpQueryOption
+WinHttpReadData
+WinHttpReceiveResponse
+WinHttpSendRequest
+WinHttpSetOption
+WinHttpSetStatusCallback
+WinHttpWriteData
+[Telemetry] 
+checkpointDBOnFlush
+cuFlushGPUDirectRDMAWrites
+disableZombieLoggers
+enableBatchedStorageFlush
+injected WinHTTP terminal finalization failure
+maxDBFlushQueues
+maxTeardownUploadTimeInSec
+onnxruntime::OneDsTelemetry::Initialize
+onnxruntime::OneDsTelemetry::LogProcessInfo::<lambda_1>::operator ()
+onnxruntime::OneDsTelemetry::ReportFailure
+skipSqliteInitAndShutdown

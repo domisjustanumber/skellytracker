@@ -1,0 +1,49 @@
+[
+ {
+  "file": "C922_1280x720_max.jpg",
+  "boxes": 0,
+  "top_scores": []
+ },
+ {
+  "file": "C922_1280x720_median.jpg",
+  "boxes": 0,
+  "top_scores": []
+ },
+ {
+  "file": "C930e_1280x720_max.jpg",
+  "boxes": 0,
+  "top_scores": []
+ },
+ {
+  "file": "C922_1920x1080_max.jpg",
+  "boxes": 5,
+  "top_scores": [
+   0.122,
+   0.113,
+   0.039,
+   0.036,
+   0.02
+  ]
+ },
+ {
+  "file": "C922_1920x1080_median.jpg",
+  "boxes": 4,
+  "top_scores": [
+   0.083,
+   0.047,
+   0.027,
+   0.026
+  ]
+ },
+ {
+  "file": "C930e_1920x1080_max.jpg",
+  "boxes": 6,
+  "top_scores": [
+   0.211,
+   0.163,
+   0.094,
+   0.023,
+   0.023
+  ]
+ }
+]

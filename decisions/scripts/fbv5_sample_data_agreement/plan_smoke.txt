@@ -1,0 +1,1 @@
+--ep cuda --mode J3 --frames 40 --tag smoke_cuda_J3

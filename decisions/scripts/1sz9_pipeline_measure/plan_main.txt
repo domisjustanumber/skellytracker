@@ -1,0 +1,98 @@
+# cold/warm TensorRT RTX cache (own empty folder)
+--ep trt-rtx --mode M3 --res 720 --cams 3 --calls 30 --warmup 2 --cache $SCRATCH/s8_measure/iso/trt_cold --tag cold1_trt_M3_720x3
+--ep trt-rtx --mode M3 --res 720 --cams 3 --calls 30 --warmup 2 --cache $SCRATCH/s8_measure/iso/trt_cold --tag cold2warm_trt_M3_720x3
+# prefill shared cache
+--ep trt-rtx --mode M1 --res 720 --cams 3 --calls 3 --warmup 1 --interval 1 --tag prefill_trt_720x3
+--ep trt-rtx --mode M1 --res 720 --cams 6 --calls 3 --warmup 1 --interval 1 --tag prefill_trt_720x6
+--ep trt-rtx --mode M1 --res 1080 --cams 3 --calls 3 --warmup 1 --interval 1 --tag prefill_trt_1080x3
+--ep trt-rtx --mode M1 --res 1080 --cams 6 --calls 3 --warmup 1 --interval 1 --tag prefill_trt_1080x6
+--ep cuda --mode M0 --res 720 --cams 3 --tag A_cuda_M0_720x3
+--ep cuda --mode M1 --res 720 --cams 3 --tag A_cuda_M1_720x3
+--ep cuda --mode M2 --res 720 --cams 3 --tag A_cuda_M2_720x3
+--ep cuda --mode M3 --res 720 --cams 3 --tag A_cuda_M3_720x3
+--ep cuda --mode M0 --res 720 --cams 6 --tag A_cuda_M0_720x6
+--ep cuda --mode M1 --res 720 --cams 6 --tag A_cuda_M1_720x6
+--ep cuda --mode M2 --res 720 --cams 6 --tag A_cuda_M2_720x6
+--ep cuda --mode M3 --res 720 --cams 6 --tag A_cuda_M3_720x6
+--ep cuda --mode M0 --res 1080 --cams 3 --tag A_cuda_M0_1080x3
+--ep cuda --mode M1 --res 1080 --cams 3 --tag A_cuda_M1_1080x3
+--ep cuda --mode M2 --res 1080 --cams 3 --tag A_cuda_M2_1080x3
+--ep cuda --mode M3 --res 1080 --cams 3 --tag A_cuda_M3_1080x3
+--ep cuda --mode M0 --res 1080 --cams 6 --tag A_cuda_M0_1080x6
+--ep cuda --mode M1 --res 1080 --cams 6 --tag A_cuda_M1_1080x6
+--ep cuda --mode M2 --res 1080 --cams 6 --tag A_cuda_M2_1080x6
+--ep cuda --mode M3 --res 1080 --cams 6 --tag A_cuda_M3_1080x6
+--ep cuda --mode M0 --res 720 --cams 3 --interval 1 --tag D_cuda_M0_720x3
+--ep cuda --mode M1 --res 720 --cams 3 --interval 1 --tag D_cuda_M1_720x3
+--ep cuda --mode M2 --res 720 --cams 3 --interval 1 --tag D_cuda_M2_720x3
+--ep cuda --mode M3 --res 720 --cams 3 --interval 1 --tag D_cuda_M3_720x3
+--ep cuda --mode M0 --res 1080 --cams 3 --interval 1 --tag D_cuda_M0_1080x3
+--ep cuda --mode M1 --res 1080 --cams 3 --interval 1 --tag D_cuda_M1_1080x3
+--ep cuda --mode M2 --res 1080 --cams 3 --interval 1 --tag D_cuda_M2_1080x3
+--ep cuda --mode M3 --res 1080 --cams 3 --interval 1 --tag D_cuda_M3_1080x3
+--ep cuda --mode M2b --res 720 --cams 3 --tag A_cuda_M2b_720x3
+--ep cuda --mode M2b --res 720 --cams 3 --interval 1 --tag D_cuda_M2b_720x3
+--ep cuda --mode M0 --res 720 --cams 3 --variant P0 --tag B_cuda_M0_720x3
+--ep cuda --mode M1 --res 720 --cams 3 --variant P0 --tag B_cuda_M1_720x3
+--ep cuda --mode M2 --res 720 --cams 3 --variant P0 --tag B_cuda_M2_720x3
+--ep cuda --mode M3 --res 720 --cams 3 --variant P0 --tag B_cuda_M3_720x3
+--ep cuda --mode M0 --res 720 --cams 6 --variant P0 --tag B_cuda_M0_720x6
+--ep cuda --mode M1 --res 720 --cams 6 --variant P0 --tag B_cuda_M1_720x6
+--ep cuda --mode M2 --res 720 --cams 6 --variant P0 --tag B_cuda_M2_720x6
+--ep cuda --mode M3 --res 720 --cams 6 --variant P0 --tag B_cuda_M3_720x6
+--ep cuda --mode M0 --res 1080 --cams 3 --variant P0 --tag B_cuda_M0_1080x3
+--ep cuda --mode M1 --res 1080 --cams 3 --variant P0 --tag B_cuda_M1_1080x3
+--ep cuda --mode M2 --res 1080 --cams 3 --variant P0 --tag B_cuda_M2_1080x3
+--ep cuda --mode M3 --res 1080 --cams 3 --variant P0 --tag B_cuda_M3_1080x3
+--ep cuda --mode M0 --res 1080 --cams 6 --variant P0 --tag B_cuda_M0_1080x6
+--ep cuda --mode M1 --res 1080 --cams 6 --variant P0 --tag B_cuda_M1_1080x6
+--ep cuda --mode M2 --res 1080 --cams 6 --variant P0 --tag B_cuda_M2_1080x6
+--ep cuda --mode M3 --res 1080 --cams 6 --variant P0 --tag B_cuda_M3_1080x6
+--ep trt-rtx --mode M0 --res 720 --cams 3 --tag A_trt-rtx_M0_720x3
+--ep trt-rtx --mode M1 --res 720 --cams 3 --tag A_trt-rtx_M1_720x3
+--ep trt-rtx --mode M2 --res 720 --cams 3 --tag A_trt-rtx_M2_720x3
+--ep trt-rtx --mode M3 --res 720 --cams 3 --tag A_trt-rtx_M3_720x3
+--ep trt-rtx --mode M0 --res 720 --cams 6 --tag A_trt-rtx_M0_720x6
+--ep trt-rtx --mode M1 --res 720 --cams 6 --tag A_trt-rtx_M1_720x6
+--ep trt-rtx --mode M2 --res 720 --cams 6 --tag A_trt-rtx_M2_720x6
+--ep trt-rtx --mode M3 --res 720 --cams 6 --tag A_trt-rtx_M3_720x6
+--ep trt-rtx --mode M0 --res 1080 --cams 3 --tag A_trt-rtx_M0_1080x3
+--ep trt-rtx --mode M1 --res 1080 --cams 3 --tag A_trt-rtx_M1_1080x3
+--ep trt-rtx --mode M2 --res 1080 --cams 3 --tag A_trt-rtx_M2_1080x3
+--ep trt-rtx --mode M3 --res 1080 --cams 3 --tag A_trt-rtx_M3_1080x3
+--ep trt-rtx --mode M0 --res 1080 --cams 6 --tag A_trt-rtx_M0_1080x6
+--ep trt-rtx --mode M1 --res 1080 --cams 6 --tag A_trt-rtx_M1_1080x6
+--ep trt-rtx --mode M2 --res 1080 --cams 6 --tag A_trt-rtx_M2_1080x6
+--ep trt-rtx --mode M3 --res 1080 --cams 6 --tag A_trt-rtx_M3_1080x6
+--ep trt-rtx --mode M0 --res 720 --cams 3 --interval 1 --tag D_trt-rtx_M0_720x3
+--ep trt-rtx --mode M1 --res 720 --cams 3 --interval 1 --tag D_trt-rtx_M1_720x3
+--ep trt-rtx --mode M2 --res 720 --cams 3 --interval 1 --tag D_trt-rtx_M2_720x3
+--ep trt-rtx --mode M3 --res 720 --cams 3 --interval 1 --tag D_trt-rtx_M3_720x3
+--ep trt-rtx --mode M0 --res 1080 --cams 3 --interval 1 --tag D_trt-rtx_M0_1080x3
+--ep trt-rtx --mode M1 --res 1080 --cams 3 --interval 1 --tag D_trt-rtx_M1_1080x3
+--ep trt-rtx --mode M2 --res 1080 --cams 3 --interval 1 --tag D_trt-rtx_M2_1080x3
+--ep trt-rtx --mode M3 --res 1080 --cams 3 --interval 1 --tag D_trt-rtx_M3_1080x3
+--ep trt-rtx --mode M2b --res 720 --cams 3 --tag A_trt-rtx_M2b_720x3
+--ep trt-rtx --mode M2b --res 720 --cams 3 --interval 1 --tag D_trt-rtx_M2b_720x3
+--ep trt-rtx --mode M0 --res 720 --cams 3 --variant P0 --tag B_trt-rtx_M0_720x3
+--ep trt-rtx --mode M1 --res 720 --cams 3 --variant P0 --tag B_trt-rtx_M1_720x3
+--ep trt-rtx --mode M2 --res 720 --cams 3 --variant P0 --tag B_trt-rtx_M2_720x3
+--ep trt-rtx --mode M3 --res 720 --cams 3 --variant P0 --tag B_trt-rtx_M3_720x3
+--ep trt-rtx --mode M0 --res 720 --cams 6 --variant P0 --tag B_trt-rtx_M0_720x6
+--ep trt-rtx --mode M1 --res 720 --cams 6 --variant P0 --tag B_trt-rtx_M1_720x6
+--ep trt-rtx --mode M2 --res 720 --cams 6 --variant P0 --tag B_trt-rtx_M2_720x6
+--ep trt-rtx --mode M3 --res 720 --cams 6 --variant P0 --tag B_trt-rtx_M3_720x6
+--ep trt-rtx --mode M0 --res 1080 --cams 3 --variant P0 --tag B_trt-rtx_M0_1080x3
+--ep trt-rtx --mode M1 --res 1080 --cams 3 --variant P0 --tag B_trt-rtx_M1_1080x3
+--ep trt-rtx --mode M2 --res 1080 --cams 3 --variant P0 --tag B_trt-rtx_M2_1080x3
+--ep trt-rtx --mode M3 --res 1080 --cams 3 --variant P0 --tag B_trt-rtx_M3_1080x3
+--ep trt-rtx --mode M0 --res 1080 --cams 6 --variant P0 --tag B_trt-rtx_M0_1080x6
+--ep trt-rtx --mode M1 --res 1080 --cams 6 --variant P0 --tag B_trt-rtx_M1_1080x6
+--ep trt-rtx --mode M2 --res 1080 --cams 6 --variant P0 --tag B_trt-rtx_M2_1080x6
+--ep trt-rtx --mode M3 --res 1080 --cams 6 --variant P0 --tag B_trt-rtx_M3_1080x6
+# extras cuda 720x3
+--ep cuda --mode M3 --res 720 --cams 3 --rot 90 --tag X_rot90_M3
+--ep cuda --mode M1 --res 720 --cams 3 --rot 90 --tag X_rot90_M1
+--ep cuda --mode M3 --res 720 --cams 3 --huff --tag X_huff_M3
+--ep cuda --mode M3 --res 720 --cams 3 --refuse --tag X_refuse_M3
+--ep cuda --mode M3 --res 720 --cams 3 --tag X_repeat_M3

@@ -1,0 +1,2 @@
+decoder_alone.py --ep cuda --tag dec_1
+decoder_alone.py --ep cuda --tag dec_2

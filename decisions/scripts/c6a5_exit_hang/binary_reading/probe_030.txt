@@ -1,0 +1,82 @@
+file <EP store>\cuda-cu13\0.3.0\onnxruntime_ep_cuda\onnxruntime_providers_cuda.dll
+TimeDateStamp 0x6ac81f20 SizeOfImage 0xbcf4000 Linker 14 44
+ section .text 0x1000 0x1987b77
+ section .rdata 0x1989000 0x19e920a
+ section .data 0x3373000 0x280588
+ section .pdata 0x35f4000 0x8e824
+ section .nv_fatb 0x3683000 0x8660358
+ section .nvFatBi 0xbce4000 0x38b8
+ section .rsrc 0xbce8000 0x600
+ section .reloc 0xbce9000 0xabb4
+ debug CodeView N:\_work\1\b\Release\Release\onnxruntime_providers_cuda.pdb guid+age 8D22091916244C4D000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001
+ debug type 13
+ debug type 20
+ rich (prodid, build) top: [(255, 35229), (258, 35229), (259, 35229), (260, 35229), (261, 35229), (256, 35229), (259, 35207), (260, 35207)]
+ exports [(11059616, 'CreateEpFactories'), (11060800, 'ReleaseEpFactory')]
+ imported DLLs ['cublas64_13.dll', 'cublasLt64_13.dll', 'SHELL32.dll', 'WINHTTP.dll', 'CRYPT32.dll', 'KERNEL32.dll', 'USER32.dll', 'ole32.dll', 'ADVAPI32.dll', 'MSVCP140.dll', 'dbghelp.dll', 'VERSION.dll', 'VCRUNTIME140.dll', 'VCRUNTIME140_1.dll', 'api-ms-win-crt-runtime-l1-1-0.dll', 'api-ms-win-crt-heap-l1-1-0.dll', 'api-ms-win-crt-environment-l1-1-0.dll', 'api-ms-win-crt-math-l1-1-0.dll', 'api-ms-win-crt-string-l1-1-0.dll', 'api-ms-win-crt-stdio-l1-1-0.dll', 'api-ms-win-crt-convert-l1-1-0.dll', 'api-ms-win-crt-filesystem-l1-1-0.dll', 'api-ms-win-crt-locale-l1-1-0.dll', 'api-ms-win-crt-time-l1-1-0.dll', 'IPHLPAPI.DLL']
+ thread/cv imports ['MSVCP140.dll!_Cnd_broadcast', 'MSVCP140.dll!_Cnd_do_broadcast_at_thread_exit', 'MSVCP140.dll!_Cnd_signal', 'MSVCP140.dll!_Cnd_wait', 'MSVCP140.dll!_Mtx_lock', 'MSVCP140.dll!_Mtx_trylock', 'MSVCP140.dll!_Mtx_unlock', 'MSVCP140.dll!_Thrd_detach', 'MSVCP140.dll!_Thrd_hardware_concurrency', 'MSVCP140.dll!_Thrd_id', 'MSVCP140.dll!_Thrd_join', 'MSVCP140.dll!_Thrd_yield']
+
+== frame ReleaseEpFactory+0xc98df4: return RVA 0x1725434 in function 0x1724910-0x1725693 (size 3459), ret at +0xb24
+   +0x010b call   0x1651cb0
+   +0x02db call   0x21a50
+   +0x03a1 call   0x1723180
+   +0x060d call   0x1726ae0
+   +0x09c1 call   0x17243c0
+   +0x0b62 icall  api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+   +0x0c35 icall  api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+   +0x0d59 call   0x279c0
+   +0x0d5f call   0x1726ac0
+
+== frame ReleaseEpFactory+0xc85c69: return RVA 0x17122a9 in function 0x1712220-0x17122b7 (size 151), ret at +0x89
+
+== frame ReleaseEpFactory+0xc858e5: return RVA 0x1711f25 in function 0x1711ec0-0x171221c (size 860), ret at +0x65
+   +0x002d call   0x17122c0
+   +0x003f call   0x1651cb0
+   +0x0060 call   0x1712220 <== return here
+   +0x01a4 call   0x17100f0
+
+== frame ReleaseEpFactory+0xc745e4: return RVA 0x1700c24 in function 0x1700c01-0x1700d1f (size 286), ret at +0x23
+   +0x001e call   0x1711ec0 <== return here
+
+== frame ReleaseEpFactory+0xc345f1: return RVA 0x16c0c31 in function 0x16c09f0-0x16c0e22 (size 1074), ret at +0x241
+   +0x0077 str    disableZombieLoggers
+   +0x0085 call   0x16b8d20
+   +0x00a3 call   0x16bdd40
+   +0x0140 call   0x16c0330
+   +0x020d icall  api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+   +0x03d7 call   0x16c9340
+   +0x03df call   0x16c9f10
+
+== frame ReleaseEpFactory+0xbe7704: return RVA 0x1673d44 in function 0x1673c90-0x1673dc3 (size 307), ret at +0xb4
+   +0x00bb call   0x16bb990
+   +0x00e9 call   0x16788d0
+
+== frame ReleaseEpFactory+0xefb2d0: return RVA 0x1987910 in function 0x1987900-0x198796e (size 110), ret at +0x10
+   +0x000b call   0x1673c90 <== return here
+   +0x0017 call   0x166c1c0
+   +0x0058 call   0x25f8c0
+
+== frame ReleaseEpFactory+0xd9a8dd: return RVA 0x1826f1d in function 0x1826ed8-0x1826f5b (size 131), ret at +0x45
+   +0x002c call   0x18260bc
+   +0x0040 call   0x18261e4 <== return here
+   +0x004a call   0x18276e4
+   +0x005b call   0x1826388
+   +0x0065 call   0x18263ac
+   +0x006d call   0x1826214
+   +0x007b call   0x182745c
+
+== frame ReleaseEpFactory+0xd9a9fd: return RVA 0x182703d in function 0x1826f5c-0x1827084 (size 296), ret at +0xe1
+   +0x006a call   0x1826d70
+   +0x0085 call   0x1827660
+   +0x00ac call   0x1826ed8
+
+== frame ReleaseEpFactory+0xc38313: return RVA 0x16c4953 in function 0x16c4932-0x16c4961 (size 47), ret at +0x21
+
+== frame ReleaseEpFactory+0xc343f2: return RVA 0x16c0a32 in function 0x16c09f0-0x16c0e22 (size 1074), ret at +0x42
+   +0x0077 str    disableZombieLoggers
+   +0x0085 call   0x16b8d20
+   +0x00a3 call   0x16bdd40
+   +0x0140 call   0x16c0330
+   +0x020d icall  api-ms-win-crt-runtime-l1-1-0.dll!_invoke_watson
+   +0x03d7 call   0x16c9340
+   +0x03df call   0x16c9f10

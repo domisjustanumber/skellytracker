@@ -1,0 +1,162 @@
+[
+ {
+  "file": "C922_1280x720_max.jpg",
+  "bytes": 263745,
+  "dht": 4,
+  "sof": "0xc0",
+  "width": 1280,
+  "height": 720,
+  "components": 3,
+  "chroma": "4:2:2"
+ },
+ {
+  "file": "C922_1280x720_median.jpg",
+  "bytes": 142536,
+  "dht": 4,
+  "sof": "0xc0",
+  "width": 1280,
+  "height": 720,
+  "components": 3,
+  "chroma": "4:2:2"
+ },
+ {
+  "file": "C922_1920x1080_max.jpg",
+  "bytes": 199138,
+  "dht": 4,
+  "sof": "0xc0",
+  "width": 1920,
+  "height": 1080,
+  "components": 3,
+  "chroma": "4:2:2"
+ },
+ {
+  "file": "C922_1920x1080_median.jpg",
+  "bytes": 196849,
+  "dht": 4,
+  "sof": "0xc0",
+  "width": 1920,
+  "height": 1080,
+  "components": 3,
+  "chroma": "4:2:2"
+ },
+ {
+  "file": "C930e_1280x720_max.jpg",
+  "bytes": 156448,
+  "dht": 4,
+  "sof": "0xc0",
+  "width": 1280,
+  "height": 720,
+  "components": 3,
+  "chroma": "4:2:2"
+ },
+ {
+  "file": "C930e_1280x720_median.jpg",
+  "bytes": 99469,
+  "dht": 4,
+  "sof": "0xc0",
+  "width": 1280,
+  "height": 720,
+  "components": 3,
+  "chroma": "4:2:2"
+ },
+ {
+  "file": "C930e_1920x1080_max.jpg",
+  "bytes": 180089,
+  "dht": 4,
+  "sof": "0xc0",
+  "width": 1920,
+  "height": 1080,
+  "components": 3,
+  "chroma": "4:2:2"
+ },
+ {
+  "file": "C930e_1920x1080_median.jpg",
+  "bytes": 144378,
+  "dht": 4,
+  "sof": "0xc0",
+  "width": 1920,
+  "height": 1080,
+  "components": 3,
+  "chroma": "4:2:2"
+ },
+ {
+  "file": "generic_1280x720_max.jpg",
+  "bytes": 114583,
+  "dht": 4,
+  "sof": "0xc0",
+  "width": 1280,
+  "height": 720,
+  "components": 3,
+  "chroma": "4:2:2"
+ },
+ {
+  "file": "generic_1280x720_median.jpg",
+  "bytes": 74922,
+  "dht": 4,
+  "sof": "0xc0",
+  "width": 1280,
+  "height": 720,
+  "components": 3,
+  "chroma": "4:2:2"
+ },
+ {
+  "file": "generic_1920x1080_max.jpg",
+  "bytes": 99422,
+  "dht": 4,
+  "sof": "0xc0",
+  "width": 1920,
+  "height": 1080,
+  "components": 3,
+  "chroma": "4:2:2"
+ },
+ {
+  "file": "generic_1920x1080_median.jpg",
+  "bytes": 54315,
+  "dht": 4,
+  "sof": "0xc0",
+  "width": 1920,
+  "height": 1080,
+  "components": 3,
+  "chroma": "4:2:2"
+ },
+ {
+  "file": "KiyoPro_1280x720_max.jpg",
+  "bytes": 276269,
+  "dht": 4,
+  "sof": "0xc0",
+  "width": 1280,
+  "height": 720,
+  "components": 3,
+  "chroma": "4:2:0"
+ },
+ {
+  "file": "KiyoPro_1280x720_median.jpg",
+  "bytes": 144432,
+  "dht": 4,
+  "sof": "0xc0",
+  "width": 1280,
+  "height": 720,
+  "components": 3,
+  "chroma": "4:2:0"
+ },
+ {
+  "file": "KiyoPro_1920x1080_max.jpg",
+  "bytes": 386468,
+  "dht": 4,
+  "sof": "0xc0",
+  "width": 1920,
+  "height": 1080,
+  "components": 3,
+  "chroma": "4:2:0"
+ },
+ {
+  "file": "KiyoPro_1920x1080_median.jpg",
+  "bytes": 329843,
+  "dht": 4,
+  "sof": "0xc0",
+  "width": 1920,
+  "height": 1080,
+  "components": 3,
+  "chroma": "4:2:0"
+ }
+]

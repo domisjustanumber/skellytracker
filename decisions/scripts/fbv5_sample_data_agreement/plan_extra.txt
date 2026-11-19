@@ -1,0 +1,5 @@
+--ep cuda --mode DEC --frames 50 --tag cuda_DEC_q90
+--ep cuda --mode R --interval 1 --tag cuda_R_i1
+--ep cuda --mode R --interval 1 --tag cuda_R2_i1
+--ep cuda --mode J3 --interval 1 --tag cuda_J3_i1
+--ep cpu --mode R --interval 1 --tag cpu_R_i1
