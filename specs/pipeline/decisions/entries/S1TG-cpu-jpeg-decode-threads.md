@@ -32,20 +32,33 @@
 
 ## Evidence
 
-Measured on 2026-11-18 on a host with 28 logical CPUs, the decode only, 1000 batches for each point. The script was a local scratch script, not in this
-repository.
+Measured on 2026-11-18 on one Windows 11 desktop with 28 logical CPUs and one RTX 3070: Python
+3.13.18, `opencv-contrib-python` 5.0.0.93, numpy 2.4.6, ONNX Runtime 1.31.1, nvImageCodec 0.10.0.9,
+nvJPEG 13.3.2.43. The input is 8 real camera JPEG frames of each size from 4 USB camera models: the
+frame of median size and the largest frame of each model. The mean size is 155 KiB at 1280 x 720
+and 194 KiB at 1920 x 1080. The script read the frames in place, and the repository does not hold
+them. Each point has 5 rounds of 200 batches after one warm-up round. The table gives the median
+wall time of one batch in ms. "Pool + upload" adds the copy of the decoded frames to GPU memory.
+nvJPEG decodes the batch into GPU memory on a private CUDA stream and waits for it. The scripts and
+the output are in [`s1tg_decode_threads/`](../scripts/s1tg_decode_threads/): `decode_threads.py`,
+`run_all.sh`, `gpu_wait.sh` and `results.txt`.
 
-| Frames | Frame size | ms in a row | ms in a thread pool |
-|---|---|---|---|
-| 3 | 1280 x 720 | 8.2 | 3.6 |
-| 6 | 1280 x 720 | 16.3 | 4.2 |
-| 3 | 1920 x 1080 | 15.1 | 6.5 |
-| 6 | 1920 x 1080 | 30.5 | 7.8 |
+| Frames | Frame size | in a row | thread pool | pool + upload | nvJPEG (p95, max) |
+|---|---|---|---|---|---|
+| 3 | 1280 x 720 | 8.2 | 3.6 | 6.4 | 3.0 (5.5, 16.7) |
+| 6 | 1280 x 720 | 16.3 | 4.2 | 7.4 | 2.6 (5.2, 9.7) |
+| 3 | 1920 x 1080 | 15.1 | 6.5 | 10.3 | 2.2 (8.2, 11.5) |
+| 6 | 1920 x 1080 | 30.5 | 7.8 | 14.3 | 3.1 (8.0, 15.7) |
 
 - The thread pool used 10 to 18 % more CPU time.
+- nvJPEG is faster than the thread pool with the upload, but its p95 and its maximum are higher. Its
+  pixels differ from `cv2.imdecode` by a mean of at most 0.03 `uint8` steps for each image.
+- `cv2.setNumThreads` (28 or 1) did not change the time of a decode.
 - Limited to 2 logical CPUs, the thread pool was 1.3 times faster. Limited to 4, it was 2.0 to 2.3
-  times faster.
-- `cv2.setNumThreads` did not change the time of a decode.
+  times faster. These numbers come from 6 synthetic JPEG images at quality 90, 150 calls after 10
+  warm-up calls, with a CPU affinity of 2 or 4 cores (`few_cores.py`, output `few_cores.txt`).
+- The numbers come from ONNX Runtime 1.31.1, before the move to 1.30.0. A repeat on the pinned
+  versions is [open work](../../../../decisions/open-work.md).
 
 ## Alternatives rejected
 

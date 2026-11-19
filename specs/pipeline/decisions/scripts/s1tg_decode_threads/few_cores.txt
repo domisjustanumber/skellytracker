@@ -1,0 +1,11 @@
+1280x720 mean size 199 KiB
+  cores=2 N=3 workers=2: serial wall 8.44 cpu 8.44 | pool wall 6.74 cpu 10.10 ms | x1.25
+  cores=2 N=6 workers=2: serial wall 17.11 cpu 16.56 | pool wall 13.11 cpu 20.83 ms | x1.30
+  cores=4 N=3 workers=3: serial wall 8.45 cpu 8.23 | pool wall 4.19 cpu 10.31 ms | x2.02
+  cores=4 N=6 workers=4: serial wall 16.90 cpu 16.77 | pool wall 7.86 cpu 22.92 ms | x2.15
+1920x1080 mean size 447 KiB
+  cores=2 N=3 workers=2: serial wall 19.10 cpu 18.75 | pool wall 14.97 cpu 20.21 ms | x1.28
+  cores=2 N=6 workers=2: serial wall 38.65 cpu 37.40 | pool wall 29.40 cpu 45.83 ms | x1.31
+  cores=4 N=3 workers=3: serial wall 18.98 cpu 18.54 | pool wall 9.15 cpu 22.50 ms | x2.07
+  cores=4 N=6 workers=4: serial wall 38.19 cpu 37.92 | pool wall 16.89 cpu 49.17 ms | x2.26
+cores 28 cv2 5.0.0 py 3.13.18

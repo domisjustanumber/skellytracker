@@ -1,0 +1,100 @@
+gpu check 10:45:22: python on GPU=[] peak util=17% (10 s)
+### --res 720 --iters 200 --rounds 5 10:45:22
+rc=0
+1280x720 frames: C922_1280x720_median.jpg 139KiB, C922_1280x720_max.jpg 258KiB, C930e_1280x720_median.jpg 97KiB, C930e_1280x720_max.jpg 153KiB, KiyoPro_1280x720_median.jpg 141KiB, KiyoPro_1280x720_max.jpg 270KiB, generic_1280x720_median.jpg 73KiB, generic_1280x720_max.jpg 112KiB
+mean size 155 KiB; logical cores 28; cv2 5.0.0 default threads 28; python 3.13.18; switchinterval 0.005
+onnxruntime 1.31.1, onnx 1.22.0, opencv-contrib-python 5.0.0.93, numpy 2.4.6, nvidia-nvimgcodec-cu13 0.10.0.9, nvidia-nvjpeg 13.3.2.43
+nvimgcodec decoder ids: ['nvjpeg_cuda_decoder', 'nvjpeg_lossless_decoder', 'libjpeg_turbo_decoder', 'opencv_jpeg_decoder', 'opencv_bmp_decoder', 'nvbmp_decoder', 'opencv_jpeg2k_decoder', 'opencv_png_decoder', 'opencv_pnm_decoder', 'libtiff_decoder', 'opencv_tiff_decoder', 'opencv_webp_decoder']
+iters/round 200, rounds 5 (+1 warm-up)
+N=1 correctness: P3 vs cv2 BGR mean|diff| max 0.02; P3==nvjpeg_cuda_decoder: True; P3==libjpeg_turbo_decoder: False; P4 vs cv2 BGR mean|diff| max 0.02; P4==nvjpeg_cuda_decoder: True; P4==libjpeg_turbo_decoder: False
+ROW 1280x720 N=1 P1 serial decode cvT=28            wall median   2.651 min   2.231 p95   3.432 max   4.559 ms | cpu/batch median   2.734 min   2.656 max   2.812 ms
+ROW 1280x720 N=1 P1 serial decode cvT=1             wall median   2.661 min   2.220 p95   3.461 max   4.262 ms | cpu/batch median   2.734 min   2.578 max   2.812 ms
+ROW 1280x720 N=1 P1 serial +upload cvT=28           wall median   3.167 min   2.452 p95   3.985 max   4.884 ms | cpu/batch median   3.281 min   2.969 max   3.359 ms
+ROW 1280x720 N=1 P1 serial +upload cvT=1            wall median   3.397 min   2.451 p95   4.362 max   6.329 ms | cpu/batch median   3.281 min   2.891 max   3.672 ms
+ROW 1280x720 N=1 P2 pool decode cvT=28              wall median   2.687 min   2.284 p95   3.454 max   3.897 ms | cpu/batch median   2.734 min   2.656 max   2.812 ms
+ROW 1280x720 N=1 P2 pool decode cvT=1               wall median   2.675 min   2.271 p95   3.430 max   4.135 ms | cpu/batch median   2.734 min   2.734 max   2.812 ms
+ROW 1280x720 N=1 P2 pool +upload cvT=28             wall median   3.637 min   2.797 p95   4.426 max   4.824 ms | cpu/batch median   3.516 min   3.516 max   3.828 ms
+ROW 1280x720 N=1 P2 pool +upload cvT=1              wall median   3.678 min   3.219 p95   4.486 max   5.168 ms | cpu/batch median   3.672 min   3.594 max   3.906 ms
+ROW 1280x720 N=1 P3 nvjpeg                          wall median   3.106 min   1.772 p95   4.311 max  12.697 ms | cpu/batch median   3.047 min   2.891 max   3.281 ms
+ROW 1280x720 N=1 P4 nvjpeg gpuhuff                  wall median   1.309 min   1.016 p95   2.007 max   5.718 ms | cpu/batch median   1.406 min   1.328 max   1.406 ms
+N=3 correctness: P3 vs cv2 BGR mean|diff| max 0.03; P3==nvjpeg_cuda_decoder: True; P3==libjpeg_turbo_decoder: False; P4 vs cv2 BGR mean|diff| max 0.03; P4==nvjpeg_cuda_decoder: True; P4==libjpeg_turbo_decoder: False
+ROW 1280x720 N=3 P1 serial decode cvT=28            wall median   8.184 min   7.284 p95   8.887 max  11.698 ms | cpu/batch median   8.125 min   8.047 max   8.125 ms
+ROW 1280x720 N=3 P1 serial decode cvT=1             wall median   8.254 min   7.270 p95  10.204 max  15.985 ms | cpu/batch median   8.047 min   7.969 max   9.609 ms
+ROW 1280x720 N=3 P1 serial +upload cvT=28           wall median  10.161 min   7.926 p95  11.869 max  20.087 ms | cpu/batch median  10.312 min   8.750 max  10.859 ms
+ROW 1280x720 N=3 P1 serial +upload cvT=1            wall median  10.853 min   7.947 p95  11.628 max  25.228 ms | cpu/batch median  10.781 min   9.766 max  11.016 ms
+ROW 1280x720 N=3 P2 pool decode cvT=28              wall median   3.582 min   2.932 p95   3.914 max   5.022 ms | cpu/batch median   8.984 min   8.359 max   9.219 ms
+ROW 1280x720 N=3 P2 pool decode cvT=1               wall median   3.562 min   2.875 p95   3.867 max   4.617 ms | cpu/batch median   8.516 min   8.047 max   9.219 ms
+ROW 1280x720 N=3 P2 pool +upload cvT=28             wall median   6.391 min   4.603 p95   6.879 max   7.522 ms | cpu/batch median  11.406 min  10.547 max  11.719 ms
+ROW 1280x720 N=3 P2 pool +upload cvT=1              wall median   6.302 min   4.513 p95   6.804 max   8.366 ms | cpu/batch median  11.797 min  11.094 max  12.188 ms
+ROW 1280x720 N=3 P3 nvjpeg                          wall median   3.039 min   1.525 p95   5.483 max  16.685 ms | cpu/batch median   6.875 min   5.547 max   7.578 ms
+ROW 1280x720 N=3 P4 nvjpeg gpuhuff                  wall median   1.368 min   1.071 p95   1.720 max   2.984 ms | cpu/batch median   2.891 min   2.422 max   3.359 ms
+N=6 correctness: P3 vs cv2 BGR mean|diff| max 0.03; P3==nvjpeg_cuda_decoder: True; P3==libjpeg_turbo_decoder: False; P4 vs cv2 BGR mean|diff| max 0.03; P4==nvjpeg_cuda_decoder: True; P4==libjpeg_turbo_decoder: False
+ROW 1280x720 N=6 P1 serial decode cvT=28            wall median  16.320 min  15.175 p95  17.285 max  20.635 ms | cpu/batch median  16.094 min  16.016 max  16.406 ms
+ROW 1280x720 N=6 P1 serial decode cvT=1             wall median  16.383 min  14.978 p95  17.418 max  23.018 ms | cpu/batch median  16.406 min  16.172 max  16.484 ms
+ROW 1280x720 N=6 P1 serial +upload cvT=28           wall median  21.923 min  18.212 p95  23.004 max  27.027 ms | cpu/batch median  21.562 min  20.703 max  21.875 ms
+ROW 1280x720 N=6 P1 serial +upload cvT=1            wall median  22.029 min  20.765 p95  23.131 max  30.559 ms | cpu/batch median  21.875 min  21.562 max  21.953 ms
+ROW 1280x720 N=6 P2 pool decode cvT=28              wall median   4.244 min   3.614 p95   4.815 max   5.493 ms | cpu/batch median  18.750 min  17.891 max  19.219 ms
+ROW 1280x720 N=6 P2 pool decode cvT=1               wall median   4.196 min   3.549 p95   4.691 max   5.504 ms | cpu/batch median  18.828 min  18.047 max  19.141 ms
+ROW 1280x720 N=6 P2 pool +upload cvT=28             wall median   7.439 min   6.842 p95  10.074 max  13.682 ms | cpu/batch median  21.562 min  21.406 max  22.031 ms
+ROW 1280x720 N=6 P2 pool +upload cvT=1              wall median   7.350 min   6.846 p95   8.804 max  10.807 ms | cpu/batch median  21.406 min  20.938 max  25.078 ms
+ROW 1280x720 N=6 P3 nvjpeg                          wall median   2.630 min   2.116 p95   5.216 max   9.654 ms | cpu/batch median  10.234 min   8.984 max  11.719 ms
+ROW 1280x720 N=6 P4 nvjpeg gpuhuff                  wall median   1.796 min   1.465 p95   2.123 max   2.752 ms | cpu/batch median   6.406 min   6.094 max   6.641 ms
+DONE
+gpu check 10:49:37: python on GPU=[] peak util=15% (10 s)
+### --res 1080 --iters 200 --rounds 5 10:49:37
+rc=0
+1920x1080 frames: C922_1920x1080_median.jpg 192KiB, C922_1920x1080_max.jpg 194KiB, C930e_1920x1080_median.jpg 141KiB, C930e_1920x1080_max.jpg 176KiB, KiyoPro_1920x1080_median.jpg 322KiB, KiyoPro_1920x1080_max.jpg 377KiB, generic_1920x1080_median.jpg 53KiB, generic_1920x1080_max.jpg 97KiB
+mean size 194 KiB; logical cores 28; cv2 5.0.0 default threads 28; python 3.13.18; switchinterval 0.005
+onnxruntime 1.31.1, onnx 1.22.0, opencv-contrib-python 5.0.0.93, numpy 2.4.6, nvidia-nvimgcodec-cu13 0.10.0.9, nvidia-nvjpeg 13.3.2.43
+nvimgcodec decoder ids: ['nvjpeg_cuda_decoder', 'nvjpeg_lossless_decoder', 'libjpeg_turbo_decoder', 'opencv_jpeg_decoder', 'opencv_bmp_decoder', 'nvbmp_decoder', 'opencv_jpeg2k_decoder', 'opencv_png_decoder', 'opencv_pnm_decoder', 'libtiff_decoder', 'opencv_tiff_decoder', 'opencv_webp_decoder']
+iters/round 200, rounds 5 (+1 warm-up)
+N=1 correctness: P3 vs cv2 BGR mean|diff| max 0.02; P3==nvjpeg_cuda_decoder: True; P3==libjpeg_turbo_decoder: False; P4 vs cv2 BGR mean|diff| max 0.02; P4==nvjpeg_cuda_decoder: True; P4==libjpeg_turbo_decoder: False
+ROW 1920x1080 N=1 P1 serial decode cvT=28            wall median   5.152 min   3.780 p95   5.979 max   6.764 ms | cpu/batch median   5.078 min   5.000 max   5.078 ms
+ROW 1920x1080 N=1 P1 serial decode cvT=1             wall median   5.148 min   3.783 p95   5.933 max   6.867 ms | cpu/batch median   5.000 min   5.000 max   5.078 ms
+ROW 1920x1080 N=1 P1 serial +upload cvT=28           wall median   5.818 min   4.218 p95   6.927 max   7.927 ms | cpu/batch median   5.781 min   5.547 max   6.094 ms
+ROW 1920x1080 N=1 P1 serial +upload cvT=1            wall median   6.215 min   4.253 p95   7.574 max  10.009 ms | cpu/batch median   6.094 min   5.547 max   7.031 ms
+ROW 1920x1080 N=1 P2 pool decode cvT=28              wall median   5.197 min   3.805 p95   6.025 max   7.248 ms | cpu/batch median   5.078 min   5.000 max   5.234 ms
+ROW 1920x1080 N=1 P2 pool decode cvT=1               wall median   5.180 min   3.816 p95   5.972 max   6.519 ms | cpu/batch median   5.078 min   4.922 max   5.156 ms
+ROW 1920x1080 N=1 P2 pool +upload cvT=28             wall median   7.232 min   5.794 p95   8.124 max  11.912 ms | cpu/batch median   7.109 min   6.953 max   7.188 ms
+ROW 1920x1080 N=1 P2 pool +upload cvT=1              wall median   7.233 min   5.792 p95   8.169 max  14.646 ms | cpu/batch median   7.188 min   7.031 max   7.422 ms
+ROW 1920x1080 N=1 P3 nvjpeg                          wall median   1.355 min   0.766 p95   6.138 max  13.071 ms | cpu/batch median   2.422 min   2.188 max   2.656 ms
+N=3 correctness: P3 vs cv2 BGR mean|diff| max 0.02; P3==nvjpeg_cuda_decoder: True; P3==libjpeg_turbo_decoder: False; P4 vs cv2 BGR mean|diff| max 0.02; P4==nvjpeg_cuda_decoder: True; P4==libjpeg_turbo_decoder: False
+ROW 1920x1080 N=3 P1 serial decode cvT=28            wall median  15.137 min  13.473 p95  16.537 max  23.855 ms | cpu/batch median  15.078 min  15.000 max  15.234 ms
+ROW 1920x1080 N=3 P1 serial decode cvT=1             wall median  15.116 min  13.485 p95  16.491 max  21.802 ms | cpu/batch median  15.000 min  14.922 max  15.391 ms
+ROW 1920x1080 N=3 P1 serial +upload cvT=28           wall median  20.976 min  15.742 p95  22.480 max  25.244 ms | cpu/batch median  20.938 min  19.297 max  21.250 ms
+ROW 1920x1080 N=3 P1 serial +upload cvT=1            wall median  21.185 min  19.463 p95  22.685 max  29.402 ms | cpu/batch median  21.094 min  20.781 max  21.172 ms
+ROW 1920x1080 N=3 P2 pool decode cvT=28              wall median   6.482 min   5.685 p95   7.096 max   8.696 ms | cpu/batch median  16.719 min  16.562 max  17.422 ms
+ROW 1920x1080 N=3 P2 pool decode cvT=1               wall median   6.477 min   5.820 p95   7.084 max   8.545 ms | cpu/batch median  16.562 min  16.484 max  17.422 ms
+ROW 1920x1080 N=3 P2 pool +upload cvT=28             wall median  10.319 min   9.047 p95  12.923 max  13.893 ms | cpu/batch median  20.703 min  20.312 max  21.172 ms
+ROW 1920x1080 N=3 P2 pool +upload cvT=1              wall median   9.686 min   8.977 p95  12.322 max  13.528 ms | cpu/batch median  19.844 min  19.453 max  20.625 ms
+ROW 1920x1080 N=3 P3 nvjpeg                          wall median   2.157 min   1.657 p95   8.184 max  11.497 ms | cpu/batch median   5.859 min   5.000 max   6.328 ms
+N=6 correctness: P3 vs cv2 BGR mean|diff| max 0.03; P3==nvjpeg_cuda_decoder: True; P3==libjpeg_turbo_decoder: False; P4 vs cv2 BGR mean|diff| max 0.03; P4==nvjpeg_cuda_decoder: True; P4==libjpeg_turbo_decoder: False
+ROW 1920x1080 N=6 P1 serial decode cvT=28            wall median  30.531 min  28.184 p95  33.037 max  38.294 ms | cpu/batch median  30.469 min  30.078 max  31.562 ms
+ROW 1920x1080 N=6 P1 serial decode cvT=1             wall median  30.556 min  28.141 p95  32.874 max  41.559 ms | cpu/batch median  30.469 min  30.000 max  30.938 ms
+ROW 1920x1080 N=6 P1 serial +upload cvT=28           wall median  42.926 min  40.063 p95  45.347 max  53.477 ms | cpu/batch median  42.656 min  42.266 max  42.891 ms
+ROW 1920x1080 N=6 P1 serial +upload cvT=1            wall median  42.779 min  40.219 p95  45.365 max  66.995 ms | cpu/batch median  42.812 min  41.953 max  42.891 ms
+ROW 1920x1080 N=6 P2 pool decode cvT=28              wall median   7.808 min   6.733 p95   8.891 max  11.335 ms | cpu/batch median  36.016 min  31.328 max  38.594 ms
+ROW 1920x1080 N=6 P2 pool decode cvT=1               wall median   7.869 min   6.767 p95   9.062 max  11.781 ms | cpu/batch median  36.953 min  32.656 max  38.359 ms
+ROW 1920x1080 N=6 P2 pool +upload cvT=28             wall median  14.329 min   9.999 p95  19.919 max  22.801 ms | cpu/batch median  41.875 min  40.547 max  45.391 ms
+ROW 1920x1080 N=6 P2 pool +upload cvT=1              wall median  11.990 min  10.215 p95  15.125 max  17.675 ms | cpu/batch median  41.328 min  40.078 max  41.953 ms
+ROW 1920x1080 N=6 P3 nvjpeg                          wall median   3.137 min   2.466 p95   7.964 max  15.651 ms | cpu/batch median   9.609 min   6.953 max  10.781 ms
+DONE
+gpu check 10:56:55: python on GPU=[] peak util=6% (10 s)
+### --res 720 --spin --iters 200 --rounds 5 10:56:55
+rc=0
+1280x720 frames: C922_1280x720_median.jpg 139KiB, C922_1280x720_max.jpg 258KiB, C930e_1280x720_median.jpg 97KiB, C930e_1280x720_max.jpg 153KiB, KiyoPro_1280x720_median.jpg 141KiB, KiyoPro_1280x720_max.jpg 270KiB, generic_1280x720_median.jpg 73KiB, generic_1280x720_max.jpg 112KiB
+mean size 155 KiB; logical cores 28; cv2 5.0.0 default threads 28; python 3.13.18; switchinterval 0.005
+onnxruntime 1.31.1, onnx 1.22.0, opencv-contrib-python 5.0.0.93, numpy 2.4.6, nvidia-nvimgcodec-cu13 0.10.0.9, nvidia-nvjpeg 13.3.2.43
+nvimgcodec decoder ids: ['nvjpeg_cuda_decoder', 'nvjpeg_lossless_decoder', 'libjpeg_turbo_decoder', 'opencv_jpeg_decoder', 'opencv_bmp_decoder', 'nvbmp_decoder', 'opencv_jpeg2k_decoder', 'opencv_png_decoder', 'opencv_pnm_decoder', 'libtiff_decoder', 'opencv_tiff_decoder', 'opencv_webp_decoder']
+iters/round 200, rounds 5 (+1 warm-up)
+N=3 correctness: P3 vs cv2 BGR mean|diff| max 0.03; P3==nvjpeg_cuda_decoder: True; P3==libjpeg_turbo_decoder: False; P4 vs cv2 BGR mean|diff| max 0.03; P4==nvjpeg_cuda_decoder: True; P4==libjpeg_turbo_decoder: False
+ROW 1280x720 N=3 P1 serial decode                   wall median   8.308 min   7.318 p95   9.006 max  10.593 ms | cpu/batch median   8.125 min   7.969 max   8.281 ms
+ROW 1280x720 N=3 P2 pool decode                     wall median   3.617 min   2.986 p95   3.927 max   4.413 ms | cpu/batch median   8.750 min   8.594 max   9.219 ms
+ROW 1280x720 N=3 P2 pool +upload                    wall median   6.482 min   5.751 p95   6.893 max   7.779 ms | cpu/batch median  11.797 min  11.172 max  12.188 ms
+ROW 1280x720 N=3 P3 nvjpeg                          wall median   2.586 min   1.595 p95   5.814 max  16.758 ms | cpu/batch median   6.641 min   5.312 max   7.031 ms
+ROW 1280x720 N=3 P1 serial decode SPIN              wall median  55.138 min  47.065 p95  57.152 max  59.183 ms | cpu/batch median  62.188 min  61.797 max  62.891 ms
+ROW 1280x720 N=3 P2 pool decode SPIN                wall median  45.523 min  12.803 p95  61.055 max  86.448 ms | cpu/batch median  55.703 min  53.984 max  57.031 ms
+ROW 1280x720 N=3 P2 pool +upload SPIN               wall median  67.636 min  34.606 p95  84.680 max 107.520 ms | cpu/batch median  79.062 min  77.422 max  79.609 ms
+ROW 1280x720 N=3 P3 nvjpeg SPIN                     wall median  52.580 min   6.420 p95  60.539 max  77.801 ms | cpu/batch median  54.141 min  51.328 max  55.078 ms
+DONE
+ALLDONE
