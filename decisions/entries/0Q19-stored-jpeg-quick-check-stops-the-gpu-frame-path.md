@@ -42,7 +42,9 @@ the pair in `quick-checks.json` of the EP store
 ## Consequences
 
 - A PC that never ran the quick check keeps the GPU frame path.
-- A stored `fail` stays until a new quick check of the same pair ends `pass` or `fail`: that check
-  replaces the whole row, also its `jpeg`. A quick check that ends `not-run` writes no row. A new
-  pack version gives a new pair key, so the old row no longer applies.
+- A stored `fail` of a JPEG check stays until a new quick check of the same pair writes its row.
+  The quick check writes the row when its EP check ends `pass` or `fail`, with the JPEG results of
+  that run. Thus a later run in which the JPEG check is `not-run` also removes the stored `fail`.
+  A quick check whose EP check ends `not-run` writes no row. A new pack version gives a new pair
+  key, so the old row no longer applies.
 - Two GPUs of one model share one row ([ADR-R53H](R53H-quick-check-default-eps-and-each-gpu.md)).
