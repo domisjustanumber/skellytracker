@@ -226,7 +226,8 @@ field-test opt-in. Build in this order:
    failed on this PC: built. Open: `check_start()` and a run do not refuse an EP on a GPU with no
    reviewed row and no local pass ([ADR-21BK](entries/21BK-quick-check-local-pass-and-hand-in.md)
    item 2). Today the application must offer a GPU only from `checks[n].usable`.
-4. The hand-in list in the EP store and the exit notice.
+4. The exit notice (`note_exit_requested()`, working name) and the count of unclean exits. The
+   hand-in list is built: `pending_reports()`, `read_report()` and `mark_reports()`.
 5. Progress and cancel for an install from the Windows ML catalog, and a remove call with a command
    of `skellytracker-eps` for a catalog package that this package installed. It never removes a
    package that was on the PC before.

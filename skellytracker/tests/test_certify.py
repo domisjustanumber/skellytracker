@@ -419,6 +419,37 @@ def test_the_jpeg_checks_never_change_the_ep_check_and_their_results_are_stored(
     assert found["trt-rtx@10de-2484-0:jpeg-decode"] == found["trt-rtx@10de-2484-0:jpeg-preprocess"] == ("not-run", "image-not-passed")
 
 
+def test_the_hand_in_list_holds_each_report_with_a_check_that_ran_and_keeps_its_state(quick_host, monkeypatch):
+    fake_probe(monkeypatch)
+    fake_image(monkeypatch)
+    assert skellytracker.pending_reports() == []
+    passed = skellytracker.certify("quick", execution_providers=["trt-rtx"])
+    skellytracker.certify("quick", execution_providers=["cuda"])  # not installed: no check ran, so it is not in the list
+    monkeypatch.setattr(package_certification.time, "gmtime", lambda: time.struct_time((2030, 1, 1, 0, 0, 0, 0, 1, 0)))
+    fake_image(monkeypatch, ok=False, reason_code="box-differs")
+    skellytracker.certify("quick", execution_providers=["trt-rtx"])
+    first, second = skellytracker.pending_reports()
+    assert first == {"report_id": first["report_id"], "kind": "quick", "created_utc": passed["created_utc"], "has_failure": False,
+                     "evidence_valid": True, "state": "pending", "reference": None}
+    assert second["has_failure"] and second["created_utc"] == "2030-01-01T00:00:00Z" and first["report_id"].startswith("quick-")
+    assert skellytracker.read_report(first["report_id"]) == passed
+    ids = [first["report_id"], second["report_id"]]
+    skellytracker.mark_reports(ids, "covered", reference="https://example.invalid/issues/7")
+    assert skellytracker.pending_reports() == []
+    assert [(row["state"], row["reference"]) for row in skellytracker.pending_reports(include_handed_in=True)] == [
+        ("covered", "https://example.invalid/issues/7")] * 2
+    skellytracker.mark_reports(ids[:1], "opened")
+    skellytracker.mark_reports(ids[1:], "pending")
+    assert [(row["report_id"], row["state"], row["reference"]) for row in skellytracker.pending_reports(include_handed_in=True)] == [
+        (ids[0], "opened", None), (ids[1], "pending", None)]
+    for call in (lambda: skellytracker.mark_reports(ids, "sent"), lambda: skellytracker.mark_reports([ids[0], "quick-nope"], "covered"),
+                 lambda: skellytracker.mark_reports("quick-x", "covered"), lambda: skellytracker.mark_reports(ids, "pending", reference="x"),
+                 lambda: skellytracker.read_report("../certify")):
+        with pytest.raises(ValueError):
+            call()
+    assert [row["state"] for row in skellytracker.pending_reports(include_handed_in=True)] == ["opened", "pending"]  # no change
+
+
 def test_the_scrub_removes_a_private_name_and_counts_a_public_one(monkeypatch):
     monkeypatch.setattr(package_certification, "_private_words", lambda: ["secretname", "Windows"])
     report = {"host": {"os": {"name": "Windows"}}, "checks": [{"name": "trt-rtx", "reason": None}],

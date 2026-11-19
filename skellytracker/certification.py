@@ -4,6 +4,16 @@
     plan = skellytracker.certify_plan("quick")          # show the plan, then get the consent of the user
     report = skellytracker.certify("quick", progress=show, cancel=event)
 
+The hand-in list (ADR-21BK item 5) holds each report of `certify()` on this host with a check that ran:
+
+    for row in skellytracker.pending_reports():         # the reports that the user did not hand in
+        report = skellytracker.read_report(row["report_id"])
+    skellytracker.mark_reports(ids, "covered", reference=issue_url)   # or "opened", or "pending"
+
+This package sends nothing and makes no report file for a person: the application builds the file from
+the module reports, shows it, hands it in and then marks the reports. A report with a failed check is
+always worth an offer (`has_failure`). A pass alone gives no prompt.
+
 The two functions are `skellytracker.certify` and `skellytracker.certify_plan`. They obey the contract
 `report-format.md` of the repository `skellycertify`, format `skellycertify.report/1.0.0`. The reason codes
 of this package are in `skellytracker/REASON_CODES.md`. A plain `import skellytracker` imports this
@@ -28,6 +38,8 @@ from pathlib import Path
 SCHEMA = "skellycertify.report/1.0.0"
 PACKAGE = "skellytracker"
 LEVELS = ("quick", "full")
+REPORT_STATES = ("pending", "opened", "covered")  # `opened`: the user saved the file and opened the issue form; `covered`: an issue holds it
+REPORT_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$")
 PROBE_SECONDS = 15  # not calibrated: the time estimate of one L3 probe; the catalog gives the time of the image run
 IMAGE_SECONDS = 30  # not calibrated: the time estimate of an image run for an EP that has no `certification.seconds`
 JPEG_SECONDS = 5  # not calibrated: the time estimate of the two JPEG checks; 1.0 to 1.3 s on one RTX 3070
@@ -177,11 +189,88 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
     if level == "quick" and report["checks"]:
         from skellytracker.core.eps import certification
 
-        path = certification.reports_dir() / f"quick-{created.replace('-', '').replace(':', '')}.json"
+        stem = f"quick-{created.replace('-', '').replace(':', '')}"
+        path = certification.reports_dir() / f"{stem}.json"
         path.parent.mkdir(parents=True, exist_ok=True)
+        for count in range(2, 1000):  # a second report in the same second keeps the first
+            if not path.exists():
+                break
+            path = path.with_name(f"{stem}-{count}.json")
         path.write_text(json.dumps(report, indent=1) + "\n", encoding="utf-8")
     sender.send("done", None, report["checks"], None)
     return report
+
+
+def pending_reports(include_handed_in: bool = False) -> list[dict]:
+    """The reports of `certify()` on this host that the user did not hand in, the oldest first.
+
+    Each row is `{"report_id", "kind", "created_utc", "has_failure", "evidence_valid", "state", "reference"}`.
+    `state` is `pending`, `opened` or `covered`, and `reference` is the text of `mark_reports()`, for example
+    the address of the issue, or None. With `include_handed_in`, the list holds each report in each state.
+    A report is in the list when a check of it ended `pass` or `fail`. It reads the EP store only.
+    """
+    from skellytracker.core.eps import certification, store
+
+    marks = store.read_json(_marks_path(store)) or {}
+    rows = []
+    for path in sorted(certification.reports_dir().glob("*.json")):
+        report = store.read_json(path)
+        if not isinstance(report, dict) or report.get("schema") != SCHEMA or not REPORT_ID.match(path.stem):
+            continue
+        results = {check.get("result") for check in report.get("checks", ()) if isinstance(check, dict)}
+        if not results & {"pass", "fail"}:
+            continue
+        mark = marks.get(path.stem) if isinstance(marks.get(path.stem), dict) else {}
+        state = mark.get("state") if mark.get("state") in REPORT_STATES else "pending"
+        if state == "pending" or include_handed_in:
+            rows.append({"report_id": path.stem, "kind": report.get("kind"), "created_utc": report.get("created_utc"),
+                         "has_failure": "fail" in results, "evidence_valid": bool((report.get("evidence") or {}).get("valid")),
+                         "state": state, "reference": mark.get("reference") if state != "pending" else None})
+    return sorted(rows, key=lambda row: (row["created_utc"] or "", row["report_id"]))
+
+
+def read_report(report_id: str) -> dict:
+    """The module report of a row of `pending_reports()`, unchanged. An id that is not in the list raises `ValueError`."""
+    from skellytracker.core.eps import certification, store
+
+    report = store.read_json(certification.reports_dir() / f"{report_id}.json") if REPORT_ID.match(str(report_id)) else None
+    if not isinstance(report, dict) or report.get("schema") != SCHEMA:
+        raise ValueError(f"{report_id!r} is not a report of this host")
+    return report
+
+
+def mark_reports(report_ids: Sequence[str], state: str, *, reference: str | None = None) -> None:
+    """Set the hand-in state of reports: `covered` (an issue holds them), `opened` (the user saved the file and
+    opened the issue form) or `pending` (not sent: back in the list).
+
+    `reference` is one text that this package stores and gives back unchanged, for example the address of the
+    issue. It applies to each report of the call. `pending` removes a stored reference. An unknown state,
+    an id that is not a report of this host, or a `reference` with `pending` raises `ValueError`, and the
+    call then changes nothing.
+    """
+    from skellytracker.core.eps import store
+
+    if isinstance(report_ids, str):
+        raise ValueError("report_ids is a list of report ids")
+    if state not in REPORT_STATES:
+        raise ValueError(f"the state must be one of {', '.join(REPORT_STATES)}, not {state!r}")
+    if state == "pending" and reference is not None:
+        raise ValueError("a pending report has no reference")
+    ids = list(dict.fromkeys(report_ids))
+    for report_id in ids:
+        read_report(report_id)
+    with store.store_lock():
+        marks = store.read_json(_marks_path(store)) or {}
+        for report_id in ids:
+            if state == "pending":
+                marks.pop(report_id, None)
+            else:
+                marks[report_id] = {"state": state, "reference": reference}
+        store.write_json(_marks_path(store), marks)
+
+
+def _marks_path(store) -> Path:
+    return store.store_root() / "hand-in.json"
 
 
 def _check_level(level) -> None:
