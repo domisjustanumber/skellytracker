@@ -401,3 +401,21 @@ def test_the_report_file_name_and_created_utc_are_the_start_of_the_run(tmp_path,
 def test_section_1_records_no_package_version():
     """The tag and the commit identify the code; `skellytracker.__version__` is the same in each checkout."""
     assert "skellytracker" not in cp.onnx_stack_facts()
+
+
+def test_section_1_records_the_telemetry_switch(monkeypatch, tmp_path):
+    """Section 1 records the value of ORT_DISABLE_TELEMETRY; a value that is not 1 or true is `record-only` (ADR-BZ7X)."""
+    for value, expected in (("1", ("pass", None)), (" TRUE ", ("pass", None)), ("0", ("record-only", "telemetry-on")),
+                            (None, ("record-only", "telemetry-on"))):
+        monkeypatch.setattr(cp, "onnx_stack_facts", lambda value=value: {"ort_disable_telemetry": value})
+        found = {c["name"]: (c["result"], c["reason_code"]) for c in cp.section_checkout(tmp_path, root=tmp_path)["checks"]}
+        assert found["telemetry-switch"] == expected
+
+
+def test_the_report_records_the_telemetry_folder_before_and_after_as_booleans(tmp_path, monkeypatch):
+    states = iter([False, True])
+    monkeypatch.setattr(cp, "telemetry_database", lambda: next(states))
+    _, out, _ = run(tmp_path, {1: emit(PASSING)}, selected={1})
+    text = out.read_text(encoding="utf-8")
+    assert cp.report_data(text)["telemetry_database"] == {"before": False, "after": True}
+    assert "Telemetry folder of ONNX Runtime: before no, after yes." in text

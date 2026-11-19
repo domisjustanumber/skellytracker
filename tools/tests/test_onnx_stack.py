@@ -1,8 +1,10 @@
-"""Tests of `tools/onnx_stack.py`: the rules of `check`, the solve on a recorded snapshot, and `apply`."""
+"""Tests of `tools/onnx_stack.py`: the rules of `check`, the solve on a recorded snapshot, `apply` and the telemetry scan."""
 
 import copy
+import hashlib
 import importlib.util
 import json
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -105,10 +107,15 @@ CATALOG = {
 }
 CURRENT = {"onnxruntime": "1.20.0", "onnxruntime-windowsml": "1.20.0.1", "windowsml": "1.0", "packs": {"gpu-pack": "1.0"}}
 NEW_PACK = "gpu-pack 2.0: ep_catalog.yaml records no ONNX Runtime claim for this pack version"
+# A reviewed telemetry row with no client for each new package version of the snapshot.
+CLEAN = [{"package": package, "version": version, "os": os_name, "client": False} for package, versions, os_names in (
+    ("onnxruntime", ("1.21.0", "1.22.0", "1.23.0"), ("Linux", "macOS")),
+    ("onnxruntime-windowsml", ("1.21.0.5", "1.22.0.3"), ("Windows",)),
+    ("gpu-ep", ("2.0", "3.0"), ("Windows", "Linux"))) for version in versions for os_name in os_names]
 
 
-def solve(snap=SNAPSHOT, catalog=CATALOG, current=CURRENT, allow_prerelease=False):
-    return onnx_stack.solve(copy.deepcopy(snap), copy.deepcopy(catalog), copy.deepcopy(current), allow_prerelease)
+def solve(snap=SNAPSHOT, catalog=CATALOG, current=CURRENT, allow_prerelease=False, telemetry=CLEAN):
+    return onnx_stack.solve(copy.deepcopy(snap), copy.deepcopy(catalog), copy.deepcopy(current), allow_prerelease, copy.deepcopy(telemetry))
 
 
 def test_solve_gives_one_result_for_one_snapshot_and_says_why_each_newer_set_fails():
@@ -196,11 +203,21 @@ def test_snapshot_reads_each_page_and_the_metadata_from_the_pinned_windowsml():
 
 
 def work_tree(tmp_path: Path, line_end: str = "\n") -> Path:
-    for path in (Path("pyproject.toml"), onnx_stack.CATALOG):
+    for path in (Path("pyproject.toml"), onnx_stack.CATALOG, onnx_stack.EVIDENCE):
         (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
         text = (ROOT / path).read_bytes().decode("utf-8").replace("\r\n", "\n")
         (tmp_path / path).write_bytes(text.replace("\n", line_end).encode("utf-8"))
     return tmp_path
+
+
+def allow(root: Path, proposed: dict) -> None:
+    """Add a telemetry row with no client for each package version of `proposed`, so that only the other rules decide."""
+    path, data = root / onnx_stack.EVIDENCE, yaml.safe_load((root / onnx_stack.EVIDENCE).read_text(encoding="utf-8"))
+    catalog = yaml.safe_load((root / onnx_stack.CATALOG).read_text(encoding="utf-8"))
+    packages = [(package, proposed[package], os_names) for package, os_names in onnx_stack.CORE_OS.items()]
+    packages += [(pack["package"], proposed["packs"][pack["id"]], onnx_stack.pack_os_names(catalog)) for pack in onnx_stack.user_packs(catalog)]
+    data["telemetry"] += [{"package": p, "version": v, "os": o, "client": False} for p, v, os_names in packages for o in os_names]
+    path.write_text(yaml.safe_dump(data), encoding="utf-8")
 
 
 def real_current(root: Path) -> dict:
@@ -213,6 +230,8 @@ def test_apply_writes_each_pin_and_keeps_the_line_ends(tmp_path, capsys):
     current = real_current(root)
     proposed = dict(current, **{"onnxruntime": "9.9.9", "onnxruntime-windowsml": "9.9.9.1", "windowsml": "8.0"})
     solution = {"current": current, "proposed": proposed, "bump": True}
+    assert onnx_stack.apply(solution, root) == 1 and "telemetry" in capsys.readouterr().out  # no reviewed row yet
+    allow(root, proposed)
     before = {path: (root / path).read_bytes() for path in (Path("pyproject.toml"), onnx_stack.CATALOG)}
     assert onnx_stack.apply(solution, root, dry_run=True) == 0
     assert '+    "windowsml[with-ort]==8.0 ;' in capsys.readouterr().out
@@ -242,6 +261,7 @@ def test_apply_moves_the_claim_of_a_new_pack_version_into_the_pack_row(tmp_path,
     for version, ort in (("0.3.0", ["1.31.1"]), ("0.4.0", ["1.32.0"])):
         current = real_current(root)
         proposed = dict(current, packs=dict(current["packs"], **{"cuda-cu13": version}))
+        allow(root, proposed)
         assert onnx_stack.apply({"current": current, "proposed": proposed, "bump": True}, root) == 0
         assert "tools/ep_catalog.py --refresh" in capsys.readouterr().out
         text = path.read_bytes().decode("utf-8")
@@ -256,6 +276,7 @@ def test_apply_refuses_another_working_tree_and_a_text_that_is_not_there_one_tim
     root = work_tree(tmp_path)
     current = real_current(root)
     solution = {"current": current, "proposed": dict(current, onnxruntime="9.9.9"), "bump": True}
+    allow(root, solution["proposed"])
     assert onnx_stack.apply(dict(solution, current=dict(current, windowsml="0.1")), root) == 1
     assert onnx_stack.apply(dict(solution, bump=False), root) == 0
     assert onnx_stack.apply(dict(solution, proposed=dict(current, onnxruntime="9.9.9", packs={})), root) == 1
@@ -267,3 +288,79 @@ def test_apply_refuses_another_working_tree_and_a_text_that_is_not_there_one_tim
         onnx_stack.apply(solution, root)
     assert (root / "pyproject.toml").read_bytes() == before
     assert real_current(root) == current
+
+
+def fake_wheel(path: Path, members: dict[str, bytes]) -> Path:
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:
+        for name, data in members.items():
+            archive.writestr(name, data)
+    return path
+
+
+def test_the_scan_finds_the_markers_as_ascii_and_utf16_in_any_case_and_across_a_chunk(tmp_path):
+    wheel = fake_wheel(tmp_path / "x-1.0-py3-none-any.whl", {
+        "x/libort.so.1.30.0": b"head" + "onecollector".encode("utf-16-le") + b"ORT_DISABLE_TELEMETRY",
+        "x/plugin.dll": b"https://MOBILE.EVENTS.DATA.MICROSOFT.COM/",
+        "x/edge.pyd": bytes((1 << 24) - 5) + b"OneCollector",  # the marker crosses the first read of 16 MiB
+        "x/clean.dylib": b"WINHTTP.dll libcurl telemetry",  # an HTTP import is a hint only
+        "x/readme.txt": b"OneCollector ORT_DISABLE_TELEMETRY",  # not a native library
+    })
+    assert onnx_stack.scan_wheel(wheel) == [("x/libort.so.1.30.0", True, True), ("x/plugin.dll", True, False),
+                                            ("x/edge.pyd", True, False), ("x/clean.dylib", False, False)]
+
+
+def test_check_refuses_a_client_without_a_row_and_allows_a_row_with_proof(tmp_path):
+    client = fake_wheel(tmp_path / "ort-1.0-py3-none-any.whl", {"ort/core.so": b"OneCollector ORT_DISABLE_TELEMETRY"})
+    clean = fake_wheel(tmp_path / "ep-1.0-py3-none-any.whl", {"ep/ep.dll": b"nothing"})
+    sha = {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in (client, clean)}
+    wheels = [("ort", "1.0", "Linux", client.name, sha[client.name]), ("ep", "1.0", "Linux", clean.name, sha[clean.name])]
+    row = {"package": "ort", "version": "1.0", "os": "Linux", "client": True}
+
+    def run(rows, folders=(tmp_path,), listed=wheels):
+        valid, problems = onnx_stack.telemetry_rows(rows)
+        assert problems == []
+        return onnx_stack.telemetry_check(listed, valid, list(folders))
+
+    lines, problems = run([])
+    assert problems == ["telemetry: ort 1.0 on Linux: a library has the telemetry client, and ep_evidence.yaml has no telemetry row"]
+    assert "telemetry: ort-1.0-py3-none-any.whl!ort/core.so: client yes, switch string yes" in lines
+    assert "telemetry: ep 1.0 on Linux: 1 libraries scanned, client no; no reviewed row" in lines
+    assert run([dict(row, switch_verified="ADR-XXXX")])[1] == []
+    lines, problems = run([dict(row, switch_verified=False, reason="documented, not measured")])
+    assert problems == [] and any(line.startswith("WARNING: telemetry: ort 1.0 on Linux") for line in lines)
+    assert run([dict(row, client=False)])[1] == ["telemetry: ort 1.0 on Linux: the reviewed row says client False, the scan found True"]
+    lines, problems = run([], folders=())
+    assert problems == [] and len(lines) == 2 and all("not-scanned" in line for line in lines)
+    lines, problems = run([dict(row, switch_verified=False, reason="r")], folders=())
+    assert problems == [] and any(line.startswith("WARNING:") for line in lines)  # a reviewed row warns also when not scanned
+    assert run([], listed=[("ep", "1.0", "Linux", clean.name, "0" * 64)])[1] == [
+        f"telemetry: ep 1.0 on Linux: {clean.name} is not the locked file (sha256)"]
+
+
+def test_a_telemetry_row_that_is_not_valid_is_a_problem():
+    good = {"package": "ort", "version": "1.0", "os": "Linux", "client": True, "switch_verified": "ADR-XXXX"}
+    bad = [dict(good, os="linux"), dict(good, client="yes"), dict(good, switch_verified=""), dict(good, switch_verified=False),
+           {k: v for k, v in good.items() if k != "version"}, "not a row"]
+    valid, problems = onnx_stack.telemetry_rows([good, *bad, dict(good, switch_verified=False, reason="r"), dict(good, client=False)])
+    assert len(valid) == 3 and [p.split(":")[0] for p in problems] == [f"ep_evidence.yaml telemetry row {n}" for n in range(1, 7)]
+
+
+def test_the_real_telemetry_rows_are_valid():
+    data = yaml.safe_load((ROOT / onnx_stack.EVIDENCE).read_text(encoding="utf-8"))
+    assert onnx_stack.telemetry_rows(data["telemetry"])[1] == []
+
+
+def test_solve_refuses_a_new_version_with_the_client_and_no_proof():
+    result = solve(telemetry=[row for row in CLEAN if row["version"] != "1.21.0"])
+    assert not result["bump"]
+    assert "onnxruntime 1.21.0 on Linux: ep_evidence.yaml has no telemetry row" in result["rejected"][-1]
+    client = [dict(row, client=True, switch_verified=False, reason="r") if row["version"] == "1.21.0.5" else row for row in CLEAN]
+    result = solve(telemetry=client)
+    assert not result["bump"] and "it has the telemetry client" in result["rejected"][-1]
+    proof = [dict(row, client=True, switch_verified="ADR-XXXX") if row["version"] == "1.21.0.5" else row for row in CLEAN]
+    assert solve(telemetry=proof)["proposed"]["onnxruntime"] == "1.21.0"
+    catalog = copy.deepcopy(CATALOG)
+    catalog["eps"]["gpu"]["packs"][0]["newer_versions"] = [{"version": "2.0", "ort": {"verified_by_us": ["1.21.0"]}}]
+    result = solve(catalog=catalog, telemetry=[row for row in CLEAN if row["package"] != "gpu-ep"])
+    assert result["bump"] and result["proposed"]["packs"] == {"gpu-pack": "1.0"}  # the pack row of the current set needs no row
+    assert result["rejected"][-1].startswith("ONNX Runtime 1.21.0: gpu-pack 2.0: gpu-ep 2.0 on Windows: ep_evidence.yaml has no telemetry row")

@@ -83,6 +83,20 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   - Before a field-test EP ([ADR-Z5X7](entries/Z5X7-field-test-state-and-directml.md)) moves to
     `ready`, move the wider run of `certify()` to a child process: an EP that ends the process
     writes no report (`_wide_run` in `core/eps/certification.py`).
+- **ONNX Runtime telemetry.** [ADR-BZ7X](entries/BZ7X-onnx-runtime-telemetry-switch-and-scan.md):
+  the switch and the static scan are built. These items stay open:
+  - Runtime levels, with the validated probe that another session delivers: (b) run a session with
+    and without the variable, and check that no network module is loaded and that no telemetry
+    database and no device id appear; (c) N processes exit under a watchdog, with and without the
+    variable. On Windows, the upload signal is `webio.dll` with a connection to port 443, or the
+    database, or the registry key `SOFTWARE\Microsoft\DeveloperTools\.onnxruntime`. The parent key
+    `DeveloperTools` has its own `deviceid` from another Microsoft tool: it is not of ONNX Runtime.
+  - Windows: the switch is measured only for `onnxruntime-ep-cuda13` 0.3.0, and not when it is set
+    after the pack registers. The exit hang with the variable set is not measured.
+  - Linux: the Ubuntu run of the certify suite must record the telemetry folder and the exit time,
+    with and without the variable. Then write `switch_verified` in the two Linux rows of
+    `ep_evidence.yaml`. The Linux folder path is read from strings, not measured.
+  - macOS: the `onnxruntime` 1.30.0 wheel is not scanned and has no row.
 - **Field-test opt-in.** [ADR-Z5X7](entries/Z5X7-field-test-state-and-directml.md): there is no
   command that removes an opt-in. A user deletes `field-test.json` of the EP store.
   - DirectML device memory: on one Windows host with ONNX Runtime 1.30.0 and DirectML 1.15.4, an

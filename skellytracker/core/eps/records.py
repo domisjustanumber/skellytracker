@@ -279,7 +279,7 @@ class EpStatus:
     """The result of `status()`. It needs no `onnxruntime` import and no network.
 
     `eps` has one row for each EP key of this platform, in the order of the EP catalog: `trt-rtx`,
-    `cuda`, `coreml`, `directml`, `cpu`. This order is a contract. It is the order of preference: each hardware
+    `cuda`, `coreml`, `amdgpu`, `migraphx`, `directml`, `cpu`. This order is a contract. It is the order of preference: each hardware
     class of the catalog lists its candidates in this order. It is not the recommendation:
     `performance.chosen` and `accuracy.chosen` give the recommended EP of this host.
     """

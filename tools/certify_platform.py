@@ -37,7 +37,10 @@ last, the same data as one fenced JSON block (``report_data()`` reads it). The s
 evidence only from a clean checkout of a tag with all sections run. The report holds no hostname,
 no user name, no absolute path, no serial number and no bus address: each section takes OS facts
 through an allowlist of fields, and ``scrub()`` removes the user name, the home folder, the checkout
-folder and the hostname from each string. A user name or a hostname that is also a word of a public
+folder and the hostname from each string. The report records whether the telemetry folder of ONNX Runtime
+exists before and after the run (``telemetry_database``, booleans only), and section 1 records the value
+of ``ORT_DISABLE_TELEMETRY``: the check ``telemetry-switch`` is ``record-only`` with ``telemetry-on`` when it
+is not ``1`` or ``true`` (ADR-BZ7X). A user name or a hostname that is also a word of a public
 fact (``report_words()``) stays in the report fields, and the report records only the count; the
 notes are scrubbed with each word. A report is valid as evidence only when section 1 also found the
 Python and the packages of ``uv.lock``. The suite needs no administrator rights. On Windows with
@@ -229,6 +232,8 @@ def section_checkout(work: Path, root: Path = REPO_ROOT) -> dict:
     try:
         details["onnx_stack"] = onnx_stack_facts()
         checks.append(check("onnx-stack", "record-only"))
+        off = str(details["onnx_stack"]["ort_disable_telemetry"]).strip().lower() in ("1", "true")
+        checks.append(check("telemetry-switch", "pass" if off else "record-only", None if off else "telemetry-on"))
     except Exception as error:  # noqa: BLE001 - a broken install is a finding, not a crash of the section
         checks.append(check("onnx-stack", "not-run", type(error).__name__))
     packages = details.get("packages")
@@ -251,7 +256,8 @@ def onnx_stack_facts() -> dict:
     return {"ort_distributions": dict(zip(runtime.ort_packages, runtime.ort_package_versions, strict=True)),
             "ort_version": runtime.ort_version, "windowsml": runtime.windowsml_version, "ep_names": list(runtime.ep_names),
             "catalog_revision": catalog.revision, "set_hash": evidence.set_hash(catalog),
-            "probe_errors": certify_hardware.error_sources(runtime.probe_errors)}  # the source tags only: no error text
+            "probe_errors": certify_hardware.error_sources(runtime.probe_errors),  # the source tags only: no error text
+            "ort_disable_telemetry": runtime.ort_disable_telemetry}
 
 
 # --------------------------------------------------------------------------------------------
@@ -293,6 +299,17 @@ def pipeline_downloads(options: dict) -> tuple:
     import certify_eps
 
     return certify_eps.pipeline_downloads(options)
+
+
+def telemetry_database() -> bool:
+    """True when the telemetry folder of ONNX Runtime exists (ADR-BZ7X). The report holds this boolean only, no path.
+
+    Windows: under the local app data folder. Linux and macOS: under `XDG_CACHE_HOME`, else `~/.cache`
+    (read from the strings of the Linux library, not measured).
+    """
+    base = os.environ.get("LOCALAPPDATA") if sys.platform == "win32" else (
+        os.environ.get("XDG_CACHE_HOME") or os.path.join(os.path.expanduser("~"), ".cache"))
+    return bool(base) and (Path(base) / "Microsoft" / "DeveloperTools" / ".onnxruntime").exists()
 
 
 def not_built(work: Path) -> dict:
@@ -611,6 +628,9 @@ def render(data: dict) -> str:
     if data.get("cleanup"):
         lines += ["", "Cleanup:", "", "| Check | Result | Reason |", "|---|---|---|",
                   *(f"| {cell(c['name'])} | {c['result']} | {cell(c['reason_code'])} |" for c in data["cleanup"])]
+    if "telemetry_database" in data:
+        found = data["telemetry_database"]
+        lines += ["", "Telemetry folder of ONNX Runtime: " + ", ".join(f"{k} {'yes' if v else 'no'}" for k, v in found.items()) + "."]
     for r in data["sections"]:
         lines += ["", f"## {r['number']}. {r['name']}", "",
                   f"Result: **{r['result']}**" + (f", reason `{r['reason_code']}`" if r["reason_code"] else "")
@@ -708,6 +728,7 @@ def run_suite(sections: tuple[Section, ...], selected: set[int], out: Path, *, y
             print("Nothing ran.")
             return EXIT_NO_CONSENT
     results, interrupted, answers, notes, cleanup = [], False, [], None, []
+    database_before = telemetry_database()
     # a work folder of a run whose frame did not end: its packages, its listed files, then the folder
     cleanup_step(cleanup, "remove-windows-packages", lambda: add_cleanup([], remove_windows_packages(work)))
     cleanup += remove_listed(work)
@@ -754,7 +775,8 @@ def run_suite(sections: tuple[Section, ...], selected: set[int], out: Path, *, y
             print(f"Could not delete {work.name}/ completely: delete it by hand.", file=sys.stderr)
     data = {"schema": REPORT_SCHEMA, "suite_version": SUITE_VERSION, "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", started),
             "selected": sorted(selected), "evidence": evidence_state(results, selected, sections), "sections": results,
-            "cleanup": cleanup, "answers": answers, "notes": None}
+            "cleanup": cleanup, "telemetry_database": {"before": database_before, "after": telemetry_database()},
+            "answers": answers, "notes": None}
     paths, words = private_terms()
     kept = report_words(words, data, [*RESULTS, *(s.name for s in sections), *host_facts_text()])
     data = {**scrub(data, paths, kept), "notes": scrub(notes, paths, words), "scrub": {"exempted_terms": len(words) - len(kept)}}

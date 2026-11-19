@@ -59,6 +59,7 @@ def _probe() -> RuntimeInfo:
         ort_packages=tuple(name for name, _ in found), ort_package_versions=tuple(version for _, version in found),
         windowsml_version=windowsml_version, ort_version=ort_version, ep_names=ep_names, probe_errors=tuple(errors),
         nvidia=None if order is None and cuda is None else NvidiaRuntimeInfo(order, cuda),
+        ort_disable_telemetry=os.environ.get("ORT_DISABLE_TELEMETRY"),
     )
 
 

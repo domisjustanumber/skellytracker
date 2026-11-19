@@ -3,7 +3,8 @@
 
 Usage::
 
-    uv run python tools/onnx_stack.py check
+    uv run python tools/onnx_stack.py check [--wheel-dir DIR ...]
+    uv run python tools/onnx_stack.py scan --wheel-dir DIR [--wheel-dir DIR ...]
     uv run python tools/onnx_stack.py solve --write-snapshot FILE [--out SOLUTION] [--allow-prerelease]
     uv run python tools/onnx_stack.py solve --snapshot FILE [--out SOLUTION] [--allow-prerelease]
     uv run python tools/onnx_stack.py apply SOLUTION [--dry-run]
@@ -22,7 +23,32 @@ each wheel of each user pack. It fails when:
 - ``ep_evidence.yaml`` has no row with ``source: maintainer``, ``result: pass`` and this set hash for
   a user pack with the status ``ready`` on Windows or on Linux. Each OS needs its own row. Evidence
   for a pack of another vendor than NVIDIA comes from reviewed reports, and this check does not need
-  it.
+  it;
+- the telemetry check below finds a problem.
+
+Telemetry (ADR-BZ7X). The Microsoft 1DS telemetry client of ONNX Runtime is present in a native
+library (``.dll``, ``.pyd``, ``.dylib``, ``.so``, ``.so.N``) that holds ``OneCollector`` or
+``mobile.events.data.microsoft.com``. The kill-switch string is ``ORT_DISABLE_TELEMETRY``. The scan
+searches each marker as ASCII and as UTF-16LE, in any case. An HTTP import (``WINHTTP.dll``,
+``libcurl``) is a hint only, and the scan does not use it. The ``telemetry`` list of
+``ep_evidence.yaml`` is the reviewed record: one row for each package, version and OS (``Windows``,
+``Linux``, ``macOS``), with ``client`` (true or false) and ``switch_verified``: an evidence reference
+when a run showed that the variable switches the client off, else ``false``. A row with the client
+and ``switch_verified: false`` needs a ``reason``.
+
+- ``scan --wheel-dir DIR`` prints the result of each native library of each wheel in DIR. Run it
+  on each wheel of a new candidate, and write its row before the bump.
+- ``check --wheel-dir DIR`` scans each wheel of the pinned set that DIR holds: the ONNX Runtime
+  core of each OS (files and sha256 from ``uv.lock``) and each wheel of each user pack (from
+  ``ep_lock.yaml``). Without the file, the wheel is ``not-scanned``, and the line says so. It fails
+  for a row that is not valid, for a file whose sha256 is not the locked one, for a scanned library
+  with the client and no row, and for a row that the scan contradicts. It prints a ``WARNING`` line
+  for a row with the client and ``switch_verified: false``. The pinned set can have such a row (user
+  decision: stay on ONNX Runtime 1.30.0).
+- ``solve`` and ``apply`` refuse a package version that is not in the current set when it has no
+  row for an OS of the catalog, or a row with the client and ``switch_verified: false``. The core
+  needs rows for Linux and macOS (``onnxruntime``) and for Windows (``onnxruntime-windowsml``), a
+  pack for each platform of the catalog.
 
 ``solve --write-snapshot FILE`` reads the PEP 503 pages of ``onnxruntime``, ``onnxruntime-windowsml``,
 ``windowsml`` and the package of each user pack, and the PyPI JSON metadata (``requires_dist``) of
@@ -46,7 +72,8 @@ x86_64, Linux x86_64 and macOS arm64, all on CPython 3.13):
   pack row and each version of its ``newer_versions`` list. A newer pack version on the index that
   ``newer_versions`` does not name has no claim, and the solve reports it;
 - the pack version of the pack row has a wheel for each platform of the catalog. A newer pack
-  version without such a wheel is refused.
+  version without such a wheel is refused;
+- each new package version has a telemetry row (see Telemetry above).
 
 A row of ``newer_versions`` is the reviewed claim for one newer pack version. It is one line in flow
 style, with ``version``, ``ort`` and an optional ``dependency_wheels`` map from a dependency package
@@ -81,6 +108,8 @@ import importlib.util
 import json
 import re
 import sys
+import tomllib
+import zipfile
 from collections.abc import Callable
 from pathlib import Path
 
@@ -104,6 +133,19 @@ ENVIRONMENTS = {"win_amd64": r"win_amd64", "manylinux_x86_64": r"manylinux(?:_\d
                 "macosx_arm64": r"macosx_\d+_\d+_(?:arm64|universal2)"}
 PLAIN_ENVIRONMENTS = ("manylinux_x86_64", "macosx_arm64")
 FOLLOW_UP = ("uv lock", "uv run python tools/ep_catalog.py --refresh", "uv run python tools/onnx_stack.py check")
+EVIDENCE = Path("skellytracker/core/eps/ep_evidence.yaml")
+OS_OF_PLATFORM = {"win_amd64": "Windows", "manylinux_x86_64": "Linux", "macosx_arm64": "macOS"}
+CORE_OS = {"onnxruntime": ("Linux", "macOS"), "onnxruntime-windowsml": ("Windows",)}  # the core package of each OS
+LIBRARY = re.compile(r"\.(?:dll|pyd|dylib|so)(?:\.\d+)*$", re.IGNORECASE)
+
+
+def markers(words: tuple[str, ...]) -> re.Pattern:
+    """One pattern for each word as ASCII and as UTF-16LE, in any case (IGNORECASE folds the ASCII letters of both forms)."""
+    return re.compile(b"|".join(re.escape(word.encode(encoding)) for word in words for encoding in ("ascii", "utf-16-le")), re.IGNORECASE)
+
+
+TELEMETRY_CLIENT = markers(("OneCollector", "mobile.events.data.microsoft.com"))
+TELEMETRY_SWITCH = markers(("ORT_DISABLE_TELEMETRY",))
 
 
 def ep_catalog_tool():
@@ -151,6 +193,132 @@ def excepted(claim: dict, ort: str) -> bool:
 def pack_claims(pack: dict) -> list[dict]:
     """The claim rows of a pack, newest first: each row of `newer_versions`, then the pack row."""
     return [*sorted(pack.get("newer_versions") or (), key=lambda row: Version(row["version"]), reverse=True), pack]
+
+
+def scan_wheel(path: Path) -> list[tuple[str, bool, bool]]:
+    """`(member, client, switch string)` of each native library of a wheel. A streamed byte search: no library loads."""
+    found = []
+    with zipfile.ZipFile(path) as archive:
+        for info in archive.infolist():
+            if info.is_dir() or not LIBRARY.search(info.filename):
+                continue
+            client = switch = False
+            tail = b""
+            with archive.open(info) as member:
+                while chunk := member.read(1 << 24):
+                    block = tail + chunk
+                    client = client or bool(TELEMETRY_CLIENT.search(block))
+                    switch = switch or bool(TELEMETRY_SWITCH.search(block))
+                    tail = block[-128:]  # longer than the longest marker in UTF-16LE (64 bytes)
+            found.append((info.filename, client, switch))
+    return found
+
+
+def telemetry_rows(rows) -> tuple[list[dict], list[str]]:
+    """The valid rows of the `telemetry` list of ep_evidence.yaml, and one problem for each row that is not valid."""
+    valid, problems = [], []
+    for number, row in enumerate(rows or ()):
+        row = row if isinstance(row, dict) else {}
+        text = {name: isinstance(row.get(name), str) and bool(row[name]) for name in ("package", "version", "switch_verified", "reason")}
+        proof = row.get("switch_verified", False) is False or text["switch_verified"]
+        reason = not row.get("client") or row.get("switch_verified", False) is not False or text["reason"]
+        if text["package"] and text["version"] and row.get("os") in OS_OF_PLATFORM.values() and isinstance(row.get("client"), bool) \
+                and proof and reason:
+            valid.append(row)
+        else:
+            problems.append(f"ep_evidence.yaml telemetry row {number}: needs package, version, os (Windows, Linux or macOS), client "
+                            "(true or false), switch_verified (an evidence reference or false) and, for a client without proof, a reason")
+    return valid, problems
+
+
+def telemetry_row(rows: list[dict], package: str, version: str, os_name: str) -> dict | None:
+    return next((row for row in rows if canonicalize_name(row["package"]) == canonicalize_name(package) and row["version"] == version
+                 and row["os"] == os_name), None)
+
+
+def telemetry_refusals(rows: list[dict], package: str, version: str, os_names) -> list[str]:
+    """Why a new package version cannot enter the set: no reviewed row, or the client and no proof that the switch works."""
+    found = []
+    for os_name in os_names:
+        row = telemetry_row(rows, package, version, os_name)
+        if row is None:
+            found.append(f"{package} {version} on {os_name}: ep_evidence.yaml has no telemetry row (scan the wheel with "
+                         "tools/onnx_stack.py scan)")
+        elif row["client"] and row.get("switch_verified", False) is False:
+            found.append(f"{package} {version} on {os_name}: it has the telemetry client, and no evidence shows that "
+                         "ORT_DISABLE_TELEMETRY switches it off")
+    return found
+
+
+def pack_os_names(catalog: dict) -> list[str]:
+    return [OS_OF_PLATFORM[platform] for platform in catalog["platforms"]]
+
+
+def set_telemetry_refusals(proposed: dict, current: dict, catalog: dict, rows: list[dict]) -> list[str]:
+    """The telemetry refusals of each package version of `proposed` that is not in `current`."""
+    found = []
+    for package, os_names in CORE_OS.items():
+        if proposed[package] != current[package]:
+            found += telemetry_refusals(rows, package, proposed[package], os_names)
+    for pack in user_packs(catalog):
+        version = proposed["packs"].get(pack["id"])
+        if version is not None and version != current["packs"].get(pack["id"]):
+            found += telemetry_refusals(rows, pack["package"], version, pack_os_names(catalog))
+    return found
+
+
+def sha256_of(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as file:
+        while chunk := file.read(1 << 24):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def pinned_wheels(catalog: dict, lock: dict, uv_lock_text: str) -> list[tuple[str, str, str, str, str]]:
+    """`(package, version, OS, file name, sha256)` of each wheel of the pinned set: the core of each OS and each user pack wheel."""
+    found = []
+    locked = {(row["name"], row.get("version")): row for row in tomllib.loads(uv_lock_text)["package"]}
+    core = catalog["ort_core"]
+    for package, version in ((core["package"], core["version"]), (core["windows"]["package"], core["windows"]["version"])):
+        for wheel in locked.get((package, version), {}).get("wheels", ()):
+            filename = wheel["url"].rsplit("/", 1)[-1]
+            environments = {env for tag in parse_wheel_filename(filename)[3] for env in ENVIRONMENTS if fits(tag, env)}
+            found += [(package, version, OS_OF_PLATFORM[env], filename, wheel["hash"].removeprefix("sha256:"))
+                      for env in sorted(environments) if OS_OF_PLATFORM[env] in CORE_OS[package]]
+    for pack in user_packs(catalog):
+        for platform, row in sorted(lock.get("packs", {}).get(pack["id"], {}).items()):
+            found += [(wheel["package"], wheel["version"], OS_OF_PLATFORM[platform], wheel["filename"], wheel["sha256"])
+                      for wheel in row["wheels"]]
+    return found
+
+
+def telemetry_check(wheels: list[tuple[str, str, str, str, str]], rows: list[dict], wheel_dirs: list[Path]) -> tuple[list[str], list[str]]:
+    """`(lines, problems)` of the telemetry check of the pinned set. A wheel that no folder holds is `not-scanned`, never a pass."""
+    lines, problems = [], []
+    for package, version, os_name, filename, sha256 in wheels:
+        name, row = f"{package} {version} on {os_name}", telemetry_row(rows, package, version, os_name)
+        path = next((folder / filename for folder in wheel_dirs if (folder / filename).is_file()), None)
+        reviewed = "no reviewed row" if row is None else f"reviewed row: client {'yes' if row['client'] else 'no'}"
+        client = None
+        if path is None:
+            lines.append(f"telemetry: {name}: not-scanned ({filename} is not in a --wheel-dir); {reviewed}")
+        elif sha256_of(path) != sha256:
+            problems.append(f"telemetry: {name}: {path.name} is not the locked file (sha256)")
+        else:
+            libraries = scan_wheel(path)
+            client = any(found for _, found, _ in libraries)
+            lines += [f"telemetry: {filename}!{member}: client {'yes' if found else 'no'}, switch string {'yes' if switch else 'no'}"
+                      for member, found, switch in libraries if found or switch]
+            lines.append(f"telemetry: {name}: {len(libraries)} libraries scanned, client {'yes' if client else 'no'}; {reviewed}")
+            if client and row is None:
+                problems.append(f"telemetry: {name}: a library has the telemetry client, and ep_evidence.yaml has no telemetry row")
+            elif row is not None and row["client"] != client:
+                problems.append(f"telemetry: {name}: the reviewed row says client {row['client']}, the scan found {client}")
+        if row is not None and row["client"] and row.get("switch_verified", False) is False and client is not False:
+            lines.append(f"WARNING: telemetry: {name} has the telemetry client, and no run has shown that ORT_DISABLE_TELEMETRY "
+                         f"switches it off: {row['reason']}")
+    return lines, problems
 
 
 def flow(value) -> str:
@@ -245,8 +413,12 @@ def set_key(row: dict) -> tuple[Version, ...]:
     return tuple(Version(row[key]) for key in PINS) + tuple(Version(version) for _, version in sorted(row["packs"].items()))
 
 
-def solve(snap: dict, catalog: dict, current: dict, allow_prerelease: bool = False) -> dict:
-    """The newest set that obeys each rule of the module docstring. A pure function of its arguments."""
+def solve(snap: dict, catalog: dict, current: dict, allow_prerelease: bool = False, telemetry: list[dict] | None = None) -> dict:
+    """The newest set that obeys each rule of the module docstring. A pure function of its arguments.
+
+    `telemetry` holds the valid telemetry rows of ep_evidence.yaml. With no rows, each new package version is refused.
+    """
+    telemetry = telemetry or []
     plain = wheel_environments(snap["wheels"]["onnxruntime"])
     windows = wheel_environments(snap["wheels"]["onnxruntime-windowsml"])
     windowsml = wheel_environments(snap["wheels"]["windowsml"])
@@ -278,13 +450,20 @@ def solve(snap: dict, catalog: dict, current: dict, allow_prerelease: bool = Fal
         chosen_packs, skipped = {}, []
         for pack in user_packs(catalog):
             rows = options[pack["id"]]
-            fit = next((row for row in rows if not claims.ort_untested(row, ort) or excepted(row, ort)), None)
+            refused = {row["version"]: [] if row["version"] == current["packs"].get(pack["id"])
+                       else telemetry_refusals(telemetry, pack["package"], row["version"], pack_os_names(catalog)) for row in rows}
+            covers = [row for row in rows if not claims.ort_untested(row, ort) or excepted(row, ort)]
+            fit = next((row for row in covers if not refused[row["version"]]), None)
+            if fit is None and covers:
+                reasons += [reason for row in covers for reason in refused[row["version"]]]
+                continue
             if fit is None:
                 reasons.append(f"{pack['id']}: no claim covers ONNX Runtime {ort}, and no exception names it: "
                                + "; ".join(f"{row['version']} {row.get('ort', {})}" for row in rows))
                 continue
             chosen_packs[pack["id"]] = fit["version"]
-            skipped += [f"{pack['id']} {row['version']}: the claim {row.get('ort', {})} does not cover ONNX Runtime {ort}"
+            skipped += [f"{pack['id']} {row['version']}: " + ("; ".join(refused[row["version"]]) if row in covers else
+                                                              f"the claim {row.get('ort', {})} does not cover ONNX Runtime {ort}")
                         for row in rows[:rows.index(fit)]]
         chosen_windowsml = None
         for version in sorted(windowsml, reverse=True):
@@ -302,6 +481,10 @@ def solve(snap: dict, catalog: dict, current: dict, allow_prerelease: bool = Fal
                 break
         if chosen_windowsml is None:
             reasons += windowsml_reasons or [f"no windowsml release pins onnxruntime-windowsml {ort}"]
+        if chosen_plain is not None and chosen_windowsml is not None:
+            core = {"onnxruntime": str(chosen_plain), "onnxruntime-windowsml": str(chosen_windowsml[1])}
+            reasons += [reason for package, os_names in CORE_OS.items() if core[package] != current[package]
+                        for reason in telemetry_refusals(telemetry, package, core[package], os_names)]
         if reasons:
             rejected.append(f"ONNX Runtime {ort}: {'; '.join(reasons)}")
             continue
@@ -377,6 +560,11 @@ def apply(solution: dict, root: Path, dry_run: bool = False) -> int:
         if claimed[pack_id] is None:
             print(f"apply: refused. The newer_versions list of {pack_id} in ep_catalog.yaml has no claim for {version}.")
             return 1
+    rows, _ = telemetry_rows((yaml.safe_load((root / EVIDENCE).read_text(encoding="utf-8")) or {}).get("telemetry"))
+    refused = set_telemetry_refusals(solution["proposed"], now, data, rows)
+    if refused:
+        print("apply: refused. " + " ".join(f"{reason}." for reason in refused))
+        return 1
     new = dict(texts)
     for path, old, replacement in edits(now, solution["proposed"]):
         new[path] = replace_once(new[path], old, replacement, path.as_posix())
@@ -407,18 +595,28 @@ def print_solution(solution: dict) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("command", choices=["check", "solve", "apply"])
+    parser.add_argument("command", choices=["check", "scan", "solve", "apply"])
     parser.add_argument("solution", nargs="?", type=Path, help="apply: the solution file of solve --out")
     parser.add_argument("--snapshot", type=Path, help="solve, apply: read this snapshot and use no network")
     parser.add_argument("--write-snapshot", type=Path, help="solve: read the indexes and write the snapshot to this file")
     parser.add_argument("--out", type=Path, help="solve: write the solution to this file")
     parser.add_argument("--allow-prerelease", action="store_true", help="solve: allow a pre-release of windowsml")
     parser.add_argument("--dry-run", action="store_true", help="apply: print the diff and write no file")
+    parser.add_argument("--wheel-dir", type=Path, action="append", default=[], help="check, scan: a folder of wheel files to scan")
     args = parser.parse_args(argv)
+    if args.command == "scan":
+        if not args.wheel_dir:
+            parser.error("scan needs --wheel-dir")
+        for path in sorted(p for folder in args.wheel_dir for p in folder.glob("*.whl")):
+            for member, client, switch in scan_wheel(path):
+                print(f"{path.name}!{member}: client {'yes' if client else 'no'}, switch string {'yes' if switch else 'no'}")
+        return 0
     tool = ep_catalog_tool()
     catalog_text = (tool.EPS / "ep_catalog.yaml").read_text(encoding="utf-8")
     data = yaml.safe_load(catalog_text)
     pyproject_text = (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    evidence_data = yaml.safe_load((REPO_ROOT / EVIDENCE).read_text(encoding="utf-8")) or {}
+    telemetry, telemetry_problems = telemetry_rows(evidence_data.get("telemetry"))
     if args.command == "apply" and args.solution:
         return apply(json.loads(args.solution.read_text(encoding="utf-8")), REPO_ROOT, args.dry_run)
     if args.command in ("solve", "apply"):
@@ -430,7 +628,7 @@ def main(argv: list[str] | None = None) -> int:
             args.write_snapshot.write_text(json.dumps(snap, sort_keys=True, indent=1) + "\n", encoding="utf-8", newline="\n")
         else:
             parser.error("solve needs --snapshot or --write-snapshot; apply needs a solution file or --snapshot")
-        solution = solve(snap, data, current, args.allow_prerelease)
+        solution = solve(snap, data, current, args.allow_prerelease, telemetry)
         if args.command == "apply":
             return apply(solution, REPO_ROOT, args.dry_run)
         print_solution(solution)
@@ -439,10 +637,15 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     lock = yaml.safe_load((tool.EPS / "ep_lock.yaml").read_text(encoding="utf-8")) or {}
     catalog = EpCatalog(data=data, lock=lock, revision=revision_of(catalog_text))
-    rows = tuple((yaml.safe_load((tool.EPS / "ep_evidence.yaml").read_text(encoding="utf-8")) or {}).get("rows") or ())
-    problems = tool.check(data, lock, catalog_text, pyproject_text, (REPO_ROOT / "uv.lock").read_text(encoding="utf-8"))
-    problems += check(catalog, rows)
+    rows = tuple(evidence_data.get("rows") or ())
+    uv_lock_text = (REPO_ROOT / "uv.lock").read_text(encoding="utf-8")
+    problems = tool.check(data, lock, catalog_text, pyproject_text, uv_lock_text)
+    problems += check(catalog, rows) + telemetry_problems
+    lines, found = telemetry_check(pinned_wheels(data, lock, uv_lock_text), telemetry, args.wheel_dir)
+    problems += found
     print(f"set hash: {evidence.set_hash(catalog)}")
+    for line in lines:
+        print(line)
     for problem in problems:
         print(problem)
     print("ONNX stack: pass" if not problems else f"ONNX stack: {len(problems)} problems")

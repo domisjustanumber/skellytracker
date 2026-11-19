@@ -119,6 +119,7 @@ class RuntimeInfo:
     ort_version: str | None = None
     ep_names: tuple[str, ...] = ()
     probe_errors: tuple[str, ...] = ()
+    ort_disable_telemetry: str | None = None  # the value of ORT_DISABLE_TELEMETRY; `skellytracker` sets "1" unless the host set one
     nvidia: NvidiaRuntimeInfo | None = None
 
 

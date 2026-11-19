@@ -25,3 +25,18 @@ rows:
   - {ep: cuda, os: Windows, gpu: "10de:2484", set: 4abfaa7678817ed4a8ccb5f3e355ba28672589e8a3468bb6805e491dfe03a302,
      source: maintainer, result: pass, pack: 0.2.0, ort: 1.30.0.202609102321, windowsml: 2.6.74rc0, driver: "610.88", os_build: 26300,
      os_label: Windows 11 Home 26H2}
+# `telemetry`: the reviewed telemetry record of a library package of the ONNX stack on one OS (ADR-BZ7X). The runtime does
+# not read it. `tools/onnx_stack.py` reads it: its docstring gives the rules. A person writes a row after a scan.
+# - `package`, `version`: the package and its exact version. `os`: `Windows`, `Linux` or `macOS`.
+# - `client`: true when a native library of the wheel holds the Microsoft 1DS telemetry client.
+# - `switch_verified`: an evidence reference when a run showed that `ORT_DISABLE_TELEMETRY=1` switches the client off, else
+#   false. A row with the client and `switch_verified: false` has a `reason`.
+telemetry:
+  - {package: onnxruntime, version: "1.30.0", os: Linux, client: true, switch_verified: false,
+     reason: "the release notes of ONNX Runtime 1.29.0 document the variable; no run measured it on Linux"}
+  - {package: onnxruntime-windowsml, version: "1.30.0.202609102321", os: Windows, client: false}
+  - {package: onnxruntime-ep-cuda13, version: "0.2.0", os: Linux, client: true, switch_verified: false,
+     reason: "the release notes of ONNX Runtime 1.29.0 document the variable; no run measured it on Linux"}
+  - {package: onnxruntime-ep-cuda13, version: "0.2.0", os: Windows, client: false}
+  - {package: onnxruntime-ep-nv-tensorrt-rtx-cu13, version: "0.5.0", os: Linux, client: false}
+  - {package: onnxruntime-ep-nv-tensorrt-rtx-cu13, version: "0.5.0", os: Windows, client: false}

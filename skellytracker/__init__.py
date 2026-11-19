@@ -1,5 +1,10 @@
 """Top-level package for skellytracker"""
 
+import os
+
+# Before any module of the package imports onnxruntime; a value that the host process set stays (ADR-BZ7X).
+os.environ.setdefault("ORT_DISABLE_TELEMETRY", "1")
+
 __package_name__ = "skellytracker"
 __version__ = "v2024.09.1019"
 

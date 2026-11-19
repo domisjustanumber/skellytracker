@@ -104,6 +104,12 @@ proxy, the trust store and if each index is reachable.
 
 No environment variable selects the EP or the device. The caller passes a concrete key.
 
+`import skellytracker` sets `ORT_DISABLE_TELEMETRY=1` when the variable is not set. This switches
+off the telemetry client that some ONNX Runtime builds contain. A value that you set stays. An
+application that imports `onnxruntime` before skellytracker must set the variable itself, before
+that import
+([ADR-BZ7X](decisions/entries/BZ7X-onnx-runtime-telemetry-switch-and-scan.md)).
+
 ```python
 from skellytracker.core import eps
 
