@@ -200,6 +200,10 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
 - **Results with no saved output.** Measure these again and record them. After the move to ONNX
   Runtime 1.30.0, with `gpu-jpeg-cu13` beside `cuda-cu13` 0.2.0: the count of the GPU tests that
   pass, and the counts of `run_jpeg_certification` (52 checks) on `cuda` and `trt-rtx`.
+- **Intel QSV JPEG decode.** [ADR-71YY](entries/71YY-intel-qsv-jpeg-decode-against-the-cpu-thread-pool.md)
+  shows no gain, so it is not built. Two cases can open it again: the preprocess takes NV12 and
+  converts after the resize to the model input size, or the Intel VPL library gives 4:2:2 output.
+  No run tested them.
 - **nvImageCodec hang of a one-image decode.**
   [ADR-975Z](entries/975Z-nvimagecodec-one-image-decode-hang.md) gives the cause, the runs and the
   workaround. Open: the report to NVIDIA is not sent (a minimal reproducer is ready). No run on Linux

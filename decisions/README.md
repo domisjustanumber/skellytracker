@@ -61,6 +61,7 @@ you make a measurement ([Rules](#rules)).
 | [FBV5](entries/FBV5-gpu-path-agreement-on-the-freemocap-sample-data.md) | GPU path against CPU path on the freemocap sample data: keypoint median / p99 1.18 / 7.55 px, as large as the difference between two EPs | evidence |
 | [BP5Y](entries/BP5Y-gpu-huffman-decode-threshold.md) | nvJPEG GPU Huffman threshold: 500000 halves `frame.decode` at 1280x720 with equal pixels; 0 slows small frames; the exit text | evidence |
 | [975Z](entries/975Z-nvimagecodec-one-image-decode-hang.md) | nvImageCodec 0.10.0.9 hangs on a decode of one image with fewer CUDA streams than threads: 19 of 62 cells; the workaround and its self-test | evidence |
+| [71YY](entries/71YY-intel-qsv-jpeg-decode-against-the-cpu-thread-pool.md) | Intel QSV JPEG decode through PyAV on a UHD 770: slower than the CPU thread pool to BGR at 2, 4 and 28 CPUs; 4:2:2 input loses chroma; not built | evidence |
 | [C6A5](entries/C6A5-exit-hang-of-the-cuda-ep-plugin.md) | Exit hang of `cuda-cu13` 0.3.0 on Windows: 9 of 192 long runs; hard end 0 of 60; 1DS telemetry client in the DLL; hang rate with the switch not tested | evidence |
 
 ### Proposed
