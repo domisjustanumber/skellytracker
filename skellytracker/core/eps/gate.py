@@ -53,9 +53,12 @@ def chip_of(catalog: EpCatalog, key: str, host) -> Chip | None:
 
 NEEDS_CHECK = "quick-check-needed"  # no reviewed row and no quick check on this PC
 FAILED_CHECK = "quick-check-failed"  # the last quick check on this PC failed
+UNCLEAN_EXITS = "unclean-exits"  # two unclean exits in a row marked the EP as failed on this PC (`exits.py`)
+FAILED_CODES = (FAILED_CHECK, UNCLEAN_EXITS)  # the codes of an EP that failed on this PC
 REASONS = {
     NEEDS_CHECK: "the project has no reviewed result for it on this GPU model, and no quick check passed on this PC",
     FAILED_CHECK: "its last quick check failed on this PC",
+    UNCLEAN_EXITS: "the application ended two times in a row with no clean exit while it used this EP on this PC",
 }
 
 _certification_runs = 0  # the depth of `certification_run()` in this process
@@ -107,14 +110,14 @@ def local_cause(catalog: EpCatalog, key: str, gpu, os_name: str) -> str | None:
 
 
 def check_reason(catalog: EpCatalog, key: str, gpu, os_name: str) -> str | None:
-    """None when the rule lets the EP run on the GPU, else `quick-check-failed` or `quick-check-needed`.
+    """None when the rule lets the EP run on the GPU, else `quick-check-failed`, `unclean-exits` or `quick-check-needed`.
 
     It does not read the state of the pack. An EP with no GPU row, for example `cpu`, has no rule: call it only
     with a GPU of `ep_gpus()`.
     """
     local = local_result(catalog, key, gpu, os_name)
     if local == "failed":
-        return FAILED_CHECK
+        return UNCLEAN_EXITS if local_cause(catalog, key, gpu, os_name) else FAILED_CHECK
     return None if local == "passed" or evidence.certified(key, gpu, OS_LABELS.get(os_name, os_name)) else NEEDS_CHECK
 
 

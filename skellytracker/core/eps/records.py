@@ -290,7 +290,7 @@ class PackStatus:
 
     - `usable`: true when a run can use the EP now, on one GPU or more. An application does not compare
       `state`. An EP that is ready is not usable when the check rule lets it run on no GPU: `reason_code` is
-      then `quick-check-needed` or `quick-check-failed` (ADR-ER5X).
+      then `quick-check-needed`, `quick-check-failed` or `unclean-exits` (ADR-ER5X).
     - `install_hint`: the text with the command that installs or repairs the pack, or that runs the quick
       check. It is None when the EP is usable, and when no command helps: `reason` then gives the cause.
     - `uses_gpu`: true when the EP runs a model on a GPU.

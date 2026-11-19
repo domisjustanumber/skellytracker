@@ -9,6 +9,7 @@ import pytest
 from skellytracker.core import eps
 from skellytracker.core.eps import catalog as catalog_module
 from skellytracker.core.eps import evidence, exits, gate, store
+from skellytracker.core.errors import EpUnavailableError
 from skellytracker.tests.hw_fakes import fake_pack, gpu
 
 RTX = gpu()
@@ -55,8 +56,10 @@ def test_two_unclean_exits_in_a_row_mark_the_ep_as_failed_and_a_clean_exit_reset
     assert exits.collect() == [pair]
     row = store.read_json(checks)[pair]
     assert (row["result"], row["cause"], row["unclean_exits"]) == ("failed", "unclean-exits", 2)
-    assert gate.check_reason(catalog, "cuda", RTX, "Windows") == gate.FAILED_CHECK
+    assert gate.check_reason(catalog, "cuda", RTX, "Windows") == gate.UNCLEAN_EXITS  # its own code and text, not "the check failed"
     assert gate.local_cause(catalog, "cuda", RTX, "Windows") == "unclean-exits"
+    with pytest.raises(EpUnavailableError, match="ended two times in a row with no clean exit"):
+        gate.require(catalog, "cuda", RTX, "Windows")
     with store.store_lock():  # a quick check that passed: the caller writes the row and removes the count
         store.write_json(checks, {pair: {"result": "passed"}})
         exits.forget(pair)

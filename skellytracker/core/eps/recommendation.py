@@ -91,13 +91,13 @@ def _candidate(catalog: EpCatalog, key: str, host: HostInfo) -> EpCandidate:
         if code is not None and state in USABLE_STATES:
             reason = gate.REASONS[code]
         return EpCandidate(key, row["ep_name"], "ready" if state == "builtin" else state, precision_order=order, reason=reason,
-                           failed_locally=code == gate.FAILED_CHECK, needs_check=code == gate.NEEDS_CHECK)
+                           failed_locally=code in gate.FAILED_CODES, needs_check=code == gate.NEEDS_CHECK)
     device_key, gpu = next(iter(ep_gpus(catalog, key, host)), (None, None))
     state, _, reason = store.pack_state(catalog, key, gpu, device_key, host.os_build)
     code = None if gpu is None else gate.check_reason(catalog, key, gpu, host.os_name)
     if code is not None and state in USABLE_STATES:
         reason = gate.REASONS[code]
-    flags = (code == gate.FAILED_CHECK, code == gate.NEEDS_CHECK)
+    flags = (code in gate.FAILED_CODES, code == gate.NEEDS_CHECK)
     if pack is None:  # a built-in EP that runs on one GPU
         return EpCandidate(key, row["ep_name"], "ready" if state == "builtin" else state, None, device_key, order, reason, *flags)
     return EpCandidate(key, pack["ep_name"], state, pack["id"], device_key, order, reason, *flags)
