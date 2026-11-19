@@ -67,8 +67,11 @@ at most 4.46 px. The scripts are
 [`gpu_preprocess_parity.py`](../scripts/gpu_preprocess_parity.py) and
 [`gpu_preprocess_race.py`](../scripts/gpu_preprocess_race.py), from the commit "Add the fit and
 stretch graphs and the gates to the evidence scripts of the GPU preprocess path" (branch
-`dom/native-jpeg`, PR: none yet). Versions: onnxruntime 1.31.1, OpenCV 5.0.0.93, one RTX 3070. The
-vector cases are `unverified`: the package has no check of the limit.
+`dom/native-jpeg`, PR: none yet). Versions: onnxruntime 1.31.1, OpenCV 5.0.0.93, one RTX 3070.
+These runs predate the move to onnxruntime 1.30.0 and `cuda-cu13` 0.2.0, and a repeat on the
+pinned versions is [open work](../../../../decisions/open-work.md). The package check
+`within_resize_limit` runs the 13 `check_resize` vector cases through `resize_limit_runner` of
+`tools/tests/test_vectors.py`, and each of these cases lists it in `verified_against`.
 
 ## Open work
 

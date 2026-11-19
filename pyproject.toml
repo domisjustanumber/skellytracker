@@ -59,7 +59,7 @@ dependencies = [
     "onnxruntime-windowsml==1.30.0.202609102321 ; sys_platform == 'win32'",
     "windowsml[with-ort]==2.6.74rc0 ; sys_platform == 'win32'",
     # The package builds the preprocess graph at run time (ADR-8Z5Q).
-    # onnx 1.23 writes IR version 14; onnxruntime 1.31 reads IR version 13 or lower.
+    # onnx 1.23 writes IR version 14; onnxruntime 1.30 reads IR version 13 or lower.
     "onnx==1.22.0",
     "tqdm==4.70.1",
     "numpydantic==2.0.0",

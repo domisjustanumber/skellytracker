@@ -33,10 +33,13 @@ repository state is in the root [open-work.md](../../../decisions/open-work.md).
     cause is the float32 normalized coordinates: a grid computed in float64 and cast once to
     float32 still gave 0.072 (`linear`) and 0.106 (`cubic`) for `fit` at 3840x2160. OpenCV itself
     differs from an exact float64 `linear` warp by 0.022 at 1920x1080. The cause for `Resize` is
-    not established. (`test_preprocess_graph.py` and scripts outside the repository)
+    not established. (`test_preprocess_graph.py` and scripts outside the repository) These runs
+    predate the move to onnxruntime 1.30.0. A repeat on the pinned versions is open work in the
+    root [open-work.md](../../../decisions/open-work.md).
   - The `trt-rtx` pack is outside the ONNX Runtime range that NVIDIA tested.
   - One run of the race script hung at the process exit after it printed all results. One rerun
-    did not hang.
+    did not hang. [ADR-C6A5](../../../decisions/entries/C6A5-exit-hang-of-the-cuda-ep-plugin.md)
+    records an exit hang of the `cuda-cu13` 0.3.0 plugin. No stack of the race script hang exists.
   - Try `area` as ONNX nodes after the measurement step of the GPU preprocess path:
     `AveragePool` for integer factors, and two `MatMul` nodes with weight tables for fractional
     factors. This is an inferred idea. No test or measurement supports it.

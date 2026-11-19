@@ -36,9 +36,10 @@
 
 ## Reason
 
-- The CPU preprocess of the detector is the largest host cost of a call: the graph takes it from
-  16.2 ms to 1.9 ms for 3 frames of 1280x720 on one RTX 3070
-  (["Cost of the detector preprocess"](../open-work.md)).
+- The CPU preprocess of the detector is the largest host cost of a call. With the graph, the span
+  `person.preprocess` of 3 frames of 1280x720 went from 12.71 to 1.60 ms on `cuda` and from 12.64
+  to 0.50 ms on `trt-rtx`, on one RTX 3070
+  ([ADR-1SZ9](1SZ9-gpu-preprocess-and-gpu-jpeg-decode-in-the-pipeline-run.md)).
 - A warning must show a lost gain. A run on the EP `cpu` loses none, so it gets no warning.
 - The run cannot know the frame size before the first frame.
 - A set of frame sizes needs its own session, because the graph has one input for each frame. In a

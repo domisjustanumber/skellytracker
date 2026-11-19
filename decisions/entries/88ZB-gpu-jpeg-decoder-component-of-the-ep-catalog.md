@@ -40,13 +40,13 @@ This entry extends [ADR-246B](246B-ep-catalog-store-and-install.md) items 1 and 
   user downloads the full pack again: 966 MB for `cuda` on Windows.
 - A missing decoder must not block the EP. A new `PackState` changes the ready rule of ADR-D8DH
   item 3. A field does not.
-- No EP pack loads a CUDA runtime that exports `cudaStreamSynchronize` (Evidence). One CUDA runtime
+- No EP pack loads a CUDA runtime that exports `cudaStreamSynchronize`. One CUDA runtime
   in the component serves both EPs and both platforms, for 2.7 MB.
 
 ## Consequences
 
-- An install of `cuda` or `trt-rtx` downloads 18.3 MB more on Windows (38.9 MB on disk) and 32.5 MB
-  more on Linux (87.4 MB on disk), in MB of 1024 x 1024 bytes.
+- An install of `cuda` or `trt-rtx` downloads 18.3 MiB more on Windows (38.9 MiB on disk) and
+  32.5 MiB more on Linux (87.4 MiB on disk).
 - `store.verdict_key()` holds the catalog revision, so each catalog change drops the saved
   verifications. `cuda` goes from `ready` to `installed_unverified` until `install cuda` or `verify`
   runs. `trt-rtx` stays `untested-ort`.
@@ -61,14 +61,14 @@ This entry extends [ADR-246B](246B-ep-catalog-store-and-install.md) items 1 and 
 
 - Code facts: `installer._install_pack()` returns when `pack.json` exists. `store.pack_state()`
   gives `stale` for an other version of a pack. `records.USABLE_STATES` has no `stale`.
-- On 2026-11-18, Windows 11, RTX 3070, driver 610.88, ONNX Runtime 1.31.1, `cuda-cu13` 0.3.0,
-  `trt-rtx-cu13` 0.5.0, nvImageCodec 0.10.0
+- On 2026-11-18, Windows 11, RTX 3070, driver 610.88, ONNX Runtime 1.31.1, `cuda-cu13` 0.3.0
+  (before 1.30.0 and 0.2.0; a repeat is open work), `trt-rtx-cu13` 0.5.0, nvImageCodec 0.10.0
   ([`88zb_loaded_cuda_runtime.py`](../scripts/88zb_loaded_cuda_runtime.py)): after a session on
   `cuda` or `trt-rtx`, the process holds the `nvcudart_hybrid64.dll` of the driver and no
   `cudart64_13.dll`. The `trt-rtx` pack holds a `cudart64_13.dll`, but the EP does not load it.
   `nvcudart_hybrid64.dll` does not export `cudaStreamSynchronize`. nvImageCodec also uses
   `nvcudart_hybrid64.dll`.
-- Same host, after the install of the component into the store
+- Same host, with the component in the store
   ([`88zb_store_decoder_check.py`](../scripts/88zb_store_decoder_check.py)): on `cuda` and on
   `trt-rtx`, a 640x480 JPEG at quality 90 decodes into GPU memory on a private non-blocking
   stream. The wait uses `cudaStreamSynchronize` of the CUDA runtime of the component. The pixels

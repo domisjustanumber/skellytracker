@@ -71,12 +71,12 @@
 
 ## Evidence
 
-- nvJPEG through nvImageCodec against `cv2.imdecode`: at most 3 `uint8` steps, mean 0.024, on 148
-  frame variants, JPEG quality 90, 4:2:2 and 4:2:0 chroma. Measured by the user.
+- nvJPEG through nvImageCodec against `cv2.imdecode`: at most 3 `uint8` steps, mean 0.024 on one
+  1280x720 image ([Running](../../running.md#implementer-guidance) gives more sets).
 - On the GPU, a turn after the decode costs 0.06 to 0.15 ms for each frame. A decode that applies
   an EXIF tag costs about 0.1 to 0.3 ms more for 90 and 270 degrees. On the CPU, the costs are
   equal. With two Exif APP1 segments, `cv2.imdecode` and nvImageCodec apply different segments.
-  Measured by the user.
+  No script of these two items is kept.
 
 ## Alternatives rejected
 

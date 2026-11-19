@@ -21,6 +21,6 @@ convert a b3 artifact.
 
 ## Consequences
 
-- The pin stays at 1.22: onnx 1.23 writes IR version 14, and onnxruntime 1.31 reads IR version 13
+- The pin stays at 1.22: onnx 1.23 writes IR version 14, and onnxruntime 1.30 reads IR version 13
   or lower.
 - `pip install skellytracker[onnx]` gives a warning, because the extra is gone.
