@@ -120,9 +120,9 @@ def test_section_3_on_an_amd_host_tests_each_offered_windows_ml_ep(work, monkeyp
     calls = fake_eps(monkeypatch, rows, vendor="amd", catalog_eps=catalog_eps)
     found = ce.section_eps(work)
     results = {c["name"]: (c["result"], c["reason_code"]) for c in found["checks"]}
-    assert results["amdgpu"] == ("not-run", "not-offered") and results["migraphx@gpu:1002:73bf:0"] == ("pass", None)
+    assert results["amdgpu"] == ("not-run", "not-offered") and results["migraphx@1002-73bf-0"] == ("pass", None)
     assert found["details"]["hardware_class"] == "amd-windows" and found["result"] == "pass" and "amd-eps" not in results
-    migraphx = found["details"]["eps"]["migraphx@gpu:1002:73bf:0"]
+    migraphx = found["details"]["eps"]["migraphx@1002-73bf-0"]
     assert (migraphx["was_present"], migraphx["ort_version"]) == (True, ce.ort_version())
     assert ("migraphx", "gpu:1002:73bf:0") in calls["verify"] and "pipeline_targets" not in found["details"]
 
@@ -226,10 +226,10 @@ def test_section_3_opts_in_and_counts_directml_on_each_gpu(work, monkeypatch):
     found = ce.section_eps(work)
     assert set(store.field_test_opt_ins()) == {"amdgpu", "migraphx", "directml"} and str(store.store_root()).startswith(str(work))
     results = {c["name"]: c["result"] for c in found["checks"]}
-    assert (results["directml@gpu:10de:2484:0"], results["directml@gpu:8086:a780:0"]) == ("pass", "fail")
+    assert (results["directml@10de-2484-0"], results["directml@8086-a780-0"]) == ("pass", "fail")
     assert (found["result"], found["reason_code"]) == ("fail", "probe-l3-failed")
-    assert ("directml", "gpu:8086:a780:0") in calls["verify"] and "counts" not in found["details"]["eps"]["directml@gpu:8086:a780:0"]
-    passed = found["details"]["eps"]["directml@gpu:10de:2484:0"]  # a hang at exit is a fact of the details; the probe still passes
+    assert ("directml", "gpu:8086:a780:0") in calls["verify"] and "counts" not in found["details"]["eps"]["directml@8086-a780-0"]
+    passed = found["details"]["eps"]["directml@10de-2484-0"]  # a hang at exit is a fact of the details; the probe still passes
     assert passed["result"] == "pass" and passed["probe"]["exit_reason_code"] == "hung-at-exit"
 
 
@@ -237,7 +237,7 @@ def test_section_3_counts_directml_on_an_amd_gpu(work, monkeypatch):
     rows = [*DML_ROWS[:2], row("directml", "builtin", devices=(device("gpu:1002:73bf:0"),)), row("cpu", "builtin")]
     fake_eps(monkeypatch, rows, vendor="amd", verify_ok={"gpu:1002:73bf:0": False})
     found = ce.section_eps(work)
-    assert {c["name"]: c["result"] for c in found["checks"]}["directml@gpu:1002:73bf:0"] == "fail" and found["result"] == "fail"
+    assert {c["name"]: c["result"] for c in found["checks"]}["directml@1002-73bf-0"] == "fail" and found["result"] == "fail"
     fake_eps(monkeypatch, rows, vendor="amd")
     assert ce.section_eps(work)["result"] == "pass"
 

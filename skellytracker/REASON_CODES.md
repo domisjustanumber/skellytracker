@@ -91,7 +91,7 @@ changes each character that a check name cannot hold to `-`.
 | `suite:<slug>:<name>` | One check of a section, with its reason code. `numbers` holds its other number fields. |
 | `suite:checkout:checkout`, `suite:checkout:python`, `suite:checkout:packages`, `suite:checkout:onnx-stack`, `suite:checkout:telemetry-switch` | Section 1: the git checkout, the Python version and the packages against `uv.lock`, the ONNX Runtime stack, and `ORT_DISABLE_TELEMETRY`. |
 | `suite:hardware:probe-host`, `suite:hardware:eps-state`, `suite:hardware:<method>` | Section 2: `probe_host()`, `eps.status()` with `eps.recommend()`, and each OS tool, for example `nvidia-smi` or `cim-video-controller`. |
-| `suite:packs:<key>`, `suite:packs:<key>@<device key>` | Section 3: the install and the probe of an EP. An EP that runs on one GPU has one check for each GPU, for example `suite:packs:directml@gpu:10de:2484:0`. |
+| `suite:packs:<key>`, `suite:packs:<ep>` | Section 3: the install and the probe of an EP. An EP that runs on one GPU has one check for each GPU, for example `suite:packs:directml@10de-2484-0`. `<ep>` is the name of the EP check of `certify()` for the EP on that GPU. |
 | `suite:packs:remove-<package>` | Section 3: the removal of a Windows ML package that the suite installed. A package with no known name gives `remove-<key>`. |
 | `suite:<slug>:exit` | The check `exit` of the contract for a section child that gave its result and did not end cleanly. |
 | cleanup `remove-windows-packages`, `remove-listed-file`, `delete-work-folder` | The removal of the Windows ML packages, the delete of a downloaded model file, and the delete of the work folder `.certify-work/`. |

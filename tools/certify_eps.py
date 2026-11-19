@@ -189,6 +189,7 @@ def section_eps(work: Path) -> dict:
     sys.path.insert(0, str(REPO_ROOT))
     if not isolated():
         return not_isolated()
+    from skellytracker import certification
     from skellytracker.core import eps
     from skellytracker.core.eps import store
     from skellytracker.core.system.host import gpu_device_keys, probe_host, rocm_version
@@ -214,7 +215,7 @@ def section_eps(work: Path) -> dict:
             continue
         on_each_gpu = row.pack_id is None and catalog.device_row(key) is not None  # `directml` or a Windows ML EP: each GPU
         for device in row.devices if on_each_gpu else (None,):
-            name = key if device is None else f"{key}@{device.device_key}"
+            name = certification._label(key, None if device is None else device.device_key)  # the label of `certify()` for the pair
             print(f"section 3: {name}", file=sys.stderr, flush=True)
             started = time.monotonic()
             if device is not None:
