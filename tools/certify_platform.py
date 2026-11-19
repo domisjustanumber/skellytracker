@@ -321,9 +321,9 @@ SECTIONS = (
     Section(2, "Hardware probe", 20, 300, section_hardware),
     # 3: on an RTX 3070 host, 40 s with the download of 1.12 GB on a fast link, 15 s from --wheel-dir; the limit allows a slow link
     Section(3, "EPs: install, verify and certify", 60, 2400, section_eps, eps_downloads),
-    # 4: about 115 s on a host with an RTX 3070 and an Intel UHD 770 (DirectML on each GPU); the limit allows a slow
-    # TensorRT RTX engine build on each camera count
-    Section(4, "Pipeline on each EP against the CPU EP", 120, 1800, section_pipeline, pipeline_downloads),
+    # 4: about 115 s on a host with an RTX 3070 and an Intel UHD 770 (DirectML on each GPU), and about 20 s more for the CPU EP
+    # at 3 and 6 cameras; the limit allows a slow TensorRT RTX engine build on each camera count
+    Section(4, "Pipeline on each EP against the CPU EP", 140, 1800, section_pipeline, pipeline_downloads),
     # 5: after 4, so the model files of section 4 are still there. About 12.5 s for the CPU paths with the model files,
     # 14 s for cuda and 20 s for trt-rtx with no model files (RTX 3070); the limit allows an engine build and a hang at exit
     Section(5, "JPEG decode and preprocess", 60, 600, section_jpeg),

@@ -358,13 +358,14 @@ def test_section_4_reads_the_section_3_result_and_runs_each_passed_gpu_ep(work, 
 
     timed, compared = [], []
     monkeypatch.setattr(_download, "fetch", fetch)
-    monkeypatch.setattr(ce, "time_run", lambda pipeline, key, cameras, frame, device: timed.append((key, cameras, device)) or {"median_ms": 1.0})
+    monkeypatch.setattr(ce, "time_run", lambda pipeline, key, cameras, frame, device: timed.append((key, cameras, device)) or
+                        {"median_ms": {"cpu": 2.0, "trt-rtx": 1.0}.get(key, 2.2)})
     monkeypatch.setattr(certification, "_wide_run", lambda key, settings, progress, device: compared.append((key, device)) or {
         "ran": True, "ok": key != "directml", "reason_code": "keypoints-differ" if key == "directml" else None, "box_iou_min": 0.99,
         "keypoint_box_fraction_max": 0.005, "keypoint_box_fraction_median": 0.001, "keypoint_box_fraction_p99": 0.004, "points_compared": 100})
     found = ce.section_pipeline(work)
     intel = "gpu:8086:a780:0"
-    assert timed == [("cpu", 1, None), ("trt-rtx", 1, None), ("trt-rtx", 3, None), ("trt-rtx", 6, None),
+    assert timed == [("cpu", 1, None), ("cpu", 3, None), ("cpu", 6, None), ("trt-rtx", 1, None), ("trt-rtx", 3, None), ("trt-rtx", 6, None),
                      ("directml", 1, intel), ("directml", 3, intel), ("directml", 6, intel)]
     assert compared == [("trt-rtx", None), ("directml", intel)]
     agreement = next(c for c in found["checks"] if c["name"] == "agreement-trt-rtx")
@@ -372,6 +373,10 @@ def test_section_4_reads_the_section_3_result_and_runs_each_passed_gpu_ep(work, 
     dml = next(c for c in found["checks"] if c["name"] == f"agreement-directml@{intel}")
     assert (dml["result"], dml["reason_code"]) == ("record-only", "keypoints-differ")  # a failure off AMD does not fail the section
     assert str(store.cache_root()).startswith(str(work))  # the test image is cached in the work folder
+    timing = found["details"]["eps"]
+    assert {key: (timing[key]["timing"]["6"].get("against_cpu"), timing[key]["timing"]["6"].get("speed_against_cpu"))
+            for key in ("cpu", "trt-rtx", f"directml@{intel}")} == {"cpu": (None, None), "trt-rtx": (0.5, "faster"),
+                                                                   f"directml@{intel}": (1.1, "similar")}
 
 
 def fake_fetch(monkeypatch, data: bytes):

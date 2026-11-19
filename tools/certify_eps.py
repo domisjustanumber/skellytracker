@@ -34,12 +34,14 @@ certification for the version set of the catalog.
 Section 4. It reads the result of section 3 from ``section-3.json`` of the work folder. It takes the
 model files of the ``models`` list of the ``certification`` block of the EP catalog (``fetch_models``)
 and needs the pipeline of that block to be available, else it is ``not-run`` with
-``models-missing``. For the CPU EP (1 camera), and for each GPU EP and each ``directml`` GPU whose
+``models-missing``. For the CPU EP, and for each GPU EP and each ``directml`` GPU whose
 probe passed in section 3 (``pipeline_targets`` of its details; 1, 3 and 6 cameras, the test image
 on each camera; a target of the second environment runs there, in a child process), it times ``WARMUP_CALLS`` and then ``TIMED_CALLS`` calls
 in the running mode ``video`` with the span ``pipeline.run``: the start time (the sessions, with the
 TensorRT RTX engine build), the first call, and the median and p95 of the timed calls. The peak VRAM
-is the largest VRAM of this process in a ``LiveSampler`` sample after each call. Then
+is the largest VRAM of this process in a ``LiveSampler`` sample after each call. The timing of a GPU target for each
+camera count also has ``against_cpu`` (its median divided by the CPU median) and ``speed_against_cpu`` (``faster``,
+``slower`` or ``similar``, of ``certification.speed_against_cpu()``). Then
 ``certification._wide_run()`` compares the EP with the CPU EP on the test image, in a child process, with the catalog
 ``thresholds``. The timings and the VRAM are ``record-only``. The agreement is ``pass`` or ``fail``.
 It is ``record-only`` on a GPU where the result of section 3 does not count.
@@ -62,7 +64,7 @@ from certify_platform import MODEL_ROOT, check, outcome  # the frame deletes lis
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REMOVE_LIST = "remove-at-end.json"  # the frame deletes each file of this list at the end of the run
-WARMUP_CALLS, TIMED_CALLS, CAMERA_COUNTS = 10, 100, (1, 3, 6)  # about 60 s for section 4 with two GPU EPs on an RTX 3070
+WARMUP_CALLS, TIMED_CALLS, CAMERA_COUNTS = 10, 100, (1, 3, 6)  # each EP, also the CPU EP; see the estimate of section 4
 MIB = 2**20
 NUMBER_FAILURES = ("probe-l3-failed",)  # the EP loaded and ran: the second environment does not help
 
@@ -455,18 +457,27 @@ AGREEMENT_FIELDS = ("box_iou_min", "keypoint_box_fraction_max", "keypoint_box_fr
                     "points_compared")
 
 
-def pipeline_target(target: dict, settings: dict, frame, seen: set, suffix: str = "") -> tuple[dict, list[dict]]:
-    """The timings and the agreement of one target of section 4. `seen` holds the library names of the earlier targets."""
+def pipeline_target(target: dict, settings: dict, frame, seen: set, suffix: str = "", cpu_timing: dict | None = None
+                    ) -> tuple[dict, list[dict]]:
+    """The timings and the agreement of one target of section 4. `seen` holds the library names of the earlier targets.
+
+    `cpu_timing` is the timing of the CPU EP for each camera count: each timing of a GPU target then gets `against_cpu`
+    and `speed_against_cpu`, a record only.
+    """
     from skellytracker.core.eps import certification
     from skellytracker.core.system import probe_loaded_libraries
 
     key, device = target["key"], target["device_key"]
     label = (key if device is None else f"{key}@{device}") + suffix
     found, checks = {"timing": {}, "device_key": device, "counts": target["counts"], "ort_version": ort_version()}, []
-    for cameras in (1,) if key == "cpu" else CAMERA_COUNTS:
+    for cameras in CAMERA_COUNTS:
         print(f"section 4: {label}, {cameras} camera(s)", file=sys.stderr, flush=True)
         try:
-            found["timing"][str(cameras)] = time_run(settings["pipeline"], key, cameras, frame, device)
+            timing = found["timing"][str(cameras)] = time_run(settings["pipeline"], key, cameras, frame, device)
+            cpu = (cpu_timing or {}).get(str(cameras))
+            if key != "cpu" and cpu and cpu.get("median_ms") and timing.get("median_ms") is not None:
+                timing["against_cpu"] = round(timing["median_ms"] / cpu["median_ms"], 2)
+                timing["speed_against_cpu"] = certification.speed_against_cpu(timing["median_ms"], cpu["median_ms"])
             checks.append(check(f"timing-{label}-{cameras}", "record-only"))
         except Exception as error:  # noqa: BLE001 - for example VRAM exhaustion at 6 cameras
             checks.append(check(f"timing-{label}-{cameras}", "not-run", type(error).__name__))
@@ -546,7 +557,7 @@ def section_pipeline(work: Path) -> dict:
             details["eps"][label] = fallback.get("found") or fallback
             checks += fallback.get("checks") or [check(f"agreement-{label}", fallback["result"], fallback["reason_code"])]
             continue
-        found, new_checks = pipeline_target(target, settings, frame, seen)
+        found, new_checks = pipeline_target(target, settings, frame, seen, cpu_timing=details["eps"].get("cpu", {}).get("timing"))
         details["eps"][target["key"] if target["device_key"] is None else f"{target['key']}@{target['device_key']}"] = found
         checks += new_checks
     agreements = [f"{c['name'].removeprefix('agreement-')} IoU {c['box_iou_min']:.3f}, keypoints max {c['keypoint_box_fraction_max']:.4f}"

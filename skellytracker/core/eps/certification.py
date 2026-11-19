@@ -32,6 +32,8 @@ from skellytracker.core.system.runtime import probe_runtime
 REPORT_SCHEMA = "skellytracker.eps.certification/1"
 PARTIAL_PLACEMENT = "ep_partial_placement"  # the warning code of the pipeline runtime; `_runtime` is private
 SCORE_MARGIN = 0.1  # not calibrated: fp16 noise near `score_min` must not fail a good EP
+SIMILAR_SPEED = 0.2  # `similar`: the warm call on the EP is within 20 % of the warm call on the CPU EP
+WARM_CALLS = 2  # extra calls after the first, so that the first-call cost is not the figure; the fastest one is the figure
 WIDE_TIMEOUT_SECONDS = 600.0  # not calibrated: the start of the child, two pipeline starts with a TensorRT RTX engine build, two calls
 
 
@@ -82,6 +84,13 @@ def dismiss_certification(key: str) -> None:
     _, gpu = next(iter(ep_gpus(catalog, key, host)), (None, None))
     if gpu is not None:
         write_answer(pair_key(catalog, key, gpu, host.os_name), "dismissed")
+
+
+def speed_against_cpu(ep_ms: float, cpu_ms: float) -> str:
+    """`faster`, `slower` or `similar` (within `SIMILAR_SPEED` of the CPU time). It is a record only: it never fails an EP."""
+    if abs(ep_ms - cpu_ms) <= SIMILAR_SPEED * cpu_ms:
+        return "similar"
+    return "faster" if ep_ms < cpu_ms else "slower"
 
 
 def compare_results(cpu: dict, ep: dict, thresholds: dict) -> dict:
@@ -180,6 +189,9 @@ def _image_run(key: str, settings: dict, progress: Callable[[str], None], device
     `settings["pipeline"]` is a key of the pipeline catalog, or the mapping of a config (`export_pipeline()`):
     the caller checks the model files of a mapping. `device_key` selects the GPU of the EP run; with None, the
     run uses the default GPU of the EP. It runs in the child of `_wide_run()`.
+
+    `ep_ms` and `cpu_ms` are the fastest of `WARM_CALLS` calls after the first call on the EP and on the CPU EP, and
+    `speed_against_cpu` compares them. They are a rough figure from one image and one camera, a record only.
     """
     import cv2
     import numpy as np
@@ -195,18 +207,25 @@ def _image_run(key: str, settings: dict, progress: Callable[[str], None], device
         path = _download.fetch(image["url"], image["sha256"], path)
     frame = cv2.imdecode(np.frombuffer(path.read_bytes(), np.uint8), cv2.IMREAD_COLOR)
     config = pipelines.load_pipeline(source)
-    results, models, warnings = {}, {}, []
+    results, models, warnings, warm = {}, {}, [], {}
     for name, ep_key in (("cpu", "cpu"), ("ep", key)):
         progress(name)
         with pipelines.start_pipeline(config, camera_ids=[0], running_mode="image", execution_provider=ep_key, timing="off",
                                       device=device_key if name == "ep" else None) as run:
             results[name] = run.process(pipelines.Frame(frame, frame_index=0))
+            times = []
+            for index in range(1, WARM_CALLS + 1):
+                before = time.perf_counter()
+                run.process(pipelines.Frame(frame, frame_index=index))
+                times.append((time.perf_counter() - before) * 1000)
+            warm[name] = round(min(times), 1)
             models, warnings = run.models, sorted({warning.code for warning in run.warnings})
     found = compare_results(results["cpu"], results["ep"], settings["thresholds"])
     if found["ok"] and PARTIAL_PLACEMENT in warnings:  # the warnings of the EP run: some nodes ran on the CPU EP
         found = {**found, "ok": False, "reason_code": "partial-placement"}
     return {**found, "ran": True, "pipeline": source if isinstance(source, str) else f"{config.pipeline_id}@{config.source.name}",
-            "image_sha256": image["sha256"], "warnings": warnings,
+            "image_sha256": image["sha256"], "warnings": warnings, "ep_ms": warm["ep"], "cpu_ms": warm["cpu"],
+            "speed_against_cpu": speed_against_cpu(warm["ep"], warm["cpu"]),
             "models": [{field: model[field] for field in ("key", "version", "size", "precision", "execution_provider", "device")}
                        for _, model in sorted(models.items())],
             "thresholds": settings["thresholds"], "seconds": round(time.monotonic() - started, 1)}

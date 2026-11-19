@@ -42,7 +42,8 @@ OS_NAMES = {"Darwin": "macOS"}
 ARCHES = {"amd64": "x86_64", "x64": "x86_64", "aarch64": "arm64"}
 PATH_PATTERN = re.compile(r"(?:\b[A-Za-z]:[\\/]|\\\\[^\\\s]|/(?:home|Users|root)/|~[\\/])[^\s\"'|,;]*")
 IMAGE_NUMBERS = ("people_cpu", "people_ep", "box_iou_min", "keypoint_px_max", "keypoint_box_fraction_max",
-                 "keypoint_box_fraction_median", "keypoint_box_fraction_p99", "points_compared", "seconds")
+                 "keypoint_box_fraction_median", "keypoint_box_fraction_p99", "points_compared", "seconds", "ep_ms", "cpu_ms",
+                 "speed_against_cpu")
 
 
 def certify_plan(level: str, *, execution_providers: Sequence[str] | None = None, pipeline=None) -> dict:
@@ -95,7 +96,9 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
     on the EP and on the CPU EP, each in a `spawn` child, and compares the two results with the
     thresholds of `certification` of the EP catalog. It runs on the first GPU of `run_devices(key)`.
     It downloads no model: with a model file that is not on this host, the image check is `not-run`
-    with `models-missing`. Each EP gives three checks: `<key>:probe`, `<key>:image` and `<key>`. The
+    with `models-missing`. The `numbers` of `<key>:image` also hold `ep_ms`, `cpu_ms` and
+    `speed_against_cpu` (`faster`, `slower` or `similar`): a rough figure from one image, a record only
+    that never changes the result. Each EP gives three checks: `<key>:probe`, `<key>:image` and `<key>`. The
     check `<key>` passes only when the two others pass (ADR-21BK item 2). An EP that cannot run, for
     example a pack that is not installed, gives `not-run` with `ep-<state code>`. Each EP runs, also
     when an other EP fails.

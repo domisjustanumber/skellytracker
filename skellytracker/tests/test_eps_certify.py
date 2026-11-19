@@ -201,6 +201,10 @@ def test_a_gpu_with_no_pci_ids_and_a_malformed_row_match_nothing(rtx_host, monke
         eps.certify("trt-rtx")
 
 
+def test_the_speed_against_the_cpu_is_similar_within_20_percent():
+    assert [certification.speed_against_cpu(ep, 20.0) for ep in (10.0, 16.0, 24.0, 38.0)] == ["faster", "similar", "similar", "slower"]
+
+
 def test_compare_results_fails_a_lost_or_low_ep_score():
     lost = result()
     lost["wholebody"].score = np.array([[0.9, np.nan, 0.1]])
@@ -258,6 +262,7 @@ def test_wide_run_with_fakes(rtx_host, monkeypatch, tmp_path):
     steps = []
     found = certification._image_run("trt-rtx", settings, steps.append)
     assert found["ok"] and found["ran"] and steps == ["download", "cpu", "ep"] and found["warnings"] == []
+    assert found["ep_ms"] >= 0 and found["cpu_ms"] >= 0 and found["speed_against_cpu"] in ("faster", "slower", "similar")
     assert found["models"] == [{"key": "rtmw", "version": "1", "size": "m", "precision": "fp16", "execution_provider": "trt-rtx", "device": None}]
     codes.append(certification.PARTIAL_PLACEMENT)
     found = certification._image_run("trt-rtx", settings, steps.append)

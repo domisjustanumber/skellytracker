@@ -26,6 +26,7 @@ COMMIT = "0123456789abcdef0123456789abcdef01234567"
 FOUND = {"ran": True, "ok": True, "reason_code": None, "people_cpu": 1, "people_ep": 1, "box_iou_min": 0.99,
          "keypoint_px_max": 2.0, "keypoint_box_fraction_max": 0.004, "keypoint_box_fraction_median": 0.001,
          "keypoint_box_fraction_p99": 0.003, "points_compared": 120, "seconds": 3.2, "warnings": [], "exit_reason_code": None,
+         "ep_ms": 6.0, "cpu_ms": 19.0, "speed_against_cpu": "faster",
          "models": [{"key": "rtmw", "version": "1", "size": "m", "precision": "fp16", "execution_provider": "trt-rtx", "device": None}]}
 
 # The field rules of sections 3, 5.2 and 6 of the contract, as a test can check them.
@@ -145,6 +146,7 @@ def test_a_quick_pass_gives_a_valid_report_and_records_the_local_pass(quick_host
     assert report["host"]["os"]["arch"] == "x86_64" and report["host"]["gpus"][0]["id"] == "10de:2484"
     image = next(check for check in report["checks"] if check["name"] == "trt-rtx:image")
     assert image["numbers"]["box_iou_min"] == 0.99 and image["numbers"]["points_compared"] == 120
+    assert (image["numbers"]["ep_ms"], image["numbers"]["cpu_ms"], image["numbers"]["speed_against_cpu"]) == (6.0, 19.0, "faster")
     assert report["details"]["eps"]["trt-rtx"]["models"][0]["precision"] == "fp16"
     assert report["details"]["versions"]["set_hash"] == evidence.set_hash(certification.load_catalog())
     (path,) = certification.reports_dir().glob("quick-*.json")

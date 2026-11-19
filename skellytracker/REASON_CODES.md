@@ -46,6 +46,12 @@ an application. A quick check of a part of the EPs is complete for each EP that 
 | `partial-placement` | check `<key>:image` | Some nodes of the pipeline ran on the CPU EP, not on the EP. |
 | `<ExceptionClass>` | check, `cleanup` | A setup step or a cleanup step raised this exception class, for example `EpUnavailableError` or `DownloadError`. The report never holds the message. |
 
+## Fixed values in `numbers`
+
+| Field | Values | Meaning |
+|---|---|---|
+| `speed_against_cpu` | `faster`, `slower`, `similar` | The warm call of the pipeline on the EP against the warm call on the CPU EP, on one image (`ep_ms`, `cpu_ms`). `similar` is within 20 %. It is a record only. Section 4 of `tools/certify_platform.py` gives the same value for each camera count. |
+
 ## Check names
 
 | Check | Meaning |
