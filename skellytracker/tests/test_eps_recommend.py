@@ -164,6 +164,7 @@ def test_stale_and_failed_packs_are_skipped(ep_store):
 def test_apple_silicon_gives_coreml_with_fp16(monkeypatch):
     mac = host(os_name="Darwin", arch="arm64")
     monkeypatch.setattr(catalog_module, "platform_tag", lambda: "macosx_arm64")
+    reviewed_rows_for_each_gpu(monkeypatch)  # the hardware class, not the check rule
     result = eps.recommend("performance", mac)
     assert (result.hardware_class, result.chosen.ep_key, result.precision, result.chosen.status) == ("apple-silicon", "coreml", "fp16", "ready")
 

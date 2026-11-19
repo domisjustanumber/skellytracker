@@ -11,7 +11,7 @@ import sys
 from collections.abc import Mapping, Sequence
 
 from skellytracker.core.eps import catalog as catalog_module
-from skellytracker.core.eps import certification, evidence, gate, store
+from skellytracker.core.eps import certification, evidence, exits, gate, store
 from skellytracker.core.eps.catalog import load_catalog
 from skellytracker.core.eps.installer import core_mismatch, installed_ort
 from skellytracker.core.eps.recommendation import ep_gpus, install_hint, recommend, run_devices
@@ -42,6 +42,11 @@ def check_start(execution_provider: str, ep_options: Mapping[str, str] | None = 
         state, _, reason = store.pack_state(catalog, execution_provider)
         if state not in USABLE_STATES:
             raise EpUnavailableError(f"The EP '{execution_provider}' is not available: {reason}.")
+        if catalog.ep(execution_provider)["gpu"]:  # `coreml`: the check rule applies to the chip of the host
+            host = probe_host()
+            chip = gate.chip_of(catalog, execution_provider, host)
+            if chip is not None:
+                gate.require(catalog, execution_provider, chip, host.os_name)
         return devices
     host = probe_host()
     gpus = dict(ep_gpus(catalog, execution_provider, host))
@@ -67,11 +72,13 @@ SOURCES = {"pypi": "pypi", "ort-cuda-13": "azure", "amd-ort": "amd"}  # the inde
 
 def _device_checks(catalog, key: str, host) -> tuple[DeviceCheck, ...]:
     found = []
-    for device_key, gpu in ep_gpus(catalog, key, host):
-        ready = store.pack_state(catalog, key, gpu, device_key, host.os_build)[0] in USABLE_STATES
-        certified = evidence.certified(key, gpu, host.os_name)
+    chip = gate.chip_of(catalog, key, host)  # `coreml`: one row for the chip; its `device_key` is the chip id, not a device
+    for device_key, gpu in ([(chip.chip_id, chip)] if chip else ep_gpus(catalog, key, host)):
+        ready = store.pack_state(catalog, key, None if chip else gpu, None if chip else device_key, host.os_build)[0] in USABLE_STATES
+        certified = evidence.certified(key, gpu, gate.OS_LABELS.get(host.os_name, host.os_name))
         local = gate.local_result(catalog, key, gpu, host.os_name)
-        found.append(DeviceCheck(device_key, gpu.name, certified, local, ready and gate.check_reason(catalog, key, gpu, host.os_name) is None))
+        found.append(DeviceCheck(device_key, gpu.name, certified, local, ready and gate.check_reason(catalog, key, gpu, host.os_name) is None,
+                                 gate.local_cause(catalog, key, gpu, host.os_name)))
     return tuple(found)
 
 
@@ -123,10 +130,11 @@ def _apply_check_rule(row: PackStatus | None, catalog, host) -> PackStatus | Non
     if row is None or not row.usable or not row.checks:
         return row
     allowed = {check.device_key for check in row.checks if check.usable}
+    chip = gate.chip_of(catalog, row.key, host)
     if allowed:
-        return dataclasses.replace(row, devices=tuple(device for device in row.devices if device.device_key in allowed))
-    gpus = dict(ep_gpus(catalog, row.key, host))
-    code = gate.check_reason(catalog, row.key, gpus[row.checks[0].device_key], host.os_name)
+        return row if chip else dataclasses.replace(row, devices=tuple(device for device in row.devices if device.device_key in allowed))
+    unit = chip or dict(ep_gpus(catalog, row.key, host))[row.checks[0].device_key]
+    code = gate.check_reason(catalog, row.key, unit, host.os_name)
     return dataclasses.replace(row, usable=False, devices=(), reason_code=code, reason=gate.REASONS[code],
                                install_hint=gate.check_hint(row.key))
 
@@ -139,6 +147,7 @@ def status() -> EpStatus:
     holds no EP fact of its own.
     """
     catalog, host = load_catalog(), probe_host()
+    exits.collect()  # the unclean exits of earlier processes, before the rows read the local results
     installed = installed_ort()
     root = store.store_root()
     existing = next((path for path in (root, *root.parents) if path.exists()), None)

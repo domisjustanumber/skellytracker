@@ -33,7 +33,11 @@ def set_hash(catalog: EpCatalog) -> str:
 
 def gpu_id(gpu) -> str | None:
     """The PCI vendor id and device id of a GPU (`GpuInfo`) as `10de:2484`; `None` when the host gives no ids."""
-    if gpu is None or gpu.pci_vendor_id is None or gpu.pci_device_id is None:
+    if gpu is None:
+        return None
+    if getattr(gpu, "chip_id", None):  # the chip of the host, for an EP that runs on no single GPU (`gate.Chip`)
+        return gpu.chip_id
+    if gpu.pci_vendor_id is None or gpu.pci_device_id is None:
         return None
     return f"{gpu.pci_vendor_id:04x}:{gpu.pci_device_id:04x}"
 

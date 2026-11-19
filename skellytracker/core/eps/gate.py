@@ -1,5 +1,8 @@
 """The check rule of an EP on a GPU (ADR-21BK items 2 and 3, ADR-ER5X): a run starts only after a check.
 
+The rule also applies to `coreml`, which runs on the chip of a Mac and selects no GPU: `chip_of()` gives the
+stand-in for its GPU, and the key of its results is the chip name.
+
 An EP on a GPU can run when the project has a reviewed pass for the GPU model and OS (`ep_evidence.yaml`), or
 when a quick check of `skellytracker.certify()` passed on this PC. It cannot run after a quick check that
 failed on this PC. `check_start()` and `build_session()` call `require()`, so each run and each session obeys
@@ -13,10 +16,40 @@ This module loads no library and uses no network. It reads `quick-checks.json` o
 """
 
 import contextlib
+import dataclasses
+import re
 
+from skellytracker.core.eps import catalog as catalog_module
 from skellytracker.core.eps import evidence, store
 from skellytracker.core.eps.catalog import EpCatalog
 from skellytracker.core.errors import EpUnavailableError
+
+OS_LABELS = {"Darwin": "macOS"}  # `HostInfo.os_name` -> the `os` of a row of `ep_evidence.yaml`
+
+
+@dataclasses.dataclass(frozen=True)
+class Chip:
+    """The stand-in for the GPU of an EP that runs on the chip of the host and selects no GPU: `coreml`.
+
+    `chip_id` is the key of its results, for example `chip:apple-m2-pro`. A Mac gives no PCI ids.
+    """
+
+    name: str
+    chip_id: str
+    pci_vendor_id: None = None
+    pci_device_id: None = None
+
+
+def chip_of(catalog: EpCatalog, key: str, host) -> Chip | None:
+    """The chip of the host for a built-in EP that runs on a GPU and selects none (`coreml`), on its platform. Else None."""
+    row = catalog.ep(key)
+    if row["kind"] != "builtin" or not row.get("gpu") or row.get("selects_gpu"):
+        return None
+    if "platforms" in row and catalog_module.platform_tag() not in row["platforms"]:
+        return None
+    name = host.cpu_name or "unknown chip"
+    return Chip(name, "chip:" + (re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") or "unknown"))
+
 
 NEEDS_CHECK = "quick-check-needed"  # no reviewed row and no quick check on this PC
 FAILED_CHECK = "quick-check-failed"  # the last quick check on this PC failed
@@ -37,6 +70,11 @@ def certification_run():
         yield
     finally:
         _certification_runs -= 1
+
+
+def certification_active() -> bool:
+    """True inside `certification_run()`."""
+    return bool(_certification_runs)
 
 
 def pair_key(catalog: EpCatalog, key: str, gpu, os_name: str) -> str:
@@ -60,6 +98,14 @@ def local_result(catalog: EpCatalog, key: str, gpu, os_name: str) -> str | None:
     return row["result"] if isinstance(row, dict) and row.get("result") in ("passed", "failed") else None
 
 
+def local_cause(catalog: EpCatalog, key: str, gpu, os_name: str) -> str | None:
+    """`unclean-exits` when two unclean exits in a row gave the local result `failed` (`exits.py`), else None."""
+    if evidence.gpu_id(gpu) is None:
+        return None
+    row = (store.read_json(store.store_root() / "quick-checks.json") or {}).get(pair_key(catalog, key, gpu, os_name))
+    return "unclean-exits" if isinstance(row, dict) and row.get("result") == "failed" and row.get("cause") == "unclean-exits" else None
+
+
 def check_reason(catalog: EpCatalog, key: str, gpu, os_name: str) -> str | None:
     """None when the rule lets the EP run on the GPU, else `quick-check-failed` or `quick-check-needed`.
 
@@ -69,7 +115,7 @@ def check_reason(catalog: EpCatalog, key: str, gpu, os_name: str) -> str | None:
     local = local_result(catalog, key, gpu, os_name)
     if local == "failed":
         return FAILED_CHECK
-    return None if local == "passed" or evidence.certified(key, gpu, os_name) else NEEDS_CHECK
+    return None if local == "passed" or evidence.certified(key, gpu, OS_LABELS.get(os_name, os_name)) else NEEDS_CHECK
 
 
 def rule_passes(catalog: EpCatalog, key: str, gpu, os_name: str) -> bool:

@@ -1,10 +1,10 @@
 # ER5X — The check rule in the package, unclean exits, CoreML in the quick check and the pruning of reports
 
-**Status:** accepted, 2026-11-19 (user).
+**Status:** absorbed into [ONNX Runtime](../../skellytracker/AGENTS.md#onnx-runtime), [`gate.py`](../../skellytracker/core/eps/gate.py), [`exits.py`](../../skellytracker/core/eps/exits.py), [`recommendation.py`](../../skellytracker/core/eps/recommendation.py), [`certification.py`](../../skellytracker/certification.py), 2026-11-19 (user; PR: pending).
 
 ## Decision
 
-Built today: items 1 to 4. The other items are not built.
+Built today: each item. No Mac ran item 6: a test with a fake host covers it.
 
 1. **Check rule.** An EP runs on a GPU only when the project has a reviewed row for the GPU model and OS,
    or a quick check passed on this PC. It does not run after a quick check that failed on this PC
@@ -25,8 +25,12 @@ Built today: items 1 to 4. The other items are not built.
    marker of a process that is gone counts, at the next start, as one unclean exit of that EP on that GPU
    model. One unclean exit is a record only. Two in a row mark the EP as failed on this PC, with their
    own reason code. A clean exit resets the count. A passed quick check removes the mark and the count.
+   The marker holds a file lock for the life of its process: a marker with no lock is of a process that
+   is gone (`skellytracker/core/eps/exits.py`). The exit notice is `skellytracker.note_exit_requested()`.
+   The certification code writes no marker.
 6. **CoreML.** The quick check also checks `coreml`, with the probe and the image run against the CPU EP.
-   The check rule applies to `coreml`. The key of its result is the chip name of the Mac. For now, a
+   The check rule applies to `coreml`. The key of its result is the chip name of the Mac, as
+   `chip:<name>`, for example `chip:apple-m2-pro`, and its check has the name `coreml`. For now, a
    passed quick check is the validation of a Mac: no macOS run of CI is required, and the certify suite
    on macOS comes with the level `full`.
 7. **Pruning.** The package deletes a report of a quick check that passed and that the user did not hand

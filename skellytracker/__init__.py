@@ -22,7 +22,7 @@ from beartype.claw import beartype_this_package
 beartype_this_package()
 
 # The certification contract of `skellycertify` (ADR-P0JZ). The module imports `eps`, `pipelines` and ONNX Runtime only in its functions.
-from skellytracker.certification import certify, certify_plan, mark_reports, pending_reports, read_report
+from skellytracker.certification import certify, certify_plan, mark_reports, note_exit_requested, pending_reports, read_report
 
 
 

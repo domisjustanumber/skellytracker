@@ -17,7 +17,7 @@ from collections.abc import Mapping
 import numpy as np
 
 from skellytracker.core._hardware.sanitize import sanitize_text
-from skellytracker.core.eps import gate, registration, store
+from skellytracker.core.eps import exits, gate, registration, store
 from skellytracker.core.eps.catalog import EpCatalog, load_catalog
 from skellytracker.core.eps.recommendation import ep_gpus, install_hint
 from skellytracker.core.eps.records import USABLE_STATES, ModelRef, SessionReport
@@ -237,6 +237,12 @@ def build_session(model: str | os.PathLike | bytes, *, execution_provider: str, 
         state, _, reason = store.pack_state(catalog, key)
         if state not in USABLE_STATES:  # for example a `field-test` EP with no opt-in (ADR-Z5X7)
             raise EpUnavailableError(f"The EP '{key}' is not available: {reason}.", install_hint(key))
+        if row["gpu"]:  # `coreml`: the check rule applies to the chip of the host
+            host = probe_host()
+            chip = gate.chip_of(catalog, key, host)
+            if chip is not None:
+                gate.require(catalog, key, chip, host.os_name)
+                exits.note_session(catalog, key, chip, host.os_name)
     else:  # only a GPU EP reads the host: an NVML call wakes the GPU of a hybrid laptop
         host = probe_host()
         usable = ep_gpus(catalog, key, host)
@@ -249,6 +255,7 @@ def build_session(model: str | os.PathLike | bytes, *, execution_provider: str, 
         if gpu is None or state not in USABLE_STATES:
             raise EpUnavailableError(f"The EP '{key}' is not available: {reason}.", install_hint(key))
         gate.require(catalog, key, gpu, host.os_name)
+        exits.note_session(catalog, key, gpu, host.os_name)  # before the session opens: a crash at the build counts
         if state not in ("ready", "builtin"):
             store.warn_once(f"{key}:{state}", f"The EP '{key}' is in the state {state}: {reason}.")
     precisions = () if model_ref is None else model_ref.precisions

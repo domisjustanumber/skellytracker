@@ -86,7 +86,12 @@ def _candidate(catalog: EpCatalog, key: str, host: HostInfo) -> EpCandidate:
     pack = catalog.pack(key)
     if catalog.device_row(key) is None:
         state, _, reason = store.pack_state(catalog, key)
-        return EpCandidate(key, row["ep_name"], "ready" if state == "builtin" else state, precision_order=order, reason=reason)
+        chip = gate.chip_of(catalog, key, host)  # `coreml`: the check rule applies to the chip of the host
+        code = None if chip is None else gate.check_reason(catalog, key, chip, host.os_name)
+        if code is not None and state in USABLE_STATES:
+            reason = gate.REASONS[code]
+        return EpCandidate(key, row["ep_name"], "ready" if state == "builtin" else state, precision_order=order, reason=reason,
+                           failed_locally=code == gate.FAILED_CHECK, needs_check=code == gate.NEEDS_CHECK)
     device_key, gpu = next(iter(ep_gpus(catalog, key, host)), (None, None))
     state, _, reason = store.pack_state(catalog, key, gpu, device_key, host.os_build)
     code = None if gpu is None else gate.check_reason(catalog, key, gpu, host.os_name)

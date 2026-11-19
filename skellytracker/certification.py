@@ -12,7 +12,8 @@ The hand-in list (ADR-21BK item 5) holds each report of `certify()` on this host
 
 This package sends nothing and makes no report file for a person: the application builds the file from
 the module reports, shows it, hands it in and then marks the reports. A report with a failed check is
-always worth an offer (`has_failure`). A pass alone gives no prompt.
+always worth an offer (`has_failure`). A pass alone gives no prompt. A new report of a quick check deletes
+each older report of a pass that it repeats, when the user did not hand that report in.
 
 The two functions are `skellytracker.certify` and `skellytracker.certify_plan`. They obey the contract
 `report-format.md` of the repository `skellycertify`, format `skellycertify.report/1.0.0`. The reason codes
@@ -106,8 +107,8 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
       second. Each check that did not end is `not-run` with `cancelled`.
     - `execution_providers`: the EP keys to check. The default is each GPU EP of this host with no
       reviewed row in `ep_evidence.yaml` for the GPU model and OS: each usable plugin EP, and also
-      `directml` and each EP of the Windows ML catalog (the `field-test` EPs with no pack). An unknown or
-      reserved key raises `EpRequestError` (a `ValueError`).
+      `directml` and each EP of the Windows ML catalog (the `field-test` EPs with no pack), and `coreml`
+      on a Mac. An unknown or reserved key raises `EpRequestError` (a `ValueError`).
     - `device`: one device key or a list of device keys, as in `run_devices()`: the GPUs to check on. The
       default is each GPU that the EP can use. In the default selection, a GPU with a reviewed row is not
       checked. A key that is not a GPU of this host raises `EpRequestError`. A named EP that cannot use
@@ -124,7 +125,9 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
     `speed_against_cpu` (`faster`, `slower` or `similar`): a rough figure from one image, a record only
     that never changes the result. Each EP on each GPU gives three checks: `<ep>:probe`, `<ep>:image` and
     `<ep>`. `<ep>` is `<key>@<device>`, for example `cuda@10de-2484-0`: the EP key and the device key of
-    the GPU with no `gpu:` and with `-` for `:`. It is `<key>` alone for an EP with no GPU to run on.
+    the GPU with no `gpu:` and with `-` for `:`. It is `<key>` alone for an EP with no GPU to run on, and
+    for `coreml`: it runs on the chip of the Mac and selects no GPU. The key of its stored result is the chip
+    name, and `details.eps.coreml.gpu` gives it, for example `chip:apple-m2-pro` (ADR-ER5X item 6).
     Thus the name of an EP check has no `:`. `details.eps.<ep>.device` gives the device key. The
     check `<ep>` passes only when the two others pass (ADR-21BK item 2). On `cuda` and `trt-rtx`, an EP on
     a GPU also gives `<ep>:jpeg-decode` and `<ep>:jpeg-preprocess`: the two checks of
@@ -197,6 +200,7 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
                 break
             path = path.with_name(f"{stem}-{count}.json")
         path.write_text(json.dumps(report, indent=1) + "\n", encoding="utf-8")
+        _prune_reports()
     sender.send("done", None, report["checks"], None)
     return report
 
@@ -269,6 +273,49 @@ def mark_reports(report_ids: Sequence[str], state: str, *, reference: str | None
         store.write_json(_marks_path(store), marks)
 
 
+def _prune_reports() -> None:
+    """Delete each older report of a pass that a newer report repeats (ADR-ER5X item 7).
+
+    A report stays when it has a failed check, when the user handed it in (`opened` or `covered`), and when
+    it is the newest pass of an EP on a GPU. A report with no check that passed is not a report of a pass:
+    it stays. A file that this function cannot delete stays.
+    """
+    from skellytracker.core.eps import certification, store
+
+    with store.store_lock():
+        marks = store.read_json(_marks_path(store)) or {}
+        found = []
+        for path in certification.reports_dir().glob("*.json"):
+            report = store.read_json(path)
+            if not isinstance(report, dict) or report.get("schema") != SCHEMA or path.stem in marks:
+                continue
+            checks = [check for check in report.get("checks", ()) if isinstance(check, dict)]
+            passed = {check.get("name") for check in checks if check.get("result") == "pass" and ":" not in str(check.get("name"))}
+            if passed and not any(check.get("result") == "fail" for check in checks):
+                found.append((str(report.get("created_utc") or ""), path.stem, path, passed))
+        newer: set = set()
+        for _, _, path, passed in sorted(found, key=lambda item: item[:2], reverse=True):
+            if passed <= newer:
+                try:
+                    path.unlink()
+                except OSError:
+                    pass
+            newer |= passed
+
+
+def note_exit_requested() -> None:
+    """The exit notice of an application (ADR-ER5X item 5): the user asked it to close, and it can now end this
+    process in any way. Call it in the process that runs the pipelines, before the process ends.
+
+    Without the notice, an end of a process that held a session on a GPU EP, with no clean exit of the
+    interpreter, counts as one unclean exit of that EP on that GPU. Two in a row mark the EP as failed on
+    this PC, until a quick check passes.
+    """
+    from skellytracker.core.eps import exits
+
+    exits.note_exit_requested()
+
+
 def _marks_path(store) -> Path:
     return store.store_root() / "hand-in.json"
 
@@ -313,7 +360,7 @@ def _names(label: str, key: str, device_key: str | None) -> tuple[str, ...]:
 def _selection(catalog, host, execution_providers, device=None) -> list[tuple]:
     """`(label, key, device_key, gpu, reason)` for each EP and GPU to check; `reason` is the code of one that cannot run."""
     from skellytracker.core import errors
-    from skellytracker.core.eps import evidence, store
+    from skellytracker.core.eps import evidence, gate, store
     from skellytracker.core.eps.recommendation import ep_gpus
     from skellytracker.core.eps.records import USABLE_STATES
     from skellytracker.core.system.host import gpu_device_keys
@@ -325,10 +372,18 @@ def _selection(catalog, host, execution_providers, device=None) -> list[tuple]:
         if item not in dict(gpu_device_keys(host)):
             raise errors.EpRequestError(f"{item!r} is not the device key of a GPU of this host")
     default = execution_providers is None
-    keys = [key for key in catalog.keys() if catalog.device_row(key) is not None] if default else list(dict.fromkeys(execution_providers))
+    keys = ([key for key in catalog.keys() if catalog.device_row(key) is not None or gate.chip_of(catalog, key, host)] if default
+            else list(dict.fromkeys(execution_providers)))
     found = []
     for key in keys:
         catalog.ep(key)  # an unknown or reserved key raises `EpRequestError`
+        chip = gate.chip_of(catalog, key, host)
+        if chip is not None:  # `coreml`: one check on the chip of the host, with no device key and the name `<key>`
+            certified = evidence.certified(key, chip, gate.OS_LABELS.get(host.os_name, host.os_name))
+            if not (default and (certified or wanted is not None)):
+                found.append((key, key, None, chip, "gpu-not-usable" if wanted is not None else
+                              _setup_reason(store.pack_state(catalog, key, None, None, host.os_build))))
+            continue
         if catalog.device_row(key) is None:
             found.append((key, key, None, None, "not-gpu-ep"))
             continue
@@ -554,9 +609,13 @@ def _add_exit(report: dict, name: str, code: str) -> None:
 def _record(certification, store, evidence, catalog, host, key, gpu, result: str, pipeline_key: str, models, created: str,
             jpeg: dict) -> None:
     """Store the answer that ends the prompt, and the local result of the quick check of the pair (ADR-21BK item 2)."""
+    from skellytracker.core.eps import exits
+
     pair = certification.pair_key(catalog, key, gpu, host.os_name)
     certification.write_answer(pair, "passed" if result == "pass" else "failed")
     with store.store_lock():
+        if result == "pass":
+            exits.forget(pair)  # a passed quick check removes the count of unclean exits (ADR-ER5X item 5)
         path = store.store_root() / "quick-checks.json"
         store.write_json(path, {**(store.read_json(path) or {}), pair: {
             "result": "passed" if result == "pass" else "failed", "set_hash": evidence.set_hash(catalog), "pipeline": pipeline_key,

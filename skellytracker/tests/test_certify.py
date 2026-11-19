@@ -450,6 +450,31 @@ def test_the_hand_in_list_holds_each_report_with_a_check_that_ran_and_keeps_its_
     assert [row["state"] for row in skellytracker.pending_reports(include_handed_in=True)] == ["opened", "pending"]  # no change
 
 
+def test_a_new_report_removes_an_older_pass_that_it_repeats_and_keeps_a_failure_and_a_handed_in_report(quick_host, monkeypatch):
+    fake_probe(monkeypatch)
+    fake_image(monkeypatch)
+    clock = iter(range(1, 60))
+    monkeypatch.setattr(package_certification.time, "gmtime", lambda: time.struct_time((2030, 1, 1, 0, 0, next(clock), 0, 1, 0)))
+
+    def run(*keys):
+        skellytracker.certify("quick", execution_providers=list(keys))
+        return [row["report_id"] for row in skellytracker.pending_reports(include_handed_in=True)]
+
+    (both,) = run("trt-rtx", "directml")
+    first = run("trt-rtx")
+    assert first[0] == both and len(first) == 2  # `both` stays: it is the newest pass of `directml`
+    second = run("trt-rtx")
+    assert second[0] == both and len(second) == 2 and second[1] != first[1]  # the older pass of `trt-rtx` alone is gone
+    handed_in = second[1]
+    skellytracker.mark_reports([handed_in], "opened")
+    fake_image(monkeypatch, ok=False, reason_code="box-differs")
+    failure = run("trt-rtx")[-1]
+    fake_image(monkeypatch)
+    after = run("trt-rtx", "directml")  # it repeats the pass of `both`; the handed-in report and the failure stay
+    assert after == [handed_in, failure, after[-1]] and both not in after
+    assert len(list(certification.reports_dir().glob("*.json"))) == 3
+
+
 def test_the_scrub_removes_a_private_name_and_counts_a_public_one(monkeypatch):
     monkeypatch.setattr(package_certification, "_private_words", lambda: ["secretname", "Windows"])
     report = {"host": {"os": {"name": "Windows"}}, "checks": [{"name": "trt-rtx", "reason": None}],
@@ -469,3 +494,46 @@ def test_the_cli_runs_the_quick_level_of_one_ep(quick_host, monkeypatch, capsys)
     assert "cuda@10de-2484-0: not-run (ep-not-installed)" in capsys.readouterr().out
     fake_image(monkeypatch, ok=False, reason_code="box-differs")
     assert cli.main(["certify", "trt-rtx", "--quick"]) == 1
+
+
+def test_coreml_on_a_mac_needs_its_quick_check_and_its_result_has_the_key_of_the_chip(quick_host, monkeypatch):
+    """ADR-ER5X item 6: `coreml` runs on the chip of the Mac and selects no GPU. The check rule applies to it."""
+    import dataclasses
+
+    from skellytracker.core import eps
+    from skellytracker.core.eps import catalog as catalog_module
+    from skellytracker.core.eps import gate, session
+    from skellytracker.core.errors import EpUnavailableError
+
+    mac = dataclasses.replace(host(os_name="Darwin", arch="arm64"), cpu_name="Apple M2 Pro")
+    for module in (state, recommendation, installer, certification, verification, host_module, session):
+        monkeypatch.setattr(module, "probe_host", lambda: mac)
+    monkeypatch.setattr(catalog_module, "platform_tag", lambda: "macosx_arm64")
+    catalog = certification.load_catalog()
+    chip = gate.chip_of(catalog, "coreml", mac)
+    assert (chip.name, chip.chip_id) == ("Apple M2 Pro", "chip:apple-m2-pro") and gate.chip_of(catalog, "cpu", mac) is None
+    row = next(row for row in eps.status().eps if row.key == "coreml")
+    assert (row.state, row.usable, row.reason_code) == ("builtin", False, "quick-check-needed")
+    assert [(c.device_key, c.name, c.certified, c.local_result, c.usable) for c in row.checks] == [
+        ("chip:apple-m2-pro", "Apple M2 Pro", False, None, False)]
+    best = eps.recommend("performance", mac)
+    assert best.chosen.ep_key == "cpu" and [(c.ep_key, c.needs_check) for c in best.skipped] == [("coreml", True)]
+    for call in (lambda: eps.check_start("coreml"), lambda: eps.build_session(b"model", execution_provider="coreml")):
+        with pytest.raises(EpUnavailableError, match="skellytracker-eps certify coreml --quick"):
+            call()
+    assert skellytracker.certify_plan("quick")["details"]["checks"] == ["coreml"]  # the default selection of a Mac
+    calls = fake_probe(monkeypatch)
+    fake_image(monkeypatch)
+    report = skellytracker.certify("quick")
+    assert results(report) == {"coreml:probe": ("pass", None), "coreml:image": ("pass", None), "coreml": ("pass", None)}
+    assert calls == [(["coreml"], None)] and report["details"]["eps"]["coreml"] == {
+        "gpu": "chip:apple-m2-pro", "device": None, "models": FOUND["models"], "warnings": []}
+    assert problems_of(report) == []
+    (pair,) = store.read_json(store.store_root() / "quick-checks.json")
+    assert pair == "coreml|builtin|Darwin|chip:apple-m2-pro"
+    row = next(row for row in eps.status().eps if row.key == "coreml")
+    assert row.usable and row.checks[0].local_result == "passed" and eps.check_start("coreml") == ()
+    assert eps.recommend("performance", mac).chosen.ep_key == "coreml"
+    evidence_row = {"ep": "coreml", "os": "macOS", "gpu": "chip:apple-m2-pro", "set": "s", "source": "maintainer", "result": "pass"}
+    monkeypatch.setattr(evidence, "load_evidence", lambda: (evidence_row,))
+    assert skellytracker.certify_plan("quick")["details"]["checks"] == []  # a reviewed row of the chip: nothing by default
