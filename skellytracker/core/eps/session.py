@@ -176,7 +176,8 @@ def upload_frame(image: np.ndarray, ep_device_id: str | int | None, device_type:
 
     `ep_device_id` is the `SessionReport.ep_device_id` of a session on `cuda` or `trt-rtx`: the
     CUDA device id. None is device 0. `device_type` `cpu` gives an `OrtValue` in host memory: the
-    tests run the GPU preprocess on the CPU EP with it.
+    tests run the GPU preprocess on the CPU EP with it, and a run on `directml` gives it to the graph,
+    because a DML session does not see a frame of the device type `dml`.
     """
     import onnxruntime
 

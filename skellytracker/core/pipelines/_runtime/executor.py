@@ -298,14 +298,17 @@ class Executor:
                 cameras = sum(1 for slot in self.device_of.values() if slot == index)
                 slots = max(slots, cameras)
                 opened[node_id].append(self.sessions.open(node, plan, device_key, self.batch_k * cameras * rows))
-                places.append(onnx_model.GraphDevice(device_key, opened[node_id][-1].report.ep_device_id, self.batch_k * cameras * rows))
+                report = opened[node_id][-1].report
+                # a DML session keeps its device memory under the device id 0 on each adapter: the session selects the adapter
+                device_id = None if report.ep_name == sessions.DML_EP_NAME else report.ep_device_id
+                places.append(onnx_model.GraphDevice(device_key, device_id, self.batch_k * cameras * rows))
             graph = None
             # the GPU preprocess (pipeline.running, Implementer guidance); with `preprocess="cpu"` no node has a graph, so no
             # frame uploads and no GPU JPEG decoder opens, and the run gives no warning of the CPU path (Behaviour item 14)
             graph_eps = {"auto": onnx_model.GRAPH_DEFAULT_EPS, "gpu": onnx_model.GRAPH_EPS, "cpu": frozenset()}[self.preprocess]
             if plan.execution_provider in graph_eps:
                 # the device memory of the bound values is that of the provider of the model session
-                device_type = "cpu" if opened[node_id][0].report.ep_name == sessions.CPU_EP_NAME else "cuda"
+                device_type = {sessions.CPU_EP_NAME: "cpu", sessions.DML_EP_NAME: "dml"}.get(opened[node_id][0].report.ep_name, "cuda")
                 graph = onnx_model.GraphPath(
                     functools.partial(self.sessions.open_preprocess, node, plan), places, device_type, self._warn,
                     onnx_model.graph_refusal(node.model, plan.precision, slots),
@@ -313,7 +316,9 @@ class Executor:
             runner = self.models[node_id] = onnx_model.OnnxModelRunner(node, plan.precision, [item.session for item in opened[node_id]], graph)
             if runner.graph_on_at_start:  # the frame stage uploads or GPU-decodes the frames of these devices
                 for index, place in enumerate(places):
-                    self.upload_devices.setdefault(index, (place.ep_device_id, graph.device_type))
+                    # a DML session does not see a frame of `OrtValue.ortvalue_from_numpy(..., "dml")`: it gets the host
+                    # frame and copies it to the device in its own run (ADR-W4NW, Evidence)
+                    self.upload_devices.setdefault(index, (place.ep_device_id, "cpu" if graph.device_type == "dml" else graph.device_type))
                     if plan.execution_provider in JPEG_DECODER_EPS:
                         self.decoder_places.setdefault(index, (plan.execution_provider, place.device_key, place.ep_device_id))
         return opened

@@ -36,6 +36,11 @@ REASONS = (
     "recorded",  # a record-only check recorded its numbers
 )
 GPU_FRAME_EPS = ("cuda", "trt-rtx")  # the NVIDIA EPs: the only EPs with the GPU JPEG decode, and the EPs of the GPU preprocess
+AMD_EPS = {"directml": "dml", "amdgpu": "gpu", "migraphx": "gpu"}  # the EPs of an AMD GPU, and the device type of their memory
+SCORED_AMD_EPS = ("directml",)  # a check of the group `*_amd_ep` on each other EP of AMD_EPS gives `record-only`
+AMD_HANDOVER_REPEATS = 300
+UPLOAD_REPEATS = 50
+FAR_SOURCE = (3840, 2160)  # the frame of the far-corner ROIs: large sampler positions stress the float precision
 GPU_LIMIT = 3  # the max abs difference of a GPU decode against the CPU decode (measured on this branch: 3)
 CPU_MEAN_LIMIT = 3.0  # the mean abs difference of a CPU decode of a quality 95 JPEG against its source image
 QUALITY = 95
@@ -64,7 +69,11 @@ def run_jpeg_certification(ep_key: str | None = None, *, progress: Callable[[str
     """Run each check on this machine and return `{"schema", "ep_key", "facts", "checks"}`: JSON-able data only.
 
     `ep_key` is the EP of the GPU checks and of the pipeline checks. Only the NVIDIA EPs `cuda` and
-    `trt-rtx` have a GPU JPEG decode. None and each other EP run the CPU checks: each GPU check then
+    `trt-rtx` have a GPU JPEG decode. The checks `gpu_decode.*`, `preprocess_graph_ep.*` and
+    `pipeline.gpu_auto_vs_cpu` run on these two EPs. The checks `preprocess_graph_amd_ep.*` and
+    `pipeline_amd_ep.*` run on the EPs of an AMD GPU: `directml`, `amdgpu` and `migraphx`. On `amdgpu`
+    and `migraphx`, such a check gives `record-only` in place of `pass` or `fail`, and an exception is
+    a `record-only` result with the reason `raised`. Each GPU check of an other EP, and of None,
     gives `not-run`. The reason is `no_gpu_decode_on_ep` for a `gpu_decode` check on an other EP, and
     `ep_not_present` for each other case. `progress(name)` is called before each check.
 
@@ -81,6 +90,7 @@ def run_jpeg_certification(ep_key: str | None = None, *, progress: Callable[[str
 
     state: dict[str, Any] = {}  # the shared sessions and the GPU decoder of the run
     gpu_ep = ep_key if ep_key in GPU_FRAME_EPS else None
+    amd_ep = ep_key if ep_key in AMD_EPS else None
 
     def picture(width: int, height: int, seed: int = 0) -> np.ndarray:
         """Gradients, noise and shapes, blurred: a JPEG of it is not trivial, and each pixel position differs."""
@@ -175,22 +185,29 @@ def run_jpeg_certification(ep_key: str | None = None, *, progress: Callable[[str
 
     # --- GPU decode ---
 
-    def gpu_report() -> Any:
-        """The `SessionReport` of a probe session on the GPU EP, or raise `_Stop`."""
-        if "report" not in state:
-            if gpu_ep is None:
-                raise _Stop("ep_not_present", f"the EP {ep_key!r} has no GPU frame path" if ep_key else "no EP is requested")
+    def probe_report(execution_provider: str | None, group: str) -> Any:
+        """The `SessionReport` of a probe session on the EP of a check group, or raise `_Stop`."""
+        if execution_provider is None:
+            raise _Stop("ep_not_present", f"the EP {ep_key!r} has no {group}" if ep_key else "no EP is requested")
+        key = f"report:{execution_provider}"
+        if key not in state:
             from skellytracker.core.eps._probe_model import model_bytes
             from skellytracker.core.eps.session import build_session
             from skellytracker.core.errors import EpRequestError, EpUnavailableError
 
             try:
-                state["report"] = build_session(model_bytes(), execution_provider=gpu_ep)[1]
-            except (EpRequestError, EpUnavailableError):
-                state["report"] = None
-        if state["report"] is None:
-            raise _Stop("ep_not_present", f"the EP {gpu_ep!r} is not installed or not usable")
-        return state["report"]
+                state[key] = build_session(model_bytes(), execution_provider=execution_provider)[1]
+            except (EpRequestError, EpUnavailableError):  # also a key that is not in the EP catalog, for example `amdgpu`
+                state[key] = None
+        if state[key] is None:
+            raise _Stop("ep_not_present", f"the EP {execution_provider!r} is not installed or not usable")
+        return state[key]
+
+    def gpu_report() -> Any:
+        return probe_report(gpu_ep, "GPU frame path")
+
+    def amd_report() -> Any:
+        return probe_report(amd_ep, "check of an AMD GPU")
 
     def decoder() -> Any:
         if ep_key is not None and ep_key not in GPU_FRAME_EPS:
@@ -259,8 +276,13 @@ def run_jpeg_certification(ep_key: str | None = None, *, progress: Callable[[str
         except (DetectorUnavailableError, KeyError):
             raise _Stop("sidecar_not_available", f"the package sidecar {SIDECARS[name]} does not load") from None
 
-    def case(model: Any, mixed: bool) -> tuple[list[tuple[int, int]], list[int], list[Any]]:
-        """The sources, the index and the ROIs of one graph: one 1280x720 slot, or the slots of `MIXED_SOURCES`."""
+    def case(model: Any, mixed: bool, far: bool = False) -> tuple[list[tuple[int, int]], list[int], list[Any]]:
+        """The sources, the index and the ROIs of one graph: one 1280x720 slot, the slots of `MIXED_SOURCES`, or ROIs at the far corner of `FAR_SOURCE`."""
+        if far:
+            width, height = FAR_SOURCE
+            rois = [(0.97 * width, 0.96 * height, 0.05 * width, 0.08 * height, 0.0), (width - 40.0, height - 60.0, 60.0, 90.0, 0.0),
+                    (0.95 * width, 0.93 * height, 0.08 * width, 0.1 * height, 0.3)]
+            return [FAR_SOURCE], [0, 0, 0], rois
         sources = list(MIXED_SOURCES) if mixed else [(1280, 720)]
         if model.input.resize.method != "affine_crop":
             return sources, [4, 0, 3, 1, 0] if mixed else [0], [None] * (5 if mixed else 1)
@@ -285,7 +307,7 @@ def run_jpeg_certification(ep_key: str | None = None, *, progress: Callable[[str
             feeds["theta"] = affine_crop_theta(model, SIDECAR_SIZE, sources, rois)
         return images, feeds
 
-    def graph_check(name: str, mixed: bool, execution_provider: str | None) -> dict:
+    def graph_check(name: str, mixed: bool, execution_provider: str | None, far: bool = False) -> dict:
         from skellytracker.core.detectors.processing.pre.preprocess import preprocess_image, resize_image
         from skellytracker.core.detectors.processing.pre.resize_interpolation import within_resize_limit
 
@@ -293,7 +315,7 @@ def run_jpeg_certification(ep_key: str | None = None, *, progress: Callable[[str
         if execution_provider is None:
             execution_provider = gpu_report().requested_ep
         spec = model.input
-        sources, index, rois = case(model, mixed)
+        sources, index, rois = case(model, mixed, far)
         session, report = graph_session(model, sources, len(index), execution_provider)
         images, feeds = feeds_of(model, sources, index, rois)
         tensor, pixels = session.run(["tensor", "pixels"], feeds)
@@ -309,37 +331,42 @@ def run_jpeg_certification(ep_key: str | None = None, *, progress: Callable[[str
             worst = max(worst, difference) if np.isfinite(difference) else worst  # a NaN fails `within` and is no JSON number
         return _passed(ok, {"max_difference": worst, "items": len(index), "cpu_nodes": int(report.cpu_nodes)})
 
-    def node_placement() -> dict:
-        gpu_report()
+    def node_placement(report_of: Callable[[], Any]) -> dict:
+        execution_provider = report_of().requested_ep
         numbers, cpu_ops = {}, set()
         for name in SIDECARS:
             model = sidecar(name)
             sources, index, _ = case(model, mixed=True)
-            _, report = graph_session(model, sources, len(index), gpu_ep)
+            _, report = graph_session(model, sources, len(index), execution_provider)
             numbers |= {f"{name}.nodes.{ep}": count for ep, count in report.nodes_by_ep}
             numbers[f"{name}.cpu_nodes"] = int(report.cpu_nodes)
             cpu_ops |= set(report.cpu_op_types)
         return {"result": "record-only", "reason": "recorded", "numbers": numbers,
                 "detail": f"op types on the CPU: {', '.join(sorted(cpu_ops)) or 'none'}"}
 
-    def handover() -> dict:
+    def second_session(execution_provider: str) -> Any:
+        """The second session of a hand-over: y = x * 0.5 + 1, two exact element-wise ops with fixed weights."""
         from onnx import TensorProto, numpy_helper
         from onnx import helper as oh
 
-        from skellytracker.core.eps.session import build_session, run_bound, run_preprocess, upload_frame
+        from skellytracker.core.eps.session import build_session
 
-        report = gpu_report()
-        model = sidecar("yolox_person")
-        sources, index, _ = case(model, mixed=False)
-        session, graph_report = graph_session(model, sources, 1, gpu_ep)
-        # The second session: y = x * 0.5 + 1, two exact element-wise ops with fixed weights.
         nodes = [oh.make_node("Mul", ["x", "scale"], ["half"]), oh.make_node("Add", ["half", "one"], ["y"])]
         inits = [numpy_helper.from_array(np.array(0.5, np.float32), "scale"), numpy_helper.from_array(np.array(1.0, np.float32), "one")]
         tiny = oh.make_model(oh.make_graph(nodes, "handover", [oh.make_tensor_value_info("x", TensorProto.FLOAT, ["b", 3, "h", "w"])],
                                            [oh.make_tensor_value_info("y", TensorProto.FLOAT, None)], inits),
                              opset_imports=[oh.make_opsetid("", 17)])
         tiny.ir_version = 9
-        second, _ = build_session(tiny.SerializeToString(), execution_provider=gpu_ep)
+        return build_session(tiny.SerializeToString(), execution_provider=execution_provider)[0]
+
+    def handover() -> dict:
+        from skellytracker.core.eps.session import run_bound, run_preprocess, upload_frame
+
+        report = gpu_report()
+        model = sidecar("yolox_person")
+        sources, index, _ = case(model, mixed=False)
+        session, graph_report = graph_session(model, sources, 1, gpu_ep)
+        second = second_session(gpu_ep)
         device_id = int(graph_report.ep_device_id or report.ep_device_id or 0)
         images = [picture(1280, 720, 30), cv2.flip(picture(1280, 720, 31), -1)]  # two contents of one size
         expected = []
@@ -352,6 +379,128 @@ def run_jpeg_certification(ep_key: str | None = None, *, progress: Callable[[str
             (found,) = run_bound(second, "x", ["y"], tensor)
             wrong += found.tobytes() != expected[i % 2].tobytes()
         return _passed(wrong == 0, {"repeats": HANDOVER_REPEATS, "unequal": wrong}, "mismatch")
+
+    # --- preprocess graph on an EP of an AMD GPU ---
+
+    def amd_scored(check: Callable[[], dict]) -> Callable[[], dict]:
+        """On an EP of `AMD_EPS` that is not in `SCORED_AMD_EPS`, the result is `record-only`, also for an exception."""
+        def run() -> dict:
+            if amd_ep in SCORED_AMD_EPS:
+                return check()
+            try:
+                found = check()
+            except _Stop:
+                raise
+            except Exception as error:  # noqa: BLE001 - an EP that is not scored records each exception
+                return {"result": "record-only", "reason": "raised", "detail": _error_text(error)}
+            return {**found, "result": "record-only"} if found["result"] in ("pass", "fail") else found
+        return run
+
+    def amd_graph(model: Any, sources: list, index: list[int]) -> tuple[Any, str, int]:
+        """A graph session on the AMD EP, the device type of its memory and the device id of its bindings."""
+        report = amd_report()
+        session, graph_report = graph_session(model, sources, len(index), amd_ep)
+        device_type = AMD_EPS[amd_ep]
+        # a DML session keeps its device memory under the device id 0 on each adapter: the session selects the adapter
+        return session, device_type, 0 if device_type == "dml" else int(graph_report.ep_device_id or report.ep_device_id or 0)
+
+    def bound_tensor(session: Any, image: np.ndarray, index: np.ndarray, device_type: str, device_id: int, preallocated: bool = False) -> Any:
+        """Run the graph on a host frame with its output `tensor` in device memory: `bind_output`, or a pre-allocated `bind_ortvalue_output`."""
+        import onnxruntime
+
+        from skellytracker.core.eps.session import run_preprocess, upload_frame
+
+        frame = upload_frame(image, None, "cpu")
+        if not preallocated:
+            return run_preprocess(session, [frame], index, None, device_type, device_id)
+        shape = [len(index), *session.get_outputs()[0].shape[1:]]
+        vendor = {} if device_type == "dml" else {"vendor_id": onnxruntime.OrtDeviceVendorId.AMD}
+        out = onnxruntime.OrtValue.ortvalue_from_shape_and_type(shape, np.float32, device_type, device_id, **vendor)
+        bound = session.io_binding()
+        bound.bind_ortvalue_input("frame_0", frame)
+        bound.bind_cpu_input("index", index)
+        bound.bind_ortvalue_output("tensor", out)
+        session.run_with_iobinding(bound)
+        bound.synchronize_outputs()
+        return out
+
+    def amd_one_slot() -> tuple[Any, str, int, np.ndarray, Any, np.ndarray, np.ndarray]:
+        """The yolox graph of one 1280x720 slot on the AMD EP, the second session, a frame and the host route of it."""
+        model = sidecar("yolox_person")
+        sources, index, _ = case(model, mixed=False)
+        session, device_type, device_id = amd_graph(model, sources, index)
+        second = second_session(amd_ep)
+        image, slots = picture(1280, 720, 30), np.array(index, np.int64)
+        (host_tensor,) = session.run(["tensor"], {"frame_0": image, "index": slots})
+        return session, device_type, device_id, slots, second, image, second.run(["y"], {"x": host_tensor})[0]
+
+    def amd_upload() -> dict:
+        import time
+
+        from skellytracker.core.eps.session import run_preprocess, upload_frame
+
+        session, device_type, device_id, slots, _, image, _ = amd_one_slot()
+        times, unequal = [], 0
+        for i in range(UPLOAD_REPEATS):
+            changed = np.roll(image, 7 * i, axis=1)  # new content in each repeat
+            (expected,) = session.run(["tensor"], {"frame_0": changed, "index": slots})
+            try:
+                start = time.perf_counter_ns()
+                value = upload_frame(changed, device_id, device_type)
+                times.append(time.perf_counter_ns() - start)
+            except Exception as error:  # noqa: BLE001 - a refused upload is a recorded fact
+                return {"result": "record-only", "reason": "recorded", "numbers": {"uploaded": 0}, "detail": _error_text(error)}
+            found = run_preprocess(session, [value], slots, None, "cpu", 0).numpy()  # the graph output in host memory
+            unequal += found.shape != expected.shape or not np.array_equal(found, expected)
+        numbers = {"uploaded": 1, "repeats": UPLOAD_REPEATS, "unequal": unequal, "median_upload_ms": round(statistics.median(times) / 1e6, 3)}
+        return {"result": "record-only", "reason": "recorded", "numbers": numbers,
+                "detail": f"device {value.device_name()}; the graph reads the uploaded frame in {UPLOAD_REPEATS - unequal} of {UPLOAD_REPEATS} repeats (rough time)"}
+
+    def amd_handover() -> dict:
+        from skellytracker.core.eps.session import run_bound
+
+        session, device_type, device_id, slots, second, image, _ = amd_one_slot()
+        wrong, first = 0, -1
+        for i in range(AMD_HANDOVER_REPEATS):
+            changed = np.roll(image, 7 * i, axis=1)  # new content in each repeat
+            (host_tensor,) = session.run(["tensor"], {"frame_0": changed, "index": slots})
+            (expected,) = second.run(["y"], {"x": host_tensor})
+            (found,) = run_bound(second, "x", ["y"], bound_tensor(session, changed, slots, device_type, device_id))
+            if found.tobytes() != expected.tobytes():
+                wrong, first = wrong + 1, i if first < 0 else first
+        return _passed(wrong == 0, {"repeats": AMD_HANDOVER_REPEATS, "unequal": wrong, "first_unequal": first}, "mismatch")
+
+    def amd_binding_forms() -> dict:
+        from skellytracker.core.eps.session import run_bound
+
+        session, device_type, device_id, slots, second, image, expected = amd_one_slot()
+        numbers, failures = {}, []
+        for form, preallocated in (("bind_output", False), ("bind_ortvalue_output", True)):
+            try:
+                (found,) = run_bound(second, "x", ["y"], bound_tensor(session, image, slots, device_type, device_id, preallocated))
+                numbers |= {f"{form}.works": 1, f"{form}.equal_host": int(found.tobytes() == expected.tobytes())}
+            except Exception as error:  # noqa: BLE001 - a form that does not work is a recorded fact
+                numbers |= {f"{form}.works": 0, f"{form}.equal_host": 0}
+                failures.append(f"{form}: {_error_text(error)[:120]}")
+        return {"result": "record-only", "reason": "recorded", "numbers": numbers, "detail": f"device type {device_type}; " + "; ".join(failures)}
+
+    def amd_device_mapping() -> dict:
+        from skellytracker.core.eps.session import run_bound
+
+        session, device_type, device_id, slots, second, image, expected = amd_one_slot()
+        (found,) = run_bound(second, "x", ["y"], bound_tensor(session, image, slots, device_type, device_id))
+        equal = found.tobytes() == expected.tobytes()
+        others = [other for other in (0, 1, 2) if other != device_id]
+        raised = 0
+        for other in others:  # a binding to an other device id must raise, never read an other adapter
+            try:
+                run_bound(second, "x", ["y"], bound_tensor(session, image, slots, device_type, other))
+            except Exception:  # noqa: BLE001 - the expected refusal
+                raised += 1
+        numbers = {"bound_device_id": device_id, "bound_equal_host": int(equal), "other_ids": len(others), "other_ids_raise": raised,
+                   "same_adapter": int(equal and raised == len(others))}
+        return {"result": "record-only", "reason": "recorded", "numbers": numbers,
+                "detail": f"adapter {amd_report().device_name}; the session selects the adapter by its ONNX Runtime EP device"}
 
     # --- pipeline ---
 
@@ -373,12 +522,13 @@ def run_jpeg_certification(ep_key: str | None = None, *, progress: Callable[[str
         config = load_pipeline(PIPELINE_KEY)
         config = config.model_copy(update={"instrumentation": config.instrumentation.model_copy(update={"timing_spans": list(PIPELINE_SPANS)})})
         events: list[dict] = []
-        outputs = []
+        outputs, arrays = [], []
         with start_pipeline(config, camera_ids=[0], running_mode="video", execution_provider=execution_provider,
                             preprocess=preprocess, timing_sink=events.append) as run:
             for i in range(PIPELINE_FRAMES):
                 result = run.process(Frame(jpeg(picture(1280, 720, 40 + i), "422"), frame_index=i))
                 boxes, points = result["boxes"], result["wholebody"]
+                arrays.append(tuple(np.array(a, np.float64) for a in (boxes.xyxy, boxes.score, points.xy, points.score)))
                 outputs.append(b"".join(np.ascontiguousarray(a).tobytes() for a in (boxes.xyxy, boxes.score, points.xy, points.score)))
             warnings = [{"code": w.code, "reason": str(w.details.get("reason")) if w.details.get("reason") is not None else None}
                         for w in run.warnings]
@@ -386,7 +536,9 @@ def run_jpeg_certification(ep_key: str | None = None, *, progress: Callable[[str
         for event in events:
             if "span" in event:
                 spans.setdefault(f"{event['node_id']}.{event['span']}", []).append((event["end_ns"] - event["start_ns"]) / 1e6)
-        state[key] = {"outputs": outputs, "warnings": warnings, "medians_ms": {k: round(statistics.median(v), 3) for k, v in spans.items()}}
+        providers = [item["stage_providers"]["preprocess"] for item in events[0]["nodes"] if item.get("stage_providers")]  # the header
+        state[key] = {"outputs": outputs, "arrays": arrays, "warnings": warnings, "preprocess_providers": providers,
+                      "medians_ms": {k: round(statistics.median(v), 3) for k, v in spans.items()}}
         return state[key]
 
     def no_frame_warning(execution_provider: str, preprocess: str) -> dict:
@@ -399,6 +551,38 @@ def run_jpeg_certification(ep_key: str | None = None, *, progress: Callable[[str
         auto, host = pipeline_run(gpu_ep, "auto"), pipeline_run(gpu_ep, "cpu")
         numbers = {f"auto.{k}_ms": v for k, v in auto["medians_ms"].items()} | {f"cpu.{k}_ms": v for k, v in host["medians_ms"].items()}
         return {"result": "record-only", "reason": "recorded", "numbers": numbers, "warnings": auto["warnings"] + host["warnings"]}
+
+    def amd_preprocess_place(preprocess: str) -> dict:
+        """`gpu` runs the graph of each node on the EP, `auto` the CPU preprocess (header `stage_providers`); neither gives a frame warning."""
+        ep_name = amd_report().ep_name
+        found = pipeline_run(amd_ep, preprocess)
+        bad = [w for w in found["warnings"] if w["code"] in PIPELINE_WARNINGS]
+        providers = found["preprocess_providers"]
+        on_graph = sum(provider == ep_name for provider in providers)
+        placed = on_graph == len(providers) if preprocess == "gpu" else all(provider is None for provider in providers)
+        numbers = {"frames": PIPELINE_FRAMES, "nodes": len(providers), "nodes_on_graph": on_graph}
+        return {**_passed(not bad and placed, numbers, "warning_given" if bad else "mismatch"), "warnings": found["warnings"]}
+
+    def amd_gpu_vs_cpu() -> dict:
+        amd_report()
+        gpu, host = pipeline_run(amd_ep, "gpu"), pipeline_run(amd_ep, "cpu")
+        names = ("box_px", "box_score", "point_px", "point_score")
+        worst, presence = dict.fromkeys(names, 0.0), 0
+        for found, expected in zip(gpu["arrays"], host["arrays"], strict=True):
+            for name, a, b in zip(names, found, expected, strict=True):
+                presence += int(np.count_nonzero(np.isnan(a) != np.isnan(b)))
+                both = ~(np.isnan(a) | np.isnan(b))
+                worst[name] = max(worst[name], float(np.abs(a - b)[both].max(initial=0.0)))
+        present = [sum(int(np.count_nonzero(~np.isnan(arrays[k]))) for arrays in gpu["arrays"]) for k in (1, 3)]
+        numbers = {f"max_{name}_diff": round(value, 6) for name, value in worst.items()} | {
+            "presence_changes": presence, "frames": PIPELINE_FRAMES, "box_scores_present": present[0], "point_scores_present": present[1]}
+        return {"result": "record-only", "reason": "recorded", "numbers": numbers, "warnings": gpu["warnings"] + host["warnings"]}
+
+    def amd_repeat_equal() -> dict:
+        amd_report()
+        first, second = pipeline_run(amd_ep, "gpu"), pipeline_run(amd_ep, "gpu", 1)
+        unequal = sum(a != b for a, b in zip(first["outputs"], second["outputs"], strict=True))
+        return {**_passed(unequal == 0, {"frames": PIPELINE_FRAMES, "unequal": unequal}, "mismatch"), "warnings": second["warnings"]}
 
     def repeat_equal() -> dict:
         execution_provider = ep_key or "cpu"
@@ -424,12 +608,25 @@ def run_jpeg_certification(ep_key: str | None = None, *, progress: Callable[[str
         ("gpu_decode.truncated_422", lambda: gpu_truncated("422")),
         *[(f"preprocess_graph.{n}{m}", lambda n=n, m=m: graph_check(n, bool(m), "cpu")) for n in SIDECARS for m in ("", "_mixed_sizes")],
         *[(f"preprocess_graph_ep.{n}{m}", lambda n=n, m=m: graph_check(n, bool(m), None)) for n in SIDECARS for m in ("", "_mixed_sizes")],
-        ("preprocess_graph_ep.node_placement", node_placement),
+        ("preprocess_graph_ep.node_placement", lambda: node_placement(gpu_report)),
         ("preprocess_graph_ep.device_handover", handover),
         ("pipeline.cpu_preprocess_no_frame_warning", lambda: no_frame_warning(ep_key or "cpu", "cpu")),
         ("pipeline.cpu_ep_auto_no_frame_warning", lambda: no_frame_warning("cpu", "auto")),
         ("pipeline.gpu_auto_vs_cpu", gpu_auto_vs_cpu),
         ("pipeline.repeat_equal", repeat_equal),
+        *[(f"preprocess_graph_amd_ep.{n}{m}", amd_scored(lambda n=n, m=m: graph_check(n, bool(m), amd_report().requested_ep)))
+          for n in SIDECARS for m in ("", "_mixed_sizes")],
+        ("preprocess_graph_amd_ep.rtmw_wholebody133_far_corner_roi",
+         amd_scored(lambda: graph_check("rtmw_wholebody133", False, amd_report().requested_ep, far=True))),
+        ("preprocess_graph_amd_ep.node_placement", amd_scored(lambda: node_placement(amd_report))),
+        ("preprocess_graph_amd_ep.frame_upload", amd_scored(amd_upload)),
+        ("preprocess_graph_amd_ep.device_handover", amd_scored(amd_handover)),
+        ("preprocess_graph_amd_ep.output_binding_forms", amd_scored(amd_binding_forms)),
+        ("preprocess_graph_amd_ep.device_mapping", amd_scored(amd_device_mapping)),
+        ("pipeline_amd_ep.gpu_preprocess_no_frame_warning", amd_scored(lambda: amd_preprocess_place("gpu"))),
+        ("pipeline_amd_ep.gpu_vs_cpu_preprocess", amd_scored(amd_gpu_vs_cpu)),
+        ("pipeline_amd_ep.auto_cpu_preprocess_no_warning", amd_scored(lambda: amd_preprocess_place("auto"))),
+        ("pipeline_amd_ep.repeat_equal", amd_scored(amd_repeat_equal)),
     ]
     try:
         facts = _facts(ep_key)

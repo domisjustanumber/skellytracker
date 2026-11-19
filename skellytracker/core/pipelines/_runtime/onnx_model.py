@@ -28,7 +28,7 @@ from skellytracker.core.pipelines.warnings import PipelineWarning
 
 READS_EMPTY: frozenset[str] = frozenset()
 Timer = Callable[[str, int, int], None]
-GRAPH_EPS = frozenset({"cuda", "trt-rtx"})
+GRAPH_EPS = frozenset({"cuda", "trt-rtx", "directml"})
 """The EPs with the wiring of the GPU preprocess: the run parameter `preprocess="gpu"` uses it on them."""
 # a reviewed certification report moves an EP of GRAPH_EPS into GRAPH_DEFAULT_EPS
 GRAPH_DEFAULT_EPS = frozenset({"cuda", "trt-rtx"})
@@ -62,7 +62,7 @@ def graph_refusal(model: ResolvedModel, precision: str, slots: int = 1) -> str |
 
 @dataclass(frozen=True)
 class GraphDevice:
-    """One device of a node on the graph path: its device key, its CUDA device id and the batch of its session plan."""
+    """One device of a node on the graph path: its device key, the device id of its bound memory (None is 0) and the batch of its session plan."""
 
     device_key: str | None
     ep_device_id: Any

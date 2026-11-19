@@ -30,6 +30,7 @@ from skellytracker.core.pipelines._runtime.resolve import ResolvedNode, Resolved
 from skellytracker.core.pipelines.warnings import PipelineWarning
 
 CPU_EP_NAME = "CPUExecutionProvider"
+DML_EP_NAME = "DmlExecutionProvider"
 EP_PARTIAL_PLACEMENT = "ep_partial_placement"
 # The reasons of the warning `preprocessed_on_cpu` (pipeline.running, Behaviour item 8)
 GRAPH_REFUSED = "graph_refused"

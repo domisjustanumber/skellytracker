@@ -415,6 +415,60 @@ def test_preprocess_gpu_uses_the_graph_on_a_wired_ep_that_auto_does_not_use(root
     assert len(bound_runs) == 2 * 3 and run.warnings == ()  # each node of each call ran its preprocess graph
 
 
+def test_directml_has_the_wiring_but_auto_does_not_use_it_and_it_has_no_gpu_jpeg_decoder() -> None:
+    from skellytracker.core.pipelines._runtime import executor
+
+    assert "directml" in onnx_model.GRAPH_EPS and "directml" not in onnx_model.GRAPH_DEFAULT_EPS
+    assert "directml" not in executor.JPEG_DECODER_EPS
+
+
+def test_a_dml_model_session_binds_the_graph_output_in_dml_memory_and_gives_the_graph_host_frames(
+    root: Path, monkeypatch: pytest.MonkeyPatch, bound_runs: list[int],
+) -> None:
+    """The CPU EP stands in for `directml`: its model sessions report the DML provider, and the graph runs on the CPU EP.
+
+    JPEG and array frames of mixed sizes. The frames of a DML device go to the graph in host memory, and the graph
+    output binds to `dml` with the device id 0, also when `ep_device_id` names an other DXGI adapter.
+    """
+    import cv2
+
+    from skellytracker.core.pipelines._runtime import sessions
+
+    calls = [{
+        "a": Frame(cv2.imencode(".jpg", noise(40, 48, index))[1].tobytes(), index),
+        "b": Frame(noise(36, 64, 10 + index), index),
+    } for index in range(3)]
+    cpu, _ = run_calls(root, calls)
+    real_open, real_preprocess, real_upload = sessions.RunSessions.open, inference.run_preprocess, eps_session.upload_frame
+    bindings: list[tuple[str, int]] = []
+    uploads: list[tuple[Any, str]] = []
+
+    def open_on_dml(self: Any, *args: Any, **kwargs: Any) -> Any:
+        opened = real_open(self, *args, **kwargs)
+        opened.report = dataclasses.replace(opened.report, ep_name=sessions.DML_EP_NAME, ep_device_id="2")
+        return opened
+
+    def preprocess(session: Any, frames: Any, index: Any, theta: Any, device_type: str, device_id: int) -> Any:
+        bindings.append((device_type, device_id))
+        return real_preprocess(session, frames, index, theta, "cpu", 0)  # the CPU EP has no `dml` memory
+
+    def upload(image: Any, device_id: Any, device_type: str = "cuda") -> Any:
+        uploads.append((device_id, device_type))
+        return real_upload(image, device_id, device_type)
+
+    monkeypatch.setattr(onnx_model, "GRAPH_EPS", onnx_model.GRAPH_EPS | {"cpu"})  # wired, but not in GRAPH_DEFAULT_EPS
+    monkeypatch.setattr(sessions.RunSessions, "open", open_on_dml)
+    monkeypatch.setattr(inference, "run_preprocess", preprocess)
+    monkeypatch.setattr(eps_session, "upload_frame", upload)
+    lines: list[dict] = []
+    graph, run = run_calls(root, calls, preprocess="gpu", timing_sink=lines.append)
+    # the fake report gives `ep_partial_placement` (DML provider, nodes on the CPU EP); no warning of the frame path
+    assert [warning.code for warning in run.warnings if warning.code != "ep_partial_placement"] == [] and len(bound_runs) == 2 * len(calls)
+    assert set(bindings) == {("dml", 0)} and set(uploads) == {(None, "cpu")} and len(uploads) == 2 * len(calls)
+    assert {item["id"]: item["stage_providers"]["preprocess"] for item in lines[0]["nodes"]} == {"person": sessions.DML_EP_NAME, "body": sessions.DML_EP_NAME}
+    assert_agree(graph, cpu)
+
+
 def test_an_unknown_value_of_preprocess_fails_at_the_start(root: Path) -> None:
     with pytest.raises(ValueError, match="preprocess must be 'auto', 'cpu' or 'gpu', not 'fast'"):
         start(root, preprocess="fast")
@@ -675,3 +729,62 @@ def test_a_jpeg_that_the_gpu_decoder_refuses_decodes_on_the_cpu_with_one_warning
     assert [(event["span"], [image["camera_id"] for image in event["images"]]) for event in lines[1:] if event["node_id"] == "frame"] == [
         ("decode", ["a", "b"]), ("upload", ["b", "c"])] * len(calls)
     assert_agree(gpu, cpu, JPEG_SCORE_TOLERANCE)
+
+
+# The GPU preprocess on `directml` (`-m gpu`, Windows only). The EP store is a private folder of `tmp_path` with the
+# field-test opt-in of `directml` (ADR-Z5X7). The JPEG buffers decode on the CPU, and the run gives no warning.
+
+
+@pytest.fixture
+def directml(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> str:
+    """Opt in to `directml` in a private EP store. Skip when DirectML has no GPU on this host."""
+    from skellytracker.core.errors import EpRequestError, EpUnavailableError
+    from skellytracker.core.eps import store
+    from skellytracker.core.eps.state import check_start
+
+    monkeypatch.setenv(store.STORE_VARIABLE, str(tmp_path / "eps"))
+    monkeypatch.setenv(store.CACHE_VARIABLE, str(tmp_path / "ep-cache"))
+    store.opt_in_field_test("directml")
+    try:
+        check_start("directml")
+    except (EpRequestError, EpUnavailableError) as error:
+        pytest.skip(f"directml is not usable here: {error}")
+    return "directml"
+
+
+def jpeg_and_array_calls(count: int) -> list[dict[str, Frame]]:
+    import cv2
+
+    return [{
+        "a": Frame(cv2.imencode(".jpg", noise(720, 1280, 10 * index + 1))[1].tobytes(), index),
+        "b": Frame(noise(480, 640, 10 * index + 2), index, rotation_deg=90),
+    } for index in range(count)]
+
+
+@pytest.mark.gpu
+def test_preprocess_gpu_on_directml_runs_the_graph_on_dml_and_gives_the_results_of_the_cpu_path(
+    root: Path, directml: str, bound_runs: list[int], monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = jpeg_and_array_calls(3)
+    cpu, _ = run_calls(root, calls)
+    bound, read = spy_bindings(monkeypatch)
+    data = on_ep(detector_pipeline(), directml)
+    lines: list[dict] = []
+    graph, run = run_calls(root, calls, data, preprocess="gpu", timing_sink=lines.append)
+    assert run.warnings == () and len(bound_runs) >= 2 * len(calls)  # each node of each call ran its graph, in one group or more
+    assert len(bound) == len(bound_runs) and all(value.device_name() == "dml" for value in bound)
+    assert not {id(value) for value in bound} & read
+    assert {item["id"]: item["stage_providers"]["preprocess"] for item in lines[0]["nodes"]} == {"person": "DmlExecutionProvider", "body": "DmlExecutionProvider"}
+    assert_agree(graph, cpu)
+    again, _ = run_calls(root, calls, data, preprocess="gpu")
+    for first, second in zip(graph, again, strict=True):
+        for camera in first:
+            np.testing.assert_array_equal(first[camera]["boxes"].score, second[camera]["boxes"].score)
+
+
+@pytest.mark.gpu
+def test_preprocess_auto_on_directml_uses_the_cpu_preprocess_with_no_warning(root: Path, directml: str, bound_runs: list[int]) -> None:
+    lines: list[dict] = []
+    _, run = run_calls(root, jpeg_and_array_calls(2), on_ep(detector_pipeline(), directml), timing_sink=lines.append)
+    assert run.warnings == () and bound_runs == []
+    assert {item["id"]: item["stage_providers"]["preprocess"] for item in lines[0]["nodes"]} == {"person": None, "body": None}

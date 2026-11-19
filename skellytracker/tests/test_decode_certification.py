@@ -1,8 +1,9 @@
 """The certification entry point `run_jpeg_certification` (`core/decode/certification.py`).
 
 The tests with no marker run with no EP and need no GPU. A test with the marker `gpu` runs on each
-installed NVIDIA EP pack. `NAMES` is the frozen list of the check names: a rename must break a test,
-because a certify suite reads the names. A new check adds its name at the end of its group.
+installed NVIDIA EP pack, and on `directml` with its opt-in in a private EP store. `NAMES` is the
+frozen list of the check names: a rename must break a test, because a certify suite reads the
+names. A new check adds its name at the end of its group, or a new group adds its names at the end.
 """
 from __future__ import annotations
 
@@ -13,6 +14,7 @@ import re
 import socket
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -36,10 +38,18 @@ NAMES = [
     "preprocess_graph_ep.rtmw_wholebody133", "preprocess_graph_ep.rtmw_wholebody133_mixed_sizes",
     "preprocess_graph_ep.node_placement", "preprocess_graph_ep.device_handover",
     "pipeline.cpu_preprocess_no_frame_warning", "pipeline.cpu_ep_auto_no_frame_warning", "pipeline.gpu_auto_vs_cpu", "pipeline.repeat_equal",
+    "preprocess_graph_amd_ep.yolox_person", "preprocess_graph_amd_ep.yolox_person_mixed_sizes",
+    "preprocess_graph_amd_ep.rtmw_wholebody133", "preprocess_graph_amd_ep.rtmw_wholebody133_mixed_sizes",
+    "preprocess_graph_amd_ep.rtmw_wholebody133_far_corner_roi", "preprocess_graph_amd_ep.node_placement",
+    "preprocess_graph_amd_ep.frame_upload", "preprocess_graph_amd_ep.device_handover", "preprocess_graph_amd_ep.output_binding_forms",
+    "preprocess_graph_amd_ep.device_mapping",
+    "pipeline_amd_ep.gpu_preprocess_no_frame_warning", "pipeline_amd_ep.gpu_vs_cpu_preprocess",
+    "pipeline_amd_ep.auto_cpu_preprocess_no_warning", "pipeline_amd_ep.repeat_equal",
 ]
 RECORD_ONLY = {"cpu_decode.truncated", "gpu_decode.truncated_420", "gpu_decode.truncated_422", "preprocess_graph_ep.node_placement",
                "pipeline.gpu_auto_vs_cpu"}
-GPU_CHECKS = {name for name in NAMES if name.startswith(("gpu_decode.", "preprocess_graph_ep."))} | {"pipeline.gpu_auto_vs_cpu"}
+GPU_CHECKS = {name for name in NAMES if name.startswith(("gpu_decode.", "preprocess_graph_ep.", "preprocess_graph_amd_ep.", "pipeline_amd_ep."))} | {
+    "pipeline.gpu_auto_vs_cpu"}
 PIPELINE_CHECKS = {name for name in NAMES if name.startswith("pipeline.")} - GPU_CHECKS
 
 
@@ -125,3 +135,20 @@ def test_on_each_nvidia_ep_no_check_fails(ep_key: str) -> None:
     if all(check["reason"] == "ep_not_present" for check in result["checks"] if check["name"] in GPU_CHECKS):
         pytest.skip(f"{ep_key} is not installed")
     assert [check for check in result["checks"] if check["result"] == "fail"] == []
+
+
+@pytest.mark.gpu
+def test_on_directml_with_the_opt_in_in_a_private_store_no_check_fails(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from skellytracker.core.eps import store
+
+    monkeypatch.setenv(store.STORE_VARIABLE, str(tmp_path / "eps"))
+    monkeypatch.setenv(store.CACHE_VARIABLE, str(tmp_path / "ep-cache"))
+    store.opt_in_field_test("directml")
+    result = run_jpeg_certification("directml")
+    by_name = {check["name"]: check for check in result["checks"]}
+    if by_name["preprocess_graph_amd_ep.yolox_person"]["reason"] == "ep_not_present":
+        pytest.skip("directml is not usable here")
+    assert [check for check in result["checks"] if check["result"] == "fail"] == []
+    assert result["facts"]["ep"]["state"] == "builtin"
+    assert by_name["preprocess_graph_amd_ep.device_handover"]["result"] == "pass"
+    assert all(by_name[name]["reason"] == "ep_not_present" for name in GPU_CHECKS if name.startswith(("gpu_decode.", "preprocess_graph_ep.")))
