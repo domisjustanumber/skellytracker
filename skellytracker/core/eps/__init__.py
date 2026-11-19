@@ -22,6 +22,13 @@ and takes its recommended and automatic choices from `recommend()`:
 - `PackStatus.description` is one sentence for a user, from `description` of the EP catalog.
 - `PackStatus.devices` holds the GPUs of this host that the EP can use, as `RunDevice` records, in
   the order of `run_devices(key)`. `status()` still loads no library and uses no network.
+- `PackStatus.checks` holds one `DeviceCheck` for each GPU that passes the floors of the EP:
+  `certified`, `local_result` (`passed`, `failed` or None, from the quick check of
+  `skellytracker.certify()` on this PC) and `usable`. An EP with no reviewed row is usable on a GPU
+  only after the whole quick check passes there, and never after a quick check that failed there
+  (ADR-21BK items 2 and 3). An application offers an EP on a GPU from `checks[n].usable`.
+  `PackStatus.usable`, `check_start()` and a run do not read the quick checks. `recommend()` skips
+  a candidate whose quick check failed on this PC (`EpCandidate.failed_locally`).
 - `suggest_execution_provider(saved_execution_provider)` gives the EP key to use on this host for an
   EP key that a setting of an older release holds, or None. The key is an EP that this host
   supports. It can need an install first: `PackStatus.usable` and `PackStatus.install_hint` of the
@@ -42,6 +49,7 @@ from skellytracker.core.eps.recommendation import recommend, run_devices, select
 from skellytracker.core.eps.records import (
     CertifyOffer,
     CertifyResult,
+    DeviceCheck,
     EpCandidate,
     EpRecommendation,
     EpStatus,
@@ -71,6 +79,7 @@ from skellytracker.core.eps.verification import verify
 __all__ = [
     "CertifyOffer",
     "CertifyResult",
+    "DeviceCheck",
     "EpCandidate",
     "EpCatalog",
     "EpRecommendation",

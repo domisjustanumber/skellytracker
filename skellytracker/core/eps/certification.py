@@ -51,6 +51,17 @@ def pair_key(catalog: EpCatalog, key: str, gpu, os_name: str) -> str:
     return f"{key}|{pack['version']}|{os_name}|{evidence.gpu_id(gpu)}"
 
 
+def local_result(catalog: EpCatalog, key: str, gpu, os_name: str) -> str | None:
+    """`passed` or `failed`: the last quick check of the EP on this GPU model on this PC, for the pack version of today.
+
+    None with no such check, and for a GPU with no PCI ids. It reads `quick-checks.json` of the EP store.
+    """
+    if evidence.gpu_id(gpu) is None:
+        return None
+    row = (store.read_json(store.store_root() / "quick-checks.json") or {}).get(pair_key(catalog, key, gpu, os_name))
+    return row["result"] if isinstance(row, dict) and row.get("result") in ("passed", "failed") else None
+
+
 def read_answers() -> dict:
     """The stored answer or result of each pair: `dismissed`, `passed` or `failed`."""
     return store.read_json(store.store_root() / "certify.json") or {}

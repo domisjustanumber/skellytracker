@@ -222,10 +222,10 @@ field-test opt-in. Build in this order:
    block `package` by the rules of `skellytracker/certification.py`. Add its reason codes to
    `skellytracker/REASON_CODES.md`. Cut the suite to sections 1 to 5. A build must write
    `skellytracker/_build_info.py`: the reader exists, the build step does not.
-3. The flags of `PackStatus` (not certified, passed on this PC, failed on this PC) from
-   `quick-checks.json`, and `recommend()` skips an EP that failed on this PC. An EP with no reviewed
-   row is usable only after a whole quick check passes
-   ([ADR-21BK](entries/21BK-quick-check-local-pass-and-hand-in.md) item 2).
+3. `PackStatus.checks` gives the state of each EP on each GPU, and `recommend()` skips an EP that
+   failed on this PC: built. Open: `check_start()` and a run do not refuse an EP on a GPU with no
+   reviewed row and no local pass ([ADR-21BK](entries/21BK-quick-check-local-pass-and-hand-in.md)
+   item 2). Today the application must offer a GPU only from `checks[n].usable`.
 4. The hand-in list in the EP store and the exit notice.
 5. Progress and cancel for an install from the Windows ML catalog, and a remove call with a command
    of `skellytracker-eps` for a catalog package that this package installed. It never removes a

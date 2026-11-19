@@ -14,7 +14,7 @@ from skellytracker.core.eps import certification, evidence, store
 from skellytracker.core.eps.catalog import load_catalog
 from skellytracker.core.eps.installer import core_mismatch, installed_ort
 from skellytracker.core.eps.recommendation import ep_gpus, install_hint, recommend, run_devices
-from skellytracker.core.eps.records import USABLE_STATES, EpStatus, PackStatus, RunDevice
+from skellytracker.core.eps.records import USABLE_STATES, DeviceCheck, EpStatus, PackStatus, RunDevice
 from skellytracker.core.errors import EpUnavailableError
 from skellytracker.core.system.host import probe_host
 
@@ -52,6 +52,16 @@ REPAIRABLE_STATES = ("not_installed", "stale", "not_ready")  # the states that `
 SOURCES = {"pypi": "pypi", "ort-cuda-13": "azure", "amd-ort": "amd"}  # the index of a pack -> `PackStatus.source`
 
 
+def _device_checks(catalog, key: str, host) -> tuple[DeviceCheck, ...]:
+    found = []
+    for device_key, gpu in ep_gpus(catalog, key, host):
+        ready = store.pack_state(catalog, key, gpu, device_key, host.os_build)[0] in USABLE_STATES
+        certified = evidence.certified(key, gpu, host.os_name)
+        local = certification.local_result(catalog, key, gpu, host.os_name)
+        found.append(DeviceCheck(device_key, gpu.name, certified, local, ready and local != "failed" and (certified or local == "passed")))
+    return tuple(found)
+
+
 def _pack_status(catalog, key: str, host) -> PackStatus | None:
     row, pack = catalog.ep(key), catalog.pack(key)
     tag = catalog_module.platform_tag()
@@ -68,7 +78,8 @@ def _pack_status(catalog, key: str, host) -> PackStatus | None:
                           code, reason, usable=usable,
                           install_hint=install_hint(key) if windows_ml and state in REPAIRABLE_STATES else None,
                           uses_gpu=row["gpu"], description=row["description"], devices=run_devices(key) if usable else (),
-                          certified=None if gpu is None or not windows_ml else evidence.certified(key, gpu, host.os_name))
+                          certified=None if gpu is None or not windows_ml else evidence.certified(key, gpu, host.os_name),
+                          checks=_device_checks(catalog, key, host))
     lock = catalog.pack_lock(pack["id"])
     if lock is None:
         return None  # a platform with no pack, for example macOS
@@ -90,7 +101,8 @@ def _pack_status(catalog, key: str, host) -> PackStatus | None:
         usable=usable, install_hint=install_hint(key) if state in REPAIRABLE_STATES else None, uses_gpu=row["gpu"],
         description=row["description"], devices=run_devices(key) if usable else (),  # `run_devices` reads only the cached host probe
         certified=None if gpu is None else evidence.certified(key, gpu, host.os_name), jpeg_decoder=decoder,
-        jpeg_decoder_hint=install_hint(key) if decoder in ("missing", "other_version") and state != "unsupported" else None)
+        jpeg_decoder_hint=install_hint(key) if decoder in ("missing", "other_version") and state != "unsupported" else None,
+        checks=_device_checks(catalog, key, host))
 
 
 def status() -> EpStatus:

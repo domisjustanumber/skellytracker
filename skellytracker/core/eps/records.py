@@ -39,8 +39,30 @@ class RunDevice:
 
 
 @dataclass(frozen=True)
+class DeviceCheck:
+    """The certification state of one EP on one GPU of this host (ADR-21BK items 2 and 3).
+
+    - `certified`: the project has a reviewed pass of the EP on this GPU model on this OS.
+    - `local_result`: `passed` or `failed`, the last quick check of `skellytracker.certify()` of the EP on
+      this GPU model on this PC, for the pack version of today. It is None with no such check.
+    - `usable`: a run can use the EP on this GPU now: the EP is ready, no quick check failed here, and
+      the EP is certified or passed a quick check here. An application offers the GPU from this field.
+    """
+
+    device_key: str
+    name: str | None = None
+    certified: bool = False
+    local_result: Literal["passed", "failed"] | None = None
+    usable: bool = False
+
+
+@dataclass(frozen=True)
 class EpCandidate:
-    """One EP of a hardware class, with the state of its pack. A state in `USABLE_STATES` is ready."""
+    """One EP of a hardware class, with the state of its pack. A state in `USABLE_STATES` is ready.
+
+    `failed_locally` is true when the last quick check of the EP on its GPU failed on this PC.
+    `recommend()` never chooses such a candidate.
+    """
 
     ep_key: str
     ep_name: str
@@ -49,6 +71,7 @@ class EpCandidate:
     device_key: str | None = None
     precision_order: tuple[str, ...] = ("fp32",)
     reason: str | None = None
+    failed_locally: bool = False
 
 
 @dataclass(frozen=True)
@@ -274,6 +297,9 @@ class PackStatus:
       component is not installed. `disk_bytes`: the unpacked size of the pack and its component.
       `licences`: the licences of the pack and its component. Each EP that names a component
       counts it in its own row, so a sum over the EPs counts a shared component one time for each EP.
+    - `checks`: one `DeviceCheck` for each GPU of this host that passes the floors of the EP, in the
+      order of `run_devices(key)`, also when the EP is not installed. `usable` and `devices` do not
+      read the quick checks: for an EP on a GPU, an application reads `checks[n].usable`.
     """
 
     key: str
@@ -297,6 +323,7 @@ class PackStatus:
     certified: bool | None = None
     jpeg_decoder: ComponentState | None = None
     jpeg_decoder_hint: str | None = None
+    checks: tuple[DeviceCheck, ...] = ()
 
 
 @dataclass(frozen=True)

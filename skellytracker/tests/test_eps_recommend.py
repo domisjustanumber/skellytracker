@@ -207,3 +207,38 @@ def test_a_field_test_ep_is_never_recommended_also_after_the_opt_in():
         assert (result.hardware_class, result.chosen.ep_key, result.skipped) == ("amd-windows", "cpu", ())
         assert [offer.kind for offer in result.offers] == ["none-available"]
     assert eps.recommend("performance", host(RTX, INTEL)).chosen.ep_key != "directml"
+
+
+def test_the_device_checks_and_the_recommendation_follow_the_quick_checks_of_this_pc(monkeypatch):
+    """ADR-21BK items 2 and 3: usable after a reviewed row or a local pass, never after a local failure."""
+    from skellytracker.core.eps import certification, evidence, state
+
+    catalog, two = eps.load_catalog(), host(RTX, INTEL)
+    monkeypatch.setattr(evidence, "load_evidence", lambda: ())
+    fake_pack("trt-rtx")
+    fake_pack("cuda")
+
+    def record(key, gpu_info, result):
+        path = store.store_root() / "quick-checks.json"
+        store.write_json(path, {**(store.read_json(path) or {}), certification.pair_key(catalog, key, gpu_info, "Windows"): {"result": result}})
+
+    (check,) = state._device_checks(catalog, "trt-rtx", two)
+    assert (check.device_key, check.name, check.certified, check.local_result, check.usable) == (
+        "gpu:10de:2484:0", "NVIDIA GeForce RTX 3070", False, None, False)  # ready, but no reviewed row and no quick check
+    record("trt-rtx", RTX, "passed")
+    assert state._device_checks(catalog, "trt-rtx", two)[0].usable
+    record("trt-rtx", RTX, "failed")
+    assert (state._device_checks(catalog, "trt-rtx", two)[0].local_result, state._device_checks(catalog, "trt-rtx", two)[0].usable) == ("failed", False)
+    best = eps.recommend("performance", two)
+    assert best.chosen.ep_key == "cuda" and [(c.ep_key, c.failed_locally, c.reason) for c in best.skipped] == [
+        ("trt-rtx", True, "the quick check of this EP failed on this PC")]
+    row = {"ep": "trt-rtx", "os": "Windows", "gpu": "10de:2484", "set": "s", "source": "maintainer", "result": "pass"}
+    monkeypatch.setattr(evidence, "load_evidence", lambda: (row, {**row, "ep": "cuda"}))
+    assert not state._device_checks(catalog, "trt-rtx", two)[0].usable  # a failure on this PC wins over a reviewed row
+    assert state._device_checks(catalog, "cuda", two)[0].usable  # a reviewed row, and no quick check
+    store.opt_in_field_test("directml")
+    record("directml", RTX, "passed")
+    record("directml", INTEL, "failed")
+    assert [(c.device_key, c.local_result, c.usable) for c in state._device_checks(catalog, "directml", two)] == [
+        ("gpu:10de:2484:0", "passed", True), ("gpu:8086:a780:0", "failed", False)]
+    assert state._device_checks(catalog, "cpu", two) == () and state._device_checks(catalog, "amdgpu", two) == ()
