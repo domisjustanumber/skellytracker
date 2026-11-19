@@ -59,7 +59,8 @@ def fake_eps(monkeypatch, rows, vendor="nvidia", probe_result="pass", gpus=None,
                              performance=SimpleNamespace(hardware_class="amd-windows" if vendor == "amd" else "nvidia-cc80-r580"))
     monkeypatch.setattr(eps, "status", lambda: status)
     monkeypatch.setattr(eps, "plan_install", lambda keys: SimpleNamespace(
-        packs=[SimpleNamespace(pack_id=f"{keys[0]}-pack", version="1.0", download_bytes=5)]))
+        packs=[SimpleNamespace(pack_id=f"{keys[0]}-pack", version="1.0", download_bytes=5),
+               SimpleNamespace(pack_id="component-pack", version="1.0", download_bytes=1)]))  # a real plan also holds the component
 
     def install(plan, from_dir=None):
         calls["install"].append(from_dir)

@@ -89,8 +89,9 @@ def eps_downloads(options: dict) -> tuple[tuple[str, int], ...]:
 
     catalog, host = load_catalog(), probe_host()
     keys = [key for key in catalog.keys() if catalog.pack(key) and ep_gpus(catalog, key, host)]
-    return tuple((wheel["filename"], wheel["download_bytes"]) for key in keys
-                 for wheel in (catalog.pack_lock(catalog.pack(key)["id"]) or {}).get("wheels", ()))
+    ids = dict.fromkeys(pack["id"] for key in keys for pack in (catalog.pack(key), catalog.component(key)) if pack)  # a component one time
+    return tuple((wheel["filename"], wheel["download_bytes"]) for pack_id in ids
+                 for wheel in (catalog.pack_lock(pack_id) or {}).get("wheels", ()))
 
 
 def test_builtin(key: str, device_key: str | None = None) -> dict:
@@ -111,7 +112,7 @@ def test_pack(key: str, wheel_dir: str | None, work: Path) -> dict:
     from skellytracker.core.eps import store
 
     plan = eps.plan_install([key])
-    (planned,) = plan.packs
+    planned = plan.packs[0]  # the pack of the key; a plan also holds the component of the pack, for example the GPU JPEG decoder
     facts = {"pack_id": planned.pack_id, "pack_version": planned.version, "download_bytes": planned.download_bytes,
              "source": "wheel-dir" if wheel_dir else "network"}
     result = eps.install(plan, from_dir=Path(wheel_dir) if wheel_dir else None)

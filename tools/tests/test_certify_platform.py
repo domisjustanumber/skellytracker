@@ -515,3 +515,12 @@ def test_the_suite_and_the_package_give_a_child_the_same_grace_time():
     from skellytracker.core.eps import verification
 
     assert cp.EXIT_GRACE_SECONDS == verification.EXIT_GRACE_SECONDS
+
+
+def test_a_section_4_that_fails_with_no_report_gives_partial_run(tmp_path):
+    """`certify("full")` raised: the section has a result and no report, so the run has no EP check."""
+    failed = {**PASSING, "result": "fail", "reason_code": "RuntimeError"}
+    _, out, _ = run(tmp_path, {1: emit(PASSING), 2: emit(PASSING), 3: emit(PASSING), 4: emit(failed)}, selected={1, 2, 3, 4})
+    report = module(out)
+    assert "partial-run" in report["evidence"]["reasons"] and report["evidence"]["valid"] is False
+    assert ("suite:full", "fail", "RuntimeError") in [(c["name"], c["result"], c["reason"]) for c in report["checks"]]

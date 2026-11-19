@@ -583,7 +583,9 @@ def suite_reasons(results: list[dict], selected: set[int], interrupted: bool) ->
     first = next((r for r in results if r["number"] == 1), None)
     facts = (first or {}).get("details", {}).get("checkout") or {}
     failed = {c.get("name") for c in (first or {}).get("checks", ()) if c.get("result") == "fail"}
-    partial = any(r["number"] not in selected or r["result"] == "not-run" or r.get("no_result") for r in results)
+    partial = any(r["number"] not in selected or r["result"] == "not-run" or r.get("no_result")
+                  or (r.get("slug") == "full" and not r.get("report"))  # `certify("full")` raised: the run has no EP check
+                  for r in results)
     return [code for code, bad in (
         ("section-1-not-run", not facts), ("no-commit", bool(facts) and facts.get("commit") is None),
         ("modified-tree", bool(facts) and facts.get("clean") is not True), ("python-differs", "python" in failed),
