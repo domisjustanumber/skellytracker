@@ -16,7 +16,7 @@ always worth an offer (`has_failure`). A pass alone gives no prompt. A new repor
 each older report of a pass that it repeats, when the user did not hand that report in.
 
 The two functions are `skellytracker.certify` and `skellytracker.certify_plan`. They obey the contract
-`report-format.md` of the repository `skellycertify`, format `skellycertify.report/1.0.0`. The reason codes
+`report-format.md` of the repository `skellycertify`, format `skellycertify.report/1.1.0`. The reason codes
 of this package are in `skellytracker/REASON_CODES.md`. A plain `import skellytracker` imports this
 module only: it imports `eps`, `pipelines` and ONNX Runtime in the function bodies.
 
@@ -168,7 +168,10 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
 
     The report: `id` is a version 4 UUID. It is also the name of the report file and the id of the hand-in
     list. The package writes it after the scrub of private words. `details.eps.<ep>.pack_version` holds the
-    version of the pack of the EP, the package version of its Windows ML record, or `builtin`. A report of
+    version of the pack of the EP in the catalog, the package version of its Windows ML record, or `builtin`.
+    For an EP with a pack, `details.eps.<ep>` also holds two facts of the installed pack, from its manifest in the
+    EP store: `installed_pack_version`, and `wheels_match_lock`, true when the sha256 values of the wheels that
+    the install recorded are those of the lock of the catalog. A report of
     the schema `1.0.0` on this host, with a time in its file name and no `id`, stays in the hand-in list
     with its old id. The package never deletes a report of the level `full`.
 
@@ -193,9 +196,7 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
     from skellytracker.core.system.host import probe_host
 
     catalog, host = load_catalog(), probe_host()
-    package, reasons = _package()
-    report = {"schema": SCHEMA, "package": package, "kind": level, "created_utc": created, "host": _host(host),
-              "checks": [], "cleanup": [], "details": {}}
+    report, reasons = _base_report(level, created, host)
     sender = _Progress(progress, level)
     full = level == "full"
     selected = _selection(catalog, host, execution_providers, device, skip_certified=not full)
@@ -498,7 +499,7 @@ def _quick(report: dict, selected: list[tuple], catalog, host, sender: _Progress
             break
         names = _names(label, key, device_key, full)
         details["eps"][label] = {"gpu": None if gpu is None else evidence.gpu_id(gpu), "device": device_key,
-                                 "pack_version": gate.pack_version(catalog, key)}
+                                 "pack_version": gate.pack_version(catalog, key), **store.installed_pack_facts(catalog, key)}
         if setup is not None:
             for name in names:
                 rows[name].update(result="not-run", reason=setup)
@@ -815,6 +816,16 @@ def _cleanup(report: dict, name: str, step: Callable[[], object]) -> None:
         step()
     except Exception as error:  # noqa: BLE001 - a failed cleanup step is a row of `cleanup`, and the report still returns
         report["cleanup"].append({"name": name, "result": "fail", "reason": type(error).__name__})
+
+
+def _base_report(level: str, created: str, host) -> tuple[dict, list[str]]:
+    """The module report of `level` with no check yet, and the evidence reasons of its block `package`.
+
+    `certify()` starts from it. `tools/certify_platform.py` uses it when its section 4 gave no report.
+    """
+    package, reasons = _package()
+    return {"schema": SCHEMA, "package": package, "kind": level, "created_utc": created, "host": _host(host),
+            "checks": [], "cleanup": [], "details": {}}, reasons
 
 
 def _package() -> tuple[dict, list[str]]:

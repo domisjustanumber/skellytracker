@@ -19,14 +19,23 @@ class EpRequestError(ValueError):
 
 
 class EpUnavailableError(RuntimeError):
-    """The EP pack is not installed, does not register, or lists no device. `hint` is the install command."""
+    """The EP pack is not installed, does not register, or lists no device. `hint` is the install command.
+
+    A refusal of the check rule (`core/eps/gate.py`) also gives `execution_provider`, `device_key` and
+    `reason_code`: the EP key, the device key of the GPU, and `quick-check-needed`, `quick-check-failed` or
+    `unclean-exits`. `device_key` is None for `coreml`. Each other refusal leaves the three as None.
+    """
 
     exit_code = EXIT_EP_UNAVAILABLE
 
-    def __init__(self, message: str, hint: str | None = None) -> None:
+    def __init__(self, message: str, hint: str | None = None, *, execution_provider: str | None = None,
+                 device_key: str | None = None, reason_code: str | None = None) -> None:
         super().__init__(message if hint is None else f"{message} {hint}")
         self.message = message
         self.hint = hint
+        self.execution_provider = execution_provider
+        self.device_key = device_key
+        self.reason_code = reason_code
 
     def __reduce__(self):
         return (type(self), (self.message, self.hint), self.__dict__)

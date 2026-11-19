@@ -14,7 +14,6 @@ import http.client
 import os
 import ssl
 import sys
-import threading
 import time
 import urllib.error
 import urllib.parse
@@ -125,7 +124,7 @@ def _attempt(opener, url: str, part: Path, cancel, progress, timeout: float) -> 
                     progress(have)
 
 
-def fetch(url: str, sha256: str, part: Path, *, cancel: threading.Event | None = None,
+def fetch(url: str, sha256: str, part: Path, *, cancel=None,
           progress: Callable[[int], None] | None = None, opener=None, sleep=time.sleep, timeout: float = 60.0) -> Path:
     """Download `url` to the partial file `part`, and check its sha256. It returns `part`.
 

@@ -49,6 +49,9 @@ class DeviceCheck:
       the EP is certified or passed a quick check here. An application offers the GPU from this field.
     - `local_cause`: `unclean-exits` when `local_result` is `failed` because the process that used the EP
       ended two times in a row with no clean exit (ADR-ER5X item 5). Else None: a quick check gave the result.
+    - `reason_code`: why a run cannot use the EP on this GPU now, or None when `usable`. It is the reason code of
+      the state of the EP when the EP is not ready, for example `not-installed`. Else it is the code of the check
+      rule: `quick-check-needed`, `quick-check-failed` or `unclean-exits`.
     """
 
     device_key: str
@@ -57,6 +60,7 @@ class DeviceCheck:
     local_result: Literal["passed", "failed"] | None = None
     usable: bool = False
     local_cause: Literal["unclean-exits"] | None = None
+    reason_code: str | None = None
 
 
 @dataclass(frozen=True)

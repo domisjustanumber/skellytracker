@@ -118,11 +118,8 @@ write your name, contact details or other personal details. Press Enter to skip.
 |---|---|
 | 1. Checkout and versions | Records the tag, the commit, whether the clone is clean, the Python version and the package versions. |
 | 2. Hardware probe | Records the CPU, the memory, the GPUs and the OS. It compares skellytracker with the OS tools. |
-| 3. EPs: install, verify and certify | Installs each EP pack that your GPU can use. Tests each EP with a probe session. Tests DirectML on each GPU on Windows. |
-| 4. Pipeline on each EP against the CPU EP | Runs the real pipeline for 1, 3 and 6 cameras, also on the CPU EP. Records the time and the GPU memory. Records the speed of each GPU EP against the CPU EP. Compares the result with the CPU EP. |
-| 5. JPEG decode and preprocess | Decodes synthetic JPEG images on the CPU and, with `cuda` or `trt-rtx`, on the GPU. Compares the frame preprocess with the CPU reference. Runs the real pipeline on JPEG frames. GPU decode is for `cuda` and `trt-rtx` only. Each other EP (DirectML, the AMD EPs, CoreML and the CPU EP) gets frames that the CPU decoded. |
-| 6. Cameras | Not in this version. |
-| 7. JPEG encode and decode speed | Not in this version. |
+| 3. EP packs: install and verify | Installs each EP pack that your GPU can use. Tests each EP with a probe session. Tests DirectML on each GPU on Windows. |
+| 4. Full level of certify() | Downloads the model files of the test pipeline. Then runs `skellytracker.certify("full")` on each EP and each GPU: the probe, the real pipeline on one test image against the CPU EP, the pipeline for 1, 3 and 6 cameras, also on the CPU EP, and the JPEG checks. Records the time and the GPU memory. GPU decode of JPEG frames is for `cuda` and `trt-rtx` only. |
 
 The suite runs each section in its own process. If a section crashes or runs too long, the
 suite records that and goes on. If a section wrote its complete result before it crashed or
@@ -133,28 +130,46 @@ stopped it.
 
 ## Read the summary table
 
-The report starts with a line that says if it is valid as evidence. Then it has a table with one
-row for each section. The result of a section is one of these:
+The report file has the format `skellycertify.report/1.1.0` of the repository `skellycertify`. It
+starts with a line that says if the report is valid as evidence. Then it has a table with one row for
+each check. The column `Section` holds the check name:
+
+- `suite:<slug>` is the result of a section of the suite: `suite:checkout` (1), `suite:hardware` (2),
+  `suite:packs` (3) and `suite:full` (4). `suite:full` is in the table only when section 4 gave no
+  result of `certify("full")`.
+- `suite:<slug>:<name>` is one check of a section, for example `suite:packs:cuda`.
+- Each other row is a check of `certify("full")`, for example `cuda@10de-2484-0:probe`. A name with no
+  `:` is the check of one EP on one GPU.
+
+The result of a check is one of these:
 
 | Result | Meaning |
 |---|---|
-| `pass` | The tests of the section passed. |
-| `fail` | A test failed, or the section crashed or ran too long. The reason is a fixed code, for example `timed-out`. |
-| `not-run` | The section did not run. The reason says why, for example `not-built` or `not-selected`. |
-| `record-only` | The section only recorded facts, or its result does not count on this hardware. |
+| `pass` | The test passed. |
+| `fail` | The test failed, or the section crashed or ran too long. The reason is a fixed code, for example `timed-out`. |
+| `not-run` | The test did not run. The reason says why, for example `not-selected`. |
+| `record-only` | The check only recorded facts, for example a time. |
+
+`skellytracker/REASON_CODES.md` gives the meaning of each reason code.
 
 A `fail` is useful to the project. Do not run the suite again to get a `pass`. Send the report
 as it is.
 
-A report is valid as evidence only when it comes from a clean checkout of a tag, all sections
-ran, and section 1 found the Python version and the package versions of `uv.lock`. A report from a
-modified clone, from a clone with no tag, from a run with `--only` or with other versions says
-`Not valid as evidence` and gives the reasons. The project keeps such a report as a record only.
+A report is valid as evidence only when all of these are true:
+
+- It comes from a clean checkout with a known commit.
+- The package has a SemVer version.
+- All sections ran.
+- Section 1 found the Python version and the package versions of `uv.lock`.
+
+A report from a modified clone, from a run with `--only`, from a run that you stopped, or with other
+versions says `not valid as evidence` and gives the reasons. The project keeps such a report as a
+record only.
 
 If a cleanup step at the end fails, for example the delete of a downloaded file, the report has a
 `Cleanup` table with a `fail` row for that step.
 
-DirectML on a GPU that is not an AMD GPU is `record-only`. This is normal.
+Each EP result counts on each GPU, also DirectML on a GPU that is not an AMD GPU.
 
 ## What is normal
 
@@ -163,8 +178,8 @@ DirectML on a GPU that is not an AMD GPU is `record-only`. This is normal.
   suite.
 - The first run of `trt-rtx` in section 4 builds an engine. It takes longer than the next runs.
   The report records the start time.
-- The suite prints progress lines such as `Section 3: EPs: install, verify and certify ...` and
-  `section 4: cuda, 3 camera(s)` to the terminal. Wait for the line `Report written to`.
+- The suite prints progress lines such as `Section 3: EP packs: install and verify ...` and
+  `section 4: cuda@10de-2484-0:pipeline-3` to the terminal. Wait for the line `Report written to`.
 
 ## Send the report
 
@@ -194,9 +209,7 @@ Your notes line is the one place where you write free text.
 
 ## Not in this version
 
-- Sections 6 and 7. Their result is `not-run` with the reason `not-built`.
-- Section 5 needs checks that are not in this version of the package yet. Until then, its result is
-  `not-run` with the reason `not-in-this-checkout`.
+- The cameras. The suite does not test a camera.
 - No result on an AMD GPU exists yet. The AMD EPs (MIGraphX on Linux, and the AMD EPs of the
   Windows ML catalog on Windows) are tested only with fakes. Your report is the first test.
 - Hosts with two GPUs on a laptop are not a tested case.

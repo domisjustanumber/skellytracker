@@ -155,6 +155,15 @@ def test_a_quick_pass_gives_a_valid_report_and_records_the_local_pass(quick_host
     assert calls == [(["trt-rtx"], "gpu:10de:2484:0"), (["directml"], "gpu:10de:2484:0")]
     assert report["details"]["eps"]["trt-rtx@10de-2484-0"]["device"] == "gpu:10de:2484:0"
     assert report["details"]["eps"]["trt-rtx@10de-2484-0"]["pack_version"] == certification.load_catalog().pack("trt-rtx")["version"]
+    facts = store.installed_pack_facts(certification.load_catalog(), "trt-rtx")  # the fake pack: a manifest with no wheel
+    assert facts == {"installed_pack_version": certification.load_catalog().pack("trt-rtx")["version"], "wheels_match_lock": False}
+    assert facts.items() <= report["details"]["eps"]["trt-rtx@10de-2484-0"].items()
+    assert "wheels_match_lock" not in report["details"]["eps"]["directml@10de-2484-0"]  # a built-in EP has no pack
+    pack = certification.load_catalog().pack("trt-rtx")
+    wheels = certification.load_catalog().pack_lock(pack["id"])["wheels"]
+    store.write_json(store.pack_dir(pack["id"], pack["version"]) / "pack.json",
+                     {**store.read_manifest(pack["id"], pack["version"]), "wheels": [[wheel["filename"], wheel["sha256"]] for wheel in wheels]})
+    assert store.installed_pack_facts(certification.load_catalog(), "trt-rtx")["wheels_match_lock"] is True
     assert report["evidence"] == {"valid": True, "reasons": []} and report["kind"] == "quick"
     assert report["package"] == {"name": "skellytracker", "version": package_certification._package()[0]["version"],
                                  "commit": COMMIT, "tree_modified": False}
@@ -307,6 +316,17 @@ def test_the_plan_names_the_test_image_the_time_and_each_ep_that_will_not_run(qu
     assert full["seconds_estimate"] == 3 * cpu + 2 * package_certification.PROBE_SECONDS + sum(
         certification.load_catalog().data["certification"]["seconds"].get(key, package_certification.IMAGE_SECONDS)
         for key in ("trt-rtx", "directml"))
+
+
+def test_a_cancel_object_of_an_other_class_with_is_set_is_accepted(quick_host, monkeypatch):
+    import multiprocessing
+
+    seen = []
+    monkeypatch.setattr(verification, "spawn_child", lambda target, args, **options: seen.append(options["cancel"]) or ({"ran": False}, None, 0))
+    cancel = multiprocessing.get_context("spawn").Event()
+    certification._wide_run("trt-rtx", {}, lambda step: None, cancel=cancel)  # beartype checks the call
+    certification.timing_run("trt-rtx", {}, 1, cancel=cancel)
+    assert seen == [cancel, cancel]
 
 
 def test_the_run_deletes_the_test_image_that_it_downloaded(quick_host, monkeypatch):

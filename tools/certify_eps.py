@@ -1,4 +1,4 @@
-"""Sections 3 and 4 of the certify suite (``tools/certify_platform.py``): the EPs, and the pipeline on each EP.
+"""Sections 3 and 4 of the certify suite (``tools/certify_platform.py``): the EP packs, and the level ``full`` of ``certify()``.
 
 Both sections run only with the isolated EP store of the suite: the frame sets ``SKELLYTRACKER_EP_STORE``
 and ``SKELLYTRACKER_EP_CACHE`` to folders of the work folder. Without them a section is ``not-run``
@@ -12,10 +12,8 @@ is installed with ``eps.plan_install()`` and ``eps.install()``, the code path of
 ``eps.certify(key, out=...)``. Its probe is ``verify()`` at level L3. A built-in EP gets
 ``eps.verify([key], level="L3", force=True)``. Before ``eps.status()``, the section opts in to each
 ``field-test`` EP in the isolated store (ADR-Z5X7). A built-in EP that runs on one GPU (``directml``
-on Windows) gets that probe on each GPU of the host, as the check ``KEY@DEVICE_KEY``. Its result
-counts (``pass`` or ``fail``) only on a GPU whose hardware class lists the EP (an AMD GPU for
-``directml``). On each other GPU the check is ``record-only``, and the details hold the probe result
-(ADR-Y14H item 11). Each result records the ONNX Runtime version that it ran on (``ort_version``).
+on Windows) gets that probe on each GPU of the host, as the check ``KEY@DEVICE_KEY``. Each result
+counts, on each GPU. Each result records the ONNX Runtime version that it ran on (``ort_version``).
 
 The AMD EPs (ADR-XSE7). On Windows, the section asks the Windows ML catalog which EPs it offers for
 this PC (``windows_ml.find_eps()``). It tests each AMD EP key of the catalog (``amdgpu``, ``migraphx``)
@@ -23,48 +21,34 @@ that the catalog offers, on each AMD GPU, as a built-in EP that runs on one GPU.
 with ``windows_ml.install()``: for a package that is not on the PC, Windows downloads and installs it.
 The record in the isolated EP store names each package that the install added, and the frame removes
 exactly those at the end (``remove_windows_packages`` of ``certify_platform.py``), never a package
-that was on the PC before. An EP that the catalog does not offer is ``not-run`` with ``not-offered``. On Linux, ``migraphx`` is the pack of the ROCm release of the host: no ROCm is
-``not-run`` with ``rocm-missing``, and an other release ``rocm-version``. The details give
-``rocm_version``. When ``migraphx`` fails on ONNX Runtime 1.30.0 for a reason other than its numbers
-(``probe-l3-failed``) or its download, the section builds the second environment of
-``certification.ort_fallback`` in the work folder (``build_fallback_env``) and runs the probe again
-there as the check ``migraphx@ort-<version>``. A pass there is evidence that the EP works, not a
-certification for the version set of the catalog.
+that was on the PC before. An EP that the catalog does not offer is ``not-run`` with ``not-offered``.
+On Linux, ``migraphx`` is the pack of the ROCm release of the host: no ROCm is ``not-run`` with
+``rocm-missing``, and an other release ``rocm-version``. The details give ``rocm_version``.
 
-Section 4. It reads the result of section 3 from ``section-3.json`` of the work folder. It takes the
-model files of the ``models`` list of the ``certification`` block of the EP catalog (``fetch_models``)
-and needs the pipeline of that block to be available, else it is ``not-run`` with
-``models-missing``. For the CPU EP, and for each GPU EP and each ``directml`` GPU whose
-probe passed in section 3 (``pipeline_targets`` of its details; 1, 3 and 6 cameras, the test image
-on each camera; a target of the second environment runs there, in a child process), it times the warm-up calls and then the timed calls of ``certification.time_run()`` of the package
-in the running mode ``video`` with the span ``pipeline.run``: the start time (the sessions, with the
-TensorRT RTX engine build), the first call, and the median and p95 of the timed calls. The peak VRAM
-is the largest VRAM of this process in a ``LiveSampler`` sample after each call. The timing of a GPU target for each
-camera count also has ``against_cpu`` (its median divided by the CPU median) and ``speed_against_cpu`` (``faster``,
-``slower`` or ``similar``, of ``certification.speed_against_cpu()``). Then
-``certification._wide_run()`` compares the EP with the CPU EP on the test image, in a child process, with the catalog
-``thresholds``. The timings and the VRAM are ``record-only``. The agreement is ``pass`` or ``fail``.
-It is ``record-only`` on a GPU where the result of section 3 does not count.
+Section 4. It takes the model files of the ``models`` list of the ``certification`` block of the EP
+catalog (``fetch_models``). The frame deletes each file that the section downloads, at the end of the
+run. Then the section calls ``skellytracker.certify("full")`` with the default selection, in the
+isolated EP store, so that it finds the packs of section 3. The package runs the pipeline timings and
+the JPEG certification, and gives ``models-missing`` when a model file is absent. The result of the
+section is the outcome of the checks of the module report. The key ``report`` of the result holds that
+module report, and the frame builds the report file on it. A call that raises gives ``fail`` with the
+exception class and no report.
 """
 
 from __future__ import annotations
 
-import dataclasses
 import json
 import os
 import shutil
 import sys
 import time
+from collections import Counter
 from pathlib import Path
-
-import subprocess
 
 from certify_platform import MODEL_ROOT, check, outcome  # the frame deletes listed files only inside MODEL_ROOT
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REMOVE_LIST = "remove-at-end.json"  # the frame deletes each file of this list at the end of the run
-CAMERA_COUNTS = (1, 3, 6)  # each EP, also the CPU EP; see the estimate of section 4
-NUMBER_FAILURES = ("probe-l3-failed",)  # the EP loaded and ran: the second environment does not help
 
 
 def read_json(path: Path):
@@ -105,11 +89,8 @@ def eps_downloads(options: dict) -> tuple[tuple[str, int], ...]:
 
     catalog, host = load_catalog(), probe_host()
     keys = [key for key in catalog.keys() if catalog.pack(key) and ep_gpus(catalog, key, host)]
-    fallback = catalog.data["certification"].get("ort_fallback") or {}
-    extra = [(f"{fallback['package']} {fallback['version']} for a second environment, only when "
-              f"{' or '.join(fallback['eps'])} does not load", fallback["bytes"])] if set(keys) & set(fallback.get("eps", ())) else []
     return tuple((wheel["filename"], wheel["download_bytes"]) for key in keys
-                 for wheel in (catalog.pack_lock(catalog.pack(key)["id"]) or {}).get("wheels", ())) + tuple(extra)
+                 for wheel in (catalog.pack_lock(catalog.pack(key)["id"]) or {}).get("wheels", ()))
 
 
 def test_builtin(key: str, device_key: str | None = None) -> dict:
@@ -203,101 +184,6 @@ def windows_ml_eps(catalog, host) -> dict[str, dict]:
     return found
 
 
-def needs_fallback(catalog, key: str, result: dict) -> bool:
-    """True when an EP of `certification.ort_fallback` failed on the ONNX Runtime of the catalog for a reason of its load."""
-    fallback = catalog.data["certification"].get("ort_fallback") or {}
-    code = result.get("reason_code") or ""
-    return (key in fallback.get("eps", ()) and result.get("result") == "fail" and code not in NUMBER_FAILURES
-            and not code.startswith("install-"))
-
-
-def build_fallback_env(work: Path, fallback: dict) -> Path:
-    """The Python of the second environment in the work folder: the locked packages with the fallback ONNX Runtime pin.
-
-    It changes no file of the checkout: `uv export` reads `uv.lock`, and the project is an editable install of the
-    checkout. Each index package is hash-checked: the locked packages with the hashes of `uv.lock` and the fallback
-    pin with its `sha256` (`--require-hashes`), and the build backend of the editable install with the hash of
-    `build_backend` (a build constraint: uv refuses an editable install in `--require-hashes` mode). It raises
-    `RuntimeError` with a fixed reason code.
-    """
-    import re
-
-    folder = work / f"ort-{fallback['version']}"
-    python = folder / ("Scripts/python.exe" if sys.platform == "win32" else "bin/python")
-    if python.exists():
-        return python
-    uv = os.environ.get("UV") or shutil.which("uv")
-    if uv is None:
-        raise RuntimeError("no-uv")
-
-    def run(*args: str) -> str:
-        done = subprocess.run([uv, *args], cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8",  # noqa: S603
-                              errors="replace", timeout=900, check=False)
-        if done.returncode:
-            raise RuntimeError(f"uv-{args[0]}-failed")
-        return done.stdout
-
-    requirements = run("export", "--frozen", "--no-emit-project", "--no-dev")
-    package, backend = fallback["package"], fallback["build_backend"]
-    # one entry: `NAME==VERSION ; MARKER \` and its `--hash=` lines; the marker stays, the version and the hashes change
-    entry = rf"^{re.escape(package)}==[^ ;\n]+(?P<marker>[^\\\n]*?)[ \t]*\\\n(?:[ \t]+--hash=\S+[ \t]*\\?\n)+"
-    pinned, count = re.subn(entry, lambda m: f"{package}=={fallback['version']}{m['marker']} \\\n    --hash=sha256:{fallback['sha256']}\n",
-                            requirements, flags=re.MULTILINE)
-    if count != 1:
-        raise RuntimeError("no-ort-pin")
-    (work / "fallback-requirements.txt").write_text(pinned, encoding="utf-8")
-    (work / "fallback-build.txt").write_text(f"{backend['package']}=={backend['version']} --hash=sha256:{backend['sha256']}\n",
-                                             encoding="utf-8")
-    run("venv", "--python", sys.executable, str(folder))
-    run("pip", "install", "--python", str(python), "--require-hashes", "-r", str(work / "fallback-requirements.txt"))
-    run("pip", "install", "--python", str(python), "--no-deps", "--build-constraints", str(work / "fallback-build.txt"),
-        "-e", str(REPO_ROOT))
-    return python
-
-
-def run_fallback(work: Path, *args: str) -> dict:
-    """Run `certify_eps.py --fallback ...` in the second environment, and give the JSON object of its last stdout line."""
-    from skellytracker.core.eps import store
-    from skellytracker.core.eps.catalog import load_catalog
-
-    fallback = load_catalog().data["certification"]["ort_fallback"]
-
-    def finding(result: str, code: str) -> dict:  # a fixed code on this one check: the other results of the section stay
-        return {"result": result, "reason_code": code, "ort_version": fallback["version"]}
-
-    try:
-        python = build_fallback_env(work, fallback)
-    except RuntimeError as error:
-        return finding("not-run", str(error))
-    except subprocess.TimeoutExpired:
-        return finding("not-run", "build-timed-out")
-    except OSError:
-        return finding("not-run", "build-failed")
-    try:
-        done = subprocess.run([str(python), "-B", str(Path(__file__).resolve()), "--fallback", *args, "--work", str(work)],  # noqa: S603
-                              cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=1800,
-                              check=False, env={**os.environ, store.FALLBACK_VARIABLE: fallback["version"]})
-    except subprocess.TimeoutExpired:
-        return finding("fail", "timed-out")
-    except OSError:
-        return finding("fail", "not-started")
-    lines = [line for line in done.stdout.splitlines() if line.strip()]
-    try:
-        found = json.loads(lines[-1])
-    except (IndexError, ValueError):
-        return {"result": "fail", "reason_code": "crashed" if done.returncode else "bad-output", "exit_code": done.returncode,
-                "ort_version": fallback["version"]}
-    return {**found, "ort_fallback": True, "certifies_version_set": False}
-
-
-def offered_on(key: str, host, gpu) -> bool:
-    """True when the hardware class of this one GPU lists the EP: the app offers it there, so its result counts."""
-    from skellytracker.core.eps.catalog import load_catalog
-    from skellytracker.core.eps.recommendation import hardware_class
-
-    return key in hardware_class(load_catalog(), dataclasses.replace(host, gpus=(gpu,)))["candidates"]
-
-
 def section_eps(work: Path) -> dict:
     sys.path.insert(0, str(REPO_ROOT))
     if not isolated():
@@ -314,7 +200,7 @@ def section_eps(work: Path) -> dict:
     catalog_eps = windows_ml_eps(catalog, probe_host())  # before `status()`: an installed EP is then usable
     status = eps.status()
     rows, gpus = {row.key: row for row in status.eps}, dict(gpu_device_keys(status.host))
-    checks, found, targets, ort = [], {}, [], ort_version()
+    checks, found, ort = [], {}, ort_version()
     for key in catalog.keys():
         row = rows.get(key)
         if "result" in catalog_eps.get(key, {}):  # a Windows ML EP that the suite does not test (ADR-XSE7)
@@ -328,31 +214,20 @@ def section_eps(work: Path) -> dict:
         on_each_gpu = row.pack_id is None and catalog.device_row(key) is not None  # `directml` or a Windows ML EP: each GPU
         for device in row.devices if on_each_gpu else (None,):
             name = key if device is None else f"{key}@{device.device_key}"
-            counts = device is None or offered_on(key, status.host, gpus[device.device_key])
             print(f"section 3: {name}", file=sys.stderr, flush=True)
             started = time.monotonic()
             if device is not None:
-                found[name] = {**test_builtin(key, device.device_key), "vendor": gpus[device.device_key].vendor, "counts": counts,
+                found[name] = {**test_builtin(key, device.device_key), "vendor": gpus[device.device_key].vendor,
                                **catalog_eps.get(key, {})}
             else:
                 found[name] = test_builtin(key) if row.pack_id is None else test_pack(key, wheel_dir, work)
             found[name].update(seconds=round(time.monotonic() - started, 1), ort_version=ort)
-            checks.append(check(name, found[name]["result"] if counts else "record-only", found[name]["reason_code"]))
-            if found[name]["result"] == "pass" and key != "cpu":
-                targets.append({"key": key, "device_key": None if device is None else device.device_key, "counts": counts})
-            if device is None and needs_fallback(catalog, key, found[name]):
-                print(f"section 3: {key} on the second environment", file=sys.stderr, flush=True)
-                fallback = run_fallback(work, "eps", key)
-                name = f"{key}@ort-{fallback['ort_version']}"
-                found[name] = fallback
-                checks.append(check(name, fallback["result"], fallback["reason_code"]))
-                if fallback["result"] == "pass":
-                    targets.append({"key": key, "device_key": None, "counts": True, "ort_fallback": True})
+            checks.append(check(name, found[name]["result"], found[name]["reason_code"]))
     tested = [c for c in checks if c["result"] != "not-run"]
     summary = ", ".join(f"{c['name']} {c['result']}" for c in tested) + f"; {len(checks) - len(tested)} not run"
     return {"result": outcome(checks), "reason_code": first_failure(checks), "summary": summary, "checks": checks,
             "details": {"hardware_class": status.performance.hardware_class, "store": "isolated", "eps": found,
-                        "pipeline_targets": targets, "rocm_version": rocm_version()}}
+                        "rocm_version": rocm_version()}}
 
 
 # --------------------------------------------------------------------------------------------
@@ -418,121 +293,28 @@ def time_run(pipeline: str, execution_provider: str, cameras: int, image, device
     return {name: "not-available" if value is None and name.endswith("_mib") else value for name, value in found.items()}
 
 
-AGREEMENT_FIELDS = ("box_iou_min", "keypoint_box_fraction_max", "keypoint_box_fraction_median", "keypoint_box_fraction_p99",
-                    "points_compared")
-
-
-def pipeline_target(target: dict, settings: dict, frame, seen: set, suffix: str = "", cpu_timing: dict | None = None
-                    ) -> tuple[dict, list[dict]]:
-    """The timings and the agreement of one target of section 4. `seen` holds the library names of the earlier targets.
-
-    `cpu_timing` is the timing of the CPU EP for each camera count: each timing of a GPU target then gets `against_cpu`
-    and `speed_against_cpu`, a record only.
-    """
-    from skellytracker.core.eps import certification
-    from skellytracker.core.system import probe_loaded_libraries
-
-    key, device = target["key"], target["device_key"]
-    label = (key if device is None else f"{key}@{device}") + suffix
-    found, checks = {"timing": {}, "device_key": device, "counts": target["counts"], "ort_version": ort_version()}, []
-    for cameras in CAMERA_COUNTS:
-        print(f"section 4: {label}, {cameras} camera(s)", file=sys.stderr, flush=True)
-        try:
-            timing = found["timing"][str(cameras)] = time_run(settings["pipeline"], key, cameras, frame, device)
-            cpu = (cpu_timing or {}).get(str(cameras))
-            if key != "cpu" and cpu and cpu.get("median_ms") and timing.get("median_ms") is not None:
-                timing["against_cpu"] = round(timing["median_ms"] / cpu["median_ms"], 2)
-                timing["speed_against_cpu"] = certification.speed_against_cpu(timing["median_ms"], cpu["median_ms"])
-            checks.append(check(f"timing-{label}-{cameras}", "record-only"))
-        except Exception as error:  # noqa: BLE001 - for example VRAM exhaustion at 6 cameras
-            checks.append(check(f"timing-{label}-{cameras}", "not-run", type(error).__name__))
-    libraries = probe_loaded_libraries()
-    loaded = [*libraries.libraries, *(libraries.nvidia.libraries if libraries.nvidia else ())]
-    found["libraries_new"] = [{"name": lib.name, "version": lib.version} for lib in loaded if lib.name not in seen]
-    seen |= {lib.name for lib in loaded}
-    if key == "cpu":
-        return found, checks
-    print(f"section 4: {label}, agreement with the CPU EP", file=sys.stderr, flush=True)
-    try:
-        wide = certification._wide_run(key, settings, lambda step: None, device)
-    except Exception as error:  # noqa: BLE001
-        wide = {"ran": False, "ok": False, "reason_code": type(error).__name__}
-    found["agreement"] = wide
-    result = ("pass" if wide.get("ok") else "fail") if target["counts"] else "record-only"  # ADR-Y14H item 11
-    checks.append(check(f"agreement-{label}", result, wide.get("reason_code"), **{field: wide.get(field) for field in AGREEMENT_FIELDS}))
-    return found, checks
-
-
-def test_image(settings: dict):
-    """The decoded test image of the `certification` block, from the cache of `_wide_run()` in the work folder."""
-    from skellytracker.core.eps import certification
-
-    return certification.test_frame(settings)
-
-
-def fallback_main(mode: str, key: str, work: Path) -> dict:
-    """The child of the second environment: the probe of section 3 (`eps`) or the target of section 4 (`pipeline`)."""
-    sys.path.insert(0, str(REPO_ROOT))
-    from skellytracker.core.eps.catalog import load_catalog
-
-    if mode == "eps":
-        wheel_dir = (read_json(work / "options.json") or {}).get("wheel_dir")
-        return {**test_pack(key, wheel_dir, work), "ort_version": ort_version()}
-    settings = load_catalog().data["certification"]
-    suffix = f"@ort-{ort_version()}"
-    found, checks = pipeline_target({"key": key, "device_key": None, "counts": True}, settings, test_image(settings), set(), suffix)
-    return {"result": outcome(checks), "reason_code": first_failure(checks), "ort_version": found["ort_version"], "found": found,
-            "checks": checks}
-
-
-def section_pipeline(work: Path) -> dict:
+def section_full(work: Path) -> dict:
+    """Section 4: the model files of the `certification` block, then `skellytracker.certify("full")` with the default selection."""
     sys.path.insert(0, str(REPO_ROOT))
     if not isolated():
         return not_isolated()
-    from skellytracker.core import pipelines
-    from skellytracker.core.eps import _download, certification
+    import skellytracker
     from skellytracker.core.eps.catalog import load_catalog
 
-    settings = load_catalog().data["certification"]
-    details = {"models": fetch_models(settings.get("models") or (), MODEL_ROOT, work), "pipeline": settings["pipeline"],
-               "calls": {"warmup": certification.WARMUP_CALLS, "timed": certification.TIMED_CALLS, "running_mode": "video"}, "eps": {}}
-    if not pipelines.get_pipeline(settings["pipeline"]).available:
-        return {"result": "not-run", "reason_code": "models-missing", "summary": "a model file of the pipeline is absent",
-                "checks": [], "details": details}
-    targets = ((read_json(work / "section-3.json") or {}).get("details") or {}).get("pipeline_targets") or []
-    details["eps_from_section_3"] = [t["key"] if t["device_key"] is None else f"{t['key']}@{t['device_key']}" for t in targets]
+    details = {"models": fetch_models(load_catalog().data["certification"].get("models") or (), MODEL_ROOT, work)}
+
+    def show(message: dict) -> None:
+        if message["step"]:
+            print(f"section 4: {message['step']['name']}", file=sys.stderr, flush=True)
+
     try:
-        frame = test_image(settings)
-    except _download.DownloadError as error:
-        return {"result": "not-run", "reason_code": f"image-{error.code}", "summary": "the test image did not download",
-                "checks": [], "details": details}
-    checks, seen = [], set()
-    for target in ({"key": "cpu", "device_key": None, "counts": True}, *targets):
-        if target.get("ort_fallback"):  # ADR-XSE7: the second environment, in a child process
-            print(f"section 4: {target['key']} on the second environment", file=sys.stderr, flush=True)
-            fallback = run_fallback(work, "pipeline", target["key"])
-            label = f"{target['key']}@ort-{fallback['ort_version']}"
-            details["eps"][label] = fallback.get("found") or fallback
-            checks += fallback.get("checks") or [check(f"agreement-{label}", fallback["result"], fallback["reason_code"])]
-            continue
-        found, new_checks = pipeline_target(target, settings, frame, seen, cpu_timing=details["eps"].get("cpu", {}).get("timing"))
-        details["eps"][target["key"] if target["device_key"] is None else f"{target['key']}@{target['device_key']}"] = found
-        checks += new_checks
-    agreements = [f"{c['name'].removeprefix('agreement-')} IoU {c['box_iou_min']:.3f}, keypoints max {c['keypoint_box_fraction_max']:.4f}"
-                  for c in checks if c["name"].startswith("agreement-") and c.get("box_iou_min") is not None
-                  and c.get("keypoint_box_fraction_max") is not None]
-    summary = "; ".join(agreements) if agreements else "no GPU EP passed section 3: CPU EP timings only"
-    result = outcome(checks)
-    return {"result": result, "reason_code": first_failure(checks), "summary": summary, "checks": checks, "details": details}
-
-
-if __name__ == "__main__":  # the child of the second environment: `--fallback eps|pipeline KEY --work DIR`
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--fallback", nargs=2, metavar=("MODE", "KEY"), required=True)
-    parser.add_argument("--work", type=Path, required=True)
-    args = parser.parse_args()
-    print(json.dumps(fallback_main(args.fallback[0], args.fallback[1], args.work)), flush=True)
-    sys.stderr.flush()
-    os._exit(0)  # the result is out: the interpreter teardown of a GPU EP must not crash or hang this child
+        report = skellytracker.certify("full", show)
+    except Exception as error:  # noqa: BLE001 - for example a pipeline file that does not load
+        return {"result": "fail", "reason_code": type(error).__name__, "summary": "certify('full') raised", "checks": [],
+                "details": details}
+    checks = report["checks"]
+    counts = Counter(c["result"] for c in checks)
+    summary = f"{len(checks)} checks of certify('full'): " + ", ".join(
+        f"{counts[result]} {result}" for result in ("pass", "fail", "not-run", "record-only") if counts[result])
+    return {"result": outcome(checks), "reason_code": next((c["reason"] for c in checks if c["result"] == "fail"), None),
+            "summary": summary, "checks": [], "details": details, "report": report}

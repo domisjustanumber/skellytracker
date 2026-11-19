@@ -135,10 +135,14 @@ def check_hint(key: str) -> str:
     return f"Run `skellytracker-eps certify {key} --quick`."
 
 
-def require(catalog: EpCatalog, key: str, gpu, os_name: str) -> None:
-    """Raise `EpUnavailableError` with the quick-check command when the rule does not let the EP run on the GPU."""
+def require(catalog: EpCatalog, key: str, gpu, os_name: str, device_key: str | None = None) -> None:
+    """Raise `EpUnavailableError` with the quick-check command when the rule does not let the EP run on the GPU.
+
+    The error holds the EP key, `device_key` and the reason code as fields.
+    """
     if _certification_runs:
         return
     code = check_reason(catalog, key, gpu, os_name)
     if code is not None:
-        raise EpUnavailableError(f"The EP '{key}' cannot run on '{gpu.name}': {REASONS[code]}.", check_hint(key))
+        raise EpUnavailableError(f"The EP '{key}' cannot run on '{gpu.name}': {REASONS[code]}.", check_hint(key),
+                                 execution_provider=key, device_key=device_key, reason_code=code)

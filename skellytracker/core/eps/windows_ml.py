@@ -223,7 +223,7 @@ def _ensure_ready(provider, key: str, progress, cancel) -> bool:
 
 
 def install(key: str, *, progress: Callable[[InstallProgress], None] | None = None,
-            cancel: threading.Event | None = None) -> dict:
+            cancel=None) -> dict:
     """Make the package of the EP `key` ready. It can make Windows download and install the package.
 
     Before the call it writes a `pending` record, so that a crash leaves a trace. After the call it

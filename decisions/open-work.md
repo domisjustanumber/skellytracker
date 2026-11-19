@@ -19,11 +19,8 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   590.48.01 or later. It replaces `decisions/scripts/n6e8_ort_1_30/linux_ep_gate.sh`
   ([ADR-Y14H](entries/Y14H-certify-suite.md) item 16). The change of the items 2 and 3 of N6E8 lands
   only after this run passes. Then write the result in the Evidence section of N6E8.
-- **Certify suite.** [ADR-Y14H](entries/Y14H-certify-suite.md): the frame and sections 1 to 5 are
-  built. Sections 3 and 4 are in `tools/certify_eps.py`, section 5 is in `tools/certify_jpeg.py`.
-  Sections 6 and 7 leave the suite
-  ([ADR-P0JZ](entries/P0JZ-certify-contract-in-each-package.md) item 2; item 3 of the
-  [certification build list](#certification-build-list)). These items stay open:
+- **Certify suite.** [ADR-SP4Z](entries/SP4Z-certify-suite-calls-the-full-level.md): the suite has four
+  sections, in `tools/certify_platform.py` and `tools/certify_eps.py`, and calls `certify("full")`. These items stay open:
   - The `cleanup` step of `decisions/scripts/xse7_windows_ml_rehearsal.py` fails with
     `record-refused` without the catalog hook. It needs the wrapper
     `decisions/scripts/zgf5_session_measurements/hooked_cleanup.py`
@@ -220,11 +217,9 @@ field-test opt-in. The level `full` is built in the package
 1. A run of the level `full` on a plugin EP (`cuda`, `trt-rtx`), on Linux and on macOS. Only
    `directml` on one Windows host ran it. Then calibrate its time estimates and the time estimates of
    the level `quick`.
-2. `tools/certify_platform.py` must call `certify("full")` and add its own checks to the same report:
-   the versions against `uv.lock`, the hardware probe against the tools of the OS, and the install of
-   each pack ([ADR-75J6](entries/75J6-full-level-in-certify-and-uuid-report-id.md) item 5). Add their
-   reason codes to `skellytracker/REASON_CODES.md`. Remove sections 6 and 7. A build must write
-   `skellytracker/_build_info.py`: the reader exists, the build step does not.
+2. A run of the sections `packs` and `full` of `tools/certify_platform.py` on a host. Only the sections
+   `checkout` and `hardware` ran ([ADR-SP4Z](entries/SP4Z-certify-suite-calls-the-full-level.md)). A build
+   must write `skellytracker/_build_info.py`: the reader exists, the build step does not.
 3. A run of the quick check of `coreml` on a Mac. No Mac ran it
    ([ADR-ER5X](entries/ER5X-check-rule-unclean-exits-and-coreml.md) item 6).
 4. A run of an install from the Windows ML catalog with a download, its progress and its cancel. The

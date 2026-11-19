@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the certify suite of this checkout on this host, and write one Markdown report.
+"""Run the certify suite of this checkout on this host, and write one report file in the format of ``skellycertify``.
 
 Usage::
 
@@ -23,18 +23,37 @@ A volunteer runs this command in a clone at a certification tag (decision Y14H).
 4. asks the yes/no questions of the sections and one optional free-text note, only when stdin is a
    terminal;
 5. deletes its work folder ``.certify-work/`` (git ignores it), also after a failure, Ctrl+C,
-   SIGTERM or SIGHUP, and writes the report. Each cleanup step that fails is a row of ``cleanup``
-   in the report, and the report is still written. The default report is
+   SIGTERM or SIGHUP, and writes the report file. Each cleanup step that fails is a row of ``cleanup``
+   in the report, and the report is still written. The default report file is
    ``certify-report-<UTC start time>.md`` in the current folder, and ``created_utc`` of the report is
    the same instant. The tool prints its path. At the start, the suite first acts on the records of a
    work folder that an earlier run left, then deletes it.
    If it cannot delete it, the suite stops with exit code 1 and runs nothing.
 
-The report has a summary table (section, result, one-line reason), the details of each section and,
-last, the same data as one fenced JSON block (``report_data()`` reads it). The schema id is
-``REPORT_SCHEMA``, and the report records ``SUITE_VERSION``. A result is ``pass``, ``fail``,
-``not-run`` or ``record-only``, with a fixed reason code, never an error text. A report is valid as
-evidence only from a clean checkout of a tag with all sections run. The report holds no hostname,
+The sections (``SECTIONS``): 1 ``checkout``, the checkout and the versions against ``uv.lock``; 2
+``hardware``, the hardware probe against the tools of the OS (``tools/certify_hardware.py``); 3
+``packs``, the install and the verify of each EP pack (``tools/certify_eps.py``); 4 ``full``,
+``skellytracker.certify("full")`` (``tools/certify_eps.py``).
+
+The report file obeys sections 4.1 and 4.2 of ``report-format.md`` of the repository ``skellycertify``.
+It has the title, the line of the module, a summary table with one row for each check, a short part
+for a person and, last, one fenced JSON block (``report_data()`` reads it):
+``{"schema", "app": null, "modules": [<module report>], "note"}``. The one module report is the
+report of section 4, with ``kind`` ``full`` and ``created_utc`` set to the start of the run. When
+section 4 gave no report, it is the empty report of ``_base_report()`` of the package. Its ``checks``
+start with the checks of the suite: ``suite:<slug>`` with the result of each section, and
+``suite:<slug>:<name>`` for each check of a section. Section 4 gives ``suite:full`` only when it gave
+no report. A result is ``pass``, ``fail``, ``not-run`` or ``record-only``, with a fixed reason code,
+never an error text. A ``fail`` or a ``not-run`` with no code gets ``unspecified``.
+``details.suite`` holds ``SUITE_VERSION``, the selected sections, the summary, the time and the
+details of each section, ``telemetry_database`` and the answers. The free-text note is ``note`` of the
+file object.
+
+``evidence.reasons`` holds the reasons of the module report and the reasons of the suite
+(``suite_reasons()``): ``section-1-not-run``, ``no-commit``, ``modified-tree``, ``python-differs`` and
+``packages-differ`` from section 1, ``partial-run`` for a section that was not selected or did not
+run, and ``cancelled`` after Ctrl+C. A report is valid as evidence only with no reason. The tag is a
+fact of section 1, not a rule. The report holds no hostname,
 no user name, no absolute path, no serial number and no bus address: each section takes OS facts
 through an allowlist of fields, and ``scrub()`` removes the user name, the home folder, the checkout
 folder and the hostname from each string. The report records whether the telemetry folder of ONNX Runtime
@@ -42,8 +61,7 @@ exists before and after the run (``telemetry_database``, booleans only), and sec
 of ``ORT_DISABLE_TELEMETRY``: the check ``telemetry-switch`` is ``record-only`` with ``telemetry-on`` when it
 is not ``1`` or ``true`` (ADR-BZ7X). A user name or a hostname that is also a word of a public
 fact (``report_words()``) stays in the report fields, and the report records only the count; the
-notes are scrubbed with each word. A report is valid as evidence only when section 1 also found the
-Python and the packages of ``uv.lock``. The suite needs no administrator rights. On Windows with
+note is scrubbed with each word. The suite needs no administrator rights. On Windows with
 an AMD GPU, the one system change is the Windows ML package of each AMD EP that the catalog offers:
 the consent names the EP, and at the end the frame removes each package that section 3 installed
 (``remove_windows_packages``), also after a crash, a timeout or Ctrl+C. A package that stays is a
@@ -52,13 +70,10 @@ the consent names the EP, and at the end the frame removes each package that sec
 Each child gets ``SKELLYTRACKER_EP_STORE`` and ``SKELLYTRACKER_EP_CACHE`` set to folders of the work
 folder: the suite installs and tests the EP packs in its own EP store, and uses and changes no EP
 store or EP cache of the user. The suite writes ``options.json`` (for example ``--wheel-dir``) into
-the work folder, and the result of each section as ``section-<N>.json``: a later section reads an
+the work folder, and the result of each section as ``section-<N>.json``: a later section can read an
 earlier result there. At the end it deletes each file of ``remove-at-end.json`` of the work folder:
 a section lists each file that it downloads outside the work folder, for example a model file. It
 deletes only a path inside the model folder ``skellytracker/core/model_zoo/``.
-
-Sections 3 and 4 are in ``tools/certify_eps.py``, section 5 is in ``tools/certify_jpeg.py``. Sections 6
-and 7 are placeholders: their result is ``not-run`` with the reason code ``not-built``.
 """
 
 from __future__ import annotations
@@ -76,6 +91,7 @@ import subprocess
 import sys
 import threading
 import time
+import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -84,23 +100,24 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = Path(__file__).resolve()
 WORK_DIR = REPO_ROOT / ".certify-work"
 MODEL_ROOT = REPO_ROOT / "skellytracker" / "core" / "model_zoo"
-REPORT_SCHEMA = "skellytracker.certify-suite/1"
-SUITE_VERSION = 1
+REPORT_SCHEMA = "skellycertify.report/1.1.0"  # `SCHEMA` of `skellytracker/certification.py`
+SUITE_VERSION = 2
 RESULTS = ("pass", "fail", "not-run", "record-only")
 EXIT_OK, EXIT_FAILURE, EXIT_NO_CONSENT, EXIT_CANCELLED = 0, 1, 2, 6  # the exit codes of `skellytracker-eps`
 NOTES_LIMIT = 2000
+REASON = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$")  # a reason code of the contract
 EXIT_GRACE_SECONDS = 20  # time a child gets to exit after its complete result (`hung-at-exit`); the package has the same value
 
 
 @dataclass(frozen=True)
 class Section:
     number: int
+    slug: str  # the check names `suite:<slug>` and the key of `details.suite.sections`
     name: str
     estimate_seconds: int
     timeout_seconds: int
     run: Callable[[Path], dict]  # runs in the child process; it gets the work folder
     downloads: Callable[[dict], tuple[tuple[str, int], ...]] | None = None  # the options -> (name, bytes) of each download
-    built: bool = True
 
 
 def outcome(checks: list[dict]) -> str:
@@ -261,7 +278,7 @@ def onnx_stack_facts() -> dict:
 
 
 # --------------------------------------------------------------------------------------------
-# Sections 2 to 7
+# Sections 2 to 4
 # --------------------------------------------------------------------------------------------
 
 
@@ -277,16 +294,10 @@ def section_eps(work: Path) -> dict:
     return certify_eps.section_eps(work)
 
 
-def section_pipeline(work: Path) -> dict:
+def section_full(work: Path) -> dict:
     import certify_eps
 
-    return certify_eps.section_pipeline(work)
-
-
-def section_jpeg(work: Path) -> dict:
-    import certify_jpeg
-
-    return certify_jpeg.section_jpeg(work)
+    return certify_eps.section_full(work)
 
 
 def eps_downloads(options: dict) -> tuple:
@@ -312,23 +323,14 @@ def telemetry_database() -> bool:
     return bool(base) and (Path(base) / "Microsoft" / "DeveloperTools" / ".onnxruntime").exists()
 
 
-def not_built(work: Path) -> dict:
-    return {"result": "not-run", "reason_code": "not-built", "summary": "not built in this suite version", "checks": [], "details": {}}
-
-
 SECTIONS = (
-    Section(1, "Checkout and versions", 10, 120, section_checkout),
-    Section(2, "Hardware probe", 20, 300, section_hardware),
+    Section(1, "checkout", "Checkout and versions", 10, 120, section_checkout),
+    Section(2, "hardware", "Hardware probe", 20, 300, section_hardware),
     # 3: on an RTX 3070 host, 40 s with the download of 1.12 GB on a fast link, 15 s from --wheel-dir; the limit allows a slow link
-    Section(3, "EPs: install, verify and certify", 60, 2400, section_eps, eps_downloads),
-    # 4: about 115 s on a host with an RTX 3070 and an Intel UHD 770 (DirectML on each GPU), and about 20 s more for the CPU EP
-    # at 3 and 6 cameras; the limit allows a slow TensorRT RTX engine build on each camera count
-    Section(4, "Pipeline on each EP against the CPU EP", 140, 1800, section_pipeline, pipeline_downloads),
-    # 5: after 4, so the model files of section 4 are still there. About 12.5 s for the CPU paths with the model files,
-    # 14 s for cuda and 20 s for trt-rtx with no model files (RTX 3070); the limit allows an engine build and a hang at exit
-    Section(5, "JPEG decode and preprocess", 60, 600, section_jpeg),
-    Section(6, "Cameras", 0, 60, not_built, built=False),
-    Section(7, "JPEG encode and decode speed", 0, 60, not_built, built=False),
+    Section(3, "packs", "EP packs: install and verify", 60, 2400, section_eps, eps_downloads),
+    # 4: not calibrated. The pipeline part took about 135 s and the JPEG part 12.5 s to 20 s on a host with an RTX 3070 and an
+    # Intel UHD 770; the limit allows a slow TensorRT RTX engine build on each camera count and a hang at exit
+    Section(4, "full", "Full level of certify()", 200, 3000, section_full, pipeline_downloads),
 )
 
 
@@ -338,7 +340,7 @@ SECTIONS = (
 
 
 def finding(section: Section, result: str, reason_code: str | None, summary: str, **numbers) -> dict:
-    return {"number": section.number, "name": section.name, "result": result, "reason_code": reason_code, "summary": summary,
+    return {"number": section.number, "slug": section.slug, "name": section.name, "result": result, "reason_code": reason_code, "summary": summary,
             "seconds": None, "exit_code": None, "checks": [], "details": {}, "questions": [], **numbers}
 
 
@@ -496,12 +498,13 @@ def run_section(section: Section, command: list[str], env: dict | None = None) -
     data = parse_result("".join(lines))
     if data is None:
         code, summary = problem or ("bad-output", "the child process printed no result object")
-        return finding(section, "fail", code if code != "hung-at-exit" else "timed-out", summary, seconds=seconds, exit_code=exit_code)
+        return finding(section, "fail", code if code != "hung-at-exit" else "timed-out", summary, seconds=seconds, exit_code=exit_code,
+                       no_result=True)
     extra = [check("exit", "record-only", problem[0], exit_code=exit_code,
                    **({"grace_seconds": EXIT_GRACE_SECONDS} if problem[0] == "hung-at-exit" else {}))] if problem else []
     return {**finding(section, data["result"], data.get("reason_code"), str(data.get("summary", ""))),
             "checks": [*data.get("checks", []), *extra], "details": data.get("details", {}), "questions": data.get("questions", []),
-            "seconds": seconds, "exit_code": exit_code}
+            "seconds": seconds, "exit_code": exit_code, **({"report": data["report"]} if isinstance(data.get("report"), dict) else {})}
 
 
 def private_terms() -> tuple[list[str], list[str]]:
@@ -515,8 +518,9 @@ def private_terms() -> tuple[list[str], list[str]]:
     return [str(REPO_ROOT), sys.prefix, str(Path.home())], sorted(word for word in words if word)
 
 
-PUBLIC_KEYS = {"result", "reason_code", "reasons", "state", "status", "catalog_status", "key", "ep", "name", "os_label",
-               "os_version", "cpu_name", "system", "release", "version", "machine"}  # suite vocabulary and public host facts
+PUBLIC_KEYS = {"result", "reason_code", "reason", "reasons", "state", "status", "catalog_status", "key", "ep", "name", "os_label",
+               "os_version", "cpu_name", "system", "release", "version", "machine", "label", "arch",
+               "vendor"}  # suite vocabulary and public host facts
 
 
 def host_facts_text() -> list[str]:
@@ -555,7 +559,7 @@ def report_words(words: list[str], data, public: list[str]) -> list[str]:
     return [word for word in words if not re.search(rf"(?<![A-Za-z0-9]){re.escape(word)}(?![A-Za-z0-9])", text, re.IGNORECASE)]
 
 
-PATH_PATTERN = re.compile(r"(?:\b[A-Za-z]:[\\/]|\\\\|/(?:home|Users)/)[^\s\"'|,;]*")
+PATH_PATTERN = re.compile(r"(?:\b[A-Za-z]:[\\/]|\\\\[^\\\s]|/(?:home|Users|root)/|~[\\/])[^\s\"'|,;]*")  # rule 1 of section 6
 
 
 def scrub(value, paths: list[str], words: list[str]):
@@ -574,83 +578,117 @@ def scrub(value, paths: list[str], words: list[str]):
     return PATH_PATTERN.sub("<path>", value)
 
 
-def evidence_state(results: list[dict], selected: set[int], sections: tuple[Section, ...]) -> dict:
-    """Valid as evidence only from a clean checkout of a tag, with all sections selected and none interrupted."""
+def suite_reasons(results: list[dict], selected: set[int], interrupted: bool) -> list[str]:
+    """The evidence reasons of the suite: the checkout and the versions of section 1, a part of the sections, and Ctrl+C."""
     first = next((r for r in results if r["number"] == 1), None)
     facts = (first or {}).get("details", {}).get("checkout") or {}
     failed = {c.get("name") for c in (first or {}).get("checks", ()) if c.get("result") == "fail"}
-    reasons = [code for code, bad in (
-        ("section-1-not-run", not facts), ("no-tag", facts and facts.get("tag") is None),
-        ("modified-tree", facts and facts.get("clean") is not True), ("python-differs", "python" in failed),
-        ("packages-differ", "packages" in failed), ("partial-run", selected != {s.number for s in sections}),
-        ("interrupted", any(r["reason_code"] == "interrupted" for r in results))) if bad]
-    return {"valid": not reasons, "reasons": reasons, "tag": facts.get("tag"), "commit": facts.get("commit")}
+    partial = any(r["number"] not in selected or r["result"] == "not-run" or r.get("no_result") for r in results)
+    return [code for code, bad in (
+        ("section-1-not-run", not facts), ("no-commit", bool(facts) and facts.get("commit") is None),
+        ("modified-tree", bool(facts) and facts.get("clean") is not True), ("python-differs", "python" in failed),
+        ("packages-differ", "packages" in failed), ("partial-run", partial), ("cancelled", interrupted)) if bad]
+
+
+def reason_code(code, result: str) -> str | None:
+    """`code` as a reason code of the contract, with `-` for each other character. A `fail` or `not-run` with no code: `unspecified`."""
+    if code is None:
+        return "unspecified" if result in ("fail", "not-run") else None
+    return re.sub(r"[^A-Za-z0-9_-]", "-", str(code)).lstrip("_-")[:80] or "unspecified"
+
+
+def suite_check(name: str, result: str, code, numbers: dict) -> dict:
+    """One check of the module report: `-` for each character that a check name cannot hold, and only the numbers that
+    the contract allows (a number, a boolean, None or a reason code)."""
+    row = {"name": re.sub(r"[^A-Za-z0-9_.:@-]", "-", name)[:128], "result": result, "reason": reason_code(code, result)}
+    numbers = {key: value for key, value in numbers.items()
+               if value is None or isinstance(value, bool | int | float) or (isinstance(value, str) and REASON.match(value))}
+    return {**row, "numbers": numbers} if numbers else row
+
+
+def suite_checks(results: list[dict], report: dict | None) -> list[dict]:
+    """`suite:<slug>` for each section (for section 4 only with no `report`), and `suite:<slug>:<name>` for each of its checks."""
+    rows = []
+    for r in results:
+        if r["slug"] != "full" or report is None:
+            rows.append(suite_check(f"suite:{r['slug']}", r["result"], r["reason_code"],
+                                    {key: r[key] for key in ("seconds", "exit_code") if r[key] is not None}))
+        rows += [suite_check(f"suite:{r['slug']}:{c['name']}", c["result"], c.get("reason_code"),
+                             {key: value for key, value in c.items() if key not in ("name", "result", "reason_code")})
+                 for c in r["checks"]]
+    return rows
+
+
+def base_report(created: str) -> tuple[dict, list[str]]:
+    """The empty module report of the level `full` (`_base_report()` of the package) and its evidence reasons."""
+    try:
+        sys.path.insert(0, str(REPO_ROOT))
+        from skellytracker import certification
+        from skellytracker.core.system.host import probe_host
+
+        return certification._base_report("full", created, probe_host())
+    except Exception:  # noqa: BLE001 - a broken install still gets its report file
+        return ({"schema": REPORT_SCHEMA, "package": {"name": "skellytracker", "version": None, "commit": None, "tree_modified": None},
+                 "kind": "full", "created_utc": created, "host": {}, "checks": [], "cleanup": [], "details": {}},
+                ["no-version", "no-commit", "modified-tree"])
+
+
+def module_report(results: list[dict], selected: set[int], interrupted: bool, created: str, cleanup: list[dict],
+                  telemetry: dict, answers: list[dict]) -> dict:
+    """The one module report of the run: the report of section 4, or an empty one, with the checks and the facts of the suite."""
+    report = next((r.get("report") for r in results if r["slug"] == "full"), None)
+    base, reasons = (report, (report.get("evidence") or {}).get("reasons", [])) if report else base_report(created)
+    reasons = list(dict.fromkeys([*reasons, *suite_reasons(results, selected, interrupted)]))
+    suite = {"version": SUITE_VERSION, "selected": [r["slug"] for r in results if r["number"] in selected],
+             "sections": {r["slug"]: {"summary": r["summary"], "seconds": r["seconds"], "details": r["details"]} for r in results},
+             "telemetry_database": telemetry, "answers": answers}
+    return {**base, "kind": "full", "created_utc": created, "checks": [*suite_checks(results, report), *base.get("checks", [])],
+            "cleanup": [*base.get("cleanup", []), *({"name": c["name"], "result": c["result"],
+                                                    "reason": reason_code(c["reason_code"], c["result"])} for c in cleanup)],
+            "details": {**base.get("details", {}), "suite": suite}, "evidence": {"valid": not reasons, "reasons": reasons}}
 
 
 def cell(text) -> str:
     return " ".join(str(text if text is not None else "").split()).replace("|", "\\|")
 
 
-def scalar(value) -> str:
-    return "none" if value is None else json.dumps(value) if isinstance(value, bool) else str(value)
-
-
-def markdown_lines(value, depth: int = 0) -> list[str]:
-    """`value` as a nested Markdown list. A map or a list of plain values is one line."""
-    def deep(item) -> bool:
-        return isinstance(item, dict | list) and any(isinstance(v, dict | list) for v in (item.values() if isinstance(item, dict) else item))
-
-    pad, lines = "  " * depth, []
-    items = list(value.items()) if isinstance(value, dict) else [(None, item) for item in value]
-    all_deep = isinstance(value, list) and any(deep(item) for item in value)  # the items of one list share one form
-    for key, item in items:
-        label = f"{key}: " if key is not None else ""
-        if deep(item) or (all_deep and isinstance(item, dict) and item):
-            lines += [f"{pad}- {label}".rstrip(), *markdown_lines(item, depth + 1)]
-        elif isinstance(item, dict):
-            lines.append(f"{pad}- {label}" + (", ".join(f"{k}: {scalar(v)}" for k, v in item.items()) or "none"))
-        elif isinstance(item, list):
-            lines.append(f"{pad}- {label}" + (", ".join(map(scalar, item)) or "none"))
-        else:
-            lines.append(f"{pad}- {label}{scalar(item)}")
-    return lines
-
-
 def render(data: dict) -> str:
-    """The Markdown report: summary table, details of each section, then the data as the last fenced JSON block."""
-    proof = data["evidence"]
-    lines = ["# skellytracker certify report", "",
-             f"Schema `{data['schema']}`, suite version {data['suite_version']}, created {data['created_utc']} (UTC).", "",
-             (f"**Valid as evidence:** clean checkout of the tag `{proof['tag']}`, all sections run." if proof["valid"] else
-              f"**Not valid as evidence:** {', '.join(proof['reasons'])}. The report is kept as a record only."), "",
-             "| Section | Result | Reason |", "|---|---|---|"]
-    lines += [f"| {r['number']}. {cell(r['name'])} | {r['result']} | {cell(r['summary'] or r['reason_code'])} |" for r in data["sections"]]
-    if data.get("cleanup"):
-        lines += ["", "Cleanup:", "", "| Check | Result | Reason |", "|---|---|---|",
-                  *(f"| {cell(c['name'])} | {c['result']} | {cell(c['reason_code'])} |" for c in data["cleanup"])]
-    if "telemetry_database" in data:
-        found = data["telemetry_database"]
-        lines += ["", "Telemetry folder of ONNX Runtime: " + ", ".join(f"{k} {'yes' if v else 'no'}" for k, v in found.items()) + "."]
-    for r in data["sections"]:
-        lines += ["", f"## {r['number']}. {r['name']}", "",
-                  f"Result: **{r['result']}**" + (f", reason `{r['reason_code']}`" if r["reason_code"] else "")
-                  + (f", {r['seconds']} s" if r["seconds"] is not None else "")
-                  + (f", exit code {r['exit_code']}" if r["exit_code"] not in (None, 0) else "") + "."]
-        if r["checks"]:
-            lines += ["", "| Check | Result | Reason |", "|---|---|---|"]
-            lines += [f"| {cell(c['name'])} | {c['result']} | {cell(c.get('reason_code') or '')} |" for c in r["checks"]]
-        if r["details"]:
-            lines += ["", *markdown_lines(r["details"])]
-    if data["answers"] or data["notes"]:
-        lines += ["", "## Answers", "", *(f"- {cell(a['text'])} **{a['answer'] or 'no answer'}**" for a in data["answers"])]
-        lines += ["", "Notes:", "", *(f"> {line}" for line in (data["notes"] or "").splitlines())] if data["notes"] else []
+    """The report file of sections 4.1 and 4.2 of the contract: the part for a person, then the data as the last fenced JSON block."""
+    modules = data["modules"]
+    lines = ["# Certify report", "", f"Schema `{data['schema']}`, created {modules[0]['created_utc']} (UTC).", ""]
+    for m in modules:
+        proof, package = m["evidence"], m["package"]
+        lines.append(f"**{package['name']} {package['version'] or 'with no version'}:** " +
+                     ("valid as evidence." if proof["valid"] else f"not valid as evidence: {', '.join(proof['reasons'])}."))
+    lines += ["", "| Module | Section | Result | Reason |", "|---|---|---|---|"]
+    lines += [f"| {cell(m['package']['name'])} | {cell(c['name'])} | {c['result']} | {cell(c['reason'])} |" for m in modules for c in m["checks"]]
+    names = {s.slug: f"{s.number}. {s.name}" for s in SECTIONS}
+    for m in modules:
+        suite = m["details"].get("suite", {})
+        lines += ["", "## Sections", ""]
+        lines += [f"- {names.get(slug, slug)}: {cell(found['summary'])}" + (f" ({found['seconds']} s)." if found["seconds"] is not None else ".")
+                  for slug, found in suite.get("sections", {}).items()]
+        eps = [c for c in m["checks"] if ":" not in c["name"]]  # a name with no `:` is the check of an EP on a GPU
+        if eps:
+            lines += ["", "## EP checks", "", "| Check | Result | Reason |", "|---|---|---|",
+                      *(f"| {cell(c['name'])} | {c['result']} | {cell(c['reason'])} |" for c in eps)]
+        if m.get("cleanup"):
+            lines += ["", "Cleanup:", "", "| Check | Result | Reason |", "|---|---|---|",
+                      *(f"| {cell(c['name'])} | {c['result']} | {cell(c['reason'])} |" for c in m["cleanup"])]
+        if "telemetry_database" in suite:
+            lines += ["", "Telemetry folder of ONNX Runtime: " +
+                      ", ".join(f"{k} {'yes' if v else 'no'}" for k, v in suite["telemetry_database"].items()) + "."]
+        if suite.get("answers"):
+            lines += ["", "## Answers", "", *(f"- {cell(a['text'])} **{a['answer'] or 'no answer'}**" for a in suite["answers"])]
+    if data["note"]:
+        lines += ["", "## Note", "", *(f"> {line}" for line in data["note"].splitlines())]
     text = json.dumps(data, indent=1)
     fence = "`" * max(3, 1 + max((len(run) for run in re.findall(r"`+", text)), default=0))
     return "\n".join([*lines, "", "## Data", "", fence + "json", text, fence, ""])
 
 
 def report_data(markdown: str) -> dict:
-    """The data of a report: the fenced JSON block at its end."""
+    """The data of a report file: the fenced JSON block at its end."""
     match = re.search(r"^(`{3,})json\n(.*)\n\1\s*\Z", markdown, re.DOTALL | re.MULTILINE)
     if match is None:
         raise ValueError("the report does not end with a fenced JSON block")
@@ -687,7 +725,7 @@ def plan_text(sections: tuple[Section, ...], selected: set[int], out: Path, opti
               os_platform: str = sys.platform, windows_eps: Callable[[], list[str]] | None = None) -> str:
     chosen = [s for s in sections if s.number in selected]
     lines = ["The certify suite will run these sections, each in its own process:"]
-    lines += [f"  {s.number}. {s.name}: " + (f"about {s.estimate_seconds} s" if s.built else "not built yet, skipped") for s in chosen]
+    lines += [f"  {s.number}. {s.name}: about {s.estimate_seconds} s" for s in chosen]
     lines.append(f"Total: about {sum(s.estimate_seconds for s in chosen)} s.")
     downloads = [item for s in chosen for item in section_downloads(s, options or {})]
     lines.append("Downloads: " + ("none." if not downloads else
@@ -745,7 +783,7 @@ def run_suite(sections: tuple[Section, ...], selected: set[int], out: Path, *, y
                 results.append(finding(section, "not-run", "not-selected", "not selected with --only"))
                 continue
             if interrupted:
-                results.append(finding(section, "not-run", "interrupted", "the run was stopped with Ctrl+C"))
+                results.append(finding(section, "not-run", "cancelled", "the run was stopped with Ctrl+C"))
                 continue
             print(f"Section {section.number}: {section.name} ...", flush=True)
             try:
@@ -753,13 +791,13 @@ def run_suite(sections: tuple[Section, ...], selected: set[int], out: Path, *, y
                 (work / f"section-{section.number}.json").write_text(json.dumps(results[-1]), encoding="utf-8")
             except KeyboardInterrupt:
                 interrupted = True
-                results.append(finding(section, "not-run", "interrupted", "the run was stopped with Ctrl+C"))
+                results.append(finding(section, "not-run", "cancelled", "the run was stopped with Ctrl+C"))
             print(f"Section {section.number}: {results[-1]['result']}" + (f" ({results[-1]['reason_code']})" if results[-1]["reason_code"] else ""),
                   flush=True)
         if interactive and not interrupted:
             try:
                 for r in results:
-                    answers += [{"section": r["number"], "id": q["id"], "text": q["text"], "answer": ask_yes_no(q["text"], ask)}
+                    answers += [{"section": r["slug"], "id": q["id"], "text": q["text"], "answer": ask_yes_no(q["text"], ask)}
                                 for q in r["questions"]]
                 print("Optional: one line of notes about this run, for example a problem that you saw.")
                 print("Do not write your name, contact details or other personal details.")
@@ -773,13 +811,16 @@ def run_suite(sections: tuple[Section, ...], selected: set[int], out: Path, *, y
         if work.exists():
             cleanup.append(check("delete-work-folder", "fail", "not-deleted"))
             print(f"Could not delete {work.name}/ completely: delete it by hand.", file=sys.stderr)
-    data = {"schema": REPORT_SCHEMA, "suite_version": SUITE_VERSION, "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", started),
-            "selected": sorted(selected), "evidence": evidence_state(results, selected, sections), "sections": results,
-            "cleanup": cleanup, "telemetry_database": {"before": database_before, "after": telemetry_database()},
-            "answers": answers, "notes": None}
+    module = module_report(results, selected, interrupted, time.strftime("%Y-%m-%dT%H:%M:%SZ", started), cleanup,
+                           {"before": database_before, "after": telemetry_database()}, answers)
+    report_id = module.get("id") or str(uuid.uuid4())  # the id of section 4; read before the scrub, so a private word cannot change it
     paths, words = private_terms()
-    kept = report_words(words, data, [*RESULTS, *(s.name for s in sections), *host_facts_text()])
-    data = {**scrub(data, paths, kept), "notes": scrub(notes, paths, words), "scrub": {"exempted_terms": len(words) - len(kept)}}
+    kept = report_words(words, module, [*RESULTS, *(s.name for s in sections), *host_facts_text()])
+    module = scrub(module, paths, kept)
+    found = (module["details"].get("scrub") or {}).get("exempted_terms", 0)
+    module["details"]["scrub"] = {"exempted_terms": max(found, len(words) - len(kept))}
+    module = {"schema": REPORT_SCHEMA, "id": report_id, **{key: value for key, value in module.items() if key not in ("schema", "id")}}
+    data = {"schema": REPORT_SCHEMA, "app": None, "modules": [module], "note": scrub(notes, paths, words)}
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(render(data), encoding="utf-8", newline="\n")
     print(f"Report written to {out}")

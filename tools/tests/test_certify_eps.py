@@ -8,16 +8,20 @@ from types import SimpleNamespace
 
 import certify_eps as ce
 import certify_platform as cp
-import cv2
-import numpy as np
 import pytest
+from test_certify_platform import fake_base  # noqa: F401 - fixture: the empty module report on a fake host
 
-from skellytracker.core import eps, pipelines
-from skellytracker.core.eps import _download, certification, store
+import skellytracker
+from skellytracker.core import eps
+from skellytracker.core.eps import _download, store
 from skellytracker.tests.hw_fakes import GIB, gpu, host
 
 DATA = b"model bytes" * 100
 SHA = hashlib.sha256(DATA).hexdigest()
+
+
+def unused(work: Path) -> dict:
+    raise AssertionError("a fake section runs only through its command")
 
 
 @pytest.fixture(autouse=True)
@@ -48,10 +52,8 @@ def device(device_key):
 
 def fake_eps(monkeypatch, rows, vendor="nvidia", probe_result="pass", gpus=None, verify_ok=None, catalog_eps=None,
              probe_reason="probe-l3-failed"):
-    calls = {"install": [], "certify": [], "verify": [], "fallback": []}
+    calls = {"install": [], "certify": [], "verify": []}
     monkeypatch.setattr(ce, "windows_ml_eps", lambda catalog, host: dict(catalog_eps or {}))
-    monkeypatch.setattr(ce, "run_fallback", lambda work, *args: calls["fallback"].append(args) or {
-        "result": "pass", "reason_code": None, "ort_version": "1.29.0", "ort_fallback": True, "certifies_version_set": False})
     gpus = gpus or ((RADEON,) if vendor == "amd" else (RTX,))
     status = SimpleNamespace(eps=rows, host=host(*gpus),
                              performance=SimpleNamespace(hardware_class="amd-windows" if vendor == "amd" else "nvidia-cc80-r580"))
@@ -120,34 +122,18 @@ def test_section_3_on_an_amd_host_tests_each_offered_windows_ml_ep(work, monkeyp
     assert results["amdgpu"] == ("not-run", "not-offered") and results["migraphx@gpu:1002:73bf:0"] == ("pass", None)
     assert found["details"]["hardware_class"] == "amd-windows" and found["result"] == "pass" and "amd-eps" not in results
     migraphx = found["details"]["eps"]["migraphx@gpu:1002:73bf:0"]
-    assert (migraphx["was_present"], migraphx["counts"], migraphx["ort_version"]) == (True, True, ce.ort_version())
-    assert ("migraphx", "gpu:1002:73bf:0") in calls["verify"] and calls["fallback"] == []
-    assert {"key": "migraphx", "device_key": "gpu:1002:73bf:0", "counts": True} in found["details"]["pipeline_targets"]
+    assert (migraphx["was_present"], migraphx["ort_version"]) == (True, ce.ort_version())
+    assert ("migraphx", "gpu:1002:73bf:0") in calls["verify"] and "pipeline_targets" not in found["details"]
 
 
-def test_section_3_runs_migraphx_on_the_second_environment_only_after_a_load_failure(work, monkeypatch):
-    """ADR-XSE7: a failure of the numbers does not start the second environment; a failure of the load does."""
+def test_section_3_has_no_second_environment(work, monkeypatch):
+    """A load failure of migraphx is a `fail` of its one check: the suite builds no other environment."""
     rows = [row("migraphx", "untested-ort", pack_id="migraphx-rocm10.2"), row("cpu", "builtin")]
-    calls = fake_eps(monkeypatch, rows, vendor="amd", probe_result="fail")
-    assert {c["name"] for c in ce.section_eps(work)["checks"]} >= {"migraphx"} and calls["fallback"] == []
-    calls = fake_eps(monkeypatch, rows, vendor="amd", probe_result="fail", probe_reason="probe-l2-failed")
+    fake_eps(monkeypatch, rows, vendor="amd", probe_result="fail", probe_reason="probe-l2-failed")
     found = ce.section_eps(work)
-    results = {c["name"]: (c["result"], c["reason_code"]) for c in found["checks"]}
-    assert results["migraphx"] == ("fail", "probe-l2-failed") and results["migraphx@ort-1.29.0"] == ("pass", None)
-    assert calls["fallback"] == [("eps", "migraphx")] and found["result"] == "fail"  # a pass on 1.29 certifies nothing
-    assert found["details"]["eps"]["migraphx@ort-1.29.0"]["certifies_version_set"] is False
-    assert {"key": "migraphx", "device_key": None, "counts": True, "ort_fallback": True} in found["details"]["pipeline_targets"]
-    assert found["details"]["eps"]["migraphx"]["ort_version"] == ce.ort_version()
-
-
-def test_needs_fallback_only_for_a_load_failure_of_a_fallback_ep():
-    catalog = eps.load_catalog()
-    assert ce.needs_fallback(catalog, "migraphx", {"result": "fail", "reason_code": "probe-l2-failed"})
-    assert ce.needs_fallback(catalog, "migraphx", {"result": "fail", "reason_code": "EpUnavailableError"})
-    assert not ce.needs_fallback(catalog, "migraphx", {"result": "fail", "reason_code": "probe-l3-failed"})
-    assert not ce.needs_fallback(catalog, "migraphx", {"result": "fail", "reason_code": "install-offline"})
-    assert not ce.needs_fallback(catalog, "migraphx", {"result": "pass", "reason_code": None})
-    assert not ce.needs_fallback(catalog, "trt-rtx", {"result": "fail", "reason_code": "probe-l2-failed"})
+    assert [c["name"] for c in found["checks"] if c["name"].startswith("migraphx")] == ["migraphx"]
+    assert (found["result"], found["reason_code"]) == ("fail", "probe-l2-failed")
+    assert not hasattr(ce, "run_fallback") and not hasattr(store, "FALLBACK_VARIABLE")
 
 
 def test_windows_ml_eps_installs_each_offered_package(monkeypatch):
@@ -172,83 +158,7 @@ def test_windows_ml_eps_installs_each_offered_package(monkeypatch):
     assert ce.windows_ml_eps(eps.load_catalog(), host(RTX)) == {}  # no AMD GPU: no catalog call
 
 
-def test_the_second_environment_pins_the_fallback_ort_and_installs_the_checkout(tmp_path, monkeypatch):
-    """ADR-XSE7: `uv export` of the lock with the one ONNX Runtime pin changed; no file of the checkout changes."""
-    commands = []
-
-    def run(args, **kwargs):
-        commands.append(args[1:])
-        out = ("numpy==2.3.1 \\\n    --hash=sha256:" + "1" * 64 + "\n"
-               "onnxruntime==1.30.0 ; sys_platform == 'linux' \\\n    --hash=sha256:" + "2" * 64 + " \\\n    --hash=sha256:" + "3" * 64 + "\n"
-               "    # via skellytracker\n"
-               "onnxruntime-windowsml==1.30.0.1 ; sys_platform == 'win32' \\\n    --hash=sha256:" + "4" * 64 + "\n")
-        return SimpleNamespace(returncode=0, stdout=out if args[1] == "export" else "")
-
-    monkeypatch.setattr(ce.subprocess, "run", run)
-    monkeypatch.setenv("UV", "uv-fake")
-    fallback = eps.load_catalog().data["certification"]["ort_fallback"]
-    python = ce.build_fallback_env(tmp_path, fallback)
-    assert python.parent.parent == tmp_path / "ort-1.29.0" and [c[0] for c in commands] == ["export", "venv", "pip", "pip"]
-    pinned = (tmp_path / "fallback-requirements.txt").read_text(encoding="utf-8")
-    assert (f"\nonnxruntime==1.29.0 ; sys_platform == 'linux' \\\n    --hash=sha256:{fallback['sha256']}\n    # via skellytracker\n"
-            in pinned and "onnxruntime-windowsml==1.30.0.1" in pinned and "1.30.0 ;" not in pinned)
-    assert "2" * 64 not in pinned and "3" * 64 not in pinned and "1" * 64 in pinned and "4" * 64 in pinned
-    assert "--no-hashes" not in commands[0] and "--frozen" in commands[0] and "--require-hashes" in commands[2]
-    assert commands[-1][-2:] == ["-e", str(ce.REPO_ROOT)] and "--no-deps" in commands[-1]  # uv refuses `-e` with --require-hashes
-    build = commands[-1][commands[-1].index("--build-constraints") + 1]
-    assert Path(build).read_text(encoding="utf-8") == f"flit-core==3.12.0 --hash=sha256:{fallback['build_backend']['sha256']}\n"
-    monkeypatch.delenv("UV")
-    monkeypatch.setattr(ce.shutil, "which", lambda name: None)
-    with pytest.raises(RuntimeError, match="no-uv"):
-        ce.build_fallback_env(tmp_path / "other", fallback)
-
-
-@pytest.mark.parametrize(("stage", "error", "expected"), [
-    ("build", ce.subprocess.TimeoutExpired("uv", 900), ("not-run", "build-timed-out")),
-    ("build", OSError("disk full"), ("not-run", "build-failed")),
-    ("run", ce.subprocess.TimeoutExpired("python", 1800), ("fail", "timed-out")),
-    ("run", OSError("no python"), ("fail", "not-started"))])
-def test_a_timeout_or_an_os_error_of_the_second_environment_is_a_code_of_its_one_check(tmp_path, monkeypatch, stage, error, expected):
-    def raise_error(*args, **kwargs):
-        raise error
-
-    monkeypatch.setattr(ce, "build_fallback_env", raise_error if stage == "build" else lambda work, fallback: tmp_path / "python")
-    monkeypatch.setattr(ce.subprocess, "run", raise_error)
-    assert ce.run_fallback(tmp_path, "eps", "migraphx") == {"result": expected[0], "reason_code": expected[1], "ort_version": "1.29.0"}
-
-
-def test_core_mismatch_accepts_the_fallback_ort_only_in_the_second_environment(monkeypatch):
-    from skellytracker.core.eps import installer
-
-    catalog = eps.load_catalog()
-    monkeypatch.setattr(installer, "installed_ort", lambda: ("onnxruntime", "1.29.0"))
-    monkeypatch.delenv(store.FALLBACK_VARIABLE, raising=False)
-    assert "1.29.0" in installer.core_mismatch(catalog)
-    monkeypatch.setenv(store.FALLBACK_VARIABLE, "1.29.0")
-    assert installer.core_mismatch(catalog) is None
-    monkeypatch.setattr(installer, "installed_ort", lambda: ("onnxruntime", "1.28.0"))
-    monkeypatch.setenv(store.FALLBACK_VARIABLE, "1.28.0")  # only the version of the catalog
-    assert installer.core_mismatch(catalog) is not None
-
-
-def test_section_4_runs_a_target_of_the_second_environment_in_a_child(work, monkeypatch):
-    (work / "section-3.json").write_text(json.dumps({"details": {"pipeline_targets": [
-        {"key": "migraphx", "device_key": None, "counts": True, "ort_fallback": True}]}}))
-    monkeypatch.setattr(pipelines, "get_pipeline", lambda key: SimpleNamespace(available=True))
-    monkeypatch.setattr(ce, "fetch_models", lambda models, root, work: [])
-    monkeypatch.setattr(ce, "test_image", lambda settings: np.zeros((8, 8, 3), np.uint8))
-    monkeypatch.setattr(ce, "time_run", lambda pipeline, key, cameras, frame, device: {"median_ms": 1.0})
-    agreement = {"name": "agreement-migraphx@ort-1.29.0", "result": "pass", "reason_code": None}
-    calls = []
-    monkeypatch.setattr(ce, "run_fallback", lambda work, *args: calls.append(args) or {
-        "result": "pass", "reason_code": None, "ort_version": "1.29.0", "found": {"ort_version": "1.29.0"}, "checks": [agreement]})
-    found = ce.section_pipeline(work)
-    assert calls == [("pipeline", "migraphx")] and agreement in found["checks"] and found["result"] == "pass"
-    assert found["details"]["eps"]["migraphx@ort-1.29.0"] == {"ort_version": "1.29.0"}
-    assert found["details"]["eps"]["cpu"]["ort_version"] == ce.ort_version()
-
-
-def test_the_consent_lists_the_fallback_wheel_when_migraphx_can_run(monkeypatch):
+def test_the_consent_lists_the_migraphx_wheels_and_no_second_environment(monkeypatch):
     from skellytracker.core.eps import catalog as catalog_module
     from skellytracker.core.eps import recommendation
     from skellytracker.core.system import host as host_module
@@ -259,7 +169,7 @@ def test_the_consent_lists_the_fallback_wheel_when_migraphx_can_run(monkeypatch)
     monkeypatch.setattr(recommendation, "ep_gpus", lambda catalog, key, h: [("gpu:1002:73bf:0", RADEON)] if key == "migraphx" else [])
     listed = dict(ce.eps_downloads({}))
     assert listed["migraphx_libs-2.19.0+rocm10.2.0-py3-none-manylinux_2_28_x86_64.whl"] == 83770284
-    assert listed["onnxruntime 1.29.0 for a second environment, only when migraphx does not load"] == 23136817
+    assert not any("second environment" in name for name in listed)
 
 
 def test_the_consent_names_the_windows_ml_packages_on_windows(tmp_path):
@@ -289,11 +199,12 @@ def test_the_frame_removes_the_package_of_section_3_also_after_a_crash(tmp_path,
     crash = ("import json, os, sys; s = os.environ['SKELLYTRACKER_EP_STORE']; os.makedirs(s);"
              f" open(s + '/windows-ml.json', 'w').write({json.dumps(json.dumps(record))}); sys.exit(3)")
     out, work = tmp_path / "r.md", tmp_path / "w"
-    fakes = (cp.Section(3, "fake 3", 1, 60, cp.not_built),)
+    fakes = (cp.Section(3, "packs", "fake 3", 1, 60, unused),)
     cp.run_suite(fakes, {3}, out, yes=True, work=work, interactive=False, command=lambda section, _work: [sys.executable, "-c", crash])
-    section = cp.report_data(out.read_text(encoding="utf-8"))["sections"][0]
+    checks = [c for c in cp.report_data(out.read_text(encoding="utf-8"))["modules"][0]["checks"] if c["name"].startswith("suite:")]
     assert removed == [added] and kept in packages and not work.exists()
-    assert section["reason_code"] == "crashed" and section["checks"] == [cp.check(f"remove-{added}", "pass")]
+    assert checks == [{"name": "suite:packs", "result": "fail", "reason": "crashed", "numbers": checks[0]["numbers"]},
+                      {"name": f"suite:packs:remove-{added}", "result": "pass", "reason": None}]
 
 
 def test_a_package_that_stays_fails_section_3(tmp_path):
@@ -308,15 +219,15 @@ DML_ROWS = [row("trt-rtx", "unsupported", "vendor"), row("cuda", "unsupported", 
             row("directml", "builtin", devices=(device("gpu:10de:2484:0"), device("gpu:8086:a780:0"))), row("cpu", "builtin")]
 
 
-def test_section_3_opts_in_and_records_directml_on_each_gpu_as_record_only_off_amd(work, monkeypatch):
-    """ADR-Z5X7 and ADR-Y14H item 11: the probe runs on each GPU; on a GPU that is not AMD it does not count, also when it fails."""
+def test_section_3_opts_in_and_counts_directml_on_each_gpu(work, monkeypatch):
+    """ADR-Z5X7: the probe runs on each GPU, and each result counts, also on a GPU that is not AMD."""
     calls = fake_eps(monkeypatch, DML_ROWS, gpus=(RTX, INTEL), verify_ok={"gpu:8086:a780:0": False})
     found = ce.section_eps(work)
     assert set(store.field_test_opt_ins()) == {"amdgpu", "migraphx", "directml"} and str(store.store_root()).startswith(str(work))
     results = {c["name"]: c["result"] for c in found["checks"]}
-    assert results["directml@gpu:10de:2484:0"] == results["directml@gpu:8086:a780:0"] == "record-only" and found["result"] == "pass"
-    assert ("directml", "gpu:8086:a780:0") in calls["verify"] and found["details"]["eps"]["directml@gpu:8086:a780:0"]["result"] == "fail"
-    assert found["details"]["pipeline_targets"] == [{"key": "directml", "device_key": "gpu:10de:2484:0", "counts": False}]
+    assert (results["directml@gpu:10de:2484:0"], results["directml@gpu:8086:a780:0"]) == ("pass", "fail")
+    assert (found["result"], found["reason_code"]) == ("fail", "probe-l3-failed")
+    assert ("directml", "gpu:8086:a780:0") in calls["verify"] and "counts" not in found["details"]["eps"]["directml@gpu:8086:a780:0"]
     passed = found["details"]["eps"]["directml@gpu:10de:2484:0"]  # a hang at exit is a fact of the details; the probe still passes
     assert passed["result"] == "pass" and passed["probe"]["exit_reason_code"] == "hung-at-exit"
 
@@ -327,56 +238,46 @@ def test_section_3_counts_directml_on_an_amd_gpu(work, monkeypatch):
     found = ce.section_eps(work)
     assert {c["name"]: c["result"] for c in found["checks"]}["directml@gpu:1002:73bf:0"] == "fail" and found["result"] == "fail"
     fake_eps(monkeypatch, rows, vendor="amd")
-    found = ce.section_eps(work)
-    assert found["result"] == "pass" and found["details"]["pipeline_targets"] == [{"key": "directml", "device_key": "gpu:1002:73bf:0", "counts": True}]
+    assert ce.section_eps(work)["result"] == "pass"
 
 
 def test_sections_3_and_4_refuse_to_run_without_the_isolated_store(tmp_path, monkeypatch):
     monkeypatch.delenv(store.STORE_VARIABLE, raising=False)
-    assert ce.section_eps(tmp_path)["reason_code"] == ce.section_pipeline(tmp_path)["reason_code"] == "no-isolated-store"
+    assert ce.section_eps(tmp_path)["reason_code"] == ce.section_full(tmp_path)["reason_code"] == "no-isolated-store"
 
 
-def test_section_4_without_the_model_files_is_not_run(work, monkeypatch):
-    monkeypatch.setattr(pipelines, "get_pipeline", lambda key: SimpleNamespace(available=False))
-    monkeypatch.setattr(ce, "fetch_models", lambda models, root, work: [{"path": "m.onnx", "state": "failed"}])
-    found = ce.section_pipeline(work)
-    assert (found["result"], found["reason_code"], found["details"]["models"]) == ("not-run", "models-missing",
-                                                                                 [{"path": "m.onnx", "state": "failed"}])
+MODULE = {"checks": [{"name": "cpu:pipeline-1", "result": "record-only", "reason": None},
+                     {"name": "cuda@10de-2484-0:probe", "result": "fail", "reason": "probe-l3-failed"},
+                     {"name": "cuda@10de-2484-0", "result": "fail", "reason": "probe-l3-failed"}]}
 
 
-def test_section_4_reads_the_section_3_result_and_runs_each_passed_gpu_ep(work, monkeypatch):
-    (work / "section-3.json").write_text(json.dumps({"details": {"pipeline_targets": [
-        {"key": "trt-rtx", "device_key": None, "counts": True}, {"key": "directml", "device_key": "gpu:8086:a780:0", "counts": False}]}}))
-    monkeypatch.setattr(pipelines, "get_pipeline", lambda key: SimpleNamespace(available=True))
+def test_section_4_fetches_the_models_and_returns_the_module_report_of_certify_full(work, monkeypatch, capsys):
+    fetched, called = [], []
+    monkeypatch.setattr(ce, "fetch_models", lambda models, root, work: fetched.append((len(models), root)) or [{"path": "m.onnx"}])
+
+    def certify(level, progress=None, cancel=None, **options):
+        called.append((level, options))
+        progress({"step": {"name": "cpu:pipeline-1"}})
+        progress({"step": None})
+        return MODULE
+
+    monkeypatch.setattr(skellytracker, "certify", certify)
+    found = ce.section_full(work)
+    assert called == [("full", {})] and fetched == [(4, cp.MODEL_ROOT)]  # the default selection; the four model files of the catalog
+    assert (found["result"], found["reason_code"], found["checks"]) == ("fail", "probe-l3-failed", [])
+    assert found["report"] is MODULE and found["details"] == {"models": [{"path": "m.onnx"}]}
+    assert found["summary"] == "3 checks of certify('full'): 2 fail, 1 record-only"
+    assert "section 4: cpu:pipeline-1" in capsys.readouterr().err
+
+
+def test_section_4_gives_fail_with_the_exception_class_when_certify_raises(work, monkeypatch):
+    def certify(level, progress=None, cancel=None, **options):
+        raise FileNotFoundError("a path that the report must not hold")
+
     monkeypatch.setattr(ce, "fetch_models", lambda models, root, work: [])
-    image = cv2.imencode(".jpg", np.zeros((8, 8, 3), np.uint8))[1].tobytes()
-
-    def fetch(url, sha256, part, **kwargs):
-        part.parent.mkdir(parents=True, exist_ok=True)
-        part.write_bytes(image)
-        return part
-
-    timed, compared = [], []
-    monkeypatch.setattr(_download, "fetch", fetch)
-    monkeypatch.setattr(ce, "time_run", lambda pipeline, key, cameras, frame, device: timed.append((key, cameras, device)) or
-                        {"median_ms": {"cpu": 2.0, "trt-rtx": 1.0}.get(key, 2.2)})
-    monkeypatch.setattr(certification, "_wide_run", lambda key, settings, progress, device: compared.append((key, device)) or {
-        "ran": True, "ok": key != "directml", "reason_code": "keypoints-differ" if key == "directml" else None, "box_iou_min": 0.99,
-        "keypoint_box_fraction_max": 0.005, "keypoint_box_fraction_median": 0.001, "keypoint_box_fraction_p99": 0.004, "points_compared": 100})
-    found = ce.section_pipeline(work)
-    intel = "gpu:8086:a780:0"
-    assert timed == [("cpu", 1, None), ("cpu", 3, None), ("cpu", 6, None), ("trt-rtx", 1, None), ("trt-rtx", 3, None), ("trt-rtx", 6, None),
-                     ("directml", 1, intel), ("directml", 3, intel), ("directml", 6, intel)]
-    assert compared == [("trt-rtx", None), ("directml", intel)]
-    agreement = next(c for c in found["checks"] if c["name"] == "agreement-trt-rtx")
-    assert found["result"] == "pass" and agreement["keypoint_box_fraction_p99"] == 0.004
-    dml = next(c for c in found["checks"] if c["name"] == f"agreement-directml@{intel}")
-    assert (dml["result"], dml["reason_code"]) == ("record-only", "keypoints-differ")  # a failure off AMD does not fail the section
-    assert str(store.cache_root()).startswith(str(work))  # the test image is cached in the work folder
-    timing = found["details"]["eps"]
-    assert {key: (timing[key]["timing"]["6"].get("against_cpu"), timing[key]["timing"]["6"].get("speed_against_cpu"))
-            for key in ("cpu", "trt-rtx", f"directml@{intel}")} == {"cpu": (None, None), "trt-rtx": (0.5, "faster"),
-                                                                   f"directml@{intel}": (1.1, "similar")}
+    monkeypatch.setattr(skellytracker, "certify", certify)
+    found = ce.section_full(work)
+    assert (found["result"], found["reason_code"]) == ("fail", "FileNotFoundError") and "report" not in found
 
 
 def fake_fetch(monkeypatch, data: bytes):
@@ -425,11 +326,11 @@ def test_the_frame_hands_the_options_the_store_and_each_result_to_the_next_secti
               " print(json.dumps({'result': 'record-only', 'details': {'s1': s1['result'], 'wheel': o['wheel_dir'],"
               " 'store': os.environ['SKELLYTRACKER_EP_STORE'].startswith(w), 'cache': os.environ['SKELLYTRACKER_EP_CACHE'].startswith(w)}}))")
     out, work = tmp_path / "r.md", tmp_path / "w"
-    fakes = tuple(cp.Section(n, f"fake {n}", 1, 60, cp.not_built) for n in (1, 2))
+    fakes = (cp.Section(1, "checkout", "fake 1", 1, 60, unused), cp.Section(2, "hardware", "fake 2", 1, 60, unused))
     commands = {1: [sys.executable, "-c", "print('{\"result\": \"pass\"}')"], 2: [sys.executable, "-c", reader, str(work)]}
     cp.run_suite(fakes, {1, 2}, out, yes=True, work=work, interactive=False, options={"wheel_dir": "wheels"},
                  command=lambda section, _work: commands[section.number])
-    second = cp.report_data(out.read_text(encoding="utf-8"))["sections"][1]
+    second = cp.report_data(out.read_text(encoding="utf-8"))["modules"][0]["details"]["suite"]["sections"]["hardware"]
     assert second["details"] == {"s1": "pass", "wheel": "wheels", "store": True, "cache": True} and not work.exists()
     env = cp.child_env(work)
     assert set(env) >= {store.STORE_VARIABLE, store.CACHE_VARIABLE, "SKELLYTRACKER_MODEL_CACHE"}
@@ -442,5 +343,5 @@ def test_the_consent_lists_no_wheel_with_a_wheel_dir_and_survives_a_failing_list
     def broken(options):
         raise OSError
 
-    text = cp.plan_text((cp.Section(3, "s", 1, 60, cp.not_built, broken),), {3}, tmp_path / "r.md")
+    text = cp.plan_text((cp.Section(3, "packs", "s", 1, 60, unused, broken),), {3}, tmp_path / "r.md")
     assert "section 3 (size unknown)" in text

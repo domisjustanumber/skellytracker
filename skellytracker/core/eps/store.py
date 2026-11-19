@@ -38,7 +38,6 @@ from skellytracker.core.eps.records import ComponentState, PackState
 PATH_LIMIT = 240  # a longer DLL path fails registration on Windows, also with long paths enabled
 STORE_VARIABLE = "SKELLYTRACKER_EP_STORE"
 CACHE_VARIABLE = "SKELLYTRACKER_EP_CACHE"
-FALLBACK_VARIABLE = "SKELLYTRACKER_EP_ORT_FALLBACK"  # only the second environment of the certify suite sets it (ADR-XSE7)
 logger = logging.getLogger(__name__)
 _warned: set[str] = set()
 
@@ -79,6 +78,23 @@ def write_json(path: Path, data: dict) -> None:
 
 def read_manifest(pack_id: str, version: str) -> dict | None:
     return read_json(pack_dir(pack_id, version) / "pack.json")
+
+
+def installed_pack_facts(catalog: EpCatalog, key: str) -> dict:
+    """The facts of the installed pack of an EP key for a certification report, read from its manifest in this store.
+
+    `installed_pack_version` is the version of the manifest. `wheels_match_lock` is true when the sha256 values
+    of the wheels that the install recorded are the sha256 values of the lock of the catalog. It reads no wheel
+    and no unpacked file: `pack_state()` checks the size of each unpacked file. An EP with no pack, and a pack
+    with no manifest, give no fact.
+    """
+    pack = catalog.pack(key)
+    manifest = None if pack is None else read_manifest(pack["id"], pack["version"])
+    if not isinstance(manifest, dict):
+        return {}
+    recorded = sorted(str(wheel[1]) for wheel in manifest.get("wheels") or () if isinstance(wheel, list) and len(wheel) == 2)
+    locked = sorted(wheel["sha256"] for wheel in (catalog.pack_lock(pack["id"]) or {}).get("wheels", ()))
+    return {"installed_pack_version": manifest.get("version"), "wheels_match_lock": bool(locked) and recorded == locked}
 
 
 def path_guard(folder: Path, relative_paths) -> str | None:
@@ -137,12 +153,10 @@ def entry_digest(catalog: EpCatalog, pack: dict) -> str:
 def verdict_key(catalog: EpCatalog, pack: dict, gpu, device_key: str | None, os_build) -> str:
     """The key of a verification result. A new driver, ONNX Runtime distribution, pack, device, OS build or catalog
     entry of the pack (`entry_digest()`) gives a new key.
-
-    In the second environment of the certify suite, the ONNX Runtime part is the version of that environment.
     """
     ids = "none" if gpu is None else f"{gpu.pci_vendor_id}:{gpu.pci_device_id}:{gpu.pci_subsys_id}"
     driver = None if gpu is None else gpu.driver_version
-    ort = os.environ.get(FALLBACK_VARIABLE) or catalog.ort_distribution[1]
+    ort = catalog.ort_distribution[1]
     return "|".join(str(part) for part in (ort, pack["id"], pack["version"], driver, ids, device_key,
                                            os_build, entry_digest(catalog, pack)))
 

@@ -443,9 +443,12 @@ def test_the_check_rule_refuses_a_run_and_a_session_and_the_certification_code_p
     catalog = eps.load_catalog()
     for call in (lambda: eps.check_start("directml"), lambda: eps.check_start("directml", device="gpu:8086:a780:0"),
                  lambda: eps.build_session(b"model", execution_provider="directml")):
-        with pytest.raises(EpUnavailableError, match="skellytracker-eps certify directml --quick"):
+        with pytest.raises(EpUnavailableError, match="skellytracker-eps certify directml --quick") as refusal:
             call()
+        assert (refusal.value.execution_provider, refusal.value.reason_code) == ("directml", "quick-check-needed")
+        assert refusal.value.device_key is not None and refusal.value.device_key.startswith("gpu:")
     assert FakeSession.created == []
+    assert {check.reason_code for row in eps.status().eps if row.key == "directml" for check in row.checks} == {"quick-check-needed"}
     with gate.certification_run():  # the certification code: the rule is off, also for a nested use
         with gate.certification_run():
             eps.build_session(b"model", execution_provider="directml")

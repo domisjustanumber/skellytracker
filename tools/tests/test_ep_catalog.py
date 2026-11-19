@@ -131,14 +131,6 @@ def break_model_bytes(catalog, lock):
     catalog["certification"]["models"] = [{**MODEL, "bytes": 0}]
 
 
-def break_fallback_sha(catalog, lock):
-    del catalog["certification"]["ort_fallback"]["sha256"]
-
-
-def break_fallback_backend(catalog, lock):
-    catalog["certification"]["ort_fallback"]["build_backend"]["sha256"] = "abc"
-
-
 def break_windows_ml_name(catalog, lock):
     del catalog["eps"]["amdgpu"]["ep_name"]
 
@@ -177,7 +169,7 @@ def test_a_newer_versions_row_with_a_claim_passes():
                                     break_device_id, break_url, break_sha, break_lock_row, break_revision,
                                     break_successor, break_unknown_successor, break_status, break_newer_version, break_newer_dependency,
                                     break_model_path, break_model_url, break_model_sha, break_model_bytes, break_windows_ml_name,
-                                    break_plugin_without_route, break_linux_lock_row, break_fallback_sha, break_fallback_backend,
+                                    break_plugin_without_route, break_linux_lock_row,
                                     break_component, break_component_lock],
                          ids=lambda change: change.__name__)
 def test_check_finds_each_defect(change):

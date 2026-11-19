@@ -109,9 +109,7 @@ legacy path puts the old points in the raw names of `wholebody.keypoints` and ca
 
 - New code takes the EP as `execution_provider`, a concrete key of the EP catalog: `trt-rtx`, `cuda`,
   `coreml`, `amdgpu`, `migraphx`, `directml` or `cpu`. No environment variable selects the EP or the
-  device. The second environment of the certify suite sets `SKELLYTRACKER_EP_ORT_FALLBACK`: the EP
-  store then accepts the ONNX Runtime of `certification.ort_fallback`
-  ([ADR-XSE7](../decisions/entries/XSE7-amd-eps-in-the-field-test.md)).
+  device.
 - A session on a GPU takes the ONNX Runtime EP device of the GPU (`registration.ort_device()`).
   Never select a GPU with the option `device_id`.
 - A `field-test` EP of the EP catalog (today `directml`, `amdgpu` and `migraphx`) is usable only
@@ -165,10 +163,10 @@ legacy path puts the old points in the raw names of `wholebody.keypoints` and ca
     set stays. A host that imports `onnxruntime` before skellytracker must set the variable itself.
     `tools/intake_bundle.py` sets it before each of its `import onnxruntime` lines.
   - `RuntimeInfo.ort_disable_telemetry` holds the value or `None`. Section 1 of the certify suite
-    records it in `onnx_stack`, with the check `telemetry-switch`: `pass` for `1` or `true`
-    (trimmed, any case), else `record-only` with `telemetry-on`.
+    records it in `onnx_stack`, with the check `suite:checkout:telemetry-switch`: `pass` for `1` or
+    `true` (trimmed, any case), else `record-only` with `telemetry-on`.
   - The certify suite records whether the telemetry folder of ONNX Runtime exists before and after
-    the run, as the two booleans of `telemetry_database`, with no path. It deletes nothing there. The
+    the run, as the two booleans of `details.suite.telemetry_database`, with no path. It deletes nothing there. The
     folder is `Microsoft\DeveloperTools\.onnxruntime` under the local app data folder on Windows. On
     Linux and macOS, it is `Microsoft/DeveloperTools/.onnxruntime` under `XDG_CACHE_HOME`, else
     under `~/.cache`.

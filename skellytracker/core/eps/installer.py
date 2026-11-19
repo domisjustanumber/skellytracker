@@ -11,7 +11,6 @@ import multiprocessing
 import os
 import shutil
 import sys
-import threading
 import time
 import uuid
 import zipfile
@@ -43,18 +42,11 @@ def installed_ort() -> tuple[str, str] | None:
 
 
 def core_mismatch(catalog: EpCatalog) -> str | None:
-    """The reason when the installed ONNX Runtime is not the ONNX Runtime of the catalog; else `None`.
-
-    The second environment of the certify suite sets `SKELLYTRACKER_EP_ORT_FALLBACK` to the version of
-    `certification.ort_fallback` of the catalog. Only that exact `onnxruntime` version then passes too (ADR-XSE7).
-    """
+    """The reason when the installed ONNX Runtime is not the ONNX Runtime of the catalog; else `None`."""
     installed = installed_ort()
     if installed is None:
         return None  # a frozen application can have no metadata: the verification child reads the version
     if installed == catalog.ort_distribution:
-        return None
-    fallback = catalog.data["certification"].get("ort_fallback") or {}
-    if installed == (fallback.get("package"), fallback.get("version")) and os.environ.get(store.FALLBACK_VARIABLE) == installed[1]:
         return None
     return (f"{' '.join(installed)} is installed, and the EP catalog needs {' '.join(catalog.ort_distribution)}. "
             "Run `uv sync`.")
@@ -230,7 +222,7 @@ def _verify(key: str, progress) -> str | None:
 
 
 def install(plan: InstallPlan, *, progress: Callable[[InstallProgress], None] | None = None,
-            cancel: threading.Event | None = None, from_dir: Path | None = None, verify: bool = True) -> InstallResult:
+            cancel=None, from_dir: Path | None = None, verify: bool = True) -> InstallResult:
     """Install each pack of a plan into the EP store. It does not raise for a pack that fails.
 
     After the install of a pack, `verify` runs the verification levels L2 and L3 in a child process.

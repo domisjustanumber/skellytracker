@@ -254,7 +254,7 @@ def build_session(model: str | os.PathLike | bytes, *, execution_provider: str, 
             reason = f"'{device_key}' is not a GPU that the EP can use on this host"
         if gpu is None or state not in USABLE_STATES:
             raise EpUnavailableError(f"The EP '{key}' is not available: {reason}.", install_hint(key))
-        gate.require(catalog, key, gpu, host.os_name)
+        gate.require(catalog, key, gpu, host.os_name, device_key)
         exits.note_session(catalog, key, gpu, host.os_name)  # before the session opens: a crash at the build counts
         if state not in ("ready", "builtin"):
             store.warn_once(f"{key}:{state}", f"The EP '{key}' is in the state {state}: {reason}.")

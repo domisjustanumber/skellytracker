@@ -20,7 +20,7 @@ def set_hash(catalog: EpCatalog) -> str:
     Only `ready` packs are in the set (user decision, 2026-11-18). A test pack and a `field-test` pack
     are not: a field-test pack enters it when a person moves it to `ready`, and the set then needs new
     evidence (ADR-XSE7). A pack `component`, for example the GPU JPEG decoder, is not in the set (user
-    decision, 2026-11-18): section 5 of the certify suite is its evidence. The package of the Windows
+    decision, 2026-11-18): the JPEG certification of the level `full` of `certify()` is its evidence. The package of the Windows
     ML catalog is not in the set: Windows updates it with no pin.
     shortcut: the `windowsml` pin and the `onnx` pin are not in the set, add them when a bump changes one alone.
     """

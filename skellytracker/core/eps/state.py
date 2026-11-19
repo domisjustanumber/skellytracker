@@ -58,11 +58,11 @@ def check_start(execution_provider: str, ep_options: Mapping[str, str] | None = 
             raise EpUnavailableError(f"The EP '{execution_provider}' is not available: {reason}.", install_hint(execution_provider))
     if device is not None:
         for item in devices:
-            gate.require(catalog, execution_provider, gpus[item.device_key], host.os_name)
+            gate.require(catalog, execution_provider, gpus[item.device_key], host.os_name, item.device_key)
         return devices
     checked = tuple(item for item in devices if gate.rule_passes(catalog, execution_provider, gpus[item.device_key], host.os_name))
     if devices and not checked:
-        gate.require(catalog, execution_provider, gpus[devices[0].device_key], host.os_name)
+        gate.require(catalog, execution_provider, gpus[devices[0].device_key], host.os_name, devices[0].device_key)
     return checked
 
 
@@ -74,11 +74,13 @@ def _device_checks(catalog, key: str, host) -> tuple[DeviceCheck, ...]:
     found = []
     chip = gate.chip_of(catalog, key, host)  # `coreml`: one row for the chip; its `device_key` is the chip id, not a device
     for device_key, gpu in ([(chip.chip_id, chip)] if chip else ep_gpus(catalog, key, host)):
-        ready = store.pack_state(catalog, key, None if chip else gpu, None if chip else device_key, host.os_build)[0] in USABLE_STATES
+        state = store.pack_state(catalog, key, None if chip else gpu, None if chip else device_key, host.os_build)
+        ready = state[0] in USABLE_STATES
         certified = evidence.certified(key, gpu, gate.OS_LABELS.get(host.os_name, host.os_name))
         local = gate.local_result(catalog, key, gpu, host.os_name)
-        found.append(DeviceCheck(device_key, gpu.name, certified, local, ready and gate.check_reason(catalog, key, gpu, host.os_name) is None,
-                                 gate.local_cause(catalog, key, gpu, host.os_name)))
+        code = gate.check_reason(catalog, key, gpu, host.os_name) if ready else (state[1] or state[0]).replace("_", "-")
+        found.append(DeviceCheck(device_key, gpu.name, certified, local, ready and code is None,
+                                 gate.local_cause(catalog, key, gpu, host.os_name), code))
     return tuple(found)
 
 

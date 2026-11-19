@@ -5,8 +5,8 @@ This file is the list of the reason codes of `skellytracker.certify()`
 The contract `report-format.md` of the repository `skellycertify` owns the common codes, and section 5.4
 of the contract asks each package to keep the list of its own codes.
 Add a code to this list in the commit that adds the code to a check.
-The list holds the codes of the levels `quick` and `full`. The codes of `tools/certify_platform.py`
-are not in this list yet.
+The list holds the codes of the levels `quick` and `full`, and the codes of the certify suite
+`tools/certify_platform.py` (see [The certify suite](#the-certify-suite)).
 
 ## Common codes that this package uses
 
@@ -20,8 +20,9 @@ are not in this list yet.
 | `no-commit` | `evidence.reasons` | The package does not know its commit. |
 | `modified-tree` | `evidence.reasons` | The source tree had a change that the commit does not hold, or the package does not know. |
 
-The package never writes `gpu-busy`, `bad-output` or `partial-run`. It cannot see the pipelines of
-an application. A quick check of a part of the EPs is complete for each EP that it checks.
+The function `certify()` never writes `gpu-busy`, `bad-output` or `partial-run`. It cannot see the
+pipelines of an application. A quick check of a part of the EPs is complete for each EP that it checks.
+The certify suite writes `bad-output`, `not-selected` and `partial-run`.
 
 ## Codes of this package
 
@@ -72,3 +73,61 @@ an EP check has no `:`. `details.eps.<ep>.device` gives the device key.
 | `<ep>:jpeg:<name>` | Level `full`: one check of the JPEG certification, with the name, the result, the reason code and the numbers of that check. |
 | `cpu:pipeline-<n>`, `cpu:jpeg`, `cpu:jpeg:<name>` | Level `full`: the same checks of the CPU EP. They run first. The CPU EP has no EP check. |
 | cleanup `test-image`, `field-test-opt-in` | The delete of the test image that the run downloaded, and the removal of the opt-in that a check that did not pass wrote. |
+
+## The certify suite
+
+The certify suite `tools/certify_platform.py` writes one report file with one module report. That module
+report is the report of `certify("full")` of its section 4, with the checks of the suite first. The
+sections have these slugs: `checkout` (1), `hardware` (2), `packs` (3) and `full` (4).
+
+### Check names of the suite
+
+Each check name of the suite holds a `:`. Thus it is never the check of an EP on a GPU. The suite
+changes each character that a check name cannot hold to `-`.
+
+| Check | Meaning |
+|---|---|
+| `suite:<slug>` | The result of a section, with the reason code of the section. `numbers` holds `seconds` and `exit_code` of the child process of the section. Section 4 gives `suite:full` only when it gave no module report. |
+| `suite:<slug>:<name>` | One check of a section, with its reason code. `numbers` holds its other number fields. |
+| `suite:checkout:checkout`, `suite:checkout:python`, `suite:checkout:packages`, `suite:checkout:onnx-stack`, `suite:checkout:telemetry-switch` | Section 1: the git checkout, the Python version and the packages against `uv.lock`, the ONNX Runtime stack, and `ORT_DISABLE_TELEMETRY`. |
+| `suite:hardware:probe-host`, `suite:hardware:eps-state`, `suite:hardware:<method>` | Section 2: `probe_host()`, `eps.status()` with `eps.recommend()`, and each OS tool, for example `nvidia-smi` or `cim-video-controller`. |
+| `suite:packs:<key>`, `suite:packs:<key>@<device key>` | Section 3: the install and the probe of an EP. An EP that runs on one GPU has one check for each GPU, for example `suite:packs:directml@gpu:10de:2484:0`. |
+| `suite:packs:remove-<package>` | Section 3: the removal of a Windows ML package that the suite installed. A package with no known name gives `remove-<key>`. |
+| `suite:<slug>:exit` | The check `exit` of the contract for a section child that gave its result and did not end cleanly. |
+| cleanup `remove-windows-packages`, `remove-listed-file`, `delete-work-folder` | The removal of the Windows ML packages, the delete of a downloaded model file, and the delete of the work folder `.certify-work/`. |
+
+### Codes of the certify suite
+
+| Code | Where | Meaning |
+|---|---|---|
+| `bad-output` | check `suite:<slug>` | The child process of the section gave output that is not a result. |
+| `crashed`, `timed-out` | check `suite:<slug>`, `suite:<slug>:exit` | The child process of the section ended with no result, or ran longer than its time limit. On `exit`, the child gave its result first. |
+| `hung-at-exit` | check `suite:<slug>:exit` | The child process of the section did not end 20 seconds after its result. The suite stopped it. |
+| `not-selected` | check `suite:<slug>` | The option `--only` did not select the section. |
+| `cancelled` | check `suite:<slug>`, `evidence.reasons` | The person stopped the run with Ctrl+C, SIGTERM, SIGHUP or SIGBREAK. |
+| `unspecified` | check | A `fail` or a `not-run` that has no reason code. |
+| `no-isolated-store` | check `suite:packs`, `suite:full` | The isolated EP store of the work folder is not set. The section does not run. |
+| `differences-flagged` | check `suite:hardware` | A value of skellytracker differs from the value of an OS tool. The section only records it. |
+| `no-git`, `no-tag` | check `suite:checkout:checkout` | Git is not on the host or the folder is not a git checkout, or no tag points at the commit. It is a fact, not an evidence rule. |
+| `modified-tree` | check `suite:checkout:checkout`, `evidence.reasons` | The checkout has a change that the commit does not hold. The work folder of the suite does not count. |
+| `python-mismatch` | check `suite:checkout:python` | The Python version is not in `requires-python` of `uv.lock`. |
+| `packages-differ` | check `suite:checkout:packages`, `evidence.reasons` | An installed package has a version that differs from `uv.lock`, or a required package is missing. |
+| `no-lock` | check `suite:checkout:python`, `suite:checkout:packages` | The checkout has no `uv.lock`. |
+| `telemetry-on` | check `suite:checkout:telemetry-switch` | `ORT_DISABLE_TELEMETRY` is not `1` or `true`. The check is `record-only`. |
+| `tool-missing`, `tool-failed`, `parse-failed` | check `suite:hardware:<method>` | The OS tool or file is absent, the tool exited with an error, or its output did not parse. |
+| `not-offered` | check `suite:packs:<key>` | The Windows ML catalog does not offer the AMD EP for this PC. |
+| `catalog-<ExceptionClass>` | check `suite:packs:<key>` | The Windows ML catalog raised this exception class. |
+| `install-<code>` | check `suite:packs:<key>` | The install of the pack failed with this code of `eps.install()`, for example `install-offline`. |
+| `certify-<result>` | check `suite:packs:<key>` | The probe of `eps.certify()` gave this result with no reason code. |
+| a state code of the EP | check `suite:packs:<key>` | The host cannot use the EP, for example `os`, `vendor` or `cc`. |
+| a code of `windows_ml.remove_installed()` | check `suite:packs:remove-<package>` | The Windows ML package did not go, for example `package-not-removed`, `package-unknown` or `record-refused`. |
+| `cleanup-<ExceptionClass>` | check `suite:packs:remove-<key>` | The removal of the Windows ML packages raised this exception class. |
+| `outside-model-root` | cleanup `remove-listed-file` | A file of the remove list is not inside `skellytracker/core/model_zoo/`. The suite does not delete it. |
+| `not-deleted` | cleanup `delete-work-folder` | The work folder `.certify-work/` did not go. Delete it by hand. |
+| `section-1-not-run` | `evidence.reasons` | Section 1 gave no facts of the checkout. |
+| `no-commit` | `evidence.reasons` | Section 1 found no commit, or the package does not know its commit. |
+| `python-differs` | `evidence.reasons` | The check `suite:checkout:python` failed. |
+| `partial-run` | `evidence.reasons` | A section was not selected, did not run, or gave no result. |
+
+A section and a check of the suite can also hold a code of the list above, for example `probe-l3-failed`,
+and the bare class name of an exception.

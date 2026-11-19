@@ -33,9 +33,7 @@ Usage::
   request can name, or two hardware classes have one ``id``;
 - a successor of a key of ``legacy_keys`` is not an EP key that a request can name;
 - a row of ``certification.models`` has no relative ``path`` without ``..``, no ``https`` URL, no sha256 of 64
-  hex characters or no positive ``bytes`` (ADR-Y14H item 12);
-- ``certification.ort_fallback`` or its ``build_backend`` has no package, no version or no sha256 of 64 hex
-  characters (ADR-XSE7).
+  hex characters or no positive ``bytes`` (ADR-Y14H item 12).
 
 ``--refresh`` uses the network. Only this mode writes ``ep_lock.yaml``. For each pack, each component
 and each platform of the catalog that the ``library`` map of the pack names, it reads the PEP 503 page of each
@@ -218,13 +216,6 @@ def check(catalog: dict, lock: dict, catalog_text: str, pyproject_text: str, uv_
                 and isinstance(item.get("bytes"), int) and not isinstance(item["bytes"], bool) and item["bytes"] > 0):
             problems.append(f"certification model {path or '?'}: needs a relative path with no '..', an https URL, "
                             "a sha256 of 64 hex characters and a positive size")
-    fallback = (catalog.get("certification") or {}).get("ort_fallback")
-    if fallback is not None:
-        backend = fallback.get("build_backend") if isinstance(fallback.get("build_backend"), dict) else {}
-        if not all(re.fullmatch(r"[0-9a-f]{64}", str(row.get("sha256", ""))) and row.get("package") and row.get("version")
-                   for row in (fallback, backend)):
-            problems.append("certification ort_fallback: it and its build_backend need a package, a version and a sha256 of "
-                            "64 hex characters (the suite installs the second environment in hash-checking mode)")
     return problems
 
 

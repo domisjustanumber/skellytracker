@@ -17,7 +17,6 @@ import json
 import os
 import re
 import statistics
-import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -141,7 +140,7 @@ def compare_results(cpu: dict, ep: dict, thresholds: dict) -> dict:
 
 
 def _wide_run(key: str, settings: dict, progress: Callable[[str], None], device_key: str | None = None, *,
-              cancel: threading.Event | None = None, timeout: float = WIDE_TIMEOUT_SECONDS,
+              cancel=None, timeout: float = WIDE_TIMEOUT_SECONDS,
               grace: float = verification.EXIT_GRACE_SECONDS) -> dict:
     """Run `_image_run()` in a `spawn` child, so that an EP that ends or hangs the process gives a reason code.
 
@@ -248,7 +247,7 @@ def _timing_child(key: str, settings: dict, cameras: int, device_key: str | None
 
 
 def timing_run(key: str, settings: dict, cameras: int, device_key: str | None = None, *,
-               cancel: threading.Event | None = None, timeout: float = TIMING_TIMEOUT_SECONDS) -> tuple:
+               cancel=None, timeout: float = TIMING_TIMEOUT_SECONDS) -> tuple:
     """Run `time_run()` on the EP `key` in a `spawn` child, and give `(result, problem, exit_code)` of `spawn_child()`."""
     return verification.spawn_child(_timing_child, (key, settings, cameras, device_key), timeout=timeout, cancel=cancel)
 
@@ -302,7 +301,7 @@ def _image_run(key: str, settings: dict, progress: Callable[[str], None], device
 
 
 def certify(key: str, *, wide: bool = False, out: Path | str | None = None,
-            progress: Callable[[str], None] | None = None, cancel: threading.Event | None = None) -> CertifyResult:
+            progress: Callable[[str], None] | None = None, cancel=None) -> CertifyResult:
     """Test the plugin EP `key` on this host, and write the report file. It sends nothing.
 
     - The probe always runs: `verify()` at level L3, in a child process. A pass makes the EP `ready`
