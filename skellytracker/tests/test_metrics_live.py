@@ -75,6 +75,15 @@ def test_bad_pids_raise_value_error(sampler, pids):
             sampler.sample(pids)
 
 
+def test_load_average_is_none_without_getloadavg_or_on_oserror(sampler, monkeypatch):
+    monkeypatch.setattr(os, "getloadavg", lambda: (1.5, 2.0, 3.0), raising=False)
+    assert sampler.sample().load_average_1m == 1.5
+    monkeypatch.delattr(os, "getloadavg", raising=False)  # Windows
+    assert sampler.sample().load_average_1m is None
+    monkeypatch.setattr(os, "getloadavg", lambda: (_ for _ in ()).throw(OSError()), raising=False)
+    assert sampler.sample().load_average_1m is None
+
+
 def test_gpu_values(sampler):
     (gpu,) = sampler.sample([7, 8]).gpus
     assert (gpu.key, gpu.utilization, gpu.vram_used_bytes, gpu.vram_free_bytes) == ("0000:01:00.0", 0.25, 2 * GIB, 6 * GIB)

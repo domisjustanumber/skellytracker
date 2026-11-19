@@ -37,6 +37,13 @@ def _reader():
     return reader
 
 
+def _load_average_1m() -> float | None:
+    try:
+        return os.getloadavg()[0]
+    except (AttributeError, OSError):  # Windows has no `os.getloadavg`
+        return None
+
+
 def _ratio(part: float, whole: float) -> float | None:
     return None if whole <= 0 else min(1.0, max(0.0, part / whole))
 
@@ -113,4 +120,5 @@ class LiveSampler:
                 perf_counter_ns=now, memory_used_bytes=total - available, memory_available_bytes=available,
                 cpu_utilization=cpu, cpu_window_ns=window, processes=tuple(processes), missing_pids=tuple(missing),
                 gpus=tuple(sorted(gpus, key=lambda gpu: gpu.key)), sample_errors=tuple(errors),
+                load_average_1m=_load_average_1m(),
             )

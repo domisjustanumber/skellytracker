@@ -36,6 +36,7 @@ import datetime
 import hashlib
 import importlib.util
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -1923,6 +1924,7 @@ def onnx_problems(path: Path) -> list[str]:
 def _load_problem(path: Path) -> str | None:
     """V0b: return why the onnx and onnxruntime of this environment cannot load the file, or None."""
     import onnx
+    os.environ.setdefault("ORT_DISABLE_TELEMETRY", "1")  # ADR-BZ7X
     import onnxruntime
 
     model = onnx.load(str(path), load_external_data=False)
@@ -1950,6 +1952,7 @@ class _Runner:
 
     def __init__(self) -> None:
         import numpy
+        os.environ.setdefault("ORT_DISABLE_TELEMETRY", "1")  # ADR-BZ7X
         import onnxruntime
 
         self.np, self.ort, self.sessions = numpy, onnxruntime, {}
@@ -2064,6 +2067,7 @@ def batch_check(
 
     import numpy
     import onnx
+    os.environ.setdefault("ORT_DISABLE_TELEMETRY", "1")  # ADR-BZ7X
     import onnxruntime
 
     from skellytracker.core.sessions.batch_conversion import model_batch_convert

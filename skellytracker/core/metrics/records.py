@@ -45,3 +45,4 @@ class LiveSample:
     missing_pids: tuple[int, ...] = ()
     gpus: tuple[GpuSample, ...] = ()
     sample_errors: tuple[str, ...] = ()
+    load_average_1m: float | None = None  # `os.getloadavg()[0]`; `None` on Windows or on `OSError`

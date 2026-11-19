@@ -41,6 +41,8 @@
 ## Consequences
 
 - A host that imports `onnxruntime` before skellytracker is not covered. It must set the variable.
+  `tools/intake_bundle.py` sets the variable before each of its three `import onnxruntime` lines. The
+  scripts in `decisions/scripts/` that import `onnxruntime` alone do not set it, and they are frozen.
 - Each new package version of the stack needs a reviewed row before a bump.
 
 ## Evidence
