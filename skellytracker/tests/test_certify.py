@@ -152,6 +152,7 @@ def test_a_quick_pass_gives_a_valid_report_and_records_the_local_pass(quick_host
     assert results(report) == {f"{ep}@10de-2484-0{part}": ("pass", None) for ep in ("trt-rtx", "directml") for part in (":probe", ":image", "")}
     assert calls == [(["trt-rtx"], "gpu:10de:2484:0"), (["directml"], "gpu:10de:2484:0")]
     assert report["details"]["eps"]["trt-rtx@10de-2484-0"]["device"] == "gpu:10de:2484:0"
+    assert report["details"]["eps"]["trt-rtx@10de-2484-0"]["pack_version"] == certification.load_catalog().pack("trt-rtx")["version"]
     assert report["evidence"] == {"valid": True, "reasons": []} and report["kind"] == "quick"
     assert report["package"] == {"name": "skellytracker", "version": package_certification._package()[0]["version"],
                                  "commit": COMMIT, "tree_modified": False}
@@ -527,7 +528,7 @@ def test_coreml_on_a_mac_needs_its_quick_check_and_its_result_has_the_key_of_the
     report = skellytracker.certify("quick")
     assert results(report) == {"coreml:probe": ("pass", None), "coreml:image": ("pass", None), "coreml": ("pass", None)}
     assert calls == [(["coreml"], None)] and report["details"]["eps"]["coreml"] == {
-        "gpu": "chip:apple-m2-pro", "device": None, "models": FOUND["models"], "warnings": []}
+        "gpu": "chip:apple-m2-pro", "device": None, "pack_version": "builtin", "models": FOUND["models"], "warnings": []}
     assert problems_of(report) == []
     (pair,) = store.read_json(store.store_root() / "quick-checks.json")
     assert pair == "coreml|builtin|Darwin|chip:apple-m2-pro"

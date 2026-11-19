@@ -80,14 +80,19 @@ def certification_active() -> bool:
     return bool(_certification_runs)
 
 
+def pack_version(catalog: EpCatalog, key: str) -> str:
+    """The pack version of the EP: of its pack, of its Windows ML record, or `builtin` for a built-in EP."""
+    pack = catalog.pack(key) or (store.windows_ml_pack(catalog, key) if catalog.windows_ml(key) else {"version": "builtin"})
+    return pack["version"]
+
+
 def pair_key(catalog: EpCatalog, key: str, gpu, os_name: str) -> str:
     """The pair of an answer and of a local result. The pack version is in it, so a pack upgrade asks again.
 
     `gpu` comes from `ep_gpus()`, which gives only GPUs with PCI ids, so `gpu_id` is never None here. An EP of
     the Windows ML catalog takes the package version of its record, and a built-in EP takes `builtin`.
     """
-    pack = catalog.pack(key) or (store.windows_ml_pack(catalog, key) if catalog.windows_ml(key) else {"version": "builtin"})
-    return f"{key}|{pack['version']}|{os_name}|{evidence.gpu_id(gpu)}"
+    return f"{key}|{pack_version(catalog, key)}|{os_name}|{evidence.gpu_id(gpu)}"
 
 
 def local_result(catalog: EpCatalog, key: str, gpu, os_name: str) -> str | None:

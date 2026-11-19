@@ -422,7 +422,7 @@ def _pipeline(catalog, pipeline) -> tuple[dict, str, str | None]:
 
 
 def _quick(report: dict, selected: list[tuple], catalog, host, sender: _Progress, cancel, resolved: tuple) -> None:
-    from skellytracker.core.eps import certification, evidence, store
+    from skellytracker.core.eps import certification, evidence, gate, store
     from skellytracker.core.system.runtime import probe_runtime
 
     rows = {row["name"]: row for row in report["checks"]}
@@ -435,7 +435,8 @@ def _quick(report: dict, selected: list[tuple], catalog, host, sender: _Progress
         if cancel is not None and cancel.is_set():
             break
         names = _names(label, key, device_key)
-        details["eps"][label] = {"gpu": None if gpu is None else evidence.gpu_id(gpu), "device": device_key}
+        details["eps"][label] = {"gpu": None if gpu is None else evidence.gpu_id(gpu), "device": device_key,
+                                 "pack_version": gate.pack_version(catalog, key)}
         if setup is not None:
             for name in names:
                 rows[name].update(result="not-run", reason=setup)
