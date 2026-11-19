@@ -1,5 +1,6 @@
 """The download engine on a local `http.server` with a `Range` handler, and the EP store: install, remove and gc."""
 
+import copy
 import hashlib
 import io
 import multiprocessing
@@ -376,3 +377,29 @@ def test_path_guard():
     assert store.path_guard(store.store_root() / "p" / "1", ["a.dll"]) is None
     reason = store.path_guard(store.store_root() / "p" / "1", ["d/" + "x" * store.PATH_LIMIT])
     assert store.STORE_VARIABLE in reason and str(os.sep) not in reason.replace(store.STORE_VARIABLE, "")
+
+
+@pytest.mark.parametrize("ep_key", ["cuda", "directml"])
+def test_a_verdict_key_changes_only_with_the_catalog_entry_of_its_own_ep(ep_key):
+    """ADR-YPH2: a comment, an other EP row and the other blocks of the catalog keep a stored verdict; the own EP row,
+    the own pack row, a wheel sha256 of the lock and the pack version each give a new key."""
+    catalog = catalog_module.load_catalog()
+
+    def key(change=lambda data, lock: None) -> str:
+        data, lock = copy.deepcopy(catalog.data), copy.deepcopy(catalog.lock)
+        change(data, lock)
+        edited = catalog_module.EpCatalog(data, lock, revision="a comment changed")
+        return store.verdict_key(edited, edited.pack(ep_key) or {"id": ep_key, "version": "builtin"}, gpu(), "gpu:10de:2484:0", "26100")
+
+    same = key()
+    other = "directml" if ep_key == "cuda" else "cuda"
+    assert same == store.verdict_key(catalog, catalog.pack(ep_key) or {"id": ep_key, "version": "builtin"}, gpu(), "gpu:10de:2484:0", "26100")
+    assert key(lambda data, lock: data["eps"][other].update(l3_atol=1.0)) == same
+    assert key(lambda data, lock: data["eps"]["trt-rtx"]["packs"][0].update(version="9.9.9")) == same
+    assert key(lambda data, lock: data["certification"]["thresholds"].update(box_iou_min=0.5)) == same
+    assert key(lambda data, lock: data["hardware_classes"].pop()) == same
+    assert key(lambda data, lock: data["eps"][ep_key].update(l3_atol=1.0)) != same
+    if ep_key == "cuda":
+        assert key(lambda data, lock: lock["packs"]["cuda-cu13"]["win_amd64"]["wheels"][0].update(sha256="0" * 64)) != same
+        assert key(lambda data, lock: data["eps"]["cuda"]["packs"][0].update(version="0.3.0")) != same
+        assert key(lambda data, lock: data["eps"]["cuda"]["packs"][0].update(ep_name="Other")) != same

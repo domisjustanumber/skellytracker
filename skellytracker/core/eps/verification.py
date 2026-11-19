@@ -59,8 +59,9 @@ def verify(keys: Sequence[str] | None = None, *, level: str = "L3", device_key: 
     """Verify each EP key at level `L2` or `L3`. With no keys: each EP that is usable on this host.
 
     A stored result with the same key is returned with no new check, unless `force` is true. The
-    key holds the ONNX Runtime version, the pack, the driver version, the device, the OS build and
-    the catalog revision. A pack that is not installed raises `EpUnavailableError`.
+    key holds the ONNX Runtime distribution version, the pack, the driver version, the device, the OS
+    build and the sha256 of the catalog entry of the pack (`store.entry_digest()`). A change elsewhere
+    in the catalog keeps the stored result. A pack that is not installed raises `EpUnavailableError`.
     """
     if level not in ("L2", "L3"):
         raise ValueError(f"the level must be 'L2' or 'L3', not {level!r}")

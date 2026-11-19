@@ -37,6 +37,7 @@ These entries are `accepted`.
 | [Z5X7](entries/Z5X7-field-test-state-and-directml.md) | Field-test EP state: opt-in in the EP store, refused without it, never recommended; `directml` built in on Windows, GPU by ORT device | accepted |
 | [XSE7](entries/XSE7-amd-eps-in-the-field-test.md) | AMD EPs in the field test: `migraphx` ROCm packs on Linux, Windows ML `amdgpu` and `migraphx`; field-test packs not in the set hash; ORT 1.29 fallback | accepted |
 | [92BE](entries/92BE-legacy-path-for-the-freemocap-metrics-stage.md) | Temporary legacy path for the freemocap metrics: old tracker task events; `cuda` bridge of `OnnxSession` to `eps.build_session()`; no TensorRT; deleted in 2.4 | accepted |
+| [YPH2](entries/YPH2-verdict-key-of-the-own-catalog-entry.md) | The key of a stored verification verdict holds the sha256 of the own EP row, pack row and lock row, not the whole-catalog revision | accepted |
 
 ### Evidence
 

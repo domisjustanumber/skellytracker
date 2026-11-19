@@ -17,6 +17,7 @@ folder `<pack_id>/<pack_ver>/` does not change after its install.
 """
 
 import contextlib
+import hashlib
 import json
 import logging
 import os
@@ -116,16 +117,30 @@ def store_lock():
                 fcntl.flock(handle, fcntl.LOCK_UN)
 
 
+def entry_digest(catalog: EpCatalog, pack: dict) -> str:
+    """The sha256 of the catalog entry of a pack: its EP row with no pack list, its own pack row and its lock row.
+
+    For a built-in EP and an EP of the Windows ML catalog, `pack["id"]` is the EP key, and the entry is the EP row.
+    A YAML comment, an other EP, an other pack and the other blocks of the catalog are not in it (ADR-YPH2).
+    """
+    found = catalog.pack_by_id(pack["id"])
+    key, row = found if found else (pack["id"], None)
+    ep_row = {name: value for name, value in catalog.data["eps"][key].items() if name not in ("packs", "test_packs")}
+    entry = [ep_row, row, catalog.pack_lock(pack["id"]) if row else None]
+    return hashlib.sha256(json.dumps(entry, sort_keys=True, default=str).encode("utf-8")).hexdigest()
+
+
 def verdict_key(catalog: EpCatalog, pack: dict, gpu, device_key: str | None, os_build) -> str:
-    """The key of a verification result. A new driver, ONNX Runtime, pack, device or catalog gives a new key.
+    """The key of a verification result. A new driver, ONNX Runtime distribution, pack, device, OS build or catalog
+    entry of the pack (`entry_digest()`) gives a new key.
 
     In the second environment of the certify suite, the ONNX Runtime part is the version of that environment.
     """
     ids = "none" if gpu is None else f"{gpu.pci_vendor_id}:{gpu.pci_device_id}:{gpu.pci_subsys_id}"
     driver = None if gpu is None else gpu.driver_version
-    ort = os.environ.get(FALLBACK_VARIABLE) or catalog.ort_version
+    ort = os.environ.get(FALLBACK_VARIABLE) or catalog.ort_distribution[1]
     return "|".join(str(part) for part in (ort, pack["id"], pack["version"], driver, ids, device_key,
-                                           os_build, catalog.revision))
+                                           os_build, entry_digest(catalog, pack)))
 
 
 def read_verdicts() -> dict:
