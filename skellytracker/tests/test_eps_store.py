@@ -320,6 +320,7 @@ else:  # the run decodes on the CPU, and the import changes are undone
 """
 
 
+@pytest.mark.skipif(sys.platform == "darwin", reason="macOS has no GPU JPEG decoder: `registration.CUDART` has no macOS row")
 @pytest.mark.parametrize("case", ["store copy", "earlier copy", "failed import"])
 def test_prepare_jpeg_decoder_imports_only_the_copy_of_the_store(tmp_path, case):
     run = subprocess.run([sys.executable, "-c", PREPARE, str(tmp_path), case], capture_output=True, text=True,  # noqa: S603

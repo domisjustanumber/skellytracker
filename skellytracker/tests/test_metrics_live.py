@@ -111,10 +111,13 @@ def test_real_sampler_reads_this_process_and_a_dead_process():
     child.wait()
     sampler = metrics.LiveSampler()
     sampler.sample([os.getpid()])
-    deadline = time.perf_counter() + 0.1  # the host CPU counter has ticks of 10 ms or more; a shorter window can have none
-    while time.perf_counter() < deadline:
-        pass
-    sample = sampler.sample([os.getpid(), child.pid])
+    for _ in range(30):  # the host CPU counter has ticks of 10 ms or more, and a macOS runner gave no tick in 0.1 s
+        deadline = time.perf_counter() + 0.1
+        while time.perf_counter() < deadline:
+            pass
+        sample = sampler.sample([os.getpid(), child.pid])
+        if sample.cpu_utilization is not None:
+            break
     (row,) = sample.processes
     assert row.pid == os.getpid() and row.rss_bytes > 0 and 0.0 <= row.cpu_utilization <= 1.0
     assert sample.missing_pids == (child.pid,) and 0.0 <= sample.cpu_utilization <= 1.0
