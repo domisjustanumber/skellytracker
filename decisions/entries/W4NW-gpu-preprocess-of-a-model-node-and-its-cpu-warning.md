@@ -8,6 +8,11 @@
    nodes in its own session. The run binds the output of the graph to the input of the model session
    in GPU memory. On each other EP, the node uses the CPU preprocess. This is the value `auto` of
    item 6. Item 6 gives the other values.
+   - The EPs `cuda`, `trt-rtx` and `directml` have the wiring for the graph (`GRAPH_EPS`). `auto`
+     uses it only on `cuda` and `trt-rtx` (`GRAPH_DEFAULT_EPS`).
+   - On `directml`, the run decodes each JPEG buffer on the CPU, with no warning. The graph takes
+     each frame in CPU memory and copies it to GPU memory in its own run. The bound DML memory has
+     the device id 0 on each GPU, because the session selects the GPU.
 2. A node that runs the graph uses the CPU preprocess when the graph refuses the combination of
    the sidecar, when a graph session does not build, or when the node has graph sessions for 4 sets
    of frame sizes on the device.
@@ -23,13 +28,15 @@
 6. The run has one parameter for the place of the preprocess: `auto`, `cpu` or `gpu`. Its default
    is `auto`. Another value fails at the start of the run.
    - `auto` uses the graph on the EPs that a certification report confirms, `cuda` and `trt-rtx`.
-     It uses the CPU preprocess on each other EP.
+     It uses the CPU preprocess on each other EP, with no warning. `directml` has the wiring, but
+     `auto` does not use it until a reviewed certification report from AMD hardware confirms it.
    - `cpu` uses the CPU preprocess on each EP. It also forces the JPEG decode to the CPU: no GPU
      JPEG decoder opens, and no frame uploads. Only the model runs on the EP. The run gives no
      warning `preprocessed_on_cpu` and no warning `jpeg_decoded_on_cpu`. `cpu` is for a benchmark
      of the CPU path against the GPU path.
    - `gpu` uses the graph on each EP that has the wiring for it, also on an EP that no
-     certification report confirms yet. In this version, only `cuda` and `trt-rtx` have the wiring.
+     certification report confirms yet. In this version, `cuda`, `trt-rtx` and `directml` have the
+     wiring.
      On an EP with no wiring, the node uses the CPU preprocess. `gpu` is for a certification run on
      an EP that is not confirmed yet.
    - The CLI flag is `--preprocess`, with the value `auto`, `cpu` or `gpu`. Its default is `auto`.
@@ -51,6 +58,11 @@
 - A certification run must test the graph on an EP before a reviewed report confirms that EP.
   With `gpu`, the caller asks for the graph. An EP with no wiring cannot give it, so the run gives
   the warning.
+- DirectML is for AMD GPUs on Windows
+  ([ADR-Z5X7](Z5X7-field-test-state-and-directml.md)). No AMD GPU ran the graph yet, so `auto`
+  does not use it on `directml`.
+- A DML frame that the caller uploads before the run is not reliable (Evidence). A frame in CPU
+  memory costs one copy for each node, not one for each camera.
 
 ## Consequences
 
@@ -58,3 +70,17 @@
   ([ADR-J1HK](../../specs/model-sidecar/decisions/entries/J1HK-resize-pixel-tolerance.md)), not
   bit for bit.
 - The first call with a new set of frame sizes is slower by the build time of the session.
+
+## Evidence
+
+One RTX 3070, Windows 11, `onnxruntime-windowsml` 1.30.0, DirectML.dll 1.15.4, no AMD GPU.
+
+- Trial, 2026-11-18, scratch scripts (not in git), sessions with the option `device_id`: each graph node of both shipped
+  sidecars runs on DML; a cubic letterbox `Resize` goes to the CPU EP (`session_not_built`); the
+  model output after the bound graph equals the host route, 0 of 1000 runs unequal.
+- 2026-11-19, the package sessions (`build_session`, EP device): `run_jpeg_certification("directml")`
+  gives no `fail`. The graph is within the resize limit, also for ROIs at the far corner of a
+  3840x2160 frame. The DML hand-over is bitwise equal in 300 of 300 repeats. A frame from
+  `OrtValue.ortvalue_from_numpy(..., "dml")` gives a wrong graph output in 25 of 50 repeats
+  (`frame_upload`). The pipeline outputs of `gpu` and `cpu` are equal on 8 frames. A scratch probe
+  (not in git): on the UHD 770 (DXGI adapter 1), only the device id 0 binds; 1 and 2 fail at the run.
