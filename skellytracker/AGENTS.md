@@ -95,6 +95,12 @@ Exception: the legacy path of the freemocap metrics stage. `OnnxSessionConfig.ex
 also takes `cuda`, and `OnnxSession.create` then builds each model with `eps.build_session()` on the
 `cuda` pack, with no fallback. The old session code has no other GPU key, and stage 2.4 deletes this
 bridge ([ADR-92BE](../decisions/entries/92BE-legacy-path-for-the-freemocap-metrics-stage.md)).
+The legacy path compares the old run code with the 2.0 pipelines, realtime only. The bridge uses the
+default options of the EP catalog and the default GPU. It keeps the `InferenceSession`, and then
+runs the old warm-up at the batch size of the config. `cuda` applies only when the caller names it:
+`auto_detect_provider()` and the keys `None`, `cpu` and `coreml` do not change. The old tracker also
+gives optional task events for this path: `core/tracker/task_events.py` and the argument
+`event_collector` of `Tracker.process_batch`. Stage 2.4 deletes them too.
 The same legacy path is the only caller of `describe_port(config, port)` of
 `skellytracker.core.pipelines`. It gives the raw `point_names` and `groups` of one port, so that the
 legacy path puts the old points in the raw names of `wholebody.keypoints` and calls
@@ -141,6 +147,33 @@ legacy path puts the old points in the raw names of `wholebody.keypoints` and ca
 - A record of `system`, `metrics` and `eps` is a frozen dataclass with no `dict` field. Memory is
   `int` bytes, time is `int` ns, and a field that ends in `utilization` is a ratio from 0 to 1. No
   text holds an absolute path or a hostname.
+- Telemetry of ONNX Runtime ([ADR-BZ7X](../decisions/entries/BZ7X-onnx-runtime-telemetry-switch-and-scan.md)):
+  - `skellytracker/__init__.py` runs `os.environ.setdefault("ORT_DISABLE_TELEMETRY", "1")` as its
+    first statement, before each `import onnxruntime` of the package. A value that the host process
+    set stays. A host that imports `onnxruntime` before skellytracker must set the variable itself.
+    `tools/intake_bundle.py` sets it before each of its `import onnxruntime` lines.
+  - `RuntimeInfo.ort_disable_telemetry` holds the value or `None`. Section 1 of the certify suite
+    records it in `onnx_stack`, with the check `telemetry-switch`: `pass` for `1` or `true`
+    (trimmed, any case), else `record-only` with `telemetry-on`.
+  - The certify suite records whether the telemetry folder of ONNX Runtime exists before and after
+    the run, as the two booleans of `telemetry_database`, with no path. It deletes nothing there. The
+    folder is `Microsoft\DeveloperTools\.onnxruntime` under the local app data folder on Windows. On
+    Linux and macOS, it is `Microsoft/DeveloperTools/.onnxruntime` under `XDG_CACHE_HOME`, else
+    under `~/.cache`.
+  - `tools/onnx_stack.py` scans each native library of a wheel for the telemetry client
+    (`OneCollector` or `mobile.events.data.microsoft.com`) and for the string
+    `ORT_DISABLE_TELEMETRY`, as ASCII and UTF-16LE, in any case. An HTTP import is a hint only.
+    `scan` and `check --wheel-dir` use the scan. A wheel that is not in the folder is `not-scanned`.
+  - The `telemetry` list of `ep_evidence.yaml` holds one reviewed row for each package, version and
+    OS, with `client` and `switch_verified` (an evidence reference, or `false` with a `reason`).
+    `check` fails for a scanned client with no row and for a row that the scan contradicts. It warns
+    for a client with `switch_verified: false`. `solve` and `apply` refuse a new package version
+    with no row, or with a client and `switch_verified: false`. Each new package version of the
+    stack thus needs a reviewed row before a bump.
+  - The pinned set stays with a warning: the rows of ONNX Runtime 1.30.0 and of
+    `onnxruntime-ep-cuda13` 0.2.0 on Linux have the client and `switch_verified: false`.
+  - GPU JPEG decode is for NVIDIA only (`cuda` and `trt-rtx`). Each other EP gets frames that the
+    CPU decoded.
 - A person writes each row of `core/eps/ep_evidence.yaml` after a review. No code writes it, and
   the runtime never downloads it
   ([ADR-MF2R](../decisions/entries/MF2R-ep-store-install-and-certification.md) item 12).

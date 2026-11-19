@@ -36,8 +36,6 @@ These entries are `accepted`.
 | [Y14H](entries/Y14H-certify-suite.md) | Certify suite: one command from a clone at a tag, seven sections in child processes, one private Markdown report; AMD EPs; Linux gate of N6E8 | accepted |
 | [Z5X7](entries/Z5X7-field-test-state-and-directml.md) | Field-test EP state: opt-in in the EP store, refused without it, never recommended; `directml` built in on Windows, GPU by ORT device | accepted |
 | [XSE7](entries/XSE7-amd-eps-in-the-field-test.md) | AMD EPs in the field test: `migraphx` ROCm packs on Linux, Windows ML `amdgpu` and `migraphx`; field-test packs not in the set hash; ORT 1.29 fallback | accepted |
-| [92BE](entries/92BE-legacy-path-for-the-freemocap-metrics-stage.md) | Temporary legacy path for the freemocap metrics: old tracker task events; `cuda` bridge of `OnnxSession` to `eps.build_session()`; no TensorRT; deleted in 2.4 | accepted |
-| [BZ7X](entries/BZ7X-onnx-runtime-telemetry-switch-and-scan.md) | `import skellytracker` sets `ORT_DISABLE_TELEMETRY=1` unless set; `onnx_stack.py` scans wheels for the 1DS client; reviewed `telemetry` rows | accepted |
 | [YPH2](entries/YPH2-verdict-key-of-the-own-catalog-entry.md) | The key of a stored verification verdict holds the sha256 of the own EP row, pack row and lock row, not the whole-catalog revision | accepted |
 | [P0JZ](entries/P0JZ-certify-contract-in-each-package.md) | `certify(level)` in each package; reports to `skellycertify`; any recorded build is evidence; OS and EP layers | accepted |
 | [21BK](entries/21BK-quick-check-local-pass-and-hand-in.md) | Quick check in a child process on the user's pipeline; local pass; hard failures; passive record; hand-in | accepted |

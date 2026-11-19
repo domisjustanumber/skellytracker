@@ -1,6 +1,6 @@
 # BZ7X — ONNX Runtime telemetry: the package sets `ORT_DISABLE_TELEMETRY=1`, and the ONNX stack tool scans for the client
 
-**Status:** accepted, 2026-11-19 (user).
+**Status:** absorbed into [ONNX Runtime](../../skellytracker/AGENTS.md#onnx-runtime), 2026-11-19 (user; PR: pending).
 
 ## Decision
 

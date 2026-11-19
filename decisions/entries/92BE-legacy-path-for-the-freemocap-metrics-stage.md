@@ -1,6 +1,6 @@
 # 92BE — A temporary legacy run path for the freemocap metrics stage: task events and a `cuda` bridge of the old session
 
-**Status:** accepted, 2026-11-17 (user).
+**Status:** absorbed into [ONNX Runtime](../../skellytracker/AGENTS.md#onnx-runtime), 2026-11-19 (user; PR: pending).
 
 ## Decision
 
