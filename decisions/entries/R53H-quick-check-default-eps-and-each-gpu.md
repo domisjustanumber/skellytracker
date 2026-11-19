@@ -1,4 +1,4 @@
-# R53H — The quick check: `directml` and the Windows ML EPs in the default selection, and one check for each GPU
+# R53H — The quick check: `directml` and the Windows ML EPs in the default selection, one check for each GPU, and the JPEG checks
 
 **Status:** absorbed into [`certification.py`](../../skellytracker/certification.py), 2026-11-19 (user; PR: pending).
 
@@ -17,11 +17,18 @@
    `details.eps.<ep>.device` gives the device key.
 4. A named EP that cannot use a named GPU is `not-run` with the reason code `gpu-not-usable`. A device
    key that is not a GPU of the host raises `EpRequestError`.
+5. **JPEG checks.** On `cuda` and `trt-rtx`, the quick check of an EP on a GPU also gives
+   `<ep>:jpeg-decode` and `<ep>:jpeg-preprocess`: the two checks of `run_jpeg_quick_checks()` of
+   `core/decode/certification.py`, in one more child process, after an image check that passed. They
+   never change `<ep>`: a JPEG check that fails stops only the GPU frame path, not the EP. The row of
+   the pair in `quick-checks.json` holds `jpeg`, with the result of each of the two checks.
 
 ## Reason
 
 - User rulings, 2026-11-19: the default includes `directml` and the Windows ML EPs when they are not
   certified; the check runs on the GPU that the caller selects, and by default on each GPU.
+- User rulings, 2026-11-19, for item 5: the quick level has the JPEG checks from the JPEG entry point,
+  with their own stored result; a failure switches off only the GPU frame path.
 - Item 3 is the choice of the agent: the contract requires a unique check name, and a caller must find
   the EP rows with no parse of the device key.
 
@@ -36,6 +43,8 @@
   the last check wins.
 - An EP of the Windows ML catalog whose package is not installed is `not-run`. The quick level
   installs nothing.
+- No code reads `jpeg` of `quick-checks.json` yet: the pipeline run does not switch off the GPU frame
+  path from it.
 - `status().certify_offers` does not change: it lists the plugin EPs only, on the first GPU.
 
 ## Alternatives rejected

@@ -100,7 +100,17 @@ def quick_host(monkeypatch, ep_store, tmp_path):  # noqa: F811
     monkeypatch.setattr(package_certification, "_commit", lambda: (COMMIT, False))
     monkeypatch.setattr(package_certification, "_pipeline", lambda catalog, pipeline: ({}, "yolox-rtmw-wholebody@skellytracker", None))
     hw_fakes.fake_pack("trt-rtx")
+    fake_jpeg(monkeypatch)
     return ep_store
+
+
+def fake_jpeg(monkeypatch, found=None, problem=None, exit_code=0, **changes):
+    """Fake the child of the two JPEG checks. `changes` gives the result and the reason of a check by its name."""
+    checks = [{"name": name, "result": "pass", "reason": "ok", "numbers": {"max_abs_diff": 0.0, "shape": [1, 2]}, "warnings": [],
+               "detail": "C:\\secretdir\\x", **dict(zip(("result", "reason"), changes.get(name.replace("-", "_"), ()), strict=False))}
+              for name in package_certification.JPEG_CHECKS]
+    monkeypatch.setattr(package_certification, "_jpeg_spawn",
+                        lambda key, device_key, cancel: ({"checks": checks} if found is None else found, problem, exit_code))
 
 
 def fake_probe(monkeypatch, ok=True, code=None):
@@ -119,8 +129,9 @@ def fake_image(monkeypatch, **changes):
     monkeypatch.setattr(certification, "_wide_run", lambda key, settings, progress, device_key=None, **k: {**FOUND, **changes})
 
 
-def results(report: dict) -> dict:
-    return {check["name"]: (check["result"], check["reason"]) for check in report["checks"]}
+def results(report: dict, jpeg: bool = False) -> dict:
+    """The result and the reason of each check, without the JPEG checks unless `jpeg`."""
+    return {check["name"]: (check["result"], check["reason"]) for check in report["checks"] if jpeg or ":jpeg-" not in check["name"]}
 
 
 def test_a_bad_level_and_a_string_of_eps_raise_value_error(quick_host):
@@ -250,11 +261,12 @@ def test_each_progress_message_is_the_complete_state_and_a_raising_callback_is_d
     skellytracker.certify("quick", lambda message: (messages.append(json.loads(json.dumps(message))), times.append(time.monotonic())),
                           execution_providers=["trt-rtx"])
     assert [m["state"] for m in messages][0] == "starting" and [m["state"] for m in messages][-2:] == ["cleaning-up", "done"]
-    assert messages[0]["checks"] == [{"name": name, "result": None} for name in ("trt-rtx@10de-2484-0:probe", "trt-rtx@10de-2484-0:image", "trt-rtx@10de-2484-0")]
-    assert messages[0]["total"] == 3 and messages[0]["done"] == 0 and messages[0]["seconds_left"] == 15 + 60
+    assert messages[0]["checks"] == [{"name": name, "result": None} for name in (
+        "trt-rtx@10de-2484-0:probe", "trt-rtx@10de-2484-0:image", "trt-rtx@10de-2484-0:jpeg-decode", "trt-rtx@10de-2484-0:jpeg-preprocess", "trt-rtx@10de-2484-0")]
+    assert messages[0]["total"] == 5 and messages[0]["done"] == 0 and messages[0]["seconds_left"] == 15 + 60 + 5
     running = [m for m in messages if m["step"] == {"name": "trt-rtx@10de-2484-0:image"}]
     assert running[0]["checks"][:2] == [{"name": "trt-rtx@10de-2484-0:probe", "result": "pass"}, {"name": "trt-rtx@10de-2484-0:image", "result": None}]
-    assert messages[-1]["done"] == 3 and messages[-1]["seconds_left"] == 0
+    assert messages[-1]["done"] == 5 and messages[-1]["seconds_left"] == 0
     assert all(later - earlier >= 0.09 for earlier, later in zip(times, times[1:], strict=False))
     calls = []
 
@@ -268,7 +280,7 @@ def test_each_progress_message_is_the_complete_state_and_a_raising_callback_is_d
 def test_the_plan_names_the_test_image_the_time_and_each_ep_that_will_not_run(quick_host, monkeypatch):
     plan = skellytracker.certify_plan("quick", execution_providers=["trt-rtx", "cuda"])
     settings = certification.load_catalog().data["certification"]
-    assert plan["seconds_estimate"] == 15 + settings["seconds"]["trt-rtx"]
+    assert plan["seconds_estimate"] == 15 + settings["seconds"]["trt-rtx"] + 5
     assert plan["downloads"] == [{"name": "sample_recording_a_pose_image.jpg", "bytes": settings["image"]["bytes"]}]
     assert plan["details"] == {"execution_providers": ["trt-rtx", "cuda"], "checks": ["trt-rtx@10de-2484-0", "cuda@10de-2484-0"],
                                "not_run": {"cuda@10de-2484-0": "ep-not-installed"}}
@@ -374,6 +386,37 @@ def test_the_check_runs_on_each_gpu_of_the_ep_or_on_the_gpus_of_the_option_devic
     assert results(report)["trt-rtx"] == ("not-run", "gpu-not-usable") and results(report)["directml@8086-4680-0"] == ("pass", None)
     with pytest.raises(ValueError, match="device key"):
         skellytracker.certify_plan("quick", device="gpu:1234:5678:0")
+
+
+def test_the_jpeg_checks_never_change_the_ep_check_and_their_results_are_stored(quick_host, monkeypatch):
+    from skellytracker.core.decode import certification as decode_certification
+
+    assert package_certification.JPEG_EPS == decode_certification.GPU_FRAME_EPS
+    assert package_certification.JPEG_CHECKS == tuple(decode_certification.QUICK_CHECKS.values())
+    fake_probe(monkeypatch)
+    fake_image(monkeypatch)
+    fake_jpeg(monkeypatch, jpeg_decode=("not-run", "component_not_installed"), jpeg_preprocess=("fail", "over_limit"))
+    report = skellytracker.certify("quick", execution_providers=["trt-rtx", "directml"])
+    found = results(report, jpeg=True)
+    assert problems_of(report) == [] and "secretdir" not in json.dumps(report)
+    assert found["trt-rtx@10de-2484-0:jpeg-decode"] == ("not-run", "component_not_installed")
+    assert found["trt-rtx@10de-2484-0:jpeg-preprocess"] == ("fail", "over_limit") and found["trt-rtx@10de-2484-0"] == ("pass", None)
+    assert not [name for name in found if name.startswith("directml") and "jpeg" in name]  # only `cuda` and `trt-rtx`
+    assert next(c for c in report["checks"] if c["name"] == "trt-rtx@10de-2484-0:jpeg-decode")["numbers"] == {"max_abs_diff": 0.0}
+    stored = store.read_json(store.store_root() / "quick-checks.json")
+    pair = certification.pair_key(certification.load_catalog(), "trt-rtx", gpu(), "Windows")
+    assert stored[pair]["result"] == "passed" and stored[pair]["jpeg"] == {"jpeg-decode": "not-run", "jpeg-preprocess": "fail"}
+    assert all("jpeg" not in row for key, row in stored.items() if key.startswith("directml"))
+    fake_jpeg(monkeypatch, found={}, problem="hung-at-exit")  # a child that gave no check, and then did not exit
+    found = results(skellytracker.certify("quick", execution_providers=["trt-rtx"]), jpeg=True)
+    assert found["trt-rtx@10de-2484-0:jpeg-decode"] == ("fail", "no-result") and found["trt-rtx@10de-2484-0:jpeg-preprocess:exit"] == ("record-only", "hung-at-exit")
+    monkeypatch.setattr(package_certification, "_jpeg_spawn", lambda key, device_key, cancel: (None, "crashed", 5))
+    report = skellytracker.certify("quick", execution_providers=["trt-rtx"])
+    row = next(c for c in report["checks"] if c["name"] == "trt-rtx@10de-2484-0:jpeg-decode")
+    assert (row["result"], row["reason"], row["numbers"]) == ("fail", "crashed", {"exit_code": 5}) and results(report)["trt-rtx@10de-2484-0"] == ("pass", None)
+    fake_image(monkeypatch, ok=False, reason_code="box-differs")
+    found = results(skellytracker.certify("quick", execution_providers=["trt-rtx"]), jpeg=True)
+    assert found["trt-rtx@10de-2484-0:jpeg-decode"] == found["trt-rtx@10de-2484-0:jpeg-preprocess"] == ("not-run", "image-not-passed")
 
 
 def test_the_scrub_removes_a_private_name_and_counts_a_public_one(monkeypatch):

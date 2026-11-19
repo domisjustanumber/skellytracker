@@ -30,6 +30,8 @@ an application. A quick check of a part of the EPs is complete for each EP that 
 |---|---|---|
 | `no-check` | `evidence.reasons` | The run had no EP to check. For example, each GPU EP of this host has a reviewed row. |
 | `not-gpu-ep` | check | The EP runs no model on a GPU, for example `cpu`. The quick check compares a GPU EP with the CPU EP. |
+| `image-not-passed` | check `<ep>:jpeg-decode`, `<ep>:jpeg-preprocess` | The JPEG checks did not start, because the image check did not pass. |
+| a code of `REASONS` | check `<ep>:jpeg-decode`, `<ep>:jpeg-preprocess` | A reason code of the JPEG certification, for example `component_not_installed` or `over_limit`. The tuple `REASONS` of `core/decode/certification.py` is the list. |
 | `gpu-not-usable` | check | The caller named the EP and a GPU with the option `device`, and the EP cannot use that GPU. |
 | `ep-<code>` | check | The EP cannot run on this host. `<code>` is the reason code of the EP state, or the state: `ep-os`, `ep-no-device`, `ep-cc-too-low`, `ep-driver-too-old`, `ep-rocm-missing`, `ep-rocm-version`, `ep-not-installed`, `ep-stale`. The quick check installs nothing. |
 | `probe-l2-failed` | check `<ep>:probe` | The EP did not register, or it lists no device for the GPU. |
@@ -63,6 +65,7 @@ an EP check has no `:`. `details.eps.<ep>.device` gives the device key.
 |---|---|
 | `<ep>:probe` | The L3 probe of the EP (`verify()`) on the GPU, in a child process. |
 | `<ep>:image` | The pipeline on one test image on the EP and on the CPU EP, in a child process, and the comparison. |
+| `<ep>:jpeg-decode`, `<ep>:jpeg-preprocess` | Only on `cuda` and `trt-rtx`: the two quick checks of the GPU frame path (`run_jpeg_quick_checks()` of `core/decode/certification.py`), in one child process. They never change `<ep>`. |
 | `<ep>` | The quick check of the EP on one GPU. It passes only when `<ep>:probe` and `<ep>:image` pass. |
 | `<ep>:probe:exit`, `<ep>:image:exit` | The check `exit` of the contract for a child that gave its result and did not end cleanly. |
 | `full` | The level `full`. It is `not-run` with `not-built`. |
