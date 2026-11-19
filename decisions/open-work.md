@@ -99,29 +99,20 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   - macOS: the `onnxruntime` 1.30.0 wheel is not scanned and has no row.
 - **Field-test opt-in.** [ADR-Z5X7](entries/Z5X7-field-test-state-and-directml.md): there is no
   command that removes an opt-in. A user deletes `field-test.json` of the EP store.
-  - DirectML device memory: on one Windows host with ONNX Runtime 1.30.0 and DirectML 1.15.4, an
-    input from `OrtValue.ortvalue_from_numpy(x, "dml", id)` gave a wrong output in 25 of 50 repeats
-    on a session that took its GPU through `add_provider_for_devices`, the output of one DirectML
-    session in `dml` memory was right in 300 of 300 repeats as the input of a second session, and
-    only the device id 0 of a `dml` binding worked on each adapter, so later work must not bind a
-    host-made `dml` input, and must use the device id 0.
   - freemocap work: the dialog of the prompt (item 14, at the times of
     [ADR-P0JZ](entries/P0JZ-certify-contract-in-each-package.md) item 5) and of the download prompt
     (item 9).
-- **DirectML GPU preprocess waits for a certification report from AMD hardware.**
-  [ADR-W4NW](entries/W4NW-gpu-preprocess-of-a-model-node-and-its-cpu-warning.md) items 1 and 6:
-  a reviewed report moves `directml` into `GRAPH_DEFAULT_EPS`. On an AMD GPU on Windows, the report
-  must show `run_jpeg_certification("directml")` with no `fail` in `preprocess_graph_amd_ep.*` and
-  `pipeline_amd_ep.*`, the numbers of `frame_upload` and `gpu_vs_cpu_preprocess`, and the time of
-  the span `person.preprocess` with `gpu` and with `cpu`. On one RTX 3070, the time of this span
-  with `gpu` and with `cpu` is not recorded; measure it again.
-- **Dependency pins for the exporters.** [ADR-N6E8](entries/N6E8-onnxruntime-1-30-on-each-os.md)
-  decides exact pins, ONNX Runtime 1.30.0 as a base dependency with GPU EPs as CUDA 13 plugin packs,
-  and `requires-python = "==3.13.18"`. The exporters that agents build again pin the 2.0.0
-  pre-release (the draft exporter guide). On 2026-10-28, two exporters required Python 3.14 or later,
-  and uv could not resolve skellytracker in three of the four exporters. The dependency stage of the
-  implementation plan wrote the pins on 2026-11-12. Until the 2.0.0 pre-release, an exporter runs
-  the batch tool in the checkout environment.
+- **DirectML GPU preprocess.** A reviewed report from an AMD GPU on Windows moves `directml` into
+  `GRAPH_DEFAULT_EPS` ([ADR-W4NW](entries/W4NW-gpu-preprocess-of-a-model-node-and-its-cpu-warning.md)
+  items 1 and 6). The report must show no `fail` in `preprocess_graph_amd_ep.*` and
+  `pipeline_amd_ep.*` of `run_jpeg_certification("directml")`, the numbers of `frame_upload` and
+  `gpu_vs_cpu_preprocess`, and the time of the span `person.preprocess` with `gpu` and with `cpu`.
+  No record holds the time of that span on the RTX 3070: measure it again.
+- **Dependency pins for the exporters.** `pyproject.toml` has the pins of
+  [ADR-N6E8](entries/N6E8-onnxruntime-1-30-on-each-os.md). The exporters that agents build again pin
+  the 2.0.0 pre-release (the draft exporter guide). On 2026-10-28, two exporters required Python 3.14
+  or later, and uv could not resolve skellytracker in three of the four exporters. Until the 2.0.0
+  pre-release, an exporter runs the batch tool in the checkout environment.
 - **Exporter open items.** At the 2.0.0 pre-release, remove the rows of
   `specs/draft/exporter-guide/sidecars/known-open-items.md` that name a reference implementation.
   They do not apply to a new exporter, and the skill `implement-sidecar-section` uses them until
@@ -149,85 +140,66 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   records the run as `no vectors`. An example is version 6 of `model-rtmw-wholebody133` for
   `post.keypoint.score_map`
   ([ADR-F067](../specs/model-sidecar/decisions/entries/F067-simcc-score-map.md)).
-- **Pipeline redesign.** Stages 1 to 7 of the redesign of the node and port types are built in
-  skellytracker, and the absorb documents state the rules of
-  [ADR-9HTX](entries/9HTX-pipeline-node-and-port-redesign.md).
-  [ADR-8TQT](entries/8TQT-redesign-stages-6-and-7-before-the-pre-release.md) records the new timing
-  of stages 6 to 8. Three items stay open:
+- **Pipeline redesign** ([ADR-9HTX](entries/9HTX-pipeline-node-and-port-redesign.md)). Stages 1 to 7
+  are built. [ADR-8TQT](entries/8TQT-redesign-stages-6-and-7-before-the-pre-release.md) has the
+  timing of stages 6 to 8. Three items stay open:
   - Stage 8, the pipeline editor, is freemocap work that the user does in another session.
   - Later work: look into one canonical output keypoint set that becomes the only output format of
     a pipeline.
   - Later work: make one BGR to RGB conversion for each camera and frame for the decomposed
     MediaPipe pipeline.
-- **Cost of the detector preprocess.** Measured on 2026-11-17 with `time.perf_counter_ns` on one
-  desktop CPU, with OpenCV 5.0.0.93 and no other load. `preprocess_image` of
+- **Cost of the detector preprocess.** Measured on 2026-11-17 (`time.perf_counter_ns`, one desktop
+  CPU, OpenCV 5.0.0.93, no other load): `preprocess_image` of
   `core/detectors/processing/pre/preprocess.py` needs about 5.2 ms for one 1280x720 frame with the
-  `yolox-person` sidecar at size `m` (640x640). The time is almost the same for a 1920x1080 and a
-  3840x2160 frame. It needs about 1.2 ms with the `rtmw-wholebody133` sidecar at size `m`
-  (256x192). Three causes are known:
-  - The `letterbox` function of `pre/resize_letterbox.py` needs about 1.8 ms, and its `cv2.resize`
-    call needs 0.2 to 0.4 ms. The canvas fill from a `float64` array uses most of the difference.
-  - The `normalize` function of `pre/normalize.py` makes a cast and two or three float passes
-    over each pixel of the model input.
-  - A detector prepares the images of one frame one after the other, in one `preprocess` span. The
-    span thus grows with the number of cameras. freemocap showed more than 22 ms for the span
-    `person.preprocess` with four cameras at 1280x720.
+  `yolox-person` sidecar at size `m` (640x640), almost the same at 1920x1080 and 3840x2160. It needs
+  about 1.2 ms with `rtmw-wholebody133` at size `m` (256x192). The known causes:
+  - `letterbox` of `pre/resize_letterbox.py` needs about 1.8 ms, and its `cv2.resize` call 0.2 to
+    0.4 ms. The canvas fill from a `float64` array uses most of the difference.
+  - `normalize` of `pre/normalize.py` makes a cast and two or three float passes over each pixel of
+    the model input.
+  - A detector prepares the images of a frame one after the other in one `preprocess` span, so the
+    span grows with the number of cameras. freemocap showed more than 22 ms for `person.preprocess`
+    with four cameras at 1280x720.
 
-  In the built-in pipeline, the detector runs one time in 150 frames. The mean cost is small, but
-  the frame with a detection has a delay of this size. No fix is decided. A change of this code
-  must keep each output tensor equal. A second implementation on the GPU must agree with this code
-  within the resize limit of `pre.resize.interpolation`
-  ([ADR-J1HK](../specs/model-sidecar/decisions/entries/J1HK-resize-pixel-tolerance.md)).
+  The built-in pipeline runs the detector one time in 150 frames. The mean cost is small, but the
+  frame with a detection has this delay. No fix is decided. A change of this code
+  must keep each output tensor equal.
 
-  Result of 2026-11-18. The pipeline run now has the GPU preprocess graph
+  Since 2026-11-18, the run has the GPU preprocess graph
   ([ADR-W4NW](entries/W4NW-gpu-preprocess-of-a-model-node-and-its-cpu-warning.md)) and the GPU JPEG
   decode ([ADR-P245](../specs/pipeline/decisions/entries/P245-jpeg-frame-input.md);
-  [ADR-88ZB](entries/88ZB-gpu-jpeg-decoder-component-of-the-ep-catalog.md)). The measurements are
-  in [ADR-1SZ9](entries/1SZ9-gpu-preprocess-and-gpu-jpeg-decode-in-the-pipeline-run.md) (the calls
-  and spans end to end), [ADR-FBV5](entries/FBV5-gpu-path-agreement-on-the-freemocap-sample-data.md)
-  (the agreement on a recording with people) and
-  [ADR-BP5Y](entries/BP5Y-gpu-huffman-decode-threshold.md) (the GPU Huffman option, 500000 in the
-  package). These items stay open:
-  - The keypoint preprocess with several boxes for each frame was not measured. The frames give at
-    most one box.
+  [ADR-88ZB](entries/88ZB-gpu-jpeg-decoder-component-of-the-ep-catalog.md)), measured in
+  [ADR-1SZ9](entries/1SZ9-gpu-preprocess-and-gpu-jpeg-decode-in-the-pipeline-run.md),
+  [ADR-FBV5](entries/FBV5-gpu-path-agreement-on-the-freemocap-sample-data.md) and
+  [ADR-BP5Y](entries/BP5Y-gpu-huffman-decode-threshold.md). Open:
+  - No run measured the keypoint preprocess with two or more boxes in a frame.
   - A model session with a dynamic batch pads the batch on the GPU path.
-  - The run decodes the CPU JPEG frames of a call in a thread pool
-    ([ADR-S1TG](../specs/pipeline/decisions/entries/S1TG-cpu-jpeg-decode-threads.md)). The gain of
-    a full call is not measured yet.
-- **Repeat the measurements on the pinned versions (ONNX Runtime 1.30.0, `cuda-cu13` 0.2.0) with at
-  least 3 repeats and the spread.** The numbers of these records come from ONNX Runtime 1.31.1 and
-  `cuda-cu13` 0.3.0, before the move: [ADR-1SZ9](entries/1SZ9-gpu-preprocess-and-gpu-jpeg-decode-in-the-pipeline-run.md),
+  - No run measured the gain of the CPU decode thread pool
+    ([ADR-S1TG](../specs/pipeline/decisions/entries/S1TG-cpu-jpeg-decode-threads.md)) on a full call.
+- **Repeat on the pinned versions.** ONNX Runtime 1.31.1 and `cuda-cu13` 0.3.0 gave the numbers of
+  [ADR-1SZ9](entries/1SZ9-gpu-preprocess-and-gpu-jpeg-decode-in-the-pipeline-run.md),
   [ADR-FBV5](entries/FBV5-gpu-path-agreement-on-the-freemocap-sample-data.md),
   [ADR-BP5Y](entries/BP5Y-gpu-huffman-decode-threshold.md),
-  [ADR-S1TG](../specs/pipeline/decisions/entries/S1TG-cpu-jpeg-decode-threads.md) (the decode
-  timing), the Evidence of [ADR-88ZB](entries/88ZB-gpu-jpeg-decoder-component-of-the-ep-catalog.md)
-  and of [ADR-J1HK](../specs/model-sidecar/decisions/entries/J1HK-resize-pixel-tolerance.md), and
-  the resize-limit runs of the GPU preprocess in the
-  [spec open work](../specs/model-sidecar/decisions/open-work.md).
-- **Results with no saved output.** Measure these again and record them. After the move to ONNX
-  Runtime 1.30.0, with `gpu-jpeg-cu13` beside `cuda-cu13` 0.2.0: the count of the GPU tests that
-  pass, and the counts of `run_jpeg_certification` (52 checks) on `cuda` and `trt-rtx`.
-- **Intel QSV JPEG decode.** [ADR-71YY](entries/71YY-intel-qsv-jpeg-decode-against-the-cpu-thread-pool.md)
-  shows no gain, so it is not built. Two cases can open it again: the preprocess takes NV12 and
-  converts after the resize to the model input size, or the Intel VPL library gives 4:2:2 output.
-  No run tested them.
-- **nvImageCodec hang of a one-image decode.**
-  [ADR-975Z](entries/975Z-nvimagecodec-one-image-decode-hang.md) gives the cause, the runs and the
-  workaround. Open: the report to NVIDIA is not sent (a minimal reproducer is ready). No run on Linux
-  and no run on a host with few CPU cores.
-- **Exit hang of the CUDA EP plugin.** [ADR-C6A5](entries/C6A5-exit-hang-of-the-cuda-ep-plugin.md)
-  gives the runs and the findings. Open:
-  - A run of the hang rate with `ORT_DISABLE_TELEMETRY=1` on `cuda-cu13` 0.3.0 is planned. No run
-    has tested it.
-  - More full runs on ONNX Runtime 1.30.0 with `cuda-cu13` 0.2.0 (0 of 43 is not enough), a full
-    run on `trt-rtx` and a longer run of the minimal reproducer.
-  - The setting `ORT_DISABLE_TELEMETRY=1` and the check of the upgrade checker are planned on
-    `dom/sidecar-implementation` (user, 2026-11-19). This branch has no code for them.
-  - The report to ONNX Runtime is not sent.
-- **Repair of a damaged store folder.** A damaged pack folder or component folder of the EP store
-  reports a state whose hint is to run the install command. The install does not repair the folder,
-  because the folder exists. The remedy today is to remove the pack or the component, then to install
-  it again. Packs had this gap before the component
+  [ADR-S1TG](../specs/pipeline/decisions/entries/S1TG-cpu-jpeg-decode-threads.md) (decode timing),
+  the Evidence of [ADR-88ZB](entries/88ZB-gpu-jpeg-decoder-component-of-the-ep-catalog.md) and of
+  [ADR-J1HK](../specs/model-sidecar/decisions/entries/J1HK-resize-pixel-tolerance.md), and the
+  resize-limit runs in the [spec open work](../specs/model-sidecar/decisions/open-work.md). Repeat
+  them on ONNX Runtime 1.30.0 and `cuda-cu13` 0.2.0, with 3 repeats or more and the spread. Also
+  record the count of the GPU tests that pass and the counts of `run_jpeg_certification` (52 checks)
+  on `cuda` and `trt-rtx`, with `gpu-jpeg-cu13` beside `cuda-cu13` 0.2.0: no saved output holds them.
+- **Intel QSV JPEG decode.** Not built:
+  [ADR-71YY](entries/71YY-intel-qsv-jpeg-decode-against-the-cpu-thread-pool.md) shows no gain. No
+  run tested the two cases that can open it again: an NV12 preprocess that converts after the resize
+  to the model input size, and 4:2:2 output from the Intel VPL library.
+- **nvImageCodec hang of a one-image decode**
+  ([ADR-975Z](entries/975Z-nvimagecodec-one-image-decode-hang.md)). Open: the report to NVIDIA (a
+  minimal reproducer is ready), a run on Linux and a run on a host with few CPU cores.
+- **Exit hang of the CUDA EP plugin** ([ADR-C6A5](entries/C6A5-exit-hang-of-the-cuda-ep-plugin.md)).
+  Open: more full runs on ONNX Runtime 1.30.0 with `cuda-cu13` 0.2.0 (0 of 43 is not enough); a
+  full run on `trt-rtx`; a longer run of the minimal reproducer; the report to ONNX Runtime.
+- **Repair of a damaged store folder.** A damaged pack or component folder of the EP store gives a
+  state whose hint is the install command, but the install does not repair a folder that exists.
+  The remedy today: remove the pack or the component, then install it again
   ([ADR-88ZB](entries/88ZB-gpu-jpeg-decoder-component-of-the-ep-catalog.md)).
 - **Kit PR in freemocap/project.** The kit is on the branch `dom/agents-and-adr-kit` of
   freemocap/project, in a PR for its owner
