@@ -13,7 +13,8 @@ This entry extends [ADR-246B](246B-ep-catalog-store-and-install.md) items 1 and 
    checks.
 2. **Decoder.** The component `gpu-jpeg-cu13` holds `nvidia-nvimgcodec-cu13` 0.10.0.9,
    `nvidia-nvjpeg` 13.3.2.43 and `nvidia-cuda-runtime` 13.4.92. The packs of `cuda` and `trt-rtx`
-   name it. It is not a base dependency and not an extra of `pyproject.toml`.
+   name it. It is not a base dependency and not an extra of `pyproject.toml`. Only the NVIDIA EPs
+   `cuda` and `trt-rtx` have a GPU JPEG decode. Each other EP decodes on the CPU (user, 2026-11-19).
 3. **Install.** Each install of `cuda` or `trt-rtx` installs the component. There is no opt-out. A
    plan holds the component one time. `install <key>` on a store of an older catalog installs only
    the component: the pack folder does not change. A failure of the component goes to

@@ -263,6 +263,17 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   - Open: the run now decodes the CPU JPEG frames of a call in a thread pool, with at most
     `cpu_threads` threads ([ADR-S1TG](../specs/pipeline/decisions/entries/S1TG-cpu-jpeg-decode-threads.md)).
     The gain of a full call is not measured yet.
+- **nvImageCodec hang of a one-image decode.** nvImageCodec never returns from a decode of one image
+  when the decoder has fewer CUDA streams than worker threads: the threads that share a stream wait
+  at a barrier, and one image wakes only one thread. A batch of 2 or more images returns. A source
+  reading finds the same code in 0.8.0 to 0.10.1.12. The runs of 2026-11-19 used 0.10.0.9 only, on
+  Windows 11 with one RTX 3070: 62 cells of threads, streams and images, and 9 runs with
+  `NVIMGCODEC_DEFAULT_NUM_CUDA_STREAMS`, after batches of 2 and with no DHT segment, agree with this
+  cause. No Linux run. The decoder sets equal counts, removes that variable, and decodes one test
+  JPEG at the open with a 10 s limit
+  ([ADR-88ZB](entries/88ZB-gpu-jpeg-decoder-component-of-the-ep-catalog.md)). A process with an
+  abandoned decoder exits with code 0 (6 of 6 runs). A minimal reproducer for an upstream report is
+  prepared. The report is not sent.
 - **Repair of a damaged store folder.** A damaged pack folder or component folder of the EP store
   reports a state whose hint is to run the install command. The install does not repair the folder,
   because the folder exists. The remedy today is to remove the pack or the component, then to install
