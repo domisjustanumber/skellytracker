@@ -151,4 +151,4 @@ def test_on_directml_with_the_opt_in_in_a_private_store_no_check_fails(tmp_path:
     assert [check for check in result["checks"] if check["result"] == "fail"] == []
     assert result["facts"]["ep"]["state"] == "builtin"
     assert by_name["preprocess_graph_amd_ep.device_handover"]["result"] == "pass"
-    assert all(by_name[name]["reason"] == "ep_not_present" for name in GPU_CHECKS if name.startswith(("gpu_decode.", "preprocess_graph_ep.")))
+    assert all(by_name[name]["reason"] == ("no_gpu_decode_on_ep" if name.startswith("gpu_decode.") else "ep_not_present") for name in GPU_CHECKS if name.startswith(("gpu_decode.", "preprocess_graph_ep.")))
