@@ -1,7 +1,8 @@
-"""The script that the slow PyInstaller test freezes. It builds no session and downloads no model.
+"""The script that the slow PyInstaller test freezes. It downloads no model.
 
 It prints `SMOKE OK` when each check passes. It does not import the old sidecar loader: it checks
-only that the YAML files of the package are in the bundle.
+only that the YAML files of the package are in the bundle. It builds one session on the CPU EP from
+the probe model, to check the hook of ONNX Runtime. It uses no GPU.
 """
 
 import importlib.resources
@@ -30,7 +31,17 @@ def main() -> int:
     assert schemas, "the landmark schema files are not in the bundle"
     runtime = system.probe_runtime()
     assert runtime.ort_version is not None, runtime.probe_errors
-    print(f"frozen={environment.frozen} gpus={len(host.gpus)} ort={runtime.ort_version} schemas={len(schemas)}")
+    from skellytracker.core.eps import _probe_model
+    from skellytracker.core.eps.installer import core_mismatch, installed_ort
+
+    assert installed_ort() is not None and core_mismatch(eps.load_catalog()) is None, "no ONNX Runtime metadata"
+    session, report = eps.build_session(_probe_model.model_bytes(), execution_provider="cpu")
+    session.run(None, {"x": _probe_model.probe_input()})
+    if sys.platform == "win32":
+        import windowsml  # noqa: F401 - the import loads its DLL from `windowsml/lib`
+
+        assert "DmlExecutionProvider" in runtime.ep_names, runtime.ep_names
+    print(f"frozen={environment.frozen} gpus={len(host.gpus)} ort={runtime.ort_version} schemas={len(schemas)} used_ep={report.used_ep}")
     print("SMOKE OK")
     return 0
 
