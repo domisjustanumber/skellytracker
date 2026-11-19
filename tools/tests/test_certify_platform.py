@@ -78,7 +78,7 @@ def test_each_child_failure_is_a_finding_and_the_report_is_still_written(tmp_pat
                      "suite:packs": ("fail", "timed-out", None), "suite:full": ("fail", "bad-output", 0)}
     suite = report["details"]["suite"]
     assert suite["sections"]["checkout"]["details"] == {"count": 1} and suite["sections"]["packs"]["seconds"] >= 2
-    assert {"partial-run", "modified-tree"} <= set(report["evidence"]["reasons"])  # sections 2 to 4 gave no result
+    assert {"partial-run", "section-1-not-run"} <= set(report["evidence"]["reasons"])  # sections 2 to 4 gave no result; the fake section 1 gives no checkout fact
     time.sleep(3)
     assert not marker.exists(), "the timeout must kill the whole process tree"
     assert not work.exists()
