@@ -47,9 +47,9 @@ This entry extends [ADR-246B](246B-ep-catalog-store-and-install.md) items 1 and 
 
 - An install of `cuda` or `trt-rtx` downloads 18.3 MiB more on Windows (38.9 MiB on disk) and
   32.5 MiB more on Linux (87.4 MiB on disk).
-- `store.verdict_key()` holds the catalog revision, so each catalog change drops the saved
-  verifications. `cuda` goes from `ready` to `installed_unverified` until `install cuda` or `verify`
-  runs. `trt-rtx` stays `untested-ort`.
+- `store.verdict_key()` holds the own EP row, pack row and lock row, not the component
+  ([ADR-YPH2](YPH2-verdict-key-of-the-own-catalog-entry.md)). The added field `component` drops
+  the saved verifications of `cuda` and `trt-rtx` one time.
 - `nvimgcodec.Decoder()` prints errors for nvJPEG2000 and nvTIFF to stderr: the component has no
   such wheels. The decoder step must keep them out of the output of a run.
 - PyInstaller can put a copy of nvImageCodec of the build environment in a frozen application. A

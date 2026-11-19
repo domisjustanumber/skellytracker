@@ -489,3 +489,26 @@ def test_a_verdict_key_changes_only_with_the_catalog_entry_of_its_own_ep(ep_key)
         assert key(lambda data, lock: lock["packs"]["cuda-cu13"]["win_amd64"]["wheels"][0].update(sha256="0" * 64)) != same
         assert key(lambda data, lock: data["eps"]["cuda"]["packs"][0].update(version="0.3.0")) != same
         assert key(lambda data, lock: data["eps"]["cuda"]["packs"][0].update(ep_name="Other")) != same
+
+
+def test_a_new_version_of_the_decoder_component_keeps_the_verdict_key_of_its_ep():
+    """ADR-88ZB: the EP verification does not test the GPU JPEG decoder, so a new version of the component (its catalog
+    row and its lock rows) keeps the verdict key of `cuda`. A new version of the pack still gives a new key."""
+    catalog = catalog_module.load_catalog()
+
+    def key(change) -> str:
+        data, lock = copy.deepcopy(catalog.data), copy.deepcopy(catalog.lock)
+        change(data, lock)
+        edited = catalog_module.EpCatalog(data, lock, revision="edited")
+        return store.verdict_key(edited, edited.pack("cuda"), gpu(), "gpu:10de:2484:0", "26100")
+
+    def new_component(data, lock):
+        (component,) = data["components"]
+        component.update(version="0.11.0.1", dependency_wheels=[{**wheel, "version": "99.0"} for wheel in component["dependency_wheels"]])
+        for row in lock["packs"][component["id"]].values():
+            row["wheels"][0].update(sha256="0" * 64)
+
+    same = key(lambda data, lock: None)
+    assert catalog.pack("cuda")["component"] == "gpu-jpeg-cu13"
+    assert key(new_component) == same
+    assert key(lambda data, lock: data["eps"]["cuda"]["packs"][0].update(version="0.3.0")) != same
