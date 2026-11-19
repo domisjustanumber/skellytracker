@@ -27,8 +27,11 @@ and takes its recommended and automatic choices from `recommend()`:
   `skellytracker.certify()` on this PC) and `usable`. An EP with no reviewed row is usable on a GPU
   only after the whole quick check passes there, and never after a quick check that failed there
   (ADR-21BK items 2 and 3). An application offers an EP on a GPU from `checks[n].usable`.
-  `PackStatus.usable`, `check_start()` and a run do not read the quick checks. `recommend()` skips
-  a candidate whose quick check failed on this PC (`EpCandidate.failed_locally`).
+- The check rule (`gate.py`, ADR-ER5X): `check_start()` and `build_session()` raise
+  `EpUnavailableError` with the quick-check command for an EP on a GPU that the rule does not let
+  run. `PackStatus.usable` and `PackStatus.devices` obey the rule. `recommend()` names only an EP
+  that can start now: it skips a candidate with `failed_locally` or `needs_check`. The rule has no
+  setting. Only the certification code runs with the rule off.
 - `suggest_execution_provider(saved_execution_provider)` gives the EP key to use on this host for an
   EP key that a setting of an older release holds, or None. The key is an EP that this host
   supports. It can need an install first: `PackStatus.usable` and `PackStatus.install_hint` of the

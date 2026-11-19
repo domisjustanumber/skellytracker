@@ -788,7 +788,12 @@ def run_suite(sections: tuple[Section, ...], selected: set[int], out: Path, *, y
 
 def child(number: int, work: Path) -> int:
     section = next(s for s in SECTIONS if s.number == number)
-    print(json.dumps(section.run(work)), flush=True)
+    sys.path.insert(0, str(REPO_ROOT))
+    from skellytracker.core.eps import gate
+
+    with gate.certification_run():  # a section runs an EP before the EP has a result (ADR-ER5X)
+        result = section.run(work)
+    print(json.dumps(result), flush=True)
     return 0
 
 

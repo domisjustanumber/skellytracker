@@ -14,7 +14,7 @@ from skellytracker.core.eps import _verify_child, recommendation, registration, 
 from skellytracker.core.eps import catalog as catalog_module
 from skellytracker.core.errors import EpRequestError, EpUnavailableError, SessionCreationError, VRAMExhaustionError
 from skellytracker.tests import child_fakes
-from skellytracker.tests.hw_fakes import GIB, fake_pack, gpu, host
+from skellytracker.tests.hw_fakes import GIB, fake_pack, gpu, host, reviewed_rows_for_each_gpu
 
 CUDA, TRT, CPU = "CUDAExecutionProvider", "NvTensorRTRTXExecutionProvider", "CPUExecutionProvider"
 SMALL = gpu(vram=8 * GIB, bus="0000:01:00.0")
@@ -93,6 +93,7 @@ def clean(tmp_path, monkeypatch):
     monkeypatch.setattr(store, "_warned", set())
     monkeypatch.setattr(store, "cache_root", lambda: tmp_path / "ep-cache")
     monkeypatch.setattr(registration, "core_mismatch", lambda catalog: None)
+    reviewed_rows_for_each_gpu(monkeypatch)  # these tests are not about the check rule; `test_the_check_rule_*` are
 
 
 @pytest.fixture
@@ -431,3 +432,37 @@ def test_verify_of_directml_runs_on_the_chosen_gpu(dml_host, monkeypatch):
     (verdict,) = eps.verify(["directml"], level="L2", device_key="gpu:8086:a780:0")
     assert verdict.ok and verdict.pack_id is None and jobs[0]["gpu"] == INTEL_DXGI and jobs[0]["pack"] is None
     assert jobs[0]["device_key"] == "gpu:8086:a780:0" and jobs[0]["atol"] == 1.5e-2
+
+
+def test_the_check_rule_refuses_a_run_and_a_session_and_the_certification_code_passes_it(dml_host, monkeypatch):
+    """ADR-ER5X: no reviewed row and no local pass = no run. The rule must never stop the check that lifts it."""
+    from skellytracker.core.eps import _verify_child, certification, evidence, gate
+
+    monkeypatch.setattr(evidence, "certified", lambda key, gpu, os_name: False)  # no reviewed row: this test is about the rule
+    store.opt_in_field_test("directml")
+    catalog = eps.load_catalog()
+    for call in (lambda: eps.check_start("directml"), lambda: eps.check_start("directml", device="gpu:8086:a780:0"),
+                 lambda: eps.build_session(b"model", execution_provider="directml")):
+        with pytest.raises(EpUnavailableError, match="skellytracker-eps certify directml --quick"):
+            call()
+    assert FakeSession.created == []
+    with gate.certification_run():  # the certification code: the rule is off, also for a nested use
+        with gate.certification_run():
+            eps.build_session(b"model", execution_provider="directml")
+        assert [d.device_key for d in eps.check_start("directml")] == ["gpu:10de:2484:0", "gpu:8086:a780:0"]
+    with pytest.raises(EpUnavailableError):
+        eps.build_session(b"model", execution_provider="directml")  # the rule is back after the block
+    seen = []
+    monkeypatch.setattr(_verify_child, "run", lambda job: seen.append(gate.rule_passes(catalog, "directml", INTEL_DXGI, "Windows")) or {})
+    _verify_child.main({}, types.SimpleNamespace(send=lambda result: None, close=lambda: None))
+    assert seen == [True]  # the child of the probe runs with the rule off
+    path = store.store_root() / "quick-checks.json"
+    store.write_json(path, {certification.pair_key(catalog, "directml", INTEL_DXGI, "Windows"): {"result": "passed"}})
+    assert [d.device_key for d in eps.check_start("directml")] == ["gpu:8086:a780:0"]  # only the GPU with a local pass
+    _, report = eps.build_session(b"model", execution_provider="directml")
+    assert report.device_key == "gpu:8086:a780:0"  # the default GPU is the first GPU that the rule lets run
+    with pytest.raises(EpUnavailableError, match="no quick check passed"):
+        eps.check_start("directml", device="gpu:10de:2484:0")
+    store.write_json(path, {certification.pair_key(catalog, "directml", INTEL_DXGI, "Windows"): {"result": "failed"}})
+    with pytest.raises(EpUnavailableError, match="its last quick check failed"):
+        eps.build_session(b"model", execution_provider="directml", device_key="gpu:8086:a780:0")

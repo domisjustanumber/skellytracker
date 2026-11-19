@@ -495,7 +495,7 @@ def _jpeg_child(key: str, device_key: str | None, connection) -> None:
     try:
         from skellytracker.core.decode.certification import run_jpeg_quick_checks
 
-        result = {"checks": run_jpeg_quick_checks(key, device_key=device_key)}
+        result = {"checks": run_jpeg_quick_checks(key, device_key=device_key)}  # it switches the check rule off itself
     except Exception as error:  # noqa: BLE001 - a fixed code: an error text can hold a path
         result = {"error": type(error).__name__}
     connection.send(result)

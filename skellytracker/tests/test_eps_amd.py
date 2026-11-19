@@ -13,6 +13,7 @@ from skellytracker.core.eps import cli, evidence, registration, store, windows_m
 from skellytracker.core.eps import catalog as catalog_module
 from skellytracker.core.errors import EpUnavailableError
 from skellytracker.core.system import host as host_module
+from skellytracker.tests import hw_fakes
 from skellytracker.tests.hw_fakes import GIB, gpu, host
 from skellytracker.tests.test_eps_cli import set_host
 from skellytracker.tests.test_eps_store import ep_store  # noqa: F401 - fixture
@@ -46,6 +47,7 @@ def test_linux_takes_the_pack_of_the_rocm_release_of_the_host(monkeypatch, ep_st
 
 
 def test_an_opted_in_rocm_pack_is_untested_ort_and_usable_but_never_recommended(monkeypatch, ep_store):  # noqa: F811
+    hw_fakes.reviewed_rows_for_each_gpu(monkeypatch)  # the subject is not the check rule of `gate.py`
     from skellytracker.tests.hw_fakes import fake_pack
 
     on(monkeypatch, "manylinux_x86_64", host(RADEON, os_name="Linux"), "10.2")
@@ -60,6 +62,7 @@ def test_an_opted_in_rocm_pack_is_untested_ort_and_usable_but_never_recommended(
 
 
 def test_windows_takes_migraphx_and_amdgpu_from_the_windows_ml_catalog(monkeypatch, ep_store):  # noqa: F811
+    hw_fakes.reviewed_rows_for_each_gpu(monkeypatch)  # the subject is not the check rule of `gate.py`
     on(monkeypatch, "win_amd64", host(RADEON))
     catalog = eps.load_catalog()
     assert catalog.windows_ml("migraphx") and catalog.pack("migraphx") is None and catalog.device_row("amdgpu")["ep_name"] == "AMDGPUExecutionProvider"

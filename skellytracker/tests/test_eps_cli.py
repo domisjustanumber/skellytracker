@@ -133,6 +133,7 @@ def test_status_json(rtx_host, capsys):
 
 
 def test_the_order_of_status_eps_is_the_catalog_order_and_each_hardware_class_keeps_it(rtx_host, monkeypatch):
+    hw_fakes.reviewed_rows_for_each_gpu(monkeypatch)  # the subject is not the check rule of `gate.py`
     catalog = catalog_module.load_catalog()
     assert catalog.keys() == ("trt-rtx", "cuda", "coreml", "amdgpu", "migraphx", "directml", "cpu")
     assert [row.key for row in eps.status().eps] == ["trt-rtx", "cuda", "amdgpu", "migraphx", "directml", "cpu"]  # no `coreml` here
@@ -265,7 +266,8 @@ def test_gc_remove_and_the_console_script(rtx_host, ep_store, capsys):  # noqa: 
     assert scripts["skellytracker-eps"].value == "skellytracker.core.eps.cli:main"
 
 
-def test_install_field_test_is_the_opt_in_of_directml(rtx_host, ep_store, capsys):  # noqa: F811
+def test_install_field_test_is_the_opt_in_of_directml(rtx_host, ep_store, capsys, monkeypatch):  # noqa: F811
+    hw_fakes.reviewed_rows_for_each_gpu(monkeypatch)  # the subject is not the check rule of `gate.py`
     """ADR-Z5X7: `install directml` is refused (exit 3); `--field-test` records the opt-in; the option needs field-test keys."""
     assert cli.main(["install", "directml", "--yes"]) == errors.EXIT_EP_UNAVAILABLE
     assert "field test" in capsys.readouterr().err and not (ep_store / "field-test.json").exists()

@@ -21,8 +21,9 @@ from collections.abc import Callable
 from pathlib import Path
 
 import skellytracker
-from skellytracker.core.eps import _download, evidence, store, verification
+from skellytracker.core.eps import _download, evidence, gate, store, verification
 from skellytracker.core.eps.catalog import EpCatalog, load_catalog
+from skellytracker.core.eps.gate import local_result, pair_key  # noqa: F401 - their old home; callers read them here
 from skellytracker.core.eps.recommendation import ep_gpus
 from skellytracker.core.eps.records import USABLE_STATES, CertifyOffer, CertifyResult
 from skellytracker.core.errors import EpUnavailableError
@@ -39,27 +40,6 @@ WIDE_TIMEOUT_SECONDS = 600.0  # not calibrated: the start of the child, two pipe
 
 def reports_dir() -> Path:
     return store.store_root() / "reports"
-
-
-def pair_key(catalog: EpCatalog, key: str, gpu, os_name: str) -> str:
-    """The pair of an answer. The pack version is in it, so a pack upgrade asks again.
-
-    `gpu` comes from `ep_gpus()`, which gives only GPUs with PCI ids, so `gpu_id` is never None here. An EP of
-    the Windows ML catalog takes the package version of its record, and a built-in EP takes `builtin`.
-    """
-    pack = catalog.pack(key) or (store.windows_ml_pack(catalog, key) if catalog.windows_ml(key) else {"version": "builtin"})
-    return f"{key}|{pack['version']}|{os_name}|{evidence.gpu_id(gpu)}"
-
-
-def local_result(catalog: EpCatalog, key: str, gpu, os_name: str) -> str | None:
-    """`passed` or `failed`: the last quick check of the EP on this GPU model on this PC, for the pack version of today.
-
-    None with no such check, and for a GPU with no PCI ids. It reads `quick-checks.json` of the EP store.
-    """
-    if evidence.gpu_id(gpu) is None:
-        return None
-    row = (store.read_json(store.store_root() / "quick-checks.json") or {}).get(pair_key(catalog, key, gpu, os_name))
-    return row["result"] if isinstance(row, dict) and row.get("result") in ("passed", "failed") else None
 
 
 def read_answers() -> dict:
@@ -187,7 +167,8 @@ def _wide_run(key: str, settings: dict, progress: Callable[[str], None], device_
 def _wide_child(key: str, settings: dict, device_key: str | None, connection) -> None:
     """The child of `_wide_run()`: it sends each step, then the result, or `{"error": <exception class name>}`."""
     try:
-        result = _image_run(key, settings, connection.send, device_key)
+        with gate.certification_run():  # the check runs the EP before the EP has a result
+            result = _image_run(key, settings, connection.send, device_key)
     except Exception as error:  # noqa: BLE001 - a fixed code: an error text can hold a path
         result = {"error": type(error).__name__}
     connection.send(result)

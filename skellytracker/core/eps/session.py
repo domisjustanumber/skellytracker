@@ -17,7 +17,7 @@ from collections.abc import Mapping
 import numpy as np
 
 from skellytracker.core._hardware.sanitize import sanitize_text
-from skellytracker.core.eps import registration, store
+from skellytracker.core.eps import gate, registration, store
 from skellytracker.core.eps.catalog import EpCatalog, load_catalog
 from skellytracker.core.eps.recommendation import ep_gpus, install_hint
 from skellytracker.core.eps.records import USABLE_STATES, ModelRef, SessionReport
@@ -215,7 +215,8 @@ def build_session(model: str | os.PathLike | bytes, *, execution_provider: str, 
       list, also `device_id`, and for a `cpu_threads` that is not a positive integer, before a
       call of ONNX Runtime;
     - `EpUnavailableError` when the pack is not installed, does not register or lists no device,
-      and for a `field-test` EP with no opt-in in the EP store;
+      for a `field-test` EP with no opt-in in the EP store, and for an EP on a GPU with no reviewed
+      row and no passed quick check on this PC, or with a quick check that failed here (`gate.py`);
     - `SessionCreationError` when the EP does not start, is not the first provider or has no node;
     - `VRAMExhaustionError` when the GPU memory is exhausted at the build or at the warm-up run.
 
@@ -239,14 +240,15 @@ def build_session(model: str | os.PathLike | bytes, *, execution_provider: str, 
     else:  # only a GPU EP reads the host: an NVML call wakes the GPU of a hybrid laptop
         host = probe_host()
         usable = ep_gpus(catalog, key, host)
-        if device_key is None and usable:
-            device_key = usable[0][0]
+        if device_key is None and usable:  # the first GPU that the check rule lets run, else the first GPU
+            device_key = next((d for d, g in usable if gate.rule_passes(catalog, key, g, host.os_name)), usable[0][0])
         gpu = dict(usable).get(device_key)
         state, _, reason = store.pack_state(catalog, key, gpu, device_key, host.os_build)
         if device_key is not None and gpu is None:
             reason = f"'{device_key}' is not a GPU that the EP can use on this host"
         if gpu is None or state not in USABLE_STATES:
             raise EpUnavailableError(f"The EP '{key}' is not available: {reason}.", install_hint(key))
+        gate.require(catalog, key, gpu, host.os_name)
         if state not in ("ready", "builtin"):
             store.warn_once(f"{key}:{state}", f"The EP '{key}' is in the state {state}: {reason}.")
     precisions = () if model_ref is None else model_ref.precisions

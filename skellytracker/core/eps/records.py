@@ -61,7 +61,8 @@ class EpCandidate:
     """One EP of a hardware class, with the state of its pack. A state in `USABLE_STATES` is ready.
 
     `failed_locally` is true when the last quick check of the EP on its GPU failed on this PC.
-    `recommend()` never chooses such a candidate.
+    `needs_check` is true when the EP has no reviewed row for the GPU and no quick check on this PC.
+    A run does not start on such a candidate, and `recommend()` never chooses it.
     """
 
     ep_key: str
@@ -72,6 +73,7 @@ class EpCandidate:
     precision_order: tuple[str, ...] = ("fp32",)
     reason: str | None = None
     failed_locally: bool = False
+    needs_check: bool = False
 
 
 @dataclass(frozen=True)
@@ -274,13 +276,16 @@ class CertifyResult:
 class PackStatus:
     """The state of one EP key on this host, for `status()`. An application shows an EP from these fields only.
 
-    - `usable`: true when a run can use the EP now. An application does not compare `state`.
-    - `install_hint`: the text with the command that installs or repairs the pack. It is None when
-      the EP is usable, and when an install does not help: `reason` then gives the cause.
+    - `usable`: true when a run can use the EP now, on one GPU or more. An application does not compare
+      `state`. An EP that is ready is not usable when the check rule lets it run on no GPU: `reason_code` is
+      then `quick-check-needed` or `quick-check-failed` (ADR-ER5X).
+    - `install_hint`: the text with the command that installs or repairs the pack, or that runs the quick
+      check. It is None when the EP is usable, and when no command helps: `reason` then gives the cause.
     - `uses_gpu`: true when the EP runs a model on a GPU.
     - `description`: one sentence for a user: what the EP runs on and what it needs.
-    - `devices`: the GPUs of this host that the EP can use, in the order of `run_devices(key)`: the
-      most VRAM first. It is empty for a built-in EP that runs on no GPU and for an EP that is not usable.
+    - `devices`: the GPUs of this host that a run of the EP can use now, in the order of
+      `run_devices(key)`: the most VRAM first. It is empty for a built-in EP that runs on no GPU and for an
+      EP that is not usable.
     - `catalog_status`: `ready`, or `field-test` for an EP in a field test (ADR-Z5X7). With no opt-in
       in the EP store, the `state` of a `field-test` EP is `field_test`, and `install_hint` is None:
       an application can show the EP as "available for a field test", but it never offers it.
@@ -298,8 +303,8 @@ class PackStatus:
       `licences`: the licences of the pack and its component. Each EP that names a component
       counts it in its own row, so a sum over the EPs counts a shared component one time for each EP.
     - `checks`: one `DeviceCheck` for each GPU of this host that passes the floors of the EP, in the
-      order of `run_devices(key)`, also when the EP is not installed. `usable` and `devices` do not
-      read the quick checks: for an EP on a GPU, an application reads `checks[n].usable`.
+      order of `run_devices(key)`, also when the EP is not installed. `checks[n].usable` gives the
+      state of one GPU.
     """
 
     key: str

@@ -104,6 +104,13 @@ def host(*gpus: GpuInfo, os_name="Windows", arch="AMD64", native_arch=None) -> H
                     native_arch=native_arch or arch, gpus=tuple(sorted(gpus, key=lambda g: g.key)))
 
 
+def reviewed_rows_for_each_gpu(monkeypatch) -> None:
+    """Make each EP certified on each GPU, so the check rule of `gate.py` lets a test of an other subject run its fake GPUs."""
+    from skellytracker.core.eps import evidence
+
+    monkeypatch.setattr(evidence, "certified", lambda key, gpu, os_name: True)
+
+
 def fake_pack(key: str, files=()) -> None:
     """Write the manifest of the pack of an EP key in the store of this test, with no library."""
     from skellytracker.core.eps import catalog, store

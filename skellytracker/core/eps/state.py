@@ -4,13 +4,14 @@ The entries of the `detectors` list and of the `pipelines` list carry no EP stat
 `recommend()` give it. A pack can change after a list call, so a run checks the EP at its start.
 """
 
+import dataclasses
 import os
 import shutil
 import sys
 from collections.abc import Mapping, Sequence
 
 from skellytracker.core.eps import catalog as catalog_module
-from skellytracker.core.eps import certification, evidence, store
+from skellytracker.core.eps import certification, evidence, gate, store
 from skellytracker.core.eps.catalog import load_catalog
 from skellytracker.core.eps.installer import core_mismatch, installed_ort
 from skellytracker.core.eps.recommendation import ep_gpus, install_hint, recommend, run_devices
@@ -28,6 +29,11 @@ def check_start(execution_provider: str, ep_options: Mapping[str, str] | None = 
     EP cannot use. It returns the GPUs of the run: `run_devices(execution_provider, device)`.
     A pack with no trial session yet, or with an ONNX Runtime that is not tested, is ready. A
     `field-test` EP with no opt-in raises `EpUnavailableError` with the opt-in command (ADR-Z5X7).
+
+    The check rule (`gate.py`, ADR-ER5X): an EP runs on a GPU only with a reviewed row or a passed quick
+    check on this PC, and never after a quick check that failed here. With no `device`, the result holds
+    only the GPUs that pass the rule, and no such GPU raises `EpUnavailableError` with the quick-check
+    command. A `device` that does not pass the rule raises it too.
     """
     catalog = load_catalog()
     catalog.check_options(execution_provider, ep_options)
@@ -45,7 +51,14 @@ def check_start(execution_provider: str, ep_options: Mapping[str, str] | None = 
     for state, _, reason in states:
         if state not in USABLE_STATES:
             raise EpUnavailableError(f"The EP '{execution_provider}' is not available: {reason}.", install_hint(execution_provider))
-    return devices
+    if device is not None:
+        for item in devices:
+            gate.require(catalog, execution_provider, gpus[item.device_key], host.os_name)
+        return devices
+    checked = tuple(item for item in devices if gate.rule_passes(catalog, execution_provider, gpus[item.device_key], host.os_name))
+    if devices and not checked:
+        gate.require(catalog, execution_provider, gpus[devices[0].device_key], host.os_name)
+    return checked
 
 
 REPAIRABLE_STATES = ("not_installed", "stale", "not_ready")  # the states that `skellytracker-eps install` repairs
@@ -57,8 +70,8 @@ def _device_checks(catalog, key: str, host) -> tuple[DeviceCheck, ...]:
     for device_key, gpu in ep_gpus(catalog, key, host):
         ready = store.pack_state(catalog, key, gpu, device_key, host.os_build)[0] in USABLE_STATES
         certified = evidence.certified(key, gpu, host.os_name)
-        local = certification.local_result(catalog, key, gpu, host.os_name)
-        found.append(DeviceCheck(device_key, gpu.name, certified, local, ready and local != "failed" and (certified or local == "passed")))
+        local = gate.local_result(catalog, key, gpu, host.os_name)
+        found.append(DeviceCheck(device_key, gpu.name, certified, local, ready and gate.check_reason(catalog, key, gpu, host.os_name) is None))
     return tuple(found)
 
 
@@ -105,6 +118,19 @@ def _pack_status(catalog, key: str, host) -> PackStatus | None:
         checks=_device_checks(catalog, key, host))
 
 
+def _apply_check_rule(row: PackStatus | None, catalog, host) -> PackStatus | None:
+    """`usable`, `devices`, the reason and the hint of a row by the check rule of `gate.py` (ADR-ER5X)."""
+    if row is None or not row.usable or not row.checks:
+        return row
+    allowed = {check.device_key for check in row.checks if check.usable}
+    if allowed:
+        return dataclasses.replace(row, devices=tuple(device for device in row.devices if device.device_key in allowed))
+    gpus = dict(ep_gpus(catalog, row.key, host))
+    code = gate.check_reason(catalog, row.key, gpus[row.checks[0].device_key], host.os_name)
+    return dataclasses.replace(row, usable=False, devices=(), reason_code=code, reason=gate.REASONS[code],
+                               install_hint=gate.check_hint(row.key))
+
+
 def status() -> EpStatus:
     """The state of each EP key of this platform, the recommendations and the store. It loads no library.
 
@@ -120,7 +146,7 @@ def status() -> EpStatus:
     virtual_env = os.environ.get("VIRTUAL_ENV")
     if virtual_env and os.path.normcase(os.path.abspath(virtual_env)) != os.path.normcase(os.path.abspath(sys.prefix)):
         warnings.append("VIRTUAL_ENV is not the environment of this Python. The EP store serves the environment of this Python.")
-    rows = [_pack_status(catalog, key, host) for key in catalog.keys()]
+    rows = [_apply_check_rule(_pack_status(catalog, key, host), catalog, host) for key in catalog.keys()]
     return EpStatus(
         ort_version=None if installed is None else installed[1], catalog_revision=catalog.revision,
         core_matches_pin=installed == catalog.ort_distribution,

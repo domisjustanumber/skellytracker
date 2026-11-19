@@ -11,7 +11,7 @@ from skellytracker.core.eps import catalog as catalog_module
 from skellytracker.core.eps import recommendation
 from skellytracker.core.eps import store
 from skellytracker.core.errors import EpRequestError, EpUnavailableError
-from skellytracker.tests.hw_fakes import GIB, fake_pack, gpu, host
+from skellytracker.tests.hw_fakes import GIB, fake_pack, gpu, host, reviewed_rows_for_each_gpu
 
 RTX = gpu()
 GTX_1650 = gpu(cc="7.5", vram=4 * GIB, device_id=0x1F91, name="NVIDIA GeForce GTX 1650")
@@ -85,7 +85,8 @@ CASES = [
 
 
 @pytest.mark.parametrize(("fake_host", "installed", "row", "chosen", "skipped", "offers"), CASES, ids=[case[2] + "-" + case[3] for case in CASES])
-def test_recommend_for_each_hardware_class(fake_host, installed, row, chosen, skipped, offers):
+def test_recommend_for_each_hardware_class(fake_host, installed, row, chosen, skipped, offers, monkeypatch):
+    reviewed_rows_for_each_gpu(monkeypatch)  # the hardware classes, not the check rule
     for key in installed:
         fake_pack(key)
     result = eps.recommend("performance", fake_host)
@@ -100,7 +101,8 @@ def test_recommend_for_each_hardware_class(fake_host, installed, row, chosen, sk
     assert not never & {c.ep_key for c in (result.chosen, *result.skipped)} and not never & {o.ep_key for o in result.offers}
 
 
-def test_recommend_details():
+def test_recommend_details(monkeypatch):
+    reviewed_rows_for_each_gpu(monkeypatch)
     fake_pack("trt-rtx")
     fake_pack("cuda")
     best = eps.recommend("performance", host(RTX))
@@ -129,7 +131,8 @@ def test_each_offer_has_a_note():
     assert recommendation.install_hint("cuda") == "Run `skellytracker-eps install cuda`."  # the note of an add-pack offer
 
 
-def test_recommended_device_is_the_gpu_with_the_most_vram_then_the_lowest_bus_id():
+def test_recommended_device_is_the_gpu_with_the_most_vram_then_the_lowest_bus_id(monkeypatch):
+    reviewed_rows_for_each_gpu(monkeypatch)
     fake_pack("cuda")
     small, large = gpu(vram=8 * GIB, bus="0000:01:00.0"), gpu(vram=24 * GIB, bus="0000:02:00.0", device_id=0x2684)
     assert eps.recommend("performance", host(small, large)).chosen.device_key == "gpu:10de:2684:0"
@@ -211,7 +214,7 @@ def test_a_field_test_ep_is_never_recommended_also_after_the_opt_in():
 
 def test_the_device_checks_and_the_recommendation_follow_the_quick_checks_of_this_pc(monkeypatch):
     """ADR-21BK items 2 and 3: usable after a reviewed row or a local pass, never after a local failure."""
-    from skellytracker.core.eps import certification, evidence, state
+    from skellytracker.core.eps import certification, evidence, gate, state
 
     catalog, two = eps.load_catalog(), host(RTX, INTEL)
     monkeypatch.setattr(evidence, "load_evidence", lambda: ())
@@ -229,9 +232,12 @@ def test_the_device_checks_and_the_recommendation_follow_the_quick_checks_of_thi
     assert state._device_checks(catalog, "trt-rtx", two)[0].usable
     record("trt-rtx", RTX, "failed")
     assert (state._device_checks(catalog, "trt-rtx", two)[0].local_result, state._device_checks(catalog, "trt-rtx", two)[0].usable) == ("failed", False)
-    best = eps.recommend("performance", two)
-    assert best.chosen.ep_key == "cuda" and [(c.ep_key, c.failed_locally, c.reason) for c in best.skipped] == [
-        ("trt-rtx", True, "the quick check of this EP failed on this PC")]
+    best = eps.recommend("performance", two)  # `cuda` has no reviewed row and no quick check: only the CPU EP can start now
+    assert best.chosen.ep_key == "cpu" and [(c.ep_key, c.failed_locally, c.needs_check) for c in best.skipped] == [
+        ("trt-rtx", True, False), ("cuda", False, True)]
+    assert [c.reason for c in best.skipped] == [gate.REASONS[gate.FAILED_CHECK], gate.REASONS[gate.NEEDS_CHECK]]
+    record("cuda", RTX, "passed")
+    assert eps.recommend("performance", two).chosen.ep_key == "cuda"
     row = {"ep": "trt-rtx", "os": "Windows", "gpu": "10de:2484", "set": "s", "source": "maintainer", "result": "pass"}
     monkeypatch.setattr(evidence, "load_evidence", lambda: (row, {**row, "ep": "cuda"}))
     assert not state._device_checks(catalog, "trt-rtx", two)[0].usable  # a failure on this PC wins over a reviewed row

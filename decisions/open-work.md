@@ -222,12 +222,10 @@ field-test opt-in. Build in this order:
    block `package` by the rules of `skellytracker/certification.py`. Add its reason codes to
    `skellytracker/REASON_CODES.md`. Cut the suite to sections 1 to 5. A build must write
    `skellytracker/_build_info.py`: the reader exists, the build step does not.
-3. `PackStatus.checks` gives the state of each EP on each GPU, and `recommend()` skips an EP that
-   failed on this PC: built. Open: `check_start()` and a run do not refuse an EP on a GPU with no
-   reviewed row and no local pass ([ADR-21BK](entries/21BK-quick-check-local-pass-and-hand-in.md)
-   item 2). Today the application must offer a GPU only from `checks[n].usable`.
-4. The exit notice (`note_exit_requested()`, working name) and the count of unclean exits. The
-   hand-in list is built: `pending_reports()`, `read_report()` and `mark_reports()`.
+3. [ADR-ER5X](entries/ER5X-check-rule-unclean-exits-and-coreml.md) items 6 and 7: `coreml` in the
+   quick check and under the check rule, and the pruning of reports. The check rule is built.
+4. [ADR-ER5X](entries/ER5X-check-rule-unclean-exits-and-coreml.md) item 5: the marker of an unclean
+   exit, the exit notice and the count.
 5. Progress and cancel for an install from the Windows ML catalog, and a remove call with a command
    of `skellytracker-eps` for a catalog package that this package installed. It never removes a
    package that was on the PC before.

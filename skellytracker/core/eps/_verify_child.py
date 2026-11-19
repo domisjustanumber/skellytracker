@@ -60,5 +60,9 @@ def run(job: dict) -> dict:
 
 
 def main(job: dict, connection) -> None:
-    connection.send(run(job))
+    from skellytracker.core.eps import gate
+
+    with gate.certification_run():  # the probe runs the EP before the EP has a result
+        result = run(job)
+    connection.send(result)
     connection.close()

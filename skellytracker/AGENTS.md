@@ -119,6 +119,12 @@ legacy path puts the old points in the raw names of `wholebody.keypoints` and ca
   certify suite and a passed quick check of `skellytracker.certify()` record it
   ([ADR-21BK](../decisions/entries/21BK-quick-check-local-pass-and-hand-in.md) item 2). `recommend()` never gives such an EP
   ([ADR-Z5X7](../decisions/entries/Z5X7-field-test-state-and-directml.md)).
+- The check rule (`core/eps/gate.py`, [ADR-ER5X](../decisions/entries/ER5X-check-rule-unclean-exits-and-coreml.md)): an EP runs
+  on a GPU only with a reviewed row of `ep_evidence.yaml` or a passed quick check on this PC, and never after a quick
+  check that failed there. `check_start()` and `build_session()` raise `EpUnavailableError` with the quick-check
+  command. Do not add a setting, an argument or an environment variable that switches the rule off. Only the
+  certification code runs inside `gate.certification_run()`. A test of an other subject on a fake GPU calls
+  `hw_fakes.reviewed_rows_for_each_gpu(monkeypatch)`.
 - `eps.build_session()` serves only new code. Do not connect it to `OnnxSession` or `Tracker.create`.
   The `cuda` bridge of the exception above is the only connection.
 - A GPU EP is a plugin EP pack in the EP store, `directml`, which is a part of the Windows ML

@@ -7,7 +7,7 @@ comes only from the hardware classes of the EP catalog. No benchmark runs on the
 from collections.abc import Collection, Sequence
 
 from skellytracker.core.eps import catalog as catalog_module
-from skellytracker.core.eps import store
+from skellytracker.core.eps import gate, store
 from skellytracker.core.eps.catalog import EpCatalog, driver_branch, load_catalog, version_tuple
 from skellytracker.core.eps.records import (
     USABLE_STATES,
@@ -87,16 +87,15 @@ def _candidate(catalog: EpCatalog, key: str, host: HostInfo) -> EpCandidate:
     if catalog.device_row(key) is None:
         state, _, reason = store.pack_state(catalog, key)
         return EpCandidate(key, row["ep_name"], "ready" if state == "builtin" else state, precision_order=order, reason=reason)
-    from skellytracker.core.eps import certification  # not at the top: `certification` imports this module
-
     device_key, gpu = next(iter(ep_gpus(catalog, key, host)), (None, None))
     state, _, reason = store.pack_state(catalog, key, gpu, device_key, host.os_build)
-    failed = gpu is not None and certification.local_result(catalog, key, gpu, host.os_name) == "failed"
-    if failed and state in USABLE_STATES:
-        reason = "the quick check of this EP failed on this PC"
+    code = None if gpu is None else gate.check_reason(catalog, key, gpu, host.os_name)
+    if code is not None and state in USABLE_STATES:
+        reason = gate.REASONS[code]
+    flags = (code == gate.FAILED_CHECK, code == gate.NEEDS_CHECK)
     if pack is None:  # a built-in EP that runs on one GPU
-        return EpCandidate(key, row["ep_name"], "ready" if state == "builtin" else state, None, device_key, order, reason, failed)
-    return EpCandidate(key, pack["ep_name"], state, pack["id"], device_key, order, reason, failed)
+        return EpCandidate(key, row["ep_name"], "ready" if state == "builtin" else state, None, device_key, order, reason, *flags)
+    return EpCandidate(key, pack["ep_name"], state, pack["id"], device_key, order, reason, *flags)
 
 
 def recommend(form: str, host: HostInfo | None = None) -> EpRecommendation:
@@ -105,8 +104,11 @@ def recommend(form: str, host: HostInfo | None = None) -> EpRecommendation:
     `accuracy` gives `cpu` with fp32 on each host. `performance` gives the first candidate of the
     hardware class of the host that is ready. `skipped` names each candidate before it, with the
     reason. `chosen.device_key` is the GPU with the most VRAM that the EP can use; on a tie, the
-    lowest PCI bus id. A pack that is `installed_unverified` or `untested-ort` is ready. A candidate whose
-    last quick check failed on this PC (`failed_locally`) is skipped (ADR-21BK item 3). A
+    lowest PCI bus id. A pack that is `installed_unverified` or `untested-ort` is ready. The result names
+    only an EP that a run can start now: a candidate whose last quick check failed on this PC
+    (`failed_locally`) and a candidate with no reviewed row and no quick check on this PC (`needs_check`)
+    are skipped (`gate.py`, ADR-ER5X). An application offers the quick check for a skipped candidate
+    with `needs_check`. A
     `field-test` EP is never a candidate, a skipped candidate or an offer, also after an opt-in
     (ADR-Z5X7).
     """
@@ -121,7 +123,7 @@ def recommend(form: str, host: HostInfo | None = None) -> EpRecommendation:
         return EpRecommendation(form, row["id"], _candidate(catalog, "cpu", host), "fp32", source)
     candidates = [_candidate(catalog, key, host) for key in row["candidates"] if catalog.ep_status(key) != "field-test"]
     chosen = next(candidate for candidate in candidates
-                  if candidate.status in USABLE_STATES and not candidate.failed_locally)  # `cpu` is always ready
+                  if candidate.status in USABLE_STATES and not candidate.failed_locally and not candidate.needs_check)  # `cpu` is always ready
     skipped = tuple(candidates[: candidates.index(chosen)])
     offers = []
     for candidate in skipped if row.get("offer") == "add-pack" else ():

@@ -91,7 +91,10 @@ def run_jpeg_certification(ep_key: str | None = None, *, device_key: str | None 
     A check that fails or raises does not stop the next check. A timing number is always
     `record-only`.
     """
-    return _certify(ep_key, device_key, progress)
+    from skellytracker.core.eps import gate
+
+    with gate.certification_run():  # the certification runs an EP before the EP has a result (ADR-ER5X)
+        return _certify(ep_key, device_key, progress)
 
 
 def run_jpeg_quick_checks(ep_key: str, *, device_key: str | None = None, progress: Callable[[str], None] | None = None) -> list[dict]:
@@ -104,7 +107,10 @@ def run_jpeg_quick_checks(ep_key: str, *, device_key: str | None = None, progres
     with `ep_not_present`. A check that raises gives `fail` with `raised`. A failed check
     stops only the GPU frame path, not the EP.
     """
-    return _certify(ep_key, device_key, progress, quick=True)["checks"]
+    from skellytracker.core.eps import gate
+
+    with gate.certification_run():
+        return _certify(ep_key, device_key, progress, quick=True)["checks"]
 
 
 def _certify(ep_key: str | None, device_key: str | None, progress: Callable[[str], None] | None, quick: bool = False) -> dict:
