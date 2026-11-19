@@ -60,7 +60,9 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   - The instructions page `CERTIFY.md` and the issue template are drafts. They name the fork of the
     user: change the clone address when the suite moves to the freemocap repository (item 14).
   - Section 5 calls `run_jpeg_certification` of the JPEG branch. Until that branch lands, the
-    section is `not-run` with `not-in-this-checkout`. The entry point that the JPEG branch owes for
+    section is `not-run` with `not-in-this-checkout`. The section also calls it once for each EP of
+    `AMD_EPS` that passed section 3. A `directml` call is `record-only` when the hardware class of a
+    GPU that section 3 tested does not list `directml`. The entry point that the JPEG branch owes for
     section 7, and that skellycam owes for section 6: a pinned public commit and its runner (item 10).
   - A tag name has the form `certify-vN` (user, 2026-11-18). Section 1 still accepts each tag at HEAD.
 - **EP certification.** Five items of [ADR-MF2R](entries/MF2R-ep-store-install-and-certification.md)
@@ -76,6 +78,12 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
     writes no report (`_wide_run` in `core/eps/certification.py`).
 - **Field-test opt-in.** [ADR-Z5X7](entries/Z5X7-field-test-state-and-directml.md): there is no
   command that removes an opt-in. A user deletes `field-test.json` of the EP store.
+  - DirectML device memory: on one Windows host with ONNX Runtime 1.30.0 and DirectML 1.15.4, an
+    input from `OrtValue.ortvalue_from_numpy(x, "dml", id)` gave a wrong output in 25 of 50 repeats
+    on a session that took its GPU through `add_provider_for_devices`, the output of one DirectML
+    session in `dml` memory was right in 300 of 300 repeats as the input of a second session, and
+    only the device id 0 of a `dml` binding worked on each adapter, so later work must not bind a
+    host-made `dml` input, and must use the device id 0.
   - freemocap work: the dialog of the prompt (item 14) and of the download prompt (item 9).
 - **Dependency pins for the exporters.** [ADR-N6E8](entries/N6E8-onnxruntime-1-30-on-each-os.md)
   decides exact pins, ONNX Runtime 1.30.0 as a base dependency with GPU EPs as CUDA 13 plugin packs,

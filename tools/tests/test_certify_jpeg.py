@@ -14,7 +14,7 @@ def item(name, result, reason, **numbers):
     return {"name": name, "result": result, "reason": reason, "numbers": numbers, "warnings": [], "detail": f"text of {name}"}
 
 
-def fake_module(monkeypatch, checks_of, gpu_frame_eps=("cuda", "trt-rtx"), facts=None):
+def fake_module(monkeypatch, checks_of, gpu_frame_eps=("cuda", "trt-rtx"), facts=None, amd_eps=None):
     """A fake `certification` module: `checks_of(ep_key)` gives the checks of one call. It records each `ep_key`."""
     module, calls = ModuleType(cj.ENTRY), []
 
@@ -25,12 +25,14 @@ def fake_module(monkeypatch, checks_of, gpu_frame_eps=("cuda", "trt-rtx"), facts
     module.run_jpeg_certification = run_jpeg_certification
     if gpu_frame_eps is not None:
         module.GPU_FRAME_EPS = gpu_frame_eps
+    if amd_eps is not None:
+        module.AMD_EPS = amd_eps
     monkeypatch.setitem(sys.modules, cj.ENTRY, module)
     return calls
 
 
 def section_3(work: Path, *targets) -> None:
-    keys = [{"key": key, "device_key": device, "counts": True} for key, device in targets]
+    keys = [{"key": key, "device_key": device, "counts": rest[0] if rest else True} for key, device, *rest in targets]
     (work / "section-3.json").write_text(json.dumps({"details": {"pipeline_targets": keys}}), encoding="utf-8")
 
 
@@ -52,7 +54,7 @@ def test_a_mixed_result_passes_and_each_check_carries_its_ep(tmp_path, monkeypat
                                                  item("gpu_decode.batch_3", "not-run" if ep is None else "pass",
                                                       "ep_not_present" if ep is None else "ok")])
     found = cj.section_jpeg(tmp_path)
-    assert calls == [None, "cuda", "trt-rtx"]  # `directml` is not in GPU_FRAME_EPS
+    assert calls == [None, "cuda", "trt-rtx"]  # `directml` is not in GPU_FRAME_EPS, and the module has no AMD_EPS
     assert found["result"] == "pass" and found["reason_code"] is None
     assert [c["name"] for c in found["checks"]][:3] == ["cpu:cpu_decode.baseline_420", "cpu:cpu_decode.truncated", "cpu:gpu_decode.batch_3"]
     first = found["checks"][0]
@@ -82,6 +84,43 @@ def test_everything_not_run_is_a_not_run_section_and_with_no_list_each_passed_ep
     found = cj.section_jpeg(tmp_path)
     assert calls == [None, "directml", "migraphx"]
     assert (found["result"], found["reason_code"]) == ("not-run", None)
+
+
+AMD = {"directml": "dml", "amdgpu": "gpu", "migraphx": "gpu"}
+
+
+def test_with_an_amd_list_each_passed_amd_ep_is_called_once_and_runs_record_its_gpus(tmp_path, monkeypatch):
+    section_3(tmp_path, ("cuda", None), ("directml", "gpu0", True), ("directml", "gpu1", True), ("migraphx", None), ("vitisai", None))
+    calls = fake_module(monkeypatch, lambda ep: [item("pipeline_amd_ep.repeat_equal", "pass", "ok")], amd_eps=AMD)
+    found = cj.section_jpeg(tmp_path)
+    assert calls == [None, "cuda", "directml", "migraphx"]  # one call for the two DirectML GPUs; `vitisai` is in no list
+    assert found["details"]["runs"]["directml"]["device_keys"] == ["gpu0", "gpu1"]
+    assert found["details"]["runs"]["directml"]["scored"] is True
+
+
+def test_directml_on_a_gpu_that_does_not_list_it_is_record_only(tmp_path, monkeypatch):
+    section_3(tmp_path, ("directml", "gpu_nvidia", False))
+
+    def checks_of(ep):
+        if ep is None:
+            return [item("cpu_decode.grayscale", "pass", "ok")]
+        return [item("pipeline_amd_ep.repeat_equal", "fail", "mismatch"), item("pipeline_amd_ep.gpu_vs_cpu_preprocess", "pass", "ok"),
+                item("preprocess_graph_ep.yolox", "not-run", "ep_not_present")]
+
+    fake_module(monkeypatch, checks_of, amd_eps=AMD)
+    found = cj.section_jpeg(tmp_path)
+    assert (found["result"], found["reason_code"]) == ("pass", None)
+    assert [c["result"] for c in found["checks"] if c["name"].startswith("directml:")] == ["record-only", "record-only", "not-run"]
+    assert found["details"]["runs"]["directml"]["scored"] is False
+
+
+def test_directml_on_an_amd_gpu_counts(tmp_path, monkeypatch):
+    section_3(tmp_path, ("directml", "gpu_amd", True))
+    fake_module(monkeypatch, lambda ep: [item("pipeline_amd_ep.repeat_equal", "pass" if ep is None else "fail", "mismatch")], amd_eps=AMD)
+    found = cj.section_jpeg(tmp_path)
+    assert (found["result"], found["reason_code"]) == ("fail", "mismatch")
+    assert {"name": "directml:pipeline_amd_ep.repeat_equal", "result": "fail", "reason_code": "mismatch", "numbers": {},
+            "warnings": []} in found["checks"]
 
 
 def test_the_suite_scrub_runs_over_the_result(tmp_path, monkeypatch):
