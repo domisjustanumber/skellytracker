@@ -17,7 +17,9 @@ A volunteer runs this command in a clone at a certification tag (decision Y14H).
    non-zero exit is ``crashed``, a timeout ``timed-out`` and an other output ``bad-output``: a ``fail``
    with the exit code and the seconds. A child that printed the object and then exited non-zero or
    timed out keeps its result, with the extra ``record-only`` check ``exit`` (``crashed`` or
-   ``timed-out``). The suite goes on;
+   ``timed-out``). A child that does not exit ``EXIT_GRACE_SECONDS`` after its result is killed
+   with its process tree; it keeps its result, with the check ``exit`` and ``hung-at-exit``
+   (``os._exit`` still runs the DLL exit handlers, and an EP library can hang there). The suite goes on;
 4. asks the yes/no questions of the sections and one optional free-text note, only when stdin is a
    terminal;
 5. deletes its work folder ``.certify-work/`` (git ignores it), also after a failure, Ctrl+C,
@@ -68,6 +70,7 @@ import signal
 import socket
 import subprocess
 import sys
+import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -82,6 +85,7 @@ SUITE_VERSION = 1
 RESULTS = ("pass", "fail", "not-run", "record-only")
 EXIT_OK, EXIT_FAILURE, EXIT_NO_CONSENT, EXIT_CANCELLED = 0, 1, 2, 6  # the exit codes of `skellytracker-eps`
 NOTES_LIMIT = 2000
+EXIT_GRACE_SECONDS = 20  # time a child gets to exit after its complete result; then the suite kills it (`hung-at-exit`)
 
 
 @dataclass(frozen=True)
@@ -325,8 +329,8 @@ def default_command(section: Section, work: Path) -> list[str]:
     return [sys.executable, str(SCRIPT), "--section", str(section.number), "--work", str(work)]
 
 
-def kill_tree(process: subprocess.Popen) -> str | None:
-    """Kill the child and its children, and give the whole stdout of the child (`communicate` loses none after a timeout)."""
+def stop_tree(process: subprocess.Popen) -> None:
+    """Kill the child and its children."""
     if sys.platform == "win32":
         subprocess.run(["taskkill", "/F", "/T", "/PID", str(process.pid)], capture_output=True, check=False)  # noqa: S603, S607
     else:
@@ -335,7 +339,7 @@ def kill_tree(process: subprocess.Popen) -> str | None:
         except ProcessLookupError:
             pass
     process.kill()
-    return process.communicate()[0]
+    process.wait()
 
 
 def child_env(work: Path) -> dict:
@@ -431,28 +435,53 @@ def run_section(section: Section, command: list[str], env: dict | None = None) -
 
     A child that printed a complete result object keeps it, also when it then exits non-zero or hangs
     to the time limit: the section gets the extra check `exit`, `record-only`, with `crashed` or
-    `timed-out`, and its own result does not change. With no complete result object, the section is
+    `timed-out`, and its own result does not change. A child that is still alive `EXIT_GRACE_SECONDS`
+    after the result is killed, with `hung-at-exit`. With no complete result object, the section is
     `fail` with `crashed`, `timed-out` or `bad-output`.
     """
     started = time.monotonic()
     process = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, text=True, encoding="utf-8",  # noqa: S603
                                errors="replace", cwd=REPO_ROOT, start_new_session=sys.platform != "win32", env=env)
+    lines: list[str] = []
+    complete = threading.Event()
+
+    def pump() -> None:  # a thread drains the pipe, so a big result cannot block the child
+        for line in process.stdout:
+            lines.append(line)
+            if line.strip():
+                complete.set() if parse_result(line) else complete.clear()
+
+    reader = threading.Thread(target=pump, daemon=True)
+    reader.start()
+    problem, exit_code, complete_at = None, None, None
     try:
-        stdout, _ = process.communicate(timeout=section.timeout_seconds)
-        problem = None if process.returncode == 0 else ("crashed", f"the child process exited with {process.returncode}")
-        exit_code = process.returncode
-    except subprocess.TimeoutExpired:
-        stdout = kill_tree(process)
-        problem, exit_code = ("timed-out", f"stopped after the time limit of {section.timeout_seconds} s"), None
+        while process.poll() is None:
+            now = time.monotonic()
+            complete_at = complete_at or (now if complete.is_set() else None)
+            if now - started > section.timeout_seconds:
+                stop_tree(process)
+                problem = ("timed-out", f"stopped after the time limit of {section.timeout_seconds} s")
+                break
+            if complete_at is not None and now - complete_at > EXIT_GRACE_SECONDS:
+                stop_tree(process)
+                problem = ("hung-at-exit", f"stopped {EXIT_GRACE_SECONDS} s after the result")
+                break
+            time.sleep(0.05)
+        else:
+            exit_code = process.returncode
+            if exit_code != 0:
+                problem = ("crashed", f"the child process exited with {exit_code}")
     except KeyboardInterrupt:
-        kill_tree(process)
+        stop_tree(process)
         raise
+    reader.join(5)  # a grandchild that holds the pipe must not block the suite
     seconds = round(time.monotonic() - started, 1)
-    data = parse_result(stdout)
+    data = parse_result("".join(lines))
     if data is None:
         code, summary = problem or ("bad-output", "the child process printed no result object")
-        return finding(section, "fail", code, summary, seconds=seconds, exit_code=exit_code)
-    extra = [check("exit", "record-only", problem[0], exit_code=exit_code)] if problem else []
+        return finding(section, "fail", code if code != "hung-at-exit" else "timed-out", summary, seconds=seconds, exit_code=exit_code)
+    extra = [check("exit", "record-only", problem[0], exit_code=exit_code,
+                   **({"grace_seconds": EXIT_GRACE_SECONDS} if problem[0] == "hung-at-exit" else {}))] if problem else []
     return {**finding(section, data["result"], data.get("reason_code"), str(data.get("summary", ""))),
             "checks": [*data.get("checks", []), *extra], "details": data.get("details", {}), "questions": data.get("questions", []),
             "seconds": seconds, "exit_code": exit_code}

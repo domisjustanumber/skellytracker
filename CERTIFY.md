@@ -126,7 +126,9 @@ write your name, contact details or other personal details. Press Enter to skip.
 The suite runs each section in its own process. If a section crashes or runs too long, the
 suite records that and goes on. If a section wrote its complete result before it crashed or
 stopped, the section keeps that result. It then has the extra check `exit` with the result
-`record-only` and the reason `crashed` or `timed-out`.
+`record-only` and the reason `crashed`, `timed-out` or `hung-at-exit`. The reason
+`hung-at-exit` means that the section did not end 20 seconds after its result, and the suite
+stopped it.
 
 ## Read the summary table
 

@@ -177,6 +177,41 @@ def test_a_child_with_a_complete_result_and_a_bad_exit_keeps_its_result(tmp_path
     assert (found[3]["result"], found[3]["reason_code"]) == ("fail", "crashed") and found[3]["checks"] == []
 
 
+def one_section(command, timeout=60):
+    return cp.run_section(cp.Section(1, "fake", 1, timeout, cp.not_built), command)
+
+
+def test_a_child_that_hangs_at_exit_is_killed_after_the_grace_time_and_keeps_its_result(monkeypatch):
+    monkeypatch.setattr(cp, "EXIT_GRACE_SECONDS", 1)
+    result = json.dumps(PASSING)
+    started = time.monotonic()
+    found = one_section([PY, "-c", f"import time; print({result!r}, flush=True); time.sleep(300)"], timeout=120)
+    took = time.monotonic() - started
+    print(f"hung-child return time: {took:.2f} s")
+    assert took < 15 and found["result"] == "pass" and found["details"] == {"count": 1}
+    assert found["checks"][-1] == {"name": "exit", "result": "record-only", "reason_code": "hung-at-exit", "exit_code": None,
+                                   "grace_seconds": 1}
+
+
+def test_a_child_that_exits_normally_after_its_result_has_no_exit_check(monkeypatch):
+    monkeypatch.setattr(cp, "EXIT_GRACE_SECONDS", 1)
+    found = one_section(emit(PASSING))
+    assert found["result"] == "pass" and all(c["name"] != "exit" for c in found["checks"]) and found["exit_code"] == 0
+
+
+def test_a_child_with_no_result_that_hangs_is_timed_out(monkeypatch):
+    monkeypatch.setattr(cp, "EXIT_GRACE_SECONDS", 1)
+    found = one_section([PY, "-c", "import time; print('noise', flush=True); time.sleep(300)"], timeout=2)
+    assert (found["result"], found["reason_code"]) == ("fail", "timed-out")
+
+
+def test_a_result_bigger_than_a_pipe_buffer_is_parsed_whole(monkeypatch):
+    monkeypatch.setattr(cp, "EXIT_GRACE_SECONDS", 1)
+    script = f"import json; print(json.dumps({{**{PASSING!r}, 'details': {{'blob': 'x' * 200_000}}}}))"  # not a long command line
+    found = one_section([PY, "-c", script])
+    assert found["result"] == "pass" and len(found["details"]["blob"]) == 200_000
+
+
 def test_a_section_child_ends_with_os_exit_after_its_result(tmp_path):
     """A teardown that crashes after the result (here an atexit hook with exit code 7) must not change the exit code."""
     script = Path(cp.__file__).resolve()
