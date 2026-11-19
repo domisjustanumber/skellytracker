@@ -10,7 +10,7 @@ import onnxruntime
 import pytest
 
 from skellytracker.core import eps
-from skellytracker.core.eps import _verify_child, recommendation, registration, session, store, verification
+from skellytracker.core.eps import _verify_child, recommendation, registration, session, state, store, verification
 from skellytracker.core.eps import catalog as catalog_module
 from skellytracker.core.errors import EpRequestError, EpUnavailableError, SessionCreationError, VRAMExhaustionError
 from skellytracker.tests.hw_fakes import GIB, fake_pack, gpu, host
@@ -379,7 +379,7 @@ def dml_device(info, luid: int, adapter: str):
 @pytest.fixture
 def dml_host(monkeypatch):
     """ADR-Z5X7: a Windows host with an NVIDIA GPU and an Intel GPU. DirectML lists the NVIDIA GPU two times, under two LUIDs."""
-    for module in (session, verification):
+    for module in (session, verification, state, recommendation):  # `check_start()` and `run_devices()` read the host too
         monkeypatch.setattr(module, "probe_host", lambda: host(RTX_DXGI, INTEL_DXGI))
     devices = [dml_device(RTX_DXGI, 126958, "2"), dml_device(RTX_DXGI, 78921, "0"), dml_device(INTEL_DXGI, 86127, "1")]
     monkeypatch.setattr(onnxruntime, "get_ep_devices", lambda: devices)
@@ -398,10 +398,9 @@ def test_directml_needs_the_field_test_opt_in(dml_host):
         eps.check_start("directml")
 
 
-def test_directml_selects_the_ort_device_of_the_requested_gpu(dml_host, monkeypatch):
+def test_directml_selects_the_ort_device_of_the_requested_gpu(dml_host):
     """The session takes the EP device of the GPU (PCI ids, then LUID), never `device_id`: here index 2 is the NVIDIA GPU again."""
     store.opt_in_field_test("directml")
-    monkeypatch.setattr(recommendation, "probe_host", lambda: host(RTX_DXGI, INTEL_DXGI))
     assert [d.device_key for d in eps.check_start("directml")] == ["gpu:10de:2484:0", "gpu:8086:a780:0"]  # the most VRAM first
     _, report = eps.build_session(b"model", execution_provider="directml", cpu_threads=6)
     options = FakeSession.created[-1][0]
