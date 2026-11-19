@@ -21,9 +21,9 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   only after this run passes. Then write the result in the Evidence section of N6E8.
 - **Certify suite.** [ADR-Y14H](entries/Y14H-certify-suite.md): the frame and sections 1 to 5 are
   built. Sections 3 and 4 are in `tools/certify_eps.py`, section 5 is in `tools/certify_jpeg.py`.
-  These items stay open:
-  - Sections 6 and 7. Each is a placeholder with `not-run` and `not-built` in `SECTIONS` of
-    `tools/certify_platform.py`.
+  Sections 6 and 7 leave the suite
+  ([ADR-P0JZ](entries/P0JZ-certify-contract-in-each-package.md) item 2; item 3 of the
+  [certification build list](#certification-build-list)). These items stay open:
   - The `cleanup` step of `decisions/scripts/xse7_windows_ml_rehearsal.py` fails with
     `record-refused` without the catalog hook. It needs the wrapper
     `decisions/scripts/zgf5_session_measurements/hooked_cleanup.py`
@@ -40,9 +40,9 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
       rehearsed with the TensorRT RTX package of the catalog. Still open: the removal of an AMD
       package; the removal after a crash during `ensure_ready()` (a new enumeration must give the
       package family; a deployment that Windows ends after the cleanup stays); whether Windows
-      downloads a package again after a removal or uses a local copy; and a `skellytracker-eps` command that
-      removes a package that `install KEY --field-test` installed (the command `remove` takes pack
-      ids and `--all` only).
+      downloads a package again after a removal or uses a local copy. The command that removes a
+      package that `install KEY --field-test` installed is item 6 of the
+      [certification build list](#certification-build-list).
     - Linux with an AMD GPU and ROCm 10.0, 10.1 or 10.2: the pack choice, the install, the
       registration with the RUNPATH of 10.1 and 10.2, the preload of 10.0 (the second ONNX Runtime
       core), the probe on ONNX Runtime 1.30.0, and the second environment on 1.29.0 (`uv export`,
@@ -63,14 +63,15 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
     sizes and sha256 right.
   - A leak that the suite cannot stop: the cache of `uv`. It belongs to the tool of the volunteer.
   - The instructions page `CERTIFY.md` and the issue template are drafts. They name the fork of the
-    user: change the clone address when the suite moves to the freemocap repository (item 14).
+    user. Item 9 of the [certification build list](#certification-build-list) replaces them.
   - Section 5 calls `run_jpeg_certification` of the JPEG branch. Until that branch lands, the
     section is `not-run` with `not-in-this-checkout`. The section also calls it once for each EP of
     `AMD_EPS` that passed section 3. A `directml` call is `record-only` when the hardware class of a
-    GPU that section 3 tested does not list `directml`. The entry point that the JPEG branch owes for
-    section 7, and that skellycam owes for section 6: a pinned public commit and its runner (item 10).
-  - A tag name has the form `certify-vN` (user, 2026-11-18). Section 1 still accepts each tag at HEAD.
-- **EP certification.** Five items of [ADR-MF2R](entries/MF2R-ep-store-install-and-certification.md)
+    GPU that section 3 tested does not list `directml`.
+  - Section 1 still checks a certification tag. Evidence needs no tag now: the report records the
+    version and the commit of each package ([ADR-P0JZ](entries/P0JZ-certify-contract-in-each-package.md)
+    item 4; item 3 of the [certification build list](#certification-build-list)).
+- **EP certification.** Three items of [ADR-MF2R](entries/MF2R-ep-store-install-and-certification.md)
   stay open:
   - Check the `thresholds` of the `certification` block of `ep_catalog.yaml` on more hosts and images.
     One RTX 3070 with `cuda` and `trt-rtx` on one image gave the values of 2026-11-18 (item 16).
@@ -78,11 +79,10 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   - Write the `maintainer` rows of `ep_evidence.yaml` for the current set hash on Linux. The two
     Windows rows are written. Until then, `tools/onnx_stack.py check` fails for each NVIDIA pack on
     Linux (item 18).
-  - Later stage: send a report. The user decided a relay that opens an issue in a public intake
-    repository of the freemocap organisation, with no login. Until then, nothing leaves the host.
-  - Before a field-test EP ([ADR-Z5X7](entries/Z5X7-field-test-state-and-directml.md)) moves to
-    `ready`, move the wider run of `certify()` to a child process: an EP that ends the process
-    writes no report (`_wide_run` in `core/eps/certification.py`).
+  - Later stage: a relay that opens the issue with no login. Reports go to the public repository
+    `skellycertify` ([ADR-P0JZ](entries/P0JZ-certify-contract-in-each-package.md) item 1). Until
+    the relay exists, the user hands in the file
+    ([ADR-21BK](entries/21BK-quick-check-local-pass-and-hand-in.md) item 5).
 - **ONNX Runtime telemetry.** [ADR-BZ7X](entries/BZ7X-onnx-runtime-telemetry-switch-and-scan.md):
   the switch and the static scan are built. These items stay open:
   - Runtime levels, with the validated probe that another session delivers: (b) run a session with
@@ -105,7 +105,9 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
     session in `dml` memory was right in 300 of 300 repeats as the input of a second session, and
     only the device id 0 of a `dml` binding worked on each adapter, so later work must not bind a
     host-made `dml` input, and must use the device id 0.
-  - freemocap work: the dialog of the prompt (item 14) and of the download prompt (item 9).
+  - freemocap work: the dialog of the prompt (item 14, at the times of
+    [ADR-P0JZ](entries/P0JZ-certify-contract-in-each-package.md) item 5) and of the download prompt
+    (item 9).
 - **Dependency pins for the exporters.** [ADR-N6E8](entries/N6E8-onnxruntime-1-30-on-each-os.md)
   decides exact pins, ONNX Runtime 1.30.0 as a base dependency with GPU EPs as CUDA 13 plugin packs,
   and `requires-python = "==3.13.18"`. The exporters that agents build again pin the 2.0.0
@@ -172,3 +174,34 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   ([ADR-P3NK](entries/P3NK-bootstrap-kit-in-freemocap-project.md)). The link repairs in 0031, NB91,
   QPS7 and Z05A pin the commit `0d88941` of that branch. When the PR merges with a different SHA,
   pin the merged commit.
+
+## Certification build list
+
+[ADR-P0JZ](entries/P0JZ-certify-contract-in-each-package.md),
+[ADR-21BK](entries/21BK-quick-check-local-pass-and-hand-in.md) and
+[ADR-K8Q0](entries/K8Q0-platform-rulings-of-2026-11-19.md) are decided and not built. Build in this
+order:
+
+1. The one-image comparison of `certify()` in a child process (the `shortcut:` comment of
+   `_wide_run` in `core/eps/certification.py` asks for it). Keep a hang at the exit of
+   `verification.run_child` as its own reason, with the result.
+2. The package-wide `certify(level, progress, cancel)` and `certify_plan(level)`. The quick level
+   runs on the pipeline config of the caller.
+3. The report in the format `skellycertify.report/1.0.0`, with the version and the commit of the
+   package and no git at run time, and the list of the reason codes of this package. Cut the suite
+   to sections 1 to 5.
+4. The flags of `PackStatus` (not certified, passed on this PC, failed on this PC), and
+   `recommend()` skips an EP that failed on this PC. A local pass writes the field-test opt-in: then
+   change the sentence of `skellytracker/AGENTS.md` that names the writers of the opt-in.
+5. The hand-in list in the EP store and the exit notice.
+6. Progress and cancel for an install from the Windows ML catalog, and a remove call with a command
+   of `skellytracker-eps` for a catalog package that this package installed. It never removes a
+   package that was on the PC before.
+7. The PyInstaller hook of ONNX Runtime.
+8. The passive record, the shadow comparison and the calibration of its limit.
+9. Remove the issue form of this repository, and point `CERTIFY.md` to `skellycertify`.
+10. Add a marker to `ep_evidence.yaml` and to `tools/onnx_stack.py` for a row from a passive record.
+    The name of the field or the value is not decided.
+
+CI runs `test_eps_session.py` on no Linux runner: `if: runner.os != 'Linux'` in
+`.github/workflows/ep-pack.yml:41`.

@@ -147,7 +147,8 @@ these rules ([ADR-0XW9](../decisions/entries/0XW9-entry-points-layout-guard-test
   `importlib.metadata.version("mediapipe")`. Do not alias `importlib.metadata`.
 - `_pyinstaller/hook-skellytracker.py` collects `**/*.yaml`. A commit that adds a data file of an
   other type changes `includes` of the hook in the same commit.
-- Do not add a hook for an other package to `_pyinstaller/`.
+- Do not add a hook for an other package to `_pyinstaller/`. The one exception is the hook
+  of ONNX Runtime ([ADR-K8Q0](../decisions/entries/K8Q0-platform-rulings-of-2026-11-19.md) item 2).
 
 ## Code conventions
 
