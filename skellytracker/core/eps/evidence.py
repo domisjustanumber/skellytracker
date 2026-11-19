@@ -15,15 +15,18 @@ from skellytracker.core.eps.catalog import EpCatalog
 
 
 def set_hash(catalog: EpCatalog) -> str:
-    """The hash of the exact version set: the ONNX Runtime distributions and each wheel of each user pack.
+    """The hash of the exact version set: the ONNX Runtime distributions and each wheel of each `ready` user pack.
 
-    A test pack is not in the set. The package of the Windows ML catalog is not in the set: Windows
-    updates it with no pin.
+    Only `ready` packs are in the set (user decision, 2026-11-18). A test pack and a `field-test` pack
+    are not: a field-test pack enters it when a person moves it to `ready`, and the set then needs new
+    evidence (ADR-XSE7). A pack `component`, for example the GPU JPEG decoder, is not in the set (user
+    decision, 2026-11-18): section 5 of the certify suite is its evidence. The package of the Windows
+    ML catalog is not in the set: Windows updates it with no pin.
     shortcut: the `windowsml` pin and the `onnx` pin are not in the set, add them when a bump changes one alone.
     """
     packs = {pack["id"]: {tag: [[wheel["filename"], wheel["sha256"]] for wheel in row["wheels"]]
                           for tag, row in sorted(catalog.lock.get("packs", {}).get(pack["id"], {}).items())}
-             for ep in catalog.data["eps"].values() for pack in ep.get("packs", ())}
+             for ep in catalog.data["eps"].values() for pack in ep.get("packs", ()) if pack.get("status", "ready") == "ready"}
     text = json.dumps({"ort_core": catalog.data["ort_core"], "packs": packs}, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 

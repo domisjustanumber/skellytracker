@@ -35,6 +35,7 @@ These entries are `accepted`.
 | [4WR9](entries/4WR9-params-schema-in-the-node-catalog.md) | `NodeTypeInfo.params_schema` and `NodeTypeInfo.any_from`: the JSON Schema of the params and the inputs that type an `any` output, for an editor | accepted |
 | [Y14H](entries/Y14H-certify-suite.md) | Certify suite: one command from a clone at a tag, seven sections in child processes, one private Markdown report; AMD EPs; Linux gate of N6E8 | accepted |
 | [Z5X7](entries/Z5X7-field-test-state-and-directml.md) | Field-test EP state: opt-in in the EP store, refused without it, never recommended; `directml` built in on Windows, GPU by ORT device | accepted |
+| [XSE7](entries/XSE7-amd-eps-in-the-field-test.md) | AMD EPs in the field test: `migraphx` ROCm packs on Linux, Windows ML `amdgpu` and `migraphx`; field-test packs not in the set hash; ORT 1.29 fallback | accepted |
 | [92BE](entries/92BE-legacy-path-for-the-freemocap-metrics-stage.md) | Temporary legacy path for the freemocap metrics: old tracker task events; `cuda` bridge of `OnnxSession` to `eps.build_session()`; no TensorRT; deleted in 2.4 | accepted |
 
 ### Evidence

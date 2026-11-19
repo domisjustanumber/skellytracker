@@ -25,23 +25,43 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
     `tools/certify_platform.py`.
   - Sections 3 and 4 ran on one Windows host with an NVIDIA GPU and an Intel iGPU only. No run on
     Linux, on macOS (`coreml`), on a host with an AMD GPU or on a laptop with two GPUs.
-  - The AMD EPs (item 11): the Windows AMD EP package and its removal, the MIGraphX builds for ROCm
-    10.0, 10.1 and 10.2, and the second environment on ONNX Runtime 1.29. Until then, section 3
-    records the check `amd-eps` as `not-run` with `not-built`. The field-test state and DirectML are
-    built ([ADR-Z5X7](entries/Z5X7-field-test-state-and-directml.md)). DirectML has no result on an
-    AMD GPU yet. A reviewed passing report on Windows moves it to `ready`, and changes the note of
-    the hardware class `amd-windows`.
+  - The AMD EPs (item 11) are built ([ADR-XSE7](entries/XSE7-amd-eps-in-the-field-test.md)), and
+    only tests with fakes prove them. The field-test state and DirectML are built
+    ([ADR-Z5X7](entries/Z5X7-field-test-state-and-directml.md)). No EP has a result on an AMD GPU yet.
+    A reviewed passing report for the OS moves an EP to `ready`, and changes the note of its hardware
+    class (`amd-windows` or `amd-linux`). These checks stay open:
+    - The removal of a Windows ML package that the suite installs is built (item 5 of
+      [ADR-XSE7](entries/XSE7-amd-eps-in-the-field-test.md)) and
+      rehearsed with the TensorRT RTX package of the catalog. Still open: the removal of an AMD
+      package; a crash during `ensure_ready()` leaves `package-unknown`; whether Windows downloads a
+      package again after a removal or uses a local copy; and a `skellytracker-eps` command that
+      removes a package that `install KEY --field-test` installed (the command `remove` takes pack
+      ids and `--all` only).
+    - Linux with an AMD GPU and ROCm 10.0, 10.1 or 10.2: the pack choice, the install, the
+      registration with the RUNPATH of 10.1 and 10.2, the preload of 10.0 (the second ONNX Runtime
+      core), the probe on ONNX Runtime 1.30.0, and the second environment on 1.29.0 (`uv export`,
+      the editable install, the child run, the sizes). A host with no ROCm: `rocm-missing` and the
+      CPU only.
+    - Windows with an AMD GPU: the EPs that the catalog offers for the GPU (`AMDGPUExecutionProvider`
+      needs Windows ML 2.5.96 and an AMD driver 24.12.1 or later), `ensure_ready()` of a package
+      that is on the PC and of a package that is not, `library_path`, the registration, the EP
+      device of the GPU, and the removal at the end.
   - Section 4 does not measure the VRAM of an integrated GPU: the PDH counter of `LiveSampler` reads
     dedicated memory only.
-  - The public Hugging Face model repository of the freemocap organisation (not created yet), and
-    the model list `models` (path, URL, sha256, bytes) in the `certification` block of
-    `ep_catalog.yaml` (item 12). Section 4 reads the list, and is `not-run` with `models-missing`
-    when a model file is absent.
+  - The model list `models` (path, URL, sha256, bytes) of the `certification` block of
+    `ep_catalog.yaml` (item 12) waits for a decision of the user. The files are in a Hugging Face
+    repository of a personal account, not of the freemocap organisation, and
+    `tools/check_private_data.py` refuses that address. Thus the catalog has no list, and section 4
+    finds the model files only when they are already in the model folder. The validation of the
+    list in `tools/ep_catalog.py` and its tests stay. On 2026-11-18, `fetch_models` of section 4
+    downloaded the four files of the parked list into an empty folder: sizes and sha256 right.
   - A leak that the suite cannot stop: the cache of `uv`. It belongs to the tool of the volunteer.
-  - The instructions page `CERTIFY.md`, the issue template and the contact email (item 14).
-  - The entry points that the JPEG branch owes for sections 5 and 7, and that skellycam owes for
-    section 6: a pinned public commit and its runner (item 10).
-  - The name pattern of a certification tag. Section 1 now accepts each tag at HEAD.
+  - The instructions page `CERTIFY.md` and the issue template are drafts. They name the fork of the
+    user: change the clone address when the suite moves to the freemocap repository (item 14).
+  - Section 5 calls `run_jpeg_certification` of the JPEG branch. Until that branch lands, the
+    section is `not-run` with `not-in-this-checkout`. The entry point that the JPEG branch owes for
+    section 7, and that skellycam owes for section 6: a pinned public commit and its runner (item 10).
+  - A tag name has the form `certify-vN` (user, 2026-11-18). Section 1 still accepts each tag at HEAD.
 - **EP certification.** Five items of [ADR-MF2R](entries/MF2R-ep-store-install-and-certification.md)
   stay open:
   - Check the `thresholds` of the `certification` block of `ep_catalog.yaml` on more hosts and images.

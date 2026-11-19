@@ -5,8 +5,10 @@ raise for missing hardware: the field is `None`, with one line in `probe_errors`
 On macOS, it runs no external command: `sysctlbyname` and IOKit, through `ctypes`, give the values.
 """
 
+import functools
 import os
 import platform
+import re
 import sys
 import threading
 
@@ -54,6 +56,26 @@ def physical_cores() -> int | None:
         return reader.cores_and_memory()[0]
     except Exception:  # noqa: BLE001 - a missing source gives None, as in `probe_host()`
         return None
+
+
+ROCM_VERSION_FILE = "/opt/rocm/.info/version"
+
+
+@functools.cache
+def rocm_version(path: str = ROCM_VERSION_FILE) -> str | None:
+    """The ROCm release of a Linux host as `major.minor`, for example `10.2`, from `/opt/rocm/.info/version`; else None.
+
+    It reads one file and makes no GPU call. The file holds for example `10.2.0-15`.
+    shortcut: only the default ROCm folder; read `ROCM_PATH` when a supported host installs ROCm elsewhere.
+    """
+    if not sys.platform.startswith("linux"):
+        return None
+    try:
+        with open(path, encoding="utf-8") as handle:
+            match = re.match(r"\s*(\d+)\.(\d+)", handle.read(64))
+    except OSError:
+        return None
+    return f"{match.group(1)}.{match.group(2)}" if match else None
 
 
 def merge_gpus(nvml_gpus: list, os_gpus: list[GpuInfo]) -> tuple[GpuInfo, ...]:

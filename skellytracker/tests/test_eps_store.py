@@ -282,7 +282,7 @@ def test_plan_selections(fake_pack, monkeypatch):
     monkeypatch.setattr(installer, "probe_host", lambda: host(gpu(cc="7.5")))
     assert [pack.ep_key for pack in installer.plan_install("all-compatible").packs] == ["cuda"]
     assert "cannot run on this host" in installer.plan_install(["trt-rtx"]).warnings[0]
-    for key in ("openvino", "migraphx", "tensorrt"):
+    for key in ("openvino", "qnn", "tensorrt"):
         with pytest.raises(EpRequestError):
             installer.plan_install([key])
 

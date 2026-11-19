@@ -16,8 +16,9 @@ reasons and the evidence of the items that stay.
    the EP catalog holds the two distributions. `tools/ep_catalog.py --check` compares them with
    `pyproject.toml` and `uv.lock`, and the EP store compares the installed distribution with the
    catalog. The extras and packages that M2C6 item 2 removed stay removed.
-3. **GPU EPs are plugin packs.** A GPU EP comes only as a plugin EP pack in the user EP store. It is
-   never a dependency in `pyproject.toml`. The EP catalog pins each pack version and the sha256 of
+3. **GPU EPs are plugin packs.** A GPU EP comes only as a plugin EP pack in the user EP store, or on
+   Windows as a package of the Windows ML catalog ([ADR-XSE7](XSE7-amd-eps-in-the-field-test.md)). It
+   is never a dependency in `pyproject.toml`. The EP catalog pins each pack version and the sha256 of
    each wheel. The packs use CUDA 13 only, with the same versions on each OS.
    - `cuda`: `onnxruntime-ep-cuda13==0.2.0`, `nvidia-cublas==13.8.0.4` and
      `nvidia-cudnn-cu13==9.27.0.42`. Linux also has `nvidia-cuda-runtime==13.4.92`. On Windows the
@@ -26,8 +27,9 @@ reasons and the evidence of the items that stay.
      Windows ML catalog. On Linux the EP store loads `libcudart`, `libtensorrt_rtx` and
      `libtensorrt_onnxparser_rtx` of the wheel before the EP library. The driver floor is R580 on
      Windows and R590 on Linux.
-   - No pack holds NVRTC. Classic TensorRT and MIGraphX are reserved keys. `directml` is not a
-     pack: it is built in on Windows ([ADR-Z5X7](Z5X7-field-test-state-and-directml.md)).
+   - No pack holds NVRTC. Classic TensorRT is a reserved key. `migraphx` is a field-test EP
+     (XSE7). `directml` is not a pack: it is built in on Windows
+     ([ADR-Z5X7](Z5X7-field-test-state-and-directml.md)).
 4. **Python.** One release: 3.13.18, in `requires-python`, `.python-version` and CI.
 5. **MediaPipe.** The `mediapipe` extra is `mediapipe==1.2.2`.
 6. **Intel Mac.** macOS on x86_64 is not supported. `required-environments` fails the lock when a

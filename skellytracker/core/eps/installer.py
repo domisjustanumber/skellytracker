@@ -43,11 +43,18 @@ def installed_ort() -> tuple[str, str] | None:
 
 
 def core_mismatch(catalog: EpCatalog) -> str | None:
-    """The reason when the installed ONNX Runtime is not the ONNX Runtime of the catalog; else `None`."""
+    """The reason when the installed ONNX Runtime is not the ONNX Runtime of the catalog; else `None`.
+
+    The second environment of the certify suite sets `SKELLYTRACKER_EP_ORT_FALLBACK` to the version of
+    `certification.ort_fallback` of the catalog. Only that exact `onnxruntime` version then passes too (ADR-XSE7).
+    """
     installed = installed_ort()
     if installed is None:
         return None  # a frozen application can have no metadata: the verification child reads the version
     if installed == catalog.ort_distribution:
+        return None
+    fallback = catalog.data["certification"].get("ort_fallback") or {}
+    if installed == (fallback.get("package"), fallback.get("version")) and os.environ.get(store.FALLBACK_VARIABLE) == installed[1]:
         return None
     return (f"{' '.join(installed)} is installed, and the EP catalog needs {' '.join(catalog.ort_distribution)}. "
             "Run `uv sync`.")
@@ -98,7 +105,9 @@ def plan_install(selection: str | Sequence[str], index_url: str | None = None, *
         if refused:
             raise EpUnavailableError(f"The EP '{key}' is not available: {refused}.", install_hint(key))
         planned = None if pack is None else planned_pack(catalog, pack["id"], index_url=index_url)
-        if pack is None:
+        if catalog.windows_ml(key):
+            warnings.append(f"The EP '{key}' comes from the Windows ML catalog: Windows downloads and installs its package.")
+        elif pack is None:
             warnings.append(f"The EP '{key}' is a part of ONNX Runtime. It needs no pack.")
         elif planned is None:
             warnings.append(f"The EP '{key}' has no pack for this platform.")
@@ -184,7 +193,7 @@ def _install_pack(catalog: EpCatalog, planned: PlannedPack, progress, cancel, fr
             "format": 1, "source": "wheel", "pack_id": planned.pack_id, "ep_key": planned.ep_key, "ep_name": pack["ep_name"],
             "package": pack["package"], "version": planned.version, "platform_tag": platform_tag(),
             "catalog_revision": catalog.revision, "library": lock.get("library"), "path_dirs": lock.get("path_dirs", []),
-            "preload": lock.get("preload", []), "wheels": [[w.filename, w.sha256] for w in planned.wheels], "files": files,
+            "preload": lock.get("preload", []), "preload_ort_core": bool(pack.get("preload_ort_core")), "wheels": [[w.filename, w.sha256] for w in planned.wheels], "files": files,
             "installed_at": int(time.time()),
         })
         final.parent.mkdir(parents=True, exist_ok=True)

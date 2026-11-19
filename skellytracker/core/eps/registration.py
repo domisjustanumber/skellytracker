@@ -31,13 +31,20 @@ def prepare_libraries(folder: Path, manifest: dict, platform: str = sys.platform
 
     Windows: prepend each DLL folder to `PATH`. `os.add_dll_directory` does not work for these
     packs, because ONNX Runtime loads the library with an altered search path. Linux: load each
-    library of the preload list with `RTLD_GLOBAL`, in order. The Linux step is not verified.
+    library of the preload list with `RTLD_GLOBAL`, in order. With `preload_ort_core`, first load the
+    ONNX Runtime core library of the installed `onnxruntime` (an EP library that needs
+    `libonnxruntime.so.1`, ADR-XSE7). The Linux step is not verified.
     """
     if platform == "win32":
         current = os.environ.get("PATH", "").split(os.pathsep)
         folders = [str(folder / name) for name in manifest.get("path_dirs", ())]
         os.environ["PATH"] = os.pathsep.join([*(f for f in folders if f not in current), *current])
     elif platform == "linux":
+        if manifest.get("preload_ort_core"):
+            import onnxruntime
+
+            for core in sorted((Path(onnxruntime.__file__).parent / "capi").glob("libonnxruntime.so.*")):
+                ctypes.CDLL(str(core), mode=ctypes.RTLD_GLOBAL)
         for name in manifest.get("preload", ()):
             ctypes.CDLL(str(folder / name), mode=ctypes.RTLD_GLOBAL)
 
@@ -114,13 +121,18 @@ def ensure_registered(ep_key: str) -> RegisteredEp:
     """Make the EP of an EP key usable in this process. A second call does nothing.
 
     A built-in EP needs no registration. For a plugin EP, the pack must be installed, register, and
-    list a device. Else it raises `EpUnavailableError` with the install command.
+    list a device. An EP of the Windows ML catalog registers the library of its package, which must
+    be on the PC (ADR-XSE7). Else it raises `EpUnavailableError` with the install command.
     """
     catalog = load_catalog()
     row = catalog.ep(ep_key)
     pack = catalog.pack(ep_key)
     if pack is not None:
         return register_pack(ep_key, pack, install_hint(ep_key))
+    if catalog.windows_ml(ep_key):
+        from skellytracker.core.eps import windows_ml
+
+        return windows_ml.register(ep_key, install_hint(ep_key))
     import onnxruntime
 
     if row["ep_name"] not in onnxruntime.get_available_providers():

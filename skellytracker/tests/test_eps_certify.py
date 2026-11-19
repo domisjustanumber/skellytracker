@@ -66,7 +66,7 @@ def test_an_uncertified_usable_ep_has_an_offer_until_evidence_or_an_answer(rtx_h
     status = eps.status()
     (offer,) = status.certify_offers
     assert (offer.ep_key, offer.device_key, offer.prompt, offer.seconds) == ("trt-rtx", "gpu:10de:2484:0", True, 60)
-    assert {row.key: row.certified for row in status.eps} == {"trt-rtx": False, "cuda": False, "directml": None, "cpu": None}
+    assert {row.key: row.certified for row in status.eps} == {"trt-rtx": False, "cuda": False, "amdgpu": None, "migraphx": None, "directml": None, "cpu": None}
     eps.dismiss_certification("trt-rtx")
     assert [o.prompt for o in eps.status().certify_offers] == [False]
     row = {"ep": "trt-rtx", "os": "Windows", "gpu": "10de:2484", "set": "s", "source": "maintainer", "result": "pass"}

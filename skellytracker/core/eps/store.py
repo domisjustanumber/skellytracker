@@ -10,6 +10,7 @@ folder `<pack_id>/<pack_ver>/` does not change after its install.
     <root>/refs/<consumer_id>.json          one file for each consumer; the input of gc()
     <root>/verdicts.json                    the verification results
     <root>/field-test.json                  the opt-in to each `field-test` EP key (ADR-Z5X7)
+    <root>/windows-ml.json                  each EP key that this store installed from the Windows ML catalog (ADR-XSE7)
     <root>/.lock                            the lock between processes
     <root>/.partial/                        downloads that are not complete, kept for a resume
     <root>/.staging/, <root>/.trash/        an install in progress, and deletes that wait
@@ -32,6 +33,7 @@ from skellytracker.core.eps.records import PackState
 PATH_LIMIT = 240  # a longer DLL path fails registration on Windows, also with long paths enabled
 STORE_VARIABLE = "SKELLYTRACKER_EP_STORE"
 CACHE_VARIABLE = "SKELLYTRACKER_EP_CACHE"
+FALLBACK_VARIABLE = "SKELLYTRACKER_EP_ORT_FALLBACK"  # only the second environment of the certify suite sets it (ADR-XSE7)
 logger = logging.getLogger(__name__)
 _warned: set[str] = set()
 
@@ -115,10 +117,14 @@ def store_lock():
 
 
 def verdict_key(catalog: EpCatalog, pack: dict, gpu, device_key: str | None, os_build) -> str:
-    """The key of a verification result. A new driver, ONNX Runtime, pack, device or catalog gives a new key."""
+    """The key of a verification result. A new driver, ONNX Runtime, pack, device or catalog gives a new key.
+
+    In the second environment of the certify suite, the ONNX Runtime part is the version of that environment.
+    """
     ids = "none" if gpu is None else f"{gpu.pci_vendor_id}:{gpu.pci_device_id}:{gpu.pci_subsys_id}"
     driver = None if gpu is None else gpu.driver_version
-    return "|".join(str(part) for part in (catalog.ort_version, pack["id"], pack["version"], driver, ids, device_key,
+    ort = os.environ.get(FALLBACK_VARIABLE) or catalog.ort_version
+    return "|".join(str(part) for part in (ort, pack["id"], pack["version"], driver, ids, device_key,
                                            os_build, catalog.revision))
 
 
@@ -151,6 +157,33 @@ def field_test_reason(catalog: EpCatalog, key: str) -> str | None:
     return f"the EP '{key}' is in a field test, and this EP store has no opt-in for it"
 
 
+def windows_ml_installs() -> dict:
+    """The record of each EP key that this store installed from the Windows ML catalog (`windows_ml.install()`)."""
+    return read_json(store_root() / "windows-ml.json") or {}
+
+
+def _verdict_state(catalog: EpCatalog, pack: dict, gpu, device_key, os_build) -> tuple[PackState, str | None, str | None]:
+    """The state of an installed EP from its stored verification result and its ONNX Runtime claim."""
+    verdict = read_verdicts().get(verdict_key(catalog, pack, gpu, device_key, os_build))
+    if verdict is not None and not verdict["ok"] and verdict["level"] == "L2":
+        return "not_ready", "verify-failed", verdict.get("reason")
+    if catalog.ort_untested(pack):
+        return "untested-ort", "untested-ort", (f"the pack {pack['id']} {pack['version']} is not tested with "
+                                                f"ONNX Runtime {catalog.ort_version}")
+    if verdict is not None and verdict["ok"] and verdict["level"] == "L3":
+        return "ready", None, None
+    reason = "no trial session ran yet" if verdict is None or verdict["ok"] else verdict.get("reason")
+    return "installed_unverified", None, reason
+
+
+def windows_ml_pack(catalog: EpCatalog, key: str) -> dict:
+    """The stand-in pack row of an EP of the Windows ML catalog: the package version of its record for the verification
+    key, and the ONNX Runtime of the catalog as its claim, because Windows ML gives the EP for its own ONNX Runtime."""
+    release = ".".join(catalog.ort_version.split(".")[:2])
+    return {"id": key, "version": (windows_ml_installs().get(key) or {}).get("version") or "windows-ml",
+            "ort": {"vendor_tested": [release, release]}}
+
+
 def warn_once(key: str, text: str) -> None:
     """Log one warning line for each process and each key."""
     if key not in _warned:
@@ -165,18 +198,26 @@ def pack_state(catalog: EpCatalog, key: str, gpu=None, device_key: str | None = 
     It loads no library and uses no network. `gpu` is the `GpuInfo` of the device, or `None` when
     no GPU of the host passes the floors of the pack. A state in `USABLE_STATES` is ready.
     A built-in EP with `selects_gpu` takes `gpu` as a pack does. A `field-test` EP with no opt-in
-    in this store is `field_test` (ADR-Z5X7).
+    in this store is `field_test` (ADR-Z5X7). An EP of the Windows ML catalog takes `gpu` as a pack
+    does. It is `not_installed` until `windows_ml.install()` records it in this store (ADR-XSE7).
     """
     row = catalog.ep(key)
-    if row["kind"] == "builtin":
+    windows_ml = catalog.windows_ml(key)
+    if row["kind"] == "builtin" or windows_ml:
         if "platforms" in row and catalog_module.platform_tag() not in row["platforms"]:
             return "unsupported", "os", f"the EP '{key}' is only for {', '.join(row['platforms'])}"
-        if row.get("selects_gpu") and gpu is None:
+        if (row.get("selects_gpu") or windows_ml) and gpu is None:
             return "unsupported", "no-device", f"no GPU of this host can run the EP '{key}'"
         field_test = field_test_reason(catalog, key)
-        return ("field_test", "field-test", field_test) if field_test else ("builtin", None, None)
+        if field_test:
+            return "field_test", "field-test", field_test
+        if not windows_ml:
+            return "builtin", None, None
+        if (windows_ml_installs().get(key) or {"pending": True}).get("pending"):  # an install that did not end is not one
+            return "not_installed", None, f"the Windows ML package of the EP '{key}' is not installed"
+        return _verdict_state(catalog, windows_ml_pack(catalog, key), gpu, device_key, os_build)
     pack = catalog.pack(key)
-    if catalog.pack_lock(pack["id"]) is None:
+    if pack is None or catalog.pack_lock(pack["id"]) is None:
         return "unsupported", "os", f"the EP '{key}' has no pack for this platform"
     if gpu is None:
         return "unsupported", "no-device", f"no GPU of this host can run the EP '{key}'"
@@ -203,13 +244,4 @@ def pack_state(catalog: EpCatalog, key: str, gpu=None, device_key: str | None = 
                 raise OSError
         except OSError:
             return "not_ready", "files", f"the file {name} of the pack {pack['id']} is missing or changed; install the pack again"
-    verdict = read_verdicts().get(verdict_key(catalog, pack, gpu, device_key, os_build))
-    if verdict is not None and not verdict["ok"] and verdict["level"] == "L2":
-        return "not_ready", "verify-failed", verdict.get("reason")
-    if catalog.ort_untested(pack):
-        return "untested-ort", "untested-ort", (f"the pack {pack['id']} {pack['version']} is not tested with "
-                                                f"ONNX Runtime {catalog.ort_version}")
-    if verdict is not None and verdict["ok"] and verdict["level"] == "L3":
-        return "ready", None, None
-    reason = "no trial session ran yet" if verdict is None or verdict["ok"] else verdict.get("reason")
-    return "installed_unverified", None, reason
+    return _verdict_state(catalog, pack, gpu, device_key, os_build)

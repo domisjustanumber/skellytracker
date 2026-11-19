@@ -106,6 +106,50 @@ def break_newer_dependency(catalog, lock):
     catalog["eps"]["cuda"]["packs"][0]["newer_versions"] = [{"version": "0.3.0", "ort": {}, "dependency_wheels": {"other": "1.0"}}]
 
 
+MODEL = {"path": "detectors/m.onnx", "url": "https://example.invalid/m.onnx", "sha256": "0" * 64, "bytes": 1}
+
+
+def test_a_valid_model_row_passes():
+    catalog, lock = load()
+    catalog["certification"]["models"] = [MODEL]
+    assert problems(catalog, lock) == []
+
+
+def break_model_path(catalog, lock):
+    catalog["certification"]["models"] = [{**MODEL, "path": "../escape.onnx"}]
+
+
+def break_model_url(catalog, lock):
+    catalog["certification"]["models"] = [{**MODEL, "url": "http://example.invalid/m.onnx"}]
+
+
+def break_model_sha(catalog, lock):
+    catalog["certification"]["models"] = [{**MODEL, "sha256": "abc"}]
+
+
+def break_model_bytes(catalog, lock):
+    catalog["certification"]["models"] = [{**MODEL, "bytes": 0}]
+
+
+def break_windows_ml_name(catalog, lock):
+    del catalog["eps"]["amdgpu"]["ep_name"]
+
+
+def break_plugin_without_route(catalog, lock):
+    del catalog["eps"]["amdgpu"]["windows_ml"]
+
+
+def break_linux_lock_row(catalog, lock):
+    del lock["packs"]["migraphx-rocm10.2"]["manylinux_x86_64"]
+
+
+def test_a_linux_only_pack_needs_no_windows_lock_row_and_a_local_version_is_exact():
+    catalog, lock = load()
+    pack = catalog["eps"]["migraphx"]["packs"][0]
+    assert pack["version"] == "1.0.0+rocm10.2.0" and set(lock["packs"]["migraphx-rocm10.2"]) == {"manylinux_x86_64"}
+    assert ep_catalog.pack_platforms(pack, catalog["platforms"]) == ["manylinux_x86_64"] and problems(catalog, lock) == []
+
+
 def test_a_newer_versions_row_with_a_claim_passes():
     catalog, lock = load()
     catalog["eps"]["cuda"]["packs"][0]["newer_versions"] = [{"version": "0.10.0", "ort": {"verified_by_us": ["1.31.1"]},
@@ -115,7 +159,9 @@ def test_a_newer_versions_row_with_a_claim_passes():
 
 @pytest.mark.parametrize("change", [break_pin, break_windows_pin, break_group, break_darwin, break_reserved, break_evidence, break_candidate,
                                     break_device_id, break_url, break_sha, break_lock_row, break_revision,
-                                    break_successor, break_unknown_successor, break_status, break_newer_version, break_newer_dependency],
+                                    break_successor, break_unknown_successor, break_status, break_newer_version, break_newer_dependency,
+                                    break_model_path, break_model_url, break_model_sha, break_model_bytes, break_windows_ml_name,
+                                    break_plugin_without_route, break_linux_lock_row],
                          ids=lambda change: change.__name__)
 def test_check_finds_each_defect(change):
     catalog, lock = (copy.deepcopy(part) for part in load())
@@ -175,6 +221,31 @@ def test_refresh_is_reproducible_on_a_recorded_index(tmp_path):
     assert [wheel["unpacked_bytes"] for wheel in windows["wheels"]] == [4, 5]
     assert windows["download_bytes"] == sum(len(site[wheel["url"]]) for wheel in windows["wheels"])
     assert first["catalog_revision"] == ep_catalog.revision_of("text")
+
+
+def test_refresh_takes_the_cp313_wheel_and_the_explicit_dependency_preload(tmp_path):
+    """ADR-XSE7: a page with one wheel for each Python, a local version, a Linux-only pack and `preload_dependencies`."""
+    catalog = {"indexes": {"amd": "https://amd.test/simple/"}, "platforms": ["win_amd64", "manylinux_x86_64"],
+               "eps": {"m": {"kind": "plugin", "packs": [{
+                   "id": "m-10.0", "package": "m-ep", "version": "1.0.0+rocm10.0.0", "index": "amd", "ep_name": "MEP",
+                   "library": {"manylinux_x86_64": "libm-ep.so"}, "preload_dependencies": ["libm_c.so"],
+                   "dependency_wheels": [{"package": "m-libs", "index": "amd", "version": "2.17.0+rocm10.0.0"}]}]}}}
+    files = {f"m_ep-1.0.0+rocm10.0.0-{tag}-{tag}-manylinux_2_28_x86_64.whl": wheel_bytes({"m_ep/libm-ep.so": tag.encode()})
+             for tag in ("cp311", "cp313", "cp314")}
+    files["m_libs-2.17.0+rocm10.0.0-py3-none-manylinux_2_28_x86_64.whl"] = wheel_bytes(
+        {"m_libs/libm_c.so.3": b"c", "m_libs/libm.so.2017000": b"m", "m_libs/libm_py_3.10.so": b"p"})
+    site = {}
+    for package in ("m-ep", "m-libs"):  # no sha256 on the page, and `+` as `%2B` in the link, as on the AMD index
+        site[f"https://amd.test/simple/{package}/"] = "".join(
+            f'<a href="{name.replace("+", "%2B")}">{name}</a>' for name in files if name.startswith(package.replace("-", "_"))).encode()
+    site |= {f"https://amd.test/simple/{name.split('-')[0].replace('_', '-')}/{name.replace('+', '%2B')}": data for name, data in files.items()}
+    lock = ep_catalog.refresh(catalog, "text", tmp_path, site.__getitem__)
+    (row,) = lock["packs"]["m-10.0"].values()
+    assert set(lock["packs"]["m-10.0"]) == {"manylinux_x86_64"} and row["preload"] == ["m_libs/libm_c.so.3"]
+    assert row["wheels"][0]["filename"] == "m_ep-1.0.0+rocm10.0.0-cp313-cp313-manylinux_2_28_x86_64.whl"
+    assert row["wheels"][0]["index_hash"] == "none" and row["wheels"][0]["url"].endswith("%2Brocm10.0.0-cp313-cp313-manylinux_2_28_x86_64.whl")
+    catalog["eps"]["m"]["packs"][0]["preload_dependencies"] = []
+    assert next(iter(ep_catalog.refresh(catalog, "text", tmp_path, site.__getitem__)["packs"]["m-10.0"].values()))["preload"] == []
 
 
 def test_refresh_refuses_a_sha_mismatch_and_an_http_url(tmp_path):

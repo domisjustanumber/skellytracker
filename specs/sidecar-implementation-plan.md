@@ -382,8 +382,10 @@ Items ([ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-h
   | `coreml` | built in, GPU EP | `CoreMLExecutionProvider`, macOS arm64 only | Apple Silicon |
   | `cpu` | built in | `CPUExecutionProvider` | – |
 
-  `trt`, `directml`, `openvino`, `qnn`, `migraphx` and `vitisai` are reserved, each with a reason;
-  `openvino` has only a CI test pack. `ort_core` must equal the `onnxruntime` pin;
+  `trt`, `openvino`, `qnn` and `vitisai` are reserved, each with a reason;
+  `openvino` has only a CI test pack. `directml`, `amdgpu` and `migraphx` are field-test EPs
+  ([ADR-Z5X7](../decisions/entries/Z5X7-field-test-state-and-directml.md);
+  [ADR-XSE7](../decisions/entries/XSE7-amd-eps-in-the-field-test.md)). `ort_core` must equal the `onnxruntime` pin;
   `tools/ep_catalog.py --check` fails on drift. A pack outside its tested ORT versions is
   `untested-ort` and stays usable, with one warning line for each process.
 - **EP options.** The catalog lists the allowed names and values. Each other option is refused

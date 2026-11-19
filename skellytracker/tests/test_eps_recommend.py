@@ -27,9 +27,9 @@ def ep_store(tmp_path, monkeypatch):
 
 def test_catalog_keys_and_reserved_keys():
     catalog = eps.load_catalog()
-    assert catalog.keys() == ("trt-rtx", "cuda", "coreml", "directml", "cpu")
-    assert [catalog.ep_status(key) for key in catalog.keys()] == ["ready", "ready", "ready", "field-test", "ready"]
-    for key in ("trt", "openvino", "qnn", "migraphx", "vitisai"):
+    assert catalog.keys() == ("trt-rtx", "cuda", "coreml", "amdgpu", "migraphx", "directml", "cpu")
+    assert [catalog.ep_status(key) for key in catalog.keys()] == ["ready", "ready", "ready", "field-test", "field-test", "field-test", "ready"]
+    for key in ("trt", "openvino", "qnn", "vitisai"):
         with pytest.raises(EpRequestError, match="reserved"):
             catalog.ep(key)
     with pytest.raises(EpRequestError, match="not an EP key"):
@@ -76,7 +76,7 @@ CASES = [
     (host(gpu(cc="6.1")), ("cuda",), "nvidia-pre-turing", "cpu", (), ("none-available",)),
     (host(INTEL), (), "intel-gpu", "cpu", (), ()),
     (host(gpu("amd", cc=None, device_id=0x73BF)), (), "amd-windows", "cpu", (), ("none-available",)),  # `directml` is a field-test EP
-    (host(gpu("amd", cc=None, device_id=0x73BF), os_name="Linux"), (), "amd-deferred", "cpu", (), ("none-available",)),
+    (host(gpu("amd", cc=None, device_id=0x73BF), os_name="Linux"), (), "amd-linux", "cpu", (), ("none-available",)),  # `migraphx` is a field-test EP
     (host(gpu("other", cc=None)), (), "unknown-gpu", "cpu", (), ()),
     (host(), (), "cpu-only", "cpu", (), ()),
     (host(os_name="Windows", arch="AMD64", native_arch="ARM64"), (), "snapdragon-x", "cpu", (), ()),
@@ -96,7 +96,7 @@ def test_recommend_for_each_hardware_class(fake_host, installed, row, chosen, sk
     assert result.precision == ("fp32" if chosen == "cpu" else "fp16")
     accuracy = eps.recommend("accuracy", fake_host)
     assert (accuracy.chosen.ep_key, accuracy.precision, accuracy.options, accuracy.hardware_class) == ("cpu", "fp32", (), row)
-    never = {"trt", "openvino", "qnn", "migraphx", "vitisai", "directml"}  # reserved keys and the field-test EP
+    never = {"trt", "openvino", "qnn", "vitisai", "directml", "migraphx", "amdgpu"}  # reserved keys and the field-test EPs
     assert not never & {c.ep_key for c in (result.chosen, *result.skipped)} and not never & {o.ep_key for o in result.offers}
 
 
@@ -189,7 +189,7 @@ def test_run_devices_on_two_fake_gpus(monkeypatch):
     with pytest.raises(EpUnavailableError):
         eps.run_devices("cpu", "gpu:10de:2484:0")
     with pytest.raises(EpRequestError):
-        eps.run_devices("migraphx")
+        eps.run_devices("qnn")
     # `directml` has no vendor floor: each GPU, the most VRAM first (ADR-Z5X7)
     assert [d.device_key for d in eps.run_devices("directml")] == ["gpu:10de:2684:0", "gpu:10de:1b06:0", "gpu:10de:2484:0", "gpu:8086:a780:0"]
     assert [d.device_key for d in eps.run_devices("directml", "gpu:8086:a780:0")] == ["gpu:8086:a780:0"]

@@ -7,10 +7,14 @@ An application, for example freemocap, holds no fact about an EP. It shows the E
 and takes its recommended and automatic choices from `recommend()`:
 
 - `EpStatus.eps` has one `PackStatus` for each EP key of this platform, in the order of the EP
-  catalog: `trt-rtx`, `cuda`, `coreml`, `directml`, `cpu`. The order is a contract.
-- A `field-test` EP (`PackStatus.catalog_status`, today `directml` on Windows) is usable only after
-  an explicit opt-in: `skellytracker-eps install KEY --field-test` or the certify suite. Without the
-  opt-in its `state` is `field_test`. `recommend()` never gives it (ADR-Z5X7).
+  catalog: `trt-rtx`, `cuda`, `coreml`, `amdgpu`, `migraphx`, `directml`, `cpu`. The order is a
+  contract. A platform shows only its own EPs.
+- A `field-test` EP (`PackStatus.catalog_status`, today `directml`, `amdgpu` and `migraphx`) is
+  usable only after an explicit opt-in: `skellytracker-eps install KEY --field-test` or the certify
+  suite. Without the opt-in its `state` is `field_test`. `recommend()` never gives it (ADR-Z5X7).
+- `migraphx` is a pack for the ROCm release of the host on Linux, and an EP of the Windows ML
+  catalog on Windows. `amdgpu` is an EP of the Windows ML catalog on Windows only. Windows installs
+  the package of a Windows ML EP: `PackStatus.source` is `windows-ml` (ADR-XSE7).
 - `PackStatus.usable` is true when a run can use the EP now. An application does not compare
   `PackStatus.state` with a list of states.
 - `PackStatus.install_hint` is the text with the command that installs or repairs the pack, or None.

@@ -76,7 +76,8 @@ def verify(keys: Sequence[str] | None = None, *, level: str = "L3", device_key: 
             if keys is None:
                 continue
             raise EpUnavailableError(f"The EP '{key}' is not available: {reason}.", install_hint(key))
-        stored_key = store.verdict_key(catalog, pack or {"id": key, "version": "builtin"}, gpu, target, host.os_build)
+        stand_in = store.windows_ml_pack(catalog, key) if catalog.windows_ml(key) else {"id": key, "version": "builtin"}
+        stored_key = store.verdict_key(catalog, pack or stand_in, gpu, target, host.os_build)
         record = None if force else store.read_verdicts().get(stored_key)
         if record is None or (level == "L3" and record["level"] == "L2" and record["ok"]):
             record = run_child({"key": key, "pack": pack, "gpu": gpu, "device_key": target, "level": level,

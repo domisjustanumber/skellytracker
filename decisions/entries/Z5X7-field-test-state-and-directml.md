@@ -6,7 +6,7 @@
 
 This entry builds item 11 of [ADR-Y14H](Y14H-certify-suite.md) for DirectML. It changes item 3 of
 [ADR-N6E8](N6E8-onnxruntime-1-30-on-each-os.md): `directml` is no longer a reserved key. Classic
-TensorRT and MIGraphX stay reserved.
+TensorRT stays reserved. [ADR-XSE7](XSE7-amd-eps-in-the-field-test.md) makes `migraphx` a field-test EP.
 
 1. **Catalog status.** A pack row or a built-in EP row can have `status: field-test`.
    `tools/ep_catalog.py --check` accepts only `ready`, `test` and `field-test`.
@@ -23,14 +23,14 @@ TensorRT and MIGraphX stay reserved.
 5. **DirectML.** `directml` is a built-in EP for `win_amd64` with `selects_gpu: true`, the precision
    order fp16 then fp32, `l3_atol` 1.5e-2, no allowed option, and `status: field-test`. It can use
    each GPU of the host. The hardware class `amd-windows` (an AMD GPU on Windows) lists `directml`
-   before `cpu`. Linux and macOS do not change. `amd-deferred` stays for AMD on Linux.
+   before `cpu`. Linux and macOS do not change. XSE7 adds the AMD EPs to `amd-windows` and an
+   `amd-linux` class.
 6. **Device.** A session on a GPU takes the ONNX Runtime EP device of the GPU (the PCI ids, then the
    LUID on Windows) through `add_provider_for_devices`, never `device_id`.
 7. **Certify suite.** Section 3 opts in, then runs `verify()` at L3 on each GPU as the check
    `directml@<device_key>`. Section 4 runs the pipeline on each GPU whose probe passed. A result
    counts only on a GPU whose hardware class lists the EP (an AMD GPU). On each other GPU it is
-   `record-only`. The check `amd-eps` (`not-run`, `not-built`) stays on an AMD host, for MIGraphX
-   and the AMD EP of the Windows ML catalog.
+   `record-only`. XSE7 adds the AMD EPs.
 8. **Certified.** For a field-test EP, certified means that sections 3 and 4 pass on the host. A
    person moves an EP to `ready` in a later commit, with a reviewed report as evidence. No code
    does it.

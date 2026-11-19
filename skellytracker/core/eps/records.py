@@ -249,12 +249,14 @@ class PackStatus:
       an application can show the EP as "available for a field test", but it never offers it.
     - `certified`: true when the project has a reviewed pass of the EP on this GPU model on this OS.
       It is None for a built-in EP and when no GPU of this host can use the EP.
+    - `source`: where the EP comes from: the index of the pack (`pypi`, `azure` or `amd`),
+      `windows-ml` for an EP of the Windows ML catalog, or `builtin` (ADR-XSE7).
     """
 
     key: str
     label: str
     state: PackState
-    source: Literal["pypi", "azure", "builtin"] = "builtin"
+    source: Literal["pypi", "azure", "amd", "windows-ml", "builtin"] = "builtin"
     catalog_status: str = "ready"
     reason_code: str | None = None
     reason: str | None = None

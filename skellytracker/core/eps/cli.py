@@ -18,7 +18,9 @@ no JSON parser. No environment variable selects the EP or the device.
 
 `install KEY --field-test` is the opt-in to a field-test EP, for example `directml` on Windows. The
 EP store keeps the opt-in. Without it, a request for such an EP fails with the state `field_test`
-(exit 3), and no recommendation gives it (ADR-Z5X7).
+(exit 3), and no recommendation gives it (ADR-Z5X7). For an EP of the Windows ML catalog (`amdgpu`,
+and `migraphx` on Windows), `install` asks, then Windows downloads and installs its package. No
+command removes that package (ADR-XSE7).
 
 `certify` tests one EP on this host and writes a report file in the folder `reports` of the EP
 store. It sends nothing. It always runs the probe. `--wide` also runs the project models on a
@@ -44,7 +46,7 @@ import urllib.request
 from pathlib import Path
 
 from skellytracker.core import errors
-from skellytracker.core.eps import _download, certification, installer, recommendation, self_test, state, store, verification
+from skellytracker.core.eps import _download, certification, installer, recommendation, self_test, state, store, verification, windows_ml
 from skellytracker.core.eps.catalog import load_catalog
 from skellytracker.core.eps.recommendation import recommend
 from skellytracker.core.eps.records import EpRecommendation, EpStatus, InstallPlan
@@ -194,9 +196,19 @@ def cmd_install(args) -> int:
     if args.dry_run:
         return errors.EXIT_OK
     for key in field_keys if args.field_test else ():  # the opt-in of a built-in EP needs no download
-        if catalog.pack(key) is None:
+        if catalog.pack(key) is None and not catalog.windows_ml(key):
             store.opt_in_field_test(key)
             print(f"{key}: opted in to the field test", file=text)
+    for key in [key for key in keys if catalog.windows_ml(key)]:  # plan_install refused it with no opt-in or --field-test
+        answer = "yes" if args.yes else ask(f"Windows downloads and installs the Windows ML package of the EP '{key}'. "
+                                            "No command removes it. Continue? [y/N] ")
+        if answer not in ("y", "yes"):
+            print("The install needs a confirmation: use --yes." if answer is None else "Nothing installed.", file=sys.stderr)
+            return errors.EXIT_USAGE
+        store.opt_in_field_test(key)
+        record = windows_ml.install(key)
+        print(f"{key}: ok (Windows ML package {record['version'] or 'of an unknown version'}"
+              f"{', already on this PC' if record['was_present'] else ''})", file=text)
     if not plan.packs:
         return errors.EXIT_OK
     if not args.yes:
@@ -366,7 +378,9 @@ def cmd_doctor(args) -> int:
         print(f"Warning: {text}")
     ok = True
     for name, url in catalog.data["indexes"].items():
-        page = url + catalog.pack("trt-rtx" if name == "pypi" else "cuda")["package"] + "/"
+        package = next(wheel["package"] for row in catalog.data["eps"].values() for pack in row.get("packs", ())
+                       for wheel in (pack, *pack.get("dependency_wheels", ())) if wheel["index"] == name)
+        page = url + package + "/"
         try:
             opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=_download.ssl_context()))
             with opener.open(page, timeout=20) as response:

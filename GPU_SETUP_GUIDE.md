@@ -4,7 +4,9 @@ The base dependency `onnxruntime` gives the CPU EP, the CoreML EP on macOS and t
 Windows. The DirectML EP is in a field test (see [Field test](#field-test)). A GPU EP for an
 NVIDIA GPU comes as a plugin EP pack. The command `skellytracker-eps install` puts a pack in the EP
 store of the user. A pack is not a dependency of the package
-([ADR-N6E8](decisions/entries/N6E8-onnxruntime-1-30-on-each-os.md) items 2 and 3).
+([ADR-N6E8](decisions/entries/N6E8-onnxruntime-1-30-on-each-os.md) items 2 and 3). The AMD GPU EPs
+are in a field test too: a pack on Linux, and a package of the Windows ML catalog on Windows
+([ADR-XSE7](decisions/entries/XSE7-amd-eps-in-the-field-test.md)).
 
 The ONNX trackers of this version (RTMPose, YOLOX) run on the CPU. On macOS, they can also run on
 CoreML. They do not use the EP packs. The new code calls `skellytracker.core.eps.build_session()`.
@@ -17,13 +19,18 @@ The pipelines of a later version use it.
 | `trt-rtx` | NVIDIA TensorRT for RTX, pack `onnxruntime-ep-nv-tensorrt-rtx-cu13` | An NVIDIA GPU with compute capability 8.0 or higher, and a driver of R580 or later on Windows, or R590 or later on Linux |
 | `cuda` | NVIDIA CUDA, pack `onnxruntime-ep-cuda13` with cuBLAS and cuDNN | An NVIDIA GPU of the Turing generation or newer (compute capability 7.5), and a driver of R580 or later |
 | `coreml` | Apple Core ML, a part of ONNX Runtime | macOS on Apple Silicon |
+| `amdgpu` | AMD GPU EP of the Windows ML catalog | Windows, an AMD GPU, an AMD driver 24.12.1 or later, and the field-test opt-in |
+| `migraphx` | AMD MIGraphX. Linux: pack `onnxruntime-ep-migraphx` for the ROCm release of the host, with `migraphx-libs`. Windows: the EP of the Windows ML catalog | An AMD GPU and the field-test opt-in. Linux: ROCm 10.0, 10.1 or 10.2 is installed. Windows: an RDNA 3 GPU or newer |
 | `directml` | Microsoft DirectML, a part of the Windows ML build of ONNX Runtime | Windows and a DirectX 12 GPU, and the field-test opt-in |
 | `cpu` | The CPU EP, a part of ONNX Runtime | – |
 
 - The packs use CUDA 13. R580 is the first driver branch with CUDA 13.
 - An NVIDIA GPU older than Turing runs on the CPU only. No driver gives it CUDA 13.
-- Classic TensorRT (`trt`), OpenVINO, QNN, MIGraphX and Vitis AI are reserved keys. A request for
-  one fails with the reason.
+- Classic TensorRT (`trt`), OpenVINO, QNN and Vitis AI are reserved keys. A request for one fails
+  with the reason.
+- The `migraphx` pack installs no ROCm. Without ROCm, the state is `unsupported` with the reason
+  code `rocm-missing`. AMD tested the packs with ONNX Runtime 1.29 only, so their state is
+  `untested-ort`.
 - You do not need a CUDA toolkit. The packs hold their libraries.
 
 ## Install a pack
@@ -45,11 +52,13 @@ uv run poe setup-eps --recommended           # the same command as a poe task
 
 ## Field test
 
-An EP in a field test has no reviewed certification report for the OS yet. Today this is `directml`
-on Windows ([ADR-Z5X7](decisions/entries/Z5X7-field-test-state-and-directml.md)).
+An EP in a field test has no reviewed certification report for the OS yet. Today these are
+`directml` on Windows ([ADR-Z5X7](decisions/entries/Z5X7-field-test-state-and-directml.md)),
+`amdgpu` on Windows and `migraphx` on Windows and Linux ([ADR-XSE7](decisions/entries/XSE7-amd-eps-in-the-field-test.md)).
 
 ```sh
 uv run skellytracker-eps install directml --field-test   # the opt-in; DirectML needs no download
+uv run skellytracker-eps install migraphx --field-test   # Linux: the pack; Windows: the Windows ML package
 ```
 
 - The EP store keeps the opt-in. Without it, a request for the EP fails with exit code 3 and the
@@ -57,8 +66,13 @@ uv run skellytracker-eps install directml --field-test   # the opt-in; DirectML 
 - `status()` shows the EP with the state `field_test` and the `catalog_status` `field-test`.
   `recommend()` never gives the EP, also after the opt-in.
 - The app offers DirectML for AMD GPUs only. You can opt in on each GPU, for example to test it.
+- For `amdgpu`, and for `migraphx` on Windows, `install` asks one question. Then Windows downloads
+  and installs the package of the Windows ML catalog. No command of skellytracker removes it.
+  PowerShell removes it for your user with `Remove-AppxPackage <full name>`.
 - The certify suite (`tools/certify_platform.py`) opts in to each field-test EP in its own store, and
-  tests DirectML on each GPU of the host.
+  tests DirectML on each GPU of the host. On an AMD GPU it also tests the AMD EPs. On Windows, it
+  installs the Windows ML package of each AMD EP that the catalog offers, and removes each package
+  that it installed at the end. It never removes a package that was on the PC before.
 
 ## The EP store
 

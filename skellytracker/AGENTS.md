@@ -100,17 +100,23 @@ legacy path puts the old points in the raw names of `wholebody.keypoints` and ca
 ([ADR-C3A4](../decisions/entries/C3A4-describe-port-for-the-legacy-path.md)).
 
 - New code takes the EP as `execution_provider`, a concrete key of the EP catalog: `trt-rtx`, `cuda`,
-  `coreml`, `directml` or `cpu`. No environment variable selects the EP or the device.
+  `coreml`, `amdgpu`, `migraphx`, `directml` or `cpu`. No environment variable selects the EP or the
+  device. The second environment of the certify suite sets `SKELLYTRACKER_EP_ORT_FALLBACK`: the EP
+  store then accepts the ONNX Runtime of `certification.ort_fallback`
+  ([ADR-XSE7](../decisions/entries/XSE7-amd-eps-in-the-field-test.md)).
 - A session on a GPU takes the ONNX Runtime EP device of the GPU (`registration.ort_device()`).
   Never select a GPU with the option `device_id`.
-- A `field-test` EP of the EP catalog (today `directml`) is usable only after an opt-in in the EP
-  store (`store.opt_in_field_test()`). Only `skellytracker-eps install KEY --field-test` and the
+- A `field-test` EP of the EP catalog (today `directml`, `amdgpu` and `migraphx`) is usable only
+  after an opt-in in the EP store (`store.opt_in_field_test()`). Only `skellytracker-eps install KEY --field-test` and the
   certify suite record it. `recommend()` never gives such an EP
   ([ADR-Z5X7](../decisions/entries/Z5X7-field-test-state-and-directml.md)).
 - `eps.build_session()` serves only new code. Do not connect it to `OnnxSession` or `Tracker.create`.
   The `cuda` bridge of the exception above is the only connection.
-- A GPU EP is a plugin EP pack in the EP store, or `directml`, which is a part of the Windows ML
-  build of ONNX Runtime. Do not add a GPU package to `pyproject.toml`.
+- A GPU EP is a plugin EP pack in the EP store, `directml`, which is a part of the Windows ML
+  build of ONNX Runtime, or an EP of the Windows ML catalog (`windows_ml` of the EP row). Only
+  `core/eps/windows_ml.py` imports `windowsml`, in a function
+  ([ADR-XSE7](../decisions/entries/XSE7-amd-eps-in-the-field-test.md)). Do not add a GPU package to
+  `pyproject.toml`.
 - `core/eps/ep_catalog.yaml` is written by hand. Only `uv run python tools/ep_catalog.py --refresh`
   writes `ep_lock.yaml`, and it uses the network. Run it after each change of the catalog.
   `ort_core` must equal the `onnxruntime` pin and the `onnxruntime-windowsml` pin: change the pins, the catalog, the lock and

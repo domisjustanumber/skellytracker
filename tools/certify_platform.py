@@ -28,8 +28,11 @@ last, the same data as one fenced JSON block (``report_data()`` reads it). The s
 evidence only from a clean checkout of a tag with all sections run. The report holds no hostname,
 no user name, no absolute path, no serial number and no bus address: each section takes OS facts
 through an allowlist of fields, and ``scrub()`` removes the user name, the home folder, the checkout
-folder and the hostname from each string. The suite installs no system software and needs no
-administrator rights.
+folder and the hostname from each string. The suite needs no administrator rights. On Windows with
+an AMD GPU, the one system change is the Windows ML package of each AMD EP that the catalog offers:
+the consent names the EP, and at the end the frame removes each package that section 3 installed
+(``remove_windows_packages``), also after a crash, a timeout or Ctrl+C. A package that stays is a
+``fail`` check of section 3 (ADR-XSE7).
 
 Each child gets ``SKELLYTRACKER_EP_STORE`` and ``SKELLYTRACKER_EP_CACHE`` set to folders of the work
 folder: the suite installs and tests the EP packs in its own EP store, and uses and changes no EP
@@ -38,8 +41,8 @@ the work folder, and the result of each section as ``section-<N>.json``: a later
 earlier result there. At the end it deletes each file of ``remove-at-end.json`` of the work folder:
 a section lists each file that it downloads outside the work folder, for example a model file.
 
-Sections 3 and 4 are in ``tools/certify_eps.py``. Sections 5 to 7 are placeholders: their result is
-``not-run`` with the reason code ``not-built``.
+Sections 3 and 4 are in ``tools/certify_eps.py``, section 5 is in ``tools/certify_jpeg.py``. Sections 6
+and 7 are placeholders: their result is ``not-run`` with the reason code ``not-built``.
 """
 
 from __future__ import annotations
@@ -257,6 +260,12 @@ def section_pipeline(work: Path) -> dict:
     return certify_eps.section_pipeline(work)
 
 
+def section_jpeg(work: Path) -> dict:
+    import certify_jpeg
+
+    return certify_jpeg.section_jpeg(work)
+
+
 def eps_downloads(options: dict) -> tuple:
     import certify_eps
 
@@ -281,7 +290,9 @@ SECTIONS = (
     # 4: about 115 s on a host with an RTX 3070 and an Intel UHD 770 (DirectML on each GPU); the limit allows a slow
     # TensorRT RTX engine build on each camera count
     Section(4, "Pipeline on each EP against the CPU EP", 120, 1800, section_pipeline, pipeline_downloads),
-    Section(5, "JPEG decode and preprocess", 0, 60, not_built, built=False),
+    # 5: after 4, so the model files of section 4 are still there. About 12.5 s for the CPU paths with the model files,
+    # 14 s for cuda and 20 s for trt-rtx with no model files (RTX 3070); the limit allows an engine build and a hang at exit
+    Section(5, "JPEG decode and preprocess", 60, 600, section_jpeg),
     Section(6, "Cameras", 0, 60, not_built, built=False),
     Section(7, "JPEG encode and decode speed", 0, 60, not_built, built=False),
 )
@@ -318,6 +329,45 @@ def child_env(work: Path) -> dict:
     `core/eps/store.py` and `core/model_spec/artifacts.py`), and no `__pycache__` files in the checkout."""
     return {**os.environ, "SKELLYTRACKER_EP_STORE": str(work / "eps"), "SKELLYTRACKER_EP_CACHE": str(work / "ep-cache"),
             "SKELLYTRACKER_MODEL_CACHE": str(work / "model-cache"), "PYTHONDONTWRITEBYTECODE": "1"}
+
+
+def remove_windows_packages(work: Path) -> list[dict]:
+    """Remove each Windows ML package that section 3 installed: the records of the EP store of the work folder (ADR-XSE7).
+
+    One row for each package (`key`, `package`, `result`, `reason_code`); `windows_ml.remove_installed()` never
+    removes a package that was on the PC before. A failure is a row, never an exception.
+    """
+    records = read_records(work / "eps" / "windows-ml.json")
+    if not records:
+        return []
+    try:
+        sys.path.insert(0, str(REPO_ROOT))
+        from skellytracker.core.eps import windows_ml
+
+        return [{"key": key, **row} for key, record in records.items() for row in windows_ml.remove_installed(record)]
+    except Exception as error:  # noqa: BLE001 - the work folder must still go
+        return [{"key": key, "package": None, "result": "fail", "reason_code": f"cleanup-{type(error).__name__}"} for key in records]
+
+
+def read_records(path: Path) -> dict:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def add_cleanup(results: list[dict], rows: list[dict]) -> None:
+    """Add one check to section 3 for each removed package; a package that stayed fails the section and is printed."""
+    section = next((r for r in results if r["number"] == 3), None)
+    for row in rows:
+        name = f"remove-{row['package'] or row['key']}"
+        if section is not None:
+            section["checks"].append(check(name, row["result"], row["reason_code"]))
+            if row["result"] == "fail" and section["result"] != "fail":
+                section.update(result="fail", reason_code=row["reason_code"])
+        if row["result"] == "fail":
+            print(f"The Windows ML package of the EP '{row['key']}' ({row['package'] or 'name not known'}) may still be on this PC. "
+                  "PowerShell removes a package with: Remove-AppxPackage <full name>.", file=sys.stderr)
 
 
 def remove_listed(work: Path) -> None:
@@ -476,7 +526,17 @@ def section_downloads(section: Section, options: dict) -> tuple[tuple[str, int],
         return ((f"the downloads of section {section.number} (size unknown)", 0),)
 
 
-def plan_text(sections: tuple[Section, ...], selected: set[int], out: Path, options: dict | None = None) -> str:
+def windows_ml_offer() -> list[str]:
+    import certify_eps
+
+    try:
+        return certify_eps.windows_ml_offer()
+    except Exception:  # noqa: BLE001 - no catalog: section 3 then records `catalog-<error>` and installs nothing
+        return []
+
+
+def plan_text(sections: tuple[Section, ...], selected: set[int], out: Path, options: dict | None = None,
+              os_platform: str = sys.platform, windows_eps: Callable[[], list[str]] | None = None) -> str:
     chosen = [s for s in sections if s.number in selected]
     lines = ["The certify suite will run these sections, each in its own process:"]
     lines += [f"  {s.number}. {s.name}: " + (f"about {s.estimate_seconds} s" if s.built else "not built yet, skipped") for s in chosen]
@@ -484,7 +544,13 @@ def plan_text(sections: tuple[Section, ...], selected: set[int], out: Path, opti
     downloads = [item for s in chosen for item in section_downloads(s, options or {})]
     lines.append("Downloads: " + ("none." if not downloads else
                                   ", ".join(f"{name} ({-(-size // 2**20)} MB)" for name, size in downloads) + "."))
-    lines += ["The suite installs no system software and needs no administrator rights.",
+    # ADR-XSE7: the catalog gives the package name only after the install, so the text names the EP
+    packages = (windows_eps or windows_ml_offer)() if os_platform == "win32" and 3 in selected else []
+    lines += [f"Windows downloads and installs the Windows ML package of the AMD execution provider {name}, if Windows does not "
+              "have it yet. The suite removes that package at the end. It never removes a package that was on this PC before."
+              for name in packages]
+    lines += ["Apart from that, the suite installs no system software. It needs no administrator rights." if packages else
+              "The suite installs no system software and needs no administrator rights.",
               f"It keeps its files, also its own EP store, in {WORK_DIR.name}/ in this checkout and deletes that folder at the end.",
               f"The report goes to {out.name}. It holds hardware and software facts only. Nothing is sent."]
     return "\n".join(lines)
@@ -512,6 +578,7 @@ def run_suite(sections: tuple[Section, ...], selected: set[int], out: Path, *, y
             print("Nothing ran.")
             return EXIT_NO_CONSENT
     results, interrupted, answers, notes = [], False, [], None
+    add_cleanup([], remove_windows_packages(work))  # the packages of a run whose frame did not end
     shutil.rmtree(work, ignore_errors=True)  # a folder from a run that did not finish
     work.mkdir(parents=True)
     (work / "options.json").write_text(json.dumps(options or {}), encoding="utf-8")
@@ -543,6 +610,7 @@ def run_suite(sections: tuple[Section, ...], selected: set[int], out: Path, *, y
             except (KeyboardInterrupt, EOFError):
                 pass
     finally:
+        add_cleanup(results, remove_windows_packages(work))  # also after a crash, a timeout or Ctrl+C of section 3
         remove_listed(work)
         shutil.rmtree(work, ignore_errors=True)
         if work.exists():

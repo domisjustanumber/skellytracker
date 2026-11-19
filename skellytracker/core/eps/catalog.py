@@ -16,6 +16,7 @@ import yaml
 
 from skellytracker.core.eps.records import Options
 from skellytracker.core.errors import EpRequestError
+from skellytracker.core.system import host as system_host
 
 POSITIVE_INT = "positive-int"
 
@@ -77,19 +78,34 @@ class EpCatalog:
             raise EpRequestError(f"The EP key '{key}' is reserved: {row['reason']}.")
         return row
 
+    def windows_ml(self, key: str) -> bool:
+        """True when this platform takes the EP from the Windows ML catalog: a platform of `windows_ml` of the EP row."""
+        return platform_tag() in self.ep(key).get("windows_ml", ())
+
     def pack(self, key: str) -> dict | None:
-        """The pack row of a plugin EP key; `None` for a built-in EP."""
+        """The pack row of a plugin EP key on this platform; `None` for a built-in EP and for an EP of the Windows ML catalog.
+
+        Of the packs whose `library` map names this platform, it is the pack whose `requires.rocm` is the ROCm release
+        of the host, else the first of them. With no such pack, it is the first pack: the lock has no row for it.
+        """
         packs = self.ep(key).get("packs")
-        return packs[0] if packs else None
+        if not packs or self.windows_ml(key):
+            return None
+        fitting = [pack for pack in packs if platform_tag() in pack.get("library", {})] or packs
+        if len(fitting) > 1 and any("rocm" in pack.get("requires", {}) for pack in fitting):
+            rocm = system_host.rocm_version()
+            return next((pack for pack in fitting if pack.get("requires", {}).get("rocm") == rocm), fitting[0])
+        return fitting[0]
 
     def ep_status(self, key: str) -> str:
-        """The catalog status of an EP key: `ready`, `test` or `field-test`, from its pack row or its built-in row."""
+        """The catalog status of an EP key: `ready`, `test` or `field-test`, from its pack row or else its EP row."""
         return (self.pack(key) or self.ep(key)).get("status", "ready")
 
     def device_row(self, key: str) -> dict | None:
-        """The row with the GPU floors of an EP that runs on one GPU: the pack row, or a built-in row with `selects_gpu`."""
+        """The row with the GPU floors of an EP that runs on one GPU: the pack row, a built-in row with `selects_gpu`, or
+        the EP row of an EP of the Windows ML catalog."""
         row = self.ep(key)
-        return self.pack(key) or (row if row.get("selects_gpu") else None)
+        return self.pack(key) or (row if row.get("selects_gpu") or self.windows_ml(key) else None)
 
     def pack_by_id(self, pack_id: str) -> tuple[str, dict] | None:
         """The EP key and the row of a pack id, also for a test pack."""
@@ -145,6 +161,12 @@ class EpCatalog:
         if floor is not None and (branch is None or branch < floor):
             return "driver-too-old", (f"the pack needs an NVIDIA driver of R{floor} or later, "
                                       f"the driver is {gpu.driver_version}")
+        if "rocm" in requires:  # a host fact; the pack installs no ROCm (ADR-XSE7)
+            rocm = system_host.rocm_version()
+            if rocm is None:
+                return "rocm-missing", f"the pack needs ROCm {requires['rocm']}, and this host has no ROCm"
+            if rocm != requires["rocm"]:
+                return "rocm-version", f"the pack needs ROCm {requires['rocm']}, and this host has ROCm {rocm}"
         return None
 
 

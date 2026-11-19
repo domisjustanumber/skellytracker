@@ -57,7 +57,7 @@
     sections run. Else the report has a top-level field and a line that say so. The suite is complete
     before its first tag: no tag before each section exists.
 14. **Hand-in.** The volunteer attaches the report to a GitHub issue of this repository (issue
-    template) or sends it by email. An accepted report is committed whole in a folder of this
+    template). No email. An accepted report is committed whole in a folder of this
     repository. It is the evidence for the sections that are not EPs. A person still writes the EP
     rows of `ep_evidence.yaml`.
 15. **New run.** A platform needs a new run when the version set or the tests of a section change, not

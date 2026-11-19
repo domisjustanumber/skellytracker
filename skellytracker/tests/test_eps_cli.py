@@ -98,13 +98,16 @@ def test_status_json(rtx_host, capsys):
     data = json.loads(capsys.readouterr().out)
     assert data["schema"] == "skellytracker.eps.status/1" and set(data) == {"schema", "core", "host", "recommended", "eps", "warnings", "certify_offers"}
     assert data["core"]["ort_version"] == installer.installed_ort()[1] and data["core"]["core_matches_pin"] is True
-    assert [row["key"] for row in data["eps"]] == ["trt-rtx", "cuda", "directml", "cpu"]
+    assert [row["key"] for row in data["eps"]] == ["trt-rtx", "cuda", "amdgpu", "migraphx", "directml", "cpu"]
     assert [(row["state"], row["reason_code"]) for row in data["eps"]] == [
-        ("not_installed", None), ("installed_unverified", None), ("field_test", "field-test"), ("builtin", None)]
+        ("not_installed", None), ("installed_unverified", None), ("unsupported", "no-device"), ("unsupported", "no-device"),
+        ("field_test", "field-test"), ("builtin", None)]
     assert [(row["usable"], row["install_hint"], row["uses_gpu"]) for row in data["eps"]] == [
-        (False, "Run `skellytracker-eps install trt-rtx`.", True), (True, None, True), (False, None, True), (True, None, False)]
-    assert [row["catalog_status"] for row in data["eps"]] == ["ready", "ready", "field-test", "ready"]
-    assert [[device["device_key"] for device in row["devices"]] for row in data["eps"]] == [[], ["gpu:10de:2484:0"], [], []]
+        (False, "Run `skellytracker-eps install trt-rtx`.", True), (True, None, True), (False, None, True), (False, None, True),
+        (False, None, True), (True, None, False)]
+    assert [row["catalog_status"] for row in data["eps"]] == ["ready", "ready", "field-test", "field-test", "field-test", "ready"]
+    assert [row["source"] for row in data["eps"]] == ["pypi", "azure", "windows-ml", "windows-ml", "builtin", "builtin"]
+    assert [[device["device_key"] for device in row["devices"]] for row in data["eps"]] == [[], ["gpu:10de:2484:0"], [], [], [], []]
     assert data["eps"][1]["devices"][0] == {"device_key": "gpu:10de:2484:0", "gpu_key": "0000:01:00.0", "name": "NVIDIA GeForce RTX 3070",
                                             "pci_bus_id": "0000:01:00.0", "vram_total_bytes": 8 * GIB}
     assert all(row["description"].startswith("Runs on ") and len(row["description"]) <= 120 for row in data["eps"])
@@ -119,8 +122,8 @@ def test_status_json(rtx_host, capsys):
 
 def test_the_order_of_status_eps_is_the_catalog_order_and_each_hardware_class_keeps_it(rtx_host, monkeypatch):
     catalog = catalog_module.load_catalog()
-    assert catalog.keys() == ("trt-rtx", "cuda", "coreml", "directml", "cpu")
-    assert [row.key for row in eps.status().eps] == ["trt-rtx", "cuda", "directml", "cpu"]  # this platform has no `coreml`
+    assert catalog.keys() == ("trt-rtx", "cuda", "coreml", "amdgpu", "migraphx", "directml", "cpu")
+    assert [row.key for row in eps.status().eps] == ["trt-rtx", "cuda", "amdgpu", "migraphx", "directml", "cpu"]  # no `coreml` here
     for row in catalog.data["hardware_classes"]:
         assert row["candidates"] == sorted(row["candidates"], key=catalog.keys().index), row["id"]
     large = gpu(vram=24 * GIB, bus="0000:02:00.0", device_id=0x2684, name="RTX 4090")
@@ -152,11 +155,11 @@ def test_status_ini_is_utf16_with_a_bom(rtx_host, tmp_path):
     raw = out.read_bytes()
     assert raw[:2] == b"\xff\xfe"
     lines = raw[2:].decode("utf-16-le").split("\r\n")
-    assert lines[0] == "[status]" and "schema=skellytracker.eps.status/1" in lines and "count=4" in lines
+    assert lines[0] == "[status]" and "schema=skellytracker.eps.status/1" in lines and "count=6" in lines
     assert "recommended=trt-rtx" in lines and "recommended_download_mb=106" in lines and "recommended_row=nvidia-cc80-r580" in lines
-    assert [line for line in lines if line.startswith("[ep.")] == ["[ep.0]", "[ep.1]", "[ep.2]", "[ep.3]"]
-    assert lines[lines.index("[ep.3]") + 1] == "key=cpu" and "builtin=1" in lines[lines.index("[ep.3]"):]
-    assert "state=field_test" in lines[lines.index("[ep.2]"):lines.index("[ep.3]")]
+    assert [line for line in lines if line.startswith("[ep.")] == [f"[ep.{n}]" for n in range(6)]
+    assert lines[lines.index("[ep.5]") + 1] == "key=cpu" and "builtin=1" in lines[lines.index("[ep.5]"):]
+    assert "state=field_test" in lines[lines.index("[ep.4]"):lines.index("[ep.5]")]  # `directml`
     assert all(len(line.partition("=")[2]) < 1024 for line in lines)
 
 

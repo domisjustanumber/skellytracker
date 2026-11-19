@@ -11,19 +11,29 @@ indexes:
   pypi: https://pypi.org/simple/
   # The Azure feed is the only source of the cuda plugin wheel. There is no mirror.
   ort-cuda-13: https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-13/pypi/simple/
+  # AMD publishes the MIGraphX EP wheels and the MIGraphX library wheels only on its own indexes. The pages give no sha256.
+  amd-ort: https://stable.repo.amd.com/rocm/onnxruntime/whl-next/
+  amd-migraphx: https://stable.repo.amd.com/rocm/migraphx/whl-next/
 
-# The platforms that have packs. macOS has no pack.
+# The platforms that have packs. macOS has no pack. A pack is only for the platforms that its `library` map names.
 platforms: [win_amd64, manylinux_x86_64]
 
 # A `dependency_wheels` version can be a map from a platform to a version: a platform that the map does not
 # name has no such wheel. `preload_own` gives the libraries of the plugin wheel that Linux loads before the
 # EP library, in order, each as the file name up to `.so`. A `driver_branch_min` can be a map from a
-# platform to a branch.
+# platform to a branch. `preload_dependencies` replaces the Linux preload of each library of the dependency wheels with
+# only the libraries that it names, in order. `preload_ort_core: true` makes Linux load the ONNX Runtime core library
+# (`onnxruntime/capi/libonnxruntime.so.*`) first, for an EP library that needs `libonnxruntime.so.1`.
+# `requires.rocm` is the ROCm release (`major.minor`) that the host must have. An EP key with more than one pack for a
+# platform uses the pack of the ROCm release of the host, else its first pack.
+# `windows_ml` names the platforms where the EP comes from the Windows ML catalog under the `ep_name` of the EP row,
+# with the GPU floors of `requires` of the EP row. Windows installs that package. The EP has no pack there (ADR-XSE7).
 # An option value is a list of the allowed strings, or `positive-int`.
 # Each other option name is refused, also `device_id`: the device comes from the device map.
 # `description` is one sentence for a user, at most 120 characters: what the EP runs on and what it needs.
-# `status` of a pack or of a built-in EP is `ready` (the default), `test` (a test pack) or `field-test`. A
-# `field-test` EP is usable only after an opt-in in the EP store, and `recommend()` never gives it (ADR-Z5X7).
+# `status` of a pack, of a built-in EP or of a `windows_ml` EP row is `ready` (the default), `test` (a test pack) or
+# `field-test`. A `field-test` EP is usable only after an opt-in in the EP store, and `recommend()` never gives it
+# (ADR-Z5X7). A `field-test` pack is not in the set hash of `ep_evidence.yaml` (ADR-XSE7).
 # A built-in EP with `selects_gpu: true` runs on one GPU: the session takes the ONNX Runtime device of that GPU.
 eps:
   trt-rtx:
@@ -98,6 +108,86 @@ eps:
     options:
       allowed: {MLComputeUnits: [ALL, CPUAndGPU, CPUAndNeuralEngine, CPUOnly]}
       defaults: {}
+  amdgpu:
+    kind: plugin
+    gpu: true
+    display_name: AMD GPU (Windows ML)
+    description: "Runs on AMD GPUs on Windows from the Windows ML catalog, and needs an AMD driver 24.12.1 or later. In a field test."
+    ep_name: AMDGPUExecutionProvider
+    windows_ml: [win_amd64]
+    requires: {vendor: amd}
+    status: field-test
+    precision_order: [fp16, fp32]
+    l3_atol: 1.5e-2
+    options: {allowed: {}, defaults: {}}
+  migraphx:
+    kind: plugin
+    gpu: true
+    display_name: AMD MIGraphX
+    description: "Runs on AMD GPUs: on Linux with ROCm 10.0, 10.1 or 10.2, on Windows from Windows ML. It is in a field test."
+    ep_name: MIGraphXExecutionProvider
+    # Windows: the EP of the Windows ML catalog. Windows ML 2 marks it as deprecated. Linux: the pack of the ROCm of the host.
+    windows_ml: [win_amd64]
+    requires: {vendor: amd}
+    status: field-test
+    precision_order: [fp16, fp32]
+    l3_atol: 1.5e-2
+    options: {allowed: {}, defaults: {}}
+    packs:
+      # AMD tested each pack with ONNX Runtime 1.29 only (`Requires-Dist: onnxruntime~=1.29.0`). On 1.30.0 it is `untested-ort`.
+      # 10.1 and 10.2: the EP library finds `libmigraphx_c.so.3` through its RUNPATH `$ORIGIN/../migraphx_libs`, and the
+      # ROCm libraries in `/opt/rocm/lib`. The pack installs no ROCm: the host must have it.
+      - id: migraphx-rocm10.2
+        package: onnxruntime-ep-migraphx
+        version: "1.0.0+rocm10.2.0"
+        index: amd-ort
+        ep_name: MIGraphXExecutionProvider
+        library: {manylinux_x86_64: libmigraphx-ep.so}
+        dependency_wheels:
+          - {package: migraphx-libs, index: amd-migraphx, version: "2.19.0+rocm10.2.0"}
+        preload_dependencies: []
+        exclusive_group: MIGraphXExecutionProvider
+        requires: {vendor: amd, rocm: "10.2"}
+        ort: {vendor_tested: ["1.29", "1.29"]}
+        licences:
+          - {name: ONNX Runtime MIGraphX EP, url: "https://github.com/onnxruntime/onnxruntime-ep-amdgpu"}
+          - {name: AMD MIGraphX, url: "https://github.com/ROCm/AMDMIGraphX"}
+        status: field-test
+      - id: migraphx-rocm10.1
+        package: onnxruntime-ep-migraphx
+        version: "1.0.0+rocm10.1.0"
+        index: amd-ort
+        ep_name: MIGraphXExecutionProvider
+        library: {manylinux_x86_64: libmigraphx-ep.so}
+        dependency_wheels:
+          - {package: migraphx-libs, index: amd-migraphx, version: "2.18.0+rocm10.1.0"}
+        preload_dependencies: []
+        exclusive_group: MIGraphXExecutionProvider
+        requires: {vendor: amd, rocm: "10.1"}
+        ort: {vendor_tested: ["1.29", "1.29"]}
+        licences:
+          - {name: ONNX Runtime MIGraphX EP, url: "https://github.com/onnxruntime/onnxruntime-ep-amdgpu"}
+          - {name: AMD MIGraphX, url: "https://github.com/ROCm/AMDMIGraphX"}
+        status: field-test
+      # 10.0: the wheel declares no `migraphx-libs`, its RUNPATH holds only AMD build paths and `/opt/rocm/lib`, and it needs
+      # `libonnxruntime.so.1`. The preload replaces the workaround of AMD (a link and LD_LIBRARY_PATH).
+      - id: migraphx-rocm10.0
+        package: onnxruntime-ep-migraphx
+        version: "1.0.0+rocm10.0.0"
+        index: amd-ort
+        ep_name: MIGraphXExecutionProvider
+        library: {manylinux_x86_64: libmigraphx-ep.so}
+        dependency_wheels:
+          - {package: migraphx-libs, index: amd-migraphx, version: "2.17.0+rocm10.0.0"}
+        preload_dependencies: [libmigraphx_c.so]
+        preload_ort_core: true
+        exclusive_group: MIGraphXExecutionProvider
+        requires: {vendor: amd, rocm: "10.0"}
+        ort: {vendor_tested: ["1.29", "1.29"]}
+        licences:
+          - {name: ONNX Runtime MIGraphX EP, url: "https://github.com/onnxruntime/onnxruntime-ep-migraphx"}
+          - {name: AMD MIGraphX, url: "https://github.com/ROCm/AMDMIGraphX"}
+        status: field-test
   directml:
     kind: builtin
     gpu: true
@@ -136,7 +226,6 @@ eps:
           - {name: ONNX Runtime OpenVINO EP, url: "https://pypi.org/project/onnxruntime-ep-openvino/"}
         status: test
   qnn: {kind: reserved, reason: "QNN is deferred"}
-  migraphx: {kind: reserved, reason: "MIGraphX is deferred"}
   vitisai: {kind: reserved, reason: "Vitis AI is deferred"}
 
 # The EP keys that a setting of an older release can hold, each with its successors in order.
@@ -169,11 +258,11 @@ hardware_classes:
   - {id: nvidia-pre-turing, match: {vendor: nvidia},
      candidates: [cpu], offer: none-available, note: "Use the CPU EP. CUDA 13 has no kernels for this GPU.", ranking_evidence: single-ep}
   - {id: intel-gpu, match: {vendor: intel}, candidates: [cpu], ranking_evidence: single-ep}
-  # `recommend()` skips `directml` while it is a `field-test` EP.
+  # `recommend()` skips `amdgpu`, `migraphx` and `directml` while they are `field-test` EPs. Their order is not measured.
   - {id: amd-windows, match: {vendor: amd, os: Windows},
-     candidates: [directml, cpu], offer: none-available, note: "Use the CPU EP. This release has no tested GPU EP for AMD GPUs.", ranking_evidence: none}
-  - {id: amd-deferred, match: {vendor: amd},
-     candidates: [cpu], offer: none-available, note: "Use the CPU EP. This release has no GPU EP for AMD GPUs.", ranking_evidence: single-ep}
+     candidates: [amdgpu, migraphx, directml, cpu], offer: none-available, note: "Use the CPU EP. This release has no tested GPU EP for AMD GPUs.", ranking_evidence: none}
+  - {id: amd-linux, match: {vendor: amd, os: Linux},
+     candidates: [migraphx, cpu], offer: none-available, note: "Use the CPU EP. This release has no tested GPU EP for AMD GPUs.", ranking_evidence: none}
   - {id: apple-silicon, match: {host: true, os: Darwin, arch: arm64}, candidates: [coreml, cpu], ranking_evidence: none}
   - {id: snapdragon-x, match: {host: true, os: Windows, native_arch: ARM64}, candidates: [cpu], ranking_evidence: single-ep}
   - {id: unknown-gpu, match: {}, candidates: [cpu], ranking_evidence: single-ep}
@@ -193,3 +282,9 @@ certification:
   # 0.0047 for `trt-rtx` and 0.0056 for `cuda` (5.2 px and 6.1 px on a box of 519 x 958 px), and a box IoU of
   # 0.999 and 0.989 (ADR-MF2R). One step of the keypoint decode is about 2.3 px on that box.
   thresholds: {box_iou_min: 0.9, keypoint_box_fraction_max: 0.01, score_min: 0.4}
+  # The model files of the pipeline (ADR-Y14H item 12). A path is relative to `skellytracker/core/model_zoo/`. Each URL is
+  # pinned to one commit of the repository. The list `models` is not here yet: its address waits for a decision of the user.
+  # The second environment of the suite, in its work folder, for an EP of `eps` that does not load on `ort_core`. Only that
+  # environment sets `SKELLYTRACKER_EP_ORT_FALLBACK` to this version, and the EP store then accepts it. A pass there is
+  # evidence that the EP works. It does not certify the EP for `ort_core` (ADR-XSE7). `bytes` is the size of the wheel.
+  ort_fallback: {package: onnxruntime, version: "1.29.0", bytes: 23136817, eps: [migraphx]}

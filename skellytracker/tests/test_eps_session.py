@@ -154,7 +154,7 @@ def test_windows_dll_folders_go_first_in_path(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize(("key", "options"), [
     ("cuda", {"device_id": "0"}), ("cuda", {"use_tf32": "banana"}), ("cuda", {"enable_cuda_graph": "1"}), ("trt-rtx", {"bogus_key": "1"}),
-    ("cpu", {"device_id": "0"}), ("directml", {"device_id": "1"}), ("migraphx", None), ("openvino", None), ("tensorrt", None),
+    ("cpu", {"device_id": "0"}), ("directml", {"device_id": "1"}), ("qnn", None), ("openvino", None), ("tensorrt", None),
 ])
 def test_a_bad_request_raises_before_onnxruntime(monkeypatch, key, options):
     def not_reached(*args, **kwargs):
@@ -339,7 +339,7 @@ def test_verify_refuses_a_pack_that_is_not_installed(monkeypatch):
     with pytest.raises(EpUnavailableError, match="not installed"):
         eps.verify(["cuda"])
     with pytest.raises(EpRequestError):
-        eps.verify(["migraphx"])
+        eps.verify(["qnn"])
     with pytest.raises(EpUnavailableError, match="field test.*--field-test"):  # ADR-Z5X7: no opt-in in the store
         eps.verify(["directml"])
     with pytest.raises(ValueError, match="level"):

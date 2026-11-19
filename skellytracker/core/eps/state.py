@@ -49,20 +49,26 @@ def check_start(execution_provider: str, ep_options: Mapping[str, str] | None = 
 
 
 REPAIRABLE_STATES = ("not_installed", "stale", "not_ready")  # the states that `skellytracker-eps install` repairs
+SOURCES = {"pypi": "pypi", "ort-cuda-13": "azure", "amd-ort": "amd"}  # the index of a pack -> `PackStatus.source`
 
 
 def _pack_status(catalog, key: str, host) -> PackStatus | None:
     row, pack = catalog.ep(key), catalog.pack(key)
     tag = catalog_module.platform_tag()
     if pack is None:
-        if "platforms" in row and tag not in row["platforms"]:
-            return None  # for example `coreml` off macOS
-        device_key, gpu = next(iter(ep_gpus(catalog, key, host)), (None, None))  # only `directml` has GPUs here
+        windows_ml = catalog.windows_ml(key)
+        if ("platforms" in row and tag not in row["platforms"]) or (row["kind"] == "plugin" and not windows_ml):
+            return None  # for example `coreml` off macOS, or `amdgpu` off Windows
+        device_key, gpu = next(iter(ep_gpus(catalog, key, host)), (None, None))  # `directml` or a Windows ML EP
         state, code, reason = store.pack_state(catalog, key, gpu, device_key, host.os_build)
+        if windows_ml and gpu is None and host.gpus:  # the floor that the GPUs of the host do not pass
+            code, reason = min((catalog.floors_reason(row, g) for g in host.gpus), key=lambda floor: floor[0] == "no-device")
         usable = state in USABLE_STATES
-        return PackStatus(key, row["display_name"], state, catalog_status=row.get("status", "ready"), reason_code=code,
-                          reason=reason, usable=usable, uses_gpu=row["gpu"], description=row["description"],
-                          devices=run_devices(key) if usable else ())
+        return PackStatus(key, row["display_name"], state, "windows-ml" if windows_ml else "builtin", row.get("status", "ready"),
+                          code, reason, usable=usable,
+                          install_hint=install_hint(key) if windows_ml and state in REPAIRABLE_STATES else None,
+                          uses_gpu=row["gpu"], description=row["description"], devices=run_devices(key) if usable else (),
+                          certified=None if gpu is None or not windows_ml else evidence.certified(key, gpu, host.os_name))
     lock = catalog.pack_lock(pack["id"])
     if lock is None:
         return None  # a platform with no pack, for example macOS
@@ -73,7 +79,7 @@ def _pack_status(catalog, key: str, host) -> PackStatus | None:
         code, reason = min(floors, key=lambda floor: floor[0] == "no-device")
     usable = state in USABLE_STATES
     return PackStatus(
-        key, row["display_name"], state, "azure" if pack["index"] != "pypi" else "pypi", pack.get("status", "ready"), code, reason,
+        key, row["display_name"], state, SOURCES[pack["index"]], pack.get("status", "ready"), code, reason,
         lock["download_bytes"], lock["unpacked_bytes"], pack["id"], pack["version"], pack["exclusive_group"],
         tuple((licence["name"], licence["url"]) for licence in pack.get("licences", ())),
         usable=usable, install_hint=install_hint(key) if state in REPAIRABLE_STATES else None, uses_gpu=row["gpu"],
@@ -84,8 +90,9 @@ def _pack_status(catalog, key: str, host) -> PackStatus | None:
 def status() -> EpStatus:
     """The state of each EP key of this platform, the recommendations and the store. It loads no library.
 
-    `eps` of the result is in the order of the EP catalog: `trt-rtx`, `cuda`, `coreml`, `directml`, `cpu`
-    (`EpStatus`). An application shows the EPs from this result and holds no EP fact of its own.
+    `eps` of the result is in the order of the EP catalog: `trt-rtx`, `cuda`, `coreml`, `amdgpu`,
+    `migraphx`, `directml`, `cpu` (`EpStatus`). An application shows the EPs from this result and
+    holds no EP fact of its own.
     """
     catalog, host = load_catalog(), probe_host()
     installed = installed_ort()

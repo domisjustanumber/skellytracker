@@ -15,6 +15,11 @@ import pytest
 PY = sys.executable
 
 
+@pytest.fixture(autouse=True)
+def no_windows_ml_catalog(monkeypatch):
+    monkeypatch.setattr(cp, "windows_ml_offer", list)  # the consent text calls no hardware probe and no catalog
+
+
 def emit(data: dict) -> list[str]:
     return [PY, "-c", f"import json; print('noise line'); print(json.dumps({data!r}))"]
 
@@ -133,7 +138,7 @@ def test_the_scrub_removes_the_user_name_the_home_folder_and_the_hostname():
 
 
 def test_a_placeholder_child_prints_not_built(capsys):
-    assert cp.main(["--section", "5"]) == 0
+    assert cp.main(["--section", "6"]) == 0
     assert json.loads(capsys.readouterr().out)["reason_code"] == "not-built"
 
 
