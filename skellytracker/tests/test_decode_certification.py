@@ -98,10 +98,17 @@ def test_a_check_that_raises_fails_with_no_path_and_the_next_checks_run(monkeypa
     assert by_name["preprocess_graph.yolox_person"]["result"] == "pass"
 
 
-def test_an_ep_with_no_gpu_frame_path_runs_no_gpu_check(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_the_reasons_are_a_closed_set() -> None:
+    assert REASONS == ("ok", "over_limit", "mismatch", "refused", "not_refused", "warning_given", "decoder_not_opened", "ep_not_present",
+                       "no_gpu_decode_on_ep", "component_not_installed", "sidecar_not_available", "models_not_available", "raised", "recorded")
+
+
+def test_an_ep_with_no_gpu_frame_path_runs_no_gpu_check_and_has_no_gpu_decode_by_design(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(certification, "PIPELINE_KEY", "no-such-pipeline@skellytracker")  # fast: no pipeline check is a GPU check here
     by_name = {check["name"]: check for check in run_jpeg_certification("cpu")["checks"]}
-    assert all((by_name[name]["result"], by_name[name]["reason"]) == ("not-run", "ep_not_present") for name in GPU_CHECKS)
+    for name in GPU_CHECKS:
+        reason = "no_gpu_decode_on_ep" if name.startswith("gpu_decode.") else "ep_not_present"
+        assert (by_name[name]["result"], by_name[name]["reason"]) == ("not-run", reason), by_name[name]
 
 
 def test_the_import_loads_no_onnxruntime_no_onnx_and_no_nvidia_module() -> None:

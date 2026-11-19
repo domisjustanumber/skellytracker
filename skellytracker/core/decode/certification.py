@@ -28,13 +28,14 @@ REASONS = (
     "warning_given",  # the run gave a warning that the check does not allow
     "decoder_not_opened",  # the GPU JPEG decoder is installed, but it did not open
     "ep_not_present",  # the EP of the check is not requested, not installed or not usable
+    "no_gpu_decode_on_ep",  # a `gpu_decode` check on an EP with no GPU JPEG decode: only `cuda` and `trt-rtx` have one
     "component_not_installed",  # the GPU JPEG decoder component of the EP is not installed
     "sidecar_not_available",  # a package sidecar does not load
     "models_not_available",  # the ONNX files of the built-in pipeline are not on this machine
     "raised",  # the check raised an exception
     "recorded",  # a record-only check recorded its numbers
 )
-GPU_FRAME_EPS = ("cuda", "trt-rtx")  # the EPs with the GPU JPEG decoder and the GPU preprocess
+GPU_FRAME_EPS = ("cuda", "trt-rtx")  # the NVIDIA EPs: the only EPs with the GPU JPEG decode, and the EPs of the GPU preprocess
 GPU_LIMIT = 3  # the max abs difference of a GPU decode against the CPU decode (measured on this branch: 3)
 CPU_MEAN_LIMIT = 3.0  # the mean abs difference of a CPU decode of a quality 95 JPEG against its source image
 QUALITY = 95
@@ -62,9 +63,10 @@ class _Stop(Exception):
 def run_jpeg_certification(ep_key: str | None = None, *, progress: Callable[[str], None] | None = None) -> dict:
     """Run each check on this machine and return `{"schema", "ep_key", "facts", "checks"}`: JSON-able data only.
 
-    `ep_key` is the EP of the GPU checks and of the pipeline checks. None and an EP with no GPU
-    frame path (each EP that is not `cuda` or `trt-rtx`) run the CPU checks: each GPU check then
-    gives `not-run` with the reason `ep_not_present`. `progress(name)` is called before each check.
+    `ep_key` is the EP of the GPU checks and of the pipeline checks. Only the NVIDIA EPs `cuda` and
+    `trt-rtx` have a GPU JPEG decode. None and each other EP run the CPU checks: each GPU check then
+    gives `not-run`. The reason is `no_gpu_decode_on_ep` for a `gpu_decode` check on an other EP, and
+    `ep_not_present` for each other case. `progress(name)` is called before each check.
 
     Each item of `checks` has `name`, `result` (a value of `RESULTS`), `reason` (a value of
     `REASONS`), `numbers` (str to int or float), `warnings` (`{code, reason}` of each warning of the
@@ -191,6 +193,8 @@ def run_jpeg_certification(ep_key: str | None = None, *, progress: Callable[[str
         return state["report"]
 
     def decoder() -> Any:
+        if ep_key is not None and ep_key not in GPU_FRAME_EPS:
+            raise _Stop("no_gpu_decode_on_ep", f"the EP {ep_key!r} has no GPU JPEG decode: only the NVIDIA EPs 'cuda' and 'trt-rtx' have one")
         report = gpu_report()
         if "decoder" not in state:
             from skellytracker.core.decode.nvidia import NvJpegDecoder

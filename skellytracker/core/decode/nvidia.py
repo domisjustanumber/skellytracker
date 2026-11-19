@@ -8,9 +8,11 @@ from __future__ import annotations
 
 import ctypes
 import os
+import threading
 from collections.abc import Callable, Sequence
 from typing import Any
 
+import cv2
 import numpy as np
 
 from skellytracker.core._hardware.sanitize import sanitize_text
@@ -26,15 +28,24 @@ CUDART_SYMBOLS = ("cudaGetDevice", "cudaSetDevice", "cudaStreamCreateWithFlags",
 HUFFMAN_GPU_THRESHOLD = "nvjpeg_cuda_decoder:hybrid_huffman_threshold=500000"
 
 
+SELF_TEST_TIMEOUT_S = 10.0  # the wait of `open()` for the decode of its test JPEG
+_abandoned: list[Any] = []  # decoders whose test decode did not return: never closed, never garbage-collected
+
+
 def cuda_threads() -> int:
     """The worker thread count of the decoder, and also its CUDA stream count.
 
-    nvImageCodec 0.10.0 never returns from a decode of one image when it has fewer CUDA streams than
-    threads. It limits the threads to the CPU count minus 1, ignores a stream count that it refuses
-    (more streams than threads), and then takes NVIMGCODEC_DEFAULT_NUM_CUDA_STREAMS. A count below
-    the CPU count and at most 8 is thus valid, and the variable cannot lower it.
+    nvImageCodec 0.10.0.9 never returns from a decode of one image when it has fewer CUDA streams than
+    threads: the threads that share a stream wait at a barrier, and one image wakes only one thread.
+    The library limits the threads to the CPU count minus 1. It refuses a stream count above the
+    thread count and keeps its default, which is NVIMGCODEC_DEFAULT_NUM_CUDA_STREAMS when that is
+    valid, else the thread count. The decoder removes that variable, so equal counts are safe.
     """
     return min(max(1, (os.process_cpu_count() or 2) - 1), 8)
+
+
+def _self_test_jpeg() -> bytes:
+    return cv2.imencode(".jpg", np.tile(np.arange(0, 256, 8, dtype=np.uint8)[:, None, None], (1, 32, 3)))[1].tobytes()  # 32x32 gradient
 
 
 def turn_graph(rotation_deg: int) -> bytes:
@@ -83,6 +94,7 @@ class NvJpegDecoder:
         self._stream = ctypes.c_void_p()
         self._on_device(lambda: cudart.cudaStreamCreateWithFlags(ctypes.byref(self._stream), NON_BLOCKING), "cudaStreamCreateWithFlags")
         threads = cuda_threads()  # the same count for the threads and the streams
+        os.environ.pop("NVIMGCODEC_DEFAULT_NUM_CUDA_STREAMS", None)  # a value below the thread count makes a decode of one image hang
         try:
             self._decoder = nvimgcodec.Decoder(
                 device_id=device_id, max_num_cpu_threads=threads, options=f":num_cuda_streams={threads} {HUFFMAN_GPU_THRESHOLD}",
@@ -100,7 +112,8 @@ class NvJpegDecoder:
         GPU. None is the default GPU of `build_session()` and CUDA device 0. The result is None when
         `prepare_jpeg_decoder()` gives None: the pack has no decoder, or the component is missing or
         unusable. It is also None, with one log warning, when the CUDA runtime of the component does
-        not load or lacks a function. An other error of the CUDA runtime or of nvImageCodec passes through.
+        not load or lacks a function, or when the decode of a test JPEG raises, gives no image or does
+        not return in `SELF_TEST_TIMEOUT_S`. An other error of the CUDA runtime or of nvImageCodec passes through.
         """
         prepared = registration.prepare_jpeg_decoder(execution_provider)
         if prepared is None:
@@ -114,7 +127,38 @@ class NvJpegDecoder:
             store.warn_once(f"jpeg-decoder-cudart:{execution_provider}",
                             f"The GPU JPEG decoder of '{execution_provider}' is not used: the CUDA runtime does not load: {sanitize_text(str(error))[:300]}.")
             return None
-        return cls(nvimgcodec, cudart, execution_provider, device_key, int(ep_device_id or 0))
+        decoder = cls(nvimgcodec, cudart, execution_provider, device_key, int(ep_device_id or 0))
+        failure = decoder._self_test()
+        if failure is None:
+            return decoder
+        store.warn_once(f"jpeg-decoder-self-test:{execution_provider}", f"The GPU JPEG decoder of '{execution_provider}' is not used: {failure}.")
+        return None
+
+    def _self_test(self) -> str | None:
+        """Decode one test JPEG in a daemon thread. None when it gives an image in time, else the reason.
+
+        A failed decoder closes. A decode that does not return leaves a thread inside the decoder, so
+        the decoder is abandoned: a close or a destroy then can crash the process.
+        """
+        outcome: list[str | None] = []
+
+        def run() -> None:
+            try:
+                images = self._decoder.decode([_self_test_jpeg()], params=self._params, cuda_stream=self._stream.value)
+                _check(self._cudart.cudaStreamSynchronize(self._stream), "cudaStreamSynchronize")
+                outcome.append(None if images and images[0] is not None else "the decode of a test JPEG gave no image")
+            except Exception as error:
+                outcome.append(f"the decode of a test JPEG raised: {sanitize_text(str(error))[:300]}")
+
+        worker = threading.Thread(target=run, name="skellytracker-jpeg-self-test", daemon=True)
+        worker.start()
+        worker.join(SELF_TEST_TIMEOUT_S)
+        if worker.is_alive():
+            _abandoned.append(self)
+            return f"the decode of a test JPEG did not return in {SELF_TEST_TIMEOUT_S:g} s"
+        if outcome[0] is not None:
+            self.close()
+        return outcome[0]
 
     def decode(self, buffers: Sequence[bytes | bytearray], rotations: Sequence[int]) -> list[DecodedFrame | None]:
         """Decode the buffers in one batch, wait for the GPU, then turn each frame clockwise by its `rotation_deg`.

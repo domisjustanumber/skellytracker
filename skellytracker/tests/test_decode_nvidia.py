@@ -9,6 +9,7 @@ import logging
 import os
 import subprocess
 import sys
+import threading
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -115,6 +116,55 @@ def test_open_gives_none_and_a_warning_when_the_cuda_runtime_lacks_a_function(mo
     assert any("'trt-rtx'" in record.getMessage() and "cudaSetDevice" in record.getMessage() for record in caplog.records)
 
 
+def opened(monkeypatch: pytest.MonkeyPatch, decode: object, calls: list | None = None) -> NvJpegDecoder | None:
+    """`NvJpegDecoder.open("cuda")` on the fake module and CUDA runtime. `decode(sources)` is the decode of the fake library."""
+    monkeypatch.setattr(store, "_warned", set())
+    monkeypatch.setattr(nvidia, "_abandoned", [])
+    module = SimpleNamespace(**{**vars(FAKE_MODULE), "Decoder": type("Decoder", (FakeDecoder,), {"decode": lambda self, sources, **kwargs: decode(sources)})})
+    monkeypatch.setattr(registration, "prepare_jpeg_decoder", lambda key: (module, Path("cudart.dll")))
+    monkeypatch.setattr(nvidia.ctypes, "CDLL", lambda path: fake_cudart([] if calls is None else calls))
+    return NvJpegDecoder.open("cuda")
+
+
+def test_the_decoder_removes_the_stream_count_variable_before_the_library_makes_its_decoder(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("NVIMGCODEC_DEFAULT_NUM_CUDA_STREAMS", "1")
+    seen = []
+    module = SimpleNamespace(**{**vars(FAKE_MODULE), "Decoder": lambda **kwargs: seen.append(os.environ.get("NVIMGCODEC_DEFAULT_NUM_CUDA_STREAMS"))})
+    NvJpegDecoder(module, fake_cudart([]), "cuda", None, 0)
+    assert seen == [None]
+
+
+def test_open_gives_the_decoder_when_the_test_jpeg_decodes(monkeypatch: pytest.MonkeyPatch) -> None:
+    sources: list = []
+    decoder = opened(monkeypatch, lambda found: sources.append(found) or ["image"])
+    assert isinstance(decoder, NvJpegDecoder) and decoder._decoder is not None
+    assert len(sources) == 1 and len(sources[0]) == 1 and cpu.starts_as_jpeg(sources[0][0])
+
+
+@pytest.mark.parametrize("decode", [lambda sources: [None], lambda sources: 1 / 0], ids=["no-image", "raises"])
+def test_open_gives_none_and_closes_the_decoder_when_the_test_decode_fails(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture,
+                                                                           decode: object) -> None:
+    calls: list = []
+    with caplog.at_level(logging.WARNING):
+        assert opened(monkeypatch, decode, calls) is None
+    assert "cudaStreamDestroy" in calls and nvidia._abandoned == []
+    assert any("test JPEG" in record.getMessage() for record in caplog.records)
+
+
+def test_open_gives_none_and_abandons_the_decoder_when_the_test_decode_does_not_return(monkeypatch: pytest.MonkeyPatch,
+                                                                                        caplog: pytest.LogCaptureFixture) -> None:
+    monkeypatch.setattr(nvidia, "SELF_TEST_TIMEOUT_S", 0.2)
+    release, calls = threading.Event(), []
+    try:
+        with caplog.at_level(logging.WARNING):
+            assert opened(monkeypatch, lambda sources: release.wait(), calls) is None
+        (abandoned,) = nvidia._abandoned
+        assert abandoned._decoder is not None and "cudaStreamDestroy" not in calls
+        assert any("did not return in 0.2 s" in record.getMessage() for record in caplog.records)
+    finally:
+        release.set()
+
+
 def test_the_decoder_allows_only_the_nvjpeg_backends_and_sets_the_stream_count_to_the_thread_count() -> None:
     kwargs = fake_decoder()._decoder.kwargs
     assert kwargs["backends"] == ["gpu", "hybrid"]
@@ -171,6 +221,14 @@ def gpu_decoder(request: pytest.FixtureRequest):
         pytest.skip(f"{request.param} has no GPU JPEG decoder component")
     with decoder:
         yield decoder
+
+
+@pytest.mark.gpu
+def test_the_real_open_passes_its_test_decode_and_the_decoder_decodes_one_image(gpu_decoder: NvJpegDecoder) -> None:
+    assert nvidia._abandoned == []
+    data = jpeg(picture(32, 32))
+    (frame,) = gpu_decoder.decode([data], [0])
+    assert steps(frame.host, reference(data)) <= 3
 
 
 @pytest.mark.gpu
@@ -280,7 +338,12 @@ import sys
 import cv2, numpy as np
 from skellytracker.core.decode import nvidia
 from skellytracker.core.decode.nvidia import NvJpegDecoder
-if sys.argv[2] != "default":
+from skellytracker.core.eps import registration
+if sys.argv[2] == "refused":  # 5 streams for 4 threads: the library refuses the option and keeps its default
+    module, _ = registration.prepare_jpeg_decoder(sys.argv[1])
+    make = module.Decoder
+    module.Decoder = lambda **kwargs: make(**{**kwargs, "max_num_cpu_threads": 4, "options": ":num_cuda_streams=5"})
+elif sys.argv[2] != "default":
     nvidia.cuda_threads = lambda: int(sys.argv[2])
 decoder = NvJpegDecoder.open(sys.argv[1])
 (frame,) = decoder.decode([cv2.imencode('.jpg', np.full((48, 64, 3), 100, np.uint8))[1].tobytes()], [0])
@@ -291,7 +354,7 @@ decoder.close()
 
 
 @pytest.mark.gpu
-@pytest.mark.parametrize("threads", ["default", "4"])
+@pytest.mark.parametrize("threads", ["default", "4", "refused"])
 def test_a_decode_of_one_image_returns_when_the_environment_sets_one_cuda_stream(gpu_decoder: NvJpegDecoder, threads: str) -> None:
     env = dict(os.environ, NVIMGCODEC_DEFAULT_NUM_CUDA_STREAMS="1")
     try:
